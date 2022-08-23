@@ -82,6 +82,7 @@ const CanvasComponent = React.memo(
 		isPreview,
 		scale = 1,
 		stage,
+		canvasId,
 	}: {
 		bounds: RectReadOnly
 		dataConfig: Block[]
@@ -89,6 +90,7 @@ const CanvasComponent = React.memo(
 		isPreview: boolean
 		scale?: number
 		stage?: React.RefObject<Konva.Stage>
+		canvasId?: string
 	}) => {
 		const user = useUser()
 		const state = useRecoilValue(studioStateAtom)
@@ -125,6 +127,13 @@ const CanvasComponent = React.memo(
 			Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
 			setMountStage(true)
 		}, [stageWidth, shortsMode])
+
+    useEffect(() => {
+      if(!canvasId || !layerRef?.current) return
+      // eslint-disable-next-line no-underscore-dangle
+      const canvas = layerRef.current.getCanvas()._canvas
+			canvas.id = canvasId
+    },[canvasId, layerRef?.current])
 
 		useEffect(() => {
 			if (state === 'recording' && mountStage) start()

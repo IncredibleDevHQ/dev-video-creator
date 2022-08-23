@@ -133,15 +133,20 @@ const Studio = ({
 
 	const start = () => {
 		try {
-			const canvas = document
-				.getElementsByClassName('konvajs-content')[0]
-				.getElementsByTagName('canvas')[0]
+			const canvas = document.getElementById('incredibleCanvas')
 			// if (
 			// 	dataConfig &&
 			// 	dataConfig[activeObjectIndex]?.type !== 'introBlock'
 			// )
 			// setTopLayerChildren({ id: nanoid(), state: 'transition moveAway' })
-			startCanvasRecording(canvas, {
+			if (!canvas) {
+				emitToast('Could not find canvas', {
+					type: 'error',
+					autoClose: 2000,
+				})
+				return
+			}
+			startCanvasRecording(canvas as HTMLCanvasElement, {
 				localStream: agoraStreamData?.stream as MediaStream,
 				remoteStreams: agoraStreamData?.audios as MediaStream[],
 			})
@@ -471,6 +476,7 @@ const Studio = ({
 								}
 							)}
 							ref={ref}
+							id='canvasComponent'
 						>
 							<CanvasComponent
 								bounds={bounds}
@@ -479,6 +485,7 @@ const Studio = ({
 								isPreview={false}
 								stage={stageRef}
 								scale={viewConfig?.mode === 'Portrait' ? 0.9 : 1}
+								canvasId='incredibleCanvas'
 							/>
 						</div>
 						<Notes
