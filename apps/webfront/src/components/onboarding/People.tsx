@@ -15,27 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program\.  If not, see <http://www\.gnu\.org/licenses/>\.
 
-/* eslint-disable @next/next/no-img-element */
 import { css, cx } from '@emotion/css'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import React from 'react'
-
-const positionCSS = ({
-	top,
-	left,
-	right,
-	bottom,
-}: {
-	top?: number
-	left?: number
-	right?: number
-	bottom?: number
-}) => css`
-	${top && `top: ${top}%;`}
-	${left && `left: ${left}%;`}
-  ${right && `right: ${right}%;`}
-  ${bottom && `bottom: ${bottom}%;`}
-`
 
 export const rippleAnimation = css`
 	&:hover {
@@ -71,11 +54,7 @@ const People = () => (
 	<div className='w-full relative mt-4 h-2/3'>
 		<motion.div
 			className={cx(
-				'w-14 h-14 rounded-full bg-dark-400 absolute',
-				positionCSS({
-					top: 58.6,
-					left: 30.95,
-				}),
+				'w-14 h-14 rounded-full bg-dark-400 absolute top-[58.6%] left-[5%] lg:left-[30.95%]',
 				rippleAnimation
 			)}
 			animate={{
@@ -88,19 +67,16 @@ const People = () => (
 				repeat: Infinity,
 			}}
 		>
-			<img
+			<Image
 				src='/onboarding/person2.png'
-				className='w-full h-full object-cover'
-				alt='person1'
+				width={55}
+				height={55}
+				alt='person2'
 			/>
 		</motion.div>
 		<motion.div
 			className={cx(
-				'w-20 h-20 rounded-full bg-dark-400 absolute',
-				positionCSS({
-					top: 80.56,
-					left: 37.3,
-				}),
+				'w-20 h-20 rounded-full bg-dark-400 absolute hidden lg:block lg:top-[80.56%] lg:left-[37.3%]',
 				rippleAnimation
 			)}
 			animate={{
@@ -113,19 +89,17 @@ const People = () => (
 				repeat: Infinity,
 			}}
 		>
-			<img
+			<Image
 				src='/onboarding/person1.png'
 				className='w-full h-full object-cover'
+				width={81}
+				height={81}
 				alt='person1'
 			/>
 		</motion.div>
 		<motion.div
 			className={cx(
-				'w-14 h-14 rounded-full bg-dark-400 absolute',
-				positionCSS({
-					top: 41.73,
-					left: 43.81,
-				}),
+				'w-14 h-14 rounded-full bg-dark-400 absolute top-[30%] left-[35%] lg:top-[41.73%] lg:left-[43.81%]',
 				rippleAnimation
 			)}
 			animate={{
@@ -138,19 +112,16 @@ const People = () => (
 				repeat: Infinity,
 			}}
 		>
-			<img
+			<Image
 				src='/onboarding/person3.png'
-				className='w-full h-full object-cover'
-				alt='person1'
+				alt='person3'
+				width={55}
+				height={55}
 			/>
 		</motion.div>
 		<motion.div
 			className={cx(
-				'w-20 h-20 rounded-full bg-dark-400 absolute',
-				positionCSS({
-					top: 71.92,
-					left: 51.8,
-				}),
+				'w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-dark-400 absolute top-[71.92%] left-[51.8%]',
 				rippleAnimation
 			)}
 			animate={{
@@ -164,19 +135,16 @@ const People = () => (
 				stiffness: 100,
 			}}
 		>
-			<img
+			<Image
 				src='/onboarding/person5.png'
-				className='w-full h-full object-cover'
-				alt='person1'
+				alt='person5'
+				width={81}
+				height={81}
 			/>
 		</motion.div>
 		<motion.div
 			className={cx(
-				'w-14 h-14 rounded-full bg-dark-400 absolute',
-				positionCSS({
-					top: 15.39,
-					left: 53.43,
-				}),
+				'w-14 h-14 rounded-full bg-dark-400 absolute top-[18%] lg:top-[15.39%] left-[80%] lg:left-[53.43%]',
 				rippleAnimation
 			)}
 			animate={{
@@ -190,19 +158,16 @@ const People = () => (
 				stiffness: 200,
 			}}
 		>
-			<img
+			<Image
 				src='/onboarding/person4.png'
-				className='w-full h-full object-cover'
-				alt='person1'
+				alt='person4'
+				width={55}
+				height={55}
 			/>
 		</motion.div>
 		<motion.div
 			className={cx(
-				'w-24 h-24 rounded-full bg-dark-400 absolute',
-				positionCSS({
-					top: 65.88,
-					left: 61.8,
-				}),
+				'w-[72px] h-[72px] lg:w-[81px] lg:h-[81px] rounded-full bg-dark-400 absolute  top-[65.88%] left-[80%] lg:left-[61.8%]',
 				rippleAnimation
 			)}
 			animate={{
@@ -215,55 +180,36 @@ const People = () => (
 				repeat: Infinity,
 			}}
 		>
-			<img
+			<Image
 				src='/onboarding/person6.png'
-				className='w-full h-full object-cover'
-				alt='person1'
+				alt='person6'
+				width={81}
+				height={81}
 			/>
 		</motion.div>
 		<div
 			className={cx(
-				'bg-dark-200 absolute rounded-full w-20 h-20',
-				positionCSS({
-					top: 39.02,
-					left: 36.8,
-				})
+				'bg-dark-200 absolute hidden lg:block rounded-full w-20 h-20 lg:top-[39.02%] lg:left-[36.8%]'
 			)}
 		/>
 		<div
 			className={cx(
-				'bg-dark-400 absolute rounded-full w-20 h-20',
-				positionCSS({
-					top: 74.92,
-					left: 44.45,
-				})
+				'bg-dark-400 absolute rounded-full w-20 h-20 top-[62.75%] lg:top-[74.92] left-[25%] lg:left-[44.45%]'
 			)}
 		/>
 		<div
 			className={cx(
-				'bg-dark-400 absolute rounded-full w-14 h-14',
-				positionCSS({
-					top: 43.46,
-					left: 49.32,
-				})
+				'bg-dark-400 absolute rounded-full w-14 h-14 top-[20%] left-[5%] lg:top-[43.46%] lg:left-[49.32%]'
 			)}
 		/>
 		<div
 			className={cx(
-				'bg-dark-200 absolute rounded-full w-14 h-14',
-				positionCSS({
-					top: 12.93,
-					left: 47.57,
-				})
+				'bg-dark-200 absolute hidden lg:block rounded-full w-14 h-14 lg:top-[12.93%] lg:left-[47.57%]'
 			)}
 		/>
 		<div
 			className={cx(
-				'bg-dark-200 absolute rounded-full w-20 h-20',
-				positionCSS({
-					top: 40.73,
-					left: 56.06,
-				})
+				'bg-dark-200 absolute rounded-full w-14 h-14 lg:w-20 lg:h-20 left-[65%] top-[45%] lg:top-[40.73%] lg:left-[56.06%]'
 			)}
 		/>
 	</div>

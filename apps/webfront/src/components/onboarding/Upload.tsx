@@ -67,7 +67,7 @@ const Upload = (props: { uploadTag: UploadType }) => {
 	const { getRootProps, getInputProps } = useDropzone({ onDrop, maxFiles: 1 })
 
 	return (
-		<form className='flex flex-col items-start h-full text-white w-1/4 mt-16'>
+		<form className='flex flex-col items-start h-full text-white w-full px-4 md:w-[450px] mt-16'>
 			<Heading textStyle='mediumTitle'> Profile Picture</Heading>
 			<Text textStyle='caption' className='mt-1 text-dark-title-200 mb-2'>
 				Your information will help us in giving you customized designs.

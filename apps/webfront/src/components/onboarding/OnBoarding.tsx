@@ -89,7 +89,7 @@ const OnBoarding = () => {
 				handleOnBoarding,
 			}}
 		>
-			<section className='h-screen w-full flex flex-col justify-start items-center relative'>
+			<section className='h-screen w-full flex flex-col justify-start items-center relative overflow-y-auto overflow-x-hidden'>
 				<Logo size='small' className='m-4 absolute top-0 left-0' />
 				<People />
 

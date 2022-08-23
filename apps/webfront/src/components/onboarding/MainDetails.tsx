@@ -42,7 +42,7 @@ const MainDetails = () => {
 	}, [localUsername])
 
 	return (
-		<form className='flex flex-col items-start h-full text-white w-[450px] mt-16'>
+		<form className='flex flex-col items-start h-full text-white w-full px-4 md:w-[450px] mt-16'>
 			<Heading textStyle='mediumTitle'>Tell us about yourself</Heading>
 			<Text textStyle='caption' className='mt-1 text-dark-title-200'>
 				Your information will help us in giving you customized designs.
