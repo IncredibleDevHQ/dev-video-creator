@@ -33,7 +33,7 @@ const editorUpdate = async (req: NextApiRequest, res: NextApiResponse) => {
 
 	const { fragmentId, encodedEditorValue, editorState } = req.body as Payload
 	try {
-		prisma.fragment.update({
+		await prisma.fragment.update({
 			where: {
 				id: fragmentId,
 			},
