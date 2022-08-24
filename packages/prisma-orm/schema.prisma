@@ -269,7 +269,7 @@ model Fragment {
   md                   String?
   thumbnailConfig      Json?                  @db.Json
   editorValue          Json?                  @db.Json
-  encodedEditorValue   String?
+  encodedEditorValue   String?                @db.LongText
   thumbnailObject      String?
   publishConfig        Json?                  @db.Json
   version              Decimal                @default(2) @db.Decimal
