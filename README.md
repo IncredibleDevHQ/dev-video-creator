@@ -78,4 +78,4 @@ We are committed to the complete OSS porting of Incredible without the third-par
 
 ## ✏️ &nbsp;License
 
-[AGPL-3.0 license](https://github.com/IncredibleDevHQ/Incredible/blob/main/LICENSE)
+[Apache-2.0 license](https://github.com/IncredibleDevHQ/Incredible/blob/main/LICENSE)
