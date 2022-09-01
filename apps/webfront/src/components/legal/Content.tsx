@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 const Content = ({ content }: { content: string }) => (
 	<div className='max-w-5xl pb-40 mx-auto'>
 		<div

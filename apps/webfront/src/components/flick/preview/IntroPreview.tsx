@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable @next/next/no-img-element */
 import { cx } from '@emotion/css'

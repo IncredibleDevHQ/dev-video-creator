@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable no-underscore-dangle */
 import * as trpc from '@trpc/server'
 import { TRPCError } from '@trpc/server'

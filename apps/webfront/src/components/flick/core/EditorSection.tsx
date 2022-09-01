@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { EditorContent, useIncredibleEditor } from 'editor/src'
 import { useEffect, useRef } from 'react'
 import { useRecoilValue, useSetRecoilState } from 'recoil'

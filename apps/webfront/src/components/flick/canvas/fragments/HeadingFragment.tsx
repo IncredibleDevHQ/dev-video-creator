@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { HeadingBlockProps } from 'editor/src/utils/types'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'

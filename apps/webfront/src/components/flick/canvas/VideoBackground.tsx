@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { Video } from 'icanvas/src/Video'
 import React from 'react'
 import { Circle, Group, Image, Line, Rect, Ring, Text } from 'react-konva'

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /*
     Function to handle updates to the view config
     These updates do not reside inside any other component to prevent rerenders

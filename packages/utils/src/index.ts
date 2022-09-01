@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 export { default as getSeekableWebM } from './helpers/get-seekable-webm'
 export { getEnv, useEnv } from './hooks/use-env'
 export { default as useGetHW } from './hooks/use-get-hw'

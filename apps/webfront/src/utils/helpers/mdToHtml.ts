@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import matter from 'gray-matter'
 import { remark } from 'remark'
 import html from 'remark-html'

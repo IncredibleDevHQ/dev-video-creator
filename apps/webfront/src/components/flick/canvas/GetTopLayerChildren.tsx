@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { inferQueryOutput } from 'src/server/trpc'
 import { BrandingJSON } from 'src/utils/configs'
 import { IntroBlockViewProps, TopLayerChildren } from 'utils/src'

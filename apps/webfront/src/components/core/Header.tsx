@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import NextLink from 'next/link'
 import { FaGithub } from 'react-icons/fa'
 import Logo from 'svg/Logo.svg'

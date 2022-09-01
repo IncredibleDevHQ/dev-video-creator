@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'

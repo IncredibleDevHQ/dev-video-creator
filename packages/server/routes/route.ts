@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import serverEnvs from '../utils/env'
 import createRouter from '../createRouter'
 import userRouter from './user'

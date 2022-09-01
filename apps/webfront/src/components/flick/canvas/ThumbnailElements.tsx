@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import React from 'react'
 import { Arc, Circle, Group, Image, Rect, Ring } from 'react-konva'
 import { CONFIG } from 'src/utils/configs'

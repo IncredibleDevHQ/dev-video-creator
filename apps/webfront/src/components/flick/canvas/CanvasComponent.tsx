@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { Block, IntroBlockProps } from 'editor/src/utils/types'
 import Konva from 'konva'
 import React, {
@@ -127,12 +125,12 @@ const CanvasComponent = React.memo(
 			setMountStage(true)
 		}, [stageWidth, shortsMode])
 
-    useEffect(() => {
-      if(!canvasId || !layerRef?.current) return
-      // eslint-disable-next-line no-underscore-dangle
-      const canvas = layerRef.current.getCanvas()._canvas
+		useEffect(() => {
+			if (!canvasId || !layerRef?.current) return
+			// eslint-disable-next-line no-underscore-dangle
+			const canvas = layerRef.current.getCanvas()._canvas
 			canvas.id = canvasId
-    },[canvasId, layerRef?.current])
+		}, [canvasId, layerRef?.current])
 
 		useEffect(() => {
 			if (state === 'recording' && mountStage) start()

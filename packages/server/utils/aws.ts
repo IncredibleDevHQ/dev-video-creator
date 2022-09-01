@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { S3 } from 'aws-sdk'
 import serverEnvs from './env'
 

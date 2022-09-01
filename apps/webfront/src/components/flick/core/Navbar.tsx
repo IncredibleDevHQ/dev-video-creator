@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable no-nested-ternary */
 import AgoraRTC from 'agora-rtc-react'
 import Link from 'next/link'

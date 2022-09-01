@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { cx } from '@emotion/css'
 import { useIncredibleEditor } from 'editor/src'
 import { useRouter } from 'next/router'

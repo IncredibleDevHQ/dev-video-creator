@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 const getEnv = () => ({
 	env: process.env.NEXT_PUBLIC_DEPLOY_ENV,
 	agora: {

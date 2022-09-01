@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import React, { ChangeEvent, useContext } from 'react'
 import { Heading, TextField, Button, Text } from 'ui/src'
 import { OnBoardingContext, OnBoardingScreens } from './types'

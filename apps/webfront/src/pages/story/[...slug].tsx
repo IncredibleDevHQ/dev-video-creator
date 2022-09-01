@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import dynamic from 'next/dynamic'
 import Container from 'src/components/core/Container'
 import prisma from 'prisma-orm/prisma'

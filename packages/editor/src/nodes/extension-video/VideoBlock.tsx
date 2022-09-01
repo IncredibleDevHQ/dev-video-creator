@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/no-this-in-sfc */
 /* eslint-disable react/jsx-no-bind */
@@ -85,7 +83,7 @@ export const VideoBlock = (props: any) => {
 			const video = document.createElement('video')
 			video.width = size.width
 			video.height = size.height
-      video.crossOrigin = 'anonymous'
+			video.crossOrigin = 'anonymous'
 			video.addEventListener('loadedmetadata', () => {
 				video.currentTime = transformations?.clip?.start || 0.1
 			})

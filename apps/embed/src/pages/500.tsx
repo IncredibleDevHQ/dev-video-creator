@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 const ErrorPage = () => (
 	<div className='flex flex-row items-center justify-center h-screen px-2 md:px-0 relative'>
 		<div className='flex flex-col'>

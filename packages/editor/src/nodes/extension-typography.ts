@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable arrow-body-style */
 import { Editor } from '@tiptap/core'
 import Typography from '@tiptap/extension-typography'

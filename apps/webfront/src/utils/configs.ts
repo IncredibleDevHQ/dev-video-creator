@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { RichTextContent } from 'editor/src/utils/types'
 import { ClipConfig } from 'icanvas/src/hooks/useEdit'
 import { Position } from 'src/components/flick/canvas/CodeAnimations'

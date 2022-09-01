@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import Discord from 'svg/Discord.svg'
 import Instagram from 'svg/Instagram.svg'
 import Linkedin from 'svg/Linkedin.svg'

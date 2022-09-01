@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { LiveMap, LiveObject } from '@liveblocks/client'
 import { CoreEditorInstance, EditorProvider } from 'editor/src'
 import parser from 'editor/src/utils/parser'

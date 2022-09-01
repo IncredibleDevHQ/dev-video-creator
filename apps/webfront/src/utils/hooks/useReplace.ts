@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { useRouter } from 'next/router'
 import type { NextRouter } from 'next/router'
 import { useRef, useState } from 'react'

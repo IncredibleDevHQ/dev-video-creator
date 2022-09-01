@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable react/require-default-props */
 import { cx } from '@emotion/css'
 import { Switch as HeadlessSwitch } from '@headlessui/react'

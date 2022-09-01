@@ -11,7 +11,7 @@
 		"commit": "cz",
 		"dev": "turbo run dev --parallel",
 		"lint": "turbo run lint",
-		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
+		"format": "prettier --write \"**/*.{ts,tsx,md,js,jsx}\"",
 		"prepare": "husky install && turbo run prepare",
 		"postinstall": "turbo run postinstall"
 	},

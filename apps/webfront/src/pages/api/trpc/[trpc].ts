@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import * as trpcNext from '@trpc/server/adapters/next'
 import appRouter from 'server/routes/route'
 import { createContext } from 'server/createContext'

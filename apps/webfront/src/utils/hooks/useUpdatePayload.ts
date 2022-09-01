@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { useSetRecoilState } from 'recoil'
 import { payloadFamily } from 'src/stores/studio.store'
 import { FragmentPayload } from '../configs'

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 const Pattern = () => (
 	<svg
 		className='md:max-w-[720px] md:h-[282px] md:w-full w-full h-auto'

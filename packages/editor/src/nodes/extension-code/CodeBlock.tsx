@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { NodeViewContent, NodeViewWrapper } from '@tiptap/react'
 import { listLanguages } from 'lowlight/lib/core'
 import allowedLanguages from '../../utils/allowedLanguages'

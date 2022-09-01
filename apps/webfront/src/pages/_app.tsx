@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable react/jsx-props-no-spreading */
 import { withTRPC } from '@trpc/next'
 import { AppProps } from 'next/app'

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable no-nested-ternary */
 import { Database } from '@hocuspocus/extension-database'
 import { Logger as ExtensionLogger } from '@hocuspocus/extension-logger'

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable arrow-body-style */
 import { cx } from '@emotion/css'
 import { Transition } from '@headlessui/react'

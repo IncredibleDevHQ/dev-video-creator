@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { atom, atomFamily } from 'recoil'
 import { inferQueryOutput } from 'src/server/trpc'

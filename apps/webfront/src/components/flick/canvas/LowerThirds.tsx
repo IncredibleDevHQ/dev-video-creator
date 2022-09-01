@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import useEdit from 'icanvas/src/hooks/useEdit'
 import Konva from 'konva'
 import React, { useRef } from 'react'

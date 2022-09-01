@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable react/jsx-no-constructed-context-values */
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'

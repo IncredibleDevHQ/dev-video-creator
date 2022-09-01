@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { css, cx } from '@emotion/css'
 import React from 'react'
 import { Text } from 'ui/src'
@@ -33,6 +31,22 @@ import { SuggestionItem } from './items'
 
 export type CommandsListState = {
 	selectedIndex: number
+}
+
+const getIcon = (item: SuggestionItem) => {
+	if (item.title === 'H1') return <CommandHeading1 />
+	if (item.title === 'H2') return <CommandHeading2 />
+	if (item.title === 'H3') return <CommandHeading3 />
+	if (item.title === 'Text') return <CommandText />
+	if (item.title === 'Code') return <CommandCode />
+	if (item.title === 'Image') return <CommandImage />
+	if (item.title === 'Video') return <CommandVideo />
+	if (item.title === 'List') return <CommandList />
+	if (item.title === 'Screengrab') return <CommandScreenGrab />
+	if (item.title === 'CodeSandbox') return <CommandCodeSandbox />
+	if (item.title === 'StackBlitz') return <CommandStackBlitz />
+	if (item.title === 'Replit') return <CommandReplit />
+	return null
 }
 
 export class CommandsList extends React.Component<any, CommandsListState> {
@@ -73,22 +87,6 @@ export class CommandsList extends React.Component<any, CommandsListState> {
 		}
 
 		return false
-	}
-
-	getIcon = (item: SuggestionItem) => {
-		if (item.title === 'H1') return <CommandHeading1 />
-		if (item.title === 'H2') return <CommandHeading2 />
-		if (item.title === 'H3') return <CommandHeading3 />
-		if (item.title === 'Text') return <CommandText />
-		if (item.title === 'Code') return <CommandCode />
-		if (item.title === 'Image') return <CommandImage />
-		if (item.title === 'Video') return <CommandVideo />
-		if (item.title === 'List') return <CommandList />
-		if (item.title === 'Screengrab') return <CommandScreenGrab />
-		if (item.title === 'CodeSandbox') return <CommandCodeSandbox />
-		if (item.title === 'StackBlitz') return <CommandStackBlitz />
-		if (item.title === 'Replit') return <CommandReplit />
-		return null
 	}
 
 	upHandler() {
@@ -193,7 +191,7 @@ export class CommandsList extends React.Component<any, CommandsListState> {
 						>
 							<div className='flex items-center mr-20 gap-x-3'>
 								<div className='flex items-center justify-center h-10 w-10 bg-gray-800 rounded-sm'>
-									{this.getIcon(item)}
+									{getIcon(item)}
 								</div>
 								<div className='flex flex-col items-start gap-y-px'>
 									<Text

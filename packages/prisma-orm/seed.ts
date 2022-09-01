@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { PrismaClient } from '@prisma/client'
 import themes from './data/themes'
 import transitions from './data/transitions'

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/require-default-props */
 /* eslint-disable react/no-unknown-property */

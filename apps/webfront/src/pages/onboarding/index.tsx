@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import OnBoarding from 'src/components/onboarding/OnBoarding'
