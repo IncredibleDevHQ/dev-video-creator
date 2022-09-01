@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import { TRPCError } from '@trpc/server'
 import * as trpc from '@trpc/server'
 import { z } from 'zod'
@@ -100,7 +98,7 @@ const sendCollaborationInvite = async (
 			message: input.message,
 			receiverId: input.receiverId,
 			senderId: ctx.user!.sub,
-			type: 'Invite',
+			type: NotificationTypeEnum.Invitation,
 			meta: {
 				inviteId: invitation.id,
 				flickId: input.flickId,
