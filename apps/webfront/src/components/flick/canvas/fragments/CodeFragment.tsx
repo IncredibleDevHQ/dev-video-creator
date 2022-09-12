@@ -347,7 +347,7 @@ const CodeFragment = ({
 				gutter: 8,
 				fontSize,
 				codeAnimation: codeAnimation || CodeAnimation.TypeLines,
-				// fontFamily: branding?.font?.heading?.family,
+				fontFamily: 'Roboto Mono',
 			})
 		)
 	}, [colorCodes, objectRenderConfig, fontSize])
@@ -578,7 +578,12 @@ const CodeFragment = ({
 							{
 								'Type lines': (
 									<>
-										{getRenderedTokens(computedTokens[0], position, fontSize)}
+										{getRenderedTokens(
+											computedTokens[0],
+											position,
+											fontSize,
+											'Roboto Mono'
+										)}
 										{computedTokens.length > 0 &&
 											computedTokens[0].length > 0 && (
 												<RenderTokens
@@ -587,6 +592,7 @@ const CodeFragment = ({
 													startIndex={position.prevIndex}
 													endIndex={position.currentIndex}
 													fontSize={fontSize}
+													fontFamily='Roboto Mono'
 												/>
 											)}
 									</>
@@ -603,6 +609,7 @@ const CodeFragment = ({
 														tokens: computedTokens[0],
 														opacity: highlightBlockCode ? 0.2 : 1,
 														fontSize,
+														fontFamily: 'Roboto Mono',
 													})}
 												</Group>
 											</>
@@ -624,6 +631,7 @@ const CodeFragment = ({
 														0
 													}
 													fontSize={fontSize}
+													fontFamily='Roboto Mono'
 												/>
 											</Group>
 										)}
@@ -665,6 +673,7 @@ const CodeFragment = ({
 								tokens: computedTokens[0],
 								opacity: 1,
 								fontSize,
+								fontFamily: 'Roboto Mono',
 							})}
 						</Group>
 					</Group>

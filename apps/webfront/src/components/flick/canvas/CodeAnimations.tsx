@@ -31,9 +31,11 @@ export interface Position {
 export const TypingEffect = ({
 	token,
 	fontSize,
+	fontFamily,
 }: {
 	token: ComputedToken
 	fontSize: number
+	fontFamily: string
 }) => {
 	const [text, setText] = useState('')
 	useEffect(() => {
@@ -54,6 +56,7 @@ export const TypingEffect = ({
 			x={token?.x}
 			y={token?.y}
 			align='left'
+			fontFamily={fontFamily}
 		/>
 	)
 }
@@ -63,11 +66,13 @@ const RenderTokens = ({
 	startIndex,
 	endIndex,
 	fontSize,
+	fontFamily,
 }: {
 	tokens: ComputedToken[]
 	startIndex: number
 	endIndex: number
 	fontSize: number
+	fontFamily: string
 }) => {
 	const tokenSegment = tokens.slice(startIndex, endIndex)
 
@@ -92,8 +97,13 @@ const RenderTokens = ({
 		<Group>
 			{renderState.tokens.length > 0 &&
 				renderState.tokens.map((token, index) => (
-					// eslint-disable-next-line
-					<TypingEffect fontSize={fontSize} key={index} token={token} />
+					<TypingEffect
+						fontSize={fontSize}
+						// eslint-disable-next-line react/no-array-index-key
+						key={index}
+						token={token}
+						fontFamily={fontFamily}
+					/>
 				))}
 		</Group>
 	)
@@ -106,11 +116,13 @@ export const RenderHighlight = ({
 	startLineNumber,
 	endLineNumber,
 	fontSize,
+	fontFamily,
 }: {
 	tokens: ComputedToken[]
 	startLineNumber: number
 	endLineNumber: number
 	fontSize: number
+	fontFamily: string
 }) => (
 	<Group>
 		{tokens
@@ -129,6 +141,7 @@ export const RenderHighlight = ({
 					x={token.x}
 					y={token.y}
 					align='left'
+					fontFamily={fontFamily}
 				/>
 			))}
 	</Group>
@@ -138,10 +151,12 @@ export const RenderLines = ({
 	tokens,
 	lineNumbers,
 	fontSize,
+	fontFamily,
 }: {
 	tokens: ComputedToken[]
 	lineNumbers: number[]
 	fontSize: number
+	fontFamily: string
 }) => (
 	<Group>
 		{tokens
@@ -156,6 +171,7 @@ export const RenderLines = ({
 					x={token.x}
 					y={token.y}
 					align='left'
+					fontFamily={fontFamily}
 				/>
 			))}
 	</Group>
@@ -333,7 +349,8 @@ export const RenderMultipleLineFocus = ({
 export const getRenderedTokens = (
 	tokens: ComputedToken[],
 	position: Position,
-	fontSize: number
+	fontSize: number,
+	fontFamily: string
 ) => {
 	const startFromIndex = Math.max(
 		...tokens
@@ -353,6 +370,7 @@ export const getRenderedTokens = (
 				x={token.x}
 				y={token.y}
 				align='left'
+				fontFamily={fontFamily}
 			/>
 		))
 }
@@ -363,12 +381,12 @@ export const getTokens = ({
 	tokens,
 	opacity,
 	fontSize,
-	font,
+	fontFamily,
 }: {
 	tokens: ComputedToken[]
 	opacity: number
-	font?: string
 	fontSize: number
+	fontFamily: string
 }) => {
 	let computedLineNumber = 0
 	let lineNumber = 0
@@ -391,7 +409,7 @@ export const getTokens = ({
 				y={(fontSize + 8) * computedLineNumber}
 				opacity={opacity}
 				align='left'
-				fontFamily={font}
+				fontFamily={fontFamily}
 			/>
 		)
 	})
