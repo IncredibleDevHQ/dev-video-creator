@@ -44,7 +44,18 @@ services:
     volumes:
       - my-db:/var/lib/mysql
 
+  editor:
+    build:
+      context: .
+      dockerfile: apps/editor-oss/Dockerfile
+    environment:
+      - EDITOR_API_PORT=8081
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-5-latest-advanced}
+      - OPENAI_ORG=${OPENAI_ORG:-}
+    ports:
+      - "8081:8081"
+
 volumes:
   my-db:
   minio_storage: {}
-

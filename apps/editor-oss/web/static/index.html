@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>OSS Editor Prototype</title>
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<header class="app-header">
+			<h1>OSS Editor Prototype</h1>
+			<p>
+				Select a fragment, edit markdown on the left, and see the preview update
+				instantaneously. Changes persist in the in-memory store.
+			</p>
+		</header>
+
+		<main class="app-main">
+			<aside class="sidebar">
+				<div class="sidebar__header">
+					<h2>Fragments</h2>
+					<button id="add-fragment">+ Add</button>
+				</div>
+				<ul id="fragment-list" class="fragment-list"></ul>
+			</aside>
+
+			<section class="editor">
+				<div class="editor__header">
+					<input id="fragment-name" type="text" placeholder="Fragment name" />
+					<div class="editor__actions">
+                    <button id="save-fragment" class="primary">Done Editing</button>
+                    <button id="delete-fragment" class="danger">Delete</button>
+                </div>
+            </div>
+
+            <div class="editor__meta">
+					<label>
+						<span>Layout</span>
+						<select id="layout-select">
+							<option value="classic">Classic</option>
+							<option value="code-left">Code Left</option>
+							<option value="code-right">Code Right</option>
+							<option value="split">Split</option>
+							<option value="full">Full</option>
+							<option value="outro">Outro</option>
+						</select>
+					</label>
+					<label>
+						<span>Mode</span>
+						<select id="mode-select">
+							<option value="landscape">Landscape</option>
+							<option value="portrait">Portrait</option>
+						</select>
+					</label>
+					<label class="note-field">
+						<span>Note for storytellers</span>
+						<textarea
+							id="note-input"
+							rows="3"
+							placeholder="Share guidance for this fragment..."
+						></textarea>
+					</label>
+				</div>
+
+                <div class="editor__body">
+                    <textarea
+                        id="markdown-input"
+                        placeholder="Write markdown here..."
+                        spellcheck="false"
+                    ></textarea>
+                    <div id="preview" class="preview"></div>
+                    <aside class="history">
+                        <div class="history__header">
+                            <h3>Revision History</h3>
+                            <button id="refresh-revisions" type="button">Refresh</button>
+                        </div>
+                        <ul id="revision-list" class="history__list"></ul>
+                        <div id="revision-detail" class="history__detail muted">
+                            Select a revision to inspect the intent and diff.
+                        </div>
+                    </aside>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <span id="status">Loading story…</span>
+        </footer>
+
+        <section id="intent-modal" class="modal hidden">
+            <div class="modal__dialog">
+                <h3>Capture Editing Intent</h3>
+                <p class="modal__hint">
+                    Review or adjust the interpreted intent for this edit. This
+                    persona data powers future blog suggestions.
+                </p>
+                <textarea
+                    id="intent-text"
+                    rows="5"
+                    placeholder="Explain the purpose of your edit…"
+                ></textarea>
+                <p id="intent-modal-error" class="modal__error"></p>
+                <div class="modal__actions">
+                    <button id="intent-cancel" type="button">Cancel</button>
+                    <button id="intent-save" type="button" class="primary">
+                        Save Revision
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <script src="./app.js" type="module"></script>
+    </body>
+</html>

@@ -1,0 +1,25 @@
+# Binaries
+/cmd/server/server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Go build cache
+.gocache/
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
