@@ -418,10 +418,13 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .theme-lab-tabs button.active { background: white; color: #166534; box-shadow: 0 1px 5px rgba(24,24,27,.12); }
 .theme-lab-options { max-height: 328px; margin-bottom: 10px; padding: 2px; overflow: auto; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
 .theme-lab-options button { min-width: 0; min-height: 66px; padding: 8px; display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 8px; align-items: center; border: 1px solid #e4e4e7; border-radius: 6px; background: white; color: #71717a; text-align: left; }
+.theme-lab-options button.code-theme-choice { grid-template-columns: 48px minmax(0,1fr); }
 .theme-lab-options button:hover { border-color: #a1a1aa; }
 .theme-lab-options button.active { border-color: var(--brand); background: #f0fdf4; box-shadow: 0 0 0 1px var(--brand); color: #166534; }
 .theme-lab-option-glyph { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 5px; background: #f4f4f5; color: #3f3f46; font: 800 11px/1 'Gilroy'; }
+.theme-lab-option-glyph.theme-lab-code-swatch { width: 48px; height: 34px; border: 1px solid color-mix(in srgb,currentColor 28%,transparent); font: 800 10px/1 'Roboto Mono',monospace; letter-spacing: -.08em; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
 .theme-lab-options button.active .theme-lab-option-glyph { background: #dcfce7; color: #15803d; }
+.theme-lab-options button.active .theme-lab-code-swatch { background: inherit; color: inherit; }
 .theme-lab-options button strong, .theme-lab-options button small { display: block; overflow: hidden; text-overflow: ellipsis; }
 .theme-lab-options button strong { color: inherit; font-size: 8px; white-space: nowrap; }
 .theme-lab-options button small { margin-top: 4px; color: #929397; font-size: 7px; line-height: 1.25; }

@@ -187,6 +187,23 @@ const CODE_ANIMATION_OPTIONS: CatalogOption<ThemeCodeAnimation>[] = [
   { value: 'highlight-lines', label: 'Highlight lines', description: 'Dim context and focus each step', glyph: '01' },
 ]
 
+const CODE_THEME_SURFACES: Record<ThemeCodeSyntax, string> = {
+  light_vs: '#ffffff',
+  light_plus: '#ffffff',
+  quietlight: '#f5f5f5',
+  solarized_light: '#fdf6e3',
+  abyss: '#000c18',
+  dark_vs: '#1e1e1e',
+  dark_plus: '#1e1e1e',
+  kimbie_dark: '#221a0f',
+  monokai: '#272822',
+  monokai_dimmed: '#1e1e1e',
+  red: '#390000',
+  solarized_dark: '#002b36',
+  tomorrow_night_blue: '#002451',
+  hc_black: '#000000',
+}
+
 document.querySelector<HTMLImageElement>('#studio-logo')!.src = studioLogoUrl
 document.querySelector<HTMLImageElement>('#theme-builder-logo')!.src = studioLogoUrl
 document.querySelector<HTMLLinkElement>('#app-icon')!.href = logomarkUrl
@@ -683,10 +700,18 @@ const renderThemeDesignLab = () => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = option.value === activeValue ? 'active' : ''
+      button.classList.toggle('code-theme-choice', themeLabAxis === 'syntax')
       button.setAttribute('aria-pressed', String(option.value === activeValue))
       const glyph = document.createElement('span')
       glyph.className = 'theme-lab-option-glyph'
-      glyph.textContent = option.glyph
+      if (themeLabAxis === 'syntax') {
+        glyph.classList.add('theme-lab-code-swatch')
+        glyph.style.background = CODE_THEME_SURFACES[option.value as ThemeCodeSyntax]
+        glyph.style.color = option.glyph
+        glyph.textContent = '{ }'
+      } else {
+        glyph.textContent = option.glyph
+      }
       const copy = document.createElement('span')
       const label = document.createElement('strong')
       label.textContent = option.label
