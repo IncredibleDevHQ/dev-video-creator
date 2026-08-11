@@ -646,6 +646,9 @@ const buildCompositionHtml = (
     .layout-code { --content-layout-width: 1650px; }
     .layout-split { --content-layout-width: 58%; }
     .layout-split .content { margin-left: 0; text-align: left; }
+    .scene-kind-code.layout-split { --content-layout-width: 100%; }
+    .scene-kind-code.layout-code pre { min-height: 540px; }
+    .scene-kind-code.layout-split pre { min-height: 500px; }
     .scene-kind-title.theme-render-split { --content-layout-width: 56%; }
     .scene-kind-title.theme-render-split .content { margin-left: 0; text-align: left; }
     .scene-kind-title.theme-render-lower-third { --content-layout-width: 72%; }
@@ -708,7 +711,8 @@ const buildCompositionHtml = (
     .scene.presenter-portrait-overlay p, .scene.presenter-portrait-overlay li, .scene.presenter-portrait-rail p, .scene.presenter-portrait-rail li, .scene.presenter-split p, .scene.presenter-split li, .scene.presenter-person-background-left p, .scene.presenter-person-background-left li, .scene.presenter-person-background-right p, .scene.presenter-person-background-right li { font-size: 46px; }
     .scene.theme-render-timeline.presenter-information-circle ul, .scene.theme-render-timeline.presenter-information-circle ol, .scene.theme-render-timeline.presenter-information-tile ul, .scene.theme-render-timeline.presenter-information-tile ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .scene.theme-render-timeline.presenter-portrait-overlay ul, .scene.theme-render-timeline.presenter-portrait-overlay ol, .scene.theme-render-timeline.presenter-portrait-rail ul, .scene.theme-render-timeline.presenter-portrait-rail ol, .scene.theme-render-timeline.presenter-split ul, .scene.theme-render-timeline.presenter-split ol, .scene.theme-render-timeline.presenter-person-background-left ul, .scene.theme-render-timeline.presenter-person-background-left ol, .scene.theme-render-timeline.presenter-person-background-right ul, .scene.theme-render-timeline.presenter-person-background-right ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .scene.presenter-portrait-overlay pre code, .scene.presenter-portrait-rail pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: 32px; }
+    .scene.presenter-portrait-overlay pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: 32px; }
+    .scene.scene-kind-code.presenter-portrait-rail pre code { font-size: 36px; }
     .scene.presenter-person-only > :not(.camera) { display: none; }
     .camera-hidden { display: none; }
   </style>

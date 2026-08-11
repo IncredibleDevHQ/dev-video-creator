@@ -234,6 +234,12 @@ describe('compileProject', () => {
       '.camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); translate: none; }',
     )
     expect(result.html).toContain(
+      '.scene-kind-code.layout-split { --content-layout-width: 100%; }',
+    )
+    expect(result.html).toContain(
+      '.scene-kind-code.layout-split pre { min-height: 500px; }',
+    )
+    expect(result.html).toContain(
       'width: min(100%, var(--content-layout-width), var(--presenter-safe-width))',
     )
     expect(result.html).toContain(
