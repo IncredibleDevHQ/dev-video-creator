@@ -7,7 +7,11 @@ import {
   builtinStudioThemes,
   generateThemeDirections,
   normalizeStudioTheme,
+  normalizedRectStyle,
+  presenterLayoutGeometry,
+  type PresenterLayoutMode,
   type ProjectDocumentV1,
+  type ThemeBlockKind,
 } from './index'
 
 const project = (): ProjectDocumentV1 => {
@@ -41,6 +45,58 @@ const project = (): ProjectDocumentV1 => {
 }
 
 describe('compileProject', () => {
+  it('keeps every presenter layout inside normalized canvas bounds', () => {
+    const modes: PresenterLayoutMode[] = [
+      'information-circle',
+      'information-tile',
+      'portrait-overlay',
+      'portrait-rail',
+      'split',
+      'person-background-left',
+      'person-background-right',
+      'person-only',
+    ]
+    const kinds: ThemeBlockKind[] = ['title', 'content', 'list', 'code', 'quote']
+
+    kinds.forEach(kind => {
+      modes.forEach(mode => {
+        const { camera, content } = presenterLayoutGeometry(mode, kind)
+        ;[camera, ...(content ? [content] : [])].forEach(rect => {
+          expect(rect.left).toBeGreaterThanOrEqual(0)
+          expect(rect.top).toBeGreaterThanOrEqual(0)
+          expect(rect.width).toBeGreaterThan(0)
+          expect(rect.height).toBeGreaterThan(0)
+          expect(rect.left + rect.width).toBeLessThanOrEqual(100.001)
+          expect(rect.top + rect.height).toBeLessThanOrEqual(100.001)
+        })
+      })
+    })
+  })
+
+  it('uses the shared presenter geometry in compiled preview media', () => {
+    const modes: PresenterLayoutMode[] = [
+      'information-circle',
+      'information-tile',
+      'portrait-overlay',
+      'portrait-rail',
+      'split',
+      'person-background-left',
+      'person-background-right',
+      'person-only',
+    ]
+
+    modes.forEach(mode => {
+      const directed = project()
+      directed.blocks.intro.camera.mode = mode
+      const result = compileProject(directed, {
+        previewPresenter: { imageUrl: '/presenter.jpg' },
+      })
+      expect(result.html).toContain(
+        normalizedRectStyle(presenterLayoutGeometry(mode, 'title').camera),
+      )
+    })
+  })
+
   it('compiles stable nodes into sequential Hyperframes scenes', () => {
     const result = compileProject(project())
     expect(result.scenes.map(scene => scene.id)).toEqual(['intro', 'body'])

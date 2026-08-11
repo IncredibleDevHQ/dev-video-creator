@@ -10,6 +10,8 @@ import {
   defaultStudioTheme,
   generateThemeDirections,
   normalizeStudioTheme,
+  normalizedRectStyle,
+  presenterLayoutGeometry,
   type BlockBackgroundPreset,
   type BlockRenderConfigV1,
   type CameraPosition,
@@ -1177,6 +1179,7 @@ const createContentLayoutButton = (
 const createPresenterLayoutButton = (
   preset: (typeof PRESENTER_LAYOUT_PRESETS)[number],
   config: BlockRenderConfigV1,
+  blockKind: ThemeBlockKind,
 ) => {
   const isActive =
     config.camera.mode === preset.mode &&
@@ -1198,6 +1201,13 @@ const createPresenterLayoutButton = (
   content.className = 'presenter-layout-content'
   const person = document.createElement('i')
   person.className = 'presenter-layout-person'
+  const layoutGeometry = presenterLayoutGeometry(preset.mode, blockKind)
+  if (layoutGeometry.content) {
+    content.style.cssText = normalizedRectStyle(layoutGeometry.content)
+  } else {
+    content.hidden = true
+  }
+  person.style.cssText = normalizedRectStyle(layoutGeometry.camera)
   const personImage = document.createElement('img')
   personImage.src = selectedPreviewPresenter().url
   personImage.alt = ''
@@ -1248,7 +1258,7 @@ const renderLayoutPresetPicker = (
     contentGrid.append(createContentLayoutButton(layout, config.layout)),
   )
   PRESENTER_LAYOUT_PRESETS.forEach(preset =>
-    presenterGrid.append(createPresenterLayoutButton(preset, config)),
+    presenterGrid.append(createPresenterLayoutButton(preset, config, scene.kind)),
   )
 }
 
