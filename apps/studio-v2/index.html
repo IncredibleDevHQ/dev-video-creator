@@ -86,25 +86,17 @@
                 <label>Video corners <output id="theme-video-radius-output">28px</output><input id="theme-video-radius" type="range" min="0" max="100" step="2" /></label>
                 <label>Border width <output id="theme-video-width-output">8px</output><input id="theme-video-width" type="range" min="0" max="20" step="1" /></label>
               </section>
-              <section>
-                <span class="builder-step">04 · Markdown blocks</span>
-                <label>Titles<select id="theme-title-style"><option value="statement">Statement</option><option value="split">Split editorial</option><option value="lower-third">Lower third</option></select></label>
-                <label>Bullet points<select id="theme-list-style"><option value="bullets">Gradient bullets</option><option value="cards">Point cards</option><option value="timeline">Timeline</option><option value="steps">Numbered steps</option></select></label>
-                <label>Code<select id="theme-code-style"><option value="panel">Code panel</option><option value="terminal">Gradient terminal</option><option value="full">Full canvas</option></select></label>
-                <label>Quotes<select id="theme-quote-style"><option value="bar">Accent bar</option><option value="card">Quote card</option><option value="statement">Statement</option></select></label>
-              </section>
-              <section class="theme-motion-control">
-                <span class="builder-step">05 · Motion system</span>
-                <div class="theme-motion-heading"><div><strong id="theme-motion-title">Title transition</strong><small id="theme-motion-description">Plays in the live preview</small></div><span>Seekable</span></div>
-                <div id="theme-motion-options" class="theme-motion-options" role="group" aria-label="Theme transition">
-                  <button type="button" data-theme-motion="none"><span>—</span><strong>Static</strong></button>
-                  <button type="button" data-theme-motion="fade"><span>◌</span><strong>Fade</strong></button>
-                  <button type="button" data-theme-motion="rise"><span>↑</span><strong>Rise</strong></button>
-                  <button type="button" data-theme-motion="type"><span>T</span><strong>Type</strong></button>
-                  <button type="button" data-theme-motion="line-by-line"><span>≡</span><strong>Sequence</strong></button>
+              <section class="theme-block-lab">
+                <span class="builder-step">04 · Block design lab</span>
+                <div class="theme-lab-heading"><div><strong id="theme-lab-title">Title system</strong><small id="theme-lab-description">Compose layout, rendering and motion</small></div><span id="theme-lab-count">29 choices</span></div>
+                <div class="theme-lab-tabs" role="tablist" aria-label="Block design axis">
+                  <button type="button" data-theme-lab-axis="layout">Layout</button>
+                  <button class="active" type="button" data-theme-lab-axis="render">Rendering</button>
+                  <button type="button" data-theme-lab-axis="motion">Animation</button>
                 </div>
-                <button id="replay-theme-motion" type="button" class="button secondary wide">Replay transition</button>
-                <small class="theme-motion-note">Choose a preview tab to set the default motion for that Markdown block type.</small>
+                <div id="theme-lab-options" class="theme-lab-options" role="group" aria-label="Block design choices"></div>
+                <button id="replay-theme-motion" type="button" class="button secondary wide" hidden>Replay animation</button>
+                <small class="theme-motion-note">Pick a Markdown tab on the live canvas, then combine any layout, rendering style and animation.</small>
               </section>
             </aside>
 

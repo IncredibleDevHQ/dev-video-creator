@@ -19,7 +19,19 @@ export type TiptapDocument = TiptapNode & {
 }
 
 export type SceneLayout = 'title' | 'prose' | 'code' | 'split'
-export type RevealStyle = 'none' | 'fade' | 'rise' | 'type' | 'line-by-line'
+export type RevealStyle =
+  | 'none'
+  | 'fade'
+  | 'rise'
+  | 'fall'
+  | 'slide-left'
+  | 'slide-right'
+  | 'scale'
+  | 'blur'
+  | 'type'
+  | 'wipe'
+  | 'pop'
+  | 'line-by-line'
 export type BlockBackgroundPreset =
   | 'brand'
   | 'violet'
@@ -108,10 +120,66 @@ export type ThemeVideoLayout =
   | 'person-background-right'
   | 'person-only'
 export type ThemeBorderStyle = 'none' | 'solid' | 'gradient'
-export type ThemeTitleStyle = 'statement' | 'split' | 'lower-third'
-export type ThemeListStyle = 'bullets' | 'cards' | 'timeline' | 'steps'
-export type ThemeCodeStyle = 'panel' | 'terminal' | 'full'
-export type ThemeQuoteStyle = 'bar' | 'card' | 'statement'
+export type ThemeBlockKind = 'title' | 'content' | 'list' | 'code' | 'quote'
+export type ThemeBlockLayout =
+  | 'center'
+  | 'left'
+  | 'right'
+  | 'upper'
+  | 'lower'
+  | 'split-left'
+  | 'split-right'
+  | 'full'
+export type ThemeTitleStyle =
+  | 'statement'
+  | 'split'
+  | 'lower-third'
+  | 'editorial'
+  | 'framed'
+  | 'gradient'
+  | 'outline'
+  | 'highlight'
+  | 'compact'
+export type ThemeContentStyle =
+  | 'editorial'
+  | 'card'
+  | 'columns'
+  | 'lede'
+  | 'callout'
+  | 'minimal'
+  | 'highlight'
+  | 'caption'
+export type ThemeListStyle =
+  | 'bullets'
+  | 'cards'
+  | 'timeline'
+  | 'steps'
+  | 'pills'
+  | 'checklist'
+  | 'number-grid'
+  | 'spotlight'
+  | 'columns'
+  | 'compact'
+export type ThemeCodeStyle =
+  | 'panel'
+  | 'terminal'
+  | 'full'
+  | 'editor'
+  | 'glass'
+  | 'minimal'
+  | 'spotlight'
+  | 'split'
+  | 'paper'
+export type ThemeQuoteStyle =
+  | 'bar'
+  | 'card'
+  | 'statement'
+  | 'pull'
+  | 'speech'
+  | 'highlight'
+  | 'framed'
+  | 'minimal'
+  | 'oversized'
 export type ThemeSurfaceStyle = 'none' | 'outline' | 'card'
 
 export type StudioThemeV1 = {
@@ -139,11 +207,13 @@ export type StudioThemeV1 = {
   }
   blocks: {
     title: ThemeTitleStyle
+    content: ThemeContentStyle
     list: ThemeListStyle
     code: ThemeCodeStyle
     quote: ThemeQuoteStyle
     surface: ThemeSurfaceStyle
     borderRadius: number
+    layout: Record<ThemeBlockKind, ThemeBlockLayout>
   }
   motion: {
     title: RevealStyle

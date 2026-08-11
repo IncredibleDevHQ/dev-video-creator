@@ -77,7 +77,7 @@ const normalizeBlockConfig = (
       : fallback.durationMs,
     reveal: allowedValue(
       supplied.reveal,
-      ['none', 'fade', 'rise', 'type', 'line-by-line'] as const,
+      ['none', 'fade', 'rise', 'fall', 'slide-left', 'slide-right', 'scale', 'blur', 'type', 'wipe', 'pop', 'line-by-line'] as const,
       fallback.reveal,
     ),
     alignment: allowedValue(
@@ -359,7 +359,7 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} theme-layout-${theme.blocks.layout[scene.kind]} theme-render-${theme.blocks[scene.kind]}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
@@ -406,8 +406,22 @@ const buildCompositionHtml = (
           return `tl.set(${selector}, { opacity: 1 }, ${start});`
         case 'fade':
           return `tl.fromTo(${selector}, { opacity: 0 }, { opacity: 1, duration: 0.65, ease: "power2.out" }, ${start});`
+        case 'fall':
+          return `tl.fromTo(${selector}, { opacity: 0, y: -56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
+        case 'slide-left':
+          return `tl.fromTo(${selector}, { opacity: 0, x: -90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+        case 'slide-right':
+          return `tl.fromTo(${selector}, { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+        case 'scale':
+          return `tl.fromTo(${selector}, { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.72, ease: "power3.out" }, ${start});`
+        case 'blur':
+          return `tl.fromTo(${selector}, { opacity: 0, filter: "blur(24px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.82, ease: "power2.out" }, ${start});`
         case 'type':
           return `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${Math.min(2.4, scene.durationSeconds * 0.45)}, ease: "steps(18)" }, ${start});`
+        case 'wipe':
+          return `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.82, ease: "power3.inOut" }, ${start});`
+        case 'pop':
+          return `tl.fromTo(${selector}, { opacity: 0, scale: 0.72, rotation: -2 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.72, ease: "back.out(1.7)" }, ${start});`
         case 'line-by-line':
           return `tl.set(${selector}, { opacity: 1 }, ${start}); tl.fromTo(${sequenceSelector}, { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.48, stagger: ${Math.min(0.28, scene.durationSeconds * 0.06)}, ease: "power3.out" }, ${start});`
         case 'rise':
@@ -440,6 +454,16 @@ const buildCompositionHtml = (
     .scene-index { color: var(--primary); font-size: 24px; font-weight: 800; letter-spacing: .18em; }
     .content { align-self: center; width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); max-width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); min-width: 0; overflow-wrap: anywhere; }
     .align-center .content { margin-inline: auto; text-align: center; }
+    .theme-layout-center .content { margin-inline: auto; text-align: center; }
+    .theme-layout-left .content { margin-left: 0; margin-right: auto; text-align: left; }
+    .theme-layout-right .content { margin-left: auto; margin-right: 0; text-align: right; }
+    .theme-layout-upper .content { align-self: start; margin-top: 58px; }
+    .theme-layout-lower .content { align-self: end; margin-bottom: 58px; }
+    .theme-layout-split-left { --content-layout-width: 48%; }
+    .theme-layout-split-left .content { margin-left: 0; margin-right: auto; text-align: left; }
+    .theme-layout-split-right { --content-layout-width: 48%; }
+    .theme-layout-split-right .content { margin-left: auto; margin-right: 0; text-align: left; }
+    .theme-layout-full { --content-layout-width: 100%; }
     h1, h2, h3 { max-width: 100%; margin: 0; font-weight: 760; letter-spacing: -.055em; line-height: .98; text-wrap: balance; overflow-wrap: anywhere; }
     h1 { font-size: 124px; } h2 { font-size: 94px; } h3 { font-size: 74px; }
     p, li, blockquote { max-width: 100%; font-size: 55px; line-height: 1.24; letter-spacing: -.025em; overflow-wrap: anywhere; }
@@ -453,16 +477,43 @@ const buildCompositionHtml = (
     #composition[data-list-style="steps"] .scene-kind-list ol, #composition[data-list-style="steps"] .scene-kind-list ul { padding: 0; list-style: none; counter-reset: theme-step; }
     #composition[data-list-style="steps"] .scene-kind-list li { position: relative; margin-bottom: 28px; padding-left: 88px; counter-increment: theme-step; }
     #composition[data-list-style="steps"] .scene-kind-list li::before { content: counter(theme-step, decimal-leading-zero); position: absolute; left: 0; color: var(--primary); font-weight: 800; }
+    .scene-kind-list.theme-render-pills ul, .scene-kind-list.theme-render-pills ol { display: flex; flex-wrap: wrap; gap: 20px; padding: 0; list-style: none; }
+    .scene-kind-list.theme-render-pills li { margin: 0; padding: 18px 30px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+    .scene-kind-list.theme-render-checklist ul, .scene-kind-list.theme-render-checklist ol { padding: 0; list-style: none; }
+    .scene-kind-list.theme-render-checklist li { position: relative; padding-left: 76px; }
+    .scene-kind-list.theme-render-checklist li::before { content: "✓"; position: absolute; left: 0; top: .05em; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: var(--brand-gradient); color: white; font-size: 25px; font-weight: 900; }
+    .scene-kind-list.theme-render-number-grid ul, .scene-kind-list.theme-render-number-grid ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; padding: 0; list-style: none; counter-reset: theme-step; }
+    .scene-kind-list.theme-render-number-grid li { position: relative; min-height: 150px; margin: 0; padding: 34px 34px 28px 98px; border: 2px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: var(--block-radius); counter-increment: theme-step; }
+    .scene-kind-list.theme-render-number-grid li::before { content: counter(theme-step, decimal-leading-zero); position: absolute; left: 30px; color: var(--accent); font-size: 28px; font-weight: 900; }
+    .scene-kind-list.theme-render-spotlight li { opacity: .46; }
+    .scene-kind-list.theme-render-spotlight li:first-child { opacity: 1; font-size: 1.24em; color: var(--text); }
+    .scene-kind-list.theme-render-columns ul, .scene-kind-list.theme-render-columns ol { columns: 2; column-gap: 80px; }
+    .scene-kind-list.theme-render-compact li { margin-bottom: 10px; font-size: 42px; line-height: 1.15; }
     strong { color: var(--accent); } a { color: var(--accent); text-decoration: none; }
     blockquote { margin: 0; padding: 16px 0 16px 40px; border-left: 12px solid var(--primary); color: var(--muted); }
     #composition[data-quote-style="card"] blockquote { padding: 48px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
     #composition[data-quote-style="statement"] blockquote { padding: 0; border: 0; color: var(--text); font-size: 76px; font-weight: 750; }
+    .scene-kind-quote.theme-render-pull blockquote { position: relative; padding: 40px 0 0 112px; border: 0; color: var(--text); font-size: 70px; }
+    .scene-kind-quote.theme-render-pull blockquote::before { content: "“"; position: absolute; left: 0; top: -28px; color: var(--primary); font-size: 170px; line-height: 1; }
+    .scene-kind-quote.theme-render-speech blockquote { position: relative; padding: 54px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
+    .scene-kind-quote.theme-render-speech blockquote::after { content: ""; position: absolute; left: 64px; bottom: -30px; border: 16px solid transparent; border-top-color: var(--surface); }
+    .scene-kind-quote.theme-render-highlight blockquote { display: inline; padding: 8px 18px; border: 0; background: var(--accent); color: var(--bg); box-decoration-break: clone; }
+    .scene-kind-quote.theme-render-framed blockquote { padding: 54px; border: 3px solid var(--accent); border-radius: var(--block-radius); color: var(--text); }
+    .scene-kind-quote.theme-render-minimal blockquote { padding: 0; border: 0; color: var(--text); }
+    .scene-kind-quote.theme-render-oversized blockquote { padding: 0; border: 0; color: var(--text); font-size: 96px; font-weight: 800; line-height: 1; }
     pre { width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code); color: #f7f7ef; box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
     #composition[data-code-style="terminal"] pre { border: 3px solid var(--accent); border-image: var(--brand-gradient) 1; }
     #composition[data-code-style="terminal"] pre::before { content: "●  ●  ●"; display: block; margin-bottom: 30px; color: var(--primary); font: 22px/1 ui-monospace, monospace; letter-spacing: .35em; }
     #composition[data-code-style="full"] .scene-kind-code { padding: 72px; }
     #composition[data-code-style="full"] .scene-kind-code { --content-layout-width: 100%; }
     #composition[data-code-style="full"] .scene-kind-code .content, #composition[data-code-style="full"] .scene-kind-code pre { height: 100%; }
+    .scene-kind-code.theme-render-editor pre::before { content: "index.ts   README.md   package.json"; display: block; margin: -54px -54px 36px; padding: 22px 32px; background: color-mix(in srgb, var(--surface) 9%, var(--code)); color: var(--muted); font: 20px/1 ui-monospace, monospace; }
+    .scene-kind-code.theme-render-glass pre { border: 2px solid color-mix(in srgb, white 34%, transparent); background: color-mix(in srgb, var(--code) 78%, transparent); backdrop-filter: blur(28px); }
+    .scene-kind-code.theme-render-minimal pre { padding: 20px 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--text); }
+    .scene-kind-code.theme-render-spotlight pre { border-left: 12px solid var(--accent); }
+    .scene-kind-code.theme-render-split .content { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: 36px; align-items: center; }
+    .scene-kind-code.theme-render-split .content::after { content: "Explain the decision\A then show the code."; white-space: pre-line; color: var(--muted); font-size: 34px; line-height: 1.35; }
+    .scene-kind-code.theme-render-paper pre { background: #f6f2e8; color: #17222b; box-shadow: 0 22px 70px rgba(0,0,0,.12); }
     pre code { font: 42px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
     .code-line { display: block; min-height: 1.5em; }
     .layout-title { --content-layout-width: 1600px; }
@@ -474,6 +525,20 @@ const buildCompositionHtml = (
     #composition[data-title-style="split"] .scene-kind-title .content { margin-left: 0; text-align: left; }
     #composition[data-title-style="lower-third"] .scene-kind-title { --content-layout-width: 72%; }
     #composition[data-title-style="lower-third"] .scene-kind-title .content { align-self: end; margin: 0 0 44px; text-align: left; }
+    .scene-kind-title.theme-render-editorial h1, .scene-kind-title.theme-render-editorial h2 { max-width: 13ch; font-family: Georgia, serif; font-weight: 500; letter-spacing: -.04em; }
+    .scene-kind-title.theme-render-framed .content { padding: 64px; border: 4px solid var(--accent); border-radius: var(--block-radius); }
+    .scene-kind-title.theme-render-gradient h1, .scene-kind-title.theme-render-gradient h2 { background: var(--brand-gradient); background-clip: text; color: transparent; }
+    .scene-kind-title.theme-render-outline h1, .scene-kind-title.theme-render-outline h2 { color: transparent; -webkit-text-stroke: 3px var(--text); }
+    .scene-kind-title.theme-render-highlight h1, .scene-kind-title.theme-render-highlight h2 { display: inline; padding: 0 .12em .06em; background: var(--accent); color: var(--bg); box-decoration-break: clone; }
+    .scene-kind-title.theme-render-compact h1, .scene-kind-title.theme-render-compact h2 { max-width: 18ch; font-size: 94px; line-height: 1.04; letter-spacing: -.04em; }
+    .scene-kind-content.theme-render-card .content { padding: 58px; border-radius: var(--block-radius); background: var(--surface); box-shadow: 0 28px 80px rgba(0,0,0,.13); }
+    .scene-kind-content.theme-render-columns .content { columns: 2; column-gap: 74px; }
+    .scene-kind-content.theme-render-lede p:first-child { font-size: 74px; line-height: 1.12; }
+    .scene-kind-content.theme-render-callout .content { padding-left: 44px; border-left: 12px solid var(--accent); }
+    .scene-kind-content.theme-render-minimal .content { max-width: 980px; }
+    .scene-kind-content.theme-render-highlight p:first-child { display: inline; padding: .1em .2em; background: var(--accent); color: var(--bg); box-decoration-break: clone; }
+    .scene-kind-content.theme-render-caption .content { max-width: 780px; }
+    .scene-kind-content.theme-render-caption p { font-size: 36px; color: var(--muted); }
     footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
     .composition-brand { display: inline-flex; align-items: center; gap: 12px; letter-spacing: -.025em; text-transform: lowercase; }
     .composition-brand svg { width: 28px; height: 28px; flex: none; }
@@ -523,7 +588,7 @@ const buildCompositionHtml = (
   </style>
 </head>
 <body>
-  <div id="composition" class="video-border-${theme.video.borderStyle}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-quote-style="${theme.blocks.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
+  <div id="composition" class="video-border-${theme.video.borderStyle}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-content-style="${theme.blocks.content}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-quote-style="${theme.blocks.quote}" data-title-layout="${theme.blocks.layout.title}" data-content-layout="${theme.blocks.layout.content}" data-list-layout="${theme.blocks.layout.list}" data-code-layout="${theme.blocks.layout.code}" data-quote-layout="${theme.blocks.layout.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
     ${sceneMarkup}
   </div>
   <script>

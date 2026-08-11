@@ -19,6 +19,8 @@ import {
   type Scene,
   type SceneLayout,
   type StudioThemeV1,
+  type ThemeBlockKind,
+  type ThemeBlockLayout,
   type ThemeCanvasTreatment,
   type TiptapDocument,
   type TiptapNode,
@@ -52,54 +54,114 @@ const PREVIEW_PRESENTERS = [
 
 type PreviewPresenterId = (typeof PREVIEW_PRESENTERS)[number]['id']
 type ThemePreviewKind = 'title' | 'content' | 'list' | 'code' | 'quote' | 'video'
-type ThemeMotionKind = keyof StudioThemeV1['motion']
-
-const THEME_MOTION_META: Record<
-  ThemePreviewKind,
-  {
-    motionKind: ThemeMotionKind
-    label: string
-    description: string
-    options: RevealStyle[]
-  }
-> = {
-  title: {
-    motionKind: 'title',
-    label: 'Title transition',
-    description: 'How a new section enters',
-    options: ['none', 'fade', 'rise', 'type'],
-  },
-  content: {
-    motionKind: 'content',
-    label: 'Text transition',
-    description: 'How explanatory copy enters',
-    options: ['none', 'fade', 'rise', 'type'],
-  },
-  list: {
-    motionKind: 'list',
-    label: 'Point transition',
-    description: 'Reveal all points or sequence them',
-    options: ['none', 'fade', 'rise', 'line-by-line'],
-  },
-  code: {
-    motionKind: 'code',
-    label: 'Code transition',
-    description: 'Type or reveal code line by line',
-    options: ['none', 'fade', 'rise', 'type', 'line-by-line'],
-  },
-  quote: {
-    motionKind: 'quote',
-    label: 'Quote transition',
-    description: 'Give the statement an entrance',
-    options: ['none', 'fade', 'rise', 'type'],
-  },
-  video: {
-    motionKind: 'title',
-    label: 'Camera overlay transition',
-    description: 'Uses the title motion over the presenter',
-    options: ['none', 'fade', 'rise', 'type'],
-  },
+type ThemeLabAxis = 'layout' | 'render' | 'motion'
+type ThemeRenderValue =
+  | StudioThemeV1['blocks']['title']
+  | StudioThemeV1['blocks']['content']
+  | StudioThemeV1['blocks']['list']
+  | StudioThemeV1['blocks']['code']
+  | StudioThemeV1['blocks']['quote']
+type CatalogOption<Value extends string> = {
+  value: Value
+  label: string
+  description: string
+  glyph: string
 }
+
+const BLOCK_KIND_META: Record<ThemeBlockKind, { label: string; description: string }> = {
+  title: { label: 'Title system', description: 'Headlines and section openers' },
+  content: { label: 'Text system', description: 'Paragraphs and explanations' },
+  list: { label: 'Point system', description: 'Bullets, steps and sequences' },
+  code: { label: 'Code system', description: 'Technical walkthroughs' },
+  quote: { label: 'Quote system', description: 'Statements and callouts' },
+}
+
+const BLOCK_LAYOUT_OPTIONS: CatalogOption<ThemeBlockLayout>[] = [
+  { value: 'center', label: 'Centered', description: 'Balanced focal frame', glyph: '⊙' },
+  { value: 'left', label: 'Left rail', description: 'Editorial left edge', glyph: '◧' },
+  { value: 'right', label: 'Right rail', description: 'Editorial right edge', glyph: '◨' },
+  { value: 'upper', label: 'Upper third', description: 'Content near the top', glyph: '⬒' },
+  { value: 'lower', label: 'Lower third', description: 'Content near the bottom', glyph: '⬓' },
+  { value: 'split-left', label: 'Split left', description: 'Narrow left column', glyph: '◫' },
+  { value: 'split-right', label: 'Split right', description: 'Narrow right column', glyph: '◫' },
+  { value: 'full', label: 'Full canvas', description: 'Use every safe pixel', glyph: '▣' },
+]
+
+const BLOCK_RENDER_OPTIONS: Record<
+  ThemeBlockKind,
+  CatalogOption<ThemeRenderValue>[]
+> = {
+  title: [
+    ['statement', 'Statement', 'Large decisive headline', 'Aa'],
+    ['split', 'Split editorial', 'Copy in a narrow column', 'A|'],
+    ['lower-third', 'Lower third', 'Broadcast-style title', '▁A'],
+    ['editorial', 'Editorial', 'Magazine rhythm and kicker', '¶'],
+    ['framed', 'Framed', 'Headline inside a border', '▢'],
+    ['gradient', 'Gradient type', 'Brand-gradient headline', '◒'],
+    ['outline', 'Outline type', 'High-impact stroked letters', 'A̲'],
+    ['highlight', 'Highlight band', 'Color-backed emphasis', '▰'],
+    ['compact', 'Compact', 'Dense short-form title', 'A·'],
+  ].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeRenderValue>[],
+  content: [
+    ['editorial', 'Editorial', 'Readable article typography', '¶'],
+    ['card', 'Content card', 'Copy on a raised surface', '▤'],
+    ['columns', 'Two columns', 'Dense information split', '▥'],
+    ['lede', 'Large lede', 'Lead with the first thought', 'L'],
+    ['callout', 'Callout', 'Accent edge and emphasis', '!'],
+    ['minimal', 'Minimal', 'Quiet text-only canvas', '—'],
+    ['highlight', 'Highlighted', 'Brand-backed sentence', '▰'],
+    ['caption', 'Caption', 'Compact supporting copy', 'cc'],
+  ].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeRenderValue>[],
+  list: [
+    ['bullets', 'Gradient bullets', 'Classic brand markers', '••'],
+    ['cards', 'Point cards', 'One surface per idea', '▤'],
+    ['timeline', 'Timeline', 'Connected horizontal flow', '●—'],
+    ['steps', 'Numbered steps', 'Explicit ordered sequence', '01'],
+    ['pills', 'Pills', 'Compact rounded points', '▰'],
+    ['checklist', 'Checklist', 'Completion-oriented list', '✓'],
+    ['number-grid', 'Number grid', 'Bold modular sequence', '#'],
+    ['spotlight', 'Spotlight', 'One dominant point', '◎'],
+    ['columns', 'Columns', 'Parallel point groups', '▥'],
+    ['compact', 'Compact', 'High-density bullet rail', '≡'],
+  ].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeRenderValue>[],
+  code: [
+    ['panel', 'Code panel', 'Clean developer surface', '</>'],
+    ['terminal', 'Terminal', 'CLI window with chrome', '>_'],
+    ['full', 'Full canvas', 'Maximum code area', '▣'],
+    ['editor', 'Editor', 'IDE-inspired frame', '⌘'],
+    ['glass', 'Glass', 'Translucent floating panel', '◇'],
+    ['minimal', 'Minimal', 'No-window code treatment', '—'],
+    ['spotlight', 'Spotlight', 'Focused code excerpt', '◎'],
+    ['split', 'Code + notes', 'Code beside explanation', '◫'],
+    ['paper', 'Paper', 'Light printed-code style', '▧'],
+  ].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeRenderValue>[],
+  quote: [
+    ['bar', 'Accent bar', 'Classic editorial quote', '│'],
+    ['card', 'Quote card', 'Statement on a surface', '▤'],
+    ['statement', 'Statement', 'Large centered quote', '“'],
+    ['pull', 'Pull quote', 'Oversized opening mark', '❝'],
+    ['speech', 'Speech', 'Conversational bubble', '◰'],
+    ['highlight', 'Highlight', 'Brand-backed phrase', '▰'],
+    ['framed', 'Framed', 'Formal bordered quote', '▢'],
+    ['minimal', 'Minimal', 'Typography only', '—'],
+    ['oversized', 'Oversized', 'Full-canvas words', 'AA'],
+  ].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeRenderValue>[],
+}
+
+const MOTION_OPTIONS: CatalogOption<RevealStyle>[] = [
+  { value: 'none', label: 'Static', description: 'No entrance motion', glyph: '—' },
+  { value: 'fade', label: 'Soft fade', description: 'Quiet opacity reveal', glyph: '◌' },
+  { value: 'rise', label: 'Rise', description: 'Ease upward', glyph: '↑' },
+  { value: 'fall', label: 'Drop in', description: 'Ease downward', glyph: '↓' },
+  { value: 'slide-left', label: 'From left', description: 'Horizontal entrance', glyph: '→' },
+  { value: 'slide-right', label: 'From right', description: 'Horizontal entrance', glyph: '←' },
+  { value: 'scale', label: 'Scale', description: 'Grow into focus', glyph: '⊕' },
+  { value: 'blur', label: 'Focus', description: 'Resolve from blur', glyph: '◉' },
+  { value: 'type', label: 'Type', description: 'Progressive text wipe', glyph: 'T' },
+  { value: 'wipe', label: 'Brand wipe', description: 'Directional mask reveal', glyph: '▰' },
+  { value: 'pop', label: 'Pop', description: 'Playful spring entrance', glyph: '✦' },
+  { value: 'line-by-line', label: 'Sequence', description: 'Stagger items or lines', glyph: '≡' },
+]
 
 document.querySelector<HTMLImageElement>('#studio-logo')!.src = studioLogoUrl
 document.querySelector<HTMLImageElement>('#theme-builder-logo')!.src = studioLogoUrl
@@ -146,27 +208,27 @@ const DIRECTOR_OPTIONS: Record<
   title: {
     label: 'Heading options',
     layouts: ['title', 'prose', 'split'],
-    animations: ['none', 'fade', 'rise', 'type'],
+    animations: ['none', 'fade', 'rise', 'fall', 'slide-left', 'slide-right', 'scale', 'blur', 'type', 'wipe', 'pop'],
   },
   content: {
     label: 'Paragraph options',
     layouts: ['prose', 'title', 'split'],
-    animations: ['none', 'fade', 'rise', 'type'],
+    animations: ['none', 'fade', 'rise', 'fall', 'slide-left', 'slide-right', 'scale', 'blur', 'type', 'wipe', 'pop'],
   },
   list: {
     label: 'List options',
     layouts: ['prose', 'split'],
-    animations: ['none', 'fade', 'rise', 'line-by-line'],
+    animations: MOTION_OPTIONS.map(option => option.value),
   },
   quote: {
     label: 'Quote options',
     layouts: ['prose', 'title', 'split'],
-    animations: ['none', 'fade', 'rise', 'type'],
+    animations: ['none', 'fade', 'rise', 'fall', 'slide-left', 'slide-right', 'scale', 'blur', 'type', 'wipe', 'pop'],
   },
   code: {
     label: 'Code options',
     layouts: ['code', 'split'],
-    animations: ['none', 'fade', 'rise', 'type', 'line-by-line'],
+    animations: MOTION_OPTIONS.map(option => option.value),
   },
 }
 
@@ -340,6 +402,7 @@ let savedThemes = readSavedThemes()
 let generatedThemes: StudioThemeV1[] = []
 let themeDraft = cloneTheme(project.theme)
 let themePreviewKind: ThemePreviewKind = 'title'
+let themeLabAxis: ThemeLabAxis = 'render'
 let previewPresenterId: PreviewPresenterId = 'arun'
 
 const allStudioThemes = () => [...builtinStudioThemes, ...savedThemes]
@@ -527,10 +590,6 @@ const syncThemeBuilderControls = () => {
   setBuilderValue('#theme-video-border', themeDraft.video.borderStyle)
   setBuilderValue('#theme-video-radius', themeDraft.video.borderRadius)
   setBuilderValue('#theme-video-width', themeDraft.video.borderWidth)
-  setBuilderValue('#theme-title-style', themeDraft.blocks.title)
-  setBuilderValue('#theme-list-style', themeDraft.blocks.list)
-  setBuilderValue('#theme-code-style', themeDraft.blocks.code)
-  setBuilderValue('#theme-quote-style', themeDraft.blocks.quote)
   ;($('#theme-block-radius-output') as HTMLOutputElement).value = `${themeDraft.blocks.borderRadius}px`
   ;($('#theme-video-radius-output') as HTMLOutputElement).value = `${themeDraft.video.borderRadius}px`
   ;($('#theme-video-width-output') as HTMLOutputElement).value = `${themeDraft.video.borderWidth}px`
@@ -542,9 +601,76 @@ const syncThemeBuilderControls = () => {
   ;($('#remove-theme-logo') as HTMLButtonElement).disabled = !themeDraft.logo.url
 }
 
+const previewThemeBlockKind = (): ThemeBlockKind =>
+  themePreviewKind === 'video' ? 'title' : themePreviewKind
+
+const renderThemeDesignLab = () => {
+  const kind = previewThemeBlockKind()
+  const meta = BLOCK_KIND_META[kind]
+  const motions = kind === 'list' || kind === 'code'
+    ? MOTION_OPTIONS
+    : MOTION_OPTIONS.filter(option => option.value !== 'line-by-line')
+  const options: CatalogOption<string>[] = themeLabAxis === 'layout'
+    ? BLOCK_LAYOUT_OPTIONS
+    : themeLabAxis === 'motion'
+      ? motions
+      : BLOCK_RENDER_OPTIONS[kind]
+  const activeValue = themeLabAxis === 'layout'
+    ? themeDraft.blocks.layout[kind]
+    : themeLabAxis === 'motion'
+      ? themeDraft.motion[kind]
+      : String(themeDraft.blocks[kind])
+
+  ;($('#theme-lab-title') as HTMLElement).textContent = meta.label
+  ;($('#theme-lab-description') as HTMLElement).textContent = meta.description
+  ;($('#theme-lab-count') as HTMLElement).textContent =
+    `${BLOCK_LAYOUT_OPTIONS.length * BLOCK_RENDER_OPTIONS[kind].length * motions.length} combinations`
+  ;($('#replay-theme-motion') as HTMLButtonElement).hidden = themeLabAxis !== 'motion'
+
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-theme-lab-axis]')
+    .forEach(button => {
+      const active = button.dataset.themeLabAxis === themeLabAxis
+      button.classList.toggle('active', active)
+      button.setAttribute('aria-selected', String(active))
+    })
+
+  const grid = $('#theme-lab-options')
+  grid.replaceChildren(
+    ...options.map(option => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = option.value === activeValue ? 'active' : ''
+      button.setAttribute('aria-pressed', String(option.value === activeValue))
+      const glyph = document.createElement('span')
+      glyph.className = 'theme-lab-option-glyph'
+      glyph.textContent = option.glyph
+      const copy = document.createElement('span')
+      const label = document.createElement('strong')
+      label.textContent = option.label
+      const description = document.createElement('small')
+      description.textContent = option.description
+      copy.append(label, description)
+      button.append(glyph, copy)
+      button.addEventListener('click', () => {
+        if (themeLabAxis === 'layout') {
+          themeDraft.blocks.layout[kind] = option.value as ThemeBlockLayout
+        } else if (themeLabAxis === 'motion') {
+          themeDraft.motion[kind] = option.value as RevealStyle
+        } else {
+          ;(themeDraft.blocks as Record<string, unknown>)[kind] = option.value
+        }
+        renderThemeBuilderPreview()
+      })
+      return button
+    }),
+  )
+}
+
 const renderThemeBuilderPreview = () => {
+  const blockKind = previewThemeBlockKind()
   const preview = $('#theme-builder-preview')
-  preview.className = `theme-builder-preview preview-${themePreviewKind} title-${themeDraft.blocks.title} list-${themeDraft.blocks.list} code-${themeDraft.blocks.code} quote-${themeDraft.blocks.quote} surface-${themeDraft.blocks.surface} video-${themeDraft.video.layout} border-${themeDraft.video.borderStyle} logo-${themeDraft.logo.placement}`
+  preview.className = `theme-builder-preview preview-${themePreviewKind} block-layout-${themeDraft.blocks.layout[blockKind]} block-render-${String(themeDraft.blocks[blockKind])} title-${themeDraft.blocks.title} content-${themeDraft.blocks.content} list-${themeDraft.blocks.list} code-${themeDraft.blocks.code} quote-${themeDraft.blocks.quote} surface-${themeDraft.blocks.surface} video-${themeDraft.video.layout} border-${themeDraft.video.borderStyle} logo-${themeDraft.logo.placement}`
   preview.style.setProperty('--preview-canvas', themeCanvasCss(themeDraft))
   preview.style.setProperty('--preview-bg', themeDraft.brand.background)
   preview.style.setProperty('--preview-surface', themeDraft.brand.surface)
@@ -662,32 +788,14 @@ const renderThemeBuilderPreview = () => {
       button.classList.toggle('active', active)
       button.setAttribute('aria-pressed', String(active))
     })
-  renderThemeMotionControls()
+  renderThemeDesignLab()
   replayThemeMotionPreview()
-}
-
-const renderThemeMotionControls = () => {
-  const meta = THEME_MOTION_META[themePreviewKind]
-  const activeMotion = themeDraft.motion[meta.motionKind]
-  ;($('#theme-motion-title') as HTMLElement).textContent = meta.label
-  ;($('#theme-motion-description') as HTMLElement).textContent = meta.description
-  document
-    .querySelectorAll<HTMLButtonElement>('[data-theme-motion]')
-    .forEach(button => {
-      const motion = button.dataset.themeMotion as RevealStyle
-      const available = meta.options.includes(motion)
-      button.hidden = !available
-      button.disabled = !available
-      button.classList.toggle('active', motion === activeMotion)
-      button.setAttribute('aria-pressed', String(motion === activeMotion))
-    })
 }
 
 const replayThemeMotionPreview = () => {
   const preview = $('#theme-builder-preview')
-  const meta = THEME_MOTION_META[themePreviewKind]
-  const motion = themeDraft.motion[meta.motionKind]
-  ;(['none', 'fade', 'rise', 'type', 'line-by-line'] as RevealStyle[]).forEach(
+  const motion = themeDraft.motion[previewThemeBlockKind()]
+  MOTION_OPTIONS.map(option => option.value).forEach(
     option => preview.classList.remove(`motion-${option}`),
   )
   preview.classList.remove('motion-playing')
@@ -1572,18 +1680,6 @@ const updateThemeDraftFromControls = () => {
   themeDraft.video.borderWidth = Number(
     ($('#theme-video-width') as HTMLInputElement).value,
   )
-  themeDraft.blocks.title = (
-    $('#theme-title-style') as HTMLSelectElement
-  ).value as StudioThemeV1['blocks']['title']
-  themeDraft.blocks.list = (
-    $('#theme-list-style') as HTMLSelectElement
-  ).value as StudioThemeV1['blocks']['list']
-  themeDraft.blocks.code = (
-    $('#theme-code-style') as HTMLSelectElement
-  ).value as StudioThemeV1['blocks']['code']
-  themeDraft.blocks.quote = (
-    $('#theme-quote-style') as HTMLSelectElement
-  ).value as StudioThemeV1['blocks']['quote']
   if (
     previousPrimary !== themeDraft.brand.primary ||
     previousSecondary !== themeDraft.brand.secondary
@@ -1617,10 +1713,6 @@ const updateThemeDraftFromControls = () => {
   '#theme-video-border',
   '#theme-video-radius',
   '#theme-video-width',
-  '#theme-title-style',
-  '#theme-list-style',
-  '#theme-code-style',
-  '#theme-quote-style',
 ].forEach(selector => {
   $(selector).addEventListener('input', updateThemeDraftFromControls)
   $(selector).addEventListener('change', updateThemeDraftFromControls)
@@ -1756,15 +1848,12 @@ document
   })
 
 document
-  .querySelectorAll<HTMLButtonElement>('[data-theme-motion]')
+  .querySelectorAll<HTMLButtonElement>('[data-theme-lab-axis]')
   .forEach(button => {
     button.addEventListener('click', () => {
-      const meta = THEME_MOTION_META[themePreviewKind]
-      const motion = button.dataset.themeMotion as RevealStyle
-      if (!meta.options.includes(motion)) return
-      themeDraft.motion[meta.motionKind] = motion
-      renderThemeMotionControls()
-      replayThemeMotionPreview()
+      themeLabAxis = button.dataset.themeLabAxis as ThemeLabAxis
+      renderThemeDesignLab()
+      if (themeLabAxis === 'motion') replayThemeMotionPreview()
     })
   })
 

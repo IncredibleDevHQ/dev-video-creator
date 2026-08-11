@@ -124,6 +124,10 @@ describe('compileProject', () => {
     expect(result.html).toContain('data-code-style="terminal"')
     expect(result.html).toContain('class="video-border-gradient"')
     expect(result.html).toContain('linear-gradient(90deg, transparent')
+    expect(result.html).toContain('data-content-style="editorial"')
+    expect(result.html).toContain('data-title-layout="center"')
+    expect(result.html).toContain('theme-layout-center')
+    expect(result.html).toContain('theme-render-split')
   })
 
   it('creates keyless theme directions with color-input-safe palettes', () => {
@@ -137,6 +141,8 @@ describe('compileProject', () => {
       theme.canvas.gradient.forEach(color =>
         expect(color).toMatch(/^#[0-9a-f]{6}$/i),
       )
+      expect(theme.blocks.content).toBeTruthy()
+      expect(Object.keys(theme.blocks.layout)).toHaveLength(5)
     })
   })
 
@@ -171,10 +177,14 @@ describe('compileProject', () => {
     const legacyTheme = structuredClone(builtinStudioThemes[0])
     legacyTheme.video.layout = 'overlay' as typeof legacyTheme.video.layout
     delete (legacyTheme as Partial<typeof legacyTheme>).motion
+    delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).content
+    delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).layout
     expect(normalizeStudioTheme(legacyTheme).video.layout).toBe(
       'portrait-overlay',
     )
     expect(normalizeStudioTheme(legacyTheme).motion).toEqual(defaultThemeMotion)
+    expect(normalizeStudioTheme(legacyTheme).blocks.content).toBe('editorial')
+    expect(normalizeStudioTheme(legacyTheme).blocks.layout.code).toBe('full')
 
     const legacyProject = project()
     delete (legacyProject.blocks.intro.camera as Partial<
@@ -234,5 +244,15 @@ describe('compileProject', () => {
     expect(result.html).toContain('#scene-2 .content li')
     expect(result.html).toContain('#scene-3 .content .code-line')
     expect(result.html).toContain('stagger:')
+  })
+
+  it('compiles the expanded motion catalog into seekable GSAP timelines', () => {
+    const motions = project()
+    motions.blocks.intro.reveal = 'blur'
+    motions.blocks.body.reveal = 'pop'
+
+    const result = compileProject(motions)
+    expect(result.html).toContain('filter: "blur(24px)"')
+    expect(result.html).toContain('ease: "back.out(1.7)"')
   })
 })

@@ -12,13 +12,39 @@ export const defaultThemeMotion: StudioThemeV1['motion'] = {
   quote: 'fade',
 }
 
+export const defaultThemeBlocks: StudioThemeV1['blocks'] = {
+  title: 'statement',
+  content: 'editorial',
+  list: 'bullets',
+  code: 'panel',
+  quote: 'bar',
+  surface: 'outline',
+  borderRadius: 34,
+  layout: {
+    title: 'center',
+    content: 'left',
+    list: 'left',
+    code: 'full',
+    quote: 'center',
+  },
+}
+
 const createTheme = (
-  theme: Omit<StudioThemeV1, 'version' | 'motion'> & {
+  theme: Omit<StudioThemeV1, 'version' | 'motion' | 'blocks'> & {
     motion?: Partial<StudioThemeV1['motion']>
+    blocks: Omit<StudioThemeV1['blocks'], 'content' | 'layout'> & {
+      content?: StudioThemeV1['blocks']['content']
+      layout?: Partial<StudioThemeV1['blocks']['layout']>
+    }
   },
 ): StudioThemeV1 => ({
   version: 1,
   ...theme,
+  blocks: {
+    ...defaultThemeBlocks,
+    ...theme.blocks,
+    layout: { ...defaultThemeBlocks.layout, ...theme.blocks.layout },
+  },
   motion: { ...defaultThemeMotion, ...theme.motion },
 })
 
@@ -399,19 +425,27 @@ export const generateThemeDirections = (
         borderRadius: index === 3 ? 4 : 28,
       },
       blocks: {
-        title: index % 2 ? 'split' : 'statement',
-        list: (['cards', 'timeline', 'steps', 'bullets'] as const)[index],
-        code: index % 2 ? 'terminal' : 'panel',
-        quote: index % 2 ? 'card' : 'bar',
+        title: (['gradient', 'split', 'editorial', 'outline'] as const)[index],
+        content: (['callout', 'card', 'lede', 'minimal'] as const)[index],
+        list: (['number-grid', 'timeline', 'steps', 'pills'] as const)[index],
+        code: (['glass', 'editor', 'paper', 'terminal'] as const)[index],
+        quote: (['pull', 'speech', 'framed', 'oversized'] as const)[index],
         surface: index === 3 ? 'outline' : 'card',
         borderRadius: index === 3 ? 4 : 26,
+        layout: {
+          title: (['center', 'split-left', 'lower', 'full'] as const)[index],
+          content: (['left', 'split-right', 'center', 'upper'] as const)[index],
+          list: (['full', 'center', 'split-left', 'lower'] as const)[index],
+          code: (['full', 'right', 'center', 'split-left'] as const)[index],
+          quote: (['center', 'split-right', 'lower', 'full'] as const)[index],
+        },
       },
       motion: {
-        title: (['rise', 'type', 'fade', 'rise'] as const)[index],
-        content: (['fade', 'rise', 'fade', 'rise'] as const)[index],
-        list: (['line-by-line', 'rise', 'line-by-line', 'fade'] as const)[index],
-        code: (['line-by-line', 'type', 'line-by-line', 'type'] as const)[index],
-        quote: (['fade', 'rise', 'fade', 'type'] as const)[index],
+        title: (['wipe', 'type', 'blur', 'pop'] as const)[index],
+        content: (['fade', 'slide-left', 'rise', 'scale'] as const)[index],
+        list: (['line-by-line', 'slide-right', 'line-by-line', 'pop'] as const)[index],
+        code: (['line-by-line', 'type', 'blur', 'wipe'] as const)[index],
+        quote: (['fade', 'rise', 'scale', 'type'] as const)[index],
       },
     })
   })
@@ -442,7 +476,14 @@ export const normalizeStudioTheme = (
     logo: { ...defaultStudioTheme.logo, ...theme.logo },
     canvas: { ...defaultStudioTheme.canvas, ...theme.canvas },
     video: { ...defaultStudioTheme.video, ...theme.video, layout: videoLayout },
-    blocks: { ...defaultStudioTheme.blocks, ...theme.blocks },
+    blocks: {
+      ...defaultStudioTheme.blocks,
+      ...theme.blocks,
+      layout: {
+        ...defaultStudioTheme.blocks.layout,
+        ...theme.blocks?.layout,
+      },
+    },
     motion: { ...defaultStudioTheme.motion, ...theme.motion },
   }
 }
