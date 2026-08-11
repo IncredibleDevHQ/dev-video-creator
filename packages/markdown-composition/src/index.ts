@@ -41,6 +41,7 @@ export const createDefaultBlockConfig = (
     color: defaultBrand.background,
   },
   camera: {
+    mode: 'information-circle',
     position: 'bottom-right',
     shape: 'circle',
     scale: 1,
@@ -106,6 +107,20 @@ const normalizeBlockConfig = (
       ),
     },
     camera: {
+      mode: allowedValue(
+        supplied.camera?.mode,
+        [
+          'information-circle',
+          'information-tile',
+          'portrait-overlay',
+          'portrait-rail',
+          'split',
+          'person-background-left',
+          'person-background-right',
+          'person-only',
+        ] as const,
+        fallback.camera.mode,
+      ),
       position: allowedValue(
         supplied.camera?.position,
         [
@@ -273,6 +288,7 @@ const buildCompositionHtml = (
     text: safeColor(theme.brand.text, defaultBrand.text),
     mutedText: safeColor(theme.brand.mutedText, defaultBrand.mutedText),
     primary: safeColor(theme.brand.primary, defaultBrand.primary),
+    secondary: safeColor(theme.brand.secondary, defaultBrand.secondary),
     accent: safeColor(theme.brand.accent, defaultBrand.accent),
     codeBackground: safeColor(
       theme.brand.codeBackground,
@@ -301,6 +317,11 @@ const buildCompositionHtml = (
     120,
     Math.max(0, Number(theme.blocks.borderRadius) || 0),
   )
+  const logoUrl = safeUrl(theme.logo.url)
+  const logoSize = Math.min(160, Math.max(18, Number(theme.logo.size) || 28))
+  const userLogoMarkup = logoUrl
+    ? `<span class="composition-brand user-brand"><img src="${escapeHtml(logoUrl)}" alt="" /></span>`
+    : ''
 
   const sceneMarkup = scenes
     .map(scene => {
@@ -321,7 +342,7 @@ const buildCompositionHtml = (
           )
           const muted = track.audioKind === 'recorded-mic' && !audioUrl ? '' : ' muted'
           const video = videoUrl
-            ? `<video class="camera clip ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape}" style="--camera-scale:${cameraScale}" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${10 + trackIndex}" src="${escapeHtml(videoUrl)}"${muted} playsinline></video>`
+            ? `<video class="camera clip ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${cameraScale}" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${10 + trackIndex}" src="${escapeHtml(videoUrl)}"${muted} playsinline></video>`
             : ''
           const audio = audioUrl
             ? `<audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${20 + trackIndex}" src="${escapeHtml(audioUrl)}"></audio>`
@@ -332,7 +353,7 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
@@ -347,9 +368,18 @@ const buildCompositionHtml = (
           ),
         )}"
       >
+        ${
+          userLogoMarkup && theme.logo.placement.startsWith('top-')
+            ? `<div class="composition-corner-logo logo-${theme.logo.placement}">${userLogoMarkup}</div>`
+            : ''
+        }
         <div class="scene-index">${String(scene.index + 1).padStart(2, '0')}</div>
         <main class="content">${renderNode(scene.node)}</main>
-        <footer>${renderIncredibleBrand(scene.index)}<span>${escapeHtml(project.title)}</span></footer>
+        <footer class="logo-${theme.logo.placement}">${
+          theme.logo.placement.startsWith('footer-')
+            ? userLogoMarkup || renderIncredibleBrand(scene.index)
+            : ''
+        }<span>${escapeHtml(project.title)}</span></footer>
       </section>${presenterMarkup}`
     })
     .join('\n')
@@ -383,7 +413,7 @@ const buildCompositionHtml = (
   <title>${escapeHtml(project.title)}</title>
   <script src="${escapeHtml(gsapUrl)}"></script>
   <style>
-    :root { --bg:${brand.background}; --surface:${brand.surface}; --text:${brand.text}; --muted:${brand.mutedText}; --primary:${brand.primary}; --accent:${brand.accent}; --code:${brand.codeBackground}; --theme-canvas:${canvasBackground}; --theme-gradient:linear-gradient(135deg, ${canvasGradient[0]}, ${canvasGradient[1]}); --block-radius:${blockBorderRadius}px; --video-border-width:${videoBorderWidth}px; --video-radius:${videoBorderRadius}px; }
+    :root { --bg:${brand.background}; --surface:${brand.surface}; --text:${brand.text}; --muted:${brand.mutedText}; --primary:${brand.primary}; --secondary:${brand.secondary}; --accent:${brand.accent}; --code:${brand.codeBackground}; --theme-canvas:${canvasBackground}; --theme-gradient:linear-gradient(135deg, ${canvasGradient[0]}, ${canvasGradient[1]}); --brand-gradient:linear-gradient(135deg, var(--primary), var(--secondary), var(--accent)); --block-radius:${blockBorderRadius}px; --video-border-width:${videoBorderWidth}px; --video-radius:${videoBorderRadius}px; }
     * { box-sizing: border-box; }
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -406,7 +436,7 @@ const buildCompositionHtml = (
     #composition[data-list-style="cards"] .scene-kind-list li { margin: 0; padding: 27px 34px; border: 2px solid color-mix(in srgb, var(--accent) 66%, transparent); border-radius: var(--block-radius); background: color-mix(in srgb, var(--surface) 86%, transparent); }
     #composition[data-list-style="timeline"] .scene-kind-list ul, #composition[data-list-style="timeline"] .scene-kind-list ol { padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 26px; list-style: none; counter-reset: theme-step; }
     #composition[data-list-style="timeline"] .scene-kind-list li { margin: 0; padding-top: 86px; position: relative; font-size: 36px; text-align: center; counter-increment: theme-step; }
-    #composition[data-list-style="timeline"] .scene-kind-list li::before { content: counter(theme-step); position: absolute; top: 0; left: 50%; width: 64px; height: 64px; translate: -50% 0; display: grid; place-items: center; border-radius: 50%; background: var(--theme-gradient); color: white; font-size: 24px; font-weight: 800; }
+    #composition[data-list-style="timeline"] .scene-kind-list li::before { content: counter(theme-step); position: absolute; top: 0; left: 50%; width: 64px; height: 64px; translate: -50% 0; display: grid; place-items: center; border-radius: 50%; background: var(--brand-gradient); color: white; font-size: 24px; font-weight: 800; }
     #composition[data-list-style="steps"] .scene-kind-list ol, #composition[data-list-style="steps"] .scene-kind-list ul { padding: 0; list-style: none; counter-reset: theme-step; }
     #composition[data-list-style="steps"] .scene-kind-list li { position: relative; margin-bottom: 28px; padding-left: 88px; counter-increment: theme-step; }
     #composition[data-list-style="steps"] .scene-kind-list li::before { content: counter(theme-step, decimal-leading-zero); position: absolute; left: 0; color: var(--primary); font-weight: 800; }
@@ -415,7 +445,7 @@ const buildCompositionHtml = (
     #composition[data-quote-style="card"] blockquote { padding: 48px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
     #composition[data-quote-style="statement"] blockquote { padding: 0; border: 0; color: var(--text); font-size: 76px; font-weight: 750; }
     pre { margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code); color: #f7f7ef; box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
-    #composition[data-code-style="terminal"] pre { border: 3px solid var(--accent); border-image: var(--theme-gradient) 1; }
+    #composition[data-code-style="terminal"] pre { border: 3px solid var(--accent); border-image: var(--brand-gradient) 1; }
     #composition[data-code-style="terminal"] pre::before { content: "●  ●  ●"; display: block; margin-bottom: 30px; color: var(--primary); font: 22px/1 ui-monospace, monospace; letter-spacing: .35em; }
     #composition[data-code-style="full"] .scene-kind-code { padding: 72px; }
     #composition[data-code-style="full"] .scene-kind-code .content, #composition[data-code-style="full"] .scene-kind-code pre { width: 100%; max-width: none; height: 100%; }
@@ -429,10 +459,15 @@ const buildCompositionHtml = (
     footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
     .composition-brand { display: inline-flex; align-items: center; gap: 12px; letter-spacing: -.025em; text-transform: lowercase; }
     .composition-brand svg { width: 28px; height: 28px; flex: none; }
+    .composition-brand img { display: block; width: auto; max-width: 240px; height: ${logoSize}px; object-fit: contain; }
     .composition-brand strong { color: var(--text); font-size: 23px; font-weight: 760; }
+    .composition-corner-logo { position: absolute; top: 58px; z-index: 30; }
+    .composition-corner-logo.logo-top-left { left: 72px; }
+    .composition-corner-logo.logo-top-right { right: 72px; }
+    footer.logo-footer-right { flex-direction: row-reverse; }
     .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: var(--video-border-width) solid var(--surface); border-radius: var(--video-radius); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
     #composition[data-video-border="none"] .camera { border-width: 0; }
-    .video-border-gradient .camera, .camera.video-border-gradient { border-color: var(--accent); border-image: var(--theme-gradient) 1; }
+    .video-border-gradient .camera, .camera.video-border-gradient { border-color: var(--accent); border-image: var(--brand-gradient) 1; }
     .camera.circle { border-radius: 50%; } .camera.rounded-rectangle { width: 460px; }
     .camera-top-left { left: 110px; top: 105px; } .camera-top-right { right: 110px; top: 105px; }
     .camera-bottom-left { left: 110px; bottom: 105px; } .camera-bottom-right { right: 110px; bottom: 105px; }
@@ -441,6 +476,20 @@ const buildCompositionHtml = (
     .camera-split-left { left: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-split-right { right: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-full { inset: 0; z-index: 20; width: 100%; height: 100%; border-radius: 0; scale: 1; }
+    .camera.presenter-information-circle { width: 330px; height: 330px; border-radius: 50%; }
+    .camera.presenter-information-tile { width: 390px; height: 300px; }
+    .camera.presenter-portrait-overlay { top: 50%; right: 82px; width: 470px; height: 650px; translate: 0 -50%; }
+    .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); }
+    .scene.presenter-portrait-rail .content { width: 61%; margin-left: 0; text-align: left; }
+    .camera.presenter-split { top: 0; right: 0; bottom: 0; width: 50%; height: 100%; border-radius: 0; }
+    .scene.presenter-split .content { width: 46%; margin-left: 0; text-align: left; }
+    .camera.presenter-person-background-left, .camera.presenter-person-background-right, .camera.presenter-person-only { inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; scale: 1; }
+    .scene.presenter-person-background-left::after, .scene.presenter-person-background-right::after { content: ""; position: absolute; inset: 0; z-index: 21; pointer-events: none; }
+    .scene.presenter-person-background-left::after { background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 94%, transparent) 0 42%, color-mix(in srgb, var(--bg) 48%, transparent) 64%, transparent 100%); }
+    .scene.presenter-person-background-right::after { background: linear-gradient(270deg, color-mix(in srgb, var(--bg) 94%, transparent) 0 42%, color-mix(in srgb, var(--bg) 48%, transparent) 64%, transparent 100%); }
+    .scene.presenter-person-background-left .content { width: 52%; margin-left: 0; text-align: left; }
+    .scene.presenter-person-background-right .content { width: 52%; margin-right: 0; margin-left: auto; text-align: left; }
+    .scene.presenter-person-only > * { display: none; }
     .camera-hidden { display: none; }
   </style>
 </head>

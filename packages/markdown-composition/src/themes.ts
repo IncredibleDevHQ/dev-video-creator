@@ -14,6 +14,7 @@ export const defaultBrand: BrandTemplateV1 = {
   text: '#f9fafb',
   mutedText: '#a1a1aa',
   primary: '#16a34a',
+  secondary: '#15803d',
   accent: '#4ade80',
   codeBackground: '#0f172a',
 }
@@ -24,13 +25,14 @@ export const defaultStudioTheme = createTheme({
   description: 'The original human-first Studio direction.',
   source: 'built-in',
   brand: { ...defaultBrand },
+  logo: { url: '', placement: 'footer-left', size: 28 },
   canvas: {
     treatment: 'gradient',
     gradient: ['#111827', '#17251d'],
     gridColor: '#4ade8030',
   },
   video: {
-    layout: 'picture-in-picture',
+    layout: 'information-circle',
     borderStyle: 'solid',
     borderWidth: 10,
     borderRadius: 44,
@@ -58,16 +60,18 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       text: '#ffffff',
       mutedText: '#a1a1aa',
       primary: '#e03cff',
+      secondary: '#6d5cff',
       accent: '#6d5cff',
       codeBackground: '#111c31',
     },
+    logo: { url: '', placement: 'footer-left', size: 28 },
     canvas: {
       treatment: 'grid',
       gradient: ['#ff3ca6', '#4c5cff'],
       gridColor: '#ffffff20',
     },
     video: {
-      layout: 'overlay',
+      layout: 'portrait-overlay',
       borderStyle: 'gradient',
       borderWidth: 9,
       borderRadius: 16,
@@ -92,9 +96,11 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       text: '#f1f8ff',
       mutedText: '#91a7bd',
       primary: '#22d3ee',
+      secondary: '#2563eb',
       accent: '#60a5fa',
       codeBackground: '#040b14',
     },
+    logo: { url: '', placement: 'top-left', size: 30 },
     canvas: {
       treatment: 'gradient',
       gradient: ['#07111f', '#102f46'],
@@ -126,16 +132,18 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       text: '#211e1a',
       mutedText: '#756d63',
       primary: '#e45838',
+      secondary: '#b82f52',
       accent: '#b82f52',
       codeBackground: '#25211d',
     },
+    logo: { url: '', placement: 'footer-left', size: 28 },
     canvas: {
       treatment: 'solid',
       gradient: ['#f5efe5', '#f4c7b8'],
       gridColor: '#211e1a14',
     },
     video: {
-      layout: 'picture-in-picture',
+      layout: 'information-tile',
       borderStyle: 'solid',
       borderWidth: 8,
       borderRadius: 4,
@@ -160,16 +168,18 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       text: '#fffaff',
       mutedText: '#cab8df',
       primary: '#c084fc',
+      secondary: '#8b5cf6',
       accent: '#f0abfc',
       codeBackground: '#1b1429',
     },
+    logo: { url: '', placement: 'top-right', size: 30 },
     canvas: {
       treatment: 'gradient',
       gradient: ['#271d3b', '#7540a8'],
       gridColor: '#f0abfc24',
     },
     video: {
-      layout: 'overlay',
+      layout: 'portrait-rail',
       borderStyle: 'gradient',
       borderWidth: 8,
       borderRadius: 52,
@@ -194,16 +204,18 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       text: '#ffffff',
       mutedText: '#b3b3b3',
       primary: '#facc15',
+      secondary: '#fb7185',
       accent: '#fb7185',
       codeBackground: '#0b0b0b',
     },
+    logo: { url: '', placement: 'footer-right', size: 28 },
     canvas: {
       treatment: 'solid',
       gradient: ['#050505', '#3d2e00'],
       gridColor: '#ffffff18',
     },
     video: {
-      layout: 'full',
+      layout: 'person-background-left',
       borderStyle: 'none',
       borderWidth: 0,
       borderRadius: 0,
@@ -285,8 +297,13 @@ export const generateThemeDirections = (
   brandColor: string,
   name = 'My brand',
   treatment: ThemeCanvasTreatment | 'both' = 'both',
+  palette?: { secondary?: string; accent?: string },
 ): StudioThemeV1[] => {
   const base = normalizeHex(brandColor)
+  const suppliedSecondary = palette?.secondary
+    ? normalizeHex(palette.secondary)
+    : null
+  const suppliedAccent = palette?.accent ? normalizeHex(palette.accent) : null
   const color = hexToHsl(base)
   const treatments: ThemeCanvasTreatment[] =
     treatment === 'both' ? ['solid', 'gradient', 'grid'] : [treatment]
@@ -300,7 +317,8 @@ export const generateThemeDirections = (
   return recipes.map((recipe, index) => {
     const canvasTreatment = treatments[index % treatments.length]
     const light = index === 2
-    const accent = hsl(color.hue + recipe.shift, 82, light ? 42 : 66)
+    const accent =
+      suppliedAccent || hsl(color.hue + recipe.shift, 82, light ? 42 : 66)
     return createTheme({
       id: `generated-${Date.now()}-${index}`,
       name: `${name} ${recipe.label}`,
@@ -312,16 +330,20 @@ export const generateThemeDirections = (
         text: recipe.text,
         mutedText: hsl(color.hue, 12, light ? 42 : 72),
         primary: base,
+        secondary:
+          suppliedSecondary ||
+          hsl(color.hue + recipe.shift / 2, 76, light ? 38 : 58),
         accent,
         codeBackground: light ? '#1c1b1f' : hsl(color.hue, 28, 5),
       },
+      logo: { url: '', placement: index % 2 ? 'top-left' : 'footer-left', size: 28 },
       canvas: {
         treatment: canvasTreatment,
         gradient: [base, accent],
         gridColor: light ? '#00000016' : '#ffffff20',
       },
       video: {
-        layout: index % 2 ? 'split' : 'overlay',
+        layout: index % 2 ? 'split' : 'portrait-overlay',
         borderStyle: canvasTreatment === 'gradient' ? 'gradient' : 'solid',
         borderWidth: 8,
         borderRadius: index === 3 ? 4 : 28,
@@ -348,12 +370,21 @@ export const normalizeStudioTheme = (
       brand: { ...defaultStudioTheme.brand, ...legacyBrand },
     }
   }
+  const legacyLayout = theme.video?.layout as string | undefined
+  const videoLayout = (
+    {
+      'picture-in-picture': 'information-circle',
+      overlay: 'portrait-overlay',
+      full: 'person-only',
+    } as Record<string, StudioThemeV1['video']['layout']>
+  )[legacyLayout || ''] || theme.video?.layout || defaultStudioTheme.video.layout
   return {
     ...defaultStudioTheme,
     ...theme,
     brand: { ...defaultStudioTheme.brand, ...theme.brand },
+    logo: { ...defaultStudioTheme.logo, ...theme.logo },
     canvas: { ...defaultStudioTheme.canvas, ...theme.canvas },
-    video: { ...defaultStudioTheme.video, ...theme.video },
+    video: { ...defaultStudioTheme.video, ...theme.video, layout: videoLayout },
     blocks: { ...defaultStudioTheme.blocks, ...theme.blocks },
   }
 }

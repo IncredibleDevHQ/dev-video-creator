@@ -50,24 +50,33 @@
               <section>
                 <span class="builder-step">01 · Brand direction</span>
                 <label>Theme name<input id="theme-name" type="text" maxlength="60" value="My brand" /></label>
-                <div class="builder-inline-fields">
-                  <label>Brand color<input id="theme-brand-color" type="color" value="#16a34a" /></label>
-                  <label>Canvas<select id="theme-generation-treatment"><option value="both">Show all</option><option value="gradient">Gradients</option><option value="solid">Plain color</option><option value="grid">Grid</option></select></label>
+                <div class="builder-palette-fields">
+                  <label>Primary<input id="theme-brand-color" type="color" value="#16a34a" /></label>
+                  <label>Secondary<input id="theme-secondary-color" type="color" value="#15803d" /></label>
+                  <label>Accent<input id="theme-accent-color" type="color" value="#4ade80" /></label>
                 </div>
+                <label>Direction canvas<select id="theme-generation-treatment"><option value="both">Show all</option><option value="gradient">Gradients</option><option value="solid">Plain color</option><option value="grid">Grid</option></select></label>
                 <label>Mood<select id="theme-mood"><option value="confident, human and technical">Human + technical</option><option value="editorial and understated">Editorial</option><option value="energetic and playful">Energetic</option><option value="minimal and premium">Minimal</option></select></label>
+                <div class="logo-upload-control">
+                  <input id="theme-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden />
+                  <div id="theme-logo-preview-shell" class="theme-logo-preview-shell"><img id="theme-logo-preview" alt="Uploaded brand logo" hidden /><span id="theme-logo-placeholder">Your logo</span></div>
+                  <div><button id="upload-theme-logo" class="button ghost" type="button">Upload logo</button><button id="remove-theme-logo" class="text-button danger" type="button">Remove</button></div>
+                </div>
+                <label>Logo placement<select id="theme-logo-placement"><option value="footer-left">Footer left</option><option value="footer-right">Footer right</option><option value="top-left">Top left</option><option value="top-right">Top right</option></select></label>
+                <label>Logo size <output id="theme-logo-size-output">28px</output><input id="theme-logo-size" type="range" min="18" max="120" step="2" /></label>
                 <button id="generate-themes" class="button secondary wide" type="button">Generate with AI</button>
                 <small id="theme-ai-status" class="builder-status">OpenAI creates four complete directions; a local generator is the fallback.</small>
               </section>
               <section>
                 <span class="builder-step">02 · Canvas + surfaces</span>
                 <label>Canvas treatment<select id="theme-canvas-treatment"><option value="solid">Plain color</option><option value="gradient">Gradient</option><option value="grid">Grid</option></select></label>
-                <div class="builder-color-row"><label>Background<input id="theme-background" type="color" /></label><label>Surface<input id="theme-surface" type="color" /></label><label>Accent<input id="theme-accent" type="color" /></label></div>
+                <div class="builder-color-row"><label>Background<input id="theme-background" type="color" /></label><label>Surface<input id="theme-surface" type="color" /></label><label>Text<input id="theme-text" type="color" /></label></div>
                 <label>Content surface<select id="theme-surface-style"><option value="none">Open canvas</option><option value="outline">Outline</option><option value="card">Card</option></select></label>
                 <label>Block corners <output id="theme-block-radius-output">24px</output><input id="theme-block-radius" type="range" min="0" max="80" step="2" /></label>
               </section>
               <section>
                 <span class="builder-step">03 · Human video</span>
-                <label>Default layout<select id="theme-video-layout"><option value="picture-in-picture">Picture in picture</option><option value="overlay">Portrait overlay</option><option value="split">Split canvas</option><option value="full">Full frame</option></select></label>
+                <label>Default layout<select id="theme-video-layout"><optgroup label="Information first"><option value="information-circle">Small camera circle</option><option value="information-tile">Small camera tile</option><option value="portrait-overlay">Portrait overlay</option><option value="portrait-rail">Full-height portrait rail</option></optgroup><optgroup label="Balanced"><option value="split">50 / 50 split</option></optgroup><optgroup label="Person first"><option value="person-background-left">Full camera · points left</option><option value="person-background-right">Full camera · points right</option><option value="person-only">Full camera only</option></optgroup></select></label>
                 <label>Video border<select id="theme-video-border"><option value="none">None</option><option value="solid">Solid</option><option value="gradient">Gradient</option></select></label>
                 <label>Video corners <output id="theme-video-radius-output">28px</output><input id="theme-video-radius" type="range" min="0" max="100" step="2" /></label>
                 <label>Border width <output id="theme-video-width-output">8px</output><input id="theme-video-width" type="range" min="0" max="20" step="1" /></label>
@@ -86,9 +95,10 @@
               <div id="theme-builder-preview" class="theme-builder-preview">
                 <div class="theme-preview-grid"></div>
                 <span class="theme-preview-index">01</span>
+                <span id="theme-preview-corner-logo" class="theme-preview-corner-logo" hidden><img id="theme-preview-corner-image" alt="" /></span>
                 <div id="theme-preview-content" class="theme-preview-content"></div>
                 <div id="theme-preview-person" class="theme-preview-person"><span></span></div>
-                <footer><span class="theme-preview-mark">✦ incredible</span><span id="theme-preview-name">My brand</span></footer>
+                <footer><span class="theme-preview-mark"><img id="theme-preview-logo" alt="" hidden /><span id="theme-preview-fallback-mark">✦ incredible</span></span><span id="theme-preview-name">My brand</span></footer>
               </div>
               <div id="theme-preview-tabs" class="theme-preview-tabs" role="tablist" aria-label="Preview Markdown block type">
                 <button class="active" type="button" data-theme-preview="title">Title</button><button type="button" data-theme-preview="list">Points</button><button type="button" data-theme-preview="code">Code</button><button type="button" data-theme-preview="quote">Quote</button><button type="button" data-theme-preview="video">Video</button>
@@ -259,6 +269,7 @@
             </fieldset>
             <fieldset>
               <legend>Human presenter</legend>
+              <label>Presenter mode<select id="presenter-mode"><option value="information-circle">Content + small circle</option><option value="information-tile">Content + small tile</option><option value="portrait-overlay">Portrait overlay</option><option value="portrait-rail">Full-height portrait rail</option><option value="split">50 / 50 split</option><option value="person-background-left">Full camera + points left</option><option value="person-background-right">Full camera + points right</option><option value="person-only">Full camera only</option></select></label>
               <label>Camera position<select id="camera-position"><option value="full">Full frame</option><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="overlay-right">Overlay right</option><option value="overlay-left">Overlay left</option><option value="split-right">Split right</option><option value="split-left">Split left</option><option value="hidden">Hidden</option></select></label>
               <label>Camera shape<select id="camera-shape"><option value="circle">Circle</option><option value="rounded-rectangle">Rounded rectangle</option></select></label>
               <button id="record-this-block" type="button" class="button secondary wide">Record this block</button>
@@ -268,6 +279,7 @@
               <legend>Incredible brand colors</legend>
               <div class="color-grid">
                 <label><input id="brand-primary" type="color" /><span>Primary</span></label>
+                <label><input id="brand-secondary" type="color" /><span>Secondary</span></label>
                 <label><input id="brand-accent" type="color" /><span>Accent</span></label>
                 <label><input id="brand-background" type="color" /><span>Canvas</span></label>
                 <label><input id="brand-text" type="color" /><span>Text</span></label>

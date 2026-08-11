@@ -41,6 +41,15 @@ export type CameraPosition =
   | 'overlay-right'
   | 'split-left'
   | 'split-right'
+export type PresenterLayoutMode =
+  | 'information-circle'
+  | 'information-tile'
+  | 'portrait-overlay'
+  | 'portrait-rail'
+  | 'split'
+  | 'person-background-left'
+  | 'person-background-right'
+  | 'person-only'
 
 export type BlockRenderConfigV1 = {
   nodeId: NodeId
@@ -53,6 +62,7 @@ export type BlockRenderConfigV1 = {
     color: string
   }
   camera: {
+    mode: PresenterLayoutMode
     position: CameraPosition
     shape: 'circle' | 'rounded-rectangle'
     scale: number
@@ -81,6 +91,7 @@ export type BrandTemplateV1 = {
   text: string
   mutedText: string
   primary: string
+  secondary: string
   accent: string
   codeBackground: string
 }
@@ -88,10 +99,14 @@ export type BrandTemplateV1 = {
 export type ThemeSource = 'built-in' | 'generated' | 'custom'
 export type ThemeCanvasTreatment = 'solid' | 'gradient' | 'grid'
 export type ThemeVideoLayout =
-  | 'picture-in-picture'
-  | 'overlay'
+  | 'information-circle'
+  | 'information-tile'
+  | 'portrait-overlay'
+  | 'portrait-rail'
   | 'split'
-  | 'full'
+  | 'person-background-left'
+  | 'person-background-right'
+  | 'person-only'
 export type ThemeBorderStyle = 'none' | 'solid' | 'gradient'
 export type ThemeTitleStyle = 'statement' | 'split' | 'lower-third'
 export type ThemeListStyle = 'bullets' | 'cards' | 'timeline' | 'steps'
@@ -106,6 +121,11 @@ export type StudioThemeV1 = {
   description: string
   source: ThemeSource
   brand: BrandTemplateV1
+  logo: {
+    url: string
+    placement: 'top-left' | 'top-right' | 'footer-left' | 'footer-right'
+    size: number
+  }
   canvas: {
     treatment: ThemeCanvasTreatment
     gradient: [string, string]

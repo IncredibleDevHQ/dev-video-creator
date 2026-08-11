@@ -116,6 +116,10 @@ const publicBaseUrl = (request: IncomingMessage) =>
   `http://${request.headers.host || `${HOST}:${PORT}`}`
 
 const extensionForContentType = (contentType = '') => {
+  if (contentType.includes('image/svg+xml')) return '.svg'
+  if (contentType.includes('image/png')) return '.png'
+  if (contentType.includes('image/jpeg')) return '.jpg'
+  if (contentType.includes('image/webp')) return '.webp'
   if (contentType.includes('video/mp4')) return '.mp4'
   if (contentType.includes('video/quicktime')) return '.mov'
   if (contentType.includes('audio/mpeg')) return '.mp3'
@@ -283,6 +287,8 @@ const handleThemeGeneration = async (
 ) => {
   const body = await readJson<{
     brandColor?: string
+    secondaryColor?: string
+    accentColor?: string
     name?: string
     treatment?: ThemeCanvasTreatment | 'both'
     mood?: string
@@ -291,12 +297,21 @@ const handleThemeGeneration = async (
     ? (body.brandColor as string)
     : '#16a34a'
   const name = body.name?.trim().slice(0, 60) || 'My brand'
+  const secondaryColor = /^#[0-9a-f]{6}$/i.test(body.secondaryColor || '')
+    ? (body.secondaryColor as string)
+    : '#15803d'
+  const accentColor = /^#[0-9a-f]{6}$/i.test(body.accentColor || '')
+    ? (body.accentColor as string)
+    : '#4ade80'
   const treatment = ['solid', 'gradient', 'grid', 'both'].includes(
     body.treatment || '',
   )
     ? (body.treatment as ThemeCanvasTreatment | 'both')
     : 'both'
-  const fallback = generateThemeDirections(brandColor, name, treatment)
+  const fallback = generateThemeDirections(brandColor, name, treatment, {
+    secondary: secondaryColor,
+    accent: accentColor,
+  })
 
   if (!openAIKey) {
     json(response, 200, { themes: fallback, provider: 'local-generator' })
@@ -323,6 +338,7 @@ const handleThemeGeneration = async (
             'text',
             'mutedText',
             'primary',
+            'secondary',
             'accent',
             'codeBackground',
             'canvasTreatment',
@@ -347,6 +363,7 @@ const handleThemeGeneration = async (
             text: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
             mutedText: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
             primary: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            secondary: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
             accent: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
             codeBackground: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
             canvasTreatment: { enum: ['solid', 'gradient', 'grid'] },
@@ -358,7 +375,16 @@ const handleThemeGeneration = async (
             },
             gridColor: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
             videoLayout: {
-              enum: ['picture-in-picture', 'overlay', 'split', 'full'],
+              enum: [
+                'information-circle',
+                'information-tile',
+                'portrait-overlay',
+                'portrait-rail',
+                'split',
+                'person-background-left',
+                'person-background-right',
+                'person-only',
+              ],
             },
             videoBorderStyle: { enum: ['none', 'solid', 'gradient'] },
             videoBorderWidth: { type: 'number', minimum: 0, maximum: 20 },
@@ -384,7 +410,7 @@ const handleThemeGeneration = async (
       },
       body: JSON.stringify({
         model: process.env.OPENAI_THEME_MODEL || 'gpt-5.6-luna',
-        input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its anchor color is ${brandColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Maintain accessible text contrast. Treat each result as a coherent recipe for title, Markdown lists, code, quotes and real human camera framing. Avoid cosmetic variations of the same idea.`,
+        input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its supplied palette is primary ${brandColor}, secondary ${secondaryColor}, accent ${accentColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Preserve a coherent multi-color palette while varying tonal use. Maintain accessible text contrast. Treat each result as a coherent recipe for title, Markdown lists, code, quotes and real human camera framing. Video layout semantics: information-circle and information-tile keep content dominant; portrait-overlay and portrait-rail balance the person with content; split uses equal space; person-background-left/right put the real person full-frame with information overlaid on the named side; person-only is full camera. Avoid cosmetic variations of the same idea.`,
         reasoning: { effort: 'low' },
         text: {
           format: {
@@ -419,9 +445,11 @@ const handleThemeGeneration = async (
             text: String(item.text),
             mutedText: String(item.mutedText),
             primary: String(item.primary),
+            secondary: String(item.secondary),
             accent: String(item.accent),
             codeBackground: String(item.codeBackground),
           },
+          logo: { url: '', placement: 'footer-left', size: 28 },
           canvas: {
             treatment: item.canvasTreatment as StudioThemeV1['canvas']['treatment'],
             gradient: item.gradient as [string, string],

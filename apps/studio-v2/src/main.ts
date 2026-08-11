@@ -14,6 +14,7 @@ import {
   type BlockRenderConfigV1,
   type CameraPosition,
   type ProjectDocumentV1,
+  type PresenterLayoutMode,
   type RevealStyle,
   type Scene,
   type SceneLayout,
@@ -116,20 +117,18 @@ const LAYOUT_META: Record<
 const PRESENTER_LAYOUT_PRESETS: Array<{
   id: string
   label: string
+  mode: PresenterLayoutMode
   position: CameraPosition
   shape: BlockRenderConfigV1['camera']['shape']
 }> = [
-  { id: 'full', label: 'Full frame', position: 'full', shape: 'rounded-rectangle' },
-  { id: 'split-left', label: 'Split left', position: 'split-left', shape: 'rounded-rectangle' },
-  { id: 'split-right', label: 'Split right', position: 'split-right', shape: 'rounded-rectangle' },
-  { id: 'overlay-left', label: 'Overlay left', position: 'overlay-left', shape: 'rounded-rectangle' },
-  { id: 'overlay-right', label: 'Overlay right', position: 'overlay-right', shape: 'rounded-rectangle' },
-  { id: 'top-left', label: 'Top left', position: 'top-left', shape: 'rounded-rectangle' },
-  { id: 'top-right', label: 'Top right', position: 'top-right', shape: 'rounded-rectangle' },
-  { id: 'bottom-left', label: 'Bottom left', position: 'bottom-left', shape: 'rounded-rectangle' },
-  { id: 'bottom-right', label: 'Bottom right', position: 'bottom-right', shape: 'rounded-rectangle' },
-  { id: 'circle-left', label: 'Circle left', position: 'bottom-left', shape: 'circle' },
-  { id: 'circle-right', label: 'Circle right', position: 'bottom-right', shape: 'circle' },
+  { id: 'information-circle', label: 'Content + circle', mode: 'information-circle', position: 'bottom-right', shape: 'circle' },
+  { id: 'information-tile', label: 'Content + tile', mode: 'information-tile', position: 'bottom-right', shape: 'rounded-rectangle' },
+  { id: 'portrait-overlay', label: 'Portrait overlay', mode: 'portrait-overlay', position: 'overlay-right', shape: 'rounded-rectangle' },
+  { id: 'portrait-rail', label: 'Portrait rail', mode: 'portrait-rail', position: 'overlay-right', shape: 'rounded-rectangle' },
+  { id: 'split', label: '50 / 50 split', mode: 'split', position: 'split-right', shape: 'rounded-rectangle' },
+  { id: 'person-background-left', label: 'Camera + points left', mode: 'person-background-left', position: 'full', shape: 'rounded-rectangle' },
+  { id: 'person-background-right', label: 'Camera + points right', mode: 'person-background-right', position: 'full', shape: 'rounded-rectangle' },
+  { id: 'person-only', label: 'Full camera', mode: 'person-only', position: 'full', shape: 'rounded-rectangle' },
 ]
 
 const BACKGROUND_PRESETS: Array<{
@@ -288,26 +287,19 @@ const themeCanvasCss = (theme: StudioThemeV1) => {
   return theme.brand.background
 }
 
-const themeVideoPosition = (
-  layout: StudioThemeV1['video']['layout'],
-): CameraPosition =>
-  ({
-    'picture-in-picture': 'bottom-right',
-    overlay: 'overlay-right',
-    split: 'split-right',
-    full: 'full',
-  })[layout] as CameraPosition
+const presenterPresetForMode = (mode: PresenterLayoutMode) =>
+  PRESENTER_LAYOUT_PRESETS.find(preset => preset.mode === mode) ||
+  PRESENTER_LAYOUT_PRESETS[0]
 
 const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
   project.theme = cloneTheme(normalizeStudioTheme(theme))
   project.brand = { ...project.theme.brand }
   if (updateCamera) {
     Object.values(project.blocks).forEach(config => {
-      config.camera.position = themeVideoPosition(project.theme!.video.layout)
-      config.camera.shape =
-        project.theme!.video.layout === 'picture-in-picture'
-          ? 'circle'
-          : 'rounded-rectangle'
+      const preset = presenterPresetForMode(project.theme!.video.layout)
+      config.camera.mode = preset.mode
+      config.camera.position = preset.position
+      config.camera.shape = preset.shape
     })
   }
   document.documentElement.style.setProperty('--brand', project.brand.primary)
@@ -318,12 +310,13 @@ const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
 
 const createThemePreview = (theme: StudioThemeV1) => {
   const preview = document.createElement('div')
-  preview.className = `theme-card-preview treatment-${theme.canvas.treatment}`
+  preview.className = `theme-card-preview treatment-${theme.canvas.treatment} video-${theme.video.layout}`
   preview.style.setProperty('--theme-card-canvas', themeCanvasCss(theme))
   preview.style.setProperty('--theme-card-surface', theme.brand.surface)
   preview.style.setProperty('--theme-card-text', theme.brand.text)
   preview.style.setProperty('--theme-card-muted', theme.brand.mutedText)
   preview.style.setProperty('--theme-card-primary', theme.brand.primary)
+  preview.style.setProperty('--theme-card-secondary', theme.brand.secondary)
   preview.style.setProperty('--theme-card-accent', theme.brand.accent)
   preview.style.setProperty('--theme-card-code', theme.brand.codeBackground)
   preview.style.setProperty('--theme-card-radius', `${theme.blocks.borderRadius}px`)
@@ -334,6 +327,13 @@ const createThemePreview = (theme: StudioThemeV1) => {
   human.style.borderWidth = `${Math.max(0, theme.video.borderWidth / 2)}px`
   human.classList.toggle('gradient-border', theme.video.borderStyle === 'gradient')
   human.classList.toggle('no-border', theme.video.borderStyle === 'none')
+  if (theme.logo.url) {
+    const logo = document.createElement('img')
+    logo.className = 'theme-card-logo'
+    logo.src = theme.logo.url
+    logo.alt = ''
+    preview.append(logo)
+  }
   return preview
 }
 
@@ -368,7 +368,9 @@ const createThemeCard = (
     choose.className = 'button ghost wide'
     choose.textContent = 'Choose direction'
     choose.addEventListener('click', () => {
+      const logo = { ...themeDraft.logo }
       themeDraft = cloneTheme(theme)
+      themeDraft.logo = logo
       themeDraft.id = `custom-${crypto.randomUUID()}`
       themeDraft.source = 'custom'
       syncThemeBuilderControls()
@@ -435,10 +437,14 @@ const setBuilderValue = (selector: string, value: string | number) => {
 const syncThemeBuilderControls = () => {
   setBuilderValue('#theme-name', themeDraft.name)
   setBuilderValue('#theme-brand-color', themeDraft.brand.primary)
+  setBuilderValue('#theme-secondary-color', themeDraft.brand.secondary)
+  setBuilderValue('#theme-accent-color', themeDraft.brand.accent)
   setBuilderValue('#theme-canvas-treatment', themeDraft.canvas.treatment)
   setBuilderValue('#theme-background', themeDraft.brand.background)
   setBuilderValue('#theme-surface', themeDraft.brand.surface)
-  setBuilderValue('#theme-accent', themeDraft.brand.accent)
+  setBuilderValue('#theme-text', themeDraft.brand.text)
+  setBuilderValue('#theme-logo-placement', themeDraft.logo.placement)
+  setBuilderValue('#theme-logo-size', themeDraft.logo.size)
   setBuilderValue('#theme-surface-style', themeDraft.blocks.surface)
   setBuilderValue('#theme-block-radius', themeDraft.blocks.borderRadius)
   setBuilderValue('#theme-video-layout', themeDraft.video.layout)
@@ -452,29 +458,65 @@ const syncThemeBuilderControls = () => {
   ;($('#theme-block-radius-output') as HTMLOutputElement).value = `${themeDraft.blocks.borderRadius}px`
   ;($('#theme-video-radius-output') as HTMLOutputElement).value = `${themeDraft.video.borderRadius}px`
   ;($('#theme-video-width-output') as HTMLOutputElement).value = `${themeDraft.video.borderWidth}px`
+  ;($('#theme-logo-size-output') as HTMLOutputElement).value = `${themeDraft.logo.size}px`
+  const logoPreview = $('#theme-logo-preview') as HTMLImageElement
+  logoPreview.hidden = !themeDraft.logo.url
+  logoPreview.src = themeDraft.logo.url || ''
+  ;($('#theme-logo-placeholder') as HTMLElement).hidden = Boolean(themeDraft.logo.url)
+  ;($('#remove-theme-logo') as HTMLButtonElement).disabled = !themeDraft.logo.url
 }
 
 const renderThemeBuilderPreview = () => {
   const preview = $('#theme-builder-preview')
-  preview.className = `theme-builder-preview preview-${themePreviewKind} title-${themeDraft.blocks.title} list-${themeDraft.blocks.list} code-${themeDraft.blocks.code} quote-${themeDraft.blocks.quote} surface-${themeDraft.blocks.surface} video-${themeDraft.video.layout} border-${themeDraft.video.borderStyle}`
+  preview.className = `theme-builder-preview preview-${themePreviewKind} title-${themeDraft.blocks.title} list-${themeDraft.blocks.list} code-${themeDraft.blocks.code} quote-${themeDraft.blocks.quote} surface-${themeDraft.blocks.surface} video-${themeDraft.video.layout} border-${themeDraft.video.borderStyle} logo-${themeDraft.logo.placement}`
   preview.style.setProperty('--preview-canvas', themeCanvasCss(themeDraft))
   preview.style.setProperty('--preview-bg', themeDraft.brand.background)
   preview.style.setProperty('--preview-surface', themeDraft.brand.surface)
   preview.style.setProperty('--preview-text', themeDraft.brand.text)
   preview.style.setProperty('--preview-muted', themeDraft.brand.mutedText)
   preview.style.setProperty('--preview-primary', themeDraft.brand.primary)
+  preview.style.setProperty('--preview-secondary', themeDraft.brand.secondary)
   preview.style.setProperty('--preview-accent', themeDraft.brand.accent)
   preview.style.setProperty('--preview-code', themeDraft.brand.codeBackground)
-  preview.style.setProperty('--preview-gradient', `linear-gradient(135deg, ${themeDraft.canvas.gradient[0]}, ${themeDraft.canvas.gradient[1]})`)
+  preview.style.setProperty('--preview-gradient', `linear-gradient(135deg, ${themeDraft.brand.primary}, ${themeDraft.brand.secondary}, ${themeDraft.brand.accent})`)
   preview.style.setProperty('--preview-radius', `${themeDraft.blocks.borderRadius}px`)
   preview.style.setProperty('--preview-video-radius', `${themeDraft.video.borderRadius}px`)
   preview.style.setProperty('--preview-video-width', `${themeDraft.video.borderWidth}px`)
   ;($('#builder-preview-title') as HTMLElement).textContent = themeDraft.name
   ;($('#theme-preview-name') as HTMLElement).textContent = themeDraft.name
+  const previewLogo = $('#theme-preview-logo') as HTMLImageElement
+  const logoInFooter = themeDraft.logo.placement.startsWith('footer-')
+  previewLogo.hidden = !themeDraft.logo.url || !logoInFooter
+  previewLogo.src = themeDraft.logo.url || ''
+  previewLogo.style.height = `${Math.max(14, themeDraft.logo.size / 2)}px`
+  ;($('#theme-preview-fallback-mark') as HTMLElement).hidden = Boolean(
+    themeDraft.logo.url,
+  )
+  const cornerLogo = $('#theme-preview-corner-logo')
+  cornerLogo.hidden = !themeDraft.logo.url || logoInFooter
+  cornerLogo.className = `theme-preview-corner-logo ${themeDraft.logo.placement}`
+  const cornerImage = $('#theme-preview-corner-image') as HTMLImageElement
+  cornerImage.src = themeDraft.logo.url || ''
+  cornerImage.style.height = `${Math.max(14, themeDraft.logo.size / 2)}px`
 
   const content = $('#theme-preview-content')
   content.replaceChildren()
-  if (themePreviewKind === 'title' || themePreviewKind === 'video') {
+  if (
+    themePreviewKind === 'video' &&
+    themeDraft.video.layout.startsWith('person-background')
+  ) {
+    const title = document.createElement('strong')
+    title.textContent = 'What matters most'
+    const list = document.createElement('ol')
+    ;['People stay visible', 'Points stay readable', 'The story leads'].forEach(
+      item => {
+        const listItem = document.createElement('li')
+        listItem.textContent = item
+        list.append(listItem)
+      },
+    )
+    content.append(title, list)
+  } else if (themePreviewKind === 'title' || themePreviewKind === 'video') {
     const kicker = document.createElement('span')
     kicker.textContent = 'Human-first developer video'
     const title = document.createElement('strong')
@@ -631,6 +673,9 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
     if (!config.camera) {
       config.camera = { ...fallback.camera }
     }
+    if (!config.camera.mode) {
+      config.camera.mode = fallback.camera.mode
+    }
     const options = DIRECTOR_OPTIONS[directorKindForNode(node)]
     if (!options.layouts.includes(config.layout)) {
       config.layout = fallback.layout
@@ -728,12 +773,14 @@ const createPresenterLayoutButton = (
   config: BlockRenderConfigV1,
 ) => {
   const isActive =
+    config.camera.mode === preset.mode &&
     config.camera.position === preset.position &&
     config.camera.shape === preset.shape
   const button = document.createElement('button')
   button.type = 'button'
   button.className = `presenter-layout-preset${isActive ? ' active' : ''}`
   button.dataset.presenterLayout = preset.id
+  button.dataset.presenterMode = preset.mode
   button.dataset.cameraPosition = preset.position
   button.dataset.cameraShape = preset.shape
   button.setAttribute('aria-label', preset.label)
@@ -751,6 +798,7 @@ const createPresenterLayoutButton = (
   button.append(thumbnail, label)
   button.addEventListener('click', () => {
     updateSelectedConfig(blockConfig => {
+      blockConfig.camera.mode = preset.mode
       blockConfig.camera.position = preset.position
       blockConfig.camera.shape = preset.shape
     })
@@ -837,6 +885,7 @@ const updateInspector = () => {
     config.durationMs / 1000
   ).toFixed(1)}s`
   ;($('#camera-position') as HTMLSelectElement).value = config.camera.position
+  ;($('#presenter-mode') as HTMLSelectElement).value = config.camera.mode
   ;($('#camera-shape') as HTMLSelectElement).value = config.camera.shape
   ;($('#block-background-color') as HTMLInputElement).value =
     config.background.color
@@ -1247,6 +1296,16 @@ window.addEventListener('resize', positionInlinePreview)
     })
   },
 )
+;($('#presenter-mode') as HTMLSelectElement).addEventListener('change', event => {
+  const mode = (event.currentTarget as HTMLSelectElement)
+    .value as PresenterLayoutMode
+  const preset = presenterPresetForMode(mode)
+  updateSelectedConfig(config => {
+    config.camera.mode = mode
+    config.camera.position = preset.position
+    config.camera.shape = preset.shape
+  })
+})
 ;($('#camera-shape') as HTMLSelectElement).addEventListener('change', event => {
   updateSelectedConfig(config => {
     config.camera.shape = (event.currentTarget as HTMLSelectElement).value as
@@ -1265,6 +1324,7 @@ const bindBrandColor = (selector: string, key: keyof ProjectDocumentV1['brand'])
   })
 }
 bindBrandColor('#brand-primary', 'primary')
+bindBrandColor('#brand-secondary', 'secondary')
 bindBrandColor('#brand-accent', 'accent')
 bindBrandColor('#brand-background', 'background')
 bindBrandColor('#brand-text', 'text')
@@ -1304,14 +1364,23 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
 
 const updateThemeDraftFromControls = () => {
   const previousPrimary = themeDraft.brand.primary
+  const previousSecondary = themeDraft.brand.secondary
   themeDraft.name = ($('#theme-name') as HTMLInputElement).value.trim() || 'My brand'
   themeDraft.brand.primary = ($('#theme-brand-color') as HTMLInputElement).value
+  themeDraft.brand.secondary = (
+    $('#theme-secondary-color') as HTMLInputElement
+  ).value
+  themeDraft.brand.accent = ($('#theme-accent-color') as HTMLInputElement).value
   themeDraft.canvas.treatment = (
     $('#theme-canvas-treatment') as HTMLSelectElement
   ).value as StudioThemeV1['canvas']['treatment']
   themeDraft.brand.background = ($('#theme-background') as HTMLInputElement).value
   themeDraft.brand.surface = ($('#theme-surface') as HTMLInputElement).value
-  themeDraft.brand.accent = ($('#theme-accent') as HTMLInputElement).value
+  themeDraft.brand.text = ($('#theme-text') as HTMLInputElement).value
+  themeDraft.logo.placement = (
+    $('#theme-logo-placement') as HTMLSelectElement
+  ).value as StudioThemeV1['logo']['placement']
+  themeDraft.logo.size = Number(($('#theme-logo-size') as HTMLInputElement).value)
   themeDraft.blocks.surface = (
     $('#theme-surface-style') as HTMLSelectElement
   ).value as StudioThemeV1['blocks']['surface']
@@ -1342,22 +1411,33 @@ const updateThemeDraftFromControls = () => {
   themeDraft.blocks.quote = (
     $('#theme-quote-style') as HTMLSelectElement
   ).value as StudioThemeV1['blocks']['quote']
-  if (previousPrimary !== themeDraft.brand.primary) {
-    themeDraft.canvas.gradient[0] = themeDraft.brand.primary
+  if (
+    previousPrimary !== themeDraft.brand.primary ||
+    previousSecondary !== themeDraft.brand.secondary
+  ) {
+    themeDraft.canvas.gradient = [
+      themeDraft.brand.primary,
+      themeDraft.brand.secondary,
+    ]
   }
   ;($('#theme-block-radius-output') as HTMLOutputElement).value = `${themeDraft.blocks.borderRadius}px`
   ;($('#theme-video-radius-output') as HTMLOutputElement).value = `${themeDraft.video.borderRadius}px`
   ;($('#theme-video-width-output') as HTMLOutputElement).value = `${themeDraft.video.borderWidth}px`
+  ;($('#theme-logo-size-output') as HTMLOutputElement).value = `${themeDraft.logo.size}px`
   renderThemeBuilderPreview()
 }
 
 ;[
   '#theme-name',
   '#theme-brand-color',
+  '#theme-secondary-color',
+  '#theme-accent-color',
   '#theme-canvas-treatment',
   '#theme-background',
   '#theme-surface',
-  '#theme-accent',
+  '#theme-text',
+  '#theme-logo-placement',
+  '#theme-logo-size',
   '#theme-surface-style',
   '#theme-block-radius',
   '#theme-video-layout',
@@ -1371,6 +1451,46 @@ const updateThemeDraftFromControls = () => {
 ].forEach(selector => {
   $(selector).addEventListener('input', updateThemeDraftFromControls)
   $(selector).addEventListener('change', updateThemeDraftFromControls)
+})
+
+;($('#upload-theme-logo') as HTMLButtonElement).addEventListener('click', () =>
+  ($('#theme-logo-file') as HTMLInputElement).click(),
+)
+
+;($('#theme-logo-file') as HTMLInputElement).addEventListener(
+  'change',
+  async event => {
+    const input = event.currentTarget as HTMLInputElement
+    const file = input.files?.[0]
+    if (!file) return
+    const status = $('#theme-ai-status')
+    status.textContent = 'Uploading logo to the local Studio asset library…'
+    try {
+      const result = await fetchJson<{ url: string }>('/api/assets', {
+        method: 'POST',
+        headers: {
+          'content-type': file.type || 'application/octet-stream',
+          'x-asset-name': file.name,
+        },
+        body: file,
+      })
+      themeDraft.logo.url = result.url
+      syncThemeBuilderControls()
+      renderThemeBuilderPreview()
+      status.textContent = 'Logo uploaded. Placement and size are saved with this theme.'
+    } catch (error) {
+      status.textContent =
+        error instanceof Error ? error.message : 'Logo upload failed'
+    } finally {
+      input.value = ''
+    }
+  },
+)
+
+;($('#remove-theme-logo') as HTMLButtonElement).addEventListener('click', () => {
+  themeDraft.logo.url = ''
+  syncThemeBuilderControls()
+  renderThemeBuilderPreview()
 })
 
 ;($('#generate-themes') as HTMLButtonElement).addEventListener(
@@ -1391,6 +1511,8 @@ const updateThemeDraftFromControls = () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           brandColor: ($('#theme-brand-color') as HTMLInputElement).value,
+          secondaryColor: ($('#theme-secondary-color') as HTMLInputElement).value,
+          accentColor: ($('#theme-accent-color') as HTMLInputElement).value,
           name: ($('#theme-name') as HTMLInputElement).value,
           treatment: (
             $('#theme-generation-treatment') as HTMLSelectElement
@@ -1398,7 +1520,10 @@ const updateThemeDraftFromControls = () => {
           mood: ($('#theme-mood') as HTMLSelectElement).value,
         }),
       })
-      generatedThemes = result.themes.map(theme => normalizeStudioTheme(theme))
+      generatedThemes = result.themes.map(theme => ({
+        ...normalizeStudioTheme(theme),
+        logo: { ...themeDraft.logo },
+      }))
       renderGeneratedThemes()
       ;($('#generated-provider') as HTMLElement).textContent =
         result.provider === 'openai'
@@ -1416,7 +1541,11 @@ const updateThemeDraftFromControls = () => {
         ($('#theme-generation-treatment') as HTMLSelectElement).value as
           | ThemeCanvasTreatment
           | 'both',
-      )
+        {
+          secondary: ($('#theme-secondary-color') as HTMLInputElement).value,
+          accent: ($('#theme-accent-color') as HTMLInputElement).value,
+        },
+      ).map(theme => ({ ...theme, logo: { ...themeDraft.logo } }))
       renderGeneratedThemes()
       ;($('#generated-provider') as HTMLElement).textContent = 'Keyless local directions'
       status.textContent =

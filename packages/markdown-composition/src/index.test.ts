@@ -5,6 +5,7 @@ import {
   defaultBrand,
   builtinStudioThemes,
   generateThemeDirections,
+  normalizeStudioTheme,
   type ProjectDocumentV1,
 } from './index'
 
@@ -136,5 +137,48 @@ describe('compileProject', () => {
         expect(color).toMatch(/^#[0-9a-f]{6}$/i),
       )
     })
+  })
+
+  it('renders a semantic palette, uploaded logo, and person-led point overlay', () => {
+    const themed = project()
+    themed.theme = structuredClone(builtinStudioThemes[1])
+    themed.theme.brand.secondary = '#2563eb'
+    themed.theme.logo = {
+      url: 'http://127.0.0.1:4319/assets/brand.svg',
+      placement: 'top-right',
+      size: 42,
+    }
+    themed.blocks.intro.camera.mode = 'person-background-left'
+    themed.blocks.intro.camera.position = 'full'
+    themed.presenterTracks.intro = [
+      {
+        kind: 'human-camera',
+        videoUrl: 'http://127.0.0.1:4319/assets/take.webm',
+        audioKind: 'none',
+      },
+    ]
+
+    const result = compileProject(themed)
+    expect(result.html).toContain('--secondary:#2563eb')
+    expect(result.html).toContain('presenter-person-background-left')
+    expect(result.html).toContain('camera-full')
+    expect(result.html).toContain('class="composition-corner-logo logo-top-right"')
+    expect(result.html).toContain('src="http://127.0.0.1:4319/assets/brand.svg"')
+  })
+
+  it('migrates legacy theme and block camera layouts', () => {
+    const legacyTheme = structuredClone(builtinStudioThemes[0])
+    legacyTheme.video.layout = 'overlay' as typeof legacyTheme.video.layout
+    expect(normalizeStudioTheme(legacyTheme).video.layout).toBe(
+      'portrait-overlay',
+    )
+
+    const legacyProject = project()
+    delete (legacyProject.blocks.intro.camera as Partial<
+      typeof legacyProject.blocks.intro.camera
+    >).mode
+    expect(compileProject(legacyProject).html).toContain(
+      'presenter-information-circle',
+    )
   })
 })
