@@ -352,6 +352,8 @@ const handleThemeGeneration = async (
             'contentStyle',
             'listStyle',
             'codeStyle',
+            'codeSyntaxTheme',
+            'codeInternalAnimation',
             'quoteStyle',
             'titleLayout',
             'contentLayout',
@@ -404,6 +406,8 @@ const handleThemeGeneration = async (
             contentStyle: { enum: ['editorial', 'card', 'columns', 'lede', 'callout', 'minimal', 'highlight', 'caption'] },
             listStyle: { enum: ['bullets', 'cards', 'timeline', 'steps', 'pills', 'checklist', 'number-grid', 'spotlight', 'columns', 'compact'] },
             codeStyle: { enum: ['panel', 'terminal', 'full', 'editor', 'glass', 'minimal', 'spotlight', 'split', 'paper'] },
+            codeSyntaxTheme: { enum: ['light_vs', 'light_plus', 'quietlight', 'solarized_light', 'abyss', 'dark_vs', 'dark_plus', 'kimbie_dark', 'monokai', 'monokai_dimmed', 'red', 'solarized_dark', 'tomorrow_night_blue', 'hc_black'] },
+            codeInternalAnimation: { enum: ['type-lines', 'highlight-lines'] },
             quoteStyle: { enum: ['bar', 'card', 'statement', 'pull', 'speech', 'highlight', 'framed', 'minimal', 'oversized'] },
             titleLayout: { enum: ['center', 'left', 'right', 'upper', 'lower', 'split-left', 'split-right', 'full'] },
             contentLayout: { enum: ['center', 'left', 'right', 'upper', 'lower', 'split-left', 'split-right', 'full'] },
@@ -434,7 +438,7 @@ const handleThemeGeneration = async (
       },
       body: JSON.stringify({
         model: process.env.OPENAI_THEME_MODEL || 'gpt-5.6-luna',
-        input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its supplied palette is primary ${brandColor}, secondary ${secondaryColor}, accent ${accentColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Preserve a coherent multi-color palette while varying tonal use. Maintain accessible text contrast. Treat every Markdown block as a composed system with independent layout, rendering style and motion. Choose intentionally different recipes for titles, body text, lists, code and quotes while keeping each theme coherent. Motion semantics include quiet fades, directional slides, focus blur, masks, playful pops, type reveals, and line-by-line sequences for lists or code. Video layout semantics: information-circle and information-tile keep content dominant; portrait-overlay and portrait-rail balance the person with content; split uses equal space; person-background-left/right put the real person full-frame with information overlaid on the named side; person-only is full camera. Avoid cosmetic variations of the same idea.`,
+        input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its supplied palette is primary ${brandColor}, secondary ${secondaryColor}, accent ${accentColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Preserve a coherent multi-color palette while varying tonal use. Maintain accessible text contrast. Treat every Markdown block as a composed system with independent layout, rendering style and motion. Choose intentionally different recipes for titles, body text, lists, code and quotes while keeping each theme coherent. For code, choose both an authentic VS Code syntax theme and an internal animation: type-lines constructs code progressively, while highlight-lines dims context and walks through focused lines. Motion semantics include quiet fades, directional slides, focus blur, masks, playful pops, type reveals, and line-by-line sequences. Video layout semantics: information-circle and information-tile keep content dominant; portrait-overlay and portrait-rail balance the person with content; split uses equal space; person-background-left/right put the real person full-frame with information overlaid on the named side; person-only is full camera. Avoid cosmetic variations of the same idea.`,
         reasoning: { effort: 'low' },
         text: {
           format: {
@@ -490,6 +494,8 @@ const handleThemeGeneration = async (
             content: item.contentStyle as StudioThemeV1['blocks']['content'],
             list: item.listStyle as StudioThemeV1['blocks']['list'],
             code: item.codeStyle as StudioThemeV1['blocks']['code'],
+            codeTheme: item.codeSyntaxTheme as StudioThemeV1['blocks']['codeTheme'],
+            codeAnimation: item.codeInternalAnimation as StudioThemeV1['blocks']['codeAnimation'],
             quote: item.quoteStyle as StudioThemeV1['blocks']['quote'],
             surface: item.surfaceStyle as StudioThemeV1['blocks']['surface'],
             borderRadius: Number(item.blockBorderRadius),

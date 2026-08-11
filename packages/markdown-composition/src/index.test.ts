@@ -143,6 +143,8 @@ describe('compileProject', () => {
       )
       expect(theme.blocks.content).toBeTruthy()
       expect(Object.keys(theme.blocks.layout)).toHaveLength(5)
+      expect(theme.blocks.codeTheme).toBeTruthy()
+      expect(theme.blocks.codeAnimation).toMatch(/^(type-lines|highlight-lines)$/)
     })
   })
 
@@ -179,12 +181,16 @@ describe('compileProject', () => {
     delete (legacyTheme as Partial<typeof legacyTheme>).motion
     delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).content
     delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).layout
+    delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).codeTheme
+    delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).codeAnimation
     expect(normalizeStudioTheme(legacyTheme).video.layout).toBe(
       'portrait-overlay',
     )
     expect(normalizeStudioTheme(legacyTheme).motion).toEqual(defaultThemeMotion)
     expect(normalizeStudioTheme(legacyTheme).blocks.content).toBe('editorial')
     expect(normalizeStudioTheme(legacyTheme).blocks.layout.code).toBe('full')
+    expect(normalizeStudioTheme(legacyTheme).blocks.codeTheme).toBe('dark_plus')
+    expect(normalizeStudioTheme(legacyTheme).blocks.codeAnimation).toBe('type-lines')
 
     const legacyProject = project()
     delete (legacyProject.blocks.intro.camera as Partial<
@@ -246,9 +252,13 @@ describe('compileProject', () => {
 
     const result = compileProject(animated)
     expect(result.html).toContain('class="code-line" data-line="2"')
+    expect(result.html).toContain('class="code-token-keyword">const</span>')
+    expect(result.html).toContain('data-code-theme="dark_plus"')
+    expect(result.html).toContain('data-code-animation="type-lines"')
     expect(result.html).toContain('#scene-2 .content li')
     expect(result.html).toContain('#scene-3 .content .code-line')
     expect(result.html).toContain('stagger:')
+    expect(result.html).toContain('ease: "steps(12)"')
   })
 
   it('compiles the expanded motion catalog into seekable GSAP timelines', () => {

@@ -170,6 +170,22 @@ export type ThemeCodeStyle =
   | 'spotlight'
   | 'split'
   | 'paper'
+export type ThemeCodeSyntax =
+  | 'light_vs'
+  | 'light_plus'
+  | 'quietlight'
+  | 'solarized_light'
+  | 'abyss'
+  | 'dark_vs'
+  | 'dark_plus'
+  | 'kimbie_dark'
+  | 'monokai'
+  | 'monokai_dimmed'
+  | 'red'
+  | 'solarized_dark'
+  | 'tomorrow_night_blue'
+  | 'hc_black'
+export type ThemeCodeAnimation = 'type-lines' | 'highlight-lines'
 export type ThemeQuoteStyle =
   | 'bar'
   | 'card'
@@ -210,6 +226,8 @@ export type StudioThemeV1 = {
     content: ThemeContentStyle
     list: ThemeListStyle
     code: ThemeCodeStyle
+    codeTheme: ThemeCodeSyntax
+    codeAnimation: ThemeCodeAnimation
     quote: ThemeQuoteStyle
     surface: ThemeSurfaceStyle
     borderRadius: number

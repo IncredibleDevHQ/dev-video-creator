@@ -213,6 +213,39 @@ const renderText = (text: string, marks: TiptapMark[] = []) => {
 const renderChildren = (node: TiptapNode): string =>
   (node.content || []).map(renderNode).join('')
 
+const codeKeywords = new Set([
+  'async', 'await', 'break', 'case', 'class', 'const', 'continue', 'default',
+  'else', 'export', 'extends', 'false', 'for', 'from', 'function', 'if',
+  'import', 'in', 'interface', 'let', 'new', 'null', 'return', 'static',
+  'switch', 'throw', 'true', 'try', 'type', 'typeof', 'undefined', 'while',
+])
+
+const renderCodeLine = (line: string) => {
+  const pattern = /(\/\/.*$|\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*(?=\s*\()|\b[A-Za-z_$][\w$]*\b)/g
+  let cursor = 0
+  let markup = ''
+  for (const match of line.matchAll(pattern)) {
+    const index = match.index || 0
+    const token = match[0]
+    markup += escapeHtml(line.slice(cursor, index))
+    const tokenClass = token.startsWith('//') || token.startsWith('/*')
+      ? 'comment'
+      : /^['"`]/.test(token)
+        ? 'string'
+        : /^\d/.test(token)
+          ? 'number'
+          : codeKeywords.has(token)
+            ? 'keyword'
+            : line.slice(index + token.length).match(/^\s*\(/)
+              ? 'function'
+              : 'variable'
+    markup += `<span class="code-token-${tokenClass}">${escapeHtml(token)}</span>`
+    cursor = index + token.length
+  }
+  markup += escapeHtml(line.slice(cursor))
+  return markup || '&nbsp;'
+}
+
 const renderNode = (node: TiptapNode): string => {
   if (node.type === 'text') return renderText(node.text || '', node.marks)
   const children = renderChildren(node)
@@ -239,7 +272,7 @@ const renderNode = (node: TiptapNode): string => {
         .split('\n')
         .map(
           (line, index) =>
-            `<span class="code-line" data-line="${index + 1}">${escapeHtml(line) || '&nbsp;'}</span>`,
+            `<span class="code-line" data-line="${index + 1}">${renderCodeLine(line)}</span>`,
         )
         .join('')}</code></pre>`
     case 'horizontalRule':
@@ -359,7 +392,7 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} theme-layout-${theme.blocks.layout[scene.kind]} theme-render-${theme.blocks[scene.kind]}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} theme-layout-${theme.blocks.layout[scene.kind]} theme-render-${theme.blocks[scene.kind]} code-theme-${theme.blocks.codeTheme} code-animation-${theme.blocks.codeAnimation}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
@@ -401,33 +434,50 @@ const buildCompositionHtml = (
             : `#scene-${scene.index} .content > *`,
       )
       const start = scene.startSeconds
+      let entrance: string
       switch (scene.config.reveal) {
         case 'none':
-          return `tl.set(${selector}, { opacity: 1 }, ${start});`
+          entrance = `tl.set(${selector}, { opacity: 1 }, ${start});`
+          break
         case 'fade':
-          return `tl.fromTo(${selector}, { opacity: 0 }, { opacity: 1, duration: 0.65, ease: "power2.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0 }, { opacity: 1, duration: 0.65, ease: "power2.out" }, ${start});`
+          break
         case 'fall':
-          return `tl.fromTo(${selector}, { opacity: 0, y: -56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, y: -56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
+          break
         case 'slide-left':
-          return `tl.fromTo(${selector}, { opacity: 0, x: -90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, x: -90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+          break
         case 'slide-right':
-          return `tl.fromTo(${selector}, { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+          break
         case 'scale':
-          return `tl.fromTo(${selector}, { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.72, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.72, ease: "power3.out" }, ${start});`
+          break
         case 'blur':
-          return `tl.fromTo(${selector}, { opacity: 0, filter: "blur(24px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.82, ease: "power2.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, filter: "blur(24px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.82, ease: "power2.out" }, ${start});`
+          break
         case 'type':
-          return `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${Math.min(2.4, scene.durationSeconds * 0.45)}, ease: "steps(18)" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${Math.min(2.4, scene.durationSeconds * 0.45)}, ease: "steps(18)" }, ${start});`
+          break
         case 'wipe':
-          return `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.82, ease: "power3.inOut" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.82, ease: "power3.inOut" }, ${start});`
+          break
         case 'pop':
-          return `tl.fromTo(${selector}, { opacity: 0, scale: 0.72, rotation: -2 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.72, ease: "back.out(1.7)" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, scale: 0.72, rotation: -2 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.72, ease: "back.out(1.7)" }, ${start});`
+          break
         case 'line-by-line':
-          return `tl.set(${selector}, { opacity: 1 }, ${start}); tl.fromTo(${sequenceSelector}, { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.48, stagger: ${Math.min(0.28, scene.durationSeconds * 0.06)}, ease: "power3.out" }, ${start});`
+          entrance = `tl.set(${selector}, { opacity: 1 }, ${start}); tl.fromTo(${sequenceSelector}, { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.48, stagger: ${Math.min(0.28, scene.durationSeconds * 0.06)}, ease: "power3.out" }, ${start});`
+          break
         case 'rise':
         default:
-          return `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
       }
+      if (scene.kind !== 'code') return entrance
+      const codeMotion = theme.blocks.codeAnimation === 'highlight-lines'
+        ? ` tl.set(${sequenceSelector}, { opacity: 0.24 }, ${start + 0.28}); tl.to(${sequenceSelector}, { opacity: 1, duration: 0.38, stagger: 0.55, ease: "power2.inOut" }, ${start + 0.32});`
+        : ` tl.fromTo(${sequenceSelector}, { opacity: 0, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)", duration: 0.62, stagger: 0.3, ease: "steps(12)" }, ${start + 0.24});`
+      return `${entrance}${codeMotion}`
     })
     .join('\n      ')
 
@@ -501,7 +551,27 @@ const buildCompositionHtml = (
     .scene-kind-quote.theme-render-framed blockquote { padding: 54px; border: 3px solid var(--accent); border-radius: var(--block-radius); color: var(--text); }
     .scene-kind-quote.theme-render-minimal blockquote { padding: 0; border: 0; color: var(--text); }
     .scene-kind-quote.theme-render-oversized blockquote { padding: 0; border: 0; color: var(--text); font-size: 96px; font-weight: 800; line-height: 1; }
-    pre { width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code); color: #f7f7ef; box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
+    pre { width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code-theme-bg, var(--code)); color: var(--code-theme-text, #f7f7ef); box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
+    .code-token-keyword { color: var(--code-theme-keyword, #c586c0); }
+    .code-token-variable { color: var(--code-theme-variable, #9cdcfe); }
+    .code-token-function { color: var(--code-theme-function, #dcdcaa); }
+    .code-token-string { color: var(--code-theme-string, #ce9178); }
+    .code-token-number { color: var(--code-theme-number, #b5cea8); }
+    .code-token-comment { color: var(--code-theme-comment, #6a9955); font-style: italic; }
+    .code-theme-light_vs { --code-theme-bg:#fff; --code-theme-text:#000; --code-theme-keyword:#00f; --code-theme-variable:#001080; --code-theme-function:#795e26; --code-theme-string:#a31515; --code-theme-number:#098658; --code-theme-comment:#008000; }
+    .code-theme-light_plus { --code-theme-bg:#fff; --code-theme-text:#000; --code-theme-keyword:#af00db; --code-theme-variable:#001080; --code-theme-function:#795e26; --code-theme-string:#a31515; --code-theme-number:#098658; --code-theme-comment:#008000; }
+    .code-theme-quietlight { --code-theme-bg:#f5f5f5; --code-theme-text:#333; --code-theme-keyword:#7a3f9d; --code-theme-variable:#4b83cd; --code-theme-function:#aa3731; --code-theme-string:#448c27; --code-theme-number:#ab6526; --code-theme-comment:#aaaaaa; }
+    .code-theme-solarized_light { --code-theme-bg:#fdf6e3; --code-theme-text:#657b83; --code-theme-keyword:#859900; --code-theme-variable:#268bd2; --code-theme-function:#b58900; --code-theme-string:#2aa198; --code-theme-number:#d33682; --code-theme-comment:#93a1a1; }
+    .code-theme-abyss { --code-theme-bg:#000c18; --code-theme-text:#6688cc; --code-theme-keyword:#9966b8; --code-theme-variable:#2277ff; --code-theme-function:#ddbb88; --code-theme-string:#22aa44; --code-theme-number:#f280d0; --code-theme-comment:#384887; }
+    .code-theme-dark_vs { --code-theme-bg:#1e1e1e; --code-theme-text:#d4d4d4; --code-theme-keyword:#569cd6; --code-theme-variable:#9cdcfe; --code-theme-function:#dcdcaa; --code-theme-string:#d69d85; --code-theme-number:#b5cea8; --code-theme-comment:#57a64a; }
+    .code-theme-dark_plus { --code-theme-bg:#1e1e1e; --code-theme-text:#d4d4d4; --code-theme-keyword:#c586c0; --code-theme-variable:#9cdcfe; --code-theme-function:#dcdcaa; --code-theme-string:#ce9178; --code-theme-number:#b5cea8; --code-theme-comment:#6a9955; }
+    .code-theme-kimbie_dark { --code-theme-bg:#221a0f; --code-theme-text:#d3af86; --code-theme-keyword:#98676a; --code-theme-variable:#dc3958; --code-theme-function:#8ab1b0; --code-theme-string:#889b4a; --code-theme-number:#f79a32; --code-theme-comment:#a57a4c; }
+    .code-theme-monokai { --code-theme-bg:#272822; --code-theme-text:#f8f8f2; --code-theme-keyword:#f92672; --code-theme-variable:#fd971f; --code-theme-function:#a6e22e; --code-theme-string:#e6db74; --code-theme-number:#ae81ff; --code-theme-comment:#75715e; }
+    .code-theme-monokai_dimmed { --code-theme-bg:#1e1e1e; --code-theme-text:#c5c8c6; --code-theme-keyword:#676867; --code-theme-variable:#c7444a; --code-theme-function:#9872a2; --code-theme-string:#d08442; --code-theme-number:#6089b4; --code-theme-comment:#88846f; }
+    .code-theme-red { --code-theme-bg:#390000; --code-theme-text:#f8f8f8; --code-theme-keyword:#ff9da4; --code-theme-variable:#ff6262; --code-theme-function:#f8f8f8; --code-theme-string:#f1d710; --code-theme-number:#ff628c; --code-theme-comment:#e7c0c0; }
+    .code-theme-solarized_dark { --code-theme-bg:#002b36; --code-theme-text:#839496; --code-theme-keyword:#859900; --code-theme-variable:#268bd2; --code-theme-function:#b58900; --code-theme-string:#2aa198; --code-theme-number:#d33682; --code-theme-comment:#586e75; }
+    .code-theme-tomorrow_night_blue { --code-theme-bg:#002451; --code-theme-text:#fff; --code-theme-keyword:#ff9da4; --code-theme-variable:#ffc58f; --code-theme-function:#d1f1a9; --code-theme-string:#ffeead; --code-theme-number:#bbdaff; --code-theme-comment:#7285b7; }
+    .code-theme-hc_black { --code-theme-bg:#000; --code-theme-text:#fff; --code-theme-keyword:#c586c0; --code-theme-variable:#9cddfe; --code-theme-function:#ffff00; --code-theme-string:#ce9178; --code-theme-number:#b5cea8; --code-theme-comment:#7ca668; }
     #composition[data-code-style="terminal"] pre { border: 3px solid var(--accent); border-image: var(--brand-gradient) 1; }
     #composition[data-code-style="terminal"] pre::before { content: "●  ●  ●"; display: block; margin-bottom: 30px; color: var(--primary); font: 22px/1 ui-monospace, monospace; letter-spacing: .35em; }
     #composition[data-code-style="full"] .scene-kind-code { padding: 72px; }
@@ -588,7 +658,7 @@ const buildCompositionHtml = (
   </style>
 </head>
 <body>
-  <div id="composition" class="video-border-${theme.video.borderStyle}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-content-style="${theme.blocks.content}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-quote-style="${theme.blocks.quote}" data-title-layout="${theme.blocks.layout.title}" data-content-layout="${theme.blocks.layout.content}" data-list-layout="${theme.blocks.layout.list}" data-code-layout="${theme.blocks.layout.code}" data-quote-layout="${theme.blocks.layout.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
+  <div id="composition" class="video-border-${theme.video.borderStyle}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-content-style="${theme.blocks.content}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-code-theme="${theme.blocks.codeTheme}" data-code-animation="${theme.blocks.codeAnimation}" data-quote-style="${theme.blocks.quote}" data-title-layout="${theme.blocks.layout.title}" data-content-layout="${theme.blocks.layout.content}" data-list-layout="${theme.blocks.layout.list}" data-code-layout="${theme.blocks.layout.code}" data-quote-layout="${theme.blocks.layout.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
     ${sceneMarkup}
   </div>
   <script>

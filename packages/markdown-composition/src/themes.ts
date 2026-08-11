@@ -17,6 +17,8 @@ export const defaultThemeBlocks: StudioThemeV1['blocks'] = {
   content: 'editorial',
   list: 'bullets',
   code: 'panel',
+  codeTheme: 'dark_plus',
+  codeAnimation: 'type-lines',
   quote: 'bar',
   surface: 'outline',
   borderRadius: 34,
@@ -32,8 +34,10 @@ export const defaultThemeBlocks: StudioThemeV1['blocks'] = {
 const createTheme = (
   theme: Omit<StudioThemeV1, 'version' | 'motion' | 'blocks'> & {
     motion?: Partial<StudioThemeV1['motion']>
-    blocks: Omit<StudioThemeV1['blocks'], 'content' | 'layout'> & {
+    blocks: Omit<StudioThemeV1['blocks'], 'content' | 'layout' | 'codeTheme' | 'codeAnimation'> & {
       content?: StudioThemeV1['blocks']['content']
+      codeTheme?: StudioThemeV1['blocks']['codeTheme']
+      codeAnimation?: StudioThemeV1['blocks']['codeAnimation']
       layout?: Partial<StudioThemeV1['blocks']['layout']>
     }
   },
@@ -429,6 +433,8 @@ export const generateThemeDirections = (
         content: (['callout', 'card', 'lede', 'minimal'] as const)[index],
         list: (['number-grid', 'timeline', 'steps', 'pills'] as const)[index],
         code: (['glass', 'editor', 'paper', 'terminal'] as const)[index],
+        codeTheme: (['dark_plus', 'tomorrow_night_blue', 'solarized_light', 'monokai'] as const)[index],
+        codeAnimation: (['type-lines', 'highlight-lines', 'highlight-lines', 'type-lines'] as const)[index],
         quote: (['pull', 'speech', 'framed', 'oversized'] as const)[index],
         surface: index === 3 ? 'outline' : 'card',
         borderRadius: index === 3 ? 4 : 26,

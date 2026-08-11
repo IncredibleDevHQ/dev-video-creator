@@ -22,6 +22,8 @@ import {
   type ThemeBlockKind,
   type ThemeBlockLayout,
   type ThemeCanvasTreatment,
+  type ThemeCodeAnimation,
+  type ThemeCodeSyntax,
   type TiptapDocument,
   type TiptapNode,
 } from 'markdown-composition'
@@ -54,7 +56,7 @@ const PREVIEW_PRESENTERS = [
 
 type PreviewPresenterId = (typeof PREVIEW_PRESENTERS)[number]['id']
 type ThemePreviewKind = 'title' | 'content' | 'list' | 'code' | 'quote' | 'video'
-type ThemeLabAxis = 'layout' | 'render' | 'motion'
+type ThemeLabAxis = 'layout' | 'render' | 'syntax' | 'motion' | 'code-motion'
 type ThemeRenderValue =
   | StudioThemeV1['blocks']['title']
   | StudioThemeV1['blocks']['content']
@@ -161,6 +163,28 @@ const MOTION_OPTIONS: CatalogOption<RevealStyle>[] = [
   { value: 'wipe', label: 'Brand wipe', description: 'Directional mask reveal', glyph: '▰' },
   { value: 'pop', label: 'Pop', description: 'Playful spring entrance', glyph: '✦' },
   { value: 'line-by-line', label: 'Sequence', description: 'Stagger items or lines', glyph: '≡' },
+]
+
+const CODE_THEME_OPTIONS: CatalogOption<ThemeCodeSyntax>[] = [
+  ['light_vs', 'Light', 'VS light', '#000000'],
+  ['light_plus', 'Light+', 'VS Code Light+', '#001081'],
+  ['quietlight', 'Quiet Light', 'Soft editorial light', '#7a3f9d'],
+  ['solarized_light', 'Solarized Light', 'Warm low-contrast light', '#288dd2'],
+  ['abyss', 'Abyss', 'Deep blue-black', '#6588cc'],
+  ['dark_vs', 'Dark', 'Classic VS dark', '#d4d5d4'],
+  ['dark_plus', 'Dark+', 'VS Code default dark', '#9cdcfe'],
+  ['kimbie_dark', 'Kimbie Dark', 'Warm sepia dark', '#d3af86'],
+  ['monokai', 'Monokai', 'Vivid classic palette', '#a6e22e'],
+  ['monokai_dimmed', 'Monokai Dimmed', 'Quieter Monokai', '#9872a2'],
+  ['red', 'Red', 'High-energy red canvas', '#fb9b4c'],
+  ['solarized_dark', 'Solarized Dark', 'Balanced cyan dark', '#268bd2'],
+  ['tomorrow_night_blue', 'Tomorrow Night', 'Saturated midnight blue', '#ff9ea4'],
+  ['hc_black', 'High Contrast', 'Maximum legibility', '#9cddfe'],
+].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeCodeSyntax>[]
+
+const CODE_ANIMATION_OPTIONS: CatalogOption<ThemeCodeAnimation>[] = [
+  { value: 'type-lines', label: 'Type lines', description: 'Token-by-token line construction', glyph: '>_' },
+  { value: 'highlight-lines', label: 'Highlight lines', description: 'Dim context and focus each step', glyph: '01' },
 ]
 
 document.querySelector<HTMLImageElement>('#studio-logo')!.src = studioLogoUrl
@@ -606,30 +630,48 @@ const previewThemeBlockKind = (): ThemeBlockKind =>
 
 const renderThemeDesignLab = () => {
   const kind = previewThemeBlockKind()
+  if (kind !== 'code' && (themeLabAxis === 'syntax' || themeLabAxis === 'code-motion')) {
+    themeLabAxis = 'render'
+  }
   const meta = BLOCK_KIND_META[kind]
   const motions = kind === 'list' || kind === 'code'
     ? MOTION_OPTIONS
     : MOTION_OPTIONS.filter(option => option.value !== 'line-by-line')
-  const options: CatalogOption<string>[] = themeLabAxis === 'layout'
-    ? BLOCK_LAYOUT_OPTIONS
-    : themeLabAxis === 'motion'
-      ? motions
-      : BLOCK_RENDER_OPTIONS[kind]
-  const activeValue = themeLabAxis === 'layout'
-    ? themeDraft.blocks.layout[kind]
-    : themeLabAxis === 'motion'
-      ? themeDraft.motion[kind]
-      : String(themeDraft.blocks[kind])
+  const options: CatalogOption<string>[] =
+    themeLabAxis === 'layout'
+      ? BLOCK_LAYOUT_OPTIONS
+      : themeLabAxis === 'motion'
+        ? motions
+        : themeLabAxis === 'syntax'
+          ? CODE_THEME_OPTIONS
+          : themeLabAxis === 'code-motion'
+            ? CODE_ANIMATION_OPTIONS
+            : BLOCK_RENDER_OPTIONS[kind]
+  const activeValue =
+    themeLabAxis === 'layout'
+      ? themeDraft.blocks.layout[kind]
+      : themeLabAxis === 'motion'
+        ? themeDraft.motion[kind]
+        : themeLabAxis === 'syntax'
+          ? themeDraft.blocks.codeTheme
+          : themeLabAxis === 'code-motion'
+            ? themeDraft.blocks.codeAnimation
+            : String(themeDraft.blocks[kind])
 
   ;($('#theme-lab-title') as HTMLElement).textContent = meta.label
   ;($('#theme-lab-description') as HTMLElement).textContent = meta.description
   ;($('#theme-lab-count') as HTMLElement).textContent =
-    `${BLOCK_LAYOUT_OPTIONS.length * BLOCK_RENDER_OPTIONS[kind].length * motions.length} combinations`
-  ;($('#replay-theme-motion') as HTMLButtonElement).hidden = themeLabAxis !== 'motion'
+    `${BLOCK_LAYOUT_OPTIONS.length * BLOCK_RENDER_OPTIONS[kind].length * motions.length * (kind === 'code' ? CODE_THEME_OPTIONS.length * CODE_ANIMATION_OPTIONS.length : 1)} combinations`
+  ;($('#replay-theme-motion') as HTMLButtonElement).hidden =
+    themeLabAxis !== 'motion' && themeLabAxis !== 'code-motion'
 
   document
     .querySelectorAll<HTMLButtonElement>('[data-theme-lab-axis]')
     .forEach(button => {
+      const codeOnly =
+        button.dataset.themeLabAxis === 'syntax' ||
+        button.dataset.themeLabAxis === 'code-motion'
+      button.hidden = codeOnly && kind !== 'code'
       const active = button.dataset.themeLabAxis === themeLabAxis
       button.classList.toggle('active', active)
       button.setAttribute('aria-selected', String(active))
@@ -657,6 +699,10 @@ const renderThemeDesignLab = () => {
           themeDraft.blocks.layout[kind] = option.value as ThemeBlockLayout
         } else if (themeLabAxis === 'motion') {
           themeDraft.motion[kind] = option.value as RevealStyle
+        } else if (themeLabAxis === 'syntax') {
+          themeDraft.blocks.codeTheme = option.value as ThemeCodeSyntax
+        } else if (themeLabAxis === 'code-motion') {
+          themeDraft.blocks.codeAnimation = option.value as ThemeCodeAnimation
         } else {
           ;(themeDraft.blocks as Record<string, unknown>)[kind] = option.value
         }
@@ -670,7 +716,7 @@ const renderThemeDesignLab = () => {
 const renderThemeBuilderPreview = () => {
   const blockKind = previewThemeBlockKind()
   const preview = $('#theme-builder-preview')
-  preview.className = `theme-builder-preview preview-${themePreviewKind} block-layout-${themeDraft.blocks.layout[blockKind]} block-render-${String(themeDraft.blocks[blockKind])} title-${themeDraft.blocks.title} content-${themeDraft.blocks.content} list-${themeDraft.blocks.list} code-${themeDraft.blocks.code} quote-${themeDraft.blocks.quote} surface-${themeDraft.blocks.surface} video-${themeDraft.video.layout} border-${themeDraft.video.borderStyle} logo-${themeDraft.logo.placement}`
+  preview.className = `theme-builder-preview preview-${themePreviewKind} block-layout-${themeDraft.blocks.layout[blockKind]} block-render-${String(themeDraft.blocks[blockKind])} title-${themeDraft.blocks.title} content-${themeDraft.blocks.content} list-${themeDraft.blocks.list} code-${themeDraft.blocks.code} code-theme-${themeDraft.blocks.codeTheme} code-animation-${themeDraft.blocks.codeAnimation} quote-${themeDraft.blocks.quote} surface-${themeDraft.blocks.surface} video-${themeDraft.video.layout} border-${themeDraft.video.borderStyle} logo-${themeDraft.logo.placement}`
   preview.style.setProperty('--preview-canvas', themeCanvasCss(themeDraft))
   preview.style.setProperty('--preview-bg', themeDraft.brand.background)
   preview.style.setProperty('--preview-surface', themeDraft.brand.surface)
@@ -759,13 +805,37 @@ const renderThemeBuilderPreview = () => {
     title.textContent = 'Render the notebook'
     const code = document.createElement('pre')
     ;[
-      'const story = compile(notebook)',
-      'await hyperframes.render(story)',
-    ].forEach((line, index) => {
+      [
+        ['keyword', 'const '],
+        ['variable', 'story'],
+        ['plain', ' = '],
+        ['function', 'compile'],
+        ['plain', '('],
+        ['variable', 'notebook'],
+        ['plain', ')'],
+      ],
+      [
+        ['keyword', 'await '],
+        ['variable', 'hyperframes'],
+        ['plain', '.'],
+        ['function', 'render'],
+        ['plain', '('],
+        ['variable', 'story'],
+        ['plain', ')'],
+      ],
+      [
+        ['comment', '// keep the person in the frame'],
+      ],
+    ].forEach((tokens, index) => {
       const codeLine = document.createElement('span')
       codeLine.className = 'theme-preview-code-line'
       codeLine.style.setProperty('--motion-index', String(index + 1))
-      codeLine.textContent = line
+      tokens.forEach(([kind, value]) => {
+        const token = document.createElement('span')
+        token.className = `code-token-${kind}`
+        token.textContent = value
+        codeLine.append(token)
+      })
       code.append(codeLine)
     })
     content.append(title, code)
@@ -783,8 +853,7 @@ const renderThemeBuilderPreview = () => {
   previewPersonImage.src = previewPresenter.url
   previewPersonImage.alt = `${previewPresenter.name}, sample presenter`
   ;(previewPerson.querySelector('span') as HTMLElement).hidden = true
-  previewPerson.hidden =
-    themePreviewKind !== 'video' && themePreviewKind !== 'title'
+  previewPerson.hidden = false
 
   content.querySelectorAll('li').forEach((item, index) => {
     ;(item as HTMLElement).style.setProperty('--motion-index', String(index + 1))
@@ -1862,7 +1931,9 @@ document
     button.addEventListener('click', () => {
       themeLabAxis = button.dataset.themeLabAxis as ThemeLabAxis
       renderThemeDesignLab()
-      if (themeLabAxis === 'motion') replayThemeMotionPreview()
+      if (themeLabAxis === 'motion' || themeLabAxis === 'code-motion') {
+        replayThemeMotionPreview()
+      }
     })
   })
 
