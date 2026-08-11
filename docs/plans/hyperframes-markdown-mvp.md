@@ -8,13 +8,14 @@ Base: `origin/oss` at `a3a31e5`
 
 Keep Incredible's strongest interaction: a document block is both something the creator writes and an addressable visual scene. The notebook, frame preview, per-block settings, presenter capture, and timeline should feel like one system rather than a text editor bolted onto a video tool.
 
-The rendering engine changes. Hyperframes becomes the only composition, preview-timing, and final-render contract. Existing user intent remains intact:
+The rendering engine changes. Hyperframes becomes the only composition, preview-timing, and final-render contract. The product remains human-first: AI removes the need for equipment and repeated takes, but the creator's real presence remains the default output. Existing user intent remains intact:
 
 - Write or paste Markdown in a rich notebook.
 - Select a notebook block and see its exact video frame.
 - Choose how each block should render, animate, and present.
-- Talk over the visual with camera and microphone when available.
-- When a creator cannot or does not want to record, turn an approved script into narration and, optionally, a consented avatar presenter.
+- Put a real person on camera over the visual, with or without a microphone.
+- Let that person perform to an approved script and generated guide voice, then attach an authorized clone of their voice to the real camera take.
+- Use narration-only or a consented avatar only when the creator cannot or does not want to appear on camera.
 - Keep manual brand controls, while allowing OpenAI or Gemini to propose a validated brand template from uploaded brand inputs.
 
 ## Non-negotiable product invariant: stable node identity
@@ -24,9 +25,9 @@ Every renderable Tiptap node owns a durable `id`. That ID is the foreign key joi
 ```text
 Tiptap node.id
   ├── BlockRenderConfig
-  ├── camera/microphone take
+  ├── real camera take
   ├── script and citations
-  ├── generated narration/avatar asset
+  ├── recorded or generated voice track
   ├── Hyperframes scene/track
   └── timeline selection and duration
 ```
@@ -42,11 +43,18 @@ The first useful studio retains the current notebook-oriented shape:
 - **Notebook:** Tiptap v3 document editing, Markdown paste/import, slash commands, and block selection.
 - **Frame:** an exact `@hyperframes/player` preview for the selected node or scene.
 - **Inspector:** per-block visual, motion, duration, presenter, and brand overrides.
-- **Timeline:** derived tracks for scenes, live takes, narration, avatar clips, and music; initially reorderable only through notebook order.
-- **Presenter controls:** camera/mic capture, retake, or AI-assisted alternatives.
+- **Timeline:** derived tracks for scenes, real camera takes, recorded/generated voice, captions, optional avatar clips, and music; initially reorderable only through notebook order.
+- **Presenter controls:** a camera-first recording flow with microphone, generated voice, and no-camera alternatives.
 - **Render:** deterministic server-side MP4 export through `@hyperframes/producer`.
 
 The notebook document remains canonical for content. Generated HTML is never stored as source-of-truth state.
+
+Presenter modes are intentionally ordered in the UI:
+
+1. **Real camera + generated voice** — default simplified path.
+2. **Real camera + microphone** — direct recording path.
+3. **Narration only** — no-camera fallback that keeps the Markdown visuals central.
+4. **Synthetic avatar** — explicit last resort, never the default suggestion while a camera is available.
 
 ## User journeys
 
@@ -59,20 +67,23 @@ The notebook document remains canonical for content. Generated HTML is never sto
 5. Changes to text, theme, layout, reveal style, or duration update the same composition used for export.
 6. Render and download an MP4 with visible queue/progress/error states.
 
-### 2. Live presenter
+### 2. Human presenter, microphone optional
 
-1. Choose **Camera + mic** for one block or the whole document.
-2. Request permission only when recording starts and show a device test first.
-3. Play the exact Hyperframes scene while recording webcam and microphone against its clock.
-4. Save each take as a media track associated with the node ID and capture timing metadata.
-5. Let the user retake, trim heads/tails, reposition the camera bubble, or disable it per block.
-6. The final Hyperframes composition layers the selected take over the Markdown visuals.
+1. Choose **Present on camera** for one block or the whole document.
+2. Choose **Use my microphone** or **Use generated voice**. The generated-voice path must not request microphone permission.
+3. For generated voice, approve the per-block script and select an existing authorized voice profile, upload an authorized reference recording, or use a stock voice.
+4. Show the script as an eye-line teleprompter, generate guide audio, and provide countdown and pacing cues.
+5. Play the exact Hyperframes scene and guide audio while recording the real person's camera against the same clock. Headphones are recommended but not required because camera-only capture does not retain room audio.
+6. Save the real camera take, generated voice, script revision, and timing markers as separate tracks associated with the node ID.
+7. Automatically trim the take and align the generated voice. Offer an explicitly approved lip-sync correction pass when performance timing alone is insufficient; do not replace the person with an avatar.
+8. Let the creator retake, trim, reposition the camera, regenerate a line, or switch back to microphone audio.
+9. The final Hyperframes composition layers the real camera take and selected voice track over the Markdown visuals.
 
-Camera capture is an input track, not a second rendering engine. The browser no longer records the canvas to create the visual background.
+Camera capture is an input track, not a second rendering engine. The browser no longer records the canvas to create the visual background. Voice generation replaces the microphone track, not the human presenter.
 
-### 3. Assisted presenter when recording is unavailable
+### 3. Fallback when camera recording is unavailable
 
-1. Select **Narration** or **Avatar presenter**.
+1. Select **Narration only** or, as an optional fallback, **Avatar presenter**.
 2. Optionally research the topic, retaining source links alongside every generated claim.
 3. Generate an editable script split by stable node IDs.
 4. Require explicit script approval before generating paid media.
@@ -80,7 +91,7 @@ Camera capture is an input track, not a second rendering engine. The browser no 
 6. For avatar mode, send the approved script/audio to a provider that actually produces lip-synced presenter video.
 7. Preview, approve, and attach the result as a node-keyed track before final rendering.
 
-The system must never silently research, clone a voice, synthesize a likeness, or publish. Voice and likeness cloning require proof of ownership/authorization, recorded consent, provenance metadata, and a deletion path.
+The system must never silently research, clone a voice, alter lip movement, synthesize a likeness, or publish. Voice and likeness cloning require proof of ownership/authorization, recorded consent, provenance metadata, and a deletion path. Real camera footage must remain distinguishable from fully synthetic presenter video in project state and audit records.
 
 ### 4. AI-assisted brand template
 
@@ -159,8 +170,23 @@ type BlockRenderConfigV1 = {
 }
 
 type PresenterTrackV1 =
-  | { kind: 'live'; takeAssetId: string; startMs: number; trim: Trim }
-  | { kind: 'voice'; audioAssetId: string; voiceConsentId?: string }
+  | {
+      kind: 'human-camera'
+      videoAssetId: string
+      startMs: number
+      trim: Trim
+      voice:
+        | { kind: 'recorded-mic'; audioAssetId: string }
+        | {
+            kind: 'generated'
+            audioAssetId: string
+            scriptRevisionId: string
+            voiceConsentId?: string
+            sync: 'performed-to-guide' | 'approved-lip-sync'
+          }
+        | { kind: 'none' }
+    }
+  | { kind: 'narration'; audioAssetId: string; voiceConsentId?: string }
   | { kind: 'avatar'; videoAssetId: string; likenessConsentId: string }
   | { kind: 'none' }
 
@@ -267,26 +293,31 @@ Exit: paste a README, select any block, change its render configuration, and see
 
 Exit: the sample project renders from the studio with timing and visuals matching the player.
 
-### Phase 3 — live camera talk-over
+### Phase 3 — human presenter MVP, microphone optional
 
-- Add permission/device test UX and camera/microphone capture.
-- Drive capture against the Hyperframes player clock and save take timing.
-- Add retake, choose take, trim, mute, and camera placement controls.
-- Convert/uploads browser media into normalized render assets through a bounded media job.
-- Add drift, dropped-frame, denied-device, no-camera, and interrupted-upload tests.
+- Make real camera presence the primary presenter mode; keep camera + microphone as a supported choice.
+- Add a camera-only permission/device test that never requests microphone access.
+- Add an editable per-node script, teleprompter, countdown, generated guide audio, and pacing cues.
+- Add stock voice support plus consented Fish Audio voice profiles/reference uploads; a live microphone is not required when an existing authorized sample is available.
+- Drive camera capture against the Hyperframes player and guide-audio clocks and save synchronization markers.
+- Store the real camera video independently from recorded or generated audio.
+- Add automatic trim/alignment and an optional, separately approved real-footage lip-sync adapter; never silently convert the take into an avatar.
+- Add retake, choose take, trim, mute, regenerate line, switch audio source, and camera placement controls.
+- Normalize and upload browser media through a bounded media job.
+- Add drift, dropped-frame, denied-microphone, denied-camera, no-camera, guide-audio, and interrupted-upload tests.
 
-Exit: a creator can record over a scene, retake it, and render the selected synchronized take; declining camera offers narration/avatar options without blocking creation.
+Exit: a real person can record one camera take without a microphone, perform to their generated guide voice, and render that take with an authorized generated voice synchronized over the Markdown frames. This is the minimum human-centric product MVP.
 
-### Phase 4 — assisted research, script, voice, and avatar
+### Phase 4 — assisted research and no-camera fallback
 
 - Add cited research and editable per-node script generation.
 - Add approval and cost estimate gates.
-- Add stock voice first, then consented Fish Audio cloning; add ElevenLabs adapter if required.
-- Add HeyGen presenter generation behind `PresenterVideoProvider`.
+- Reuse the Phase 3 stock/generated voice pipeline for narration-only output.
+- Add HeyGen presenter generation behind `PresenterVideoProvider` only as an explicit no-camera fallback.
 - Track retries, provider job IDs, idempotency keys, cost, provenance, consent, and deletion.
 - Generate captions from the approved script and align them to narration timing.
 
-Exit: without camera or microphone, a user can approve a cited script and render narration or an authorized avatar over the same Markdown frames.
+Exit: when camera recording truly is unavailable, a user can approve a cited script and render narration or an authorized avatar over the same Markdown frames without redefining the product's camera-first default.
 
 ### Phase 5 — AI brand templates
 
@@ -321,13 +352,13 @@ These are deferred, not architectural dead ends. Stable node IDs, a versioned sc
 - **Preview/export drift:** share compiler output and Hyperframes timing; compare checkpoints in automated renders.
 - **Legacy runtime mismatch:** isolate Node 22 producer code; never import it into the old Next server process.
 - **Untrusted render input:** accept constrained schemas, sanitize content and URLs, localize remote assets, and isolate renderer resources.
-- **Media clock drift:** record player time, media timestamps, and sync markers; normalize capture assets before composition.
+- **Media clock drift:** record player, camera, teleprompter, and guide-audio timestamps; normalize capture assets before composition and visibly flag poor alignment.
 - **Provider lock-in:** application-owned interfaces and records; provider payloads remain adapter-local.
 - **Unexpected AI cost:** show estimates, require approval, use idempotency, cache outputs, set budgets, and never regenerate unchanged approved work.
-- **Voice/likeness misuse:** stock voices by default; explicit consent and ownership checks, provenance, audit log, deletion, and no automatic publication.
+- **Voice/likeness misuse:** stock voices by default; explicit consent and ownership checks for cloning or lip correction, provenance, audit log, deletion, and no automatic publication.
 - **Brand output is unsafe or inconsistent:** strict schema, allowlisted tokens/fonts, deterministic validation, contrast checks, fixture previews, and user approval.
 - **Hyperframes API churn:** pin versions, wrap the producer/player boundary, and require fixture renders for upgrades.
 
 ## First implementation slice
 
-The first branch-sized slice is Phase 0 plus only the data types needed for its fixture. It proves the two irreversible choices—stable node identity and Hyperframes preview/export parity—before rebuilding application surfaces. Phase 1 then restores the central notebook/frame/configuration loop. Camera, assisted presenter generation, and AI brand templates are explicit subsequent phases with contracts already reserved, so they do not require replacing the core again.
+The first branch-sized slice is Phase 0 plus only the data types needed for its fixture. It proves the two irreversible choices—stable node identity and Hyperframes preview/export parity—before rebuilding application surfaces. Phase 1 restores the notebook/frame/configuration loop, and Phase 3 completes the actual human-centric product MVP with a real camera presenter and optional microphone. Narration/avatar fallback and AI brand templates remain subsequent capabilities; they do not redefine the product around synthetic people.
