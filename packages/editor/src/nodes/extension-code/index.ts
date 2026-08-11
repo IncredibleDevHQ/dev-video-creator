@@ -15,8 +15,10 @@
 import { Editor } from '@tiptap/core'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import lowlight from 'lowlight'
+import { common, createLowlight } from 'lowlight'
 import CodeBlockComponent from './CodeBlock'
+
+export const lowlight = createLowlight(common)
 
 export const checkCurrentNode = (editor: Editor, nodeName: string) =>
 	editor.state.doc.childBefore(editor.state.selection.from).node?.type.name ===

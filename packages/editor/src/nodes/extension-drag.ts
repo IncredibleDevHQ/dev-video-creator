@@ -16,8 +16,8 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable prefer-const */
 import { Extension } from '@tiptap/core'
-import { NodeSelection, Plugin, PluginKey } from 'prosemirror-state'
-import { EditorView } from 'prosemirror-view'
+import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state'
+import { EditorView } from '@tiptap/pm/view'
 
 // FIXME this is a temporary workaround for drag handles
 export default (dragHandle: HTMLDivElement | null) =>

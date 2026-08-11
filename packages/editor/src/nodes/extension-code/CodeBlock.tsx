@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import { NodeViewContent, NodeViewWrapper } from '@tiptap/react'
-import { listLanguages } from 'lowlight/lib/core'
 import allowedLanguages from '../../utils/allowedLanguages'
+import { lowlight } from '.'
 
 const CodeBlockComponent = ({
 	node: {
@@ -35,14 +35,14 @@ const CodeBlockComponent = ({
 		>
 			<option value='null'>auto</option>
 			<option disabled>—</option>
-			{listLanguages().map((lang: string) => (
+			{lowlight.listLanguages().map((lang: string) => (
 				<option key={lang} value={lang}>
 					{lang}
 				</option>
 			))}
 		</select>
 		<pre spellCheck={false}>
-			<NodeViewContent as='code' />
+			<NodeViewContent<'code'> as='code' />
 		</pre>
 		<span className='ml-auto mt-1 text-size-xxs text-gray-400'>
 			Shift + Enter to exit code

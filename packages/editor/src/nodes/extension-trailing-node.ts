@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Extension } from '@tiptap/core'
-import { PluginKey, Plugin } from 'prosemirror-state'
+import { PluginKey, Plugin } from '@tiptap/pm/state'
 
 // @ts-ignore
 function nodeEqualsType({ types, node }) {

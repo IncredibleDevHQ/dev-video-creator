@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Plugin } from 'prosemirror-state'
+import { Plugin } from '@tiptap/pm/state'
 
 export const uploadImagePlugin = () =>
 	new Plugin({

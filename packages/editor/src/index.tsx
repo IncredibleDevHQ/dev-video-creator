@@ -15,12 +15,17 @@
 /* eslint-disable react/jsx-no-constructed-context-values */
 /* eslint-disable no-unsafe-optional-chaining */
 import { cx } from '@emotion/css'
-import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
-import UniqueID from '@tiptap-pro/extension-unique-id'
+import {
+	HocuspocusProvider,
+	HocuspocusProviderWebsocket,
+	WebSocketStatus,
+} from '@hocuspocus/provider'
 import { Editor as CoreEditor } from '@tiptap/core'
 import CharacterCount from '@tiptap/extension-character-count'
-import Collaboration from '@tiptap/extension-collaboration'
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+import Collaboration, {
+	isChangeOrigin,
+} from '@tiptap/extension-collaboration'
+import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import Focus from '@tiptap/extension-focus'
 import Placeholder from '@tiptap/extension-placeholder'
 import {
@@ -50,6 +55,7 @@ import TrailingNode from './nodes/extension-trailing-node'
 import Typography from './nodes/extension-typography'
 import VideoBlock from './nodes/extension-video'
 import editorStyle from './styles/editorStyle'
+import NodeIdentifier from './extensions/NodeIdentifier'
 
 type EC = {
 	editor: Editor | null
@@ -100,16 +106,19 @@ export const EditorProvider = ({
 			return
 		providerRef.current?.disconnect()
 		const yDoc = new Y.Doc()
-		const provider = new HocuspocusProvider({
-			document: yDoc,
+		const websocketProvider = new HocuspocusProviderWebsocket({
 			url: hocuspocus as string,
-			name: `${documentId}`,
 			maxAttempts: 10,
 			timeout: 10000,
 			minDelay: 0,
 			maxDelay: 0,
 			delay: 0,
-			broadcast: false,
+			jitter: false,
+		})
+		const provider = new HocuspocusProvider({
+			document: yDoc,
+			name: `${documentId}`,
+			websocketProvider,
 			onStatus: ({ status }) => {
 				setWebsocketStatus(status)
 			},
@@ -122,6 +131,8 @@ export const EditorProvider = ({
 
 	const editor = useEditor(
 		{
+			immediatelyRender: false,
+			shouldRerenderOnTransaction: true,
 			onUpdate: ({ editor: coreEditor }) => {
 				handleUpdate?.(coreEditor)
 			},
@@ -135,8 +146,9 @@ export const EditorProvider = ({
 			},
 			autofocus: false,
 			extensions: [
-				UniqueID.configure({
+				NodeIdentifier.configure({
 					attributeName: 'id',
+					filterTransaction: transaction => !isChangeOrigin(transaction),
 					types: [
 						'paragraph',
 						'blockquote',
@@ -154,7 +166,7 @@ export const EditorProvider = ({
 				Typography,
 				StarterKit.configure({
 					codeBlock: false,
-					history: false,
+					undoRedo: false,
 					heading: {
 						levels: [1, 2, 3, 4, 5, 6],
 					},
@@ -243,7 +255,7 @@ export const EditorProvider = ({
 							Collaboration.configure({
 								document: yDocRef.current,
 							}),
-							CollaborationCursor.configure({
+							CollaborationCaret.configure({
 								provider: providerRef.current,
 								user: {
 									name: displayName,
@@ -320,6 +332,7 @@ export const EditorContent = EditorContentReact
 export const useIncredibleEditor = () => useContext(EditorContext)
 
 export type CoreEditorInstance = CoreEditor
+export { default as NodeIdentifier } from './extensions/NodeIdentifier'
 
 EditorProvider.defaultProps = {
 	handleUpdate: undefined,

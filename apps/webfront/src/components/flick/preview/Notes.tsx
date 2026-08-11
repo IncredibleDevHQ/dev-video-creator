@@ -134,13 +134,20 @@ const Note = ({ block }: { block: Block }) => {
 	}, [localNote])
 
 	const noteEditor = useEditor({
+		immediatelyRender: false,
+		shouldRerenderOnTransaction: true,
 		autofocus: 'end',
 		onUpdate: ({ editor: coreEditor }) => {
 			const notes =
 				coreEditor
 					.getJSON()
 					.content?.map(contentNode =>
-						contentNode.content?.map(n => n.text).join('')
+						contentNode.content
+							?.map(node => {
+								const { text } = node as { text?: unknown }
+								return typeof text === 'string' ? text : ''
+							})
+							.join('')
 					)
 					.join('\n') || ''
 			setLocalNote(notes)

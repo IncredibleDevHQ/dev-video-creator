@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Node, nodeInputRule } from '@tiptap/core'
-import { mergeAttributes, ReactNodeViewRenderer } from '@tiptap/react'
+import { mergeAttributes, Node, nodeInputRule } from '@tiptap/core'
+import { ReactNodeViewRenderer } from '@tiptap/react'
 import { uploadImagePlugin } from './upload-image-plugin'
 import { Image } from './Image'
 

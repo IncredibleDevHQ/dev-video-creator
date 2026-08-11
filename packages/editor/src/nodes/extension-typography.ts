@@ -16,7 +16,7 @@
 import { Editor } from '@tiptap/core'
 import Typography from '@tiptap/extension-typography'
 import { marked } from 'marked'
-import { Plugin } from 'prosemirror-state'
+import { Plugin } from '@tiptap/pm/state'
 
 function isMarkdown(text: string): boolean {
 	// code-ish
@@ -73,26 +73,4 @@ export default Typography.extend({
 		}
 	},
 
-	addGlobalAttributes() {
-		return [
-			{
-				types: [
-					'paragraph',
-					'blockquote',
-					'heading',
-					'bulletList',
-					'codeBlock',
-					'orderedList',
-					'image',
-					'codeBlock',
-					'video',
-				],
-				attributes: {
-					id: {
-						default: null,
-					},
-				},
-			},
-		]
-	},
 })
