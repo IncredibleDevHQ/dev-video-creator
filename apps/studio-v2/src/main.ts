@@ -3,9 +3,13 @@ import { Editor, type JSONContent } from '@tiptap/core'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import {
+  builtinStudioThemes,
   compileProject,
   createDefaultBlockConfig,
   defaultBrand,
+  defaultStudioTheme,
+  generateThemeDirections,
+  normalizeStudioTheme,
   type BlockBackgroundPreset,
   type BlockRenderConfigV1,
   type CameraPosition,
@@ -13,6 +17,8 @@ import {
   type RevealStyle,
   type Scene,
   type SceneLayout,
+  type StudioThemeV1,
+  type ThemeCanvasTreatment,
   type TiptapDocument,
   type TiptapNode,
 } from 'markdown-composition'
@@ -29,6 +35,7 @@ const logomarkUrl = new URL(
 ).href
 
 document.querySelector<HTMLImageElement>('#studio-logo')!.src = studioLogoUrl
+document.querySelector<HTMLImageElement>('#theme-builder-logo')!.src = studioLogoUrl
 document.querySelector<HTMLLinkElement>('#app-icon')!.href = logomarkUrl
 
 const SAMPLE_MARKDOWN = `# Make technical ideas feel human
@@ -49,6 +56,7 @@ const video = await hyperframes.render(story)
 \`\`\``
 
 const STORAGE_KEY = 'incredible-studio-v2-project'
+const THEME_STORAGE_KEY = 'incredible-studio-v2-themes'
 const WORKER_URL = import.meta.env.VITE_RENDER_WORKER_URL || ''
 const LEGACY_MVP_BRAND = {
   background: '#f4f2ec',
@@ -111,6 +119,7 @@ const PRESENTER_LAYOUT_PRESETS: Array<{
   position: CameraPosition
   shape: BlockRenderConfigV1['camera']['shape']
 }> = [
+  { id: 'full', label: 'Full frame', position: 'full', shape: 'rounded-rectangle' },
   { id: 'split-left', label: 'Split left', position: 'split-left', shape: 'rounded-rectangle' },
   { id: 'split-right', label: 'Split right', position: 'split-right', shape: 'rounded-rectangle' },
   { id: 'overlay-left', label: 'Overlay left', position: 'overlay-left', shape: 'rounded-rectangle' },
@@ -238,7 +247,302 @@ let project: ProjectDocumentV1 =
     blocks: {},
     presenterTracks: {},
     brand: { ...defaultBrand },
+    theme: structuredClone(defaultStudioTheme),
   } satisfies ProjectDocumentV1)
+
+project.theme = normalizeStudioTheme(project.theme, project.brand)
+project.brand = { ...project.theme.brand }
+
+const cloneTheme = (theme: StudioThemeV1): StudioThemeV1 =>
+  structuredClone(theme)
+
+const readSavedThemes = (): StudioThemeV1[] => {
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(THEME_STORAGE_KEY) || '[]',
+    ) as StudioThemeV1[]
+    return Array.isArray(parsed)
+      ? parsed
+          .filter(theme => theme?.version === 1 && typeof theme.id === 'string')
+          .map(theme => normalizeStudioTheme(theme))
+      : []
+  } catch {
+    return []
+  }
+}
+
+let savedThemes = readSavedThemes()
+let generatedThemes: StudioThemeV1[] = []
+let themeDraft = cloneTheme(project.theme)
+let themePreviewKind: 'title' | 'list' | 'code' | 'quote' | 'video' = 'title'
+
+const allStudioThemes = () => [...builtinStudioThemes, ...savedThemes]
+
+const themeCanvasCss = (theme: StudioThemeV1) => {
+  if (theme.canvas.treatment === 'gradient') {
+    return `linear-gradient(135deg, ${theme.canvas.gradient[0]}, ${theme.canvas.gradient[1]})`
+  }
+  if (theme.canvas.treatment === 'grid') {
+    return `linear-gradient(90deg, transparent calc(20% - 1px), ${theme.canvas.gridColor} 20%, transparent calc(20% + 1px)), ${theme.brand.background}`
+  }
+  return theme.brand.background
+}
+
+const themeVideoPosition = (
+  layout: StudioThemeV1['video']['layout'],
+): CameraPosition =>
+  ({
+    'picture-in-picture': 'bottom-right',
+    overlay: 'overlay-right',
+    split: 'split-right',
+    full: 'full',
+  })[layout] as CameraPosition
+
+const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
+  project.theme = cloneTheme(normalizeStudioTheme(theme))
+  project.brand = { ...project.theme.brand }
+  if (updateCamera) {
+    Object.values(project.blocks).forEach(config => {
+      config.camera.position = themeVideoPosition(project.theme!.video.layout)
+      config.camera.shape =
+        project.theme!.video.layout === 'picture-in-picture'
+          ? 'circle'
+          : 'rounded-rectangle'
+    })
+  }
+  document.documentElement.style.setProperty('--brand', project.brand.primary)
+  document.documentElement.style.setProperty('--brand-light', project.brand.accent)
+  renderStudioThemeSelector()
+  syncProject()
+}
+
+const createThemePreview = (theme: StudioThemeV1) => {
+  const preview = document.createElement('div')
+  preview.className = `theme-card-preview treatment-${theme.canvas.treatment}`
+  preview.style.setProperty('--theme-card-canvas', themeCanvasCss(theme))
+  preview.style.setProperty('--theme-card-surface', theme.brand.surface)
+  preview.style.setProperty('--theme-card-text', theme.brand.text)
+  preview.style.setProperty('--theme-card-muted', theme.brand.mutedText)
+  preview.style.setProperty('--theme-card-primary', theme.brand.primary)
+  preview.style.setProperty('--theme-card-accent', theme.brand.accent)
+  preview.style.setProperty('--theme-card-code', theme.brand.codeBackground)
+  preview.style.setProperty('--theme-card-radius', `${theme.blocks.borderRadius}px`)
+  preview.innerHTML =
+    '<span class="theme-card-number">01</span><div class="theme-card-copy"><strong>Make ideas feel human.</strong><span>Markdown → live canvas</span></div><div class="theme-card-code"><i></i><i></i><i></i></div><div class="theme-card-human"><span></span></div>'
+  const human = preview.querySelector<HTMLElement>('.theme-card-human')!
+  human.style.borderRadius = `${theme.video.borderRadius}px`
+  human.style.borderWidth = `${Math.max(0, theme.video.borderWidth / 2)}px`
+  human.classList.toggle('gradient-border', theme.video.borderStyle === 'gradient')
+  human.classList.toggle('no-border', theme.video.borderStyle === 'none')
+  return preview
+}
+
+const createThemeCard = (
+  theme: StudioThemeV1,
+  mode: 'library' | 'generated',
+) => {
+  const article = document.createElement('article')
+  article.className = 'theme-card'
+  article.dataset.themeId = theme.id
+  article.classList.toggle('selected', project.theme?.id === theme.id)
+  article.append(createThemePreview(theme))
+
+  const meta = document.createElement('div')
+  meta.className = 'theme-card-meta'
+  const copy = document.createElement('div')
+  const name = document.createElement('strong')
+  name.textContent = theme.name
+  const description = document.createElement('p')
+  description.textContent = theme.description
+  copy.append(name, description)
+  const badge = document.createElement('span')
+  badge.textContent = theme.source === 'built-in' ? 'Incredible' : theme.source
+  meta.append(copy, badge)
+  article.append(meta)
+
+  const actions = document.createElement('div')
+  actions.className = 'theme-card-actions'
+  if (mode === 'generated') {
+    const choose = document.createElement('button')
+    choose.type = 'button'
+    choose.className = 'button ghost wide'
+    choose.textContent = 'Choose direction'
+    choose.addEventListener('click', () => {
+      themeDraft = cloneTheme(theme)
+      themeDraft.id = `custom-${crypto.randomUUID()}`
+      themeDraft.source = 'custom'
+      syncThemeBuilderControls()
+      renderThemeBuilderPreview()
+    })
+    actions.append(choose)
+  } else {
+    const customize = document.createElement('button')
+    customize.type = 'button'
+    customize.className = 'button ghost'
+    customize.textContent = 'Customize'
+    customize.addEventListener('click', () => openThemeBuilder(theme))
+    const use = document.createElement('button')
+    use.type = 'button'
+    use.className = 'button primary'
+    use.textContent = project.theme?.id === theme.id ? 'In use' : 'Use in notebook'
+    use.addEventListener('click', () => {
+      applyThemeToProject(theme)
+      navigateToSurface('studio')
+    })
+    actions.append(customize, use)
+  }
+  article.append(actions)
+  return article
+}
+
+const renderThemeLibrary = () => {
+  const grid = $('#theme-library-grid')
+  grid.replaceChildren(
+    ...allStudioThemes().map(theme => createThemeCard(theme, 'library')),
+  )
+  ;($('#theme-count') as HTMLElement).textContent = String(allStudioThemes().length)
+}
+
+const renderGeneratedThemes = () => {
+  const grid = $('#generated-theme-grid')
+  grid.replaceChildren(
+    ...generatedThemes.map(theme => createThemeCard(theme, 'generated')),
+  )
+}
+
+const renderStudioThemeSelector = () => {
+  const selector = $('#studio-theme-selector') as HTMLSelectElement
+  const themes = allStudioThemes()
+  if (project.theme && !themes.some(theme => theme.id === project.theme?.id)) {
+    themes.push(project.theme)
+  }
+  selector.replaceChildren(
+    ...themes.map(theme => {
+      const option = document.createElement('option')
+      option.value = theme.id
+      option.textContent = theme.name
+      return option
+    }),
+  )
+  selector.value = project.theme?.id || defaultStudioTheme.id
+}
+
+const setBuilderValue = (selector: string, value: string | number) => {
+  const input = $(selector) as HTMLInputElement | HTMLSelectElement
+  input.value = String(value)
+}
+
+const syncThemeBuilderControls = () => {
+  setBuilderValue('#theme-name', themeDraft.name)
+  setBuilderValue('#theme-brand-color', themeDraft.brand.primary)
+  setBuilderValue('#theme-canvas-treatment', themeDraft.canvas.treatment)
+  setBuilderValue('#theme-background', themeDraft.brand.background)
+  setBuilderValue('#theme-surface', themeDraft.brand.surface)
+  setBuilderValue('#theme-accent', themeDraft.brand.accent)
+  setBuilderValue('#theme-surface-style', themeDraft.blocks.surface)
+  setBuilderValue('#theme-block-radius', themeDraft.blocks.borderRadius)
+  setBuilderValue('#theme-video-layout', themeDraft.video.layout)
+  setBuilderValue('#theme-video-border', themeDraft.video.borderStyle)
+  setBuilderValue('#theme-video-radius', themeDraft.video.borderRadius)
+  setBuilderValue('#theme-video-width', themeDraft.video.borderWidth)
+  setBuilderValue('#theme-title-style', themeDraft.blocks.title)
+  setBuilderValue('#theme-list-style', themeDraft.blocks.list)
+  setBuilderValue('#theme-code-style', themeDraft.blocks.code)
+  setBuilderValue('#theme-quote-style', themeDraft.blocks.quote)
+  ;($('#theme-block-radius-output') as HTMLOutputElement).value = `${themeDraft.blocks.borderRadius}px`
+  ;($('#theme-video-radius-output') as HTMLOutputElement).value = `${themeDraft.video.borderRadius}px`
+  ;($('#theme-video-width-output') as HTMLOutputElement).value = `${themeDraft.video.borderWidth}px`
+}
+
+const renderThemeBuilderPreview = () => {
+  const preview = $('#theme-builder-preview')
+  preview.className = `theme-builder-preview preview-${themePreviewKind} title-${themeDraft.blocks.title} list-${themeDraft.blocks.list} code-${themeDraft.blocks.code} quote-${themeDraft.blocks.quote} surface-${themeDraft.blocks.surface} video-${themeDraft.video.layout} border-${themeDraft.video.borderStyle}`
+  preview.style.setProperty('--preview-canvas', themeCanvasCss(themeDraft))
+  preview.style.setProperty('--preview-bg', themeDraft.brand.background)
+  preview.style.setProperty('--preview-surface', themeDraft.brand.surface)
+  preview.style.setProperty('--preview-text', themeDraft.brand.text)
+  preview.style.setProperty('--preview-muted', themeDraft.brand.mutedText)
+  preview.style.setProperty('--preview-primary', themeDraft.brand.primary)
+  preview.style.setProperty('--preview-accent', themeDraft.brand.accent)
+  preview.style.setProperty('--preview-code', themeDraft.brand.codeBackground)
+  preview.style.setProperty('--preview-gradient', `linear-gradient(135deg, ${themeDraft.canvas.gradient[0]}, ${themeDraft.canvas.gradient[1]})`)
+  preview.style.setProperty('--preview-radius', `${themeDraft.blocks.borderRadius}px`)
+  preview.style.setProperty('--preview-video-radius', `${themeDraft.video.borderRadius}px`)
+  preview.style.setProperty('--preview-video-width', `${themeDraft.video.borderWidth}px`)
+  ;($('#builder-preview-title') as HTMLElement).textContent = themeDraft.name
+  ;($('#theme-preview-name') as HTMLElement).textContent = themeDraft.name
+
+  const content = $('#theme-preview-content')
+  content.replaceChildren()
+  if (themePreviewKind === 'title' || themePreviewKind === 'video') {
+    const kicker = document.createElement('span')
+    kicker.textContent = 'Human-first developer video'
+    const title = document.createElement('strong')
+    title.textContent = 'Make technical ideas feel human.'
+    const body = document.createElement('p')
+    body.textContent = 'Write in Markdown. Direct the canvas. Stay on camera.'
+    content.append(kicker, title, body)
+  } else if (themePreviewKind === 'list') {
+    const title = document.createElement('strong')
+    title.textContent = 'A clearer way to explain'
+    const list = document.createElement('ol')
+    ;['Write naturally', 'Choose the layout', 'Tell it as yourself'].forEach(item => {
+      const listItem = document.createElement('li')
+      listItem.textContent = item
+      list.append(listItem)
+    })
+    content.append(title, list)
+  } else if (themePreviewKind === 'code') {
+    const title = document.createElement('strong')
+    title.textContent = 'Render the notebook'
+    const code = document.createElement('pre')
+    code.textContent = 'const story = compile(notebook)\nawait hyperframes.render(story)'
+    content.append(title, code)
+  } else {
+    const quote = document.createElement('blockquote')
+    quote.textContent = 'Generated voice removes friction. It does not remove the person.'
+    content.append(quote)
+  }
+  ;($('#theme-preview-person') as HTMLElement).hidden =
+    themePreviewKind !== 'video' && themePreviewKind !== 'title'
+}
+
+const showThemePanel = (panel: 'library' | 'builder') => {
+  ;($('#theme-library-panel') as HTMLElement).hidden = panel !== 'library'
+  ;($('#theme-builder-panel') as HTMLElement).hidden = panel !== 'builder'
+  ;($('#show-theme-library') as HTMLButtonElement).classList.toggle(
+    'active',
+    panel === 'library',
+  )
+  ;($('#show-theme-builder') as HTMLButtonElement).classList.toggle(
+    'active',
+    panel === 'builder',
+  )
+}
+
+const openThemeBuilder = (theme?: StudioThemeV1) => {
+  themeDraft = cloneTheme(theme || project.theme || defaultStudioTheme)
+  themeDraft.id = themeDraft.source === 'custom'
+    ? themeDraft.id
+    : `custom-${crypto.randomUUID()}`
+  themeDraft.source = 'custom'
+  syncThemeBuilderControls()
+  renderThemeBuilderPreview()
+  showThemePanel('builder')
+}
+
+const navigateToSurface = (surface: 'themes' | 'studio', replace = false) => {
+  const path = surface === 'themes' ? '/themes' : '/studio'
+  if (replace) window.history.replaceState({ surface }, '', path)
+  else if (window.location.pathname !== path) {
+    window.history.pushState({ surface }, '', path)
+  }
+  ;($('#theme-app') as HTMLElement).hidden = surface !== 'themes'
+  ;($('#app') as HTMLElement).hidden = surface !== 'studio'
+  document.body.classList.toggle('theme-surface-open', surface === 'themes')
+  if (surface === 'themes') renderThemeLibrary()
+  else window.requestAnimationFrame(positionInlinePreview)
+}
 
 const editor = new Editor({
   element: $('#editor'),
@@ -956,6 +1260,7 @@ const bindBrandColor = (selector: string, key: keyof ProjectDocumentV1['brand'])
   input.value = project.brand[key]
   input.addEventListener('input', () => {
     project.brand[key] = input.value
+    if (project.theme) project.theme.brand[key] = input.value
     scheduleSync()
   })
 }
@@ -996,6 +1301,197 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`)
   return body
 }
+
+const updateThemeDraftFromControls = () => {
+  const previousPrimary = themeDraft.brand.primary
+  themeDraft.name = ($('#theme-name') as HTMLInputElement).value.trim() || 'My brand'
+  themeDraft.brand.primary = ($('#theme-brand-color') as HTMLInputElement).value
+  themeDraft.canvas.treatment = (
+    $('#theme-canvas-treatment') as HTMLSelectElement
+  ).value as StudioThemeV1['canvas']['treatment']
+  themeDraft.brand.background = ($('#theme-background') as HTMLInputElement).value
+  themeDraft.brand.surface = ($('#theme-surface') as HTMLInputElement).value
+  themeDraft.brand.accent = ($('#theme-accent') as HTMLInputElement).value
+  themeDraft.blocks.surface = (
+    $('#theme-surface-style') as HTMLSelectElement
+  ).value as StudioThemeV1['blocks']['surface']
+  themeDraft.blocks.borderRadius = Number(
+    ($('#theme-block-radius') as HTMLInputElement).value,
+  )
+  themeDraft.video.layout = (
+    $('#theme-video-layout') as HTMLSelectElement
+  ).value as StudioThemeV1['video']['layout']
+  themeDraft.video.borderStyle = (
+    $('#theme-video-border') as HTMLSelectElement
+  ).value as StudioThemeV1['video']['borderStyle']
+  themeDraft.video.borderRadius = Number(
+    ($('#theme-video-radius') as HTMLInputElement).value,
+  )
+  themeDraft.video.borderWidth = Number(
+    ($('#theme-video-width') as HTMLInputElement).value,
+  )
+  themeDraft.blocks.title = (
+    $('#theme-title-style') as HTMLSelectElement
+  ).value as StudioThemeV1['blocks']['title']
+  themeDraft.blocks.list = (
+    $('#theme-list-style') as HTMLSelectElement
+  ).value as StudioThemeV1['blocks']['list']
+  themeDraft.blocks.code = (
+    $('#theme-code-style') as HTMLSelectElement
+  ).value as StudioThemeV1['blocks']['code']
+  themeDraft.blocks.quote = (
+    $('#theme-quote-style') as HTMLSelectElement
+  ).value as StudioThemeV1['blocks']['quote']
+  if (previousPrimary !== themeDraft.brand.primary) {
+    themeDraft.canvas.gradient[0] = themeDraft.brand.primary
+  }
+  ;($('#theme-block-radius-output') as HTMLOutputElement).value = `${themeDraft.blocks.borderRadius}px`
+  ;($('#theme-video-radius-output') as HTMLOutputElement).value = `${themeDraft.video.borderRadius}px`
+  ;($('#theme-video-width-output') as HTMLOutputElement).value = `${themeDraft.video.borderWidth}px`
+  renderThemeBuilderPreview()
+}
+
+;[
+  '#theme-name',
+  '#theme-brand-color',
+  '#theme-canvas-treatment',
+  '#theme-background',
+  '#theme-surface',
+  '#theme-accent',
+  '#theme-surface-style',
+  '#theme-block-radius',
+  '#theme-video-layout',
+  '#theme-video-border',
+  '#theme-video-radius',
+  '#theme-video-width',
+  '#theme-title-style',
+  '#theme-list-style',
+  '#theme-code-style',
+  '#theme-quote-style',
+].forEach(selector => {
+  $(selector).addEventListener('input', updateThemeDraftFromControls)
+  $(selector).addEventListener('change', updateThemeDraftFromControls)
+})
+
+;($('#generate-themes') as HTMLButtonElement).addEventListener(
+  'click',
+  async event => {
+    const button = event.currentTarget as HTMLButtonElement
+    const status = $('#theme-ai-status')
+    button.disabled = true
+    button.textContent = 'Creating directions…'
+    status.textContent = 'OpenAI is designing the canvas, video frame and every Markdown block together.'
+    try {
+      const result = await fetchJson<{
+        themes: StudioThemeV1[]
+        provider: 'openai' | 'local-generator' | 'local-fallback'
+        warning?: string
+      }>('/api/themes/generate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          brandColor: ($('#theme-brand-color') as HTMLInputElement).value,
+          name: ($('#theme-name') as HTMLInputElement).value,
+          treatment: (
+            $('#theme-generation-treatment') as HTMLSelectElement
+          ).value as ThemeCanvasTreatment | 'both',
+          mood: ($('#theme-mood') as HTMLSelectElement).value,
+        }),
+      })
+      generatedThemes = result.themes.map(theme => normalizeStudioTheme(theme))
+      renderGeneratedThemes()
+      ;($('#generated-provider') as HTMLElement).textContent =
+        result.provider === 'openai'
+          ? 'Created with OpenAI'
+          : result.provider === 'local-fallback'
+            ? 'OpenAI unavailable · local directions shown'
+            : 'Local directions'
+      status.textContent = result.warning
+        ? `${result.warning}. The keyless fallback is ready below.`
+        : 'Four complete directions are ready. Choose one, then tune it.'
+    } catch (error) {
+      generatedThemes = generateThemeDirections(
+        ($('#theme-brand-color') as HTMLInputElement).value,
+        ($('#theme-name') as HTMLInputElement).value,
+        ($('#theme-generation-treatment') as HTMLSelectElement).value as
+          | ThemeCanvasTreatment
+          | 'both',
+      )
+      renderGeneratedThemes()
+      ;($('#generated-provider') as HTMLElement).textContent = 'Keyless local directions'
+      status.textContent =
+        error instanceof Error ? error.message : 'Could not reach the theme service'
+    } finally {
+      button.disabled = false
+      button.textContent = 'Generate with AI'
+    }
+  },
+)
+
+;($('#save-theme') as HTMLButtonElement).addEventListener('click', () => {
+  updateThemeDraftFromControls()
+  themeDraft.source = 'custom'
+  const existingIndex = savedThemes.findIndex(theme => theme.id === themeDraft.id)
+  if (existingIndex >= 0) savedThemes[existingIndex] = cloneTheme(themeDraft)
+  else savedThemes.push(cloneTheme(themeDraft))
+  window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(savedThemes))
+  applyThemeToProject(themeDraft)
+  renderThemeLibrary()
+  ;($('#theme-ai-status') as HTMLElement).textContent =
+    'Saved. This theme is now available in the notebook theme picker.'
+})
+
+document
+  .querySelectorAll<HTMLButtonElement>('[data-theme-preview]')
+  .forEach(button => {
+    button.addEventListener('click', () => {
+      themePreviewKind = button.dataset.themePreview as typeof themePreviewKind
+      document
+        .querySelectorAll<HTMLButtonElement>('[data-theme-preview]')
+        .forEach(tab => tab.classList.toggle('active', tab === button))
+      renderThemeBuilderPreview()
+    })
+  })
+
+;($('#show-theme-library') as HTMLButtonElement).addEventListener('click', () =>
+  showThemePanel('library'),
+)
+;($('#show-theme-builder') as HTMLButtonElement).addEventListener('click', () =>
+  openThemeBuilder(),
+)
+;($('#hero-build-theme') as HTMLButtonElement).addEventListener('click', () =>
+  openThemeBuilder(),
+)
+;($('#cancel-theme-builder') as HTMLButtonElement).addEventListener('click', () =>
+  showThemePanel('library'),
+)
+;($('#theme-open-notebook') as HTMLButtonElement).addEventListener('click', () =>
+  navigateToSurface('studio'),
+)
+;($('#open-theme-builder') as HTMLButtonElement).addEventListener('click', () => {
+  navigateToSurface('themes')
+  openThemeBuilder(project.theme)
+})
+;($('#studio-theme-selector') as HTMLSelectElement).addEventListener(
+  'change',
+  event => {
+    const theme = allStudioThemes().find(
+      item => item.id === (event.currentTarget as HTMLSelectElement).value,
+    )
+    if (theme) applyThemeToProject(theme)
+  },
+)
+
+document.querySelectorAll<HTMLElement>('[data-app-route]').forEach(link => {
+  link.addEventListener('click', event => {
+    event.preventDefault()
+    navigateToSurface(link.dataset.appRoute === 'themes' ? 'themes' : 'studio')
+  })
+})
+
+window.addEventListener('popstate', () => {
+  navigateToSurface(window.location.pathname === '/studio' ? 'studio' : 'themes', true)
+})
 
 const sceneScript = (scene: Scene) => {
   const collect = (node: TiptapNode): string =>
@@ -1261,6 +1757,14 @@ window.addEventListener('beforeunload', () => {
 })
 
 queueMicrotask(() => {
+  renderThemeLibrary()
+  renderStudioThemeSelector()
+  syncThemeBuilderControls()
+  renderThemeBuilderPreview()
+  navigateToSurface(
+    window.location.pathname === '/studio' ? 'studio' : 'themes',
+    true,
+  )
   syncProject()
   refreshCapabilities()
 })

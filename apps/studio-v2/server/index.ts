@@ -16,7 +16,11 @@ import { fileURLToPath } from 'node:url'
 import { createRenderJob, executeRenderJob } from '@hyperframes/producer'
 import {
   compileProject,
+  generateThemeDirections,
+  normalizeStudioTheme,
   type ProjectDocumentV1,
+  type StudioThemeV1,
+  type ThemeCanvasTreatment,
 } from 'markdown-composition'
 
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
@@ -37,6 +41,28 @@ const hyperframesRuntimePath = join(
   'dist',
   'hyperframe.runtime.iife.js',
 )
+
+const readEnvFileValue = async (name: string) => {
+  const candidates = [
+    resolve(process.cwd(), '../agents/.env'),
+    fileURLToPath(new URL('../../../../agents/.env', import.meta.url)),
+  ]
+  for (const candidate of candidates) {
+    try {
+      const contents = await readFile(candidate, 'utf8')
+      const line = contents
+        .split(/\r?\n/)
+        .find(entry => entry.trim().startsWith(`${name}=`))
+      if (line) return line.slice(line.indexOf('=') + 1).trim().replace(/^['"]|['"]$/g, '')
+    } catch {
+      // The local app can still run with its keyless fallbacks.
+    }
+  }
+  return ''
+}
+
+const openAIKey =
+  process.env.OPENAI_API_KEY || (await readEnvFileValue('OPENAI_API_KEY'))
 
 await Promise.all([
   mkdir(assetsDirectory, { recursive: true }),
@@ -244,6 +270,191 @@ const handleVoice = async (
   })
 }
 
+const extractResponseText = (response: {
+  output?: Array<{ content?: Array<{ type?: string; text?: string }> }>
+}) =>
+  response.output
+    ?.flatMap(item => item.content || [])
+    .find(item => item.type === 'output_text')?.text || ''
+
+const handleThemeGeneration = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    brandColor?: string
+    name?: string
+    treatment?: ThemeCanvasTreatment | 'both'
+    mood?: string
+  }>(request, 16_000)
+  const brandColor = /^#[0-9a-f]{6}$/i.test(body.brandColor || '')
+    ? (body.brandColor as string)
+    : '#16a34a'
+  const name = body.name?.trim().slice(0, 60) || 'My brand'
+  const treatment = ['solid', 'gradient', 'grid', 'both'].includes(
+    body.treatment || '',
+  )
+    ? (body.treatment as ThemeCanvasTreatment | 'both')
+    : 'both'
+  const fallback = generateThemeDirections(brandColor, name, treatment)
+
+  if (!openAIKey) {
+    json(response, 200, { themes: fallback, provider: 'local-generator' })
+    return
+  }
+
+  const schema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['themes'],
+    properties: {
+      themes: {
+        type: 'array',
+        minItems: 4,
+        maxItems: 4,
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'name',
+            'description',
+            'background',
+            'surface',
+            'text',
+            'mutedText',
+            'primary',
+            'accent',
+            'codeBackground',
+            'canvasTreatment',
+            'gradient',
+            'gridColor',
+            'videoLayout',
+            'videoBorderStyle',
+            'videoBorderWidth',
+            'videoBorderRadius',
+            'titleStyle',
+            'listStyle',
+            'codeStyle',
+            'quoteStyle',
+            'surfaceStyle',
+            'blockBorderRadius',
+          ],
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            background: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            surface: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            text: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            mutedText: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            primary: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            accent: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            codeBackground: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            canvasTreatment: { enum: ['solid', 'gradient', 'grid'] },
+            gradient: {
+              type: 'array',
+              minItems: 2,
+              maxItems: 2,
+              items: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            },
+            gridColor: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+            videoLayout: {
+              enum: ['picture-in-picture', 'overlay', 'split', 'full'],
+            },
+            videoBorderStyle: { enum: ['none', 'solid', 'gradient'] },
+            videoBorderWidth: { type: 'number', minimum: 0, maximum: 20 },
+            videoBorderRadius: { type: 'number', minimum: 0, maximum: 100 },
+            titleStyle: { enum: ['statement', 'split', 'lower-third'] },
+            listStyle: { enum: ['bullets', 'cards', 'timeline', 'steps'] },
+            codeStyle: { enum: ['panel', 'terminal', 'full'] },
+            quoteStyle: { enum: ['bar', 'card', 'statement'] },
+            surfaceStyle: { enum: ['none', 'outline', 'card'] },
+            blockBorderRadius: { type: 'number', minimum: 0, maximum: 80 },
+          },
+        },
+      },
+    },
+  }
+
+  try {
+    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${openAIKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_THEME_MODEL || 'gpt-5.6-luna',
+        input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its anchor color is ${brandColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Maintain accessible text contrast. Treat each result as a coherent recipe for title, Markdown lists, code, quotes and real human camera framing. Avoid cosmetic variations of the same idea.`,
+        reasoning: { effort: 'low' },
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'studio_theme_directions',
+            strict: true,
+            schema,
+          },
+        },
+      }),
+    })
+    if (!apiResponse.ok) {
+      throw new Error(`OpenAI theme generation failed (${apiResponse.status})`)
+    }
+    const apiBody = (await apiResponse.json()) as Parameters<
+      typeof extractResponseText
+    >[0]
+    const parsed = JSON.parse(extractResponseText(apiBody)) as {
+      themes: Array<Record<string, unknown>>
+    }
+    const themes = parsed.themes.map((item, index): StudioThemeV1 =>
+      normalizeStudioTheme(
+        {
+          version: 1,
+          id: `ai-${Date.now()}-${index}`,
+          name: String(item.name || `${name} ${index + 1}`),
+          description: String(item.description || 'AI-generated brand direction.'),
+          source: 'generated',
+          brand: {
+            background: String(item.background),
+            surface: String(item.surface),
+            text: String(item.text),
+            mutedText: String(item.mutedText),
+            primary: String(item.primary),
+            accent: String(item.accent),
+            codeBackground: String(item.codeBackground),
+          },
+          canvas: {
+            treatment: item.canvasTreatment as StudioThemeV1['canvas']['treatment'],
+            gradient: item.gradient as [string, string],
+            gridColor: String(item.gridColor),
+          },
+          video: {
+            layout: item.videoLayout as StudioThemeV1['video']['layout'],
+            borderStyle: item.videoBorderStyle as StudioThemeV1['video']['borderStyle'],
+            borderWidth: Number(item.videoBorderWidth),
+            borderRadius: Number(item.videoBorderRadius),
+          },
+          blocks: {
+            title: item.titleStyle as StudioThemeV1['blocks']['title'],
+            list: item.listStyle as StudioThemeV1['blocks']['list'],
+            code: item.codeStyle as StudioThemeV1['blocks']['code'],
+            quote: item.quoteStyle as StudioThemeV1['blocks']['quote'],
+            surface: item.surfaceStyle as StudioThemeV1['blocks']['surface'],
+            borderRadius: Number(item.blockBorderRadius),
+          },
+        },
+        fallback[index]?.brand,
+      ),
+    )
+    json(response, 200, { themes, provider: 'openai' })
+  } catch (error) {
+    json(response, 200, {
+      themes: fallback,
+      provider: 'local-fallback',
+      warning: error instanceof Error ? error.message : 'AI generation unavailable',
+    })
+  }
+}
+
 const handleAssetUpload = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -367,6 +578,7 @@ const server = createServer(async (request, response) => {
         systemVoice:
           process.platform === 'darwin' && (await commandExists('/usr/bin/say')),
         fishAudio: Boolean(process.env.FISH_AUDIO_API_KEY),
+        themeAI: Boolean(openAIKey),
       })
       return
     }
@@ -391,6 +603,10 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/voice') {
       await handleVoice(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/themes/generate') {
+      await handleThemeGeneration(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/render') {

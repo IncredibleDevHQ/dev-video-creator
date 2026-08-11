@@ -32,6 +32,7 @@ export type BlockBackgroundPreset =
   | 'custom'
 export type CameraPosition =
   | 'hidden'
+  | 'full'
   | 'top-left'
   | 'top-right'
   | 'bottom-left'
@@ -84,6 +85,48 @@ export type BrandTemplateV1 = {
   codeBackground: string
 }
 
+export type ThemeSource = 'built-in' | 'generated' | 'custom'
+export type ThemeCanvasTreatment = 'solid' | 'gradient' | 'grid'
+export type ThemeVideoLayout =
+  | 'picture-in-picture'
+  | 'overlay'
+  | 'split'
+  | 'full'
+export type ThemeBorderStyle = 'none' | 'solid' | 'gradient'
+export type ThemeTitleStyle = 'statement' | 'split' | 'lower-third'
+export type ThemeListStyle = 'bullets' | 'cards' | 'timeline' | 'steps'
+export type ThemeCodeStyle = 'panel' | 'terminal' | 'full'
+export type ThemeQuoteStyle = 'bar' | 'card' | 'statement'
+export type ThemeSurfaceStyle = 'none' | 'outline' | 'card'
+
+export type StudioThemeV1 = {
+  version: 1
+  id: string
+  name: string
+  description: string
+  source: ThemeSource
+  brand: BrandTemplateV1
+  canvas: {
+    treatment: ThemeCanvasTreatment
+    gradient: [string, string]
+    gridColor: string
+  }
+  video: {
+    layout: ThemeVideoLayout
+    borderStyle: ThemeBorderStyle
+    borderWidth: number
+    borderRadius: number
+  }
+  blocks: {
+    title: ThemeTitleStyle
+    list: ThemeListStyle
+    code: ThemeCodeStyle
+    quote: ThemeQuoteStyle
+    surface: ThemeSurfaceStyle
+    borderRadius: number
+  }
+}
+
 export type ProjectDocumentV1 = {
   version: 1
   id: string
@@ -95,6 +138,7 @@ export type ProjectDocumentV1 = {
   blocks: Record<NodeId, BlockRenderConfigV1>
   presenterTracks: Record<NodeId, PresenterTrackV1[]>
   brand: BrandTemplateV1
+  theme?: StudioThemeV1
 }
 
 export type Scene = {

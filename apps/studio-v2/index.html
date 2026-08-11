@@ -8,10 +8,103 @@
     <title>Incredible Studio</title>
   </head>
   <body>
-    <div id="app">
+    <section id="theme-app" class="theme-app" aria-labelledby="theme-page-title" hidden>
+      <header class="theme-header">
+        <a class="theme-brand" href="/themes" data-app-route="themes" aria-label="Incredible themes"><img id="theme-builder-logo" alt="Incredible Studio" /><span>Theme Builder</span></a>
+        <nav aria-label="Theme workspace">
+          <button id="show-theme-library" class="theme-nav active" type="button">Theme library</button>
+          <button id="show-theme-builder" class="theme-nav" type="button">Build a theme</button>
+        </nav>
+        <button id="theme-open-notebook" class="button primary" type="button">Open notebook</button>
+      </header>
+      <main class="theme-main">
+        <section id="theme-library-panel" class="theme-library-panel">
+          <div class="theme-hero">
+            <div>
+              <span class="eyebrow">Incredible Studio themes</span>
+              <h1 id="theme-page-title">A visual language for every Markdown block.</h1>
+              <p>Choose a complete rendering system for titles, points, code, quotes and the real person on camera—not just a palette.</p>
+              <button id="hero-build-theme" class="button primary" type="button">Build your brand theme</button>
+            </div>
+            <div class="theme-hero-sample" aria-hidden="true">
+              <div class="sample-grid"></div>
+              <span class="sample-kicker">React + TypeScript</span>
+              <strong>Best practices,<br />told by people.</strong>
+              <div class="sample-person"><span></span></div>
+            </div>
+          </div>
+          <div class="theme-library-heading">
+            <div><span class="eyebrow">Library</span><h2>Ready-made directions</h2></div>
+            <p><strong id="theme-count">0</strong> themes · built-in and yours</p>
+          </div>
+          <div id="theme-library-grid" class="theme-library-grid"></div>
+        </section>
+
+        <section id="theme-builder-panel" class="theme-builder-panel" hidden>
+          <div class="builder-heading">
+            <div><span class="eyebrow">Theme Builder</span><h1>Build once. Direct every block.</h1><p>Start with a brand color, generate distinct art directions, then tune the video and Markdown system.</p></div>
+            <div class="builder-heading-actions"><button id="cancel-theme-builder" class="button ghost" type="button">Back to library</button><button id="save-theme" class="button primary" type="button">Save theme</button></div>
+          </div>
+          <div class="theme-builder-workspace">
+            <aside class="builder-controls">
+              <section>
+                <span class="builder-step">01 · Brand direction</span>
+                <label>Theme name<input id="theme-name" type="text" maxlength="60" value="My brand" /></label>
+                <div class="builder-inline-fields">
+                  <label>Brand color<input id="theme-brand-color" type="color" value="#16a34a" /></label>
+                  <label>Canvas<select id="theme-generation-treatment"><option value="both">Show all</option><option value="gradient">Gradients</option><option value="solid">Plain color</option><option value="grid">Grid</option></select></label>
+                </div>
+                <label>Mood<select id="theme-mood"><option value="confident, human and technical">Human + technical</option><option value="editorial and understated">Editorial</option><option value="energetic and playful">Energetic</option><option value="minimal and premium">Minimal</option></select></label>
+                <button id="generate-themes" class="button secondary wide" type="button">Generate with AI</button>
+                <small id="theme-ai-status" class="builder-status">OpenAI creates four complete directions; a local generator is the fallback.</small>
+              </section>
+              <section>
+                <span class="builder-step">02 · Canvas + surfaces</span>
+                <label>Canvas treatment<select id="theme-canvas-treatment"><option value="solid">Plain color</option><option value="gradient">Gradient</option><option value="grid">Grid</option></select></label>
+                <div class="builder-color-row"><label>Background<input id="theme-background" type="color" /></label><label>Surface<input id="theme-surface" type="color" /></label><label>Accent<input id="theme-accent" type="color" /></label></div>
+                <label>Content surface<select id="theme-surface-style"><option value="none">Open canvas</option><option value="outline">Outline</option><option value="card">Card</option></select></label>
+                <label>Block corners <output id="theme-block-radius-output">24px</output><input id="theme-block-radius" type="range" min="0" max="80" step="2" /></label>
+              </section>
+              <section>
+                <span class="builder-step">03 · Human video</span>
+                <label>Default layout<select id="theme-video-layout"><option value="picture-in-picture">Picture in picture</option><option value="overlay">Portrait overlay</option><option value="split">Split canvas</option><option value="full">Full frame</option></select></label>
+                <label>Video border<select id="theme-video-border"><option value="none">None</option><option value="solid">Solid</option><option value="gradient">Gradient</option></select></label>
+                <label>Video corners <output id="theme-video-radius-output">28px</output><input id="theme-video-radius" type="range" min="0" max="100" step="2" /></label>
+                <label>Border width <output id="theme-video-width-output">8px</output><input id="theme-video-width" type="range" min="0" max="20" step="1" /></label>
+              </section>
+              <section>
+                <span class="builder-step">04 · Markdown blocks</span>
+                <label>Titles<select id="theme-title-style"><option value="statement">Statement</option><option value="split">Split editorial</option><option value="lower-third">Lower third</option></select></label>
+                <label>Bullet points<select id="theme-list-style"><option value="bullets">Gradient bullets</option><option value="cards">Point cards</option><option value="timeline">Timeline</option><option value="steps">Numbered steps</option></select></label>
+                <label>Code<select id="theme-code-style"><option value="panel">Code panel</option><option value="terminal">Gradient terminal</option><option value="full">Full canvas</option></select></label>
+                <label>Quotes<select id="theme-quote-style"><option value="bar">Accent bar</option><option value="card">Quote card</option><option value="statement">Statement</option></select></label>
+              </section>
+            </aside>
+
+            <section class="builder-preview-area" aria-labelledby="builder-preview-title">
+              <div class="builder-preview-heading"><div><span class="live-dot"></span><div><span>Live theme preview</span><strong id="builder-preview-title">My brand</strong></div></div><span>16:9 · Hyperframes-ready</span></div>
+              <div id="theme-builder-preview" class="theme-builder-preview">
+                <div class="theme-preview-grid"></div>
+                <span class="theme-preview-index">01</span>
+                <div id="theme-preview-content" class="theme-preview-content"></div>
+                <div id="theme-preview-person" class="theme-preview-person"><span></span></div>
+                <footer><span class="theme-preview-mark">✦ incredible</span><span id="theme-preview-name">My brand</span></footer>
+              </div>
+              <div id="theme-preview-tabs" class="theme-preview-tabs" role="tablist" aria-label="Preview Markdown block type">
+                <button class="active" type="button" data-theme-preview="title">Title</button><button type="button" data-theme-preview="list">Points</button><button type="button" data-theme-preview="code">Code</button><button type="button" data-theme-preview="quote">Quote</button><button type="button" data-theme-preview="video">Video</button>
+              </div>
+              <div class="builder-direction-heading"><div><span class="eyebrow">Generated directions</span><h2>Pick a direction, then make it yours</h2></div><small id="generated-provider">Start from your brand color</small></div>
+              <div id="generated-theme-grid" class="generated-theme-grid"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <div id="app" hidden>
       <header class="app-chrome">
         <div class="topbar">
-          <a class="brand" href="/" aria-label="Incredible Studio home">
+          <a class="brand" href="/themes" data-app-route="themes" aria-label="Incredible Studio themes">
             <span class="back-mark" aria-hidden="true">‹</span>
             <img id="studio-logo" alt="Incredible Studio" />
           </a>
@@ -29,6 +122,8 @@
           </div>
           <nav class="actions" aria-label="Project actions">
             <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
+            <label class="studio-theme-picker"><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select></label>
+            <button id="open-theme-builder" class="button chrome-ghost" type="button">Edit themes</button>
             <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
             <button id="import-file" class="button chrome-ghost">Import .md</button>
             <button id="paste-markdown" class="button chrome-ghost">Paste Markdown</button>
@@ -164,7 +259,7 @@
             </fieldset>
             <fieldset>
               <legend>Human presenter</legend>
-              <label>Camera position<select id="camera-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="overlay-right">Overlay right</option><option value="overlay-left">Overlay left</option><option value="split-right">Split right</option><option value="split-left">Split left</option><option value="hidden">Hidden</option></select></label>
+              <label>Camera position<select id="camera-position"><option value="full">Full frame</option><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="overlay-right">Overlay right</option><option value="overlay-left">Overlay left</option><option value="split-right">Split right</option><option value="split-left">Split left</option><option value="hidden">Hidden</option></select></label>
               <label>Camera shape<select id="camera-shape"><option value="circle">Circle</option><option value="rounded-rectangle">Rounded rectangle</option></select></label>
               <button id="record-this-block" type="button" class="button secondary wide">Record this block</button>
               <button id="remove-presenter" type="button" class="text-button danger">Remove presenter track</button>

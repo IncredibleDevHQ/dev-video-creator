@@ -1,7 +1,6 @@
 import type {
   BlockRenderConfigV1,
   BlockBackgroundPreset,
-  BrandTemplateV1,
   CompiledComposition,
   ProjectDocumentV1,
   Scene,
@@ -9,18 +8,10 @@ import type {
   TiptapMark,
   TiptapNode,
 } from './types'
+import { defaultBrand, normalizeStudioTheme } from './themes'
 
 export * from './types'
-
-export const defaultBrand: BrandTemplateV1 = {
-  background: '#111827',
-  surface: '#1f2024',
-  text: '#f9fafb',
-  mutedText: '#a1a1aa',
-  primary: '#16a34a',
-  accent: '#4ade80',
-  codeBackground: '#0f172a',
-}
+export * from './themes'
 
 const incredibleMarkPath =
   'M8.96168 0.740305C7.9746 -0.246768 6.37424 -0.246768 5.38717 0.740304L0.740312 5.38716C-0.24676 6.37423 -0.246761 7.9746 0.740312 8.96167L1.99139 10.2127C2.97846 11.1998 2.97846 12.8002 1.99139 13.7872L0.740304 15.0383C-0.246768 16.0254 -0.246768 17.6258 0.740304 18.6128L5.38716 23.2597C6.37423 24.2468 7.9746 24.2468 8.96167 23.2597L10.2127 22.0086C11.1998 21.0215 12.8002 21.0215 13.7873 22.0086L15.0383 23.2597C16.0254 24.2468 17.6258 24.2468 18.6128 23.2597L23.2597 18.6128C24.2468 17.6258 24.2468 16.0254 23.2597 15.0383L22.0086 13.7873C21.0215 12.8002 21.0215 11.1998 22.0086 10.2127L23.2597 8.96167C24.2468 7.9746 24.2468 6.37424 23.2597 5.38716L18.6128 0.740305C17.6258 -0.246767 16.0254 -0.246766 15.0383 0.740307L13.7873 1.99138C12.8002 2.97845 11.1998 2.97845 10.2127 1.99138L8.96168 0.740305Z'
@@ -119,6 +110,7 @@ const normalizeBlockConfig = (
         supplied.camera?.position,
         [
           'hidden',
+          'full',
           'top-left',
           'top-right',
           'bottom-left',
@@ -274,18 +266,41 @@ const buildCompositionHtml = (
   gsapUrl: string,
   hyperframesRuntimeUrl: string,
 ) => {
+  const theme = normalizeStudioTheme(project.theme, project.brand)
   const brand = {
-    background: safeColor(project.brand.background, defaultBrand.background),
-    surface: safeColor(project.brand.surface, defaultBrand.surface),
-    text: safeColor(project.brand.text, defaultBrand.text),
-    mutedText: safeColor(project.brand.mutedText, defaultBrand.mutedText),
-    primary: safeColor(project.brand.primary, defaultBrand.primary),
-    accent: safeColor(project.brand.accent, defaultBrand.accent),
+    background: safeColor(theme.brand.background, defaultBrand.background),
+    surface: safeColor(theme.brand.surface, defaultBrand.surface),
+    text: safeColor(theme.brand.text, defaultBrand.text),
+    mutedText: safeColor(theme.brand.mutedText, defaultBrand.mutedText),
+    primary: safeColor(theme.brand.primary, defaultBrand.primary),
+    accent: safeColor(theme.brand.accent, defaultBrand.accent),
     codeBackground: safeColor(
-      project.brand.codeBackground,
+      theme.brand.codeBackground,
       defaultBrand.codeBackground,
     ),
   }
+  const canvasGradient = theme.canvas.gradient.map((color, index) =>
+    safeColor(color, index ? brand.accent : brand.primary),
+  ) as [string, string]
+  const gridColor = safeColor(theme.canvas.gridColor, '#ffffff20')
+  const canvasBackground =
+    theme.canvas.treatment === 'grid'
+      ? `linear-gradient(90deg, transparent calc(20% - 1px), ${gridColor} 20%, transparent calc(20% + 1px)), ${brand.background}`
+      : theme.canvas.treatment === 'gradient'
+        ? `linear-gradient(135deg, ${canvasGradient[0]} 0%, ${canvasGradient[1]} 100%)`
+        : brand.background
+  const videoBorderWidth = Math.min(
+    28,
+    Math.max(0, Number(theme.video.borderWidth) || 0),
+  )
+  const videoBorderRadius = Math.min(
+    180,
+    Math.max(0, Number(theme.video.borderRadius) || 0),
+  )
+  const blockBorderRadius = Math.min(
+    120,
+    Math.max(0, Number(theme.blocks.borderRadius) || 0),
+  )
 
   const sceneMarkup = scenes
     .map(scene => {
@@ -317,7 +332,7 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip layout-${scene.config.layout} align-${scene.config.alignment}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
@@ -328,7 +343,7 @@ const buildCompositionHtml = (
           backgroundValue(
             scene.config.background.preset,
             scene.config.background.color,
-            brand.background,
+            canvasBackground,
           ),
         )}"
       >
@@ -368,14 +383,17 @@ const buildCompositionHtml = (
   <title>${escapeHtml(project.title)}</title>
   <script src="${escapeHtml(gsapUrl)}"></script>
   <style>
-    :root { --bg:${brand.background}; --surface:${brand.surface}; --text:${brand.text}; --muted:${brand.mutedText}; --primary:${brand.primary}; --accent:${brand.accent}; --code:${brand.codeBackground}; }
+    :root { --bg:${brand.background}; --surface:${brand.surface}; --text:${brand.text}; --muted:${brand.mutedText}; --primary:${brand.primary}; --accent:${brand.accent}; --code:${brand.codeBackground}; --theme-canvas:${canvasBackground}; --theme-gradient:linear-gradient(135deg, ${canvasGradient[0]}, ${canvasGradient[1]}); --block-radius:${blockBorderRadius}px; --video-border-width:${videoBorderWidth}px; --video-radius:${videoBorderRadius}px; }
     * { box-sizing: border-box; }
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 28%), radial-gradient(circle at 15% 88%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 30%), var(--bg); }
+    #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: var(--theme-canvas); }
     .clip { visibility: hidden; }
-    .scene { position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--bg)); }
-    .scene::before { content: ""; position: absolute; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: 34px; pointer-events: none; }
+    .scene { position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); }
+    .scene > * { position: relative; z-index: 25; }
+    .scene::before { content: ""; position: absolute; z-index: 24; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
+    #composition[data-surface-style="none"] .scene::before { display: none; }
+    #composition[data-surface-style="card"] .scene::before { border-color: transparent; background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: 0 32px 90px rgba(0,0,0,.16); }
     .scene-index { color: var(--primary); font-size: 24px; font-weight: 800; letter-spacing: .18em; }
     .content { align-self: center; max-width: 1500px; }
     .align-center .content { margin-inline: auto; text-align: center; }
@@ -383,31 +401,51 @@ const buildCompositionHtml = (
     h1 { font-size: 124px; } h2 { font-size: 94px; } h3 { font-size: 74px; }
     p, li, blockquote { font-size: 55px; line-height: 1.24; letter-spacing: -.025em; }
     p { margin: 0 0 28px; } ul, ol { margin: 0; padding-left: 1.1em; } li { margin: 0 0 22px; padding-left: .25em; }
+    #composition[data-list-style="bullets"] .scene-kind-list li::marker { color: var(--accent); }
+    #composition[data-list-style="cards"] .scene-kind-list ul, #composition[data-list-style="cards"] .scene-kind-list ol { padding: 0; display: grid; gap: 18px; list-style: none; }
+    #composition[data-list-style="cards"] .scene-kind-list li { margin: 0; padding: 27px 34px; border: 2px solid color-mix(in srgb, var(--accent) 66%, transparent); border-radius: var(--block-radius); background: color-mix(in srgb, var(--surface) 86%, transparent); }
+    #composition[data-list-style="timeline"] .scene-kind-list ul, #composition[data-list-style="timeline"] .scene-kind-list ol { padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 26px; list-style: none; counter-reset: theme-step; }
+    #composition[data-list-style="timeline"] .scene-kind-list li { margin: 0; padding-top: 86px; position: relative; font-size: 36px; text-align: center; counter-increment: theme-step; }
+    #composition[data-list-style="timeline"] .scene-kind-list li::before { content: counter(theme-step); position: absolute; top: 0; left: 50%; width: 64px; height: 64px; translate: -50% 0; display: grid; place-items: center; border-radius: 50%; background: var(--theme-gradient); color: white; font-size: 24px; font-weight: 800; }
+    #composition[data-list-style="steps"] .scene-kind-list ol, #composition[data-list-style="steps"] .scene-kind-list ul { padding: 0; list-style: none; counter-reset: theme-step; }
+    #composition[data-list-style="steps"] .scene-kind-list li { position: relative; margin-bottom: 28px; padding-left: 88px; counter-increment: theme-step; }
+    #composition[data-list-style="steps"] .scene-kind-list li::before { content: counter(theme-step, decimal-leading-zero); position: absolute; left: 0; color: var(--primary); font-weight: 800; }
     strong { color: var(--accent); } a { color: var(--accent); text-decoration: none; }
     blockquote { margin: 0; padding: 16px 0 16px 40px; border-left: 12px solid var(--primary); color: var(--muted); }
-    pre { margin: 0; padding: 54px; border-radius: 30px; background: var(--code); color: #f7f7ef; box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
+    #composition[data-quote-style="card"] blockquote { padding: 48px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
+    #composition[data-quote-style="statement"] blockquote { padding: 0; border: 0; color: var(--text); font-size: 76px; font-weight: 750; }
+    pre { margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code); color: #f7f7ef; box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
+    #composition[data-code-style="terminal"] pre { border: 3px solid var(--accent); border-image: var(--theme-gradient) 1; }
+    #composition[data-code-style="terminal"] pre::before { content: "●  ●  ●"; display: block; margin-bottom: 30px; color: var(--primary); font: 22px/1 ui-monospace, monospace; letter-spacing: .35em; }
+    #composition[data-code-style="full"] .scene-kind-code { padding: 72px; }
+    #composition[data-code-style="full"] .scene-kind-code .content, #composition[data-code-style="full"] .scene-kind-code pre { width: 100%; max-width: none; height: 100%; }
     pre code { font: 42px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; }
     .layout-title .content { max-width: 1600px; }
     .layout-title h1, .layout-title h2 { font-size: 142px; }
     .layout-code .content { width: 100%; max-width: 1650px; }
     .layout-split .content { width: 58%; margin-left: 0; text-align: left; }
+    #composition[data-title-style="split"] .scene-kind-title .content { width: 56%; margin-left: 0; text-align: left; }
+    #composition[data-title-style="lower-third"] .scene-kind-title .content { align-self: end; width: 72%; margin: 0 0 44px; text-align: left; }
     footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
     .composition-brand { display: inline-flex; align-items: center; gap: 12px; letter-spacing: -.025em; text-transform: lowercase; }
     .composition-brand svg { width: 28px; height: 28px; flex: none; }
     .composition-brand strong { color: var(--text); font-size: 23px; font-weight: 760; }
-    .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: 10px solid var(--surface); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
-    .camera.circle { border-radius: 50%; } .camera.rounded-rectangle { border-radius: 44px; width: 460px; }
+    .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: var(--video-border-width) solid var(--surface); border-radius: var(--video-radius); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
+    #composition[data-video-border="none"] .camera { border-width: 0; }
+    .video-border-gradient .camera, .camera.video-border-gradient { border-color: var(--accent); border-image: var(--theme-gradient) 1; }
+    .camera.circle { border-radius: 50%; } .camera.rounded-rectangle { width: 460px; }
     .camera-top-left { left: 110px; top: 105px; } .camera-top-right { right: 110px; top: 105px; }
     .camera-bottom-left { left: 110px; bottom: 105px; } .camera-bottom-right { right: 110px; bottom: 105px; }
     .camera-overlay-left { left: 110px; top: 50%; width: 500px; height: 620px; translate: 0 -50%; }
     .camera-overlay-right { right: 110px; top: 50%; width: 500px; height: 620px; translate: 0 -50%; }
     .camera-split-left { left: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-split-right { right: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
+    .camera-full { inset: 0; z-index: 20; width: 100%; height: 100%; border-radius: 0; scale: 1; }
     .camera-hidden { display: none; }
   </style>
 </head>
 <body>
-  <div id="composition" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}">
+  <div id="composition" class="video-border-${theme.video.borderStyle}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-quote-style="${theme.blocks.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
     ${sceneMarkup}
   </div>
   <script>

@@ -3,6 +3,8 @@ import {
   compileProject,
   createDefaultBlockConfig,
   defaultBrand,
+  builtinStudioThemes,
+  generateThemeDirections,
   type ProjectDocumentV1,
 } from './index'
 
@@ -106,5 +108,33 @@ describe('compileProject', () => {
     expect(result.html).toContain('data-background-preset="violet"')
     expect(result.html).toContain('linear-gradient(135deg, #d8b4fe 0%, #7c3aed 100%)')
     expect(result.html).toContain('camera-overlay-left rounded-rectangle')
+  })
+
+  it('compiles a saved theme as a complete block and video recipe', () => {
+    const themed = project()
+    themed.theme = builtinStudioThemes.find(
+      theme => theme.id === 'lee-gradient-grid',
+    )
+    const result = compileProject(themed)
+
+    expect(result.html).toContain('data-theme-id="lee-gradient-grid"')
+    expect(result.html).toContain('data-list-style="cards"')
+    expect(result.html).toContain('data-code-style="terminal"')
+    expect(result.html).toContain('class="video-border-gradient"')
+    expect(result.html).toContain('linear-gradient(90deg, transparent')
+  })
+
+  it('creates keyless theme directions with color-input-safe palettes', () => {
+    const themes = generateThemeDirections('#1747e8', 'Example', 'both')
+    expect(themes).toHaveLength(4)
+    expect(new Set(themes.map(theme => theme.canvas.treatment)).size).toBe(3)
+    themes.forEach(theme => {
+      Object.values(theme.brand).forEach(color =>
+        expect(color).toMatch(/^#[0-9a-f]{6}$/i),
+      )
+      theme.canvas.gradient.forEach(color =>
+        expect(color).toMatch(/^#[0-9a-f]{6}$/i),
+      )
+    })
   })
 })
