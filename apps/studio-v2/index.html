@@ -73,9 +73,48 @@
                   <span>Hyperframes</span>
                 </div>
                 <div id="player-shell" class="player-shell">
-                  <div id="player-loading" class="player-loading">Compiling canvas…</div>
-                  <hyperframes-player id="player" width="1920" height="1080"></hyperframes-player>
-                  <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
+                  <div class="canvas-stage">
+                    <div id="player-loading" class="player-loading">Compiling canvas…</div>
+                    <hyperframes-player id="player" width="1920" height="1080"></hyperframes-player>
+                    <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
+                  </div>
+                  <aside id="canvas-director" class="canvas-director" aria-label="Canvas layout and animation controls">
+                    <div class="director-heading">
+                      <div><span class="live-dot"></span><div><span>Live canvas</span><strong>Direct this block</strong></div></div>
+                      <span id="director-block-number">Block 01</span>
+                    </div>
+                    <div class="director-tabs" role="tablist" aria-label="Canvas controls">
+                      <button type="button" class="active" data-director-tab="layout" role="tab" aria-selected="true">Layout</button>
+                      <button type="button" data-director-tab="animation" role="tab" aria-selected="false">Animation</button>
+                    </div>
+                    <section id="director-layout" class="director-section" aria-labelledby="director-layout-title">
+                      <div class="director-section-heading"><div><span>Composition</span><h3 id="director-layout-title">Choose a layout</h3></div><small id="director-layout-scope">Heading options</small></div>
+                      <div class="layout-preset-grid">
+                        <button type="button" class="layout-preset" data-layout-option="title"><span class="layout-thumb layout-thumb-title"><i></i><i></i></span><strong>Title</strong><small>Centered statement</small></button>
+                        <button type="button" class="layout-preset" data-layout-option="prose"><span class="layout-thumb layout-thumb-prose"><i></i><i></i><i></i></span><strong>Prose</strong><small>Readable content</small></button>
+                        <button type="button" class="layout-preset" data-layout-option="code"><span class="layout-thumb layout-thumb-code"><i></i><i></i><i></i></span><strong>Code</strong><small>Developer focus</small></button>
+                        <button type="button" class="layout-preset" data-layout-option="split"><span class="layout-thumb layout-thumb-split"><i></i><i></i></span><strong>Split</strong><small>Presenter + idea</small></button>
+                      </div>
+                      <div class="alignment-control">
+                        <span>Content alignment</span>
+                        <div><button type="button" data-alignment-option="left">Left</button><button type="button" data-alignment-option="center">Center</button></div>
+                      </div>
+                    </section>
+                    <section id="director-animation" class="director-section" aria-labelledby="director-animation-title" hidden>
+                      <div class="director-section-heading"><div><span>Motion</span><h3 id="director-animation-title">Choose an entrance</h3></div><small id="director-animation-scope">Heading options</small></div>
+                      <div class="animation-preset-list">
+                        <button type="button" data-animation-option="none"><span class="motion-glyph">—</span><div><strong>Static</strong><small>No entrance motion</small></div></button>
+                        <button type="button" data-animation-option="fade"><span class="motion-glyph">◌</span><div><strong>Soft fade</strong><small>Quiet opacity reveal</small></div></button>
+                        <button type="button" data-animation-option="rise"><span class="motion-glyph">↑</span><div><strong>Rise</strong><small>Move up with easing</small></div></button>
+                        <button type="button" data-animation-option="type"><span class="motion-glyph">T</span><div><strong>Typewriter</strong><small>Progressive text reveal</small></div></button>
+                        <button type="button" data-animation-option="line-by-line"><span class="motion-glyph">≡</span><div><strong>Line reveal</strong><small>Best for code and lists</small></div></button>
+                      </div>
+                    </section>
+                    <div class="director-footer">
+                      <button id="replay-animation" type="button" class="button secondary wide">Replay animation</button>
+                      <p>Changes apply only to the selected Markdown block and update the live canvas immediately.</p>
+                    </div>
+                  </aside>
                 </div>
                 <div class="inline-preview-meta">
                   <div><span>Selected block</span><strong id="selected-label">Block 01</strong></div>

@@ -59,6 +59,49 @@ const LEGACY_MVP_BRAND = {
   codeBackground: '#151711',
 } as const
 
+const DIRECTOR_OPTIONS: Record<
+  Scene['kind'],
+  {
+    label: string
+    layouts: SceneLayout[]
+    animations: RevealStyle[]
+  }
+> = {
+  title: {
+    label: 'Heading options',
+    layouts: ['title', 'prose', 'split'],
+    animations: ['none', 'fade', 'rise', 'type'],
+  },
+  content: {
+    label: 'Paragraph options',
+    layouts: ['prose', 'title', 'split'],
+    animations: ['none', 'fade', 'rise', 'type'],
+  },
+  list: {
+    label: 'List options',
+    layouts: ['prose', 'split'],
+    animations: ['none', 'fade', 'rise', 'line-by-line'],
+  },
+  quote: {
+    label: 'Quote options',
+    layouts: ['prose', 'title', 'split'],
+    animations: ['none', 'fade', 'rise', 'type'],
+  },
+  code: {
+    label: 'Code options',
+    layouts: ['code', 'split'],
+    animations: ['none', 'fade', 'rise', 'type', 'line-by-line'],
+  },
+}
+
+const directorKindForNode = (node: TiptapNode): Scene['kind'] => {
+  if (node.type === 'heading') return 'title'
+  if (node.type === 'codeBlock') return 'code'
+  if (node.type === 'bulletList' || node.type === 'orderedList') return 'list'
+  if (node.type === 'blockquote') return 'quote'
+  return 'content'
+}
+
 const $ = <T extends HTMLElement>(selector: string) => {
   const element = document.querySelector<T>(selector)
   if (!element) throw new Error(`Missing UI element: ${selector}`)
@@ -100,6 +143,8 @@ let mediaRecorder: MediaRecorder | null = null
 let recordingChunks: Blob[] = []
 let recordingNodeId = ''
 let generatedVoiceUrl = ''
+let animationPreviewTimer: number | undefined
+let replayAnimationOnReady = false
 
 const readStoredProject = (): ProjectDocumentV1 | null => {
   try {
@@ -218,6 +263,14 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
     if (!project.blocks[nodeId]) {
       project.blocks[nodeId] = createDefaultBlockConfig(nodeId, node)
     }
+    const config = project.blocks[nodeId]
+    const options = DIRECTOR_OPTIONS[directorKindForNode(node)]
+    if (!options.layouts.includes(config.layout)) {
+      config.layout = createDefaultBlockConfig(nodeId, node).layout
+    }
+    if (!options.animations.includes(config.reveal)) {
+      config.reveal = node.type === 'codeBlock' ? 'line-by-line' : 'rise'
+    }
   })
 
   Object.keys(project.blocks).forEach(nodeId => {
@@ -278,6 +331,7 @@ const updateInspector = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   const config = scene.config
+  const directorOptions = DIRECTOR_OPTIONS[scene.kind]
   ;($('#selected-number') as HTMLElement).textContent = `Block ${String(
     scene.index + 1,
   ).padStart(2, '0')}`
@@ -297,6 +351,57 @@ const updateInspector = () => {
   ;($('#camera-shape') as HTMLSelectElement).value = config.camera.shape
   ;($('#remove-presenter') as HTMLButtonElement).disabled =
     scene.presenterTracks.length === 0
+  ;($('#director-block-number') as HTMLElement).textContent = `Block ${String(
+    scene.index + 1,
+  ).padStart(2, '0')}`
+  ;($('#director-layout-scope') as HTMLElement).textContent =
+    directorOptions.label
+  ;($('#director-animation-scope') as HTMLElement).textContent =
+    directorOptions.label
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-layout-option]')
+    .forEach(button => {
+      const isAvailable = directorOptions.layouts.includes(
+        button.dataset.layoutOption as SceneLayout,
+      )
+      button.hidden = !isAvailable
+      button.disabled = !isAvailable
+      button.classList.toggle(
+        'active',
+        button.dataset.layoutOption === config.layout,
+      )
+    })
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-animation-option]')
+    .forEach(button => {
+      const isAvailable = directorOptions.animations.includes(
+        button.dataset.animationOption as RevealStyle,
+      )
+      button.hidden = !isAvailable
+      button.disabled = !isAvailable
+      button.classList.toggle(
+        'active',
+        button.dataset.animationOption === config.reveal,
+      )
+    })
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-alignment-option]')
+    .forEach(button =>
+      button.classList.toggle(
+        'active',
+        button.dataset.alignmentOption === config.alignment,
+      ),
+    )
+  Array.from(($('#layout') as HTMLSelectElement).options).forEach(option => {
+    option.disabled = !directorOptions.layouts.includes(
+      option.value as SceneLayout,
+    )
+  })
+  Array.from(($('#reveal') as HTMLSelectElement).options).forEach(option => {
+    option.disabled = !directorOptions.animations.includes(
+      option.value as RevealStyle,
+    )
+  })
   renderButton.disabled = !hasRecordedOutput()
   renderButton.title = renderButton.disabled
     ? 'Record a human or generated presenter track first'
@@ -394,6 +499,74 @@ const updateSelectedConfig = (
   syncProject()
 }
 
+const replaySelectedAnimation = async () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene || !player.ready) return
+  window.clearTimeout(animationPreviewTimer)
+  player.pause()
+  player.seek(scene.startSeconds)
+  await player.play()
+  animationPreviewTimer = window.setTimeout(() => {
+    player.pause()
+    player.seek(
+      scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2),
+    )
+  }, Math.min(2200, Math.max(900, scene.durationSeconds * 450)))
+}
+
+document
+  .querySelectorAll<HTMLButtonElement>('[data-director-tab]')
+  .forEach(button => {
+    button.addEventListener('click', () => {
+      const selectedTab = button.dataset.directorTab
+      document
+        .querySelectorAll<HTMLButtonElement>('[data-director-tab]')
+        .forEach(tab => {
+          const isActive = tab === button
+          tab.classList.toggle('active', isActive)
+          tab.setAttribute('aria-selected', String(isActive))
+        })
+      ;($('#director-layout') as HTMLElement).hidden = selectedTab !== 'layout'
+      ;($('#director-animation') as HTMLElement).hidden =
+        selectedTab !== 'animation'
+    })
+  })
+
+document
+  .querySelectorAll<HTMLButtonElement>('[data-layout-option]')
+  .forEach(button => {
+    button.addEventListener('click', () => {
+      updateSelectedConfig(config => {
+        config.layout = button.dataset.layoutOption as SceneLayout
+      })
+    })
+  })
+
+document
+  .querySelectorAll<HTMLButtonElement>('[data-animation-option]')
+  .forEach(button => {
+    button.addEventListener('click', () => {
+      replayAnimationOnReady = true
+      updateSelectedConfig(config => {
+        config.reveal = button.dataset.animationOption as RevealStyle
+      })
+    })
+  })
+
+document
+  .querySelectorAll<HTMLButtonElement>('[data-alignment-option]')
+  .forEach(button => {
+    button.addEventListener('click', () => {
+      updateSelectedConfig(config => {
+        config.alignment = button.dataset.alignmentOption as 'left' | 'center'
+      })
+    })
+  })
+
+;($('#replay-animation') as HTMLButtonElement).addEventListener('click', () => {
+  void replaySelectedAnimation()
+})
+
 const updateToolbar = () => {
   const active: Record<string, boolean> = {
     bold: editor.isActive('bold'),
@@ -441,7 +614,10 @@ document.querySelectorAll<HTMLButtonElement>('[data-command]').forEach(button =>
 player.addEventListener('ready', () => {
   playerLoading.hidden = true
   const scene = scenes.find(item => item.id === selectedNodeId)
-  if (scene) {
+  if (scene && replayAnimationOnReady) {
+    replayAnimationOnReady = false
+    void replaySelectedAnimation()
+  } else if (scene) {
     player.seek(scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2))
   }
 })

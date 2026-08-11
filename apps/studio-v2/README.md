@@ -4,6 +4,8 @@ The first human-centric vertical slice: Markdown notebook → stable Tiptap node
 
 The focused Markdown block drives a live canvas alongside the document. It can be opened as a full-viewport presentation, but it is deliberately not presented as a video player: playback controls, timeline, and MP4 export only enter the workflow after a presenter track has been recorded.
 
+The expanded canvas includes a block-aware director. Headings, paragraphs, lists, quotes, and code blocks receive different compatible layout and animation choices, and changing a Markdown node type automatically normalizes settings that no longer apply.
+
 ## Run locally
 
 Requirements: Node.js 22+, Yarn 1, and FFmpeg on `PATH`.
