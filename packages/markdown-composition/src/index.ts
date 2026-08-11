@@ -473,7 +473,8 @@ const buildCompositionHtml = (
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
             : ''
         }<span>${escapeHtml(project.title)}</span></footer>
-      </section>${presenterMarkup}${previewPresenterMarkup}`
+        ${previewPresenterMarkup}
+      </section>${presenterMarkup}`
     })
     .join('\n')
 
@@ -551,6 +552,7 @@ const buildCompositionHtml = (
     #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: var(--theme-canvas); }
     .clip { visibility: hidden; }
     .scene { --content-layout-width: 1500px; --presenter-safe-width: 100%; position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); }
+    .scene > .scene-index, .scene > .content, .scene > footer, .scene > .composition-corner-logo { position: relative; z-index: 22; }
     .scene > * { position: relative; z-index: 25; }
     .scene::before { content: ""; position: absolute; z-index: 24; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
     #composition[data-surface-style="none"] .scene::before { display: none; }
@@ -707,7 +709,7 @@ const buildCompositionHtml = (
     .scene.theme-render-timeline.presenter-information-circle ul, .scene.theme-render-timeline.presenter-information-circle ol, .scene.theme-render-timeline.presenter-information-tile ul, .scene.theme-render-timeline.presenter-information-tile ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .scene.theme-render-timeline.presenter-portrait-overlay ul, .scene.theme-render-timeline.presenter-portrait-overlay ol, .scene.theme-render-timeline.presenter-portrait-rail ul, .scene.theme-render-timeline.presenter-portrait-rail ol, .scene.theme-render-timeline.presenter-split ul, .scene.theme-render-timeline.presenter-split ol, .scene.theme-render-timeline.presenter-person-background-left ul, .scene.theme-render-timeline.presenter-person-background-left ol, .scene.theme-render-timeline.presenter-person-background-right ul, .scene.theme-render-timeline.presenter-person-background-right ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .scene.presenter-portrait-overlay pre code, .scene.presenter-portrait-rail pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: 32px; }
-    .scene.presenter-person-only > * { display: none; }
+    .scene.presenter-person-only > :not(.camera) { display: none; }
     .camera-hidden { display: none; }
   </style>
 </head>

@@ -102,6 +102,11 @@ describe('compileProject', () => {
     expect(withoutPreview.html).not.toContain('data-preview-presenter="true"')
     expect(withPreview.html).toContain('data-preview-presenter="true"')
     expect(withPreview.html).toContain('alt="Arun"')
+    const introStart = withPreview.html.indexOf('data-node-id="intro"')
+    const introEnd = withPreview.html.indexOf('</section>', introStart)
+    expect(withPreview.html.slice(introStart, introEnd)).toContain(
+      'data-preview-presenter="true"',
+    )
   })
 
   it('compiles per-block backgrounds and expanded presenter placements', () => {
