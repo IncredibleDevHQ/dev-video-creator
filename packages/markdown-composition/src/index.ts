@@ -361,6 +361,7 @@ const buildCompositionHtml = (
   durationSeconds: number,
   gsapUrl: string,
   hyperframesRuntimeUrl: string,
+  previewPresenter?: { imageUrl: string; name?: string },
 ) => {
   const theme = normalizeStudioTheme(project.theme, project.brand)
   const brand = {
@@ -431,6 +432,15 @@ const buildCompositionHtml = (
           return `${video}${audio}`
         })
         .join('')
+      const hasRecordedCamera = scene.presenterTracks.some(
+        track => track.kind === 'human-camera' && safeUrl(track.videoUrl),
+      )
+      const previewPresenterUrl = hasRecordedCamera
+        ? null
+        : safeUrl(previewPresenter?.imageUrl)
+      const previewPresenterMarkup = previewPresenterUrl
+        ? `<img class="camera preview-camera clip ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))}" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${30 + scene.index}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
+        : ''
 
       return `<section
         id="scene-${scene.index}"
@@ -463,7 +473,7 @@ const buildCompositionHtml = (
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
             : ''
         }<span>${escapeHtml(project.title)}</span></footer>
-      </section>${presenterMarkup}`
+      </section>${presenterMarkup}${previewPresenterMarkup}`
     })
     .join('\n')
 
@@ -662,6 +672,7 @@ const buildCompositionHtml = (
     .composition-corner-logo.logo-top-right { right: 72px; }
     footer.logo-footer-right { flex-direction: row-reverse; }
     .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: var(--video-border-width) solid var(--surface); border-radius: var(--video-radius); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
+    .preview-camera { object-position: center 18%; }
     #composition[data-video-border="none"] .camera { border-width: 0; }
     .video-border-gradient .camera, .camera.video-border-gradient { border-color: var(--accent); border-image: var(--brand-gradient) 1; }
     .camera.circle { border-radius: 50%; } .camera.rounded-rectangle { width: 460px; }
@@ -718,7 +729,11 @@ const buildCompositionHtml = (
 
 export const compileProject = (
   project: ProjectDocumentV1,
-  options: { gsapUrl?: string; hyperframesRuntimeUrl?: string } = {},
+  options: {
+    gsapUrl?: string
+    hyperframesRuntimeUrl?: string
+    previewPresenter?: { imageUrl: string; name?: string }
+  } = {},
 ): CompiledComposition => {
   assertProject(project)
   const warnings: string[] = []
@@ -776,6 +791,7 @@ export const compileProject = (
         'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js',
       options.hyperframesRuntimeUrl ||
         'https://cdn.jsdelivr.net/npm/@hyperframes/core@0.7.106/dist/hyperframe.runtime.iife.js',
+      options.previewPresenter,
     ),
   }
 }

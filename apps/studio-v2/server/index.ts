@@ -546,10 +546,18 @@ const handlePreview = async (
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
-  const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
+  const payload = await readJson<
+    | ProjectDocumentV1
+    | {
+        project: ProjectDocumentV1
+        previewPresenter?: { imageUrl: string; name?: string }
+      }
+  >(request, 3 * 1024 * 1024)
+  const project = 'project' in payload ? payload.project : payload
   const composition = compileProject(project, {
     gsapUrl: '/runtime/gsap.min.js',
     hyperframesRuntimeUrl: '/runtime/hyperframes.iife.js',
+    previewPresenter: 'project' in payload ? payload.previewPresenter : undefined,
   })
   const id = createHash('sha256')
     .update(composition.html)

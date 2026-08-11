@@ -180,6 +180,14 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .layout-thumb-split i:first-child { inset: 10px auto 10px 10px; width: 52%; background: #f4f4f5; }
 .layout-thumb-split i:last-child { inset: 10px 10px 10px auto; width: 26%; background: #4ade80; }
 .presenter-preset-grid { gap: 8px; }
+.presenter-layout-group { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.presenter-layout-group.presenter-layout-group-focused { margin-top: 0; padding-top: 0; border-top: 0; }
+.presenter-layout-heading { margin-bottom: 10px; display: flex; align-items: end; justify-content: space-between; gap: 8px; }
+.presenter-layout-heading strong, .presenter-layout-heading small { display: block; }
+.presenter-layout-heading strong { color: #3f3f46; font-size: 10px; }
+.presenter-layout-heading small { margin-top: 3px; color: #929397; font-size: 8px; }
+.presenter-layout-heading > span { color: #929397; font-size: 7px; white-space: nowrap; }
+.presenter-layout-heading b { color: #166534; }
 .presenter-layout-preset { padding: 6px; border: 1px solid #e4e4e7; border-radius: 5px; background: white; color: #71717a; }
 .presenter-layout-preset:hover { border-color: #a1a1aa; }
 .presenter-layout-preset.active { border-color: var(--brand); background: #f0fdf4; box-shadow: 0 0 0 1px var(--brand); }
@@ -188,6 +196,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .presenter-layout-thumb i { position: absolute; display: block; }
 .presenter-layout-content { inset: 9px; border-radius: 2px; background: #172033; }
 .presenter-layout-person { width: 19px; height: 24px; border: 2px solid white; border-radius: 4px; background: #d1d5db; box-shadow: 0 2px 7px rgba(0,0,0,.22); }
+.presenter-layout-person img { width: 100%; height: 100%; display: block; border-radius: inherit; object-fit: cover; object-position: center 18%; }
 .presenter-layout-preset[data-camera-position='split-left'] .presenter-layout-content { left: 38%; }
 .presenter-layout-preset[data-camera-position='split-left'] .presenter-layout-person { top: 9px; bottom: 9px; left: 8px; width: 28%; height: auto; }
 .presenter-layout-preset[data-camera-position='split-right'] .presenter-layout-content { right: 38%; }

@@ -90,6 +90,20 @@ describe('compileProject', () => {
     expect(result.html).toContain('<audio data-start="0"')
   })
 
+  it('shows a presenter placeholder only in live preview compositions', () => {
+    const withoutPreview = compileProject(project())
+    const withPreview = compileProject(project(), {
+      previewPresenter: {
+        imageUrl: '/src/assets/presenters/arun.jpg',
+        name: 'Arun',
+      },
+    })
+
+    expect(withoutPreview.html).not.toContain('data-preview-presenter="true"')
+    expect(withPreview.html).toContain('data-preview-presenter="true"')
+    expect(withPreview.html).toContain('alt="Arun"')
+  })
+
   it('compiles per-block backgrounds and expanded presenter placements', () => {
     const directed = project()
     directed.blocks.intro.background = {

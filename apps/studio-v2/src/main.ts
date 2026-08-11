@@ -448,6 +448,9 @@ let themeLabAxis: ThemeLabAxis = 'render'
 let previewPresenterId: PreviewPresenterId = 'arun'
 
 const allStudioThemes = () => [...builtinStudioThemes, ...savedThemes]
+const selectedPreviewPresenter = () =>
+  PREVIEW_PRESENTERS.find(presenter => presenter.id === previewPresenterId) ||
+  PREVIEW_PRESENTERS[0]
 
 const themeCanvasCss = (theme: StudioThemeV1) => {
   if (theme.canvas.treatment === 'gradient') {
@@ -1195,6 +1198,10 @@ const createPresenterLayoutButton = (
   content.className = 'presenter-layout-content'
   const person = document.createElement('i')
   person.className = 'presenter-layout-person'
+  const personImage = document.createElement('img')
+  personImage.src = selectedPreviewPresenter().url
+  personImage.alt = ''
+  person.append(personImage)
   thumbnail.append(content, person)
   const label = document.createElement('small')
   label.textContent = preset.label
@@ -1213,10 +1220,17 @@ const renderLayoutPresetPicker = (
   scene: Scene,
   config: BlockRenderConfigV1,
 ) => {
-  const grid = $('#layout-preset-grid')
-  grid.replaceChildren()
+  const contentGrid = $('#layout-preset-grid')
+  const presenterGrid = $('#presenter-layout-grid')
+  contentGrid.replaceChildren()
+  presenterGrid.replaceChildren()
   const presenterSelected = selectedCanvasObject === 'presenter'
-  grid.classList.toggle('presenter-preset-grid', presenterSelected)
+  ;($('#content-layout-group') as HTMLElement).hidden = presenterSelected
+  ;($('#presenter-layout-group') as HTMLElement).classList.toggle(
+    'presenter-layout-group-focused',
+    presenterSelected,
+  )
+  ;($('#presenter-layout-heading') as HTMLElement).hidden = presenterSelected
   ;($('#director-layout-kicker') as HTMLElement).textContent = presenterSelected
     ? 'Presenter placement'
     : 'Composition'
@@ -1226,17 +1240,14 @@ const renderLayoutPresetPicker = (
   ;($('#director-layout-scope') as HTMLElement).textContent = presenterSelected
     ? `${PRESENTER_LAYOUT_PRESETS.length} options`
     : DIRECTOR_OPTIONS[scene.kind].label
-  ;($('#alignment-control') as HTMLElement).hidden = presenterSelected
-
-  if (presenterSelected) {
-    PRESENTER_LAYOUT_PRESETS.forEach(preset =>
-      grid.append(createPresenterLayoutButton(preset, config)),
-    )
-    return
-  }
+  ;($('#studio-preview-presenter-name') as HTMLElement).textContent =
+    selectedPreviewPresenter().name
 
   DIRECTOR_OPTIONS[scene.kind].layouts.forEach(layout =>
-    grid.append(createContentLayoutButton(layout, config.layout)),
+    contentGrid.append(createContentLayoutButton(layout, config.layout)),
+  )
+  PRESENTER_LAYOUT_PRESETS.forEach(preset =>
+    presenterGrid.append(createPresenterLayoutButton(preset, config)),
   )
 }
 
@@ -1519,7 +1530,13 @@ $('#editor').addEventListener('pointerdown', event => {
 
 const updatePreview = async () => {
   try {
-    const compiled = compileProject(project)
+    const previewPresenter = selectedPreviewPresenter()
+    const compiled = compileProject(project, {
+      previewPresenter: {
+        imageUrl: previewPresenter.url,
+        name: previewPresenter.name,
+      },
+    })
     scenes = compiled.scenes
     const requestNumber = ++previewRequest
     playerLoading.hidden = false
@@ -1544,7 +1561,13 @@ const updatePreview = async () => {
     const preview = await fetchJson<{ url: string }>('/api/preview', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(project),
+      body: JSON.stringify({
+        project,
+        previewPresenter: {
+          imageUrl: previewPresenter.url,
+          name: previewPresenter.name,
+        },
+      }),
     })
     if (requestNumber === previewRequest) player.setAttribute('src', preview.url)
   } catch (error) {
