@@ -20,10 +20,24 @@ export type TiptapDocument = TiptapNode & {
 
 export type SceneLayout = 'title' | 'prose' | 'code' | 'split'
 export type RevealStyle = 'none' | 'fade' | 'rise' | 'type' | 'line-by-line'
+export type BlockBackgroundPreset =
+  | 'brand'
+  | 'violet'
+  | 'sunset'
+  | 'ocean'
+  | 'mint'
+  | 'rose'
+  | 'paper'
+  | 'charcoal'
+  | 'custom'
 export type CameraPosition =
   | 'hidden'
+  | 'top-left'
+  | 'top-right'
   | 'bottom-left'
   | 'bottom-right'
+  | 'overlay-left'
+  | 'overlay-right'
   | 'split-left'
   | 'split-right'
 
@@ -33,6 +47,10 @@ export type BlockRenderConfigV1 = {
   durationMs: number
   reveal: RevealStyle
   alignment: 'left' | 'center'
+  background: {
+    preset: BlockBackgroundPreset
+    color: string
+  }
   camera: {
     position: CameraPosition
     shape: 'circle' | 'rounded-rectangle'

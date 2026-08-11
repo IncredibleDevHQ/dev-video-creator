@@ -6,6 +6,7 @@ import {
   compileProject,
   createDefaultBlockConfig,
   defaultBrand,
+  type BlockBackgroundPreset,
   type BlockRenderConfigV1,
   type CameraPosition,
   type ProjectDocumentV1,
@@ -94,6 +95,59 @@ const DIRECTOR_OPTIONS: Record<
   },
 }
 
+const LAYOUT_META: Record<
+  SceneLayout,
+  { label: string; description: string; lines: number }
+> = {
+  title: { label: 'Statement', description: 'Centered title', lines: 2 },
+  prose: { label: 'Readable', description: 'Editorial content', lines: 3 },
+  code: { label: 'Code focus', description: 'Developer canvas', lines: 3 },
+  split: { label: 'Split', description: 'Content + human', lines: 2 },
+}
+
+const PRESENTER_LAYOUT_PRESETS: Array<{
+  id: string
+  label: string
+  position: CameraPosition
+  shape: BlockRenderConfigV1['camera']['shape']
+}> = [
+  { id: 'split-left', label: 'Split left', position: 'split-left', shape: 'rounded-rectangle' },
+  { id: 'split-right', label: 'Split right', position: 'split-right', shape: 'rounded-rectangle' },
+  { id: 'overlay-left', label: 'Overlay left', position: 'overlay-left', shape: 'rounded-rectangle' },
+  { id: 'overlay-right', label: 'Overlay right', position: 'overlay-right', shape: 'rounded-rectangle' },
+  { id: 'top-left', label: 'Top left', position: 'top-left', shape: 'rounded-rectangle' },
+  { id: 'top-right', label: 'Top right', position: 'top-right', shape: 'rounded-rectangle' },
+  { id: 'bottom-left', label: 'Bottom left', position: 'bottom-left', shape: 'rounded-rectangle' },
+  { id: 'bottom-right', label: 'Bottom right', position: 'bottom-right', shape: 'rounded-rectangle' },
+  { id: 'circle-left', label: 'Circle left', position: 'bottom-left', shape: 'circle' },
+  { id: 'circle-right', label: 'Circle right', position: 'bottom-right', shape: 'circle' },
+]
+
+const BACKGROUND_PRESETS: Array<{
+  id: BlockBackgroundPreset
+  label: string
+  mode: 'gradient' | 'color'
+  swatch: string
+}> = [
+  { id: 'violet', label: 'Violet', mode: 'gradient', swatch: 'linear-gradient(135deg,#d8b4fe,#7c3aed)' },
+  { id: 'sunset', label: 'Sunset', mode: 'gradient', swatch: 'linear-gradient(135deg,#fda4af,#fb923c)' },
+  { id: 'ocean', label: 'Ocean', mode: 'gradient', swatch: 'linear-gradient(135deg,#93c5fd,#2563eb)' },
+  { id: 'mint', label: 'Mint', mode: 'gradient', swatch: 'linear-gradient(135deg,#a7f3d0,#14b8a6)' },
+  { id: 'rose', label: 'Rose', mode: 'gradient', swatch: 'linear-gradient(135deg,#fbcfe8,#e879f9)' },
+  { id: 'paper', label: 'Paper', mode: 'color', swatch: '#f9fafb' },
+  { id: 'charcoal', label: 'Charcoal', mode: 'color', swatch: '#27272a' },
+  { id: 'custom', label: 'Custom', mode: 'color', swatch: 'var(--custom-background,#111827)' },
+]
+
+const sceneObjectLabel = (kind: Scene['kind']) =>
+  ({
+    title: 'Title',
+    content: 'Text',
+    list: 'Points',
+    quote: 'Quote',
+    code: 'Code',
+  })[kind]
+
 const directorKindForNode = (node: TiptapNode): Scene['kind'] => {
   if (node.type === 'heading') return 'title'
   if (node.type === 'codeBlock') return 'code'
@@ -145,6 +199,8 @@ let recordingNodeId = ''
 let generatedVoiceUrl = ''
 let animationPreviewTimer: number | undefined
 let replayAnimationOnReady = false
+let selectedCanvasObject: 'content' | 'presenter' = 'content'
+let selectedBackgroundMode: 'gradient' | 'color' = 'gradient'
 
 const readStoredProject = (): ProjectDocumentV1 | null => {
   try {
@@ -264,9 +320,16 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
       project.blocks[nodeId] = createDefaultBlockConfig(nodeId, node)
     }
     const config = project.blocks[nodeId]
+    const fallback = createDefaultBlockConfig(nodeId, node)
+    if (!config.background) {
+      config.background = { ...fallback.background }
+    }
+    if (!config.camera) {
+      config.camera = { ...fallback.camera }
+    }
     const options = DIRECTOR_OPTIONS[directorKindForNode(node)]
     if (!options.layouts.includes(config.layout)) {
-      config.layout = createDefaultBlockConfig(nodeId, node).layout
+      config.layout = fallback.layout
     }
     if (!options.animations.includes(config.reveal)) {
       config.reveal = node.type === 'codeBlock' ? 'line-by-line' : 'rise'
@@ -327,6 +390,126 @@ const positionInlinePreview = () => {
   )
 }
 
+const createContentLayoutButton = (
+  layout: SceneLayout,
+  activeLayout: SceneLayout,
+) => {
+  const meta = LAYOUT_META[layout]
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = `layout-preset${layout === activeLayout ? ' active' : ''}`
+  button.dataset.layoutOption = layout
+  button.setAttribute('aria-pressed', String(layout === activeLayout))
+
+  const thumb = document.createElement('span')
+  thumb.className = `layout-thumb layout-thumb-${layout}`
+  for (let index = 0; index < meta.lines; index += 1) {
+    thumb.append(document.createElement('i'))
+  }
+  const label = document.createElement('strong')
+  label.textContent = meta.label
+  const description = document.createElement('small')
+  description.textContent = meta.description
+  button.append(thumb, label, description)
+  button.addEventListener('click', () => {
+    updateSelectedConfig(config => {
+      config.layout = layout
+    })
+  })
+  return button
+}
+
+const createPresenterLayoutButton = (
+  preset: (typeof PRESENTER_LAYOUT_PRESETS)[number],
+  config: BlockRenderConfigV1,
+) => {
+  const isActive =
+    config.camera.position === preset.position &&
+    config.camera.shape === preset.shape
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = `presenter-layout-preset${isActive ? ' active' : ''}`
+  button.dataset.presenterLayout = preset.id
+  button.dataset.cameraPosition = preset.position
+  button.dataset.cameraShape = preset.shape
+  button.setAttribute('aria-label', preset.label)
+  button.setAttribute('aria-pressed', String(isActive))
+
+  const thumbnail = document.createElement('span')
+  thumbnail.className = 'presenter-layout-thumb'
+  const content = document.createElement('i')
+  content.className = 'presenter-layout-content'
+  const person = document.createElement('i')
+  person.className = 'presenter-layout-person'
+  thumbnail.append(content, person)
+  const label = document.createElement('small')
+  label.textContent = preset.label
+  button.append(thumbnail, label)
+  button.addEventListener('click', () => {
+    updateSelectedConfig(blockConfig => {
+      blockConfig.camera.position = preset.position
+      blockConfig.camera.shape = preset.shape
+    })
+  })
+  return button
+}
+
+const renderLayoutPresetPicker = (
+  scene: Scene,
+  config: BlockRenderConfigV1,
+) => {
+  const grid = $('#layout-preset-grid')
+  grid.replaceChildren()
+  const presenterSelected = selectedCanvasObject === 'presenter'
+  grid.classList.toggle('presenter-preset-grid', presenterSelected)
+  ;($('#director-layout-kicker') as HTMLElement).textContent = presenterSelected
+    ? 'Presenter placement'
+    : 'Composition'
+  ;($('#director-layout-title') as HTMLElement).textContent = presenterSelected
+    ? 'Place the human'
+    : `Layout the ${sceneObjectLabel(scene.kind).toLowerCase()}`
+  ;($('#director-layout-scope') as HTMLElement).textContent = presenterSelected
+    ? `${PRESENTER_LAYOUT_PRESETS.length} options`
+    : DIRECTOR_OPTIONS[scene.kind].label
+  ;($('#alignment-control') as HTMLElement).hidden = presenterSelected
+
+  if (presenterSelected) {
+    PRESENTER_LAYOUT_PRESETS.forEach(preset =>
+      grid.append(createPresenterLayoutButton(preset, config)),
+    )
+    return
+  }
+
+  DIRECTOR_OPTIONS[scene.kind].layouts.forEach(layout =>
+    grid.append(createContentLayoutButton(layout, config.layout)),
+  )
+}
+
+const renderBackgroundPresets = (config: BlockRenderConfigV1) => {
+  const grid = $('#background-preset-grid')
+  grid.replaceChildren()
+  grid.style.setProperty('--custom-background', config.background.color)
+  BACKGROUND_PRESETS.filter(
+    preset => preset.mode === selectedBackgroundMode,
+  ).forEach(preset => {
+    const button = document.createElement('button')
+    const isActive = config.background.preset === preset.id
+    button.type = 'button'
+    button.className = isActive ? 'active' : ''
+    button.dataset.backgroundPreset = preset.id
+    button.setAttribute('aria-label', preset.label)
+    button.setAttribute('aria-pressed', String(isActive))
+    button.style.setProperty('--background-swatch', preset.swatch)
+    button.innerHTML = '<span></span>'
+    button.addEventListener('click', () => {
+      updateSelectedConfig(blockConfig => {
+        blockConfig.background.preset = preset.id
+      })
+    })
+    grid.append(button)
+  })
+}
+
 const updateInspector = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
@@ -341,6 +524,8 @@ const updateInspector = () => {
     scene.index + 1,
   ).padStart(2, '0')} · ${scene.title}`
   ;($('#layout') as HTMLSelectElement).value = config.layout
+  ;($('#block-background') as HTMLSelectElement).value =
+    config.background.preset
   ;($('#reveal') as HTMLSelectElement).value = config.reveal
   ;($('#alignment') as HTMLSelectElement).value = config.alignment
   ;($('#duration') as HTMLInputElement).value = String(config.durationMs / 1000)
@@ -349,28 +534,27 @@ const updateInspector = () => {
   ).toFixed(1)}s`
   ;($('#camera-position') as HTMLSelectElement).value = config.camera.position
   ;($('#camera-shape') as HTMLSelectElement).value = config.camera.shape
+  ;($('#block-background-color') as HTMLInputElement).value =
+    config.background.color
   ;($('#remove-presenter') as HTMLButtonElement).disabled =
     scene.presenterTracks.length === 0
   ;($('#director-block-number') as HTMLElement).textContent = `Block ${String(
     scene.index + 1,
   ).padStart(2, '0')}`
-  ;($('#director-layout-scope') as HTMLElement).textContent =
-    directorOptions.label
   ;($('#director-animation-scope') as HTMLElement).textContent =
     directorOptions.label
+  ;($('#content-object-label') as HTMLElement).textContent = sceneObjectLabel(
+    scene.kind,
+  )
   document
-    .querySelectorAll<HTMLButtonElement>('[data-layout-option]')
+    .querySelectorAll<HTMLButtonElement>('[data-canvas-object]')
     .forEach(button => {
-      const isAvailable = directorOptions.layouts.includes(
-        button.dataset.layoutOption as SceneLayout,
-      )
-      button.hidden = !isAvailable
-      button.disabled = !isAvailable
-      button.classList.toggle(
-        'active',
-        button.dataset.layoutOption === config.layout,
-      )
+      const isActive = button.dataset.canvasObject === selectedCanvasObject
+      button.classList.toggle('active', isActive)
+      button.setAttribute('aria-pressed', String(isActive))
     })
+  renderLayoutPresetPicker(scene, config)
+  renderBackgroundPresets(config)
   document
     .querySelectorAll<HTMLButtonElement>('[data-animation-option]')
     .forEach(button => {
@@ -409,6 +593,7 @@ const updateInspector = () => {
 }
 
 const selectNode = (nodeId: string, focusEditor: boolean) => {
+  if (selectedNodeId !== nodeId) selectedCanvasObject = 'content'
   selectedNodeId = nodeId
   document
     .querySelectorAll('.tiptap > .selected-block')
@@ -527,20 +712,61 @@ document
           tab.setAttribute('aria-selected', String(isActive))
         })
       ;($('#director-layout') as HTMLElement).hidden = selectedTab !== 'layout'
+      ;($('#director-background') as HTMLElement).hidden =
+        selectedTab !== 'background'
       ;($('#director-animation') as HTMLElement).hidden =
         selectedTab !== 'animation'
     })
   })
 
 document
-  .querySelectorAll<HTMLButtonElement>('[data-layout-option]')
+  .querySelectorAll<HTMLButtonElement>('[data-canvas-object]')
   .forEach(button => {
     button.addEventListener('click', () => {
-      updateSelectedConfig(config => {
-        config.layout = button.dataset.layoutOption as SceneLayout
-      })
+      selectedCanvasObject = button.dataset.canvasObject as
+        | 'content'
+        | 'presenter'
+      updateInspector()
     })
   })
+
+document
+  .querySelectorAll<HTMLButtonElement>('[data-background-mode]')
+  .forEach(button => {
+    button.addEventListener('click', () => {
+      selectedBackgroundMode = button.dataset.backgroundMode as
+        | 'gradient'
+        | 'color'
+      document
+        .querySelectorAll<HTMLButtonElement>('[data-background-mode]')
+        .forEach(modeButton => {
+          const isActive = modeButton === button
+          modeButton.classList.toggle('active', isActive)
+          modeButton.setAttribute('aria-selected', String(isActive))
+        })
+      const config = project.blocks[selectedNodeId]
+      if (config) renderBackgroundPresets(config)
+    })
+  })
+
+;($('#block-background-color') as HTMLInputElement).addEventListener(
+  'input',
+  event => {
+    updateSelectedConfig(config => {
+      config.background.color = (event.currentTarget as HTMLInputElement).value
+      config.background.preset = 'custom'
+    })
+  },
+)
+
+;($('#use-brand-background') as HTMLButtonElement).addEventListener(
+  'click',
+  () => {
+    updateSelectedConfig(config => {
+      config.background.preset = 'brand'
+    })
+  },
+)
 
 document
   .querySelectorAll<HTMLButtonElement>('[data-animation-option]')
@@ -680,6 +906,15 @@ window.addEventListener('resize', positionInlinePreview)
     config.layout = (event.currentTarget as HTMLSelectElement).value as SceneLayout
   })
 })
+;($('#block-background') as HTMLSelectElement).addEventListener(
+  'change',
+  event => {
+    updateSelectedConfig(config => {
+      config.background.preset = (event.currentTarget as HTMLSelectElement)
+        .value as BlockBackgroundPreset
+    })
+  },
+)
 ;($('#reveal') as HTMLSelectElement).addEventListener('change', event => {
   updateSelectedConfig(config => {
     config.reveal = (event.currentTarget as HTMLSelectElement).value as RevealStyle

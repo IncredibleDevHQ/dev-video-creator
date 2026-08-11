@@ -1,5 +1,6 @@
 import type {
   BlockRenderConfigV1,
+  BlockBackgroundPreset,
   BrandTemplateV1,
   CompiledComposition,
   ProjectDocumentV1,
@@ -44,6 +45,10 @@ export const createDefaultBlockConfig = (
   durationMs: node.type === 'codeBlock' ? 7000 : 5000,
   reveal: node.type === 'codeBlock' ? 'line-by-line' : 'rise',
   alignment: node.type === 'heading' ? 'center' : 'left',
+  background: {
+    preset: 'brand',
+    color: defaultBrand.background,
+  },
   camera: {
     position: 'bottom-right',
     shape: 'circle',
@@ -88,13 +93,38 @@ const normalizeBlockConfig = (
       ['left', 'center'] as const,
       fallback.alignment,
     ),
+    background: {
+      preset: allowedValue(
+        supplied.background?.preset,
+        [
+          'brand',
+          'violet',
+          'sunset',
+          'ocean',
+          'mint',
+          'rose',
+          'paper',
+          'charcoal',
+          'custom',
+        ] as const,
+        fallback.background.preset,
+      ),
+      color: safeColor(
+        supplied.background?.color,
+        fallback.background.color,
+      ),
+    },
     camera: {
       position: allowedValue(
         supplied.camera?.position,
         [
           'hidden',
+          'top-left',
+          'top-right',
           'bottom-left',
           'bottom-right',
+          'overlay-left',
+          'overlay-right',
           'split-left',
           'split-right',
         ] as const,
@@ -127,6 +157,25 @@ const safeColor = (value: string, fallback: string) =>
   /^(#[0-9a-f]{3,8}|rgb\([\d\s,.%]+\)|hsl\([\d\s,.%]+\))$/i.test(value)
     ? value
     : fallback
+
+const backgroundValue = (
+  preset: BlockBackgroundPreset,
+  customColor: string,
+  brandBackground: string,
+) => {
+  const presets: Record<BlockBackgroundPreset, string> = {
+    brand: brandBackground,
+    violet: 'linear-gradient(135deg, #d8b4fe 0%, #7c3aed 100%)',
+    sunset: 'linear-gradient(135deg, #fda4af 0%, #fb923c 100%)',
+    ocean: 'linear-gradient(135deg, #93c5fd 0%, #2563eb 100%)',
+    mint: 'linear-gradient(135deg, #a7f3d0 0%, #14b8a6 100%)',
+    rose: 'linear-gradient(135deg, #fbcfe8 0%, #e879f9 100%)',
+    paper: '#f9fafb',
+    charcoal: '#27272a',
+    custom: safeColor(customColor, brandBackground),
+  }
+  return presets[preset]
+}
 
 const safeUrl = (value: unknown) => {
   if (typeof value !== 'string') return null
@@ -274,6 +323,14 @@ const buildCompositionHtml = (
         data-track-index="${scene.index}"
         data-node-id="${escapeHtml(scene.id)}"
         data-reveal="${scene.config.reveal}"
+        data-background-preset="${scene.config.background.preset}"
+        style="--scene-background:${escapeHtml(
+          backgroundValue(
+            scene.config.background.preset,
+            scene.config.background.color,
+            brand.background,
+          ),
+        )}"
       >
         <div class="scene-index">${String(scene.index + 1).padStart(2, '0')}</div>
         <main class="content">${renderNode(scene.node)}</main>
@@ -317,7 +374,7 @@ const buildCompositionHtml = (
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 28%), radial-gradient(circle at 15% 88%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 30%), var(--bg); }
     .clip { visibility: hidden; }
-    .scene { position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; }
+    .scene { position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--bg)); }
     .scene::before { content: ""; position: absolute; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: 34px; pointer-events: none; }
     .scene-index { color: var(--primary); font-size: 24px; font-weight: 800; letter-spacing: .18em; }
     .content { align-self: center; max-width: 1500px; }
@@ -340,7 +397,10 @@ const buildCompositionHtml = (
     .composition-brand strong { color: var(--text); font-size: 23px; font-weight: 760; }
     .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: 10px solid var(--surface); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
     .camera.circle { border-radius: 50%; } .camera.rounded-rectangle { border-radius: 44px; width: 460px; }
+    .camera-top-left { left: 110px; top: 105px; } .camera-top-right { right: 110px; top: 105px; }
     .camera-bottom-left { left: 110px; bottom: 105px; } .camera-bottom-right { right: 110px; bottom: 105px; }
+    .camera-overlay-left { left: 110px; top: 50%; width: 500px; height: 620px; translate: 0 -50%; }
+    .camera-overlay-right { right: 110px; top: 50%; width: 500px; height: 620px; translate: 0 -50%; }
     .camera-split-left { left: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-split-right { right: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-hidden { display: none; }

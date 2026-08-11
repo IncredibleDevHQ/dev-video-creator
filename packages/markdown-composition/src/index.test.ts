@@ -48,6 +48,7 @@ describe('compileProject', () => {
     expect(result.html).toContain('class="scene clip')
     expect(result.html).toContain('class="composition-brand"')
     expect(result.html).toContain('<strong>incredible</strong>')
+    expect(result.html).toContain('data-background-preset="brand"')
     expect(defaultBrand.primary).toBe('#16a34a')
     expect(defaultBrand.accent).toBe('#4ade80')
   })
@@ -83,5 +84,27 @@ describe('compileProject', () => {
     const result = compileProject(withPresenter)
     expect(result.html).toContain('<video class="camera')
     expect(result.html).toContain('<audio data-start="0"')
+  })
+
+  it('compiles per-block backgrounds and expanded presenter placements', () => {
+    const directed = project()
+    directed.blocks.intro.background = {
+      preset: 'violet',
+      color: '#111827',
+    }
+    directed.blocks.intro.camera.position = 'overlay-left'
+    directed.blocks.intro.camera.shape = 'rounded-rectangle'
+    directed.presenterTracks.intro = [
+      {
+        kind: 'human-camera',
+        videoUrl: 'http://127.0.0.1:4319/assets/take.webm',
+        audioKind: 'none',
+      },
+    ]
+
+    const result = compileProject(directed)
+    expect(result.html).toContain('data-background-preset="violet"')
+    expect(result.html).toContain('linear-gradient(135deg, #d8b4fe 0%, #7c3aed 100%)')
+    expect(result.html).toContain('camera-overlay-left rounded-rectangle')
   })
 })
