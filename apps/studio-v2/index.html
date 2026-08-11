@@ -3,36 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f3f1eb" />
+    <meta name="theme-color" content="#18181b" />
+    <link id="app-icon" rel="icon" />
     <title>Incredible Studio</title>
   </head>
   <body>
     <div id="app">
-      <header class="topbar">
-        <a class="brand" href="/" aria-label="Incredible Studio home">
-          <span class="brand-mark">I</span>
-          <span>Incredible</span>
-          <small>studio</small>
-        </a>
-        <label class="project-title">
-          <span class="sr-only">Project title</span>
-          <input id="project-title" value="Human-first developer story" />
-        </label>
-        <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
-        <nav class="actions" aria-label="Project actions">
-          <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
-          <button id="import-file" class="button ghost">Import .md</button>
-          <button id="paste-markdown" class="button ghost">Paste Markdown</button>
-          <button id="open-camera" class="button secondary"><span class="record-dot"></span> Present</button>
-          <button id="render-video" class="button primary">Render MP4</button>
-        </nav>
+      <header class="app-chrome">
+        <div class="topbar">
+          <a class="brand" href="/" aria-label="Incredible Studio home">
+            <span class="back-mark" aria-hidden="true">‹</span>
+            <img id="studio-logo" alt="Incredible Studio" />
+          </a>
+          <label class="project-title">
+            <span class="sr-only">Project title</span>
+            <input id="project-title" value="Human-first developer story" />
+          </label>
+          <div class="topbar-status"><span class="brand-orbit"><span>HF</span></span><strong>Local workspace</strong></div>
+        </div>
+        <div class="commandbar">
+          <div class="workspace-nav">
+            <div class="format-control"><span>Format:</span><strong>▷ Landscape</strong><span>⌄</span></div>
+            <button type="button" class="workspace-tab active">Notebook</button>
+            <button type="button" class="workspace-tab">Preview</button>
+          </div>
+          <nav class="actions" aria-label="Project actions">
+            <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
+            <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
+            <button id="import-file" class="button chrome-ghost">Import .md</button>
+            <button id="paste-markdown" class="button chrome-ghost">Paste Markdown</button>
+            <button id="open-camera" class="button chrome-secondary"><span class="record-dot"></span> Present</button>
+            <button id="render-video" class="button primary">Render MP4</button>
+          </nav>
+        </div>
       </header>
 
       <main class="studio-grid">
         <section class="panel notebook-panel" aria-labelledby="notebook-title">
           <div class="panel-heading">
             <div>
-              <span class="eyebrow">01 · Notebook</span>
+              <span class="eyebrow">Notebook</span>
               <h1 id="notebook-title">Write the story</h1>
             </div>
             <button id="reset-sample" class="icon-button" title="Reset sample">↺</button>
@@ -57,7 +67,7 @@
         <section class="stage-column" aria-labelledby="preview-title">
           <div class="stage-heading">
             <div>
-              <span class="eyebrow">02 · Frame</span>
+              <span class="eyebrow">Preview</span>
               <h2 id="preview-title">Direct the frame</h2>
             </div>
             <div class="engine-badge"><span></span> Hyperframes</div>
@@ -73,7 +83,7 @@
           </div>
           <section class="timeline-panel" aria-labelledby="timeline-title">
             <div class="timeline-heading">
-              <div><span class="eyebrow">03 · Timeline</span><h2 id="timeline-title">One block, one scene</h2></div>
+              <div><span class="eyebrow">Timeline</span><h2 id="timeline-title">One block, one scene</h2></div>
               <span id="timeline-duration">0 seconds</span>
             </div>
             <div id="scene-rail" class="scene-rail"></div>
@@ -82,7 +92,7 @@
 
         <aside class="panel inspector-panel" aria-labelledby="inspector-title">
           <div class="panel-heading">
-            <div><span class="eyebrow">04 · Inspector</span><h2 id="inspector-title">Shape the block</h2></div>
+            <div><span class="eyebrow">Block settings</span><h2 id="inspector-title">Shape the block</h2></div>
           </div>
           <div class="selected-card">
             <span id="selected-number">Scene 01</span>
@@ -105,7 +115,7 @@
               <button id="remove-presenter" type="button" class="text-button danger">Remove presenter track</button>
             </fieldset>
             <fieldset>
-              <legend>Brand colors</legend>
+              <legend>Incredible brand colors</legend>
               <div class="color-grid">
                 <label><input id="brand-primary" type="color" /><span>Primary</span></label>
                 <label><input id="brand-accent" type="color" /><span>Accent</span></label>

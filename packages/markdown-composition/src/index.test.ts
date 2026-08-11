@@ -46,6 +46,10 @@ describe('compileProject', () => {
     expect(result.html).toContain('data-node-id="intro"')
     expect(result.html).toContain('window.__timelines["test-project"] = tl')
     expect(result.html).toContain('class="scene clip')
+    expect(result.html).toContain('class="composition-brand"')
+    expect(result.html).toContain('<strong>incredible</strong>')
+    expect(defaultBrand.primary).toBe('#16a34a')
+    expect(defaultBrand.accent).toBe('#4ade80')
   })
 
   it('escapes notebook content', () => {

@@ -12,13 +12,21 @@ import type {
 export * from './types'
 
 export const defaultBrand: BrandTemplateV1 = {
-  background: '#f4f2ec',
-  surface: '#fffdf8',
-  text: '#171814',
-  mutedText: '#686b61',
-  primary: '#ff5c35',
-  accent: '#1747e8',
-  codeBackground: '#151711',
+  background: '#111827',
+  surface: '#1f2024',
+  text: '#f9fafb',
+  mutedText: '#a1a1aa',
+  primary: '#16a34a',
+  accent: '#4ade80',
+  codeBackground: '#0f172a',
+}
+
+const incredibleMarkPath =
+  'M8.96168 0.740305C7.9746 -0.246768 6.37424 -0.246768 5.38717 0.740304L0.740312 5.38716C-0.24676 6.37423 -0.246761 7.9746 0.740312 8.96167L1.99139 10.2127C2.97846 11.1998 2.97846 12.8002 1.99139 13.7872L0.740304 15.0383C-0.246768 16.0254 -0.246768 17.6258 0.740304 18.6128L5.38716 23.2597C6.37423 24.2468 7.9746 24.2468 8.96167 23.2597L10.2127 22.0086C11.1998 21.0215 12.8002 21.0215 13.7873 22.0086L15.0383 23.2597C16.0254 24.2468 17.6258 24.2468 18.6128 23.2597L23.2597 18.6128C24.2468 17.6258 24.2468 16.0254 23.2597 15.0383L22.0086 13.7873C21.0215 12.8002 21.0215 11.1998 22.0086 10.2127L23.2597 8.96167C24.2468 7.9746 24.2468 6.37424 23.2597 5.38716L18.6128 0.740305C17.6258 -0.246767 16.0254 -0.246766 15.0383 0.740307L13.7873 1.99138C12.8002 2.97845 11.1998 2.97845 10.2127 1.99138L8.96168 0.740305Z'
+
+const renderIncredibleBrand = (sceneIndex: number) => {
+  const gradientId = `incredible-gradient-${sceneIndex}`
+  return `<span class="composition-brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${incredibleMarkPath}" fill="url(#${gradientId})"/><defs><linearGradient id="${gradientId}" x1="3.13253" y1="3.46988" x2="20.9639" y2="20.7229" gradientUnits="userSpaceOnUse"><stop stop-color="#4ADE80"/><stop offset="1" stop-color="#16A34A"/></linearGradient></defs></svg><strong>incredible</strong></span>`
 }
 
 const defaultLayoutForNode = (node: TiptapNode): SceneLayout => {
@@ -269,7 +277,7 @@ const buildCompositionHtml = (
       >
         <div class="scene-index">${String(scene.index + 1).padStart(2, '0')}</div>
         <main class="content">${renderNode(scene.node)}</main>
-        <footer><span>INCREDIBLE</span><span>${escapeHtml(project.title)}</span></footer>
+        <footer>${renderIncredibleBrand(scene.index)}<span>${escapeHtml(project.title)}</span></footer>
       </section>${presenterMarkup}`
     })
     .join('\n')
@@ -307,7 +315,7 @@ const buildCompositionHtml = (
     * { box-sizing: border-box; }
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28%), var(--bg); }
+    #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 28%), radial-gradient(circle at 15% 88%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 30%), var(--bg); }
     .clip { visibility: hidden; }
     .scene { position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; }
     .scene::before { content: ""; position: absolute; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: 34px; pointer-events: none; }
@@ -326,7 +334,10 @@ const buildCompositionHtml = (
     .layout-title h1, .layout-title h2 { font-size: 142px; }
     .layout-code .content { width: 100%; max-width: 1650px; }
     .layout-split .content { width: 58%; margin-left: 0; text-align: left; }
-    footer { display: flex; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .composition-brand { display: inline-flex; align-items: center; gap: 12px; letter-spacing: -.025em; text-transform: lowercase; }
+    .composition-brand svg { width: 28px; height: 28px; flex: none; }
+    .composition-brand strong { color: var(--text); font-size: 23px; font-weight: 760; }
     .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: 10px solid var(--surface); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
     .camera.circle { border-radius: 50%; } .camera.rounded-rectangle { border-radius: 44px; width: 460px; }
     .camera-bottom-left { left: 110px; bottom: 105px; } .camera-bottom-right { right: 110px; bottom: 105px; }

@@ -18,6 +18,18 @@ import {
 import NodeIdentifier from 'node-identifier'
 import './styles.css'
 
+const studioLogoUrl = new URL(
+  '../../webfront/svg/StudioLogo.svg',
+  import.meta.url,
+).href
+const logomarkUrl = new URL(
+  '../../webfront/svg/Logomark.svg',
+  import.meta.url,
+).href
+
+document.querySelector<HTMLImageElement>('#studio-logo')!.src = studioLogoUrl
+document.querySelector<HTMLLinkElement>('#app-icon')!.href = logomarkUrl
+
 const SAMPLE_MARKDOWN = `# Make technical ideas feel human
 
 The notebook is the storyboard. Every block becomes a frame you can direct, present, and render.
@@ -37,6 +49,15 @@ const video = await hyperframes.render(story)
 
 const STORAGE_KEY = 'incredible-studio-v2-project'
 const WORKER_URL = import.meta.env.VITE_RENDER_WORKER_URL || ''
+const LEGACY_MVP_BRAND = {
+  background: '#f4f2ec',
+  surface: '#fffdf8',
+  text: '#171814',
+  mutedText: '#686b61',
+  primary: '#ff5c35',
+  accent: '#1747e8',
+  codeBackground: '#151711',
+} as const
 
 const $ = <T extends HTMLElement>(selector: string) => {
   const element = document.querySelector<T>(selector)
@@ -87,6 +108,16 @@ const readStoredProject = (): ProjectDocumentV1 | null => {
 }
 
 const storedProject = readStoredProject()
+
+if (
+  storedProject &&
+  Object.entries(LEGACY_MVP_BRAND).every(
+    ([key, value]) =>
+      storedProject.brand[key as keyof typeof LEGACY_MVP_BRAND] === value,
+  )
+) {
+  storedProject.brand = { ...defaultBrand }
+}
 
 let project: ProjectDocumentV1 =
   storedProject ||
