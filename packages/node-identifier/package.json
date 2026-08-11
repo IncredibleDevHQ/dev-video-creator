@@ -1,0 +1,22 @@
+{
+  "name": "node-identifier",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.29.2",
+    "@tiptap/pm": "^3.29.2"
+  },
+  "devDependencies": {
+    "@tiptap/starter-kit": "^3.29.2",
+    "happy-dom": "^20.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.0.0"
+  }
+}

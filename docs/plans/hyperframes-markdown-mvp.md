@@ -1,6 +1,6 @@
 # Incredible OSS rebuild: notebook to Hyperframes
 
-Status: proposed implementation plan  
+Status: Core human-centric MVP vertical slice implemented; advanced render/presenter hardening and Phases 4–6 remain planned
 Branch: `feat/hyperframes-markdown-mvp`  
 Base: `origin/oss` at `a3a31e5`
 

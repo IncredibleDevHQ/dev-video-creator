@@ -47,6 +47,7 @@ yarn-error.log*
 **/*/lib/**/*.js
 **/*/lib/**/*.js.map
 **/*/dist
+.studio-data/
 
 
 # TypeScript v1 declaration files

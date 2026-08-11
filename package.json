@@ -12,6 +12,11 @@
 		"dev": "turbo run dev --parallel",
 		"lint": "turbo run lint",
 		"format": "prettier --write \"**/*.{ts,tsx,md,js,jsx}\"",
+		"studio:setup": "yarn install --ignore-scripts && yarn workspace studio-v2 exec puppeteer browsers install chrome",
+		"studio": "yarn workspace studio-v2 dev",
+		"studio:build": "yarn workspace studio-v2 build",
+		"studio:start": "yarn workspace studio-v2 start",
+		"studio:test": "yarn workspace node-identifier test && yarn workspace markdown-composition test && yarn workspace studio-v2 typecheck",
 		"prepare": "husky install && turbo run prepare",
 		"postinstall": "turbo run postinstall"
 	},

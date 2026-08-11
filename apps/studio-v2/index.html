@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f3f1eb" />
+    <title>Incredible Studio</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Incredible Studio home">
+          <span class="brand-mark">I</span>
+          <span>Incredible</span>
+          <small>studio</small>
+        </a>
+        <label class="project-title">
+          <span class="sr-only">Project title</span>
+          <input id="project-title" value="Human-first developer story" />
+        </label>
+        <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
+        <nav class="actions" aria-label="Project actions">
+          <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
+          <button id="import-file" class="button ghost">Import .md</button>
+          <button id="paste-markdown" class="button ghost">Paste Markdown</button>
+          <button id="open-camera" class="button secondary"><span class="record-dot"></span> Present</button>
+          <button id="render-video" class="button primary">Render MP4</button>
+        </nav>
+      </header>
+
+      <main class="studio-grid">
+        <section class="panel notebook-panel" aria-labelledby="notebook-title">
+          <div class="panel-heading">
+            <div>
+              <span class="eyebrow">01 · Notebook</span>
+              <h1 id="notebook-title">Write the story</h1>
+            </div>
+            <button id="reset-sample" class="icon-button" title="Reset sample">↺</button>
+          </div>
+          <div id="editor-toolbar" class="editor-toolbar" aria-label="Formatting toolbar">
+            <button data-command="bold" title="Bold"><strong>B</strong></button>
+            <button data-command="italic" title="Italic"><em>I</em></button>
+            <span></span>
+            <button data-command="h1">H1</button>
+            <button data-command="h2">H2</button>
+            <button data-command="bulletList">List</button>
+            <button data-command="blockquote">Quote</button>
+            <button data-command="codeBlock">Code</button>
+          </div>
+          <div id="editor" class="editor-shell"></div>
+          <div class="notebook-footer">
+            <span id="block-count">0 blocks</span>
+            <span>Markdown-backed · stable node IDs</span>
+          </div>
+        </section>
+
+        <section class="stage-column" aria-labelledby="preview-title">
+          <div class="stage-heading">
+            <div>
+              <span class="eyebrow">02 · Frame</span>
+              <h2 id="preview-title">Direct the frame</h2>
+            </div>
+            <div class="engine-badge"><span></span> Hyperframes</div>
+          </div>
+          <div class="player-shell">
+            <div id="player-loading" class="player-loading">Compiling composition…</div>
+            <hyperframes-player id="player" controls width="1920" height="1080"></hyperframes-player>
+          </div>
+          <div class="playback-meta">
+            <div><span>Selected</span><strong id="selected-label">Scene 01</strong></div>
+            <div><span>Total</span><strong id="total-duration">00:00</strong></div>
+            <div><span>Format</span><strong>1920 × 1080</strong></div>
+          </div>
+          <section class="timeline-panel" aria-labelledby="timeline-title">
+            <div class="timeline-heading">
+              <div><span class="eyebrow">03 · Timeline</span><h2 id="timeline-title">One block, one scene</h2></div>
+              <span id="timeline-duration">0 seconds</span>
+            </div>
+            <div id="scene-rail" class="scene-rail"></div>
+          </section>
+        </section>
+
+        <aside class="panel inspector-panel" aria-labelledby="inspector-title">
+          <div class="panel-heading">
+            <div><span class="eyebrow">04 · Inspector</span><h2 id="inspector-title">Shape the block</h2></div>
+          </div>
+          <div class="selected-card">
+            <span id="selected-number">Scene 01</span>
+            <strong id="selected-title">Select a notebook block</strong>
+            <code id="selected-id">node-id</code>
+          </div>
+          <form id="inspector-form">
+            <fieldset>
+              <legend>Composition</legend>
+              <label>Layout<select id="layout"><option value="title">Title</option><option value="prose">Prose</option><option value="code">Code</option><option value="split">Split</option></select></label>
+              <label>Reveal<select id="reveal"><option value="none">None</option><option value="fade">Fade</option><option value="rise">Rise</option><option value="type">Type</option><option value="line-by-line">Line by line</option></select></label>
+              <label>Alignment<select id="alignment"><option value="left">Left</option><option value="center">Center</option></select></label>
+              <label>Duration <output id="duration-output">5.0s</output><input id="duration" type="range" min="2" max="20" step="0.5" value="5" /></label>
+            </fieldset>
+            <fieldset>
+              <legend>Human presenter</legend>
+              <label>Camera position<select id="camera-position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="split-right">Split right</option><option value="split-left">Split left</option><option value="hidden">Hidden</option></select></label>
+              <label>Camera shape<select id="camera-shape"><option value="circle">Circle</option><option value="rounded-rectangle">Rounded rectangle</option></select></label>
+              <button id="record-this-block" type="button" class="button secondary wide">Record this block</button>
+              <button id="remove-presenter" type="button" class="text-button danger">Remove presenter track</button>
+            </fieldset>
+            <fieldset>
+              <legend>Brand colors</legend>
+              <div class="color-grid">
+                <label><input id="brand-primary" type="color" /><span>Primary</span></label>
+                <label><input id="brand-accent" type="color" /><span>Accent</span></label>
+                <label><input id="brand-background" type="color" /><span>Canvas</span></label>
+                <label><input id="brand-text" type="color" /><span>Text</span></label>
+              </div>
+            </fieldset>
+          </form>
+          <div id="render-result" class="render-result" hidden>
+            <span>Render complete</span>
+            <a id="download-render" class="button primary wide" href="#" download>Download MP4</a>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <dialog id="markdown-dialog" class="modal markdown-modal">
+      <form method="dialog">
+        <div class="modal-heading"><div><span class="eyebrow">Markdown import</span><h2>Paste a document</h2></div><button value="cancel" class="icon-button">×</button></div>
+        <textarea id="markdown-input" spellcheck="false" placeholder="# Your title\n\nWrite the story…"></textarea>
+        <div class="modal-actions"><button value="cancel" class="button ghost">Cancel</button><button id="apply-markdown" value="default" class="button primary">Replace notebook</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="camera-dialog" class="modal camera-modal">
+      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Camera first. Microphone optional.</h2></div><button id="close-camera" class="icon-button">×</button></div>
+      <div class="camera-grid">
+        <div class="camera-preview-shell">
+          <video id="camera-preview" autoplay muted playsinline></video>
+          <div id="camera-placeholder"><span>◎</span><strong>Your camera stays human</strong><small>Enable it when you are ready to rehearse.</small></div>
+          <div id="countdown" class="countdown" hidden>3</div>
+          <div class="camera-status"><span id="camera-status-dot"></span><strong id="camera-status">Camera off</strong></div>
+        </div>
+        <div class="presenter-setup">
+          <label>Audio approach<select id="audio-mode"><option value="generated">Generated guide voice — no microphone</option><option value="microphone">Use my microphone</option></select></label>
+          <label id="voice-reference-label">Authorized Fish voice reference ID <span>optional</span><input id="voice-reference" placeholder="Uses local system voice when blank" /></label>
+          <div class="script-box"><span>Teleprompter · selected block</span><textarea id="presenter-script"></textarea></div>
+          <audio id="guide-audio" controls></audio>
+          <div id="voice-capability" class="capability">Checking local voice capability…</div>
+          <div class="presenter-actions">
+            <button id="enable-camera" class="button ghost">Enable camera</button>
+            <button id="generate-guide" class="button secondary">Generate guide</button>
+            <button id="start-recording" class="button primary" disabled>Start camera take</button>
+            <button id="stop-recording" class="button danger" hidden>Stop take</button>
+          </div>
+          <p class="privacy-note">Camera-only mode never requests microphone access. Generated voice and real footage remain separate tracks. Only use a voice reference you own or are authorized to use.</p>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

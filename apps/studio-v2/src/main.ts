@@ -1,0 +1,714 @@
+import '@hyperframes/player'
+import { Editor, type JSONContent } from '@tiptap/core'
+import { Markdown } from '@tiptap/markdown'
+import StarterKit from '@tiptap/starter-kit'
+import {
+  compileProject,
+  createDefaultBlockConfig,
+  defaultBrand,
+  type BlockRenderConfigV1,
+  type CameraPosition,
+  type ProjectDocumentV1,
+  type RevealStyle,
+  type Scene,
+  type SceneLayout,
+  type TiptapDocument,
+  type TiptapNode,
+} from 'markdown-composition'
+import NodeIdentifier from 'node-identifier'
+import './styles.css'
+
+const SAMPLE_MARKDOWN = `# Make technical ideas feel human
+
+The notebook is the storyboard. Every block becomes a frame you can direct, present, and render.
+
+## Show the idea, then talk over it
+
+- Write naturally in Markdown
+- Choose how each block appears
+- Record your real camera without needing a microphone
+
+> Generated voice removes recording friction. It does not remove the person.
+
+\`\`\`ts
+const story = compile(notebook)
+const video = await hyperframes.render(story)
+\`\`\``
+
+const STORAGE_KEY = 'incredible-studio-v2-project'
+const WORKER_URL = import.meta.env.VITE_RENDER_WORKER_URL || ''
+
+const $ = <T extends HTMLElement>(selector: string) => {
+  const element = document.querySelector<T>(selector)
+  if (!element) throw new Error(`Missing UI element: ${selector}`)
+  return element
+}
+
+const player = $('#player') as HyperframesPlayerElement
+const playerLoading = $('#player-loading')
+const sceneRail = $('#scene-rail')
+const saveState = $('#save-state')
+const renderButton = $('#render-video') as HTMLButtonElement
+const markdownDialog = $('#markdown-dialog') as HTMLDialogElement
+const cameraDialog = $('#camera-dialog') as HTMLDialogElement
+const cameraPreview = $('#camera-preview') as HTMLVideoElement
+const cameraPlaceholder = $('#camera-placeholder')
+const guideAudio = $('#guide-audio') as HTMLAudioElement
+const audioMode = $('#audio-mode') as HTMLSelectElement
+const presenterScript = $('#presenter-script') as HTMLTextAreaElement
+const voiceReference = $('#voice-reference') as HTMLInputElement
+const voiceCapability = $('#voice-capability')
+const startRecordingButton = $('#start-recording') as HTMLButtonElement
+const stopRecordingButton = $('#stop-recording') as HTMLButtonElement
+const countdown = $('#countdown')
+const cameraStatus = $('#camera-status')
+const cameraStatusDot = $('#camera-status-dot')
+
+let selectedNodeId = ''
+let previewRequest = 0
+let scenes: Scene[] = []
+let syncTimer: number | undefined
+let toastTimer: number | undefined
+let cameraStream: MediaStream | null = null
+let mediaRecorder: MediaRecorder | null = null
+let recordingChunks: Blob[] = []
+let recordingNodeId = ''
+let generatedVoiceUrl = ''
+
+const readStoredProject = (): ProjectDocumentV1 | null => {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY)
+    if (!stored) return null
+    const parsed = JSON.parse(stored) as ProjectDocumentV1
+    return parsed.version === 1 ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+const storedProject = readStoredProject()
+
+let project: ProjectDocumentV1 =
+  storedProject ||
+  ({
+    version: 1,
+    id: crypto.randomUUID(),
+    title: 'Human-first developer story',
+    notebook: { type: 'doc', content: [] },
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    blocks: {},
+    presenterTracks: {},
+    brand: { ...defaultBrand },
+  } satisfies ProjectDocumentV1)
+
+const editor = new Editor({
+  element: $('#editor'),
+  extensions: [
+    StarterKit,
+    Markdown.configure({
+      markedOptions: { gfm: true, breaks: false },
+    }),
+    NodeIdentifier.configure({
+      types: [
+        'paragraph',
+        'blockquote',
+        'heading',
+        'bulletList',
+        'orderedList',
+        'codeBlock',
+      ],
+    }),
+  ],
+  content: storedProject?.notebook || SAMPLE_MARKDOWN,
+  contentType: storedProject ? 'json' : 'markdown',
+  autofocus: false,
+  onUpdate: () => scheduleSync(),
+  onSelectionUpdate: () => {
+    const nodeId = selectedIdAtCursor()
+    if (nodeId && nodeId !== selectedNodeId) selectNode(nodeId, false)
+    updateToolbar()
+  },
+})
+
+const showToast = (message: string) => {
+  const toast = $('#toast')
+  toast.textContent = message
+  toast.hidden = false
+  window.clearTimeout(toastTimer)
+  toastTimer = window.setTimeout(() => {
+    toast.hidden = true
+  }, 3600)
+}
+
+const setSaving = (saving: boolean) => {
+  saveState.textContent = saving ? 'Compiling…' : 'Saved locally'
+  saveState.parentElement?.classList.toggle('saving', saving)
+}
+
+const selectedIdAtCursor = () => {
+  const position = editor.state.selection.from
+  let result = ''
+  editor.state.doc.forEach((node, offset) => {
+    if (position >= offset && position <= offset + node.nodeSize) {
+      const nodeId = node.attrs.id as unknown
+      if (typeof nodeId === 'string') result = nodeId
+    }
+  })
+  return result
+}
+
+const topLevelNodePosition = (nodeId: string) => {
+  let result: number | null = null
+  editor.state.doc.forEach((node, offset) => {
+    if (node.attrs.id === nodeId) result = offset + 1
+  })
+  return result
+}
+
+const ensureBlockConfiguration = (document: TiptapDocument) => {
+  const activeIds = new Set<string>()
+  document.content.forEach(node => {
+    const nodeId = node.attrs?.id
+    if (typeof nodeId !== 'string' || !nodeId) return
+    activeIds.add(nodeId)
+    if (!project.blocks[nodeId]) {
+      project.blocks[nodeId] = createDefaultBlockConfig(nodeId, node)
+    }
+  })
+
+  Object.keys(project.blocks).forEach(nodeId => {
+    if (!activeIds.has(nodeId)) delete project.blocks[nodeId]
+  })
+  Object.keys(project.presenterTracks).forEach(nodeId => {
+    if (!activeIds.has(nodeId)) delete project.presenterTracks[nodeId]
+  })
+}
+
+const formatTime = (seconds: number) => {
+  const wholeSeconds = Math.max(0, Math.round(seconds))
+  return `${String(Math.floor(wholeSeconds / 60)).padStart(2, '0')}:${String(
+    wholeSeconds % 60,
+  ).padStart(2, '0')}`
+}
+
+const renderSceneRail = () => {
+  sceneRail.replaceChildren()
+  scenes.forEach(scene => {
+    const button = document.createElement('button')
+    button.className = `scene-card${scene.id === selectedNodeId ? ' selected' : ''}`
+    button.type = 'button'
+
+    const top = document.createElement('div')
+    top.className = 'scene-card-top'
+    top.innerHTML = `<span>${String(scene.index + 1).padStart(2, '0')}</span><span>${scene.durationSeconds.toFixed(1)}s</span>`
+    const title = document.createElement('strong')
+    title.textContent = scene.title
+    const footer = document.createElement('footer')
+    if (scene.presenterTracks.length) {
+      const dot = document.createElement('span')
+      dot.className = 'presenter-pill'
+      footer.append(dot)
+    }
+    footer.append(document.createTextNode(scene.kind))
+    button.append(top, title, footer)
+    button.addEventListener('click', () => selectNode(scene.id, true))
+    sceneRail.append(button)
+  })
+}
+
+const updateInspector = () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene) return
+  const config = scene.config
+  ;($('#selected-number') as HTMLElement).textContent = `Scene ${String(
+    scene.index + 1,
+  ).padStart(2, '0')}`
+  ;($('#selected-title') as HTMLElement).textContent = scene.title
+  ;($('#selected-id') as HTMLElement).textContent = scene.id
+  ;($('#selected-label') as HTMLElement).textContent = `Scene ${String(
+    scene.index + 1,
+  ).padStart(2, '0')} · ${scene.title}`
+  ;($('#layout') as HTMLSelectElement).value = config.layout
+  ;($('#reveal') as HTMLSelectElement).value = config.reveal
+  ;($('#alignment') as HTMLSelectElement).value = config.alignment
+  ;($('#duration') as HTMLInputElement).value = String(config.durationMs / 1000)
+  ;($('#duration-output') as HTMLOutputElement).value = `${(
+    config.durationMs / 1000
+  ).toFixed(1)}s`
+  ;($('#camera-position') as HTMLSelectElement).value = config.camera.position
+  ;($('#camera-shape') as HTMLSelectElement).value = config.camera.shape
+  ;($('#remove-presenter') as HTMLButtonElement).disabled =
+    scene.presenterTracks.length === 0
+}
+
+const selectNode = (nodeId: string, focusEditor: boolean) => {
+  selectedNodeId = nodeId
+  if (focusEditor) {
+    const position = topLevelNodePosition(nodeId)
+    if (position !== null) editor.commands.setTextSelection(position)
+  }
+  renderSceneRail()
+  updateInspector()
+  const scene = scenes.find(item => item.id === nodeId)
+  if (scene && player.ready) {
+    player.seek(scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2))
+  }
+}
+
+const updatePreview = async () => {
+  try {
+    const compiled = compileProject(project)
+    scenes = compiled.scenes
+    const requestNumber = ++previewRequest
+    playerLoading.hidden = false
+    playerLoading.textContent = 'Compiling composition…'
+
+    if (!selectedNodeId || !scenes.some(scene => scene.id === selectedNodeId)) {
+      selectedNodeId = scenes[0]?.id || ''
+    }
+    ;($('#block-count') as HTMLElement).textContent = `${scenes.length} ${
+      scenes.length === 1 ? 'block' : 'blocks'
+    }`
+    ;($('#total-duration') as HTMLElement).textContent = formatTime(
+      compiled.durationSeconds,
+    )
+    ;($('#timeline-duration') as HTMLElement).textContent = `${compiled.durationSeconds.toFixed(
+      1,
+    )} seconds`
+    renderSceneRail()
+    updateInspector()
+
+    const preview = await fetchJson<{ url: string }>('/api/preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(project),
+    })
+    if (requestNumber === previewRequest) player.setAttribute('src', preview.url)
+  } catch (error) {
+    playerLoading.hidden = false
+    playerLoading.textContent =
+      error instanceof Error ? error.message : 'Could not compile project'
+  }
+}
+
+const syncProject = () => {
+  setSaving(true)
+  const notebook = editor.getJSON() as TiptapDocument
+  ensureBlockConfiguration(notebook)
+  project.notebook = notebook
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
+  updatePreview()
+  setSaving(false)
+}
+
+function scheduleSync() {
+  setSaving(true)
+  window.clearTimeout(syncTimer)
+  syncTimer = window.setTimeout(syncProject, 120)
+}
+
+const updateSelectedConfig = (
+  update: (config: BlockRenderConfigV1) => void,
+) => {
+  const config = project.blocks[selectedNodeId]
+  if (!config) return
+  update(config)
+  syncProject()
+}
+
+const updateToolbar = () => {
+  const active: Record<string, boolean> = {
+    bold: editor.isActive('bold'),
+    italic: editor.isActive('italic'),
+    h1: editor.isActive('heading', { level: 1 }),
+    h2: editor.isActive('heading', { level: 2 }),
+    bulletList: editor.isActive('bulletList'),
+    blockquote: editor.isActive('blockquote'),
+    codeBlock: editor.isActive('codeBlock'),
+  }
+  document.querySelectorAll<HTMLButtonElement>('[data-command]').forEach(button => {
+    button.classList.toggle('active', Boolean(active[button.dataset.command || '']))
+  })
+}
+
+document.querySelectorAll<HTMLButtonElement>('[data-command]').forEach(button => {
+  button.addEventListener('click', () => {
+    const chain = editor.chain().focus()
+    switch (button.dataset.command) {
+      case 'bold':
+        chain.toggleBold().run()
+        break
+      case 'italic':
+        chain.toggleItalic().run()
+        break
+      case 'h1':
+        chain.toggleHeading({ level: 1 }).run()
+        break
+      case 'h2':
+        chain.toggleHeading({ level: 2 }).run()
+        break
+      case 'bulletList':
+        chain.toggleBulletList().run()
+        break
+      case 'blockquote':
+        chain.toggleBlockquote().run()
+        break
+      case 'codeBlock':
+        chain.toggleCodeBlock().run()
+        break
+    }
+  })
+})
+
+player.addEventListener('ready', () => {
+  playerLoading.hidden = true
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (scene) {
+    player.seek(scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2))
+  }
+})
+player.addEventListener('error', event => {
+  const detail = (event as unknown as CustomEvent<{ message?: string }>).detail
+  playerLoading.hidden = false
+  playerLoading.textContent = detail?.message || 'Hyperframes preview failed'
+})
+
+;($('#project-title') as HTMLInputElement).value = project.title
+;($('#project-title') as HTMLInputElement).addEventListener('input', event => {
+  project.title = (event.currentTarget as HTMLInputElement).value
+  scheduleSync()
+})
+
+;($('#layout') as HTMLSelectElement).addEventListener('change', event => {
+  updateSelectedConfig(config => {
+    config.layout = (event.currentTarget as HTMLSelectElement).value as SceneLayout
+  })
+})
+;($('#reveal') as HTMLSelectElement).addEventListener('change', event => {
+  updateSelectedConfig(config => {
+    config.reveal = (event.currentTarget as HTMLSelectElement).value as RevealStyle
+  })
+})
+;($('#alignment') as HTMLSelectElement).addEventListener('change', event => {
+  updateSelectedConfig(config => {
+    config.alignment = (event.currentTarget as HTMLSelectElement).value as
+      | 'left'
+      | 'center'
+  })
+})
+;($('#duration') as HTMLInputElement).addEventListener('input', event => {
+  const seconds = Number((event.currentTarget as HTMLInputElement).value)
+  ;($('#duration-output') as HTMLOutputElement).value = `${seconds.toFixed(1)}s`
+  updateSelectedConfig(config => {
+    config.durationMs = seconds * 1000
+  })
+})
+;($('#camera-position') as HTMLSelectElement).addEventListener(
+  'change',
+  event => {
+    updateSelectedConfig(config => {
+      config.camera.position = (event.currentTarget as HTMLSelectElement)
+        .value as CameraPosition
+    })
+  },
+)
+;($('#camera-shape') as HTMLSelectElement).addEventListener('change', event => {
+  updateSelectedConfig(config => {
+    config.camera.shape = (event.currentTarget as HTMLSelectElement).value as
+      | 'circle'
+      | 'rounded-rectangle'
+  })
+})
+
+const bindBrandColor = (selector: string, key: keyof ProjectDocumentV1['brand']) => {
+  const input = $(selector) as HTMLInputElement
+  input.value = project.brand[key]
+  input.addEventListener('input', () => {
+    project.brand[key] = input.value
+    scheduleSync()
+  })
+}
+bindBrandColor('#brand-primary', 'primary')
+bindBrandColor('#brand-accent', 'accent')
+bindBrandColor('#brand-background', 'background')
+bindBrandColor('#brand-text', 'text')
+
+;($('#paste-markdown') as HTMLButtonElement).addEventListener('click', () => {
+  ;($('#markdown-input') as HTMLTextAreaElement).value = editor.getMarkdown()
+  markdownDialog.showModal()
+})
+;($('#apply-markdown') as HTMLButtonElement).addEventListener('click', event => {
+  event.preventDefault()
+  const markdown = ($('#markdown-input') as HTMLTextAreaElement).value
+  editor.commands.setContent(markdown, { contentType: 'markdown' })
+  markdownDialog.close()
+})
+;($('#import-file') as HTMLButtonElement).addEventListener('click', () =>
+  ($('#file-input') as HTMLInputElement).click(),
+)
+;($('#file-input') as HTMLInputElement).addEventListener('change', async event => {
+  const file = (event.currentTarget as HTMLInputElement).files?.[0]
+  if (!file) return
+  editor.commands.setContent(await file.text(), { contentType: 'markdown' })
+  showToast(`Imported ${file.name}`)
+})
+;($('#reset-sample') as HTMLButtonElement).addEventListener('click', () => {
+  if (!window.confirm('Replace the current notebook with the sample project?')) return
+  project.blocks = {}
+  project.presenterTracks = {}
+  editor.commands.setContent(SAMPLE_MARKDOWN, { contentType: 'markdown' })
+})
+
+const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  const response = await fetch(`${WORKER_URL}${path}`, init)
+  const body = (await response.json().catch(() => ({}))) as T & { error?: string }
+  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`)
+  return body
+}
+
+const sceneScript = (scene: Scene) => {
+  const collect = (node: TiptapNode): string =>
+    node.type === 'text'
+      ? node.text || ''
+      : (node.content || []).map(collect).join(' ')
+  return collect(scene.node).replace(/\s+/g, ' ').trim()
+}
+
+const setCameraStatus = (
+  text: string,
+  state: 'off' | 'live' | 'recording' = 'off',
+) => {
+  cameraStatus.textContent = text
+  cameraStatusDot.className = state === 'off' ? '' : state
+}
+
+const stopCameraStream = () => {
+  cameraStream?.getTracks().forEach(track => track.stop())
+  cameraStream = null
+  cameraPreview.srcObject = null
+  cameraPlaceholder.hidden = false
+  startRecordingButton.disabled = true
+  setCameraStatus('Camera off')
+}
+
+const enableCamera = async () => {
+  stopCameraStream()
+  const microphone = audioMode.value === 'microphone'
+  cameraStream = await navigator.mediaDevices.getUserMedia({
+    video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: microphone,
+  })
+  cameraPreview.srcObject = cameraStream
+  cameraPlaceholder.hidden = true
+  startRecordingButton.disabled = false
+  setCameraStatus(microphone ? 'Camera + microphone ready' : 'Camera-only ready', 'live')
+}
+
+const openCamera = () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene) return
+  recordingNodeId = scene.id
+  presenterScript.value = sceneScript(scene)
+  generatedVoiceUrl = ''
+  guideAudio.removeAttribute('src')
+  cameraDialog.showModal()
+}
+
+;($('#open-camera') as HTMLButtonElement).addEventListener('click', openCamera)
+;($('#record-this-block') as HTMLButtonElement).addEventListener('click', openCamera)
+;($('#close-camera') as HTMLButtonElement).addEventListener('click', () => {
+  if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
+  stopCameraStream()
+  cameraDialog.close()
+})
+;($('#enable-camera') as HTMLButtonElement).addEventListener('click', async () => {
+  try {
+    await enableCamera()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Camera permission failed')
+  }
+})
+audioMode.addEventListener('change', () => {
+  generatedVoiceUrl = ''
+  guideAudio.removeAttribute('src')
+  stopCameraStream()
+  ;($('#voice-reference-label') as HTMLElement).hidden =
+    audioMode.value === 'microphone'
+})
+
+const refreshCapabilities = async () => {
+  try {
+    const capabilities = await fetchJson<{
+      renderer: boolean
+      systemVoice: boolean
+      fishAudio: boolean
+    }>('/api/health')
+    voiceCapability.textContent = capabilities.fishAudio
+      ? 'Fish Audio is configured. Add a voice reference ID for cloning, or leave it blank for local system voice.'
+      : capabilities.systemVoice
+        ? 'Local system voice is ready. Add FISH_AUDIO_API_KEY later to enable authorized voice profiles.'
+        : 'No keyless voice engine is available on this machine. Camera + microphone still works.'
+  } catch {
+    voiceCapability.textContent =
+      'Render worker is offline. Start the studio with `yarn studio`.'
+  }
+}
+
+;($('#generate-guide') as HTMLButtonElement).addEventListener('click', async event => {
+  const button = event.currentTarget as HTMLButtonElement
+  if (!presenterScript.value.trim()) return
+  button.disabled = true
+  button.textContent = 'Generating…'
+  try {
+    const result = await fetchJson<{ url: string; provider: string }>('/api/voice', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: presenterScript.value,
+        referenceId: voiceReference.value.trim() || undefined,
+      }),
+    })
+    generatedVoiceUrl = result.url
+    guideAudio.src = result.url
+    voiceCapability.textContent = `${result.provider} guide ready. Rehearse once, then record your real camera take.`
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Voice generation failed')
+  } finally {
+    button.disabled = false
+    button.textContent = 'Generate guide'
+  }
+})
+
+const wait = (milliseconds: number) =>
+  new Promise<void>(resolve => window.setTimeout(resolve, milliseconds))
+
+const runCountdown = async () => {
+  countdown.hidden = false
+  for (const number of [3, 2, 1]) {
+    countdown.textContent = String(number)
+    await wait(650)
+  }
+  countdown.hidden = true
+}
+
+const supportedRecorderType = () =>
+  ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+    .find(type => MediaRecorder.isTypeSupported(type)) || ''
+
+const uploadRecording = async (blob: Blob) => {
+  const response = await fetchJson<{ url: string }>('/api/assets', {
+    method: 'POST',
+    headers: {
+      'content-type': blob.type || 'video/webm',
+      'x-asset-name': `camera-${recordingNodeId}.webm`,
+    },
+    body: blob,
+  })
+  const hasGeneratedVoice = audioMode.value === 'generated' && generatedVoiceUrl
+  const audioUrl = hasGeneratedVoice
+    ? generatedVoiceUrl
+    : audioMode.value === 'microphone'
+      ? response.url
+      : undefined
+  project.presenterTracks[recordingNodeId] = [
+    {
+      kind: 'human-camera',
+      videoUrl: response.url,
+      audioUrl,
+      audioKind: hasGeneratedVoice ? 'generated' : 'recorded-mic',
+    },
+  ]
+  syncProject()
+  showToast('Real camera take attached to this block')
+  cameraDialog.close()
+  stopCameraStream()
+}
+
+startRecordingButton.addEventListener('click', async () => {
+  if (!cameraStream) return
+  if (audioMode.value === 'generated' && !generatedVoiceUrl) {
+    showToast('Generate the guide voice before recording')
+    return
+  }
+  await runCountdown()
+  recordingChunks = []
+  const recorderType = supportedRecorderType()
+  mediaRecorder = new MediaRecorder(
+    cameraStream,
+    recorderType ? { mimeType: recorderType } : undefined,
+  )
+  mediaRecorder.ondataavailable = event => {
+    if (event.data.size) recordingChunks.push(event.data)
+  }
+  mediaRecorder.onstop = async () => {
+    setCameraStatus('Uploading take…', 'live')
+    stopRecordingButton.hidden = true
+    startRecordingButton.hidden = false
+    try {
+      await uploadRecording(
+        new Blob(recordingChunks, { type: mediaRecorder?.mimeType || 'video/webm' }),
+      )
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not upload take')
+    }
+  }
+  mediaRecorder.start(250)
+  if (audioMode.value === 'generated') {
+    guideAudio.currentTime = 0
+    await guideAudio.play()
+  }
+  startRecordingButton.hidden = true
+  stopRecordingButton.hidden = false
+  setCameraStatus('Recording real camera', 'recording')
+})
+
+stopRecordingButton.addEventListener('click', () => {
+  guideAudio.pause()
+  if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
+})
+
+;($('#remove-presenter') as HTMLButtonElement).addEventListener('click', () => {
+  if (!selectedNodeId) return
+  delete project.presenterTracks[selectedNodeId]
+  syncProject()
+  showToast('Presenter track removed')
+})
+
+renderButton.addEventListener('click', async () => {
+  syncProject()
+  renderButton.disabled = true
+  renderButton.textContent = 'Rendering…'
+  const resultPanel = $('#render-result')
+  resultPanel.hidden = true
+  try {
+    const result = await fetchJson<{ url: string; durationSeconds: number }>(
+      '/api/render',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(project),
+      },
+    )
+    const link = $('#download-render') as HTMLAnchorElement
+    link.href = result.url
+    resultPanel.hidden = false
+    showToast(`Rendered ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Render failed')
+  } finally {
+    renderButton.disabled = false
+    renderButton.textContent = 'Render MP4'
+  }
+})
+
+window.addEventListener('beforeunload', () => {
+  stopCameraStream()
+  editor.destroy()
+})
+
+queueMicrotask(() => {
+  syncProject()
+  refreshCapabilities()
+})

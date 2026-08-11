@@ -1,0 +1,35 @@
+{
+  "name": "studio-v2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n studio,worker -c cyan,magenta \"vite --host 127.0.0.1 --port 4173\" \"tsx watch server/index.ts\"",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "start": "tsx server/index.ts --serve-dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hyperframes/player": "0.7.106",
+    "@hyperframes/producer": "0.7.106",
+    "@tiptap/core": "^3.29.2",
+    "@tiptap/markdown": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
+    "gsap": "3.12.5",
+    "markdown-composition": "*",
+    "node-identifier": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0"
+  }
+}

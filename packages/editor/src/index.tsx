@@ -34,6 +34,7 @@ import {
 	useEditor,
 } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import NodeIdentifier from 'node-identifier'
 import React, {
 	createContext,
 	useContext,
@@ -55,7 +56,6 @@ import TrailingNode from './nodes/extension-trailing-node'
 import Typography from './nodes/extension-typography'
 import VideoBlock from './nodes/extension-video'
 import editorStyle from './styles/editorStyle'
-import NodeIdentifier from './extensions/NodeIdentifier'
 
 type EC = {
 	editor: Editor | null
@@ -332,7 +332,7 @@ export const EditorContent = EditorContentReact
 export const useIncredibleEditor = () => useContext(EditorContext)
 
 export type CoreEditorInstance = CoreEditor
-export { default as NodeIdentifier } from './extensions/NodeIdentifier'
+export { default as NodeIdentifier } from 'node-identifier'
 
 EditorProvider.defaultProps = {
 	handleUpdate: undefined,

@@ -61,6 +61,21 @@ The [legacy branch](https://github.com/IncredibleDevHQ/Incredible/tree/legacy) i
 
 ## 🏃🏽‍♂️ Instructions to Run
 
+### New Hyperframes Markdown MVP
+
+The new branch-local studio can run without the legacy hosted services. It keeps the notebook-first workflow, uses stable Tiptap v3 node IDs, previews and renders through Hyperframes, and records a real camera presenter with either microphone audio or a generated guide/final voice.
+
+Requirements: Node.js 22+, Yarn 1, and FFmpeg on `PATH`.
+
+```bash
+yarn studio:setup
+yarn studio
+```
+
+Open <http://127.0.0.1:4173>. No API keys are needed for the basic version on macOS. `FISH_AUDIO_API_KEY` is optional for an owned or authorized Fish Audio voice reference. See [the Studio v2 README](apps/studio-v2/README.md) for production serving and provider details.
+
+### Legacy OSS application
+
 Due to the proprietary components, it'll be hard to run Incredible unless you create an account in each of them.
 Refer to the [wiki](https://github.com/IncredibleDevHQ/Incredible/wiki) for the full list of third-party proprietary services and instructions to run.
 

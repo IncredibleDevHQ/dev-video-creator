@@ -6,7 +6,7 @@
 	"license": "MIT",
 	"scripts": {
 		"lint": "eslint ./**/*.ts* --fix",
-		"test": "vitest run src/extensions/NodeIdentifier.test.ts"
+		"test": "yarn workspace node-identifier test"
 	},
 	"devDependencies": {
 		"@types/marked": "^4.0.3",
@@ -52,6 +52,7 @@
 		"highlight.js": "^11.0.0",
 		"lowlight": "^3.3.0",
 		"marked": "^4.0.17",
+		"node-identifier": "*",
 		"react": "17.0.2",
 		"react-dom": "17.0.2",
 		"react-circular-progressbar": "^2.1.0",
