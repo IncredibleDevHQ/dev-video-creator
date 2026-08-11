@@ -102,6 +102,7 @@ describe('compileProject', () => {
     expect(withoutPreview.html).not.toContain('data-preview-presenter="true"')
     expect(withPreview.html).toContain('data-preview-presenter="true"')
     expect(withPreview.html).toContain('alt="Arun"')
+    expect(withPreview.html).not.toContain('camera preview-camera clip')
     const introStart = withPreview.html.indexOf('data-node-id="intro"')
     const introEnd = withPreview.html.indexOf('</section>', introStart)
     expect(withPreview.html.slice(introStart, introEnd)).toContain(
@@ -228,6 +229,9 @@ describe('compileProject', () => {
     )
     expect(result.html).toContain(
       '.scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }',
+    )
+    expect(result.html).toContain(
+      '.camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); translate: none; }',
     )
     expect(result.html).toContain(
       'width: min(100%, var(--content-layout-width), var(--presenter-safe-width))',

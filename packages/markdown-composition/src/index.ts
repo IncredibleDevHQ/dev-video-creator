@@ -439,7 +439,7 @@ const buildCompositionHtml = (
         ? null
         : safeUrl(previewPresenter?.imageUrl)
       const previewPresenterMarkup = previewPresenterUrl
-        ? `<img class="camera preview-camera clip ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))}" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${30 + scene.index}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
+        ? `<img class="camera preview-camera ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
         : ''
 
       return `<section
@@ -691,7 +691,7 @@ const buildCompositionHtml = (
     .scene.presenter-information-tile { --presenter-safe-width: 100%; padding-right: 560px; }
     .camera.presenter-portrait-overlay { top: 50%; right: 82px; width: 470px; height: 650px; translate: 0 -50%; }
     .scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }
-    .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); }
+    .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); translate: none; }
     .scene.presenter-portrait-rail { --presenter-safe-width: 100%; padding-right: 700px; }
     .scene.presenter-portrait-rail .content { margin-left: 0; text-align: left; }
     .camera.presenter-split { top: 0; right: 0; bottom: 0; width: 50%; height: 100%; border-radius: 0; }
