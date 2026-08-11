@@ -76,6 +76,11 @@
               </section>
               <section>
                 <span class="builder-step">03 · Human video</span>
+                <div class="presenter-character-control">
+                  <div class="presenter-character-heading"><span>Sample presenter</span><small>Preview only</small></div>
+                  <div id="theme-presenter-picker" class="presenter-character-picker" role="group" aria-label="Sample presenter character"></div>
+                  <small>Pick a person to judge framing and crop. Your camera replaces them in the notebook.</small>
+                </div>
                 <label>Default layout<select id="theme-video-layout"><optgroup label="Information first"><option value="information-circle">Small camera circle</option><option value="information-tile">Small camera tile</option><option value="portrait-overlay">Portrait overlay</option><option value="portrait-rail">Full-height portrait rail</option></optgroup><optgroup label="Balanced"><option value="split">50 / 50 split</option></optgroup><optgroup label="Person first"><option value="person-background-left">Full camera · points left</option><option value="person-background-right">Full camera · points right</option><option value="person-only">Full camera only</option></optgroup></select></label>
                 <label>Video border<select id="theme-video-border"><option value="none">None</option><option value="solid">Solid</option><option value="gradient">Gradient</option></select></label>
                 <label>Video corners <output id="theme-video-radius-output">28px</output><input id="theme-video-radius" type="range" min="0" max="100" step="2" /></label>
@@ -97,7 +102,7 @@
                 <span class="theme-preview-index">01</span>
                 <span id="theme-preview-corner-logo" class="theme-preview-corner-logo" hidden><img id="theme-preview-corner-image" alt="" /></span>
                 <div id="theme-preview-content" class="theme-preview-content"></div>
-                <div id="theme-preview-person" class="theme-preview-person"><span></span></div>
+                <div id="theme-preview-person" class="theme-preview-person"><img id="theme-preview-presenter-image" alt="" /><span></span></div>
                 <footer><span class="theme-preview-mark"><img id="theme-preview-logo" alt="" hidden /><span id="theme-preview-fallback-mark">✦ incredible</span></span><span id="theme-preview-name">My brand</span></footer>
               </div>
               <div id="theme-preview-tabs" class="theme-preview-tabs" role="tablist" aria-label="Preview Markdown block type">

@@ -34,6 +34,23 @@ const logomarkUrl = new URL(
   '../../webfront/svg/Logomark.svg',
   import.meta.url,
 ).href
+const previewPresenterUrls = {
+  arun: new URL('./assets/presenters/arun.jpg', import.meta.url).href,
+  maya: new URL('./assets/presenters/maya.jpg', import.meta.url).href,
+  jin: new URL('./assets/presenters/jin.jpg', import.meta.url).href,
+  theo: new URL('./assets/presenters/theo.jpg', import.meta.url).href,
+  sofia: new URL('./assets/presenters/sofia.jpg', import.meta.url).href,
+} as const
+
+const PREVIEW_PRESENTERS = [
+  { id: 'arun', name: 'Arun', url: previewPresenterUrls.arun },
+  { id: 'maya', name: 'Maya', url: previewPresenterUrls.maya },
+  { id: 'jin', name: 'Jin', url: previewPresenterUrls.jin },
+  { id: 'theo', name: 'Theo', url: previewPresenterUrls.theo },
+  { id: 'sofia', name: 'Sofia', url: previewPresenterUrls.sofia },
+] as const
+
+type PreviewPresenterId = (typeof PREVIEW_PRESENTERS)[number]['id']
 
 document.querySelector<HTMLImageElement>('#studio-logo')!.src = studioLogoUrl
 document.querySelector<HTMLImageElement>('#theme-builder-logo')!.src = studioLogoUrl
@@ -274,6 +291,7 @@ let savedThemes = readSavedThemes()
 let generatedThemes: StudioThemeV1[] = []
 let themeDraft = cloneTheme(project.theme)
 let themePreviewKind: 'title' | 'list' | 'code' | 'quote' | 'video' = 'title'
+let previewPresenterId: PreviewPresenterId = 'arun'
 
 const allStudioThemes = () => [...builtinStudioThemes, ...savedThemes]
 
@@ -545,8 +563,49 @@ const renderThemeBuilderPreview = () => {
     quote.textContent = 'Generated voice removes friction. It does not remove the person.'
     content.append(quote)
   }
-  ;($('#theme-preview-person') as HTMLElement).hidden =
+  const previewPresenter = PREVIEW_PRESENTERS.find(
+    presenter => presenter.id === previewPresenterId,
+  ) || PREVIEW_PRESENTERS[0]
+  const previewPerson = $('#theme-preview-person')
+  const previewPersonImage = $('#theme-preview-presenter-image') as HTMLImageElement
+  previewPerson.classList.add('has-presenter-image')
+  previewPersonImage.src = previewPresenter.url
+  previewPersonImage.alt = `${previewPresenter.name}, sample presenter`
+  ;(previewPerson.querySelector('span') as HTMLElement).hidden = true
+  previewPerson.hidden =
     themePreviewKind !== 'video' && themePreviewKind !== 'title'
+
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-preview-presenter]')
+    .forEach(button => {
+      const active = button.dataset.previewPresenter === previewPresenterId
+      button.classList.toggle('active', active)
+      button.setAttribute('aria-pressed', String(active))
+    })
+}
+
+const renderPreviewPresenterPicker = () => {
+  const picker = $('#theme-presenter-picker')
+  picker.replaceChildren()
+  PREVIEW_PRESENTERS.forEach(presenter => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.dataset.previewPresenter = presenter.id
+    button.setAttribute('aria-label', `Preview with ${presenter.name}`)
+    button.setAttribute('aria-pressed', String(presenter.id === previewPresenterId))
+    button.className = presenter.id === previewPresenterId ? 'active' : ''
+    const image = document.createElement('img')
+    image.src = presenter.url
+    image.alt = ''
+    const label = document.createElement('span')
+    label.textContent = presenter.name
+    button.append(image, label)
+    button.addEventListener('click', () => {
+      previewPresenterId = presenter.id
+      renderThemeBuilderPreview()
+    })
+    picker.append(button)
+  })
 }
 
 const showThemePanel = (panel: 'library' | 'builder') => {
@@ -1888,6 +1947,7 @@ window.addEventListener('beforeunload', () => {
 queueMicrotask(() => {
   renderThemeLibrary()
   renderStudioThemeSelector()
+  renderPreviewPresenterPicker()
   syncThemeBuilderControls()
   renderThemeBuilderPreview()
   navigateToSurface(
