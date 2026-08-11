@@ -232,7 +232,7 @@ describe('compileProject', () => {
       '.scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }',
     )
     expect(result.html).toContain(
-      '.camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); translate: none; }',
+      '.camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: auto; width: 31%; height: calc(100% - 108px); border-radius: var(--video-radius); translate: none; }',
     )
     expect(result.html).toContain(
       '.scene-kind-code.layout-split { --content-layout-width: 100%; }',

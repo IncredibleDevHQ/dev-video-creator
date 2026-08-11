@@ -694,7 +694,7 @@ const buildCompositionHtml = (
     .scene.presenter-information-tile { --presenter-safe-width: 100%; padding-right: 560px; }
     .camera.presenter-portrait-overlay { top: 50%; right: 82px; width: 470px; height: 650px; translate: 0 -50%; }
     .scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }
-    .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); translate: none; }
+    .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: auto; width: 31%; height: calc(100% - 108px); border-radius: var(--video-radius); translate: none; }
     .scene.presenter-portrait-rail { --presenter-safe-width: 100%; padding-right: 700px; }
     .scene.presenter-portrait-rail .content { margin-left: 0; text-align: left; }
     .camera.camera-kind-code.presenter-portrait-rail { width: 23%; }

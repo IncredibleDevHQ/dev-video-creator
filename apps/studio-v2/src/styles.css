@@ -209,6 +209,8 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .presenter-layout-preset[data-camera-position='bottom-right'] .presenter-layout-person { right: 5px; bottom: 5px; }
 .presenter-layout-preset[data-camera-shape='circle'] .presenter-layout-person { border-radius: 50%; }
 .presenter-layout-preset[data-presenter-mode='portrait-rail'] .presenter-layout-person { top: 5px; right: 5px; bottom: 5px; width: 30%; height: auto; }
+#presenter-layout-grid[data-block-kind='code'] .presenter-layout-preset[data-presenter-mode='portrait-rail'] .presenter-layout-content { inset: 12px 30% 12px 6px; }
+#presenter-layout-grid[data-block-kind='code'] .presenter-layout-preset[data-presenter-mode='portrait-rail'] .presenter-layout-person { width: 23%; }
 .presenter-layout-preset[data-presenter-mode='split'] .presenter-layout-person { top: 0; right: 0; bottom: 0; width: 50%; height: auto; border: 0; border-radius: 0; }
 .presenter-layout-preset[data-presenter-mode='split'] .presenter-layout-content { right: 50%; }
 .presenter-layout-preset[data-presenter-mode^='person-background'] .presenter-layout-person, .presenter-layout-preset[data-presenter-mode='person-only'] .presenter-layout-person { inset: 0; width: auto; height: auto; border: 0; border-radius: 0; opacity: .72; }

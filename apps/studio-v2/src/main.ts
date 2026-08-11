@@ -1222,6 +1222,7 @@ const renderLayoutPresetPicker = (
 ) => {
   const contentGrid = $('#layout-preset-grid')
   const presenterGrid = $('#presenter-layout-grid')
+  presenterGrid.dataset.blockKind = scene.kind
   contentGrid.replaceChildren()
   presenterGrid.replaceChildren()
   const presenterSelected = selectedCanvasObject === 'presenter'
