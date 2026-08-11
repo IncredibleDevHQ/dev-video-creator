@@ -87,6 +87,7 @@ describe('compileProject', () => {
     ]
     const result = compileProject(withPresenter)
     expect(result.html).toContain('<video class="camera')
+    expect(result.html).toContain('camera-kind-title clip')
     expect(result.html).toContain('<audio data-start="0"')
   })
 
@@ -237,7 +238,13 @@ describe('compileProject', () => {
       '.scene-kind-code.layout-split { --content-layout-width: 100%; }',
     )
     expect(result.html).toContain(
-      '.scene-kind-code.layout-split pre { min-height: 500px; }',
+      '.scene-kind-code.layout-split pre { min-height: 660px; }',
+    )
+    expect(result.html).toContain(
+      '.camera.camera-kind-code.presenter-portrait-rail { width: 23%; }',
+    )
+    expect(result.html).toContain(
+      '.scene.scene-kind-code.presenter-portrait-rail { padding-right: 540px; padding-left: 72px; }',
     )
     expect(result.html).toContain(
       'width: min(100%, var(--content-layout-width), var(--presenter-safe-width))',

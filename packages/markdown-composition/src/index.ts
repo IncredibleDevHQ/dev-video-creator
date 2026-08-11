@@ -424,7 +424,7 @@ const buildCompositionHtml = (
           )
           const muted = track.audioKind === 'recorded-mic' && !audioUrl ? '' : ' muted'
           const video = videoUrl
-            ? `<video class="camera clip ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${cameraScale}" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${10 + trackIndex}" src="${escapeHtml(videoUrl)}"${muted} playsinline></video>`
+            ? `<video class="camera camera-kind-${scene.kind} clip ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${cameraScale}" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${10 + trackIndex}" src="${escapeHtml(videoUrl)}"${muted} playsinline></video>`
             : ''
           const audio = audioUrl
             ? `<audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${20 + trackIndex}" src="${escapeHtml(audioUrl)}"></audio>`
@@ -439,7 +439,7 @@ const buildCompositionHtml = (
         ? null
         : safeUrl(previewPresenter?.imageUrl)
       const previewPresenterMarkup = previewPresenterUrl
-        ? `<img class="camera preview-camera ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
+        ? `<img class="camera camera-kind-${scene.kind} preview-camera ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
         : ''
 
       return `<section
@@ -648,7 +648,7 @@ const buildCompositionHtml = (
     .layout-split .content { margin-left: 0; text-align: left; }
     .scene-kind-code.layout-split { --content-layout-width: 100%; }
     .scene-kind-code.layout-code pre { min-height: 540px; }
-    .scene-kind-code.layout-split pre { min-height: 500px; }
+    .scene-kind-code.layout-split pre { min-height: 660px; }
     .scene-kind-title.theme-render-split { --content-layout-width: 56%; }
     .scene-kind-title.theme-render-split .content { margin-left: 0; text-align: left; }
     .scene-kind-title.theme-render-lower-third { --content-layout-width: 72%; }
@@ -697,6 +697,8 @@ const buildCompositionHtml = (
     .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); translate: none; }
     .scene.presenter-portrait-rail { --presenter-safe-width: 100%; padding-right: 700px; }
     .scene.presenter-portrait-rail .content { margin-left: 0; text-align: left; }
+    .camera.camera-kind-code.presenter-portrait-rail { width: 23%; }
+    .scene.scene-kind-code.presenter-portrait-rail { padding-right: 540px; padding-left: 72px; }
     .camera.presenter-split { top: 0; right: 0; bottom: 0; width: 50%; height: 100%; border-radius: 0; }
     .scene.presenter-split { --presenter-safe-width: 100%; padding-right: 1040px; }
     .scene.presenter-split .content { margin-left: 0; text-align: left; }
