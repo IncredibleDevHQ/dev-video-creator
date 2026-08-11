@@ -79,6 +79,12 @@ export type BlockRenderConfigV1 = {
     shape: 'circle' | 'rounded-rectangle'
     scale: number
   }
+  appearance: {
+    layout: ThemeBlockLayout
+    render: ThemeBlockRendering
+    codeTheme: ThemeCodeSyntax
+    codeAnimation: ThemeCodeAnimation
+  }
 }
 
 export type HumanCameraTrackV1 = {
@@ -196,6 +202,12 @@ export type ThemeQuoteStyle =
   | 'framed'
   | 'minimal'
   | 'oversized'
+export type ThemeBlockRendering =
+  | ThemeTitleStyle
+  | ThemeContentStyle
+  | ThemeListStyle
+  | ThemeCodeStyle
+  | ThemeQuoteStyle
 export type ThemeSurfaceStyle = 'none' | 'outline' | 'card'
 
 export type StudioThemeV1 = {

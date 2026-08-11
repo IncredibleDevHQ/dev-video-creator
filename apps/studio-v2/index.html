@@ -207,8 +207,9 @@
                     <div class="director-workspace">
                       <nav class="director-rail" role="tablist" aria-label="Canvas controls">
                         <button type="button" class="active" data-director-tab="layout" role="tab" aria-selected="true"><span>▦</span>Layout</button>
+                        <button type="button" data-director-tab="style" role="tab" aria-selected="false"><span>◇</span>Style</button>
                         <button type="button" data-director-tab="background" role="tab" aria-selected="false"><span>■</span>Background</button>
-                        <button type="button" disabled title="User media controls are coming next"><span>♙</span>User media</button>
+                        <button type="button" data-director-tab="presenter" role="tab" aria-selected="false"><span>♙</span>Presenter</button>
                         <button type="button" disabled title="Logo placement is coming next"><span>✦</span>Logo</button>
                         <button type="button" disabled title="Lower thirds are coming next"><span>▤</span>Lower third</button>
                         <button type="button" data-director-tab="animation" role="tab" aria-selected="false"><span>↝</span>Transition</button>
@@ -220,6 +221,15 @@
                           <div id="alignment-control" class="alignment-control">
                             <span>Content alignment</span>
                             <div><button type="button" data-alignment-option="left">Left</button><button type="button" data-alignment-option="center">Center</button></div>
+                          </div>
+                        </section>
+                        <section id="director-style" class="director-section" aria-labelledby="director-style-title" hidden>
+                          <div class="director-section-heading"><div><span>Block design</span><h3 id="director-style-title">Direct the selected block</h3></div><small id="director-style-count">Per block</small></div>
+                          <div class="studio-style-group"><div class="studio-style-heading"><strong>Canvas placement</strong><small>Inside the presenter-safe area</small></div><div id="studio-placement-options" class="studio-choice-grid"></div></div>
+                          <div class="studio-style-group"><div class="studio-style-heading"><strong id="studio-render-heading">Rendering</strong><small>Block-specific treatment</small></div><div id="studio-render-options" class="studio-choice-grid"></div></div>
+                          <div id="studio-code-options" hidden>
+                            <div class="studio-style-group"><div class="studio-style-heading"><strong>VS Code theme</strong><small>Syntax palette</small></div><div id="studio-code-theme-options" class="studio-choice-grid code-theme-grid"></div></div>
+                            <div class="studio-style-group"><div class="studio-style-heading"><strong>Code motion</strong><small>Inside the editor frame</small></div><div id="studio-code-motion-options" class="studio-choice-grid"></div></div>
                           </div>
                         </section>
                         <section id="director-background" class="director-section" aria-labelledby="director-background-title" hidden>
@@ -234,13 +244,7 @@
                         </section>
                         <section id="director-animation" class="director-section" aria-labelledby="director-animation-title" hidden>
                           <div class="director-section-heading"><div><span>Motion</span><h3 id="director-animation-title">Choose a transition</h3></div><small id="director-animation-scope">Heading options</small></div>
-                          <div class="animation-preset-list">
-                            <button type="button" data-animation-option="none"><span class="motion-glyph">—</span><div><strong>Static</strong><small>No entrance motion</small></div></button>
-                            <button type="button" data-animation-option="fade"><span class="motion-glyph">◌</span><div><strong>Soft fade</strong><small>Quiet opacity reveal</small></div></button>
-                            <button type="button" data-animation-option="rise"><span class="motion-glyph">↑</span><div><strong>Rise</strong><small>Move up with easing</small></div></button>
-                            <button type="button" data-animation-option="type"><span class="motion-glyph">T</span><div><strong>Typewriter</strong><small>Progressive text reveal</small></div></button>
-                            <button type="button" data-animation-option="line-by-line"><span class="motion-glyph">≡</span><div><strong>Line reveal</strong><small>Best for code and lists</small></div></button>
-                          </div>
+                          <div id="studio-motion-options" class="animation-preset-list"></div>
                           <button id="replay-animation" type="button" class="button secondary wide">Replay transition</button>
                         </section>
                         <div class="director-footer">

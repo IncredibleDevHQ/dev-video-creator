@@ -21,6 +21,7 @@ import {
   type StudioThemeV1,
   type ThemeBlockKind,
   type ThemeBlockLayout,
+  type ThemeBlockRendering,
   type ThemeCanvasTreatment,
   type ThemeCodeAnimation,
   type ThemeCodeSyntax,
@@ -462,6 +463,13 @@ const presenterPresetForMode = (mode: PresenterLayoutMode) =>
   PRESENTER_LAYOUT_PRESETS.find(preset => preset.mode === mode) ||
   PRESENTER_LAYOUT_PRESETS[0]
 
+const appearanceFromTheme = (kind: ThemeBlockKind, theme: StudioThemeV1) => ({
+  layout: theme.blocks.layout[kind],
+  render: theme.blocks[kind] as ThemeBlockRendering,
+  codeTheme: theme.blocks.codeTheme,
+  codeAnimation: theme.blocks.codeAnimation,
+})
+
 const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
   project.theme = cloneTheme(normalizeStudioTheme(theme))
   project.brand = { ...project.theme.brand }
@@ -478,7 +486,9 @@ const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
       config.camera.shape = preset.shape
       const node = nodesById.get(config.nodeId)
       if (node) {
-        config.reveal = project.theme!.motion[directorKindForNode(node)]
+        const kind = directorKindForNode(node)
+        config.reveal = project.theme!.motion[kind]
+        config.appearance = appearanceFromTheme(kind, project.theme!)
       }
     })
   }
@@ -1045,9 +1055,13 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
     activeIds.add(nodeId)
     if (!project.blocks[nodeId]) {
       project.blocks[nodeId] = createDefaultBlockConfig(nodeId, node)
+      const kind = directorKindForNode(node)
       project.blocks[nodeId].reveal =
-        project.theme?.motion[directorKindForNode(node)] ||
+        project.theme?.motion[kind] ||
         project.blocks[nodeId].reveal
+      if (project.theme) {
+        project.blocks[nodeId].appearance = appearanceFromTheme(kind, project.theme)
+      }
     }
     const config = project.blocks[nodeId]
     const fallback = createDefaultBlockConfig(nodeId, node)
@@ -1059,6 +1073,11 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
     }
     if (!config.camera.mode) {
       config.camera.mode = fallback.camera.mode
+    }
+    if (!config.appearance) {
+      config.appearance = project.theme
+        ? appearanceFromTheme(directorKindForNode(node), project.theme)
+        : fallback.appearance
     }
     const options = DIRECTOR_OPTIONS[directorKindForNode(node)]
     if (!options.layouts.includes(config.layout)) {
@@ -1221,6 +1240,143 @@ const renderLayoutPresetPicker = (
   )
 }
 
+const createStudioChoiceButton = <Value extends string>(
+  option: CatalogOption<Value>,
+  activeValue: string,
+  onSelect: () => void,
+  codeTheme = false,
+) => {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = option.value === activeValue ? 'active' : ''
+  button.setAttribute('aria-pressed', String(option.value === activeValue))
+  const glyph = document.createElement('span')
+  glyph.className = 'studio-choice-glyph'
+  if (codeTheme) {
+    glyph.classList.add('studio-code-theme-swatch')
+    glyph.style.background = CODE_THEME_SURFACES[option.value as ThemeCodeSyntax]
+    glyph.style.color = option.glyph
+    glyph.textContent = '{ }'
+  } else {
+    glyph.textContent = option.glyph
+  }
+  const copy = document.createElement('span')
+  const label = document.createElement('strong')
+  label.textContent = option.label
+  const description = document.createElement('small')
+  description.textContent = option.description
+  copy.append(label, description)
+  button.append(glyph, copy)
+  button.addEventListener('click', onSelect)
+  return button
+}
+
+const renderStudioStyleControls = (
+  scene: Scene,
+  config: BlockRenderConfigV1,
+) => {
+  const placementGrid = $('#studio-placement-options')
+  placementGrid.replaceChildren(
+    ...BLOCK_LAYOUT_OPTIONS.map(option =>
+      createStudioChoiceButton(
+        option,
+        config.appearance.layout,
+        () => updateSelectedConfig(blockConfig => {
+          blockConfig.appearance.layout = option.value
+        }),
+      ),
+    ),
+  )
+  const renderGrid = $('#studio-render-options')
+  renderGrid.replaceChildren(
+    ...BLOCK_RENDER_OPTIONS[scene.kind].map(option =>
+      createStudioChoiceButton(
+        option,
+        config.appearance.render,
+        () => updateSelectedConfig(blockConfig => {
+          blockConfig.appearance.render = option.value
+        }),
+      ),
+    ),
+  )
+  ;($('#studio-render-heading') as HTMLElement).textContent =
+    `${BLOCK_KIND_META[scene.kind].label.replace(' system', '')} rendering`
+  const codeOptions = $('#studio-code-options')
+  codeOptions.hidden = scene.kind !== 'code'
+  if (scene.kind === 'code') {
+    const syntaxGrid = $('#studio-code-theme-options')
+    syntaxGrid.replaceChildren(
+      ...CODE_THEME_OPTIONS.map(option =>
+        createStudioChoiceButton(
+          option,
+          config.appearance.codeTheme,
+          () => updateSelectedConfig(blockConfig => {
+            blockConfig.appearance.codeTheme = option.value
+          }),
+          true,
+        ),
+      ),
+    )
+    const codeMotionGrid = $('#studio-code-motion-options')
+    codeMotionGrid.replaceChildren(
+      ...CODE_ANIMATION_OPTIONS.map(option =>
+        createStudioChoiceButton(
+          option,
+          config.appearance.codeAnimation,
+          () => {
+            replayAnimationOnReady = true
+            updateSelectedConfig(blockConfig => {
+              blockConfig.appearance.codeAnimation = option.value
+            })
+          },
+        ),
+      ),
+    )
+  }
+  const motions = DIRECTOR_OPTIONS[scene.kind].animations.length
+  const codeMultiplier = scene.kind === 'code'
+    ? CODE_THEME_OPTIONS.length * CODE_ANIMATION_OPTIONS.length
+    : 1
+  ;($('#director-style-count') as HTMLElement).textContent =
+    `${BLOCK_LAYOUT_OPTIONS.length * BLOCK_RENDER_OPTIONS[scene.kind].length * motions * codeMultiplier} combinations`
+}
+
+const renderStudioMotionControls = (
+  scene: Scene,
+  config: BlockRenderConfigV1,
+) => {
+  const available = DIRECTOR_OPTIONS[scene.kind].animations
+  const container = $('#studio-motion-options')
+  container.replaceChildren(
+    ...MOTION_OPTIONS.filter(option => available.includes(option.value)).map(
+      option => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.dataset.animationOption = option.value
+        button.className = option.value === config.reveal ? 'active' : ''
+        button.setAttribute('aria-pressed', String(option.value === config.reveal))
+        const glyph = document.createElement('span')
+        glyph.className = 'motion-glyph'
+        glyph.textContent = option.glyph
+        const copy = document.createElement('div')
+        const label = document.createElement('strong')
+        label.textContent = option.label
+        const description = document.createElement('small')
+        description.textContent = option.description
+        copy.append(label, description)
+        button.append(glyph, copy)
+        button.addEventListener('click', () => {
+          replayAnimationOnReady = true
+          updateSelectedConfig(blockConfig => {
+            blockConfig.reveal = option.value
+          })
+        })
+        return button
+      },
+    ),
+  )
+}
+
 const renderBackgroundPresets = (config: BlockRenderConfigV1) => {
   const grid = $('#background-preset-grid')
   grid.replaceChildren()
@@ -1291,6 +1447,8 @@ const updateInspector = () => {
       button.setAttribute('aria-pressed', String(isActive))
     })
   renderLayoutPresetPicker(scene, config)
+  renderStudioStyleControls(scene, config)
+  renderStudioMotionControls(scene, config)
   renderBackgroundPresets(config)
   document
     .querySelectorAll<HTMLButtonElement>('[data-animation-option]')
@@ -1441,6 +1599,10 @@ document
   .forEach(button => {
     button.addEventListener('click', () => {
       const selectedTab = button.dataset.directorTab
+      if (selectedTab === 'presenter') selectedCanvasObject = 'presenter'
+      if (selectedTab === 'layout' || selectedTab === 'style') {
+        selectedCanvasObject = 'content'
+      }
       document
         .querySelectorAll<HTMLButtonElement>('[data-director-tab]')
         .forEach(tab => {
@@ -1448,11 +1610,14 @@ document
           tab.classList.toggle('active', isActive)
           tab.setAttribute('aria-selected', String(isActive))
         })
-      ;($('#director-layout') as HTMLElement).hidden = selectedTab !== 'layout'
+      ;($('#director-layout') as HTMLElement).hidden =
+        selectedTab !== 'layout' && selectedTab !== 'presenter'
+      ;($('#director-style') as HTMLElement).hidden = selectedTab !== 'style'
       ;($('#director-background') as HTMLElement).hidden =
         selectedTab !== 'background'
       ;($('#director-animation') as HTMLElement).hidden =
         selectedTab !== 'animation'
+      updateInspector()
     })
   })
 
@@ -1504,17 +1669,6 @@ document
     })
   },
 )
-
-document
-  .querySelectorAll<HTMLButtonElement>('[data-animation-option]')
-  .forEach(button => {
-    button.addEventListener('click', () => {
-      replayAnimationOnReady = true
-      updateSelectedConfig(config => {
-        config.reveal = button.dataset.animationOption as RevealStyle
-      })
-    })
-  })
 
 document
   .querySelectorAll<HTMLButtonElement>('[data-alignment-option]')

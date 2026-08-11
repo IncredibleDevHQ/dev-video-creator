@@ -270,4 +270,25 @@ describe('compileProject', () => {
     expect(result.html).toContain('filter: "blur(24px)"')
     expect(result.html).toContain('ease: "back.out(1.7)"')
   })
+
+  it('keeps Studio appearance choices scoped to the selected Markdown block', () => {
+    const directed = project()
+    directed.blocks.intro.appearance.layout = 'split-left'
+    directed.blocks.intro.appearance.render = 'gradient'
+    directed.blocks.body.appearance.layout = 'right'
+    directed.blocks.body.appearance.render = 'card'
+    directed.blocks.body.appearance.codeTheme = 'monokai'
+    directed.blocks.body.appearance.codeAnimation = 'highlight-lines'
+
+    const result = compileProject(directed)
+    expect(result.html).toContain(
+      'theme-layout-split-left theme-render-gradient',
+    )
+    expect(result.html).toContain('theme-layout-right theme-render-card')
+    expect(result.html).toContain(
+      'code-theme-monokai code-animation-highlight-lines',
+    )
+    expect(result.html).toContain('data-render-style="gradient"')
+    expect(result.html).toContain('data-block-layout="right"')
+  })
 })

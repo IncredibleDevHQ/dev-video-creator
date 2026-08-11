@@ -5,10 +5,11 @@ import type {
   ProjectDocumentV1,
   Scene,
   SceneLayout,
+  ThemeBlockRendering,
   TiptapMark,
   TiptapNode,
 } from './types'
-import { defaultBrand, normalizeStudioTheme } from './themes'
+import { defaultBrand, defaultThemeBlocks, normalizeStudioTheme } from './themes'
 
 export * from './types'
 export * from './themes'
@@ -25,6 +26,24 @@ const defaultLayoutForNode = (node: TiptapNode): SceneLayout => {
   if (node.type === 'heading' && node.attrs?.level === 1) return 'title'
   if (node.type === 'codeBlock') return 'code'
   return 'prose'
+}
+
+const defaultAppearanceForNode = (node: TiptapNode) => {
+  const kind = node.type === 'heading'
+    ? 'title'
+    : node.type === 'codeBlock'
+      ? 'code'
+      : node.type === 'bulletList' || node.type === 'orderedList'
+        ? 'list'
+        : node.type === 'blockquote'
+          ? 'quote'
+          : 'content'
+  return {
+    layout: defaultThemeBlocks.layout[kind],
+    render: defaultThemeBlocks[kind] as ThemeBlockRendering,
+    codeTheme: defaultThemeBlocks.codeTheme,
+    codeAnimation: defaultThemeBlocks.codeAnimation,
+  }
 }
 
 export const createDefaultBlockConfig = (
@@ -46,6 +65,7 @@ export const createDefaultBlockConfig = (
     shape: 'circle',
     scale: 1,
   },
+  appearance: defaultAppearanceForNode(node),
 })
 
 const allowedValue = <Value extends string>(
@@ -145,6 +165,28 @@ const normalizeBlockConfig = (
       scale: Number.isFinite(supplied.camera?.scale)
         ? supplied.camera.scale
         : fallback.camera.scale,
+    },
+    appearance: {
+      layout: allowedValue(
+        supplied.appearance?.layout,
+        ['center', 'left', 'right', 'upper', 'lower', 'split-left', 'split-right', 'full'] as const,
+        fallback.appearance.layout,
+      ),
+      render: allowedValue(
+        supplied.appearance?.render,
+        ['statement', 'split', 'lower-third', 'editorial', 'framed', 'gradient', 'outline', 'highlight', 'compact', 'card', 'columns', 'lede', 'callout', 'caption', 'bullets', 'cards', 'timeline', 'steps', 'pills', 'checklist', 'number-grid', 'spotlight', 'panel', 'terminal', 'full', 'editor', 'glass', 'minimal', 'paper', 'bar', 'pull', 'speech', 'oversized'] as const,
+        fallback.appearance.render,
+      ),
+      codeTheme: allowedValue(
+        supplied.appearance?.codeTheme,
+        ['light_vs', 'light_plus', 'quietlight', 'solarized_light', 'abyss', 'dark_vs', 'dark_plus', 'kimbie_dark', 'monokai', 'monokai_dimmed', 'red', 'solarized_dark', 'tomorrow_night_blue', 'hc_black'] as const,
+        fallback.appearance.codeTheme,
+      ),
+      codeAnimation: allowedValue(
+        supplied.appearance?.codeAnimation,
+        ['type-lines', 'highlight-lines'] as const,
+        fallback.appearance.codeAnimation,
+      ),
     },
   }
 }
@@ -392,12 +434,14 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} theme-layout-${theme.blocks.layout[scene.kind]} theme-render-${theme.blocks[scene.kind]} code-theme-${theme.blocks.codeTheme} code-animation-${theme.blocks.codeAnimation}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
         data-node-id="${escapeHtml(scene.id)}"
         data-reveal="${scene.config.reveal}"
+        data-render-style="${scene.config.appearance.render}"
+        data-block-layout="${scene.config.appearance.layout}"
         data-background-preset="${scene.config.background.preset}"
         style="--scene-background:${escapeHtml(
           backgroundValue(
@@ -474,7 +518,7 @@ const buildCompositionHtml = (
           entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
       }
       if (scene.kind !== 'code') return entrance
-      const codeMotion = theme.blocks.codeAnimation === 'highlight-lines'
+      const codeMotion = scene.config.appearance.codeAnimation === 'highlight-lines'
         ? ` tl.set(${sequenceSelector}, { opacity: 0.24 }, ${start + 0.28}); tl.to(${sequenceSelector}, { opacity: 1, duration: 0.38, stagger: 0.55, ease: "power2.inOut" }, ${start + 0.32});`
         : ` tl.fromTo(${sequenceSelector}, { opacity: 0, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)", duration: 0.62, stagger: 0.3, ease: "steps(12)" }, ${start + 0.24});`
       return `${entrance}${codeMotion}`
@@ -518,15 +562,15 @@ const buildCompositionHtml = (
     h1 { font-size: 124px; } h2 { font-size: 94px; } h3 { font-size: 74px; }
     p, li, blockquote { max-width: 100%; font-size: 55px; line-height: 1.24; letter-spacing: -.025em; overflow-wrap: anywhere; }
     p { margin: 0 0 28px; } ul, ol { margin: 0; padding-left: 1.1em; } li { margin: 0 0 22px; padding-left: .25em; }
-    #composition[data-list-style="bullets"] .scene-kind-list li::marker { color: var(--accent); }
-    #composition[data-list-style="cards"] .scene-kind-list ul, #composition[data-list-style="cards"] .scene-kind-list ol { padding: 0; display: grid; gap: 18px; list-style: none; }
-    #composition[data-list-style="cards"] .scene-kind-list li { margin: 0; padding: 27px 34px; border: 2px solid color-mix(in srgb, var(--accent) 66%, transparent); border-radius: var(--block-radius); background: color-mix(in srgb, var(--surface) 86%, transparent); }
-    #composition[data-list-style="timeline"] .scene-kind-list ul, #composition[data-list-style="timeline"] .scene-kind-list ol { padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 26px; list-style: none; counter-reset: theme-step; }
-    #composition[data-list-style="timeline"] .scene-kind-list li { margin: 0; padding-top: 86px; position: relative; font-size: 36px; text-align: center; counter-increment: theme-step; }
-    #composition[data-list-style="timeline"] .scene-kind-list li::before { content: counter(theme-step); position: absolute; top: 0; left: 50%; width: 64px; height: 64px; translate: -50% 0; display: grid; place-items: center; border-radius: 50%; background: var(--brand-gradient); color: white; font-size: 24px; font-weight: 800; }
-    #composition[data-list-style="steps"] .scene-kind-list ol, #composition[data-list-style="steps"] .scene-kind-list ul { padding: 0; list-style: none; counter-reset: theme-step; }
-    #composition[data-list-style="steps"] .scene-kind-list li { position: relative; margin-bottom: 28px; padding-left: 88px; counter-increment: theme-step; }
-    #composition[data-list-style="steps"] .scene-kind-list li::before { content: counter(theme-step, decimal-leading-zero); position: absolute; left: 0; color: var(--primary); font-weight: 800; }
+    .scene-kind-list.theme-render-bullets li::marker { color: var(--accent); }
+    .scene-kind-list.theme-render-cards ul, .scene-kind-list.theme-render-cards ol { padding: 0; display: grid; gap: 18px; list-style: none; }
+    .scene-kind-list.theme-render-cards li { margin: 0; padding: 27px 34px; border: 2px solid color-mix(in srgb, var(--accent) 66%, transparent); border-radius: var(--block-radius); background: color-mix(in srgb, var(--surface) 86%, transparent); }
+    .scene-kind-list.theme-render-timeline ul, .scene-kind-list.theme-render-timeline ol { padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 26px; list-style: none; counter-reset: theme-step; }
+    .scene-kind-list.theme-render-timeline li { margin: 0; padding-top: 86px; position: relative; font-size: 36px; text-align: center; counter-increment: theme-step; }
+    .scene-kind-list.theme-render-timeline li::before { content: counter(theme-step); position: absolute; top: 0; left: 50%; width: 64px; height: 64px; translate: -50% 0; display: grid; place-items: center; border-radius: 50%; background: var(--brand-gradient); color: white; font-size: 24px; font-weight: 800; }
+    .scene-kind-list.theme-render-steps ol, .scene-kind-list.theme-render-steps ul { padding: 0; list-style: none; counter-reset: theme-step; }
+    .scene-kind-list.theme-render-steps li { position: relative; margin-bottom: 28px; padding-left: 88px; counter-increment: theme-step; }
+    .scene-kind-list.theme-render-steps li::before { content: counter(theme-step, decimal-leading-zero); position: absolute; left: 0; color: var(--primary); font-weight: 800; }
     .scene-kind-list.theme-render-pills ul, .scene-kind-list.theme-render-pills ol { display: flex; flex-wrap: wrap; gap: 20px; padding: 0; list-style: none; }
     .scene-kind-list.theme-render-pills li { margin: 0; padding: 18px 30px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
     .scene-kind-list.theme-render-checklist ul, .scene-kind-list.theme-render-checklist ol { padding: 0; list-style: none; }
@@ -541,8 +585,8 @@ const buildCompositionHtml = (
     .scene-kind-list.theme-render-compact li { margin-bottom: 10px; font-size: 42px; line-height: 1.15; }
     strong { color: var(--accent); } a { color: var(--accent); text-decoration: none; }
     blockquote { margin: 0; padding: 16px 0 16px 40px; border-left: 12px solid var(--primary); color: var(--muted); }
-    #composition[data-quote-style="card"] blockquote { padding: 48px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
-    #composition[data-quote-style="statement"] blockquote { padding: 0; border: 0; color: var(--text); font-size: 76px; font-weight: 750; }
+    .scene-kind-quote.theme-render-card blockquote { padding: 48px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
+    .scene-kind-quote.theme-render-statement blockquote { padding: 0; border: 0; color: var(--text); font-size: 76px; font-weight: 750; }
     .scene-kind-quote.theme-render-pull blockquote { position: relative; padding: 40px 0 0 112px; border: 0; color: var(--text); font-size: 70px; }
     .scene-kind-quote.theme-render-pull blockquote::before { content: "“"; position: absolute; left: 0; top: -28px; color: var(--primary); font-size: 170px; line-height: 1; }
     .scene-kind-quote.theme-render-speech blockquote { position: relative; padding: 54px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
@@ -572,11 +616,10 @@ const buildCompositionHtml = (
     .code-theme-solarized_dark { --code-theme-bg:#002b36; --code-theme-text:#839496; --code-theme-keyword:#859900; --code-theme-variable:#268bd2; --code-theme-function:#b58900; --code-theme-string:#2aa198; --code-theme-number:#d33682; --code-theme-comment:#586e75; }
     .code-theme-tomorrow_night_blue { --code-theme-bg:#002451; --code-theme-text:#fff; --code-theme-keyword:#ff9da4; --code-theme-variable:#ffc58f; --code-theme-function:#d1f1a9; --code-theme-string:#ffeead; --code-theme-number:#bbdaff; --code-theme-comment:#7285b7; }
     .code-theme-hc_black { --code-theme-bg:#000; --code-theme-text:#fff; --code-theme-keyword:#c586c0; --code-theme-variable:#9cddfe; --code-theme-function:#ffff00; --code-theme-string:#ce9178; --code-theme-number:#b5cea8; --code-theme-comment:#7ca668; }
-    #composition[data-code-style="terminal"] pre { border: 3px solid var(--accent); border-image: var(--brand-gradient) 1; }
-    #composition[data-code-style="terminal"] pre::before { content: "●  ●  ●"; display: block; margin-bottom: 30px; color: var(--primary); font: 22px/1 ui-monospace, monospace; letter-spacing: .35em; }
-    #composition[data-code-style="full"] .scene-kind-code { padding: 72px; }
-    #composition[data-code-style="full"] .scene-kind-code { --content-layout-width: 100%; }
-    #composition[data-code-style="full"] .scene-kind-code .content, #composition[data-code-style="full"] .scene-kind-code pre { height: 100%; }
+    .scene-kind-code.theme-render-terminal pre { border: 3px solid var(--accent); border-image: var(--brand-gradient) 1; }
+    .scene-kind-code.theme-render-terminal pre::before { content: "●  ●  ●"; display: block; margin-bottom: 30px; color: var(--primary); font: 22px/1 ui-monospace, monospace; letter-spacing: .35em; }
+    .scene-kind-code.theme-render-full { padding: 72px; --content-layout-width: 100%; }
+    .scene-kind-code.theme-render-full .content, .scene-kind-code.theme-render-full pre { height: 100%; }
     .scene-kind-code.theme-render-editor pre::before { content: "index.ts   README.md   package.json"; display: block; margin: -54px -54px 36px; padding: 22px 32px; background: color-mix(in srgb, var(--surface) 9%, var(--code)); color: var(--muted); font: 20px/1 ui-monospace, monospace; }
     .scene-kind-code.theme-render-glass pre { border: 2px solid color-mix(in srgb, white 34%, transparent); background: color-mix(in srgb, var(--code) 78%, transparent); backdrop-filter: blur(28px); }
     .scene-kind-code.theme-render-minimal pre { padding: 20px 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--text); }
@@ -591,10 +634,10 @@ const buildCompositionHtml = (
     .layout-code { --content-layout-width: 1650px; }
     .layout-split { --content-layout-width: 58%; }
     .layout-split .content { margin-left: 0; text-align: left; }
-    #composition[data-title-style="split"] .scene-kind-title { --content-layout-width: 56%; }
-    #composition[data-title-style="split"] .scene-kind-title .content { margin-left: 0; text-align: left; }
-    #composition[data-title-style="lower-third"] .scene-kind-title { --content-layout-width: 72%; }
-    #composition[data-title-style="lower-third"] .scene-kind-title .content { align-self: end; margin: 0 0 44px; text-align: left; }
+    .scene-kind-title.theme-render-split { --content-layout-width: 56%; }
+    .scene-kind-title.theme-render-split .content { margin-left: 0; text-align: left; }
+    .scene-kind-title.theme-render-lower-third { --content-layout-width: 72%; }
+    .scene-kind-title.theme-render-lower-third .content { align-self: end; margin: 0 0 44px; text-align: left; }
     .scene-kind-title.theme-render-editorial h1, .scene-kind-title.theme-render-editorial h2 { max-width: 13ch; font-family: Georgia, serif; font-weight: 500; letter-spacing: -.04em; }
     .scene-kind-title.theme-render-framed .content { padding: 64px; border: 4px solid var(--accent); border-radius: var(--block-radius); }
     .scene-kind-title.theme-render-gradient h1, .scene-kind-title.theme-render-gradient h2 { background: var(--brand-gradient); background-clip: text; color: transparent; }
@@ -650,8 +693,8 @@ const buildCompositionHtml = (
     .scene.presenter-person-background-right .content { margin-right: 0; margin-left: auto; text-align: left; }
     .scene.presenter-portrait-overlay h1, .scene.presenter-portrait-overlay h2, .scene.presenter-portrait-rail h1, .scene.presenter-portrait-rail h2, .scene.presenter-split h1, .scene.presenter-split h2, .scene.presenter-person-background-left h1, .scene.presenter-person-background-left h2, .scene.presenter-person-background-right h1, .scene.presenter-person-background-right h2 { font-size: 104px; }
     .scene.presenter-portrait-overlay p, .scene.presenter-portrait-overlay li, .scene.presenter-portrait-rail p, .scene.presenter-portrait-rail li, .scene.presenter-split p, .scene.presenter-split li, .scene.presenter-person-background-left p, .scene.presenter-person-background-left li, .scene.presenter-person-background-right p, .scene.presenter-person-background-right li { font-size: 46px; }
-    #composition[data-list-style="timeline"] .scene.presenter-information-circle ul, #composition[data-list-style="timeline"] .scene.presenter-information-circle ol, #composition[data-list-style="timeline"] .scene.presenter-information-tile ul, #composition[data-list-style="timeline"] .scene.presenter-information-tile ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    #composition[data-list-style="timeline"] .scene.presenter-portrait-overlay ul, #composition[data-list-style="timeline"] .scene.presenter-portrait-overlay ol, #composition[data-list-style="timeline"] .scene.presenter-portrait-rail ul, #composition[data-list-style="timeline"] .scene.presenter-portrait-rail ol, #composition[data-list-style="timeline"] .scene.presenter-split ul, #composition[data-list-style="timeline"] .scene.presenter-split ol, #composition[data-list-style="timeline"] .scene.presenter-person-background-left ul, #composition[data-list-style="timeline"] .scene.presenter-person-background-left ol, #composition[data-list-style="timeline"] .scene.presenter-person-background-right ul, #composition[data-list-style="timeline"] .scene.presenter-person-background-right ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .scene.theme-render-timeline.presenter-information-circle ul, .scene.theme-render-timeline.presenter-information-circle ol, .scene.theme-render-timeline.presenter-information-tile ul, .scene.theme-render-timeline.presenter-information-tile ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .scene.theme-render-timeline.presenter-portrait-overlay ul, .scene.theme-render-timeline.presenter-portrait-overlay ol, .scene.theme-render-timeline.presenter-portrait-rail ul, .scene.theme-render-timeline.presenter-portrait-rail ol, .scene.theme-render-timeline.presenter-split ul, .scene.theme-render-timeline.presenter-split ol, .scene.theme-render-timeline.presenter-person-background-left ul, .scene.theme-render-timeline.presenter-person-background-left ol, .scene.theme-render-timeline.presenter-person-background-right ul, .scene.theme-render-timeline.presenter-person-background-right ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .scene.presenter-portrait-overlay pre code, .scene.presenter-portrait-rail pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: 32px; }
     .scene.presenter-person-only > * { display: none; }
     .camera-hidden { display: none; }
