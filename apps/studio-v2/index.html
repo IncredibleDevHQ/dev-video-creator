@@ -93,6 +93,19 @@
                 <label>Code<select id="theme-code-style"><option value="panel">Code panel</option><option value="terminal">Gradient terminal</option><option value="full">Full canvas</option></select></label>
                 <label>Quotes<select id="theme-quote-style"><option value="bar">Accent bar</option><option value="card">Quote card</option><option value="statement">Statement</option></select></label>
               </section>
+              <section class="theme-motion-control">
+                <span class="builder-step">05 · Motion system</span>
+                <div class="theme-motion-heading"><div><strong id="theme-motion-title">Title transition</strong><small id="theme-motion-description">Plays in the live preview</small></div><span>Seekable</span></div>
+                <div id="theme-motion-options" class="theme-motion-options" role="group" aria-label="Theme transition">
+                  <button type="button" data-theme-motion="none"><span>—</span><strong>Static</strong></button>
+                  <button type="button" data-theme-motion="fade"><span>◌</span><strong>Fade</strong></button>
+                  <button type="button" data-theme-motion="rise"><span>↑</span><strong>Rise</strong></button>
+                  <button type="button" data-theme-motion="type"><span>T</span><strong>Type</strong></button>
+                  <button type="button" data-theme-motion="line-by-line"><span>≡</span><strong>Sequence</strong></button>
+                </div>
+                <button id="replay-theme-motion" type="button" class="button secondary wide">Replay transition</button>
+                <small class="theme-motion-note">Choose a preview tab to set the default motion for that Markdown block type.</small>
+              </section>
             </aside>
 
             <section class="builder-preview-area" aria-labelledby="builder-preview-title">
@@ -106,7 +119,7 @@
                 <footer><span class="theme-preview-mark"><img id="theme-preview-logo" alt="" hidden /><span id="theme-preview-fallback-mark">✦ incredible</span></span><span id="theme-preview-name">My brand</span></footer>
               </div>
               <div id="theme-preview-tabs" class="theme-preview-tabs" role="tablist" aria-label="Preview Markdown block type">
-                <button class="active" type="button" data-theme-preview="title">Title</button><button type="button" data-theme-preview="list">Points</button><button type="button" data-theme-preview="code">Code</button><button type="button" data-theme-preview="quote">Quote</button><button type="button" data-theme-preview="video">Video</button>
+                <button class="active" type="button" data-theme-preview="title">Title</button><button type="button" data-theme-preview="content">Text</button><button type="button" data-theme-preview="list">Points</button><button type="button" data-theme-preview="code">Code</button><button type="button" data-theme-preview="quote">Quote</button><button type="button" data-theme-preview="video">Video</button>
               </div>
               <div class="builder-direction-heading"><div><span class="eyebrow">Generated directions</span><h2>Pick a direction, then make it yours</h2></div><small id="generated-provider">Start from your brand color</small></div>
               <div id="generated-theme-grid" class="generated-theme-grid"></div>

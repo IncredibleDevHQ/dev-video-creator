@@ -354,6 +354,11 @@ const handleThemeGeneration = async (
             'quoteStyle',
             'surfaceStyle',
             'blockBorderRadius',
+            'titleMotion',
+            'contentMotion',
+            'listMotion',
+            'codeMotion',
+            'quoteMotion',
           ],
           properties: {
             name: { type: 'string' },
@@ -395,6 +400,13 @@ const handleThemeGeneration = async (
             quoteStyle: { enum: ['bar', 'card', 'statement'] },
             surfaceStyle: { enum: ['none', 'outline', 'card'] },
             blockBorderRadius: { type: 'number', minimum: 0, maximum: 80 },
+            titleMotion: { enum: ['none', 'fade', 'rise', 'type'] },
+            contentMotion: { enum: ['none', 'fade', 'rise', 'type'] },
+            listMotion: { enum: ['none', 'fade', 'rise', 'line-by-line'] },
+            codeMotion: {
+              enum: ['none', 'fade', 'rise', 'type', 'line-by-line'],
+            },
+            quoteMotion: { enum: ['none', 'fade', 'rise', 'type'] },
           },
         },
       },
@@ -410,7 +422,7 @@ const handleThemeGeneration = async (
       },
       body: JSON.stringify({
         model: process.env.OPENAI_THEME_MODEL || 'gpt-5.6-luna',
-        input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its supplied palette is primary ${brandColor}, secondary ${secondaryColor}, accent ${accentColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Preserve a coherent multi-color palette while varying tonal use. Maintain accessible text contrast. Treat each result as a coherent recipe for title, Markdown lists, code, quotes and real human camera framing. Video layout semantics: information-circle and information-tile keep content dominant; portrait-overlay and portrait-rail balance the person with content; split uses equal space; person-background-left/right put the real person full-frame with information overlaid on the named side; person-only is full camera. Avoid cosmetic variations of the same idea.`,
+        input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its supplied palette is primary ${brandColor}, secondary ${secondaryColor}, accent ${accentColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Preserve a coherent multi-color palette while varying tonal use. Maintain accessible text contrast. Treat each result as a coherent recipe for title, Markdown lists, code, quotes, motion and real human camera framing. Motion semantics: fade is quiet, rise is energetic, type progressively reveals text, and line-by-line sequences list items or code lines. Video layout semantics: information-circle and information-tile keep content dominant; portrait-overlay and portrait-rail balance the person with content; split uses equal space; person-background-left/right put the real person full-frame with information overlaid on the named side; person-only is full camera. Avoid cosmetic variations of the same idea.`,
         reasoning: { effort: 'low' },
         text: {
           format: {
@@ -468,6 +480,13 @@ const handleThemeGeneration = async (
             quote: item.quoteStyle as StudioThemeV1['blocks']['quote'],
             surface: item.surfaceStyle as StudioThemeV1['blocks']['surface'],
             borderRadius: Number(item.blockBorderRadius),
+          },
+          motion: {
+            title: item.titleMotion as StudioThemeV1['motion']['title'],
+            content: item.contentMotion as StudioThemeV1['motion']['content'],
+            list: item.listMotion as StudioThemeV1['motion']['list'],
+            code: item.codeMotion as StudioThemeV1['motion']['code'],
+            quote: item.quoteMotion as StudioThemeV1['motion']['quote'],
           },
         },
         fallback[index]?.brand,

@@ -51,6 +51,55 @@ const PREVIEW_PRESENTERS = [
 ] as const
 
 type PreviewPresenterId = (typeof PREVIEW_PRESENTERS)[number]['id']
+type ThemePreviewKind = 'title' | 'content' | 'list' | 'code' | 'quote' | 'video'
+type ThemeMotionKind = keyof StudioThemeV1['motion']
+
+const THEME_MOTION_META: Record<
+  ThemePreviewKind,
+  {
+    motionKind: ThemeMotionKind
+    label: string
+    description: string
+    options: RevealStyle[]
+  }
+> = {
+  title: {
+    motionKind: 'title',
+    label: 'Title transition',
+    description: 'How a new section enters',
+    options: ['none', 'fade', 'rise', 'type'],
+  },
+  content: {
+    motionKind: 'content',
+    label: 'Text transition',
+    description: 'How explanatory copy enters',
+    options: ['none', 'fade', 'rise', 'type'],
+  },
+  list: {
+    motionKind: 'list',
+    label: 'Point transition',
+    description: 'Reveal all points or sequence them',
+    options: ['none', 'fade', 'rise', 'line-by-line'],
+  },
+  code: {
+    motionKind: 'code',
+    label: 'Code transition',
+    description: 'Type or reveal code line by line',
+    options: ['none', 'fade', 'rise', 'type', 'line-by-line'],
+  },
+  quote: {
+    motionKind: 'quote',
+    label: 'Quote transition',
+    description: 'Give the statement an entrance',
+    options: ['none', 'fade', 'rise', 'type'],
+  },
+  video: {
+    motionKind: 'title',
+    label: 'Camera overlay transition',
+    description: 'Uses the title motion over the presenter',
+    options: ['none', 'fade', 'rise', 'type'],
+  },
+}
 
 document.querySelector<HTMLImageElement>('#studio-logo')!.src = studioLogoUrl
 document.querySelector<HTMLImageElement>('#theme-builder-logo')!.src = studioLogoUrl
@@ -290,7 +339,7 @@ const readSavedThemes = (): StudioThemeV1[] => {
 let savedThemes = readSavedThemes()
 let generatedThemes: StudioThemeV1[] = []
 let themeDraft = cloneTheme(project.theme)
-let themePreviewKind: 'title' | 'list' | 'code' | 'quote' | 'video' = 'title'
+let themePreviewKind: ThemePreviewKind = 'title'
 let previewPresenterId: PreviewPresenterId = 'arun'
 
 const allStudioThemes = () => [...builtinStudioThemes, ...savedThemes]
@@ -312,12 +361,21 @@ const presenterPresetForMode = (mode: PresenterLayoutMode) =>
 const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
   project.theme = cloneTheme(normalizeStudioTheme(theme))
   project.brand = { ...project.theme.brand }
+  const nodesById = new Map(
+    project.notebook.content
+      .filter(node => typeof node.attrs?.id === 'string')
+      .map(node => [node.attrs!.id as string, node]),
+  )
   if (updateCamera) {
     Object.values(project.blocks).forEach(config => {
       const preset = presenterPresetForMode(project.theme!.video.layout)
       config.camera.mode = preset.mode
       config.camera.position = preset.position
       config.camera.shape = preset.shape
+      const node = nodesById.get(config.nodeId)
+      if (node) {
+        config.reveal = project.theme!.motion[directorKindForNode(node)]
+      }
     })
   }
   document.documentElement.style.setProperty('--brand', project.brand.primary)
@@ -542,6 +600,15 @@ const renderThemeBuilderPreview = () => {
     const body = document.createElement('p')
     body.textContent = 'Write in Markdown. Direct the canvas. Stay on camera.'
     content.append(kicker, title, body)
+  } else if (themePreviewKind === 'content') {
+    const kicker = document.createElement('span')
+    kicker.textContent = 'One idea at a time'
+    const title = document.createElement('strong')
+    title.textContent = 'Explain the important part clearly.'
+    const body = document.createElement('p')
+    body.textContent =
+      'The canvas follows the speaker, giving each thought enough room to land.'
+    content.append(kicker, title, body)
   } else if (themePreviewKind === 'list') {
     const title = document.createElement('strong')
     title.textContent = 'A clearer way to explain'
@@ -556,7 +623,16 @@ const renderThemeBuilderPreview = () => {
     const title = document.createElement('strong')
     title.textContent = 'Render the notebook'
     const code = document.createElement('pre')
-    code.textContent = 'const story = compile(notebook)\nawait hyperframes.render(story)'
+    ;[
+      'const story = compile(notebook)',
+      'await hyperframes.render(story)',
+    ].forEach((line, index) => {
+      const codeLine = document.createElement('span')
+      codeLine.className = 'theme-preview-code-line'
+      codeLine.style.setProperty('--motion-index', String(index + 1))
+      codeLine.textContent = line
+      code.append(codeLine)
+    })
     content.append(title, code)
   } else {
     const quote = document.createElement('blockquote')
@@ -575,6 +651,10 @@ const renderThemeBuilderPreview = () => {
   previewPerson.hidden =
     themePreviewKind !== 'video' && themePreviewKind !== 'title'
 
+  content.querySelectorAll('li').forEach((item, index) => {
+    ;(item as HTMLElement).style.setProperty('--motion-index', String(index + 1))
+  })
+
   document
     .querySelectorAll<HTMLButtonElement>('[data-preview-presenter]')
     .forEach(button => {
@@ -582,6 +662,37 @@ const renderThemeBuilderPreview = () => {
       button.classList.toggle('active', active)
       button.setAttribute('aria-pressed', String(active))
     })
+  renderThemeMotionControls()
+  replayThemeMotionPreview()
+}
+
+const renderThemeMotionControls = () => {
+  const meta = THEME_MOTION_META[themePreviewKind]
+  const activeMotion = themeDraft.motion[meta.motionKind]
+  ;($('#theme-motion-title') as HTMLElement).textContent = meta.label
+  ;($('#theme-motion-description') as HTMLElement).textContent = meta.description
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-theme-motion]')
+    .forEach(button => {
+      const motion = button.dataset.themeMotion as RevealStyle
+      const available = meta.options.includes(motion)
+      button.hidden = !available
+      button.disabled = !available
+      button.classList.toggle('active', motion === activeMotion)
+      button.setAttribute('aria-pressed', String(motion === activeMotion))
+    })
+}
+
+const replayThemeMotionPreview = () => {
+  const preview = $('#theme-builder-preview')
+  const meta = THEME_MOTION_META[themePreviewKind]
+  const motion = themeDraft.motion[meta.motionKind]
+  ;(['none', 'fade', 'rise', 'type', 'line-by-line'] as RevealStyle[]).forEach(
+    option => preview.classList.remove(`motion-${option}`),
+  )
+  preview.classList.remove('motion-playing')
+  void preview.offsetWidth
+  preview.classList.add(`motion-${motion}`, 'motion-playing')
 }
 
 const renderPreviewPresenterPicker = () => {
@@ -723,6 +834,9 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
     activeIds.add(nodeId)
     if (!project.blocks[nodeId]) {
       project.blocks[nodeId] = createDefaultBlockConfig(nodeId, node)
+      project.blocks[nodeId].reveal =
+        project.theme?.motion[directorKindForNode(node)] ||
+        project.blocks[nodeId].reveal
     }
     const config = project.blocks[nodeId]
     const fallback = createDefaultBlockConfig(nodeId, node)
@@ -1640,6 +1754,24 @@ document
       renderThemeBuilderPreview()
     })
   })
+
+document
+  .querySelectorAll<HTMLButtonElement>('[data-theme-motion]')
+  .forEach(button => {
+    button.addEventListener('click', () => {
+      const meta = THEME_MOTION_META[themePreviewKind]
+      const motion = button.dataset.themeMotion as RevealStyle
+      if (!meta.options.includes(motion)) return
+      themeDraft.motion[meta.motionKind] = motion
+      renderThemeMotionControls()
+      replayThemeMotionPreview()
+    })
+  })
+
+;($('#replay-theme-motion') as HTMLButtonElement).addEventListener(
+  'click',
+  replayThemeMotionPreview,
+)
 
 ;($('#show-theme-library') as HTMLButtonElement).addEventListener('click', () =>
   showThemePanel('library'),

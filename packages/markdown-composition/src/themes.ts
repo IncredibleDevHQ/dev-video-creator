@@ -4,9 +4,23 @@ import type {
   ThemeCanvasTreatment,
 } from './types'
 
+export const defaultThemeMotion: StudioThemeV1['motion'] = {
+  title: 'rise',
+  content: 'fade',
+  list: 'line-by-line',
+  code: 'line-by-line',
+  quote: 'fade',
+}
+
 const createTheme = (
-  theme: Omit<StudioThemeV1, 'version'>,
-): StudioThemeV1 => ({ version: 1, ...theme })
+  theme: Omit<StudioThemeV1, 'version' | 'motion'> & {
+    motion?: Partial<StudioThemeV1['motion']>
+  },
+): StudioThemeV1 => ({
+  version: 1,
+  ...theme,
+  motion: { ...defaultThemeMotion, ...theme.motion },
+})
 
 export const defaultBrand: BrandTemplateV1 = {
   background: '#111827',
@@ -45,6 +59,7 @@ export const defaultStudioTheme = createTheme({
     surface: 'outline',
     borderRadius: 34,
   },
+  motion: { ...defaultThemeMotion },
 })
 
 export const builtinStudioThemes: StudioThemeV1[] = [
@@ -84,6 +99,13 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       surface: 'none',
       borderRadius: 16,
     },
+    motion: {
+      title: 'rise',
+      content: 'fade',
+      list: 'line-by-line',
+      code: 'type',
+      quote: 'fade',
+    },
   }),
   createTheme({
     id: 'midnight-signal',
@@ -119,6 +141,13 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       quote: 'bar',
       surface: 'outline',
       borderRadius: 24,
+    },
+    motion: {
+      title: 'type',
+      content: 'rise',
+      list: 'line-by-line',
+      code: 'line-by-line',
+      quote: 'fade',
     },
   }),
   createTheme({
@@ -156,6 +185,13 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       surface: 'card',
       borderRadius: 4,
     },
+    motion: {
+      title: 'fade',
+      content: 'fade',
+      list: 'rise',
+      code: 'line-by-line',
+      quote: 'rise',
+    },
   }),
   createTheme({
     id: 'lilac-motion',
@@ -192,6 +228,13 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       surface: 'card',
       borderRadius: 38,
     },
+    motion: {
+      title: 'rise',
+      content: 'rise',
+      list: 'line-by-line',
+      code: 'type',
+      quote: 'fade',
+    },
   }),
   createTheme({
     id: 'high-contrast',
@@ -227,6 +270,13 @@ export const builtinStudioThemes: StudioThemeV1[] = [
       quote: 'statement',
       surface: 'none',
       borderRadius: 0,
+    },
+    motion: {
+      title: 'type',
+      content: 'fade',
+      list: 'line-by-line',
+      code: 'line-by-line',
+      quote: 'type',
     },
   }),
 ]
@@ -356,6 +406,13 @@ export const generateThemeDirections = (
         surface: index === 3 ? 'outline' : 'card',
         borderRadius: index === 3 ? 4 : 26,
       },
+      motion: {
+        title: (['rise', 'type', 'fade', 'rise'] as const)[index],
+        content: (['fade', 'rise', 'fade', 'rise'] as const)[index],
+        list: (['line-by-line', 'rise', 'line-by-line', 'fade'] as const)[index],
+        code: (['line-by-line', 'type', 'line-by-line', 'type'] as const)[index],
+        quote: (['fade', 'rise', 'fade', 'type'] as const)[index],
+      },
     })
   })
 }
@@ -386,5 +443,6 @@ export const normalizeStudioTheme = (
     canvas: { ...defaultStudioTheme.canvas, ...theme.canvas },
     video: { ...defaultStudioTheme.video, ...theme.video, layout: videoLayout },
     blocks: { ...defaultStudioTheme.blocks, ...theme.blocks },
+    motion: { ...defaultStudioTheme.motion, ...theme.motion },
   }
 }

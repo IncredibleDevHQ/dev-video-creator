@@ -145,6 +145,13 @@ export type StudioThemeV1 = {
     surface: ThemeSurfaceStyle
     borderRadius: number
   }
+  motion: {
+    title: RevealStyle
+    content: RevealStyle
+    list: RevealStyle
+    code: RevealStyle
+    quote: RevealStyle
+  }
 }
 
 export type ProjectDocumentV1 = {

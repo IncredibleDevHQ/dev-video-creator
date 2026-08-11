@@ -233,9 +233,15 @@ const renderNode = (node: TiptapNode): string => {
     case 'listItem':
       return `<li>${children}</li>`
     case 'codeBlock':
-      return `<pre><code>${escapeHtml(
-        (node.content || []).map(child => child.text || '').join(''),
-      )}</code></pre>`
+      return `<pre><code>${(node.content || [])
+        .map(child => child.text || '')
+        .join('')
+        .split('\n')
+        .map(
+          (line, index) =>
+            `<span class="code-line" data-line="${index + 1}">${escapeHtml(line) || '&nbsp;'}</span>`,
+        )
+        .join('')}</code></pre>`
     case 'horizontalRule':
       return '<hr />'
     case 'hardBreak':
@@ -387,6 +393,13 @@ const buildCompositionHtml = (
   const animationMarkup = scenes
     .map(scene => {
       const selector = scriptString(`#scene-${scene.index} .content`)
+      const sequenceSelector = scriptString(
+        scene.kind === 'list'
+          ? `#scene-${scene.index} .content li`
+          : scene.kind === 'code'
+            ? `#scene-${scene.index} .content .code-line`
+            : `#scene-${scene.index} .content > *`,
+      )
       const start = scene.startSeconds
       switch (scene.config.reveal) {
         case 'none':
@@ -396,7 +409,7 @@ const buildCompositionHtml = (
         case 'type':
           return `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${Math.min(2.4, scene.durationSeconds * 0.45)}, ease: "steps(18)" }, ${start});`
         case 'line-by-line':
-          return `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 0 100% 0)" }, { clipPath: "inset(0 0 0% 0)", duration: ${Math.min(1.8, scene.durationSeconds * 0.35)}, ease: "power2.out" }, ${start});`
+          return `tl.set(${selector}, { opacity: 1 }, ${start}); tl.fromTo(${sequenceSelector}, { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.48, stagger: ${Math.min(0.28, scene.durationSeconds * 0.06)}, ease: "power3.out" }, ${start});`
         case 'rise':
         default:
           return `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
@@ -451,6 +464,7 @@ const buildCompositionHtml = (
     #composition[data-code-style="full"] .scene-kind-code { --content-layout-width: 100%; }
     #composition[data-code-style="full"] .scene-kind-code .content, #composition[data-code-style="full"] .scene-kind-code pre { height: 100%; }
     pre code { font: 42px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    .code-line { display: block; min-height: 1.5em; }
     .layout-title { --content-layout-width: 1600px; }
     .layout-title h1, .layout-title h2 { font-size: 142px; }
     .layout-code { --content-layout-width: 1650px; }

@@ -3,6 +3,7 @@ import {
   compileProject,
   createDefaultBlockConfig,
   defaultBrand,
+  defaultThemeMotion,
   builtinStudioThemes,
   generateThemeDirections,
   normalizeStudioTheme,
@@ -169,9 +170,11 @@ describe('compileProject', () => {
   it('migrates legacy theme and block camera layouts', () => {
     const legacyTheme = structuredClone(builtinStudioThemes[0])
     legacyTheme.video.layout = 'overlay' as typeof legacyTheme.video.layout
+    delete (legacyTheme as Partial<typeof legacyTheme>).motion
     expect(normalizeStudioTheme(legacyTheme).video.layout).toBe(
       'portrait-overlay',
     )
+    expect(normalizeStudioTheme(legacyTheme).motion).toEqual(defaultThemeMotion)
 
     const legacyProject = project()
     delete (legacyProject.blocks.intro.camera as Partial<
@@ -193,5 +196,43 @@ describe('compileProject', () => {
       'grid-template-columns: repeat(2, minmax(0, 1fr))',
     )
     expect(result.html).toContain('overflow-wrap: anywhere')
+  })
+
+  it('compiles list and code sequences as individually seekable targets', () => {
+    const animated = project()
+    const list = {
+      type: 'bulletList',
+      attrs: { id: 'points' },
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            { type: 'paragraph', content: [{ type: 'text', text: 'First' }] },
+          ],
+        },
+        {
+          type: 'listItem',
+          content: [
+            { type: 'paragraph', content: [{ type: 'text', text: 'Second' }] },
+          ],
+        },
+      ],
+    }
+    const code = {
+      type: 'codeBlock',
+      attrs: { id: 'code' },
+      content: [{ type: 'text', text: 'const a = 1\nconst b = 2' }],
+    }
+    animated.notebook.content.push(list, code)
+    animated.blocks.points = createDefaultBlockConfig('points', list)
+    animated.blocks.code = createDefaultBlockConfig('code', code)
+    animated.blocks.points.reveal = 'line-by-line'
+    animated.blocks.code.reveal = 'line-by-line'
+
+    const result = compileProject(animated)
+    expect(result.html).toContain('class="code-line" data-line="2"')
+    expect(result.html).toContain('#scene-2 .content li')
+    expect(result.html).toContain('#scene-3 .content .code-line')
+    expect(result.html).toContain('stagger:')
   })
 })
