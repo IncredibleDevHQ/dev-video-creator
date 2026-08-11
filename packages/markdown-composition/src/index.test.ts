@@ -181,4 +181,17 @@ describe('compileProject', () => {
       'presenter-information-circle',
     )
   })
+
+  it('keeps markdown content inside presenter-safe regions', () => {
+    const result = compileProject(project())
+
+    expect(result.html).toContain('--presenter-safe-width: 62%')
+    expect(result.html).toContain(
+      'width: min(100%, var(--content-layout-width), var(--presenter-safe-width))',
+    )
+    expect(result.html).toContain(
+      'grid-template-columns: repeat(2, minmax(0, 1fr))',
+    )
+    expect(result.html).toContain('overflow-wrap: anywhere')
+  })
 })

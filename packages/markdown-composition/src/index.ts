@@ -419,22 +419,22 @@ const buildCompositionHtml = (
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: var(--theme-canvas); }
     .clip { visibility: hidden; }
-    .scene { position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); }
+    .scene { --content-layout-width: 1500px; --presenter-safe-width: 100%; position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); }
     .scene > * { position: relative; z-index: 25; }
     .scene::before { content: ""; position: absolute; z-index: 24; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
     #composition[data-surface-style="none"] .scene::before { display: none; }
     #composition[data-surface-style="card"] .scene::before { border-color: transparent; background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: 0 32px 90px rgba(0,0,0,.16); }
     .scene-index { color: var(--primary); font-size: 24px; font-weight: 800; letter-spacing: .18em; }
-    .content { align-self: center; max-width: 1500px; }
+    .content { align-self: center; width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); max-width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); min-width: 0; overflow-wrap: anywhere; }
     .align-center .content { margin-inline: auto; text-align: center; }
-    h1, h2, h3 { margin: 0; font-weight: 760; letter-spacing: -.055em; line-height: .98; text-wrap: balance; }
+    h1, h2, h3 { max-width: 100%; margin: 0; font-weight: 760; letter-spacing: -.055em; line-height: .98; text-wrap: balance; overflow-wrap: anywhere; }
     h1 { font-size: 124px; } h2 { font-size: 94px; } h3 { font-size: 74px; }
-    p, li, blockquote { font-size: 55px; line-height: 1.24; letter-spacing: -.025em; }
+    p, li, blockquote { max-width: 100%; font-size: 55px; line-height: 1.24; letter-spacing: -.025em; overflow-wrap: anywhere; }
     p { margin: 0 0 28px; } ul, ol { margin: 0; padding-left: 1.1em; } li { margin: 0 0 22px; padding-left: .25em; }
     #composition[data-list-style="bullets"] .scene-kind-list li::marker { color: var(--accent); }
     #composition[data-list-style="cards"] .scene-kind-list ul, #composition[data-list-style="cards"] .scene-kind-list ol { padding: 0; display: grid; gap: 18px; list-style: none; }
     #composition[data-list-style="cards"] .scene-kind-list li { margin: 0; padding: 27px 34px; border: 2px solid color-mix(in srgb, var(--accent) 66%, transparent); border-radius: var(--block-radius); background: color-mix(in srgb, var(--surface) 86%, transparent); }
-    #composition[data-list-style="timeline"] .scene-kind-list ul, #composition[data-list-style="timeline"] .scene-kind-list ol { padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 26px; list-style: none; counter-reset: theme-step; }
+    #composition[data-list-style="timeline"] .scene-kind-list ul, #composition[data-list-style="timeline"] .scene-kind-list ol { padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 26px; list-style: none; counter-reset: theme-step; }
     #composition[data-list-style="timeline"] .scene-kind-list li { margin: 0; padding-top: 86px; position: relative; font-size: 36px; text-align: center; counter-increment: theme-step; }
     #composition[data-list-style="timeline"] .scene-kind-list li::before { content: counter(theme-step); position: absolute; top: 0; left: 50%; width: 64px; height: 64px; translate: -50% 0; display: grid; place-items: center; border-radius: 50%; background: var(--brand-gradient); color: white; font-size: 24px; font-weight: 800; }
     #composition[data-list-style="steps"] .scene-kind-list ol, #composition[data-list-style="steps"] .scene-kind-list ul { padding: 0; list-style: none; counter-reset: theme-step; }
@@ -444,18 +444,22 @@ const buildCompositionHtml = (
     blockquote { margin: 0; padding: 16px 0 16px 40px; border-left: 12px solid var(--primary); color: var(--muted); }
     #composition[data-quote-style="card"] blockquote { padding: 48px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
     #composition[data-quote-style="statement"] blockquote { padding: 0; border: 0; color: var(--text); font-size: 76px; font-weight: 750; }
-    pre { margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code); color: #f7f7ef; box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
+    pre { width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code); color: #f7f7ef; box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
     #composition[data-code-style="terminal"] pre { border: 3px solid var(--accent); border-image: var(--brand-gradient) 1; }
     #composition[data-code-style="terminal"] pre::before { content: "●  ●  ●"; display: block; margin-bottom: 30px; color: var(--primary); font: 22px/1 ui-monospace, monospace; letter-spacing: .35em; }
     #composition[data-code-style="full"] .scene-kind-code { padding: 72px; }
-    #composition[data-code-style="full"] .scene-kind-code .content, #composition[data-code-style="full"] .scene-kind-code pre { width: 100%; max-width: none; height: 100%; }
-    pre code { font: 42px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; }
-    .layout-title .content { max-width: 1600px; }
+    #composition[data-code-style="full"] .scene-kind-code { --content-layout-width: 100%; }
+    #composition[data-code-style="full"] .scene-kind-code .content, #composition[data-code-style="full"] .scene-kind-code pre { height: 100%; }
+    pre code { font: 42px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    .layout-title { --content-layout-width: 1600px; }
     .layout-title h1, .layout-title h2 { font-size: 142px; }
-    .layout-code .content { width: 100%; max-width: 1650px; }
-    .layout-split .content { width: 58%; margin-left: 0; text-align: left; }
-    #composition[data-title-style="split"] .scene-kind-title .content { width: 56%; margin-left: 0; text-align: left; }
-    #composition[data-title-style="lower-third"] .scene-kind-title .content { align-self: end; width: 72%; margin: 0 0 44px; text-align: left; }
+    .layout-code { --content-layout-width: 1650px; }
+    .layout-split { --content-layout-width: 58%; }
+    .layout-split .content { margin-left: 0; text-align: left; }
+    #composition[data-title-style="split"] .scene-kind-title { --content-layout-width: 56%; }
+    #composition[data-title-style="split"] .scene-kind-title .content { margin-left: 0; text-align: left; }
+    #composition[data-title-style="lower-third"] .scene-kind-title { --content-layout-width: 72%; }
+    #composition[data-title-style="lower-third"] .scene-kind-title .content { align-self: end; margin: 0 0 44px; text-align: left; }
     footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
     .composition-brand { display: inline-flex; align-items: center; gap: 12px; letter-spacing: -.025em; text-transform: lowercase; }
     .composition-brand svg { width: 28px; height: 28px; flex: none; }
@@ -477,18 +481,29 @@ const buildCompositionHtml = (
     .camera-split-right { right: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-full { inset: 0; z-index: 20; width: 100%; height: 100%; border-radius: 0; scale: 1; }
     .camera.presenter-information-circle { width: 330px; height: 330px; border-radius: 50%; }
+    .scene.presenter-information-circle { --presenter-safe-width: 72%; }
     .camera.presenter-information-tile { width: 390px; height: 300px; }
+    .scene.presenter-information-tile { --presenter-safe-width: 68%; }
     .camera.presenter-portrait-overlay { top: 50%; right: 82px; width: 470px; height: 650px; translate: 0 -50%; }
+    .scene.presenter-portrait-overlay { --presenter-safe-width: 62%; }
     .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); }
-    .scene.presenter-portrait-rail .content { width: 61%; margin-left: 0; text-align: left; }
+    .scene.presenter-portrait-rail { --presenter-safe-width: 58%; }
+    .scene.presenter-portrait-rail .content { margin-left: 0; text-align: left; }
     .camera.presenter-split { top: 0; right: 0; bottom: 0; width: 50%; height: 100%; border-radius: 0; }
-    .scene.presenter-split .content { width: 46%; margin-left: 0; text-align: left; }
+    .scene.presenter-split { --presenter-safe-width: 46%; }
+    .scene.presenter-split .content { margin-left: 0; text-align: left; }
     .camera.presenter-person-background-left, .camera.presenter-person-background-right, .camera.presenter-person-only { inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; scale: 1; }
     .scene.presenter-person-background-left::after, .scene.presenter-person-background-right::after { content: ""; position: absolute; inset: 0; z-index: 21; pointer-events: none; }
     .scene.presenter-person-background-left::after { background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 94%, transparent) 0 42%, color-mix(in srgb, var(--bg) 48%, transparent) 64%, transparent 100%); }
     .scene.presenter-person-background-right::after { background: linear-gradient(270deg, color-mix(in srgb, var(--bg) 94%, transparent) 0 42%, color-mix(in srgb, var(--bg) 48%, transparent) 64%, transparent 100%); }
-    .scene.presenter-person-background-left .content { width: 52%; margin-left: 0; text-align: left; }
-    .scene.presenter-person-background-right .content { width: 52%; margin-right: 0; margin-left: auto; text-align: left; }
+    .scene.presenter-person-background-left, .scene.presenter-person-background-right { --presenter-safe-width: 46%; }
+    .scene.presenter-person-background-left .content { margin-left: 0; text-align: left; }
+    .scene.presenter-person-background-right .content { margin-right: 0; margin-left: auto; text-align: left; }
+    .scene.presenter-portrait-overlay h1, .scene.presenter-portrait-overlay h2, .scene.presenter-portrait-rail h1, .scene.presenter-portrait-rail h2, .scene.presenter-split h1, .scene.presenter-split h2, .scene.presenter-person-background-left h1, .scene.presenter-person-background-left h2, .scene.presenter-person-background-right h1, .scene.presenter-person-background-right h2 { font-size: 104px; }
+    .scene.presenter-portrait-overlay p, .scene.presenter-portrait-overlay li, .scene.presenter-portrait-rail p, .scene.presenter-portrait-rail li, .scene.presenter-split p, .scene.presenter-split li, .scene.presenter-person-background-left p, .scene.presenter-person-background-left li, .scene.presenter-person-background-right p, .scene.presenter-person-background-right li { font-size: 46px; }
+    #composition[data-list-style="timeline"] .scene.presenter-information-circle ul, #composition[data-list-style="timeline"] .scene.presenter-information-circle ol, #composition[data-list-style="timeline"] .scene.presenter-information-tile ul, #composition[data-list-style="timeline"] .scene.presenter-information-tile ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #composition[data-list-style="timeline"] .scene.presenter-portrait-overlay ul, #composition[data-list-style="timeline"] .scene.presenter-portrait-overlay ol, #composition[data-list-style="timeline"] .scene.presenter-portrait-rail ul, #composition[data-list-style="timeline"] .scene.presenter-portrait-rail ol, #composition[data-list-style="timeline"] .scene.presenter-split ul, #composition[data-list-style="timeline"] .scene.presenter-split ol, #composition[data-list-style="timeline"] .scene.presenter-person-background-left ul, #composition[data-list-style="timeline"] .scene.presenter-person-background-left ol, #composition[data-list-style="timeline"] .scene.presenter-person-background-right ul, #composition[data-list-style="timeline"] .scene.presenter-person-background-right ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .scene.presenter-portrait-overlay pre code, .scene.presenter-portrait-rail pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: 32px; }
     .scene.presenter-person-only > * { display: none; }
     .camera-hidden { display: none; }
   </style>
