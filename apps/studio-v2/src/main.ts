@@ -681,9 +681,18 @@ const renderThemeBuilderPreview = () => {
   preview.style.setProperty('--preview-accent', themeDraft.brand.accent)
   preview.style.setProperty('--preview-code', themeDraft.brand.codeBackground)
   preview.style.setProperty('--preview-gradient', `linear-gradient(135deg, ${themeDraft.brand.primary}, ${themeDraft.brand.secondary}, ${themeDraft.brand.accent})`)
-  preview.style.setProperty('--preview-radius', `${themeDraft.blocks.borderRadius}px`)
-  preview.style.setProperty('--preview-video-radius', `${themeDraft.video.borderRadius}px`)
-  preview.style.setProperty('--preview-video-width', `${themeDraft.video.borderWidth}px`)
+  preview.style.setProperty(
+    '--preview-radius',
+    `${Math.max(2, themeDraft.blocks.borderRadius * 0.45)}px`,
+  )
+  preview.style.setProperty(
+    '--preview-video-radius',
+    `${Math.max(0, themeDraft.video.borderRadius * 0.45)}px`,
+  )
+  preview.style.setProperty(
+    '--preview-video-width',
+    `${Math.max(themeDraft.video.borderWidth ? 1 : 0, themeDraft.video.borderWidth * 0.45)}px`,
+  )
   ;($('#builder-preview-title') as HTMLElement).textContent = themeDraft.name
   ;($('#theme-preview-name') as HTMLElement).textContent = themeDraft.name
   const previewLogo = $('#theme-preview-logo') as HTMLImageElement

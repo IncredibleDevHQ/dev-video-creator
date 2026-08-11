@@ -198,7 +198,12 @@ describe('compileProject', () => {
   it('keeps markdown content inside presenter-safe regions', () => {
     const result = compileProject(project())
 
-    expect(result.html).toContain('--presenter-safe-width: 62%')
+    expect(result.html).toContain(
+      '.scene.presenter-information-circle { --presenter-safe-width: 100%; padding-right: 520px; }',
+    )
+    expect(result.html).toContain(
+      '.scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }',
+    )
     expect(result.html).toContain(
       'width: min(100%, var(--content-layout-width), var(--presenter-safe-width))',
     )

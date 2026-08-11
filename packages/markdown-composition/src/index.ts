@@ -512,7 +512,7 @@ const buildCompositionHtml = (
     .scene-kind-code.theme-render-minimal pre { padding: 20px 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--text); }
     .scene-kind-code.theme-render-spotlight pre { border-left: 12px solid var(--accent); }
     .scene-kind-code.theme-render-split .content { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: 36px; align-items: center; }
-    .scene-kind-code.theme-render-split .content::after { content: "Explain the decision\A then show the code."; white-space: pre-line; color: var(--muted); font-size: 34px; line-height: 1.35; }
+    .scene-kind-code.theme-render-split .content::after { content: "Explain the decision\\A then show the code."; white-space: pre-line; color: var(--muted); font-size: 34px; line-height: 1.35; }
     .scene-kind-code.theme-render-paper pre { background: #f6f2e8; color: #17222b; box-shadow: 0 22px 70px rgba(0,0,0,.12); }
     pre code { font: 42px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
     .code-line { display: block; min-height: 1.5em; }
@@ -559,17 +559,17 @@ const buildCompositionHtml = (
     .camera-split-left { left: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-split-right { right: 90px; top: 110px; bottom: 110px; width: 660px; height: auto; border-radius: 38px; }
     .camera-full { inset: 0; z-index: 20; width: 100%; height: 100%; border-radius: 0; scale: 1; }
-    .camera.presenter-information-circle { width: 330px; height: 330px; border-radius: 50%; }
-    .scene.presenter-information-circle { --presenter-safe-width: 72%; }
-    .camera.presenter-information-tile { width: 390px; height: 300px; }
-    .scene.presenter-information-tile { --presenter-safe-width: 68%; }
+    .camera.presenter-information-circle { right: 110px; bottom: 170px; width: 330px; height: 330px; border-radius: 50%; }
+    .scene.presenter-information-circle { --presenter-safe-width: 100%; padding-right: 520px; }
+    .camera.presenter-information-tile { right: 110px; bottom: 170px; width: 390px; height: 300px; }
+    .scene.presenter-information-tile { --presenter-safe-width: 100%; padding-right: 560px; }
     .camera.presenter-portrait-overlay { top: 50%; right: 82px; width: 470px; height: 650px; translate: 0 -50%; }
-    .scene.presenter-portrait-overlay { --presenter-safe-width: 62%; }
+    .scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }
     .camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: 54px; width: 31%; height: auto; border-radius: var(--video-radius); }
-    .scene.presenter-portrait-rail { --presenter-safe-width: 58%; }
+    .scene.presenter-portrait-rail { --presenter-safe-width: 100%; padding-right: 700px; }
     .scene.presenter-portrait-rail .content { margin-left: 0; text-align: left; }
     .camera.presenter-split { top: 0; right: 0; bottom: 0; width: 50%; height: 100%; border-radius: 0; }
-    .scene.presenter-split { --presenter-safe-width: 46%; }
+    .scene.presenter-split { --presenter-safe-width: 100%; padding-right: 1040px; }
     .scene.presenter-split .content { margin-left: 0; text-align: left; }
     .camera.presenter-person-background-left, .camera.presenter-person-background-right, .camera.presenter-person-only { inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; scale: 1; }
     .scene.presenter-person-background-left::after, .scene.presenter-person-background-right::after { content: ""; position: absolute; inset: 0; z-index: 21; pointer-events: none; }
