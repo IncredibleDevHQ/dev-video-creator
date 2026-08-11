@@ -109,19 +109,31 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .player-loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; color: #a1a1aa; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .13em; background: #111827; }
 .canvas-fullscreen { position: absolute; top: 10px; right: 10px; z-index: 4; width: 30px; height: 30px; border: 1px solid rgba(255,255,255,.3); border-radius: 4px; background: rgba(24,24,27,.72); color: white; font-size: 15px; backdrop-filter: blur(8px); }
 .canvas-fullscreen:hover { background: var(--brand); }
-.canvas-object-dock { display: none; }
+.canvas-block-timeline { display: none; }
 .canvas-director { display: none; }
 .canvas-is-open { overflow: hidden; }
 .player-shell.canvas-open { position: fixed; inset: 0; z-index: 80; width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; border-radius: 0; display: grid; grid-template-columns: minmax(0, 1fr) 370px; background: #09090b; box-shadow: none; }
 .player-shell.canvas-open .canvas-stage { padding: 32px 32px 104px; background: radial-gradient(circle at 50% 40%, #34363b 0, #202124 55%, #18181b 100%); }
 .player-shell.canvas-open hyperframes-player { width: min(100%, calc((100vh - 136px) * 1.7778)); height: auto; aspect-ratio: 16/9; border: 1px solid #52525b; border-radius: 5px; box-shadow: 0 24px 80px rgba(0,0,0,.42); }
 .player-shell.canvas-open .canvas-fullscreen { position: fixed; top: 18px; right: 388px; }
-.player-shell.canvas-open .canvas-object-dock { position: absolute; right: 32px; bottom: 24px; left: 32px; display: flex; justify-content: center; gap: 8px; }
-.canvas-object-dock button { min-width: 92px; height: 54px; padding: 6px 12px; display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 8px; border: 1px solid #d4d4d8; border-radius: 5px; background: white; color: #71717a; box-shadow: 0 8px 24px rgba(0,0,0,.2); text-align: left; }
-.canvas-object-dock button:hover { border-color: #a1a1aa; }
-.canvas-object-dock button.active { border-color: var(--brand); color: #166534; box-shadow: 0 0 0 1px var(--brand), 0 8px 24px rgba(0,0,0,.2); }
-.canvas-object-dock button > span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 4px; background: #f4f4f5; font-size: 14px; }
-.canvas-object-dock button > strong { font-size: 10px; }
+.player-shell.canvas-open .canvas-block-timeline { position: absolute; right: 24px; bottom: 16px; left: 24px; z-index: 5; min-width: 0; padding: 8px 10px 10px; display: grid; gap: 7px; border: 1px solid rgba(255,255,255,.13); border-radius: 8px; background: rgba(24,24,27,.86); box-shadow: 0 12px 36px rgba(0,0,0,.34); backdrop-filter: blur(18px); }
+.canvas-timeline-heading { display: flex; align-items: center; justify-content: space-between; color: #d4d4d8; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+.canvas-timeline-heading > strong { color: white; font-size: 8px; }
+.canvas-timeline-heading > span { color: #a1a1aa; }
+.canvas-timeline-track { min-width: 0; display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-color: #52525b transparent; scrollbar-width: thin; }
+.canvas-timeline-block { position: relative; min-width: 108px; height: 54px; padding: 7px 9px; flex-basis: 108px; overflow: hidden; border: 1px solid rgba(255,255,255,.14); border-radius: 5px; background: rgba(39,39,42,.92); color: #d4d4d8; text-align: left; }
+.canvas-timeline-block::after { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; content: ''; background: transparent; }
+.canvas-timeline-block:hover { border-color: rgba(255,255,255,.38); background: #3f3f46; }
+.canvas-timeline-block.active { border-color: var(--brand); background: rgba(20,83,45,.78); color: white; box-shadow: inset 0 0 0 1px rgba(74,222,128,.28); }
+.canvas-timeline-block.active::after { background: var(--brand-light); }
+.canvas-timeline-block-top { display: flex; align-items: center; justify-content: space-between; color: #a1a1aa; font-size: 7px; line-height: 1; }
+.canvas-timeline-block.active .canvas-timeline-block-top { color: #bbf7d0; }
+.canvas-timeline-block-top b { color: var(--brand-light); font-size: 8px; letter-spacing: .08em; }
+.canvas-timeline-block-top time { font-variant-numeric: tabular-nums; }
+.canvas-timeline-block-type { margin-top: 5px; display: flex; align-items: center; gap: 5px; color: #f4f4f5; font-size: 8px; font-weight: 800; line-height: 1; }
+.canvas-timeline-block-type i { width: 5px; height: 5px; border-radius: 50%; background: var(--brand-light); box-shadow: 0 0 0 2px rgba(74,222,128,.15); }
+.canvas-timeline-block > strong { max-width: 100%; margin-top: 4px; display: block; overflow: hidden; color: #a1a1aa; font-size: 7px; font-weight: 500; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.canvas-timeline-block.active > strong { color: #dcfce7; }
 .player-shell.canvas-open .canvas-director { min-height: 0; display: flex; flex-direction: column; overflow-y: auto; background: white; color: var(--ink); box-shadow: -16px 0 50px rgba(0,0,0,.2); }
 .director-heading { min-height: 72px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .director-heading > div { display: flex; align-items: center; gap: 10px; }

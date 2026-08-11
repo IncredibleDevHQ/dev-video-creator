@@ -347,6 +347,7 @@ const playerShell = $('#player-shell')
 const playerLoading = $('#player-loading')
 const editorLayout = $('#editor-layout')
 const inlinePreview = $('#inline-preview')
+const canvasBlockTimeline = $('#canvas-block-timeline')
 const inspectorPanel = $('#inspector-panel')
 const sceneRail = $('#scene-rail')
 const saveState = $('#save-state')
@@ -1108,6 +1109,67 @@ const formatTime = (seconds: number) => {
   ).padStart(2, '0')}`
 }
 
+const renderCanvasBlockTimeline = () => {
+  canvasBlockTimeline.replaceChildren()
+  const totalDuration = scenes.reduce(
+    (duration, scene) => duration + scene.durationSeconds,
+    0,
+  )
+
+  const heading = document.createElement('div')
+  heading.className = 'canvas-timeline-heading'
+  const headingLabel = document.createElement('strong')
+  headingLabel.textContent = 'Story timeline'
+  const headingMeta = document.createElement('span')
+  headingMeta.textContent = `${scenes.length} blocks · ${formatTime(totalDuration)}`
+  heading.append(headingLabel, headingMeta)
+
+  const track = document.createElement('div')
+  track.className = 'canvas-timeline-track'
+  track.setAttribute('role', 'list')
+
+  scenes.forEach(scene => {
+    const button = document.createElement('button')
+    const isSelected = scene.id === selectedNodeId
+    button.type = 'button'
+    button.className = `canvas-timeline-block${isSelected ? ' active' : ''}`
+    button.dataset.timelineNodeId = scene.id
+    button.setAttribute('role', 'listitem')
+    button.setAttribute('aria-current', isSelected ? 'true' : 'false')
+    button.setAttribute(
+      'aria-label',
+      `Block ${scene.index + 1}, ${sceneObjectLabel(scene.kind)}, ${scene.title}, ${formatTime(scene.durationSeconds)}`,
+    )
+    button.style.flexGrow = String(Math.max(1, scene.durationSeconds))
+
+    const top = document.createElement('span')
+    top.className = 'canvas-timeline-block-top'
+    const index = document.createElement('b')
+    index.textContent = String(scene.index + 1).padStart(2, '0')
+    const duration = document.createElement('time')
+    duration.textContent = formatTime(scene.durationSeconds)
+    top.append(index, duration)
+
+    const type = document.createElement('span')
+    type.className = 'canvas-timeline-block-type'
+    type.textContent = sceneObjectLabel(scene.kind)
+    if (scene.presenterTracks.length) {
+      const presenter = document.createElement('i')
+      presenter.title = 'Recorded presenter'
+      presenter.setAttribute('aria-label', 'Recorded presenter')
+      type.append(presenter)
+    }
+
+    const title = document.createElement('strong')
+    title.textContent = scene.title
+    button.append(top, type, title)
+    button.addEventListener('click', () => selectNode(scene.id, false))
+    track.append(button)
+  })
+
+  canvasBlockTimeline.append(heading, track)
+}
+
 const renderSceneRail = () => {
   sceneRail.replaceChildren()
   scenes.forEach(scene => {
@@ -1131,6 +1193,7 @@ const renderSceneRail = () => {
     button.addEventListener('click', () => selectNode(scene.id, true))
     sceneRail.append(button)
   })
+  renderCanvasBlockTimeline()
 }
 
 const hasRecordedOutput = () =>
@@ -1458,16 +1521,6 @@ const updateInspector = () => {
   ).padStart(2, '0')}`
   ;($('#director-animation-scope') as HTMLElement).textContent =
     directorOptions.label
-  ;($('#content-object-label') as HTMLElement).textContent = sceneObjectLabel(
-    scene.kind,
-  )
-  document
-    .querySelectorAll<HTMLButtonElement>('[data-canvas-object]')
-    .forEach(button => {
-      const isActive = button.dataset.canvasObject === selectedCanvasObject
-      button.classList.toggle('active', isActive)
-      button.setAttribute('aria-pressed', String(isActive))
-    })
   renderLayoutPresetPicker(scene, config)
   renderStudioStyleControls(scene, config)
   renderStudioMotionControls(scene, config)
@@ -1651,17 +1704,6 @@ document
         selectedTab !== 'background'
       ;($('#director-animation') as HTMLElement).hidden =
         selectedTab !== 'animation'
-      updateInspector()
-    })
-  })
-
-document
-  .querySelectorAll<HTMLButtonElement>('[data-canvas-object]')
-  .forEach(button => {
-    button.addEventListener('click', () => {
-      selectedCanvasObject = button.dataset.canvasObject as
-        | 'content'
-        | 'presenter'
       updateInspector()
     })
   })
