@@ -66,7 +66,11 @@ const $ = <T extends HTMLElement>(selector: string) => {
 }
 
 const player = $('#player') as HyperframesPlayerElement
+const playerShell = $('#player-shell')
 const playerLoading = $('#player-loading')
+const editorLayout = $('#editor-layout')
+const inlinePreview = $('#inline-preview')
+const inspectorPanel = $('#inspector-panel')
 const sceneRail = $('#scene-rail')
 const saveState = $('#save-state')
 const renderButton = $('#render-video') as HTMLButtonElement
@@ -81,6 +85,7 @@ const voiceReference = $('#voice-reference') as HTMLInputElement
 const voiceCapability = $('#voice-capability')
 const startRecordingButton = $('#start-recording') as HTMLButtonElement
 const stopRecordingButton = $('#stop-recording') as HTMLButtonElement
+const engineRecordingButton = $('#engine-recording') as HTMLButtonElement
 const countdown = $('#countdown')
 const cameraStatus = $('#camera-status')
 const cameraStatusDot = $('#camera-status-dot')
@@ -158,7 +163,13 @@ const editor = new Editor({
   onUpdate: () => scheduleSync(),
   onSelectionUpdate: () => {
     const nodeId = selectedIdAtCursor()
-    if (nodeId && nodeId !== selectedNodeId) selectNode(nodeId, false)
+    if (nodeId && nodeId !== selectedNodeId) {
+      selectNode(nodeId, false)
+    } else if (nodeId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(nodeId)?.classList.add('selected-block')
+      })
+    }
     updateToolbar()
   },
 })
@@ -233,7 +244,7 @@ const renderSceneRail = () => {
 
     const top = document.createElement('div')
     top.className = 'scene-card-top'
-    top.innerHTML = `<span>${String(scene.index + 1).padStart(2, '0')}</span><span>${scene.durationSeconds.toFixed(1)}s</span>`
+    top.innerHTML = `<span>${String(scene.index + 1).padStart(2, '0')}</span><span>${scene.config.layout}</span>`
     const title = document.createElement('strong')
     title.textContent = scene.title
     const footer = document.createElement('footer')
@@ -249,16 +260,30 @@ const renderSceneRail = () => {
   })
 }
 
+const hasRecordedOutput = () =>
+  Object.values(project.presenterTracks).some(tracks => tracks.length > 0)
+
+const positionInlinePreview = () => {
+  const selectedNode = document.getElementById(selectedNodeId)
+  if (!selectedNode) return
+  const layoutTop = editorLayout.getBoundingClientRect().top
+  const selectedTop = selectedNode.getBoundingClientRect().top
+  inlinePreview.style.setProperty(
+    '--preview-offset',
+    `${Math.max(0, selectedTop - layoutTop)}px`,
+  )
+}
+
 const updateInspector = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   const config = scene.config
-  ;($('#selected-number') as HTMLElement).textContent = `Scene ${String(
+  ;($('#selected-number') as HTMLElement).textContent = `Block ${String(
     scene.index + 1,
   ).padStart(2, '0')}`
   ;($('#selected-title') as HTMLElement).textContent = scene.title
   ;($('#selected-id') as HTMLElement).textContent = scene.id
-  ;($('#selected-label') as HTMLElement).textContent = `Scene ${String(
+  ;($('#selected-label') as HTMLElement).textContent = `Block ${String(
     scene.index + 1,
   ).padStart(2, '0')} · ${scene.title}`
   ;($('#layout') as HTMLSelectElement).value = config.layout
@@ -272,21 +297,40 @@ const updateInspector = () => {
   ;($('#camera-shape') as HTMLSelectElement).value = config.camera.shape
   ;($('#remove-presenter') as HTMLButtonElement).disabled =
     scene.presenterTracks.length === 0
+  renderButton.disabled = !hasRecordedOutput()
+  renderButton.title = renderButton.disabled
+    ? 'Record a human or generated presenter track first'
+    : 'Export the recorded canvas as MP4'
 }
 
 const selectNode = (nodeId: string, focusEditor: boolean) => {
   selectedNodeId = nodeId
+  document
+    .querySelectorAll('.tiptap > .selected-block')
+    .forEach(element => element.classList.remove('selected-block'))
+  document.getElementById(nodeId)?.classList.add('selected-block')
   if (focusEditor) {
     const position = topLevelNodePosition(nodeId)
     if (position !== null) editor.commands.setTextSelection(position)
   }
   renderSceneRail()
   updateInspector()
+  window.requestAnimationFrame(positionInlinePreview)
   const scene = scenes.find(item => item.id === nodeId)
   if (scene && player.ready) {
     player.seek(scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2))
   }
 }
+
+$('#editor').addEventListener('pointerdown', event => {
+  let block = event.target as HTMLElement | null
+  while (block?.parentElement && !block.parentElement.classList.contains('tiptap')) {
+    block = block.parentElement
+  }
+  if (block?.id && scenes.some(scene => scene.id === block?.id)) {
+    selectNode(block.id, false)
+  }
+})
 
 const updatePreview = async () => {
   try {
@@ -294,7 +338,7 @@ const updatePreview = async () => {
     scenes = compiled.scenes
     const requestNumber = ++previewRequest
     playerLoading.hidden = false
-    playerLoading.textContent = 'Compiling composition…'
+    playerLoading.textContent = 'Compiling live canvas…'
 
     if (!selectedNodeId || !scenes.some(scene => scene.id === selectedNodeId)) {
       selectedNodeId = scenes[0]?.id || ''
@@ -310,6 +354,7 @@ const updatePreview = async () => {
     )} seconds`
     renderSceneRail()
     updateInspector()
+    window.requestAnimationFrame(positionInlinePreview)
 
     const preview = await fetchJson<{ url: string }>('/api/preview', {
       method: 'POST',
@@ -405,6 +450,48 @@ player.addEventListener('error', event => {
   playerLoading.hidden = false
   playerLoading.textContent = detail?.message || 'Hyperframes preview failed'
 })
+
+const openInspector = () => {
+  inspectorPanel.classList.add('open')
+  inspectorPanel.setAttribute('aria-hidden', 'false')
+}
+
+const closeInspector = () => {
+  inspectorPanel.classList.remove('open')
+  inspectorPanel.setAttribute('aria-hidden', 'true')
+}
+
+const openCanvasFullscreen = () => {
+  const isOpen = playerShell.classList.toggle('canvas-open')
+  document.body.classList.toggle('canvas-is-open', isOpen)
+  const fullscreenButton = $('#canvas-fullscreen') as HTMLButtonElement
+  fullscreenButton.textContent = isOpen ? '×' : '↗'
+  fullscreenButton.setAttribute(
+    'aria-label',
+    isOpen ? 'Close full-screen canvas' : 'Open canvas full screen',
+  )
+}
+
+;['#open-settings', '#inline-settings'].forEach(selector =>
+  ($(selector) as HTMLButtonElement).addEventListener('click', openInspector),
+)
+;($('#close-settings') as HTMLButtonElement).addEventListener(
+  'click',
+  closeInspector,
+)
+;['#open-fullscreen', '#open-fullscreen-tab', '#canvas-fullscreen'].forEach(
+  selector =>
+    ($(selector) as HTMLButtonElement).addEventListener(
+      'click',
+      openCanvasFullscreen,
+    ),
+)
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && playerShell.classList.contains('canvas-open')) {
+    openCanvasFullscreen()
+  }
+})
+window.addEventListener('resize', positionInlinePreview)
 
 ;($('#project-title') as HTMLInputElement).value = project.title
 ;($('#project-title') as HTMLInputElement).addEventListener('input', event => {
@@ -543,6 +630,8 @@ const openCamera = () => {
   recordingNodeId = scene.id
   presenterScript.value = sceneScript(scene)
   generatedVoiceUrl = ''
+  engineRecordingButton.disabled = true
+  engineRecordingButton.hidden = audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
   cameraDialog.showModal()
 }
@@ -565,6 +654,8 @@ audioMode.addEventListener('change', () => {
   generatedVoiceUrl = ''
   guideAudio.removeAttribute('src')
   stopCameraStream()
+  engineRecordingButton.disabled = true
+  engineRecordingButton.hidden = audioMode.value === 'microphone'
   ;($('#voice-reference-label') as HTMLElement).hidden =
     audioMode.value === 'microphone'
 })
@@ -603,6 +694,7 @@ const refreshCapabilities = async () => {
     })
     generatedVoiceUrl = result.url
     guideAudio.src = result.url
+    engineRecordingButton.disabled = false
     voiceCapability.textContent = `${result.provider} guide ready. Rehearse once, then record your real camera take.`
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Voice generation failed')
@@ -610,6 +702,24 @@ const refreshCapabilities = async () => {
     button.disabled = false
     button.textContent = 'Generate guide'
   }
+})
+
+engineRecordingButton.addEventListener('click', () => {
+  if (!recordingNodeId || !generatedVoiceUrl) {
+    showToast('Generate the guide voice first')
+    return
+  }
+  project.presenterTracks[recordingNodeId] = [
+    {
+      kind: 'narration',
+      audioUrl: generatedVoiceUrl,
+      audioKind: 'generated',
+    },
+  ]
+  syncProject()
+  cameraDialog.close()
+  stopCameraStream()
+  showToast('Voice recorded with the live canvas. Video export is now available.')
 })
 
 const wait = (milliseconds: number) =>

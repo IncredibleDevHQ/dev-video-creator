@@ -1,6 +1,8 @@
 # Incredible Studio v2 MVP
 
-The first human-centric vertical slice: Markdown notebook → stable Tiptap node IDs → per-block direction → Hyperframes preview → real camera presenter → Hyperframes MP4.
+The first human-centric vertical slice: Markdown notebook → stable Tiptap node IDs → per-block direction → inline Hyperframes live canvas → real or generated presenter recording → Hyperframes MP4.
+
+The focused Markdown block drives a live canvas alongside the document. It can be opened as a full-viewport presentation, but it is deliberately not presented as a video player: playback controls, timeline, and MP4 export only enter the workflow after a presenter track has been recorded.
 
 ## Run locally
 
@@ -24,7 +26,7 @@ Open <http://127.0.0.1:4319>.
 
 ## Keys
 
-No API key is required for the basic Markdown, configuration, camera, preview, or MP4 flow. On macOS, guide voice uses the local system voice.
+No API key is required for the basic Markdown, configuration, camera, live-canvas, or MP4 flow. On macOS, guide voice uses the local system voice.
 
 `FISH_AUDIO_API_KEY` is optional. When configured, a creator can enter an owned or authorized Fish Audio reference ID for generated guide/final voice. On non-macOS systems, either configure Fish Audio or use camera + microphone.
 

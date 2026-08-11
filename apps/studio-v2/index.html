@@ -25,21 +25,22 @@
           <div class="workspace-nav">
             <div class="format-control"><span>Format:</span><strong>▷ Landscape</strong><span>⌄</span></div>
             <button type="button" class="workspace-tab active">Notebook</button>
-            <button type="button" class="workspace-tab">Preview</button>
+            <button id="open-fullscreen-tab" type="button" class="workspace-tab">Preview</button>
           </div>
           <nav class="actions" aria-label="Project actions">
             <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
             <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
             <button id="import-file" class="button chrome-ghost">Import .md</button>
             <button id="paste-markdown" class="button chrome-ghost">Paste Markdown</button>
-            <button id="open-camera" class="button chrome-secondary"><span class="record-dot"></span> Present</button>
-            <button id="render-video" class="button primary">Render MP4</button>
+            <button id="open-settings" class="button chrome-ghost">Block settings</button>
+            <button id="open-fullscreen" class="button chrome-secondary">Open canvas</button>
+            <button id="open-camera" class="button primary"><span class="record-dot"></span> Record</button>
           </nav>
         </div>
       </header>
 
-      <main class="studio-grid">
-        <section class="panel notebook-panel" aria-labelledby="notebook-title">
+      <main class="studio-workspace">
+        <section class="notebook-document" aria-labelledby="notebook-title">
           <div class="panel-heading">
             <div>
               <span class="eyebrow">Notebook</span>
@@ -47,55 +48,52 @@
             </div>
             <button id="reset-sample" class="icon-button" title="Reset sample">↺</button>
           </div>
-          <div id="editor-toolbar" class="editor-toolbar" aria-label="Formatting toolbar">
-            <button data-command="bold" title="Bold"><strong>B</strong></button>
-            <button data-command="italic" title="Italic"><em>I</em></button>
-            <span></span>
-            <button data-command="h1">H1</button>
-            <button data-command="h2">H2</button>
-            <button data-command="bulletList">List</button>
-            <button data-command="blockquote">Quote</button>
-            <button data-command="codeBlock">Code</button>
-          </div>
-          <div id="editor" class="editor-shell"></div>
-          <div class="notebook-footer">
-            <span id="block-count">0 blocks</span>
-            <span>Markdown-backed · stable node IDs</span>
+          <div id="editor-layout" class="editor-layout">
+            <div class="editor-column">
+              <div id="editor-toolbar" class="editor-toolbar" aria-label="Formatting toolbar">
+                <button data-command="bold" title="Bold"><strong>B</strong></button>
+                <button data-command="italic" title="Italic"><em>I</em></button>
+                <span></span>
+                <button data-command="h1">H1</button>
+                <button data-command="h2">H2</button>
+                <button data-command="bulletList">List</button>
+                <button data-command="blockquote">Quote</button>
+                <button data-command="codeBlock">Code</button>
+              </div>
+              <div id="editor" class="editor-shell"></div>
+              <div class="notebook-footer">
+                <span id="block-count">0 blocks</span>
+                <span>Markdown-backed · stable node IDs</span>
+              </div>
+            </div>
+            <aside class="inline-canvas-rail" aria-label="Selected block live canvas">
+              <div id="inline-preview" class="inline-preview">
+                <div class="live-canvas-heading">
+                  <div><span class="live-dot"></span><strong>Live canvas</strong></div>
+                  <span>Hyperframes</span>
+                </div>
+                <div id="player-shell" class="player-shell">
+                  <div id="player-loading" class="player-loading">Compiling canvas…</div>
+                  <hyperframes-player id="player" width="1920" height="1080"></hyperframes-player>
+                  <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
+                </div>
+                <div class="inline-preview-meta">
+                  <div><span>Selected block</span><strong id="selected-label">Block 01</strong></div>
+                  <button id="inline-settings" type="button">Customize</button>
+                </div>
+                <p>Focus any Markdown block to move this live canvas alongside it.</p>
+              </div>
+            </aside>
           </div>
         </section>
 
-        <section class="stage-column" aria-labelledby="preview-title">
-          <div class="stage-heading">
-            <div>
-              <span class="eyebrow">Preview</span>
-              <h2 id="preview-title">Direct the frame</h2>
-            </div>
-            <div class="engine-badge"><span></span> Hyperframes</div>
-          </div>
-          <div class="player-shell">
-            <div id="player-loading" class="player-loading">Compiling composition…</div>
-            <hyperframes-player id="player" controls width="1920" height="1080"></hyperframes-player>
-          </div>
-          <div class="playback-meta">
-            <div><span>Selected</span><strong id="selected-label">Scene 01</strong></div>
-            <div><span>Total</span><strong id="total-duration">00:00</strong></div>
-            <div><span>Format</span><strong>1920 × 1080</strong></div>
-          </div>
-          <section class="timeline-panel" aria-labelledby="timeline-title">
-            <div class="timeline-heading">
-              <div><span class="eyebrow">Timeline</span><h2 id="timeline-title">One block, one scene</h2></div>
-              <span id="timeline-duration">0 seconds</span>
-            </div>
-            <div id="scene-rail" class="scene-rail"></div>
-          </section>
-        </section>
-
-        <aside class="panel inspector-panel" aria-labelledby="inspector-title">
-          <div class="panel-heading">
+        <aside id="inspector-panel" class="inspector-panel" aria-labelledby="inspector-title" aria-hidden="true">
+          <div class="panel-heading inspector-heading">
             <div><span class="eyebrow">Block settings</span><h2 id="inspector-title">Shape the block</h2></div>
+            <button id="close-settings" class="icon-button" type="button" aria-label="Close block settings">×</button>
           </div>
           <div class="selected-card">
-            <span id="selected-number">Scene 01</span>
+            <span id="selected-number">Block 01</span>
             <strong id="selected-title">Select a notebook block</strong>
             <code id="selected-id">node-id</code>
           </div>
@@ -123,7 +121,20 @@
                 <label><input id="brand-text" type="color" /><span>Text</span></label>
               </div>
             </fieldset>
+            <fieldset>
+              <legend>Recorded output</legend>
+              <p class="recording-note">The notebook stays a live canvas until a human or generated presenter track is recorded.</p>
+              <button id="render-video" type="button" class="button primary wide" disabled>Export recorded video</button>
+            </fieldset>
           </form>
+          <section class="block-navigator" aria-labelledby="block-navigator-title">
+            <div class="timeline-heading">
+              <div><span class="eyebrow">Document blocks</span><h2 id="block-navigator-title">Jump to a block</h2></div>
+            </div>
+            <div id="scene-rail" class="scene-rail"></div>
+          </section>
+          <strong id="total-duration" hidden>00:00</strong>
+          <span id="timeline-duration" hidden>0 seconds</span>
           <div id="render-result" class="render-result" hidden>
             <span>Render complete</span>
             <a id="download-render" class="button primary wide" href="#" download>Download MP4</a>
@@ -160,6 +171,7 @@
             <button id="generate-guide" class="button secondary">Generate guide</button>
             <button id="start-recording" class="button primary" disabled>Start camera take</button>
             <button id="stop-recording" class="button danger" hidden>Stop take</button>
+            <button id="engine-recording" class="button chrome-secondary wide" disabled>Use voice + live canvas</button>
           </div>
           <p class="privacy-note">Camera-only mode never requests microphone access. Generated voice and real footage remain separate tracks. Only use a voice reference you own or are authorized to use.</p>
         </div>
