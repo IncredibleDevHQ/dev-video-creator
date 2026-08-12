@@ -201,6 +201,8 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .director-section-heading small { color: #a1a1aa; font-size: 8px; }
 .studio-style-group { margin-top: 20px; }
 .studio-style-group:first-of-type { margin-top: 0; }
+#studio-media-frame-options { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e4e4e7; }
+#studio-media-frame-options > .studio-style-group:first-child { margin-top: 0; }
 .studio-style-heading { margin-bottom: 9px; display: flex; align-items: end; justify-content: space-between; gap: 8px; }
 .studio-style-heading strong { color: #52525b; font-size: 9px; }
 .studio-style-heading small { color: #a1a1aa; font-size: 7px; }
