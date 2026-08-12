@@ -19,6 +19,7 @@ export const renderableNodeTypes = [
   'codeBlock',
   'video',
   'image',
+  'screenRecording',
   'interaction',
 ]
 

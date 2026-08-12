@@ -239,6 +239,56 @@ describe('compileProject', () => {
     expect(result.html).toContain('<audio data-start="0"')
   })
 
+  it('compiles image and screen-recording blocks into timed media tracks', () => {
+    const withMedia = project()
+    const image: TiptapNode = {
+      type: 'image',
+      attrs: {
+        id: 'product-shot',
+        src: 'http://127.0.0.1:4319/assets/product.png',
+        title: 'Product dashboard',
+        alt: 'A product dashboard',
+      },
+    }
+    const screen: TiptapNode = {
+      type: 'screenRecording',
+      attrs: {
+        id: 'screen-demo',
+        src: 'http://127.0.0.1:4319/assets/demo.webm',
+        title: 'Recorded product demo',
+      },
+    }
+    withMedia.notebook.content.push(image, screen)
+    withMedia.blocks['product-shot'] = createDefaultBlockConfig(
+      'product-shot',
+      image,
+    )
+    withMedia.blocks['screen-demo'] = createDefaultBlockConfig(
+      'screen-demo',
+      screen,
+    )
+
+    const result = compileProject(withMedia)
+    const imageScene = result.scenes.find(scene => scene.id === 'product-shot')
+    const screenScene = result.scenes.find(scene => scene.id === 'screen-demo')
+
+    expect(imageScene?.title).toBe('Product dashboard')
+    expect(imageScene?.durationSeconds).toBe(5)
+    expect(screenScene?.title).toBe('Recorded product demo')
+    expect(screenScene?.durationSeconds).toBe(8)
+    expect(result.html).toContain('class="media-block media-image"')
+    expect(result.html).toContain(
+      'src="http://127.0.0.1:4319/assets/product.png"',
+    )
+    expect(result.html).toContain('class="media-block media-screen"')
+    expect(result.html).toContain(
+      '<video class="clip" data-start="15" data-duration="8"',
+    )
+    expect(result.html).toContain(
+      '<audio data-start="15" data-duration="8"',
+    )
+  })
+
   it('shows a presenter placeholder only in live preview compositions', () => {
     const withoutPreview = compileProject(project())
     const withPreview = compileProject(project(), {

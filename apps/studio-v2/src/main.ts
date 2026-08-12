@@ -31,6 +31,7 @@ import {
   type TiptapNode,
 } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
+import { ImageBlock, ScreenRecordingBlock } from './media-nodes'
 import './styles.css'
 
 const studioLogoUrl = new URL(
@@ -152,6 +153,15 @@ const BLOCK_RENDER_OPTIONS: Record<
     ['oversized', 'Oversized', 'Full-canvas words', 'AA'],
   ].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeRenderValue>[],
 }
+
+const MEDIA_RENDER_OPTIONS: CatalogOption<ThemeRenderValue>[] = [
+  { value: 'full', label: 'Full bleed', description: 'Fill the canvas edge to edge', glyph: '▣' },
+  { value: 'framed', label: 'Brand frame', description: 'Strong accent edge and safe inset', glyph: '▢' },
+  { value: 'glass', label: 'Glass surface', description: 'Float above a translucent panel', glyph: '◇' },
+  { value: 'spotlight', label: 'Spotlight', description: 'Focused media with generous space', glyph: '◎' },
+  { value: 'card', label: 'Raised card', description: 'Editorial surface and soft shadow', glyph: '▤' },
+  { value: 'minimal', label: 'Minimal', description: 'Clean media without decoration', glyph: '—' },
+]
 
 const MOTION_OPTIONS: CatalogOption<RevealStyle>[] = [
   { value: 'none', label: 'Static', description: 'No entrance motion', glyph: '—' },
@@ -320,14 +330,25 @@ const BACKGROUND_PRESETS: Array<{
   { id: 'custom', label: 'Custom', mode: 'color', swatch: 'var(--custom-background,#111827)' },
 ]
 
-const sceneObjectLabel = (kind: Scene['kind']) =>
-  ({
-    title: 'Title',
-    content: 'Text',
-    list: 'Points',
-    quote: 'Quote',
-    code: 'Code',
-  })[kind]
+const sceneVisualKind = (scene: Pick<Scene, 'kind' | 'node'>) =>
+  scene.node.type === 'image'
+    ? 'image'
+    : scene.node.type === 'screenRecording'
+      ? 'screen'
+      : scene.kind
+
+const TIMELINE_BLOCK_META = {
+  title: { label: 'Title', icon: 'T' },
+  content: { label: 'Text', icon: 'Aa' },
+  list: { label: 'Points', icon: '☷' },
+  quote: { label: 'Quote', icon: '“' },
+  code: { label: 'Code', icon: '</>' },
+  image: { label: 'Image', icon: '▧' },
+  screen: { label: 'Screen', icon: '▶' },
+} as const
+
+const sceneObjectLabel = (scene: Pick<Scene, 'kind' | 'node'>) =>
+  TIMELINE_BLOCK_META[sceneVisualKind(scene)].label
 
 const directorKindForNode = (node: TiptapNode): Scene['kind'] => {
   if (node.type === 'heading') return 'title'
@@ -384,6 +405,12 @@ let cameraStream: MediaStream | null = null
 let mediaRecorder: MediaRecorder | null = null
 let recordingChunks: Blob[] = []
 let recordingNodeId = ''
+let screenRecordingStream: MediaStream | null = null
+let screenRecorder: MediaRecorder | null = null
+let screenRecordingChunks: Blob[] = []
+let screenRecordingUploadKey = ''
+let screenRecordingStartedAt = 0
+let screenRecordingTimer: number | undefined
 let generatedVoiceUrl = ''
 let animationPreviewTimer: number | undefined
 let replayAnimationOnReady = false
@@ -992,10 +1019,234 @@ const navigateToSurface = (surface: 'themes' | 'studio', replace = false) => {
   else window.requestAnimationFrame(positionInlinePreview)
 }
 
-const editor = new Editor({
+type SlashBlockId =
+  | 'title'
+  | 'text'
+  | 'points'
+  | 'quote'
+  | 'code'
+  | 'image'
+  | 'screen'
+
+const SLASH_BLOCKS: Array<{
+  id: SlashBlockId
+  label: string
+  description: string
+  icon: string
+  keywords: string
+}> = [
+  { id: 'title', label: 'Title', description: 'Open a section', icon: 'T', keywords: 'heading h1 headline' },
+  { id: 'text', label: 'Text', description: 'Explain an idea', icon: 'Aa', keywords: 'paragraph prose copy' },
+  { id: 'points', label: 'Points', description: 'Build a sequence', icon: '☷', keywords: 'list bullets steps' },
+  { id: 'quote', label: 'Quote', description: 'Emphasize a thought', icon: '“', keywords: 'blockquote callout' },
+  { id: 'code', label: 'Code', description: 'Walk through code', icon: '</>', keywords: 'snippet terminal developer' },
+  { id: 'image', label: 'Image', description: 'Show a visual', icon: '▧', keywords: 'photo picture media upload' },
+  { id: 'screen', label: 'Screen recording', description: 'Capture your screen', icon: '▶', keywords: 'video screencast demo capture' },
+]
+
+let slashMenuActiveIndex = 0
+let slashMenuRange: { from: number; to: number; query: string } | null = null
+let dismissedSlashKey = ''
+let pendingImageUploadKey = ''
+let editor: Editor
+
+const slashContext = () => {
+  if (!editor || !editor.state.selection.empty) return null
+  const { $from } = editor.state.selection
+  if ($from.parent.type.name !== 'paragraph' || $from.depth !== 1) return null
+  const beforeCursor = $from.parent.textBetween(0, $from.parentOffset, ' ')
+  const match = beforeCursor.match(/^\/([a-z\s-]*)$/i)
+  if (!match) return null
+  return {
+    from: $from.before(),
+    to: $from.after(),
+    query: match[1].trim().toLowerCase(),
+  }
+}
+
+const filteredSlashBlocks = (query: string) =>
+  SLASH_BLOCKS.filter(option =>
+    `${option.label} ${option.description} ${option.keywords}`
+      .toLowerCase()
+      .includes(query),
+  )
+
+const hideSlashMenu = () => {
+  ;($('#slash-menu') as HTMLElement).hidden = true
+  slashMenuRange = null
+}
+
+const positionSlashMenu = () => {
+  if (!slashMenuRange) return
+  const menu = $('#slash-menu')
+  const coordinates = editor.view.coordsAtPos(editor.state.selection.from)
+  const menuWidth = 470
+  const menuHeight = 370
+  menu.style.left = `${Math.max(16, Math.min(coordinates.left, window.innerWidth - menuWidth - 16))}px`
+  menu.style.top = `${Math.max(16, Math.min(coordinates.bottom + 10, window.innerHeight - menuHeight - 16))}px`
+}
+
+const renderSlashMenu = () => {
+  const context = slashContext()
+  const menu = $('#slash-menu')
+  if (!context) {
+    hideSlashMenu()
+    dismissedSlashKey = ''
+    return
+  }
+  const contextKey = `${context.from}:${context.to}:${context.query}`
+  if (contextKey === dismissedSlashKey) return
+  slashMenuRange = context
+  const options = filteredSlashBlocks(context.query)
+  slashMenuActiveIndex = Math.min(slashMenuActiveIndex, Math.max(0, options.length - 1))
+  const grid = $('#slash-menu-grid')
+  grid.replaceChildren()
+  options.forEach((option, index) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.dataset.slashBlock = option.id
+    button.className = index === slashMenuActiveIndex ? 'active' : ''
+    button.setAttribute('role', 'option')
+    button.setAttribute('aria-selected', String(index === slashMenuActiveIndex))
+    button.innerHTML = `<span>${option.icon}</span><strong>${option.label}</strong><small>${option.description}</small>`
+    button.addEventListener('pointerdown', event => event.preventDefault())
+    button.addEventListener('click', () => insertSlashBlock(option.id))
+    grid.append(button)
+  })
+  ;($('#slash-menu-empty') as HTMLElement).hidden = options.length > 0
+  menu.hidden = false
+  window.requestAnimationFrame(positionSlashMenu)
+}
+
+const mediaNodeContent = (
+  type: 'image' | 'screenRecording',
+  attributes: Record<string, string>,
+) => [
+  { type, attrs: attributes },
+  { type: 'paragraph' },
+]
+
+const insertSlashBlock = (blockId: SlashBlockId) => {
+  const range = slashMenuRange || slashContext()
+  if (!range) return
+  hideSlashMenu()
+  dismissedSlashKey = ''
+  const content: Record<Exclude<SlashBlockId, 'image' | 'screen'>, JSONContent> = {
+    title: {
+      type: 'heading',
+      attrs: { level: 1 },
+      content: [{ type: 'text', text: 'New section title' }],
+    },
+    text: {
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Start explaining your idea…' }],
+    },
+    points: {
+      type: 'bulletList',
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'First point' }],
+            },
+          ],
+        },
+      ],
+    },
+    quote: {
+      type: 'blockquote',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'A thought worth emphasizing' }],
+        },
+      ],
+    },
+    code: {
+      type: 'codeBlock',
+      attrs: { language: 'ts' },
+      content: [{ type: 'text', text: 'const idea = "show, then explain"' }],
+    },
+  }
+
+  if (blockId === 'image') {
+    pendingImageUploadKey = crypto.randomUUID()
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(
+        { from: range.from, to: range.to },
+        mediaNodeContent('image', {
+          src: '',
+          alt: 'Image',
+          title: 'Image',
+          status: 'uploading',
+          uploadKey: pendingImageUploadKey,
+        }),
+      )
+      .run()
+    ;($('#block-image-file') as HTMLInputElement).click()
+    return
+  }
+
+  if (blockId === 'screen') {
+    const uploadKey = crypto.randomUUID()
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(
+        { from: range.from, to: range.to },
+        mediaNodeContent('screenRecording', {
+          src: '',
+          title: 'Screen recording',
+          status: 'recording',
+          uploadKey,
+        }),
+      )
+      .run()
+    void beginScreenRecording(uploadKey)
+    return
+  }
+
+  editor
+    .chain()
+    .focus()
+    .insertContentAt({ from: range.from, to: range.to }, content[blockId])
+    .run()
+}
+
+const handleSlashKey = (event: KeyboardEvent) => {
+  const menu = $('#slash-menu')
+  if (menu.hidden || !slashMenuRange) return false
+  const options = filteredSlashBlocks(slashMenuRange.query)
+  if (event.key === 'Escape') {
+    dismissedSlashKey = `${slashMenuRange.from}:${slashMenuRange.to}:${slashMenuRange.query}`
+    hideSlashMenu()
+    return true
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (!options.length) return true
+    const direction = event.key === 'ArrowDown' ? 1 : -1
+    slashMenuActiveIndex =
+      (slashMenuActiveIndex + direction + options.length) % options.length
+    renderSlashMenu()
+    return true
+  }
+  if (event.key === 'Enter' && options[slashMenuActiveIndex]) {
+    insertSlashBlock(options[slashMenuActiveIndex].id)
+    return true
+  }
+  return false
+}
+
+editor = new Editor({
   element: $('#editor'),
   extensions: [
     StarterKit,
+    ImageBlock,
+    ScreenRecordingBlock,
     Markdown.configure({
       markedOptions: { gfm: true, breaks: false },
     }),
@@ -1007,13 +1258,21 @@ const editor = new Editor({
         'bulletList',
         'orderedList',
         'codeBlock',
+        'image',
+        'screenRecording',
       ],
     }),
   ],
   content: storedProject?.notebook || SAMPLE_MARKDOWN,
   contentType: storedProject ? 'json' : 'markdown',
   autofocus: false,
-  onUpdate: () => scheduleSync(),
+  editorProps: {
+    handleKeyDown: (_view, event) => handleSlashKey(event),
+  },
+  onUpdate: () => {
+    scheduleSync()
+    renderSlashMenu()
+  },
   onSelectionUpdate: () => {
     const nodeId = selectedIdAtCursor()
     if (nodeId && nodeId !== selectedNodeId) {
@@ -1024,6 +1283,7 @@ const editor = new Editor({
       })
     }
     updateToolbar()
+    renderSlashMenu()
   },
 })
 
@@ -1071,10 +1331,12 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
     if (!project.blocks[nodeId]) {
       project.blocks[nodeId] = createDefaultBlockConfig(nodeId, node)
       const kind = directorKindForNode(node)
+      const isMediaBlock =
+        node.type === 'image' || node.type === 'screenRecording'
       project.blocks[nodeId].reveal =
         project.theme?.motion[kind] ||
         project.blocks[nodeId].reveal
-      if (project.theme) {
+      if (project.theme && !isMediaBlock) {
         project.blocks[nodeId].appearance = appearanceFromTheme(kind, project.theme)
       }
     }
@@ -1090,7 +1352,9 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
       config.camera.mode = fallback.camera.mode
     }
     if (!config.appearance) {
-      config.appearance = project.theme
+      const isMediaBlock =
+        node.type === 'image' || node.type === 'screenRecording'
+      config.appearance = project.theme && !isMediaBlock
         ? appearanceFromTheme(directorKindForNode(node), project.theme)
         : fallback.appearance
     }
@@ -1141,13 +1405,16 @@ const renderCanvasBlockTimeline = () => {
     const button = document.createElement('button')
     const isSelected = scene.id === selectedNodeId
     button.type = 'button'
-    button.className = `canvas-timeline-block${isSelected ? ' active' : ''}`
+    const visualKind = sceneVisualKind(scene)
+    const meta = TIMELINE_BLOCK_META[visualKind]
+    button.className = `canvas-timeline-block timeline-kind-${visualKind}${isSelected ? ' active' : ''}`
     button.dataset.timelineNodeId = scene.id
+    button.dataset.timelineBlockType = visualKind
     button.setAttribute('role', 'listitem')
     button.setAttribute('aria-current', isSelected ? 'true' : 'false')
     button.setAttribute(
       'aria-label',
-      `Block ${scene.index + 1}, ${sceneObjectLabel(scene.kind)}, ${scene.title}, ${formatTime(scene.durationSeconds)}`,
+      `Block ${scene.index + 1}, ${sceneObjectLabel(scene)}, ${scene.title}, ${formatTime(scene.durationSeconds)}`,
     )
     button.style.flexGrow = String(Math.max(1, scene.durationSeconds))
 
@@ -1159,9 +1426,24 @@ const renderCanvasBlockTimeline = () => {
     duration.textContent = formatTime(scene.durationSeconds)
     top.append(index, duration)
 
+    const body = document.createElement('span')
+    body.className = 'canvas-timeline-block-body'
+    const visual = document.createElement('span')
+    visual.className = 'canvas-timeline-block-visual'
+    const source = scene.node.attrs?.src
+    if (visualKind === 'image' && typeof source === 'string' && source) {
+      const image = document.createElement('img')
+      image.src = source
+      image.alt = ''
+      visual.append(image)
+    } else {
+      visual.textContent = meta.icon
+    }
+    const copy = document.createElement('span')
+    copy.className = 'canvas-timeline-block-copy'
     const type = document.createElement('span')
     type.className = 'canvas-timeline-block-type'
-    type.textContent = sceneObjectLabel(scene.kind)
+    type.textContent = meta.label
     if (scene.presenterTracks.length) {
       const presenter = document.createElement('i')
       presenter.title = 'Recorded presenter'
@@ -1171,7 +1453,9 @@ const renderCanvasBlockTimeline = () => {
 
     const title = document.createElement('strong')
     title.textContent = scene.title
-    button.append(top, type, title)
+    copy.append(type, title)
+    body.append(visual, copy)
+    button.append(top, body)
     button.addEventListener('click', () => selectNode(scene.id, false))
     track.append(button)
   })
@@ -1311,6 +1595,13 @@ const renderLayoutPresetPicker = (
   contentGrid.replaceChildren()
   presenterGrid.replaceChildren()
   const presenterSelected = selectedCanvasObject === 'presenter'
+  const visualKind = sceneVisualKind(scene)
+  const mediaScope =
+    visualKind === 'image'
+      ? 'Image options'
+      : visualKind === 'screen'
+        ? 'Screen recording options'
+        : null
   ;($('#content-layout-group') as HTMLElement).hidden = presenterSelected
   ;($('#presenter-layout-group') as HTMLElement).hidden = !presenterSelected
   ;($('#presenter-layout-group') as HTMLElement).classList.toggle(
@@ -1323,10 +1614,10 @@ const renderLayoutPresetPicker = (
     : 'Content layout'
   ;($('#director-layout-title') as HTMLElement).textContent = presenterSelected
     ? 'Place the human'
-    : `Compose the ${sceneObjectLabel(scene.kind).toLowerCase()}`
+    : `Compose the ${sceneObjectLabel(scene).toLowerCase()}`
   ;($('#director-layout-scope') as HTMLElement).textContent = presenterSelected
     ? `${PRESENTER_LAYOUT_PRESETS.length} options`
-    : DIRECTOR_OPTIONS[scene.kind].label
+    : mediaScope || DIRECTOR_OPTIONS[scene.kind].label
   ;($('#studio-preview-presenter-name') as HTMLElement).textContent =
     selectedPreviewPresenter().name
 
@@ -1400,6 +1691,11 @@ const renderStudioStyleControls = (
   scene: Scene,
   config: BlockRenderConfigV1,
 ) => {
+  const visualKind = sceneVisualKind(scene)
+  const isMediaBlock = visualKind === 'image' || visualKind === 'screen'
+  const renderOptions = isMediaBlock
+    ? MEDIA_RENDER_OPTIONS
+    : BLOCK_RENDER_OPTIONS[scene.kind]
   const placementGrid = $('#studio-placement-options')
   placementGrid.replaceChildren(
     ...BLOCK_LAYOUT_OPTIONS.map(option =>
@@ -1414,7 +1710,7 @@ const renderStudioStyleControls = (
   )
   const renderGrid = $('#studio-render-options')
   renderGrid.replaceChildren(
-    ...BLOCK_RENDER_OPTIONS[scene.kind].map(option =>
+    ...renderOptions.map(option =>
       createStudioChoiceButton(
         option,
         config.appearance.render,
@@ -1425,7 +1721,7 @@ const renderStudioStyleControls = (
     ),
   )
   ;($('#studio-render-heading') as HTMLElement).textContent =
-    `${BLOCK_KIND_META[scene.kind].label.replace(' system', '')} rendering`
+    `${isMediaBlock ? sceneObjectLabel(scene) : BLOCK_KIND_META[scene.kind].label.replace(' system', '')} rendering`
   const codeOptions = $('#studio-code-options')
   codeOptions.hidden = scene.kind !== 'code'
   if (scene.kind === 'code') {
@@ -1463,7 +1759,7 @@ const renderStudioStyleControls = (
     ? CODE_THEME_OPTIONS.length * CODE_ANIMATION_OPTIONS.length
     : 1
   ;($('#director-style-count') as HTMLElement).textContent =
-    `${BLOCK_LAYOUT_OPTIONS.length * BLOCK_RENDER_OPTIONS[scene.kind].length * motions * codeMultiplier} combinations`
+    `${BLOCK_LAYOUT_OPTIONS.length * renderOptions.length * motions * codeMultiplier} combinations`
 }
 
 const renderStudioMotionControls = (
@@ -2047,6 +2343,161 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return body
 }
 
+const updateMediaNode = (
+  uploadKey: string,
+  attributes: Record<string, unknown>,
+) => {
+  const transaction = editor.state.tr
+  editor.state.doc.descendants((node, position) => {
+    if (node.attrs.uploadKey !== uploadKey) return
+    transaction.setNodeMarkup(position, undefined, {
+      ...node.attrs,
+      ...attributes,
+    })
+  })
+  if (transaction.docChanged) editor.view.dispatch(transaction)
+}
+
+const setMediaBlockDuration = (uploadKey: string, durationSeconds: number) => {
+  let nodeId = ''
+  editor.state.doc.descendants(node => {
+    if (node.attrs.uploadKey === uploadKey && typeof node.attrs.id === 'string') {
+      nodeId = node.attrs.id
+    }
+  })
+  if (!nodeId) return
+  ensureBlockConfiguration(editor.getJSON() as TiptapDocument)
+  if (project.blocks[nodeId]) {
+    project.blocks[nodeId].durationMs = Math.max(1000, durationSeconds * 1000)
+  }
+}
+
+const uploadNotebookAsset = async (file: Blob, name: string) =>
+  fetchJson<{ url: string }>('/api/assets', {
+    method: 'POST',
+    headers: {
+      'content-type': file.type || 'application/octet-stream',
+      'x-asset-name': name,
+    },
+    body: file,
+  })
+
+;($('#block-image-file') as HTMLInputElement).addEventListener(
+  'change',
+  async event => {
+    const input = event.currentTarget as HTMLInputElement
+    const file = input.files?.[0]
+    const uploadKey = pendingImageUploadKey
+    input.value = ''
+    pendingImageUploadKey = ''
+    if (!file || !uploadKey) {
+      if (uploadKey) updateMediaNode(uploadKey, { status: 'empty' })
+      return
+    }
+    try {
+      const result = await uploadNotebookAsset(file, file.name)
+      const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
+      updateMediaNode(uploadKey, {
+        src: result.url,
+        alt: title || 'Image',
+        title: title || 'Image',
+        status: 'ready',
+      })
+      showToast('Image added to the notebook and timeline')
+    } catch (error) {
+      updateMediaNode(uploadKey, { status: 'error' })
+      showToast(error instanceof Error ? error.message : 'Could not upload image')
+    }
+  },
+)
+
+const updateScreenRecordingClock = () => {
+  const seconds = Math.floor((Date.now() - screenRecordingStartedAt) / 1000)
+  ;($('#screen-recording-time') as HTMLElement).textContent = formatTime(seconds)
+}
+
+const stopScreenRecording = () => {
+  if (screenRecorder?.state === 'recording') screenRecorder.stop()
+}
+
+async function beginScreenRecording(uploadKey: string) {
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    updateMediaNode(uploadKey, { status: 'unsupported' })
+    showToast('Screen recording is not supported in this browser')
+    return
+  }
+  try {
+    screenRecordingStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 30, max: 60 } },
+      audio: true,
+    })
+    screenRecordingUploadKey = uploadKey
+    screenRecordingChunks = []
+    screenRecordingStartedAt = Date.now()
+    const recorderType = supportedRecorderType()
+    screenRecorder = new MediaRecorder(
+      screenRecordingStream,
+      recorderType ? { mimeType: recorderType } : undefined,
+    )
+    screenRecorder.ondataavailable = event => {
+      if (event.data.size) screenRecordingChunks.push(event.data)
+    }
+    screenRecorder.onstop = async () => {
+      const durationSeconds = Math.max(
+        1,
+        Math.round((Date.now() - screenRecordingStartedAt) / 1000),
+      )
+      window.clearInterval(screenRecordingTimer)
+      ;($('#screen-recording-bar') as HTMLElement).hidden = true
+      screenRecordingStream?.getTracks().forEach(track => track.stop())
+      screenRecordingStream = null
+      updateMediaNode(screenRecordingUploadKey, { status: 'uploading' })
+      try {
+        const blob = new Blob(screenRecordingChunks, {
+          type: screenRecorder?.mimeType || 'video/webm',
+        })
+        const result = await uploadNotebookAsset(blob, 'screen-recording.webm')
+        setMediaBlockDuration(screenRecordingUploadKey, durationSeconds)
+        updateMediaNode(screenRecordingUploadKey, {
+          src: result.url,
+          title: `Screen recording · ${formatTime(durationSeconds)}`,
+          status: 'ready',
+        })
+        showToast('Screen recording added as a timeline block')
+      } catch (error) {
+        updateMediaNode(screenRecordingUploadKey, { status: 'error' })
+        showToast(
+          error instanceof Error
+            ? error.message
+            : 'Could not upload screen recording',
+        )
+      } finally {
+        screenRecordingUploadKey = ''
+        screenRecordingChunks = []
+      }
+    }
+    screenRecordingStream.getVideoTracks()[0]?.addEventListener(
+      'ended',
+      stopScreenRecording,
+      { once: true },
+    )
+    screenRecorder.start(250)
+    ;($('#screen-recording-time') as HTMLElement).textContent = '00:00'
+    ;($('#screen-recording-bar') as HTMLElement).hidden = false
+    screenRecordingTimer = window.setInterval(updateScreenRecordingClock, 500)
+  } catch (error) {
+    updateMediaNode(uploadKey, { status: 'cancelled' })
+    showToast(
+      error instanceof Error ? error.message : 'Screen recording was cancelled',
+    )
+  }
+}
+
+;($('#stop-screen-recording') as HTMLButtonElement).addEventListener(
+  'click',
+  stopScreenRecording,
+)
+
 const updateThemeDraftFromControls = () => {
   const previousPrimary = themeDraft.brand.primary
   const previousSecondary = themeDraft.brand.secondary
@@ -2568,6 +3019,8 @@ renderButton.addEventListener('click', async () => {
 
 window.addEventListener('beforeunload', () => {
   stopCameraStream()
+  screenRecordingStream?.getTracks().forEach(track => track.stop())
+  window.clearInterval(screenRecordingTimer)
   editor.destroy()
 })
 

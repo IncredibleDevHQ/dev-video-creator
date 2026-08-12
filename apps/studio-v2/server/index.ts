@@ -21,6 +21,7 @@ import {
   type ProjectDocumentV1,
   type StudioThemeV1,
   type ThemeCanvasTreatment,
+  type TiptapNode,
 } from 'markdown-composition'
 
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
@@ -120,6 +121,7 @@ const extensionForContentType = (contentType = '') => {
   if (contentType.includes('image/png')) return '.png'
   if (contentType.includes('image/jpeg')) return '.jpg'
   if (contentType.includes('image/webp')) return '.webp'
+  if (contentType.includes('image/gif')) return '.gif'
   if (contentType.includes('video/mp4')) return '.mp4'
   if (contentType.includes('video/quicktime')) return '.mov'
   if (contentType.includes('audio/mpeg')) return '.mp3'
@@ -139,6 +141,8 @@ const contentTypeForFile = (path: string) => {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+    '.gif': 'image/gif',
     '.mp4': 'video/mp4',
     '.webm': 'video/webm',
     '.mov': 'video/quicktime',
@@ -577,33 +581,42 @@ const handleRender = async (
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
   const renderProject = structuredClone(project)
   const localRenderAssets = new Map<string, string>()
+  const localAssetPath = (value: string | undefined) => {
+    if (!value) return value
+    try {
+      const url = new URL(value)
+      if (
+        !['127.0.0.1', 'localhost'].includes(url.hostname) ||
+        !url.pathname.startsWith('/assets/')
+      ) {
+        return value
+      }
+      const assetName = url.pathname.slice('/assets/'.length)
+      if (!assetName || assetName !== basename(assetName)) return value
+      localRenderAssets.set(assetName, join(assetsDirectory, assetName))
+      return `media/${assetName}`
+    } catch {
+      return value
+    }
+  }
   Object.values(renderProject.presenterTracks).forEach(tracks => {
     tracks.forEach(track => {
-      const localAssetPath = (value: string | undefined) => {
-        if (!value) return value
-        try {
-          const url = new URL(value)
-          if (
-            !['127.0.0.1', 'localhost'].includes(url.hostname) ||
-            !url.pathname.startsWith('/assets/')
-          ) {
-            return value
-          }
-          const assetName = url.pathname.slice('/assets/'.length)
-          if (!assetName || assetName !== basename(assetName)) return value
-          localRenderAssets.set(assetName, join(assetsDirectory, assetName))
-          return `media/${assetName}`
-        } catch {
-          return value
-        }
-      }
-
       if (track.kind === 'human-camera') {
         track.videoUrl = localAssetPath(track.videoUrl) || track.videoUrl
       }
       track.audioUrl = localAssetPath(track.audioUrl) || track.audioUrl
     })
   })
+  const stageNotebookMedia = (node: TiptapNode) => {
+    if (
+      (node.type === 'image' || node.type === 'screenRecording') &&
+      typeof node.attrs?.src === 'string'
+    ) {
+      node.attrs.src = localAssetPath(node.attrs.src) || node.attrs.src
+    }
+    node.content?.forEach(stageNotebookMedia)
+  }
+  renderProject.notebook.content.forEach(stageNotebookMedia)
   const composition = compileProject(renderProject, {
     gsapUrl: './runtime/gsap.min.js',
     hyperframesRuntimeUrl: './runtime/hyperframes.iife.js',

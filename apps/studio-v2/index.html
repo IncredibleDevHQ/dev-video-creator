@@ -178,9 +178,15 @@
                 <button data-command="codeBlock">Code</button>
               </div>
               <div id="editor" class="editor-shell"></div>
+              <div id="slash-menu" class="slash-menu" role="dialog" aria-label="Insert a block" hidden>
+                <div class="slash-menu-heading"><div><strong>Blocks</strong><span>Every block becomes a scene in your timeline.</span></div><kbd>Esc</kbd></div>
+                <div id="slash-menu-grid" class="slash-menu-grid" role="listbox" aria-label="Block types"></div>
+                <div id="slash-menu-empty" class="slash-menu-empty" hidden>No matching block type</div>
+              </div>
+              <input id="block-image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
               <div class="notebook-footer">
                 <span id="block-count">0 blocks</span>
-                <span>Markdown-backed · stable node IDs</span>
+                <span><kbd>/</kbd> Insert any block · stable node IDs</span>
               </div>
             </div>
             <aside class="inline-canvas-rail" aria-label="Selected block live canvas">
@@ -365,6 +371,12 @@
         </div>
       </div>
     </dialog>
+
+    <div id="screen-recording-bar" class="screen-recording-bar" role="status" hidden>
+      <span class="screen-recording-pulse"></span>
+      <div><strong>Screen recording</strong><small id="screen-recording-time">00:00</small></div>
+      <button id="stop-screen-recording" class="button danger" type="button">Stop and add block</button>
+    </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <script type="module" src="/src/main.ts"></script>

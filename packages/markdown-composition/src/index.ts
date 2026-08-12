@@ -31,6 +31,14 @@ const defaultLayoutForNode = (node: TiptapNode): SceneLayout => {
 }
 
 const defaultAppearanceForNode = (node: TiptapNode) => {
+  if (node.type === 'image' || node.type === 'screenRecording') {
+    return {
+      layout: 'full' as const,
+      render: 'minimal' as ThemeBlockRendering,
+      codeTheme: defaultThemeBlocks.codeTheme,
+      codeAnimation: defaultThemeBlocks.codeAnimation,
+    }
+  }
   const kind = node.type === 'heading'
     ? 'title'
     : node.type === 'codeBlock'
@@ -54,8 +62,18 @@ export const createDefaultBlockConfig = (
 ): BlockRenderConfigV1 => ({
   nodeId,
   layout: defaultLayoutForNode(node),
-  durationMs: node.type === 'codeBlock' ? 7000 : 5000,
-  reveal: node.type === 'codeBlock' ? 'line-by-line' : 'rise',
+  durationMs:
+    node.type === 'codeBlock'
+      ? 7000
+      : node.type === 'screenRecording'
+        ? 8000
+        : 5000,
+  reveal:
+    node.type === 'codeBlock'
+      ? 'line-by-line'
+      : node.type === 'image' || node.type === 'screenRecording'
+        ? 'fade'
+        : 'rise',
   alignment: node.type === 'heading' ? 'center' : 'left',
   background: {
     preset: 'brand',
@@ -319,6 +337,19 @@ const renderNode = (node: TiptapNode): string => {
             `<span class="code-line" data-line="${index + 1}">${renderCodeLine(line)}</span>`,
         )
         .join('')}</code></pre>`
+    case 'image': {
+      const source = safeUrl(node.attrs?.src)
+      const alt = String(node.attrs?.alt || node.attrs?.title || 'Image')
+      return source
+        ? `<figure class="media-block media-image"><img src="${escapeHtml(source)}" alt="${escapeHtml(alt)}" /></figure>`
+        : '<div class="media-block media-placeholder">Choose an image</div>'
+    }
+    case 'screenRecording': {
+      const source = safeUrl(node.attrs?.src)
+      return source
+        ? `<figure class="media-block media-screen"><video src="${escapeHtml(source)}" muted playsinline></video></figure>`
+        : '<div class="media-block media-placeholder">Screen recording</div>'
+    }
     case 'horizontalRule':
       return '<hr />'
     case 'hardBreak':
@@ -330,7 +361,30 @@ const renderNode = (node: TiptapNode): string => {
 
 const textContent = (node: TiptapNode): string => {
   if (node.type === 'text') return node.text || ''
+  if (node.type === 'image') {
+    return String(node.attrs?.title || node.attrs?.alt || 'Image')
+  }
+  if (node.type === 'screenRecording') {
+    return String(node.attrs?.title || 'Screen recording')
+  }
   return (node.content || []).map(textContent).join(' ').replace(/\s+/g, ' ').trim()
+}
+
+const renderSceneNode = (scene: Scene) => {
+  if (scene.node.type !== 'image' && scene.node.type !== 'screenRecording') {
+    return renderNode(scene.node)
+  }
+  const source = safeUrl(scene.node.attrs?.src)
+  if (!source) {
+    const label = scene.node.type === 'image' ? 'Choose an image' : 'Screen recording'
+    return `<div class="media-block media-placeholder"><span>${scene.node.type === 'image' ? '▧' : '▶'}</span><strong>${label}</strong></div>`
+  }
+  const common = `data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${30 + scene.index}" src="${escapeHtml(source)}"`
+  if (scene.node.type === 'image') {
+    const alt = String(scene.node.attrs?.alt || scene.node.attrs?.title || 'Image')
+    return `<figure class="media-block media-image"><img class="clip" ${common} alt="${escapeHtml(alt)}" /></figure>`
+  }
+  return `<figure class="media-block media-screen"><video class="clip" ${common} muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${40 + scene.index}" src="${escapeHtml(source)}"></audio></figure>`
 }
 
 const sceneKind = (node: TiptapNode): Scene['kind'] => {
@@ -474,7 +528,7 @@ const buildCompositionHtml = (
             : ''
         }
         <div class="scene-index">${String(scene.index + 1).padStart(2, '0')}</div>
-        <main class="content">${renderNode(scene.node)}</main>
+        <main class="content">${renderSceneNode(scene)}</main>
         <footer class="logo-${theme.logo.placement}">${
           theme.logo.placement.startsWith('footer-')
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
@@ -604,6 +658,24 @@ const buildCompositionHtml = (
     .scene-kind-quote.theme-render-framed blockquote { padding: 54px; border: 3px solid var(--accent); border-radius: var(--block-radius); color: var(--text); }
     .scene-kind-quote.theme-render-minimal blockquote { padding: 0; border: 0; color: var(--text); }
     .scene-kind-quote.theme-render-oversized blockquote { padding: 0; border: 0; color: var(--text); font-size: 96px; font-weight: 800; line-height: 1; }
+    .media-block { width: 100%; min-height: 560px; margin: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--block-radius); background: color-mix(in srgb, var(--surface) 82%, transparent); box-shadow: 0 30px 90px rgba(0,0,0,.18); }
+    .media-block img, .media-block video { width: 100%; height: 100%; min-height: 560px; max-height: 760px; display: block; object-fit: contain; background: #09090b; }
+    .media-placeholder { align-content: center; gap: 22px; border: 3px dashed color-mix(in srgb, var(--text) 24%, transparent); color: var(--muted); font-size: 40px; text-align: center; box-shadow: none; }
+    .media-placeholder span { color: var(--accent); font-size: 72px; }
+    .media-placeholder strong { color: var(--text); }
+    .scene:has(.media-block) { padding: 72px; --content-layout-width: 100%; }
+    .scene:has(.media-block) .content { width: 100%; max-width: 100%; }
+    .scene:has(.media-block).theme-render-full { padding: 0; }
+    .scene:has(.media-block).theme-render-full .media-block { min-height: 1080px; border-radius: 0; box-shadow: none; }
+    .scene:has(.media-block).theme-render-full .media-block img, .scene:has(.media-block).theme-render-full .media-block video { min-height: 1080px; max-height: none; object-fit: cover; }
+    .scene:has(.media-block).theme-render-framed .media-block { border: 6px solid var(--accent); box-shadow: 0 32px 100px color-mix(in srgb, var(--accent) 24%, transparent); }
+    .scene:has(.media-block).theme-render-glass .media-block { padding: 24px; border: 2px solid rgba(255,255,255,.32); background: color-mix(in srgb, var(--surface) 62%, transparent); backdrop-filter: blur(22px); }
+    .scene:has(.media-block).theme-render-glass .media-block img, .scene:has(.media-block).theme-render-glass .media-block video { min-height: 512px; border-radius: max(0px, calc(var(--block-radius) - 16px)); }
+    .scene:has(.media-block).theme-render-spotlight .content { width: 78%; }
+    .scene:has(.media-block).theme-render-spotlight .media-block { min-height: 500px; box-shadow: 0 46px 120px rgba(0,0,0,.34); }
+    .scene:has(.media-block).theme-render-card .media-block { padding: 28px; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); background: var(--surface); }
+    .scene:has(.media-block).theme-render-card .media-block img, .scene:has(.media-block).theme-render-card .media-block video { min-height: 500px; border-radius: max(0px, calc(var(--block-radius) - 18px)); }
+    .scene:has(.media-block).theme-render-minimal .media-block { background: transparent; box-shadow: none; }
     pre { width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code-theme-bg, var(--code)); color: var(--code-theme-text, #f7f7ef); box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
     .code-token-keyword { color: var(--code-theme-keyword, #c586c0); }
     .code-token-variable { color: var(--code-theme-variable, #9cdcfe); }
