@@ -546,6 +546,54 @@ const handleAssetUpload = async (
   })
 }
 
+const handleDirectedRecording = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readBody(request, 600 * 1024 * 1024)
+  if (!body.length) throw new Error('Recorded canvas take is empty')
+  const id = randomUUID()
+  const jobDirectory = join(jobsDirectory, `recording-${id}`)
+  const inputExtension = extensionForContentType(
+    String(request.headers['content-type'] || 'video/webm'),
+  )
+  const inputPath = join(jobDirectory, `take${inputExtension}`)
+  const outputPath = join(outputsDirectory, `${id}.mp4`)
+  await mkdir(jobDirectory, { recursive: true })
+  await writeFile(inputPath, body)
+  try {
+    await runProcess(
+      'ffmpeg',
+      [
+        '-y',
+        '-i',
+        inputPath,
+        '-c:v',
+        'libx264',
+        '-preset',
+        'veryfast',
+        '-crf',
+        '20',
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '160k',
+        '-movflags',
+        '+faststart',
+        outputPath,
+      ],
+      300_000,
+    )
+  } finally {
+    await rm(jobDirectory, { recursive: true, force: true })
+  }
+  json(response, 201, {
+    url: `${publicBaseUrl(request)}/outputs/${id}.mp4`,
+  })
+}
+
 const handlePreview = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -738,6 +786,13 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/assets') {
       await handleAssetUpload(request, response)
+      return
+    }
+    if (
+      request.method === 'POST' &&
+      url.pathname === '/api/recordings/finalize'
+    ) {
+      await handleDirectedRecording(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/preview') {

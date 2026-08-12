@@ -464,6 +464,27 @@ const liveCameraPreview = $('#live-camera-preview') as HTMLVideoElement
 const editorLayout = $('#editor-layout')
 const inlinePreview = $('#inline-preview')
 const canvasBlockTimeline = $('#canvas-block-timeline')
+const canvasRecordingControls = $('#canvas-recording-controls')
+const canvasRecordingLabel = $('#canvas-recording-label')
+const canvasRecordingMeta = $('#canvas-recording-meta')
+const canvasRecordingProjectTitle = $('#canvas-recording-project-title')
+const canvasRecordingProjectBlock = $('#canvas-recording-project-block')
+const canvasRecordingCameraState = $('#canvas-recording-camera-state')
+const canvasRecordingMicState = $('#canvas-recording-mic-state')
+const startCanvasRecordingButton = $('#start-canvas-recording') as HTMLButtonElement
+const nextAnimationStepButton = $('#next-animation-step') as HTMLButtonElement
+const stopCanvasRecordingButton = $('#stop-canvas-recording') as HTMLButtonElement
+const canvasRecordingReview = $('#canvas-recording-review')
+const canvasRecordingPlayback = $('#canvas-recording-playback') as HTMLVideoElement
+const downloadCanvasRecording = $('#download-canvas-recording') as HTMLAnchorElement
+const canvasRecordingCoach = $('#canvas-recording-coach')
+const recordingCoachTitle = $('#recording-coach-title')
+const recordingCoachNumber = $('#recording-coach-number')
+const recordingCoachScript = $('#recording-coach-script')
+const recordingCoachActionGrid = $('#recording-coach-action-grid')
+const recordingCoachBlockTitle = $('#recording-coach-block-title')
+const recordingCoachProgress = $('#recording-coach-progress')
+const recordingCoachThumbnail = $('#recording-coach-thumbnail')
 const inspectorPanel = $('#inspector-panel')
 const sceneRail = $('#scene-rail')
 const saveState = $('#save-state')
@@ -502,6 +523,22 @@ let injectedLiveCameraPreview: HTMLVideoElement | null = null
 let mediaRecorder: MediaRecorder | null = null
 let recordingChunks: Blob[] = []
 let recordingNodeId = ''
+let canvasRecorder: MediaRecorder | null = null
+let canvasCaptureStream: MediaStream | null = null
+let canvasMicrophoneStream: MediaStream | null = null
+let canvasRecordingChunks: Blob[] = []
+let canvasRecordingStartedAt = 0
+let canvasRecordingTimer: number | undefined
+let canvasRecordingStep = 0
+let canvasRecordingTargets: Array<{ element: HTMLElement; style: string }> = []
+let canvasRecordingContent: { element: HTMLElement; style: string } | null = null
+let canvasRecordingCodeStyles: Array<{ element: HTMLElement; style: string }> = []
+let canvasRecordingLines: HTMLElement[] = []
+let canvasRecordingTokens: HTMLElement[] = []
+let canvasRecordingLineStep = 0
+let canvasRecordingTokenStep = 0
+let canvasRecordingFocusStep = 0
+let canvasRecordingScene: Scene | null = null
 let screenRecordingStream: MediaStream | null = null
 let screenRecorder: MediaRecorder | null = null
 let screenRecordingChunks: Blob[] = []
@@ -628,6 +665,388 @@ const stopLiveCamera = () => {
   liveCameraStream = null
   syncLiveCameraToggle()
 }
+
+const restoreCanvasRecordingSteps = () => {
+  canvasRecordingTargets.forEach(({ element, style }) => {
+    element.style.cssText = style
+  })
+  canvasRecordingCodeStyles.forEach(({ element, style }) => {
+    element.style.cssText = style
+  })
+  if (canvasRecordingContent) {
+    canvasRecordingContent.element.style.cssText = canvasRecordingContent.style
+  }
+  canvasRecordingTargets = []
+  canvasRecordingCodeStyles = []
+  canvasRecordingContent = null
+  canvasRecordingLines = []
+  canvasRecordingTokens = []
+  canvasRecordingStep = 0
+  canvasRecordingLineStep = 0
+  canvasRecordingTokenStep = 0
+  canvasRecordingFocusStep = 0
+  canvasRecordingScene = null
+}
+
+type CanvasRecordingAction = 'next-beat' | 'next-token' | 'next-line' | 'focus-line'
+
+const updateRecordingCoachProgress = (message: string) => {
+  recordingCoachProgress.textContent = message
+  canvasRecordingMeta.textContent = message
+}
+
+const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
+  if (action === 'next-token') {
+    const target = canvasRecordingTokens[canvasRecordingTokenStep]
+    if (!target) {
+      updateRecordingCoachProgress('Every token has been covered')
+      return
+    }
+    canvasRecordingTokens.forEach((token, index) => {
+      token.style.setProperty('opacity', index <= canvasRecordingTokenStep ? '1' : '.28', 'important')
+      token.style.removeProperty('background')
+      token.style.removeProperty('box-shadow')
+    })
+    target.style.setProperty('background', 'rgba(74, 222, 128, .16)', 'important')
+    target.style.setProperty('box-shadow', '0 0 0 4px rgba(74, 222, 128, .08)', 'important')
+    target.style.setProperty('border-radius', '3px', 'important')
+    target.animate(
+      [{ opacity: .25, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }],
+      { duration: 360, easing: 'cubic-bezier(.22,1,.36,1)' },
+    )
+    canvasRecordingTokenStep += 1
+    updateRecordingCoachProgress(`${canvasRecordingTokenStep} of ${canvasRecordingTokens.length} tokens revealed`)
+    return
+  }
+
+  if (action === 'next-line') {
+    const target = canvasRecordingLines[canvasRecordingLineStep]
+    if (!target) {
+      updateRecordingCoachProgress('Every line has been covered')
+      return
+    }
+    canvasRecordingLines.forEach(line => {
+      line.style.setProperty('opacity', '.24', 'important')
+      line.style.removeProperty('background')
+      line.style.removeProperty('box-shadow')
+    })
+    target.style.setProperty('opacity', '1', 'important')
+    target.querySelectorAll<HTMLElement>('[class*="code-token-"]').forEach(token => {
+      token.style.setProperty('opacity', '1', 'important')
+    })
+    target.animate(
+      [{ opacity: .2, transform: 'translateX(-20px)' }, { opacity: 1, transform: 'translateX(0)' }],
+      { duration: 440, easing: 'cubic-bezier(.22,1,.36,1)' },
+    )
+    canvasRecordingLineStep += 1
+    updateRecordingCoachProgress(`${canvasRecordingLineStep} of ${canvasRecordingLines.length} lines covered`)
+    return
+  }
+
+  if (action === 'focus-line') {
+    if (!canvasRecordingLines.length) return
+    const target = canvasRecordingLines[canvasRecordingFocusStep % canvasRecordingLines.length]
+    canvasRecordingLines.forEach(line => {
+      line.style.setProperty('opacity', '.2', 'important')
+      line.style.removeProperty('background')
+      line.style.removeProperty('box-shadow')
+    })
+    target.style.setProperty('opacity', '1', 'important')
+    target.style.setProperty('background', 'rgba(74, 222, 128, .11)', 'important')
+    target.style.setProperty('box-shadow', '-4px 0 0 rgba(74, 222, 128, .82)', 'important')
+    target.animate(
+      [{ background: 'rgba(74, 222, 128, .28)' }, { background: 'rgba(74, 222, 128, .11)' }],
+      { duration: 520, easing: 'ease-out' },
+    )
+    canvasRecordingFocusStep += 1
+    updateRecordingCoachProgress(`Focused line ${canvasRecordingFocusStep % canvasRecordingLines.length || canvasRecordingLines.length}`)
+    return
+  }
+
+  const target = canvasRecordingTargets[canvasRecordingStep]?.element
+  if (!target) {
+    updateRecordingCoachProgress('Every beat has been shown')
+    return
+  }
+  target.style.setProperty('opacity', '1', 'important')
+  target.style.setProperty('transform', 'none', 'important')
+  target.style.setProperty('filter', 'none', 'important')
+  target.animate(
+    [
+      { opacity: 0, transform: 'translateY(34px)', filter: 'blur(8px)' },
+      { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' },
+    ],
+    { duration: 520, easing: 'cubic-bezier(.22,1,.36,1)' },
+  )
+  canvasRecordingStep += 1
+  updateRecordingCoachProgress(`${canvasRecordingStep} of ${canvasRecordingTargets.length} beats shown`)
+  if (canvasRecordingStep >= canvasRecordingTargets.length) {
+    nextAnimationStepButton.disabled = true
+    nextAnimationStepButton.textContent = 'All beats shown'
+  }
+}
+
+const configureCanvasRecordingCoach = (scene: Scene) => {
+  const visualKind = sceneVisualKind(scene)
+  const meta = TIMELINE_BLOCK_META[visualKind]
+  const blockText = sceneScript(scene) || `${meta.label} block`
+  const actionDefinitions: Array<{ action: CanvasRecordingAction; label: string; detail: string; key: string }> =
+    visualKind === 'code'
+      ? [
+          { action: 'next-token', label: 'Next token', detail: 'Reveal one expression', key: '→' },
+          { action: 'next-line', label: 'Next line', detail: 'Advance the explanation', key: '↓' },
+          { action: 'focus-line', label: 'Focus line', detail: 'Move the audience focus', key: 'F' },
+        ]
+      : visualKind === 'list'
+        ? [{ action: 'next-beat', label: 'Next point', detail: 'Reveal the next idea', key: '→' }]
+        : [{ action: 'next-beat', label: 'Next beat', detail: `Reveal the ${meta.label.toLowerCase()}`, key: '→' }]
+
+  canvasRecordingScene = scene
+  recordingCoachTitle.textContent = visualKind === 'code'
+    ? 'Explain the code as you reveal it'
+    : visualKind === 'list'
+      ? 'Walk through each point'
+      : 'Talk over this block'
+  recordingCoachNumber.textContent = `Block ${String(scene.index + 1).padStart(2, '0')}`
+  canvasRecordingProjectTitle.textContent = project.title
+  canvasRecordingProjectBlock.textContent = `Block ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
+  canvasRecordingCameraState.textContent = liveCameraStream ? 'Camera live' : 'Camera will start'
+  canvasRecordingMicState.textContent = 'Mic requested at start'
+  recordingCoachScript.textContent = blockText
+  recordingCoachBlockTitle.textContent = blockText
+  recordingCoachProgress.textContent = 'Ready for your first beat'
+  recordingCoachThumbnail.innerHTML = `<span>${String(scene.index + 1).padStart(2, '0')}</span><strong>${meta.icon}</strong>`
+  recordingCoachActionGrid.replaceChildren()
+  actionDefinitions.forEach(definition => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'recording-coach-action'
+    button.innerHTML = `<span><strong>${definition.label}</strong><small>${definition.detail}</small></span><kbd>${definition.key}</kbd>`
+    button.addEventListener('click', () => runCanvasRecordingAction(definition.action))
+    recordingCoachActionGrid.append(button)
+  })
+  nextAnimationStepButton.textContent = visualKind === 'code' ? 'Next line ↓' : visualKind === 'list' ? 'Next point →' : 'Next beat →'
+}
+
+const prepareCanvasRecordingSteps = async (scene: Scene) => {
+  restoreCanvasRecordingSteps()
+  player.pause()
+  player.seek(scene.startSeconds + 0.02)
+  await wait(120)
+  const iframeDocument = player.iframeElement.contentDocument
+  const sceneElement = iframeDocument?.querySelector<HTMLElement>(`#scene-${scene.index}`)
+  const content = sceneElement?.querySelector<HTMLElement>('.content')
+  if (!content) throw new Error('The live canvas is not ready to record')
+
+  const visualKind = sceneVisualKind(scene)
+  const sequenceSelector = visualKind === 'list' ? 'li' : ':scope > *'
+  const candidates = Array.from(
+    content.querySelectorAll<HTMLElement>(sequenceSelector),
+  ).filter(element => element.offsetParent !== null)
+  canvasRecordingContent = { element: content, style: content.style.cssText }
+  content.getAnimations().forEach(animation => animation.cancel())
+  content.style.setProperty('opacity', '1', 'important')
+  content.style.setProperty('transform', 'none', 'important')
+  content.style.setProperty('clip-path', 'none', 'important')
+  configureCanvasRecordingCoach(scene)
+  if (visualKind === 'code') {
+    canvasRecordingLines = Array.from(content.querySelectorAll<HTMLElement>('.code-line'))
+      .filter(element => element.offsetParent !== null)
+    canvasRecordingTokens = Array.from(content.querySelectorAll<HTMLElement>('[class*="code-token-"]'))
+      .filter(element => element.offsetParent !== null)
+    const codeElements = [...canvasRecordingLines, ...canvasRecordingTokens]
+    canvasRecordingCodeStyles = codeElements.map(element => ({ element, style: element.style.cssText }))
+    canvasRecordingLines.forEach(line => line.getAnimations().forEach(animation => animation.cancel()))
+    canvasRecordingTokens.forEach(token => token.style.setProperty('opacity', '.28', 'important'))
+    updateRecordingCoachProgress(`Ready · ${canvasRecordingLines.length} lines to direct`)
+  } else {
+    const targets = candidates.length ? candidates : [content]
+    canvasRecordingTargets = targets.map(element => ({ element, style: element.style.cssText }))
+    canvasRecordingTargets.forEach(({ element }) => {
+      element.getAnimations().forEach(animation => animation.cancel())
+      element.style.setProperty('opacity', '0', 'important')
+      element.style.setProperty('transform', 'translateY(34px)', 'important')
+      element.style.setProperty('filter', 'blur(8px)', 'important')
+    })
+    updateRecordingCoachProgress(`Ready · ${canvasRecordingTargets.length} beats to direct`)
+  }
+  canvasRecordingStep = 0
+}
+
+const revealNextCanvasRecordingStep = () => {
+  if (!canvasRecordingScene) return
+  runCanvasRecordingAction(sceneVisualKind(canvasRecordingScene) === 'code' ? 'next-line' : 'next-beat')
+}
+
+const updateCanvasRecordingClock = () => {
+  const elapsed = (Date.now() - canvasRecordingStartedAt) / 1000
+  canvasRecordingLabel.textContent = `Recording · ${formatTime(elapsed)}`
+}
+
+const resetCanvasRecordingControls = () => {
+  window.clearInterval(canvasRecordingTimer)
+  playerShell.classList.remove('canvas-recording-active')
+  canvasRecordingControls.removeAttribute('aria-busy')
+  canvasRecordingCoach.hidden = true
+  startCanvasRecordingButton.hidden = false
+  startCanvasRecordingButton.disabled = false
+  nextAnimationStepButton.hidden = true
+  nextAnimationStepButton.disabled = false
+  nextAnimationStepButton.textContent = 'Next step →'
+  stopCanvasRecordingButton.hidden = true
+  canvasRecordingLabel.textContent = 'Record this block'
+  canvasRecordingMeta.textContent = 'Camera visible · microphone optional'
+}
+
+const uploadDirectedCanvasRecording = async (blob: Blob) => {
+  const result = await fetchJson<{ url: string }>('/api/recordings/finalize', {
+    method: 'POST',
+    headers: { 'content-type': blob.type || 'video/webm' },
+    body: blob,
+  })
+  canvasRecordingPlayback.src = result.url
+  downloadCanvasRecording.href = result.url
+  canvasRecordingReview.hidden = false
+  showToast('Directed canvas take is ready as MP4')
+}
+
+const finishCanvasRecording = () => {
+  if (canvasRecorder?.state === 'recording') canvasRecorder.stop()
+}
+
+const startCanvasRecording = async () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene) return
+  if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
+    showToast('Canvas recording is not supported in this browser')
+    return
+  }
+  startCanvasRecordingButton.disabled = true
+  try {
+    canvasCaptureStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: 'browser' },
+      audio: false,
+      preferCurrentTab: true,
+      selfBrowserSurface: 'include',
+      surfaceSwitching: 'exclude',
+    } as DisplayMediaStreamOptions)
+    if (!liveCameraStream && scene.config.camera.position !== 'hidden') {
+      await startLiveCamera()
+    }
+    const captureTrack = canvasCaptureStream.getVideoTracks()[0] as MediaStreamTrack & {
+      cropTo?: (target: unknown) => Promise<void>
+    }
+    const cropTargetApi = (window as Window & {
+      CropTarget?: { fromElement: (element: Element) => Promise<unknown> }
+    }).CropTarget
+    if (cropTargetApi && captureTrack.cropTo) {
+      await captureTrack.cropTo(await cropTargetApi.fromElement(player))
+    }
+    try {
+      canvasMicrophoneStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: { echoCancellation: true, noiseSuppression: true },
+      })
+      canvasRecordingMicState.textContent = 'Mic live'
+    } catch {
+      canvasMicrophoneStream = null
+      canvasRecordingMicState.textContent = 'Visual only'
+      showToast('Microphone unavailable — recording the visual take without mic audio')
+    }
+    await prepareCanvasRecordingSteps(scene)
+    const tracks = [
+      ...canvasCaptureStream.getVideoTracks(),
+      ...(canvasMicrophoneStream?.getAudioTracks() || []),
+    ]
+    const recordingStream = new MediaStream(tracks)
+    const recorderType = supportedRecorderType()
+    canvasRecorder = new MediaRecorder(
+      recordingStream,
+      recorderType ? { mimeType: recorderType } : undefined,
+    )
+    canvasRecordingChunks = []
+    canvasRecorder.ondataavailable = event => {
+      if (event.data.size) canvasRecordingChunks.push(event.data)
+    }
+    canvasRecorder.onstop = async () => {
+      const mimeType = canvasRecorder?.mimeType || 'video/webm'
+      canvasCaptureStream?.getTracks().forEach(track => track.stop())
+      canvasMicrophoneStream?.getTracks().forEach(track => track.stop())
+      canvasCaptureStream = null
+      canvasMicrophoneStream = null
+      resetCanvasRecordingControls()
+      restoreCanvasRecordingSteps()
+      player.seek(scenePreviewTime(scene))
+      try {
+        canvasRecordingLabel.textContent = 'Making MP4…'
+        startCanvasRecordingButton.disabled = true
+        await uploadDirectedCanvasRecording(
+          new Blob(canvasRecordingChunks, { type: mimeType }),
+        )
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not make MP4')
+      } finally {
+        resetCanvasRecordingControls()
+        canvasRecordingChunks = []
+      }
+    }
+    captureTrack.addEventListener('ended', finishCanvasRecording, { once: true })
+    canvasRecorder.start(250)
+    canvasRecordingStartedAt = Date.now()
+    canvasRecordingTimer = window.setInterval(updateCanvasRecordingClock, 250)
+    playerShell.classList.add('canvas-recording-active')
+    canvasRecordingControls.setAttribute('aria-busy', 'true')
+    canvasRecordingCoach.hidden = false
+    startCanvasRecordingButton.hidden = true
+    nextAnimationStepButton.hidden = false
+    stopCanvasRecordingButton.hidden = false
+    updateCanvasRecordingClock()
+  } catch (error) {
+    canvasCaptureStream?.getTracks().forEach(track => track.stop())
+    canvasMicrophoneStream?.getTracks().forEach(track => track.stop())
+    canvasCaptureStream = null
+    canvasMicrophoneStream = null
+    restoreCanvasRecordingSteps()
+    resetCanvasRecordingControls()
+    showToast(error instanceof Error ? error.message : 'Canvas recording was cancelled')
+  }
+}
+
+startCanvasRecordingButton.addEventListener('click', () => void startCanvasRecording())
+nextAnimationStepButton.addEventListener('click', revealNextCanvasRecordingStep)
+stopCanvasRecordingButton.addEventListener('click', finishCanvasRecording)
+;($('#close-canvas-recording-review') as HTMLButtonElement).addEventListener('click', () => {
+  canvasRecordingPlayback.pause()
+  canvasRecordingReview.hidden = true
+})
+;($('#record-canvas-again') as HTMLButtonElement).addEventListener('click', () => {
+  canvasRecordingPlayback.pause()
+  canvasRecordingReview.hidden = true
+  void startCanvasRecording()
+})
+document.addEventListener('keydown', event => {
+  if (canvasRecorder?.state !== 'recording' || !canvasRecordingScene) return
+  const visualKind = sceneVisualKind(canvasRecordingScene)
+  if (visualKind === 'code' && event.key === 'ArrowRight') {
+    event.preventDefault()
+    runCanvasRecordingAction('next-token')
+    return
+  }
+  if (visualKind === 'code' && event.key === 'ArrowDown') {
+    event.preventDefault()
+    runCanvasRecordingAction('next-line')
+    return
+  }
+  if (visualKind === 'code' && event.key.toLowerCase() === 'f') {
+    event.preventDefault()
+    runCanvasRecordingAction('focus-line')
+    return
+  }
+  if (event.key === 'ArrowRight' || event.key === ' ') {
+    event.preventDefault()
+    revealNextCanvasRecordingStep()
+  }
+})
 
 const startLiveCamera = async () => {
   stopLiveCamera()
@@ -2590,6 +3009,7 @@ const closeInspector = () => {
 }
 
 const openCanvasFullscreen = () => {
+  if (canvasRecorder?.state === 'recording') return
   const isOpen = playerShell.classList.toggle('canvas-open')
   if (!isOpen) stopLiveCamera()
   document.body.classList.toggle('canvas-is-open', isOpen)
@@ -3463,6 +3883,7 @@ renderButton.addEventListener('click', async () => {
 })
 
 window.addEventListener('beforeunload', () => {
+  finishCanvasRecording()
   stopLiveCamera()
   stopCameraStream()
   screenRecordingStream?.getTracks().forEach(track => track.stop())

@@ -176,6 +176,68 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .live-camera-preview { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); display: block; object-fit: cover; border: 0; border-radius: inherit; transform: translateZ(0); backface-visibility: hidden; }
 .player-shell.canvas-open .canvas-fullscreen { position: fixed; top: 18px; right: 388px; }
 .player-shell.canvas-open .canvas-block-timeline { position: absolute; right: 24px; bottom: 16px; left: 24px; z-index: 5; min-width: 0; padding: 10px 12px 12px; display: grid; gap: 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 10px; background: rgba(17,17,19,.91); box-shadow: 0 12px 36px rgba(0,0,0,.34); backdrop-filter: blur(18px); }
+.canvas-recording-controls { display: none; }
+.player-shell.canvas-open .canvas-recording-controls { position: fixed; top: 18px; left: 50%; z-index: 89; min-height: 44px; padding: 6px; display: flex; align-items: center; gap: 7px; translate: -50% 0; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; background: rgba(17,17,19,.9); color: white; box-shadow: 0 14px 42px rgba(0,0,0,.3); backdrop-filter: blur(18px); }
+.canvas-recording-project, .canvas-recording-devices { display: none; }
+.canvas-recording-state { min-width: 174px; padding: 0 8px 0 5px; display: flex; align-items: center; gap: 9px; }
+.canvas-recording-state > span { width: 9px; height: 9px; flex: none; border: 2px solid #d4d4d8; border-radius: 50%; }
+.canvas-recording-state strong, .canvas-recording-state small { display: block; }
+.canvas-recording-state strong { font-size: 9px; line-height: 1.05; }
+.canvas-recording-state small { margin-top: 3px; color: #a1a1aa; font: 7px/1.1 'Roboto Mono',monospace; }
+.canvas-recording-controls .button { min-height: 32px; padding-inline: 11px; font-size: 8px; }
+.canvas-recording-controls kbd { margin-left: 6px; padding: 2px 5px; border: 1px solid rgba(255,255,255,.22); border-radius: 4px; font: 8px/1 inherit; }
+.player-shell.canvas-recording-active .canvas-recording-state > span { border-color: #fca5a5; background: #ef4444; box-shadow: 0 0 0 5px rgba(239,68,68,.15); animation: recording-pulse 1.1s ease-in-out infinite; }
+.player-shell.canvas-recording-active .canvas-director, .player-shell.canvas-recording-active .canvas-block-timeline, .player-shell.canvas-recording-active .canvas-fullscreen, .player-shell.canvas-recording-active .live-camera-toggle { display: none; }
+.player-shell.canvas-recording-active .canvas-stage { padding: 42px 32px 94px; }
+.player-shell.canvas-recording-active hyperframes-player { width: min(100%, calc((100vh - 136px) * 1.7778)); }
+.player-shell.canvas-recording-active .canvas-recording-controls { right: 32px; bottom: 20px; left: 32px; top: auto; min-height: 54px; padding: 7px 9px; translate: 0 0; justify-content: center; border-color: rgba(255,255,255,.2); border-radius: 12px; background: rgba(17,17,19,.94); }
+.player-shell.canvas-recording-active .canvas-recording-state { min-width: 154px; }
+.player-shell.canvas-recording-active .canvas-recording-state small { color: #d4d4d8; }
+.player-shell.canvas-recording-active .canvas-recording-project { min-width: 174px; margin-right: auto; padding-left: 7px; display: block; }
+.canvas-recording-project strong, .canvas-recording-project small { display: block; }
+.canvas-recording-project strong { max-width: 174px; overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.canvas-recording-project small { margin-top: 4px; color: #a1a1aa; font-size: 7px; }
+.player-shell.canvas-recording-active .canvas-recording-devices { min-width: 174px; margin-left: auto; display: flex; justify-content: flex-end; gap: 6px; }
+.canvas-recording-devices span { padding: 6px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; color: #d4d4d8; font-size: 7px; }
+.canvas-recording-coach { display: none; min-width: 0; overflow: auto; background: #fff; color: #27272a; }
+.canvas-recording-coach[hidden] { display: none; }
+.player-shell.canvas-recording-active .canvas-recording-coach { display: flex; flex-direction: column; }
+.recording-coach-heading { min-height: 76px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e4e4e7; }
+.recording-coach-heading > div { display: flex; align-items: center; gap: 10px; }
+.recording-coach-heading span, .recording-coach-heading strong { display: block; }
+.recording-coach-heading span { color: #71717a; font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.recording-coach-heading strong { margin-top: 3px; font-size: 13px; }
+.recording-coach-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 5px rgba(74,222,128,.16); }
+.recording-coach-body { min-height: 0; padding: 24px 22px; display: flex; flex: 1; flex-direction: column; gap: 26px; }
+.recording-coach-script { padding: 18px; border: 1px solid #e4e4e7; border-radius: 12px; background: #f7f7f8; }
+.recording-coach-script > span, .recording-coach-section-heading span, .recording-coach-next span { color: #71717a; font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.recording-coach-script p { margin: 12px 0 0; color: #3f3f46; font-size: 14px; line-height: 1.52; }
+.recording-coach-actions { display: grid; gap: 10px; }
+.recording-coach-section-heading { display: flex; align-items: center; justify-content: space-between; }
+.recording-coach-section-heading strong { font-size: 11px; }
+.recording-coach-action-grid { display: grid; gap: 8px; }
+.recording-coach-action { min-height: 58px; padding: 10px 11px 10px 14px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; color: #3f3f46; text-align: left; transition: border-color .16s ease, box-shadow .16s ease, translate .16s ease; }
+.recording-coach-action:hover { border-color: #22c55e; box-shadow: 0 8px 24px rgba(34,197,94,.1); translate: 0 -1px; }
+.recording-coach-action strong, .recording-coach-action small { display: block; }
+.recording-coach-action strong { font-size: 11px; }
+.recording-coach-action small { margin-top: 4px; color: #a1a1aa; font-size: 8px; }
+.recording-coach-action kbd { min-width: 26px; height: 26px; display: grid; place-items: center; border-radius: 5px; background: #27272a; color: white; font: 10px/1 'Roboto Mono',monospace; }
+.recording-coach-next { margin-top: auto; padding-top: 18px; display: grid; grid-template-columns: minmax(0,1fr) 92px; align-items: center; gap: 14px; border-top: 1px solid #e4e4e7; }
+.recording-coach-next strong, .recording-coach-next small { display: block; }
+.recording-coach-next strong { margin-top: 6px; overflow: hidden; font-size: 10px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.recording-coach-next small { margin-top: 5px; color: #71717a; font-size: 8px; }
+.recording-coach-thumbnail { height: 58px; padding: 8px; display: flex; align-items: flex-end; justify-content: space-between; border: 1px solid #d4d4d8; border-radius: 7px; background: linear-gradient(135deg,#d8b4fe,#8b5cf6); color: white; box-shadow: inset 0 0 0 4px rgba(255,255,255,.12); }
+.recording-coach-thumbnail span { color: rgba(255,255,255,.85); font-size: 7px; }
+.recording-coach-thumbnail strong { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 5px; background: rgba(17,24,39,.9); font-size: 9px; }
+.canvas-recording-review { position: fixed; inset: 50% auto auto 50%; z-index: 96; width: min(720px, calc(100vw - 48px)); padding: 14px; translate: -50% -50%; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; background: #18181b; color: white; box-shadow: 0 36px 110px rgba(0,0,0,.58); }
+.canvas-recording-review[hidden] { display: none; }
+.canvas-recording-review-heading { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.canvas-recording-review-heading span, .canvas-recording-review-heading strong { display: block; }
+.canvas-recording-review-heading span { color: #86efac; font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.canvas-recording-review-heading strong { margin-top: 4px; font-size: 15px; }
+.canvas-recording-review-heading button { width: 30px; height: 30px; border: 1px solid #3f3f46; border-radius: 6px; background: #27272a; color: white; }
+.canvas-recording-review video { width: 100%; aspect-ratio: 16/9; display: block; border-radius: 8px; background: #09090b; }
+.canvas-recording-review-actions { margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px; }
 .canvas-timeline-heading { display: flex; align-items: center; justify-content: space-between; color: #d4d4d8; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
 .canvas-timeline-heading > strong { color: white; font-size: 8px; }
 .canvas-timeline-heading > span { color: #a1a1aa; }
