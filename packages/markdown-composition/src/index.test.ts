@@ -287,6 +287,11 @@ describe('compileProject', () => {
       'product-shot',
       image,
     )
+    withMedia.blocks['product-shot'].mediaFrame = {
+      borderWidth: 'medium',
+      corners: 'rounded',
+      elevation: 'lifted',
+    }
     withMedia.blocks['screen-demo'] = createDefaultBlockConfig(
       'screen-demo',
       screen,
@@ -301,6 +306,10 @@ describe('compileProject', () => {
     expect(screenScene?.title).toBe('Recorded product demo')
     expect(screenScene?.durationSeconds).toBe(8)
     expect(result.html).toContain('class="media-block media-image"')
+    expect(result.html).toContain('media-border-medium')
+    expect(result.html).toContain('media-corners-rounded')
+    expect(result.html).toContain('media-depth-lifted')
+    expect(result.html).toContain('data-media-border="medium"')
     expect(result.html).toContain(
       'src="http://127.0.0.1:4319/assets/product.png"',
     )

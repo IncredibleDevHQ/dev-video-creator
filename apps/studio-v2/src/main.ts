@@ -15,6 +15,9 @@ import {
   type BlockBackgroundPreset,
   type BlockRenderConfigV1,
   type CameraPosition,
+  type MediaBorderWidth,
+  type MediaCornerStyle,
+  type MediaElevation,
   type ProjectDocumentV1,
   type PresenterLayoutMode,
   type RevealStyle,
@@ -161,6 +164,25 @@ const MEDIA_RENDER_OPTIONS: CatalogOption<ThemeRenderValue>[] = [
   { value: 'spotlight', label: 'Spotlight', description: 'Focused media with generous space', glyph: '◎' },
   { value: 'card', label: 'Raised card', description: 'Editorial surface and soft shadow', glyph: '▤' },
   { value: 'minimal', label: 'Minimal', description: 'Clean media without decoration', glyph: '—' },
+]
+
+const MEDIA_BORDER_OPTIONS: CatalogOption<MediaBorderWidth>[] = [
+  { value: 'none', label: 'None', description: 'Pure edge-to-canvas', glyph: '—' },
+  { value: 'thin', label: 'Thin', description: 'Quiet 2px separation', glyph: '▱' },
+  { value: 'medium', label: 'Medium', description: 'Clear 5px brand edge', glyph: '▣' },
+  { value: 'thick', label: 'Thick', description: 'Bold 10px statement', glyph: '▰' },
+]
+
+const MEDIA_CORNER_OPTIONS: CatalogOption<MediaCornerStyle>[] = [
+  { value: 'square', label: 'Square', description: 'Precise editorial edge', glyph: '□' },
+  { value: 'soft', label: 'Soft', description: 'Balanced 22px corners', glyph: '▢' },
+  { value: 'rounded', label: 'Rounded', description: 'Friendly 52px corners', glyph: '▣' },
+]
+
+const MEDIA_ELEVATION_OPTIONS: CatalogOption<MediaElevation>[] = [
+  { value: 'flat', label: 'Flat', description: 'No added depth', glyph: '—' },
+  { value: 'soft', label: 'Soft', description: 'Subtle editorial lift', glyph: '◫' },
+  { value: 'lifted', label: 'Lifted', description: 'Confident focal depth', glyph: '▰' },
 ]
 
 const MOTION_OPTIONS: CatalogOption<RevealStyle>[] = [
@@ -1388,6 +1410,9 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
         ? appearanceFromTheme(directorKindForNode(node), project.theme)
         : fallback.appearance
     }
+    if (!config.mediaFrame) {
+      config.mediaFrame = { ...fallback.mediaFrame }
+    }
     const options = DIRECTOR_OPTIONS[directorKindForNode(node)]
     if (!options.layouts.includes(config.layout)) {
       config.layout = fallback.layout
@@ -1775,6 +1800,43 @@ const renderStudioStyleControls = (
   )
   ;($('#studio-render-heading') as HTMLElement).textContent =
     `${isMediaBlock ? sceneObjectLabel(scene) : BLOCK_KIND_META[scene.kind].label.replace(' system', '')} rendering`
+  const mediaFrameOptions = $('#studio-media-frame-options')
+  mediaFrameOptions.hidden = !isMediaBlock || config.appearance.render === 'full'
+  if (isMediaBlock) {
+    $('#studio-media-border-options').replaceChildren(
+      ...MEDIA_BORDER_OPTIONS.map(option =>
+        createStudioChoiceButton(
+          option,
+          config.mediaFrame.borderWidth,
+          () => updateSelectedConfig(blockConfig => {
+            blockConfig.mediaFrame.borderWidth = option.value
+          }),
+        ),
+      ),
+    )
+    $('#studio-media-corner-options').replaceChildren(
+      ...MEDIA_CORNER_OPTIONS.map(option =>
+        createStudioChoiceButton(
+          option,
+          config.mediaFrame.corners,
+          () => updateSelectedConfig(blockConfig => {
+            blockConfig.mediaFrame.corners = option.value
+          }),
+        ),
+      ),
+    )
+    $('#studio-media-elevation-options').replaceChildren(
+      ...MEDIA_ELEVATION_OPTIONS.map(option =>
+        createStudioChoiceButton(
+          option,
+          config.mediaFrame.elevation,
+          () => updateSelectedConfig(blockConfig => {
+            blockConfig.mediaFrame.elevation = option.value
+          }),
+        ),
+      ),
+    )
+  }
   const codeOptions = $('#studio-code-options')
   codeOptions.hidden = scene.kind !== 'code'
   if (scene.kind === 'code') {
@@ -1811,8 +1873,13 @@ const renderStudioStyleControls = (
   const codeMultiplier = scene.kind === 'code'
     ? CODE_THEME_OPTIONS.length * CODE_ANIMATION_OPTIONS.length
     : 1
+  const mediaMultiplier = isMediaBlock
+    ? MEDIA_BORDER_OPTIONS.length *
+      MEDIA_CORNER_OPTIONS.length *
+      MEDIA_ELEVATION_OPTIONS.length
+    : 1
   ;($('#director-style-count') as HTMLElement).textContent =
-    `${BLOCK_LAYOUT_OPTIONS.length * renderOptions.length * motions * codeMultiplier} combinations`
+    `${BLOCK_LAYOUT_OPTIONS.length * renderOptions.length * motions * codeMultiplier * mediaMultiplier} combinations`
 }
 
 const renderStudioMotionControls = (

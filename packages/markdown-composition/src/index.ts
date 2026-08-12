@@ -86,6 +86,11 @@ export const createDefaultBlockConfig = (
     scale: 1,
   },
   appearance: defaultAppearanceForNode(node),
+  mediaFrame: {
+    borderWidth: 'thin',
+    corners: 'soft',
+    elevation: 'soft',
+  },
 })
 
 const allowedValue = <Value extends string>(
@@ -206,6 +211,23 @@ const normalizeBlockConfig = (
         supplied.appearance?.codeAnimation,
         ['type-lines', 'highlight-lines'] as const,
         fallback.appearance.codeAnimation,
+      ),
+    },
+    mediaFrame: {
+      borderWidth: allowedValue(
+        supplied.mediaFrame?.borderWidth,
+        ['none', 'thin', 'medium', 'thick'] as const,
+        fallback.mediaFrame.borderWidth,
+      ),
+      corners: allowedValue(
+        supplied.mediaFrame?.corners,
+        ['square', 'soft', 'rounded'] as const,
+        fallback.mediaFrame.corners,
+      ),
+      elevation: allowedValue(
+        supplied.mediaFrame?.elevation,
+        ['flat', 'soft', 'lifted'] as const,
+        fallback.mediaFrame.elevation,
       ),
     },
   }
@@ -505,7 +527,7 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation} media-border-${scene.config.mediaFrame.borderWidth} media-corners-${scene.config.mediaFrame.corners} media-depth-${scene.config.mediaFrame.elevation}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
@@ -513,6 +535,9 @@ const buildCompositionHtml = (
         data-reveal="${scene.config.reveal}"
         data-render-style="${scene.config.appearance.render}"
         data-block-layout="${scene.config.appearance.layout}"
+        data-media-border="${scene.config.mediaFrame.borderWidth}"
+        data-media-corners="${scene.config.mediaFrame.corners}"
+        data-media-depth="${scene.config.mediaFrame.elevation}"
         data-background-preset="${scene.config.background.preset}"
         style="--scene-background:${escapeHtml(
           backgroundValue(
@@ -690,6 +715,18 @@ const buildCompositionHtml = (
     .scene:has(.media-screen):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen, .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen video { min-height: 760px; max-height: 760px; }
     .scene:has(.media-screen):not(.theme-render-full).layout-split .content { width: 52%; max-width: 52%; margin-left: 0; margin-right: auto; }
+    .scene:not(.theme-render-full).media-border-none .media-block { border-width: 0; }
+    .scene:not(.theme-render-full).media-border-thin .media-block { border: 2px solid color-mix(in srgb, var(--text) 28%, transparent); }
+    .scene:not(.theme-render-full).media-border-medium .media-block { border: 5px solid color-mix(in srgb, var(--accent) 62%, var(--text)); }
+    .scene:not(.theme-render-full).media-border-thick .media-block { border: 10px solid var(--accent); }
+    .scene.media-corners-square .media-block, .scene.media-corners-square .media-block img, .scene.media-corners-square .media-block video { border-radius: 0; }
+    .scene.media-corners-soft .media-block { border-radius: 22px; }
+    .scene.media-corners-soft .media-block img, .scene.media-corners-soft .media-block video { border-radius: 10px; }
+    .scene.media-corners-rounded .media-block { border-radius: 52px; }
+    .scene.media-corners-rounded .media-block img, .scene.media-corners-rounded .media-block video { border-radius: 34px; }
+    .scene.media-depth-flat .media-block { box-shadow: none; }
+    .scene.media-depth-soft .media-block { box-shadow: 0 22px 64px rgba(0,0,0,.18); }
+    .scene.media-depth-lifted .media-block { box-shadow: 0 42px 120px rgba(0,0,0,.32); }
     pre { width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code-theme-bg, var(--code)); color: var(--code-theme-text, #f7f7ef); box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
     .code-token-keyword { color: var(--code-theme-keyword, #c586c0); }
     .code-token-variable { color: var(--code-theme-variable, #9cdcfe); }

@@ -62,6 +62,9 @@ export type PresenterLayoutMode =
   | 'person-background-left'
   | 'person-background-right'
   | 'person-only'
+export type MediaBorderWidth = 'none' | 'thin' | 'medium' | 'thick'
+export type MediaCornerStyle = 'square' | 'soft' | 'rounded'
+export type MediaElevation = 'flat' | 'soft' | 'lifted'
 
 export type BlockRenderConfigV1 = {
   nodeId: NodeId
@@ -84,6 +87,11 @@ export type BlockRenderConfigV1 = {
     render: ThemeBlockRendering
     codeTheme: ThemeCodeSyntax
     codeAnimation: ThemeCodeAnimation
+  }
+  mediaFrame: {
+    borderWidth: MediaBorderWidth
+    corners: MediaCornerStyle
+    elevation: MediaElevation
   }
 }
 
