@@ -539,10 +539,10 @@ describe('compileProject', () => {
       '.scene.presenter-person-background-left, .scene.presenter-person-background-right { --presenter-safe-width: 100%; }'
     )
     expect(result.html).toContain(
-      '.scene:is(.presenter-person-background-left,.presenter-person-background-right):is(.theme-layout-right,.theme-layout-split-right)::after'
+      '.scene.presenter-person-background-left::after { background: linear-gradient(90deg'
     )
     expect(result.html).toContain(
-      '.scene:is(.presenter-person-background-left,.presenter-person-background-right).theme-layout-upper::after'
+      '.scene.presenter-person-background-right::after { background: linear-gradient(270deg'
     )
     expect(result.html).toContain(
       '.scene-kind-list.theme-render-timeline ul, .scene-kind-list.theme-render-timeline ol { padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));'
@@ -552,6 +552,38 @@ describe('compileProject', () => {
     )
     expect(result.html).toContain(
       '.scene-kind-list li { word-break: normal; overflow-wrap: break-word; text-wrap: pretty; }'
+    )
+  })
+
+  it('mirrors full-camera content placement with the selected presenter mode', () => {
+    const left = project()
+    left.blocks.intro.camera.mode = 'person-background-left'
+    left.blocks.intro.camera.position = 'full'
+    const leftResult = compileProject(left, {
+      previewPresenter: { imageUrl: '/presenter.jpg' },
+    })
+
+    const right = project()
+    right.blocks.intro.camera.mode = 'person-background-right'
+    right.blocks.intro.camera.position = 'full'
+    const rightResult = compileProject(right, {
+      previewPresenter: { imageUrl: '/presenter.jpg' },
+    })
+
+    expect(leftResult.html).toContain(
+      `style="${normalizedRectStyle(
+        presenterLayoutGeometry('person-background-left', 'title').content!,
+      )}"`,
+    )
+    expect(rightResult.html).toContain(
+      `style="${normalizedRectStyle(
+        presenterLayoutGeometry('person-background-right', 'title').content!,
+      )}"`,
+    )
+    expect(leftResult.html).not.toContain(
+      normalizedRectStyle(
+        presenterLayoutGeometry('person-background-right', 'title').content!,
+      ),
     )
   })
 

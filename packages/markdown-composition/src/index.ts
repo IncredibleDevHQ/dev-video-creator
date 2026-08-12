@@ -490,6 +490,13 @@ const buildCompositionHtml = (
         scene.kind,
       )
       const cameraGeometryStyle = normalizedRectStyle(cameraGeometry.camera)
+      const presenterContentGeometryStyle =
+        scene.config.camera.mode === 'person-background-left' ||
+        scene.config.camera.mode === 'person-background-right'
+          ? cameraGeometry.content
+            ? normalizedRectStyle(cameraGeometry.content)
+            : ''
+          : ''
       const presenterMarkup = scene.presenterTracks
         .map((track, trackIndex) => {
           if (track.kind === 'narration') {
@@ -553,7 +560,11 @@ const buildCompositionHtml = (
             : ''
         }
         <div class="scene-index">${String(scene.index + 1).padStart(2, '0')}</div>
-        <main class="content">${renderSceneNode(scene)}</main>
+        <main class="content"${
+          presenterContentGeometryStyle
+            ? ` style="${presenterContentGeometryStyle}"`
+            : ''
+        }>${renderSceneNode(scene)}</main>
         <footer class="logo-${theme.logo.placement}">${
           theme.logo.placement.startsWith('footer-')
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
@@ -860,13 +871,10 @@ const buildCompositionHtml = (
     .scene.presenter-split { --presenter-safe-width: 100%; padding-right: 1040px; }
     .camera.presenter-person-background-left, .camera.presenter-person-background-right, .camera.presenter-person-only { inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; scale: 1; }
     .scene.presenter-person-background-left::after, .scene.presenter-person-background-right::after { content: ""; position: absolute; inset: 0; z-index: 21; pointer-events: none; }
-    .scene.presenter-person-background-left::after, .scene.presenter-person-background-right::after { background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, transparent 88%); }
-    .scene:is(.presenter-person-background-left,.presenter-person-background-right):is(.theme-layout-right,.theme-layout-split-right)::after { background: linear-gradient(270deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, transparent 88%); }
-    .scene:is(.presenter-person-background-left,.presenter-person-background-right).theme-layout-center::after { background: radial-gradient(ellipse at center, color-mix(in srgb, var(--bg) 88%, transparent) 0 24%, color-mix(in srgb, var(--bg) 52%, transparent) 48%, transparent 82%); }
-    .scene:is(.presenter-person-background-left,.presenter-person-background-right).theme-layout-upper::after { background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 94%, transparent) 0 38%, color-mix(in srgb, var(--bg) 48%, transparent) 62%, transparent 92%); }
-    .scene:is(.presenter-person-background-left,.presenter-person-background-right).theme-layout-lower::after { background: linear-gradient(0deg, color-mix(in srgb, var(--bg) 94%, transparent) 0 38%, color-mix(in srgb, var(--bg) 48%, transparent) 62%, transparent 92%); }
-    .scene:is(.presenter-person-background-left,.presenter-person-background-right).theme-layout-full::after { background: color-mix(in srgb, var(--bg) 58%, transparent); }
+    .scene.presenter-person-background-left::after { background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, transparent 88%); }
+    .scene.presenter-person-background-right::after { background: linear-gradient(270deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, transparent 88%); }
     .scene.presenter-person-background-left, .scene.presenter-person-background-right { --presenter-safe-width: 100%; }
+    .scene:is(.presenter-person-background-left,.presenter-person-background-right) > .content { position: absolute; max-width: none; margin: 0 !important; display: flex; flex-direction: column; justify-content: center; align-self: auto; text-align: left; }
     .scene.presenter-portrait-overlay h1, .scene.presenter-portrait-overlay h2, .scene.presenter-portrait-rail h1, .scene.presenter-portrait-rail h2, .scene.presenter-split h1, .scene.presenter-split h2, .scene.presenter-person-background-left h1, .scene.presenter-person-background-left h2, .scene.presenter-person-background-right h1, .scene.presenter-person-background-right h2 { font-size: 104px; }
     .scene.presenter-portrait-overlay p, .scene.presenter-portrait-overlay li, .scene.presenter-portrait-rail p, .scene.presenter-portrait-rail li, .scene.presenter-split p, .scene.presenter-split li, .scene.presenter-person-background-left p, .scene.presenter-person-background-left li, .scene.presenter-person-background-right p, .scene.presenter-person-background-right li { font-size: 46px; }
     .scene.theme-render-timeline.presenter-information-circle ul, .scene.theme-render-timeline.presenter-information-circle ol, .scene.theme-render-timeline.presenter-information-tile ul, .scene.theme-render-timeline.presenter-information-tile ol { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
