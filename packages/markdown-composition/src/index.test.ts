@@ -544,6 +544,15 @@ describe('compileProject', () => {
     expect(result.html).toContain(
       '.scene:is(.presenter-person-background-left,.presenter-person-background-right).theme-layout-upper::after'
     )
+    expect(result.html).toContain(
+      '.scene-kind-list.theme-render-timeline ul, .scene-kind-list.theme-render-timeline ol { padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));'
+    )
+    expect(result.html).toContain(
+      '.scene-kind-list.theme-render-number-grid ul, .scene-kind-list.theme-render-number-grid ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));'
+    )
+    expect(result.html).toContain(
+      '.scene-kind-list li { word-break: normal; overflow-wrap: break-word; text-wrap: pretty; }'
+    )
   })
 
   it('migrates legacy theme and block camera layouts', () => {
