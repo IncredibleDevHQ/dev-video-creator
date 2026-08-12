@@ -498,6 +498,7 @@ let syncTimer: number | undefined
 let toastTimer: number | undefined
 let cameraStream: MediaStream | null = null
 let liveCameraStream: MediaStream | null = null
+let injectedLiveCameraPreview: HTMLVideoElement | null = null
 let mediaRecorder: MediaRecorder | null = null
 let recordingChunks: Blob[] = []
 let recordingNodeId = ''
@@ -536,6 +537,58 @@ const clearLiveCameraFromPlayer = () => {
   liveCameraPreview.pause()
   liveCameraPreview.srcObject = null
   liveCameraFrame.hidden = true
+  if (injectedLiveCameraPreview) {
+    injectedLiveCameraPreview.pause()
+    injectedLiveCameraPreview.srcObject = null
+    injectedLiveCameraPreview.remove()
+    injectedLiveCameraPreview = null
+  }
+  try {
+    const iframeDocument = player.iframeElement.contentDocument
+    iframeDocument
+      ?.querySelectorAll<HTMLElement>('[data-live-camera-replaced]')
+      .forEach(element => {
+        element.style.visibility = ''
+        delete element.dataset.liveCameraReplaced
+      })
+    iframeDocument
+      ?.querySelectorAll<HTMLVideoElement>('[data-live-camera-preview]')
+      .forEach(element => {
+        element.pause()
+        element.srcObject = null
+        element.remove()
+      })
+  } catch {
+    // The outer frame remains a safe fallback if a remote preview is not same-origin.
+  }
+}
+
+const attachLiveCameraInsideComposition = (scene: Scene) => {
+  try {
+    const iframeDocument = player.iframeElement.contentDocument
+    const sceneElement = iframeDocument?.querySelector<HTMLElement>(
+      `#scene-${scene.index}`,
+    )
+    const cameraTemplate = sceneElement?.querySelector<HTMLElement>('.camera')
+    if (!iframeDocument || !sceneElement || !cameraTemplate) return false
+
+    const video = iframeDocument.createElement('video')
+    video.className = cameraTemplate.className.replace(/\bpreview-camera\b/g, '').trim()
+    video.style.cssText = cameraTemplate.style.cssText
+    video.dataset.liveCameraPreview = 'true'
+    video.autoplay = true
+    video.muted = true
+    video.playsInline = true
+    video.srcObject = liveCameraStream
+    cameraTemplate.dataset.liveCameraReplaced = 'true'
+    cameraTemplate.style.visibility = 'hidden'
+    sceneElement.appendChild(video)
+    injectedLiveCameraPreview = video
+    void video.play().catch(() => undefined)
+    return true
+  } catch {
+    return false
+  }
 }
 
 const attachLiveCameraToPlayer = () => {
@@ -543,6 +596,7 @@ const attachLiveCameraToPlayer = () => {
   if (!liveCameraStream || !playerShell.classList.contains('canvas-open')) return
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || scene.config.camera.position === 'hidden') return
+  if (attachLiveCameraInsideComposition(scene)) return
   const geometry = presenterLayoutGeometry(scene.config.camera.mode, scene.kind)
   const playerBounds = player.getBoundingClientRect()
   const scale = playerBounds.width / project.width

@@ -5,6 +5,7 @@ declare namespace JSX {
 }
 
 interface HyperframesPlayerElement extends HTMLElement {
+  iframeElement: HTMLIFrameElement
   currentTime: number
   duration: number
   ready: boolean
