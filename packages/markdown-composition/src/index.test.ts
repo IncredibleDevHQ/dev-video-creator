@@ -397,4 +397,30 @@ describe('compileProject', () => {
     expect(result.html).toContain('data-render-style="gradient"')
     expect(result.html).toContain('data-block-layout="right"')
   })
+
+  it('keeps every canvas placement geometrically distinct', () => {
+    const result = compileProject(project())
+
+    expect(result.html).toContain(
+      '.scene.theme-layout-center { --content-layout-width: 72%; }',
+    )
+    expect(result.html).toContain(
+      '.scene.theme-layout-right .content { margin-left: auto; margin-right: 0; text-align: right; }',
+    )
+    expect(result.html).toContain(
+      '.scene.theme-layout-left, .scene.theme-layout-right { --content-layout-width: 62%; }',
+    )
+    expect(result.html).toContain(
+      '.scene.theme-layout-upper, .scene.theme-layout-lower { --content-layout-width: 78%; }',
+    )
+    expect(result.html).toContain(
+      '.scene.theme-layout-split-left { --content-layout-width: 44%; }',
+    )
+    expect(result.html).toContain(
+      '.scene.theme-layout-split-right { --content-layout-width: 44%; }',
+    )
+    expect(result.html).toContain(
+      '.scene.theme-layout-full { --content-layout-width: 100%; }',
+    )
+  })
 })

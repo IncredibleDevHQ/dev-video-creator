@@ -82,14 +82,14 @@ const BLOCK_KIND_META: Record<ThemeBlockKind, { label: string; description: stri
 }
 
 const BLOCK_LAYOUT_OPTIONS: CatalogOption<ThemeBlockLayout>[] = [
-  { value: 'center', label: 'Centered', description: 'Balanced focal frame', glyph: '⊙' },
-  { value: 'left', label: 'Left rail', description: 'Editorial left edge', glyph: '◧' },
-  { value: 'right', label: 'Right rail', description: 'Editorial right edge', glyph: '◨' },
-  { value: 'upper', label: 'Upper third', description: 'Content near the top', glyph: '⬒' },
-  { value: 'lower', label: 'Lower third', description: 'Content near the bottom', glyph: '⬓' },
-  { value: 'split-left', label: 'Split left', description: 'Narrow left column', glyph: '◫' },
-  { value: 'split-right', label: 'Split right', description: 'Narrow right column', glyph: '◫' },
-  { value: 'full', label: 'Full canvas', description: 'Use every safe pixel', glyph: '▣' },
+  { value: 'center', label: 'Centered', description: '72% centered focal stack', glyph: '⊙' },
+  { value: 'left', label: 'Left rail', description: '62% left story column', glyph: '◧' },
+  { value: 'right', label: 'Right rail', description: '62% right story column', glyph: '◨' },
+  { value: 'upper', label: 'Upper stage', description: '78% across the top', glyph: '⬒' },
+  { value: 'lower', label: 'Lower stage', description: '78% across the bottom', glyph: '⬓' },
+  { value: 'split-left', label: 'Split left', description: '44% compact left lane', glyph: '◫' },
+  { value: 'split-right', label: 'Split right', description: '44% compact right lane', glyph: '◫' },
+  { value: 'full', label: 'Full canvas', description: 'Maximum safe-area width', glyph: '▣' },
 ]
 
 const BLOCK_RENDER_OPTIONS: Record<
@@ -1363,6 +1363,33 @@ const createStudioChoiceButton = <Value extends string>(
   return button
 }
 
+const createPlacementChoiceButton = (
+  option: CatalogOption<ThemeBlockLayout>,
+  activeValue: ThemeBlockLayout,
+  onSelect: () => void,
+) => {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = option.value === activeValue ? 'active' : ''
+  button.setAttribute('aria-pressed', String(option.value === activeValue))
+
+  const preview = document.createElement('span')
+  preview.className = 'studio-placement-preview'
+  preview.dataset.placement = option.value
+  const content = document.createElement('i')
+  preview.append(content)
+
+  const copy = document.createElement('span')
+  const label = document.createElement('strong')
+  label.textContent = option.label
+  const description = document.createElement('small')
+  description.textContent = option.description
+  copy.append(label, description)
+  button.append(preview, copy)
+  button.addEventListener('click', onSelect)
+  return button
+}
+
 const renderStudioStyleControls = (
   scene: Scene,
   config: BlockRenderConfigV1,
@@ -1370,7 +1397,7 @@ const renderStudioStyleControls = (
   const placementGrid = $('#studio-placement-options')
   placementGrid.replaceChildren(
     ...BLOCK_LAYOUT_OPTIONS.map(option =>
-      createStudioChoiceButton(
+      createPlacementChoiceButton(
         option,
         config.appearance.layout,
         () => updateSelectedConfig(blockConfig => {
