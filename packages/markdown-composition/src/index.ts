@@ -754,10 +754,10 @@ const buildCompositionHtml = (
     .scene-kind-code.theme-render-glass pre { border: 2px solid color-mix(in srgb, white 34%, transparent); background: color-mix(in srgb, var(--code) 78%, transparent); backdrop-filter: blur(28px); }
     .scene-kind-code.theme-render-minimal pre { padding: 20px 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--text); }
     .scene-kind-code.theme-render-spotlight pre { border-left: 12px solid var(--accent); }
-    .scene-kind-code.theme-render-split .content { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: 36px; align-items: center; }
+    .scene-kind-code.theme-render-split .content { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(220px, .45fr); gap: 30px; align-items: center; }
     .scene-kind-code.theme-render-split .content::after { content: "Explain the decision\\A then show the code."; white-space: pre-line; color: var(--muted); font-size: 34px; line-height: 1.35; }
     .scene-kind-code.theme-render-paper pre { background: #f6f2e8; color: #17222b; box-shadow: 0 22px 70px rgba(0,0,0,.12); }
-    pre code { font: 42px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    pre code { display: block; max-width: 100%; font: clamp(22px, 2.18vw, 42px)/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
     .code-line { display: block; min-height: 1.5em; }
     .layout-title { --content-layout-width: 1600px; }
     .layout-title h1, .layout-title h2 { font-size: 142px; }
@@ -799,6 +799,12 @@ const buildCompositionHtml = (
     .scene.theme-layout-split-right .content { margin-left: auto; margin-right: 0; text-align: left; }
     .scene.theme-layout-full { --content-layout-width: 100%; }
     .scene.theme-layout-full .content { margin-inline: 0; text-align: left; }
+    .scene-kind-code:is(.theme-layout-left,.theme-layout-right) pre code { font-size: clamp(21px, 1.78vw, 34px); }
+    .scene-kind-code:is(.theme-layout-split-left,.theme-layout-split-right) pre { padding: 38px; }
+    .scene-kind-code:is(.theme-layout-split-left,.theme-layout-split-right) pre code { font-size: clamp(18px, 1.42vw, 27px); line-height: 1.45; }
+    .scene-kind-code:is(.theme-layout-upper,.theme-layout-lower) pre code { font-size: clamp(21px, 1.82vw, 35px); }
+    .scene-kind-code.theme-render-split:is(.theme-layout-split-left,.theme-layout-split-right) .content { display: block; }
+    .scene-kind-code.theme-render-split:is(.theme-layout-split-left,.theme-layout-split-right) .content::after { display: none; }
     .scene:has(.media-block):not(.theme-render-full).theme-layout-center .content { width: 68%; max-width: 68%; margin-inline: auto; align-self: center; }
     .scene:has(.media-block):not(.theme-render-full).theme-layout-left .content { width: 70%; max-width: 70%; margin-left: 0; margin-right: auto; align-self: center; }
     .scene:has(.media-block):not(.theme-render-full).theme-layout-right .content { width: 62%; max-width: 62%; margin-left: auto; margin-right: 0; align-self: center; }
@@ -858,8 +864,8 @@ const buildCompositionHtml = (
     .scene.presenter-portrait-overlay p, .scene.presenter-portrait-overlay li, .scene.presenter-portrait-rail p, .scene.presenter-portrait-rail li, .scene.presenter-split p, .scene.presenter-split li, .scene.presenter-person-background-left p, .scene.presenter-person-background-left li, .scene.presenter-person-background-right p, .scene.presenter-person-background-right li { font-size: 46px; }
     .scene.theme-render-timeline.presenter-information-circle ul, .scene.theme-render-timeline.presenter-information-circle ol, .scene.theme-render-timeline.presenter-information-tile ul, .scene.theme-render-timeline.presenter-information-tile ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .scene.theme-render-timeline.presenter-portrait-overlay ul, .scene.theme-render-timeline.presenter-portrait-overlay ol, .scene.theme-render-timeline.presenter-portrait-rail ul, .scene.theme-render-timeline.presenter-portrait-rail ol, .scene.theme-render-timeline.presenter-split ul, .scene.theme-render-timeline.presenter-split ol, .scene.theme-render-timeline.presenter-person-background-left ul, .scene.theme-render-timeline.presenter-person-background-left ol, .scene.theme-render-timeline.presenter-person-background-right ul, .scene.theme-render-timeline.presenter-person-background-right ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .scene.presenter-portrait-overlay pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: 32px; }
-    .scene.scene-kind-code.presenter-portrait-rail pre code { font-size: 36px; }
+    .scene.presenter-portrait-overlay pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: clamp(18px, 1.66vw, 32px); }
+    .scene.scene-kind-code.presenter-portrait-rail pre code { font-size: clamp(20px, 1.88vw, 36px); }
     .scene.presenter-person-only > :not(.camera) { display: none; }
     .scene.camera-position-hidden { --presenter-safe-width: 100%; padding-right: 132px; }
     .camera-hidden { display: none; }

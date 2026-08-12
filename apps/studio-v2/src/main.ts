@@ -2099,7 +2099,7 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
   window.requestAnimationFrame(positionInlinePreview)
   const scene = scenes.find(item => item.id === nodeId)
   if (scene && player.ready) {
-    player.seek(scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2))
+    player.seek(scenePreviewTime(scene))
   }
 }
 
@@ -2226,6 +2226,9 @@ const updateSelectedConfig = (
   syncProject()
 }
 
+const scenePreviewTime = (scene: Scene) =>
+  scene.startSeconds + Math.max(0.05, scene.durationSeconds - 0.12)
+
 const replaySelectedAnimation = async () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || !player.ready) return
@@ -2235,9 +2238,7 @@ const replaySelectedAnimation = async () => {
   await player.play()
   animationPreviewTimer = window.setTimeout(() => {
     player.pause()
-    player.seek(
-      scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2),
-    )
+    player.seek(scenePreviewTime(scene))
   }, Math.min(2200, Math.max(900, scene.durationSeconds * 450)))
 }
 
@@ -2371,7 +2372,7 @@ player.addEventListener('ready', () => {
     replayAnimationOnReady = false
     void replaySelectedAnimation()
   } else if (scene) {
-    player.seek(scene.startSeconds + Math.min(0.85, scene.durationSeconds * 0.2))
+    player.seek(scenePreviewTime(scene))
   }
 })
 player.addEventListener('error', event => {

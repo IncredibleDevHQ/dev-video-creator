@@ -363,6 +363,87 @@ describe('compileProject', () => {
     )
   })
 
+  it('keeps code readable across every placement, rendering, theme, and motion', () => {
+    const placements: ThemeBlockLayout[] = [
+      'center',
+      'left',
+      'right',
+      'upper',
+      'lower',
+      'split-left',
+      'split-right',
+      'full',
+    ]
+    const renderings: ThemeBlockRendering[] = [
+      'panel',
+      'terminal',
+      'full',
+      'editor',
+      'glass',
+      'minimal',
+      'spotlight',
+      'split',
+      'paper',
+    ]
+    const codeThemes: ThemeCodeSyntax[] = [
+      'light_vs',
+      'light_plus',
+      'quietlight',
+      'solarized_light',
+      'abyss',
+      'dark_vs',
+      'dark_plus',
+      'kimbie_dark',
+      'monokai',
+      'monokai_dimmed',
+      'red',
+      'solarized_dark',
+      'tomorrow_night_blue',
+      'hc_black',
+    ]
+    const codeAnimations: ThemeCodeAnimation[] = [
+      'type-lines',
+      'highlight-lines',
+    ]
+    let combinations = 0
+
+    placements.forEach(placement => {
+      renderings.forEach(rendering => {
+        codeThemes.forEach(codeTheme => {
+          codeAnimations.forEach(codeAnimation => {
+            const configured = projectWithEveryBlockKind()
+            const config = configured.blocks.code
+            config.appearance.layout = placement
+            config.appearance.render = rendering
+            config.appearance.codeTheme = codeTheme
+            config.appearance.codeAnimation = codeAnimation
+            const result = compileProject(configured)
+            const scene = result.scenes.find(item => item.id === 'code')
+
+            expect(scene?.config.appearance).toMatchObject({
+              layout: placement,
+              render: rendering,
+              codeTheme,
+              codeAnimation,
+            })
+            expect(result.html).toContain('white-space: pre-wrap')
+            expect(result.html).toContain('overflow-wrap: anywhere')
+            expect(result.html).toContain(
+              '.scene-kind-code:is(.theme-layout-split-left,.theme-layout-split-right) pre code',
+            )
+            expect(result.html).toContain(
+              '.scene-kind-code.theme-render-split:is(.theme-layout-split-left,.theme-layout-split-right) .content::after { display: none; }',
+            )
+            expect(result.html).not.toMatch(/\b(?:undefined|NaN)\b/)
+            combinations += 1
+          })
+        })
+      })
+    })
+
+    expect(combinations).toBe(2016)
+  })
+
   it('compiles per-block backgrounds and expanded presenter placements', () => {
     const directed = project()
     directed.blocks.intro.background = {
