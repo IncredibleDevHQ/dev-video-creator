@@ -311,6 +311,15 @@ describe('compileProject', () => {
     expect(result.html).toContain(
       '<audio data-start="15" data-duration="8"',
     )
+    expect(result.html).toContain(
+      '.scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 78%;',
+    )
+    expect(result.html).toContain(
+      '.scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { min-height: 760px;',
+    )
+    expect(result.html).toContain(
+      '.scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 46%;',
+    )
   })
 
   it('shows a presenter placeholder only in live preview compositions', () => {

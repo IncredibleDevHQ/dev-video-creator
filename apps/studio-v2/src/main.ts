@@ -296,6 +296,22 @@ const LAYOUT_META: Record<
   split: { label: 'Side column', description: 'Narrow content frame', lines: 2 },
 }
 
+const IMAGE_LAYOUT_META: Partial<
+  Record<SceneLayout, { label: string; description: string; lines: number }>
+> = {
+  prose: { label: 'Gallery frame', description: 'Large editorial image', lines: 1 },
+  title: { label: 'Hero crop', description: 'Cinematic centered crop', lines: 1 },
+  split: { label: 'Side column', description: 'Narrow vertical crop', lines: 1 },
+}
+
+const SCREEN_LAYOUT_META: Partial<
+  Record<SceneLayout, { label: string; description: string; lines: number }>
+> = {
+  prose: { label: 'Demo frame', description: 'Readable screen capture', lines: 1 },
+  title: { label: 'Screen focus', description: 'Large centered demo', lines: 1 },
+  split: { label: 'Side column', description: 'Compact demo rail', lines: 1 },
+}
+
 const PRESENTER_LAYOUT_PRESETS: Array<{
   id: string
   label: string
@@ -1520,8 +1536,14 @@ const positionInlinePreview = () => {
 const createContentLayoutButton = (
   layout: SceneLayout,
   activeLayout: SceneLayout,
+  visualKind?: 'image' | 'screen',
 ) => {
-  const meta = LAYOUT_META[layout]
+  const meta =
+    (visualKind === 'image'
+      ? IMAGE_LAYOUT_META[layout]
+      : visualKind === 'screen'
+        ? SCREEN_LAYOUT_META[layout]
+        : undefined) || LAYOUT_META[layout]
   const button = document.createElement('button')
   button.type = 'button'
   button.className = `layout-preset${layout === activeLayout ? ' active' : ''}`
@@ -1529,7 +1551,9 @@ const createContentLayoutButton = (
   button.setAttribute('aria-pressed', String(layout === activeLayout))
 
   const thumb = document.createElement('span')
-  thumb.className = `layout-thumb layout-thumb-${layout}`
+  thumb.className = `layout-thumb layout-thumb-${layout}${
+    visualKind ? ` layout-thumb-media layout-thumb-${visualKind}` : ''
+  }`
   for (let index = 0; index < meta.lines; index += 1) {
     thumb.append(document.createElement('i'))
   }
@@ -1632,11 +1656,26 @@ const renderLayoutPresetPicker = (
   ;($('#director-layout-scope') as HTMLElement).textContent = presenterSelected
     ? `${PRESENTER_LAYOUT_PRESETS.length} options`
     : mediaScope || DIRECTOR_OPTIONS[scene.kind].label
+  ;($('#director-layout-note') as HTMLElement).textContent = presenterSelected
+    ? 'Keep the person visible while you choose framing and prominence.'
+    : visualKind === 'image'
+      ? 'Choose the image scale and crop. Place the person independently from the Presenter tab.'
+      : visualKind === 'screen'
+        ? 'Choose how much canvas the screen capture occupies. Place the person from the Presenter tab.'
+        : 'Arrange the Markdown here. Choose whether and where a person appears from the Presenter tab.'
   ;($('#studio-preview-presenter-name') as HTMLElement).textContent =
     selectedPreviewPresenter().name
 
   DIRECTOR_OPTIONS[scene.kind].layouts.forEach(layout =>
-    contentGrid.append(createContentLayoutButton(layout, config.layout)),
+    contentGrid.append(
+      createContentLayoutButton(
+        layout,
+        config.layout,
+        visualKind === 'image' || visualKind === 'screen'
+          ? visualKind
+          : undefined,
+      ),
+    ),
   )
   PRESENTER_LAYOUT_PRESETS.forEach(preset =>
     presenterGrid.append(createPresenterLayoutButton(preset, config, scene.kind)),

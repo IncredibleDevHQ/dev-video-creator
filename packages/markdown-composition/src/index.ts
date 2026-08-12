@@ -676,6 +676,19 @@ const buildCompositionHtml = (
     .scene:has(.media-block).theme-render-card .media-block { padding: 28px; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); background: var(--surface); }
     .scene:has(.media-block).theme-render-card .media-block img, .scene:has(.media-block).theme-render-card .media-block video { min-height: 500px; border-radius: max(0px, calc(var(--block-radius) - 18px)); }
     .scene:has(.media-block).theme-render-minimal .media-block { background: transparent; box-shadow: none; }
+    .scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 78%; max-width: 78%; margin-left: 0; margin-right: auto; }
+    .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image { min-height: 620px; }
+    .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image img { min-height: 620px; max-height: 680px; object-fit: contain; }
+    .scene:has(.media-image):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
+    .scene:has(.media-image):not(.theme-render-full).layout-title .media-image { min-height: 760px; }
+    .scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { min-height: 760px; max-height: 760px; object-fit: cover; }
+    .scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 46%; max-width: 46%; margin-left: 0; margin-right: auto; }
+    .scene:has(.media-image):not(.theme-render-full).layout-split .media-image { min-height: 720px; }
+    .scene:has(.media-image):not(.theme-render-full).layout-split .media-image img { min-height: 720px; max-height: 720px; object-fit: cover; }
+    .scene:has(.media-screen):not(.theme-render-full).layout-prose .content { width: 84%; max-width: 84%; margin-left: 0; margin-right: auto; }
+    .scene:has(.media-screen):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
+    .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen, .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen video { min-height: 760px; max-height: 760px; }
+    .scene:has(.media-screen):not(.theme-render-full).layout-split .content { width: 52%; max-width: 52%; margin-left: 0; margin-right: auto; }
     pre { width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 54px; border-radius: var(--block-radius); background: var(--code-theme-bg, var(--code)); color: var(--code-theme-text, #f7f7ef); box-shadow: 0 32px 80px rgba(0,0,0,.16); overflow: hidden; }
     .code-token-keyword { color: var(--code-theme-keyword, #c586c0); }
     .code-token-variable { color: var(--code-theme-variable, #9cdcfe); }
