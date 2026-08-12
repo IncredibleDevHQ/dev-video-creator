@@ -8,7 +8,7 @@ interface HyperframesPlayerElement extends HTMLElement {
   currentTime: number
   duration: number
   ready: boolean
-  play(): Promise<void>
+  play(): void
   pause(): void
   seek(time: number): void
 }

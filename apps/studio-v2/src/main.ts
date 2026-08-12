@@ -457,6 +457,7 @@ const $ = <T extends HTMLElement>(selector: string) => {
 const player = $('#player') as HyperframesPlayerElement
 const playerShell = $('#player-shell')
 const playerLoading = $('#player-loading')
+const screenPlayToggle = $('#screen-play-toggle') as HTMLButtonElement
 const editorLayout = $('#editor-layout')
 const inlinePreview = $('#inline-preview')
 const canvasBlockTimeline = $('#canvas-block-timeline')
@@ -504,6 +505,7 @@ let screenRecordingStartedAt = 0
 let screenRecordingTimer: number | undefined
 let generatedVoiceUrl = ''
 let animationPreviewTimer: number | undefined
+let screenPlaybackTimer: number | undefined
 let replayAnimationOnReady = false
 let selectedCanvasObject: 'content' | 'presenter' = 'content'
 let selectedBackgroundMode: 'gradient' | 'color' = 'gradient'
@@ -2084,7 +2086,10 @@ const updateInspector = () => {
 }
 
 const selectNode = (nodeId: string, focusEditor: boolean) => {
-  if (selectedNodeId !== nodeId) selectedCanvasObject = 'content'
+  if (selectedNodeId !== nodeId) {
+    stopScreenPlayback()
+    selectedCanvasObject = 'content'
+  }
   selectedNodeId = nodeId
   document
     .querySelectorAll('.tiptap > .selected-block')
@@ -2098,9 +2103,10 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
   updateInspector()
   window.requestAnimationFrame(positionInlinePreview)
   const scene = scenes.find(item => item.id === nodeId)
-  if (scene && player.ready) {
+  if (scene) {
     player.seek(scenePreviewTime(scene))
   }
+  syncScreenPlaybackControl()
 }
 
 $('#editor').addEventListener('pointerdown', event => {
@@ -2135,6 +2141,7 @@ const flushPreviewRequest = async () => {
       }),
     })
     if (pending.requestNumber === previewRequest) {
+      stopScreenPlayback()
       player.setAttribute('src', preview.url)
     }
   } catch (error) {
@@ -2229,9 +2236,55 @@ const updateSelectedConfig = (
 const scenePreviewTime = (scene: Scene) =>
   scene.startSeconds + Math.max(0.05, scene.durationSeconds - 0.12)
 
-const replaySelectedAnimation = async () => {
+const selectedScreenRecordingScene = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
-  if (!scene || !player.ready) return
+  return scene?.node.type === 'screenRecording' && scene.node.attrs?.src
+    ? scene
+    : undefined
+}
+
+const syncScreenPlaybackControl = () => {
+  const scene = selectedScreenRecordingScene()
+  screenPlayToggle.hidden = !scene
+  screenPlayToggle.setAttribute('aria-label', 'Play screen recording')
+  screenPlayToggle.title = 'Play screen recording'
+}
+
+const stopScreenPlayback = (seekToPreview = false) => {
+  window.clearTimeout(screenPlaybackTimer)
+  screenPlaybackTimer = undefined
+  player.pause()
+  const scene = selectedScreenRecordingScene()
+  if (seekToPreview && scene) {
+    player.seek(scenePreviewTime(scene))
+  }
+  syncScreenPlaybackControl()
+}
+
+screenPlayToggle.addEventListener('click', () => {
+  const scene = selectedScreenRecordingScene()
+  if (!scene) return
+
+  window.clearTimeout(animationPreviewTimer)
+  player.pause()
+  player.seek(scene.startSeconds)
+  screenPlayToggle.hidden = true
+  screenPlaybackTimer = window.setTimeout(
+    () => stopScreenPlayback(true),
+    scene.durationSeconds * 1000,
+  )
+  try {
+    player.play()
+  } catch (error) {
+    stopScreenPlayback()
+    console.error('Could not play screen recording', error)
+  }
+})
+
+const replaySelectedAnimation = async () => {
+  stopScreenPlayback()
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene) return
   window.clearTimeout(animationPreviewTimer)
   player.pause()
   player.seek(scene.startSeconds)
@@ -2376,6 +2429,7 @@ player.addEventListener('ready', () => {
   }
 })
 player.addEventListener('error', event => {
+  stopScreenPlayback()
   const detail = (event as unknown as CustomEvent<{ message?: string }>).detail
   playerLoading.hidden = false
   playerLoading.textContent = detail?.message || 'Hyperframes preview failed'
