@@ -23,6 +23,16 @@ import {
   type ThemeCanvasTreatment,
   type TiptapNode,
 } from 'markdown-composition'
+import {
+  getObject,
+  getObjectMetadata,
+  loadLatestProjectArtifact,
+  loadProjectArtifact,
+  persistenceHealth,
+  saveProjectArtifact,
+  saveRecordedBlock,
+  storeAsset,
+} from './persistence'
 
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
@@ -90,10 +100,10 @@ const setCors = (request: IncomingMessage, response: ServerResponse) => {
   ) {
     response.setHeader('access-control-allow-origin', origin)
   }
-  response.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS')
+  response.setHeader('access-control-allow-methods', 'GET,POST,PUT,OPTIONS')
   response.setHeader(
     'access-control-allow-headers',
-    'content-type,x-asset-name',
+    'content-type,x-asset-name,x-project-id,x-block-id,x-duration-ms',
   )
   response.setHeader('cross-origin-resource-policy', 'cross-origin')
 }
@@ -256,7 +266,12 @@ const handleVoice = async (
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
-  const body = await readJson<{ text?: string; referenceId?: string }>(
+  const body = await readJson<{
+    text?: string
+    referenceId?: string
+    projectId?: string
+    blockId?: string
+  }>(
     request,
     32_000,
   )
@@ -272,8 +287,18 @@ const handleVoice = async (
   } else {
     await generateSystemVoice(text, outputPath)
   }
+  const stored = await storeAsset({
+    body: await readFile(outputPath),
+    contentType: 'audio/mpeg',
+    projectId: body.projectId,
+    blockId: body.blockId,
+    kind: 'generated-voice',
+    extension: '.mp3',
+  })
+  await rm(outputPath, { force: true })
   json(response, 200, {
-    url: `${publicBaseUrl(request)}/assets/${id}.mp3`,
+    url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`,
+    assetId: stored.assetId,
     provider: useFish ? 'Fish Audio authorized voice' : 'Local system voice',
   })
 }
@@ -538,11 +563,21 @@ const handleAssetUpload = async (
 ) => {
   const body = await readBody(request, 120 * 1024 * 1024)
   if (!body.length) throw new Error('Uploaded asset is empty')
-  const extension = extensionForContentType(request.headers['content-type'])
-  const id = randomUUID()
-  await writeFile(join(assetsDirectory, `${id}${extension}`), body)
+  const contentType = String(request.headers['content-type'] || 'application/octet-stream')
+  const extension = extensionForContentType(contentType)
+  const projectId = String(request.headers['x-project-id'] || '') || undefined
+  const blockId = String(request.headers['x-block-id'] || '') || undefined
+  const stored = await storeAsset({
+    body,
+    contentType,
+    projectId,
+    blockId,
+    kind: 'notebook-asset',
+    extension,
+  })
   json(response, 201, {
-    url: `${publicBaseUrl(request)}/assets/${id}${extension}`,
+    url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`,
+    assetId: stored.assetId,
   })
 }
 
@@ -589,8 +624,34 @@ const handleDirectedRecording = async (
   } finally {
     await rm(jobDirectory, { recursive: true, force: true })
   }
+  const projectId = String(request.headers['x-project-id'] || '')
+  const blockId = String(request.headers['x-block-id'] || '')
+  if (!projectId || !blockId) throw new Error('Recording requires a project and block ID')
+  let mediaUrl = ''
+  let recording
+  try {
+    const stored = await storeAsset({
+      body: await readFile(outputPath),
+      contentType: 'video/mp4',
+      projectId,
+      blockId,
+      kind: 'directed-block-recording',
+      extension: '.mp4',
+    })
+    mediaUrl = `${publicBaseUrl(request)}/objects/${stored.objectKey}`
+    recording = await saveRecordedBlock({
+      projectId,
+      blockId,
+      assetId: stored.assetId,
+      mediaUrl,
+      durationMs: Math.max(1, Number(request.headers['x-duration-ms']) || 1),
+    })
+  } finally {
+    await rm(outputPath, { force: true })
+  }
   json(response, 201, {
-    url: `${publicBaseUrl(request)}/outputs/${id}.mp4`,
+    url: mediaUrl,
+    recording,
   })
 }
 
@@ -764,13 +825,37 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url || '/', `http://${request.headers.host}`)
   try {
     if (request.method === 'GET' && url.pathname === '/api/health') {
+      let persistence: Awaited<ReturnType<typeof persistenceHealth>> | null = null
+      try {
+        persistence = await persistenceHealth()
+      } catch {
+        // The editor remains usable while local infrastructure is starting.
+      }
       json(response, 200, {
         renderer: true,
         systemVoice:
           process.platform === 'darwin' && (await commandExists('/usr/bin/say')),
         fishAudio: Boolean(process.env.FISH_AUDIO_API_KEY),
         themeAI: Boolean(openAIKey),
+        persistence,
       })
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/projects/latest') {
+      json(response, 200, { project: await loadLatestProjectArtifact() })
+      return
+    }
+    if (request.method === 'GET' && url.pathname.startsWith('/api/projects/')) {
+      const projectId = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
+      json(response, 200, { project: await loadProjectArtifact(projectId) })
+      return
+    }
+    if (request.method === 'PUT' && url.pathname.startsWith('/api/projects/')) {
+      const projectId = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
+      const project = await readJson<ProjectDocumentV1>(request, 5 * 1024 * 1024)
+      if (!projectId || project.id !== projectId) throw new Error('Project ID mismatch')
+      await saveProjectArtifact(project)
+      json(response, 200, { projectId, saved: true })
       return
     }
     if (request.method === 'GET' && url.pathname === '/runtime/gsap.min.js') {
@@ -815,6 +900,36 @@ const server = createServer(async (request, response) => {
       const filePath = safeStaticPath(assetsDirectory, url.pathname.slice(7))
       if (!filePath) throw new Error('Invalid asset path')
       await serveFile(response, filePath)
+      return
+    }
+    if (request.method === 'GET' && url.pathname.startsWith('/objects/')) {
+      const objectKey = decodeURIComponent(url.pathname.slice('/objects/'.length))
+      if (!objectKey || objectKey.split('/').some(part => !part || part === '..')) {
+        throw new Error('Invalid object key')
+      }
+      const metadata = await getObjectMetadata(objectKey)
+      const rangeMatch = /^bytes=(\d+)-(\d*)$/.exec(String(request.headers.range || ''))
+      const rangeStart = rangeMatch ? Number(rangeMatch[1]) : 0
+      const rangeEnd = rangeMatch
+        ? Math.min(Number(rangeMatch[2] || metadata.size - 1), metadata.size - 1)
+        : metadata.size - 1
+      const isRange = Boolean(rangeMatch && rangeStart <= rangeEnd)
+      const object = isRange
+        ? await getObject(objectKey, {
+            offset: rangeStart,
+            length: rangeEnd - rangeStart + 1,
+          })
+        : await getObject(objectKey)
+      response.writeHead(isRange ? 206 : 200, {
+        'content-type': object.metadata.metaData?.['content-type'] || 'application/octet-stream',
+        'content-length': isRange ? rangeEnd - rangeStart + 1 : object.metadata.size,
+        ...(isRange
+          ? { 'content-range': `bytes ${rangeStart}-${rangeEnd}/${object.metadata.size}` }
+          : {}),
+        'cache-control': 'public, max-age=31536000, immutable',
+        'accept-ranges': 'bytes',
+      })
+      object.stream.pipe(response)
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/outputs/')) {

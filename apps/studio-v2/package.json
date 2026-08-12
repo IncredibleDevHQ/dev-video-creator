@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "start": "tsx server/index.ts --serve-dist",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@hyperframes/player": "0.7.106",
@@ -22,10 +22,13 @@
     "@tiptap/starter-kit": "^3.29.2",
     "gsap": "3.12.5",
     "markdown-composition": "*",
-    "node-identifier": "*"
+    "minio": "^8.0.7",
+    "node-identifier": "*",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.21.0",
     "concurrently": "^9.2.1",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",

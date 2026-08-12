@@ -111,6 +111,15 @@ export type NarrationTrackV1 = {
 
 export type PresenterTrackV1 = HumanCameraTrackV1 | NarrationTrackV1
 
+export type RecordedBlockV1 = {
+  blockId: NodeId
+  recordingId: string
+  videoUrl: string
+  durationMs: number
+  recordedAt: string
+  storage: 'minio' | 'supabase'
+}
+
 export type BrandTemplateV1 = {
   background: string
   surface: string
@@ -272,6 +281,7 @@ export type ProjectDocumentV1 = {
   height: 1080
   blocks: Record<NodeId, BlockRenderConfigV1>
   presenterTracks: Record<NodeId, PresenterTrackV1[]>
+  recordedBlocks?: Record<NodeId, RecordedBlockV1>
   brand: BrandTemplateV1
   theme?: StudioThemeV1
 }

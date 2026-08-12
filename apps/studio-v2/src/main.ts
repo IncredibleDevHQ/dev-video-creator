@@ -19,6 +19,7 @@ import {
   type MediaCornerStyle,
   type MediaElevation,
   type ProjectDocumentV1,
+  type RecordedBlockV1,
   type PresenterLayoutMode,
   type RevealStyle,
   type Scene,
@@ -517,6 +518,7 @@ let pendingPreviewRequest: {
 } | null = null
 let scenes: Scene[] = []
 let syncTimer: number | undefined
+let databaseSyncTimer: number | undefined
 let toastTimer: number | undefined
 let cameraStream: MediaStream | null = null
 let liveCameraStream: MediaStream | null = null
@@ -932,12 +934,28 @@ const resetCanvasRecordingControls = () => {
   canvasRecordingMeta.textContent = 'Camera visible · microphone optional'
 }
 
-const uploadDirectedCanvasRecording = async (blob: Blob) => {
-  const result = await fetchJson<{ url: string }>('/api/recordings/finalize', {
+const uploadDirectedCanvasRecording = async (
+  blob: Blob,
+  scene: Scene,
+  durationMs: number,
+) => {
+  project.notebook = editor.getJSON() as TiptapDocument
+  ensureBlockConfiguration(project.notebook)
+  await persistProjectNow(structuredClone(project))
+  const result = await fetchJson<{ url: string; recording: RecordedBlockV1 }>(
+    '/api/recordings/finalize', {
     method: 'POST',
-    headers: { 'content-type': blob.type || 'video/webm' },
+    headers: {
+      'content-type': blob.type || 'video/webm',
+      'x-project-id': project.id,
+      'x-block-id': scene.id,
+      'x-duration-ms': String(durationMs),
+    },
     body: blob,
   })
+  project.recordedBlocks ||= {}
+  project.recordedBlocks[scene.id] = result.recording
+  syncProject()
   canvasRecordingPlayback.src = result.url
   downloadCanvasRecording.href = result.url
   canvasRecordingReview.hidden = false
@@ -1007,6 +1025,7 @@ const startCanvasRecording = async () => {
     }
     canvasRecorder.onstop = async () => {
       const mimeType = canvasRecorder?.mimeType || 'video/webm'
+      const durationMs = Math.max(1, Date.now() - canvasRecordingStartedAt)
       canvasCaptureStream?.getTracks().forEach(track => track.stop())
       canvasMicrophoneStream?.getTracks().forEach(track => track.stop())
       canvasCaptureStream = null
@@ -1019,6 +1038,8 @@ const startCanvasRecording = async () => {
         startCanvasRecordingButton.disabled = true
         await uploadDirectedCanvasRecording(
           new Blob(canvasRecordingChunks, { type: mimeType }),
+          scene,
+          durationMs,
         )
       } catch (error) {
         showToast(error instanceof Error ? error.message : 'Could not make MP4')
@@ -1114,7 +1135,25 @@ const readStoredProject = (): ProjectDocumentV1 | null => {
   }
 }
 
-const storedProject = readStoredProject()
+const localProject = readStoredProject()
+
+const readPersistedProject = async (
+  local: ProjectDocumentV1 | null,
+): Promise<ProjectDocumentV1 | null> => {
+  try {
+    const path = local
+      ? `/api/projects/${encodeURIComponent(local.id)}`
+      : '/api/projects/latest'
+    const response = await fetch(`${WORKER_URL}${path}`)
+    if (!response.ok) return null
+    const body = (await response.json()) as { project?: ProjectDocumentV1 | null }
+    return body.project?.version === 1 ? body.project : null
+  } catch {
+    return null
+  }
+}
+
+const storedProject = (await readPersistedProject(localProject)) || localProject
 
 if (
   storedProject &&
@@ -1138,12 +1177,14 @@ let project: ProjectDocumentV1 =
     height: 1080,
     blocks: {},
     presenterTracks: {},
+    recordedBlocks: {},
     brand: { ...defaultBrand },
     theme: structuredClone(defaultStudioTheme),
   } satisfies ProjectDocumentV1)
 
 project.theme = normalizeStudioTheme(project.theme, project.brand)
 project.brand = { ...project.theme.brand }
+project.recordedBlocks ||= {}
 
 const cloneTheme = (theme: StudioThemeV1): StudioThemeV1 =>
   structuredClone(theme)
@@ -2001,6 +2042,19 @@ const setSaving = (saving: boolean) => {
   saveState.parentElement?.classList.toggle('saving', saving)
 }
 
+const scheduleDatabaseSync = () => {
+  window.clearTimeout(databaseSyncTimer)
+  const snapshot = structuredClone(project)
+  databaseSyncTimer = window.setTimeout(async () => {
+    try {
+      await persistProjectNow(snapshot)
+      saveState.textContent = 'Saved to database'
+    } catch {
+      saveState.textContent = 'Saved locally · database offline'
+    }
+  }, 450)
+}
+
 const selectedIdAtCursor = () => {
   const position = editor.state.selection.from
   let result = ''
@@ -2078,6 +2132,11 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
   Object.keys(project.presenterTracks).forEach(nodeId => {
     if (!activeIds.has(nodeId)) delete project.presenterTracks[nodeId]
   })
+  Object.keys(project.recordedBlocks || {}).forEach(nodeId => {
+    if (!activeIds.has(nodeId) && project.recordedBlocks) {
+      delete project.recordedBlocks[nodeId]
+    }
+  })
 }
 
 const formatTime = (seconds: number) => {
@@ -2111,6 +2170,7 @@ const renderCanvasBlockTimeline = () => {
     const isSelected = scene.id === selectedNodeId
     button.type = 'button'
     const visualKind = sceneVisualKind(scene)
+    const recordedBlock = project.recordedBlocks?.[scene.id]
     const meta = TIMELINE_BLOCK_META[visualKind]
     button.className = `canvas-timeline-block timeline-kind-${visualKind}${isSelected ? ' active' : ''}`
     button.dataset.timelineNodeId = scene.id
@@ -2119,7 +2179,7 @@ const renderCanvasBlockTimeline = () => {
     button.setAttribute('aria-current', isSelected ? 'true' : 'false')
     button.setAttribute(
       'aria-label',
-      `Block ${scene.index + 1}, ${sceneObjectLabel(scene)}, ${scene.title}, ${formatTime(scene.durationSeconds)}`,
+      `Block ${scene.index + 1}, ${sceneObjectLabel(scene)}, ${scene.title}, ${formatTime((recordedBlock?.durationMs || scene.durationSeconds * 1000) / 1000)}${recordedBlock ? ', saved recording' : ''}`,
     )
     button.style.flexGrow = String(Math.max(1, scene.durationSeconds))
 
@@ -2128,7 +2188,9 @@ const renderCanvasBlockTimeline = () => {
     const index = document.createElement('b')
     index.textContent = String(scene.index + 1).padStart(2, '0')
     const duration = document.createElement('time')
-    duration.textContent = formatTime(scene.durationSeconds)
+    duration.textContent = formatTime(
+      (recordedBlock?.durationMs || scene.durationSeconds * 1000) / 1000,
+    )
     top.append(index, duration)
 
     const body = document.createElement('span')
@@ -2149,6 +2211,13 @@ const renderCanvasBlockTimeline = () => {
     const type = document.createElement('span')
     type.className = 'canvas-timeline-block-type'
     type.textContent = meta.label
+    if (recordedBlock) {
+      button.classList.add('recorded')
+      const saved = document.createElement('em')
+      saved.className = 'canvas-timeline-recorded'
+      saved.textContent = 'Saved take'
+      type.append(saved)
+    }
     if (scene.presenterTracks.length) {
       const presenter = document.createElement('i')
       presenter.title = 'Recorded presenter'
@@ -2161,7 +2230,14 @@ const renderCanvasBlockTimeline = () => {
     copy.append(type, title)
     body.append(visual, copy)
     button.append(top, body)
-    button.addEventListener('click', () => selectNode(scene.id, false))
+    button.addEventListener('click', () => {
+      selectNode(scene.id, false)
+      if (recordedBlock) {
+        canvasRecordingPlayback.src = recordedBlock.videoUrl
+        downloadCanvasRecording.href = recordedBlock.videoUrl
+        canvasRecordingReview.hidden = false
+      }
+    })
     track.append(button)
   })
 
@@ -2814,6 +2890,7 @@ const syncProject = () => {
   ensureBlockConfiguration(notebook)
   project.notebook = notebook
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
+  scheduleDatabaseSync()
   updatePreview()
   setSaving(false)
 }
@@ -3213,6 +3290,16 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return body
 }
 
+const persistProjectNow = (snapshot: ProjectDocumentV1) =>
+  fetchJson<{ projectId: string; saved: boolean }>(
+    `/api/projects/${encodeURIComponent(snapshot.id)}`,
+    {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(snapshot),
+    },
+  )
+
 const updateMediaNode = (
   uploadKey: string,
   attributes: Record<string, unknown>,
@@ -3242,15 +3329,31 @@ const setMediaBlockDuration = (uploadKey: string, durationSeconds: number) => {
   }
 }
 
-const uploadNotebookAsset = async (file: Blob, name: string) =>
-  fetchJson<{ url: string }>('/api/assets', {
+const mediaNodeIdForUploadKey = (uploadKey: string) => {
+  let nodeId = ''
+  editor.state.doc.descendants(node => {
+    if (node.attrs.uploadKey === uploadKey && typeof node.attrs.id === 'string') {
+      nodeId = node.attrs.id
+    }
+  })
+  return nodeId
+}
+
+const uploadNotebookAsset = async (file: Blob, name: string, blockId?: string) => {
+  project.notebook = editor.getJSON() as TiptapDocument
+  ensureBlockConfiguration(project.notebook)
+  await persistProjectNow(structuredClone(project))
+  return fetchJson<{ url: string }>('/api/assets', {
     method: 'POST',
     headers: {
       'content-type': file.type || 'application/octet-stream',
       'x-asset-name': name,
+      'x-project-id': project.id,
+      ...(blockId ? { 'x-block-id': blockId } : {}),
     },
     body: file,
   })
+}
 
 function chooseImageFile(uploadKey: string) {
   if (!uploadKey) return
@@ -3295,7 +3398,11 @@ $('#editor').addEventListener('click', event => {
       status: 'uploading',
     })
     try {
-      const result = await uploadNotebookAsset(file, file.name)
+      const result = await uploadNotebookAsset(
+        file,
+        file.name,
+        mediaNodeIdForUploadKey(uploadKey),
+      )
       updateMediaNode(uploadKey, {
         src: result.url,
         alt: title || 'Image',
@@ -3359,7 +3466,11 @@ async function beginScreenRecording(uploadKey: string) {
         const blob = new Blob(screenRecordingChunks, {
           type: screenRecorder?.mimeType || 'video/webm',
         })
-        const result = await uploadNotebookAsset(blob, 'screen-recording.webm')
+        const result = await uploadNotebookAsset(
+          blob,
+          'screen-recording.webm',
+          mediaNodeIdForUploadKey(screenRecordingUploadKey),
+        )
         setMediaBlockDuration(screenRecordingUploadKey, durationSeconds)
         updateMediaNode(screenRecordingUploadKey, {
           src: result.url,
@@ -3489,11 +3600,15 @@ const updateThemeDraftFromControls = () => {
     const status = $('#theme-ai-status')
     status.textContent = 'Uploading logo to the local Studio asset library…'
     try {
+      project.notebook = editor.getJSON() as TiptapDocument
+      ensureBlockConfiguration(project.notebook)
+      await persistProjectNow(structuredClone(project))
       const result = await fetchJson<{ url: string }>('/api/assets', {
         method: 'POST',
         headers: {
           'content-type': file.type || 'application/octet-stream',
           'x-asset-name': file.name,
+          'x-project-id': project.id,
         },
         body: file,
       })
@@ -3760,12 +3875,17 @@ const refreshCapabilities = async () => {
   button.disabled = true
   button.textContent = 'Generating…'
   try {
+    project.notebook = editor.getJSON() as TiptapDocument
+    ensureBlockConfiguration(project.notebook)
+    await persistProjectNow(structuredClone(project))
     const result = await fetchJson<{ url: string; provider: string }>('/api/voice', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         text: presenterScript.value,
         referenceId: voiceReference.value.trim() || undefined,
+        projectId: project.id,
+        blockId: recordingNodeId || selectedNodeId,
       }),
     })
     generatedVoiceUrl = result.url
@@ -3815,11 +3935,16 @@ const supportedRecorderType = () =>
     .find(type => MediaRecorder.isTypeSupported(type)) || ''
 
 const uploadRecording = async (blob: Blob) => {
+  project.notebook = editor.getJSON() as TiptapDocument
+  ensureBlockConfiguration(project.notebook)
+  await persistProjectNow(structuredClone(project))
   const response = await fetchJson<{ url: string }>('/api/assets', {
     method: 'POST',
     headers: {
       'content-type': blob.type || 'video/webm',
       'x-asset-name': `camera-${recordingNodeId}.webm`,
+      'x-project-id': project.id,
+      'x-block-id': recordingNodeId,
     },
     body: blob,
   })

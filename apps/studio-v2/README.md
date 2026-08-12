@@ -8,10 +8,11 @@ The expanded canvas includes a block-aware director. Headings, paragraphs, lists
 
 ## Run locally
 
-Requirements: Node.js 22+, Yarn 1, and FFmpeg on `PATH`.
+Requirements: Node.js 22+, Yarn 1, Docker, and FFmpeg on `PATH`.
 
 ```bash
 yarn studio:setup
+yarn studio:infra
 yarn studio
 ```
 
@@ -34,6 +35,37 @@ No API key is required for the basic Markdown, configuration, camera, live-canva
 
 Research, avatar/lip-sync providers, and AI-generated brand templates are later milestones and are intentionally not wired into this MVP.
 
-## Storage
+## Persistence
 
-Local assets, previews, and renders are written to the ignored `.studio-data/` directory. Projects themselves are saved in browser local storage for this single-user MVP.
+The MVP uses a small Supabase-compatible local stack instead of requiring the
+full Supabase service suite:
+
+- PostgreSQL stores the versioned notebook artifact, normalized block rows,
+  asset metadata, and the latest recorded take for each stable Tiptap block ID.
+- MinIO stores uploaded images, screen recordings, generated guide audio, and
+  finalized directed-block MP4s. The worker serves these through `/objects/*`
+  with byte-range support for video playback.
+- Browser local storage remains an offline fallback. At startup the editor first
+  loads its matching PostgreSQL artifact (or the latest notebook on a new
+  browser), then debounces edits back to the database.
+
+PostgreSQL is exposed on `54329`; MinIO uses `59000` for S3 and `59001` for its
+console. Defaults live in `.env.example`. Stop only these two services with:
+
+```bash
+yarn studio:infra:stop
+```
+
+### Why PostgreSQL / Supabase rather than Convex
+
+The product's core relationship is notebook → stable block → configuration →
+assets / recorded take. PostgreSQL makes that relational model, transactions,
+foreign keys, and migrations explicit. It also gives us a direct path to hosted
+Supabase later while keeping MinIO as the local S3-compatible object store.
+Convex remains a strong option for a realtime-first hosted product, but its local
+deployment is currently a beta development workflow and its native file storage
+would duplicate the explicitly selected MinIO layer.
+
+Transient Hyperframes render jobs, previews, and completed whole-project renders
+still use the ignored `.studio-data/` working directory. They can move to the same
+object-store adapter when collaborative/export lifecycle work begins.

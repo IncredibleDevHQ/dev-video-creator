@@ -263,6 +263,8 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-timeline-block-copy { min-width: 0; display: block; }
 .canvas-timeline-block-type { display: flex; align-items: center; gap: 5px; color: #f4f4f5; font-size: 8px; font-weight: 800; line-height: 1; }
 .canvas-timeline-block-type i { width: 5px; height: 5px; border-radius: 50%; background: var(--brand-light); box-shadow: 0 0 0 2px rgba(74,222,128,.15); }
+.canvas-timeline-block.recorded { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-light) 22%, transparent); }
+.canvas-timeline-recorded { margin-left: auto; padding: 2px 4px; border-radius: 999px; background: rgba(74,222,128,.14); color: #86efac; font-size: 5px; font-style: normal; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
 .canvas-timeline-block-copy > strong { max-width: 100%; margin-top: 4px; display: block; overflow: hidden; color: #a1a1aa; font-size: 7px; font-weight: 500; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .canvas-timeline-block.active .canvas-timeline-block-copy > strong { color: white; }
 .player-shell.canvas-open .canvas-director { min-height: 0; display: flex; flex-direction: column; overflow-y: auto; background: white; color: var(--ink); box-shadow: -16px 0 50px rgba(0,0,0,.2); }

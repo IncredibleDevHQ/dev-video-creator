@@ -13,6 +13,8 @@
 		"lint": "turbo run lint",
 		"format": "prettier --write \"**/*.{ts,tsx,md,js,jsx}\"",
 		"studio:setup": "yarn install --ignore-scripts && yarn workspace studio-v2 exec puppeteer browsers install chrome",
+		"studio:infra": "docker compose up -d minio studio-db",
+		"studio:infra:stop": "docker compose stop minio studio-db",
 		"studio": "yarn workspace studio-v2 dev",
 		"studio:build": "yarn workspace studio-v2 build",
 		"studio:start": "yarn workspace studio-v2 start",
