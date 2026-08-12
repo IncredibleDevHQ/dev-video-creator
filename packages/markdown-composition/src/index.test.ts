@@ -336,6 +336,9 @@ describe('compileProject', () => {
       '.scene:has(.media-block):not(.theme-render-full).theme-layout-split-right .content { width: 44%;',
     )
     expect(result.html).toContain(
+      '.scene:has(.media-block):not(.theme-render-full).theme-layout-center .content { width: 68%;',
+    )
+    expect(result.html).toContain(
       '.layout-title:is(.theme-layout-upper,.theme-layout-lower) .media-block',
     )
   })

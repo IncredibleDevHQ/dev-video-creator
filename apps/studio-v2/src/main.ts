@@ -96,6 +96,22 @@ const BLOCK_LAYOUT_OPTIONS: CatalogOption<ThemeBlockLayout>[] = [
   { value: 'full', label: 'Full canvas', description: 'Maximum safe-area width', glyph: '▣' },
 ]
 
+const IMAGE_PLACEMENT_OPTIONS: CatalogOption<ThemeBlockLayout>[] = [
+  { value: 'center', label: 'Balanced focus', description: 'Calm centered composition', glyph: '⊙' },
+  { value: 'left', label: 'Story + human', description: 'Image leads, presenter supports', glyph: '◧' },
+  { value: 'full', label: 'Immersive', description: 'Maximum presenter-safe image', glyph: '▣' },
+]
+
+const SCREEN_PLACEMENT_OPTIONS: CatalogOption<ThemeBlockLayout>[] = [
+  { value: 'center', label: 'Demo focus', description: 'Centered readable capture', glyph: '⊙' },
+  { value: 'left', label: 'Demo + human', description: 'Screen leads, presenter supports', glyph: '◧' },
+  { value: 'full', label: 'Full screen', description: 'Maximum presenter-safe demo', glyph: '▣' },
+]
+
+const MEDIA_PLACEMENT_VALUES = new Set<ThemeBlockLayout>(
+  IMAGE_PLACEMENT_OPTIONS.map(option => option.value),
+)
+
 const BLOCK_RENDER_OPTIONS: Record<
   ThemeBlockKind,
   CatalogOption<ThemeRenderValue>[]
@@ -157,14 +173,50 @@ const BLOCK_RENDER_OPTIONS: Record<
   ].map(([value, label, description, glyph]) => ({ value, label, description, glyph })) as CatalogOption<ThemeRenderValue>[],
 }
 
-const MEDIA_RENDER_OPTIONS: CatalogOption<ThemeRenderValue>[] = [
-  { value: 'full', label: 'Full bleed', description: 'Fill the canvas edge to edge', glyph: '▣' },
-  { value: 'framed', label: 'Brand frame', description: 'Strong accent edge and safe inset', glyph: '▢' },
-  { value: 'glass', label: 'Glass surface', description: 'Float above a translucent panel', glyph: '◇' },
-  { value: 'spotlight', label: 'Spotlight', description: 'Focused media with generous space', glyph: '◎' },
-  { value: 'card', label: 'Raised card', description: 'Editorial surface and soft shadow', glyph: '▤' },
-  { value: 'minimal', label: 'Minimal', description: 'Clean media without decoration', glyph: '—' },
+const IMAGE_RENDER_OPTIONS: CatalogOption<ThemeRenderValue>[] = [
+  { value: 'minimal', label: 'Clean gallery', description: 'Quiet edge and natural image', glyph: '—' },
+  { value: 'card', label: 'Editorial card', description: 'Soft matte and confident lift', glyph: '▤' },
+  { value: 'framed', label: 'Brand frame', description: 'Restrained branded outline', glyph: '▢' },
+  { value: 'glass', label: 'Glass gallery', description: 'Light translucent presentation', glyph: '◇' },
 ]
+
+const SCREEN_RENDER_OPTIONS: CatalogOption<ThemeRenderValue>[] = [
+  { value: 'minimal', label: 'Clean demo', description: 'Distraction-free screen', glyph: '—' },
+  { value: 'card', label: 'Product card', description: 'Raised product walkthrough', glyph: '▤' },
+  { value: 'framed', label: 'Brand frame', description: 'Restrained branded outline', glyph: '▢' },
+  { value: 'glass', label: 'Glass demo', description: 'Light translucent presentation', glyph: '◇' },
+]
+
+const applyRecommendedMediaFrame = (
+  config: BlockRenderConfigV1,
+  rendering: ThemeBlockRendering,
+) => {
+  if (rendering === 'card') {
+    config.mediaFrame = {
+      borderWidth: 'thin',
+      corners: 'rounded',
+      elevation: 'lifted',
+    }
+  } else if (rendering === 'framed') {
+    config.mediaFrame = {
+      borderWidth: 'medium',
+      corners: 'soft',
+      elevation: 'soft',
+    }
+  } else if (rendering === 'glass') {
+    config.mediaFrame = {
+      borderWidth: 'thin',
+      corners: 'rounded',
+      elevation: 'soft',
+    }
+  } else {
+    config.mediaFrame = {
+      borderWidth: 'thin',
+      corners: 'soft',
+      elevation: 'soft',
+    }
+  }
+}
 
 const MEDIA_BORDER_OPTIONS: CatalogOption<MediaBorderWidth>[] = [
   { value: 'none', label: 'None', description: 'Pure edge-to-canvas', glyph: '—' },
@@ -1394,6 +1446,8 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
     }
     const config = project.blocks[nodeId]
     const fallback = createDefaultBlockConfig(nodeId, node)
+    const isMediaBlock =
+      node.type === 'image' || node.type === 'screenRecording'
     if (!config.background) {
       config.background = { ...fallback.background }
     }
@@ -1404,14 +1458,15 @@ const ensureBlockConfiguration = (document: TiptapDocument) => {
       config.camera.mode = fallback.camera.mode
     }
     if (!config.appearance) {
-      const isMediaBlock =
-        node.type === 'image' || node.type === 'screenRecording'
       config.appearance = project.theme && !isMediaBlock
         ? appearanceFromTheme(directorKindForNode(node), project.theme)
         : fallback.appearance
     }
     if (!config.mediaFrame) {
       config.mediaFrame = { ...fallback.mediaFrame }
+    }
+    if (isMediaBlock && !MEDIA_PLACEMENT_VALUES.has(config.appearance.layout)) {
+      config.appearance.layout = 'center'
     }
     const options = DIRECTOR_OPTIONS[directorKindForNode(node)]
     if (!options.layouts.includes(config.layout)) {
@@ -1771,12 +1826,19 @@ const renderStudioStyleControls = (
 ) => {
   const visualKind = sceneVisualKind(scene)
   const isMediaBlock = visualKind === 'image' || visualKind === 'screen'
-  const renderOptions = isMediaBlock
-    ? MEDIA_RENDER_OPTIONS
-    : BLOCK_RENDER_OPTIONS[scene.kind]
+  const renderOptions = visualKind === 'image'
+    ? IMAGE_RENDER_OPTIONS
+    : visualKind === 'screen'
+      ? SCREEN_RENDER_OPTIONS
+      : BLOCK_RENDER_OPTIONS[scene.kind]
+  const placementOptions = visualKind === 'image'
+    ? IMAGE_PLACEMENT_OPTIONS
+    : visualKind === 'screen'
+      ? SCREEN_PLACEMENT_OPTIONS
+      : BLOCK_LAYOUT_OPTIONS
   const placementGrid = $('#studio-placement-options')
   placementGrid.replaceChildren(
-    ...BLOCK_LAYOUT_OPTIONS.map(option =>
+    ...placementOptions.map(option =>
       createPlacementChoiceButton(
         option,
         config.appearance.layout,
@@ -1794,6 +1856,9 @@ const renderStudioStyleControls = (
         config.appearance.render,
         () => updateSelectedConfig(blockConfig => {
           blockConfig.appearance.render = option.value
+          if (isMediaBlock) {
+            applyRecommendedMediaFrame(blockConfig, option.value)
+          }
         }),
       ),
     ),
@@ -1801,7 +1866,7 @@ const renderStudioStyleControls = (
   ;($('#studio-render-heading') as HTMLElement).textContent =
     `${isMediaBlock ? sceneObjectLabel(scene) : BLOCK_KIND_META[scene.kind].label.replace(' system', '')} rendering`
   const mediaFrameOptions = $('#studio-media-frame-options')
-  mediaFrameOptions.hidden = !isMediaBlock || config.appearance.render === 'full'
+  mediaFrameOptions.hidden = !isMediaBlock
   if (isMediaBlock) {
     $('#studio-media-border-options').replaceChildren(
       ...MEDIA_BORDER_OPTIONS.map(option =>
@@ -1879,7 +1944,7 @@ const renderStudioStyleControls = (
       MEDIA_ELEVATION_OPTIONS.length
     : 1
   ;($('#director-style-count') as HTMLElement).textContent =
-    `${BLOCK_LAYOUT_OPTIONS.length * renderOptions.length * motions * codeMultiplier * mediaMultiplier} combinations`
+    `${placementOptions.length * renderOptions.length * motions * codeMultiplier * mediaMultiplier} combinations`
 }
 
 const renderStudioMotionControls = (
