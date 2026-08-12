@@ -397,6 +397,7 @@ let previewFetchInFlight = false
 let pendingPreviewRequest: {
   requestNumber: number
   previewPresenter: { imageUrl: string; name: string }
+  includeEmptyNodeId?: string
 } | null = null
 let scenes: Scene[] = []
 let syncTimer: number | undefined
@@ -1270,6 +1271,14 @@ editor = new Editor({
     handleKeyDown: (_view, event) => handleSlashKey(event),
   },
   onUpdate: () => {
+    const nodeId = selectedIdAtCursor()
+    if (nodeId && nodeId !== selectedNodeId) {
+      selectNode(nodeId, false)
+      if (!scenes.some(scene => scene.id === nodeId)) {
+        playerLoading.hidden = false
+        playerLoading.textContent = 'New block · start typing'
+      }
+    }
     scheduleSync()
     renderSlashMenu()
   },
@@ -1277,6 +1286,11 @@ editor = new Editor({
     const nodeId = selectedIdAtCursor()
     if (nodeId && nodeId !== selectedNodeId) {
       selectNode(nodeId, false)
+      if (!scenes.some(scene => scene.id === nodeId)) {
+        playerLoading.hidden = false
+        playerLoading.textContent = 'New block · start typing'
+      }
+      scheduleSync()
     } else if (nodeId) {
       window.requestAnimationFrame(() => {
         document.getElementById(nodeId)?.classList.add('selected-block')
@@ -1923,8 +1937,13 @@ $('#editor').addEventListener('pointerdown', event => {
   while (block?.parentElement && !block.parentElement.classList.contains('tiptap')) {
     block = block.parentElement
   }
-  if (block?.id && scenes.some(scene => scene.id === block?.id)) {
+  if (block?.id) {
     selectNode(block.id, false)
+    if (!scenes.some(scene => scene.id === block?.id)) {
+      playerLoading.hidden = false
+      playerLoading.textContent = 'New block · start typing'
+      scheduleSync()
+    }
   }
 })
 
@@ -1941,6 +1960,7 @@ const flushPreviewRequest = async () => {
       body: JSON.stringify({
         project,
         previewPresenter: pending.previewPresenter,
+        includeEmptyNodeId: pending.includeEmptyNodeId,
       }),
     })
     if (pending.requestNumber === previewRequest) {
@@ -1971,6 +1991,7 @@ const updatePreview = () => {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
+      includeEmptyNodeId: selectedNodeId,
     })
     scenes = compiled.scenes
     playerLoading.hidden = false
@@ -1998,6 +2019,7 @@ const updatePreview = () => {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
+      includeEmptyNodeId: selectedNodeId,
     }
     previewFetchTimer = window.setTimeout(flushPreviewRequest, 120)
   } catch (error) {

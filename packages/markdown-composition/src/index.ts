@@ -823,6 +823,7 @@ export const compileProject = (
     gsapUrl?: string
     hyperframesRuntimeUrl?: string
     previewPresenter?: { imageUrl: string; name?: string }
+    includeEmptyNodeId?: string
   } = {},
 ): CompiledComposition => {
   assertProject(project)
@@ -834,7 +835,11 @@ export const compileProject = (
     .filter(
       node =>
         node.type !== 'horizontalRule' &&
-        !(node.type === 'paragraph' && textContent(node).length === 0),
+        !(
+          node.type === 'paragraph' &&
+          textContent(node).length === 0 &&
+          node.attrs?.id !== options.includeEmptyNodeId
+        ),
     )
     .map((node, index): Scene => {
       const nodeId = node.attrs?.id
@@ -856,7 +861,7 @@ export const compileProject = (
         id: nodeId,
         index,
         node,
-        title: textContent(node).slice(0, 80) || `Scene ${index + 1}`,
+        title: textContent(node).slice(0, 80) || 'Untitled text block',
         kind: sceneKind(node),
         startSeconds,
         durationSeconds,

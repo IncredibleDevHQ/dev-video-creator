@@ -205,6 +205,30 @@ describe('compileProject', () => {
     expect(defaultBrand.accent).toBe('#4ade80')
   })
 
+  it('includes only the focused empty block in a live preview', () => {
+    const withDraft = project()
+    withDraft.notebook.content.push({
+      type: 'paragraph',
+      attrs: { id: 'new-draft' },
+    })
+
+    expect(compileProject(withDraft).scenes.map(scene => scene.id)).toEqual([
+      'intro',
+      'body',
+    ])
+
+    const livePreview = compileProject(withDraft, {
+      includeEmptyNodeId: 'new-draft',
+    })
+    expect(livePreview.scenes.map(scene => scene.id)).toEqual([
+      'intro',
+      'body',
+      'new-draft',
+    ])
+    expect(livePreview.scenes[2].title).toBe('Untitled text block')
+    expect(livePreview.html).toContain('data-node-id="new-draft"')
+  })
+
   it('escapes notebook content', () => {
     const result = compileProject(project())
     expect(result.html).not.toContain('<script>alert(1)</script>')

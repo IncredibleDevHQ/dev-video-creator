@@ -555,6 +555,7 @@ const handlePreview = async (
     | {
         project: ProjectDocumentV1
         previewPresenter?: { imageUrl: string; name?: string }
+        includeEmptyNodeId?: string
       }
   >(request, 3 * 1024 * 1024)
   const project = 'project' in payload ? payload.project : payload
@@ -562,6 +563,7 @@ const handlePreview = async (
     gsapUrl: '/runtime/gsap.min.js',
     hyperframesRuntimeUrl: '/runtime/hyperframes.iife.js',
     previewPresenter: 'project' in payload ? payload.previewPresenter : undefined,
+    includeEmptyNodeId: 'project' in payload ? payload.includeEmptyNodeId : undefined,
   })
   const id = createHash('sha256')
     .update(composition.html)
