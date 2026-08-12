@@ -1188,7 +1188,7 @@ const insertSlashBlock = (blockId: SlashBlockId) => {
         }),
       )
       .run()
-    ;($('#block-image-file') as HTMLInputElement).click()
+    chooseImageFile(pendingImageUploadKey)
     return
   }
 
@@ -2404,30 +2404,63 @@ const uploadNotebookAsset = async (file: Blob, name: string) =>
     body: file,
   })
 
+function chooseImageFile(uploadKey: string) {
+  if (!uploadKey) return
+  pendingImageUploadKey = uploadKey
+  const input = $('#block-image-file') as HTMLInputElement
+  input.dataset.uploadKey = uploadKey
+  input.click()
+}
+
+$('#editor').addEventListener('click', event => {
+  const block = (event.target as HTMLElement).closest<HTMLElement>(
+    '.notebook-image-block',
+  )
+  if (!block) return
+  const status = block.dataset.mediaStatus
+  const explicitReplace = Boolean(
+    (event.target as HTMLElement).closest('[data-image-action]'),
+  )
+  if (!explicitReplace && status !== 'error' && status !== 'empty') return
+  chooseImageFile(block.dataset.uploadKey || '')
+})
+
 ;($('#block-image-file') as HTMLInputElement).addEventListener(
   'change',
   async event => {
     const input = event.currentTarget as HTMLInputElement
     const file = input.files?.[0]
-    const uploadKey = pendingImageUploadKey
+    const uploadKey = input.dataset.uploadKey || pendingImageUploadKey
+    delete input.dataset.uploadKey
     input.value = ''
     pendingImageUploadKey = ''
     if (!file || !uploadKey) {
       if (uploadKey) updateMediaNode(uploadKey, { status: 'empty' })
       return
     }
+    const localPreviewUrl = URL.createObjectURL(file)
+    const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
+    updateMediaNode(uploadKey, {
+      src: localPreviewUrl,
+      alt: title || 'Image',
+      title: title || 'Image',
+      status: 'uploading',
+    })
     try {
       const result = await uploadNotebookAsset(file, file.name)
-      const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
       updateMediaNode(uploadKey, {
         src: result.url,
         alt: title || 'Image',
         title: title || 'Image',
         status: 'ready',
       })
+      window.setTimeout(() => URL.revokeObjectURL(localPreviewUrl), 1000)
       showToast('Image added to the notebook and timeline')
     } catch (error) {
-      updateMediaNode(uploadKey, { status: 'error' })
+      updateMediaNode(uploadKey, {
+        src: localPreviewUrl,
+        status: 'error',
+      })
       showToast(error instanceof Error ? error.message : 'Could not upload image')
     }
   },

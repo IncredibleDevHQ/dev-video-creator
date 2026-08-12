@@ -25,12 +25,13 @@ export const ImageBlock = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { src, alt, title, status, ...attributes } = HTMLAttributes
+    const { src, alt, title, status, uploadKey, ...attributes } = HTMLAttributes
     return [
       'figure',
       mergeAttributes(attributes, {
         'data-block-type': 'image',
         'data-media-status': status,
+        'data-upload-key': uploadKey,
         class: 'notebook-media-block notebook-image-block',
       }),
       src
@@ -39,8 +40,25 @@ export const ImageBlock = Node.create({
             'div',
             { class: 'notebook-media-placeholder' },
             ['span', {}, '▧'],
-            ['strong', {}, status === 'uploading' ? 'Uploading image…' : 'Choose an image'],
+            [
+              'strong',
+              {},
+              status === 'uploading'
+                ? 'Uploading image…'
+                : status === 'error'
+                  ? 'Upload failed — choose again'
+                  : 'Choose an image',
+            ],
           ],
+      [
+        'button',
+        {
+          type: 'button',
+          class: 'notebook-image-action',
+          'data-image-action': 'replace',
+        },
+        src ? 'Replace image' : 'Choose image',
+      ],
       ['figcaption', {}, title || alt || 'Image'],
     ]
   },
