@@ -220,15 +220,15 @@ const applyRecommendedMediaFrame = (
 
 const MEDIA_BORDER_OPTIONS: CatalogOption<MediaBorderWidth>[] = [
   { value: 'none', label: 'None', description: 'Pure edge-to-canvas', glyph: '—' },
-  { value: 'thin', label: 'Thin', description: 'Quiet 2px separation', glyph: '▱' },
-  { value: 'medium', label: 'Medium', description: 'Clear 5px brand edge', glyph: '▣' },
-  { value: 'thick', label: 'Thick', description: 'Bold 10px statement', glyph: '▰' },
+  { value: 'thin', label: 'Thin', description: 'Quiet 1px separation', glyph: '▱' },
+  { value: 'medium', label: 'Medium', description: 'Clear 3px brand edge', glyph: '▣' },
+  { value: 'thick', label: 'Thick', description: 'Bold 6px statement', glyph: '▰' },
 ]
 
 const MEDIA_CORNER_OPTIONS: CatalogOption<MediaCornerStyle>[] = [
   { value: 'square', label: 'Square', description: 'Precise editorial edge', glyph: '□' },
-  { value: 'soft', label: 'Soft', description: 'Balanced 22px corners', glyph: '▢' },
-  { value: 'rounded', label: 'Rounded', description: 'Friendly 52px corners', glyph: '▣' },
+  { value: 'soft', label: 'Soft', description: 'Balanced 18px corners', glyph: '▢' },
+  { value: 'rounded', label: 'Rounded', description: 'Friendly 36px corners', glyph: '▣' },
 ]
 
 const MEDIA_ELEVATION_OPTIONS: CatalogOption<MediaElevation>[] = [
