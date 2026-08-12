@@ -1982,6 +1982,12 @@ const renderStudioStyleControls = (
         config.appearance.layout,
         () => updateSelectedConfig(blockConfig => {
           blockConfig.appearance.layout = option.value
+          if (blockConfig.camera.mode === 'person-only') {
+            blockConfig.camera.mode =
+              option.value === 'right' || option.value === 'split-right'
+                ? 'person-background-right'
+                : 'person-background-left'
+          }
         }),
       ),
     ),

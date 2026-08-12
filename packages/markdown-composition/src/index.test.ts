@@ -535,6 +535,15 @@ describe('compileProject', () => {
     expect(result.html).toContain(
       'src="http://127.0.0.1:4319/assets/brand.svg"'
     )
+    expect(result.html).toContain(
+      '.scene.presenter-person-background-left, .scene.presenter-person-background-right { --presenter-safe-width: 100%; }'
+    )
+    expect(result.html).toContain(
+      '.scene:is(.presenter-person-background-left,.presenter-person-background-right):is(.theme-layout-right,.theme-layout-split-right)::after'
+    )
+    expect(result.html).toContain(
+      '.scene:is(.presenter-person-background-left,.presenter-person-background-right).theme-layout-upper::after'
+    )
   })
 
   it('migrates legacy theme and block camera layouts', () => {
