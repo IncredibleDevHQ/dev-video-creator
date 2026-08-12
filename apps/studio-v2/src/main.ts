@@ -301,7 +301,7 @@ const IMAGE_LAYOUT_META: Partial<
 > = {
   prose: { label: 'Gallery frame', description: 'Large editorial image', lines: 1 },
   title: { label: 'Hero crop', description: 'Cinematic centered crop', lines: 1 },
-  split: { label: 'Side column', description: 'Narrow vertical crop', lines: 1 },
+  split: { label: 'Inset card', description: 'Balanced, uncropped frame', lines: 1 },
 }
 
 const SCREEN_LAYOUT_META: Partial<

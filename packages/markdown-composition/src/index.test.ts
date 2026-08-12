@@ -312,13 +312,16 @@ describe('compileProject', () => {
       '<audio data-start="15" data-duration="8"',
     )
     expect(result.html).toContain(
-      '.scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 78%;',
+      '.scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 80%;',
     )
     expect(result.html).toContain(
       '.scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { min-height: 760px;',
     )
     expect(result.html).toContain(
-      '.scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 46%;',
+      '.scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 56%;',
+    )
+    expect(result.html).toContain(
+      '.camera.presenter-information-circle, .camera.presenter-information-tile',
     )
   })
 

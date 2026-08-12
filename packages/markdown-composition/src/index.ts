@@ -676,15 +676,16 @@ const buildCompositionHtml = (
     .scene:has(.media-block).theme-render-card .media-block { padding: 28px; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); background: var(--surface); }
     .scene:has(.media-block).theme-render-card .media-block img, .scene:has(.media-block).theme-render-card .media-block video { min-height: 500px; border-radius: max(0px, calc(var(--block-radius) - 18px)); }
     .scene:has(.media-block).theme-render-minimal .media-block { background: transparent; box-shadow: none; }
-    .scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 78%; max-width: 78%; margin-left: 0; margin-right: auto; }
-    .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image { min-height: 620px; }
-    .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image img { min-height: 620px; max-height: 680px; object-fit: contain; }
+    .media-image img { background: transparent; }
+    .scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 80%; max-width: 80%; margin-left: 0; margin-right: auto; }
+    .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image { min-height: 0; padding: 18px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); background: color-mix(in srgb, var(--surface) 92%, transparent); }
+    .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image img { width: auto; max-width: 100%; height: auto; min-height: 0; max-height: 680px; margin: auto; border-radius: max(0px, calc(var(--block-radius) - 14px)); object-fit: contain; }
     .scene:has(.media-image):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
     .scene:has(.media-image):not(.theme-render-full).layout-title .media-image { min-height: 760px; }
     .scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { min-height: 760px; max-height: 760px; object-fit: cover; }
-    .scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 46%; max-width: 46%; margin-left: 0; margin-right: auto; }
-    .scene:has(.media-image):not(.theme-render-full).layout-split .media-image { min-height: 720px; }
-    .scene:has(.media-image):not(.theme-render-full).layout-split .media-image img { min-height: 720px; max-height: 720px; object-fit: cover; }
+    .scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 56%; max-width: 56%; margin-left: 0; margin-right: auto; }
+    .scene:has(.media-image):not(.theme-render-full).layout-split .media-image { min-height: 0; padding: 20px; border: 1px solid color-mix(in srgb, var(--text) 16%, transparent); background: color-mix(in srgb, var(--surface) 94%, transparent); box-shadow: 0 38px 110px rgba(0,0,0,.25); }
+    .scene:has(.media-image):not(.theme-render-full).layout-split .media-image img { width: auto; max-width: 100%; height: auto; min-height: 0; max-height: 620px; margin: auto; border-radius: max(0px, calc(var(--block-radius) - 16px)); object-fit: contain; }
     .scene:has(.media-screen):not(.theme-render-full).layout-prose .content { width: 84%; max-width: 84%; margin-left: 0; margin-right: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen, .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen video { min-height: 760px; max-height: 760px; }
@@ -773,6 +774,7 @@ const buildCompositionHtml = (
     .composition-corner-logo.logo-top-right { right: 72px; }
     footer.logo-footer-right { flex-direction: row-reverse; }
     .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: var(--video-border-width) solid var(--surface); border-radius: var(--video-radius); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
+    .camera.presenter-information-circle, .camera.presenter-information-tile, .camera.presenter-portrait-overlay, .camera.presenter-portrait-rail, .camera.presenter-split { z-index: 30; }
     .preview-camera { object-position: center 18%; }
     #composition[data-video-border="none"] .camera { border-width: 0; }
     .video-border-gradient .camera, .camera.video-border-gradient { border-color: var(--accent); border-image: var(--brand-gradient) 1; }

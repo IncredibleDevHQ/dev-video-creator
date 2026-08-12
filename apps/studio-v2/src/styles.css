@@ -254,7 +254,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .layout-thumb-media i { border-radius: 2px; background: linear-gradient(135deg,#e4e4e7,#a1a1aa); box-shadow: inset 0 0 0 1px rgba(255,255,255,.32); }
 .layout-thumb-media.layout-thumb-prose i:first-child { inset: 10px 27px 10px 10px; width: auto; height: auto; }
 .layout-thumb-media.layout-thumb-title i:first-child { inset: 6px; width: auto; height: auto; }
-.layout-thumb-media.layout-thumb-split i:first-child { inset: 7px auto 7px 9px; width: 42%; height: auto; }
+.layout-thumb-media.layout-thumb-split i:first-child { inset: 13px auto 13px 9px; width: 50%; height: auto; box-shadow: 0 4px 10px rgba(0,0,0,.26), inset 0 0 0 2px white; }
 .layout-thumb-screen i { background: linear-gradient(160deg,#dbeafe,#60a5fa); }
 .presenter-preset-grid { gap: 8px; }
 .director-context-note { margin: -5px 0 12px; color: #71717a; font-size: 8px; line-height: 1.45; }
