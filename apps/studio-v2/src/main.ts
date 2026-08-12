@@ -479,6 +479,9 @@ const stopCanvasRecordingButton = $('#stop-canvas-recording') as HTMLButtonEleme
 const canvasRecordingReview = $('#canvas-recording-review')
 const canvasRecordingPlayback = $('#canvas-recording-playback') as HTMLVideoElement
 const downloadCanvasRecording = $('#download-canvas-recording') as HTMLAnchorElement
+const saveCanvasRecordingButton = $('#save-canvas-recording') as HTMLButtonElement
+const canvasRecordingReviewStatus = $('#canvas-recording-review-status')
+const canvasRecordingReviewTitle = $('#canvas-recording-review-title')
 const canvasRecordingCoach = $('#canvas-recording-coach')
 const recordingCoachTitle = $('#recording-coach-title')
 const recordingCoachNumber = $('#recording-coach-number')
@@ -542,6 +545,13 @@ let canvasRecordingLineStep = 0
 let canvasRecordingTokenStep = 0
 let canvasRecordingFocusStep = 0
 let canvasRecordingScene: Scene | null = null
+let pendingRecordedBlock: {
+  projectId: string
+  blockId: string
+  assetId: string
+  mediaUrl: string
+  durationMs: number
+} | null = null
 let screenRecordingStream: MediaStream | null = null
 let screenRecorder: MediaRecorder | null = null
 let screenRecordingChunks: Blob[] = []
@@ -942,7 +952,10 @@ const uploadDirectedCanvasRecording = async (
   project.notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(project.notebook)
   await persistProjectNow(structuredClone(project))
-  const result = await fetchJson<{ url: string; recording: RecordedBlockV1 }>(
+  const result = await fetchJson<{
+    url: string
+    draft: { assetId: string; blockId: string; durationMs: number }
+  }>(
     '/api/recordings/finalize', {
     method: 'POST',
     headers: {
@@ -953,13 +966,21 @@ const uploadDirectedCanvasRecording = async (
     },
     body: blob,
   })
-  project.recordedBlocks ||= {}
-  project.recordedBlocks[scene.id] = result.recording
-  syncProject()
+  pendingRecordedBlock = {
+    projectId: project.id,
+    blockId: scene.id,
+    assetId: result.draft.assetId,
+    mediaUrl: result.url,
+    durationMs: result.draft.durationMs,
+  }
   canvasRecordingPlayback.src = result.url
   downloadCanvasRecording.href = result.url
+  saveCanvasRecordingButton.disabled = false
+  saveCanvasRecordingButton.textContent = 'Save block'
+  canvasRecordingReviewStatus.textContent = 'Review take'
+  canvasRecordingReviewTitle.textContent = 'Save this recording to the selected block'
   canvasRecordingReview.hidden = false
-  showToast('Directed canvas take is ready as MP4')
+  showToast('Take ready — review it, then save the block')
 }
 
 const finishCanvasRecording = () => {
@@ -1077,6 +1098,36 @@ stopCanvasRecordingButton.addEventListener('click', finishCanvasRecording)
 ;($('#close-canvas-recording-review') as HTMLButtonElement).addEventListener('click', () => {
   canvasRecordingPlayback.pause()
   canvasRecordingReview.hidden = true
+})
+saveCanvasRecordingButton.addEventListener('click', async () => {
+  if (!pendingRecordedBlock) return
+  saveCanvasRecordingButton.disabled = true
+  saveCanvasRecordingButton.textContent = 'Saving…'
+  try {
+    const result = await fetchJson<{ recording: RecordedBlockV1 }>(
+      '/api/recordings/commit',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(pendingRecordedBlock),
+      },
+    )
+    project.recordedBlocks ||= {}
+    project.recordedBlocks[result.recording.blockId] = result.recording
+    pendingRecordedBlock = null
+    renderCanvasBlockTimeline()
+    syncProject()
+    await persistProjectNow(structuredClone(project))
+    saveState.textContent = 'Saved to database'
+    canvasRecordingReviewStatus.textContent = 'Recorded block'
+    canvasRecordingReviewTitle.textContent = 'This block is saved to your notebook'
+    saveCanvasRecordingButton.textContent = 'Saved'
+    showToast('Block saved and marked as recorded')
+  } catch (error) {
+    saveCanvasRecordingButton.disabled = false
+    saveCanvasRecordingButton.textContent = 'Save block'
+    showToast(error instanceof Error ? error.message : 'Could not save the block')
+  }
 })
 ;($('#record-canvas-again') as HTMLButtonElement).addEventListener('click', () => {
   canvasRecordingPlayback.pause()
@@ -2215,7 +2266,7 @@ const renderCanvasBlockTimeline = () => {
       button.classList.add('recorded')
       const saved = document.createElement('em')
       saved.className = 'canvas-timeline-recorded'
-      saved.textContent = 'Saved take'
+      saved.textContent = 'Recorded'
       type.append(saved)
     }
     if (scene.presenterTracks.length) {
@@ -2233,8 +2284,13 @@ const renderCanvasBlockTimeline = () => {
     button.addEventListener('click', () => {
       selectNode(scene.id, false)
       if (recordedBlock) {
+        pendingRecordedBlock = null
         canvasRecordingPlayback.src = recordedBlock.videoUrl
         downloadCanvasRecording.href = recordedBlock.videoUrl
+        saveCanvasRecordingButton.disabled = true
+        saveCanvasRecordingButton.textContent = 'Saved'
+        canvasRecordingReviewStatus.textContent = 'Recorded block'
+        canvasRecordingReviewTitle.textContent = 'This block is saved to your notebook'
         canvasRecordingReview.hidden = false
       }
     })

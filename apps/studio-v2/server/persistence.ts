@@ -163,6 +163,12 @@ export const saveRecordedBlock = async ({
   durationMs: number
 }): Promise<RecordedBlockV1> => {
   await initializePersistence()
+  const asset = await database.query<{ object_key: string }>(
+    `select object_key from studio_assets
+     where id = $1 and notebook_id = $2 and block_id = $3`,
+    [assetId, projectId, blockId],
+  )
+  if (!asset.rows[0]) throw new Error('The recording asset does not match this block')
   const recordingId = randomUUID()
   const result = await database.query<{ id: string; updated_at: Date }>(
     `insert into studio_recorded_blocks

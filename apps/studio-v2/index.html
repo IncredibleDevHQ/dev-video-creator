@@ -221,9 +221,9 @@
                       <div class="canvas-recording-devices"><span id="canvas-recording-camera-state">Camera ready</span><span id="canvas-recording-mic-state">Mic optional</span></div>
                     </div>
                     <div id="canvas-recording-review" class="canvas-recording-review" role="dialog" aria-label="Recorded canvas take" hidden>
-                      <div class="canvas-recording-review-heading"><div><span>Recorded take</span><strong>Your directed canvas is ready</strong></div><button id="close-canvas-recording-review" type="button" aria-label="Close recorded take">×</button></div>
+                      <div class="canvas-recording-review-heading"><div><span id="canvas-recording-review-status">Review take</span><strong id="canvas-recording-review-title">Save this recording to the selected block</strong></div><button id="close-canvas-recording-review" type="button" aria-label="Close recorded take">×</button></div>
                       <video id="canvas-recording-playback" controls playsinline></video>
-                      <div class="canvas-recording-review-actions"><a id="download-canvas-recording" class="button primary" href="#" download="incredible-directed-take.mp4">Download MP4</a><button id="record-canvas-again" class="button chrome-secondary" type="button">Record again</button></div>
+                      <div class="canvas-recording-review-actions"><button id="save-canvas-recording" class="button primary" type="button">Save block</button><a id="download-canvas-recording" class="button chrome-secondary" href="#" download="incredible-directed-take.mp4">Download MP4</a><button id="record-canvas-again" class="button chrome-secondary" type="button">Record again</button></div>
                     </div>
                   </div>
                   <aside id="canvas-director" class="canvas-director" aria-label="Canvas layout and animation controls">

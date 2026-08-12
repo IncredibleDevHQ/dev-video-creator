@@ -628,7 +628,7 @@ const handleDirectedRecording = async (
   const blockId = String(request.headers['x-block-id'] || '')
   if (!projectId || !blockId) throw new Error('Recording requires a project and block ID')
   let mediaUrl = ''
-  let recording
+  let assetId = ''
   try {
     const stored = await storeAsset({
       body: await readFile(outputPath),
@@ -638,21 +638,43 @@ const handleDirectedRecording = async (
       kind: 'directed-block-recording',
       extension: '.mp4',
     })
+    assetId = stored.assetId
     mediaUrl = `${publicBaseUrl(request)}/objects/${stored.objectKey}`
-    recording = await saveRecordedBlock({
-      projectId,
-      blockId,
-      assetId: stored.assetId,
-      mediaUrl,
-      durationMs: Math.max(1, Number(request.headers['x-duration-ms']) || 1),
-    })
   } finally {
     await rm(outputPath, { force: true })
   }
   json(response, 201, {
     url: mediaUrl,
-    recording,
+    draft: {
+      assetId,
+      blockId,
+      durationMs: Math.max(1, Number(request.headers['x-duration-ms']) || 1),
+    },
   })
+}
+
+const handleCommitDirectedRecording = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    projectId?: string
+    blockId?: string
+    assetId?: string
+    mediaUrl?: string
+    durationMs?: number
+  }>(request, 32_000)
+  if (!body.projectId || !body.blockId || !body.assetId || !body.mediaUrl) {
+    throw new Error('The recorded block is incomplete')
+  }
+  const recording = await saveRecordedBlock({
+    projectId: body.projectId,
+    blockId: body.blockId,
+    assetId: body.assetId,
+    mediaUrl: body.mediaUrl,
+    durationMs: Math.max(1, Number(body.durationMs) || 1),
+  })
+  json(response, 201, { recording })
 }
 
 const handlePreview = async (
@@ -878,6 +900,13 @@ const server = createServer(async (request, response) => {
       url.pathname === '/api/recordings/finalize'
     ) {
       await handleDirectedRecording(request, response)
+      return
+    }
+    if (
+      request.method === 'POST' &&
+      url.pathname === '/api/recordings/commit'
+    ) {
+      await handleCommitDirectedRecording(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/preview') {

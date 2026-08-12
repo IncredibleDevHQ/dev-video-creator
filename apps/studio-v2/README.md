@@ -48,6 +48,8 @@ full Supabase service suite:
 - Browser local storage remains an offline fallback. At startup the editor first
   loads its matching PostgreSQL artifact (or the latest notebook on a new
   browser), then debounces edits back to the database.
+- Finalizing a take opens a review step. The block is only marked `Recorded` and
+  committed as its latest take after the creator explicitly chooses **Save block**.
 
 PostgreSQL is exposed on `54329`; MinIO uses `59000` for S3 and `59001` for its
 console. Defaults live in `.env.example`. Stop only these two services with:
