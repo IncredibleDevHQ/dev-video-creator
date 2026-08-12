@@ -332,6 +332,12 @@ describe('compileProject', () => {
     expect(result.html).toContain(
       '.camera.presenter-information-circle, .camera.presenter-information-tile',
     )
+    expect(result.html).toContain(
+      '.scene:has(.media-block):not(.theme-render-full).theme-layout-split-right .content { width: 44%;',
+    )
+    expect(result.html).toContain(
+      '.layout-title:is(.theme-layout-upper,.theme-layout-lower) .media-block',
+    )
   })
 
   it('shows a presenter placeholder only in live preview compositions', () => {
