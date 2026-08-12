@@ -97,6 +97,20 @@ describe('compileProject', () => {
     })
   })
 
+  it('gives content-only blocks the full content-safe frame', () => {
+    const directed = project()
+    directed.blocks.intro.camera.position = 'hidden'
+    const result = compileProject(directed, {
+      previewPresenter: { imageUrl: '/presenter.jpg' },
+    })
+
+    expect(result.html).toContain('camera-position-hidden')
+    expect(result.html).toContain('camera-hidden')
+    expect(result.html).toContain(
+      '.scene.camera-position-hidden { --presenter-safe-width: 100%; padding-right: 132px; }',
+    )
+  })
+
   it('compiles stable nodes into sequential Hyperframes scenes', () => {
     const result = compileProject(project())
     expect(result.scenes.map(scene => scene.id)).toEqual(['intro', 'body'])

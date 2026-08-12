@@ -190,8 +190,10 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .layout-thumb-code i { left: 12px; width: 68%; height: 3px; background: #4ade80; }
 .layout-thumb-code i:nth-child(1) { top: 17px; }.layout-thumb-code i:nth-child(2) { top: 27px; width: 52%; }.layout-thumb-code i:nth-child(3) { top: 37px; width: 62%; }
 .layout-thumb-split i:first-child { inset: 10px auto 10px 10px; width: 52%; background: #f4f4f5; }
-.layout-thumb-split i:last-child { inset: 10px 10px 10px auto; width: 26%; background: #4ade80; }
+.layout-thumb-split i:last-child { inset: 10px 10px 10px auto; width: 26%; background: #71717a; }
 .presenter-preset-grid { gap: 8px; }
+.director-context-note { margin: -5px 0 12px; color: #71717a; font-size: 8px; line-height: 1.45; }
+.presenter-context-note { margin-top: 0; }
 .presenter-layout-group { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
 .presenter-layout-group.presenter-layout-group-focused { margin-top: 0; padding-top: 0; border-top: 0; }
 .presenter-layout-heading { margin-bottom: 10px; display: flex; align-items: end; justify-content: space-between; gap: 8px; }
@@ -210,6 +212,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .presenter-layout-person { width: 19px; height: 24px; border: 2px solid white; border-radius: 4px; background: #d1d5db; box-shadow: 0 2px 7px rgba(0,0,0,.22); }
 .presenter-layout-person img { width: 100%; height: 100%; display: block; border-radius: inherit; object-fit: cover; object-position: center 18%; }
 .presenter-layout-preset[data-camera-shape='circle'] .presenter-layout-person { border-radius: 50%; }
+.presenter-layout-preset[data-camera-position='hidden'] .presenter-layout-content { inset: 10px; width: auto; height: auto; }
 .presenter-layout-preset[data-presenter-mode='split'] .presenter-layout-person { border: 0; border-radius: 0; }
 .presenter-layout-preset[data-presenter-mode^='person-background'] .presenter-layout-person, .presenter-layout-preset[data-presenter-mode='person-only'] .presenter-layout-person { inset: 0; width: auto; height: auto; border: 0; border-radius: 0; opacity: .72; }
 .presenter-layout-preset[data-presenter-mode='person-background-left'] .presenter-layout-content, .presenter-layout-preset[data-presenter-mode='person-background-right'] .presenter-layout-content { z-index: 2; top: 12px; bottom: 12px; width: 42%; background: rgba(23,32,51,.9); }

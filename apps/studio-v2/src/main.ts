@@ -283,7 +283,7 @@ const LAYOUT_META: Record<
   title: { label: 'Statement', description: 'Centered title', lines: 2 },
   prose: { label: 'Readable', description: 'Editorial content', lines: 3 },
   code: { label: 'Code focus', description: 'Developer canvas', lines: 3 },
-  split: { label: 'Split', description: 'Content + human', lines: 2 },
+  split: { label: 'Side column', description: 'Narrow content frame', lines: 2 },
 }
 
 const PRESENTER_LAYOUT_PRESETS: Array<{
@@ -293,6 +293,7 @@ const PRESENTER_LAYOUT_PRESETS: Array<{
   position: CameraPosition
   shape: BlockRenderConfigV1['camera']['shape']
 }> = [
+  { id: 'content-only', label: 'Content only', mode: 'information-circle', position: 'hidden', shape: 'circle' },
   { id: 'information-circle', label: 'Content + circle', mode: 'information-circle', position: 'bottom-right', shape: 'circle' },
   { id: 'information-tile', label: 'Content + tile', mode: 'information-tile', position: 'bottom-right', shape: 'rounded-rectangle' },
   { id: 'portrait-overlay', label: 'Portrait overlay', mode: 'portrait-overlay', position: 'overlay-right', shape: 'rounded-rectangle' },
@@ -466,7 +467,9 @@ const themeCanvasCss = (theme: StudioThemeV1) => {
 }
 
 const presenterPresetForMode = (mode: PresenterLayoutMode) =>
-  PRESENTER_LAYOUT_PRESETS.find(preset => preset.mode === mode) ||
+  PRESENTER_LAYOUT_PRESETS.find(
+    preset => preset.mode === mode && preset.position !== 'hidden',
+  ) ||
   PRESENTER_LAYOUT_PRESETS[0]
 
 const appearanceFromTheme = (kind: ThemeBlockKind, theme: StudioThemeV1) => ({
@@ -1265,7 +1268,10 @@ const createPresenterLayoutButton = (
   const person = document.createElement('i')
   person.className = 'presenter-layout-person'
   const layoutGeometry = presenterLayoutGeometry(preset.mode, blockKind)
-  if (layoutGeometry.content) {
+  if (preset.position === 'hidden') {
+    content.style.cssText = 'left:7%;top:17%;right:7%;bottom:17%;width:auto;height:auto;'
+    person.hidden = true
+  } else if (layoutGeometry.content) {
     content.style.cssText = normalizedRectStyle(layoutGeometry.content)
   } else {
     content.hidden = true
@@ -1300,17 +1306,18 @@ const renderLayoutPresetPicker = (
   presenterGrid.replaceChildren()
   const presenterSelected = selectedCanvasObject === 'presenter'
   ;($('#content-layout-group') as HTMLElement).hidden = presenterSelected
+  ;($('#presenter-layout-group') as HTMLElement).hidden = !presenterSelected
   ;($('#presenter-layout-group') as HTMLElement).classList.toggle(
     'presenter-layout-group-focused',
     presenterSelected,
   )
   ;($('#presenter-layout-heading') as HTMLElement).hidden = presenterSelected
   ;($('#director-layout-kicker') as HTMLElement).textContent = presenterSelected
-    ? 'Presenter placement'
-    : 'Composition'
+    ? 'Human camera'
+    : 'Content layout'
   ;($('#director-layout-title') as HTMLElement).textContent = presenterSelected
     ? 'Place the human'
-    : `Layout the ${sceneObjectLabel(scene.kind).toLowerCase()}`
+    : `Compose the ${sceneObjectLabel(scene.kind).toLowerCase()}`
   ;($('#director-layout-scope') as HTMLElement).textContent = presenterSelected
     ? `${PRESENTER_LAYOUT_PRESETS.length} options`
     : DIRECTOR_OPTIONS[scene.kind].label

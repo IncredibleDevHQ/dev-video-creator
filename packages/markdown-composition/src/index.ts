@@ -451,7 +451,7 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
@@ -723,6 +723,7 @@ const buildCompositionHtml = (
     .scene.presenter-portrait-overlay pre code, .scene.presenter-split pre code, .scene.presenter-person-background-left pre code, .scene.presenter-person-background-right pre code { font-size: 32px; }
     .scene.scene-kind-code.presenter-portrait-rail pre code { font-size: 36px; }
     .scene.presenter-person-only > :not(.camera) { display: none; }
+    .scene.camera-position-hidden { --presenter-safe-width: 100%; padding-right: 132px; }
     .camera-hidden { display: none; }
   </style>
 </head>
