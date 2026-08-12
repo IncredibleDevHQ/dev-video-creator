@@ -597,6 +597,7 @@ describe('compileProject', () => {
       'split-right',
       'full',
     ]
+    const alignments: Array<'left' | 'center'> = ['left', 'center']
     const backgrounds: BlockBackgroundPreset[] = [
       'brand',
       'violet',
@@ -727,6 +728,15 @@ describe('compileProject', () => {
             .layout
         ).toBe(placement)
         expect(result.html).toContain(`theme-layout-${placement}`)
+      })
+      alignments.forEach(alignment => {
+        const result = compileChoice(kind, config => {
+          config.alignment = alignment
+        })
+        expect(
+          result.scenes.find(scene => scene.id === ids[kind])?.config.alignment,
+        ).toBe(alignment)
+        expect(result.html).toContain(`align-${alignment}`)
       })
       backgrounds.forEach(background => {
         const result = compileChoice(kind, config => {
