@@ -458,6 +458,8 @@ const player = $('#player') as HyperframesPlayerElement
 const playerShell = $('#player-shell')
 const playerLoading = $('#player-loading')
 const screenPlayToggle = $('#screen-play-toggle') as HTMLButtonElement
+const liveCameraToggle = $('#live-camera-toggle') as HTMLButtonElement
+const liveCameraPreview = $('#live-camera-preview') as HTMLVideoElement
 const editorLayout = $('#editor-layout')
 const inlinePreview = $('#inline-preview')
 const canvasBlockTimeline = $('#canvas-block-timeline')
@@ -494,6 +496,7 @@ let scenes: Scene[] = []
 let syncTimer: number | undefined
 let toastTimer: number | undefined
 let cameraStream: MediaStream | null = null
+let liveCameraStream: MediaStream | null = null
 let mediaRecorder: MediaRecorder | null = null
 let recordingChunks: Blob[] = []
 let recordingNodeId = ''
@@ -509,6 +512,70 @@ let screenPlaybackTimer: number | undefined
 let replayAnimationOnReady = false
 let selectedCanvasObject: 'content' | 'presenter' = 'content'
 let selectedBackgroundMode: 'gradient' | 'color' = 'gradient'
+
+const syncLiveCameraToggle = () => {
+  const isLive = Boolean(liveCameraStream)
+  liveCameraToggle.classList.toggle('is-live', isLive)
+  liveCameraToggle.setAttribute('aria-pressed', String(isLive))
+  liveCameraToggle.setAttribute(
+    'aria-label',
+    isLive ? 'Stop live camera' : 'Start live camera',
+  )
+  const title = liveCameraToggle.querySelector('strong')
+  const detail = liveCameraToggle.querySelector('small')
+  if (title) title.textContent = isLive ? 'Camera live' : 'Live camera'
+  if (detail) {
+    detail.textContent = isLive
+      ? 'Click to stop preview'
+      : 'Preview yourself in frame'
+  }
+}
+
+const clearLiveCameraFromPlayer = () => {
+  liveCameraPreview.pause()
+  liveCameraPreview.srcObject = null
+  liveCameraPreview.hidden = true
+}
+
+const attachLiveCameraToPlayer = () => {
+  clearLiveCameraFromPlayer()
+  if (!liveCameraStream || !playerShell.classList.contains('canvas-open')) return
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene || scene.config.camera.position === 'hidden') return
+  const geometry = presenterLayoutGeometry(scene.config.camera.mode, scene.kind)
+  liveCameraPreview.style.setProperty('--camera-left', `${geometry.camera.left}%`)
+  liveCameraPreview.style.setProperty('--camera-top', `${geometry.camera.top}%`)
+  liveCameraPreview.style.setProperty('--camera-width', `${geometry.camera.width}%`)
+  liveCameraPreview.style.setProperty('--camera-height', `${geometry.camera.height}%`)
+  liveCameraPreview.className = `live-camera-preview ${scene.config.camera.shape} presenter-${scene.config.camera.mode}`
+  liveCameraPreview.srcObject = liveCameraStream
+  liveCameraPreview.hidden = false
+  void liveCameraPreview.play().catch(() => undefined)
+}
+
+const stopLiveCamera = () => {
+  clearLiveCameraFromPlayer()
+  liveCameraStream?.getTracks().forEach(track => track.stop())
+  liveCameraStream = null
+  syncLiveCameraToggle()
+}
+
+const startLiveCamera = async () => {
+  stopLiveCamera()
+  const config = project.blocks[selectedNodeId]
+  if (config?.camera.position === 'hidden') {
+    config.camera.mode = 'information-circle'
+    config.camera.position = 'bottom-right'
+    config.camera.shape = 'circle'
+    syncProject()
+  }
+  liveCameraStream = await navigator.mediaDevices.getUserMedia({
+    video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
+  })
+  syncLiveCameraToggle()
+  attachLiveCameraToPlayer()
+}
 
 const readStoredProject = (): ProjectDocumentV1 | null => {
   try {
@@ -2107,6 +2174,7 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
     player.seek(scenePreviewTime(scene))
   }
   syncScreenPlaybackControl()
+  attachLiveCameraToPlayer()
 }
 
 $('#editor').addEventListener('pointerdown', event => {
@@ -2427,6 +2495,7 @@ player.addEventListener('ready', () => {
   } else if (scene) {
     player.seek(scenePreviewTime(scene))
   }
+  attachLiveCameraToPlayer()
 })
 player.addEventListener('error', event => {
   stopScreenPlayback()
@@ -2447,6 +2516,7 @@ const closeInspector = () => {
 
 const openCanvasFullscreen = () => {
   const isOpen = playerShell.classList.toggle('canvas-open')
+  if (!isOpen) stopLiveCamera()
   document.body.classList.toggle('canvas-is-open', isOpen)
   const fullscreenButton = $('#canvas-fullscreen') as HTMLButtonElement
   fullscreenButton.textContent = isOpen ? '×' : '↗'
@@ -2454,7 +2524,23 @@ const openCanvasFullscreen = () => {
     'aria-label',
     isOpen ? 'Close full-screen canvas' : 'Open canvas full screen',
   )
+  syncLiveCameraToggle()
 }
+
+liveCameraToggle.addEventListener('click', async () => {
+  if (liveCameraStream) {
+    stopLiveCamera()
+    showToast('Live camera preview stopped')
+    return
+  }
+  try {
+    await startLiveCamera()
+    showToast('Live camera is visible in the selected layout')
+  } catch (error) {
+    stopLiveCamera()
+    showToast(error instanceof Error ? error.message : 'Camera permission failed')
+  }
+})
 
 ;['#open-settings', '#inline-settings'].forEach(selector =>
   ($(selector) as HTMLButtonElement).addEventListener('click', openInspector),
@@ -3299,6 +3385,7 @@ renderButton.addEventListener('click', async () => {
 })
 
 window.addEventListener('beforeunload', () => {
+  stopLiveCamera()
   stopCameraStream()
   screenRecordingStream?.getTracks().forEach(track => track.stop())
   window.clearInterval(screenRecordingTimer)

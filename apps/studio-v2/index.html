@@ -202,6 +202,11 @@
                     <button id="screen-play-toggle" class="screen-play-toggle" type="button" aria-label="Play screen recording" title="Play screen recording" hidden>
                       <svg class="screen-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 5.6v12.8L18 12 8.2 5.6Z" /></svg>
                     </button>
+                    <button id="live-camera-toggle" class="live-camera-toggle" type="button" aria-label="Start live camera" aria-pressed="false">
+                      <span class="live-camera-dot"></span>
+                      <span class="live-camera-copy"><strong>Live camera</strong><small>Preview yourself in frame</small></span>
+                    </button>
+                    <video id="live-camera-preview" class="live-camera-preview" autoplay muted playsinline hidden></video>
                     <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
                     <div id="canvas-block-timeline" class="canvas-block-timeline" aria-label="Story block timeline"></div>
                   </div>
