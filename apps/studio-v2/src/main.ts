@@ -543,10 +543,11 @@ const attachLiveCameraToPlayer = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || scene.config.camera.position === 'hidden') return
   const geometry = presenterLayoutGeometry(scene.config.camera.mode, scene.kind)
-  liveCameraPreview.style.setProperty('--camera-left', `${geometry.camera.left}%`)
-  liveCameraPreview.style.setProperty('--camera-top', `${geometry.camera.top}%`)
-  liveCameraPreview.style.setProperty('--camera-width', `${geometry.camera.width}%`)
-  liveCameraPreview.style.setProperty('--camera-height', `${geometry.camera.height}%`)
+  const playerBounds = player.getBoundingClientRect()
+  liveCameraPreview.style.left = `${playerBounds.left + playerBounds.width * geometry.camera.left / 100}px`
+  liveCameraPreview.style.top = `${playerBounds.top + playerBounds.height * geometry.camera.top / 100}px`
+  liveCameraPreview.style.width = `${playerBounds.width * geometry.camera.width / 100}px`
+  liveCameraPreview.style.height = `${playerBounds.height * geometry.camera.height / 100}px`
   liveCameraPreview.className = `live-camera-preview ${scene.config.camera.shape} presenter-${scene.config.camera.mode}`
   liveCameraPreview.srcObject = liveCameraStream
   liveCameraPreview.hidden = false
@@ -2561,7 +2562,10 @@ document.addEventListener('keydown', event => {
     openCanvasFullscreen()
   }
 })
-window.addEventListener('resize', positionInlinePreview)
+window.addEventListener('resize', () => {
+  positionInlinePreview()
+  attachLiveCameraToPlayer()
+})
 
 ;($('#project-title') as HTMLInputElement).value = project.title
 ;($('#project-title') as HTMLInputElement).addEventListener('input', event => {
