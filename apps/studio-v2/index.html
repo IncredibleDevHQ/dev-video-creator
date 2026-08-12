@@ -206,7 +206,9 @@
                       <span class="live-camera-dot"></span>
                       <span class="live-camera-copy"><strong>Live camera</strong><small>Preview yourself in frame</small></span>
                     </button>
-                    <video id="live-camera-preview" class="live-camera-preview" autoplay muted playsinline hidden></video>
+                    <div id="live-camera-frame" class="live-camera-frame" hidden>
+                      <video id="live-camera-preview" class="live-camera-preview" autoplay muted playsinline></video>
+                    </div>
                     <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
                     <div id="canvas-block-timeline" class="canvas-block-timeline" aria-label="Story block timeline"></div>
                   </div>

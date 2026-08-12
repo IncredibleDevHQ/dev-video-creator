@@ -459,6 +459,7 @@ const playerShell = $('#player-shell')
 const playerLoading = $('#player-loading')
 const screenPlayToggle = $('#screen-play-toggle') as HTMLButtonElement
 const liveCameraToggle = $('#live-camera-toggle') as HTMLButtonElement
+const liveCameraFrame = $('#live-camera-frame')
 const liveCameraPreview = $('#live-camera-preview') as HTMLVideoElement
 const editorLayout = $('#editor-layout')
 const inlinePreview = $('#inline-preview')
@@ -534,7 +535,7 @@ const syncLiveCameraToggle = () => {
 const clearLiveCameraFromPlayer = () => {
   liveCameraPreview.pause()
   liveCameraPreview.srcObject = null
-  liveCameraPreview.hidden = true
+  liveCameraFrame.hidden = true
 }
 
 const attachLiveCameraToPlayer = () => {
@@ -544,13 +545,26 @@ const attachLiveCameraToPlayer = () => {
   if (!scene || scene.config.camera.position === 'hidden') return
   const geometry = presenterLayoutGeometry(scene.config.camera.mode, scene.kind)
   const playerBounds = player.getBoundingClientRect()
-  liveCameraPreview.style.left = `${playerBounds.left + playerBounds.width * geometry.camera.left / 100}px`
-  liveCameraPreview.style.top = `${playerBounds.top + playerBounds.height * geometry.camera.top / 100}px`
-  liveCameraPreview.style.width = `${playerBounds.width * geometry.camera.width / 100}px`
-  liveCameraPreview.style.height = `${playerBounds.height * geometry.camera.height / 100}px`
-  liveCameraPreview.className = `live-camera-preview ${scene.config.camera.shape} presenter-${scene.config.camera.mode}`
+  const scale = playerBounds.width / project.width
+  const pixelRatio = window.devicePixelRatio || 1
+  const snapToDevicePixel = (value: number) => Math.round(value * pixelRatio) / pixelRatio
+  const theme = project.theme || defaultStudioTheme
+  const radius = scene.config.camera.shape === 'circle'
+    ? '50%'
+    : `${Math.max(2, snapToDevicePixel(theme.video.borderRadius * scale))}px`
+  const border = theme.video.borderStyle === 'none'
+    ? 0
+    : Math.max(1 / pixelRatio, snapToDevicePixel(theme.video.borderWidth * scale))
+  liveCameraFrame.style.left = `${snapToDevicePixel(playerBounds.left + playerBounds.width * geometry.camera.left / 100)}px`
+  liveCameraFrame.style.top = `${snapToDevicePixel(playerBounds.top + playerBounds.height * geometry.camera.top / 100)}px`
+  liveCameraFrame.style.width = `${snapToDevicePixel(playerBounds.width * geometry.camera.width / 100)}px`
+  liveCameraFrame.style.height = `${snapToDevicePixel(playerBounds.height * geometry.camera.height / 100)}px`
+  liveCameraFrame.style.setProperty('--live-camera-radius', radius)
+  liveCameraFrame.style.setProperty('--live-camera-border', `${border}px`)
+  liveCameraFrame.style.setProperty('--live-camera-surface', theme.brand.surface)
+  liveCameraFrame.className = `live-camera-frame ${scene.config.camera.shape} presenter-${scene.config.camera.mode}`
   liveCameraPreview.srcObject = liveCameraStream
-  liveCameraPreview.hidden = false
+  liveCameraFrame.hidden = false
   void liveCameraPreview.play().catch(() => undefined)
 }
 
