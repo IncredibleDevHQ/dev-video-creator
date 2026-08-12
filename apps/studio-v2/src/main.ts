@@ -472,6 +472,7 @@ const canvasRecordingProjectBlock = $('#canvas-recording-project-block')
 const canvasRecordingCameraState = $('#canvas-recording-camera-state')
 const canvasRecordingMicState = $('#canvas-recording-mic-state')
 const startCanvasRecordingButton = $('#start-canvas-recording') as HTMLButtonElement
+const previousAnimationStepButton = $('#previous-animation-step') as HTMLButtonElement
 const nextAnimationStepButton = $('#next-animation-step') as HTMLButtonElement
 const stopCanvasRecordingButton = $('#stop-canvas-recording') as HTMLButtonElement
 const canvasRecordingReview = $('#canvas-recording-review')
@@ -617,6 +618,8 @@ const attachLiveCameraInsideComposition = (scene: Scene) => {
     video.muted = true
     video.playsInline = true
     video.srcObject = liveCameraStream
+    video.style.setProperty('scale', '-1 1')
+    video.style.setProperty('transform-origin', 'center')
     cameraTemplate.dataset.liveCameraReplaced = 'true'
     cameraTemplate.style.visibility = 'hidden'
     sceneElement.appendChild(video)
@@ -693,6 +696,35 @@ type CanvasRecordingAction = 'next-beat' | 'next-token' | 'next-line' | 'focus-l
 const updateRecordingCoachProgress = (message: string) => {
   recordingCoachProgress.textContent = message
   canvasRecordingMeta.textContent = message
+}
+
+const resetCanvasRecordingProgress = () => {
+  const visualKind = canvasRecordingScene ? sceneVisualKind(canvasRecordingScene) : 'content'
+  if (visualKind === 'code') {
+    canvasRecordingLines.forEach(line => {
+      line.style.setProperty('opacity', '1', 'important')
+      line.style.removeProperty('background')
+      line.style.removeProperty('box-shadow')
+    })
+    canvasRecordingTokens.forEach(token => {
+      token.style.setProperty('opacity', '.28', 'important')
+      token.style.removeProperty('background')
+      token.style.removeProperty('box-shadow')
+    })
+    canvasRecordingLineStep = 0
+    canvasRecordingTokenStep = 0
+    canvasRecordingFocusStep = 0
+    updateRecordingCoachProgress(`Ready · ${canvasRecordingLines.length} lines to direct`)
+    return
+  }
+  canvasRecordingTargets.forEach(({ element }) => {
+    element.style.setProperty('opacity', '0', 'important')
+    element.style.setProperty('transform', 'translateY(34px)', 'important')
+    element.style.setProperty('filter', 'blur(8px)', 'important')
+  })
+  canvasRecordingStep = 0
+  nextAnimationStepButton.disabled = false
+  updateRecordingCoachProgress(`Ready · ${canvasRecordingTargets.length} beats to direct`)
 }
 
 const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
@@ -886,11 +918,13 @@ const updateCanvasRecordingClock = () => {
 const resetCanvasRecordingControls = () => {
   window.clearInterval(canvasRecordingTimer)
   playerShell.classList.remove('canvas-recording-active')
+  playerShell.classList.remove('canvas-recording-mode')
   canvasRecordingControls.removeAttribute('aria-busy')
   canvasRecordingCoach.hidden = true
   startCanvasRecordingButton.hidden = false
   startCanvasRecordingButton.disabled = false
   nextAnimationStepButton.hidden = true
+  previousAnimationStepButton.hidden = true
   nextAnimationStepButton.disabled = false
   nextAnimationStepButton.textContent = 'Next step →'
   stopCanvasRecordingButton.hidden = true
@@ -922,6 +956,9 @@ const startCanvasRecording = async () => {
     return
   }
   startCanvasRecordingButton.disabled = true
+  configureCanvasRecordingCoach(scene)
+  playerShell.classList.add('canvas-recording-mode')
+  canvasRecordingCoach.hidden = false
   try {
     canvasCaptureStream = await navigator.mediaDevices.getDisplayMedia({
       video: { displaySurface: 'browser' },
@@ -996,8 +1033,8 @@ const startCanvasRecording = async () => {
     canvasRecordingTimer = window.setInterval(updateCanvasRecordingClock, 250)
     playerShell.classList.add('canvas-recording-active')
     canvasRecordingControls.setAttribute('aria-busy', 'true')
-    canvasRecordingCoach.hidden = false
     startCanvasRecordingButton.hidden = true
+    previousAnimationStepButton.hidden = false
     nextAnimationStepButton.hidden = false
     stopCanvasRecordingButton.hidden = false
     updateCanvasRecordingClock()
@@ -1013,6 +1050,7 @@ const startCanvasRecording = async () => {
 }
 
 startCanvasRecordingButton.addEventListener('click', () => void startCanvasRecording())
+previousAnimationStepButton.addEventListener('click', resetCanvasRecordingProgress)
 nextAnimationStepButton.addEventListener('click', revealNextCanvasRecordingStep)
 stopCanvasRecordingButton.addEventListener('click', finishCanvasRecording)
 ;($('#close-canvas-recording-review') as HTMLButtonElement).addEventListener('click', () => {
