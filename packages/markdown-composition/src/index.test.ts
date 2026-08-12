@@ -9,9 +9,18 @@ import {
   normalizeStudioTheme,
   normalizedRectStyle,
   presenterLayoutGeometry,
+  type BlockBackgroundPreset,
+  type CameraPosition,
   type PresenterLayoutMode,
   type ProjectDocumentV1,
+  type RevealStyle,
+  type SceneLayout,
+  type ThemeBlockLayout,
   type ThemeBlockKind,
+  type ThemeBlockRendering,
+  type ThemeCodeAnimation,
+  type ThemeCodeSyntax,
+  type TiptapNode,
 } from './index'
 
 const project = (): ProjectDocumentV1 => {
@@ -23,9 +32,7 @@ const project = (): ProjectDocumentV1 => {
   const paragraph = {
     type: 'paragraph',
     attrs: { id: 'body' },
-    content: [
-      { type: 'text', text: '<script>alert(1)</script>', marks: [] },
-    ],
+    content: [{ type: 'text', text: '<script>alert(1)</script>', marks: [] }],
   }
   return {
     version: 1,
@@ -44,6 +51,71 @@ const project = (): ProjectDocumentV1 => {
   }
 }
 
+const projectWithEveryBlockKind = (): ProjectDocumentV1 => {
+  const nodes: TiptapNode[] = [
+    {
+      type: 'heading',
+      attrs: { id: 'title', level: 1 },
+      content: [{ type: 'text', text: 'A human title' }],
+    },
+    {
+      type: 'paragraph',
+      attrs: { id: 'content' },
+      content: [{ type: 'text', text: 'A readable explanation.' }],
+    },
+    {
+      type: 'bulletList',
+      attrs: { id: 'list' },
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            { type: 'paragraph', content: [{ type: 'text', text: 'First' }] },
+          ],
+        },
+        {
+          type: 'listItem',
+          content: [
+            { type: 'paragraph', content: [{ type: 'text', text: 'Second' }] },
+          ],
+        },
+      ],
+    },
+    {
+      type: 'codeBlock',
+      attrs: { id: 'code', language: 'ts' },
+      content: [{ type: 'text', text: 'const answer = 42' }],
+    },
+    {
+      type: 'blockquote',
+      attrs: { id: 'quote' },
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Make it feel human.' }],
+        },
+      ],
+    },
+  ]
+  return {
+    version: 1,
+    id: 'all-block-kinds',
+    title: 'Every block kind',
+    notebook: { type: 'doc', content: nodes },
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    blocks: Object.fromEntries(
+      nodes.map(node => {
+        const id = String(node.attrs?.id)
+        return [id, createDefaultBlockConfig(id, node)]
+      })
+    ),
+    presenterTracks: {},
+    brand: defaultBrand,
+  }
+}
+
 describe('compileProject', () => {
   it('keeps every presenter layout inside normalized canvas bounds', () => {
     const modes: PresenterLayoutMode[] = [
@@ -56,7 +128,13 @@ describe('compileProject', () => {
       'person-background-right',
       'person-only',
     ]
-    const kinds: ThemeBlockKind[] = ['title', 'content', 'list', 'code', 'quote']
+    const kinds: ThemeBlockKind[] = [
+      'title',
+      'content',
+      'list',
+      'code',
+      'quote',
+    ]
 
     kinds.forEach(kind => {
       modes.forEach(mode => {
@@ -92,7 +170,7 @@ describe('compileProject', () => {
         previewPresenter: { imageUrl: '/presenter.jpg' },
       })
       expect(result.html).toContain(
-        normalizedRectStyle(presenterLayoutGeometry(mode, 'title').camera),
+        normalizedRectStyle(presenterLayoutGeometry(mode, 'title').camera)
       )
     })
   })
@@ -107,7 +185,7 @@ describe('compileProject', () => {
     expect(result.html).toContain('camera-position-hidden')
     expect(result.html).toContain('camera-hidden')
     expect(result.html).toContain(
-      '.scene.camera-position-hidden { --presenter-safe-width: 100%; padding-right: 132px; }',
+      '.scene.camera-position-hidden { --presenter-safe-width: 100%; padding-right: 132px; }'
     )
   })
 
@@ -141,7 +219,7 @@ describe('compileProject', () => {
     const duplicate = project()
     duplicate.notebook.content[1].attrs = { id: 'intro' }
     expect(() => compileProject(duplicate)).toThrow(
-      'Duplicate renderable node ID',
+      'Duplicate renderable node ID'
     )
   })
 
@@ -177,7 +255,7 @@ describe('compileProject', () => {
     const introStart = withPreview.html.indexOf('data-node-id="intro"')
     const introEnd = withPreview.html.indexOf('</section>', introStart)
     expect(withPreview.html.slice(introStart, introEnd)).toContain(
-      'data-preview-presenter="true"',
+      'data-preview-presenter="true"'
     )
   })
 
@@ -199,14 +277,16 @@ describe('compileProject', () => {
 
     const result = compileProject(directed)
     expect(result.html).toContain('data-background-preset="violet"')
-    expect(result.html).toContain('linear-gradient(135deg, #d8b4fe 0%, #7c3aed 100%)')
+    expect(result.html).toContain(
+      'linear-gradient(135deg, #d8b4fe 0%, #7c3aed 100%)'
+    )
     expect(result.html).toContain('camera-overlay-left rounded-rectangle')
   })
 
   it('compiles a saved theme as a complete block and video recipe', () => {
     const themed = project()
     themed.theme = builtinStudioThemes.find(
-      theme => theme.id === 'lee-gradient-grid',
+      theme => theme.id === 'lee-gradient-grid'
     )
     const result = compileProject(themed)
 
@@ -227,15 +307,17 @@ describe('compileProject', () => {
     expect(new Set(themes.map(theme => theme.canvas.treatment)).size).toBe(3)
     themes.forEach(theme => {
       Object.values(theme.brand).forEach(color =>
-        expect(color).toMatch(/^#[0-9a-f]{6}$/i),
+        expect(color).toMatch(/^#[0-9a-f]{6}$/i)
       )
       theme.canvas.gradient.forEach(color =>
-        expect(color).toMatch(/^#[0-9a-f]{6}$/i),
+        expect(color).toMatch(/^#[0-9a-f]{6}$/i)
       )
       expect(theme.blocks.content).toBeTruthy()
       expect(Object.keys(theme.blocks.layout)).toHaveLength(5)
       expect(theme.blocks.codeTheme).toBeTruthy()
-      expect(theme.blocks.codeAnimation).toMatch(/^(type-lines|highlight-lines)$/)
+      expect(theme.blocks.codeAnimation).toMatch(
+        /^(type-lines|highlight-lines)$/
+      )
     })
   })
 
@@ -262,8 +344,12 @@ describe('compileProject', () => {
     expect(result.html).toContain('--secondary:#2563eb')
     expect(result.html).toContain('presenter-person-background-left')
     expect(result.html).toContain('camera-full')
-    expect(result.html).toContain('class="composition-corner-logo logo-top-right"')
-    expect(result.html).toContain('src="http://127.0.0.1:4319/assets/brand.svg"')
+    expect(result.html).toContain(
+      'class="composition-corner-logo logo-top-right"'
+    )
+    expect(result.html).toContain(
+      'src="http://127.0.0.1:4319/assets/brand.svg"'
+    )
   })
 
   it('migrates legacy theme and block camera layouts', () => {
@@ -273,22 +359,27 @@ describe('compileProject', () => {
     delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).content
     delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).layout
     delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).codeTheme
-    delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>).codeAnimation
+    delete (legacyTheme.blocks as Partial<typeof legacyTheme.blocks>)
+      .codeAnimation
     expect(normalizeStudioTheme(legacyTheme).video.layout).toBe(
-      'portrait-overlay',
+      'portrait-overlay'
     )
     expect(normalizeStudioTheme(legacyTheme).motion).toEqual(defaultThemeMotion)
     expect(normalizeStudioTheme(legacyTheme).blocks.content).toBe('editorial')
     expect(normalizeStudioTheme(legacyTheme).blocks.layout.code).toBe('full')
     expect(normalizeStudioTheme(legacyTheme).blocks.codeTheme).toBe('dark_plus')
-    expect(normalizeStudioTheme(legacyTheme).blocks.codeAnimation).toBe('type-lines')
+    expect(normalizeStudioTheme(legacyTheme).blocks.codeAnimation).toBe(
+      'type-lines'
+    )
 
     const legacyProject = project()
-    delete (legacyProject.blocks.intro.camera as Partial<
-      typeof legacyProject.blocks.intro.camera
-    >).mode
+    delete (
+      legacyProject.blocks.intro.camera as Partial<
+        typeof legacyProject.blocks.intro.camera
+      >
+    ).mode
     expect(compileProject(legacyProject).html).toContain(
-      'presenter-information-circle',
+      'presenter-information-circle'
     )
   })
 
@@ -296,31 +387,31 @@ describe('compileProject', () => {
     const result = compileProject(project())
 
     expect(result.html).toContain(
-      '.scene.presenter-information-circle { --presenter-safe-width: 100%; padding-right: 520px; }',
+      '.scene.presenter-information-circle { --presenter-safe-width: 100%; padding-right: 520px; }'
     )
     expect(result.html).toContain(
-      '.scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }',
+      '.scene.presenter-portrait-overlay { --presenter-safe-width: 100%; padding-right: 620px; }'
     )
     expect(result.html).toContain(
-      '.camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: auto; width: 31%; height: calc(100% - 108px); border-radius: var(--video-radius); translate: none; }',
+      '.camera.presenter-portrait-rail { top: 54px; right: 54px; bottom: auto; width: 31%; height: calc(100% - 108px); border-radius: var(--video-radius); translate: none; }'
     )
     expect(result.html).toContain(
-      '.scene-kind-code.layout-split { --content-layout-width: 100%; }',
+      '.scene-kind-code.layout-split { --content-layout-width: 100%; }'
     )
     expect(result.html).toContain(
-      '.scene-kind-code.layout-split pre { min-height: 660px; }',
+      '.scene-kind-code.layout-split pre { min-height: 660px; }'
     )
     expect(result.html).toContain(
-      '.camera.camera-kind-code.presenter-portrait-rail { width: 23%; }',
+      '.camera.camera-kind-code.presenter-portrait-rail { width: 23%; }'
     )
     expect(result.html).toContain(
-      '.scene.scene-kind-code.presenter-portrait-rail { padding-right: 540px; padding-left: 72px; }',
+      '.scene.scene-kind-code.presenter-portrait-rail { padding-right: 540px; padding-left: 72px; }'
     )
     expect(result.html).toContain(
-      'width: min(100%, var(--content-layout-width), var(--presenter-safe-width))',
+      'width: min(100%, var(--content-layout-width), var(--presenter-safe-width))'
     )
     expect(result.html).toContain(
-      'grid-template-columns: repeat(2, minmax(0, 1fr))',
+      'grid-template-columns: repeat(2, minmax(0, 1fr))'
     )
     expect(result.html).toContain('overflow-wrap: anywhere')
   })
@@ -388,11 +479,11 @@ describe('compileProject', () => {
 
     const result = compileProject(directed)
     expect(result.html).toContain(
-      'theme-layout-split-left theme-render-gradient',
+      'theme-layout-split-left theme-render-gradient'
     )
     expect(result.html).toContain('theme-layout-right theme-render-card')
     expect(result.html).toContain(
-      'code-theme-monokai code-animation-highlight-lines',
+      'code-theme-monokai code-animation-highlight-lines'
     )
     expect(result.html).toContain('data-render-style="gradient"')
     expect(result.html).toContain('data-block-layout="right"')
@@ -402,25 +493,292 @@ describe('compileProject', () => {
     const result = compileProject(project())
 
     expect(result.html).toContain(
-      '.scene.theme-layout-center { --content-layout-width: 72%; }',
+      '.scene.theme-layout-center { --content-layout-width: 72%; }'
     )
     expect(result.html).toContain(
-      '.scene.theme-layout-right .content { margin-left: auto; margin-right: 0; text-align: right; }',
+      '.scene.theme-layout-right .content { margin-left: auto; margin-right: 0; text-align: right; }'
     )
     expect(result.html).toContain(
-      '.scene.theme-layout-left, .scene.theme-layout-right { --content-layout-width: 62%; }',
+      '.scene.theme-layout-left, .scene.theme-layout-right { --content-layout-width: 62%; }'
     )
     expect(result.html).toContain(
-      '.scene.theme-layout-upper, .scene.theme-layout-lower { --content-layout-width: 78%; }',
+      '.scene.theme-layout-upper, .scene.theme-layout-lower { --content-layout-width: 78%; }'
     )
     expect(result.html).toContain(
-      '.scene.theme-layout-split-left { --content-layout-width: 44%; }',
+      '.scene.theme-layout-split-left { --content-layout-width: 44%; }'
     )
     expect(result.html).toContain(
-      '.scene.theme-layout-split-right { --content-layout-width: 44%; }',
+      '.scene.theme-layout-split-right { --content-layout-width: 44%; }'
     )
     expect(result.html).toContain(
-      '.scene.theme-layout-full { --content-layout-width: 100%; }',
+      '.scene.theme-layout-full { --content-layout-width: 100%; }'
     )
+  })
+
+  it('compiles every Studio choice without fallback or invalid output', () => {
+    const ids: Record<ThemeBlockKind, string> = {
+      title: 'title',
+      content: 'content',
+      list: 'list',
+      code: 'code',
+      quote: 'quote',
+    }
+    const sceneLayouts: Record<ThemeBlockKind, SceneLayout[]> = {
+      title: ['title', 'prose', 'split'],
+      content: ['prose', 'title', 'split'],
+      list: ['prose', 'split'],
+      code: ['code', 'split'],
+      quote: ['prose', 'title', 'split'],
+    }
+    const renderings: Record<ThemeBlockKind, ThemeBlockRendering[]> = {
+      title: [
+        'statement',
+        'split',
+        'lower-third',
+        'editorial',
+        'framed',
+        'gradient',
+        'outline',
+        'highlight',
+        'compact',
+      ],
+      content: [
+        'editorial',
+        'card',
+        'columns',
+        'lede',
+        'callout',
+        'minimal',
+        'highlight',
+        'caption',
+      ],
+      list: [
+        'bullets',
+        'cards',
+        'timeline',
+        'steps',
+        'pills',
+        'checklist',
+        'number-grid',
+        'spotlight',
+        'columns',
+        'compact',
+      ],
+      code: [
+        'panel',
+        'terminal',
+        'full',
+        'editor',
+        'glass',
+        'minimal',
+        'spotlight',
+        'split',
+        'paper',
+      ],
+      quote: [
+        'bar',
+        'card',
+        'statement',
+        'pull',
+        'speech',
+        'highlight',
+        'framed',
+        'minimal',
+        'oversized',
+      ],
+    }
+    const placements: ThemeBlockLayout[] = [
+      'center',
+      'left',
+      'right',
+      'upper',
+      'lower',
+      'split-left',
+      'split-right',
+      'full',
+    ]
+    const backgrounds: BlockBackgroundPreset[] = [
+      'brand',
+      'violet',
+      'sunset',
+      'ocean',
+      'mint',
+      'rose',
+      'paper',
+      'charcoal',
+      'custom',
+    ]
+    const commonMotions: RevealStyle[] = [
+      'none',
+      'fade',
+      'rise',
+      'fall',
+      'slide-left',
+      'slide-right',
+      'scale',
+      'blur',
+      'type',
+      'wipe',
+      'pop',
+    ]
+    const motions: Record<ThemeBlockKind, RevealStyle[]> = {
+      title: commonMotions,
+      content: commonMotions,
+      list: [...commonMotions, 'line-by-line'],
+      code: [...commonMotions, 'line-by-line'],
+      quote: commonMotions,
+    }
+    const presenters: Array<{
+      mode: PresenterLayoutMode
+      position: CameraPosition
+      shape: 'circle' | 'rounded-rectangle'
+    }> = [
+      { mode: 'information-circle', position: 'hidden', shape: 'circle' },
+      { mode: 'information-circle', position: 'bottom-right', shape: 'circle' },
+      {
+        mode: 'information-tile',
+        position: 'bottom-right',
+        shape: 'rounded-rectangle',
+      },
+      {
+        mode: 'portrait-overlay',
+        position: 'overlay-right',
+        shape: 'rounded-rectangle',
+      },
+      {
+        mode: 'portrait-rail',
+        position: 'overlay-right',
+        shape: 'rounded-rectangle',
+      },
+      { mode: 'split', position: 'split-right', shape: 'rounded-rectangle' },
+      {
+        mode: 'person-background-left',
+        position: 'full',
+        shape: 'rounded-rectangle',
+      },
+      {
+        mode: 'person-background-right',
+        position: 'full',
+        shape: 'rounded-rectangle',
+      },
+      { mode: 'person-only', position: 'full', shape: 'rounded-rectangle' },
+    ]
+    const codeThemes: ThemeCodeSyntax[] = [
+      'light_vs',
+      'light_plus',
+      'quietlight',
+      'solarized_light',
+      'abyss',
+      'dark_vs',
+      'dark_plus',
+      'kimbie_dark',
+      'monokai',
+      'monokai_dimmed',
+      'red',
+      'solarized_dark',
+      'tomorrow_night_blue',
+      'hc_black',
+    ]
+    const codeAnimations: ThemeCodeAnimation[] = [
+      'type-lines',
+      'highlight-lines',
+    ]
+
+    const compileChoice = (
+      kind: ThemeBlockKind,
+      update: (config: ProjectDocumentV1['blocks'][string]) => void
+    ) => {
+      const configured = projectWithEveryBlockKind()
+      update(configured.blocks[ids[kind]])
+      const result = compileProject(configured, {
+        previewPresenter: { imageUrl: '/presenter.jpg', name: 'Presenter' },
+      })
+      expect(result.html).not.toMatch(/\b(?:undefined|NaN)\b/)
+      expect(result.scenes).toHaveLength(5)
+      return result
+    }
+
+    ;(Object.keys(ids) as ThemeBlockKind[]).forEach(kind => {
+      sceneLayouts[kind].forEach(layout => {
+        const result = compileChoice(kind, config => {
+          config.layout = layout
+        })
+        expect(
+          result.scenes.find(scene => scene.id === ids[kind])?.config.layout
+        ).toBe(layout)
+        expect(result.html).toContain(`layout-${layout}`)
+      })
+      renderings[kind].forEach(rendering => {
+        const result = compileChoice(kind, config => {
+          config.appearance.render = rendering
+        })
+        expect(
+          result.scenes.find(scene => scene.id === ids[kind])?.config.appearance
+            .render
+        ).toBe(rendering)
+        expect(result.html).toContain(`theme-render-${rendering}`)
+      })
+      placements.forEach(placement => {
+        const result = compileChoice(kind, config => {
+          config.appearance.layout = placement
+        })
+        expect(
+          result.scenes.find(scene => scene.id === ids[kind])?.config.appearance
+            .layout
+        ).toBe(placement)
+        expect(result.html).toContain(`theme-layout-${placement}`)
+      })
+      backgrounds.forEach(background => {
+        const result = compileChoice(kind, config => {
+          config.background.preset = background
+        })
+        expect(
+          result.scenes.find(scene => scene.id === ids[kind])?.config.background
+            .preset
+        ).toBe(background)
+        expect(result.html).toContain(`data-background-preset="${background}"`)
+      })
+      motions[kind].forEach(motion => {
+        const result = compileChoice(kind, config => {
+          config.reveal = motion
+        })
+        expect(
+          result.scenes.find(scene => scene.id === ids[kind])?.config.reveal
+        ).toBe(motion)
+        expect(result.html).toContain(`data-reveal="${motion}"`)
+      })
+      presenters.forEach(presenter => {
+        const result = compileChoice(kind, config => {
+          config.camera = { ...config.camera, ...presenter }
+        })
+        const config = result.scenes.find(
+          scene => scene.id === ids[kind]
+        )?.config
+        expect(config?.camera).toMatchObject(presenter)
+        expect(result.html).toContain(`presenter-${presenter.mode}`)
+        expect(result.html).toContain(`camera-position-${presenter.position}`)
+      })
+    })
+
+    codeThemes.forEach(codeTheme => {
+      const result = compileChoice('code', config => {
+        config.appearance.codeTheme = codeTheme
+      })
+      expect(
+        result.scenes.find(scene => scene.id === 'code')?.config.appearance
+          .codeTheme
+      ).toBe(codeTheme)
+      expect(result.html).toContain(`code-theme-${codeTheme}`)
+    })
+    codeAnimations.forEach(codeAnimation => {
+      const result = compileChoice('code', config => {
+        config.appearance.codeAnimation = codeAnimation
+      })
+      expect(
+        result.scenes.find(scene => scene.id === 'code')?.config.appearance
+          .codeAnimation
+      ).toBe(codeAnimation)
+      expect(result.html).toContain(`code-animation-${codeAnimation}`)
+    })
   })
 })

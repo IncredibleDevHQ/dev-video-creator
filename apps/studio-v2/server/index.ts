@@ -9,7 +9,7 @@ import {
   stat,
   writeFile,
 } from 'node:fs/promises'
-import { dirname, extname, join, normalize, resolve } from 'node:path'
+import { basename, dirname, extname, join, normalize, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
@@ -575,7 +575,36 @@ const handleRender = async (
   response: ServerResponse,
 ) => {
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
-  const composition = compileProject(project, {
+  const renderProject = structuredClone(project)
+  const localRenderAssets = new Map<string, string>()
+  Object.values(renderProject.presenterTracks).forEach(tracks => {
+    tracks.forEach(track => {
+      const localAssetPath = (value: string | undefined) => {
+        if (!value) return value
+        try {
+          const url = new URL(value)
+          if (
+            !['127.0.0.1', 'localhost'].includes(url.hostname) ||
+            !url.pathname.startsWith('/assets/')
+          ) {
+            return value
+          }
+          const assetName = url.pathname.slice('/assets/'.length)
+          if (!assetName || assetName !== basename(assetName)) return value
+          localRenderAssets.set(assetName, join(assetsDirectory, assetName))
+          return `media/${assetName}`
+        } catch {
+          return value
+        }
+      }
+
+      if (track.kind === 'human-camera') {
+        track.videoUrl = localAssetPath(track.videoUrl) || track.videoUrl
+      }
+      track.audioUrl = localAssetPath(track.audioUrl) || track.audioUrl
+    })
+  })
+  const composition = compileProject(renderProject, {
     gsapUrl: './runtime/gsap.min.js',
     hyperframesRuntimeUrl: './runtime/hyperframes.iife.js',
   })
@@ -590,6 +619,15 @@ const handleRender = async (
   const outputPath = join(outputsDirectory, `${id}.mp4`)
   await mkdir(jobDirectory, { recursive: true })
   await mkdir(runtimeDirectory, { recursive: true })
+  if (localRenderAssets.size) {
+    const mediaDirectory = join(jobDirectory, 'media')
+    await mkdir(mediaDirectory, { recursive: true })
+    await Promise.all(
+      [...localRenderAssets].map(([assetName, source]) =>
+        copyFile(source, join(mediaDirectory, assetName)),
+      ),
+    )
+  }
   await writeFile(inputPath, composition.html, 'utf8')
   await copyFile(gsapRuntimePath, join(runtimeDirectory, 'gsap.min.js'))
   await copyFile(
@@ -605,7 +643,16 @@ const handleRender = async (
       entryFile: 'index.html',
       outputResolution: 'landscape',
     })
-    await executeRenderJob(job, jobDirectory, outputPath)
+    try {
+      await executeRenderJob(job, jobDirectory, outputPath)
+    } catch (error) {
+      const warningDetails = job.warnings
+        .map(warning => warning.message)
+        .filter(Boolean)
+        .join('; ')
+      if (warningDetails) throw new Error(warningDetails)
+      throw error
+    }
   } finally {
     await rm(jobDirectory, { recursive: true, force: true })
   }

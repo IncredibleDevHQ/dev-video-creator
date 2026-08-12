@@ -371,6 +371,12 @@ const cameraStatusDot = $('#camera-status-dot')
 
 let selectedNodeId = ''
 let previewRequest = 0
+let previewFetchTimer: number | undefined
+let previewFetchInFlight = false
+let pendingPreviewRequest: {
+  requestNumber: number
+  previewPresenter: { imageUrl: string; name: string }
+} | null = null
 let scenes: Scene[] = []
 let syncTimer: number | undefined
 let toastTimer: number | undefined
@@ -1626,7 +1632,42 @@ $('#editor').addEventListener('pointerdown', event => {
   }
 })
 
-const updatePreview = async () => {
+const flushPreviewRequest = async () => {
+  if (previewFetchInFlight || !pendingPreviewRequest) return
+  const pending = pendingPreviewRequest
+  pendingPreviewRequest = null
+  previewFetchInFlight = true
+
+  try {
+    const preview = await fetchJson<{ url: string }>('/api/preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        project,
+        previewPresenter: pending.previewPresenter,
+      }),
+    })
+    if (pending.requestNumber === previewRequest) {
+      player.setAttribute('src', preview.url)
+    }
+  } catch (error) {
+    if (pending.requestNumber !== previewRequest) return
+    playerLoading.hidden = false
+    playerLoading.textContent =
+      error instanceof Error ? error.message : 'Could not compile project'
+  } finally {
+    previewFetchInFlight = false
+    if (pendingPreviewRequest) {
+      window.clearTimeout(previewFetchTimer)
+      previewFetchTimer = window.setTimeout(flushPreviewRequest, 120)
+    }
+  }
+}
+
+const updatePreview = () => {
+  const requestNumber = ++previewRequest
+  window.clearTimeout(previewFetchTimer)
+
   try {
     const previewPresenter = selectedPreviewPresenter()
     const compiled = compileProject(project, {
@@ -1636,7 +1677,6 @@ const updatePreview = async () => {
       },
     })
     scenes = compiled.scenes
-    const requestNumber = ++previewRequest
     playerLoading.hidden = false
     playerLoading.textContent = 'Compiling live canvas…'
 
@@ -1656,19 +1696,16 @@ const updatePreview = async () => {
     updateInspector()
     window.requestAnimationFrame(positionInlinePreview)
 
-    const preview = await fetchJson<{ url: string }>('/api/preview', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        project,
-        previewPresenter: {
-          imageUrl: previewPresenter.url,
-          name: previewPresenter.name,
-        },
-      }),
-    })
-    if (requestNumber === previewRequest) player.setAttribute('src', preview.url)
+    pendingPreviewRequest = {
+      requestNumber,
+      previewPresenter: {
+        imageUrl: previewPresenter.url,
+        name: previewPresenter.name,
+      },
+    }
+    previewFetchTimer = window.setTimeout(flushPreviewRequest, 120)
   } catch (error) {
+    pendingPreviewRequest = null
     playerLoading.hidden = false
     playerLoading.textContent =
       error instanceof Error ? error.message : 'Could not compile project'
