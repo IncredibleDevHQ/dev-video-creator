@@ -407,7 +407,14 @@ const renderSceneNode = (scene: Scene) => {
     const alt = String(scene.node.attrs?.alt || scene.node.attrs?.title || 'Image')
     return `<figure class="media-block media-image"><img class="clip" ${common} alt="${escapeHtml(alt)}" /></figure>`
   }
-  return `<figure class="media-block media-screen"><video class="clip" ${common} muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${40 + scene.index}" src="${escapeHtml(source)}"></audio></figure>`
+  // Browser display capture often has no audio track (declining share-audio,
+  // or macOS capture); authoring <audio> for a silent source fails the
+  // producer's asset probe and aborts the whole render.
+  const screenAudio =
+    scene.node.attrs?.hasAudio === true
+      ? `<audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${40 + scene.index}" src="${escapeHtml(source)}"></audio>`
+      : ''
+  return `<figure class="media-block media-screen"><video class="clip" ${common} muted playsinline></video>${screenAudio}</figure>`
 }
 
 const sceneKind = (node: TiptapNode): Scene['kind'] => {
@@ -523,19 +530,28 @@ const buildCompositionHtml = (
           return `${video}${audio}`
         })
         .join('')
+      const recordedTakeUrl = safeUrl(
+        project.recordedBlocks?.[scene.id]?.videoUrl,
+      )
+      // A saved take already contains the directed canvas, camera, and audio,
+      // so it replaces the live scene visuals and presenter tracks outright.
+      const recordedTakeMarkup = recordedTakeUrl
+        ? `<video class="recorded-take clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`
+        : ''
       const hasRecordedCamera = scene.presenterTracks.some(
         track => track.kind === 'human-camera' && safeUrl(track.videoUrl),
       )
-      const previewPresenterUrl = hasRecordedCamera
-        ? null
-        : safeUrl(previewPresenter?.imageUrl)
+      const previewPresenterUrl =
+        hasRecordedCamera || recordedTakeUrl
+          ? null
+          : safeUrl(previewPresenter?.imageUrl)
       const previewPresenterMarkup = previewPresenterUrl
         ? `<img class="camera camera-kind-${scene.kind} preview-camera ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))};${cameraGeometryStyle}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
         : ''
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation} media-border-${scene.config.mediaFrame.borderWidth} media-corners-${scene.config.mediaFrame.corners} media-depth-${scene.config.mediaFrame.elevation}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation} media-border-${scene.config.mediaFrame.borderWidth} media-corners-${scene.config.mediaFrame.corners} media-depth-${scene.config.mediaFrame.elevation}${recordedTakeUrl ? ' has-recorded-take' : ''}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds}"
         data-track-index="${scene.index}"
@@ -571,8 +587,8 @@ const buildCompositionHtml = (
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
             : ''
         }<span>${escapeHtml(project.title)}</span></footer>
-        ${previewPresenterMarkup}
-      </section>${presenterMarkup}`
+        ${previewPresenterMarkup}${recordedTakeMarkup}
+      </section>${recordedTakeUrl ? '' : presenterMarkup}`
     })
     .join('\n')
 
@@ -836,7 +852,7 @@ const buildCompositionHtml = (
     .scene:has(.media-block):not(.theme-render-full).layout-title:is(.theme-layout-split-left,.theme-layout-split-right) .media-block, .scene:has(.media-block):not(.theme-render-full).layout-title:is(.theme-layout-split-left,.theme-layout-split-right) .media-block img, .scene:has(.media-block):not(.theme-render-full).layout-title:is(.theme-layout-split-left,.theme-layout-split-right) .media-block video { min-height: 660px; max-height: 660px; }
     .scene:has(.media-image):not(.theme-render-full) .media-image { min-height: 0; max-height: none; }
     .scene:has(.media-image):not(.theme-render-full) .media-image img { width: 100%; height: auto; min-height: 0; max-height: 700px; object-fit: contain; }
-    footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    footer { grid-row: 3; align-self: end; display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; color: var(--muted); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
     .composition-brand { display: inline-flex; align-items: center; gap: 12px; letter-spacing: -.025em; text-transform: lowercase; }
     .composition-brand svg { width: 28px; height: 28px; flex: none; }
     .composition-brand img { display: block; width: auto; max-width: 240px; height: ${logoSize}px; object-fit: contain; }
@@ -845,6 +861,9 @@ const buildCompositionHtml = (
     .composition-corner-logo.logo-top-left { left: 72px; }
     .composition-corner-logo.logo-top-right { right: 72px; }
     footer.logo-footer-right { flex-direction: row-reverse; }
+    .recorded-take { position: absolute; inset: 0; z-index: 40; width: 100%; height: 100%; object-fit: cover; background: var(--bg); }
+    .scene.has-recorded-take > .scene-index, .scene.has-recorded-take > .content, .scene.has-recorded-take > footer, .scene.has-recorded-take > .composition-corner-logo { visibility: hidden; }
+    .scene.has-recorded-take::before, .scene.has-recorded-take::after { display: none; }
     .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: var(--video-border-width) solid var(--surface); border-radius: var(--video-radius); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
     .camera.presenter-information-circle, .camera.presenter-information-tile, .camera.presenter-portrait-overlay, .camera.presenter-portrait-rail, .camera.presenter-split { z-index: 30; }
     .preview-camera { object-position: center 18%; }
@@ -872,8 +891,8 @@ const buildCompositionHtml = (
     .scene.presenter-split { --presenter-safe-width: 100%; padding-right: 1040px; }
     .camera.presenter-person-background-left, .camera.presenter-person-background-right, .camera.presenter-person-only { inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; scale: 1; }
     .scene.presenter-person-background-left::after, .scene.presenter-person-background-right::after { content: ""; position: absolute; inset: 0; z-index: 21; pointer-events: none; }
-    .scene.presenter-person-background-left::after { background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, transparent 88%); }
-    .scene.presenter-person-background-right::after { background: linear-gradient(270deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, transparent 88%); }
+    .scene.presenter-person-background-left::after { background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 82%, transparent) 48%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, color-mix(in srgb, var(--bg) 32%, transparent) 70%, color-mix(in srgb, var(--bg) 12%, transparent) 80%, transparent 92%); }
+    .scene.presenter-person-background-right::after { background: linear-gradient(270deg, color-mix(in srgb, var(--bg) 96%, transparent) 0 36%, color-mix(in srgb, var(--bg) 82%, transparent) 48%, color-mix(in srgb, var(--bg) 56%, transparent) 58%, color-mix(in srgb, var(--bg) 32%, transparent) 70%, color-mix(in srgb, var(--bg) 12%, transparent) 80%, transparent 92%); }
     .scene.presenter-person-background-left, .scene.presenter-person-background-right { --presenter-safe-width: 100%; }
     .scene:is(.presenter-person-background-left,.presenter-person-background-right) > .content { position: absolute; max-width: none; margin: 0 !important; display: flex; flex-direction: column; justify-content: center; align-self: auto; text-align: left; }
     .scene.presenter-portrait-overlay h1, .scene.presenter-portrait-overlay h2, .scene.presenter-portrait-rail h1, .scene.presenter-portrait-rail h2, .scene.presenter-split h1, .scene.presenter-split h2, .scene.presenter-person-background-left h1, .scene.presenter-person-background-left h2, .scene.presenter-person-background-right h1, .scene.presenter-person-background-right h2 { font-size: 104px; }
@@ -939,8 +958,14 @@ export const compileProject = (
       seenIds.add(nodeId)
 
       const config = normalizeBlockConfig(nodeId, node, project.blocks[nodeId])
-      const durationMs = Math.min(60_000, Math.max(1_000, config.durationMs))
-      if (durationMs !== config.durationMs) {
+      const recordedBlock = project.recordedBlocks?.[nodeId]
+      // A saved take replaces the scene, so the scene must run for the take's
+      // real length rather than the authored block duration.
+      const requestedDurationMs = recordedBlock?.videoUrl
+        ? recordedBlock.durationMs
+        : config.durationMs
+      const durationMs = Math.min(60_000, Math.max(1_000, requestedDurationMs))
+      if (durationMs !== requestedDurationMs) {
         warnings.push(`Duration for ${nodeId} was clamped to the supported range`)
       }
       const durationSeconds = durationMs / 1000

@@ -554,6 +554,7 @@ let pendingRecordedBlock: {
   durationMs: number
 } | null = null
 let screenRecordingStream: MediaStream | null = null
+let screenRecordingHasAudio = false
 let screenRecorder: MediaRecorder | null = null
 let screenRecordingChunks: Blob[] = []
 let screenRecordingUploadKey = ''
@@ -2301,6 +2302,16 @@ const renderCanvasBlockTimeline = () => {
   })
 
   canvasBlockTimeline.append(heading, track)
+  const activeBlock = track.querySelector<HTMLElement>(
+    '.canvas-timeline-block.active',
+  )
+  if (activeBlock) {
+    // The rail is rebuilt on every selection, which resets its scroll; keep
+    // the active block visible.
+    window.requestAnimationFrame(() => {
+      activeBlock.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    })
+  }
 }
 
 const renderSceneRail = () => {
@@ -2330,7 +2341,10 @@ const renderSceneRail = () => {
 }
 
 const hasRecordedOutput = () =>
-  Object.values(project.presenterTracks).some(tracks => tracks.length > 0)
+  Object.values(project.presenterTracks).some(tracks => tracks.length > 0) ||
+  Object.values(project.recordedBlocks || {}).some(recording =>
+    Boolean(recording?.videoUrl),
+  )
 
 const positionInlinePreview = () => {
   const selectedNode = document.getElementById(selectedNodeId)
@@ -2815,7 +2829,7 @@ const updateInspector = () => {
   })
   renderButton.disabled = !hasRecordedOutput()
   renderButton.title = renderButton.disabled
-    ? 'Record a human or generated presenter track first'
+    ? 'Record a block or a presenter track first'
     : 'Export the recorded canvas as MP4'
 }
 
@@ -3506,6 +3520,9 @@ async function beginScreenRecording(uploadKey: string) {
       video: { frameRate: { ideal: 30, max: 60 } },
       audio: true,
     })
+    // Captured before onstop stops the tracks; drives the hasAudio attr so
+    // the compiler only authors an audio element for captures that have one.
+    screenRecordingHasAudio = screenRecordingStream.getAudioTracks().length > 0
     screenRecordingUploadKey = uploadKey
     screenRecordingChunks = []
     screenRecordingStartedAt = Date.now()
@@ -3541,6 +3558,7 @@ async function beginScreenRecording(uploadKey: string) {
           src: result.url,
           title: `Screen recording · ${formatTime(durationSeconds)}`,
           status: 'ready',
+          hasAudio: screenRecordingHasAudio,
         })
         showToast('Screen recording added as a timeline block')
       } catch (error) {
@@ -4106,7 +4124,7 @@ renderButton.addEventListener('click', async () => {
     showToast(error instanceof Error ? error.message : 'Render failed')
   } finally {
     renderButton.disabled = false
-    renderButton.textContent = 'Render MP4'
+    renderButton.textContent = 'Export video'
   }
 })
 

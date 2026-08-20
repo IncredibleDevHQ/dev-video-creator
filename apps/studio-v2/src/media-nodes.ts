@@ -74,6 +74,7 @@ export const ScreenRecordingBlock = Node.create({
     return {
       ...sharedAttributes(),
       title: { default: 'Screen recording' },
+      hasAudio: { default: false },
     }
   },
 

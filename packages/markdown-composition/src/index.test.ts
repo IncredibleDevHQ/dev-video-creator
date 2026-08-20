@@ -280,6 +280,7 @@ describe('compileProject', () => {
         id: 'screen-demo',
         src: 'http://127.0.0.1:4319/assets/demo.webm',
         title: 'Recorded product demo',
+        hasAudio: true,
       },
     }
     withMedia.notebook.content.push(image, screen)
@@ -1025,5 +1026,99 @@ describe('compileProject', () => {
       ).toBe(codeAnimation)
       expect(result.html).toContain(`code-animation-${codeAnimation}`)
     })
+  })
+
+  const projectWithScreenRecording = (
+    attrs: Record<string, unknown>,
+  ): ProjectDocumentV1 => {
+    const screen: TiptapNode = {
+      type: 'screenRecording',
+      attrs: { id: 'screen', title: 'Screen recording', ...attrs },
+    }
+    return {
+      version: 1,
+      id: 'screen-project',
+      title: 'Screen',
+      notebook: { type: 'doc', content: [screen] },
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      blocks: { screen: createDefaultBlockConfig('screen', screen) },
+      presenterTracks: {},
+      brand: defaultBrand,
+    }
+  }
+
+  it('authors screen-recording audio only when the capture has an audio track', () => {
+    const silent = compileProject(
+      projectWithScreenRecording({ src: 'https://cdn.example/take.webm' }),
+    )
+    expect(silent.html).toContain('media-screen')
+    expect(silent.html).not.toContain('data-track-index="40"')
+
+    const withAudio = compileProject(
+      projectWithScreenRecording({
+        src: 'https://cdn.example/take.webm',
+        hasAudio: true,
+      }),
+    )
+    expect(withAudio.html).toContain(
+      'data-track-index="40" src="https://cdn.example/take.webm"></audio>',
+    )
+  })
+
+  it('composes a saved recorded take in place of the live scene', () => {
+    const withTake = project()
+    withTake.recordedBlocks = {
+      intro: {
+        blockId: 'intro',
+        recordingId: 'rec-1',
+        videoUrl: 'https://cdn.example/take-intro.mp4',
+        durationMs: 8000,
+        recordedAt: '2026-08-20T00:00:00.000Z',
+        storage: 'minio',
+      },
+    }
+    const compiled = compileProject(withTake)
+    expect(compiled.html).toContain('has-recorded-take"')
+    expect(compiled.html).toContain(
+      'class="recorded-take clip" data-start="0" data-duration="8" data-track-index="50" src="https://cdn.example/take-intro.mp4" muted playsinline',
+    )
+    expect(compiled.html).toContain(
+      'data-track-index="70" src="https://cdn.example/take-intro.mp4"></audio>',
+    )
+    const introScene = compiled.scenes.find(scene => scene.id === 'intro')
+    const bodyScene = compiled.scenes.find(scene => scene.id === 'body')
+    expect(introScene?.durationSeconds).toBe(8)
+    expect(bodyScene?.startSeconds).toBe(8)
+    const withoutTake = compileProject(project())
+    expect(withoutTake.html).not.toContain('has-recorded-take"')
+    expect(withoutTake.html).not.toContain('recorded-take clip')
+  })
+
+  it('replaces presenter tracks with the recorded take for the same block', () => {
+    const withBoth = project()
+    withBoth.presenterTracks = {
+      intro: [
+        {
+          kind: 'human-camera',
+          videoUrl: 'https://cdn.example/presenter.mp4',
+          audioKind: 'recorded-mic',
+        },
+      ],
+    }
+    withBoth.recordedBlocks = {
+      intro: {
+        blockId: 'intro',
+        recordingId: 'rec-2',
+        videoUrl: 'https://cdn.example/take-intro.mp4',
+        durationMs: 8000,
+        recordedAt: '2026-08-20T00:00:00.000Z',
+        storage: 'minio',
+      },
+    }
+    const compiled = compileProject(withBoth)
+    expect(compiled.html).toContain('take-intro.mp4')
+    expect(compiled.html).not.toContain('presenter.mp4')
   })
 })

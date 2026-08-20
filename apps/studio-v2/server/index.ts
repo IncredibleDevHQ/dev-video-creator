@@ -201,6 +201,52 @@ const runProcess = (
     })
   })
 
+const runProcessOutput = (
+  command: string,
+  args: string[],
+  timeoutMilliseconds = 60_000,
+) =>
+  new Promise<string>((resolvePromise, reject) => {
+    const process = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    let output = ''
+    let errorOutput = ''
+    const timeout = setTimeout(() => {
+      process.kill('SIGTERM')
+      reject(new Error(`${command} timed out`))
+    }, timeoutMilliseconds)
+    process.stdout.on('data', chunk => {
+      output += chunk.toString()
+    })
+    process.stderr.on('data', chunk => {
+      errorOutput += chunk.toString()
+    })
+    process.on('error', reject)
+    process.on('close', code => {
+      clearTimeout(timeout)
+      if (code === 0) resolvePromise(output)
+      else reject(new Error(errorOutput.trim() || `${command} exited with ${code}`))
+    })
+  })
+
+const mediaHasAudioStream = async (path: string) => {
+  try {
+    const output = await runProcessOutput('ffprobe', [
+      '-v',
+      'error',
+      '-select_streams',
+      'a',
+      '-show_entries',
+      'stream=codec_type',
+      '-of',
+      'csv=p=0',
+      path,
+    ])
+    return output.trim().length > 0
+  } catch {
+    return false
+  }
+}
+
 const commandExists = async (path: string) => {
   try {
     await access(path)
@@ -597,12 +643,20 @@ const handleDirectedRecording = async (
   await mkdir(jobDirectory, { recursive: true })
   await writeFile(inputPath, body)
   try {
+    // A take captured without a microphone has no audio track. The composition
+    // authors an audio element for every take, and the producer rejects audio
+    // sources without an audio stream — so pad silent takes with silence.
+    const hasAudio = await mediaHasAudioStream(inputPath)
+    const silentAudioInputArguments = hasAudio
+      ? []
+      : ['-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000']
     await runProcess(
       'ffmpeg',
       [
         '-y',
         '-i',
         inputPath,
+        ...silentAudioInputArguments,
         '-c:v',
         'libx264',
         '-preset',
@@ -615,6 +669,7 @@ const handleDirectedRecording = async (
         'aac',
         '-b:a',
         '160k',
+        ...(hasAudio ? [] : ['-shortest']),
         '-movflags',
         '+faststart',
         outputPath,
@@ -713,21 +768,48 @@ const handleRender = async (
 ) => {
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
   const renderProject = structuredClone(project)
-  const localRenderAssets = new Map<string, string>()
+  type StagedRenderAsset = {
+    localPath?: string
+    objectKey?: string
+    transcode: boolean
+  }
+  const stagedRenderAssets = new Map<string, StagedRenderAsset>()
+  // The producer only localizes HTTPS media and cannot extract frames from
+  // plain-HTTP local URLs, so every local asset must be staged as a relative
+  // file inside the render job directory. MediaRecorder WebMs additionally
+  // lack the duration/cue metadata frame extraction needs, so staged .webm
+  // captures are converted to MP4.
+  const stagedAssetName = (sourceName: string, key: string) => {
+    const extension = extname(sourceName).toLowerCase()
+    const transcode = extension === '.webm'
+    const name = `${createHash('sha256').update(key).digest('hex').slice(0, 20)}${
+      transcode ? '.mp4' : extension
+    }`
+    return { name, transcode }
+  }
   const localAssetPath = (value: string | undefined) => {
     if (!value) return value
     try {
       const url = new URL(value)
-      if (
-        !['127.0.0.1', 'localhost'].includes(url.hostname) ||
-        !url.pathname.startsWith('/assets/')
-      ) {
-        return value
+      if (!['127.0.0.1', 'localhost'].includes(url.hostname)) return value
+      if (url.pathname.startsWith('/objects/')) {
+        const objectKey = decodeURIComponent(
+          url.pathname.slice('/objects/'.length),
+        )
+        if (!objectKey) return value
+        const { name, transcode } = stagedAssetName(objectKey, objectKey)
+        stagedRenderAssets.set(name, { objectKey, transcode })
+        return `media/${name}`
       }
+      if (!url.pathname.startsWith('/assets/')) return value
       const assetName = url.pathname.slice('/assets/'.length)
       if (!assetName || assetName !== basename(assetName)) return value
-      localRenderAssets.set(assetName, join(assetsDirectory, assetName))
-      return `media/${assetName}`
+      const { name, transcode } = stagedAssetName(assetName, assetName)
+      stagedRenderAssets.set(name, {
+        localPath: join(assetsDirectory, assetName),
+        transcode,
+      })
+      return `media/${name}`
     } catch {
       return value
     }
@@ -739,6 +821,9 @@ const handleRender = async (
       }
       track.audioUrl = localAssetPath(track.audioUrl) || track.audioUrl
     })
+  })
+  Object.values(renderProject.recordedBlocks || {}).forEach(recording => {
+    recording.videoUrl = localAssetPath(recording.videoUrl) || recording.videoUrl
   })
   const stageNotebookMedia = (node: TiptapNode) => {
     if (
@@ -765,13 +850,58 @@ const handleRender = async (
   const outputPath = join(outputsDirectory, `${id}.mp4`)
   await mkdir(jobDirectory, { recursive: true })
   await mkdir(runtimeDirectory, { recursive: true })
-  if (localRenderAssets.size) {
+  if (stagedRenderAssets.size) {
     const mediaDirectory = join(jobDirectory, 'media')
     await mkdir(mediaDirectory, { recursive: true })
     await Promise.all(
-      [...localRenderAssets].map(([assetName, source]) =>
-        copyFile(source, join(mediaDirectory, assetName)),
-      ),
+      [...stagedRenderAssets].map(async ([assetName, staged]) => {
+        const targetPath = join(mediaDirectory, assetName)
+        let sourcePath = staged.localPath
+        if (!sourcePath && staged.objectKey) {
+          sourcePath = staged.transcode ? `${targetPath}.download` : targetPath
+          const { stream } = await getObject(staged.objectKey)
+          const chunks: Buffer[] = []
+          for await (const chunk of stream) {
+            chunks.push(chunk as Buffer)
+          }
+          await writeFile(sourcePath, Buffer.concat(chunks))
+        }
+        if (!sourcePath) return
+        if (!staged.transcode) {
+          if (sourcePath !== targetPath) await copyFile(sourcePath, targetPath)
+          return
+        }
+        try {
+          await runProcess(
+            'ffmpeg',
+            [
+              '-y',
+              '-i',
+              sourcePath,
+              '-c:v',
+              'libx264',
+              '-preset',
+              'veryfast',
+              '-crf',
+              '20',
+              '-pix_fmt',
+              'yuv420p',
+              '-c:a',
+              'aac',
+              '-b:a',
+              '160k',
+              '-movflags',
+              '+faststart',
+              targetPath,
+            ],
+            300_000,
+          )
+        } finally {
+          if (sourcePath.endsWith('.download')) {
+            await rm(sourcePath, { force: true })
+          }
+        }
+      }),
     )
   }
   await writeFile(inputPath, composition.html, 'utf8')

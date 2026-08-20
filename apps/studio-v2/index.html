@@ -150,6 +150,8 @@
             <button id="import-file" class="button chrome-ghost">Import .md</button>
             <button id="paste-markdown" class="button chrome-ghost">Paste Markdown</button>
             <button id="open-settings" class="button chrome-ghost">Block settings</button>
+            <button id="render-video" type="button" class="button chrome-secondary" disabled>Export video</button>
+            <span id="render-result" hidden><a id="download-render" class="button chrome-ghost" href="#" download>Download MP4</a></span>
             <button id="open-fullscreen" class="button chrome-secondary">Open canvas</button>
             <button id="open-camera" class="button primary"><span class="record-dot"></span> Record</button>
           </nav>
@@ -367,7 +369,6 @@
             <fieldset>
               <legend>Recorded output</legend>
               <p class="recording-note">The notebook stays a live canvas until a human or generated presenter track is recorded.</p>
-              <button id="render-video" type="button" class="button primary wide" disabled>Export recorded video</button>
             </fieldset>
           </form>
           <section class="block-navigator" aria-labelledby="block-navigator-title">
@@ -378,10 +379,6 @@
           </section>
           <strong id="total-duration" hidden>00:00</strong>
           <span id="timeline-duration" hidden>0 seconds</span>
-          <div id="render-result" class="render-result" hidden>
-            <span>Render complete</span>
-            <a id="download-render" class="button primary wide" href="#" download>Download MP4</a>
-          </div>
         </aside>
       </main>
     </div>
