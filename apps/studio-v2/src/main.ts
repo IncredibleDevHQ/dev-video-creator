@@ -12,6 +12,7 @@ import {
   normalizeStudioTheme,
   normalizedRectStyle,
   presenterLayoutGeometry,
+  sanitizeNotebookMedia,
   type BlockBackgroundPreset,
   type BlockRenderConfigV1,
   type CameraPosition,
@@ -1236,6 +1237,8 @@ let project: ProjectDocumentV1 =
 project.theme = normalizeStudioTheme(project.theme, project.brand)
 project.brand = { ...project.theme.brand }
 project.recordedBlocks ||= {}
+// Heal documents saved before blob: sources were kept out of persistence.
+sanitizeNotebookMedia(project.notebook)
 
 const cloneTheme = (theme: StudioThemeV1): StudioThemeV1 =>
   structuredClone(theme)
@@ -2945,7 +2948,9 @@ const syncProject = () => {
   const notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(notebook)
   project.notebook = notebook
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
+  const stored = structuredClone(project)
+  sanitizeNotebookMedia(stored.notebook)
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
   scheduleDatabaseSync()
   updatePreview()
   setSaving(false)
@@ -3346,8 +3351,11 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return body
 }
 
-const persistProjectNow = (snapshot: ProjectDocumentV1) =>
-  fetchJson<{ projectId: string; saved: boolean }>(
+const persistProjectNow = (snapshot: ProjectDocumentV1) => {
+  // Callers always pass a detached clone; the live editor keeps its blob
+  // preview while the persisted copy stays retryable.
+  sanitizeNotebookMedia(snapshot.notebook)
+  return fetchJson<{ projectId: string; saved: boolean }>(
     `/api/projects/${encodeURIComponent(snapshot.id)}`,
     {
       method: 'PUT',
@@ -3355,6 +3363,7 @@ const persistProjectNow = (snapshot: ProjectDocumentV1) =>
       body: JSON.stringify(snapshot),
     },
   )
+}
 
 const updateMediaNode = (
   uploadKey: string,
