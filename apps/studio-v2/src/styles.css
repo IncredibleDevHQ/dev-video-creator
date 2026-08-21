@@ -167,7 +167,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .player-shell.canvas-open hyperframes-player { width: min(100%, calc((100vh - 164px) * 1.7778)); height: auto; aspect-ratio: 16/9; border: 1px solid #52525b; border-radius: 5px; box-shadow: 0 24px 80px rgba(0,0,0,.42); }
 .player-shell.canvas-open .screen-play-toggle { top: calc(50% - 50px); width: 68px; height: 68px; }
 .player-shell.canvas-open .screen-play-toggle svg { width: 28px; height: 28px; }
-.player-shell.canvas-open .live-camera-toggle { position: fixed; top: 18px; left: 22px; z-index: 7; min-height: 42px; padding: 7px 12px 7px 10px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,.22); border-radius: 8px; background: rgba(24,24,27,.82); color: white; box-shadow: 0 10px 30px rgba(0,0,0,.24); text-align: left; backdrop-filter: blur(14px); }
+.player-shell.canvas-open .live-camera-toggle { position: fixed; bottom: 152px; left: 22px; z-index: 7; min-height: 42px; padding: 7px 12px 7px 10px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,.22); border-radius: 8px; background: rgba(24,24,27,.82); color: white; box-shadow: 0 10px 30px rgba(0,0,0,.24); text-align: left; backdrop-filter: blur(14px); }
 .player-shell.canvas-open .live-camera-toggle:hover { border-color: rgba(74,222,128,.65); background: rgba(31,41,55,.92); }
 .live-camera-dot { width: 9px; height: 9px; flex: 0 0 auto; border: 2px solid #d4d4d8; border-radius: 50%; background: transparent; }
 .live-camera-copy strong, .live-camera-copy small { display: block; }
@@ -184,7 +184,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .player-shell.canvas-open .canvas-fullscreen { position: fixed; top: 18px; right: 388px; }
 .player-shell.canvas-open .canvas-block-timeline { position: absolute; right: 24px; bottom: 16px; left: 24px; z-index: 5; min-width: 0; padding: 10px 12px 12px; display: grid; gap: 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 10px; background: rgba(17,17,19,.91); box-shadow: 0 12px 36px rgba(0,0,0,.34); backdrop-filter: blur(18px); }
 .canvas-recording-controls { display: none; }
-.player-shell.canvas-open .canvas-recording-controls { position: fixed; top: 18px; left: 50%; z-index: 89; min-height: 44px; padding: 6px; display: flex; align-items: center; gap: 7px; translate: -50% 0; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; background: rgba(17,17,19,.9); color: white; box-shadow: 0 14px 42px rgba(0,0,0,.3); backdrop-filter: blur(18px); }
+.player-shell.canvas-open .canvas-recording-controls { position: fixed; bottom: 152px; left: 50%; z-index: 89; min-height: 44px; padding: 6px; display: flex; align-items: center; gap: 7px; translate: -50% 0; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; background: rgba(17,17,19,.9); color: white; box-shadow: 0 14px 42px rgba(0,0,0,.3); backdrop-filter: blur(18px); }
 .canvas-recording-project, .canvas-recording-devices { display: none; }
 .canvas-recording-state { min-width: 174px; padding: 0 8px 0 5px; display: flex; align-items: center; gap: 9px; }
 .canvas-recording-state > span { width: 9px; height: 9px; flex: none; border: 2px solid #d4d4d8; border-radius: 50%; }
