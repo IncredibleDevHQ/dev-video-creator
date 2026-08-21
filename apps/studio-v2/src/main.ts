@@ -3174,6 +3174,26 @@ screenPlayToggle.addEventListener('click', () => {
 player.addEventListener('play', syncScreenPlaybackControl)
 player.addEventListener('pause', syncScreenPlaybackControl)
 
+// The player element toggles play/pause on any bare click. The directing
+// canvas parks 0.12s before the selected scene ends, so an accidental click
+// would immediately play into the next block. Swallow bare-canvas clicks
+// before they reach the player; clicks on its transport chrome pass through.
+player.parentElement?.addEventListener(
+  'click',
+  event => {
+    if (event.target !== player) return
+    const clickedTransport = event
+      .composedPath()
+      .some(
+        element =>
+          element instanceof HTMLElement &&
+          element.classList.contains('hfp-controls'),
+      )
+    if (!clickedTransport) event.stopPropagation()
+  },
+  true,
+)
+
 canvasViewVideoButton.addEventListener('click', () =>
   setRecordedTakeCanvasView('video'),
 )
