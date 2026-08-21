@@ -2201,6 +2201,70 @@ const formatTime = (seconds: number) => {
   ).padStart(2, '0')}`
 }
 
+const renderNotebookTimeline = () => {
+  const notebookTimeline = $('#notebook-timeline')
+  const track = document.createElement('div')
+  track.className = 'notebook-timeline-track'
+  scenes.forEach(scene => {
+    const isSelected = scene.id === selectedNodeId
+    const visualKind = sceneVisualKind(scene)
+    const meta = TIMELINE_BLOCK_META[visualKind]
+    const recordedBlock = project.recordedBlocks?.[scene.id]
+    const seconds = (recordedBlock?.durationMs || scene.durationSeconds * 1000) / 1000
+    const chip = document.createElement('button')
+    chip.type = 'button'
+    chip.className = `notebook-timeline-chip timeline-kind-${visualKind}${
+      isSelected ? ' active' : ''
+    }${recordedBlock ? ' recorded' : ''}`
+    chip.title = `${sceneObjectLabel(scene)} · ${scene.title}`
+    chip.setAttribute('aria-current', isSelected ? 'true' : 'false')
+    chip.setAttribute(
+      'aria-label',
+      `Block ${scene.index + 1}, ${sceneObjectLabel(scene)}, ${scene.title}, ${formatTime(seconds)}${recordedBlock ? ', saved recording' : ''}`,
+    )
+    const icon = document.createElement('span')
+    icon.className = 'notebook-timeline-icon'
+    icon.textContent = meta.icon
+    const copy = document.createElement('span')
+    copy.className = 'notebook-timeline-copy'
+    const kind = document.createElement('strong')
+    kind.textContent = meta.label
+    const duration = document.createElement('time')
+    duration.textContent = formatTime(seconds)
+    copy.append(kind, duration)
+    chip.append(icon, copy)
+    if (recordedBlock) {
+      const saved = document.createElement('em')
+      saved.className = 'notebook-timeline-recorded'
+      saved.title = 'Saved recording'
+      chip.append(saved)
+    }
+    chip.addEventListener('click', () => {
+      // Focusing the editor would drop the caret after atom nodes and
+      // re-select the following block, so only select and scroll.
+      selectNode(scene.id, false)
+      document.getElementById(scene.id)?.scrollIntoView({ block: 'center' })
+    })
+    track.append(chip)
+  })
+  notebookTimeline.replaceChildren(track)
+  notebookTimeline.hidden = scenes.length === 0
+  const activeChip = track.querySelector<HTMLElement>(
+    '.notebook-timeline-chip.active',
+  )
+  if (activeChip) {
+    window.requestAnimationFrame(() => {
+      // Only scroll when the chip is out of view: a scrollIntoView no-op
+      // still cancels the notebook's in-flight smooth scroll to the block.
+      const trackRect = track.getBoundingClientRect()
+      const chipRect = activeChip.getBoundingClientRect()
+      if (chipRect.left < trackRect.left || chipRect.right > trackRect.right) {
+        activeChip.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+      }
+    })
+  }
+}
+
 const renderCanvasBlockTimeline = () => {
   canvasBlockTimeline.replaceChildren()
   const totalDuration = scenes.reduce(
@@ -2302,6 +2366,7 @@ const renderCanvasBlockTimeline = () => {
   })
 
   canvasBlockTimeline.append(heading, track)
+  renderNotebookTimeline()
   const activeBlock = track.querySelector<HTMLElement>(
     '.canvas-timeline-block.active',
   )
