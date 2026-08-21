@@ -93,6 +93,8 @@ export type BlockRenderConfigV1 = {
     corners: MediaCornerStyle
     elevation: MediaElevation
   }
+  speakerNotes?: string
+  notesTargetMinutes?: number
 }
 
 export type HumanCameraTrackV1 = {

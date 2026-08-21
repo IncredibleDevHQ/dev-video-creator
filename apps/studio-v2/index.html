@@ -227,7 +227,7 @@
                       <button id="previous-animation-step" class="button chrome-secondary canvas-step-button" type="button" aria-label="Previous animation step" hidden>←</button>
                       <button id="next-animation-step" class="button chrome-secondary" type="button" hidden>Next step <kbd>→</kbd></button>
                       <button id="stop-canvas-recording" class="button danger" type="button" hidden>Stop &amp; make MP4</button>
-                      <div class="canvas-recording-devices"><span id="canvas-recording-camera-state">Camera ready</span><span id="canvas-recording-mic-state">Mic optional</span></div>
+                      <div class="canvas-recording-devices"><span id="canvas-recording-camera-state">Camera ready</span><button id="canvas-recording-mic-state" type="button" title="Toggle microphone">Mic on</button></div>
                     </div>
                     <div id="canvas-recording-review" class="canvas-recording-review" role="dialog" aria-label="Recorded canvas take" hidden>
                       <div class="canvas-recording-review-heading"><div><span id="canvas-recording-review-status">Review take</span><strong id="canvas-recording-review-title">Save this recording to the selected block</strong></div><button id="close-canvas-recording-review" type="button" aria-label="Close recorded take">×</button></div>
@@ -312,8 +312,15 @@
                     </div>
                     <div class="recording-coach-body">
                       <section class="recording-coach-script" aria-labelledby="recording-coach-script-label">
-                        <span id="recording-coach-script-label">Presenter notes</span>
-                        <p id="recording-coach-script">Talk naturally while the canvas holds the idea beside you.</p>
+                        <div class="recording-coach-section-heading"><strong id="recording-coach-script-label">Presenter notes</strong><span id="recording-notes-provider">Yours to edit</span></div>
+                        <textarea id="recording-notes" spellcheck="true" placeholder="Write what you want to say, or generate notes from this block and the rest of the notebook…"></textarea>
+                        <div class="recording-notes-meter">
+                          <label for="recording-notes-minutes">Target <output id="recording-notes-minutes-output">1 min</output></label>
+                          <input id="recording-notes-minutes" type="range" min="0.5" max="10" step="0.5" value="1" />
+                          <div class="recording-notes-length" aria-hidden="true"><div id="recording-notes-length-fill"></div></div>
+                          <small id="recording-notes-estimate">No notes yet</small>
+                        </div>
+                        <button id="generate-notes" class="button secondary wide" type="button">✦ Generate notes</button>
                       </section>
                       <section class="recording-coach-actions" aria-labelledby="recording-coach-actions-label">
                         <div class="recording-coach-section-heading"><strong id="recording-coach-actions-label">Animate the canvas</strong><span>Captured live</span></div>

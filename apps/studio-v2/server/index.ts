@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { createRenderJob, executeRenderJob } from '@hyperframes/producer'
 import {
   compileProject,
+  generateSpeakerNotes,
   generateThemeDirections,
   normalizeStudioTheme,
   type ProjectDocumentV1,
@@ -355,6 +356,75 @@ const extractResponseText = (response: {
   response.output
     ?.flatMap(item => item.content || [])
     .find(item => item.type === 'output_text')?.text || ''
+
+const handleNotesGeneration = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    project?: ProjectDocumentV1
+    blockId?: string
+    targetMinutes?: number
+  }>(request, 3 * 1024 * 1024)
+  if (!body.project || !body.blockId) {
+    throw new Error('Notes need the project and a block to narrate')
+  }
+  const targetMinutes = Math.min(15, Math.max(0.5, Number(body.targetMinutes) || 1))
+  const fallback = generateSpeakerNotes(body.project, body.blockId, targetMinutes)
+
+  if (!openAIKey) {
+    json(response, 200, { notes: fallback, provider: 'local-generator' })
+    return
+  }
+
+  try {
+    const blockIndex = body.project.notebook.content.findIndex(
+      node => node.attrs?.id === body.blockId,
+    )
+    const blockJson = JSON.stringify(
+      body.project.notebook.content[blockIndex],
+    ).slice(0, 8_000)
+    const notebookJson = JSON.stringify(body.project.notebook).slice(0, 24_000)
+    const wordBudget = Math.round(targetMinutes * 140)
+    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${openAIKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
+        input: `Write presenter speaker notes for one block of a developer video titled "${body.project.title}". The presenter is on camera and reveals the block's content step by step while talking. Target roughly ${targetMinutes} minute(s) of speech (~${wordBudget} words at 140 wpm). Write short spoken-style lines, one per beat, matching the block's structure (one line per bullet point or code line where that applies), grounded ONLY in the notebook content provided — do not invent facts. Include a one-line opening hook and a one-line handoff to the next block. Block being narrated (Tiptap JSON): ${blockJson}. Full notebook for context (Tiptap JSON): ${notebookJson}.`,
+        reasoning: { effort: 'low' },
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'speaker_notes',
+            strict: true,
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['notes'],
+              properties: { notes: { type: 'string' } },
+            },
+          },
+        },
+      }),
+    })
+    if (!apiResponse.ok) {
+      throw new Error(`OpenAI notes generation failed (${apiResponse.status})`)
+    }
+    const apiBody = (await apiResponse.json()) as Parameters<
+      typeof extractResponseText
+    >[0]
+    const parsed = JSON.parse(extractResponseText(apiBody)) as { notes?: string }
+    const notes = String(parsed.notes || '').trim().slice(0, 8_000)
+    if (!notes) throw new Error('OpenAI returned empty notes')
+    json(response, 200, { notes, provider: 'openai' })
+  } catch {
+    json(response, 200, { notes: fallback, provider: 'local-generator' })
+  }
+}
 
 const handleThemeGeneration = async (
   request: IncomingMessage,
@@ -1047,6 +1117,10 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/voice') {
       await handleVoice(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/notes') {
+      await handleNotesGeneration(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/themes/generate') {

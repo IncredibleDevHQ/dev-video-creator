@@ -16,6 +16,7 @@ export * from './types'
 export * from './themes'
 export * from './presenter-layouts'
 export * from './notebook-media'
+export * from './speaker-notes'
 
 const incredibleMarkPath =
   'M8.96168 0.740305C7.9746 -0.246768 6.37424 -0.246768 5.38717 0.740304L0.740312 5.38716C-0.24676 6.37423 -0.246761 7.9746 0.740312 8.96167L1.99139 10.2127C2.97846 11.1998 2.97846 12.8002 1.99139 13.7872L0.740304 15.0383C-0.246768 16.0254 -0.246768 17.6258 0.740304 18.6128L5.38716 23.2597C6.37423 24.2468 7.9746 24.2468 8.96167 23.2597L10.2127 22.0086C11.1998 21.0215 12.8002 21.0215 13.7873 22.0086L15.0383 23.2597C16.0254 24.2468 17.6258 24.2468 18.6128 23.2597L23.2597 18.6128C24.2468 17.6258 24.2468 16.0254 23.2597 15.0383L22.0086 13.7873C21.0215 12.8002 21.0215 11.1998 22.0086 10.2127L23.2597 8.96167C24.2468 7.9746 24.2468 6.37424 23.2597 5.38716L18.6128 0.740305C17.6258 -0.246767 16.0254 -0.246766 15.0383 0.740307L13.7873 1.99138C12.8002 2.97845 11.1998 2.97845 10.2127 1.99138L8.96168 0.740305Z'
@@ -231,6 +232,17 @@ const normalizeBlockConfig = (
         fallback.mediaFrame.elevation,
       ),
     },
+    ...(typeof supplied.speakerNotes === 'string' && supplied.speakerNotes.trim()
+      ? { speakerNotes: supplied.speakerNotes.slice(0, 8_000) }
+      : {}),
+    ...(Number.isFinite(supplied.notesTargetMinutes)
+      ? {
+          notesTargetMinutes: Math.min(
+            15,
+            Math.max(0.5, supplied.notesTargetMinutes as number),
+          ),
+        }
+      : {}),
   }
 }
 

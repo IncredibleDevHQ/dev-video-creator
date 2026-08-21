@@ -206,7 +206,10 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-recording-project strong { max-width: 174px; overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .canvas-recording-project small { margin-top: 4px; color: #a1a1aa; font-size: 7px; }
 .player-shell.canvas-recording-mode .canvas-recording-devices { min-width: 174px; margin-left: auto; display: flex; justify-content: flex-end; gap: 6px; }
-.canvas-recording-devices span { padding: 6px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; color: #d4d4d8; font-size: 7px; }
+.canvas-recording-devices span, .canvas-recording-devices button { padding: 6px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: transparent; color: #d4d4d8; font-size: 7px; }
+.canvas-recording-devices button { cursor: pointer; }
+.canvas-recording-devices button:hover { border-color: var(--brand-light); color: white; }
+.canvas-recording-devices button.muted { border-color: rgba(248,113,113,.5); color: #fca5a5; }
 .canvas-recording-coach { display: none; min-width: 0; overflow: auto; background: #fff; color: #27272a; }
 .canvas-recording-coach[hidden] { display: none; }
 .player-shell.canvas-recording-mode .canvas-recording-coach { display: flex; flex-direction: column; }
@@ -218,6 +221,17 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .recording-coach-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 5px rgba(74,222,128,.16); }
 .recording-coach-body { min-height: 0; padding: 24px 22px; display: flex; flex: 1; flex-direction: column; gap: 26px; }
 .recording-coach-script { padding: 18px; border: 1px solid #e4e4e7; border-radius: 12px; background: #f7f7f8; }
+.recording-coach-script textarea { width: 100%; min-height: 132px; margin-top: 10px; padding: 12px; border: 1px solid #e4e4e7; border-radius: 9px; background: white; color: var(--ink); font: inherit; font-size: 11px; line-height: 1.55; resize: vertical; }
+.recording-coach-script textarea:focus { border-color: var(--brand); outline: none; }
+.recording-notes-meter { margin-top: 10px; display: grid; gap: 6px; }
+.recording-notes-meter label { display: flex; justify-content: space-between; color: #71717a; font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.recording-notes-meter output { color: var(--ink); }
+.recording-notes-meter input[type="range"] { width: 100%; accent-color: var(--brand); }
+.recording-notes-length { height: 5px; overflow: hidden; border-radius: 999px; background: #e4e4e7; }
+.recording-notes-length > div { height: 100%; width: 0; border-radius: 999px; background: var(--brand-light); transition: width .25s ease; }
+.recording-notes-length > div.over { background: #f59e0b; }
+.recording-notes-meter small { color: #71717a; font-size: 9px; }
+.recording-coach-script .button { margin-top: 10px; }
 .recording-coach-script > span, .recording-coach-section-heading span, .recording-coach-next span { color: #71717a; font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .recording-coach-script p { margin: 12px 0 0; color: #3f3f46; font-size: 14px; line-height: 1.52; }
 .recording-coach-actions { display: grid; gap: 10px; }

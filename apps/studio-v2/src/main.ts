@@ -8,6 +8,7 @@ import {
   createDefaultBlockConfig,
   defaultBrand,
   defaultStudioTheme,
+  estimateSpokenSeconds,
   generateThemeDirections,
   normalizeStudioTheme,
   normalizedRectStyle,
@@ -491,7 +492,15 @@ const canvasRecordingReviewTitle = $('#canvas-recording-review-title')
 const canvasRecordingCoach = $('#canvas-recording-coach')
 const recordingCoachTitle = $('#recording-coach-title')
 const recordingCoachNumber = $('#recording-coach-number')
-const recordingCoachScript = $('#recording-coach-script')
+const recordingNotesInput = $('#recording-notes') as HTMLTextAreaElement
+const recordingNotesMinutes = $('#recording-notes-minutes') as HTMLInputElement
+const recordingNotesMinutesOutput = $(
+  '#recording-notes-minutes-output',
+) as HTMLOutputElement
+const recordingNotesEstimate = $('#recording-notes-estimate')
+const recordingNotesLengthFill = $('#recording-notes-length-fill')
+const recordingNotesProvider = $('#recording-notes-provider')
+const generateNotesButton = $('#generate-notes') as HTMLButtonElement
 const recordingCoachActionGrid = $('#recording-coach-action-grid')
 const recordingCoachBlockTitle = $('#recording-coach-block-title')
 const recordingCoachProgress = $('#recording-coach-progress')
@@ -562,6 +571,7 @@ let pendingRecordedBlock: {
 } | null = null
 let screenRecordingStream: MediaStream | null = null
 let screenRecordingHasAudio = false
+let microphonePreference = true
 let screenRecorder: MediaRecorder | null = null
 let screenRecordingChunks: Blob[] = []
 let screenRecordingUploadKey = ''
@@ -839,6 +849,116 @@ const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
   }
 }
 
+const syncMicrophoneToggle = () => {
+  const liveTracks = canvasMicrophoneStream?.getAudioTracks() || []
+  const micLive = liveTracks.some(track => track.enabled)
+  canvasRecordingMicState.textContent = canvasMicrophoneStream
+    ? micLive
+      ? 'Mic live'
+      : 'Mic muted'
+    : microphonePreference
+      ? 'Mic on'
+      : 'Mic off'
+  canvasRecordingMicState.classList.toggle(
+    'muted',
+    canvasMicrophoneStream ? !micLive : !microphonePreference,
+  )
+}
+
+const syncRecordingNotesMeter = () => {
+  const notes = recordingNotesInput.value
+  const spokenSeconds = estimateSpokenSeconds(notes)
+  const targetSeconds = Number(recordingNotesMinutes.value) * 60
+  recordingNotesMinutesOutput.value = `${recordingNotesMinutes.value} min`
+  recordingNotesEstimate.textContent = notes.trim()
+    ? `≈ ${formatTime(spokenSeconds)} spoken · target ${formatTime(targetSeconds)}`
+    : 'No notes yet — write or generate them'
+  const ratio = targetSeconds ? Math.min(1, spokenSeconds / targetSeconds) : 0
+  recordingNotesLengthFill.style.width = `${Math.round(ratio * 100)}%`
+  recordingNotesLengthFill.classList.toggle(
+    'over',
+    spokenSeconds > targetSeconds * 1.15,
+  )
+}
+
+const loadRecordingNotes = (scene: Scene) => {
+  const config = project.blocks[scene.id]
+  recordingNotesInput.value = config?.speakerNotes || ''
+  recordingNotesMinutes.value = String(config?.notesTargetMinutes || 1)
+  recordingNotesProvider.textContent = 'Yours to edit'
+  syncRecordingNotesMeter()
+}
+
+recordingNotesInput.addEventListener('input', () => {
+  const config = project.blocks[selectedNodeId]
+  if (config) {
+    config.speakerNotes = recordingNotesInput.value
+    scheduleSync()
+  }
+  syncRecordingNotesMeter()
+})
+
+recordingNotesMinutes.addEventListener('input', () => {
+  const config = project.blocks[selectedNodeId]
+  if (config) {
+    config.notesTargetMinutes = Number(recordingNotesMinutes.value)
+    scheduleSync()
+  }
+  syncRecordingNotesMeter()
+})
+
+generateNotesButton.addEventListener('click', async () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene) return
+  generateNotesButton.disabled = true
+  generateNotesButton.textContent = 'Generating…'
+  try {
+    project.notebook = editor.getJSON() as TiptapDocument
+    ensureBlockConfiguration(project.notebook)
+    const result = await fetchJson<{ notes: string; provider: string }>(
+      '/api/notes',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          project,
+          blockId: scene.id,
+          targetMinutes: Number(recordingNotesMinutes.value),
+        }),
+      },
+    )
+    recordingNotesInput.value = result.notes
+    const config = project.blocks[scene.id]
+    if (config) {
+      config.speakerNotes = result.notes
+      config.notesTargetMinutes = Number(recordingNotesMinutes.value)
+    }
+    recordingNotesProvider.textContent =
+      result.provider === 'openai' ? 'AI draft · edit freely' : 'Draft · edit freely'
+    syncRecordingNotesMeter()
+    scheduleSync()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Could not generate notes')
+  } finally {
+    generateNotesButton.disabled = false
+    generateNotesButton.textContent = '✦ Generate notes'
+  }
+})
+
+canvasRecordingMicState.addEventListener('click', () => {
+  if (canvasMicrophoneStream) {
+    const nextEnabled = !canvasMicrophoneStream
+      .getAudioTracks()
+      .some(track => track.enabled)
+    canvasMicrophoneStream.getAudioTracks().forEach(track => {
+      track.enabled = nextEnabled
+    })
+  } else {
+    microphonePreference = !microphonePreference
+  }
+  syncMicrophoneToggle()
+})
+
 const configureCanvasRecordingCoach = (scene: Scene) => {
   const visualKind = sceneVisualKind(scene)
   const meta = TIMELINE_BLOCK_META[visualKind]
@@ -864,8 +984,8 @@ const configureCanvasRecordingCoach = (scene: Scene) => {
   canvasRecordingProjectTitle.textContent = project.title
   canvasRecordingProjectBlock.textContent = `Block ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
   canvasRecordingCameraState.textContent = liveCameraStream ? 'Camera live' : 'Camera will start'
-  canvasRecordingMicState.textContent = 'Mic requested at start'
-  recordingCoachScript.textContent = blockText
+  syncMicrophoneToggle()
+  loadRecordingNotes(scene)
   recordingCoachBlockTitle.textContent = blockText
   recordingCoachProgress.textContent = 'Ready for your first beat'
   recordingCoachThumbnail.innerHTML = `<span>${String(scene.index + 1).padStart(2, '0')}</span><strong>${meta.icon}</strong>`
@@ -1027,17 +1147,20 @@ const startCanvasRecording = async () => {
     if (cropTargetApi && captureTrack.cropTo) {
       await captureTrack.cropTo(await cropTargetApi.fromElement(player))
     }
-    try {
-      canvasMicrophoneStream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: { echoCancellation: true, noiseSuppression: true },
-      })
-      canvasRecordingMicState.textContent = 'Mic live'
-    } catch {
+    if (microphonePreference) {
+      try {
+        canvasMicrophoneStream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: { echoCancellation: true, noiseSuppression: true },
+        })
+      } catch {
+        canvasMicrophoneStream = null
+        showToast('Microphone unavailable — recording the visual take without mic audio')
+      }
+    } else {
       canvasMicrophoneStream = null
-      canvasRecordingMicState.textContent = 'Visual only'
-      showToast('Microphone unavailable — recording the visual take without mic audio')
     }
+    syncMicrophoneToggle()
     await prepareCanvasRecordingSteps(scene)
     const tracks = [
       ...canvasCaptureStream.getVideoTracks(),
