@@ -2225,6 +2225,13 @@ const renderNotebookTimeline = () => {
     const icon = document.createElement('span')
     icon.className = 'notebook-timeline-icon'
     icon.textContent = meta.icon
+    if (recordedBlock) {
+      const saved = document.createElement('em')
+      saved.className = 'notebook-timeline-recorded'
+      saved.title = 'This block has a saved recording'
+      saved.textContent = '✓'
+      icon.append(saved)
+    }
     const copy = document.createElement('span')
     copy.className = 'notebook-timeline-copy'
     const kind = document.createElement('strong')
@@ -2233,13 +2240,6 @@ const renderNotebookTimeline = () => {
     duration.textContent = formatTime(seconds)
     copy.append(kind, duration)
     chip.append(icon, copy)
-    if (recordedBlock) {
-      const saved = document.createElement('em')
-      saved.className = 'notebook-timeline-recorded'
-      saved.title = 'This block has a saved recording'
-      saved.textContent = '✓ Recorded'
-      chip.append(saved)
-    }
     chip.addEventListener('click', () => {
       // Focusing the editor would drop the caret after atom nodes and
       // re-select the following block, so only select and scroll.
