@@ -190,7 +190,8 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .player-shell.canvas-open .canvas-block-timeline { position: absolute; right: 24px; bottom: 16px; left: 24px; z-index: 5; min-width: 0; padding: 10px 12px 12px; display: grid; gap: 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 10px; background: rgba(17,17,19,.91); box-shadow: 0 12px 36px rgba(0,0,0,.34); backdrop-filter: blur(18px); }
 .canvas-recording-controls { display: none; }
 .player-shell.canvas-open .canvas-recording-controls { position: fixed; bottom: 152px; left: 50%; z-index: 89; min-height: 44px; padding: 6px; display: flex; align-items: center; gap: 7px; translate: -50% 0; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; background: rgba(17,17,19,.9); color: white; box-shadow: 0 14px 42px rgba(0,0,0,.3); backdrop-filter: blur(18px); }
-.canvas-recording-project, .canvas-recording-devices { display: none; }
+.canvas-recording-project { display: none; }
+.canvas-recording-devices { display: flex; gap: 6px; }
 .canvas-recording-state { min-width: 174px; padding: 0 8px 0 5px; display: flex; align-items: center; gap: 9px; }
 .canvas-recording-state > span { width: 9px; height: 9px; flex: none; border: 2px solid #d4d4d8; border-radius: 50%; }
 .canvas-recording-state strong, .canvas-recording-state small { display: block; }
@@ -211,10 +212,18 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-recording-project strong { max-width: 174px; overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .canvas-recording-project small { margin-top: 4px; color: #a1a1aa; font-size: 7px; }
 .player-shell.canvas-recording-mode .canvas-recording-devices { min-width: 174px; margin-left: auto; display: flex; justify-content: flex-end; gap: 6px; }
-.canvas-recording-devices span, .canvas-recording-devices button { padding: 6px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: transparent; color: #d4d4d8; font-size: 7px; }
-.canvas-recording-devices button { cursor: pointer; }
+.record-pill { min-height: 36px; padding: 0 15px; display: inline-flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,.18); border-radius: 9px; background: #202024; color: white; font-size: 9px; font-weight: 800; }
+.record-pill:hover { border-color: rgba(239,68,68,.65); }
+.record-pill time { font: 700 10px/1 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.record-glyph { width: 11px; height: 11px; flex: none; border-radius: 50%; background: #ef4444; }
+.record-glyph.stop { border-radius: 3px; animation: recording-pulse 1.1s ease-in-out infinite; }
+.recording-divider { width: 1px; height: 22px; flex: none; background: rgba(255,255,255,.16); }
+.canvas-recording-devices button { width: 34px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.12); border-radius: 7px; background: transparent; color: #d4d4d8; cursor: pointer; }
+.canvas-recording-devices button svg { width: 15px; height: 15px; }
 .canvas-recording-devices button:hover { border-color: var(--brand-light); color: white; }
-.canvas-recording-devices button.muted { border-color: rgba(248,113,113,.5); color: #fca5a5; }
+.canvas-recording-devices button.muted { color: #6b6b74; }
+.canvas-recording-devices button.muted:hover { border-color: var(--brand-light); }
+.canvas-recording-devices button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--brand-light) 45%, transparent); color: var(--brand-light); }
 .canvas-recording-coach { display: none; min-width: 0; overflow: auto; background: #fff; color: #27272a; }
 .canvas-recording-coach[hidden] { display: none; }
 .player-shell.canvas-recording-mode .canvas-recording-coach { display: flex; flex-direction: column; }

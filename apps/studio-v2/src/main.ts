@@ -482,6 +482,7 @@ const canvasRecordingMeta = $('#canvas-recording-meta')
 const canvasRecordingProjectTitle = $('#canvas-recording-project-title')
 const canvasRecordingProjectBlock = $('#canvas-recording-project-block')
 const canvasRecordingCameraState = $('#canvas-recording-camera-state')
+const canvasRecordingClock = $('#canvas-recording-clock')
 const canvasRecordingMicState = $('#canvas-recording-mic-state')
 const startCanvasRecordingButton = $('#start-canvas-recording') as HTMLButtonElement
 const previousAnimationStepButton = $('#previous-animation-step') as HTMLButtonElement
@@ -604,6 +605,11 @@ const syncLiveCameraToggle = () => {
       ? 'Click to stop preview'
       : 'Preview yourself in frame'
   }
+  canvasRecordingCameraState.classList.toggle('muted', !isLive)
+  canvasRecordingCameraState.setAttribute('aria-pressed', String(isLive))
+  canvasRecordingCameraState.title = isLive
+    ? 'Camera live · click to stop the preview'
+    : 'Camera off · click to preview yourself in frame'
 }
 
 const clearLiveCameraFromPlayer = () => {
@@ -856,17 +862,18 @@ const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
 const syncMicrophoneToggle = () => {
   const liveTracks = canvasMicrophoneStream?.getAudioTracks() || []
   const micLive = liveTracks.some(track => track.enabled)
-  canvasRecordingMicState.textContent = canvasMicrophoneStream
+  const micOn = canvasMicrophoneStream ? micLive : microphonePreference
+  const label = canvasMicrophoneStream
     ? micLive
-      ? 'Mic live'
-      : 'Mic muted'
+      ? 'Mic live · click to mute'
+      : 'Mic muted · click to unmute'
     : microphonePreference
-      ? 'Mic on'
-      : 'Mic off'
-  canvasRecordingMicState.classList.toggle(
-    'muted',
-    canvasMicrophoneStream ? !micLive : !microphonePreference,
-  )
+      ? 'Mic on at start · click to record without mic'
+      : 'Mic off · click to enable at start'
+  canvasRecordingMicState.classList.toggle('muted', !micOn)
+  canvasRecordingMicState.setAttribute('aria-pressed', String(micOn))
+  canvasRecordingMicState.title = label
+  canvasRecordingMicState.setAttribute('aria-label', label)
 }
 
 const syncRecordingNotesMeter = () => {
@@ -949,6 +956,17 @@ generateNotesButton.addEventListener('click', async () => {
   }
 })
 
+canvasRecordingCameraState.addEventListener('click', () => {
+  if (liveCameraStream) {
+    stopLiveCamera()
+    syncLiveCameraToggle()
+  } else {
+    void startLiveCamera().catch(() =>
+      showToast('Camera unavailable — check browser permissions'),
+    )
+  }
+})
+
 canvasRecordingMicState.addEventListener('click', () => {
   if (canvasMicrophoneStream) {
     const nextEnabled = !canvasMicrophoneStream
@@ -987,7 +1005,7 @@ const configureCanvasRecordingCoach = (scene: Scene) => {
   recordingCoachNumber.textContent = `Block ${String(scene.index + 1).padStart(2, '0')}`
   canvasRecordingProjectTitle.textContent = project.title
   canvasRecordingProjectBlock.textContent = `Block ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
-  canvasRecordingCameraState.textContent = liveCameraStream ? 'Camera live' : 'Camera will start'
+  syncLiveCameraToggle()
   syncMicrophoneToggle()
   loadRecordingNotes(scene)
   recordingCoachBlockTitle.textContent = blockText
@@ -1058,6 +1076,7 @@ const revealNextCanvasRecordingStep = () => {
 const updateCanvasRecordingClock = () => {
   const elapsed = (Date.now() - canvasRecordingStartedAt) / 1000
   canvasRecordingLabel.textContent = `Recording · ${formatTime(elapsed)}`
+  canvasRecordingClock.textContent = formatTime(elapsed)
 }
 
 const resetCanvasRecordingControls = () => {

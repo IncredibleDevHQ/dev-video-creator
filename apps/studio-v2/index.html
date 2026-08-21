@@ -223,12 +223,16 @@
                     <div id="canvas-block-timeline" class="canvas-block-timeline" aria-label="Story block timeline"></div>
                     <div id="canvas-recording-controls" class="canvas-recording-controls" aria-label="Canvas recording controls">
                       <div class="canvas-recording-project"><strong id="canvas-recording-project-title">Human-first developer story</strong><small id="canvas-recording-project-block">Selected block</small></div>
-                      <div class="canvas-recording-state"><span id="canvas-recording-dot"></span><div><strong id="canvas-recording-label">Record this block</strong><small id="canvas-recording-meta">Camera visible · microphone optional</small></div></div>
-                      <button id="start-canvas-recording" class="button primary" type="button">Start recording</button>
+                      <div class="canvas-recording-state" hidden><span id="canvas-recording-dot"></span><div><strong id="canvas-recording-label">Record this block</strong><small id="canvas-recording-meta">Camera visible · microphone optional</small></div></div>
+                      <button id="start-canvas-recording" class="record-pill" type="button" title="Start recording this block · camera visible, microphone optional"><span class="record-glyph" aria-hidden="true"></span>Record</button>
+                      <button id="stop-canvas-recording" class="record-pill is-recording" type="button" title="Stop and make the MP4" hidden><span class="record-glyph stop" aria-hidden="true"></span><time id="canvas-recording-clock">00:00</time></button>
                       <button id="previous-animation-step" class="button chrome-secondary canvas-step-button" type="button" aria-label="Previous animation step" hidden>←</button>
                       <button id="next-animation-step" class="button chrome-secondary" type="button" hidden>Next step <kbd>→</kbd></button>
-                      <button id="stop-canvas-recording" class="button danger" type="button" hidden>Stop &amp; make MP4</button>
-                      <div class="canvas-recording-devices"><span id="canvas-recording-camera-state">Camera ready</span><button id="canvas-recording-mic-state" type="button" title="Toggle microphone">Mic on</button></div>
+                      <span class="recording-divider" aria-hidden="true"></span>
+                      <div class="canvas-recording-devices">
+                        <button id="canvas-recording-mic-state" type="button" title="Toggle microphone" aria-label="Toggle microphone" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
+                        <button id="canvas-recording-camera-state" type="button" title="Toggle camera preview" aria-label="Toggle camera preview" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 10.5 6-3.5v10l-6-3.5"/></svg></button>
+                      </div>
                     </div>
                     <div id="canvas-recording-review" class="canvas-recording-review" role="dialog" aria-label="Recorded canvas take" hidden>
                       <div class="canvas-recording-review-heading"><div><span id="canvas-recording-review-status">Review take</span><strong id="canvas-recording-review-title">Save this recording to the selected block</strong></div><button id="close-canvas-recording-review" type="button" aria-label="Close recorded take">×</button></div>
