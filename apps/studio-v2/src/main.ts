@@ -460,6 +460,10 @@ const player = $('#player') as HyperframesPlayerElement
 const playerShell = $('#player-shell')
 const playerLoading = $('#player-loading')
 const screenPlayToggle = $('#screen-play-toggle') as HTMLButtonElement
+const canvasViewSwitch = $('#canvas-view-switch')
+const canvasViewVideoButton = $('#canvas-view-video') as HTMLButtonElement
+const canvasViewContentButton = $('#canvas-view-content') as HTMLButtonElement
+const canvasViewDownload = $('#canvas-view-download') as HTMLAnchorElement
 const liveCameraToggle = $('#live-camera-toggle') as HTMLButtonElement
 const liveCameraFrame = $('#live-camera-frame')
 const liveCameraPreview = $('#live-camera-preview') as HTMLVideoElement
@@ -519,7 +523,9 @@ let pendingPreviewRequest: {
   requestNumber: number
   previewPresenter: { imageUrl: string; name: string }
   includeEmptyNodeId?: string
+  contentViewNodeId?: string
 } | null = null
+let recordedTakeCanvasView: 'video' | 'content' = 'video'
 let scenes: Scene[] = []
 let syncTimer: number | undefined
 let databaseSyncTimer: number | undefined
@@ -2355,19 +2361,9 @@ const renderCanvasBlockTimeline = () => {
     copy.append(type, title)
     body.append(visual, copy)
     button.append(top, body)
-    button.addEventListener('click', () => {
-      selectNode(scene.id, false)
-      if (recordedBlock) {
-        pendingRecordedBlock = null
-        canvasRecordingPlayback.src = recordedBlock.videoUrl
-        downloadCanvasRecording.href = recordedBlock.videoUrl
-        saveCanvasRecordingButton.disabled = true
-        saveCanvasRecordingButton.textContent = 'Saved'
-        canvasRecordingReviewStatus.textContent = 'Recorded block'
-        canvasRecordingReviewTitle.textContent = 'This block is saved to your notebook'
-        canvasRecordingReview.hidden = false
-      }
-    })
+    // Selecting a recorded block shows its take directly on the canvas with
+    // the video/content switch — no review dialog in the way.
+    button.addEventListener('click', () => selectNode(scene.id, false))
     track.append(button)
   })
 
@@ -2908,6 +2904,12 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
   if (selectedNodeId !== nodeId) {
     stopScreenPlayback()
     selectedCanvasObject = 'content'
+    recordedTakeCanvasView = 'video'
+    // The saved-take review dialog belongs to the block it was opened for.
+    if (!canvasRecordingReview.hidden) {
+      canvasRecordingPlayback.pause()
+      canvasRecordingReview.hidden = true
+    }
   }
   selectedNodeId = nodeId
   document
@@ -2958,6 +2960,7 @@ const flushPreviewRequest = async () => {
         project,
         previewPresenter: pending.previewPresenter,
         includeEmptyNodeId: pending.includeEmptyNodeId,
+        contentViewNodeId: pending.contentViewNodeId,
       }),
     })
     if (pending.requestNumber === previewRequest) {
@@ -2984,12 +2987,15 @@ const updatePreview = () => {
 
   try {
     const previewPresenter = selectedPreviewPresenter()
+    const contentViewNodeId =
+      recordedTakeCanvasView === 'content' ? selectedNodeId : undefined
     const compiled = compileProject(project, {
       previewPresenter: {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
       includeEmptyNodeId: selectedNodeId,
+      contentViewNodeId,
     })
     scenes = compiled.scenes
     playerLoading.hidden = false
@@ -3018,6 +3024,7 @@ const updatePreview = () => {
         name: previewPresenter.name,
       },
       includeEmptyNodeId: selectedNodeId,
+      contentViewNodeId,
     }
     previewFetchTimer = window.setTimeout(flushPreviewRequest, 120)
   } catch (error) {
@@ -3064,8 +3071,33 @@ const selectedPlayableRecordingScene = () => {
   if (!scene) return undefined
   const isScreenRecording =
     scene.node.type === 'screenRecording' && Boolean(scene.node.attrs?.src)
-  const hasRecordedTake = Boolean(project.recordedBlocks?.[scene.id]?.videoUrl)
+  const hasRecordedTake =
+    recordedTakeCanvasView === 'video' &&
+    Boolean(project.recordedBlocks?.[scene.id]?.videoUrl)
   return isScreenRecording || hasRecordedTake ? scene : undefined
+}
+
+const syncCanvasViewSwitch = () => {
+  const recordedBlock = project.recordedBlocks?.[selectedNodeId]
+  canvasViewSwitch.hidden = !recordedBlock?.videoUrl
+  if (!recordedBlock?.videoUrl) return
+  canvasViewVideoButton.classList.toggle(
+    'active',
+    recordedTakeCanvasView === 'video',
+  )
+  canvasViewContentButton.classList.toggle(
+    'active',
+    recordedTakeCanvasView === 'content',
+  )
+  canvasViewDownload.href = recordedBlock.videoUrl
+}
+
+const setRecordedTakeCanvasView = (view: 'video' | 'content') => {
+  if (recordedTakeCanvasView === view) return
+  recordedTakeCanvasView = view
+  stopScreenPlayback()
+  updatePreview()
+  syncCanvasViewSwitch()
 }
 
 const syncScreenPlaybackControl = () => {
@@ -3081,6 +3113,7 @@ const syncScreenPlaybackControl = () => {
   screenPlayToggle.hidden = !scene || !player.paused
   screenPlayToggle.setAttribute('aria-label', label)
   screenPlayToggle.title = label
+  syncCanvasViewSwitch()
 }
 
 const stopScreenPlayback = (seekToPreview = false) => {
@@ -3130,6 +3163,13 @@ screenPlayToggle.addEventListener('click', () => {
 
 player.addEventListener('play', syncScreenPlaybackControl)
 player.addEventListener('pause', syncScreenPlaybackControl)
+
+canvasViewVideoButton.addEventListener('click', () =>
+  setRecordedTakeCanvasView('video'),
+)
+canvasViewContentButton.addEventListener('click', () =>
+  setRecordedTakeCanvasView('content'),
+)
 
 const replaySelectedAnimation = async () => {
   stopScreenPlayback()

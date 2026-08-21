@@ -448,6 +448,7 @@ const buildCompositionHtml = (
   gsapUrl: string,
   hyperframesRuntimeUrl: string,
   previewPresenter?: { imageUrl: string; name?: string },
+  contentViewNodeId?: string,
 ) => {
   const theme = normalizeStudioTheme(project.theme, project.brand)
   const brand = {
@@ -530,9 +531,12 @@ const buildCompositionHtml = (
           return `${video}${audio}`
         })
         .join('')
-      const recordedTakeUrl = safeUrl(
-        project.recordedBlocks?.[scene.id]?.videoUrl,
-      )
+      // The director's content view swaps the selected block's take out for
+      // the live composed scene so the block stays directable.
+      const recordedTakeUrl =
+        scene.id === contentViewNodeId
+          ? null
+          : safeUrl(project.recordedBlocks?.[scene.id]?.videoUrl)
       // A saved take already contains the directed canvas, camera, and audio,
       // so it replaces the live scene visuals and presenter tracks outright.
       const recordedTakeMarkup = recordedTakeUrl
@@ -930,6 +934,7 @@ export const compileProject = (
     hyperframesRuntimeUrl?: string
     previewPresenter?: { imageUrl: string; name?: string }
     includeEmptyNodeId?: string
+    contentViewNodeId?: string
   } = {},
 ): CompiledComposition => {
   assertProject(project)
@@ -999,6 +1004,7 @@ export const compileProject = (
       options.hyperframesRuntimeUrl ||
         'https://cdn.jsdelivr.net/npm/@hyperframes/core@0.7.106/dist/hyperframe.runtime.iife.js',
       options.previewPresenter,
+      options.contentViewNodeId,
     ),
   }
 }

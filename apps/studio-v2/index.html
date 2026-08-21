@@ -213,6 +213,11 @@
                       <video id="live-camera-preview" class="live-camera-preview" autoplay muted playsinline></video>
                     </div>
                     <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
+                    <div id="canvas-view-switch" class="canvas-view-switch" role="group" aria-label="Recorded block view" hidden>
+                      <button id="canvas-view-video" type="button" class="active" title="Show the recorded take" aria-label="Show the recorded take">▶ Video</button>
+                      <button id="canvas-view-content" type="button" title="Show the directed content" aria-label="Show the directed content">▦ Content</button>
+                      <a id="canvas-view-download" href="#" download title="Download the recorded take" aria-label="Download the recorded take">⬇</a>
+                    </div>
                     <div id="canvas-block-timeline" class="canvas-block-timeline" aria-label="Story block timeline"></div>
                     <div id="canvas-recording-controls" class="canvas-recording-controls" aria-label="Canvas recording controls">
                       <div class="canvas-recording-project"><strong id="canvas-recording-project-title">Human-first developer story</strong><small id="canvas-recording-project-block">Selected block</small></div>

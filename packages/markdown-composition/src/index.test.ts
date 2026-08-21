@@ -1096,6 +1096,26 @@ describe('compileProject', () => {
     expect(withoutTake.html).not.toContain('recorded-take clip')
   })
 
+  it('omits the recorded take for the content-view block only', () => {
+    const withTake = project()
+    withTake.recordedBlocks = {
+      intro: {
+        blockId: 'intro',
+        recordingId: 'rec-3',
+        videoUrl: 'https://cdn.example/take-intro.mp4',
+        durationMs: 8000,
+        recordedAt: '2026-08-20T00:00:00.000Z',
+        storage: 'minio',
+      },
+    }
+    const contentView = compileProject(withTake, { contentViewNodeId: 'intro' })
+    expect(contentView.html).not.toContain('recorded-take clip')
+    const otherBlockView = compileProject(withTake, {
+      contentViewNodeId: 'body',
+    })
+    expect(otherBlockView.html).toContain('recorded-take clip')
+  })
+
   it('replaces presenter tracks with the recorded take for the same block', () => {
     const withBoth = project()
     withBoth.presenterTracks = {
