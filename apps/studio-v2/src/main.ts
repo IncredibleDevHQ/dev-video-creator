@@ -2236,7 +2236,8 @@ const renderNotebookTimeline = () => {
     if (recordedBlock) {
       const saved = document.createElement('em')
       saved.className = 'notebook-timeline-recorded'
-      saved.title = 'Saved recording'
+      saved.title = 'This block has a saved recording'
+      saved.textContent = '✓ Recorded'
       chip.append(saved)
     }
     chip.addEventListener('click', () => {
