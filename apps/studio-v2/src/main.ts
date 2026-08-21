@@ -464,6 +464,7 @@ const canvasViewSwitch = $('#canvas-view-switch')
 const canvasViewVideoButton = $('#canvas-view-video') as HTMLButtonElement
 const canvasViewContentButton = $('#canvas-view-content') as HTMLButtonElement
 const canvasViewDownload = $('#canvas-view-download') as HTMLAnchorElement
+const canvasTakePlayer = $('#canvas-take-player') as HTMLVideoElement
 const liveCameraToggle = $('#live-camera-toggle') as HTMLButtonElement
 const liveCameraFrame = $('#live-camera-frame')
 const liveCameraPreview = $('#live-camera-preview') as HTMLVideoElement
@@ -3068,17 +3069,29 @@ const scenePreviewTime = (scene: Scene) =>
 
 const selectedPlayableRecordingScene = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
-  if (!scene) return undefined
-  const isScreenRecording =
-    scene.node.type === 'screenRecording' && Boolean(scene.node.attrs?.src)
-  const hasRecordedTake =
-    recordedTakeCanvasView === 'video' &&
-    Boolean(project.recordedBlocks?.[scene.id]?.videoUrl)
-  return isScreenRecording || hasRecordedTake ? scene : undefined
+  return scene?.node.type === 'screenRecording' && scene.node.attrs?.src
+    ? scene
+    : undefined
 }
 
 const syncCanvasViewSwitch = () => {
   const recordedBlock = project.recordedBlocks?.[selectedNodeId]
+  const showTakeVideo = Boolean(
+    recordedBlock?.videoUrl && recordedTakeCanvasView === 'video',
+  )
+  // The saved take plays in its own video element so its transport is scoped
+  // to the take (0:00–take length), not the whole story composition.
+  if (showTakeVideo && recordedBlock) {
+    if (canvasTakePlayer.getAttribute('src') !== recordedBlock.videoUrl) {
+      canvasTakePlayer.setAttribute('src', recordedBlock.videoUrl)
+    }
+  } else {
+    if (!canvasTakePlayer.paused) canvasTakePlayer.pause()
+    if (!showTakeVideo && canvasTakePlayer.getAttribute('src')) {
+      canvasTakePlayer.removeAttribute('src')
+    }
+  }
+  canvasTakePlayer.hidden = !showTakeVideo
   canvasViewSwitch.hidden = !recordedBlock?.videoUrl
   if (!recordedBlock?.videoUrl) return
   canvasViewVideoButton.classList.toggle(
@@ -3102,17 +3115,13 @@ const setRecordedTakeCanvasView = (view: 'video' | 'content') => {
 
 const syncScreenPlaybackControl = () => {
   const scene = selectedPlayableRecordingScene()
-  const label =
-    scene && project.recordedBlocks?.[scene.id]?.videoUrl
-      ? 'Play recorded take'
-      : 'Play screen recording'
-  // The player's built-in transport (scrubber, pause, mute, volume) only
-  // belongs on blocks that carry an actual recording.
+  // The composition transport (scrubber, pause, mute, volume) belongs to
+  // screen-recording scenes; saved takes play in their own video element.
   if (scene) player.setAttribute('controls', '')
   else player.removeAttribute('controls')
   screenPlayToggle.hidden = !scene || !player.paused
-  screenPlayToggle.setAttribute('aria-label', label)
-  screenPlayToggle.title = label
+  screenPlayToggle.setAttribute('aria-label', 'Play screen recording')
+  screenPlayToggle.title = 'Play screen recording'
   syncCanvasViewSwitch()
 }
 
