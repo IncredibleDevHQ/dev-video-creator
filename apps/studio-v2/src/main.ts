@@ -3136,10 +3136,11 @@ screenPlayToggle.addEventListener('click', () => {
   window.clearTimeout(animationPreviewTimer)
   player.pause()
   const sceneEnd = scene.startSeconds + scene.durationSeconds
-  // Resume a position paused inside the scene; otherwise start from the top.
+  // Resume a position paused inside the scene; restart from the top when the
+  // canvas is parked on the preview frame (scenePreviewTime, near the end).
   if (
     player.currentTime < scene.startSeconds ||
-    player.currentTime >= sceneEnd - 0.1
+    player.currentTime >= sceneEnd - 0.5
   ) {
     player.seek(scene.startSeconds)
   }
