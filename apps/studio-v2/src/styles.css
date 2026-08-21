@@ -244,13 +244,11 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-timeline-heading > span { color: #a1a1aa; }
 .canvas-timeline-track { min-width: 0; display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-color: #52525b transparent; scrollbar-width: thin; }
 .canvas-timeline-block { --timeline-accent: #a1a1aa; position: relative; min-width: 140px; height: 76px; padding: 8px 9px; flex-basis: 140px; overflow: hidden; border: 1px solid rgba(255,255,255,.14); border-top: 3px solid var(--timeline-accent); border-radius: 7px; background: rgba(39,39,42,.92); color: #d4d4d8; text-align: left; }
-.timeline-kind-title { --timeline-accent: #a78bfa; }
-.timeline-kind-content { --timeline-accent: #60a5fa; }
-.timeline-kind-list { --timeline-accent: #fbbf24; }
-.timeline-kind-quote { --timeline-accent: #f472b6; }
-.timeline-kind-code { --timeline-accent: #34d399; }
-.timeline-kind-image { --timeline-accent: #22d3ee; }
-.timeline-kind-screen { --timeline-accent: #fb7185; }
+/* Brand guideline: timelines stay neutral; the green accent is reserved for
+   selection and recorded state. Block kinds read from their icon and label. */
+.timeline-kind-title, .timeline-kind-content, .timeline-kind-list, .timeline-kind-quote, .timeline-kind-code, .timeline-kind-image, .timeline-kind-screen { --timeline-accent: #8b8b93; }
+.canvas-timeline-block.active, .notebook-timeline-chip.active { --timeline-accent: var(--brand-light); }
+.canvas-timeline-block.recorded, .notebook-timeline-chip.recorded { border-color: color-mix(in srgb, var(--brand-light) 36%, rgba(255,255,255,.14)); }
 .canvas-timeline-block:hover { border-color: var(--timeline-accent); background: #3f3f46; transform: translateY(-1px); }
 .canvas-timeline-block.active { border-color: var(--timeline-accent); background: color-mix(in srgb, var(--timeline-accent) 18%, #18181b); color: white; box-shadow: 0 0 0 1px color-mix(in srgb, var(--timeline-accent) 35%, transparent), 0 8px 24px rgba(0,0,0,.22); }
 .canvas-timeline-block-top { display: flex; align-items: center; justify-content: space-between; color: #a1a1aa; font-size: 7px; line-height: 1; }
@@ -258,7 +256,8 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-timeline-block-top b { color: var(--timeline-accent); font-size: 8px; letter-spacing: .08em; }
 .canvas-timeline-block-top time { font-variant-numeric: tabular-nums; }
 .canvas-timeline-block-body { margin-top: 7px; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 7px; align-items: center; }
-.canvas-timeline-block-visual { width: 28px; height: 28px; display: grid; place-items: center; overflow: hidden; border: 1px solid color-mix(in srgb, var(--timeline-accent) 50%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--timeline-accent) 16%, #18181b); color: var(--timeline-accent); font-size: 10px; font-weight: 900; }
+.canvas-timeline-block-visual { position: relative; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--timeline-accent) 50%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--timeline-accent) 16%, #18181b); color: var(--timeline-accent); font-size: 10px; font-weight: 900; }
+.canvas-timeline-block-visual img { border-radius: 4px; }
 .canvas-timeline-block-visual img { width: 100%; height: 100%; object-fit: cover; }
 .canvas-timeline-block-copy { min-width: 0; display: block; }
 .canvas-timeline-block-type { display: flex; align-items: center; gap: 5px; color: #f4f4f5; font-size: 8px; font-weight: 800; line-height: 1; }

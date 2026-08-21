@@ -2337,6 +2337,11 @@ const renderCanvasBlockTimeline = () => {
       saved.className = 'canvas-timeline-recorded'
       saved.textContent = 'Recorded'
       type.append(saved)
+      const savedBadge = document.createElement('em')
+      savedBadge.className = 'notebook-timeline-recorded'
+      savedBadge.title = 'This block has a saved recording'
+      savedBadge.textContent = '✓'
+      visual.append(savedBadge)
     }
     if (scene.presenterTracks.length) {
       const presenter = document.createElement('i')
@@ -3054,25 +3059,31 @@ const updateSelectedConfig = (
 const scenePreviewTime = (scene: Scene) =>
   scene.startSeconds + Math.max(0.05, scene.durationSeconds - 0.12)
 
-const selectedScreenRecordingScene = () => {
+const selectedPlayableRecordingScene = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
-  return scene?.node.type === 'screenRecording' && scene.node.attrs?.src
-    ? scene
-    : undefined
+  if (!scene) return undefined
+  const isScreenRecording =
+    scene.node.type === 'screenRecording' && Boolean(scene.node.attrs?.src)
+  const hasRecordedTake = Boolean(project.recordedBlocks?.[scene.id]?.videoUrl)
+  return isScreenRecording || hasRecordedTake ? scene : undefined
 }
 
 const syncScreenPlaybackControl = () => {
-  const scene = selectedScreenRecordingScene()
+  const scene = selectedPlayableRecordingScene()
+  const label =
+    scene && project.recordedBlocks?.[scene.id]?.videoUrl
+      ? 'Play recorded take'
+      : 'Play screen recording'
   screenPlayToggle.hidden = !scene
-  screenPlayToggle.setAttribute('aria-label', 'Play screen recording')
-  screenPlayToggle.title = 'Play screen recording'
+  screenPlayToggle.setAttribute('aria-label', label)
+  screenPlayToggle.title = label
 }
 
 const stopScreenPlayback = (seekToPreview = false) => {
   window.clearTimeout(screenPlaybackTimer)
   screenPlaybackTimer = undefined
   player.pause()
-  const scene = selectedScreenRecordingScene()
+  const scene = selectedPlayableRecordingScene()
   if (seekToPreview && scene) {
     player.seek(scenePreviewTime(scene))
   }
@@ -3080,7 +3091,7 @@ const stopScreenPlayback = (seekToPreview = false) => {
 }
 
 screenPlayToggle.addEventListener('click', () => {
-  const scene = selectedScreenRecordingScene()
+  const scene = selectedPlayableRecordingScene()
   if (!scene) return
 
   window.clearTimeout(animationPreviewTimer)
