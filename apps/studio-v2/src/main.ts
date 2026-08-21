@@ -2218,6 +2218,14 @@ const renderNotebookTimeline = () => {
     const meta = TIMELINE_BLOCK_META[visualKind]
     const recordedBlock = project.recordedBlocks?.[scene.id]
     const seconds = (recordedBlock?.durationMs || scene.durationSeconds * 1000) / 1000
+    // Only surface a time the creator can stand behind: a saved recording, a
+    // captured screen take, or a duration they set themselves. Untouched
+    // type defaults stay silent here; the expanded rail shows the full plan.
+    const isScreenCapture = scene.node.type === 'screenRecording'
+    const isCustomDuration =
+      scene.config.durationMs !==
+      createDefaultBlockConfig(scene.id, scene.node).durationMs
+    const showTime = Boolean(recordedBlock) || isScreenCapture || isCustomDuration
     const chip = document.createElement('button')
     chip.type = 'button'
     chip.className = `notebook-timeline-chip timeline-kind-${visualKind}${
@@ -2227,7 +2235,7 @@ const renderNotebookTimeline = () => {
     chip.setAttribute('aria-current', isSelected ? 'true' : 'false')
     chip.setAttribute(
       'aria-label',
-      `Block ${scene.index + 1}, ${sceneObjectLabel(scene)}, ${scene.title}, ${formatTime(seconds)}${recordedBlock ? ', saved recording' : ''}`,
+      `Block ${scene.index + 1}, ${sceneObjectLabel(scene)}, ${scene.title}${showTime ? `, ${formatTime(seconds)}` : ''}${recordedBlock ? ', saved recording' : ''}`,
     )
     const icon = document.createElement('span')
     icon.className = 'notebook-timeline-icon'
@@ -2243,13 +2251,21 @@ const renderNotebookTimeline = () => {
     copy.className = 'notebook-timeline-copy'
     const kind = document.createElement('strong')
     kind.textContent = meta.label
-    const duration = document.createElement('time')
-    duration.textContent = formatTime(seconds)
-    duration.classList.toggle('recorded-length', Boolean(recordedBlock))
-    duration.title = recordedBlock
-      ? 'Length of the saved recording'
-      : 'Planned scene duration in the export'
-    copy.append(kind, duration)
+    copy.append(kind)
+    if (showTime) {
+      const duration = document.createElement('time')
+      duration.textContent = formatTime(seconds)
+      duration.classList.toggle(
+        'recorded-length',
+        Boolean(recordedBlock) || isScreenCapture,
+      )
+      duration.title = recordedBlock
+        ? 'Length of the saved recording'
+        : isScreenCapture
+          ? 'Length of the captured screen recording'
+          : 'Scene duration you set for the export'
+      copy.append(duration)
+    }
     chip.append(icon, copy)
     chip.addEventListener('click', () => {
       // Focusing the editor would drop the caret after atom nodes and
