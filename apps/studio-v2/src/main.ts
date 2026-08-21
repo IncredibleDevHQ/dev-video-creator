@@ -2245,6 +2245,10 @@ const renderNotebookTimeline = () => {
     kind.textContent = meta.label
     const duration = document.createElement('time')
     duration.textContent = formatTime(seconds)
+    duration.classList.toggle('recorded-length', Boolean(recordedBlock))
+    duration.title = recordedBlock
+      ? 'Length of the saved recording'
+      : 'Planned scene duration in the export'
     copy.append(kind, duration)
     chip.append(icon, copy)
     chip.addEventListener('click', () => {
@@ -2315,6 +2319,10 @@ const renderCanvasBlockTimeline = () => {
     const index = document.createElement('b')
     index.textContent = String(scene.index + 1).padStart(2, '0')
     const duration = document.createElement('time')
+    duration.classList.toggle('recorded-length', Boolean(recordedBlock))
+    duration.title = recordedBlock
+      ? 'Length of the saved recording'
+      : 'Planned scene duration in the export'
     duration.textContent = formatTime(
       (recordedBlock?.durationMs || scene.durationSeconds * 1000) / 1000,
     )
