@@ -217,6 +217,7 @@
                     <div id="canvas-view-switch" class="canvas-view-switch" role="group" aria-label="Recorded block view" hidden>
                       <button id="canvas-view-video" type="button" class="active" title="Show the recorded take" aria-label="Show the recorded take">▶ Video</button>
                       <button id="canvas-view-content" type="button" title="Show the directed content" aria-label="Show the directed content">▦ Content</button>
+                      <span id="canvas-take-versions" class="canvas-take-versions" role="group" aria-label="Take versions"></span>
                       <a id="canvas-view-download" href="#" download title="Download the recorded take" aria-label="Download the recorded take">⬇</a>
                     </div>
                     <div id="canvas-block-timeline" class="canvas-block-timeline" aria-label="Story block timeline"></div>
@@ -232,7 +233,7 @@
                     <div id="canvas-recording-review" class="canvas-recording-review" role="dialog" aria-label="Recorded canvas take" hidden>
                       <div class="canvas-recording-review-heading"><div><span id="canvas-recording-review-status">Review take</span><strong id="canvas-recording-review-title">Save this recording to the selected block</strong></div><button id="close-canvas-recording-review" type="button" aria-label="Close recorded take">×</button></div>
                       <video id="canvas-recording-playback" controls playsinline></video>
-                      <div class="canvas-recording-review-actions"><button id="save-canvas-recording" class="button primary" type="button">Save block</button><a id="download-canvas-recording" class="button chrome-secondary" href="#" download="incredible-directed-take.mp4">Download MP4</a><button id="record-canvas-again" class="button chrome-secondary" type="button">Record again</button></div>
+                      <div class="canvas-recording-review-actions"><button id="save-canvas-recording" class="button primary" type="button">Save block</button><button id="replace-canvas-recording" class="button chrome-secondary" type="button" hidden>Replace current take</button><a id="download-canvas-recording" class="button chrome-secondary" href="#" download="incredible-directed-take.mp4">Download MP4</a><button id="record-canvas-again" class="button chrome-secondary" type="button">Record again</button></div>
                     </div>
                   </div>
                   <aside id="canvas-director" class="canvas-director" aria-label="Canvas layout and animation controls">

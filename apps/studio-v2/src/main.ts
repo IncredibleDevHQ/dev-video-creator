@@ -466,6 +466,10 @@ const canvasViewVideoButton = $('#canvas-view-video') as HTMLButtonElement
 const canvasViewContentButton = $('#canvas-view-content') as HTMLButtonElement
 const canvasViewDownload = $('#canvas-view-download') as HTMLAnchorElement
 const canvasTakePlayer = $('#canvas-take-player') as HTMLVideoElement
+const canvasTakeVersions = $('#canvas-take-versions')
+const replaceCanvasRecordingButton = $(
+  '#replace-canvas-recording',
+) as HTMLButtonElement
 const liveCameraToggle = $('#live-camera-toggle') as HTMLButtonElement
 const liveCameraFrame = $('#live-camera-frame')
 const liveCameraPreview = $('#live-camera-preview') as HTMLVideoElement
@@ -1104,10 +1108,19 @@ const uploadDirectedCanvasRecording = async (
   }
   canvasRecordingPlayback.src = result.url
   downloadCanvasRecording.href = result.url
+  const existingTakes = project.recordedBlockTakes?.[scene.id] || []
+  const hasActiveTake = Boolean(project.recordedBlocks?.[scene.id])
   saveCanvasRecordingButton.disabled = false
-  saveCanvasRecordingButton.textContent = 'Save block'
+  saveCanvasRecordingButton.textContent = hasActiveTake
+    ? `Save as v${existingTakes.length + 1}`
+    : 'Save block'
+  replaceCanvasRecordingButton.hidden = !hasActiveTake
+  replaceCanvasRecordingButton.disabled = false
+  replaceCanvasRecordingButton.textContent = 'Replace current take'
   canvasRecordingReviewStatus.textContent = 'Review take'
-  canvasRecordingReviewTitle.textContent = 'Save this recording to the selected block'
+  canvasRecordingReviewTitle.textContent = hasActiveTake
+    ? 'Keep it as a new version, or replace the current take'
+    : 'Save this recording to the selected block'
   canvasRecordingReview.hidden = false
   showToast('Take ready — review it, then save the block')
 }
@@ -1231,10 +1244,13 @@ stopCanvasRecordingButton.addEventListener('click', finishCanvasRecording)
   canvasRecordingPlayback.pause()
   canvasRecordingReview.hidden = true
 })
-saveCanvasRecordingButton.addEventListener('click', async () => {
+const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
   if (!pendingRecordedBlock) return
+  const activeButton =
+    mode === 'replace' ? replaceCanvasRecordingButton : saveCanvasRecordingButton
   saveCanvasRecordingButton.disabled = true
-  saveCanvasRecordingButton.textContent = 'Saving…'
+  replaceCanvasRecordingButton.disabled = true
+  activeButton.textContent = 'Saving…'
   try {
     const result = await fetchJson<{ recording: RecordedBlockV1 }>(
       '/api/recordings/commit',
@@ -1244,23 +1260,59 @@ saveCanvasRecordingButton.addEventListener('click', async () => {
         body: JSON.stringify(pendingRecordedBlock),
       },
     )
+    const recording = result.recording
     project.recordedBlocks ||= {}
-    project.recordedBlocks[result.recording.blockId] = result.recording
+    project.recordedBlockTakes ||= {}
+    const takes = (project.recordedBlockTakes[recording.blockId] ||= [])
+    const previousActive = project.recordedBlocks[recording.blockId]
+    if (
+      previousActive &&
+      !takes.some(take => take.recordingId === previousActive.recordingId)
+    ) {
+      takes.push(previousActive)
+    }
+    if (mode === 'replace' && previousActive) {
+      const activeIndex = takes.findIndex(
+        take => take.recordingId === previousActive.recordingId,
+      )
+      if (activeIndex >= 0) takes[activeIndex] = recording
+      else takes.push(recording)
+    } else {
+      takes.push(recording)
+    }
+    project.recordedBlocks[recording.blockId] = recording
     pendingRecordedBlock = null
     renderCanvasBlockTimeline()
     syncProject()
     await persistProjectNow(structuredClone(project))
     saveState.textContent = 'Saved to database'
+    const versionNumber =
+      takes.findIndex(take => take.recordingId === recording.recordingId) + 1
     canvasRecordingReviewStatus.textContent = 'Recorded block'
-    canvasRecordingReviewTitle.textContent = 'This block is saved to your notebook'
-    saveCanvasRecordingButton.textContent = 'Saved'
-    showToast('Block saved and marked as recorded')
+    canvasRecordingReviewTitle.textContent = `Take v${versionNumber} is saved and active`
+    activeButton.textContent = 'Saved'
+    replaceCanvasRecordingButton.hidden = true
+    syncCanvasViewSwitch()
+    showToast(
+      mode === 'replace'
+        ? `Replaced the current take with v${versionNumber}`
+        : `Saved take v${versionNumber} — it's now the active version`,
+    )
   } catch (error) {
     saveCanvasRecordingButton.disabled = false
-    saveCanvasRecordingButton.textContent = 'Save block'
+    replaceCanvasRecordingButton.disabled = false
+    activeButton.textContent =
+      mode === 'replace' ? 'Replace current take' : 'Save block'
     showToast(error instanceof Error ? error.message : 'Could not save the block')
   }
-})
+}
+
+saveCanvasRecordingButton.addEventListener('click', () =>
+  void commitPendingRecordedBlock('version'),
+)
+replaceCanvasRecordingButton.addEventListener('click', () =>
+  void commitPendingRecordedBlock('replace'),
+)
 ;($('#record-canvas-again') as HTMLButtonElement).addEventListener('click', () => {
   canvasRecordingPlayback.pause()
   canvasRecordingReview.hidden = true
@@ -1368,6 +1420,14 @@ let project: ProjectDocumentV1 =
 project.theme = normalizeStudioTheme(project.theme, project.brand)
 project.brand = { ...project.theme.brand }
 project.recordedBlocks ||= {}
+project.recordedBlockTakes ||= {}
+// Seed take history for blocks recorded before versioning existed.
+Object.entries(project.recordedBlocks).forEach(([blockId, recording]) => {
+  const takes = (project.recordedBlockTakes![blockId] ||= [])
+  if (!takes.some(take => take.recordingId === recording.recordingId)) {
+    takes.push(recording)
+  }
+})
 // Heal documents saved before blob: sources were kept out of persistence.
 sanitizeNotebookMedia(project.notebook)
 
@@ -3221,11 +3281,45 @@ const selectedPlayableRecordingScene = () => {
     : undefined
 }
 
+const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
+  project.recordedBlocks ||= {}
+  if (project.recordedBlocks[blockId]?.recordingId === take.recordingId) return
+  project.recordedBlocks[blockId] = take
+  renderCanvasBlockTimeline()
+  syncProject()
+  syncCanvasViewSwitch()
+  const takes = project.recordedBlockTakes?.[blockId] || []
+  const versionNumber =
+    takes.findIndex(item => item.recordingId === take.recordingId) + 1
+  showToast(`Take v${versionNumber} is now used for the final video`)
+}
+
+const renderTakeVersionPicker = (blockId: string) => {
+  const takes = project.recordedBlockTakes?.[blockId] || []
+  const active = project.recordedBlocks?.[blockId]
+  canvasTakeVersions.replaceChildren()
+  canvasTakeVersions.hidden = takes.length < 2
+  if (takes.length < 2) return
+  takes.forEach((take, index) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    const isActive = take.recordingId === active?.recordingId
+    button.className = isActive ? 'active' : ''
+    button.textContent = `v${index + 1}`
+    button.title = isActive
+      ? `Take v${index + 1} · used for the final video`
+      : `Use take v${index + 1} (${formatTime(take.durationMs / 1000)}) for the final video`
+    button.addEventListener('click', () => selectRecordedTake(blockId, take))
+    canvasTakeVersions.append(button)
+  })
+}
+
 const syncCanvasViewSwitch = () => {
   const recordedBlock = project.recordedBlocks?.[selectedNodeId]
   const showTakeVideo = Boolean(
     recordedBlock?.videoUrl && recordedTakeCanvasView === 'video',
   )
+  renderTakeVersionPicker(selectedNodeId)
   // The saved take plays in its own video element so its transport is scoped
   // to the take (0:00–take length), not the whole story composition.
   if (showTakeVideo && recordedBlock) {
