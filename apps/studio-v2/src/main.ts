@@ -2410,6 +2410,75 @@ const formatTime = (seconds: number) => {
   ).padStart(2, '0')}`
 }
 
+let draggedBlockId = ''
+
+// Reordering happens on the notebook document itself; configurations, notes,
+// and recorded takes are keyed by stable node ID, so they travel with it.
+const reorderBlock = (
+  movingId: string,
+  referenceId: string,
+  placeBefore: boolean,
+) => {
+  if (movingId === referenceId) return
+  const doc = editor.getJSON() as TiptapDocument
+  const fromIndex = doc.content.findIndex(node => node.attrs?.id === movingId)
+  if (fromIndex === -1) return
+  const [node] = doc.content.splice(fromIndex, 1)
+  const referenceIndex = doc.content.findIndex(
+    item => item.attrs?.id === referenceId,
+  )
+  if (referenceIndex === -1) return
+  const insertion = placeBefore ? referenceIndex : referenceIndex + 1
+  doc.content.splice(insertion, 0, node)
+  editor.commands.setContent(doc)
+  selectNode(movingId, false)
+  syncProject()
+}
+
+const clearDropMarkers = () => {
+  document
+    .querySelectorAll('.drop-before, .drop-after, .dragging')
+    .forEach(element =>
+      element.classList.remove('drop-before', 'drop-after', 'dragging'),
+    )
+}
+
+const makeChipReorderable = (chip: HTMLElement, sceneId: string) => {
+  chip.draggable = true
+  chip.addEventListener('dragstart', event => {
+    draggedBlockId = sceneId
+    chip.classList.add('dragging')
+    event.dataTransfer?.setData('text/plain', sceneId)
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+  })
+  chip.addEventListener('dragend', () => {
+    draggedBlockId = ''
+    clearDropMarkers()
+  })
+  chip.addEventListener('dragover', event => {
+    if (!draggedBlockId || draggedBlockId === sceneId) return
+    event.preventDefault()
+    const rect = chip.getBoundingClientRect()
+    const before = event.clientX < rect.left + rect.width / 2
+    chip.classList.toggle('drop-before', before)
+    chip.classList.toggle('drop-after', !before)
+  })
+  chip.addEventListener('dragleave', () =>
+    chip.classList.remove('drop-before', 'drop-after'),
+  )
+  chip.addEventListener('drop', event => {
+    event.preventDefault()
+    const movingId =
+      draggedBlockId || event.dataTransfer?.getData('text/plain') || ''
+    clearDropMarkers()
+    if (!movingId || movingId === sceneId) return
+    const rect = chip.getBoundingClientRect()
+    const before = event.clientX < rect.left + rect.width / 2
+    reorderBlock(movingId, sceneId, before)
+    draggedBlockId = ''
+  })
+}
+
 const renderNotebookTimeline = () => {
   const notebookTimeline = $('#notebook-timeline')
   const track = document.createElement('div')
@@ -2475,6 +2544,7 @@ const renderNotebookTimeline = () => {
       selectNode(scene.id, false)
       document.getElementById(scene.id)?.scrollIntoView({ block: 'center' })
     })
+    makeChipReorderable(chip, scene.id)
     track.append(chip)
   })
   notebookTimeline.replaceChildren(track)
@@ -2591,6 +2661,22 @@ const renderCanvasBlockTimeline = () => {
     // Selecting a recorded block shows its take directly on the canvas with
     // the video/content switch — no review dialog in the way.
     button.addEventListener('click', () => selectNode(scene.id, false))
+    makeChipReorderable(button, scene.id)
+    if (scene.index > 0) {
+      const previousScene = scenes[scene.index - 1]
+      const swap = document.createElement('span')
+      swap.className = 'canvas-timeline-swap'
+      swap.setAttribute('role', 'button')
+      swap.tabIndex = 0
+      swap.title = 'Swap with the previous block'
+      swap.setAttribute('aria-label', 'Swap with the previous block')
+      swap.textContent = '⇄'
+      swap.addEventListener('click', event => {
+        event.stopPropagation()
+        reorderBlock(scene.id, previousScene.id, true)
+      })
+      button.append(swap)
+    }
     track.append(button)
   })
 

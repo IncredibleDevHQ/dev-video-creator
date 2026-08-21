@@ -301,6 +301,13 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-timeline-recorded { margin-left: auto; padding: 2px 4px; border-radius: 999px; background: rgba(74,222,128,.14); color: #86efac; font-size: 5px; font-style: normal; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
 .canvas-timeline-block-copy > strong { max-width: 100%; margin-top: 4px; display: block; overflow: hidden; color: #a1a1aa; font-size: 7px; font-weight: 500; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .canvas-timeline-block.active .canvas-timeline-block-copy > strong { color: white; }
+.canvas-timeline-block, .notebook-timeline-chip { cursor: grab; }
+.canvas-timeline-block.dragging, .notebook-timeline-chip.dragging { opacity: .35; cursor: grabbing; }
+.canvas-timeline-block.drop-before, .notebook-timeline-chip.drop-before { box-shadow: inset 3px 0 0 var(--brand-light); }
+.canvas-timeline-block.drop-after, .notebook-timeline-chip.drop-after { box-shadow: inset -3px 0 0 var(--brand-light); }
+.canvas-timeline-swap { position: absolute; top: 4px; left: 4px; z-index: 3; width: 17px; height: 17px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; background: #18181b; color: #d4d4d8; font-size: 9px; line-height: 1; opacity: 0; cursor: pointer; transition: opacity .12s ease; }
+.canvas-timeline-block:hover .canvas-timeline-swap { opacity: 1; }
+.canvas-timeline-swap:hover { border-color: var(--brand-light); color: white; }
 .notebook-timeline { position: fixed; left: calc(50% - 210px); bottom: 20px; z-index: 40; width: min(724px, calc(100vw - 460px)); padding: 9px; display: block; border: 1px solid rgba(255,255,255,.12); border-radius: 15px; background: rgba(24,24,27,.9); box-shadow: 0 26px 70px rgba(0,0,0,.38); backdrop-filter: blur(16px); translate: -50% 0; }
 body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) .notebook-timeline { display: none; }
 .notebook-timeline-track { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-color: #52525b transparent; scrollbar-width: thin; }
