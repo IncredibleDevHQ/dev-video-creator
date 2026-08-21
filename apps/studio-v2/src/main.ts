@@ -562,7 +562,7 @@ let screenRecordingStartedAt = 0
 let screenRecordingTimer: number | undefined
 let generatedVoiceUrl = ''
 let animationPreviewTimer: number | undefined
-let screenPlaybackTimer: number | undefined
+let screenPlaybackWatcher: (() => void) | null = null
 let replayAnimationOnReady = false
 let selectedCanvasObject: 'content' | 'presenter' = 'content'
 let selectedBackgroundMode: 'gradient' | 'color' = 'gradient'
@@ -3074,14 +3074,20 @@ const syncScreenPlaybackControl = () => {
     scene && project.recordedBlocks?.[scene.id]?.videoUrl
       ? 'Play recorded take'
       : 'Play screen recording'
-  screenPlayToggle.hidden = !scene
+  // The player's built-in transport (scrubber, pause, mute, volume) only
+  // belongs on blocks that carry an actual recording.
+  if (scene) player.setAttribute('controls', '')
+  else player.removeAttribute('controls')
+  screenPlayToggle.hidden = !scene || !player.paused
   screenPlayToggle.setAttribute('aria-label', label)
   screenPlayToggle.title = label
 }
 
 const stopScreenPlayback = (seekToPreview = false) => {
-  window.clearTimeout(screenPlaybackTimer)
-  screenPlaybackTimer = undefined
+  if (screenPlaybackWatcher) {
+    player.removeEventListener('timeupdate', screenPlaybackWatcher)
+    screenPlaybackWatcher = null
+  }
   player.pause()
   const scene = selectedPlayableRecordingScene()
   if (seekToPreview && scene) {
@@ -3096,19 +3102,34 @@ screenPlayToggle.addEventListener('click', () => {
 
   window.clearTimeout(animationPreviewTimer)
   player.pause()
-  player.seek(scene.startSeconds)
-  screenPlayToggle.hidden = true
-  screenPlaybackTimer = window.setTimeout(
-    () => stopScreenPlayback(true),
-    scene.durationSeconds * 1000,
-  )
+  const sceneEnd = scene.startSeconds + scene.durationSeconds
+  // Resume a position paused inside the scene; otherwise start from the top.
+  if (
+    player.currentTime < scene.startSeconds ||
+    player.currentTime >= sceneEnd - 0.1
+  ) {
+    player.seek(scene.startSeconds)
+  }
+  if (screenPlaybackWatcher) {
+    player.removeEventListener('timeupdate', screenPlaybackWatcher)
+  }
+  screenPlaybackWatcher = () => {
+    if (!player.paused && player.currentTime >= sceneEnd - 0.05) {
+      stopScreenPlayback(true)
+    }
+  }
+  player.addEventListener('timeupdate', screenPlaybackWatcher)
   try {
     player.play()
   } catch (error) {
     stopScreenPlayback()
-    console.error('Could not play screen recording', error)
+    console.error('Could not play the recording', error)
   }
+  syncScreenPlaybackControl()
 })
+
+player.addEventListener('play', syncScreenPlaybackControl)
+player.addEventListener('pause', syncScreenPlaybackControl)
 
 const replaySelectedAnimation = async () => {
   stopScreenPlayback()

@@ -9,6 +9,9 @@ interface HyperframesPlayerElement extends HTMLElement {
   currentTime: number
   duration: number
   ready: boolean
+  paused: boolean
+  muted: boolean
+  volume: number
   play(): void
   pause(): void
   seek(time: number): void
