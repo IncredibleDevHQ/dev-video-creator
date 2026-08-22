@@ -135,9 +135,8 @@
             <input id="project-title" value="Human-first developer story" />
           </label>
           <div class="topbar-actions">
-            <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
-            <span id="render-result" hidden><a id="download-render" class="button chrome-ghost" href="#" download>Download MP4</a></span>
-            <button id="render-video" type="button" class="button primary" disabled>Publish</button>
+            <div class="save-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><strong id="save-state">Saved</strong></div>
+            <button id="render-video" type="button" class="button primary" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Publish</button>
             <div class="topbar-status"><span class="brand-orbit"><span>HF</span></span><strong>Local workspace</strong></div>
           </div>
         </div>
@@ -148,17 +147,17 @@
             <button id="open-fullscreen-tab" type="button" class="workspace-tab">Preview</button>
           </div>
           <nav class="actions" aria-label="Project actions">
-            <label class="studio-theme-picker"><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">✎</button></label>
+            <label class="studio-theme-picker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13.5 9 5 9-5"/></svg><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">✎</button></label>
             <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
             <div class="import-menu">
-              <button id="import-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false">Import <span aria-hidden="true">⌄</span></button>
+              <button id="import-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>Import <span aria-hidden="true">⌄</span></button>
               <div id="import-menu-list" class="import-menu-list" role="menu" hidden>
                 <button id="import-file" type="button" role="menuitem">Import .md file</button>
                 <button id="paste-markdown" type="button" role="menuitem">Paste Markdown…</button>
               </div>
             </div>
             <span class="commandbar-divider" aria-hidden="true"></span>
-            <button id="open-fullscreen" class="button chrome-secondary">Open canvas</button>
+            <button id="open-fullscreen" class="button chrome-secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/></svg>Open canvas</button>
           </nav>
         </div>
       </header>
@@ -413,7 +412,7 @@
       <div id="publish-block-list" class="publish-block-list"></div>
       <div class="publish-footer">
         <div class="publish-summary"><strong id="publish-duration">00:00</strong><span id="publish-count">0 blocks</span></div>
-        <div class="modal-actions"><button id="cancel-publish" class="button ghost" type="button">Cancel</button><button id="start-publish" class="button primary" type="button">Publish video</button></div>
+        <div class="modal-actions"><span id="render-result" hidden><a id="download-render" class="button ghost" href="#" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 19h16"/></svg>Download MP4</a></span><button id="cancel-publish" class="button ghost" type="button">Cancel</button><button id="start-publish" class="button primary" type="button">Publish video</button></div>
       </div>
     </dialog>
 

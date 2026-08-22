@@ -53,10 +53,11 @@ h1, h2, h3, h4, strong { font-family: 'Gilroy', sans-serif; }
 .format-control strong { margin-right: auto; color: #f4f4f5; font-size: 12px; }
 .workspace-tab { height: 48px; padding: 0; border: 0; background: transparent; color: #929397; font-family: 'Gilroy'; font-size: 13px; font-weight: 600; }
 .workspace-tab.active { color: rgba(255,255,255,.9); }
-.save-state { margin-right: 8px; display: flex; align-items: center; gap: 7px; color: #a1a1aa; font-size: 10px; }
-.save-state > span { width: 7px; height: 7px; border-radius: 50%; background: var(--brand-light); }
+.save-state { margin-right: 8px; display: flex; align-items: center; gap: 6px; color: #a1a1aa; font-size: 10px; }
+.save-state svg { width: 12px; height: 12px; color: var(--brand-light); }
 
-.button { min-height: 34px; padding: 0 13px; border: 1px solid #d4d4d8; border-radius: 4px; background: white; color: var(--ink); font-family: 'Gilroy'; font-size: 11px; font-weight: 700; transition: transform .14s, background .14s, border-color .14s; }
+.button { min-height: 34px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #d4d4d8; border-radius: 4px; background: white; color: var(--ink); font-family: 'Gilroy'; font-size: 11px; font-weight: 700; transition: transform .14s, background .14s, border-color .14s; }
+.button svg { width: 13px; height: 13px; flex: none; }
 .button:hover { transform: translateY(-1px); border-color: #a1a1aa; }
 .button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 .button.primary { border-color: var(--brand); background: var(--brand); color: white; }
@@ -868,6 +869,7 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .generated-theme-grid .theme-card-preview { height: 170px; }
 .generated-theme-grid .theme-card-meta { min-height: 82px; }
 .studio-theme-picker { height: 32px; padding: 0 8px; display: flex; align-items: center; gap: 7px; border-radius: 4px; background: var(--chrome-3); color: #a1a1aa; font-size: 9px; }
+.studio-theme-picker > svg { width: 13px; height: 13px; flex: none; }
 .studio-theme-picker > button { padding: 2px 5px; border: 0; border-radius: 3px; background: transparent; color: #a1a1aa; font-size: 11px; line-height: 1; cursor: pointer; }
 .studio-theme-picker > button:hover { background: rgba(255,255,255,.1); color: white; }
 .import-menu { position: relative; }

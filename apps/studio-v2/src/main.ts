@@ -1304,7 +1304,7 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
     renderCanvasBlockTimeline()
     syncProject()
     await persistProjectNow(structuredClone(project))
-    saveState.textContent = 'Saved to database'
+    saveState.textContent = 'Saved'
     const versionNumber =
       takes.findIndex(take => take.recordingId === recording.recordingId) + 1
     canvasRecordingReviewStatus.textContent = 'Recorded block'
@@ -2302,7 +2302,7 @@ const showToast = (message: string) => {
 }
 
 const setSaving = (saving: boolean) => {
-  saveState.textContent = saving ? 'Compiling…' : 'Saved locally'
+  saveState.textContent = saving ? 'Saving…' : 'Saved'
   saveState.parentElement?.classList.toggle('saving', saving)
 }
 
@@ -2312,9 +2312,9 @@ const scheduleDatabaseSync = () => {
   databaseSyncTimer = window.setTimeout(async () => {
     try {
       await persistProjectNow(snapshot)
-      saveState.textContent = 'Saved to database'
+      saveState.textContent = 'Saved'
     } catch {
-      saveState.textContent = 'Saved locally · database offline'
+      saveState.textContent = 'Saved offline'
     }
   }, 450)
 }
@@ -4763,7 +4763,8 @@ const startPublish = async () => {
     const link = $('#download-render') as HTMLAnchorElement
     link.href = result.url
     resultPanel.hidden = false
-    publishDialog.close()
+    ;($('#publish-count') as HTMLElement).textContent =
+      `published · ${result.durationSeconds.toFixed(1)}s`
     showToast(`Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Publish failed')
@@ -4776,6 +4777,7 @@ const startPublish = async () => {
 renderButton.addEventListener('click', () => {
   syncProject()
   publishExcluded.clear()
+  ;($('#render-result') as HTMLElement).hidden = true
   renderPublishBlockList()
   publishDialog.showModal()
 })
