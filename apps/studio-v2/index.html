@@ -134,7 +134,12 @@
             <span class="sr-only">Project title</span>
             <input id="project-title" value="Human-first developer story" />
           </label>
-          <div class="topbar-status"><span class="brand-orbit"><span>HF</span></span><strong>Local workspace</strong></div>
+          <div class="topbar-actions">
+            <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
+            <span id="render-result" hidden><a id="download-render" class="button chrome-ghost" href="#" download>Download MP4</a></span>
+            <button id="render-video" type="button" class="button primary" disabled>Export video</button>
+            <div class="topbar-status"><span class="brand-orbit"><span>HF</span></span><strong>Local workspace</strong></div>
+          </div>
         </div>
         <div class="commandbar">
           <div class="workspace-nav">
@@ -143,17 +148,19 @@
             <button id="open-fullscreen-tab" type="button" class="workspace-tab">Preview</button>
           </div>
           <nav class="actions" aria-label="Project actions">
-            <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
-            <label class="studio-theme-picker"><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select></label>
-            <button id="open-theme-builder" class="button chrome-ghost" type="button">Edit themes</button>
+            <label class="studio-theme-picker"><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">✎</button></label>
             <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
-            <button id="import-file" class="button chrome-ghost">Import .md</button>
-            <button id="paste-markdown" class="button chrome-ghost">Paste Markdown</button>
-            <button id="open-settings" class="button chrome-ghost">Block settings</button>
-            <button id="render-video" type="button" class="button chrome-secondary" disabled>Export video</button>
-            <span id="render-result" hidden><a id="download-render" class="button chrome-ghost" href="#" download>Download MP4</a></span>
+            <div class="import-menu">
+              <button id="import-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false">Import <span aria-hidden="true">⌄</span></button>
+              <div id="import-menu-list" class="import-menu-list" role="menu" hidden>
+                <button id="import-file" type="button" role="menuitem">Import .md file</button>
+                <button id="paste-markdown" type="button" role="menuitem">Paste Markdown…</button>
+              </div>
+            </div>
+            <button id="open-settings" class="button chrome-ghost">Blocks</button>
+            <span class="commandbar-divider" aria-hidden="true"></span>
             <button id="open-fullscreen" class="button chrome-secondary">Open canvas</button>
-            <button id="open-camera" class="button primary"><span class="record-dot"></span> Record</button>
+            <button id="open-camera" class="button record-cta"><span class="record-dot"></span> Record</button>
           </nav>
         </div>
       </header>

@@ -3765,6 +3765,31 @@ window.addEventListener('resize', () => {
   attachLiveCameraToPlayer()
 })
 
+const importMenuToggle = $('#import-menu-toggle') as HTMLButtonElement
+const importMenuList = $('#import-menu-list')
+
+const closeImportMenu = () => {
+  importMenuList.hidden = true
+  importMenuToggle.setAttribute('aria-expanded', 'false')
+}
+
+importMenuToggle.addEventListener('click', event => {
+  event.stopPropagation()
+  const open = importMenuList.hidden
+  importMenuList.hidden = !open
+  importMenuToggle.setAttribute('aria-expanded', String(open))
+})
+importMenuList.addEventListener('click', () => closeImportMenu())
+document.addEventListener('click', event => {
+  if (importMenuList.hidden) return
+  if (
+    !(event.target instanceof Node) ||
+    !importMenuToggle.parentElement?.contains(event.target)
+  ) {
+    closeImportMenu()
+  }
+})
+
 ;($('#project-title') as HTMLInputElement).value = project.title
 ;($('#project-title') as HTMLInputElement).addEventListener('input', event => {
   project.title = (event.currentTarget as HTMLInputElement).value
