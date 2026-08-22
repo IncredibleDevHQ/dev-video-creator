@@ -137,7 +137,7 @@
           <div class="topbar-actions">
             <div class="save-state"><span></span><strong id="save-state">Saved locally</strong></div>
             <span id="render-result" hidden><a id="download-render" class="button chrome-ghost" href="#" download>Download MP4</a></span>
-            <button id="render-video" type="button" class="button primary" disabled>Export video</button>
+            <button id="render-video" type="button" class="button primary" disabled>Publish</button>
             <div class="topbar-status"><span class="brand-orbit"><span>HF</span></span><strong>Local workspace</strong></div>
           </div>
         </div>
@@ -157,10 +157,8 @@
                 <button id="paste-markdown" type="button" role="menuitem">Paste Markdown…</button>
               </div>
             </div>
-            <button id="open-settings" class="button chrome-ghost">Blocks</button>
             <span class="commandbar-divider" aria-hidden="true"></span>
             <button id="open-fullscreen" class="button chrome-secondary">Open canvas</button>
-            <button id="open-camera" class="button record-cta"><span class="record-dot"></span> Record</button>
           </nav>
         </div>
       </header>
@@ -408,6 +406,16 @@
         </aside>
       </main>
     </div>
+
+    <dialog id="publish-dialog" class="modal publish-modal">
+      <div class="modal-heading"><div><span class="eyebrow">Publish</span><h2>Finalize your story</h2></div><button id="close-publish" class="icon-button" type="button" aria-label="Close publish">×</button></div>
+      <p class="publish-note">Pick the take for each recorded block, the transition into every block, and which blocks ship in the final video.</p>
+      <div id="publish-block-list" class="publish-block-list"></div>
+      <div class="publish-footer">
+        <div class="publish-summary"><strong id="publish-duration">00:00</strong><span id="publish-count">0 blocks</span></div>
+        <div class="modal-actions"><button id="cancel-publish" class="button ghost" type="button">Cancel</button><button id="start-publish" class="button primary" type="button">Publish video</button></div>
+      </div>
+    </dialog>
 
     <dialog id="markdown-dialog" class="modal markdown-modal">
       <form method="dialog">

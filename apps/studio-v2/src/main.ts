@@ -2720,11 +2720,6 @@ const renderSceneRail = () => {
   renderCanvasBlockTimeline()
 }
 
-const hasRecordedOutput = () =>
-  Object.values(project.presenterTracks).some(tracks => tracks.length > 0) ||
-  Object.values(project.recordedBlocks || {}).some(recording =>
-    Boolean(recording?.videoUrl),
-  )
 
 const positionInlinePreview = () => {
   const selectedNode = document.getElementById(selectedNodeId)
@@ -3207,10 +3202,10 @@ const updateInspector = () => {
       option.value as RevealStyle,
     )
   })
-  renderButton.disabled = !hasRecordedOutput()
+  renderButton.disabled = scenes.length === 0
   renderButton.title = renderButton.disabled
-    ? 'Record a block or a presenter track first'
-    : 'Export the recorded canvas as MP4'
+    ? 'Add at least one block first'
+    : 'Choose takes and transitions, then publish the MP4'
 }
 
 const selectNode = (nodeId: string, focusEditor: boolean) => {
@@ -3741,8 +3736,9 @@ liveCameraToggle.addEventListener('click', async () => {
   }
 })
 
-;['#open-settings', '#inline-settings'].forEach(selector =>
-  ($(selector) as HTMLButtonElement).addEventListener('click', openInspector),
+;($('#inline-settings') as HTMLButtonElement).addEventListener(
+  'click',
+  openInspector,
 )
 ;($('#close-settings') as HTMLButtonElement).addEventListener(
   'click',
@@ -4449,7 +4445,6 @@ const openCamera = () => {
   cameraDialog.showModal()
 }
 
-;($('#open-camera') as HTMLButtonElement).addEventListener('click', openCamera)
 ;($('#record-this-block') as HTMLButtonElement).addEventListener('click', openCamera)
 ;($('#close-camera') as HTMLButtonElement).addEventListener('click', () => {
   if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
@@ -4640,32 +4635,157 @@ stopRecordingButton.addEventListener('click', () => {
   showToast('Presenter track removed')
 })
 
-renderButton.addEventListener('click', async () => {
-  syncProject()
-  renderButton.disabled = true
-  renderButton.textContent = 'Rendering…'
+const publishDialog = $('#publish-dialog') as HTMLDialogElement
+const publishBlockList = $('#publish-block-list')
+const startPublishButton = $('#start-publish') as HTMLButtonElement
+const publishExcluded = new Set<string>()
+
+const publishRowSeconds = (scene: Scene) => {
+  const recorded = project.recordedBlocks?.[scene.id]
+  return (recorded?.durationMs || scene.durationSeconds * 1000) / 1000
+}
+
+const syncPublishSummary = () => {
+  const included = scenes.filter(scene => !publishExcluded.has(scene.id))
+  const total = included.reduce(
+    (sum, scene) => sum + publishRowSeconds(scene),
+    0,
+  )
+  ;($('#publish-duration') as HTMLElement).textContent = formatTime(total)
+  ;($('#publish-count') as HTMLElement).textContent =
+    `${included.length} of ${scenes.length} blocks`
+  startPublishButton.disabled = included.length === 0
+}
+
+const renderPublishBlockList = () => {
+  publishBlockList.replaceChildren(
+    ...scenes.map(scene => {
+      const row = document.createElement('div')
+      row.className = 'publish-block-row'
+      row.classList.toggle('excluded', publishExcluded.has(scene.id))
+
+      const include = document.createElement('input')
+      include.type = 'checkbox'
+      include.checked = !publishExcluded.has(scene.id)
+      include.title = 'Ship this block in the final video'
+      include.addEventListener('change', () => {
+        if (include.checked) publishExcluded.delete(scene.id)
+        else publishExcluded.add(scene.id)
+        row.classList.toggle('excluded', !include.checked)
+        syncPublishSummary()
+      })
+
+      const meta = TIMELINE_BLOCK_META[sceneVisualKind(scene)]
+      const identity = document.createElement('div')
+      identity.className = 'publish-block-identity'
+      const number = document.createElement('b')
+      number.textContent = String(scene.index + 1).padStart(2, '0')
+      const copy = document.createElement('div')
+      const kindLabel = document.createElement('strong')
+      kindLabel.textContent = meta.label
+      const title = document.createElement('small')
+      title.textContent = scene.title
+      copy.append(kindLabel, title)
+      identity.append(number, copy)
+
+      const controls = document.createElement('div')
+      controls.className = 'publish-block-controls'
+      const takes = project.recordedBlockTakes?.[scene.id] || []
+      if (takes.length) {
+        const takeSelect = document.createElement('select')
+        takeSelect.title = 'Take used in the final video'
+        takes.forEach((take, index) => {
+          const option = document.createElement('option')
+          option.value = take.recordingId
+          option.textContent = `Take v${index + 1} · ${formatTime(take.durationMs / 1000)}`
+          option.selected =
+            take.recordingId ===
+            project.recordedBlocks?.[scene.id]?.recordingId
+          takeSelect.append(option)
+        })
+        takeSelect.addEventListener('change', () => {
+          const take = takes.find(item => item.recordingId === takeSelect.value)
+          if (take) {
+            selectRecordedTake(scene.id, take)
+            renderPublishBlockList()
+          }
+        })
+        controls.append(takeSelect)
+      }
+      const transitionSelect = document.createElement('select')
+      transitionSelect.title = 'Transition into this block'
+      DIRECTOR_OPTIONS[scene.kind].animations.forEach(value => {
+        const motion = MOTION_OPTIONS.find(option => option.value === value)
+        const option = document.createElement('option')
+        option.value = value
+        option.textContent = `⇢ ${motion?.label || value}`
+        option.selected = value === scene.config.reveal
+        transitionSelect.append(option)
+      })
+      transitionSelect.addEventListener('change', () => {
+        const config = project.blocks[scene.id]
+        if (config) {
+          config.reveal = transitionSelect.value as RevealStyle
+          scheduleSync()
+        }
+      })
+      controls.append(transitionSelect)
+
+      const time = document.createElement('time')
+      time.textContent = formatTime(publishRowSeconds(scene))
+
+      row.append(include, identity, controls, time)
+      return row
+    }),
+  )
+  syncPublishSummary()
+}
+
+const startPublish = async () => {
+  startPublishButton.disabled = true
+  startPublishButton.textContent = 'Rendering…'
   const resultPanel = $('#render-result')
   resultPanel.hidden = true
   try {
+    const payload = structuredClone(project)
+    payload.notebook.content = payload.notebook.content.filter(node => {
+      const nodeId = node.attrs?.id
+      return typeof nodeId !== 'string' || !publishExcluded.has(nodeId)
+    })
     const result = await fetchJson<{ url: string; durationSeconds: number }>(
       '/api/render',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(project),
+        body: JSON.stringify(payload),
       },
     )
     const link = $('#download-render') as HTMLAnchorElement
     link.href = result.url
     resultPanel.hidden = false
-    showToast(`Rendered ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`)
+    publishDialog.close()
+    showToast(`Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`)
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Render failed')
+    showToast(error instanceof Error ? error.message : 'Publish failed')
   } finally {
-    renderButton.disabled = false
-    renderButton.textContent = 'Export video'
+    startPublishButton.disabled = false
+    startPublishButton.textContent = 'Publish video'
   }
+}
+
+renderButton.addEventListener('click', () => {
+  syncProject()
+  publishExcluded.clear()
+  renderPublishBlockList()
+  publishDialog.showModal()
 })
+startPublishButton.addEventListener('click', () => void startPublish())
+;($('#cancel-publish') as HTMLButtonElement).addEventListener('click', () =>
+  publishDialog.close(),
+)
+;($('#close-publish') as HTMLButtonElement).addEventListener('click', () =>
+  publishDialog.close(),
+)
 
 window.addEventListener('beforeunload', () => {
   finishCanvasRecording()

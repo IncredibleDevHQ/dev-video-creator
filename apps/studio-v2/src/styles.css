@@ -507,6 +507,24 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .modal-heading { padding: 20px 22px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .modal-heading h2 { margin: 4px 0 0; font-size: 19px; }
 .markdown-modal { width: min(720px, 80vw); }
+.publish-modal { width: min(680px, 84vw); }
+.publish-note { margin: 14px 22px 0; color: #71717a; font-size: 11px; line-height: 1.55; }
+.publish-block-list { max-height: min(430px, 52vh); margin: 14px 22px; padding: 4px; display: grid; gap: 4px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+.publish-block-row { padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center; border-radius: 6px; }
+.publish-block-row:hover { background: #f7f7f8; }
+.publish-block-row.excluded { opacity: .42; }
+.publish-block-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--brand); }
+.publish-block-identity { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.publish-block-identity b { color: var(--brand); font-size: 9px; letter-spacing: .08em; }
+.publish-block-identity strong { display: block; font-size: 11px; }
+.publish-block-identity small { display: block; max-width: 240px; overflow: hidden; color: #71717a; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.publish-block-controls { display: flex; gap: 6px; }
+.publish-block-controls select { max-width: 170px; padding: 6px 8px; border: 1px solid #d4d4d8; border-radius: 5px; background: white; font-size: 10px; }
+.publish-block-row > time { color: #71717a; font-size: 10px; font-variant-numeric: tabular-nums; }
+.publish-footer { padding: 14px 22px 18px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); }
+.publish-summary strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+.publish-summary span { margin-left: 8px; color: #71717a; font-size: 10px; }
+.publish-footer .modal-actions { margin: 0; padding: 0; display: flex; gap: 8px; }
 .markdown-modal textarea { width: calc(100% - 44px); min-height: 390px; margin: 20px 22px; padding: 18px; resize: vertical; border: 1px solid #d4d4d8; border-radius: 5px; outline: 0; font: 12px/1.7 'Roboto Mono', monospace; }
 .markdown-modal textarea:focus { border-color: var(--brand); }
 .modal-actions { padding: 0 22px 20px; display: flex; justify-content: flex-end; gap: 8px; }
