@@ -3072,6 +3072,19 @@ const renderStudioStyleControls = (
     `${placementOptions.length * renderOptions.length * motions * codeMultiplier * mediaMultiplier} combinations`
 }
 
+// A looping visual preview of an entrance motion — the tile language used by
+// the director's transition tab and the publish walkthrough.
+const createMotionDemo = (value: RevealStyle) => {
+  const demo = document.createElement('span')
+  demo.className = `motion-demo motion-demo-${value}`
+  demo.setAttribute('aria-hidden', 'true')
+  const barCount = value === 'line-by-line' ? 3 : 1
+  for (let index = 0; index < barCount; index += 1) {
+    demo.append(document.createElement('i'))
+  }
+  return demo
+}
+
 const renderStudioMotionControls = (
   scene: Scene,
   config: BlockRenderConfigV1,
@@ -3086,9 +3099,7 @@ const renderStudioMotionControls = (
         button.dataset.animationOption = option.value
         button.className = option.value === config.reveal ? 'active' : ''
         button.setAttribute('aria-pressed', String(option.value === config.reveal))
-        const glyph = document.createElement('span')
-        glyph.className = 'motion-glyph'
-        glyph.textContent = option.glyph
+        const glyph = createMotionDemo(option.value)
         const copy = document.createElement('div')
         const label = document.createElement('strong')
         label.textContent = option.label
@@ -4712,29 +4723,70 @@ const renderPublishBlockList = () => {
         })
         controls.append(takeSelect)
       }
-      const transitionSelect = document.createElement('select')
-      transitionSelect.title = 'Transition into this block'
-      DIRECTOR_OPTIONS[scene.kind].animations.forEach(value => {
-        const motion = MOTION_OPTIONS.find(option => option.value === value)
-        const option = document.createElement('option')
-        option.value = value
-        option.textContent = `⇢ ${motion?.label || value}`
-        option.selected = value === scene.config.reveal
-        transitionSelect.append(option)
-      })
-      transitionSelect.addEventListener('change', () => {
-        const config = project.blocks[scene.id]
-        if (config) {
-          config.reveal = transitionSelect.value as RevealStyle
-          scheduleSync()
+      const currentReveal = () =>
+        project.blocks[scene.id]?.reveal || scene.config.reveal
+      const transitionTrigger = document.createElement('button')
+      transitionTrigger.type = 'button'
+      transitionTrigger.className = 'publish-transition-trigger'
+      transitionTrigger.title = 'Transition into this block'
+      const transitionPanel = document.createElement('div')
+      transitionPanel.className = 'publish-transition-panel'
+      transitionPanel.hidden = true
+      const syncTransitionTrigger = () => {
+        const motion = MOTION_OPTIONS.find(
+          option => option.value === currentReveal(),
+        )
+        transitionTrigger.replaceChildren(
+          createMotionDemo(currentReveal()),
+          Object.assign(document.createElement('strong'), {
+            textContent: motion?.label || currentReveal(),
+          }),
+          Object.assign(document.createElement('span'), { textContent: '⌄' }),
+        )
+      }
+      const renderTransitionPanel = () => {
+        transitionPanel.replaceChildren(
+          ...DIRECTOR_OPTIONS[scene.kind].animations.map(value => {
+            const motion = MOTION_OPTIONS.find(option => option.value === value)
+            const tile = document.createElement('button')
+            tile.type = 'button'
+            tile.className = `motion-tile${value === currentReveal() ? ' active' : ''}`
+            tile.title = motion?.description || value
+            const label = document.createElement('strong')
+            label.textContent = motion?.label || value
+            tile.append(createMotionDemo(value), label)
+            tile.addEventListener('click', () => {
+              const config = project.blocks[scene.id]
+              if (config) {
+                config.reveal = value
+                scheduleSync()
+              }
+              syncTransitionTrigger()
+              transitionPanel.hidden = true
+            })
+            return tile
+          }),
+        )
+      }
+      transitionTrigger.addEventListener('click', () => {
+        const willOpen = transitionPanel.hidden
+        publishBlockList
+          .querySelectorAll<HTMLElement>('.publish-transition-panel')
+          .forEach(panel => {
+            panel.hidden = true
+          })
+        if (willOpen) {
+          renderTransitionPanel()
+          transitionPanel.hidden = false
         }
       })
-      controls.append(transitionSelect)
+      syncTransitionTrigger()
+      controls.append(transitionTrigger)
 
       const time = document.createElement('time')
       time.textContent = formatTime(publishRowSeconds(scene))
 
-      row.append(include, identity, controls, time)
+      row.append(include, identity, controls, time, transitionPanel)
       return row
     }),
   )
