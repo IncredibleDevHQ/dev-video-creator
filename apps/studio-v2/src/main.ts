@@ -2475,6 +2475,120 @@ document.addEventListener('click', event => {
   closeTransitionPopover()
 })
 
+// ——— Guided finalize flow: walk every junction on the real video ———
+const finalizeBar = $('#finalize-bar')
+const finalizeTiles = $('#finalize-tiles')
+let finalizeModeActive = false
+let finalizeJunctionIndex = 0
+
+const highlightCurrentJunction = () => {
+  const target = finalizeModeActive
+    ? scenes[finalizeJunctionIndex + 1]
+    : undefined
+  canvasBlockTimeline
+    .querySelectorAll<HTMLElement>('.timeline-transition-node')
+    .forEach(node => {
+      node.classList.toggle(
+        'current',
+        Boolean(target) && node.dataset.boundaryIndex === String(target?.index),
+      )
+    })
+}
+
+const renderFinalizeJunction = (playPreview: boolean) => {
+  const junctionCount = scenes.length - 1
+  const from = scenes[finalizeJunctionIndex]
+  const to = scenes[finalizeJunctionIndex + 1]
+  if (!from || !to) return
+  const fromMeta = TIMELINE_BLOCK_META[sceneVisualKind(from)]
+  const toMeta = TIMELINE_BLOCK_META[sceneVisualKind(to)]
+  ;($('#finalize-step') as HTMLElement).textContent =
+    `Junction ${finalizeJunctionIndex + 1} of ${junctionCount}`
+  ;($('#finalize-pair') as HTMLElement).textContent =
+    `${fromMeta.label} → ${toMeta.label}`
+  const hasTake = Boolean(project.recordedBlocks?.[to.id]?.videoUrl)
+  ;($('#finalize-note') as HTMLElement).hidden = !hasTake
+  ;($('#finalize-next') as HTMLButtonElement).textContent =
+    finalizeJunctionIndex >= junctionCount - 1 ? 'Continue →' : 'Next →'
+  ;($('#finalize-back') as HTMLButtonElement).disabled =
+    finalizeJunctionIndex === 0
+  const currentReveal = () => project.blocks[to.id]?.reveal || to.config.reveal
+  finalizeTiles.replaceChildren(
+    ...MOTION_OPTIONS.filter(option =>
+      DIRECTOR_OPTIONS[to.kind].animations.includes(option.value),
+    ).map(option => {
+      const tile = document.createElement('button')
+      tile.type = 'button'
+      tile.className = `motion-tile${option.value === currentReveal() ? ' active' : ''}`
+      tile.title = option.description
+      const label = document.createElement('strong')
+      label.textContent = option.label
+      tile.append(createMotionDemo(option.value), label)
+      tile.addEventListener('click', () => {
+        finalizeTiles
+          .querySelectorAll('.motion-tile')
+          .forEach(item => item.classList.toggle('active', item === tile))
+        if (currentReveal() === option.value) {
+          void replaySelectedAnimation()
+          return
+        }
+        // Applies the pick and replays the real frames across this junction
+        // as soon as the recompiled preview is ready.
+        replayAnimationOnReady = true
+        updateSelectedConfig(config => {
+          config.reveal = option.value
+        })
+      })
+      return tile
+    }),
+  )
+  selectNode(to.id, false)
+  highlightCurrentJunction()
+  if (playPreview) void replaySelectedAnimation()
+}
+
+const exitFinalizeMode = () => {
+  finalizeModeActive = false
+  finalizeBar.hidden = true
+  playerShell.classList.remove('canvas-finalize-mode')
+  highlightCurrentJunction()
+}
+
+const enterFinalizeMode = () => {
+  if (scenes.length < 2) {
+    openPublishSummary()
+    return
+  }
+  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+  finalizeModeActive = true
+  finalizeJunctionIndex = 0
+  playerShell.classList.add('canvas-finalize-mode')
+  finalizeBar.hidden = false
+  renderFinalizeJunction(true)
+}
+
+;($('#finalize-next') as HTMLButtonElement).addEventListener('click', () => {
+  if (finalizeJunctionIndex >= scenes.length - 2) {
+    exitFinalizeMode()
+    openPublishSummary()
+    return
+  }
+  finalizeJunctionIndex += 1
+  renderFinalizeJunction(true)
+})
+;($('#finalize-back') as HTMLButtonElement).addEventListener('click', () => {
+  if (finalizeJunctionIndex === 0) return
+  finalizeJunctionIndex -= 1
+  renderFinalizeJunction(true)
+})
+;($('#finalize-replay') as HTMLButtonElement).addEventListener('click', () =>
+  void replaySelectedAnimation(),
+)
+;($('#finalize-cancel') as HTMLButtonElement).addEventListener(
+  'click',
+  exitFinalizeMode,
+)
+
 let draggedBlockId = ''
 
 // Reordering happens on the notebook document itself; configurations, notes,
@@ -2736,6 +2850,7 @@ const renderCanvasBlockTimeline = () => {
         MOTION_OPTIONS.find(option => option.value === scene.config.reveal)
           ?.label || scene.config.reveal
       node.type = 'button'
+      node.dataset.boundaryIndex = String(scene.index)
       node.className = `timeline-transition-node${hasTransition ? ' set' : ''}`
       node.title = hasTransition
         ? `Transition: ${motionLabel} — click to change`
@@ -2768,6 +2883,7 @@ const renderCanvasBlockTimeline = () => {
 
   canvasBlockTimeline.append(heading, track)
   renderNotebookTimeline()
+  highlightCurrentJunction()
   const activeBlock = track.querySelector<HTMLElement>(
     '.canvas-timeline-block.active',
   )
@@ -3820,6 +3936,7 @@ const openCanvasFullscreen = () => {
   if (canvasRecorder?.state === 'recording') return
   const isOpen = playerShell.classList.toggle('canvas-open')
   if (!isOpen) stopLiveCamera()
+  if (!isOpen && finalizeModeActive) exitFinalizeMode()
   document.body.classList.toggle('canvas-is-open', isOpen)
   const fullscreenButton = $('#canvas-fullscreen') as HTMLButtonElement
   fullscreenButton.textContent = isOpen ? '×' : '↗'
@@ -4821,70 +4938,10 @@ const renderPublishBlockList = () => {
         })
         controls.append(takeSelect)
       }
-      const currentReveal = () =>
-        project.blocks[scene.id]?.reveal || scene.config.reveal
-      const transitionTrigger = document.createElement('button')
-      transitionTrigger.type = 'button'
-      transitionTrigger.className = 'publish-transition-trigger'
-      transitionTrigger.title = 'Transition into this block'
-      const transitionPanel = document.createElement('div')
-      transitionPanel.className = 'publish-transition-panel'
-      transitionPanel.hidden = true
-      const syncTransitionTrigger = () => {
-        const motion = MOTION_OPTIONS.find(
-          option => option.value === currentReveal(),
-        )
-        transitionTrigger.replaceChildren(
-          createMotionDemo(currentReveal()),
-          Object.assign(document.createElement('strong'), {
-            textContent: motion?.label || currentReveal(),
-          }),
-          Object.assign(document.createElement('span'), { textContent: '⌄' }),
-        )
-      }
-      const renderTransitionPanel = () => {
-        transitionPanel.replaceChildren(
-          ...DIRECTOR_OPTIONS[scene.kind].animations.map(value => {
-            const motion = MOTION_OPTIONS.find(option => option.value === value)
-            const tile = document.createElement('button')
-            tile.type = 'button'
-            tile.className = `motion-tile${value === currentReveal() ? ' active' : ''}`
-            tile.title = motion?.description || value
-            const label = document.createElement('strong')
-            label.textContent = motion?.label || value
-            tile.append(createMotionDemo(value), label)
-            tile.addEventListener('click', () => {
-              const config = project.blocks[scene.id]
-              if (config) {
-                config.reveal = value
-                scheduleSync()
-              }
-              syncTransitionTrigger()
-              transitionPanel.hidden = true
-            })
-            return tile
-          }),
-        )
-      }
-      transitionTrigger.addEventListener('click', () => {
-        const willOpen = transitionPanel.hidden
-        publishBlockList
-          .querySelectorAll<HTMLElement>('.publish-transition-panel')
-          .forEach(panel => {
-            panel.hidden = true
-          })
-        if (willOpen) {
-          renderTransitionPanel()
-          transitionPanel.hidden = false
-        }
-      })
-      syncTransitionTrigger()
-      controls.append(transitionTrigger)
-
       const time = document.createElement('time')
       time.textContent = formatTime(publishRowSeconds(scene))
 
-      row.append(include, identity, controls, time, transitionPanel)
+      row.append(include, identity, controls, time)
       return row
     }),
   )
@@ -4924,12 +4981,18 @@ const startPublish = async () => {
   }
 }
 
-renderButton.addEventListener('click', () => {
-  syncProject()
+const openPublishSummary = () => {
   publishExcluded.clear()
   ;($('#render-result') as HTMLElement).hidden = true
   renderPublishBlockList()
   publishDialog.showModal()
+}
+
+renderButton.addEventListener('click', () => {
+  syncProject()
+  // Publishing starts with the guided junction walkthrough on the real
+  // video, then lands on the summary (takes, included blocks, duration).
+  enterFinalizeMode()
 })
 startPublishButton.addEventListener('click', () => void startPublish())
 ;($('#cancel-publish') as HTMLButtonElement).addEventListener('click', () =>
