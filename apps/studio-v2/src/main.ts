@@ -3833,8 +3833,13 @@ const renderTakeVersionPicker = (blockId: string) => {
 
 const syncCanvasViewSwitch = () => {
   const recordedBlock = project.recordedBlocks?.[selectedNodeId]
+  // While a frame-switch audition loops, the composition player IS the
+  // canvas: the raw-take overlay would sit exactly on top of the junction
+  // being previewed and swallow it. It returns when the picker closes.
   const showTakeVideo = Boolean(
-    recordedBlock?.videoUrl && recordedTakeCanvasView === 'video',
+    recordedBlock?.videoUrl &&
+      recordedTakeCanvasView === 'video' &&
+      !motionPreviewLoopSceneId,
   )
   renderTakeVersionPicker(selectedNodeId)
   // The saved take plays in its own video element so its transport is scoped
@@ -4083,6 +4088,7 @@ const armMotionPreviewLoop = (sceneId: string, label: string) => {
   motionPreviewLoopSceneId = sceneId
   motionPreviewLabel = `Previewing · ${label} · slow-mo`
   playerShell.classList.add('transition-preview-active')
+  syncCanvasViewSwitch()
 }
 
 const stopMotionPreviewLoop = () => {
@@ -4097,6 +4103,7 @@ const stopMotionPreviewLoop = () => {
   playerShell.classList.remove('transition-preview-active')
   setMotionPreviewBadge('')
   window.clearTimeout(animationPreviewTimer)
+  syncCanvasViewSwitch()
 }
 
 const sceneFrameSeconds = (scene: Scene) => {
