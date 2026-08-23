@@ -309,6 +309,18 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-timeline-block.drop-before, .notebook-timeline-chip.drop-before { box-shadow: inset 3px 0 0 var(--brand-light); }
 .canvas-timeline-block.drop-after, .notebook-timeline-chip.drop-after { box-shadow: inset -3px 0 0 var(--brand-light); }
 .canvas-timeline-swap { position: absolute; top: 4px; left: 4px; z-index: 3; width: 17px; height: 17px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; background: #18181b; color: #d4d4d8; font-size: 9px; line-height: 1; opacity: 0; cursor: pointer; transition: opacity .12s ease; }
+.timeline-transition-node { width: 19px; height: 19px; flex: none; align-self: center; display: grid; place-items: center; margin: 0 -2px; padding: 0; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; background: #1c1c20; color: #7c7c85; cursor: pointer; transition: scale .12s ease, border-color .12s ease; }
+.timeline-transition-node svg { width: 9px; height: 9px; fill: currentColor; }
+.timeline-transition-node:hover { border-color: var(--brand-light); color: white; scale: 1.18; }
+.timeline-transition-node.set { border-color: color-mix(in srgb, var(--brand-light) 62%, transparent); background: color-mix(in srgb, var(--brand) 38%, #1c1c20); color: var(--brand-light); }
+.transition-popover { position: fixed; z-index: 96; width: min(430px, 62vw); padding: 11px 12px 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(22,22,25,.97); box-shadow: 0 26px 70px rgba(0,0,0,.5); backdrop-filter: blur(16px); }
+.transition-popover-heading { margin-bottom: 9px; display: flex; align-items: center; justify-content: space-between; color: #a1a1aa; font-size: 8px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.transition-popover-heading button { width: 20px; height: 20px; border: 0; border-radius: 4px; background: transparent; color: #a1a1aa; font-size: 12px; cursor: pointer; }
+.transition-popover-heading button:hover { background: rgba(255,255,255,.1); color: white; }
+.transition-popover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; max-height: 260px; overflow-y: auto; }
+.transition-popover .motion-tile { border-color: rgba(255,255,255,.14); background: #26262b; color: #e4e4e7; }
+.transition-popover .motion-tile:hover { border-color: rgba(255,255,255,.4); }
+.transition-popover .motion-tile.active { border-color: var(--brand-light); background: color-mix(in srgb, var(--brand) 26%, #26262b); box-shadow: 0 0 0 1px var(--brand-light); }
 .canvas-timeline-block:hover .canvas-timeline-swap { opacity: 1; }
 .canvas-timeline-swap:hover { border-color: var(--brand-light); color: white; }
 .notebook-timeline { position: fixed; left: calc(50% - 210px); bottom: 20px; z-index: 40; width: min(724px, calc(100vw - 460px)); padding: 9px; display: block; border: 1px solid rgba(255,255,255,.12); border-radius: 15px; background: rgba(24,24,27,.9); box-shadow: 0 26px 70px rgba(0,0,0,.38); backdrop-filter: blur(16px); translate: -50% 0; }

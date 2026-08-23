@@ -2410,6 +2410,71 @@ const formatTime = (seconds: number) => {
   ).padStart(2, '0')}`
 }
 
+const transitionPopover = $('#transition-popover')
+const transitionPopoverGrid = $('#transition-popover-grid')
+const transitionPopoverTitle = $('#transition-popover-title')
+
+const closeTransitionPopover = () => {
+  transitionPopover.hidden = true
+}
+
+const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
+  const meta = TIMELINE_BLOCK_META[sceneVisualKind(scene)]
+  const hasTake = Boolean(project.recordedBlocks?.[scene.id]?.videoUrl)
+  transitionPopoverTitle.textContent = `Transition into ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}${
+    hasTake ? ' (plays its recorded take)' : ''
+  }`
+  const currentReveal = () =>
+    project.blocks[scene.id]?.reveal || scene.config.reveal
+  transitionPopoverGrid.replaceChildren(
+    ...MOTION_OPTIONS.filter(option =>
+      DIRECTOR_OPTIONS[scene.kind].animations.includes(option.value),
+    ).map(option => {
+      const tile = document.createElement('button')
+      tile.type = 'button'
+      tile.className = `motion-tile${option.value === currentReveal() ? ' active' : ''}`
+      tile.title = option.description
+      const label = document.createElement('strong')
+      label.textContent = option.label
+      tile.append(createMotionDemo(option.value), label)
+      tile.addEventListener('click', () => {
+        selectNode(scene.id, false)
+        if (currentReveal() === option.value) {
+          void replaySelectedAnimation()
+        } else {
+          // Recompiles the preview and replays across the boundary once the
+          // player reports ready — the pick is previewed on the video itself.
+          replayAnimationOnReady = true
+          updateSelectedConfig(config => {
+            config.reveal = option.value
+          })
+        }
+        closeTransitionPopover()
+      })
+      return tile
+    }),
+  )
+  transitionPopover.hidden = false
+  const rect = node.getBoundingClientRect()
+  const width = transitionPopover.offsetWidth
+  const left = Math.max(
+    12,
+    Math.min(
+      window.innerWidth - width - 12,
+      rect.left + rect.width / 2 - width / 2,
+    ),
+  )
+  transitionPopover.style.left = `${left}px`
+  transitionPopover.style.bottom = `${window.innerHeight - rect.top + 10}px`
+}
+
+document.addEventListener('click', event => {
+  if (transitionPopover.hidden) return
+  if (event.target instanceof Node && transitionPopover.contains(event.target))
+    return
+  closeTransitionPopover()
+})
+
 let draggedBlockId = ''
 
 // Reordering happens on the notebook document itself; configurations, notes,
@@ -2662,6 +2727,27 @@ const renderCanvasBlockTimeline = () => {
     // the video/content switch — no review dialog in the way.
     button.addEventListener('click', () => selectNode(scene.id, false))
     makeChipReorderable(button, scene.id)
+    if (scene.index > 0) {
+      // A CapCut-style boundary node between chips: filled when a transition
+      // into the right-hand block exists, hollow when it enters statically.
+      const node = document.createElement('button')
+      const hasTransition = scene.config.reveal !== 'none'
+      const motionLabel =
+        MOTION_OPTIONS.find(option => option.value === scene.config.reveal)
+          ?.label || scene.config.reveal
+      node.type = 'button'
+      node.className = `timeline-transition-node${hasTransition ? ' set' : ''}`
+      node.title = hasTransition
+        ? `Transition: ${motionLabel} — click to change`
+        : 'Add a transition between these blocks'
+      node.innerHTML =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14l7-7-7-7Zm16 0-7 7 7 7V5Z"/></svg>'
+      node.addEventListener('click', event => {
+        event.stopPropagation()
+        openTransitionPopover(scene, node)
+      })
+      track.append(node)
+    }
     if (scene.index > 0) {
       const previousScene = scenes[scene.index - 1]
       const swap = document.createElement('span')
@@ -3546,6 +3632,11 @@ player.parentElement?.addEventListener(
   true,
 )
 
+;($('#close-transition-popover') as HTMLButtonElement).addEventListener(
+  'click',
+  closeTransitionPopover,
+)
+
 canvasViewVideoButton.addEventListener('click', () =>
   setRecordedTakeCanvasView('video'),
 )
@@ -3559,12 +3650,19 @@ const replaySelectedAnimation = async () => {
   if (!scene) return
   window.clearTimeout(animationPreviewTimer)
   player.pause()
-  player.seek(scene.startSeconds)
+  // Start just before the boundary so the previous block's tail is visible
+  // and the entrance reads as a transition between the two.
+  const leadInSeconds = Math.min(0.7, scene.startSeconds)
+  player.seek(scene.startSeconds - leadInSeconds)
   await player.play()
-  animationPreviewTimer = window.setTimeout(() => {
-    player.pause()
-    player.seek(scenePreviewTime(scene))
-  }, Math.min(2200, Math.max(900, scene.durationSeconds * 450)))
+  animationPreviewTimer = window.setTimeout(
+    () => {
+      player.pause()
+      player.seek(scenePreviewTime(scene))
+    },
+    leadInSeconds * 1000 +
+      Math.min(2200, Math.max(900, scene.durationSeconds * 450)),
+  )
 }
 
 document
