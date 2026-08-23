@@ -4088,10 +4088,98 @@ const armMotionPreviewLoop = (sceneId: string, label: string) => {
 const stopMotionPreviewLoop = () => {
   motionPreviewLoopSceneId = ''
   motionPreviewLabel = ''
+  if (activeFrameAudition) {
+    killFrameAudition()
+    const scene = scenes.find(item => item.id === selectedNodeId)
+    if (scene) player.seek(scenePreviewTime(scene))
+  }
   player.playbackRate = 1
   playerShell.classList.remove('transition-preview-active')
   setMotionPreviewBadge('')
   window.clearTimeout(animationPreviewTimer)
+}
+
+const sceneFrameSeconds = (scene: Scene) => {
+  const frame = scene.config.frameTransition
+  if (!frame || frame.style === 'cut' || scene.index === 0) return 0
+  return Math.min(1.5, Math.max(0.2, frame.durationSeconds || 0.5))
+}
+
+type FrameAuditionHandle = { kill: () => void }
+
+const compositionTimeline = () => {
+  const compositionWindow = player.iframeElement?.contentWindow as
+    | (Window & {
+        __timelines?: Record<string, { time: (value: number) => unknown }>
+      })
+    | null
+    | undefined
+  return compositionWindow?.__timelines?.[project.id]
+}
+
+let activeFrameAudition: FrameAuditionHandle | null = null
+
+const killFrameAudition = () => {
+  activeFrameAudition?.kill()
+  activeFrameAudition = null
+}
+
+// Frame switchovers can't be auditioned by simply playing across the
+// boundary: the runtime clock gates on media buffering right at a junction
+// and can jump clean over the whole switch window, which reads as a plain
+// cut. So the player is parked inside the overlap — where the runtime keeps
+// both frames visible — and the switch segment is driven on the
+// composition's GSAP timeline directly: smooth, deterministic, export-true.
+const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
+  const timeline = compositionTimeline()
+  if (!timeline) return false
+  player.pause()
+  if (motionPreviewLabel) setMotionPreviewBadge(motionPreviewLabel)
+  const parkAt = scene.startSeconds + frameSeconds / 2
+  player.seek(parkAt)
+  const settleDeadline = Date.now() + 1600
+  while (
+    Date.now() < settleDeadline &&
+    Math.abs(player.currentTime - parkAt) > 0.2
+  ) {
+    await new Promise(resolve => window.setTimeout(resolve, 120))
+  }
+  if (motionPreviewLoopSceneId !== scene.id || selectedNodeId !== scene.id)
+    return true
+  const leadSeconds = Math.min(0.6, scene.startSeconds)
+  const from = scene.startSeconds - leadSeconds
+  const to = scene.startSeconds + frameSeconds + 0.4
+  // The segment is stepped on a timer from the studio page: composition
+  // iframes (and some embedded panes) throttle requestAnimationFrame, but a
+  // time() set renders synchronously no matter who calls it, and timers
+  // keep firing. 30 steps a second is plenty for a slow-mo audition.
+  let last = performance.now()
+  let position = from
+  const ticker = window.setInterval(() => {
+    const now = performance.now()
+    position += ((now - last) / 1000) * PREVIEW_PLAYBACK_RATE
+    last = now
+    timeline.time(Math.min(position, to))
+    if (position < to) return
+    window.clearInterval(ticker)
+    activeFrameAudition = null
+    if (
+      motionPreviewLoopSceneId === scene.id &&
+      motionPreviewLoopSceneId === selectedNodeId
+    ) {
+      animationPreviewTimer = window.setTimeout(
+        () => void replaySelectedAnimation(),
+        650,
+      )
+    }
+  }, 33)
+  activeFrameAudition = {
+    kill: () => {
+      window.clearInterval(ticker)
+    },
+  }
+  timeline.time(from)
+  return true
 }
 
 const replaySelectedAnimation = async () => {
@@ -4099,6 +4187,12 @@ const replaySelectedAnimation = async () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   window.clearTimeout(animationPreviewTimer)
+  killFrameAudition()
+  const frameSeconds = sceneFrameSeconds(scene)
+  if (motionPreviewLoopSceneId === scene.id && frameSeconds > 0) {
+    const handled = await auditionFrameSwitchover(scene, frameSeconds)
+    if (handled) return
+  }
   player.pause()
   const previewing = Boolean(motionPreviewLabel)
   if (previewing) setMotionPreviewBadge(motionPreviewLabel)
