@@ -243,6 +243,14 @@ const normalizeBlockConfig = (
           ),
         }
       : {}),
+    ...(Number.isFinite(supplied.revealDurationSeconds)
+      ? {
+          revealDurationSeconds: Math.min(
+            3,
+            Math.max(0.2, supplied.revealDurationSeconds as number),
+          ),
+        }
+      : {}),
   }
 }
 
@@ -619,44 +627,49 @@ const buildCompositionHtml = (
             : `#scene-${scene.index} .content > *`,
       )
       const start = scene.startSeconds
+      // The creator can slow a transition down; unset falls back to each
+      // motion's tuned default.
+      const chosen = scene.config.revealDurationSeconds
+      const revealDuration = (fallback: number) =>
+        chosen && chosen > 0 ? Math.min(3, Math.max(0.2, chosen)) : fallback
       let entrance: string
       switch (scene.config.reveal) {
         case 'none':
           entrance = `tl.set(${selector}, { opacity: 1 }, ${start});`
           break
         case 'fade':
-          entrance = `tl.fromTo(${selector}, { opacity: 0 }, { opacity: 1, duration: 0.65, ease: "power2.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0 }, { opacity: 1, duration: ${revealDuration(0.65)}, ease: "power2.out" }, ${start});`
           break
         case 'fall':
-          entrance = `tl.fromTo(${selector}, { opacity: 0, y: -56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, y: -56 }, { opacity: 1, y: 0, duration: ${revealDuration(0.75)}, ease: "power3.out" }, ${start});`
           break
         case 'slide-left':
-          entrance = `tl.fromTo(${selector}, { opacity: 0, x: -90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, x: -90 }, { opacity: 1, x: 0, duration: ${revealDuration(0.78)}, ease: "power3.out" }, ${start});`
           break
         case 'slide-right':
-          entrance = `tl.fromTo(${selector}, { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: 0.78, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: ${revealDuration(0.78)}, ease: "power3.out" }, ${start});`
           break
         case 'scale':
-          entrance = `tl.fromTo(${selector}, { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.72, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: ${revealDuration(0.72)}, ease: "power3.out" }, ${start});`
           break
         case 'blur':
-          entrance = `tl.fromTo(${selector}, { opacity: 0, filter: "blur(24px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.82, ease: "power2.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, filter: "blur(24px)" }, { opacity: 1, filter: "blur(0px)", duration: ${revealDuration(0.82)}, ease: "power2.out" }, ${start});`
           break
         case 'type':
-          entrance = `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${Math.min(2.4, scene.durationSeconds * 0.45)}, ease: "steps(18)" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${chosen ? revealDuration(1.2) : Math.min(2.4, scene.durationSeconds * 0.45)}, ease: "steps(18)" }, ${start});`
           break
         case 'wipe':
-          entrance = `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.82, ease: "power3.inOut" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${revealDuration(0.82)}, ease: "power3.inOut" }, ${start});`
           break
         case 'pop':
-          entrance = `tl.fromTo(${selector}, { opacity: 0, scale: 0.72, rotation: -2 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.72, ease: "back.out(1.7)" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, scale: 0.72, rotation: -2 }, { opacity: 1, scale: 1, rotation: 0, duration: ${revealDuration(0.72)}, ease: "back.out(1.7)" }, ${start});`
           break
         case 'line-by-line':
-          entrance = `tl.set(${selector}, { opacity: 1 }, ${start}); tl.fromTo(${sequenceSelector}, { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.48, stagger: ${Math.min(0.28, scene.durationSeconds * 0.06)}, ease: "power3.out" }, ${start});`
+          entrance = `tl.set(${selector}, { opacity: 1 }, ${start}); tl.fromTo(${sequenceSelector}, { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: ${revealDuration(0.48)}, stagger: ${Math.min(0.28, scene.durationSeconds * 0.06)}, ease: "power3.out" }, ${start});`
           break
         case 'rise':
         default:
-          entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, ${start});`
+          entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: ${revealDuration(0.75)}, ease: "power3.out" }, ${start});`
       }
       if (scene.kind !== 'code') return entrance
       const codeMotion = scene.config.appearance.codeAnimation === 'highlight-lines'

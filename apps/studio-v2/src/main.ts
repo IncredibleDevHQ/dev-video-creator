@@ -2468,6 +2468,10 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
     }),
   )
   hydrateJunctionFrames(transitionPopoverGrid)
+  const popoverDurationSlot = $('#popover-duration-slot')
+  popoverDurationSlot.replaceChildren(
+    createRevealDurationControl(() => scene.id),
+  )
   transitionPopover.hidden = false
   selectNode(scene.id, false)
   const openingMotion = MOTION_OPTIONS.find(
@@ -2683,6 +2687,9 @@ const renderFinalizeJunction = (playPreview: boolean) => {
     }),
   )
   hydrateJunctionFrames(finalizeTiles)
+  ;($('#finalize-duration-slot') as HTMLElement).replaceChildren(
+    createRevealDurationControl(() => to.id),
+  )
   selectNode(to.id, false)
   highlightCurrentJunction()
   if (playPreview) {
@@ -3442,6 +3449,7 @@ const renderStudioMotionControls = (
   const available = DIRECTOR_OPTIONS[scene.kind].animations
   const container = $('#studio-motion-options')
   container.replaceChildren(
+    createRevealDurationControl(() => scene.id),
     ...MOTION_OPTIONS.filter(option => available.includes(option.value)).map(
       option => {
         const button = document.createElement('button')
@@ -3925,6 +3933,60 @@ const setMotionPreviewBadge = (text: string) => {
 // to tell apart — preview replays run slowed down so each motion is legible.
 const PREVIEW_PLAYBACK_RATE = 0.45
 
+const REVEAL_DEFAULT_SECONDS: Record<RevealStyle, number> = {
+  none: 0.2,
+  fade: 0.65,
+  rise: 0.75,
+  fall: 0.75,
+  'slide-left': 0.78,
+  'slide-right': 0.78,
+  scale: 0.72,
+  blur: 0.82,
+  type: 1.2,
+  wipe: 0.82,
+  pop: 0.72,
+  'line-by-line': 0.48,
+}
+
+// Duration is what makes a transition perceptible — every picker carries the
+// same slider, and changes recompile the export-real composition.
+const createRevealDurationControl = (getSceneId: () => string) => {
+  const wrap = document.createElement('div')
+  wrap.className = 'transition-duration'
+  const label = document.createElement('label')
+  label.textContent = 'Duration'
+  const output = document.createElement('output')
+  const slider = document.createElement('input')
+  slider.type = 'range'
+  slider.min = '0.2'
+  slider.max = '3'
+  slider.step = '0.1'
+  const config = project.blocks[getSceneId()]
+  const initial =
+    config?.revealDurationSeconds ||
+    REVEAL_DEFAULT_SECONDS[config?.reveal || 'fade'] ||
+    0.7
+  slider.value = String(Math.min(3, Math.max(0.2, initial)))
+  const syncOutput = () => {
+    output.textContent = `${Number(slider.value).toFixed(1)}s`
+  }
+  syncOutput()
+  slider.addEventListener('input', syncOutput)
+  slider.addEventListener('change', () => {
+    const target = project.blocks[getSceneId()]
+    if (!target) return
+    target.revealDurationSeconds = Number(slider.value)
+    if (motionPreviewLoopSceneId === getSceneId()) {
+      setMotionPreviewBadge(`Preparing ${slider.value}s timing…`)
+      replayAnimationOnReady = true
+    }
+    scheduleSync()
+  })
+  label.append(output)
+  wrap.append(label, slider)
+  return wrap
+}
+
 // While a transition picker is open, the junction keeps looping on the main
 // canvas — the loop is disarmed when the picker closes or the focus moves.
 const armMotionPreviewLoop = (sceneId: string, label: string) => {
@@ -3956,9 +4018,14 @@ const replaySelectedAnimation = async () => {
   const leadInSeconds = Math.min(0.7, scene.startSeconds)
   player.seek(scene.startSeconds - leadInSeconds)
   await player.play()
+  const entranceMilliseconds =
+    (scene.config.revealDurationSeconds || 1) * 1000
   const shownMilliseconds =
     leadInSeconds * 1000 +
-    Math.min(2200, Math.max(900, scene.durationSeconds * 450))
+    Math.max(
+      Math.min(2200, Math.max(900, scene.durationSeconds * 450)),
+      entranceMilliseconds + 500,
+    )
   animationPreviewTimer = window.setTimeout(
     () => {
       player.playbackRate = 1

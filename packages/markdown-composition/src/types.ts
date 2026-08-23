@@ -95,6 +95,7 @@ export type BlockRenderConfigV1 = {
   }
   speakerNotes?: string
   notesTargetMinutes?: number
+  revealDurationSeconds?: number
 }
 
 export type HumanCameraTrackV1 = {

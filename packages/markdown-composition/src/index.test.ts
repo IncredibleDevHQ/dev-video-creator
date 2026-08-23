@@ -1096,6 +1096,19 @@ describe('compileProject', () => {
     expect(withoutTake.html).not.toContain('recorded-take clip')
   })
 
+  it('honours a chosen transition duration and clamps it', () => {
+    const timed = project()
+    timed.blocks.intro.reveal = 'fade'
+    timed.blocks.intro.revealDurationSeconds = 2
+    timed.blocks.body.reveal = 'wipe'
+    timed.blocks.body.revealDurationSeconds = 99
+    const compiled = compileProject(timed)
+    expect(compiled.html).toContain('{ opacity: 1, duration: 2, ease: "power2.out" }')
+    expect(compiled.html).toContain('duration: 3, ease: "power3.inOut"')
+    const untimed = compileProject(project())
+    expect(untimed.html).toContain('duration: 0.75')
+  })
+
   it('omits the recorded take for the content-view block only', () => {
     const withTake = project()
     withTake.recordedBlocks = {

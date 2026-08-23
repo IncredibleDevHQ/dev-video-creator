@@ -318,6 +318,15 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .player-shell.transition-preview-active hyperframes-player { box-shadow: 0 0 0 2px var(--brand-light), 0 0 44px color-mix(in srgb, var(--brand-light) 30%, transparent); border-radius: 4px; }
 .motion-preview-badge > span { width: 7px; height: 7px; border-radius: 50%; background: var(--brand-light); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-light) 22%, transparent); animation: recording-pulse 1.2s ease-in-out infinite; }
 .transition-popover-hint { margin-left: auto; margin-right: 8px; color: #6f6f78; font-size: 7px; font-weight: 700; letter-spacing: .06em; text-transform: none; }
+.transition-duration { display: grid; gap: 5px; padding: 8px 10px; border: 1px solid #e4e4e7; border-radius: 7px; background: #f7f7f8; }
+.transition-duration label { display: flex; justify-content: space-between; color: #71717a; font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.transition-duration output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.transition-duration input[type="range"] { width: 100%; accent-color: var(--brand); }
+.transition-popover .transition-duration, .finalize-bar .transition-duration { margin-bottom: 8px; border-color: rgba(255,255,255,.14); background: #26262b; }
+.transition-popover .transition-duration label, .finalize-bar .transition-duration label { color: #8b8b93; }
+.transition-popover .transition-duration output, .finalize-bar .transition-duration output { color: white; }
+.finalize-bar .transition-duration { margin: 6px 0 0; padding: 5px 7px; }
+.finalize-bar .transition-duration input[type="range"] { accent-color: var(--brand-light); }
 .junction-demo { background: #101012; }
 .junction-layer { position: absolute; inset: 0; display: grid; place-content: center; gap: 2px; justify-items: center; background-size: cover; background-position: center; }
 .junction-layer b { color: rgba(255,255,255,.9); font-size: 11px; font-weight: 900; }
