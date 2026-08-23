@@ -1132,12 +1132,16 @@ const server = createServer(async (request, response) => {
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/assets/')) {
+      // Media is drawn onto canvases for junction thumbnails; without CORS
+      // the capture canvas would be tainted.
+      response.setHeader('access-control-allow-origin', '*')
       const filePath = safeStaticPath(assetsDirectory, url.pathname.slice(7))
       if (!filePath) throw new Error('Invalid asset path')
       await serveFile(response, filePath)
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/objects/')) {
+      response.setHeader('access-control-allow-origin', '*')
       const objectKey = decodeURIComponent(url.pathname.slice('/objects/'.length))
       if (!objectKey || objectKey.split('/').some(part => !part || part === '..')) {
         throw new Error('Invalid object key')

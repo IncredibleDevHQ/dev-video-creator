@@ -2426,6 +2426,7 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
   }`
   const currentReveal = () =>
     project.blocks[scene.id]?.reveal || scene.config.reveal
+  const fromScene = scenes[scene.index - 1]
   transitionPopoverGrid.replaceChildren(
     ...MOTION_OPTIONS.filter(option =>
       DIRECTOR_OPTIONS[scene.kind].animations.includes(option.value),
@@ -2436,7 +2437,12 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
       tile.title = option.description
       const label = document.createElement('strong')
       label.textContent = option.label
-      tile.append(createMotionDemo(option.value), label)
+      tile.append(
+        fromScene
+          ? createJunctionDemo(fromScene, scene, option.value)
+          : createMotionDemo(option.value),
+        label,
+      )
       tile.addEventListener('click', () => {
         selectNode(scene.id, false)
         if (currentReveal() === option.value) {
@@ -2454,6 +2460,7 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
       return tile
     }),
   )
+  hydrateJunctionFrames(transitionPopoverGrid)
   transitionPopover.hidden = false
   const rect = node.getBoundingClientRect()
   const width = transitionPopover.offsetWidth
@@ -2474,6 +2481,124 @@ document.addEventListener('click', event => {
     return
   closeTransitionPopover()
 })
+
+// ——— Junction thumbnails: real frames from A's tail into B's head ———
+const boundaryFrameCache = new Map<string, string | null>()
+
+const captureVideoFrame = (url: string, edge: 'first' | 'last') => {
+  const cacheKey = `${url}#${edge}`
+  const cached = boundaryFrameCache.get(cacheKey)
+  if (cached !== undefined) return Promise.resolve(cached)
+  return new Promise<string | null>(resolve => {
+    let settled = false
+    const video = document.createElement('video')
+    const finish = (value: string | null) => {
+      if (settled) return
+      settled = true
+      video.removeAttribute('src')
+      boundaryFrameCache.set(cacheKey, value)
+      resolve(value)
+    }
+    video.crossOrigin = 'anonymous'
+    video.preload = 'auto'
+    video.muted = true
+    video.addEventListener('error', () => finish(null), { once: true })
+    video.addEventListener(
+      'loadedmetadata',
+      () => {
+        const duration = Number.isFinite(video.duration) ? video.duration : 0
+        video.currentTime =
+          edge === 'last' ? Math.max(0, duration - 0.15) : Math.min(0.05, duration)
+      },
+      { once: true },
+    )
+    video.addEventListener(
+      'seeked',
+      () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = 160
+          canvas.height = 90
+          canvas.getContext('2d')?.drawImage(video, 0, 0, 160, 90)
+          finish(canvas.toDataURL('image/jpeg', 0.72))
+        } catch {
+          finish(null)
+        }
+      },
+      { once: true },
+    )
+    video.src = url
+    window.setTimeout(() => finish(null), 4000)
+  })
+}
+
+const sceneBoundaryVideoUrl = (scene: Scene) =>
+  project.recordedBlocks?.[scene.id]?.videoUrl ||
+  (scene.node.type === 'screenRecording' &&
+  typeof scene.node.attrs?.src === 'string'
+    ? scene.node.attrs.src
+    : '')
+
+// A stand-in built from the block's own colors, kind, and words — used for
+// blocks that have no recorded footage to sample frames from.
+const buildJunctionLayer = (scene: Scene) => {
+  const layer = document.createElement('span')
+  layer.className = 'junction-layer'
+  const preset = scene.config.background.preset
+  const base =
+    preset === 'custom' ? scene.config.background.color : project.brand.background
+  layer.style.background = `linear-gradient(135deg, ${base}, color-mix(in srgb, ${base} 52%, ${project.brand.primary}))`
+  if (
+    scene.node.type === 'image' &&
+    typeof scene.node.attrs?.src === 'string' &&
+    scene.node.attrs.src
+  ) {
+    layer.style.backgroundImage = `url("${scene.node.attrs.src}")`
+    layer.classList.add('captured')
+    return layer
+  }
+  const meta = TIMELINE_BLOCK_META[sceneVisualKind(scene)]
+  const icon = document.createElement('b')
+  icon.textContent = meta.icon
+  const words = document.createElement('em')
+  words.textContent = scene.title.slice(0, 18)
+  layer.append(icon, words)
+  const videoUrl = sceneBoundaryVideoUrl(scene)
+  if (videoUrl) layer.dataset.captureUrl = videoUrl
+  return layer
+}
+
+const createJunctionDemo = (
+  fromScene: Scene,
+  toScene: Scene,
+  value: RevealStyle,
+) => {
+  const demo = document.createElement('span')
+  demo.className = 'motion-demo junction-demo'
+  demo.setAttribute('aria-hidden', 'true')
+  const outgoing = buildJunctionLayer(fromScene)
+  outgoing.classList.add('out')
+  if (outgoing.dataset.captureUrl) outgoing.dataset.captureEdge = 'last'
+  const incoming = buildJunctionLayer(toScene)
+  incoming.classList.add('in', `junction-in-${value}`)
+  if (incoming.dataset.captureUrl) incoming.dataset.captureEdge = 'first'
+  demo.append(outgoing, incoming)
+  return demo
+}
+
+const hydrateJunctionFrames = (root: HTMLElement) => {
+  root
+    .querySelectorAll<HTMLElement>('.junction-layer[data-capture-url]')
+    .forEach(layer => {
+      const url = layer.dataset.captureUrl || ''
+      const edge = layer.dataset.captureEdge === 'last' ? 'last' : 'first'
+      void captureVideoFrame(url, edge).then(frame => {
+        if (!frame || !layer.isConnected) return
+        layer.style.backgroundImage = `url("${frame}")`
+        layer.classList.add('captured')
+      })
+    })
+}
 
 // ——— Guided finalize flow: walk every junction on the real video ———
 const finalizeBar = $('#finalize-bar')
@@ -2523,7 +2648,7 @@ const renderFinalizeJunction = (playPreview: boolean) => {
       tile.title = option.description
       const label = document.createElement('strong')
       label.textContent = option.label
-      tile.append(createMotionDemo(option.value), label)
+      tile.append(createJunctionDemo(from, to, option.value), label)
       tile.addEventListener('click', () => {
         finalizeTiles
           .querySelectorAll('.motion-tile')
@@ -2542,6 +2667,7 @@ const renderFinalizeJunction = (playPreview: boolean) => {
       return tile
     }),
   )
+  hydrateJunctionFrames(finalizeTiles)
   selectNode(to.id, false)
   highlightCurrentJunction()
   if (playPreview) void replaySelectedAnimation()
