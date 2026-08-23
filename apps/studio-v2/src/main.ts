@@ -2424,12 +2424,25 @@ const closeTransitionPopover = () => {
   stopMotionPreviewLoop()
 }
 
-const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
-  const meta = TIMELINE_BLOCK_META[sceneVisualKind(scene)]
-  transitionPopoverTitle.textContent = `Frame switch into ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
+const blockTag = (scene: Scene) =>
+  `${String(scene.index + 1).padStart(2, '0')} · ${TIMELINE_BLOCK_META[sceneVisualKind(scene)].label}`
+
+const openTransitionPopover = (scene: Scene) => {
+  transitionPopoverTitle.textContent = 'Frame switch'
+  const fromScene = scenes[scene.index - 1]
+  const pair = $('#transition-popover-pair')
+  pair.replaceChildren()
+  if (fromScene) {
+    const fromTag = document.createElement('b')
+    fromTag.textContent = blockTag(fromScene)
+    const arrow = document.createElement('span')
+    arrow.textContent = '→'
+    const toTag = document.createElement('b')
+    toTag.textContent = blockTag(scene)
+    pair.append(fromTag, arrow, toTag)
+  }
   activeBoundarySceneIndex = scene.index
   highlightCurrentJunction()
-  const fromScene = scenes[scene.index - 1]
   transitionPopoverGrid.replaceChildren(
     ...FRAME_TRANSITION_OPTIONS.map(option => {
       const tile = document.createElement('button')
@@ -2484,17 +2497,19 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
   )
   armMotionPreviewLoop(scene.id, `Frame · ${openingFrame?.label || 'Cut'}`)
   void replaySelectedAnimation()
-  const rect = node.getBoundingClientRect()
+  // A drawer that rises from the timeline: centred over the rail, sitting
+  // just above it, so the spotlighted From/To chips stay in view below.
+  const railRect = canvasBlockTimeline.getBoundingClientRect()
   const width = transitionPopover.offsetWidth
   const left = Math.max(
     12,
     Math.min(
       window.innerWidth - width - 12,
-      rect.left + rect.width / 2 - width / 2,
+      railRect.left + railRect.width / 2 - width / 2,
     ),
   )
   transitionPopover.style.left = `${left}px`
-  transitionPopover.style.bottom = `${window.innerHeight - rect.top + 10}px`
+  transitionPopover.style.bottom = `${window.innerHeight - railRect.top + 10}px`
 }
 
 document.addEventListener('click', event => {
@@ -2641,6 +2656,23 @@ const highlightCurrentJunction = () => {
       node.classList.toggle(
         'current',
         targetIndex >= 0 && node.dataset.boundaryIndex === String(targetIndex),
+      )
+    })
+  // Spotlight the pair the switchover connects: the outgoing and incoming
+  // chips get From/To tags while everything else on the rail dims.
+  const fromId = targetIndex > 0 ? scenes[targetIndex - 1]?.id : undefined
+  const toId = targetIndex > 0 ? scenes[targetIndex]?.id : undefined
+  canvasBlockTimeline.classList.toggle('junction-focus', Boolean(toId))
+  canvasBlockTimeline
+    .querySelectorAll<HTMLElement>('.canvas-timeline-block')
+    .forEach(chip => {
+      chip.classList.toggle(
+        'junction-from',
+        Boolean(fromId) && chip.dataset.timelineNodeId === fromId,
+      )
+      chip.classList.toggle(
+        'junction-to',
+        Boolean(toId) && chip.dataset.timelineNodeId === toId,
       )
     })
 }
@@ -3030,7 +3062,7 @@ const renderCanvasBlockTimeline = () => {
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14l7-7-7-7Zm16 0-7 7 7 7V5Z"/></svg>'
       node.addEventListener('click', event => {
         event.stopPropagation()
-        openTransitionPopover(scene, node)
+        openTransitionPopover(scene)
       })
       track.append(node)
     }

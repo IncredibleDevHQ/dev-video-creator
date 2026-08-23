@@ -236,10 +236,10 @@
                         <button id="finalize-cancel" type="button" aria-label="Exit finalize">×</button>
                       </div>
                     </div>
-                    <div id="transition-popover" class="transition-popover" role="dialog" aria-label="Transition between blocks" hidden>
-                      <div class="transition-popover-heading"><strong id="transition-popover-title">Transition</strong><span class="transition-popover-hint">Click a style — it plays on the canvas</span><button id="close-transition-popover" type="button" aria-label="Close transitions">×</button></div>
-                      <div id="popover-duration-slot"></div>
+                    <div id="transition-popover" class="transition-drawer" role="dialog" aria-label="Frame switch between blocks" hidden>
+                      <div class="transition-popover-heading"><strong id="transition-popover-title">Frame switch</strong><span id="transition-popover-pair" class="transition-drawer-pair"></span><span class="transition-popover-hint">Pick a style — it loops on the canvas</span><button id="close-transition-popover" type="button" aria-label="Close frame switch options">×</button></div>
                       <div id="transition-popover-grid" class="transition-popover-grid"></div>
+                      <div id="popover-duration-slot"></div>
                     </div>
                     <div id="canvas-recording-controls" class="canvas-recording-controls" aria-label="Canvas recording controls">
                       <div class="canvas-recording-project"><strong id="canvas-recording-project-title">Human-first developer story</strong><small id="canvas-recording-project-block">Selected block</small></div>
