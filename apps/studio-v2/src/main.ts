@@ -17,6 +17,7 @@ import {
   type BlockBackgroundPreset,
   type BlockRenderConfigV1,
   type CameraPosition,
+  type FrameTransitionStyle,
   type MediaBorderWidth,
   type MediaCornerStyle,
   type MediaElevation,
@@ -2414,55 +2415,59 @@ const transitionPopover = $('#transition-popover')
 const transitionPopoverGrid = $('#transition-popover-grid')
 const transitionPopoverTitle = $('#transition-popover-title')
 
+let activeBoundarySceneIndex = -1
+
 const closeTransitionPopover = () => {
   transitionPopover.hidden = true
+  activeBoundarySceneIndex = -1
+  highlightCurrentJunction()
   stopMotionPreviewLoop()
 }
 
 const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
   const meta = TIMELINE_BLOCK_META[sceneVisualKind(scene)]
-  const hasTake = Boolean(project.recordedBlocks?.[scene.id]?.videoUrl)
-  transitionPopoverTitle.textContent = `Transition into ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}${
-    hasTake ? ' (plays its recorded take)' : ''
-  }`
-  const currentReveal = () =>
-    project.blocks[scene.id]?.reveal || scene.config.reveal
+  transitionPopoverTitle.textContent = `Frame switch into ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
+  activeBoundarySceneIndex = scene.index
+  highlightCurrentJunction()
   const fromScene = scenes[scene.index - 1]
   transitionPopoverGrid.replaceChildren(
-    ...MOTION_OPTIONS.filter(option =>
-      DIRECTOR_OPTIONS[scene.kind].animations.includes(option.value),
-    ).map(option => {
+    ...FRAME_TRANSITION_OPTIONS.map(option => {
       const tile = document.createElement('button')
       tile.type = 'button'
-      tile.className = `motion-tile${option.value === currentReveal() ? ' active' : ''}`
+      tile.className = `motion-tile${option.value === sceneFrameStyle(scene.id) ? ' active' : ''}`
       tile.title = option.description
       const label = document.createElement('strong')
       label.textContent = option.label
       tile.append(
         fromScene
-          ? createJunctionDemo(fromScene, scene, option.value)
-          : createMotionDemo(option.value),
+          ? createJunctionDemo(fromScene, scene, `junction-in-frame-${option.value}`)
+          : createMotionDemo('fade'),
         label,
       )
       tile.addEventListener('click', () => {
-        // Stay open so styles can be auditioned one after another — each
-        // pick plays full-size on the canvas, the tiles are just the menu.
+        // Stay open so switchovers can be auditioned one after another —
+        // each pick plays full-size on the canvas, the tiles are the menu.
         transitionPopoverGrid
           .querySelectorAll('.motion-tile')
           .forEach(item => item.classList.toggle('active', item === tile))
         selectNode(scene.id, false)
-        armMotionPreviewLoop(scene.id, option.label)
-        if (currentReveal() === option.value) {
+        armMotionPreviewLoop(scene.id, `Frame · ${option.label}`)
+        if (sceneFrameStyle(scene.id) === option.value) {
           void replaySelectedAnimation()
-        } else {
-          // Recompiles the preview and replays across the boundary once the
-          // player reports ready — the pick is previewed on the video itself.
-          setMotionPreviewBadge(`Preparing ${option.label}…`)
-          replayAnimationOnReady = true
-          updateSelectedConfig(config => {
-            config.reveal = option.value
-          })
+          return
         }
+        setMotionPreviewBadge(`Preparing ${option.label}…`)
+        replayAnimationOnReady = true
+        const durationInput = $(
+          '#popover-duration-slot input',
+        ) as HTMLInputElement | null
+        setSceneFrameTransition(
+          scene.id,
+          option.value,
+          Number(durationInput?.value || 0.5),
+        )
+        syncProject()
+        renderCanvasBlockTimeline()
       })
       return tile
     }),
@@ -2470,14 +2475,14 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
   hydrateJunctionFrames(transitionPopoverGrid)
   const popoverDurationSlot = $('#popover-duration-slot')
   popoverDurationSlot.replaceChildren(
-    createRevealDurationControl(() => scene.id),
+    createRevealDurationControl(() => scene.id, 'frame'),
   )
   transitionPopover.hidden = false
   selectNode(scene.id, false)
-  const openingMotion = MOTION_OPTIONS.find(
-    option => option.value === currentReveal(),
+  const openingFrame = FRAME_TRANSITION_OPTIONS.find(
+    option => option.value === sceneFrameStyle(scene.id),
   )
-  armMotionPreviewLoop(scene.id, openingMotion?.label || 'transition')
+  armMotionPreviewLoop(scene.id, `Frame · ${openingFrame?.label || 'Cut'}`)
   void replaySelectedAnimation()
   const rect = node.getBoundingClientRect()
   const width = transitionPopover.offsetWidth
@@ -2588,7 +2593,7 @@ const buildJunctionLayer = (scene: Scene) => {
 const createJunctionDemo = (
   fromScene: Scene,
   toScene: Scene,
-  value: RevealStyle,
+  animationClass: string,
 ) => {
   const demo = document.createElement('span')
   demo.className = 'motion-demo junction-demo'
@@ -2597,7 +2602,7 @@ const createJunctionDemo = (
   outgoing.classList.add('out')
   if (outgoing.dataset.captureUrl) outgoing.dataset.captureEdge = 'last'
   const incoming = buildJunctionLayer(toScene)
-  incoming.classList.add('in', `junction-in-${value}`)
+  incoming.classList.add('in', animationClass)
   if (incoming.dataset.captureUrl) incoming.dataset.captureEdge = 'first'
   demo.append(outgoing, incoming)
   return demo
@@ -2624,15 +2629,18 @@ let finalizeModeActive = false
 let finalizeJunctionIndex = 0
 
 const highlightCurrentJunction = () => {
-  const target = finalizeModeActive
+  const finalizeTarget = finalizeModeActive
     ? scenes[finalizeJunctionIndex + 1]
     : undefined
+  const targetIndex = finalizeTarget
+    ? finalizeTarget.index
+    : activeBoundarySceneIndex
   canvasBlockTimeline
     .querySelectorAll<HTMLElement>('.timeline-transition-node')
     .forEach(node => {
       node.classList.toggle(
         'current',
-        Boolean(target) && node.dataset.boundaryIndex === String(target?.index),
+        targetIndex >= 0 && node.dataset.boundaryIndex === String(targetIndex),
       )
     })
 }
@@ -2654,24 +2662,24 @@ const renderFinalizeJunction = (playPreview: boolean) => {
     finalizeJunctionIndex >= junctionCount - 1 ? 'Continue →' : 'Next →'
   ;($('#finalize-back') as HTMLButtonElement).disabled =
     finalizeJunctionIndex === 0
-  const currentReveal = () => project.blocks[to.id]?.reveal || to.config.reveal
   finalizeTiles.replaceChildren(
-    ...MOTION_OPTIONS.filter(option =>
-      DIRECTOR_OPTIONS[to.kind].animations.includes(option.value),
-    ).map(option => {
+    ...FRAME_TRANSITION_OPTIONS.map(option => {
       const tile = document.createElement('button')
       tile.type = 'button'
-      tile.className = `motion-tile${option.value === currentReveal() ? ' active' : ''}`
+      tile.className = `motion-tile${option.value === sceneFrameStyle(to.id) ? ' active' : ''}`
       tile.title = option.description
       const label = document.createElement('strong')
       label.textContent = option.label
-      tile.append(createJunctionDemo(from, to, option.value), label)
+      tile.append(
+        createJunctionDemo(from, to, `junction-in-frame-${option.value}`),
+        label,
+      )
       tile.addEventListener('click', () => {
         finalizeTiles
           .querySelectorAll('.motion-tile')
           .forEach(item => item.classList.toggle('active', item === tile))
-        armMotionPreviewLoop(to.id, option.label)
-        if (currentReveal() === option.value) {
+        armMotionPreviewLoop(to.id, `Frame · ${option.label}`)
+        if (sceneFrameStyle(to.id) === option.value) {
           void replaySelectedAnimation()
           return
         }
@@ -2679,24 +2687,31 @@ const renderFinalizeJunction = (playPreview: boolean) => {
         // as soon as the recompiled preview is ready.
         setMotionPreviewBadge(`Preparing ${option.label}…`)
         replayAnimationOnReady = true
-        updateSelectedConfig(config => {
-          config.reveal = option.value
-        })
+        const durationInput = $(
+          '#finalize-duration-slot input',
+        ) as HTMLInputElement | null
+        setSceneFrameTransition(
+          to.id,
+          option.value,
+          Number(durationInput?.value || 0.5),
+        )
+        syncProject()
+        renderCanvasBlockTimeline()
       })
       return tile
     }),
   )
   hydrateJunctionFrames(finalizeTiles)
   ;($('#finalize-duration-slot') as HTMLElement).replaceChildren(
-    createRevealDurationControl(() => to.id),
+    createRevealDurationControl(() => to.id, 'frame'),
   )
   selectNode(to.id, false)
   highlightCurrentJunction()
   if (playPreview) {
-    const currentMotion = MOTION_OPTIONS.find(
-      option => option.value === currentReveal(),
+    const currentFrame = FRAME_TRANSITION_OPTIONS.find(
+      option => option.value === sceneFrameStyle(to.id),
     )
-    armMotionPreviewLoop(to.id, currentMotion?.label || 'transition')
+    armMotionPreviewLoop(to.id, `Frame · ${currentFrame?.label || 'Cut'}`)
     void replaySelectedAnimation()
   }
 }
@@ -2997,19 +3012,20 @@ const renderCanvasBlockTimeline = () => {
     button.addEventListener('click', () => selectNode(scene.id, false))
     makeChipReorderable(button, scene.id)
     if (scene.index > 0) {
-      // A CapCut-style boundary node between chips: filled when a transition
-      // into the right-hand block exists, hollow when it enters statically.
+      // A CapCut-style boundary node between chips: filled when a frame
+      // switchover into the right-hand block exists, hollow on a plain cut.
       const node = document.createElement('button')
-      const hasTransition = scene.config.reveal !== 'none'
-      const motionLabel =
-        MOTION_OPTIONS.find(option => option.value === scene.config.reveal)
-          ?.label || scene.config.reveal
+      const frameStyle = scene.config.frameTransition?.style || 'cut'
+      const hasTransition = frameStyle !== 'cut'
+      const frameLabel =
+        FRAME_TRANSITION_OPTIONS.find(option => option.value === frameStyle)
+          ?.label || frameStyle
       node.type = 'button'
       node.dataset.boundaryIndex = String(scene.index)
       node.className = `timeline-transition-node${hasTransition ? ' set' : ''}`
       node.title = hasTransition
-        ? `Transition: ${motionLabel} — click to change`
-        : 'Add a transition between these blocks'
+        ? `Frame switch: ${frameLabel} — click to change`
+        : 'Add a frame switch between these blocks'
       node.innerHTML =
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14l7-7-7-7Zm16 0-7 7 7 7V5Z"/></svg>'
       node.addEventListener('click', event => {
@@ -3948,25 +3964,59 @@ const REVEAL_DEFAULT_SECONDS: Record<RevealStyle, number> = {
   'line-by-line': 0.48,
 }
 
+// Frame switchovers: how the whole video frame hands over between two
+// blocks — distinct from content motion, which animates the words inside.
+const FRAME_TRANSITION_OPTIONS: Array<{
+  value: FrameTransitionStyle
+  label: string
+  description: string
+}> = [
+  { value: 'cut', label: 'Cut', description: 'Instant switch, no motion' },
+  { value: 'crossfade', label: 'Crossfade', description: 'Dissolve into the next frame' },
+  { value: 'slide-left', label: 'Push left', description: 'Next frame pushes in from the right' },
+  { value: 'slide-right', label: 'Push right', description: 'Next frame pushes in from the left' },
+  { value: 'slide-up', label: 'Push up', description: 'Next frame rises over this one' },
+  { value: 'wipe', label: 'Wipe', description: 'An edge sweeps the new frame in' },
+  { value: 'zoom', label: 'Zoom', description: 'Next frame settles from a zoom' },
+]
+
+const sceneFrameStyle = (sceneId: string): FrameTransitionStyle =>
+  project.blocks[sceneId]?.frameTransition?.style || 'cut'
+
+const setSceneFrameTransition = (
+  sceneId: string,
+  style: FrameTransitionStyle,
+  durationSeconds: number,
+) => {
+  const config = project.blocks[sceneId]
+  if (!config) return
+  config.frameTransition = { style, durationSeconds }
+}
+
 // Duration is what makes a transition perceptible — every picker carries the
 // same slider, and changes recompile the export-real composition.
-const createRevealDurationControl = (getSceneId: () => string) => {
+const createRevealDurationControl = (
+  getSceneId: () => string,
+  kind: 'reveal' | 'frame' = 'reveal',
+) => {
   const wrap = document.createElement('div')
   wrap.className = 'transition-duration'
   const label = document.createElement('label')
-  label.textContent = 'Duration'
+  label.textContent = kind === 'frame' ? 'Switch duration' : 'Duration'
   const output = document.createElement('output')
   const slider = document.createElement('input')
   slider.type = 'range'
   slider.min = '0.2'
-  slider.max = '3'
+  slider.max = kind === 'frame' ? '1.5' : '3'
   slider.step = '0.1'
   const config = project.blocks[getSceneId()]
   const initial =
-    config?.revealDurationSeconds ||
-    REVEAL_DEFAULT_SECONDS[config?.reveal || 'fade'] ||
-    0.7
-  slider.value = String(Math.min(3, Math.max(0.2, initial)))
+    kind === 'frame'
+      ? config?.frameTransition?.durationSeconds || 0.5
+      : config?.revealDurationSeconds ||
+        REVEAL_DEFAULT_SECONDS[config?.reveal || 'fade'] ||
+        0.7
+  slider.value = String(Math.min(Number(slider.max), Math.max(0.2, initial)))
   const syncOutput = () => {
     output.textContent = `${Number(slider.value).toFixed(1)}s`
   }
@@ -3975,7 +4025,15 @@ const createRevealDurationControl = (getSceneId: () => string) => {
   slider.addEventListener('change', () => {
     const target = project.blocks[getSceneId()]
     if (!target) return
-    target.revealDurationSeconds = Number(slider.value)
+    if (kind === 'frame') {
+      setSceneFrameTransition(
+        getSceneId(),
+        sceneFrameStyle(getSceneId()),
+        Number(slider.value),
+      )
+    } else {
+      target.revealDurationSeconds = Number(slider.value)
+    }
     if (motionPreviewLoopSceneId === getSceneId()) {
       setMotionPreviewBadge(`Preparing ${slider.value}s timing…`)
       replayAnimationOnReady = true

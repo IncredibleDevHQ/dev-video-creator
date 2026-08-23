@@ -1109,6 +1109,21 @@ describe('compileProject', () => {
     expect(untimed.html).toContain('duration: 0.75')
   })
 
+  it('compiles frame switchovers with visibility overlap', () => {
+    const framed = project()
+    framed.blocks.body.frameTransition = { style: 'crossfade', durationSeconds: 0.8 }
+    const compiled = compileProject(framed)
+    // The incoming frame animates as a whole section…
+    expect(compiled.html).toContain(
+      'tl.fromTo("#scene-1", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.inOut" }, 5);',
+    )
+    // …while the outgoing scene stays visible underneath for the overlap.
+    expect(compiled.html).toContain('data-start="0"\n        data-duration="5.8"')
+    const plain = compileProject(project())
+    expect(plain.html).not.toContain('tl.fromTo("#scene-1", { opacity: 0 }, { opacity: 1, duration: 0.8')
+    expect(plain.html).toContain('data-start="0"\n        data-duration="5"')
+  })
+
   it('omits the recorded take for the content-view block only', () => {
     const withTake = project()
     withTake.recordedBlocks = {

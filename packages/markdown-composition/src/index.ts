@@ -251,6 +251,36 @@ const normalizeBlockConfig = (
           ),
         }
       : {}),
+    ...(supplied.frameTransition && typeof supplied.frameTransition === 'object'
+      ? {
+          frameTransition: {
+            style: allowedValue(
+              supplied.frameTransition.style,
+              [
+                'cut',
+                'crossfade',
+                'slide-left',
+                'slide-right',
+                'slide-up',
+                'wipe',
+                'zoom',
+              ] as const,
+              'cut',
+            ),
+            ...(Number.isFinite(supplied.frameTransition.durationSeconds)
+              ? {
+                  durationSeconds: Math.min(
+                    1.5,
+                    Math.max(
+                      0.2,
+                      supplied.frameTransition.durationSeconds as number,
+                    ),
+                  ),
+                }
+              : {}),
+          },
+        }
+      : {}),
   }
 }
 
@@ -512,6 +542,12 @@ const buildCompositionHtml = (
     ? `<span class="composition-brand user-brand"><img src="${escapeHtml(logoUrl)}" alt="" /></span>`
     : ''
 
+  const frameTransitionSeconds = (scene: Scene | undefined) => {
+    const frame = scene?.config.frameTransition
+    if (!frame || frame.style === 'cut' || (scene?.index ?? 0) === 0) return 0
+    return Math.min(1.5, Math.max(0.2, frame.durationSeconds ?? 0.5))
+  }
+
   const sceneMarkup = scenes
     .map(scene => {
       const cameraGeometry = presenterLayoutGeometry(
@@ -577,7 +613,7 @@ const buildCompositionHtml = (
         id="scene-${scene.index}"
         class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation} media-border-${scene.config.mediaFrame.borderWidth} media-corners-${scene.config.mediaFrame.corners} media-depth-${scene.config.mediaFrame.elevation}${recordedTakeUrl ? ' has-recorded-take' : ''}"
         data-start="${scene.startSeconds}"
-        data-duration="${scene.durationSeconds}"
+        data-duration="${scene.durationSeconds + frameTransitionSeconds(scenes[scene.index + 1])}"
         data-track-index="${scene.index}"
         data-node-id="${escapeHtml(scene.id)}"
         data-reveal="${scene.config.reveal}"
@@ -627,6 +663,28 @@ const buildCompositionHtml = (
             : `#scene-${scene.index} .content > *`,
       )
       const start = scene.startSeconds
+      // Frame switchover: the whole incoming frame animates over the held
+      // tail of the previous one (its visibility window is extended above).
+      const frame = scene.config.frameTransition
+      const frameSeconds = frameTransitionSeconds(scene)
+      let frameTween = ''
+      if (frame && frameSeconds > 0) {
+        const frameSelector = scriptString(`#scene-${scene.index}`)
+        const frameEase = '"power2.inOut"'
+        if (frame.style === 'crossfade') {
+          frameTween = `tl.fromTo(${frameSelector}, { opacity: 0 }, { opacity: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+        } else if (frame.style === 'slide-left') {
+          frameTween = `tl.fromTo(${frameSelector}, { xPercent: 100 }, { xPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+        } else if (frame.style === 'slide-right') {
+          frameTween = `tl.fromTo(${frameSelector}, { xPercent: -100 }, { xPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+        } else if (frame.style === 'slide-up') {
+          frameTween = `tl.fromTo(${frameSelector}, { yPercent: 100 }, { yPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+        } else if (frame.style === 'wipe') {
+          frameTween = `tl.fromTo(${frameSelector}, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+        } else if (frame.style === 'zoom') {
+          frameTween = `tl.fromTo(${frameSelector}, { opacity: 0, scale: 1.12, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+        }
+      }
       // The creator can slow a transition down; unset falls back to each
       // motion's tuned default.
       const chosen = scene.config.revealDurationSeconds
@@ -671,11 +729,11 @@ const buildCompositionHtml = (
         default:
           entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: ${revealDuration(0.75)}, ease: "power3.out" }, ${start});`
       }
-      if (scene.kind !== 'code') return entrance
+      if (scene.kind !== 'code') return `${frameTween}${entrance}`
       const codeMotion = scene.config.appearance.codeAnimation === 'highlight-lines'
         ? ` tl.set(${sequenceSelector}, { opacity: 0.24 }, ${start + 0.28}); tl.to(${sequenceSelector}, { opacity: 1, duration: 0.38, stagger: 0.55, ease: "power2.inOut" }, ${start + 0.32});`
         : ` tl.fromTo(${sequenceSelector}, { opacity: 0, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)", duration: 0.62, stagger: 0.3, ease: "steps(12)" }, ${start + 0.24});`
-      return `${entrance}${codeMotion}`
+      return `${frameTween}${entrance}${codeMotion}`
     })
     .join('\n      ')
 

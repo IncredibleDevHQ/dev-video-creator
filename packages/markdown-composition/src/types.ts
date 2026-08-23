@@ -62,6 +62,14 @@ export type PresenterLayoutMode =
   | 'person-background-left'
   | 'person-background-right'
   | 'person-only'
+export type FrameTransitionStyle =
+  | 'cut'
+  | 'crossfade'
+  | 'slide-left'
+  | 'slide-right'
+  | 'slide-up'
+  | 'wipe'
+  | 'zoom'
 export type MediaBorderWidth = 'none' | 'thin' | 'medium' | 'thick'
 export type MediaCornerStyle = 'square' | 'soft' | 'rounded'
 export type MediaElevation = 'flat' | 'soft' | 'lifted'
@@ -96,6 +104,10 @@ export type BlockRenderConfigV1 = {
   speakerNotes?: string
   notesTargetMinutes?: number
   revealDurationSeconds?: number
+  frameTransition?: {
+    style: FrameTransitionStyle
+    durationSeconds?: number
+  }
 }
 
 export type HumanCameraTrackV1 = {
