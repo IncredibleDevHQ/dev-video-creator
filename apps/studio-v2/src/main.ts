@@ -4164,19 +4164,24 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   }
   if (motionPreviewLoopSceneId !== scene.id || selectedNodeId !== scene.id)
     return true
-  // The segment is stepped on a timer from the studio page: composition
-  // iframes (and some embedded panes) throttle requestAnimationFrame, but a
-  // time() set renders synchronously no matter who calls it, and timers
-  // keep firing. 30 steps a second is plenty for a slow-mo audition.
+  // The sweep is paced by the display: a requestAnimationFrame pump renders
+  // a vsync-aligned frame each tick, and a coarse timer backstop keeps the
+  // segment moving in contexts that throttle rAF (composition iframes,
+  // embedded panes). Position derives from the wall clock, so extra calls
+  // only add frames — they never change the speed.
+  let cancelled = false
+  let done = false
   let last = performance.now()
   let position = from
-  const ticker = window.setInterval(() => {
+  const step = () => {
+    if (cancelled || done) return
     const now = performance.now()
     position += ((now - last) / 1000) * PREVIEW_PLAYBACK_RATE
     last = now
     timeline.time(Math.min(position, to))
     if (position < to) return
-    window.clearInterval(ticker)
+    done = true
+    window.clearInterval(backstop)
     activeFrameAudition = null
     if (
       motionPreviewLoopSceneId === scene.id &&
@@ -4187,13 +4192,21 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
         650,
       )
     }
-  }, 33)
+  }
+  const backstop = window.setInterval(step, 40)
+  const pump = () => {
+    if (cancelled || done) return
+    step()
+    window.requestAnimationFrame(pump)
+  }
   activeFrameAudition = {
     kill: () => {
-      window.clearInterval(ticker)
+      cancelled = true
+      window.clearInterval(backstop)
     },
   }
   timeline.time(from)
+  window.requestAnimationFrame(pump)
   return true
 }
 
