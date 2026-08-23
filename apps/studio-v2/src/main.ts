@@ -2444,18 +2444,24 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
         label,
       )
       tile.addEventListener('click', () => {
+        // Stay open so styles can be auditioned one after another — each
+        // pick plays full-size on the canvas, the tiles are just the menu.
+        transitionPopoverGrid
+          .querySelectorAll('.motion-tile')
+          .forEach(item => item.classList.toggle('active', item === tile))
         selectNode(scene.id, false)
+        motionPreviewLabel = `Previewing · ${option.label}`
         if (currentReveal() === option.value) {
           void replaySelectedAnimation()
         } else {
           // Recompiles the preview and replays across the boundary once the
           // player reports ready — the pick is previewed on the video itself.
+          setMotionPreviewBadge(`Preparing ${option.label}…`)
           replayAnimationOnReady = true
           updateSelectedConfig(config => {
             config.reveal = option.value
           })
         }
-        closeTransitionPopover()
       })
       return tile
     }),
@@ -2653,12 +2659,14 @@ const renderFinalizeJunction = (playPreview: boolean) => {
         finalizeTiles
           .querySelectorAll('.motion-tile')
           .forEach(item => item.classList.toggle('active', item === tile))
+        motionPreviewLabel = `Previewing · ${option.label}`
         if (currentReveal() === option.value) {
           void replaySelectedAnimation()
           return
         }
         // Applies the pick and replays the real frames across this junction
         // as soon as the recompiled preview is ready.
+        setMotionPreviewBadge(`Preparing ${option.label}…`)
         replayAnimationOnReady = true
         updateSelectedConfig(config => {
           config.reveal = option.value
@@ -2670,7 +2678,13 @@ const renderFinalizeJunction = (playPreview: boolean) => {
   hydrateJunctionFrames(finalizeTiles)
   selectNode(to.id, false)
   highlightCurrentJunction()
-  if (playPreview) void replaySelectedAnimation()
+  if (playPreview) {
+    const currentMotion = MOTION_OPTIONS.find(
+      option => option.value === currentReveal(),
+    )
+    motionPreviewLabel = `Previewing · ${currentMotion?.label || 'transition'}`
+    void replaySelectedAnimation()
+  }
 }
 
 const exitFinalizeMode = () => {
@@ -3886,12 +3900,25 @@ canvasViewContentButton.addEventListener('click', () =>
   setRecordedTakeCanvasView('content'),
 )
 
+let motionPreviewLabel = ''
+
+const setMotionPreviewBadge = (text: string) => {
+  const badge = $('#motion-preview-badge')
+  if (!text) {
+    badge.hidden = true
+    return
+  }
+  ;($('#motion-preview-label') as HTMLElement).textContent = text
+  badge.hidden = false
+}
+
 const replaySelectedAnimation = async () => {
   stopScreenPlayback()
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   window.clearTimeout(animationPreviewTimer)
   player.pause()
+  if (motionPreviewLabel) setMotionPreviewBadge(motionPreviewLabel)
   // Start just before the boundary so the previous block's tail is visible
   // and the entrance reads as a transition between the two.
   const leadInSeconds = Math.min(0.7, scene.startSeconds)
@@ -3901,6 +3928,8 @@ const replaySelectedAnimation = async () => {
     () => {
       player.pause()
       player.seek(scenePreviewTime(scene))
+      setMotionPreviewBadge('')
+      motionPreviewLabel = ''
     },
     leadInSeconds * 1000 +
       Math.min(2200, Math.max(900, scene.durationSeconds * 450)),
