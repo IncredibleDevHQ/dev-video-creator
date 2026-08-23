@@ -4149,17 +4149,57 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   const leadSeconds = Math.min(0.6, scene.startSeconds)
   const from = scene.startSeconds - leadSeconds
   const to = scene.startSeconds + frameSeconds + 0.4
-  player.seek(parkAt)
-  // While the seek settles, keep the rendered frame on the outgoing block —
-  // the parked clock itself sits mid-switch, which would otherwise leave a
-  // frozen half-and-half frame on the canvas between sweeps.
-  timeline.time(from)
-  const settleDeadline = Date.now() + 1600
-  while (
-    Date.now() < settleDeadline &&
-    Math.abs(player.currentTime - parkAt) > 0.2
-  ) {
-    await new Promise(resolve => window.setTimeout(resolve, 120))
+  // Park only when not already parked: re-seeking every loop cycle makes the
+  // runtime re-seek its media, and that async fallout lands mid-sweep as a
+  // main-thread hitch — the sweep freezes, then leaps.
+  if (Math.abs(player.currentTime - parkAt) > 0.2) {
+    player.seek(parkAt)
+    // While the seek settles, keep the rendered frame on the outgoing block —
+    // the parked clock itself sits mid-switch, which would otherwise leave a
+    // frozen half-and-half frame on the canvas between sweeps.
+    timeline.time(from)
+    const settleDeadline = Date.now() + 1600
+    while (
+      Date.now() < settleDeadline &&
+      Math.abs(player.currentTime - parkAt) > 0.2
+    ) {
+      await new Promise(resolve => window.setTimeout(resolve, 120))
+      timeline.time(from)
+    }
+    // One more beat so the seek's trailing work (media element seeks,
+    // visibility stamps, decode) finishes before the sweep starts.
+    await new Promise(resolve => window.setTimeout(resolve, 260))
+    // And gate on the junction's own media: sweep only once the videos on
+    // either side of this switch have a decoded frame, so their first
+    // decode can't hitch the middle of the sweep.
+    const junctionSelector = (tag: string) =>
+      `#scene-${scene.index} ${tag}, #scene-${scene.index - 1} ${tag}`
+    const mediaDeadline = Date.now() + 1200
+    const junctionVideos = () =>
+      Array.from(
+        player.iframeElement?.contentDocument?.querySelectorAll<HTMLVideoElement>(
+          junctionSelector('video'),
+        ) || [],
+      )
+    while (
+      Date.now() < mediaDeadline &&
+      junctionVideos().some(video => video.readyState < 2)
+    ) {
+      await new Promise(resolve => window.setTimeout(resolve, 120))
+      timeline.time(from)
+    }
+    // Presenter photos decode lazily on first paint — force that off the
+    // sweep's critical path too.
+    await Promise.race([
+      Promise.all(
+        Array.from(
+          player.iframeElement?.contentDocument?.querySelectorAll<HTMLImageElement>(
+            junctionSelector('img'),
+          ) || [],
+        ).map(image => image.decode().catch(() => undefined)),
+      ),
+      new Promise(resolve => window.setTimeout(resolve, 600)),
+    ])
     timeline.time(from)
   }
   if (motionPreviewLoopSceneId !== scene.id || selectedNodeId !== scene.id)
@@ -4169,42 +4209,53 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   // segment moving in contexts that throttle rAF (composition iframes,
   // embedded panes). Position derives from the wall clock, so extra calls
   // only add frames — they never change the speed.
+  //
+  // The driver runs continuously — sweep, hold on the arrived frame,
+  // restart — and never leaves an idle gap: the player runtime occasionally
+  // re-stamps the timeline to its parked (mid-switch) clock, and an owned
+  // timeline overwrites that within a frame instead of letting it rest on a
+  // half-and-half frame or yank a sweep boundary around.
   let cancelled = false
-  let done = false
   let last = performance.now()
   let position = from
+  let holdUntil = 0
+  const stop = () => {
+    cancelled = true
+    window.clearInterval(backstop)
+    if (activeFrameAudition === handle) activeFrameAudition = null
+  }
   const step = () => {
-    if (cancelled || done) return
+    if (cancelled) return
+    if (motionPreviewLoopSceneId !== scene.id || selectedNodeId !== scene.id) {
+      stop()
+      return
+    }
     const now = performance.now()
-    position += ((now - last) / 1000) * PREVIEW_PLAYBACK_RATE
+    if (holdUntil) {
+      timeline.time(to)
+      if (now < holdUntil) return
+      holdUntil = 0
+      position = from
+      last = now
+      timeline.time(from)
+      return
+    }
+    // Cap the advance per rendered frame: after a main-thread hitch the
+    // sweep resumes from where it paused instead of leaping to where the
+    // wall clock says it should be — a brief hold reads fine, a jump never.
+    position += (Math.min(now - last, 80) / 1000) * PREVIEW_PLAYBACK_RATE
     last = now
     timeline.time(Math.min(position, to))
-    if (position < to) return
-    done = true
-    window.clearInterval(backstop)
-    activeFrameAudition = null
-    if (
-      motionPreviewLoopSceneId === scene.id &&
-      motionPreviewLoopSceneId === selectedNodeId
-    ) {
-      animationPreviewTimer = window.setTimeout(
-        () => void replaySelectedAnimation(),
-        650,
-      )
-    }
+    if (position >= to) holdUntil = now + 650
   }
   const backstop = window.setInterval(step, 40)
   const pump = () => {
-    if (cancelled || done) return
+    if (cancelled) return
     step()
     window.requestAnimationFrame(pump)
   }
-  activeFrameAudition = {
-    kill: () => {
-      cancelled = true
-      window.clearInterval(backstop)
-    },
-  }
+  const handle = { kill: stop }
+  activeFrameAudition = handle
   timeline.time(from)
   window.requestAnimationFrame(pump)
   return true
