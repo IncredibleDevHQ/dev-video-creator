@@ -2416,6 +2416,7 @@ const transitionPopoverTitle = $('#transition-popover-title')
 
 const closeTransitionPopover = () => {
   transitionPopover.hidden = true
+  stopMotionPreviewLoop()
 }
 
 const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
@@ -2450,7 +2451,7 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
           .querySelectorAll('.motion-tile')
           .forEach(item => item.classList.toggle('active', item === tile))
         selectNode(scene.id, false)
-        motionPreviewLabel = `Previewing · ${option.label}`
+        armMotionPreviewLoop(scene.id, option.label)
         if (currentReveal() === option.value) {
           void replaySelectedAnimation()
         } else {
@@ -2468,6 +2469,12 @@ const openTransitionPopover = (scene: Scene, node: HTMLElement) => {
   )
   hydrateJunctionFrames(transitionPopoverGrid)
   transitionPopover.hidden = false
+  selectNode(scene.id, false)
+  const openingMotion = MOTION_OPTIONS.find(
+    option => option.value === currentReveal(),
+  )
+  armMotionPreviewLoop(scene.id, openingMotion?.label || 'transition')
+  void replaySelectedAnimation()
   const rect = node.getBoundingClientRect()
   const width = transitionPopover.offsetWidth
   const left = Math.max(
@@ -2659,7 +2666,7 @@ const renderFinalizeJunction = (playPreview: boolean) => {
         finalizeTiles
           .querySelectorAll('.motion-tile')
           .forEach(item => item.classList.toggle('active', item === tile))
-        motionPreviewLabel = `Previewing · ${option.label}`
+        armMotionPreviewLoop(to.id, option.label)
         if (currentReveal() === option.value) {
           void replaySelectedAnimation()
           return
@@ -2682,7 +2689,7 @@ const renderFinalizeJunction = (playPreview: boolean) => {
     const currentMotion = MOTION_OPTIONS.find(
       option => option.value === currentReveal(),
     )
-    motionPreviewLabel = `Previewing · ${currentMotion?.label || 'transition'}`
+    armMotionPreviewLoop(to.id, currentMotion?.label || 'transition')
     void replaySelectedAnimation()
   }
 }
@@ -2691,6 +2698,7 @@ const exitFinalizeMode = () => {
   finalizeModeActive = false
   finalizeBar.hidden = true
   playerShell.classList.remove('canvas-finalize-mode')
+  stopMotionPreviewLoop()
   highlightCurrentJunction()
 }
 
@@ -3901,6 +3909,7 @@ canvasViewContentButton.addEventListener('click', () =>
 )
 
 let motionPreviewLabel = ''
+let motionPreviewLoopSceneId = ''
 
 const setMotionPreviewBadge = (text: string) => {
   const badge = $('#motion-preview-badge')
@@ -3910,6 +3919,22 @@ const setMotionPreviewBadge = (text: string) => {
   }
   ;($('#motion-preview-label') as HTMLElement).textContent = text
   badge.hidden = false
+}
+
+// While a transition picker is open, the junction keeps looping on the main
+// canvas — the loop is disarmed when the picker closes or the focus moves.
+const armMotionPreviewLoop = (sceneId: string, label: string) => {
+  motionPreviewLoopSceneId = sceneId
+  motionPreviewLabel = `Previewing · ${label}`
+  playerShell.classList.add('transition-preview-active')
+}
+
+const stopMotionPreviewLoop = () => {
+  motionPreviewLoopSceneId = ''
+  motionPreviewLabel = ''
+  playerShell.classList.remove('transition-preview-active')
+  setMotionPreviewBadge('')
+  window.clearTimeout(animationPreviewTimer)
 }
 
 const replaySelectedAnimation = async () => {
@@ -3928,8 +3953,19 @@ const replaySelectedAnimation = async () => {
     () => {
       player.pause()
       player.seek(scenePreviewTime(scene))
+      if (
+        motionPreviewLoopSceneId &&
+        motionPreviewLoopSceneId === selectedNodeId
+      ) {
+        animationPreviewTimer = window.setTimeout(
+          () => void replaySelectedAnimation(),
+          650,
+        )
+        return
+      }
       setMotionPreviewBadge('')
       motionPreviewLabel = ''
+      playerShell.classList.remove('transition-preview-active')
     },
     leadInSeconds * 1000 +
       Math.min(2200, Math.max(900, scene.durationSeconds * 450)),
