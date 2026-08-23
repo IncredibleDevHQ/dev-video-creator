@@ -2428,6 +2428,9 @@ const blockTag = (scene: Scene) =>
   `${String(scene.index + 1).padStart(2, '0')} · ${TIMELINE_BLOCK_META[sceneVisualKind(scene)].label}`
 
 const openTransitionPopover = (scene: Scene) => {
+  // Clicking a node is direct editing — leave the guided finalize
+  // walkthrough, or its junction highlight fights the drawer's.
+  if (finalizeModeActive) exitFinalizeMode()
   transitionPopoverTitle.textContent = 'Frame switch'
   const fromScene = scenes[scene.index - 1]
   const pair = $('#transition-popover-pair')
@@ -4143,19 +4146,24 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   player.pause()
   if (motionPreviewLabel) setMotionPreviewBadge(motionPreviewLabel)
   const parkAt = scene.startSeconds + frameSeconds / 2
+  const leadSeconds = Math.min(0.6, scene.startSeconds)
+  const from = scene.startSeconds - leadSeconds
+  const to = scene.startSeconds + frameSeconds + 0.4
   player.seek(parkAt)
+  // While the seek settles, keep the rendered frame on the outgoing block —
+  // the parked clock itself sits mid-switch, which would otherwise leave a
+  // frozen half-and-half frame on the canvas between sweeps.
+  timeline.time(from)
   const settleDeadline = Date.now() + 1600
   while (
     Date.now() < settleDeadline &&
     Math.abs(player.currentTime - parkAt) > 0.2
   ) {
     await new Promise(resolve => window.setTimeout(resolve, 120))
+    timeline.time(from)
   }
   if (motionPreviewLoopSceneId !== scene.id || selectedNodeId !== scene.id)
     return true
-  const leadSeconds = Math.min(0.6, scene.startSeconds)
-  const from = scene.startSeconds - leadSeconds
-  const to = scene.startSeconds + frameSeconds + 0.4
   // The segment is stepped on a timer from the studio page: composition
   // iframes (and some embedded panes) throttle requestAnimationFrame, but a
   // time() set renders synchronously no matter who calls it, and timers

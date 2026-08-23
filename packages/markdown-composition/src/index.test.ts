@@ -1124,6 +1124,20 @@ describe('compileProject', () => {
     expect(plain.html).toContain('data-start="0"\n        data-duration="5"')
   })
 
+  it('pushes both frames on slide switchovers', () => {
+    const framed = project()
+    framed.blocks.body.frameTransition = { style: 'slide-left', durationSeconds: 0.5 }
+    const compiled = compileProject(framed)
+    // The incoming frame pushes in…
+    expect(compiled.html).toContain(
+      'tl.fromTo("#scene-1", { xPercent: 100 }, { xPercent: 0, duration: 0.5, ease: "power2.inOut" }, 5);',
+    )
+    // …and shoves the outgoing frame out with it, both moving together.
+    expect(compiled.html).toContain(
+      'tl.fromTo("#scene-0", { xPercent: 0 }, { xPercent: -100, duration: 0.5, ease: "power2.inOut" }, 5);',
+    )
+  })
+
   it('omits the recorded take for the content-view block only', () => {
     const withTake = project()
     withTake.recordedBlocks = {

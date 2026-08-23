@@ -668,17 +668,21 @@ const buildCompositionHtml = (
       const frame = scene.config.frameTransition
       const frameSeconds = frameTransitionSeconds(scene)
       let frameTween = ''
-      if (frame && frameSeconds > 0) {
+      if (frame && frameSeconds > 0 && scene.index > 0) {
         const frameSelector = scriptString(`#scene-${scene.index}`)
+        // Pushes are true pushes: the outgoing frame is shoved out by the
+        // incoming one, both moving together — not a slide over a frozen
+        // frame. Crossfade, wipe and zoom read over the held frame instead.
+        const previousSelector = scriptString(`#scene-${scene.index - 1}`)
         const frameEase = '"power2.inOut"'
         if (frame.style === 'crossfade') {
           frameTween = `tl.fromTo(${frameSelector}, { opacity: 0 }, { opacity: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'slide-left') {
-          frameTween = `tl.fromTo(${frameSelector}, { xPercent: 100 }, { xPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+          frameTween = `tl.fromTo(${frameSelector}, { xPercent: 100 }, { xPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { xPercent: 0 }, { xPercent: -100, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'slide-right') {
-          frameTween = `tl.fromTo(${frameSelector}, { xPercent: -100 }, { xPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+          frameTween = `tl.fromTo(${frameSelector}, { xPercent: -100 }, { xPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { xPercent: 0 }, { xPercent: 100, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'slide-up') {
-          frameTween = `tl.fromTo(${frameSelector}, { yPercent: 100 }, { yPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+          frameTween = `tl.fromTo(${frameSelector}, { yPercent: 100 }, { yPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { yPercent: 0 }, { yPercent: -100, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'wipe') {
           frameTween = `tl.fromTo(${frameSelector}, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'zoom') {
