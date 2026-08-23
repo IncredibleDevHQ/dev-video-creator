@@ -3921,17 +3921,22 @@ const setMotionPreviewBadge = (text: string) => {
   badge.hidden = false
 }
 
+// Entrances finish in under a second at full speed, which makes styles hard
+// to tell apart — preview replays run slowed down so each motion is legible.
+const PREVIEW_PLAYBACK_RATE = 0.45
+
 // While a transition picker is open, the junction keeps looping on the main
 // canvas — the loop is disarmed when the picker closes or the focus moves.
 const armMotionPreviewLoop = (sceneId: string, label: string) => {
   motionPreviewLoopSceneId = sceneId
-  motionPreviewLabel = `Previewing · ${label}`
+  motionPreviewLabel = `Previewing · ${label} · slow-mo`
   playerShell.classList.add('transition-preview-active')
 }
 
 const stopMotionPreviewLoop = () => {
   motionPreviewLoopSceneId = ''
   motionPreviewLabel = ''
+  player.playbackRate = 1
   playerShell.classList.remove('transition-preview-active')
   setMotionPreviewBadge('')
   window.clearTimeout(animationPreviewTimer)
@@ -3943,14 +3948,20 @@ const replaySelectedAnimation = async () => {
   if (!scene) return
   window.clearTimeout(animationPreviewTimer)
   player.pause()
-  if (motionPreviewLabel) setMotionPreviewBadge(motionPreviewLabel)
+  const previewing = Boolean(motionPreviewLabel)
+  if (previewing) setMotionPreviewBadge(motionPreviewLabel)
+  player.playbackRate = previewing ? PREVIEW_PLAYBACK_RATE : 1
   // Start just before the boundary so the previous block's tail is visible
   // and the entrance reads as a transition between the two.
   const leadInSeconds = Math.min(0.7, scene.startSeconds)
   player.seek(scene.startSeconds - leadInSeconds)
   await player.play()
+  const shownMilliseconds =
+    leadInSeconds * 1000 +
+    Math.min(2200, Math.max(900, scene.durationSeconds * 450))
   animationPreviewTimer = window.setTimeout(
     () => {
+      player.playbackRate = 1
       player.pause()
       player.seek(scenePreviewTime(scene))
       if (
@@ -3967,8 +3978,7 @@ const replaySelectedAnimation = async () => {
       motionPreviewLabel = ''
       playerShell.classList.remove('transition-preview-active')
     },
-    leadInSeconds * 1000 +
-      Math.min(2200, Math.max(900, scene.durationSeconds * 450)),
+    previewing ? shownMilliseconds / PREVIEW_PLAYBACK_RATE : shownMilliseconds,
   )
 }
 
