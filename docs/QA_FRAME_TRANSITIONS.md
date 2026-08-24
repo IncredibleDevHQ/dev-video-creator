@@ -10,11 +10,13 @@ correct behavior looks like. Written for handover; current as of 2026-08-24.
 | Repo | `https://github.com/IncredibleDevHQ/Incredible.git` |
 | **Branch** | **`feat/hyperframes-markdown-mvp`** (pushed to origin; do not restart from `main`) |
 | Working checkout | `/Users/think/Documents/code/dev-video-creator-main` |
-| Latest commit at writing | `752c0d1c` — fix: true pushes, no mid-switch resting frame, one junction focus |
+| Latest commit at writing | `c8628c73` — feat: instant real-time switchover auditions |
 
 The feature landed across these commits: `1f78dad4` (switchover system + compiler),
 `dba8b601` (drawer + From/To spotlight), `1aeb4ab3` (audition driver),
-`5c9dcda3` (take-overlay yield), `752c0d1c` (true pushes, resting frames, focus).
+`5c9dcda3` (take-overlay yield), `752c0d1c` (true pushes, resting frames, focus),
+`1e15a250` (continuous sweep, no stall/leap), `c8628c73` (instant real-time
+auditions, single recompile per session).
 
 ## Start the app
 
@@ -54,13 +56,14 @@ note the `/studio` path; the bare root URL opens the Theme Builder instead
    - On the timeline, the two chips the junction connects get **From** and
      **To** tags and light up green; every other chip and node dims; the
      clicked node stays enlarged and ringed.
-   - The main canvas starts a **looping slow-motion preview** of the junction,
-     with the badge `Previewing · Frame · <Style> · slow-mo` and a green glow
-     around the frame.
-5. Click tiles to audition styles. Each pick recompiles the composition,
-   persists automatically (watch the **Saved** chip in the top bar), and keeps
-   looping on the canvas. The drawer stays open so styles can be compared
-   back-to-back. **Cut** removes the switchover.
+   - The main canvas starts a **looping real-time preview** of the junction,
+     with the badge `Previewing · Frame · <Style>` and a green glow around
+     the frame.
+5. Click tiles to audition styles. Each pick previews **instantly** — the
+   audition drives the junction's frames directly, no recompile wait — and
+   persists automatically (watch the **Saved** chip in the top bar). The
+   drawer stays open so styles can be compared back-to-back; the composition
+   recompiles once when the drawer closes. **Cut** removes the switchover.
 6. Close with the drawer's ×, or click anywhere outside it. All spotlighting
    tears down; the node stays green only if a non-cut style is set.
 
@@ -141,16 +144,20 @@ ffmpeg -ss 15.15 -i render.mp4 -frames:v 1 junction.png
 - Tests: `packages/markdown-composition/src/index.test.ts`.
 
 How the preview works (for debugging): the player is paused and parked inside
-the switch overlap — where the runtime keeps both frames visible — and the
-switch segment is stepped on the composition's GSAP timeline by a 30 Hz timer
-from the studio page. That makes the audition deterministic: it cannot be
-swallowed by media buffering at the junction and is immune to
-requestAnimationFrame throttling in embedded panes.
+the switch overlap — where the runtime keeps both frames visible — and a
+continuous vsync-paced driver (with a timer backstop for rAF-throttled
+contexts) sweeps the composition's GSAP timeline while writing the two
+sections' frame-level styles directly from the live block config, using the
+same math the compiler bakes into the export. That is why picks audition
+instantly with no recompile, cannot be swallowed by media buffering at the
+junction, and never rest on a half-and-half frame; the iframe refresh is held
+during the audition and flushed once when the picker closes.
 
 ## Known behaviors
 
-- The canvas preview is deliberately slow motion (0.45×) so styles are
-  tellable apart; the export runs at full speed.
+- Frame switchover previews run in real time — the sweep is what the export
+  shows. Content-motion previews (right rail) still run slowed down so the
+  smaller inner-content styles are tellable apart.
 - Recorded takes are transcoded WebM → seekable MP4 at save time (ffmpeg);
   transitions need no separate ffmpeg compositing — they are part of the
   compiled composition.
