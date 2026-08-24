@@ -367,6 +367,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 @keyframes frame-push-out-right { 0% { translate: 0 0; } 32%, 78% { translate: 100% 0; } 92%, 100% { translate: 0 0; } }
 @keyframes frame-push-out-up { 0% { translate: 0 0; } 32%, 78% { translate: 0 -100%; } 92%, 100% { translate: 0 0; } }
 @keyframes frame-fade-out { 0% { opacity: 1; } 32%, 78% { opacity: 0; } 92%, 100% { opacity: 1; } }
+.junction-demo:has(.junction-in-frame-wipe) .junction-layer.in { filter: drop-shadow(6px 0 8px rgba(0,0,0,.55)); }
 .junction-demo:has(.junction-in-frame-crossfade) .junction-layer.out, .junction-demo:has(.junction-in-frame-zoom) .junction-layer.out { animation: frame-fade-out 2.1s ease infinite; }
 .junction-demo:has(.junction-in-frame-slide-left) .junction-layer.out { animation: frame-push-out-left 2.1s cubic-bezier(.5,0,.2,1) infinite; }
 .junction-demo:has(.junction-in-frame-slide-right) .junction-layer.out { animation: frame-push-out-right 2.1s cubic-bezier(.5,0,.2,1) infinite; }

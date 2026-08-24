@@ -1142,6 +1142,15 @@ describe('compileProject', () => {
     )
   })
 
+  it('gives wipes a fading edge shadow so the seam reads', () => {
+    const framed = project()
+    framed.blocks.body.frameTransition = { style: 'wipe', durationSeconds: 0.6 }
+    const compiled = compileProject(framed)
+    expect(compiled.html).toContain(
+      'tl.fromTo("#scene-1", { clipPath: "inset(0 100% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0.55))" }, { clipPath: "inset(0 0% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0))", duration: 0.6, ease: "power2.inOut" }, 5);',
+    )
+  })
+
   it('omits the recorded take for the content-view block only', () => {
     const withTake = project()
     withTake.recordedBlocks = {

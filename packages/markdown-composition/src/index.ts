@@ -687,7 +687,10 @@ const buildCompositionHtml = (
         } else if (frame.style === 'slide-up') {
           frameTween = `tl.fromTo(${frameSelector}, { yPercent: 100 }, { yPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { yPercent: 0 }, { yPercent: -100, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'wipe') {
-          frameTween = `tl.fromTo(${frameSelector}, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+          // A wipe swaps pixels in place — between two similar frames the
+          // seam is invisible without an edge. The clipped frame casts a
+          // soft shadow onto the held one, fading as the wipe completes.
+          frameTween = `tl.fromTo(${frameSelector}, { clipPath: "inset(0 100% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0.55))" }, { clipPath: "inset(0 0% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0))", duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'zoom') {
           frameTween = `tl.fromTo(${frameSelector}, { opacity: 0, scale: 1.12, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { opacity: 1 }, { opacity: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         }

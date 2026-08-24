@@ -4259,6 +4259,7 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
         'transform',
         'opacity',
         'clip-path',
+        'filter',
         'visibility',
         'display',
       )
@@ -4279,6 +4280,7 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
       own(section, 'transform', 'none')
       own(section, 'opacity', '1')
       own(section, 'clip-path', 'none')
+      own(section, 'filter', 'none')
     }
     for (const video of heldTakeVideos) own(video, 'visibility', 'visible')
     if (overrideStyle === 'crossfade') {
@@ -4295,6 +4297,11 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
       own(outgoingSection, 'transform', `translateY(${-p * 100}%)`)
     } else if (overrideStyle === 'wipe') {
       own(incomingSection, 'clip-path', `inset(0 ${(1 - p) * 100}% 0 0)`)
+      own(
+        incomingSection,
+        'filter',
+        `drop-shadow(28px 0px 36px rgba(0,0,0,${(0.55 * (1 - p)).toFixed(3)}))`,
+      )
     } else if (overrideStyle === 'zoom') {
       own(incomingSection, 'opacity', String(p))
       own(incomingSection, 'transform', `scale(${1.12 - 0.12 * p})`)
