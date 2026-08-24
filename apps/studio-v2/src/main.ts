@@ -4227,6 +4227,7 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
     for (const video of heldTakeVideos) video.style.visibility = 'visible'
     if (overrideStyle === 'crossfade') {
       incomingSection.style.opacity = String(p)
+      outgoingSection.style.opacity = String(1 - p)
     } else if (overrideStyle === 'slide-left') {
       incomingSection.style.transform = `translateX(${(1 - p) * 100}%)`
       outgoingSection.style.transform = `translateX(${-p * 100}%)`
@@ -4241,6 +4242,7 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
     } else if (overrideStyle === 'zoom') {
       incomingSection.style.opacity = String(p)
       incomingSection.style.transform = `scale(${1.12 - 0.12 * p})`
+      outgoingSection.style.opacity = String(1 - p)
     }
   }
   // Park only when not already parked: re-seeking every loop cycle makes the

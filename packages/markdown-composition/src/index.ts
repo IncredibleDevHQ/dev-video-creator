@@ -676,7 +676,10 @@ const buildCompositionHtml = (
         const previousSelector = scriptString(`#scene-${scene.index - 1}`)
         const frameEase = '"power2.inOut"'
         if (frame.style === 'crossfade') {
-          frameTween = `tl.fromTo(${frameSelector}, { opacity: 0 }, { opacity: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+          // A true dissolve dims the outgoing frame as the incoming rises —
+          // leaving it fully lit underneath turns two text frames into a
+          // double exposure through the whole blend.
+          frameTween = `tl.fromTo(${frameSelector}, { opacity: 0 }, { opacity: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { opacity: 1 }, { opacity: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'slide-left') {
           frameTween = `tl.fromTo(${frameSelector}, { xPercent: 100 }, { xPercent: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { xPercent: 0 }, { xPercent: -100, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'slide-right') {
@@ -686,7 +689,7 @@ const buildCompositionHtml = (
         } else if (frame.style === 'wipe') {
           frameTween = `tl.fromTo(${frameSelector}, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'zoom') {
-          frameTween = `tl.fromTo(${frameSelector}, { opacity: 0, scale: 1.12, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+          frameTween = `tl.fromTo(${frameSelector}, { opacity: 0, scale: 1.12, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { opacity: 1 }, { opacity: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         }
       }
       // The creator can slow a transition down; unset falls back to each

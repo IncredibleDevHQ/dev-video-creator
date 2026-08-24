@@ -77,10 +77,10 @@ Style catalog — what each pick must look like on the canvas loop:
 | Style | Pass criteria |
 | --- | --- |
 | Cut | Instant switch, no motion (loop shows tail → hard switch → next block) |
-| Crossfade | Next frame dissolves in **over the held previous frame** |
+| Crossfade | A true dissolve: **both frames trade brightness in step** — never the old frame held fully lit under the new one |
 | Push left / right / up | **True push: both frames move together**, glued edge-to-edge — the old frame is shoved out as the new one enters. Never a slide over a frozen frame |
 | Wipe | An edge sweeps the new frame in across the held previous frame |
-| Zoom | Next frame settles from a slight over-scale while fading in over the held frame |
+| Zoom | Next frame settles from a slight over-scale while the frames trade brightness |
 
 Behaviors to verify:
 

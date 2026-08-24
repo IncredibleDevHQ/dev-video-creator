@@ -1117,7 +1117,11 @@ describe('compileProject', () => {
     expect(compiled.html).toContain(
       'tl.fromTo("#scene-1", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.inOut" }, 5);',
     )
-    // …while the outgoing scene stays visible underneath for the overlap.
+    // …the outgoing frame dims in step (a dissolve, not a double exposure)…
+    expect(compiled.html).toContain(
+      'tl.fromTo("#scene-0", { opacity: 1 }, { opacity: 0, duration: 0.8, ease: "power2.inOut" }, 5);',
+    )
+    // …and the outgoing scene stays visible underneath for the overlap.
     expect(compiled.html).toContain('data-start="0"\n        data-duration="5.8"')
     const plain = compileProject(project())
     expect(plain.html).not.toContain('tl.fromTo("#scene-1", { opacity: 0 }, { opacity: 1, duration: 0.8')
