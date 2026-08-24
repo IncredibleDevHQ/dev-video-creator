@@ -853,6 +853,12 @@ const buildCompositionHtml = (
     .scene:has(.media-image):not(.theme-render-full).layout-title .media-image { width: 100%; margin-inline: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
     .scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { width: 100%; min-height: 760px; }
     .scene:has(.media-image):not(.theme-render-full).layout-split .media-image { width: min(68%, 1000px); margin-inline: auto; }
+    /* Alignment acts on the image too — the content box is pinned by
+       presenter geometry. Gallery: image hugs the frame edge or centers;
+       Hero: the crop window shifts; Inset: the card itself moves. */
+    .scene:has(.media-image):not(.theme-render-full).layout-prose.align-left .media-image img { margin-left: 0; }
+    .scene:has(.media-image):not(.theme-render-full).layout-title.align-left .media-image img { object-position: left center; }
+    .scene:has(.media-image):not(.theme-render-full).layout-split.align-left .media-image { margin-inline: 0 auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-prose .content { width: 84%; max-width: 84%; margin-left: 0; margin-right: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen, .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen video { min-height: 760px; max-height: 760px; }
