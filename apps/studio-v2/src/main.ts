@@ -2467,23 +2467,22 @@ const openTransitionPopover = (scene: Scene) => {
           .querySelectorAll('.motion-tile')
           .forEach(item => item.classList.toggle('active', item === tile))
         selectNode(scene.id, false)
-        armMotionPreviewLoop(scene.id, `Frame · ${option.label}`)
-        if (sceneFrameStyle(scene.id) === option.value) {
-          void replaySelectedAnimation()
-          return
+        armMotionPreviewLoop(scene.id, `Frame · ${option.label}`, 'realtime')
+        if (sceneFrameStyle(scene.id) !== option.value) {
+          const durationInput = $(
+            '#popover-duration-slot input',
+          ) as HTMLInputElement | null
+          setSceneFrameTransition(
+            scene.id,
+            option.value,
+            Number(durationInput?.value || 0.5),
+          )
+          // Persists in the background — the canvas refresh is held while
+          // the audition owns the junction, so the pick previews instantly.
+          syncProject()
+          renderCanvasBlockTimeline()
         }
-        setMotionPreviewBadge(`Preparing ${option.label}…`)
-        replayAnimationOnReady = true
-        const durationInput = $(
-          '#popover-duration-slot input',
-        ) as HTMLInputElement | null
-        setSceneFrameTransition(
-          scene.id,
-          option.value,
-          Number(durationInput?.value || 0.5),
-        )
-        syncProject()
-        renderCanvasBlockTimeline()
+        void replaySelectedAnimation()
       })
       return tile
     }),
@@ -2498,7 +2497,11 @@ const openTransitionPopover = (scene: Scene) => {
   const openingFrame = FRAME_TRANSITION_OPTIONS.find(
     option => option.value === sceneFrameStyle(scene.id),
   )
-  armMotionPreviewLoop(scene.id, `Frame · ${openingFrame?.label || 'Cut'}`)
+  armMotionPreviewLoop(
+    scene.id,
+    `Frame · ${openingFrame?.label || 'Cut'}`,
+    'realtime',
+  )
   void replaySelectedAnimation()
   // A drawer that rises from the timeline: centred over the rail, sitting
   // just above it, so the spotlighted From/To chips stay in view below.
@@ -2713,25 +2716,20 @@ const renderFinalizeJunction = (playPreview: boolean) => {
         finalizeTiles
           .querySelectorAll('.motion-tile')
           .forEach(item => item.classList.toggle('active', item === tile))
-        armMotionPreviewLoop(to.id, `Frame · ${option.label}`)
-        if (sceneFrameStyle(to.id) === option.value) {
-          void replaySelectedAnimation()
-          return
+        armMotionPreviewLoop(to.id, `Frame · ${option.label}`, 'realtime')
+        if (sceneFrameStyle(to.id) !== option.value) {
+          const durationInput = $(
+            '#finalize-duration-slot input',
+          ) as HTMLInputElement | null
+          setSceneFrameTransition(
+            to.id,
+            option.value,
+            Number(durationInput?.value || 0.5),
+          )
+          syncProject()
+          renderCanvasBlockTimeline()
         }
-        // Applies the pick and replays the real frames across this junction
-        // as soon as the recompiled preview is ready.
-        setMotionPreviewBadge(`Preparing ${option.label}…`)
-        replayAnimationOnReady = true
-        const durationInput = $(
-          '#finalize-duration-slot input',
-        ) as HTMLInputElement | null
-        setSceneFrameTransition(
-          to.id,
-          option.value,
-          Number(durationInput?.value || 0.5),
-        )
-        syncProject()
-        renderCanvasBlockTimeline()
+        void replaySelectedAnimation()
       })
       return tile
     }),
@@ -2746,7 +2744,11 @@ const renderFinalizeJunction = (playPreview: boolean) => {
     const currentFrame = FRAME_TRANSITION_OPTIONS.find(
       option => option.value === sceneFrameStyle(to.id),
     )
-    armMotionPreviewLoop(to.id, `Frame · ${currentFrame?.label || 'Cut'}`)
+    armMotionPreviewLoop(
+      to.id,
+      `Frame · ${currentFrame?.label || 'Cut'}`,
+      'realtime',
+    )
     void replaySelectedAnimation()
   }
 }
@@ -3709,6 +3711,8 @@ const flushPreviewRequest = async () => {
   }
 }
 
+let previewRefreshHeld = false
+
 const updatePreview = () => {
   const requestNumber = ++previewRequest
   window.clearTimeout(previewFetchTimer)
@@ -3726,8 +3730,6 @@ const updatePreview = () => {
       contentViewNodeId,
     })
     scenes = compiled.scenes
-    playerLoading.hidden = false
-    playerLoading.textContent = 'Compiling live canvas…'
 
     if (!selectedNodeId || !scenes.some(scene => scene.id === selectedNodeId)) {
       selectedNodeId = scenes[0]?.id || ''
@@ -3745,6 +3747,16 @@ const updatePreview = () => {
     updateInspector()
     window.requestAnimationFrame(positionInlinePreview)
 
+    if (motionPreviewLoopSceneId) {
+      // A switchover audition owns the canvas: picks preview instantly by
+      // overriding section styles, so hold the iframe refresh — a mid-loop
+      // reload would blank the junction. Flushed when the loop stops.
+      previewRefreshHeld = true
+      pendingPreviewRequest = null
+      return
+    }
+    playerLoading.hidden = false
+    playerLoading.textContent = 'Compiling live canvas…'
     pendingPreviewRequest = {
       requestNumber,
       previewPresenter: {
@@ -4074,11 +4086,16 @@ const createRevealDurationControl = (
     } else {
       target.revealDurationSeconds = Number(slider.value)
     }
-    if (motionPreviewLoopSceneId === getSceneId()) {
-      setMotionPreviewBadge(`Preparing ${slider.value}s timing…`)
-      replayAnimationOnReady = true
-    }
     scheduleSync()
+    if (motionPreviewLoopSceneId === getSceneId()) {
+      if (kind === 'frame') {
+        // New length auditions immediately — the sweep restarts with it.
+        void replaySelectedAnimation()
+      } else {
+        setMotionPreviewBadge(`Preparing ${slider.value}s timing…`)
+        replayAnimationOnReady = true
+      }
+    }
   })
   label.append(output)
   wrap.append(label, slider)
@@ -4087,9 +4104,13 @@ const createRevealDurationControl = (
 
 // While a transition picker is open, the junction keeps looping on the main
 // canvas — the loop is disarmed when the picker closes or the focus moves.
-const armMotionPreviewLoop = (sceneId: string, label: string) => {
+const armMotionPreviewLoop = (
+  sceneId: string,
+  label: string,
+  paced: 'realtime' | 'slow-mo' = 'slow-mo',
+) => {
   motionPreviewLoopSceneId = sceneId
-  motionPreviewLabel = `Previewing · ${label} · slow-mo`
+  motionPreviewLabel = `Previewing · ${label}${paced === 'slow-mo' ? ' · slow-mo' : ''}`
   playerShell.classList.add('transition-preview-active')
   syncCanvasViewSwitch()
 }
@@ -4107,11 +4128,19 @@ const stopMotionPreviewLoop = () => {
   setMotionPreviewBadge('')
   window.clearTimeout(animationPreviewTimer)
   syncCanvasViewSwitch()
+  if (previewRefreshHeld) {
+    // Picks made during the audition changed the composition — compile and
+    // load the real thing now that the loop no longer owns the canvas.
+    previewRefreshHeld = false
+    updatePreview()
+  }
 }
 
-const sceneFrameSeconds = (scene: Scene) => {
-  const frame = scene.config.frameTransition
-  if (!frame || frame.style === 'cut' || scene.index === 0) return 0
+// Read the live block config, not the scene snapshot: picks made while the
+// drawer is open mutate project.blocks and must audition immediately.
+const sceneFrameSeconds = (sceneId: string) => {
+  const frame = project.blocks[sceneId]?.frameTransition
+  if (!frame || frame.style === 'cut') return 0
   return Math.min(1.5, Math.max(0.2, frame.durationSeconds || 0.5))
 }
 
@@ -4142,13 +4171,78 @@ const killFrameAudition = () => {
 // composition's GSAP timeline directly: smooth, deterministic, export-true.
 const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   const timeline = compositionTimeline()
-  if (!timeline) return false
+  const compositionDoc = player.iframeElement?.contentDocument
+  const outgoingSection = compositionDoc?.querySelector<HTMLElement>(
+    `#scene-${scene.index - 1}`,
+  )
+  const incomingSection = compositionDoc?.querySelector<HTMLElement>(
+    `#scene-${scene.index}`,
+  )
+  if (!timeline || !outgoingSection || !incomingSection) return false
   player.pause()
   if (motionPreviewLabel) setMotionPreviewBadge(motionPreviewLabel)
   const parkAt = scene.startSeconds + frameSeconds / 2
   const leadSeconds = Math.min(0.6, scene.startSeconds)
   const from = scene.startSeconds - leadSeconds
   const to = scene.startSeconds + frameSeconds + 0.4
+  // Picks audition instantly: the style is read from the live config and the
+  // two sections' frame-level styles are written directly every frame,
+  // replacing whatever tween the (possibly stale, refresh-held) composition
+  // was compiled with. The compiled export uses the same math.
+  const overrideStyle = sceneFrameStyle(scene.id)
+  const heldTakeVideos = Array.from(
+    outgoingSection.querySelectorAll<HTMLElement>('video.recorded-take'),
+  )
+  const easedProgress = (linear: number) =>
+    linear <= 0
+      ? 0
+      : linear >= 1
+        ? 1
+        : linear < 0.5
+          ? 2 * linear * linear
+          : 1 - (-2 * linear + 2) ** 2 / 2
+  const clearFrameOverride = () => {
+    for (const section of [outgoingSection, incomingSection]) {
+      section.style.transform = ''
+      section.style.opacity = ''
+      section.style.clipPath = ''
+      section.style.visibility = ''
+      section.style.display = ''
+    }
+    for (const video of heldTakeVideos) video.style.visibility = ''
+  }
+  const applyFrameOverride = (positionSeconds: number) => {
+    const p = easedProgress(
+      (positionSeconds - scene.startSeconds) / frameSeconds,
+    )
+    // The audition owns visibility for the junction: the compiled windows may
+    // predate the pick (refresh held) and would otherwise hide the held tail.
+    for (const section of [outgoingSection, incomingSection]) {
+      section.style.visibility = 'visible'
+      section.style.display = ''
+      section.style.transform = ''
+      section.style.opacity = ''
+      section.style.clipPath = ''
+    }
+    for (const video of heldTakeVideos) video.style.visibility = 'visible'
+    if (overrideStyle === 'crossfade') {
+      incomingSection.style.opacity = String(p)
+    } else if (overrideStyle === 'slide-left') {
+      incomingSection.style.transform = `translateX(${(1 - p) * 100}%)`
+      outgoingSection.style.transform = `translateX(${-p * 100}%)`
+    } else if (overrideStyle === 'slide-right') {
+      incomingSection.style.transform = `translateX(${-(1 - p) * 100}%)`
+      outgoingSection.style.transform = `translateX(${p * 100}%)`
+    } else if (overrideStyle === 'slide-up') {
+      incomingSection.style.transform = `translateY(${(1 - p) * 100}%)`
+      outgoingSection.style.transform = `translateY(${-p * 100}%)`
+    } else if (overrideStyle === 'wipe') {
+      incomingSection.style.clipPath = `inset(0 ${(1 - p) * 100}% 0 0)`
+    } else if (overrideStyle === 'zoom') {
+      incomingSection.style.opacity = String(p)
+      incomingSection.style.transform = `scale(${1.12 - 0.12 * p})`
+    }
+  }
   // Park only when not already parked: re-seeking every loop cycle makes the
   // runtime re-seek its media, and that async fallout lands mid-sweep as a
   // main-thread hitch — the sweep freezes, then leaps.
@@ -4158,6 +4252,7 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
     // the parked clock itself sits mid-switch, which would otherwise leave a
     // frozen half-and-half frame on the canvas between sweeps.
     timeline.time(from)
+    applyFrameOverride(from)
     const settleDeadline = Date.now() + 1600
     while (
       Date.now() < settleDeadline &&
@@ -4165,6 +4260,7 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
     ) {
       await new Promise(resolve => window.setTimeout(resolve, 120))
       timeline.time(from)
+      applyFrameOverride(from)
     }
     // One more beat so the seek's trailing work (media element seeks,
     // visibility stamps, decode) finishes before the sweep starts.
@@ -4222,6 +4318,7 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   const stop = () => {
     cancelled = true
     window.clearInterval(backstop)
+    clearFrameOverride()
     if (activeFrameAudition === handle) activeFrameAudition = null
   }
   const step = () => {
@@ -4233,19 +4330,24 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
     const now = performance.now()
     if (holdUntil) {
       timeline.time(to)
+      applyFrameOverride(to)
       if (now < holdUntil) return
       holdUntil = 0
       position = from
       last = now
       timeline.time(from)
+      applyFrameOverride(from)
       return
     }
     // Cap the advance per rendered frame: after a main-thread hitch the
     // sweep resumes from where it paused instead of leaping to where the
     // wall clock says it should be — a brief hold reads fine, a jump never.
-    position += (Math.min(now - last, 80) / 1000) * PREVIEW_PLAYBACK_RATE
+    // The sweep runs in real time — what the export will look like.
+    position += Math.min(now - last, 80) / 1000
     last = now
-    timeline.time(Math.min(position, to))
+    const shown = Math.min(position, to)
+    timeline.time(shown)
+    applyFrameOverride(shown)
     if (position >= to) holdUntil = now + 650
   }
   const backstop = window.setInterval(step, 40)
@@ -4257,6 +4359,7 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   const handle = { kill: stop }
   activeFrameAudition = handle
   timeline.time(from)
+  applyFrameOverride(from)
   window.requestAnimationFrame(pump)
   return true
 }
@@ -4267,15 +4370,19 @@ const replaySelectedAnimation = async () => {
   if (!scene) return
   window.clearTimeout(animationPreviewTimer)
   killFrameAudition()
-  const frameSeconds = sceneFrameSeconds(scene)
+  const frameSeconds = scene.index > 0 ? sceneFrameSeconds(scene.id) : 0
   if (motionPreviewLoopSceneId === scene.id && frameSeconds > 0) {
     const handled = await auditionFrameSwitchover(scene, frameSeconds)
     if (handled) return
   }
   player.pause()
   const previewing = Boolean(motionPreviewLabel)
+  const previewRate =
+    previewing && motionPreviewLabel.includes('slow-mo')
+      ? PREVIEW_PLAYBACK_RATE
+      : 1
   if (previewing) setMotionPreviewBadge(motionPreviewLabel)
-  player.playbackRate = previewing ? PREVIEW_PLAYBACK_RATE : 1
+  player.playbackRate = previewing ? previewRate : 1
   // Start just before the boundary so the previous block's tail is visible
   // and the entrance reads as a transition between the two.
   const leadInSeconds = Math.min(0.7, scene.startSeconds)
@@ -4308,7 +4415,7 @@ const replaySelectedAnimation = async () => {
       motionPreviewLabel = ''
       playerShell.classList.remove('transition-preview-active')
     },
-    previewing ? shownMilliseconds / PREVIEW_PLAYBACK_RATE : shownMilliseconds,
+    previewing ? shownMilliseconds / previewRate : shownMilliseconds,
   )
 }
 
