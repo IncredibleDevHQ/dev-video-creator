@@ -1147,7 +1147,7 @@ describe('compileProject', () => {
     framed.blocks.body.frameTransition = { style: 'wipe', durationSeconds: 0.6 }
     const compiled = compileProject(framed)
     expect(compiled.html).toContain(
-      'tl.fromTo("#scene-1", { clipPath: "inset(0 100% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0.55))" }, { clipPath: "inset(0 0% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0))", duration: 0.6, ease: "power2.inOut" }, 5);',
+      'tl.fromTo("#scene-1", { clipPath: "inset(0 100% 0 0)", filter: "drop-shadow(6px 0px 0px rgba(255,255,255,0.9)) drop-shadow(42px 0px 44px rgba(0,0,0,0.55))" }, { clipPath: "inset(0 0% 0 0)", filter: "drop-shadow(6px 0px 0px rgba(255,255,255,0)) drop-shadow(42px 0px 44px rgba(0,0,0,0))", duration: 0.6, ease: "power2.inOut" }, 5);',
     )
   })
 

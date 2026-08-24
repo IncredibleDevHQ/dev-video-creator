@@ -4300,7 +4300,7 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
       own(
         incomingSection,
         'filter',
-        `drop-shadow(28px 0px 36px rgba(0,0,0,${(0.55 * (1 - p)).toFixed(3)}))`,
+        `drop-shadow(6px 0px 0px rgba(255,255,255,${(0.9 * (1 - p)).toFixed(3)})) drop-shadow(42px 0px 44px rgba(0,0,0,${(0.55 * (1 - p)).toFixed(3)}))`,
       )
     } else if (overrideStyle === 'zoom') {
       own(incomingSection, 'opacity', String(p))

@@ -690,7 +690,7 @@ const buildCompositionHtml = (
           // A wipe swaps pixels in place — between two similar frames the
           // seam is invisible without an edge. The clipped frame casts a
           // soft shadow onto the held one, fading as the wipe completes.
-          frameTween = `tl.fromTo(${frameSelector}, { clipPath: "inset(0 100% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0.55))" }, { clipPath: "inset(0 0% 0 0)", filter: "drop-shadow(28px 0px 36px rgba(0,0,0,0))", duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
+          frameTween = `tl.fromTo(${frameSelector}, { clipPath: "inset(0 100% 0 0)", filter: "drop-shadow(6px 0px 0px rgba(255,255,255,0.9)) drop-shadow(42px 0px 44px rgba(0,0,0,0.55))" }, { clipPath: "inset(0 0% 0 0)", filter: "drop-shadow(6px 0px 0px rgba(255,255,255,0)) drop-shadow(42px 0px 44px rgba(0,0,0,0))", duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         } else if (frame.style === 'zoom') {
           frameTween = `tl.fromTo(${frameSelector}, { opacity: 0, scale: 1.12, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});tl.fromTo(${previousSelector}, { opacity: 1 }, { opacity: 0, duration: ${frameSeconds}, ease: ${frameEase} }, ${start});`
         }
@@ -762,7 +762,11 @@ const buildCompositionHtml = (
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: var(--theme-canvas); }
     .clip { visibility: hidden; }
-    .scene { --content-layout-width: 1500px; --presenter-safe-width: 100%; position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); }
+    /* isolation: each scene is its own stacking context, so z-indexed
+       overlays (camera tiles, person-background gradients) can never paint
+       across a sibling scene — frame switchovers rely on later scenes
+       painting above earlier ones. */
+    .scene { --content-layout-width: 1500px; --presenter-safe-width: 100%; position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); isolation: isolate; }
     .scene > .scene-index, .scene > .content, .scene > footer, .scene > .composition-corner-logo { position: relative; z-index: 22; }
     .scene > * { position: relative; z-index: 25; }
     .scene::before { content: ""; position: absolute; z-index: 24; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
