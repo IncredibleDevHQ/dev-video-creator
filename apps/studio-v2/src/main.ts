@@ -4153,6 +4153,7 @@ type CompositionTimelineHandle = {
   time: (value?: number) => unknown
   seek?: (value: number, suppressEvents?: boolean) => unknown
   progress?: (value?: number, suppressEvents?: boolean) => unknown
+  render?: (value: number, suppressEvents?: boolean, force?: boolean) => unknown
 }
 
 const compositionTimeline = () => {
@@ -4205,19 +4206,28 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
   // The player adapter re-stamps the timeline to its own parked clock every
   // frame — racing it paints the compiled composition's mid-switch state on
   // half the frames. While the audition owns the junction, external writes
-  // to the timeline are swallowed; the driver keeps the only real setter.
-  const stampTime = timeline.time.bind(timeline)
+  // to the timeline are swallowed; the driver keeps the only real setter,
+  // and stamps with a forced render so GSAP's lazy queue can never repaint
+  // the compiled state after the override on the iframe's own ticker.
+  const realTime = timeline.time.bind(timeline)
   const realSeek = timeline.seek?.bind(timeline)
   const realProgress = timeline.progress?.bind(timeline)
-  timeline.time = value => (value === undefined ? stampTime() : timeline)
+  const realRender = timeline.render?.bind(timeline)
+  const stampTime = (value: number) => {
+    if (realRender) realRender(value, true, true)
+    else realTime(value)
+  }
+  timeline.time = value => (value === undefined ? realTime() : timeline)
   if (realSeek) timeline.seek = () => timeline
   if (realProgress)
     timeline.progress = value =>
       value === undefined ? realProgress() : timeline
+  if (realRender) timeline.render = () => timeline
   const restoreTimelineControl = () => {
-    timeline.time = stampTime
+    timeline.time = realTime
     if (realSeek) timeline.seek = realSeek
     if (realProgress) timeline.progress = realProgress
+    if (realRender) timeline.render = realRender
   }
   const easedProgress = (linear: number) =>
     linear <= 0
@@ -4227,48 +4237,62 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
         : linear < 0.5
           ? 2 * linear * linear
           : 1 - (-2 * linear + 2) ** 2 / 2
+  // Override styles are written with !important: the runtime's visibility
+  // stamps and GSAP's tween renders both write normal-priority inline
+  // styles, so the audition's writes win every paint no matter who writes
+  // last in a frame.
+  const own = (element: HTMLElement, property: string, value: string) =>
+    element.style.setProperty(property, value, 'important')
+  const release = (element: HTMLElement, ...properties: string[]) => {
+    for (const property of properties) element.style.removeProperty(property)
+  }
   const clearFrameOverride = () => {
     for (const section of [outgoingSection, incomingSection]) {
-      section.style.transform = ''
-      section.style.opacity = ''
-      section.style.clipPath = ''
-      section.style.visibility = ''
-      section.style.display = ''
+      release(
+        section,
+        'transform',
+        'opacity',
+        'clip-path',
+        'visibility',
+        'display',
+      )
     }
-    for (const video of heldTakeVideos) video.style.visibility = ''
+    for (const video of heldTakeVideos) release(video, 'visibility')
   }
   const applyFrameOverride = (positionSeconds: number) => {
     const p = easedProgress(
       (positionSeconds - scene.startSeconds) / frameSeconds,
     )
-    // The audition owns visibility for the junction: the compiled windows may
-    // predate the pick (refresh held) and would otherwise hide the held tail.
+    // The audition owns every channel a frame tween can write — visibility,
+    // transform, opacity, clip-path — on both sections, every frame, with
+    // neutral defaults. Owning only the audited style's channel would let a
+    // differently-styled compiled tween paint through the released ones.
     for (const section of [outgoingSection, incomingSection]) {
-      section.style.visibility = 'visible'
-      section.style.display = ''
-      section.style.transform = ''
-      section.style.opacity = ''
-      section.style.clipPath = ''
+      own(section, 'visibility', 'visible')
+      release(section, 'display')
+      own(section, 'transform', 'none')
+      own(section, 'opacity', '1')
+      own(section, 'clip-path', 'none')
     }
-    for (const video of heldTakeVideos) video.style.visibility = 'visible'
+    for (const video of heldTakeVideos) own(video, 'visibility', 'visible')
     if (overrideStyle === 'crossfade') {
-      incomingSection.style.opacity = String(p)
-      outgoingSection.style.opacity = String(1 - p)
+      own(incomingSection, 'opacity', String(p))
+      own(outgoingSection, 'opacity', String(1 - p))
     } else if (overrideStyle === 'slide-left') {
-      incomingSection.style.transform = `translateX(${(1 - p) * 100}%)`
-      outgoingSection.style.transform = `translateX(${-p * 100}%)`
+      own(incomingSection, 'transform', `translateX(${(1 - p) * 100}%)`)
+      own(outgoingSection, 'transform', `translateX(${-p * 100}%)`)
     } else if (overrideStyle === 'slide-right') {
-      incomingSection.style.transform = `translateX(${-(1 - p) * 100}%)`
-      outgoingSection.style.transform = `translateX(${p * 100}%)`
+      own(incomingSection, 'transform', `translateX(${-(1 - p) * 100}%)`)
+      own(outgoingSection, 'transform', `translateX(${p * 100}%)`)
     } else if (overrideStyle === 'slide-up') {
-      incomingSection.style.transform = `translateY(${(1 - p) * 100}%)`
-      outgoingSection.style.transform = `translateY(${-p * 100}%)`
+      own(incomingSection, 'transform', `translateY(${(1 - p) * 100}%)`)
+      own(outgoingSection, 'transform', `translateY(${-p * 100}%)`)
     } else if (overrideStyle === 'wipe') {
-      incomingSection.style.clipPath = `inset(0 ${(1 - p) * 100}% 0 0)`
+      own(incomingSection, 'clip-path', `inset(0 ${(1 - p) * 100}% 0 0)`)
     } else if (overrideStyle === 'zoom') {
-      incomingSection.style.opacity = String(p)
-      incomingSection.style.transform = `scale(${1.12 - 0.12 * p})`
-      outgoingSection.style.opacity = String(1 - p)
+      own(incomingSection, 'opacity', String(p))
+      own(incomingSection, 'transform', `scale(${1.12 - 0.12 * p})`)
+      own(outgoingSection, 'opacity', String(1 - p))
     }
   }
   // The driver starts synchronously, before any parking or media gating: it
