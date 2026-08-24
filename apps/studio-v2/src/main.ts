@@ -3654,7 +3654,10 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
   updateInspector()
   window.requestAnimationFrame(positionInlinePreview)
   const scene = scenes.find(item => item.id === nodeId)
-  if (scene) {
+  // While a switchover audition owns the canvas it also owns the parked
+  // clock — re-seeking to the preview frame here would drag the runtime's
+  // visibility stamps out of the switch overlap mid-audition.
+  if (scene && motionPreviewLoopSceneId !== nodeId) {
     player.seek(scenePreviewTime(scene))
   }
   syncScreenPlaybackControl()
@@ -4169,7 +4172,7 @@ const killFrameAudition = () => {
 // cut. So the player is parked inside the overlap — where the runtime keeps
 // both frames visible — and the switch segment is driven on the
 // composition's GSAP timeline directly: smooth, deterministic, export-true.
-const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
+const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
   const timeline = compositionTimeline()
   const compositionDoc = player.iframeElement?.contentDocument
   const outgoingSection = compositionDoc?.querySelector<HTMLElement>(
@@ -4245,63 +4248,11 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
       outgoingSection.style.opacity = String(1 - p)
     }
   }
-  // Park only when not already parked: re-seeking every loop cycle makes the
-  // runtime re-seek its media, and that async fallout lands mid-sweep as a
-  // main-thread hitch — the sweep freezes, then leaps.
-  if (Math.abs(player.currentTime - parkAt) > 0.2) {
-    player.seek(parkAt)
-    // While the seek settles, keep the rendered frame on the outgoing block —
-    // the parked clock itself sits mid-switch, which would otherwise leave a
-    // frozen half-and-half frame on the canvas between sweeps.
-    timeline.time(from)
-    applyFrameOverride(from)
-    const settleDeadline = Date.now() + 1600
-    while (
-      Date.now() < settleDeadline &&
-      Math.abs(player.currentTime - parkAt) > 0.2
-    ) {
-      await new Promise(resolve => window.setTimeout(resolve, 120))
-      timeline.time(from)
-      applyFrameOverride(from)
-    }
-    // One more beat so the seek's trailing work (media element seeks,
-    // visibility stamps, decode) finishes before the sweep starts.
-    await new Promise(resolve => window.setTimeout(resolve, 260))
-    // And gate on the junction's own media: sweep only once the videos on
-    // either side of this switch have a decoded frame, so their first
-    // decode can't hitch the middle of the sweep.
-    const junctionSelector = (tag: string) =>
-      `#scene-${scene.index} ${tag}, #scene-${scene.index - 1} ${tag}`
-    const mediaDeadline = Date.now() + 1200
-    const junctionVideos = () =>
-      Array.from(
-        player.iframeElement?.contentDocument?.querySelectorAll<HTMLVideoElement>(
-          junctionSelector('video'),
-        ) || [],
-      )
-    while (
-      Date.now() < mediaDeadline &&
-      junctionVideos().some(video => video.readyState < 2)
-    ) {
-      await new Promise(resolve => window.setTimeout(resolve, 120))
-      timeline.time(from)
-    }
-    // Presenter photos decode lazily on first paint — force that off the
-    // sweep's critical path too.
-    await Promise.race([
-      Promise.all(
-        Array.from(
-          player.iframeElement?.contentDocument?.querySelectorAll<HTMLImageElement>(
-            junctionSelector('img'),
-          ) || [],
-        ).map(image => image.decode().catch(() => undefined)),
-      ),
-      new Promise(resolve => window.setTimeout(resolve, 600)),
-    ])
-    timeline.time(from)
-  }
-  if (motionPreviewLoopSceneId !== scene.id || selectedNodeId !== scene.id)
-    return true
+  // The driver starts synchronously, before any parking or media gating: it
+  // stamps the timeline and both sections' styles every frame, which is the
+  // only reliable way to out-write the runtime adapter — a paused wait here
+  // would leave the canvas resting on the compiled composition's parked,
+  // mid-switch frame for the whole settle window.
   // The sweep is paced by the display: a requestAnimationFrame pump renders
   // a vsync-aligned frame each tick, and a coarse timer backstop keeps the
   // segment moving in contexts that throttle rAF (composition iframes,
@@ -4325,7 +4276,7 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   }
   const step = () => {
     if (cancelled) return
-    if (motionPreviewLoopSceneId !== scene.id || selectedNodeId !== scene.id) {
+    if (motionPreviewLoopSceneId !== scene.id) {
       stop()
       return
     }
@@ -4363,6 +4314,48 @@ const auditionFrameSwitchover = async (scene: Scene, frameSeconds: number) => {
   timeline.time(from)
   applyFrameOverride(from)
   window.requestAnimationFrame(pump)
+  // Parking and media readiness improve the sweep but never block it: the
+  // seek keeps the runtime's visibility stamps inside the overlap, and the
+  // gates warm the junction's media so its first decode can't hitch a sweep.
+  if (Math.abs(player.currentTime - parkAt) > 0.2) {
+    player.seek(parkAt)
+    const junctionSelector = (tag: string) =>
+      `#scene-${scene.index} ${tag}, #scene-${scene.index - 1} ${tag}`
+    void (async () => {
+      const settleDeadline = Date.now() + 1600
+      while (
+        !cancelled &&
+        Date.now() < settleDeadline &&
+        Math.abs(player.currentTime - parkAt) > 0.2
+      ) {
+        await new Promise(resolve => window.setTimeout(resolve, 120))
+      }
+      const mediaDeadline = Date.now() + 1200
+      const junctionVideos = () =>
+        Array.from(
+          player.iframeElement?.contentDocument?.querySelectorAll<HTMLVideoElement>(
+            junctionSelector('video'),
+          ) || [],
+        )
+      while (
+        !cancelled &&
+        Date.now() < mediaDeadline &&
+        junctionVideos().some(video => video.readyState < 2)
+      ) {
+        await new Promise(resolve => window.setTimeout(resolve, 120))
+      }
+      await Promise.race([
+        Promise.all(
+          Array.from(
+            player.iframeElement?.contentDocument?.querySelectorAll<HTMLImageElement>(
+              junctionSelector('img'),
+            ) || [],
+          ).map(image => image.decode().catch(() => undefined)),
+        ),
+        new Promise(resolve => window.setTimeout(resolve, 600)),
+      ])
+    })()
+  }
   return true
 }
 
@@ -4374,8 +4367,7 @@ const replaySelectedAnimation = async () => {
   killFrameAudition()
   const frameSeconds = scene.index > 0 ? sceneFrameSeconds(scene.id) : 0
   if (motionPreviewLoopSceneId === scene.id && frameSeconds > 0) {
-    const handled = await auditionFrameSwitchover(scene, frameSeconds)
-    if (handled) return
+    if (auditionFrameSwitchover(scene, frameSeconds)) return
   }
   player.pause()
   const previewing = Boolean(motionPreviewLabel)
