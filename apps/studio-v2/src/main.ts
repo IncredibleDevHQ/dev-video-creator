@@ -3067,6 +3067,12 @@ const renderCanvasBlockTimeline = () => {
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14l7-7-7-7Zm16 0-7 7 7 7V5Z"/></svg>'
       node.addEventListener('click', event => {
         event.stopPropagation()
+        // The node toggles: first click opens the picker and starts the
+        // audition, clicking it again closes both and restores the canvas.
+        if (!transitionPopover.hidden && activeBoundarySceneIndex === scene.index) {
+          closeTransitionPopover()
+          return
+        }
         openTransitionPopover(scene)
       })
       track.append(node)
@@ -4617,6 +4623,10 @@ const openCanvasFullscreen = () => {
   const isOpen = playerShell.classList.toggle('canvas-open')
   if (!isOpen) stopLiveCamera()
   if (!isOpen && finalizeModeActive) exitFinalizeMode()
+  // Transition auditioning is a canvas-mode activity: leaving the canvas
+  // closes the picker and stops the loop, so the notebook's side-panel
+  // preview never plays a switchover audition.
+  if (!isOpen) closeTransitionPopover()
   document.body.classList.toggle('canvas-is-open', isOpen)
   const fullscreenButton = $('#canvas-fullscreen') as HTMLButtonElement
   fullscreenButton.textContent = isOpen ? '×' : '↗'
