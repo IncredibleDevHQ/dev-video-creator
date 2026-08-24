@@ -4149,10 +4149,16 @@ const sceneFrameSeconds = (sceneId: string) => {
 
 type FrameAuditionHandle = { kill: () => void }
 
+type CompositionTimelineHandle = {
+  time: (value?: number) => unknown
+  seek?: (value: number, suppressEvents?: boolean) => unknown
+  progress?: (value?: number, suppressEvents?: boolean) => unknown
+}
+
 const compositionTimeline = () => {
   const compositionWindow = player.iframeElement?.contentWindow as
     | (Window & {
-        __timelines?: Record<string, { time: (value: number) => unknown }>
+        __timelines?: Record<string, CompositionTimelineHandle>
       })
     | null
     | undefined
@@ -4196,6 +4202,23 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
   const heldTakeVideos = Array.from(
     outgoingSection.querySelectorAll<HTMLElement>('video.recorded-take'),
   )
+  // The player adapter re-stamps the timeline to its own parked clock every
+  // frame — racing it paints the compiled composition's mid-switch state on
+  // half the frames. While the audition owns the junction, external writes
+  // to the timeline are swallowed; the driver keeps the only real setter.
+  const stampTime = timeline.time.bind(timeline)
+  const realSeek = timeline.seek?.bind(timeline)
+  const realProgress = timeline.progress?.bind(timeline)
+  timeline.time = value => (value === undefined ? stampTime() : timeline)
+  if (realSeek) timeline.seek = () => timeline
+  if (realProgress)
+    timeline.progress = value =>
+      value === undefined ? realProgress() : timeline
+  const restoreTimelineControl = () => {
+    timeline.time = stampTime
+    if (realSeek) timeline.seek = realSeek
+    if (realProgress) timeline.progress = realProgress
+  }
   const easedProgress = (linear: number) =>
     linear <= 0
       ? 0
@@ -4271,6 +4294,7 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
   const stop = () => {
     cancelled = true
     window.clearInterval(backstop)
+    restoreTimelineControl()
     clearFrameOverride()
     if (activeFrameAudition === handle) activeFrameAudition = null
   }
@@ -4282,13 +4306,13 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
     }
     const now = performance.now()
     if (holdUntil) {
-      timeline.time(to)
+      stampTime(to)
       applyFrameOverride(to)
       if (now < holdUntil) return
       holdUntil = 0
       position = from
       last = now
-      timeline.time(from)
+      stampTime(from)
       applyFrameOverride(from)
       return
     }
@@ -4299,7 +4323,7 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
     position += Math.min(now - last, 80) / 1000
     last = now
     const shown = Math.min(position, to)
-    timeline.time(shown)
+    stampTime(shown)
     applyFrameOverride(shown)
     if (position >= to) holdUntil = now + 650
   }
@@ -4311,7 +4335,7 @@ const auditionFrameSwitchover = (scene: Scene, frameSeconds: number) => {
   }
   const handle = { kill: stop }
   activeFrameAudition = handle
-  timeline.time(from)
+  stampTime(from)
   applyFrameOverride(from)
   window.requestAnimationFrame(pump)
   // Parking and media readiness improve the sweep but never block it: the
