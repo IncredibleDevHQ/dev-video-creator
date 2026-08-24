@@ -644,6 +644,14 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .publish-block-identity small { display: block; max-width: 240px; overflow: hidden; color: #71717a; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .publish-block-controls { display: flex; gap: 6px; }
 .publish-block-controls select { max-width: 170px; padding: 6px 8px; border: 1px solid #d4d4d8; border-radius: 5px; background: white; font-size: 10px; }
+.publish-take-view { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #d4d4d8; border-radius: 5px; background: white; color: var(--brand); cursor: pointer; }
+.publish-take-view svg { width: 11px; height: 11px; }
+.publish-take-view:hover { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, white); }
+.publish-take-preview { margin-top: 10px; padding: 10px; border: 1px solid #e4e4e7; border-radius: 8px; background: #fafafa; display: grid; gap: 8px; }
+.publish-take-preview-heading { display: flex; align-items: center; justify-content: space-between; color: var(--ink); font-size: 10px; }
+.publish-take-preview-heading button { width: 22px; height: 22px; border: 0; border-radius: 4px; background: transparent; color: #71717a; font-size: 13px; cursor: pointer; }
+.publish-take-preview-heading button:hover { background: #ececee; }
+.publish-take-preview video { width: 100%; max-height: 240px; border-radius: 6px; background: #09090b; }
 .publish-block-row > time { color: #71717a; font-size: 10px; font-variant-numeric: tabular-nums; }
 .publish-footer { padding: 14px 22px 18px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); }
 .publish-summary strong { font-size: 15px; font-variant-numeric: tabular-nums; }

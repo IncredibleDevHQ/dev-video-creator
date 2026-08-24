@@ -250,6 +250,7 @@
                       <button id="next-animation-step" class="button chrome-secondary" type="button" hidden>Next step <kbd>→</kbd></button>
                       <span class="recording-divider" aria-hidden="true"></span>
                       <div class="canvas-recording-devices">
+                        <button id="redo-canvas-recording" type="button" title="Record this block again — keep both takes or replace the current one when you save" aria-label="Record this block again" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v5h5"/><path d="M3.3 9A9 9 0 1 1 3 12"/></svg></button>
                         <button id="canvas-recording-mic-state" type="button" title="Toggle microphone" aria-label="Toggle microphone" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
                         <button id="canvas-recording-camera-state" type="button" title="Toggle camera preview" aria-label="Toggle camera preview" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 10.5 6-3.5v10l-6-3.5"/></svg></button>
                       </div>
@@ -427,6 +428,10 @@
       <div class="modal-heading"><div><span class="eyebrow">Publish</span><h2>Finalize your story</h2></div><button id="close-publish" class="icon-button" type="button" aria-label="Close publish">×</button></div>
       <p class="publish-note">Transitions are set — now choose the take for each recorded block and which blocks ship in the final video.</p>
       <div id="publish-block-list" class="publish-block-list"></div>
+      <div id="publish-take-preview-wrap" class="publish-take-preview" hidden>
+        <div class="publish-take-preview-heading"><strong id="publish-take-preview-label">Take preview</strong><button id="close-publish-take-preview" type="button" aria-label="Close take preview">×</button></div>
+        <video id="publish-take-preview-video" controls playsinline></video>
+      </div>
       <div class="publish-footer">
         <div class="publish-summary"><strong id="publish-duration">00:00</strong><span id="publish-count">0 blocks</span></div>
         <div class="modal-actions"><span id="render-result" hidden><a id="download-render" class="button ghost" href="#" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 19h16"/></svg>Download MP4</a></span><button id="cancel-publish" class="button ghost" type="button">Cancel</button><button id="start-publish" class="button primary" type="button">Publish video</button></div>

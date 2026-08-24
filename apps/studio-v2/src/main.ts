@@ -3880,6 +3880,10 @@ const syncCanvasViewSwitch = () => {
   }
   canvasTakePlayer.hidden = !showTakeVideo
   canvasViewSwitch.hidden = !recordedBlock?.videoUrl
+  // Redo lives in the record bar only when the block already has a take —
+  // the keep-both-versions / replace choice arrives at save time.
+  ;($('#redo-canvas-recording') as HTMLButtonElement).hidden =
+    !recordedBlock?.videoUrl
   if (!recordedBlock?.videoUrl) return
   canvasViewVideoButton.classList.toggle(
     'active',
@@ -5626,14 +5630,39 @@ const renderPublishBlockList = () => {
             project.recordedBlocks?.[scene.id]?.recordingId
           takeSelect.append(option)
         })
+        const showTakePreview = () => {
+          const take =
+            takes.find(item => item.recordingId === takeSelect.value) ||
+            takes[0]
+          const version = takes.indexOf(take) + 1
+          const video = $('#publish-take-preview-video') as HTMLVideoElement
+          ;($('#publish-take-preview-label') as HTMLElement).textContent =
+            `Block ${String(scene.index + 1).padStart(2, '0')} · Take v${version} · ${formatTime(take.durationMs / 1000)}`
+          if (video.getAttribute('src') !== take.videoUrl) {
+            video.setAttribute('src', take.videoUrl)
+          }
+          ;($('#publish-take-preview-wrap') as HTMLElement).hidden = false
+          void video.play().catch(() => undefined)
+        }
         takeSelect.addEventListener('change', () => {
           const take = takes.find(item => item.recordingId === takeSelect.value)
           if (take) {
             selectRecordedTake(scene.id, take)
+            if (!($('#publish-take-preview-wrap') as HTMLElement).hidden) {
+              showTakePreview()
+            }
             renderPublishBlockList()
           }
         })
-        controls.append(takeSelect)
+        const view = document.createElement('button')
+        view.type = 'button'
+        view.className = 'publish-take-view'
+        view.title = 'Watch this take before publishing'
+        view.setAttribute('aria-label', 'Watch the selected take')
+        view.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none"/></svg>'
+        view.addEventListener('click', showTakePreview)
+        controls.append(takeSelect, view)
       }
       const time = document.createElement('time')
       time.textContent = formatTime(publishRowSeconds(scene))
@@ -5678,9 +5707,17 @@ const startPublish = async () => {
   }
 }
 
+const closePublishTakePreview = () => {
+  const video = $('#publish-take-preview-video') as HTMLVideoElement
+  video.pause()
+  video.removeAttribute('src')
+  ;($('#publish-take-preview-wrap') as HTMLElement).hidden = true
+}
+
 const openPublishSummary = () => {
   publishExcluded.clear()
   ;($('#render-result') as HTMLElement).hidden = true
+  closePublishTakePreview()
   renderPublishBlockList()
   publishDialog.showModal()
 }
@@ -5697,6 +5734,15 @@ startPublishButton.addEventListener('click', () => void startPublish())
 )
 ;($('#close-publish') as HTMLButtonElement).addEventListener('click', () =>
   publishDialog.close(),
+)
+publishDialog.addEventListener('close', closePublishTakePreview)
+;($('#close-publish-take-preview') as HTMLButtonElement).addEventListener(
+  'click',
+  closePublishTakePreview,
+)
+;($('#redo-canvas-recording') as HTMLButtonElement).addEventListener(
+  'click',
+  () => void startCanvasRecording(),
 )
 
 window.addEventListener('beforeunload', () => {
