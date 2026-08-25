@@ -754,6 +754,9 @@ const updateRecordingCoachProgress = (message: string) => {
 const resetCanvasRecordingProgress = () => {
   const visualKind = canvasRecordingScene ? sceneVisualKind(canvasRecordingScene) : 'content'
   if (visualKind === 'explainer' && canvasRecordingExplainerPlan) {
+    if (canvasRecordingScene) {
+      explainerCompositionDriver(canvasRecordingScene.id)?.setStep(0, 0)
+    }
     canvasRecordingTargets.forEach(({ element }) => {
       element.style.setProperty('opacity', '0', 'important')
       element.style.setProperty('visibility', 'visible', 'important')
@@ -806,6 +809,9 @@ const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
       return
     }
     const step = canvasRecordingStep
+    if (canvasRecordingScene) {
+      explainerCompositionDriver(canvasRecordingScene.id)?.setStep(step, 1)
+    }
     canvasRecordingTargets.forEach(({ element }) => {
       if (element.classList.contains('ex-caption')) {
         const at = Number(element.dataset.exStep || 0)
@@ -5888,6 +5894,7 @@ type ExplainerWizardState = {
   verbosity: 'brief' | 'standard' | 'detailed'
   abstract: string
   plan: ExplainerPlanV1 | null
+  canvasCode: string
   previewStep: number
   busy: boolean
 }
@@ -5950,6 +5957,7 @@ const renderExplainerWizard = () => {
     '#explainer-generate-plan',
     '#explainer-preview-regenerate',
     '#explainer-visual-pass',
+    '#explainer-canvas-agent',
   ]) {
     ;($(id) as HTMLButtonElement).disabled = exWizard.busy
   }
@@ -6087,6 +6095,45 @@ const refineExplainerPlan = async (instructions: string, chained = false) => {
   }
 }
 
+// The coding-agent path: the server harness has the model write a full
+// Canvas program for these narration steps, runs it in a disposable
+// sandbox, screenshots every step, and iterates on its own frames.
+const runExplainerCanvasAgent = async (instructions: string) => {
+  if (!exWizard?.plan) return
+  exWizard.busy = true
+  exStatus('Canvas agent — writing the program, rendering each step, reviewing the frames… (1–3 min)')
+  renderExplainerWizard()
+  try {
+    const result = await fetchJson<{
+      code: string
+      iterations: number
+      notes: string
+    }>('/api/explainer/canvas-agent', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        topic: exWizard.topic,
+        abstract: exWizard.abstract,
+        plan: exWizard.plan,
+        instructions,
+      }),
+    })
+    exWizard.canvasCode = result.code
+    exWizard.previewStep = 0
+    exWizard.step = 2
+    exStatus(
+      `Canvas agent ×${result.iterations} — ${result.notes || 'program ready, preview each step'}`,
+    )
+  } catch (error) {
+    exStatus(
+      error instanceof Error ? error.message : 'The canvas agent did not finish',
+    )
+  } finally {
+    exWizard.busy = false
+    renderExplainerWizard()
+  }
+}
+
 const shapeThumb = (shape: ShapeDefV1) => {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('viewBox', '-92 -66 184 132')
@@ -6189,6 +6236,13 @@ const applyExplainerPreviewStep = () => {
   if (!exWizard?.plan) return
   const stage = $('#explainer-preview-stage')
   const current = exWizard.previewStep
+  const sandbox = stage.querySelector('iframe.explainer-preview-frame')
+  if (sandbox) {
+    ;(sandbox as HTMLIFrameElement).contentWindow?.postMessage(
+      { step: current, progress: 1 },
+      '*',
+    )
+  }
   stage
     .querySelectorAll<SVGElement>('[data-ex-step-reveal]')
     .forEach(item => {
@@ -6208,9 +6262,30 @@ const applyExplainerPreviewStep = () => {
     current >= exWizard.plan.steps.length - 1
 }
 
+// The agent-written program previews inside a sandboxed iframe (scripts
+// only, no same-origin), driven by postMessage — isolated from the studio.
+const explainerPreviewSandbox = (code: string) =>
+  `<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#101312}canvas{width:100%;height:100%;display:block}</style></head><body><canvas id="stage" width="1600" height="860"></canvas><script>
+var program=null;try{var scope={};(function(globalThis){${code}
+}).call(scope,scope);program=scope.explainer||null}catch(e){}
+var theme={stroke:'#4ade80',fill:'rgba(74,222,128,.12)',text:'#f4f4f5',muted:'#a1a1aa'};
+function draw(k,p){var c=document.getElementById('stage');var x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);if(program&&program.drawFrame){try{program.drawFrame(x,k,p==null?1:p,c.width,c.height,theme)}catch(e){}}}
+window.addEventListener('message',function(ev){var d=ev.data||{};if(typeof d.step==='number')draw(d.step,d.progress)});
+draw(0,1);
+<\/script></body></html>`
+
 const renderExplainerPreview = () => {
   if (!exWizard?.plan) return
   const stage = $('#explainer-preview-stage')
+  if (exWizard.canvasCode) {
+    const frame = document.createElement('iframe')
+    frame.setAttribute('sandbox', 'allow-scripts')
+    frame.className = 'explainer-preview-frame'
+    frame.srcdoc = explainerPreviewSandbox(exWizard.canvasCode)
+    stage.replaceChildren(frame)
+    frame.addEventListener('load', applyExplainerPreviewStep, { once: true })
+    return
+  }
   stage.innerHTML = renderExplainerDiagram(exWizard.plan, projectShapes())
   applyExplainerPreviewStep()
 }
@@ -6230,6 +6305,7 @@ const openExplainerWizard = (nodeId: string, freshInsert: boolean) => {
     plan: attrs.plan
       ? sanitizeExplainerPlan(attrs.plan as ExplainerPlanV1, projectShapes())
       : null,
+    canvasCode: String(attrs.canvasCode || ''),
     previewStep: 0,
     busy: false,
   }
@@ -6251,6 +6327,7 @@ const saveExplainerWizard = () => {
     verbosity: exWizard.verbosity,
     abstract: exWizard.abstract,
     plan: exWizard.plan,
+    canvasCode: exWizard.canvasCode || null,
   })
   const config = project.blocks[exWizard.nodeId]
   if (config) {
@@ -6286,6 +6363,13 @@ const saveExplainerWizard = () => {
   'click',
   () =>
     void refineExplainerPlan(
+      ($('#explainer-plan-instructions') as HTMLInputElement).value,
+    ),
+)
+;($('#explainer-canvas-agent') as HTMLButtonElement).addEventListener(
+  'click',
+  () =>
+    void runExplainerCanvasAgent(
       ($('#explainer-plan-instructions') as HTMLInputElement).value,
     ),
 )
@@ -6375,6 +6459,16 @@ let canvasExplainerStep = 0
 let canvasExplainerNodeId = ''
 let canvasExplainerKeeper: number | undefined
 
+const explainerCompositionDriver = (nodeId: string) =>
+  (
+    player.iframeElement?.contentWindow as unknown as {
+      __explainerDrivers?: Record<
+        string,
+        { stepCount: number; setStep: (step: number, progress?: number) => void }
+      >
+    } | null
+  )?.__explainerDrivers?.[nodeId]
+
 const canvasExplainerContext = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || scene.node.type !== 'explainer') return null
@@ -6416,6 +6510,8 @@ const applyCanvasExplainerStep = () => {
   player.pause()
   const stepCount = context.plan.steps.length
   const step = Math.min(canvasExplainerStep, stepCount - 1)
+  // Canvas-agent blocks draw through their registered driver.
+  explainerCompositionDriver(selectedNodeId)?.setStep(step, 1)
   context.sceneElement
     .querySelectorAll<HTMLElement>('[data-ex-step-reveal]')
     .forEach(element => {

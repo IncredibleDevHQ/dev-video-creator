@@ -15,6 +15,7 @@ import {
   BUILTIN_SHAPES,
   explainerDurationSeconds,
   explainerStepOffsets,
+  explainerStepSeconds,
   mergedShapeCollection,
   renderExplainerDiagram,
   sanitizeExplainerPlan,
@@ -481,7 +482,75 @@ const textContent = (node: TiptapNode): string => {
   return (node.content || []).map(textContent).join(' ').replace(/\s+/g, ' ').trim()
 }
 
-const renderExplainerScene = (scene: Scene, shapes: ShapeDefV1[]) => {
+const explainerCanvasCode = (node: TiptapNode) => {
+  const code = node.attrs?.canvasCode
+  return typeof code === 'string' && code.trim().length > 0 ? code : ''
+}
+
+// Canvas-agent mode: the block carries a model-written Canvas 2D program
+// implementing drawFrame(ctx, step, progress, w, h, theme). It runs in its
+// own <script> tag (a parse failure can only kill itself, never the
+// timeline), scoped so multiple explainers cannot collide, and registers a
+// driver keyed by scene id that the studio's step controls and the
+// timeline's onUpdate both call — the narration step offsets ARE the
+// execution mapping.
+const explainerCanvasScript = (
+  scene: Scene,
+  plan: ExplainerPlanV1,
+  code: string,
+  brand: { accent: string },
+) => {
+  const offsets = explainerStepOffsets(plan)
+  const stepSeconds = plan.steps.map(step => explainerStepSeconds(step))
+  const theme = JSON.stringify({
+    stroke: brand.accent,
+    fill: `${brand.accent}1f`,
+    text: '#f4f4f5',
+    muted: '#a1a1aa',
+  })
+  return `<script data-explainer-program="${scene.index}">
+(function () {
+  var program = null;
+  try {
+    var scope = {};
+    (function (globalThis) { ${code}\n }).call(scope, scope);
+    program = scope.explainer || null;
+  } catch (error) { program = null; }
+  var offsets = ${JSON.stringify(offsets)};
+  var stepSeconds = ${JSON.stringify(stepSeconds)};
+  var theme = ${theme};
+  var draw = function (stepIndex, progress) {
+    var canvas = document.querySelector('#scene-${scene.index} canvas.explainer-canvas');
+    if (!canvas || !program || typeof program.drawFrame !== 'function') return;
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    try { program.drawFrame(ctx, stepIndex, progress, canvas.width, canvas.height, theme); } catch (error) {}
+  };
+  window.__explainerDrawScene${scene.index} = function (sceneTime) {
+    var step = 0;
+    for (var i = 0; i < offsets.length; i += 1) { if (sceneTime >= offsets[i]) step = i; }
+    var animationWindow = Math.min(1.2, stepSeconds[step] * 0.45);
+    var progress = Math.min(1, Math.max(0, (sceneTime - offsets[step]) / animationWindow));
+    draw(step, progress);
+  };
+  window.__explainerDrivers = window.__explainerDrivers || {};
+  window.__explainerDrivers[${JSON.stringify(scene.id)}] = {
+    stepCount: offsets.length,
+    setStep: function (stepIndex, progress) {
+      var clamped = Math.max(0, Math.min(offsets.length - 1, stepIndex));
+      draw(clamped, progress == null ? 1 : progress);
+    },
+  };
+  draw(0, 0);
+})();
+</script>`
+}
+
+const renderExplainerScene = (
+  scene: Scene,
+  shapes: ShapeDefV1[],
+  brandAccent: string,
+) => {
   const plan = sanitizeExplainerPlan(
     scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
     shapes,
@@ -492,12 +561,24 @@ const renderExplainerScene = (scene: Scene, shapes: ShapeDefV1[]) => {
         `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(step.title)}</strong><span>${escapeHtml(step.explanation)}</span></div>`,
     )
     .join('')
+  const code = explainerCanvasCode(scene.node)
+  if (code) {
+    return `<div class="explainer-stage explainer-canvas-mode"><canvas class="explainer-canvas" width="1600" height="860"></canvas><div class="ex-captions">${captions}</div>${explainerCanvasScript(scene, plan, code, { accent: brandAccent })}</div>`
+  }
   return `<div class="explainer-stage">${renderExplainerDiagram(plan, shapes)}<div class="ex-captions">${captions}</div></div>`
 }
 
-const renderSceneNode = (scene: Scene, shapes?: ShapeDefV1[]) => {
+const renderSceneNode = (
+  scene: Scene,
+  shapes?: ShapeDefV1[],
+  brandAccent?: string,
+) => {
   if (scene.node.type === 'explainer') {
-    return renderExplainerScene(scene, shapes || BUILTIN_SHAPES)
+    return renderExplainerScene(
+      scene,
+      shapes || BUILTIN_SHAPES,
+      brandAccent || defaultBrand.accent,
+    )
   }
   if (scene.node.type !== 'image' && scene.node.type !== 'screenRecording') {
     return renderNode(scene.node)
@@ -696,7 +777,7 @@ const buildCompositionHtml = (
           presenterContentGeometryStyle
             ? ` style="${presenterContentGeometryStyle}"`
             : ''
-        }>${renderSceneNode(scene, mergedShapeCollection(project.shapeCollection))}</main>
+        }>${renderSceneNode(scene, mergedShapeCollection(project.shapeCollection), project.brand.accent)}</main>
         <footer class="logo-${theme.logo.placement}">${
           theme.logo.placement.startsWith('footer-')
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
@@ -802,22 +883,35 @@ const buildCompositionHtml = (
           mergedShapeCollection(project.shapeCollection),
         )
         const offsets = explainerStepOffsets(plan)
-        const explainerMotion = plan.steps
+        const captionMotion = plan.steps
           .map((_, stepIndex) => {
             const at = start + offsets[stepIndex]
-            const items = scriptString(
-              `#scene-${scene.index} [data-ex-step-reveal="${stepIndex}"]`,
-            )
             const caption = scriptString(
               `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex}"]`,
             )
             const previousCaption = scriptString(
               `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex - 1}"]`,
             )
-            return `tl.fromTo(${items}, { autoAlpha: 0, scale: 0.86, transformOrigin: "50% 50%" }, { autoAlpha: 1, scale: 1, duration: 0.6, stagger: 0.15, ease: "back.out(1.4)" }, ${at});tl.fromTo(${caption}, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, ${at});${stepIndex > 0 ? `tl.to(${previousCaption}, { autoAlpha: 0, duration: 0.3 }, ${at});` : ''}`
+            return `tl.fromTo(${caption}, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, ${at});${stepIndex > 0 ? `tl.to(${previousCaption}, { autoAlpha: 0, duration: 0.3 }, ${at});` : ''}`
           })
           .join('')
-        return `${frameTween}${entrance}${explainerMotion}`
+        if (explainerCanvasCode(scene.node)) {
+          // The agent-written canvas program is driven by the timeline: the
+          // narration step offsets map scene time to (step, progress).
+          const drawCall = `window.__explainerDrawScene${scene.index}`
+          const canvasMotion = `tl.to({ t: 0 }, { t: ${scene.durationSeconds}, duration: ${scene.durationSeconds}, ease: "none", onUpdate: function () { if (${drawCall}) ${drawCall}(this.targets()[0].t); } }, ${start});`
+          return `${frameTween}${entrance}${canvasMotion}${captionMotion}`
+        }
+        const explainerMotion = plan.steps
+          .map((_, stepIndex) => {
+            const at = start + offsets[stepIndex]
+            const items = scriptString(
+              `#scene-${scene.index} [data-ex-step-reveal="${stepIndex}"]`,
+            )
+            return `tl.fromTo(${items}, { autoAlpha: 0, scale: 0.86, transformOrigin: "50% 50%" }, { autoAlpha: 1, scale: 1, duration: 0.6, stagger: 0.15, ease: "back.out(1.4)" }, ${at});`
+          })
+          .join('')
+        return `${frameTween}${entrance}${explainerMotion}${captionMotion}`
       }
       if (scene.kind !== 'code') return `${frameTween}${entrance}`
       const codeMotion = scene.config.appearance.codeAnimation === 'highlight-lines'
@@ -918,6 +1012,7 @@ const buildCompositionHtml = (
     .media-image img { background: transparent; }
     .explainer-stage { --ex-fill: color-mix(in srgb, var(--surface) 88%, transparent); --ex-stroke: var(--accent); position: relative; width: 100%; display: grid; gap: 8px; }
     .explainer-stage svg.explainer-diagram { width: 100%; height: auto; max-height: 700px; }
+    .explainer-stage canvas.explainer-canvas { width: 100%; height: auto; max-height: 700px; }
     .ex-entity-label { fill: var(--text); font-size: 30px; font-weight: 700; text-anchor: middle; }
     .ex-connector-label { fill: var(--muted); font-size: 24px; font-weight: 600; text-anchor: middle; }
     .ex-item { opacity: 0; }

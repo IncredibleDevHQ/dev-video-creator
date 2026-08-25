@@ -639,6 +639,272 @@ const screenshotExplainerPlan = async (
 
 // The agent loop the studio calls after planning: render the plan, look at
 // the actual pixels, critique, revise, repeat — up to two passes.
+// ——— Canvas agent harness ———
+// A full coding agent for explainer animations: the model writes a complete
+// Canvas 2D program against a fixed contract, the harness runs it in a
+// disposable sandbox (fresh headless Chrome page, all network blocked,
+// nothing but a canvas), screenshots every step, and feeds the pixels back
+// for critique — iterating until the animation matches the narration. The
+// runner is an interface: a docker/pi-based backend can replace the
+// in-browser sandbox without touching the loop.
+
+const EXPLAINER_CANVAS_CONTRACT = `Write a COMPLETE JavaScript program (no imports, no markdown fences) that assigns:
+globalThis.explainer = {
+  stepCount: <number — exactly the number of narration steps>,
+  drawFrame(ctx, stepIndex, progress, width, height, theme) { ... }
+}
+drawFrame draws the ENTIRE frame for narration step stepIndex on the CanvasRenderingContext2D ctx (canvas is width x height, cleared for you, transparent background — the video's dark scene shows through):
+- Everything introduced by earlier steps is drawn fully settled.
+- The elements this step introduces animate in using progress (0..1): apply your own easing; at progress 1 they are settled.
+- Nothing from later steps appears.
+- theme = { stroke, fill, text, muted } — brand colors; use theme.text for labels (system-ui font), theme.stroke for shape outlines and connectors, theme.fill for shape fills, theme.muted for secondary annotations.
+Rules: deterministic (no Date.now/Math.random), no network, no DOM beyond ctx, no external images or fonts. Layout for 1600x860. Draw crisp diagram graphics: clear spatial hierarchy, generous spacing, no overlapping labels, arrowheads on directed connectors, readable 26-34px labels.`
+
+type CanvasAgentStep = { title: string; explanation: string }
+
+const screenCanvasCode = (code: string) => {
+  if (
+    /\b(fetch|XMLHttpRequest|WebSocket|EventSource|importScripts|document\s*\.\s*cookie|localStorage|indexedDB|sessionStorage|window\s*\.\s*(top|parent|open)|<\/?script)/i.test(
+      code,
+    ) ||
+    /\bimport\s*\(/.test(code)
+  ) {
+    throw new Error('Generated code used a capability the sandbox forbids')
+  }
+  return code
+}
+
+const runCanvasCodeSandbox = async (
+  code: string,
+  steps: CanvasAgentStep[],
+) => {
+  const { default: puppeteer } = await import('puppeteer')
+  const browser = await puppeteer.launch()
+  try {
+    const page = await browser.newPage()
+    await page.setViewport({ width: 1600, height: 860 })
+    await page.setRequestInterception(true)
+    page.on('request', request => {
+      // The sandbox page itself is the only allowed document.
+      if (request.url().startsWith('data:')) void request.continue()
+      else void request.abort()
+    })
+    await page.setContent(
+      `<!doctype html><html><head><style>body{margin:0;background:#0f1411}canvas{display:block}</style></head><body><canvas id="stage" width="1600" height="860"></canvas></body></html>`,
+    )
+    const setupError = await page.evaluate(async source => {
+      try {
+        // eslint-disable-next-line no-new-func
+        new Function(source)()
+        const contract = (globalThis as { explainer?: { stepCount?: number; drawFrame?: unknown } }).explainer
+        if (!contract || typeof contract.drawFrame !== 'function') {
+          return 'The program never assigned globalThis.explainer.drawFrame'
+        }
+        return ''
+      } catch (error) {
+        return error instanceof Error ? `${error.name}: ${error.message}` : 'Program crashed while loading'
+      }
+    }, code)
+    if (setupError) return { error: setupError, frames: [] as string[] }
+    const frames: string[] = []
+    for (let step = 0; step < steps.length; step += 1) {
+      const drawError = await page.evaluate((stepIndex: number) => {
+        try {
+          const canvas = document.querySelector('canvas') as HTMLCanvasElement
+          const ctx = canvas.getContext('2d')!
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+          ;(globalThis as unknown as {
+            explainer: {
+              drawFrame: (
+                c: CanvasRenderingContext2D,
+                s: number,
+                p: number,
+                w: number,
+                h: number,
+                t: Record<string, string>,
+              ) => void
+            }
+          }).explainer.drawFrame(ctx, stepIndex, 1, canvas.width, canvas.height, {
+            stroke: '#4ade80',
+            fill: 'rgba(74,222,128,.12)',
+            text: '#f4f4f5',
+            muted: '#a1a1aa',
+          })
+          return ''
+        } catch (error) {
+          return error instanceof Error ? `${error.name}: ${error.message}` : 'drawFrame crashed'
+        }
+      }, step)
+      if (drawError) return { error: `drawFrame(step ${step}) failed: ${drawError}`, frames }
+      const shot = await page.screenshot({ type: 'png' })
+      frames.push(Buffer.from(shot).toString('base64'))
+    }
+    return { error: '', frames }
+  } finally {
+    await browser.close()
+  }
+}
+
+const extractCanvasCode = (raw: string) =>
+  raw
+    .replace(/^```(?:javascript|js)?\s*/i, '')
+    .replace(/```\s*$/, '')
+    .trim()
+
+const handleExplainerCanvasAgent = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    topic?: string
+    abstract?: string
+    plan?: ExplainerPlanV1
+    instructions?: string
+  }>(request, 1024 * 1024)
+  const topic = String(body.topic || '').trim().slice(0, 600)
+  const plan = sanitizeExplainerPlan(body.plan, mergedShapeCollection(undefined))
+  if (!topic || !plan.steps.length) {
+    throw new Error('The canvas agent needs the topic and the planned steps')
+  }
+  if (!openAIKey) {
+    throw new Error('The canvas agent needs an OpenAI key')
+  }
+  const instructions = String(body.instructions || '').slice(0, 1_000)
+  const steps: CanvasAgentStep[] = plan.steps.map(step => ({
+    title: step.title,
+    explanation: step.explanation,
+  }))
+  const stepBrief = steps
+    .map(
+      (step, index) =>
+        `Step ${index} — ${step.title}: ${step.explanation}`,
+    )
+    .join('\n')
+  const entityBrief = plan.entities
+    .map(entity => `${entity.label} (level ${entity.level})`)
+    .join('; ')
+  let code = ''
+  let notes = ''
+  let feedback = ''
+  let iterations = 0
+  for (let pass = 0; pass < 3; pass += 1) {
+    const content: Array<Record<string, unknown>> = [
+      {
+        type: 'input_text',
+        text: `You are an expert HTML5 Canvas 2D animator building the diagram animation for a technical explainer video about "${topic}". The narration has ${steps.length} sequential steps — the animation MUST map one-to-one onto them: step k of your program is what plays while the narrator reads step k.\n${stepBrief}\nSuggested entities and hierarchy from the approved plan: ${entityBrief}.\n${EXPLAINER_CANVAS_CONTRACT}${instructions ? `\nAuthor's instructions: ${instructions}.` : ''}${feedback ? `\nYour previous attempt needs work. Feedback: ${feedback}\nReturn the full corrected program.` : ''}`,
+      },
+    ]
+    if (code && !feedback.startsWith('drawFrame') && iterations > 0) {
+      // On critique passes the previous code travels along for revision.
+      content.push({ type: 'input_text', text: `Previous program:\n${code}` })
+    }
+    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${openAIKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
+        input: [{ role: 'user', content }],
+        reasoning: { effort: 'medium' },
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'canvas_program',
+            strict: true,
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['code', 'notes'],
+              properties: {
+                code: { type: 'string' },
+                notes: { type: 'string' },
+              },
+            },
+          },
+        },
+      }),
+    })
+    if (!apiResponse.ok) {
+      throw new Error(`Canvas agent generation failed (${apiResponse.status})`)
+    }
+    const apiBody = (await apiResponse.json()) as Parameters<
+      typeof extractResponseText
+    >[0]
+    const generated = JSON.parse(extractResponseText(apiBody)) as {
+      code?: string
+      notes?: string
+    }
+    code = screenCanvasCode(extractCanvasCode(String(generated.code || '')))
+    notes = String(generated.notes || '').slice(0, 300)
+    iterations += 1
+    const run = await runCanvasCodeSandbox(code, steps)
+    if (run.error) {
+      feedback = run.error
+      continue
+    }
+    if (pass >= 2) break
+    // Show the agent its own frames, one per narration step, for review.
+    const reviewContent: Array<Record<string, unknown>> = [
+      {
+        type: 'input_text',
+        text: `These are the rendered frames of your canvas program, one per narration step, in order. Review them against the narration:\n${stepBrief}\nCheck: does frame k depict exactly what step k narrates; do earlier elements persist; any overlapping or unreadable labels; arrows pointing the right way; balanced composition. If every frame passes, respond approved=true with feedback "". Otherwise approved=false and concrete feedback describing what to change.`,
+      },
+      ...run.frames.map(frame => ({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${frame}`,
+      })),
+    ]
+    const reviewResponse = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${openAIKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
+        input: [{ role: 'user', content: reviewContent }],
+        reasoning: { effort: 'low' },
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'canvas_review',
+            strict: true,
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['approved', 'feedback'],
+              properties: {
+                approved: { type: 'boolean' },
+                feedback: { type: 'string' },
+              },
+            },
+          },
+        },
+      }),
+    })
+    if (!reviewResponse.ok) break
+    const reviewBody = (await reviewResponse.json()) as Parameters<
+      typeof extractResponseText
+    >[0]
+    const review = JSON.parse(extractResponseText(reviewBody)) as {
+      approved?: boolean
+      feedback?: string
+    }
+    if (review.approved) {
+      notes = notes || 'Approved after reviewing every step frame'
+      break
+    }
+    feedback = String(review.feedback || '').slice(0, 1_200)
+  }
+  const finalRun = await runCanvasCodeSandbox(code, steps)
+  if (finalRun.error) {
+    throw new Error(`The canvas agent could not produce a working program: ${finalRun.error}`)
+  }
+  json(response, 200, { code, iterations, notes, provider: 'openai' })
+}
+
 const handleExplainerRefine = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -1514,6 +1780,13 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/explainer/refine') {
       await handleExplainerRefine(request, response)
+      return
+    }
+    if (
+      request.method === 'POST' &&
+      url.pathname === '/api/explainer/canvas-agent'
+    ) {
+      await handleExplainerCanvasAgent(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/notes') {

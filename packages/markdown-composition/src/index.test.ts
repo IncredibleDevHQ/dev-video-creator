@@ -1185,6 +1185,46 @@ describe('compileProject', () => {
     expect(withExplainer.blocks['explain-1'].durationMs).toBe(6000)
   })
 
+  it('embeds canvas-agent programs with a timeline driver', () => {
+    const withCanvas = project()
+    withCanvas.notebook.content.push({
+      type: 'explainer',
+      attrs: {
+        id: 'explain-canvas',
+        topic: 'Canvas mode',
+        verbosity: 'standard',
+        abstract: 'Two steps.',
+        canvasCode:
+          'globalThis.explainer = { stepCount: 2, drawFrame: function () {} }',
+        plan: {
+          entities: [
+            { id: 'a', label: 'A', shape: 'box', x: 20, y: 50 },
+            { id: 'b', label: 'B', shape: 'box', x: 70, y: 50 },
+          ],
+          connectors: [{ id: 'ab', from: 'a', to: 'b', style: 'arrow' }],
+          steps: [
+            { title: 'One', explanation: 'First beat here.', reveals: ['a'] },
+            { title: 'Two', explanation: 'Second beat here.', reveals: ['b', 'ab'] },
+          ],
+        },
+      },
+    })
+    withCanvas.blocks['explain-canvas'] = createDefaultBlockConfig(
+      'explain-canvas',
+      withCanvas.notebook.content[2],
+    )
+    const compiled = compileProject(withCanvas)
+    // The scene renders a canvas, not the SVG diagram…
+    expect(compiled.html).toContain('<canvas class="explainer-canvas"')
+    expect(compiled.html).not.toContain('data-ex-item="a"')
+    // …the program runs in its own scoped script with a step driver…
+    expect(compiled.html).toContain('data-explainer-program')
+    expect(compiled.html).toContain('__explainerDrivers')
+    // …and the timeline drives it by scene time mapped to narration steps.
+    expect(compiled.html).toContain('__explainerDrawScene2')
+    expect(compiled.html).toContain('onUpdate')
+  })
+
   it('keeps explainer reveals coherent with the dependency order', () => {
     const plan = sanitizeExplainerPlan(
       {
