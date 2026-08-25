@@ -1111,3 +1111,17 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .player-shell.canvas-open.director-collapsed .director-toggle svg { rotate: 180deg; }
 .player-shell.canvas-open.director-collapsed .canvas-view-switch { right: 44px; }
 .player-shell.canvas-recording-mode .director-toggle { display: none; }
+
+/* ——— Notebook explainer script + rail teleprompter ——— */
+.notebook-explainer-prompt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #e4e4e7; border-radius: 9px; background: #f7f8f7; }
+.notebook-explainer-prompt strong { flex: 1; font-size: 14px; }
+.notebook-explainer-glyph { color: var(--brand); font-size: 16px; }
+.notebook-explainer-steps { margin: 10px 0 0; padding-left: 22px; display: grid; gap: 8px; }
+.notebook-explainer-steps li strong { font-size: 12.5px; }
+.notebook-explainer-steps li p { margin: 2px 0 0; color: #52525b; font-size: 12.5px; line-height: 1.55; }
+.explainer-teleprompter { margin-bottom: 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--brand) 32%, #e4e4e7); border-radius: 10px; background: color-mix(in srgb, var(--brand) 5%, white); display: grid; gap: 6px; }
+.teleprompter-head { display: flex; align-items: center; justify-content: space-between; color: var(--brand); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.teleprompter-head b { font-variant-numeric: tabular-nums; }
+.explainer-teleprompter strong { font-size: 13px; }
+.explainer-teleprompter p { margin: 0; font-size: 13.5px; line-height: 1.65; color: #3f3f46; }
+.explainer-teleprompter small { color: #8b8b93; font-size: 9.5px; }

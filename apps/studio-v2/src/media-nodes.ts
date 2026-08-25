@@ -86,12 +86,39 @@ export const ExplainerBlock = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { topic, plan, abstract, verbosity, ...attributes } = HTMLAttributes
-    const planValue = plan as
-      | { entities?: unknown[]; steps?: unknown[] }
-      | null
+    const { topic, plan, abstract, verbosity, canvasCode, ...attributes } =
+      HTMLAttributes
+    const planValue = plan as {
+      entities?: unknown[]
+      steps?: Array<{ title?: string; explanation?: string }>
+    } | null
     const entityCount = planValue?.entities?.length || 0
-    const stepCount = planValue?.steps?.length || 0
+    const steps = Array.isArray(planValue?.steps) ? planValue.steps : []
+    // The notebook shows the block as a readable script: the prompt that
+    // seeded it, then each animation step's spoken line — the same dialogue
+    // the teleprompter shows while stepping the canvas.
+    const stepList = steps.length
+      ? [
+          'ol',
+          { class: 'notebook-explainer-steps' },
+          ...steps.map((step, index) => [
+            'li',
+            {},
+            ['strong', {}, String(step?.title || `Step ${index + 1}`)],
+            ['p', {}, String(step?.explanation || '')],
+          ]),
+        ]
+      : [
+          'div',
+          { class: 'notebook-media-placeholder' },
+          ['span', {}, '◈'],
+          ['strong', {}, 'Not planned yet'],
+          [
+            'em',
+            { class: 'notebook-explainer-meta' },
+            'Open the editor to generate the explanation and diagram',
+          ],
+        ]
     return [
       'figure',
       mergeAttributes(attributes, {
@@ -100,27 +127,27 @@ export const ExplainerBlock = Node.create({
       }),
       [
         'div',
-        { class: 'notebook-media-placeholder' },
-        ['span', {}, '◈'],
+        { class: 'notebook-explainer-prompt' },
+        ['span', { class: 'notebook-explainer-glyph' }, '◈'],
         ['strong', {}, topic ? String(topic) : 'Explainer'],
         [
-          'em',
-          { class: 'notebook-explainer-meta' },
-          stepCount
-            ? `${entityCount} entities · ${stepCount} animated steps`
-            : 'Not planned yet',
+          'button',
+          {
+            type: 'button',
+            class: 'notebook-image-action',
+            'data-explainer-action': 'edit',
+          },
+          'Edit explainer',
         ],
       ],
+      stepList,
       [
-        'button',
-        {
-          type: 'button',
-          class: 'notebook-image-action',
-          'data-explainer-action': 'edit',
-        },
-        'Edit explainer',
+        'figcaption',
+        {},
+        steps.length
+          ? `${entityCount} entities · ${steps.length} animated steps${canvasCode ? ' · canvas program' : ''}`
+          : String(topic || 'Explainer'),
       ],
-      ['figcaption', {}, topic ? String(topic) : 'Explainer'],
     ]
   },
 })

@@ -3699,6 +3699,29 @@ const renderBackgroundPresets = (config: BlockRenderConfigV1) => {
 // agent owns its drawing — so prose layout presets and the Style tab's
 // placement/text treatments are no-ops there. Hide them and say why;
 // Presenter, Background and Transition still apply.
+// The teleprompter mirrors the canvas step controls: the current step's
+// spoken line — the same dialogue the notebook lists — always in view.
+const syncExplainerTeleprompter = () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  const panel = $('#explainer-teleprompter') as HTMLElement
+  if (!scene || scene.node.type !== 'explainer') {
+    panel.hidden = true
+    return
+  }
+  const plan = sanitizeExplainerPlan(
+    scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
+    projectShapes(),
+  )
+  const step = Math.min(canvasExplainerStep, plan.steps.length - 1)
+  panel.hidden = false
+  ;($('#teleprompter-step') as HTMLElement).textContent =
+    `${step + 1}/${plan.steps.length}`
+  ;($('#teleprompter-title') as HTMLElement).textContent =
+    plan.steps[step]?.title || ''
+  ;($('#teleprompter-text') as HTMLElement).textContent =
+    plan.steps[step]?.explanation || ''
+}
+
 const syncExplainerDirectorTabs = (scene: Scene) => {
   const isExplainer = scene.node.type === 'explainer'
   const styleTab = document.querySelector<HTMLButtonElement>(
@@ -3725,6 +3748,7 @@ const syncExplainerDirectorTabs = (scene: Scene) => {
     layoutGroup.parentElement.insertBefore(note, layoutGroup)
   }
   if (note) note.hidden = !isExplainer
+  syncExplainerTeleprompter()
 }
 
 const updateInspector = () => {
@@ -6581,6 +6605,7 @@ const applyCanvasExplainerStep = () => {
   const label = $('#ex-canvas-step-label') as HTMLElement
   label.textContent = `${step + 1}/${stepCount}`
   label.title = context.plan.steps[step]?.title || ''
+  syncExplainerTeleprompter()
   ;($('#ex-canvas-prev') as HTMLButtonElement).disabled = step === 0
   ;($('#ex-canvas-next') as HTMLButtonElement).disabled = step >= stepCount - 1
 }
