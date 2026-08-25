@@ -252,8 +252,29 @@ export const sanitizeExplainerPlan = (
 
 export const EXPLAINER_STEP_SECONDS = 4
 
+// A step lasts as long as its narration needs (~145 spoken words a minute,
+// plus a beat for the reveal), so long explanations aren't cut off and
+// short ones don't drag.
+export const explainerStepSeconds = (step: ExplainerStepV1) => {
+  const words = step.explanation.split(/\s+/).filter(Boolean).length
+  return Math.min(9, Math.max(3, 1.2 + words / 2.4))
+}
+
+export const explainerStepOffsets = (plan: ExplainerPlanV1) => {
+  const offsets: number[] = []
+  let at = 0
+  for (const step of plan.steps) {
+    offsets.push(at)
+    at += explainerStepSeconds(step)
+  }
+  return offsets
+}
+
 export const explainerDurationSeconds = (plan: ExplainerPlanV1) =>
-  Math.max(5, plan.steps.length * EXPLAINER_STEP_SECONDS)
+  Math.max(
+    5,
+    plan.steps.reduce((total, step) => total + explainerStepSeconds(step), 0),
+  )
 
 const revealStepFor = (plan: ExplainerPlanV1) => {
   const map = new Map<string, number>()

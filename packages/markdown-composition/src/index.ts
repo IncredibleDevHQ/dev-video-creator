@@ -13,7 +13,8 @@ import { defaultBrand, defaultThemeBlocks, normalizeStudioTheme } from './themes
 import { normalizedRectStyle, presenterLayoutGeometry } from './presenter-layouts'
 import {
   BUILTIN_SHAPES,
-  EXPLAINER_STEP_SECONDS,
+  explainerDurationSeconds,
+  explainerStepOffsets,
   mergedShapeCollection,
   renderExplainerDiagram,
   sanitizeExplainerPlan,
@@ -42,9 +43,14 @@ const defaultLayoutForNode = (node: TiptapNode): SceneLayout => {
   return 'prose'
 }
 
-const explainerStepCount = (node: TiptapNode) => {
-  const steps = (node.attrs?.plan as ExplainerPlanV1 | undefined)?.steps
-  return Array.isArray(steps) && steps.length ? steps.length : 1
+const explainerNodeDurationMs = (node: TiptapNode) => {
+  const plan = node.attrs?.plan as ExplainerPlanV1 | undefined
+  if (!plan || !Array.isArray(plan.steps) || !plan.steps.length) return 5000
+  return Math.round(
+    explainerDurationSeconds(
+      sanitizeExplainerPlan(plan, BUILTIN_SHAPES),
+    ) * 1000,
+  )
 }
 
 const defaultAppearanceForNode = (node: TiptapNode) => {
@@ -93,7 +99,7 @@ export const createDefaultBlockConfig = (
       : node.type === 'screenRecording'
         ? 8000
         : node.type === 'explainer'
-          ? Math.max(5000, explainerStepCount(node) * EXPLAINER_STEP_SECONDS * 1000)
+          ? explainerNodeDurationMs(node)
           : 5000,
   reveal:
     node.type === 'codeBlock'
@@ -795,9 +801,10 @@ const buildCompositionHtml = (
           scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
           mergedShapeCollection(project.shapeCollection),
         )
+        const offsets = explainerStepOffsets(plan)
         const explainerMotion = plan.steps
           .map((_, stepIndex) => {
-            const at = start + stepIndex * EXPLAINER_STEP_SECONDS
+            const at = start + offsets[stepIndex]
             const items = scriptString(
               `#scene-${scene.index} [data-ex-step-reveal="${stepIndex}"]`,
             )

@@ -1181,8 +1181,8 @@ describe('compileProject', () => {
     // …the timeline pops each step in and swaps captions…
     expect(compiled.html).toContain('[data-ex-step-reveal=\\"1\\"]')
     expect(compiled.html).toContain('.ex-caption[data-ex-step=\\"1\\"]')
-    // …and the block's default duration covers every step.
-    expect(withExplainer.blocks['explain-1'].durationMs).toBe(8000)
+    // …and the block's default duration follows the narration length.
+    expect(withExplainer.blocks['explain-1'].durationMs).toBe(6000)
   })
 
   it('keeps explainer reveals coherent with the dependency order', () => {

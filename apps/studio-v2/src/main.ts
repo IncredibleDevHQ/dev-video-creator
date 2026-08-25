@@ -8,6 +8,7 @@ import {
   createDefaultBlockConfig,
   defaultBrand,
   defaultStudioTheme,
+  explainerDurationSeconds,
   mergedShapeCollection,
   renderExplainerDiagram,
   sanitizeExplainerPlan,
@@ -6117,7 +6118,9 @@ const saveExplainerWizard = () => {
   })
   const config = project.blocks[exWizard.nodeId]
   if (config) {
-    config.durationMs = Math.max(5000, exWizard.plan.steps.length * 4000)
+    config.durationMs = Math.round(
+      explainerDurationSeconds(exWizard.plan) * 1000,
+    )
   }
   exWizard = null
   explainerDialog.close()
