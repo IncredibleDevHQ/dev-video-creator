@@ -218,6 +218,12 @@
                     </div>
                     <video id="canvas-take-player" class="canvas-take-player" controls playsinline preload="metadata" aria-label="Recorded take" hidden></video>
                     <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
+                    <div id="explainer-step-bar" class="explainer-step-bar" role="group" aria-label="Explainer animation steps" hidden>
+                      <button id="ex-canvas-restart" type="button" title="Restart the flow from the beginning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v5h5"/><path d="M3.3 9A9 9 0 1 1 3 12"/></svg></button>
+                      <button id="ex-canvas-prev" type="button" title="Previous animation step">←</button>
+                      <span id="ex-canvas-step-label">Steps</span>
+                      <button id="ex-canvas-next" type="button" title="Next animation step">→</button>
+                    </div>
                     <div id="canvas-view-switch" class="canvas-view-switch" role="group" aria-label="Recorded block view" hidden>
                       <button id="canvas-view-video" type="button" class="active" title="Show the recorded take" aria-label="Show the recorded take">▶ Video</button>
                       <button id="canvas-view-content" type="button" title="Show the directed content" aria-label="Show the directed content">▦ Content</button>
