@@ -658,7 +658,8 @@ drawFrame draws the ENTIRE frame for narration step stepIndex on the CanvasRende
 - The elements this step introduces animate in using progress (0..1): apply your own easing; at progress 1 they are settled.
 - Nothing from later steps appears.
 - theme = { stroke, fill, text, muted } — brand colors; use theme.text for labels (system-ui font), theme.stroke for shape outlines and connectors, theme.fill for shape fills, theme.muted for secondary annotations.
-Rules: deterministic (no Date.now/Math.random), no network, no DOM beyond ctx, no external images or fonts. Layout for 1600x860. Draw crisp diagram graphics: clear spatial hierarchy, generous spacing, no overlapping labels, arrowheads on directed connectors, readable 26-34px labels.`
+Rules: deterministic (no Date.now/Math.random), no network, no DOM beyond ctx, no external images or fonts. Layout for 1600x860. Draw crisp diagram graphics: clear spatial hierarchy, generous spacing, no overlapping labels, arrowheads on directed connectors, readable 26-34px labels.
+Text discipline: every text run owns its own clear space — never draw two text runs at or near the same anchor. When a later step updates a card's content (a subtitle becomes values, a placeholder becomes a result), draw the NEW content INSTEAD of the old, never both. Charts, bars and icons must not intersect any text. Reserve vertical room inside cards for their tallest step's content.`
 
 type CanvasAgentStep = { title: string; explanation: string }
 
@@ -849,7 +850,7 @@ const handleExplainerCanvasAgent = async (
     const reviewContent: Array<Record<string, unknown>> = [
       {
         type: 'input_text',
-        text: `These are the rendered frames of your canvas program, one per narration step, in order. Review them against the narration:\n${stepBrief}\nCheck: does frame k depict exactly what step k narrates; do earlier elements persist; any overlapping or unreadable labels; arrows pointing the right way; balanced composition. If every frame passes, respond approved=true with feedback "". Otherwise approved=false and concrete feedback describing what to change.`,
+        text: `These are the rendered frames of your canvas program, one per narration step, in order. Inspect every frame INDIVIDUALLY and closely — zoom into every card and label. Hard gates, any one of which forces approved=false: (1) any text overlapping other text, even partially — double-exposed or ghosted words are the most common defect, look for them inside cards where content changed between steps; (2) any chart, bar or icon intersecting text; (3) any element painted outside the frame or clipped. Then check the narration mapping:\n${stepBrief}\nDoes frame k depict exactly what step k narrates; do earlier elements persist; arrows pointing the right way; balanced composition. List each frame's issues in your feedback as "frame N: …". Only respond approved=true with feedback "" if every single frame is clean.`,
       },
       ...run.frames.map(frame => ({
         type: 'input_image',

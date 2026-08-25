@@ -1012,7 +1012,10 @@ const buildCompositionHtml = (
     .media-image img { background: transparent; }
     .explainer-stage { --ex-fill: color-mix(in srgb, var(--surface) 88%, transparent); --ex-stroke: var(--accent); position: relative; width: 100%; display: grid; gap: 8px; }
     .explainer-stage svg.explainer-diagram { width: 100%; height: auto; max-height: 700px; }
-    .explainer-stage canvas.explainer-canvas { width: 100%; height: auto; max-height: 700px; }
+    /* Both axes constrained, neither forced: the browser scales the canvas
+       uniformly inside them — forcing width while capping height squashed
+       the drawing vertically (it read as horizontally stretched). */
+    .explainer-stage canvas.explainer-canvas { width: auto; height: auto; max-width: 100%; max-height: 700px; margin-inline: auto; display: block; }
     .ex-entity-label { fill: var(--text); font-size: 30px; font-weight: 700; text-anchor: middle; }
     .ex-connector-label { fill: var(--muted); font-size: 24px; font-weight: 600; text-anchor: middle; }
     .ex-item { opacity: 0; }

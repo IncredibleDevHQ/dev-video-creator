@@ -6265,7 +6265,7 @@ const applyExplainerPreviewStep = () => {
 // The agent-written program previews inside a sandboxed iframe (scripts
 // only, no same-origin), driven by postMessage — isolated from the studio.
 const explainerPreviewSandbox = (code: string) =>
-  `<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#101312}canvas{width:100%;height:100%;display:block}</style></head><body><canvas id="stage" width="1600" height="860"></canvas><script>
+  `<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#101312}canvas{width:100%;height:100%;display:block;object-fit:contain}</style></head><body><canvas id="stage" width="1600" height="860"></canvas><script>
 var program=null;try{var scope={};(function(globalThis){${code}
 }).call(scope,scope);program=scope.explainer||null}catch(e){}
 var theme={stroke:'#4ade80',fill:'rgba(74,222,128,.12)',text:'#f4f4f5',muted:'#a1a1aa'};
