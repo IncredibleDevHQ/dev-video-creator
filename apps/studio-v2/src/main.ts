@@ -1253,10 +1253,158 @@ const finishCanvasRecording = () => {
   if (canvasRecorder?.state === 'recording') canvasRecorder.stop()
 }
 
+// Canvas-agent explainer blocks are drawn entirely by our own program, so the
+// take can be captured straight from the rendered buffer (OSS-v1 style:
+// canvas.captureStream + mic), with no tab-capture permission prompt.
+let explainerBufferTimer = 0
+
+const stopExplainerBufferCapture = () => {
+  if (explainerBufferTimer) window.clearInterval(explainerBufferTimer)
+  explainerBufferTimer = 0
+}
+
+const wrapCanvasCaptionText = (
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+) => {
+  const words = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let line = ''
+  words.forEach(word => {
+    const probe = line ? `${line} ${word}` : word
+    if (line && context.measureText(probe).width > maxWidth) {
+      lines.push(line)
+      line = word
+    } else {
+      line = probe
+    }
+  })
+  if (line) lines.push(line)
+  return lines
+}
+
+const drawLiveCameraOnBuffer = (
+  context: CanvasRenderingContext2D,
+  capture: HTMLCanvasElement,
+) => {
+  if (!liveCameraStream || liveCameraFrame.hidden) return
+  if (liveCameraPreview.readyState < 2 || !liveCameraPreview.videoWidth) return
+  const playerBounds = player.getBoundingClientRect()
+  if (!playerBounds.width || !playerBounds.height) return
+  const frameBounds = liveCameraFrame.getBoundingClientRect()
+  const scale = capture.width / playerBounds.width
+  const x = (frameBounds.left - playerBounds.left) * scale
+  const y = (frameBounds.top - playerBounds.top) * scale
+  const width = frameBounds.width * scale
+  const height = frameBounds.height * scale
+  if (width < 4 || height < 4) return
+  const radiusValue = getComputedStyle(liveCameraFrame).borderRadius
+  const radius = radiusValue.includes('%')
+    ? (Math.min(width, height) * Number.parseFloat(radiusValue)) / 100
+    : (Number.parseFloat(radiusValue) || 0) * scale
+  context.save()
+  context.beginPath()
+  context.roundRect(x, y, width, height, Math.min(radius, Math.min(width, height) / 2))
+  context.clip()
+  const videoWidth = liveCameraPreview.videoWidth
+  const videoHeight = liveCameraPreview.videoHeight
+  const cover = Math.max(width / videoWidth, height / videoHeight)
+  const drawWidth = videoWidth * cover
+  const drawHeight = videoHeight * cover
+  context.drawImage(
+    liveCameraPreview,
+    x - (drawWidth - width) / 2,
+    y - (drawHeight - height) / 2,
+    drawWidth,
+    drawHeight,
+  )
+  context.restore()
+}
+
+const startExplainerBufferCapture = (scene: Scene): MediaStream => {
+  const iframeDocument = player.iframeElement.contentDocument
+  const iframeWindow = player.iframeElement.contentWindow
+  const sceneElement = iframeDocument?.querySelector<HTMLElement>(`#scene-${scene.index}`)
+  const sourceCanvas = sceneElement?.querySelector<HTMLCanvasElement>('canvas.explainer-canvas')
+  if (!sceneElement || !sourceCanvas || !iframeWindow) {
+    throw new Error('The explainer canvas is not ready to record')
+  }
+  const capture = document.createElement('canvas')
+  capture.width = 1920
+  capture.height = 1080
+  const context = capture.getContext('2d')
+  if (!context) throw new Error('Canvas capture is unavailable in this browser')
+
+  const paint = () => {
+    const sceneRect = sceneElement.getBoundingClientRect()
+    if (!sceneRect.width || !sceneRect.height) return
+    const scale = capture.width / sceneRect.width
+    const mapRect = (rect: DOMRect) => ({
+      x: (rect.left - sceneRect.left) * scale,
+      y: (rect.top - sceneRect.top) * scale,
+      width: rect.width * scale,
+      height: rect.height * scale,
+    })
+    let background = iframeWindow.getComputedStyle(sceneElement).backgroundColor
+    if (!background || background === 'rgba(0, 0, 0, 0)' || background === 'transparent') {
+      background = iframeDocument?.body
+        ? iframeWindow.getComputedStyle(iframeDocument.body).backgroundColor
+        : ''
+    }
+    context.fillStyle =
+      background && background !== 'rgba(0, 0, 0, 0)' ? background : '#0f1014'
+    context.fillRect(0, 0, capture.width, capture.height)
+    const canvasRect = mapRect(sourceCanvas.getBoundingClientRect())
+    context.drawImage(sourceCanvas, canvasRect.x, canvasRect.y, canvasRect.width, canvasRect.height)
+    sceneElement.querySelectorAll<HTMLElement>('.ex-caption').forEach(caption => {
+      const alpha = Number.parseFloat(iframeWindow.getComputedStyle(caption).opacity)
+      if (!alpha) return
+      context.globalAlpha = Math.min(1, Math.max(0, alpha))
+      Array.from(caption.children).forEach(child => {
+        const element = child as HTMLElement
+        const text = element.textContent?.trim()
+        if (!text) return
+        const style = iframeWindow.getComputedStyle(element)
+        const rect = mapRect(element.getBoundingClientRect())
+        const fontSize = Number.parseFloat(style.fontSize) * scale
+        const lineHeight =
+          (Number.parseFloat(style.lineHeight) || fontSize * 1.3) * scale
+        context.font = `${style.fontWeight} ${fontSize}px ${style.fontFamily}`
+        context.fillStyle = style.color
+        context.textAlign = 'center'
+        context.textBaseline = 'top'
+        wrapCanvasCaptionText(context, text, rect.width).forEach((lineText, index) => {
+          context.fillText(
+            lineText,
+            rect.x + rect.width / 2,
+            rect.y + index * lineHeight,
+            rect.width,
+          )
+        })
+      })
+      context.globalAlpha = 1
+    })
+    drawLiveCameraOnBuffer(context, capture)
+  }
+
+  paint()
+  stopExplainerBufferCapture()
+  explainerBufferTimer = window.setInterval(paint, 33)
+  return capture.captureStream(30)
+}
+
 const startCanvasRecording = async () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
-  if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
+  // Canvas-program explainers record from our own buffer (no tab-capture
+  // permission); every other block kind still films the live composed DOM.
+  const bufferCapture =
+    sceneVisualKind(scene) === 'explainer' && Boolean(scene.node.attrs?.canvasCode)
+  if (
+    typeof MediaRecorder === 'undefined' ||
+    (!bufferCapture && !navigator.mediaDevices?.getDisplayMedia)
+  ) {
     showToast('Canvas recording is not supported in this browser')
     return
   }
@@ -1265,24 +1413,28 @@ const startCanvasRecording = async () => {
   playerShell.classList.add('canvas-recording-mode')
   canvasRecordingCoach.hidden = false
   try {
-    canvasCaptureStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { displaySurface: 'browser' },
-      audio: false,
-      preferCurrentTab: true,
-      selfBrowserSurface: 'include',
-      surfaceSwitching: 'exclude',
-    } as DisplayMediaStreamOptions)
+    if (!bufferCapture) {
+      canvasCaptureStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: 'browser' },
+        audio: false,
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+        surfaceSwitching: 'exclude',
+      } as DisplayMediaStreamOptions)
+    }
     if (!liveCameraStream && scene.config.camera.position !== 'hidden') {
       await startLiveCamera()
     }
-    const captureTrack = canvasCaptureStream.getVideoTracks()[0] as MediaStreamTrack & {
-      cropTo?: (target: unknown) => Promise<void>
-    }
-    const cropTargetApi = (window as Window & {
-      CropTarget?: { fromElement: (element: Element) => Promise<unknown> }
-    }).CropTarget
-    if (cropTargetApi && captureTrack.cropTo) {
-      await captureTrack.cropTo(await cropTargetApi.fromElement(player))
+    if (!bufferCapture && canvasCaptureStream) {
+      const captureTrack = canvasCaptureStream.getVideoTracks()[0] as MediaStreamTrack & {
+        cropTo?: (target: unknown) => Promise<void>
+      }
+      const cropTargetApi = (window as Window & {
+        CropTarget?: { fromElement: (element: Element) => Promise<unknown> }
+      }).CropTarget
+      if (cropTargetApi && captureTrack.cropTo) {
+        await captureTrack.cropTo(await cropTargetApi.fromElement(player))
+      }
     }
     if (microphonePreference) {
       try {
@@ -1299,6 +1451,10 @@ const startCanvasRecording = async () => {
     }
     syncMicrophoneToggle()
     await prepareCanvasRecordingSteps(scene)
+    if (bufferCapture) {
+      canvasCaptureStream = startExplainerBufferCapture(scene)
+    }
+    if (!canvasCaptureStream) throw new Error('No capture stream is available')
     const tracks = [
       ...canvasCaptureStream.getVideoTracks(),
       ...(canvasMicrophoneStream?.getAudioTracks() || []),
@@ -1316,6 +1472,7 @@ const startCanvasRecording = async () => {
     canvasRecorder.onstop = async () => {
       const mimeType = canvasRecorder?.mimeType || 'video/webm'
       const durationMs = Math.max(1, Date.now() - canvasRecordingStartedAt)
+      stopExplainerBufferCapture()
       canvasCaptureStream?.getTracks().forEach(track => track.stop())
       canvasMicrophoneStream?.getTracks().forEach(track => track.stop())
       canvasCaptureStream = null
@@ -1338,7 +1495,9 @@ const startCanvasRecording = async () => {
         canvasRecordingChunks = []
       }
     }
-    captureTrack.addEventListener('ended', finishCanvasRecording, { once: true })
+    canvasCaptureStream
+      .getVideoTracks()[0]
+      ?.addEventListener('ended', finishCanvasRecording, { once: true })
     canvasRecorder.start(250)
     canvasRecordingStartedAt = Date.now()
     canvasRecordingTimer = window.setInterval(updateCanvasRecordingClock, 250)
@@ -1348,8 +1507,12 @@ const startCanvasRecording = async () => {
     previousAnimationStepButton.hidden = false
     nextAnimationStepButton.hidden = false
     stopCanvasRecordingButton.hidden = false
+    canvasRecordingMeta.textContent = bufferCapture
+      ? 'Direct canvas capture — no screen permission needed'
+      : 'Camera visible · microphone optional'
     updateCanvasRecordingClock()
   } catch (error) {
+    stopExplainerBufferCapture()
     canvasCaptureStream?.getTracks().forEach(track => track.stop())
     canvasMicrophoneStream?.getTracks().forEach(track => track.stop())
     canvasCaptureStream = null
