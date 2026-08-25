@@ -6176,6 +6176,40 @@ const saveExplainerWizard = () => {
   }
   saveExplainerWizard()
 })
+// Full-screen preview: same stage and step controls, viewport-sized — for
+// judging real entries. Esc leaves fullscreen (not the wizard); ←/→ step.
+const explainerPreviewShell = $('#explainer-preview-shell')
+
+const setExplainerFullscreen = (on: boolean) => {
+  explainerPreviewShell.classList.toggle('fullscreen', on)
+}
+
+;($('#explainer-fullscreen') as HTMLButtonElement).addEventListener(
+  'click',
+  () => setExplainerFullscreen(!explainerPreviewShell.classList.contains('fullscreen')),
+)
+explainerDialog.addEventListener('cancel', event => {
+  if (explainerPreviewShell.classList.contains('fullscreen')) {
+    event.preventDefault()
+    setExplainerFullscreen(false)
+  }
+})
+explainerDialog.addEventListener('close', () => setExplainerFullscreen(false))
+document.addEventListener('keydown', event => {
+  if (!explainerDialog.open || !exWizard || exWizard.step !== 2) return
+  const editingField =
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLTextAreaElement
+  if (editingField) return
+  if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    ;($('#explainer-next-step') as HTMLButtonElement).click()
+  } else if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    ;($('#explainer-prev-step') as HTMLButtonElement).click()
+  }
+})
+
 ;($('#close-explainer') as HTMLButtonElement).addEventListener('click', () => {
   // Cancelling a brand-new, never-configured explainer removes the empty node.
   if (exWizard?.freshInsert && !exWizard.plan && !exWizard.topic) {

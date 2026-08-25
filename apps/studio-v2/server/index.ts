@@ -469,8 +469,10 @@ const fallbackExplainerPlan = (
     id: `part-${index + 1}`,
     label,
     shape: shapes[index % shapes.length],
-    x: 14 + index * (72 / Math.max(1, labels.length - 1)),
-    y: 42,
+    x: 50,
+    y: 50,
+    level: index,
+    order: 0,
   }))
   const connectors = entities.slice(1).map((entity, index) => ({
     id: `flow-${index + 1}`,
@@ -603,7 +605,7 @@ const handleExplainerPlan = async (
       },
       body: JSON.stringify({
         model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
-        input: `Design an animated diagram that explains "${topic}" for a technical video. The explanation being narrated: "${abstract}". Identify the concrete entities involved and how to represent each one with an atomic shape from this vocabulary: ${shapeVocabulary}. Connect related entities with connectors (line, arrow for directional flow, dashed for implicit links). Then break the reveal into 3 to 6 narrated steps: each step names which entity and connector ids appear at that moment and explains, in one or two spoken sentences, what the viewer is seeing. Coordinates are percentages of a 16:9 canvas (x and y between 10 and 90); spread entities out so shapes never overlap — they are 160x110 units on a 1600x860 canvas. Use at most 8 entities. Every entity and connector id must be revealed by exactly one step.${instructions ? ` Additional instructions from the author: ${instructions}.` : ''}`,
+        input: `Design an animated diagram that explains "${topic}" for a technical video. The explanation being narrated: "${abstract}". Identify the concrete entities involved and how to represent each one with an atomic shape from this vocabulary: ${shapeVocabulary}. Organize the entities as a layered dependency DAG: level 0 holds the root inputs at the top, and each deeper level depends on the levels above it. Give every entity its level (0-based integer) and its order among the siblings on that level (0-based, left to right). Connect entities with connectors: arrows for dependencies flowing from one level into the next, and — where siblings on the same level have an execution-order relationship between them — sibling-to-sibling connectors (arrow or dashed) expressing that order. Then break the reveal into 3 to 6 narrated steps: each step names which entity and connector ids appear at that moment and explains, in one or two spoken sentences, what the viewer is seeing. Use at most 8 entities. Every entity and connector id must be revealed by exactly one step.${instructions ? ` Additional instructions from the author: ${instructions}.` : ''}`,
         reasoning: { effort: 'medium' },
         text: {
           format: {
@@ -620,7 +622,7 @@ const handleExplainerPlan = async (
                   items: {
                     type: 'object',
                     additionalProperties: false,
-                    required: ['id', 'label', 'shape', 'x', 'y'],
+                    required: ['id', 'label', 'shape', 'level', 'order'],
                     properties: {
                       id: { type: 'string' },
                       label: { type: 'string' },
@@ -628,8 +630,8 @@ const handleExplainerPlan = async (
                         type: 'string',
                         enum: shapes.map(shape => shape.key),
                       },
-                      x: { type: 'number' },
-                      y: { type: 'number' },
+                      level: { type: 'integer' },
+                      order: { type: 'integer' },
                     },
                   },
                 },

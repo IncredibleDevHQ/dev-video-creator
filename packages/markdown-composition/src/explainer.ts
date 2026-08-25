@@ -12,6 +12,10 @@ export type ExplainerEntityV1 = {
   shape: string
   x: number
   y: number
+  // Layered-DAG placement: entities sit on dependency levels (0 = roots);
+  // siblings share a level, ordered left to right, and feed the next level.
+  level?: number
+  order?: number
 }
 
 export type ExplainerConnectorV1 = {
@@ -111,6 +115,12 @@ export const sanitizeExplainerPlan = (
       shape: shapeKeys.has(String(raw?.shape)) ? String(raw?.shape) : fallbackShape,
       x: clampPercent(raw?.x, 12 + (entities.length % 4) * 25),
       y: clampPercent(raw?.y, 22 + Math.floor(entities.length / 4) * 32),
+      level: Number.isFinite(Number(raw?.level))
+        ? Math.max(0, Math.min(8, Math.round(Number(raw?.level))))
+        : undefined,
+      order: Number.isFinite(Number(raw?.order))
+        ? Math.round(Number(raw?.order))
+        : undefined,
     })
   }
   const entityIds = new Set(entities.map(entity => entity.id))
@@ -134,6 +144,56 @@ export const sanitizeExplainerPlan = (
       label: raw?.label ? String(raw.label).slice(0, 40) : undefined,
     })
   }
+  // ——— Layered-DAG layout ———
+  // Explicit levels from the plan win; otherwise levels derive from arrow
+  // topology (longest path from the roots). Siblings share a level, sorted
+  // by their order, and the layout spreads levels top-to-bottom so sibling
+  // rows feed the level below them.
+  const levelById = new Map<string, number>()
+  if (entities.some(entity => Number.isFinite(entity.level))) {
+    entities.forEach(entity => levelById.set(entity.id, entity.level ?? 0))
+  } else {
+    const incoming = new Map<string, string[]>(
+      entities.map(entity => [entity.id, []]),
+    )
+    connectors.forEach(connector => {
+      if (connector.style === 'arrow') {
+        incoming.get(connector.to)?.push(connector.from)
+      }
+    })
+    const resolveLevel = (id: string, trail: Set<string>): number => {
+      const known = levelById.get(id)
+      if (known !== undefined) return known
+      if (trail.has(id)) return 0
+      trail.add(id)
+      const parents = incoming.get(id) || []
+      const level = parents.length
+        ? 1 + Math.max(...parents.map(parent => resolveLevel(parent, trail)))
+        : 0
+      levelById.set(id, level)
+      return level
+    }
+    entities.forEach(entity => resolveLevel(entity.id, new Set()))
+  }
+  const tiers = new Map<number, ExplainerEntityV1[]>()
+  entities.forEach(entity => {
+    const level = levelById.get(entity.id) ?? 0
+    entity.level = level
+    const tier = tiers.get(level) || []
+    tier.push(entity)
+    tiers.set(level, tier)
+  })
+  const maxLevel = Math.max(0, ...tiers.keys())
+  tiers.forEach((tier, level) => {
+    tier.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    tier.forEach((entity, index) => {
+      entity.order = index
+      entity.x =
+        tier.length === 1 ? 50 : 10 + (80 * index) / (tier.length - 1)
+      entity.y = maxLevel === 0 ? 50 : 13 + (72 * level) / maxLevel
+    })
+  })
+
   const itemIds = new Set([...entityIds, ...connectors.map(c => c.id)])
   const steps: ExplainerStepV1[] = []
   const revealed = new Set<string>()
@@ -194,6 +254,9 @@ export const renderExplainerDiagram = (
       },
     ]),
   )
+  const levelOf = new Map(
+    plan.entities.map(entity => [entity.id, entity.level ?? 0]),
+  )
   const connectorMarkup = plan.connectors
     .map(connector => {
       const from = centers.get(connector.from)
@@ -210,10 +273,22 @@ export const renderExplainerDiagram = (
       const dash = connector.style === 'dashed' ? ' stroke-dasharray="14 12"' : ''
       const marker =
         connector.style === 'arrow' ? ' marker-end="url(#ex-arrow)"' : ''
+      // Sibling dependency (same level): an execution-order arc above the
+      // row, visually distinct from the straight level-to-level flow.
+      const siblings =
+        levelOf.get(connector.from) === levelOf.get(connector.to)
+      const arcLift = Math.min(120, Math.max(64, distance * 0.22))
+      const stroke = `stroke="var(--ex-stroke)" stroke-width="4" stroke-linecap="round" fill="none"${dash}${marker}`
+      const geometry = siblings
+        ? `<path d="M ${startX.toFixed(1)} ${startY.toFixed(1)} Q ${((startX + endX) / 2).toFixed(1)} ${(Math.min(startY, endY) - arcLift).toFixed(1)} ${endX.toFixed(1)} ${endY.toFixed(1)}" ${stroke}/>`
+        : `<line x1="${startX.toFixed(1)}" y1="${startY.toFixed(1)}" x2="${endX.toFixed(1)}" y2="${endY.toFixed(1)}" ${stroke}/>`
+      const labelY = siblings
+        ? Math.min(startY, endY) - arcLift / 2 - 16
+        : (startY + endY) / 2 - 14
       const label = connector.label
-        ? `<text class="ex-connector-label" x="${(startX + endX) / 2}" y="${(startY + endY) / 2 - 14}">${escape(connector.label)}</text>`
+        ? `<text class="ex-connector-label" x="${((startX + endX) / 2).toFixed(1)}" y="${labelY.toFixed(1)}">${escape(connector.label)}</text>`
         : ''
-      return `<g class="ex-item ex-connector" data-ex-item="${connector.id}" data-ex-step-reveal="${reveal.get(connector.id) ?? 0}"><line x1="${startX.toFixed(1)}" y1="${startY.toFixed(1)}" x2="${endX.toFixed(1)}" y2="${endY.toFixed(1)}" stroke="var(--ex-stroke)" stroke-width="4" stroke-linecap="round"${dash}${marker}/>${label}</g>`
+      return `<g class="ex-item ex-connector" data-ex-item="${connector.id}" data-ex-step-reveal="${reveal.get(connector.id) ?? 0}">${geometry}${label}</g>`
     })
     .join('')
   const entityMarkup = plan.entities

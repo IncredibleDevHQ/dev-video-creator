@@ -1072,3 +1072,17 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .shape-editor-preview { display: grid; place-items: center; padding: 6px 14px; border: 1px dashed #d4d4d8; border-radius: 8px; background: white; }
 .shape-editor-preview .shape-thumb { width: 96px; height: 68px; }
 .notebook-explainer-meta { display: block; color: #71717a; font-size: 11px; font-style: normal; }
+
+/* ——— Explainer full-screen preview ——— */
+.explainer-preview-shell { display: grid; gap: 12px; }
+.explainer-stage-wrap { position: relative; }
+.explainer-fullscreen-toggle { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.28); border-radius: 7px; background: rgba(16,19,18,.8); color: #e4e4e7; cursor: pointer; }
+.explainer-fullscreen-toggle svg { width: 15px; height: 15px; }
+.explainer-fullscreen-toggle:hover { border-color: #4ade80; color: #4ade80; }
+.explainer-preview-shell.fullscreen { position: fixed; inset: 0; z-index: 260; padding: 26px clamp(26px, 5vw, 72px); background: #0b0e0c; grid-template-rows: minmax(0, 1fr) auto auto; }
+.explainer-preview-shell.fullscreen .explainer-stage-wrap { min-height: 0; display: grid; }
+.explainer-preview-shell.fullscreen .explainer-preview-stage { height: 100%; aspect-ratio: auto; }
+.explainer-preview-shell.fullscreen .explainer-preview-controls { color: #e4e4e7; }
+.explainer-preview-shell.fullscreen .explainer-step-caption strong { color: #f4f4f5; font-size: 14px; }
+.explainer-preview-shell.fullscreen .explainer-step-caption span { color: #a1a1aa; font-size: 12.5px; }
+.explainer-preview-shell.fullscreen .explainer-row input { background: #161a18; border-color: #2b322d; color: #e4e4e7; }
