@@ -4816,6 +4816,19 @@ const openCanvasFullscreen = () => {
   syncLiveCameraToggle()
 }
 
+;($('#director-toggle') as HTMLButtonElement).addEventListener('click', () => {
+  const collapsed = playerShell.classList.toggle('director-collapsed')
+  const toggle = $('#director-toggle') as HTMLButtonElement
+  toggle.setAttribute('aria-expanded', String(!collapsed))
+  toggle.title = collapsed
+    ? 'Expand the director panel'
+    : 'Collapse the panel — see the full canvas and timeline'
+  toggle.setAttribute(
+    'aria-label',
+    collapsed ? 'Expand the director panel' : 'Collapse the director panel',
+  )
+})
+
 liveCameraToggle.addEventListener('click', async () => {
   if (liveCameraStream) {
     stopLiveCamera()

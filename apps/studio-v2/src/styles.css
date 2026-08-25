@@ -1099,3 +1099,15 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 
 /* ——— Canvas-agent preview frame ——— */
 .explainer-preview-frame { width: 100%; height: 100%; border: 0; display: block; border-radius: 10px; }
+
+/* ——— Director rail collapse: full-width canvas and timeline ——— */
+.director-toggle { display: none; }
+.player-shell.canvas-open .director-toggle { position: fixed; top: 50%; right: 370px; z-index: 92; width: 22px; height: 56px; display: grid; place-items: center; translate: 50% -50%; border: 1px solid rgba(255,255,255,.22); border-radius: 7px; background: rgba(24,24,27,.92); color: #d4d4d8; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.player-shell.canvas-open .director-toggle:hover { color: white; border-color: var(--brand-light); }
+.player-shell.canvas-open .director-toggle svg { width: 13px; height: 13px; }
+.player-shell.canvas-open.director-collapsed { grid-template-columns: minmax(0, 1fr) 0; }
+.player-shell.canvas-open.director-collapsed .canvas-director { display: none; }
+.player-shell.canvas-open.director-collapsed .director-toggle { right: 8px; translate: 0 -50%; }
+.player-shell.canvas-open.director-collapsed .director-toggle svg { rotate: 180deg; }
+.player-shell.canvas-open.director-collapsed .canvas-view-switch { right: 44px; }
+.player-shell.canvas-recording-mode .director-toggle { display: none; }
