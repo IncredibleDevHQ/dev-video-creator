@@ -76,6 +76,8 @@ export const ExplainerBlock = Node.create({
       verbosity: { default: 'standard' },
       abstract: { default: '' },
       plan: { default: null },
+      // The canvas-agent's program; rendered instead of the SVG plan.
+      canvasCode: { default: null },
     }
   },
 
