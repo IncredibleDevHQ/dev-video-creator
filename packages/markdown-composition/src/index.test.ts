@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BUILTIN_SHAPES,
   compileProject,
   createDefaultBlockConfig,
+  sanitizeExplainerPlan,
   defaultBrand,
   defaultThemeMotion,
   builtinStudioThemes,
@@ -1181,6 +1183,38 @@ describe('compileProject', () => {
     expect(compiled.html).toContain('.ex-caption[data-ex-step=\\"1\\"]')
     // …and the block's default duration covers every step.
     expect(withExplainer.blocks['explain-1'].durationMs).toBe(8000)
+  })
+
+  it('keeps explainer reveals coherent with the dependency order', () => {
+    const plan = sanitizeExplainerPlan(
+      {
+        entities: [
+          { id: 'a', label: 'Root', shape: 'box', x: 0, y: 0 },
+          { id: 'b', label: 'Child', shape: 'box', x: 0, y: 0 },
+          { id: 'c', label: 'Root sibling', shape: 'box', x: 0, y: 0 },
+        ],
+        connectors: [
+          // Revealed too early: step 0, but its endpoint b appears in step 1.
+          { id: 'ab', from: 'a', to: 'b', style: 'arrow' },
+        ],
+        steps: [
+          { title: 'Start', explanation: '', reveals: ['a', 'ab'] },
+          { title: 'Grow', explanation: '', reveals: ['b'] },
+        ],
+      },
+      BUILTIN_SHAPES,
+    )
+    // The connector moves to the first step where both endpoints exist…
+    expect(plan.steps[0].reveals).not.toContain('ab')
+    expect(plan.steps[1].reveals).toContain('ab')
+    // …the unrevealed sibling joins the step revealing its level…
+    expect(plan.steps[0].reveals).toContain('c')
+    // …and topology-derived levels put the child beneath the roots.
+    const byId = Object.fromEntries(plan.entities.map(e => [e.id, e]))
+    expect(byId.a.level).toBe(0)
+    expect(byId.c.level).toBe(0)
+    expect(byId.b.level).toBe(1)
+    expect(byId.b.y).toBeGreaterThan(byId.a.y)
   })
 
   it('gives wipes a fading edge shadow so the seam reads', () => {

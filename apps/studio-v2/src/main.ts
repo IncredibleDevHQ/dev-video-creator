@@ -5854,6 +5854,13 @@ const renderExplainerWizard = () => {
     )
   const back = $('#explainer-back') as HTMLButtonElement
   const next = $('#explainer-next') as HTMLButtonElement
+  for (const id of [
+    '#explainer-generate-abstract',
+    '#explainer-generate-plan',
+    '#explainer-preview-regenerate',
+  ]) {
+    ;($(id) as HTMLButtonElement).disabled = exWizard.busy
+  }
   back.disabled = step === 0 || exWizard.busy
   next.textContent =
     step === 0 ? 'Next · Diagram →' : step === 1 ? 'Approve · Preview →' : 'Save block'
@@ -6136,19 +6143,57 @@ const saveExplainerWizard = () => {
       ($('#explainer-preview-instructions') as HTMLInputElement).value,
     ),
 )
+// Play walks the steps automatically so the animation can be watched, not
+// just stepped; any manual step (button or arrow key) takes control back.
+let explainerPlayTimer: number | undefined
+
+const stopExplainerPlayback = () => {
+  window.clearInterval(explainerPlayTimer)
+  explainerPlayTimer = undefined
+  ;($('#explainer-play-step') as HTMLButtonElement).textContent = '▶ Play'
+}
+
+const startExplainerPlayback = () => {
+  if (!exWizard?.plan) return
+  if (exWizard.previewStep >= exWizard.plan.steps.length - 1) {
+    exWizard.previewStep = 0
+    applyExplainerPreviewStep()
+  }
+  ;($('#explainer-play-step') as HTMLButtonElement).textContent = '⏸ Pause'
+  explainerPlayTimer = window.setInterval(() => {
+    if (!exWizard?.plan || !explainerDialog.open) {
+      stopExplainerPlayback()
+      return
+    }
+    if (exWizard.previewStep >= exWizard.plan.steps.length - 1) {
+      stopExplainerPlayback()
+      return
+    }
+    exWizard.previewStep += 1
+    applyExplainerPreviewStep()
+  }, 2200)
+}
+
+;($('#explainer-play-step') as HTMLButtonElement).addEventListener('click', () => {
+  if (explainerPlayTimer) stopExplainerPlayback()
+  else startExplainerPlayback()
+})
 ;($('#explainer-prev-step') as HTMLButtonElement).addEventListener('click', () => {
   if (!exWizard) return
+  stopExplainerPlayback()
   exWizard.previewStep = Math.max(0, exWizard.previewStep - 1)
   applyExplainerPreviewStep()
 })
 ;($('#explainer-next-step') as HTMLButtonElement).addEventListener('click', () => {
   if (!exWizard?.plan) return
+  stopExplainerPlayback()
   exWizard.previewStep = Math.min(
     exWizard.plan.steps.length - 1,
     exWizard.previewStep + 1,
   )
   applyExplainerPreviewStep()
 })
+explainerDialog.addEventListener('close', stopExplainerPlayback)
 ;($('#explainer-back') as HTMLButtonElement).addEventListener('click', () => {
   if (!exWizard || exWizard.step === 0) return
   exWizard.step = (exWizard.step - 1) as ExplainerWizardState['step']

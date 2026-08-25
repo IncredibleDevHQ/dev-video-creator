@@ -211,9 +211,42 @@ export const sanitizeExplainerPlan = (
   if (!steps.length) {
     steps.push({ title: 'Overview', explanation: '', reveals: [] })
   }
-  // Anything never revealed appears with the first step.
-  const missing = [...itemIds].filter(id => !revealed.has(id))
-  steps[0].reveals = [...missing, ...steps[0].reveals]
+  // Anything never revealed still needs a home. Entities join the earliest
+  // step that reveals a same-level sibling (falling back to the last step);
+  // connectors join the first step where both endpoints are visible — a
+  // connector appearing before its endpoints reads as a floating line.
+  const stepOfItem = new Map<string, number>()
+  steps.forEach((step, index) =>
+    step.reveals.forEach(id => stepOfItem.set(id, index)),
+  )
+  for (const entity of entities) {
+    if (stepOfItem.has(entity.id)) continue
+    const siblingStep = steps.findIndex(step =>
+      step.reveals.some(id => {
+        const sibling = entities.find(item => item.id === id)
+        return sibling && sibling.level === entity.level
+      }),
+    )
+    const target = siblingStep >= 0 ? siblingStep : steps.length - 1
+    steps[target].reveals.push(entity.id)
+    stepOfItem.set(entity.id, target)
+  }
+  for (const connector of connectors) {
+    const endpointStep = Math.max(
+      stepOfItem.get(connector.from) ?? 0,
+      stepOfItem.get(connector.to) ?? 0,
+    )
+    const current = stepOfItem.get(connector.id)
+    if (current === undefined || current < endpointStep) {
+      if (current !== undefined) {
+        steps[current].reveals = steps[current].reveals.filter(
+          id => id !== connector.id,
+        )
+      }
+      steps[endpointStep].reveals.push(connector.id)
+      stepOfItem.set(connector.id, endpointStep)
+    }
+  }
   return { entities, connectors, steps }
 }
 
@@ -257,6 +290,8 @@ export const renderExplainerDiagram = (
   const levelOf = new Map(
     plan.entities.map(entity => [entity.id, entity.level ?? 0]),
   )
+  // Stagger sibling arcs on the same tier so they never trace each other.
+  const arcIndexByLevel = new Map<number, number>()
   const connectorMarkup = plan.connectors
     .map(connector => {
       const from = centers.get(connector.from)
@@ -277,7 +312,11 @@ export const renderExplainerDiagram = (
       // row, visually distinct from the straight level-to-level flow.
       const siblings =
         levelOf.get(connector.from) === levelOf.get(connector.to)
-      const arcLift = Math.min(120, Math.max(64, distance * 0.22))
+      const tier = levelOf.get(connector.from) ?? 0
+      const arcIndex = siblings ? arcIndexByLevel.get(tier) || 0 : 0
+      if (siblings) arcIndexByLevel.set(tier, arcIndex + 1)
+      const arcLift =
+        Math.min(120, Math.max(64, distance * 0.22)) + arcIndex * 38
       const stroke = `stroke="var(--ex-stroke)" stroke-width="4" stroke-linecap="round" fill="none"${dash}${marker}`
       const geometry = siblings
         ? `<path d="M ${startX.toFixed(1)} ${startY.toFixed(1)} Q ${((startX + endX) / 2).toFixed(1)} ${(Math.min(startY, endY) - arcLift).toFixed(1)} ${endX.toFixed(1)} ${endY.toFixed(1)}" ${stroke}/>`
@@ -291,12 +330,40 @@ export const renderExplainerDiagram = (
       return `<g class="ex-item ex-connector" data-ex-item="${connector.id}" data-ex-step-reveal="${reveal.get(connector.id) ?? 0}">${geometry}${label}</g>`
     })
     .join('')
+  // Labels wrap onto up to two lines so long names never smear across
+  // neighbouring shapes.
+  const wrapLabel = (label: string): string[] => {
+    const words = label.split(/\s+/).filter(Boolean)
+    const lines: string[] = []
+    let current = ''
+    for (const word of words) {
+      if (current && (current + ' ' + word).length > 16) {
+        lines.push(current)
+        current = word
+      } else {
+        current = current ? `${current} ${word}` : word
+      }
+    }
+    if (current) lines.push(current)
+    if (lines.length > 2) {
+      lines.length = 2
+      lines[1] = `${lines[1].slice(0, 14)}…`
+    }
+    return lines.length ? lines : [label.slice(0, 16)]
+  }
   const entityMarkup = plan.entities
     .map(entity => {
       const center = centers.get(entity.id)
       if (!center) return ''
       const shape = shapeByKey.get(entity.shape) || shapes[0]
-      return `<g class="ex-item ex-entity" data-ex-item="${entity.id}" data-ex-step-reveal="${reveal.get(entity.id) ?? 0}" transform="translate(${center.x.toFixed(1)}, ${center.y.toFixed(1)})">${shape?.svg || ''}<text class="ex-entity-label" y="86">${escape(entity.label)}</text></g>`
+      const lines = wrapLabel(entity.label)
+      const labelText = lines
+        .map(
+          (line, index) =>
+            `<tspan x="0" dy="${index === 0 ? 0 : 32}">${escape(line)}</tspan>`,
+        )
+        .join('')
+      return `<g class="ex-item ex-entity" data-ex-item="${entity.id}" data-ex-step-reveal="${reveal.get(entity.id) ?? 0}" transform="translate(${center.x.toFixed(1)}, ${center.y.toFixed(1)})">${shape?.svg || ''}<text class="ex-entity-label" y="86">${labelText}</text></g>`
     })
     .join('')
   return `<svg class="explainer-diagram" viewBox="0 0 ${EXPLAINER_VIEW_WIDTH} ${EXPLAINER_VIEW_HEIGHT}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Explainer diagram"><defs><marker id="ex-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 1 1 L 11 6 L 1 11 z" fill="var(--ex-stroke)"/></marker></defs>${connectorMarkup}${entityMarkup}</svg>`
