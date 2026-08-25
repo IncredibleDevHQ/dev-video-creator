@@ -1125,3 +1125,47 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .explainer-teleprompter strong { font-size: 13px; }
 .explainer-teleprompter p { margin: 0; font-size: 13.5px; line-height: 1.65; color: #3f3f46; }
 .explainer-teleprompter small { color: #8b8b93; font-size: 9.5px; }
+
+/* ——— Explainer wizard: polished pass ——— */
+.explainer-modal { width: min(880px, 94vw); padding: 0; overflow: hidden; border-radius: 16px; }
+.explainer-header { display: flex; align-items: center; gap: 18px; padding: 18px 22px 16px; border-bottom: 1px solid #ececee; background: #fbfbfc; }
+.explainer-header-copy { flex: 1; min-width: 0; }
+.explainer-header-copy h2 { margin: 2px 0 0; font-size: 17px; letter-spacing: -.01em; }
+.explainer-stepper { display: flex; align-items: center; gap: 22px; }
+.explainer-stepper span { position: relative; display: flex; align-items: center; gap: 7px; border: 0; padding: 0; background: none; color: #a1a1aa; font-size: 11px; font-weight: 700; }
+.explainer-stepper span + span::before { content: ""; position: absolute; left: -18px; width: 14px; height: 1.5px; background: #e4e4e7; }
+.explainer-stepper i { width: 22px; height: 22px; display: grid; place-items: center; border: 1.5px solid #d4d4d8; border-radius: 50%; font-style: normal; font-size: 10.5px; transition: all .15s ease; }
+.explainer-stepper span.active { color: var(--ink); }
+.explainer-stepper span.active i { border-color: var(--brand); background: var(--brand); color: white; }
+.explainer-stepper span.done { color: #52525b; }
+.explainer-stepper span.done i { border-color: var(--brand); color: var(--brand); }
+.explainer-stepper span.done i::before { content: "✓"; position: absolute; }
+.explainer-stepper span.done i { font-size: 0; }
+.explainer-stepper span.done i::before { font-size: 10.5px; }
+.explainer-panel { padding: 20px 22px 8px; min-height: 380px; align-content: start; }
+.explainer-actions { margin: 0; padding: 14px 22px 18px; border-top: 1px solid #ececee; background: #fbfbfc; }
+.explainer-promptbar { display: flex; align-items: center; gap: 11px; padding: 10px 10px 10px 16px; border: 1.5px solid #e0e0e3; border-radius: 12px; background: white; box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: border-color .15s ease, box-shadow .15s ease; }
+.explainer-promptbar:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent); }
+.explainer-prompt-glyph { color: var(--brand); font-size: 17px; flex: none; }
+.explainer-promptbar textarea, .explainer-promptbar input { flex: 1; border: 0 !important; padding: 4px 0 !important; background: transparent !important; font-size: 14px !important; resize: none; outline: none; box-shadow: none !important; }
+.explainer-promptbar .button { flex: none; }
+.explainer-promptbar-compact { padding: 7px 8px 7px 14px; border-width: 1px; box-shadow: none; }
+.explainer-promptbar-compact input { font-size: 12.5px !important; }
+.explainer-settings-row { display: flex; align-items: center; gap: 12px; }
+.explainer-segment { flex: none; display: flex; padding: 3px; border: 1px solid #e4e4e7; border-radius: 9px; background: #f4f4f5; }
+.explainer-segment button { padding: 6px 14px; border: 0; border-radius: 6px; background: transparent; color: #71717a; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all .12s ease; }
+.explainer-segment button.active { background: white; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.explainer-instructions { flex: 1; padding: 9px 12px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fafafa; font-size: 12.5px; }
+.explainer-instructions:focus { outline: none; border-color: var(--brand); background: white; }
+.explainer-doc { border: 1px solid #e8e8ea; border-radius: 12px; background: white; overflow: hidden; }
+.explainer-doc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #f0f0f1; background: #fafafa; }
+.explainer-doc-head span { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #71717a; }
+.explainer-doc-head small { color: #a1a1aa; font-size: 10px; }
+.explainer-doc textarea { width: 100%; border: 0 !important; border-radius: 0; padding: 14px 16px !important; font-size: 13.5px !important; line-height: 1.75; color: #27272a; outline: none; box-shadow: none !important; }
+.explainer-plan-toolbar { align-items: flex-start; }
+.explainer-plan-title { display: grid; gap: 2px; }
+.explainer-plan-title small { color: #a1a1aa; font-size: 11px; font-weight: 400; }
+.explainer-plan-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+.explainer-status.working { padding-left: 20px; position: relative; }
+.explainer-status.working::before { content: ""; position: absolute; left: 2px; top: 50%; width: 11px; height: 11px; margin-top: -6px; border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent); border-top-color: var(--brand); border-radius: 50%; animation: explainer-spin .7s linear infinite; }
+@keyframes explainer-spin { to { rotate: 360deg; } }

@@ -452,21 +452,45 @@
     </dialog>
 
     <dialog id="explainer-dialog" class="modal explainer-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Explainer block</span><h2>Explain a concept, animated</h2></div><button id="close-explainer" class="icon-button" type="button" aria-label="Close explainer">×</button></div>
-      <div class="explainer-steps-nav"><span data-ex-wizard-step="0" class="active">1 · Explain</span><span data-ex-wizard-step="1">2 · Diagram</span><span data-ex-wizard-step="2">3 · Preview</span></div>
+      <div class="explainer-header">
+        <div class="explainer-header-copy"><span class="eyebrow">Explainer block</span><h2>Explain a concept, animated</h2></div>
+        <div class="explainer-stepper" role="tablist" aria-label="Explainer steps">
+          <span data-ex-wizard-step="0" class="active"><i>1</i><em>Explain</em></span>
+          <span data-ex-wizard-step="1"><i>2</i><em>Diagram</em></span>
+          <span data-ex-wizard-step="2"><i>3</i><em>Preview</em></span>
+        </div>
+        <button id="close-explainer" class="icon-button" type="button" aria-label="Close explainer">×</button>
+      </div>
       <section id="explainer-step-explain" class="explainer-panel">
-        <label class="field"><span>What do you want to explain?</span><textarea id="explainer-topic" rows="3" placeholder="e.g. How a neural network learns from data"></textarea></label>
-        <div class="explainer-row">
-          <label class="field explainer-verbosity"><span>Verbosity</span><select id="explainer-verbosity"><option value="brief">Brief</option><option value="standard" selected>Standard</option><option value="detailed">Detailed</option></select></label>
-          <label class="field"><span>Adjust instructions (optional)</span><input id="explainer-abstract-instructions" placeholder="e.g. beginner friendly, avoid math" /></label>
+        <div class="explainer-promptbar">
+          <span class="explainer-prompt-glyph">◈</span>
+          <textarea id="explainer-topic" rows="2" placeholder="What do you want to explain? e.g. How a neural network learns from data"></textarea>
           <button id="explainer-generate-abstract" class="button primary" type="button">Generate</button>
         </div>
-        <label class="field"><span>Expanded explanation — edit freely, regenerate after changing settings</span><textarea id="explainer-abstract" rows="7" placeholder="Generate to expand your statement into a narratable explanation…"></textarea></label>
+        <div class="explainer-settings-row">
+          <div id="explainer-verbosity-segment" class="explainer-segment" role="group" aria-label="Verbosity">
+            <button type="button" data-verbosity="brief">Brief</button>
+            <button type="button" data-verbosity="standard" class="active">Standard</button>
+            <button type="button" data-verbosity="detailed">Detailed</button>
+          </div>
+          <select id="explainer-verbosity" hidden aria-hidden="true" tabindex="-1"><option value="brief">Brief</option><option value="standard" selected>Standard</option><option value="detailed">Detailed</option></select>
+          <input id="explainer-abstract-instructions" class="explainer-instructions" placeholder="Optional instructions — beginner friendly, avoid math, use a cooking analogy…" />
+        </div>
+        <div class="explainer-doc">
+          <div class="explainer-doc-head"><span>Expanded explanation</span><small>Edit freely — regenerate after changing settings</small></div>
+          <textarea id="explainer-abstract" rows="9" placeholder="Generate to expand your statement into a narratable, spoken-style explanation…"></textarea>
+        </div>
       </section>
       <section id="explainer-step-plan" class="explainer-panel" hidden>
-        <div class="explainer-plan-toolbar"><strong>Model diagram — entities, shapes and connectors to approve</strong><div><button id="open-shape-collection" class="button chrome-secondary" type="button">Shape collection</button><button id="explainer-visual-pass" class="button chrome-secondary" type="button" title="Render the diagram, let the AI look at the pixels, and fix layout issues">Visual pass</button><button id="explainer-canvas-agent" class="button chrome-secondary" type="button" title="A coding agent writes a custom Canvas animation for these steps, renders it in a sandbox, reviews its own frames, and iterates">Canvas agent</button><button id="explainer-generate-plan" class="button chrome-secondary" type="button">Regenerate plan</button></div></div>
+        <div class="explainer-plan-toolbar">
+          <div class="explainer-plan-title"><strong>Model diagram</strong><small>Entities, shapes, connectors and steps — approve or adjust before animating</small></div>
+          <div class="explainer-plan-actions"><button id="open-shape-collection" class="button chrome-secondary" type="button">Shapes</button><button id="explainer-visual-pass" class="button chrome-secondary" type="button" title="Render the diagram, let the AI look at the pixels, and fix layout issues">Visual pass</button><button id="explainer-canvas-agent" class="button chrome-secondary" type="button" title="A coding agent writes a custom Canvas animation for these steps, renders it in a sandbox, reviews its own frames, and iterates">Canvas agent</button><button id="explainer-generate-plan" class="button chrome-secondary" type="button">Regenerate</button></div>
+        </div>
         <div id="explainer-plan-summary" class="explainer-plan-summary"></div>
-        <label class="field"><span>Adjust instructions (optional), then regenerate</span><input id="explainer-plan-instructions" placeholder="e.g. add a loss node, use a cylinder for the dataset" /></label>
+        <div class="explainer-promptbar explainer-promptbar-compact">
+          <span class="explainer-prompt-glyph">✎</span>
+          <input id="explainer-plan-instructions" placeholder="Adjust the plan — add a loss node, use a cylinder for the dataset…" />
+        </div>
       </section>
       <section id="explainer-step-preview" class="explainer-panel" hidden>
         <div id="explainer-preview-shell" class="explainer-preview-shell">
@@ -475,7 +499,7 @@
             <button id="explainer-fullscreen" class="explainer-fullscreen-toggle" type="button" title="Full-screen preview (Esc to exit, ←/→ to step)" aria-label="Toggle full-screen preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
           </div>
           <div class="explainer-preview-controls"><button id="explainer-prev-step" class="button chrome-secondary" type="button">← Back</button><button id="explainer-play-step" class="button chrome-secondary" type="button">▶ Play</button><div id="explainer-step-caption" class="explainer-step-caption"></div><button id="explainer-next-step" class="button chrome-secondary" type="button">Next →</button></div>
-          <div class="explainer-row"><input id="explainer-preview-instructions" placeholder="Modify the diagram… e.g. add a cache level, order the workers left to right" /><button id="explainer-preview-regenerate" class="button chrome-secondary" type="button">Regenerate</button></div>
+          <div class="explainer-promptbar explainer-promptbar-compact"><span class="explainer-prompt-glyph">✎</span><input id="explainer-preview-instructions" placeholder="Modify the diagram — add a cache level, order the workers left to right…" /><button id="explainer-preview-regenerate" class="button chrome-secondary" type="button">Regenerate</button></div>
         </div>
       </section>
       <div class="modal-actions explainer-actions"><button id="explainer-back" class="button ghost" type="button" disabled>← Back</button><span id="explainer-status" class="explainer-status"></span><button id="explainer-next" class="button primary" type="button" disabled>Next →</button></div>

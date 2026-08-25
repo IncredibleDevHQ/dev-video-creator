@@ -6017,9 +6017,15 @@ const renderExplainerWizard = () => {
   ;($('#explainer-step-preview') as HTMLElement).hidden = step !== 2
   document
     .querySelectorAll<HTMLElement>('[data-ex-wizard-step]')
-    .forEach(chip =>
-      chip.classList.toggle('active', Number(chip.dataset.exWizardStep) === step),
-    )
+    .forEach(chip => {
+      const chipStep = Number(chip.dataset.exWizardStep)
+      chip.classList.toggle('active', chipStep === step)
+      chip.classList.toggle('done', chipStep < step)
+    })
+  ;($('#explainer-status') as HTMLElement).classList.toggle(
+    'working',
+    exWizard.busy,
+  )
   const back = $('#explainer-back') as HTMLButtonElement
   const next = $('#explainer-next') as HTMLButtonElement
   for (const id of [
@@ -6381,6 +6387,14 @@ const openExplainerWizard = (nodeId: string, freshInsert: boolean) => {
   }
   ;($('#explainer-topic') as HTMLTextAreaElement).value = exWizard.topic
   ;($('#explainer-verbosity') as HTMLSelectElement).value = exWizard.verbosity
+  document
+    .querySelectorAll<HTMLButtonElement>('#explainer-verbosity-segment button')
+    .forEach(button =>
+      button.classList.toggle(
+        'active',
+        button.dataset.verbosity === exWizard?.verbosity,
+      ),
+    )
   ;($('#explainer-abstract') as HTMLTextAreaElement).value = exWizard.abstract
   ;($('#explainer-abstract-instructions') as HTMLInputElement).value = ''
   ;($('#explainer-plan-instructions') as HTMLInputElement).value = ''
@@ -6411,6 +6425,17 @@ const saveExplainerWizard = () => {
   showToast('Explainer block saved — it animates step by step in the video')
 }
 
+document
+  .querySelectorAll<HTMLButtonElement>('#explainer-verbosity-segment button')
+  .forEach(button =>
+    button.addEventListener('click', () => {
+      ;($('#explainer-verbosity') as HTMLSelectElement).value =
+        button.dataset.verbosity || 'standard'
+      document
+        .querySelectorAll<HTMLButtonElement>('#explainer-verbosity-segment button')
+        .forEach(item => item.classList.toggle('active', item === button))
+    }),
+  )
 ;($('#explainer-generate-abstract') as HTMLButtonElement).addEventListener(
   'click',
   () => void generateExplainerAbstract(),
