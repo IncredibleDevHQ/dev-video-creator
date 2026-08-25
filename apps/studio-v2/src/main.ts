@@ -3695,6 +3695,38 @@ const renderBackgroundPresets = (config: BlockRenderConfigV1) => {
   })
 }
 
+// Explainer blocks compose themselves — the diagram fills the frame and the
+// agent owns its drawing — so prose layout presets and the Style tab's
+// placement/text treatments are no-ops there. Hide them and say why;
+// Presenter, Background and Transition still apply.
+const syncExplainerDirectorTabs = (scene: Scene) => {
+  const isExplainer = scene.node.type === 'explainer'
+  const styleTab = document.querySelector<HTMLButtonElement>(
+    '[data-director-tab="style"]',
+  )
+  if (styleTab) {
+    styleTab.hidden = isExplainer
+    if (isExplainer && styleTab.classList.contains('active')) {
+      document
+        .querySelector<HTMLButtonElement>('[data-director-tab="layout"]')
+        ?.click()
+    }
+  }
+  const layoutGroup = $('#content-layout-group')
+  layoutGroup.hidden = isExplainer
+  let note = layoutGroup.parentElement?.querySelector<HTMLElement>(
+    '.explainer-director-note',
+  )
+  if (!note && layoutGroup.parentElement) {
+    note = document.createElement('p')
+    note.className = 'director-section-note explainer-director-note'
+    note.textContent =
+      'Explainer blocks compose themselves — the diagram fills the frame and animates step by step. Direct the presenter, background and transition here; change the diagram itself with “Edit explainer” on the block.'
+    layoutGroup.parentElement.insertBefore(note, layoutGroup)
+  }
+  if (note) note.hidden = !isExplainer
+}
+
 const updateInspector = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
@@ -3731,6 +3763,7 @@ const updateInspector = () => {
     directorOptions.label
   renderLayoutPresetPicker(scene, config)
   renderStudioStyleControls(scene, config)
+  syncExplainerDirectorTabs(scene)
   renderStudioMotionControls(scene, config)
   renderBackgroundPresets(config)
   document
