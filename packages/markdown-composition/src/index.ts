@@ -11,8 +11,18 @@ import type {
 } from './types'
 import { defaultBrand, defaultThemeBlocks, normalizeStudioTheme } from './themes'
 import { normalizedRectStyle, presenterLayoutGeometry } from './presenter-layouts'
+import {
+  BUILTIN_SHAPES,
+  EXPLAINER_STEP_SECONDS,
+  mergedShapeCollection,
+  renderExplainerDiagram,
+  sanitizeExplainerPlan,
+  type ExplainerPlanV1,
+  type ShapeDefV1,
+} from './explainer'
 
 export * from './types'
+export * from './explainer'
 export * from './themes'
 export * from './presenter-layouts'
 export * from './notebook-media'
@@ -32,7 +42,20 @@ const defaultLayoutForNode = (node: TiptapNode): SceneLayout => {
   return 'prose'
 }
 
+const explainerStepCount = (node: TiptapNode) => {
+  const steps = (node.attrs?.plan as ExplainerPlanV1 | undefined)?.steps
+  return Array.isArray(steps) && steps.length ? steps.length : 1
+}
+
 const defaultAppearanceForNode = (node: TiptapNode) => {
+  if (node.type === 'explainer') {
+    return {
+      layout: 'center' as const,
+      render: 'minimal' as ThemeBlockRendering,
+      codeTheme: defaultThemeBlocks.codeTheme,
+      codeAnimation: defaultThemeBlocks.codeAnimation,
+    }
+  }
   if (node.type === 'image' || node.type === 'screenRecording') {
     return {
       layout: 'full' as const,
@@ -69,11 +92,15 @@ export const createDefaultBlockConfig = (
       ? 7000
       : node.type === 'screenRecording'
         ? 8000
-        : 5000,
+        : node.type === 'explainer'
+          ? Math.max(5000, explainerStepCount(node) * EXPLAINER_STEP_SECONDS * 1000)
+          : 5000,
   reveal:
     node.type === 'codeBlock'
       ? 'line-by-line'
-      : node.type === 'image' || node.type === 'screenRecording'
+      : node.type === 'image' ||
+          node.type === 'screenRecording' ||
+          node.type === 'explainer'
         ? 'fade'
         : 'rise',
   alignment: node.type === 'heading' ? 'center' : 'left',
@@ -83,7 +110,9 @@ export const createDefaultBlockConfig = (
   },
   camera: {
     mode: 'information-circle',
-    position: 'bottom-right',
+    // Explainer diagrams need the whole frame; the presenter can be added
+    // deliberately from the Presenter tab.
+    position: node.type === 'explainer' ? 'hidden' : 'bottom-right',
     shape: 'circle',
     scale: 1,
   },
@@ -440,10 +469,30 @@ const textContent = (node: TiptapNode): string => {
   if (node.type === 'screenRecording') {
     return String(node.attrs?.title || 'Screen recording')
   }
+  if (node.type === 'explainer') {
+    return String(node.attrs?.topic || 'Explainer')
+  }
   return (node.content || []).map(textContent).join(' ').replace(/\s+/g, ' ').trim()
 }
 
-const renderSceneNode = (scene: Scene) => {
+const renderExplainerScene = (scene: Scene, shapes: ShapeDefV1[]) => {
+  const plan = sanitizeExplainerPlan(
+    scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
+    shapes,
+  )
+  const captions = plan.steps
+    .map(
+      (step, index) =>
+        `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(step.title)}</strong><span>${escapeHtml(step.explanation)}</span></div>`,
+    )
+    .join('')
+  return `<div class="explainer-stage">${renderExplainerDiagram(plan, shapes)}<div class="ex-captions">${captions}</div></div>`
+}
+
+const renderSceneNode = (scene: Scene, shapes?: ShapeDefV1[]) => {
+  if (scene.node.type === 'explainer') {
+    return renderExplainerScene(scene, shapes || BUILTIN_SHAPES)
+  }
   if (scene.node.type !== 'image' && scene.node.type !== 'screenRecording') {
     return renderNode(scene.node)
   }
@@ -641,7 +690,7 @@ const buildCompositionHtml = (
           presenterContentGeometryStyle
             ? ` style="${presenterContentGeometryStyle}"`
             : ''
-        }>${renderSceneNode(scene)}</main>
+        }>${renderSceneNode(scene, mergedShapeCollection(project.shapeCollection))}</main>
         <footer class="logo-${theme.logo.placement}">${
           theme.logo.placement.startsWith('footer-')
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
@@ -738,6 +787,30 @@ const buildCompositionHtml = (
         case 'rise':
         default:
           entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: ${revealDuration(0.75)}, ease: "power3.out" }, ${start});`
+      }
+      if (scene.node.type === 'explainer') {
+        // Steps reveal on the timeline: each step pops its entities and
+        // connectors in and swaps the caption underneath.
+        const plan = sanitizeExplainerPlan(
+          scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
+          mergedShapeCollection(project.shapeCollection),
+        )
+        const explainerMotion = plan.steps
+          .map((_, stepIndex) => {
+            const at = start + stepIndex * EXPLAINER_STEP_SECONDS
+            const items = scriptString(
+              `#scene-${scene.index} [data-ex-step-reveal="${stepIndex}"]`,
+            )
+            const caption = scriptString(
+              `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex}"]`,
+            )
+            const previousCaption = scriptString(
+              `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex - 1}"]`,
+            )
+            return `tl.fromTo(${items}, { autoAlpha: 0, scale: 0.86, transformOrigin: "50% 50%" }, { autoAlpha: 1, scale: 1, duration: 0.6, stagger: 0.15, ease: "back.out(1.4)" }, ${at});tl.fromTo(${caption}, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, ${at});${stepIndex > 0 ? `tl.to(${previousCaption}, { autoAlpha: 0, duration: 0.3 }, ${at});` : ''}`
+          })
+          .join('')
+        return `${frameTween}${entrance}${explainerMotion}`
       }
       if (scene.kind !== 'code') return `${frameTween}${entrance}`
       const codeMotion = scene.config.appearance.codeAnimation === 'highlight-lines'
@@ -836,6 +909,17 @@ const buildCompositionHtml = (
     .scene:has(.media-block).theme-render-card .media-block img, .scene:has(.media-block).theme-render-card .media-block video { min-height: 532px; }
     .scene:has(.media-block).theme-render-minimal .media-block { background: transparent; box-shadow: none; }
     .media-image img { background: transparent; }
+    .explainer-stage { --ex-fill: color-mix(in srgb, var(--surface) 88%, transparent); --ex-stroke: var(--accent); position: relative; width: 100%; display: grid; gap: 8px; }
+    .explainer-stage svg.explainer-diagram { width: 100%; height: auto; max-height: 700px; }
+    .ex-entity-label { fill: var(--text); font-size: 30px; font-weight: 700; text-anchor: middle; }
+    .ex-connector-label { fill: var(--muted); font-size: 24px; font-weight: 600; text-anchor: middle; }
+    .ex-item { opacity: 0; }
+    .ex-captions { position: relative; min-height: 128px; }
+    .ex-caption { position: absolute; inset: 0 0 auto 0; display: grid; gap: 6px; text-align: center; opacity: 0; }
+    .ex-caption strong { font-size: 36px; color: var(--text); }
+    .ex-caption span { font-size: 27px; line-height: 1.4; color: var(--muted); }
+    .scene:has(.explainer-stage) { padding: 64px 90px 48px; --content-layout-width: 100%; }
+    .scene:has(.explainer-stage) .content { width: 100%; max-width: 100%; }
     .scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 80%; max-width: 80%; margin-left: 0; margin-right: auto; }
     .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image { min-height: 0; padding: 18px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); background: color-mix(in srgb, var(--surface) 92%, transparent); }
     .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image img { width: auto; max-width: 100%; height: auto; min-height: 0; max-height: 680px; margin: auto; border-radius: max(0px, calc(var(--block-radius) - 14px)); object-fit: contain; }

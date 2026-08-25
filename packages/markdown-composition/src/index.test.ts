@@ -1142,6 +1142,47 @@ describe('compileProject', () => {
     )
   })
 
+  it('compiles explainer blocks into stepped diagram scenes', () => {
+    const withExplainer = project()
+    withExplainer.notebook.content.push({
+      type: 'explainer',
+      attrs: {
+        id: 'explain-1',
+        topic: 'How a neural network learns',
+        verbosity: 'standard',
+        abstract: 'Signals flow forward, loss flows back.',
+        plan: {
+          entities: [
+            { id: 'input', label: 'Input layer', shape: 'circle', x: 15, y: 50 },
+            { id: 'hidden', label: 'Hidden layer', shape: 'box', x: 50, y: 50 },
+          ],
+          connectors: [
+            { id: 'flow', from: 'input', to: 'hidden', style: 'arrow' },
+          ],
+          steps: [
+            { title: 'The input', explanation: 'Data enters here.', reveals: ['input'] },
+            { title: 'Forward pass', explanation: 'Signals flow on.', reveals: ['hidden', 'flow'] },
+          ],
+        },
+      },
+    })
+    withExplainer.blocks['explain-1'] = createDefaultBlockConfig(
+      'explain-1',
+      withExplainer.notebook.content[2],
+    )
+    const compiled = compileProject(withExplainer)
+    // Entities and connectors render as shape primitives with reveal steps…
+    expect(compiled.html).toContain('data-ex-item="input"')
+    expect(compiled.html).toContain('data-ex-step-reveal="1"')
+    expect(compiled.html).toContain('marker-end="url(#ex-arrow)"')
+    expect(compiled.html).toContain('Hidden layer')
+    // …the timeline pops each step in and swaps captions…
+    expect(compiled.html).toContain('[data-ex-step-reveal=\\"1\\"]')
+    expect(compiled.html).toContain('.ex-caption[data-ex-step=\\"1\\"]')
+    // …and the block's default duration covers every step.
+    expect(withExplainer.blocks['explain-1'].durationMs).toBe(8000)
+  })
+
   it('gives wipes a fading edge shadow so the seam reads', () => {
     const framed = project()
     framed.blocks.body.frameTransition = { style: 'wipe', durationSeconds: 0.6 }

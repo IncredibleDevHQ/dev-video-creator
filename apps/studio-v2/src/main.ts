@@ -8,6 +8,11 @@ import {
   createDefaultBlockConfig,
   defaultBrand,
   defaultStudioTheme,
+  mergedShapeCollection,
+  renderExplainerDiagram,
+  sanitizeExplainerPlan,
+  type ExplainerPlanV1,
+  type ShapeDefV1,
   estimateSpokenSeconds,
   generateThemeDirections,
   normalizeStudioTheme,
@@ -38,7 +43,7 @@ import {
   type TiptapNode,
 } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
-import { ImageBlock, ScreenRecordingBlock } from './media-nodes'
+import { ExplainerBlock, ImageBlock, ScreenRecordingBlock } from './media-nodes'
 import './styles.css'
 
 const studioLogoUrl = new URL(
@@ -429,7 +434,9 @@ const sceneVisualKind = (scene: Pick<Scene, 'kind' | 'node'>) =>
     ? 'image'
     : scene.node.type === 'screenRecording'
       ? 'screen'
-      : scene.kind
+      : scene.node.type === 'explainer'
+        ? 'explainer'
+        : scene.kind
 
 const TIMELINE_BLOCK_META = {
   title: { label: 'Title', icon: 'T' },
@@ -439,6 +446,7 @@ const TIMELINE_BLOCK_META = {
   code: { label: 'Code', icon: '</>' },
   image: { label: 'Image', icon: '▧' },
   screen: { label: 'Screen', icon: '▶' },
+  explainer: { label: 'Explainer', icon: '◈' },
 } as const
 
 const sceneObjectLabel = (scene: Pick<Scene, 'kind' | 'node'>) =>
@@ -2019,6 +2027,7 @@ type SlashBlockId =
   | 'code'
   | 'image'
   | 'screen'
+  | 'explainer'
 
 const SLASH_BLOCKS: Array<{
   id: SlashBlockId
@@ -2034,6 +2043,7 @@ const SLASH_BLOCKS: Array<{
   { id: 'code', label: 'Code', description: 'Walk through code', icon: '</>', keywords: 'snippet terminal developer' },
   { id: 'image', label: 'Image', description: 'Show a visual', icon: '▧', keywords: 'photo picture media upload' },
   { id: 'screen', label: 'Screen recording', description: 'Capture your screen', icon: '▶', keywords: 'video screencast demo capture' },
+  { id: 'explainer', label: 'Explainer', description: 'AI-planned animated diagram', icon: '◈', keywords: 'explain diagram animation concept ai shapes entities' },
 ]
 
 let slashMenuActiveIndex = 0
@@ -2123,7 +2133,33 @@ const insertSlashBlock = (blockId: SlashBlockId) => {
   if (!range) return
   hideSlashMenu()
   dismissedSlashKey = ''
-  const content: Record<Exclude<SlashBlockId, 'image' | 'screen'>, JSONContent> = {
+  if (blockId === 'explainer') {
+    // Insert an empty explainer node right away (the identifier plugin gives
+    // it a stable id in the same transaction), then hand it to the wizard.
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(
+        { from: range.from, to: range.to },
+        [
+          {
+            type: 'explainer',
+            attrs: { topic: '', verbosity: 'standard', abstract: '', plan: null },
+          },
+          { type: 'paragraph' },
+        ],
+      )
+      .run()
+    const inserted = editor.state.doc.nodeAt(range.from)
+    const nodeId =
+      inserted && inserted.type.name === 'explainer'
+        ? String(inserted.attrs.id || '')
+        : ''
+    if (nodeId) openExplainerWizard(nodeId, true)
+    return
+  }
+
+  const content: Record<Exclude<SlashBlockId, 'image' | 'screen' | 'explainer'>, JSONContent> = {
     title: {
       type: 'heading',
       attrs: { level: 1 },
@@ -2239,6 +2275,7 @@ editor = new Editor({
     StarterKit,
     ImageBlock,
     ScreenRecordingBlock,
+    ExplainerBlock,
     Markdown.configure({
       markedOptions: { gfm: true, breaks: false },
     }),
@@ -2252,6 +2289,7 @@ editor = new Editor({
         'codeBlock',
         'image',
         'screenRecording',
+        'explainer',
       ],
     }),
   ],
@@ -5743,6 +5781,546 @@ publishDialog.addEventListener('close', closePublishTakePreview)
 ;($('#redo-canvas-recording') as HTMLButtonElement).addEventListener(
   'click',
   () => void startCanvasRecording(),
+)
+
+// ——— Explainer block: statement → abstract → diagram plan → animated
+// preview, plus the editable shape collection the plans draw from ———
+
+const explainerDialog = $('#explainer-dialog') as HTMLDialogElement
+const shapeDialog = $('#shape-collection-dialog') as HTMLDialogElement
+
+type ExplainerWizardState = {
+  nodeId: string
+  freshInsert: boolean
+  step: 0 | 1 | 2
+  topic: string
+  verbosity: 'brief' | 'standard' | 'detailed'
+  abstract: string
+  plan: ExplainerPlanV1 | null
+  previewStep: number
+  busy: boolean
+}
+
+let exWizard: ExplainerWizardState | null = null
+
+const projectShapes = () => mergedShapeCollection(project.shapeCollection)
+
+const findExplainerNode = (
+  nodeId: string,
+): { pos: number; attrs: Record<string, unknown> } | null => {
+  let found: { pos: number; attrs: Record<string, unknown> } | null = null
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === 'explainer' && node.attrs.id === nodeId) {
+      found = { pos, attrs: node.attrs as Record<string, unknown> }
+      return false
+    }
+    return found === null
+  })
+  return found
+}
+
+const writeExplainerNode = (nodeId: string, attrs: Record<string, unknown>) => {
+  const found = findExplainerNode(nodeId)
+  if (!found) return
+  const transaction = editor.state.tr.setNodeMarkup(found.pos, undefined, {
+    ...found.attrs,
+    ...attrs,
+  })
+  editor.view.dispatch(transaction)
+}
+
+const removeExplainerNode = (nodeId: string) => {
+  const found = findExplainerNode(nodeId)
+  if (!found) return
+  const node = editor.state.doc.nodeAt(found.pos)
+  if (!node) return
+  editor.view.dispatch(editor.state.tr.delete(found.pos, found.pos + node.nodeSize))
+}
+
+const exStatus = (text: string) => {
+  ;($('#explainer-status') as HTMLElement).textContent = text
+}
+
+const renderExplainerWizard = () => {
+  if (!exWizard) return
+  const { step } = exWizard
+  ;($('#explainer-step-explain') as HTMLElement).hidden = step !== 0
+  ;($('#explainer-step-plan') as HTMLElement).hidden = step !== 1
+  ;($('#explainer-step-preview') as HTMLElement).hidden = step !== 2
+  document
+    .querySelectorAll<HTMLElement>('[data-ex-wizard-step]')
+    .forEach(chip =>
+      chip.classList.toggle('active', Number(chip.dataset.exWizardStep) === step),
+    )
+  const back = $('#explainer-back') as HTMLButtonElement
+  const next = $('#explainer-next') as HTMLButtonElement
+  back.disabled = step === 0 || exWizard.busy
+  next.textContent =
+    step === 0 ? 'Next · Diagram →' : step === 1 ? 'Approve · Preview →' : 'Save block'
+  next.disabled =
+    exWizard.busy ||
+    (step === 0 && !exWizard.abstract.trim()) ||
+    (step >= 1 && !exWizard.plan)
+  if (step === 1) renderExplainerPlanSummary()
+  if (step === 2) renderExplainerPreview()
+}
+
+const generateExplainerAbstract = async () => {
+  if (!exWizard) return
+  exWizard.topic = (
+    $('#explainer-topic') as HTMLTextAreaElement
+  ).value.trim()
+  exWizard.verbosity = ($('#explainer-verbosity') as HTMLSelectElement)
+    .value as ExplainerWizardState['verbosity']
+  if (!exWizard.topic) {
+    exStatus('Describe what to explain first')
+    return
+  }
+  exWizard.busy = true
+  exStatus('Expanding your statement…')
+  renderExplainerWizard()
+  try {
+    const result = await fetchJson<{ abstract: string; provider: string }>(
+      '/api/explainer/abstract',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          topic: exWizard.topic,
+          verbosity: exWizard.verbosity,
+          instructions: (
+            $('#explainer-abstract-instructions') as HTMLInputElement
+          ).value,
+        }),
+      },
+    )
+    exWizard.abstract = result.abstract
+    ;($('#explainer-abstract') as HTMLTextAreaElement).value = result.abstract
+    exStatus(
+      result.provider === 'openai'
+        ? 'Explanation ready — edit freely, then continue'
+        : 'Explanation drafted locally (no OpenAI key) — edit freely',
+    )
+  } catch (error) {
+    exStatus(error instanceof Error ? error.message : 'Could not expand that')
+  } finally {
+    exWizard.busy = false
+    renderExplainerWizard()
+  }
+}
+
+const generateExplainerPlan = async (instructions: string) => {
+  if (!exWizard) return
+  exWizard.busy = true
+  exStatus('Designing the diagram…')
+  renderExplainerWizard()
+  try {
+    const result = await fetchJson<{ plan: ExplainerPlanV1; provider: string }>(
+      '/api/explainer/plan',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          topic: exWizard.topic,
+          abstract: exWizard.abstract,
+          instructions,
+          shapes: project.shapeCollection || [],
+        }),
+      },
+    )
+    exWizard.plan = sanitizeExplainerPlan(result.plan, projectShapes())
+    exWizard.previewStep = 0
+    exStatus(
+      result.provider === 'openai'
+        ? 'Diagram planned — review the entities and steps'
+        : 'Diagram drafted locally (no OpenAI key) — review it',
+    )
+  } catch (error) {
+    exStatus(error instanceof Error ? error.message : 'Could not plan the diagram')
+  } finally {
+    exWizard.busy = false
+    renderExplainerWizard()
+  }
+}
+
+const shapeThumb = (shape: ShapeDefV1) => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('viewBox', '-92 -66 184 132')
+  svg.classList.add('shape-thumb')
+  svg.innerHTML = shape.svg
+  return svg
+}
+
+const renderExplainerPlanSummary = () => {
+  if (!exWizard?.plan) return
+  const plan = exWizard.plan
+  const shapes = projectShapes()
+  const summary = $('#explainer-plan-summary')
+  summary.replaceChildren()
+
+  const entitiesHeading = document.createElement('h4')
+  entitiesHeading.textContent = `Entities · ${plan.entities.length}`
+  summary.append(entitiesHeading)
+  plan.entities.forEach(entity => {
+    const row = document.createElement('div')
+    row.className = 'ex-plan-row'
+    const shape = shapes.find(item => item.key === entity.shape) || shapes[0]
+    row.append(shapeThumb(shape))
+    const label = document.createElement('input')
+    label.value = entity.label
+    label.addEventListener('change', () => {
+      entity.label = label.value.slice(0, 60)
+    })
+    const shapeSelect = document.createElement('select')
+    shapes.forEach(item => {
+      const option = document.createElement('option')
+      option.value = item.key
+      option.textContent = item.label
+      option.selected = item.key === entity.shape
+      shapeSelect.append(option)
+    })
+    shapeSelect.addEventListener('change', () => {
+      entity.shape = shapeSelect.value
+      renderExplainerPlanSummary()
+    })
+    row.append(label, shapeSelect)
+    summary.append(row)
+  })
+
+  const connectorHeading = document.createElement('h4')
+  connectorHeading.textContent = `Connectors · ${plan.connectors.length}`
+  summary.append(connectorHeading)
+  plan.connectors.forEach(connector => {
+    const row = document.createElement('div')
+    row.className = 'ex-plan-row'
+    const description = document.createElement('span')
+    const fromLabel =
+      plan.entities.find(entity => entity.id === connector.from)?.label ||
+      connector.from
+    const toLabel =
+      plan.entities.find(entity => entity.id === connector.to)?.label ||
+      connector.to
+    description.textContent = `${fromLabel} → ${toLabel}${connector.label ? ` · ${connector.label}` : ''}`
+    const styleSelect = document.createElement('select')
+    ;(['arrow', 'line', 'dashed'] as const).forEach(style => {
+      const option = document.createElement('option')
+      option.value = style
+      option.textContent =
+        style === 'arrow' ? 'Arrow' : style === 'line' ? 'Line' : 'Dashed'
+      option.selected = style === connector.style
+      styleSelect.append(option)
+    })
+    styleSelect.addEventListener('change', () => {
+      connector.style = styleSelect.value as typeof connector.style
+    })
+    row.append(description, styleSelect)
+    summary.append(row)
+  })
+
+  const stepsHeading = document.createElement('h4')
+  stepsHeading.textContent = `Animated steps · ${plan.steps.length}`
+  summary.append(stepsHeading)
+  plan.steps.forEach((step, index) => {
+    const row = document.createElement('div')
+    row.className = 'ex-plan-step'
+    const title = document.createElement('input')
+    title.value = step.title
+    title.addEventListener('change', () => {
+      step.title = title.value.slice(0, 80)
+    })
+    const explanation = document.createElement('textarea')
+    explanation.rows = 2
+    explanation.value = step.explanation
+    explanation.addEventListener('change', () => {
+      step.explanation = explanation.value.slice(0, 400)
+    })
+    const reveals = document.createElement('small')
+    reveals.textContent = `Step ${index + 1} reveals: ${step.reveals.join(', ') || 'nothing new'}`
+    row.append(title, explanation, reveals)
+    summary.append(row)
+  })
+}
+
+const applyExplainerPreviewStep = () => {
+  if (!exWizard?.plan) return
+  const stage = $('#explainer-preview-stage')
+  const current = exWizard.previewStep
+  stage
+    .querySelectorAll<SVGElement>('[data-ex-step-reveal]')
+    .forEach(item => {
+      const revealAt = Number(item.dataset.exStepReveal || 0)
+      item.style.opacity = revealAt <= current ? '1' : '0'
+    })
+  const step = exWizard.plan.steps[current]
+  const caption = $('#explainer-step-caption')
+  caption.innerHTML = ''
+  const title = document.createElement('strong')
+  title.textContent = `Step ${current + 1} of ${exWizard.plan.steps.length} · ${step?.title || ''}`
+  const text = document.createElement('span')
+  text.textContent = step?.explanation || ''
+  caption.append(title, text)
+  ;($('#explainer-prev-step') as HTMLButtonElement).disabled = current === 0
+  ;($('#explainer-next-step') as HTMLButtonElement).disabled =
+    current >= exWizard.plan.steps.length - 1
+}
+
+const renderExplainerPreview = () => {
+  if (!exWizard?.plan) return
+  const stage = $('#explainer-preview-stage')
+  stage.innerHTML = renderExplainerDiagram(exWizard.plan, projectShapes())
+  applyExplainerPreviewStep()
+}
+
+const openExplainerWizard = (nodeId: string, freshInsert: boolean) => {
+  const found = findExplainerNode(nodeId)
+  if (!found) return
+  const attrs = found.attrs
+  exWizard = {
+    nodeId,
+    freshInsert,
+    step: 0,
+    topic: String(attrs.topic || ''),
+    verbosity:
+      (attrs.verbosity as ExplainerWizardState['verbosity']) || 'standard',
+    abstract: String(attrs.abstract || ''),
+    plan: attrs.plan
+      ? sanitizeExplainerPlan(attrs.plan as ExplainerPlanV1, projectShapes())
+      : null,
+    previewStep: 0,
+    busy: false,
+  }
+  ;($('#explainer-topic') as HTMLTextAreaElement).value = exWizard.topic
+  ;($('#explainer-verbosity') as HTMLSelectElement).value = exWizard.verbosity
+  ;($('#explainer-abstract') as HTMLTextAreaElement).value = exWizard.abstract
+  ;($('#explainer-abstract-instructions') as HTMLInputElement).value = ''
+  ;($('#explainer-plan-instructions') as HTMLInputElement).value = ''
+  ;($('#explainer-preview-instructions') as HTMLInputElement).value = ''
+  exStatus('')
+  renderExplainerWizard()
+  explainerDialog.showModal()
+}
+
+const saveExplainerWizard = () => {
+  if (!exWizard?.plan) return
+  writeExplainerNode(exWizard.nodeId, {
+    topic: exWizard.topic,
+    verbosity: exWizard.verbosity,
+    abstract: exWizard.abstract,
+    plan: exWizard.plan,
+  })
+  const config = project.blocks[exWizard.nodeId]
+  if (config) {
+    config.durationMs = Math.max(5000, exWizard.plan.steps.length * 4000)
+  }
+  exWizard = null
+  explainerDialog.close()
+  syncProject()
+  showToast('Explainer block saved — it animates step by step in the video')
+}
+
+;($('#explainer-generate-abstract') as HTMLButtonElement).addEventListener(
+  'click',
+  () => void generateExplainerAbstract(),
+)
+;($('#explainer-generate-plan') as HTMLButtonElement).addEventListener(
+  'click',
+  () =>
+    void generateExplainerPlan(
+      ($('#explainer-plan-instructions') as HTMLInputElement).value,
+    ),
+)
+;($('#explainer-preview-regenerate') as HTMLButtonElement).addEventListener(
+  'click',
+  () =>
+    void generateExplainerPlan(
+      ($('#explainer-preview-instructions') as HTMLInputElement).value,
+    ),
+)
+;($('#explainer-prev-step') as HTMLButtonElement).addEventListener('click', () => {
+  if (!exWizard) return
+  exWizard.previewStep = Math.max(0, exWizard.previewStep - 1)
+  applyExplainerPreviewStep()
+})
+;($('#explainer-next-step') as HTMLButtonElement).addEventListener('click', () => {
+  if (!exWizard?.plan) return
+  exWizard.previewStep = Math.min(
+    exWizard.plan.steps.length - 1,
+    exWizard.previewStep + 1,
+  )
+  applyExplainerPreviewStep()
+})
+;($('#explainer-back') as HTMLButtonElement).addEventListener('click', () => {
+  if (!exWizard || exWizard.step === 0) return
+  exWizard.step = (exWizard.step - 1) as ExplainerWizardState['step']
+  renderExplainerWizard()
+})
+;($('#explainer-next') as HTMLButtonElement).addEventListener('click', () => {
+  if (!exWizard) return
+  if (exWizard.step === 0) {
+    exWizard.topic = ($('#explainer-topic') as HTMLTextAreaElement).value.trim()
+    exWizard.abstract = ($('#explainer-abstract') as HTMLTextAreaElement).value
+    exWizard.step = 1
+    renderExplainerWizard()
+    if (!exWizard.plan) {
+      void generateExplainerPlan(
+        ($('#explainer-plan-instructions') as HTMLInputElement).value,
+      )
+    }
+    return
+  }
+  if (exWizard.step === 1) {
+    exWizard.step = 2
+    exWizard.previewStep = 0
+    renderExplainerWizard()
+    return
+  }
+  saveExplainerWizard()
+})
+;($('#close-explainer') as HTMLButtonElement).addEventListener('click', () => {
+  // Cancelling a brand-new, never-configured explainer removes the empty node.
+  if (exWizard?.freshInsert && !exWizard.plan && !exWizard.topic) {
+    removeExplainerNode(exWizard.nodeId)
+    syncProject()
+  }
+  exWizard = null
+  explainerDialog.close()
+})
+
+document.addEventListener('click', event => {
+  const action = (event.target as HTMLElement).closest<HTMLElement>(
+    '[data-explainer-action]',
+  )
+  if (!action) return
+  const block = action.closest<HTMLElement>('.notebook-explainer-block')
+  if (block?.id) openExplainerWizard(block.id, false)
+})
+
+// ——— Shape collection: view, multi-select, edit, extend ———
+
+const selectedShapeKeys = new Set<string>()
+let shapeEditorKey: string | null = null
+
+const renderShapeCollection = () => {
+  const grid = $('#shape-collection-grid')
+  grid.replaceChildren()
+  projectShapes().forEach(shape => {
+    const card = document.createElement('label')
+    card.className = 'shape-card'
+    card.classList.toggle('selected', selectedShapeKeys.has(shape.key))
+    const check = document.createElement('input')
+    check.type = 'checkbox'
+    check.checked = selectedShapeKeys.has(shape.key)
+    check.addEventListener('change', () => {
+      if (check.checked) selectedShapeKeys.add(shape.key)
+      else selectedShapeKeys.delete(shape.key)
+      renderShapeCollection()
+    })
+    const name = document.createElement('strong')
+    name.textContent = shape.label
+    const badge = document.createElement('em')
+    badge.textContent = shape.builtin === false ? 'custom' : 'built-in'
+    card.append(check, shapeThumb(shape), name, badge)
+    grid.append(card)
+  })
+  const single = selectedShapeKeys.size === 1
+  const onlyCustomSelected = [...selectedShapeKeys].every(key =>
+    (project.shapeCollection || []).some(shape => shape.key === key),
+  )
+  ;($('#shape-edit') as HTMLButtonElement).disabled = !single
+  ;($('#shape-duplicate') as HTMLButtonElement).disabled = !single
+  ;($('#shape-delete') as HTMLButtonElement).disabled =
+    selectedShapeKeys.size === 0 || !onlyCustomSelected
+}
+
+const openShapeEditor = (shape: Partial<ShapeDefV1>, editKey: string | null) => {
+  shapeEditorKey = editKey
+  ;($('#shape-editor') as HTMLElement).hidden = false
+  ;($('#shape-editor-label') as HTMLInputElement).value = shape.label || ''
+  ;($('#shape-editor-svg') as HTMLTextAreaElement).value =
+    shape.svg ||
+    '<rect x="-80" y="-55" width="160" height="110" rx="10" fill="var(--ex-fill)" stroke="var(--ex-stroke)" stroke-width="3"/>'
+  syncShapeEditorPreview()
+}
+
+const syncShapeEditorPreview = () => {
+  const preview = $('#shape-editor-preview')
+  preview.replaceChildren(
+    shapeThumb({
+      key: 'preview',
+      label: 'preview',
+      svg: ($('#shape-editor-svg') as HTMLTextAreaElement).value,
+    }),
+  )
+}
+
+;($('#shape-editor-svg') as HTMLTextAreaElement).addEventListener(
+  'input',
+  syncShapeEditorPreview,
+)
+;($('#shape-new') as HTMLButtonElement).addEventListener('click', () =>
+  openShapeEditor({}, null),
+)
+;($('#shape-edit') as HTMLButtonElement).addEventListener('click', () => {
+  const key = [...selectedShapeKeys][0]
+  const shape = projectShapes().find(item => item.key === key)
+  if (!shape) return
+  // Built-ins are the shared vocabulary: editing one creates a custom copy.
+  openShapeEditor(shape, shape.builtin === false ? key : null)
+})
+;($('#shape-duplicate') as HTMLButtonElement).addEventListener('click', () => {
+  const key = [...selectedShapeKeys][0]
+  const shape = projectShapes().find(item => item.key === key)
+  if (shape) openShapeEditor({ ...shape, label: `${shape.label} copy` }, null)
+})
+;($('#shape-delete') as HTMLButtonElement).addEventListener('click', () => {
+  project.shapeCollection = (project.shapeCollection || []).filter(
+    shape => !selectedShapeKeys.has(shape.key),
+  )
+  selectedShapeKeys.clear()
+  renderShapeCollection()
+  syncProject()
+})
+;($('#shape-editor-save') as HTMLButtonElement).addEventListener('click', () => {
+  const label = ($('#shape-editor-label') as HTMLInputElement).value.trim()
+  const svg = ($('#shape-editor-svg') as HTMLTextAreaElement).value.trim()
+  if (!label || !svg) {
+    showToast('A shape needs a name and its SVG markup')
+    return
+  }
+  const key =
+    shapeEditorKey ||
+    `${label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 30)}-${(project.shapeCollection?.length || 0) + 1}`
+  project.shapeCollection = [
+    ...(project.shapeCollection || []).filter(shape => shape.key !== key),
+    { key, label: label.slice(0, 40), svg: svg.slice(0, 4000) },
+  ]
+  ;($('#shape-editor') as HTMLElement).hidden = true
+  shapeEditorKey = null
+  renderShapeCollection()
+  if (exWizard?.plan) renderExplainerPlanSummary()
+  syncProject()
+  showToast(`Shape "${label}" is in the collection`)
+})
+;($('#open-shape-collection') as HTMLButtonElement).addEventListener(
+  'click',
+  () => {
+    selectedShapeKeys.clear()
+    ;($('#shape-editor') as HTMLElement).hidden = true
+    renderShapeCollection()
+    shapeDialog.showModal()
+  },
+)
+;($('#close-shape-collection') as HTMLButtonElement).addEventListener(
+  'click',
+  () => shapeDialog.close(),
+)
+;($('#shape-collection-done') as HTMLButtonElement).addEventListener(
+  'click',
+  () => shapeDialog.close(),
 )
 
 window.addEventListener('beforeunload', () => {

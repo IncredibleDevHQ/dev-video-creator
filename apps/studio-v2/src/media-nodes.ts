@@ -64,6 +64,65 @@ export const ImageBlock = Node.create({
   },
 })
 
+export const ExplainerBlock = Node.create({
+  name: 'explainer',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      topic: { default: '' },
+      verbosity: { default: 'standard' },
+      abstract: { default: '' },
+      plan: { default: null },
+    }
+  },
+
+  parseHTML() {
+    return [{ tag: 'figure[data-block-type="explainer"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const { topic, plan, abstract, verbosity, ...attributes } = HTMLAttributes
+    const planValue = plan as
+      | { entities?: unknown[]; steps?: unknown[] }
+      | null
+    const entityCount = planValue?.entities?.length || 0
+    const stepCount = planValue?.steps?.length || 0
+    return [
+      'figure',
+      mergeAttributes(attributes, {
+        'data-block-type': 'explainer',
+        class: 'notebook-media-block notebook-explainer-block',
+      }),
+      [
+        'div',
+        { class: 'notebook-media-placeholder' },
+        ['span', {}, '◈'],
+        ['strong', {}, topic ? String(topic) : 'Explainer'],
+        [
+          'em',
+          { class: 'notebook-explainer-meta' },
+          stepCount
+            ? `${entityCount} entities · ${stepCount} animated steps`
+            : 'Not planned yet',
+        ],
+      ],
+      [
+        'button',
+        {
+          type: 'button',
+          class: 'notebook-image-action',
+          'data-explainer-action': 'edit',
+        },
+        'Edit explainer',
+      ],
+      ['figcaption', {}, topic ? String(topic) : 'Explainer'],
+    ]
+  },
+})
+
 export const ScreenRecordingBlock = Node.create({
   name: 'screenRecording',
   group: 'block',

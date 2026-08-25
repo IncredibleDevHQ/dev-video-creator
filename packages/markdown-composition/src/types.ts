@@ -298,6 +298,9 @@ export type ProjectDocumentV1 = {
   presenterTracks: Record<NodeId, PresenterTrackV1[]>
   recordedBlocks?: Record<NodeId, RecordedBlockV1>
   recordedBlockTakes?: Record<NodeId, RecordedBlockV1[]>
+  // Custom atomic shapes for explainer diagrams, merged over the built-in
+  // vocabulary (see explainer.ts) by shape key.
+  shapeCollection?: import('./explainer').ShapeDefV1[]
   brand: BrandTemplateV1
   theme?: StudioThemeV1
 }

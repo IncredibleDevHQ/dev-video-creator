@@ -438,6 +438,42 @@
       </div>
     </dialog>
 
+    <dialog id="explainer-dialog" class="modal explainer-modal">
+      <div class="modal-heading"><div><span class="eyebrow">Explainer block</span><h2>Explain a concept, animated</h2></div><button id="close-explainer" class="icon-button" type="button" aria-label="Close explainer">×</button></div>
+      <div class="explainer-steps-nav"><span data-ex-wizard-step="0" class="active">1 · Explain</span><span data-ex-wizard-step="1">2 · Diagram</span><span data-ex-wizard-step="2">3 · Preview</span></div>
+      <section id="explainer-step-explain" class="explainer-panel">
+        <label class="field"><span>What do you want to explain?</span><textarea id="explainer-topic" rows="3" placeholder="e.g. How a neural network learns from data"></textarea></label>
+        <div class="explainer-row">
+          <label class="field explainer-verbosity"><span>Verbosity</span><select id="explainer-verbosity"><option value="brief">Brief</option><option value="standard" selected>Standard</option><option value="detailed">Detailed</option></select></label>
+          <label class="field"><span>Adjust instructions (optional)</span><input id="explainer-abstract-instructions" placeholder="e.g. beginner friendly, avoid math" /></label>
+          <button id="explainer-generate-abstract" class="button primary" type="button">Generate</button>
+        </div>
+        <label class="field"><span>Expanded explanation — edit freely, regenerate after changing settings</span><textarea id="explainer-abstract" rows="7" placeholder="Generate to expand your statement into a narratable explanation…"></textarea></label>
+      </section>
+      <section id="explainer-step-plan" class="explainer-panel" hidden>
+        <div class="explainer-plan-toolbar"><strong>Model diagram — entities, shapes and connectors to approve</strong><div><button id="open-shape-collection" class="button chrome-secondary" type="button">Shape collection</button><button id="explainer-generate-plan" class="button chrome-secondary" type="button">Regenerate plan</button></div></div>
+        <div id="explainer-plan-summary" class="explainer-plan-summary"></div>
+        <label class="field"><span>Adjust instructions (optional), then regenerate</span><input id="explainer-plan-instructions" placeholder="e.g. add a loss node, use a cylinder for the dataset" /></label>
+      </section>
+      <section id="explainer-step-preview" class="explainer-panel" hidden>
+        <div id="explainer-preview-stage" class="explainer-preview-stage"></div>
+        <div class="explainer-preview-controls"><button id="explainer-prev-step" class="button chrome-secondary" type="button">← Back</button><div id="explainer-step-caption" class="explainer-step-caption"></div><button id="explainer-next-step" class="button chrome-secondary" type="button">Next →</button></div>
+        <div class="explainer-row"><input id="explainer-preview-instructions" placeholder="Modify the diagram… e.g. make the flow vertical, split the hidden layer" /><button id="explainer-preview-regenerate" class="button chrome-secondary" type="button">Regenerate</button></div>
+      </section>
+      <div class="modal-actions explainer-actions"><button id="explainer-back" class="button ghost" type="button" disabled>← Back</button><span id="explainer-status" class="explainer-status"></span><button id="explainer-next" class="button primary" type="button" disabled>Next →</button></div>
+    </dialog>
+
+    <dialog id="shape-collection-dialog" class="modal shapes-modal">
+      <div class="modal-heading"><div><span class="eyebrow">Explainer</span><h2>Shape collection</h2></div><button id="close-shape-collection" class="icon-button" type="button" aria-label="Close shapes">×</button></div>
+      <div id="shape-collection-grid" class="shape-collection-grid"></div>
+      <div id="shape-editor" class="shape-editor" hidden>
+        <label class="field"><span>Shape name</span><input id="shape-editor-label" placeholder="e.g. Neuron" /></label>
+        <label class="field"><span>SVG markup — a 160×110 shape centred on 0,0 using var(--ex-fill) and var(--ex-stroke)</span><textarea id="shape-editor-svg" rows="4" spellcheck="false"></textarea></label>
+        <div class="explainer-row"><div id="shape-editor-preview" class="shape-editor-preview"></div><button id="shape-editor-save" class="button primary" type="button">Save shape</button></div>
+      </div>
+      <div class="modal-actions"><button id="shape-new" class="button chrome-secondary" type="button">New shape</button><button id="shape-duplicate" class="button chrome-secondary" type="button" disabled>Duplicate</button><button id="shape-edit" class="button chrome-secondary" type="button" disabled>Edit</button><button id="shape-delete" class="button chrome-secondary" type="button" disabled>Delete selected</button><button id="shape-collection-done" class="button primary" type="button">Done</button></div>
+    </dialog>
+
     <dialog id="markdown-dialog" class="modal markdown-modal">
       <form method="dialog">
         <div class="modal-heading"><div><span class="eyebrow">Markdown import</span><h2>Paste a document</h2></div><button value="cancel" class="icon-button">×</button></div>

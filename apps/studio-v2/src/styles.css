@@ -1020,3 +1020,55 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
   .theme-library-grid { grid-template-columns: repeat(2,1fr); }
   .theme-builder-workspace { grid-template-columns: 320px minmax(0,1fr); }
 }
+
+/* ——— Explainer block wizard ——— */
+.explainer-modal { width: min(860px, 94vw); }
+.explainer-steps-nav { margin: 2px 0 14px; display: flex; gap: 8px; }
+.explainer-steps-nav span { padding: 5px 12px; border: 1px solid #e4e4e7; border-radius: 999px; color: #71717a; font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+.explainer-steps-nav span.active { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, white); color: var(--brand); }
+.explainer-panel { display: grid; gap: 12px; }
+.explainer-panel .field { display: grid; gap: 5px; }
+.explainer-panel .field > span, .shape-editor .field > span { color: #71717a; font-size: 10px; font-weight: 700; }
+.explainer-panel textarea, .explainer-panel input, .explainer-panel select, .shape-editor input, .shape-editor textarea { padding: 9px 10px; border: 1px solid #d4d4d8; border-radius: 7px; background: white; font: inherit; font-size: 12px; }
+.explainer-panel textarea { resize: vertical; }
+.explainer-row { display: flex; gap: 10px; align-items: end; }
+.explainer-row .field { flex: 1; }
+.explainer-row > input { flex: 1; }
+.explainer-verbosity { max-width: 150px; }
+.explainer-actions { margin-top: 14px; align-items: center; }
+.explainer-status { flex: 1; color: #71717a; font-size: 11px; }
+.explainer-plan-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; }
+.explainer-plan-toolbar > div { display: flex; gap: 8px; }
+.explainer-plan-summary { max-height: 330px; overflow-y: auto; display: grid; gap: 8px; padding: 12px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fafafa; }
+.explainer-plan-summary h4 { margin: 6px 0 0; font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: #71717a; }
+.ex-plan-row { display: flex; gap: 10px; align-items: center; }
+.ex-plan-row input { flex: 1; }
+.ex-plan-row span { flex: 1; font-size: 12px; }
+.ex-plan-row select { max-width: 150px; }
+.ex-plan-step { display: grid; gap: 6px; padding: 9px; border: 1px solid #e4e4e7; border-radius: 7px; background: white; }
+.ex-plan-step small { color: #71717a; font-size: 10px; }
+.shape-thumb { width: 58px; height: 42px; flex: none; --ex-fill: color-mix(in srgb, var(--brand) 10%, white); --ex-stroke: var(--brand); }
+.explainer-preview-stage { aspect-ratio: 16 / 8.6; border-radius: 10px; background: #101312; --ex-fill: rgba(74, 222, 128, .12); --ex-stroke: #4ade80; overflow: hidden; }
+.explainer-preview-stage svg { width: 100%; height: 100%; }
+.explainer-preview-stage .ex-item { opacity: 0; transition: opacity .45s ease; }
+.explainer-preview-stage .ex-entity-label { fill: #f4f4f5; font-size: 30px; font-weight: 700; text-anchor: middle; }
+.explainer-preview-stage .ex-connector-label { fill: #a1a1aa; font-size: 24px; text-anchor: middle; }
+.explainer-preview-controls { display: flex; gap: 12px; align-items: center; }
+.explainer-step-caption { flex: 1; display: grid; gap: 2px; text-align: center; }
+.explainer-step-caption strong { font-size: 12px; }
+.explainer-step-caption span { color: #71717a; font-size: 11px; }
+
+/* ——— Shape collection ——— */
+.shapes-modal { width: min(720px, 92vw); }
+.shape-collection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 10px; max-height: 320px; overflow-y: auto; padding: 4px; }
+.shape-card { position: relative; display: grid; gap: 6px; justify-items: center; padding: 12px 10px 10px; border: 1px solid #e4e4e7; border-radius: 9px; background: white; cursor: pointer; }
+.shape-card.selected { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+.shape-card input { position: absolute; top: 8px; left: 8px; accent-color: var(--brand); }
+.shape-card strong { font-size: 11px; }
+.shape-card em { color: #a1a1aa; font-size: 9px; font-style: normal; letter-spacing: .05em; text-transform: uppercase; }
+.shape-card .shape-thumb { width: 84px; height: 60px; }
+.shape-editor { margin-top: 12px; display: grid; gap: 10px; padding: 12px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fafafa; }
+.shape-editor .field { display: grid; gap: 5px; }
+.shape-editor-preview { display: grid; place-items: center; padding: 6px 14px; border: 1px dashed #d4d4d8; border-radius: 8px; background: white; }
+.shape-editor-preview .shape-thumb { width: 96px; height: 68px; }
+.notebook-explainer-meta { display: block; color: #71717a; font-size: 11px; font-style: normal; }

@@ -18,8 +18,12 @@ import {
   compileProject,
   generateSpeakerNotes,
   generateThemeDirections,
+  mergedShapeCollection,
   normalizeStudioTheme,
+  sanitizeExplainerPlan,
+  type ExplainerPlanV1,
   type ProjectDocumentV1,
+  type ShapeDefV1,
   type StudioThemeV1,
   type ThemeCanvasTreatment,
   type TiptapNode,
@@ -423,6 +427,246 @@ const handleNotesGeneration = async (
     json(response, 200, { notes, provider: 'openai' })
   } catch {
     json(response, 200, { notes: fallback, provider: 'local-generator' })
+  }
+}
+
+// ——— Explainer blocks: expand a statement, then plan a diagram ———
+
+const EXPLAINER_WORD_BUDGETS = { brief: 80, standard: 170, detailed: 320 } as const
+type ExplainerVerbosity = keyof typeof EXPLAINER_WORD_BUDGETS
+
+const fallbackExplainerAbstract = (
+  topic: string,
+  verbosity: ExplainerVerbosity,
+) => {
+  const sentences = [
+    `${topic} is easiest to understand as a small system of moving parts.`,
+    `Each part has one job, and the parts hand their work to each other in a fixed order.`,
+    `Start by naming the pieces involved, then follow one piece of data as it travels through them.`,
+    `Along the way, notice what every part receives, what it changes, and what it passes on.`,
+    `Seen end to end, the flow explains why ${topic.toLowerCase()} behaves the way it does.`,
+    `Edge cases aside, the same loop repeats every time the system runs.`,
+  ]
+  const count = verbosity === 'brief' ? 2 : verbosity === 'detailed' ? 6 : 4
+  return sentences.slice(0, count).join(' ')
+}
+
+const fallbackExplainerPlan = (
+  topic: string,
+  abstract: string,
+): ExplainerPlanV1 => {
+  const sentences = abstract
+    .split(/(?<=[.!?])\s+/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+  const shapes = ['circle', 'box', 'diamond', 'rounded']
+  const labels = ['Input', 'Process', 'Decision', 'Result'].slice(
+    0,
+    Math.max(2, sentences.length),
+  )
+  const entities = labels.map((label, index) => ({
+    id: `part-${index + 1}`,
+    label,
+    shape: shapes[index % shapes.length],
+    x: 14 + index * (72 / Math.max(1, labels.length - 1)),
+    y: 42,
+  }))
+  const connectors = entities.slice(1).map((entity, index) => ({
+    id: `flow-${index + 1}`,
+    from: entities[index].id,
+    to: entity.id,
+    style: 'arrow' as const,
+  }))
+  const steps = entities.map((entity, index) => ({
+    title: index === 0 ? `Meet ${topic}` : `Then: ${entity.label.toLowerCase()}`,
+    explanation: sentences[index] || `The ${entity.label.toLowerCase()} plays its part.`,
+    reveals: [entity.id, ...(index > 0 ? [connectors[index - 1].id] : [])],
+  }))
+  return { entities, connectors, steps }
+}
+
+const handleExplainerAbstract = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    topic?: string
+    verbosity?: string
+    instructions?: string
+  }>(request, 256 * 1024)
+  const topic = String(body.topic || '').trim().slice(0, 600)
+  if (!topic) throw new Error('Tell the explainer what to explain')
+  const verbosity = (
+    ['brief', 'standard', 'detailed'] as const
+  ).includes(body.verbosity as ExplainerVerbosity)
+    ? (body.verbosity as ExplainerVerbosity)
+    : 'standard'
+  const fallback = fallbackExplainerAbstract(topic, verbosity)
+  if (!openAIKey) {
+    json(response, 200, { abstract: fallback, provider: 'local-generator' })
+    return
+  }
+  try {
+    const wordBudget = EXPLAINER_WORD_BUDGETS[verbosity]
+    const instructions = String(body.instructions || '').slice(0, 1_000)
+    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${openAIKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
+        input: `Expand the following statement into a clear spoken-style explanation for a technical video, roughly ${wordBudget} words. Plain language, concrete, no headings or lists — flowing prose a presenter can narrate while a diagram animates. Statement to explain: "${topic}".${instructions ? ` Additional instructions from the author: ${instructions}.` : ''}`,
+        reasoning: { effort: 'low' },
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'explainer_abstract',
+            strict: true,
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['abstract'],
+              properties: { abstract: { type: 'string' } },
+            },
+          },
+        },
+      }),
+    })
+    if (!apiResponse.ok) {
+      throw new Error(`OpenAI abstract generation failed (${apiResponse.status})`)
+    }
+    const apiBody = (await apiResponse.json()) as Parameters<
+      typeof extractResponseText
+    >[0]
+    const parsed = JSON.parse(extractResponseText(apiBody)) as {
+      abstract?: string
+    }
+    const abstract = String(parsed.abstract || '').trim().slice(0, 6_000)
+    if (!abstract) throw new Error('OpenAI returned an empty abstract')
+    json(response, 200, { abstract, provider: 'openai' })
+  } catch {
+    json(response, 200, { abstract: fallback, provider: 'local-generator' })
+  }
+}
+
+const handleExplainerPlan = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    topic?: string
+    abstract?: string
+    instructions?: string
+    shapes?: ShapeDefV1[]
+  }>(request, 512 * 1024)
+  const topic = String(body.topic || '').trim().slice(0, 600)
+  const abstract = String(body.abstract || '').trim().slice(0, 6_000)
+  if (!topic || !abstract) {
+    throw new Error('A plan needs the topic and the approved abstract')
+  }
+  const shapes = mergedShapeCollection(
+    Array.isArray(body.shapes) ? body.shapes : undefined,
+  )
+  const fallback = sanitizeExplainerPlan(
+    fallbackExplainerPlan(topic, abstract),
+    shapes,
+  )
+  if (!openAIKey) {
+    json(response, 200, { plan: fallback, provider: 'local-generator' })
+    return
+  }
+  try {
+    const instructions = String(body.instructions || '').slice(0, 1_000)
+    const shapeVocabulary = shapes
+      .map(shape => `${shape.key} (${shape.label})`)
+      .join(', ')
+    const connectorSchema = {
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'from', 'to', 'style', 'label'],
+      properties: {
+        id: { type: 'string' },
+        from: { type: 'string' },
+        to: { type: 'string' },
+        style: { type: 'string', enum: ['line', 'arrow', 'dashed'] },
+        label: { type: 'string' },
+      },
+    }
+    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${openAIKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
+        input: `Design an animated diagram that explains "${topic}" for a technical video. The explanation being narrated: "${abstract}". Identify the concrete entities involved and how to represent each one with an atomic shape from this vocabulary: ${shapeVocabulary}. Connect related entities with connectors (line, arrow for directional flow, dashed for implicit links). Then break the reveal into 3 to 6 narrated steps: each step names which entity and connector ids appear at that moment and explains, in one or two spoken sentences, what the viewer is seeing. Coordinates are percentages of a 16:9 canvas (x and y between 10 and 90); spread entities out so shapes never overlap — they are 160x110 units on a 1600x860 canvas. Use at most 8 entities. Every entity and connector id must be revealed by exactly one step.${instructions ? ` Additional instructions from the author: ${instructions}.` : ''}`,
+        reasoning: { effort: 'medium' },
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'explainer_plan',
+            strict: true,
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['entities', 'connectors', 'steps'],
+              properties: {
+                entities: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['id', 'label', 'shape', 'x', 'y'],
+                    properties: {
+                      id: { type: 'string' },
+                      label: { type: 'string' },
+                      shape: {
+                        type: 'string',
+                        enum: shapes.map(shape => shape.key),
+                      },
+                      x: { type: 'number' },
+                      y: { type: 'number' },
+                    },
+                  },
+                },
+                connectors: { type: 'array', items: connectorSchema },
+                steps: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['title', 'explanation', 'reveals'],
+                    properties: {
+                      title: { type: 'string' },
+                      explanation: { type: 'string' },
+                      reveals: { type: 'array', items: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+    })
+    if (!apiResponse.ok) {
+      throw new Error(`OpenAI plan generation failed (${apiResponse.status})`)
+    }
+    const apiBody = (await apiResponse.json()) as Parameters<
+      typeof extractResponseText
+    >[0]
+    const parsed = JSON.parse(
+      extractResponseText(apiBody),
+    ) as Partial<ExplainerPlanV1>
+    const plan = sanitizeExplainerPlan(parsed, shapes)
+    if (!plan.entities.length) throw new Error('OpenAI returned no entities')
+    json(response, 200, { plan, provider: 'openai' })
+  } catch {
+    json(response, 200, { plan: fallback, provider: 'local-generator' })
   }
 }
 
@@ -1117,6 +1361,14 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/voice') {
       await handleVoice(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/explainer/abstract') {
+      await handleExplainerAbstract(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/explainer/plan') {
+      await handleExplainerPlan(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/notes') {
