@@ -20,6 +20,7 @@ import {
   generateThemeDirections,
   mergedShapeCollection,
   normalizeStudioTheme,
+  renderExplainerDiagram,
   sanitizeExplainerPlan,
   type ExplainerPlanV1,
   type ProjectDocumentV1,
@@ -554,6 +555,194 @@ const handleExplainerAbstract = async (
   }
 }
 
+const explainerPlanSchema = (shapes: ShapeDefV1[]) => {
+  const connectorSchema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['id', 'from', 'to', 'style', 'label'],
+    properties: {
+      id: { type: 'string' },
+      from: { type: 'string' },
+      to: { type: 'string' },
+      style: { type: 'string', enum: ['line', 'arrow', 'dashed'] },
+      label: { type: 'string' },
+    },
+  }
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: ['entities', 'connectors', 'steps'],
+    properties: {
+      entities: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['id', 'label', 'shape', 'level', 'order'],
+          properties: {
+            id: { type: 'string' },
+            label: { type: 'string' },
+            shape: { type: 'string', enum: shapes.map(shape => shape.key) },
+            level: { type: 'integer' },
+            order: { type: 'integer' },
+          },
+        },
+      },
+      connectors: { type: 'array', items: connectorSchema },
+      steps: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['title', 'explanation', 'reveals'],
+          properties: {
+            title: { type: 'string' },
+            explanation: { type: 'string' },
+            reveals: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+    },
+  }
+}
+
+// Renders a plan exactly as the composition will (same shared renderer),
+// with every item visible, for the visual-feedback loop to screenshot.
+const explainerReviewHtml = (plan: ExplainerPlanV1, shapes: ShapeDefV1[]) => {
+  return `<!doctype html><html><head><style>
+    body { margin: 0; background: #0f1411; display: grid; place-items: center; }
+    svg.explainer-diagram { width: 1600px; height: 860px; --ex-fill: rgba(74,222,128,.12); --ex-stroke: #4ade80; }
+    .ex-item { opacity: 1 !important; }
+    .ex-entity-label { fill: #f4f4f5; font: 700 30px system-ui, sans-serif; text-anchor: middle; }
+    .ex-connector-label { fill: #a1a1aa; font: 600 24px system-ui, sans-serif; text-anchor: middle; }
+  </style></head><body>${renderExplainerDiagram(plan, shapes)}</body></html>`
+}
+
+const screenshotExplainerPlan = async (
+  plan: ExplainerPlanV1,
+  shapes: ShapeDefV1[],
+) => {
+  const { default: puppeteer } = await import('puppeteer')
+  const browser = await puppeteer.launch()
+  try {
+    const page = await browser.newPage()
+    await page.setViewport({ width: 1600, height: 860 })
+    await page.setContent(explainerReviewHtml(plan, shapes), {
+      waitUntil: 'load',
+    })
+    const shot = await page.screenshot({ type: 'png' })
+    return Buffer.from(shot).toString('base64')
+  } finally {
+    await browser.close()
+  }
+}
+
+// The agent loop the studio calls after planning: render the plan, look at
+// the actual pixels, critique, revise, repeat — up to two passes.
+const handleExplainerRefine = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    topic?: string
+    abstract?: string
+    plan?: ExplainerPlanV1
+    shapes?: ShapeDefV1[]
+    instructions?: string
+  }>(request, 1024 * 1024)
+  const topic = String(body.topic || '').trim().slice(0, 600)
+  const shapes = mergedShapeCollection(
+    Array.isArray(body.shapes) ? body.shapes : undefined,
+  )
+  let plan = sanitizeExplainerPlan(body.plan, shapes)
+  if (!topic || !plan.entities.length) {
+    throw new Error('Refinement needs the topic and a planned diagram')
+  }
+  if (!openAIKey) {
+    json(response, 200, { plan, iterations: 0, notes: 'No OpenAI key — visual review skipped', provider: 'local-generator' })
+    return
+  }
+  const instructions = String(body.instructions || '').slice(0, 1_000)
+  let iterations = 0
+  let notes = 'The rendered layout was approved as-is'
+  try {
+    for (let pass = 0; pass < 2; pass += 1) {
+      const screenshot = await screenshotExplainerPlan(plan, shapes)
+      const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${openAIKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: `You designed a diagram explaining "${topic}" and this screenshot is how it actually renders. Review it like an editor: overlapping shapes or labels, text colliding with other text or connectors, connectors crossing through shapes, cramped or unbalanced levels, redundant or confusing links. If it reads cleanly, return approved=true and the plan unchanged. Otherwise return approved=false with an improved plan — adjust levels and sibling order for spacing, shorten labels, drop or reroute confusing connectors (same schema: levels are 0-based top-down, order is left-to-right among siblings) — and one sentence of notes describing the fix. Current plan JSON: ${JSON.stringify(plan)}.${instructions ? ` Author's instructions: ${instructions}.` : ''}`,
+                },
+                {
+                  type: 'input_image',
+                  image_url: `data:image/png;base64,${screenshot}`,
+                },
+              ],
+            },
+          ],
+          reasoning: { effort: 'low' },
+          text: {
+            format: {
+              type: 'json_schema',
+              name: 'explainer_review',
+              strict: true,
+              schema: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['approved', 'notes', 'plan'],
+                properties: {
+                  approved: { type: 'boolean' },
+                  notes: { type: 'string' },
+                  plan: explainerPlanSchema(shapes),
+                },
+              },
+            },
+          },
+        }),
+      })
+      if (!apiResponse.ok) {
+        throw new Error(`OpenAI visual review failed (${apiResponse.status})`)
+      }
+      const apiBody = (await apiResponse.json()) as Parameters<
+        typeof extractResponseText
+      >[0]
+      const review = JSON.parse(extractResponseText(apiBody)) as {
+        approved?: boolean
+        notes?: string
+        plan?: ExplainerPlanV1
+      }
+      iterations += 1
+      if (review.approved) {
+        notes = String(review.notes || 'Approved after visual review').slice(0, 300)
+        break
+      }
+      const revised = sanitizeExplainerPlan(review.plan, shapes)
+      if (!revised.entities.length) break
+      plan = revised
+      notes = String(review.notes || 'Adjusted after visual review').slice(0, 300)
+    }
+    json(response, 200, { plan, iterations, notes, provider: 'openai' })
+  } catch {
+    json(response, 200, {
+      plan,
+      iterations,
+      notes: 'Visual review unavailable — kept the current layout',
+      provider: 'local-generator',
+    })
+  }
+}
+
 const handleExplainerPlan = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -585,18 +774,6 @@ const handleExplainerPlan = async (
     const shapeVocabulary = shapes
       .map(shape => `${shape.key} (${shape.label})`)
       .join(', ')
-    const connectorSchema = {
-      type: 'object',
-      additionalProperties: false,
-      required: ['id', 'from', 'to', 'style', 'label'],
-      properties: {
-        id: { type: 'string' },
-        from: { type: 'string' },
-        to: { type: 'string' },
-        style: { type: 'string', enum: ['line', 'arrow', 'dashed'] },
-        label: { type: 'string' },
-      },
-    }
     const apiResponse = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
@@ -612,45 +789,7 @@ const handleExplainerPlan = async (
             type: 'json_schema',
             name: 'explainer_plan',
             strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              required: ['entities', 'connectors', 'steps'],
-              properties: {
-                entities: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['id', 'label', 'shape', 'level', 'order'],
-                    properties: {
-                      id: { type: 'string' },
-                      label: { type: 'string' },
-                      shape: {
-                        type: 'string',
-                        enum: shapes.map(shape => shape.key),
-                      },
-                      level: { type: 'integer' },
-                      order: { type: 'integer' },
-                    },
-                  },
-                },
-                connectors: { type: 'array', items: connectorSchema },
-                steps: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['title', 'explanation', 'reveals'],
-                    properties: {
-                      title: { type: 'string' },
-                      explanation: { type: 'string' },
-                      reveals: { type: 'array', items: { type: 'string' } },
-                    },
-                  },
-                },
-              },
-            },
+            schema: explainerPlanSchema(shapes),
           },
         },
       }),
@@ -1371,6 +1510,10 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/explainer/plan') {
       await handleExplainerPlan(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/explainer/refine') {
+      await handleExplainerRefine(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/notes') {

@@ -5949,6 +5949,7 @@ const renderExplainerWizard = () => {
     '#explainer-generate-abstract',
     '#explainer-generate-plan',
     '#explainer-preview-regenerate',
+    '#explainer-visual-pass',
   ]) {
     ;($(id) as HTMLButtonElement).disabled = exWizard.busy
   }
@@ -6028,13 +6029,58 @@ const generateExplainerPlan = async (instructions: string) => {
     )
     exWizard.plan = sanitizeExplainerPlan(result.plan, projectShapes())
     exWizard.previewStep = 0
-    exStatus(
-      result.provider === 'openai'
-        ? 'Diagram planned — review the entities and steps'
-        : 'Diagram drafted locally (no OpenAI key) — review it',
-    )
+    if (result.provider === 'openai') {
+      // The agent looks at its own render before handing the plan over.
+      exStatus('Diagram planned — running a visual pass on the render…')
+      renderExplainerWizard()
+      await refineExplainerPlan(instructions, true)
+      return
+    }
+    exStatus('Diagram drafted locally (no OpenAI key) — review it')
   } catch (error) {
     exStatus(error instanceof Error ? error.message : 'Could not plan the diagram')
+  } finally {
+    exWizard.busy = false
+    renderExplainerWizard()
+  }
+}
+
+// The visual-feedback loop: the server renders the plan headlessly,
+// screenshots it, and the model critiques its own pixels and revises the
+// plan — the coding-agent pattern, constrained to the diagram schema.
+const refineExplainerPlan = async (instructions: string, chained = false) => {
+  if (!exWizard?.plan) return
+  exWizard.busy = true
+  if (!chained) exStatus('Rendering and reviewing the diagram…')
+  renderExplainerWizard()
+  try {
+    const result = await fetchJson<{
+      plan: ExplainerPlanV1
+      iterations: number
+      notes: string
+      provider: string
+    }>('/api/explainer/refine', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        topic: exWizard.topic,
+        abstract: exWizard.abstract,
+        plan: exWizard.plan,
+        shapes: project.shapeCollection || [],
+        instructions,
+      }),
+    })
+    exWizard.plan = sanitizeExplainerPlan(result.plan, projectShapes())
+    exWizard.previewStep = 0
+    exStatus(
+      result.iterations > 0
+        ? `Visual pass ×${result.iterations} — ${result.notes}`
+        : result.notes,
+    )
+  } catch (error) {
+    exStatus(
+      error instanceof Error ? error.message : 'Visual review did not finish',
+    )
   } finally {
     exWizard.busy = false
     renderExplainerWizard()
@@ -6236,6 +6282,13 @@ const saveExplainerWizard = () => {
       ($('#explainer-preview-instructions') as HTMLInputElement).value,
     ),
 )
+;($('#explainer-visual-pass') as HTMLButtonElement).addEventListener(
+  'click',
+  () =>
+    void refineExplainerPlan(
+      ($('#explainer-plan-instructions') as HTMLInputElement).value,
+    ),
+)
 // Play walks the steps automatically so the animation can be watched, not
 // just stepped; any manual step (button or arrow key) takes control back.
 let explainerPlayTimer: number | undefined
@@ -6383,8 +6436,9 @@ const applyCanvasExplainerStep = () => {
         'important',
       )
     })
-  ;($('#ex-canvas-step-label') as HTMLElement).textContent =
-    `Step ${step + 1} of ${stepCount} · ${context.plan.steps[step]?.title || ''}`
+  const label = $('#ex-canvas-step-label') as HTMLElement
+  label.textContent = `${step + 1}/${stepCount}`
+  label.title = context.plan.steps[step]?.title || ''
   ;($('#ex-canvas-prev') as HTMLButtonElement).disabled = step === 0
   ;($('#ex-canvas-next') as HTMLButtonElement).disabled = step >= stepCount - 1
 }
@@ -6411,8 +6465,9 @@ const syncCanvasExplainerStepper = () => {
         scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
         projectShapes(),
       )
-      ;($('#ex-canvas-step-label') as HTMLElement).textContent =
-        `${plan.steps.length} steps · restart to rehearse`
+      const stepLabel = $('#ex-canvas-step-label') as HTMLElement
+      stepLabel.textContent = `0/${plan.steps.length}`
+      stepLabel.title = 'Restart to rehearse the animation step by step'
     }
   }
 }
