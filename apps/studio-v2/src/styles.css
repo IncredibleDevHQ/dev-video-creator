@@ -1087,13 +1087,12 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .explainer-preview-shell.fullscreen .explainer-step-caption span { color: #a1a1aa; font-size: 12.5px; }
 .explainer-preview-shell.fullscreen .explainer-row input { background: #161a18; border-color: #2b322d; color: #e4e4e7; }
 
-/* ——— Explainer canvas step controls ——— */
-.explainer-step-bar { position: absolute; top: 10px; left: 50%; z-index: 4; display: flex; align-items: center; gap: 4px; padding: 4px; translate: -50% 0; border: 1px solid rgba(255,255,255,.22); border-radius: 7px; background: rgba(24,24,27,.82); backdrop-filter: blur(8px); }
-.player-shell.canvas-open .explainer-step-bar { position: fixed; top: 18px; left: 44%; }
+/* ——— Explainer canvas step controls: live in the record bar, left of
+   Record, so rehearsing sits in the same eye line as the actions ——— */
+.explainer-step-bar { display: flex; align-items: center; gap: 3px; padding-right: 9px; margin-right: 3px; border-right: 1px solid rgba(255,255,255,.16); }
 .player-shell.canvas-recording-mode .explainer-step-bar { display: none; }
-.player-shell:not(.canvas-open) .explainer-step-bar { display: none; }
-.explainer-step-bar button { min-width: 30px; height: 28px; display: grid; place-items: center; padding: 0 8px; border: 0; border-radius: 5px; background: transparent; color: #d4d4d8; font-size: 12px; cursor: pointer; }
+.explainer-step-bar button { min-width: 30px; height: 30px; display: grid; place-items: center; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: #d4d4d8; font-size: 12px; cursor: pointer; }
 .explainer-step-bar button:hover:not(:disabled) { background: rgba(255,255,255,.12); color: white; }
 .explainer-step-bar button:disabled { opacity: .35; cursor: default; }
 .explainer-step-bar button svg { width: 13px; height: 13px; }
-.explainer-step-bar span { padding: 0 10px; color: #e4e4e7; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.explainer-step-bar span { padding: 0 8px; color: #e4e4e7; font-size: 10px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
