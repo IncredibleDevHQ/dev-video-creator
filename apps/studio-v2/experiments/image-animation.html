@@ -218,10 +218,13 @@
   const stopLoop = () => {
     playing = false
     cancelAnimationFrame(rafId)
+    window.clearInterval(intervalId)
+    intervalId = 0
     toggleButton.hidden = true
     overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height)
   }
 
+  let intervalId = 0
   const runLoop = () => {
     if (!program) return
     playing = true
@@ -229,20 +232,28 @@
     toggleButton.textContent = 'Pause'
     startedAt = performance.now()
     const ctx = overlay.getContext('2d')
-    const frame = (now) => {
+    const paint = () => {
       if (!playing) return
-      const t = (now - startedAt) / 1000
+      const t = (performance.now() - startedAt) / 1000
       ctx.clearRect(0, 0, overlay.width, overlay.height)
       try {
         program.drawFrame(ctx, t, overlay.width, overlay.height)
       } catch (error) {
         setStatus('The program crashed while drawing: ' + error.message, true)
         stopLoop()
-        return
       }
-      rafId = requestAnimationFrame(frame)
     }
-    rafId = requestAnimationFrame(frame)
+    // Timer-driven pump: rAF is throttled to ~1fps in some embedded
+    // webviews; a 33ms interval keeps ~30fps everywhere, and rAF rides
+    // along for extra smoothness where allowed.
+    window.clearInterval(intervalId)
+    intervalId = window.setInterval(paint, 33)
+    const ride = () => {
+      if (!playing) return
+      paint()
+      rafId = requestAnimationFrame(ride)
+    }
+    rafId = requestAnimationFrame(ride)
   }
 
   const installProgram = (code, notes) => {
