@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Image animation — isolated experiment</title>
+<style>
+  :root {
+    --bg: #0c0f0d;
+    --panel: #141815;
+    --line: #242b26;
+    --text: #f2f5f2;
+    --muted: #9aa79d;
+    --accent: #84efad;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, sans-serif;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+    padding: 20px;
+  }
+  header { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header span { color: var(--muted); font-size: 13px; }
+  .stage-panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    display: grid;
+    place-items: center;
+    min-height: 60vh;
+  }
+  .stage {
+    position: relative;
+    max-width: 100%;
+    max-height: calc(100vh - 140px);
+    display: none;
+  }
+  .stage.is-ready { display: block; }
+  .stage img { display: block; max-width: 100%; max-height: calc(100vh - 140px); border-radius: 8px; }
+  .stage canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    border-radius: 8px;
+  }
+  .drop {
+    border: 1.5px dashed var(--line);
+    border-radius: 12px;
+    padding: 48px 32px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .15s ease;
+  }
+  .drop.is-over, .drop:hover { border-color: var(--accent); color: var(--text); }
+  aside { display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 10px; }
+  .card h2 { margin: 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  textarea {
+    width: 100%;
+    min-height: 84px;
+    resize: vertical;
+    background: #0e120f;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px;
+    font: inherit;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  button {
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #1a201c;
+    color: var(--text);
+    padding: 9px 18px;
+    font: 600 14px/1 system-ui;
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: #08120c; border-color: transparent; }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .status { font-size: 13px; color: var(--muted); min-height: 18px; }
+  .status.is-error { color: #ff9b8a; }
+  .notes { font-size: 13px; color: var(--muted); border-left: 2px solid var(--accent); padding-left: 10px; }
+  details pre {
+    max-height: 260px;
+    overflow: auto;
+    background: #0e120f;
+    border-radius: 8px;
+    padding: 10px;
+    font: 12px/1.45 ui-monospace, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Image animation</h1>
+  <span>isolated experiment — drop an image, describe the motion, the coding agent animates a canvas layer above it</span>
+</header>
+
+<section class="stage-panel">
+  <div class="drop" id="drop">
+    <strong>Drop an image here</strong> or click to choose<br />
+    <small>png · jpeg · webp — it never leaves this machine except to the animation agent</small>
+    <input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+  </div>
+  <div class="stage" id="stage">
+    <img id="photo" alt="Experiment image" />
+    <canvas id="overlay"></canvas>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Animation description</h2>
+    <textarea id="instructions" placeholder="e.g. Gentle steam rising from the tea bowl, drifting up and slowly fading">Gentle steam rising from the bowl, drifting upward and slowly fading, matching the ink-wash style</textarea>
+    <div class="row">
+      <button class="primary" id="animate" disabled>Animate</button>
+      <button id="demo" disabled>Built-in demo</button>
+      <button id="toggle" hidden>Pause</button>
+    </div>
+    <div class="status" id="status">Load an image to begin</div>
+  </div>
+  <div class="card" id="refine-card" hidden>
+    <h2>Refine</h2>
+    <textarea id="feedback" placeholder="What should change? e.g. the steam starts too far left, make it slower"></textarea>
+    <div class="row"><button id="refine">Send feedback</button></div>
+  </div>
+  <div class="card" id="result-card" hidden>
+    <h2>Agent notes</h2>
+    <div class="notes" id="notes"></div>
+    <details><summary>Program</summary><pre id="code-view"></pre></details>
+  </div>
+</aside>
+
+<script>
+  const drop = document.getElementById('drop')
+  const file = document.getElementById('file')
+  const stage = document.getElementById('stage')
+  const photo = document.getElementById('photo')
+  const overlay = document.getElementById('overlay')
+  const instructions = document.getElementById('instructions')
+  const animateButton = document.getElementById('animate')
+  const demoButton = document.getElementById('demo')
+  const toggleButton = document.getElementById('toggle')
+  const statusLine = document.getElementById('status')
+  const refineCard = document.getElementById('refine-card')
+  const feedback = document.getElementById('feedback')
+  const refineButton = document.getElementById('refine')
+  const resultCard = document.getElementById('result-card')
+  const notesView = document.getElementById('notes')
+  const codeView = document.getElementById('code-view')
+
+  let imageDataUrl = ''
+  let program = null
+  let programCode = ''
+  let playing = false
+  let rafId = 0
+  let startedAt = 0
+
+  const setStatus = (text, isError) => {
+    statusLine.textContent = text
+    statusLine.classList.toggle('is-error', Boolean(isError))
+  }
+
+  const loadImage = (url) => new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Could not load that image'))
+    image.src = url
+  })
+
+  const useImage = async (url) => {
+    const image = await loadImage(url)
+    imageDataUrl = url
+    photo.src = url
+    overlay.width = image.naturalWidth
+    overlay.height = image.naturalHeight
+    drop.hidden = true
+    stage.classList.add('is-ready')
+    animateButton.disabled = false
+    demoButton.disabled = false
+    stopLoop()
+    program = null
+    setStatus('Describe the motion, then Animate')
+  }
+
+  // Downscale for the vision call so payloads stay small; the overlay itself
+  // runs at the image's native resolution.
+  const imageForAgent = async () => {
+    const image = await loadImage(imageDataUrl)
+    const longEdge = Math.max(image.naturalWidth, image.naturalHeight)
+    const scale = Math.min(1, 1200 / longEdge)
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(image.naturalWidth * scale)
+    canvas.height = Math.round(image.naturalHeight * scale)
+    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.85)
+  }
+
+  const stopLoop = () => {
+    playing = false
+    cancelAnimationFrame(rafId)
+    toggleButton.hidden = true
+    overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height)
+  }
+
+  const runLoop = () => {
+    if (!program) return
+    playing = true
+    toggleButton.hidden = false
+    toggleButton.textContent = 'Pause'
+    startedAt = performance.now()
+    const ctx = overlay.getContext('2d')
+    const frame = (now) => {
+      if (!playing) return
+      const t = (now - startedAt) / 1000
+      ctx.clearRect(0, 0, overlay.width, overlay.height)
+      try {
+        program.drawFrame(ctx, t, overlay.width, overlay.height)
+      } catch (error) {
+        setStatus('The program crashed while drawing: ' + error.message, true)
+        stopLoop()
+        return
+      }
+      rafId = requestAnimationFrame(frame)
+    }
+    rafId = requestAnimationFrame(frame)
+  }
+
+  const installProgram = (code, notes) => {
+    const scope = {}
+    try {
+      new Function('globalThis', code).call(scope, scope)
+    } catch (error) {
+      throw new Error('The program failed to load: ' + error.message)
+    }
+    const candidate = scope.imageAnimation
+    if (!candidate || typeof candidate.drawFrame !== 'function') {
+      throw new Error('The program never assigned globalThis.imageAnimation.drawFrame')
+    }
+    program = candidate
+    programCode = code
+    codeView.textContent = code
+    notesView.textContent = notes || '—'
+    resultCard.hidden = false
+    refineCard.hidden = false
+    runLoop()
+  }
+
+  const requestProgram = async (withFeedback) => {
+    const description = instructions.value.trim()
+    if (!description) { setStatus('Describe the animation first', true); return }
+    animateButton.disabled = true
+    refineButton.disabled = true
+    setStatus('')
+    statusLine.innerHTML = '<span class="spin"></span>The coding agent is studying the image…'
+    try {
+      const payload = {
+        image: await imageForAgent(),
+        instructions: description,
+      }
+      if (withFeedback && programCode && feedback.value.trim()) {
+        payload.previousCode = programCode
+        payload.feedback = feedback.value.trim()
+      }
+      const response = await fetch('/api/experiments/image-animation', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || 'Generation failed')
+      installProgram(body.code, body.notes)
+      feedback.value = ''
+      setStatus('Playing — refine below if the motion is off')
+    } catch (error) {
+      setStatus(error.message, true)
+    } finally {
+      animateButton.disabled = false
+      refineButton.disabled = false
+    }
+  }
+
+  // A hand-written program proving the harness without the agent: drifting
+  // mist from the image's upper-middle region.
+  const DEMO_CODE = `globalThis.imageAnimation = {
+  duration: 6,
+  drawFrame(ctx, time, width, height) {
+    const t = (time % 6) / 6
+    for (let i = 0; i < 5; i++) {
+      const phase = (t + i / 5) % 1
+      const x = width * (0.45 + 0.1 * Math.sin(i * 2.4 + phase * Math.PI * 2))
+      const y = height * (0.5 - phase * 0.3)
+      const alpha = 0.25 * Math.sin(phase * Math.PI)
+      const r = width * (0.03 + phase * 0.05)
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+      g.addColorStop(0, 'rgba(255,255,255,' + alpha + ')')
+      g.addColorStop(1, 'rgba(255,255,255,0)')
+      ctx.fillStyle = g
+      ctx.beginPath()
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+}`
+
+  drop.addEventListener('click', () => file.click())
+  drop.addEventListener('dragover', (event) => { event.preventDefault(); drop.classList.add('is-over') })
+  drop.addEventListener('dragleave', () => drop.classList.remove('is-over'))
+  drop.addEventListener('drop', (event) => {
+    event.preventDefault()
+    drop.classList.remove('is-over')
+    const picked = event.dataTransfer.files[0]
+    if (picked) readFile(picked)
+  })
+  file.addEventListener('change', () => { if (file.files[0]) readFile(file.files[0]) })
+
+  const readFile = (picked) => {
+    const reader = new FileReader()
+    reader.onload = () => { useImage(String(reader.result)).catch(e => setStatus(e.message, true)) }
+    reader.readAsDataURL(picked)
+  }
+
+  animateButton.addEventListener('click', () => requestProgram(false))
+  refineButton.addEventListener('click', () => requestProgram(true))
+  demoButton.addEventListener('click', () => {
+    try { installProgram(DEMO_CODE, 'Built-in demo — mist drifting from the image centre') } catch (e) { setStatus(e.message, true) }
+    setStatus('Built-in demo playing (no agent involved)')
+  })
+  toggleButton.addEventListener('click', () => {
+    if (playing) { playing = false; toggleButton.textContent = 'Play' }
+    else runLoop()
+  })
+
+  // ?img=<url> preloads an image (same-origin or CORS-enabled), handy for tests.
+  const params = new URLSearchParams(location.search)
+  if (params.get('img')) {
+    fetch(params.get('img'))
+      .then(r => r.blob())
+      .then(blob => new Promise(resolve => { const rd = new FileReader(); rd.onload = () => resolve(rd.result); rd.readAsDataURL(blob) }))
+      .then(url => useImage(String(url)))
+      .catch(() => setStatus('Could not preload ?img', true))
+  }
+</script>
+</body>
+</html>

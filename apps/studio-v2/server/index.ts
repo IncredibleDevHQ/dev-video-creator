@@ -906,6 +906,105 @@ const handleExplainerCanvasAgent = async (
   json(response, 200, { code, iterations, notes, provider: 'openai' })
 }
 
+// ——— Image-animation experiment ———
+// Isolated harness for a prospective "image animation" block: the author
+// supplies a still image plus a description of what should move, and the
+// coding agent writes a Canvas 2D program that animates ONLY that part on a
+// transparent overlay above the image. Single-shot generate with optional
+// author-feedback revision; the experiment page is the sandbox.
+const IMAGE_ANIMATION_CONTRACT = `Write a COMPLETE JavaScript program (no imports, no markdown fences) that assigns:
+globalThis.imageAnimation = {
+  duration: <number — seconds for one seamless loop>,
+  drawFrame(ctx, time, width, height) { ... }
+}
+drawFrame draws ONE frame of an animated overlay on the CanvasRenderingContext2D ctx. The canvas sits exactly on top of the still image you were shown, is width x height (the image's pixel size), and is cleared to full transparency before every call — the image stays visible beneath everything you do not paint.
+Rules:
+- Animate ONLY what the author described, positioned precisely over the matching region of the image; leave every other pixel untouched (transparent).
+- time is seconds; the animation must loop seamlessly with period duration (use phases of time % duration, or continuous periodic functions).
+- Deterministic: derive all motion from time (no Date.now, no Math.random at draw time — precompute any pseudo-random values with a seeded function).
+- Match the image's artistic style: soft alpha, gentle gradients, painterly strokes; never stamp solid boxes or harsh vector shapes over artwork; no text unless the author asks for text.
+- No network, no DOM beyond ctx, no external images or fonts.`
+
+const handleImageAnimationExperiment = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    image?: string
+    instructions?: string
+    previousCode?: string
+    feedback?: string
+  }>(request, 12 * 1024 * 1024)
+  const image = String(body.image || '')
+  const instructions = String(body.instructions || '').trim().slice(0, 1_200)
+  if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image)) {
+    throw new Error('The experiment needs the image as a png/jpeg/webp data URL')
+  }
+  if (!instructions) {
+    throw new Error('Describe the animation you want on top of the image')
+  }
+  if (!openAIKey) {
+    throw new Error('The image-animation agent needs an OpenAI key')
+  }
+  const previousCode = String(body.previousCode || '').slice(0, 40_000)
+  const feedback = String(body.feedback || '').trim().slice(0, 1_200)
+  const content: Array<Record<string, unknown>> = [
+    {
+      type: 'input_text',
+      text: `You are an expert HTML5 Canvas 2D animator. The attached image is a still frame; the author wants part of it brought to life with an animated overlay.\nAuthor's animation description: ${instructions}\nStudy the image to locate the exact region the description refers to and measure its position and proportions by eye — your coordinates must land on it.\n${IMAGE_ANIMATION_CONTRACT}${
+        previousCode && feedback
+          ? `\nYour previous attempt needs work. Author feedback: ${feedback}\nPrevious program:\n${previousCode}\nReturn the full corrected program.`
+          : ''
+      }`,
+    },
+    { type: 'input_image', image_url: image },
+  ]
+  const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${openAIKey}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
+      input: [{ role: 'user', content }],
+      reasoning: { effort: 'medium' },
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'image_animation_program',
+          strict: true,
+          schema: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['code', 'notes'],
+            properties: {
+              code: { type: 'string' },
+              notes: { type: 'string' },
+            },
+          },
+        },
+      },
+    }),
+  })
+  if (!apiResponse.ok) {
+    throw new Error(`Image-animation generation failed (${apiResponse.status})`)
+  }
+  const apiBody = (await apiResponse.json()) as Parameters<
+    typeof extractResponseText
+  >[0]
+  const generated = JSON.parse(extractResponseText(apiBody)) as {
+    code?: string
+    notes?: string
+  }
+  const code = screenCanvasCode(extractCanvasCode(String(generated.code || '')))
+  json(response, 200, {
+    code,
+    notes: String(generated.notes || '').slice(0, 400),
+    provider: 'openai',
+  })
+}
+
 const handleExplainerRefine = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -1788,6 +1887,13 @@ const server = createServer(async (request, response) => {
       url.pathname === '/api/explainer/canvas-agent'
     ) {
       await handleExplainerCanvasAgent(request, response)
+      return
+    }
+    if (
+      request.method === 'POST' &&
+      url.pathname === '/api/experiments/image-animation'
+    ) {
+      await handleImageAnimationExperiment(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/notes') {

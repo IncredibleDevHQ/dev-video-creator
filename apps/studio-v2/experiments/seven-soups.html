@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>七汤 — hand-authored image animation</title>
+<style>
+  :root { --bg: #17140f; --text: #f2ede2; --muted: #9d9484; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, sans-serif;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+  main { display: grid; gap: 14px; justify-items: center; }
+  .stage {
+    position: relative;
+    max-height: calc(100vh - 110px);
+    box-shadow: 0 30px 80px rgba(0,0,0,.55);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .stage img { display: block; max-width: min(92vw, 760px); max-height: calc(100vh - 110px); }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .bar { display: flex; gap: 10px; align-items: center; color: var(--muted); }
+  .bar strong { color: var(--text); font-weight: 600; }
+  button {
+    appearance: none;
+    border: 1px solid #3a352b;
+    border-radius: 999px;
+    background: #241f17;
+    color: var(--text);
+    padding: 7px 16px;
+    font: 600 13px/1 system-ui;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="stage">
+    <img id="poster" src="./seven-soups-poster.webp" alt="七汤 — 一盏茶的七次注汤" />
+    <canvas id="overlay"></canvas>
+  </div>
+  <div class="bar">
+    <strong>七汤</strong>
+    <span>· hand-authored canvas overlay — steam &amp; crema, no generated code</span>
+    <button id="toggle">Pause</button>
+  </div>
+</main>
+
+<script>
+  // The same contract the image-animation block would use — but this program
+  // is written by hand for this exact poster: ink-wash steam rising off the
+  // whipped foam, and the crema slowly "biting the bowl" (咬盏) with faint
+  // froth specks. All coordinates are fractions of the image so the overlay
+  // survives any display size.
+  const seeded = (seed) => {
+    // mulberry32 — deterministic pseudo-randomness, fixed per element.
+    let a = seed >>> 0
+    return () => {
+      a |= 0; a = (a + 0x6d2b79f5) | 0
+      let t = Math.imul(a ^ (a >>> 15), 1 | a)
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+  }
+
+  // Plumes anchored along the foam surface. The artwork already suggests a
+  // steam column at the bowl's right shoulder, so the densest plume sits
+  // there and reinforces it.
+  const PLUMES = []
+  ;[
+    { x: 0.47, y: 0.442, rise: 0.16, width: 0.020, dur: 9.0, alpha: 0.060, seed: 11 },
+    { x: 0.565, y: 0.435, rise: 0.20, width: 0.026, dur: 10.5, alpha: 0.075, seed: 29 },
+    { x: 0.665, y: 0.428, rise: 0.24, width: 0.030, dur: 8.2, alpha: 0.085, seed: 47 },
+    { x: 0.715, y: 0.415, rise: 0.28, width: 0.024, dur: 11.6, alpha: 0.070, seed: 73 },
+  ].forEach(base => {
+    const rand = seeded(base.seed)
+    PLUMES.push({
+      ...base,
+      sway: 0.016 + rand() * 0.02,
+      swayFreq: 1.1 + rand() * 0.9,
+      phase: rand(),
+      curl: (rand() - 0.5) * 2.4,
+    })
+  })
+
+  // Froth specks around the crema — the foam ellipse of THIS poster.
+  const FOAM = { cx: 0.545, cy: 0.487, rx: 0.225, ry: 0.052 }
+  const SPECKS = []
+  {
+    const rand = seeded(101)
+    for (let i = 0; i < 26; i += 1) {
+      const angle = rand() * Math.PI * 2
+      const radial = 0.35 + rand() * 0.6
+      SPECKS.push({
+        x: FOAM.cx + Math.cos(angle) * FOAM.rx * radial,
+        y: FOAM.cy + Math.sin(angle) * FOAM.ry * radial,
+        r: 1.2 + rand() * 2.4,
+        dur: 2.6 + rand() * 4,
+        phase: rand(),
+        dark: rand() < 0.28,
+      })
+    }
+  }
+
+  const imageAnimation = {
+    duration: 12,
+    drawFrame(ctx, time, width, height) {
+      // — Steam: each plume is a stream of soft ink blobs riding a curved
+      //   path from the foam surface upward, fading in low and out high.
+      PLUMES.forEach(plume => {
+        const blobs = 22
+        for (let i = 0; i < blobs; i += 1) {
+          const phase = (time / plume.dur + plume.phase + i / blobs) % 1
+          const lift = phase * plume.rise
+          const sway =
+            Math.sin(phase * Math.PI * 2 * plume.swayFreq + plume.curl) *
+            plume.sway *
+            (0.3 + phase)
+          const x = (plume.x + sway) * width
+          const y = (plume.y - lift) * height
+          const taper = 0.55 + phase * 1.1
+          const radius = plume.width * width * taper
+          const alpha = plume.alpha * Math.sin(phase * Math.PI) * (1 - phase * 0.35)
+          if (alpha <= 0.002) continue
+          const ink = ctx.createRadialGradient(x, y, 0, x, y, radius)
+          ink.addColorStop(0, `rgba(92, 86, 74, ${alpha})`)
+          ink.addColorStop(0.6, `rgba(112, 106, 94, ${alpha * 0.55})`)
+          ink.addColorStop(1, 'rgba(112, 106, 94, 0)')
+          ctx.fillStyle = ink
+          ctx.beginPath()
+          ctx.arc(x, y, radius, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      })
+
+      // — Crema: faint specks blinking on the foam, a whisper of the froth
+      //   still settling after the seventh pour.
+      SPECKS.forEach(speck => {
+        const phase = (time / speck.dur + speck.phase) % 1
+        const alpha = Math.sin(phase * Math.PI) ** 2 * (speck.dark ? 0.10 : 0.5)
+        if (alpha <= 0.01) return
+        ctx.fillStyle = speck.dark
+          ? `rgba(96, 92, 82, ${alpha})`
+          : `rgba(255, 253, 246, ${alpha})`
+        ctx.beginPath()
+        ctx.arc(
+          speck.x * width,
+          speck.y * height,
+          speck.r * (width / 1164) * (0.8 + 0.4 * Math.sin(phase * Math.PI)),
+          0,
+          Math.PI * 2,
+        )
+        ctx.fill()
+      })
+    },
+  }
+
+  const poster = document.getElementById('poster')
+  const overlay = document.getElementById('overlay')
+  const toggle = document.getElementById('toggle')
+  let playing = true
+  let startedAt = performance.now()
+  let pausedAt = 0
+
+  const start = () => {
+    const ctx = overlay.getContext('2d')
+    const frame = (now) => {
+      if (playing) {
+        const t = (now - startedAt) / 1000
+        ctx.clearRect(0, 0, overlay.width, overlay.height)
+        imageAnimation.drawFrame(ctx, t, overlay.width, overlay.height)
+      }
+      requestAnimationFrame(frame)
+    }
+    requestAnimationFrame(frame)
+  }
+
+  toggle.addEventListener('click', () => {
+    if (playing) {
+      playing = false
+      pausedAt = performance.now()
+      toggle.textContent = 'Play'
+    } else {
+      startedAt += performance.now() - pausedAt
+      playing = true
+      toggle.textContent = 'Pause'
+    }
+  })
+
+  const ready = () => {
+    overlay.width = poster.naturalWidth
+    overlay.height = poster.naturalHeight
+    start()
+  }
+  if (poster.complete && poster.naturalWidth) ready()
+  else poster.addEventListener('load', ready)
+</script>
+</body>
+</html>
