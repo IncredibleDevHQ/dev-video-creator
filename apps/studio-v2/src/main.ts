@@ -2595,7 +2595,7 @@ const explanationWidget = (nodeId: string) => {
   dom.contentEditable = 'false'
   dom.dataset.nodeId = nodeId
   dom.innerHTML =
-    '<div class="notebook-explanation-head"><span aria-hidden="true">🎙</span><strong>Explanation</strong><small>spoken over this block · not rendered</small><button type="button" class="notebook-explanation-clear" title="Remove explanation">×</button></div>' +
+    '<div class="notebook-explanation-head"><span class="notebook-explanation-link" aria-hidden="true">↳</span><strong title="Spoken over this block while recording · never rendered into the video">Explanation</strong><small class="notebook-explanation-ref"></small><button type="button" class="notebook-explanation-clear" title="Remove explanation">×</button></div>' +
     '<textarea rows="1" spellcheck="true" placeholder="What you’ll say while this block is on screen…"></textarea>' +
     '<button type="button" class="notebook-explanation-add">＋ Add explanation</button>'
   const textarea = dom.querySelector('textarea') as HTMLTextAreaElement
@@ -2625,8 +2625,33 @@ const explanationWidget = (nodeId: string) => {
       refreshExplanations()
     },
   )
+  // Hovering or editing the card lights up the block it belongs to, so the
+  // pairing stays obvious in a long scroll.
+  const target = () => dom?.previousElementSibling as HTMLElement | null
+  const link = (on: boolean) => target()?.classList.toggle('explanation-target', on)
+  dom.addEventListener('mouseenter', () => link(true))
+  dom.addEventListener('mouseleave', () => {
+    if (!dom?.contains(document.activeElement)) link(false)
+  })
+  dom.addEventListener('focusin', () => link(true))
+  dom.addEventListener('focusout', () => link(false))
   explanationWidgets.set(nodeId, dom)
   return dom
+}
+
+// A short handle for the block a card belongs to: its timeline number plus
+// what it is or says.
+const explanationReference = (nodeId: string, node: { type: { name: string }; attrs: Record<string, unknown>; textContent: string }) => {
+  const scene = scenes.find(item => item.id === nodeId)
+  const number = scene ? String(scene.index + 1).padStart(2, '0') : ''
+  const attrs = node.attrs || {}
+  const summary =
+    node.type.name === 'image' || node.type.name === 'screenRecording'
+      ? String(attrs.title || attrs.alt || node.type.name)
+      : node.type.name === 'codeBlock'
+        ? 'Code block'
+        : node.textContent.replace(/\s+/g, ' ').trim().slice(0, 56) || node.type.name
+  return `${number ? `for block ${number} · ` : 'for '}${summary}`
 }
 
 const buildExplanationDecorations = (state: EditorState) => {
@@ -2645,6 +2670,8 @@ const buildExplanationDecorations = (state: EditorState) => {
     }
     dom.classList.toggle('is-empty', !notes.trim())
     dom.classList.toggle('is-selected', selected)
+    ;(dom.querySelector('.notebook-explanation-ref') as HTMLElement).textContent =
+      explanationReference(nodeId, node)
     window.requestAnimationFrame(() => autosizeExplanation(textarea))
     decorations.push(
       Decoration.widget(offset + node.nodeSize, dom, {

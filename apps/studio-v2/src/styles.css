@@ -1195,17 +1195,26 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 /* ——— Block explanations ——— */
 /* The spoken script attached to a block: lives beside it in the notebook,
    feeds the recording coach and the teleprompter, never renders in the video. */
-.notebook-explanation { position: relative; margin: -4px 0 26px; padding: 9px 14px 11px; border-left: 3px solid color-mix(in srgb, var(--brand) 55%, #e4e4e7); border-radius: 0 8px 8px 0; background: #fafaf9; }
+/* The card hugs its block: almost no gap above, a spine that runs up into
+   the block, and a wide gap below before the next block begins. */
+.notebook-explanation { position: relative; margin: -12px 0 40px 8px; padding: 8px 14px 10px 14px; border-left: 3px solid color-mix(in srgb, var(--brand) 55%, #e4e4e7); border-radius: 0 8px 8px 0; background: #fafaf9; }
+.notebook-explanation::before { content: ''; position: absolute; left: -3px; top: -14px; width: 3px; height: 14px; background: color-mix(in srgb, var(--brand) 55%, #e4e4e7); }
+.notebook-explanation.is-selected, .notebook-explanation:hover, .notebook-explanation:focus-within { border-left-color: var(--brand); background: color-mix(in srgb, var(--brand) 6%, white); }
+.notebook-explanation.is-selected::before, .notebook-explanation:hover::before, .notebook-explanation:focus-within::before { background: var(--brand); }
 .notebook-explanation-head { display: flex; align-items: center; gap: 8px; font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #71717a; }
-.notebook-explanation-head strong { color: #3f3f46; }
-.notebook-explanation-head small { flex: 1; font-weight: 500; letter-spacing: .02em; text-transform: none; color: #a1a1aa; }
+.notebook-explanation-link { color: var(--brand); font-size: 13px; letter-spacing: 0; }
+.notebook-explanation-head strong { color: #3f3f46; cursor: help; }
+.notebook-explanation-head small { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; letter-spacing: .02em; text-transform: none; color: #71717a; }
+/* The block a hovered or edited card belongs to. */
+#editor .ProseMirror > .explanation-target { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 55%, transparent), 0 0 0 7px color-mix(in srgb, var(--brand) 9%, transparent); border-radius: 8px; }
 .notebook-explanation-clear { width: 20px; height: 20px; border: 0; border-radius: 5px; background: transparent; color: #a1a1aa; font-size: 14px; line-height: 1; cursor: pointer; }
 .notebook-explanation-clear:hover { background: rgba(255,120,100,.14); color: #dc2626; }
 .notebook-explanation textarea { display: block; width: 100%; margin-top: 4px; padding: 0; border: 0; background: transparent; resize: none; outline: 0; overflow: hidden; font: 400 14px/1.6 Georgia, 'Times New Roman', serif; color: #3f3f46; }
 .notebook-explanation textarea::placeholder { color: #a1a1aa; font-style: italic; }
 .notebook-explanation-add { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px dashed #d4d4d8; border-radius: 999px; background: white; color: #71717a; font-size: 10.5px; font-weight: 700; cursor: pointer; }
 .notebook-explanation-add:hover { border-color: var(--brand); color: #3f3f46; }
-.notebook-explanation.is-empty:not(.is-editing) { margin-top: -10px; padding: 0 0 0 14px; border-left-color: transparent; background: transparent; }
+.notebook-explanation.is-empty:not(.is-editing) { margin: -12px 0 28px 8px; padding: 0 0 0 14px; border-left-color: transparent; background: transparent; }
+.notebook-explanation.is-empty:not(.is-editing)::before { display: none; }
 .notebook-explanation.is-empty:not(.is-editing) .notebook-explanation-head,
 .notebook-explanation.is-empty:not(.is-editing) textarea { display: none; }
 .notebook-explanation:not(.is-empty) .notebook-explanation-add,
