@@ -1,5 +1,7 @@
 import '@hyperframes/player'
-import { Editor, type JSONContent } from '@tiptap/core'
+import { Editor, Extension, type JSONContent } from '@tiptap/core'
+import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import {
@@ -975,6 +977,8 @@ recordingNotesInput.addEventListener('input', () => {
   if (config) {
     config.speakerNotes = recordingNotesInput.value
     scheduleSync()
+    refreshExplanations()
+    syncExplainerTeleprompter()
   }
   syncRecordingNotesMeter()
 })
@@ -2549,10 +2553,130 @@ const handleSlashKey = (event: KeyboardEvent) => {
   return false
 }
 
+// ——— Block explanations ———
+// Every block can carry the words spoken over it. The text lives in the
+// block's configuration (`speakerNotes`, shared with the recording coach and
+// the teleprompter), never in the notebook document — so it is edited beside
+// the block as a widget and never becomes a scene of its own.
+const explanationPluginKey = new PluginKey('blockExplanations')
+const explanationWidgets = new Map<string, HTMLElement>()
+
+const autosizeExplanation = (textarea: HTMLTextAreaElement) => {
+  textarea.style.height = 'auto'
+  textarea.style.height = `${textarea.scrollHeight}px`
+}
+
+const writeExplanation = (nodeId: string, value: string) => {
+  if (!project.blocks[nodeId]) {
+    project.notebook = editor.getJSON() as TiptapDocument
+    ensureBlockConfiguration(project.notebook)
+  }
+  const config = project.blocks[nodeId]
+  if (!config) return
+  config.speakerNotes = value
+  scheduleSync()
+  if (nodeId === selectedNodeId) {
+    recordingNotesInput.value = value
+    syncRecordingNotesMeter()
+    syncExplainerTeleprompter()
+  }
+}
+
+const refreshExplanations = () => {
+  if (!editor?.view) return
+  editor.view.dispatch(editor.state.tr.setMeta(explanationPluginKey, Date.now()))
+}
+
+const explanationWidget = (nodeId: string) => {
+  let dom = explanationWidgets.get(nodeId)
+  if (dom) return dom
+  dom = document.createElement('div')
+  dom.className = 'notebook-explanation'
+  dom.contentEditable = 'false'
+  dom.dataset.nodeId = nodeId
+  dom.innerHTML =
+    '<div class="notebook-explanation-head"><span aria-hidden="true">🎙</span><strong>Explanation</strong><small>spoken over this block · not rendered</small><button type="button" class="notebook-explanation-clear" title="Remove explanation">×</button></div>' +
+    '<textarea rows="1" spellcheck="true" placeholder="What you’ll say while this block is on screen…"></textarea>' +
+    '<button type="button" class="notebook-explanation-add">＋ Add explanation</button>'
+  const textarea = dom.querySelector('textarea') as HTMLTextAreaElement
+  textarea.addEventListener('input', () => {
+    autosizeExplanation(textarea)
+    writeExplanation(nodeId, textarea.value)
+  })
+  textarea.addEventListener('blur', () => {
+    if (!textarea.value.trim()) {
+      dom?.classList.remove('is-editing')
+      refreshExplanations()
+    }
+  })
+  ;(dom.querySelector('.notebook-explanation-add') as HTMLButtonElement).addEventListener(
+    'click',
+    () => {
+      dom?.classList.add('is-editing')
+      textarea.focus()
+    },
+  )
+  ;(dom.querySelector('.notebook-explanation-clear') as HTMLButtonElement).addEventListener(
+    'click',
+    () => {
+      textarea.value = ''
+      dom?.classList.remove('is-editing')
+      writeExplanation(nodeId, '')
+      refreshExplanations()
+    },
+  )
+  explanationWidgets.set(nodeId, dom)
+  return dom
+}
+
+const buildExplanationDecorations = (state: EditorState) => {
+  const decorations: Decoration[] = []
+  state.doc.forEach((node, offset) => {
+    const nodeId = typeof node.attrs?.id === 'string' ? node.attrs.id : ''
+    // Explainer blocks already carry their script as per-step lines.
+    if (!nodeId || node.type.name === 'explainer') return
+    const notes = project.blocks[nodeId]?.speakerNotes || ''
+    const selected = nodeId === selectedNodeId
+    if (!notes && !selected) return
+    const dom = explanationWidget(nodeId)
+    const textarea = dom.querySelector('textarea') as HTMLTextAreaElement
+    if (document.activeElement !== textarea && textarea.value !== notes) {
+      textarea.value = notes
+    }
+    dom.classList.toggle('is-empty', !notes.trim())
+    dom.classList.toggle('is-selected', selected)
+    window.requestAnimationFrame(() => autosizeExplanation(textarea))
+    decorations.push(
+      Decoration.widget(offset + node.nodeSize, dom, {
+        side: 1,
+        key: `explanation-${nodeId}`,
+        stopEvent: () => true,
+        ignoreSelection: true,
+      }),
+    )
+  })
+  return DecorationSet.create(state.doc, decorations)
+}
+
+const BlockExplanations = Extension.create({
+  name: 'blockExplanations',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: explanationPluginKey,
+        props: {
+          decorations: state => buildExplanationDecorations(state),
+        },
+      }),
+    ]
+  },
+})
+
 editor = new Editor({
   element: $('#editor'),
   extensions: [
     StarterKit,
+    BlockExplanations,
     ImageBlock,
     ScreenRecordingBlock,
     ExplainerBlock,
@@ -3888,8 +4012,19 @@ const renderBackgroundPresets = (config: BlockRenderConfigV1) => {
 const syncExplainerTeleprompter = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   const panel = $('#explainer-teleprompter') as HTMLElement
-  if (!scene || scene.node.type !== 'explainer') {
+  if (!scene) {
     panel.hidden = true
+    return
+  }
+  if (scene.node.type !== 'explainer') {
+    // Ordinary blocks read their explanation — the same text the notebook
+    // card and the recording coach edit.
+    const notes = project.blocks[scene.id]?.speakerNotes?.trim() || ''
+    panel.hidden = !notes
+    if (!notes) return
+    ;($('#teleprompter-step') as HTMLElement).textContent = 'script'
+    ;($('#teleprompter-title') as HTMLElement).textContent = 'Explanation'
+    ;($('#teleprompter-text') as HTMLElement).textContent = notes
     return
   }
   const plan = sanitizeExplainerPlan(
@@ -4023,6 +4158,7 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
     }
   }
   selectedNodeId = nodeId
+  refreshExplanations()
   document
     .querySelectorAll('.tiptap > .selected-block')
     .forEach(element => element.classList.remove('selected-block'))
