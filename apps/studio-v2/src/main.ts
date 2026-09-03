@@ -388,7 +388,7 @@ const IMAGE_LAYOUT_META: Partial<
   Record<SceneLayout, { label: string; description: string; lines: number }>
 > = {
   prose: { label: 'Gallery frame', description: 'Large editorial image', lines: 1 },
-  title: { label: 'Hero crop', description: 'Cinematic centered crop', lines: 1 },
+  title: { label: 'Hero frame', description: 'Edge to edge, never cropped', lines: 1 },
   split: { label: 'Inset card', description: 'Balanced, uncropped frame', lines: 1 },
 }
 

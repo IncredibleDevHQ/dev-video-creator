@@ -1030,7 +1030,9 @@ const buildCompositionHtml = (
     .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image img { width: auto; max-width: 100%; height: auto; min-height: 0; max-height: 680px; margin: auto; border-radius: max(0px, calc(var(--block-radius) - 14px)); object-fit: contain; }
     .scene:has(.media-image):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
     .scene:has(.media-image):not(.theme-render-full).layout-title .media-image { min-height: 760px; }
-    .scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { min-height: 760px; max-height: 760px; object-fit: cover; }
+    /* Hero: edge to edge and chromeless, but never cropped — a 16:9 slide or a
+       tall photo letterboxes inside the 760px band instead of losing its edges. */
+    .scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { height: 760px; min-height: 0; max-height: 760px; object-fit: contain; }
     .scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 56%; max-width: 56%; margin-left: 0; margin-right: auto; }
     .scene:has(.media-image):not(.theme-render-full).layout-split .media-image { min-height: 0; padding: 20px; border: 1px solid color-mix(in srgb, var(--text) 16%, transparent); background: color-mix(in srgb, var(--surface) 94%, transparent); box-shadow: 0 38px 110px rgba(0,0,0,.25); }
     .scene:has(.media-image):not(.theme-render-full).layout-split .media-image img { width: auto; max-width: 100%; height: auto; min-height: 0; max-height: 620px; margin: auto; border-radius: max(0px, calc(var(--block-radius) - 16px)); object-fit: contain; }
@@ -1040,7 +1042,7 @@ const buildCompositionHtml = (
        cover bleed; Inset = narrower centered card. */
     .scene:has(.media-image):not(.theme-render-full).layout-prose .media-image { width: 100%; margin-inline: 0; }
     .scene:has(.media-image):not(.theme-render-full).layout-title .media-image { width: 100%; margin-inline: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
-    .scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { width: 100%; min-height: 760px; }
+    .scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { width: 100%; }
     .scene:has(.media-image):not(.theme-render-full).layout-split .media-image { width: min(68%, 1000px); margin-inline: auto; }
     /* Alignment acts on the image too — the content box is pinned by
        presenter geometry. Gallery: image hugs the frame edge or centers;
