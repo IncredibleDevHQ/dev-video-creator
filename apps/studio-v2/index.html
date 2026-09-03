@@ -130,10 +130,16 @@
             <span class="back-mark" aria-hidden="true">‹</span>
             <img id="studio-logo" alt="Incredible Studio" />
           </a>
-          <label class="project-title">
-            <span class="sr-only">Project title</span>
-            <input id="project-title" value="Human-first developer story" />
-          </label>
+          <div class="project-title">
+            <div class="notebook-menu">
+              <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Switch notebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Notebooks <span aria-hidden="true">⌄</span></button>
+              <div id="notebook-menu-list" class="notebook-menu-list" role="menu" hidden></div>
+            </div>
+            <label class="project-title-field">
+              <span class="sr-only">Project title</span>
+              <input id="project-title" value="Human-first developer story" />
+            </label>
+          </div>
           <div class="topbar-actions">
             <div class="save-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><strong id="save-state">Saved</strong></div>
             <button id="render-video" type="button" class="button primary" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Publish</button>

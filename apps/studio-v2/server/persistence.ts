@@ -101,6 +101,50 @@ export const loadProjectArtifact = async (projectId: string) => {
   return result.rows[0]?.artifact || null
 }
 
+export type ProjectArtifactSummary = {
+  id: string
+  title: string
+  blockCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+// Every saved notebook, newest first — the switcher's list.
+export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> => {
+  await initializePersistence()
+  const result = await database.query<{
+    id: string
+    title: string
+    block_count: string | number
+    created_at: string | Date
+    updated_at: string | Date
+  }>(
+    `select n.id, n.title,
+       (select count(*) from studio_blocks b where b.notebook_id = n.id) as block_count,
+       n.created_at, n.updated_at
+     from studio_notebooks n
+     order by n.updated_at desc`,
+  )
+  return result.rows.map(row => ({
+    id: row.id,
+    title: row.title,
+    blockCount: Number(row.block_count) || 0,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+  }))
+}
+
+// Removing a notebook cascades to its blocks, assets and recorded takes in
+// the database; the objects stay in the bucket (cheap, and recoverable).
+export const deleteProjectArtifact = async (projectId: string) => {
+  await initializePersistence()
+  const result = await database.query(
+    'delete from studio_notebooks where id = $1',
+    [projectId],
+  )
+  return (result.rowCount || 0) > 0
+}
+
 export const loadLatestProjectArtifact = async () => {
   await initializePersistence()
   const result = await database.query<{ artifact: ProjectDocumentV1 }>(

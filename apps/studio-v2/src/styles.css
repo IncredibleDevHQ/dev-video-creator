@@ -39,7 +39,8 @@ h1, h2, h3, h4, strong { font-family: 'Gilroy', sans-serif; }
 .brand { display: flex; align-items: center; gap: 10px; color: white; text-decoration: none; }
 .brand img { display: block; width: 82px; height: 24px; }
 .back-mark { color: #a1a1aa; font: 30px/1 Inter, sans-serif; transform: translateY(-1px); }
-.project-title { justify-self: center; width: min(500px, 100%); }
+.project-title { justify-self: center; width: min(560px, 100%); display: flex; align-items: center; gap: 6px; }
+.project-title-field { flex: 1; min-width: 0; }
 .project-title input { width: 100%; padding: 4px 12px; border: 0; border-radius: 4px; outline: 0; background: transparent; color: rgba(255,255,255,.92); text-align: center; font-family: 'Gilroy'; font-size: 14px; font-weight: 700; }
 .project-title input:focus { background: rgba(255,255,255,.06); }
 .topbar-status { justify-self: end; display: flex; align-items: center; gap: 10px; color: #a1a1aa; font-size: 11px; }
@@ -1169,3 +1170,24 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .explainer-status.working { padding-left: 20px; position: relative; }
 .explainer-status.working::before { content: ""; position: absolute; left: 2px; top: 50%; width: 11px; height: 11px; margin-top: -6px; border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent); border-top-color: var(--brand); border-radius: 50%; animation: explainer-spin .7s linear infinite; }
 @keyframes explainer-spin { to { rotate: 360deg; } }
+
+/* ——— Notebook switcher ——— */
+.notebook-menu { position: relative; flex: none; }
+.notebook-menu-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border: 1px solid #3f3f46; border-radius: 6px; background: transparent; color: #d4d4d8; font-size: 10px; font-weight: 700; letter-spacing: .02em; cursor: pointer; }
+.notebook-menu-toggle svg { width: 12px; height: 12px; }
+.notebook-menu-toggle:hover, .notebook-menu-toggle[aria-expanded="true"] { background: rgba(255,255,255,.06); color: white; border-color: #52525b; }
+.notebook-menu-list { position: absolute; top: calc(100% + 8px); left: 0; z-index: 140; width: 340px; max-height: 60vh; overflow: auto; padding: 6px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 10px; background: #202024; box-shadow: 0 18px 48px rgba(0,0,0,.46); }
+.notebook-menu-list[hidden] { display: none; }
+.notebook-menu-create { display: grid; gap: 2px; padding: 9px 10px; border: 1px dashed #52525b; border-radius: 7px; background: rgba(132,239,173,.06); color: #e4e4e7; text-align: left; cursor: pointer; }
+.notebook-menu-create strong { font-size: 11px; color: var(--brand-light, #84efad); }
+.notebook-menu-create small { font-size: 10px; color: #a1a1aa; }
+.notebook-menu-create:hover { background: rgba(132,239,173,.12); }
+.notebook-menu-heading { padding: 8px 10px 4px; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #71717a; }
+.notebook-menu-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: 7px; }
+.notebook-menu-row:hover { background: #2a2a30; }
+.notebook-menu-row.is-current { background: rgba(255,255,255,.05); box-shadow: inset 2px 0 0 var(--brand-light, #84efad); }
+.notebook-menu-open { display: grid; gap: 2px; min-width: 0; padding: 8px 10px; border: 0; background: transparent; color: #e4e4e7; text-align: left; cursor: pointer; }
+.notebook-menu-open strong { font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notebook-menu-open small { font-size: 10px; color: #a1a1aa; }
+.notebook-menu-delete { width: 26px; height: 26px; margin-right: 6px; border: 0; border-radius: 6px; background: transparent; color: #71717a; font-size: 14px; line-height: 1; cursor: pointer; }
+.notebook-menu-delete:hover { background: rgba(255,120,100,.14); color: #ff9b8a; }

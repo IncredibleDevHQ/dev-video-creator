@@ -323,6 +323,8 @@ const video = await hyperframes.render(story)
 \`\`\``
 
 const STORAGE_KEY = 'incredible-studio-v2-project'
+// Which saved notebook the studio opens; set by the notebook switcher.
+const ACTIVE_PROJECT_KEY = 'incredible-studio-v2-active-project'
 const THEME_STORAGE_KEY = 'incredible-studio-v2-themes'
 const WORKER_URL = import.meta.env.VITE_RENDER_WORKER_URL || ''
 const LEGACY_MVP_BRAND = {
@@ -1658,24 +1660,56 @@ const readStoredProject = (): ProjectDocumentV1 | null => {
 }
 
 const localProject = readStoredProject()
+// The notebook to open: an explicit pick from the switcher wins, then the
+// locally cached notebook, then whatever was saved most recently.
+const activeProjectId = window.localStorage.getItem(ACTIVE_PROJECT_KEY) || ''
 
 const readPersistedProject = async (
   local: ProjectDocumentV1 | null,
 ): Promise<ProjectDocumentV1 | null> => {
-  try {
-    const path = local
+  const path = activeProjectId
+    ? `/api/projects/${encodeURIComponent(activeProjectId)}`
+    : local
       ? `/api/projects/${encodeURIComponent(local.id)}`
       : '/api/projects/latest'
-    const response = await fetch(`${WORKER_URL}${path}`)
-    if (!response.ok) return null
-    const body = (await response.json()) as { project?: ProjectDocumentV1 | null }
-    return body.project?.version === 1 ? body.project : null
-  } catch {
-    return null
+  // The worker often boots a beat after the dev server; a failed fetch must
+  // not silently spawn a fresh notebook, so retry briefly before giving up.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const response = await fetch(`${WORKER_URL}${path}`)
+      if (response.ok) {
+        const body = (await response.json()) as { project?: ProjectDocumentV1 | null }
+        return body.project?.version === 1 ? body.project : null
+      }
+    } catch {
+      // retry below
+    }
+    await new Promise(resolve => window.setTimeout(resolve, 800))
   }
+  return null
 }
 
-const storedProject = (await readPersistedProject(localProject)) || localProject
+const persistedProject = await readPersistedProject(localProject)
+const storedProject =
+  persistedProject ||
+  (localProject && (!activeProjectId || localProject.id === activeProjectId)
+    ? localProject
+    : null)
+
+const blankProjectDocument = (title: string): ProjectDocumentV1 => ({
+  version: 1,
+  id: crypto.randomUUID(),
+  title,
+  notebook: { type: 'doc', content: [] },
+  fps: 30,
+  width: 1920,
+  height: 1080,
+  blocks: {},
+  presenterTracks: {},
+  recordedBlocks: {},
+  brand: { ...defaultBrand },
+  theme: structuredClone(defaultStudioTheme),
+})
 
 if (
   storedProject &&
@@ -1688,21 +1722,7 @@ if (
 }
 
 let project: ProjectDocumentV1 =
-  storedProject ||
-  ({
-    version: 1,
-    id: crypto.randomUUID(),
-    title: 'Human-first developer story',
-    notebook: { type: 'doc', content: [] },
-    fps: 30,
-    width: 1920,
-    height: 1080,
-    blocks: {},
-    presenterTracks: {},
-    recordedBlocks: {},
-    brand: { ...defaultBrand },
-    theme: structuredClone(defaultStudioTheme),
-  } satisfies ProjectDocumentV1)
+  storedProject || blankProjectDocument('Human-first developer story')
 
 project.theme = normalizeStudioTheme(project.theme, project.brand)
 project.brand = { ...project.theme.brand }
@@ -1717,6 +1737,7 @@ Object.entries(project.recordedBlocks).forEach(([blockId, recording]) => {
 })
 // Heal documents saved before blob: sources were kept out of persistence.
 sanitizeNotebookMedia(project.notebook)
+window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 
 const cloneTheme = (theme: StudioThemeV1): StudioThemeV1 =>
   structuredClone(theme)
@@ -5085,6 +5106,123 @@ document.addEventListener('click', event => {
 ;($('#project-title') as HTMLInputElement).addEventListener('input', event => {
   project.title = (event.currentTarget as HTMLInputElement).value
   scheduleSync()
+})
+
+// ——— Notebook switcher ———
+// Every saved notebook lives in the worker's database; the switcher lists
+// them, opens one (a reload with the pick remembered), creates blank ones,
+// and deletes ones you no longer need.
+const notebookMenuToggle = $('#notebook-menu-toggle') as HTMLButtonElement
+const notebookMenuList = $('#notebook-menu-list') as HTMLElement
+
+const closeNotebookMenu = () => {
+  notebookMenuList.hidden = true
+  notebookMenuToggle.setAttribute('aria-expanded', 'false')
+}
+
+const openNotebook = async (notebookId: string) => {
+  if (notebookId !== project.id) {
+    // Flush the current notebook before leaving it.
+    project.notebook = editor.getJSON() as TiptapDocument
+    ensureBlockConfiguration(project.notebook)
+    try {
+      await persistProjectNow(structuredClone(project))
+    } catch {
+      // The switch still proceeds; the local cache keeps the edits.
+    }
+  }
+  window.localStorage.setItem(ACTIVE_PROJECT_KEY, notebookId)
+  window.localStorage.removeItem(STORAGE_KEY)
+  window.location.reload()
+}
+
+const createNotebook = async () => {
+  const fresh = blankProjectDocument('Untitled notebook')
+  if (project.theme) {
+    fresh.theme = structuredClone(project.theme)
+    fresh.brand = { ...project.theme.brand }
+  }
+  await persistProjectNow(structuredClone(fresh))
+  await openNotebook(fresh.id)
+}
+
+const deleteNotebook = async (notebookId: string, title: string) => {
+  if (!window.confirm(`Delete the notebook "${title}"? Its recordings and assets go with it.`)) return
+  await fetchJson<{ deleted: boolean }>(
+    `/api/projects/${encodeURIComponent(notebookId)}`,
+    { method: 'DELETE' },
+  )
+  if (notebookId === project.id) {
+    window.localStorage.removeItem(ACTIVE_PROJECT_KEY)
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.location.reload()
+    return
+  }
+  await renderNotebookMenu()
+}
+
+const renderNotebookMenu = async () => {
+  const { projects } = await fetchJson<{
+    projects: Array<{ id: string; title: string; blockCount: number; updatedAt: string }>
+  }>('/api/projects')
+  notebookMenuList.replaceChildren()
+  const create = document.createElement('button')
+  create.type = 'button'
+  create.className = 'notebook-menu-create'
+  create.innerHTML = '<strong>+ New notebook</strong><small>Start a blank story with the current theme</small>'
+  create.addEventListener('click', () => void createNotebook())
+  notebookMenuList.append(create)
+  const heading = document.createElement('div')
+  heading.className = 'notebook-menu-heading'
+  heading.textContent = `Saved notebooks · ${projects.length}`
+  notebookMenuList.append(heading)
+  projects.forEach(entry => {
+    const row = document.createElement('div')
+    row.className = `notebook-menu-row${entry.id === project.id ? ' is-current' : ''}`
+    const open = document.createElement('button')
+    open.type = 'button'
+    open.className = 'notebook-menu-open'
+    const updated = new Date(entry.updatedAt)
+    open.innerHTML = `<strong></strong><small>${entry.blockCount} block${entry.blockCount === 1 ? '' : 's'} · ${updated.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${updated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}${entry.id === project.id ? ' · open now' : ''}</small>`
+    ;(open.querySelector('strong') as HTMLElement).textContent = entry.title || 'Untitled notebook'
+    open.addEventListener('click', () => void openNotebook(entry.id))
+    const remove = document.createElement('button')
+    remove.type = 'button'
+    remove.className = 'notebook-menu-delete'
+    remove.setAttribute('aria-label', `Delete ${entry.title}`)
+    remove.textContent = '×'
+    remove.addEventListener('click', event => {
+      event.stopPropagation()
+      void deleteNotebook(entry.id, entry.title || 'Untitled notebook')
+    })
+    row.append(open, remove)
+    notebookMenuList.append(row)
+  })
+}
+
+notebookMenuToggle.addEventListener('click', async () => {
+  if (!notebookMenuList.hidden) {
+    closeNotebookMenu()
+    return
+  }
+  notebookMenuList.hidden = false
+  notebookMenuToggle.setAttribute('aria-expanded', 'true')
+  notebookMenuList.innerHTML = '<div class="notebook-menu-heading">Loading notebooks…</div>'
+  try {
+    await renderNotebookMenu()
+  } catch (error) {
+    const failure = document.createElement('div')
+    failure.className = 'notebook-menu-heading'
+    failure.textContent = error instanceof Error ? error.message : 'Could not list notebooks'
+    notebookMenuList.replaceChildren(failure)
+  }
+})
+document.addEventListener('click', event => {
+  if (notebookMenuList.hidden) return
+  const target = event.target as Node
+  if (!notebookMenuList.contains(target) && !notebookMenuToggle.contains(target)) {
+    closeNotebookMenu()
+  }
 })
 
 ;($('#layout') as HTMLSelectElement).addEventListener('change', event => {

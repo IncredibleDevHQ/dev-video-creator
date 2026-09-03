@@ -31,7 +31,9 @@ import {
 } from 'markdown-composition'
 import {
   getObject,
+  deleteProjectArtifact,
   getObjectMetadata,
+  listProjectArtifacts,
   loadLatestProjectArtifact,
   loadProjectArtifact,
   persistenceHealth,
@@ -106,7 +108,7 @@ const setCors = (request: IncomingMessage, response: ServerResponse) => {
   ) {
     response.setHeader('access-control-allow-origin', origin)
   }
-  response.setHeader('access-control-allow-methods', 'GET,POST,PUT,OPTIONS')
+  response.setHeader('access-control-allow-methods', 'GET,POST,PUT,DELETE,OPTIONS')
   response.setHeader(
     'access-control-allow-headers',
     'content-type,x-asset-name,x-project-id,x-block-id,x-duration-ms',
@@ -1816,6 +1818,10 @@ const server = createServer(async (request, response) => {
       })
       return
     }
+    if (request.method === 'GET' && url.pathname === '/api/projects') {
+      json(response, 200, { projects: await listProjectArtifacts() })
+      return
+    }
     if (request.method === 'GET' && url.pathname === '/api/projects/latest') {
       json(response, 200, { project: await loadLatestProjectArtifact() })
       return
@@ -1831,6 +1837,12 @@ const server = createServer(async (request, response) => {
       if (!projectId || project.id !== projectId) throw new Error('Project ID mismatch')
       await saveProjectArtifact(project)
       json(response, 200, { projectId, saved: true })
+      return
+    }
+    if (request.method === 'DELETE' && url.pathname.startsWith('/api/projects/')) {
+      const projectId = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
+      if (!projectId) throw new Error('Project ID is required')
+      json(response, 200, { projectId, deleted: await deleteProjectArtifact(projectId) })
       return
     }
     if (request.method === 'GET' && url.pathname === '/runtime/gsap.min.js') {
