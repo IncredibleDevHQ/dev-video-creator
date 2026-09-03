@@ -327,7 +327,7 @@ describe('compileProject', () => {
       '.scene:has(.media-image):not(.theme-render-full).layout-prose .content { width: 80%;',
     )
     expect(result.html).toContain(
-      '.scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { min-height: 760px;',
+      '.scene:has(.media-image):not(.theme-render-full).layout-title .media-image img { height: 760px; min-height: 0;',
     )
     expect(result.html).toContain(
       '.scene:has(.media-image):not(.theme-render-full).layout-split .content { width: 56%;',
