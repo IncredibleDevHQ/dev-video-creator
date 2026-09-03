@@ -110,7 +110,10 @@ export const createDefaultBlockConfig = (
           node.type === 'explainer'
         ? 'fade'
         : 'rise',
-  alignment: node.type === 'heading' ? 'center' : 'left',
+  alignment:
+    node.type === 'heading' || node.type === 'image' || node.type === 'screenRecording'
+      ? 'center'
+      : 'left',
   background: {
     preset: 'brand',
     color: defaultBrand.background,
@@ -1051,6 +1054,13 @@ const buildCompositionHtml = (
     .scene:has(.media-image):not(.theme-render-full).layout-prose.align-left .media-image img { margin-left: 0; }
     .scene:has(.media-image):not(.theme-render-full).layout-title.align-left .media-image img { object-position: left center; }
     .scene:has(.media-image):not(.theme-render-full).layout-split.align-left .media-image { margin-inline: 0 auto; }
+    /* Left alignment only pushes media aside when a presenter shares the
+       frame; with the camera hidden or absent the media sits centred. */
+    .scene:has(.media-image):not(.theme-render-full):is(.camera-position-hidden,.camera-absent).layout-prose .content { margin-inline: auto; }
+    .scene:has(.media-image):not(.theme-render-full):is(.camera-position-hidden,.camera-absent).layout-prose.align-left .media-image img { margin-inline: auto; }
+    .scene:has(.media-image):not(.theme-render-full):is(.camera-position-hidden,.camera-absent).layout-title.align-left .media-image img { object-position: center; }
+    .scene:has(.media-image):not(.theme-render-full):is(.camera-position-hidden,.camera-absent).layout-split.align-left .media-image { margin-inline: auto; }
+    .scene:has(.media-screen):not(.theme-render-full):is(.camera-position-hidden,.camera-absent) .content { margin-inline: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-prose .content { width: 84%; max-width: 84%; margin-left: 0; margin-right: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-title .content { width: 100%; max-width: 100%; margin-inline: auto; }
     .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen, .scene:has(.media-screen):not(.theme-render-full).layout-title .media-screen video { min-height: 760px; max-height: 760px; }
