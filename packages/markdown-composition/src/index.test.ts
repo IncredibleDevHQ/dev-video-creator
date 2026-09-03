@@ -554,7 +554,7 @@ describe('compileProject', () => {
       '.scene-kind-list.theme-render-number-grid ul, .scene-kind-list.theme-render-number-grid ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));'
     )
     expect(result.html).toContain(
-      '.scene-kind-list li { word-break: normal; overflow-wrap: break-word; text-wrap: pretty; }'
+      '.scene-kind-list li { margin-bottom: 18px; font-size: 48px; word-break: normal; overflow-wrap: break-word; text-wrap: pretty; }'
     )
   })
 

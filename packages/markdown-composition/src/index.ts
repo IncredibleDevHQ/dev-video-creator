@@ -747,7 +747,7 @@ const buildCompositionHtml = (
 
       return `<section
         id="scene-${scene.index}"
-        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation} media-border-${scene.config.mediaFrame.borderWidth} media-corners-${scene.config.mediaFrame.corners} media-depth-${scene.config.mediaFrame.elevation}${recordedTakeUrl ? ' has-recorded-take' : ''}"
+        class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation} media-border-${scene.config.mediaFrame.borderWidth} media-corners-${scene.config.mediaFrame.corners} media-depth-${scene.config.mediaFrame.elevation}${recordedTakeUrl ? ' has-recorded-take' : ''}${hasRecordedCamera || recordedTakeUrl || previewPresenterUrl ? '' : ' camera-absent'}${listDensityClass(scene.node)}"
         data-start="${scene.startSeconds}"
         data-duration="${scene.durationSeconds + frameTransitionSeconds(scenes[scene.index + 1])}"
         data-track-index="${scene.index}"
@@ -947,18 +947,18 @@ const buildCompositionHtml = (
     #composition[data-surface-style="none"] .scene::before { display: none; }
     #composition[data-surface-style="card"] .scene::before { border-color: transparent; background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: 0 32px 90px rgba(0,0,0,.16); }
     .scene-index { color: var(--primary); font-size: 24px; font-weight: 800; letter-spacing: .18em; }
-    .content { align-self: center; width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); max-width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); min-width: 0; overflow-wrap: anywhere; }
+    .content { align-self: center; width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); max-width: min(100%, var(--content-layout-width), var(--presenter-safe-width)); min-width: 0; overflow-wrap: break-word; }
     .align-center .content { margin-inline: auto; text-align: center; }
-    h1, h2, h3 { max-width: 100%; margin: 0; font-weight: 760; letter-spacing: -.055em; line-height: .98; text-wrap: balance; overflow-wrap: anywhere; }
+    h1, h2, h3 { max-width: 100%; margin: 0; font-weight: 760; letter-spacing: -.055em; line-height: .98; text-wrap: balance; overflow-wrap: break-word; }
     h1 { font-size: 124px; } h2 { font-size: 94px; } h3 { font-size: 74px; }
-    p, li, blockquote { max-width: 100%; font-size: 55px; line-height: 1.24; letter-spacing: -.025em; overflow-wrap: anywhere; }
+    p, li, blockquote { max-width: 100%; font-size: 55px; line-height: 1.24; letter-spacing: -.025em; overflow-wrap: break-word; }
     p { margin: 0 0 28px; } ul, ol { margin: 0; padding-left: 1.1em; } li { margin: 0 0 22px; padding-left: .25em; }
-    .scene-kind-list li { word-break: normal; overflow-wrap: break-word; text-wrap: pretty; }
+    .scene-kind-list li { margin-bottom: 18px; font-size: 48px; word-break: normal; overflow-wrap: break-word; text-wrap: pretty; }
     .scene-kind-list.theme-render-bullets ul, .scene-kind-list.theme-render-bullets ol { padding: 0; list-style: none; }
     .scene-kind-list.theme-render-bullets li { position: relative; padding-left: 52px; }
     .scene-kind-list.theme-render-bullets li::before { content: ""; position: absolute; top: .46em; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--brand-gradient); box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 13%, transparent); }
     .scene-kind-list.theme-render-cards ul, .scene-kind-list.theme-render-cards ol { padding: 0; display: grid; gap: 16px; list-style: none; }
-    .scene-kind-list.theme-render-cards li { margin: 0; padding: 24px 30px; border: 1px solid color-mix(in srgb, var(--text) 17%, transparent); border-radius: min(var(--block-radius), 28px); background: color-mix(in srgb, var(--surface) 88%, transparent); box-shadow: 0 14px 38px rgba(0,0,0,.1); }
+    .scene-kind-list.theme-render-cards li { margin: 0; padding: 18px 26px; border: 1px solid color-mix(in srgb, var(--text) 17%, transparent); border-radius: min(var(--block-radius), 28px); background: color-mix(in srgb, var(--surface) 88%, transparent); box-shadow: 0 14px 38px rgba(0,0,0,.1); }
     .scene-kind-list.theme-render-timeline ul, .scene-kind-list.theme-render-timeline ol { padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 26px; list-style: none; counter-reset: theme-step; }
     .scene-kind-list.theme-render-timeline li { min-width: 0; margin: 0; padding: 82px 12px 0; position: relative; font-size: clamp(28px, 2.05vw, 40px); line-height: 1.18; text-align: center; counter-increment: theme-step; }
     .scene-kind-list.theme-render-timeline li::before { content: counter(theme-step, decimal-leading-zero); position: absolute; top: 0; left: 50%; width: 58px; height: 58px; translate: -50% 0; display: grid; place-items: center; border: 1px solid color-mix(in srgb, white 22%, transparent); border-radius: 50%; background: var(--brand-gradient); color: white; box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 28%, transparent); font-size: 20px; font-weight: 850; }
@@ -987,7 +987,8 @@ const buildCompositionHtml = (
     .scene-kind-quote.theme-render-pull blockquote::before { content: "“"; position: absolute; left: 0; top: -28px; color: var(--primary); font-size: 170px; line-height: 1; }
     .scene-kind-quote.theme-render-speech blockquote { position: relative; padding: 54px; border: 0; border-radius: var(--block-radius); background: var(--surface); color: var(--text); }
     .scene-kind-quote.theme-render-speech blockquote::after { content: ""; position: absolute; left: 64px; bottom: -30px; border: 16px solid transparent; border-top-color: var(--surface); }
-    .scene-kind-quote.theme-render-highlight blockquote { display: inline; padding: 8px 18px; border: 0; background: var(--accent); color: var(--bg); box-decoration-break: clone; }
+    .scene-kind-quote.theme-render-highlight blockquote { padding: 0; border: 0; background: transparent; }
+    .scene-kind-quote.theme-render-highlight blockquote p { display: inline; padding: .08em .3em; background: var(--accent); color: var(--bg); line-height: 1.5; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
     .scene-kind-quote.theme-render-framed blockquote { padding: 54px; border: 3px solid var(--accent); border-radius: var(--block-radius); color: var(--text); }
     .scene-kind-quote.theme-render-minimal blockquote { padding: 0; border: 0; color: var(--text); }
     .scene-kind-quote.theme-render-oversized blockquote { padding: 0; border: 0; color: var(--text); font-size: 96px; font-weight: 800; line-height: 1; }
@@ -1210,6 +1211,34 @@ const buildCompositionHtml = (
     .scene.scene-kind-code.presenter-portrait-rail pre code { font-size: clamp(20px, 1.88vw, 36px); }
     .scene.presenter-person-only > :not(.camera) { display: none; }
     .scene.camera-position-hidden { --presenter-safe-width: 100%; padding-right: 132px; }
+    /* No presenter on this scene (no recording, take or preview): give the
+       content the whole frame instead of reserving the camera's corner. */
+    .scene.camera-absent { --presenter-safe-width: 100%; padding-right: 132px; }
+    .scene.camera-absent > .content { position: static; display: block; max-width: min(100%, var(--content-layout-width)); }
+    .scene.camera-absent.theme-layout-center > .content, .scene.camera-absent:is(.theme-layout-upper,.theme-layout-lower) > .content { margin-inline: auto !important; }
+    .scene.camera-absent.theme-layout-right > .content { margin-left: auto !important; }
+    .scene.camera-absent::after { display: none; }
+    /* Centered lists: centre the block, keep the lines ragged-right so the
+       markers line up. */
+    .scene-kind-list:is(.theme-layout-center,.align-center,.theme-layout-upper,.theme-layout-lower):not(.presenter-person-background-left,.presenter-person-background-right):is(.theme-render-bullets,.theme-render-checklist,.theme-render-steps,.theme-render-compact,.theme-render-spotlight) :is(ul,ol) { width: fit-content; max-width: 100%; margin-inline: auto; text-align: left; }
+    /* Dense lists shrink before they overflow. */
+    .scene.scene-kind-list.list-dense li { font-size: 42px; margin-bottom: 14px; line-height: 1.22; }
+    .scene.scene-kind-list.list-packed li { font-size: 36px; margin-bottom: 10px; line-height: 1.2; }
+    .scene.scene-kind-list.list-dense:is(.theme-render-cards,.theme-render-pills) li { padding-block: 12px; }
+    .scene.scene-kind-list.list-packed:is(.theme-render-cards,.theme-render-pills) li { padding-block: 9px; }
+    .scene.scene-kind-list.list-dense.theme-render-pills li { font-size: 36px; }
+    .scene.scene-kind-list.list-packed.theme-render-pills li { font-size: 31px; }
+    .scene.scene-kind-list:is(.list-dense,.list-packed):is(.theme-render-number-grid,.theme-render-timeline) li { font-size: 34px; }
+    .scene.scene-kind-list:is(.list-dense,.list-packed):is(.theme-render-cards,.theme-render-pills,.theme-render-number-grid,.theme-render-timeline) :is(ul,ol) { gap: 12px; }
+    /* Grids collapse to one column in narrow layouts instead of shredding words. */
+    .scene-kind-list:is(.theme-layout-split-left,.theme-layout-split-right,.theme-layout-left,.theme-layout-right).theme-render-number-grid :is(ul,ol) { grid-template-columns: 1fr; }
+    .scene-kind-list:is(.theme-layout-split-left,.theme-layout-split-right).theme-render-timeline :is(ul,ol) { grid-template-columns: 1fr; }
+    .scene-kind-list:is(.theme-layout-split-left,.theme-layout-split-right).theme-render-columns :is(ul,ol) { columns: 1; }
+    /* Code needs width more than it needs margins: wrapped lines are worse. */
+    .scene-kind-code:is(.theme-layout-center,.theme-layout-left,.theme-layout-right,.theme-layout-upper,.theme-layout-lower) { --content-layout-width: 90%; }
+    /* Code is never centred text, whatever the layout's alignment. */
+    .scene-kind-code pre, .scene-kind-code pre code { text-align: left; }
+    .scene-kind-content.theme-render-caption p { font-size: 40px; }
     .camera-hidden { display: none; }
   </style>
 </head>
@@ -1218,6 +1247,43 @@ const buildCompositionHtml = (
     ${sceneMarkup}
   </div>
   <script>
+    // Shrink-to-fit: a scene's content row has a fixed height, but a long
+    // list, a tall image or a big quote can need more. Rather than clip or
+    // spill into the footer, measure each scene once its fonts are ready and
+    // zoom the content down just enough to fit (never below 55%).
+    (function () {
+      var fit = function () {
+        document.querySelectorAll('.scene').forEach(function (scene) {
+          var content = scene.querySelector(':scope > .content');
+          if (!content) return;
+          // Presenter-led scenes position their content with authored
+          // geometry; leave those alone entirely.
+          if (getComputedStyle(content).position === 'absolute') return;
+          if (!('fitBaseWidth' in content.dataset)) {
+            content.dataset.fitBaseWidth = content.style.width || '';
+          }
+          content.style.zoom = '';
+          content.style.width = content.dataset.fitBaseWidth;
+          var style = getComputedStyle(scene);
+          var tracks = style.gridTemplateRows.split(' ').map(parseFloat);
+          if (tracks.length < 3 || tracks.some(isNaN)) return;
+          var gap = parseFloat(style.rowGap) || 0;
+          var available = scene.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) - tracks[0] - tracks[2] - gap * 2;
+          var box = content.getBoundingClientRect();
+          var needed = box.height;
+          if (needed > available + 1 && available > 0) {
+            // Lock the width first so zoom scales the existing layout instead
+            // of reflowing it (auto-fit grids would otherwise gain columns).
+            content.style.width = box.width + 'px';
+            content.style.zoom = String(Math.max(0.55, available / needed));
+          }
+        });
+      };
+      fit();
+      window.addEventListener('load', fit);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      window.__fitScenes = fit;
+    })();
     var tl = gsap.timeline({ paused: true });
     tl.to({}, { duration: ${durationSeconds} }, 0);
     ${animationMarkup}
@@ -1227,6 +1293,14 @@ const buildCompositionHtml = (
   <script src="${escapeHtml(hyperframesRuntimeUrl)}"></script>
 </body>
 </html>`
+}
+
+// Lists with many items get a denser type scale so they never run past the
+// frame; the class names let the stylesheet pick the scale.
+const listDensityClass = (node: TiptapNode) => {
+  if (node.type !== 'bulletList' && node.type !== 'orderedList') return ''
+  const count = (node.content || []).filter(item => item.type === 'listItem').length
+  return count >= 7 ? ' list-packed' : count >= 5 ? ' list-dense' : ''
 }
 
 export const compileProject = (
