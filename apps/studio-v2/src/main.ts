@@ -44,9 +44,10 @@ import {
   type ThemeCodeSyntax,
   type TiptapDocument,
   type TiptapNode,
+  sanitizeSlideSteps,
 } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
-import { ExplainerBlock, ImageBlock, ScreenRecordingBlock } from './media-nodes'
+import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import './styles.css'
 
 const studioLogoUrl = new URL(
@@ -441,7 +442,9 @@ const sceneVisualKind = (scene: Pick<Scene, 'kind' | 'node'>) =>
       ? 'screen'
       : scene.node.type === 'explainer'
         ? 'explainer'
-        : scene.kind
+        : scene.node.type === 'slide'
+          ? 'slide'
+          : scene.kind
 
 const TIMELINE_BLOCK_META = {
   title: { label: 'Title', icon: 'T' },
@@ -452,6 +455,7 @@ const TIMELINE_BLOCK_META = {
   image: { label: 'Image', icon: '▧' },
   screen: { label: 'Screen', icon: '▶' },
   explainer: { label: 'Explainer', icon: '◈' },
+  slide: { label: 'Slide', icon: '▤' },
 } as const
 
 const sceneObjectLabel = (scene: Pick<Scene, 'kind' | 'node'>) =>
@@ -574,6 +578,56 @@ let canvasRecordingTimer: number | undefined
 let canvasRecordingStep = 0
 let canvasRecordingTargets: Array<{ element: HTMLElement; style: string }> = []
 let canvasRecordingExplainerPlan: ExplainerPlanV1 | null = null
+// The narration steps of a stepped scene (explainer or slide): what the step
+// bar, teleprompter and recording coach walk through.
+let canvasRecordingSteps: Array<{ title: string; explanation: string }> = []
+
+const isSteppedKind = (kind: string) => kind === 'explainer' || kind === 'slide'
+
+const sceneStepScript = (
+  scene: Pick<Scene, 'node'>,
+): Array<{ title: string; explanation: string }> => {
+  if (scene.node.type === 'explainer') {
+    return sanitizeExplainerPlan(
+      scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
+      projectShapes(),
+    ).steps.map(step => ({ title: step.title, explanation: step.explanation }))
+  }
+  if (scene.node.type === 'slide') {
+    return sanitizeSlideSteps(scene.node.attrs?.steps).map(step => ({
+      title: step.title,
+      explanation: step.explanation,
+    }))
+  }
+  return []
+}
+
+// Animates a stepped scene's driver from progress 0 to 1 so a step reveal is
+// seen, not snapped; onProgress lets whoever re-asserts the step meanwhile
+// follow along.
+let stepAnimationTimer = 0
+const animateDriverStep = (
+  nodeId: string,
+  step: number,
+  onProgress: (progress: number) => void,
+  durationMs = 850,
+) =>
+  new Promise<void>(resolve => {
+    window.clearInterval(stepAnimationTimer)
+    const startedAt = performance.now()
+    const tick = () => {
+      const progress = Math.min(1, (performance.now() - startedAt) / durationMs)
+      explainerCompositionDriver(nodeId)?.setStep(step, progress)
+      onProgress(progress)
+      if (progress >= 1) {
+        window.clearInterval(stepAnimationTimer)
+        stepAnimationTimer = 0
+        resolve()
+      }
+    }
+    tick()
+    stepAnimationTimer = window.setInterval(tick, 16)
+  })
 let canvasRecordingContent: { element: HTMLElement; style: string } | null = null
 let canvasRecordingCodeStyles: Array<{ element: HTMLElement; style: string }> = []
 let canvasRecordingLines: HTMLElement[] = []
@@ -757,7 +811,7 @@ const updateRecordingCoachProgress = (message: string) => {
 
 const resetCanvasRecordingProgress = () => {
   const visualKind = canvasRecordingScene ? sceneVisualKind(canvasRecordingScene) : 'content'
-  if (visualKind === 'explainer' && canvasRecordingExplainerPlan) {
+  if (isSteppedKind(visualKind) && canvasRecordingSteps.length) {
     if (canvasRecordingScene) {
       explainerCompositionDriver(canvasRecordingScene.id)?.setStep(0, 0)
     }
@@ -768,7 +822,7 @@ const resetCanvasRecordingProgress = () => {
     canvasRecordingStep = 0
     nextAnimationStepButton.disabled = false
     updateRecordingCoachProgress(
-      `Ready · ${canvasRecordingExplainerPlan.steps.length} diagram steps to narrate`,
+      `Ready · ${canvasRecordingSteps.length} steps to narrate`,
     )
     return
   }
@@ -804,17 +858,17 @@ const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
   // step's entities, connectors and caption — the animation you talk over.
   if (
     canvasRecordingScene &&
-    sceneVisualKind(canvasRecordingScene) === 'explainer' &&
-    canvasRecordingExplainerPlan
+    isSteppedKind(sceneVisualKind(canvasRecordingScene)) &&
+    canvasRecordingSteps.length
   ) {
-    const plan = canvasRecordingExplainerPlan
-    if (canvasRecordingStep >= plan.steps.length) {
-      updateRecordingCoachProgress('Every diagram step has been shown')
+    const script = canvasRecordingSteps
+    if (canvasRecordingStep >= script.length) {
+      updateRecordingCoachProgress('Every step has been shown')
       return
     }
     const step = canvasRecordingStep
     if (canvasRecordingScene) {
-      explainerCompositionDriver(canvasRecordingScene.id)?.setStep(step, 1)
+      void animateDriverStep(canvasRecordingScene.id, step, () => {})
     }
     canvasRecordingTargets.forEach(({ element }) => {
       if (element.classList.contains('ex-caption')) {
@@ -837,7 +891,7 @@ const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
     })
     canvasRecordingStep += 1
     updateRecordingCoachProgress(
-      `Step ${step + 1} of ${plan.steps.length} · ${plan.steps[step]?.title || ''}`,
+      `Step ${step + 1} of ${script.length} · ${script[step]?.title || ''}`,
     )
     return
   }
@@ -1068,8 +1122,8 @@ const configureCanvasRecordingCoach = (scene: Scene) => {
         ]
       : visualKind === 'list'
         ? [{ action: 'next-beat', label: 'Next point', detail: 'Reveal the next idea', key: '→' }]
-        : visualKind === 'explainer'
-          ? [{ action: 'next-beat', label: 'Next step', detail: 'Reveal the next diagram step', key: '→' }]
+        : isSteppedKind(visualKind)
+          ? [{ action: 'next-beat', label: 'Next step', detail: visualKind === 'slide' ? 'Reveal the next part of the slide' : 'Reveal the next diagram step', key: '→' }]
           : [{ action: 'next-beat', label: 'Next beat', detail: `Reveal the ${meta.label.toLowerCase()}`, key: '→' }]
 
   canvasRecordingScene = scene
@@ -1079,7 +1133,9 @@ const configureCanvasRecordingCoach = (scene: Scene) => {
       ? 'Walk through each point'
       : visualKind === 'explainer'
         ? 'Narrate each diagram step'
-        : 'Talk over this block'
+        : visualKind === 'slide'
+          ? 'Narrate the slide step by step'
+          : 'Talk over this block'
   recordingCoachNumber.textContent = `Block ${String(scene.index + 1).padStart(2, '0')}`
   canvasRecordingProjectTitle.textContent = project.title
   canvasRecordingProjectBlock.textContent = `Block ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
@@ -1103,7 +1159,7 @@ const configureCanvasRecordingCoach = (scene: Scene) => {
       ? 'Next line ↓'
       : visualKind === 'list'
         ? 'Next point →'
-        : visualKind === 'explainer'
+        : isSteppedKind(visualKind)
           ? 'Next step →'
           : 'Next beat →'
 }
@@ -1130,7 +1186,7 @@ const prepareCanvasRecordingSteps = async (scene: Scene) => {
   content.style.setProperty('transform', 'none', 'important')
   content.style.setProperty('clip-path', 'none', 'important')
   configureCanvasRecordingCoach(scene)
-  if (visualKind === 'explainer') {
+  if (isSteppedKind(visualKind)) {
     const items = Array.from(
       sceneElement?.querySelectorAll<HTMLElement>(
         '[data-ex-step-reveal], .ex-caption',
@@ -1140,17 +1196,22 @@ const prepareCanvasRecordingSteps = async (scene: Scene) => {
       element,
       style: element.style.cssText,
     }))
-    canvasRecordingExplainerPlan = sanitizeExplainerPlan(
-      scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
-      mergedShapeCollection(project.shapeCollection),
-    )
+    canvasRecordingExplainerPlan =
+      visualKind === 'explainer'
+        ? sanitizeExplainerPlan(
+            scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
+            mergedShapeCollection(project.shapeCollection),
+          )
+        : null
+    canvasRecordingSteps = sceneStepScript(scene)
+    explainerCompositionDriver(scene.id)?.setStep(0, 0)
     canvasRecordingTargets.forEach(({ element }) => {
       element.getAnimations().forEach(animation => animation.cancel())
       element.style.setProperty('opacity', '0', 'important')
       element.style.setProperty('visibility', 'visible', 'important')
     })
     updateRecordingCoachProgress(
-      `Ready · ${canvasRecordingExplainerPlan.steps.length} diagram steps to narrate`,
+      `Ready · ${canvasRecordingSteps.length} steps to narrate`,
     )
     canvasRecordingStep = 0
     return
@@ -2659,7 +2720,7 @@ const buildExplanationDecorations = (state: EditorState) => {
   state.doc.forEach((node, offset) => {
     const nodeId = typeof node.attrs?.id === 'string' ? node.attrs.id : ''
     // Explainer blocks already carry their script as per-step lines.
-    if (!nodeId || node.type.name === 'explainer') return
+    if (!nodeId || node.type.name === 'explainer' || node.type.name === 'slide') return
     const notes = project.blocks[nodeId]?.speakerNotes || ''
     const selected = nodeId === selectedNodeId
     if (!notes && !selected) return
@@ -2707,6 +2768,7 @@ editor = new Editor({
     ImageBlock,
     ScreenRecordingBlock,
     ExplainerBlock,
+    SlideBlock,
     Markdown.configure({
       markedOptions: { gfm: true, breaks: false },
     }),
@@ -2721,6 +2783,7 @@ editor = new Editor({
         'image',
         'screenRecording',
         'explainer',
+        'slide',
       ],
     }),
   ],
@@ -4043,7 +4106,7 @@ const syncExplainerTeleprompter = () => {
     panel.hidden = true
     return
   }
-  if (scene.node.type !== 'explainer') {
+  if (!isSteppedKind(sceneVisualKind(scene))) {
     // Ordinary blocks read their explanation — the same text the notebook
     // card and the recording coach edit.
     const notes = project.blocks[scene.id]?.speakerNotes?.trim() || ''
@@ -4054,22 +4117,23 @@ const syncExplainerTeleprompter = () => {
     ;($('#teleprompter-text') as HTMLElement).textContent = notes
     return
   }
-  const plan = sanitizeExplainerPlan(
-    scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
-    projectShapes(),
-  )
-  const step = Math.min(canvasExplainerStep, plan.steps.length - 1)
+  const script = sceneStepScript(scene)
+  if (!script.length) {
+    panel.hidden = true
+    return
+  }
+  const step = Math.min(canvasExplainerStep, script.length - 1)
   panel.hidden = false
   ;($('#teleprompter-step') as HTMLElement).textContent =
-    `${step + 1}/${plan.steps.length}`
+    `${step + 1}/${script.length}`
   ;($('#teleprompter-title') as HTMLElement).textContent =
-    plan.steps[step]?.title || ''
+    script[step]?.title || ''
   ;($('#teleprompter-text') as HTMLElement).textContent =
-    plan.steps[step]?.explanation || ''
+    script[step]?.explanation || ''
 }
 
 const syncExplainerDirectorTabs = (scene: Scene) => {
-  const isExplainer = scene.node.type === 'explainer'
+  const isExplainer = isSteppedKind(sceneVisualKind(scene))
   const styleTab = document.querySelector<HTMLButtonElement>(
     '[data-director-tab="style"]',
   )
@@ -7030,20 +7094,20 @@ const explainerCompositionDriver = (nodeId: string) =>
 
 const canvasExplainerContext = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
-  if (!scene || scene.node.type !== 'explainer') return null
+  if (!scene || !isSteppedKind(sceneVisualKind(scene))) return null
   const sceneElement = player.iframeElement?.contentDocument?.querySelector<HTMLElement>(
     `#scene-${scene.index}`,
   )
   if (!sceneElement) return null
-  return {
-    scene,
-    sceneElement,
-    plan: sanitizeExplainerPlan(
-      scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
-      projectShapes(),
-    ),
-  }
+  return { scene, sceneElement, steps: sceneStepScript(scene) }
 }
+
+// Progress of the step currently shown on the canvas (1 = settled); the
+// keeper re-asserts it so an in-flight reveal is never snapped to the end.
+let canvasStepProgress = 1
+let canvasStepPlaying = false
+let canvasStepLoop = false
+let canvasStepPlayToken = 0
 
 const clearCanvasExplainerOverrides = () => {
   const context = canvasExplainerContext()
@@ -7067,10 +7131,10 @@ const applyCanvasExplainerStep = () => {
   const context = canvasExplainerContext()
   if (!context) return
   player.pause()
-  const stepCount = context.plan.steps.length
+  const stepCount = context.steps.length
   const step = Math.min(canvasExplainerStep, stepCount - 1)
-  // Canvas-agent blocks draw through their registered driver.
-  explainerCompositionDriver(selectedNodeId)?.setStep(step, 1)
+  // Canvas-agent and slide blocks draw through their registered driver.
+  explainerCompositionDriver(selectedNodeId)?.setStep(step, canvasStepProgress)
   context.sceneElement
     .querySelectorAll<HTMLElement>('[data-ex-step-reveal]')
     .forEach(element => {
@@ -7093,10 +7157,67 @@ const applyCanvasExplainerStep = () => {
     })
   const label = $('#ex-canvas-step-label') as HTMLElement
   label.textContent = `${step + 1}/${stepCount}`
-  label.title = context.plan.steps[step]?.title || ''
+  label.title = context.steps[step]?.title || ''
   syncExplainerTeleprompter()
   ;($('#ex-canvas-prev') as HTMLButtonElement).disabled = step === 0
-  ;($('#ex-canvas-next') as HTMLButtonElement).disabled = step >= stepCount - 1
+  ;($('#ex-canvas-next') as HTMLButtonElement).disabled =
+    step >= stepCount - 1 && !canvasStepLoop
+}
+
+// Shows step k with its reveal animated (not snapped), keeping the keeper in
+// step with the animation's progress.
+const showCanvasStepAnimated = async (step: number) => {
+  canvasExplainerStep = step
+  canvasStepProgress = 0
+  engageCanvasExplainerStepper()
+  await animateDriverStep(selectedNodeId, step, progress => {
+    canvasStepProgress = progress
+  })
+  canvasStepProgress = 1
+}
+
+const stopCanvasStepPlayback = () => {
+  canvasStepPlaying = false
+  canvasStepPlayToken += 1
+  const play = $('#ex-canvas-play') as HTMLButtonElement
+  play.classList.remove('is-playing')
+  play.title = 'Play the steps in order'
+  play.setAttribute('aria-pressed', 'false')
+}
+
+// Plays the steps in order: each reveal animates, then holds for a rehearsal
+// beat; with loop on, it starts over at the end.
+const playCanvasSteps = async () => {
+  const context = canvasExplainerContext()
+  if (!context) return
+  const token = ++canvasStepPlayToken
+  canvasStepPlaying = true
+  const play = $('#ex-canvas-play') as HTMLButtonElement
+  play.classList.add('is-playing')
+  play.title = 'Pause'
+  play.setAttribute('aria-pressed', 'true')
+  const last = context.steps.length - 1
+  let step = canvasExplainerStep >= last ? 0 : canvasExplainerStep
+  if (canvasExplainerStep >= last) {
+    explainerCompositionDriver(selectedNodeId)?.setStep(0, 0)
+  }
+  const pause = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms))
+  while (canvasStepPlaying && token === canvasStepPlayToken) {
+    await showCanvasStepAnimated(step)
+    if (!canvasStepPlaying || token !== canvasStepPlayToken) return
+    const words = context.steps[step]?.explanation.split(/\s+/).filter(Boolean).length || 0
+    await pause(Math.min(3200, 900 + words * 60))
+    if (!canvasStepPlaying || token !== canvasStepPlayToken) return
+    if (step >= last) {
+      if (!canvasStepLoop) break
+      step = 0
+      explainerCompositionDriver(selectedNodeId)?.setStep(0, 0)
+      await pause(500)
+    } else {
+      step += 1
+    }
+  }
+  if (token === canvasStepPlayToken) stopCanvasStepPlayback()
 }
 
 const engageCanvasExplainerStepper = () => {
@@ -7110,40 +7231,54 @@ const engageCanvasExplainerStepper = () => {
 
 const syncCanvasExplainerStepper = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
-  const isExplainer = scene?.node.type === 'explainer'
-  ;($('#explainer-step-bar') as HTMLElement).hidden = !isExplainer
+  const isStepped = Boolean(scene && isSteppedKind(sceneVisualKind(scene)))
+  ;($('#explainer-step-bar') as HTMLElement).hidden = !isStepped
   if (selectedNodeId !== canvasExplainerNodeId) {
+    stopCanvasStepPlayback()
     disengageCanvasExplainerStepper()
     canvasExplainerNodeId = selectedNodeId
     canvasExplainerStep = 0
-    if (isExplainer && scene) {
-      const plan = sanitizeExplainerPlan(
-        scene.node.attrs?.plan as ExplainerPlanV1 | undefined,
-        projectShapes(),
-      )
+    canvasStepProgress = 1
+    if (isStepped && scene) {
       const stepLabel = $('#ex-canvas-step-label') as HTMLElement
-      stepLabel.textContent = `0/${plan.steps.length}`
-      stepLabel.title = 'Restart to rehearse the animation step by step'
+      stepLabel.textContent = `0/${sceneStepScript(scene).length}`
+      stepLabel.title = 'Animate: play, step through, or loop the reveal'
     }
   }
 }
 
 ;($('#ex-canvas-restart') as HTMLButtonElement).addEventListener('click', () => {
-  canvasExplainerStep = 0
-  engageCanvasExplainerStepper()
+  stopCanvasStepPlayback()
+  explainerCompositionDriver(selectedNodeId)?.setStep(0, 0)
+  void showCanvasStepAnimated(0)
 })
 ;($('#ex-canvas-prev') as HTMLButtonElement).addEventListener('click', () => {
-  canvasExplainerStep = Math.max(0, canvasExplainerStep - 1)
-  engageCanvasExplainerStepper()
+  stopCanvasStepPlayback()
+  void showCanvasStepAnimated(Math.max(0, canvasExplainerStep - 1))
 })
 ;($('#ex-canvas-next') as HTMLButtonElement).addEventListener('click', () => {
   const context = canvasExplainerContext()
   if (!context) return
-  canvasExplainerStep = Math.min(
-    context.plan.steps.length - 1,
-    canvasExplainerStep + 1,
-  )
-  engageCanvasExplainerStepper()
+  stopCanvasStepPlayback()
+  const last = context.steps.length - 1
+  const wraps = canvasExplainerStep >= last && canvasStepLoop
+  if (wraps) explainerCompositionDriver(selectedNodeId)?.setStep(0, 0)
+  void showCanvasStepAnimated(wraps ? 0 : Math.min(last, canvasExplainerStep + 1))
+})
+;($('#ex-canvas-play') as HTMLButtonElement).addEventListener('click', () => {
+  if (canvasStepPlaying) {
+    stopCanvasStepPlayback()
+    return
+  }
+  void playCanvasSteps()
+})
+;($('#ex-canvas-loop') as HTMLButtonElement).addEventListener('click', event => {
+  canvasStepLoop = !canvasStepLoop
+  const button = event.currentTarget as HTMLButtonElement
+  button.classList.toggle('is-on', canvasStepLoop)
+  button.setAttribute('aria-pressed', String(canvasStepLoop))
+  button.title = canvasStepLoop ? 'Looping · click to stop at the last step' : 'Loop the steps continuously'
+  applyCanvasExplainerStep()
 })
 
 // Full-screen preview: same stage and step controls, viewport-sized — for

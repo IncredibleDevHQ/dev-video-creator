@@ -152,6 +152,68 @@ export const ExplainerBlock = Node.create({
   },
 })
 
+export const SlideBlock = Node.create({
+  name: 'slide',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      title: { default: '' },
+      // Authored SVG markup (sanitised and id-prefixed by the compiler).
+      svg: { default: '' },
+      // Raster preview for the notebook and thumbnails.
+      poster: { default: '' },
+      source: { default: '' },
+      // [{ title, explanation, reveals: [groupId], verb }]
+      steps: { default: [] },
+    }
+  },
+
+  parseHTML() {
+    return [{ tag: 'figure[data-block-type="slide"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const { title, svg, poster, source, steps, ...attributes } = HTMLAttributes
+    const stepList = Array.isArray(steps) ? (steps as Array<{ title?: string; explanation?: string }>) : []
+    return [
+      'figure',
+      mergeAttributes(attributes, {
+        'data-block-type': 'slide',
+        class: 'notebook-media-block notebook-slide-block',
+      }),
+      [
+        'div',
+        { class: 'notebook-explainer-prompt' },
+        ['span', { class: 'notebook-explainer-glyph' }, '▤'],
+        ['strong', {}, title ? String(title) : 'Slide'],
+      ],
+      poster
+        ? ['img', { src: String(poster), alt: String(title || 'Slide') }]
+        : ['div', { class: 'notebook-media-placeholder' }, ['span', {}, '▤'], ['strong', {}, 'Slide without a preview']],
+      stepList.length
+        ? [
+            'ol',
+            { class: 'notebook-explainer-steps' },
+            ...stepList.map((step, index) => [
+              'li',
+              {},
+              ['strong', {}, String(step?.title || `Step ${index + 1}`)],
+              ['p', {}, String(step?.explanation || '')],
+            ]),
+          ]
+        : ['div', { class: 'notebook-explainer-meta' }, 'No steps yet — the whole slide shows at once'],
+      [
+        'figcaption',
+        {},
+        `${stepList.length} animated step${stepList.length === 1 ? '' : 's'}${source ? ' · SVG source' : ''}`,
+      ],
+    ]
+  },
+})
+
 export const ScreenRecordingBlock = Node.create({
   name: 'screenRecording',
   group: 'block',

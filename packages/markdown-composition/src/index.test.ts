@@ -118,6 +118,48 @@ const projectWithEveryBlockKind = (): ProjectDocumentV1 => {
   }
 }
 
+describe('slide blocks', () => {
+  it('inlines the SVG with prefixed ids and registers a step driver', () => {
+    const slide: TiptapNode = {
+      type: 'slide',
+      attrs: {
+        id: 'slide-1',
+        title: 'Scaled dot-product attention',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720"><defs><marker id="arrow"></marker></defs><g id="formula"><text x="10" y="20">Attention</text></g><g id="flow" fill="none" stroke="#fff"><line x1="0" y1="0" x2="100" y2="0" marker-end="url(#arrow)" /></g><script>alert(1)</script></svg>',
+        poster: 'http://localhost/slide.png',
+        steps: [
+          { title: 'The formula', explanation: 'One line says it all.', reveals: ['formula'], verb: 'reveal' },
+          { title: 'The flow', explanation: 'Scores, scale, softmax, values.', reveals: ['flow'], verb: 'trace' },
+        ],
+      },
+    }
+    const doc: ProjectDocumentV1 = {
+      version: 1,
+      id: 'slides',
+      title: 'Slides',
+      notebook: { type: 'doc', content: [slide] },
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      blocks: { 'slide-1': createDefaultBlockConfig('slide-1', slide) },
+      presenterTracks: {},
+      brand: defaultBrand,
+    }
+    const result = compileProject(doc)
+    expect(result.html).toContain('class="slide-svg"')
+    expect(result.html).toContain('id="s0-formula"')
+    expect(result.html).toContain('url(#s0-arrow)')
+    expect(result.html).not.toContain('alert(1)')
+    expect(result.html).not.toContain('width="1280" height="720"')
+    expect(result.html).toContain('data-slide-driver="0"')
+    expect(result.html).toContain('__explainerDrivers["slide-1"]')
+    expect(result.html).toContain('__slideDrawScene0')
+    expect(result.html).toContain('data-ex-step="1"')
+    expect(doc.blocks['slide-1'].camera.position).toBe('hidden')
+    expect(doc.blocks['slide-1'].durationMs).toBeGreaterThanOrEqual(6000)
+  })
+})
+
 describe('compileProject', () => {
   it('keeps every presenter layout inside normalized canvas bounds', () => {
     const modes: PresenterLayoutMode[] = [

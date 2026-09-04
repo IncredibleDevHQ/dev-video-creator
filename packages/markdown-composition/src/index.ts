@@ -22,9 +22,19 @@ import {
   type ExplainerPlanV1,
   type ShapeDefV1,
 } from './explainer'
+import {
+  prepareSlideSvg,
+  sanitizeSlideSteps,
+  slideDriverScript,
+  slideDurationSeconds,
+  slidePrefix,
+  slideStepOffsets,
+  type SlideStepV1,
+} from './slide'
 
 export * from './types'
 export * from './explainer'
+export * from './slide'
 export * from './themes'
 export * from './presenter-layouts'
 export * from './notebook-media'
@@ -54,8 +64,16 @@ const explainerNodeDurationMs = (node: TiptapNode) => {
   )
 }
 
+const slideNodeSteps = (node: TiptapNode): SlideStepV1[] =>
+  sanitizeSlideSteps((node.attrs as { steps?: unknown } | undefined)?.steps)
+
+const slideNodeDurationMs = (node: TiptapNode) => {
+  const steps = slideNodeSteps(node)
+  return steps.length ? Math.round(slideDurationSeconds(steps) * 1000) : 6000
+}
+
 const defaultAppearanceForNode = (node: TiptapNode) => {
-  if (node.type === 'explainer') {
+  if (node.type === 'explainer' || node.type === 'slide') {
     return {
       layout: 'center' as const,
       render: 'minimal' as ThemeBlockRendering,
@@ -101,13 +119,16 @@ export const createDefaultBlockConfig = (
         ? 8000
         : node.type === 'explainer'
           ? explainerNodeDurationMs(node)
-          : 5000,
+          : node.type === 'slide'
+            ? slideNodeDurationMs(node)
+            : 5000,
   reveal:
     node.type === 'codeBlock'
       ? 'line-by-line'
       : node.type === 'image' ||
           node.type === 'screenRecording' ||
-          node.type === 'explainer'
+          node.type === 'explainer' ||
+          node.type === 'slide'
         ? 'fade'
         : 'rise',
   alignment:
@@ -122,7 +143,7 @@ export const createDefaultBlockConfig = (
     mode: 'information-circle',
     // Explainer diagrams need the whole frame; the presenter can be added
     // deliberately from the Presenter tab.
-    position: node.type === 'explainer' ? 'hidden' : 'bottom-right',
+    position: node.type === 'explainer' || node.type === 'slide' ? 'hidden' : 'bottom-right',
     shape: 'circle',
     scale: 1,
   },
@@ -482,6 +503,9 @@ const textContent = (node: TiptapNode): string => {
   if (node.type === 'explainer') {
     return String(node.attrs?.topic || 'Explainer')
   }
+  if (node.type === 'slide') {
+    return String(node.attrs?.title || 'Slide')
+  }
   return (node.content || []).map(textContent).join(' ').replace(/\s+/g, ' ').trim()
 }
 
@@ -549,6 +573,24 @@ const explainerCanvasScript = (
 </script>`
 }
 
+// A slide scene inlines the authored SVG (ids prefixed per scene), stacks
+// the step captions beneath it, and registers the step driver.
+const renderSlideScene = (scene: Scene) => {
+  const attrs = (scene.node.attrs || {}) as { svg?: unknown; title?: unknown }
+  const steps = slideNodeSteps(scene.node)
+  const svg = prepareSlideSvg(String(attrs.svg || ''), slidePrefix(scene.index))
+  if (!svg) {
+    return `<div class="media-block media-placeholder"><span>▤</span><strong>${escapeHtml(String(attrs.title || 'Slide'))}</strong></div>`
+  }
+  const captions = steps
+    .map(
+      (step, index) =>
+        `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(step.title)}</strong><span>${escapeHtml(step.explanation)}</span></div>`,
+    )
+    .join('')
+  return `<div class="slide-stage">${svg}${steps.length ? `<div class="ex-captions">${captions}</div>` : ''}${slideDriverScript(scene.index, scene.id, steps)}</div>`
+}
+
 const renderExplainerScene = (
   scene: Scene,
   shapes: ShapeDefV1[],
@@ -582,6 +624,9 @@ const renderSceneNode = (
       shapes || BUILTIN_SHAPES,
       brandAccent || defaultBrand.accent,
     )
+  }
+  if (scene.node.type === 'slide') {
+    return renderSlideScene(scene)
   }
   if (scene.node.type !== 'image' && scene.node.type !== 'screenRecording') {
     return renderNode(scene.node)
@@ -877,6 +922,27 @@ const buildCompositionHtml = (
         case 'rise':
         default:
           entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: ${revealDuration(0.75)}, ease: "power3.out" }, ${start});`
+      }
+      if (scene.node.type === 'slide') {
+        // The driver paints (step, progress) from scene time; captions swap
+        // underneath on the same step offsets.
+        const steps = slideNodeSteps(scene.node)
+        const offsets = slideStepOffsets(steps)
+        const captionMotion = steps
+          .map((_, stepIndex) => {
+            const at = start + offsets[stepIndex]
+            const caption = scriptString(
+              `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex}"]`,
+            )
+            const previousCaption = scriptString(
+              `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex - 1}"]`,
+            )
+            return `tl.fromTo(${caption}, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, ${at});${stepIndex > 0 ? `tl.to(${previousCaption}, { autoAlpha: 0, duration: 0.3 }, ${at});` : ''}`
+          })
+          .join('')
+        const drawCall = `window.__slideDrawScene${scene.index}`
+        const slideMotion = `tl.to({ t: 0 }, { t: ${scene.durationSeconds}, duration: ${scene.durationSeconds}, ease: "none", onUpdate: function () { if (${drawCall}) ${drawCall}(this.targets()[0].t); } }, ${start});`
+        return `${frameTween}${entrance}${slideMotion}${captionMotion}`
       }
       if (scene.node.type === 'explainer') {
         // Steps reveal on the timeline: each step pops its entities and
@@ -1228,6 +1294,15 @@ const buildCompositionHtml = (
     .scene.camera-absent.theme-layout-center > .content, .scene.camera-absent:is(.theme-layout-upper,.theme-layout-lower) > .content { margin-inline: auto !important; }
     .scene.camera-absent.theme-layout-right > .content { margin-left: auto !important; }
     .scene.camera-absent::after { display: none; }
+    .slide-stage { position: relative; width: 100%; display: grid; gap: 10px; }
+    .slide-stage svg.slide-svg { display: block; width: min(100%, calc(700px * var(--slide-aspect, 1.7778))); aspect-ratio: var(--slide-aspect, 16 / 9); height: auto; margin-inline: auto; border-radius: 12px; overflow: visible; }
+    .slide-stage .slide-svg text, .slide-stage .slide-svg rect, .slide-stage .slide-svg circle, .slide-stage .slide-svg ellipse, .slide-stage .slide-svg polygon, .slide-stage .slide-svg image, .slide-stage .slide-svg path, .slide-stage .slide-svg line, .slide-stage .slide-svg polyline { transform-box: fill-box; }
+    .slide-stage .ex-captions { min-height: 64px; }
+    .slide-stage .ex-caption strong { font-size: 30px; }
+    .slide-stage .ex-caption span { display: none; }
+    .scene:has(.slide-stage) { padding: 56px 90px 40px; --content-layout-width: 100%; }
+    /* Late in the sheet on purpose: slide stages beat the text-style width caps. */
+    .scene:has(.slide-stage) .content { width: 100%; max-width: 100%; margin-inline: auto; }
     /* Centered lists: centre the block, keep the lines ragged-right so the
        markers line up. */
     .scene-kind-list:is(.theme-layout-center,.align-center,.theme-layout-upper,.theme-layout-lower):not(.presenter-person-background-left,.presenter-person-background-right):is(.theme-render-bullets,.theme-render-checklist,.theme-render-steps,.theme-render-compact,.theme-render-spotlight) :is(ul,ol) { width: fit-content; max-width: 100%; margin-inline: auto; text-align: left; }
