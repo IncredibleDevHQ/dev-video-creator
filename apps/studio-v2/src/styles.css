@@ -1243,3 +1243,41 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .settings-status { flex: 1; font-size: 12px; color: #52525b; }
 .settings-status.is-error { color: #dc2626; }
 .settings-status.is-ok { color: #15803d; }
+
+/* ——— Slide build-order editor ——— */
+.slide-editor-modal { width: min(1280px, 96vw); max-height: 92vh; border-radius: 16px; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.slide-editor-modal .modal-heading { align-items: center; gap: 14px; }
+.slide-editor-tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.slide-editor-tools .button { min-height: 28px; padding-inline: 10px; font-size: 10px; }
+.slide-editor-body { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 0; }
+.slide-editor-stage { padding: 16px; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; background: #f4f4f5; min-height: 0; }
+.slide-editor-preview { position: relative; display: grid; place-items: center; min-height: 0; }
+.slide-editor-preview svg { width: 100%; height: auto; max-height: calc(92vh - 170px); display: block; border-radius: 8px; }
+.slide-editor-preview .se-hit { fill: rgba(132,239,173,0); stroke: rgba(132,239,173,0); stroke-width: 1.5; cursor: pointer; transition: fill .12s ease, stroke .12s ease; }
+.slide-editor-preview .se-hit:hover { fill: rgba(132,239,173,.18); stroke: rgba(132,239,173,.9); }
+.slide-editor-preview .se-hit.is-assigned { stroke: rgba(255,255,255,.35); stroke-dasharray: 4 3; }
+.slide-editor-preview .se-hit.is-current { fill: rgba(132,239,173,.22); stroke: #84efad; }
+.slide-editor-preview .se-badge { pointer-events: none; font: 700 13px system-ui; fill: #08120c; }
+.slide-editor-preview .se-badge-bg { pointer-events: none; fill: #84efad; }
+.slide-editor-hint { margin: 0; font-size: 12px; color: #52525b; display: flex; justify-content: space-between; gap: 12px; }
+.slide-editor-hint label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: #3f3f46; }
+.slide-editor-side { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; border-left: 1px solid var(--line); }
+.slide-editor-side-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.slide-editor-side-head span { color: #71717a; }
+.slide-editor-side-head .button { margin-left: auto; min-height: 26px; padding-inline: 9px; font-size: 10px; }
+.slide-editor-steps { margin: 0; padding: 8px; list-style: none; display: grid; gap: 6px; overflow: auto; }
+.slide-editor-step { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px 10px; padding: 8px 10px; border: 1px solid #e4e4e7; border-radius: 9px; background: white; cursor: pointer; }
+.slide-editor-step.is-current { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent); }
+.slide-editor-step .se-num { grid-row: span 3; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; background: #18181b; color: white; font-size: 11px; font-weight: 700; }
+.slide-editor-step.is-current .se-num { background: var(--brand); color: #08120c; }
+.slide-editor-step input, .slide-editor-step textarea, .slide-editor-step select { width: 100%; border: 1px solid transparent; border-radius: 6px; background: #fafafa; padding: 4px 6px; font: 500 12px/1.4 system-ui; color: #18181b; }
+.slide-editor-step input:focus, .slide-editor-step textarea:focus, .slide-editor-step select:focus { outline: none; border-color: var(--brand); background: white; }
+.slide-editor-step textarea { grid-column: 2 / span 2; resize: vertical; min-height: 34px; font-weight: 400; color: #3f3f46; }
+.slide-editor-step .se-chips { grid-column: 2 / span 2; display: flex; flex-wrap: wrap; gap: 4px; }
+.slide-editor-step .se-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px 2px 8px; border-radius: 999px; background: #f4f4f5; color: #3f3f46; font-size: 10.5px; font-weight: 600; }
+.slide-editor-step .se-chip button { border: 0; background: transparent; color: #a1a1aa; font-size: 12px; line-height: 1; cursor: pointer; padding: 0 2px; }
+.slide-editor-step .se-chip button:hover { color: #dc2626; }
+.slide-editor-step .se-row-tools { display: flex; gap: 4px; align-items: center; }
+.slide-editor-step .se-row-tools button { width: 22px; height: 22px; border: 0; border-radius: 5px; background: transparent; color: #71717a; cursor: pointer; font-size: 12px; }
+.slide-editor-step .se-row-tools button:hover { background: #f4f4f5; color: #18181b; }
+.slide-editor-side-foot { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--line); }

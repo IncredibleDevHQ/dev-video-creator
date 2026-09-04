@@ -167,7 +167,11 @@ export const slideDriverScript = (
       if (!element || !root.contains(element)) return null;
       var strokes = [];
       var bodies = [];
-      element.querySelectorAll('line,polyline,path,text,rect,circle,ellipse,polygon,image').forEach(function (node) {
+      // A leaf element animates itself; a group animates its descendants.
+      var nodes = element.tagName.toLowerCase() === 'g'
+        ? Array.prototype.slice.call(element.querySelectorAll('line,polyline,path,text,rect,circle,ellipse,polygon,image'))
+        : [element];
+      nodes.forEach(function (node) {
         if (isStroke(node) && typeof node.getTotalLength === 'function') {
           var length = 0;
           try { length = node.getTotalLength(); } catch (error) { length = 0; }

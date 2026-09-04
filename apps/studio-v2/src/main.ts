@@ -45,9 +45,20 @@ import {
   type TiptapDocument,
   type TiptapNode,
   sanitizeSlideSteps,
+  slideDurationSeconds,
 } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
+import {
+  atomizeSlideSvg,
+  inferEdges,
+  leafUnits,
+  oneStepPerUnit,
+  orderByArrows,
+  suggestSteps,
+  type OrderedStepDraft,
+  type SlideUnit,
+} from './slide-atoms'
 import './styles.css'
 
 const studioLogoUrl = new URL(
@@ -7508,6 +7519,334 @@ document.addEventListener('click', event => {
   if (!action) return
   const block = action.closest<HTMLElement>('.notebook-explainer-block')
   if (block?.id) openExplainerWizard(block.id, false)
+})
+
+// ——— Slide build-order editor ———
+// Atomises the slide's SVG into units (boxes, labels, connectors, groups) and
+// lets the author wire them into steps by clicking the preview; steps store
+// element ids the composition driver reveals.
+type SlideEditorStep = { title: string; explanation: string; reveals: string[]; verb: 'reveal' | 'trace' | 'focus' }
+type SlideEditorState = {
+  nodeId: string
+  svg: string
+  units: SlideUnit[]
+  unitByElement: Map<string, SlideUnit>
+  steps: SlideEditorStep[]
+  current: number
+}
+let slideEditor: SlideEditorState | null = null
+const slideEditorDialog = $('#slide-editor-dialog') as HTMLDialogElement
+const slideEditorPreview = $('#slide-editor-preview') as HTMLElement
+const slideEditorSteps = $('#slide-editor-steps') as HTMLOListElement
+const SVG_NS = 'http://www.w3.org/2000/svg'
+
+const findTypedNode = (
+  typeName: string,
+  nodeId: string,
+): { pos: number; attrs: Record<string, unknown> } | null => {
+  let found: { pos: number; attrs: Record<string, unknown> } | null = null
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === typeName && node.attrs.id === nodeId) {
+      found = { pos, attrs: node.attrs as Record<string, unknown> }
+      return false
+    }
+    return found === null
+  })
+  return found
+}
+
+const writeTypedNode = (typeName: string, nodeId: string, attrs: Record<string, unknown>) => {
+  const found = findTypedNode(typeName, nodeId)
+  if (!found) return
+  editor.view.dispatch(
+    editor.state.tr.setNodeMarkup(found.pos, undefined, { ...found.attrs, ...attrs }),
+  )
+}
+
+const setSlideEditorStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
+  const status = $('#se-status') as HTMLElement
+  status.textContent = text
+  status.classList.toggle('is-ok', tone === 'ok')
+  status.classList.toggle('is-error', tone === 'error')
+}
+
+const stepIndexOfUnit = (state: SlideEditorState, unit: SlideUnit) =>
+  state.steps.findIndex(step => unit.ids.some(id => step.reveals.includes(id)))
+
+const renderSlideEditorPreview = () => {
+  const state = slideEditor
+  if (!state) return
+  slideEditorPreview.innerHTML = state.svg
+  const svg = slideEditorPreview.querySelector('svg')
+  if (!svg) return
+  svg.removeAttribute('width')
+  svg.removeAttribute('height')
+  const overlay = document.createElementNS(SVG_NS, 'g')
+  overlay.setAttribute('class', 'se-overlay')
+  leafUnits(state.units).forEach(unit => {
+    const pad = unit.kind === 'connector' ? 6 : 3
+    const hit = document.createElementNS(SVG_NS, 'rect')
+    hit.setAttribute('class', 'se-hit')
+    hit.setAttribute('x', String(unit.bbox.x - pad))
+    hit.setAttribute('y', String(unit.bbox.y - pad))
+    hit.setAttribute('width', String(Math.max(10, unit.bbox.width + pad * 2)))
+    hit.setAttribute('height', String(Math.max(10, unit.bbox.height + pad * 2)))
+    hit.setAttribute('rx', '3')
+    const at = stepIndexOfUnit(state, unit)
+    if (at >= 0) hit.classList.add('is-assigned')
+    if (at === state.current) hit.classList.add('is-current')
+    const title = document.createElementNS(SVG_NS, 'title')
+    title.textContent = `${unit.label}${at >= 0 ? ` · step ${at + 1}` : ''}`
+    hit.append(title)
+    hit.addEventListener('click', event => {
+      event.stopPropagation()
+      toggleUnitInStep(unit)
+    })
+    overlay.append(hit)
+    if (at >= 0) {
+      const bg = document.createElementNS(SVG_NS, 'circle')
+      bg.setAttribute('class', 'se-badge-bg')
+      bg.setAttribute('cx', String(unit.bbox.x - pad + 9))
+      bg.setAttribute('cy', String(unit.bbox.y - pad + 9))
+      bg.setAttribute('r', '9')
+      const badge = document.createElementNS(SVG_NS, 'text')
+      badge.setAttribute('class', 'se-badge')
+      badge.setAttribute('x', String(unit.bbox.x - pad + 9))
+      badge.setAttribute('y', String(unit.bbox.y - pad + 13.5))
+      badge.setAttribute('text-anchor', 'middle')
+      badge.textContent = String(at + 1)
+      overlay.append(bg, badge)
+    }
+  })
+  svg.append(overlay)
+}
+
+const renderSlideEditorSteps = () => {
+  const state = slideEditor
+  if (!state) return
+  ;($('#se-step-count') as HTMLElement).textContent = String(state.steps.length)
+  slideEditorSteps.replaceChildren()
+  state.steps.forEach((step, index) => {
+    const row = document.createElement('li')
+    row.className = `slide-editor-step${index === state.current ? ' is-current' : ''}`
+    row.addEventListener('click', () => {
+      if (state.current !== index) {
+        state.current = index
+        renderSlideEditorSteps()
+        renderSlideEditorPreview()
+      }
+    })
+    const number = document.createElement('span')
+    number.className = 'se-num'
+    number.textContent = String(index + 1)
+    const title = document.createElement('input')
+    title.value = step.title
+    title.placeholder = 'Step title'
+    title.addEventListener('input', () => { step.title = title.value })
+    const tools = document.createElement('div')
+    tools.className = 'se-row-tools'
+    const verb = document.createElement('select')
+    ;(['reveal', 'trace', 'focus'] as const).forEach(value => {
+      const option = document.createElement('option')
+      option.value = value
+      option.textContent = value
+      verb.append(option)
+    })
+    verb.value = step.verb
+    verb.addEventListener('change', () => { step.verb = verb.value as SlideEditorStep['verb'] })
+    const up = document.createElement('button'); up.type = 'button'; up.textContent = '↑'; up.title = 'Move up'
+    up.addEventListener('click', event => { event.stopPropagation(); if (index > 0) { [state.steps[index - 1], state.steps[index]] = [state.steps[index], state.steps[index - 1]]; state.current = index - 1; renderSlideEditorSteps(); renderSlideEditorPreview() } })
+    const down = document.createElement('button'); down.type = 'button'; down.textContent = '↓'; down.title = 'Move down'
+    down.addEventListener('click', event => { event.stopPropagation(); if (index < state.steps.length - 1) { [state.steps[index + 1], state.steps[index]] = [state.steps[index], state.steps[index + 1]]; state.current = index + 1; renderSlideEditorSteps(); renderSlideEditorPreview() } })
+    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.title = 'Delete step'
+    remove.addEventListener('click', event => { event.stopPropagation(); state.steps.splice(index, 1); state.current = Math.max(0, Math.min(state.current, state.steps.length - 1)); renderSlideEditorSteps(); renderSlideEditorPreview() })
+    tools.append(verb, up, down, remove)
+    const chips = document.createElement('div')
+    chips.className = 'se-chips'
+    const seen = new Set<string>()
+    step.reveals.forEach(id => {
+      const unit = state.unitByElement.get(id)
+      if (!unit || seen.has(unit.id)) return
+      seen.add(unit.id)
+      const chip = document.createElement('span')
+      chip.className = 'se-chip'
+      chip.textContent = unit.label
+      const x = document.createElement('button')
+      x.type = 'button'
+      x.textContent = '×'
+      x.title = 'Remove from this step'
+      x.addEventListener('click', event => {
+        event.stopPropagation()
+        step.reveals = step.reveals.filter(revealId => !unit.ids.includes(revealId))
+        renderSlideEditorSteps()
+        renderSlideEditorPreview()
+      })
+      chip.append(x)
+      chips.append(chip)
+    })
+    if (!seen.size) {
+      const empty = document.createElement('span')
+      empty.className = 'se-chip'
+      empty.textContent = 'Click parts of the slide to add them'
+      chips.append(empty)
+    }
+    const explanation = document.createElement('textarea')
+    explanation.rows = 2
+    explanation.placeholder = 'What you say over this step (teleprompter)'
+    explanation.value = step.explanation
+    explanation.addEventListener('input', () => { step.explanation = explanation.value })
+    row.append(number, title, tools, chips, explanation)
+    slideEditorSteps.append(row)
+  })
+  if (state.steps.length) {
+    slideEditorSteps.children[state.current]?.scrollIntoView({ block: 'nearest' })
+  }
+}
+
+const toggleUnitInStep = (unit: SlideUnit) => {
+  const state = slideEditor
+  if (!state) return
+  const onePerClick = ($('#se-one-per-click') as HTMLInputElement).checked
+  const existing = stepIndexOfUnit(state, unit)
+  if (!state.steps.length || onePerClick) {
+    if (existing >= 0) {
+      state.steps[existing].reveals = state.steps[existing].reveals.filter(id => !unit.ids.includes(id))
+    } else {
+      state.steps.push({ title: unit.label, explanation: '', reveals: [...unit.ids], verb: unit.kind === 'connector' ? 'trace' : 'reveal' })
+      state.current = state.steps.length - 1
+    }
+  } else if (existing === state.current) {
+    const step = state.steps[state.current]
+    step.reveals = step.reveals.filter(id => !unit.ids.includes(id))
+  } else {
+    if (existing >= 0) {
+      state.steps[existing].reveals = state.steps[existing].reveals.filter(id => !unit.ids.includes(id))
+    }
+    const step = state.steps[state.current]
+    step.reveals = [...step.reveals, ...unit.ids]
+    if (!step.title) step.title = unit.label
+  }
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+}
+
+const applySlideDrafts = (drafts: OrderedStepDraft[]) => {
+  const state = slideEditor
+  if (!state) return
+  state.steps = drafts.map(draft => ({ ...draft, explanation: '' }))
+  state.current = 0
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+}
+
+const openSlideEditor = (nodeId: string) => {
+  const found = findTypedNode('slide', nodeId)
+  if (!found) return
+  const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
+  if (!atomized.units.length) {
+    showToast('This slide has no SVG to animate')
+    return
+  }
+  const unitByElement = new Map<string, SlideUnit>()
+  leafUnits(atomized.units).forEach(unit => unit.ids.forEach(id => unitByElement.set(id, unit)))
+  const existing = Array.isArray(found.attrs.steps) ? (found.attrs.steps as SlideEditorStep[]) : []
+  slideEditor = {
+    nodeId,
+    svg: atomized.svg,
+    units: atomized.units,
+    unitByElement,
+    steps: existing.map(step => ({
+      title: String(step.title || ''),
+      explanation: String(step.explanation || ''),
+      // Authored group ids expand to the leaf ids the editor works with.
+      reveals: (Array.isArray(step.reveals) ? step.reveals : []).flatMap(id => {
+        const leaf = unitByElement.get(id)
+        if (leaf) return leaf.ids
+        const group = flattenSlideUnits(atomized.units).find(unit => unit.id === id)
+        return group ? group.ids : []
+      }),
+      verb: step.verb === 'trace' || step.verb === 'focus' ? step.verb : 'reveal',
+    })),
+    current: 0,
+  }
+  ;($('#slide-editor-title') as HTMLElement).textContent = `Build order · ${String(found.attrs.title || 'Slide')}`
+  setSlideEditorStatus(`${leafUnits(atomized.units).length} parts found`)
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+  slideEditorDialog.showModal()
+}
+// Dev hook: inspect the atomised units and inferred arrow graph in the console.
+;(window as unknown as { __slideEditor?: unknown }).__slideEditor = {
+  state: () => slideEditor,
+  edges: () => (slideEditor ? inferEdges(slideEditor.units) : []),
+  atomize: atomizeSlideSvg,
+  inferEdges,
+  orderByArrows,
+  suggestSteps,
+  oneStepPerUnit,
+  leafUnits,
+}
+
+const flattenSlideUnits = (units: SlideUnit[]): SlideUnit[] =>
+  units.flatMap(unit => (unit.kind === 'group' ? [unit, ...flattenSlideUnits(unit.children)] : [unit]))
+
+;($('#se-order-arrows') as HTMLButtonElement).addEventListener('click', () => {
+  if (slideEditor) applySlideDrafts(suggestSteps(slideEditor.units))
+})
+;($('#se-order-reading') as HTMLButtonElement).addEventListener('click', () => {
+  if (slideEditor) applySlideDrafts(oneStepPerUnit(slideEditor.units))
+})
+;($('#se-order-groups') as HTMLButtonElement).addEventListener('click', () => {
+  if (!slideEditor) return
+  const groups = slideEditor.units.filter(unit => unit.kind === 'group' && !unit.chrome)
+  applySlideDrafts(groups.map(group => ({ title: group.label, reveals: group.ids, verb: 'reveal' as const })))
+})
+;($('#se-clear') as HTMLButtonElement).addEventListener('click', () => applySlideDrafts([]))
+;($('#se-add-step') as HTMLButtonElement).addEventListener('click', () => {
+  if (!slideEditor) return
+  slideEditor.steps.push({ title: '', explanation: '', reveals: [], verb: 'reveal' })
+  slideEditor.current = slideEditor.steps.length - 1
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+})
+;($('#close-slide-editor') as HTMLButtonElement).addEventListener('click', () => {
+  slideEditor = null
+  slideEditorDialog.close()
+})
+;($('#se-save') as HTMLButtonElement).addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  const steps = state.steps
+    .filter(step => step.reveals.length)
+    .map((step, index) => ({
+      title: step.title.trim() || `Step ${index + 1}`,
+      explanation: step.explanation.trim(),
+      reveals: step.reveals,
+      verb: step.verb,
+    }))
+  writeTypedNode('slide', state.nodeId, { svg: state.svg, steps })
+  const config = project.blocks[state.nodeId]
+  if (config) {
+    config.durationMs = Math.round(
+      slideDurationSeconds(
+        steps.map(step => ({ ...step })),
+      ) * 1000,
+    )
+  }
+  syncProject()
+  showToast(`Saved ${steps.length} step${steps.length === 1 ? '' : 's'}`)
+  slideEditor = null
+  slideEditorDialog.close()
+  if (canvasExplainerNodeId === state.nodeId) {
+    canvasExplainerNodeId = ''
+    syncCanvasExplainerStepper()
+  }
+})
+document.addEventListener('click', event => {
+  const action = (event.target as HTMLElement).closest<HTMLElement>('[data-slide-action]')
+  if (!action) return
+  const block = action.closest<HTMLElement>('.notebook-slide-block')
+  if (block?.id) openSlideEditor(block.id)
 })
 
 // ——— Shape collection: view, multi-select, edit, extend ———

@@ -445,6 +445,32 @@
       </main>
     </div>
 
+    <dialog id="slide-editor-dialog" class="modal slide-editor-modal">
+      <div class="modal-heading">
+        <div><span class="eyebrow">Slide</span><h2 id="slide-editor-title">Build order</h2></div>
+        <div class="slide-editor-tools">
+          <button type="button" id="se-order-arrows" class="button primary" title="Build order from the page: arrows where it flows, groups or reading order otherwise">Suggest steps</button>
+          <button type="button" id="se-order-reading" class="button" title="One step per unit, top-left to bottom-right">One step per unit</button>
+          <button type="button" id="se-order-groups" class="button" title="One step per authored group">By groups</button>
+          <button type="button" id="se-clear" class="button" title="Remove every step">Clear</button>
+        </div>
+        <button id="close-slide-editor" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="slide-editor-body">
+        <div class="slide-editor-stage">
+          <div id="slide-editor-preview" class="slide-editor-preview"></div>
+          <p class="slide-editor-hint">Click a part of the slide to add it to the selected step. <label><input type="checkbox" id="se-one-per-click" /> One step per click</label></p>
+        </div>
+        <div class="slide-editor-side">
+          <div class="slide-editor-side-head"><strong>Steps</strong><span id="se-step-count">0</span><button type="button" id="se-add-step" class="button">+ Step</button></div>
+          <ol id="slide-editor-steps" class="slide-editor-steps"></ol>
+          <div class="slide-editor-side-foot">
+            <span id="se-status" class="settings-status" aria-live="polite"></span>
+            <button type="button" id="se-save" class="button primary">Save steps</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
     <dialog id="model-settings-dialog" class="modal settings-modal">
       <div class="modal-heading">
         <div><span class="eyebrow">Models</span><h2>Where AI requests go</h2></div>

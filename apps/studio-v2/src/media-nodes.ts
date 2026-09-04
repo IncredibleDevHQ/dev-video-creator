@@ -189,6 +189,15 @@ export const SlideBlock = Node.create({
         { class: 'notebook-explainer-prompt' },
         ['span', { class: 'notebook-explainer-glyph' }, '▤'],
         ['strong', {}, title ? String(title) : 'Slide'],
+        [
+          'button',
+          {
+            type: 'button',
+            class: 'notebook-image-action',
+            'data-slide-action': 'edit',
+          },
+          'Edit steps',
+        ],
       ],
       poster
         ? ['img', { src: String(poster), alt: String(title || 'Slide') }]
