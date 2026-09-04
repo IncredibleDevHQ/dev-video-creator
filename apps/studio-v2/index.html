@@ -143,7 +143,7 @@
           <div class="topbar-actions">
             <div class="save-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><strong id="save-state">Saved</strong></div>
             <button id="render-video" type="button" class="button primary" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Publish</button>
-            <div class="topbar-status"><span class="brand-orbit"><span>HF</span></span><strong>Local workspace</strong></div>
+            <button id="open-model-settings" class="topbar-status topbar-status-button" type="button" title="Choose the AI provider and models"><span class="brand-orbit"><span>AI</span></span><strong id="model-settings-summary">Models</strong></button>
           </div>
         </div>
         <div class="commandbar">
@@ -445,6 +445,30 @@
       </main>
     </div>
 
+    <dialog id="model-settings-dialog" class="modal settings-modal">
+      <div class="modal-heading">
+        <div><span class="eyebrow">Models</span><h2>Where AI requests go</h2></div>
+        <button id="close-model-settings" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <form id="model-settings-form" class="settings-body">
+        <label class="settings-field"><span>Provider</span><select id="ms-provider"></select></label>
+        <p id="ms-provider-note" class="settings-note"></p>
+        <label class="settings-field"><span>Base URL</span><input id="ms-base-url" type="url" placeholder="https://api.openai.com/v1" spellcheck="false" /></label>
+        <label class="settings-field"><span>API key</span><input id="ms-api-key" type="password" autocomplete="off" placeholder="Paste a key" /><small id="ms-key-hint"></small></label>
+        <div class="settings-models">
+          <label class="settings-field"><span>Writing model</span><input id="ms-model-writing" list="ms-model-list" placeholder="notes, plans, themes" spellcheck="false" /></label>
+          <label class="settings-field"><span>Vision model</span><input id="ms-model-vision" list="ms-model-list" placeholder="reviews rendered frames" spellcheck="false" /></label>
+          <label class="settings-field"><span>Coding model</span><input id="ms-model-coding" list="ms-model-list" placeholder="writes canvas programs" spellcheck="false" /></label>
+          <datalist id="ms-model-list"></datalist>
+        </div>
+        <label class="settings-field"><span>Reasoning effort</span><select id="ms-reasoning"><option value="medium">Medium</option><option value="low">Low</option><option value="high">High</option><option value="none">Not sent</option></select></label>
+        <div class="modal-actions settings-actions">
+          <button type="button" id="ms-test" class="button">Test &amp; list models</button>
+          <span id="ms-status" class="settings-status" aria-live="polite"></span>
+          <button type="submit" class="button primary">Save</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="publish-dialog" class="modal publish-modal">
       <div class="modal-heading"><div><span class="eyebrow">Publish</span><h2>Finalize your story</h2></div><button id="close-publish" class="icon-button" type="button" aria-label="Close publish">×</button></div>
       <p class="publish-note">Transitions are set — now choose the take for each recorded block and which blocks ship in the final video.</p>

@@ -41,6 +41,16 @@ import {
   saveRecordedBlock,
   storeAsset,
 } from './persistence'
+import {
+  configureModelGateway,
+  hasModelAccess,
+  listModels,
+  modelFetch,
+  publicModelSettings,
+  saveModelSettings,
+  MODEL_PRESETS,
+  type ModelSettingsV1,
+} from './model-gateway'
 
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
@@ -82,6 +92,8 @@ const readEnvFileValue = async (name: string) => {
 
 const openAIKey =
   process.env.OPENAI_API_KEY || (await readEnvFileValue('OPENAI_API_KEY'))
+// The env key seeds the gateway until the user saves a provider in Models.
+configureModelGateway({ envKey: openAIKey })
 
 await Promise.all([
   mkdir(assetsDirectory, { recursive: true }),
@@ -379,7 +391,7 @@ const handleNotesGeneration = async (
   const targetMinutes = Math.min(15, Math.max(0.5, Number(body.targetMinutes) || 1))
   const fallback = generateSpeakerNotes(body.project, body.blockId, targetMinutes)
 
-  if (!openAIKey) {
+  if (!(await hasModelAccess())) {
     json(response, 200, { notes: fallback, provider: 'local-generator' })
     return
   }
@@ -393,12 +405,8 @@ const handleNotesGeneration = async (
     ).slice(0, 8_000)
     const notebookJson = JSON.stringify(body.project.notebook).slice(0, 24_000)
     const wordBudget = Math.round(targetMinutes * 140)
-    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+    const apiResponse = await modelFetch('writing', {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${openAIKey}`,
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
         input: `Write presenter speaker notes for one block of a developer video titled "${body.project.title}". The presenter is on camera and reveals the block's content step by step while talking. Target roughly ${targetMinutes} minute(s) of speech (~${wordBudget} words at 140 wpm). Write short spoken-style lines, one per beat, matching the block's structure (one line per bullet point or code line where that applies), grounded ONLY in the notebook content provided — do not invent facts. Include a one-line opening hook and a one-line handoff to the next block. Block being narrated (Tiptap JSON): ${blockJson}. Full notebook for context (Tiptap JSON): ${notebookJson}.`,
@@ -508,19 +516,15 @@ const handleExplainerAbstract = async (
     ? (body.verbosity as ExplainerVerbosity)
     : 'standard'
   const fallback = fallbackExplainerAbstract(topic, verbosity)
-  if (!openAIKey) {
+  if (!(await hasModelAccess())) {
     json(response, 200, { abstract: fallback, provider: 'local-generator' })
     return
   }
   try {
     const wordBudget = EXPLAINER_WORD_BUDGETS[verbosity]
     const instructions = String(body.instructions || '').slice(0, 1_000)
-    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+    const apiResponse = await modelFetch('writing', {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${openAIKey}`,
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
         input: `Expand the following statement into a clear spoken-style explanation for a technical video, roughly ${wordBudget} words. Plain language, concrete, no headings or lists — flowing prose a presenter can narrate while a diagram animates. Statement to explain: "${topic}".${instructions ? ` Additional instructions from the author: ${instructions}.` : ''}`,
@@ -769,7 +773,7 @@ const handleExplainerCanvasAgent = async (
   if (!topic || !plan.steps.length) {
     throw new Error('The canvas agent needs the topic and the planned steps')
   }
-  if (!openAIKey) {
+  if (!(await hasModelAccess())) {
     throw new Error('The canvas agent needs an OpenAI key')
   }
   const instructions = String(body.instructions || '').slice(0, 1_000)
@@ -801,12 +805,8 @@ const handleExplainerCanvasAgent = async (
       // On critique passes the previous code travels along for revision.
       content.push({ type: 'input_text', text: `Previous program:\n${code}` })
     }
-    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+    const apiResponse = await modelFetch('coding', {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${openAIKey}`,
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
         input: [{ role: 'user', content }],
@@ -859,12 +859,8 @@ const handleExplainerCanvasAgent = async (
         image_url: `data:image/png;base64,${frame}`,
       })),
     ]
-    const reviewResponse = await fetch('https://api.openai.com/v1/responses', {
+    const reviewResponse = await modelFetch('vision', {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${openAIKey}`,
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
         input: [{ role: 'user', content: reviewContent }],
@@ -945,7 +941,7 @@ const handleImageAnimationExperiment = async (
   if (!instructions) {
     throw new Error('Describe the animation you want on top of the image')
   }
-  if (!openAIKey) {
+  if (!(await hasModelAccess())) {
     throw new Error('The image-animation agent needs an OpenAI key')
   }
   const previousCode = String(body.previousCode || '').slice(0, 40_000)
@@ -961,12 +957,8 @@ const handleImageAnimationExperiment = async (
     },
     { type: 'input_image', image_url: image },
   ]
-  const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+  const apiResponse = await modelFetch('coding', {
     method: 'POST',
-    headers: {
-      authorization: `Bearer ${openAIKey}`,
-      'content-type': 'application/json',
-    },
     body: JSON.stringify({
       model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
       input: [{ role: 'user', content }],
@@ -1026,7 +1018,7 @@ const handleExplainerRefine = async (
   if (!topic || !plan.entities.length) {
     throw new Error('Refinement needs the topic and a planned diagram')
   }
-  if (!openAIKey) {
+  if (!(await hasModelAccess())) {
     json(response, 200, { plan, iterations: 0, notes: 'No OpenAI key — visual review skipped', provider: 'local-generator' })
     return
   }
@@ -1036,12 +1028,8 @@ const handleExplainerRefine = async (
   try {
     for (let pass = 0; pass < 2; pass += 1) {
       const screenshot = await screenshotExplainerPlan(plan, shapes)
-      const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+      const apiResponse = await modelFetch('vision', {
         method: 'POST',
-        headers: {
-          authorization: `Bearer ${openAIKey}`,
-          'content-type': 'application/json',
-        },
         body: JSON.stringify({
           model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
           input: [
@@ -1133,7 +1121,7 @@ const handleExplainerPlan = async (
     fallbackExplainerPlan(topic, abstract),
     shapes,
   )
-  if (!openAIKey) {
+  if (!(await hasModelAccess())) {
     json(response, 200, { plan: fallback, provider: 'local-generator' })
     return
   }
@@ -1142,12 +1130,8 @@ const handleExplainerPlan = async (
     const shapeVocabulary = shapes
       .map(shape => `${shape.key} (${shape.label})`)
       .join(', ')
-    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+    const apiResponse = await modelFetch('writing', {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${openAIKey}`,
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         model: process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna',
         input: `Design an animated diagram that explains "${topic}" for a technical video. The explanation being narrated: "${abstract}". Identify the concrete entities involved and represent each with an atomic shape from this vocabulary: ${shapeVocabulary}. Choose shapes by meaning — cylinder for data stores and datasets, box for processes and components, rounded for outputs and results, diamond for decisions and comparisons, cloud for external systems, hexagon for algorithms and optimizers, circle for atomic units like nodes or neurons, pill for interfaces and APIs, note for documents and annotations — so the same kind of thing always gets the same kind of shape. Organize the entities as a layered dependency DAG: level 0 holds the root inputs at the top, and each deeper level depends on the levels above it. Give every entity its level (0-based integer) and its order among the siblings on that level (0-based, left to right). Connect entities with connectors: arrows for dependencies flowing from one level into the next, and — where siblings on the same level have an execution-order relationship between them — sibling-to-sibling connectors (arrow or dashed) expressing that order. Label connectors with a short verb phrase (two or three words) describing what flows or happens. Then break the reveal into 3 to 6 narrated steps that follow the dependency order: reveal root-level entities first, then each deeper level together with the connectors feeding it — never reveal a connector before both of its endpoints. Each step names the entity and connector ids appearing at that moment and explains, in one or two spoken sentences tied to the narration, what the viewer is seeing. Use at most 8 entities. Every entity and connector id must be revealed by exactly one step.${instructions ? ` Additional instructions from the author: ${instructions}.` : ''}`,
@@ -1211,7 +1195,7 @@ const handleThemeGeneration = async (
     accent: accentColor,
   })
 
-  if (!openAIKey) {
+  if (!(await hasModelAccess())) {
     json(response, 200, { themes: fallback, provider: 'local-generator' })
     return
   }
@@ -1328,12 +1312,8 @@ const handleThemeGeneration = async (
   }
 
   try {
-    const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+    const apiResponse = await modelFetch('writing', {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${openAIKey}`,
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         model: process.env.OPENAI_THEME_MODEL || 'gpt-5.6-luna',
         input: `Create four visually distinct, production-ready video themes for Incredible Studio. The brand is ${name}; its supplied palette is primary ${brandColor}, secondary ${secondaryColor}, accent ${accentColor}; desired canvas treatment is ${treatment}; mood is ${body.mood || 'confident, human and technical'}. Preserve a coherent multi-color palette while varying tonal use. Maintain accessible text contrast. Treat every Markdown block as a composed system with independent layout, rendering style and motion. Choose intentionally different recipes for titles, body text, lists, code and quotes while keeping each theme coherent. For code, choose both an authentic VS Code syntax theme and an internal animation: type-lines constructs code progressively, while highlight-lines dims context and walks through focused lines. Motion semantics include quiet fades, directional slides, focus blur, masks, playful pops, type reveals, and line-by-line sequences. Video layout semantics: information-circle and information-tile keep content dominant; portrait-overlay and portrait-rail balance the person with content; split uses equal space; person-background-left/right put the real person full-frame with information overlaid on the named side; person-only is full camera. Avoid cosmetic variations of the same idea.`,
@@ -1813,9 +1793,25 @@ const server = createServer(async (request, response) => {
         systemVoice:
           process.platform === 'darwin' && (await commandExists('/usr/bin/say')),
         fishAudio: Boolean(process.env.FISH_AUDIO_API_KEY),
-        themeAI: Boolean(openAIKey),
+        themeAI: await hasModelAccess(),
         persistence,
       })
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/settings/models') {
+      json(response, 200, { settings: await publicModelSettings(), presets: MODEL_PRESETS })
+      return
+    }
+    if (request.method === 'PUT' && url.pathname === '/api/settings/models') {
+      const patch = await readJson<Partial<ModelSettingsV1>>(request, 64 * 1024)
+      await saveModelSettings(patch)
+      json(response, 200, { settings: await publicModelSettings() })
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/settings/models/test') {
+      const override = await readJson<Partial<ModelSettingsV1>>(request, 64 * 1024)
+      const models = await listModels(override)
+      json(response, 200, { ok: true, models: models.slice(0, 400) })
       return
     }
     if (request.method === 'GET' && url.pathname === '/api/projects') {

@@ -145,6 +145,26 @@ export const deleteProjectArtifact = async (projectId: string) => {
   return (result.rowCount || 0) > 0
 }
 
+// Small key/value settings store (model provider choices and the like).
+export const loadSetting = async (key: string): Promise<unknown> => {
+  await initializePersistence()
+  const result = await database.query<{ value: unknown }>(
+    'select value from studio_settings where key = $1',
+    [key],
+  )
+  return result.rows[0]?.value ?? null
+}
+
+export const saveSetting = async (key: string, value: unknown) => {
+  await initializePersistence()
+  await database.query(
+    `insert into studio_settings (key, value)
+     values ($1, $2::jsonb)
+     on conflict (key) do update set value = excluded.value, updated_at = now()`,
+    [key, JSON.stringify(value)],
+  )
+}
+
 export const loadLatestProjectArtifact = async () => {
   await initializePersistence()
   const result = await database.query<{ artifact: ProjectDocumentV1 }>(

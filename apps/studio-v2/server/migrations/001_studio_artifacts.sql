@@ -42,3 +42,9 @@ create index if not exists studio_blocks_notebook_position_idx
   on studio_blocks (notebook_id, position);
 create index if not exists studio_recorded_blocks_notebook_idx
   on studio_recorded_blocks (notebook_id);
+
+create table if not exists studio_settings (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz not null default now()
+);

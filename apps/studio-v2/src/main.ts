@@ -5335,6 +5335,182 @@ document.addEventListener('click', event => {
   scheduleSync()
 })
 
+// ——— Model settings ———
+// Which AI provider and models the worker uses. Keys stay server-side; the
+// dialog only ever sees whether one is saved.
+type ModelTask = 'writing' | 'vision' | 'coding'
+type ModelSettingsPublic = {
+  provider: string
+  baseUrl: string
+  models: Record<ModelTask, string>
+  reasoningEffort: string
+  hasKey: boolean
+  keyHint: string
+  source: 'saved' | 'environment' | 'none'
+}
+type ModelPreset = {
+  label: string
+  baseUrl: string
+  keyRequired: boolean
+  models: Record<ModelTask, string>
+  note: string
+}
+const modelSettingsDialog = $('#model-settings-dialog') as HTMLDialogElement
+const modelSettingsSummary = $('#model-settings-summary') as HTMLElement
+const msProvider = $('#ms-provider') as HTMLSelectElement
+const msBaseUrl = $('#ms-base-url') as HTMLInputElement
+const msApiKey = $('#ms-api-key') as HTMLInputElement
+const msKeyHint = $('#ms-key-hint') as HTMLElement
+const msModelInputs: Record<ModelTask, HTMLInputElement> = {
+  writing: $('#ms-model-writing') as HTMLInputElement,
+  vision: $('#ms-model-vision') as HTMLInputElement,
+  coding: $('#ms-model-coding') as HTMLInputElement,
+}
+const msReasoning = $('#ms-reasoning') as HTMLSelectElement
+const msProviderNote = $('#ms-provider-note') as HTMLElement
+const msStatus = $('#ms-status') as HTMLElement
+const msModelList = $('#ms-model-list') as HTMLDataListElement
+let modelPresets: Record<string, ModelPreset> = {}
+let modelSettings: ModelSettingsPublic | null = null
+
+const setModelStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
+  msStatus.textContent = text
+  msStatus.classList.toggle('is-ok', tone === 'ok')
+  msStatus.classList.toggle('is-error', tone === 'error')
+}
+
+const renderModelSummary = () => {
+  if (!modelSettings) {
+    modelSettingsSummary.textContent = 'Models'
+    return
+  }
+  const label = modelPresets[modelSettings.provider]?.label || modelSettings.provider
+  const configured = modelSettings.hasKey || !modelPresets[modelSettings.provider]?.keyRequired
+  modelSettingsSummary.textContent = configured
+    ? `${label.split(' (')[0]} · ${modelSettings.models.writing || 'choose a model'}`
+    : 'Models · add a key'
+}
+
+const loadModelSettingsUi = async () => {
+  try {
+    const body = await fetchJson<{ settings: ModelSettingsPublic; presets: Record<string, ModelPreset> }>(
+      '/api/settings/models',
+    )
+    modelPresets = body.presets
+    modelSettings = body.settings
+    msProvider.replaceChildren(
+      ...Object.entries(modelPresets).map(([id, preset]) => {
+        const option = document.createElement('option')
+        option.value = id
+        option.textContent = preset.label
+        return option
+      }),
+    )
+    renderModelSummary()
+  } catch {
+    modelSettingsSummary.textContent = 'Models'
+  }
+}
+
+const applyPresetToForm = (providerId: string, { keepModels }: { keepModels: boolean }) => {
+  const preset = modelPresets[providerId]
+  if (!preset) return
+  msBaseUrl.value = preset.baseUrl
+  msBaseUrl.placeholder = preset.baseUrl || 'https://host/v1'
+  msProviderNote.textContent = preset.note
+  ;(Object.keys(msModelInputs) as ModelTask[]).forEach(task => {
+    if (!keepModels || !msModelInputs[task].value) msModelInputs[task].value = preset.models[task]
+  })
+  msApiKey.placeholder = preset.keyRequired ? 'Paste a key' : 'Optional for this provider'
+}
+
+const openModelSettings = async () => {
+  await loadModelSettingsUi()
+  if (!modelSettings) {
+    showToast('Could not reach the worker to read model settings')
+    return
+  }
+  msProvider.value = modelSettings.provider
+  applyPresetToForm(modelSettings.provider, { keepModels: true })
+  msBaseUrl.value = modelSettings.baseUrl
+  ;(Object.keys(msModelInputs) as ModelTask[]).forEach(task => {
+    msModelInputs[task].value = modelSettings?.models[task] || ''
+  })
+  msReasoning.value = modelSettings.reasoningEffort
+  msApiKey.value = ''
+  msKeyHint.textContent =
+    modelSettings.source === 'environment'
+      ? 'Using the OPENAI_API_KEY from the environment until you save a key here.'
+      : modelSettings.hasKey
+        ? `A key ending ${modelSettings.keyHint} is saved. Leave blank to keep it.`
+        : 'No key saved yet.'
+  msModelList.replaceChildren()
+  setModelStatus('')
+  modelSettingsDialog.showModal()
+}
+
+const modelFormPatch = () => {
+  const models = {} as Record<ModelTask, string>
+  ;(Object.keys(msModelInputs) as ModelTask[]).forEach(task => {
+    models[task] = msModelInputs[task].value.trim()
+  })
+  return {
+    provider: msProvider.value,
+    baseUrl: msBaseUrl.value.trim(),
+    ...(msApiKey.value.trim() ? { apiKey: msApiKey.value.trim() } : {}),
+    models,
+    reasoningEffort: msReasoning.value,
+  }
+}
+
+msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, { keepModels: false }))
+;($('#open-model-settings') as HTMLButtonElement).addEventListener('click', () => void openModelSettings())
+;($('#close-model-settings') as HTMLButtonElement).addEventListener('click', () => modelSettingsDialog.close())
+;($('#ms-test') as HTMLButtonElement).addEventListener('click', async () => {
+  setModelStatus('Contacting the provider…')
+  try {
+    const body = await fetchJson<{ models: string[] }>('/api/settings/models/test', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(modelFormPatch()),
+    })
+    msModelList.replaceChildren(
+      ...body.models.map(id => {
+        const option = document.createElement('option')
+        option.value = id
+        return option
+      }),
+    )
+    setModelStatus(
+      body.models.length
+        ? `Connected · ${body.models.length} models available — pick from the lists`
+        : 'Connected, but the provider listed no models',
+      'ok',
+    )
+  } catch (error) {
+    setModelStatus(error instanceof Error ? error.message : 'Could not connect', 'error')
+  }
+})
+;($('#model-settings-form') as HTMLFormElement).addEventListener('submit', async event => {
+  event.preventDefault()
+  setModelStatus('Saving…')
+  try {
+    const body = await fetchJson<{ settings: ModelSettingsPublic }>('/api/settings/models', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(modelFormPatch()),
+    })
+    modelSettings = body.settings
+    renderModelSummary()
+    setModelStatus('Saved', 'ok')
+    showToast('Model settings saved — new AI requests use them immediately')
+    modelSettingsDialog.close()
+  } catch (error) {
+    setModelStatus(error instanceof Error ? error.message : 'Could not save', 'error')
+  }
+})
+void loadModelSettingsUi()
+
 // ——— Notebook switcher ———
 // Every saved notebook lives in the worker's database; the switcher lists
 // them, opens one (a reload with the pick remembered), creates blank ones,
