@@ -1281,3 +1281,11 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .slide-editor-step .se-row-tools button { width: 22px; height: 22px; border: 0; border-radius: 5px; background: transparent; color: #71717a; cursor: pointer; font-size: 12px; }
 .slide-editor-step .se-row-tools button:hover { background: #f4f4f5; color: #18181b; }
 .slide-editor-side-foot { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--line); }
+
+.slide-editor-side { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.slide-editor-prompt { display: grid; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--brand) 5%, white); }
+.slide-editor-prompt textarea { width: 100%; resize: vertical; min-height: 44px; padding: 8px 10px; border: 1px solid #d4d4d8; border-radius: 8px; font: 500 12px/1.4 system-ui; color: #18181b; background: white; }
+.slide-editor-prompt textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent); }
+.slide-editor-prompt-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.slide-editor-prompt-actions .button { min-height: 26px; padding-inline: 10px; font-size: 10px; }
+.slide-editor-prompt-actions .button.working { opacity: .7; pointer-events: none; }

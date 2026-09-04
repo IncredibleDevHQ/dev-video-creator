@@ -462,6 +462,13 @@
           <p class="slide-editor-hint">Click a part of the slide to add it to the selected step. <label><input type="checkbox" id="se-one-per-click" /> One step per click</label></p>
         </div>
         <div class="slide-editor-side">
+          <div class="slide-editor-prompt">
+            <textarea id="se-prompt" rows="2" placeholder="Tell it how the slide should build — e.g. “start with the encoder, trace each residual path, keep the callouts for the end”"></textarea>
+            <div class="slide-editor-prompt-actions">
+              <button type="button" id="se-plan-narration" class="button" title="Derive the steps from this block’s explanation">Plan from narration</button>
+              <button type="button" id="se-plan-apply" class="button primary" title="Rewrite the steps from your instruction">Apply</button>
+            </div>
+          </div>
           <div class="slide-editor-side-head"><strong>Steps</strong><span id="se-step-count">0</span><button type="button" id="se-add-step" class="button">+ Step</button></div>
           <ol id="slide-editor-steps" class="slide-editor-steps"></ol>
           <div class="slide-editor-side-foot">

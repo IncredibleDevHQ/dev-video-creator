@@ -999,6 +999,95 @@ const handleImageAnimationExperiment = async (
   })
 }
 
+// ——— Slide build-order planning ———
+// Turns a slide's narration into a build order over its atomised parts, or
+// rewrites an existing order from a plain-language instruction. The parts
+// inventory comes from the studio's atomiser; ids are validated on return.
+const handleSlidePlan = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => {
+  const body = await readJson<{
+    title?: string
+    narration?: string
+    instruction?: string
+    units?: Array<{ id: string; kind: string; label: string; x: number; y: number; w: number; h: number; group?: string }>
+    steps?: Array<{ title: string; explanation: string; reveals: string[]; verb: string }>
+  }>(request, 2 * 1024 * 1024)
+  const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
+  if (!units.length) throw new Error('The slide has no parts to plan')
+  if (!(await hasModelAccess())) {
+    throw new Error('Planning from narration needs an AI provider — open Models in the top bar')
+  }
+  const narration = String(body.narration || '').trim().slice(0, 6_000)
+  const instruction = String(body.instruction || '').trim().slice(0, 1_500)
+  const current = Array.isArray(body.steps) ? body.steps.slice(0, 40) : []
+  const inventory = units
+    .map(unit => `${unit.id} · ${unit.kind} · "${String(unit.label || '').slice(0, 60)}" · at ${Math.round(unit.x)},${Math.round(unit.y)} size ${Math.round(unit.w)}×${Math.round(unit.h)}${unit.group ? ` · in ${unit.group}` : ''}`)
+    .join('\n')
+  const validIds = new Set(units.map(unit => unit.id))
+  const prompt = `You plan the build order of an animated slide for a narrated technical video titled "${String(body.title || 'Slide').slice(0, 120)}". The slide is a static diagram; parts appear on screen step by step while the presenter speaks.
+
+PARTS (id · kind · label · position; positions are in the slide's coordinate space, y grows downward):
+${inventory}
+
+${narration ? `NARRATION (what the presenter says, in order):\n${narration}\n` : ''}${current.length ? `CURRENT STEPS:\n${current.map((step, index) => `${index + 1}. ${step.title} — reveals ${step.reveals.join(', ')} — verb ${step.verb} — says: ${step.explanation}`).join('\n')}\n` : ''}${instruction ? `INSTRUCTION FROM THE AUTHOR: ${instruction}\nApply it to the current steps and keep everything the instruction does not mention.\n` : `Derive the steps from the narration: each step is one beat of the explanation, revealing exactly the parts that beat talks about, in the order the narration reaches them.\n`}
+Rules: every part id appears in exactly one step (a part never appears twice); a connector reveals in the step of the part it leads to; a label reveals with the part it describes; frames reveal with the first part inside them; use verb "trace" when a step's parts include connectors, "focus" for a step that re-emphasises already visible parts, else "reveal". Titles are short (2–5 words). explanation is the narration text to speak over that step (quote or lightly adapt the narration; if there is none, write one natural sentence). Keep between 3 and 24 steps.`
+  const apiResponse = await modelFetch('writing', {
+    method: 'POST',
+    body: JSON.stringify({
+      model: 'ignored',
+      input: prompt,
+      reasoning: { effort: 'medium' },
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'slide_build_order',
+          strict: true,
+          schema: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['steps'],
+            properties: {
+              steps: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['title', 'explanation', 'reveals', 'verb'],
+                  properties: {
+                    title: { type: 'string' },
+                    explanation: { type: 'string' },
+                    reveals: { type: 'array', items: { type: 'string' } },
+                    verb: { type: 'string', enum: ['reveal', 'trace', 'focus'] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+  })
+  if (!apiResponse.ok) throw new Error(`Slide planning failed (${apiResponse.status})`)
+  const apiBody = (await apiResponse.json()) as Parameters<typeof extractResponseText>[0]
+  const generated = JSON.parse(extractResponseText(apiBody)) as {
+    steps?: Array<{ title?: string; explanation?: string; reveals?: string[]; verb?: string }>
+  }
+  const seen = new Set<string>()
+  const steps = (generated.steps || [])
+    .map(step => ({
+      title: String(step.title || '').trim().slice(0, 120),
+      explanation: String(step.explanation || '').trim().slice(0, 1_200),
+      reveals: (Array.isArray(step.reveals) ? step.reveals : [])
+        .map(id => String(id).trim())
+        .filter(id => validIds.has(id) && !seen.has(id) && (seen.add(id), true)),
+      verb: step.verb === 'trace' || step.verb === 'focus' ? step.verb : 'reveal',
+    }))
+    .filter(step => step.reveals.length)
+  json(response, 200, { steps, provider: 'openai' })
+}
+
 const handleExplainerRefine = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -1902,6 +1991,10 @@ const server = createServer(async (request, response) => {
       url.pathname === '/api/experiments/image-animation'
     ) {
       await handleImageAnimationExperiment(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/slides/plan') {
+      await handleSlidePlan(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/notes') {

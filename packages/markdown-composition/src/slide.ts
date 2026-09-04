@@ -189,7 +189,11 @@ export const slideDriverScript = (
   var settle = function (target, shown, dim) {
     target.element.style.opacity = shown ? String(dim) : '0';
     target.strokes.forEach(function (stroke) { stroke.node.style.strokeDashoffset = '0'; });
-    target.bodies.forEach(function (node) { node.style.opacity = ''; node.style.transform = ''; });
+    target.bodies.forEach(function (node) {
+      // A leaf unit is its own body: keep the opacity just set on it.
+      if (node !== target.element) node.style.opacity = '';
+      node.style.transform = '';
+    });
   };
   var animate = function (target, progress, verb, index, count) {
     // Stagger from the group's first element; strokes draw before labels.

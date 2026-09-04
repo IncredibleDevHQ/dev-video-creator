@@ -51,6 +51,7 @@ import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import {
   atomizeSlideSvg,
+  attachLeftovers,
   inferEdges,
   leafUnits,
   oneStepPerUnit,
@@ -7789,6 +7790,98 @@ const openSlideEditor = (nodeId: string) => {
 
 const flattenSlideUnits = (units: SlideUnit[]): SlideUnit[] =>
   units.flatMap(unit => (unit.kind === 'group' ? [unit, ...flattenSlideUnits(unit.children)] : [unit]))
+
+// Narration → build order, and instruction → revised order, through the
+// model gateway. Parts travel as a compact inventory; ids come back and are
+// validated, then anything the model missed rides with its nearest part.
+const slideUnitInventory = (state: SlideEditorState) => {
+  const groupOf = new Map<string, string>()
+  const walk = (list: SlideUnit[], group: string) => {
+    list.forEach(unit => {
+      if (unit.kind === 'group') walk(unit.children, unit.chrome ? group : unit.label)
+      else groupOf.set(unit.id, group)
+    })
+  }
+  walk(state.units, '')
+  return leafUnits(state.units)
+    .filter(unit => !unit.chrome)
+    .map(unit => ({
+      id: unit.id,
+      kind: unit.kind,
+      label: unit.label,
+      x: unit.bbox.x,
+      y: unit.bbox.y,
+      w: unit.bbox.width,
+      h: unit.bbox.height,
+      group: groupOf.get(unit.id) || '',
+    }))
+}
+
+const slideNarration = (state: SlideEditorState) => {
+  const saved = project.blocks[state.nodeId]?.speakerNotes?.trim()
+  if (saved) return saved
+  return state.steps.map(step => step.explanation.trim()).filter(Boolean).join(' ')
+}
+
+const planSlideSteps = async (mode: 'narration' | 'instruction') => {
+  const state = slideEditor
+  if (!state) return
+  const instruction = ($('#se-prompt') as HTMLTextAreaElement).value.trim()
+  if (mode === 'instruction' && !instruction) {
+    setSlideEditorStatus('Type what should change first', 'error')
+    return
+  }
+  const narration = slideNarration(state)
+  if (mode === 'narration' && !narration) {
+    setSlideEditorStatus('Add an explanation to this block first — the plan follows it', 'error')
+    return
+  }
+  const button = $(mode === 'narration' ? '#se-plan-narration' : '#se-plan-apply') as HTMLButtonElement
+  button.classList.add('working')
+  setSlideEditorStatus(mode === 'narration' ? 'Reading the narration…' : 'Rewriting the steps…')
+  try {
+    // Model ids map to the primary id of each unit; expand back to element ids.
+    const byUnit = new Map(leafUnits(state.units).map(unit => [unit.id, unit]))
+    const found = findTypedNode('slide', state.nodeId)
+    const body = await fetchJson<{ steps: Array<{ title: string; explanation: string; reveals: string[]; verb: 'reveal' | 'trace' | 'focus' }> }>(
+      '/api/slides/plan',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: String(found?.attrs.title || 'Slide'),
+          narration,
+          instruction: mode === 'instruction' ? instruction : '',
+          units: slideUnitInventory(state),
+          steps: mode === 'instruction'
+            ? state.steps.map(step => ({
+                ...step,
+                reveals: Array.from(new Set(step.reveals.map(id => state.unitByElement.get(id)?.id || id))),
+              }))
+            : [],
+        }),
+      },
+    )
+    const drafts = body.steps.map(step => ({
+      title: step.title,
+      reveals: step.reveals.flatMap(id => byUnit.get(id)?.ids || []),
+      verb: step.verb,
+    }))
+    const explanations = body.steps.map(step => step.explanation)
+    const completed = attachLeftovers(state.units, drafts)
+    state.steps = completed.map((draft, index) => ({ ...draft, explanation: explanations[index] || '' }))
+    state.current = 0
+    renderSlideEditorSteps()
+    renderSlideEditorPreview()
+    setSlideEditorStatus(`${state.steps.length} steps planned`, 'ok')
+  } catch (error) {
+    setSlideEditorStatus(error instanceof Error ? error.message : 'Planning failed', 'error')
+  } finally {
+    button.classList.remove('working')
+  }
+}
+;($('#se-plan-narration') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('narration'))
+;($('#se-plan-apply') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('instruction'))
 
 ;($('#se-order-arrows') as HTMLButtonElement).addEventListener('click', () => {
   if (slideEditor) applySlideDrafts(suggestSteps(slideEditor.units))

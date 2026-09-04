@@ -507,7 +507,12 @@ export const suggestSteps = (units: SlideUnit[]): OrderedStepDraft[] => {
       }))
     }
   }
-  // Leftovers ride with the nearest unit already placed.
+  return attachLeftovers(units, steps)
+}
+
+/** Every unplaced, non-chrome unit joins the step of its nearest placed unit. */
+export const attachLeftovers = (units: SlideUnit[], steps: OrderedStepDraft[]): OrderedStepDraft[] => {
+  const leaves = leafUnits(units)
   const placed = new Map<string, number>()
   steps.forEach((step, index) => step.reveals.forEach(id => placed.set(id, index)))
   const placedUnits = leaves.filter(unit => unit.ids.some(id => placed.has(id)))
