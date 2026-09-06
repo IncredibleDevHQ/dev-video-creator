@@ -21,6 +21,7 @@ type StudioWorkerModule = {
     persistence?: 'local' | 'postgres'
     serveDist?: boolean
     distDir?: string
+    outputsDir?: string
   }) => (request: IncomingMessage, response: ServerResponse) => Promise<void>
 }
 
@@ -64,6 +65,11 @@ export const startWorker = async (
   const port = await pickFreePort()
   const dataDir =
     process.env.STUDIO_DATA_DIR || join(app.getPath('userData'), 'studio')
+  // Published videos go somewhere the user actually looks: a folder in
+  // ~/Downloads. STUDIO_OUTPUTS_DIR overrides (tests keep it in a temp dir).
+  const outputsDir =
+    process.env.STUDIO_OUTPUTS_DIR ||
+    join(app.getPath('downloads'), 'Incredible Studio')
   const distDir = resolveDistDir()
   if (!existsSync(join(distDir, 'index.html'))) {
     log(
@@ -84,6 +90,7 @@ export const startWorker = async (
     persistence: 'local',
     serveDist: true,
     distDir,
+    outputsDir,
   })
   const server = createServer(async (request, response) => {
     if (options.preHandler && (await options.preHandler(request, response))) return
@@ -94,7 +101,7 @@ export const startWorker = async (
     server.listen(port, '127.0.0.1', () => resolve())
   })
   const origin = `http://127.0.0.1:${port}`
-  log(`worker in-process on ${origin} (data: ${dataDir})`)
+  log(`worker in-process on ${origin} (data: ${dataDir}, exports: ${outputsDir})`)
   return {
     origin,
     port,

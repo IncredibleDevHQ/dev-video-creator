@@ -91,6 +91,8 @@ export type StudioHandlerOptions = {
   persistence?: 'local' | 'postgres'
   serveDist?: boolean
   distDir?: string
+  // Where published MP4s land; STUDIO_OUTPUTS_DIR overrides for dev/tests.
+  outputsDir?: string
 }
 
 // Option-dependent state the request handlers close over.
@@ -1874,7 +1876,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     fileURLToPath(new URL('../../../.studio-data/', import.meta.url))
   const context: StudioWorkerContext = {
     assetsDirectory: join(dataDirectory, 'assets'),
-    outputsDirectory: join(dataDirectory, 'outputs'),
+    outputsDirectory:
+      options.outputsDir ||
+      process.env.STUDIO_OUTPUTS_DIR ||
+      join(dataDirectory, 'outputs'),
     jobsDirectory: join(dataDirectory, 'jobs'),
     previewsDirectory: join(dataDirectory, 'previews'),
     serveDist: options.serveDist ?? process.argv.includes('--serve-dist'),

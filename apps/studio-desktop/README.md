@@ -45,6 +45,9 @@ helper; the MCP `validate` tool shape-checks `resolved` against them.
   `~/Library/Application Support/studio-desktop/studio`); harness projects
   live in `<dataDir>/projects/<projectId>` unless `projectDir` is passed.
 - `STUDIO_DIST_DIR` — overrides the studio-v2 `dist/` location.
+- `STUDIO_OUTPUTS_DIR` — overrides where published MP4s are written (default
+  `~/Downloads/Incredible Studio/`); the dev worker (`server/bin.ts`) honours
+  it too, defaulting to `<dataDir>/outputs/`.
 - `STUDIO_GATE_AUTO_ANSWER` — JSON string; when set, gate dialogs are answered
   programmatically with this object (headless runs and the e2e scripts; the
   dialog never auto-answers in normal use).

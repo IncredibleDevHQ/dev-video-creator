@@ -38,7 +38,11 @@ const dataDir = join(root, 'data')
 const id = `export-${Date.now()}`
 const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   cwd: appDir,
-  env: { ...process.env, STUDIO_DATA_DIR: dataDir },
+  env: {
+    ...process.env,
+    STUDIO_DATA_DIR: dataDir,
+    STUDIO_OUTPUTS_DIR: join(root, 'outputs'),
+  },
   stdio: ['ignore', 'pipe', 'inherit'],
 })
 const origin = await new Promise((resolve, reject) => {
@@ -92,6 +96,13 @@ try {
     return `${render.url} (${render.durationSeconds.toFixed(2)} s in ${((Date.now() - started) / 1000).toFixed(1)} s wall)`
   })
   let mp4Path
+  await step('MP4 written into the outputs dir', async () => {
+    const fileName = new URL(render.url).pathname.split('/').pop()
+    const onDisk = join(root, 'outputs', fileName)
+    const size = (await stat(onDisk)).size
+    if (size < 10_000) throw new Error(`suspiciously small (${size} bytes)`)
+    return onDisk
+  })
   await step('MP4 exists with a video stream', async () => {
     const response = await fetch(render.url)
     if (!response.ok) throw new Error(`download ${response.status}`)
