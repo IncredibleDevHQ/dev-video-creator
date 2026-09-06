@@ -44,6 +44,7 @@ type SmokeProbe = {
   hasEditor: boolean
   hasModelSettings: boolean
   hasAssistButton: boolean
+  agentSummary: string | null
 }
 
 // The editor DOM checks mirror the reference shell's product smoke: the
@@ -51,6 +52,11 @@ type SmokeProbe = {
 // notebook list (fetched from the same origin the page uses).
 const SMOKE_PROBE = `(async () => {
   for (let i = 0; i < 40 && !document.querySelector('.ProseMirror, [contenteditable="true"]'); i++) {
+    await new Promise(r => setTimeout(r, 250))
+  }
+  for (let i = 0; i < 20; i++) {
+    const summary = (document.getElementById('agent-settings-summary') || {}).textContent || ''
+    if (summary.startsWith('Agent ·')) break
     await new Promise(r => setTimeout(r, 250))
   }
   const health = await fetch('/api/health').then(r => r.json()).catch(() => null)
@@ -64,6 +70,11 @@ const SMOKE_PROBE = `(async () => {
     hasModelSettings: !!document.getElementById('open-model-settings'),
     hasAssistButton: !!document.getElementById('se-plan-assist') &&
       !(document.getElementById('se-assist-row') || { hidden: true }).hidden,
+    agentSummary: (() => {
+      const button = document.getElementById('open-agent-settings')
+      if (!button || button.hidden) return null
+      return (document.getElementById('agent-settings-summary') || {}).textContent || null
+    })(),
   }
 })()`
 
@@ -76,6 +87,9 @@ const smokeFailure = (probe: SmokeProbe | null): string => {
   if (!probe.hasEditor) return 'editor did not mount'
   if (!probe.hasModelSettings) return 'model settings entry missing'
   if (!probe.hasAssistButton) return 'assist button missing or hidden in desktop mode'
+  if (!probe.agentSummary?.startsWith('Agent ·')) {
+    return `agent detection did not report (${JSON.stringify(probe.agentSummary)})`
+  }
   if (probe.projectCount === null) return 'notebook list unavailable'
   return ''
 }

@@ -5523,6 +5523,133 @@ msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, 
 })
 void loadModelSettingsUi()
 
+// ——— Coding agent status (desktop shell only) ———
+// Detects the coding-agent CLIs through the desktop bridge, shows the active
+// one in the top bar, and lets the user pick which agent Plan motion (assist)
+// runs on. Web builds never see any of this (the button stays hidden).
+type AgentAvailability = { id: string; ok: boolean; version?: string; reason?: string }
+const AGENT_LABELS: Record<string, string> = {
+  kimi: 'Kimi CLI',
+  'claude-code': 'Claude Code',
+  codex: 'Codex CLI',
+}
+const agentLabel = (id: string) => AGENT_LABELS[id] || id
+const agentButton = $('#open-agent-settings') as HTMLButtonElement
+const agentDialog = $('#agent-settings-dialog') as HTMLDialogElement
+const agentSummary = $('#agent-settings-summary') as HTMLElement
+const agentDot = $('#agent-status-dot') as HTMLElement
+const agentList = $('#agent-list') as HTMLElement
+const agentStatusLine = $('#agent-status') as HTMLElement
+let agentAvailability: AgentAvailability[] = []
+
+const getPreferredAgent = () => {
+  try {
+    return localStorage.getItem('studio.codingAgent') || ''
+  } catch {
+    return ''
+  }
+}
+const setPreferredAgent = (id: string) => {
+  try {
+    if (id) localStorage.setItem('studio.codingAgent', id)
+    else localStorage.removeItem('studio.codingAgent')
+  } catch {
+    // Private browsing and friends — the picker just won't persist.
+  }
+}
+
+// The agent an assist run should use: the preferred one when it is online,
+// else the first online one (remembered, so the top bar stays honest).
+const resolveAssistAgent = () => {
+  const online = agentAvailability.filter(agent => agent.ok)
+  if (!online.length) return ''
+  const preferred = getPreferredAgent()
+  const chosen = online.find(agent => agent.id === preferred) || online[0]
+  if (chosen.id !== preferred) setPreferredAgent(chosen.id)
+  return chosen.id
+}
+
+const setAgentStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
+  agentStatusLine.textContent = text
+  agentStatusLine.classList.toggle('is-ok', tone === 'ok')
+  agentStatusLine.classList.toggle('is-error', tone === 'error')
+}
+
+const renderAgentSummary = () => {
+  const online = agentAvailability.filter(agent => agent.ok)
+  const active = resolveAssistAgent()
+  agentDot.className = `agent-status-dot ${active ? 'is-online' : 'is-offline'}`
+  agentSummary.textContent = active
+    ? `Agent · ${agentLabel(active)}${online.length > 1 ? ` · ${online.length} online` : ''}`
+    : 'Agent · none found'
+  const hint = $('#se-assist-agent') as HTMLElement | null
+  if (hint) hint.textContent = active ? `via ${agentLabel(active)}` : 'no agent CLI found'
+}
+
+const renderAgentList = () => {
+  const preferred = getPreferredAgent()
+  agentList.replaceChildren(
+    ...agentAvailability.map(agent => {
+      const row = document.createElement('label')
+      row.className = `agent-row${agent.id === preferred ? ' is-selected' : ''}${agent.ok ? '' : ' is-offline'}`
+      const radio = document.createElement('input')
+      radio.type = 'radio'
+      radio.name = 'coding-agent'
+      radio.checked = agent.id === preferred
+      radio.disabled = !agent.ok
+      radio.addEventListener('change', () => {
+        setPreferredAgent(agent.id)
+        renderAgentList()
+        renderAgentSummary()
+        setAgentStatus(`${agentLabel(agent.id)} will run Plan motion (assist)`, 'ok')
+      })
+      const name = document.createElement('span')
+      name.className = 'agent-row-name'
+      name.textContent = agentLabel(agent.id)
+      const dot = document.createElement('span')
+      dot.className = `agent-status-dot ${agent.ok ? 'is-online' : 'is-offline'}`
+      const detail = document.createElement('span')
+      detail.className = 'agent-row-detail'
+      const reason = (agent.reason || '').replace(/\s+/g, ' ').slice(0, 90)
+      detail.textContent = agent.ok
+        ? `online · ${agent.version || 'version unknown'}`
+        : reason
+          ? `not found — ${reason}`
+          : 'not found — install the CLI to enable it'
+      row.append(radio, name, dot, detail)
+      return row
+    }),
+  )
+}
+
+const refreshAgents = async () => {
+  if (!window.studioDesktop?.isDesktop) return
+  try {
+    agentAvailability = await window.studioDesktop.harness.adapters()
+  } catch {
+    agentAvailability = []
+  }
+  renderAgentSummary()
+  if (agentDialog.open) renderAgentList()
+}
+
+agentButton.addEventListener('click', () => {
+  setAgentStatus('')
+  agentDialog.showModal()
+  renderAgentList()
+  void refreshAgents()
+})
+;($('#close-agent-settings') as HTMLButtonElement).addEventListener('click', () => agentDialog.close())
+;($('#agent-refresh') as HTMLButtonElement).addEventListener('click', () => {
+  setAgentStatus('Detecting…')
+  void refreshAgents().then(() => setAgentStatus(''))
+})
+
+if (window.studioDesktop?.isDesktop) {
+  agentButton.hidden = false
+  void refreshAgents()
+}
+
 // ——— Notebook switcher ———
 // Every saved notebook lives in the worker's database; the switcher lists
 // them, opens one (a reload with the pick remembered), creates blank ones,
@@ -7890,7 +8017,6 @@ const planSlideSteps = async (mode: 'narration' | 'instruction') => {
 const desktopBridge = window.studioDesktop
 const assistRow = $('#se-assist-row') as HTMLElement
 const assistButton = $('#se-plan-assist') as HTMLButtonElement
-const assistAdapterSelect = $('#se-assist-adapter') as HTMLSelectElement
 const assistCancel = $('#se-assist-cancel') as HTMLButtonElement
 const assistLogElement = $('#se-assist-log') as HTMLElement
 let assistRunId: string | null = null
@@ -7944,28 +8070,18 @@ assistButton.addEventListener('click', () =>
       setSlideEditorStatus('Add an explanation to this block first — the plan follows it', 'error')
       return
     }
-    const available = (await desktopBridge.harness.adapters()).filter(adapter => adapter.ok)
-    if (!available.length) {
+    // Fresh detection on every run, then the preferred-online agent wins.
+    agentAvailability = await desktopBridge.harness.adapters()
+    renderAgentSummary()
+    const adapter = resolveAssistAgent()
+    if (!adapter) {
       setSlideEditorStatus('No coding-agent CLI found (install kimi, claude or codex)', 'error')
       return
-    }
-    let adapter = available[0].id
-    if (available.length > 1) {
-      assistAdapterSelect.replaceChildren(
-        ...available.map(item => {
-          const option = document.createElement('option')
-          option.value = item.id
-          option.textContent = item.id
-          return option
-        }),
-      )
-      assistAdapterSelect.hidden = false
-      adapter = assistAdapterSelect.value || adapter
     }
     assistButton.classList.add('working')
     assistCancel.hidden = false
     assistLogElement.replaceChildren()
-    setSlideEditorStatus(`Plan motion via ${adapter} — answer the gates as they appear…`)
+    setSlideEditorStatus(`Plan motion via ${agentLabel(adapter)} — answer the gates as they appear…`)
     try {
       const found = findTypedNode('slide', state.nodeId)
       const run = await desktopBridge.harness.run({

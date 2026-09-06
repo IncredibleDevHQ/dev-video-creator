@@ -1244,6 +1244,23 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .settings-status.is-error { color: #dc2626; }
 .settings-status.is-ok { color: #15803d; }
 
+/* ——— Coding agent picker (desktop shell) ——— */
+.agent-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #a1a1aa; flex: none; }
+.agent-status-dot.is-online { background: #22c55e; }
+.agent-status-dot.is-offline { background: #71717a; }
+.agent-list { display: grid; gap: 8px; }
+.agent-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #e4e4e7; border-radius: 10px; cursor: pointer; }
+.agent-row:hover { border-color: #a1a1aa; }
+.agent-row.is-selected { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent); }
+.agent-row.is-offline { opacity: .62; cursor: default; }
+.agent-row input[type="radio"] { accent-color: var(--brand); margin: 0; }
+.agent-row.is-offline input[type="radio"] { pointer-events: none; }
+.agent-row .agent-row-name { font-size: 13px; font-weight: 700; color: #18181b; }
+.agent-row .agent-row-detail { flex: 1; font-size: 11px; color: #71717a; text-align: right; }
+.agent-row .agent-status-dot { margin-left: auto; }
+.agent-row .agent-status-dot + .agent-row-detail { margin-left: 6px; }
+.slide-editor-assist-agent { font-size: 11px; color: #71717a; align-self: center; }
+
 /* ——— Slide build-order editor ——— */
 .slide-editor-modal { width: min(1280px, 96vw); max-height: 92vh; border-radius: 16px; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .slide-editor-modal .modal-heading { align-items: center; gap: 14px; }

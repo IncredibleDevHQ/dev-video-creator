@@ -144,6 +144,7 @@
             <div class="save-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><strong id="save-state">Saved</strong></div>
             <button id="render-video" type="button" class="button primary" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Publish</button>
             <button id="open-model-settings" class="topbar-status topbar-status-button" type="button" title="Choose the AI provider and models"><span class="brand-orbit"><span>AI</span></span><strong id="model-settings-summary">Models</strong></button>
+            <button id="open-agent-settings" class="topbar-status topbar-status-button" type="button" title="Choose the coding agent for Plan motion (assist)" hidden><span id="agent-status-dot" class="agent-status-dot"></span><strong id="agent-settings-summary">Agent</strong></button>
           </div>
         </div>
         <div class="commandbar">
@@ -470,7 +471,7 @@
             </div>
             <div class="slide-editor-prompt-actions" id="se-assist-row" hidden>
               <button type="button" id="se-plan-assist" class="button" title="Run motion-master Plan Motion — Default through an installed coding agent, with confirmation gates (desktop only)">Plan motion (assist)</button>
-              <select id="se-assist-adapter" class="button" hidden title="Coding agent to run the plan"></select>
+              <span id="se-assist-agent" class="slide-editor-assist-agent" title="The agent Plan motion (assist) uses — change it from the Agent button in the top bar"></span>
               <button type="button" id="se-assist-cancel" class="button" hidden>Cancel</button>
             </div>
             <div id="se-assist-log" class="slide-editor-assist-log" hidden></div>
@@ -507,6 +508,20 @@
           <button type="submit" class="button primary">Save</button>
         </div>
       </form>
+    </dialog>
+    <dialog id="agent-settings-dialog" class="modal settings-modal">
+      <div class="modal-heading">
+        <div><span class="eyebrow">Coding agent</span><h2>Who plans the motion</h2></div>
+        <button id="close-agent-settings" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="settings-body">
+        <p class="settings-note">Plan motion (assist) runs the motion-master skill on a coding-agent CLI installed on this machine. Detected agents:</p>
+        <div id="agent-list" class="agent-list" role="radiogroup" aria-label="Coding agent"></div>
+        <div class="modal-actions settings-actions">
+          <button type="button" id="agent-refresh" class="button">Re-detect</button>
+          <span id="agent-status" class="settings-status" aria-live="polite"></span>
+        </div>
+      </div>
     </dialog>
     <dialog id="publish-dialog" class="modal publish-modal">
       <div class="modal-heading"><div><span class="eyebrow">Publish</span><h2>Finalize your story</h2></div><button id="close-publish" class="icon-button" type="button" aria-label="Close publish">×</button></div>
