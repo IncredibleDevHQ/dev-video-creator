@@ -14,7 +14,7 @@ const electronBinary = require('electron')
 const root = await mkdtemp(join(tmpdir(), 'studio-agent-picker-'))
 const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   cwd: appDir,
-  env: { ...process.env, STUDIO_DATA_DIR: join(root, 'data'), STUDIO_ENABLE_TEST_HOOKS: '1' },
+  env: { ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1', STUDIO_DATA_DIR: join(root, 'data'), STUDIO_ENABLE_TEST_HOOKS: '1' },
   stdio: ['ignore', 'pipe', 'inherit'],
 })
 

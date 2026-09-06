@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <defs>
+    <marker id="arrowLine" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <polygon points="0,0 10,5 0,10" fill="#9CC3E6" />
+    </marker>
+    <marker id="arrowAccent" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <polygon points="0,0 10,5 0,10" fill="#F5A623" />
+    </marker>
+  </defs>
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 03 · ATTENTION, STEP 3</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">The same block is used in three places</text>
+  </g>
+
+  <g id="panel-encoder-self" data-pptx-bounds="80 150 360 470">
+    <rect x="80" y="150" width="360" height="470" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <text x="100" y="180" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">A · ENCODER SELF-ATTENTION</text>
+    <text x="100" y="204" font-family="Consolas" font-size="12" fill="#9CB4CC">Q, K, V ← previous encoder layer</text>
+    <g id="encoder-self-arcs" fill="none" stroke="#9CC3E6" stroke-width="1" stroke-opacity="0.55">
+      <path d="M120 291 Q155 265 190 291" />
+      <path d="M120 291 Q190 230 260 291" />
+      <path d="M120 291 Q260 160 400 291" />
+      <path d="M190 291 Q225 265 260 291" />
+      <path d="M190 291 Q295 195 400 291" />
+      <path d="M260 291 Q330 230 400 291" />
+      <path d="M330 291 Q365 265 400 291" />
+    </g>
+    <g id="encoder-self-focus" fill="none" stroke="#F5A623" stroke-width="1.5">
+      <path d="M120 291 Q225 195 330 291" />
+      <path d="M190 291 Q260 230 330 291" />
+      <path d="M260 291 Q295 265 330 291" />
+    </g>
+    <g id="encoder-self-nodes" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5">
+      <circle cx="120" cy="300" r="9" />
+      <circle cx="190" cy="300" r="9" />
+      <circle cx="260" cy="300" r="9" />
+      <circle cx="330" cy="300" r="9" stroke="#F5A623" stroke-width="2" />
+      <circle cx="400" cy="300" r="9" />
+    </g>
+    <text x="260" y="340" font-family="Consolas" font-size="12" fill="#9CB4CC" text-anchor="middle">input positions 1 … n</text>
+    <text fill="#C9DBEA" font-size="17" x="100" y="420">Every position looks at every</text><text fill="#C9DBEA" font-size="17" x="100" y="446">other position, in both directions,</text><text fill="#C9DBEA" font-size="17" x="100" y="472">in one step — the O(1) path.</text><text fill="#C9DBEA" font-size="17" x="100" y="530">Six of these, stacked, build the</text><text fill="#C9DBEA" font-size="17" x="100" y="556">encoder's contextual representation.</text></g>
+
+  <g id="panel-decoder-masked" data-pptx-bounds="460 150 360 470">
+    <rect x="460" y="150" width="360" height="470" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <text x="480" y="180" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">B · MASKED DECODER SELF-ATTN</text>
+    <text x="480" y="204" font-family="Consolas" font-size="12" fill="#9CB4CC">Q, K, V ← previous decoder layer</text>
+    <g id="masked-blocked-arcs" fill="none" stroke="#9CC3E6" stroke-width="1" stroke-opacity="0.22" stroke-dasharray="2,2">
+      <path d="M570 291 Q535 265 500 291" />
+      <path d="M640 291 Q570 230 500 291" />
+      <path d="M710 291 Q605 195 500 291" />
+      <path d="M780 291 Q640 160 500 291" />
+      <path d="M640 291 Q605 265 570 291" />
+      <path d="M710 291 Q640 230 570 291" />
+      <path d="M780 291 Q675 195 570 291" />
+      <path d="M710 291 Q675 265 640 291" />
+      <path d="M780 291 Q710 230 640 291" />
+      <path d="M780 291 Q745 265 710 291" />
+    </g>
+    <g id="masked-allowed-arcs" fill="none" stroke="#9CC3E6" stroke-width="1" stroke-opacity="0.55">
+      <path d="M500 309 Q535 335 570 309" />
+      <path d="M500 309 Q570 370 640 309" />
+      <path d="M500 309 Q640 440 780 309" />
+      <path d="M570 309 Q605 335 640 309" />
+      <path d="M570 309 Q675 405 780 309" />
+      <path d="M640 309 Q710 370 780 309" />
+      <path d="M710 309 Q745 335 780 309" />
+    </g>
+    <g id="masked-focus-arcs" fill="none" stroke="#F5A623" stroke-width="1.5">
+      <path d="M500 309 Q605 405 710 309" />
+      <path d="M570 309 Q640 370 710 309" />
+      <path d="M640 309 Q675 335 710 309" />
+    </g>
+    <g id="masked-nodes" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5">
+      <circle cx="500" cy="300" r="9" />
+      <circle cx="570" cy="300" r="9" />
+      <circle cx="640" cy="300" r="9" />
+      <circle cx="710" cy="300" r="9" stroke="#F5A623" stroke-width="2" />
+      <circle cx="780" cy="300" r="9" />
+    </g>
+    <text x="640" y="236" font-family="Consolas" font-size="11" fill="#9CB4CC" text-anchor="middle">rightward flow masked (−∞ before softmax)</text>
+    <text fill="#C9DBEA" font-size="17" x="480" y="420">Same block, but position i may</text><text fill="#C9DBEA" font-size="17" x="480" y="446">only attend to positions ≤ i.</text><text fill="#C9DBEA" font-size="17" x="480" y="472">The mask keeps generation</text><text fill="#C9DBEA" font-size="17" x="480" y="498">auto-regressive.</text><text fill="#C9DBEA" font-size="17" x="480" y="556">Outputs are shifted right by one</text><text fill="#C9DBEA" font-size="17" x="480" y="582">position for the same reason.</text></g>
+
+  <g id="panel-encoder-decoder" data-pptx-bounds="840 150 360 470">
+    <rect x="840" y="150" width="360" height="470" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <text x="860" y="180" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">C · ENCODER–DECODER ATTENTION</text>
+    <text x="860" y="204" font-family="Consolas" font-size="12" fill="#9CB4CC">Q ← decoder · K, V ← encoder output</text>
+    <g id="cross-faint-lines" stroke="#9CC3E6" stroke-width="1" stroke-opacity="0.25">
+      <line x1="915" y1="371" x2="880" y2="259" /><line x1="915" y1="371" x2="950" y2="259" /><line x1="915" y1="371" x2="1020" y2="259" /><line x1="915" y1="371" x2="1090" y2="259" /><line x1="915" y1="371" x2="1160" y2="259" />
+      <line x1="1055" y1="371" x2="880" y2="259" /><line x1="1055" y1="371" x2="950" y2="259" /><line x1="1055" y1="371" x2="1020" y2="259" /><line x1="1055" y1="371" x2="1090" y2="259" /><line x1="1055" y1="371" x2="1160" y2="259" />
+      <line x1="1125" y1="371" x2="880" y2="259" /><line x1="1125" y1="371" x2="950" y2="259" /><line x1="1125" y1="371" x2="1020" y2="259" /><line x1="1125" y1="371" x2="1090" y2="259" /><line x1="1125" y1="371" x2="1160" y2="259" />
+    </g>
+    <g id="cross-focus-lines" stroke="#F5A623" stroke-width="1.5">
+      <line x1="985" y1="371" x2="880" y2="259" /><line x1="985" y1="371" x2="950" y2="259" /><line x1="985" y1="371" x2="1020" y2="259" /><line x1="985" y1="371" x2="1090" y2="259" /><line x1="985" y1="371" x2="1160" y2="259" />
+    </g>
+    <g id="cross-encoder-nodes" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5">
+      <circle cx="880" cy="250" r="9" /><circle cx="950" cy="250" r="9" /><circle cx="1020" cy="250" r="9" /><circle cx="1090" cy="250" r="9" /><circle cx="1160" cy="250" r="9" />
+    </g>
+    <g id="cross-decoder-nodes" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5">
+      <circle cx="915" cy="380" r="9" /><circle cx="985" cy="380" r="9" stroke="#F5A623" stroke-width="2" /><circle cx="1055" cy="380" r="9" /><circle cx="1125" cy="380" r="9" />
+    </g>
+    <text x="862" y="232" font-family="Consolas" font-size="11" fill="#9CB4CC">ENCODER OUTPUT (K, V)</text>
+    <text x="862" y="410" font-family="Consolas" font-size="11" fill="#9CB4CC">DECODER POSITIONS (Q)</text>
+    <text fill="#C9DBEA" font-size="17" x="860" y="450">Queries come from the decoder;</text><text fill="#C9DBEA" font-size="17" x="860" y="476">keys and values from the encoder</text><text fill="#C9DBEA" font-size="17" x="860" y="502">output. Every output position can</text><text fill="#C9DBEA" font-size="17" x="860" y="528">read the whole input sentence.</text><text fill="#C9DBEA" font-size="17" x="860" y="582">This replaces the classic seq2seq</text><text fill="#C9DBEA" font-size="17" x="860" y="608">encoder–decoder attention.</text></g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 08 / 15</text>
+  </g>
+</svg>

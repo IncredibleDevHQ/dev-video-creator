@@ -39,7 +39,7 @@ const id = `export-${Date.now()}`
 const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   cwd: appDir,
   env: {
-    ...process.env,
+    ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1',
     STUDIO_DATA_DIR: dataDir,
     STUDIO_OUTPUTS_DIR: join(root, 'outputs'),
   },

@@ -55,7 +55,7 @@ const id = `approval-${Date.now()}`
 const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   cwd: appDir,
   env: {
-    ...process.env,
+    ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1',
     PATH: `${binDir}:${process.env.PATH}`,
     STUDIO_DATA_DIR: dataDir,
     STUDIO_ENABLE_TEST_HOOKS: '1',

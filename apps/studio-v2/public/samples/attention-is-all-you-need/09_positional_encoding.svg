@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 03 · ATTENTION, STEP 4</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">Injecting order without recurrence</text>
+  </g>
+
+  <g id="pe-sin-formula" data-pptx-replace-with="formula" data-pptx-x="80" data-pptx-y="150" data-pptx-width="580" data-pptx-height="64" data-pptx-bounds="80 150 580 64">
+    <metadata type="application/json">
+      {"latex":"PE_{(pos,\\,2i)}=\\sin\\left(pos/10000^{2i/d_{\\mathrm{model}}}\\right)",
+       "display":"block","font_size":20,"color":"#E8F1FA","align":"left"}
+    </metadata>
+    <text x="88" y="190" font-size="20" fill="#E8F1FA">PE(pos, 2i) = sin( pos / 10000^(2i / d_model) )</text>
+  </g>
+  <g id="pe-cos-formula" data-pptx-replace-with="formula" data-pptx-x="80" data-pptx-y="216" data-pptx-width="580" data-pptx-height="64" data-pptx-bounds="80 216 580 64">
+    <metadata type="application/json">
+      {"latex":"PE_{(pos,\\,2i+1)}=\\cos\\left(pos/10000^{2i/d_{\\mathrm{model}}}\\right)",
+       "display":"block","font_size":20,"color":"#E8F1FA","align":"left"}
+    </metadata>
+    <text x="88" y="256" font-size="20" fill="#E8F1FA">PE(pos, 2i+1) = cos( pos / 10000^(2i / d_model) )</text>
+  </g>
+
+  <g id="pe-facts" data-pptx-bounds="80 300 580 320">
+    <line x1="80" y1="310" x2="80" y2="470" stroke="#F5A623" stroke-width="3" />
+    <text x="104" y="334" font-size="20" font-weight="bold" fill="#E8F1FA">Why sinusoids, not learned positions?</text>
+    <text fill="#C9DBEA" font-size="18" x="104" y="366">Learned positional embeddings performed nearly</text><text fill="#C9DBEA" font-size="18" x="104" y="394">identically in the ablation (Table 3).</text><text fill="#C9DBEA" font-size="18" x="104" y="422">The sinusoidal version was kept because it may</text><text fill="#C9DBEA" font-size="18" x="104" y="450">extrapolate to lengths never seen in training.</text><g id="pe-add-schematic">
+      <rect x="104" y="510" width="170" height="40" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="189" y="535" font-size="14" fill="#E8F1FA" text-anchor="middle">Input Embedding</text>
+      <text x="302" y="536" font-size="22" fill="#9CC3E6" text-anchor="middle">+</text>
+      <rect x="330" y="510" width="170" height="40" rx="3" fill="#10284A" stroke="#F5A623" stroke-width="1.5" />
+      <text x="415" y="535" font-size="14" fill="#E8F1FA" text-anchor="middle">Positional Encoding</text>
+      <text x="530" y="536" font-size="22" fill="#9CC3E6" text-anchor="middle">=</text>
+      <text x="560" y="535" font-family="Consolas" font-size="14" fill="#F5A623">d_model = 512</text>
+      <text x="104" y="580" font-family="Consolas" font-size="13" fill="#9CB4CC">added, not concatenated — same width, no extra parameters</text>
+    </g>
+  </g>
+
+  <g id="pe-waves" data-pptx-bounds="700 150 500 300">
+    <text x="702" y="176" font-family="Consolas" font-size="13" fill="#9CC3E6" letter-spacing="2">ONE SINUSOID PER DIMENSION</text>
+    <line x1="720" y1="290" x2="1180" y2="290" stroke="#3C5A80" stroke-width="1" />
+    <line x1="720" y1="230" x2="720" y2="350" stroke="#3C5A80" stroke-width="1" />
+    <g id="pe-wave-paths" fill="none" stroke-width="1.5" stroke-linejoin="round">
+      <path stroke="#3C5A80" d="M720.0 290.0 L724.6 266.0 L729.2 247.9 L733.8 240.1 L738.4 244.5 L743.0 260.1 L747.6 282.9 L752.2 307.5 L756.8 327.8 L761.4 338.9 L766.0 337.9 L770.6 325.3 L775.2 304.0 L779.8 279.2 L784.4 257.2 L789.0 243.1 L793.6 240.5 L798.2 250.1 L802.8 269.4 L807.4 293.8 L812.0 317.2 L816.6 334.0 L821.2 340.0 L825.8 333.8 L830.4 316.8 L835.0 293.3 L839.6 269.0 L844.2 249.8 L848.8 240.5 L853.4 243.3 L858.0 257.5 L862.6 279.7 L867.2 304.4 L871.8 325.6 L876.4 338.1 L881.0 338.8 L885.6 327.5 L890.2 307.1 L894.8 282.5 L899.4 259.7 L904.0 244.4 L908.6 240.2 L913.2 248.2 L917.8 266.4 L922.4 290.4 L927.0 314.4 L931.6 332.3 L936.2 339.9 L940.8 335.3 L945.4 319.6 L950.0 296.6 L954.6 272.0 L959.2 251.9 L963.8 241.0 L968.4 242.2 L973.0 255.0 L977.6 276.5 L982.2 301.2 L986.8 323.2 L991.4 337.1 L996.0 339.4 L1000.6 329.7 L1005.2 310.2 L1009.8 285.8 L1014.4 262.4 L1019.0 245.8 L1023.6 240.0 L1028.2 246.4 L1032.8 263.5 L1037.4 287.1 L1042.0 311.4 L1046.6 330.5 L1051.2 339.6 L1055.8 336.6 L1060.4 322.2 L1065.0 299.9 L1069.6 275.2 L1074.2 254.1 L1078.8 241.8 L1083.4 241.3 L1088.0 252.7 L1092.6 273.3 L1097.2 297.9 L1101.8 320.6 L1106.4 335.8 L1111.0 339.8 L1115.6 331.6 L1120.2 313.2 L1124.8 289.1 L1129.4 265.3 L1134.0 247.5 L1138.6 240.1 L1143.2 244.9 L1147.8 260.8 L1152.4 283.8 L1157.0 308.4 L1161.6 328.4 L1166.2 339.1 L1170.8 337.7 L1175.4 324.6 L1180.0 303.1" />
+      <path stroke="#9CC3E6" d="M720.0 290.0 L724.6 282.1 L729.2 274.5 L733.8 267.2 L738.4 260.4 L743.0 254.5 L747.6 249.4 L752.2 245.3 L756.8 242.3 L761.4 240.5 L766.0 240.0 L770.6 240.7 L775.2 242.6 L779.8 245.8 L784.4 250.0 L789.0 255.2 L793.6 261.3 L798.2 268.1 L802.8 275.4 L807.4 283.2 L812.0 291.0 L816.6 298.9 L821.2 306.5 L825.8 313.8 L830.4 320.4 L835.0 326.3 L839.6 331.2 L844.2 335.2 L848.8 338.0 L853.4 339.6 L858.0 340.0 L862.6 339.1 L867.2 337.0 L871.8 333.7 L876.4 329.4 L881.0 324.1 L885.6 317.9 L890.2 311.0 L894.8 303.6 L899.4 295.8 L904.0 287.9 L908.6 280.1 L913.2 272.5 L917.8 265.3 L922.4 258.8 L927.0 253.0 L931.6 248.2 L936.2 244.4 L940.8 241.7 L945.4 240.3 L950.0 240.1 L954.6 241.1 L959.2 243.3 L963.8 246.8 L968.4 251.3 L973.0 256.7 L977.6 263.0 L982.2 270.0 L986.8 277.4 L991.4 285.2 L996.0 293.1 L1000.6 300.9 L1005.2 308.5 L1009.8 315.6 L1014.4 322.0 L1019.0 327.7 L1023.6 332.4 L1028.2 336.0 L1032.8 338.5 L1037.4 339.8 L1042.0 339.9 L1046.6 338.7 L1051.2 336.3 L1055.8 332.7 L1060.4 328.1 L1065.0 322.5 L1069.6 316.1 L1074.2 309.1 L1078.8 301.6 L1083.4 293.8 L1088.0 285.9 L1092.6 278.1 L1097.2 270.6 L1101.8 263.6 L1106.4 257.2 L1111.0 251.7 L1115.6 247.1 L1120.2 243.6 L1124.8 241.2 L1129.4 240.1 L1134.0 240.2 L1138.6 241.6 L1143.2 244.1 L1147.8 247.8 L1152.4 252.6 L1157.0 258.3 L1161.6 264.8 L1166.2 271.9 L1170.8 279.4 L1175.4 287.3 L1180.0 295.2" />
+      <path stroke="#F5A623" d="M720.0 290.0 L724.6 287.5 L729.2 285.0 L733.8 282.5 L738.4 280.1 L743.0 277.6 L747.6 275.2 L752.2 272.9 L756.8 270.5 L761.4 268.3 L766.0 266.0 L770.6 263.9 L775.2 261.8 L779.8 259.7 L784.4 257.8 L789.0 255.9 L793.6 254.1 L798.2 252.4 L802.8 250.8 L807.4 249.3 L812.0 247.9 L816.6 246.6 L821.2 245.4 L825.8 244.4 L830.4 243.4 L835.0 242.6 L839.6 241.8 L844.2 241.2 L848.8 240.7 L853.4 240.4 L858.0 240.1 L862.6 240.0 L867.2 240.0 L871.8 240.2 L876.4 240.4 L881.0 240.8 L885.6 241.3 L890.2 241.9 L894.8 242.7 L899.4 243.6 L904.0 244.5 L908.6 245.6 L913.2 246.8 L917.8 248.2 L922.4 249.6 L927.0 251.1 L931.6 252.7 L936.2 254.4 L940.8 256.2 L945.4 258.1 L950.0 260.1 L954.6 262.1 L959.2 264.2 L963.8 266.4 L968.4 268.6 L973.0 270.9 L977.6 273.3 L982.2 275.6 L986.8 278.0 L991.4 280.5 L996.0 282.9 L1000.6 285.4 L1005.2 287.9 L1009.8 290.4 L1014.4 292.9 L1019.0 295.4 L1023.6 297.9 L1028.2 300.3 L1032.8 302.8 L1037.4 305.2 L1042.0 307.5 L1046.6 309.9 L1051.2 312.1 L1055.8 314.3 L1060.4 316.5 L1065.0 318.6 L1069.6 320.6 L1074.2 322.5 L1078.8 324.4 L1083.4 326.2 L1088.0 327.8 L1092.6 329.4 L1097.2 330.9 L1101.8 332.3 L1106.4 333.6 L1111.0 334.7 L1115.6 335.8 L1120.2 336.8 L1124.8 337.6 L1129.4 338.3 L1134.0 338.9 L1138.6 339.3 L1143.2 339.7 L1147.8 339.9 L1152.4 340.0 L1157.0 340.0 L1161.6 339.8 L1166.2 339.5 L1170.8 339.1 L1175.4 338.6 L1180.0 337.9" />
+    </g>
+    <g id="pe-wave-legend" font-family="Consolas" font-size="12">
+      <text x="720" y="374" fill="#9CB4CC">pos = 0</text>
+      <text x="1180" y="374" fill="#9CB4CC" text-anchor="end">pos = 50</text>
+      <text x="720" y="404" fill="#3C5A80">— dim 0 (2i/d = 0)</text>
+      <text x="900" y="404" fill="#9CC3E6">— dim 64 (2i/d = 0.125)</text>
+      <text x="1090" y="404" fill="#F5A623">— dim 128 (0.25)</text>
+      <text x="720" y="432" fill="#9CB4CC">wavelengths run from 2π to 10000·2π</text>
+    </g>
+  </g>
+
+  <g id="pe-notes" data-pptx-bounds="700 470 500 156">
+    <line x1="700" y1="476" x2="700" y2="600" stroke="#F5A623" stroke-width="3" />
+    <text fill="#C9DBEA" font-size="17" x="724" y="500">Each dimension is a sinusoid with its own</text><text fill="#C9DBEA" font-size="17" x="724" y="526">wavelength, so a position gets a unique code.</text><text fill="#C9DBEA" font-size="17" x="724" y="552">For any fixed offset k, PE(pos+k) is a linear</text><text fill="#C9DBEA" font-size="17" x="724" y="578">function of PE(pos): relative offsets are easy.</text></g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 09 / 15</text>
+  </g>
+</svg>

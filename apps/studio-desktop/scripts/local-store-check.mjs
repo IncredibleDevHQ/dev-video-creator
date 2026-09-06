@@ -35,7 +35,7 @@ const j = async (base, p, init) => {
 const startApp = async dataDir => {
   const child = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
     cwd: appDir,
-    env: { ...process.env, STUDIO_DATA_DIR: dataDir },
+    env: { ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1', STUDIO_DATA_DIR: dataDir },
     stdio: ['ignore', 'pipe', 'inherit'],
   })
   const origin = await new Promise((resolve, reject) => {

@@ -124,7 +124,7 @@ await writeFile(
 const child = spawn(electronBinary, ['.'], {
   cwd: appDir,
   env: {
-    ...process.env,
+    ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1',
     PATH: `${binDir}:${process.env.PATH}`,
     STUDIO_HARNESS_E2E: configPath,
     STUDIO_GATE_AUTO_ANSWER: JSON.stringify({

@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 04 · ABLATIONS &amp; GENERALIZATION</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">What the ablations taught (Table 3)</text>
+  </g>
+
+  <g id="ablation-heads" data-pptx-bounds="80 156 660 74">
+      
+  <g transform="translate(90, 168) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M5 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M5 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M15 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M7 8l0 8" />
+    <path d="M9 18h6a2 2 0 0 0 2 -2v-5" />
+    <path d="M14 14l3 -3l3 3" />
+  </g>
+      <text x="140" y="178" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">HEADS · h</text>
+      <text x="140" y="204" font-size="18" fill="#E8F1FA">A single head is 0.9 BLEU worse than the best setting</text>
+      <line x1="140" y1="222" x2="720" y2="222" stroke="#3C5A80" stroke-width="1" />
+  </g>
+  <g id="ablation-dk" data-pptx-bounds="80 240 660 74">
+      
+  <g transform="translate(90, 252) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M3 5h11" />
+    <path d="M12 7l2 -2l-2 -2" />
+    <path d="M5 3l-2 2l2 2" />
+    <path d="M19 10v11" />
+    <path d="M17 19l2 2l2 -2" />
+    <path d="M21 12l-2 -2l-2 2" />
+    <path d="M3 12a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2l0 -7" />
+  </g>
+      <text x="140" y="262" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">KEY SIZE · d_k</text>
+      <text x="140" y="288" font-size="18" fill="#E8F1FA">Smaller d_k hurts — compatibility is not trivial to compute</text>
+      <line x1="140" y1="306" x2="720" y2="306" stroke="#3C5A80" stroke-width="1" />
+  </g>
+  <g id="ablation-size" data-pptx-bounds="80 324 660 74">
+      
+  <g transform="translate(90, 336) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M12 4l-8 4l8 4l8 -4l-8 -4" />
+    <path d="M4 12l8 4l8 -4" />
+    <path d="M4 16l8 4l8 -4" />
+  </g>
+      <text x="140" y="346" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">MODEL SIZE</text>
+      <text x="140" y="372" font-size="18" fill="#E8F1FA">Bigger is better; the big model wins on both tasks</text>
+      <line x1="140" y1="390" x2="720" y2="390" stroke="#3C5A80" stroke-width="1" />
+  </g>
+  <g id="ablation-dropout" data-pptx-bounds="80 408 660 74">
+      
+  <g transform="translate(90, 420) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2m0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2m-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6" />
+  </g>
+      <text x="140" y="430" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">REGULARIZATION</text>
+      <text x="140" y="456" font-size="18" fill="#E8F1FA">Dropout is very helpful in avoiding over-fitting</text>
+      <line x1="140" y1="474" x2="720" y2="474" stroke="#3C5A80" stroke-width="1" />
+  </g>
+  <g id="ablation-positions" data-pptx-bounds="80 492 660 66">
+      
+  <g transform="translate(90, 504) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M21 12h-2c-.894 0 -1.662 -.857 -1.761 -2c-.296 -3.45 -.749 -6 -2.749 -6s-2.5 3.582 -2.5 8s-.5 8 -2.5 8s-2.452 -2.547 -2.749 -6c-.1 -1.147 -.867 -2 -1.763 -2h-2" />
+  </g>
+      <text x="140" y="514" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">POSITIONS</text>
+      <text x="140" y="540" font-size="18" fill="#E8F1FA">Learned vs sinusoidal positions: nearly identical</text>
+  </g>
+  <g id="ablation-note" data-pptx-bounds="80 574 660 34">
+    <text x="140" y="596" font-family="Consolas" font-size="12" fill="#9CB4CC">Each row varies one setting of the base model on EN–DE (newstest2013 dev set)</text>
+  </g>
+
+<g id="p13-parsing-bracket" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="bracketPair" data-pptx-frame="790 200 390 190" fill="none" stroke="#9CC3E6" stroke-width="2">
+<path d="M 790 231.67 A 31.67 31.67 0 0 1 821.67 200 L 1148.33 200 A 31.67 31.67 0 0 1 1180 231.67 L 1180 358.33 A 31.67 31.67 0 0 1 1148.33 390 L 821.67 390 A 31.67 31.67 0 0 1 790 358.33 Z" stroke="none" />
+<path d="M 821.67 390 A 31.67 31.67 0 0 1 790 358.33 L 790 231.67 A 31.67 31.67 0 0 1 821.67 200 M 1148.33 200 A 31.67 31.67 0 0 1 1180 231.67 L 1180 358.33 A 31.67 31.67 0 0 1 1148.33 390" />
+</g>
+
+  <g id="parsing-metrics" data-pptx-bounds="800 156 370 226">
+    <text x="985" y="176" font-family="Consolas" font-size="13" fill="#F5A623" text-anchor="middle" letter-spacing="2">GENERALIZATION · WSJ PARSING</text>
+    <text x="890" y="300" font-size="46" font-weight="bold" fill="#F5A623" text-anchor="middle">91.3</text>
+    <text x="890" y="328" font-size="14" fill="#E8F1FA" text-anchor="middle">F1 · WSJ only</text>
+    <text x="890" y="348" font-size="13" fill="#9CB4CC" text-anchor="middle">4-layer Transformer</text>
+    <line x1="985" y1="250" x2="985" y2="360" stroke="#3C5A80" stroke-width="1" />
+    <text x="1080" y="300" font-size="46" font-weight="bold" fill="#F5A623" text-anchor="middle">92.7</text>
+    <text x="1080" y="328" font-size="14" fill="#E8F1FA" text-anchor="middle">F1 · semi-supervised</text>
+    <text x="1080" y="348" font-size="13" fill="#9CB4CC" text-anchor="middle">4-layer Transformer</text>
+  </g>
+
+  <g id="parsing-note" data-pptx-bounds="790 410 410 200">
+    <line x1="790" y1="416" x2="790" y2="586" stroke="#F5A623" stroke-width="3" />
+    <text fill="#C9DBEA" font-size="17" x="814" y="440">A 4-layer Transformer trained on WSJ</text><text fill="#C9DBEA" font-size="17" x="814" y="466">alone reaches 91.3 F1; with semi-</text><text fill="#C9DBEA" font-size="17" x="814" y="492">supervised data it reaches 92.7.</text><text fill="#C9DBEA" font-size="17" x="814" y="518">The abstract's claim holds: the</text><text fill="#C9DBEA" font-size="17" x="814" y="544">architecture generalizes beyond</text><text fill="#C9DBEA" font-size="17" x="814" y="570">translation, large data or small.</text></g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 13 / 15</text>
+  </g>
+</svg>

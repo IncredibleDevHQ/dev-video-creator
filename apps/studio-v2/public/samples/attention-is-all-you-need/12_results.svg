@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 04 · RESULTS (TABLE 2)</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">State of the art on both WMT 2014 tasks</text>
+  </g>
+
+  <g id="bleu-en-de" data-pptx-replace-with="chart" data-pptx-bounds="80 150 540 440" data-pptx-fallback-sha256="4f3370a5f552260e32416629df864493f621be20d5aaf0af93316e394cc72871">
+    <metadata type="application/json">
+      {
+        "x": 80, "y": 150, "width": 540, "height": 440,
+        "name": "bleu-en-de",
+        "type": "bar",
+        "grouping": "clustered",
+        "title": "English→German · BLEU on newstest2014",
+        "categories": ["ByteNet", "GNMT + RL", "ConvS2S", "MoE", "GNMT + RL Ensemble", "ConvS2S Ensemble", "Transformer (base)", "Transformer (big)"],
+        "series": [
+          {"name": "BLEU", "values": [23.75, 24.6, 25.16, 26.03, 26.3, 26.36, 27.3, 28.4],
+           "point_colors": ["#9CC3E6", "#9CC3E6", "#9CC3E6", "#9CC3E6", "#9CC3E6", "#9CC3E6", "#F5A623", "#F5A623"]}
+        ],
+        "data_labels": {"show_value": true, "position": "outside_end", "font_size": 13, "color": "#E8F1FA"},
+        "axes": {
+          "category": {"reverse": true},
+          "value": {"minimum": 0, "maximum": 30, "major_unit": 10, "major_gridlines": true}
+        },
+        "plot_area": {"x": 300, "y": 200, "width": 300, "height": 360},
+        "style": {"colors": ["#9CC3E6"], "chart_area_fill": "none", "plot_area_fill": "none", "text_color": "#C9DBEA", "axis_color": "#3C5A80", "grid_color": "#3C5A80", "font_family": "Segoe UI", "font_size": 13, "title_font_size": 16, "axis_font_size": 13}
+      }
+    </metadata>
+    <text x="80" y="176" font-size="16" fill="#C9DBEA">English→German · BLEU on newstest2014</text>
+    <g id="bleu-en-de-chartArea">
+      <g id="en-de-grid" stroke="#3C5A80" stroke-width="1" stroke-dasharray="4,4">
+        <line x1="400" y1="200" x2="400" y2="560" />
+        <line x1="500" y1="200" x2="500" y2="560" />
+        <line x1="600" y1="200" x2="600" y2="560" />
+      </g>
+      <line x1="300" y1="200" x2="300" y2="560" stroke="#3C5A80" stroke-width="1" />
+      <line x1="300" y1="560" x2="600" y2="560" stroke="#3C5A80" stroke-width="1" />
+      <g id="en-de-ticks" font-size="13" fill="#C9DBEA" text-anchor="middle">
+        <text x="300" y="582">0</text>
+        <text x="400" y="582">10</text>
+        <text x="500" y="582">20</text>
+        <text x="600" y="582">30</text>
+      </g>
+      
+      <g id="en-de-labels" font-size="14" fill="#C9DBEA" text-anchor="end">
+        <text x="292" y="227">ByteNet</text>
+        <text x="292" y="272">GNMT + RL</text>
+        <text x="292" y="317">ConvS2S</text>
+        <text x="292" y="362">MoE</text>
+        <text x="292" y="407">GNMT + RL Ensemble</text>
+        <text x="292" y="452">ConvS2S Ensemble</text>
+        <text x="292" y="497" fill="#F5A623">Transformer (base)</text>
+        <text x="292" y="542" fill="#F5A623">Transformer (big)</text>
+      </g>
+      <g id="en-de-bars" fill="#9CC3E6">
+        <rect x="300" y="209.5" width="237.5" height="26" />
+        <rect x="300" y="254.5" width="246" height="26" />
+        <rect x="300" y="299.5" width="251.6" height="26" />
+        <rect x="300" y="344.5" width="260.3" height="26" />
+        <rect x="300" y="389.5" width="263" height="26" />
+        <rect x="300" y="434.5" width="263.6" height="26" />
+        <rect x="300" y="479.5" width="273" height="26" fill="#F5A623" />
+        <rect x="300" y="524.5" width="284" height="26" fill="#F5A623" />
+      </g>
+      <g id="en-de-values" font-size="13" fill="#E8F1FA">
+        <text x="543" y="227">23.75</text>
+        <text x="552" y="272">24.6</text>
+        <text x="557" y="317">25.16</text>
+        <text x="566" y="362">26.03</text>
+        <text x="569" y="407">26.3</text>
+        <text x="569" y="452">26.36</text>
+        <text x="579" y="497">27.3</text>
+        <text x="590" y="542">28.4</text>
+      </g>
+    </g>
+  </g>
+
+  <g id="bleu-en-fr" data-pptx-replace-with="chart" data-pptx-bounds="660 150 540 440" data-pptx-fallback-sha256="d2ef9639b9389941b9f86ff515ae7f0cd3e33dbd2e7a79f5a65c3657a81d79b3">
+    <metadata type="application/json">
+      {
+        "x": 660, "y": 150, "width": 540, "height": 440,
+        "name": "bleu-en-fr",
+        "type": "bar",
+        "grouping": "clustered",
+        "title": "English→French · BLEU on newstest2014",
+        "categories": ["Deep-Att + PosUnk", "GNMT + RL", "ConvS2S", "MoE", "Deep-Att + PosUnk Ens.", "GNMT + RL Ensemble", "ConvS2S Ensemble", "Transformer (base)", "Transformer (big)"],
+        "series": [
+          {"name": "BLEU", "values": [39.2, 39.92, 40.46, 40.56, 40.4, 41.16, 41.29, 38.1, 41.8],
+           "point_colors": ["#9CC3E6", "#9CC3E6", "#9CC3E6", "#9CC3E6", "#9CC3E6", "#9CC3E6", "#9CC3E6", "#F5A623", "#F5A623"]}
+        ],
+        "data_labels": {"show_value": true, "position": "outside_end", "font_size": 13, "color": "#E8F1FA"},
+        "axes": {
+          "category": {"reverse": true},
+          "value": {"minimum": 0, "maximum": 45, "major_unit": 15, "major_gridlines": true}
+        },
+        "plot_area": {"x": 880, "y": 200, "width": 300, "height": 360},
+        "style": {"colors": ["#9CC3E6"], "chart_area_fill": "none", "plot_area_fill": "none", "text_color": "#C9DBEA", "axis_color": "#3C5A80", "grid_color": "#3C5A80", "font_family": "Segoe UI", "font_size": 13, "title_font_size": 16, "axis_font_size": 13}
+      }
+    </metadata>
+    <text x="660" y="176" font-size="16" fill="#C9DBEA">English→French · BLEU on newstest2014</text>
+    <g id="bleu-en-fr-chartArea">
+      <g id="en-fr-grid" stroke="#3C5A80" stroke-width="1" stroke-dasharray="4,4">
+        <line x1="980" y1="200" x2="980" y2="560" />
+        <line x1="1080" y1="200" x2="1080" y2="560" />
+        <line x1="1180" y1="200" x2="1180" y2="560" />
+      </g>
+      <line x1="880" y1="200" x2="880" y2="560" stroke="#3C5A80" stroke-width="1" />
+      <line x1="880" y1="560" x2="1180" y2="560" stroke="#3C5A80" stroke-width="1" />
+      <g id="en-fr-ticks" font-size="13" fill="#C9DBEA" text-anchor="middle">
+        <text x="880" y="582">0</text>
+        <text x="980" y="582">15</text>
+        <text x="1080" y="582">30</text>
+        <text x="1180" y="582">45</text>
+      </g>
+      
+      <g id="en-fr-labels" font-size="14" fill="#C9DBEA" text-anchor="end">
+        <text x="872" y="225">Deep-Att + PosUnk</text>
+        <text x="872" y="265">GNMT + RL</text>
+        <text x="872" y="305">ConvS2S</text>
+        <text x="872" y="345">MoE</text>
+        <text x="872" y="385">Deep-Att + PosUnk Ens.</text>
+        <text x="872" y="425">GNMT + RL Ensemble</text>
+        <text x="872" y="465">ConvS2S Ensemble</text>
+        <text x="872" y="505" fill="#F5A623">Transformer (base)</text>
+        <text x="872" y="545" fill="#F5A623">Transformer (big)</text>
+      </g>
+      <g id="en-fr-bars" fill="#9CC3E6">
+        <rect x="880" y="208" width="261.3" height="24" />
+        <rect x="880" y="248" width="266.1" height="24" />
+        <rect x="880" y="288" width="269.7" height="24" />
+        <rect x="880" y="328" width="270.4" height="24" />
+        <rect x="880" y="368" width="269.3" height="24" />
+        <rect x="880" y="408" width="274.4" height="24" />
+        <rect x="880" y="448" width="275.3" height="24" />
+        <rect x="880" y="488" width="254" height="24" fill="#F5A623" />
+        <rect x="880" y="528" width="278.7" height="24" fill="#F5A623" />
+      </g>
+      <g id="en-fr-values" font-size="13" fill="#E8F1FA">
+        <text x="1147" y="225">39.2</text>
+        <text x="1152" y="265">39.92</text>
+        <text x="1156" y="305">40.46</text>
+        <text x="1156" y="345">40.56</text>
+        <text x="1155" y="385">40.4</text>
+        <text x="1160" y="425">41.16</text>
+        <text x="1161" y="465">41.29</text>
+        <text x="1140" y="505">38.1</text>
+        <text x="1164" y="545">41.8</text>
+      </g>
+    </g>
+  </g>
+
+  <g id="cost-note" data-pptx-bounds="80 596 1120 66">
+    <line x1="80" y1="602" x2="80" y2="650" stroke="#F5A623" stroke-width="3" />
+    <text fill="#E8F1FA" font-size="17" x="104" y="616">Training cost: Transformer base used 3.3·10¹⁸ FLOPs against 1.8·10²⁰ for the GNMT + RL ensemble —</text><text fill="#E8F1FA" font-size="17" x="104" y="640"><tspan>about <tspan fill="#F5A623" font-weight="bold">55× less compute</tspan> for a better EN→DE score.</tspan></text><text x="104" y="658" font-family="Consolas" font-size="12" fill="#9CB4CC">Source: Vaswani et al. 2017, Table 2 (newstest2014). Single models and ensembles listed together, as in the paper.</text>
+  </g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 12 / 15</text>
+  </g>
+</svg>

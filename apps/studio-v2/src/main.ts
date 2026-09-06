@@ -5689,6 +5689,59 @@ const createNotebook = async () => {
   await openNotebook(fresh.id)
 }
 
+// ——— Bundled sample: the ppt-master "Attention Is All You Need" blueprint ———
+// Fifteen SVG pages vendored under public/samples (MIT, attribution in
+// sample.json). First use creates the notebook; later clicks switch to it.
+const ATTENTION_SAMPLE_ID = 'sample-attention-is-all-you-need'
+const ATTENTION_SAMPLE_URL = '/samples/attention-is-all-you-need'
+
+const openAttentionSample = async () => {
+  closeNotebookMenu()
+  try {
+    const { projects } = await fetchJson<{ projects: Array<{ id: string }> }>('/api/projects')
+    if (projects.some(entry => entry.id === ATTENTION_SAMPLE_ID)) {
+      await openNotebook(ATTENTION_SAMPLE_ID)
+      return
+    }
+    showToast('Loading the attention sample…')
+    const manifestResponse = await fetch(`${ATTENTION_SAMPLE_URL}/sample.json`)
+    if (!manifestResponse.ok) throw new Error(`sample manifest missing (${manifestResponse.status})`)
+    const manifest = (await manifestResponse.json()) as {
+      title: string
+      pages: Array<{ file: string; title: string; desc: string }>
+    }
+    const fresh = blankProjectDocument(manifest.title)
+    fresh.id = ATTENTION_SAMPLE_ID
+    if (project.theme) {
+      fresh.theme = structuredClone(project.theme)
+      fresh.brand = { ...project.theme.brand }
+    }
+    const content: TiptapNode[] = []
+    for (const [index, page] of manifest.pages.entries()) {
+      const response = await fetch(`${ATTENTION_SAMPLE_URL}/${page.file}`)
+      if (!response.ok) throw new Error(`sample page ${page.file} missing (${response.status})`)
+      const svg = sanitizeImportedSvg(await response.text())
+      const blockId = `blk-attn-${String(index + 1).padStart(2, '0')}`
+      const node: TiptapNode = {
+        type: 'slide',
+        attrs: { id: blockId, title: page.title, svg, steps: [] },
+      }
+      content.push(node)
+      // The ppt-master per-page descriptions double as the speaker notes, so
+      // Plan from narration and Plan motion (assist) work out of the box.
+      fresh.blocks[blockId] = {
+        ...createDefaultBlockConfig(blockId, node),
+        speakerNotes: page.desc,
+      }
+    }
+    fresh.notebook = { type: 'doc', content }
+    await persistProjectNow(structuredClone(fresh))
+    await openNotebook(fresh.id)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Could not load the sample')
+  }
+}
+
 const deleteNotebook = async (notebookId: string, title: string) => {
   if (!window.confirm(`Delete the notebook "${title}"? Its recordings and assets go with it.`)) return
   await fetchJson<{ deleted: boolean }>(
@@ -5715,6 +5768,13 @@ const renderNotebookMenu = async () => {
   create.innerHTML = '<strong>+ New notebook</strong><small>Start a blank story with the current theme</small>'
   create.addEventListener('click', () => void createNotebook())
   notebookMenuList.append(create)
+  const sample = document.createElement('button')
+  sample.type = 'button'
+  sample.className = 'notebook-menu-create notebook-menu-sample'
+  sample.innerHTML =
+    '<strong>Sample · Attention Is All You Need</strong><small>15 blueprint pages from ppt-master — speaker notes included, ready to animate</small>'
+  sample.addEventListener('click', () => void openAttentionSample())
+  notebookMenuList.append(sample)
   const heading = document.createElement('div')
   heading.className = 'notebook-menu-heading'
   heading.textContent = `Saved notebooks · ${projects.length}`

@@ -52,7 +52,7 @@ const startApp = async () => {
   app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
     cwd: appDir,
     env: {
-      ...process.env,
+      ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1',
       PATH: `${process.env.HOME}/.kimi-code/bin:${process.env.PATH}`,
       STUDIO_DATA_DIR: dataDir,
       STUDIO_ENABLE_TEST_HOOKS: '1',

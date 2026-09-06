@@ -13,6 +13,7 @@ const electronBinary = require('electron')
 
 const child = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   cwd: appDir,
+  env: { ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1' },
   stdio: ['ignore', 'pipe', 'inherit'],
 })
 

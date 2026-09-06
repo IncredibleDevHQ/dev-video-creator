@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="toc">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A"/>
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280"/>
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">DRAWING INDEX</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">What this drawing set covers</text>
+  </g>
+
+<g id="p02-sheet-tabs" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="cornerTabs" data-pptx-frame="80 140 1120 480" fill="#9CC3E6" stroke="none">
+<path d="M 80 140 L 140.93 140 L 80 200.93 Z"/>
+<path d="M 80 559.07 L 140.93 620 L 80 620 Z"/>
+<path d="M 1139.07 140 L 1200 140 L 1200 200.93 Z"/>
+<path d="M 1200 559.07 L 1200 620 L 1139.07 620 Z"/>
+</g>
+
+  <g id="toc-row-1" data-pptx-bounds="160 176 960 84">
+    <text x="160" y="212" font-family="Consolas" font-size="30" fill="#F5A623">01</text>
+    <text x="240" y="210" font-size="24" font-weight="bold" fill="#E8F1FA">The bottleneck</text>
+    <text x="240" y="240" font-size="18" fill="#9CB4CC">Why recurrent and convolutional models paid for word order with time</text>
+    <text x="1120" y="210" font-family="Consolas" font-size="14" fill="#9CB4CC" text-anchor="end">SHEETS 03–04</text>
+    <line x1="160" y1="256" x2="1120" y2="256" stroke="#3C5A80" stroke-width="1"/>
+  </g>
+  <g id="toc-row-2" data-pptx-bounds="160 264 960 84">
+    <text x="160" y="300" font-family="Consolas" font-size="30" fill="#F5A623">02</text>
+    <text x="240" y="298" font-size="24" font-weight="bold" fill="#E8F1FA">The architecture</text>
+    <text x="240" y="328" font-size="18" fill="#9CB4CC">Encoder, decoder, and the six identical layers stacked on each side</text>
+    <text x="1120" y="298" font-family="Consolas" font-size="14" fill="#9CB4CC" text-anchor="end">SHEET 05</text>
+    <line x1="160" y1="344" x2="1120" y2="344" stroke="#3C5A80" stroke-width="1"/>
+  </g>
+  <g id="toc-row-3" data-pptx-bounds="160 352 960 84">
+    <text x="160" y="388" font-family="Consolas" font-size="30" fill="#F5A623">03</text>
+    <text x="240" y="386" font-size="24" font-weight="bold" fill="#E8F1FA">Attention, step by step</text>
+    <text x="240" y="416" font-size="18" fill="#9CB4CC">Scaled dot-product, multi-head, the three places it is used, and positional encoding</text>
+    <text x="1120" y="386" font-family="Consolas" font-size="14" fill="#9CB4CC" text-anchor="end">SHEETS 06–10</text>
+    <line x1="160" y1="432" x2="1120" y2="432" stroke="#3C5A80" stroke-width="1"/>
+  </g>
+  <g id="toc-row-4" data-pptx-bounds="160 440 960 84">
+    <text x="160" y="476" font-family="Consolas" font-size="30" fill="#F5A623">04</text>
+    <text x="240" y="474" font-size="24" font-weight="bold" fill="#E8F1FA">Training and results</text>
+    <text x="240" y="504" font-size="18" fill="#9CB4CC">The recipe, the BLEU numbers against the field, and what the ablations taught</text>
+    <text x="1120" y="474" font-family="Consolas" font-size="14" fill="#9CB4CC" text-anchor="end">SHEETS 11–13</text>
+    <line x1="160" y1="520" x2="1120" y2="520" stroke="#3C5A80" stroke-width="1"/>
+  </g>
+  <g id="toc-row-5" data-pptx-bounds="160 528 960 84">
+    <text x="160" y="564" font-family="Consolas" font-size="30" fill="#F5A623">05</text>
+    <text x="240" y="562" font-size="24" font-weight="bold" fill="#E8F1FA">Legacy</text>
+    <text x="240" y="592" font-size="18" fill="#9CB4CC">What was built on top of it, and why the title still holds</text>
+    <text x="1120" y="562" font-family="Consolas" font-size="14" fill="#9CB4CC" text-anchor="end">SHEETS 14–15</text>
+  </g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1"/>
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1"/>
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 02 / 15</text>
+  </g>
+</svg>

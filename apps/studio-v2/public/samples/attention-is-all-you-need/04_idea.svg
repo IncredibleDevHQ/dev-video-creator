@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 01 · THE PROPOSAL</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">Keep attention, drop everything else</text>
+  </g>
+
+  <g id="abstract-quote" data-pptx-bounds="80 150 1120 180">
+    
+  <g transform="translate(84, 156) scale(1.5)" fill="none" stroke="#F5A623" stroke-width="2">
+    <path d="M10 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" />
+    <path d="M19 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" />
+  </g>
+    <line x1="80" y1="204" x2="80" y2="330" stroke="#F5A623" stroke-width="3" />
+    <text fill="#E8F1FA" font-size="27" x="104" y="232">“We propose a new simple network architecture, the Transformer,</text><text fill="#E8F1FA" font-size="27" x="104" y="268"><tspan>based solely on attention mechanisms, <tspan fill="#F5A623">dispensing with recurrence</tspan></tspan></text><text fill="#E8F1FA" font-size="27" x="104" y="304"><tspan><tspan fill="#F5A623">and convolutions entirely</tspan>.”</tspan></text><text x="104" y="324" font-family="Consolas" font-size="13" fill="#9CB4CC" letter-spacing="1">— ABSTRACT, VASWANI ET AL. 2017</text>
+  </g>
+
+  <g id="claims-spine" data-pptx-bounds="120 332 1040 62">
+    <line x1="120" y1="376" x2="1160" y2="376" stroke="#9CC3E6" stroke-width="1.5" />
+    <line x1="120" y1="366" x2="120" y2="386" stroke="#9CC3E6" stroke-width="1.5" />
+    <line x1="1160" y1="366" x2="1160" y2="386" stroke="#9CC3E6" stroke-width="1.5" />
+    <circle cx="300" cy="376" r="6" fill="#F5A623" />
+    <circle cx="640" cy="376" r="6" fill="#F5A623" />
+    <circle cx="980" cy="376" r="6" fill="#F5A623" />
+    <text x="640" y="352" font-family="Consolas" font-size="13" fill="#9CC3E6" text-anchor="middle" letter-spacing="2">THREE CLAIMS THE PAPER MAKES — AND MEASURES</text>
+  </g>
+
+  <g id="claim-quality" data-pptx-bounds="140 398 320 234">
+    <line x1="300" y1="398" x2="300" y2="440" stroke="#9CC3E6" stroke-width="1" />
+    
+  <g transform="translate(284, 444) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M6 9a6 6 0 1 0 12 0a6 6 0 1 0 -12 0" />
+    <path d="M12 15l3.4 5.89l1.598 -3.233l3.598 .232l-3.4 -5.889" />
+    <path d="M6.802 12l-3.4 5.89l3.598 -.233l1.598 3.232l3.4 -5.889" />
+  </g>
+    <text x="300" y="534" font-size="46" font-weight="bold" fill="#F5A623" text-anchor="middle">28.4 BLEU</text>
+    <text x="300" y="566" font-size="19" fill="#E8F1FA" text-anchor="middle">Better quality</text>
+    <text x="300" y="594" font-size="17" fill="#9CB4CC" text-anchor="middle">WMT14 EN–DE, over 2 BLEU above</text>
+    <text x="300" y="618" font-size="17" fill="#9CB4CC" text-anchor="middle">the best prior ensembles</text>
+  </g>
+  <g id="claim-parallel" data-pptx-bounds="480 398 320 234">
+    <line x1="640" y1="398" x2="640" y2="440" stroke="#9CC3E6" stroke-width="1" />
+    
+  <g transform="translate(624, 444) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M21 17h-5.397a5 5 0 0 1 -4.096 -2.133l-.514 -.734a5 5 0 0 0 -4.096 -2.133h-3.897" />
+    <path d="M21 7h-5.395a5 5 0 0 0 -4.098 2.135l-.51 .73a5 5 0 0 1 -4.097 2.135h-3.9" />
+    <path d="M18 10l3 -3l-3 -3" />
+    <path d="M18 20l3 -3l-3 -3" />
+  </g>
+    <text x="640" y="534" font-size="46" font-weight="bold" fill="#F5A623" text-anchor="middle">O(1)</text>
+    <text x="640" y="566" font-size="19" fill="#E8F1FA" text-anchor="middle">More parallelizable</text>
+    <text x="640" y="594" font-size="17" fill="#9CB4CC" text-anchor="middle">sequential ops per layer —</text>
+    <text x="640" y="618" font-size="17" fill="#9CB4CC" text-anchor="middle">all positions handled at once</text>
+  </g>
+  <g id="claim-speed" data-pptx-bounds="820 398 320 234">
+    <line x1="980" y1="398" x2="980" y2="440" stroke="#9CC3E6" stroke-width="1" />
+    
+  <g transform="translate(964, 444) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+    <path d="M12 7v5l3 3" />
+  </g>
+    <text x="980" y="534" font-size="46" font-weight="bold" fill="#F5A623" text-anchor="middle">3.5 days</text>
+    <text x="980" y="566" font-size="19" fill="#E8F1FA" text-anchor="middle">Far less training time</text>
+    <text x="980" y="594" font-size="17" fill="#9CB4CC" text-anchor="middle">8 × P100 GPUs, big model;</text>
+    <text x="980" y="618" font-size="17" fill="#9CB4CC" text-anchor="middle">41.8 BLEU on WMT14 EN–FR</text>
+  </g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 04 / 15</text>
+  </g>
+</svg>

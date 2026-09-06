@@ -222,7 +222,9 @@ const mcpPreHandler = async (
   return true
 }
 
-if (!app.requestSingleInstanceLock()) {
+// The check scripts set STUDIO_ALLOW_MULTI_INSTANCE so a test app can run
+// (on its own port and temp data dir) while the user's app stays open.
+if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {

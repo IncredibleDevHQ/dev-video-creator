@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <defs>
+    <marker id="arrowLine" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <polygon points="0,0 10,5 0,10" fill="#9CC3E6" />
+    </marker>
+  </defs>
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 03 · ATTENTION, STEP 2</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">Multi-head attention: eight views at once</text>
+  </g>
+
+  <g id="multihead-formula" data-pptx-replace-with="formula" data-pptx-x="80" data-pptx-y="150" data-pptx-width="1120" data-pptx-height="50" data-pptx-bounds="80 150 1120 50">
+    <metadata type="application/json">
+      {"latex":"\\mathrm{MultiHead}(Q,K,V)=\\mathrm{Concat}(\\mathrm{head}_1,\\ldots,\\mathrm{head}_h)W^{O}",
+       "display":"block","font_size":22,"color":"#E8F1FA","align":"left"}
+    </metadata>
+    <text x="88" y="184" font-size="22" fill="#E8F1FA">MultiHead(Q, K, V) = Concat(head₁, …, head_h) Wᴼ</text>
+  </g>
+  <g id="head-formula" data-pptx-replace-with="formula" data-pptx-x="80" data-pptx-y="204" data-pptx-width="1120" data-pptx-height="50" data-pptx-bounds="80 204 1120 50">
+    <metadata type="application/json">
+      {"latex":"\\mathrm{head}_i=\\mathrm{Attention}(QW_i^{Q},\\,KW_i^{K},\\,VW_i^{V})",
+       "display":"block","font_size":22,"color":"#E8F1FA","align":"left"}
+    </metadata>
+    <text x="88" y="238" font-size="22" fill="#E8F1FA">head_i = Attention(Q W_i^Q, K W_i^K, V W_i^V)</text>
+  </g>
+
+  <g id="multihead-flow" data-pptx-bounds="80 262 1120 318">
+    <g id="flow-input" font-family="Consolas" font-size="18" fill="#E8F1FA" text-anchor="middle">
+      <text x="120" y="400" fill="#F5A623">Q</text>
+      <text x="120" y="440">K</text>
+      <text x="120" y="480">V</text>
+    </g>
+    <g id="flow-projections" font-size="14" fill="#E8F1FA" text-anchor="middle">
+      <rect x="200" y="380" width="110" height="28" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="255" y="399">Linear  W<tspan baseline-shift="super" font-size="10">Q</tspan></text>
+      <rect x="200" y="420" width="110" height="28" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="255" y="439">Linear  W<tspan baseline-shift="super" font-size="10">K</tspan></text>
+      <rect x="200" y="460" width="110" height="28" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="255" y="479">Linear  W<tspan baseline-shift="super" font-size="10">V</tspan></text>
+    </g>
+    <g id="flow-edges-in" fill="none" stroke="#9CC3E6" stroke-width="1.5">
+      <line x1="138" y1="394" x2="198" y2="394" marker-end="url(#arrowLine)" />
+      <line x1="138" y1="434" x2="198" y2="434" marker-end="url(#arrowLine)" />
+      <line x1="138" y1="474" x2="198" y2="474" marker-end="url(#arrowLine)" />
+      <line x1="310" y1="394" x2="416" y2="394" marker-end="url(#arrowLine)" />
+      <line x1="310" y1="434" x2="416" y2="434" marker-end="url(#arrowLine)" />
+      <line x1="310" y1="474" x2="416" y2="474" marker-end="url(#arrowLine)" />
+    </g>
+    <g id="head-stack" fill="#10284A" stroke="#9CC3E6" stroke-width="1.2">
+      <rect x="420" y="470" width="200" height="36" rx="3" />
+      <rect x="427" y="448" width="200" height="36" rx="3" />
+      <rect x="434" y="426" width="200" height="36" rx="3" />
+      <rect x="441" y="404" width="200" height="36" rx="3" />
+      <rect x="448" y="382" width="200" height="36" rx="3" />
+      <rect x="455" y="360" width="200" height="36" rx="3" />
+      <rect x="462" y="338" width="200" height="36" rx="3" />
+      <rect x="469" y="316" width="200" height="36" rx="3" stroke="#F5A623" stroke-width="1.5" />
+    </g>
+    <text x="569" y="339" font-size="13" fill="#E8F1FA" text-anchor="middle">Scaled Dot-Product Attn</text>
+    <text x="540" y="536" font-family="Consolas" font-size="13" fill="#F5A623" text-anchor="middle" letter-spacing="2">× h = 8 HEADS · d_k = 64 EACH</text>
+    <g id="flow-edges-out" fill="none" stroke="#9CC3E6" stroke-width="1.5">
+      <line x1="732" y1="430" x2="758" y2="430" marker-end="url(#arrowLine)" />
+      <line x1="880" y1="430" x2="908" y2="430" marker-end="url(#arrowLine)" />
+      <line x1="1040" y1="430" x2="1076" y2="430" marker-end="url(#arrowLine)" />
+    </g>
+    <g id="flow-merge" font-size="14" fill="#E8F1FA" text-anchor="middle">
+      <rect x="760" y="412" width="120" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="820" y="435">Concat</text>
+      <rect x="910" y="412" width="130" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="975" y="435">Linear  W<tspan baseline-shift="super" font-size="10">O</tspan></text>
+    </g>
+    <text fill="#9CB4CC" font-family="Consolas" font-size="11" letter-spacing="1" x="1082" y="426">MULTIHEAD</text><text fill="#9CB4CC" font-family="Consolas" font-size="11" letter-spacing="1" x="1082" y="440">(Q, K, V)</text></g>
+
+<g id="p07-heads-brace" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="rightBrace" data-pptx-frame="700 300 30 260" fill="none" stroke="#9CC3E6" stroke-width="2">
+<path d="M 700 300 A 15 2.5 0 0 1 715 302.5 L 715 427.5 A 15 2.5 0 0 0 730 430 A 15 2.5 0 0 0 715 432.5 L 715 557.5 A 15 2.5 0 0 1 700 560 Z" stroke="none" />
+<path d="M 700 300 A 15 2.5 0 0 1 715 302.5 L 715 427.5 A 15 2.5 0 0 0 730 430 A 15 2.5 0 0 0 715 432.5 L 715 557.5 A 15 2.5 0 0 1 700 560" />
+</g>
+
+  <g id="head-facts" data-pptx-bounds="80 596 1120 52">
+    <text fill="#C9DBEA" font-size="18" x="80" y="614">● d_k = d_v = 512 / 8 = 64 — eight reduced heads cost about as much as one full-width head</text><text fill="#C9DBEA" font-size="18" x="80" y="640">● Ablation (Table 3): a single attention head is 0.9 BLEU worse than the best setting</text></g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 07 / 15</text>
+  </g>
+</svg>

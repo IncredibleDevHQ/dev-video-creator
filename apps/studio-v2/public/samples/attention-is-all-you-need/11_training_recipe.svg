@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 04 · TRAINING RECIPE</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">The spec sheet: data, hardware, schedule</text>
+  </g>
+
+<g id="p11-spec-sheet" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="foldedCorner" data-pptx-frame="80 140 1120 490" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5">
+<path d="M 80 140 L 1200 140 L 1200 548.33 L 1118.33 630 L 80 630 Z" stroke="none" />
+<path d="M 1118.33 630 L 1134.67 564.67 L 1200 548.33 Z" fill="#0D213D" stroke="none" />
+<path d="M 1118.33 630 L 1134.67 564.67 L 1200 548.33 L 1118.33 630 L 80 630 L 80 140 L 1200 140 L 1200 548.33" fill="none" />
+</g>
+
+  <g id="spec-left" data-pptx-bounds="110 166 500 420">
+    <g id="spec-data-de">
+      <text x="110" y="190" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">DATA · EN–DE</text>
+      <text x="110" y="214" font-size="18" fill="#E8F1FA">4.5 M sentence pairs · shared BPE vocabulary ≈ 37 k</text>
+    </g>
+    <g id="spec-data-fr">
+      <text x="110" y="254" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">DATA · EN–FR</text>
+      <text x="110" y="278" font-size="18" fill="#E8F1FA">36 M sentences · 32 k word-piece vocabulary</text>
+    </g>
+    <g id="spec-batching">
+      <text x="110" y="318" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">BATCHING</text>
+      <text x="110" y="342" font-size="18" fill="#E8F1FA">≈ 25 k source + 25 k target tokens per batch</text>
+    </g>
+    <g id="spec-hardware">
+      
+  <g transform="translate(560, 376) scale(1.25)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M5 6a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1l0 -12" />
+    <path d="M9 9h6v6h-6l0 -6" />
+    <path d="M3 10h2" />
+    <path d="M3 14h2" />
+    <path d="M10 3v2" />
+    <path d="M14 3v2" />
+    <path d="M21 10h-2" />
+    <path d="M21 14h-2" />
+    <path d="M14 21v-2" />
+    <path d="M10 21v-2" />
+  </g>
+      <text x="110" y="382" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">HARDWARE</text>
+      <text x="110" y="406" font-size="18" fill="#E8F1FA">One machine · 8 × NVIDIA P100 GPUs</text>
+    </g>
+    <g id="spec-schedule-base">
+      <text x="110" y="446" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">SCHEDULE · BASE MODEL</text>
+      <text x="110" y="470" font-size="18" fill="#E8F1FA">100 k steps · 0.4 s per step · ≈ 12 hours</text>
+    </g>
+    <g id="spec-schedule-big">
+      
+  <g transform="translate(560, 504) scale(1.25)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+    <path d="M12 7v5l3 3" />
+  </g>
+      <text x="110" y="510" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">SCHEDULE · BIG MODEL</text>
+      <text x="110" y="534" font-size="18" fill="#E8F1FA">300 k steps · 1.0 s per step · 3.5 days</text>
+    </g>
+    <line x1="110" y1="560" x2="600" y2="560" stroke="#3C5A80" stroke-width="1" />
+    <text x="110" y="582" font-family="Consolas" font-size="11" fill="#9CB4CC" letter-spacing="1">REV 1 · 2017-06-12 · ARXIV 1706.03762 · WMT 2014</text>
+  </g>
+
+  <line id="spec-divider" data-pptx-role="decoration" x1="640" y1="170" x2="640" y2="580" stroke="#3C5A80" stroke-width="1" stroke-dasharray="4,4" />
+
+  <g id="spec-right-top" data-pptx-bounds="670 166 500 100">
+    <g id="spec-optimizer">
+      <text x="670" y="190" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">OPTIMIZER</text>
+      <text x="670" y="214" font-size="18" fill="#E8F1FA">Adam · β₁ = 0.9 · β₂ = 0.98 · ε = 10⁻⁹</text>
+    </g>
+    <text x="670" y="254" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">LEARNING RATE · warmup_steps = 4 000</text>
+  </g>
+
+  <g id="lrate-formula" data-pptx-replace-with="formula" data-pptx-x="670" data-pptx-y="268" data-pptx-width="520" data-pptx-height="60" data-pptx-bounds="670 268 520 60">
+    <metadata type="application/json">
+      {"latex":"lrate=d_{\\mathrm{model}}^{-0.5}\\cdot\\min\\left(step^{-0.5},\\;step\\cdot warmup\\_steps^{-1.5}\\right)",
+       "display":"block","font_size":15,"color":"#E8F1FA","align":"left"}
+    </metadata>
+    <text x="670" y="304" font-size="15" fill="#E8F1FA">lrate = d_model⁻⁰·⁵ · min(step⁻⁰·⁵, step·warmup_steps⁻¹·⁵)</text>
+  </g>
+
+  <g id="spec-right-bottom" data-pptx-bounds="670 334 500 252">
+    <g id="spec-warmup">
+      <text x="670" y="356" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">WARMUP</text>
+      <text x="670" y="380" font-size="18" fill="#E8F1FA">Linear ramp for 4 000 steps, then decay ∝ 1/√step</text>
+    </g>
+    <g id="spec-regularization">
+      <text x="670" y="420" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">REGULARIZATION</text>
+      <text fill="#E8F1FA" font-size="18" x="670" y="444">Residual dropout 0.1 (0.3 for the big EN–FR run)</text><text fill="#E8F1FA" font-size="18" x="670" y="470">Label smoothing ε = 0.1</text></g>
+    <g id="spec-size">
+      <text x="670" y="510" font-family="Consolas" font-size="13" fill="#F5A623" letter-spacing="2">MODEL SIZE</text>
+      <text x="670" y="534" font-size="18" fill="#E8F1FA">Base 65 M parameters · Big 213 M parameters</text>
+    </g>
+    <line x1="670" y1="560" x2="1100" y2="560" stroke="#3C5A80" stroke-width="1" />
+    <text x="670" y="582" font-family="Consolas" font-size="11" fill="#9CB4CC" letter-spacing="1">ALL VALUES FROM §5 OF THE PAPER · 8 × P100 · 3.5 DAYS</text>
+  </g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 11 / 15</text>
+  </g>
+</svg>

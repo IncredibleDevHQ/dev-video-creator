@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A"/>
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280"/>
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 05 · LEGACY</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">What was built on it</text>
+  </g>
+
+  <g id="legacy-timeline" data-pptx-bounds="80 150 1120 240">
+    <line x1="120" y1="270" x2="1160" y2="270" stroke="#9CC3E6" stroke-width="1.5"/>
+    <line x1="120" y1="260" x2="120" y2="280" stroke="#9CC3E6" stroke-width="1.5"/>
+    <line x1="1160" y1="260" x2="1160" y2="280" stroke="#9CC3E6" stroke-width="1.5"/>
+    <g id="milestone-2017">
+      <circle cx="180" cy="270" r="9" fill="#F5A623"/>
+      <text x="180" y="236" font-family="Consolas" font-size="16" fill="#F5A623" text-anchor="middle" letter-spacing="2">2017</text>
+      <text x="180" y="310" font-size="20" font-weight="bold" fill="#E8F1FA" text-anchor="middle">Transformer</text>
+      <text x="180" y="334" font-size="14" fill="#9CB4CC" text-anchor="middle">the paper</text>
+    </g>
+    <g id="milestone-2018">
+      <circle cx="440" cy="270" r="6" fill="#0B1F3A" stroke="#9CC3E6" stroke-width="2"/>
+      <text x="440" y="236" font-family="Consolas" font-size="16" fill="#9CC3E6" text-anchor="middle" letter-spacing="2">2018</text>
+      <text x="440" y="310" font-size="20" font-weight="bold" fill="#E8F1FA" text-anchor="middle">BERT · GPT</text>
+      <text x="440" y="334" font-size="14" fill="#9CB4CC" text-anchor="middle">pretrained language models</text>
+    </g>
+    <g id="milestone-2021">
+      <circle cx="720" cy="270" r="6" fill="#0B1F3A" stroke="#9CC3E6" stroke-width="2"/>
+      <text x="720" y="236" font-family="Consolas" font-size="16" fill="#9CC3E6" text-anchor="middle" letter-spacing="2">2021</text>
+      <text x="720" y="310" font-size="20" font-weight="bold" fill="#E8F1FA" text-anchor="middle">ViT · DALL-E</text>
+      <text x="720" y="334" font-size="14" fill="#9CB4CC" text-anchor="middle">vision and image generation</text>
+    </g>
+    <g id="milestone-2024">
+      <circle cx="1020" cy="270" r="6" fill="#0B1F3A" stroke="#9CC3E6" stroke-width="2"/>
+      <text x="1020" y="236" font-family="Consolas" font-size="16" fill="#9CC3E6" text-anchor="middle" letter-spacing="2">2024</text>
+      <text x="1020" y="310" font-size="20" font-weight="bold" fill="#E8F1FA" text-anchor="middle">Stable Diffusion 3 · Sora</text>
+      <text x="1020" y="334" font-size="14" fill="#9CB4CC" text-anchor="middle">image and video generation</text>
+    </g>
+    <text x="640" y="176" font-family="Consolas" font-size="13" fill="#9CC3E6" text-anchor="middle" letter-spacing="2">SYSTEMS BUILT ON THE TRANSFORMER ARCHITECTURE</text>
+  </g>
+
+  <g id="legacy-citations" data-pptx-bounds="110 410 340 220">
+    <!-- icon: tabler-outline/file-text -->
+  <g transform="translate(264, 420) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" />
+    <path d="M9 9l1 0" />
+    <path d="M9 13l6 0" />
+    <path d="M9 17l6 0" />
+  </g>
+    <text x="280" y="512" font-size="46" font-weight="bold" fill="#F5A623" text-anchor="middle">250,000+</text>
+    <text x="280" y="546" font-size="16" fill="#E8F1FA" text-anchor="middle">citations as of 2026 — among the</text>
+    <text x="280" y="570" font-size="16" fill="#E8F1FA" text-anchor="middle">top-ten most-cited this century</text>
+  </g>
+  <g id="legacy-authors" data-pptx-bounds="470 410 340 220">
+    <!-- icon: tabler-outline/rocket -->
+  <g transform="translate(624, 420) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M4 13a8 8 0 0 1 7 7a6 6 0 0 0 3 -5a9 9 0 0 0 6 -8a3 3 0 0 0 -3 -3a9 9 0 0 0 -8 6a6 6 0 0 0 -5 3" />
+    <path d="M7 14a6 6 0 0 0 -3 6a6 6 0 0 0 6 -3" />
+    <path d="M14 9a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  </g>
+    <text x="640" y="512" font-size="46" font-weight="bold" fill="#F5A623" text-anchor="middle">8 of 8</text>
+    <text x="640" y="546" font-size="16" fill="#E8F1FA" text-anchor="middle">authors later left Google to join</text>
+    <text x="640" y="570" font-size="16" fill="#E8F1FA" text-anchor="middle">other companies or found startups</text>
+  </g>
+  <g id="legacy-title" data-pptx-bounds="830 410 340 220">
+    <!-- icon: tabler-outline/quote -->
+  <g transform="translate(984, 420) scale(1.33333)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M10 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" />
+    <path d="M19 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" />
+  </g>
+    <text x="1000" y="500" font-size="26" font-weight="bold" fill="#F5A623" text-anchor="middle">“All You Need Is Love”</text>
+    <text x="1000" y="546" font-size="16" fill="#E8F1FA" text-anchor="middle">the Beatles song the title nods to</text>
+    <text x="1000" y="570" font-size="16" fill="#E8F1FA" text-anchor="middle">— one joke, still landing</text>
+  </g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1"/>
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1"/>
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 14 / 15</text>
+  </g>
+</svg>

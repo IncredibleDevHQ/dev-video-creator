@@ -40,7 +40,7 @@ const dataDir = join(root, 'data')
 const id = `import-${Date.now()}`
 const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   cwd: appDir,
-  env: { ...process.env, STUDIO_DATA_DIR: dataDir, STUDIO_ENABLE_TEST_HOOKS: '1' },
+  env: { ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1', STUDIO_DATA_DIR: dataDir, STUDIO_ENABLE_TEST_HOOKS: '1' },
   stdio: ['ignore', 'pipe', 'inherit'],
 })
 const origin = await new Promise((resolve, reject) => {

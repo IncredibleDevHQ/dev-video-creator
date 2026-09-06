@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <defs>
+    <marker id="arrowLine" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <polygon points="0,0 10,5 0,10" fill="#9CC3E6" />
+    </marker>
+  </defs>
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 02 · THE ARCHITECTURE</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">Six identical layers on each side</text>
+  </g>
+
+  <g id="encoder-stack" data-pptx-bounds="150 140 345 480">
+    <text x="355" y="222" font-family="Consolas" font-size="13" fill="#9CC3E6" text-anchor="middle" letter-spacing="2">ENCODER · N = 6</text>
+    <rect x="240" y="232" width="240" height="268" fill="none" stroke="#9CC3E6" stroke-width="1" stroke-dasharray="4,4" />
+    <g id="encoder-sublayers" font-size="14" fill="#E8F1FA" text-anchor="middle">
+      <rect x="255" y="440" width="200" height="36" rx="3" fill="#10284A" stroke="#F5A623" stroke-width="1.5" />
+      <text x="355" y="463">Multi-Head Attention</text>
+      <rect x="255" y="398" width="200" height="24" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1" />
+      <text x="355" y="415" font-size="13">Add &amp; Norm</text>
+      <rect x="255" y="330" width="200" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="355" y="353">Feed Forward</text>
+      <rect x="255" y="288" width="200" height="24" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1" />
+      <text x="355" y="305" font-size="13">Add &amp; Norm</text>
+    </g>
+    <g id="encoder-trunk" fill="none" stroke="#9CC3E6" stroke-width="1.5">
+      <line x1="355" y1="592" x2="355" y2="576" marker-end="url(#arrowLine)" />
+      <line x1="355" y1="540" x2="355" y2="522" marker-end="url(#arrowLine)" />
+      <line x1="355" y1="499" x2="355" y2="478" marker-end="url(#arrowLine)" />
+      <line x1="355" y1="440" x2="355" y2="424" marker-end="url(#arrowLine)" />
+      <line x1="355" y1="398" x2="355" y2="368" marker-end="url(#arrowLine)" />
+      <line x1="355" y1="330" x2="355" y2="314" marker-end="url(#arrowLine)" />
+      <polyline points="355,288 355,258 495,258" />
+      <path d="M355 490 L470 490 L470 410 L457 410" marker-end="url(#arrowLine)" />
+      <path d="M355 382 L470 382 L470 300 L457 300" marker-end="url(#arrowLine)" />
+      <line x1="236" y1="510" x2="342" y2="510" marker-end="url(#arrowLine)" />
+    </g>
+    <circle cx="355" cy="510" r="11" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+    <text x="355" y="516" font-size="16" fill="#E8F1FA" text-anchor="middle">+</text>
+    
+  <g transform="translate(204, 486)" fill="none" stroke="#9CC3E6" stroke-width="2">
+    <path d="M21 12h-2c-.894 0 -1.662 -.857 -1.761 -2c-.296 -3.45 -.749 -6 -2.749 -6s-2.5 3.582 -2.5 8s-.5 8 -2.5 8s-2.452 -2.547 -2.749 -6c-.1 -1.147 -.867 -2 -1.763 -2h-2" />
+  </g>
+    <text x="290" y="536" font-family="Consolas" font-size="11" fill="#9CB4CC" text-anchor="middle" letter-spacing="1">POSITIONAL ENCODING</text>
+    <rect x="255" y="540" width="200" height="34" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+    <text x="355" y="562" font-size="14" fill="#E8F1FA" text-anchor="middle">Input Embedding</text>
+    <text x="355" y="612" font-family="Consolas" font-size="13" fill="#9CB4CC" text-anchor="middle">INPUTS</text>
+  </g>
+
+  <g id="decoder-stack" data-pptx-bounds="495 140 325 480">
+    <path d="M495 258 L520 258 L520 374 L583 374" fill="none" stroke="#9CC3E6" stroke-width="1.5" marker-end="url(#arrowLine)" />
+    <text x="685" y="153" font-family="Consolas" font-size="13" fill="#9CC3E6" text-anchor="middle" letter-spacing="2">DECODER · N = 6</text>
+    <rect x="570" y="158" width="240" height="342" fill="none" stroke="#9CC3E6" stroke-width="1" stroke-dasharray="4,4" />
+    <g id="decoder-sublayers" font-size="14" fill="#E8F1FA" text-anchor="middle">
+      <rect x="585" y="452" width="200" height="36" rx="3" fill="#10284A" stroke="#F5A623" stroke-width="1.5" />
+      <text font-size="13" x="685" y="467">Masked Multi-Head</text><text font-size="13" x="685" y="482">Attention</text><rect x="585" y="412" width="200" height="24" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1" />
+      <text x="685" y="429" font-size="13">Add &amp; Norm</text>
+      <rect x="585" y="356" width="200" height="36" rx="3" fill="#10284A" stroke="#F5A623" stroke-width="1.5" />
+      <text x="685" y="379">Multi-Head Attention</text>
+      <rect x="585" y="316" width="200" height="24" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1" />
+      <text x="685" y="333" font-size="13">Add &amp; Norm</text>
+      <rect x="585" y="260" width="200" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="685" y="283">Feed Forward</text>
+      <rect x="585" y="220" width="200" height="24" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1" />
+      <text x="685" y="237" font-size="13">Add &amp; Norm</text>
+    </g>
+    <g id="decoder-trunk" fill="none" stroke="#9CC3E6" stroke-width="1.5">
+      <line x1="685" y1="592" x2="685" y2="576" marker-end="url(#arrowLine)" />
+      <line x1="685" y1="540" x2="685" y2="522" marker-end="url(#arrowLine)" />
+      <line x1="685" y1="499" x2="685" y2="490" marker-end="url(#arrowLine)" />
+      <line x1="685" y1="452" x2="685" y2="438" marker-end="url(#arrowLine)" />
+      <line x1="685" y1="412" x2="685" y2="394" marker-end="url(#arrowLine)" />
+      <line x1="685" y1="356" x2="685" y2="342" marker-end="url(#arrowLine)" />
+      <line x1="685" y1="316" x2="685" y2="298" marker-end="url(#arrowLine)" />
+      <line x1="685" y1="260" x2="685" y2="246" marker-end="url(#arrowLine)" />
+      <polyline points="685,220 685,190 820,190" />
+      <path d="M685 493 L800 493 L800 424 L787 424" marker-end="url(#arrowLine)" />
+      <path d="M685 400 L800 400 L800 328 L787 328" marker-end="url(#arrowLine)" />
+      <path d="M685 304 L800 304 L800 232 L787 232" marker-end="url(#arrowLine)" />
+      <line x1="800" y1="510" x2="698" y2="510" marker-end="url(#arrowLine)" />
+    </g>
+    <circle cx="685" cy="510" r="11" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+    <text x="685" y="516" font-size="16" fill="#E8F1FA" text-anchor="middle">+</text>
+    <text x="752" y="536" font-family="Consolas" font-size="11" fill="#9CB4CC" text-anchor="middle" letter-spacing="1">POS. ENCODING</text>
+    <rect x="585" y="540" width="200" height="34" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+    <text x="685" y="562" font-size="14" fill="#E8F1FA" text-anchor="middle">Output Embedding</text>
+    <text x="685" y="612" font-family="Consolas" font-size="13" fill="#9CB4CC" text-anchor="middle">OUTPUTS (SHIFTED RIGHT)</text>
+  </g>
+
+  <g id="output-chain" data-pptx-bounds="820 160 380 60">
+    <line x1="820" y1="190" x2="838" y2="190" stroke="#9CC3E6" stroke-width="1.5" marker-end="url(#arrowLine)" />
+    <rect x="840" y="172" width="90" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+    <text x="885" y="195" font-size="14" fill="#E8F1FA" text-anchor="middle">Linear</text>
+    <line x1="930" y1="190" x2="948" y2="190" stroke="#9CC3E6" stroke-width="1.5" marker-end="url(#arrowLine)" />
+    <rect x="950" y="172" width="90" height="36" rx="3" fill="#10284A" stroke="#F5A623" stroke-width="1.5" />
+    <text x="995" y="195" font-size="14" fill="#E8F1FA" text-anchor="middle">Softmax</text>
+    <line x1="1040" y1="190" x2="1076" y2="190" stroke="#9CC3E6" stroke-width="1.5" marker-end="url(#arrowLine)" />
+    <text fill="#9CB4CC" font-family="Consolas" font-size="11" letter-spacing="1" x="1082" y="186">OUTPUT</text><text fill="#9CB4CC" font-family="Consolas" font-size="11" letter-spacing="1" x="1082" y="200">PROBABILITIES</text></g>
+
+  <g id="spec-callouts" data-pptx-bounds="830 236 370 380">
+    <line x1="830" y1="236" x2="830" y2="616" stroke="#3C5A80" stroke-width="1" />
+    <g id="spec-width">
+      <circle cx="830" cy="256" r="3" fill="#F5A623" />
+      <text x="852" y="262" font-family="Consolas" font-size="14" fill="#F5A623">d_model = 512</text>
+      <text x="852" y="286" font-size="16" fill="#C9DBEA">One width for every sub-layer output</text>
+    </g>
+    <g id="spec-heads">
+      <circle cx="830" cy="328" r="3" fill="#F5A623" />
+      <text x="852" y="334" font-family="Consolas" font-size="14" fill="#F5A623">h = 8 · d_k = d_v = 64</text>
+      <text x="852" y="358" font-size="16" fill="#C9DBEA">8 heads, each a 64-wide subspace</text>
+    </g>
+    <g id="spec-ffn">
+      <circle cx="830" cy="400" r="3" fill="#F5A623" />
+      <text x="852" y="406" font-family="Consolas" font-size="14" fill="#F5A623">d_ff = 2048 · position-wise</text>
+      <text x="852" y="430" font-size="16" fill="#C9DBEA"><tspan data-pptx-inline-formula="\mathrm{FFN}(x)=\max(0,\,xW_1+b_1)W_2+b_2">FFN(x) = max(0, xW₁ + b₁)W₂ + b₂</tspan></text>
+    </g>
+    <g id="spec-residual">
+      <circle cx="830" cy="472" r="3" fill="#F5A623" />
+      <text x="852" y="478" font-family="Consolas" font-size="14" fill="#F5A623">Add &amp; Norm around each sub-layer</text>
+      <text x="852" y="502" font-size="16" fill="#C9DBEA"><tspan data-pptx-inline-formula="\mathrm{LayerNorm}(x+\mathrm{Sublayer}(x))">LayerNorm(x + Sublayer(x))</tspan></text>
+    </g>
+    <g id="spec-params">
+      <circle cx="830" cy="544" r="3" fill="#F5A623" />
+      <text x="852" y="550" font-family="Consolas" font-size="14" fill="#F5A623">PARAMETERS</text>
+      <text x="852" y="574" font-size="16" fill="#C9DBEA">base 65 M · big 213 M</text>
+    </g>
+  </g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 05 / 15</text>
+  </g>
+</svg>

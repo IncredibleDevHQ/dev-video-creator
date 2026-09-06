@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI" font-size="22" data-pptx-page-role="content">
+  <defs>
+    <marker id="arrowLine" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <polygon points="0,0 10,5 0,10" fill="#9CC3E6" />
+    </marker>
+  </defs>
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#0B1F3A" />
+  <path id="grid" data-pptx-role="decoration" fill="none" stroke="#9CC3E6" stroke-opacity="0.07" stroke-width="1" d="M40 0V720 M80 0V720 M120 0V720 M160 0V720 M200 0V720 M240 0V720 M280 0V720 M320 0V720 M360 0V720 M400 0V720 M440 0V720 M480 0V720 M520 0V720 M560 0V720 M600 0V720 M640 0V720 M680 0V720 M720 0V720 M760 0V720 M800 0V720 M840 0V720 M880 0V720 M920 0V720 M960 0V720 M1000 0V720 M1040 0V720 M1080 0V720 M1120 0V720 M1160 0V720 M1200 0V720 M1240 0V720 M0 40H1280 M0 80H1280 M0 120H1280 M0 160H1280 M0 200H1280 M0 240H1280 M0 280H1280 M0 320H1280 M0 360H1280 M0 400H1280 M0 440H1280 M0 480H1280 M0 520H1280 M0 560H1280 M0 600H1280 M0 640H1280 M0 680H1280" />
+
+  <g id="header" data-pptx-bounds="80 36 1120 84">
+    <text x="82" y="58" font-family="Consolas" font-size="14" fill="#F5A623" letter-spacing="2">§ 03 · ATTENTION, STEP 1</text>
+    <text x="80" y="104" font-size="38" font-weight="bold" fill="#E8F1FA">Scaled dot-product attention</text>
+  </g>
+
+  <g id="attention-formula" data-pptx-replace-with="formula" data-pptx-x="80" data-pptx-y="150" data-pptx-width="600" data-pptx-height="100" data-pptx-bounds="80 150 600 100">
+    <metadata type="application/json">
+      {"latex":"\\mathrm{Attention}(Q,K,V)=\\mathrm{softmax}\\left(\\frac{QK^{T}}{\\sqrt{d_k}}\\right)V",
+       "display":"block","font_size":24,"color":"#E8F1FA","align":"left"}
+    </metadata>
+    <text x="88" y="208" font-size="24" fill="#E8F1FA">Attention(Q, K, V) = softmax(QKᵀ / √d_k) V</text>
+  </g>
+
+  <g id="qkv-legend" data-pptx-bounds="80 266 600 150">
+    <g id="legend-q">
+      <rect x="84" y="284" width="34" height="28" rx="3" fill="none" stroke="#F5A623" stroke-width="1.5" />
+      <text x="101" y="304" font-family="Consolas" font-size="16" fill="#F5A623" text-anchor="middle">Q</text>
+      <text x="134" y="304" font-size="18" fill="#E8F1FA">query: what this position is looking for</text>
+    </g>
+    <g id="legend-k">
+      <rect x="84" y="330" width="34" height="28" rx="3" fill="none" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="101" y="350" font-family="Consolas" font-size="16" fill="#9CC3E6" text-anchor="middle">K</text>
+      <text x="134" y="350" font-size="18" fill="#E8F1FA">key: what each position offers for matching</text>
+    </g>
+    <g id="legend-v">
+      <rect x="84" y="376" width="34" height="28" rx="3" fill="none" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="101" y="396" font-family="Consolas" font-size="16" fill="#9CC3E6" text-anchor="middle">V</text>
+      <text x="134" y="396" font-size="18" fill="#E8F1FA">value: what is passed along once matched</text>
+    </g>
+  </g>
+
+  <g id="why-scale" data-pptx-bounds="80 436 600 190">
+    <line x1="80" y1="446" x2="80" y2="616" stroke="#F5A623" stroke-width="3" />
+    <text x="104" y="470" font-size="20" font-weight="bold" fill="#E8F1FA">Why divide by √d_k?</text>
+    <text fill="#C9DBEA" font-size="18" x="104" y="502">With large d_k the dot products grow large and</text><text fill="#C9DBEA" font-size="18" x="104" y="530">push softmax into regions with tiny gradients;</text><text fill="#C9DBEA" font-size="18" x="104" y="558">the 1/√d_k factor keeps the scores tame.</text><text x="104" y="606" font-family="Consolas" font-size="14" fill="#F5A623">d_k = 64  →  divide every score by 8</text>
+  </g>
+
+  <g id="attention-flow" data-pptx-bounds="700 150 500 500">
+    <text x="920" y="258" font-family="Consolas" font-size="13" fill="#F5A623" text-anchor="middle" letter-spacing="2">ATTENTION(Q, K, V)</text>
+    <g id="flow-boxes" font-size="15" fill="#E8F1FA" text-anchor="middle">
+      <rect x="820" y="560" width="200" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="920" y="583">MatMul  Q · Kᵀ</text>
+      <rect x="820" y="480" width="200" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="920" y="503">Scale  ÷ √d_k</text>
+      <rect x="820" y="400" width="200" height="36" rx="3" fill="#10284A" stroke="#F5A623" stroke-width="1.5" />
+      <text x="920" y="423">Softmax</text>
+      <rect x="820" y="320" width="200" height="36" rx="3" fill="#10284A" stroke="#9CC3E6" stroke-width="1.5" />
+      <text x="920" y="343">MatMul  · V</text>
+    </g>
+    <g id="flow-edges" fill="none" stroke="#9CC3E6" stroke-width="1.5">
+      <line x1="870" y1="626" x2="870" y2="598" marker-end="url(#arrowLine)" />
+      <line x1="970" y1="626" x2="970" y2="598" marker-end="url(#arrowLine)" />
+      <path d="M1120 626 L1120 338 L1022 338" marker-end="url(#arrowLine)" />
+      <line x1="920" y1="560" x2="920" y2="518" marker-end="url(#arrowLine)" />
+      <line x1="920" y1="480" x2="920" y2="438" marker-end="url(#arrowLine)" />
+      <line x1="920" y1="400" x2="920" y2="358" marker-end="url(#arrowLine)" />
+      <line x1="920" y1="320" x2="920" y2="270" marker-end="url(#arrowLine)" />
+    </g>
+    <g id="flow-inputs" font-family="Consolas" font-size="18" fill="#E8F1FA" text-anchor="middle">
+      <text x="870" y="642" fill="#F5A623">Q</text>
+      <text x="970" y="642">K</text>
+      <text x="1120" y="642">V</text>
+    </g>
+    <g id="flow-notes" font-family="Consolas" font-size="12" fill="#9CB4CC" text-anchor="end">
+      <text x="808" y="582">scores</text>
+      <text x="808" y="502">scaled</text>
+      <text x="808" y="422" fill="#F5A623">weights</text>
+      <text x="808" y="342">weighted V</text>
+    </g>
+  </g>
+
+  <g id="sheet-block" data-pptx-role="footer" data-pptx-bounds="1000 668 220 32" font-family="Consolas" font-size="12" fill="#9CB4CC">
+    <rect x="1000" y="668" width="220" height="32" fill="none" stroke="#3C5A80" stroke-width="1" />
+    <line x1="1110" y1="668" x2="1110" y2="700" stroke="#3C5A80" stroke-width="1" />
+    <text x="1012" y="688">AIAYN · 2017</text>
+    <text x="1122" y="688">SHEET 06 / 15</text>
+  </g>
+</svg>
