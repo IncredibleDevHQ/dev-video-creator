@@ -66,3 +66,214 @@ describe('slide driver bezier easing', () => {
     }
   })
 })
+
+// ——— stepsFromResolvedPlan ———
+import { stepsFromResolvedPlan } from './slide'
+
+// Mirrors the real resolved.json a Kimi Plan Motion — Default run produced
+// (4 beats: introduce, two relate beats with traces, an empty recap).
+const REAL_RESOLVED = {
+  version: 1,
+  preset: 'technical-trace',
+  steps: [
+    {
+      id: 'B01',
+      title: 'Input Embeddings',
+      explanation: 'Tokens come in as input embeddings.',
+      hero: [],
+      supporting: [],
+      intent: 'introduce',
+      actions: [
+        {
+          id: 'a1-1', op: 'reveal', targets: ['bg', 'u-input'],
+          startMs: 0, durationMs: 550, ease: 'settle',
+          value: { enterFrom: 'auto', lines: 'auto' },
+          persistence: 'state', implicit: false,
+        },
+      ],
+      motionWindowMs: 550,
+      holdMs: 600,
+    },
+    {
+      id: 'B02',
+      title: 'Attend Across Positions',
+      explanation: 'Each position looks at every other through multi-head attention.',
+      hero: [],
+      supporting: [],
+      intent: 'relate',
+      actions: [
+        {
+          id: 'a2-1', op: 'trace', targets: ['u-arrow-1'],
+          startMs: 0, durationMs: 300, ease: 'draw',
+          ports: { from: 'u-input', to: 'u-attn' },
+          persistence: 'state', implicit: false,
+        },
+        {
+          id: 'a2-2', op: 'reveal', targets: ['u-attn'],
+          startMs: 210, durationMs: 320, ease: 'settle',
+          persistence: 'state', implicit: false,
+        },
+      ],
+      motionWindowMs: 530,
+      holdMs: 600,
+    },
+    {
+      id: 'B03',
+      title: 'Add And Normalize',
+      explanation: 'The result is added back and normalised.',
+      hero: [],
+      supporting: [],
+      intent: 'relate',
+      actions: [
+        {
+          id: 'a3-1', op: 'trace', targets: ['u-arrow-2'],
+          startMs: 0, durationMs: 300, ease: 'draw',
+          ports: { from: 'u-attn', to: 'u-norm' },
+          persistence: 'state', implicit: false,
+        },
+        {
+          id: 'a3-2', op: 'reveal', targets: ['u-norm'],
+          startMs: 210, durationMs: 320, ease: 'settle',
+          persistence: 'state', implicit: false,
+        },
+      ],
+      motionWindowMs: 530,
+      holdMs: 600,
+    },
+    {
+      id: 'B04',
+      title: 'Recap',
+      explanation: '',
+      hero: [],
+      supporting: [],
+      intent: 'recap',
+      actions: [
+        {
+          id: 'a4-1', op: 'reveal', targets: [],
+          startMs: 0, durationMs: 220, ease: 'settle',
+          persistence: 'state', implicit: false,
+        },
+      ],
+      motionWindowMs: 220,
+      holdMs: 1500,
+    },
+  ],
+}
+
+const REAL_BRIEF = `<!-- motion-master-schema: brief/v1 -->
+
+### P01 · B01
+- Move: see that tokens enter the layer as input embeddings            (binding)
+- Narration: sentences [1], cue word 6 ("embeddings")                  (binding)
+
+### P01 · B02
+- Move: see each position attend to every other through multi-head attention (binding)
+- Narration: sentences [2], cue word 8 ("multi-head")                  (binding)
+
+### P01 · B04
+- Move: recap the sub-layer chain in data order                        (binding)
+`
+
+describe('stepsFromResolvedPlan', () => {
+  it('maps entering actions to reveals and picks the verb per beat', () => {
+    const steps = stepsFromResolvedPlan(REAL_RESOLVED)
+    expect(steps).toHaveLength(4)
+    expect(steps[0]).toMatchObject({ verb: 'reveal', reveals: ['bg', 'u-input'] })
+    expect(steps[1]).toMatchObject({ verb: 'trace', reveals: ['u-arrow-1', 'u-attn'] })
+    expect(steps[2]).toMatchObject({ verb: 'trace', reveals: ['u-arrow-2', 'u-norm'] })
+    // The empty recap action converts to an empty reveal step (a hold).
+    expect(steps[3]).toMatchObject({ verb: 'reveal', reveals: [] })
+  })
+
+  it('keeps titles and falls back to the resolved explanation, then the title', () => {
+    const steps = stepsFromResolvedPlan(REAL_RESOLVED)
+    expect(steps[0].title).toBe('Input Embeddings')
+    expect(steps[1].explanation).toBe(REAL_RESOLVED.steps[1].explanation)
+    expect(steps[3].explanation).toBe('Recap')
+  })
+
+  it('prefers the brief beat Move line when the brief is given', () => {
+    const steps = stepsFromResolvedPlan(REAL_RESOLVED, { brief: REAL_BRIEF })
+    expect(steps[0].explanation).toBe('see that tokens enter the layer as input embeddings')
+    expect(steps[1].explanation).toBe(
+      'see each position attend to every other through multi-head attention',
+    )
+    // B03 has no beat in this brief → resolved explanation.
+    expect(steps[2].explanation).toBe(REAL_RESOLVED.steps[2].explanation)
+    expect(steps[3].explanation).toBe('recap the sub-layer chain in data order')
+  })
+
+  it('marks attention-only beats as focus', () => {
+    const steps = stepsFromResolvedPlan({
+      version: 1,
+      steps: [
+        {
+          id: 'st-1',
+          title: 'Watch this',
+          actions: [
+            { id: 'a1', op: 'dim', targets: ['u-b'], startMs: 0, durationMs: 300, ease: 'exit', persistence: 'state', implicit: false },
+            { id: 'a2', op: 'emphasize', targets: ['u-a'], startMs: 210, durationMs: 320, ease: 'pop', persistence: 'state', implicit: false },
+          ],
+          motionWindowMs: 530,
+          holdMs: 600,
+        },
+      ],
+    })
+    expect(steps[0]).toMatchObject({ verb: 'focus', reveals: [] })
+  })
+
+  it('dedupes targets across actions and keeps action order', () => {
+    const steps = stepsFromResolvedPlan({
+      version: 1,
+      steps: [
+        {
+          id: 'st-1',
+          title: 'Dupes',
+          actions: [
+            { id: 'a1', op: 'reveal', targets: ['u-a', 'u-b'], startMs: 0, durationMs: 320, ease: 'settle', persistence: 'state', implicit: false },
+            { id: 'a2', op: 'reveal', targets: ['u-b', 'u-c'], startMs: 224, durationMs: 320, ease: 'settle', persistence: 'state', implicit: false },
+          ],
+          motionWindowMs: 544,
+          holdMs: 600,
+        },
+      ],
+    })
+    expect(steps[0].reveals).toEqual(['u-a', 'u-b', 'u-c'])
+  })
+
+  it('caps at 24 steps through sanitizeSlideSteps', () => {
+    const steps = stepsFromResolvedPlan({
+      version: 1,
+      steps: Array.from({ length: 24 }, (_, index) => ({
+        id: `st-${index + 1}`,
+        title: `Beat ${index + 1}`,
+        actions: [
+          { id: `a${index}`, op: 'reveal', targets: [`u-${index}`], startMs: 0, durationMs: 220, ease: 'settle', persistence: 'state', implicit: false },
+        ],
+        motionWindowMs: 220,
+        holdMs: 600,
+      })),
+    })
+    expect(steps).toHaveLength(24)
+  })
+
+  it('rejects an input that fails the resolved schema', () => {
+    expect(() =>
+      stepsFromResolvedPlan({
+        version: 1,
+        steps: [
+          {
+            id: 'st-1',
+            title: 'Broken',
+            actions: [
+              { id: 'a1', op: 'reveal', targets: ['u-a'], startMs: 0, ease: 'settle', persistence: 'state' },
+            ],
+            motionWindowMs: 220,
+            holdMs: 600,
+          },
+        ],
+      }),
+    ).toThrow(/schema/)
+    expect(() => stepsFromResolvedPlan({ steps: 'nope' })).toThrow()
+  })
+})

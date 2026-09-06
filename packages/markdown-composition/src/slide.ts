@@ -105,6 +105,85 @@ export const prepareSlideSvg = (svg: string, prefix: string) => {
 
 export const slidePrefix = (sceneIndex: number) => `s${sceneIndex}`
 
+// ——— resolved plan → slide steps ———
+// Converts a motion-master resolved.json (Core §3.2 resolved tier) into the
+// V1 slide steps the editor and the composition driver understand. Meaning
+// travels (titles, explanations, which units each beat enters); timing,
+// easing and ports stay in the artefact.
+import { validateArtefact } from './schemas'
+
+type ResolvedPlanAction = {
+  op: string
+  targets?: string[]
+}
+
+type ResolvedPlanStep = {
+  id?: string
+  title?: string
+  explanation?: string
+  actions?: ResolvedPlanAction[]
+}
+
+type ResolvedPlanDocument = {
+  steps: ResolvedPlanStep[]
+}
+
+// Ops that bring units on screen; the rest is attention (dim/emphasize/…).
+const ENTERING_OPS = new Set(['reveal', 'trace'])
+const ATTENTION_OPS = new Set(['dim', 'undim', 'emphasize', 'pulse'])
+
+// Parses the motion_brief template (templates/motion_brief_reference.md):
+// one `### P01 · B02` block per beat, the `- Move:` line is the beat's
+// explainer. Tolerant: missing fields simply yield no entry.
+const briefBeatExplainers = (brief: string) => {
+  const beats = new Map<string, string>()
+  for (const block of brief.split(/^###\s+/m).slice(1)) {
+    const header = /^(?:P\d+\s*·\s*)?(B\d+)\b/.exec(block)
+    if (!header) continue
+    const move = /^-\s*Move:\s*(.+?)(?:\s+\(binding\))?\s*$/m.exec(block)
+    if (move?.[1]) beats.set(header[1], move[1].trim())
+  }
+  return beats
+}
+
+export const stepsFromResolvedPlan = (
+  resolved: unknown,
+  opts?: { brief?: string },
+): SlideStepV1[] => {
+  const shape = validateArtefact('resolved', resolved)
+  if (!shape.valid) {
+    const first = shape.errors[0]
+    throw new Error(
+      `resolved plan failed the schema (${first ? `${first.path}: ${first.message}` : 'unknown'})`,
+    )
+  }
+  const beats = briefBeatExplainers(String(opts?.brief || ''))
+  return sanitizeSlideSteps(
+    (resolved as ResolvedPlanDocument).steps.map(step => {
+      const actions = Array.isArray(step.actions) ? step.actions : []
+      const entering = actions.filter(action => ENTERING_OPS.has(action.op))
+      const reveals = [
+        ...new Set(
+          entering.flatMap(action =>
+            (Array.isArray(action.targets) ? action.targets : []).map(String),
+          ),
+        ),
+      ]
+      const verb = entering.some(action => action.op === 'trace')
+        ? 'trace'
+        : !entering.length && actions.some(action => ATTENTION_OPS.has(action.op))
+          ? 'focus'
+          : 'reveal'
+      const title = String(step.title || '').trim()
+      const explanation =
+        beats.get(String(step.id || '')) ||
+        String(step.explanation || '').trim() ||
+        title
+      return { title, explanation, reveals, verb }
+    }),
+  )
+}
+
 export const humanizeSlideId = (id: string) =>
   id
     .replace(/^p\d+-/, '')

@@ -44,6 +44,12 @@ type StudioDesktopBridge = {
     cancel: (id: string) => Promise<boolean>
     answer: (id: string, answers: Record<string, unknown>) => Promise<boolean>
     installSkills: (projectDir: string) => Promise<unknown>
+    artefacts: (runId: string) => Promise<{
+      resolved: unknown | null
+      receipt: unknown | null
+      validation: { errors?: unknown[]; warnings?: unknown[]; gateSignal?: unknown } | null
+      brief: string | null
+    }>
     onEvent: (listener: (payload: StudioDesktopHarnessEvent) => void) => () => void
   }
 }

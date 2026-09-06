@@ -60,6 +60,12 @@ const bridge = {
       ipcRenderer.invoke('harness:answer', id, answers),
     installSkills: (projectDir: string): Promise<unknown> =>
       ipcRenderer.invoke('harness:install-skills', projectDir),
+    artefacts: (runId: string): Promise<{
+      resolved: unknown | null
+      receipt: unknown | null
+      validation: unknown | null
+      brief: string | null
+    }> => ipcRenderer.invoke('harness:artefacts', runId),
     onEvent: (listener: (payload: HarnessEventPayload) => void) => {
       const wrapped = (_event: unknown, payload: HarnessEventPayload) => listener(payload)
       ipcRenderer.on('harness:event', wrapped)

@@ -156,10 +156,12 @@
           <nav class="actions" aria-label="Project actions">
             <label class="studio-theme-picker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13.5 9 5 9-5"/></svg><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">✎</button></label>
             <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
+            <input id="svg-file-input" type="file" accept=".svg,image/svg+xml" multiple hidden />
             <div class="import-menu">
               <button id="import-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>Import <span aria-hidden="true">⌄</span></button>
               <div id="import-menu-list" class="import-menu-list" role="menu" hidden>
                 <button id="import-file" type="button" role="menuitem">Import .md file</button>
+                <button id="import-svg-pages" type="button" role="menuitem">Import SVG pages…</button>
                 <button id="paste-markdown" type="button" role="menuitem">Paste Markdown…</button>
               </div>
             </div>
@@ -454,6 +456,7 @@
           <button type="button" id="se-order-reading" class="button" title="One step per unit, top-left to bottom-right">One step per unit</button>
           <button type="button" id="se-order-groups" class="button" title="One step per authored group">By groups</button>
           <button type="button" id="se-clear" class="button" title="Remove every step">Clear</button>
+          <button type="button" id="se-approve" class="button" title="Mark the base page structure as approved — Plan motion (assist) needs it">Approve page</button>
         </div>
         <button id="close-slide-editor" class="icon-button" type="button" aria-label="Close">×</button>
       </div>
@@ -473,8 +476,13 @@
               <button type="button" id="se-plan-assist" class="button" title="Run motion-master Plan Motion — Default through an installed coding agent, with confirmation gates (desktop only)">Plan motion (assist)</button>
               <span id="se-assist-agent" class="slide-editor-assist-agent" title="The agent Plan motion (assist) uses — change it from the Agent button in the top bar"></span>
               <button type="button" id="se-assist-cancel" class="button" hidden>Cancel</button>
+              <button type="button" id="se-assist-apply" class="button primary" hidden>Apply plan</button>
             </div>
             <div id="se-assist-log" class="slide-editor-assist-log" hidden></div>
+            <details id="se-director-brief" class="slide-editor-director" hidden>
+              <summary>Director's brief</summary>
+              <div id="se-director-brief-body" class="slide-editor-director-body"></div>
+            </details>
           </div>
           <div class="slide-editor-side-head"><strong>Steps</strong><span id="se-step-count">0</span><button type="button" id="se-add-step" class="button">+ Step</button></div>
           <ol id="slide-editor-steps" class="slide-editor-steps"></ol>

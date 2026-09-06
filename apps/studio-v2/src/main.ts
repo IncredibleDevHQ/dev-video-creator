@@ -46,6 +46,7 @@ import {
   type TiptapNode,
   sanitizeSlideSteps,
   slideDurationSeconds,
+  stepsFromResolvedPlan,
 } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
@@ -5861,6 +5862,77 @@ bindBrandColor('#brand-text', 'text')
   editor.commands.setContent(await file.text(), { contentType: 'markdown' })
   showToast(`Imported ${file.name}`)
 })
+
+// ——— Import SVG pages ———
+// Each uploaded SVG page (ppt-master-style output) becomes one slide block.
+// Light sanitise only: ids stay as authored — prepareSlideSvg prefixes them
+// at compile time, so pages sharing ids never collide in a composition.
+const sanitizeImportedSvg = (markup: string) => {
+  let svg = String(markup || '').trim()
+  const start = svg.indexOf('<svg')
+  if (start < 0) throw new Error('no <svg> element found')
+  svg = svg.slice(start)
+  return svg
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, '')
+    .replace(/\bjavascript:/gi, '')
+}
+
+const titleFromFilename = (name: string) => {
+  const base = name
+    .replace(/\.svg$/i, '')
+    .replace(/[-_]+/g, ' ')
+    .trim()
+  return base ? base.replace(/\b\w/g, character => character.toUpperCase()) : 'Slide'
+}
+
+type ImportSvgSummary = {
+  imported: Array<{ name: string; title: string }>
+  failed: Array<{ name: string; error: string }>
+}
+
+const importSvgPages = async (
+  files: Array<{ name: string; text: string }>,
+): Promise<ImportSvgSummary> => {
+  const summary: ImportSvgSummary = { imported: [], failed: [] }
+  for (const file of files) {
+    try {
+      const svg = sanitizeImportedSvg(file.text)
+      const title = titleFromFilename(file.name)
+      editor
+        .chain()
+        .insertContent({ type: 'slide', attrs: { title, svg, steps: [] } })
+        .run()
+      summary.imported.push({ name: file.name, title })
+    } catch (error) {
+      summary.failed.push({
+        name: file.name,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+  if (summary.imported.length) syncProject()
+  const parts = [`${summary.imported.length} page${summary.imported.length === 1 ? '' : 's'} imported as slide blocks`]
+  if (summary.failed.length) parts.push(`${summary.failed.length} failed (${summary.failed[0].name}: ${summary.failed[0].error})`)
+  showToast(parts.join(' · '))
+  return summary
+}
+
+;($('#import-svg-pages') as HTMLButtonElement).addEventListener('click', () =>
+  ($('#svg-file-input') as HTMLInputElement).click(),
+)
+;($('#svg-file-input') as HTMLInputElement).addEventListener('change', async event => {
+  const input = event.currentTarget as HTMLInputElement
+  const files = await Promise.all(
+    [...(input.files || [])].map(async file => ({ name: file.name, text: await file.text() })),
+  )
+  input.value = ''
+  if (files.length) await importSvgPages(files)
+})
+// Test hook (scripts/import-check.mjs drives this through /__eval).
+;(window as unknown as { importSvgPages?: unknown }).importSvgPages = importSvgPages
 ;($('#reset-sample') as HTMLButtonElement).addEventListener('click', () => {
   if (!window.confirm('Replace the current notebook with the sample project?')) return
   project.blocks = {}
@@ -7899,6 +7971,8 @@ const openSlideEditor = (nodeId: string) => {
   }
   ;($('#slide-editor-title') as HTMLElement).textContent = `Build order · ${String(found.attrs.title || 'Slide')}`
   setSlideEditorStatus(`${leafUnits(atomized.units).length} parts found`)
+  syncApproveButton()
+  renderDirectorBrief(found.attrs.directorBrief as DirectorBrief | null)
   renderSlideEditorSteps()
   renderSlideEditorPreview()
   slideEditorDialog.showModal()
@@ -8010,6 +8084,65 @@ const planSlideSteps = async (mode: 'narration' | 'instruction') => {
 ;($('#se-plan-narration') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('narration'))
 ;($('#se-plan-apply') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('instruction'))
 
+// ——— Approve page structure + director's brief ———
+// Plan motion (assist) runs only on pages whose base structure the user
+// approved; the brief is a small heuristic summary shown beside the steps.
+type DirectorBrief = {
+  layout: string
+  layoutReason: string
+  totalSeconds: number
+  stepCount: number
+  cues: Array<{ step: number; title: string; text: string }>
+}
+
+const approveButton = $('#se-approve') as HTMLButtonElement
+
+const syncApproveButton = () => {
+  const state = slideEditor
+  if (!state) return
+  const approved = Boolean(findTypedNode('slide', state.nodeId)?.attrs.structureApproved)
+  approveButton.classList.toggle('is-approved', approved)
+  approveButton.textContent = approved ? '✓ Page approved' : 'Approve page'
+}
+
+approveButton.addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  const approved = Boolean(findTypedNode('slide', state.nodeId)?.attrs.structureApproved)
+  writeTypedNode('slide', state.nodeId, { structureApproved: !approved })
+  syncApproveButton()
+  syncProject()
+  setSlideEditorStatus(approved ? 'Approval removed' : 'Page structure approved', 'ok')
+})
+
+const renderDirectorBrief = (brief: DirectorBrief | null | undefined) => {
+  const box = $('#se-director-brief') as HTMLDetailsElement
+  const body = $('#se-director-brief-body') as HTMLElement
+  if (!brief || !Array.isArray(brief.cues) || !brief.cues.length) {
+    box.hidden = true
+    body.replaceChildren()
+    return
+  }
+  box.hidden = false
+  body.replaceChildren()
+  const head = document.createElement('div')
+  const layout = document.createElement('span')
+  layout.className = 'db-layout'
+  layout.textContent = brief.layout
+  const meta = document.createElement('div')
+  meta.textContent = ` — ${brief.layoutReason} · ${brief.stepCount} steps · ≈${brief.totalSeconds}s of motion`
+  head.append(layout, meta)
+  const list = document.createElement('ol')
+  brief.cues.forEach(cue => {
+    const item = document.createElement('li')
+    const strong = document.createElement('strong')
+    strong.textContent = cue.title || `Step ${cue.step}`
+    item.append(strong, ` ${cue.text}`)
+    list.append(item)
+  })
+  body.append(head, list)
+}
+
 // ——— Plan motion (assist) — desktop shell only (spec §5) ———
 // Runs motion-master Plan Motion — Default through an installed coding agent
 // with the native gate dialogs; *Plan from narration* above stays on the
@@ -8048,9 +8181,7 @@ if (desktopBridge?.isDesktop) {
         const status = runs.find(run => run.id === finishedRunId)?.status
         assistLog(`done: ${status} (exit ${event.exitCode})`)
         if (status === 'done') {
-          // The artefacts live in the project dir's motion/; there is no
-          // resolved.json → block steps refresh path yet (manual for now).
-          setSlideEditorStatus('Plan motion finished — plan written to motion/ (resolved.json)', 'ok')
+          void prepareAssistApply(finishedRunId)
         } else if (status === 'cancelled') {
           setSlideEditorStatus('Plan motion cancelled')
         } else {
@@ -8061,10 +8192,142 @@ if (desktopBridge?.isDesktop) {
   })
 }
 
+// After a done run: read the artefacts, validate, convert to slide steps and
+// offer "Apply plan". A plan with validation errors is never applied
+// silently — it needs a second, explicit click.
+type AssistApply = {
+  steps: SlideEditorStep[]
+  errors: Array<{ class?: string; message?: string }>
+  warnings: unknown[]
+  totalSeconds: number
+}
+let assistApply: AssistApply | null = null
+let assistApplyArmed = false
+const assistApplyButton = $('#se-assist-apply') as HTMLButtonElement
+
+const prepareAssistApply = async (runId: string) => {
+  const state = slideEditor
+  if (!state || !desktopBridge?.isDesktop) return
+  try {
+    const artefacts = await desktopBridge.harness.artefacts(runId)
+    if (!artefacts?.resolved) {
+      setSlideEditorStatus('Plan motion finished but motion/resolved.json is missing', 'error')
+      return
+    }
+    const steps = stepsFromResolvedPlan(artefacts.resolved, {
+      brief: artefacts.brief || '',
+    }) as SlideEditorStep[]
+    if (!steps.length) throw new Error('the resolved plan has no steps')
+    const validation = (artefacts.validation || null) as {
+      errors?: Array<{ class?: string; message?: string }>
+      warnings?: unknown[]
+    } | null
+    const resolvedSteps = (
+      artefacts.resolved as { steps?: Array<{ motionWindowMs?: number; holdMs?: number }> }
+    ).steps || []
+    assistApply = {
+      steps,
+      errors: validation?.errors || [],
+      warnings: validation?.warnings || [],
+      totalSeconds:
+        Math.round(
+          resolvedSteps.reduce(
+            (sum, step) => sum + (step.motionWindowMs || 0) + (step.holdMs || 0),
+            0,
+          ) / 100,
+        ) / 10,
+    }
+    assistApplyArmed = false
+    const errors = assistApply.errors.length
+    assistApplyButton.hidden = false
+    assistApplyButton.textContent = errors
+      ? `Apply plan (${steps.length} steps · ${errors} errors)`
+      : `Apply plan (${steps.length} steps)`
+    assistLog(`validate: ${errors} errors, ${assistApply.warnings.length} warnings`)
+    setSlideEditorStatus(
+      errors
+        ? `Plan finished with ${errors} validation error(s) — applying needs a confirming click`
+        : `Plan validated — ${steps.length} steps ready to apply`,
+      errors ? 'error' : 'ok',
+    )
+  } catch (error) {
+    setSlideEditorStatus(
+      error instanceof Error ? error.message : 'Could not read the plan artefacts',
+      'error',
+    )
+  }
+}
+
+const buildDirectorBrief = (apply: AssistApply): DirectorBrief => {
+  const hasTrace = apply.steps.some(step => step.verb === 'trace')
+  // Small documented heuristic — stage-director harness runs replace it once
+  // rate_layout / layout_track land as MCP tools.
+  const layout = hasTrace || apply.steps.length >= 4 ? 'information-tile' : 'split'
+  const layoutReason = hasTrace
+    ? 'flow steps read better with the page dominant and the presenter in a tile'
+    : apply.steps.length >= 4
+      ? 'four or more beats keep the page dominant; the presenter rides the tile'
+      : 'a short plan reads well beside the presenter'
+  return {
+    layout,
+    layoutReason,
+    totalSeconds: apply.totalSeconds,
+    stepCount: apply.steps.length,
+    cues: apply.steps.map((step, index) => ({
+      step: index + 1,
+      title: step.title,
+      text: step.explanation,
+    })),
+  }
+}
+
+assistApplyButton.addEventListener('click', () => {
+  const state = slideEditor
+  if (!state || !assistApply) return
+  const errors = assistApply.errors.length
+  if (errors && !assistApplyArmed) {
+    assistApplyArmed = true
+    assistApplyButton.textContent = `Apply anyway (${errors} error${errors === 1 ? '' : 's'})`
+    const first = assistApply.errors[0]
+    setSlideEditorStatus(
+      `Validation errors (first: ${first?.class || ''} ${first?.message || ''}) — click again to apply anyway`,
+      'error',
+    )
+    return
+  }
+  // Unit ids from the plan expand to the element ids the editor works with
+  // (same mapping the gateway plan path uses).
+  const byUnit = new Map(leafUnits(state.units).map(unit => [unit.id, unit]))
+  state.steps = assistApply.steps.map(step => ({
+    ...step,
+    reveals: step.reveals.flatMap(id => byUnit.get(id)?.ids || []),
+  }))
+  state.current = 0
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+  // The brief mirrors what Save steps will persist (empty-reveal beats, like
+  // a recap hold, are filtered on save — keep the cue list consistent).
+  const persistable = state.steps.filter(step => step.reveals.length)
+  const brief = buildDirectorBrief({ ...assistApply, steps: persistable })
+  writeTypedNode('slide', state.nodeId, { directorBrief: brief })
+  renderDirectorBrief(brief)
+  assistApplyButton.hidden = true
+  assistApplyArmed = false
+  assistApply = null
+  setSlideEditorStatus('Plan applied — review the steps, then Save steps', 'ok')
+})
+
 assistButton.addEventListener('click', () =>
   void (async () => {
     const state = slideEditor
     if (!state || !desktopBridge?.isDesktop) return
+    if (!findTypedNode('slide', state.nodeId)?.attrs.structureApproved) {
+      setSlideEditorStatus(
+        'Approve the page structure first — the Approve page toggle in the toolbar above',
+        'error',
+      )
+      return
+    }
     const narration = slideNarration(state)
     if (!narration) {
       setSlideEditorStatus('Add an explanation to this block first — the plan follows it', 'error')
@@ -8078,6 +8341,9 @@ assistButton.addEventListener('click', () =>
       setSlideEditorStatus('No coding-agent CLI found (install kimi, claude or codex)', 'error')
       return
     }
+    assistApply = null
+    assistApplyArmed = false
+    assistApplyButton.hidden = true
     assistButton.classList.add('working')
     assistCancel.hidden = false
     assistLogElement.replaceChildren()

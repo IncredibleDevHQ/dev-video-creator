@@ -168,6 +168,13 @@ export const SlideBlock = Node.create({
       source: { default: '' },
       // [{ title, explanation, reveals: [groupId], verb }]
       steps: { default: [] },
+      // The user approved the base page structure; Plan motion (assist)
+      // refuses to run before this is set.
+      structureApproved: { default: false },
+      // Heuristic director's brief written when an assist plan is applied;
+      // replaced by stage-director harness runs once rate_layout /
+      // layout_track land as MCP tools.
+      directorBrief: { default: null },
     }
   },
 

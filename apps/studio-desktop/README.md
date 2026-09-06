@@ -25,6 +25,13 @@ adds the harness port (spec §3) and the studio MCP server (spec §4).
   real step-bar driving via the `/__eval` loopback test hook.
 - `node scripts/export-check.mjs` — §7 item 7: `/api/render` → ffprobe checks
   (`KEEP_EXPORT_MP4=1` keeps the file).
+- `node scripts/import-check.mjs` — SVG page import (real ppt-master example
+  pages) through `window.importSvgPages`.
+- `node scripts/approval-check.mjs` — Plan motion (assist) approval gate
+  (stub kimi on PATH; no agent spawned).
+- `node scripts/animate-check.mjs` — the money test: import → approve → real
+  Plan motion (assist) run → apply → save → step bar (`ANIMATE_TIMEOUT_MS`,
+  `KEEP_ANIMATE_DIR` optional).
 - Full §7 results: `TEST-REPORT.md`.
 
 ## Skills install (spec §5)

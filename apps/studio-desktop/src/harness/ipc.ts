@@ -1,6 +1,8 @@
 // Renderer-facing IPC for the harness port (see preload.ts for the typed
 // surface). Events are broadcast to the main window as `harness:event`.
 import { ipcMain, BrowserWindow } from 'electron'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { RunManager } from './run-manager'
 import type { HarnessAdapter } from './types'
 
@@ -58,4 +60,27 @@ export const registerHarnessIpc = (
   ipcMain.handle('harness:install-skills', (_event, projectDir: string) =>
     manager.installInto(projectDir),
   )
+
+  // Read a finished run's artefacts from its projectDir (nulls for missing).
+  ipcMain.handle('harness:artefacts', async (_event, runId: string) => {
+    const run = manager.list().find(candidate => candidate.id === runId)
+    if (!run) return { resolved: null, receipt: null, validation: null, brief: null }
+    const motionDir = join(run.projectDir, 'motion')
+    const readJson = async (name: string) => {
+      try {
+        return JSON.parse(await readFile(join(motionDir, name), 'utf8')) as unknown
+      } catch {
+        return null
+      }
+    }
+    const brief = await readFile(join(motionDir, 'brief.md'), 'utf8').catch(() => null)
+    const validation =
+      (await readJson('validate.final.json')) || (await readJson('validate.early.json'))
+    return {
+      resolved: await readJson('resolved.json'),
+      receipt: await readJson('receipt.json'),
+      validation,
+      brief,
+    }
+  })
 }
