@@ -138,18 +138,18 @@ export const slideDriverScript = (
   var offsets = ${JSON.stringify(offsets)};
   var stepSeconds = ${JSON.stringify(stepSeconds)};
   // Easing anchors chosen by behaviour: entering, settling, drawing.
+  // Cubic bezier easing solved by bisection: x(t) is monotonic for control
+  // points inside [0,1], so this converges exactly and never overshoots in t.
   var bezier = function (x1, y1, x2, y2) {
     var sample = function (t, a, b) { return ((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t; };
     return function (x) {
       if (x <= 0) return 0; if (x >= 1) return 1;
-      var t = x;
-      for (var i = 0; i < 8; i += 1) {
-        var estimate = sample(t, x1, x2) - x;
-        var slope = 3 * (1 - x1 * 3 + x2 * 3) * t * t + 2 * (3 * x1 - 6 * x2 + 3) * t + 3 * x1;
-        if (Math.abs(estimate) < 1e-4 || slope === 0) break;
-        t -= estimate / slope;
+      var lo = 0, hi = 1, t = x;
+      for (var i = 0; i < 24; i += 1) {
+        t = (lo + hi) / 2;
+        if (sample(t, x1, x2) < x) lo = t; else hi = t;
       }
-      return sample(Math.max(0, Math.min(1, t)), y1, y2);
+      return sample(t, y1, y2);
     };
   };
   var easeEnter = bezier(0.2, 0.75, 0.34, 0.94);
