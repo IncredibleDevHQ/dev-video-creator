@@ -43,6 +43,7 @@ type SmokeProbe = {
   projectCount: number | null
   hasEditor: boolean
   hasModelSettings: boolean
+  hasAssistButton: boolean
 }
 
 // The editor DOM checks mirror the reference shell's product smoke: the
@@ -61,6 +62,8 @@ const SMOKE_PROBE = `(async () => {
     projectCount: Array.isArray(list) ? list.length : null,
     hasEditor: !!document.querySelector('.ProseMirror, [contenteditable="true"]'),
     hasModelSettings: !!document.getElementById('open-model-settings'),
+    hasAssistButton: !!document.getElementById('se-plan-assist') &&
+      !(document.getElementById('se-assist-row') || { hidden: true }).hidden,
   }
 })()`
 
@@ -72,6 +75,7 @@ const smokeFailure = (probe: SmokeProbe | null): string => {
   if (probe.title !== 'Incredible Studio') return `unexpected title ${JSON.stringify(probe.title)}`
   if (!probe.hasEditor) return 'editor did not mount'
   if (!probe.hasModelSettings) return 'model settings entry missing'
+  if (!probe.hasAssistButton) return 'assist button missing or hidden in desktop mode'
   if (probe.projectCount === null) return 'notebook list unavailable'
   return ''
 }

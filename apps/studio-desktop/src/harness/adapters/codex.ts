@@ -14,6 +14,7 @@ import type {
   HarnessRun,
 } from '../types'
 import { probeVersion, spawnJsonLines } from './util'
+import { resolveSkillDir } from '../skills-install'
 
 const writeCodexHome = async (run: HarnessRun, context: HarnessContext) => {
   const home = join(run.projectDir, '.codex')
@@ -78,7 +79,7 @@ export const createCodexAdapter = (context: HarnessContext): HarnessAdapter => (
       args,
       cwd: run.projectDir,
       env: {
-        SKILL_DIR: join(context.skillsDir, run.skill),
+        SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill),
         CODEX_HOME: codexHome,
       },
       onLine: line => emitLine(line, onEvent, state),

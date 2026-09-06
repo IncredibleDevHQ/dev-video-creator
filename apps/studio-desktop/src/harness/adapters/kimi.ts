@@ -6,6 +6,7 @@
 // one pointing at the studio stdio bridge. Resume uses `kimi -r <sessionId>`
 // (the resume hint the CLI itself prints).
 import { mkdir, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type {
   HarnessAdapter,
@@ -14,6 +15,7 @@ import type {
   HarnessRun,
 } from '../types'
 import { probeVersion, spawnJsonLines } from './util'
+import { resolveSkillDir } from '../skills-install'
 
 const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
   const path = join(run.projectDir, '.mcp.json')
@@ -80,13 +82,19 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
   available: () => probeVersion('kimi'),
   async run(run, onEvent, signal) {
     await writeMcpConfig(run, context)
+    // Skills discovery reads the project's installed copy when present
+    // (--skills-dir names the directory that CONTAINS the skill folders).
+    const installedRoot = join(run.projectDir, '.claude', 'skills')
+    const skillsRoot = existsSync(join(installedRoot, run.skill))
+      ? installedRoot
+      : context.skillsDir
     const args = [
       '-p',
       String(run.inputs.task || ''),
       '--output-format',
       'stream-json',
       '--skills-dir',
-      context.skillsDir,
+      skillsRoot,
     ]
     if (run.resumeId) args.push('-r', run.resumeId)
     const state: { resumeId?: string } = {}
@@ -94,7 +102,7 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
       command: 'kimi',
       args,
       cwd: run.projectDir,
-      env: { SKILL_DIR: join(context.skillsDir, run.skill) },
+      env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill) },
       onLine: line => emitLine(line, onEvent, state),
       signal,
     })

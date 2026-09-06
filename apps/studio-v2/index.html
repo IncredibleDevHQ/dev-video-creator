@@ -468,6 +468,12 @@
               <button type="button" id="se-plan-narration" class="button" title="Derive the steps from this block’s explanation">Plan from narration</button>
               <button type="button" id="se-plan-apply" class="button primary" title="Rewrite the steps from your instruction">Apply</button>
             </div>
+            <div class="slide-editor-prompt-actions" id="se-assist-row" hidden>
+              <button type="button" id="se-plan-assist" class="button" title="Run motion-master Plan Motion — Default through an installed coding agent, with confirmation gates (desktop only)">Plan motion (assist)</button>
+              <select id="se-assist-adapter" class="button" hidden title="Coding agent to run the plan"></select>
+              <button type="button" id="se-assist-cancel" class="button" hidden>Cancel</button>
+            </div>
+            <div id="se-assist-log" class="slide-editor-assist-log" hidden></div>
           </div>
           <div class="slide-editor-side-head"><strong>Steps</strong><span id="se-step-count">0</span><button type="button" id="se-add-step" class="button">+ Step</button></div>
           <ol id="slide-editor-steps" class="slide-editor-steps"></ol>

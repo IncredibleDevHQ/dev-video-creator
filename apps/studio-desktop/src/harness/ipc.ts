@@ -53,4 +53,9 @@ export const registerHarnessIpc = (
     'harness:answer',
     (_event, id: string, answers: Record<string, unknown>) => manager.answer(id, answers),
   )
+
+  // On-demand skill install into a project directory (spec §5).
+  ipcMain.handle('harness:install-skills', (_event, projectDir: string) =>
+    manager.installInto(projectDir),
+  )
 }

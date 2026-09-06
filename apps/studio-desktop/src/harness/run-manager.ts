@@ -7,6 +7,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { installSkills, resolveSkillDir } from './skills-install'
 import type {
   GateRequest,
   HarnessAdapter,
@@ -72,6 +73,10 @@ export class RunManager {
     return () => this.listeners.delete(listener)
   }
 
+  installInto(projectDir: string) {
+    return installSkills(this.context.skillsDir, projectDir)
+  }
+
   private emit(runId: string, event: HarnessEvent) {
     for (const listener of this.listeners) listener(runId, event)
   }
@@ -111,7 +116,18 @@ export class RunManager {
     const id = `run-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`
     const projectDir =
       options.projectDir || join(this.projectsRoot, options.projectId || 'default')
-    const skillDir = join(this.context.skillsDir, options.skill)
+    // Install the vendored skills into the project first (spec §5): the
+    // adapter then reads SKILL.md from the project's .claude/skills copy.
+    try {
+      const install = await installSkills(this.context.skillsDir, projectDir)
+      if (install.installed.length) log(`skills installed: ${install.installed.join(', ')}`)
+      if (install.modifiedLocally.length) {
+        log(`skills modified locally (kept): ${install.modifiedLocally.join(', ')}`)
+      }
+    } catch (error) {
+      log('skill install failed:', error instanceof Error ? error.message : error)
+    }
+    const skillDir = resolveSkillDir(this.context.skillsDir, projectDir, options.skill)
     const inputs: Record<string, unknown> = {
       ...(options.inputs || {}),
       task: taskText(skillDir, options.route, projectDir),

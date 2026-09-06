@@ -17,6 +17,20 @@ adds the harness port (spec §3) and the studio MCP server (spec §4).
   a stub CLI on PATH (stream-json shapes, gate write, resume).
 - `node scripts/kimi-e2e.mjs` — real-Kimi gate round trip (Plan Motion —
   Default; `KIMI_E2E_TIMEOUT_MS`, `KEEP_KIMI_E2E_DIR` optional).
+- `node scripts/skills-install-check.mjs` — per-project skill install and
+  `skills.lock` behaviour (no Electron needed).
+
+## Skills install (spec §5)
+
+Every harness run first installs the vendored `skills/` into
+`<projectDir>/.claude/skills/*` and appends the `AGENTS.md` pointer (once;
+existing files are never clobbered). `<projectDir>/skills.lock` records
+{version, sha256, installedAt} per skill; re-installs happen only when the
+vendored hash differs, and a locally edited skill is kept and marked
+`modifiedLocally: true`. The run's `SKILL_DIR` resolves to the installed
+copy when present. Artefact JSON Schemas (Core §3.2/§13.1/§25.1/§28.9) live
+in `packages/markdown-composition/src/schemas/` with a `validateArtefact`
+helper; the MCP `validate` tool shape-checks `resolved` against them.
 
 ## Environment
 

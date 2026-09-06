@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { captureHiddenPage, runAtomizer } from './hidden-window'
+import { validateArtefact } from 'markdown-composition/src/schemas'
 import {
   MotionRules,
   buildReceipt,
@@ -277,6 +278,15 @@ const validateTool = async (args: Json) => {
   const stage = args.stage === 'early' ? 'early' : 'final'
   const rules = new MotionRules(geometry)
   const report = validateResolved(resolved, rules, { quick: Boolean(args.quick) })
+  // Shape-check against the §3.2 resolved-tier schema; shape errors join
+  // errors[] with class "schema" (spec §6).
+  const shape = validateArtefact('resolved', resolved)
+  for (const error of shape.errors) {
+    report.errors.push({
+      class: 'schema',
+      message: `${error.path}: ${error.message}`,
+    })
+  }
   const { motionDir } = await projectDirFor(args, args.resolved, args.geometry)
   const file = await writeJson(join(motionDir, `validate.${stage}.json`), { stage, ...report })
   return {

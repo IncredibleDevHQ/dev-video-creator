@@ -7883,6 +7883,117 @@ const planSlideSteps = async (mode: 'narration' | 'instruction') => {
 ;($('#se-plan-narration') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('narration'))
 ;($('#se-plan-apply') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('instruction'))
 
+// ——— Plan motion (assist) — desktop shell only (spec §5) ———
+// Runs motion-master Plan Motion — Default through an installed coding agent
+// with the native gate dialogs; *Plan from narration* above stays on the
+// gateway (Quick) and is untouched. Everything here is behind isDesktop.
+const desktopBridge = window.studioDesktop
+const assistRow = $('#se-assist-row') as HTMLElement
+const assistButton = $('#se-plan-assist') as HTMLButtonElement
+const assistAdapterSelect = $('#se-assist-adapter') as HTMLSelectElement
+const assistCancel = $('#se-assist-cancel') as HTMLButtonElement
+const assistLogElement = $('#se-assist-log') as HTMLElement
+let assistRunId: string | null = null
+
+const assistLog = (line: string, className = '') => {
+  assistLogElement.hidden = false
+  const entry = document.createElement('div')
+  if (className) entry.className = className
+  entry.textContent = line
+  assistLogElement.prepend(entry)
+  while (assistLogElement.children.length > 6) assistLogElement.lastElementChild?.remove()
+}
+
+if (desktopBridge?.isDesktop) {
+  assistRow.hidden = false
+  desktopBridge.harness.onEvent(({ runId, event }) => {
+    if (runId !== assistRunId) return
+    if (event.type === 'text' && event.text) assistLog(event.text.replace(/\s+/g, ' ').slice(0, 140))
+    if (event.type === 'tool') assistLog(`tool: ${event.tool}`)
+    if (event.type === 'file' && event.file) assistLog(`file: ${event.file.split('/').pop()}`)
+    if (event.type === 'gate') assistLog(`gate: ${event.gate?.stage || 'confirmation'} — answer in the dialog`, 'is-gate')
+    if (event.type === 'error') assistLog(`error: ${event.error}`, 'is-error')
+    if (event.type === 'done') {
+      assistCancel.hidden = true
+      assistButton.classList.remove('working')
+      const finishedRunId = assistRunId
+      assistRunId = null
+      void desktopBridge.harness.list().then(runs => {
+        const status = runs.find(run => run.id === finishedRunId)?.status
+        assistLog(`done: ${status} (exit ${event.exitCode})`)
+        if (status === 'done') {
+          // The artefacts live in the project dir's motion/; there is no
+          // resolved.json → block steps refresh path yet (manual for now).
+          setSlideEditorStatus('Plan motion finished — plan written to motion/ (resolved.json)', 'ok')
+        } else if (status === 'cancelled') {
+          setSlideEditorStatus('Plan motion cancelled')
+        } else {
+          setSlideEditorStatus('Plan motion failed — see the log', 'error')
+        }
+      })
+    }
+  })
+}
+
+assistButton.addEventListener('click', () =>
+  void (async () => {
+    const state = slideEditor
+    if (!state || !desktopBridge?.isDesktop) return
+    const narration = slideNarration(state)
+    if (!narration) {
+      setSlideEditorStatus('Add an explanation to this block first — the plan follows it', 'error')
+      return
+    }
+    const available = (await desktopBridge.harness.adapters()).filter(adapter => adapter.ok)
+    if (!available.length) {
+      setSlideEditorStatus('No coding-agent CLI found (install kimi, claude or codex)', 'error')
+      return
+    }
+    let adapter = available[0].id
+    if (available.length > 1) {
+      assistAdapterSelect.replaceChildren(
+        ...available.map(item => {
+          const option = document.createElement('option')
+          option.value = item.id
+          option.textContent = item.id
+          return option
+        }),
+      )
+      assistAdapterSelect.hidden = false
+      adapter = assistAdapterSelect.value || adapter
+    }
+    assistButton.classList.add('working')
+    assistCancel.hidden = false
+    assistLogElement.replaceChildren()
+    setSlideEditorStatus(`Plan motion via ${adapter} — answer the gates as they appear…`)
+    try {
+      const found = findTypedNode('slide', state.nodeId)
+      const run = await desktopBridge.harness.run({
+        adapter,
+        skill: 'motion-master',
+        route: 'Plan Motion — Default',
+        projectId: project.id,
+        inputs: {
+          projectId: project.id,
+          blockId: state.nodeId,
+          title: String(found?.attrs.title || 'Slide'),
+          narration,
+        },
+      })
+      assistRunId = run.id
+      assistLog(`run ${run.id} via ${run.adapter}`)
+    } catch (error) {
+      assistButton.classList.remove('working')
+      assistCancel.hidden = true
+      setSlideEditorStatus(error instanceof Error ? error.message : 'Could not start the run', 'error')
+    }
+  })(),
+)
+
+assistCancel.addEventListener('click', () => {
+  if (assistRunId && desktopBridge?.isDesktop) void desktopBridge.harness.cancel(assistRunId)
+})
+
 ;($('#se-order-arrows') as HTMLButtonElement).addEventListener('click', () => {
   if (slideEditor) applySlideDrafts(suggestSteps(slideEditor.units))
 })

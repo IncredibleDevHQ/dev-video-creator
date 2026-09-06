@@ -58,6 +58,8 @@ const bridge = {
     cancel: (id: string): Promise<boolean> => ipcRenderer.invoke('harness:cancel', id),
     answer: (id: string, answers: Record<string, unknown>): Promise<boolean> =>
       ipcRenderer.invoke('harness:answer', id, answers),
+    installSkills: (projectDir: string): Promise<unknown> =>
+      ipcRenderer.invoke('harness:install-skills', projectDir),
     onEvent: (listener: (payload: HarnessEventPayload) => void) => {
       const wrapped = (_event: unknown, payload: HarnessEventPayload) => listener(payload)
       ipcRenderer.on('harness:event', wrapped)

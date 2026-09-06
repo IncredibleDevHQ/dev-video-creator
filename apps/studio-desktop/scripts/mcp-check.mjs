@@ -208,6 +208,8 @@ try {
             actions: [
               { id: 'b1', op: 'emphasize', targets: ['u-nope', 'u-nada'], startMs: 0, durationMs: 320, ease: 'pop', persistence: 'state', implicit: false },
               { id: 'b2', op: 'dim', targets: ['bg'], startMs: 0, durationMs: 300, ease: 'exit', persistence: 'state', implicit: false },
+              // Missing the resolved-tier `ease` → schema-class error only.
+              { id: 'b3', op: 'reveal', targets: ['u-input'], startMs: 0, durationMs: 320, persistence: 'state', implicit: false },
             ],
             motionWindowMs: 620,
             holdMs: 600,
@@ -219,7 +221,7 @@ try {
       projectDir: workDir,
     })
     const classes = summary.errors.map(error => error.class).sort()
-    for (const expected of ['dim-on-chrome', 'duty-on-unentered', 'missing-target']) {
+    for (const expected of ['dim-on-chrome', 'duty-on-unentered', 'missing-target', 'schema']) {
       if (!classes.includes(expected)) throw new Error(`missing class ${expected} (got ${classes})`)
     }
     if (summary.gateSignal?.category !== 'missing-target') {

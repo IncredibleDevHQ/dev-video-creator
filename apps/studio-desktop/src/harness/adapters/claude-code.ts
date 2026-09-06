@@ -12,6 +12,7 @@ import type {
   HarnessRun,
 } from '../types'
 import { probeVersion, spawnJsonLines } from './util'
+import { resolveSkillDir } from '../skills-install'
 
 // Each run gets its own MCP config pointing at the app's stdio bridge.
 const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
@@ -91,7 +92,7 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       command: 'claude',
       args,
       cwd: run.projectDir,
-      env: { SKILL_DIR: join(context.skillsDir, run.skill) },
+      env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill) },
       onLine: line => emitLine(line, onEvent, state),
       signal,
     })
