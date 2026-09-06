@@ -1,0 +1,23 @@
+{
+	"schema_version": 1,
+	"encoding": "o200k_base",
+	"file_budgets": {
+		"SKILL.md": 1800,
+		"workflows/routing.md": 900,
+		"workflows/plan-motion.md": 2600,
+		"workflows/profiles/quick-plan.md": 900,
+		"workflows/reconcile-take.md": 900,
+		"workflows/governance/failure-recovery.md": 800,
+		"references/levels.md": 14000,
+		"references/core.md": 6000,
+		"references/data-model.md": 9000,
+		"references/driver.md": 6000,
+		"references/tokens.md": 3500,
+		"references/planner.md": 3000,
+		"references/build-plan.md": 2000,
+		"templates/motion_brief_reference.md": 700,
+		"templates/motion_lock_reference.md": 500,
+		"scripts/README.md": 1200
+	},
+	"max_tokens": 60000
+}

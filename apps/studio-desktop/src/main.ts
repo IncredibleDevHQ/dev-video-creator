@@ -1,10 +1,23 @@
 // Incredible Studio desktop shell (spec §1): hosts the studio-v2 worker
 // in-process, loads it from its http://127.0.0.1 origin (never file://), and
 // grants the media permissions the recording blocks need. `--smoke` launches,
-// verifies the app end to end and quits with exit code 0/1.
+// verifies the app end to end and quits with exit code 0/1. The same origin
+// hosts the MCP endpoint (spec §4) and the harness port runs from here
+// (spec §3).
 import { app, BrowserWindow, desktopCapturer } from 'electron'
 import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { startWorker, type WorkerHandle } from './worker-host'
+import { handleMcpMessage } from './mcp/server'
+import { closeHiddenWindow } from './mcp/hidden-window'
+import { RunManager } from './harness/run-manager'
+import { registerHarnessIpc } from './harness/ipc'
+import { showGateDialog } from './harness/gate-dialog'
+import { runHarnessE2E } from './harness/e2e'
+import { createClaudeCodeAdapter } from './harness/adapters/claude-code'
+import { createKimiAdapter } from './harness/adapters/kimi'
+import { createCodexAdapter } from './harness/adapters/codex'
+import type { HarnessContext } from './harness/types'
 
 const SMOKE = process.argv.includes('--smoke')
 // Used by scripts/test.mjs: keep serving after the smoke probe so the product
@@ -126,8 +139,45 @@ const createWindow = (origin: string) => {
 }
 
 const quit = async (code: number): Promise<void> => {
+  closeHiddenWindow()
   await stopWorker()
   app.exit(code)
+}
+
+// MCP over HTTP on the app's own origin (POST /mcp). The harness CLIs reach
+// it through the stdio shim; the shim never talks to any other process.
+const mcpPreHandler = async (
+  request: import('node:http').IncomingMessage,
+  response: import('node:http').ServerResponse,
+): Promise<boolean> => {
+  const url = new URL(request.url || '/', `http://${request.headers.host}`)
+  if (url.pathname !== '/mcp' || request.method !== 'POST') return false
+  const chunks: Buffer[] = []
+  for await (const chunk of request) chunks.push(chunk as Buffer)
+  const origin = `http://${request.headers.host}`
+  const write = (status: number, value: unknown) => {
+    response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
+    response.end(JSON.stringify(value))
+  }
+  let message: unknown
+  try {
+    message = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    write(400, { error: 'invalid JSON' })
+    return true
+  }
+  if (Array.isArray(message)) {
+    const results = []
+    for (const entry of message) {
+      const result = await handleMcpMessage(entry, { origin })
+      if (result) results.push(result)
+    }
+    write(200, results)
+    return true
+  }
+  const result = await handleMcpMessage(message as Record<string, unknown>, { origin })
+  write(200, result || {})
+  return true
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -149,7 +199,7 @@ if (!app.requestSingleInstanceLock()) {
 
   void app.whenReady().then(async () => {
     try {
-      worker = await startWorker()
+      worker = await startWorker({ preHandler: mcpPreHandler })
     } catch (error) {
       log('worker failed to start:', error instanceof Error ? error.message : error)
       return quit(2)
@@ -157,6 +207,33 @@ if (!app.requestSingleInstanceLock()) {
     const { origin } = worker
     log('serving studio from', origin)
     console.log(`STUDIO_ORIGIN ${origin}`)
+
+    // Harness port + MCP tool context share the app's origin.
+    const harnessContext: HarnessContext = {
+      origin,
+      mcpShimPath: fileURLToPath(new URL('./mcp-stdio.mjs', import.meta.url)),
+      skillsDir: fileURLToPath(new URL('../skills', import.meta.url)),
+    }
+    const projectsRoot = join(worker.dataDir, 'projects')
+    const runManager = new RunManager(harnessContext, projectsRoot, (runId, gate) =>
+      showGateDialog(mainWindow, gate),
+    )
+    const adapters = [
+      createClaudeCodeAdapter(harnessContext),
+      createCodexAdapter(harnessContext),
+      createKimiAdapter(harnessContext),
+    ]
+    registerHarnessIpc(runManager, adapters, () => mainWindow)
+
+    // Headless harness protocol test (STUDIO_HARNESS_E2E=<config.json>).
+    if (process.env.STUDIO_HARNESS_E2E) {
+      const code = await runHarnessE2E(harnessContext, projectsRoot).catch(error => {
+        console.log(`HARNESS E2E FAIL: ${error instanceof Error ? error.message : error}`)
+        return 1
+      })
+      return quit(code)
+    }
+
     const win = createWindow(origin)
     try {
       await win.loadURL(`${origin}/`)

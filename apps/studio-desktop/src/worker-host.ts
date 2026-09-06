@@ -11,6 +11,7 @@ import { app } from 'electron'
 export type WorkerHandle = {
   origin: string
   port: number
+  dataDir: string
   stop: () => Promise<void>
 }
 
@@ -22,6 +23,13 @@ type StudioWorkerModule = {
     distDir?: string
   }) => (request: IncomingMessage, response: ServerResponse) => Promise<void>
 }
+
+// Tried before the studio handler; return true when the request was handled
+// (used for the MCP endpoint, which shares the app's origin).
+export type PreHandler = (
+  request: IncomingMessage,
+  response: ServerResponse,
+) => Promise<boolean>
 
 const log = (...args: unknown[]) => console.log('[worker-host]', ...args)
 
@@ -50,7 +58,9 @@ const resolveDistDir = () =>
   process.env.STUDIO_DIST_DIR ||
   fileURLToPath(new URL('../../studio-v2/dist/', import.meta.url))
 
-export const startWorker = async (): Promise<WorkerHandle> => {
+export const startWorker = async (
+  options: { preHandler?: PreHandler } = {},
+): Promise<WorkerHandle> => {
   const port = await pickFreePort()
   const dataDir =
     process.env.STUDIO_DATA_DIR || join(app.getPath('userData'), 'studio')
@@ -75,7 +85,10 @@ export const startWorker = async (): Promise<WorkerHandle> => {
     serveDist: true,
     distDir,
   })
-  const server = createServer(handler)
+  const server = createServer(async (request, response) => {
+    if (options.preHandler && (await options.preHandler(request, response))) return
+    await handler(request, response)
+  })
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(port, '127.0.0.1', () => resolve())
@@ -85,6 +98,7 @@ export const startWorker = async (): Promise<WorkerHandle> => {
   return {
     origin,
     port,
+    dataDir,
     // closeAllConnections first so keep-alive sockets can't hold the port;
     // quit must leave no orphan listener behind.
     stop: () =>

@@ -52,4 +52,24 @@ await build({
   external: ['electron', 'puppeteer', 'gsap', 'pg', 'minio', '@hyperframes/*'],
 })
 
-console.log('built dist-electron/main.js, preload.cjs, worker.mjs')
+// Atomizer IIFE for the hidden geometry window (runs in the page context).
+await build({
+  bundle: true,
+  platform: 'browser',
+  target: 'chrome128',
+  logLevel: 'info',
+  entryPoints: [`${appDir}src/mcp/atomizer-entry.ts`],
+  outfile: `${outdir}atomizer.js`,
+  format: 'iife',
+})
+
+// MCP stdio↔HTTP bridge — spawned by harness CLIs with plain node, so no
+// externals beyond node builtins.
+await build({
+  ...common,
+  entryPoints: [`${appDir}src/mcp/stdio-shim.ts`],
+  outfile: `${outdir}mcp-stdio.mjs`,
+  format: 'esm',
+})
+
+console.log('built dist-electron/main.js, preload.cjs, worker.mjs, atomizer.js, mcp-stdio.mjs')
