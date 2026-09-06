@@ -1,0 +1,23 @@
+{
+	"name": "studio-desktop",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "dist-electron/main.js",
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"build": "node build.mjs",
+		"start": "electron .",
+		"smoke": "electron . --smoke",
+		"test": "node build.mjs && node scripts/test.mjs",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"electron": "44.2.0",
+		"esbuild": "^0.28.2",
+		"typescript": "^5.9.0"
+	}
+}

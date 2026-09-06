@@ -54,3 +54,6 @@ yarn-error.log*
 **/*/typings/
 
 **/*/env.server.js
+
+# desktop build output
+dist-electron/
