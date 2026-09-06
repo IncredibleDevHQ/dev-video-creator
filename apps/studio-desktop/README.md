@@ -19,6 +19,13 @@ adds the harness port (spec §3) and the studio MCP server (spec §4).
   Default; `KIMI_E2E_TIMEOUT_MS`, `KEEP_KIMI_E2E_DIR` optional).
 - `node scripts/skills-install-check.mjs` — per-project skill install and
   `skills.lock` behaviour (no Electron needed).
+- `node scripts/local-store-check.mjs` — §7 item 4: recording flow with real
+  bytes + app restart against a temp data dir (run with docker stopped).
+- `node scripts/quick-plan-check.mjs` — §7 item 5: Quick plan + MCP validate +
+  real step-bar driving via the `/__eval` loopback test hook.
+- `node scripts/export-check.mjs` — §7 item 7: `/api/render` → ffprobe checks
+  (`KEEP_EXPORT_MP4=1` keeps the file).
+- Full §7 results: `TEST-REPORT.md`.
 
 ## Skills install (spec §5)
 

@@ -150,11 +150,35 @@ const quit = async (code: number): Promise<void> => {
 
 // MCP over HTTP on the app's own origin (POST /mcp). The harness CLIs reach
 // it through the stdio shim; the shim never talks to any other process.
+// POST /__eval {js} is a loopback TEST HOOK (used by scripts/*-check.mjs):
+// evaluates JS in the main window and returns the result. Only registered
+// when STUDIO_ENABLE_TEST_HOOKS=1 — never enabled in a normal launch.
 const mcpPreHandler = async (
   request: import('node:http').IncomingMessage,
   response: import('node:http').ServerResponse,
 ): Promise<boolean> => {
   const url = new URL(request.url || '/', `http://${request.headers.host}`)
+  if (
+    url.pathname === '/__eval' &&
+    request.method === 'POST' &&
+    process.env.STUDIO_ENABLE_TEST_HOOKS === '1'
+  ) {
+    const chunks: Buffer[] = []
+    for await (const chunk of request) chunks.push(chunk as Buffer)
+    const write = (status: number, value: unknown) => {
+      response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
+      response.end(JSON.stringify(value))
+    }
+    try {
+      const { js } = JSON.parse(Buffer.concat(chunks).toString('utf8')) as { js: string }
+      if (!mainWindow || mainWindow.isDestroyed()) throw new Error('no main window')
+      const result = await mainWindow.webContents.executeJavaScript(String(js))
+      write(200, { ok: true, result })
+    } catch (error) {
+      write(200, { ok: false, error: error instanceof Error ? error.message : String(error) })
+    }
+    return true
+  }
   if (url.pathname !== '/mcp' || request.method !== 'POST') return false
   const chunks: Buffer[] = []
   for await (const chunk of request) chunks.push(chunk as Buffer)

@@ -13,7 +13,7 @@ Select exactly one route, then activate only its profile and the references its 
 | Trigger | Load |
 |---|---|
 | any page | `references/levels.md`, `references/core.md`, `references/tokens.md` |
-| the page has connectors or containment | `references/relations.md` (in `core.md` §2.2 trace/connect and `driver.md` §4.3) |
+| the page has connectors or containment | `references/core.md` §2.2 (trace/connect) and `references/driver.md` §4.3 |
 | a beat carries `camera` or the page is a diagram taller than the frame | `references/driver.md` §4.4 |
 | any `count`, `swap` or `morph` | `references/driver.md` §4.5, `core.md` §2.2 |
 | a presenter is on camera | the `stage-director` skill's references `stage-families.md`, `overlays.md`, `reframes.md`, `speech-timing.md` |
