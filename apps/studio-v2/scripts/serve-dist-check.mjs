@@ -16,7 +16,7 @@ const fail = message => {
 
 const worker = spawn(
   process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['tsx', 'server/index.ts', '--serve-dist'],
+  ['tsx', 'server/bin.ts', '--serve-dist'],
   {
     env: {
       ...process.env,

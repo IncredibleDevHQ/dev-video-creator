@@ -7,10 +7,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "concurrently -k -n studio,worker -c cyan,magenta \"vite --host 127.0.0.1 --port 4173\" \"tsx watch server/index.ts\"",
+    "dev": "concurrently -k -n studio,worker -c cyan,magenta \"vite --host 127.0.0.1 --port 4173\" \"tsx watch server/bin.ts\"",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
-    "start": "tsx server/index.ts --serve-dist",
+    "start": "tsx server/bin.ts --serve-dist",
     "test": "vitest run --passWithNoTests",
     "test:serve-dist": "node scripts/serve-dist-check.mjs"
   },

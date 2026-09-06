@@ -132,7 +132,7 @@ export type RecordedBlockV1 = {
   videoUrl: string
   durationMs: number
   recordedAt: string
-  storage: 'minio' | 'supabase'
+  storage: 'minio' | 'supabase' | 'local'
 }
 
 export type BrandTemplateV1 = {

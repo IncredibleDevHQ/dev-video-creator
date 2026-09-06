@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { type IncomingMessage, type ServerResponse } from 'node:http'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   access,
@@ -54,15 +54,6 @@ import {
 
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
-const SERVE_DIST = process.argv.includes('--serve-dist')
-const dataDirectory = fileURLToPath(
-  new URL('../../../.studio-data/', import.meta.url),
-)
-const assetsDirectory = join(dataDirectory, 'assets')
-const outputsDirectory = join(dataDirectory, 'outputs')
-const jobsDirectory = join(dataDirectory, 'jobs')
-const previewsDirectory = join(dataDirectory, 'previews')
-const distDirectory = fileURLToPath(new URL('../dist/', import.meta.url))
 const require = createRequire(import.meta.url)
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
@@ -95,12 +86,22 @@ const openAIKey =
 // The env key seeds the gateway until the user saves a provider in Models.
 configureModelGateway({ envKey: openAIKey })
 
-await Promise.all([
-  mkdir(assetsDirectory, { recursive: true }),
-  mkdir(outputsDirectory, { recursive: true }),
-  mkdir(jobsDirectory, { recursive: true }),
-  mkdir(previewsDirectory, { recursive: true }),
-])
+export type StudioHandlerOptions = {
+  dataDir?: string
+  persistence?: 'local' | 'postgres'
+  serveDist?: boolean
+  distDir?: string
+}
+
+// Option-dependent state the request handlers close over.
+type StudioWorkerContext = {
+  assetsDirectory: string
+  outputsDirectory: string
+  jobsDirectory: string
+  previewsDirectory: string
+  serveDist: boolean
+  distDirectory: string
+}
 
 const json = (
   response: ServerResponse,
@@ -329,6 +330,7 @@ const generateFishVoice = async (
 }
 
 const handleVoice = async (
+  context: StudioWorkerContext,
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
@@ -346,7 +348,7 @@ const handleVoice = async (
   if (text.length > 5_000) throw new Error('Voice script is limited to 5,000 characters')
 
   const id = randomUUID()
-  const outputPath = join(assetsDirectory, `${id}.mp3`)
+  const outputPath = join(context.assetsDirectory, `${id}.mp3`)
   const useFish = Boolean(body.referenceId && process.env.FISH_AUDIO_API_KEY)
   if (useFish) {
     await generateFishVoice(text, body.referenceId as string, outputPath)
@@ -1520,18 +1522,19 @@ const handleAssetUpload = async (
 }
 
 const handleDirectedRecording = async (
+  context: StudioWorkerContext,
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
   const body = await readBody(request, 600 * 1024 * 1024)
   if (!body.length) throw new Error('Recorded canvas take is empty')
   const id = randomUUID()
-  const jobDirectory = join(jobsDirectory, `recording-${id}`)
+  const jobDirectory = join(context.jobsDirectory, `recording-${id}`)
   const inputExtension = extensionForContentType(
     String(request.headers['content-type'] || 'video/webm'),
   )
   const inputPath = join(jobDirectory, `take${inputExtension}`)
-  const outputPath = join(outputsDirectory, `${id}.mp4`)
+  const outputPath = join(context.outputsDirectory, `${id}.mp4`)
   await mkdir(jobDirectory, { recursive: true })
   await writeFile(inputPath, body)
   try {
@@ -1625,6 +1628,7 @@ const handleCommitDirectedRecording = async (
 }
 
 const handlePreview = async (
+  context: StudioWorkerContext,
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
@@ -1649,7 +1653,7 @@ const handlePreview = async (
     .update(composition.html)
     .digest('hex')
     .slice(0, 20)
-  await writeFile(join(previewsDirectory, `${id}.html`), composition.html, 'utf8')
+  await writeFile(join(context.previewsDirectory, `${id}.html`), composition.html, 'utf8')
   json(response, 200, {
     url: `/previews/${id}.html`,
     durationSeconds: composition.durationSeconds,
@@ -1657,6 +1661,7 @@ const handlePreview = async (
 }
 
 const handleRender = async (
+  context: StudioWorkerContext,
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
@@ -1700,7 +1705,7 @@ const handleRender = async (
       if (!assetName || assetName !== basename(assetName)) return value
       const { name, transcode } = stagedAssetName(assetName, assetName)
       stagedRenderAssets.set(name, {
-        localPath: join(assetsDirectory, assetName),
+        localPath: join(context.assetsDirectory, assetName),
         transcode,
       })
       return `media/${name}`
@@ -1738,10 +1743,10 @@ const handleRender = async (
   }
 
   const id = randomUUID()
-  const jobDirectory = join(jobsDirectory, id)
+  const jobDirectory = join(context.jobsDirectory, id)
   const runtimeDirectory = join(jobDirectory, 'runtime')
   const inputPath = join(jobDirectory, 'index.html')
-  const outputPath = join(outputsDirectory, `${id}.mp4`)
+  const outputPath = join(context.outputsDirectory, `${id}.mp4`)
   await mkdir(jobDirectory, { recursive: true })
   await mkdir(runtimeDirectory, { recursive: true })
   if (stagedRenderAssets.size) {
@@ -1839,12 +1844,13 @@ const safeStaticPath = (root: string, pathname: string) => {
 }
 
 const handleStaticApp = async (
+  context: StudioWorkerContext,
   pathname: string,
   response: ServerResponse,
 ) => {
-  if (!SERVE_DIST) return false
+  if (!context.serveDist) return false
   const requestedPath = pathname === '/' ? '/index.html' : pathname
-  const filePath = safeStaticPath(distDirectory, requestedPath)
+  const filePath = safeStaticPath(context.distDirectory, requestedPath)
   if (filePath) {
     try {
       const metadata = await stat(filePath)
@@ -1856,11 +1862,34 @@ const handleStaticApp = async (
       // SPA fallback below.
     }
   }
-  await serveFile(response, join(distDirectory, 'index.html'))
+  await serveFile(response, join(context.distDirectory, 'index.html'))
   return true
 }
 
-const server = createServer(async (request, response) => {
+export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
+  if (options.persistence) process.env.STUDIO_PERSISTENCE = options.persistence
+  if (options.dataDir) process.env.STUDIO_DATA_DIR = options.dataDir
+  const dataDirectory =
+    options.dataDir ||
+    fileURLToPath(new URL('../../../.studio-data/', import.meta.url))
+  const context: StudioWorkerContext = {
+    assetsDirectory: join(dataDirectory, 'assets'),
+    outputsDirectory: join(dataDirectory, 'outputs'),
+    jobsDirectory: join(dataDirectory, 'jobs'),
+    previewsDirectory: join(dataDirectory, 'previews'),
+    serveDist: options.serveDist ?? process.argv.includes('--serve-dist'),
+    distDirectory:
+      options.distDir || fileURLToPath(new URL('../dist/', import.meta.url)),
+  }
+  const directoriesReady = Promise.all([
+    mkdir(context.assetsDirectory, { recursive: true }),
+    mkdir(context.outputsDirectory, { recursive: true }),
+    mkdir(context.jobsDirectory, { recursive: true }),
+    mkdir(context.previewsDirectory, { recursive: true }),
+  ])
+
+  return async (request: IncomingMessage, response: ServerResponse) => {
+  await directoriesReady
   setCors(request, response)
   if (request.method === 'OPTIONS') {
     response.writeHead(204)
@@ -1882,7 +1911,7 @@ const server = createServer(async (request, response) => {
         systemVoice:
           process.platform === 'darwin' && (await commandExists('/usr/bin/say')),
         fishAudio: Boolean(process.env.FISH_AUDIO_API_KEY),
-        themeAI: await hasModelAccess(),
+        themeAI: await hasModelAccess().catch(() => false),
         persistence,
       })
       return
@@ -1949,7 +1978,7 @@ const server = createServer(async (request, response) => {
       request.method === 'POST' &&
       url.pathname === '/api/recordings/finalize'
     ) {
-      await handleDirectedRecording(request, response)
+      await handleDirectedRecording(context, request, response)
       return
     }
     if (
@@ -1960,11 +1989,11 @@ const server = createServer(async (request, response) => {
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/preview') {
-      await handlePreview(request, response)
+      await handlePreview(context, request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/voice') {
-      await handleVoice(request, response)
+      await handleVoice(context, request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/explainer/abstract') {
@@ -2006,14 +2035,14 @@ const server = createServer(async (request, response) => {
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/render') {
-      await handleRender(request, response)
+      await handleRender(context, request, response)
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/assets/')) {
       // Media is drawn onto canvases for junction thumbnails; without CORS
       // the capture canvas would be tainted.
       response.setHeader('access-control-allow-origin', '*')
-      const filePath = safeStaticPath(assetsDirectory, url.pathname.slice(7))
+      const filePath = safeStaticPath(context.assetsDirectory, url.pathname.slice(7))
       if (!filePath) throw new Error('Invalid asset path')
       await serveFile(response, filePath)
       return
@@ -2050,27 +2079,23 @@ const server = createServer(async (request, response) => {
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/outputs/')) {
-      const filePath = safeStaticPath(outputsDirectory, url.pathname.slice(8))
+      const filePath = safeStaticPath(context.outputsDirectory, url.pathname.slice(8))
       if (!filePath) throw new Error('Invalid output path')
       await serveFile(response, filePath)
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/previews/')) {
-      const filePath = safeStaticPath(previewsDirectory, url.pathname.slice(9))
+      const filePath = safeStaticPath(context.previewsDirectory, url.pathname.slice(9))
       if (!filePath) throw new Error('Invalid preview path')
       await serveFile(response, filePath)
       return
     }
-    if (await handleStaticApp(url.pathname, response)) return
+    if (await handleStaticApp(context, url.pathname, response)) return
     json(response, 404, { error: 'Not found' })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected worker error'
     console.error(error)
     json(response, message.includes('too large') ? 413 : 500, { error: message })
   }
-})
-
-server.listen(PORT, HOST, () => {
-  console.log(`Incredible render worker listening on http://${HOST}:${PORT}`)
-  if (SERVE_DIST) console.log('Serving the built studio from the same origin')
-})
+  }
+}
