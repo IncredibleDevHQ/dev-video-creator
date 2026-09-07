@@ -1,5 +1,8 @@
 # Incredible Studio — test report (implementation-spec §7)
 
+Update 2026-09-07 (script-first iteration): `claude-code` adapter now discovers the desktop-app bundle (`~/Library/Application Support/Claude/claude-code/<v>/claude.app/Contents/MacOS/claude`) and passes `--verbose`; smoke shows `Agent · Claude Code · 2 online`. Re-run: markdown-composition 80/80, studio-v2 22/22 (script planner + director), typecheck ✓, `yarn studio:build` ✓, smoke PASS (`STUDIO_ALLOW_MULTI_INSTANCE=1` while the app is open), `harness-e2e.mjs` PASS for claude-code (stub pinned via `STUDIO_CLAUDE_BIN`) and codex.
+
+
 Date: 2026-09-06 · branch `feat/hyperframes-markdown-mvp` · macOS arm64, Node 26.4.0 host, Electron 44.2.0, ffmpeg 8.1.2, kimi CLI 0.41.0 (`~/.kimi-code/bin/kimi`). `claude` / `codex` CLIs are NOT installed on this machine.
 
 Every item was run fresh on the current tree. New check scripts live in `apps/studio-desktop/scripts/` (`local-store-check.mjs`, `quick-plan-check.mjs`, `export-check.mjs`, plus the existing `mcp-check.mjs`, `harness-e2e.mjs`, `kimi-e2e.mjs`, `skills-install-check.mjs`).

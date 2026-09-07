@@ -126,6 +126,9 @@ const child = spawn(electronBinary, ['.'], {
   env: {
     ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1',
     PATH: `${binDir}:${process.env.PATH}`,
+    // The claude adapter prefers known install paths (and the desktop app's
+    // bundled binary) over PATH — pin it to the stub for this test.
+    ...(ADAPTER === 'codex' ? {} : { STUDIO_CLAUDE_BIN: stubPath }),
     STUDIO_HARNESS_E2E: configPath,
     STUDIO_GATE_AUTO_ANSWER: JSON.stringify({
       explain_move: 'name the parts in order',

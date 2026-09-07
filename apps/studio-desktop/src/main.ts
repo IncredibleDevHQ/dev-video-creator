@@ -7,6 +7,7 @@
 import { app, BrowserWindow, desktopCapturer } from 'electron'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { startWorker, type WorkerHandle } from './worker-host'
 import { handleMcpMessage } from './mcp/server'
 import { closeHiddenWindow } from './mcp/hidden-window'
@@ -18,6 +19,25 @@ import { createClaudeCodeAdapter } from './harness/adapters/claude-code'
 import { createKimiAdapter } from './harness/adapters/kimi'
 import { createCodexAdapter } from './harness/adapters/codex'
 import type { HarnessContext } from './harness/types'
+
+// A Finder-launched Electron inherits a minimal PATH (no ~/.local/bin, no
+// Homebrew on some setups), so agent CLIs installed from a terminal are
+// invisible. Merge the login shell's PATH once before the adapters probe.
+const mergeLoginShellPath = () => {
+  if (process.platform === 'win32') return
+  const shell = process.env.SHELL || '/bin/zsh'
+  try {
+    const output = execFileSync(shell, ['-lic', 'echo -n "$PATH"'], {
+      encoding: 'utf8',
+      timeout: 4_000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+    const merged = [...new Set([...(output || '').split(':'), ...(process.env.PATH || '').split(':')].filter(Boolean))]
+    process.env.PATH = merged.join(':')
+  } catch {
+    // Keep whatever PATH we have.
+  }
+}
 
 const SMOKE = process.argv.includes('--smoke')
 // Used by scripts/test.mjs: keep serving after the smoke probe so the product
@@ -262,6 +282,7 @@ if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()
     const runManager = new RunManager(harnessContext, projectsRoot, (runId, gate) =>
       showGateDialog(mainWindow, gate),
     )
+    mergeLoginShellPath()
     const adapters = [
       createClaudeCodeAdapter(harnessContext),
       createCodexAdapter(harnessContext),
