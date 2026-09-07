@@ -8171,6 +8171,8 @@ type SlideEditorState = {
   sourceText: string
   // Window cards whose parts drawer is open (kept across re-renders).
   openDrawers: Set<number>
+  // Unsaved changes since the studio opened or last saved.
+  dirty: boolean
 }
 let slideEditor: SlideEditorState | null = null
 const slideEditorDialog = $('#slide-editor-dialog') as HTMLDialogElement
@@ -8808,7 +8810,16 @@ const renderWindowCards = () => {
 }
 
 // ——— plan ———
-const replan = (options: { quiet?: boolean; rerender?: boolean } = {}) => {
+const saveButton = $('#se-save') as HTMLButtonElement
+const markDirty = (dirty: boolean) => {
+  const state = slideEditor
+  if (!state) return
+  state.dirty = dirty
+  saveButton.textContent = dirty ? 'Save scene •' : 'Save scene'
+  saveButton.title = dirty ? 'Unsaved changes' : ''
+}
+
+const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolean } = {}) => {
   const state = slideEditor
   if (!state || !state.windows.length) return false
   const result = planFromWindows(state.windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
@@ -8819,6 +8830,7 @@ const replan = (options: { quiet?: boolean; rerender?: boolean } = {}) => {
   state.current = Math.min(state.current, state.windows.length - 1)
   state.scriptApproved = true
   state.breakdownApproved = true
+  if (!options.initial) markDirty(true)
   const found = findSlideLikeNode(state.nodeId)
   state.director = direct({
     title: String(found?.attrs.title || 'Scene'),
@@ -8910,6 +8922,7 @@ composeButton.addEventListener('click', () => {
 scriptInput.addEventListener('input', () => {
   renderEstimate()
   renderStateChips()
+  markDirty(true)
 })
 
 // ——— the writer ———
@@ -9407,6 +9420,7 @@ const openSlideEditor = (nodeId: string) => {
     previewPlan: null,
     sourceText: '',
     openDrawers: new Set(),
+    dirty: false,
   }
   const state = slideEditor
   state.windows = sanitizeWindows(found.attrs.windows, state)
@@ -9435,7 +9449,7 @@ const openSlideEditor = (nodeId: string) => {
   if (state.windows.length) {
     // The dialogue exists as windows: the motion follows it (re-planned if
     // the saved plan is missing).
-    if (!state.motion || !dialogueInSync(state)) replan({ quiet: true })
+    if (!state.motion || !dialogueInSync(state)) replan({ quiet: true, initial: true })
     else {
       renderWindowCards()
       renderSlideEditorPreview()
@@ -9470,8 +9484,24 @@ const openSlideEditor = (nodeId: string) => {
     setSlideEditorStatus(state.script ? `${parts} parts on the page — use this dialogue, or ask the writer to rewrite it` : `${parts} parts on the page — write the dialogue, or ask the writer`)
   }
   hideWriting()
+  markDirty(false)
   slideEditorDialog.showModal()
 }
+
+// Closing with unsaved changes asks first; Escape behaves like the × button.
+const closeSceneStudio = () => {
+  const state = slideEditor
+  if (state?.dirty && !window.confirm('Close without saving? The dialogue and motion changes in this scene will be lost.')) return false
+  stopSlidePlayback()
+  if (writing) writing.controller.abort()
+  slideEditor = null
+  slideEditorDialog.close()
+  return true
+}
+slideEditorDialog.addEventListener('cancel', event => {
+  event.preventDefault()
+  closeSceneStudio()
+})
 // Dev hook: inspect the atomised units and inferred arrow graph in the console.
 ;(window as unknown as { __slideEditor?: unknown }).__slideEditor = {
   state: () => slideEditor,
@@ -10026,9 +10056,7 @@ assistCancel.addEventListener('click', () => {
   renderSlideEditorPreview()
 })
 ;($('#close-slide-editor') as HTMLButtonElement).addEventListener('click', () => {
-  stopSlidePlayback()
-  slideEditor = null
-  slideEditorDialog.close()
+  closeSceneStudio()
 })
 ;($('#se-save') as HTMLButtonElement).addEventListener('click', () => {
   const state = slideEditor

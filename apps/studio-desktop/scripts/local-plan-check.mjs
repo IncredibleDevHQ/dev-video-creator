@@ -101,8 +101,8 @@ try {
     await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
     await waitFor(`!!document.getElementById('${BLOCK_ID}')`)
     const caption = await evalInWindow(`document.getElementById('${BLOCK_ID}').querySelector('figcaption').textContent`)
-    if (!caption.includes('not animated')) throw new Error(caption)
-    return `scene card shows "not animated yet" (${steps.length} beats)`
+    if (!/no dialogue|not planned|not in windows|drafted/.test(caption)) throw new Error(caption)
+    return `scene card shows its dialogue state "${caption.split(' · ')[0]}" (${steps.length} beats)`
   })
   await step('Animate (local) assigns real unit reveals', async () => {
     await evalInWindow(`document.querySelector('#${BLOCK_ID} [data-slide-action="edit"]').click()`)

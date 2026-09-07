@@ -32,7 +32,9 @@ const mergeLoginShellPath = () => {
       timeout: 4_000,
       stdio: ['ignore', 'pipe', 'ignore'],
     })
-    const merged = [...new Set([...(output || '').split(':'), ...(process.env.PATH || '').split(':')].filter(Boolean))]
+    // The process PATH keeps precedence (a test stub placed first must win);
+    // the login shell's entries fill in whatever is missing after it.
+    const merged = [...new Set([...(process.env.PATH || '').split(':'), ...(output || '').split(':')].filter(Boolean))]
     process.env.PATH = merged.join(':')
   } catch {
     // Keep whatever PATH we have.
