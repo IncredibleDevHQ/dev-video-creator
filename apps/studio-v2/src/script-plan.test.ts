@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { matchScore, parseScript, planFromScript, scriptFromSteps, tokenSpread, tokens } from './script-plan'
+import { estimateSeconds, matchScore, parseScript, planFromScript, planFromWindows, scriptFromSteps, splitWindows, tokenSpread, tokens } from './script-plan'
 import type { SlideUnit } from './slide-atoms'
 
 const unit = (id: string, kind: SlideUnit['kind'], label: string, bbox: [number, number, number, number], extra: Partial<SlideUnit> = {}): SlideUnit => ({
@@ -132,5 +132,52 @@ That is the whole machine.`
 describe('scriptFromSteps', () => {
   it('turns beats back into a script', () => {
     expect(scriptFromSteps([{ title: 'Why', explanation: 'Because it works.' }, { title: 'It works', explanation: 'It works.' }])).toBe('Why:\nBecause it works.\n\nIt works.')
+  })
+})
+
+describe('splitWindows', () => {
+  it('splits paragraphs into sentences and clauses, keeping directions with their sentence', () => {
+    const script = `The chain:\nBefore 2017 a model read one word at a time. Word four waits for word three — so the cost grows with length. [camera: sequential steps]\n\nAnd that was the price.`
+    const sentences = splitWindows(script, 'sentence')
+    expect(sentences.map(beat => beat.text)).toEqual([
+      'Before 2017 a model read one word at a time.',
+      'Word four waits for word three — so the cost grows with length.',
+      'And that was the price.',
+    ])
+    expect(sentences[0].title).toBe('The chain')
+    expect(sentences[1].directions).toEqual([{ kind: 'camera', args: 'sequential steps' }])
+    const clauses = splitWindows(script, 'clause')
+    expect(clauses.map(beat => beat.text)).toEqual([
+      'Before 2017 a model read one word at a time.',
+      'Word four waits for word three',
+      'so the cost grows with length.',
+      'And that was the price.',
+    ])
+    expect(splitWindows(script, 'paragraph')).toHaveLength(2)
+  })
+
+  it('paces the estimate by words per minute', () => {
+    const script = 'One two three four five six seven eight nine ten eleven twelve.'
+    expect(estimateSeconds(script, { granularity: 'sentence', wpm: 120 })).toBeGreaterThan(estimateSeconds(script, { granularity: 'sentence', wpm: 180 }))
+  })
+})
+
+describe('planFromWindows', () => {
+  it('uses the windows\' part ids, hero, camera and layout instead of matching words', () => {
+    const windows = [
+      { say: 'A model reads one word at a time.', parts: [], layout: 'me' as const },
+      { say: 'Two boxes talk to each other.', parts: ['encoder', 'attention'], hero: 'attention' },
+      { say: 'Then the answer comes out here.', parts: ['decoder'], hero: 'decoder', camera: ['decoder'] },
+      { say: 'And that is the score.', parts: ['score'], hero: 'score', layout: 'beside' as const },
+    ]
+    const result = planFromWindows(windows, page(), { viewBox })!
+    const [w1, w2, w3, w4] = result.plan.steps
+    expect(w1.actions.filter(a => a.op === 'reveal')).toHaveLength(0)
+    expect(w2.actions.find(a => a.op === 'reveal')!.targets).toEqual(['encoder', 'encoder-text', 'attention', 'attention-text'])
+    expect(w2.hero).toEqual(['attention', 'attention-text'])
+    expect(w3.actions.find(a => a.op === 'camera')!.value).toMatchObject({ x: 700, y: 200 })
+    expect(w4.actions.find(a => a.op === 'count')!.targets).toEqual(['score'])
+    expect(result.windows[0].layout).toBe('me')
+    expect(result.coverage.beats.map(beat => beat.anchored)).toEqual([true, true, true, true])
   })
 })

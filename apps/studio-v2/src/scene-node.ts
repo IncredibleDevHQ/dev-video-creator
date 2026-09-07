@@ -85,7 +85,7 @@ const storyboardMockSvg = (entry: SceneStoryboardEntry) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" rx="6" fill="${INK}"/>${parts.join('')}</svg>`
 }
 
-const storyboardMockUrl = (entry: SceneStoryboardEntry) =>
+export const storyboardMockUrl = (entry: SceneStoryboardEntry) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(storyboardMockSvg(entry))}`
 
 export const SceneBlock = Node.create({
@@ -122,6 +122,13 @@ export const SceneBlock = Node.create({
       // handcrafted fields above so a gold scene is never overwritten.
       directorAuto: { default: null },
       requiredArea: { default: '' },
+      // The workflow state: the dialogue is approved before it is broken down
+      // into windows of attention; the windows are approved before motion is
+      // planned from them. pace = { granularity, wpm }.
+      scriptApproved: { default: false },
+      pace: { default: null },
+      windows: { default: [] },
+      breakdownApproved: { default: false },
     }
   },
 
@@ -146,6 +153,10 @@ export const SceneBlock = Node.create({
       motion,
       directorAuto,
       requiredArea,
+      scriptApproved,
+      pace,
+      windows,
+      breakdownApproved,
       ...attributes
     } = HTMLAttributes
     const entries = (Array.isArray(storyboard) ? storyboard : []) as SceneStoryboardEntry[]
@@ -160,6 +171,15 @@ export const SceneBlock = Node.create({
     const planned = Boolean(motion && typeof motion === 'object' && Array.isArray((motion as { steps?: unknown[] }).steps) && (motion as { steps: unknown[] }).steps.length)
     const scriptText = String(script || '')
     const scriptBeats = scriptText ? scriptText.split(/\n\s*\n+/).filter(block => block.trim()).length : 0
+    const windowCount = Array.isArray(windows) ? windows.length : 0
+    const stage = !scriptText
+      ? 'no dialogue'
+      : !scriptApproved
+        ? planned ? 'quick motion · dialogue not approved' : 'dialogue drafted'
+        : !breakdownApproved
+          ? `${windowCount || '…'} windows to approve`
+          : planned ? 'motion planned' : 'ready to plan'
+    void pace
     const area = String(requiredArea || '')
     const auto = (directorAuto && typeof directorAuto === 'object' ? directorAuto : null) as { kind?: string; legibility?: { minTextPx?: Record<string, number> } } | null
     return [
@@ -178,7 +198,7 @@ export const SceneBlock = Node.create({
         [
           'button',
           { type: 'button', class: 'notebook-image-action', 'data-slide-action': 'edit' },
-          scriptText ? 'Script & motion' : 'Write the script',
+          !scriptText ? 'Write the dialogue' : !scriptApproved ? 'Approve the dialogue' : !breakdownApproved ? 'Approve the breakdown' : 'Open scene',
         ],
         [
           'button',
@@ -247,7 +267,7 @@ export const SceneBlock = Node.create({
       [
         'figcaption',
         {},
-        `${stepList.length} beat${stepList.length === 1 ? '' : 's'}${scriptBeats ? ` · script ${scriptBeats} ¶` : ''} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role}${planned ? ' · motion planned from the script' : animated ? '' : scriptText ? ' · script saved, not planned yet — Animate' : ' · not animated yet — Animate'}`,
+        `${stepList.length} beat${stepList.length === 1 ? '' : 's'}${scriptBeats ? ` · dialogue ${scriptBeats} ¶` : ''} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role} · ${stage}${!planned && animated ? ' (steps only)' : ''}`,
       ],
     ]
   },

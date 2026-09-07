@@ -58,8 +58,23 @@ import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import { SceneBlock } from './scene-node'
 import { planSceneLocally } from './local-plan'
-import { planFromScript, scriptFromSteps, type ScriptCoverage } from './script-plan'
+import {
+  DEFAULT_PACE,
+  estimateSeconds,
+  planFromScript,
+  planFromWindows,
+  relationsOf,
+  scriptFromSteps,
+  scriptFromWindows,
+  splitWindows,
+  type Granularity,
+  type PaceSettings,
+  type SceneWindow,
+  type ScriptCoverage,
+  type WindowLayout,
+} from './script-plan'
 import { direct, type DirectorResult } from './director'
+import { storyboardMockUrl } from './scene-node'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -8131,7 +8146,18 @@ type SlideEditorState = {
   viewBox: { width: number; height: number }
   driver: MotionDriverInstance | null
   playing: { startedAt: number; from: number; frame: number } | null
+  // Workflow: dialogue → breakdown (windows of attention) → motion.
+  stage: SceneStage
+  pace: PaceSettings
+  scriptApproved: boolean
+  windows: SceneWindow[]
+  breakdownApproved: boolean
+  selectedWindow: number
+  // Windows the writer produced for the current dialogue text (reused by
+  // the breakdown without a second model call).
+  writerWindows: SceneWindow[] | null
 }
+type SceneStage = 'dialogue' | 'breakdown' | 'motion'
 let slideEditor: SlideEditorState | null = null
 const slideEditorDialog = $('#slide-editor-dialog') as HTMLDialogElement
 const slideEditorPreview = $('#slide-editor-preview') as HTMLElement
@@ -8173,10 +8199,11 @@ const writeSlideLikeNode = (nodeId: string, attrs: Record<string, unknown>) => {
 }
 
 const setSlideEditorStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
-  const status = $('#se-status') as HTMLElement
-  status.textContent = text
-  status.classList.toggle('is-ok', tone === 'ok')
-  status.classList.toggle('is-error', tone === 'error')
+  document.querySelectorAll<HTMLElement>('#se-status, #se-status-dialogue, #se-status-breakdown').forEach(status => {
+    status.textContent = text
+    status.classList.toggle('is-ok', tone === 'ok')
+    status.classList.toggle('is-error', tone === 'error')
+  })
 }
 
 const stepIndexOfUnit = (state: SlideEditorState, unit: SlideUnit) =>
@@ -8201,9 +8228,16 @@ const renderSlideEditorPreview = () => {
     hit.setAttribute('width', String(Math.max(10, unit.bbox.width + pad * 2)))
     hit.setAttribute('height', String(Math.max(10, unit.bbox.height + pad * 2)))
     hit.setAttribute('rx', '3')
+    hit.dataset.unit = unit.id
     const at = stepIndexOfUnit(state, unit)
-    if (at >= 0) hit.classList.add('is-assigned')
-    if (at === state.current) hit.classList.add('is-current')
+    if (state.stage === 'motion') {
+      if (at >= 0) hit.classList.add('is-assigned')
+      if (at === state.current) hit.classList.add('is-current')
+    } else if (state.stage === 'breakdown') {
+      const window = state.windows[state.selectedWindow]
+      if (window?.parts.includes(unit.id)) hit.classList.add('is-window')
+      if (window?.hero === unit.id) hit.classList.add('is-current')
+    }
     const title = document.createElementNS(SVG_NS, 'title')
     title.textContent = `${unit.label}${at >= 0 ? ` · step ${at + 1}` : ''}`
     hit.append(title)
@@ -8212,7 +8246,7 @@ const renderSlideEditorPreview = () => {
       toggleUnitInStep(unit)
     })
     overlay.append(hit)
-    if (at >= 0 && !state.motion) {
+    if (at >= 0 && !state.motion && state.stage === 'motion') {
       const bg = document.createElementNS(SVG_NS, 'circle')
       bg.setAttribute('class', 'se-badge-bg')
       bg.setAttribute('cx', String(unit.bbox.x - pad + 9))
@@ -8232,7 +8266,7 @@ const renderSlideEditorPreview = () => {
   // beat — what the viewer sees, not a diagram of assignments.
   stopSlidePlayback()
   state.driver = null
-  if (state.motion) {
+  if (state.motion && state.stage === 'motion') {
     try {
       state.driver = instantiateMotionDriver(svg as SVGSVGElement, state.motion, '')
       state.driver.setStep(state.current, 1)
@@ -8243,14 +8277,155 @@ const renderSlideEditorPreview = () => {
   }
 }
 
-// ——— Script, playback and coverage ———
+// ——— Scene workspace: Dialogue → Breakdown → Motion ———
 const scriptInput = $('#se-script') as HTMLTextAreaElement
 const playButton = $('#se-play') as HTMLButtonElement
 const scrubInput = $('#se-scrub') as HTMLInputElement
 const timeLabel = $('#se-time') as HTMLElement
 const coverageBox = $('#se-coverage') as HTMLElement
+const stepperElement = $('#se-stepper') as HTMLElement
+const stageSections: Record<SceneStage, HTMLElement> = {
+  dialogue: $('#se-stage-dialogue') as HTMLElement,
+  breakdown: $('#se-stage-breakdown') as HTMLElement,
+  motion: $('#se-stage-motion') as HTMLElement,
+}
+const paceInput = $('#se-pace') as HTMLInputElement
+const paceLabel = $('#se-pace-label') as HTMLElement
+const estimateBox = $('#se-estimate') as HTMLElement
+const scriptStateBadge = $('#se-script-state') as HTMLElement
+const partsStrip = $('#se-parts') as HTMLElement
+const writeButton = $('#se-write') as HTMLButtonElement
+const writeNote = $('#se-write-note') as HTMLInputElement
+const approveScriptButton = $('#se-approve-script') as HTMLButtonElement
+const unlockScriptButton = $('#se-unlock-script') as HTMLButtonElement
+const windowsList = $('#se-windows') as HTMLOListElement
+const breakdownStateBadge = $('#se-breakdown-state') as HTMLElement
+const rebreakButton = $('#se-rebreak') as HTMLButtonElement
+const approveBreakdownButton = $('#se-approve-breakdown') as HTMLButtonElement
+const storyboardBox = $('#se-storyboard') as HTMLElement
+const previewHint = $('#se-preview-hint') as HTMLElement
 
 const formatSeconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
+
+const paceWords = (wpm: number) => (wpm <= 125 ? 'Slow' : wpm <= 165 ? 'Natural' : 'Brisk')
+
+const granularityOf = (): Granularity => {
+  const checked = document.querySelector<HTMLInputElement>('input[name="se-granularity"]:checked')
+  const value = checked?.value
+  return value === 'paragraph' || value === 'clause' ? value : 'sentence'
+}
+
+const syncPaceControls = (pace: PaceSettings) => {
+  document.querySelectorAll<HTMLInputElement>('input[name="se-granularity"]').forEach(input => {
+    input.checked = input.value === pace.granularity
+  })
+  paceInput.value = String(pace.wpm)
+  paceLabel.textContent = `${paceWords(pace.wpm)} · ${pace.wpm} wpm`
+}
+
+const renderEstimate = () => {
+  const state = slideEditor
+  if (!state) return
+  const script = scriptInput.value.trim()
+  if (!script) {
+    estimateBox.textContent = 'Write the dialogue to see the length'
+    return
+  }
+  const windows = splitWindows(script, state.pace.granularity)
+  const seconds = estimateSeconds(script, state.pace)
+  estimateBox.innerHTML = ''
+  const strong = document.createElement('strong')
+  strong.textContent = `≈ ${seconds}s`
+  estimateBox.append(strong, ` · ${windows.length} window${windows.length === 1 ? '' : 's'} · ${script.split(/\s+/).filter(Boolean).length} words`)
+}
+
+const GENERIC_PART = /^(shape|frame|image|circle|polygon|connector\s*#?\d*|u\d+)$/i
+
+const namedParts = (state: SlideEditorState) =>
+  leafUnits(state.units).filter(unit => !unit.chrome && !GENERIC_PART.test(unit.label.trim()))
+
+const insertAtCaret = (input: HTMLTextAreaElement, text: string) => {
+  const start = input.selectionStart ?? input.value.length
+  const end = input.selectionEnd ?? start
+  const before = input.value.slice(0, start)
+  const after = input.value.slice(end)
+  const lead = before && !/\s$/.test(before) ? ' ' : ''
+  const tail = after && !/^[\s,.;:!?]/.test(after) ? ' ' : ''
+  input.value = `${before}${lead}${text}${tail}${after}`
+  const caret = before.length + lead.length + text.length
+  input.setSelectionRange(caret, caret)
+  input.dispatchEvent(new Event('input'))
+  input.focus()
+}
+
+const setHitHot = (unitId: string, hot: boolean) => {
+  slideEditorPreview.querySelectorAll<SVGRectElement>(`.se-hit[data-unit="${CSS.escape(unitId)}"]`).forEach(hit => {
+    hit.classList.toggle('is-hot', hot)
+  })
+}
+
+const renderParts = () => {
+  const state = slideEditor
+  partsStrip.replaceChildren()
+  if (!state) return
+  const used = new Set(state.windows.flatMap(window => window.parts))
+  namedParts(state).forEach(unit => {
+    const chip = document.createElement('button')
+    chip.type = 'button'
+    chip.className = `se-part${used.has(unit.id) ? ' is-used' : ''}`
+    chip.textContent = unit.label
+    chip.title = used.has(unit.id) ? `${unit.label} · named in the dialogue` : `Insert “${unit.label}” at the cursor`
+    chip.addEventListener('mouseenter', () => setHitHot(unit.id, true))
+    chip.addEventListener('mouseleave', () => setHitHot(unit.id, false))
+    chip.addEventListener('click', () => {
+      if (scriptInput.readOnly) return
+      insertAtCaret(scriptInput, unit.label)
+    })
+    partsStrip.append(chip)
+  })
+}
+
+const syncStepper = () => {
+  const state = slideEditor
+  if (!state) return
+  const order: SceneStage[] = ['dialogue', 'breakdown', 'motion']
+  stepperElement.querySelectorAll<HTMLButtonElement>('.se-step').forEach(button => {
+    const stage = button.dataset.stage as SceneStage
+    const index = order.indexOf(stage)
+    const currentIndex = order.indexOf(state.stage)
+    button.classList.toggle('is-current', stage === state.stage)
+    button.classList.toggle('is-done', index < currentIndex)
+    button.disabled =
+      (stage === 'breakdown' && !state.scriptApproved) ||
+      (stage === 'motion' && !state.breakdownApproved && !state.motion)
+  })
+}
+
+const setStage = (stage: SceneStage) => {
+  const state = slideEditor
+  if (!state) return
+  state.stage = stage
+  ;(Object.keys(stageSections) as SceneStage[]).forEach(key => {
+    stageSections[key].hidden = key !== stage
+  })
+  previewHint.textContent =
+    stage === 'dialogue'
+      ? 'Hover a part to find it on the page; click a chip to name it in the dialogue.'
+      : stage === 'breakdown'
+        ? 'Click a window, then click parts of the page to add them to it.'
+        : 'The preview plays the planned motion; click a beat to jump to it.'
+  syncStepper()
+  renderSlideEditorPreview()
+}
+
+stepperElement.querySelectorAll<HTMLButtonElement>('.se-step').forEach(button => {
+  button.addEventListener('click', () => {
+    const stage = button.dataset.stage as SceneStage
+    if (button.disabled) return
+    if (stage === 'motion' && slideEditor && !slideEditor.motion && slideEditor.breakdownApproved) planMotionFromWindows()
+    setStage(stage)
+  })
+})
 
 const syncSlideScrub = (timeMs: number) => {
   const state = slideEditor
@@ -8313,7 +8488,7 @@ playButton.addEventListener('click', () => {
     return
   }
   if (!state.driver) {
-    setSlideEditorStatus('Plan from script first — then Play', 'error')
+    setSlideEditorStatus('Nothing planned yet', 'error')
     return
   }
   const total = state.driver.durationMs
@@ -8349,18 +8524,18 @@ const renderCoverage = () => {
   const anchored = coverage.beats.filter(beat => beat.anchored).length
   head.textContent =
     coverage.score >= 0.99
-      ? `Every beat names something on the page · ${anchored}/${coverage.beats.length}`
+      ? `Every window names something on the page · ${anchored}/${coverage.beats.length}`
       : coverage.score === 0
-        ? 'The script names nothing on the page — the parts were placed in page order. Name them, or redraw the page for this script.'
-        : `${anchored} of ${coverage.beats.length} beats name a part of the page`
+        ? 'The dialogue names nothing on the page — parts would be placed in page order. Name them (click a chip), or let the writer draft with the page.'
+        : `${anchored} of ${coverage.beats.length} windows name a part of the page`
   coverageBox.append(head)
   const chips = document.createElement('div')
   chips.className = 'se-coverage-chips'
   coverage.beats.forEach(beat => {
     const chip = document.createElement('span')
     chip.className = `se-cov ${beat.anchored ? 'is-ok' : 'is-warn'}`
-    chip.textContent = `B${beat.index + 1}${beat.matched.length ? ` · ${beat.matched.slice(0, 3).join(', ')}${beat.matched.length > 3 ? '…' : ''}` : ' · no anchor'}`
-    chip.title = beat.matched.join(', ') || 'No part of the page is named in this beat'
+    chip.textContent = `W${beat.index + 1}${beat.matched.length ? ` · ${beat.matched.slice(0, 3).join(', ')}${beat.matched.length > 3 ? '…' : ''}` : ' · no anchor'}`
+    chip.title = beat.matched.join(', ') || 'No part of the page is named in this window'
     chips.append(chip)
   })
   coverageBox.append(chips)
@@ -8378,22 +8553,443 @@ const renderCoverage = () => {
   }
 }
 
-// Script → plan → director, in the editor. The steps list becomes a derived
-// view; the preview runs the real driver.
+// Live coverage while the dialogue is typed (debounced): a dry run of the
+// planner against the words, nothing saved.
+let coverageTimer: number | undefined
+const scheduleLiveCoverage = () => {
+  window.clearTimeout(coverageTimer)
+  coverageTimer = window.setTimeout(() => {
+    const state = slideEditor
+    if (!state || state.stage !== 'dialogue') return
+    const script = scriptInput.value.trim()
+    if (!script) {
+      state.coverage = null
+      renderCoverage()
+      return
+    }
+    const result = planFromScript(script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm })
+    state.coverage = result?.coverage || null
+    renderCoverage()
+  }, 350)
+}
+
+const setScriptApproved = (approved: boolean) => {
+  const state = slideEditor
+  if (!state) return
+  state.scriptApproved = approved
+  scriptInput.readOnly = approved
+  scriptStateBadge.textContent = approved ? 'approved' : 'draft'
+  scriptStateBadge.classList.toggle('is-approved', approved)
+  approveScriptButton.hidden = approved
+  unlockScriptButton.hidden = !approved
+  writeButton.disabled = approved
+  syncStepper()
+}
+
+scriptInput.addEventListener('input', () => {
+  const state = slideEditor
+  if (!state) return
+  if (scriptInput.value.trim() !== state.script) state.writerWindows = null
+  renderEstimate()
+  scheduleLiveCoverage()
+})
+
+document.querySelectorAll<HTMLInputElement>('input[name="se-granularity"]').forEach(input => {
+  input.addEventListener('change', () => {
+    const state = slideEditor
+    if (!state) return
+    state.pace = { ...state.pace, granularity: granularityOf() }
+    renderEstimate()
+    scheduleLiveCoverage()
+    if (state.scriptApproved) {
+      // The windows change with the granularity: the breakdown is redone.
+      state.breakdownApproved = false
+      state.motion = null
+      syncStepper()
+    }
+  })
+})
+
+paceInput.addEventListener('input', () => {
+  const state = slideEditor
+  if (!state) return
+  state.pace = { ...state.pace, wpm: Number(paceInput.value) || DEFAULT_PACE.wpm }
+  paceLabel.textContent = `${paceWords(state.pace.wpm)} · ${state.pace.wpm} wpm`
+  renderEstimate()
+  if (state.motion && state.windows.length) planMotionFromWindows({ quiet: true })
+})
+
+const sceneNotesFor = (state: SlideEditorState) => {
+  const found = findSlideLikeNode(state.nodeId)
+  const notes = project.blocks[state.nodeId]?.speakerNotes?.trim() || ''
+  const director = String(found?.attrs.directorNotes || '').trim()
+  return [notes, director ? `Director: ${director}` : ''].filter(Boolean).join('\n')
+}
+
+// Write with the page: the writer sees the inventory and the arrows and
+// returns windows that reference part ids; the dialogue text is theirs.
+writeButton.addEventListener('click', async () => {
+  const state = slideEditor
+  if (!state || scriptInput.readOnly) return
+  writeButton.classList.add('working')
+  writeButton.disabled = true
+  setSlideEditorStatus('Writing with the page in front of the writer…')
+  try {
+    const found = findSlideLikeNode(state.nodeId)
+    const existing = scriptInput.value.trim()
+    const targetInput = $('#se-target') as HTMLInputElement
+    const targetSeconds = Math.max(8, Math.min(240, Number(targetInput.value) || (existing ? estimateSeconds(existing, state.pace) : 40)))
+    const body = await fetchJson<{ windows: SceneWindow[] }>('/api/scene/dialogue', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: String(found?.attrs.title || 'Scene'),
+        role: String(found?.attrs.arcRole || ''),
+        notes: sceneNotesFor(state),
+        existing,
+        instruction: writeNote.value.trim(),
+        granularity: state.pace.granularity,
+        targetSeconds,
+        wpm: state.pace.wpm,
+        position: scenePosition(state.nodeId),
+        units: slideUnitInventory(state),
+        relations: relationsOf(state.units),
+      }),
+    })
+    const windows = (body.windows || []).filter(window => window.say && window.say.trim())
+    if (!windows.length) throw new Error('The writer returned nothing usable')
+    state.writerWindows = windows
+    scriptInput.value = scriptFromWindows(windows)
+    state.script = scriptInput.value.trim()
+    renderEstimate()
+    const dry = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
+    state.coverage = dry?.coverage || null
+    renderCoverage()
+    renderParts()
+    setSlideEditorStatus(`${windows.length} windows drafted with the page — read it, edit it, then approve`, 'ok')
+  } catch (error) {
+    setSlideEditorStatus(error instanceof Error ? error.message : 'The writer failed', 'error')
+  } finally {
+    writeButton.classList.remove('working')
+    writeButton.disabled = Boolean(slideEditor?.scriptApproved)
+  }
+})
+
+approveScriptButton.addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  const script = scriptInput.value.trim()
+  if (!script) {
+    setSlideEditorStatus('Write the dialogue first', 'error')
+    return
+  }
+  if (script !== state.script) state.writerWindows = null
+  state.script = script
+  setScriptApproved(true)
+  state.breakdownApproved = false
+  state.motion = null
+  setStage('breakdown')
+  void runBreakdown()
+})
+
+unlockScriptButton.addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  setScriptApproved(false)
+  state.breakdownApproved = false
+  state.motion = null
+  syncStepper()
+  setSlideEditorStatus('Dialogue unlocked — approve it again to redo the breakdown')
+  scriptInput.focus()
+})
+
+// ——— Breakdown ———
+const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] => {
+  if (!Array.isArray(raw)) return []
+  const valid = new Set(leafUnits(state.units).map(unit => unit.id))
+  return raw
+    .map((entry): SceneWindow | null => {
+      if (!entry || typeof entry !== 'object') return null
+      const window = entry as Record<string, unknown>
+      const say = String(window.say || '').trim()
+      if (!say) return null
+      const parts = (Array.isArray(window.parts) ? window.parts : []).map(String).filter(id => valid.has(id))
+      const hero = typeof window.hero === 'string' && valid.has(window.hero) ? window.hero : undefined
+      const camera = Array.isArray(window.camera) ? window.camera.map(String).filter(id => valid.has(id)) : undefined
+      const layout = window.layout === 'me' || window.layout === 'beside' || window.layout === 'page' ? window.layout : undefined
+      return {
+        say,
+        title: String(window.title || '').trim() || undefined,
+        parts: [...new Set([...parts, ...(hero ? [hero] : [])])],
+        hero,
+        ...(camera && camera.length ? { camera } : {}),
+        ...(layout ? { layout } : {}),
+        ...(typeof window.intent === 'string' && window.intent ? { intent: window.intent as SceneWindow['intent'] } : {}),
+      }
+    })
+    .filter((window): window is SceneWindow => Boolean(window))
+}
+
+const setBreakdownState = (text: string, tone: '' | 'approved' | 'stale' = '') => {
+  breakdownStateBadge.textContent = text
+  breakdownStateBadge.classList.toggle('is-approved', tone === 'approved')
+  breakdownStateBadge.classList.toggle('is-stale', tone === 'stale')
+}
+
+// Splits the approved dialogue into windows and assigns parts: the writer's
+// own windows when the text is theirs, else the model, else the local
+// planner's placement.
+const runBreakdown = async (options: { model?: boolean } = {}) => {
+  const state = slideEditor
+  if (!state) return
+  const beats = splitWindows(state.script, state.pace.granularity)
+  if (!beats.length) return
+  const sameText = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim()
+  const writer = state.writerWindows
+  let windows: SceneWindow[] | null = null
+  let source = ''
+  if (!options.model && writer && writer.length === beats.length && writer.every((window, index) => sameText(window.say, beats[index].text))) {
+    windows = writer.map((window, index) => ({ ...window, say: beats[index].text, title: beats[index].title }))
+    source = 'from the writer'
+  }
+  if (!windows) {
+    const local = planFromScript(state.script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm })
+    windows = local?.windows || beats.map(beat => ({ say: beat.text, title: beat.title, parts: [] }))
+    source = 'matched by the words'
+    setBreakdownState('breaking down…')
+    rebreakButton.disabled = true
+    try {
+      const found = findSlideLikeNode(state.nodeId)
+      const body = await fetchJson<{ windows: Array<SceneWindow & { index?: number }> }>('/api/scene/breakdown', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: String(found?.attrs.title || 'Scene'),
+          windows: beats.map(beat => ({ index: beat.index, say: beat.text })),
+          units: slideUnitInventory(state),
+          relations: relationsOf(state.units),
+        }),
+      })
+      if (slideEditor !== state) return
+      const byIndex = new Map((body.windows || []).map(window => [Number(window.index), window]))
+      windows = beats.map((beat, index) => {
+        const assigned = byIndex.get(index)
+        const fallback = windows![index]
+        if (!assigned) return fallback
+        const cleaned = sanitizeWindows([{ ...assigned, say: beat.text }], state)[0]
+        return cleaned
+          ? { ...cleaned, title: assigned.title || beat.title, parts: cleaned.parts.length ? cleaned.parts : fallback.parts, hero: cleaned.hero || fallback.hero }
+          : fallback
+      })
+      source = 'by the writer'
+    } catch (error) {
+      source = `matched by the words (${error instanceof Error ? error.message : 'writer unavailable'})`
+    } finally {
+      rebreakButton.disabled = false
+    }
+  }
+  state.windows = sanitizeWindows(windows, state)
+  state.breakdownApproved = false
+  state.selectedWindow = 0
+  setBreakdownState(`${state.windows.length} windows · ${source}`)
+  renderWindows()
+  renderParts()
+  renderSlideEditorPreview()
+  syncStepper()
+  setSlideEditorStatus(`${state.windows.length} windows ${source} — check the parts, then approve`, 'ok')
+}
+
+const layoutLabel: Record<WindowLayout, string> = { page: 'Page owns the frame', beside: 'Beside me', me: 'On me' }
+
+const renderWindows = () => {
+  const state = slideEditor
+  windowsList.replaceChildren()
+  if (!state) return
+  const unitOf = (id: string) => leafUnits(state.units).find(unit => unit.id === id)
+  state.windows.forEach((window, index) => {
+    const row = document.createElement('li')
+    row.className = `se-window${index === state.selectedWindow ? ' is-current' : ''}`
+    row.addEventListener('click', () => {
+      if (state.selectedWindow === index) return
+      state.selectedWindow = index
+      renderWindows()
+      renderSlideEditorPreview()
+    })
+    const number = document.createElement('span')
+    number.className = 'se-num'
+    number.textContent = String(index + 1)
+    const say = document.createElement('div')
+    say.className = 'se-window-say'
+    say.textContent = window.say
+    const chips = document.createElement('div')
+    chips.className = 'se-window-parts'
+    if (!window.parts.length) {
+      const empty = document.createElement('span')
+      empty.className = 'se-chip is-empty'
+      empty.textContent = window.layout === 'me' ? 'on you — no page' : 'names nothing — click parts on the page'
+      chips.append(empty)
+    }
+    window.parts.forEach(id => {
+      const unit = unitOf(id)
+      if (!unit) return
+      const chip = document.createElement('span')
+      chip.className = `se-chip${window.hero === id ? ' is-hero' : ''}`
+      chip.textContent = `${window.hero === id ? '★ ' : ''}${unit.label}`
+      chip.title = window.hero === id ? 'Hero of this window' : 'Click to make it the hero'
+      chip.addEventListener('click', event => {
+        event.stopPropagation()
+        window.hero = window.hero === id ? undefined : id
+        renderWindows()
+      })
+      const remove = document.createElement('button')
+      remove.type = 'button'
+      remove.textContent = '×'
+      remove.title = 'Remove from this window'
+      remove.addEventListener('click', event => {
+        event.stopPropagation()
+        window.parts = window.parts.filter(part => part !== id)
+        if (window.hero === id) window.hero = undefined
+        if (window.camera) window.camera = window.camera.filter(part => part !== id)
+        renderWindows()
+        renderParts()
+        renderSlideEditorPreview()
+      })
+      chip.append(remove)
+      chips.append(chip)
+    })
+    const controls = document.createElement('div')
+    controls.className = 'se-window-controls'
+    const cameraLabel = document.createElement('label')
+    cameraLabel.append('Camera ')
+    const camera = document.createElement('select')
+    ;[['stay', 'stays on the page'], ['hero', 'moves in on the hero'], ['parts', 'moves in on its parts']].forEach(([value, text]) => {
+      const option = document.createElement('option')
+      option.value = value
+      option.textContent = text
+      camera.append(option)
+    })
+    camera.value = !window.camera || !window.camera.length ? 'stay' : window.hero && window.camera.length === 1 && window.camera[0] === window.hero ? 'hero' : 'parts'
+    camera.addEventListener('click', event => event.stopPropagation())
+    camera.addEventListener('change', () => {
+      if (camera.value === 'stay') window.camera = []
+      else if (camera.value === 'hero') window.camera = window.hero ? [window.hero] : [...window.parts]
+      else window.camera = [...window.parts]
+    })
+    cameraLabel.append(camera)
+    const layoutSelect = document.createElement('select')
+    ;(Object.keys(layoutLabel) as WindowLayout[]).forEach(value => {
+      const option = document.createElement('option')
+      option.value = value
+      option.textContent = layoutLabel[value]
+      layoutSelect.append(option)
+    })
+    layoutSelect.value = window.layout || (window.parts.length ? 'page' : 'me')
+    layoutSelect.addEventListener('click', event => event.stopPropagation())
+    layoutSelect.addEventListener('change', () => {
+      window.layout = layoutSelect.value as WindowLayout
+    })
+    const layoutWrap = document.createElement('label')
+    layoutWrap.append('Presenter ', layoutSelect)
+    controls.append(cameraLabel, layoutWrap)
+    if (window.intent) {
+      const intent = document.createElement('span')
+      intent.className = 'se-state'
+      intent.textContent = window.intent
+      controls.append(intent)
+    }
+    row.append(number, say, chips, controls)
+    windowsList.append(row)
+  })
+}
+
+rebreakButton.addEventListener('click', () => void runBreakdown({ model: true }))
+;($('#se-back-dialogue') as HTMLButtonElement).addEventListener('click', () => setStage('dialogue'))
+;($('#se-back-breakdown') as HTMLButtonElement).addEventListener('click', () => {
+  stopSlidePlayback()
+  setStage('breakdown')
+})
+
+approveBreakdownButton.addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  if (!state.windows.length) {
+    setSlideEditorStatus('There are no windows to approve', 'error')
+    return
+  }
+  state.breakdownApproved = true
+  setBreakdownState(`${state.windows.length} windows · approved`, 'approved')
+  planMotionFromWindows()
+  setStage('motion')
+})
+
+// ——— Motion ———
+const renderStoryboard = () => {
+  const state = slideEditor
+  storyboardBox.replaceChildren()
+  if (!state?.director) return
+  state.director.storyboard.forEach(entry => {
+    const cell = document.createElement('div')
+    cell.className = 'se-board'
+    cell.title = entry.note
+    const img = document.createElement('img')
+    img.src = storyboardMockUrl({ family: entry.family, treatment: entry.treatment || '' })
+    img.alt = entry.family
+    const label = document.createElement('span')
+    label.textContent = `${entry.label} · ${entry.family}${entry.treatment ? ` / ${entry.treatment}` : ''}`
+    cell.append(img, label)
+    storyboardBox.append(cell)
+  })
+}
+
+// Plan + director from the approved windows. The steps list becomes a
+// derived view; the preview runs the real driver.
+const planMotionFromWindows = (options: { quiet?: boolean } = {}) => {
+  const state = slideEditor
+  if (!state || !state.windows.length) return false
+  const result = planFromWindows(state.windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
+  if (!result) return false
+  state.motion = result.plan
+  state.coverage = result.coverage
+  state.steps = result.steps.map(step => ({ ...step }))
+  state.current = 0
+  const found = findSlideLikeNode(state.nodeId)
+  state.director = direct({
+    title: String(found?.attrs.title || 'Scene'),
+    units: state.units,
+    viewBox: state.viewBox,
+    beats: result.beats,
+    plan: result.plan,
+    position: scenePosition(state.nodeId),
+    layouts: state.windows.map(window => window.layout),
+  })
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+  renderStoryboard()
+  renderDirectorBrief(state.director.brief)
+  syncStepper()
+  if (!options.quiet) {
+    const seconds = Math.round(motionPlanDurationSeconds(result.plan) * 10) / 10
+    setSlideEditorStatus(`${result.plan.steps.length} beats · ${seconds}s · ${state.director.brief.layout} — Play to watch, Save to keep`, 'ok')
+  }
+  return true
+}
+
+// "Plan from dialogue" (advanced): the words alone, ignoring the breakdown.
 const planSlideFromScript = () => {
   const state = slideEditor
   if (!state) return false
   const script = scriptInput.value.trim()
   if (!script) {
-    setSlideEditorStatus('Write the script first — one paragraph per beat', 'error')
+    setSlideEditorStatus('Write the dialogue first', 'error')
     return false
   }
-  const result = planFromScript(script, state.units, { viewBox: state.viewBox })
+  const result = planFromScript(script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm })
   if (!result) {
     setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
     return false
   }
   state.script = script
+  state.windows = result.windows
   state.motion = result.plan
   state.coverage = result.coverage
   state.steps = result.steps.map(step => ({ ...step }))
@@ -8410,15 +9006,22 @@ const planSlideFromScript = () => {
   renderSlideEditorSteps()
   renderSlideEditorPreview()
   renderCoverage()
+  renderStoryboard()
   renderDirectorBrief(state.director.brief)
+  renderWindows()
+  syncStepper()
   const seconds = Math.round(motionPlanDurationSeconds(result.plan) * 10) / 10
-  setSlideEditorStatus(
-    `${result.plan.steps.length} beats · ${seconds}s · ${state.director.requiredArea === 'none' ? 'stays behind you' : `${state.director.brief.layout}`} — Play to watch, Save to keep`,
-    'ok',
-  )
+  setSlideEditorStatus(`${result.plan.steps.length} beats · ${seconds}s · ${state.director.brief.layout} — Play to watch, Save to keep`, 'ok')
   return true
 }
 ;($('#se-plan-script') as HTMLButtonElement).addEventListener('click', () => { planSlideFromScript() })
+
+const paceOf = (raw: unknown): PaceSettings => {
+  const value = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const granularity = value.granularity === 'paragraph' || value.granularity === 'clause' ? value.granularity : DEFAULT_PACE.granularity
+  const wpm = Math.max(110, Math.min(190, Number(value.wpm) || DEFAULT_PACE.wpm))
+  return { granularity, wpm }
+}
 
 // Position of a slide-like block among the notebook's slide-like blocks.
 const scenePosition = (nodeId: string) => {
@@ -8549,6 +9152,25 @@ const renderSlideEditorSteps = () => {
 const toggleUnitInStep = (unit: SlideUnit) => {
   const state = slideEditor
   if (!state) return
+  if (state.stage === 'dialogue') {
+    if (!scriptInput.readOnly) insertAtCaret(scriptInput, unit.label)
+    return
+  }
+  if (state.stage === 'breakdown') {
+    const window = state.windows[state.selectedWindow]
+    if (!window) return
+    if (window.parts.includes(unit.id)) {
+      window.parts = window.parts.filter(id => id !== unit.id)
+      if (window.hero === unit.id) window.hero = undefined
+    } else {
+      window.parts = [...window.parts, unit.id]
+      if (!window.hero) window.hero = unit.id
+    }
+    renderWindows()
+    renderParts()
+    renderSlideEditorPreview()
+    return
+  }
   const onePerClick = ($('#se-one-per-click') as HTMLInputElement).checked
   const existing = stepIndexOfUnit(state, unit)
   if (!state.steps.length || onePerClick) {
@@ -8618,19 +9240,66 @@ const openSlideEditor = (nodeId: string) => {
     viewBox: atomized.viewBox,
     driver: null,
     playing: null,
+    stage: 'dialogue',
+    pace: paceOf(found.attrs.pace),
+    scriptApproved: Boolean(found.attrs.scriptApproved),
+    windows: [],
+    breakdownApproved: Boolean(found.attrs.breakdownApproved),
+    selectedWindow: 0,
+    writerWindows: null,
   }
-  scriptInput.value = slideEditor.script
+  const state = slideEditor
+  state.windows = sanitizeWindows(found.attrs.windows, state)
+  if (!state.script) state.scriptApproved = false
+  if (!state.windows.length) state.breakdownApproved = false
+  scriptInput.value = state.script
+  syncPaceControls(state.pace)
+  setScriptApproved(state.scriptApproved)
+  writeNote.value = ''
+  ;($('#se-target') as HTMLInputElement).value = String(state.script ? Math.max(10, Math.round(estimateSeconds(state.script, state.pace) / 5) * 5) : 40)
   ;($('#slide-editor-title') as HTMLElement).textContent = `Scene · ${String(found.attrs.title || 'Slide')}`
-  setSlideEditorStatus(
-    slideEditor.motion
-      ? `${leafUnits(atomized.units).length} parts · ${slideEditor.motion.steps.length} beats planned — Play to watch`
-      : `${leafUnits(atomized.units).length} parts found — write the script, then Plan from script`,
-  )
   syncApproveButton()
   renderDirectorBrief(found.attrs.directorBrief as DirectorBrief | null)
-  renderCoverage()
+  renderParts()
+  renderEstimate()
+  renderWindows()
+  setBreakdownState(state.windows.length ? `${state.windows.length} windows${state.breakdownApproved ? ' · approved' : ''}` : '', state.breakdownApproved ? 'approved' : '')
   renderSlideEditorSteps()
-  renderSlideEditorPreview()
+  storyboardBox.replaceChildren()
+  const parts = leafUnits(atomized.units).length
+  if (!state.scriptApproved) {
+    setStage('dialogue')
+    scheduleLiveCoverage()
+    setSlideEditorStatus(state.script ? `${parts} parts on the page — read the dialogue, then approve it` : `${parts} parts on the page — write the dialogue, or let the writer draft it`)
+  } else if (!state.breakdownApproved) {
+    setStage('breakdown')
+    if (state.windows.length) setSlideEditorStatus(`${state.windows.length} windows waiting for approval`)
+    else void runBreakdown()
+  } else {
+    setStage('motion')
+    if (!state.motion) planMotionFromWindows()
+    else {
+      renderSlideEditorPreview()
+      const withDirector = found.attrs.directorAuto as { storyboard?: DirectorResult['storyboard'] } | null
+      if (withDirector?.storyboard) {
+        state.director = null
+        storyboardBox.replaceChildren()
+        withDirector.storyboard.forEach(entry => {
+          const cell = document.createElement('div')
+          cell.className = 'se-board'
+          cell.title = entry.note
+          const img = document.createElement('img')
+          img.src = storyboardMockUrl({ family: entry.family, treatment: entry.treatment || '' })
+          img.alt = entry.family
+          const label = document.createElement('span')
+          label.textContent = `${entry.label} · ${entry.family}`
+          cell.append(img, label)
+          storyboardBox.append(cell)
+        })
+      }
+      setSlideEditorStatus(`${parts} parts · ${state.motion.steps.length} beats planned — Play to watch`)
+    }
+  }
   slideEditorDialog.showModal()
 }
 // Dev hook: inspect the atomised units and inferred arrow graph in the console.
@@ -9089,9 +9758,18 @@ const animateSceneLocally = (nodeId: string) => {
   if (!found) return false
   const script = scriptForNode(nodeId, found.attrs)
   const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
-  const result = script && atomized.units.length
-    ? planFromScript(script, atomized.units, { viewBox: atomized.viewBox })
-    : null
+  const pace = paceOf(found.attrs.pace)
+  const valid = new Set(leafUnits(atomized.units).map(unit => unit.id))
+  const savedWindows = (Array.isArray(found.attrs.windows) ? (found.attrs.windows as SceneWindow[]) : [])
+    .filter(window => window && typeof window.say === 'string' && window.say.trim())
+    .map(window => ({ ...window, parts: (window.parts || []).filter(id => valid.has(id)) }))
+  const result = !atomized.units.length
+    ? null
+    : found.attrs.breakdownApproved && savedWindows.length
+      ? planFromWindows(savedWindows, atomized.units, { viewBox: atomized.viewBox, wpm: pace.wpm })
+      : script
+        ? planFromScript(script, atomized.units, { viewBox: atomized.viewBox, granularity: pace.granularity, wpm: pace.wpm })
+        : null
   if (!result) {
     // No script and no notes: the page's own build order, one beat per unit.
     const planned = planSceneLocally(String(found.attrs.svg || ''), sanitizeSlideSteps(found.attrs.steps))
@@ -9106,10 +9784,13 @@ const animateSceneLocally = (nodeId: string) => {
     beats: result.beats,
     plan: result.plan,
     position: scenePosition(nodeId),
+    layouts: result.windows.map(window => window.layout),
   })
   writeSlideLikeNode(nodeId, {
     svg: atomized.svg,
     script,
+    pace,
+    windows: result.windows,
     motion: result.plan,
     steps: result.steps,
     ...directorAttrs(found.attrs, directed),
@@ -9193,13 +9874,18 @@ assistCancel.addEventListener('click', () => {
     }))
   const found = findSlideLikeNode(state.nodeId)
   const script = scriptInput.value.trim()
-  // A script edited after the last plan is stale against the plan: keep the
-  // text, drop the plan, so the card says so instead of playing old motion.
-  const scriptChanged = state.motion && script !== state.script
+  // A dialogue edited after the last plan is stale against it: keep the
+  // text, drop the plan and the approvals, so the card says so instead of
+  // playing old motion.
+  const scriptChanged = script !== state.script
   writeSlideLikeNode(state.nodeId, {
     svg: state.svg,
     steps,
     script,
+    pace: state.pace,
+    scriptApproved: scriptChanged ? false : state.scriptApproved,
+    windows: scriptChanged ? [] : state.windows,
+    breakdownApproved: scriptChanged ? false : state.breakdownApproved,
     motion: scriptChanged ? null : state.motion,
     ...(state.director && found && !scriptChanged ? directorAttrs(found.attrs, state.director) : {}),
   })
@@ -9215,7 +9901,7 @@ assistCancel.addEventListener('click', () => {
   syncProject()
   showToast(
     scriptChanged
-      ? `Saved the script — plan it again to refresh the motion`
+      ? `Saved the dialogue — approve it again to redo the breakdown and the motion`
       : `Saved ${steps.length} beat${steps.length === 1 ? '' : 's'}${state.motion ? ' with motion' : ''}`,
   )
   slideEditor = null

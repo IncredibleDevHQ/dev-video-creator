@@ -172,6 +172,13 @@ export const SlideBlock = Node.create({
       // truth; the motion plan (V2) is derived from it and runs the driver.
       script: { default: '' },
       motion: { default: null },
+      // The workflow state: the dialogue is approved before it is broken down
+      // into windows of attention; the windows are approved before motion is
+      // planned from them. pace = { granularity, wpm }.
+      scriptApproved: { default: false },
+      pace: { default: null },
+      windows: { default: [] },
+      breakdownApproved: { default: false },
       // The user approved the base page structure; Plan motion (assist)
       // refuses to run before this is set.
       structureApproved: { default: false },

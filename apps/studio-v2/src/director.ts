@@ -7,7 +7,7 @@
 // writes the result onto the scene node, the agent path can replace it.
 import type { MotionPlanV2 } from 'markdown-composition'
 import { leafUnits, type SlideUnit } from './slide-atoms'
-import { NUMERIC_LABEL, type ScriptBeat } from './script-plan'
+import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
 
 export type SceneKind = 'title' | 'text' | 'list' | 'diagram' | 'figure' | 'numbers' | 'table'
 export type ArcRole = 'hook' | 'map' | 'build' | 'idea' | 'explain' | 'evidence' | 'close'
@@ -44,6 +44,8 @@ export type DirectorInput = {
   plan: MotionPlanV2
   position: { index: number; count: number }
   speakers?: number
+  // Per-window layout wishes from the breakdown (me / beside / page).
+  layouts?: Array<WindowLayout | undefined>
 }
 
 // Share of the frame width each required-area class gives the information
@@ -109,6 +111,34 @@ export const legibilityFor = (units: SlideUnit[], viewBox: { width: number; heig
     minTextPx[area] = Math.round(minText * scale * 10) / 10
   })
   return { minTextPx, gatePx: LEGIBILITY_GATE_PX }
+}
+
+/** Units a beat brings on screen or highlights (by element id → unit). */
+const beatUnits = (units: SlideUnit[], beat: MotionPlanV2['steps'][number]) => {
+  const ids = new Set(beat.actions.filter(action => !action.implicit).flatMap(action => action.targets))
+  return leafUnits(units).filter(unit => unit.ids.some(id => ids.has(id)))
+}
+
+/** The area one beat needs: measured on the parts that beat is about. */
+export const requiredAreaForBeat = (
+  units: SlideUnit[],
+  viewBox: { width: number; height: number },
+  beat: MotionPlanV2['steps'][number],
+  kind: SceneKind,
+): RequiredArea => {
+  const subject = beatUnits(units, beat)
+  if (!subject.length) return 'none'
+  const legibility = legibilityFor(subject, viewBox)
+  const traces = beat.actions
+    .filter(action => action.op === 'trace' || action.op === 'connect')
+    .reduce((sum, action) => sum + Math.max(1, action.targets.length), 0)
+  const camera = beat.actions.some(action => action.op === 'camera' && !action.implicit)
+  const floor: RequiredArea = kind === 'table' || traces >= 3 || camera ? 'takeover' : subject.length >= 6 ? 'frame' : 'slot'
+  const orderList: RequiredArea[] = ['slot', 'beside', 'frame', 'takeover']
+  for (let i = Math.max(0, orderList.indexOf(floor)); i < orderList.length; i += 1) {
+    if (legibility.minTextPx[orderList[i]] >= legibility.gatePx) return orderList[i]
+  }
+  return 'takeover'
 }
 
 export const requiredAreaFor = (
@@ -179,14 +209,25 @@ export const storyboardFor = (
   plan: MotionPlanV2,
   requiredArea: RequiredArea,
   arcRole: ArcRole,
+  perBeat: { areas?: RequiredArea[]; layouts?: Array<WindowLayout | undefined> } = {},
 ): StoryboardEntry[] => {
-  const contentFamily = FAMILY_FOR_AREA[requiredArea]
-  const contentTreatment: StageTreatment = requiredArea === 'slot' ? 'overlay' : ''
   const raw: StoryboardEntry[] = beats.map(beat => {
     const step = plan.steps[beat.index]
+    const beatArea = perBeat.areas?.[beat.index] ?? requiredArea
+    const directed: WindowLayout | undefined = beat.directions.some(d => d.kind === 'open')
+      ? 'me'
+      : beat.directions.some(d => d.kind === 'panel')
+        ? 'beside'
+        : beat.directions.some(d => d.kind === 'takeover')
+          ? 'page'
+          : undefined
+    const wish = perBeat.layouts?.[beat.index] || directed
+    const contentFamily: StageFamily =
+      wish === 'beside' ? 'speaker-panel' : wish === 'page' ? FAMILY_FOR_AREA[beatArea === 'none' ? 'takeover' : beatArea] : FAMILY_FOR_AREA[beatArea]
+    const contentTreatment: StageTreatment = beatArea === 'slot' && contentFamily === 'speaker-full' ? 'overlay' : ''
     const brings = step?.actions.some(action => ['reveal', 'trace', 'count', 'connect'].includes(action.op)) || false
     const moves = step?.actions.some(action => !action.implicit && action.op !== 'undim') || false
-    const onMe = beat.directions.some(direction => direction.kind === 'open')
+    const onMe = wish === 'me' || beat.directions.some(direction => direction.kind === 'open')
     const last = beat.index === beats.length - 1
     if (onMe || (!brings && !moves && (beat.index === 0 || last))) {
       return {
@@ -197,7 +238,7 @@ export const storyboardFor = (
         beats: [beat.index],
       }
     }
-    if (requiredArea === 'none') {
+    if (beatArea === 'none' && wish !== 'page') {
       return {
         label: beat.title,
         family: 'speaker-full',
@@ -288,8 +329,16 @@ export const direct = (input: DirectorInput): DirectorResult => {
   const { kind } = classifyScene(input.units)
   const arcRole = arcRoleFor(kind, input.position, input.beats)
   const legibility = legibilityFor(input.units, input.viewBox)
-  const requiredArea = requiredAreaFor(kind, input.plan, legibility, input.beats)
-  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole)
+  const sceneArea = requiredAreaFor(kind, input.plan, legibility, input.beats)
+  // Per beat: the area the beat's own parts need; the scene's area is the
+  // largest any beat needs (what the pill shows), never more than the
+  // whole-page measure.
+  const order: RequiredArea[] = ['none', 'slot', 'beside', 'frame', 'takeover']
+  const areas = input.plan.steps.map(step => requiredAreaForBeat(input.units, input.viewBox, step, kind))
+  const requiredArea = areas.length
+    ? order[Math.min(order.indexOf(sceneArea), Math.max(...areas.map(area => order.indexOf(area))))]
+    : sceneArea
+  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts })
   const cues = cuesFor(storyboard, input.beats, input.plan)
   const directorNotes = notesFor(kind, arcRole, requiredArea, storyboard, legibility)
   const totalSeconds = Math.round(input.plan.steps.reduce((sum, step) => sum + step.motionWindowMs + step.holdMs, 0) / 100) / 10

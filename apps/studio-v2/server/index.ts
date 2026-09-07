@@ -1092,6 +1092,156 @@ Rules: every part id appears in exactly one step (a part never appears twice); a
   json(response, 200, { steps, provider: 'openai' })
 }
 
+// ——— Scene dialogue (picture-aware) and breakdown ———
+// The writer sees the page: every part with id, kind, label and position,
+// the arrows and what they join, what the driver can do to a part, and the
+// pacing target. It returns windows of attention that reference part ids,
+// so nothing has to be matched by words afterwards. The breakdown keeps the
+// approved words untouched and only assigns parts / hero / camera / layout
+// per window.
+type SceneUnitInput = { id: string; kind: string; label: string; x: number; y: number; w: number; h: number; group?: string }
+type SceneRelationInput = { connector: string; from: string; to: string }
+
+const sceneInventory = (units: SceneUnitInput[], relations: SceneRelationInput[]) => {
+  const lines = units.map(unit =>
+    `${unit.id} · ${unit.kind} · "${String(unit.label || '').slice(0, 70)}" · at ${Math.round(unit.x)},${Math.round(unit.y)} size ${Math.round(unit.w)}×${Math.round(unit.h)}${unit.group ? ` · in ${unit.group}` : ''}`,
+  )
+  const arrows = relations.map(relation => `${relation.connector}: ${relation.from} → ${relation.to}`)
+  return `PARTS (id · kind · label · position; y grows downward):\n${lines.join('\n')}\n${arrows.length ? `\nARROWS (connector: from → to):\n${arrows.join('\n')}\n` : ''}`
+}
+
+const SCENE_CAPABILITIES = `WHAT THE MOTION ENGINE CAN DO WITH A PART (one window at a time):
+- bring a part on screen when it is first spoken (boxes and labels settle in; arrows draw from tail to head after the boxes they join);
+- count a number up in place (any label that is a number ≥ 10, a decimal, or a number with a unit);
+- pop the hero of the window (a short scale-and-glow), also for a part already on screen when it is spoken again;
+- dim everything except the parts the window is about (a focus window), lifted on the next window;
+- move the camera in on the parts of a tight window (never tighter than a third of the page), back to the page when the next window's parts fall outside;
+- draw a connection between two parts that have no arrow;
+- stage the presenter: full frame with nothing else ("me"), beside the page in a panel ("beside"), or as a small chip while the page owns the frame ("page").
+CONSTRAINTS: a part is highlighted only after it has been brought on screen; a window brings in at most ~8 parts (more reads as a wall); a window has at most one hero; the first window of a hook or a close belongs to the presenter; numbers are spoken when they count.`
+
+const windowSchema = (withSay: boolean) => ({
+  type: 'object',
+  additionalProperties: false,
+  required: ['windows'],
+  properties: {
+    windows: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [...(withSay ? ['say'] : ['index']), 'title', 'parts', 'hero', 'intent', 'camera', 'layout'],
+        properties: {
+          ...(withSay ? { say: { type: 'string' } } : { index: { type: 'integer' } }),
+          title: { type: 'string' },
+          parts: { type: 'array', items: { type: 'string' } },
+          hero: { type: 'string' },
+          intent: { type: 'string', enum: ['introduce', 'locate', 'relate', 'contrast', 'transform', 'quantify', 'emphasize', 'flow', 'recap', 'transition'] },
+          camera: { type: 'array', items: { type: 'string' } },
+          layout: { type: 'string', enum: ['page', 'beside', 'me'] },
+        },
+      },
+    },
+  },
+})
+
+const handleSceneDialogue = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{
+    title?: string
+    role?: string
+    notes?: string
+    existing?: string
+    instruction?: string
+    granularity?: string
+    targetSeconds?: number
+    wpm?: number
+    position?: { index: number; count: number }
+    units?: SceneUnitInput[]
+    relations?: SceneRelationInput[]
+  }>(request, 2 * 1024 * 1024)
+  const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
+  if (!units.length) throw new Error('The page has no parts to write about')
+  if (!(await hasModelAccess())) throw new Error('Writing with the page needs an AI provider — open Models in the top bar')
+  const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
+  const granularity = body.granularity === 'paragraph' || body.granularity === 'clause' ? body.granularity : 'sentence'
+  const wpm = Math.max(90, Math.min(200, Number(body.wpm) || 150))
+  const targetSeconds = Math.max(8, Math.min(240, Number(body.targetSeconds) || 40))
+  const targetWords = Math.round((targetSeconds / 60) * wpm)
+  const notes = String(body.notes || '').trim().slice(0, 4_000)
+  const existing = String(body.existing || '').trim().slice(0, 6_000)
+  const instruction = String(body.instruction || '').trim().slice(0, 1_000)
+  const position = body.position && Number.isFinite(body.position.index) ? `scene ${body.position.index + 1} of ${body.position.count}` : ''
+  const prompt = `You write the spoken dialogue for one scene of a narrated technical video, and you can see the page the presenter is explaining. Title: "${String(body.title || 'Scene').slice(0, 120)}"${position ? ` (${position}` : ''}${body.role ? `${position ? ', ' : ' ('}role in the story: ${String(body.role).slice(0, 40)})` : position ? ')' : ''}.
+
+${sceneInventory(units, relations)}
+${SCENE_CAPABILITIES}
+
+${notes ? `SOURCE NOTES (what this scene must convey):\n${notes}\n` : ''}${existing ? `CURRENT DIALOGUE (rewrite it; keep what works):\n${existing}\n` : ''}${instruction ? `INSTRUCTION FROM THE AUTHOR: ${instruction}\n` : ''}
+Write the dialogue as a sequence of windows of attention. One window = ${granularity === 'paragraph' ? 'a short paragraph (2–3 sentences)' : granularity === 'clause' ? 'one clause or a very short sentence' : 'one sentence'} that is about specific parts of the page. Name the parts with the words the page uses (their labels), in an order the page can support: what is on screen before what depends on it, arrows after the boxes they join, a number when it is quoted. Every window lists the ids of the parts it is about (the ones that come on screen or are highlighted while it is spoken), exactly one hero id (or "" if the window belongs to the presenter), the camera ids (parts to move in on; [] to stay on the page), the layout ("me" for a line that needs no page, "beside" when a small figure sits next to the presenter, "page" when the page needs the frame), and the intent. Do not name parts that are not on the page. Aim for about ${targetWords} words in total (≈ ${targetSeconds} s at ${wpm} words a minute), between 3 and 12 windows. Spoken, plain, first person plural or second person; no bullet points, no headings inside "say".`
+  const windows = await sceneWindowsFromModel(prompt, windowSchema(true), units)
+  json(response, 200, { windows, provider: 'openai' })
+}
+
+const handleSceneBreakdown = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{
+    title?: string
+    windows?: Array<{ index: number; say: string }>
+    units?: SceneUnitInput[]
+    relations?: SceneRelationInput[]
+  }>(request, 2 * 1024 * 1024)
+  const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
+  const windows = Array.isArray(body.windows) ? body.windows.slice(0, 48) : []
+  if (!units.length || !windows.length) throw new Error('The breakdown needs the page and the approved dialogue')
+  if (!(await hasModelAccess())) throw new Error('The breakdown needs an AI provider — open Models in the top bar')
+  const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
+  const prompt = `You break an approved dialogue down for the motion engine. The words are final and must not change; you decide, per window, which parts of the page the window is about.
+
+Scene: "${String(body.title || 'Scene').slice(0, 120)}".
+
+${sceneInventory(units, relations)}
+${SCENE_CAPABILITIES}
+
+WINDOWS (index · what is said):
+${windows.map(window => `${window.index} · ${String(window.say || '').slice(0, 600)}`).join('\n')}
+
+For every window index return: the part ids the window is about (what should come on screen or be highlighted while it is spoken — include a part only when the words refer to it, by name, by number, or unmistakably by description), one hero id (or ""), camera ids (parts to move in on when the window is about a small region; [] otherwise), the layout ("me" when the line needs no page at all, "beside" when one small figure would sit next to the presenter, "page" otherwise), the intent, and a 2–5 word title. A part that is never referred to by any window is left out; do not invent ids.`
+  const assigned = await sceneWindowsFromModel(prompt, windowSchema(false), units)
+  json(response, 200, { windows: assigned, provider: 'openai' })
+}
+
+const sceneWindowsFromModel = async (
+  prompt: string,
+  schema: ReturnType<typeof windowSchema>,
+  units: SceneUnitInput[],
+) => {
+  const apiResponse = await modelFetch('writing', {
+    method: 'POST',
+    body: JSON.stringify({
+      model: 'ignored',
+      input: prompt,
+      reasoning: { effort: 'medium' },
+      text: { format: { type: 'json_schema', name: 'scene_windows', strict: true, schema } },
+    }),
+  })
+  if (!apiResponse.ok) throw new Error(`The writer failed (${apiResponse.status})`)
+  const apiBody = (await apiResponse.json()) as Parameters<typeof extractResponseText>[0]
+  const generated = JSON.parse(extractResponseText(apiBody)) as {
+    windows?: Array<{ index?: number; say?: string; title?: string; parts?: string[]; hero?: string; intent?: string; camera?: string[]; layout?: string }>
+  }
+  const validIds = new Set(units.map(unit => unit.id))
+  const ids = (list: unknown) => (Array.isArray(list) ? list : []).map(id => String(id).trim()).filter(id => validIds.has(id))
+  return (generated.windows || []).map(window => ({
+    ...(typeof window.index === 'number' ? { index: window.index } : {}),
+    ...(typeof window.say === 'string' ? { say: window.say.trim().slice(0, 1_200) } : {}),
+    title: String(window.title || '').trim().slice(0, 60),
+    parts: [...new Set(ids(window.parts))],
+    hero: validIds.has(String(window.hero || '')) ? String(window.hero) : '',
+    intent: String(window.intent || ''),
+    camera: [...new Set(ids(window.camera))],
+    layout: window.layout === 'me' || window.layout === 'beside' ? window.layout : 'page',
+  }))
+}
+
 const handleExplainerRefine = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -2025,6 +2175,14 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       url.pathname === '/api/experiments/image-animation'
     ) {
       await handleImageAnimationExperiment(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/scene/dialogue') {
+      await handleSceneDialogue(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/scene/breakdown') {
+      await handleSceneBreakdown(request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/slides/plan') {
