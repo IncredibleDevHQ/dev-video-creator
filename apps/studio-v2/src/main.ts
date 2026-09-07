@@ -4441,9 +4441,15 @@ const notebookStart = $('#notebook-start') as HTMLElement
 const syncNotebookStart = () => {
   // Read the live document: the project snapshot lags the editor by a tick.
   const doc = editor?.state?.doc
-  const empty = doc
-    ? doc.childCount === 0 || (doc.childCount === 1 && doc.firstChild?.type.name === 'paragraph' && doc.firstChild.content.size === 0)
-    : (project.notebook?.content || []).length === 0
+  let empty = true
+  if (doc) {
+    // Empty means nothing but blank paragraphs (the editor keeps a trailing one).
+    doc.forEach(node => {
+      if (node.type.name !== 'paragraph' || node.content.size > 0) empty = false
+    })
+  } else {
+    empty = (project.notebook?.content || []).every(node => node.type === 'paragraph' && !(node.content || []).length)
+  }
   notebookStart.hidden = !empty
 }
 notebookStart.addEventListener('click', event => {
