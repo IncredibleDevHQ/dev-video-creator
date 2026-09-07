@@ -59,14 +59,22 @@ export const planUnitsLocally = (
   })
 }
 
-export const planSceneLocally = (svg: string, steps: SlideStepV1[]): SlideStepV1[] => {
+export type LocalPlan = { svg: string; steps: SlideStepV1[] }
+
+// The atomizer stamps stable `u*` ids into the markup; callers MUST persist
+// the returned svg alongside the steps or the driver's getElementById finds
+// nothing (this was the no-motion bug).
+export const planSceneLocally = (svg: string, steps: SlideStepV1[]): LocalPlan => {
   const atomized = atomizeSlideSvg(svg)
   const leaves = leafUnits(atomized.units)
-  if (!leaves.length) return steps
+  if (!leaves.length) return { svg, steps }
   // No beats yet: synthesize one step per unit (the editor's own fallback).
   if (!steps.length) {
-    return oneStepPerUnit(atomized.units).map(draft => ({ ...draft, explanation: '' }))
+    return {
+      svg: atomized.svg,
+      steps: oneStepPerUnit(atomized.units).map(draft => ({ ...draft, explanation: '' })),
+    }
   }
   const drafts = suggestSteps(atomized.units)
-  return planUnitsLocally(drafts, steps)
+  return { svg: atomized.svg, steps: planUnitsLocally(drafts, steps) }
 }

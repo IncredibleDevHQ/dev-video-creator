@@ -8477,7 +8477,10 @@ const planSlideSteps = async (mode: 'narration' | 'instruction') => {
   if (!state) return
   // Deterministic local assignment of the page's units to the beats; the
   // planner's reveals are already element ids (the editor's granularity).
-  state.steps = planSceneLocally(state.svg, state.steps)
+  // The annotated svg rides along so the reveals resolve at compile time.
+  const planned = planSceneLocally(state.svg, state.steps)
+  state.svg = planned.svg
+  state.steps = planned.steps
   state.current = 0
   renderSlideEditorSteps()
   renderSlideEditorPreview()
@@ -8782,14 +8785,16 @@ assistButton.addEventListener('click', () => {
 
 // Local deterministic planning (no agent): assigns the page's units to the
 // block's existing narration beats. Same write/persist path as assist.
+// Writes BOTH the atomized svg (stable `u*` ids stamped in) and the steps —
+// the reveals only resolve at compile time against the annotated svg.
 const animateSceneLocally = (nodeId: string) => {
   const found = findSlideLikeNode(nodeId)
   if (!found) return false
-  const steps = planSceneLocally(
+  const planned = planSceneLocally(
     String(found.attrs.svg || ''),
     sanitizeSlideSteps(found.attrs.steps),
   )
-  writeSlideLikeNode(nodeId, { steps })
+  writeSlideLikeNode(nodeId, { svg: planned.svg, steps: planned.steps })
   syncProject()
   return true
 }

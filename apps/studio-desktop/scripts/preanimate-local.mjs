@@ -57,30 +57,37 @@ const check = (label, ok, detail = '') => {
 try {
   await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT}'); location.href = '/studio'`).catch(() => {})
   await waitFor(`!!document.querySelector('#editor .ProseMirror, #editor [contenteditable="true"]')`, 60_000)
-  // The notebook menu's Animate-all entry runs the local planner per scene.
-  await evalInWindow(`document.getElementById('notebook-menu-toggle').click()`)
-  await sleep(700)
-  const entry = await evalInWindow(`(() => {
-    const entry = document.querySelector('.notebook-menu-animate-all')
-    if (!entry) return null
-    entry.click()
-    return entry.textContent
+  // Per-scene: the card's Animate button re-plans locally (idempotent; writes
+  // the atomized svg + steps through the normal persist path).
+  const animated = await evalInWindow(`(() => {
+    const buttons = [...document.querySelectorAll('#editor figure[data-block-type="scene"] [data-slide-action="animate"]')]
+    buttons.forEach(button => button.click())
+    return buttons.length
   })()`)
-  check('Animate all scenes entry ran', Boolean(entry), entry ? entry.slice(0, 40) : '')
-  await sleep(3_000) // local planning is synchronous per scene; saves are debounced
+  check('Animate clicked per scene card', animated === 15, `${animated} cards`)
+  await sleep(4_000) // fifteen syncProjects land through the debounced save
   const { project } = await fetch(`${origin}/api/projects/${PROJECT}`).then(r => r.json())
   const scenes = project.notebook.content.filter(node => node.type === 'scene')
-  const perScene = scenes.map(node => ({
-    id: node.attrs.id,
-    title: node.attrs.title,
-    beats: (node.attrs.steps || []).length,
-    reveals: (node.attrs.steps || []).reduce((n, s) => n + (s.reveals || []).length, 0),
-  }))
-  const animated = perScene.filter(scene => scene.reveals > 0)
+  const perScene = scenes.map(node => {
+    const svg = String(node.attrs.svg || '')
+    const flat = (node.attrs.steps || []).flatMap(s => s.reveals || [])
+    const missing = flat.filter(reveal => !svg.includes(`id="${reveal}"`))
+    return {
+      id: node.attrs.id,
+      title: node.attrs.title,
+      beats: (node.attrs.steps || []).length,
+      reveals: flat.length,
+      missing: missing.length,
+    }
+  })
   for (const scene of perScene) {
-    check(`${scene.id} "${scene.title}"`, scene.reveals > 0, `${scene.beats} beats, ${scene.reveals} reveals`)
+    check(
+      `${scene.id} "${scene.title}"`,
+      scene.reveals > 0 && scene.missing === 0,
+      `${scene.beats} beats, ${scene.reveals} reveals, ${scene.missing} unresolved`,
+    )
   }
-  check('all 15 scenes animated', animated.length === 15, `${animated.length}/15`)
+  check('all 15 scenes animated with resolving reveals', perScene.every(s => s.reveals > 0 && s.missing === 0))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

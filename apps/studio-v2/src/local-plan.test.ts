@@ -67,4 +67,16 @@ describe('planUnitsLocally', () => {
     const d = drafts([['a', ['a'], 'reveal']])
     expect(planUnitsLocally(d, [])).toEqual([{ title: 'a', reveals: ['a'], verb: 'reveal', explanation: '' }])
   })
+
+  it('every planned reveal id comes from the drafts (so it exists in the annotated svg)', () => {
+    const d = drafts([
+      ['input', ['u-input', 'u-input-label'], 'reveal'],
+      ['arrow', ['u-arrow-1'], 'trace'],
+      ['attention', ['u-attn'], 'reveal'],
+    ])
+    const known = new Set(d.flatMap(draft => draft.reveals))
+    for (const step of planUnitsLocally(d, beats(['one', 'two']))) {
+      for (const reveal of step.reveals) expect(known.has(reveal)).toBe(true)
+    }
+  })
 })

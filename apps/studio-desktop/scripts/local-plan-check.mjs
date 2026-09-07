@@ -129,6 +129,19 @@ try {
     if (missing.length) throw new Error(`unknown reveals: ${missing.slice(0, 4)}`)
     return `${steps.length} beats saved, all reveals real`
   })
+  await step('every reveal resolves in the compiled scene HTML (s0- prefix)', async () => {
+    const { project } = await j(origin, '/api/projects/' + id)
+    const scene = project.notebook.content.find(node => node.type === 'scene')
+    const flat = (scene?.attrs.steps || []).flatMap(s => s.reveals || [])
+    // The compiled page lives in the player iframe; the driver prefixes every
+    // authored id with s<sceneIndex>- (this block is scene index 0).
+    const missing = await evalInWindow(`(() => {
+      const doc = document.querySelector('#player').iframeElement.contentDocument
+      return ${JSON.stringify(flat)}.filter(id => !doc.getElementById('s0-' + id))
+    })()`)
+    if (missing.length) throw new Error(`unresolved in compiled scene: ${missing.slice(0, 4)}`)
+    return `${flat.length} reveals resolve in the compiled scene`
+  })
   await step('driver registers and the step bar advances', async () => {
     await evalInWindow(`document.getElementById('close-slide-editor').click()`)
     const probe = `(() => {
@@ -153,6 +166,28 @@ try {
     const label = await evalInWindow(`document.getElementById('ex-canvas-step-label').textContent`)
     if (!label.startsWith('2/')) throw new Error(`label stuck at ${label}`)
     return `${stepCount} step windows, label → ${label}`
+  })
+  await step('setStep repaints the DOM (last-beat unit fades in)', async () => {
+    const { project } = await j(origin, '/api/projects/' + id)
+    const scene = project.notebook.content.find(node => node.type === 'scene')
+    const steps = scene?.attrs.steps || []
+    const lastWithReveals = [...steps].reverse().find(s => (s.reveals || []).length)
+    const lastReveal = lastWithReveals?.reveals[0]
+    if (!lastReveal) throw new Error('no reveal in any beat')
+    const diff = await evalInWindow(`(() => {
+      const win = document.querySelector('#player').iframeElement.contentWindow
+      const driver = win.__explainerDrivers['${BLOCK_ID}']
+      const el = win.document.getElementById('s0-${lastReveal}')
+      if (!el) return { missing: true }
+      driver.setStep(0, 0)
+      const atZero = win.getComputedStyle(el).opacity
+      driver.setStep(driver.stepCount - 1, 1)
+      const atEnd = win.getComputedStyle(el).opacity
+      return { atZero, atEnd }
+    })()`)
+    if (diff.missing) throw new Error(`s0-${lastReveal} missing from the compiled scene`)
+    if (diff.atZero === diff.atEnd) throw new Error(`opacity unchanged: ${diff.atZero}`)
+    return `#s0-${lastReveal} opacity ${diff.atZero} → ${diff.atEnd}`
   })
   await step('cleanup', async () => {
     await j(origin, '/api/projects/' + id, { method: 'DELETE' })
