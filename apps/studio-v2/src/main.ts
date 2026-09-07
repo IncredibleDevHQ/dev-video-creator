@@ -8303,6 +8303,10 @@ const composeButton = $('#se-compose') as HTMLButtonElement
 const dialogueEmpty = $('#se-dialogue-empty') as HTMLElement
 const windowsList = $('#se-windows') as HTMLOListElement
 const proposalBox = $('#se-proposal') as HTMLElement
+const writingBox = $('#se-writing') as HTMLElement
+const writingTitle = $('#se-writing-title') as HTMLElement
+const writingDetail = $('#se-writing-detail') as HTMLElement
+const writingCancel = $('#se-writing-cancel') as HTMLButtonElement
 const proposalMeta = $('#se-proposal-meta') as HTMLElement
 const proposalList = $('#se-proposal-windows') as HTMLOListElement
 const proposalPreviewButton = $('#se-proposal-preview') as HTMLButtonElement
@@ -8581,7 +8585,11 @@ const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] =
     .filter((window): window is SceneWindow => Boolean(window))
 }
 
+// Browsers with field-sizing: content size the textarea themselves; the
+// fallback measures once the element is laid out (never while hidden).
 const autoGrow = (textarea: HTMLTextAreaElement) => {
+  if (CSS.supports('field-sizing', 'content')) return
+  if (!textarea.offsetWidth) return
   textarea.style.height = 'auto'
   textarea.style.height = `${textarea.scrollHeight}px`
 }
@@ -8893,14 +8901,70 @@ const sceneNotesFor = (state: SlideEditorState) => {
   return [notes, director ? `Director: ${director}` : ''].filter(Boolean).join('\n')
 }
 
-const requestProposal = async (instruction: string) => {
-  const state = slideEditor
-  if (!state) return
-  const existing = dialogueText(state)
-  const targetSeconds = Math.max(8, Math.min(240, Number(targetInput.value) || (existing ? estimateSeconds(existing, state.pace) : 40)))
+// The writer at work: a banner where the proposal will land, with the
+// elapsed time and a Cancel; the button spins; errors stay visible there.
+let writing: { controller: AbortController; timer: number; startedAt: number } | null = null
+
+const showWriting = (title: string, instruction: string) => {
+  writingBox.hidden = false
+  writingBox.classList.remove('is-error')
+  writingTitle.textContent = title
+  writingDetail.textContent = instruction ? `“${instruction.slice(0, 80)}${instruction.length > 80 ? '…' : ''}” · 0 s` : 'reading the page, the arrows and your notes · 0 s'
+  writingCancel.hidden = false
+  writingCancel.textContent = 'Cancel'
   writeButton.classList.add('working')
   writeButton.disabled = true
   fitButton.disabled = true
+  writeNote.disabled = true
+}
+
+const hideWriting = () => {
+  writingBox.hidden = true
+  writeButton.classList.remove('working')
+  writeButton.disabled = false
+  fitButton.disabled = false
+  writeNote.disabled = false
+}
+
+const showWritingError = (message: string) => {
+  writingBox.hidden = false
+  writingBox.classList.add('is-error')
+  writingTitle.textContent = 'The writer could not answer'
+  writingDetail.textContent = message
+  writingCancel.hidden = false
+  writingCancel.textContent = 'Dismiss'
+  writeButton.classList.remove('working')
+  writeButton.disabled = false
+  fitButton.disabled = false
+  writeNote.disabled = false
+}
+
+writingCancel.addEventListener('click', () => {
+  if (writing) {
+    writing.controller.abort()
+    return
+  }
+  hideWriting()
+})
+
+const requestProposal = async (instruction: string) => {
+  const state = slideEditor
+  if (!state) return
+  if (writing) return
+  const existing = dialogueText(state)
+  const targetSeconds = Math.max(8, Math.min(240, Number(targetInput.value) || (existing ? estimateSeconds(existing, state.pace) : 40)))
+  const controller = new AbortController()
+  const startedAt = performance.now()
+  showWriting(existing ? 'Rewriting with the page in front of the writer…' : 'Writing with the page in front of the writer…', instruction)
+  const detailBase = writingDetail.textContent?.replace(/ · 0 s$/, '') || ''
+  writing = {
+    controller,
+    startedAt,
+    timer: window.setInterval(() => {
+      const seconds = Math.round((performance.now() - startedAt) / 1000)
+      writingDetail.textContent = `${detailBase} · ${seconds} s${seconds >= 25 ? ' · long pages take a little longer' : ''}`
+    }, 1000),
+  }
   setSlideEditorStatus(existing ? 'Rewriting with the page in front of the writer…' : 'Writing with the page in front of the writer…')
   try {
     const found = findSlideLikeNode(state.nodeId)
@@ -8920,10 +8984,12 @@ const requestProposal = async (instruction: string) => {
         units: slideUnitInventory(state),
         relations: relationsOf(state.units),
       }),
+      signal: controller.signal,
     })
     if (slideEditor !== state) return
     const windows = sanitizeWindows(body.windows || [], state)
     if (!windows.length) throw new Error('The writer returned nothing usable')
+    hideWriting()
     const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
     state.proposal = { windows, plan: planned?.plan || null, source: instruction ? `“${instruction.slice(0, 48)}${instruction.length > 48 ? '…' : ''}”` : 'with the page' }
     if (!state.windows.length) {
@@ -8944,11 +9010,20 @@ const requestProposal = async (instruction: string) => {
     setSlideEditorStatus(`Proposal · ${windows.length} windows · ≈ ${planned ? Math.round(motionPlanDurationSeconds(planned.plan) * 10) / 10 : '?'}s — playing in the preview; accept it or bring the current one back`, 'ok')
     playSlide(0)
   } catch (error) {
-    setSlideEditorStatus(error instanceof Error ? error.message : 'The writer failed', 'error')
+    if (controller.signal.aborted) {
+      hideWriting()
+      setSlideEditorStatus('Writing cancelled')
+    } else {
+      const message = error instanceof Error ? error.message : 'The writer failed'
+      showWritingError(message)
+      setSlideEditorStatus(message, 'error')
+    }
   } finally {
-    writeButton.classList.remove('working')
-    writeButton.disabled = false
-    fitButton.disabled = false
+    if (writing?.controller === controller) {
+      window.clearInterval(writing.timer)
+      writing = null
+    }
+    if (slideEditor !== state) hideWriting()
   }
 }
 
@@ -9361,7 +9436,9 @@ const openSlideEditor = (nodeId: string) => {
     renderSlideEditorSteps()
     setSlideEditorStatus(state.script ? `${parts} parts on the page — use this dialogue, or ask the writer to rewrite it` : `${parts} parts on the page — write the dialogue, or ask the writer`)
   }
+  hideWriting()
   slideEditorDialog.showModal()
+  requestAnimationFrame(() => windowsList.querySelectorAll<HTMLTextAreaElement>('textarea.se-window-text').forEach(autoGrow))
 }
 // Dev hook: inspect the atomised units and inferred arrow graph in the console.
 ;(window as unknown as { __slideEditor?: unknown }).__slideEditor = {

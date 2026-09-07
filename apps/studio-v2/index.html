@@ -492,6 +492,12 @@
               <button type="button" id="se-compose" class="button primary" title="Break this text into windows and plan the motion">Use this dialogue →</button>
             </div>
           </div>
+          <!-- The writer at work: visible where the proposal will land -->
+          <div id="se-writing" class="se-writing" hidden role="status" aria-live="polite">
+            <span class="se-spinner" aria-hidden="true"></span>
+            <div class="se-writing-text"><strong id="se-writing-title">Writing with the page…</strong><span id="se-writing-detail"></span></div>
+            <button type="button" id="se-writing-cancel" class="button">Cancel</button>
+          </div>
           <!-- Proposal banner: the list below shows the proposal while it is open -->
           <div id="se-proposal" class="se-proposal-banner" hidden>
             <div class="se-proposal-text"><strong>Proposal</strong><span id="se-proposal-meta"></span></div>

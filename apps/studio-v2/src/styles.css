@@ -1333,6 +1333,20 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .se-window-details .se-window-parts .se-chip { background: white; border: 1px solid #e4e4e7; }
 .se-window.is-playing { background: color-mix(in srgb, var(--brand) 10%, white); border-left-color: var(--brand); }
 #se-proposal-windows .se-window { cursor: default; }
+.se-writing { display: flex; align-items: center; gap: 12px; margin: 0 12px 6px; padding: 12px 14px; border-radius: 10px; background: #0e1210; color: #e4e7e5; }
+.se-writing.is-error { background: #fef2f2; color: #991b1b; }
+.se-writing-text { display: grid; gap: 2px; flex: 1 1 auto; min-width: 0; font-size: 12px; }
+.se-writing-text strong { font-size: 12.5px; }
+.se-writing-text span { color: #a1a1aa; font-size: 11px; font-variant-numeric: tabular-nums; }
+.se-writing.is-error .se-writing-text span { color: #b91c1c; }
+.se-writing .button { min-height: 28px; padding-inline: 10px; font-size: 10.5px; }
+.se-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(132,239,173,.25); border-top-color: #84efad; animation: se-spin .8s linear infinite; flex: 0 0 auto; }
+.se-writing.is-error .se-spinner { display: none; }
+@keyframes se-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .se-spinner { animation-duration: 2s; } }
+.button.working { position: relative; color: transparent !important; pointer-events: none; }
+.button.working::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: white; animation: se-spin .8s linear infinite; }
+.se-window textarea.se-window-text { field-sizing: content; }
 .se-proposal-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 12px 6px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--brand) 14%, white); border: 1px solid color-mix(in srgb, var(--brand) 40%, white); }
 .se-proposal-text { display: grid; gap: 1px; font-size: 11.5px; color: #14532d; min-width: 0; }
 .se-proposal-text strong { font-size: 12px; }
