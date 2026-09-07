@@ -131,6 +131,15 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
   if (message.type === 'assistant') {
     const content = (message.message as { content?: Array<Record<string, unknown>> })?.content || []
     for (const part of content) {
+      if (part.type === 'text' && /not logged in/i.test(String(part.text || ''))) {
+        // The CLI answers with a synthetic message instead of failing; make
+        // the fix obvious.
+        onEvent({
+          type: 'error',
+          ts,
+          error: 'Claude Code is not logged in for the command line. Open a terminal, run `claude`, then `/login` once — the studio reuses that login.',
+        })
+      }
       if (part.type === 'text' && part.text) onEvent({ type: 'text', ts, text: String(part.text) })
       if (part.type === 'tool_use') {
         onEvent({ type: 'tool', ts, tool: String(part.name || 'tool') })

@@ -111,7 +111,7 @@ try {
       frameCounts,
       posterLoaded: posters.filter(img => img.complete && img.naturalWidth > 0).length,
       provenance: cards.filter(card => card.querySelector('.scene-provenance')).length,
-      stepsLists: cards.filter(card => card.querySelectorAll('.notebook-explainer-steps li').length > 0).length,
+      stepsLists: cards.filter(card => card.querySelector('.block-dialogue-windows li, .block-dialogue-draft')).length,
     }
   }`)
   check('15 scene cards rendered', dom.cards === 15, `${dom.cards} cards`)
@@ -125,7 +125,7 @@ try {
     dom.frameCounts.join(','),
   )
   check('poster SVGs load (naturalWidth > 0)', dom.posterLoaded === 15, `${dom.posterLoaded}/15`)
-  check('narration beats listed per card', dom.stepsLists === 15, `${dom.stepsLists}/15`)
+  check('dialogue shown per card (windows or draft)', dom.stepsLists === 15, `${dom.stepsLists}/15`)
 
   // Reload round-trip: scene blocks survive a full reload. The eval fails
   // BECAUSE the navigation tears down the frame mid-call — that is the

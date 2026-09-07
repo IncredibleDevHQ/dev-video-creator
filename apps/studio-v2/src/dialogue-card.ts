@@ -14,7 +14,11 @@ export const dialogueState = (attrs: Record<string, unknown>) => {
   const windows = (Array.isArray(attrs.windows) ? attrs.windows : []) as CardWindow[]
   const motion = attrs.motion && typeof attrs.motion === 'object' ? (attrs.motion as { steps?: CardBeat[] }) : null
   const beats = Array.isArray(motion?.steps) ? motion!.steps : []
-  const script = String(attrs.script || '').trim()
+  // Older blocks carry their narration only as steps: that is the draft.
+  const steps = (Array.isArray(attrs.steps) ? attrs.steps : []) as Array<{ title?: string; explanation?: string }>
+  const script =
+    String(attrs.script || '').trim() ||
+    steps.map(step => String(step.explanation || '').trim()).filter(Boolean).join('\n\n')
   const seconds = beats.length ? Math.round(beats.reduce((sum, beat) => sum + (beat.motionWindowMs || 0) + (beat.holdMs || 0), 0) / 100) / 10 : 0
   const inSync =
     windows.length > 0 &&

@@ -2871,6 +2871,7 @@ editor = new Editor({
     renderSlashMenu()
   },
 })
+editor.on('update', () => syncNotebookStart())
 
 const showToast = (message: string) => {
   const toast = $('#toast')
@@ -4434,7 +4435,27 @@ const updatePreview = () => {
   }
 }
 
+// The start panel shows while the notebook is still empty (one blank
+// paragraph); it offers the three ways in and disappears at the first block.
+const notebookStart = $('#notebook-start') as HTMLElement
+const syncNotebookStart = () => {
+  // Read the live document: the project snapshot lags the editor by a tick.
+  const doc = editor?.state?.doc
+  const empty = doc
+    ? doc.childCount === 0 || (doc.childCount === 1 && doc.firstChild?.type.name === 'paragraph' && doc.firstChild.content.size === 0)
+    : (project.notebook?.content || []).length === 0
+  notebookStart.hidden = !empty
+}
+notebookStart.addEventListener('click', event => {
+  const card = (event.target as HTMLElement).closest<HTMLElement>('[data-start]')
+  if (!card) return
+  if (card.dataset.start === 'svg') ($('#import-svg-pages') as HTMLButtonElement).click()
+  else if (card.dataset.start === 'markdown') ($('#paste-markdown') as HTMLButtonElement).click()
+  else void openAttentionSample()
+})
+
 const syncProject = () => {
+  syncNotebookStart()
   setSaving(true)
   const notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(notebook)
@@ -5836,6 +5857,10 @@ const openAttentionVideoSample = async () => {
         attrs: {
           id: blockId,
           title: scene.title,
+          // The gold beats are the scene's dialogue draft (one paragraph per
+          // beat); the studio cuts it into windows on first open.
+          script: scriptFromSteps(steps),
+          sourceText: scriptFromSteps(steps),
           svg,
           svgSrc: `${ATTENTION_SAMPLE_URL}/${scene.page}`,
           derivedFrom:

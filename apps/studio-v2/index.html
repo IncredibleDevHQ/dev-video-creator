@@ -193,6 +193,15 @@
                 <button data-command="blockquote">Quote</button>
                 <button data-command="codeBlock">Code</button>
               </div>
+              <section id="notebook-start" class="notebook-start" hidden aria-label="Start this notebook">
+                <p class="notebook-start-lead">A notebook is pages plus what you say over them. Start with pages, or write first.</p>
+                <div class="notebook-start-grid">
+                  <button type="button" class="notebook-start-card" data-start="svg"><strong>Import SVG pages</strong><span>Pages from ppt-master or any SVG deck become scenes you can animate from the dialogue.</span></button>
+                  <button type="button" class="notebook-start-card" data-start="markdown"><strong>Paste Markdown</strong><span>Headings, paragraphs and code become blocks; add pages later.</span></button>
+                  <button type="button" class="notebook-start-card" data-start="sample"><strong>Open the sample</strong><span>Attention Is All You Need — 15 pages with dialogue, ready to plan and play.</span></button>
+                </div>
+                <p class="notebook-start-hint">Or just start typing below — press <kbd>/</kbd> for block types.</p>
+              </section>
               <div id="editor" class="editor-shell"></div>
               <div id="slash-menu" class="slash-menu" role="dialog" aria-label="Insert a block" hidden>
                 <div class="slash-menu-heading"><div><strong>Blocks</strong><span>Every block becomes a scene in your timeline.</span></div><kbd>Esc</kbd></div>
