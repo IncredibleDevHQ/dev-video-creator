@@ -5779,6 +5779,13 @@ const openAttentionVideoSample = async () => {
     }
     const fresh = blankProjectDocument(manifest.title)
     fresh.id = ATTENTION_VIDEO_SAMPLE_ID
+    fresh.derivedFrom = {
+      notebook:
+        (typeof manifest.derivedFrom === 'object'
+          ? manifest.derivedFrom?.notebook
+          : manifest.derivedFrom) || ATTENTION_SAMPLE_ID,
+      kind: 'video',
+    }
     if (project.theme) {
       fresh.theme = structuredClone(project.theme)
       fresh.brand = { ...project.theme.brand }
@@ -5843,10 +5850,200 @@ const deleteNotebook = async (notebookId: string, title: string) => {  if (!wind
   await renderNotebookMenu()
 }
 
+// ——— Notebook derivation hierarchy ———
+// Roots = notebooks without derivedFrom OR whose mother is not in the list
+// (orphans; they show a muted "derived" badge). Children nest under their
+// mother, newest first. The ancestor walk is cycle-safe (visited set, cap 4).
+type NotebookRow = {
+  id: string
+  title: string
+  blockCount: number
+  updatedAt: string
+  derivedFrom?: { notebook: string; kind?: string }
+}
+
+const buildNotebookTree = (rows: NotebookRow[]) => {
+  const byId = new Map(rows.map(row => [row.id, row]))
+  const childrenOf = new Map<string, NotebookRow[]>()
+  const roots: NotebookRow[] = []
+  for (const row of rows) {
+    const mother = row.derivedFrom?.notebook
+    if (mother && byId.has(mother)) {
+      if (!childrenOf.has(mother)) childrenOf.set(mother, [])
+      childrenOf.get(mother)!.push(row)
+    } else {
+      roots.push(row)
+    }
+  }
+  return { roots, childrenOf }
+}
+
+const ancestorChain = (rows: NotebookRow[], id: string): NotebookRow[] => {
+  const byId = new Map(rows.map(row => [row.id, row]))
+  const chain: NotebookRow[] = []
+  const seen = new Set([id])
+  let current = byId.get(id)
+  while (current?.derivedFrom?.notebook && chain.length < 4) {
+    const mother = byId.get(current.derivedFrom.notebook)
+    if (!mother || seen.has(mother.id)) break
+    chain.unshift(mother)
+    seen.add(mother.id)
+    current = mother
+  }
+  return chain
+}
+
+const notebookDate = (updatedAt: string) => {
+  const updated = new Date(updatedAt)
+  return `${updated.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${updated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+}
+
+// ——— Lineage breadcrumb (top bar, next to the Notebooks toggle) ———
+const renderNotebookLineage = async () => {
+  const lineage = $('#notebook-lineage') as HTMLElement
+  try {
+    const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
+    const chain = ancestorChain(projects, project.id)
+    const derivatives = projects.filter(row => row.derivedFrom?.notebook === project.id)
+    if (!chain.length && !derivatives.length) {
+      lineage.hidden = true
+      lineage.replaceChildren()
+      return
+    }
+    lineage.hidden = false
+    lineage.replaceChildren()
+    chain.forEach(ancestor => {
+      const segment = document.createElement('button')
+      segment.type = 'button'
+      segment.className = 'notebook-lineage-segment'
+      segment.textContent = ancestor.title || 'Untitled notebook'
+      segment.title = `Open ${ancestor.title || 'Untitled notebook'}`
+      segment.addEventListener('click', () => void openNotebook(ancestor.id))
+      lineage.append(segment)
+      const separator = document.createElement('span')
+      separator.className = 'notebook-lineage-separator'
+      separator.textContent = '›'
+      lineage.append(separator)
+    })
+    const current = document.createElement('span')
+    current.className = 'notebook-lineage-current'
+    current.textContent = project.title || 'Untitled notebook'
+    lineage.append(current)
+    if (derivatives.length) {
+      const chip = document.createElement('button')
+      chip.type = 'button'
+      chip.className = 'notebook-lineage-derivatives'
+      chip.textContent = `▸ ${derivatives.length} derivative${derivatives.length === 1 ? '' : 's'}`
+      chip.title = 'Show the derivation tree in the library'
+      chip.addEventListener('click', () => openNotebooksPage())
+      lineage.append(chip)
+    }
+  } catch {
+    lineage.hidden = true
+  }
+}
+
+// ——— The library page ———
+const notebooksPage = $('#notebooks-page') as HTMLElement
+const notebooksTree = $('#notebooks-tree') as HTMLElement
+
+const openNotebooksPage = () => {
+  void renderNotebooksPage()
+  notebooksPage.hidden = false
+}
+
+const notebookCard = (
+  entry: NotebookRow,
+  childrenOf: Map<string, NotebookRow[]>,
+  depth: number,
+  known: Set<string>,
+): HTMLElement => {
+  const card = document.createElement('div')
+  card.className = `notebook-card${entry.id === project.id ? ' is-current' : ''}${depth ? ' is-child' : ''}`
+  card.style.marginLeft = depth ? `${depth * 26}px` : '0'
+  const main = document.createElement('div')
+  main.className = 'notebook-card-main'
+  const title = document.createElement('strong')
+  title.textContent = entry.title || 'Untitled notebook'
+  const meta = document.createElement('small')
+  meta.textContent = `${entry.blockCount} block${entry.blockCount === 1 ? '' : 's'} · ${notebookDate(entry.updatedAt)}`
+  main.append(title, meta)
+  const badges = document.createElement('div')
+  badges.className = 'notebook-card-badges'
+  if (entry.derivedFrom) {
+    // An orphan's mother is not in the list — muted generic badge.
+    const orphan = !known.has(entry.derivedFrom.notebook)
+    const badge = document.createElement('span')
+    badge.className = `notebook-kind-badge${entry.derivedFrom.kind && !orphan ? ` kind-${entry.derivedFrom.kind}` : ' is-orphan'}`
+    badge.textContent = entry.derivedFrom.kind && !orphan ? entry.derivedFrom.kind : 'derived'
+    badges.append(badge)
+  }
+  if (entry.id === project.id) {
+    const current = document.createElement('span')
+    current.className = 'notebook-kind-badge is-open'
+    current.textContent = 'open now'
+    badges.append(current)
+  }
+  const actions = document.createElement('div')
+  actions.className = 'notebook-card-actions'
+  const open = document.createElement('button')
+  open.type = 'button'
+  open.className = 'button'
+  open.textContent = 'Open'
+  open.addEventListener('click', () => void openNotebook(entry.id))
+  const remove = document.createElement('button')
+  remove.type = 'button'
+  remove.className = 'button chrome-secondary'
+  remove.textContent = 'Delete'
+  remove.addEventListener('click', async () => {
+    const before = entry.id === project.id
+    await deleteNotebook(entry.id, entry.title || 'Untitled notebook')
+    if (!before) await renderNotebooksPage()
+  })
+  actions.append(open, remove)
+  card.append(main, badges, actions)
+  return card
+}
+
+const renderNotebooksPage = async () => {
+  const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
+  ;($('#notebooks-page-count') as HTMLElement).textContent = `· ${projects.length}`
+  const { roots, childrenOf } = buildNotebookTree(projects)
+  const known = new Set(projects.map(row => row.id))
+  notebooksTree.replaceChildren()
+  const append = (entry: NotebookRow, depth: number) => {
+    notebooksTree.append(notebookCard(entry, childrenOf, depth, known))
+    ;(childrenOf.get(entry.id) || []).forEach(child => append(child, depth + 1))
+  }
+  roots.forEach(root => append(root, 0))
+  const samples = $('#notebooks-samples-list') as HTMLElement
+  samples.replaceChildren()
+  const attention = document.createElement('button')
+  attention.type = 'button'
+  attention.className = 'notebook-menu-create notebook-menu-sample'
+  attention.innerHTML =
+    '<strong>Sample · Attention Is All You Need</strong><small>15 blueprint pages from ppt-master — speaker notes included, ready to animate</small>'
+  attention.addEventListener('click', () => void openAttentionSample())
+  const video = document.createElement('button')
+  video.type = 'button'
+  video.className = 'notebook-menu-create notebook-menu-sample'
+  video.innerHTML =
+    '<strong>Sample · Attention — Video (derived)</strong><small>15 scenes forked from the presentation notebook — director notes, storyboard and beats</small>'
+  video.addEventListener('click', () => void openAttentionVideoSample())
+  samples.append(attention, video)
+}
+
+;($('#close-notebooks-page') as HTMLButtonElement).addEventListener('click', () => {
+  notebooksPage.hidden = true
+})
+
+// The lineage breadcrumb renders once per load (openNotebook reloads) — the
+// call sits at the end of the module because it uses fetchJson (defined
+// below); see "lineage" section for the renderer.
+const scheduleNotebookLineage = () => void renderNotebookLineage()
+
 const renderNotebookMenu = async () => {
-  const { projects } = await fetchJson<{
-    projects: Array<{ id: string; title: string; blockCount: number; updatedAt: string }>
-  }>('/api/projects')
+  const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
   notebookMenuList.replaceChildren()
   const create = document.createElement('button')
   create.type = 'button'
@@ -5854,6 +6051,15 @@ const renderNotebookMenu = async () => {
   create.innerHTML = '<strong>+ New notebook</strong><small>Start a blank story with the current theme</small>'
   create.addEventListener('click', () => void createNotebook())
   notebookMenuList.append(create)
+  const library = document.createElement('button')
+  library.type = 'button'
+  library.className = 'notebook-menu-create notebook-menu-library'
+  library.innerHTML = '<strong>All notebooks →</strong><small>The library: saved notebooks and their derivatives as a tree</small>'
+  library.addEventListener('click', () => {
+    closeNotebookMenu()
+    openNotebooksPage()
+  })
+  notebookMenuList.append(library)
   const sample = document.createElement('button')
   sample.type = 'button'
   sample.className = 'notebook-menu-create notebook-menu-sample'
@@ -5872,14 +6078,17 @@ const renderNotebookMenu = async () => {
   heading.className = 'notebook-menu-heading'
   heading.textContent = `Saved notebooks · ${projects.length}`
   notebookMenuList.append(heading)
-  projects.forEach(entry => {
+  // Saved notebooks render as a tree: roots, with derivatives indented
+  // beneath their mother (↳ prefix + kind badge).
+  const { roots, childrenOf } = buildNotebookTree(projects)
+  const appendRow = (entry: NotebookRow, child: boolean) => {
     const row = document.createElement('div')
-    row.className = `notebook-menu-row${entry.id === project.id ? ' is-current' : ''}`
+    row.className = `notebook-menu-row${entry.id === project.id ? ' is-current' : ''}${child ? ' is-child' : ''}`
     const open = document.createElement('button')
     open.type = 'button'
     open.className = 'notebook-menu-open'
-    const updated = new Date(entry.updatedAt)
-    open.innerHTML = `<strong></strong><small>${entry.blockCount} block${entry.blockCount === 1 ? '' : 's'} · ${updated.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${updated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}${entry.id === project.id ? ' · open now' : ''}</small>`
+    const badge = child && entry.derivedFrom?.kind ? ` <em class="notebook-kind-badge kind-${entry.derivedFrom.kind}">${entry.derivedFrom.kind}</em>` : ''
+    open.innerHTML = `<strong></strong><small>${child ? '↳ ' : ''}${entry.blockCount} block${entry.blockCount === 1 ? '' : 's'} · ${notebookDate(entry.updatedAt)}${entry.id === project.id ? ' · open now' : ''}${badge}</small>`
     ;(open.querySelector('strong') as HTMLElement).textContent = entry.title || 'Untitled notebook'
     open.addEventListener('click', () => void openNotebook(entry.id))
     const remove = document.createElement('button')
@@ -5893,7 +6102,9 @@ const renderNotebookMenu = async () => {
     })
     row.append(open, remove)
     notebookMenuList.append(row)
-  })
+    ;(childrenOf.get(entry.id) || []).forEach(childEntry => appendRow(childEntry, true))
+  }
+  roots.forEach(root => appendRow(root, false))
 }
 
 notebookMenuToggle.addEventListener('click', async () => {
@@ -8748,4 +8959,5 @@ queueMicrotask(() => {
   )
   syncProject()
   refreshCapabilities()
+  scheduleNotebookLineage()
 })

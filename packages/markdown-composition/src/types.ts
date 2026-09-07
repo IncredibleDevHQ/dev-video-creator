@@ -290,6 +290,9 @@ export type ProjectDocumentV1 = {
   version: 1
   id: string
   title: string
+  // Derivation lineage: this notebook was derived from another one (e.g. a
+  // video fork of a presentation notebook). Optional and additive.
+  derivedFrom?: { notebook: string; kind?: string }
   notebook: TiptapDocument
   fps: 30
   width: 1920

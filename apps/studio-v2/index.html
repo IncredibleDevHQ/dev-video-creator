@@ -135,6 +135,7 @@
               <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Switch notebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Notebooks <span aria-hidden="true">⌄</span></button>
               <div id="notebook-menu-list" class="notebook-menu-list" role="menu" hidden></div>
             </div>
+            <nav id="notebook-lineage" class="notebook-lineage" aria-label="Notebook lineage" hidden></nav>
             <label class="project-title-field">
               <span class="sr-only">Project title</span>
               <input id="project-title" value="Human-first developer story" />
@@ -649,6 +650,20 @@
       <span class="screen-recording-pulse"></span>
       <div><strong>Screen recording</strong><small id="screen-recording-time">00:00</small></div>
       <button id="stop-screen-recording" class="button danger" type="button">Stop and add block</button>
+    </div>
+
+    <div id="notebooks-page" class="notebooks-page" role="dialog" aria-modal="true" aria-label="All notebooks" hidden>
+      <div class="notebooks-page-shell">
+        <header class="notebooks-page-head">
+          <div><span class="eyebrow">Library</span><h2>Notebooks <span id="notebooks-page-count" class="notebooks-page-count"></span></h2></div>
+          <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close">×</button>
+        </header>
+        <div id="notebooks-tree" class="notebooks-tree"></div>
+        <section class="notebooks-samples">
+          <h3>Start from a sample</h3>
+          <div id="notebooks-samples-list"></div>
+        </section>
+      </div>
     </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

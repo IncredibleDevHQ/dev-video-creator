@@ -48,6 +48,7 @@ type ProjectIndexRow = {
   blockCount: number
   createdAt: string
   updatedAt: string
+  derivedFrom?: { notebook: string; kind?: string }
 }
 
 type ProjectIndex = { projects: Record<string, ProjectIndexRow> }
@@ -72,6 +73,7 @@ export const saveProjectArtifact = async (project: ProjectDocumentV1) => {
     blockCount,
     createdAt: existing?.createdAt || now,
     updatedAt: now,
+    ...(project.derivedFrom ? { derivedFrom: project.derivedFrom } : {}),
   }
   await writeFileAtomic(
     join(notebooksDirectory(), `${project.id}.json`),
@@ -93,6 +95,7 @@ export type ProjectArtifactSummary = {
   blockCount: number
   createdAt: string
   updatedAt: string
+  derivedFrom?: { notebook: string; kind?: string }
 }
 
 // Every saved notebook, newest first — the switcher's list.

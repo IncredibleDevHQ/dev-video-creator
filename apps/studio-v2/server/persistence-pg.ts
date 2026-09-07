@@ -107,6 +107,7 @@ export type ProjectArtifactSummary = {
   blockCount: number
   createdAt: string
   updatedAt: string
+  derivedFrom?: { notebook: string; kind?: string }
 }
 
 // Every saved notebook, newest first — the switcher's list.
@@ -118,10 +119,12 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
     block_count: string | number
     created_at: string | Date
     updated_at: string | Date
+    derived_from: { notebook: string; kind?: string } | null
   }>(
+    // derivedFrom rides inside the artifact JSONB — no schema change needed.
     `select n.id, n.title,
        (select count(*) from studio_blocks b where b.notebook_id = n.id) as block_count,
-       n.created_at, n.updated_at
+       n.created_at, n.updated_at, n.artifact->'derivedFrom' as derived_from
      from studio_notebooks n
      order by n.updated_at desc`,
   )
@@ -131,6 +134,7 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
     blockCount: Number(row.block_count) || 0,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
+    ...(row.derived_from ? { derivedFrom: row.derived_from } : {}),
   }))
 }
 
