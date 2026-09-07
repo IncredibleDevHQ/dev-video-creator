@@ -8585,15 +8585,6 @@ const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] =
     .filter((window): window is SceneWindow => Boolean(window))
 }
 
-// Browsers with field-sizing: content size the textarea themselves; the
-// fallback measures once the element is laid out (never while hidden).
-const autoGrow = (textarea: HTMLTextAreaElement) => {
-  if (CSS.supports('field-sizing', 'content')) return
-  if (!textarea.offsetWidth) return
-  textarea.style.height = 'auto'
-  textarea.style.height = `${textarea.scrollHeight}px`
-}
-
 const layoutLabel: Record<WindowLayout, string> = { page: 'Page owns the frame', beside: 'Beside me', me: 'On me' }
 
 const windowCard = (state: SlideEditorState, window: SceneWindow, index: number, options: { editable: boolean; onChange: () => void }) => {
@@ -8604,18 +8595,25 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
   number.textContent = String(index + 1)
   row.append(number)
   if (options.editable) {
-    const text = document.createElement('textarea')
+    // Plain editable text: it sizes to its content, no measuring.
+    const text = document.createElement('div')
     text.className = 'se-window-text'
-    text.rows = 1
-    text.value = window.say
+    text.setAttribute('contenteditable', 'plaintext-only')
+    text.setAttribute('spellcheck', 'true')
+    text.textContent = window.say
     text.addEventListener('click', event => event.stopPropagation())
     text.addEventListener('focus', () => selectWindow(index))
+    text.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault()
+        text.blur()
+      }
+    })
     let timer: ReturnType<typeof setTimeout> | undefined
     text.addEventListener('input', () => {
-      autoGrow(text)
       globalThis.clearTimeout(timer)
       timer = globalThis.setTimeout(() => {
-        const say = text.value.trim()
+        const say = (text.textContent || '').replace(/\s+/g, ' ').trim()
         if (!say || say === window.say) return
         window.say = say
         window.title = undefined
@@ -8629,7 +8627,6 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
       }, 500)
     })
     row.append(text)
-    requestAnimationFrame(() => autoGrow(text))
   } else {
     const say = document.createElement('div')
     say.className = 'se-window-say'
@@ -8992,6 +8989,7 @@ const requestProposal = async (instruction: string) => {
     hideWriting()
     const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
     state.proposal = { windows, plan: planned?.plan || null, source: instruction ? `“${instruction.slice(0, 48)}${instruction.length > 48 ? '…' : ''}”` : 'with the page' }
+    writeNote.value = ''
     if (!state.windows.length) {
       // Nothing to compare against: take it straight in.
       acceptWindows(windows, 'written with the page')
@@ -9438,7 +9436,6 @@ const openSlideEditor = (nodeId: string) => {
   }
   hideWriting()
   slideEditorDialog.showModal()
-  requestAnimationFrame(() => windowsList.querySelectorAll<HTMLTextAreaElement>('textarea.se-window-text').forEach(autoGrow))
 }
 // Dev hook: inspect the atomised units and inferred arrow graph in the console.
 ;(window as unknown as { __slideEditor?: unknown }).__slideEditor = {
