@@ -459,8 +459,11 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
 
     // Camera: directed, or move in on a tight beat once the page is busy;
     // back to the page when the beat's units fall outside, or on the last beat.
+    // The frame grows to the visual block around the subject (lines of the
+    // same paragraph, the box a label sits in) so nothing on screen is cut.
     const subject = spec.camera && spec.camera.length ? spec.camera : [...entering, ...returning]
-    const focusBox = unionBox(subject)
+    const onScreen = leafUnits(units).filter(unit => visible.has(unit.id))
+    const focusBox = expandToBlock(unionBox(subject), onScreen)
     const tight = focusBox ? focusBox.width * focusBox.height < pageArea * cameraShare : false
     const directedClose = Boolean(spec.camera && spec.camera.length)
     const wantsClose =
@@ -496,6 +499,40 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
 }
 
 const unitById = (units: SlideUnit[], id: string) => leafUnits(units).find(unit => unit.id === id) || null
+
+/** Share of a unit's area that lies inside a rect grown by a margin. */
+const insideShare = (unit: SlideUnit['bbox'], rect: SlideUnit['bbox'], margin: number) => {
+  const x0 = Math.max(unit.x, rect.x - margin)
+  const y0 = Math.max(unit.y, rect.y - margin)
+  const x1 = Math.min(unit.x + unit.width, rect.x + rect.width + margin)
+  const y1 = Math.min(unit.y + unit.height, rect.y + rect.height + margin)
+  const area = Math.max(0, x1 - x0) * Math.max(0, y1 - y0)
+  return area / Math.max(1, unit.width * unit.height)
+}
+
+/**
+ * Grows a focus rect to the visual block around it: on-screen units that
+ * sit mostly inside the rect grown by a small margin (the next line of the
+ * same paragraph, the box a label sits in) join it, over three rounds.
+ * Connectors and frames never pull the frame along the page.
+ */
+const expandToBlock = (box: SlideUnit['bbox'] | null, onScreen: SlideUnit[]) => {
+  if (!box) return null
+  let rect = { ...box }
+  const included = new Set<string>()
+  for (let round = 0; round < 3; round += 1) {
+    const margin = Math.max(24, Math.max(rect.width, rect.height) * 0.1)
+    const touching = onScreen.filter(
+      unit => !included.has(unit.id) && unit.kind !== 'frame' && unit.kind !== 'connector' && insideShare(unit.bbox, rect, margin) >= 0.5,
+    )
+    if (!touching.length) break
+    touching.forEach(unit => included.add(unit.id))
+    const grown = unionBox([{ bbox: rect } as SlideUnit, ...touching])
+    if (!grown) break
+    rect = grown
+  }
+  return rect
+}
 
 /** Groups units into visual rows (top to bottom), each row left to right. */
 const rowsOf = (units: SlideUnit[]) => {

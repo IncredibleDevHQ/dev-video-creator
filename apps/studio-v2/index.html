@@ -486,70 +486,69 @@
           </div>
           <!-- First authoring: a plain text box until the dialogue exists -->
           <div id="se-dialogue-empty" class="se-dialogue-empty">
-            <textarea id="se-script" rows="8" spellcheck="true" placeholder="What you say over this page, one paragraph per thought. Name the parts of the page as you speak about them — or let the writer draft it with the page in front of it."></textarea>
+            <textarea id="se-script" rows="8" spellcheck="true" placeholder="What you say over this page, one paragraph per thought. Name the parts of the page as you speak about them — or ask the writer below to draft it with the page in front of it."></textarea>
             <div id="se-parts" class="se-parts" aria-label="Parts on this page"></div>
             <div class="slide-editor-prompt-actions">
               <button type="button" id="se-compose" class="button primary" title="Break this text into windows and plan the motion">Use this dialogue →</button>
             </div>
           </div>
-          <!-- The dialogue as windows, each with its motion -->
-          <ol id="se-windows" class="se-windows" hidden></ol>
-          <div id="se-coverage" class="slide-editor-coverage" hidden></div>
-          <!-- Proposal from the writer -->
-          <section id="se-proposal" class="se-proposal" hidden>
-            <div class="se-dialogue-head"><strong>Proposal</strong><span id="se-proposal-meta" class="se-estimate"></span></div>
-            <ol id="se-proposal-windows" class="se-windows se-windows-proposal"></ol>
-            <div class="slide-editor-prompt-actions">
-              <button type="button" id="se-proposal-preview" class="button" title="Play the proposal's motion in the preview">Preview its motion</button>
+          <!-- Proposal banner: the list below shows the proposal while it is open -->
+          <div id="se-proposal" class="se-proposal-banner" hidden>
+            <div class="se-proposal-text"><strong>Proposal</strong><span id="se-proposal-meta"></span></div>
+            <div class="se-proposal-actions">
+              <button type="button" id="se-proposal-preview" class="button" title="Switch the list and the preview between the proposal and the current dialogue">Show current</button>
               <button type="button" id="se-proposal-discard" class="button">Discard</button>
-              <button type="button" id="se-proposal-accept" class="button primary">Accept → re-plan</button>
-            </div>
-          </section>
-          <!-- The writer bar: iterate the dialogue with the page in front of the writer -->
-          <div class="se-writer">
-            <div class="se-writer-row">
-              <input id="se-write-note" type="text" placeholder="Ask the writer — “tighter”, “open on the formula”, “make Q, K, V the story”, “spend longer on softmax”…" />
-              <button type="button" id="se-write" class="button primary" title="Rewrite the dialogue with the page in front of the writer">Rewrite</button>
-            </div>
-            <div class="se-writer-row se-writer-controls">
-              <label class="se-target" title="How long the dialogue should run">Length ≈ <input id="se-target" type="number" min="8" max="240" step="5" value="40" /> s</label>
-              <button type="button" id="se-fit" class="button" title="Ask the writer to fit the current dialogue to this length">Fit to length</button>
-              <label class="se-pace-inline" title="Speaking pace"><span id="se-pace-label">Natural · 150 wpm</span><input id="se-pace" type="range" min="110" max="190" step="5" value="150" aria-label="Words per minute" /></label>
-              <div class="se-segmented se-segmented-small" role="radiogroup" aria-label="Window size" title="How finely the motion follows the dialogue">
-                <label><input type="radio" name="se-granularity" value="paragraph" /><span>¶</span></label>
-                <label><input type="radio" name="se-granularity" value="sentence" checked /><span>Sentence</span></label>
-                <label><input type="radio" name="se-granularity" value="clause" /><span>Clause</span></label>
-              </div>
+              <button type="button" id="se-proposal-accept" class="button primary">Accept</button>
             </div>
           </div>
-          <details class="se-advanced">
-            <summary>Other ways to plan</summary>
-            <div class="slide-editor-prompt">
-              <textarea id="se-prompt" rows="2" placeholder="Tell it how the page should build — e.g. “start with the encoder, trace each residual path, keep the callouts for the end”"></textarea>
-              <div class="slide-editor-prompt-actions">
-                <button type="button" id="se-plan-script" class="button" title="Re-plan from the dialogue words alone">Plan from dialogue</button>
-                <button type="button" id="se-plan-narration" class="button" title="Derive the steps from this block’s explanation">Plan from narration</button>
-                <button type="button" id="se-plan-local" class="button" title="The page’s own build order">Page order</button>
-                <button type="button" id="se-plan-apply" class="button" title="Rewrite the steps from your instruction">Apply</button>
-              </div>
-              <div class="slide-editor-prompt-actions" id="se-assist-row" hidden>
-                <button type="button" id="se-plan-assist" class="button" title="Run motion-master Plan Motion — Default through an installed coding agent, with confirmation gates (desktop only)">Plan motion (assist)</button>
-                <span id="se-assist-agent" class="slide-editor-assist-agent" title="The agent Plan motion (assist) uses — change it from the Agent button in the top bar"></span>
-                <button type="button" id="se-assist-cancel" class="button" hidden>Cancel</button>
-                <button type="button" id="se-assist-apply" class="button primary" hidden>Apply plan</button>
-              </div>
-              <div id="se-assist-log" class="slide-editor-assist-log" hidden></div>
-              <div class="slide-editor-prompt-actions">
-                <button type="button" id="se-order-arrows" class="button" title="Build order from the page: arrows where it flows, groups or reading order otherwise">Suggest steps</button>
-                <button type="button" id="se-order-reading" class="button" title="One step per unit, top-left to bottom-right">One step per unit</button>
-                <button type="button" id="se-order-groups" class="button" title="One step per authored group">By groups</button>
-                <button type="button" id="se-clear" class="button" title="Remove every step">Clear</button>
-                <button type="button" id="se-add-step" class="button" hidden>+ Step</button>
-              </div>
-              <div class="slide-editor-side-head"><strong>Beats</strong><span id="se-step-count">0</span></div>
-              <ol id="slide-editor-steps" class="slide-editor-steps"></ol>
+          <!-- The dialogue as windows, each with its motion -->
+          <ol id="se-windows" class="se-windows" hidden></ol>
+          <ol id="se-proposal-windows" class="se-windows" hidden></ol>
+          <div id="se-coverage" class="slide-editor-coverage" hidden></div>
+          <!-- The writer bar -->
+          <div class="se-writer">
+            <div class="se-writer-row">
+              <input id="se-write-note" type="text" placeholder="Ask the writer — “tighter”, “open on the formula”, “make Q, K, V the story”…" />
+              <button type="button" id="se-write" class="button primary" title="Rewrite the dialogue with the page in front of the writer">Rewrite</button>
             </div>
-          </details>
+            <div class="se-writer-settings">
+              <label title="How long the dialogue should run">Length <input id="se-target" type="number" min="8" max="240" step="5" value="40" /> s</label>
+              <button type="button" id="se-fit" class="se-link" title="Ask the writer to fit the dialogue to this length">Fit to length</button>
+              <span class="se-dot">·</span>
+              <label title="Speaking pace">Pace <select id="se-pace"><option value="125">Slow</option><option value="150" selected>Natural</option><option value="175">Brisk</option></select></label>
+              <span class="se-dot">·</span>
+              <label title="How finely the motion follows the dialogue">Windows <select id="se-granularity"><option value="paragraph">by paragraph</option><option value="sentence" selected>by sentence</option><option value="clause">by clause</option></select></label>
+              <span id="se-pace-label" hidden></span>
+              <details class="se-advanced">
+                <summary>More</summary>
+                <div class="slide-editor-prompt">
+                  <textarea id="se-prompt" rows="2" placeholder="Tell it how the page should build — e.g. “start with the encoder, trace each residual path, keep the callouts for the end”"></textarea>
+                  <div class="slide-editor-prompt-actions">
+                    <button type="button" id="se-plan-script" class="button" title="Re-plan from the dialogue words alone">Plan from dialogue</button>
+                    <button type="button" id="se-plan-narration" class="button" title="Derive the steps from this block’s explanation">Plan from narration</button>
+                    <button type="button" id="se-plan-local" class="button" title="The page’s own build order">Page order</button>
+                    <button type="button" id="se-plan-apply" class="button" title="Rewrite the steps from your instruction">Apply</button>
+                  </div>
+                  <div class="slide-editor-prompt-actions" id="se-assist-row" hidden>
+                    <button type="button" id="se-plan-assist" class="button" title="Run motion-master Plan Motion — Default through an installed coding agent, with confirmation gates (desktop only)">Plan motion (assist)</button>
+                    <span id="se-assist-agent" class="slide-editor-assist-agent" title="The agent Plan motion (assist) uses — change it from the Agent button in the top bar"></span>
+                    <button type="button" id="se-assist-cancel" class="button" hidden>Cancel</button>
+                    <button type="button" id="se-assist-apply" class="button primary" hidden>Apply plan</button>
+                  </div>
+                  <div id="se-assist-log" class="slide-editor-assist-log" hidden></div>
+                  <div class="slide-editor-prompt-actions">
+                    <button type="button" id="se-order-arrows" class="button" title="Build order from the page: arrows where it flows, groups or reading order otherwise">Suggest steps</button>
+                    <button type="button" id="se-order-reading" class="button" title="One step per unit, top-left to bottom-right">One step per unit</button>
+                    <button type="button" id="se-order-groups" class="button" title="One step per authored group">By groups</button>
+                    <button type="button" id="se-clear" class="button" title="Remove every step">Clear</button>
+                    <button type="button" id="se-add-step" class="button" hidden>+ Step</button>
+                  </div>
+                  <div class="slide-editor-side-head"><strong>Beats</strong><span id="se-step-count">0</span></div>
+                  <ol id="slide-editor-steps" class="slide-editor-steps"></ol>
+                </div>
+              </details>
+            </div>
+          </div>
           <div class="se-side-foot"><span id="se-status" class="settings-status" aria-live="polite"></span></div>
         </div>
       </div>
