@@ -3,7 +3,7 @@
 // named SVG groups with a motion verb; the same driver contract as explainer
 // canvases (`window.__explainerDrivers`) exposes step control to the studio.
 
-export type SlideStepVerb = 'reveal' | 'trace' | 'focus'
+export type SlideStepVerb = 'reveal' | 'trace' | 'focus' | 'count'
 
 export type SlideStepV1 = {
   title: string
@@ -20,7 +20,9 @@ export type SlideBlockAttrs = {
   steps?: SlideStepV1[]
 }
 
-const VERBS: SlideStepVerb[] = ['reveal', 'trace', 'focus']
+// 'count' joins the V1 verbs for the local planner's numeric beats; the
+// driver has no count carrier yet, so it paints count steps as reveals.
+const VERBS: SlideStepVerb[] = ['reveal', 'trace', 'focus', 'count']
 
 export const sanitizeSlideSteps = (value: unknown): SlideStepV1[] => {
   if (!Array.isArray(value)) return []

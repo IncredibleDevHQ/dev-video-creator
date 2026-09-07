@@ -51,6 +51,7 @@ import {
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import { SceneBlock } from './scene-node'
+import { planSceneLocally } from './local-plan'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -6060,20 +6061,19 @@ const renderNotebookMenu = async () => {
     openNotebooksPage()
   })
   notebookMenuList.append(library)
-  // Animate-all for notebooks containing scene blocks (desktop only).
-  if (desktopBridge?.isDesktop) {
-    const pendingScenes = project.notebook.content.filter(sceneNeedsAnimation).length
-    if (pendingScenes) {
-      const animateAll = document.createElement('button')
-      animateAll.type = 'button'
-      animateAll.className = 'notebook-menu-create notebook-menu-animate-all'
-      animateAll.innerHTML = `<strong>Animate all scenes</strong><small>${pendingScenes} scene${pendingScenes === 1 ? '' : 's'} still without motion — runs Plan motion per scene</small>`
-      animateAll.addEventListener('click', () => {
-        closeNotebookMenu()
-        void animateAllScenes()
-      })
-      notebookMenuList.append(animateAll)
-    }
+  // Animate-all for notebooks containing scene blocks — deterministic local
+  // planning by default (the editor's Plan motion (assist) is the upgrade).
+  const pendingScenes = project.notebook.content.filter(sceneNeedsAnimation).length
+  if (pendingScenes) {
+    const animateAll = document.createElement('button')
+    animateAll.type = 'button'
+    animateAll.className = 'notebook-menu-create notebook-menu-animate-all'
+    animateAll.innerHTML = `<strong>Animate all scenes</strong><small>${pendingScenes} scene${pendingScenes === 1 ? '' : 's'} still without motion — assigns the page's units to the beats, locally</small>`
+    animateAll.addEventListener('click', () => {
+      closeNotebookMenu()
+      void animateAllScenes()
+    })
+    notebookMenuList.append(animateAll)
   }
   const sample = document.createElement('button')
   sample.type = 'button'
@@ -8104,7 +8104,7 @@ document.addEventListener('click', event => {
 // Atomises the slide's SVG into units (boxes, labels, connectors, groups) and
 // lets the author wire them into steps by clicking the preview; steps store
 // element ids the composition driver reveals.
-type SlideEditorStep = { title: string; explanation: string; reveals: string[]; verb: 'reveal' | 'trace' | 'focus' }
+type SlideEditorStep = { title: string; explanation: string; reveals: string[]; verb: 'reveal' | 'trace' | 'focus' | 'count' }
 type SlideEditorState = {
   nodeId: string
   svg: string
@@ -8472,6 +8472,17 @@ const planSlideSteps = async (mode: 'narration' | 'instruction') => {
   }
 }
 ;($('#se-plan-narration') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('narration'))
+;($('#se-plan-local') as HTMLButtonElement).addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  // Deterministic local assignment of the page's units to the beats; the
+  // planner's reveals are already element ids (the editor's granularity).
+  state.steps = planSceneLocally(state.svg, state.steps)
+  state.current = 0
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+  setSlideEditorStatus(`${state.steps.length} beats planned locally — review and Save steps`, 'ok')
+})
 ;($('#se-plan-apply') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('instruction'))
 
 // ——— Approve page structure + director's brief ———
@@ -8578,16 +8589,10 @@ if (desktopBridge?.isDesktop) {
         } else {
           setSlideEditorStatus('Plan motion failed — see the log', 'error')
         }
-        // Batch flows (Animate all) wait on this.
-        assistDoneWaiters.splice(0).forEach(resolve => resolve(status))
       })()
     }
   })
 }
-
-const assistDoneWaiters: Array<(status: string) => void> = []
-const waitForAssistDone = () =>
-  new Promise<string>(resolve => assistDoneWaiters.push(resolve))
 
 // After a done run: read the artefacts, validate, convert to slide steps and
 // offer "Apply plan". A plan with validation errors is never applied
@@ -8775,43 +8780,17 @@ assistButton.addEventListener('click', () => {
   if (slideEditor) void startAssistRun(slideEditor)
 })
 
-// Applies the prepared plan (validating errors need a confirming click) and
-// saves the block — the scene Animate-all path drives the same two buttons.
-const applyAssistPlan = () => {
-  if (!assistApply) return false
-  assistApplyButton.click()
-  if (assistApply) return false // still armed (validation errors unconfirmed)
-  return true
-}
-
-// Runs the assist flow for one scene block: open the editor, run, apply,
-// save. Each scene's apply+save is atomic; a failure or cancel stops false.
-const animateSceneBlock = async (nodeId: string): Promise<boolean> => {
-  openSlideEditor(nodeId)
-  const state = slideEditor
-  if (!state) return false
-  const started = await startAssistRun(state)
-  if (!started) {
-    ;($('#close-slide-editor') as HTMLButtonElement).click()
-    return false
-  }
-  const status = await waitForAssistDone()
-  if (status !== 'done' || !assistApply) {
-    ;($('#close-slide-editor') as HTMLButtonElement).click()
-    return false
-  }
-  // A failing plan is never applied silently, batch or not.
-  if (assistApply.errors.length) {
-    setSlideEditorStatus(`Plan has ${assistApply.errors.length} validation error(s) — skipped`, 'error')
-    ;($('#close-slide-editor') as HTMLButtonElement).click()
-    return false
-  }
-  if (!applyAssistPlan()) {
-    ;($('#close-slide-editor') as HTMLButtonElement).click()
-    return false
-  }
-  ;($('#se-save') as HTMLButtonElement).click()
-  ;($('#close-slide-editor') as HTMLButtonElement).click()
+// Local deterministic planning (no agent): assigns the page's units to the
+// block's existing narration beats. Same write/persist path as assist.
+const animateSceneLocally = (nodeId: string) => {
+  const found = findSlideLikeNode(nodeId)
+  if (!found) return false
+  const steps = planSceneLocally(
+    String(found.attrs.svg || ''),
+    sanitizeSlideSteps(found.attrs.steps),
+  )
+  writeSlideLikeNode(nodeId, { steps })
+  syncProject()
   return true
 }
 
@@ -8823,7 +8802,7 @@ const sceneNeedsAnimation = (node: TiptapNode) =>
   )
 
 const animateAllScenes = async () => {
-  if (!desktopBridge?.isDesktop || animateAllRunning) return
+  if (animateAllRunning) return
   const pending = project.notebook.content.filter(sceneNeedsAnimation)
   if (!pending.length) {
     showToast('Every scene already has animation steps')
@@ -8835,12 +8814,9 @@ const animateAllScenes = async () => {
     for (const node of pending) {
       const title = String(node.attrs?.title || 'Scene')
       showToast(`Animating scene ${finished + 1} of ${pending.length} · ${title}`)
-      const ok = await animateSceneBlock(String(node.attrs?.id || ''))
-      if (!ok) {
-        showToast(`Stopped at “${title}” — ${finished} scene${finished === 1 ? '' : 's'} animated`)
-        return
-      }
-      finished += 1
+      // Local planning is the default; the editor's Plan motion (assist) is
+      // the per-scene agent upgrade.
+      if (animateSceneLocally(String(node.attrs?.id || ''))) finished += 1
     }
     showToast(`Animated ${finished} scene${finished === 1 ? '' : 's'} — review and present`)
   } finally {
@@ -8909,11 +8885,15 @@ document.addEventListener('click', event => {
   if (!action) return
   const block = action.closest<HTMLElement>('.notebook-slide-block, .notebook-scene-block')
   if (!block?.id) return
-  openSlideEditor(block.id)
-  // The scene card's Animate opens the editor AND starts the assist run.
-  if (action.dataset.slideAction === 'animate' && slideEditor && desktopBridge?.isDesktop) {
-    void startAssistRun(slideEditor)
+  // The scene card's Animate plans locally in place (no agent needed); the
+  // editor's Plan motion (assist) remains the per-scene agent upgrade.
+  if (action.dataset.slideAction === 'animate') {
+    if (animateSceneLocally(block.id)) {
+      showToast('Steps assigned locally — open Edit steps to review')
+    }
+    return
   }
+  openSlideEditor(block.id)
 })
 
 // ——— Shape collection: view, multi-select, edit, extend ———
