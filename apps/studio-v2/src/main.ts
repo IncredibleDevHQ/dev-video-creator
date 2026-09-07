@@ -47,11 +47,18 @@ import {
   sanitizeSlideSteps,
   slideDurationSeconds,
   stepsFromResolvedPlan,
+  instantiateMotionDriver,
+  motionPlanDurationSeconds,
+  sanitizeMotionPlan,
+  type MotionDriverInstance,
+  type MotionPlanV2,
 } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import { SceneBlock } from './scene-node'
 import { planSceneLocally } from './local-plan'
+import { planFromScript, scriptFromSteps, type ScriptCoverage } from './script-plan'
+import { direct, type DirectorResult } from './director'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -6068,7 +6075,7 @@ const renderNotebookMenu = async () => {
     const animateAll = document.createElement('button')
     animateAll.type = 'button'
     animateAll.className = 'notebook-menu-create notebook-menu-animate-all'
-    animateAll.innerHTML = `<strong>Animate all scenes</strong><small>${pendingScenes} scene${pendingScenes === 1 ? '' : 's'} still without motion — assigns the page's units to the beats, locally</small>`
+    animateAll.innerHTML = `<strong>Animate all scenes</strong><small>${pendingScenes} scene${pendingScenes === 1 ? '' : 's'} still without motion — planned from each scene's script, locally</small>`
     animateAll.addEventListener('click', () => {
       closeNotebookMenu()
       void animateAllScenes()
@@ -8112,6 +8119,15 @@ type SlideEditorState = {
   unitByElement: Map<string, SlideUnit>
   steps: SlideEditorStep[]
   current: number
+  // Script-first: the script is the source of truth, the plan is derived
+  // from it, the V1 steps from the plan.
+  script: string
+  motion: MotionPlanV2 | null
+  coverage: ScriptCoverage | null
+  director: DirectorResult | null
+  viewBox: { width: number; height: number }
+  driver: MotionDriverInstance | null
+  playing: { startedAt: number; from: number; frame: number } | null
 }
 let slideEditor: SlideEditorState | null = null
 const slideEditorDialog = $('#slide-editor-dialog') as HTMLDialogElement
@@ -8193,7 +8209,7 @@ const renderSlideEditorPreview = () => {
       toggleUnitInStep(unit)
     })
     overlay.append(hit)
-    if (at >= 0) {
+    if (at >= 0 && !state.motion) {
       const bg = document.createElementNS(SVG_NS, 'circle')
       bg.setAttribute('class', 'se-badge-bg')
       bg.setAttribute('cx', String(unit.bbox.x - pad + 9))
@@ -8209,6 +8225,240 @@ const renderSlideEditorPreview = () => {
     }
   })
   svg.append(overlay)
+  // With a plan, the preview is the real driver at the end of the current
+  // beat — what the viewer sees, not a diagram of assignments.
+  stopSlidePlayback()
+  state.driver = null
+  if (state.motion) {
+    try {
+      state.driver = instantiateMotionDriver(svg as SVGSVGElement, state.motion, '')
+      state.driver.setStep(state.current, 1)
+      syncSlideScrub(state.driver.offsets[state.current] + (state.motion.steps[state.current]?.motionWindowMs || 0))
+    } catch (error) {
+      console.warn('motion preview failed', error)
+    }
+  }
+}
+
+// ——— Script, playback and coverage ———
+const scriptInput = $('#se-script') as HTMLTextAreaElement
+const playButton = $('#se-play') as HTMLButtonElement
+const scrubInput = $('#se-scrub') as HTMLInputElement
+const timeLabel = $('#se-time') as HTMLElement
+const coverageBox = $('#se-coverage') as HTMLElement
+
+const formatSeconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
+
+const syncSlideScrub = (timeMs: number) => {
+  const state = slideEditor
+  if (!state?.driver) {
+    scrubInput.value = '0'
+    timeLabel.textContent = ''
+    return
+  }
+  const total = Math.max(1, state.driver.durationMs)
+  scrubInput.value = String(Math.round((Math.max(0, Math.min(total, timeMs)) / total) * 1000))
+  timeLabel.textContent = `${formatSeconds(timeMs)} / ${formatSeconds(total)}`
+}
+
+const stopSlidePlayback = () => {
+  const state = slideEditor
+  if (state?.playing) cancelAnimationFrame(state.playing.frame)
+  if (state) state.playing = null
+  playButton.textContent = '▶ Play'
+}
+
+const beatAtTime = (state: SlideEditorState, timeMs: number) => {
+  const offsets = state.driver?.offsets || []
+  let index = 0
+  offsets.forEach((offset, i) => { if (timeMs >= offset) index = i })
+  return index
+}
+
+const playSlide = (fromMs = 0) => {
+  const state = slideEditor
+  if (!state?.driver) return
+  stopSlidePlayback()
+  const driver = state.driver
+  const startedAt = performance.now()
+  const tick = (now: number) => {
+    const current = slideEditor
+    if (!current || current.driver !== driver || !current.playing) return
+    const t = fromMs + (now - startedAt)
+    driver.draw(t)
+    syncSlideScrub(t)
+    const beat = beatAtTime(current, t)
+    if (beat !== current.current) {
+      current.current = beat
+      renderSlideEditorSteps()
+    }
+    if (t >= driver.durationMs) {
+      stopSlidePlayback()
+      return
+    }
+    current.playing.frame = requestAnimationFrame(tick)
+  }
+  state.playing = { startedAt, from: fromMs, frame: requestAnimationFrame(tick) }
+  playButton.textContent = '■ Stop'
+}
+
+playButton.addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  if (state.playing) {
+    stopSlidePlayback()
+    return
+  }
+  if (!state.driver) {
+    setSlideEditorStatus('Plan from script first — then Play', 'error')
+    return
+  }
+  const total = state.driver.durationMs
+  const at = (Number(scrubInput.value) / 1000) * total
+  playSlide(at >= total - 50 ? 0 : at)
+})
+
+scrubInput.addEventListener('input', () => {
+  const state = slideEditor
+  if (!state?.driver) return
+  stopSlidePlayback()
+  const t = (Number(scrubInput.value) / 1000) * state.driver.durationMs
+  state.driver.draw(t)
+  timeLabel.textContent = `${formatSeconds(t)} / ${formatSeconds(state.driver.durationMs)}`
+  const beat = beatAtTime(state, t)
+  if (beat !== state.current) {
+    state.current = beat
+    renderSlideEditorSteps()
+  }
+})
+
+const renderCoverage = () => {
+  const state = slideEditor
+  coverageBox.replaceChildren()
+  if (!state?.coverage) {
+    coverageBox.hidden = true
+    return
+  }
+  coverageBox.hidden = false
+  const { coverage } = state
+  const head = document.createElement('div')
+  head.className = 'se-coverage-head'
+  const anchored = coverage.beats.filter(beat => beat.anchored).length
+  head.textContent =
+    coverage.score >= 0.99
+      ? `Every beat names something on the page · ${anchored}/${coverage.beats.length}`
+      : coverage.score === 0
+        ? 'The script names nothing on the page — the parts were placed in page order. Name them, or redraw the page for this script.'
+        : `${anchored} of ${coverage.beats.length} beats name a part of the page`
+  coverageBox.append(head)
+  const chips = document.createElement('div')
+  chips.className = 'se-coverage-chips'
+  coverage.beats.forEach(beat => {
+    const chip = document.createElement('span')
+    chip.className = `se-cov ${beat.anchored ? 'is-ok' : 'is-warn'}`
+    chip.textContent = `B${beat.index + 1}${beat.matched.length ? ` · ${beat.matched.slice(0, 3).join(', ')}${beat.matched.length > 3 ? '…' : ''}` : ' · no anchor'}`
+    chip.title = beat.matched.join(', ') || 'No part of the page is named in this beat'
+    chips.append(chip)
+  })
+  coverageBox.append(chips)
+  if (coverage.inferredUnits.length) {
+    const inferred = document.createElement('div')
+    inferred.className = 'se-coverage-note'
+    inferred.textContent = `Placed by neighbourhood, never named: ${coverage.inferredUnits.slice(0, 6).join(', ')}${coverage.inferredUnits.length > 6 ? ` +${coverage.inferredUnits.length - 6}` : ''}`
+    coverageBox.append(inferred)
+  }
+  if (coverage.unresolvedDirections.length) {
+    const unresolved = document.createElement('div')
+    unresolved.className = 'se-coverage-note is-warn'
+    unresolved.textContent = `Directions naming nothing on the page: ${coverage.unresolvedDirections.join(' ')}`
+    coverageBox.append(unresolved)
+  }
+}
+
+// Script → plan → director, in the editor. The steps list becomes a derived
+// view; the preview runs the real driver.
+const planSlideFromScript = () => {
+  const state = slideEditor
+  if (!state) return false
+  const script = scriptInput.value.trim()
+  if (!script) {
+    setSlideEditorStatus('Write the script first — one paragraph per beat', 'error')
+    return false
+  }
+  const result = planFromScript(script, state.units, { viewBox: state.viewBox })
+  if (!result) {
+    setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
+    return false
+  }
+  state.script = script
+  state.motion = result.plan
+  state.coverage = result.coverage
+  state.steps = result.steps.map(step => ({ ...step }))
+  state.current = 0
+  const found = findSlideLikeNode(state.nodeId)
+  state.director = direct({
+    title: String(found?.attrs.title || 'Scene'),
+    units: state.units,
+    viewBox: state.viewBox,
+    beats: result.beats,
+    plan: result.plan,
+    position: scenePosition(state.nodeId),
+  })
+  renderSlideEditorSteps()
+  renderSlideEditorPreview()
+  renderCoverage()
+  renderDirectorBrief(state.director.brief)
+  const seconds = Math.round(motionPlanDurationSeconds(result.plan) * 10) / 10
+  setSlideEditorStatus(
+    `${result.plan.steps.length} beats · ${seconds}s · ${state.director.requiredArea === 'none' ? 'stays behind you' : `${state.director.brief.layout}`} — Play to watch, Save to keep`,
+    'ok',
+  )
+  return true
+}
+;($('#se-plan-script') as HTMLButtonElement).addEventListener('click', () => { planSlideFromScript() })
+
+// Position of a slide-like block among the notebook's slide-like blocks.
+const scenePosition = (nodeId: string) => {
+  const slideLike = project.notebook.content.filter(node => node.type === 'scene' || node.type === 'slide')
+  const index = Math.max(0, slideLike.findIndex(node => String(node.attrs?.id || '') === nodeId))
+  return { index, count: Math.max(1, slideLike.length) }
+}
+
+// Scene-level script derivation for blocks that predate scripts: the saved
+// script, else the beats' narration, else the speaker notes.
+const scriptForNode = (nodeId: string, attrs: Record<string, unknown>) => {
+  const saved = String(attrs.script || '').trim()
+  if (saved) return saved
+  const fromSteps = scriptFromSteps(sanitizeSlideSteps(attrs.steps))
+  if (fromSteps.trim()) return fromSteps
+  return project.blocks[nodeId]?.speakerNotes?.trim() || ''
+}
+
+// What the director wrote, applied to a node: the brief always, the
+// storyboard / cues / role / notes only where the node has none (a
+// handcrafted scene keeps its own; the generated set rides in directorAuto).
+const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult) => {
+  const has = (key: string) => {
+    const value = attrs[key]
+    return Array.isArray(value) ? value.length > 0 : Boolean(value)
+  }
+  return {
+    directorBrief: result.brief,
+    directorAuto: {
+      kind: result.kind,
+      arcRole: result.arcRole,
+      requiredArea: result.requiredArea,
+      storyboard: result.storyboard,
+      cues: result.cues,
+      directorNotes: result.directorNotes,
+      legibility: result.legibility,
+    },
+    requiredArea: result.requiredArea,
+    ...(has('storyboard') ? {} : { storyboard: result.storyboard }),
+    ...(has('cues') ? {} : { cues: result.cues }),
+    ...(has('arcRole') ? {} : { arcRole: result.arcRole }),
+    ...(has('directorNotes') ? {} : { directorNotes: result.directorNotes }),
+  }
 }
 
 const renderSlideEditorSteps = () => {
@@ -8358,11 +8608,24 @@ const openSlideEditor = (nodeId: string) => {
       verb: step.verb === 'trace' || step.verb === 'focus' ? step.verb : 'reveal',
     })),
     current: 0,
+    script: scriptForNode(nodeId, found.attrs),
+    motion: sanitizeMotionPlan(found.attrs.motion),
+    coverage: null,
+    director: null,
+    viewBox: atomized.viewBox,
+    driver: null,
+    playing: null,
   }
-  ;($('#slide-editor-title') as HTMLElement).textContent = `Build order · ${String(found.attrs.title || 'Slide')}`
-  setSlideEditorStatus(`${leafUnits(atomized.units).length} parts found`)
+  scriptInput.value = slideEditor.script
+  ;($('#slide-editor-title') as HTMLElement).textContent = `Scene · ${String(found.attrs.title || 'Slide')}`
+  setSlideEditorStatus(
+    slideEditor.motion
+      ? `${leafUnits(atomized.units).length} parts · ${slideEditor.motion.steps.length} beats planned — Play to watch`
+      : `${leafUnits(atomized.units).length} parts found — write the script, then Plan from script`,
+  )
   syncApproveButton()
   renderDirectorBrief(found.attrs.directorBrief as DirectorBrief | null)
+  renderCoverage()
   renderSlideEditorSteps()
   renderSlideEditorPreview()
   slideEditorDialog.showModal()
@@ -8478,13 +8741,22 @@ const planSlideSteps = async (mode: 'narration' | 'instruction') => {
   // Deterministic local assignment of the page's units to the beats; the
   // planner's reveals are already element ids (the editor's granularity).
   // The annotated svg rides along so the reveals resolve at compile time.
+  // With a script, the script wins; without one this is the page's own
+  // build order spread over the existing beats.
+  if (scriptInput.value.trim()) {
+    planSlideFromScript()
+    return
+  }
   const planned = planSceneLocally(state.svg, state.steps)
   state.svg = planned.svg
   state.steps = planned.steps
+  state.motion = null
+  state.coverage = null
   state.current = 0
   renderSlideEditorSteps()
   renderSlideEditorPreview()
-  setSlideEditorStatus(`${state.steps.length} beats planned locally — review and Save steps`, 'ok')
+  renderCoverage()
+  setSlideEditorStatus(`${state.steps.length} beats in page order — write a script for motion that follows the story`, 'ok')
 })
 ;($('#se-plan-apply') as HTMLButtonElement).addEventListener('click', () => void planSlideSteps('instruction'))
 
@@ -8602,6 +8874,7 @@ if (desktopBridge?.isDesktop) {
 // silently — it needs a second, explicit click.
 type AssistApply = {
   steps: SlideEditorStep[]
+  resolved: unknown
   errors: Array<{ class?: string; message?: string }>
   warnings: unknown[]
   totalSeconds: number
@@ -8632,6 +8905,7 @@ const prepareAssistApply = async (runId: string) => {
     ).steps || []
     assistApply = {
       steps,
+      resolved: artefacts.resolved,
       errors: validation?.errors || [],
       warnings: validation?.warnings || [],
       totalSeconds:
@@ -8707,6 +8981,26 @@ assistApplyButton.addEventListener('click', () => {
     ...step,
     reveals: step.reveals.flatMap(id => byUnit.get(id)?.ids || []),
   }))
+  // The agent's resolved plan runs as-is on the V2 driver — nothing is
+  // collapsed to verbs any more.
+  const resolvedPlan = sanitizeMotionPlan(assistApply.resolved)
+  state.motion = resolvedPlan
+    ? {
+        ...resolvedPlan,
+        steps: resolvedPlan.steps.map(beat => ({
+          ...beat,
+          ...(beat.hero ? { hero: beat.hero.flatMap(id => byUnit.get(id)?.ids || [id]) } : {}),
+          actions: beat.actions.map(action => ({
+            ...action,
+            targets: action.targets.flatMap(id => byUnit.get(id)?.ids || [id]),
+            ...(action.ports
+              ? { ports: { from: byUnit.get(action.ports.from)?.ids[0] || action.ports.from, to: byUnit.get(action.ports.to)?.ids[0] || action.ports.to } }
+              : {}),
+          })),
+        })),
+      }
+    : null
+  state.script = scriptInput.value.trim()
   state.current = 0
   renderSlideEditorSteps()
   renderSlideEditorPreview()
@@ -8790,11 +9084,35 @@ assistButton.addEventListener('click', () => {
 const animateSceneLocally = (nodeId: string) => {
   const found = findSlideLikeNode(nodeId)
   if (!found) return false
-  const planned = planSceneLocally(
-    String(found.attrs.svg || ''),
-    sanitizeSlideSteps(found.attrs.steps),
-  )
-  writeSlideLikeNode(nodeId, { svg: planned.svg, steps: planned.steps })
+  const script = scriptForNode(nodeId, found.attrs)
+  const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
+  const result = script && atomized.units.length
+    ? planFromScript(script, atomized.units, { viewBox: atomized.viewBox })
+    : null
+  if (!result) {
+    // No script and no notes: the page's own build order, one beat per unit.
+    const planned = planSceneLocally(String(found.attrs.svg || ''), sanitizeSlideSteps(found.attrs.steps))
+    writeSlideLikeNode(nodeId, { svg: planned.svg, steps: planned.steps, motion: null })
+    syncProject()
+    return true
+  }
+  const directed = direct({
+    title: String(found.attrs.title || 'Scene'),
+    units: atomized.units,
+    viewBox: atomized.viewBox,
+    beats: result.beats,
+    plan: result.plan,
+    position: scenePosition(nodeId),
+  })
+  writeSlideLikeNode(nodeId, {
+    svg: atomized.svg,
+    script,
+    motion: result.plan,
+    steps: result.steps,
+    ...directorAttrs(found.attrs, directed),
+  })
+  const config = project.blocks[nodeId]
+  if (config) config.durationMs = Math.round(motionPlanDurationSeconds(result.plan) * 1000)
   syncProject()
   return true
 }
@@ -8853,6 +9171,7 @@ assistCancel.addEventListener('click', () => {
   renderSlideEditorPreview()
 })
 ;($('#close-slide-editor') as HTMLButtonElement).addEventListener('click', () => {
+  stopSlidePlayback()
   slideEditor = null
   slideEditorDialog.close()
 })
@@ -8867,17 +9186,33 @@ assistCancel.addEventListener('click', () => {
       reveals: step.reveals,
       verb: step.verb,
     }))
-  writeSlideLikeNode(state.nodeId, { svg: state.svg, steps })
+  const found = findSlideLikeNode(state.nodeId)
+  const script = scriptInput.value.trim()
+  // A script edited after the last plan is stale against the plan: keep the
+  // text, drop the plan, so the card says so instead of playing old motion.
+  const scriptChanged = state.motion && script !== state.script
+  writeSlideLikeNode(state.nodeId, {
+    svg: state.svg,
+    steps,
+    script,
+    motion: scriptChanged ? null : state.motion,
+    ...(state.director && found && !scriptChanged ? directorAttrs(found.attrs, state.director) : {}),
+  })
   const config = project.blocks[state.nodeId]
   if (config) {
     config.durationMs = Math.round(
-      slideDurationSeconds(
-        steps.map(step => ({ ...step })),
-      ) * 1000,
+      (state.motion && !scriptChanged
+        ? motionPlanDurationSeconds(state.motion)
+        : slideDurationSeconds(steps.map(step => ({ ...step })))) * 1000,
     )
   }
+  stopSlidePlayback()
   syncProject()
-  showToast(`Saved ${steps.length} step${steps.length === 1 ? '' : 's'}`)
+  showToast(
+    scriptChanged
+      ? `Saved the script — plan it again to refresh the motion`
+      : `Saved ${steps.length} beat${steps.length === 1 ? '' : 's'}${state.motion ? ' with motion' : ''}`,
+  )
   slideEditor = null
   slideEditorDialog.close()
   if (canvasExplainerNodeId === state.nodeId) {
@@ -8894,7 +9229,7 @@ document.addEventListener('click', event => {
   // editor's Plan motion (assist) remains the per-scene agent upgrade.
   if (action.dataset.slideAction === 'animate') {
     if (animateSceneLocally(block.id)) {
-      showToast('Steps assigned locally — open Edit steps to review')
+      showToast('Planned from the script — open the scene to watch it')
     }
     return
   }

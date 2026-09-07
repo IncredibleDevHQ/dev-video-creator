@@ -467,6 +467,17 @@
           <p class="slide-editor-hint">Click a part of the slide to add it to the selected step. <label><input type="checkbox" id="se-one-per-click" /> One step per click</label></p>
         </div>
         <div class="slide-editor-side">
+          <div class="slide-editor-script">
+            <div class="slide-editor-side-head"><strong>Script</strong><span title="One paragraph per beat. Name the parts of the page as you speak about them. Directions in brackets.">beats = paragraphs · [directions]</span></div>
+            <textarea id="se-script" rows="7" spellcheck="true" placeholder="Write what you say, one paragraph per beat. Name the parts of the page as you speak about them — they enter when first spoken, pop when mentioned again.&#10;&#10;Directions in brackets: [hero: encoder] [camera: attention block] [connect: query -> key] [dim rest] [open on me] [zoom out] [hold]"></textarea>
+            <div class="slide-editor-prompt-actions slide-editor-script-actions">
+              <button type="button" id="se-plan-script" class="button primary" title="Match the page's parts to the beats and design the motion to fit the script">Plan from script</button>
+              <button type="button" id="se-play" class="button" title="Play the planned motion in the preview">▶ Play</button>
+              <input id="se-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub the motion" />
+              <span id="se-time" class="slide-editor-time"></span>
+            </div>
+            <div id="se-coverage" class="slide-editor-coverage" hidden></div>
+          </div>
           <div class="slide-editor-prompt">
             <textarea id="se-prompt" rows="2" placeholder="Tell it how the slide should build — e.g. “start with the encoder, trace each residual path, keep the callouts for the end”"></textarea>
             <div class="slide-editor-prompt-actions">
@@ -486,11 +497,11 @@
               <div id="se-director-brief-body" class="slide-editor-director-body"></div>
             </details>
           </div>
-          <div class="slide-editor-side-head"><strong>Steps</strong><span id="se-step-count">0</span><button type="button" id="se-add-step" class="button">+ Step</button></div>
+          <div class="slide-editor-side-head"><strong>Beats</strong><span id="se-step-count">0</span><button type="button" id="se-add-step" class="button">+ Step</button></div>
           <ol id="slide-editor-steps" class="slide-editor-steps"></ol>
           <div class="slide-editor-side-foot">
             <span id="se-status" class="settings-status" aria-live="polite"></span>
-            <button type="button" id="se-save" class="button primary">Save steps</button>
+            <button type="button" id="se-save" class="button primary">Save scene</button>
           </div>
         </div>
       </div>

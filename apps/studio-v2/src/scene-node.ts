@@ -50,6 +50,16 @@ const storyboardMockSvg = (entry: SceneStoryboardEntry) => {
     parts.push(`<rect x="6" y="8" width="84" height="68" rx="3" fill="${DIM}"/>`)
     speaker(48, 34, 1.3)
     contentPanel(96, 8, 58, 68)
+  } else if (family === 'split') {
+    // Person left half, content right half, equal weight.
+    parts.push(`<rect x="4" y="8" width="74" height="68" rx="3" fill="${DIM}"/>`)
+    speaker(41, 34, 1.25)
+    contentPanel(84, 8, 72, 68)
+  } else if (family === 'content-card') {
+    // Content card most of the frame, person in the right margin.
+    contentPanel(6, 8, 112, 66)
+    parts.push(`<rect x="122" y="8" width="32" height="66" rx="3" fill="${DIM}"/>`)
+    speaker(138, 34, 0.85)
   } else {
     // content-pip: content full frame, chip Ø ≈ 0.18 W bottom right (bottom
     // edge ≤ 0.84 H).
@@ -102,6 +112,16 @@ export const SceneBlock = Node.create({
       // Same shape as slide steps: [{ title, explanation, reveals, verb }].
       steps: { default: [] },
       directorBrief: { default: null },
+      // Script-first: the script is the source of truth (one paragraph per
+      // beat, [directions] in brackets); the V2 motion plan is derived from
+      // it and runs the driver; steps are the V1 view of the plan.
+      script: { default: '' },
+      motion: { default: null },
+      // What the deterministic director derived (kind, role, required area,
+      // storyboard, cues, notes, legibility) — kept apart from the
+      // handcrafted fields above so a gold scene is never overwritten.
+      directorAuto: { default: null },
+      requiredArea: { default: '' },
     }
   },
 
@@ -122,6 +142,10 @@ export const SceneBlock = Node.create({
       cues,
       steps,
       directorBrief,
+      script,
+      motion,
+      directorAuto,
+      requiredArea,
       ...attributes
     } = HTMLAttributes
     const entries = (Array.isArray(storyboard) ? storyboard : []) as SceneStoryboardEntry[]
@@ -133,6 +157,11 @@ export const SceneBlock = Node.create({
     }>
     const role = String(arcRole || 'scene')
     const animated = stepList.some(step => (step.reveals || []).length > 0)
+    const planned = Boolean(motion && typeof motion === 'object' && Array.isArray((motion as { steps?: unknown[] }).steps) && (motion as { steps: unknown[] }).steps.length)
+    const scriptText = String(script || '')
+    const scriptBeats = scriptText ? scriptText.split(/\n\s*\n+/).filter(block => block.trim()).length : 0
+    const area = String(requiredArea || '')
+    const auto = (directorAuto && typeof directorAuto === 'object' ? directorAuto : null) as { kind?: string; legibility?: { minTextPx?: Record<string, number> } } | null
     return [
       'figure',
       mergeAttributes(attributes, {
@@ -145,15 +174,16 @@ export const SceneBlock = Node.create({
         ['span', { class: 'scene-badge' }, 'SCENE'],
         ['strong', { class: 'scene-title' }, title ? String(title) : 'Scene'],
         ['span', { class: `scene-arc scene-arc-${role}` }, role],
+        ...(area ? [['span', { class: `scene-area scene-area-${area}`, title: auto?.kind ? `${auto.kind} · needs ${area === 'none' ? 'no' : `a ${area}`} area` : '' }, area === 'none' ? 'behind you' : area]] : []),
         [
           'button',
           { type: 'button', class: 'notebook-image-action', 'data-slide-action': 'edit' },
-          'Edit steps',
+          scriptText ? 'Script & motion' : 'Write the script',
         ],
         [
           'button',
           { type: 'button', class: 'notebook-image-action scene-animate-action', 'data-slide-action': 'animate' },
-          animated ? 'Re-animate' : 'Animate',
+          planned ? 'Re-plan' : animated ? 'Re-animate' : 'Animate',
         ],
       ],
       ...(derivedFrom
@@ -217,7 +247,7 @@ export const SceneBlock = Node.create({
       [
         'figcaption',
         {},
-        `${stepList.length} beat${stepList.length === 1 ? '' : 's'} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role}${animated ? '' : ' · not animated yet — Animate'}`,
+        `${stepList.length} beat${stepList.length === 1 ? '' : 's'}${scriptBeats ? ` · script ${scriptBeats} ¶` : ''} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role}${planned ? ' · motion planned from the script' : animated ? '' : scriptText ? ' · script saved, not planned yet — Animate' : ' · not animated yet — Animate'}`,
       ],
     ]
   },

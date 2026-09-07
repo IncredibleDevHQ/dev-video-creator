@@ -168,6 +168,10 @@ export const SlideBlock = Node.create({
       source: { default: '' },
       // [{ title, explanation, reveals: [groupId], verb }]
       steps: { default: [] },
+      // Script-first: the script (one paragraph per beat) is the source of
+      // truth; the motion plan (V2) is derived from it and runs the driver.
+      script: { default: '' },
+      motion: { default: null },
       // The user approved the base page structure; Plan motion (assist)
       // refuses to run before this is set.
       structureApproved: { default: false },
