@@ -25,16 +25,23 @@ import {
 import {
   prepareSlideSvg,
   sanitizeSlideSteps,
-  slideDriverScript,
-  slideDurationSeconds,
   slidePrefix,
-  slideStepOffsets,
   type SlideStepV1,
 } from './slide'
+import {
+  motionPlanFromSteps,
+  motionPlanOffsetsMs,
+  sanitizeMotionPlan,
+  stepsFromMotionPlan,
+  type MotionPlanV2,
+} from './motion-plan'
+import { motionDriverScript } from './motion-driver'
 
 export * from './types'
 export * from './explainer'
 export * from './slide'
+export * from './motion-plan'
+export * from './motion-driver'
 export * from './themes'
 export * from './presenter-layouts'
 export * from './notebook-media'
@@ -64,8 +71,31 @@ const explainerNodeDurationMs = (node: TiptapNode) => {
   )
 }
 
-const slideNodeSteps = (node: TiptapNode): SlideStepV1[] =>
-  sanitizeSlideSteps((node.attrs as { steps?: unknown } | undefined)?.steps)
+// A slide-like node's motion: the V2 plan when it carries one (motion attr,
+// written by the script planner or an agent run), otherwise the V1 steps
+// upgraded on the fly — every slide runs on the V2 driver.
+const slideNodeMotion = (node: TiptapNode): MotionPlanV2 | null => {
+  const attrs = (node.attrs || {}) as { steps?: unknown; motion?: unknown }
+  return sanitizeMotionPlan(attrs.motion) || motionPlanFromSteps(sanitizeSlideSteps(attrs.steps))
+}
+
+const slideNodeSteps = (node: TiptapNode): SlideStepV1[] => {
+  const plan = slideNodeMotion(node)
+  return plan ? stepsFromMotionPlan(plan) : []
+}
+
+// Beat offsets in seconds (captions ride on them) and the scene duration.
+const slideNodeTimeline = (node: TiptapNode) => {
+  const plan = slideNodeMotion(node)
+  if (!plan) return { plan: null, steps: [] as SlideStepV1[], offsets: [] as number[], durationSeconds: 6 }
+  const { offsets, durationMs } = motionPlanOffsetsMs(plan)
+  return {
+    plan,
+    steps: stepsFromMotionPlan(plan),
+    offsets: offsets.map(ms => ms / 1000),
+    durationSeconds: Math.max(3, durationMs / 1000),
+  }
+}
 
 // Scene blocks (video-notebook entities) compile exactly like slide blocks:
 // they carry the same svg + steps attrs and use the same in-composition
@@ -74,8 +104,8 @@ const isSlideLikeNode = (node: TiptapNode) =>
   node.type === 'slide' || node.type === 'scene'
 
 const slideNodeDurationMs = (node: TiptapNode) => {
-  const steps = slideNodeSteps(node)
-  return steps.length ? Math.round(slideDurationSeconds(steps) * 1000) : 6000
+  const { plan, durationSeconds } = slideNodeTimeline(node)
+  return plan ? Math.round(durationSeconds * 1000) : 6000
 }
 
 const defaultAppearanceForNode = (node: TiptapNode) => {
@@ -583,7 +613,7 @@ const explainerCanvasScript = (
 // the step captions beneath it, and registers the step driver.
 const renderSlideScene = (scene: Scene) => {
   const attrs = (scene.node.attrs || {}) as { svg?: unknown; title?: unknown }
-  const steps = slideNodeSteps(scene.node)
+  const { plan, steps } = slideNodeTimeline(scene.node)
   const svg = prepareSlideSvg(String(attrs.svg || ''), slidePrefix(scene.index))
   if (!svg) {
     return `<div class="media-block media-placeholder"><span>▤</span><strong>${escapeHtml(String(attrs.title || 'Slide'))}</strong></div>`
@@ -594,7 +624,8 @@ const renderSlideScene = (scene: Scene) => {
         `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(step.title)}</strong><span>${escapeHtml(step.explanation)}</span></div>`,
     )
     .join('')
-  return `<div class="slide-stage">${svg}${steps.length ? `<div class="ex-captions">${captions}</div>` : ''}${slideDriverScript(scene.index, scene.id, steps)}</div>`
+  const driver = plan ? motionDriverScript(scene.index, scene.id, plan, slidePrefix(scene.index)) : ''
+  return `<div class="slide-stage">${svg}${steps.length ? `<div class="ex-captions">${captions}</div>` : ''}${driver}</div>`
 }
 
 const renderExplainerScene = (
@@ -932,8 +963,7 @@ const buildCompositionHtml = (
       if (isSlideLikeNode(scene.node)) {
         // The driver paints (step, progress) from scene time; captions swap
         // underneath on the same step offsets.
-        const steps = slideNodeSteps(scene.node)
-        const offsets = slideStepOffsets(steps)
+        const { steps, offsets } = slideNodeTimeline(scene.node)
         const captionMotion = steps
           .map((_, stepIndex) => {
             const at = start + offsets[stepIndex]
