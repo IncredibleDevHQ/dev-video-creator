@@ -130,6 +130,8 @@ export const SceneBlock = Node.create({
       pace: { default: null },
       windows: { default: [] },
       breakdownApproved: { default: false },
+      // The dialogue as authored (paragraphs), kept for re-cuts.
+      sourceText: { default: '' },
     }
   },
 

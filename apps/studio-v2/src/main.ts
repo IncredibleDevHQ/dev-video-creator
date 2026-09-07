@@ -8034,9 +8034,17 @@ const syncCanvasExplainerStepper = () => {
     canvasExplainerStep = 0
     canvasStepProgress = 1
     if (isStepped && scene) {
+      // Land on the first beat, settled, so the canvas shows what the viewer
+      // sees first — not the page's final frame.
       const stepLabel = $('#ex-canvas-step-label') as HTMLElement
-      stepLabel.textContent = `0/${sceneStepScript(scene).length}`
+      const count = sceneStepScript(scene).length
+      stepLabel.textContent = `${count ? 1 : 0}/${count}`
       stepLabel.title = 'Animate: play, step through, or loop the reveal'
+      const driver = explainerCompositionDriver(selectedNodeId)
+      if (driver && count) {
+        engageCanvasExplainerStepper()
+        applyCanvasExplainerStep()
+      }
     }
   }
 }
@@ -8158,6 +8166,11 @@ type SlideEditorState = {
   proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string } | null
   // When set, the preview runs this plan instead of the scene's (proposal preview).
   previewPlan: MotionPlanV2 | null
+  // The dialogue as authored (paragraphs), so a re-cut by paragraph can
+  // merge sentence windows back together.
+  sourceText: string
+  // Window cards whose parts drawer is open (kept across re-renders).
+  openDrawers: Set<number>
 }
 let slideEditor: SlideEditorState | null = null
 const slideEditorDialog = $('#slide-editor-dialog') as HTMLDialogElement
@@ -8340,6 +8353,11 @@ const GENERIC_PART = /^(shape|frame|image|circle|polygon|connector\s*#?\d*|u\d+)
 const namedParts = (state: SlideEditorState) =>
   leafUnits(state.units).filter(unit => !unit.chrome && !GENERIC_PART.test(unit.label.trim()))
 const unitOf = (state: SlideEditorState, id: string) => leafUnits(state.units).find(unit => unit.id === id)
+
+const dialogueInSync = (state: SlideEditorState) =>
+  Boolean(state.motion) &&
+  state.motion!.steps.length === state.windows.length &&
+  state.windows.every((window, index) => window.say.replace(/\s+/g, ' ').trim() === String(state.motion!.steps[index]?.explanation || '').replace(/\s+/g, ' ').trim())
 
 const dialogueText = (state: SlideEditorState) =>
   state.windows.length ? scriptFromWindows(state.windows) : scriptInput.value.trim()
@@ -8655,12 +8673,14 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
     const more = document.createElement('button')
     more.type = 'button'
     more.className = 'se-more'
-    more.textContent = 'parts'
+    more.textContent = state.openDrawers.has(index) ? 'less' : 'parts'
     more.addEventListener('click', event => {
       event.stopPropagation()
       const details = row.querySelector('.se-window-details') as HTMLElement | null
       if (details) {
         details.hidden = !details.hidden
+        if (details.hidden) state.openDrawers.delete(index)
+        else state.openDrawers.add(index)
         more.textContent = details.hidden ? 'parts' : 'less'
       }
     })
@@ -8670,7 +8690,7 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
   if (options.editable) {
     const details = document.createElement('div')
     details.className = 'se-window-details'
-    details.hidden = true
+    details.hidden = !state.openDrawers.has(index)
     const chips = document.createElement('div')
     chips.className = 'se-window-parts'
     window.parts.forEach(id => {
@@ -8827,6 +8847,7 @@ const acceptWindows = (windows: SceneWindow[], source: string) => {
   if (!state) return
   state.windows = sanitizeWindows(windows, state)
   state.script = scriptFromWindows(state.windows)
+  state.sourceText = source === 'in windows' || source.startsWith('re-cut') ? state.sourceText || state.script : state.script
   state.proposal = null
   state.previewPlan = null
   renderProposal()
@@ -8840,6 +8861,7 @@ const acceptWindows = (windows: SceneWindow[], source: string) => {
 const composeFromText = async (text: string, source: string) => {
   const state = slideEditor
   if (!state) return
+  if (!source.startsWith('re-cut')) state.sourceText = text
   const local = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm })
   if (!local) {
     setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
@@ -9104,7 +9126,7 @@ granularitySelect.addEventListener('change', () => {
   if (!state) return
   state.pace = { ...state.pace, granularity: granularityOf() }
   renderEstimate()
-  if (state.windows.length) void composeFromText(scriptFromWindows(state.windows), `re-cut by ${state.pace.granularity}`)
+  if (state.windows.length) void composeFromText(state.sourceText || scriptFromWindows(state.windows), `re-cut by ${state.pace.granularity}`)
 })
 
 paceInput.addEventListener('change', () => {
@@ -9383,24 +9405,37 @@ const openSlideEditor = (nodeId: string) => {
     breakdownApproved: Boolean(found.attrs.breakdownApproved),
     proposal: null,
     previewPlan: null,
+    sourceText: '',
+    openDrawers: new Set(),
   }
   const state = slideEditor
   state.windows = sanitizeWindows(found.attrs.windows, state)
+  state.sourceText = String(found.attrs.sourceText || '') || state.script
   scriptInput.value = state.windows.length ? '' : state.script
   syncPaceControls(state.pace)
   writeNote.value = ''
   targetInput.value = String(state.script ? Math.max(10, Math.round(estimateSeconds(state.script, state.pace) / 5) * 5) : 40)
-  ;($('#slide-editor-title') as HTMLElement).textContent = `Scene · ${String(found.attrs.title || 'Slide')}`
+  const nodeKind = project.notebook.content.find(node => String(node.attrs?.id || '') === nodeId)?.type === 'slide' ? 'Slide' : 'Scene'
+  ;($('#slide-editor-title') as HTMLElement).textContent = `${nodeKind} · ${String(found.attrs.title || nodeKind)}`
   syncApproveButton()
   renderDirectorBrief(found.attrs.directorBrief as DirectorBrief | null)
   renderParts()
   renderProposal()
   storyboardBox.replaceChildren()
   const parts = leafUnits(atomized.units).length
+  if (!state.windows.length && state.script && (state.motion || sanitizeSlideSteps(found.attrs.steps).length)) {
+    // A scene from before windows: cut its dialogue into windows now, from
+    // the words alone, so the studio opens in the same state as any other.
+    const local = planFromScript(state.script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm })
+    if (local) {
+      state.sourceText = state.script
+      state.windows = sanitizeWindows(local.windows, state)
+    }
+  }
   if (state.windows.length) {
     // The dialogue exists as windows: the motion follows it (re-planned if
     // the saved plan is missing).
-    if (!state.motion) replan({ quiet: true })
+    if (!state.motion || !dialogueInSync(state)) replan({ quiet: true })
     else {
       renderWindowCards()
       renderSlideEditorPreview()
@@ -10017,6 +10052,7 @@ assistCancel.addEventListener('click', () => {
     svg: state.svg,
     steps,
     script,
+    sourceText: state.sourceText || script,
     pace: state.pace,
     scriptApproved: inWindows,
     windows: state.windows.map(({ pinned, ...window }) => ({

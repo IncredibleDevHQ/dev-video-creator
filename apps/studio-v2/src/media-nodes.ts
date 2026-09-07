@@ -180,6 +180,8 @@ export const SlideBlock = Node.create({
       pace: { default: null },
       windows: { default: [] },
       breakdownApproved: { default: false },
+      // The dialogue as authored (paragraphs), kept for re-cuts.
+      sourceText: { default: '' },
       // The user approved the base page structure; Plan motion (assist)
       // refuses to run before this is set.
       structureApproved: { default: false },
@@ -208,15 +210,6 @@ export const SlideBlock = Node.create({
         { class: 'notebook-explainer-prompt' },
         ['span', { class: 'notebook-explainer-glyph' }, '▤'],
         ['strong', {}, title ? String(title) : 'Slide'],
-        [
-          'button',
-          {
-            type: 'button',
-            class: 'notebook-image-action',
-            'data-slide-action': 'edit',
-          },
-          'Dialogue & motion',
-        ],
       ],
       poster
         ? ['img', { src: String(poster), alt: String(title || 'Slide') }]

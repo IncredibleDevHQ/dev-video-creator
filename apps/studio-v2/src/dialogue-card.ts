@@ -20,8 +20,8 @@ export const dialogueState = (attrs: Record<string, unknown>) => {
     windows.length > 0 &&
     beats.length === windows.length &&
     windows.every((window, index) => normalize(String(window.say || '')) === normalize(String(beats[index]?.explanation || '')))
-  const status: 'none' | 'draft' | 'unplanned' | 'stale' | 'synced' = !windows.length
-    ? script ? 'draft' : 'none'
+  const status: 'none' | 'draft' | 'legacy' | 'unplanned' | 'stale' | 'synced' = !windows.length
+    ? beats.length && script ? 'legacy' : script ? 'draft' : 'none'
     : !beats.length
       ? 'unplanned'
       : inSync ? 'synced' : 'stale'
@@ -30,7 +30,8 @@ export const dialogueState = (attrs: Record<string, unknown>) => {
 
 const STATUS_TEXT: Record<ReturnType<typeof dialogueState>['status'], string> = {
   none: 'no dialogue yet',
-  draft: 'drafted, not in windows yet — open it to plan the motion',
+  draft: 'drafted — open it to plan the motion',
+  legacy: 'motion planned from the words — open it to edit as windows',
   unplanned: 'in windows, motion not planned yet',
   stale: 'changed since the motion was planned — re-plan',
   synced: 'the motion follows it',
@@ -100,6 +101,7 @@ export const dialogueCaption = (attrs: Record<string, unknown>) => {
   if (status === 'synced') return `${windows.length} windows · ${seconds}s of motion`
   if (status === 'stale') return `${windows.length} windows · motion out of date`
   if (status === 'unplanned') return `${windows.length} windows · not planned`
+  if (status === 'legacy') return `${seconds}s of motion · dialogue not in windows yet`
   if (status === 'draft') return 'dialogue drafted'
   return 'no dialogue'
 }
