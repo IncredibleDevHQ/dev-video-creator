@@ -50,6 +50,7 @@ import {
   instantiateMotionDriver,
   motionPlanDurationSeconds,
   sanitizeMotionPlan,
+  stepsFromMotionPlan,
   type MotionDriverInstance,
   type MotionPlanV2,
 } from 'markdown-composition'
@@ -619,7 +620,9 @@ const sceneStepScript = (
     ).steps.map(step => ({ title: step.title, explanation: step.explanation }))
   }
   if (scene.node.type === 'slide' || scene.node.type === 'scene') {
-    return sanitizeSlideSteps(scene.node.attrs?.steps).map(step => ({
+    // The plan is the source of truth for the beats the composition plays.
+    const plan = sanitizeMotionPlan(scene.node.attrs?.motion)
+    return (plan ? stepsFromMotionPlan(plan) : sanitizeSlideSteps(scene.node.attrs?.steps)).map(step => ({
       title: step.title,
       explanation: step.explanation,
     }))
@@ -9178,8 +9181,10 @@ assistCancel.addEventListener('click', () => {
 ;($('#se-save') as HTMLButtonElement).addEventListener('click', () => {
   const state = slideEditor
   if (!state) return
+  // With a plan, every beat stays (a beat that brings nothing on screen is
+  // still a line the presenter speaks); without one, empty steps are noise.
   const steps = state.steps
-    .filter(step => step.reveals.length)
+    .filter(step => step.reveals.length || state.motion)
     .map((step, index) => ({
       title: step.title.trim() || `Step ${index + 1}`,
       explanation: step.explanation.trim(),
