@@ -1263,6 +1263,8 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 
 /* ——— Slide build-order editor ——— */
 .slide-editor-modal { width: min(1280px, 96vw); max-height: 92vh; border-radius: 16px; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+/* Author display beats the UA's dialog:not([open]) rule — keep it closed when closed. */
+.slide-editor-modal:not([open]) { display: none; }
 .slide-editor-modal .modal-heading { align-items: center; gap: 14px; }
 .slide-editor-tools { display: flex; gap: 6px; flex-wrap: wrap; }
 .slide-editor-tools .button { min-height: 28px; padding-inline: 10px; font-size: 10px; }
@@ -1474,6 +1476,23 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .scene-area-beside { background: #fef9c3; color: #854d0e; }
 .scene-area-frame { background: #ffedd5; color: #9a3412; }
 .scene-area-takeover { background: #fee2e2; color: #991b1b; }
+.block-dialogue { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid #e4e4e7; border-radius: 10px; background: white; }
+.block-dialogue.is-stale { border-color: #fcd34d; background: #fffbeb; }
+.block-dialogue.is-none, .block-dialogue.is-draft { border-style: dashed; }
+.block-dialogue-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.block-dialogue-label { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--brand); }
+.block-dialogue-state { font-size: 11px; color: #52525b; flex: 1 1 auto; min-width: 0; }
+.block-dialogue-state.is-synced { color: #14532d; }
+.block-dialogue-state.is-stale { color: #92400e; font-weight: 600; }
+.block-dialogue-edit { min-height: 28px; padding: 0 11px; border: 1px solid #18181b; border-radius: 6px; background: #18181b; color: white; font-size: 10px; font-weight: 800; cursor: pointer; }
+.block-dialogue-edit:hover { background: #27272a; }
+.block-dialogue-windows { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.block-dialogue-window { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; }
+.block-dialogue-num { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: #f4f4f5; color: #3f3f46; font-size: 10px; font-weight: 700; margin-top: 1px; }
+.block-dialogue-body p { margin: 0; font-size: 12.5px; line-height: 1.55; color: #18181b; }
+.block-dialogue-meta { display: block; margin-top: 2px; font-size: 10.5px; color: #71717a; }
+.block-dialogue-draft { margin: 0; font-size: 12.5px; line-height: 1.55; color: #3f3f46; white-space: pre-line; }
+.block-dialogue-empty { margin: 0; font-size: 12px; color: #71717a; line-height: 1.5; }
 .scene-storyboard { display: flex; gap: 10px; overflow-x: auto; padding: 2px; }
 .scene-frame { display: grid; gap: 4px; flex: 0 0 128px; }
 .scene-frame img { width: 128px; height: 72px; border-radius: 6px; border: 1px solid #2c3530; display: block; }

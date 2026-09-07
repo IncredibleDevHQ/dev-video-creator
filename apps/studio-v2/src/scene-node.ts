@@ -5,6 +5,7 @@
 // and the narration beats. Scenes share the slide editor / assist pipeline
 // (same svg + steps + structureApproved attrs).
 import { mergeAttributes, Node } from '@tiptap/core'
+import { dialogueCaption, dialogueSection } from './dialogue-card'
 
 export type SceneStoryboardEntry = {
   label?: string
@@ -170,15 +171,13 @@ export const SceneBlock = Node.create({
     const animated = stepList.some(step => (step.reveals || []).length > 0)
     const planned = Boolean(motion && typeof motion === 'object' && Array.isArray((motion as { steps?: unknown[] }).steps) && (motion as { steps: unknown[] }).steps.length)
     const scriptText = String(script || '')
-    const scriptBeats = scriptText ? scriptText.split(/\n\s*\n+/).filter(block => block.trim()).length : 0
-    const windowCount = Array.isArray(windows) ? windows.length : 0
-    const stage = !scriptText
-      ? 'no dialogue'
-      : !scriptApproved
-        ? planned ? 'quick motion · dialogue not approved' : 'dialogue drafted'
-        : !breakdownApproved
-          ? `${windowCount || '…'} windows to approve`
-          : planned ? 'motion planned' : 'ready to plan'
+    void scriptText
+    void planned
+    void animated
+    void stepList
+    void windows
+    void scriptApproved
+    void breakdownApproved
     void pace
     const area = String(requiredArea || '')
     const auto = (directorAuto && typeof directorAuto === 'object' ? directorAuto : null) as { kind?: string; legibility?: { minTextPx?: Record<string, number> } } | null
@@ -198,12 +197,12 @@ export const SceneBlock = Node.create({
         [
           'button',
           { type: 'button', class: 'notebook-image-action', 'data-slide-action': 'edit' },
-          !scriptText ? 'Write the dialogue' : !scriptApproved ? 'Approve the dialogue' : !breakdownApproved ? 'Approve the breakdown' : 'Open scene',
+          'Dialogue & motion',
         ],
         [
           'button',
-          { type: 'button', class: 'notebook-image-action scene-animate-action', 'data-slide-action': 'animate' },
-          planned ? 'Re-plan' : animated ? 'Re-animate' : 'Animate',
+          { type: 'button', class: 'notebook-image-action scene-animate-action', 'data-slide-action': 'animate', title: 'Re-plan the motion from the dialogue, without opening the studio' },
+          'Re-plan',
         ],
       ],
       ...(derivedFrom
@@ -252,22 +251,11 @@ export const SceneBlock = Node.create({
             ],
           ]
         : []),
-      stepList.length
-        ? [
-            'ol',
-            { class: 'notebook-explainer-steps' },
-            ...stepList.map((step, index) => [
-              'li',
-              {},
-              ['strong', {}, String(step?.title || `Step ${index + 1}`)],
-              ['p', {}, String(step?.explanation || '')],
-            ]),
-          ]
-        : ['div', { class: 'notebook-explainer-meta' }, 'No beats yet'],
+      dialogueSection(HTMLAttributes as Record<string, unknown>),
       [
         'figcaption',
         {},
-        `${stepList.length} beat${stepList.length === 1 ? '' : 's'}${scriptBeats ? ` · dialogue ${scriptBeats} ¶` : ''} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role} · ${stage}${!planned && animated ? ' (steps only)' : ''}`,
+        `${dialogueCaption(HTMLAttributes as Record<string, unknown>)} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role}`,
       ],
     ]
   },

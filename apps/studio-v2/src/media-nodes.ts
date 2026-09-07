@@ -1,4 +1,5 @@
 import { mergeAttributes, Node } from '@tiptap/core'
+import { dialogueCaption, dialogueSection } from './dialogue-card'
 
 const sharedAttributes = () => ({
   src: { default: '' },
@@ -214,28 +215,17 @@ export const SlideBlock = Node.create({
             class: 'notebook-image-action',
             'data-slide-action': 'edit',
           },
-          'Edit steps',
+          'Dialogue & motion',
         ],
       ],
       poster
         ? ['img', { src: String(poster), alt: String(title || 'Slide') }]
         : ['div', { class: 'notebook-media-placeholder' }, ['span', {}, '▤'], ['strong', {}, 'Slide without a preview']],
-      stepList.length
-        ? [
-            'ol',
-            { class: 'notebook-explainer-steps' },
-            ...stepList.map((step, index) => [
-              'li',
-              {},
-              ['strong', {}, String(step?.title || `Step ${index + 1}`)],
-              ['p', {}, String(step?.explanation || '')],
-            ]),
-          ]
-        : ['div', { class: 'notebook-explainer-meta' }, 'No steps yet — the whole slide shows at once'],
+      dialogueSection(HTMLAttributes as Record<string, unknown>),
       [
         'figcaption',
         {},
-        `${stepList.length} animated step${stepList.length === 1 ? '' : 's'}${source ? ' · SVG source' : ''}`,
+        `${dialogueCaption(HTMLAttributes as Record<string, unknown>)}${stepList.length && !(HTMLAttributes.windows as unknown[] | undefined)?.length ? ` · ${stepList.length} step${stepList.length === 1 ? '' : 's'}` : ''}${source ? ' · SVG source' : ''}`,
       ],
     ]
   },

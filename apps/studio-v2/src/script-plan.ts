@@ -49,6 +49,8 @@ export type SceneWindow = {
   intent?: MotionIntent
   // Parts chosen by hand: they stay when the words change.
   pinned?: boolean
+  // The hero's label, for cards that have no unit tree at hand.
+  heroLabel?: string
 }
 
 export type PaceSettings = { granularity: Granularity; wpm: number }

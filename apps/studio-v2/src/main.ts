@@ -9847,11 +9847,12 @@ const animateSceneLocally = (nodeId: string) => {
     position: scenePosition(nodeId),
     layouts: result.windows.map(window => window.layout),
   })
+  const labelOf = new Map(leafUnits(atomized.units).map(unit => [unit.id, unit.label]))
   writeSlideLikeNode(nodeId, {
     svg: atomized.svg,
     script,
     pace,
-    windows: result.windows,
+    windows: result.windows.map(window => ({ ...window, ...(window.hero ? { heroLabel: labelOf.get(window.hero) || '' } : {}) })),
     motion: result.plan,
     steps: result.steps,
     ...directorAttrs(found.attrs, directed),
@@ -9944,7 +9945,11 @@ assistCancel.addEventListener('click', () => {
     script,
     pace: state.pace,
     scriptApproved: inWindows,
-    windows: state.windows.map(({ pinned, ...window }) => ({ ...window, ...(pinned ? { pinned: true } : {}) })),
+    windows: state.windows.map(({ pinned, ...window }) => ({
+      ...window,
+      ...(pinned ? { pinned: true } : {}),
+      ...(window.hero ? { heroLabel: unitOf(state, window.hero)?.label || '' } : {}),
+    })),
     breakdownApproved: inWindows,
     motion: inWindows ? state.motion : null,
     ...(state.director && found && inWindows ? directorAttrs(found.attrs, state.director) : {}),
