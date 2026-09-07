@@ -451,113 +451,106 @@
 
     <dialog id="slide-editor-dialog" class="modal slide-editor-modal">
       <div class="modal-heading">
-        <div><span class="eyebrow">Scene</span><h2 id="slide-editor-title">Scene</h2></div>
-        <nav id="se-stepper" class="se-stepper" aria-label="Scene stages">
-          <button type="button" class="se-step" data-stage="dialogue"><span class="se-step-num">1</span>Dialogue</button>
-          <button type="button" class="se-step" data-stage="breakdown"><span class="se-step-num">2</span>Breakdown</button>
-          <button type="button" class="se-step" data-stage="motion"><span class="se-step-num">3</span>Motion</button>
-        </nav>
+        <div><span class="eyebrow">Scene studio</span><h2 id="slide-editor-title">Scene</h2></div>
+        <div id="se-state-chips" class="se-chips-row" aria-label="Scene state">
+          <span id="se-chip-dialogue" class="se-state">no dialogue</span>
+          <span id="se-chip-windows" class="se-state" hidden></span>
+          <span id="se-chip-motion" class="se-state" hidden></span>
+        </div>
         <div class="slide-editor-tools">
           <button type="button" id="se-approve" class="button" title="Mark the base page structure as approved — Plan motion (assist) needs it">Approve page</button>
+          <button type="button" id="se-save" class="button primary">Save scene</button>
         </div>
         <button id="close-slide-editor" class="icon-button" type="button" aria-label="Close">×</button>
       </div>
       <div class="slide-editor-body">
         <div class="slide-editor-stage">
           <div id="slide-editor-preview" class="slide-editor-preview"></div>
-          <p class="slide-editor-hint"><span id="se-preview-hint">Hover a part to see its name; click one to add it to the selected window.</span> <label><input type="checkbox" id="se-one-per-click" /> One window per click</label></p>
+          <div class="se-transport">
+            <button type="button" id="se-play" class="button primary" title="Play the planned motion">▶ Play</button>
+            <input id="se-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub the motion" />
+            <span id="se-time" class="slide-editor-time"></span>
+          </div>
+          <div id="se-teleprompter" class="se-teleprompter" hidden><span class="se-teleprompter-index"></span><p></p></div>
+          <div id="se-storyboard" class="se-storyboard"></div>
+          <details id="se-director-brief" class="slide-editor-director" hidden>
+            <summary>Director's brief</summary>
+            <div id="se-director-brief-body" class="slide-editor-director-body"></div>
+          </details>
+          <p class="slide-editor-hint"><span id="se-preview-hint">Click a part of the page to add it to the selected window.</span> <label hidden><input type="checkbox" id="se-one-per-click" /> One window per click</label></p>
         </div>
         <div class="slide-editor-side">
-          <!-- Stage 1 · Dialogue -->
-          <section id="se-stage-dialogue" class="se-stage" data-stage="dialogue">
-            <div class="se-pace">
-              <div class="se-pace-row">
-                <span class="se-pace-label">Windows</span>
-                <div class="se-segmented" role="radiogroup" aria-label="Granularity">
-                  <label><input type="radio" name="se-granularity" value="paragraph" /><span>Paragraph</span></label>
-                  <label><input type="radio" name="se-granularity" value="sentence" checked /><span>Sentence</span></label>
-                  <label><input type="radio" name="se-granularity" value="clause" /><span>Clause</span></label>
-                </div>
-              </div>
-              <div class="se-pace-row">
-                <span class="se-pace-label">Pace</span>
-                <input id="se-pace" type="range" min="110" max="190" step="5" value="150" aria-label="Words per minute" />
-                <span id="se-pace-label" class="se-pace-value">Natural · 150 wpm</span>
-              </div>
-              <div id="se-estimate" class="se-estimate">Write the dialogue to see the length</div>
-            </div>
-            <div class="se-dialogue-head"><strong>Dialogue</strong><span id="se-script-state" class="se-state">draft</span></div>
-            <textarea id="se-script" rows="9" spellcheck="true" placeholder="What you say over this page. One paragraph per thought; the window slider decides how finely it is followed. Name the parts of the page as you speak about them — they come on screen when first spoken and pop when spoken again.&#10;&#10;Or let the writer draft it with the page in front of it."></textarea>
+          <div class="se-dialogue-head">
+            <strong>Dialogue</strong>
+            <span id="se-estimate" class="se-estimate"></span>
+          </div>
+          <!-- First authoring: a plain text box until the dialogue exists -->
+          <div id="se-dialogue-empty" class="se-dialogue-empty">
+            <textarea id="se-script" rows="8" spellcheck="true" placeholder="What you say over this page, one paragraph per thought. Name the parts of the page as you speak about them — or let the writer draft it with the page in front of it."></textarea>
             <div id="se-parts" class="se-parts" aria-label="Parts on this page"></div>
-            <div class="slide-editor-prompt-actions se-dialogue-actions">
-              <button type="button" id="se-write" class="button" title="Draft the dialogue with the page inventory in front of the writer">Write with the page</button>
-              <label class="se-target" title="How long the writer should aim for">≈ <input id="se-target" type="number" min="8" max="240" step="5" value="40" /> s</label>
-              <input id="se-write-note" type="text" placeholder="direction for the writer (optional)" />
+            <div class="slide-editor-prompt-actions">
+              <button type="button" id="se-compose" class="button primary" title="Break this text into windows and plan the motion">Use this dialogue →</button>
             </div>
-            <div id="se-coverage" class="slide-editor-coverage" hidden></div>
-            <div class="se-stage-foot">
-              <span id="se-status-dialogue" class="settings-status" aria-live="polite"></span>
-              <button type="button" id="se-unlock-script" class="button" hidden>Edit dialogue</button>
-              <button type="button" id="se-approve-script" class="button primary">Approve dialogue →</button>
-            </div>
-          </section>
-          <!-- Stage 2 · Breakdown -->
-          <section id="se-stage-breakdown" class="se-stage" data-stage="breakdown" hidden>
-            <div class="se-dialogue-head"><strong>Windows of attention</strong><span id="se-breakdown-state" class="se-state"></span></div>
-            <p class="se-note">Each window: what is said, the parts it is about, its hero, whether the camera moves in, and where the presenter is. Click a row to see its parts on the page; click a part on the page to add it to the selected window.</p>
-            <ol id="se-windows" class="se-windows"></ol>
-            <div class="se-stage-foot">
-              <span id="se-status-breakdown" class="settings-status" aria-live="polite"></span>
-              <button type="button" id="se-back-dialogue" class="button">← Dialogue</button>
-              <button type="button" id="se-rebreak" class="button" title="Assign parts, heroes, camera and layout again with the writer">Break down again</button>
-              <button type="button" id="se-approve-breakdown" class="button primary">Approve breakdown →</button>
+          </div>
+          <!-- The dialogue as windows, each with its motion -->
+          <ol id="se-windows" class="se-windows" hidden></ol>
+          <div id="se-coverage" class="slide-editor-coverage" hidden></div>
+          <!-- Proposal from the writer -->
+          <section id="se-proposal" class="se-proposal" hidden>
+            <div class="se-dialogue-head"><strong>Proposal</strong><span id="se-proposal-meta" class="se-estimate"></span></div>
+            <ol id="se-proposal-windows" class="se-windows se-windows-proposal"></ol>
+            <div class="slide-editor-prompt-actions">
+              <button type="button" id="se-proposal-preview" class="button" title="Play the proposal's motion in the preview">Preview its motion</button>
+              <button type="button" id="se-proposal-discard" class="button">Discard</button>
+              <button type="button" id="se-proposal-accept" class="button primary">Accept → re-plan</button>
             </div>
           </section>
-          <!-- Stage 3 · Motion -->
-          <section id="se-stage-motion" class="se-stage" data-stage="motion" hidden>
-            <div class="slide-editor-prompt-actions slide-editor-script-actions">
-              <button type="button" id="se-play" class="button primary" title="Play the planned motion in the preview">▶ Play</button>
-              <input id="se-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub the motion" />
-              <span id="se-time" class="slide-editor-time"></span>
+          <!-- The writer bar: iterate the dialogue with the page in front of the writer -->
+          <div class="se-writer">
+            <div class="se-writer-row">
+              <input id="se-write-note" type="text" placeholder="Ask the writer — “tighter”, “open on the formula”, “make Q, K, V the story”, “spend longer on softmax”…" />
+              <button type="button" id="se-write" class="button primary" title="Rewrite the dialogue with the page in front of the writer">Rewrite</button>
             </div>
-            <div id="se-storyboard" class="se-storyboard"></div>
-            <details id="se-director-brief" class="slide-editor-director" hidden>
-              <summary>Director's brief</summary>
-              <div id="se-director-brief-body" class="slide-editor-director-body"></div>
-            </details>
-            <div class="slide-editor-side-head"><strong>Beats</strong><span id="se-step-count">0</span><button type="button" id="se-add-step" class="button" hidden>+ Step</button></div>
-            <ol id="slide-editor-steps" class="slide-editor-steps"></ol>
-            <details class="se-advanced">
-              <summary>Other ways to plan</summary>
-              <div class="slide-editor-prompt">
-                <textarea id="se-prompt" rows="2" placeholder="Tell it how the page should build — e.g. “start with the encoder, trace each residual path, keep the callouts for the end”"></textarea>
-                <div class="slide-editor-prompt-actions">
-                  <button type="button" id="se-plan-script" class="button" title="Re-plan from the dialogue words alone">Plan from dialogue</button>
-                  <button type="button" id="se-plan-narration" class="button" title="Derive the steps from this block’s explanation">Plan from narration</button>
-                  <button type="button" id="se-plan-local" class="button" title="The page’s own build order">Page order</button>
-                  <button type="button" id="se-plan-apply" class="button" title="Rewrite the steps from your instruction">Apply</button>
-                </div>
-                <div class="slide-editor-prompt-actions" id="se-assist-row" hidden>
-                  <button type="button" id="se-plan-assist" class="button" title="Run motion-master Plan Motion — Default through an installed coding agent, with confirmation gates (desktop only)">Plan motion (assist)</button>
-                  <span id="se-assist-agent" class="slide-editor-assist-agent" title="The agent Plan motion (assist) uses — change it from the Agent button in the top bar"></span>
-                  <button type="button" id="se-assist-cancel" class="button" hidden>Cancel</button>
-                  <button type="button" id="se-assist-apply" class="button primary" hidden>Apply plan</button>
-                </div>
-                <div id="se-assist-log" class="slide-editor-assist-log" hidden></div>
-                <div class="slide-editor-prompt-actions">
-                  <button type="button" id="se-order-arrows" class="button" title="Build order from the page: arrows where it flows, groups or reading order otherwise">Suggest steps</button>
-                  <button type="button" id="se-order-reading" class="button" title="One step per unit, top-left to bottom-right">One step per unit</button>
-                  <button type="button" id="se-order-groups" class="button" title="One step per authored group">By groups</button>
-                  <button type="button" id="se-clear" class="button" title="Remove every step">Clear</button>
-                </div>
+            <div class="se-writer-row se-writer-controls">
+              <label class="se-target" title="How long the dialogue should run">Length ≈ <input id="se-target" type="number" min="8" max="240" step="5" value="40" /> s</label>
+              <button type="button" id="se-fit" class="button" title="Ask the writer to fit the current dialogue to this length">Fit to length</button>
+              <label class="se-pace-inline" title="Speaking pace"><span id="se-pace-label">Natural · 150 wpm</span><input id="se-pace" type="range" min="110" max="190" step="5" value="150" aria-label="Words per minute" /></label>
+              <div class="se-segmented se-segmented-small" role="radiogroup" aria-label="Window size" title="How finely the motion follows the dialogue">
+                <label><input type="radio" name="se-granularity" value="paragraph" /><span>¶</span></label>
+                <label><input type="radio" name="se-granularity" value="sentence" checked /><span>Sentence</span></label>
+                <label><input type="radio" name="se-granularity" value="clause" /><span>Clause</span></label>
               </div>
-            </details>
-            <div class="se-stage-foot">
-              <button type="button" id="se-back-breakdown" class="button">← Breakdown</button>
-              <span id="se-status" class="settings-status" aria-live="polite"></span>
-              <button type="button" id="se-save" class="button primary">Save scene</button>
             </div>
-          </section>
+          </div>
+          <details class="se-advanced">
+            <summary>Other ways to plan</summary>
+            <div class="slide-editor-prompt">
+              <textarea id="se-prompt" rows="2" placeholder="Tell it how the page should build — e.g. “start with the encoder, trace each residual path, keep the callouts for the end”"></textarea>
+              <div class="slide-editor-prompt-actions">
+                <button type="button" id="se-plan-script" class="button" title="Re-plan from the dialogue words alone">Plan from dialogue</button>
+                <button type="button" id="se-plan-narration" class="button" title="Derive the steps from this block’s explanation">Plan from narration</button>
+                <button type="button" id="se-plan-local" class="button" title="The page’s own build order">Page order</button>
+                <button type="button" id="se-plan-apply" class="button" title="Rewrite the steps from your instruction">Apply</button>
+              </div>
+              <div class="slide-editor-prompt-actions" id="se-assist-row" hidden>
+                <button type="button" id="se-plan-assist" class="button" title="Run motion-master Plan Motion — Default through an installed coding agent, with confirmation gates (desktop only)">Plan motion (assist)</button>
+                <span id="se-assist-agent" class="slide-editor-assist-agent" title="The agent Plan motion (assist) uses — change it from the Agent button in the top bar"></span>
+                <button type="button" id="se-assist-cancel" class="button" hidden>Cancel</button>
+                <button type="button" id="se-assist-apply" class="button primary" hidden>Apply plan</button>
+              </div>
+              <div id="se-assist-log" class="slide-editor-assist-log" hidden></div>
+              <div class="slide-editor-prompt-actions">
+                <button type="button" id="se-order-arrows" class="button" title="Build order from the page: arrows where it flows, groups or reading order otherwise">Suggest steps</button>
+                <button type="button" id="se-order-reading" class="button" title="One step per unit, top-left to bottom-right">One step per unit</button>
+                <button type="button" id="se-order-groups" class="button" title="One step per authored group">By groups</button>
+                <button type="button" id="se-clear" class="button" title="Remove every step">Clear</button>
+                <button type="button" id="se-add-step" class="button" hidden>+ Step</button>
+              </div>
+              <div class="slide-editor-side-head"><strong>Beats</strong><span id="se-step-count">0</span></div>
+              <ol id="slide-editor-steps" class="slide-editor-steps"></ol>
+            </div>
+          </details>
+          <div class="se-side-foot"><span id="se-status" class="settings-status" aria-live="polite"></span></div>
         </div>
       </div>
     </dialog>

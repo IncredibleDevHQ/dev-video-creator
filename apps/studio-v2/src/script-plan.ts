@@ -47,6 +47,8 @@ export type SceneWindow = {
   camera?: string[]
   layout?: WindowLayout
   intent?: MotionIntent
+  // Parts chosen by hand: they stay when the words change.
+  pinned?: boolean
 }
 
 export type PaceSettings = { granularity: Granularity; wpm: number }
