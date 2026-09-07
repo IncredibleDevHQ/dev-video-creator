@@ -67,13 +67,19 @@ const explainerNodeDurationMs = (node: TiptapNode) => {
 const slideNodeSteps = (node: TiptapNode): SlideStepV1[] =>
   sanitizeSlideSteps((node.attrs as { steps?: unknown } | undefined)?.steps)
 
+// Scene blocks (video-notebook entities) compile exactly like slide blocks:
+// they carry the same svg + steps attrs and use the same in-composition
+// driver.
+const isSlideLikeNode = (node: TiptapNode) =>
+  node.type === 'slide' || node.type === 'scene'
+
 const slideNodeDurationMs = (node: TiptapNode) => {
   const steps = slideNodeSteps(node)
   return steps.length ? Math.round(slideDurationSeconds(steps) * 1000) : 6000
 }
 
 const defaultAppearanceForNode = (node: TiptapNode) => {
-  if (node.type === 'explainer' || node.type === 'slide') {
+  if (node.type === 'explainer' || isSlideLikeNode(node)) {
     return {
       layout: 'center' as const,
       render: 'minimal' as ThemeBlockRendering,
@@ -119,7 +125,7 @@ export const createDefaultBlockConfig = (
         ? 8000
         : node.type === 'explainer'
           ? explainerNodeDurationMs(node)
-          : node.type === 'slide'
+          : isSlideLikeNode(node)
             ? slideNodeDurationMs(node)
             : 5000,
   reveal:
@@ -128,7 +134,7 @@ export const createDefaultBlockConfig = (
       : node.type === 'image' ||
           node.type === 'screenRecording' ||
           node.type === 'explainer' ||
-          node.type === 'slide'
+          isSlideLikeNode(node)
         ? 'fade'
         : 'rise',
   alignment:
@@ -143,7 +149,7 @@ export const createDefaultBlockConfig = (
     mode: 'information-circle',
     // Explainer diagrams need the whole frame; the presenter can be added
     // deliberately from the Presenter tab.
-    position: node.type === 'explainer' || node.type === 'slide' ? 'hidden' : 'bottom-right',
+    position: node.type === 'explainer' || isSlideLikeNode(node) ? 'hidden' : 'bottom-right',
     shape: 'circle',
     scale: 1,
   },
@@ -503,8 +509,8 @@ const textContent = (node: TiptapNode): string => {
   if (node.type === 'explainer') {
     return String(node.attrs?.topic || 'Explainer')
   }
-  if (node.type === 'slide') {
-    return String(node.attrs?.title || 'Slide')
+  if (isSlideLikeNode(node)) {
+    return String(node.attrs?.title || (node.type === 'scene' ? 'Scene' : 'Slide'))
   }
   return (node.content || []).map(textContent).join(' ').replace(/\s+/g, ' ').trim()
 }
@@ -625,7 +631,7 @@ const renderSceneNode = (
       brandAccent || defaultBrand.accent,
     )
   }
-  if (scene.node.type === 'slide') {
+  if (isSlideLikeNode(scene.node)) {
     return renderSlideScene(scene)
   }
   if (scene.node.type !== 'image' && scene.node.type !== 'screenRecording') {
@@ -923,7 +929,7 @@ const buildCompositionHtml = (
         default:
           entrance = `tl.fromTo(${selector}, { opacity: 0, y: 56 }, { opacity: 1, y: 0, duration: ${revealDuration(0.75)}, ease: "power3.out" }, ${start});`
       }
-      if (scene.node.type === 'slide') {
+      if (isSlideLikeNode(scene.node)) {
         // The driver paints (step, progress) from scene time; captions swap
         // underneath on the same step offsets.
         const steps = slideNodeSteps(scene.node)

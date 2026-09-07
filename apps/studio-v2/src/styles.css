@@ -1316,3 +1316,30 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .slide-editor-director-body .db-layout { color: #e4e7e5; font-weight: 600; }
 .slide-editor-director-body ol { margin: 4px 0 0; padding-left: 16px; }
 #se-approve.is-approved { border-color: #16a34a; color: #4ade80; }
+
+/* ——— Scene blocks (derived video notebook) ——— */
+.notebook-scene-block { display: grid; gap: 10px; }
+.scene-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e4e4e7; border-radius: 9px; background: #f7f8f7; }
+.scene-badge { font-size: 9px; font-weight: 800; letter-spacing: .1em; padding: 2px 7px; border-radius: 999px; background: #18181b; color: #fafafa; }
+.scene-title { flex: 1; font-size: 14px; }
+.scene-arc { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent; }
+.scene-arc-hook { color: #b45309; border-color: #fcd34d; background: #fffbeb; }
+.scene-arc-map { color: #475569; border-color: #cbd5e1; background: #f8fafc; }
+.scene-arc-build { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }
+.scene-arc-idea { color: #7c3aed; border-color: #ddd6fe; background: #f5f3ff; }
+.scene-arc-explain { color: #0f766e; border-color: #99f6e4; background: #f0fdfa; }
+.scene-arc-evidence { color: #15803d; border-color: #bbf7d0; background: #f0fdf4; }
+.scene-arc-close { color: #be123c; border-color: #fecdd3; background: #fff1f2; }
+.scene-provenance { margin: -4px 2px 0; color: #a1a1aa; font-size: 10.5px; font-style: italic; }
+.scene-poster { width: 100%; border-radius: 10px; border: 1px solid #e4e4e7; background: #0f1411; display: block; }
+.scene-director { display: grid; gap: 4px; padding: 10px 12px; border-left: 3px solid var(--brand); background: color-mix(in srgb, var(--brand) 4%, white); border-radius: 0 9px 9px 0; }
+.scene-director-label { color: var(--brand); font-size: 9px; font-weight: 800; font-style: italic; letter-spacing: .1em; text-transform: uppercase; }
+.scene-director p { margin: 0; color: #3f3f46; font-size: 12.5px; line-height: 1.6; }
+.scene-storyboard { display: flex; gap: 10px; overflow-x: auto; padding: 2px; }
+.scene-frame { display: grid; gap: 4px; flex: 0 0 128px; }
+.scene-frame img { width: 128px; height: 72px; border-radius: 6px; border: 1px solid #2c3530; display: block; }
+.scene-frame-label { font-size: 10px; color: #52525b; text-align: center; }
+.scene-cues { padding: 8px 12px; border: 1px dashed #d4d4d8; border-radius: 9px; }
+.scene-cues-label { color: #8b8b93; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.scene-cues ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+.scene-cues li { color: #52525b; font-size: 12px; line-height: 1.5; }

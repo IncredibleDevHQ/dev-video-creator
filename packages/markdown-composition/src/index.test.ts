@@ -158,6 +158,41 @@ describe('slide blocks', () => {
     expect(doc.blocks['slide-1'].camera.position).toBe('hidden')
     expect(doc.blocks['slide-1'].durationMs).toBeGreaterThanOrEqual(6000)
   })
+
+  it('compiles scene blocks exactly like slide blocks', () => {
+    const scene: TiptapNode = {
+      type: 'scene',
+      attrs: {
+        id: 'scene-1',
+        title: 'The architecture',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><g id="encoder"><rect x="10" y="10" width="80" height="40"/></g><script>alert(1)</script></svg>',
+        steps: [{ title: 'Encoder', explanation: 'Inputs enter the stack.', reveals: ['encoder'], verb: 'reveal' }],
+      },
+    }
+    const doc: ProjectDocumentV1 = {
+      version: 1,
+      id: 'scenes',
+      title: 'Scenes',
+      notebook: { type: 'doc', content: [scene] },
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      blocks: { 'scene-1': createDefaultBlockConfig('scene-1', scene) },
+      presenterTracks: {},
+      brand: defaultBrand,
+    }
+    const result = compileProject(doc)
+    expect(result.html).toContain('class="slide-svg"')
+    expect(result.html).toContain('id="s0-encoder"')
+    expect(result.html).not.toContain('alert(1)')
+    expect(result.html).toContain('__explainerDrivers["scene-1"]')
+    expect(doc.blocks['scene-1'].camera.position).toBe('hidden')
+    // Same content compiles to the same config as a slide block.
+    const asSlide: TiptapNode = { ...scene, type: 'slide' }
+    expect(createDefaultBlockConfig('scene-1', scene).durationMs).toBe(
+      createDefaultBlockConfig('scene-1', asSlide).durationMs,
+    )
+  })
 })
 
 describe('compileProject', () => {

@@ -50,6 +50,7 @@ import {
 } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
+import { SceneBlock } from './scene-node'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -457,7 +458,9 @@ const sceneVisualKind = (scene: Pick<Scene, 'kind' | 'node'>) =>
         ? 'explainer'
         : scene.node.type === 'slide'
           ? 'slide'
-          : scene.kind
+          : scene.node.type === 'scene'
+            ? 'scene'
+            : scene.kind
 
 const TIMELINE_BLOCK_META = {
   title: { label: 'Title', icon: 'T' },
@@ -469,6 +472,7 @@ const TIMELINE_BLOCK_META = {
   screen: { label: 'Screen', icon: '▶' },
   explainer: { label: 'Explainer', icon: '◈' },
   slide: { label: 'Slide', icon: '▤' },
+  scene: { label: 'Scene', icon: '▦' },
 } as const
 
 const sceneObjectLabel = (scene: Pick<Scene, 'kind' | 'node'>) =>
@@ -595,7 +599,7 @@ let canvasRecordingExplainerPlan: ExplainerPlanV1 | null = null
 // bar, teleprompter and recording coach walk through.
 let canvasRecordingSteps: Array<{ title: string; explanation: string }> = []
 
-const isSteppedKind = (kind: string) => kind === 'explainer' || kind === 'slide'
+const isSteppedKind = (kind: string) => kind === 'explainer' || kind === 'slide' || kind === 'scene'
 
 const sceneStepScript = (
   scene: Pick<Scene, 'node'>,
@@ -2782,6 +2786,7 @@ editor = new Editor({
     ScreenRecordingBlock,
     ExplainerBlock,
     SlideBlock,
+    SceneBlock,
     Markdown.configure({
       markedOptions: { gfm: true, breaks: false },
     }),
@@ -2797,6 +2802,7 @@ editor = new Editor({
         'screenRecording',
         'explainer',
         'slide',
+        'scene',
       ],
     }),
   ],
@@ -5742,8 +5748,88 @@ const openAttentionSample = async () => {
   }
 }
 
-const deleteNotebook = async (notebookId: string, title: string) => {
-  if (!window.confirm(`Delete the notebook "${title}"? Its recordings and assets go with it.`)) return
+// ——— Derived video notebook: the handcrafted scene cut of the attention
+// sample (video.json). First use creates it; later clicks switch to it.
+// The mother notebook is never touched.
+const ATTENTION_VIDEO_SAMPLE_ID = 'sample-attention-is-all-you-need-video'
+
+const openAttentionVideoSample = async () => {
+  closeNotebookMenu()
+  try {
+    const { projects } = await fetchJson<{ projects: Array<{ id: string }> }>('/api/projects')
+    if (projects.some(entry => entry.id === ATTENTION_VIDEO_SAMPLE_ID)) {
+      await openNotebook(ATTENTION_VIDEO_SAMPLE_ID)
+      return
+    }
+    showToast('Loading the video notebook…')
+    const manifestResponse = await fetch(`${ATTENTION_SAMPLE_URL}/video.json`)
+    if (!manifestResponse.ok) throw new Error(`video.json missing (${manifestResponse.status})`)
+    const manifest = (await manifestResponse.json()) as {
+      title: string
+      derivedFrom?: string | { notebook?: string }
+      scenes: Array<{
+        page: string
+        title: string
+        arcRole?: string
+        director?: string
+        storyboard?: Array<{ label?: string; family?: string; treatment?: string; note?: string }>
+        cues?: string[]
+        steps?: Array<{ title?: string; explanation?: string }>
+      }>
+    }
+    const fresh = blankProjectDocument(manifest.title)
+    fresh.id = ATTENTION_VIDEO_SAMPLE_ID
+    if (project.theme) {
+      fresh.theme = structuredClone(project.theme)
+      fresh.brand = { ...project.theme.brand }
+    }
+    const content: TiptapNode[] = []
+    for (const [index, scene] of manifest.scenes.entries()) {
+      const response = await fetch(`${ATTENTION_SAMPLE_URL}/${scene.page}`)
+      if (!response.ok) throw new Error(`scene page ${scene.page} missing (${response.status})`)
+      const svg = sanitizeImportedSvg(await response.text())
+      const blockId = `blk-scene-${String(index + 1).padStart(2, '0')}`
+      const steps = (scene.steps || []).map(step => ({
+        title: String(step.title || ''),
+        explanation: String(step.explanation || ''),
+        reveals: [] as string[],
+        verb: 'reveal' as const,
+      }))
+      const node: TiptapNode = {
+        type: 'scene',
+        attrs: {
+          id: blockId,
+          title: scene.title,
+          svg,
+          svgSrc: `${ATTENTION_SAMPLE_URL}/${scene.page}`,
+          derivedFrom:
+            (typeof manifest.derivedFrom === 'object'
+              ? manifest.derivedFrom?.notebook
+              : manifest.derivedFrom) || ATTENTION_SAMPLE_ID,
+          structureApproved: true,
+          arcRole: scene.arcRole || '',
+          directorNotes: scene.director || '',
+          storyboard: scene.storyboard || [],
+          cues: scene.cues || [],
+          steps,
+        },
+      }
+      content.push(node)
+      fresh.blocks[blockId] = {
+        ...createDefaultBlockConfig(blockId, node),
+        // The narration beats double as the speaker notes.
+        speakerNotes: steps.map(step => step.explanation).filter(Boolean).join(' '),
+      }
+    }
+    fresh.notebook = { type: 'doc', content }
+    await persistProjectNow(structuredClone(fresh))
+    await openNotebook(fresh.id)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Could not load the video sample')
+  }
+}
+
+const deleteNotebook = async (notebookId: string, title: string) => {  if (!window.confirm(`Delete the notebook "${title}"? Its recordings and assets go with it.`)) return
   await fetchJson<{ deleted: boolean }>(
     `/api/projects/${encodeURIComponent(notebookId)}`,
     { method: 'DELETE' },
@@ -5775,6 +5861,13 @@ const renderNotebookMenu = async () => {
     '<strong>Sample · Attention Is All You Need</strong><small>15 blueprint pages from ppt-master — speaker notes included, ready to animate</small>'
   sample.addEventListener('click', () => void openAttentionSample())
   notebookMenuList.append(sample)
+  const videoSample = document.createElement('button')
+  videoSample.type = 'button'
+  videoSample.className = 'notebook-menu-create notebook-menu-sample'
+  videoSample.innerHTML =
+    '<strong>Sample · Attention — Video (derived)</strong><small>15 scenes forked from the presentation notebook — director notes, storyboard and beats</small>'
+  videoSample.addEventListener('click', () => void openAttentionVideoSample())
+  notebookMenuList.append(videoSample)
   const heading = document.createElement('div')
   heading.className = 'notebook-menu-heading'
   heading.textContent = `Saved notebooks · ${projects.length}`
@@ -7823,6 +7916,17 @@ const writeTypedNode = (typeName: string, nodeId: string, attrs: Record<string, 
   )
 }
 
+// Scene blocks share the slide editor pipeline (same svg/steps/approval
+// attrs) — these helpers match both node types without touching the generic
+// find/write path.
+const findSlideLikeNode = (nodeId: string) =>
+  findTypedNode('slide', nodeId) || findTypedNode('scene', nodeId)
+
+const writeSlideLikeNode = (nodeId: string, attrs: Record<string, unknown>) => {
+  const typeName = findTypedNode('slide', nodeId) ? 'slide' : 'scene'
+  writeTypedNode(typeName, nodeId, attrs)
+}
+
 const setSlideEditorStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   const status = $('#se-status') as HTMLElement
   status.textContent = text
@@ -8000,7 +8104,7 @@ const applySlideDrafts = (drafts: OrderedStepDraft[]) => {
 }
 
 const openSlideEditor = (nodeId: string) => {
-  const found = findTypedNode('slide', nodeId)
+  const found = findSlideLikeNode(nodeId)
   if (!found) return
   const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
   if (!atomized.units.length) {
@@ -8103,7 +8207,7 @@ const planSlideSteps = async (mode: 'narration' | 'instruction') => {
   try {
     // Model ids map to the primary id of each unit; expand back to element ids.
     const byUnit = new Map(leafUnits(state.units).map(unit => [unit.id, unit]))
-    const found = findTypedNode('slide', state.nodeId)
+    const found = findSlideLikeNode(state.nodeId)
     const body = await fetchJson<{ steps: Array<{ title: string; explanation: string; reveals: string[]; verb: 'reveal' | 'trace' | 'focus' }> }>(
       '/api/slides/plan',
       {
@@ -8160,7 +8264,7 @@ const approveButton = $('#se-approve') as HTMLButtonElement
 const syncApproveButton = () => {
   const state = slideEditor
   if (!state) return
-  const approved = Boolean(findTypedNode('slide', state.nodeId)?.attrs.structureApproved)
+  const approved = Boolean(findSlideLikeNode(state.nodeId)?.attrs.structureApproved)
   approveButton.classList.toggle('is-approved', approved)
   approveButton.textContent = approved ? '✓ Page approved' : 'Approve page'
 }
@@ -8168,8 +8272,8 @@ const syncApproveButton = () => {
 approveButton.addEventListener('click', () => {
   const state = slideEditor
   if (!state) return
-  const approved = Boolean(findTypedNode('slide', state.nodeId)?.attrs.structureApproved)
-  writeTypedNode('slide', state.nodeId, { structureApproved: !approved })
+  const approved = Boolean(findSlideLikeNode(state.nodeId)?.attrs.structureApproved)
+  writeSlideLikeNode(state.nodeId, { structureApproved: !approved })
   syncApproveButton()
   syncProject()
   setSlideEditorStatus(approved ? 'Approval removed' : 'Page structure approved', 'ok')
@@ -8369,7 +8473,7 @@ assistApplyButton.addEventListener('click', () => {
   // a recap hold, are filtered on save — keep the cue list consistent).
   const persistable = state.steps.filter(step => step.reveals.length)
   const brief = buildDirectorBrief({ ...assistApply, steps: persistable })
-  writeTypedNode('slide', state.nodeId, { directorBrief: brief })
+  writeSlideLikeNode(state.nodeId, { directorBrief: brief })
   renderDirectorBrief(brief)
   assistApplyButton.hidden = true
   assistApplyArmed = false
@@ -8381,7 +8485,7 @@ assistButton.addEventListener('click', () =>
   void (async () => {
     const state = slideEditor
     if (!state || !desktopBridge?.isDesktop) return
-    if (!findTypedNode('slide', state.nodeId)?.attrs.structureApproved) {
+    if (!findSlideLikeNode(state.nodeId)?.attrs.structureApproved) {
       setSlideEditorStatus(
         'Approve the page structure first — the Approve page toggle in the toolbar above',
         'error',
@@ -8409,7 +8513,7 @@ assistButton.addEventListener('click', () =>
     assistLogElement.replaceChildren()
     setSlideEditorStatus(`Plan motion via ${agentLabel(adapter)} — answer the gates as they appear…`)
     try {
-      const found = findTypedNode('slide', state.nodeId)
+      const found = findSlideLikeNode(state.nodeId)
       const run = await desktopBridge.harness.run({
         adapter,
         skill: 'motion-master',
@@ -8470,7 +8574,7 @@ assistCancel.addEventListener('click', () => {
       reveals: step.reveals,
       verb: step.verb,
     }))
-  writeTypedNode('slide', state.nodeId, { svg: state.svg, steps })
+  writeSlideLikeNode(state.nodeId, { svg: state.svg, steps })
   const config = project.blocks[state.nodeId]
   if (config) {
     config.durationMs = Math.round(
@@ -8491,7 +8595,7 @@ assistCancel.addEventListener('click', () => {
 document.addEventListener('click', event => {
   const action = (event.target as HTMLElement).closest<HTMLElement>('[data-slide-action]')
   if (!action) return
-  const block = action.closest<HTMLElement>('.notebook-slide-block')
+  const block = action.closest<HTMLElement>('.notebook-slide-block, .notebook-scene-block')
   if (block?.id) openSlideEditor(block.id)
 })
 
