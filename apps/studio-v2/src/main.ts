@@ -610,7 +610,7 @@ const sceneStepScript = (
       projectShapes(),
     ).steps.map(step => ({ title: step.title, explanation: step.explanation }))
   }
-  if (scene.node.type === 'slide') {
+  if (scene.node.type === 'slide' || scene.node.type === 'scene') {
     return sanitizeSlideSteps(scene.node.attrs?.steps).map(step => ({
       title: step.title,
       explanation: step.explanation,
@@ -2736,8 +2736,8 @@ const buildExplanationDecorations = (state: EditorState) => {
   const decorations: Decoration[] = []
   state.doc.forEach((node, offset) => {
     const nodeId = typeof node.attrs?.id === 'string' ? node.attrs.id : ''
-    // Explainer blocks already carry their script as per-step lines.
-    if (!nodeId || node.type.name === 'explainer' || node.type.name === 'slide') return
+    // Explainer and slide/scene blocks already carry their script as steps.
+    if (!nodeId || node.type.name === 'explainer' || node.type.name === 'slide' || node.type.name === 'scene') return
     const notes = project.blocks[nodeId]?.speakerNotes || ''
     const selected = nodeId === selectedNodeId
     if (!notes && !selected) return
@@ -6060,6 +6060,21 @@ const renderNotebookMenu = async () => {
     openNotebooksPage()
   })
   notebookMenuList.append(library)
+  // Animate-all for notebooks containing scene blocks (desktop only).
+  if (desktopBridge?.isDesktop) {
+    const pendingScenes = project.notebook.content.filter(sceneNeedsAnimation).length
+    if (pendingScenes) {
+      const animateAll = document.createElement('button')
+      animateAll.type = 'button'
+      animateAll.className = 'notebook-menu-create notebook-menu-animate-all'
+      animateAll.innerHTML = `<strong>Animate all scenes</strong><small>${pendingScenes} scene${pendingScenes === 1 ? '' : 's'} still without motion — runs Plan motion per scene</small>`
+      animateAll.addEventListener('click', () => {
+        closeNotebookMenu()
+        void animateAllScenes()
+      })
+      notebookMenuList.append(animateAll)
+    }
+  }
   const sample = document.createElement('button')
   sample.type = 'button'
   sample.className = 'notebook-menu-create notebook-menu-sample'
@@ -8552,20 +8567,27 @@ if (desktopBridge?.isDesktop) {
       assistButton.classList.remove('working')
       const finishedRunId = assistRunId
       assistRunId = null
-      void desktopBridge.harness.list().then(runs => {
-        const status = runs.find(run => run.id === finishedRunId)?.status
+      void (async () => {
+        const runs = await desktopBridge.harness.list()
+        const status = runs.find(run => run.id === finishedRunId)?.status || 'error'
         assistLog(`done: ${status} (exit ${event.exitCode})`)
         if (status === 'done') {
-          void prepareAssistApply(finishedRunId)
+          await prepareAssistApply(finishedRunId)
         } else if (status === 'cancelled') {
           setSlideEditorStatus('Plan motion cancelled')
         } else {
           setSlideEditorStatus('Plan motion failed — see the log', 'error')
         }
-      })
+        // Batch flows (Animate all) wait on this.
+        assistDoneWaiters.splice(0).forEach(resolve => resolve(status))
+      })()
     }
   })
 }
+
+const assistDoneWaiters: Array<(status: string) => void> = []
+const waitForAssistDone = () =>
+  new Promise<string>(resolve => assistDoneWaiters.push(resolve))
 
 // After a done run: read the artefacts, validate, convert to slide steps and
 // offer "Apply plan". A plan with validation errors is never applied
@@ -8692,60 +8714,139 @@ assistApplyButton.addEventListener('click', () => {
   setSlideEditorStatus('Plan applied — review the steps, then Save steps', 'ok')
 })
 
-assistButton.addEventListener('click', () =>
-  void (async () => {
-    const state = slideEditor
-    if (!state || !desktopBridge?.isDesktop) return
-    if (!findSlideLikeNode(state.nodeId)?.attrs.structureApproved) {
-      setSlideEditorStatus(
-        'Approve the page structure first — the Approve page toggle in the toolbar above',
-        'error',
-      )
-      return
-    }
-    const narration = slideNarration(state)
-    if (!narration) {
-      setSlideEditorStatus('Add an explanation to this block first — the plan follows it', 'error')
-      return
-    }
-    // Fresh detection on every run, then the preferred-online agent wins.
-    agentAvailability = await desktopBridge.harness.adapters()
-    renderAgentSummary()
-    const adapter = resolveAssistAgent()
-    if (!adapter) {
-      setSlideEditorStatus('No coding-agent CLI found (install kimi, claude or codex)', 'error')
-      return
-    }
-    assistApply = null
-    assistApplyArmed = false
-    assistApplyButton.hidden = true
-    assistButton.classList.add('working')
-    assistCancel.hidden = false
-    assistLogElement.replaceChildren()
-    setSlideEditorStatus(`Plan motion via ${agentLabel(adapter)} — answer the gates as they appear…`)
-    try {
-      const found = findSlideLikeNode(state.nodeId)
-      const run = await desktopBridge.harness.run({
-        adapter,
-        skill: 'motion-master',
-        route: 'Plan Motion — Default',
+// Starts an assist run for the editor's current block; resolves true when
+// the run is underway. Used by the assist button, the scene Animate action
+// and Animate-all.
+const startAssistRun = async (state: SlideEditorState): Promise<boolean> => {
+  if (!desktopBridge?.isDesktop) return false
+  if (!findSlideLikeNode(state.nodeId)?.attrs.structureApproved) {
+    setSlideEditorStatus(
+      'Approve the page structure first — the Approve page toggle in the toolbar above',
+      'error',
+    )
+    return false
+  }
+  const narration = slideNarration(state)
+  if (!narration) {
+    setSlideEditorStatus('Add an explanation to this block first — the plan follows it', 'error')
+    return false
+  }
+  // Fresh detection on every run, then the preferred-online agent wins.
+  agentAvailability = await desktopBridge.harness.adapters()
+  renderAgentSummary()
+  const adapter = resolveAssistAgent()
+  if (!adapter) {
+    setSlideEditorStatus('No coding-agent CLI found (install kimi, claude or codex)', 'error')
+    return false
+  }
+  assistApply = null
+  assistApplyArmed = false
+  assistApplyButton.hidden = true
+  assistButton.classList.add('working')
+  assistCancel.hidden = false
+  assistLogElement.replaceChildren()
+  setSlideEditorStatus(`Plan motion via ${agentLabel(adapter)} — answer the gates as they appear…`)
+  try {
+    const found = findSlideLikeNode(state.nodeId)
+    const run = await desktopBridge.harness.run({
+      adapter,
+      skill: 'motion-master',
+      route: 'Plan Motion — Default',
+      projectId: project.id,
+      inputs: {
         projectId: project.id,
-        inputs: {
-          projectId: project.id,
-          blockId: state.nodeId,
-          title: String(found?.attrs.title || 'Slide'),
-          narration,
-        },
-      })
-      assistRunId = run.id
-      assistLog(`run ${run.id} via ${run.adapter}`)
-    } catch (error) {
-      assistButton.classList.remove('working')
-      assistCancel.hidden = true
-      setSlideEditorStatus(error instanceof Error ? error.message : 'Could not start the run', 'error')
+        blockId: state.nodeId,
+        title: String(found?.attrs.title || 'Slide'),
+        narration,
+      },
+    })
+    assistRunId = run.id
+    assistLog(`run ${run.id} via ${run.adapter}`)
+    return true
+  } catch (error) {
+    assistButton.classList.remove('working')
+    assistCancel.hidden = true
+    setSlideEditorStatus(error instanceof Error ? error.message : 'Could not start the run', 'error')
+    return false
+  }
+}
+
+assistButton.addEventListener('click', () => {
+  if (slideEditor) void startAssistRun(slideEditor)
+})
+
+// Applies the prepared plan (validating errors need a confirming click) and
+// saves the block — the scene Animate-all path drives the same two buttons.
+const applyAssistPlan = () => {
+  if (!assistApply) return false
+  assistApplyButton.click()
+  if (assistApply) return false // still armed (validation errors unconfirmed)
+  return true
+}
+
+// Runs the assist flow for one scene block: open the editor, run, apply,
+// save. Each scene's apply+save is atomic; a failure or cancel stops false.
+const animateSceneBlock = async (nodeId: string): Promise<boolean> => {
+  openSlideEditor(nodeId)
+  const state = slideEditor
+  if (!state) return false
+  const started = await startAssistRun(state)
+  if (!started) {
+    ;($('#close-slide-editor') as HTMLButtonElement).click()
+    return false
+  }
+  const status = await waitForAssistDone()
+  if (status !== 'done' || !assistApply) {
+    ;($('#close-slide-editor') as HTMLButtonElement).click()
+    return false
+  }
+  // A failing plan is never applied silently, batch or not.
+  if (assistApply.errors.length) {
+    setSlideEditorStatus(`Plan has ${assistApply.errors.length} validation error(s) — skipped`, 'error')
+    ;($('#close-slide-editor') as HTMLButtonElement).click()
+    return false
+  }
+  if (!applyAssistPlan()) {
+    ;($('#close-slide-editor') as HTMLButtonElement).click()
+    return false
+  }
+  ;($('#se-save') as HTMLButtonElement).click()
+  ;($('#close-slide-editor') as HTMLButtonElement).click()
+  return true
+}
+
+let animateAllRunning = false
+const sceneNeedsAnimation = (node: TiptapNode) =>
+  node.type === 'scene' &&
+  !(((node.attrs || {}).steps as Array<{ reveals?: string[] }> | undefined) || []).some(
+    step => (step.reveals || []).length,
+  )
+
+const animateAllScenes = async () => {
+  if (!desktopBridge?.isDesktop || animateAllRunning) return
+  const pending = project.notebook.content.filter(sceneNeedsAnimation)
+  if (!pending.length) {
+    showToast('Every scene already has animation steps')
+    return
+  }
+  animateAllRunning = true
+  let finished = 0
+  try {
+    for (const node of pending) {
+      const title = String(node.attrs?.title || 'Scene')
+      showToast(`Animating scene ${finished + 1} of ${pending.length} · ${title}`)
+      const ok = await animateSceneBlock(String(node.attrs?.id || ''))
+      if (!ok) {
+        showToast(`Stopped at “${title}” — ${finished} scene${finished === 1 ? '' : 's'} animated`)
+        return
+      }
+      finished += 1
     }
-  })(),
-)
+    showToast(`Animated ${finished} scene${finished === 1 ? '' : 's'} — review and present`)
+  } finally {
+    animateAllRunning = false
+  }
+}
 
 assistCancel.addEventListener('click', () => {
   if (assistRunId && desktopBridge?.isDesktop) void desktopBridge.harness.cancel(assistRunId)
@@ -8807,7 +8908,12 @@ document.addEventListener('click', event => {
   const action = (event.target as HTMLElement).closest<HTMLElement>('[data-slide-action]')
   if (!action) return
   const block = action.closest<HTMLElement>('.notebook-slide-block, .notebook-scene-block')
-  if (block?.id) openSlideEditor(block.id)
+  if (!block?.id) return
+  openSlideEditor(block.id)
+  // The scene card's Animate opens the editor AND starts the assist run.
+  if (action.dataset.slideAction === 'animate' && slideEditor && desktopBridge?.isDesktop) {
+    void startAssistRun(slideEditor)
+  }
 })
 
 // ——— Shape collection: view, multi-select, edit, extend ———

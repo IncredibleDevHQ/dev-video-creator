@@ -126,8 +126,13 @@ export const SceneBlock = Node.create({
     } = HTMLAttributes
     const entries = (Array.isArray(storyboard) ? storyboard : []) as SceneStoryboardEntry[]
     const cueList = (Array.isArray(cues) ? cues : []) as string[]
-    const stepList = (Array.isArray(steps) ? steps : []) as Array<{ title?: string; explanation?: string }>
+    const stepList = (Array.isArray(steps) ? steps : []) as Array<{
+      title?: string
+      explanation?: string
+      reveals?: string[]
+    }>
     const role = String(arcRole || 'scene')
+    const animated = stepList.some(step => (step.reveals || []).length > 0)
     return [
       'figure',
       mergeAttributes(attributes, {
@@ -144,6 +149,11 @@ export const SceneBlock = Node.create({
           'button',
           { type: 'button', class: 'notebook-image-action', 'data-slide-action': 'edit' },
           'Edit steps',
+        ],
+        [
+          'button',
+          { type: 'button', class: 'notebook-image-action scene-animate-action', 'data-slide-action': 'animate' },
+          animated ? 'Re-animate' : 'Animate',
         ],
       ],
       ...(derivedFrom
@@ -207,7 +217,7 @@ export const SceneBlock = Node.create({
       [
         'figcaption',
         {},
-        `${stepList.length} beat${stepList.length === 1 ? '' : 's'} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role}`,
+        `${stepList.length} beat${stepList.length === 1 ? '' : 's'} · ${entries.length} layout moment${entries.length === 1 ? '' : 's'} · ${role}${animated ? '' : ' · not animated yet — Animate'}`,
       ],
     ]
   },
