@@ -226,7 +226,7 @@
                     <div id="player-loading" class="player-loading">Compiling canvas…</div>
                     <hyperframes-player id="player" width="1920" height="1080"></hyperframes-player>
                     <div id="scene-timeline" class="scene-timeline" aria-label="Scene timeline" hidden>
-                      <div class="scene-timeline-head"><strong id="scene-timeline-title">Scene</strong><span id="scene-timeline-clock" class="scene-timeline-clock">00:00 / 00:00</span></div>
+                      <div class="scene-timeline-head"><strong id="scene-timeline-title">Scene</strong><button id="scene-timeline-edit" class="scene-timeline-edit" type="button" title="Open the dialogue and its motion for this scene">Dialogue</button><span id="scene-timeline-clock" class="scene-timeline-clock">00:00 / 00:00</span></div>
                       <div id="scene-timeline-empty" class="scene-timeline-empty" hidden><span>No dialogue yet — plan the scene to see its beats here.</span><button id="scene-timeline-plan" class="button chrome-secondary" type="button">Plan the scene</button></div>
                       <div id="scene-timeline-track" class="scene-timeline-track">
                         <div id="scene-timeline-beats" class="scene-timeline-beats" role="list"></div>
@@ -490,6 +490,7 @@
           <span id="se-chip-motion" class="se-state" hidden></span>
         </div>
         <div class="slide-editor-tools">
+          <button type="button" id="se-canvas" class="button" title="See this scene on the live canvas — closes the studio">Canvas</button>
           <button type="button" id="se-approve" class="button" title="Mark the base page structure as approved — Plan motion (assist) needs it">Approve page</button>
           <button type="button" id="se-save" class="button primary">Save scene</button>
         </div>

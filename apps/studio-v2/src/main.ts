@@ -8168,6 +8168,7 @@ stageFollow.addEventListener('change', () => {
 const sceneTimeline = $('#scene-timeline') as HTMLElement
 const sceneTimelineTitle = $('#scene-timeline-title') as HTMLElement
 const sceneTimelineClock = $('#scene-timeline-clock') as HTMLElement
+const sceneTimelineEdit = $('#scene-timeline-edit') as HTMLButtonElement
 const sceneTimelineEmpty = $('#scene-timeline-empty') as HTMLElement
 const sceneTimelineTrack = $('#scene-timeline-track') as HTMLElement
 const sceneTimelineBeats = $('#scene-timeline-beats') as HTMLElement
@@ -8274,6 +8275,7 @@ const renderSceneTimeline = () => {
   sceneTimelineSignature = signature
   sceneTimelineModel = model
   sceneTimelineTitle.textContent = `${String(scene.index + 1).padStart(2, '0')} · ${scene.title}`
+  sceneTimelineEdit.hidden = !isPageScene(scene)
   sceneTimelineEmpty.hidden = Boolean(model)
   sceneTimelineTrack.hidden = !model
   if (!model) {
@@ -8351,6 +8353,11 @@ const renderSceneTimeline = () => {
 }
 
 ;($('#scene-timeline-plan') as HTMLButtonElement).addEventListener('click', () => {
+  if (selectedNodeId) openSlideEditor(selectedNodeId)
+})
+// The canvas and the dialogue are two views of one scene: open the studio
+// for the scene on the canvas, and come back to the canvas from the studio.
+sceneTimelineEdit.addEventListener('click', () => {
   if (selectedNodeId) openSlideEditor(selectedNodeId)
 })
 
@@ -10702,6 +10709,13 @@ assistCancel.addEventListener('click', () => {
   slideEditor.current = slideEditor.steps.length - 1
   renderSlideEditorSteps()
   renderSlideEditorPreview()
+})
+;($('#se-canvas') as HTMLButtonElement).addEventListener('click', () => {
+  const nodeId = slideEditor?.nodeId
+  if (!closeSceneStudio()) return
+  if (nodeId && selectedNodeId !== nodeId) selectNode(nodeId, false)
+  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+  window.setTimeout(syncStageSwitch, 0)
 })
 ;($('#close-slide-editor') as HTMLButtonElement).addEventListener('click', () => {
   closeSceneStudio()
