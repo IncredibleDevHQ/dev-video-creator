@@ -1753,3 +1753,20 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .scene-timeline-edit { margin-left: 10px; margin-right: auto; height: 20px; padding: 0 9px; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: rgba(255,255,255,.06); color: #d4d4d8; font: 600 10px/1 system-ui; letter-spacing: .02em; cursor: pointer; }
 .scene-timeline-edit:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.12); color: white; }
 .scene-timeline-edit[hidden] { display: none; }
+/* The recording bar lives in the canvas column: centred there, never under the director panel. */
+.player-shell.canvas-open .canvas-recording-controls { left: 32px; right: calc(370px + 32px); translate: 0 0; width: max-content; max-width: calc(100vw - 370px - 64px); margin-inline: auto; box-sizing: border-box; flex-wrap: nowrap; overflow: hidden; }
+.player-shell.canvas-open.director-collapsed .canvas-recording-controls { right: 32px; max-width: calc(100vw - 64px); }
+.player-shell.canvas-open .canvas-recording-controls > * { flex-shrink: 0; }
+.player-shell.canvas-open .canvas-recording-controls .stage-switch { flex-shrink: 1; }
+@media (max-width: 1500px) {
+  .player-shell.canvas-open:not(.director-collapsed) .canvas-recording-controls .stage-follow span { display: none; }
+  .player-shell.canvas-open:not(.director-collapsed) .canvas-recording-controls .explainer-step-bar span { max-width: 44px; }
+  .player-shell.canvas-open:not(.director-collapsed) .canvas-recording-controls .stage-hint { max-width: 180px; }
+}
+@media (max-width: 1180px) {
+  .player-shell.canvas-open:not(.director-collapsed) .canvas-recording-controls .stage-hint { display: none; }
+}
+.player-shell.canvas-open .canvas-recording-controls .stage-switch { flex: 0 1 auto; min-width: 0; }
+.player-shell.canvas-open .canvas-recording-controls .stage-hint { flex: 0 1 auto; min-width: 48px; }
+.player-shell.canvas-open .canvas-recording-controls .explainer-step-bar span { max-width: 80px; }
+.player-shell.canvas-recording-mode .canvas-recording-controls { left: 32px; right: 32px; width: auto; max-width: none; }
