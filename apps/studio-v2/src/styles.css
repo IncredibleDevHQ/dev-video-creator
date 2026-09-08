@@ -1747,3 +1747,5 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .se-side-foot { min-height: 0; padding: 0 14px 8px; }
 .se-side-foot .settings-status:empty { display: none; }
 .se-writer-settings .se-break { flex-basis: 100%; height: 0; }
+/* The camera overlay moves with the frame at the composition's own pace. */
+.player-shell.canvas-open .live-camera-frame { transition: left .62s cubic-bezier(.65,.05,.25,1), top .62s cubic-bezier(.65,.05,.25,1), width .62s cubic-bezier(.65,.05,.25,1), height .62s cubic-bezier(.65,.05,.25,1), border-radius .45s ease; }

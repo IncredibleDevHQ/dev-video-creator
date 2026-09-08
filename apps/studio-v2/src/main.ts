@@ -740,10 +740,14 @@ const syncLiveCameraToggle = () => {
     : 'Camera off · click to preview yourself in frame'
 }
 
-const clearLiveCameraFromPlayer = () => {
-  liveCameraPreview.pause()
-  liveCameraPreview.srcObject = null
-  liveCameraFrame.hidden = true
+// keepPreview: the overlay is about to be re-placed for a new frame — keep
+// its stream running so the move is a glide, not a blink.
+const clearLiveCameraFromPlayer = (keepPreview = false) => {
+  if (!keepPreview) {
+    liveCameraPreview.pause()
+    liveCameraPreview.srcObject = null
+    liveCameraFrame.hidden = true
+  }
   if (injectedLiveCameraPreview) {
     injectedLiveCameraPreview.pause()
     injectedLiveCameraPreview.srcObject = null
@@ -801,8 +805,12 @@ const attachLiveCameraInsideComposition = (scene: Scene) => {
 }
 
 const attachLiveCameraToPlayer = () => {
-  clearLiveCameraFromPlayer()
-  if (!liveCameraStream || !playerShell.classList.contains('canvas-open')) return
+  const keepPreview = Boolean(liveCameraStream) && !liveCameraFrame.hidden && liveCameraPreview.srcObject === liveCameraStream
+  clearLiveCameraFromPlayer(keepPreview)
+  if (!liveCameraStream || !playerShell.classList.contains('canvas-open')) {
+    if (keepPreview) clearLiveCameraFromPlayer()
+    return
+  }
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   const staged = isPageScene(scene)
@@ -837,9 +845,9 @@ const attachLiveCameraToPlayer = () => {
   liveCameraFrame.style.setProperty('--live-camera-border', `${border}px`)
   liveCameraFrame.style.setProperty('--live-camera-surface', theme.brand.surface)
   liveCameraFrame.className = `live-camera-frame ${scene.config.camera.shape} presenter-${scene.config.camera.mode}`
-  liveCameraPreview.srcObject = liveCameraStream
+  if (liveCameraPreview.srcObject !== liveCameraStream) liveCameraPreview.srcObject = liveCameraStream
   liveCameraFrame.hidden = false
-  void liveCameraPreview.play().catch(() => undefined)
+  if (liveCameraPreview.paused) void liveCameraPreview.play().catch(() => undefined)
 }
 
 const stopLiveCamera = () => {
@@ -1321,6 +1329,7 @@ const updateCanvasRecordingClock = () => {
   canvasRecordingLabel.textContent = `Recording · ${formatTime(elapsed)}`
   canvasRecordingClock.textContent = formatTime(elapsed)
   followPlannedStage(elapsed * 1000)
+  syncLiveCameraToStage()
   syncSceneTimelinePlayhead()
 }
 
@@ -8359,6 +8368,29 @@ const followPlannedStage = (nowMs: number) => {
   applyLiveStage(null)
 }
 
+// The live camera overlay sits outside the composition, so it follows the
+// frame itself whenever the stage on the scene element changes — by a beat,
+// by the plan during a take, or by a press.
+let liveCameraStageSignature = ''
+const syncLiveCameraToStage = () => {
+  if (!liveCameraStream) {
+    liveCameraStageSignature = ''
+    return
+  }
+  const element = stageSceneElement()
+  const signature = element
+    ? [
+        selectedNodeId,
+        element.getAttribute('data-stage-override') || element.getAttribute('data-stage') || '',
+        element.getAttribute('data-stage-override-variant') || element.getAttribute('data-stage-variant') || '',
+        element.getAttribute('data-stage-treatment') || '',
+      ].join('|')
+    : selectedNodeId
+  if (signature === liveCameraStageSignature) return
+  liveCameraStageSignature = signature
+  attachLiveCameraToPlayer()
+}
+
 const canvasExplainerContext = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || !isSteppedKind(sceneVisualKind(scene))) return null
@@ -8426,6 +8458,7 @@ const applyCanvasExplainerStep = () => {
   label.textContent = `${step + 1}/${stepCount}`
   label.title = context.steps[step]?.title || ''
   followPlannedStage(canvasSceneTimeMs())
+  syncLiveCameraToStage()
   syncStageSwitch()
   syncSceneTimelinePlayhead()
   syncExplainerTeleprompter()
