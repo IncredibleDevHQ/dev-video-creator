@@ -6,7 +6,8 @@
 // each beat, and the coach cues that follow. Pure functions; the studio
 // writes the result onto the scene node, the agent path can replace it.
 import type { MotionPlanV2, StageVariant } from 'markdown-composition'
-import { FLOATING_FAMILIES, placementAt, placementsFor, type PlacementTrack } from './placements'
+import { FLOATING_FAMILIES, bestVariant, pageToFrame, placementAt, placementsFor, unitsOnScreenPerBeat, type PlacementTrack } from './placements'
+import { stageGeometryFor } from 'markdown-composition'
 import { leafUnits, type SlideUnit } from './slide-atoms'
 import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
 
@@ -264,7 +265,7 @@ export const storyboardFor = (
   plan: MotionPlanV2,
   requiredArea: RequiredArea,
   arcRole: ArcRole,
-  perBeat: { areas?: RequiredArea[]; layouts?: Array<WindowLayout | undefined>; outro?: StoryboardEntry[] } = {},
+  perBeat: { areas?: RequiredArea[]; layouts?: Array<WindowLayout | undefined>; outro?: StoryboardEntry[]; crowded?: boolean } = {},
 ): StoryboardEntry[] => {
   const raw: StoryboardEntry[] = beats.map(beat => {
     const step = plan.steps[beat.index]
@@ -277,8 +278,11 @@ export const storyboardFor = (
           ? 'page'
           : undefined
     const wish = perBeat.layouts?.[beat.index] || directed
-    const contentFamily: StageFamily =
+    let contentFamily: StageFamily =
       wish === 'beside' ? 'speaker-panel' : wish === 'page' ? FAMILY_FOR_AREA[beatArea === 'none' ? 'takeover' : beatArea] : FAMILY_FOR_AREA[beatArea]
+    // A page busy to its corners leaves no clear spot for a chip: the page
+    // moves aside for a card instead of being covered.
+    if (perBeat.crowded && contentFamily === 'content-pip') contentFamily = 'content-card'
     const contentTreatment: StageTreatment = beatArea === 'slot' && contentFamily === 'speaker-full' ? 'overlay' : ''
     const brings = step?.actions.some(action => ['reveal', 'trace', 'count', 'connect'].includes(action.op)) || false
     const moves = step?.actions.some(action => !action.implicit && action.op !== 'undim') || false
@@ -398,7 +402,8 @@ const notesFor = (kind: SceneKind, arcRole: ArcRole, requiredArea: RequiredArea,
     ? 'Close beside the page with the last thought, then alone in frame to lead into the next scene.'
     : storyboard.length > 1 && close?.family === 'speaker-full' ? 'Come back full frame for the last line.' : ''
   const role = arcRole === 'hook' ? 'This is the hook: earn the next minute.' : arcRole === 'close' ? 'This is the close: land it and stop.' : arcRole === 'map' ? 'This is the map: do not rush it.' : ''
-  return [opening, areaLine, closing, role].filter(Boolean).join(' ')
+  const crowdedLine = storyboard.some(entry => entry.family === 'content-card' && entry.label !== 'Outro') && requiredArea === 'takeover' ? 'The page is busy to its corners, so it moves aside for a card rather than being covered by a chip.' : ''
+  return [opening, areaLine, crowdedLine, closing, role].filter(Boolean).join(' ')
 }
 
 export const direct = (input: DirectorInput): DirectorResult => {
@@ -416,10 +421,17 @@ export const direct = (input: DirectorInput): DirectorResult => {
     : sceneArea
   const outro = outroFor(input.beats, input.plan, input.position, input.layouts, requiredArea)
   const placements = placementsFor(input.plan, input.units, input.viewBox)
+  // Crowded: on most beats even the best chip placement covers ink.
+  const chipContent = stageGeometryFor('content-pip').content!
+  const inkPerBeat = unitsOnScreenPerBeat(input.plan, input.units).map(visible => {
+    const boxes = visible.map(unit => pageToFrame(unit.bbox, input.viewBox, chipContent))
+    return bestVariant('content-pip', boxes)?.ink ?? 0
+  })
+  const crowded = inkPerBeat.length > 0 && inkPerBeat.filter(ink => ink > 0.6).length >= Math.ceil(inkPerBeat.length / 2)
   const offsets: number[] = []
   let at = 0
   input.plan.steps.forEach(step => { offsets.push(at); at += step.motionWindowMs + step.holdMs })
-  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts, outro: outro?.entries }).flatMap(entry => {
+  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts, outro: outro?.entries, crowded }).flatMap(entry => {
     // A floating presenter follows the page: one entry per placement.
     if (!FLOATING_FAMILIES.includes(entry.family as never) || entry.fromEndMs) return [entry]
     const groups: StoryboardEntry[] = []
