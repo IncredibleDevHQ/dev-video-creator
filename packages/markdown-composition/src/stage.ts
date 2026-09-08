@@ -127,7 +127,9 @@ export const stageCss = () => {
   const rules: string[] = [
     // Any staged scene: the camera and the page are positioned by the stage,
     // never by the per-block presenter mode; both travel smoothly.
-    `.scene[data-stage] .camera { display: block !important; visibility: visible; transition: left .62s ${ease}, top .62s ${ease}, width .62s ${ease}, height .62s ${ease}, border-radius .62s ${ease}, opacity .45s ease; object-fit: cover; scale: 1 !important; z-index: 30; }`,
+    // (Inactive scenes stay hidden: visibility is inherited from the scene.)
+    `.scene[data-stage] .camera { transition: left .62s ${ease}, top .62s ${ease}, width .62s ${ease}, height .62s ${ease}, border-radius .62s ${ease}, opacity .45s ease; object-fit: cover; scale: 1 !important; z-index: 30; }`,
+    `.scene[data-stage] .camera.camera-hidden { display: block !important; }`,
     `.scene[data-stage] > .content { position: absolute; margin: 0 !important; max-width: none !important; display: flex; flex-direction: column; justify-content: center; align-items: stretch; transition: left .62s ${ease}, top .62s ${ease}, width .62s ${ease}, height .62s ${ease}, opacity .45s ease; box-sizing: border-box; padding: 0 !important; }`,
     `.scene[data-stage] > .content .slide-stage svg.slide-svg { width: 100% !important; max-height: 100%; }`,
     `.scene[data-stage] { padding: 0 !important; }`,

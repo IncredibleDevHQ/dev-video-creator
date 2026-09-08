@@ -1004,7 +1004,10 @@ const buildCompositionHtml = (
       }
       if (isSlideLikeNode(scene.node)) {
         // The driver paints (step, progress) from scene time; captions swap
-        // underneath on the same step offsets.
+        // underneath on the same step offsets. The page itself never fades
+        // in as a block — a paused canvas at the scene start must show it,
+        // and the stage track decides what is on screen.
+        entrance = `tl.set(${selector}, { opacity: 1, y: 0, clipPath: "none", scale: 1, rotation: 0 }, ${start});`
         const { steps, offsets } = slideNodeTimeline(scene.node)
         const captionMotion = steps
           .map((_, stepIndex) => {
