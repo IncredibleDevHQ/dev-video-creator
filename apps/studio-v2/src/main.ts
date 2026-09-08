@@ -8138,19 +8138,17 @@ stageFollow.addEventListener('change', () => {
   }
 })
 
-// ——— The scene timeline: the dialogue and the frame plan, on one strip ———
-// Under the canvas: every beat with its line, the director's frame plan
-// (Page / Both / You, with the placement in the tooltip), and a playhead —
-// the beat shown while rehearsing, the clock during a take. Clicking a beat
-// jumps the canvas there; clicking a frame jumps to the beat it starts in.
+// ——— The scene timeline: one row under the canvas ———
+// The beats of the selected scene sized by their duration, each coloured by
+// who owns the frame during it (page, both, you) and named where the frame
+// changes; a playhead — the beat shown while rehearsing, the clock during a
+// take. Titles and lines live on hover; clicking a beat shows it.
 const sceneTimeline = $('#scene-timeline') as HTMLElement
 const sceneTimelineTitle = $('#scene-timeline-title') as HTMLElement
 const sceneTimelineClock = $('#scene-timeline-clock') as HTMLElement
 const sceneTimelineEmpty = $('#scene-timeline-empty') as HTMLElement
-const sceneTimelineBody = $('#scene-timeline-body') as HTMLElement
+const sceneTimelineTrack = $('#scene-timeline-track') as HTMLElement
 const sceneTimelineBeats = $('#scene-timeline-beats') as HTMLElement
-const sceneTimelineFrames = $('#scene-timeline-frames') as HTMLElement
-const sceneTimelineRuler = $('#scene-timeline-ruler') as HTMLElement
 const sceneTimelinePlayhead = $('#scene-timeline-playhead') as HTMLElement
 
 type SceneTimelineModel = {
@@ -8195,6 +8193,12 @@ const sceneTimelineActiveBeat = (model: SceneTimelineModel) => {
 const stageGroupFor = (family: StageFamily) =>
   family === 'content-full' ? 'page' : family === 'speaker-full' ? 'you' : 'both'
 
+const STAGE_GROUP_FILL: Record<string, string> = {
+  page: 'rgba(255,255,255,.06)',
+  both: 'rgba(56,189,248,.2)',
+  you: 'rgba(251,191,36,.22)',
+}
+
 const jumpToSceneBeat = (index: number) => {
   if (sceneTimelineRecording()) {
     if (!canvasRecordingScene || !canvasRecordingSteps.length) return
@@ -8223,10 +8227,6 @@ const syncSceneTimelinePlayhead = () => {
     element.classList.toggle('is-done', index < active)
     element.setAttribute('aria-current', index === active ? 'true' : 'false')
   })
-  const planned = stageAt(model.frames, now)
-  sceneTimelineFrames.querySelectorAll<HTMLElement>('.scene-timeline-frame').forEach(element => {
-    element.classList.toggle('is-now', Boolean(planned) && Number(element.dataset.atMs) === planned!.atMs)
-  })
 }
 
 const renderSceneTimeline = () => {
@@ -8251,82 +8251,80 @@ const renderSceneTimeline = () => {
   }
   sceneTimelineSignature = signature
   sceneTimelineModel = model
-  sceneTimelineTitle.replaceChildren()
-  sceneTimelineTitle.append(`${String(scene.index + 1).padStart(2, '0')} · ${scene.title}`)
-  if (model) {
-    const small = document.createElement('small')
-    small.textContent = `${model.beats.length} beat${model.beats.length === 1 ? '' : 's'}${model.frames.length > 1 ? ` · ${model.frames.length} frame changes` : ''}`
-    sceneTimelineTitle.append(small)
-  }
+  sceneTimelineTitle.textContent = `${String(scene.index + 1).padStart(2, '0')} · ${scene.title}`
   sceneTimelineEmpty.hidden = Boolean(model)
-  sceneTimelineBody.hidden = !model
+  sceneTimelineTrack.hidden = !model
   if (!model) {
     sceneTimelineClock.textContent = ''
     ;($('#scene-timeline-plan') as HTMLButtonElement).hidden = !isPageScene(scene)
     return
   }
-  const percent = (ms: number) => `${Math.max(0, Math.min(100, (ms / model.durationMs) * 100))}%`
+  const percent = (ms: number) => Math.max(0, Math.min(100, (ms / model.durationMs) * 100))
+  const frames = model.frames.length ? model.frames : [{ atMs: 0, family: 'content-full' as StageFamily }]
+  const frameAt = (ms: number) => stageAt(frames, ms) || frames[0]
+  const frameLabel = (segment: StageSegment) =>
+    `${STAGE_LABELS[segment.family]}${segment.variant ? ` (${variantLabel(segment.variant)})` : ''}`
 
   sceneTimelineBeats.replaceChildren(
     ...model.beats.map((beat, index) => {
+      const endMs = beat.atMs + beat.durationMs
+      // The frame runs that overlap this beat: one colour, or a hard-stop
+      // gradient when the frame changes inside it.
+      const runs = frames.filter((segment, i) => {
+        const runEnd = frames[i + 1]?.atMs ?? Infinity
+        return segment.atMs < endMs && runEnd > beat.atMs
+      })
+      const first = frameAt(beat.atMs)
+      // Name the frame where a new owner starts inside this beat (or at the
+      // scene's start); a placement move inside one family stays silent.
+      const named = runs.filter(segment => {
+        if (segment.atMs < beat.atMs) return false
+        const before = frames[frames.indexOf(segment) - 1]
+        return !before || before.family !== segment.family
+      })
       const button = document.createElement('button')
       button.type = 'button'
-      button.className = 'scene-timeline-beat'
       button.setAttribute('role', 'listitem')
-      button.style.left = percent(beat.atMs)
-      button.style.width = percent(beat.durationMs)
-      button.title = `${index + 1}. ${beat.title}\n${beat.line}\n${(beat.durationMs / 1000).toFixed(1)}s — click to show this beat`
-      const title = document.createElement('strong')
-      title.textContent = `${index + 1} · ${beat.title}`
-      const line = document.createElement('span')
-      line.textContent = beat.line
-      button.append(title, line)
+      button.style.left = `${percent(beat.atMs)}%`
+      button.style.width = `${percent(beat.durationMs)}%`
+      const groups = [...new Set(runs.map(segment => stageGroupFor(segment.family)))]
+      if (groups.length <= 1) {
+        button.className = `scene-timeline-beat ${stageGroupFor(first.family)}`
+      } else {
+        const stops: string[] = []
+        runs.forEach(segment => {
+          const from = Math.max(beat.atMs, segment.atMs)
+          const to = Math.min(endMs, frames[frames.indexOf(segment) + 1]?.atMs ?? endMs)
+          const a = ((from - beat.atMs) / beat.durationMs) * 100
+          const b = ((to - beat.atMs) / beat.durationMs) * 100
+          const fill = STAGE_GROUP_FILL[stageGroupFor(segment.family)]
+          stops.push(`${fill} ${a.toFixed(1)}% ${b.toFixed(1)}%`)
+        })
+        button.className = 'scene-timeline-beat mixed'
+        button.style.setProperty('--beat-fill', `linear-gradient(90deg, ${stops.join(', ')})`)
+      }
+      const frameNote = runs.map(segment => `${frameLabel(segment)}${segment.atMs > beat.atMs ? ` from ${(segment.atMs / 1000).toFixed(0)}s` : ''}`).join(' → ')
+      button.title = `${index + 1} · ${beat.title}\n${beat.line}\n\n${(beat.durationMs / 1000).toFixed(0)}s · frame: ${frameNote}`
+      const number = document.createElement('b')
+      number.textContent = String(index + 1)
+      button.append(number)
+      named.forEach(segment => {
+        const label = document.createElement('span')
+        label.className = stageGroupFor(segment.family)
+        label.textContent = STAGE_LABELS[segment.family]
+        button.append(label)
+      })
       button.addEventListener('click', () => jumpToSceneBeat(index))
       return button
-    }),
-  )
-
-  const frames = model.frames.length ? model.frames : [{ atMs: 0, family: 'content-full' as StageFamily }]
-  sceneTimelineFrames.replaceChildren(
-    ...frames.map((segment, index) => {
-      const endMs = frames[index + 1]?.atMs ?? model.durationMs
-      const element = document.createElement('div')
-      const group = stageGroupFor(segment.family)
-      const continues = index > 0 && frames[index - 1].family === segment.family
-      element.className = `scene-timeline-frame ${group}${continues ? ' continues' : ''}`
-      element.dataset.atMs = String(segment.atMs)
-      element.style.left = percent(segment.atMs)
-      element.style.width = percent(Math.max(0, endMs - segment.atMs))
-      const label = STAGE_LABELS[segment.family]
-      const placement = segment.variant ? variantLabel(segment.variant) : ''
-      element.textContent = continues && placement ? placement : label
-      element.title = `${label}${placement ? ` (${placement})` : ''} from ${(segment.atMs / 1000).toFixed(1)}s${continues ? ' — the presenter moves out of the page’s way' : ''}`
-      element.addEventListener('click', () => {
-        if (sceneTimelineRecording()) return
-        const beat = model.beats.reduce((found, item, beatIndex) => (item.atMs <= segment.atMs + 1 ? beatIndex : found), 0)
-        jumpToSceneBeat(beat)
-      })
-      return element
     }),
     ...model.switches.map(atMs => {
       const marker = document.createElement('i')
       marker.className = 'scene-timeline-switch'
-      marker.style.left = percent(atMs)
-      marker.title = `Your switch from the last take at ${(atMs / 1000).toFixed(1)}s`
+      marker.style.left = `${percent(atMs)}%`
+      marker.title = `Your switch from the last take at ${(atMs / 1000).toFixed(0)}s`
       return marker
     }),
   )
-
-  const seconds = model.durationMs / 1000
-  const tickEvery = seconds > 180 ? 30 : seconds > 60 ? 10 : 5
-  const ticks: HTMLElement[] = []
-  for (let t = 0; t < seconds; t += tickEvery) {
-    const tick = document.createElement('i')
-    tick.style.left = percent(t * 1000)
-    tick.textContent = t ? formatTime(t) : ''
-    ticks.push(tick)
-  }
-  sceneTimelineRuler.replaceChildren(...ticks)
   syncSceneTimelinePlayhead()
 }
 
@@ -8349,7 +8347,6 @@ const followPlannedStage = (nowMs: number) => {
   if (family === planned.family && variant === (planned.variant || '')) return
   applyLiveStage(null)
 }
-
 
 const canvasExplainerContext = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
