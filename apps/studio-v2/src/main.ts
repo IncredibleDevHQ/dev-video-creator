@@ -8233,7 +8233,7 @@ const stageTile = (
   const name = document.createElement('strong')
   name.textContent = `${STAGE_LABELS[family]}${option?.treatment === 'board' ? ' · board' : ''}`
   const why = document.createElement('small')
-  why.textContent = option ? option.why || (option.textPx ? `smallest text ${option.textPx} px` : '') : STAGE_DESCRIPTIONS[family]
+  why.textContent = option ? option.why || (option.textPx ? `smallest text ${option.textPx} px` : '') : STAGE_DESCRIPTIONS[family].split(' — ')[0].replace(/\.$/, '')
   tile.append(name, why)
   if (flags.director || flags.active) {
     const badge = document.createElement('span')
