@@ -52,6 +52,10 @@ import {
   sanitizeMotionPlan,
   stepsFromMotionPlan,
   STAGE_LABELS,
+  STAGE_DESCRIPTIONS,
+  STAGE_FAMILIES,
+  STAGE_BOARD_CONTENT,
+  STAGE_OVERLAY_CONTENT,
   familyForCameraMode,
   isStageFamily,
   sceneStageTrack,
@@ -3888,9 +3892,45 @@ const renderLayoutPresetPicker = (
     note.className = 'presenter-stage-note'
     const plan = track.map(segment => `${STAGE_LABELS[segment.family]}${segment.atMs ? ` at ${(segment.atMs / 1000).toFixed(0)}s` : ''}`).join(' → ')
     note.innerHTML = stage.follow !== false
-      ? `<strong>This scene follows the director's frame plan</strong>${plan || 'no plan yet'}. <em>Use the Page / Both / You switch beside Record to change it live; pick a placement below to fix one frame for the whole scene.</em>`
-      : `<strong>Fixed frame: ${STAGE_LABELS[isStageFamily(stage.override) ? stage.override : 'content-full']}</strong><em>Turn “Director” on beside Record to follow the plan again (${plan}).</em>`
+      ? `<strong>This scene follows the director's frame plan</strong>${plan || 'no plan yet'}. <em>Use the Page / Both / You switch beside Record to change it live; pick a frame below to fix it for the whole scene.</em>`
+      : `<strong>Fixed frame: ${STAGE_LABELS[isStageFamily(stage.override) ? stage.override : 'content-full']}</strong><em>“Follow the director” brings the plan back (${plan}).</em>`
     presenterGrid.append(note)
+    // Every family as a tile, the director's pick for this beat marked, the
+    // one on the canvas active.
+    const beat = canvasBeatIndex()
+    const options = beatLayoutOptions(scene, beat)
+    const director = options[0]
+    const current = currentStageFamily() || stageAt(track, canvasSceneTimeMs())?.family || null
+    const grid = document.createElement('div')
+    grid.className = 'presenter-stage-grid'
+    const families: StageFamily[] = [
+      ...options.map(option => option.family as StageFamily),
+      ...STAGE_FAMILIES.filter(family => !options.some(option => option.family === family)),
+    ].filter((family, index, all) => all.indexOf(family) === index)
+    families.forEach(family => {
+      const option = options.find(item => item.family === family)
+      grid.append(
+        stageTile(family, option, { active: current === family, director: director?.family === family, rank: option ? options.indexOf(option) : undefined }, () => {
+          chooseStage(family)
+          renderLayoutPresetPicker(scene, config)
+        }),
+      )
+    })
+    presenterGrid.append(grid)
+    const actions = document.createElement('div')
+    actions.className = 'presenter-stage-actions'
+    const follow = document.createElement('button')
+    follow.type = 'button'
+    follow.className = 'button chrome-secondary'
+    follow.textContent = 'Follow the director'
+    follow.disabled = stage.follow !== false && !stage.overrides?.length
+    follow.addEventListener('click', () => {
+      stageFollow.checked = true
+      stageFollow.dispatchEvent(new Event('change'))
+      renderLayoutPresetPicker(scene, config)
+    })
+    actions.append(follow)
+    presenterGrid.append(actions)
   }
   const presenterSelected = selectedCanvasObject === 'presenter'
   const visualKind = sceneVisualKind(scene)
@@ -3937,9 +3977,13 @@ const renderLayoutPresetPicker = (
       ),
     ),
   )
-  PRESENTER_LAYOUT_PRESETS.forEach(preset =>
-    presenterGrid.append(createPresenterLayoutButton(preset, config, scene.kind)),
-  )
+  // A page scene chose among the stage families above; other blocks keep
+  // the presenter presets.
+  if (!isPageScene(scene)) {
+    PRESENTER_LAYOUT_PRESETS.forEach(preset =>
+      presenterGrid.append(createPresenterLayoutButton(preset, config, scene.kind)),
+    )
+  }
 }
 
 const createStudioChoiceButton = <Value extends string>(
@@ -7988,9 +8032,51 @@ const explainerCompositionDriver = (nodeId: string) =>
 // override from that moment; a press outside a take fixes one frame for
 // the whole scene. The composition animates every change.
 const stageSwitch = $('#stage-switch') as HTMLElement
-const stageFamilySelect = $('#stage-family') as HTMLSelectElement
 const stageFollow = $('#stage-follow') as HTMLInputElement
 const stageHint = $('#stage-hint') as HTMLElement
+const stagePicker = $('#stage-picker') as HTMLElement
+const stagePickerGrid = $('#stage-picker-grid') as HTMLElement
+const stagePickerBeat = $('#stage-picker-beat') as HTMLElement
+const stagePickerWhy = $('#stage-picker-why') as HTMLElement
+const stageBothButton = $('#stage-both') as HTMLButtonElement
+
+// The families where the page and you share the frame.
+const BOTH_FAMILIES: StageFamily[] = STAGE_FAMILIES.filter(family => family !== 'content-full' && family !== 'speaker-full')
+const isBothFamily = (family: string | null | undefined): family is StageFamily => Boolean(family) && BOTH_FAMILIES.includes(family as StageFamily)
+
+// A picture of a family: the page rect and your rect, as the composition places them.
+const stageGlyph = (family: StageFamily, variant?: string | null, treatment?: string | null) => {
+  const glyph = document.createElement('span')
+  glyph.className = `stage-glyph stage-glyph-${family}`
+  const geometry = stageGeometryFor(family, variant)
+  const content = family === 'speaker-full' ? (treatment === 'board' ? STAGE_BOARD_CONTENT : treatment === 'overlay' ? STAGE_OVERLAY_CONTENT : null) : geometry.content
+  const rectCss = (rect: { left: number; top: number; width: number; height: number }) => `left:${rect.left}%;top:${rect.top}%;width:${rect.width}%;height:${rect.height}%`
+  if (content) {
+    const page = document.createElement('i')
+    page.className = 'stage-glyph-page'
+    page.style.cssText = rectCss(content)
+    glyph.append(page)
+  }
+  if (geometry.camera) {
+    const you = document.createElement('i')
+    you.className = `stage-glyph-you shape-${geometry.cameraShape}`
+    you.style.cssText = rectCss(geometry.camera)
+    glyph.append(you)
+  }
+  return glyph
+}
+
+type LayoutOptionAttr = { family: string; treatment?: string; variant?: string; score: number; textPx: number; why: string }
+// The director's ranked options for the beat on the canvas.
+const beatLayoutOptions = (scene: Scene | undefined, beat: number): LayoutOptionAttr[] => {
+  const auto = scene?.node.attrs?.directorAuto as { layoutOptions?: LayoutOptionAttr[][] } | undefined
+  const options = auto?.layoutOptions?.[beat]
+  return Array.isArray(options) ? options.filter(option => isStageFamily(option.family)) : []
+}
+const canvasBeatIndex = () => {
+  const recording = playerShell.classList.contains('canvas-recording-active') && canvasRecordingStartedAt > 0
+  return recording && canvasRecordingSteps.length ? Math.max(0, canvasRecordingStep - 1) : canvasExplainerStep
+}
 
 const isPageScene = (scene: Pick<Scene, 'node'> | undefined) =>
   Boolean(scene && (scene.node.type === 'scene' || scene.node.type === 'slide'))
@@ -8087,14 +8173,26 @@ const syncStageSwitch = () => {
   stageFollow.checked = stage.follow !== false && !stage.overrides?.length
   const current = currentStageFamily()
   const active = stageButtonFor(current)
-  if (current && current !== 'content-full' && current !== 'speaker-full') stageFamilySelect.value = current
   const track = sceneStageTrack(scene)
   const now = canvasSceneTimeMs()
   const planned = stageAt(track, now)
   const next = track.find(segment => segment.atMs > now)
+  const element = stageSceneElement()
+  const currentVariant = element?.getAttribute('data-stage-override-variant') || element?.getAttribute('data-stage-variant') || null
+  const currentTreatment = element?.getAttribute('data-stage-treatment') || null
   stageSwitch.querySelectorAll<HTMLButtonElement>('[data-stage-choice]').forEach(button => {
     button.classList.toggle('is-active', button.dataset.stageChoice === active)
     button.classList.toggle('is-suggested', Boolean(planned) && button.dataset.stageChoice === stageButtonFor(planned!.family) && button.dataset.stageChoice !== active)
+    // The picture on each button: the page; the page with you as it is (or
+    // will be) shared; you.
+    const slot = button.querySelector<HTMLElement>('.stage-glyph-slot')
+    if (!slot) return
+    const choice = button.dataset.stageChoice
+    const family: StageFamily =
+      choice === 'content-full' ? 'content-full' : choice === 'speaker-full' ? 'speaker-full' : isBothFamily(current) ? current : isBothFamily(planned?.family) ? planned!.family : 'content-pip'
+    const glyph = stageGlyph(family, choice === 'both' && isBothFamily(current) ? currentVariant : planned?.variant, choice === 'speaker-full' ? currentTreatment : null)
+    slot.replaceChildren(glyph)
+    if (choice === 'both') button.title = `${STAGE_LABELS[family]} — ${STAGE_DESCRIPTIONS[family]} Click to pick another way.`
   })
   const label = (family: StageFamily, variant?: string) => `${STAGE_LABELS[family]}${variant ? ` (${variantLabel(variant)})` : ''}`
   if (!track.length || (track.length === 1 && track[0].family === 'content-full' && !next)) {
@@ -8103,8 +8201,132 @@ const syncStageSwitch = () => {
     const plan = sanitizeMotionPlan(scene.node.attrs?.motion)
     const beatIndex = plan ? motionPlanOffsetsMs(plan).offsets.findIndex((offset, index, all) => next && offset >= next.atMs && (index === 0 || all[index - 1] < next.atMs)) : -1
     const beatTitle = plan && beatIndex >= 0 ? plan.steps[beatIndex]?.title : ''
-    stageHint.innerHTML = `<strong>Plan:</strong> ${planned ? label(planned.family, planned.variant) : '—'} now${next ? ` → ${label(next.family, next.variant)} at ${(next.atMs / 1000).toFixed(0)}s${beatTitle ? ` “${beatTitle}”` : ''}` : ' to the end'}${stage.overrides?.length ? ' · your switches from the last take are kept' : ''}`
+    const why = beatLayoutOptions(scene, canvasBeatIndex()).find(option => option.family === planned?.family)?.why
+    stageHint.innerHTML = `<strong>Plan:</strong> ${planned ? label(planned.family, planned.variant) : '—'} now${why ? ` <em>(${why})</em>` : ''}${next ? ` → ${label(next.family, next.variant)} at ${(next.atMs / 1000).toFixed(0)}s${beatTitle ? ` “${beatTitle}”` : ''}` : ' to the end'}${stage.overrides?.length ? ' · your switches from the last take are kept' : ''}`
   }
+  if (!stagePicker.hidden) renderStagePicker()
+}
+
+// ——— The picker: every way to share the frame, the director's pick first ———
+const bestBothFamily = (): StageFamily => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  const current = currentStageFamily()
+  if (isBothFamily(current)) return current
+  const planned = scene ? stageAt(sceneStageTrack(scene), canvasSceneTimeMs()) : null
+  if (isBothFamily(planned?.family)) return planned!.family
+  const top = beatLayoutOptions(scene, canvasBeatIndex()).find(option => isBothFamily(option.family))
+  return (top?.family as StageFamily) || 'content-pip'
+}
+
+const stageTile = (
+  family: StageFamily,
+  option: LayoutOptionAttr | undefined,
+  flags: { active: boolean; director: boolean; rank?: number },
+  onPick: () => void,
+) => {
+  const tile = document.createElement('button')
+  tile.type = 'button'
+  tile.className = `stage-tile${flags.active ? ' is-active' : ''}${flags.director ? ' is-director' : ''}`
+  tile.title = STAGE_DESCRIPTIONS[family]
+  tile.setAttribute('aria-pressed', String(flags.active))
+  tile.append(stageGlyph(family, option?.variant, option?.treatment))
+  const name = document.createElement('strong')
+  name.textContent = `${STAGE_LABELS[family]}${option?.treatment === 'board' ? ' · board' : ''}`
+  const why = document.createElement('small')
+  why.textContent = option ? option.why || (option.textPx ? `smallest text ${option.textPx} px` : '') : STAGE_DESCRIPTIONS[family]
+  tile.append(name, why)
+  if (flags.director || flags.active) {
+    const badge = document.createElement('span')
+    badge.className = `stage-tile-badge${flags.active && !flags.director ? ' is-now' : ''}`
+    badge.textContent = flags.director && flags.active ? 'Director · now' : flags.director ? "Director's pick" : 'Now'
+    tile.append(badge)
+  }
+  if (option && typeof flags.rank === 'number') {
+    const score = document.createElement('span')
+    score.className = 'stage-tile-score'
+    score.textContent = `#${flags.rank + 1}`
+    score.title = `Director's score ${Math.round(option.score * 100)} / 100`
+    tile.append(score)
+  }
+  tile.addEventListener('click', onPick)
+  return tile
+}
+
+const renderStagePicker = () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene) return
+  const beat = canvasBeatIndex()
+  const options = beatLayoutOptions(scene, beat)
+  const ranked = options.filter(option => isBothFamily(option.family))
+  const director = options[0]
+  const current = currentStageFamily()
+  const steps = sceneStepScript(scene)
+  stagePickerBeat.textContent = steps[beat] ? `beat ${beat + 1} · ${steps[beat].title}` : ''
+  const families: StageFamily[] = [
+    ...ranked.map(option => option.family as StageFamily),
+    ...BOTH_FAMILIES.filter(family => !ranked.some(option => option.family === family)),
+  ].filter((family, index, all) => all.indexOf(family) === index)
+  stagePickerGrid.replaceChildren(
+    ...families.map(family => {
+      const option = ranked.find(item => item.family === family)
+      const rank = option ? options.indexOf(option) : undefined
+      return stageTile(family, option, { active: current === family, director: director?.family === family, rank }, () => {
+        chooseStage(family)
+        renderStagePicker()
+      })
+    }),
+  )
+  stagePickerWhy.innerHTML = director
+    ? `<strong>Director:</strong> ${STAGE_LABELS[director.family as StageFamily]}${director.treatment === 'board' ? ' · board' : ''} — ${director.why || 'best fit for this beat'}`
+    : '<strong>Director:</strong> no plan yet — open the scene and plan its dialogue'
+}
+
+const openStagePicker = () => {
+  renderStagePicker()
+  stagePicker.hidden = false
+  stageBothButton.setAttribute('aria-expanded', 'true')
+  const anchor = stageBothButton.getBoundingClientRect()
+  const width = Math.min(560, window.innerWidth - 40)
+  stagePicker.style.left = `${Math.max(20, Math.min(anchor.left - 40, window.innerWidth - width - 20))}px`
+  stagePicker.style.bottom = `${window.innerHeight - anchor.top + 10}px`
+}
+const closeStagePicker = () => {
+  stagePicker.hidden = true
+  stageBothButton.setAttribute('aria-expanded', 'false')
+}
+;($('#stage-picker-close') as HTMLButtonElement).addEventListener('click', closeStagePicker)
+document.addEventListener('click', event => {
+  if (stagePicker.hidden) return
+  const target = event.target as Node
+  if (stagePicker.contains(target) || stageBothButton.contains(target)) return
+  closeStagePicker()
+})
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !stagePicker.hidden) {
+    event.stopPropagation()
+    closeStagePicker()
+  }
+}, true)
+;($('#stage-picker-follow') as HTMLButtonElement).addEventListener('click', () => {
+  stageFollow.checked = true
+  stageFollow.dispatchEvent(new Event('change'))
+  renderStagePicker()
+})
+;($('#stage-picker-presenter') as HTMLButtonElement).addEventListener('click', () => {
+  closeStagePicker()
+  if (playerShell.classList.contains('director-collapsed')) ($('#director-toggle') as HTMLButtonElement).click()
+  document.querySelector<HTMLButtonElement>('[data-director-tab="presenter"]')?.click()
+})
+
+// Saving a frame choice recompiles the composition; the live canvas glides
+// first and saves once the move has landed, so the glide is never cut.
+let stageSyncTimer = 0
+const scheduleStageSync = () => {
+  window.clearTimeout(stageSyncTimer)
+  stageSyncTimer = window.setTimeout(() => {
+    stageSyncTimer = 0
+    syncProject()
+  }, 760)
 }
 
 const chooseStage = (family: StageFamily) => {
@@ -8119,7 +8341,7 @@ const chooseStage = (family: StageFamily) => {
     stage.override = null
     stage.overrides = [...(stage.overrides || []), { atMs: Date.now() - canvasRecordingStartedAt, family }]
     applyLiveStage(family)
-    syncProject()
+    scheduleStageSync()
     return
   }
   // Outside a take: one frame for the whole scene.
@@ -8127,19 +8349,23 @@ const chooseStage = (family: StageFamily) => {
   stage.override = family
   stage.overrides = []
   applyLiveStage(family)
-  syncProject()
+  scheduleStageSync()
 }
 
 stageSwitch.querySelectorAll<HTMLButtonElement>('[data-stage-choice]').forEach(button => {
   button.addEventListener('click', () => {
     const choice = button.dataset.stageChoice
-    const family: StageFamily = choice === 'both' ? (isStageFamily(stageFamilySelect.value) ? stageFamilySelect.value : 'content-pip') : (choice as StageFamily)
-    chooseStage(family)
+    if (choice === 'both') {
+      // Share the frame the director's way for this beat, and open the
+      // picker to choose another.
+      if (!isBothFamily(currentStageFamily())) chooseStage(bestBothFamily())
+      if (stagePicker.hidden) openStagePicker()
+      else closeStagePicker()
+      return
+    }
+    closeStagePicker()
+    chooseStage(choice as StageFamily)
   })
-})
-stageFamilySelect.addEventListener('change', () => {
-  const current = currentStageFamily()
-  if (current && current !== 'content-full' && current !== 'speaker-full' && isStageFamily(stageFamilySelect.value)) chooseStage(stageFamilySelect.value)
 })
 stageFollow.addEventListener('change', () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
@@ -9886,6 +10112,7 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
       cues: result.cues,
       directorNotes: result.directorNotes,
       legibility: result.legibility,
+      layoutOptions: result.layoutOptions,
     },
     requiredArea: result.requiredArea,
     ...(has('storyboard') ? {} : { storyboard: result.storyboard }),

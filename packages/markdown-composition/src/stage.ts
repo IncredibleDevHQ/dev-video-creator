@@ -7,15 +7,37 @@
 export const STAGE_FAMILIES = [
   'content-full',
   'speaker-full',
+  'speaker-lead',
   'speaker-panel',
   'split',
-  'content-pip',
-  'content-tile',
+  'content-lead',
   'content-card',
   'content-cutout',
+  'content-tile',
+  'content-pip',
 ] as const
 export type StageFamily = (typeof STAGE_FAMILIES)[number]
-export type StageTreatment = '' | 'overlay' | 'glow-bed-hero'
+// speaker-full can carry a title card in a corner (overlay), a warm bed for
+// the hero line (glow-bed-hero), or the page on a board over you (board —
+// the words are the picture: a quote, a statement, a short list).
+export type StageTreatment = '' | 'overlay' | 'glow-bed-hero' | 'board'
+export const STAGE_TREATMENTS: readonly StageTreatment[] = ['', 'overlay', 'glow-bed-hero', 'board']
+export const isStageTreatment = (value: unknown): value is StageTreatment =>
+  typeof value === 'string' && (STAGE_TREATMENTS as readonly string[]).includes(value)
+
+// What each family is for — the director weighs these, the picker shows them.
+export const STAGE_DESCRIPTIONS: Record<StageFamily, string> = {
+  'content-full': 'The page alone, edge to edge.',
+  'speaker-full': 'You alone, full frame — for the line that belongs to your face.',
+  'speaker-lead': 'You lead; the page rides as a card beside you — a term, a short list, a quote.',
+  'speaker-panel': 'You in a tall panel, the page beside you at half the frame.',
+  split: 'Half and half — the page and you as equals.',
+  'content-lead': 'The page leads at sixty percent; you stand tall beside it.',
+  'content-card': 'The page moves aside for your portrait card.',
+  'content-cutout': 'The page owns the frame; you float over it in a tall cutout.',
+  'content-tile': 'The page owns the frame; you float over it in a small tile.',
+  'content-pip': 'The page owns the frame; you float over it as a round chip.',
+}
 
 // A variant is a placement of the presenter for the families that float
 // over the page: an anchor (br, bl, tr, tl, mr, ml — bottom-right first)
@@ -39,7 +61,7 @@ const PAGE_RECT: StageRect = { left: 4.7, top: 5, width: 90.6, height: 90 }
 const FRAME_ASPECT = 1920 / 1080
 
 // Width (% of the frame) per size, for the floating families.
-const FLOAT_WIDTHS: Record<Exclude<StageFamily, 'content-full' | 'speaker-full' | 'speaker-panel' | 'split'>, Record<StageSize, number>> = {
+const FLOAT_WIDTHS: Record<Exclude<StageFamily, 'content-full' | 'speaker-full' | 'speaker-lead' | 'speaker-panel' | 'split' | 'content-lead'>, Record<StageSize, number>> = {
   'content-pip': { s: 12, m: 16, l: 20 },
   'content-tile': { s: 18, m: 22, l: 27 },
   'content-card': { s: 20, m: 24, l: 28 },
@@ -73,8 +95,10 @@ const placeFloat = (family: keyof typeof FLOAT_WIDTHS, variant: StageVariant): S
 export const DEFAULT_VARIANT: Record<StageFamily, StageVariant | undefined> = {
   'content-full': undefined,
   'speaker-full': undefined,
+  'speaker-lead': undefined,
   'speaker-panel': undefined,
   split: undefined,
+  'content-lead': undefined,
   'content-pip': 'br-m',
   'content-tile': 'br-m',
   'content-card': 'mr-m',
@@ -95,8 +119,14 @@ export const stageGeometryFor = (family: StageFamily, variant?: string | null): 
   switch (family) {
     case 'content-full': return { camera: null, content: PAGE_RECT, cameraShape: 'rounded' }
     case 'speaker-full': return { camera: { left: 0, top: 0, width: 100, height: 100 }, content: null, cameraShape: 'full' }
+    // You lead (a medium shot at 58%), the page as a card beside you — after
+    // TalkCraft's "host + info card / parallel items with host".
+    case 'speaker-lead': return { camera: { left: 0, top: 0, width: 58, height: 100 }, content: { left: 61, top: 18, width: 35, height: 64 }, cameraShape: 'full' }
     case 'speaker-panel': return { camera: { left: 0, top: 0, width: 44, height: 100 }, content: { left: 47, top: 8, width: 50, height: 84 }, cameraShape: 'full' }
     case 'split': return { camera: { left: 50, top: 0, width: 50, height: 100 }, content: { left: 3, top: 10, width: 44, height: 80 }, cameraShape: 'full' }
+    // The page leads at sixty percent, you tall beside it — after TalkCraft's
+    // "document parks left" and "60/40 story split".
+    case 'content-lead': return { camera: { left: 66, top: 12, width: 30, height: 76 }, content: { left: 3, top: 8, width: 60, height: 84 }, cameraShape: 'rounded' }
     default: {
       const v = isStageVariant(family, variant) ? variant : DEFAULT_VARIANT[family]!
       const camera = placeFloat(family, v)
@@ -118,14 +148,18 @@ export const STAGE_GEOMETRY: Record<StageFamily, StageGeometry> = Object.fromEnt
   STAGE_FAMILIES.map(family => [family, stageGeometryFor(family, DEFAULT_VARIANT[family])]),
 ) as Record<StageFamily, StageGeometry>
 
-// The title-card overlay a speaker-full moment can carry.
+// The title-card overlay a speaker-full moment can carry, and the board
+// (the page over you, centred) — after TalkCraft's "quote card".
 export const STAGE_OVERLAY_CONTENT: StageRect = { left: 56, top: 56, width: 40, height: 36 }
+export const STAGE_BOARD_CONTENT: StageRect = { left: 15, top: 14, width: 70, height: 72 }
 
 export const STAGE_LABELS: Record<StageFamily, string> = {
   'content-full': 'Page',
   'speaker-full': 'You',
+  'speaker-lead': 'You + card',
   'speaker-panel': 'Panel',
   split: 'Split',
+  'content-lead': 'Page + you',
   'content-pip': 'Chip',
   'content-tile': 'Tile',
   'content-card': 'Card',
@@ -152,7 +186,7 @@ export const sanitizeStageTrack = (value: unknown): StageSegment[] => {
       const segment = entry as Record<string, unknown>
       if (!isStageFamily(segment.family)) return null
       const atMs = Number(segment.atMs)
-      const treatment = segment.treatment === 'overlay' || segment.treatment === 'glow-bed-hero' ? segment.treatment : ''
+      const treatment = isStageTreatment(segment.treatment) ? segment.treatment : ''
       const variant = isStageVariant(segment.family, segment.variant) ? (segment.variant as StageVariant) : undefined
       return { atMs: Number.isFinite(atMs) ? Math.max(0, atMs) : 0, family: segment.family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}) }
     })
@@ -211,7 +245,7 @@ export const stageTrackFromStoryboard = (
       Number.isFinite(fromEnd) && fromEnd > 0
         ? Math.max(beatOffsetsMs[first] ?? 0, (beatOffsetsMs[last] ?? 0) + (beatDurationsMs[last] ?? 0) - fromEnd)
         : beatOffsetsMs[first] ?? 0
-    const treatment = entry.treatment === 'overlay' || entry.treatment === 'glow-bed-hero' ? entry.treatment : ''
+    const treatment = isStageTreatment(entry.treatment) ? entry.treatment : ''
     const variant = isStageVariant(family, entry.variant) ? (entry.variant as StageVariant) : undefined
     track.push({ atMs, family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}) })
   })
@@ -240,12 +274,15 @@ export const stageCss = () => {
     `.scene[data-stage] > .content { position: absolute; margin: 0 !important; max-width: none !important; display: flex; flex-direction: column; justify-content: center; align-items: stretch; transition: left .62s ${ease}, top .62s ${ease}, width .62s ${ease}, height .62s ${ease}, opacity .45s ease; box-sizing: border-box; padding: 0 !important; }`,
     `.scene[data-stage] > .content .slide-stage svg.slide-svg { width: 100% !important; max-height: 100%; }`,
     `.scene[data-stage] { padding: 0 !important; }`,
-    `.scene[data-stage="speaker-full"] .camera, .scene[data-stage="speaker-panel"] .camera, .scene[data-stage="split"] .camera { border-width: 0 !important; border-radius: 0 !important; box-shadow: none; }`,
+    `.scene[data-stage="speaker-full"] .camera, .scene[data-stage="speaker-lead"] .camera, .scene[data-stage="speaker-panel"] .camera, .scene[data-stage="split"] .camera { border-width: 0 !important; border-radius: 0 !important; box-shadow: none; }`,
+    `.scene[data-stage="speaker-lead"] > .content { border-radius: 18px; background: rgba(8, 12, 10, .5); backdrop-filter: blur(14px); box-shadow: 0 24px 60px rgba(0,0,0,.3); padding: 1.4% !important; }`,
     `.scene[data-stage="content-pip"] .camera { border-radius: 50% !important; }`,
     `.scene[data-stage="content-full"] .camera { opacity: 0; pointer-events: none; }`,
     `.scene[data-stage="speaker-full"] > .content { opacity: 0; pointer-events: none; }`,
     `.scene[data-stage="speaker-full"][data-stage-treatment="overlay"] > .content { opacity: 1; ${rectCss(STAGE_OVERLAY_CONTENT)} }`,
     `.scene[data-stage="speaker-full"][data-stage-treatment="overlay"] .ex-captions { display: none; }`,
+    `.scene[data-stage="speaker-full"][data-stage-treatment="board"] > .content { opacity: 1; ${rectCss(STAGE_BOARD_CONTENT)} padding: 1.6% !important; border-radius: 22px; background: rgba(8, 12, 10, .58); backdrop-filter: blur(16px); box-shadow: 0 30px 80px rgba(0,0,0,.35); }`,
+    `.scene[data-stage="speaker-full"][data-stage-treatment="board"] .ex-captions { display: none; }`,
     `.scene[data-stage="speaker-full"] .logo-footer-left, .scene[data-stage="speaker-full"] .scene-index { opacity: 0; }`,
   ]
   ;(Object.keys(STAGE_GEOMETRY) as StageFamily[]).forEach(family => {
@@ -261,6 +298,6 @@ export const stageCss = () => {
       if (placed.content) rules.push(`.scene[data-stage="${family}"][data-stage-variant="${variant}"] > .content { ${rectCss(placed.content)} }`)
     })
   })
-  rules.push(`.scene[data-stage="content-tile"] .camera, .scene[data-stage="content-cutout"] .camera, .scene[data-stage="content-card"] .camera { border-radius: var(--video-radius, 18px) !important; }`)
+  rules.push(`.scene[data-stage="content-tile"] .camera, .scene[data-stage="content-cutout"] .camera, .scene[data-stage="content-card"] .camera, .scene[data-stage="content-lead"] .camera { border-radius: var(--video-radius, 18px) !important; }`)
   return rules.join('\n    ')
 }

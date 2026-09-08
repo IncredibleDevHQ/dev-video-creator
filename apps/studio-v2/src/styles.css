@@ -1769,3 +1769,53 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .player-shell.canvas-open .canvas-recording-controls .stage-hint { flex: 0 1 auto; min-width: 48px; }
 .player-shell.canvas-open .canvas-recording-controls .explainer-step-bar span { max-width: 80px; }
 .player-shell.canvas-recording-mode .canvas-recording-controls { left: 32px; right: 32px; width: auto; max-width: none; }
+
+/* ——— Frame switch as pictures: the page, the page with you, you ——— */
+.stage-glyph { position: relative; display: inline-block; width: 26px; height: 15px; flex: none; border-radius: 3px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); overflow: hidden; vertical-align: middle; }
+.stage-glyph i { position: absolute; display: block; }
+.stage-glyph .stage-glyph-page { border: 1px solid rgba(255,255,255,.55); border-radius: 1px; background: rgba(255,255,255,.1); box-sizing: border-box; }
+.stage-glyph .stage-glyph-you { background: #4ade80; border-radius: 1.5px; }
+.stage-glyph .stage-glyph-you.shape-circle { border-radius: 50%; }
+.stage-glyph .stage-glyph-you.shape-full { border-radius: 0; }
+.stage-switch button.is-active .stage-glyph { background: rgba(0,0,0,.18); box-shadow: inset 0 0 0 1px rgba(0,0,0,.3); }
+.stage-switch button.is-active .stage-glyph .stage-glyph-page { border-color: rgba(8,18,12,.7); background: rgba(8,18,12,.15); }
+.stage-switch button.is-active .stage-glyph .stage-glyph-you { background: #08120c; }
+.stage-switch button { display: inline-flex; align-items: center; gap: 7px; padding: 0 10px 0 8px; }
+.stage-switch .stage-chevron { width: 12px; height: 12px; margin-left: -2px; opacity: .8; }
+.stage-switch button[aria-expanded="true"] { background: rgba(255,255,255,.18); }
+.stage-picker { position: fixed; z-index: 95; width: min(560px, calc(100vw - 40px)); padding: 12px 12px 10px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(17,17,19,.96); color: white; box-shadow: 0 24px 70px rgba(0,0,0,.45); backdrop-filter: blur(18px); }
+.stage-picker[hidden] { display: none; }
+.stage-picker-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.stage-picker-head strong { font: 700 12px/1 system-ui; }
+.stage-picker-head span { flex: 1 1 auto; font: 500 11px/1 system-ui; color: #a1a1aa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage-picker-head button { width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: #a1a1aa; font-size: 16px; line-height: 1; cursor: pointer; }
+.stage-picker-head button:hover { background: rgba(255,255,255,.12); color: white; }
+.stage-picker-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stage-tile { position: relative; display: grid; gap: 6px; padding: 8px 8px 7px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(255,255,255,.04); color: #e4e4e7; text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
+.stage-tile:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.09); }
+.stage-tile.is-active { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 16%, transparent); }
+.stage-tile.is-director:not(.is-active) { border-color: color-mix(in srgb, var(--brand) 55%, transparent); }
+.stage-tile .stage-glyph { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 5px; }
+.stage-tile strong { font: 700 11px/1.2 system-ui; }
+.stage-tile small { display: block; font: 500 9.5px/1.3 system-ui; color: #a1a1aa; min-height: 2.6em; }
+.stage-tile .stage-tile-badge { position: absolute; top: 6px; right: 6px; padding: 2px 6px; border-radius: 999px; background: var(--brand); color: #08120c; font: 700 8px/1 system-ui; letter-spacing: .06em; text-transform: uppercase; }
+.stage-tile .stage-tile-badge.is-now { background: rgba(255,255,255,.85); }
+.stage-tile .stage-tile-score { position: absolute; top: 6px; left: 6px; padding: 2px 5px; border-radius: 4px; background: rgba(0,0,0,.45); color: #d4d4d8; font: 600 8.5px/1 'Roboto Mono', monospace; }
+.stage-picker-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.stage-picker-foot span { flex: 1 1 auto; font: 500 10.5px/1.35 system-ui; color: #a1a1aa; min-width: 0; }
+.stage-picker-foot span strong { color: #e4e4e7; font-weight: 600; }
+.stage-picker-foot button { height: 26px; padding: 0 10px; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: rgba(255,255,255,.06); color: #e4e4e7; font: 600 10.5px system-ui; cursor: pointer; white-space: nowrap; }
+.stage-picker-foot button:hover { background: rgba(255,255,255,.14); }
+/* The presenter panel for a page scene: the same families as tiles. */
+.presenter-stage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.presenter-stage-grid .stage-tile { color: #18181b; border-color: #e4e4e7; background: #fafafa; }
+.presenter-stage-grid .stage-tile:hover { border-color: #a1a1aa; background: white; }
+.presenter-stage-grid .stage-tile.is-active { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, white); }
+.presenter-stage-grid .stage-tile.is-director:not(.is-active) { border-color: color-mix(in srgb, var(--brand) 60%, white); }
+.presenter-stage-grid .stage-tile small { color: #71717a; }
+.presenter-stage-grid .stage-glyph { background: #e4e4e7; box-shadow: inset 0 0 0 1px #d4d4d8; }
+.presenter-stage-grid .stage-glyph .stage-glyph-page { border-color: #52525b; background: rgba(0,0,0,.06); }
+.presenter-stage-grid .stage-glyph .stage-glyph-you { background: #16a34a; }
+.presenter-stage-grid .stage-tile .stage-tile-score { background: rgba(0,0,0,.08); color: #52525b; }
+.presenter-stage-actions { display: flex; gap: 8px; margin-top: 10px; }
+.presenter-stage-actions .button { min-height: 28px; padding-inline: 10px; font-size: 10px; }

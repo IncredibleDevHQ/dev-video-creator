@@ -53,6 +53,21 @@ const overlapArea = (a: FrameBox, b: FrameBox) => {
 export const coveredInk = (camera: StageRect, boxes: FrameBox[]) =>
   boxes.reduce((sum, box) => sum + overlapArea(camera, box), 0)
 
+/** The share of the camera's own area that has page ink under it (a union,
+ * so nested boxes count once), sampled on a grid. */
+export const coveredFraction = (camera: StageRect, boxes: FrameBox[], grid = 24) => {
+  if (!boxes.length) return 0
+  let hit = 0
+  for (let row = 0; row < grid; row += 1) {
+    const y = camera.top + ((row + 0.5) / grid) * camera.height
+    for (let col = 0; col < grid; col += 1) {
+      const x = camera.left + ((col + 0.5) / grid) * camera.width
+      if (boxes.some(box => x >= box.left && x <= box.left + box.width && y >= box.top && y <= box.top + box.height)) hit += 1
+    }
+  }
+  return hit / (grid * grid)
+}
+
 /** Units on screen at each beat: chrome from the start, the rest as they enter. */
 export const unitsOnScreenPerBeat = (plan: MotionPlanV2, units: SlideUnit[]): SlideUnit[][] => {
   const all = flattenUnits(units).filter(unit => unit.kind !== 'group')

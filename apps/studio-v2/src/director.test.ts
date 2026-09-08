@@ -96,3 +96,30 @@ describe('outro', () => {
     expect(last.storyboard.some(entry => entry.label === 'Outro')).toBe(false)
   })
 })
+
+describe('layout options', () => {
+  it('scores every family per beat with a reason, and the pick leads', () => {
+    const planned = planFromScript(`Here is the encoder. [panel]\n\nThe attention block bridges to the decoder.`, diagram(), { viewBox })!
+    const result = direct({ title: 'x', units: diagram(), viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } })
+    expect(result.layoutOptions).toHaveLength(planned.beats.length)
+    const first = result.layoutOptions[0]
+    expect(first[0].family).toBe('speaker-panel')
+    expect(first.map(option => option.family)).toEqual(expect.arrayContaining(['speaker-lead', 'content-lead', 'content-pip', 'speaker-full']))
+    expect(first.every(option => option.why.length > 0)).toBe(true)
+    expect(first.every((option, index) => index === 0 || option.score <= first[index - 1].score)).toBe(true)
+    expect(result.storyboard[0].why).toBeTruthy()
+  })
+
+  it('prefers a light layout for a light beat and the frame for a traced one', () => {
+    const light: SlideUnit[] = [
+      unit('a', 'box', 'One term', [100, 100, 300, 60]),
+      unit('b', 'box', 'Its meaning in a line', [100, 200, 500, 60]),
+      unit('c', 'box', 'An example', [100, 300, 400, 60]),
+    ]
+    const planned = planFromScript(`One term, its meaning in a line, and an example.`, light, { viewBox })!
+    const result = direct({ title: 'x', units: light, viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } })
+    const pick = result.layoutOptions[0][0]
+    expect(['speaker-lead', 'speaker-panel', 'speaker-full']).toContain(pick.family)
+    expect(pick.textPx).toBeGreaterThanOrEqual(18)
+  })
+})
