@@ -90,6 +90,14 @@ export type BlockRenderConfigV1 = {
     shape: 'circle' | 'rounded-rectangle'
     scale: number
   }
+  // Who owns the frame over the scene (page blocks). follow = the director's
+  // stage track; override = one family for the whole block; overrides = the
+  // presenter's live switches during the last take (scene time, ms).
+  stage?: {
+    follow: boolean
+    override?: string | null
+    overrides?: Array<{ atMs: number; family: string }>
+  }
   appearance: {
     layout: ThemeBlockLayout
     render: ThemeBlockRendering

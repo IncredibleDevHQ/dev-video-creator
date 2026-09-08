@@ -51,6 +51,15 @@ import {
   motionPlanDurationSeconds,
   sanitizeMotionPlan,
   stepsFromMotionPlan,
+  STAGE_GEOMETRY,
+  STAGE_LABELS,
+  familyForCameraMode,
+  isStageFamily,
+  sceneStageTrack,
+  stageAt,
+  stageTrackFromStoryboard,
+  motionPlanOffsetsMs,
+  type StageFamily,
   type MotionDriverInstance,
   type MotionPlanV2,
 } from 'markdown-composition'
@@ -791,17 +800,26 @@ const attachLiveCameraToPlayer = () => {
   clearLiveCameraFromPlayer()
   if (!liveCameraStream || !playerShell.classList.contains('canvas-open')) return
   const scene = scenes.find(item => item.id === selectedNodeId)
-  if (!scene || scene.config.camera.position === 'hidden') return
+  if (!scene) return
+  const staged = isPageScene(scene)
+  if (!staged && scene.config.camera.position === 'hidden') return
+  const stageFamily = staged ? currentStageFamily() || sceneStageTrack(scene)[0]?.family || 'content-full' : null
+  const stageGeometry = stageFamily ? STAGE_GEOMETRY[stageFamily] : null
+  if (staged && (!stageGeometry || !stageGeometry.camera)) return
   if (attachLiveCameraInsideComposition(scene)) return
-  const geometry = presenterLayoutGeometry(scene.config.camera.mode, scene.kind)
+  const geometry = stageGeometry && stageGeometry.camera
+    ? { camera: stageGeometry.camera, content: stageGeometry.content }
+    : presenterLayoutGeometry(scene.config.camera.mode, scene.kind)
   const playerBounds = player.getBoundingClientRect()
   const scale = playerBounds.width / project.width
   const pixelRatio = window.devicePixelRatio || 1
   const snapToDevicePixel = (value: number) => Math.round(value * pixelRatio) / pixelRatio
   const theme = project.theme || defaultStudioTheme
-  const radius = scene.config.camera.shape === 'circle'
-    ? '50%'
-    : `${Math.max(2, snapToDevicePixel(theme.video.borderRadius * scale))}px`
+  const radius = stageGeometry
+    ? stageGeometry.cameraShape === 'circle' ? '50%' : stageGeometry.cameraShape === 'full' ? '0px' : `${Math.max(2, snapToDevicePixel(theme.video.borderRadius * scale))}px`
+    : scene.config.camera.shape === 'circle'
+      ? '50%'
+      : `${Math.max(2, snapToDevicePixel(theme.video.borderRadius * scale))}px`
   const border = theme.video.borderStyle === 'none'
     ? 0
     : Math.max(1 / pixelRatio, snapToDevicePixel(theme.video.borderWidth * scale))
@@ -1613,6 +1631,14 @@ const startCanvasRecording = async () => {
       ?.addEventListener('ended', finishCanvasRecording, { once: true })
     canvasRecorder.start(250)
     canvasRecordingStartedAt = Date.now()
+    {
+      const takeConfig = project.blocks[selectedNodeId]
+      if (takeConfig && isPageScene(scenes.find(item => item.id === selectedNodeId))) {
+        const stage = stageConfig(takeConfig)
+        stage.overrides = []
+        if (stage.follow !== false) applyLiveStage(null)
+      }
+    }
     canvasRecordingTimer = window.setInterval(updateCanvasRecordingClock, 250)
     playerShell.classList.add('canvas-recording-active')
     canvasRecordingControls.setAttribute('aria-busy', 'true')
@@ -3814,6 +3840,12 @@ const createPresenterLayoutButton = (
       blockConfig.camera.mode = preset.mode
       blockConfig.camera.position = preset.position
       blockConfig.camera.shape = preset.shape
+      if (isPageScene(scenes.find(item => item.id === selectedNodeId))) {
+        const stage = stageConfig(blockConfig)
+        stage.follow = false
+        stage.override = familyForCameraMode(preset.mode, preset.position)
+        stage.overrides = []
+      }
     })
   })
   return button
@@ -3828,6 +3860,17 @@ const renderLayoutPresetPicker = (
   presenterGrid.dataset.blockKind = scene.kind
   contentGrid.replaceChildren()
   presenterGrid.replaceChildren()
+  if (isPageScene(scene)) {
+    const stage = stageConfig(config)
+    const track = sceneStageTrack(scene)
+    const note = document.createElement('div')
+    note.className = 'presenter-stage-note'
+    const plan = track.map(segment => `${STAGE_LABELS[segment.family]}${segment.atMs ? ` at ${(segment.atMs / 1000).toFixed(0)}s` : ''}`).join(' → ')
+    note.innerHTML = stage.follow !== false
+      ? `<strong>This scene follows the director's frame plan</strong>${plan || 'no plan yet'}. <em>Use the Page / Both / You switch beside Record to change it live; pick a placement below to fix one frame for the whole scene.</em>`
+      : `<strong>Fixed frame: ${STAGE_LABELS[isStageFamily(stage.override) ? stage.override : 'content-full']}</strong><em>Turn “Director” on beside Record to follow the plan again (${plan}).</em>`
+    presenterGrid.append(note)
+  }
   const presenterSelected = selectedCanvasObject === 'presenter'
   const visualKind = sceneVisualKind(scene)
   const mediaScope =
@@ -7917,6 +7960,158 @@ const explainerCompositionDriver = (nodeId: string) =>
     } | null
   )?.__explainerDrivers?.[nodeId]
 
+// ——— The frame switch: who owns the frame, live ———
+// Page / Both (family) / You. With "Director" on, the scene follows the
+// director's stage track; a press during a take is recorded as a live
+// override from that moment; a press outside a take fixes one frame for
+// the whole scene. The composition animates every change.
+const stageSwitch = $('#stage-switch') as HTMLElement
+const stageFamilySelect = $('#stage-family') as HTMLSelectElement
+const stageFollow = $('#stage-follow') as HTMLInputElement
+const stageHint = $('#stage-hint') as HTMLElement
+
+const isPageScene = (scene: Pick<Scene, 'node'> | undefined) =>
+  Boolean(scene && (scene.node.type === 'scene' || scene.node.type === 'slide'))
+
+const stageSceneElement = () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene) return null
+  return player.iframeElement?.contentDocument?.querySelector<HTMLElement>(`#scene-${scene.index}`) || null
+}
+
+const currentStageFamily = (): StageFamily | null => {
+  const element = stageSceneElement()
+  const value = element?.getAttribute('data-stage-override') || element?.getAttribute('data-stage')
+  return isStageFamily(value) ? value : null
+}
+
+const stageConfig = (config: BlockRenderConfigV1) => {
+  if (!config.stage) config.stage = { follow: true, override: null, overrides: [] }
+  if (!Array.isArray(config.stage.overrides)) config.stage.overrides = []
+  return config.stage
+}
+
+const applyLiveStage = (family: StageFamily | null) => {
+  const element = stageSceneElement()
+  if (!element) return
+  if (family) {
+    element.setAttribute('data-stage-override', family)
+    element.setAttribute('data-stage', family)
+    element.removeAttribute('data-stage-treatment')
+  } else {
+    element.removeAttribute('data-stage-override')
+    const scene = scenes.find(item => item.id === selectedNodeId)
+    const track = scene ? sceneStageTrack(scene) : []
+    const at = stageAt(track, canvasSceneTimeMs())
+    if (at) {
+      element.setAttribute('data-stage', at.family)
+      if (at.treatment) element.setAttribute('data-stage-treatment', at.treatment)
+      else element.removeAttribute('data-stage-treatment')
+    }
+  }
+  attachLiveCameraToPlayer()
+  syncStageSwitch()
+}
+
+// Scene time on the canvas: the recording clock during a take, else the
+// start of the step shown.
+const canvasSceneTimeMs = () => {
+  if (canvasRecordingStartedAt && playerShell.classList.contains('canvas-recording-active')) {
+    return Date.now() - canvasRecordingStartedAt
+  }
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  const plan = scene ? sanitizeMotionPlan(scene.node.attrs?.motion) : null
+  if (!plan) return 0
+  const { offsets } = motionPlanOffsetsMs(plan)
+  return offsets[Math.min(canvasExplainerStep, offsets.length - 1)] || 0
+}
+
+const stageButtonFor = (family: StageFamily | null) =>
+  family === 'content-full' ? 'content-full' : family === 'speaker-full' ? 'speaker-full' : family ? 'both' : ''
+
+const syncStageSwitch = () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  const show = isPageScene(scene) && playerShell.classList.contains('canvas-open')
+  stageSwitch.hidden = !show
+  if (!show || !scene) return
+  const config = project.blocks[scene.id]
+  const stage = config ? stageConfig(config) : { follow: true, override: null, overrides: [] }
+  stageFollow.checked = stage.follow !== false && !stage.overrides?.length
+  const current = currentStageFamily()
+  const active = stageButtonFor(current)
+  if (current && current !== 'content-full' && current !== 'speaker-full') stageFamilySelect.value = current
+  const track = sceneStageTrack(scene)
+  const now = canvasSceneTimeMs()
+  const planned = stageAt(track, now)
+  const next = track.find(segment => segment.atMs > now)
+  stageSwitch.querySelectorAll<HTMLButtonElement>('[data-stage-choice]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.stageChoice === active)
+    button.classList.toggle('is-suggested', Boolean(planned) && button.dataset.stageChoice === stageButtonFor(planned!.family) && button.dataset.stageChoice !== active)
+  })
+  const label = (family: StageFamily) => STAGE_LABELS[family]
+  if (!track.length || (track.length === 1 && track[0].family === 'content-full' && !next)) {
+    stageHint.innerHTML = '<strong>Plan:</strong> none yet — open the scene and plan its dialogue'
+  } else {
+    const plan = sanitizeMotionPlan(scene.node.attrs?.motion)
+    const beatIndex = plan ? motionPlanOffsetsMs(plan).offsets.findIndex((offset, index, all) => next && offset >= next.atMs && (index === 0 || all[index - 1] < next.atMs)) : -1
+    const beatTitle = plan && beatIndex >= 0 ? plan.steps[beatIndex]?.title : ''
+    stageHint.innerHTML = `<strong>Plan:</strong> ${planned ? label(planned.family) : '—'} now${next ? ` → ${label(next.family)} at ${(next.atMs / 1000).toFixed(0)}s${beatTitle ? ` “${beatTitle}”` : ''}` : ' to the end'}${stage.overrides?.length ? ' · your switches from the last take are kept' : ''}`
+  }
+}
+
+const chooseStage = (family: StageFamily) => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  const config = scene ? project.blocks[scene.id] : null
+  if (!scene || !config) return
+  const stage = stageConfig(config)
+  const recording = playerShell.classList.contains('canvas-recording-active') && canvasRecordingStartedAt > 0
+  if (recording) {
+    // A live switch: kept with the take from this moment on.
+    stage.follow = true
+    stage.override = null
+    stage.overrides = [...(stage.overrides || []), { atMs: Date.now() - canvasRecordingStartedAt, family }]
+    applyLiveStage(family)
+    syncProject()
+    return
+  }
+  // Outside a take: one frame for the whole scene.
+  stage.follow = false
+  stage.override = family
+  stage.overrides = []
+  applyLiveStage(family)
+  syncProject()
+}
+
+stageSwitch.querySelectorAll<HTMLButtonElement>('[data-stage-choice]').forEach(button => {
+  button.addEventListener('click', () => {
+    const choice = button.dataset.stageChoice
+    const family: StageFamily = choice === 'both' ? (isStageFamily(stageFamilySelect.value) ? stageFamilySelect.value : 'content-pip') : (choice as StageFamily)
+    chooseStage(family)
+  })
+})
+stageFamilySelect.addEventListener('change', () => {
+  const current = currentStageFamily()
+  if (current && current !== 'content-full' && current !== 'speaker-full' && isStageFamily(stageFamilySelect.value)) chooseStage(stageFamilySelect.value)
+})
+stageFollow.addEventListener('change', () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  const config = scene ? project.blocks[scene.id] : null
+  if (!scene || !config) return
+  const stage = stageConfig(config)
+  if (stageFollow.checked) {
+    stage.follow = true
+    stage.override = null
+    stage.overrides = []
+    applyLiveStage(null)
+    syncProject()
+  } else {
+    stage.follow = false
+    stage.override = currentStageFamily() || 'content-pip'
+    syncProject()
+    syncStageSwitch()
+  }
+})
+
 const canvasExplainerContext = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || !isSteppedKind(sceneVisualKind(scene))) return null
@@ -7983,6 +8178,7 @@ const applyCanvasExplainerStep = () => {
   const label = $('#ex-canvas-step-label') as HTMLElement
   label.textContent = `${step + 1}/${stepCount}`
   label.title = context.steps[step]?.title || ''
+  syncStageSwitch()
   syncExplainerTeleprompter()
   ;($('#ex-canvas-prev') as HTMLButtonElement).disabled = step === 0
   ;($('#ex-canvas-next') as HTMLButtonElement).disabled =
@@ -8058,6 +8254,7 @@ const syncCanvasExplainerStepper = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   const isStepped = Boolean(scene && isSteppedKind(sceneVisualKind(scene)))
   ;($('#explainer-step-bar') as HTMLElement).hidden = !isStepped
+  window.setTimeout(syncStageSwitch, 0)
   if (selectedNodeId !== canvasExplainerNodeId) {
     stopCanvasStepPlayback()
     disengageCanvasExplainerStepper()
@@ -9247,13 +9444,14 @@ const scriptForNode = (nodeId: string, attrs: Record<string, unknown>) => {
 // What the director wrote, applied to a node: the brief always, the
 // storyboard / cues / role / notes only where the node has none (a
 // handcrafted scene keeps its own; the generated set rides in directorAuto).
-const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult) => {
+const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, plan?: MotionPlanV2 | null) => {
   const has = (key: string) => {
     const value = attrs[key]
     return Array.isArray(value) ? value.length > 0 : Boolean(value)
   }
   return {
     directorBrief: result.brief,
+    ...(plan ? { stageTrack: stageTrackFromStoryboard(result.storyboard, motionPlanOffsetsMs(plan).offsets) } : {}),
     directorAuto: {
       kind: result.kind,
       arcRole: result.arcRole,
@@ -10025,7 +10223,7 @@ const animateSceneLocally = (nodeId: string) => {
     windows: result.windows.map(window => ({ ...window, ...(window.hero ? { heroLabel: labelOf.get(window.hero) || '' } : {}) })),
     motion: result.plan,
     steps: result.steps,
-    ...directorAttrs(found.attrs, directed),
+    ...directorAttrs(found.attrs, directed, result.plan),
   })
   const config = project.blocks[nodeId]
   if (config) config.durationMs = Math.round(motionPlanDurationSeconds(result.plan) * 1000)
@@ -10121,7 +10319,7 @@ assistCancel.addEventListener('click', () => {
     })),
     breakdownApproved: inWindows,
     motion: inWindows ? state.motion : null,
-    ...(state.director && found && inWindows ? directorAttrs(found.attrs, state.director) : {}),
+    ...(state.director && found && inWindows ? directorAttrs(found.attrs, state.director, state.motion) : {}),
   })
   const config = project.blocks[state.nodeId]
   if (config) {

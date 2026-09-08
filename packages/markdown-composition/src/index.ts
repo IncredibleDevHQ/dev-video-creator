@@ -36,12 +36,22 @@ import {
   type MotionPlanV2,
 } from './motion-plan'
 import { motionDriverScript } from './motion-driver'
+import {
+  familyForCameraMode,
+  isStageFamily,
+  mergeStageOverrides,
+  sanitizeStageTrack,
+  stageCss,
+  stageTrackFromStoryboard,
+  type StageSegment,
+} from './stage'
 
 export * from './types'
 export * from './explainer'
 export * from './slide'
 export * from './motion-plan'
 export * from './motion-driver'
+export * from './stage'
 export * from './themes'
 export * from './presenter-layouts'
 export * from './notebook-media'
@@ -82,6 +92,27 @@ const slideNodeMotion = (node: TiptapNode): MotionPlanV2 | null => {
 const slideNodeSteps = (node: TiptapNode): SlideStepV1[] => {
   const plan = slideNodeMotion(node)
   return plan ? stepsFromMotionPlan(plan) : []
+}
+
+// Who owns the frame over a page scene: a fixed override, else the live
+// switches merged over the director's track, else the director's track
+// (saved on the node or derived from its storyboard), else the block's
+// static presenter setting.
+export const sceneStageTrack = (scene: Pick<Scene, 'node' | 'config'>): StageSegment[] => {
+  const stage = scene.config.stage
+  const fallback: StageSegment[] = [
+    { atMs: 0, family: familyForCameraMode(scene.config.camera.mode, scene.config.camera.position) },
+  ]
+  if (stage && !stage.follow && isStageFamily(stage.override)) return [{ atMs: 0, family: stage.override }]
+  const attrs = (scene.node.attrs || {}) as { stageTrack?: unknown; directorAuto?: { storyboard?: Array<{ family?: string; treatment?: string; beats?: number[] }> } }
+  let track = sanitizeStageTrack(attrs.stageTrack)
+  if (!track.length) {
+    const plan = slideNodeMotion(scene.node)
+    const entries = attrs.directorAuto?.storyboard
+    if (plan && Array.isArray(entries)) track = stageTrackFromStoryboard(entries, motionPlanOffsetsMs(plan).offsets)
+  }
+  if (!track.length) track = fallback
+  return stage?.overrides?.length ? mergeStageOverrides(track, sanitizeStageTrack(stage.overrides)) : track
 }
 
 // Beat offsets in seconds (captions ride on them) and the scene duration.
@@ -288,6 +319,11 @@ const normalizeBlockConfig = (
       scale: Number.isFinite(supplied.camera?.scale)
         ? supplied.camera.scale
         : fallback.camera.scale,
+    },
+    stage: {
+      follow: supplied.stage?.follow !== false,
+      override: isStageFamily(supplied.stage?.override) ? supplied.stage!.override : null,
+      overrides: sanitizeStageTrack(supplied.stage?.overrides),
     },
     appearance: {
       layout: allowedValue(
@@ -624,7 +660,9 @@ const renderSlideScene = (scene: Scene) => {
         `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(step.title)}</strong><span>${escapeHtml(step.explanation)}</span></div>`,
     )
     .join('')
-  const driver = plan ? motionDriverScript(scene.index, scene.id, plan, slidePrefix(scene.index)) : ''
+  const driver = plan
+    ? motionDriverScript(scene.index, scene.id, plan, slidePrefix(scene.index), { stageTrack: sceneStageTrack(scene) })
+    : ''
   return `<div class="slide-stage">${svg}${steps.length ? `<div class="ex-captions">${captions}</div>` : ''}${driver}</div>`
 }
 
@@ -830,7 +868,11 @@ const buildCompositionHtml = (
         ? `<img class="camera camera-kind-${scene.kind} preview-camera ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))};${cameraGeometryStyle}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
         : ''
 
-      return `<section
+      const stageTrack = isSlideLikeNode(scene.node) ? sceneStageTrack(scene) : []
+      const stageAttributes = stageTrack.length
+        ? ` data-stage="${stageTrack[0].family}"${stageTrack[0].treatment ? ` data-stage-treatment="${stageTrack[0].treatment}"` : ''} data-stage-track="${escapeHtml(JSON.stringify(stageTrack))}"`
+        : ''
+      return `<section${stageAttributes}
         id="scene-${scene.index}"
         class="scene clip scene-kind-${scene.kind} layout-${scene.config.layout} align-${scene.config.alignment} presenter-${scene.config.camera.mode} camera-position-${scene.config.camera.position} theme-layout-${scene.config.appearance.layout} theme-render-${scene.config.appearance.render} code-theme-${scene.config.appearance.codeTheme} code-animation-${scene.config.appearance.codeAnimation} media-border-${scene.config.mediaFrame.borderWidth} media-corners-${scene.config.mediaFrame.corners} media-depth-${scene.config.mediaFrame.elevation}${recordedTakeUrl ? ' has-recorded-take' : ''}${hasRecordedCamera || recordedTakeUrl || previewPresenterUrl ? '' : ' camera-absent'}${listDensityClass(scene.node)}"
         data-start="${scene.startSeconds}"
@@ -1283,6 +1325,7 @@ const buildCompositionHtml = (
     .recorded-take { position: absolute; inset: 0; z-index: 40; width: 100%; height: 100%; object-fit: cover; background: var(--bg); }
     .scene.has-recorded-take > .scene-index, .scene.has-recorded-take > .content, .scene.has-recorded-take > footer, .scene.has-recorded-take > .composition-corner-logo { visibility: hidden; }
     .scene.has-recorded-take::before, .scene.has-recorded-take::after { display: none; }
+    ${stageCss()}
     .camera { position: absolute; z-index: 20; width: 360px; height: 360px; object-fit: cover; border: var(--video-border-width) solid var(--surface); border-radius: var(--video-radius); box-shadow: 0 28px 90px rgba(0,0,0,.28); scale: var(--camera-scale, 1); }
     .camera.presenter-information-circle, .camera.presenter-information-tile, .camera.presenter-portrait-overlay, .camera.presenter-portrait-rail, .camera.presenter-split { z-index: 30; }
     .preview-camera { object-position: center 18%; }

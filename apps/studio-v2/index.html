@@ -269,6 +269,20 @@
                         <button id="ex-canvas-play" type="button" class="ex-canvas-play" title="Play the steps in order" aria-pressed="false"><svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
                         <button id="ex-canvas-loop" type="button" class="ex-canvas-loop" title="Loop the steps continuously" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
                       </div>
+                      <div id="stage-switch" class="stage-switch" role="group" aria-label="Who owns the frame" hidden>
+                        <button type="button" data-stage-choice="content-full" title="The page owns the frame">Page</button>
+                        <button type="button" data-stage-choice="both" title="The page with you in frame">Both</button>
+                        <select id="stage-family" aria-label="How you share the frame" title="How you share the frame">
+                          <option value="content-pip">chip</option>
+                          <option value="content-card">card</option>
+                          <option value="content-cutout">cutout</option>
+                          <option value="speaker-panel">panel</option>
+                          <option value="split">split</option>
+                        </select>
+                        <button type="button" data-stage-choice="speaker-full" title="You own the frame">You</button>
+                        <label class="stage-follow" title="Let the director change the frame at the planned moments"><input type="checkbox" id="stage-follow" checked /><span>Follow director</span></label>
+                        <span id="stage-hint" class="stage-hint" aria-live="polite"></span>
+                      </div>
                       <div class="canvas-recording-project"><strong id="canvas-recording-project-title">Human-first developer story</strong><small id="canvas-recording-project-block">Selected block</small></div>
                       <div class="canvas-recording-state" hidden><span id="canvas-recording-dot"></span><div><strong id="canvas-recording-label">Record this block</strong><small id="canvas-recording-meta">Camera visible · microphone optional</small></div></div>
                       <button id="start-canvas-recording" class="record-pill" type="button" title="Start recording this block · camera visible, microphone optional"><span class="record-glyph" aria-hidden="true"></span>Record</button>

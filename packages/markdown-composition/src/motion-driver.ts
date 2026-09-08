@@ -8,7 +8,7 @@
 // deterministic, for the timeline, the step bar and the renderer alike.
 import { MOTION_EASE_ANCHORS, type MotionPlanV2 } from './motion-plan'
 
-export type MotionDriverOptions = { accent?: string }
+export type MotionDriverOptions = { accent?: string; stageTrack?: Array<{ atMs: number; family: string; treatment?: string }> }
 
 export type MotionDriverInstance = {
   stepCount: number
@@ -280,13 +280,38 @@ export const motionDriverScript = (
   var root = document.querySelector('#scene-${sceneIndex} .slide-svg');
   if (!root) return;
   var create = function (root, plan, prefix, options) {${MOTION_DRIVER_SOURCE}};
-  var driver = create(root, ${JSON.stringify(plan)}, ${JSON.stringify(prefix)}, ${JSON.stringify(options)});
-  window.__slideDrawScene${sceneIndex} = function (sceneTime) { driver.draw(sceneTime * 1000); };
+  var plan = ${JSON.stringify(plan)};
+  var driver = create(root, plan, ${JSON.stringify(prefix)}, ${JSON.stringify({ accent: options.accent })});
+  // The stage: who owns the frame at this moment. A live override on the
+  // scene element wins over the track.
+  var scene = document.getElementById('scene-${sceneIndex}');
+  var track = ${JSON.stringify(options.stageTrack || [])};
+  var applyStage = function (ms) {
+    if (!scene) return;
+    var override = scene.getAttribute('data-stage-override');
+    var family = override || '', treatment = '';
+    if (!override) {
+      for (var i = 0; i < track.length; i += 1) { if (track[i].atMs <= ms) { family = track[i].family; treatment = track[i].treatment || ''; } }
+      if (!family && track.length) { family = track[0].family; treatment = track[0].treatment || ''; }
+    }
+    if (!family) return;
+    if (scene.getAttribute('data-stage') !== family) scene.setAttribute('data-stage', family);
+    if ((scene.getAttribute('data-stage-treatment') || '') !== treatment) {
+      if (treatment) scene.setAttribute('data-stage-treatment', treatment); else scene.removeAttribute('data-stage-treatment');
+    }
+  };
+  window.__slideDrawScene${sceneIndex} = function (sceneTime) { driver.draw(sceneTime * 1000); applyStage(sceneTime * 1000); };
   window.__explainerDrivers = window.__explainerDrivers || {};
   window.__explainerDrivers[${JSON.stringify(sceneId)}] = {
     stepCount: driver.stepCount,
-    setStep: function (stepIndex, progress) { driver.setStep(stepIndex, progress); },
+    setStep: function (stepIndex, progress) {
+      driver.setStep(stepIndex, progress);
+      var index = Math.max(0, Math.min(driver.offsets.length - 1, stepIndex | 0));
+      applyStage(driver.offsets[index] + (progress == null ? 1 : progress) * (plan.steps[index] && plan.steps[index].motionWindowMs || 0));
+    },
+    stage: { track: track, apply: applyStage, current: function () { return scene ? scene.getAttribute('data-stage') : null; } },
   };
   driver.draw(0);
+  applyStage(0);
 })();
 </script>`
