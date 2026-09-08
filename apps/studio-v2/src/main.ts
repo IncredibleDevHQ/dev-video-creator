@@ -819,7 +819,7 @@ const attachLiveCameraToPlayer = () => {
   if (!scene) return
   const staged = isPageScene(scene)
   if (!staged && scene.config.camera.position === 'hidden') return
-  const stageFamily = staged ? currentStageFamily() || sceneStageTrack(scene)[0]?.family || 'content-full' : null
+  const stageFamily = staged ? currentStageFamily() || liveStageTrack(scene)[0]?.family || 'content-full' : null
   const stageElement = staged ? stageSceneElement() : null
   const stageVariant = stageElement?.getAttribute('data-stage-override-variant') || stageElement?.getAttribute('data-stage-variant') || null
   const stageGeometry = stageFamily ? stageGeometryFor(stageFamily, stageVariant) : null
@@ -3887,7 +3887,7 @@ const renderLayoutPresetPicker = (
   presenterGrid.replaceChildren()
   if (isPageScene(scene)) {
     const stage = stageConfig(config)
-    const track = sceneStageTrack(scene)
+    const track = liveStageTrack(scene)
     const note = document.createElement('div')
     note.className = 'presenter-stage-note'
     const plan = track.map(segment => `${STAGE_LABELS[segment.family]}${segment.atMs ? ` at ${(segment.atMs / 1000).toFixed(0)}s` : ''}`).join(' → ')
@@ -8081,6 +8081,14 @@ const canvasBeatIndex = () => {
 const isPageScene = (scene: Pick<Scene, 'node'> | undefined) =>
   Boolean(scene && (scene.node.type === 'scene' || scene.node.type === 'slide'))
 
+// The scene's stage track as the block is configured right now — a press
+// changes the block before the composition is recompiled, and the live
+// canvas must follow the press, not the compile.
+const liveStageTrack = (scene: Scene) => {
+  const live = project.blocks[scene.id]
+  return sceneStageTrack(live ? { node: scene.node, config: { ...scene.config, stage: live.stage ?? scene.config.stage } } : scene)
+}
+
 const stageSceneElement = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return null
@@ -8122,7 +8130,7 @@ const applyLiveStage = (family: StageFamily | null) => {
     // track (saved plan, live switches, placements) rather than the track
     // baked in at compile time.
     const scene = scenes.find(item => item.id === selectedNodeId)
-    const track = scene ? sceneStageTrack(scene) : []
+    const track = scene ? liveStageTrack(scene) : []
     const at = stageAt(track, canvasSceneTimeMs())
     if (at) {
       element.setAttribute('data-stage-override', at.family)
@@ -8173,7 +8181,7 @@ const syncStageSwitch = () => {
   stageFollow.checked = stage.follow !== false && !stage.overrides?.length
   const current = currentStageFamily()
   const active = stageButtonFor(current)
-  const track = sceneStageTrack(scene)
+  const track = liveStageTrack(scene)
   const now = canvasSceneTimeMs()
   const planned = stageAt(track, now)
   const next = track.find(segment => segment.atMs > now)
@@ -8212,7 +8220,7 @@ const bestBothFamily = (): StageFamily => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   const current = currentStageFamily()
   if (isBothFamily(current)) return current
-  const planned = scene ? stageAt(sceneStageTrack(scene), canvasSceneTimeMs()) : null
+  const planned = scene ? stageAt(liveStageTrack(scene), canvasSceneTimeMs()) : null
   if (isBothFamily(planned?.family)) return planned!.family
   const top = beatLayoutOptions(scene, canvasBeatIndex()).find(option => isBothFamily(option.family))
   return (top?.family as StageFamily) || 'content-pip'
@@ -8318,15 +8326,23 @@ document.addEventListener('keydown', event => {
   document.querySelector<HTMLButtonElement>('[data-director-tab="presenter"]')?.click()
 })
 
-// Saving a frame choice recompiles the composition; the live canvas glides
-// first and saves once the move has landed, so the glide is never cut.
+// A frame choice is saved at once (the live canvas already shows it, from
+// the block's live config); the composition is recompiled only once the
+// presses go quiet, so the reload never lands in the middle of a glide.
 let stageSyncTimer = 0
 const scheduleStageSync = () => {
+  const notebook = editor.getJSON() as TiptapDocument
+  ensureBlockConfiguration(notebook)
+  project.notebook = notebook
+  const stored = structuredClone(project)
+  sanitizeNotebookMedia(stored.notebook)
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  scheduleDatabaseSync()
   window.clearTimeout(stageSyncTimer)
   stageSyncTimer = window.setTimeout(() => {
     stageSyncTimer = 0
     syncProject()
-  }, 760)
+  }, 4000)
 }
 
 const chooseStage = (family: StageFamily) => {
@@ -8419,7 +8435,7 @@ const sceneTimelineModelFor = (scene: Scene): SceneTimelineModel | null => {
     at += durationMs
     return beat
   })
-  const frames = isPageScene(scene) ? sceneStageTrack(scene) : []
+  const frames = isPageScene(scene) ? liveStageTrack(scene) : []
   const switches = (project.blocks[scene.id]?.stage?.overrides || []).map(entry => entry.atMs)
   return { beats, frames, switches, durationMs: Math.max(1, at) }
 }
@@ -8593,7 +8609,7 @@ sceneTimelineEdit.addEventListener('click', () => {
 const followPlannedStage = (nowMs: number) => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || !isPageScene(scene)) return
-  const planned = stageAt(sceneStageTrack(scene), nowMs)
+  const planned = stageAt(liveStageTrack(scene), nowMs)
   const element = stageSceneElement()
   if (!planned || !element) return
   const family = element.getAttribute('data-stage-override') || element.getAttribute('data-stage')
@@ -8714,7 +8730,20 @@ const glideStageTransitions = () => {
     // Put our hand back where it was; a glide already heading there goes on.
     if (ours) inline.forEach(([prop, value, priority]) => value && target.style.setProperty(prop, value, priority))
     if (state.frame && state.target && sameStageRect(state.target, wanted)) return
-    const from = { ...state.shown }
+    let from = { ...state.shown }
+    let to = { ...wanted }
+    const inset = (rect: StageRect, by: number): StageRect => ({
+      left: rect.left + (rect.width * (1 - by)) / 2,
+      top: rect.top + (rect.height * (1 - by)) / 2,
+      width: rect.width * by,
+      height: rect.height * by,
+      opacity: rect.opacity,
+    })
+    // What was invisible does not travel from its hidden spot: it settles
+    // in where it lands, from a touch smaller. What is leaving does not
+    // shrink into its hidden spot: it fades where it stands, a touch smaller.
+    if (from.opacity < 0.05 && to.opacity >= 0.05) from = { ...inset(to, 0.96), opacity: 0 }
+    else if (to.opacity < 0.05 && from.opacity >= 0.05) to = { ...inset(from, 0.96), opacity: 0 }
     window.cancelAnimationFrame(state.frame)
     const startedAt = performance.now()
     state.target = wanted
@@ -8731,12 +8760,15 @@ const glideStageTransitions = () => {
     const step = () => {
       const t = Math.min(1, (performance.now() - startedAt) / STAGE_GLIDE_MS)
       const k = stageGlideEase(t)
+      // Opacity on a sine curve: a fade that shares the geometry curve's
+      // slow start reads as a delay.
+      const f = 0.5 - 0.5 * Math.cos(Math.PI * t)
       const at: StageRect = {
-        left: from.left + (wanted.left - from.left) * k,
-        top: from.top + (wanted.top - from.top) * k,
-        width: from.width + (wanted.width - from.width) * k,
-        height: from.height + (wanted.height - from.height) * k,
-        opacity: from.opacity + (wanted.opacity - from.opacity) * k,
+        left: from.left + (to.left - from.left) * k,
+        top: from.top + (to.top - from.top) * k,
+        width: from.width + (to.width - from.width) * k,
+        height: from.height + (to.height - from.height) * k,
+        opacity: from.opacity + (to.opacity - from.opacity) * f,
       }
       paint(at)
       if (t < 1) {
