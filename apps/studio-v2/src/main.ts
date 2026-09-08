@@ -9034,8 +9034,10 @@ const renderCoverage = () => {
   const { coverage } = state
   const anchored = coverage.beats.filter(beat => beat.anchored).length
   const lines: Array<[string, string]> = []
-  if (coverage.score < 0.99) lines.push(['is-warn', `${coverage.beats.length - anchored} of ${coverage.beats.length} windows name nothing on the page — click the window, then the parts it is about`])
-  if (coverage.inferredUnits.length) lines.push(['', `Never named, settled in quietly: ${coverage.inferredUnits.slice(0, 5).join(', ')}${coverage.inferredUnits.length > 5 ? ` +${coverage.inferredUnits.length - 5}` : ''}`])
+  // A window that names nothing says so on its own line; parts never named
+  // settle in quietly without a note. Only directions that name nothing on
+  // the page are worth a line here.
+  void anchored
   if (coverage.unresolvedDirections.length) lines.push(['is-warn', `Directions naming nothing on the page: ${coverage.unresolvedDirections.join(' ')}`])
   coverageBox.hidden = !lines.length
   lines.forEach(([className, text]) => {
@@ -9139,38 +9141,22 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
     element.textContent = text
     meta.append(element)
   }
+  // Reading first: the line only. What it points at lives in the tooltip
+  // and, for the selected window, in its details below. Only a window that
+  // names nothing on the page (and isn't on you) says so.
   if (window.layout === 'me') tag('on you', 'is-me')
   else if (!window.parts.length) tag('names nothing on the page', 'is-warn')
-  if (window.hero) tag(unitOf(state, window.hero)?.label || window.hero, 'is-hero')
-  const others = window.parts.filter(id => id !== window.hero).length
-  const extras = [
-    others ? `+${others}` : '',
-    window.camera?.length ? 'camera in' : '',
-    window.layout === 'beside' ? 'beside you' : '',
-  ].filter(Boolean)
-  if (extras.length) tag(extras.join(' · '))
-  if (options.editable) {
-    const more = document.createElement('button')
-    more.type = 'button'
-    more.className = 'se-more'
-    more.textContent = state.openDrawers.has(index) ? 'less' : 'parts'
-    more.addEventListener('click', event => {
-      event.stopPropagation()
-      const details = row.querySelector('.se-window-details') as HTMLElement | null
-      if (details) {
-        details.hidden = !details.hidden
-        if (details.hidden) state.openDrawers.delete(index)
-        else state.openDrawers.add(index)
-        more.textContent = details.hidden ? 'parts' : 'less'
-      }
-    })
-    meta.append(more)
-  }
+  const pointsAt = window.parts.map(id => unitOf(state, id)?.label || id)
+  row.title = [
+    pointsAt.length ? `Points at: ${pointsAt.join(', ')}` : '',
+    window.camera?.length ? 'Camera moves in' : '',
+    window.layout === 'beside' ? 'You beside the page' : window.layout === 'me' ? 'You alone in frame' : '',
+  ].filter(Boolean).join('\n')
   row.append(meta)
   if (options.editable) {
     const details = document.createElement('div')
     details.className = 'se-window-details'
-    details.hidden = !state.openDrawers.has(index)
+    details.hidden = !(index === state.current || state.openDrawers.has(index))
     const chips = document.createElement('div')
     chips.className = 'se-window-parts'
     window.parts.forEach(id => {
@@ -9248,6 +9234,17 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
   return row
 }
 
+// The selected window shows its details (parts, camera, presenter); the
+// others read as plain paragraphs.
+const syncWindowDetails = () => {
+  const state = slideEditor
+  if (!state) return
+  windowsList.querySelectorAll<HTMLElement>(':scope > .se-window').forEach((row, index) => {
+    const details = row.querySelector<HTMLElement>('.se-window-details')
+    if (details) details.hidden = !(index === state.current || state.openDrawers.has(index))
+  })
+}
+
 const selectWindow = (index: number) => {
   const state = slideEditor
   if (!state || state.previewPlan) return
@@ -9255,6 +9252,7 @@ const selectWindow = (index: number) => {
   stopSlidePlayback()
   state.current = index
   markPlayingWindow()
+  syncWindowDetails()
   renderTeleprompter()
   if (state.driver) {
     state.driver.setStep(index, 1)
@@ -9518,7 +9516,7 @@ const requestProposal = async (instruction: string) => {
     renderSlideEditorPreview()
     renderTeleprompter()
     markPlayingWindow()
-    setSlideEditorStatus(`Proposal · ${windows.length} windows · ≈ ${planned ? Math.round(motionPlanDurationSeconds(planned.plan) * 10) / 10 : '?'}s — playing in the preview; accept it or bring the current one back`, 'ok')
+    setSlideEditorStatus('')
     playSlide(0)
   } catch (error) {
     if (controller.signal.aborted) {
@@ -9960,7 +9958,7 @@ const openSlideEditor = (nodeId: string) => {
         })
       }
     }
-    setSlideEditorStatus(`${parts} parts · ${state.windows.length} windows · ${dialogueSeconds(state)}s — edit a line, add parts, or ask the writer`)
+    setSlideEditorStatus('')
   } else {
     renderWindowCards()
     renderSlideEditorPreview()

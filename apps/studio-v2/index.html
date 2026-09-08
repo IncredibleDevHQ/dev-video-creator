@@ -484,7 +484,7 @@
     <dialog id="slide-editor-dialog" class="modal slide-editor-modal">
       <div class="modal-heading">
         <div><span class="eyebrow">Scene studio</span><h2 id="slide-editor-title">Scene</h2></div>
-        <div id="se-state-chips" class="se-chips-row" aria-label="Scene state">
+        <div id="se-state-chips" class="se-chips-row" aria-label="Scene state" hidden>
           <span id="se-chip-dialogue" class="se-state">no dialogue</span>
           <span id="se-chip-windows" class="se-state" hidden></span>
           <span id="se-chip-motion" class="se-state" hidden></span>
@@ -550,14 +550,12 @@
               <button type="button" id="se-write" class="button primary" title="Rewrite the dialogue with the page in front of the writer">Rewrite</button>
             </div>
             <div class="se-writer-settings">
-              <label title="How long the dialogue should run">Length <input id="se-target" type="number" min="8" max="240" step="5" value="40" /> s</label>
-              <button type="button" id="se-fit" class="se-link" title="Ask the writer to fit the dialogue to this length">Fit to length</button>
-              <span class="se-dot">·</span>
-              <button type="button" id="se-outro" class="se-link" title="Add a closing line: you beside the page, then alone in frame, leading into the next scene">+ Outro</button>
-              <span class="se-dot">·</span>
-              <label title="Speaking pace">Pace <select id="se-pace"><option value="125">Slow</option><option value="150" selected>Natural</option><option value="175">Brisk</option></select></label>
-              <span class="se-dot">·</span>
-              <label title="How finely the motion follows the dialogue">Windows <select id="se-granularity"><option value="paragraph">by paragraph</option><option value="sentence" selected>by sentence</option><option value="clause">by clause</option></select></label>
+              <label class="se-opt" title="How long the dialogue should run"><span>Length</span><input id="se-target" type="number" min="8" max="240" step="5" value="40" /><em>s</em></label>
+              <button type="button" id="se-fit" class="se-opt-button" title="Ask the writer to fit the dialogue to this length">Fit</button>
+              <button type="button" id="se-outro" class="se-opt-button" title="Add a closing line: you beside the page, then alone in frame, leading into the next scene">+ Outro</button>
+              <span class="se-break" aria-hidden="true"></span>
+              <label class="se-opt" title="Speaking pace"><span>Pace</span><select id="se-pace"><option value="125">Slow</option><option value="150" selected>Natural</option><option value="175">Brisk</option></select></label>
+              <label class="se-opt" title="How finely the motion follows the dialogue"><span>Windows</span><select id="se-granularity"><option value="paragraph">paragraph</option><option value="sentence" selected>sentence</option><option value="clause">clause</option></select></label>
               <span id="se-pace-label" hidden></span>
               <details class="se-advanced">
                 <summary>More</summary>
