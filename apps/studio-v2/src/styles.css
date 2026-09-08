@@ -173,7 +173,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .canvas-is-open { overflow: hidden; }
 .player-shell.canvas-open { position: fixed; inset: 0; z-index: 80; width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; border-radius: 0; display: grid; grid-template-columns: minmax(0, 1fr) 370px; background: #09090b; box-shadow: none; }
 .player-shell.canvas-open .canvas-stage { padding: 32px 32px 132px; background: radial-gradient(circle at 50% 40%, #34363b 0, #202124 55%, #18181b 100%); }
-.player-shell.canvas-open hyperframes-player { width: min(100%, calc((100vh - 164px) * 1.7778)); height: auto; aspect-ratio: 16/9; border: 1px solid #52525b; border-radius: 5px; box-shadow: 0 24px 80px rgba(0,0,0,.42); }
+.player-shell.canvas-open hyperframes-player { width: min(100%, calc((100vh - 164px - var(--stage-extra, 0px)) * 1.7778)); height: auto; aspect-ratio: 16/9; border: 1px solid #52525b; border-radius: 5px; box-shadow: 0 24px 80px rgba(0,0,0,.42); }
 .player-shell.canvas-open .screen-play-toggle { top: calc(50% - 50px); width: 68px; height: 68px; }
 .player-shell.canvas-open .screen-play-toggle svg { width: 28px; height: 28px; }
 .player-shell.canvas-open .live-camera-toggle { position: fixed; bottom: 152px; left: 22px; z-index: 7; min-height: 42px; padding: 7px 12px 7px 10px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,.22); border-radius: 8px; background: rgba(24,24,27,.82); color: white; box-shadow: 0 10px 30px rgba(0,0,0,.24); text-align: left; backdrop-filter: blur(14px); }
@@ -207,7 +207,7 @@ hyperframes-player { display: block; width: 100%; height: 100%; }
 .player-shell.canvas-recording-mode { grid-template-columns: minmax(0, 1fr) 370px; }
 .player-shell.canvas-open.canvas-recording-mode .canvas-director, .player-shell.canvas-recording-mode .canvas-block-timeline, .player-shell.canvas-recording-mode .canvas-fullscreen, .player-shell.canvas-recording-mode .live-camera-toggle { display: none; }
 .player-shell.canvas-recording-mode .canvas-stage { padding: 34px 32px 112px; }
-.player-shell.canvas-recording-mode hyperframes-player { width: min(100%, calc((100vh - 164px) * 1.7778)); }
+.player-shell.canvas-recording-mode hyperframes-player { width: min(100%, calc((100vh - 164px - var(--stage-extra, 0px)) * 1.7778)); }
 .player-shell.canvas-recording-mode .canvas-recording-controls { position: absolute; right: 32px; bottom: 24px; left: 32px; top: auto; min-height: 64px; padding: 8px 10px; translate: 0 0; justify-content: center; border-color: rgba(255,255,255,.2); border-radius: 10px; background: rgba(17,17,19,.96); }
 .player-shell.canvas-recording-mode .canvas-recording-state { min-width: 154px; }
 .player-shell.canvas-recording-active .canvas-recording-state small { color: #d4d4d8; }
@@ -1669,3 +1669,50 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .presenter-stage-note { grid-column: 1 / -1; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--brand) 10%, white); border: 1px solid color-mix(in srgb, var(--brand) 35%, white); font-size: 11.5px; line-height: 1.5; color: #14532d; }
 .presenter-stage-note strong { display: block; color: #052e16; margin-bottom: 2px; }
 .presenter-stage-note em { font-style: normal; color: #3f3f46; }
+
+/* ——— The scene timeline: the dialogue and the frame plan under the canvas ——— */
+.scene-timeline { display: none; }
+.player-shell.canvas-open { --stage-extra: 0px; }
+.player-shell.canvas-open.has-scene-timeline { --stage-extra: 176px; }
+.player-shell.canvas-open.canvas-recording-mode.has-scene-timeline { --stage-extra: 96px; }
+.player-shell.canvas-open .canvas-stage { align-content: center; justify-items: center; row-gap: 12px; }
+.player-shell.canvas-open.has-scene-timeline:not(.canvas-recording-mode) .canvas-stage { padding-bottom: 212px; }
+.player-shell.canvas-open .scene-timeline { position: relative; z-index: 6; box-sizing: border-box; width: min(100%, calc((100vh - 164px - var(--stage-extra, 0px)) * 1.7778)); min-height: 84px; padding: 7px 12px 6px; display: grid; gap: 5px; border: 1px solid rgba(255,255,255,.13); border-radius: 10px; background: rgba(17,17,19,.9); color: white; box-shadow: 0 12px 36px rgba(0,0,0,.3); backdrop-filter: blur(18px); }
+.player-shell.canvas-open .scene-timeline[hidden] { display: none; }
+.player-shell.canvas-finalize-mode .scene-timeline { display: none; }
+.scene-timeline-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.scene-timeline-head strong { font: 700 10px/1 system-ui; letter-spacing: .02em; color: #e4e4e7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-timeline-head strong small { margin-left: 6px; font: 500 9px/1 system-ui; color: #a1a1aa; letter-spacing: 0; }
+.scene-timeline-clock { font: 600 10px/1 'Roboto Mono', monospace; color: #86efac; white-space: nowrap; }
+.scene-timeline.is-recording .scene-timeline-clock { color: #fca5a5; }
+.scene-timeline-empty { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0 2px; font: 500 10.5px/1.35 system-ui; color: #a1a1aa; }
+.scene-timeline-empty[hidden] { display: none; }
+.scene-timeline-empty .button { min-height: 28px; padding-inline: 10px; font-size: 9px; white-space: nowrap; }
+.scene-timeline-body { display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 8px; }
+.scene-timeline-body[hidden] { display: none; }
+.scene-timeline-labels { display: grid; grid-template-rows: 30px 20px 11px; row-gap: 4px; }
+.scene-timeline-labels span { align-self: center; font: 700 8px/1 system-ui; letter-spacing: .1em; text-transform: uppercase; color: #71717a; }
+.scene-timeline-track { position: relative; display: grid; grid-template-rows: 30px 20px 11px; row-gap: 4px; min-width: 0; }
+.scene-timeline-lane { position: relative; }
+.scene-timeline-beat { position: absolute; top: 0; bottom: 0; box-sizing: border-box; min-width: 8px; padding: 3px 7px; display: grid; align-content: center; gap: 2px; border: 1px solid rgba(255,255,255,.14); border-radius: 6px; background: rgba(255,255,255,.06); color: #e4e4e7; text-align: left; overflow: hidden; cursor: pointer; transition: background .15s, border-color .15s; }
+.scene-timeline-beat strong, .scene-timeline-beat span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 700 9px/1.15 system-ui; }
+.scene-timeline-beat span { color: #a1a1aa; font-weight: 500; }
+.scene-timeline-beat:hover { background: rgba(255,255,255,.13); border-color: rgba(255,255,255,.3); }
+.scene-timeline-beat.is-done { opacity: .72; }
+.scene-timeline-beat.is-active { opacity: 1; border-color: var(--brand); background: color-mix(in srgb, var(--brand) 26%, transparent); }
+.scene-timeline-beat.is-active span { color: #d4d4d8; }
+.scene-timeline-beat:focus-visible { outline: 2px solid rgba(134,239,172,.8); outline-offset: 1px; }
+.scene-timeline-frame { position: absolute; top: 0; bottom: 0; box-sizing: border-box; padding: 0 6px; display: flex; align-items: center; border: 1px solid transparent; border-radius: 5px; font: 700 8.5px/1 system-ui; letter-spacing: .04em; color: #f4f4f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.scene-timeline-frame.page { background: rgba(255,255,255,.09); }
+.scene-timeline-frame.both { background: rgba(56,189,248,.24); }
+.scene-timeline-frame.you { background: rgba(251,191,36,.28); color: #fde68a; }
+.scene-timeline-frame.continues { border-top-left-radius: 0; border-bottom-left-radius: 0; box-shadow: inset 1px 0 0 rgba(255,255,255,.35); }
+.scene-timeline-frame.is-now { border-color: rgba(255,255,255,.75); }
+.scene-timeline-frame:hover { filter: brightness(1.2); }
+.scene-timeline.is-recording .scene-timeline-frame { cursor: default; }
+.scene-timeline-switch { position: absolute; top: -4px; z-index: 2; width: 7px; height: 7px; translate: -50% 0; rotate: 45deg; border-radius: 1px; background: #fca5a5; box-shadow: 0 0 0 1px rgba(0,0,0,.5); pointer-events: none; }
+.scene-timeline-ruler { position: relative; overflow: hidden; }
+.scene-timeline-ruler i { position: absolute; top: 0; height: 100%; padding: 4px 0 0 3px; border-left: 1px solid rgba(255,255,255,.22); font: 500 7.5px/1 'Roboto Mono', monospace; font-style: normal; color: #71717a; white-space: nowrap; }
+.scene-timeline-playhead { position: absolute; top: -3px; bottom: 0; z-index: 3; width: 2px; translate: -50% 0; background: #4ade80; box-shadow: 0 0 0 1px rgba(0,0,0,.45); pointer-events: none; transition: left .25s linear; }
+.scene-timeline-playhead::before { content: ''; position: absolute; top: -1px; left: 50%; width: 8px; height: 8px; translate: -50% 0; border-radius: 2px; background: inherit; }
+.scene-timeline.is-recording .scene-timeline-playhead { background: #f87171; }

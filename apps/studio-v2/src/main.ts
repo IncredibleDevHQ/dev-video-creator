@@ -60,7 +60,9 @@ import {
   stageTrackFromStoryboard,
   variantLabel,
   motionPlanOffsetsMs,
+  speechMs,
   type StageFamily,
+  type StageSegment,
   type MotionDriverInstance,
   type MotionPlanV2,
 } from 'markdown-composition'
@@ -961,6 +963,7 @@ const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
     updateRecordingCoachProgress(
       `Step ${step + 1} of ${script.length} · ${script[step]?.title || ''}`,
     )
+    syncSceneTimelinePlayhead()
     return
   }
   if (action === 'next-token') {
@@ -1317,6 +1320,8 @@ const updateCanvasRecordingClock = () => {
   const elapsed = (Date.now() - canvasRecordingStartedAt) / 1000
   canvasRecordingLabel.textContent = `Recording · ${formatTime(elapsed)}`
   canvasRecordingClock.textContent = formatTime(elapsed)
+  followPlannedStage(elapsed * 1000)
+  syncSceneTimelinePlayhead()
 }
 
 const resetCanvasRecordingControls = () => {
@@ -1334,6 +1339,7 @@ const resetCanvasRecordingControls = () => {
   stopCanvasRecordingButton.hidden = true
   canvasRecordingLabel.textContent = 'Record this block'
   canvasRecordingMeta.textContent = 'Camera visible · microphone optional'
+  window.setTimeout(renderSceneTimeline, 0)
 }
 
 const uploadDirectedCanvasRecording = async (
@@ -1546,6 +1552,7 @@ const startCanvasRecording = async () => {
   startCanvasRecordingButton.disabled = true
   configureCanvasRecordingCoach(scene)
   playerShell.classList.add('canvas-recording-mode')
+  window.setTimeout(renderSceneTimeline, 0)
   canvasRecordingCoach.hidden = false
   try {
     if (!bufferCapture) {
@@ -5371,6 +5378,7 @@ const openCanvasFullscreen = () => {
     isOpen ? 'Close full-screen canvas' : 'Open canvas full screen',
   )
   syncLiveCameraToggle()
+  syncStageSwitch()
 }
 
 ;($('#director-toggle') as HTMLButtonElement).addEventListener('click', () => {
@@ -8047,6 +8055,7 @@ const stageButtonFor = (family: StageFamily | null) =>
   family === 'content-full' ? 'content-full' : family === 'speaker-full' ? 'speaker-full' : family ? 'both' : ''
 
 const syncStageSwitch = () => {
+  renderSceneTimeline()
   const scene = scenes.find(item => item.id === selectedNodeId)
   const show = isPageScene(scene) && playerShell.classList.contains('canvas-open')
   stageSwitch.hidden = !show
@@ -8129,6 +8138,219 @@ stageFollow.addEventListener('change', () => {
   }
 })
 
+// ——— The scene timeline: the dialogue and the frame plan, on one strip ———
+// Under the canvas: every beat with its line, the director's frame plan
+// (Page / Both / You, with the placement in the tooltip), and a playhead —
+// the beat shown while rehearsing, the clock during a take. Clicking a beat
+// jumps the canvas there; clicking a frame jumps to the beat it starts in.
+const sceneTimeline = $('#scene-timeline') as HTMLElement
+const sceneTimelineTitle = $('#scene-timeline-title') as HTMLElement
+const sceneTimelineClock = $('#scene-timeline-clock') as HTMLElement
+const sceneTimelineEmpty = $('#scene-timeline-empty') as HTMLElement
+const sceneTimelineBody = $('#scene-timeline-body') as HTMLElement
+const sceneTimelineBeats = $('#scene-timeline-beats') as HTMLElement
+const sceneTimelineFrames = $('#scene-timeline-frames') as HTMLElement
+const sceneTimelineRuler = $('#scene-timeline-ruler') as HTMLElement
+const sceneTimelinePlayhead = $('#scene-timeline-playhead') as HTMLElement
+
+type SceneTimelineModel = {
+  beats: Array<{ title: string; line: string; atMs: number; durationMs: number }>
+  frames: StageSegment[]
+  switches: number[]
+  durationMs: number
+}
+
+const sceneTimelineModelFor = (scene: Scene): SceneTimelineModel | null => {
+  const steps = sceneStepScript(scene)
+  if (!steps.length) return null
+  const plan = isPageScene(scene) ? sanitizeMotionPlan(scene.node.attrs?.motion) : null
+  const durations = plan ? plan.steps.map(step => step.motionWindowMs + step.holdMs) : []
+  let at = 0
+  const beats = steps.map((step, index) => {
+    const durationMs = Math.max(400, durations[index] || speechMs(step.explanation))
+    const beat = { title: step.title, line: step.explanation, atMs: at, durationMs }
+    at += durationMs
+    return beat
+  })
+  const frames = isPageScene(scene) ? sceneStageTrack(scene) : []
+  const switches = (project.blocks[scene.id]?.stage?.overrides || []).map(entry => entry.atMs)
+  return { beats, frames, switches, durationMs: Math.max(1, at) }
+}
+
+const sceneTimelineRecording = () =>
+  playerShell.classList.contains('canvas-recording-active') && canvasRecordingStartedAt > 0
+
+// Where the playhead sits: the take clock, else the start of the beat shown.
+const sceneTimelineNowMs = (model: SceneTimelineModel) => {
+  if (sceneTimelineRecording()) return Date.now() - canvasRecordingStartedAt
+  const beat = model.beats[Math.min(canvasExplainerStep, model.beats.length - 1)]
+  return beat ? beat.atMs : 0
+}
+
+const sceneTimelineActiveBeat = (model: SceneTimelineModel) => {
+  const index = sceneTimelineRecording() && canvasRecordingSteps.length ? Math.max(0, canvasRecordingStep - 1) : canvasExplainerStep
+  return Math.max(0, Math.min(index, model.beats.length - 1))
+}
+
+const stageGroupFor = (family: StageFamily) =>
+  family === 'content-full' ? 'page' : family === 'speaker-full' ? 'you' : 'both'
+
+const jumpToSceneBeat = (index: number) => {
+  if (sceneTimelineRecording()) {
+    if (!canvasRecordingScene || !canvasRecordingSteps.length) return
+    canvasRecordingStep = Math.max(0, Math.min(index, canvasRecordingSteps.length - 1))
+    runCanvasRecordingAction('next-beat')
+    return
+  }
+  stopCanvasStepPlayback()
+  void showCanvasStepAnimated(index)
+}
+
+let sceneTimelineModel: SceneTimelineModel | null = null
+let sceneTimelineSignature = ''
+
+const syncSceneTimelinePlayhead = () => {
+  const model = sceneTimelineModel
+  if (!model || sceneTimeline.hidden) return
+  const recording = sceneTimelineRecording()
+  sceneTimeline.classList.toggle('is-recording', recording)
+  const now = Math.max(0, sceneTimelineNowMs(model))
+  sceneTimelinePlayhead.style.left = `${Math.min(100, (now / model.durationMs) * 100)}%`
+  sceneTimelineClock.textContent = `${formatTime(now / 1000)} / ${formatTime(model.durationMs / 1000)}`
+  const active = sceneTimelineActiveBeat(model)
+  sceneTimelineBeats.querySelectorAll<HTMLElement>('.scene-timeline-beat').forEach((element, index) => {
+    element.classList.toggle('is-active', index === active)
+    element.classList.toggle('is-done', index < active)
+    element.setAttribute('aria-current', index === active ? 'true' : 'false')
+  })
+  const planned = stageAt(model.frames, now)
+  sceneTimelineFrames.querySelectorAll<HTMLElement>('.scene-timeline-frame').forEach(element => {
+    element.classList.toggle('is-now', Boolean(planned) && Number(element.dataset.atMs) === planned!.atMs)
+  })
+}
+
+const renderSceneTimeline = () => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  const open = playerShell.classList.contains('canvas-open') && !playerShell.classList.contains('canvas-finalize-mode')
+  const show = open && Boolean(scene && isSteppedKind(sceneVisualKind(scene)))
+  const wasShown = playerShell.classList.contains('has-scene-timeline')
+  sceneTimeline.hidden = !show
+  playerShell.classList.toggle('has-scene-timeline', show)
+  // The canvas moves up to make room; the live camera frame follows it.
+  if (wasShown !== show) window.setTimeout(attachLiveCameraToPlayer, 0)
+  if (!show || !scene) {
+    sceneTimelineModel = null
+    sceneTimelineSignature = ''
+    return
+  }
+  const model = sceneTimelineModelFor(scene)
+  const signature = `${scene.id}|${JSON.stringify(model)}`
+  if (signature === sceneTimelineSignature) {
+    syncSceneTimelinePlayhead()
+    return
+  }
+  sceneTimelineSignature = signature
+  sceneTimelineModel = model
+  sceneTimelineTitle.replaceChildren()
+  sceneTimelineTitle.append(`${String(scene.index + 1).padStart(2, '0')} · ${scene.title}`)
+  if (model) {
+    const small = document.createElement('small')
+    small.textContent = `${model.beats.length} beat${model.beats.length === 1 ? '' : 's'}${model.frames.length > 1 ? ` · ${model.frames.length} frame changes` : ''}`
+    sceneTimelineTitle.append(small)
+  }
+  sceneTimelineEmpty.hidden = Boolean(model)
+  sceneTimelineBody.hidden = !model
+  if (!model) {
+    sceneTimelineClock.textContent = ''
+    ;($('#scene-timeline-plan') as HTMLButtonElement).hidden = !isPageScene(scene)
+    return
+  }
+  const percent = (ms: number) => `${Math.max(0, Math.min(100, (ms / model.durationMs) * 100))}%`
+
+  sceneTimelineBeats.replaceChildren(
+    ...model.beats.map((beat, index) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'scene-timeline-beat'
+      button.setAttribute('role', 'listitem')
+      button.style.left = percent(beat.atMs)
+      button.style.width = percent(beat.durationMs)
+      button.title = `${index + 1}. ${beat.title}\n${beat.line}\n${(beat.durationMs / 1000).toFixed(1)}s — click to show this beat`
+      const title = document.createElement('strong')
+      title.textContent = `${index + 1} · ${beat.title}`
+      const line = document.createElement('span')
+      line.textContent = beat.line
+      button.append(title, line)
+      button.addEventListener('click', () => jumpToSceneBeat(index))
+      return button
+    }),
+  )
+
+  const frames = model.frames.length ? model.frames : [{ atMs: 0, family: 'content-full' as StageFamily }]
+  sceneTimelineFrames.replaceChildren(
+    ...frames.map((segment, index) => {
+      const endMs = frames[index + 1]?.atMs ?? model.durationMs
+      const element = document.createElement('div')
+      const group = stageGroupFor(segment.family)
+      const continues = index > 0 && frames[index - 1].family === segment.family
+      element.className = `scene-timeline-frame ${group}${continues ? ' continues' : ''}`
+      element.dataset.atMs = String(segment.atMs)
+      element.style.left = percent(segment.atMs)
+      element.style.width = percent(Math.max(0, endMs - segment.atMs))
+      const label = STAGE_LABELS[segment.family]
+      const placement = segment.variant ? variantLabel(segment.variant) : ''
+      element.textContent = continues && placement ? placement : label
+      element.title = `${label}${placement ? ` (${placement})` : ''} from ${(segment.atMs / 1000).toFixed(1)}s${continues ? ' — the presenter moves out of the page’s way' : ''}`
+      element.addEventListener('click', () => {
+        if (sceneTimelineRecording()) return
+        const beat = model.beats.reduce((found, item, beatIndex) => (item.atMs <= segment.atMs + 1 ? beatIndex : found), 0)
+        jumpToSceneBeat(beat)
+      })
+      return element
+    }),
+    ...model.switches.map(atMs => {
+      const marker = document.createElement('i')
+      marker.className = 'scene-timeline-switch'
+      marker.style.left = percent(atMs)
+      marker.title = `Your switch from the last take at ${(atMs / 1000).toFixed(1)}s`
+      return marker
+    }),
+  )
+
+  const seconds = model.durationMs / 1000
+  const tickEvery = seconds > 180 ? 30 : seconds > 60 ? 10 : 5
+  const ticks: HTMLElement[] = []
+  for (let t = 0; t < seconds; t += tickEvery) {
+    const tick = document.createElement('i')
+    tick.style.left = percent(t * 1000)
+    tick.textContent = t ? formatTime(t) : ''
+    ticks.push(tick)
+  }
+  sceneTimelineRuler.replaceChildren(...ticks)
+  syncSceneTimelinePlayhead()
+}
+
+;($('#scene-timeline-plan') as HTMLButtonElement).addEventListener('click', () => {
+  if (selectedNodeId) openSlideEditor(selectedNodeId)
+})
+
+// During a take with "Follow director" on, the frame changes at the planned
+// moments — what the viewer will see is what the take records.
+const followPlannedStage = (nowMs: number) => {
+  const scene = scenes.find(item => item.id === selectedNodeId)
+  if (!scene || !isPageScene(scene)) return
+  const stage = project.blocks[scene.id]?.stage
+  if (stage && stage.follow === false) return
+  const planned = stageAt(sceneStageTrack(scene), nowMs)
+  const element = stageSceneElement()
+  if (!planned || !element) return
+  const family = element.getAttribute('data-stage-override') || element.getAttribute('data-stage')
+  const variant = element.getAttribute('data-stage-override-variant') || element.getAttribute('data-stage-variant') || ''
+  if (family === planned.family && variant === (planned.variant || '')) return
+  applyLiveStage(null)
+}
+
+
 const canvasExplainerContext = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || !isSteppedKind(sceneVisualKind(scene))) return null
@@ -8196,6 +8418,7 @@ const applyCanvasExplainerStep = () => {
   label.textContent = `${step + 1}/${stepCount}`
   label.title = context.steps[step]?.title || ''
   syncStageSwitch()
+  syncSceneTimelinePlayhead()
   syncExplainerTeleprompter()
   ;($('#ex-canvas-prev') as HTMLButtonElement).disabled = step === 0
   ;($('#ex-canvas-next') as HTMLButtonElement).disabled =
@@ -8272,6 +8495,7 @@ const syncCanvasExplainerStepper = () => {
   const isStepped = Boolean(scene && isSteppedKind(sceneVisualKind(scene)))
   ;($('#explainer-step-bar') as HTMLElement).hidden = !isStepped
   window.setTimeout(syncStageSwitch, 0)
+  window.setTimeout(renderSceneTimeline, 0)
   if (selectedNodeId !== canvasExplainerNodeId) {
     stopCanvasStepPlayback()
     disengageCanvasExplainerStepper()
