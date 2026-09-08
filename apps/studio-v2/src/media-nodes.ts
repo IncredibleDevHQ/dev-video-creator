@@ -182,6 +182,10 @@ export const SlideBlock = Node.create({
       breakdownApproved: { default: false },
       // The dialogue as authored (paragraphs), kept for re-cuts.
       sourceText: { default: '' },
+      stageTrack: { default: [] },
+      stagePlacements: { default: null },
+      directorAuto: { default: null },
+      requiredArea: { default: '' },
       // The user approved the base page structure; Plan motion (assist)
       // refuses to run before this is set.
       structureApproved: { default: false },

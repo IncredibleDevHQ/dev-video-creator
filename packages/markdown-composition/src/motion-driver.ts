@@ -8,7 +8,7 @@
 // deterministic, for the timeline, the step bar and the renderer alike.
 import { MOTION_EASE_ANCHORS, type MotionPlanV2 } from './motion-plan'
 
-export type MotionDriverOptions = { accent?: string; stageTrack?: Array<{ atMs: number; family: string; treatment?: string }> }
+export type MotionDriverOptions = { accent?: string; stageTrack?: Array<{ atMs: number; family: string; treatment?: string; variant?: string }> }
 
 export type MotionDriverInstance = {
   stepCount: number
@@ -289,15 +289,18 @@ export const motionDriverScript = (
   var applyStage = function (ms) {
     if (!scene) return;
     var override = scene.getAttribute('data-stage-override');
-    var family = override || '', treatment = '';
+    var family = override || '', treatment = '', variant = override ? (scene.getAttribute('data-stage-override-variant') || '') : '';
     if (!override) {
-      for (var i = 0; i < track.length; i += 1) { if (track[i].atMs <= ms) { family = track[i].family; treatment = track[i].treatment || ''; } }
-      if (!family && track.length) { family = track[0].family; treatment = track[0].treatment || ''; }
+      for (var i = 0; i < track.length; i += 1) { if (track[i].atMs <= ms) { family = track[i].family; treatment = track[i].treatment || ''; variant = track[i].variant || ''; } }
+      if (!family && track.length) { family = track[0].family; treatment = track[0].treatment || ''; variant = track[0].variant || ''; }
     }
     if (!family) return;
     if (scene.getAttribute('data-stage') !== family) scene.setAttribute('data-stage', family);
     if ((scene.getAttribute('data-stage-treatment') || '') !== treatment) {
       if (treatment) scene.setAttribute('data-stage-treatment', treatment); else scene.removeAttribute('data-stage-treatment');
+    }
+    if ((scene.getAttribute('data-stage-variant') || '') !== variant) {
+      if (variant) scene.setAttribute('data-stage-variant', variant); else scene.removeAttribute('data-stage-variant');
     }
   };
   window.__slideDrawScene${sceneIndex} = function (sceneTime) { driver.draw(sceneTime * 1000); applyStage(sceneTime * 1000); };

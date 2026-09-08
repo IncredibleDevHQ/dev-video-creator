@@ -5,14 +5,15 @@
 // (measured against the 18 px legibility gate), which stage family carries
 // each beat, and the coach cues that follow. Pure functions; the studio
 // writes the result onto the scene node, the agent path can replace it.
-import type { MotionPlanV2 } from 'markdown-composition'
+import type { MotionPlanV2, StageVariant } from 'markdown-composition'
+import { FLOATING_FAMILIES, placementAt, placementsFor, type PlacementTrack } from './placements'
 import { leafUnits, type SlideUnit } from './slide-atoms'
 import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
 
 export type SceneKind = 'title' | 'text' | 'list' | 'diagram' | 'figure' | 'numbers' | 'table'
 export type ArcRole = 'hook' | 'map' | 'build' | 'idea' | 'explain' | 'evidence' | 'close'
 export type RequiredArea = 'none' | 'slot' | 'beside' | 'frame' | 'takeover'
-export type StageFamily = 'speaker-full' | 'speaker-panel' | 'split' | 'content-card' | 'content-pip'
+export type StageFamily = 'speaker-full' | 'speaker-panel' | 'split' | 'content-card' | 'content-pip' | 'content-tile' | 'content-cutout'
 export type StageTreatment = '' | 'overlay' | 'glow-bed-hero'
 
 export type StoryboardEntry = {
@@ -23,6 +24,8 @@ export type StoryboardEntry = {
   beats: number[]
   // Starts this long before the end of its last beat (the lead-out).
   fromEndMs?: number
+  // Placement (anchor-size) for the floating families.
+  variant?: StageVariant
 }
 
 export type DirectorBrief = {
@@ -42,6 +45,8 @@ export type DirectorResult = {
   cues: string[]
   directorNotes: string
   brief: DirectorBrief
+  // Per floating family, where the presenter sits over the beats.
+  placements: Record<string, PlacementTrack>
 }
 
 export type DirectorInput = {
@@ -410,7 +415,22 @@ export const direct = (input: DirectorInput): DirectorResult => {
     ? order[Math.min(order.indexOf(sceneArea), Math.max(...areas.map(area => order.indexOf(area))))]
     : sceneArea
   const outro = outroFor(input.beats, input.plan, input.position, input.layouts, requiredArea)
-  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts, outro: outro?.entries })
+  const placements = placementsFor(input.plan, input.units, input.viewBox)
+  const offsets: number[] = []
+  let at = 0
+  input.plan.steps.forEach(step => { offsets.push(at); at += step.motionWindowMs + step.holdMs })
+  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts, outro: outro?.entries }).flatMap(entry => {
+    // A floating presenter follows the page: one entry per placement.
+    if (!FLOATING_FAMILIES.includes(entry.family as never) || entry.fromEndMs) return [entry]
+    const groups: StoryboardEntry[] = []
+    entry.beats.forEach(beat => {
+      const variant = placementAt(placements[entry.family], offsets[beat] ?? 0)
+      const last = groups[groups.length - 1]
+      if (last && last.variant === variant) last.beats.push(beat)
+      else groups.push({ ...entry, beats: [beat], ...(variant ? { variant } : {}), note: groups.length ? `${entry.note} · moves out of the way` : entry.note })
+    })
+    return groups
+  })
   const cues = cuesFor(storyboard, input.beats, input.plan, outro)
   const directorNotes = notesFor(kind, arcRole, requiredArea, storyboard, legibility)
   const totalSeconds = Math.round(input.plan.steps.reduce((sum, step) => sum + step.motionWindowMs + step.holdMs, 0) / 100) / 10
@@ -427,6 +447,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
     storyboard,
     cues,
     directorNotes,
+    placements,
     brief: {
       layout: dominant?.family || FAMILY_FOR_AREA[requiredArea],
       layoutReason: `${kind} · needs ${requiredArea === 'none' ? 'no' : `a ${requiredArea}`} area · smallest text ${legibility.minTextPx[requiredArea === 'none' ? 'slot' : requiredArea]} px at that width`,

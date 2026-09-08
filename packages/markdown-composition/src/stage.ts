@@ -10,13 +10,21 @@ export const STAGE_FAMILIES = [
   'speaker-panel',
   'split',
   'content-pip',
+  'content-tile',
   'content-card',
   'content-cutout',
 ] as const
 export type StageFamily = (typeof STAGE_FAMILIES)[number]
 export type StageTreatment = '' | 'overlay' | 'glow-bed-hero'
 
-export type StageSegment = { atMs: number; family: StageFamily; treatment?: StageTreatment }
+// A variant is a placement of the presenter for the families that float
+// over the page: an anchor (br, bl, tr, tl, mr, ml — bottom-right first)
+// and a size (s, m, l), e.g. "bl-m". Panel, split and full frames have none.
+export type StageAnchor = 'br' | 'bl' | 'tr' | 'tl' | 'mr' | 'ml'
+export type StageSize = 's' | 'm' | 'l'
+export type StageVariant = `${StageAnchor}-${StageSize}`
+
+export type StageSegment = { atMs: number; family: StageFamily; treatment?: StageTreatment; variant?: StageVariant }
 
 export type StageRect = { left: number; top: number; width: number; height: number }
 export type StageGeometry = {
@@ -27,15 +35,88 @@ export type StageGeometry = {
 
 // Frame fractions (percent of 1920×1080). The page keeps its aspect inside
 // its rect; the camera is cropped to its rect (object-fit: cover).
-export const STAGE_GEOMETRY: Record<StageFamily, StageGeometry> = {
-  'content-full': { camera: null, content: { left: 4.7, top: 5, width: 90.6, height: 90 }, cameraShape: 'rounded' },
-  'speaker-full': { camera: { left: 0, top: 0, width: 100, height: 100 }, content: null, cameraShape: 'full' },
-  'speaker-panel': { camera: { left: 0, top: 0, width: 44, height: 100 }, content: { left: 47, top: 8, width: 50, height: 84 }, cameraShape: 'full' },
-  split: { camera: { left: 50, top: 0, width: 50, height: 100 }, content: { left: 3, top: 10, width: 44, height: 80 }, cameraShape: 'full' },
-  'content-pip': { camera: { left: 79, top: 64, width: 16, height: 28.45 }, content: { left: 4.7, top: 5, width: 90.6, height: 90 }, cameraShape: 'circle' },
-  'content-card': { camera: { left: 72, top: 8, width: 24, height: 84 }, content: { left: 3, top: 6, width: 66, height: 88 }, cameraShape: 'rounded' },
-  'content-cutout': { camera: { left: 2.5, top: 50, width: 24, height: 46 }, content: { left: 4.7, top: 5, width: 90.6, height: 90 }, cameraShape: 'rounded' },
+const PAGE_RECT: StageRect = { left: 4.7, top: 5, width: 90.6, height: 90 }
+const FRAME_ASPECT = 1920 / 1080
+
+// Width (% of the frame) per size, for the floating families.
+const FLOAT_WIDTHS: Record<Exclude<StageFamily, 'content-full' | 'speaker-full' | 'speaker-panel' | 'split'>, Record<StageSize, number>> = {
+  'content-pip': { s: 12, m: 16, l: 20 },
+  'content-tile': { s: 18, m: 22, l: 27 },
+  'content-card': { s: 20, m: 24, l: 28 },
+  'content-cutout': { s: 20, m: 24, l: 30 },
 }
+// Height as a multiple of width, in frame percent (the frame is 16:9).
+const FLOAT_RATIO: Record<keyof typeof FLOAT_WIDTHS, number> = {
+  'content-pip': FRAME_ASPECT, // a circle
+  'content-tile': 1, // 16:9 tile
+  'content-card': (4 / 3) * FRAME_ASPECT, // 3:4 portrait
+  'content-cutout': (5 / 4) * FRAME_ASPECT, // 4:5 portrait
+}
+const FLOAT_ANCHORS: Record<keyof typeof FLOAT_WIDTHS, StageAnchor[]> = {
+  'content-pip': ['br', 'bl', 'tr', 'tl', 'mr', 'ml'],
+  'content-tile': ['br', 'bl', 'tr', 'tl'],
+  'content-card': ['mr', 'ml'],
+  'content-cutout': ['br', 'bl'],
+}
+const MARGIN_X = 4
+const MARGIN_Y = 7
+
+const placeFloat = (family: keyof typeof FLOAT_WIDTHS, variant: StageVariant): StageRect => {
+  const [anchor, size] = variant.split('-') as [StageAnchor, StageSize]
+  const width = FLOAT_WIDTHS[family][size]
+  const height = Math.min(84, width * FLOAT_RATIO[family])
+  const left = anchor.endsWith('l') ? MARGIN_X : 100 - MARGIN_X - width
+  const top = anchor.startsWith('t') ? MARGIN_Y : anchor.startsWith('m') ? (100 - height) / 2 : 100 - MARGIN_Y - height
+  return { left, top, width, height }
+}
+
+export const DEFAULT_VARIANT: Record<StageFamily, StageVariant | undefined> = {
+  'content-full': undefined,
+  'speaker-full': undefined,
+  'speaker-panel': undefined,
+  split: undefined,
+  'content-pip': 'br-m',
+  'content-tile': 'br-m',
+  'content-card': 'mr-m',
+  'content-cutout': 'bl-m',
+}
+
+export const variantsFor = (family: StageFamily): StageVariant[] => {
+  if (!(family in FLOAT_WIDTHS)) return []
+  const key = family as keyof typeof FLOAT_WIDTHS
+  return FLOAT_ANCHORS[key].flatMap(anchor => (['m', 's', 'l'] as StageSize[]).map(size => `${anchor}-${size}` as StageVariant))
+}
+
+export const isStageVariant = (family: StageFamily, value: unknown): value is StageVariant =>
+  typeof value === 'string' && variantsFor(family).includes(value as StageVariant)
+
+/** Geometry for a family at a variant (the default variant when none). */
+export const stageGeometryFor = (family: StageFamily, variant?: string | null): StageGeometry => {
+  switch (family) {
+    case 'content-full': return { camera: null, content: PAGE_RECT, cameraShape: 'rounded' }
+    case 'speaker-full': return { camera: { left: 0, top: 0, width: 100, height: 100 }, content: null, cameraShape: 'full' }
+    case 'speaker-panel': return { camera: { left: 0, top: 0, width: 44, height: 100 }, content: { left: 47, top: 8, width: 50, height: 84 }, cameraShape: 'full' }
+    case 'split': return { camera: { left: 50, top: 0, width: 50, height: 100 }, content: { left: 3, top: 10, width: 44, height: 80 }, cameraShape: 'full' }
+    default: {
+      const v = isStageVariant(family, variant) ? variant : DEFAULT_VARIANT[family]!
+      const camera = placeFloat(family, v)
+      if (family === 'content-card') {
+        // The page moves aside for the card.
+        const onRight = camera.left > 50
+        const content: StageRect = onRight
+          ? { left: 3, top: 6, width: camera.left - 6, height: 88 }
+          : { left: camera.left + camera.width + 3, top: 6, width: 100 - (camera.left + camera.width) - 6, height: 88 }
+        return { camera, content, cameraShape: 'rounded' }
+      }
+      return { camera, content: PAGE_RECT, cameraShape: family === 'content-pip' ? 'circle' : 'rounded' }
+    }
+  }
+}
+
+// The default geometry per family (kept for callers that do not carry a variant).
+export const STAGE_GEOMETRY: Record<StageFamily, StageGeometry> = Object.fromEntries(
+  STAGE_FAMILIES.map(family => [family, stageGeometryFor(family, DEFAULT_VARIANT[family])]),
+) as Record<StageFamily, StageGeometry>
 
 // The title-card overlay a speaker-full moment can carry.
 export const STAGE_OVERLAY_CONTENT: StageRect = { left: 56, top: 56, width: 40, height: 36 }
@@ -46,8 +127,18 @@ export const STAGE_LABELS: Record<StageFamily, string> = {
   'speaker-panel': 'Panel',
   split: 'Split',
   'content-pip': 'Chip',
+  'content-tile': 'Tile',
   'content-card': 'Card',
   'content-cutout': 'Cutout',
+}
+
+export const ANCHOR_LABELS: Record<StageAnchor, string> = {
+  br: 'bottom right', bl: 'bottom left', tr: 'top right', tl: 'top left', mr: 'right', ml: 'left',
+}
+export const variantLabel = (variant?: string | null) => {
+  if (!variant) return ''
+  const [anchor, size] = variant.split('-') as [StageAnchor, StageSize]
+  return `${ANCHOR_LABELS[anchor] || anchor}${size === 's' ? ', small' : size === 'l' ? ', large' : ''}`
 }
 
 export const isStageFamily = (value: unknown): value is StageFamily =>
@@ -62,12 +153,19 @@ export const sanitizeStageTrack = (value: unknown): StageSegment[] => {
       if (!isStageFamily(segment.family)) return null
       const atMs = Number(segment.atMs)
       const treatment = segment.treatment === 'overlay' || segment.treatment === 'glow-bed-hero' ? segment.treatment : ''
-      return { atMs: Number.isFinite(atMs) ? Math.max(0, atMs) : 0, family: segment.family, ...(treatment ? { treatment } : {}) }
+      const variant = isStageVariant(segment.family, segment.variant) ? (segment.variant as StageVariant) : undefined
+      return { atMs: Number.isFinite(atMs) ? Math.max(0, atMs) : 0, family: segment.family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}) }
     })
     .filter((segment): segment is StageSegment => Boolean(segment))
     .sort((a, b) => a.atMs - b.atMs)
   // Collapse repeats.
-  return track.filter((segment, index) => index === 0 || segment.family !== track[index - 1].family || (segment.treatment || '') !== (track[index - 1].treatment || ''))
+  return track.filter(
+    (segment, index) =>
+      index === 0 ||
+      segment.family !== track[index - 1].family ||
+      (segment.treatment || '') !== (track[index - 1].treatment || '') ||
+      (segment.variant || '') !== (track[index - 1].variant || ''),
+  )
 }
 
 export const stageAt = (track: StageSegment[], atMs: number): StageSegment | null => {
@@ -96,7 +194,7 @@ export const familyForCameraMode = (mode: string, position: string): StageFamily
 
 /** The director's storyboard (entries with beat indices) as a stage track. */
 export const stageTrackFromStoryboard = (
-  entries: Array<{ family?: string; treatment?: string; beats?: number[]; fromEndMs?: number }>,
+  entries: Array<{ family?: string; treatment?: string; beats?: number[]; fromEndMs?: number; variant?: string }>,
   beatOffsetsMs: number[],
   beatDurationsMs: number[] = [],
 ): StageSegment[] => {
@@ -114,7 +212,8 @@ export const stageTrackFromStoryboard = (
         ? Math.max(beatOffsetsMs[first] ?? 0, (beatOffsetsMs[last] ?? 0) + (beatDurationsMs[last] ?? 0) - fromEnd)
         : beatOffsetsMs[first] ?? 0
     const treatment = entry.treatment === 'overlay' || entry.treatment === 'glow-bed-hero' ? entry.treatment : ''
-    track.push({ atMs, family, ...(treatment ? { treatment } : {}) })
+    const variant = isStageVariant(family, entry.variant) ? (entry.variant as StageVariant) : undefined
+    track.push({ atMs, family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}) })
   })
   return sanitizeStageTrack(track)
 }
@@ -155,6 +254,13 @@ export const stageCss = () => {
     else rules.push(`.scene[data-stage="${family}"] .camera { ${rectCss(STAGE_GEOMETRY['content-pip'].camera!)} }`)
     if (geometry.content) rules.push(`.scene[data-stage="${family}"] > .content { ${rectCss(geometry.content)} }`)
     else rules.push(`.scene[data-stage="${family}"] > .content { ${rectCss(STAGE_OVERLAY_CONTENT)} }`)
+    // Placement variants: anchor and size for the floating families.
+    variantsFor(family).forEach(variant => {
+      const placed = stageGeometryFor(family, variant)
+      rules.push(`.scene[data-stage="${family}"][data-stage-variant="${variant}"] .camera { ${rectCss(placed.camera!)} }`)
+      if (placed.content) rules.push(`.scene[data-stage="${family}"][data-stage-variant="${variant}"] > .content { ${rectCss(placed.content)} }`)
+    })
   })
+  rules.push(`.scene[data-stage="content-tile"] .camera, .scene[data-stage="content-cutout"] .camera, .scene[data-stage="content-card"] .camera { border-radius: var(--video-radius, 18px) !important; }`)
   return rules.join('\n    ')
 }

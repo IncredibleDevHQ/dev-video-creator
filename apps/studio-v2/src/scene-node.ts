@@ -123,6 +123,9 @@ export const SceneBlock = Node.create({
       // handcrafted fields above so a gold scene is never overwritten.
       directorAuto: { default: null },
       requiredArea: { default: '' },
+      // The director's stage track and per-family placements over time.
+      stageTrack: { default: [] },
+      stagePlacements: { default: null },
       // The workflow state: the dialogue is approved before it is broken down
       // into windows of attention; the windows are approved before motion is
       // planned from them. pace = { granularity, wpm }.
@@ -156,6 +159,8 @@ export const SceneBlock = Node.create({
       motion,
       directorAuto,
       requiredArea,
+      stageTrack,
+      stagePlacements,
       scriptApproved,
       pace,
       windows,
@@ -181,6 +186,8 @@ export const SceneBlock = Node.create({
     void scriptApproved
     void breakdownApproved
     void pace
+    void stageTrack
+    void stagePlacements
     const area = String(requiredArea || '')
     const auto = (directorAuto && typeof directorAuto === 'object' ? directorAuto : null) as { kind?: string; legibility?: { minTextPx?: Record<string, number> } } | null
     return [

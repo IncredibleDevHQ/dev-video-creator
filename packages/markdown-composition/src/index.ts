@@ -43,6 +43,7 @@ import {
   sanitizeStageTrack,
   stageCss,
   stageTrackFromStoryboard,
+  type StageFamily,
   type StageSegment,
 } from './stage'
 
@@ -103,8 +104,19 @@ export const sceneStageTrack = (scene: Pick<Scene, 'node' | 'config'>): StageSeg
   const fallback: StageSegment[] = [
     { atMs: 0, family: familyForCameraMode(scene.config.camera.mode, scene.config.camera.position) },
   ]
-  if (stage && !stage.follow && isStageFamily(stage.override)) return [{ atMs: 0, family: stage.override }]
-  const attrs = (scene.node.attrs || {}) as { stageTrack?: unknown; directorAuto?: { storyboard?: Array<{ family?: string; treatment?: string; beats?: number[] }> } }
+  const attrs = (scene.node.attrs || {}) as {
+    stageTrack?: unknown
+    stagePlacements?: Record<string, Array<{ atMs: number; variant: string }>>
+    directorAuto?: { storyboard?: Array<{ family?: string; treatment?: string; beats?: number[]; variant?: string }> }
+  }
+  // A fixed family still takes the director's placement for it over time
+  // (the chip moves out of the way of the page as beats change).
+  const placed = (family: StageFamily, atMs: number) => {
+    const placements = attrs.stagePlacements?.[family]
+    if (!Array.isArray(placements) || !placements.length) return [{ atMs, family }]
+    return placements.filter(entry => entry && Number.isFinite(entry.atMs)).map(entry => ({ atMs: Math.max(atMs, entry.atMs), family, variant: entry.variant as StageSegment['variant'] }))
+  }
+  if (stage && !stage.follow && isStageFamily(stage.override)) return sanitizeStageTrack(placed(stage.override, 0))
   let track = sanitizeStageTrack(attrs.stageTrack)
   if (!track.length) {
     const plan = slideNodeMotion(scene.node)
@@ -114,7 +126,13 @@ export const sceneStageTrack = (scene: Pick<Scene, 'node' | 'config'>): StageSeg
     }
   }
   if (!track.length) track = fallback
-  return stage?.overrides?.length ? mergeStageOverrides(track, sanitizeStageTrack(stage.overrides)) : track
+  if (!stage?.overrides?.length) return track
+  // Live switches carry no placement of their own: take the director's for
+  // that family from that moment on.
+  const overrides = sanitizeStageTrack(stage.overrides).flatMap(segment =>
+    placed(segment.family, segment.atMs).filter(entry => entry.atMs >= segment.atMs || entry.atMs === segment.atMs),
+  )
+  return mergeStageOverrides(track, sanitizeStageTrack(overrides))
 }
 
 // Beat offsets in seconds (captions ride on them) and the scene duration.
@@ -872,7 +890,7 @@ const buildCompositionHtml = (
 
       const stageTrack = isSlideLikeNode(scene.node) ? sceneStageTrack(scene) : []
       const stageAttributes = stageTrack.length
-        ? ` data-stage="${stageTrack[0].family}"${stageTrack[0].treatment ? ` data-stage-treatment="${stageTrack[0].treatment}"` : ''} data-stage-track="${escapeHtml(JSON.stringify(stageTrack))}"`
+        ? ` data-stage="${stageTrack[0].family}"${stageTrack[0].treatment ? ` data-stage-treatment="${stageTrack[0].treatment}"` : ''}${stageTrack[0].variant ? ` data-stage-variant="${stageTrack[0].variant}"` : ''} data-stage-track="${escapeHtml(JSON.stringify(stageTrack))}"`
         : ''
       return `<section${stageAttributes}
         id="scene-${scene.index}"

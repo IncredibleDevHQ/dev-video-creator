@@ -51,13 +51,14 @@ import {
   motionPlanDurationSeconds,
   sanitizeMotionPlan,
   stepsFromMotionPlan,
-  STAGE_GEOMETRY,
   STAGE_LABELS,
   familyForCameraMode,
   isStageFamily,
   sceneStageTrack,
   stageAt,
+  stageGeometryFor,
   stageTrackFromStoryboard,
+  variantLabel,
   motionPlanOffsetsMs,
   type StageFamily,
   type MotionDriverInstance,
@@ -86,6 +87,7 @@ import {
   type WindowLayout,
 } from './script-plan'
 import { direct, type DirectorResult } from './director'
+import { placementAt } from './placements'
 import { storyboardMockUrl } from './scene-node'
 import {
   atomizeSlideSvg,
@@ -804,7 +806,9 @@ const attachLiveCameraToPlayer = () => {
   const staged = isPageScene(scene)
   if (!staged && scene.config.camera.position === 'hidden') return
   const stageFamily = staged ? currentStageFamily() || sceneStageTrack(scene)[0]?.family || 'content-full' : null
-  const stageGeometry = stageFamily ? STAGE_GEOMETRY[stageFamily] : null
+  const stageElement = staged ? stageSceneElement() : null
+  const stageVariant = stageElement?.getAttribute('data-stage-override-variant') || stageElement?.getAttribute('data-stage-variant') || null
+  const stageGeometry = stageFamily ? stageGeometryFor(stageFamily, stageVariant) : null
   if (staged && (!stageGeometry || !stageGeometry.camera)) return
   if (attachLiveCameraInsideComposition(scene)) return
   const geometry = stageGeometry && stageGeometry.camera
@@ -7995,11 +7999,22 @@ const applyLiveStage = (family: StageFamily | null) => {
   const element = stageSceneElement()
   if (!element) return
   if (family) {
+    const scene = scenes.find(item => item.id === selectedNodeId)
+    const placements = (scene?.node.attrs?.stagePlacements || {}) as Record<string, Array<{ atMs: number; variant: string }>>
+    const variant = placementAt(placements[family] as never, canvasSceneTimeMs())
     element.setAttribute('data-stage-override', family)
     element.setAttribute('data-stage', family)
     element.removeAttribute('data-stage-treatment')
+    if (variant) {
+      element.setAttribute('data-stage-override-variant', variant)
+      element.setAttribute('data-stage-variant', variant)
+    } else {
+      element.removeAttribute('data-stage-override-variant')
+      element.removeAttribute('data-stage-variant')
+    }
   } else {
     element.removeAttribute('data-stage-override')
+    element.removeAttribute('data-stage-override-variant')
     const scene = scenes.find(item => item.id === selectedNodeId)
     const track = scene ? sceneStageTrack(scene) : []
     const at = stageAt(track, canvasSceneTimeMs())
@@ -8007,6 +8022,8 @@ const applyLiveStage = (family: StageFamily | null) => {
       element.setAttribute('data-stage', at.family)
       if (at.treatment) element.setAttribute('data-stage-treatment', at.treatment)
       else element.removeAttribute('data-stage-treatment')
+      if (at.variant) element.setAttribute('data-stage-variant', at.variant)
+      else element.removeAttribute('data-stage-variant')
     }
   }
   attachLiveCameraToPlayer()
@@ -8048,14 +8065,14 @@ const syncStageSwitch = () => {
     button.classList.toggle('is-active', button.dataset.stageChoice === active)
     button.classList.toggle('is-suggested', Boolean(planned) && button.dataset.stageChoice === stageButtonFor(planned!.family) && button.dataset.stageChoice !== active)
   })
-  const label = (family: StageFamily) => STAGE_LABELS[family]
+  const label = (family: StageFamily, variant?: string) => `${STAGE_LABELS[family]}${variant ? ` (${variantLabel(variant)})` : ''}`
   if (!track.length || (track.length === 1 && track[0].family === 'content-full' && !next)) {
     stageHint.innerHTML = '<strong>Plan:</strong> none yet — open the scene and plan its dialogue'
   } else {
     const plan = sanitizeMotionPlan(scene.node.attrs?.motion)
     const beatIndex = plan ? motionPlanOffsetsMs(plan).offsets.findIndex((offset, index, all) => next && offset >= next.atMs && (index === 0 || all[index - 1] < next.atMs)) : -1
     const beatTitle = plan && beatIndex >= 0 ? plan.steps[beatIndex]?.title : ''
-    stageHint.innerHTML = `<strong>Plan:</strong> ${planned ? label(planned.family) : '—'} now${next ? ` → ${label(next.family)} at ${(next.atMs / 1000).toFixed(0)}s${beatTitle ? ` “${beatTitle}”` : ''}` : ' to the end'}${stage.overrides?.length ? ' · your switches from the last take are kept' : ''}`
+    stageHint.innerHTML = `<strong>Plan:</strong> ${planned ? label(planned.family, planned.variant) : '—'} now${next ? ` → ${label(next.family, next.variant)} at ${(next.atMs / 1000).toFixed(0)}s${beatTitle ? ` “${beatTitle}”` : ''}` : ' to the end'}${stage.overrides?.length ? ' · your switches from the last take are kept' : ''}`
   }
 }
 
@@ -9459,6 +9476,7 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
     ...(plan
       ? { stageTrack: stageTrackFromStoryboard(result.storyboard, motionPlanOffsetsMs(plan).offsets, plan.steps.map(step => step.motionWindowMs + step.holdMs)) }
       : {}),
+    stagePlacements: Object.fromEntries(Object.entries(result.placements).map(([family, track]) => [family, track.map(entry => ({ atMs: entry.atMs, variant: entry.variant }))])),
     directorAuto: {
       kind: result.kind,
       arcRole: result.arcRole,
