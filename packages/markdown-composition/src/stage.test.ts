@@ -53,3 +53,18 @@ describe('stage track', () => {
     expect(css).toContain('transition: left .62s')
   })
 })
+
+describe('stage track from a storyboard with lead-outs', () => {
+  it('places an entry a given time before the end of its beat', () => {
+    const track = stageTrackFromStoryboard(
+      [
+        { family: 'content-pip', beats: [0, 1] },
+        { family: 'speaker-panel', beats: [1], fromEndMs: 3000 },
+        { family: 'speaker-full', beats: [1], fromEndMs: 1000 },
+      ],
+      [0, 5000],
+      [5000, 8000],
+    )
+    expect(track.map(segment => [segment.atMs, segment.family])).toEqual([[0, 'content-pip'], [10000, 'speaker-panel'], [12000, 'speaker-full']])
+  })
+})

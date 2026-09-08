@@ -15,7 +15,15 @@ export type RequiredArea = 'none' | 'slot' | 'beside' | 'frame' | 'takeover'
 export type StageFamily = 'speaker-full' | 'speaker-panel' | 'split' | 'content-card' | 'content-pip'
 export type StageTreatment = '' | 'overlay' | 'glow-bed-hero'
 
-export type StoryboardEntry = { label: string; family: StageFamily; treatment?: StageTreatment; note: string; beats: number[] }
+export type StoryboardEntry = {
+  label: string
+  family: StageFamily
+  treatment?: StageTreatment
+  note: string
+  beats: number[]
+  // Starts this long before the end of its last beat (the lead-out).
+  fromEndMs?: number
+}
 
 export type DirectorBrief = {
   layout: string
@@ -204,12 +212,54 @@ const beatSeconds = (plan: MotionPlanV2, index: number) => {
  * merges same-family neighbours, folds segments under four seconds into
  * their neighbours, keeps at most four changes.
  */
+// The outro (Motion Core Part V, closing a scene): the last stretch has
+// you fully in frame beside the page while the thought closes, then the
+// frame is yours alone to lead into the next scene. It exists whether or
+// not the dialogue wrote an outro line; the cue says when it did not.
+const OUTRO_LEAD_MS = 1_100
+const OUTRO_MIN_BRIDGE_MS = 1_800
+
+export const outroFor = (
+  beats: ScriptBeat[],
+  plan: MotionPlanV2,
+  position: { index: number; count: number },
+  layouts: Array<WindowLayout | undefined> = [],
+  requiredArea: RequiredArea = 'takeover',
+): { entries: StoryboardEntry[]; scripted: boolean } | null => {
+  if (position.index >= position.count - 1 || beats.length < 2) return null
+  const lastIndex = beats.length - 1
+  const last = plan.steps[lastIndex]
+  if (!last) return null
+  const brings = last.actions.some(action => ['reveal', 'trace', 'count', 'connect'].includes(action.op))
+  const wish = layouts[lastIndex]
+  // A written outro: the last window brings nothing new (or asks to be
+  // beside / on you). Otherwise the bridge is cut into the final beat.
+  const scripted = !brings || wish === 'beside' || wish === 'me'
+  const lastMs = last.motionWindowMs + last.holdMs
+  const beatsOfBridge = [lastIndex]
+  // A page with almost nothing on it (a title card) stays behind you as an
+  // overlay instead of opening a panel beside you.
+  const bridgeFamily: StageFamily = requiredArea === 'none' ? 'speaker-full' : 'speaker-panel'
+  const bridgeTreatment: StageTreatment | undefined = requiredArea === 'none' ? 'overlay' : undefined
+  const bridge: StoryboardEntry = scripted
+    ? { label: 'Outro', family: bridgeFamily, ...(bridgeTreatment ? { treatment: bridgeTreatment } : {}), note: `You ${requiredArea === 'none' ? 'with the card behind you' : 'beside the page'}, closing the thought · “${beats[lastIndex].text.split(/\s+/).slice(0, 5).join(' ')}…”`, beats: beatsOfBridge }
+    : { label: 'Outro', family: bridgeFamily, ...(bridgeTreatment ? { treatment: bridgeTreatment } : {}), note: 'The frame opens to you for the last seconds — no outro line was written', beats: beatsOfBridge, fromEndMs: Math.min(lastMs * 0.6, OUTRO_MIN_BRIDGE_MS + OUTRO_LEAD_MS) }
+  const lead: StoryboardEntry = {
+    label: 'Lead into the next scene',
+    family: 'speaker-full',
+    note: 'You alone, then the cut to the next scene',
+    beats: [lastIndex],
+    fromEndMs: Math.min(lastMs * 0.35, OUTRO_LEAD_MS),
+  }
+  return { entries: [bridge, lead], scripted }
+}
+
 export const storyboardFor = (
   beats: ScriptBeat[],
   plan: MotionPlanV2,
   requiredArea: RequiredArea,
   arcRole: ArcRole,
-  perBeat: { areas?: RequiredArea[]; layouts?: Array<WindowLayout | undefined> } = {},
+  perBeat: { areas?: RequiredArea[]; layouts?: Array<WindowLayout | undefined>; outro?: StoryboardEntry[] } = {},
 ): StoryboardEntry[] => {
   const raw: StoryboardEntry[] = beats.map(beat => {
     const step = plan.steps[beat.index]
@@ -280,11 +330,30 @@ export const storyboardFor = (
     const tail = merged.pop()!
     merged[merged.length - 1].beats.push(...tail.beats)
   }
+  // The outro replaces whatever the last beat was staged as when the outro
+  // owns the whole beat; a cut-in outro rides after the last moment.
+  const outro = perBeat.outro || []
+  if (outro.length) {
+    const bridge = outro[0]
+    if (!bridge.fromEndMs) {
+      const lastBeat = beats.length - 1
+      merged.forEach(entry => { entry.beats = entry.beats.filter(index => index !== lastBeat) })
+      for (let i = merged.length - 1; i >= 0; i -= 1) if (!merged[i].beats.length) merged.splice(i, 1)
+    }
+    merged.push(...outro)
+  }
   return merged
 }
 
-export const cuesFor = (storyboard: StoryboardEntry[], beats: ScriptBeat[], plan: MotionPlanV2): string[] => {
+export const cuesFor = (storyboard: StoryboardEntry[], beats: ScriptBeat[], plan: MotionPlanV2, outro?: { scripted: boolean } | null): string[] => {
   const cues: string[] = []
+  if (outro) {
+    cues.push(
+      outro.scripted
+        ? `Outro: turn to camera on “${beats[beats.length - 1].text.split(/\s+/).slice(0, 4).join(' ')}…” — the frame opens to you beside the page, then to you alone; land the last word and hold`
+        : 'Outro: the frame opens to you beside the page for the last seconds, then to you alone — write an outro line (+ Outro) so the words close the scene too',
+    )
+  }
   storyboard.forEach((entry, index) => {
     const firstBeat = beats[entry.beats[0]]
     if (!firstBeat) return
@@ -320,7 +389,9 @@ const notesFor = (kind: SceneKind, arcRole: ArcRole, requiredArea: RequiredArea,
             ? `The page needs a card most of the frame wide; you ride in the margin (smallest text ${legibility.minTextPx.frame} px).`
             : `The ${kind === 'diagram' ? 'diagram' : 'page'} needs the whole frame — you become a chip (in a panel the smallest text would be ${legibility.minTextPx.beside} px, under the 18 px gate).`
   const close = storyboard[storyboard.length - 1]
-  const closing = storyboard.length > 1 && close?.family === 'speaker-full' ? 'Come back full frame for the last line.' : ''
+  const closing = storyboard.some(entry => entry.label === 'Outro')
+    ? 'Close beside the page with the last thought, then alone in frame to lead into the next scene.'
+    : storyboard.length > 1 && close?.family === 'speaker-full' ? 'Come back full frame for the last line.' : ''
   const role = arcRole === 'hook' ? 'This is the hook: earn the next minute.' : arcRole === 'close' ? 'This is the close: land it and stop.' : arcRole === 'map' ? 'This is the map: do not rush it.' : ''
   return [opening, areaLine, closing, role].filter(Boolean).join(' ')
 }
@@ -338,8 +409,9 @@ export const direct = (input: DirectorInput): DirectorResult => {
   const requiredArea = areas.length
     ? order[Math.min(order.indexOf(sceneArea), Math.max(...areas.map(area => order.indexOf(area))))]
     : sceneArea
-  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts })
-  const cues = cuesFor(storyboard, input.beats, input.plan)
+  const outro = outroFor(input.beats, input.plan, input.position, input.layouts, requiredArea)
+  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts, outro: outro?.entries })
+  const cues = cuesFor(storyboard, input.beats, input.plan, outro)
   const directorNotes = notesFor(kind, arcRole, requiredArea, storyboard, legibility)
   const totalSeconds = Math.round(input.plan.steps.reduce((sum, step) => sum + step.motionWindowMs + step.holdMs, 0) / 100) / 10
   const dominant = storyboard.reduce<StoryboardEntry | null>((best, entry) => {

@@ -1118,7 +1118,8 @@ const SCENE_CAPABILITIES = `WHAT THE MOTION ENGINE CAN DO WITH A PART (one windo
 - move the camera in on the parts of a tight window (never tighter than a third of the page), back to the page when the next window's parts fall outside;
 - draw a connection between two parts that have no arrow;
 - stage the presenter: full frame with nothing else ("me"), beside the page in a panel ("beside"), or as a small chip while the page owns the frame ("page").
-CONSTRAINTS: a part is highlighted only after it has been brought on screen; a window brings in at most ~8 parts (more reads as a wall); a window has at most one hero; the first window of a hook or a close belongs to the presenter; numbers are spoken when they count.`
+CONSTRAINTS: a part is highlighted only after it has been brought on screen; a window brings in at most ~8 parts (more reads as a wall); a window has at most one hero; the first window of a hook or a close belongs to the presenter; numbers are spoken when they count.
+OUTRO: every scene except the last one in the video ends with an outro window — one sentence that closes the scene's idea and hands over to what comes next, spoken to camera, naming no new parts; its layout is "beside" (the presenter fully in frame beside the page) and its intent is "transition". The director then cuts to the presenter alone to lead into the next scene, so the sentence must land on its own.`
 
 const windowSchema = (withSay: boolean) => ({
   type: 'object',
@@ -1170,7 +1171,7 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
   const notes = String(body.notes || '').trim().slice(0, 4_000)
   const existing = String(body.existing || '').trim().slice(0, 6_000)
   const instruction = String(body.instruction || '').trim().slice(0, 1_000)
-  const position = body.position && Number.isFinite(body.position.index) ? `scene ${body.position.index + 1} of ${body.position.count}` : ''
+  const position = body.position && Number.isFinite(body.position.index) ? `scene ${body.position.index + 1} of ${body.position.count}${body.position.index + 1 >= (body.position.count || 0) ? ' — the last scene, so it closes the video instead of handing over' : ''}` : ''
   const prompt = `You write the spoken dialogue for one scene of a narrated technical video, and you can see the page the presenter is explaining. Title: "${String(body.title || 'Scene').slice(0, 120)}"${position ? ` (${position}` : ''}${body.role ? `${position ? ', ' : ' ('}role in the story: ${String(body.role).slice(0, 40)})` : position ? ')' : ''}.
 
 ${sceneInventory(units, relations)}

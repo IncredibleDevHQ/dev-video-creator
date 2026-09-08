@@ -109,7 +109,9 @@ export const sceneStageTrack = (scene: Pick<Scene, 'node' | 'config'>): StageSeg
   if (!track.length) {
     const plan = slideNodeMotion(scene.node)
     const entries = attrs.directorAuto?.storyboard
-    if (plan && Array.isArray(entries)) track = stageTrackFromStoryboard(entries, motionPlanOffsetsMs(plan).offsets)
+    if (plan && Array.isArray(entries)) {
+      track = stageTrackFromStoryboard(entries, motionPlanOffsetsMs(plan).offsets, plan.steps.map(step => step.motionWindowMs + step.holdMs))
+    }
   }
   if (!track.length) track = fallback
   return stage?.overrides?.length ? mergeStageOverrides(track, sanitizeStageTrack(stage.overrides)) : track

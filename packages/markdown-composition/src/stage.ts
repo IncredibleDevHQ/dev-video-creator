@@ -96,15 +96,23 @@ export const familyForCameraMode = (mode: string, position: string): StageFamily
 
 /** The director's storyboard (entries with beat indices) as a stage track. */
 export const stageTrackFromStoryboard = (
-  entries: Array<{ family?: string; treatment?: string; beats?: number[] }>,
+  entries: Array<{ family?: string; treatment?: string; beats?: number[]; fromEndMs?: number }>,
   beatOffsetsMs: number[],
+  beatDurationsMs: number[] = [],
 ): StageSegment[] => {
   const track: StageSegment[] = []
   entries.forEach(entry => {
     const family = isStageFamily(entry.family) ? entry.family : null
     if (!family || !Array.isArray(entry.beats) || !entry.beats.length) return
     const first = Math.min(...entry.beats)
-    const atMs = beatOffsetsMs[first] ?? 0
+    const last = Math.max(...entry.beats)
+    // An entry can start a little before the end of its beat (the lead-out
+    // into the next scene) instead of at the beat's start.
+    const fromEnd = Number(entry.fromEndMs)
+    const atMs =
+      Number.isFinite(fromEnd) && fromEnd > 0
+        ? Math.max(beatOffsetsMs[first] ?? 0, (beatOffsetsMs[last] ?? 0) + (beatDurationsMs[last] ?? 0) - fromEnd)
+        : beatOffsetsMs[first] ?? 0
     const treatment = entry.treatment === 'overlay' || entry.treatment === 'glow-bed-hero' ? entry.treatment : ''
     track.push({ atMs, family, ...(treatment ? { treatment } : {}) })
   })

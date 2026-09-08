@@ -90,7 +90,8 @@ That is the whole machine.`
     expect(camera.value).toMatchObject({ x: 700, y: 400 })
     // Beat 5: nothing new, camera returns to the page, intent recap.
     expect(b5.actions.find(a => a.op === 'camera')!.implicit).toBe(true)
-    expect(b5.intent).toBe('recap')
+    // The closing line is the outro: beside the page, a transition.
+    expect(b5.intent).toBe('transition')
     // The unnamed caption follows its neighbour (the score) into beat 4, so
     // the beat both counts and reveals — its V1 verb is reveal.
     expect(b4.actions.find(a => a.op === 'reveal')!.targets).toEqual(['note'])

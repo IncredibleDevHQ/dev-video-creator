@@ -9316,6 +9316,11 @@ writeNote.addEventListener('keydown', event => {
     void requestProposal(writeNote.value.trim())
   }
 })
+;($('#se-outro') as HTMLButtonElement).addEventListener('click', () => {
+  void requestProposal(
+    'Keep every existing window exactly as it is, in order. Add one outro window at the very end: a single sentence that closes this scene\'s idea and hands over to the next scene, spoken to camera, naming no new parts (layout "beside", intent "transition").',
+  )
+})
 fitButton.addEventListener('click', () => {
   const target = Number(targetInput.value) || 40
   const note = writeNote.value.trim()
@@ -9451,7 +9456,9 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
   }
   return {
     directorBrief: result.brief,
-    ...(plan ? { stageTrack: stageTrackFromStoryboard(result.storyboard, motionPlanOffsetsMs(plan).offsets) } : {}),
+    ...(plan
+      ? { stageTrack: stageTrackFromStoryboard(result.storyboard, motionPlanOffsetsMs(plan).offsets, plan.steps.map(step => step.motionWindowMs + step.holdMs)) }
+      : {}),
     directorAuto: {
       kind: result.kind,
       arcRole: result.arcRole,

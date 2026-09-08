@@ -708,6 +708,9 @@ const specsFromPlacement = (
         : beat.directions.some(d => d.kind === 'takeover')
           ? 'page'
           : undefined
+    // A closing window that brings nothing new is the outro: you beside the
+    // page while the thought closes (the director cuts to you alone after).
+    const isOutro = index === beats.length - 1 && beats.length > 1 && !entering.length && !layouts[index] && !layoutDirected
     return {
       beat,
       entering,
@@ -720,8 +723,8 @@ const specsFromPlacement = (
       pulses: named('pulse'),
       connects,
       hold: beat.directions.some(direction => direction.kind === 'hold'),
-      layout: layouts[index] || layoutDirected,
-      intent: intents[index],
+      layout: layouts[index] || layoutDirected || (isOutro ? 'beside' : undefined),
+      intent: intents[index] || (isOutro ? 'transition' : undefined),
     }
   })
 }
