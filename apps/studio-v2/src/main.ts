@@ -8021,17 +8021,28 @@ const applyLiveStage = (family: StageFamily | null) => {
       element.removeAttribute('data-stage-variant')
     }
   } else {
-    element.removeAttribute('data-stage-override')
-    element.removeAttribute('data-stage-override-variant')
+    // The plan at this moment, pinned through the override attributes: the
+    // compiled driver honours them, so the live canvas follows the studio's
+    // track (saved plan, live switches, placements) rather than the track
+    // baked in at compile time.
     const scene = scenes.find(item => item.id === selectedNodeId)
     const track = scene ? sceneStageTrack(scene) : []
     const at = stageAt(track, canvasSceneTimeMs())
     if (at) {
+      element.setAttribute('data-stage-override', at.family)
       element.setAttribute('data-stage', at.family)
       if (at.treatment) element.setAttribute('data-stage-treatment', at.treatment)
       else element.removeAttribute('data-stage-treatment')
-      if (at.variant) element.setAttribute('data-stage-variant', at.variant)
-      else element.removeAttribute('data-stage-variant')
+      if (at.variant) {
+        element.setAttribute('data-stage-override-variant', at.variant)
+        element.setAttribute('data-stage-variant', at.variant)
+      } else {
+        element.removeAttribute('data-stage-override-variant')
+        element.removeAttribute('data-stage-variant')
+      }
+    } else {
+      element.removeAttribute('data-stage-override')
+      element.removeAttribute('data-stage-override-variant')
     }
   }
   attachLiveCameraToPlayer()
@@ -8332,19 +8343,19 @@ const renderSceneTimeline = () => {
   if (selectedNodeId) openSlideEditor(selectedNodeId)
 })
 
-// During a take with "Follow director" on, the frame changes at the planned
-// moments — what the viewer will see is what the take records.
+// The frame follows the scene's time: the beat shown while rehearsing, the
+// clock during a take. A fixed frame still takes its placement for the
+// moment; a live switch is already part of the track from its moment on.
 const followPlannedStage = (nowMs: number) => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || !isPageScene(scene)) return
-  const stage = project.blocks[scene.id]?.stage
-  if (stage && stage.follow === false) return
   const planned = stageAt(sceneStageTrack(scene), nowMs)
   const element = stageSceneElement()
   if (!planned || !element) return
   const family = element.getAttribute('data-stage-override') || element.getAttribute('data-stage')
   const variant = element.getAttribute('data-stage-override-variant') || element.getAttribute('data-stage-variant') || ''
-  if (family === planned.family && variant === (planned.variant || '')) return
+  const treatment = element.getAttribute('data-stage-treatment') || ''
+  if (family === planned.family && variant === (planned.variant || '') && treatment === (planned.treatment || '')) return
   applyLiveStage(null)
 }
 
@@ -8414,6 +8425,7 @@ const applyCanvasExplainerStep = () => {
   const label = $('#ex-canvas-step-label') as HTMLElement
   label.textContent = `${step + 1}/${stepCount}`
   label.title = context.steps[step]?.title || ''
+  followPlannedStage(canvasSceneTimeMs())
   syncStageSwitch()
   syncSceneTimelinePlayhead()
   syncExplainerTeleprompter()
