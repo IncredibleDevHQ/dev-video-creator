@@ -1330,6 +1330,7 @@ const updateCanvasRecordingClock = () => {
   canvasRecordingClock.textContent = formatTime(elapsed)
   followPlannedStage(elapsed * 1000)
   syncLiveCameraToStage()
+  window.requestAnimationFrame(() => glideStageTransitions())
   syncSceneTimelinePlayhead()
 }
 
@@ -8056,6 +8057,7 @@ const applyLiveStage = (family: StageFamily | null) => {
   }
   attachLiveCameraToPlayer()
   syncStageSwitch()
+  window.requestAnimationFrame(() => glideStageTransitions())
 }
 
 // Scene time on the canvas: the recording clock during a take, else the
@@ -8391,6 +8393,133 @@ const syncLiveCameraToStage = () => {
   attachLiveCameraToPlayer()
 }
 
+// On the live canvas the composition runtime freezes every CSS transition
+// at its first frame (it samples them by its own clock, which stands still
+// while the canvas is paused), and a transition — even a frozen one —
+// outranks every other declaration. So a stage change would leave the
+// camera and the page locked in their old places. Here the studio takes the
+// glide over: transitions off for the staged elements, and whenever the
+// geometry the stylesheet asks for differs from what is on screen, the
+// elements are eased between the two at the composition's own pace.
+type StageRect = { left: number; top: number; width: number; height: number; opacity: number }
+const STAGE_GLIDE_MS = 620
+const stageGlideEase = (t: number) => {
+  // cubic-bezier(.65,.05,.25,1), solved for x → y
+  const bez = (a: number, b: number, u: number) => 3 * a * (1 - u) * (1 - u) * u + 3 * b * (1 - u) * u * u + u * u * u
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < 20; i += 1) {
+    const mid = (lo + hi) / 2
+    if (bez(0.65, 0.25, mid) < t) lo = mid
+    else hi = mid
+  }
+  return bez(0.05, 1, (lo + hi) / 2)
+}
+const stageGlideState = new WeakMap<HTMLElement, { shown: StageRect; target?: StageRect; frame: number }>()
+const observedStageScenes = new WeakSet<HTMLElement>()
+const STAGE_GEOMETRY_PROPS = ['left', 'top', 'width', 'height', 'opacity'] as const
+
+const stageRectOf = (target: HTMLElement, scene: HTMLElement): StageRect => {
+  const box = target.getBoundingClientRect()
+  const origin = scene.getBoundingClientRect()
+  return {
+    left: box.left - origin.left,
+    top: box.top - origin.top,
+    width: box.width,
+    height: box.height,
+    opacity: Number(target.ownerDocument.defaultView?.getComputedStyle(target).opacity ?? 1),
+  }
+}
+const sameStageRect = (a: StageRect, b: StageRect) =>
+  Math.abs(a.left - b.left) < 0.5 && Math.abs(a.top - b.top) < 0.5 && Math.abs(a.width - b.width) < 0.5 && Math.abs(a.height - b.height) < 0.5 && Math.abs(a.opacity - b.opacity) < 0.01
+
+const glideStageTransitions = () => {
+  const scene = stageSceneElement()
+  if (!scene) return
+  const doc = scene.ownerDocument
+  if (!doc.querySelector('style[data-live-stage]')) {
+    const style = doc.createElement('style')
+    style.setAttribute('data-live-stage', '')
+    style.textContent = '.scene[data-stage] > .camera, .scene[data-stage] > .content { transition: none !important; }'
+    doc.head.append(style)
+  }
+  // Transitions the runtime froze before we arrived would pin the old
+  // values for good (a transition outranks everything): let them go.
+  scene.querySelectorAll<HTMLElement>(':scope > .camera, :scope > .content').forEach(target => {
+    target.getAnimations().forEach(animation => {
+      if ('transitionProperty' in animation) animation.cancel()
+    })
+  })
+  if (!observedStageScenes.has(scene)) {
+    observedStageScenes.add(scene)
+    // Synchronously: the callback runs before the next paint, so the old
+    // geometry is put back before the new one is ever shown.
+    const observer = new MutationObserver(() => glideStageTransitions())
+    observer.observe(scene, { attributes: true, attributeFilter: ['data-stage', 'data-stage-variant', 'data-stage-treatment', 'data-stage-override', 'data-stage-override-variant'] })
+  }
+  scene.querySelectorAll<HTMLElement>(':scope > .camera, :scope > .content').forEach(target => {
+    const state = stageGlideState.get(target)
+    // Where the stylesheet wants it now — measured with our own hand lifted.
+    const inline = STAGE_GEOMETRY_PROPS.map(prop => [prop, target.style.getPropertyValue(prop), target.style.getPropertyPriority(prop)] as const)
+    const ours = target.dataset.stageGlide === 'true'
+    if (ours) STAGE_GEOMETRY_PROPS.forEach(prop => target.style.removeProperty(prop))
+    const wanted = stageRectOf(target, scene)
+    if (!state || !state.shown.width || !wanted.width) {
+      // First sight, or a frame that has not been laid out yet: no glide,
+      // just remember where things are.
+      if (ours) STAGE_GEOMETRY_PROPS.forEach(prop => target.style.removeProperty(prop))
+      if (state) window.cancelAnimationFrame(state.frame)
+      delete target.dataset.stageGlide
+      stageGlideState.set(target, { shown: wanted, frame: 0 })
+      return
+    }
+    if (sameStageRect(state.shown, wanted)) {
+      if (ours) delete target.dataset.stageGlide
+      state.target = undefined
+      return
+    }
+    // Put our hand back where it was; a glide already heading there goes on.
+    if (ours) inline.forEach(([prop, value, priority]) => value && target.style.setProperty(prop, value, priority))
+    if (state.frame && state.target && sameStageRect(state.target, wanted)) return
+    const from = { ...state.shown }
+    window.cancelAnimationFrame(state.frame)
+    const startedAt = performance.now()
+    state.target = wanted
+    target.dataset.stageGlide = 'true'
+    const paint = (at: StageRect) => {
+      target.style.setProperty('left', `${at.left}px`, 'important')
+      target.style.setProperty('top', `${at.top}px`, 'important')
+      target.style.setProperty('width', `${at.width}px`, 'important')
+      target.style.setProperty('height', `${at.height}px`, 'important')
+      target.style.setProperty('opacity', String(at.opacity), 'important')
+      state.shown = at
+    }
+    paint(from)
+    const step = () => {
+      const t = Math.min(1, (performance.now() - startedAt) / STAGE_GLIDE_MS)
+      const k = stageGlideEase(t)
+      const at: StageRect = {
+        left: from.left + (wanted.left - from.left) * k,
+        top: from.top + (wanted.top - from.top) * k,
+        width: from.width + (wanted.width - from.width) * k,
+        height: from.height + (wanted.height - from.height) * k,
+        opacity: from.opacity + (wanted.opacity - from.opacity) * k,
+      }
+      paint(at)
+      if (t < 1) {
+        state.frame = window.requestAnimationFrame(step)
+        return
+      }
+      STAGE_GEOMETRY_PROPS.forEach(prop => target.style.removeProperty(prop))
+      delete target.dataset.stageGlide
+      state.shown = wanted
+      state.target = undefined
+      state.frame = 0
+    }
+    state.frame = window.requestAnimationFrame(step)
+  })
+}
+
 const canvasExplainerContext = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene || !isSteppedKind(sceneVisualKind(scene))) return null
@@ -8459,6 +8588,7 @@ const applyCanvasExplainerStep = () => {
   label.title = context.steps[step]?.title || ''
   followPlannedStage(canvasSceneTimeMs())
   syncLiveCameraToStage()
+  window.requestAnimationFrame(() => glideStageTransitions())
   syncStageSwitch()
   syncSceneTimelinePlayhead()
   syncExplainerTeleprompter()
