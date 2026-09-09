@@ -10522,12 +10522,23 @@ const scriptForNode = (nodeId: string, attrs: Record<string, unknown>) => {
 // What the director wrote, applied to a node: the brief always, the
 // storyboard / cues / role / notes only where the node has none (a
 // handcrafted scene keeps its own; the generated set rides in directorAuto).
+// The director's outputs follow the dialogue and its plan: whenever they
+// change, every one of them is redone — the storyboard, the cues, the
+// notes, the arc role, the stage track and placements. Hand-written
+// staging a scene arrived with (the samples) is kept once as a seed, and
+// the previous state is in Versions.
 const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, plan?: MotionPlanV2 | null) => {
   const has = (key: string) => {
     const value = attrs[key]
     return Array.isArray(value) ? value.length > 0 : Boolean(value)
   }
+  const seed = attrs.directorSeed && typeof attrs.directorSeed === 'object'
+    ? null
+    : (has('storyboard') || has('cues') || has('directorNotes')) && !attrs.directorAuto
+      ? { storyboard: attrs.storyboard, cues: attrs.cues, arcRole: attrs.arcRole, directorNotes: attrs.directorNotes }
+      : null
   return {
+    ...(seed ? { directorSeed: seed } : {}),
     directorBrief: result.brief,
     ...(plan
       ? { stageTrack: stageTrackFromStoryboard(result.storyboard, motionPlanOffsetsMs(plan).offsets, plan.steps.map(step => step.motionWindowMs + step.holdMs)) }
@@ -10544,10 +10555,10 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
       layoutOptions: result.layoutOptions,
     },
     requiredArea: result.requiredArea,
-    ...(has('storyboard') ? {} : { storyboard: result.storyboard }),
-    ...(has('cues') ? {} : { cues: result.cues }),
-    ...(has('arcRole') ? {} : { arcRole: result.arcRole }),
-    ...(has('directorNotes') ? {} : { directorNotes: result.directorNotes }),
+    storyboard: result.storyboard,
+    cues: result.cues,
+    arcRole: result.arcRole,
+    directorNotes: result.directorNotes,
   }
 }
 

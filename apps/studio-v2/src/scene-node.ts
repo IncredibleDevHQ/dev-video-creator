@@ -124,6 +124,7 @@ export const SceneBlock = Node.create({
       directorAuto: { default: null },
       lengthBrief: { default: null },
       versions: { default: [] },
+      directorSeed: { default: null },
       lengthDepth: { default: 'walk' },
       requiredArea: { default: '' },
       // The director's stage track and per-family placements over time.

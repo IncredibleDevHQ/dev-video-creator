@@ -187,6 +187,7 @@ export const SlideBlock = Node.create({
       directorAuto: { default: null },
       lengthBrief: { default: null },
       versions: { default: [] },
+      directorSeed: { default: null },
       lengthDepth: { default: 'walk' },
       requiredArea: { default: '' },
       // The user approved the base page structure; Plan motion (assist)
