@@ -480,17 +480,15 @@
 
     <dialog id="slide-editor-dialog" class="modal slide-editor-modal">
       <div class="modal-heading">
-        <div><span class="eyebrow">Scene studio</span><h2 id="slide-editor-title">Scene</h2></div>
+        <div><span class="eyebrow">Scene studio</span><h2 id="slide-editor-title">Scene</h2><div class="se-meta"><span id="se-saved-state">Saved</span><span class="se-meta-dot">·</span><button type="button" id="se-versions-toggle" class="se-link-quiet" title="Every save of this scene — preview one, or go back to it" aria-haspopup="dialog" aria-expanded="false">Versions</button><span class="se-meta-dot">·</span><button type="button" id="se-canvas" class="se-link-quiet" title="See this scene on the live canvas — closes the studio">Open on the canvas</button></div></div>
         <div id="se-state-chips" class="se-chips-row" aria-label="Scene state" hidden>
           <span id="se-chip-dialogue" class="se-state">no dialogue</span>
           <span id="se-chip-windows" class="se-state" hidden></span>
           <span id="se-chip-motion" class="se-state" hidden></span>
         </div>
         <div class="slide-editor-tools">
-          <button type="button" id="se-versions-toggle" class="button" title="Every saved state of this scene — preview one, or go back to it" aria-haspopup="dialog" aria-expanded="false">Versions</button>
-          <button type="button" id="se-canvas" class="button" title="See this scene on the live canvas — closes the studio">Canvas</button>
-          <button type="button" id="se-approve" class="button" title="Mark the base page structure as approved — Plan motion (assist) needs it">Approve page</button>
-          <button type="button" id="se-save" class="button primary">Save scene</button>
+          <button type="button" id="se-approve" class="button" title="Mark the page structure as approved — the assisted motion planner needs it">Approve page</button>
+          <button type="button" id="se-save" class="button primary" title="Keeps a version — you can always go back">Save scene</button>
         </div>
         <button id="close-slide-editor" class="icon-button" type="button" aria-label="Close">×</button>
       </div>
@@ -507,12 +505,15 @@
             <span id="se-time" class="slide-editor-time"></span>
           </div>
           <div id="se-teleprompter" class="se-teleprompter" hidden><span class="se-teleprompter-index"></span><p></p></div>
-          <div id="se-storyboard" class="se-storyboard"></div>
-          <details id="se-director-brief" class="slide-editor-director" hidden>
-            <summary>Director's brief</summary>
-            <div id="se-director-brief-body" class="slide-editor-director-body"></div>
+          <details id="se-staging" class="se-staging">
+            <summary>How it's staged <span id="se-staging-summary"></span></summary>
+            <div id="se-storyboard" class="se-storyboard"></div>
+            <details id="se-director-brief" class="slide-editor-director" hidden>
+              <summary>Director's brief</summary>
+              <div id="se-director-brief-body" class="slide-editor-director-body"></div>
+            </details>
           </details>
-          <p class="slide-editor-hint"><span id="se-preview-hint">Click a part of the page to add it to the selected window.</span> <label hidden><input type="checkbox" id="se-one-per-click" /> One window per click</label></p>
+          <p class="slide-editor-hint" id="se-hint-line" hidden><span id="se-preview-hint">Click a part of the page to add it to the selected window.</span> <label hidden><input type="checkbox" id="se-one-per-click" /> One window per click</label></p>
         </div>
         <div class="slide-editor-side">
           <div class="se-dialogue-head">
@@ -521,12 +522,17 @@
           </div>
           <!-- First authoring: a plain text box until the dialogue exists -->
           <!-- The length judgement: the director reads the picture before a word is written -->
-          <div id="se-length" class="se-length" hidden>
-          <div id="se-length-k" class="se-length-k">Director's length · from the picture</div>
-          <div class="se-length-big"><strong id="se-length-seconds">≈ 40 s</strong><span id="se-length-meta"></span></div>
-          <p id="se-length-why" class="se-length-why"></p>
-          <div class="se-length-row"><div id="se-length-depth" class="se-segmented" role="group" aria-label="How deep to go"></div><button type="button" id="se-write-first" class="button primary" title="Let the writer draft the dialogue to this budget, with the page in front of it">Write the first draft</button></div>
-          <ol id="se-length-outline" class="se-length-outline"></ol>
+          <!-- What to do next: one primary action per state, its consequence stated -->
+          <div id="se-length" class="se-next" hidden>
+            <div id="se-length-k" class="se-next-k">Next</div>
+            <div id="se-next-title" class="se-next-title">Write the first draft</div>
+            <p id="se-length-why" class="se-next-why"></p>
+            <div class="se-next-row"><button type="button" id="se-write-first" class="button primary">Write it</button><button type="button" id="se-next-save" class="button primary" hidden>Save scene</button><span id="se-next-note" class="se-next-note"></span></div>
+            <details id="se-length-more" class="se-next-more">
+              <summary><span id="se-length-seconds">≈ 40 s</span><span id="se-length-meta"></span></summary>
+              <div id="se-length-depth" class="se-segmented" role="group" aria-label="How deep to go"></div>
+              <ol id="se-length-outline" class="se-length-outline"></ol>
+            </details>
           </div>
           <div id="se-dialogue-empty" class="se-dialogue-empty">
             <textarea id="se-script" rows="8" spellcheck="true" placeholder="What you say over this page, one paragraph per thought. Name the parts of the page as you speak about them — or ask the writer below to draft it with the page in front of it."></textarea>
@@ -546,8 +552,8 @@
             <div class="se-proposal-text"><strong>Proposal</strong><span id="se-proposal-meta"></span></div>
             <div class="se-proposal-actions">
               <button type="button" id="se-proposal-preview" class="button" title="Switch the list and the preview between the proposal and the current dialogue">Show current</button>
-              <button type="button" id="se-proposal-discard" class="button">Discard</button>
-              <button type="button" id="se-proposal-accept" class="button primary">Accept</button>
+              <button type="button" id="se-proposal-discard" class="button" title="Keeps the current dialogue">Discard</button>
+              <button type="button" id="se-proposal-accept" class="button primary" title="Replaces the current dialogue — the old one stays in Versions once you save">Accept</button>
             </div>
           </div>
           <!-- The dialogue as windows, each with its motion -->
@@ -558,9 +564,10 @@
           <div class="se-writer">
             <div id="se-length-line" class="se-length-line" hidden><span id="se-length-line-text"></span><button type="button" id="se-length-rewrite" class="se-opt-button">Rewrite to the brief</button></div>
             <div class="se-writer-row">
-              <input id="se-write-note" type="text" placeholder="Ask the writer — “tighter”, “open on the formula”, “make Q, K, V the story”…" />
-              <button type="button" id="se-write" class="button primary" title="Rewrite the dialogue with the page in front of the writer">Rewrite</button>
+              <input id="se-write-note" type="text" placeholder="Ask the writer for a change — “tighter”, “open on the formula”, “make Q, K, V the story”" />
+              <button type="button" id="se-write" class="button primary" title="You get a proposal to accept or discard — nothing changes until you accept">Ask</button>
             </div>
+            <details class="se-writer-more"><summary>Length, pace and windows</summary>
             <div class="se-writer-settings">
               <label class="se-opt" title="How long the dialogue should run"><span>Length</span><input id="se-target" type="number" min="8" max="240" step="5" value="40" /><em>s</em></label>
               <button type="button" id="se-fit" class="se-opt-button" title="Ask the writer to fit the dialogue to this length">Fit</button>
@@ -570,7 +577,7 @@
               <label class="se-opt" title="How finely the motion follows the dialogue"><span>Windows</span><select id="se-granularity"><option value="paragraph">paragraph</option><option value="sentence" selected>sentence</option><option value="clause">clause</option></select></label>
               <span id="se-pace-label" hidden></span>
               <details class="se-advanced">
-                <summary>More</summary>
+                <summary>Advanced planning</summary>
                 <div class="slide-editor-prompt">
                   <textarea id="se-prompt" rows="2" placeholder="Tell it how the page should build — e.g. “start with the encoder, trace each residual path, keep the callouts for the end”"></textarea>
                   <div class="slide-editor-prompt-actions">
@@ -598,6 +605,7 @@
                 </div>
               </details>
             </div>
+            </details>
           </div>
           <div class="se-side-foot"><span id="se-status" class="settings-status" aria-live="polite"></span></div>
         </div>

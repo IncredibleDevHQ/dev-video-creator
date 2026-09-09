@@ -9650,9 +9650,31 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
   ].filter(Boolean).join('\n')
   row.append(meta)
   if (options.editable) {
+    // One line about the staging, with the way in to change it.
+    const summary = document.createElement('div')
+    summary.className = 'se-window-summary'
+    summary.hidden = !(index === state.current && !state.openDrawers.has(index))
+    const heroLabel = window.hero ? unitOf(state, window.hero)?.label : ''
+    const staging = [
+      heroLabel ? `★ ${heroLabel}${window.parts.length > 1 ? ` +${window.parts.length - 1}` : ''}` : window.parts.length ? `${window.parts.length} parts` : '',
+      window.camera?.length ? 'camera moves in' : 'camera stays',
+      window.layout === 'me' ? 'you alone' : window.layout === 'beside' ? 'you beside the page' : 'page owns the frame',
+    ].filter(Boolean)
+    summary.append(staging.join(' · '))
+    const adjust = document.createElement('button')
+    adjust.type = 'button'
+    adjust.textContent = 'Adjust'
+    adjust.title = 'Change which parts this line is about, the camera, and where you are'
+    adjust.addEventListener('click', event => {
+      event.stopPropagation()
+      state.openDrawers.add(index)
+      syncWindowDetails()
+    })
+    summary.append(adjust)
+    row.append(summary)
     const details = document.createElement('div')
     details.className = 'se-window-details'
-    details.hidden = !(index === state.current || state.openDrawers.has(index))
+    details.hidden = !state.openDrawers.has(index)
     const chips = document.createElement('div')
     chips.className = 'se-window-parts'
     window.parts.forEach(id => {
@@ -9730,15 +9752,22 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
   return row
 }
 
-// The selected window shows its details (parts, camera, presenter); the
-// others read as plain paragraphs.
+// The selected window shows a one-line summary of its staging with an
+// "Adjust" link; the details open only when asked. Others read as
+// paragraphs. The page hint shows only while details are open.
 const syncWindowDetails = () => {
   const state = slideEditor
   if (!state) return
+  let anyOpen = false
   windowsList.querySelectorAll<HTMLElement>(':scope > .se-window').forEach((row, index) => {
     const details = row.querySelector<HTMLElement>('.se-window-details')
-    if (details) details.hidden = !(index === state.current || state.openDrawers.has(index))
+    const summary = row.querySelector<HTMLElement>('.se-window-summary')
+    const open = state.openDrawers.has(index)
+    if (details) details.hidden = !open
+    if (summary) summary.hidden = !(index === state.current && !open)
+    if (open) anyOpen = true
   })
+  ;($('#se-hint-line') as HTMLElement).hidden = !anyOpen
 }
 
 const selectWindow = (index: number) => {
@@ -9793,15 +9822,62 @@ const renderLengthBrief = () => {
   const hasDraft = state.windows.length > 0 || Boolean(state.script.trim())
   const spoken = hasDraft ? dialogueSeconds(state) : 0
   const verdict = briefVerdict(brief, spoken)
-  // The card shows before a draft exists, and again over a draft that was
-  // kept short — with the rewrite as its action.
-  const showCard = !hasDraft || verdict === 'thin'
-  lengthCard.hidden = !showCard
-  lengthCard.classList.toggle('is-thin', hasDraft && verdict === 'thin')
-  if (showCard) {
-    ;($('#se-length-seconds') as HTMLElement).textContent = `≈ ${Math.round(brief.seconds)} s`
-    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words · ${brief.range[0]}–${brief.range[1]} s`
-    ;($('#se-length-why') as HTMLElement).textContent = `${brief.why.charAt(0).toUpperCase()}${brief.why.slice(1)}.`
+  // The card is always there: it says what to do next, and what that does.
+  const proposalOpen = Boolean(state.proposal)
+  const showCard = true
+  lengthCard.hidden = false
+  lengthCard.classList.toggle('is-thin', hasDraft && verdict === 'thin' && !proposalOpen)
+  lengthCard.classList.toggle('is-quiet', hasDraft && verdict !== 'thin' && !proposalOpen && !state.dirty)
+  const nextTitle = $('#se-next-title') as HTMLElement
+  const nextNote = $('#se-next-note') as HTMLElement
+  const writeButton = $('#se-write-first') as HTMLButtonElement
+  const nextSave = $('#se-next-save') as HTMLButtonElement
+  const more = $('#se-length-more') as HTMLDetailsElement
+  const reasons = brief.reasons.join(', ')
+  if (proposalOpen) {
+    nextTitle.textContent = state.proposal?.version ? 'Restore this version, or keep the current one' : 'Accept the proposal, or discard it'
+    ;($('#se-length-why') as HTMLElement).textContent = state.proposal?.version
+      ? 'It is playing on the left. Restore brings it back as a new version; Discard keeps what you have.'
+      : 'It is playing on the left. Accept replaces the current dialogue; the old one stays in Versions once you save. Discard keeps what you have.'
+    writeButton.hidden = true
+    nextSave.hidden = true
+    nextNote.textContent = ''
+    more.hidden = true
+  } else if (!hasDraft) {
+    nextTitle.textContent = 'Write the first draft'
+    ;($('#se-length-why') as HTMLElement).textContent = `The page deserves ≈ ${Math.round(brief.seconds)} s (${reasons}). The writer drafts it with the page in front of it, or type your own in the box below.`
+    writeButton.hidden = false
+    writeButton.textContent = `Write it · ${Math.round(brief.seconds)} s`
+    nextSave.hidden = true
+    nextNote.textContent = 'You get a proposal to accept or discard — nothing changes until you accept.'
+    more.hidden = false
+  } else if (verdict === 'thin') {
+    nextTitle.textContent = 'Write a fuller draft'
+    ;($('#se-length-why') as HTMLElement).textContent = `This draft runs ${Math.round(spoken)} s; the page deserves ≈ ${Math.round(brief.seconds)} s (${reasons}).`
+    writeButton.hidden = false
+    writeButton.textContent = `Rewrite · ${Math.round(brief.seconds)} s`
+    nextSave.hidden = true
+    nextNote.textContent = 'You get a proposal to accept or discard — the current lines stay until you accept.'
+    more.hidden = false
+  } else if (state.dirty) {
+    nextTitle.textContent = 'Save the scene'
+    ;($('#se-length-why') as HTMLElement).textContent = `${state.windows.length} windows · ${Math.round(spoken)} s. Your changes are not saved yet.`
+    writeButton.hidden = true
+    nextSave.hidden = false
+    nextNote.textContent = 'Saving keeps a version — you can always go back.'
+    more.hidden = true
+  } else {
+    nextTitle.textContent = 'Review it, then record'
+    ;($('#se-length-why') as HTMLElement).textContent = `${state.windows.length} windows · ${Math.round(spoken)} s — the motion follows these lines. Play it on the left; click a line to change its words; ask the writer below for a change.`
+    writeButton.hidden = true
+    nextSave.hidden = true
+    nextNote.textContent = ''
+    more.hidden = true
+  }
+  ;($('#se-length-k') as HTMLElement).textContent = 'Next'
+  if (showCard && !more.hidden) {
+    ;($('#se-length-seconds') as HTMLElement).textContent = `${DEPTH_LABELS[state.depth]} · ≈ ${Math.round(brief.seconds)} s`
+    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words · change the depth or see the walk`
     const depthBox = $('#se-length-depth') as HTMLElement
     depthBox.replaceChildren(
       ...LENGTH_DEPTHS.map(depth => {
@@ -9821,12 +9897,8 @@ const renderLengthBrief = () => {
         return button
       }),
     )
-    ;($('#se-write-first') as HTMLButtonElement).textContent = hasDraft ? `Rewrite to the brief · ${Math.round(brief.seconds)} s` : `Write the first draft · ${Math.round(brief.seconds)} s`
-    ;($('#se-length-k') as HTMLElement).textContent = hasDraft
-      ? `Kept short · this draft runs ${Math.round(spoken)} s, the page deserves ≈ ${Math.round(brief.seconds)} s`
-      : "Director's length · from the picture"
     const outline = $('#se-length-outline') as HTMLElement
-    outline.hidden = hasDraft
+    outline.hidden = false
     outline.replaceChildren(
       ...brief.outline.map((stretch, index) => {
         const item = document.createElement('li')
@@ -9853,8 +9925,9 @@ const renderLengthBrief = () => {
     )
     if (Math.abs(Number(targetInput.value) - brief.seconds) > 0.5 && !Number(targetInput.value)) targetInput.value = String(brief.seconds)
   }
-  // With a draft that fits or runs long: one line says how it measures.
-  lengthLine.hidden = !hasDraft || verdict === 'none' || showCard
+  // The card says it all now; the old line stays hidden.
+  lengthLine.hidden = true
+  void verdict
   lengthLine.classList.toggle('is-thin', verdict === 'thin')
   ;($('#se-length-line-text') as HTMLElement).innerHTML =
     verdict === 'thin'
@@ -9872,6 +9945,7 @@ const renderLengthBrief = () => {
   const hasDraft = state.windows.length > 0 || Boolean(state.script.trim())
   void requestProposal(hasDraft ? `match the director's length — cover every part it walks, in its order` : '')
 })
+;($('#se-next-save') as HTMLButtonElement).addEventListener('click', () => saveButton.click())
 ;($('#se-length-rewrite') as HTMLButtonElement).addEventListener('click', () => {
   const state = slideEditor
   if (!state?.brief) return
@@ -9900,6 +9974,9 @@ const markDirty = (dirty: boolean) => {
   if (!state) return
   state.dirty = dirty
   saveButton.textContent = dirty ? 'Save scene •' : 'Save scene'
+  const savedState = document.getElementById('se-saved-state')
+  if (savedState) savedState.textContent = dirty ? 'Unsaved changes' : 'Saved'
+  renderLengthBrief()
   saveButton.title = dirty ? 'Unsaved changes' : ''
 }
 
@@ -10169,6 +10246,7 @@ const renderProposal = () => {
   }
   proposalPreviewButton.textContent = viewing ? 'Show current' : 'Show proposal'
   proposalAcceptButton.textContent = state.proposal.version ? 'Restore' : 'Accept'
+  renderLengthBrief()
 }
 
 writeButton.addEventListener('click', () => void requestProposal(writeNote.value.trim()))
@@ -10891,6 +10969,8 @@ const syncApproveButton = () => {
   const approved = Boolean(findSlideLikeNode(state.nodeId)?.attrs.structureApproved)
   approveButton.classList.toggle('is-approved', approved)
   approveButton.textContent = approved ? '✓ Page approved' : 'Approve page'
+  // A gate, not a routine action: shown only while it is still to do.
+  approveButton.hidden = approved
 }
 
 approveButton.addEventListener('click', () => {
