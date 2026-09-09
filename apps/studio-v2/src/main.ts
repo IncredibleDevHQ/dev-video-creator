@@ -9417,7 +9417,7 @@ const renderLineStage = () => {
   const savedOptions = (found?.attrs.directorAuto as { layoutOptions?: LayoutOptionAttr[][] } | undefined)?.layoutOptions
   const options = state.director?.layoutOptions?.[state.current] || savedOptions?.[state.current] || []
   const reason = options.find(option => option.family === family)?.why || options[0]?.why || ''
-  lineStageText.innerHTML = `<strong>Line ${state.current + 1} of ${windows.length}</strong> · ${STAGE_LABELS[family]}${segment?.variant ? ` (${variantLabel(segment.variant)})` : ''}${wish ? ' — your choice' : reason ? ` — <em>chosen because ${reason}</em>` : ' — chosen for you'}`
+  lineStageText.innerHTML = `<strong>Line ${state.current + 1} of ${windows.length}</strong> · ${STAGE_LABELS[family]}${segment?.variant ? ` (${variantLabel(segment.variant)})` : ''} · <em>${wish ? 'your choice' : `Auto${reason ? ` — ${reason}` : ''}`}</em>`
   lineStageBox.querySelectorAll<HTMLButtonElement>('[data-line-layout]').forEach(button => {
     const layout = button.dataset.lineLayout || ''
     button.classList.toggle('is-active', layout ? wish === layout : !wish)
