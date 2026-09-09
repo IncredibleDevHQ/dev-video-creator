@@ -1982,3 +1982,14 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .se-line-stage { width: var(--frame-w); margin: 0 auto; }
 .se-teleprompter { width: var(--frame-w); margin: 0 auto; box-sizing: border-box; }
 .se-strip .scene-timeline-beat { cursor: pointer; }
+/* How it's staged: cards drawn from the frame's own geometry */
+.se-storyboard { display: flex; flex-wrap: wrap; gap: 8px; overflow: visible; }
+.se-storyboard .se-board { display: grid; gap: 4px; width: 150px; padding: 6px; border: 1px solid #e4e4e7; border-radius: 10px; background: white; text-align: left; cursor: pointer; }
+.se-storyboard .se-board:hover { border-color: #a1a1aa; }
+.se-storyboard .se-board .stage-glyph { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 6px; background: #e4e4e7; box-shadow: inset 0 0 0 1px #d4d4d8; }
+.se-storyboard .se-board .stage-glyph .stage-glyph-page { border-color: #52525b; background: rgba(0,0,0,.06); }
+.se-storyboard .se-board .stage-glyph .stage-glyph-you { background: #16a34a; }
+.se-storyboard .se-board strong { font: 700 10.5px/1.2 system-ui; color: #18181b; }
+.se-storyboard .se-board small { font: 500 9.5px/1.3 system-ui; color: #71717a; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.se-line-stage-text em { font-style: normal; color: #52525b; }
+.se-transport .se-step-button { width: 28px; height: 28px; }

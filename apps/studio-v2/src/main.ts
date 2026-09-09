@@ -96,7 +96,6 @@ import {
 import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt } from './placements'
-import { storyboardMockUrl } from './scene-node'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -9412,9 +9411,13 @@ const renderLineStage = () => {
   const family = segment?.family || 'content-pip'
   const group = family === 'content-full' ? 'page' : family === 'speaker-full' ? 'me' : 'beside'
   // Only the author's own press counts as set; the writer's suggestion is
-  // the director's to weigh, so Director is the resting state.
+  // the director's to weigh, so Auto is the resting state — and it says why.
   const wish = window.layoutByAuthor ? window.layout || '' : ''
-  lineStageText.innerHTML = `<strong>Line ${state.current + 1}:</strong> ${STAGE_LABELS[family]}${segment?.variant ? ` (${variantLabel(segment.variant)})` : ''} — ${wish ? 'your choice for this line' : "the director's pick"}`
+  const found = findSlideLikeNode(state.nodeId)
+  const savedOptions = (found?.attrs.directorAuto as { layoutOptions?: LayoutOptionAttr[][] } | undefined)?.layoutOptions
+  const options = state.director?.layoutOptions?.[state.current] || savedOptions?.[state.current] || []
+  const reason = options.find(option => option.family === family)?.why || options[0]?.why || ''
+  lineStageText.innerHTML = `<strong>Line ${state.current + 1} of ${windows.length}</strong> · ${STAGE_LABELS[family]}${segment?.variant ? ` (${variantLabel(segment.variant)})` : ''}${wish ? ' — your choice' : reason ? ` — <em>chosen because ${reason}</em>` : ' — chosen for you'}`
   lineStageBox.querySelectorAll<HTMLButtonElement>('[data-line-layout]').forEach(button => {
     const layout = button.dataset.lineLayout || ''
     button.classList.toggle('is-active', layout ? wish === layout : !wish)
@@ -10704,22 +10707,36 @@ paceInput.addEventListener('change', () => {
 })
 
 // ——— storyboard ———
-const renderStoryboard = () => {
-  const state = slideEditor
+// One card per stretch of the frame plan, drawn from the same geometry as
+// the frame above — so what is shown here is what plays there.
+const renderStoryboardEntries = (entries: DirectorResult['storyboard']) => {
   storyboardBox.replaceChildren()
-  if (!state?.director) return
-  state.director.storyboard.forEach(entry => {
-    const cell = document.createElement('div')
+  entries.forEach(entry => {
+    const cell = document.createElement('button')
+    cell.type = 'button'
     cell.className = 'se-board'
-    cell.title = entry.note
-    const img = document.createElement('img')
-    img.src = storyboardMockUrl({ family: entry.family, treatment: entry.treatment || '' })
-    img.alt = entry.family
-    const label = document.createElement('span')
-    label.textContent = `${entry.label} · ${STAGE_LABELS[entry.family as StageFamily] || entry.family}${entry.treatment ? ` / ${entry.treatment}` : ''}`
-    cell.append(img, label)
+    const first = Math.min(...entry.beats)
+    const last = Math.max(...entry.beats)
+    const range = entry.fromEndMs ? `End of line ${last + 1}` : first === last ? `Line ${first + 1}` : `Lines ${first + 1}–${last + 1}`
+    cell.title = `${range} · ${STAGE_LABELS[entry.family as StageFamily] || entry.family}${entry.why ? ` — ${entry.why}` : ''}\n${entry.note}`
+    const glyph = stageGlyph(entry.family as StageFamily, entry.variant, entry.treatment)
+    const head = document.createElement('strong')
+    head.textContent = `${range} · ${STAGE_LABELS[entry.family as StageFamily] || entry.family}`
+    const why = document.createElement('small')
+    why.textContent = entry.why || entry.label
+    cell.append(glyph, head, why)
+    cell.addEventListener('click', () => selectWindow(Math.max(0, first)))
     storyboardBox.append(cell)
   })
+}
+
+const renderStoryboard = () => {
+  const state = slideEditor
+  if (!state?.director) {
+    storyboardBox.replaceChildren()
+    return
+  }
+  renderStoryboardEntries(state.director.storyboard)
 }
 
 // "Plan from dialogue" (advanced): the words alone, ignoring pinned parts.
@@ -11034,18 +11051,7 @@ const openSlideEditor = (nodeId: string) => {
       renderSlideEditorSteps()
       const saved = found.attrs.directorAuto as { storyboard?: DirectorResult['storyboard'] } | null
       if (saved?.storyboard) {
-        saved.storyboard.forEach(entry => {
-          const cell = document.createElement('div')
-          cell.className = 'se-board'
-          cell.title = entry.note
-          const img = document.createElement('img')
-          img.src = storyboardMockUrl({ family: entry.family, treatment: entry.treatment || '' })
-          img.alt = entry.family
-          const label = document.createElement('span')
-          label.textContent = `${entry.label} · ${STAGE_LABELS[entry.family as StageFamily] || entry.family}`
-          cell.append(img, label)
-          storyboardBox.append(cell)
-        })
+        renderStoryboardEntries(saved.storyboard)
       }
     }
     setSlideEditorStatus('')
