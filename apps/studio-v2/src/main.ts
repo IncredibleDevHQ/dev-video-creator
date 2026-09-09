@@ -62,6 +62,7 @@ import {
   stageAt,
   stageGeometryFor,
   stageTrackFromStoryboard,
+  sanitizeStageTrack,
   variantLabel,
   motionPlanOffsetsMs,
   speechMs,
@@ -9267,7 +9268,193 @@ const renderSlideEditorPreview = () => {
       console.warn('motion preview failed', error)
     }
   }
+  renderStudioScene()
 }
+
+// ——— The studio's scene: the frame, the strip, the line's place ———
+// The studio shows the scene as the viewer sees it — you and the page,
+// placed as the director decided for the line on screen — with the same
+// strip as the canvas under it, so editing a line and seeing where it
+// lands in the scene are one view.
+const studioFrame = $('#se-frame') as HTMLElement
+const studioFrameContent = $('#se-frame-content') as HTMLElement
+const studioFrameCamera = $('#se-frame-camera') as HTMLElement
+const studioStripBeats = $('#se-strip-beats') as HTMLElement
+const studioStripPlayhead = $('#se-strip-playhead') as HTMLElement
+const lineStageBox = $('#se-line-stage') as HTMLElement
+const lineStageText = $('#se-line-stage-text') as HTMLElement
+
+// The scene's frame plan as the studio knows it right now: the director's
+// storyboard for the current plan, or the block's fixed frame.
+const studioStageTrack = (state: SlideEditorState): StageSegment[] => {
+  const plan = state.previewPlan || state.motion
+  if (!plan) return []
+  const block = project.blocks[state.nodeId]?.stage
+  if (block && block.follow === false && isStageFamily(block.override)) return [{ atMs: 0, family: block.override }]
+  const { offsets } = motionPlanOffsetsMs(plan)
+  const durations = plan.steps.map(step => step.motionWindowMs + step.holdMs)
+  // Until the studio has re-planned, the scene's saved plan is the truth.
+  if (!state.director && !state.previewPlan) {
+    const found = findSlideLikeNode(state.nodeId)
+    const saved = sanitizeStageTrack(found?.attrs.stageTrack)
+    if (saved.length) return saved
+    const auto = found?.attrs.directorAuto as { storyboard?: Array<{ family?: string; treatment?: string; beats?: number[]; variant?: string; fromEndMs?: number }> } | undefined
+    if (Array.isArray(auto?.storyboard)) {
+      const fromAuto = stageTrackFromStoryboard(auto!.storyboard!, offsets, durations)
+      if (fromAuto.length) return fromAuto
+    }
+  }
+  const storyboard = state.previewPlan ? [] : state.director?.storyboard || []
+  const track = stageTrackFromStoryboard(storyboard, offsets, durations)
+  return track.length ? track : [{ atMs: 0, family: 'content-pip' }]
+}
+
+const applyStudioStage = (timeMs: number) => {
+  const state = slideEditor
+  if (!state) return
+  const segment = stageAt(studioStageTrack(state), timeMs)
+  const family: StageFamily = segment?.family || 'content-pip'
+  const geometry = stageGeometryFor(family, segment?.variant)
+  const content = family === 'speaker-full' ? (segment?.treatment === 'board' ? STAGE_BOARD_CONTENT : segment?.treatment === 'overlay' ? STAGE_OVERLAY_CONTENT : null) : geometry.content
+  studioFrame.dataset.stage = family
+  if (segment?.treatment) studioFrame.dataset.stageTreatment = segment.treatment
+  else delete studioFrame.dataset.stageTreatment
+  const rect = (element: HTMLElement, box: { left: number; top: number; width: number; height: number } | null) => {
+    if (!box) return
+    element.style.left = `${box.left}%`
+    element.style.top = `${box.top}%`
+    element.style.width = `${box.width}%`
+    element.style.height = `${box.height}%`
+  }
+  rect(studioFrameContent, content || geometry.content || { left: 4.7, top: 5, width: 90.6, height: 90 })
+  rect(studioFrameCamera, geometry.camera || { left: 80, top: 64.5, width: 16, height: 28.4 })
+  studioFrameCamera.className = `se-frame-camera shape-${geometry.cameraShape}`
+  studioFrameContent.classList.toggle('is-board', segment?.treatment === 'board')
+  studioFrameContent.classList.toggle('is-card', family === 'speaker-lead')
+  const presenter = studioFrameCamera.querySelector('img')
+  if (presenter && presenter.getAttribute('src') !== selectedPreviewPresenter().url) presenter.src = selectedPreviewPresenter().url
+}
+
+const studioBeatModel = (state: SlideEditorState) => {
+  const plan = state.previewPlan || state.motion
+  if (!plan) return null
+  const { offsets, durationMs } = motionPlanOffsetsMs(plan)
+  const windows = previewWindows(state)
+  const beats = plan.steps.map((step, index) => ({ title: step.title || windows[index]?.title || `Line ${index + 1}`, line: windows[index]?.say || step.explanation, atMs: offsets[index], durationMs: step.motionWindowMs + step.holdMs }))
+  return { beats, frames: studioStageTrack(state), durationMs: Math.max(1, durationMs) }
+}
+
+const renderStudioStrip = () => {
+  const state = slideEditor
+  const model = state ? studioBeatModel(state) : null
+  if (!state || !model) {
+    studioStripBeats.replaceChildren()
+    ;($('#se-strip') as HTMLElement).hidden = true
+    return
+  }
+  ;($('#se-strip') as HTMLElement).hidden = false
+  const percent = (ms: number) => Math.max(0, Math.min(100, (ms / model.durationMs) * 100))
+  const frames = model.frames
+  const frameAt = (ms: number) => stageAt(frames, ms) || frames[0]
+  studioStripBeats.replaceChildren(
+    ...model.beats.map((beat, index) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      const first = frameAt(beat.atMs)
+      button.className = `scene-timeline-beat ${stageGroupFor(first.family)}`
+      button.style.left = `${percent(beat.atMs)}%`
+      button.style.width = `${percent(beat.durationMs)}%`
+      button.title = `${index + 1} · ${beat.title}\n${beat.line}\n${STAGE_LABELS[first.family]}`
+      const number = document.createElement('b')
+      number.textContent = String(index + 1)
+      button.append(number)
+      const previous = index ? frameAt(model.beats[index - 1].atMs) : null
+      if (!previous || previous.family !== first.family) {
+        const label = document.createElement('span')
+        label.textContent = STAGE_LABELS[first.family]
+        button.append(label)
+      }
+      button.addEventListener('click', () => selectWindow(index))
+      return button
+    }),
+  )
+  syncStudioPlayhead()
+}
+
+const syncStudioPlayhead = (timeMs?: number) => {
+  const state = slideEditor
+  const model = state ? studioBeatModel(state) : null
+  if (!state || !model) return
+  const at = typeof timeMs === 'number' ? timeMs : model.beats[Math.min(state.current, model.beats.length - 1)]?.atMs || 0
+  studioStripPlayhead.style.left = `${Math.min(100, (at / model.durationMs) * 100)}%`
+  studioStripBeats.querySelectorAll<HTMLElement>('.scene-timeline-beat').forEach((element, index) => {
+    element.classList.toggle('is-active', index === state.current)
+    element.classList.toggle('is-done', index < state.current)
+  })
+  ;($('#se-step-label') as HTMLElement).textContent = `${Math.min(state.current + 1, model.beats.length)}/${model.beats.length}`
+  ;($('#se-prev') as HTMLButtonElement).disabled = state.current <= 0
+  ;($('#se-next') as HTMLButtonElement).disabled = state.current >= model.beats.length - 1
+}
+
+// The line's place: the three pictures, the director's pick marked, the
+// author's wish active.
+const renderLineStage = () => {
+  const state = slideEditor
+  const windows = state ? previewWindows(state) : []
+  const window = windows[state?.current || 0]
+  if (!state || !window || state.previewPlan) {
+    lineStageBox.hidden = true
+    return
+  }
+  lineStageBox.hidden = false
+  const model = studioBeatModel(state)
+  const segment = model ? stageAt(model.frames, model.beats[state.current]?.atMs || 0) : null
+  const family = segment?.family || 'content-pip'
+  const group = family === 'content-full' ? 'page' : family === 'speaker-full' ? 'me' : 'beside'
+  const wish = window.layout || ''
+  lineStageText.innerHTML = `<strong>Line ${state.current + 1}:</strong> ${STAGE_LABELS[family]}${segment?.variant ? ` (${variantLabel(segment.variant)})` : ''} — ${wish ? 'set for this line' : "the director's pick"}`
+  lineStageBox.querySelectorAll<HTMLButtonElement>('[data-line-layout]').forEach(button => {
+    const layout = button.dataset.lineLayout || ''
+    button.classList.toggle('is-active', layout ? wish === layout : !wish)
+    button.classList.toggle('is-director', !layout ? false : layout === group && !wish)
+    const slot = button.querySelector<HTMLElement>('.stage-glyph-slot')
+    if (slot) {
+      const glyphFamily: StageFamily = layout === 'page' ? 'content-full' : layout === 'me' ? 'speaker-full' : group === 'beside' ? family : 'speaker-panel'
+      slot.replaceChildren(stageGlyph(glyphFamily, segment?.variant))
+    }
+  })
+}
+
+const renderStudioScene = () => {
+  const state = slideEditor
+  if (!state) return
+  renderStudioStrip()
+  renderLineStage()
+  const model = studioBeatModel(state)
+  applyStudioStage(model?.beats[Math.min(state.current, (model?.beats.length || 1) - 1)]?.atMs || 0)
+}
+
+lineStageBox.querySelectorAll<HTMLButtonElement>('[data-line-layout]').forEach(button => {
+  button.addEventListener('click', () => {
+    const state = slideEditor
+    if (!state) return
+    const window = state.windows[state.current]
+    if (!window) return
+    const layout = button.dataset.lineLayout || ''
+    if (layout) window.layout = layout as WindowLayout
+    else delete window.layout
+    state.lastChange = 'Changed where you are on a line'
+    replan({ quiet: true, rerender: true })
+  })
+})
+;($('#se-prev') as HTMLButtonElement).addEventListener('click', () => {
+  const state = slideEditor
+  if (state) selectWindow(Math.max(0, state.current - 1))
+})
+;($('#se-next') as HTMLButtonElement).addEventListener('click', () => {
+  const state = slideEditor
+  if (state) selectWindow(Math.min(previewWindows(state).length - 1, state.current + 1))
+})
 
 // ——— Scene studio: the dialogue and its motion, side by side ———
 // The dialogue lives as windows of attention (what is said, which parts it
@@ -9472,11 +9659,14 @@ const playSlide = (fromMs = 0) => {
     const t = fromMs + (now - startedAt)
     driver.draw(t)
     syncSlideScrub(t)
+    applyStudioStage(t)
+    syncStudioPlayhead(t)
     const beat = beatAtTime(current, t)
     if (beat !== current.current) {
       current.current = beat
       renderTeleprompter()
       markPlayingWindow()
+      renderLineStage()
     }
     if (t >= driver.durationMs) {
       stopSlidePlayback()
@@ -9511,11 +9701,14 @@ scrubInput.addEventListener('input', () => {
   const t = (Number(scrubInput.value) / 1000) * state.driver.durationMs
   state.driver.draw(t)
   timeLabel.textContent = `${formatSeconds(t)} / ${formatSeconds(state.driver.durationMs)}`
+  applyStudioStage(t)
+  syncStudioPlayhead(t)
   const beat = beatAtTime(state, t)
   if (beat !== state.current) {
     state.current = beat
     renderTeleprompter()
     markPlayingWindow()
+    renderLineStage()
   }
 })
 
@@ -9784,6 +9977,9 @@ const selectWindow = (index: number) => {
     syncSlideScrub(state.driver.offsets[index] + (state.motion?.steps[index]?.motionWindowMs || 0))
   }
   highlightWindowParts()
+  renderLineStage()
+  applyStudioStage(state.driver?.offsets[index] || 0)
+  syncStudioPlayhead()
 }
 
 const highlightWindowParts = () => {

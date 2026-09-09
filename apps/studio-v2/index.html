@@ -498,11 +498,29 @@
       </div>
       <div class="slide-editor-body">
         <div class="slide-editor-stage">
-          <div id="slide-editor-preview" class="slide-editor-preview"></div>
+          <!-- The frame as the viewer sees it: you and the page, placed as the director decided for this line -->
+          <div id="se-frame" class="se-frame" data-stage="content-full">
+            <div id="se-frame-content" class="se-frame-content"><div id="slide-editor-preview" class="slide-editor-preview"></div></div>
+            <div id="se-frame-camera" class="se-frame-camera"><img id="se-frame-presenter" alt="" /></div>
+          </div>
+          <!-- Where you are in the scene: the beats, coloured by who owns the frame -->
+          <div id="se-strip" class="se-strip"><div id="se-strip-beats" class="se-strip-beats" role="list"></div><div id="se-strip-playhead" class="se-strip-playhead" aria-hidden="true"></div></div>
           <div class="se-transport">
+            <button type="button" id="se-prev" class="se-step-button" title="Previous line" aria-label="Previous line">←</button>
+            <span id="se-step-label" class="se-step-label">1/1</span>
+            <button type="button" id="se-next" class="se-step-button" title="Next line" aria-label="Next line">→</button>
             <button type="button" id="se-play" class="button primary" title="Play the planned motion">▶ Play</button>
             <input id="se-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub the motion" />
             <span id="se-time" class="slide-editor-time"></span>
+          </div>
+          <div id="se-line-stage" class="se-line-stage" hidden>
+            <span id="se-line-stage-text" class="se-line-stage-text"></span>
+            <div class="se-line-stage-buttons" role="group" aria-label="Who owns the frame on this line">
+              <button type="button" data-line-layout="page" title="The page owns the frame on this line"><span class="stage-glyph-slot"></span>Page</button>
+              <button type="button" data-line-layout="beside" title="You share the frame with the page on this line"><span class="stage-glyph-slot"></span>Both</button>
+              <button type="button" data-line-layout="me" title="You alone on this line — the page waits"><span class="stage-glyph-slot"></span>You</button>
+              <button type="button" data-line-layout="" title="Let the director decide for this line">Director</button>
+            </div>
           </div>
           <div id="se-teleprompter" class="se-teleprompter" hidden><span class="se-teleprompter-index"></span><p></p></div>
           <details id="se-staging" class="se-staging">
