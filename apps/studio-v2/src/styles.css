@@ -1862,3 +1862,21 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .slide-editor-preview .se-hit.budget-skip { stroke: rgba(161,161,170,.5); stroke-dasharray: 2 4; }
 .se-length.is-thin { border-color: #fde68a; background: #fffbeb; }
 .se-length.is-thin .se-length-k { color: #b45309; }
+/* ——— Scene versions ——— */
+.se-versions { position: absolute; top: 64px; right: 24px; z-index: 5; width: min(460px, calc(100% - 48px)); max-height: 60vh; overflow: auto; padding: 12px 12px 10px; border: 1px solid #e4e4e7; border-radius: 12px; background: white; box-shadow: 0 24px 60px rgba(0,0,0,.18); }
+.se-versions[hidden] { display: none; }
+.se-versions-head { display: grid; gap: 3px; margin-bottom: 10px; }
+.se-versions-head strong { font: 700 12px system-ui; }
+.se-versions-head span { font: 500 11px/1.4 system-ui; color: #71717a; }
+.se-versions-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.se-version { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 8px 10px; border: 1px solid #ececef; border-radius: 10px; background: #fafafa; }
+.se-version.is-current { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, white); }
+.se-version .se-version-label { font: 700 11.5px system-ui; color: #18181b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.se-version .se-version-meta { grid-column: 1; font: 500 10.5px system-ui; color: #71717a; }
+.se-version .se-version-actions { grid-row: 1 / span 2; display: flex; gap: 6px; }
+.se-version .se-version-actions button { height: 26px; padding: 0 10px; border: 1px solid #d4d4d8; border-radius: 8px; background: white; color: #18181b; font: 600 10.5px system-ui; cursor: pointer; }
+.se-version .se-version-actions button:hover { border-color: #a1a1aa; }
+.se-version .se-version-actions button.primary { background: var(--brand); border-color: var(--brand); color: white; }
+.se-version .se-version-actions button:disabled { opacity: .45; cursor: default; }
+.se-versions-empty { padding: 10px; font: 500 11px system-ui; color: #a1a1aa; text-align: center; }
+.slide-editor-modal { position: relative; }

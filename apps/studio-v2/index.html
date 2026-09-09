@@ -487,11 +487,16 @@
           <span id="se-chip-motion" class="se-state" hidden></span>
         </div>
         <div class="slide-editor-tools">
+          <button type="button" id="se-versions-toggle" class="button" title="Every saved state of this scene — preview one, or go back to it" aria-haspopup="dialog" aria-expanded="false">Versions</button>
           <button type="button" id="se-canvas" class="button" title="See this scene on the live canvas — closes the studio">Canvas</button>
           <button type="button" id="se-approve" class="button" title="Mark the base page structure as approved — Plan motion (assist) needs it">Approve page</button>
           <button type="button" id="se-save" class="button primary">Save scene</button>
         </div>
         <button id="close-slide-editor" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="se-versions" class="se-versions" role="dialog" aria-label="Saved versions of this scene" hidden>
+        <div class="se-versions-head"><strong>Versions</strong><span>Every save of this scene. Preview plays it here; Restore brings it back — as a new version, so nothing is lost.</span></div>
+        <ol id="se-versions-list" class="se-versions-list"></ol>
       </div>
       <div class="slide-editor-body">
         <div class="slide-editor-stage">

@@ -123,6 +123,7 @@ export const SceneBlock = Node.create({
       // handcrafted fields above so a gold scene is never overwritten.
       directorAuto: { default: null },
       lengthBrief: { default: null },
+      versions: { default: [] },
       lengthDepth: { default: 'walk' },
       requiredArea: { default: '' },
       // The director's stage track and per-family placements over time.

@@ -9070,7 +9070,7 @@ type SlideEditorState = {
   scriptApproved: boolean
   windows: SceneWindow[]
   breakdownApproved: boolean
-  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string } | null
+  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string; version?: string; seconds?: number } | null
   // When set, the preview runs this plan instead of the scene's (proposal preview).
   previewPlan: MotionPlanV2 | null
   // The dialogue as authored (paragraphs), so a re-cut by paragraph can
@@ -9084,8 +9084,67 @@ type SlideEditorState = {
   // the chosen depth.
   brief: LengthBrief | null
   depth: LengthDepth
+  // What changed since the last save — the label of the next version.
+  lastChange: string
 }
 let slideEditor: SlideEditorState | null = null
+
+// ——— Versions: every save of a scene, kept; any of them a click away ———
+// A version is the scene's dialogue, motion and metadata as saved: the
+// windows, the plan, the director's staging, the length brief, the block's
+// frame choice. Preview plays one through the proposal banner; Restore
+// writes it back as a new version, so a rollback is itself undoable.
+type SceneVersion = {
+  id: string
+  at: string
+  label: string
+  windows: number
+  seconds: number
+  snapshot: Record<string, unknown>
+}
+const VERSION_ATTRS = ['script', 'sourceText', 'windows', 'motion', 'steps', 'pace', 'scriptApproved', 'breakdownApproved', 'directorAuto', 'directorBrief', 'stageTrack', 'stagePlacements', 'requiredArea', 'storyboard', 'cues', 'arcRole', 'directorNotes', 'lengthBrief', 'lengthDepth'] as const
+const MAX_VERSIONS = 6
+
+const versionSnapshotOf = (attrs: Record<string, unknown>, nodeId: string): Record<string, unknown> => {
+  const snapshot: Record<string, unknown> = {}
+  VERSION_ATTRS.forEach(key => {
+    if (attrs[key] !== undefined) snapshot[key] = attrs[key]
+  })
+  // The ranked layout options are large and re-derived by a re-plan.
+  const auto = snapshot.directorAuto as Record<string, unknown> | null | undefined
+  if (auto && typeof auto === 'object' && 'layoutOptions' in auto) {
+    const { layoutOptions, ...rest } = auto
+    void layoutOptions
+    snapshot.directorAuto = rest
+  }
+  const stage = project.blocks[nodeId]?.stage
+  if (stage) snapshot.stage = structuredClone(stage)
+  return structuredClone(snapshot)
+}
+
+const versionSeconds = (snapshot: Record<string, unknown>) => {
+  const plan = sanitizeMotionPlan(snapshot.motion)
+  if (plan) return Math.round(motionPlanDurationSeconds(plan) * 10) / 10
+  const script = String(snapshot.script || '')
+  return script ? Math.round(script.split(/\s+/).filter(Boolean).length / 2.5) : 0
+}
+
+const sceneVersions = (attrs: Record<string, unknown>): SceneVersion[] =>
+  (Array.isArray(attrs.versions) ? attrs.versions : []).filter((v): v is SceneVersion => Boolean(v && typeof v === 'object' && (v as SceneVersion).snapshot))
+
+/** Records the node's state as a version (skipped when nothing changed). */
+const pushSceneVersion = (nodeId: string, label: string, snapshotOverride?: Record<string, unknown>) => {
+  const found = findSlideLikeNode(nodeId)
+  if (!found) return
+  const snapshot = snapshotOverride || versionSnapshotOf(found.attrs, nodeId)
+  const versions = sceneVersions(found.attrs)
+  const last = versions[versions.length - 1]
+  const same = last && JSON.stringify(last.snapshot) === JSON.stringify(snapshot)
+  if (same) return
+  const windows = Array.isArray(snapshot.windows) ? snapshot.windows.length : 0
+  const next: SceneVersion = { id: `v-${Date.now().toString(36)}`, at: new Date().toISOString(), label, windows, seconds: versionSeconds(snapshot), snapshot }
+  writeSlideLikeNode(nodeId, { versions: [...versions, next].slice(-MAX_VERSIONS) })
+}
 const slideEditorDialog = $('#slide-editor-dialog') as HTMLDialogElement
 const slideEditorPreview = $('#slide-editor-preview') as HTMLElement
 const slideEditorSteps = $('#slide-editor-steps') as HTMLOListElement
@@ -9887,6 +9946,8 @@ const acceptWindows = (windows: SceneWindow[], source: string) => {
   state.sourceText = source === 'in windows' || source.startsWith('re-cut') ? state.sourceText || state.script : state.script
   state.proposal = null
   state.previewPlan = null
+  // The text box and a re-cut name their own change; the writer's paths name theirs here.
+  if (source !== 'in windows' && !source.startsWith('re-cut')) state.lastChange = `Dialogue ${source}`
   renderProposal()
   state.current = 0
   replan({ quiet: true })
@@ -9899,6 +9960,7 @@ const composeFromText = async (text: string, source: string) => {
   const state = slideEditor
   if (!state) return
   if (!source.startsWith('re-cut')) state.sourceText = text
+  state.lastChange = source.startsWith('re-cut') ? 'Re-cut the windows' : 'Used the written text'
   const local = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm })
   if (!local) {
     setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
@@ -10096,8 +10158,8 @@ const renderProposal = () => {
     return
   }
   proposalBox.hidden = false
-  const seconds = state.proposal.plan ? Math.round(motionPlanDurationSeconds(state.proposal.plan) * 10) / 10 : 0
-  proposalMeta.textContent = `${state.proposal.windows.length} windows · ≈ ${seconds}s · ${state.proposal.source}`
+  const seconds = state.proposal.plan ? Math.round(motionPlanDurationSeconds(state.proposal.plan) * 10) / 10 : state.proposal.seconds || 0
+  proposalMeta.textContent = `${state.proposal.windows.length ? `${state.proposal.windows.length} windows · ` : 'a written draft · '}≈ ${seconds}s · ${state.proposal.source}`
   const viewing = Boolean(state.previewPlan)
   proposalList.hidden = !viewing
   if (viewing) {
@@ -10106,6 +10168,7 @@ const renderProposal = () => {
     })
   }
   proposalPreviewButton.textContent = viewing ? 'Show current' : 'Show proposal'
+  proposalAcceptButton.textContent = state.proposal.version ? 'Restore' : 'Accept'
 }
 
 writeButton.addEventListener('click', () => void requestProposal(writeNote.value.trim()))
@@ -10148,8 +10211,141 @@ proposalAcceptButton.addEventListener('click', () => {
   const state = slideEditor
   if (!state?.proposal) return
   stopSlidePlayback()
+  if (state.proposal.version) {
+    restoreSceneVersion(state.proposal.version)
+    return
+  }
   acceptWindows(state.proposal.windows, 'accepted from the writer')
   renderProposal()
+})
+
+// ——— The versions panel ———
+const versionsPanel = $('#se-versions') as HTMLElement
+const versionsToggle = $('#se-versions-toggle') as HTMLButtonElement
+const versionsList = $('#se-versions-list') as HTMLOListElement
+
+const timeAgo = (iso: string) => {
+  const ms = Date.now() - new Date(iso).getTime()
+  const minutes = Math.round(ms / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours} h ago`
+  return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+const renderSceneVersions = () => {
+  const state = slideEditor
+  const found = state ? findSlideLikeNode(state.nodeId) : null
+  const versions = found ? sceneVersions(found.attrs) : []
+  versionsToggle.textContent = versions.length ? `Versions · ${versions.length}` : 'Versions'
+  versionsToggle.disabled = !versions.length
+  if (versionsPanel.hidden) return
+  versionsList.replaceChildren()
+  if (!versions.length) {
+    const empty = document.createElement('li')
+    empty.className = 'se-versions-empty'
+    empty.textContent = 'No versions yet — the first save keeps one.'
+    versionsList.append(empty)
+    return
+  }
+  const currentSnapshot = found ? JSON.stringify(versionSnapshotOf(found.attrs, found.attrs.id as string)) : ''
+  ;[...versions].reverse().forEach(version => {
+    const item = document.createElement('li')
+    const isCurrent = JSON.stringify(version.snapshot) === currentSnapshot
+    item.className = `se-version${isCurrent ? ' is-current' : ''}`
+    const label = document.createElement('div')
+    label.className = 'se-version-label'
+    label.textContent = version.label
+    const meta = document.createElement('div')
+    meta.className = 'se-version-meta'
+    meta.textContent = `${timeAgo(version.at)} · ${version.windows ? `${version.windows} windows · ` : ''}${version.seconds} s${isCurrent ? ' · current' : ''}`
+    const actions = document.createElement('div')
+    actions.className = 'se-version-actions'
+    const preview = document.createElement('button')
+    preview.type = 'button'
+    preview.textContent = 'Preview'
+    preview.disabled = isCurrent
+    preview.addEventListener('click', () => previewSceneVersion(version))
+    const restore = document.createElement('button')
+    restore.type = 'button'
+    restore.className = 'primary'
+    restore.textContent = 'Restore'
+    restore.disabled = isCurrent
+    restore.addEventListener('click', () => restoreSceneVersion(version.id))
+    actions.append(preview, restore)
+    item.append(label, meta, actions)
+    versionsList.append(item)
+  })
+}
+
+// A version plays through the proposal banner: its windows in the list,
+// its plan in the preview, Restore in place of Accept.
+const previewSceneVersion = (version: SceneVersion) => {
+  const state = slideEditor
+  if (!state) return
+  stopSlidePlayback()
+  const windows = sanitizeWindows(version.snapshot.windows, state)
+  const plan = sanitizeMotionPlan(version.snapshot.motion) || (windows.length ? planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })?.plan || null : null)
+  state.proposal = { windows, plan, source: `version · ${version.label}, ${timeAgo(version.at)}`, version: version.id, seconds: version.seconds }
+  state.previewPlan = plan
+  state.current = 0
+  versionsPanel.hidden = true
+  versionsToggle.setAttribute('aria-expanded', 'false')
+  renderProposal()
+  proposalAcceptButton.textContent = 'Restore'
+  renderWindowCards()
+  renderSlideEditorPreview()
+  renderTeleprompter()
+  markPlayingWindow()
+  setSlideEditorStatus(`Showing the version from ${timeAgo(version.at)} — Restore brings it back, Discard keeps the current one`)
+  if (plan) playSlide(0)
+}
+
+// Writes the version back to the scene — as a new version — and reopens
+// the studio on it, so everything (windows, plan, staging, brief) is the
+// version's.
+const restoreSceneVersion = (versionId: string) => {
+  const state = slideEditor
+  if (!state) return
+  const found = findSlideLikeNode(state.nodeId)
+  const version = found ? sceneVersions(found.attrs).find(item => item.id === versionId) : null
+  if (!found || !version) return
+  if (state.dirty && !window.confirm('Restore this version? Unsaved changes in the scene will be lost.')) return
+  stopSlidePlayback()
+  const { stage, ...attrs } = version.snapshot as Record<string, unknown> & { stage?: BlockRenderConfigV1['stage'] }
+  const cleared: Record<string, unknown> = {}
+  VERSION_ATTRS.forEach(key => {
+    cleared[key] = key in attrs ? attrs[key] : key === 'windows' || key === 'steps' || key === 'cues' || key === 'storyboard' ? [] : key === 'requiredArea' || key === 'script' || key === 'sourceText' || key === 'arcRole' || key === 'directorNotes' ? '' : null
+  })
+  const nodeId = state.nodeId
+  writeSlideLikeNode(nodeId, cleared)
+  const config = project.blocks[nodeId]
+  if (config) {
+    if (stage) config.stage = structuredClone(stage)
+    const plan = sanitizeMotionPlan(attrs.motion)
+    if (plan) config.durationMs = Math.round(motionPlanDurationSeconds(plan) * 1000)
+  }
+  pushSceneVersion(nodeId, `Restored · ${version.label} (${timeAgo(version.at)})`)
+  state.dirty = false
+  slideEditor = null
+  slideEditorDialog.close()
+  syncProject()
+  openSlideEditor(nodeId)
+  showToast(`Restored the version from ${timeAgo(version.at)}`)
+}
+
+versionsToggle.addEventListener('click', () => {
+  versionsPanel.hidden = !versionsPanel.hidden
+  versionsToggle.setAttribute('aria-expanded', String(!versionsPanel.hidden))
+  renderSceneVersions()
+})
+document.addEventListener('click', event => {
+  if (versionsPanel.hidden) return
+  const target = event.target as Node
+  if (versionsPanel.contains(target) || versionsToggle.contains(target)) return
+  versionsPanel.hidden = true
+  versionsToggle.setAttribute('aria-expanded', 'false')
 })
 proposalDiscardButton.addEventListener('click', () => {
   const state = slideEditor
@@ -10458,6 +10654,7 @@ const openSlideEditor = (nodeId: string) => {
     sourceText: '',
     openDrawers: new Set(),
     dirty: false,
+    lastChange: '',
     brief: null,
     depth: found.attrs.lengthDepth === 'skim' || found.attrs.lengthDepth === 'deep' ? found.attrs.lengthDepth : 'walk',
   }
@@ -10472,6 +10669,9 @@ const openSlideEditor = (nodeId: string) => {
   const nodeKind = project.notebook.content.find(node => String(node.attrs?.id || '') === nodeId)?.type === 'slide' ? 'Slide' : 'Scene'
   ;($('#slide-editor-title') as HTMLElement).textContent = `${nodeKind} · ${String(found.attrs.title || nodeKind)}`
   syncApproveButton()
+  versionsPanel.hidden = true
+  versionsToggle.setAttribute('aria-expanded', 'false')
+  renderSceneVersions()
   renderDirectorBrief(found.attrs.directorBrief as DirectorBrief | null)
   renderParts()
   renderProposal()
@@ -11119,6 +11319,11 @@ assistCancel.addEventListener('click', () => {
       verb: step.verb,
     }))
   const found = findSlideLikeNode(state.nodeId)
+  // The first save of a scene that already had dialogue keeps what was
+  // there as its first version, so today's change is never a one-way door.
+  if (found && !sceneVersions(found.attrs).length && (String(found.attrs.script || '').trim() || (Array.isArray(found.attrs.windows) && found.attrs.windows.length) || (Array.isArray(found.attrs.steps) && found.attrs.steps.length))) {
+    pushSceneVersion(state.nodeId, 'Before this session')
+  }
   // The windows are the dialogue once they exist; before that the text box
   // is saved as a draft (no motion until it is used).
   const inWindows = state.windows.length > 0
@@ -11149,6 +11354,9 @@ assistCancel.addEventListener('click', () => {
         : slideDurationSeconds(steps.map(step => ({ ...step })))) * 1000,
     )
   }
+  pushSceneVersion(state.nodeId, state.lastChange || (inWindows ? 'Saved' : 'Saved the draft'))
+  state.lastChange = ''
+  renderSceneVersions()
   stopSlidePlayback()
   syncProject()
   showToast(
