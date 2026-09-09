@@ -1190,7 +1190,7 @@ ${brief.outline
   .slice(0, 12)
   .map((stretch, index) => `${index + 1}. ${String(stretch.label).slice(0, 60)} (≈ ${Math.max(3, Math.round(Number(stretch.seconds) * briefScale))} s)${stretch.parts?.length ? ` — ${stretch.parts.slice(0, 12).map(part => `${part.id} "${String(part.label).slice(0, 40)}"`).join(', ')}${stretch.parts.length > 12 ? ` +${stretch.parts.length - 12}` : ''}` : ''}`)
   .join('\n')}
-Every walked part is named in some window (a window may carry two to four parts of one stretch). ${brief.passing?.length ? `Name in passing, inside a window, no window of their own: ${brief.passing.slice(0, 16).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}. ` : ''}${brief.skip?.length ? `Do not mention: ${brief.skip.slice(0, 10).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}.` : ''}`
+Every walked part is named in some window (a window may carry two to four parts of one stretch). Arrows and connectors are drawn by the motion engine when the parts they join are named — never say "connector" or "arrow #N"; list an arrow's id in a window's parts only when the line follows it. ${brief.passing?.length ? `Name in passing, inside a window, no window of their own: ${brief.passing.slice(0, 16).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}. ` : ''}${brief.skip?.length ? `Do not mention: ${brief.skip.slice(0, 10).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}.` : ''}`
     : ''
   const notes = String(body.notes || '').trim().slice(0, 4_000)
   const existing = String(body.existing || '').trim().slice(0, 6_000)

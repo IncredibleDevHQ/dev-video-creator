@@ -253,6 +253,10 @@ export const briefForWriter = (brief: LengthBrief, labelOf: (id: string) => stri
   windows: brief.windows,
   words: brief.words,
   outline: brief.outline.map(stretch => ({ label: stretch.label, seconds: stretch.seconds, parts: stretch.parts.map(id => ({ id, label: labelOf(id) })) })),
-  passing: brief.coverage.filter(entry => entry.treatment === 'passing' && readable(entry.label)).map(entry => ({ id: entry.id, label: entry.label })),
+  // Arrows are drawn by the engine when their boxes are named; they are
+  // never spoken, so they are not offered to the writer at all.
+  passing: brief.coverage
+    .filter(entry => entry.treatment === 'passing' && readable(entry.label) && !/^connector\b/i.test(entry.label) && !/^an arrow/.test(entry.reason))
+    .map(entry => ({ id: entry.id, label: entry.label })),
   skip: brief.coverage.filter(entry => entry.treatment === 'skip' && readable(entry.label)).map(entry => ({ id: entry.id, label: entry.label })),
 })
