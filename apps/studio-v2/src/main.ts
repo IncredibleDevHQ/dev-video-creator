@@ -92,7 +92,8 @@ import {
   type ScriptCoverage,
   type WindowLayout,
 } from './script-plan'
-import { direct, type DirectorResult } from './director'
+import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
+import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt } from './placements'
 import { storyboardMockUrl } from './scene-node'
 import {
@@ -9079,6 +9080,10 @@ type SlideEditorState = {
   openDrawers: Set<number>
   // Unsaved changes since the studio opened or last saved.
   dirty: boolean
+  // The length judgement: how much explanation the picture deserves, at
+  // the chosen depth.
+  brief: LengthBrief | null
+  depth: LengthDepth
 }
 let slideEditor: SlideEditorState | null = null
 const slideEditorDialog = $('#slide-editor-dialog') as HTMLDialogElement
@@ -9159,9 +9164,13 @@ const renderSlideEditorPreview = () => {
     } else {
       if (at >= 0) hit.classList.add('is-assigned')
       if (at === state.current) hit.classList.add('is-current')
+      // Before a draft exists the page shows what the budget buys each part.
+      const budget = state.brief?.coverage.find(entry => entry.id === unit.id)
+      if (budget && !state.script) hit.classList.add(`budget-${budget.treatment}`)
     }
+    const budgetNote = !state.windows.length && !state.script ? state.brief?.coverage.find(entry => entry.id === unit.id) : null
     const title = document.createElementNS(SVG_NS, 'title')
-    title.textContent = `${unit.label}${at >= 0 ? ` · step ${at + 1}` : ''}`
+    title.textContent = `${unit.label}${at >= 0 ? ` · step ${at + 1}` : ''}${budgetNote ? ` · ${budgetNote.treatment === 'walk' ? 'gets a window' : budgetNote.treatment === 'passing' ? 'named in passing' : 'skipped'} — ${budgetNote.reason}` : ''}`
     hit.append(title)
     hit.addEventListener('click', event => {
       event.stopPropagation()
@@ -9700,6 +9709,108 @@ const highlightWindowParts = () => {
   })
 }
 
+// ——— The length judgement: before a word is written ———
+// The director reads the picture and sets the budget the writer must meet:
+// seconds, windows, what each part gets. Shown as a card until a draft
+// exists, then as a line that says how the draft measures against it.
+const lengthCard = $('#se-length') as HTMLElement
+const lengthLine = $('#se-length-line') as HTMLElement
+
+const computeLengthBrief = (state: SlideEditorState): LengthBrief | null => {
+  if (!state.units.length) return null
+  const { kind } = classifyScene(state.units)
+  const arcRole = arcRoleFor(kind, scenePosition(state.nodeId), [])
+  return lengthBriefFor(state.units, state.viewBox, { arcRole, depth: state.depth, wpm: state.pace.wpm })
+}
+
+const renderLengthBrief = () => {
+  const state = slideEditor
+  const brief = state?.brief
+  if (!state || !brief) {
+    lengthCard.hidden = true
+    lengthLine.hidden = true
+    return
+  }
+  const hasDraft = state.windows.length > 0 || Boolean(state.script.trim())
+  lengthCard.hidden = hasDraft
+  if (!hasDraft) {
+    ;($('#se-length-seconds') as HTMLElement).textContent = `≈ ${Math.round(brief.seconds)} s`
+    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words · ${brief.range[0]}–${brief.range[1]} s`
+    ;($('#se-length-why') as HTMLElement).textContent = `${brief.why.charAt(0).toUpperCase()}${brief.why.slice(1)}.`
+    const depthBox = $('#se-length-depth') as HTMLElement
+    depthBox.replaceChildren(
+      ...LENGTH_DEPTHS.map(depth => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        const seconds = depth === state.depth ? brief.seconds : lengthBriefFor(state.units, state.viewBox, { arcRole: brief.arcRole, depth, wpm: state.pace.wpm }).seconds
+        button.textContent = `${DEPTH_LABELS[depth]} · ${Math.round(seconds)} s`
+        button.className = depth === state.depth ? 'is-on' : ''
+        button.addEventListener('click', () => {
+          state.depth = depth
+          state.brief = computeLengthBrief(state)
+          state.dirty = true
+          targetInput.value = String(state.brief?.seconds || 40)
+          renderLengthBrief()
+          renderSlideEditorPreview()
+        })
+        return button
+      }),
+    )
+    ;($('#se-write-first') as HTMLButtonElement).textContent = `Write the first draft · ${Math.round(brief.seconds)} s`
+    const outline = $('#se-length-outline') as HTMLElement
+    outline.replaceChildren(
+      ...brief.outline.map((stretch, index) => {
+        const item = document.createElement('li')
+        const number = document.createElement('span')
+        number.className = 'se-n'
+        number.textContent = String(index + 1)
+        const text = document.createElement('span')
+        const label = document.createElement('b')
+        label.textContent = stretch.label
+        text.append(label)
+        if (stretch.parts.length) {
+          const parts = document.createElement('span')
+          parts.className = 'se-parts'
+          const names = stretch.parts.map(id => unitOf(state, id)?.label || id).filter(Boolean)
+          parts.textContent = ` — ${names.slice(0, 4).join(', ')}${names.length > 4 ? ` +${names.length - 4}` : ''}`
+          text.append(parts)
+        }
+        const seconds = document.createElement('span')
+        seconds.className = 'se-s'
+        seconds.textContent = `${stretch.seconds} s`
+        item.append(number, text, seconds)
+        return item
+      }),
+    )
+    if (Math.abs(Number(targetInput.value) - brief.seconds) > 0.5 && !Number(targetInput.value)) targetInput.value = String(brief.seconds)
+  }
+  // With a draft: how it measures against the brief.
+  const spoken = hasDraft ? dialogueSeconds(state) : 0
+  const verdict = briefVerdict(brief, spoken)
+  lengthLine.hidden = !hasDraft || verdict === 'none'
+  lengthLine.classList.toggle('is-thin', verdict === 'thin')
+  ;($('#se-length-line-text') as HTMLElement).innerHTML =
+    verdict === 'thin'
+      ? `<strong>Kept short.</strong> This draft runs ${Math.round(spoken)} s; the page deserves ≈ ${Math.round(brief.seconds)} s (${brief.reasons.join(', ')}).`
+      : verdict === 'long'
+        ? `This draft runs ${Math.round(spoken)} s against the director's ≈ ${Math.round(brief.seconds)} s — long for ${brief.reasons.join(', ')}.`
+        : `Director suggests ≈ ${Math.round(brief.seconds)} s · this draft ${Math.round(spoken)} s.`
+  ;($('#se-length-rewrite') as HTMLButtonElement).hidden = verdict === 'fits'
+}
+
+;($('#se-write-first') as HTMLButtonElement).addEventListener('click', () => {
+  const state = slideEditor
+  if (!state?.brief) return
+  targetInput.value = String(state.brief.seconds)
+  void requestProposal('')
+})
+;($('#se-length-rewrite') as HTMLButtonElement).addEventListener('click', () => {
+  const state = slideEditor
+  if (!state?.brief) return
+  targetInput.value = String(state.brief.seconds)
+  void requestProposal(`match the director's length — cover every part it walks, in its order`)
+})
+
 const renderWindowCards = () => {
   const state = slideEditor
   windowsList.replaceChildren()
@@ -9707,6 +9818,7 @@ const renderWindowCards = () => {
   const hasWindows = state.windows.length > 0
   windowsList.hidden = !hasWindows || Boolean(state.previewPlan)
   dialogueEmpty.hidden = hasWindows
+  renderLengthBrief()
   if (!hasWindows) return
   state.windows.forEach((window, index) => {
     windowsList.append(windowCard(state, window, index, { editable: true, onChange: () => replan({ quiet: true, rerender: true }) }))
@@ -9888,7 +10000,7 @@ const requestProposal = async (instruction: string) => {
   if (!state) return
   if (writing) return
   const existing = dialogueText(state)
-  const targetSeconds = Math.max(8, Math.min(240, Number(targetInput.value) || (existing ? estimateSeconds(existing, state.pace) : 40)))
+  const targetSeconds = Math.max(8, Math.min(240, Number(targetInput.value) || (existing ? estimateSeconds(existing, state.pace) : state.brief?.seconds || 40)))
   const controller = new AbortController()
   const startedAt = performance.now()
   showWriting(existing ? 'Rewriting with the page in front of the writer…' : 'Writing with the page in front of the writer…', instruction)
@@ -9919,6 +10031,8 @@ const requestProposal = async (instruction: string) => {
         position: scenePosition(state.nodeId),
         units: slideUnitInventory(state),
         relations: relationsOf(state.units),
+        // The director's length brief: how long, what to walk, what to skip.
+        brief: state.brief ? briefForWriter(state.brief, id => unitOf(state, id)?.label || id) : undefined,
       }),
       signal: controller.signal,
     })
@@ -10335,14 +10449,17 @@ const openSlideEditor = (nodeId: string) => {
     sourceText: '',
     openDrawers: new Set(),
     dirty: false,
+    brief: null,
+    depth: found.attrs.lengthDepth === 'skim' || found.attrs.lengthDepth === 'deep' ? found.attrs.lengthDepth : 'walk',
   }
   const state = slideEditor
   state.windows = sanitizeWindows(found.attrs.windows, state)
   state.sourceText = String(found.attrs.sourceText || '') || state.script
+  state.brief = computeLengthBrief(state)
   scriptInput.value = state.windows.length ? '' : state.script
   syncPaceControls(state.pace)
   writeNote.value = ''
-  targetInput.value = String(state.script ? Math.max(10, Math.round(estimateSeconds(state.script, state.pace) / 5) * 5) : 40)
+  targetInput.value = String(state.script ? Math.max(10, Math.round(estimateSeconds(state.script, state.pace) / 5) * 5) : state.brief?.seconds || 40)
   const nodeKind = project.notebook.content.find(node => String(node.attrs?.id || '') === nodeId)?.type === 'slide' ? 'Slide' : 'Scene'
   ;($('#slide-editor-title') as HTMLElement).textContent = `${nodeKind} · ${String(found.attrs.title || nodeKind)}`
   syncApproveButton()
@@ -11010,6 +11127,8 @@ assistCancel.addEventListener('click', () => {
       ...(window.hero ? { heroLabel: unitOf(state, window.hero)?.label || '' } : {}),
     })),
     breakdownApproved: inWindows,
+    lengthBrief: state.brief,
+    lengthDepth: state.depth,
     motion: inWindows ? state.motion : null,
     ...(state.director && found && inWindows ? directorAttrs(found.attrs, state.director, state.motion) : {}),
   })

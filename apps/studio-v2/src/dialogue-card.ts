@@ -29,7 +29,12 @@ export const dialogueState = (attrs: Record<string, unknown>) => {
     : !beats.length
       ? 'unplanned'
       : inSync ? 'synced' : 'stale'
-  return { windows, script, seconds, status }
+  // Against the director's length brief (read from the picture): a draft
+  // under sixty percent of it was kept short.
+  const brief = attrs.lengthBrief && typeof attrs.lengthBrief === 'object' ? (attrs.lengthBrief as { seconds?: number }) : null
+  const spoken = seconds || (script ? Math.round(script.split(/\s+/).filter(Boolean).length / 2.5) : 0)
+  const thin = Boolean(brief && Number(brief.seconds) > 0 && spoken > 0 && spoken < Number(brief.seconds) * 0.6)
+  return { windows, script, seconds, status, brief: brief && Number(brief.seconds) > 0 ? { seconds: Number(brief.seconds) } : null, spoken, thin }
 }
 
 const STATUS_TEXT: Record<ReturnType<typeof dialogueState>['status'], string> = {
@@ -42,15 +47,15 @@ const STATUS_TEXT: Record<ReturnType<typeof dialogueState>['status'], string> = 
 }
 
 export const dialogueSection = (attrs: Record<string, unknown>): DomSpec => {
-  const { windows, script, seconds, status } = dialogueState(attrs)
+  const { windows, script, seconds, status, brief, spoken, thin } = dialogueState(attrs)
   const head: DomSpec = [
     'div',
     { class: 'block-dialogue-head' },
     ['span', { class: 'block-dialogue-label' }, 'Dialogue'],
     [
       'span',
-      { class: `block-dialogue-state is-${status}` },
-      status === 'synced' ? `${windows.length} window${windows.length === 1 ? '' : 's'} · ${seconds}s · the motion follows it` : STATUS_TEXT[status],
+      { class: `block-dialogue-state is-${status}${thin ? ' is-thin' : ''}` },
+      `${status === 'synced' ? `${windows.length} window${windows.length === 1 ? '' : 's'} · ${seconds}s · the motion follows it` : STATUS_TEXT[status]}${thin && brief ? ` · kept short: ${spoken}s of the ${brief.seconds}s the page deserves` : ''}`,
     ],
     [
       'button',

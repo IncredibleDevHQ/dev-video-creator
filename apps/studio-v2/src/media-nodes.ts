@@ -185,6 +185,8 @@ export const SlideBlock = Node.create({
       stageTrack: { default: [] },
       stagePlacements: { default: null },
       directorAuto: { default: null },
+      lengthBrief: { default: null },
+      lengthDepth: { default: 'walk' },
       requiredArea: { default: '' },
       // The user approved the base page structure; Plan motion (assist)
       // refuses to run before this is set.

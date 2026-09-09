@@ -1159,6 +1159,16 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
     position?: { index: number; count: number }
     units?: SceneUnitInput[]
     relations?: SceneRelationInput[]
+    // The director's length brief, read from the picture: how long, how
+    // many windows, what to walk in what order, what to name in passing.
+    brief?: {
+      seconds: number
+      windows: number
+      words: number
+      outline: Array<{ label: string; seconds: number; parts: Array<{ id: string; label: string }> }>
+      passing: Array<{ id: string; label: string }>
+      skip: Array<{ id: string; label: string }>
+    }
   }>(request, 2 * 1024 * 1024)
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   if (!units.length) throw new Error('The page has no parts to write about')
@@ -1166,8 +1176,22 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
   const granularity = body.granularity === 'paragraph' || body.granularity === 'clause' ? body.granularity : 'sentence'
   const wpm = Math.max(90, Math.min(200, Number(body.wpm) || 150))
-  const targetSeconds = Math.max(8, Math.min(240, Number(body.targetSeconds) || 40))
+  const brief = body.brief && Number.isFinite(Number(body.brief.seconds)) && Array.isArray(body.brief.outline) ? body.brief : null
+  const targetSeconds = Math.max(8, Math.min(240, Number(body.targetSeconds) || (brief ? Number(brief.seconds) : 0) || 40))
   const targetWords = Math.round((targetSeconds / 60) * wpm)
+  // When the author's target differs from the brief, the brief's shape holds
+  // (what to walk, in what order) and its seconds scale to the target.
+  const briefScale = brief ? targetSeconds / Math.max(1, Number(brief.seconds)) : 1
+  const briefWindows = brief ? Math.max(2, Math.min(14, Math.round(Number(brief.windows) * briefScale))) : 0
+  const briefText = brief
+    ? `LENGTH BRIEF (the director read the picture): explain this page in ≈ ${targetSeconds} s (≈ ${targetWords} words) in about ${briefWindows} windows (${Math.max(2, briefWindows - 2)}–${briefWindows + 2}). The default must be this long — a thinner draft leaves the page unexplained.
+Walk, in this order:
+${brief.outline
+  .slice(0, 12)
+  .map((stretch, index) => `${index + 1}. ${String(stretch.label).slice(0, 60)} (≈ ${Math.max(3, Math.round(Number(stretch.seconds) * briefScale))} s)${stretch.parts?.length ? ` — ${stretch.parts.slice(0, 12).map(part => `${part.id} "${String(part.label).slice(0, 40)}"`).join(', ')}${stretch.parts.length > 12 ? ` +${stretch.parts.length - 12}` : ''}` : ''}`)
+  .join('\n')}
+Every walked part is named in some window (a window may carry two to four parts of one stretch). ${brief.passing?.length ? `Name in passing, inside a window, no window of their own: ${brief.passing.slice(0, 16).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}. ` : ''}${brief.skip?.length ? `Do not mention: ${brief.skip.slice(0, 10).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}.` : ''}`
+    : ''
   const notes = String(body.notes || '').trim().slice(0, 4_000)
   const existing = String(body.existing || '').trim().slice(0, 6_000)
   const instruction = String(body.instruction || '').trim().slice(0, 1_000)
@@ -1178,7 +1202,7 @@ ${sceneInventory(units, relations)}
 ${SCENE_CAPABILITIES}
 
 ${notes ? `SOURCE NOTES (what this scene must convey):\n${notes}\n` : ''}${existing ? `CURRENT DIALOGUE (rewrite it; keep what works):\n${existing}\n` : ''}${instruction ? `INSTRUCTION FROM THE AUTHOR: ${instruction}\n` : ''}
-Write the dialogue as a sequence of windows of attention. One window = ${granularity === 'paragraph' ? 'a short paragraph (2–3 sentences)' : granularity === 'clause' ? 'one clause or a very short sentence' : 'one sentence'} that is about specific parts of the page. Name the parts with the words the page uses (their labels), in an order the page can support: what is on screen before what depends on it, arrows after the boxes they join, a number when it is quoted. Every window lists the ids of the parts it is about (the ones that come on screen or are highlighted while it is spoken), exactly one hero id (or "" if the window belongs to the presenter), the camera ids (parts to move in on; [] to stay on the page), the layout ("me" for a line that needs no page, "beside" when a small figure sits next to the presenter, "page" when the page needs the frame), and the intent. Do not name parts that are not on the page. Aim for about ${targetWords} words in total (≈ ${targetSeconds} s at ${wpm} words a minute), between 3 and 12 windows. Spoken, plain, first person plural or second person; no bullet points, no headings inside "say".`
+Write the dialogue as a sequence of windows of attention. One window = ${granularity === 'paragraph' ? 'a short paragraph (2–3 sentences)' : granularity === 'clause' ? 'one clause or a very short sentence' : 'one sentence'} that is about specific parts of the page. Name the parts with the words the page uses (their labels), in an order the page can support: what is on screen before what depends on it, arrows after the boxes they join, a number when it is quoted. Every window lists the ids of the parts it is about (the ones that come on screen or are highlighted while it is spoken), exactly one hero id (or "" if the window belongs to the presenter), the camera ids (parts to move in on; [] to stay on the page), the layout ("me" for a line that needs no page, "beside" when a small figure sits next to the presenter, "page" when the page needs the frame), and the intent. Do not name parts that are not on the page. ${briefText ? `${briefText}\n` : `Aim for about ${targetWords} words in total (≈ ${targetSeconds} s at ${wpm} words a minute), between 3 and 12 windows.`} Spoken, plain, first person plural or second person; no bullet points, no headings inside "say".`
   const windows = await sceneWindowsFromModel(prompt, windowSchema(true), units)
   json(response, 200, { windows, provider: 'openai' })
 }
