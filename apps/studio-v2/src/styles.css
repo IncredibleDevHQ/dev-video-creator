@@ -1970,3 +1970,15 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .se-line-stage-buttons button.is-active .stage-glyph { background: rgba(255,255,255,.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
 .se-line-stage-buttons button.is-active .stage-glyph .stage-glyph-page { border-color: rgba(255,255,255,.8); }
 .se-line-stage-buttons button.is-active .stage-glyph .stage-glyph-you { background: #4ade80; }
+/* Layout: a column that never overlaps — the frame, then the strip row, then the line's place. */
+.slide-editor-stage { display: flex !important; flex-direction: column; gap: 10px; overflow: auto; --frame-w: min(100%, calc((92vh - 340px) * 1.7778)); }
+.slide-editor-stage > * { flex: 0 0 auto; }
+.se-frame { width: var(--frame-w); flex: 0 0 auto; }
+.se-transport { width: var(--frame-w); margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+.se-transport .se-strip { flex: 1 1 auto; width: auto; margin: 0; height: 28px; cursor: ew-resize; }
+.se-transport .slide-editor-time { flex: none; font: 600 11px 'Roboto Mono', monospace; color: #52525b; min-width: 88px; text-align: right; }
+.se-transport #se-play { flex: none; min-height: 32px; }
+.se-transport [hidden] { display: none !important; }
+.se-line-stage { width: var(--frame-w); margin: 0 auto; }
+.se-teleprompter { width: var(--frame-w); margin: 0 auto; box-sizing: border-box; }
+.se-strip .scene-timeline-beat { cursor: pointer; }

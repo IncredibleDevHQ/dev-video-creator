@@ -74,8 +74,11 @@ export type DirectorInput = {
   plan: MotionPlanV2
   position: { index: number; count: number }
   speakers?: number
-  // Per-window layout wishes from the breakdown (me / beside / page).
+  // Per-window layout wishes from the breakdown (me / beside / page), and
+  // which of them the author set (decisive) rather than the writer
+  // suggested (a nudge).
   layouts?: Array<WindowLayout | undefined>
+  layoutsByAuthor?: boolean[]
 }
 
 // Share of the frame width each required-area class gives the information
@@ -330,6 +333,8 @@ export const layoutOptionsFor = (
     count: number
     visible: SlideUnit[]
     wish?: WindowLayout
+    // The wish was the author's (decisive), not the writer's suggestion.
+    wishPinned?: boolean
     crowded?: boolean
     // Per floating family: the best placement and the share of the presenter's
     // area that would sit on page ink there.
@@ -393,12 +398,13 @@ export const layoutOptionsFor = (
     else if (measure.wish === 'page') wish = family.startsWith('content-') ? 1 : family === 'speaker-full' ? 0 : 0.5
     if (measure.wish && wish === 1) why.push(measure.wish === 'me' ? 'you asked for this line on you' : measure.wish === 'beside' ? 'you asked to be beside the page' : 'you asked the page to take the frame')
     const continuity = context.previous === family ? 1 : 0
-    // A wish the writer or the breakdown made is decisive while it stays legible.
-    const weights = { legibility: 3, space: 2, presence: 1.5, wish: measure.wish ? 5 : 0, continuity: 0.4 }
+    // The author's wish is decisive while it stays legible; the writer's
+    // suggestion only nudges.
+    const weights = { legibility: 3, space: 2, presence: 1.5, wish: measure.wish ? (context.wishPinned || measure.panelDirected ? 5 : 2) : 0, continuity: 0.4 }
     const total =
       (legibility * weights.legibility + space * weights.space + presence * weights.presence + wish * weights.wish + continuity * weights.continuity) /
       (weights.legibility + weights.space + weights.presence + weights.wish + weights.continuity)
-    const hardFail = (needsPage && measure.brings && (!rect || textPx < LEGIBILITY_GATE_PX * 0.75)) || (measure.wish === 'me' && wish === 0)
+    const hardFail = (needsPage && measure.brings && (!rect || textPx < LEGIBILITY_GATE_PX * 0.75)) || (measure.wish === 'me' && context.wishPinned && wish === 0)
     const preferred = total + (treatment ? 0 : FAMILY_PREFERENCE[family] || 0)
     return {
       family,
@@ -492,7 +498,7 @@ export const storyboardFor = (
   plan: MotionPlanV2,
   requiredArea: RequiredArea,
   arcRole: ArcRole,
-  perBeat: { areas?: RequiredArea[]; layouts?: Array<WindowLayout | undefined>; outro?: StoryboardEntry[]; crowded?: boolean; choices?: LayoutOption[] } = {},
+  perBeat: { areas?: RequiredArea[]; layouts?: Array<WindowLayout | undefined>; layoutsByAuthor?: boolean[]; outro?: StoryboardEntry[]; crowded?: boolean; choices?: LayoutOption[] } = {},
 ): StoryboardEntry[] => {
   const raw: StoryboardEntry[] = beats.map(beat => {
     const step = plan.steps[beat.index]
@@ -519,7 +525,9 @@ export const storyboardFor = (
     }
     const brings = step?.actions.some(action => ['reveal', 'trace', 'count', 'connect'].includes(action.op)) || false
     const moves = step?.actions.some(action => !action.implicit && action.op !== 'undim') || false
-    const onMe = wish === 'me' || beat.directions.some(direction => direction.kind === 'open')
+    // On you outright: an [open] direction, or the author's own "You"; the
+    // writer's "me" is weighed like any other wish.
+    const onMe = (wish === 'me' && (perBeat.layoutsByAuthor?.[beat.index] || !choice)) || beat.directions.some(direction => direction.kind === 'open')
     const last = beat.index === beats.length - 1
     if (onMe || (!brings && !moves && (beat.index === 0 || last))) {
       return {
@@ -689,6 +697,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
       count: input.beats.length,
       visible,
       wish: input.layouts?.[beat.index],
+      wishPinned: input.layoutsByAuthor?.[beat.index],
       crowded,
       ink,
       previous,
@@ -708,7 +717,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
     choices[beat.index] = options[0]
     previous = options[0]?.family
   })
-  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts, outro: outro?.entries, crowded, choices }).flatMap(entry => {
+  const storyboard = storyboardFor(input.beats, input.plan, requiredArea, arcRole, { areas, layouts: input.layouts, layoutsByAuthor: input.layoutsByAuthor, outro: outro?.entries, crowded, choices }).flatMap(entry => {
     // A floating presenter follows the page: one entry per placement.
     if (!FLOATING_FAMILIES.includes(entry.family as never) || entry.fromEndMs) return [entry]
     const groups: StoryboardEntry[] = []

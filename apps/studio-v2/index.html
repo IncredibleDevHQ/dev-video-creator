@@ -504,14 +504,14 @@
             <div id="se-frame-camera" class="se-frame-camera"><img id="se-frame-presenter" alt="" /></div>
           </div>
           <!-- Where you are in the scene: the beats, coloured by who owns the frame -->
-          <div id="se-strip" class="se-strip"><div id="se-strip-beats" class="se-strip-beats" role="list"></div><div id="se-strip-playhead" class="se-strip-playhead" aria-hidden="true"></div></div>
           <div class="se-transport">
-            <button type="button" id="se-prev" class="se-step-button" title="Previous line" aria-label="Previous line">←</button>
-            <span id="se-step-label" class="se-step-label">1/1</span>
-            <button type="button" id="se-next" class="se-step-button" title="Next line" aria-label="Next line">→</button>
-            <button type="button" id="se-play" class="button primary" title="Play the planned motion">▶ Play</button>
-            <input id="se-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub the motion" />
+            <button type="button" id="se-play" class="button primary" title="Play the scene from here">▶ Play</button>
+            <div id="se-strip" class="se-strip" title="The scene's lines, coloured by who owns the frame — click a line, or drag to scrub"><div id="se-strip-beats" class="se-strip-beats" role="list"></div><div id="se-strip-playhead" class="se-strip-playhead" aria-hidden="true"></div></div>
             <span id="se-time" class="slide-editor-time"></span>
+            <button type="button" id="se-prev" class="se-step-button" title="Previous line" aria-label="Previous line" hidden>←</button>
+            <span id="se-step-label" class="se-step-label" hidden>1/1</span>
+            <button type="button" id="se-next" class="se-step-button" title="Next line" aria-label="Next line" hidden>→</button>
+            <input id="se-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub the motion" hidden />
           </div>
           <div id="se-line-stage" class="se-line-stage" hidden>
             <span id="se-line-stage-text" class="se-line-stage-text"></span>

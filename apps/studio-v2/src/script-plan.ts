@@ -46,6 +46,9 @@ export type SceneWindow = {
   hero?: string
   camera?: string[]
   layout?: WindowLayout
+  // The layout was chosen by the author (not suggested by the writer): it
+  // is decisive; a suggestion only nudges the director.
+  layoutByAuthor?: boolean
   intent?: MotionIntent
   // Parts chosen by hand: they stay when the words change.
   pinned?: boolean

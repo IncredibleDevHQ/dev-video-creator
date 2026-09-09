@@ -9411,8 +9411,10 @@ const renderLineStage = () => {
   const segment = model ? stageAt(model.frames, model.beats[state.current]?.atMs || 0) : null
   const family = segment?.family || 'content-pip'
   const group = family === 'content-full' ? 'page' : family === 'speaker-full' ? 'me' : 'beside'
-  const wish = window.layout || ''
-  lineStageText.innerHTML = `<strong>Line ${state.current + 1}:</strong> ${STAGE_LABELS[family]}${segment?.variant ? ` (${variantLabel(segment.variant)})` : ''} — ${wish ? 'set for this line' : "the director's pick"}`
+  // Only the author's own press counts as set; the writer's suggestion is
+  // the director's to weigh, so Director is the resting state.
+  const wish = window.layoutByAuthor ? window.layout || '' : ''
+  lineStageText.innerHTML = `<strong>Line ${state.current + 1}:</strong> ${STAGE_LABELS[family]}${segment?.variant ? ` (${variantLabel(segment.variant)})` : ''} — ${wish ? 'your choice for this line' : "the director's pick"}`
   lineStageBox.querySelectorAll<HTMLButtonElement>('[data-line-layout]').forEach(button => {
     const layout = button.dataset.lineLayout || ''
     button.classList.toggle('is-active', layout ? wish === layout : !wish)
@@ -9423,6 +9425,47 @@ const renderLineStage = () => {
       slot.replaceChildren(stageGlyph(glyphFamily, segment?.variant))
     }
   })
+}
+
+// The strip is the seek bar: drag along it to scrub the scene.
+const seekStudio = (t: number) => {
+  const state = slideEditor
+  if (!state?.driver) return
+  const clamped = Math.max(0, Math.min(state.driver.durationMs, t))
+  state.driver.draw(clamped)
+  syncSlideScrub(clamped)
+  applyStudioStage(clamped)
+  syncStudioPlayhead(clamped)
+  const beat = beatAtTime(state, clamped)
+  if (beat !== state.current) {
+    state.current = beat
+    renderTeleprompter()
+    markPlayingWindow()
+    renderLineStage()
+  }
+}
+{
+  const strip = $('#se-strip') as HTMLElement
+  let dragging = false
+  const timeAt = (event: PointerEvent) => {
+    const state = slideEditor
+    if (!state?.driver) return 0
+    const box = strip.getBoundingClientRect()
+    return ((event.clientX - box.left) / Math.max(1, box.width)) * state.driver.durationMs
+  }
+  strip.addEventListener('pointerdown', event => {
+    if ((event.target as HTMLElement).closest('.scene-timeline-beat') && !event.shiftKey) return
+    dragging = true
+    strip.setPointerCapture(event.pointerId)
+    stopSlidePlayback()
+    seekStudio(timeAt(event))
+  })
+  strip.addEventListener('pointermove', event => {
+    if (dragging) seekStudio(timeAt(event))
+  })
+  const end = () => { dragging = false }
+  strip.addEventListener('pointerup', end)
+  strip.addEventListener('pointercancel', end)
 }
 
 const renderStudioScene = () => {
@@ -9441,8 +9484,13 @@ lineStageBox.querySelectorAll<HTMLButtonElement>('[data-line-layout]').forEach(b
     const window = state.windows[state.current]
     if (!window) return
     const layout = button.dataset.lineLayout || ''
-    if (layout) window.layout = layout as WindowLayout
-    else delete window.layout
+    if (layout) {
+      window.layout = layout as WindowLayout
+      window.layoutByAuthor = true
+    } else {
+      delete window.layout
+      delete window.layoutByAuthor
+    }
     state.lastChange = 'Changed where you are on a line'
     replan({ quiet: true, rerender: true })
   })
@@ -9768,6 +9816,7 @@ const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] =
         hero,
         ...(camera && camera.length ? { camera } : {}),
         ...(layout ? { layout } : {}),
+        ...(layout && window.layoutByAuthor ? { layoutByAuthor: true } : {}),
         ...(typeof window.intent === 'string' && window.intent ? { intent: window.intent as SceneWindow['intent'] } : {}),
       }
     })
@@ -10197,6 +10246,7 @@ const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolea
     plan: result.plan,
     position: scenePosition(state.nodeId),
     layouts: state.windows.map(window => window.layout),
+    layoutsByAuthor: state.windows.map(window => Boolean(window.layoutByAuthor)),
   })
   if (options.rerender !== false) renderWindowCards()
   renderSlideEditorPreview()
@@ -10666,7 +10716,7 @@ const renderStoryboard = () => {
     img.src = storyboardMockUrl({ family: entry.family, treatment: entry.treatment || '' })
     img.alt = entry.family
     const label = document.createElement('span')
-    label.textContent = `${entry.label} · ${entry.family}${entry.treatment ? ` / ${entry.treatment}` : ''}`
+    label.textContent = `${entry.label} · ${STAGE_LABELS[entry.family as StageFamily] || entry.family}${entry.treatment ? ` / ${entry.treatment}` : ''}`
     cell.append(img, label)
     storyboardBox.append(cell)
   })
@@ -10992,7 +11042,7 @@ const openSlideEditor = (nodeId: string) => {
           img.src = storyboardMockUrl({ family: entry.family, treatment: entry.treatment || '' })
           img.alt = entry.family
           const label = document.createElement('span')
-          label.textContent = `${entry.label} · ${entry.family}`
+          label.textContent = `${entry.label} · ${STAGE_LABELS[entry.family as StageFamily] || entry.family}`
           cell.append(img, label)
           storyboardBox.append(cell)
         })
