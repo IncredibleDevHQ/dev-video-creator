@@ -9070,7 +9070,7 @@ type SlideEditorState = {
   scriptApproved: boolean
   windows: SceneWindow[]
   breakdownApproved: boolean
-  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string; version?: string; seconds?: number } | null
+  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string; version?: string; seconds?: number; storyboard?: DirectorResult['storyboard'] } | null
   // When set, the preview runs this plan instead of the scene's (proposal preview).
   previewPlan: MotionPlanV2 | null
   // The dialogue as authored (paragraphs), so a re-cut by paragraph can
@@ -9303,7 +9303,7 @@ const studioStageTrack = (state: SlideEditorState): StageSegment[] => {
       if (fromAuto.length) return fromAuto
     }
   }
-  const storyboard = state.previewPlan ? [] : state.director?.storyboard || []
+  const storyboard = state.previewPlan ? state.proposal?.storyboard || [] : state.director?.storyboard || []
   const track = stageTrackFromStoryboard(storyboard, offsets, durations)
   return track.length ? track : [{ atMs: 0, family: 'content-pip' }]
 }
@@ -9373,7 +9373,7 @@ const renderStudioStrip = () => {
         label.textContent = STAGE_LABELS[first.family]
         button.append(label)
       }
-      button.addEventListener('click', () => selectWindow(index))
+      button.dataset.index = String(index)
       return button
     }),
   )
@@ -9401,11 +9401,12 @@ const renderLineStage = () => {
   const state = slideEditor
   const windows = state ? previewWindows(state) : []
   const window = windows[state?.current || 0]
-  if (!state || !window || state.previewPlan) {
+  if (!state || !window) {
     lineStageBox.hidden = true
     return
   }
   lineStageBox.hidden = false
+  lineStageBox.querySelector<HTMLElement>('.se-line-stage-buttons')!.hidden = Boolean(state.previewPlan)
   const model = studioBeatModel(state)
   const segment = model ? stageAt(model.frames, model.beats[state.current]?.atMs || 0) : null
   const family = segment?.family || 'content-pip'
@@ -9448,8 +9449,10 @@ const seekStudio = (t: number) => {
   }
 }
 {
+  // A press on the strip is a click on a line until the pointer moves;
+  // then it is a scrub. Either way it starts anywhere, beats included.
   const strip = $('#se-strip') as HTMLElement
-  let dragging = false
+  let press: { x: number; index: number | null; dragged: boolean } | null = null
   const timeAt = (event: PointerEvent) => {
     const state = slideEditor
     if (!state?.driver) return 0
@@ -9457,18 +9460,32 @@ const seekStudio = (t: number) => {
     return ((event.clientX - box.left) / Math.max(1, box.width)) * state.driver.durationMs
   }
   strip.addEventListener('pointerdown', event => {
-    if ((event.target as HTMLElement).closest('.scene-timeline-beat') && !event.shiftKey) return
-    dragging = true
+    const beat = (event.target as HTMLElement).closest<HTMLElement>('.scene-timeline-beat')
+    press = { x: event.clientX, index: beat ? Number(beat.dataset.index) : null, dragged: false }
     strip.setPointerCapture(event.pointerId)
-    stopSlidePlayback()
-    seekStudio(timeAt(event))
   })
   strip.addEventListener('pointermove', event => {
-    if (dragging) seekStudio(timeAt(event))
+    if (!press) return
+    if (!press.dragged && Math.abs(event.clientX - press.x) < 3) return
+    if (!press.dragged) {
+      press.dragged = true
+      stopSlidePlayback()
+    }
+    seekStudio(timeAt(event))
   })
-  const end = () => { dragging = false }
+  const end = (event: PointerEvent) => {
+    if (!press) return
+    const { index, dragged } = press
+    press = null
+    if (dragged) return
+    if (index !== null && Number.isFinite(index)) selectWindow(index)
+    else {
+      stopSlidePlayback()
+      seekStudio(timeAt(event))
+    }
+  }
   strip.addEventListener('pointerup', end)
-  strip.addEventListener('pointercancel', end)
+  strip.addEventListener('pointercancel', () => { press = null })
 }
 
 const renderStudioScene = () => {
@@ -10017,20 +10034,26 @@ const syncWindowDetails = () => {
 
 const selectWindow = (index: number) => {
   const state = slideEditor
-  if (!state || state.previewPlan) return
-  if (state.current === index) return
+  if (!state) return
+  const count = previewWindows(state).length
+  const target = Math.max(0, Math.min(count - 1, index))
+  if (state.current === target) return
   stopSlidePlayback()
-  state.current = index
+  state.current = target
   markPlayingWindow()
-  syncWindowDetails()
   renderTeleprompter()
+  const plan = state.previewPlan || state.motion
   if (state.driver) {
-    state.driver.setStep(index, 1)
-    syncSlideScrub(state.driver.offsets[index] + (state.motion?.steps[index]?.motionWindowMs || 0))
+    state.driver.setStep(target, 1)
+    syncSlideScrub(state.driver.offsets[target] + (plan?.steps[target]?.motionWindowMs || 0))
   }
-  highlightWindowParts()
+  // Editing affordances belong to the scene's own windows, not a preview.
+  if (!state.previewPlan) {
+    syncWindowDetails()
+    highlightWindowParts()
+  }
   renderLineStage()
-  applyStudioStage(state.driver?.offsets[index] || 0)
+  applyStudioStage(state.driver?.offsets[target] || 0)
   syncStudioPlayhead()
 }
 
@@ -10438,7 +10461,12 @@ const requestProposal = async (instruction: string) => {
     if (!windows.length) throw new Error('The writer returned nothing usable')
     hideWriting()
     const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
-    state.proposal = { windows, plan: planned?.plan || null, source: instruction ? `“${instruction.slice(0, 48)}${instruction.length > 48 ? '…' : ''}”` : 'with the page' }
+    // The proposal is staged like the scene would be, so the preview shows
+    // the frames it would get.
+    const staged = planned
+      ? direct({ title: String(found?.attrs.title || 'Scene'), units: state.units, viewBox: state.viewBox, beats: planned.beats, plan: planned.plan, position: scenePosition(state.nodeId), layouts: windows.map(window => window.layout), layoutsByAuthor: windows.map(window => Boolean(window.layoutByAuthor)) })
+      : null
+    state.proposal = { windows, plan: planned?.plan || null, storyboard: staged?.storyboard, source: instruction ? `“${instruction.slice(0, 48)}${instruction.length > 48 ? '…' : ''}”` : 'with the page' }
     writeNote.value = ''
     if (!state.windows.length) {
       // Nothing to compare against: take it straight in.
@@ -10614,7 +10642,8 @@ const previewSceneVersion = (version: SceneVersion) => {
   stopSlidePlayback()
   const windows = sanitizeWindows(version.snapshot.windows, state)
   const plan = sanitizeMotionPlan(version.snapshot.motion) || (windows.length ? planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })?.plan || null : null)
-  state.proposal = { windows, plan, source: `version · ${version.label}, ${timeAgo(version.at)}`, version: version.id, seconds: version.seconds }
+  const auto = version.snapshot.directorAuto as { storyboard?: DirectorResult['storyboard'] } | null | undefined
+  state.proposal = { windows, plan, source: `version · ${version.label}, ${timeAgo(version.at)}`, version: version.id, seconds: version.seconds, storyboard: auto?.storyboard }
   state.previewPlan = plan
   state.current = 0
   versionsPanel.hidden = true
