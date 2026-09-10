@@ -1993,3 +1993,39 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .se-storyboard .se-board small { font: 500 9.5px/1.3 system-ui; color: #71717a; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .se-line-stage-text em { font-style: normal; color: #52525b; }
 .se-transport .se-step-button { width: 28px; height: 28px; }
+
+/* ——— Select on the frame, ask right there ——— */
+.slide-editor-preview .se-hit.is-selected { fill: rgba(96,165,250,.16); stroke: #60a5fa; stroke-width: 2.5; }
+.slide-editor-preview .se-hit.is-selected:hover { fill: rgba(96,165,250,.24); stroke: #60a5fa; }
+.se-frame-camera { cursor: pointer; }
+.se-frame[data-stage="content-full"] .se-frame-camera { pointer-events: none; }
+.se-frame-camera.is-selected { outline: 3px solid #60a5fa; outline-offset: 2px; }
+.se-frame-hint { position: absolute; left: 12px; bottom: 10px; z-index: 3; font: 500 11px/1.2 system-ui; color: rgba(255,255,255,.62); background: rgba(8,12,20,.55); padding: 5px 9px; border-radius: 999px; pointer-events: none; backdrop-filter: blur(6px); }
+.se-bubble { position: absolute; z-index: 5; width: min(360px, 88%); box-sizing: border-box; background: rgba(16,22,32,.96); color: #e5e7eb; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,.45); padding: 10px 12px 9px; font: 12px/1.35 system-ui; backdrop-filter: blur(10px); }
+.se-bubble-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; margin-bottom: 8px; }
+.se-bubble-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.se-bubble-head button { background: none; border: 0; color: inherit; font-size: 17px; line-height: 1; cursor: pointer; opacity: .7; padding: 0 2px; }
+.se-bubble-head button:hover { opacity: 1; }
+.se-bubble-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.se-bubble-quick[hidden] { display: none; }
+.se-bubble-chip { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; border-radius: 999px; padding: 4px 10px; font: 500 12px/1.2 system-ui; cursor: pointer; }
+.se-bubble-chip:hover { background: rgba(255,255,255,.14); }
+.se-bubble-chip.is-active { background: rgba(96,165,250,.28); border-color: #60a5fa; }
+.se-bubble-chip.is-ai::before { content: '✦ '; opacity: .8; }
+.se-bubble-scope { display: inline-flex; border: 1px solid rgba(255,255,255,.16); border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+.se-bubble-scope[hidden] { display: none; }
+.se-bubble-scope button { background: transparent; border: 0; border-right: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.75); padding: 4px 9px; font: 600 11px/1.2 system-ui; cursor: pointer; }
+.se-bubble-scope button:last-child { border-right: 0; }
+.se-bubble-scope button.is-active { background: rgba(255,255,255,.92); color: #111; }
+.se-bubble-row { display: flex; gap: 6px; }
+.se-bubble-row input { flex: 1; min-width: 0; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: inherit; border-radius: 8px; padding: 6px 8px; font: 12px/1.2 system-ui; }
+.se-bubble-row input:disabled, .se-bubble-row button:disabled { opacity: .45; }
+.se-bubble-row input::placeholder { color: rgba(255,255,255,.4); }
+.se-bubble-row .button { padding: 5px 12px; font-size: 12px; }
+.se-bubble-note { margin-top: 6px; font-size: 11px; color: rgba(255,255,255,.6); }
+.se-text-edit { position: absolute; z-index: 6; min-width: 120px; min-height: 24px; }
+.se-text-edit input { width: 100%; height: 100%; box-sizing: border-box; font: 500 13px/1.2 system-ui; background: #fff; color: #111; border: 2px solid #60a5fa; border-radius: 4px; padding: 0 6px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+/* A proposal that came from an ask: the changed lines are the point */
+.se-window.is-changed { border-left-color: #60a5fa; background: rgba(96,165,250,.06); }
+.se-windows.has-changes .se-window:not(.is-changed) { opacity: .62; }
+.se-tag.is-changed { background: rgba(96,165,250,.16); color: #1d4ed8; }

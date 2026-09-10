@@ -501,7 +501,19 @@
           <!-- The frame as the viewer sees it: you and the page, placed as the director decided for this line -->
           <div id="se-frame" class="se-frame" data-stage="content-full">
             <div id="se-frame-content" class="se-frame-content"><div id="slide-editor-preview" class="slide-editor-preview"></div></div>
-            <div id="se-frame-camera" class="se-frame-camera"><img id="se-frame-presenter" alt="" /></div>
+            <div id="se-frame-camera" class="se-frame-camera" title="You — click to change where you are, or ask"><img id="se-frame-presenter" alt="" /></div>
+            <!-- A quiet pointer to the way in, until something is selected -->
+            <div id="se-frame-hint" class="se-frame-hint" hidden>Click a part of the page — or yourself — to change it</div>
+            <!-- The ask, right where the selection is -->
+            <div id="se-bubble" class="se-bubble" hidden>
+              <div class="se-bubble-head"><span id="se-bubble-what"></span><button type="button" id="se-bubble-close" aria-label="Clear the selection" title="Clear the selection (Esc)">×</button></div>
+              <div id="se-bubble-quick" class="se-bubble-quick"></div>
+              <div id="se-bubble-scope" class="se-bubble-scope" role="group" aria-label="How far the change may reach"></div>
+              <div class="se-bubble-row"><input id="se-bubble-input" type="text" placeholder="Ask for a change…" /><button type="button" id="se-bubble-ask" class="button primary">Ask</button></div>
+              <div id="se-bubble-note" class="se-bubble-note"></div>
+            </div>
+            <!-- In-place edit of the words on the page -->
+            <div id="se-text-edit" class="se-text-edit" hidden><input id="se-text-edit-input" type="text" aria-label="The words on the page" /></div>
           </div>
           <!-- Where you are in the scene: the beats, coloured by who owns the frame -->
           <div class="se-transport">

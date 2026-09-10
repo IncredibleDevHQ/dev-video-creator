@@ -9070,7 +9070,7 @@ type SlideEditorState = {
   scriptApproved: boolean
   windows: SceneWindow[]
   breakdownApproved: boolean
-  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string; version?: string; seconds?: number; storyboard?: DirectorResult['storyboard'] } | null
+  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string; version?: string; seconds?: number; storyboard?: DirectorResult['storyboard']; changes?: Record<number, string>; summary?: string } | null
   // When set, the preview runs this plan instead of the scene's (proposal preview).
   previewPlan: MotionPlanV2 | null
   // The dialogue as authored (paragraphs), so a re-cut by paragraph can
@@ -9086,6 +9086,10 @@ type SlideEditorState = {
   depth: LengthDepth
   // What changed since the last save — the label of the next version.
   lastChange: string
+  // What is selected on the frame — parts of the page, you, or both — and
+  // how far an ask about it may reach.
+  selection: { parts: string[]; speaker: boolean }
+  editScope: EditScope
 }
 let slideEditor: SlideEditorState | null = null
 
@@ -9215,6 +9219,7 @@ const renderSlideEditorPreview = () => {
     hit.setAttribute('height', String(Math.max(10, unit.bbox.height + pad * 2)))
     hit.setAttribute('rx', '3')
     hit.dataset.unit = unit.id
+    if (state.selection.parts.includes(unit.id)) hit.classList.add('is-selected')
     const at = stepIndexOfUnit(state, unit)
     if (state.windows.length) {
       const window = state.previewPlan ? null : state.windows[state.current]
@@ -9233,7 +9238,7 @@ const renderSlideEditorPreview = () => {
     hit.append(title)
     hit.addEventListener('click', event => {
       event.stopPropagation()
-      toggleUnitInStep(unit)
+      selectOnFrame({ part: unit.id, extend: event.shiftKey || event.metaKey || event.ctrlKey })
     })
     overlay.append(hit)
     if (at >= 0 && !state.motion && !state.windows.length) {
@@ -9446,6 +9451,7 @@ const seekStudio = (t: number) => {
     renderTeleprompter()
     markPlayingWindow()
     renderLineStage()
+    renderFrameBubble()
   }
 }
 {
@@ -9495,6 +9501,7 @@ const renderStudioScene = () => {
   renderLineStage()
   const model = studioBeatModel(state)
   applyStudioStage(model?.beats[Math.min(state.current, (model?.beats.length || 1) - 1)]?.atMs || 0)
+  renderFrameBubble()
 }
 
 lineStageBox.querySelectorAll<HTMLButtonElement>('[data-line-layout]').forEach(button => {
@@ -9777,6 +9784,7 @@ scrubInput.addEventListener('input', () => {
     renderTeleprompter()
     markPlayingWindow()
     renderLineStage()
+    renderFrameBubble()
   }
 })
 
@@ -9845,9 +9853,9 @@ const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] =
 
 const layoutLabel: Record<WindowLayout, string> = { page: 'Page owns the frame', beside: 'Beside me', me: 'On me' }
 
-const windowCard = (state: SlideEditorState, window: SceneWindow, index: number, options: { editable: boolean; onChange: () => void }) => {
+const windowCard = (state: SlideEditorState, window: SceneWindow, index: number, options: { editable: boolean; onChange: () => void; changed?: string }) => {
   const row = document.createElement('li')
-  row.className = `se-window${index === state.current && options.editable ? ' is-current' : ''}`
+  row.className = `se-window${index === state.current && options.editable ? ' is-current' : ''}${options.changed ? ' is-changed' : ''}`
   const number = document.createElement('span')
   number.className = 'se-num'
   number.textContent = String(index + 1)
@@ -9902,6 +9910,7 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
   // Reading first: the line only. What it points at lives in the tooltip
   // and, for the selected window, in its details below. Only a window that
   // names nothing on the page (and isn't on you) says so.
+  if (options.changed) tag(options.changed === 'new line' || options.changed === 'changed' ? options.changed : `changed — ${options.changed}`, 'is-changed')
   if (window.layout === 'me') tag('on you', 'is-me')
   else if (!window.parts.length) tag('names nothing on the page', 'is-warn')
   const pointsAt = window.parts.map(id => unitOf(state, id)?.label || id)
@@ -10055,6 +10064,7 @@ const selectWindow = (index: number) => {
   renderLineStage()
   applyStudioStage(state.driver?.offsets[target] || 0)
   syncStudioPlayhead()
+  renderFrameBubble()
 }
 
 const highlightWindowParts = () => {
@@ -10107,9 +10117,11 @@ const renderLengthBrief = () => {
   const reasons = brief.reasons.join(', ')
   if (proposalOpen) {
     nextTitle.textContent = state.proposal?.version ? 'Restore this version, or keep the current one' : 'Accept the proposal, or discard it'
+    const changedCount = state.proposal?.changes ? Object.keys(state.proposal.changes).length : 0
+    const editSummary = state.proposal?.summary ? `${state.proposal.summary.replace(/\.?$/, '.')} ${changedCount ? `${changedCount} line${changedCount === 1 ? '' : 's'} changed, marked in the list. ` : ''}` : ''
     ;($('#se-length-why') as HTMLElement).textContent = state.proposal?.version
       ? 'It is playing on the left. Restore brings it back as a new version; Discard keeps what you have.'
-      : 'It is playing on the left. Accept replaces the current dialogue; the old one stays in Versions once you save. Discard keeps what you have.'
+      : `${editSummary}It is playing on the left. Accept replaces the current dialogue; the old one stays in Versions once you save. Discard keeps what you have.`
     writeButton.hidden = true
     nextSave.hidden = true
     nextNote.textContent = ''
@@ -10513,12 +10525,15 @@ const renderProposal = () => {
   }
   proposalBox.hidden = false
   const seconds = state.proposal.plan ? Math.round(motionPlanDurationSeconds(state.proposal.plan) * 10) / 10 : state.proposal.seconds || 0
-  proposalMeta.textContent = `${state.proposal.windows.length ? `${state.proposal.windows.length} windows · ` : 'a written draft · '}≈ ${seconds}s · ${state.proposal.source}`
+  const changes = state.proposal.changes || {}
+  const changed = Object.keys(changes).length
+  proposalMeta.textContent = `${state.proposal.windows.length ? `${state.proposal.windows.length} windows · ` : 'a written draft · '}≈ ${seconds}s · ${state.proposal.source}${changed ? ` · ${changed} line${changed === 1 ? '' : 's'} changed` : ''}`
   const viewing = Boolean(state.previewPlan)
   proposalList.hidden = !viewing
+  proposalList.classList.toggle('has-changes', changed > 0)
   if (viewing) {
     state.proposal.windows.forEach((window, index) => {
-      proposalList.append(windowCard(state, window, index, { editable: false, onChange: () => undefined }))
+      proposalList.append(windowCard(state, window, index, { editable: false, onChange: () => undefined, changed: changes[index] }))
     })
   }
   proposalPreviewButton.textContent = viewing ? 'Show current' : 'Show proposal'
@@ -10570,7 +10585,7 @@ proposalAcceptButton.addEventListener('click', () => {
     restoreSceneVersion(state.proposal.version)
     return
   }
-  acceptWindows(state.proposal.windows, 'accepted from the writer')
+  acceptWindows(state.proposal.windows, state.proposal.changes ? 'edited on the frame' : 'accepted from the writer')
   renderProposal()
 })
 
@@ -10936,6 +10951,621 @@ const renderSlideEditorSteps = () => {
   }
 }
 
+// ——— Select on the frame, ask right there ———
+// Anything on the frame can be picked — a part of the page, several with
+// shift, or you — and the ask appears beside it: the quick changes that
+// need no model (say it on this line, make it the hero, camera in, where
+// you are), the words on the page edited in place, and a free ask that an
+// editor answers with the frame in front of it. An ask comes back as a
+// proposal with the changed lines marked, so nothing moves until Accept.
+type EditScope = 'line' | 'part' | 'scene'
+const EDIT_SCOPES: Array<{ id: EditScope; label: string; title: string }> = [
+  { id: 'line', label: 'This line', title: 'Change this line; other lines only where the flow would break' },
+  { id: 'part', label: 'Wherever it appears', title: 'Every line that speaks about the selected parts may change' },
+  { id: 'scene', label: 'Whole scene', title: 'Rethink the scene as a whole around this ask' },
+]
+const frameBubble = $('#se-bubble') as HTMLElement
+const bubbleWhat = $('#se-bubble-what') as HTMLElement
+const bubbleQuick = $('#se-bubble-quick') as HTMLElement
+const bubbleScope = $('#se-bubble-scope') as HTMLElement
+const bubbleInput = $('#se-bubble-input') as HTMLInputElement
+const bubbleAsk = $('#se-bubble-ask') as HTMLButtonElement
+const bubbleNote = $('#se-bubble-note') as HTMLElement
+const frameHint = $('#se-frame-hint') as HTMLElement
+const textEdit = $('#se-text-edit') as HTMLElement
+const textEditInput = $('#se-text-edit-input') as HTMLInputElement
+
+const selectedUnits = (state: SlideEditorState) => state.selection.parts.map(id => unitOf(state, id)).filter((unit): unit is SlideUnit => Boolean(unit))
+
+const paintSelection = () => {
+  const state = slideEditor
+  if (!state) return
+  slideEditorPreview.querySelectorAll<SVGRectElement>('.se-hit').forEach(hit => hit.classList.toggle('is-selected', state.selection.parts.includes(hit.dataset.unit || '')))
+  studioFrameCamera.classList.toggle('is-selected', state.selection.speaker)
+}
+
+const selectOnFrame = (pick: { part?: string; speaker?: boolean; extend?: boolean }) => {
+  const state = slideEditor
+  if (!state) return
+  closeTextEdit()
+  const selection = state.selection
+  if (pick.part) {
+    if (pick.extend) {
+      selection.parts = selection.parts.includes(pick.part) ? selection.parts.filter(id => id !== pick.part) : [...selection.parts, pick.part]
+    } else {
+      const same = selection.parts.length === 1 && selection.parts[0] === pick.part && !selection.speaker
+      selection.parts = same ? [] : [pick.part]
+      selection.speaker = false
+    }
+  } else if (pick.speaker) {
+    if (pick.extend) selection.speaker = !selection.speaker
+    else {
+      const same = selection.speaker && !selection.parts.length
+      selection.speaker = !same
+      selection.parts = []
+    }
+  }
+  paintSelection()
+  renderFrameBubble()
+  if (!frameBubble.hidden && !bubbleInput.disabled) bubbleInput.focus({ preventScroll: true })
+}
+
+const clearSelection = () => {
+  const state = slideEditor
+  if (!state) return
+  state.selection = { parts: [], speaker: false }
+  closeTextEdit()
+  paintSelection()
+  renderFrameBubble()
+}
+
+// The words on the page: the <text> nodes a unit owns, in the live svg.
+const textNodesOf = (unit: SlideUnit): SVGTextElement[] => {
+  const svg = slideEditorPreview.querySelector('svg')
+  if (!svg) return []
+  const out: SVGTextElement[] = []
+  unit.ids.forEach(id => {
+    const element = svg.querySelector<SVGElement>(`#${CSS.escape(id)}`)
+    if (!element) return
+    if (element.tagName.toLowerCase() === 'text') out.push(element as SVGTextElement)
+    else element.querySelectorAll<SVGTextElement>('text').forEach(text => out.push(text))
+  })
+  return out
+}
+const normalizedText = (node: Element) => (node.textContent || '').replace(/\s+/g, ' ').trim()
+const labelTextNode = (unit: SlideUnit) => {
+  const nodes = textNodesOf(unit)
+  return nodes.find(node => normalizedText(node).startsWith(unit.label)) || nodes[0] || null
+}
+const unitHasText = (unit: SlideUnit) => (unit.kind === 'label' || unit.kind === 'box') && Boolean(labelTextNode(unit))
+
+// New words replace everything the text node held — sub- and superscript
+// spans included; a wrapped label keeps its first line's position.
+const setTextOf = (node: Element, text: string) => {
+  const spans = Array.from(node.children).filter(child => child.tagName.toLowerCase() === 'tspan')
+  const line = spans.find(span => span.hasAttribute('x'))
+  while (node.firstChild) node.removeChild(node.firstChild)
+  if (line) {
+    const keep = line.cloneNode(false) as Element
+    keep.textContent = text
+    node.append(keep)
+  } else node.textContent = text
+}
+
+// Writes new words into the live page and into the scene's svg (the one
+// that is saved), then re-plans so the label follows everywhere.
+const writeUnitText = (unit: SlideUnit, text: string) => {
+  const state = slideEditor
+  if (!state) return false
+  const live = labelTextNode(unit)
+  const svg = slideEditorPreview.querySelector('svg')
+  if (!live || !svg) return false
+  const words = text.replace(/\s+/g, ' ').trim()
+  if (!words || words === normalizedText(live)) return false
+  // Find the same node in the saved svg: by id when it has one, else by its
+  // place among the page's text nodes (the overlay's badges come last).
+  const order = Array.from(svg.querySelectorAll('text')).filter(node => !node.closest('.se-overlay')).indexOf(live)
+  const parsed = new DOMParser().parseFromString(state.svg, 'image/svg+xml')
+  const saved = (live.id && parsed.getElementById(live.id)) || Array.from(parsed.querySelectorAll('text'))[order] || null
+  if (!saved) return false
+  setTextOf(live, words)
+  setTextOf(saved, words)
+  state.svg = new XMLSerializer().serializeToString(parsed.documentElement)
+  unit.label = words.slice(0, 40)
+  state.lastChange = 'Edited the words on the page'
+  markDirty(true)
+  if (state.windows.length) replan({ quiet: true })
+  else renderSlideEditorPreview()
+  renderParts()
+  setSlideEditorStatus(`The page now says “${unit.label}”`, 'ok')
+  return true
+}
+
+let textEditing: { unit: SlideUnit } | null = null
+const closeTextEdit = () => {
+  textEditing = null
+  textEdit.hidden = true
+}
+const openTextEdit = (unit: SlideUnit) => {
+  const live = labelTextNode(unit)
+  const hit = slideEditorPreview.querySelector<SVGRectElement>(`.se-hit[data-unit="${CSS.escape(unit.id)}"]`)
+  if (!live || !hit) return
+  const frame = studioFrame.getBoundingClientRect()
+  const box = hit.getBoundingClientRect()
+  textEditing = { unit }
+  textEdit.hidden = false
+  textEdit.style.left = `${Math.max(4, box.left - frame.left)}px`
+  textEdit.style.top = `${Math.max(4, box.top - frame.top)}px`
+  textEdit.style.width = `${Math.max(140, Math.min(frame.width - 8, box.width))}px`
+  textEdit.style.height = `${Math.max(26, Math.min(48, box.height))}px`
+  textEditInput.value = normalizedText(live)
+  frameBubble.hidden = true
+  textEditInput.focus()
+  textEditInput.select()
+  textEditInput.scrollLeft = 0
+}
+const commitTextEdit = () => {
+  const editing = textEditing
+  if (!editing) return
+  const value = textEditInput.value
+  closeTextEdit()
+  writeUnitText(editing.unit, value)
+  renderFrameBubble()
+}
+textEditInput.addEventListener('keydown', event => {
+  event.stopPropagation()
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    commitTextEdit()
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    closeTextEdit()
+    renderFrameBubble()
+  }
+})
+textEditInput.addEventListener('blur', () => {
+  if (textEditing) commitTextEdit()
+})
+textEdit.addEventListener('click', event => event.stopPropagation())
+
+// The bubble sits by the selection and follows it while the frame glides.
+let bubbleFollow = 0
+const positionBubble = () => {
+  const state = slideEditor
+  if (!state || frameBubble.hidden) return
+  const frame = studioFrame.getBoundingClientRect()
+  if (!frame.width) return
+  const rects: DOMRect[] = []
+  state.selection.parts.forEach(id => {
+    const hit = slideEditorPreview.querySelector<SVGRectElement>(`.se-hit[data-unit="${CSS.escape(id)}"]`)
+    if (hit) rects.push(hit.getBoundingClientRect())
+  })
+  if (state.selection.speaker) rects.push(studioFrameCamera.getBoundingClientRect())
+  if (!rects.length) return
+  const left = Math.min(...rects.map(rect => rect.left)) - frame.left
+  const right = Math.max(...rects.map(rect => rect.right)) - frame.left
+  const top = Math.min(...rects.map(rect => rect.top)) - frame.top
+  const bottom = Math.max(...rects.map(rect => rect.bottom)) - frame.top
+  const width = frameBubble.offsetWidth
+  const height = frameBubble.offsetHeight
+  // Below the selection, else above, else beside it — never over it when
+  // there is any other room.
+  let x = Math.max(8, Math.min(frame.width - width - 8, (left + right) / 2 - width / 2))
+  const below = bottom + 10
+  const above = top - height - 10
+  let y: number
+  if (below + height <= frame.height - 8) y = below
+  else if (above >= 8) y = above
+  else {
+    y = Math.max(8, Math.min(frame.height - height - 8, (top + bottom) / 2 - height / 2))
+    if (right + 10 + width <= frame.width - 8) x = right + 10
+    else if (left - width - 10 >= 8) x = left - width - 10
+  }
+  frameBubble.style.left = `${Math.round(x)}px`
+  frameBubble.style.top = `${Math.round(y)}px`
+}
+const startBubbleFollow = () => {
+  if (bubbleFollow) return
+  const tick = () => {
+    positionBubble()
+    bubbleFollow = frameBubble.hidden ? 0 : requestAnimationFrame(tick)
+  }
+  bubbleFollow = requestAnimationFrame(tick)
+}
+
+const renderScopeChips = (state: SlideEditorState) => {
+  bubbleScope.replaceChildren()
+  const scopes = state.selection.parts.length ? EDIT_SCOPES : EDIT_SCOPES.filter(scope => scope.id !== 'part')
+  if (!scopes.some(scope => scope.id === state.editScope)) state.editScope = 'line'
+  scopes.forEach(scope => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = scope.label
+    button.title = scope.title
+    button.classList.toggle('is-active', state.editScope === scope.id)
+    button.addEventListener('click', event => {
+      event.stopPropagation()
+      state.editScope = scope.id
+      renderScopeChips(state)
+    })
+    bubbleScope.append(button)
+  })
+}
+
+const renderFrameBubble = () => {
+  const state = slideEditor
+  const has = Boolean(state && (state.selection.parts.length || state.selection.speaker))
+  frameHint.hidden = !state || has || !state.windows.length || Boolean(state.previewPlan)
+  if (!state || !has || textEditing) {
+    if (!textEditing) frameBubble.hidden = true
+    return
+  }
+  frameBubble.hidden = false
+  const units = selectedUnits(state)
+  const names = units.map(unit => unit.label)
+  const previewing = Boolean(state.previewPlan)
+  const window = previewing ? null : state.windows[state.current]
+  bubbleWhat.textContent = `${[state.selection.speaker ? 'You' : '', ...names].filter(Boolean).join(' + ')}${state.windows.length ? ` · line ${state.current + 1}` : ''}`
+  bubbleWhat.title = bubbleWhat.textContent
+  bubbleQuick.replaceChildren()
+  const quick = (label: string, title: string, run: () => void, options: { active?: boolean; ai?: boolean } = {}) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = `se-bubble-chip${options.active ? ' is-active' : ''}${options.ai ? ' is-ai' : ''}`
+    button.textContent = label
+    button.title = title
+    button.addEventListener('click', event => {
+      event.stopPropagation()
+      run()
+    })
+    bubbleQuick.append(button)
+  }
+  const askable = !previewing && state.windows.length > 0 && Boolean(window)
+  bubbleAsk.disabled = !askable
+  bubbleInput.disabled = !askable
+  bubbleScope.hidden = !askable
+  if (previewing) {
+    bubbleNote.textContent = 'Accept or discard the proposal first — then the frame is yours to change.'
+  } else if (!window) {
+    if (units.length) quick('Name it in the text', 'Insert the name where the cursor is', () => units.forEach(unit => toggleUnitInStep(unit)))
+    if (units.length === 1 && unitHasText(units[0])) quick('Edit the words', 'Change what the page says here', () => openTextEdit(units[0]))
+    bubbleNote.textContent = 'Write the first draft; then every ask on the frame reaches the editor.'
+  } else {
+    if (units.length) {
+      const allIn = units.every(unit => window.parts.includes(unit.id))
+      quick(
+        allIn ? (units.length > 1 ? 'Said on this line' : 'Said on this line') : units.length > 1 ? 'Say them on this line' : 'Say it on this line',
+        allIn ? 'This line points at it — click to take it off the line' : 'Point this line at it (the motion follows)',
+        () => {
+          if (allIn) {
+            window.parts = window.parts.filter(id => !state.selection.parts.includes(id))
+            if (window.hero && state.selection.parts.includes(window.hero)) window.hero = window.parts[0]
+          } else {
+            window.parts = [...new Set([...window.parts, ...state.selection.parts])]
+            if (!window.hero) window.hero = state.selection.parts[0]
+          }
+          window.pinned = true
+          state.lastChange = 'Changed what a line points at'
+          replan({ quiet: true })
+          renderFrameBubble()
+        },
+        { active: allIn },
+      )
+      if (units.length === 1) {
+        const unit = units[0]
+        const isHero = window.hero === unit.id
+        quick(isHero ? 'Hero of this line' : 'Make it the hero', isHero ? 'The line builds around it — click to let the line choose' : 'The line builds around it', () => {
+          window.hero = isHero ? undefined : unit.id
+          if (!isHero && !window.parts.includes(unit.id)) window.parts = [...window.parts, unit.id]
+          window.pinned = true
+          state.lastChange = 'Changed the hero of a line'
+          replan({ quiet: true })
+          renderFrameBubble()
+        }, { active: isHero })
+        const cameraOn = (window.camera || []).includes(unit.id)
+        quick(cameraOn ? 'Camera is in on it' : 'Camera in on it', cameraOn ? 'Click to let the camera stay wide' : 'The camera moves in on it during this line', () => {
+          window.camera = cameraOn ? (window.camera || []).filter(id => id !== unit.id) : [...(window.camera || []), unit.id]
+          if (!window.camera.length) delete window.camera
+          state.lastChange = 'Changed the camera on a line'
+          replan({ quiet: true })
+          renderFrameBubble()
+        }, { active: cameraOn })
+        if (unitHasText(unit)) quick('Edit the words', 'Change what the page says here', () => openTextEdit(unit))
+      }
+      quick('Rewrite the line around it', 'The editor rewrites this line so it turns on the selection', () => void requestEdit(`Rewrite this line so it turns on ${names.join(' and ')}.`, 'line'), { ai: true })
+    }
+    if (state.selection.speaker) {
+      const wish = window.layoutByAuthor ? window.layout || '' : ''
+      const places: Array<[WindowLayout | '', string, string]> = [
+        ['page', 'Page', 'The page owns the frame on this line'],
+        ['beside', 'Both', 'You beside the page'],
+        ['me', 'You', 'You alone in frame'],
+        ['', 'Auto', 'Let the director place you'],
+      ]
+      places.forEach(([layout, label, title]) =>
+        quick(label, title, () => {
+          if (layout) {
+            window.layout = layout
+            window.layoutByAuthor = true
+          } else {
+            delete window.layout
+            delete window.layoutByAuthor
+          }
+          state.lastChange = 'Changed where you are on a line'
+          replan({ quiet: true, rerender: true })
+          renderFrameBubble()
+        }, { active: layout ? wish === layout : !wish }),
+      )
+      if (!units.length) quick('Give me more room', 'The editor rethinks this line with you larger in frame', () => void requestEdit('Give the presenter more room on this line — say less about the page here, or move the page talk to the neighbouring lines.', 'line'), { ai: true })
+    }
+    renderScopeChips(state)
+    bubbleInput.placeholder = state.selection.speaker && !units.length ? 'e.g. step aside for the diagram here' : 'e.g. explain this before the table, plainer'
+    bubbleNote.textContent = 'You get a proposal with the changed lines marked — nothing changes until you accept.'
+  }
+  positionBubble()
+  startBubbleFollow()
+}
+
+// A picture of the frame as it is right now — the page at this line, you
+// where the director put you — for the editor to look at.
+const frameScreenshot = async (): Promise<string | null> => {
+  const state = slideEditor
+  const svg = slideEditorPreview.querySelector('svg')
+  if (!state || !svg) return null
+  try {
+    const W = 960
+    const H = 540
+    const canvas = document.createElement('canvas')
+    canvas.width = W
+    canvas.height = H
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    const glow = ctx.createRadialGradient(W / 2, H * 0.4, 0, W / 2, H * 0.4, W * 0.7)
+    glow.addColorStop(0, '#1b2434')
+    glow.addColorStop(1, '#0b111b')
+    ctx.fillStyle = glow
+    ctx.fillRect(0, 0, W, H)
+    const frame = studioFrame.getBoundingClientRect()
+    if (!frame.width) return null
+    const boxOf = (element: HTMLElement) => {
+      const rect = element.getBoundingClientRect()
+      return { x: ((rect.left - frame.left) / frame.width) * W, y: ((rect.top - frame.top) / frame.height) * H, w: (rect.width / frame.width) * W, h: (rect.height / frame.height) * H }
+    }
+    const load = (src: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image()
+        image.onload = () => resolve(image)
+        image.onerror = () => reject(new Error('image failed'))
+        image.src = src
+      })
+    const rounded = (box: { x: number; y: number; w: number; h: number }, radius: number) => {
+      ctx.beginPath()
+      ctx.roundRect(box.x, box.y, box.w, box.h, radius)
+    }
+    const stage = studioFrame.dataset.stage || 'content-full'
+    const drawPage = async () => {
+      if (stage === 'speaker-full' && !studioFrame.dataset.stageTreatment) return
+      const clone = svg.cloneNode(true) as SVGSVGElement
+      clone.querySelector('.se-overlay')?.remove()
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+      clone.setAttribute('width', String(state.viewBox.width))
+      clone.setAttribute('height', String(state.viewBox.height))
+      const page = await load(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(clone))}`)
+      const box = boxOf(studioFrameContent)
+      if (studioFrameContent.classList.contains('is-board') || studioFrameContent.classList.contains('is-card')) {
+        ctx.fillStyle = 'rgba(8,12,10,.55)'
+        rounded(box, 14)
+        ctx.fill()
+      }
+      const scale = Math.min(box.w / state.viewBox.width, box.h / state.viewBox.height)
+      const dw = state.viewBox.width * scale
+      const dh = state.viewBox.height * scale
+      ctx.drawImage(page, box.x + (box.w - dw) / 2, box.y + (box.h - dh) / 2, dw, dh)
+    }
+    const drawCamera = async () => {
+      if (stage === 'content-full') return
+      const box = boxOf(studioFrameCamera)
+      const image = await load(selectedPreviewPresenter().url).catch(() => null)
+      ctx.save()
+      if (studioFrameCamera.classList.contains('shape-circle')) {
+        ctx.beginPath()
+        ctx.ellipse(box.x + box.w / 2, box.y + box.h / 2, box.w / 2, box.h / 2, 0, 0, Math.PI * 2)
+      } else rounded(box, studioFrameCamera.classList.contains('shape-full') ? 0 : 8)
+      ctx.clip()
+      ctx.fillStyle = '#222'
+      ctx.fillRect(box.x, box.y, box.w, box.h)
+      if (image) {
+        const scale = Math.max(box.w / image.width, box.h / image.height)
+        const dw = image.width * scale
+        const dh = image.height * scale
+        ctx.drawImage(image, box.x + (box.w - dw) / 2, box.y + (box.h - dh) * 0.18, dw, dh)
+      }
+      ctx.restore()
+    }
+    if (stage === 'speaker-full') {
+      await drawCamera()
+      await drawPage()
+    } else {
+      await drawPage()
+      await drawCamera()
+    }
+    return canvas.toDataURL('image/png')
+  } catch (error) {
+    console.warn('frame screenshot failed', error)
+    return null
+  }
+}
+
+// The frame of a line, in words the editor can weigh.
+const stageWords = (segment: StageSegment) => {
+  const family = segment.family
+  if (family === 'content-full') return 'page only'
+  if (family === 'speaker-full') return segment.treatment === 'board' ? 'you full frame, the page on a board over you' : segment.treatment === 'overlay' ? 'you full frame, the page over you' : 'you only'
+  if (family === 'speaker-lead') return 'you large, the page as a card beside you'
+  if (family === 'speaker-panel') return 'you with a panel of the page'
+  if (family === 'split') return 'split: you and the page side by side'
+  if (family === 'content-lead') return 'page large, you beside it'
+  return `page owns the frame, you small (${STAGE_LABELS[family]})`
+}
+
+// The ask goes to the editor with the page, the dialogue, the selection,
+// the scope and the picture; the answer becomes a proposal whose changed
+// lines carry the editor's reasons.
+const requestEdit = async (instruction: string, scope: EditScope) => {
+  const state = slideEditor
+  if (!state || writing || !state.windows.length || state.previewPlan) return
+  const ask = instruction.trim()
+  if (!ask) {
+    bubbleInput.focus()
+    return
+  }
+  const units = selectedUnits(state)
+  const speaker = state.selection.speaker
+  const line = Math.min(state.current, state.windows.length - 1)
+  const controller = new AbortController()
+  const startedAt = performance.now()
+  showWriting(`Rethinking line ${line + 1} with the frame in front of the editor…`, ask)
+  const detailBase = writingDetail.textContent?.replace(/ · 0 s$/, '') || ''
+  writing = {
+    controller,
+    startedAt,
+    timer: window.setInterval(() => {
+      const seconds = Math.round((performance.now() - startedAt) / 1000)
+      writingDetail.textContent = `${detailBase} · ${seconds} s`
+    }, 1000),
+  }
+  bubbleAsk.disabled = true
+  setSlideEditorStatus(`Rethinking line ${line + 1} with the frame in front of the editor…`)
+  try {
+    const screenshot = await frameScreenshot()
+    const found = findSlideLikeNode(state.nodeId)
+    const model = studioBeatModel(state)
+    const stages = state.windows.map((_, index) => {
+      const segment = model ? stageAt(model.frames, model.beats[index]?.atMs || 0) : null
+      return segment ? stageWords(segment) : 'page only'
+    })
+    const body = await fetchJson<{ windows: SceneWindow[]; changes?: Array<{ index: number; why: string }>; summary?: string }>('/api/scene/edit', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: String(found?.attrs.title || 'Scene'),
+        units: slideUnitInventory(state),
+        relations: relationsOf(state.units),
+        windows: state.windows.map(window => ({ say: window.say, title: window.title, parts: window.parts, hero: window.hero, camera: window.camera, layout: window.layout })),
+        stages,
+        focus: { line, parts: units.map(unit => ({ id: unit.id, label: unit.label })), speaker, scope },
+        instruction: ask,
+        wpm: state.pace.wpm,
+        position: scenePosition(state.nodeId),
+        screenshot: screenshot || undefined,
+      }),
+      signal: controller.signal,
+    })
+    if (slideEditor !== state) return
+    const windows = sanitizeWindows(body.windows || [], state)
+    if (!windows.length) throw new Error('The editor returned nothing usable')
+    // Your own placements survive an edit that was not about you.
+    windows.forEach((window, index) => {
+      const before = state.windows[index]
+      if (before?.layoutByAuthor && !speaker && (window.layout || 'page') === (before.layout || 'page')) window.layoutByAuthor = true
+    })
+    hideWriting()
+    const changes: Record<number, string> = {}
+    ;(body.changes || []).forEach(change => {
+      if (change.index >= 0 && change.index < windows.length) changes[change.index] = change.why || 'changed'
+    })
+    windows.forEach((window, index) => {
+      const before = state.windows[index]
+      if (changes[index]) return
+      if (!before) changes[index] = 'new line'
+      else if (before.say !== window.say || before.parts.join() !== window.parts.join() || (before.layout || 'page') !== (window.layout || 'page') || (before.camera || []).join() !== (window.camera || []).join()) changes[index] = 'changed'
+    })
+    if (!Object.keys(changes).length) {
+      setSlideEditorStatus('The editor kept the dialogue as it is — say more, or widen the scope', 'ok')
+      return
+    }
+    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
+    const staged = planned
+      ? direct({ title: String(found?.attrs.title || 'Scene'), units: state.units, viewBox: state.viewBox, beats: planned.beats, plan: planned.plan, position: scenePosition(state.nodeId), layouts: windows.map(window => window.layout), layoutsByAuthor: windows.map(window => Boolean(window.layoutByAuthor)) })
+      : null
+    state.proposal = {
+      windows,
+      plan: planned?.plan || null,
+      storyboard: staged?.storyboard,
+      source: `“${ask.slice(0, 48)}${ask.length > 48 ? '…' : ''}”`,
+      changes,
+      summary: String(body.summary || ''),
+    }
+    bubbleInput.value = ''
+    state.selection = { parts: [], speaker: false }
+    stopSlidePlayback()
+    state.previewPlan = state.proposal.plan
+    state.current = Math.min(line, windows.length - 1)
+    renderProposal()
+    renderWindowCards()
+    renderSlideEditorPreview()
+    renderTeleprompter()
+    markPlayingWindow()
+    const changedCount = Object.keys(changes).length
+    setSlideEditorStatus(changedCount ? `${changedCount} line${changedCount === 1 ? '' : 's'} changed — playing from line ${state.current + 1}` : 'The editor kept the dialogue as it is')
+    playSlide(state.driver?.offsets[state.current] || 0)
+  } catch (error) {
+    if (controller.signal.aborted) {
+      hideWriting()
+      setSlideEditorStatus('Ask cancelled')
+    } else {
+      const message = error instanceof Error ? error.message : 'The editor failed'
+      showWritingError(message)
+      setSlideEditorStatus(message, 'error')
+    }
+  } finally {
+    if (writing?.controller === controller) {
+      window.clearInterval(writing.timer)
+      writing = null
+    }
+    bubbleAsk.disabled = false
+    if (slideEditor !== state) hideWriting()
+  }
+}
+
+bubbleAsk.addEventListener('click', event => {
+  event.stopPropagation()
+  const state = slideEditor
+  if (state) void requestEdit(bubbleInput.value, state.editScope)
+})
+bubbleInput.addEventListener('keydown', event => {
+  event.stopPropagation()
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    const state = slideEditor
+    if (state) void requestEdit(bubbleInput.value, state.editScope)
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    clearSelection()
+  }
+})
+;($('#se-bubble-close') as HTMLButtonElement).addEventListener('click', event => {
+  event.stopPropagation()
+  clearSelection()
+})
+frameBubble.addEventListener('click', event => event.stopPropagation())
+frameBubble.addEventListener('pointerdown', event => event.stopPropagation())
+studioFrameCamera.addEventListener('click', event => {
+  event.stopPropagation()
+  selectOnFrame({ speaker: true, extend: event.shiftKey || event.metaKey || event.ctrlKey })
+})
+// A click on the frame's empty ground clears the selection.
+studioFrame.addEventListener('click', event => {
+  if ((event.target as HTMLElement).closest('#se-bubble, #se-text-edit, .se-hit, #se-frame-camera')) return
+  clearSelection()
+})
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || frameBubble.hidden) return
+  const target = event.target as HTMLElement | null
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+  clearSelection()
+})
+
 const toggleUnitInStep = (unit: SlideUnit) => {
   const state = slideEditor
   if (!state) return
@@ -11031,6 +11661,8 @@ const openSlideEditor = (nodeId: string) => {
     windows: [],
     breakdownApproved: Boolean(found.attrs.breakdownApproved),
     proposal: null,
+    selection: { parts: [], speaker: false },
+    editScope: 'line',
     previewPlan: null,
     sourceText: '',
     openDrawers: new Set(),

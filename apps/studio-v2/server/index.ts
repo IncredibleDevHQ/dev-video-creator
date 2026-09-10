@@ -1207,6 +1207,103 @@ Write the dialogue as a sequence of windows of attention. One window = ${granula
   json(response, 200, { windows, provider: 'openai' })
 }
 
+// An edit asked from the frame: the author selected parts of the page (or
+// the speaker) on one line and asked for a change. The model returns the
+// whole dialogue with the lines it changed and why — knock-on changes
+// inside the chosen scope included — so the studio can show a change set.
+const editSchema = () => {
+  const base = windowSchema(true) as { properties: { windows: unknown } }
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: ['windows', 'changes', 'summary'],
+    properties: {
+      windows: base.properties.windows,
+      changes: {
+        type: 'array',
+        items: { type: 'object', additionalProperties: false, required: ['index', 'why'], properties: { index: { type: 'integer' }, why: { type: 'string' } } },
+      },
+      summary: { type: 'string' },
+    },
+  }
+}
+
+const handleSceneEdit = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{
+    title?: string
+    units?: SceneUnitInput[]
+    relations?: SceneRelationInput[]
+    windows?: Array<{ say: string; title?: string; parts?: string[]; hero?: string; camera?: string[]; layout?: string }>
+    stages?: string[]
+    focus?: { line: number; parts?: Array<{ id: string; label: string }>; speaker?: boolean; scope?: 'line' | 'part' | 'scene' }
+    instruction?: string
+    wpm?: number
+    position?: { index: number; count: number }
+    screenshot?: string
+  }>(request, 6 * 1024 * 1024)
+  const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
+  const windows = Array.isArray(body.windows) ? body.windows.slice(0, 48) : []
+  if (!units.length || !windows.length) throw new Error('An edit needs the page and the dialogue')
+  if (!(await hasModelAccess())) throw new Error('Editing with the page needs an AI provider — open Models in the top bar')
+  const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
+  const focus = body.focus || { line: 0, scope: 'line' as const }
+  const scope = focus.scope === 'scene' || focus.scope === 'part' ? focus.scope : 'line'
+  const instruction = String(body.instruction || '').trim().slice(0, 1_000)
+  const selected = (focus.parts || []).slice(0, 12).map(part => `${part.id} "${String(part.label).slice(0, 40)}"`).join(', ')
+  const current = windows
+    .map((window, index) => `${index + 1}. [${body.stages?.[index] || 'page'}] "${String(window.say).slice(0, 400)}" — parts: ${(window.parts || []).join(', ') || 'none'}${window.hero ? ` · hero ${window.hero}` : ''}${window.camera?.length ? ` · camera in on ${window.camera.join(', ')}` : ''} · layout ${window.layout || 'page'}`)
+    .join('\n')
+  const prompt = `You edit the spoken dialogue of one scene of a narrated technical video, with the page in front of you. Scene: "${String(body.title || 'Scene').slice(0, 120)}"${body.position ? ` (scene ${body.position.index + 1} of ${body.position.count})` : ''}.
+
+${sceneInventory(units, relations)}
+${SCENE_CAPABILITIES}
+
+CURRENT DIALOGUE (one line per window; [frame] is who owns the frame on that line):
+${current}
+
+THE AUTHOR'S ASK, made on line ${focus.line + 1}${selected ? ` with these parts selected: ${selected}` : ''}${focus.speaker ? ' with the presenter selected' : ''}:
+"${instruction || 'improve this'}"
+SCOPE: ${scope === 'line' ? 'this line — change other lines only if this change breaks their flow (a repeated word, a hand-over that no longer lands, the outro)' : scope === 'part' ? 'the selected parts wherever the scene speaks about them — every line that names them may change' : 'the whole scene — rethink the lines as a whole around this ask'}.
+${body.screenshot ? 'A picture of the frame at that line is attached: use it to judge crowding, legibility and where the presenter sits.\n' : ''}
+Return the WHOLE dialogue as windows in order (keep unchanged windows word for word, with the same parts, hero, camera and layout), and "changes": one entry per window whose words, parts, hero, camera or layout changed — its index (0-based) and one short clause saying why. "summary": one sentence saying what changed overall. Keep the author's words where they were not asked to change. Arrows and connectors are drawn when their boxes are named — never say "connector".`
+  const content: Array<{ type: string; text?: string; image_url?: string }> = [{ type: 'input_text', text: prompt }]
+  if (body.screenshot && /^data:image\/(png|jpeg);base64,/.test(body.screenshot) && body.screenshot.length < 4_000_000) content.push({ type: 'input_image', image_url: body.screenshot })
+  const call = async (withImage: boolean) =>
+    modelFetch(withImage ? 'vision' : 'writing', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: withImage ? process.env.OPENAI_NOTES_MODEL || 'gpt-5.6-luna' : 'ignored',
+        input: withImage ? [{ role: 'user', content }] : prompt,
+        reasoning: { effort: 'medium' },
+        text: { format: { type: 'json_schema', name: 'scene_edit', strict: true, schema: editSchema() } },
+      }),
+    })
+  let apiResponse = await call(content.length > 1)
+  if (!apiResponse.ok && content.length > 1) apiResponse = await call(false)
+  if (!apiResponse.ok) throw new Error(`The editor failed (${apiResponse.status})`)
+  const apiBody = (await apiResponse.json()) as Parameters<typeof extractResponseText>[0]
+  const generated = JSON.parse(extractResponseText(apiBody)) as {
+    windows?: Array<{ say?: string; title?: string; parts?: string[]; hero?: string; intent?: string; camera?: string[]; layout?: string }>
+    changes?: Array<{ index?: number; why?: string }>
+    summary?: string
+  }
+  const validIds = new Set(units.map(unit => unit.id))
+  const ids = (list: unknown) => (Array.isArray(list) ? list : []).map(id => String(id).trim()).filter(id => validIds.has(id))
+  const edited = (generated.windows || []).map(window => ({
+    say: String(window.say || '').trim().slice(0, 1_200),
+    title: String(window.title || '').trim().slice(0, 60),
+    parts: [...new Set(ids(window.parts))],
+    hero: validIds.has(String(window.hero || '')) ? String(window.hero) : '',
+    intent: String(window.intent || ''),
+    camera: [...new Set(ids(window.camera))],
+    layout: window.layout === 'me' || window.layout === 'beside' ? window.layout : 'page',
+  }))
+  const changes = (generated.changes || [])
+    .filter(change => Number.isFinite(Number(change.index)))
+    .map(change => ({ index: Number(change.index), why: String(change.why || '').slice(0, 160) }))
+  json(response, 200, { windows: edited, changes, summary: String(generated.summary || '').slice(0, 240), provider: 'openai' })
+}
+
 const handleSceneBreakdown = async (request: IncomingMessage, response: ServerResponse) => {
   const body = await readJson<{
     title?: string
@@ -2205,6 +2302,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     if (request.method === 'POST' && url.pathname === '/api/scene/dialogue') {
       await handleSceneDialogue(request, response)
       return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/scene/edit') {
+      await handleSceneEdit(request, response)
+      return true
     }
     if (request.method === 'POST' && url.pathname === '/api/scene/breakdown') {
       await handleSceneBreakdown(request, response)
