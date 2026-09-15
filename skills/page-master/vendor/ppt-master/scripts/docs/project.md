@@ -1,0 +1,306 @@
+# Project Tools
+
+> **Import boundary**: move only sources already under the repository's
+> `projects/` tree. Copy every other local path, even when `--move` is supplied.
+> Use `--copy` to preserve a projects-local source.
+
+Project tools create, validate, and inspect the standard PPT Master workspace.
+
+## `project_manager.py`
+
+Main entry point for project setup and validation.
+
+```bash
+python3 scripts/project_manager.py init <project_name> [--format <registered_format>]
+python3 scripts/project_manager.py import-sources <project_path> <source1_or_dir> [<source2_or_dir> ...]
+python3 scripts/project_manager.py scaffold-spec <project_path>  # optional manual helper
+python3 scripts/project_manager.py scaffold-lock <project_path>  # optional manual helper
+python3 scripts/project_manager.py validate <project_path>
+python3 scripts/project_manager.py info <project_path>
+python3 scripts/project_manager.py page-context <project_path> P07 [--pretty] [--record-usage]
+python3 scripts/project_manager.py page-context-report <project_path>
+```
+
+Notes:
+- A moved topic-research pair `projects/<slug>.md` takes its sibling
+  `projects/<slug>_web_sources/` along to `analysis/research_web_sources/`.
+- Local sources under `projects/` are moved into the target project unless
+  `--copy` is passed; a file inside another project's tree is copied unless
+  `--move` is explicit, so borrowing a finished project's slices never empties it.
+- `--format` is optional and accepts registered canvas keys only. Pass it only
+  when the actual canvas exactly matches a registered format.
+- Without `--format`, `init` creates `<name>_<YYYYMMDD>`; a name that already
+  ends in `_<YYYYMMDD>` is used as-is (no second date). Authoring records the
+  canvas in `spec_lock.md` for Default Generate or the first SVG for Quick
+  Generate.
+- With `--format`, `init` preserves the registered form
+  `<name>_<format>_<YYYYMMDD>` and normalizes aliases such as `xhs`.
+- `init --quick-generate`: `svg_output/` plus
+  `validation/workflow.log`; no README
+- Files outside `projects/` are always copied into `sources/`
+- `--move` applies only to sources under the repository's `projects/` tree
+- A directly supplied supported bitmap is also copied into `images/` with a
+  collision-safe basename while its original remains archived in `sources/`
+- SVG/EMF/WMF inputs stay source assets unless a converter manifest supplies
+  display metadata. Embedded Office vectors extracted from DOCX/PPTX land in
+  `images/` with `image_manifest.json` as first-class image assets and are
+  never converted to PNG; a blank browser preview of an EMF/WMF is expected.
+  Export behavior for them: [`svg-pipeline.md`](svg-pipeline.md)
+- Directory inputs are expanded non-recursively. After Step 1 conversion,
+  pass the source file/directory once when generated Markdown lives beside the
+  original source. If Step 1 used `-o` to write Markdown elsewhere, pass both
+  the original source path/directory and the Markdown output path/directory.
+- A projects-local supplied source directory left strictly empty after import
+  (or empty from the start) is removed; every directory outside `projects/`
+  remains untouched. `--copy` never removes directories.
+- Files already under `projects/` move into `sources/` by default. Pass `--copy`
+  to preserve them in place.
+- `--move` and `--copy` are mutually exclusive.
+- Normal Generate authoring reads `templates/design_spec_reference.md`, writes
+  the complete `design_spec.md` from scratch, then reads
+  `templates/spec_lock_reference.md` and writes the complete lock projection.
+  It does not call either scaffold command.
+- Optional `scaffold-spec` creates `design_spec.md` from
+  `templates/scaffolds/design_spec.md`; `scaffold-lock` creates `spec_lock.md`
+  from `templates/scaffolds/spec_lock.md`. Both substitute project/canvas
+  metadata deterministically, require a registered format in the project
+  directory name, and refuse to overwrite an existing artifact.
+- `validate` parses the existing Markdown artifacts against
+  `templates/schemas/design_spec.schema.json` and
+  `templates/schemas/spec_lock.schema.json`. It reports missing sections and
+  fields, including per-slide `Audience move` and `Relationships` lines,
+  illegal enums, malformed page keys, and unmet conditional sections.
+  When optional custom reference lists are present, it also requires every id
+  to resolve to the matching mode, visual-style, or image-rendering catalog,
+  rejects duplicates, and rejects reference rows on non-custom selections;
+  under `## forbidden` on versioned locks, every non-empty, non-baseline list
+  item must end with `(user)`;
+  it does not rewrite either artifact or compare their values for textual
+  equality. It also does not prove final-confirmation → Design Spec fidelity or
+  Design Spec/context → lock semantic fidelity; Generate Step 4 owns those two
+  gates before this structural validation. Validation reads the planning
+  artifacts only and never reopens `confirm_ui/result.json`; the final result is
+  consumed once into the Design Spec before validation begins. The design schema is structural lint for
+  the human-readable brief; the lock schema owns machine execution values. For
+  structured template use, strict input prototypes must match their assigned
+  Master/Layout; adaptive input prototypes retain the assigned Master while a
+  new output Layout already declared by Strategist is cross-validated after its
+  generated SVG exists. Versioned
+  Direct-authored current artifacts and optional scaffolds carry the schema
+  marker. Markerless legacy artifacts are left on
+  their prior validation path with a warning;
+  malformed or unsupported markers are errors.
+- PPTX-family inputs are enriched automatically under `analysis/` with
+  per-deck `<stem>.identity.json` / `<stem>.slide_library.json` plus the shared
+  multi-deck index `source_profile.json` (`decks[]`).
+  Multi-deck per project: several PPTX imports each get their own `<stem>.*`
+  artifacts and a `decks[]` entry; re-importing the same stem replaces its entry.
+
+### On-demand page execution view
+
+`page-context` projects `design_spec.md` and `spec_lock.md` into one compact
+current-page view on stdout. The default command is read-only; `--pretty`
+changes JSON formatting only. Before projection it revalidates the machine lock
+and selected template-root identities; design-brief values are not treated as
+a second lock. Slide headings at H3–H6 remain readable by the projector. Normal
+generation retains the complete planning artifacts once per valid execution
+context and does not invoke this command before every page; use it only for an
+explicit diagnostic, routing check, or context-usage measurement.
+
+Each invocation deliberately includes the bounded `global` anchor set as a
+cross-page continuity view, not a color/font allowlist. `lock_source` binds that projection to the current
+`spec_lock.md` SHA. `page_context` contains the current §IX brief, rhythm,
+resources, and conditional template/chart assignment. `reference_set` contains
+`kind`, scoped path, SHA, and `once-per-execution-context` policy for the
+project/template Design Specs and selected prototype/chart SVGs. The project
+Design Spec additionally carries
+`same_context_edit_policy: targeted-readback-and-rebind`: when the current main
+agent makes a bounded repair in a valid uncompacted context that preserves
+roster/order/identity/communication, it reads back only the exact changed
+fragments and validates them before continuing. Fresh, compacted, external,
+unknown, or mismatched changes require one complete Design Spec and lock read.
+
+The deprecated `--bundle` flag remains accepted as a compatibility no-op. It
+never appends a Design Spec, prototype SVG, chart SVG, manifest, or text-slot
+sidecar to stdout.
+
+The projection keeps project-specific forbidden rules; universal SVG and icon
+rules remain in the always-loaded execution core. Image rows are selected from
+the current §IX brief, explicit §VIII page assignments, and mirror prototype
+references. When those sources assign images elsewhere but not to the current
+page, the view excludes those assigned images. Any still-unassigned legacy
+image remains in a compatibility subset; `confirmed-none` is emitted only when
+all locked images have a deterministic assignment elsewhere.
+
+Mirror materialization may publish deterministic
+`ppt-master.template-text-slots.v2-min` diagnostics. They are not page-context
+or model inputs. The complete SVG remains the sole template authority; checker
+and structured export validate output attributes, text/tspan topology, and
+referenced-resource hashes against it internally.
+
+`--record-usage` writes a derived snapshot to
+`analysis/page-context/P<NN>.usage.json`. It hashes every input, measures the
+exact compact stdout, and records the reference fingerprints. `tiktoken` is
+loaded lazily with `o200k_base`; when unavailable, the command still succeeds
+and records bytes, characters, hashes, and `tokens: null`.
+`page-context-report` summarizes only fresh snapshots and identifies stale or
+token-unavailable pages plus unique referenced files. Telemetry may be partial;
+it does not measure once-loaded references, source reads, or other session
+context.
+
+Common formats:
+- `ppt169`
+- `ppt43`
+- `xiaohongshu`
+- `moments`
+- `story`
+- `banner`
+- `a4`
+
+Examples:
+
+```bash
+python3 scripts/project_manager.py init my_presentation
+python3 scripts/project_manager.py validate projects/my_presentation_20251116
+python3 scripts/project_manager.py info projects/my_presentation_20251116
+python3 scripts/project_manager.py init my_widescreen --format ppt169
+python3 scripts/project_manager.py scaffold-spec projects/my_widescreen_ppt169_20251116  # optional
+python3 scripts/project_manager.py scaffold-lock projects/my_widescreen_ppt169_20251116  # optional
+python3 scripts/project_manager.py page-context projects/my_widescreen_ppt169_20251116 P07 --record-usage
+python3 scripts/project_manager.py page-context-report projects/my_widescreen_ppt169_20251116
+```
+
+## `workflow_transcript.py` and `workflow_log.py`
+
+Project initialization creates `validation/workflow.log` and records its own
+milestone. Run later project-scoped Python tools normally:
+
+```bash
+python3 scripts/<tool>.py <project_path> <args...>
+```
+
+Their shared CLI bootstrap discovers the existing project log from the working
+directory or command arguments. `workflow_transcript.py` records a UTC command
+envelope plus explicit error/failure and receipt/report lines, bounded
+warning/OK/stderr samples, limited summary context, and per-run omission counts;
+no outer launcher or second Python process is used. It leaves full output on
+the original console instead of copying it into the audit log. Commands before
+project initialization are not backfilled. Binary-buffer writes, hidden child
+output, and detached service activity are not recorded; Confirm UI and live
+preview retain detailed output in their component `server.log` files. Their
+shared detached-process launcher disables automatic workflow recording in the
+long-running child while preserving the short foreground launcher's own record.
+
+For a Python helper whose arguments and working directory do not identify the
+active project, set the routing signal on the same command:
+
+```bash
+PPT_MASTER_PROJECT_PATH="<project_path>" python3 scripts/<helper>.py <args...>
+```
+
+This variable selects only the destination transcript; it does not authorize
+the helper to read project artifacts or change its ownership.
+
+Append a manual note only when an important audit detail has no owning command
+output:
+
+```bash
+python3 scripts/workflow_log.py <project_path> "<material audit detail>"
+```
+
+Suitable notes include a material stage handoff or rework reason, a
+user-approved exception, or a manual recovery choice. Do not duplicate
+artifact contents, routine page progress, or private reasoning.
+
+The log is append-only audit evidence. It is not a complete console transcript,
+stage, quality, or artifact authority and is not read during normal generation
+or resume. Inspect it only when the user explicitly requests a run review. An
+automatic recording failure emits a warning but does not change the Python
+tool's result; an explicit manual entry that cannot be written exits non-zero.
+
+## `project_utils.py`
+
+Shared helper module used by other scripts.
+
+Typical use:
+
+```python
+from project_utils import get_project_info, validate_project_structure
+```
+
+You can also run it directly for quick checks:
+
+```bash
+python3 scripts/project_utils.py <project_path>
+```
+
+## `batch_validate.py`
+
+Batch-check project structure and compliance.
+
+```bash
+python3 scripts/batch_validate.py projects
+python3 scripts/batch_validate.py --all
+python3 scripts/batch_validate.py projects --export
+```
+
+Use this for multi-project health checks before release or cleanup.
+
+## `generate_examples_index.py`
+
+Rebuild the examples `README.md` index. The example projects live in the separate
+[ppt-master-examples](https://github.com/hugohe3/ppt-master-examples) repository.
+
+```bash
+python3 scripts/generate_examples_index.py <path-to>/ppt-master-examples/examples
+```
+
+## `pptx_template_import.py`
+
+Unified PPTX preparation entry point for `/create-template`.
+
+```bash
+python3 scripts/pptx_template_import.py <template.pptx>
+python3 scripts/pptx_template_import.py <template.pptx> -o <output_dir>
+python3 scripts/pptx_template_import.py <template.pptx> --manifest-only
+python3 scripts/pptx_template_import.py <template.pptx> --skip-manifest
+python3 scripts/pptx_template_import.py <template.pptx> --embed-images
+python3 scripts/pptx_template_import.py <template.pptx> --inheritance-mode both
+python3 scripts/pptx_template_import.py <template.pptx> --inheritance-mode flat
+python3 scripts/pptx_template_import.py <template.pptx> --inheritance-mode layered
+```
+
+Notes:
+- Extracts package resources into semantic workspace directories
+- Summarizes slide size, theme colors, font metadata, and per-master theme metadata
+- Resolves slide / layout / master relationships from OOXML relationships; every master and layout is included even when no sample slide currently references it
+- Generates `analysis/manifest.json` (source facts and resource inventory), `analysis/native_structure.json`, `sources/source.pptx`, `validation/conversion-report.json`, populated semantic resource directories, and shape-level SVGs under `svg/`
+- **SVG output defaults to the layered authoring source** (`--inheritance-mode layered`):
+  - `svg/` — layered template view for designers: every master and layout in the deck rendered once as `svg/master_*.svg` / `svg/layout_*.svg` (including ones no sample slide currently references); `svg/slide_NN.svg` contains only that slide's own shapes; `svg/inheritance.json` records parentage plus source-owned `showInheritedShapes` / `showMasterShapes` booleans.
+  - `svg-flat/` — optional verification view emitted only by `--inheritance-mode both`: each `slide_NN.svg` is self-contained (the effective visible Master/Layout contributions plus Slide-local content painted into one file), so opening any slide in isolation shows the full page like PowerPoint would. Background inheritance remains independent of inherited-shape visibility. Useful for previews, screenshots, and "did this slide actually render correctly" sanity checks.
+- `analysis/manifest.json` records `svgFile` for slides / layouts / masters, `flatSvgFile` for slides when `svg-flat/` exists, placeholder type / index / geometry / base style, a resource map used by SVG `href` values, and common images reused through slide / layout / master inheritance. Placeholder semantics keep `subTitle`, `obj`, `media`, and `dt` distinct as `subtitle`, `object`, `media`, and `date`.
+- `validation/conversion-report.json` owns tolerant source-recovery diagnostics; it is not a cache or a duplicate of the structural manifests
+- Layered slide SVGs keep only the slide's own background; inherited master / layout backgrounds stay in the corresponding master / layout SVGs
+- Placeholder guides are intentionally lightweight in `svg/` master / layout files; `svg-flat/` hides those guides and is the visual preview source
+- Charts, SmartArt, diagrams, and OLE objects become typed placeholders in `svg/`; `svg-flat/` shows a preview image with a corner badge when one exists, otherwise a visible placeholder. Tables are converted into real SVG content.
+- Pass `--inheritance-mode both` to add `svg-flat/`, or `--inheritance-mode flat` for a self-contained projection-only `svg/` tree without master/layout/inheritance files. Imported-deck round-trip uses the separate `authoring-svg-flat/` contract.
+- SVG export reads OOXML directly via `pptx_to_svg` — no PowerPoint or Keynote dependency, runs on any platform
+- `<image>` elements in `svg/` reference files in `images/` directly; raster images and SVG/EMF/WMF image media share that directory. Pass `--embed-images` to inline them as data URIs instead.
+- External linked images and missing media are strict failures. Office vector media such as EMF / WMF are converted to PNG previews when the local toolchain can do so; otherwise the import fails instead of silently dropping content.
+- Required in `/create-template` whenever the reference source is `.pptx`
+- Default output directory is `<pptx_stem>_template_import/`
+- Use `--manifest-only` when you explicitly want only the lightweight import output without slide SVG export
+- Intended for template reference preparation, not for final 1:1 template delivery
+
+Implementation note:
+- Internal helpers for this workflow live under `scripts/template_import/`
+
+## `error_helper.py`
+
+Show standardized fixes for common project errors.
+
+```bash
+python3 scripts/error_helper.py
+python3 scripts/error_helper.py missing_readme
+python3 scripts/error_helper.py missing_readme project_path=my_project
+```
