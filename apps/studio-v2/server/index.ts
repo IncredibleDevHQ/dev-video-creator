@@ -2143,6 +2143,14 @@ const handleRender = async (
     ) {
       node.attrs.src = localAssetPath(node.attrs.src) || node.attrs.src
     }
+    // Appearance images inside a page's SVG (the asset library's
+    // illustrations) are staged like any other local media.
+    if ((node.type === 'scene' || node.type === 'slide') && typeof node.attrs?.svg === 'string' && node.attrs.svg.includes('/objects/')) {
+      node.attrs.svg = node.attrs.svg.replace(/(<image\b[^>]*\bhref=")([^"]+)(")/g, (whole: string, open: string, href: string, close: string) => {
+        const staged = localAssetPath(href)
+        return staged && staged !== href ? `${open}${staged}${close}` : whole
+      })
+    }
     node.content?.forEach(stageNotebookMedia)
   }
   renderProject.notebook.content.forEach(stageNotebookMedia)
