@@ -38,7 +38,7 @@ export const handleMcpMessage = async (
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: 'incredible-studio', version: '0.1.0' },
       instructions:
-        'Studio motion helpers for the motion-master skill: atomize, measure, plan_beats, resolve, validate, receipt, frames. Paths are absolute; outputs are files under motion/ plus a compact JSON summary.',
+        'Studio motion helpers for the motion-master skill: atomize, direct (the director: measured staging options per beat), measure, plan_beats, resolve, validate, receipt, frames. Paths are absolute; outputs are files under motion/ plus a compact JSON summary.',
     })
   }
   if (method === 'ping') return reply(message.id, {})

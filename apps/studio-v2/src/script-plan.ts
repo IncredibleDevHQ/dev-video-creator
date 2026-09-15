@@ -49,6 +49,9 @@ export type SceneWindow = {
   // The layout was chosen by the author (not suggested by the writer): it
   // is decisive; a suggestion only nudges the director.
   layoutByAuthor?: boolean
+  // A stage family picked among the director's measured options for this
+  // line (by the author, or by the edit answer): decisive while legible.
+  stage?: string
   intent?: MotionIntent
   // Parts chosen by hand: they stay when the words change.
   pinned?: boolean

@@ -7,7 +7,7 @@
 // writes the result onto the scene node, the agent path can replace it.
 import type { MotionPlanV2, StageVariant, StageFamily as AnyStageFamily, StageTreatment as AnyStageTreatment } from 'markdown-composition'
 import { FLOATING_FAMILIES, bestVariant, coveredFraction, pageToFrame, placementAt, placementsFor, unitsOnScreenPerBeat, type PlacementTrack } from './placements'
-import { STAGE_BOARD_CONTENT, STAGE_LABELS, STAGE_OVERLAY_CONTENT, stageGeometryFor } from 'markdown-composition'
+import { STAGE_BOARD_CONTENT, STAGE_LABELS, STAGE_OVERLAY_CONTENT, stageGeometryFor, isStageFamily } from 'markdown-composition'
 import { leafUnits, type SlideUnit } from './slide-atoms'
 import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
 
@@ -79,6 +79,9 @@ export type DirectorInput = {
   // suggested (a nudge).
   layouts?: Array<WindowLayout | undefined>
   layoutsByAuthor?: boolean[]
+  // Per-window stage family pinned among the director's own options (the
+  // author's pick, or the edit answer's): decisive while it stays legible.
+  stagePins?: Array<string | undefined>
   // The page's declared role, when it has one (see declaredSceneKind).
   pageRole?: string
 }
@@ -275,6 +278,9 @@ type BeatMeasure = {
   wish?: WindowLayout
   // An explicit [panel] direction means the panel itself, not any "beside".
   panelDirected: boolean
+  // The page plays on this beat: arrows trace, numbers count, a living
+  // diagram runs, something moves — the page should own more of the frame.
+  plays: boolean
 }
 
 const measureBeat = (units: SlideUnit[], plan: MotionPlanV2, beat: ScriptBeat, visible: SlideUnit[], wish?: WindowLayout): BeatMeasure => {
@@ -284,6 +290,7 @@ const measureBeat = (units: SlideUnit[], plan: MotionPlanV2, beat: ScriptBeat, v
   const camera = Boolean(step?.actions.some(a => a.op === 'camera' && !a.implicit))
   const brings = Boolean(step?.actions.some(a => ['reveal', 'trace', 'count', 'connect'].includes(a.op)))
   const moves = Boolean(step?.actions.some(a => !a.implicit && a.op !== 'undim'))
+  const plays = Boolean(step?.actions.some(a => ['trace', 'connect', 'count', 'move', 'phase'].includes(a.op)))
   const directed: WindowLayout | undefined = beat.directions.some(d => d.kind === 'open')
     ? 'me'
     : beat.directions.some(d => d.kind === 'panel')
@@ -301,6 +308,7 @@ const measureBeat = (units: SlideUnit[], plan: MotionPlanV2, beat: ScriptBeat, v
     words: beat.text.split(/\s+/).filter(Boolean).length,
     wish: wish || directed,
     panelDirected: beat.directions.some(d => d.kind === 'panel'),
+    plays,
   }
 }
 
@@ -360,6 +368,8 @@ export const layoutOptionsFor = (
     wish?: WindowLayout
     // The wish was the author's (decisive), not the writer's suggestion.
     wishPinned?: boolean
+    // A family pinned among the measured options for this beat.
+    pin?: string
     crowded?: boolean
     // Per floating family: the best placement and the share of the presenter's
     // area that would sit on page ink there.
@@ -423,12 +433,20 @@ export const layoutOptionsFor = (
     else if (measure.wish === 'page') wish = family.startsWith('content-') ? 1 : family === 'speaker-full' ? 0 : 0.5
     if (measure.wish && wish === 1) why.push(measure.wish === 'me' ? 'you asked for this line on you' : measure.wish === 'beside' ? 'you asked to be beside the page' : 'you asked the page to take the frame')
     const continuity = context.previous === family ? 1 : 0
+    // A family pinned among these options is the wish, decisively.
+    const pinned = context.pin && isStageFamily(context.pin) ? context.pin : null
+    if (pinned) {
+      wish = family === pinned ? 1 : 0
+      if (family === pinned) why.unshift('picked among the options')
+    }
+    // A playing page wants the frame: families that hide it step back.
+    const motion = measure.plays ? (family === 'speaker-full' && !treatment ? 0 : family.startsWith('content-') || family === 'split' ? 1 : 0.6) : 0.5
     // The author's wish is decisive while it stays legible; the writer's
     // suggestion only nudges.
-    const weights = { legibility: 3, space: 2, presence: 1.5, wish: measure.wish ? (context.wishPinned || measure.panelDirected ? 5 : 2) : 0, continuity: 0.4 }
+    const weights = { legibility: 3, space: 2, presence: 1.5, wish: pinned ? 5 : measure.wish ? (context.wishPinned || measure.panelDirected ? 5 : 2) : 0, continuity: 0.4, motion: 1 }
     const total =
-      (legibility * weights.legibility + space * weights.space + presence * weights.presence + wish * weights.wish + continuity * weights.continuity) /
-      (weights.legibility + weights.space + weights.presence + weights.wish + weights.continuity)
+      (legibility * weights.legibility + space * weights.space + presence * weights.presence + wish * weights.wish + continuity * weights.continuity + motion * weights.motion) /
+      (weights.legibility + weights.space + weights.presence + weights.wish + weights.continuity + weights.motion)
     const hardFail = (needsPage && measure.brings && (!rect || textPx < LEGIBILITY_GATE_PX * 0.75)) || (measure.wish === 'me' && context.wishPinned && wish === 0)
     const preferred = total + (treatment ? 0 : FAMILY_PREFERENCE[family] || 0)
     return {
@@ -723,6 +741,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
       visible,
       wish: input.layouts?.[beat.index],
       wishPinned: input.layoutsByAuthor?.[beat.index],
+      pin: input.stagePins?.[beat.index],
       crowded,
       ink,
       previous,

@@ -1232,7 +1232,10 @@ Write the dialogue as a sequence of windows of attention. One window = ${granula
 // whole dialogue with the lines it changed and why — knock-on changes
 // inside the chosen scope included — so the studio can show a change set.
 const editSchema = () => {
-  const base = windowSchema(true) as { properties: { windows: unknown } }
+  const base = windowSchema(true) as { properties: { windows: { items: { properties: Record<string, unknown>; required: string[] } } } }
+  // The edit answer may also pick a stage family for a line.
+  base.properties.windows.items.properties = { ...base.properties.windows.items.properties, stage: { type: 'string' } }
+  base.properties.windows.items.required = [...base.properties.windows.items.required, 'stage']
   return {
     type: 'object',
     additionalProperties: false,
@@ -1255,6 +1258,9 @@ const handleSceneEdit = async (request: IncomingMessage, response: ServerRespons
     relations?: SceneRelationInput[]
     windows?: Array<{ say: string; title?: string; parts?: string[]; hero?: string; camera?: string[]; layout?: string }>
     stages?: string[]
+    // The director's measured staging options per line: the answer may
+    // pick one by name when the ask is about the frame.
+    options?: Array<Array<{ family: string; variant?: string; treatment?: string; score: number; textPx: number; why: string }>>
     focus?: { line: number; parts?: Array<{ id: string; label: string }>; speaker?: boolean; scope?: 'line' | 'part' | 'scene' }
     instruction?: string
     wpm?: number
@@ -1280,12 +1286,12 @@ ${SCENE_CAPABILITIES}
 
 CURRENT DIALOGUE (one line per window; [frame] is who owns the frame on that line):
 ${current}
-
+${Array.isArray(body.options) && body.options.length ? `STAGING OPTIONS (measured by the director for each line, best first: family, score, smallest text on the page in px, why). The measurements are authoritative; the first is what the director would choose:\n${body.options.slice(0, 40).map((list, index) => `${index + 1}. ${(list || []).slice(0, 4).map(option => `${option.family}${option.variant ? `/${option.variant}` : ''}${option.treatment ? ` (${option.treatment})` : ''} · ${Number(option.score).toFixed(2)} · text ${Math.round(Number(option.textPx))}px${option.why ? ` · ${String(option.why).slice(0, 60)}` : ''}`).join(' | ') || 'no options'}`).join('\n')}\n` : ''}
 THE AUTHOR'S ASK, made on line ${focus.line + 1}${selected ? ` with these parts selected: ${selected}` : ''}${focus.speaker ? ' with the presenter selected' : ''}:
 "${instruction || 'improve this'}"
 SCOPE: ${scope === 'line' ? 'this line — change other lines only if this change breaks their flow (a repeated word, a hand-over that no longer lands, the outro)' : scope === 'part' ? 'the selected parts wherever the scene speaks about them — every line that names them may change' : 'the whole scene — rethink the lines as a whole around this ask'}.
 ${body.screenshot ? 'A picture of the frame at that line is attached: use it to judge crowding, legibility and where the presenter sits.\n' : ''}
-Return the WHOLE dialogue as windows in order (keep unchanged windows word for word, with the same parts, hero, camera and layout), and "changes": one entry per window whose words, parts, hero, camera or layout changed — its index (0-based) and one short clause saying why. "summary": one sentence saying what changed overall. Keep the author's words where they were not asked to change. Arrows and connectors are drawn when their boxes are named — never say "connector".`
+Every window also has "stage": "" to leave the frame to the director, or — only when the ask is about the frame (more room, closer, show me, keep the page) — ONE family name from that line's STAGING OPTIONS; pick a family other than the first only when the ask calls for it and its text stays at least 18 px. Return the WHOLE dialogue as windows in order (keep unchanged windows word for word, with the same parts, hero, camera and layout), and "changes": one entry per window whose words, parts, hero, camera, layout or stage changed — its index (0-based) and one short clause saying why. "summary": one sentence saying what changed overall. Keep the author's words where they were not asked to change. Arrows and connectors are drawn when their boxes are named — never say "connector".`
   const content: Array<{ type: string; text?: string; image_url?: string }> = [{ type: 'input_text', text: prompt }]
   if (body.screenshot && /^data:image\/(png|jpeg);base64,/.test(body.screenshot) && body.screenshot.length < 4_000_000) content.push({ type: 'input_image', image_url: body.screenshot })
   const call = async (withImage: boolean) =>
@@ -1317,6 +1323,7 @@ Return the WHOLE dialogue as windows in order (keep unchanged windows word for w
     intent: String(window.intent || ''),
     camera: [...new Set(ids(window.camera))],
     layout: window.layout === 'me' || window.layout === 'beside' ? window.layout : 'page',
+    stage: String((window as { stage?: unknown }).stage || '').trim().slice(0, 32),
   }))
   const changes = (generated.changes || [])
     .filter(change => Number.isFinite(Number(change.index)))

@@ -378,6 +378,38 @@ const geometryArg = {
 }
 const pathOrObject = { oneOf: [{ type: 'object' }, { type: 'string' }] }
 
+const directTool = async (args: Json, context: ToolContext) => {
+  let markup = typeof args.svg === 'string' ? args.svg : ''
+  if (!markup && typeof args.svgPath === 'string') markup = await readFile(args.svgPath, 'utf8')
+  if (!markup && typeof args.blockId === 'string') {
+    if (typeof args.projectId !== 'string') throw new Error('direct with blockId also needs projectId')
+    markup = await svgForBlock(context.origin, args.projectId, args.blockId)
+  }
+  if (!markup) throw new Error('direct needs svg, svgPath or blockId (+projectId)')
+  const { motionDir } = await projectDirFor(args, args.svgPath)
+  const result = await runAtomizer<Record<string, unknown>>('direct', markup, {
+    ...(typeof args.title === 'string' ? { title: args.title } : {}),
+    ...(Array.isArray(args.windows) ? { windows: args.windows } : {}),
+    ...(typeof args.script === 'string' ? { script: args.script } : {}),
+    ...(args.position && typeof args.position === 'object' ? { position: args.position } : {}),
+    ...(Array.isArray(args.stagePins) ? { stagePins: args.stagePins } : {}),
+    ...(typeof args.depth === 'string' ? { depth: args.depth } : {}),
+  })
+  const file = await writeJson(join(motionDir, 'director.json'), result)
+  const options = (result.layoutOptions as Array<Array<{ family: string; score: number; textPx: number; why: string }>>) || []
+  return {
+    file,
+    kind: result.kind,
+    arcRole: result.arcRole,
+    requiredArea: result.requiredArea,
+    brief: result.brief,
+    beats: options.length,
+    staging: options.map((list, index) => ({ beat: index, best: list[0] ? `${list[0].family} (${list[0].score}, ${Math.round(list[0].textPx)}px${list[0].why ? `, ${list[0].why}` : ''})` : '', alternatives: list.slice(1, 3).map(option => `${option.family} (${option.score})`) })),
+    contract: result.contract,
+    model: result.model,
+  }
+}
+
 export const TOOLS: Array<{
   name: string
   description: string
@@ -399,6 +431,28 @@ export const TOOLS: Array<{
       },
     },
     call: atomize,
+  },
+  {
+    name: 'direct',
+    description:
+      'The director: atomise and model a page, plan it from the windows or script given (else one beat per unit), and return the measured judgement — kind, arc role, length brief, staging options per beat with scores and reasons, placements, storyboard, plan. Pass stagePins (a family per beat, from the options) to pin a choice; writes motion/director.json.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        svg: { type: 'string', description: 'SVG markup (inline)' },
+        svgPath: { type: 'string', description: 'absolute path of an .svg file' },
+        blockId: { type: 'string', description: 'slide block id in a studio project' },
+        projectId: { type: 'string', description: 'studio project id (with blockId)' },
+        title: { type: 'string' },
+        windows: { type: 'array', description: 'windows of attention: { say, parts?, hero?, camera?, layout? }' },
+        script: { type: 'string', description: 'narration to plan from when no windows are given' },
+        position: { type: 'object', description: '{ index, count } of the scene in the video' },
+        stagePins: { type: 'array', description: 'a stage family per beat (or null) picked among the options' },
+        depth: { type: 'string', enum: ['skim', 'walk', 'deep'] },
+        projectDir: { type: 'string' },
+      },
+    },
+    call: directTool,
   },
   {
     name: 'measure',

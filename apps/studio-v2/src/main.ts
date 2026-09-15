@@ -9935,7 +9935,9 @@ const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] =
       const hero = typeof window.hero === 'string' && valid.has(window.hero) ? window.hero : undefined
       const camera = Array.isArray(window.camera) ? window.camera.map(String).filter(id => valid.has(id)) : undefined
       const layout = window.layout === 'me' || window.layout === 'beside' || window.layout === 'page' ? window.layout : undefined
+      const stage = isStageFamily(window.stage) ? window.stage : undefined
       return {
+        ...(stage ? { stage } : {}),
         say,
         title: String(window.title || '').trim() || undefined,
         parts: [...new Set([...parts, ...(hero ? [hero] : [])])],
@@ -10452,6 +10454,7 @@ const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolea
     position: scenePosition(state.nodeId),
     layouts: state.windows.map(window => window.layout),
     layoutsByAuthor: state.windows.map(window => Boolean(window.layoutByAuthor)),
+    stagePins: state.windows.map(window => window.stage),
     pageRole: state.pageRole,
   })
   if (options.rerender !== false) renderWindowCards()
@@ -11829,6 +11832,8 @@ const requestEdit = async (instruction: string, scope: EditScope) => {
         relations: relationsOf(state.units),
         windows: state.windows.map(window => ({ say: window.say, title: window.title, parts: window.parts, hero: window.hero, camera: window.camera, layout: window.layout })),
         stages,
+        // The director's measured options per line: the answer may pick one.
+        options: (state.director?.layoutOptions || []).map(list => list.slice(0, 4).map(option => ({ family: option.family, ...(option.variant ? { variant: option.variant } : {}), ...(option.treatment ? { treatment: option.treatment } : {}), score: option.score, textPx: Math.round(option.textPx), why: option.why }))),
         focus: { line, parts: units.map(unit => ({ id: unit.id, label: unit.label })), speaker, scope },
         instruction: ask,
         wpm: state.pace.wpm,
@@ -11840,21 +11845,40 @@ const requestEdit = async (instruction: string, scope: EditScope) => {
     if (slideEditor !== state) return
     const windows = sanitizeWindows(body.windows || [], state)
     if (!windows.length) throw new Error('The editor returned nothing usable')
-    // Your own placements survive an edit that was not about you.
-    windows.forEach((window, index) => {
-      const before = state.windows[index]
-      if (before?.layoutByAuthor && !speaker && (window.layout || 'page') === (before.layout || 'page')) window.layoutByAuthor = true
-    })
     hideWriting()
     const changes: Record<number, string> = {}
     ;(body.changes || []).forEach(change => {
       if (change.index >= 0 && change.index < windows.length) changes[change.index] = change.why || 'changed'
     })
+    // A stage the answer picked must be one of the director's measured
+    // options for that line; otherwise the numbers did not allow it and the
+    // director keeps its choice — and the proposal says so.
+    windows.forEach((window, index) => {
+      const before = state.windows[index]
+      if (!window.stage) {
+        if (before?.stage) window.stage = before.stage
+        return
+      }
+      const allowed = (state.director?.layoutOptions[index] || []).slice(0, 4).some(option => option.family === window.stage)
+      if (!allowed) {
+        const wanted = window.stage
+        delete window.stage
+        if (before?.stage) window.stage = before.stage
+        changes[index] = `${changes[index] ? `${changes[index]} · ` : ''}the numbers did not allow ${STAGE_LABELS[wanted as keyof typeof STAGE_LABELS] || wanted} here — the director keeps its frame`
+      } else if (window.stage !== before?.stage) {
+        changes[index] = `${changes[index] ? `${changes[index]} · ` : ''}frame: ${STAGE_LABELS[window.stage as keyof typeof STAGE_LABELS] || window.stage}`
+      }
+    })
+    // Your own placements survive an edit that was not about you.
+    windows.forEach((window, index) => {
+      const before = state.windows[index]
+      if (before?.layoutByAuthor && !speaker && (window.layout || 'page') === (before.layout || 'page')) window.layoutByAuthor = true
+    })
     windows.forEach((window, index) => {
       const before = state.windows[index]
       if (changes[index]) return
       if (!before) changes[index] = 'new line'
-      else if (before.say !== window.say || before.parts.join() !== window.parts.join() || (before.layout || 'page') !== (window.layout || 'page') || (before.camera || []).join() !== (window.camera || []).join()) changes[index] = 'changed'
+      else if (before.say !== window.say || before.parts.join() !== window.parts.join() || (before.layout || 'page') !== (window.layout || 'page') || (before.camera || []).join() !== (window.camera || []).join() || (before.stage || '') !== (window.stage || '')) changes[index] = 'changed'
     })
     if (!Object.keys(changes).length) {
       setSlideEditorStatus('The editor kept the dialogue as it is — say more, or widen the scope', 'ok')
@@ -12158,6 +12182,15 @@ slideEditorDialog.addEventListener('cancel', event => {
   model: () => (slideEditor ? slideEditor.model : null),
   contract: () => (slideEditor ? slideEditor.contract : null),
   replan: () => replan({ quiet: true }),
+  ask: (instruction: string, scope: EditScope = 'line') => requestEdit(instruction, scope),
+  pin: (index: number, family: string | null) => {
+    const state = slideEditor
+    if (!state || !state.windows[index]) return false
+    if (family) state.windows[index].stage = family
+    else delete state.windows[index].stage
+    return replan({ quiet: true })
+  },
+  driverFor: (svg: SVGSVGElement, plan: MotionPlanV2) => instantiateMotionDriver(svg, plan, ''),
   planFromWindows,
   planFromScript,
   placementsFor,

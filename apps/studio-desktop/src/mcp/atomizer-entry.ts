@@ -4,12 +4,17 @@
 // hidden window's page context; functions take and return JSON values only.
 import {
   atomizeSlideSvg,
+  contractReport,
   flattenUnits,
   inferEdges,
   leafUnits,
   readingOrder,
   type SlideUnit,
 } from '../../../studio-v2/src/slide-atoms'
+import { pageModelFor } from '../../../studio-v2/src/page-model'
+import { planFromScript, planFromWindows, type SceneWindow } from '../../../studio-v2/src/script-plan'
+import { arcRoleFor, classifyScene, declaredSceneKind, direct } from '../../../studio-v2/src/director'
+import { lengthBriefFor } from '../../../studio-v2/src/length-brief'
 
 type Rect = { x: number; y: number; w: number; h: number }
 
@@ -140,5 +145,67 @@ const renderFold = (markup: string, hidden: string[], dimmed: Record<string, num
   return true
 }
 
-const api = { atomize, measure, renderFold }
+// The director as a tool: the page is atomised and modelled, a plan is
+// made from the windows or the script given (else one beat per unit), and
+// the director's judgement comes back whole — kind, role, brief, measured
+// staging options per beat with the reasons, placements, storyboard — so a
+// harness can pick among the options instead of guessing at staging.
+type DirectArgs = {
+  title?: string
+  windows?: Array<Partial<SceneWindow> & { say: string }>
+  script?: string
+  position?: { index: number; count: number }
+  wpm?: number
+  depth?: 'skim' | 'walk' | 'deep'
+  stagePins?: Array<string | undefined>
+}
+const directPage = (markup: string, args: DirectArgs = {}) => {
+  const atomized = atomizeSlideSvg(markup)
+  const model = pageModelFor(atomized.units)
+  const contract = contractReport(atomized.units, atomized.pageRole)
+  const valid = new Set(leafUnits(atomized.units).map(unit => unit.id))
+  const windows = (args.windows || [])
+    .filter(window => window && typeof window.say === 'string' && window.say.trim())
+    .map(window => ({ ...window, parts: (window.parts || []).filter(id => valid.has(id)) })) as SceneWindow[]
+  const wpm = args.wpm || 150
+  const options = { viewBox: atomized.viewBox, wpm, entities: model.entities, diagrams: model.diagrams }
+  const result = windows.length
+    ? planFromWindows(windows, atomized.units, options)
+    : planFromScript(args.script || leafUnits(atomized.units).filter(unit => !unit.chrome && /[A-Za-z]{2,}/.test(unit.label)).map(unit => unit.label).join('. '), atomized.units, { ...options, granularity: 'sentence' })
+  if (!result) throw new Error('The page has nothing to plan')
+  const position = args.position || { index: 0, count: 1 }
+  const kind = declaredSceneKind(atomized.pageRole) || classifyScene(atomized.units).kind
+  const arcRole = arcRoleFor(kind, position, [], atomized.pageRole)
+  const brief = lengthBriefFor(atomized.units, atomized.viewBox, { arcRole, depth: args.depth || 'walk', wpm, kind })
+  const directed = direct({
+    title: args.title || 'Scene',
+    units: atomized.units,
+    viewBox: atomized.viewBox,
+    beats: result.beats,
+    plan: result.plan,
+    position,
+    layouts: result.windows.map(window => window.layout),
+    layoutsByAuthor: result.windows.map(window => Boolean(window.layoutByAuthor)),
+    stagePins: args.stagePins,
+    pageRole: atomized.pageRole,
+  })
+  return {
+    pageRole: atomized.pageRole,
+    contract,
+    model: { diagrams: model.diagrams.map(diagram => ({ id: diagram.id, kind: diagram.kind, parts: diagram.parts, hops: diagram.hops })), entities: model.entities, verbSources: model.verbSources },
+    brief: { seconds: brief.seconds, windows: brief.windows, words: brief.words, why: brief.why, outline: brief.outline },
+    kind: directed.kind,
+    arcRole: directed.arcRole,
+    requiredArea: directed.requiredArea,
+    directorBrief: directed.brief,
+    storyboard: directed.storyboard,
+    layoutOptions: directed.layoutOptions.map(list => list.slice(0, 4)),
+    placements: directed.placements,
+    legibility: directed.legibility,
+    plan: result.plan,
+    windows: result.windows,
+  }
+}
+
+const api = { atomize, measure, renderFold, direct: directPage }
 ;(globalThis as unknown as { StudioAtomize: typeof api }).StudioAtomize = api

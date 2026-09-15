@@ -36,6 +36,9 @@ export type AtomizedSlide = {
   // content, ending (ppt-master) or title, list, diagram, numbers, quote,
   // close (the studio's own generator). Empty when undeclared.
   pageRole: string
+  // A world larger than the frame, when the page declared one
+  // (data-world="x y w h"): the camera may travel there.
+  world?: { x: number; y: number; width: number; height: number }
 }
 
 const PAINT_TAGS = new Set(['rect', 'circle', 'ellipse', 'polygon', 'path', 'line', 'polyline', 'text', 'image'])
@@ -261,7 +264,9 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
   const svg = new XMLSerializer().serializeToString(live)
   host.remove()
   const pageRole = String(root.getAttribute('data-page-role') || root.getAttribute('data-pptx-page-role') || '').trim().toLowerCase()
-  return { svg, units, viewBox, pageRole }
+  const worldParts = String(root.getAttribute('data-world') || '').trim().split(/[\s,]+/).map(Number)
+  const world = worldParts.length === 4 && worldParts.every(Number.isFinite) && worldParts[2] > 0 && worldParts[3] > 0 ? { x: worldParts[0], y: worldParts[1], width: worldParts[2], height: worldParts[3] } : undefined
+  return { svg, units, viewBox, pageRole, ...(world ? { world } : {}) }
 }
 
 /**

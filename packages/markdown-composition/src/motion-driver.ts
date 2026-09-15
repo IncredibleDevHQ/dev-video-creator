@@ -71,6 +71,12 @@ export const MOTION_DRIVER_SOURCE = `
   var pageBox = viewBoxAttr.length === 4 && viewBoxAttr[2] > 0
     ? { x: viewBoxAttr[0], y: viewBoxAttr[1], width: viewBoxAttr[2], height: viewBoxAttr[3] }
     : { x: 0, y: 0, width: 1280, height: 720 };
+  // A page may declare a world larger than its frame (data-world="x y w h"):
+  // the camera may travel there; the rest view stays the frame.
+  var worldAttr = (root.getAttribute('data-world') || '').split(/[\\s,]+/).map(Number);
+  var worldBox = worldAttr.length === 4 && worldAttr[2] > 0 && worldAttr[3] > 0
+    ? { x: Math.min(worldAttr[0], pageBox.x), y: Math.min(worldAttr[1], pageBox.y), width: Math.max(worldAttr[2], pageBox.width), height: Math.max(worldAttr[3], pageBox.height) }
+    : pageBox;
   var LEAF = 'line,polyline,path,text,rect,circle,ellipse,polygon,image';
 
   // ——— targets ———
@@ -269,12 +275,13 @@ export const MOTION_DRIVER_SOURCE = `
         var rx = value.x - pad, ry = value.y - pad, rw = value.width + pad * 2, rh = value.height + pad * 2;
         var aspect = pageBox.width / pageBox.height;
         if (rw / rh < aspect) { var nw = rh * aspect; rx -= (nw - rw) / 2; rw = nw; } else { var nh = rw / aspect; ry -= (nh - rh) / 2; rh = nh; }
-        // Never frame tighter than a third of the page, never beyond it.
+        // Never frame tighter than a third of the page, never beyond the
+        // world (the page itself unless it declared a larger one).
         var minW = pageBox.width / 3;
         if (rw < minW) { var cx = rx + rw / 2, cy = ry + rh / 2; rw = minW; rh = minW / aspect; rx = cx - rw / 2; ry = cy - rh / 2; }
-        if (rw > pageBox.width) { rx = pageBox.x; ry = pageBox.y; rw = pageBox.width; rh = pageBox.height; }
-        rx = Math.max(pageBox.x, Math.min(rx, pageBox.x + pageBox.width - rw));
-        ry = Math.max(pageBox.y, Math.min(ry, pageBox.y + pageBox.height - rh));
+        if (rw > worldBox.width || rh > worldBox.height) { rx = pageBox.x; ry = pageBox.y; rw = pageBox.width; rh = pageBox.height; }
+        rx = Math.max(worldBox.x, Math.min(rx, worldBox.x + worldBox.width - rw));
+        ry = Math.max(worldBox.y, Math.min(ry, worldBox.y + worldBox.height - rh));
         entry.rect = { x: rx, y: ry, width: rw, height: rh };
       }
       if (action.op === 'reveal' || action.op === 'trace' || action.op === 'count') {
