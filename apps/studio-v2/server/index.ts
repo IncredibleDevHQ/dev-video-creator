@@ -1,4 +1,5 @@
 import { type IncomingMessage, type ServerResponse } from 'node:http'
+import JSZip from 'jszip'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   access,
@@ -1894,6 +1895,153 @@ const handleIllustrate = async (request: IncomingMessage, response: ServerRespon
   json(response, 200, { kind: 'glyph', url: glyphFor(type, accent), prompt, width: 256, height: 256, palette: { accent, background } })
 }
 
+// ——— Phase 0 doors: a PDF or a deck, read into text ———
+// The text is read into a narrative and goes through the same outline and
+// page steps as a link. A PDF reads through poppler when it is installed,
+// else pypdf; a deck (.pptx) reads its slide texts and notes in order.
+const decodeXml = (value: string) => value.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&')
+const textFromPdf = async (path: string) => {
+  try {
+    return await runProcessOutput('pdftotext', ['-layout', '-enc', 'UTF-8', path, '-'], 120_000)
+  } catch {
+    const script = "import sys\nfrom pypdf import PdfReader\nr = PdfReader(sys.argv[1])\nprint('\\f'.join((p.extract_text() or '') for p in r.pages))"
+    return runProcessOutput('python3', ['-c', script, path], 120_000)
+  }
+}
+const textFromDeck = async (buffer: Buffer) => {
+  const zip = await JSZip.loadAsync(buffer)
+  const slideNumber = (name: string) => Number(/slide(\d+)\.xml$/.exec(name)?.[1] || 0)
+  const slides = Object.keys(zip.files).filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name)).sort((a, b) => slideNumber(a) - slideNumber(b))
+  const parts: string[] = []
+  for (const name of slides) {
+    const xml = await zip.file(name)!.async('string')
+    const paragraphs = [...xml.matchAll(/<a:p\b[^>]*>([\s\S]*?)<\/a:p>/g)]
+      .map(match => [...match[1].matchAll(/<a:t>([^<]*)<\/a:t>/g)].map(run => decodeXml(run[1])).join('').trim())
+      .filter(Boolean)
+    const notesFile = zip.file(`ppt/notesSlides/notesSlide${slideNumber(name)}.xml`)
+    const notes = notesFile ? [...(await notesFile.async('string')).matchAll(/<a:t>([^<]*)<\/a:t>/g)].map(run => decodeXml(run[1])).join(' ').replace(/\s+/g, ' ').trim() : ''
+    if (!paragraphs.length && !notes) continue
+    parts.push(`## ${paragraphs[0] || `Slide ${slideNumber(name)}`}\n${paragraphs.slice(1).join('\n')}${notes ? `\n\n${notes}` : ''}`)
+  }
+  return { text: parts.join('\n\n'), slides: slides.length }
+}
+const handleSourceFile = async (context: StudioWorkerContext, request: IncomingMessage, response: ServerResponse) => {
+  const body = await readBody(request, 80 * 1024 * 1024)
+  if (!body.length) throw new Error('The file is empty')
+  const name = decodeURIComponent(String(request.headers['x-file-name'] || 'source'))
+  const lower = name.toLowerCase()
+  const title = name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim()
+  let text = ''
+  let kind: 'pdf' | 'deck' | 'text' = 'text'
+  let pages = 0
+  if (lower.endsWith('.pdf')) {
+    const directory = join(context.jobsDirectory, `source-${randomUUID()}`)
+    await mkdir(directory, { recursive: true })
+    const path = join(directory, 'source.pdf')
+    await writeFile(path, body)
+    try {
+      text = await textFromPdf(path)
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+    kind = 'pdf'
+    pages = (text.match(/\f/g) || []).length + 1
+  } else if (lower.endsWith('.pptx')) {
+    const deck = await textFromDeck(body)
+    text = deck.text
+    pages = deck.slides
+    kind = 'deck'
+  } else if (/\.(md|markdown|txt)$/.test(lower)) {
+    text = body.toString('utf8')
+  } else {
+    throw new Error('Give a PDF, a PowerPoint (.pptx) or a text file — Keynote and Google Slides export to .pptx')
+  }
+  text = text.replace(/\r/g, '').replace(/\f/g, '\n\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+  if (text.length < 80) throw new Error(`Nothing readable in ${name} — a scanned PDF has no text layer`)
+  json(response, 200, { title, kind, pages, characters: text.length, text: text.slice(0, 60_000) })
+}
+
+// ——— Fonts shipped with a render ———
+// The pages name the site's faces. Google Fonts serves many of them; the
+// rest get a substitute of the same class that also answers to the
+// original name, so the SVGs render with a real face rather than the
+// host's fallback. Files are cached under assets/fonts and copied into the
+// job so the render stays hermetic.
+const FONT_SUBSTITUTES: Array<[RegExp, string]> = [
+  [/mono|consolas|menlo|courier|code|fira/i, 'JetBrains Mono'],
+  [/serif|georgia|times|garamond|charter|tiempos|freight/i, 'Source Serif 4'],
+  [/./, 'Inter'],
+]
+const fontFamiliesIn = (project: ProjectDocumentV1) => {
+  const families = new Set<string>(['Inter'])
+  project.notebook.content.forEach(node => {
+    const svg = typeof node.attrs?.svg === 'string' ? node.attrs.svg : ''
+    for (const match of svg.matchAll(/font-family="([^"]+)"/g)) {
+      const first = match[1].split(',')[0].replace(/["']/g, '').trim()
+      if (first && !/^(serif|sans-serif|monospace|system-ui|inherit)$/i.test(first)) families.add(first)
+    }
+  })
+  return [...families]
+}
+const googleFontCss = async (family: string) => {
+  const url = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@400;500;600;700&display=block`
+  const answer = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' }, signal: AbortSignal.timeout(8_000) })
+  return answer.ok ? answer.text() : null
+}
+const shipFonts = async (context: StudioWorkerContext, families: string[], mediaDirectory: string) => {
+  const cacheDirectory = join(context.assetsDirectory, 'fonts')
+  await mkdir(cacheDirectory, { recursive: true })
+  const fontsDirectory = join(mediaDirectory, 'fonts')
+  const css: string[] = []
+  const shipped: string[] = []
+  const substituted: Record<string, string> = {}
+  // One file that will not download must not cost the others: every fetch
+  // fails on its own, and a face that cannot be shipped is skipped.
+  const fetchFile = async (url: string): Promise<[string, string]> => {
+    const name = `${createHash('sha1').update(url).digest('hex').slice(0, 16)}.woff2`
+    const cached = join(cacheDirectory, name)
+    try {
+      try {
+        await access(cached)
+      } catch {
+        const answer = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+        if (!answer.ok) return [url, url]
+        await writeFile(cached, Buffer.from(await answer.arrayBuffer()))
+      }
+      await mkdir(fontsDirectory, { recursive: true })
+      await copyFile(cached, join(fontsDirectory, name))
+      return [url, `./media/fonts/${name}`]
+    } catch {
+      return [url, url]
+    }
+  }
+  for (const family of families) {
+    try {
+      let text = await googleFontCss(family).catch(() => null)
+      let served = family
+      if (!text) {
+        served = FONT_SUBSTITUTES.find(([pattern]) => pattern.test(family))![1]
+        if (served !== family) substituted[family] = served
+        text = shipped.includes(served) ? '' : await googleFontCss(served).catch(() => null)
+        if (text === null) continue
+      }
+      const urls = [...new Set([...text.matchAll(/url\((https:[^)]+)\)/g)].map(match => match[1]))]
+      const mapping = new Map<string, string>()
+      for (const url of urls) {
+        const [from, to] = await fetchFile(url)
+        mapping.set(from, to)
+      }
+      let local = text.replace(/url\((https:[^)]+)\)/g, (whole, url: string) => `url(${mapping.get(url) || url})`)
+      if (served !== family && local) local = `${local}\n${local.replace(new RegExp(`font-family: '${served.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`, 'g'), `font-family: '${family}'`)}`
+      if (local) css.push(local)
+      if (!shipped.includes(served)) shipped.push(served)
+    } catch (error) {
+      console.warn('[render] font not shipped', family, error instanceof Error ? error.message : error)
+    }
+  }
+  return { css: css.join('\n'), shipped, substituted }
+}
+
 const handleAssetUpload = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -2223,7 +2371,14 @@ const handleRender = async (
       }),
     )
   }
-  await writeFile(inputPath, composition.html, 'utf8')
+  // The faces the pages name travel with the job (or a substitute of the
+  // same class that answers to the same name).
+  const fonts = await shipFonts(context, fontFamiliesIn(renderProject), join(jobDirectory, 'media')).catch(error => {
+    console.warn('[render] fonts not shipped', error instanceof Error ? error.message : error)
+    return { css: '', shipped: [] as string[], substituted: {} as Record<string, string> }
+  })
+  const html = fonts.css ? composition.html.replace('</head>', `<style data-shipped-fonts>\n${fonts.css}\n</style>\n</head>`) : composition.html
+  await writeFile(inputPath, html, 'utf8')
   await copyFile(gsapRuntimePath, join(runtimeDirectory, 'gsap.min.js'))
   await copyFile(
     hyperframesRuntimePath,
@@ -2255,6 +2410,7 @@ const handleRender = async (
   json(response, 200, {
     url: `${publicBaseUrl(request)}/outputs/${id}.mp4`,
     durationSeconds: composition.durationSeconds,
+    fonts: { shipped: fonts.shipped, substituted: fonts.substituted },
   })
 }
 
@@ -2405,6 +2561,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/assets') {
       await handleAssetUpload(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/source/file') {
+      await handleSourceFile(context, request, response)
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/assets/illustrate') {

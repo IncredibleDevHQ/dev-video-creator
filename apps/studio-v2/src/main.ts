@@ -7437,6 +7437,10 @@ const startPublish = async () => {
   const resultPanel = $('#render-result')
   resultPanel.hidden = true
   try {
+    // Captions burned in when asked; the choice is kept with the project.
+    const burnIn = ($('#burn-captions') as HTMLInputElement).checked
+    project.captions = { burnIn }
+    syncProject()
     const payload = structuredClone(project)
     payload.notebook.content = payload.notebook.content.filter(node => {
       const nodeId = node.attrs?.id
@@ -7476,6 +7480,7 @@ const openPublishSummary = () => {
   ;($('#render-result') as HTMLElement).hidden = true
   closePublishTakePreview()
   renderPublishBlockList()
+  ;($('#burn-captions') as HTMLInputElement).checked = Boolean(project.captions?.burnIn)
   publishDialog.showModal()
 }
 
@@ -9188,8 +9193,11 @@ type SlideEditorState = {
   // typed entities), the third grouping.
   contract: ContractReport
   model: PageModel
+  // Animation mode for a title-like page: a living field, or calm.
+  animationMode: 'auto' | 'off'
 }
 let slideEditor: SlideEditorState | null = null
+const sceneKindOf = (state: SlideEditorState) => declaredSceneKind(state.pageRole) || classifyScene(state.units).kind
 
 // ——— Versions: every save of a scene, kept; any of them a click away ———
 // A version is the scene's dialogue, motion and metadata as saved: the
@@ -10314,22 +10322,26 @@ const renderLengthBrief = () => {
     writeButton.hidden = true
     nextSave.hidden = false
     nextNote.textContent = 'Saving keeps a version — you can always go back.'
-    more.hidden = true
+    more.hidden = false
   } else {
     nextTitle.textContent = 'Review it, then record'
     ;($('#se-length-why') as HTMLElement).textContent = `${state.windows.length} windows · ${Math.round(spoken)} s — the motion follows these lines. Play it on the left; click a line to change its words; ask the writer below for a change.`
     writeButton.hidden = true
     nextSave.hidden = true
     nextNote.textContent = ''
-    more.hidden = true
+    more.hidden = false
   }
   ;($('#se-length-k') as HTMLElement).textContent = 'Next'
-  if (showCard && !more.hidden) {
-    ;($('#se-length-seconds') as HTMLElement).textContent = `${DEPTH_LABELS[state.depth]} · ≈ ${Math.round(brief.seconds)} s`
+  // The judgement line is always there: what the page is, what the video
+  // plan gives it, what the arc pass found, how much of the page was declared.
+  {
     const modelNote = describePageModel(state.model)
     const arcNote = findSlideLikeNode(state.nodeId)?.attrs.arcNote as { role?: { from: string; to: string }; outro?: { was: string; now: string } } | undefined
     const arcText = arcNote ? [arcNote.role ? `role moved ${arcNote.role.from} → ${arcNote.role.to}` : '', arcNote.outro ? `the outro should now hand over to “${arcNote.outro.now}”` : ''].filter(Boolean).join(' · ') : ''
-    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words${brief.budget ? ` · ${brief.budget.seconds}s of the video's ${formatTarget(brief.budget.runtime)}` : ''}${arcText ? ` · ${arcText}` : ''}${state.pageRole ? ` · page says ${state.pageRole}` : ''}${modelNote ? ` · ${modelNote}` : ''}${state.contract.connectors || state.contract.groups ? ` · ${Math.round(state.contract.declared * 100)}% declared` : ''}${state.fontNotes ? ` · ${state.fontNotes}` : ''} · change the depth or see the walk`
+    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words${brief.budget ? ` · ${brief.budget.seconds}s of the video's ${formatTarget(brief.budget.runtime)}` : ''}${arcText ? ` · ${arcText}` : ''}${state.pageRole ? ` · page says ${state.pageRole}` : ''}${modelNote ? ` · ${modelNote}` : ''}${state.contract.connectors || state.contract.groups ? ` · ${Math.round(state.contract.declared * 100)}% declared` : ''}${state.fontNotes ? ` · ${state.fontNotes}` : ''}${more.hidden ? '' : ' · change the depth or see the walk'}`
+  }
+  if (showCard && !more.hidden) {
+    ;($('#se-length-seconds') as HTMLElement).textContent = `${DEPTH_LABELS[state.depth]} · ≈ ${Math.round(brief.seconds)} s`
     const depthBox = $('#se-length-depth') as HTMLElement
     depthBox.replaceChildren(
       ...LENGTH_DEPTHS.map(depth => {
@@ -10435,7 +10447,7 @@ const markDirty = (dirty: boolean) => {
 const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolean } = {}) => {
   const state = slideEditor
   if (!state || !state.windows.length) return false
-  const result = planFromWindows(state.windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
+  const result = planFromWindows(state.windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })
   if (!result) return false
   state.motion = result.plan
   state.coverage = result.coverage
@@ -10493,7 +10505,7 @@ const composeFromText = async (text: string, source: string) => {
   if (!state) return
   if (!source.startsWith('re-cut')) state.sourceText = text
   state.lastChange = source.startsWith('re-cut') ? 'Re-cut the windows' : 'Used the written text'
-  const local = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
+  const local = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })
   if (!local) {
     setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
     return
@@ -10847,7 +10859,7 @@ const requestProposal = async (instruction: string) => {
     const windows = sanitizeWindows(body.windows || [], state)
     if (!windows.length) throw new Error('The writer returned nothing usable')
     hideWriting()
-    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
+    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })
     // The proposal is staged like the scene would be, so the preview shows
     // the frames it would get.
     const staged = planned
@@ -11031,7 +11043,7 @@ const previewSceneVersion = (version: SceneVersion) => {
   if (!state) return
   stopSlidePlayback()
   const windows = sanitizeWindows(version.snapshot.windows, state)
-  const plan = sanitizeMotionPlan(version.snapshot.motion) || (windows.length ? planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })?.plan || null : null)
+  const plan = sanitizeMotionPlan(version.snapshot.motion) || (windows.length ? planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })?.plan || null : null)
   const auto = version.snapshot.directorAuto as { storyboard?: DirectorResult['storyboard'] } | null | undefined
   state.proposal = { windows, plan, source: `version · ${version.label}, ${timeAgo(version.at)}`, version: version.id, seconds: version.seconds, storyboard: auto?.storyboard }
   state.previewPlan = plan
@@ -11167,7 +11179,7 @@ const planSlideFromScript = () => {
     setSlideEditorStatus('Write the dialogue first', 'error')
     return false
   }
-  const result = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
+  const result = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })
   if (!result) {
     setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
     return false
@@ -11652,6 +11664,16 @@ const renderFrameBubble = () => {
         }
       }
       quick('Rewrite the line around it', 'The editor rewrites this line so it turns on the selection', () => void requestEdit(`Rewrite this line so it turns on ${names.join(' and ')}.`, 'line'), { ai: true })
+      if (sceneKindOf(state) === 'title') {
+        quick(state.animationMode === 'off' ? 'Living title' : 'Calm title', state.animationMode === 'off' ? 'Give the title page its ambient field back' : 'Take the ambient field off this title page', () => {
+          state.animationMode = state.animationMode === 'off' ? 'auto' : 'off'
+          state.lastChange = state.animationMode === 'off' ? 'Calmed the title page' : 'Made the title page live'
+          markDirty(true)
+          if (state.windows.length) replan({ quiet: true })
+          else renderSlideEditorPreview()
+          renderFrameBubble()
+        })
+      }
     }
     if (state.selection.speaker) {
       const wish = window.layoutByAuthor ? window.layout || '' : ''
@@ -11884,7 +11906,7 @@ const requestEdit = async (instruction: string, scope: EditScope) => {
       setSlideEditorStatus('The editor kept the dialogue as it is — say more, or widen the scope', 'ok')
       return
     }
-    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
+    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })
     const staged = planned
       ? direct({ title: String(found?.attrs.title || 'Scene'), units: state.units, viewBox: state.viewBox, beats: planned.beats, plan: planned.plan, position: scenePosition(state.nodeId), layouts: windows.map(window => window.layout), layoutsByAuthor: windows.map(window => Boolean(window.layoutByAuthor)) })
       : null
@@ -12094,6 +12116,7 @@ const openSlideEditor = (nodeId: string) => {
     fontNotes: missingFontNote(atomized.svg),
     contract: contractReport(atomized.units, atomized.pageRole),
     model: pageModelFor(atomized.units),
+    animationMode: found.attrs.animationMode === 'off' ? 'off' : 'auto',
     previewPlan: null,
     sourceText: '',
     openDrawers: new Set(),
@@ -12124,7 +12147,7 @@ const openSlideEditor = (nodeId: string) => {
   if (!state.windows.length && state.script && (state.motion || sanitizeSlideSteps(found.attrs.steps).length)) {
     // A scene from before windows: cut its dialogue into windows now, from
     // the words alone, so the studio opens in the same state as any other.
-    const local = planFromScript(state.script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
+    const local = planFromScript(state.script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })
     if (local) {
       state.sourceText = state.script
       state.windows = sanitizeWindows(local.windows, state)
@@ -12662,9 +12685,9 @@ const animateSceneLocally = (nodeId: string) => {
   const result = !atomized.units.length
     ? null
     : found.attrs.breakdownApproved && savedWindows.length
-      ? planFromWindows(savedWindows, atomized.units, { viewBox: atomized.viewBox, wpm: pace.wpm, entities: model.entities, diagrams: model.diagrams })
+      ? planFromWindows(savedWindows, atomized.units, { viewBox: atomized.viewBox, wpm: pace.wpm, entities: model.entities, diagrams: model.diagrams, sceneKind: declaredSceneKind(atomized.pageRole) || classifyScene(atomized.units).kind, animationMode: found.attrs.animationMode === 'off' ? 'off' : 'auto' })
       : script
-        ? planFromScript(script, atomized.units, { viewBox: atomized.viewBox, granularity: pace.granularity, wpm: pace.wpm, entities: model.entities, diagrams: model.diagrams })
+        ? planFromScript(script, atomized.units, { viewBox: atomized.viewBox, granularity: pace.granularity, wpm: pace.wpm, entities: model.entities, diagrams: model.diagrams, sceneKind: declaredSceneKind(atomized.pageRole) || classifyScene(atomized.units).kind, animationMode: found.attrs.animationMode === 'off' ? 'off' : 'auto' })
         : null
   if (!result) {
     // No script and no notes: the page's own build order, one beat per unit.
@@ -12799,6 +12822,7 @@ assistCancel.addEventListener('click', () => {
     breakdownApproved: inWindows,
     lengthBrief: state.brief,
     lengthDepth: state.depth,
+    animationMode: state.animationMode,
     arcNote: null,
     motion: inWindows ? state.motion : null,
     ...(state.director && found && inWindows ? directorAttrs(found.attrs, state.director, state.motion) : {}),
@@ -13011,6 +13035,8 @@ const sourceState: {
   outline: Outline | null
   pages: SourcePage[] | null
   busy: boolean
+  // The name of a PDF or deck read through the file door, as the title.
+  fileTitle?: string
 } = { kind: 'link', source: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
 const sourceDialog = $('#source-dialog') as HTMLDialogElement
 const sourceStatus = (id: string, text: string, error = false) => {
@@ -13019,6 +13045,10 @@ const sourceStatus = (id: string, text: string, error = false) => {
   element.classList.toggle('is-error', error)
 }
 const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
+  if (step === 'pages') {
+    const row = document.getElementById('source-destination-row')
+    if (row) row.hidden = !notebookHasScenes()
+  }
   const order = ['read', 'brand', 'outline', 'pages']
   order.forEach(name => {
     ;($(`#source-step-${name}`) as HTMLElement).hidden = name !== step
@@ -13060,7 +13090,7 @@ const sourceRead = async () => {
     const { source } = await fetchJson<{ source: SourceRead }>('/api/source/read', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, projectId: project.id }),
+      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, title: url ? undefined : sourceState.fileTitle || undefined, projectId: project.id }),
     })
     sourceState.source = source
     sourceState.brandColor = source.palette.accent
@@ -13334,11 +13364,65 @@ const sourceMakePages = async () => {
   }
 }
 
-const sourceFinish = () => {
+// Fonts the pages name are loaded from Google Fonts when it has them, so
+// the studio measures and previews with the same faces the render ships.
+const linkedFontFamilies = new Set<string>()
+const pageFontFamilies = (doc: TiptapDocument) => {
+  const families = new Set<string>()
+  doc.content.forEach(node => {
+    const svg = typeof node.attrs?.svg === 'string' ? node.attrs.svg : ''
+    for (const match of svg.matchAll(/font-family="([^"]+)"/g)) {
+      const first = match[1].split(',')[0].replace(/["']/g, '').trim()
+      if (first && !/^(serif|sans-serif|monospace|system-ui|inherit)$/i.test(first)) families.add(first)
+    }
+  })
+  return [...families]
+}
+const ensurePageFonts = (doc: TiptapDocument) => {
+  pageFontFamilies(doc).forEach(family => {
+    if (linkedFontFamilies.has(family)) return
+    linkedFontFamilies.add(family)
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@400;500;600;700&display=swap`
+    link.dataset.pageFont = family
+    document.head.append(link)
+  })
+}
+const notebookHasScenes = () => (editor.getJSON() as TiptapDocument).content.some(node => node.type === 'scene' || node.type === 'slide')
+// A source can begin a new notebook without a reload: the current one is
+// kept, a fresh document takes the theme, and the studio continues in it.
+const startFreshNotebook = async (title: string) => {
+  project.notebook = editor.getJSON() as TiptapDocument
+  ensureBlockConfiguration(project.notebook)
+  try {
+    await persistProjectNow(structuredClone(project))
+  } catch {
+    // the local cache keeps the edits; the new notebook still begins
+  }
+  const fresh = blankProjectDocument(title)
+  if (project.theme) {
+    fresh.theme = structuredClone(project.theme)
+    fresh.brand = { ...project.theme.brand }
+  }
+  project = fresh
+  slideEditor = null
+  lastVideoPlan = null
+  editor.commands.setContent(fresh.notebook)
+  window.localStorage.setItem(ACTIVE_PROJECT_KEY, fresh.id)
+  window.localStorage.removeItem(STORAGE_KEY)
+  const titleInput = document.querySelector<HTMLInputElement>('#project-title')
+  if (titleInput) titleInput.value = title
+  syncProject()
+}
+const sourceFinish = async () => {
   const source = sourceState.source
   const outline = sourceState.outline
   const pages = sourceState.pages
   if (!source || !outline || !pages?.length) return
+  const destination = document.querySelector<HTMLInputElement>('input[name="source-destination"]:checked')?.value || 'new'
+  const startedNew = notebookHasScenes() && destination === 'new'
+  if (startedNew) await startFreshNotebook(outline.title)
   // the brand, with the logo the author picked
   const direction = sourceState.directions[sourceState.direction] || sourceState.directions[0]
   if (direction) {
@@ -13373,9 +13457,39 @@ const sourceFinish = () => {
   if (titleInput) titleInput.value = project.title
   syncProject()
   sourceDialog.close()
-  showToast(`${inserted.length} scenes from ${source.site || 'your narrative'} · ${formatTarget(outline.targetSeconds)} planned`)
+  if (startedNew) {
+    try {
+      await persistProjectNow(structuredClone(project))
+    } catch (error) {
+      console.warn('new notebook not persisted yet', error)
+    }
+  }
+  showToast(`${inserted.length} scenes from ${source.site || 'your narrative'}${startedNew ? ' in a new notebook' : ''} · ${formatTarget(outline.targetSeconds)} planned`)
 }
 
+// A PDF or a deck: its text is read into the narrative, then read like one.
+const sourceReadFile = async (file: File) => {
+  if (sourceState.busy) return
+  sourceStatus('#source-status', `Reading ${file.name}…`)
+  try {
+    const answer = await fetchJson<{ title: string; kind: string; pages: number; characters: number; text: string }>('/api/source/file', {
+      method: 'POST',
+      headers: { 'content-type': file.type || 'application/octet-stream', 'x-file-name': encodeURIComponent(file.name), 'x-project-id': project.id },
+      body: file,
+    })
+    ;($('#source-url') as HTMLInputElement).value = ''
+    ;($('#source-narrative') as HTMLTextAreaElement).value = answer.text
+    sourceState.fileTitle = answer.title
+    sourceStatus('#source-status', `${answer.kind === 'deck' ? `${answer.pages} slides` : answer.kind === 'pdf' ? `${answer.pages} pages` : 'The text'} read into a narrative (${Math.max(1, Math.round(answer.characters / 1000))}k characters)`)
+    await sourceRead()
+  } catch (error) {
+    sourceStatus('#source-status', error instanceof Error ? error.message : 'Could not read that file', true)
+  }
+}
+;($('#source-file') as HTMLInputElement).addEventListener('change', event => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (file) void sourceReadFile(file)
+})
 ;($('#source-read') as HTMLButtonElement).addEventListener('click', () => void sourceRead())
 ;($('#source-url') as HTMLInputElement).addEventListener('keydown', event => {
   if (event.key === 'Enter') {
@@ -13385,7 +13499,7 @@ const sourceFinish = () => {
 })
 ;($('#source-to-outline') as HTMLButtonElement).addEventListener('click', () => void sourceOutline())
 ;($('#source-make-pages') as HTMLButtonElement).addEventListener('click', () => void sourceMakePages())
-;($('#source-finish') as HTMLButtonElement).addEventListener('click', sourceFinish)
+;($('#source-finish') as HTMLButtonElement).addEventListener('click', () => void sourceFinish())
 ;($('#source-close') as HTMLButtonElement).addEventListener('click', () => sourceDialog.close())
 ;($('#start-from-source') as HTMLButtonElement).addEventListener('click', () => openSourceDialog('link'))
 ;($('#open-assets') as HTMLButtonElement).addEventListener('click', () => openAssetLibrary())

@@ -694,6 +694,7 @@
       </div>
       <div class="publish-footer">
         <div class="publish-summary"><strong id="publish-duration">00:00</strong><span id="publish-count">0 blocks</span></div>
+        <label class="publish-option" title="Every dialogue line is shown low in the frame while it is spoken. The VTT file is there either way."><input type="checkbox" id="burn-captions" /> Burn captions into the video</label>
         <div class="modal-actions"><a id="download-captions" class="button ghost" href="#" download title="Every dialogue line as a caption cue, timed to the motion">Captions (VTT)</a><span id="render-result" hidden><a id="download-render" class="button ghost" href="#" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 19h16"/></svg>Download MP4</a></span><button id="cancel-publish" class="button ghost" type="button">Cancel</button><button id="start-publish" class="button primary" type="button">Publish video</button></div>
       </div>
     </dialog>
@@ -777,6 +778,8 @@
         <label class="source-field">Link<input id="source-url" type="url" placeholder="https://blog.example.com/post" spellcheck="false" /></label>
         <div class="source-or">or</div>
         <label class="source-field">Narrative<textarea id="source-narrative" rows="7" placeholder="Paste your own words: the story you want to tell, one paragraph per thought."></textarea></label>
+        <div class="source-or">or</div>
+        <label class="source-field">A PDF or a deck<input id="source-file" type="file" accept=".pdf,.pptx,.md,.markdown,.txt" /><small class="source-hint">Its text is read into the narrative above, then read like one. Keynote and Google Slides export to .pptx.</small></label>
         <div class="modal-actions"><span id="source-status" class="source-status"></span><button id="source-read" type="button" class="button primary">Read it</button></div>
       </section>
       <section id="source-step-brand" class="source-step" hidden>
@@ -801,6 +804,7 @@
       </section>
       <section id="source-step-pages" class="source-step" hidden>
         <div id="source-pages-grid" class="source-pages-grid"></div>
+        <div id="source-destination-row" class="source-destination" hidden><span>This notebook already has scenes.</span><label><input type="radio" name="source-destination" value="new" checked /> Start a new notebook</label><label><input type="radio" name="source-destination" value="append" /> Add them to this notebook</label></div>
         <div class="modal-actions"><button type="button" class="button ghost" data-source-back="outline">Back</button><span id="source-pages-note" class="source-status"></span><button id="source-finish" type="button" class="button primary">Open the notebook</button></div>
       </section>
     </dialog>

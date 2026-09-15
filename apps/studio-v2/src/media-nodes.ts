@@ -192,6 +192,8 @@ export const SlideBlock = Node.create({
       // The arc pass: a role that moved or an outro that now hands over
       // elsewhere, cleared when the scene is next saved.
       arcNote: { default: null },
+      // Animation mode for title-like pages: 'auto' (a living field) or 'off'.
+      animationMode: { default: 'auto' },
       requiredArea: { default: '' },
       // The user approved the base page structure; Plan motion (assist)
       // refuses to run before this is set.

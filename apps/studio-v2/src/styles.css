@@ -2094,3 +2094,10 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .asset-card .asset-actions{display:flex;gap:6px;margin-top:2px}
 .asset-card .asset-actions button{font-size:11px;padding:4px 8px}
 .assets-empty{opacity:.7;font-size:13px;padding:18px 4px}
+
+.publish-option{display:flex;align-items:center;gap:8px;font-size:13px;opacity:.85;margin:6px 0 2px}
+.publish-option input{accent-color:var(--brand,#4ade80)}
+
+.source-destination{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px;margin:10px 0 2px;opacity:.9}
+.source-destination label{display:flex;align-items:center;gap:6px}
+.source-hint{display:block;font-size:11.5px;opacity:.7;margin-top:4px}

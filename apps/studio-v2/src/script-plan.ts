@@ -370,6 +370,20 @@ export type ScriptPlanOptions = {
   // The page model's diagrams: a phase op keeps each one's process moving
   // once its hops are traced.
   diagrams?: Array<{ id: string; kind: string; hops: Array<{ connector: string; from: string; to: string; verb: string }> }>
+  // What the page is (title pages get a living field unless told to stay
+  // calm) — animation mode as a scene type for title-like scenes.
+  sceneKind?: string
+  animationMode?: 'auto' | 'off'
+}
+
+// The thing a line says travels along the arrows, when it names one.
+const TRAVELLING_THINGS = /\b(requests?|messages?|packets?|events?|jobs?|quer(?:y|ies)|responses?|payments?|orders?|tokens?|records?|signals?|calls?|emails?|notifications?|updates?|files?)\b/i
+const travellingThing = (said: string) => {
+  const match = TRAVELLING_THINGS.exec(said)
+  if (!match) return ''
+  const word = match[1].toLowerCase()
+  const singular = word === 'queries' ? 'query' : word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word
+  return singular.charAt(0).toUpperCase() + singular.slice(1)
 }
 
 // The state a line puts an entity in, from the entity's own vocabulary and
@@ -456,7 +470,8 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       const waiting = connectors.filter(unit => verbOf(unit) === 'waits for')
       const merging = connectors.filter(unit => verbOf(unit) === 'merges into')
       const comparing = connectors.filter(unit => verbOf(unit) === 'compares with')
-      const rest = connectors.filter(unit => !waiting.includes(unit) && !merging.includes(unit) && !comparing.includes(unit))
+      const becoming = connectors.filter(unit => verbOf(unit) === 'becomes')
+      const rest = connectors.filter(unit => !waiting.includes(unit) && !merging.includes(unit) && !comparing.includes(unit) && !becoming.includes(unit))
       if (waiting.length) {
         const hopMs = MOTION_DURATION_MS.trace + 140
         waiting.forEach((connector, index) => {
@@ -489,6 +504,29 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
         if (targets.length) actions.push(action('emphasize', targets.flatMap(unit => unit.ids), cursor, { persistence: 'flourish' }))
         cursor += 200
       }
+      if (becoming.length) {
+        // An of-place verb: the source travels onto the target's place and
+        // becomes it — the target appears as the source fades, the camera
+        // follows the travel (the subject persists).
+        becoming.forEach(connector => {
+          const edge = edges.find(candidate => candidate.connector.id === connector.id)
+          const source = edge?.source
+          const target = edge?.target
+          actions.push(action('trace', connector.ids, cursor, { durationMs: MOTION_DURATION_MS.trace, value: { verb: 'becomes' } }))
+          cursor += MOTION_DURATION_MS.trace * 0.6
+          if (!source || !target) return
+          const dx = Math.round(target.bbox.x + target.bbox.width / 2 - (source.bbox.x + source.bbox.width / 2))
+          const dy = Math.round(target.bbox.y + target.bbox.height / 2 - (source.bbox.y + source.bbox.height / 2))
+          if (entering.includes(target)) {
+            const already = actions.find(item => item.op === 'reveal' && target.ids.every(id => item.targets.includes(id)))
+            if (already) already.targets = already.targets.filter(id => !target.ids.includes(id))
+          }
+          actions.push(action('move', source.ids, cursor, { durationMs: MOTION_DURATION_MS.move + 200, value: { dx, dy } }))
+          actions.push(action('morph', [...source.ids, ...target.ids], cursor + Math.round(MOTION_DURATION_MS.move * 0.5), { durationMs: MOTION_DURATION_MS.morph, value: { fromCount: source.ids.length } }))
+          cursor += MOTION_DURATION_MS.move + 200
+        })
+        if (!spec.intent) intent = 'transform'
+      }
       if (comparing.length) {
         const ids = comparing.flatMap(unit => unit.ids)
         actions.push(action('trace', ids, cursor, { durationMs: MOTION_DURATION_MS.trace, value: { verb: 'compares with' } }))
@@ -518,8 +556,15 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       const shown = diagram.hops.filter(hop => visible.has(hop.connector) || tracedNow.has(hop.connector))
       const hops = shown.map(hop => `${hop.connector}:${hop.from}>${hop.to}`).join(';')
       if (!hops) return
-      actions.push(action('phase', [diagram.id], cursor, { value: { program: diagram.kind, phase, hops } }))
+      // The thing the line says travels rides the hops with its name on.
+      const token = phase === 'wait' ? '' : travellingThing(beat.text)
+      actions.push(action('phase', [diagram.id], cursor, { value: { program: diagram.kind, phase, hops, ...(token ? { token } : {}) } }))
     })
+    // A living title: title-like pages carry an ambient field from the
+    // first beat unless the author asked for a calm one.
+    if (index === 0 && options.sceneKind === 'title' && options.animationMode !== 'off') {
+      actions.push(action('phase', [], 0, { value: { program: 'title', phase: 'ambient' } }))
+    }
     // Entity states: a line that names a typed entity in one of its states
     // (the server is running, the queue backs up) sets that state; the
     // driver keeps it at ambient amplitude until a later line changes it.

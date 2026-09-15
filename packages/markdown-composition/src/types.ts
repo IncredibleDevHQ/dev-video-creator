@@ -336,6 +336,9 @@ export type ProjectDocumentV1 = {
   // which unit shows it), in the video's palette, reused on every page
   // that names the thing. Additive; older notebooks have none.
   assets?: AssetRecordV1[]
+  // Captions: burned into the picture at render (the VTT/SRT files exist
+  // either way).
+  captions?: { burnIn: boolean }
 }
 
 export type AssetRecordV1 = {

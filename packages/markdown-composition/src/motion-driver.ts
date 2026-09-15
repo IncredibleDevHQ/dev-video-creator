@@ -151,7 +151,32 @@ export const MOTION_DRIVER_SOURCE = `
     group.style.opacity = '0';
     layer().appendChild(group);
     var unit = Math.max(1.5, pageBox.width / 640);
-    var item = { key: (action.targets && action.targets[0]) || ('living-' + living.length), program: program, phase: phase, beatEnd: beatEnd, group: group, hops: [], bars: [], unit: unit };
+    var token = String(value.token || '').slice(0, 24);
+    var item = { key: (action.targets && action.targets[0]) || ('living-' + program + '-' + living.length), program: program, phase: phase, beatEnd: beatEnd, group: group, hops: [], bars: [], unit: unit, token: token, field: [], sweep: null };
+    if (program === 'title') {
+      // A living title: a slow field of motes across the page and a sweep
+      // of light under the top of the page, both ambient.
+      for (var f = 0; f < 22; f += 1) {
+        var mote = doc.createElementNS(SVG_NS, 'circle');
+        var seed = (f * 0.6180339887) % 1, seed2 = (f * 0.7548776662) % 1;
+        mote.setAttribute('r', String(unit * (0.8 + seed2 * 1.6)));
+        mote.setAttribute('fill', accent);
+        mote.style.opacity = '0';
+        group.appendChild(mote);
+        item.field.push({ node: mote, x: pageBox.x + seed * pageBox.width, y: pageBox.y + seed2 * pageBox.height, drift: 0.6 + seed, phase: seed2 * Math.PI * 2 });
+      }
+      var sweep = doc.createElementNS(SVG_NS, 'rect');
+      sweep.setAttribute('y', String(pageBox.y + pageBox.height * 0.2));
+      sweep.setAttribute('height', String(unit * 1.2));
+      sweep.setAttribute('width', String(pageBox.width * 0.22));
+      sweep.setAttribute('rx', String(unit * 0.6));
+      sweep.setAttribute('fill', accent);
+      sweep.style.opacity = '0';
+      group.appendChild(sweep);
+      item.sweep = sweep;
+      living.push(item);
+      return item;
+    }
     if (program === 'entity') {
       (action.targets || []).forEach(function (id) {
         var node = find(id); var box = node && bboxOf(node); if (!box) return;
@@ -181,9 +206,31 @@ export const MOTION_DRIVER_SOURCE = `
       var hop = { from: edgePoint(a, ax, ay, bx, by), to: edgePoint(b, bx, by, ax, ay), packets: [], ring: null };
       var count = phase === 'wait' ? 1 : 2;
       for (var i = 0; i < count; i += 1) {
+        if (i === 0 && token) {
+          // The thing that travels, named: a pill with the word on it.
+          var pill = doc.createElementNS(SVG_NS, 'g');
+          var textNode = doc.createElementNS(SVG_NS, 'text');
+          textNode.textContent = token;
+          textNode.setAttribute('font-size', String(unit * 4.6));
+          textNode.setAttribute('font-family', 'Inter, ui-sans-serif, system-ui, sans-serif');
+          textNode.setAttribute('font-weight', '600');
+          textNode.setAttribute('fill', '#0b0f17');
+          textNode.setAttribute('dominant-baseline', 'middle');
+          textNode.setAttribute('text-anchor', 'middle');
+          var pillW = unit * (4.6 * 0.6 * token.length + 7), pillH = unit * 7;
+          var back = doc.createElementNS(SVG_NS, 'rect');
+          back.setAttribute('x', String(-pillW / 2)); back.setAttribute('y', String(-pillH / 2));
+          back.setAttribute('width', String(pillW)); back.setAttribute('height', String(pillH)); back.setAttribute('rx', String(pillH / 2));
+          back.setAttribute('fill', accent);
+          pill.appendChild(back); pill.appendChild(textNode);
+          pill.style.opacity = '0';
+          group.appendChild(pill);
+          hop.packets.push({ node: pill, pill: true });
+          continue;
+        }
         var dot = doc.createElementNS(SVG_NS, 'circle');
         dot.setAttribute('r', String(unit * 2.2)); dot.setAttribute('fill', accent); dot.style.opacity = '0';
-        group.appendChild(dot); hop.packets.push(dot);
+        group.appendChild(dot); hop.packets.push({ node: dot, pill: false });
       }
       var ring = doc.createElementNS(SVG_NS, 'rect');
       ring.setAttribute('x', String(b.x - unit)); ring.setAttribute('y', String(b.y - unit));
@@ -205,26 +252,54 @@ export const MOTION_DRIVER_SOURCE = `
         var wobble = item.phase === 'running' || item.phase === 'busy' || item.phase === 'flowing' ? 0.04 * Math.sin(local / 260) : 0;
         bar.bar.setAttribute('width', String(Math.max(0, bar.width * Math.min(1, bar.level + wobble) * grow)));
       });
+      if (item.program === 'title') {
+        // Motes drift on slow circles; the sweep crosses under the title
+        // once every six seconds and rests between crossings.
+        item.field.forEach(function (mote, index) {
+          var t = local / 1000;
+          var x = mote.x + Math.sin(t * 0.25 * mote.drift + mote.phase) * item.unit * 14;
+          var y = mote.y + Math.cos(t * 0.19 * mote.drift + mote.phase) * item.unit * 10;
+          mote.node.setAttribute('cx', x.toFixed(1)); mote.node.setAttribute('cy', y.toFixed(1));
+          mote.node.style.opacity = String(0.18 + 0.16 * Math.sin(t * 0.7 + index));
+        });
+        if (item.sweep) {
+          var cycle = (local % 6000) / 6000;
+          var visible = cycle < 0.45;
+          var progress = clamp(cycle / 0.45);
+          var eased = eases.camera(progress);
+          item.sweep.setAttribute('x', String(pageBox.x - pageBox.width * 0.22 + eased * pageBox.width * 1.22));
+          item.sweep.style.opacity = visible ? String(0.35 * Math.sin(Math.PI * progress)) : '0';
+        }
+        return;
+      }
       var n = item.hops.length;
       item.hops.forEach(function (hop, index) {
         var peak = 0;
-        hop.packets.forEach(function (dot, k) {
-          var u, on = true;
+        var breathe = item.program === 'cluster';
+        hop.packets.forEach(function (packet, k) {
+          var dot = packet.node;
+          var u, on = !breathe;
           if (item.phase === 'wait') {
             var pos = (local % (Math.max(1, n) * 1300)) / 1300;
             on = Math.floor(pos) === index;
             u = pos - Math.floor(pos);
+          } else if (item.program === 'network') {
+            // Traffic both ways, each hop on its own phase.
+            var phaseShift = ((index * 0.6180339887) % 1) * 1600;
+            u = (((local + phaseShift) / 1600) + k / hop.packets.length) % 1;
+            if (k % 2 === 1) u = 1 - u;
           } else {
             var shift = item.phase === 'split' || item.phase === 'merge' ? 0 : index * 180;
             u = (((local + shift) / 1600) + k / hop.packets.length) % 1;
           }
           if (!on) { dot.style.opacity = '0'; return; }
-          dot.setAttribute('cx', (hop.from[0] + (hop.to[0] - hop.from[0]) * u).toFixed(2));
-          dot.setAttribute('cy', (hop.from[1] + (hop.to[1] - hop.from[1]) * u).toFixed(2));
+          var px = hop.from[0] + (hop.to[0] - hop.from[0]) * u, py = hop.from[1] + (hop.to[1] - hop.from[1]) * u;
+          if (packet.pill) dot.setAttribute('transform', 'translate(' + px.toFixed(2) + ' ' + py.toFixed(2) + ')');
+          else { dot.setAttribute('cx', px.toFixed(2)); dot.setAttribute('cy', py.toFixed(2)); }
           dot.style.opacity = String(clamp(Math.sin(Math.PI * u) * (run.amp > 0.9 ? 1 : 0.7)));
           if (u > 0.82) peak = Math.max(peak, (u - 0.82) / 0.18);
         });
-        if (hop.ring) hop.ring.style.opacity = String(clamp(peak * (item.phase === 'wait' ? 0.9 : 0.5)));
+        if (hop.ring) hop.ring.style.opacity = String(breathe ? clamp(0.22 + 0.22 * Math.sin(local / 600 + index)) : clamp(peak * (item.phase === 'wait' ? 0.9 : 0.5)));
       });
     });
   };
@@ -286,6 +361,9 @@ export const MOTION_DRIVER_SOURCE = `
       }
       if (action.op === 'reveal' || action.op === 'trace' || action.op === 'count') {
         entry.targets.forEach(function (t) { t.hiddenAtRest = true; });
+      }
+      if ((action.op === 'morph' || action.op === 'swap') && Number(value.fromCount) > 0) {
+        entry.targets.forEach(function (t, index) { if (index >= Number(value.fromCount)) t.hiddenAtRest = true; });
       }
       schedule.push(entry);
     });
@@ -358,7 +436,9 @@ export const MOTION_DRIVER_SOURCE = `
             s.dx += (Number(a.value.dx) || 0) * ev; s.dy += (Number(a.value.dy) || 0) * ev; break;
           case 'swap':
           case 'morph':
-            if (k === 0) s.alpha = 1 - ev; else s.alpha = Math.max(s.alpha, ev);
+            // The first fromCount targets fade out as the rest fade in.
+            var fromCount = Number(a.value.fromCount) > 0 ? Number(a.value.fromCount) : 1;
+            if (k < fromCount) s.alpha = Math.min(s.alpha, 1 - ev); else s.alpha = Math.max(s.alpha, ev);
             break;
           default: break;
         }

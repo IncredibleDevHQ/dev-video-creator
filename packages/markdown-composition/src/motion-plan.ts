@@ -167,8 +167,9 @@ export const sanitizeMotionAction = (raw: unknown): MotionAction | null => {
         }
       : undefined
   const validPorts = ports && ID_PATTERN.test(ports.from) && ID_PATTERN.test(ports.to) ? ports : undefined
-  // Camera and connect may run without element targets.
-  if (!targets.length && op !== 'camera' && !(op === 'connect' && validPorts)) return null
+  // Camera and connect may run without element targets; so may a phase
+  // whose program is the page itself (a living title).
+  if (!targets.length && op !== 'camera' && op !== 'phase' && !(op === 'connect' && validPorts)) return null
   return {
     ...(typeof action.id === 'string' && ID_PATTERN.test(action.id) ? { id: action.id } : {}),
     op,

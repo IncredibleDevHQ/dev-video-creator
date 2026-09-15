@@ -977,7 +977,11 @@ const buildCompositionHtml = (
         ? `<img class="camera camera-kind-${scene.kind} preview-camera ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${Math.min(1.6, Math.max(0.6, scene.config.camera.scale))};${cameraGeometryStyle}" src="${escapeHtml(previewPresenterUrl)}" alt="${escapeHtml(previewPresenter?.name || 'Sample presenter')}" data-preview-presenter="true" />`
         : ''
 
-      const stageTrack = isSlideLikeNode(scene.node) ? sceneStageTrack(scene) : []
+      // With nobody in frame (no camera, no take, no preview presenter) a
+      // stage that keeps room for a presenter would leave a hole: the page
+      // owns the frame for the whole scene.
+      const nobodyInFrame = !(hasRecordedCamera || recordedTakeUrl || previewPresenterUrl)
+      const stageTrack = isSlideLikeNode(scene.node) ? (nobodyInFrame ? [{ atMs: 0, family: 'content-full' as const }] : sceneStageTrack(scene)) : []
       const stageAttributes = stageTrack.length
         ? ` data-stage="${stageTrack[0].family}"${stageTrack[0].treatment ? ` data-stage-treatment="${stageTrack[0].treatment}"` : ''}${stageTrack[0].variant ? ` data-stage-variant="${stageTrack[0].variant}"` : ''} data-stage-track="${escapeHtml(JSON.stringify(stageTrack))}"`
         : ''
@@ -1195,6 +1199,9 @@ const buildCompositionHtml = (
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: var(--theme-canvas); }
     .clip { visibility: hidden; }
+    /* Captions burned into the picture: one cue at a time, low in the frame. */
+    .burned-captions { position: absolute; left: 6%; right: 6%; bottom: 4.5%; z-index: 60; pointer-events: none; text-align: center; }
+    .burned-caption { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: 100%; padding: 10px 20px; border-radius: 12px; background: rgba(8, 10, 14, .66); color: #fff; font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-sizing: border-box; bottom: 0; }
     /* isolation: each scene is its own stacking context, so z-indexed
        overlays (camera tiles, person-background gradients) can never paint
        across a sibling scene — frame switchovers rely on later scenes
@@ -1521,6 +1528,7 @@ const buildCompositionHtml = (
 <body>
   <div id="composition" class="video-border-${theme.video.borderStyle}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-content-style="${theme.blocks.content}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-code-theme="${theme.blocks.codeTheme}" data-code-animation="${theme.blocks.codeAnimation}" data-quote-style="${theme.blocks.quote}" data-title-layout="${theme.blocks.layout.title}" data-content-layout="${theme.blocks.layout.content}" data-list-layout="${theme.blocks.layout.list}" data-code-layout="${theme.blocks.layout.code}" data-quote-layout="${theme.blocks.layout.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
     ${sceneMarkup}
+    ${project.captions?.burnIn ? `<div class="burned-captions" aria-hidden="true">${captionCues(project).map(cue => `<p class="burned-caption clip" data-start="${(cue.startMs / 1000).toFixed(3)}" data-duration="${((cue.endMs - cue.startMs) / 1000).toFixed(3)}">${escapeHtml(cue.text)}</p>`).join('')}</div>` : ''}
   </div>
   <script>
     // Shrink-to-fit: a scene's content row has a fixed height, but a long
@@ -1587,8 +1595,10 @@ export const SCENE_DURATION_CAP_MS = 20 * 60_000
 // that is not already saved on the notebook.
 export type CaptionCue = { sceneId: string; index: number; startMs: number; endMs: number; text: string }
 
-export const captionCuesForProject = (input: ProjectDocumentV1): CaptionCue[] => {
-  const project = withTakenPlans(input)
+export const captionCuesForProject = (input: ProjectDocumentV1): CaptionCue[] => captionCues(withTakenPlans(input))
+
+// The cues of a project whose plans are already on the take's clock.
+const captionCues = (project: ProjectDocumentV1): CaptionCue[] => {
   const cues: CaptionCue[] = []
   let cursorMs = 0
   project.notebook.content
