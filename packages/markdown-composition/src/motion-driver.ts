@@ -58,6 +58,15 @@ export const MOTION_DRIVER_SOURCE = `
   var bboxOf = function (node) {
     try { var b = node.getBBox(); return { x: b.x, y: b.y, width: b.width, height: b.height }; } catch (e) { return null; }
   };
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  // Where a straight line from one box's centre to another's leaves the box.
+  var edgePoint = function (box, cx, cy, tx, ty) {
+    var dx = tx - cx, dy = ty - cy;
+    var sx = dx !== 0 ? (box.width / 2) / Math.abs(dx) : Infinity;
+    var sy = dy !== 0 ? (box.height / 2) / Math.abs(dy) : Infinity;
+    var s = Math.min(sx, sy, 1);
+    return [cx + dx * s, cy + dy * s];
+  };
   var viewBoxAttr = (root.getAttribute('viewBox') || '').split(/[\\s,]+/).map(Number);
   var pageBox = viewBoxAttr.length === 4 && viewBoxAttr[2] > 0
     ? { x: viewBoxAttr[0], y: viewBoxAttr[1], width: viewBoxAttr[2], height: viewBoxAttr[3] }
@@ -104,6 +113,115 @@ export const MOTION_DRIVER_SOURCE = `
   var durationMs = 0;
   plan.steps.forEach(function (b) { offsets.push(durationMs); durationMs += (b.motionWindowMs || 0) + (b.holdMs || 0); });
   var windows = plan.steps.map(function (b) { return b.motionWindowMs || 0; });
+
+  // ——— living diagrams ———
+  // A phase op gives a diagram (or an entity) a small program drawn in a
+  // layer over the still: packets along the hops of a process (flow, wait,
+  // split, merge) or a load bar inside an entity in one of its states. The
+  // nouns keep their place; the program is focal during the beat that names
+  // it and ambient afterwards, until a later phase replaces it.
+  var living = [];
+  var livingLayer = null;
+  var layer = function () {
+    if (livingLayer) return livingLayer;
+    livingLayer = doc.createElementNS(SVG_NS, 'g');
+    livingLayer.setAttribute('data-living', '1');
+    livingLayer.style.pointerEvents = 'none';
+    root.appendChild(livingLayer);
+    return livingLayer;
+  };
+  var levelFor = function (state) {
+    var table = { idle: 0.15, empty: 0.05, waiting: 0.3, running: 0.55, flowing: 0.6, reading: 0.6, writing: 0.6, sending: 0.6, busy: 0.75, rejecting: 0.85, loaded: 0.9, 'backed up': 0.9, full: 0.96, failing: 1, served: 1 };
+    return table[state] == null ? 0.5 : table[state];
+  };
+  var livingFor = function (action, value, beatIndex) {
+    var program = String(value.program || 'chain');
+    var phase = String(value.phase || 'flow');
+    var step = plan.steps[beatIndex] || {};
+    var beatEnd = offsets[beatIndex] + (step.motionWindowMs || 0) + (step.holdMs || 0);
+    var group = doc.createElementNS(SVG_NS, 'g');
+    group.setAttribute('data-living-program', program);
+    group.setAttribute('data-living-phase', phase);
+    group.style.opacity = '0';
+    layer().appendChild(group);
+    var unit = Math.max(1.5, pageBox.width / 640);
+    var item = { key: (action.targets && action.targets[0]) || ('living-' + living.length), program: program, phase: phase, beatEnd: beatEnd, group: group, hops: [], bars: [], unit: unit };
+    if (program === 'entity') {
+      (action.targets || []).forEach(function (id) {
+        var node = find(id); var box = node && bboxOf(node); if (!box) return;
+        var h = Math.max(2, Math.min(box.height * 0.12, unit * 3));
+        var track = doc.createElementNS(SVG_NS, 'rect');
+        track.setAttribute('x', String(box.x + unit)); track.setAttribute('y', String(box.y + box.height - h - unit));
+        track.setAttribute('height', String(h)); track.setAttribute('width', String(Math.max(0, box.width - unit * 2))); track.setAttribute('rx', String(h / 2));
+        track.setAttribute('fill', accent); track.style.opacity = '0.18';
+        group.appendChild(track);
+        var bar = doc.createElementNS(SVG_NS, 'rect');
+        bar.setAttribute('x', String(box.x + unit)); bar.setAttribute('y', String(box.y + box.height - h - unit));
+        bar.setAttribute('height', String(h)); bar.setAttribute('width', '0'); bar.setAttribute('rx', String(h / 2));
+        bar.setAttribute('fill', phase === 'failing' || phase === 'rejecting' ? '#ef4444' : accent);
+        group.appendChild(bar);
+        item.bars.push({ bar: bar, width: Math.max(0, box.width - unit * 2), level: levelFor(phase) });
+      });
+      living.push(item);
+      return item;
+    }
+    String(value.hops || '').split(';').forEach(function (part) {
+      if (!part) return;
+      var pieces = part.split(':'); var ends = (pieces[1] || '').split('>');
+      var fromNode = find(ends[0]), toNode = find(ends[1]);
+      var a = fromNode && bboxOf(fromNode), b = toNode && bboxOf(toNode);
+      if (!a || !b) return;
+      var ax = a.x + a.width / 2, ay = a.y + a.height / 2, bx = b.x + b.width / 2, by = b.y + b.height / 2;
+      var hop = { from: edgePoint(a, ax, ay, bx, by), to: edgePoint(b, bx, by, ax, ay), packets: [], ring: null };
+      var count = phase === 'wait' ? 1 : 2;
+      for (var i = 0; i < count; i += 1) {
+        var dot = doc.createElementNS(SVG_NS, 'circle');
+        dot.setAttribute('r', String(unit * 2.2)); dot.setAttribute('fill', accent); dot.style.opacity = '0';
+        group.appendChild(dot); hop.packets.push(dot);
+      }
+      var ring = doc.createElementNS(SVG_NS, 'rect');
+      ring.setAttribute('x', String(b.x - unit)); ring.setAttribute('y', String(b.y - unit));
+      ring.setAttribute('width', String(b.width + unit * 2)); ring.setAttribute('height', String(b.height + unit * 2));
+      ring.setAttribute('rx', String(unit * 2)); ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', accent); ring.setAttribute('stroke-width', String(unit)); ring.style.opacity = '0';
+      group.appendChild(ring); hop.ring = ring;
+      item.hops.push(hop);
+    });
+    living.push(item);
+    return item;
+  };
+  var drawLiving = function (activeLiving) {
+    living.forEach(function (item) { if (!activeLiving[item.key] || activeLiving[item.key].item !== item) item.group.style.opacity = '0'; });
+    Object.keys(activeLiving).forEach(function (key) {
+      var run = activeLiving[key], item = run.item, local = run.local;
+      item.group.style.opacity = String(clamp(run.amp * run.fade));
+      item.bars.forEach(function (bar) {
+        var grow = eases.settle(clamp(local / 900));
+        var wobble = item.phase === 'running' || item.phase === 'busy' || item.phase === 'flowing' ? 0.04 * Math.sin(local / 260) : 0;
+        bar.bar.setAttribute('width', String(Math.max(0, bar.width * Math.min(1, bar.level + wobble) * grow)));
+      });
+      var n = item.hops.length;
+      item.hops.forEach(function (hop, index) {
+        var peak = 0;
+        hop.packets.forEach(function (dot, k) {
+          var u, on = true;
+          if (item.phase === 'wait') {
+            var pos = (local % (Math.max(1, n) * 1300)) / 1300;
+            on = Math.floor(pos) === index;
+            u = pos - Math.floor(pos);
+          } else {
+            var shift = item.phase === 'split' || item.phase === 'merge' ? 0 : index * 180;
+            u = (((local + shift) / 1600) + k / hop.packets.length) % 1;
+          }
+          if (!on) { dot.style.opacity = '0'; return; }
+          dot.setAttribute('cx', (hop.from[0] + (hop.to[0] - hop.from[0]) * u).toFixed(2));
+          dot.setAttribute('cy', (hop.from[1] + (hop.to[1] - hop.from[1]) * u).toFixed(2));
+          dot.style.opacity = String(clamp(Math.sin(Math.PI * u) * (run.amp > 0.9 ? 1 : 0.7)));
+          if (u > 0.82) peak = Math.max(peak, (u - 0.82) / 0.18);
+        });
+        if (hop.ring) hop.ring.style.opacity = String(clamp(peak * (item.phase === 'wait' ? 0.9 : 0.5)));
+      });
+    });
+  };
   var schedule = [];
   var synth = 0;
   plan.steps.forEach(function (beat, beatIndex) {
@@ -138,6 +256,8 @@ export const MOTION_DRIVER_SOURCE = `
           var t = register(synthId, path);
           if (t) { t.hiddenAtRest = true; entry.targets.push(t); }
         }
+      } else if (action.op === 'phase') {
+        entry.living = livingFor(action, value, beatIndex);
       } else {
         (action.targets || []).forEach(function (id) {
           var t = register(id, find(id));
@@ -179,11 +299,17 @@ export const MOTION_DRIVER_SOURCE = `
     var states = {};
     order.forEach(function (t) { states[t.id] = rest(t); });
     var camera = { x: pageBox.x, y: pageBox.y, width: pageBox.width, height: pageBox.height };
+    var activeLiving = {};
     for (var i = 0; i < schedule.length; i += 1) {
       var a = schedule[i];
       if (time < a.start) continue;
       var overall = clamp((time - a.start) / a.duration);
       if (!a.state && overall >= 1) continue;
+      if (a.op === 'phase') {
+        // The latest phase on a diagram wins; focal in its beat, ambient after.
+        if (a.living) activeLiving[a.living.key] = { item: a.living, local: time - a.start, amp: time < a.living.beatEnd ? 1 : 0.42, fade: overall };
+        continue;
+      }
       if (a.op === 'camera') {
         var target = a.rect || pageBox;
         var e = a.ease(overall);
@@ -244,6 +370,7 @@ export const MOTION_DRIVER_SOURCE = `
       t.bodies.forEach(function (leaf) { if (leaf !== node) leaf.style.opacity = s.body === null ? '' : String(s.body); });
       if (t.text) t.text.node.textContent = s.count === null ? t.text.base : format(t.text, s.count);
     });
+    drawLiving(activeLiving);
     root.setAttribute('viewBox', camera.x.toFixed(2) + ' ' + camera.y.toFixed(2) + ' ' + camera.width.toFixed(2) + ' ' + camera.height.toFixed(2));
   };
   var setStep = function (stepIndex, progress) {

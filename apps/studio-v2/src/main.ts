@@ -10359,7 +10359,7 @@ const markDirty = (dirty: boolean) => {
 const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolean } = {}) => {
   const state = slideEditor
   if (!state || !state.windows.length) return false
-  const result = planFromWindows(state.windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities })
+  const result = planFromWindows(state.windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
   if (!result) return false
   state.motion = result.plan
   state.coverage = result.coverage
@@ -10416,7 +10416,7 @@ const composeFromText = async (text: string, source: string) => {
   if (!state) return
   if (!source.startsWith('re-cut')) state.sourceText = text
   state.lastChange = source.startsWith('re-cut') ? 'Re-cut the windows' : 'Used the written text'
-  const local = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities })
+  const local = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
   if (!local) {
     setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
     return
@@ -10568,7 +10568,7 @@ const requestProposal = async (instruction: string) => {
     const windows = sanitizeWindows(body.windows || [], state)
     if (!windows.length) throw new Error('The writer returned nothing usable')
     hideWriting()
-    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities })
+    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
     // The proposal is staged like the scene would be, so the preview shows
     // the frames it would get.
     const staged = planned
@@ -10752,7 +10752,7 @@ const previewSceneVersion = (version: SceneVersion) => {
   if (!state) return
   stopSlidePlayback()
   const windows = sanitizeWindows(version.snapshot.windows, state)
-  const plan = sanitizeMotionPlan(version.snapshot.motion) || (windows.length ? planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities })?.plan || null : null)
+  const plan = sanitizeMotionPlan(version.snapshot.motion) || (windows.length ? planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })?.plan || null : null)
   const auto = version.snapshot.directorAuto as { storyboard?: DirectorResult['storyboard'] } | null | undefined
   state.proposal = { windows, plan, source: `version · ${version.label}, ${timeAgo(version.at)}`, version: version.id, seconds: version.seconds, storyboard: auto?.storyboard }
   state.previewPlan = plan
@@ -10888,7 +10888,7 @@ const planSlideFromScript = () => {
     setSlideEditorStatus('Write the dialogue first', 'error')
     return false
   }
-  const result = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities })
+  const result = planFromScript(text, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
   if (!result) {
     setSlideEditorStatus('Nothing to plan — the page has no parts', 'error')
     return false
@@ -11580,7 +11580,7 @@ const requestEdit = async (instruction: string, scope: EditScope) => {
       setSlideEditorStatus('The editor kept the dialogue as it is — say more, or widen the scope', 'ok')
       return
     }
-    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities })
+    const planned = planFromWindows(windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
     const staged = planned
       ? direct({ title: String(found?.attrs.title || 'Scene'), units: state.units, viewBox: state.viewBox, beats: planned.beats, plan: planned.plan, position: scenePosition(state.nodeId), layouts: windows.map(window => window.layout), layoutsByAuthor: windows.map(window => Boolean(window.layoutByAuthor)) })
       : null
@@ -11820,7 +11820,7 @@ const openSlideEditor = (nodeId: string) => {
   if (!state.windows.length && state.script && (state.motion || sanitizeSlideSteps(found.attrs.steps).length)) {
     // A scene from before windows: cut its dialogue into windows now, from
     // the words alone, so the studio opens in the same state as any other.
-    const local = planFromScript(state.script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities })
+    const local = planFromScript(state.script, state.units, { viewBox: state.viewBox, granularity: state.pace.granularity, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams })
     if (local) {
       state.sourceText = state.script
       state.windows = sanitizeWindows(local.windows, state)
@@ -12349,9 +12349,9 @@ const animateSceneLocally = (nodeId: string) => {
   const result = !atomized.units.length
     ? null
     : found.attrs.breakdownApproved && savedWindows.length
-      ? planFromWindows(savedWindows, atomized.units, { viewBox: atomized.viewBox, wpm: pace.wpm, entities: model.entities })
+      ? planFromWindows(savedWindows, atomized.units, { viewBox: atomized.viewBox, wpm: pace.wpm, entities: model.entities, diagrams: model.diagrams })
       : script
-        ? planFromScript(script, atomized.units, { viewBox: atomized.viewBox, granularity: pace.granularity, wpm: pace.wpm, entities: model.entities })
+        ? planFromScript(script, atomized.units, { viewBox: atomized.viewBox, granularity: pace.granularity, wpm: pace.wpm, entities: model.entities, diagrams: model.diagrams })
         : null
   if (!result) {
     // No script and no notes: the page's own build order, one beat per unit.

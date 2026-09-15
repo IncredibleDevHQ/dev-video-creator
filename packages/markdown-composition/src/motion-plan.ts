@@ -12,7 +12,7 @@ import type { SlideStepV1 } from './slide'
 
 export const MOTION_OPS = [
   'reveal', 'trace', 'dim', 'undim', 'emphasize', 'pulse', 'move',
-  'connect', 'camera', 'morph', 'swap', 'count', 'exit',
+  'connect', 'camera', 'morph', 'swap', 'count', 'exit', 'phase',
 ] as const
 export type MotionOp = (typeof MOTION_OPS)[number]
 
@@ -107,6 +107,8 @@ export const MOTION_DURATION_MS: Record<MotionOp, number> = {
   swap: 520,
   count: 920,
   exit: 360,
+  // phase: a living diagram's program switches phase (the fade-in of its clip).
+  phase: 400,
 }
 
 export const MOTION_EASE_FOR: Record<MotionOp, MotionEase> = {
@@ -123,6 +125,7 @@ export const MOTION_EASE_FOR: Record<MotionOp, MotionEase> = {
   swap: 'settle',
   count: 'settle',
   exit: 'exit',
+  phase: 'settle',
 }
 
 export const MOTION_STAGGER_MS = 70
@@ -144,7 +147,8 @@ const cleanValue = (value: unknown): Record<string, number | string> | undefined
   const out: Record<string, number | string> = {}
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
     if (typeof raw === 'number' && Number.isFinite(raw)) out[key] = raw
-    else if (typeof raw === 'string') out[key] = raw.slice(0, 40)
+    // A living diagram's hops travel as one string (connector:from>to;…).
+    else if (typeof raw === 'string') out[key] = raw.slice(0, key === 'hops' ? 4000 : 40)
   }
   return Object.keys(out).length ? out : undefined
 }

@@ -364,6 +364,36 @@ export type ScriptPlanOptions = {
   // The page model's typed entities: the plan keeps a registry of them with
   // the beats whose subject they are.
   entities?: Array<{ id: string; label: string; type: string; states?: string[] }>
+  // The page model's diagrams: a phase op keeps each one's process moving
+  // once its hops are traced.
+  diagrams?: Array<{ id: string; kind: string; hops: Array<{ connector: string; from: string; to: string; verb: string }> }>
+}
+
+// The state a line puts an entity in, from the entity's own vocabulary and
+// a few ways of saying each state.
+const STATE_WORDS: Record<string, string[]> = {
+  idle: ['idle', 'sits idle', 'quiet'],
+  empty: ['empty', 'drains', 'drained'],
+  waiting: ['waits', 'waiting', 'blocked'],
+  running: ['running', 'runs', 'serving', 'processing', 'works through'],
+  flowing: ['flows', 'flowing', 'streams', 'moving through'],
+  reading: ['reads', 'reading', 'looks up', 'fetches'],
+  writing: ['writes', 'writing', 'stores', 'saves'],
+  sending: ['sends', 'sending', 'requests', 'calls'],
+  busy: ['busy', 'hot', 'swamped', 'under pressure'],
+  rejecting: ['rejects', 'rejecting', 'throttles', 'throttled', 'sheds', 'shedding', '429'],
+  loaded: ['loaded', 'under load', '100%', 'overload', 'saturated', 'at capacity', 'peak'],
+  'backed up': ['backed up', 'backlog', 'piles up', 'builds up', 'grows'],
+  full: ['full', 'fills up'],
+  failing: ['fails', 'failing', 'crashes', 'goes down', 'outage', 'incident', 'falls over'],
+  served: ['served', 'responds', 'response comes back'],
+}
+const stateNamed = (said: string, states: string[]) => {
+  for (const state of states) {
+    const words = [state, ...(STATE_WORDS[state] || [])]
+    if (words.some(word => said.includes(word))) return state
+  }
+  return null
 }
 
 export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: ScriptPlanOptions): MotionPlanV2 => {
@@ -471,6 +501,35 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       }
       if (!spec.intent) intent = waiting.length ? 'flow' : comparing.length ? 'contrast' : merging.length ? 'transform' : 'flow'
     }
+
+    // Living diagrams: once a diagram's hops are traced, a phase op keeps
+    // the process moving over the still — focal in this beat, ambient after.
+    // The phase follows the verb of the hops named now.
+    const tracedNow = new Set(connectors.map(unit => unit.id))
+    ;(options.diagrams || []).forEach(diagram => {
+      const named = diagram.hops.filter(hop => tracedNow.has(hop.connector))
+      if (!named.length) return
+      const verbs = new Set(named.map(hop => hop.verb))
+      const phase = verbs.has('waits for') ? 'wait' : verbs.has('splits into') ? 'split' : verbs.has('merges into') ? 'merge' : verbs.has('compares with') ? '' : 'flow'
+      if (!phase) return
+      const shown = diagram.hops.filter(hop => visible.has(hop.connector) || tracedNow.has(hop.connector))
+      const hops = shown.map(hop => `${hop.connector}:${hop.from}>${hop.to}`).join(';')
+      if (!hops) return
+      actions.push(action('phase', [diagram.id], cursor, { value: { program: diagram.kind, phase, hops } }))
+    })
+    // Entity states: a line that names a typed entity in one of its states
+    // (the server is running, the queue backs up) sets that state; the
+    // driver keeps it at ambient amplitude until a later line changes it.
+    const said = ` ${beat.text.toLowerCase().replace(/\s+/g, ' ')} `
+    ;(options.entities || []).forEach(entity => {
+      const onScreen = visible.has(entity.id) || entering.some(unit => unit.id === entity.id)
+      if (!onScreen || !entity.states?.length) return
+      const label = entity.label.toLowerCase().trim()
+      const distinctive = label.split(/\W+/).filter(word => word.length >= 5).sort((a, b) => b.length - a.length)[0]
+      if (!label || !(said.includes(label) || (distinctive && said.includes(distinctive)))) return
+      const state = stateNamed(said, entity.states)
+      if (state) actions.push(action('phase', [entity.id], cursor, { value: { program: 'entity', phase: state } }))
+    })
     spec.connects.forEach(([from, to]) => {
       const existing = edges.find(edge =>
         (edge.source?.id === from.id && edge.target?.id === to.id) || (edge.source?.id === to.id && edge.target?.id === from.id),
