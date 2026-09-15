@@ -99,6 +99,7 @@ import { placementAt, placementsFor } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
+import { arcChanges, videoPlanFor, type VideoPlan } from './video-plan'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -3005,7 +3006,10 @@ editor = new Editor({
     renderSlashMenu()
   },
 })
-editor.on('update', () => syncNotebookStart())
+editor.on('update', () => {
+  syncNotebookStart()
+  scheduleArcPass()
+})
 
 const showToast = (message: string) => {
   const toast = $('#toast')
@@ -10181,7 +10185,73 @@ const computeLengthBrief = (state: SlideEditorState): LengthBrief | null => {
   if (!state.units.length) return null
   const kind = declaredSceneKind(state.pageRole) || classifyScene(state.units).kind
   const arcRole = arcRoleFor(kind, scenePosition(state.nodeId), [], state.pageRole)
-  return lengthBriefFor(state.units, state.viewBox, { arcRole, depth: state.depth, wpm: state.pace.wpm, kind })
+  // The video plan's slice for this scene, when a runtime target is set.
+  const plan = videoPlanFor(project)
+  const mine = plan.scenes.find(scene => scene.nodeId === state.nodeId)
+  return lengthBriefFor(state.units, state.viewBox, {
+    arcRole,
+    depth: state.depth,
+    wpm: state.pace.wpm,
+    kind,
+    ...(mine?.budgetSeconds ? { budgetSeconds: mine.budgetSeconds, runtimeSeconds: plan.targetSeconds || 0 } : {}),
+  })
+}
+
+// ——— The video object: one plan above the scenes ———
+// Budgets by runtime and role, neighbours for the outro, the shared names,
+// and an arc pass whenever the scene order changes: roles that moved and
+// outros that now hand over to the wrong scene are marked on the node.
+const sceneNeighbours = (nodeId: string) => {
+  const mine = videoPlanFor(project).scenes.find(scene => scene.nodeId === nodeId)
+  return mine ? { previous: mine.previous ? { title: mine.previous.title, idea: mine.previous.idea } : null, next: mine.next ? { title: mine.next.title, idea: mine.next.idea } : null } : undefined
+}
+const glossaryLines = () => (project.outline?.glossary || []).map(entry => `${entry.term}: ${entry.meaning}`)
+let lastVideoPlan: VideoPlan | null = null
+let arcPassTimer = 0
+const arcPass = () => {
+  const live = { ...project, notebook: editor.getJSON() as TiptapDocument }
+  const plan = videoPlanFor(live)
+  const before = lastVideoPlan
+  lastVideoPlan = plan
+  if (!before) return []
+  const order = (entry: VideoPlan) => entry.scenes.map(scene => scene.nodeId).join('|')
+  if (order(before) === order(plan)) return []
+  const changes = arcChanges(before, plan)
+  changes.forEach(change => {
+    writeSlideLikeNode(change.nodeId, { arcNote: { ...(change.role ? { role: change.role } : {}), ...(change.outro ? { outro: change.outro } : {}), at: new Date().toISOString() } })
+  })
+  if (changes.length) {
+    const roles = changes.filter(change => change.role).length
+    const outros = changes.filter(change => change.outro).length
+    showToast(`Scene order changed · ${roles ? `${roles} role${roles === 1 ? '' : 's'} moved` : ''}${roles && outros ? ', ' : ''}${outros ? `${outros} outro${outros === 1 ? '' : 's'} now hand over elsewhere` : ''} — rewrite those lines when you next open them`)
+    if (slideEditor) {
+      slideEditor.brief = computeLengthBrief(slideEditor)
+      renderLengthBrief()
+    }
+  }
+  return changes
+}
+const scheduleArcPass = () => {
+  window.clearTimeout(arcPassTimer)
+  arcPassTimer = window.setTimeout(() => arcPass(), 600)
+}
+const setVideoLength = (seconds: number) => {
+  project.outline = {
+    title: project.outline?.title || project.title || 'Video',
+    targetSeconds: seconds,
+    scenes: project.outline?.scenes || [],
+    glossary: project.outline?.glossary || [],
+  }
+  syncProject()
+  const plan = videoPlanFor(project)
+  lastVideoPlan = plan
+  if (slideEditor) {
+    slideEditor.brief = computeLengthBrief(slideEditor)
+    renderLengthBrief()
+  }
+  const biggest = [...plan.scenes].sort((a, b) => (b.budgetSeconds || 0) - (a.budgetSeconds || 0)).slice(0, 3)
+  showToast(`${formatTarget(seconds)} across ${plan.scenes.length} scenes · ${biggest.map(scene => `${scene.title.slice(0, 18)} ${Math.round(scene.budgetSeconds || 0)}s`).join(' · ')}`)
+  return plan
 }
 
 const renderLengthBrief = () => {
@@ -10253,7 +10323,9 @@ const renderLengthBrief = () => {
   if (showCard && !more.hidden) {
     ;($('#se-length-seconds') as HTMLElement).textContent = `${DEPTH_LABELS[state.depth]} · ≈ ${Math.round(brief.seconds)} s`
     const modelNote = describePageModel(state.model)
-    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words${state.pageRole ? ` · page says ${state.pageRole}` : ''}${modelNote ? ` · ${modelNote}` : ''}${state.contract.connectors || state.contract.groups ? ` · ${Math.round(state.contract.declared * 100)}% declared` : ''}${state.fontNotes ? ` · ${state.fontNotes}` : ''} · change the depth or see the walk`
+    const arcNote = findSlideLikeNode(state.nodeId)?.attrs.arcNote as { role?: { from: string; to: string }; outro?: { was: string; now: string } } | undefined
+    const arcText = arcNote ? [arcNote.role ? `role moved ${arcNote.role.from} → ${arcNote.role.to}` : '', arcNote.outro ? `the outro should now hand over to “${arcNote.outro.now}”` : ''].filter(Boolean).join(' · ') : ''
+    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words${brief.budget ? ` · ${brief.budget.seconds}s of the video's ${formatTarget(brief.budget.runtime)}` : ''}${arcText ? ` · ${arcText}` : ''}${state.pageRole ? ` · page says ${state.pageRole}` : ''}${modelNote ? ` · ${modelNote}` : ''}${state.contract.connectors || state.contract.groups ? ` · ${Math.round(state.contract.declared * 100)}% declared` : ''}${state.fontNotes ? ` · ${state.fontNotes}` : ''} · change the depth or see the walk`
     const depthBox = $('#se-length-depth') as HTMLElement
     depthBox.replaceChildren(
       ...LENGTH_DEPTHS.map(depth => {
@@ -10559,6 +10631,8 @@ const requestProposal = async (instruction: string) => {
         relations: relationsOf(state.units),
         diagrams: state.model.diagrams.map(diagram => ({ id: diagram.id, kind: diagram.kind, parts: diagram.parts, hops: diagram.hops })),
         entities: state.model.entities,
+        neighbours: sceneNeighbours(state.nodeId),
+        glossary: glossaryLines(),
         // The director's length brief: how long, what to walk, what to skip.
         brief: state.brief ? briefForWriter(state.brief, id => unitOf(state, id)?.label || id) : undefined,
       }),
@@ -12486,6 +12560,7 @@ assistCancel.addEventListener('click', () => {
     breakdownApproved: inWindows,
     lengthBrief: state.brief,
     lengthDepth: state.depth,
+    arcNote: null,
     motion: inWindows ? state.motion : null,
     ...(state.director && found && inWindows ? directorAttrs(found.attrs, state.director, state.motion) : {}),
   })
@@ -13074,6 +13149,37 @@ const sourceFinish = () => {
 ;($('#source-finish') as HTMLButtonElement).addEventListener('click', sourceFinish)
 ;($('#source-close') as HTMLButtonElement).addEventListener('click', () => sourceDialog.close())
 ;($('#start-from-source') as HTMLButtonElement).addEventListener('click', () => openSourceDialog('link'))
+;($('#video-length') as HTMLButtonElement).addEventListener('click', () => {
+  const current = project.outline?.targetSeconds
+  const answer = window.prompt('Target length for the whole video (m:ss). Every scene gets its share by role and picture; framing scenes stay short.', current ? formatTarget(current) : '')
+  if (answer == null) return
+  const seconds = parseTarget(answer)
+  if (!seconds) {
+    showToast('Give a length like 6:00')
+    return
+  }
+  setVideoLength(seconds)
+})
+// Dev hook: the video plan, a runtime target, the arc pass, a reorder.
+;(window as unknown as { __videoPlan?: unknown }).__videoPlan = {
+  plan: () => videoPlanFor(project),
+  setTarget: setVideoLength,
+  arcPass,
+  notes: () => (editor.getJSON() as TiptapDocument).content.filter(node => node.attrs?.arcNote).map(node => ({ id: node.attrs?.id, title: node.attrs?.title, arcNote: node.attrs?.arcNote })),
+  move: (nodeId: string, toIndex: number) => {
+    const doc = editor.getJSON() as TiptapDocument
+    const from = doc.content.findIndex(node => String(node.attrs?.id || '') === nodeId)
+    if (from < 0) return false
+    const [node] = doc.content.splice(from, 1)
+    const sceneSlots = doc.content.map((entry, index) => ((entry.type === 'scene' || entry.type === 'slide') ? index : -1)).filter(index => index >= 0)
+    const at = sceneSlots[Math.min(toIndex, sceneSlots.length)] ?? doc.content.length
+    doc.content.splice(at, 0, node)
+    editor.commands.setContent(doc)
+    ensureBlockConfiguration(doc)
+    syncProject()
+    return true
+  },
+}
 sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(button => {
   button.addEventListener('click', () => showSourceStep(button.dataset.sourceBack as 'read' | 'brand' | 'outline'))
 })

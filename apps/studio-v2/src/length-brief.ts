@@ -24,6 +24,9 @@ export type LengthBrief = {
   outline: Array<{ label: string; parts: string[]; seconds: number }>
   // Every non-chrome part: its treatment and the reason.
   coverage: Array<{ id: string; label: string; treatment: CoverageTreatment; reason: string }>
+  // When the video plan set the budget: the slice of the runtime this scene
+  // was given, and what the picture alone would have asked for.
+  budget?: { seconds: number; runtime: number; natural: number }
 }
 
 export const LENGTH_DEPTHS: LengthDepth[] = ['skim', 'walk', 'deep']
@@ -59,7 +62,7 @@ const readingOrder = (a: SlideUnit, b: SlideUnit, band: number) => {
 export const lengthBriefFor = (
   units: SlideUnit[],
   viewBox: { width: number; height: number },
-  options: { arcRole: ArcRole; depth?: LengthDepth; wpm?: number; kind?: SceneKind },
+  options: { arcRole: ArcRole; depth?: LengthDepth; wpm?: number; kind?: SceneKind; budgetSeconds?: number; runtimeSeconds?: number },
 ): LengthBrief => {
   const depth = options.depth || 'walk'
   const wpm = options.wpm || 150
@@ -169,6 +172,11 @@ export const lengthBriefFor = (
   }
   const roleScale = ROLE_SCALE[options.arcRole]
   seconds = clamp(round1(seconds * roleScale * DEPTH_SCALE[depth]), MIN_SECONDS, MAX_SECONDS)
+  // The video plan's slice, when there is one, replaces the picture's own
+  // ask (the depth still scales it); the picture's ask is kept for the why.
+  const natural = seconds
+  const budget = options.budgetSeconds && options.budgetSeconds > 0 ? { seconds: clamp(round1(options.budgetSeconds * DEPTH_SCALE[depth]), MIN_SECONDS, 20 * 60), runtime: options.runtimeSeconds || 0, natural } : null
+  if (budget) seconds = budget.seconds
   const windowCount = Math.round(clamp(Math.round(seconds / SECONDS_PER_WINDOW), 2, 14))
   const wordBudget = Math.round((seconds / 60) * wpm)
   const range: [number, number] = [Math.round(seconds * 0.8), Math.round(seconds * 1.2)]
@@ -235,8 +243,9 @@ export const lengthBriefFor = (
 
   const judgement =
     kind === 'diagram' ? 'a diagram to walk, not to skim' : kind === 'list' ? 'a list to walk row by row' : kind === 'numbers' || kind === 'table' ? 'numbers to quote, not to gloss' : kind === 'title' ? 'a title to land and leave' : kind === 'text' ? 'a passage to read with, not over' : 'a picture to describe'
-  const why = `${reasons.join(', ')} — ${judgement}${roleScale !== 1 ? ` · the ${options.arcRole} role ${roleScale > 1 ? 'earns' : 'trims'} ${Math.round(Math.abs(1 - roleScale) * 100)}%` : ''}`
-  return { seconds, range, windows: windowCount, words: wordBudget, depth, kind, arcRole: options.arcRole, reasons, why, outline, coverage }
+  const runtimeText = budget && budget.runtime ? ` of ${Math.floor(budget.runtime / 60)}:${String(Math.round(budget.runtime % 60)).padStart(2, '0')}` : ''
+  const why = `${reasons.join(', ')} — ${judgement}${roleScale !== 1 ? ` · the ${options.arcRole} role ${roleScale > 1 ? 'earns' : 'trims'} ${Math.round(Math.abs(1 - roleScale) * 100)}%` : ''}${budget ? ` · the video plan gives it ${budget.seconds}s${runtimeText} (the picture alone asked ${budget.natural}s)` : ''}`
+  return { seconds, range, windows: windowCount, words: wordBudget, depth, kind, arcRole: options.arcRole, reasons, why, outline, coverage, ...(budget ? { budget } : {}) }
 }
 
 /** How a draft measures against the brief: under 60% reads as kept minimal. */

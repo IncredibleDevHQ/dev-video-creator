@@ -189,6 +189,9 @@ export const SlideBlock = Node.create({
       versions: { default: [] },
       directorSeed: { default: null },
       lengthDepth: { default: 'walk' },
+      // The arc pass: a role that moved or an outro that now hands over
+      // elsewhere, cleared when the scene is next saved.
+      arcNote: { default: null },
       requiredArea: { default: '' },
       // The user approved the base page structure; Plan motion (assist)
       // refuses to run before this is set.

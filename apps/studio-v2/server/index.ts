@@ -1169,6 +1169,10 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
     relations?: SceneRelationInput[]
     diagrams?: SceneDiagramInput[]
     entities?: SceneEntityInput[]
+    // The video plan's slice for this scene: what came before, what comes
+    // next (the outro hands over to it), and the names the video shares.
+    neighbours?: { previous?: { title: string; idea: string } | null; next?: { title: string; idea: string } | null }
+    glossary?: string[]
     // The director's length brief, read from the picture: how long, how
     // many windows, what to walk in what order, what to name in passing.
     brief?: {
@@ -1208,12 +1212,17 @@ Every walked part is named in some window (a window may carry two to four parts 
   const existing = String(body.existing || '').trim().slice(0, 6_000)
   const instruction = String(body.instruction || '').trim().slice(0, 1_000)
   const position = body.position && Number.isFinite(body.position.index) ? `scene ${body.position.index + 1} of ${body.position.count}${body.position.index + 1 >= (body.position.count || 0) ? ' — the last scene, so it closes the video instead of handing over' : ''}` : ''
+  const neighbourText = [
+    body.neighbours?.previous ? `PREVIOUS SCENE (what the viewer just heard; do not repeat it): "${String(body.neighbours.previous.title).slice(0, 80)}"${body.neighbours.previous.idea ? ` — ${String(body.neighbours.previous.idea).slice(0, 200)}` : ''}` : '',
+    body.neighbours?.next ? `NEXT SCENE (the outro hands over to it, by its name or its idea): "${String(body.neighbours.next.title).slice(0, 80)}"${body.neighbours.next.idea ? ` — ${String(body.neighbours.next.idea).slice(0, 200)}` : ''}` : '',
+    Array.isArray(body.glossary) && body.glossary.length ? `GLOSSARY (the video's shared names; use them exactly): ${body.glossary.slice(0, 24).map(entry => String(entry).slice(0, 120)).join('; ')}` : '',
+  ].filter(Boolean).join('\n')
   const prompt = `You write the spoken dialogue for one scene of a narrated technical video, and you can see the page the presenter is explaining. Title: "${String(body.title || 'Scene').slice(0, 120)}"${position ? ` (${position}` : ''}${body.role ? `${position ? ', ' : ' ('}role in the story: ${String(body.role).slice(0, 40)})` : position ? ')' : ''}.
 
 ${sceneInventory(units, relations, diagrams, entities)}
 ${SCENE_CAPABILITIES}
 
-${notes ? `SOURCE NOTES (what this scene must convey):\n${notes}\n` : ''}${existing ? `CURRENT DIALOGUE (rewrite it; keep what works):\n${existing}\n` : ''}${instruction ? `INSTRUCTION FROM THE AUTHOR: ${instruction}\n` : ''}
+${neighbourText ? `${neighbourText}\n` : ''}${notes ? `SOURCE NOTES (what this scene must convey):\n${notes}\n` : ''}${existing ? `CURRENT DIALOGUE (rewrite it; keep what works):\n${existing}\n` : ''}${instruction ? `INSTRUCTION FROM THE AUTHOR: ${instruction}\n` : ''}
 Write the dialogue as a sequence of windows of attention. One window = ${granularity === 'paragraph' ? 'a short paragraph (2–3 sentences)' : granularity === 'clause' ? 'one clause or a very short sentence' : 'one sentence'} that is about specific parts of the page. Name the parts with the words the page uses (their labels), in an order the page can support: what is on screen before what depends on it, arrows after the boxes they join, a number when it is quoted. Every window lists the ids of the parts it is about (the ones that come on screen or are highlighted while it is spoken), exactly one hero id (or "" if the window belongs to the presenter), the camera ids (parts to move in on; [] to stay on the page), the layout ("me" for a line that needs no page, "beside" when a small figure sits next to the presenter, "page" when the page needs the frame), and the intent. Do not name parts that are not on the page. ${briefText ? `${briefText}\n` : `Aim for about ${targetWords} words in total (≈ ${targetSeconds} s at ${wpm} words a minute), between 3 and 12 windows.`} Spoken, plain, first person plural or second person; no bullet points, no headings inside "say".`
   const windows = await sceneWindowsFromModel(prompt, windowSchema(true), units)
   json(response, 200, { windows, provider: 'openai' })

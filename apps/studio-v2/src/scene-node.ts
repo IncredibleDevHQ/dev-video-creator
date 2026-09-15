@@ -126,6 +126,9 @@ export const SceneBlock = Node.create({
       versions: { default: [] },
       directorSeed: { default: null },
       lengthDepth: { default: 'walk' },
+      // The arc pass: a role that moved or an outro that now hands over
+      // elsewhere, cleared when the scene is next saved.
+      arcNote: { default: null },
       requiredArea: { default: '' },
       // The director's stage track and per-family placements over time.
       stageTrack: { default: [] },
