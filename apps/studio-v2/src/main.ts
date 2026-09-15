@@ -2062,8 +2062,8 @@ const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
       }
     })
   }
-  document.documentElement.style.setProperty('--brand', project.brand.primary)
-  document.documentElement.style.setProperty('--brand-light', project.brand.accent)
+  // The brand belongs to the canvas (the composition takes it from the
+  // theme at compile); the studio's own chrome keeps its own colours.
   renderStudioThemeSelector()
   syncProject()
 }
@@ -13389,6 +13389,122 @@ const ensurePageFonts = (doc: TiptapDocument) => {
     document.head.append(link)
   })
 }
+// ——— Scenes arrive written to their brief ———
+// The director's judgement (how long the page deserves, what to walk) is
+// known the moment a page exists, so the writer runs then — the same
+// request the scene view makes, taken straight in — instead of every scene
+// opening on "write a fuller draft".
+const headlessSceneState = (nodeId: string): SlideEditorState | null => {
+  const found = findSlideLikeNode(nodeId)
+  if (!found) return null
+  const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
+  if (!atomized.units.length) return null
+  const unitByElement = new Map<string, SlideUnit>()
+  leafUnits(atomized.units).forEach(unit => unit.ids.forEach(id => unitByElement.set(id, unit)))
+  const state = {
+    nodeId,
+    svg: atomized.svg,
+    units: atomized.units,
+    unitByElement,
+    steps: [],
+    current: 0,
+    script: scriptForNode(nodeId, found.attrs),
+    motion: null,
+    coverage: null,
+    director: null,
+    viewBox: atomized.viewBox,
+    driver: null,
+    playing: null,
+    pace: paceOf(found.attrs.pace),
+    scriptApproved: false,
+    windows: [],
+    breakdownApproved: false,
+    proposal: null,
+    selection: { parts: [], speaker: false },
+    editScope: 'line',
+    pageRole: atomized.pageRole,
+    fontNotes: '',
+    contract: contractReport(atomized.units, atomized.pageRole),
+    model: pageModelFor(atomized.units),
+    animationMode: found.attrs.animationMode === 'off' ? 'off' : 'auto',
+    previewPlan: null,
+    sourceText: '',
+    openDrawers: new Set<number>(),
+    dirty: false,
+    lastChange: '',
+    brief: null,
+    depth: found.attrs.lengthDepth === 'skim' || found.attrs.lengthDepth === 'deep' ? found.attrs.lengthDepth : 'walk',
+  } as SlideEditorState
+  state.brief = computeLengthBrief(state)
+  return state
+}
+const writeSceneToBrief = async (nodeId: string) => {
+  const state = headlessSceneState(nodeId)
+  const found = findSlideLikeNode(nodeId)
+  if (!state?.brief || !found) return false
+  const body = await fetchJson<{ windows: SceneWindow[] }>('/api/scene/dialogue', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: String(found.attrs.title || 'Scene'),
+      role: String(found.attrs.arcRole || state.brief.arcRole || ''),
+      notes: sceneNotesFor(state),
+      // The outline's line is the seed; the writer grows it to the brief.
+      existing: state.script,
+      instruction: state.script ? `match the director's length — cover every part it walks, in its order` : '',
+      granularity: state.pace.granularity,
+      targetSeconds: state.brief.seconds,
+      wpm: state.pace.wpm,
+      position: scenePosition(nodeId),
+      units: slideUnitInventory(state),
+      relations: relationsOf(state.units),
+      diagrams: state.model.diagrams.map(diagram => ({ id: diagram.id, kind: diagram.kind, parts: diagram.parts, hops: diagram.hops })),
+      entities: state.model.entities,
+      neighbours: sceneNeighbours(nodeId),
+      glossary: glossaryLines(),
+      brief: briefForWriter(state.brief, id => unitOf(state, id)?.label || id),
+    }),
+  })
+  const windows = sanitizeWindows(body.windows || [], state)
+  if (!windows.length) return false
+  const labelOf = new Map(leafUnits(state.units).map(unit => [unit.id, unit.label]))
+  const script = scriptFromWindows(windows)
+  writeSlideLikeNode(nodeId, {
+    windows: windows.map(window => ({ ...window, ...(window.hero ? { heroLabel: labelOf.get(window.hero) || '' } : {}) })),
+    script,
+    sourceText: script,
+    scriptApproved: true,
+    breakdownApproved: true,
+    lengthBrief: state.brief,
+    lengthDepth: state.depth,
+  })
+  return animateSceneLocally(nodeId)
+}
+// A few at a time; a failure leaves that scene on its outline line.
+const writeScenesToBrief = async (nodeIds: string[], onProgress: (done: number, total: number, failed: number) => void) => {
+  let done = 0
+  let failed = 0
+  let stop = false
+  const queue = [...nodeIds]
+  const worker = async () => {
+    while (queue.length && !stop) {
+      const nodeId = queue.shift()!
+      try {
+        if (!(await writeSceneToBrief(nodeId))) failed += 1
+      } catch (error) {
+        failed += 1
+        const message = error instanceof Error ? error.message : String(error)
+        // No provider: nothing else will succeed either.
+        if (/AI provider|Models/i.test(message)) stop = true
+        console.warn('scene not written to its brief', nodeId, message)
+      }
+      done += 1
+      onProgress(done, nodeIds.length, failed)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(3, nodeIds.length) }, worker))
+  return { done, failed, stopped: stop }
+}
 const notebookHasScenes = () => (editor.getJSON() as TiptapDocument).content.some(node => node.type === 'scene' || node.type === 'slide')
 // A source can begin a new notebook without a reload: the current one is
 // kept, a fresh document takes the theme, and the studio continues in it.
@@ -13456,7 +13572,18 @@ const sourceFinish = async () => {
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title
   syncProject()
+  // Every scene is written to its brief now — the budget is known, so the
+  // notebook opens on the fullest draft rather than a line to grow.
+  const finishButton = $('#source-finish') as HTMLButtonElement
+  finishButton.disabled = true
+  const note = (text: string) => sourceStatus('#source-pages-note', text)
+  note(`Writing ${fresh.length} scenes to their briefs…`)
+  const written = await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(`Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
+  finishButton.disabled = false
+  syncProject()
   sourceDialog.close()
+  if (written.stopped) showToast('No AI provider is configured — the scenes keep their outline lines; open Models in the top bar to write them to their briefs')
+  else if (written.failed) showToast(`${written.failed} scene${written.failed === 1 ? '' : 's'} kept the outline line — open ${written.failed === 1 ? 'it' : 'them'} and press Write`)
   if (startedNew) {
     try {
       await persistProjectNow(structuredClone(project))
