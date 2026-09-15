@@ -743,7 +743,7 @@ const explainerCanvasScript = (
 
 // A slide scene inlines the authored SVG (ids prefixed per scene), stacks
 // the step captions beneath it, and registers the step driver.
-const renderSlideScene = (scene: Scene) => {
+const renderSlideScene = (scene: Scene, stageTrack?: ReturnType<typeof sceneStageTrack>) => {
   const attrs = (scene.node.attrs || {}) as { svg?: unknown; title?: unknown }
   const { plan, steps } = slideNodeTimeline(scene.node)
   const svg = prepareSlideSvg(String(attrs.svg || ''), slidePrefix(scene.index))
@@ -757,7 +757,7 @@ const renderSlideScene = (scene: Scene) => {
     )
     .join('')
   const driver = plan
-    ? motionDriverScript(scene.index, scene.id, plan, slidePrefix(scene.index), { stageTrack: sceneStageTrack(scene) })
+    ? motionDriverScript(scene.index, scene.id, plan, slidePrefix(scene.index), { stageTrack: stageTrack || sceneStageTrack(scene) })
     : ''
   return `<div class="slide-stage">${svg}${steps.length ? `<div class="ex-captions">${captions}</div>` : ''}${driver}</div>`
 }
@@ -788,6 +788,9 @@ const renderSceneNode = (
   scene: Scene,
   shapes?: ShapeDefV1[],
   brandAccent?: string,
+  // The stage track the section was given (it may differ from the node's
+  // own when nobody is in frame); the driver applies the same one.
+  stageTrack?: ReturnType<typeof sceneStageTrack>,
 ) => {
   if (scene.node.type === 'explainer') {
     return renderExplainerScene(
@@ -797,7 +800,7 @@ const renderSceneNode = (
     )
   }
   if (isSlideLikeNode(scene.node)) {
-    return renderSlideScene(scene)
+    return renderSlideScene(scene, stageTrack)
   }
   if (scene.node.type !== 'image' && scene.node.type !== 'screenRecording') {
     return renderNode(scene.node)
@@ -1017,7 +1020,7 @@ const buildCompositionHtml = (
           presenterContentGeometryStyle
             ? ` style="${presenterContentGeometryStyle}"`
             : ''
-        }>${renderSceneNode(scene, mergedShapeCollection(project.shapeCollection), project.brand.accent)}</main>
+        }>${renderSceneNode(scene, mergedShapeCollection(project.shapeCollection), project.brand.accent, stageTrack.length ? stageTrack : undefined)}</main>
         <footer class="logo-${theme.logo.placement}">${
           theme.logo.placement.startsWith('footer-')
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
@@ -1201,7 +1204,7 @@ const buildCompositionHtml = (
     .clip { visibility: hidden; }
     /* Captions burned into the picture: one cue at a time, low in the frame. */
     .burned-captions { position: absolute; left: 6%; right: 6%; bottom: 4.5%; z-index: 60; pointer-events: none; text-align: center; }
-    .burned-caption { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: 100%; padding: 10px 20px; border-radius: 12px; background: rgba(8, 10, 14, .66); color: #fff; font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-sizing: border-box; bottom: 0; }
+    .burned-caption { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 10px 20px; border-radius: 12px; background: rgba(8, 10, 14, .66); color: #fff; font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-sizing: border-box; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; }
     /* isolation: each scene is its own stacking context, so z-indexed
        overlays (camera tiles, person-background gradients) can never paint
        across a sibling scene — frame switchovers rely on later scenes

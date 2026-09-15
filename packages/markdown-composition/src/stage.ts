@@ -276,6 +276,10 @@ export const stageCss = () => {
     `.scene.scene[data-stage] > .content { position: absolute; margin: 0 !important; max-width: none !important; display: flex; flex-direction: column; justify-content: center; align-items: stretch; transition: left .62s ${ease}, top .62s ${ease}, width .62s ${ease}, height .62s ${ease}, opacity .45s ease; box-sizing: border-box; padding: 0 !important; }`,
     `.scene[data-stage] > .content .slide-stage svg.slide-svg { width: 100% !important; max-height: 100%; }`,
     `.scene[data-stage] { padding: 0 !important; }`,
+    // Without the scene's padding the index and footer would sit on the
+    // frame's edge: pin them inside the border instead.
+    `.scene.scene[data-stage] > .scene-index { position: absolute; left: 132px; top: 62px; z-index: 26; }`,
+    `.scene.scene[data-stage] > footer { position: absolute; left: 132px; right: 132px; bottom: 44px; z-index: 26; }`,
     `.scene[data-stage="speaker-full"] .camera, .scene[data-stage="speaker-lead"] .camera, .scene[data-stage="speaker-panel"] .camera, .scene[data-stage="split"] .camera { border-width: 0 !important; border-radius: 0 !important; box-shadow: none; }`,
     `.scene[data-stage="speaker-lead"] > .content { border-radius: 18px; background: rgba(8, 12, 10, .5); backdrop-filter: blur(14px); box-shadow: 0 24px 60px rgba(0,0,0,.3); padding: 1.4% !important; }`,
     `.scene[data-stage="content-pip"] .camera { border-radius: 50% !important; }`,
