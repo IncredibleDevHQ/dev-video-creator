@@ -56,6 +56,36 @@ def check(path):
             problems.append(f'node {n.get("id")!r} has no <text>')
         if n.get('data-kind') not in {'box', 'label', 'number', 'quote', 'row'}:
             problems.append(f'node {n.get("id")!r} has data-kind {n.get("data-kind")!r}')
+    # Text must fit the shape it sits in: a label wider than its node reads
+    # as a drawing mistake in every frame it appears. Width is estimated at
+    # 0.52 em per character (0.62 for bold), which is generous for the sans
+    # faces the studio ships; only clear overflows are reported.
+    for n in nodes:
+        rects = [c for c in n.iter() if local(c.tag) in ('rect', 'ellipse', 'circle')]
+        if not rects:
+            continue
+        box = rects[0]
+        try:
+            width = float(box.get('width') or (float(box.get('rx') or box.get('r') or 0) * 2))
+        except (TypeError, ValueError):
+            continue
+        if width <= 0:
+            continue
+        for t in n.iter():
+            if local(t.tag) != 'text':
+                continue
+            words = ''.join(t.itertext()).strip()
+            if not words:
+                continue
+            try:
+                size = float(re.sub(r'[^0-9.]', '', t.get('font-size') or root.get('font-size') or '22'))
+            except ValueError:
+                continue
+            per = 0.62 if (t.get('font-weight') or '') in ('bold', '600', '700', '800') else 0.52
+            estimated = len(words) * size * per
+            if estimated > width - 12:
+                problems.append(f'text {words[:28]!r} needs about {round(estimated)} px inside a {round(width)} px shape — shorten it, widen the shape, or split it across two <tspan> lines')
+
     connectors = [el for el in root.iter() if el.get('data-role') == 'connector']
     for c in connectors:
         for attr in ('data-from', 'data-to'):

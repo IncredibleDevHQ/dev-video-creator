@@ -630,7 +630,11 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
     // back to the page when the beat's units fall outside, or on the last beat.
     // The frame grows to the visual block around the subject (lines of the
     // same paragraph, the box a label sits in) so nothing on screen is cut.
-    const subject = spec.camera && spec.camera.length ? spec.camera : [...entering, ...returning]
+    // What must stay in frame: everything the line names, plus anything it
+    // asked the camera to move in on. A close-up that crops a part the line
+    // is speaking about is worse than no close-up at all.
+    const named = [...entering, ...returning]
+    const subject = spec.camera && spec.camera.length ? [...new Set([...spec.camera, ...named])] : named
     const onScreen = leafUnits(units).filter(unit => visible.has(unit.id))
     // The subject persists when any of its units was in the last beat's
     // subject (or is its hero). A persisting subject is followed: the camera
@@ -643,19 +647,30 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       .reduce((sum, item) => ({ dx: sum.dx + (Number(item.value?.dx) || 0), dy: sum.dy + (Number(item.value?.dy) || 0) }), { dx: 0, dy: 0 })
     const restingBox = expandToBlock(unionBox(subject), onScreen)
     const focusBox = restingBox && (travel.dx || travel.dy) ? { ...restingBox, x: restingBox.x + travel.dx, y: restingBox.y + travel.dy } : restingBox
-    const tight = focusBox ? focusBox.width * focusBox.height < pageArea * cameraShare : false
-    const roomy = focusBox ? focusBox.width * focusBox.height < pageArea * 0.6 : false
+    const focusArea = focusBox ? focusBox.width * focusBox.height : pageArea
+    const tight = focusArea < pageArea * cameraShare
+    const roomy = focusArea < pageArea * 0.6
+    // Moving in is only worth it when the subject is a small part of the
+    // page; a line that names half the page is watched whole, whatever the
+    // writer asked for.
+    const worthClosing = focusArea < pageArea * 0.45
     const directedClose = Boolean(spec.camera && spec.camera.length)
     const allowed = !spec.zoomOut && !(spec.camera && spec.camera.length === 0) && index !== specs.length - 1 && Boolean(focusBox)
+    // The page is established first: no beat opens a scene close up.
     const wantsClose =
       allowed &&
-      (directedClose || (tight && index > 0 && visible.size >= 4 && subject.length <= 3 && spec.layout !== 'me'))
+      worthClosing &&
+      index > 0 &&
+      (directedClose || (tight && visible.size >= 4 && subject.length <= 3 && spec.layout !== 'me'))
     const follows = allowed && !cameraOnPage && persists && roomy && spec.layout !== 'me'
-    if (focusBox && (wantsClose || follows)) {
-      const move = cameraOnPage ? 'in' : persists ? 'follow' : 'cut'
+    // A close-up is only ever entered from the page: when the subject moves
+    // somewhere else entirely the camera comes back out first, rather than
+    // cutting sideways from one corner of the page to another.
+    if (focusBox && ((wantsClose && cameraOnPage) || follows)) {
+      const move = cameraOnPage ? 'in' : 'follow'
       actions.push(action('camera', [], Math.min(cursor, 200), {
-        // A follow glides; a cut is quick, a fresh move-in is the default.
-        ...(move === 'follow' ? { durationMs: 1100 } : move === 'cut' ? { durationMs: 320 } : {}),
+        // A follow glides; a fresh move-in is the default.
+        ...(move === 'follow' ? { durationMs: 1100 } : {}),
         value: { x: focusBox.x, y: focusBox.y, width: focusBox.width, height: focusBox.height, move },
       }))
       cameraOnPage = false

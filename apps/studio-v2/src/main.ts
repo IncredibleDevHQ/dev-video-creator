@@ -12206,6 +12206,7 @@ slideEditorDialog.addEventListener('cancel', event => {
   contract: () => (slideEditor ? slideEditor.contract : null),
   replan: () => replan({ quiet: true }),
   writeToBrief: (nodeId: string) => writeSceneToBrief(nodeId),
+  plan: (nodeId: string) => animateSceneLocally(nodeId),
   ask: (instruction: string, scope: EditScope = 'line') => requestEdit(instruction, scope),
   pin: (index: number, family: string | null) => {
     const state = slideEditor
