@@ -97,6 +97,7 @@ import { arcRoleFor, classifyScene, direct, type DirectorResult } from './direct
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
+import { declaredSceneKind } from './director'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -9092,6 +9093,10 @@ type SlideEditorState = {
   // how far an ask about it may reach.
   selection: { parts: string[]; speaker: boolean }
   editScope: EditScope
+  // What the page declares itself to be, and fonts it names that this
+  // machine measured with a fallback.
+  pageRole: string
+  fontNotes: string
 }
 let slideEditor: SlideEditorState | null = null
 
@@ -10089,9 +10094,9 @@ const lengthLine = $('#se-length-line') as HTMLElement
 
 const computeLengthBrief = (state: SlideEditorState): LengthBrief | null => {
   if (!state.units.length) return null
-  const { kind } = classifyScene(state.units)
-  const arcRole = arcRoleFor(kind, scenePosition(state.nodeId), [])
-  return lengthBriefFor(state.units, state.viewBox, { arcRole, depth: state.depth, wpm: state.pace.wpm })
+  const kind = declaredSceneKind(state.pageRole) || classifyScene(state.units).kind
+  const arcRole = arcRoleFor(kind, scenePosition(state.nodeId), [], state.pageRole)
+  return lengthBriefFor(state.units, state.viewBox, { arcRole, depth: state.depth, wpm: state.pace.wpm, kind })
 }
 
 const renderLengthBrief = () => {
@@ -10162,7 +10167,7 @@ const renderLengthBrief = () => {
   ;($('#se-length-k') as HTMLElement).textContent = 'Next'
   if (showCard && !more.hidden) {
     ;($('#se-length-seconds') as HTMLElement).textContent = `${DEPTH_LABELS[state.depth]} · ≈ ${Math.round(brief.seconds)} s`
-    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words · change the depth or see the walk`
+    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words${state.pageRole ? ` · page says ${state.pageRole}` : ''}${state.fontNotes ? ` · ${state.fontNotes}` : ''} · change the depth or see the walk`
     const depthBox = $('#se-length-depth') as HTMLElement
     depthBox.replaceChildren(
       ...LENGTH_DEPTHS.map(depth => {
@@ -10287,6 +10292,7 @@ const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolea
     position: scenePosition(state.nodeId),
     layouts: state.windows.map(window => window.layout),
     layoutsByAuthor: state.windows.map(window => Boolean(window.layoutByAuthor)),
+    pageRole: state.pageRole,
   })
   if (options.rerender !== false) renderWindowCards()
   renderSlideEditorPreview()
@@ -11622,6 +11628,33 @@ const applySlideDrafts = (drafts: OrderedStepDraft[]) => {
   renderSlideEditorPreview()
 }
 
+
+// Fonts a page names that this machine does not have are measured with a
+// fallback, so every box the studio records for them is a fallback box.
+const missingFontNote = (svg: string) => {
+  const names = new Set<string>()
+  ;(svg.match(/font-family="([^"]+)"/g) || []).forEach(match => {
+    const first = match.slice(13, -1).split(',')[0].replace(/["']/g, '').trim()
+    if (first && !/^(sans-serif|serif|monospace|system-ui|inherit)$/i.test(first)) names.add(first)
+  })
+  // document.fonts.check answers for web fonts only; a system font that is
+  // simply not installed measures exactly like its generic fallback.
+  const canvas = document.createElement('canvas').getContext('2d')
+  const widthIn = (font: string) => {
+    if (!canvas) return 0
+    canvas.font = font
+    return canvas.measureText('mmmmmmmmmmlli1234567890 ARXIV').width
+  }
+  const missing = [...names].filter(name => {
+    try {
+      return widthIn(`48px "${name}", monospace`) === widthIn('48px monospace') && widthIn(`48px "${name}", serif`) === widthIn('48px serif')
+    } catch {
+      return false
+    }
+  })
+  return missing.length ? `measured with a fallback for ${missing.slice(0, 2).join(' and ')}` : ''
+}
+
 const openSlideEditor = (nodeId: string) => {
   const found = findSlideLikeNode(nodeId)
   if (!found) return
@@ -11665,6 +11698,8 @@ const openSlideEditor = (nodeId: string) => {
     proposal: null,
     selection: { parts: [], speaker: false },
     editScope: 'line',
+    pageRole: atomized.pageRole,
+    fontNotes: missingFontNote(atomized.svg),
     previewPlan: null,
     sourceText: '',
     openDrawers: new Set(),
@@ -12903,6 +12938,18 @@ const sourceFinish = () => {
   const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, directorNotes: page.idea, script: page.narration, structureApproved: true } }))
   editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
   const inserted = pages.map(page => page.title)
+  // Each new scene gets its block, then its first plan from the draft line,
+  // so the notebook opens with windows, motion and captions already there.
+  const notebookDoc = editor.getJSON() as TiptapDocument
+  ensureBlockConfiguration(notebookDoc)
+  const fresh = notebookDoc.content.filter(node => node.type === 'scene' && typeof node.attrs?.id === 'string').slice(-pages.length)
+  fresh.forEach(node => {
+    try {
+      animateSceneLocally(String(node.attrs!.id))
+    } catch (error) {
+      console.warn('first plan failed', node.attrs?.title, error)
+    }
+  })
   project.title = outline.title
   project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
   project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea })), glossary: outline.glossary }
@@ -12930,3 +12977,15 @@ sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(b
 })
 // A dev hook so the flow can be driven end to end in a hooked instance.
 ;(window as unknown as { __source?: unknown }).__source = { state: () => sourceState, open: openSourceDialog, read: sourceRead, outline: sourceOutline, pages: sourceMakePages, finish: sourceFinish }
+
+// ——— Captions: the dialogue as a subtitle file, timed to the motion ———
+{
+  const link = document.getElementById('download-captions') as HTMLAnchorElement | null
+  const sync = () => {
+    if (!link) return
+    link.href = `/api/projects/${encodeURIComponent(project.id)}/captions.vtt`
+  }
+  sync()
+  ;($('#publish-dialog') as HTMLDialogElement).addEventListener('toggle', sync)
+  document.addEventListener('studio:project-opened', sync)
+}

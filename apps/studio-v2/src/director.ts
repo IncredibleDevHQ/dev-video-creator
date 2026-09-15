@@ -79,6 +79,8 @@ export type DirectorInput = {
   // suggested (a nudge).
   layouts?: Array<WindowLayout | undefined>
   layoutsByAuthor?: boolean[]
+  // The page's declared role, when it has one (see declaredSceneKind).
+  pageRole?: string
 }
 
 // Share of the frame width each required-area class gives the information
@@ -120,7 +122,30 @@ export const classifyScene = (units: SlideUnit[]) => {
   return { kind, leaves, boxes, connectors, labels, numeric, images, textChars }
 }
 
-export const arcRoleFor = (kind: SceneKind, position: { index: number; count: number }, beats: ScriptBeat[]): ArcRole => {
+// A page that declares its role is believed before the shape count is.
+export const declaredSceneKind = (pageRole: string | undefined): SceneKind | null => {
+  switch ((pageRole || '').toLowerCase()) {
+    case 'cover': case 'title': case 'ending': case 'close': return 'title'
+    case 'toc': case 'list': return 'list'
+    case 'diagram': return 'diagram'
+    case 'numbers': return 'numbers'
+    case 'quote': return 'text'
+    default: return null
+  }
+}
+export const declaredArcRole = (pageRole: string | undefined): ArcRole | null => {
+  switch ((pageRole || '').toLowerCase()) {
+    case 'cover': case 'title': return 'hook'
+    case 'toc': return 'map'
+    case 'ending': case 'close': return 'close'
+    case 'quote': return 'idea'
+    default: return null
+  }
+}
+
+export const arcRoleFor = (kind: SceneKind, position: { index: number; count: number }, beats: ScriptBeat[], pageRole?: string): ArcRole => {
+  const declared = declaredArcRole(pageRole)
+  if (declared) return declared
   if (position.index === 0) return 'hook'
   if (position.index === position.count - 1) return 'close'
   if (position.index === 1 && (kind === 'list' || kind === 'title')) return 'map'
@@ -651,8 +676,8 @@ const notesFor = (kind: SceneKind, arcRole: ArcRole, requiredArea: RequiredArea,
 }
 
 export const direct = (input: DirectorInput): DirectorResult => {
-  const { kind } = classifyScene(input.units)
-  const arcRole = arcRoleFor(kind, input.position, input.beats)
+  const kind = declaredSceneKind(input.pageRole) || classifyScene(input.units).kind
+  const arcRole = arcRoleFor(kind, input.position, input.beats, input.pageRole)
   const legibility = legibilityFor(input.units, input.viewBox)
   const sceneArea = requiredAreaFor(kind, input.plan, legibility, input.beats)
   // Per beat: the area the beat's own parts need; the scene's area is the

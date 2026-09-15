@@ -1490,6 +1490,58 @@ const listDensityClass = (node: TiptapNode) => {
   return count >= 7 ? ' list-packed' : count >= 5 ? ' list-dense' : ''
 }
 
+export const SCENE_DURATION_CAP_MS = 20 * 60_000
+
+// ——— Captions: every window is already a cue ———
+// The dialogue's windows carry the words; the plan's offsets carry the
+// timing; the scene order carries the start. A caption track needs nothing
+// that is not already saved on the notebook.
+export type CaptionCue = { sceneId: string; index: number; startMs: number; endMs: number; text: string }
+
+export const captionCuesForProject = (project: ProjectDocumentV1): CaptionCue[] => {
+  const cues: CaptionCue[] = []
+  let cursorMs = 0
+  project.notebook.content
+    .filter(node => node.type !== 'horizontalRule' && !(node.type === 'paragraph' && textContent(node).length === 0))
+    .forEach(node => {
+      const nodeId = typeof node.attrs?.id === 'string' ? node.attrs.id : ''
+      if (!nodeId) return
+      const config = normalizeBlockConfig(nodeId, node, project.blocks[nodeId])
+      const recorded = project.recordedBlocks?.[nodeId]
+      const requested = recorded?.videoUrl ? recorded.durationMs : config.durationMs
+      const durationMs = Math.min(SCENE_DURATION_CAP_MS, Math.max(1_000, requested))
+      const plan = isSlideLikeNode(node) ? slideNodeMotion(node) : null
+      const windows = Array.isArray(node.attrs?.windows) ? (node.attrs!.windows as Array<{ say?: string }>) : []
+      if (plan && windows.length) {
+        const { offsets } = motionPlanOffsetsMs(plan)
+        plan.steps.forEach((step, index) => {
+          const say = String(windows[index]?.say || '').replace(/\s+/g, ' ').trim()
+          if (!say) return
+          const startMs = cursorMs + (offsets[index] || 0)
+          const endMs = Math.min(cursorMs + durationMs, startMs + step.motionWindowMs + step.holdMs)
+          if (endMs > startMs) cues.push({ sceneId: nodeId, index, startMs, endMs, text: say })
+        })
+      }
+      cursorMs += durationMs
+    })
+  return cues
+}
+
+const captionTime = (ms: number, separator: ',' | '.') => {
+  const total = Math.max(0, Math.round(ms))
+  const h = Math.floor(total / 3_600_000)
+  const m = Math.floor((total % 3_600_000) / 60_000)
+  const s = Math.floor((total % 60_000) / 1000)
+  const frac = total % 1000
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}${separator}${String(frac).padStart(3, '0')}`
+}
+
+export const formatWebVtt = (cues: CaptionCue[]) =>
+  ['WEBVTT', '', ...cues.flatMap((cue, index) => [String(index + 1), `${captionTime(cue.startMs, '.')} --> ${captionTime(cue.endMs, '.')}`, cue.text, ''])].join('\n')
+
+export const formatSrt = (cues: CaptionCue[]) =>
+  cues.flatMap((cue, index) => [String(index + 1), `${captionTime(cue.startMs, ',')} --> ${captionTime(cue.endMs, ',')}`, cue.text, '']).join('\n')
+
 export const compileProject = (
   project: ProjectDocumentV1,
   options: {
@@ -1532,9 +1584,11 @@ export const compileProject = (
       const requestedDurationMs = recordedBlock?.videoUrl
         ? recordedBlock.durationMs
         : config.durationMs
-      const durationMs = Math.min(60_000, Math.max(1_000, requestedDurationMs))
+      // A scene runs as long as its plan (or its take) says. The only cap is
+      // a sanity bound far above any scene the length brief would budget.
+      const durationMs = Math.min(SCENE_DURATION_CAP_MS, Math.max(1_000, requestedDurationMs))
       if (durationMs !== requestedDurationMs) {
-        warnings.push(`Duration for ${nodeId} was clamped to the supported range`)
+        warnings.push(`Duration for ${nodeId} was clamped to ${SCENE_DURATION_CAP_MS / 60_000} minutes`)
       }
       const durationSeconds = durationMs / 1000
       const scene: Scene = {

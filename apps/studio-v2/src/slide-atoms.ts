@@ -25,6 +25,10 @@ export type AtomizedSlide = {
   svg: string
   units: SlideUnit[]
   viewBox: { width: number; height: number }
+  // What the page says it is, when its generator said so: cover, toc,
+  // content, ending (ppt-master) or title, list, diagram, numbers, quote,
+  // close (the studio's own generator). Empty when undeclared.
+  pageRole: string
 }
 
 const PAINT_TAGS = new Set(['rect', 'circle', 'ellipse', 'polygon', 'path', 'line', 'polyline', 'text', 'image'])
@@ -99,7 +103,7 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
   const parsed = new DOMParser().parseFromString(markup, 'image/svg+xml')
   const root = parsed.documentElement
   if (root.tagName.toLowerCase() !== 'svg') {
-    return { svg: markup, units: [], viewBox: { width: 1280, height: 720 } }
+    return { svg: markup, units: [], viewBox: { width: 1280, height: 720 }, pageRole: '' }
   }
   const host = document.createElement('div')
   host.style.cssText = 'position:absolute;left:-100000px;top:0;width:1280px;height:720px;overflow:hidden;visibility:hidden;'
@@ -230,7 +234,8 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
   markPageTitle(units, viewBox)
   const svg = new XMLSerializer().serializeToString(live)
   host.remove()
-  return { svg, units, viewBox }
+  const pageRole = String(root.getAttribute('data-page-role') || root.getAttribute('data-pptx-page-role') || '').trim().toLowerCase()
+  return { svg, units, viewBox, pageRole }
 }
 
 /**

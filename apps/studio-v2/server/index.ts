@@ -28,6 +28,9 @@ import {
   type StudioThemeV1,
   type ThemeCanvasTreatment,
   type TiptapNode,
+  captionCuesForProject,
+  formatWebVtt,
+  formatSrt,
 } from 'markdown-composition'
 import {
   getObject,
@@ -2069,8 +2072,8 @@ const handleRender = async (
     gsapUrl: './runtime/gsap.min.js',
     hyperframesRuntimeUrl: './runtime/hyperframes.iife.js',
   })
-  if (composition.durationSeconds > 300) {
-    throw new Error('Local MVP renders are limited to five minutes')
+  if (composition.durationSeconds > 30 * 60) {
+    throw new Error('Local renders are limited to thirty minutes')
   }
 
   const id = randomUUID()
@@ -2272,6 +2275,16 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/projects/latest') {
       json(response, 200, { project: await loadLatestProjectArtifact() })
+      return
+    }
+    if (request.method === 'GET' && /^\/api\/projects\/[^/]+\/captions\.(vtt|srt)$/.test(url.pathname)) {
+      const [, projectId, format] = url.pathname.match(/^\/api\/projects\/([^/]+)\/captions\.(vtt|srt)$/) as RegExpMatchArray
+      const stored = await loadProjectArtifact(decodeURIComponent(projectId))
+      if (!stored) throw new Error('Notebook not found')
+      const cues = captionCuesForProject(stored)
+      const body = format === 'vtt' ? formatWebVtt(cues) : formatSrt(cues)
+      response.writeHead(200, { 'content-type': format === 'vtt' ? 'text/vtt; charset=utf-8' : 'application/x-subrip; charset=utf-8', 'content-disposition': `attachment; filename="${String(stored.title || 'captions').replace(/[^\w.-]+/g, '-').slice(0, 60)}.${format}"`, 'x-caption-count': String(cues.length) })
+      response.end(body)
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/api/projects/')) {
