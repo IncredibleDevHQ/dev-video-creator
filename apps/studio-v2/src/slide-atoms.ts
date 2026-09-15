@@ -215,6 +215,9 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
     })
     loose.forEach(element => {
       const tag = element.tagName.toLowerCase()
+      // An appearance image is fidelity on top of a unit, not a unit: it is
+      // attached to the unit it dresses once every unit is known.
+      if (element.hasAttribute('data-appearance-for')) return
       const box = bboxOf(element)
       const chrome = inheritedChrome || CHROME_IDS.has(element.id) || element.getAttribute('data-pptx-role') === 'decoration' || CHROME_ROLES.has(element.getAttribute('data-role') || '')
       if (tag === 'image') {
@@ -254,6 +257,7 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
   const units = buildUnits(live, false)
   pairLabelsAcrossPage(units, pageArea)
   markPageTitle(units, viewBox)
+  attachAppearance(live, units)
   const svg = new XMLSerializer().serializeToString(live)
   host.remove()
   const pageRole = String(root.getAttribute('data-page-role') || root.getAttribute('data-pptx-page-role') || '').trim().toLowerCase()
@@ -414,6 +418,18 @@ export const inferEdges = (units: SlideUnit[]): SlideEdge[] => {
       const source = declaredSource || (connector.from ? nodeAt(connector.from, target) : null)
       return { connector, source, target }
     })
+}
+
+// The appearance layer rides with its unit: every element marked as the
+// appearance of a unit joins that unit's ids, so it reveals, dims and
+// moves with it and never counts as ink of its own.
+const attachAppearance = (root: Element, units: SlideUnit[]) => {
+  const byId = new Map(flattenUnits(units).map(unit => [unit.id, unit]))
+  Array.from(root.querySelectorAll('[data-appearance-for]')).forEach(element => {
+    const owner = byId.get(element.getAttribute('data-appearance-for') || '')
+    if (!owner || !element.id) return
+    if (!owner.ids.includes(element.id)) owner.ids.push(element.id)
+  })
 }
 
 // ——— The contract, scored: what a page declared and what had to be inferred ———

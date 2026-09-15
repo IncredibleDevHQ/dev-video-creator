@@ -332,6 +332,26 @@ export type ProjectDocumentV1 = {
     scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string }>
     glossary: Array<{ term: string; meaning: string }>
   }
+  // The asset library: one asset per thing (keyed by what it is, not by
+  // which unit shows it), in the video's palette, reused on every page
+  // that names the thing. Additive; older notebooks have none.
+  assets?: AssetRecordV1[]
+}
+
+export type AssetRecordV1 = {
+  id: string
+  kind: 'image' | 'glyph' | 'logo' | 'clip'
+  entityKey: string
+  label: string
+  type: string
+  url: string
+  palette: { accent: string; background: string }
+  prompt?: string
+  model?: string
+  width?: number
+  height?: number
+  createdAt: string
+  scenes: NodeId[]
 }
 
 export type Scene = {

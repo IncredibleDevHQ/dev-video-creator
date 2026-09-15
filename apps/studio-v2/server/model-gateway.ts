@@ -306,6 +306,37 @@ const wrap = (text: string): ModelFetchResult => ({
  * Drop-in for `fetch('https://api.openai.com/v1/responses', init)`: the body
  * is a Responses API payload; the result reads like a Responses API reply.
  */
+// An illustration from the provider's image model, when it has one (the
+// OpenAI images endpoint, also behind a LiteLLM proxy). Null means no image
+// model here — the caller falls back to a palette glyph.
+export const imageGenerate = async ({ prompt, size }: { prompt: string; size?: '1024x1024' | '1536x1024' | '1024x1536' }) => {
+  const { settings } = await loadModelSettings()
+  if (!settings) return null
+  if (settings.provider !== 'openai' && settings.provider !== 'litellm') return null
+  const model = (settings.models as Record<string, string | undefined>).image || 'gpt-image-1'
+  const gptImage = /^gpt-image/.test(model)
+  const response = await fetch(`${settings.baseUrl}/images/generations`, {
+    method: 'POST',
+    headers: authHeaders(settings),
+    body: JSON.stringify({
+      model,
+      prompt,
+      n: 1,
+      size: size || '1024x1024',
+      ...(gptImage ? { quality: 'medium', background: 'transparent', output_format: 'png' } : { response_format: 'b64_json' }),
+    }),
+  })
+  if (!response.ok) throw new Error(`The image model answered ${response.status}: ${(await response.text()).slice(0, 200)}`)
+  const data = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> }
+  const first = data.data?.[0]
+  if (first?.b64_json) return { buffer: Buffer.from(first.b64_json, 'base64'), model, contentType: 'image/png' }
+  if (first?.url) {
+    const binary = await fetch(first.url)
+    return { buffer: Buffer.from(await binary.arrayBuffer()), model, contentType: binary.headers.get('content-type') || 'image/png' }
+  }
+  return null
+}
+
 export const modelFetch = async (
   task: ModelTask,
   init: { method?: string; body: string },

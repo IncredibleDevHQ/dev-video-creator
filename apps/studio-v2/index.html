@@ -164,6 +164,7 @@
                 <button id="import-file" type="button" role="menuitem">Import .md file</button>
                 <button id="start-from-source" type="button" role="menuitem">Start from a link or narrative…</button>
                 <button id="video-length" type="button" role="menuitem">Video length…</button>
+                <button id="open-assets" type="button" role="menuitem">Asset library…</button>
                 <button id="import-svg-pages" type="button" role="menuitem">Import SVG pages…</button>
                 <button id="paste-markdown" type="button" role="menuitem">Paste Markdown…</button>
               </div>
@@ -763,6 +764,12 @@
     </dialog>
 
 
+    <dialog id="assets-dialog" class="modal source-modal">
+      <div class="modal-heading"><div><span class="eyebrow">Asset library</span><h2>The things this video illustrates</h2></div><button id="assets-close" type="button" class="icon-button" aria-label="Close">×</button></div>
+      <p class="source-hint">One asset per thing, in the video's palette. Illustrate a part from the frame bubble; a thing illustrated once is reused on every page that names it. Remove one and its pages fall back to the wireframe.</p>
+      <div id="assets-grid" class="assets-grid"></div>
+      <div class="modal-actions"><span id="assets-status" class="source-status"></span><button id="assets-done" type="button" class="button">Done</button></div>
+    </dialog>
     <dialog id="source-dialog" class="modal source-modal">
       <div class="modal-heading"><div><span class="eyebrow">Start a video</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
       <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li><li data-step="outline">Outline</li><li data-step="pages">Pages</li></ol>

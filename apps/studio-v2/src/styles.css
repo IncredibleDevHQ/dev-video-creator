@@ -2084,3 +2084,13 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .source-page .thumb { aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid #e4e4e7; background: #111; }
 .source-page .thumb svg { width: 100%; height: 100%; display: block; }
 .source-page small { color: #a1a1aa; font-weight: 400; }
+
+/* ——— The asset library ——— */
+.assets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin:12px 0 4px}
+.asset-card{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line,#2a2a30);border-radius:10px;background:var(--panel,#141418)}
+.asset-card img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:6px;background:repeating-conic-gradient(#1c1c22 0 25%,#16161b 0 50%) 0 0/16px 16px}
+.asset-card strong{font-size:13px;line-height:1.3}
+.asset-card .asset-meta{font-size:11px;opacity:.7}
+.asset-card .asset-actions{display:flex;gap:6px;margin-top:2px}
+.asset-card .asset-actions button{font-size:11px;padding:4px 8px}
+.assets-empty{opacity:.7;font-size:13px;padding:18px 4px}

@@ -52,8 +52,7 @@ import {
   publicModelSettings,
   saveModelSettings,
   MODEL_PRESETS,
-  type ModelSettingsV1,
-} from './model-gateway'
+  type ModelSettingsV1, imageGenerate } from './model-gateway'
 
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
@@ -1848,6 +1847,46 @@ const handleThemeGeneration = async (
   }
 }
 
+// ——— The appearance layer: an illustration per thing ———
+// One asset per entity, generated in the page palette by the image model
+// when the provider has one, else a palette glyph by entity type. The
+// client binds it to the unit's box and keeps the record in the library.
+const GLYPH_PATHS: Record<string, (accent: string) => string> = {
+  server: accent => `<rect x="12" y="10" width="40" height="13" rx="3" fill="${accent}" fill-opacity=".16" stroke="${accent}" stroke-width="2.5"/><rect x="12" y="26" width="40" height="13" rx="3" fill="${accent}" fill-opacity=".16" stroke="${accent}" stroke-width="2.5"/><rect x="12" y="42" width="40" height="13" rx="3" fill="${accent}" fill-opacity=".16" stroke="${accent}" stroke-width="2.5"/><circle cx="19" cy="16.5" r="2" fill="${accent}"/><circle cx="19" cy="32.5" r="2" fill="${accent}"/><circle cx="19" cy="48.5" r="2" fill="${accent}"/>`,
+  database: accent => `<ellipse cx="32" cy="16" rx="20" ry="7" fill="${accent}" fill-opacity=".2" stroke="${accent}" stroke-width="2.5"/><path d="M12 16v32c0 3.9 9 7 20 7s20-3.1 20-7V16" fill="${accent}" fill-opacity=".1" stroke="${accent}" stroke-width="2.5"/><path d="M12 32c0 3.9 9 7 20 7s20-3.1 20-7" fill="none" stroke="${accent}" stroke-width="2.5"/>`,
+  queue: accent => `<rect x="6" y="22" width="52" height="20" rx="5" fill="none" stroke="${accent}" stroke-width="2.5"/><rect x="11" y="27" width="8" height="10" rx="2" fill="${accent}"/><rect x="22" y="27" width="8" height="10" rx="2" fill="${accent}" fill-opacity=".7"/><rect x="33" y="27" width="8" height="10" rx="2" fill="${accent}" fill-opacity=".45"/><path d="M46 32h7m-3-3 3 3-3 3" fill="none" stroke="${accent}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  client: accent => `<rect x="10" y="12" width="44" height="30" rx="4" fill="${accent}" fill-opacity=".14" stroke="${accent}" stroke-width="2.5"/><path d="M26 52h12M32 42v10" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="27" r="6" fill="none" stroke="${accent}" stroke-width="2.5"/>`,
+  service: accent => `<path d="M32 6l22 13v26L32 58 10 45V19z" fill="${accent}" fill-opacity=".14" stroke="${accent}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="32" r="9" fill="none" stroke="${accent}" stroke-width="2.5"/><circle cx="32" cy="32" r="3" fill="${accent}"/>`,
+  thing: accent => `<rect x="10" y="10" width="44" height="44" rx="8" fill="${accent}" fill-opacity=".14" stroke="${accent}" stroke-width="2.5"/><path d="M20 33l8 8 16-18" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
+}
+const glyphFor = (type: string, accent: string) => {
+  const draw = GLYPH_PATHS[type] || GLYPH_PATHS.thing
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256">${draw(accent)}</svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+const handleIllustrate = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{ projectId?: string; nodeId?: string; label?: string; type?: string; palette?: { accent?: string; background?: string }; prefer?: string }>(request, 32_000)
+  const label = String(body.label || '').trim().slice(0, 80)
+  const type = String(body.type || 'thing').trim().slice(0, 24) || 'thing'
+  if (!label) throw new Error('Say what to illustrate')
+  const accent = /^#[0-9a-f]{6}$/i.test(String(body.palette?.accent || '')) ? String(body.palette!.accent) : '#4ade80'
+  const background = /^#[0-9a-f]{6}$/i.test(String(body.palette?.background || '')) ? String(body.palette!.background) : '#0b0f17'
+  const prompt = `A single ${label} drawn as a ${type} icon for a technical explainer video. Flat, minimal, front-facing, centred, one object only. No text, no labels, no scene, no shadow. Transparent background. Lines and fills in ${accent} with soft neutral greys, clean blueprint style, consistent weight.`
+  if (body.prefer !== 'glyph') {
+    try {
+      const generated = await imageGenerate({ prompt })
+      if (generated) {
+        const stored = await storeAsset({ body: generated.buffer, contentType: generated.contentType, projectId: body.projectId, blockId: body.nodeId, kind: 'illustration', extension: '.png' })
+        json(response, 200, { kind: 'image', url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`, assetId: stored.assetId, model: generated.model, prompt, width: 1024, height: 1024, palette: { accent, background } })
+        return
+      }
+    } catch (error) {
+      console.warn('[illustrate] image model failed, using a glyph', error instanceof Error ? error.message : error)
+    }
+  }
+  json(response, 200, { kind: 'glyph', url: glyphFor(type, accent), prompt, width: 256, height: 256, palette: { accent, background } })
+}
+
 const handleAssetUpload = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -2351,6 +2390,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/assets') {
       await handleAssetUpload(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/assets/illustrate') {
+      await handleIllustrate(request, response)
       return
     }
     if (

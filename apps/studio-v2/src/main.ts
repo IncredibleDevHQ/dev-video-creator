@@ -99,7 +99,9 @@ import { placementAt, placementsFor } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
-import { arcChanges, videoPlanFor, type VideoPlan } from './video-plan'
+import { arcChanges, entityKey, videoPlanFor, type VideoPlan } from './video-plan'
+import type { AssetRecordV1 } from 'markdown-composition'
+import { ENTITY_TYPES } from './page-model'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -10539,6 +10541,206 @@ scriptInput.addEventListener('input', () => {
   markDirty(true)
 })
 
+// ——— The appearance layer and the asset library ———
+// An asset per thing, not per unit. Illustrating a part looks the thing up
+// by its key (type + name) in the project's library; a hit is reused, a
+// miss is generated in the palette (image model when there is one, else a
+// palette glyph) and recorded. The picture is bound to the unit's box as an
+// appearance image the atomiser attaches to the unit, so it reveals with
+// it and never counts as ink. Removing an asset strips it from every page.
+const projectAssets = () => (project.assets ||= [])
+const entityTypeOf = (state: SlideEditorState, unit: SlideUnit) =>
+  state.model.entities.find(entity => entity.id === unit.id)?.type ||
+  Object.entries(ENTITY_TYPES).find(([, def]) => def.match.test(unit.label))?.[0] ||
+  'thing'
+const appearanceId = (unit: SlideUnit) => `${unit.id}-art`
+const hasAppearance = (state: SlideEditorState, unit: SlideUnit) => state.svg.includes(`data-appearance-for="${unit.id}"`)
+// Where the picture sits inside the box: beside the words on a wide box,
+// above them on a tall one, with a little air all round.
+const appearanceFrame = (unit: SlideUnit) => {
+  const { x, y, width, height } = unit.bbox
+  const pad = Math.min(width, height) * 0.1
+  if (width > height * 1.8) {
+    const size = height - pad * 2
+    return { x: x + pad, y: y + pad, width: size, height: size }
+  }
+  const size = Math.min(width - pad * 2, height * 0.55)
+  return { x: x + (width - size) / 2, y: y + pad, width: size, height: size }
+}
+const appearanceElement = (doc: Document, unit: SlideUnit, record: AssetRecordV1) => {
+  const frame = appearanceFrame(unit)
+  const image = doc.createElementNS('http://www.w3.org/2000/svg', 'image')
+  image.setAttribute('id', appearanceId(unit))
+  image.setAttribute('data-appearance-for', unit.id)
+  image.setAttribute('data-asset', record.id)
+  image.setAttribute('href', record.url)
+  image.setAttribute('x', frame.x.toFixed(1))
+  image.setAttribute('y', frame.y.toFixed(1))
+  image.setAttribute('width', frame.width.toFixed(1))
+  image.setAttribute('height', frame.height.toFixed(1))
+  image.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  image.setAttribute('pointer-events', 'none')
+  return image
+}
+const placeAppearance = (doc: Document, unit: SlideUnit, record: AssetRecordV1) => {
+  const owner = doc.getElementById(unit.id)
+  if (!owner) return false
+  doc.getElementById(appearanceId(unit))?.remove()
+  const image = appearanceElement(doc, unit, record)
+  // Inside a group, after its first shape (the words come later and stay on
+  // top); beside a lone shape, right after it.
+  if (owner.tagName.toLowerCase() === 'g') {
+    const shape = Array.from(owner.children).find(child => ['rect', 'path', 'circle', 'ellipse', 'polygon'].includes(child.tagName.toLowerCase()))
+    if (shape) shape.after(image)
+    else owner.prepend(image)
+  } else owner.after(image)
+  return true
+}
+const rewritePageSvg = (state: SlideEditorState, change: (doc: Document) => boolean) => {
+  const parsed = new DOMParser().parseFromString(state.svg, 'image/svg+xml')
+  if (!change(parsed)) return false
+  state.svg = new XMLSerializer().serializeToString(parsed.documentElement)
+  const live = slideEditorPreview.querySelector('svg')
+  if (live) change(live.ownerDocument)
+  return true
+}
+const illustrateUnit = async (unit: SlideUnit) => {
+  const state = slideEditor
+  if (!state) return null
+  const type = entityTypeOf(state, unit)
+  const key = entityKey(unit.label, type)
+  let record = projectAssets().find(asset => asset.entityKey === key && asset.kind !== 'logo')
+  if (!record) {
+    setSlideEditorStatus(`Illustrating ${unit.label}…`, '')
+    try {
+      const answer = await fetchJson<{ kind: 'image' | 'glyph'; url: string; model?: string; prompt: string; width: number; height: number; palette: { accent: string; background: string } }>('/api/assets/illustrate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, nodeId: state.nodeId, label: unit.label, type, palette: { accent: project.brand.accent, background: project.brand.background } }),
+      })
+      record = { id: crypto.randomUUID(), kind: answer.kind, entityKey: key, label: unit.label, type, url: answer.url, palette: answer.palette, prompt: answer.prompt, ...(answer.model ? { model: answer.model } : {}), width: answer.width, height: answer.height, createdAt: new Date().toISOString(), scenes: [] }
+      projectAssets().push(record)
+    } catch (error) {
+      setSlideEditorStatus(error instanceof Error ? error.message : 'Could not illustrate this', 'error')
+      return null
+    }
+  }
+  const placed = rewritePageSvg(state, doc => placeAppearance(doc, unit, record!))
+  if (!placed) {
+    setSlideEditorStatus('This part has no element of its own to dress', 'error')
+    return null
+  }
+  if (!unit.ids.includes(appearanceId(unit))) unit.ids.push(appearanceId(unit))
+  if (!record.scenes.includes(state.nodeId)) record.scenes.push(state.nodeId)
+  state.lastChange = `Illustrated ${unit.label}`
+  markDirty(true)
+  syncProject()
+  if (state.windows.length) replan({ quiet: true })
+  else renderSlideEditorPreview()
+  renderFrameBubble()
+  setSlideEditorStatus(`${unit.label} is illustrated${record.kind === 'glyph' ? ' with a palette glyph (no image model configured)' : ''} — reused wherever a ${type} of that name appears`, 'ok')
+  return record
+}
+const removeAppearance = (unit: SlideUnit) => {
+  const state = slideEditor
+  if (!state) return false
+  const removed = rewritePageSvg(state, doc => {
+    const image = doc.getElementById(appearanceId(unit))
+    if (!image) return false
+    image.remove()
+    return true
+  })
+  if (!removed) return false
+  unit.ids = unit.ids.filter(id => id !== appearanceId(unit))
+  state.lastChange = `Removed the illustration of ${unit.label}`
+  markDirty(true)
+  if (state.windows.length) replan({ quiet: true })
+  else renderSlideEditorPreview()
+  renderFrameBubble()
+  return true
+}
+// Removing an asset strips it from every page it dresses: the pages fall
+// back to the wireframe, and the record goes.
+const removeAsset = (assetId: string) => {
+  const record = projectAssets().find(asset => asset.id === assetId)
+  if (!record) return 0
+  let stripped = 0
+  project.notebook.content
+    .filter(node => (node.type === 'scene' || node.type === 'slide') && typeof node.attrs?.svg === 'string' && String(node.attrs.svg).includes(`data-asset="${assetId}"`))
+    .forEach(node => {
+      const parsed = new DOMParser().parseFromString(String(node.attrs!.svg), 'image/svg+xml')
+      const images = Array.from(parsed.querySelectorAll(`image[data-asset="${assetId}"]`))
+      if (!images.length) return
+      images.forEach(image => image.remove())
+      stripped += images.length
+      writeSlideLikeNode(String(node.attrs!.id), { svg: new XMLSerializer().serializeToString(parsed.documentElement) })
+    })
+  if (slideEditor && slideEditor.svg.includes(`data-asset="${assetId}"`)) {
+    const state = slideEditor
+    const undressed = new Set<string>()
+    rewritePageSvg(state, doc => {
+      const images = Array.from(doc.querySelectorAll(`image[data-asset="${assetId}"]`))
+      images.forEach(image => {
+        undressed.add(image.getAttribute('data-appearance-for') || '')
+        image.remove()
+      })
+      return images.length > 0
+    })
+    // Only the units this asset dressed lose their appearance id.
+    leafUnits(state.units).filter(unit => undressed.has(unit.id)).forEach(unit => { unit.ids = unit.ids.filter(id => id !== appearanceId(unit)) })
+    if (state.windows.length) replan({ quiet: true })
+    else renderSlideEditorPreview()
+  }
+  project.assets = projectAssets().filter(asset => asset.id !== assetId)
+  syncProject()
+  return stripped
+}
+const assetsDialog = $('#assets-dialog') as HTMLDialogElement
+const renderAssetLibrary = () => {
+  const grid = $('#assets-grid') as HTMLElement
+  const assets = projectAssets()
+  grid.replaceChildren()
+  if (!assets.length) {
+    const empty = document.createElement('p')
+    empty.className = 'assets-empty'
+    empty.textContent = 'Nothing yet. Open a scene, click a part of the page and choose “Illustrate this”.'
+    grid.append(empty)
+    return
+  }
+  assets.forEach(asset => {
+    const card = document.createElement('article')
+    card.className = 'asset-card'
+    const image = document.createElement('img')
+    image.src = asset.url
+    image.alt = asset.label
+    const title = document.createElement('strong')
+    title.textContent = asset.label
+    const meta = document.createElement('span')
+    meta.className = 'asset-meta'
+    meta.textContent = `${asset.type} · ${asset.kind === 'glyph' ? 'palette glyph' : asset.kind}${asset.model ? ` · ${asset.model}` : ''} · on ${asset.scenes.length} ${asset.scenes.length === 1 ? 'page' : 'pages'}`
+    const actions = document.createElement('div')
+    actions.className = 'asset-actions'
+    const remove = document.createElement('button')
+    remove.type = 'button'
+    remove.className = 'button chrome-ghost'
+    remove.textContent = 'Remove from all pages'
+    remove.addEventListener('click', () => {
+      const count = removeAsset(asset.id)
+      renderAssetLibrary()
+      showToast(`Removed ${asset.label} — ${count} ${count === 1 ? 'page falls' : 'pages fall'} back to the wireframe`)
+    })
+    actions.append(remove)
+    card.append(image, title, meta, actions)
+    grid.append(card)
+  })
+}
+const openAssetLibrary = () => {
+  renderAssetLibrary()
+  if (!assetsDialog.open) assetsDialog.showModal()
+}
+;($('#assets-close') as HTMLButtonElement).addEventListener('click', () => assetsDialog.close())
+;($('#assets-done') as HTMLButtonElement).addEventListener('click', () => assetsDialog.close())
+
 // ——— the writer ———
 const sceneNotesFor = (state: SlideEditorState) => {
   const found = findSlideLikeNode(state.nodeId)
@@ -11441,6 +11643,10 @@ const renderFrameBubble = () => {
           renderFrameBubble()
         }, { active: cameraOn })
         if (unitHasText(unit)) quick('Edit the words', 'Change what the page says here', () => openTextEdit(unit))
+        if (unit.kind === 'box' || unit.kind === 'shape' || unit.kind === 'group') {
+          if (hasAppearance(state, unit)) quick('Remove the illustration', 'Back to the wireframe for this part', () => removeAppearance(unit))
+          else quick('Illustrate this', 'An illustration of this thing in the video’s palette, kept in the asset library and reused wherever it appears', () => void illustrateUnit(unit), { ai: true })
+        }
       }
       quick('Rewrite the line around it', 'The editor rewrites this line so it turns on the selection', () => void requestEdit(`Rewrite this line so it turns on ${names.join(' and ')}.`, 'line'), { ai: true })
     }
@@ -13149,6 +13355,14 @@ const sourceFinish = () => {
 ;($('#source-finish') as HTMLButtonElement).addEventListener('click', sourceFinish)
 ;($('#source-close') as HTMLButtonElement).addEventListener('click', () => sourceDialog.close())
 ;($('#start-from-source') as HTMLButtonElement).addEventListener('click', () => openSourceDialog('link'))
+;($('#open-assets') as HTMLButtonElement).addEventListener('click', () => openAssetLibrary())
+// Dev hook: the asset library.
+;(window as unknown as { __assets?: unknown }).__assets = {
+  list: () => projectAssets(),
+  illustrate: (unitId: string) => (slideEditor ? illustrateUnit(unitOf(slideEditor, unitId) as SlideUnit) : Promise.resolve(null)),
+  remove: removeAsset,
+  open: openAssetLibrary,
+}
 ;($('#video-length') as HTMLButtonElement).addEventListener('click', () => {
   const current = project.outline?.targetSeconds
   const answer = window.prompt('Target length for the whole video (m:ss). Every scene gets its share by role and picture; framing scenes stay short.', current ? formatTarget(current) : '')
