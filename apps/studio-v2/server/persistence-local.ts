@@ -199,12 +199,20 @@ export const saveRecordedBlock = async ({
   assetId,
   mediaUrl,
   durationMs,
+  keepsPlan,
+  cameraUrl,
+  cameraAssetId,
+  beatMarksMs,
 }: {
   projectId: string
   blockId: string
   assetId: string
   mediaUrl: string
   durationMs: number
+  keepsPlan?: boolean
+  cameraUrl?: string
+  cameraAssetId?: string
+  beatMarksMs?: number[]
 }): Promise<RecordedBlockV1> => {
   await initializePersistence()
   // The asset must have been stored against this exact project and block —
@@ -215,12 +223,12 @@ export const saveRecordedBlock = async ({
     safePart(projectId),
     safePart(blockId),
   )
-  const assetExists = await readdir(assetDirectory)
-    .then(entries =>
-      entries.some(entry => entry.startsWith(assetId) && !entry.endsWith('.meta.json')),
-    )
-    .catch(() => false)
-  if (!assetExists) throw new Error('The recording asset does not match this block')
+  const entries = await readdir(assetDirectory).catch(() => [] as string[])
+  const has = (id: string) => entries.some(entry => entry.startsWith(id) && !entry.endsWith('.meta.json'))
+  if (!has(assetId)) throw new Error('The recording asset does not match this block')
+  // The camera of a take that keeps the plan is stored beside the composite.
+  const camera = keepsPlan && cameraUrl && cameraAssetId && has(cameraAssetId) ? { cameraUrl, cameraAssetId } : {}
+  const kept = keepsPlan && beatMarksMs?.length ? { keepsPlan: true as const, beatMarksMs, ...camera } : {}
   const takesPath = join(notebooksDirectory(), `${projectId}.takes.json`)
   const takes =
     (await readJsonFile<
@@ -228,7 +236,7 @@ export const saveRecordedBlock = async ({
     >(takesPath)) || {}
   const recordedAt = new Date().toISOString()
   const recordingId = randomUUID()
-  takes[blockId] = { recordingId, assetId, durationMs, recordedAt }
+  takes[blockId] = { recordingId, assetId, durationMs, recordedAt, ...kept }
   await writeFileAtomic(takesPath, JSON.stringify(takes, null, 2))
   return {
     blockId,
@@ -237,6 +245,7 @@ export const saveRecordedBlock = async ({
     durationMs,
     recordedAt,
     storage: 'local',
+    ...kept,
   }
 }
 

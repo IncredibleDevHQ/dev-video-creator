@@ -641,6 +641,13 @@ let canvasCaptureStream: MediaStream | null = null
 let canvasMicrophoneStream: MediaStream | null = null
 let canvasRecordingChunks: Blob[] = []
 let canvasRecordingStartedAt = 0
+// A page scene's take keeps the plan: the camera (with the voice) records
+// as its own track beside the composite, and every press that advances a
+// beat is kept as a mark the plan is re-timed to.
+let cameraTakeRecorder: MediaRecorder | null = null
+let cameraTakeChunks: Blob[] = []
+let cameraTakeDone: Promise<Blob | null> | null = null
+let canvasRecordingBeatMarks: number[] = []
 let canvasRecordingTimer: number | undefined
 let canvasRecordingStep = 0
 let canvasRecordingTargets: Array<{ element: HTMLElement; style: string }> = []
@@ -711,6 +718,10 @@ let pendingRecordedBlock: {
   assetId: string
   mediaUrl: string
   durationMs: number
+  keepsPlan?: boolean
+  cameraUrl?: string
+  cameraAssetId?: string
+  beatMarksMs?: number[]
 } | null = null
 let screenRecordingStream: MediaStream | null = null
 let screenRecordingHasAudio = false
@@ -955,6 +966,9 @@ const runCanvasRecordingAction = (action: CanvasRecordingAction) => {
       return
     }
     const step = canvasRecordingStep
+    if (canvasRecorder?.state === 'recording') {
+      canvasRecordingBeatMarks.push(Math.max(0, Date.now() - canvasRecordingStartedAt))
+    }
     if (canvasRecordingScene) {
       void animateDriverStep(canvasRecordingScene.id, step, () => {})
     }
@@ -1366,30 +1380,47 @@ const uploadDirectedCanvasRecording = async (
   blob: Blob,
   scene: Scene,
   durationMs: number,
+  take: { cameraBlob: Blob | null; beatMarksMs: number[] } = { cameraBlob: null, beatMarksMs: [] },
 ) => {
   project.notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(project.notebook)
   await persistProjectNow(structuredClone(project))
-  const result = await fetchJson<{
-    url: string
-    draft: { assetId: string; blockId: string; durationMs: number }
-  }>(
-    '/api/recordings/finalize', {
-    method: 'POST',
-    headers: {
-      'content-type': blob.type || 'video/webm',
-      'x-project-id': project.id,
-      'x-block-id': scene.id,
-      'x-duration-ms': String(durationMs),
-    },
-    body: blob,
-  })
+  const finalize = (part: Blob) =>
+    fetchJson<{
+      url: string
+      draft: { assetId: string; blockId: string; durationMs: number }
+    }>('/api/recordings/finalize', {
+      method: 'POST',
+      headers: {
+        'content-type': part.type || 'video/webm',
+        'x-project-id': project.id,
+        'x-block-id': scene.id,
+        'x-duration-ms': String(durationMs),
+      },
+      body: part,
+    })
+  const result = await finalize(blob)
+  // A page scene whose beats were advanced during the take keeps its plan:
+  // the page re-renders from the plan at the spoken pace, the camera and
+  // voice ride beside it. The composite stays for review and as a fallback.
+  const keepsPlan = isPageScene(scene) && take.beatMarksMs.length > 0
+  let camera: { cameraUrl: string; cameraAssetId: string } | null = null
+  if (keepsPlan && take.cameraBlob) {
+    try {
+      canvasRecordingLabel.textContent = 'Keeping your camera as its own track…'
+      const stored = await finalize(take.cameraBlob)
+      camera = { cameraUrl: stored.url, cameraAssetId: stored.draft.assetId }
+    } catch (error) {
+      console.warn('camera track was not kept', error)
+    }
+  }
   pendingRecordedBlock = {
     projectId: project.id,
     blockId: scene.id,
     assetId: result.draft.assetId,
     mediaUrl: result.url,
     durationMs: result.draft.durationMs,
+    ...(keepsPlan ? { keepsPlan: true, beatMarksMs: take.beatMarksMs, ...(camera || {}) } : {}),
   }
   canvasRecordingPlayback.src = result.url
   downloadCanvasRecording.href = result.url
@@ -1402,15 +1433,18 @@ const uploadDirectedCanvasRecording = async (
   replaceCanvasRecordingButton.hidden = !hasActiveTake
   replaceCanvasRecordingButton.disabled = false
   replaceCanvasRecordingButton.textContent = 'Replace current take'
-  canvasRecordingReviewStatus.textContent = 'Review take'
+  canvasRecordingReviewStatus.textContent = keepsPlan ? 'Review take · the page keeps its plan' : 'Review take'
   canvasRecordingReviewTitle.textContent = hasActiveTake
     ? 'Keep it as a new version, or replace the current take'
-    : 'Save this recording to the selected block'
+    : keepsPlan
+      ? `Save it: the page will re-render from its plan at your pace${camera ? ', with your camera and voice as their own track' : ', with your voice'}`
+      : 'Save this recording to the selected block'
   canvasRecordingReview.hidden = false
   showToast('Take ready — review it, then save the block')
 }
 
 const finishCanvasRecording = () => {
+  if (cameraTakeRecorder?.state === 'recording') cameraTakeRecorder.stop()
   if (canvasRecorder?.state === 'recording') canvasRecorder.stop()
 }
 
@@ -1631,9 +1665,50 @@ const startCanvasRecording = async () => {
     canvasRecorder.ondataavailable = event => {
       if (event.data.size) canvasRecordingChunks.push(event.data)
     }
+    // A page scene keeps its plan: the camera and the voice record as their
+    // own track beside the composite, from the same clock.
+    canvasRecordingBeatMarks = []
+    cameraTakeChunks = []
+    cameraTakeDone = null
+    cameraTakeRecorder = null
+    if (isPageScene(scene) && liveCameraStream) {
+      const cameraTracks = [
+        ...liveCameraStream.getVideoTracks().map(track => track.clone()),
+        ...(canvasMicrophoneStream?.getAudioTracks().map(track => track.clone()) || []),
+      ]
+      try {
+        const recorder = new MediaRecorder(
+          new MediaStream(cameraTracks),
+          recorderType ? { mimeType: recorderType } : undefined,
+        )
+        recorder.ondataavailable = event => {
+          if (event.data.size) cameraTakeChunks.push(event.data)
+        }
+        cameraTakeDone = new Promise(resolve => {
+          recorder.onstop = () => {
+            cameraTracks.forEach(track => track.stop())
+            resolve(cameraTakeChunks.length ? new Blob(cameraTakeChunks, { type: recorder.mimeType || 'video/webm' }) : null)
+          }
+          recorder.onerror = () => {
+            cameraTracks.forEach(track => track.stop())
+            resolve(null)
+          }
+        })
+        cameraTakeRecorder = recorder
+      } catch {
+        cameraTracks.forEach(track => track.stop())
+        cameraTakeRecorder = null
+        cameraTakeDone = null
+      }
+    }
     canvasRecorder.onstop = async () => {
       const mimeType = canvasRecorder?.mimeType || 'video/webm'
       const durationMs = Math.max(1, Date.now() - canvasRecordingStartedAt)
+      if (cameraTakeRecorder?.state === 'recording') cameraTakeRecorder.stop()
+      const cameraBlob = cameraTakeDone ? await cameraTakeDone : null
+      cameraTakeRecorder = null
+      cameraTakeDone = null
+      const beatMarksMs = [...canvasRecordingBeatMarks]
       stopExplainerBufferCapture()
       canvasCaptureStream?.getTracks().forEach(track => track.stop())
       canvasMicrophoneStream?.getTracks().forEach(track => track.stop())
@@ -1649,6 +1724,7 @@ const startCanvasRecording = async () => {
           new Blob(canvasRecordingChunks, { type: mimeType }),
           scene,
           durationMs,
+          { cameraBlob, beatMarksMs },
         )
       } catch (error) {
         showToast(error instanceof Error ? error.message : 'Could not make MP4')
@@ -1661,6 +1737,7 @@ const startCanvasRecording = async () => {
       .getVideoTracks()[0]
       ?.addEventListener('ended', finishCanvasRecording, { once: true })
     canvasRecorder.start(250)
+    cameraTakeRecorder?.start(250)
     canvasRecordingStartedAt = Date.now()
     {
       const takeConfig = project.blocks[selectedNodeId]

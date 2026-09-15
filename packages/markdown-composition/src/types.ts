@@ -141,6 +141,15 @@ export type RecordedBlockV1 = {
   durationMs: number
   recordedAt: string
   storage: 'minio' | 'supabase' | 'local'
+  // A page scene's take keeps the plan: the composite is kept for review,
+  // the camera (carrying the voice) is its own track, and the presses that
+  // advanced the beats are marks the plan is re-timed to at compile — so
+  // the page re-renders from the plan, at full resolution, at the pace it
+  // was spoken.
+  keepsPlan?: boolean
+  cameraUrl?: string
+  cameraAssetId?: string
+  beatMarksMs?: number[]
 }
 
 export type BrandTemplateV1 = {

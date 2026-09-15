@@ -1955,16 +1955,30 @@ const handleCommitDirectedRecording = async (
     assetId?: string
     mediaUrl?: string
     durationMs?: number
-  }>(request, 32_000)
+    keepsPlan?: boolean
+    cameraUrl?: string
+    cameraAssetId?: string
+    beatMarksMs?: number[]
+  }>(request, 64_000)
   if (!body.projectId || !body.blockId || !body.assetId || !body.mediaUrl) {
     throw new Error('The recorded block is incomplete')
   }
+  const beatMarksMs = Array.isArray(body.beatMarksMs)
+    ? body.beatMarksMs.map(Number).filter(ms => Number.isFinite(ms) && ms >= 0).slice(0, 400)
+    : []
   const recording = await saveRecordedBlock({
     projectId: body.projectId,
     blockId: body.blockId,
     assetId: body.assetId,
     mediaUrl: body.mediaUrl,
     durationMs: Math.max(1, Number(body.durationMs) || 1),
+    ...(body.keepsPlan && beatMarksMs.length
+      ? {
+          keepsPlan: true,
+          beatMarksMs,
+          ...(body.cameraUrl && body.cameraAssetId ? { cameraUrl: String(body.cameraUrl), cameraAssetId: String(body.cameraAssetId) } : {}),
+        }
+      : {}),
   })
   json(response, 201, { recording })
 }
@@ -2065,6 +2079,7 @@ const handleRender = async (
   })
   Object.values(renderProject.recordedBlocks || {}).forEach(recording => {
     recording.videoUrl = localAssetPath(recording.videoUrl) || recording.videoUrl
+    if (recording.cameraUrl) recording.cameraUrl = localAssetPath(recording.cameraUrl) || recording.cameraUrl
   })
   const stageNotebookMedia = (node: TiptapNode) => {
     if (

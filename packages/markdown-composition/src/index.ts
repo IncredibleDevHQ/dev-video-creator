@@ -90,6 +90,82 @@ const slideNodeMotion = (node: TiptapNode): MotionPlanV2 | null => {
   return sanitizeMotionPlan(attrs.motion) || motionPlanFromSteps(sanitizeSlideSteps(attrs.steps))
 }
 
+// A page scene whose take keeps the plan: each beat is re-timed to the press
+// that advanced it during the take, so the re-rendered page lands every
+// beat where the voice did. The first beat waits for the first press; the
+// last runs to the end of the take. A press that came before the motion
+// could finish shortens that beat's window — the fold completes the state.
+export const retimePlanToMarks = (plan: MotionPlanV2, marks: number[], totalMs: number): MotionPlanV2 => {
+  const clean = marks.filter(ms => Number.isFinite(ms) && ms >= 0).map(ms => Math.round(ms))
+  if (!clean.length) return plan
+  const steps = plan.steps.map((step, index) => {
+    const at = clean[index]
+    if (!Number.isFinite(at)) return step
+    const start = index === 0 ? 0 : at
+    const end = index + 1 < clean.length ? clean[index + 1] : Math.max(at + step.motionWindowMs, totalMs)
+    const span = Math.max(200, end - start)
+    const lead = index === 0 ? at : 0
+    const motionWindowMs = Math.min(step.motionWindowMs + lead, span)
+    return {
+      ...step,
+      actions: lead ? step.actions.map(action => ({ ...action, startMs: action.startMs + lead })) : step.actions,
+      motionWindowMs,
+      holdMs: Math.max(0, span - motionWindowMs),
+    }
+  })
+  return { ...plan, steps }
+}
+
+// The project as the takes shaped it: every page scene whose take keeps
+// the plan carries the re-timed plan, so timeline, captions, stage track
+// and the driver all read one timing.
+const withTakenPlans = (project: ProjectDocumentV1): ProjectDocumentV1 => {
+  const recordings = project.recordedBlocks || {}
+  if (!Object.values(recordings).some(recording => recording?.keepsPlan && recording.beatMarksMs?.length)) return project
+  const content = project.notebook.content.map(node => {
+    const id = typeof node.attrs?.id === 'string' ? node.attrs.id : ''
+    const recording = id ? recordings[id] : undefined
+    if (!recording?.keepsPlan || !recording.beatMarksMs?.length || !isSlideLikeNode(node)) return node
+    const plan = slideNodeMotion(node)
+    if (!plan) return node
+    const retimed = retimePlanToMarks(plan, recording.beatMarksMs, recording.durationMs)
+    // The director's saved frame track and placements carry times on the
+    // plan's old clock: warp them beat by beat onto the take's clock. Live
+    // switches (stage.overrides) were pressed on the take's clock already.
+    const before = motionPlanOffsetsMs(plan)
+    const after = motionPlanOffsetsMs(retimed)
+    const spanOf = (steps: MotionPlanV2['steps']) => steps.map(step => step.motionWindowMs + step.holdMs)
+    const oldSpans = spanOf(plan.steps)
+    const newSpans = spanOf(retimed.steps)
+    const warp = (ms: number) => {
+      if (!Number.isFinite(ms)) return ms
+      for (let index = 0; index < before.offsets.length; index += 1) {
+        const start = before.offsets[index]
+        const span = Math.max(1, oldSpans[index] || 1)
+        if (ms < start + span || index === before.offsets.length - 1) {
+          const ratio = Math.min(1, Math.max(0, (ms - start) / span))
+          return Math.round(after.offsets[index] + ratio * (newSpans[index] || 0) + Math.max(0, ms - (start + span)))
+        }
+      }
+      return ms
+    }
+    const attrs = { ...node.attrs, motion: retimed } as Record<string, unknown>
+    if (Array.isArray(attrs.stageTrack)) {
+      attrs.stageTrack = (attrs.stageTrack as Array<{ atMs?: number }>).map(segment => segment && typeof segment === 'object' ? { ...segment, atMs: warp(Number(segment.atMs) || 0) } : segment)
+    }
+    if (attrs.stagePlacements && typeof attrs.stagePlacements === 'object') {
+      attrs.stagePlacements = Object.fromEntries(
+        Object.entries(attrs.stagePlacements as Record<string, Array<{ atMs?: number }>>).map(([family, entries]) => [
+          family,
+          Array.isArray(entries) ? entries.map(entry => entry && typeof entry === 'object' ? { ...entry, atMs: warp(Number(entry.atMs) || 0) } : entry) : entries,
+        ]),
+      )
+    }
+    return { ...node, attrs }
+  })
+  return { ...project, notebook: { ...project.notebook, content } }
+}
+
 const slideNodeSteps = (node: TiptapNode): SlideStepV1[] => {
   const plan = slideNodeMotion(node)
   return plan ? stepsFromMotionPlan(plan) : []
@@ -841,7 +917,16 @@ const buildCompositionHtml = (
             ? normalizedRectStyle(cameraGeometry.content)
             : ''
           : ''
-      const presenterMarkup = scene.presenterTracks
+      // A page scene's take keeps the plan: the page re-renders from the
+      // plan (re-timed to the take's presses) and the camera, carrying the
+      // voice, rides as its own presenter track. Without a camera the voice
+      // comes from the composite's audio. Other takes replace the scene.
+      const recording = project.recordedBlocks?.[scene.id]
+      const keepsPlan = Boolean(recording?.keepsPlan) && isSlideLikeNode(scene.node) && scene.id !== contentViewNodeId
+      const takeCameraUrl = keepsPlan ? safeUrl(recording?.cameraUrl) : null
+      const takeTracks: Scene['presenterTracks'] = takeCameraUrl ? [{ kind: 'human-camera', videoUrl: takeCameraUrl, audioKind: 'recorded-mic' }] : []
+      const presenterTracks = [...scene.presenterTracks, ...takeTracks]
+      const presenterMarkup = presenterTracks
         .map((track, trackIndex) => {
           if (track.kind === 'narration') {
             const audioUrl = safeUrl(track.audioUrl)
@@ -869,15 +954,19 @@ const buildCompositionHtml = (
       // The director's content view swaps the selected block's take out for
       // the live composed scene so the block stays directable.
       const recordedTakeUrl =
-        scene.id === contentViewNodeId
+        scene.id === contentViewNodeId || keepsPlan
           ? null
-          : safeUrl(project.recordedBlocks?.[scene.id]?.videoUrl)
+          : safeUrl(recording?.videoUrl)
+      const takeVoiceUrl = keepsPlan && !takeCameraUrl ? safeUrl(recording?.videoUrl) : null
       // A saved take already contains the directed canvas, camera, and audio,
-      // so it replaces the live scene visuals and presenter tracks outright.
+      // so it replaces the live scene visuals and presenter tracks outright —
+      // unless it keeps the plan, when only its voice is used.
       const recordedTakeMarkup = recordedTakeUrl
         ? `<video class="recorded-take clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`
-        : ''
-      const hasRecordedCamera = scene.presenterTracks.some(
+        : takeVoiceUrl
+          ? `<audio class="take-voice" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(takeVoiceUrl)}"></audio>`
+          : ''
+      const hasRecordedCamera = presenterTracks.some(
         track => track.kind === 'human-camera' && safeUrl(track.videoUrl),
       )
       const previewPresenterUrl =
@@ -1498,7 +1587,8 @@ export const SCENE_DURATION_CAP_MS = 20 * 60_000
 // that is not already saved on the notebook.
 export type CaptionCue = { sceneId: string; index: number; startMs: number; endMs: number; text: string }
 
-export const captionCuesForProject = (project: ProjectDocumentV1): CaptionCue[] => {
+export const captionCuesForProject = (input: ProjectDocumentV1): CaptionCue[] => {
+  const project = withTakenPlans(input)
   const cues: CaptionCue[] = []
   let cursorMs = 0
   project.notebook.content
@@ -1543,7 +1633,7 @@ export const formatSrt = (cues: CaptionCue[]) =>
   cues.flatMap((cue, index) => [String(index + 1), `${captionTime(cue.startMs, ',')} --> ${captionTime(cue.endMs, ',')}`, cue.text, '']).join('\n')
 
 export const compileProject = (
-  project: ProjectDocumentV1,
+  input: ProjectDocumentV1,
   options: {
     gsapUrl?: string
     hyperframesRuntimeUrl?: string
@@ -1552,7 +1642,8 @@ export const compileProject = (
     contentViewNodeId?: string
   } = {},
 ): CompiledComposition => {
-  assertProject(project)
+  assertProject(input)
+  const project = withTakenPlans(input)
   const warnings: string[] = []
   const seenIds = new Set<string>()
   let startSeconds = 0
