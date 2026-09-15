@@ -55,6 +55,16 @@ const verbFromText = (text: string): RelationVerb | null => {
   return null
 }
 
+// The page's own extent, from the ink on it: the fallback candidate must
+// be the largest box so a real panel wins the tightest-wins rule.
+const viewBoxOf = (units: SlideUnit[]) => {
+  const boxes = flattenUnits(units).map(unit => unit.bbox)
+  if (!boxes.length) return { width: 1280, height: 720 }
+  const right = Math.max(...boxes.map(box => box.x + box.width))
+  const bottom = Math.max(...boxes.map(box => box.y + box.height))
+  return { width: Math.max(1, right), height: Math.max(1, bottom) }
+}
+
 export const pageModelFor = (units: SlideUnit[]): PageModel => {
   const all = flattenUnits(units)
   const edges = inferEdges(units).filter((edge): edge is SlideEdge & { source: SlideUnit; target: SlideUnit } => Boolean(edge.source && edge.target))
@@ -93,7 +103,11 @@ export const pageModelFor = (units: SlideUnit[]): PageModel => {
   // diagrams: a group whose parts are joined by edges, classified by the shape of the graph
   const diagrams: PageDiagram[] = []
   const groups = all.filter(unit => unit.kind === 'group' && !unit.chrome)
-  const candidates = groups.length ? groups : [{ id: 'page', kind: 'group', label: 'Page', ids: [], bbox: { x: 0, y: 0, width: 0, height: 0 }, chrome: false, children: units } as SlideUnit]
+  // The page itself is always a candidate: a page whose things sit at the
+  // top level (one group per thing, no panel around them) still draws one
+  // diagram. The tightest candidate with the same hops wins below.
+  const page = { id: 'page', kind: 'group', label: 'Page', ids: [], bbox: { x: 0, y: 0, width: viewBoxOf(units).width, height: viewBoxOf(units).height }, chrome: false, children: units } as SlideUnit
+  const candidates = [...groups, page]
   candidates.forEach(group => {
     const members = leafUnits([group]).filter(unit => (unit.kind === 'box' || unit.kind === 'shape') && !unit.chrome)
     if (members.length < 2) return

@@ -145,6 +145,10 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
     Array.from(parent.children).forEach(child => {
       const tag = child.tagName.toLowerCase()
       if (tag === 'defs' || tag === 'metadata' || tag === 'style' || tag === 'title' || tag === 'desc') return
+      // Artwork the page drew for a thing belongs to that thing, whole. Its
+      // shapes are not parts of the page: a gauge's needle is not a node and
+      // a rack's rails are not arrows.
+      if (child.hasAttribute('data-appearance-for')) return
       if (tag === 'g') {
         const id = child.id
         const chrome = inheritedChrome || CHROME_IDS.has(id) || CHROME_GROUP.test(id) || child.getAttribute('data-pptx-role') === 'decoration' || CHROME_ROLES.has(child.getAttribute('data-role') || '')
@@ -447,11 +451,17 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
   const byId = new Map(flattenUnits(units).map(unit => [unit.id, unit]))
   Array.from(root.querySelectorAll('[data-appearance-for]')).forEach(element => {
     const named = byId.get(element.getAttribute('data-appearance-for') || '')
-    if (!named || !element.id) return
+    if (!named) return
     // A page may name the node's group; the artwork belongs to the thing
-    // inside it, so it reveals and moves with the thing itself.
+    // inside it, so the group and everything drawn in it reveal and move
+    // with the thing itself.
     const owner = named.kind === 'group' ? leafUnits([named]).find(leaf => leaf.kind === 'box' || leaf.kind === 'shape') || named : named
-    if (!owner.ids.includes(element.id)) owner.ids.push(element.id)
+    ;[element, ...Array.from(element.querySelectorAll('[id]'))]
+      .map(node => node.id)
+      .filter(Boolean)
+      .forEach(id => {
+        if (!owner.ids.includes(id)) owner.ids.push(id)
+      })
   })
 }
 
