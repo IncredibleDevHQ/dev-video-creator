@@ -361,6 +361,9 @@ export type ScriptPlanOptions = {
   // Camera moves in when a beat's units cover less than this share of the page.
   cameraShare?: number
   wpm?: number
+  // The page model's typed entities: the plan keeps a registry of them with
+  // the beats whose subject they are.
+  entities?: Array<{ id: string; label: string; type: string; states?: string[] }>
 }
 
 export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: ScriptPlanOptions): MotionPlanV2 => {
@@ -371,6 +374,10 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
   const visible = new Set<string>()
   const dimmedNow = new Set<string>()
   let cameraOnPage = true
+  // Persistence: the subject of the last beat, by unit id. A beat whose
+  // subject shares a unit with it is followed by the camera, never cut.
+  let previousSubject = new Set<string>()
+  const subjectsPerBeat: string[][] = []
   const beats: MotionBeat[] = specs.map((spec, index) => {
     const { beat } = spec
     const actions: MotionAction[] = []
@@ -518,22 +525,39 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
     // same paragraph, the box a label sits in) so nothing on screen is cut.
     const subject = spec.camera && spec.camera.length ? spec.camera : [...entering, ...returning]
     const onScreen = leafUnits(units).filter(unit => visible.has(unit.id))
-    const focusBox = expandToBlock(unionBox(subject), onScreen)
+    // The subject persists when any of its units was in the last beat's
+    // subject (or is its hero). A persisting subject is followed: the camera
+    // glides from where it was to where the subject is now — including where
+    // a move in this beat is taking it. A new subject is a cut.
+    const subjectIds = new Set([...subject.flatMap(unit => [unit.id, ...unit.ids]), ...(spec.hero ? [spec.hero.id, ...spec.hero.ids] : [])])
+    const persists = index > 0 && [...subjectIds].some(id => previousSubject.has(id))
+    const travel = actions
+      .filter(item => item.op === 'move' && item.targets.some(id => subjectIds.has(id)))
+      .reduce((sum, item) => ({ dx: sum.dx + (Number(item.value?.dx) || 0), dy: sum.dy + (Number(item.value?.dy) || 0) }), { dx: 0, dy: 0 })
+    const restingBox = expandToBlock(unionBox(subject), onScreen)
+    const focusBox = restingBox && (travel.dx || travel.dy) ? { ...restingBox, x: restingBox.x + travel.dx, y: restingBox.y + travel.dy } : restingBox
     const tight = focusBox ? focusBox.width * focusBox.height < pageArea * cameraShare : false
+    const roomy = focusBox ? focusBox.width * focusBox.height < pageArea * 0.6 : false
     const directedClose = Boolean(spec.camera && spec.camera.length)
+    const allowed = !spec.zoomOut && !(spec.camera && spec.camera.length === 0) && index !== specs.length - 1 && Boolean(focusBox)
     const wantsClose =
-      !spec.zoomOut &&
-      !(spec.camera && spec.camera.length === 0) &&
-      index !== specs.length - 1 &&
-      Boolean(focusBox) &&
+      allowed &&
       (directedClose || (tight && index > 0 && visible.size >= 4 && subject.length <= 3 && spec.layout !== 'me'))
-    if (wantsClose && focusBox) {
-      actions.push(action('camera', [], Math.min(cursor, 200), { value: { x: focusBox.x, y: focusBox.y, width: focusBox.width, height: focusBox.height } }))
+    const follows = allowed && !cameraOnPage && persists && roomy && spec.layout !== 'me'
+    if (focusBox && (wantsClose || follows)) {
+      const move = cameraOnPage ? 'in' : persists ? 'follow' : 'cut'
+      actions.push(action('camera', [], Math.min(cursor, 200), {
+        // A follow glides; a cut is quick, a fresh move-in is the default.
+        ...(move === 'follow' ? { durationMs: 1100 } : move === 'cut' ? { durationMs: 320 } : {}),
+        value: { x: focusBox.x, y: focusBox.y, width: focusBox.width, height: focusBox.height, move },
+      }))
       cameraOnPage = false
     } else if (!cameraOnPage) {
-      actions.push(action('camera', [], 0, { implicit: true }))
+      actions.push(action('camera', [], 0, { implicit: true, ...(persists ? { value: { move: 'follow' } } : {}) }))
       cameraOnPage = true
     }
+    previousSubject = subjectIds
+    subjectsPerBeat.push([...subjectIds])
 
     if (index === specs.length - 1 && !entering.length && !spec.intent) intent = 'recap'
 
@@ -550,7 +574,17 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       holdMs: Math.max(800, speech - motionWindowMs) + (spec.hold ? 1_500 : 0),
     }
   })
-  return { version: 2, steps: beats }
+  // The registry: every typed entity with the beats whose subject it is.
+  const entities = (options.entities || [])
+    .map(entity => ({
+      id: entity.id,
+      label: entity.label,
+      type: entity.type,
+      ...(entity.states?.length ? { states: entity.states } : {}),
+      beats: subjectsPerBeat.flatMap((ids, index) => (ids.includes(entity.id) ? [index] : [])),
+    }))
+    .filter(entity => entity.beats.length)
+  return { version: 2, steps: beats, ...(entities.length ? { entities } : {}) }
 }
 
 const unitById = (units: SlideUnit[], id: string) => leafUnits(units).find(unit => unit.id === id) || null

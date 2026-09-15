@@ -10,6 +10,7 @@ import {
   type StageFamily,
   type StageRect,
   type StageVariant,
+  unitOffsetsAt,
 } from 'markdown-composition'
 import { flattenUnits, type SlideUnit } from './slide-atoms'
 
@@ -69,14 +70,23 @@ export const coveredFraction = (camera: StageRect, boxes: FrameBox[], grid = 24)
 }
 
 /** Units on screen at each beat: chrome from the start, the rest as they enter. */
+// The units on screen after each beat, with their boxes where the plan's
+// moves have put them — so a placement is computed from the moved ink and
+// the presenter's corner adjusts when a box travels.
 export const unitsOnScreenPerBeat = (plan: MotionPlanV2, units: SlideUnit[]): SlideUnit[][] => {
   const all = flattenUnits(units).filter(unit => unit.kind !== 'group')
   const shown = new Set<string>()
-  return plan.steps.map(step => {
+  return plan.steps.map((step, index) => {
     step.actions
       .filter(action => action.op === 'reveal' || action.op === 'trace' || action.op === 'count')
       .forEach(action => action.targets.forEach(id => shown.add(id)))
-    return all.filter(unit => unit.chrome || unit.ids.some(id => shown.has(id)))
+    const moved = unitOffsetsAt(plan, index)
+    return all
+      .filter(unit => unit.chrome || unit.ids.some(id => shown.has(id)))
+      .map(unit => {
+        const offset = unit.ids.map(id => moved.get(id)).find(Boolean)
+        return offset ? { ...unit, bbox: { ...unit.bbox, x: unit.bbox.x + offset.dx, y: unit.bbox.y + offset.dy } } : unit
+      })
   })
 }
 

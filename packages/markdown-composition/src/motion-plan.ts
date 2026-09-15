@@ -58,10 +58,22 @@ export type MotionBeat = {
   holdMs: number
 }
 
+// The entity registry inside a scene: the typed things on the page, with
+// their possible states and the beats whose subject they are. Persistence
+// (follow over cut, a state kept at ambient amplitude) reads it.
+export type PlanEntity = {
+  id: string
+  label: string
+  type: string
+  states?: string[]
+  beats: number[]
+}
+
 export type MotionPlanV2 = {
   version: 2
   preset?: 'technical-trace' | 'premium-settle' | 'data-confirm'
   steps: MotionBeat[]
+  entities?: PlanEntity[]
 }
 
 // Cubic-bezier anchors per easing name. `enter`/`settle`/`draw` are the V1
@@ -195,13 +207,44 @@ export const sanitizeMotionPlan = (value: unknown): MotionPlanV2 | null => {
     })
   })
   if (!steps.length) return null
+  const entities = (Array.isArray(plan.entities) ? plan.entities : [])
+    .map(raw => {
+      if (!raw || typeof raw !== 'object') return null
+      const entity = raw as Record<string, unknown>
+      if (typeof entity.id !== 'string' || !ID_PATTERN.test(entity.id)) return null
+      const beats = (Array.isArray(entity.beats) ? entity.beats : []).map(Number).filter(index => Number.isInteger(index) && index >= 0 && index < steps.length)
+      const states = (Array.isArray(entity.states) ? entity.states : []).map(String).filter(Boolean).slice(0, 8)
+      return { id: entity.id, label: String(entity.label || '').slice(0, 80), type: String(entity.type || 'thing').slice(0, 24), ...(states.length ? { states } : {}), beats } as PlanEntity
+    })
+    .filter((entity): entity is PlanEntity => Boolean(entity))
+    .slice(0, 60)
   return {
     version: 2,
     ...(plan.preset === 'technical-trace' || plan.preset === 'premium-settle' || plan.preset === 'data-confirm'
       ? { preset: plan.preset }
       : {}),
     steps,
+    ...(entities.length ? { entities } : {}),
   }
+}
+
+/** Where every moved unit sits by the end of a beat: the sum of its `move`
+ * actions up to and including that beat, keyed by target id. */
+export const unitOffsetsAt = (plan: MotionPlanV2, beatIndex: number): Map<string, { dx: number; dy: number }> => {
+  const offsets = new Map<string, { dx: number; dy: number }>()
+  plan.steps.slice(0, beatIndex + 1).forEach(step => {
+    step.actions.forEach(action => {
+      if (action.op !== 'move') return
+      const dx = Number(action.value?.dx) || 0
+      const dy = Number(action.value?.dy) || 0
+      if (!dx && !dy) return
+      action.targets.forEach(id => {
+        const current = offsets.get(id) || { dx: 0, dy: 0 }
+        offsets.set(id, { dx: current.dx + dx, dy: current.dy + dy })
+      })
+    })
+  })
+  return offsets
 }
 
 // Ops that bring a unit on screen (their targets start hidden).
