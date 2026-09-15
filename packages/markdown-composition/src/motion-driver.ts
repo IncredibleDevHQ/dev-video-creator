@@ -152,7 +152,7 @@ export const MOTION_DRIVER_SOURCE = `
     layer().appendChild(group);
     var unit = Math.max(1.5, pageBox.width / 640);
     var token = String(value.token || '').slice(0, 24);
-    var item = { key: (action.targets && action.targets[0]) || ('living-' + program + '-' + living.length), program: program, phase: phase, beatEnd: beatEnd, group: group, hops: [], bars: [], unit: unit, token: token, field: [], sweep: null };
+    var item = { key: (action.targets && action.targets[0]) || ('living-' + program + '-' + living.length), program: program, phase: phase, beatEnd: beatEnd, group: group, hops: [], bars: [], details: [], parts: [], unit: unit, token: token, field: [], sweep: null };
     if (program === 'title') {
       // A living title: a slow field of motes across the page and a sweep
       // of light under the top of the page, both ambient.
@@ -178,8 +178,94 @@ export const MOTION_DRIVER_SOURCE = `
       return item;
     }
     if (program === 'entity') {
+      var kind = String(value.kind || 'thing');
       (action.targets || []).forEach(function (id) {
         var node = find(id); var box = node && bboxOf(node); if (!box) return;
+        // The page draws the thing and says which of its parts move. Those
+        // parts are the animation; the generic accents below are only for a
+        // page that declared none. The marked parts may sit on the thing's
+        // own element or on an ancestor group that holds its artwork.
+        var scope = node, marked = [];
+        for (var up = 0; up < 3 && scope && scope.querySelectorAll; up += 1) {
+          marked = Array.prototype.slice.call(scope.querySelectorAll('[data-anim]'));
+          if (marked.length) break;
+          scope = scope.parentNode;
+        }
+        if (marked.length) {
+          marked.slice(0, 12).forEach(function (part) {
+            var partBox = bboxOf(part);
+            if (!partBox) return;
+            part.style.transformBox = 'fill-box';
+            part.style.transformOrigin = 'center';
+            item.parts.push({
+              node: part,
+              how: String(part.getAttribute('data-anim') || '').toLowerCase(),
+              order: Number(part.getAttribute('data-anim-order')) || 0,
+              rate: String(part.getAttribute('data-anim-rate') || ''),
+              box: partBox,
+              rest: part.style.opacity === '' ? 1 : Number(part.style.opacity),
+              width: partBox.width,
+            });
+          });
+          return;
+        }
+        // A thing moves like the kind of thing it is: a server blinks, a
+        // store pulses, a queue moves items through, a client radiates. The
+        // parts are drawn once here and animated every frame below.
+        var detail = { kind: kind, lights: [], rings: [], items: [], box: box };
+        var padding = unit * 2.4;
+        if (kind === 'server' || kind === 'service') {
+          for (var li = 0; li < 3; li += 1) {
+            var light = doc.createElementNS(SVG_NS, 'circle');
+            light.setAttribute('r', String(unit * 1.5));
+            light.setAttribute('cx', String(box.x + box.width - padding));
+            light.setAttribute('cy', String(box.y + padding + li * unit * 4.2));
+            light.setAttribute('fill', accent);
+            light.style.opacity = '0';
+            group.appendChild(light);
+            detail.lights.push(light);
+          }
+        } else if (kind === 'database' || kind === 'cache') {
+          for (var ri = 0; ri < 2; ri += 1) {
+            var ring = doc.createElementNS(SVG_NS, 'ellipse');
+            ring.setAttribute('cx', String(box.x + padding * 1.6));
+            ring.setAttribute('cy', String(box.y + box.height / 2));
+            ring.setAttribute('rx', String(unit * 4));
+            ring.setAttribute('ry', String(unit * 1.6));
+            ring.setAttribute('fill', 'none');
+            ring.setAttribute('stroke', accent);
+            ring.setAttribute('stroke-width', String(unit * 0.8));
+            ring.style.opacity = '0';
+            group.appendChild(ring);
+            detail.rings.push(ring);
+          }
+        } else if (kind === 'queue') {
+          for (var qi = 0; qi < 3; qi += 1) {
+            var slot = doc.createElementNS(SVG_NS, 'rect');
+            slot.setAttribute('width', String(unit * 2.6));
+            slot.setAttribute('height', String(unit * 3.4));
+            slot.setAttribute('rx', String(unit * 0.6));
+            slot.setAttribute('y', String(box.y + box.height / 2 - unit * 1.7));
+            slot.setAttribute('fill', accent);
+            slot.style.opacity = '0';
+            group.appendChild(slot);
+            detail.items.push(slot);
+          }
+        } else if (kind === 'client') {
+          for (var ci = 0; ci < 2; ci += 1) {
+            var arc = doc.createElementNS(SVG_NS, 'circle');
+            arc.setAttribute('cx', String(box.x + padding * 1.4));
+            arc.setAttribute('cy', String(box.y + padding * 1.2));
+            arc.setAttribute('r', String(unit * 2));
+            arc.setAttribute('fill', 'none');
+            arc.setAttribute('stroke', accent);
+            arc.setAttribute('stroke-width', String(unit * 0.7));
+            arc.style.opacity = '0';
+            group.appendChild(arc);
+            detail.rings.push(arc);
+          }
+        }
+        item.details.push(detail);
         var h = Math.max(2, Math.min(box.height * 0.12, unit * 3));
         var track = doc.createElementNS(SVG_NS, 'rect');
         track.setAttribute('x', String(box.x + unit)); track.setAttribute('y', String(box.y + box.height - h - unit));
@@ -251,6 +337,66 @@ export const MOTION_DRIVER_SOURCE = `
         var grow = eases.settle(clamp(local / 900));
         var wobble = item.phase === 'running' || item.phase === 'busy' || item.phase === 'flowing' ? 0.04 * Math.sin(local / 260) : 0;
         bar.bar.setAttribute('width', String(Math.max(0, bar.width * Math.min(1, bar.level + wobble) * grow)));
+      });
+      // The thing the page drew, moving by its own marked parts.
+      item.parts.forEach(function (part) {
+        var busy = levelFor(item.phase);
+        var slow = part.rate === 'slow' ? 2.2 : part.rate === 'fast' ? 0.55 : 1;
+        var period = (1500 + (1 - busy) * 1800) * slow;
+        var t = (local + part.order * period * 0.28) / period;
+        var cycle = t - Math.floor(t);
+        var node = part.node;
+        switch (part.how) {
+          case 'blink':
+            node.style.opacity = String(clamp(0.18 + 0.82 * Math.max(0, Math.sin(cycle * Math.PI * 2))) * (0.45 + 0.55 * busy));
+            break;
+          case 'pulse':
+            node.style.transform = 'scale(' + (1 + 0.09 * busy * Math.sin(cycle * Math.PI * 2)).toFixed(4) + ')';
+            node.style.opacity = String(clamp(part.rest * (0.72 + 0.28 * Math.sin(cycle * Math.PI * 2))));
+            break;
+          case 'flow':
+            node.style.transform = 'translateX(' + (part.box.width * (cycle - 0.5) * 1.8).toFixed(2) + 'px)';
+            node.style.opacity = String(clamp(Math.sin(Math.PI * cycle) * (0.4 + 0.6 * busy)));
+            break;
+          case 'fill':
+            var grow = eases.settle(clamp(local / 900)) * busy;
+            node.style.transformOrigin = 'left center';
+            node.style.transform = 'scaleX(' + Math.max(0.02, grow).toFixed(3) + ')';
+            node.style.opacity = String(part.rest);
+            break;
+          case 'spin':
+            node.style.transform = 'rotate(' + ((local / (period * 2.4)) * 360 % 360).toFixed(1) + 'deg)';
+            break;
+          case 'wave':
+            node.style.transform = 'scale(' + (1 + cycle * 1.6 * (0.5 + busy)).toFixed(3) + ')';
+            node.style.opacity = String(clamp((1 - cycle) * (0.25 + 0.6 * busy)));
+            break;
+          default:
+            break;
+        }
+      });
+      // The generic accents, for a page that named no moving parts.
+      item.details.forEach(function (detail) {
+        var busy = levelFor(item.phase);
+        var rate = 340 + (1 - busy) * 900;
+        detail.lights.forEach(function (light, index) {
+          var wave = Math.sin((local / rate) - index * 0.9);
+          light.style.opacity = String(clamp(0.22 + 0.62 * Math.max(0, wave)) * (item.phase === 'idle' ? 0.5 : 1));
+          if (item.phase === 'failing') light.setAttribute('fill', Math.sin(local / 220) > 0 ? '#ef4444' : accent);
+        });
+        detail.rings.forEach(function (ring, index) {
+          var cycle = ((local / (1100 + index * 260)) % 1);
+          var grow = 1 + cycle * (detail.kind === 'client' ? 1.9 : 0.55);
+          ring.style.opacity = String(clamp((1 - cycle) * (0.16 + 0.5 * busy)));
+          if (detail.kind === 'client') ring.setAttribute('r', String(item.unit * 2 * grow));
+          else { ring.setAttribute('rx', String(item.unit * 4 * grow)); ring.setAttribute('ry', String(item.unit * 1.6 * grow)); }
+        });
+        detail.items.forEach(function (slot, index) {
+          var span = detail.box.width - item.unit * 8;
+          var u = (((local / (item.phase === 'backed up' ? 3600 : 1500)) + index / detail.items.length) % 1);
+          slot.setAttribute('x', String(detail.box.x + item.unit * 4 + span * u));
+          slot.style.opacity = String(clamp(Math.sin(Math.PI * u) * (0.35 + 0.5 * busy)));
+        });
       });
       if (item.program === 'title') {
         // Motes drift on slow circles; the sweep crosses under the title
