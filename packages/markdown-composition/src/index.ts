@@ -1031,6 +1031,8 @@ const buildCompositionHtml = (
     })
     .join('\n')
 
+  // Captions burned into the picture: one cue at a time, on the timeline.
+  const burnedCues = project.captions?.burnIn ? captionCues(project) : []
   const animationMarkup = scenes
     .map(scene => {
       const selector = scriptString(`#scene-${scene.index} .content`)
@@ -1204,7 +1206,7 @@ const buildCompositionHtml = (
     .clip { visibility: hidden; }
     /* Captions burned into the picture: one cue at a time, low in the frame. */
     .burned-captions { position: absolute; left: 6%; right: 6%; bottom: 4.5%; z-index: 60; pointer-events: none; text-align: center; }
-    .burned-caption { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 10px 20px; border-radius: 12px; background: rgba(8, 10, 14, .66); color: #fff; font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-sizing: border-box; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; }
+    .burned-caption { opacity: 0; visibility: hidden; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 10px 20px; border-radius: 12px; background: rgba(8, 10, 14, .66); color: #fff; font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-sizing: border-box; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; }
     /* isolation: each scene is its own stacking context, so z-indexed
        overlays (camera tiles, person-background gradients) can never paint
        across a sibling scene — frame switchovers rely on later scenes
@@ -1501,6 +1503,7 @@ const buildCompositionHtml = (
     .slide-stage .ex-captions { min-height: 64px; }
     .slide-stage .ex-caption strong { font-size: 30px; }
     .slide-stage .ex-caption span { display: none; }
+    #composition.captions-burned .slide-stage .ex-captions { display: none; }
     .scene:has(.slide-stage) { padding: 56px 90px 40px; --content-layout-width: 100%; }
     /* Late in the sheet on purpose: slide stages beat the text-style width caps. */
     .scene:has(.slide-stage) .content { width: 100%; max-width: 100%; margin-inline: auto; }
@@ -1529,9 +1532,9 @@ const buildCompositionHtml = (
   </style>
 </head>
 <body>
-  <div id="composition" class="video-border-${theme.video.borderStyle}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-content-style="${theme.blocks.content}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-code-theme="${theme.blocks.codeTheme}" data-code-animation="${theme.blocks.codeAnimation}" data-quote-style="${theme.blocks.quote}" data-title-layout="${theme.blocks.layout.title}" data-content-layout="${theme.blocks.layout.content}" data-list-layout="${theme.blocks.layout.list}" data-code-layout="${theme.blocks.layout.code}" data-quote-layout="${theme.blocks.layout.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
+  <div id="composition" class="video-border-${theme.video.borderStyle}${burnedCues.length ? ' captions-burned' : ''}" data-composition-id="${escapeHtml(project.id)}" data-start="0" data-width="${project.width}" data-height="${project.height}" data-theme-id="${escapeHtml(theme.id)}" data-title-style="${theme.blocks.title}" data-content-style="${theme.blocks.content}" data-list-style="${theme.blocks.list}" data-code-style="${theme.blocks.code}" data-code-theme="${theme.blocks.codeTheme}" data-code-animation="${theme.blocks.codeAnimation}" data-quote-style="${theme.blocks.quote}" data-title-layout="${theme.blocks.layout.title}" data-content-layout="${theme.blocks.layout.content}" data-list-layout="${theme.blocks.layout.list}" data-code-layout="${theme.blocks.layout.code}" data-quote-layout="${theme.blocks.layout.quote}" data-surface-style="${theme.blocks.surface}" data-video-border="${theme.video.borderStyle}">
     ${sceneMarkup}
-    ${project.captions?.burnIn ? `<div class="burned-captions" aria-hidden="true">${captionCues(project).map(cue => `<p class="burned-caption clip" data-start="${(cue.startMs / 1000).toFixed(3)}" data-duration="${((cue.endMs - cue.startMs) / 1000).toFixed(3)}">${escapeHtml(cue.text)}</p>`).join('')}</div>` : ''}
+    ${burnedCues.length ? `<div class="burned-captions" aria-hidden="true">${burnedCues.map((cue, index) => `<p class="burned-caption" id="burned-cue-${index}">${escapeHtml(cue.text)}</p>`).join('')}</div>` : ''}
   </div>
   <script>
     // Shrink-to-fit: a scene's content row has a fixed height, but a long
@@ -1574,6 +1577,7 @@ const buildCompositionHtml = (
     var tl = gsap.timeline({ paused: true });
     tl.to({}, { duration: ${durationSeconds} }, 0);
     ${animationMarkup}
+    ${burnedCues.map((cue, index) => `tl.set("#burned-cue-${index}", { autoAlpha: 1 }, ${(cue.startMs / 1000).toFixed(3)}); tl.set("#burned-cue-${index}", { autoAlpha: 0 }, ${Math.max(cue.startMs / 1000 + 0.05, cue.endMs / 1000).toFixed(3)});`).join('\n    ')}
     window.__timelines = window.__timelines || {};
     window.__timelines[${scriptString(project.id)}] = tl;
   </script>
