@@ -54,6 +54,7 @@ import {
 
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
+import { checkPageContract, outlinePrompt, outlineSchema, pageBrandFrom, readSourceNarrative, readSourceUrl, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
 const require = createRequire(import.meta.url)
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
@@ -1304,6 +1305,62 @@ Return the WHOLE dialogue as windows in order (keep unchanged windows word for w
   json(response, 200, { windows: edited, changes, summary: String(generated.summary || '').slice(0, 240), provider: 'openai' })
 }
 
+
+// ——— Phase 0: how a video begins ———
+// A link or a narrative is read into text, headings, a palette, fonts and
+// logo candidates; the model turns the text into an outline with a runtime;
+// pages are rendered here from the outline so they carry the contract.
+const handleSourceRead = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string }>(request, 400 * 1024)
+  const projectId = String(body.projectId || request.headers['x-project-id'] || '') || undefined
+  const source = body.url?.trim() ? await readSourceUrl(body.url, { projectId }) : readSourceNarrative(String(body.narrative || ''), String(body.title || ''))
+  if (!source.text.trim()) throw new Error('Nothing to read — paste a link to an article or a narrative of your own')
+  json(response, 200, { source })
+}
+
+const handleSourceOutline = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{ source?: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>; targetSeconds?: number }>(request, 400 * 1024)
+  const source = body.source
+  if (!source || !String(source.text || '').trim()) throw new Error('The outline needs the source text')
+  if (!(await hasModelAccess())) throw new Error('Outlining a source needs an AI provider — open Models in the top bar')
+  const targetSeconds = Number.isFinite(Number(body.targetSeconds)) && Number(body.targetSeconds) > 0 ? Math.round(Number(body.targetSeconds)) : null
+  const apiResponse = await modelFetch('writing', {
+    method: 'POST',
+    body: JSON.stringify({
+      model: 'ignored',
+      input: outlinePrompt({ title: String(source.title || ''), site: String(source.site || ''), text: String(source.text), words: Number(source.words) || String(source.text).split(/\s+/).length }, targetSeconds),
+      reasoning: { effort: 'medium' },
+      text: { format: { type: 'json_schema', name: 'video_outline', strict: true, schema: outlineSchema() } },
+    }),
+  })
+  if (!apiResponse.ok) throw new Error(`The outliner failed (${apiResponse.status})`)
+  const apiBody = (await apiResponse.json()) as Parameters<typeof extractResponseText>[0]
+  const outline = sanitizeOutline(JSON.parse(extractResponseText(apiBody)), String(source.title || ''))
+  if (!outline.scenes.length) throw new Error('The outliner returned no scenes')
+  json(response, 200, { outline, provider: 'openai' })
+}
+
+const handleSourcePages = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{
+    outline?: Outline
+    palette?: SourceRead['palette']
+    fonts?: SourceRead['fonts']
+    site?: string
+    mode?: 'dark' | 'light' | 'auto'
+  }>(request, 1024 * 1024)
+  const outline = body.outline
+  if (!outline || !Array.isArray(outline.scenes) || !outline.scenes.length) throw new Error('Pages need an outline with scenes')
+  const palette = body.palette || { candidates: [], ground: '#0b1f3a', text: '#e8f1fa', accent: '#f5a623', secondary: '#9cc3e6', themeColor: '' }
+  const fonts = body.fonts || { display: 'Segoe UI', body: 'Segoe UI', mono: 'Consolas', seen: [] }
+  const brand = pageBrandFrom(palette, fonts, body.mode || 'auto')
+  const scenes = outline.scenes as OutlineScene[]
+  const pages = scenes.map((scene, index) => {
+    const svg = renderPage(scene, index, scenes.length, brand, { title: outline.title, site: String(body.site || '') })
+    return { title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, svg, contract: checkPageContract(svg) }
+  })
+  json(response, 200, { pages, brand })
+}
+
 const handleSceneBreakdown = async (request: IncomingMessage, response: ServerResponse) => {
   const body = await readJson<{
     title?: string
@@ -2302,6 +2359,18 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     if (request.method === 'POST' && url.pathname === '/api/scene/dialogue') {
       await handleSceneDialogue(request, response)
       return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/source/read') {
+      await handleSourceRead(request, response)
+      return true
+    }
+    if (request.method === 'POST' && url.pathname === '/api/source/outline') {
+      await handleSourceOutline(request, response)
+      return true
+    }
+    if (request.method === 'POST' && url.pathname === '/api/source/pages') {
+      await handleSourcePages(request, response)
+      return true
     }
     if (request.method === 'POST' && url.pathname === '/api/scene/edit') {
       await handleSceneEdit(request, response)

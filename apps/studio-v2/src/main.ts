@@ -96,6 +96,7 @@ import {
 import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt } from './placements'
+import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import {
   atomizeSlideSvg,
   attachLeftovers,
@@ -4566,6 +4567,7 @@ notebookStart.addEventListener('click', event => {
   if (!card) return
   if (card.dataset.start === 'svg') ($('#import-svg-pages') as HTMLButtonElement).click()
   else if (card.dataset.start === 'markdown') ($('#paste-markdown') as HTMLButtonElement).click()
+  else if (card.dataset.start === 'link' || card.dataset.start === 'narrative') openSourceDialog(card.dataset.start)
   else void openAttentionSample()
 })
 
@@ -12542,3 +12544,389 @@ queueMicrotask(() => {
   refreshCapabilities()
   scheduleNotebookLineage()
 })
+
+// ——— Start from a source: a link or a narrative ———
+// Phase 0 of the plan. Whatever comes in, three things come out and the rest
+// of the pipeline reads only those: a brand read off the source, an outline
+// with a runtime target, and pages that carry the contract.
+type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean } }
+const sourceState: {
+  kind: 'link' | 'narrative'
+  source: SourceRead | null
+  brandColor: string
+  logoUrl: string
+  directions: StudioThemeV1[]
+  direction: number
+  outline: Outline | null
+  pages: SourcePage[] | null
+  busy: boolean
+} = { kind: 'link', source: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
+const sourceDialog = $('#source-dialog') as HTMLDialogElement
+const sourceStatus = (id: string, text: string, error = false) => {
+  const element = $(id) as HTMLElement
+  element.textContent = text
+  element.classList.toggle('is-error', error)
+}
+const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
+  const order = ['read', 'brand', 'outline', 'pages']
+  order.forEach(name => {
+    ;($(`#source-step-${name}`) as HTMLElement).hidden = name !== step
+    const pill = sourceDialog.querySelector<HTMLElement>(`.source-steps [data-step="${name}"]`)
+    if (pill) {
+      pill.classList.toggle('is-active', name === step)
+      pill.classList.toggle('is-done', order.indexOf(name) < order.indexOf(step))
+    }
+  })
+}
+const openSourceDialog = (kind: 'link' | 'narrative') => {
+  sourceState.kind = kind
+  showSourceStep('read')
+  ;($('#source-heading') as HTMLElement).textContent = kind === 'link' ? 'From a link' : 'From a narrative'
+  sourceStatus('#source-status', kind === 'link' ? 'The page is read for its words, its colours and its logo.' : 'Your words become the outline; pages are drawn to serve them.')
+  window.setTimeout(() => ($(kind === 'link' ? '#source-url' : '#source-narrative') as HTMLElement).focus(), 50)
+  if (!sourceDialog.open) sourceDialog.showModal()
+}
+const parseTarget = (value: string) => {
+  const match = /^\s*(\d+)(?::(\d{1,2}))?\s*$/.exec(value)
+  if (!match) return 0
+  return match[2] !== undefined ? Number(match[1]) * 60 + Number(match[2]) : Number(match[1]) * 60
+}
+const formatTarget = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`
+
+const sourceRead = async () => {
+  if (sourceState.busy) return
+  const url = ($('#source-url') as HTMLInputElement).value.trim()
+  const narrative = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
+  if (!url && !narrative) {
+    sourceStatus('#source-status', 'Paste a link, or a narrative of your own', true)
+    return
+  }
+  sourceState.busy = true
+  const button = $('#source-read') as HTMLButtonElement
+  button.disabled = true
+  sourceStatus('#source-status', url ? 'Reading the page, its stylesheets and its painted colours…' : 'Reading your narrative…')
+  try {
+    const { source } = await fetchJson<{ source: SourceRead }>('/api/source/read', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, projectId: project.id }),
+    })
+    sourceState.source = source
+    sourceState.brandColor = source.palette.accent
+    sourceState.logoUrl = source.logos.find(logo => logo.localUrl)?.localUrl || ''
+    sourceState.outline = null
+    sourceState.pages = null
+    renderSourceBrand()
+    showSourceStep('brand')
+  } catch (error) {
+    sourceStatus('#source-status', error instanceof Error ? error.message : 'Could not read that', true)
+  } finally {
+    sourceState.busy = false
+    button.disabled = false
+  }
+}
+
+const renderSourceDirections = () => {
+  const source = sourceState.source
+  if (!source) return
+  const name = source.site || source.title || 'This brand'
+  sourceState.directions = generateThemeDirections(sourceState.brandColor, name, 'both', { secondary: source.palette.secondary }).slice(0, 3)
+  sourceState.direction = Math.min(sourceState.direction, sourceState.directions.length - 1)
+  const grid = $('#source-directions') as HTMLElement
+  grid.replaceChildren(
+    ...sourceState.directions.map((theme, index) => {
+      const card = document.createElement('button')
+      card.type = 'button'
+      card.className = `source-direction${index === sourceState.direction ? ' is-picked' : ''}`
+      const frame = document.createElement('div')
+      frame.className = 'frame'
+      frame.style.background = theme.canvas.treatment === 'gradient' ? `linear-gradient(135deg, ${theme.canvas.gradient[0]}, ${theme.canvas.gradient[1]})` : theme.brand.background
+      frame.style.color = theme.brand.text
+      const title = document.createElement('b')
+      title.textContent = source.title.slice(0, 40) || 'Title'
+      const bar = document.createElement('i')
+      bar.style.background = theme.brand.primary
+      const line = document.createElement('span')
+      line.textContent = `${theme.canvas.treatment} · ${theme.video.layout}`
+      frame.append(title, bar, line)
+      const label = document.createElement('small')
+      label.textContent = theme.name
+      card.append(frame, label)
+      card.addEventListener('click', () => {
+        sourceState.direction = index
+        renderSourceDirections()
+      })
+      return card
+    }),
+  )
+}
+
+const renderSourceBrand = () => {
+  const source = sourceState.source
+  if (!source) return
+  ;($('#source-read-title') as HTMLElement).textContent = source.title || 'Untitled'
+  const meta = [source.site, `${source.words} words`, source.headings.length ? `${source.headings.length} headings` : '', source.fonts.display && source.fonts.display !== 'Segoe UI' ? `type: ${source.fonts.display}` : '']
+    .filter(Boolean)
+    .join(' · ')
+  ;($('#source-read-meta') as HTMLElement).textContent = meta + (source.warnings.length ? ` · ${source.warnings[0]}` : '')
+  const swatches = $('#source-swatches') as HTMLElement
+  const candidates = source.palette.candidates.length ? source.palette.candidates : [{ hex: source.palette.accent, weight: 0, role: 'accent' as const }]
+  swatches.replaceChildren(
+    ...candidates.slice(0, 12).map(candidate => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = `source-swatch${candidate.hex === sourceState.brandColor ? ' is-picked' : ''}`
+      button.title = candidate.role ? `${candidate.role} on the site` : 'seen on the site'
+      const chip = document.createElement('i')
+      chip.style.background = candidate.hex
+      const hex = document.createElement('span')
+      hex.textContent = candidate.hex
+      const role = document.createElement('em')
+      role.textContent = candidate.role || ''
+      button.append(chip, hex, role)
+      button.addEventListener('click', () => {
+        sourceState.brandColor = candidate.hex
+        renderSourceBrand()
+      })
+      return button
+    }),
+  )
+  const logos = $('#source-logos') as HTMLElement
+  const none = document.createElement('button')
+  none.type = 'button'
+  none.className = `source-logo is-none${sourceState.logoUrl ? '' : ' is-picked'}`
+  none.textContent = 'none'
+  none.addEventListener('click', () => {
+    sourceState.logoUrl = ''
+    renderSourceBrand()
+  })
+  logos.replaceChildren(
+    none,
+    ...source.logos.slice(0, 5).map(logo => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      const url = logo.localUrl || logo.url
+      button.className = `source-logo${url === sourceState.logoUrl ? ' is-picked' : ''}`
+      button.title = `${logo.source}${logo.localUrl ? ' · saved' : ''}`
+      const img = document.createElement('img')
+      img.alt = ''
+      img.src = url
+      button.append(img)
+      button.addEventListener('click', () => {
+        sourceState.logoUrl = url
+        renderSourceBrand()
+      })
+      return button
+    }),
+  )
+  renderSourceDirections()
+}
+
+const sourceOutline = async () => {
+  const source = sourceState.source
+  if (!source || sourceState.busy) return
+  sourceState.busy = true
+  const button = $('#source-to-outline') as HTMLButtonElement
+  button.disabled = true
+  sourceStatus('#source-brand-status', 'Planning the scenes, their length and what each must show…')
+  try {
+    const { outline } = await fetchJson<{ outline: Outline }>('/api/source/outline', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { title: source.title, site: source.site, text: source.text, words: source.words } }),
+    })
+    sourceState.outline = outline
+    sourceState.pages = null
+    renderSourceOutline()
+    showSourceStep('outline')
+    sourceStatus('#source-brand-status', '')
+  } catch (error) {
+    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The outliner failed', true)
+  } finally {
+    sourceState.busy = false
+    button.disabled = false
+  }
+}
+
+const readOutlineFromForm = (): Outline | null => {
+  const outline = sourceState.outline
+  if (!outline) return null
+  const rows = Array.from(($('#source-scenes') as HTMLElement).querySelectorAll<HTMLElement>('.source-scene'))
+  const scenes: OutlineScene[] = rows
+    .map(row => {
+      const index = Number(row.dataset.index)
+      const base = outline.scenes[index]
+      if (!base) return null
+      const title = (row.querySelector<HTMLInputElement>('input.title')?.value || base.title).trim() || base.title
+      const seconds = Math.max(6, Math.min(120, Number(row.querySelector<HTMLInputElement>('input.seconds')?.value) || base.seconds))
+      const kind = (row.querySelector<HTMLSelectElement>('select.kind')?.value || base.kind) as OutlineScene['kind']
+      return { ...base, title, seconds, kind }
+    })
+    .filter((scene): scene is OutlineScene => Boolean(scene))
+  const title = ($('#source-outline-title') as HTMLInputElement).value.trim() || outline.title
+  const targetSeconds = parseTarget(($('#source-target') as HTMLInputElement).value) || outline.targetSeconds
+  return { ...outline, title, targetSeconds, scenes }
+}
+
+const renderSourceOutline = () => {
+  const outline = sourceState.outline
+  if (!outline) return
+  ;($('#source-outline-title') as HTMLInputElement).value = outline.title
+  ;($('#source-target') as HTMLInputElement).value = formatTarget(outline.targetSeconds)
+  const list = $('#source-scenes') as HTMLElement
+  const sum = () => {
+    const current = readOutlineFromForm()
+    const total = current ? current.scenes.reduce((acc, scene) => acc + scene.seconds, 0) : 0
+    sourceStatus('#source-outline-sum', `${current?.scenes.length || 0} scenes · ${formatTarget(total)} planned`)
+  }
+  list.replaceChildren(
+    ...outline.scenes.map((scene, index) => {
+      const row = document.createElement('li')
+      row.className = 'source-scene'
+      row.dataset.index = String(index)
+      const n = document.createElement('span')
+      n.className = 'n'
+      n.textContent = String(index + 1)
+      const title = document.createElement('input')
+      title.className = 'title'
+      title.value = scene.title
+      const kind = document.createElement('select')
+      kind.className = 'kind'
+      ;['title', 'list', 'diagram', 'numbers', 'quote', 'close'].forEach(value => {
+        const option = document.createElement('option')
+        option.value = value
+        option.textContent = value
+        option.selected = value === scene.kind
+        kind.append(option)
+      })
+      const seconds = document.createElement('input')
+      seconds.className = 'seconds'
+      seconds.type = 'number'
+      seconds.min = '6'
+      seconds.max = '120'
+      seconds.value = String(scene.seconds)
+      seconds.title = 'seconds'
+      const remove = document.createElement('button')
+      remove.type = 'button'
+      remove.textContent = '×'
+      remove.title = 'Drop this scene'
+      remove.addEventListener('click', () => {
+        row.remove()
+        sum()
+      })
+      const idea = document.createElement('div')
+      idea.className = 'idea'
+      idea.textContent = `${scene.idea}${scene.parts.length ? ` · ${scene.parts.length} parts` : ''}${scene.relations.length ? ` · ${scene.relations.length} relations` : ''}`
+      row.append(n, title, kind, seconds, remove, idea)
+      ;[title, kind, seconds].forEach(control => control.addEventListener('input', sum))
+      return row
+    }),
+  )
+  const glossary = $('#source-glossary') as HTMLElement
+  glossary.replaceChildren(
+    ...outline.glossary.map(entry => {
+      const chip = document.createElement('span')
+      chip.textContent = entry.term
+      chip.title = entry.meaning
+      return chip
+    }),
+  )
+  sum()
+}
+
+const sourceMakePages = async () => {
+  const source = sourceState.source
+  const outline = readOutlineFromForm()
+  if (!source || !outline || sourceState.busy) return
+  if (!outline.scenes.length) {
+    sourceStatus('#source-outline-status', 'Keep at least one scene', true)
+    return
+  }
+  sourceState.busy = true
+  const button = $('#source-make-pages') as HTMLButtonElement
+  button.disabled = true
+  sourceStatus('#source-outline-status', 'Drawing the pages in your brand…')
+  try {
+    const palette = { ...source.palette, accent: sourceState.brandColor || source.palette.accent }
+    const { pages } = await fetchJson<{ pages: SourcePage[] }>('/api/source/pages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ outline, palette, fonts: source.fonts, site: source.site, mode: 'dark' }),
+    })
+    sourceState.outline = outline
+    sourceState.pages = pages
+    const grid = $('#source-pages-grid') as HTMLElement
+    grid.replaceChildren(
+      ...pages.map((page, index) => {
+        const card = document.createElement('div')
+        card.className = 'source-page'
+        const thumb = document.createElement('div')
+        thumb.className = 'thumb'
+        thumb.innerHTML = page.svg
+        const label = document.createElement('div')
+        label.textContent = `${index + 1}. ${page.title}`
+        const meta = document.createElement('small')
+        meta.textContent = `${page.kind} · ${page.seconds} s · ${page.contract.groups} groups · ${page.contract.verbs} verbs`
+        card.append(thumb, label, meta)
+        return card
+      }),
+    )
+    const declared = pages.filter(page => page.contract.declared).length
+    sourceStatus('#source-pages-note', `${pages.length} pages, ${declared} fully declared. Opening the notebook adds them as scenes with their first-draft lines.`)
+    showSourceStep('pages')
+    sourceStatus('#source-outline-status', '')
+  } catch (error) {
+    sourceStatus('#source-outline-status', error instanceof Error ? error.message : 'The pages could not be drawn', true)
+  } finally {
+    sourceState.busy = false
+    button.disabled = false
+  }
+}
+
+const sourceFinish = () => {
+  const source = sourceState.source
+  const outline = sourceState.outline
+  const pages = sourceState.pages
+  if (!source || !outline || !pages?.length) return
+  // the brand, with the logo the author picked
+  const direction = sourceState.directions[sourceState.direction] || sourceState.directions[0]
+  if (direction) {
+    const theme = cloneTheme(normalizeStudioTheme(direction))
+    theme.name = `${source.site || outline.title} · ${theme.name}`.slice(0, 60)
+    theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
+    applyThemeToProject(theme)
+  }
+  // the pages as scenes, each with its idea for the director and its first-draft line as the script
+  // One transaction at the end of the document: inserting one at a time
+  // leaves a node selection behind, and the next insert replaces it.
+  // the card's poster is the page itself, as a data url, so a generated scene previews like an imported one
+  const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, directorNotes: page.idea, script: page.narration, structureApproved: true } }))
+  editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
+  const inserted = pages.map(page => page.title)
+  project.title = outline.title
+  project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
+  project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea })), glossary: outline.glossary }
+  const titleInput = document.querySelector<HTMLInputElement>('#project-title')
+  if (titleInput) titleInput.value = project.title
+  syncProject()
+  sourceDialog.close()
+  showToast(`${inserted.length} scenes from ${source.site || 'your narrative'} · ${formatTarget(outline.targetSeconds)} planned`)
+}
+
+;($('#source-read') as HTMLButtonElement).addEventListener('click', () => void sourceRead())
+;($('#source-url') as HTMLInputElement).addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    void sourceRead()
+  }
+})
+;($('#source-to-outline') as HTMLButtonElement).addEventListener('click', () => void sourceOutline())
+;($('#source-make-pages') as HTMLButtonElement).addEventListener('click', () => void sourceMakePages())
+;($('#source-finish') as HTMLButtonElement).addEventListener('click', sourceFinish)
+;($('#source-close') as HTMLButtonElement).addEventListener('click', () => sourceDialog.close())
+;($('#start-from-source') as HTMLButtonElement).addEventListener('click', () => openSourceDialog('link'))
+sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(button => {
+  button.addEventListener('click', () => showSourceStep(button.dataset.sourceBack as 'read' | 'brand' | 'outline'))
+})
+// A dev hook so the flow can be driven end to end in a hooked instance.
+;(window as unknown as { __source?: unknown }).__source = { state: () => sourceState, open: openSourceDialog, read: sourceRead, outline: sourceOutline, pages: sourceMakePages, finish: sourceFinish }

@@ -31,6 +31,8 @@ const PAINT_TAGS = new Set(['rect', 'circle', 'ellipse', 'polygon', 'path', 'lin
 const CHROME_IDS = new Set(['bg', 'grid', 'sheet-block', 'background'])
 // Groups that frame the page rather than carry a build step.
 const CHROME_GROUP = /^(header|page-header|footer|page-footer|sheet|frame|chrome)(-|$)/i
+// Pages that declare their roles (the studio's own generator does) are read, not guessed.
+const CHROME_ROLES = new Set(['background', 'decoration', 'header', 'footer', 'chrome'])
 
 const ensureId = (element: Element, counter: { next: number }) => {
   if (!element.id) element.id = `u${counter.next++}`
@@ -127,7 +129,7 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
       if (tag === 'defs' || tag === 'metadata' || tag === 'style' || tag === 'title' || tag === 'desc') return
       if (tag === 'g') {
         const id = child.id
-        const chrome = inheritedChrome || CHROME_IDS.has(id) || CHROME_GROUP.test(id) || child.getAttribute('data-pptx-role') === 'decoration'
+        const chrome = inheritedChrome || CHROME_IDS.has(id) || CHROME_GROUP.test(id) || child.getAttribute('data-pptx-role') === 'decoration' || CHROME_ROLES.has(child.getAttribute('data-role') || '')
         const children = buildUnits(child, chrome)
         if (!id && children.length) {
           // Anonymous groups are transparent: their children join the parent.
@@ -193,7 +195,7 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
     loose.forEach(element => {
       const tag = element.tagName.toLowerCase()
       const box = bboxOf(element)
-      const chrome = inheritedChrome || CHROME_IDS.has(element.id) || element.getAttribute('data-pptx-role') === 'decoration'
+      const chrome = inheritedChrome || CHROME_IDS.has(element.id) || element.getAttribute('data-pptx-role') === 'decoration' || CHROME_ROLES.has(element.getAttribute('data-role') || '')
       if (tag === 'image') {
         units.push({ id: element.id, ids: [element.id], kind: 'image', label: 'Image', bbox: box, chrome, children: [] })
         return

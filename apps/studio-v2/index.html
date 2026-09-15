@@ -162,6 +162,7 @@
               <button id="import-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>Import <span aria-hidden="true">⌄</span></button>
               <div id="import-menu-list" class="import-menu-list" role="menu" hidden>
                 <button id="import-file" type="button" role="menuitem">Import .md file</button>
+                <button id="start-from-source" type="button" role="menuitem">Start from a link or narrative…</button>
                 <button id="import-svg-pages" type="button" role="menuitem">Import SVG pages…</button>
                 <button id="paste-markdown" type="button" role="menuitem">Paste Markdown…</button>
               </div>
@@ -196,6 +197,8 @@
               <section id="notebook-start" class="notebook-start" hidden aria-label="Start this notebook">
                 <p class="notebook-start-lead">A notebook is pages plus what you say over them. Start with pages, or write first.</p>
                 <div class="notebook-start-grid">
+                  <button type="button" class="notebook-start-card is-primary" data-start="link"><strong>Paste a link</strong><span>A blog post or a README becomes a brand, an outline and pages you can animate.</span></button>
+                  <button type="button" class="notebook-start-card is-primary" data-start="narrative"><strong>Paste a narrative</strong><span>Your own words become the outline; pages are drawn to serve them.</span></button>
                   <button type="button" class="notebook-start-card" data-start="svg"><strong>Import SVG pages</strong><span>Pages from ppt-master or any SVG deck become scenes you can animate from the dialogue.</span></button>
                   <button type="button" class="notebook-start-card" data-start="markdown"><strong>Paste Markdown</strong><span>Headings, paragraphs and code become blocks; add pages later.</span></button>
                   <button type="button" class="notebook-start-card" data-start="sample"><strong>Open the sample</strong><span>Attention Is All You Need — 15 pages with dialogue, ready to plan and play.</span></button>
@@ -756,6 +759,42 @@
         <div class="explainer-row"><div id="shape-editor-preview" class="shape-editor-preview"></div><button id="shape-editor-save" class="button primary" type="button">Save shape</button></div>
       </div>
       <div class="modal-actions"><button id="shape-new" class="button chrome-secondary" type="button">New shape</button><button id="shape-duplicate" class="button chrome-secondary" type="button" disabled>Duplicate</button><button id="shape-edit" class="button chrome-secondary" type="button" disabled>Edit</button><button id="shape-delete" class="button chrome-secondary" type="button" disabled>Delete selected</button><button id="shape-collection-done" class="button primary" type="button">Done</button></div>
+    </dialog>
+
+
+    <dialog id="source-dialog" class="modal source-modal">
+      <div class="modal-heading"><div><span class="eyebrow">Start a video</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
+      <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li><li data-step="outline">Outline</li><li data-step="pages">Pages</li></ol>
+      <section id="source-step-read" class="source-step">
+        <label class="source-field">Link<input id="source-url" type="url" placeholder="https://blog.example.com/post" spellcheck="false" /></label>
+        <div class="source-or">or</div>
+        <label class="source-field">Narrative<textarea id="source-narrative" rows="7" placeholder="Paste your own words: the story you want to tell, one paragraph per thought."></textarea></label>
+        <div class="modal-actions"><span id="source-status" class="source-status"></span><button id="source-read" type="button" class="button primary">Read it</button></div>
+      </section>
+      <section id="source-step-brand" class="source-step" hidden>
+        <div class="source-summary"><strong id="source-read-title"></strong><span id="source-read-meta"></span></div>
+        <h3>Brand colour <small>click a swatch</small></h3>
+        <div id="source-swatches" class="source-swatches"></div>
+        <h3>Logo</h3>
+        <div id="source-logos" class="source-logos"></div>
+        <h3>Direction</h3>
+        <div id="source-directions" class="source-directions"></div>
+        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status"></span><button id="source-to-outline" type="button" class="button primary">Outline it</button></div>
+      </section>
+      <section id="source-step-outline" class="source-step" hidden>
+        <div class="source-outline-head">
+          <label class="source-field grow">Video title<input id="source-outline-title" type="text" /></label>
+          <label class="source-field narrow">Target<input id="source-target" type="text" placeholder="6:00" /></label>
+          <span id="source-outline-sum" class="source-status"></span>
+        </div>
+        <ol id="source-scenes" class="source-scenes"></ol>
+        <div id="source-glossary" class="source-glossary"></div>
+        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="brand">Back</button><span id="source-outline-status" class="source-status"></span><button id="source-make-pages" type="button" class="button primary">Make the pages</button></div>
+      </section>
+      <section id="source-step-pages" class="source-step" hidden>
+        <div id="source-pages-grid" class="source-pages-grid"></div>
+        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="outline">Back</button><span id="source-pages-note" class="source-status"></span><button id="source-finish" type="button" class="button primary">Open the notebook</button></div>
+      </section>
     </dialog>
 
     <dialog id="markdown-dialog" class="modal markdown-modal">
