@@ -113,6 +113,25 @@ def check(path):
             if estimated > width - 12:
                 problems.append(f'text {words[:28]!r} needs about {round(estimated)} px inside a {round(width)} px shape — shorten it, widen the shape, or split it across two <tspan> lines')
 
+    # Two nodes may not sit on top of each other: overlapping cards read as
+    # a broken page in every frame, and no amount of motion repairs them.
+    placed = []
+    for n in nodes:
+        shapes = [c for c in n.iter() if local(c.tag) == 'rect']
+        if not shapes:
+            continue
+        try:
+            box = (float(shapes[0].get('x')), float(shapes[0].get('y')), float(shapes[0].get('width')), float(shapes[0].get('height')))
+        except (TypeError, ValueError):
+            continue
+        placed.append((n.get('id') or '?', box))
+    for i, (id_a, a) in enumerate(placed):
+        for id_b, b in placed[i + 1:]:
+            wide = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
+            high = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
+            if wide > 4 and high > 4:
+                problems.append(f'nodes {id_a!r} and {id_b!r} overlap by {round(wide)}x{round(high)} px — move them apart')
+
     connectors = [el for el in root.iter() if el.get('data-role') == 'connector']
     for c in connectors:
         for attr in ('data-from', 'data-to'):
