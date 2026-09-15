@@ -408,11 +408,61 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       if (!spec.intent) intent = 'quantify'
     }
     if (connectors.length) {
-      const ids = connectors.flatMap(unit => unit.ids)
-      const durationMs = MOTION_DURATION_MS.trace + 90 * Math.max(0, connectors.length - 1)
-      actions.push(action('trace', ids, cursor, { durationMs, value: { staggerMs: 90 } }))
-      cursor += durationMs
-      if (!spec.intent) intent = 'flow'
+      // The verb on the relation decides the signature. Waiting is
+      // sequential: each hop lands before the next begins, and a target that
+      // is entering waits for its arrow. Fanning out is parallel. Merging
+      // converges then lands on the target. Comparing pulses both ends.
+      const verbOf = (unit: SlideUnit) => String(unit.verb || '').toLowerCase()
+      const waiting = connectors.filter(unit => verbOf(unit) === 'waits for')
+      const merging = connectors.filter(unit => verbOf(unit) === 'merges into')
+      const comparing = connectors.filter(unit => verbOf(unit) === 'compares with')
+      const rest = connectors.filter(unit => !waiting.includes(unit) && !merging.includes(unit) && !comparing.includes(unit))
+      if (waiting.length) {
+        const hopMs = MOTION_DURATION_MS.trace + 140
+        waiting.forEach((connector, index) => {
+          actions.push(action('trace', connector.ids, cursor, { durationMs: MOTION_DURATION_MS.trace, value: { verb: 'waits for' } }))
+          const edge = edges.find(candidate => candidate.connector.id === connector.id)
+          const target = edge?.target
+          if (target && entering.includes(target)) {
+            // the part waits: it appears only when its arrow has landed
+            const already = actions.find(item => item.op === 'reveal' && target.ids.every(id => item.targets.includes(id)))
+            if (already) already.targets = already.targets.filter(id => !target.ids.includes(id))
+            actions.push(action('reveal', target.ids, cursor + MOTION_DURATION_MS.trace - 60, { durationMs: MOTION_DURATION_MS.reveal }))
+          }
+          cursor += hopMs + (index === waiting.length - 1 ? 0 : 120)
+        })
+      }
+      if (rest.length) {
+        const ids = rest.flatMap(unit => unit.ids)
+        const fanning = rest.every(unit => ['splits into', 'feeds', 'sends to', 'triggers', 'calls'].includes(verbOf(unit)))
+        const stagger = fanning ? 40 : 90
+        const durationMs = MOTION_DURATION_MS.trace + stagger * Math.max(0, rest.length - 1)
+        actions.push(action('trace', ids, cursor, { durationMs, value: { staggerMs: stagger, ...(verbOf(rest[0]) ? { verb: verbOf(rest[0]) } : {}) } }))
+        cursor += durationMs
+      }
+      if (merging.length) {
+        const ids = merging.flatMap(unit => unit.ids)
+        const durationMs = MOTION_DURATION_MS.trace + 60 * Math.max(0, merging.length - 1)
+        actions.push(action('trace', ids, cursor, { durationMs, value: { staggerMs: 60, verb: 'merges into' } }))
+        cursor += durationMs
+        const targets = [...new Set(merging.map(unit => edges.find(candidate => candidate.connector.id === unit.id)?.target).filter((unit): unit is SlideUnit => Boolean(unit)))]
+        if (targets.length) actions.push(action('emphasize', targets.flatMap(unit => unit.ids), cursor, { persistence: 'flourish' }))
+        cursor += 200
+      }
+      if (comparing.length) {
+        const ids = comparing.flatMap(unit => unit.ids)
+        actions.push(action('trace', ids, cursor, { durationMs: MOTION_DURATION_MS.trace, value: { verb: 'compares with' } }))
+        cursor += MOTION_DURATION_MS.trace
+        comparing.forEach(unit => {
+          const edge = edges.find(candidate => candidate.connector.id === unit.id)
+          if (edge?.source && edge.target) {
+            actions.push(action('pulse', edge.source.ids, cursor, { persistence: 'flourish' }))
+            actions.push(action('pulse', edge.target.ids, cursor + 260, { persistence: 'flourish' }))
+          }
+        })
+        cursor += 520
+      }
+      if (!spec.intent) intent = waiting.length ? 'flow' : comparing.length ? 'contrast' : merging.length ? 'transform' : 'flow'
     }
     spec.connects.forEach(([from, to]) => {
       const existing = edges.find(edge =>
@@ -849,7 +899,7 @@ export const planFromWindows = (
 export const relationsOf = (units: SlideUnit[]) =>
   inferEdges(units)
     .filter((edge): edge is SlideEdge & { source: SlideUnit; target: SlideUnit } => Boolean(edge.source && edge.target))
-    .map(edge => ({ connector: edge.connector.id, from: edge.source.id, to: edge.target.id }))
+    .map(edge => ({ connector: edge.connector.id, from: edge.source.id, to: edge.target.id, ...(edge.connector.verb ? { verb: edge.connector.verb } : {}) }))
 
 /** A script from existing beats (title + explanation), for scenes that predate scripts. */
 export const scriptFromSteps = (steps: Array<{ title?: string; explanation?: string }>) =>

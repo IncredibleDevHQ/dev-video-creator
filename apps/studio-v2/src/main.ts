@@ -98,14 +98,17 @@ import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefF
 import { placementAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
+import { describePageModel, pageModelFor, type PageModel } from './page-model'
 import {
   atomizeSlideSvg,
   attachLeftovers,
+  contractReport,
   inferEdges,
   leafUnits,
   oneStepPerUnit,
   orderByArrows,
   suggestSteps,
+  type ContractReport,
   type OrderedStepDraft,
   type SlideUnit,
 } from './slide-atoms'
@@ -9097,6 +9100,11 @@ type SlideEditorState = {
   // machine measured with a fallback.
   pageRole: string
   fontNotes: string
+  // The contract at the door: how much of the page was declared rather than
+  // inferred. And the page model: what the rows depict (diagrams, verbs,
+  // typed entities), the third grouping.
+  contract: ContractReport
+  model: PageModel
 }
 let slideEditor: SlideEditorState | null = null
 
@@ -10167,7 +10175,8 @@ const renderLengthBrief = () => {
   ;($('#se-length-k') as HTMLElement).textContent = 'Next'
   if (showCard && !more.hidden) {
     ;($('#se-length-seconds') as HTMLElement).textContent = `${DEPTH_LABELS[state.depth]} · ≈ ${Math.round(brief.seconds)} s`
-    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words${state.pageRole ? ` · page says ${state.pageRole}` : ''}${state.fontNotes ? ` · ${state.fontNotes}` : ''} · change the depth or see the walk`
+    const modelNote = describePageModel(state.model)
+    ;($('#se-length-meta') as HTMLElement).textContent = `${brief.windows} windows · ≈ ${brief.words} words${state.pageRole ? ` · page says ${state.pageRole}` : ''}${modelNote ? ` · ${modelNote}` : ''}${state.contract.connectors || state.contract.groups ? ` · ${Math.round(state.contract.declared * 100)}% declared` : ''}${state.fontNotes ? ` · ${state.fontNotes}` : ''} · change the depth or see the walk`
     const depthBox = $('#se-length-depth') as HTMLElement
     depthBox.replaceChildren(
       ...LENGTH_DEPTHS.map(depth => {
@@ -10471,6 +10480,8 @@ const requestProposal = async (instruction: string) => {
         position: scenePosition(state.nodeId),
         units: slideUnitInventory(state),
         relations: relationsOf(state.units),
+        diagrams: state.model.diagrams.map(diagram => ({ id: diagram.id, kind: diagram.kind, parts: diagram.parts, hops: diagram.hops })),
+        entities: state.model.entities,
         // The director's length brief: how long, what to walk, what to skip.
         brief: state.brief ? briefForWriter(state.brief, id => unitOf(state, id)?.label || id) : undefined,
       }),
@@ -11700,6 +11711,8 @@ const openSlideEditor = (nodeId: string) => {
     editScope: 'line',
     pageRole: atomized.pageRole,
     fontNotes: missingFontNote(atomized.svg),
+    contract: contractReport(atomized.units, atomized.pageRole),
+    model: pageModelFor(atomized.units),
     previewPlan: null,
     sourceText: '',
     openDrawers: new Set(),
@@ -11785,6 +11798,13 @@ slideEditorDialog.addEventListener('cancel', event => {
 ;(window as unknown as { __slideEditor?: unknown }).__slideEditor = {
   state: () => slideEditor,
   edges: () => (slideEditor ? inferEdges(slideEditor.units) : []),
+  model: () => (slideEditor ? slideEditor.model : null),
+  contract: () => (slideEditor ? slideEditor.contract : null),
+  replan: () => replan({ quiet: true }),
+  planFromWindows,
+  planFromScript,
+  pageModelFor,
+  contractReport,
   atomize: atomizeSlideSvg,
   inferEdges,
   orderByArrows,
@@ -12239,6 +12259,9 @@ const animateSceneLocally = (nodeId: string) => {
   if (!found) return false
   const script = scriptForNode(nodeId, found.attrs)
   const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
+  // The page model stamps the verbs it works out onto the connectors, so
+  // the first plan already moves by them.
+  pageModelFor(atomized.units)
   const pace = paceOf(found.attrs.pace)
   const valid = new Set(leafUnits(atomized.units).map(unit => unit.id))
   const savedWindows = (Array.isArray(found.attrs.windows) ? (found.attrs.windows as SceneWindow[]) : [])

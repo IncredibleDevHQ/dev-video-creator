@@ -1104,14 +1104,18 @@ Rules: every part id appears in exactly one step (a part never appears twice); a
 // approved words untouched and only assigns parts / hero / camera / layout
 // per window.
 type SceneUnitInput = { id: string; kind: string; label: string; x: number; y: number; w: number; h: number; group?: string }
-type SceneRelationInput = { connector: string; from: string; to: string }
+type SceneRelationInput = { connector: string; from: string; to: string; verb?: string }
+type SceneDiagramInput = { id: string; kind: string; parts: string[]; hops: Array<{ from: string; to: string; verb: string }> }
+type SceneEntityInput = { id: string; label: string; type: string; states: string[] }
 
-const sceneInventory = (units: SceneUnitInput[], relations: SceneRelationInput[]) => {
+const sceneInventory = (units: SceneUnitInput[], relations: SceneRelationInput[], diagrams: SceneDiagramInput[] = [], entities: SceneEntityInput[] = []) => {
   const lines = units.map(unit =>
     `${unit.id} · ${unit.kind} · "${String(unit.label || '').slice(0, 70)}" · at ${Math.round(unit.x)},${Math.round(unit.y)} size ${Math.round(unit.w)}×${Math.round(unit.h)}${unit.group ? ` · in ${unit.group}` : ''}`,
   )
-  const arrows = relations.map(relation => `${relation.connector}: ${relation.from} → ${relation.to}`)
-  return `PARTS (id · kind · label · position; y grows downward):\n${lines.join('\n')}\n${arrows.length ? `\nARROWS (connector: from → to):\n${arrows.join('\n')}\n` : ''}`
+  const arrows = relations.map(relation => `${relation.connector}: ${relation.from} → ${relation.to}${relation.verb ? ` (${relation.verb})` : ''}`)
+  const shapes = diagrams.slice(0, 6).map(diagram => `${diagram.id}: a ${diagram.kind} of ${diagram.parts.length} — ${diagram.parts.slice(0, 10).join(' → ')}${diagram.hops.length ? `; the relations mean: ${[...new Set(diagram.hops.map(hop => hop.verb))].join(', ')}` : ''}`)
+  const typed = entities.slice(0, 12).map(entity => `${entity.id} "${String(entity.label).slice(0, 40)}" is a ${entity.type} (can be ${entity.states.join(' / ')})`)
+  return `PARTS (id · kind · label · position; y grows downward):\n${lines.join('\n')}\n${arrows.length ? `\nARROWS (connector: from → to (what the arrow means)):\n${arrows.join('\n')}\n` : ''}${shapes.length ? `\nDIAGRAMS (what the arrangement depicts; speak the process, not the geometry — say what waits for what, what splits, what merges):\n${shapes.join('\n')}\n` : ''}${typed.length ? `\nENTITIES (things with states; a state is worth naming when the story changes it):\n${typed.join('\n')}\n` : ''}`
 }
 
 const SCENE_CAPABILITIES = `WHAT THE MOTION ENGINE CAN DO WITH A PART (one window at a time):
@@ -1163,6 +1167,8 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
     position?: { index: number; count: number }
     units?: SceneUnitInput[]
     relations?: SceneRelationInput[]
+    diagrams?: SceneDiagramInput[]
+    entities?: SceneEntityInput[]
     // The director's length brief, read from the picture: how long, how
     // many windows, what to walk in what order, what to name in passing.
     brief?: {
@@ -1178,6 +1184,8 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
   if (!units.length) throw new Error('The page has no parts to write about')
   if (!(await hasModelAccess())) throw new Error('Writing with the page needs an AI provider — open Models in the top bar')
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
+  const diagrams = Array.isArray(body.diagrams) ? body.diagrams.slice(0, 12) : []
+  const entities = Array.isArray(body.entities) ? body.entities.slice(0, 40) : []
   const granularity = body.granularity === 'paragraph' || body.granularity === 'clause' ? body.granularity : 'sentence'
   const wpm = Math.max(90, Math.min(200, Number(body.wpm) || 150))
   const brief = body.brief && Number.isFinite(Number(body.brief.seconds)) && Array.isArray(body.brief.outline) ? body.brief : null
@@ -1202,7 +1210,7 @@ Every walked part is named in some window (a window may carry two to four parts 
   const position = body.position && Number.isFinite(body.position.index) ? `scene ${body.position.index + 1} of ${body.position.count}${body.position.index + 1 >= (body.position.count || 0) ? ' — the last scene, so it closes the video instead of handing over' : ''}` : ''
   const prompt = `You write the spoken dialogue for one scene of a narrated technical video, and you can see the page the presenter is explaining. Title: "${String(body.title || 'Scene').slice(0, 120)}"${position ? ` (${position}` : ''}${body.role ? `${position ? ', ' : ' ('}role in the story: ${String(body.role).slice(0, 40)})` : position ? ')' : ''}.
 
-${sceneInventory(units, relations)}
+${sceneInventory(units, relations, diagrams, entities)}
 ${SCENE_CAPABILITIES}
 
 ${notes ? `SOURCE NOTES (what this scene must convey):\n${notes}\n` : ''}${existing ? `CURRENT DIALOGUE (rewrite it; keep what works):\n${existing}\n` : ''}${instruction ? `INSTRUCTION FROM THE AUTHOR: ${instruction}\n` : ''}

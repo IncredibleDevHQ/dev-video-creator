@@ -19,6 +19,13 @@ export type SlideUnit = {
   // Connectors only: where the stroke starts and where its head lands.
   from?: { x: number; y: number }
   to?: { x: number; y: number }
+  // What the page declared, when it did (the contract): a role on a group, a
+  // kind on a node, and for connectors the ids they join and the verb
+  // between them. Declared facts are believed before geometry is.
+  role?: string
+  declaredKind?: string
+  verb?: string
+  declared?: { from?: string; to?: string }
 }
 
 export type AtomizedSlide = {
@@ -144,6 +151,15 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
         ensureId(child, counter)
         while (used.has(`u${counter.next}`)) counter.next += 1
         const box = bboxOf(child as SVGGraphicsElement)
+        const role = child.getAttribute('data-role') || child.getAttribute('data-pptx-role') || undefined
+        const declaredKind = child.getAttribute('data-kind') || undefined
+        // A declared node is one part: its box carries the group's label and
+        // its declared kind, so a connector can point at the group's id.
+        const only = children.length === 1 && children[0].kind !== 'group' ? children[0] : null
+        if (role === 'node' && only) {
+          units.push({ ...only, id: child.id, ids: [child.id, ...only.ids], role, declaredKind, bbox: box })
+          return
+        }
         units.push({
           id: child.id,
           ids: children.flatMap(unit => unit.ids),
@@ -152,6 +168,7 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
           bbox: box,
           chrome,
           children,
+          ...(role ? { role } : {}),
         })
         return
       }
@@ -206,6 +223,9 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
       }
       if (isStroke(element, view)) {
         const ends = pathEndpoints(element)
+        const verb = element.getAttribute('data-verb') || undefined
+        const declaredFrom = element.getAttribute('data-from') || undefined
+        const declaredTo = element.getAttribute('data-to') || undefined
         units.push({
           id: element.id,
           ids: [element.id],
@@ -216,6 +236,8 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
           children: [],
           from: ends?.from,
           to: ends?.to,
+          ...(verb ? { verb } : {}),
+          ...(declaredFrom || declaredTo ? { declared: { ...(declaredFrom ? { from: declaredFrom } : {}), ...(declaredTo ? { to: declaredTo } : {}) } } : {}),
         })
         return
       }
@@ -372,13 +394,51 @@ export const inferEdges = (units: SlideUnit[]): SlideEdge[] => {
     })
     return best as SlideUnit | null
   }
+  // Declared endpoints resolve by id, through a group to its one part.
+  const all = flattenUnits(units)
+  const byId = new Map(all.map(unit => [unit.id, unit]))
+  const declaredNode = (id?: string) => {
+    if (!id) return null
+    const unit = byId.get(id)
+    if (!unit) return null
+    if (unit.kind !== 'group') return unit
+    const inside = leafUnits([unit]).find(child => child.kind === 'box' || child.kind === 'shape')
+    return inside || null
+  }
   return leaves
     .filter(unit => unit.kind === 'connector')
     .map(connector => {
-      const target = connector.to ? nodeAt(connector.to) : null
-      const source = connector.from ? nodeAt(connector.from, target) : null
+      const declaredTarget = declaredNode(connector.declared?.to)
+      const declaredSource = declaredNode(connector.declared?.from)
+      const target = declaredTarget || (connector.to ? nodeAt(connector.to) : null)
+      const source = declaredSource || (connector.from ? nodeAt(connector.from, target) : null)
       return { connector, source, target }
     })
+}
+
+// ——— The contract, scored: what a page declared and what had to be inferred ———
+export type ContractReport = {
+  groups: number
+  namedGroups: number
+  roles: number
+  connectors: number
+  declaredEndpoints: number
+  verbs: number
+  pageRole: boolean
+  // 0..1: the share of facts the page stated rather than the atomiser guessed
+  declared: number
+}
+
+export const contractReport = (units: SlideUnit[], pageRole: string): ContractReport => {
+  const all = flattenUnits(units)
+  const groups = all.filter(unit => unit.kind === 'group')
+  const namedGroups = groups.filter(unit => !/^u\d+$/.test(unit.id))
+  const roles = all.filter(unit => unit.role).length
+  const connectors = all.filter(unit => unit.kind === 'connector' && !unit.chrome)
+  const declaredEndpoints = connectors.filter(unit => unit.declared?.from && unit.declared?.to).length
+  const verbs = connectors.filter(unit => unit.verb).length
+  const facts = [namedGroups.length / Math.max(1, groups.length), connectors.length ? declaredEndpoints / connectors.length : 1, connectors.length ? verbs / connectors.length : 1, pageRole ? 1 : 0]
+  return { groups: groups.length, namedGroups: namedGroups.length, roles, connectors: connectors.length, declaredEndpoints, verbs, pageRole: Boolean(pageRole), declared: Math.round((facts.reduce((a, b) => a + b, 0) / facts.length) * 100) / 100 }
 }
 
 export const orderByArrows = (units: SlideUnit[]): OrderedStepDraft[] => {
