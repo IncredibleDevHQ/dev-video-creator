@@ -10,6 +10,7 @@ NS = '{http://www.w3.org/2000/svg}'
 VERBS = {'sends to', 'waits for', 'calls', 'reads', 'writes', 'returns', 'splits into', 'merges into', 'depends on', 'becomes', 'contains', 'compares with', 'feeds', 'triggers'}
 ROLES = {'title', 'list', 'diagram', 'numbers', 'quote', 'close'}
 ENTITIES = {'server', 'database', 'cache', 'queue', 'client', 'service'}
+ANIMS = {'blink', 'pulse', 'flow', 'fill', 'spin', 'wave'}
 
 def local(tag):
     return tag.split('}', 1)[1] if '}' in tag else tag
@@ -83,6 +84,12 @@ def check(path):
                     problems.append(f'entity node {n.get("id")!r} artwork has {len(drawn)} shape(s) — draw the thing, two to eight shapes')
                 if not art[0].get('id'):
                     problems.append(f'entity node {n.get("id")!r} artwork has no id')
+                moving = [c for c in art[0].iter() if c.get('data-anim')]
+                bad = [c.get('data-anim') for c in moving if c.get('data-anim') not in ANIMS]
+                if not moving:
+                    problems.append(f'entity node {n.get("id")!r} artwork has no moving part — mark two or three with data-anim ({", ".join(sorted(ANIMS))})')
+                if bad:
+                    problems.append(f'entity node {n.get("id")!r} artwork has data-anim {bad[:2]} — use one of {sorted(ANIMS)}')
     # Text must fit the shape it sits in: a label wider than its node reads
     # as a drawing mistake in every frame it appears. Width is estimated at
     # 0.52 em per character (0.62 for bold), which is generous for the sans
@@ -169,6 +176,12 @@ def main():
     if not files:
         report['ok'] = False
         report['error'] = f'no .svg files in {folder}'
+    # The spec and the lock are authored before the pages; without them the
+    # pages were invented independently.
+    for name, why in (('design_spec.md', 'author it from the vendored design_spec_reference before drawing'), ('spec_lock.md', 'fill the vendored scaffold from the spec')):
+        if not os.path.exists(os.path.join(folder, name)):
+            report['ok'] = False
+            report.setdefault('missing', []).append(f'{name} — {why}')
     print(json.dumps(report, indent=2))
     sys.exit(0 if report['ok'] else 1)
 

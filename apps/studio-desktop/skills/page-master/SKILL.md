@@ -21,13 +21,15 @@ A routed page workflow. This entry owns execution discipline and route selection
 1. Read this file. Retain the host-provided absolute directory of this file as `SKILL_DIR`; expand it in every command; never `cd`.
 2. Read `${SKILL_DIR}/workflows/draw-pages.md` — the only route for now.
 3. Read `${SKILL_DIR}/references/page-contract.md` before drawing anything.
-4. For the relationship → topology decision of each diagram page, read `${SKILL_DIR}/vendor/ppt-master/references/executor-structure.md` §1–§3 once and reuse it. Do not load the rest of the vendored skill unless the route names a file.
+4. The route runs ppt-master's own pipeline (communication contract → design spec → spec lock → executor → checker cadence → review) and names the vendored manuals to read at each stage. Read them when the route says so, and nothing else from the vendored skill.
 
 | Route | Runtime authority |
 |---|---|
 | Draw Pages | `workflows/draw-pages.md` |
 
 **Hard rule — the contract is the output.** A page that fails `scripts/check_pages.py` is not done. Fix it, run the check again.
+
+**Hard rule — the spec governs.** Pages are drawn against `pages/design_spec.md` and `pages/spec_lock.md`, authored before the first page. Nine pages invented independently look like nine decks.
 
 **Hard rule — no questions in the first round.** The inputs carry everything a first draft needs. Decide, draw, check, write the receipt, stop.
 

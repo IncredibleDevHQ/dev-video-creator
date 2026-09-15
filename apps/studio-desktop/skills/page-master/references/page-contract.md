@@ -65,7 +65,22 @@ Rules for the artwork:
 - Real drawing, not a letter in a circle: a server is a stack of racks with status lights, a database a cylinder, a cache a lightning bolt in a chip, a queue a row of slots with an arrow, a client a person at a screen, a service a hexagon with a gear or a valve. Two to eight shapes each, stroke 2–2.5 at the node's scale, the page's accent for the strokes and the accent at 12–18 % for any fill.
 - No `<image>`, no external reference: the artwork is part of the page.
 
-The studio reveals the artwork with the thing it dresses, never counts it as ink of its own, and animates the thing by its `data-entity` — a server blinks, a store pulses, a queue moves items through, a client radiates, faster the busier the narration says it is.
+### Make the thing live
+
+The studio animates the parts you name. Mark the pieces of your artwork that should move with `data-anim`, and the thing lives on the page — no external animation file, no video: the drawing you made moves.
+
+| `data-anim` | What the studio does | Use it for |
+|---|---|---|
+| `blink` | fades the part in and out in sequence with its siblings | status lights on a rack, LEDs, indicators |
+| `pulse` | breathes the part's scale and brightness from its own centre | a core, a heart, a processor, a disc |
+| `flow` | slides the part along its own width, looping, fading in and out at the ends | tokens in a bucket, items in a queue, packets in a pipe |
+| `fill` | grows the part from zero to the level the narration implies | a meter, a gauge, a bucket's contents, a load bar |
+| `spin` | turns the part about its own centre | a gear, a dial, a fan, a cog |
+| `wave` | ripples the part outward and fades it | a signal, a broadcast, a radiating client |
+
+Add `data-anim-order="0|1|2…"` to stagger siblings, and `data-anim-rate="slow|fast"` when a part should be calmer or busier than its neighbours. Every marked part must be a real drawn element inside the artwork group. Two or three moving parts per thing is right; ten is noise.
+
+The studio reveals the artwork with the thing it dresses, never counts it as ink of its own, runs the marked parts whenever the narration is about that thing, and keeps them running quietly afterwards — faster the busier the state the line implies (idle, running, loaded, failing …). A thing with no marked parts still gets the studio's generic accents, which is the poorer look.
 
 **Fill the shape.** Every node's shape carries a real fill (the accent at 8–12 % over the ground), never `fill="none"`.
 

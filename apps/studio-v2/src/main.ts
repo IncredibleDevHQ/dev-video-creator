@@ -13432,7 +13432,7 @@ const renderSourcePagesGrid = (pages: SourcePage[]) => {
 // video. Other CLIs stay detected for the motion assist; they are not
 // offered here.
 const SOURCE_DRAWERS: Array<{ id: string; model: string; label: string }> = [
-  { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 (thinking)' },
+  { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 · thinking high' },
 ]
 let sourceDrawRunId: string | null = null
 let sourceDrawListening = false
@@ -13524,6 +13524,8 @@ const sourceDrawPages = async (choice?: string) => {
     pageCount: outline.scenes.length,
     contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
     ...(model ? { model } : {}),
+    // K3 always thinks; a drawing run asks it to think hard.
+    effort: 'high',
     autonomous: true,
   }
   if (!sourceDrawListening) {

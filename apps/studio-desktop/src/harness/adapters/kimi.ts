@@ -5,7 +5,7 @@
 // Claude-compatible .mcp.json in the working directory, so each run writes
 // one pointing at the studio stdio bridge. Resume uses `kimi -r <sessionId>`
 // (the resume hint the CLI itself prints).
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type {
@@ -14,8 +14,31 @@ import type {
   HarnessEvent,
   HarnessRun,
 } from '../types'
+import { homedir } from 'node:os'
 import { probeVersion, spawnJsonLines } from './util'
 import { resolveSkillDir } from '../skills-install'
+
+// Kimi reads its settings from KIMI_CODE_HOME. A drawing run wants the
+// model thinking hard, but the effort lives in the user's own config and
+// their interactive sessions are theirs — so a run gets a home of its own:
+// everything symlinked through to the real one, with a copy of the config
+// whose thinking effort is raised. Their global setting is untouched.
+const homeWithEffort = async (projectDir: string, effort: string) => {
+  const real = process.env.KIMI_CODE_HOME || join(homedir(), '.kimi-code')
+  const config = await readFile(join(real, 'config.toml'), 'utf8')
+  const raised = /\[thinking\][^[]*?effort\s*=\s*"[a-z]+"/s.test(config)
+    ? config.replace(/(\[thinking\][^[]*?effort\s*=\s*")[a-z]+(")/s, `$1${effort}$2`)
+    : `${config}\n[thinking]\nenabled = true\neffort = "${effort}"\n`
+  const home = join(projectDir, 'motion', 'kimi-home')
+  await rm(home, { recursive: true, force: true })
+  await mkdir(home, { recursive: true })
+  for (const entry of await readdir(real)) {
+    if (entry === 'config.toml') continue
+    await symlink(join(real, entry), join(home, entry)).catch(() => {})
+  }
+  await writeFile(join(home, 'config.toml'), raised)
+  return home
+}
 
 const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
   const path = join(run.projectDir, '.mcp.json')
@@ -101,13 +124,18 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
     // combined with it.
     if (typeof run.inputs.model === 'string' && run.inputs.model) args.push('-m', run.inputs.model)
     if (run.resumeId) args.push('-r', run.resumeId)
+    const effort = typeof run.inputs.effort === 'string' ? run.inputs.effort : ''
+    const home = effort ? await homeWithEffort(run.projectDir, effort).catch(error => {
+      onEvent({ type: 'text', ts: Date.now(), text: `thinking effort left as configured (${error instanceof Error ? error.message : error})` })
+      return ''
+    }) : ''
     const state: { resumeId?: string } = {}
     let stderrTail = ''
     const { exitCode } = await spawnJsonLines({
       command: 'kimi',
       args,
       cwd: run.projectDir,
-      env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill) },
+      env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill), ...(home ? { KIMI_CODE_HOME: home } : {}) },
       onLine: line => emitLine(line, onEvent, state),
       onStderr: text => {
         stderrTail = (stderrTail + text).slice(-1_200)
