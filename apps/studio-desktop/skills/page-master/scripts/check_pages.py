@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 NS = '{http://www.w3.org/2000/svg}'
 VERBS = {'sends to', 'waits for', 'calls', 'reads', 'writes', 'returns', 'splits into', 'merges into', 'depends on', 'becomes', 'contains', 'compares with', 'feeds', 'triggers'}
 ROLES = {'title', 'list', 'diagram', 'numbers', 'quote', 'close'}
+ENTITIES = {'server', 'database', 'cache', 'queue', 'client', 'service'}
 
 def local(tag):
     return tag.split('}', 1)[1] if '}' in tag else tag
@@ -56,6 +57,32 @@ def check(path):
             problems.append(f'node {n.get("id")!r} has no <text>')
         if n.get('data-kind') not in {'box', 'label', 'number', 'quote', 'row'}:
             problems.append(f'node {n.get("id")!r} has data-kind {n.get("data-kind")!r}')
+        entity = n.get('data-entity')
+        if entity and entity not in ENTITIES:
+            problems.append(f'node {n.get("id")!r} data-entity {entity!r} is not one of {sorted(ENTITIES)}')
+        shapes = [c for c in n.iter() if local(c.tag) in ('rect', 'ellipse', 'circle')]
+        if entity and shapes:
+            labels = [c for c in n.iter() if local(c.tag) == 'text']
+            anchored = any((t.get('text-anchor') or '') in ('middle', 'end') for t in labels)
+            try:
+                left = float(shapes[0].get('x') or 0)
+                first = min(float(t.get('x') or 0) for t in labels) if labels else left
+                if not anchored and first - left < 56:
+                    problems.append(f'entity node {n.get("id")!r} leaves {round(first - left)} px for its picture (needs about 64)')
+            except (TypeError, ValueError):
+                pass
+        if shapes and (shapes[0].get('fill') or '').strip().lower() in ('none', ''):
+            problems.append(f'node {n.get("id")!r} has no fill — give its shape the accent at 8 to 12 percent over the ground')
+        if entity:
+            art = [c for c in n.iter() if c.get('data-appearance-for')]
+            if not art:
+                problems.append(f'entity node {n.get("id")!r} has no artwork — draw the {entity} as a data-appearance-for group inside it')
+            else:
+                drawn = [c for c in art[0].iter() if local(c.tag) in ('path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline', 'line')]
+                if len(drawn) < 2:
+                    problems.append(f'entity node {n.get("id")!r} artwork has {len(drawn)} shape(s) — draw the thing, two to eight shapes')
+                if not art[0].get('id'):
+                    problems.append(f'entity node {n.get("id")!r} artwork has no id')
     # Text must fit the shape it sits in: a label wider than its node reads
     # as a drawing mistake in every frame it appears. Width is estimated at
     # 0.52 em per character (0.62 for bold), which is generous for the sans

@@ -576,7 +576,7 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       const distinctive = label.split(/\W+/).filter(word => word.length >= 5).sort((a, b) => b.length - a.length)[0]
       if (!label || !(said.includes(label) || (distinctive && said.includes(distinctive)))) return
       const state = stateNamed(said, entity.states)
-      if (state) actions.push(action('phase', [entity.id], cursor, { value: { program: 'entity', phase: state } }))
+      if (state) actions.push(action('phase', [entity.id], cursor, { value: { program: 'entity', phase: state, kind: entity.type } }))
     })
     spec.connects.forEach(([from, to]) => {
       const existing = edges.find(edge =>

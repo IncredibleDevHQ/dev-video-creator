@@ -31,6 +31,44 @@ On `title`, `close` and `quote` pages there is no separate content: the title, t
 
 `data-kind` is one of `box`, `label`, `number`, `quote`, `row`. A list row is a node with `data-kind="row"` holding its number badge, its label and its detail text. A number page's figure is a node with `data-kind="number"` whose digits are one `<text>` with a single `<tspan>`.
 
+### What the thing IS
+
+A node that stands for a kind of thing says so with `data-entity`:
+
+```xml
+<g id="s03-node-rate-limiter" data-role="node" data-kind="box" data-entity="service">
+```
+
+`data-entity` is one of `server`, `database`, `cache`, `queue`, `client`, `service`. Declare it whenever the node is one of those — a limiter, a shedder, an API or a handler is a `service`; Redis is a `cache`; a bucket of state is a `database`; a backlog is a `queue`; the caller is a `client`.
+
+The studio dresses a declared thing with its picture from the video's asset library (one picture per thing, reused on every page that names it) and gives it its own motion: a server blinks, a store pulses, a queue moves items through, a client radiates, and the busier its state in the narration the faster it runs.
+
+### Draw the thing
+
+You draw it. A node that declares `data-entity` carries its own artwork, drawn by you as vector in the page's palette, in a group that names the node it dresses:
+
+```xml
+<g id="s03-node-rate-limiter" data-role="node" data-kind="box" data-entity="service">
+  <rect id="s03-node-rate-limiter-box" x="480" y="300" width="300" height="104" rx="12"
+        fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+  <g id="s03-node-rate-limiter-art" data-appearance-for="s03-node-rate-limiter">
+    <!-- 44×44 of real drawing: a gate, a dial, a valve — whatever this thing is -->
+  </g>
+  <text x="556" y="345" font-size="24" fill="#e5edf5">Rate limiter</text>
+  <text x="556" y="375" font-size="18" fill="#8fa3bd">paces each user's requests</text>
+</g>
+```
+
+Rules for the artwork:
+
+- One `data-appearance-for` group per entity node, its own `id`, drawn inside the node's box with about 44 px a side, vertically centred at the node's left inset 16 px. The label and its detail then start at least 64 px from the node's left edge.
+- Real drawing, not a letter in a circle: a server is a stack of racks with status lights, a database a cylinder, a cache a lightning bolt in a chip, a queue a row of slots with an arrow, a client a person at a screen, a service a hexagon with a gear or a valve. Two to eight shapes each, stroke 2–2.5 at the node's scale, the page's accent for the strokes and the accent at 12–18 % for any fill.
+- No `<image>`, no external reference: the artwork is part of the page.
+
+The studio reveals the artwork with the thing it dresses, never counts it as ink of its own, and animates the thing by its `data-entity` — a server blinks, a store pulses, a queue moves items through, a client radiates, faster the busier the narration says it is.
+
+**Fill the shape.** Every node's shape carries a real fill (the accent at 8–12 % over the ground), never `fill="none"`.
+
 ## Connectors (the relations)
 
 ```xml

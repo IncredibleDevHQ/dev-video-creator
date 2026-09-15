@@ -24,6 +24,10 @@ export type SlideUnit = {
   // between them. Declared facts are believed before geometry is.
   role?: string
   declaredKind?: string
+  // What the page says this thing IS (server, database, queue, client,
+  // service, cache, worker, browser, cdn …): the appearance layer draws it
+  // and the driver gives it its own motion.
+  entityType?: string
   verb?: string
   declared?: { from?: string; to?: string }
 }
@@ -156,11 +160,12 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
         const box = bboxOf(child as SVGGraphicsElement)
         const role = child.getAttribute('data-role') || child.getAttribute('data-pptx-role') || undefined
         const declaredKind = child.getAttribute('data-kind') || undefined
+        const entityType = (child.getAttribute('data-entity') || '').trim().toLowerCase() || undefined
         // A declared node is one part: its box carries the group's label and
         // its declared kind, so a connector can point at the group's id.
         const only = children.length === 1 && children[0].kind !== 'group' ? children[0] : null
         if (role === 'node' && only) {
-          units.push({ ...only, id: child.id, ids: [child.id, ...only.ids], role, declaredKind, bbox: box })
+          units.push({ ...only, id: child.id, ids: [child.id, ...only.ids], role, declaredKind, ...(entityType ? { entityType } : {}), bbox: box })
           return
         }
         units.push({
@@ -172,6 +177,7 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
           chrome,
           children,
           ...(role ? { role } : {}),
+          ...(entityType ? { entityType } : {}),
         })
         return
       }
@@ -440,8 +446,11 @@ export const inferEdges = (units: SlideUnit[]): SlideEdge[] => {
 const attachAppearance = (root: Element, units: SlideUnit[]) => {
   const byId = new Map(flattenUnits(units).map(unit => [unit.id, unit]))
   Array.from(root.querySelectorAll('[data-appearance-for]')).forEach(element => {
-    const owner = byId.get(element.getAttribute('data-appearance-for') || '')
-    if (!owner || !element.id) return
+    const named = byId.get(element.getAttribute('data-appearance-for') || '')
+    if (!named || !element.id) return
+    // A page may name the node's group; the artwork belongs to the thing
+    // inside it, so it reveals and moves with the thing itself.
+    const owner = named.kind === 'group' ? leafUnits([named]).find(leaf => leaf.kind === 'box' || leaf.kind === 'shape') || named : named
     if (!owner.ids.includes(element.id)) owner.ids.push(element.id)
   })
 }

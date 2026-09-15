@@ -10565,25 +10565,109 @@ scriptInput.addEventListener('input', () => {
 // it and never counts as ink. Removing an asset strips it from every page.
 const projectAssets = () => (project.assets ||= [])
 const entityTypeOf = (state: SlideEditorState, unit: SlideUnit) =>
+  unit.entityType ||
   state.model.entities.find(entity => entity.id === unit.id)?.type ||
   Object.entries(ENTITY_TYPES).find(([, def]) => def.match.test(unit.label))?.[0] ||
   'thing'
-const appearanceId = (unit: SlideUnit) => `${unit.id}-art`
-const hasAppearance = (state: SlideEditorState, unit: SlideUnit) => state.svg.includes(`data-appearance-for="${unit.id}"`)
-// Where the picture sits inside the box: beside the words on a wide box,
-// above them on a tall one, with a little air all round.
-const appearanceFrame = (unit: SlideUnit) => {
-  const { x, y, width, height } = unit.bbox
-  const pad = Math.min(width, height) * 0.1
-  if (width > height * 1.8) {
-    const size = height - pad * 2
-    return { x: x + pad, y: y + pad, width: size, height: size }
-  }
-  const size = Math.min(width - pad * 2, height * 0.55)
-  return { x: x + (width - size) / 2, y: y + pad, width: size, height: size }
+// One asset per thing, reused wherever that thing appears. A glyph is
+// instant and needs no provider; an illustration from the image model is
+// the upgrade the author asks for from the frame.
+const resolveEntityAsset = async (label: string, type: string, nodeId: string, prefer: 'glyph' | 'image', accent?: string) => {
+  const key = entityKey(label, type)
+  const palette = { accent: accent || project.brand.accent, background: project.brand.background }
+  const existing = projectAssets().find(asset => asset.entityKey === key && asset.kind !== 'logo')
+  if (existing && existing.palette.accent === palette.accent && (prefer === 'glyph' || existing.kind === 'image')) return existing
+  const answer = await fetchJson<{ kind: 'image' | 'glyph'; url: string; model?: string; prompt: string; width: number; height: number; palette: { accent: string; background: string } }>('/api/assets/illustrate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ projectId: project.id, nodeId, label, type, palette, prefer }),
+  })
+  const record: AssetRecordV1 = { id: crypto.randomUUID(), kind: answer.kind, entityKey: key, label, type, url: answer.url, palette: answer.palette, prompt: answer.prompt, ...(answer.model ? { model: answer.model } : {}), width: answer.width, height: answer.height, createdAt: new Date().toISOString(), scenes: [] }
+  const assets = projectAssets()
+  const at = existing ? assets.indexOf(existing) : -1
+  if (at >= 0) assets[at] = record
+  else assets.push(record)
+  return record
 }
-const appearanceElement = (doc: Document, unit: SlideUnit, record: AssetRecordV1) => {
-  const frame = appearanceFrame(unit)
+// Dresses every typed thing on a page: the page model says what each thing
+// is, the library says what it looks like, and the picture is bound to the
+// thing's own box. The author asks for this from the library; a page drawn
+// by the harness brings its own artwork and needs none of it.
+const illustrateSceneEntities = async (nodeId: string, prefer: 'glyph' | 'image' = 'glyph') => {
+  const found = findSlideLikeNode(nodeId)
+  if (!found) return 0
+  const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
+  if (!atomized.units.length) return 0
+  const model = pageModelFor(atomized.units)
+  if (!model.entities.length) return 0
+  const leaves = leafUnits(atomized.units)
+  const parsed = new DOMParser().parseFromString(atomized.svg, 'image/svg+xml')
+  const accent = pageAccent(atomized.svg)
+  let dressed = 0
+  for (const entity of model.entities) {
+    const unit = leaves.find(leaf => leaf.id === entity.id)
+    if (!unit || parsed.getElementById(appearanceId(unit))) continue
+    try {
+      const record = await resolveEntityAsset(entity.label, entity.type, nodeId, prefer, accent)
+      if (!placeAppearance(parsed, unit, record)) continue
+      if (!record.scenes.includes(nodeId)) record.scenes.push(nodeId)
+      dressed += 1
+    } catch (error) {
+      console.warn('entity not illustrated', entity.label, error instanceof Error ? error.message : error)
+    }
+  }
+  if (!dressed) return 0
+  writeSlideLikeNode(nodeId, { svg: new XMLSerializer().serializeToString(parsed.documentElement) })
+  return dressed
+}
+const appearanceId = (unit: SlideUnit) => `${unit.id}-art`
+// The accent the page itself draws with (its connectors, then its node
+// strokes): a picture in the studio theme's colour would not belong to the
+// page it dresses.
+const pageAccent = (svg: string) => {
+  const connector = /data-role="connector"[^>]*stroke="(#[0-9a-f]{3,8})"/i.exec(svg) || /stroke="(#[0-9a-f]{3,8})"[^>]*data-role="connector"/i.exec(svg)
+  if (connector) return connector[1]
+  const marker = /<marker[^>]*>[\s\S]{0,200}?fill="(#[0-9a-f]{3,8})"/i.exec(svg)
+  if (marker) return marker[1]
+  const node = /data-role="node"[\s\S]{0,300}?stroke="(#[0-9a-f]{3,8})"/i.exec(svg)
+  return node ? node[1] : project.brand.accent
+}
+const hasAppearance = (state: SlideEditorState, unit: SlideUnit) => state.svg.includes(`data-appearance-for="${unit.id}"`)
+// Where the picture sits: a badge in the corner of the thing's box that
+// has no words in it. A page drawn to the contract leaves room at the
+// left; a page that did not gets the badge in whatever corner is free, and
+// on the border itself when the words fill the box.
+const appearanceFrame = (unit: SlideUnit, owner: Element | null) => {
+  const { x, y, width, height } = unit.bbox
+  const size = Math.max(22, Math.min(height * 0.62, width * 0.3, 52))
+  const pad = Math.min(10, size * 0.28)
+  const texts = owner ? Array.from(owner.querySelectorAll('text')) : []
+  // Where the words are, roughly: their anchor point and their run.
+  const spans = texts.map(text => {
+    const anchor = text.getAttribute('text-anchor') || 'start'
+    const fontSize = Number((text.getAttribute('font-size') || '22').replace(/[^0-9.]/g, '')) || 22
+    const run = (text.textContent || '').trim().length * fontSize * 0.54
+    const at = Number(text.getAttribute('x') || x)
+    const top = Number(text.getAttribute('y') || y) - fontSize
+    const left = anchor === 'middle' ? at - run / 2 : anchor === 'end' ? at - run : at
+    return { left, right: left + run, top, bottom: top + fontSize * 1.35 }
+  })
+  const free = (box: { x: number; y: number; width: number; height: number }) =>
+    !spans.some(span => span.left < box.x + box.width && span.right > box.x && span.top < box.y + box.height && span.bottom > box.y)
+  const corners = [
+    { x: x + pad, y: y + (height - size) / 2 },
+    { x: x + pad, y: y + pad },
+    { x: x + width - size - pad, y: y + pad },
+    { x: x + width - size - pad, y: y + height - size - pad },
+    { x: x + pad, y: y + height - size - pad },
+  ]
+  const fits = corners.find(corner => free({ ...corner, width: size, height: size }))
+  // Nothing free inside: the badge straddles the top-left corner instead.
+  const place = fits || { x: x - size * 0.34, y: y - size * 0.34 }
+  return { ...place, width: size, height: size }
+}
+const appearanceElement = (doc: Document, unit: SlideUnit, record: AssetRecordV1, owner: Element | null) => {
+  const frame = appearanceFrame(unit, owner)
   const image = doc.createElementNS('http://www.w3.org/2000/svg', 'image')
   image.setAttribute('id', appearanceId(unit))
   image.setAttribute('data-appearance-for', unit.id)
@@ -10601,7 +10685,7 @@ const placeAppearance = (doc: Document, unit: SlideUnit, record: AssetRecordV1) 
   const owner = doc.getElementById(unit.id)
   if (!owner) return false
   doc.getElementById(appearanceId(unit))?.remove()
-  const image = appearanceElement(doc, unit, record)
+  const image = appearanceElement(doc, unit, record, owner)
   // Inside a group, after its first shape (the words come later and stay on
   // top); beside a lone shape, right after it.
   if (owner.tagName.toLowerCase() === 'g') {
@@ -10623,22 +10707,15 @@ const illustrateUnit = async (unit: SlideUnit) => {
   const state = slideEditor
   if (!state) return null
   const type = entityTypeOf(state, unit)
-  const key = entityKey(unit.label, type)
-  let record = projectAssets().find(asset => asset.entityKey === key && asset.kind !== 'logo')
-  if (!record) {
-    setSlideEditorStatus(`Illustrating ${unit.label}…`, '')
-    try {
-      const answer = await fetchJson<{ kind: 'image' | 'glyph'; url: string; model?: string; prompt: string; width: number; height: number; palette: { accent: string; background: string } }>('/api/assets/illustrate', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectId: project.id, nodeId: state.nodeId, label: unit.label, type, palette: { accent: project.brand.accent, background: project.brand.background } }),
-      })
-      record = { id: crypto.randomUUID(), kind: answer.kind, entityKey: key, label: unit.label, type, url: answer.url, palette: answer.palette, prompt: answer.prompt, ...(answer.model ? { model: answer.model } : {}), width: answer.width, height: answer.height, createdAt: new Date().toISOString(), scenes: [] }
-      projectAssets().push(record)
-    } catch (error) {
-      setSlideEditorStatus(error instanceof Error ? error.message : 'Could not illustrate this', 'error')
-      return null
-    }
+  let record: AssetRecordV1 | null = null
+  setSlideEditorStatus(`Illustrating ${unit.label}…`, '')
+  try {
+    // From the frame the author wants the real thing: an illustration from
+    // the image model, replacing a glyph the arrival step may have placed.
+    record = await resolveEntityAsset(unit.label, type, state.nodeId, 'image', pageAccent(state.svg))
+  } catch (error) {
+    setSlideEditorStatus(error instanceof Error ? error.message : 'Could not illustrate this', 'error')
+    return null
   }
   const placed = rewritePageSvg(state, doc => placeAppearance(doc, unit, record!))
   if (!placed) {
@@ -13351,10 +13428,11 @@ const renderSourcePagesGrid = (pages: SourcePage[]) => {
 // can redraw them through the page-master skill: the outline, the palette
 // and the fonts go in as inputs, the harness composes pages/NN_slug.svg to
 // the page contract, and the drawn pages replace the template ones here.
+// Pages are drawn by Kimi and only by Kimi: one harness, one look across a
+// video. Other CLIs stay detected for the motion assist; they are not
+// offered here.
 const SOURCE_DRAWERS: Array<{ id: string; model: string; label: string }> = [
   { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 (thinking)' },
-  { id: 'claude-code', model: '', label: 'Claude Code' },
-  { id: 'codex', model: '', label: 'Codex' },
 ]
 let sourceDrawRunId: string | null = null
 let sourceDrawListening = false
@@ -13374,6 +13452,7 @@ const populateSourceDrawers = async () => {
     adapters = []
   }
   const online = SOURCE_DRAWERS.filter(drawer => adapters.some(adapter => adapter.id === drawer.id && adapter.ok))
+  const others = adapters.filter(adapter => adapter.ok && !SOURCE_DRAWERS.some(drawer => drawer.id === adapter.id)).length
   const keep = select.value
   select.replaceChildren(
     ...[{ value: 'template', label: "the studio's template (instant)" }, ...online.map(drawer => ({ value: `${drawer.id}|${drawer.model}`, label: `${drawer.label}${drawer.model ? ` · ${drawer.model}` : ''} · through the harness` }))].map(option => {
@@ -13384,7 +13463,9 @@ const populateSourceDrawers = async () => {
     }),
   )
   if ([...select.options].some(option => option.value === keep)) select.value = keep
-  row.hidden = online.length === 0
+  if (online.length) select.value = [...select.options].map(option => option.value).find(value => value.startsWith('kimi|')) || select.value
+  sourceDrawStatus(online.length ? `Kimi draws the pages${others ? ` · ${others} other ${others === 1 ? 'CLI is' : 'CLIs are'} installed and left for motion` : ''}` : 'Install the Kimi CLI to have an agent draw the pages')
+  row.hidden = false
 }
 const applyDrawnPages = async (runId: string) => {
   const bridge = window.studioDesktop
@@ -13784,6 +13865,7 @@ const sourceReadFile = async (file: File) => {
 ;(window as unknown as { __assets?: unknown }).__assets = {
   list: () => projectAssets(),
   illustrate: (unitId: string) => (slideEditor ? illustrateUnit(unitOf(slideEditor, unitId) as SlideUnit) : Promise.resolve(null)),
+  dressScene: (nodeId: string, prefer: 'glyph' | 'image' = 'glyph') => illustrateSceneEntities(nodeId, prefer),
   remove: removeAsset,
   open: openAssetLibrary,
 }

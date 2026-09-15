@@ -12,11 +12,12 @@ export const RELATION_VERBS = ['sends to', 'waits for', 'calls', 'reads', 'write
 export type RelationVerb = (typeof RELATION_VERBS)[number]
 
 export const ENTITY_TYPES: Record<string, { match: RegExp; states: string[] }> = {
-  server: { match: /\b(server|host|node|instance|machine|proxy|gateway|worker|pod|container)\b/i, states: ['idle', 'running', 'loaded', 'failing'] },
-  database: { match: /\b(database|db|store|storage|table|index|cache|redis|postgres|bucket)\b/i, states: ['idle', 'reading', 'writing', 'full'] },
-  queue: { match: /\b(queue|topic|stream|buffer|log|channel|pipe)\b/i, states: ['empty', 'flowing', 'backed up'] },
-  client: { match: /\b(client|user|browser|app|caller|request|customer|device)\b/i, states: ['waiting', 'sending', 'served'] },
-  service: { match: /\b(service|api|endpoint|function|handler|controller|limiter|filter|middleware)\b/i, states: ['idle', 'busy', 'rejecting'] },
+  server: { match: /\b(server|host|instance|machine|pod|container|fleet|worker)\b/i, states: ['idle', 'running', 'loaded', 'failing'] },
+  database: { match: /\b(database|db|store|storage|table|index|postgres|bucket)\b/i, states: ['idle', 'reading', 'writing', 'full'] },
+  cache: { match: /\b(cache|redis|memcache|in-memory)\b/i, states: ['idle', 'reading', 'writing', 'full'] },
+  queue: { match: /\b(queue|topic|stream|buffer|backlog|channel|pipe)\b/i, states: ['empty', 'flowing', 'backed up'] },
+  client: { match: /\b(client|user|browser|app|caller|customer|device)\b/i, states: ['waiting', 'sending', 'served'] },
+  service: { match: /\b(service|api|endpoint|handler|controller|limiter|shedder|filter|middleware|proxy|gateway)\b/i, states: ['idle', 'busy', 'rejecting'] },
 }
 
 export type PageDiagram = { id: string; kind: DiagramKind; parts: string[]; hops: Array<{ connector: string; from: string; to: string; verb: RelationVerb }>; bbox: SlideUnit['bbox'] }
@@ -141,6 +142,9 @@ export const pageModelFor = (units: SlideUnit[]): PageModel => {
   const entities: PageEntity[] = leafUnits(units)
     .filter(unit => (unit.kind === 'box' || unit.kind === 'shape') && !unit.chrome)
     .map(unit => {
+      // A page that declares what a thing is beats a guess from its words.
+      const declared = unit.entityType && ENTITY_TYPES[unit.entityType] ? unit.entityType : ''
+      if (declared) return { id: unit.id, label: unit.label, type: declared, states: ENTITY_TYPES[declared].states }
       const found = Object.entries(ENTITY_TYPES).find(([, def]) => def.match.test(unit.label))
       return found ? { id: unit.id, label: unit.label, type: found[0], states: found[1].states } : null
     })
