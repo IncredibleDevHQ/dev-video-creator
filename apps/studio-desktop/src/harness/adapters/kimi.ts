@@ -96,16 +96,26 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
       '--skills-dir',
       skillsRoot,
     ]
+    // A model alias for this run (kimi-code/k3 thinks by default at max
+    // effort). Prompt mode is already non-interactive; --auto cannot be
+    // combined with it.
+    if (typeof run.inputs.model === 'string' && run.inputs.model) args.push('-m', run.inputs.model)
     if (run.resumeId) args.push('-r', run.resumeId)
     const state: { resumeId?: string } = {}
+    let stderrTail = ''
     const { exitCode } = await spawnJsonLines({
       command: 'kimi',
       args,
       cwd: run.projectDir,
       env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill) },
       onLine: line => emitLine(line, onEvent, state),
+      onStderr: text => {
+        stderrTail = (stderrTail + text).slice(-1_200)
+      },
       signal,
     })
+    // A CLI that refuses to start says why on stderr; the run shows it.
+    if (exitCode !== 0 && stderrTail.trim()) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400) })
     return { resumeId: state.resumeId, exitCode }
   },
 })

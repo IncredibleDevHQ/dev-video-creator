@@ -60,6 +60,8 @@ const bridge = {
       ipcRenderer.invoke('harness:answer', id, answers),
     installSkills: (projectDir: string): Promise<unknown> =>
       ipcRenderer.invoke('harness:install-skills', projectDir),
+    pages: (runId: string): Promise<{ pages: Array<{ name: string; svg: string }>; receipt: unknown | null }> =>
+      ipcRenderer.invoke('harness:pages', runId),
     artefacts: (runId: string): Promise<{
       resolved: unknown | null
       receipt: unknown | null

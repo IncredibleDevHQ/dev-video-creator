@@ -1,7 +1,7 @@
 // Renderer-facing IPC for the harness port (see preload.ts for the typed
 // surface). Events are broadcast to the main window as `harness:event`.
 import { ipcMain, BrowserWindow } from 'electron'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RunManager } from './run-manager'
 import type { HarnessAdapter } from './types'
@@ -60,6 +60,21 @@ export const registerHarnessIpc = (
   ipcMain.handle('harness:install-skills', (_event, projectDir: string) =>
     manager.installInto(projectDir),
   )
+
+  // The pages a page-master run drew: every pages/*.svg with its receipt.
+  ipcMain.handle('harness:pages', async (_event, runId: string) => {
+    const run = manager.list().find(candidate => candidate.id === runId)
+    if (!run) return { pages: [], receipt: null }
+    const pagesDir = join(run.projectDir, 'pages')
+    const names = await readdir(pagesDir).catch(() => [] as string[])
+    const pages: Array<{ name: string; svg: string }> = []
+    for (const name of names.filter(entry => entry.toLowerCase().endsWith('.svg')).sort()) {
+      const svg = await readFile(join(pagesDir, name), 'utf8').catch(() => '')
+      if (svg.trim()) pages.push({ name, svg })
+    }
+    const receipt = await readFile(join(pagesDir, 'receipt.json'), 'utf8').then(text => JSON.parse(text) as unknown).catch(() => null)
+    return { pages, receipt }
+  })
 
   // Read a finished run's artefacts from its projectDir (nulls for missing).
   ipcMain.handle('harness:artefacts', async (_event, runId: string) => {

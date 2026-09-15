@@ -12205,6 +12205,7 @@ slideEditorDialog.addEventListener('cancel', event => {
   model: () => (slideEditor ? slideEditor.model : null),
   contract: () => (slideEditor ? slideEditor.contract : null),
   replan: () => replan({ quiet: true }),
+  writeToBrief: (nodeId: string) => writeSceneToBrief(nodeId),
   ask: (instruction: string, scope: EditScope = 'line') => requestEdit(instruction, scope),
   pin: (index: number, family: string | null) => {
     const state = slideEditor
@@ -13024,7 +13025,7 @@ queueMicrotask(() => {
 // Phase 0 of the plan. Whatever comes in, three things come out and the rest
 // of the pipeline reads only those: a brand read off the source, an outline
 // with a runtime target, and pages that carry the contract.
-type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean } }
+type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean }; drawnBy?: string; drawnContract?: number }
 const sourceState: {
   kind: 'link' | 'narrative'
   source: SourceRead | null
@@ -13037,6 +13038,9 @@ const sourceState: {
   busy: boolean
   // The name of a PDF or deck read through the file door, as the title.
   fileTitle?: string
+  // The agent drawing the pages through the harness, and how it went.
+  drawer?: string
+  drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
 } = { kind: 'link', source: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
 const sourceDialog = $('#source-dialog') as HTMLDialogElement
 const sourceStatus = (id: string, text: string, error = false) => {
@@ -13048,6 +13052,7 @@ const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
   if (step === 'pages') {
     const row = document.getElementById('source-destination-row')
     if (row) row.hidden = !notebookHasScenes()
+    void populateSourceDrawers()
   }
   const order = ['read', 'brand', 'outline', 'pages']
   order.forEach(name => {
@@ -13315,6 +13320,165 @@ const renderSourceOutline = () => {
   sum()
 }
 
+const renderSourcePagesGrid = (pages: SourcePage[]) => {
+  const grid = $('#source-pages-grid') as HTMLElement
+  grid.replaceChildren(
+    ...pages.map((page, index) => {
+      const card = document.createElement('div')
+      card.className = 'source-page'
+      const thumb = document.createElement('div')
+      thumb.className = 'thumb'
+      thumb.innerHTML = page.svg
+      const label = document.createElement('div')
+      label.textContent = `${index + 1}. ${page.title}`
+      const meta = document.createElement('small')
+      meta.textContent = `${page.kind} · ${page.seconds} s · ${page.contract.groups} groups · ${page.contract.verbs} verbs`
+      card.append(thumb, label, meta)
+      if (page.drawnBy) {
+        const badge = document.createElement('span')
+        badge.className = 'drawn'
+        badge.textContent = `drawn by ${page.drawnBy}${typeof page.drawnContract === 'number' ? ` · ${Math.round(page.drawnContract * 100)}% declared` : ''}`
+        card.append(badge)
+      }
+      return card
+    }),
+  )
+}
+
+// ——— Pages drawn by a coding agent through the harness ———
+// The template pages are instant; a detected CLI (Kimi, Claude Code, Codex)
+// can redraw them through the page-master skill: the outline, the palette
+// and the fonts go in as inputs, the harness composes pages/NN_slug.svg to
+// the page contract, and the drawn pages replace the template ones here.
+const SOURCE_DRAWERS: Array<{ id: string; model: string; label: string }> = [
+  { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 (thinking)' },
+  { id: 'claude-code', model: '', label: 'Claude Code' },
+  { id: 'codex', model: '', label: 'Codex' },
+]
+let sourceDrawRunId: string | null = null
+let sourceDrawListening = false
+const sourceDrawStatus = (text: string, error = false) => sourceStatus('#source-draw-status', text, error)
+const populateSourceDrawers = async () => {
+  const row = document.getElementById('source-draw-row')
+  const select = document.getElementById('source-drawer') as HTMLSelectElement | null
+  if (!row || !select) return
+  if (!window.studioDesktop?.isDesktop) {
+    row.hidden = true
+    return
+  }
+  let adapters: Array<{ id: string; ok: boolean; version?: string }> = []
+  try {
+    adapters = await window.studioDesktop.harness.adapters()
+  } catch {
+    adapters = []
+  }
+  const online = SOURCE_DRAWERS.filter(drawer => adapters.some(adapter => adapter.id === drawer.id && adapter.ok))
+  const keep = select.value
+  select.replaceChildren(
+    ...[{ value: 'template', label: "the studio's template (instant)" }, ...online.map(drawer => ({ value: `${drawer.id}|${drawer.model}`, label: `${drawer.label}${drawer.model ? ` · ${drawer.model}` : ''} · through the harness` }))].map(option => {
+      const element = document.createElement('option')
+      element.value = option.value
+      element.textContent = option.label
+      return element
+    }),
+  )
+  if ([...select.options].some(option => option.value === keep)) select.value = keep
+  row.hidden = online.length === 0
+}
+const applyDrawnPages = async (runId: string) => {
+  const bridge = window.studioDesktop
+  const pages = sourceState.pages
+  if (!bridge?.isDesktop || !pages) return { drawn: 0, of: 0, failed: [] as string[] }
+  const result = await bridge.harness.pages(runId)
+  const drawerLabel = sourceState.drawer || 'the agent'
+  let drawn = 0
+  const failed: string[] = []
+  result.pages.forEach(entry => {
+    const match = /^(\d{2})/.exec(entry.name)
+    const index = match ? Number(match[1]) - 1 : -1
+    const page = pages[index]
+    if (!page) return
+    try {
+      const atomized = atomizeSlideSvg(entry.svg)
+      if (!atomized.units.length) throw new Error('no units')
+      const report = contractReport(atomized.units, atomized.pageRole)
+      const leaves = leafUnits(atomized.units)
+      page.svg = entry.svg
+      page.drawnBy = drawerLabel
+      page.drawnContract = report.declared
+      page.contract = { groups: report.groups, roles: report.roles, connectors: report.connectors, verbs: report.verbs, labels: leaves.filter(unit => unit.kind === 'label').length, declared: report.declared >= 0.9 }
+      drawn += 1
+    } catch (error) {
+      failed.push(entry.name)
+      console.warn('drawn page rejected', entry.name, error)
+    }
+  })
+  renderSourcePagesGrid(pages)
+  return { drawn, of: pages.length, failed, receipt: result.receipt }
+}
+const sourceDrawPages = async (choice?: string) => {
+  const bridge = window.studioDesktop
+  const source = sourceState.source
+  const outline = sourceState.outline
+  const pages = sourceState.pages
+  const select = document.getElementById('source-drawer') as HTMLSelectElement | null
+  const value = choice || select?.value || 'template'
+  if (!bridge?.isDesktop || !source || !outline || !pages) return null
+  if (value === 'template') {
+    sourceDrawStatus('These are the template pages — pick an agent to redraw them')
+    return null
+  }
+  if (sourceDrawRunId) {
+    sourceDrawStatus('A drawing run is already going')
+    return null
+  }
+  const [adapter, model] = value.split('|')
+  const drawer = SOURCE_DRAWERS.find(entry => entry.id === adapter)
+  sourceState.drawer = drawer ? drawer.label : adapter
+  const inputs = {
+    video: { title: outline.title, site: source.site },
+    brand: { palette: { ...source.palette, accent: sourceState.brandColor || source.palette.accent }, fonts: source.fonts, mode: 'dark' },
+    scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, parts: scene.parts, relations: scene.relations })),
+    pageCount: outline.scenes.length,
+    contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
+    ...(model ? { model } : {}),
+    autonomous: true,
+  }
+  if (!sourceDrawListening) {
+    sourceDrawListening = true
+    bridge.harness.onEvent(({ runId, event }) => {
+      if (runId !== sourceDrawRunId) return
+      if (event.type === 'text' && event.text) sourceDrawStatus(`${sourceState.drawer}: ${event.text.replace(/\s+/g, ' ').slice(0, 110)}`)
+      if (event.type === 'file' && event.file) sourceDrawStatus(`${sourceState.drawer} wrote ${event.file.split('/').pop()}`)
+      if (event.type === 'error') sourceDrawStatus(`${sourceState.drawer}: ${event.error}`, true)
+      if (event.type === 'done') {
+        const finished = sourceDrawRunId
+        sourceDrawRunId = null
+        ;(document.getElementById('source-draw') as HTMLButtonElement).disabled = false
+        void (async () => {
+          const outcome = await applyDrawnPages(String(finished))
+          sourceState.drawOutcome = outcome
+          if (outcome.drawn) sourceDrawStatus(`${outcome.drawn} of ${outcome.of} pages drawn by ${sourceState.drawer}${outcome.failed.length ? ` · ${outcome.failed.length} rejected` : ''} — open the notebook to use them`)
+          else sourceDrawStatus(`${sourceState.drawer} drew nothing usable (exit ${event.exitCode ?? '?'}) — the template pages stay`, true)
+        })()
+      }
+    })
+  }
+  try {
+    ;(document.getElementById('source-draw') as HTMLButtonElement).disabled = true
+    sourceDrawStatus(`Starting ${sourceState.drawer} on ${pages.length} pages — a first round takes a few minutes…`)
+    const run = await bridge.harness.run({ adapter, skill: 'page-master', route: 'Draw Pages', projectId: project.id, inputs })
+    sourceDrawRunId = run.id
+    sourceState.drawOutcome = null
+    return run.id
+  } catch (error) {
+    ;(document.getElementById('source-draw') as HTMLButtonElement).disabled = false
+    sourceDrawStatus(error instanceof Error ? error.message : 'Could not start the drawing run', true)
+    return null
+  }
+}
+;($('#source-draw') as HTMLButtonElement).addEventListener('click', () => void sourceDrawPages())
+
 const sourceMakePages = async () => {
   const source = sourceState.source
   const outline = readOutlineFromForm()
@@ -13336,22 +13500,7 @@ const sourceMakePages = async () => {
     })
     sourceState.outline = outline
     sourceState.pages = pages
-    const grid = $('#source-pages-grid') as HTMLElement
-    grid.replaceChildren(
-      ...pages.map((page, index) => {
-        const card = document.createElement('div')
-        card.className = 'source-page'
-        const thumb = document.createElement('div')
-        thumb.className = 'thumb'
-        thumb.innerHTML = page.svg
-        const label = document.createElement('div')
-        label.textContent = `${index + 1}. ${page.title}`
-        const meta = document.createElement('small')
-        meta.textContent = `${page.kind} · ${page.seconds} s · ${page.contract.groups} groups · ${page.contract.verbs} verbs`
-        card.append(thumb, label, meta)
-        return card
-      }),
-    )
+    renderSourcePagesGrid(pages)
     const declared = pages.filter(page => page.contract.declared).length
     sourceStatus('#source-pages-note', `${pages.length} pages, ${declared} fully declared. Opening the notebook adds them as scenes with their first-draft lines.`)
     showSourceStep('pages')
@@ -13672,7 +13821,17 @@ sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(b
   button.addEventListener('click', () => showSourceStep(button.dataset.sourceBack as 'read' | 'brand' | 'outline'))
 })
 // A dev hook so the flow can be driven end to end in a hooked instance.
-;(window as unknown as { __source?: unknown }).__source = { state: () => sourceState, open: openSourceDialog, read: sourceRead, outline: sourceOutline, pages: sourceMakePages, finish: sourceFinish }
+;(window as unknown as { __source?: unknown }).__source = {
+  state: () => sourceState,
+  open: openSourceDialog,
+  read: sourceRead,
+  outline: sourceOutline,
+  pages: sourceMakePages,
+  finish: sourceFinish,
+  drawers: populateSourceDrawers,
+  draw: (choice: string) => sourceDrawPages(choice),
+  drawStatus: () => ({ runId: sourceDrawRunId, status: document.getElementById('source-draw-status')?.textContent || '', outcome: sourceState.drawOutcome || null, drawn: (sourceState.pages || []).filter(page => page.drawnBy).length }),
+}
 
 // ——— Captions: the dialogue as a subtitle file, timed to the motion ———
 {

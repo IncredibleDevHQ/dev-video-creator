@@ -189,16 +189,22 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       '--mcp-config',
       mcpConfig,
     ]
+    if (typeof run.inputs.model === 'string' && run.inputs.model) args.push('--model', run.inputs.model)
     if (run.resumeId) args.push('--resume', run.resumeId)
     const state: { resumeId?: string } = {}
+    let stderrTail = ''
     const { exitCode } = await spawnJsonLines({
       command: found.path,
       args,
       cwd: run.projectDir,
       env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill) },
       onLine: line => emitLine(line, onEvent, state),
+      onStderr: text => {
+        stderrTail = (stderrTail + text).slice(-1_200)
+      },
       signal,
     })
+    if (exitCode !== 0 && stderrTail.trim()) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400) })
     return { resumeId: state.resumeId, exitCode }
   },
 })

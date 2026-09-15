@@ -261,6 +261,15 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
   pairLabelsAcrossPage(units, pageArea)
   markPageTitle(units, viewBox)
   attachAppearance(live, units)
+  // A title-like page may keep all its words in header chrome: with nothing
+  // else on the page, those words are the subject. The eyebrow and the
+  // footer badge stay chrome; the title and its support line come forward.
+  if (!leafUnits(units).some(unit => !unit.chrome)) {
+    const badge = /^§\s|\bSHEET\s+\d|^[a-z0-9.-]+\.(com|io|org|net|dev|ai)\b/i
+    flattenUnits(units).forEach(leaf => {
+      if (leaf.kind === 'label' && leaf.label && !badge.test(leaf.label.trim())) leaf.chrome = false
+    })
+  }
   const svg = new XMLSerializer().serializeToString(live)
   host.remove()
   const pageRole = String(root.getAttribute('data-page-role') || root.getAttribute('data-pptx-page-role') || '').trim().toLowerCase()
@@ -458,7 +467,8 @@ export const contractReport = (units: SlideUnit[], pageRole: string): ContractRe
   const connectors = all.filter(unit => unit.kind === 'connector' && !unit.chrome)
   const declaredEndpoints = connectors.filter(unit => unit.declared?.from && unit.declared?.to).length
   const verbs = connectors.filter(unit => unit.verb).length
-  const facts = [namedGroups.length / Math.max(1, groups.length), connectors.length ? declaredEndpoints / connectors.length : 1, connectors.length ? verbs / connectors.length : 1, pageRole ? 1 : 0]
+  // A page with no groups left nothing to infer about groups.
+  const facts = [groups.length ? namedGroups.length / groups.length : 1, connectors.length ? declaredEndpoints / connectors.length : 1, connectors.length ? verbs / connectors.length : 1, pageRole ? 1 : 0]
   return { groups: groups.length, namedGroups: namedGroups.length, roles, connectors: connectors.length, declaredEndpoints, verbs, pageRole: Boolean(pageRole), declared: Math.round((facts.reduce((a, b) => a + b, 0) / facts.length) * 100) / 100 }
 }
 
