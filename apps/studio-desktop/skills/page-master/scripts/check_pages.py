@@ -13,7 +13,21 @@ ENTITIES = {'server', 'database', 'cache', 'queue', 'client', 'service'}
 ANIMS = {'blink', 'pulse', 'flow', 'fill', 'spin', 'wave'}
 MOMENTS = {'establish', 'explain', 'tension', 'consequence', 'resolve', 'aside'}
 ACTIONS = {'appear', 'travel', 'spend', 'refill', 'pass', 'reject', 'become', 'highlight', 'leave', 'state'}
+# What a drawn object can be asked to show happening to it.
+SHOWS = {'spend', 'refill', 'pass', 'reject', 'arrive'}
 TRAVELS = {'travel', 'pass', 'reject', 'become'}
+
+# The objects the studio can really draw, and the pieces each one has. The
+# same list the studio looks a brief up in: a page may name any of them, and
+# a program may address their pieces by name.
+def known_objects():
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'references', 'objects.json')
+    try:
+        return {o['entity']: [p['id'] for p in o.get('parts') or []] for o in json.load(open(path)).get('objects') or []}
+    except Exception:
+        return {}
+
+OBJECTS = known_objects()
 
 def local(tag):
     return tag.split('}', 1)[1] if '}' in tag else tag
@@ -64,6 +78,11 @@ def check(path):
         entity = n.get('data-entity')
         if entity and entity not in ENTITIES:
             problems.append(f'node {n.get("id")!r} data-entity {entity!r} is not one of {sorted(ENTITIES)}')
+        obj = n.get('data-object')
+        if obj and OBJECTS and obj not in OBJECTS:
+            problems.append(f'node {n.get("id")!r} asks for object {obj!r}, which nothing can draw — use one of {sorted(OBJECTS)}')
+        if obj and not entity:
+            problems.append(f'node {n.get("id")!r} asks for object {obj!r} without saying what it is — add data-entity')
         shapes = [c for c in n.iter() if local(c.tag) in ('rect', 'ellipse', 'circle')]
         if entity and shapes:
             labels = [c for c in n.iter() if local(c.tag) == 'text']
@@ -194,6 +213,24 @@ def check_program(path, svg_path):
     role = root.get('data-page-role') or ''
     ids = {el.get('id') for el in root.iter() if el.get('id')}
     actors = {el.get('id') for el in root.iter() if el.get('data-actor')}
+    # What each node wears, so a program can name one of its pieces.
+    wears = {el.get('id'): el.get('data-object') for el in root.iter() if el.get('data-object') and el.get('id')}
+    parts = {el.get('data-part') for el in root.iter() if el.get('data-part')}
+
+    def names_a_place(where, what, target):
+        """An id on the page, or a piece of the object a node wears."""
+        if target in ids:
+            return
+        if '.' in target:
+            owner, piece = target.split('.', 1)
+            if owner not in ids:
+                problems.append(f'{where} {what} {target!r}, but {owner!r} is not on the page')
+            elif owner in wears and OBJECTS.get(wears[owner]) is not None and piece not in OBJECTS[wears[owner]] and piece not in parts:
+                problems.append(f'{where} {what} {target!r}, but a {wears[owner]} has no {piece!r} — its pieces are {OBJECTS[wears[owner]]}')
+            elif owner not in wears and piece not in parts:
+                problems.append(f'{where} {what} {target!r}, but {owner!r} wears no drawn object — add data-object to it')
+            return
+        problems.append(f'{where} {what} {target!r}, which is not on the page')
     beats = program.get('beats') or []
     if len(beats) < (3 if role == 'diagram' else 2):
         problems.append(f'{len(beats)} beat(s) — a scene needs at least {3 if role == "diagram" else 2}')
@@ -201,8 +238,15 @@ def check_program(path, svg_path):
         if actor.get('id') not in ids:
             problems.append(f'cast {actor.get("id")!r} is not on the page')
         q = actor.get('quantity')
-        if q and q.get('shownOn') and q['shownOn'] not in ids:
-            problems.append(f'quantity of {actor.get("id")!r} is shown on {q["shownOn"]!r}, which is not on the page')
+        if q and q.get('shownOn'):
+            names_a_place(f'the quantity of {actor.get("id")!r}', 'is shown on', q['shownOn'])
+        # An outcome bound to a piece of the drawn object: the light that comes
+        # on when a call goes through, the mark that turns when one is refused.
+        for outcome, target in (actor.get('shows') or {}).items():
+            if outcome not in SHOWS:
+                problems.append(f'cast {actor.get("id")!r} shows {outcome!r}, which is not one of {sorted(SHOWS)}')
+            if isinstance(target, str):
+                names_a_place(f'cast {actor.get("id")!r}', f'shows {outcome} on', target)
     moments = [b.get('moment') for b in beats]
     for beat in beats:
         where = beat.get('id') or beat.get('moment') or '?'

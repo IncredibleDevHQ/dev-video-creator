@@ -147,7 +147,14 @@ Rules the studio enforces:
   `beside` shares the frame, `page` gives the page the whole frame while it
   works. Open and close `beside`, hand the frame to the page in between.
 - `quantity.shownOn` names the element whose height or width is the level, so
-  spending and refilling are seen, not asserted.
+  spending and refilling are seen, not asserted. On a node that declared
+  `data-object`, name the drawn object's own piece instead —
+  `"shownOn": "s07-node-redis-bucket.level"` — and the level is the real
+  object's, whatever the drawing turned out to look like.
+- `shows` on a cast entry binds an outcome to a piece of the drawn object:
+  `{ "id": "s07-node-api", "role": "server", "shows": { "pass": "s07-node-api.indicator" } }`
+  lights the indicator when a call goes through. The pieces each object has are
+  in `references/objects.json`; naming one it does not have fails the check.
 - Every id must exist on the page you just drew.
 - A line merged with another keeps both moments: the second lives in the
   first's `then`, with its own events, staging and shot, playing after it

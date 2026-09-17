@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { REFERENCE_STYLE, acceptArtwork, briefKey, briefPrompt, referenceObjects } from './appearance'
+import { REFERENCE_STYLE, acceptArtwork, briefKey, briefPrompt, concurrencyObjects, knownObjects, referenceObjects } from './appearance'
 
 describe('the artwork brief', () => {
   it('describes the object family the reference explanation is built from', () => {
@@ -70,5 +71,42 @@ describe('accepting artwork', () => {
     const external = acceptArtwork(drawing('<image href="https://example.com/a.png"/>'), bucket)
     expect(external.ok).toBe(false)
     expect(external.problems.join(' ')).toMatch(/image, script or foreignObject/)
+  })
+
+  // ——— A second mechanism, told with the same objects ———
+  it('draws the concurrency limit from its own objects and the reference hand', () => {
+    const objects = concurrencyObjects()
+    expect(objects.map(object => object.entity)).toEqual(['slot-pool', 'waiting-line'])
+    const pool = objects[0]
+    // What the story does to it: takes a slot, fills up, frees one.
+    expect(pool.parts.map(part => part.id)).toEqual(['shell', 'slots', 'occupied', 'gate'])
+    expect(pool.states).toContain('full')
+    expect(pool.states).toContain('a slot freed')
+    // The same hand: one family, so the two explanations look like one product.
+    expect(objects.every(object => object.style.family === REFERENCE_STYLE.family)).toBe(true)
+    expect(briefPrompt(pool)).toMatch(/diagram about concurrency limits/)
+  })
+
+  it('reuses the request and the server rather than drawing them again', () => {
+    // The key is what a drawing is filed under. The travelling request is the
+    // same brief in both explanations, so the second one costs nothing.
+    const before = referenceObjects().map(briefKey)
+    const known = knownObjects()
+    expect(known.map(object => object.entity)).toEqual(['token-bucket', 'server', 'request', 'slot-pool', 'waiting-line'])
+    expect(known.slice(0, 3).map(briefKey)).toEqual(before)
+    // And the new objects are their own drawings, not the old ones renamed.
+    expect(new Set(known.map(briefKey)).size).toBe(known.length)
+  })
+
+  it('tells the page-master the same objects the studio can draw', () => {
+    // The drawing agent picks an object family by name; the studio looks the
+    // brief up by that name. One list, or a page names something unbuildable.
+    const shipped = JSON.parse(readFileSync(new URL('../../studio-desktop/skills/page-master/references/objects.json', import.meta.url), 'utf8')) as {
+      objects: Array<{ entity: string; parts: Array<{ id: string }> }>
+    }
+    expect(shipped.objects.map(object => object.entity)).toEqual(knownObjects().map(object => object.entity))
+    shipped.objects.forEach((object, index) => {
+      expect(object.parts.map(part => part.id)).toEqual(knownObjects()[index].parts.map(part => part.id))
+    })
   })
 })

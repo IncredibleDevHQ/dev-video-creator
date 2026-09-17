@@ -65,6 +65,32 @@ Rules for the artwork:
 - Real drawing, not a letter in a circle: a server is a stack of racks with status lights, a database a cylinder, a cache a lightning bolt in a chip, a queue a row of slots with an arrow, a client a person at a screen, a service a hexagon with a gear or a valve. Two to eight shapes each, stroke 2–2.5 at the node's scale, the page's accent for the strokes and the accent at 12–18 % for any fill.
 - No `<image>`, no external reference: the artwork is part of the page.
 
+### Ask for the real thing
+
+Some things the studio can draw properly — a real object, rigged into pieces it
+can move one at a time. A node says which one with `data-object`:
+
+```xml
+<g id="s04-node-slot-pool" data-role="node" data-kind="box" data-entity="queue" data-object="slot-pool">
+```
+
+The objects and their pieces are listed in `references/objects.json`
+(`token-bucket`, `server`, `request`, `slot-pool`, `waiting-line` — each with
+its own named parts). Declaring one does three things:
+
+- the studio draws that object and fits it into the node's box, standing your
+  own drawing down rather than deleting it;
+- the program may address one of its pieces by name — `s04-node-slot-pool.occupied`
+  — wherever it names an element (`quantity.shownOn`, `shows`);
+- a page that names an object nobody can draw fails the check.
+
+Declare it only where the name is right. The drawing is filed under what was
+asked for, so the same object named on five pages is drawn once and reused.
+
+Your own `data-appearance-for` artwork stays required either way: it is what the
+page reads as until the drawing arrives, and what it falls back to if it never
+does.
+
 ### Make the thing live
 
 The studio animates the parts you name. Mark the pieces of your artwork that should move with `data-anim`, and the thing lives on the page — no external animation file, no video: the drawing you made moves.

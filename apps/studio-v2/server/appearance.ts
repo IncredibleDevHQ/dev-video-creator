@@ -29,6 +29,12 @@ export type ObjectBrief = {
   role: string
   /** A sentence a person would recognise it by. */
   represents: string
+  /**
+   * What the diagram it belongs to is about. The look is the family's; the
+   * subject is this object's, so a second explanation can be drawn in the
+   * same hand without redrawing the first one's objects.
+   */
+  subject?: string
   /** The states the scene puts it in — the artwork must be able to show them. */
   states: string[]
   /** The pieces the scene controls by name. */
@@ -108,12 +114,64 @@ export const referenceObjects = (style: ObjectStyle = REFERENCE_STYLE): ObjectBr
   },
 ]
 
+/**
+ * The second explanation: a concurrency limit. Work in progress occupies a
+ * fixed number of slots, work beyond that waits its turn, and a slot freed by
+ * a completion admits the next one. It is a different mechanism told with the
+ * same runtime, the same controls and the same hand — the request and the
+ * server are the reference family's, drawn once and reused here.
+ */
+export const concurrencyObjects = (style: ObjectStyle = REFERENCE_STYLE): ObjectBrief[] => [
+  {
+    entity: 'slot-pool',
+    role: 'pool',
+    represents: 'A fixed row of work slots, each either free or occupied by one call in progress',
+    subject: 'concurrency limits',
+    states: ['all free', 'partly taken', 'full', 'a slot freed'],
+    parts: [
+      { id: 'shell', what: 'the frame that holds the row, making the number of slots countable at a glance' },
+      { id: 'slots', what: 'four identical slots in a row, each separately controllable' },
+      { id: 'occupied', what: 'the mark that shows a slot is taken, so how full the pool is reads at a glance' },
+      { id: 'gate', what: 'the mouth work passes through on its way in' },
+    ],
+    ports: { in: { x: 0.06, y: 0.5 }, out: { x: 0.94, y: 0.5 } },
+    labelAnchor: 'below',
+    size: { width: 300, height: 200 },
+    style,
+    keepsTextOut: ['the number of slots', 'how many are in use'],
+  },
+  {
+    entity: 'waiting-line',
+    role: 'queue',
+    represents: 'The line work stands in when every slot is taken, emptying from the front as slots free',
+    subject: 'concurrency limits',
+    states: ['empty', 'holding', 'releasing the next one'],
+    parts: [
+      { id: 'shell', what: 'the lane the waiting work stands in, open at both ends' },
+      { id: 'waiting', what: 'three identical items queued along it, each separately controllable' },
+      { id: 'head', what: 'a mark on the one at the front, the next to be admitted' },
+    ],
+    ports: { in: { x: 0.94, y: 0.5 }, out: { x: 0.06, y: 0.5 } },
+    labelAnchor: 'below',
+    size: { width: 300, height: 160 },
+    style,
+    keepsTextOut: ['how many are waiting', 'any wait time'],
+  },
+]
+
+/**
+ * Every object the studio knows how to draw. One list, so a page may name any
+ * of them and the studio finds the brief without knowing which explanation
+ * asked for it.
+ */
+export const knownObjects = (style: ObjectStyle = REFERENCE_STYLE): ObjectBrief[] => [...referenceObjects(style), ...concurrencyObjects(style)]
+
 /** The words a generator is given. Everything the brief knows, nothing else. */
 export const briefPrompt = (brief: ObjectBrief) => {
   const { style } = brief
   return [
     `Draw one object for a technical explainer: ${brief.represents}.`,
-    `It is the ${brief.role} in a diagram about rate limiting, seen ${style.angle === 'front' ? 'from the front' : 'at a slight three-quarter angle'}.`,
+    `It is the ${brief.role} in a diagram about ${brief.subject || 'rate limiting'}, seen ${style.angle === 'front' ? 'from the front' : 'at a slight three-quarter angle'}.`,
     `Flat vector artwork on a transparent background, ${style.depth === 'flat' ? 'flat fills with at most one soft shadow' : 'soft shading'}, ${style.density} detail — it has to read at 640 pixels wide.`,
     `Palette: ${style.palette.accent} as the accent, ${style.palette.secondary} for secondary surfaces, ${style.palette.text} for outlines, on nothing (transparent). It belongs to a family called "${style.family}": the same angle, weight and palette as the others.`,
     `Give it a concrete silhouette — a viewer should recognise what it is with the label covered.`,
@@ -138,6 +196,9 @@ export const briefKey = (brief: ObjectBrief) =>
         entity: brief.entity,
         role: brief.role,
         represents: brief.represents,
+        // Only when the brief states one: an object asked for before this
+        // field existed keeps the key its accepted drawing is filed under.
+        ...(brief.subject ? { subject: brief.subject } : {}),
         states: [...brief.states].sort(),
         parts: brief.parts.map(part => [part.id, part.what]).sort(),
         ports: brief.ports,

@@ -62,7 +62,7 @@ import {
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
 import { checkPageContract, outlinePrompt, outlineSchema, pageBrandFrom, readSourceNarrative, readSourceUrl, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
-import { REFERENCE_STYLE, acceptArtwork, briefKey, briefPrompt, referenceObjects, type ObjectBrief } from './appearance'
+import { REFERENCE_STYLE, acceptArtwork, briefKey, briefPrompt, knownObjects, type ObjectBrief } from './appearance'
 import { generateObjectSvg, quiverCapability, quiverConfigured, repairObjectSvg, type GeneratedArtwork } from './providers/quiver'
 const require = createRequire(import.meta.url)
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
@@ -2592,7 +2592,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     // The briefs this scene's objects are drawn from.
     if (request.method === 'GET' && url.pathname === '/api/appearance/briefs') {
-      const objects = referenceObjects()
+      const objects = knownObjects()
       json(response, 200, {
         style: REFERENCE_STYLE,
         briefs: objects.map(brief => ({ entity: brief.entity, role: brief.role, key: briefKey(brief), parts: brief.parts.map(part => part.id), prompt: briefPrompt(brief) })),
@@ -2603,7 +2603,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     // artwork is kept by what it draws, so rewording a scene reuses it.
     if (request.method === 'POST' && url.pathname === '/api/appearance/generate') {
       const body = await readJson<{ entity: string; projectId?: string; force?: boolean; model?: string }>(request, 256 * 1024)
-      const brief = referenceObjects().find(object => object.entity === body.entity)
+      const brief = knownObjects().find(object => object.entity === body.entity)
       if (!brief) throw new Error(`No brief for "${body.entity}"`)
       const key = briefKey(brief)
       const cached = (await loadSetting(`appearance:${key}`)) as AppearanceRecord | null

@@ -1,0 +1,172 @@
+{
+	"family": "rate-limiter",
+	"objects": [
+		{
+			"entity": "token-bucket",
+			"role": "bucket",
+			"represents": "A container holding a small number of tokens, which drain as calls are served and refill over time",
+			"states": ["full", "partly spent", "empty", "refilling"],
+			"parts": [
+				{
+					"id": "shell",
+					"what": "the container itself, open at the top"
+				},
+				{
+					"id": "tokens",
+					"what": "three identical tokens stacked inside, each separately controllable"
+				},
+				{
+					"id": "level",
+					"what": "the fill the tokens sit in, so how full it is reads at a glance"
+				},
+				{
+					"id": "inlet",
+					"what": "where the refill drips in"
+				}
+			],
+			"ports": {
+				"in": {
+					"x": 0.08,
+					"y": 0.5
+				},
+				"out": {
+					"x": 0.92,
+					"y": 0.5
+				}
+			},
+			"size": {
+				"width": 260,
+				"height": 220
+			}
+		},
+		{
+			"entity": "server",
+			"role": "server",
+			"represents": "The service behind the limiter that does the real work when a call is admitted",
+			"states": ["idle", "processing", "done"],
+			"parts": [
+				{
+					"id": "shell",
+					"what": "the machine body, a stacked rack rather than a plain box"
+				},
+				{
+					"id": "tray",
+					"what": "the slot an admitted call arrives in"
+				},
+				{
+					"id": "indicator",
+					"what": "a light that shows it working"
+				}
+			],
+			"ports": {
+				"in": {
+					"x": 0.06,
+					"y": 0.5
+				},
+				"out": {
+					"x": 0.94,
+					"y": 0.5
+				}
+			},
+			"size": {
+				"width": 240,
+				"height": 200
+			}
+		},
+		{
+			"entity": "request",
+			"role": "request",
+			"represents": "One call from one user, travelling between the things on the page",
+			"states": ["travelling", "admitted", "rejected"],
+			"parts": [
+				{
+					"id": "body",
+					"what": "the packet itself, small and unmistakable while moving"
+				},
+				{
+					"id": "mark",
+					"what": "a mark that can turn from neutral to refused"
+				}
+			],
+			"ports": {},
+			"size": {
+				"width": 72,
+				"height": 72
+			}
+		},
+		{
+			"entity": "slot-pool",
+			"role": "pool",
+			"represents": "A fixed row of work slots, each either free or occupied by one call in progress",
+			"subject": "concurrency limits",
+			"states": ["all free", "partly taken", "full", "a slot freed"],
+			"parts": [
+				{
+					"id": "shell",
+					"what": "the frame that holds the row, making the number of slots countable at a glance"
+				},
+				{
+					"id": "slots",
+					"what": "four identical slots in a row, each separately controllable"
+				},
+				{
+					"id": "occupied",
+					"what": "the mark that shows a slot is taken, so how full the pool is reads at a glance"
+				},
+				{
+					"id": "gate",
+					"what": "the mouth work passes through on its way in"
+				}
+			],
+			"ports": {
+				"in": {
+					"x": 0.06,
+					"y": 0.5
+				},
+				"out": {
+					"x": 0.94,
+					"y": 0.5
+				}
+			},
+			"size": {
+				"width": 300,
+				"height": 200
+			}
+		},
+		{
+			"entity": "waiting-line",
+			"role": "queue",
+			"represents": "The line work stands in when every slot is taken, emptying from the front as slots free",
+			"subject": "concurrency limits",
+			"states": ["empty", "holding", "releasing the next one"],
+			"parts": [
+				{
+					"id": "shell",
+					"what": "the lane the waiting work stands in, open at both ends"
+				},
+				{
+					"id": "waiting",
+					"what": "three identical items queued along it, each separately controllable"
+				},
+				{
+					"id": "head",
+					"what": "a mark on the one at the front, the next to be admitted"
+				}
+			],
+			"ports": {
+				"in": {
+					"x": 0.94,
+					"y": 0.5
+				},
+				"out": {
+					"x": 0.06,
+					"y": 0.5
+				}
+			},
+			"size": {
+				"width": 300,
+				"height": 160
+			}
+		}
+	]
+}
