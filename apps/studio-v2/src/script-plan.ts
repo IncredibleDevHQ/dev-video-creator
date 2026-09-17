@@ -405,10 +405,20 @@ const STATE_WORDS: Record<string, string[]> = {
   failing: ['fails', 'failing', 'crashes', 'goes down', 'outage', 'incident', 'falls over'],
   served: ['served', 'responds', 'response comes back'],
 }
+// "the server is not failing", "without backing up", "never rejects": the
+// words are there and the state is not. A denial within a few words before
+// the match takes the state off the table rather than setting it.
+const DENIAL = /\b(not|never|no|isn'?t|aren'?t|won'?t|without|avoids?|avoiding|prevents?|preventing|stops?|stopping|instead of|rather than|no longer|nothing)\b/
+const denied = (said: string, at: number) => DENIAL.test(said.slice(Math.max(0, at - 40), at))
 const stateNamed = (said: string, states: string[]) => {
   for (const state of states) {
     const words = [state, ...(STATE_WORDS[state] || [])]
-    if (words.some(word => said.includes(word))) return state
+    for (const word of words) {
+      const at = said.indexOf(word)
+      if (at < 0) continue
+      if (denied(said, at)) return null
+      return state
+    }
   }
   return null
 }

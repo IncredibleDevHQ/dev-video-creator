@@ -255,6 +255,66 @@ export const unitOffsetsAt = (plan: MotionPlanV2, beatIndex: number): Map<string
 // Ops that bring a unit on screen (their targets start hidden).
 export const ENTERING_MOTION_OPS: ReadonlySet<MotionOp> = new Set(['reveal', 'trace', 'count'])
 
+/** What the camera actually frames at a beat: the last camera action up to
+ * and including it, padded, fitted to the page's aspect and clamped the way
+ * the driver clamps it (never tighter than a third, never beyond the page).
+ * Null means the camera is on the page. The driver, the placements and the
+ * director must agree on this, or the presenter is placed against ink that
+ * is not on screen. */
+export const cameraRectAt = (
+  plan: MotionPlanV2,
+  beatIndex: number,
+  page: { x?: number; y?: number; width: number; height: number },
+) => {
+  const pageBox = { x: page.x || 0, y: page.y || 0, width: page.width, height: page.height }
+  let framed: { x: number; y: number; width: number; height: number } | null = null
+  plan.steps.slice(0, beatIndex + 1).forEach(step => {
+    step.actions
+      .filter(action => action.op === 'camera')
+      .forEach(action => {
+        const value = action.value || {}
+        const width = Number(value.width) || 0
+        const height = Number(value.height) || 0
+        if (!(width > 0 && height > 0)) {
+          framed = null
+          return
+        }
+        const pad = Math.max(width, height) * 0.12
+        let x = Number(value.x) - pad
+        let y = Number(value.y) - pad
+        let w = width + pad * 2
+        let h = height + pad * 2
+        const aspect = pageBox.width / pageBox.height
+        if (w / h < aspect) {
+          const next = h * aspect
+          x -= (next - w) / 2
+          w = next
+        } else {
+          const next = w / aspect
+          y -= (next - h) / 2
+          h = next
+        }
+        const minWidth = pageBox.width / 3
+        if (w < minWidth) {
+          const cx = x + w / 2
+          const cy = y + h / 2
+          w = minWidth
+          h = minWidth / aspect
+          x = cx - w / 2
+          y = cy - h / 2
+        }
+        if (w > pageBox.width) {
+          framed = null
+          return
+        }
+        x = Math.max(pageBox.x, Math.min(x, pageBox.x + pageBox.width - w))
+        y = Math.max(pageBox.y, Math.min(y, pageBox.y + pageBox.height - h))
+        framed = { x, y, width: w, height: h }
+      })
+  })
+  return framed as { x: number; y: number; width: number; height: number } | null
+}
+
 /** Beat start offsets (ms) and the plan's total duration. */
 export const motionPlanOffsetsMs = (plan: MotionPlanV2) => {
   const offsets: number[] = []

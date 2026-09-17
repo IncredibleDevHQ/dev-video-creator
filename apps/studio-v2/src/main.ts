@@ -69,8 +69,7 @@ import {
   type StageFamily,
   type StageSegment,
   type MotionDriverInstance,
-  type MotionPlanV2,
-} from 'markdown-composition'
+  type MotionPlanV2, cameraRectAt } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import { SceneBlock } from './scene-node'
@@ -95,7 +94,7 @@ import {
 } from './script-plan'
 import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
-import { placementAt, placementsFor } from './placements'
+import { placementAt, placementsFor, unitsOnScreenPerBeat } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
@@ -12296,6 +12295,8 @@ slideEditorDialog.addEventListener('cancel', event => {
   planFromWindows,
   planFromScript,
   placementsFor,
+  unitsOnScreenPerBeat,
+  cameraRectAt,
   direct,
   pageModelFor,
   contractReport,

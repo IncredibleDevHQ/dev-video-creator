@@ -11,6 +11,7 @@ import {
   type StageRect,
   type StageVariant,
   unitOffsetsAt,
+  cameraRectAt,
 } from 'markdown-composition'
 import { flattenUnits, type SlideUnit } from './slide-atoms'
 
@@ -73,22 +74,45 @@ export const coveredFraction = (camera: StageRect, boxes: FrameBox[], grid = 24)
 // The units on screen after each beat, with their boxes where the plan's
 // moves have put them — so a placement is computed from the moved ink and
 // the presenter's corner adjusts when a box travels.
-export const unitsOnScreenPerBeat = (plan: MotionPlanV2, units: SlideUnit[]): SlideUnit[][] => {
+export const unitsOnScreenPerBeat = (
+  plan: MotionPlanV2,
+  units: SlideUnit[],
+  // The page's own extent: with it, a beat whose camera is in reports only
+  // the ink inside the crop, which is the only ink the viewer can see.
+  viewBox?: { width: number; height: number },
+): SlideUnit[][] => {
   const all = flattenUnits(units).filter(unit => unit.kind !== 'group')
   const shown = new Set<string>()
   return plan.steps.map((step, index) => {
     step.actions
       .filter(action => action.op === 'reveal' || action.op === 'trace' || action.op === 'count')
       .forEach(action => action.targets.forEach(id => shown.add(id)))
+    // What leaves is gone: an exited unit stops occupying the frame.
+    step.actions
+      .filter(action => action.op === 'exit')
+      .forEach(action => action.targets.forEach(id => shown.delete(id)))
     const moved = unitOffsetsAt(plan, index)
+    const crop = viewBox ? cameraRectAt(plan, index, viewBox) : null
+    const inside = (box: SlideUnit['bbox']) =>
+      !crop ||
+      (box.x + box.width > crop.x &&
+        box.x < crop.x + crop.width &&
+        box.y + box.height > crop.y &&
+        box.y < crop.y + crop.height)
     return all
       .filter(unit => unit.chrome || unit.ids.some(id => shown.has(id)))
       .map(unit => {
         const offset = unit.ids.map(id => moved.get(id)).find(Boolean)
         return offset ? { ...unit, bbox: { ...unit.bbox, x: unit.bbox.x + offset.dx, y: unit.bbox.y + offset.dy } } : unit
       })
+      .filter(unit => inside(unit.bbox))
   })
 }
+
+/** The frame the presenter is placed against at a beat: the camera's crop
+ * when it is in, the page otherwise. */
+export const worldAt = (plan: MotionPlanV2, index: number, viewBox: { width: number; height: number }) =>
+  cameraRectAt(plan, index, viewBox) || { x: 0, y: 0, width: viewBox.width, height: viewBox.height }
 
 const PREFERENCE = (index: number) => index * 0.03
 
@@ -125,7 +149,7 @@ export const placementsFor = (
   units: SlideUnit[],
   viewBox: { width: number; height: number },
 ): Record<string, PlacementTrack> => {
-  const onScreen = unitsOnScreenPerBeat(plan, units)
+  const onScreen = unitsOnScreenPerBeat(plan, units, viewBox)
   const offsets: number[] = []
   let at = 0
   plan.steps.forEach(step => { offsets.push(at); at += step.motionWindowMs + step.holdMs })
@@ -135,7 +159,9 @@ export const placementsFor = (
     let previous: StageVariant | undefined
     const track: PlacementTrack = []
     onScreen.forEach((visible, beat) => {
-      const boxes = visible.map(unit => pageToFrame(unit.bbox, viewBox, content))
+      // Measured against what the frame holds at this beat, not the page.
+      const world = worldAt(plan, beat, viewBox)
+      const boxes = visible.map(unit => pageToFrame({ ...unit.bbox, x: unit.bbox.x - world.x, y: unit.bbox.y - world.y }, world, content))
       const pick = bestVariant(family, boxes, previous)
       if (!pick) return
       if (pick.variant !== previous) track.push({ atMs: offsets[beat], beat, variant: pick.variant })

@@ -11,13 +11,17 @@ export type DiagramKind = (typeof DIAGRAM_KINDS)[number]
 export const RELATION_VERBS = ['sends to', 'waits for', 'calls', 'reads', 'writes', 'returns', 'splits into', 'merges into', 'depends on', 'becomes', 'contains', 'compares with', 'feeds', 'triggers', 'passes to'] as const
 export type RelationVerb = (typeof RELATION_VERBS)[number]
 
+// A page that declares `data-entity` is believed. Undeclared, a thing is
+// typed only when its head noun is unmistakable: "Redis store" is a cache,
+// "Token bucket" is not a database just because a bucket can hold things.
+// A weak word types nothing — an untyped thing is better than a wrong one.
 export const ENTITY_TYPES: Record<string, { match: RegExp; states: string[] }> = {
-  server: { match: /\b(server|host|instance|machine|pod|container|fleet|worker)\b/i, states: ['idle', 'running', 'loaded', 'failing'] },
-  database: { match: /\b(database|db|store|storage|table|index|postgres|bucket)\b/i, states: ['idle', 'reading', 'writing', 'full'] },
-  cache: { match: /\b(cache|redis|memcache|in-memory)\b/i, states: ['idle', 'reading', 'writing', 'full'] },
-  queue: { match: /\b(queue|topic|stream|buffer|backlog|channel|pipe)\b/i, states: ['empty', 'flowing', 'backed up'] },
-  client: { match: /\b(client|user|browser|app|caller|customer|device)\b/i, states: ['waiting', 'sending', 'served'] },
-  service: { match: /\b(service|api|endpoint|handler|controller|limiter|shedder|filter|middleware|proxy|gateway)\b/i, states: ['idle', 'busy', 'rejecting'] },
+  server: { match: /\b(server|servers|host|hosts|instance|instances|machine|machines|pod|pods|container|containers|worker pool|fleet)\b/i, states: ['idle', 'running', 'loaded', 'failing'] },
+  database: { match: /\b(database|databases|db|postgres|mysql|dynamo|datastore|data store)\b/i, states: ['idle', 'reading', 'writing', 'full'] },
+  cache: { match: /\b(cache|caches|redis|memcache|memcached)\b/i, states: ['idle', 'reading', 'writing', 'full'] },
+  queue: { match: /\b(queue|queues|topic|kafka|backlog|buffer)\b/i, states: ['empty', 'flowing', 'backed up'] },
+  client: { match: /\b(client|clients|user|users|browser|caller|callers|customer|customers)\b/i, states: ['waiting', 'sending', 'served'] },
+  service: { match: /\b(service|services|api|endpoint|endpoints|gateway|proxy|middleware|handler)\b/i, states: ['idle', 'busy', 'rejecting'] },
 }
 
 export type PageDiagram = { id: string; kind: DiagramKind; parts: string[]; hops: Array<{ connector: string; from: string; to: string; verb: RelationVerb }>; bbox: SlideUnit['bbox'] }
