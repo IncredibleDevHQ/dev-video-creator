@@ -10839,6 +10839,16 @@ const sceneNotesFor = (state: SlideEditorState) => {
   const director = String(found?.attrs.directorNotes || '').trim()
   return [notes, director ? `Director: ${director}` : ''].filter(Boolean).join('\n')
 }
+// The article's own sentences behind a scene: kept on the node when the
+// video began from a source, else from the outline by title.
+const scenePassages = (nodeId: string) => {
+  const found = findSlideLikeNode(nodeId)
+  const onNode = Array.isArray(found?.attrs.sourcePassages) ? (found!.attrs.sourcePassages as unknown[]) : []
+  if (onNode.length) return onNode.map(String).slice(0, 4)
+  const title = String(found?.attrs.title || '')
+  const fromOutline = project.outline?.scenes.find(scene => scene.nodeId === nodeId || scene.title === title)
+  return (fromOutline?.source || []).map(String).slice(0, 4)
+}
 
 // The writer at work: a banner where the proposal will land, with the
 // elapsed time and a Cancel; the button spins; errors stay visible there.
@@ -10926,6 +10936,7 @@ const requestProposal = async (instruction: string) => {
         entities: state.model.entities,
         neighbours: sceneNeighbours(state.nodeId),
         glossary: glossaryLines(),
+        passages: scenePassages(state.nodeId),
         // The director's length brief: how long, what to walk, what to skip.
         brief: state.brief ? briefForWriter(state.brief, id => unitOf(state, id)?.label || id) : undefined,
       }),
@@ -13696,6 +13707,7 @@ const writeSceneToBrief = async (nodeId: string) => {
       entities: state.model.entities,
       neighbours: sceneNeighbours(nodeId),
       glossary: glossaryLines(),
+      passages: scenePassages(nodeId),
       brief: briefForWriter(state.brief, id => unitOf(state, id)?.label || id),
     }),
   })
@@ -13785,7 +13797,8 @@ const sourceFinish = async () => {
   // One transaction at the end of the document: inserting one at a time
   // leaves a node selection behind, and the next insert replaces it.
   // the card's poster is the page itself, as a data url, so a generated scene previews like an imported one
-  const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, directorNotes: page.idea, script: page.narration, structureApproved: true } }))
+  const bySceneTitle = new Map(outline.scenes.map(scene => [scene.title, scene]))
+  const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true } }))
   editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
   const inserted = pages.map(page => page.title)
   // Each new scene gets its block, then its first plan from the draft line,
@@ -13802,7 +13815,7 @@ const sourceFinish = async () => {
   })
   project.title = outline.title
   project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
-  project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea })), glossary: outline.glossary }
+  project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title
   syncProject()

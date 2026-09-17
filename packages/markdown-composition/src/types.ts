@@ -329,7 +329,7 @@ export type ProjectDocumentV1 = {
   outline?: {
     title: string
     targetSeconds: number
-    scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string }>
+    scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string; source?: string[] }>
     glossary: Array<{ term: string; meaning: string }>
   }
   // The asset library: one asset per thing (keyed by what it is, not by

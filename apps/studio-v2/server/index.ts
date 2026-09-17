@@ -1173,6 +1173,8 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
     // next (the outro hands over to it), and the names the video shares.
     neighbours?: { previous?: { title: string; idea: string } | null; next?: { title: string; idea: string } | null }
     glossary?: string[]
+    // The article's own sentences behind this scene, verbatim.
+    passages?: string[]
     // The director's length brief, read from the picture: how long, how
     // many windows, what to walk in what order, what to name in passing.
     brief?: {
@@ -1212,10 +1214,12 @@ Every walked part is named in some window (a window may carry two to four parts 
   const existing = String(body.existing || '').trim().slice(0, 6_000)
   const instruction = String(body.instruction || '').trim().slice(0, 1_000)
   const position = body.position && Number.isFinite(body.position.index) ? `scene ${body.position.index + 1} of ${body.position.count}${body.position.index + 1 >= (body.position.count || 0) ? ' — the last scene, so it closes the video instead of handing over' : ''}` : ''
+  const passages = (Array.isArray(body.passages) ? body.passages : []).map(line => String(line).slice(0, 320)).filter(Boolean).slice(0, 4)
   const neighbourText = [
     body.neighbours?.previous ? `PREVIOUS SCENE (what the viewer just heard; do not repeat it): "${String(body.neighbours.previous.title).slice(0, 80)}"${body.neighbours.previous.idea ? ` — ${String(body.neighbours.previous.idea).slice(0, 200)}` : ''}` : '',
     body.neighbours?.next ? `NEXT SCENE (the outro hands over to it, by its name or its idea): "${String(body.neighbours.next.title).slice(0, 80)}"${body.neighbours.next.idea ? ` — ${String(body.neighbours.next.idea).slice(0, 200)}` : ''}` : '',
     Array.isArray(body.glossary) && body.glossary.length ? `GLOSSARY (the video's shared names; use them exactly): ${body.glossary.slice(0, 24).map(entry => String(entry).slice(0, 120)).join('; ')}` : '',
+    passages.length ? `THE SOURCE'S OWN WORDS for this scene — the article this video comes from, quoted exactly:\n${passages.map(line => `· ${line}`).join('\n')}\nThese carry what the page cannot: the motivating example, the number, the reason a thing happens. Use their facts, causes and figures in your own spoken words; prefer a concrete cause from them over a general statement about the picture. Never contradict them and never invent a fact they do not contain.` : '',
   ].filter(Boolean).join('\n')
   const prompt = `You write the spoken dialogue for one scene of a narrated technical video, and you can see the page the presenter is explaining. Title: "${String(body.title || 'Scene').slice(0, 120)}"${position ? ` (${position}` : ''}${body.role ? `${position ? ', ' : ' ('}role in the story: ${String(body.role).slice(0, 40)})` : position ? ')' : ''}.
 
@@ -1362,7 +1366,7 @@ const handleSourceOutline = async (request: IncomingMessage, response: ServerRes
   })
   if (!apiResponse.ok) throw new Error(`The outliner failed (${apiResponse.status})`)
   const apiBody = (await apiResponse.json()) as Parameters<typeof extractResponseText>[0]
-  const outline = sanitizeOutline(JSON.parse(extractResponseText(apiBody)), String(source.title || ''))
+  const outline = sanitizeOutline(JSON.parse(extractResponseText(apiBody)), String(source.title || ''), String(source.text || ''))
   if (!outline.scenes.length) throw new Error('The outliner returned no scenes')
   json(response, 200, { outline, provider: 'openai' })
 }

@@ -428,6 +428,10 @@ export type OutlineScene = {
   parts: OutlinePart[]
   relations: Array<{ from: string; to: string; verb: string }>
   narration: string
+  // The article's own sentences this scene rests on, verbatim. The outline
+  // is a summary and loses the motivating example, the number and the
+  // because; these carry them to the writer, which never sees the source.
+  source: string[]
 }
 export type Outline = {
   title: string
@@ -448,7 +452,7 @@ export const outlineSchema = () => ({
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['title', 'idea', 'kind', 'seconds', 'parts', 'relations', 'narration'],
+        required: ['title', 'idea', 'kind', 'seconds', 'parts', 'relations', 'narration', 'source'],
         properties: {
           title: { type: 'string' },
           idea: { type: 'string' },
@@ -463,6 +467,7 @@ export const outlineSchema = () => ({
             items: { type: 'object', additionalProperties: false, required: ['from', 'to', 'verb'], properties: { from: { type: 'string' }, to: { type: 'string' }, verb: { type: 'string', enum: [...VERBS] } } },
           },
           narration: { type: 'string' },
+          source: { type: 'array', items: { type: 'string' } },
         },
       },
     },
@@ -485,11 +490,17 @@ Return the video's title, a target runtime of about ${target} seconds, and 6 to 
 - seconds it deserves: the title 12 to 18, the close 8 to 14, others 20 to 70 in proportion to how much the viewer must take in; the sum should land near the target;
 - parts: the things the page must show, at most 8, each with a short label (2 to 4 words, as it would be drawn), a kind ("box" for a component or actor, "step" for an ordered stage, "number" for a figure with its unit, "note" for a short caption) and one line of detail; a "list" scene's parts are its points, a "numbers" scene's parts are its figures, a "title" and "close" scene have no parts;
 - relations between parts for diagram scenes: from label, to label, and a verb from the allowed set that says what happens between them; use "waits for" for sequential dependency, "sends to" or "feeds" for flow, "splits into" and "merges into" for fan out and fan in, "compares with" for contrast;
+- source: two to four FULL SENTENCES copied VERBATIM from the article that this scene rests on. A heading, a label or a fragment is not a passage: take whole sentences that carry what a drawing cannot — a number, a named example, a consequence, or a reason (the ones with "because", "so that", "when", "if", or a figure). Copy them exactly, do not paraphrase, do not stitch fragments together. They are the writer's only access to the article, so choose what the summary would lose. A title or close scene may have none;
 - narration: a first draft of what the presenter says on this scene, two to four plain sentences in the second person plural or first person plural, grounded in the source and naming the parts by their labels; the close hands over or lands the point.
 Also return a glossary of up to 12 terms the video introduces, each with a one-line meaning in the video's own words. Keep every label unique within a scene.`
 }
 
-export const sanitizeOutline = (raw: unknown, fallbackTitle: string): Outline => {
+// Loose comparison for "is this really in the article": whitespace, quotes
+// and case differ between what a model copies and what the page rendered.
+const flatten = (text: string) => text.toLowerCase().replace(/[\u2018\u2019\u201c\u201d"']/g, '').replace(/\s+/g, ' ').trim()
+
+export const sanitizeOutline = (raw: unknown, fallbackTitle: string, sourceText = ''): Outline => {
+  const haystack = flatten(sourceText)
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   const scenes = (Array.isArray(o.scenes) ? o.scenes : [])
     .map((entry, index): OutlineScene | null => {
@@ -528,6 +539,15 @@ export const sanitizeOutline = (raw: unknown, fallbackTitle: string): Outline =>
         parts,
         relations,
         narration: String(s.narration || '').trim().slice(0, 900),
+        // Verbatim or not at all: a passage the article does not contain is
+        // an invention, and the writer would treat it as fact.
+        // Verbatim, and a sentence rather than a heading: long enough to
+        // say something, and reading like prose or carrying a figure.
+        source: (Array.isArray(s.source) ? s.source : [])
+          .map(line => String(line || '').trim().replace(/\s+/g, ' ').slice(0, 320))
+          .filter(line => line.length >= 60 && line.split(' ').length >= 10 && (/[.!?]$/.test(line) || /\d/.test(line)))
+          .filter(line => !haystack || haystack.includes(flatten(line)))
+          .slice(0, 4),
       }
     })
     .filter((scene): scene is OutlineScene => Boolean(scene))

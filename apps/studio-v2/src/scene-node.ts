@@ -129,6 +129,8 @@ export const SceneBlock = Node.create({
       // The arc pass: a role that moved or an outro that now hands over
       // elsewhere, cleared when the scene is next saved.
       arcNote: { default: null },
+      // The article's own sentences this scene rests on (Phase 0 sources).
+      sourcePassages: { default: [] },
       // Animation mode for title-like pages: 'auto' (a living field) or 'off'.
       animationMode: { default: 'auto' },
       requiredArea: { default: '' },
