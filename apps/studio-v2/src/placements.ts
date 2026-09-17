@@ -53,6 +53,44 @@ export const pageToFrame = (
   }
 }
 
+// ——— The presenter's own room ———
+// A take is a person in a rectangle, and the part of that rectangle that must
+// stay clear is their head. Detection can refine it later; the default is the
+// conservative region a framed speaker occupies, with padding for the way they
+// move while talking.
+export type FaceRegion = { left: number; top: number; width: number; height: number }
+export const FACE_SAFE_DEFAULT: FaceRegion = { left: 0.18, top: 0.04, width: 0.64, height: 0.52 }
+
+/** Where a take's head sits inside a presenter rectangle, in frame units. */
+export const faceBoxIn = (camera: StageRect, region: FaceRegion = FACE_SAFE_DEFAULT, pad = 0.04): FrameBox => {
+  const left = Math.max(0, region.left - pad)
+  const top = Math.max(0, region.top - pad)
+  const width = Math.min(1 - left, region.width + pad * 2)
+  const height = Math.min(1 - top, region.height + pad * 2)
+  return {
+    left: camera.left + camera.width * left,
+    top: camera.top + camera.height * top,
+    width: camera.width * width,
+    height: camera.height * height,
+  }
+}
+
+/** The band burned captions occupy: nothing that matters may sit under it. */
+export const CAPTION_BAND: FrameBox = { left: 6, top: 84, width: 88, height: 14 }
+
+/** The room a presenter sweeps moving from one place to another. What the
+ * path crosses matters as much as where it starts and stops. */
+export const sweptBetween = (from: StageRect, to: StageRect): FrameBox => {
+  const left = Math.min(from.left, to.left)
+  const top = Math.min(from.top, to.top)
+  return {
+    left,
+    top,
+    width: Math.max(from.left + from.width, to.left + to.width) - left,
+    height: Math.max(from.top + from.height, to.top + to.height) - top,
+  }
+}
+
 const overlapArea = (a: FrameBox, b: FrameBox) => {
   const w = Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left)
   const h = Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top)

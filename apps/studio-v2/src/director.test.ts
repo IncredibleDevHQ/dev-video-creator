@@ -135,6 +135,36 @@ describe('director', () => {
     expect(large.scene.legibility.minTextPx.takeover).toBe(same.scene.legibility.minTextPx.takeover)
   })
 
+  it('keeps the page off the speaker\u2019s face, and prefers to stay put', () => {
+    // A page whose ink sits where a speaker's head would be.
+    const crowdedRight: SlideUnit[] = [
+      unit('a', 'box', 'One term', [700, 60, 500, 260]),
+      unit('b', 'box', 'Its meaning in a line', [700, 360, 500, 260]),
+    ]
+    const planned = planFromScript('One term and its meaning, side by side.', crowdedRight, { viewBox })!
+    const result = direct({ title: 'x', units: crowdedRight, viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } })
+    const options = result.layoutOptions[0]
+    const name = (option: (typeof options)[number]) => `${option.family}${option.treatment ? `/${option.treatment}` : ''}`
+    const covering = options.filter(option => /cover \d+% of your face/.test(option.why))
+    // Some layout puts the page over the face, and it is said plainly…
+    expect(covering.length).toBeGreaterThan(0)
+    // …and it is not the one chosen, nor anywhere near the top.
+    expect(covering.map(name)).not.toContain(name(options[0]))
+    expect(covering.every(option => option.score < options[0].score)).toBe(true)
+  })
+
+  it('needs a clear reason to move the speaker, not a marginal one', () => {
+    const page: SlideUnit[] = [
+      unit('a', 'box', 'One term', [100, 200, 300, 120]),
+      unit('b', 'box', 'Another term', [500, 200, 300, 120]),
+    ]
+    const planned = planFromScript('One term.\n\nAnother term.\n\nAnd that is both of them.', page, { viewBox })!
+    const result = direct({ title: 'x', units: page, viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } })
+    // Three similar beats do not become three different stagings.
+    const families = result.storyboard.filter(entry => entry.label !== 'Outro' && entry.label !== 'Lead into the next scene').map(entry => entry.family)
+    expect(new Set(families).size).toBeLessThanOrEqual(2)
+  })
+
   it('respects [panel] and [takeover] directions', () => {
     const planned = planFromScript(`The encoder and the decoder. [panel]`, diagram(), { viewBox })!
     const result = direct({ title: 'x', units: diagram(), viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } })

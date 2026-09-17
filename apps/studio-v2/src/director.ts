@@ -6,7 +6,7 @@
 // each beat, and the coach cues that follow. Pure functions; the studio
 // writes the result onto the scene node, the agent path can replace it.
 import type { MotionPlanV2, StageVariant, StageFamily as AnyStageFamily, StageTreatment as AnyStageTreatment } from 'markdown-composition'
-import { FLOATING_FAMILIES, bestVariant, coveredFraction, pageToFrame, placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt, type PlacementTrack } from './placements'
+import { CAPTION_BAND, FLOATING_FAMILIES, bestVariant, coveredFraction, faceBoxIn, pageToFrame, placementAt, placementsFor, sweptBetween, unitsOnScreenPerBeat, unitsOnStageAt, type PlacementTrack } from './placements'
 import { STAGE_BOARD_CONTENT, STAGE_LABELS, STAGE_OVERLAY_CONTENT, cameraRectAt, stageGeometryFor, isStageFamily } from 'markdown-composition'
 import { leafUnits, type SlideUnit } from './slide-atoms'
 import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
@@ -375,6 +375,9 @@ export const layoutOptionsFor = (
     // area that would sit on page ink there.
     ink?: Partial<Record<StageFamily, { variant: StageVariant; ink: number } | null>>
     previous?: StageFamily
+    // Where the speaker was on the beat before, so a move can be judged by
+    // what it crosses rather than only where it lands.
+    previousCamera?: { left: number; top: number; width: number; height: number }
   },
 ): LayoutOption[] => {
   const measure = measureBeat(units, plan, beat, context.visible, context.wish)
@@ -432,6 +435,38 @@ export const layoutOptionsFor = (
     }
     else if (measure.wish === 'page') wish = family.startsWith('content-') ? 1 : family === 'speaker-full' ? 0 : 0.5
     if (measure.wish && wish === 1) why.push(measure.wish === 'me' ? 'you asked for this line on you' : measure.wish === 'beside' ? 'you asked to be beside the page' : 'you asked the page to take the frame')
+    // The face stays clear, the captions stay readable, and a move is judged
+    // by what it crosses rather than only where it lands.
+    let clear = 1
+    let buries = false
+    // The beat's ink as this family would show it: mapped through this
+    // family's own content rect, because where the page sits differs.
+    const boxes = rect ? context.visible.map(unit => pageToFrame(unit.bbox, viewBox, rect)) : []
+    if (boxes.length) {
+      const camera = stageGeometryFor(family, variant).camera
+      if (camera) {
+        const onFace = coveredFraction(faceBoxIn(camera), boxes)
+        if (onFace > 0.08) {
+          clear -= Math.min(0.6, onFace)
+          why.push(`the page would cover ${Math.round(onFace * 100)}% of your face`)
+          // Burying the speaker's head is not a trade-off to be outweighed.
+          if (onFace > 0.3) buries = true
+        }
+        if (context.previousCamera) {
+          const crossed = coveredFraction(sweptBetween(context.previousCamera, camera), boxes)
+          if (crossed > 0.35) {
+            clear -= Math.min(0.25, (crossed - 0.35) * 0.6)
+            why.push('moving there crosses the action')
+          }
+        }
+      }
+      const underCaptions = coveredFraction(CAPTION_BAND, boxes)
+      if (underCaptions > 0.2 && rect && rect.top + rect.height > CAPTION_BAND.top) {
+        clear -= Math.min(0.3, underCaptions * 0.4)
+        why.push('the captions would sit on the action')
+      }
+    }
+    clear = clamp01(clear)
     const continuity = context.previous === family ? 1 : 0
     // A family pinned among these options is the wish, decisively.
     const pinned = context.pin && isStageFamily(context.pin) ? context.pin : null
@@ -443,11 +478,14 @@ export const layoutOptionsFor = (
     const motion = measure.plays ? (family === 'speaker-full' && !treatment ? 0 : family.startsWith('content-') || family === 'split' ? 1 : 0.6) : 0.5
     // The author's wish is decisive while it stays legible; the writer's
     // suggestion only nudges.
-    const weights = { legibility: 3, space: 2, presence: 1.5, wish: pinned ? 5 : measure.wish ? (context.wishPinned || measure.panelDirected ? 5 : 2) : 0, continuity: 0.4, motion: 1 }
+    // Continuity counts for more than it used to: a viewer keeps a spatial
+    // map, and a layout that changes every sentence takes it away. A move has
+    // to be clearly better, not marginally.
+    const weights = { legibility: 3, space: 2, presence: 1.5, wish: pinned ? 5 : measure.wish ? (context.wishPinned || measure.panelDirected ? 5 : 2) : 0, continuity: 1.2, motion: 1, clear: 1.5 }
     const total =
-      (legibility * weights.legibility + space * weights.space + presence * weights.presence + wish * weights.wish + continuity * weights.continuity + motion * weights.motion) /
-      (weights.legibility + weights.space + weights.presence + weights.wish + weights.continuity + weights.motion)
-    const hardFail = (needsPage && measure.brings && (!rect || textPx < LEGIBILITY_GATE_PX * 0.75)) || (measure.wish === 'me' && context.wishPinned && wish === 0)
+      (legibility * weights.legibility + space * weights.space + presence * weights.presence + wish * weights.wish + continuity * weights.continuity + motion * weights.motion + clear * weights.clear) /
+      (weights.legibility + weights.space + weights.presence + weights.wish + weights.continuity + weights.motion + weights.clear)
+    const hardFail = buries || (needsPage && measure.brings && (!rect || textPx < LEGIBILITY_GATE_PX * 0.75)) || (measure.wish === 'me' && context.wishPinned && wish === 0)
     const preferred = total + (treatment ? 0 : FAMILY_PREFERENCE[family] || 0)
     return {
       family,
@@ -767,6 +805,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
       arcRole,
       count: input.beats.length,
       visible,
+      ...(previous ? { previousCamera: stageGeometryFor(previous).camera || undefined } : {}),
       wish: input.layouts?.[beat.index],
       wishPinned: input.layoutsByAuthor?.[beat.index],
       pin: input.stagePins?.[beat.index],
