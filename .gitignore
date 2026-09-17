@@ -30,6 +30,7 @@ yarn-error.log*
 .env.production.local
 
 # all env files
+/.env
 **/*/.env
 
 # graphql related files

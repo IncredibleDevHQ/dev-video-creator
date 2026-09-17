@@ -16,7 +16,9 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { createRenderJob, executeRenderJob } from '@hyperframes/producer'
 import {
+  baseStatusOf,
   compileProject,
+  forkNotebook,
   generateSpeakerNotes,
   generateThemeDirections,
   mergedShapeCollection,
@@ -145,6 +147,20 @@ const readBody = async (request: IncomingMessage, maximumBytes: number) => {
     chunks.push(buffer)
   }
   return Buffer.concat(chunks)
+}
+
+// The base a video was forked from, as it was at the fork. Missing or
+// unreadable is not an error: the video simply has less to compare against.
+const readSnapshot = async (objectKey: string | undefined): Promise<ProjectDocumentV1 | null> => {
+  if (!objectKey) return null
+  try {
+    const { stream } = await getObject(objectKey)
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) chunks.push(chunk as Buffer)
+    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as ProjectDocumentV1
+  } catch {
+    return null
+  }
 }
 
 const readJson = async <T>(request: IncomingMessage, maximumBytes: number) =>
@@ -2532,6 +2548,61 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       const body = format === 'vtt' ? formatWebVtt(cues) : formatSrt(cues)
       response.writeHead(200, { 'content-type': format === 'vtt' ? 'text/vtt; charset=utf-8' : 'application/x-subrip; charset=utf-8', 'content-disposition': `attachment; filename="${String(stored.title || 'captions').replace(/[^\w.-]+/g, '-').slice(0, 60)}.${format}"`, 'x-caption-count': String(cues.length) })
       response.end(body)
+      return
+    }
+    // What a video was made from, and whether that base has moved since.
+    // Nothing is merged here: the answer is for the author to act on.
+    if (request.method === 'GET' && /^\/api\/projects\/[^/]+\/base$/.test(url.pathname)) {
+      const childId = decodeURIComponent(url.pathname.split('/')[3])
+      const child = await loadProjectArtifact(childId)
+      if (!child) throw new Error('Notebook not found')
+      const lineage = child.derivedFrom
+      if (!lineage?.notebook) {
+        json(response, 200, { derived: false })
+        return
+      }
+      const base = await loadProjectArtifact(lineage.notebook)
+      const snapshot = await readSnapshot(lineage.snapshot?.objectKey)
+      json(response, 200, { derived: true, base: base ? { id: base.id, title: base.title } : null, lineage, status: baseStatusOf(child, base, snapshot) })
+      return
+    }
+    // Fork a base notebook into its own video notebook. The snapshot and the
+    // child are written before the caller is told about either, and a repeat
+    // with the same fork key returns the child that already exists rather
+    // than making another one.
+    if (request.method === 'POST' && /^\/api\/projects\/[^/]+\/fork$/.test(url.pathname)) {
+      const baseId = decodeURIComponent(url.pathname.split('/')[3])
+      const body = await readJson<{ forkKey?: string; title?: string; kind?: string }>(request, 64 * 1024)
+      const forkKey = String(body.forkKey || '').trim()
+      if (!forkKey) throw new Error('A fork key is required')
+      const existing = (await listProjectArtifacts()).find(
+        row => (row as { derivedFrom?: { forkKey?: string } }).derivedFrom?.forkKey === forkKey,
+      )
+      if (existing) {
+        json(response, 200, { project: await loadProjectArtifact(existing.id), reused: true })
+        return
+      }
+      const base = await loadProjectArtifact(baseId)
+      if (!base) throw new Error('Base notebook not found')
+      const childId = `video-${randomUUID()}`
+      // The base as it was, kept with the child: the video stays renderable
+      // and intelligible even if the base later changes or goes away.
+      const snapshot = await storeAsset({
+        body: Buffer.from(JSON.stringify(base), 'utf8'),
+        contentType: 'application/json; charset=utf-8',
+        projectId: childId,
+        kind: 'base-snapshot',
+        extension: '.json',
+      })
+      const { project: child } = forkNotebook(base, {
+        id: childId,
+        title: String(body.title || '').trim() || undefined,
+        kind: String(body.kind || 'video'),
+        forkKey,
+        snapshot,
+      })
+      await saveProjectArtifact(child)
+      json(response, 201, { project: child, reused: false })
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/api/projects/')) {

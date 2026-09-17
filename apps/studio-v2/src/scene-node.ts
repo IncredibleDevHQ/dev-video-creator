@@ -135,6 +135,9 @@ export const SceneBlock = Node.create({
       program: { default: null },
       // The thing this page shares with its neighbours, performed at the cut.
       thread: { default: null },
+      // Where this scene came from when the notebook was forked from a base:
+      // the video's own id is its own, this is the reference back.
+      origin: { default: null },
       // Animation mode for title-like pages: 'auto' (a living field) or 'off'.
       animationMode: { default: 'auto' },
       requiredArea: { default: '' },

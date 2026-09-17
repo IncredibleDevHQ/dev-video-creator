@@ -6097,6 +6097,42 @@ const openAttentionVideoSample = async () => {
   }
 }
 
+// ——— Making a video from a base notebook ———
+// The base keeps the narrative, the facts and the wireframes; the video is a
+// notebook of its own, taken from a pinned revision of the base and free to
+// be enriched, restaged and recomposed without touching it.
+const createVideoFromBase = async (baseId: string, baseTitle: string) => {
+  // One key per attempt: a retry after an interrupted request returns the
+  // video that was already made instead of making a second one.
+  const forkKey = `fork-${baseId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  showToast('Making a video notebook from this base…')
+  try {
+    const { project: child, reused } = await fetchJson<{ project: ProjectDocumentV1; reused: boolean }>(
+      `/api/projects/${encodeURIComponent(baseId)}/fork`,
+      { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ forkKey, title: `${baseTitle} · video` }) },
+    )
+    showToast(reused ? 'That video already existed — opening it' : `Video notebook ready · ${child.derivedFrom?.receipt?.scenes || 0} scenes from ${baseTitle}`)
+    await openNotebook(child.id)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Could not create the video notebook')
+  }
+}
+
+// What this notebook was taken from, and whether that base has moved since.
+type BaseStatus = {
+  derived: boolean
+  base?: { id: string; title: string } | null
+  lineage?: { notebook: string; kind?: string; baseTitle?: string; forkedAt?: string }
+  status?: { stale: boolean; missing: boolean; pinned: string; revision: string; scenes: Array<{ scene: string; title: string; state: string }> }
+}
+const baseStatusFor = async (notebookId: string) => {
+  try {
+    return await fetchJson<BaseStatus>(`/api/projects/${encodeURIComponent(notebookId)}/base`)
+  } catch {
+    return { derived: false } as BaseStatus
+  }
+}
+
 const deleteNotebook = async (notebookId: string, title: string) => {  if (!window.confirm(`Delete the notebook "${title}"? Its recordings and assets go with it.`)) return
   await fetchJson<{ deleted: boolean }>(
     `/api/projects/${encodeURIComponent(notebookId)}`,
@@ -6261,6 +6297,37 @@ const notebookCard = (
     await deleteNotebook(entry.id, entry.title || 'Untitled notebook')
     if (!before) await renderNotebooksPage()
   })
+  if (!entry.derivedFrom) {
+    const video = document.createElement('button')
+    video.type = 'button'
+    video.className = 'button'
+    video.textContent = 'Create video'
+    video.title = 'Make a separate video notebook from this base — the base stays as it is'
+    video.addEventListener('click', async () => {
+      await createVideoFromBase(entry.id, entry.title || 'Untitled notebook')
+    })
+    actions.append(video)
+  } else if (known.has(entry.derivedFrom.notebook)) {
+    const base = document.createElement('button')
+    base.type = 'button'
+    base.className = 'button chrome-secondary'
+    base.textContent = 'Open base'
+    base.addEventListener('click', () => void openNotebook(entry.derivedFrom!.notebook))
+    actions.append(base)
+    // Has the base moved since this video was taken from it? Reported, never
+    // merged: what to do about it is the author's call.
+    void baseStatusFor(entry.id).then(answer => {
+      if (!answer.derived || !answer.status?.stale) return
+      const changed = answer.status.scenes.filter(scene => scene.state !== 'same')
+      const note = document.createElement('span')
+      note.className = 'notebook-kind-badge is-orphan'
+      note.textContent = 'base has changed'
+      note.title = changed.length
+        ? `Since this video was made: ${changed.map(scene => `${scene.title} (${scene.state})`).join(', ')}`
+        : 'The base notebook has changed since this video was made'
+      badges.append(note)
+    })
+  }
   actions.append(open, remove)
   card.append(main, badges, actions)
   return card

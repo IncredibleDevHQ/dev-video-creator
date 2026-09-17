@@ -303,13 +303,32 @@ export type StudioThemeV1 = {
   }
 }
 
+// Where a derived notebook came from. A video fork pins the revision of the
+// base it was taken from and keeps a snapshot of it, so the video stays
+// intelligible and renderable even when the base moves on or goes away.
+export type ProjectDerivationV1 = {
+  notebook: string
+  kind?: string
+  // The base as it was at the fork: a content revision, when it was taken,
+  // and the stored copy it was taken from.
+  baseRevision?: string
+  baseTitle?: string
+  forkedAt?: string
+  // The caller's own key for the fork, so an interrupted request that is
+  // retried returns the same child instead of making another one.
+  forkKey?: string
+  snapshot?: { assetId: string; objectKey: string }
+  // What the fork carried over, for the record.
+  receipt?: { scenes: number; assets: number; at: string }
+}
+
 export type ProjectDocumentV1 = {
   version: 1
   id: string
   title: string
   // Derivation lineage: this notebook was derived from another one (e.g. a
   // video fork of a presentation notebook). Optional and additive.
-  derivedFrom?: { notebook: string; kind?: string }
+  derivedFrom?: ProjectDerivationV1
   notebook: TiptapDocument
   fps: 30
   width: 1920
