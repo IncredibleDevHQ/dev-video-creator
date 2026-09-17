@@ -533,8 +533,8 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
  * keep the names the brief gave them. The page's own label and numbers stay
  * where they were — the artwork replaces the picture, not the words.
  */
-/** The narrowest column a drawn object can read in, at 1280x720. */
-export const MIN_OBJECT_COLUMN = 96
+/** The smallest a drawn object may end up on a 1280x720 page and still read. */
+export const MIN_OBJECT_SIDE = 48
 
 /** Raised when the page left no room for the drawing it asked for. */
 export class AppearanceTooSmall extends Error {}
@@ -572,11 +572,15 @@ export const wearAppearance = (
   if (!room.width || !room.height) return svg
   // A drawn object is the subject of its node, not a badge in the corner. A
   // column too narrow for it would put a smudge on the page and call it
-  // artwork: better to keep the wireframe and say so.
-  const wanted = Math.min(room.width / artwork.viewBox.width, room.height / artwork.viewBox.height) * artwork.viewBox.width
-  if (room.width < MIN_OBJECT_COLUMN || wanted < MIN_OBJECT_COLUMN) {
+  // artwork: better to keep the wireframe and say so. What matters is how big
+  // the drawing ends up, not how wide the column is — a tall object reads in a
+  // narrow column, a wide one does not.
+  const fitted = Math.min(room.width / artwork.viewBox.width, room.height / artwork.viewBox.height)
+  const drawnWidth = artwork.viewBox.width * fitted
+  const drawnHeight = artwork.viewBox.height * fitted
+  if (Math.min(drawnWidth, drawnHeight) < MIN_OBJECT_SIDE) {
     throw new AppearanceTooSmall(
-      `${unitId} reserves ${Math.round(room.width)} px for its drawing; a drawn object needs about ${MIN_OBJECT_COLUMN} — widen the node or start its words further right`,
+      `${unitId} leaves room for a ${Math.round(drawnWidth)}x${Math.round(drawnHeight)} drawing; nothing under ${MIN_OBJECT_SIDE} px a side reads at playback — widen the node or start its words further right`,
     )
   }
   const drawing = new DOMParser().parseFromString(artwork.svg, 'image/svg+xml').documentElement
