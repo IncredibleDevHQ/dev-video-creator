@@ -138,6 +138,9 @@ export const SceneBlock = Node.create({
       // Where this scene came from when the notebook was forked from a base:
       // the video's own id is its own, this is the reference back.
       origin: { default: null },
+      // Set when the words changed after a take was recorded: the take stays,
+      // the timing wants a look.
+      timingReview: { default: null },
       // Animation mode for title-like pages: 'auto' (a living field) or 'off'.
       animationMode: { default: 'auto' },
       requiredArea: { default: '' },

@@ -31,7 +31,7 @@ const program = (events: SceneProgram['beats'][number]['events']): SceneProgram 
   ],
 })
 
-const movesIn = (plan: { steps: Array<{ actions: Array<{ op: string; targets: string[]; value?: Record<string, number | string> }> }> }, beat: number) =>
+const movesIn = (plan: { steps: Array<{ actions: Array<{ op: string; targets: string[]; startMs: number; value?: Record<string, number | string> }> }> }, beat: number) =>
   plan.steps[beat].actions.filter(action => action.op === 'move')
 
 describe('the scene program', () => {
@@ -416,6 +416,35 @@ describe('the scene program', () => {
     // Its own behaviour, seeked from the scene's clock rather than played.
     expect(played.op).toBe('clip')
     expect(played.value).toMatchObject({ from: 0 })
+  })
+
+  // ——— An author's own timing ———
+  it('lands an event later when the author nudged it, without moving the words', () => {
+    const plain = compileSceneProgram(program([{ actor: 'actor-request', action: 'travel', to: 'node-bucket', cue: 'takes' }]), units, { viewBox })!
+    const nudged = compileSceneProgram(program([{ actor: 'actor-request', action: 'travel', to: 'node-bucket', cue: 'takes', nudgeMs: 600 }]), units, { viewBox })!
+    const at = (compiled: typeof plain) => movesIn(compiled.plan, 1)[0].startMs
+    expect(at(nudged) - at(plain)).toBe(600)
+    // The line itself is untouched: same words, same window.
+    expect(nudged.windows[1].say).toBe(plain.windows[1].say)
+  })
+
+  it("keeps an author's nudge when the line it was cued from is rewritten", () => {
+    const authored = sanitizeSceneProgram(program([{ actor: 'actor-request', action: 'travel', to: 'node-bucket', cue: 'takes', nudgeMs: -400 }]), units)!
+    const windows: SceneWindow[] = authored.beats.map(beat => ({ say: beat.say, parts: [] }))
+    windows[1] = { ...windows[1], say: 'A request turns up and takes a token from the bucket.' }
+    const edited = programWithEdits(authored, windows)
+    const carried = edited.beats[1].events!.find(event => event.action === 'travel')!
+    expect(carried.nudgeMs).toBe(-400)
+    expect(carried.id).toBe(authored.beats[1].events![0].id)
+  })
+
+  it('names every event and refuses a nudge past four seconds', () => {
+    const clean = sanitizeSceneProgram(program([{ actor: 'actor-request', action: 'travel', to: 'node-bucket', nudgeMs: 99_000 }]), units)!
+    const event = clean.beats[1].events![0]
+    expect(event.id).toBeTruthy()
+    expect(event.nudgeMs).toBe(4000)
+    // Every event on the page can be spoken of by name.
+    expect(clean.beats.flatMap(beat => beat.events || []).every(one => Boolean(one.id))).toBe(true)
   })
 
   it('refuses ids the page does not have', () => {

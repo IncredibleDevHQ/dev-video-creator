@@ -1517,6 +1517,15 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .se-window-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 10.5px; color: #52525b; }
 .se-window-controls label { display: inline-flex; align-items: center; gap: 4px; }
 .se-window-controls select { border: 1px solid #e4e4e7; border-radius: 6px; background: #fafafa; padding: 2px 4px; font: 500 10.5px system-ui; color: #18181b; max-width: 150px; }
+/* What happens on this line, and when: one row per event, nudged in
+   quarter seconds without touching the words that cued it. */
+.se-window-timing { display: grid; gap: 3px; }
+.se-window-timing .se-chip { display: grid; grid-template-columns: 1fr auto auto 58px; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 6px; background: #fafafa; border: 1px solid #f4f4f5; font-size: 10.5px; color: #3f3f46; }
+.se-window-timing .se-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.se-window-timing .se-chip button { padding: 0 6px; min-height: 18px; font-size: 11px; line-height: 1.4; border-radius: 5px; }
+.se-window-timing .se-chip small { text-align: right; color: #71717a; font-variant-numeric: tabular-nums; }
+button.se-state { border: 0; cursor: pointer; font-family: inherit; }
+button.se-state:hover { filter: brightness(.97); }
 .se-storyboard { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0; min-height: 0; }
 .se-storyboard:empty { display: none; }
 .se-board { flex: 0 0 auto; display: grid; gap: 3px; width: 112px; }

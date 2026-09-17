@@ -9753,6 +9753,7 @@ const teleprompterBox = $('#se-teleprompter') as HTMLElement
 const chipDialogue = $('#se-chip-dialogue') as HTMLElement
 const chipWindows = $('#se-chip-windows') as HTMLElement
 const chipMotion = $('#se-chip-motion') as HTMLElement
+const chipTiming = $('#se-chip-timing') as HTMLButtonElement
 
 const formatSeconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
 const paceWords = (wpm: number) => (wpm <= 125 ? 'Slow' : wpm <= 165 ? 'Natural' : 'Brisk')
@@ -9816,7 +9817,20 @@ const renderStateChips = () => {
   chipMotion.hidden = !state.motion
   chipMotion.textContent = state.motion ? `motion · ${dialogueSeconds(state)}s` : ''
   chipMotion.classList.toggle('is-approved', Boolean(state.motion))
+  // The take is never thrown away when the words change under it; the scene
+  // says so instead, and the author clears the mark when they have looked.
+  const review = findSlideLikeNode(state.nodeId)?.attrs.timingReview as { reason?: string } | null | undefined
+  chipTiming.hidden = !review
+  chipTiming.textContent = review ? `timing needs a look · ${review.reason || 'the words changed after the take'}` : ''
+  chipTiming.title = 'The recorded take is kept. Play it back against the new words, then click to clear this.'
 }
+chipTiming.addEventListener('click', () => {
+  const state = slideEditor
+  if (!state) return
+  writeSlideLikeNode(state.nodeId, { timingReview: null })
+  renderStateChips()
+  showToast('Timing marked as looked at — the take is untouched')
+})
 
 const insertAtCaret = (input: HTMLTextAreaElement, text: string) => {
   const start = input.selectionStart ?? input.value.length
@@ -10174,6 +10188,48 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
     chips.append(hint)
     const controls = document.createElement('div')
     controls.className = 'se-window-controls'
+    // What happens on this line, and when. Each event can be nudged earlier or
+    // later without touching the words that cued it.
+    let timingBlock: HTMLElement | null = null
+    const beat = state.program?.beats[index]
+    const happenings = [...(beat?.events || []), ...((beat?.then || []).flatMap(part => part.events || []))]
+    if (happenings.length) {
+      const timing = document.createElement('div')
+      timing.className = 'se-window-timing'
+      happenings.forEach(event => {
+        const row = document.createElement('div')
+        row.className = 'se-chip'
+        const name = document.createElement('span')
+        name.textContent = `${event.action}${event.cue ? ` · “${event.cue}”` : ''}`
+        const shift = (by: number) => {
+          event.nudgeMs = Math.max(-4000, Math.min(4000, (event.nudgeMs || 0) + by))
+          options.onChange()
+        }
+        const earlier = document.createElement('button')
+        earlier.type = 'button'
+        earlier.className = 'button chrome-secondary'
+        earlier.textContent = '←'
+        earlier.title = 'Land this a quarter second earlier'
+        earlier.addEventListener('click', clickEvent => {
+          clickEvent.stopPropagation()
+          shift(-250)
+        })
+        const later = document.createElement('button')
+        later.type = 'button'
+        later.className = 'button chrome-secondary'
+        later.textContent = '→'
+        later.title = 'Land this a quarter second later'
+        later.addEventListener('click', clickEvent => {
+          clickEvent.stopPropagation()
+          shift(250)
+        })
+        const at = document.createElement('small')
+        at.textContent = event.nudgeMs ? `${event.nudgeMs > 0 ? '+' : ''}${(event.nudgeMs / 1000).toFixed(2)}s` : 'on the word'
+        row.append(name, earlier, later, at)
+        timing.append(row)
+      })
+      timingBlock = timing
+    }
     const cameraLabel = document.createElement('label')
     cameraLabel.append('Camera ')
     const camera = document.createElement('select')
@@ -10209,6 +10265,7 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
     layoutWrap.append('Presenter ', layoutSelect)
     controls.append(cameraLabel, layoutWrap)
     details.append(chips, controls)
+    if (timingBlock) details.append(timingBlock)
     row.append(details)
     row.addEventListener('click', () => selectWindow(index))
   }
@@ -10534,6 +10591,13 @@ const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolea
   // A page with a program is planned from its events, at whatever pace the
   // scene is now set to, with whatever the dialogue now says.
   if (state.program) {
+    const spoken = scriptFromWindows(state.windows)
+    // A take was recorded against the words as they were. Changing them does
+    // not throw the take away — it marks what was timed to it as needing a
+    // look, which is the author's call to make, not the studio's.
+    if (project.recordedBlocks?.[state.nodeId] && spoken !== scriptFromWindows(state.program.beats.map(beat => ({ say: beat.say, parts: [] })))) {
+      writeSlideLikeNode(state.nodeId, { timingReview: { at: new Date().toISOString(), reason: 'the dialogue changed after this scene was recorded' } })
+    }
     state.program = programWithEdits(state.program, state.windows)
     const compiled = compileSceneProgram(state.program, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
     if (compiled) {
@@ -10862,6 +10926,104 @@ const illustrateUnit = async (unit: SlideUnit) => {
   setSlideEditorStatus(`${unit.label} is illustrated${record.kind === 'glyph' ? ' with a palette glyph (no image model configured)' : ''} — reused wherever a ${type} of that name appears`, 'ok')
   return record
 }
+// ——— Drawn objects ———
+// The richer appearance: a real drawing of the thing, rigged into named
+// pieces the scene can move on their own. The brief says what the thing is
+// and what its pieces are; the drawing is kept by that brief, so asking
+// twice for the same thing costs nothing. The artwork is worn into the
+// page's own SVG, which is what a scene saves — so the choice survives a
+// reopen without a second record to keep in step.
+type ObjectBriefCard = { entity: string; role: string; key: string; parts: string[]; prompt: string }
+type WornArtwork = { entity: string; key: string; accepted: boolean; problems: string[]; parts: Array<{ id: string; element: string; as?: string }>; missing: string[]; viewBox: { width: number; height: number }; svg: string }
+let briefCards: Promise<{ briefs: ObjectBriefCard[] }> | null = null
+let briefsKnown: ObjectBriefCard[] = []
+let artworkProvider: { configured: boolean; reason?: string } | null = null
+const objectBriefs = () =>
+  (briefCards ||= fetchJson<{ briefs: ObjectBriefCard[] }>('/api/appearance/briefs').then(answer => {
+    briefsKnown = answer.briefs
+    return answer
+  }))
+// Asked once when a scene opens, so the frame can offer the drawing
+// without waiting on the network at the moment of the click.
+const primeArtwork = () => {
+  if (artworkProvider) return
+  artworkProvider = { configured: false }
+  void fetchJson<{ configured: boolean; reason?: string }>('/api/appearance/provider')
+    .then(answer => {
+      artworkProvider = answer
+      return answer.configured ? objectBriefs() : null
+    })
+    .then(() => renderFrameBubble())
+    .catch(() => undefined)
+}
+// Which brief a part on the page is asking for: its own declared object
+// first, then its name, then the name of what it is.
+const briefForUnit = (unit: SlideUnit, briefs: ObjectBriefCard[]) => {
+  const declared = unit.appearance?.key
+  const named = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  return (
+    briefs.find(brief => brief.entity === declared) ||
+    briefs.find(brief => brief.entity === named(unit.label)) ||
+    briefs.find(brief => brief.role === named(unit.label)) ||
+    briefs.find(brief => named(unit.label).includes(brief.role)) ||
+    null
+  )
+}
+// The drawing this thing is wearing now: the ones it wore before are still
+// in the page, stood down rather than thrown away.
+const wornKey = (state: SlideEditorState, unit: SlideUnit) =>
+  new DOMParser()
+    .parseFromString(state.svg, 'image/svg+xml')
+    .querySelector(`[data-appearance-for="${unit.id}"][data-appearance-key]:not([data-appearance-replaced])`)
+    ?.getAttribute('data-appearance-key') || ''
+// Draw the thing, then wear it. A drawing that came back without its
+// pieces is reported and not worn: a scene that moves a piece by name
+// would silently do nothing.
+const drawObjectOn = async (unit: SlideUnit, options: { entity?: string; force?: boolean } = {}) => {
+  const state = slideEditor
+  if (!state) return null
+  let entity = options.entity
+  if (!entity) {
+    const { briefs } = await objectBriefs()
+    entity = briefForUnit(unit, briefs)?.entity
+  }
+  if (!entity) {
+    setSlideEditorStatus(`Nothing in the brief draws a ${unit.label}`, 'error')
+    return null
+  }
+  setSlideEditorStatus(`Drawing ${unit.label}…`, '')
+  let answer: { appearance: WornArtwork; reused: boolean }
+  try {
+    answer = await fetchJson<{ appearance: WornArtwork; reused: boolean }>('/api/appearance/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ entity, projectId: project.id, force: options.force || false }),
+    })
+  } catch (error) {
+    setSlideEditorStatus(error instanceof Error ? error.message : 'The artwork provider could not draw this', 'error')
+    return null
+  }
+  const artwork = answer.appearance
+  if (!artwork.accepted || !artwork.svg) {
+    setSlideEditorStatus(`The drawing of ${unit.label} came back without ${artwork.missing.length ? artwork.missing.join(', ') : 'its pieces'} — the page keeps its wireframe`, 'error')
+    return artwork
+  }
+  const worn = wearAppearance(state.svg, unit.id, artwork)
+  if (worn === state.svg) {
+    setSlideEditorStatus('This part has no element of its own to dress', 'error')
+    return artwork
+  }
+  state.svg = worn
+  state.lastChange = `Drew ${unit.label}`
+  markDirty(true)
+  writeSlideLikeNode(state.nodeId, { svg: state.svg })
+  if (state.windows.length) replan({ quiet: true })
+  else renderSlideEditorPreview()
+  renderFrameBubble()
+  setSlideEditorStatus(`${unit.label} is drawn as ${entity}${answer.reused ? ' (the drawing it already had)' : ''} — its ${artwork.parts.length} pieces move on their own`, 'ok')
+  return artwork
+}
+
 const removeAppearance = (unit: SlideUnit) => {
   const state = slideEditor
   if (!state) return false
@@ -11878,6 +12040,20 @@ const renderFrameBubble = () => {
         if (unit.kind === 'box' || unit.kind === 'shape' || unit.kind === 'group') {
           if (hasAppearance(state, unit)) quick('Remove the illustration', 'Back to the wireframe for this part', () => removeAppearance(unit))
           else quick('Illustrate this', 'An illustration of this thing in the video’s palette, kept in the asset library and reused wherever it appears', () => void illustrateUnit(unit), { ai: true })
+          // The drawn object: a real picture of this thing, rigged into
+          // pieces the scene can move one at a time.
+          const brief = artworkProvider?.configured ? briefForUnit(unit, briefsKnown) : null
+          if (brief) {
+            const already = wornKey(state, unit)
+            quick(
+              already ? 'Draw it again' : 'Draw this object',
+              already
+                ? `Ask for a fresh drawing of the ${brief.entity} — its ${brief.parts.length} pieces stay named, so the scene keeps working`
+                : `A drawing of the ${brief.entity}, rigged into ${brief.parts.join(', ')} so the scene can move each piece`,
+              () => void drawObjectOn(unit, { entity: brief.entity, force: Boolean(already) }),
+              { ai: true },
+            )
+          }
         }
       }
       quick('Rewrite the line around it', 'The editor rewrites this line so it turns on the selection', () => void requestEdit(`Rewrite this line so it turns on ${names.join(' and ')}.`, 'line'), { ai: true })
@@ -12289,6 +12465,7 @@ const missingFontNote = (svg: string) => {
 const openSlideEditor = (nodeId: string) => {
   const found = findSlideLikeNode(nodeId)
   if (!found) return
+  primeArtwork()
   const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
   if (!atomized.units.length) {
     showToast('This slide has no SVG to animate')
@@ -14114,6 +14291,61 @@ const sourceReadFile = async (file: File) => {
   dressScene: (nodeId: string, prefer: 'glyph' | 'image' = 'glyph') => illustrateSceneEntities(nodeId, prefer),
   remove: removeAsset,
   open: openAssetLibrary,
+  // The drawn-object path: what can be drawn, and drawing it onto a part.
+  briefs: () => objectBriefs(),
+  provider: () => artworkProvider,
+  // A whole group is a thing too: the bucket is the box, its track and its
+  // level together, and that is what a drawing replaces.
+  draw: (unitId: string, entity?: string, force?: boolean) => {
+    const unit = slideEditor ? flattenUnits(slideEditor.units).find(one => one.id === unitId) : null
+    return unit ? drawObjectOn(unit, { ...(entity ? { entity } : {}), ...(force ? { force } : {}) }) : Promise.resolve(null)
+  },
+  wornOn: (unitId: string) => {
+    const unit = slideEditor ? flattenUnits(slideEditor.units).find(one => one.id === unitId) : null
+    return unit && slideEditor ? wornKey(slideEditor, unit) : ''
+  },
+}
+// Dev hook: an author's timing nudge, and the review mark a changed script
+// leaves on a recorded scene.
+;(window as unknown as { __timing?: unknown }).__timing = {
+  nudge: (beatIndex: number, eventIndex: number, ms: number) => {
+    const state = slideEditor
+    const beat = state?.program?.beats[beatIndex]
+    if (!state || !beat) return null
+    const happenings = [...(beat.events || []), ...((beat.then || []).flatMap(part => part.events || []))]
+    const event = happenings[eventIndex]
+    if (!event) return null
+    event.nudgeMs = Math.max(-4000, Math.min(4000, (event.nudgeMs || 0) + ms))
+    replan({ quiet: true, rerender: true })
+    return { id: event.id, action: event.action, nudgeMs: event.nudgeMs }
+  },
+  nudges: (nodeId?: string) => {
+    const found = findSlideLikeNode(nodeId || slideEditor?.nodeId || '')
+    const program = found?.attrs.program as SceneProgram | null | undefined
+    return (program?.beats || []).flatMap((beat, at) =>
+      [...(beat.events || []), ...((beat.then || []).flatMap(part => part.events || []))].map(event => ({ at, id: event.id, action: event.action, nudgeMs: event.nudgeMs || 0 })),
+    )
+  },
+  review: (nodeId?: string) => findSlideLikeNode(nodeId || slideEditor?.nodeId || '')?.attrs.timingReview || null,
+  clearReview: () => chipTiming.click(),
+  // A take, without a microphone: the studio's own take record, put on a
+  // scene so the behaviour that depends on one can be exercised.
+  standInTake: (nodeId: string, durationMs = 8000) => {
+    const take: RecordedBlockV1 = {
+      blockId: nodeId,
+      recordingId: crypto.randomUUID(),
+      videoUrl: 'stand-in://take',
+      durationMs,
+      recordedAt: new Date().toISOString(),
+      storage: 'local',
+      keepsPlan: true,
+    }
+    project.recordedBlockTakes ||= {}
+    project.recordedBlockTakes[nodeId] = [...(project.recordedBlockTakes[nodeId] || []), take]
+    selectRecordedTake(nodeId, take)
+    return project.recordedBlocks?.[nodeId] || null
+  },
+  takeOn: (nodeId: string) => project.recordedBlocks?.[nodeId] || null,
 }
 ;($('#video-length') as HTMLButtonElement).addEventListener('click', () => {
   const current = project.outline?.targetSeconds

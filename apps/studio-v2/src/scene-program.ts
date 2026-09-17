@@ -57,6 +57,9 @@ export type ProgramActor = {
 }
 
 export type ProgramEvent = {
+  // A name of its own, so an author can nudge this event's timing and the
+  // nudge survives the line being rewritten, split, merged or re-cut.
+  id?: string
   actor: string
   action: ProgramAction
   to?: string
@@ -64,6 +67,8 @@ export type ProgramEvent = {
   state?: string
   cue?: string
   holdMs?: number
+  // Later or earlier than where the words put it, in milliseconds.
+  nudgeMs?: number
 }
 
 // Recomposing the page on purpose: a thing is made bigger, sent to one side,
@@ -149,7 +154,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
       const say = asString(beat.say, 600)
       if (!say) return null
       const events = (Array.isArray(beat.events) ? beat.events : [])
-        .map(item => {
+        .map((item, index) => {
           const event = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>
           const actor = asString(event.actor, 120)
           const act = PROGRAM_ACTIONS.includes(event.action as ProgramAction) ? (event.action as ProgramAction) : null
@@ -157,9 +162,12 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
           // event may name anything the page drew.
           if (!act || !known.has(actor)) return null
           const to = asString(event.to, 120)
+          const nudge = Number(event.nudgeMs)
           return {
+            id: asString(event.id, 40) || `${act}-${actor}-${index}`,
             actor,
             action: act,
+            ...(Number.isFinite(nudge) && nudge !== 0 ? { nudgeMs: Math.max(-4_000, Math.min(4_000, Math.round(nudge))) } : {}),
             ...(to && known.has(to) ? { to } : {}),
             ...(Number.isFinite(Number(event.amount)) ? { amount: Math.max(1, Math.round(Number(event.amount))) } : {}),
             ...(asString(event.state, 24) ? { state: asString(event.state, 24) } : {}),
@@ -612,7 +620,8 @@ export const compileSceneProgram = (
     const playPart = (part: ProgramBeat) => {
     const startedAt = cursor
     const events = part.events || []
-    const landsAt = (index: number) => Math.max(startedAt, cueAt(events[index]?.cue, index, events.length))
+    const landsAt = (index: number) =>
+      Math.max(startedAt, cueAt(events[index]?.cue, index, events.length) + (Number(events[index]?.nudgeMs) || 0))
     // Recomposition happens as the moment opens, so the events that follow
     // play out on the new arrangement.
     ;(part.restage || []).forEach(entry => {
