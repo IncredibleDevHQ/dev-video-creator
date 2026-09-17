@@ -355,6 +355,66 @@ describe('the scene program', () => {
     expect(level.value).toMatchObject({ from: 1, to: 2 / 3 })
   })
 
+  it('spends the number, the bar and the tokens from one quantity', () => {
+    // A bucket wearing artwork whose three tokens are separate pieces.
+    const dressed: SlideUnit[] = [
+      {
+        ...unit('node-bucket', 'Token bucket', [700, 300, 260, 140]),
+        ids: ['node-bucket', 'art-level', 'art-tokens', 'art-token-1', 'art-token-2', 'art-token-3'],
+        appearance: {
+          parts: {
+            level: 'art-level',
+            tokens: 'art-tokens',
+            'tokens-1': 'art-token-1',
+            'tokens-2': 'art-token-2',
+            'tokens-3': 'art-token-3',
+          },
+        },
+      },
+      unit('actor-request', 'Request', [150, 340, 40, 40], { kind: 'shape', actorRole: 'request' }),
+    ]
+    const holding = program([{ actor: 'node-bucket', action: 'spend', amount: 2, cue: 'takes' }])
+    holding.cast[0].quantity = { of: 'tokens', value: 3, max: 3, shownOn: 'node-bucket.level', counted: 'node-bucket.tokens' }
+    const compiled = compileSceneProgram(holding, dressed, { viewBox })!
+    const spending = compiled.plan.steps[1].actions
+    // The bar drains to a third…
+    expect(spending.find(action => action.op === 'level')!.value).toMatchObject({ from: 1, to: 1 / 3 })
+    // …and the last two tokens leave, newest first, one after the other.
+    const left = spending.filter(action => action.op === 'exit').map(action => action.targets[0])
+    expect(left).toEqual(['art-token-3', 'art-token-2'])
+    // Refilling brings one back, and never more than the thing can hold.
+    const back = compileSceneProgram(
+      { ...holding, beats: [...holding.beats, { id: 'b4', moment: 'resolve', say: 'A token drips back in.', events: [{ actor: 'node-bucket', action: 'refill', amount: 1, cue: 'drips' }] }] },
+      dressed,
+      { viewBox },
+    )!
+    const returned = back.plan.steps[3].actions.filter(action => action.op === 'reveal').map(action => action.targets[0])
+    expect(returned).toEqual(['art-token-2'])
+  })
+
+  it('lets the artwork answer the event that happened to it', () => {
+    const dressed: SlideUnit[] = [
+      {
+        ...unit('node-server', 'Server', [700, 300, 260, 140]),
+        ids: ['node-server', 'art-indicator'],
+        appearance: { parts: { indicator: 'art-indicator' } },
+      },
+      unit('actor-request', 'Request', [150, 340, 40, 40], { kind: 'shape', actorRole: 'request' }),
+    ]
+    const working = program([{ actor: 'actor-request', action: 'pass', to: 'node-server', cue: 'through' }])
+    working.cast = [{ id: 'node-server', role: 'server', shows: { pass: 'node-server.indicator' } }]
+    const compiled = compileSceneProgram(working, dressed, { viewBox })!
+    // Nothing reacts for the request; the server's own indicator lights.
+    const lit = compiled.plan.steps[1].actions.find(action => action.targets[0] === 'art-indicator')
+    expect(lit).toBeUndefined()
+    const onServer = compileSceneProgram(
+      { ...working, beats: working.beats.map((beat, index) => (index === 1 ? { ...beat, events: [{ actor: 'node-server', action: 'pass', to: 'node-server', cue: 'through' }] } : beat)) },
+      dressed,
+      { viewBox },
+    )!
+    expect(onServer.plan.steps[1].actions.some(action => action.targets[0] === 'art-indicator')).toBe(true)
+  })
+
   it('refuses ids the page does not have', () => {
     const raw = program([{ actor: 'ghost', action: 'travel', to: 'node-bucket' }])
     const clean = sanitizeSceneProgram(raw, units)

@@ -522,7 +522,7 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
 export const wearAppearance = (
   svg: string,
   unitId: string,
-  artwork: { svg: string; key?: string; parts: Array<{ id: string; element: string }>; viewBox: { width: number; height: number } },
+  artwork: { svg: string; key?: string; parts: Array<{ id: string; element: string; as?: string }>; viewBox: { width: number; height: number } },
 ) => {
   const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml')
   const root = parsed.documentElement
@@ -555,9 +555,9 @@ export const wearAppearance = (
   Array.from(drawing.childNodes).forEach(node => group.appendChild(parsed.importNode(node, true)))
   // Name the pieces the scene will move, by the brief's own names.
   artwork.parts.forEach(part => {
-    const name = part.id.split('-').slice(-1)[0]
     const piece = group.querySelector(`#${CSS.escape(part.id)}`)
-    if (piece) piece.setAttribute('data-part', name)
+    // The scene's own name for it, whatever the drawing happened to call it.
+    if (piece) piece.setAttribute('data-part', part.as || part.id.split('-').slice(-1)[0])
   })
   host.appendChild(group)
   return new XMLSerializer().serializeToString(root)

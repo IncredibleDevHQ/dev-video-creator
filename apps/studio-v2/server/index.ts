@@ -63,7 +63,7 @@ const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
 import { checkPageContract, outlinePrompt, outlineSchema, pageBrandFrom, readSourceNarrative, readSourceUrl, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
 import { REFERENCE_STYLE, acceptArtwork, briefKey, briefPrompt, referenceObjects, type ObjectBrief } from './appearance'
-import { generateObjectSvg, quiverCapability, quiverConfigured } from './providers/quiver'
+import { generateObjectSvg, quiverCapability, quiverConfigured, repairObjectSvg, type GeneratedArtwork } from './providers/quiver'
 const require = createRequire(import.meta.url)
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
@@ -175,13 +175,13 @@ type AppearanceRecord = {
   key: string
   accepted: boolean
   problems: string[]
-  parts: Array<{ id: string; element: string }>
+  parts: Array<{ id: string; element: string; as: string }>
   missing: string[]
   ports: ObjectBrief['ports']
   viewBox: { width: number; height: number }
   svg: string
-  provenance: { provider: string; model: string; requestId: string; at: string; credits?: number; usage?: Record<string, unknown> }
-  assets: { original: string; normalized?: string }
+  provenance: { provider: string; model: string; requestId: string; at: string; credits?: number; usage?: Record<string, unknown>; repairedBy?: string; repairUsage?: Record<string, unknown> }
+  assets: { original: string; rigged?: string; normalized?: string }
 }
 
 const readSnapshot = async (objectKey: string | undefined): Promise<ProjectDocumentV1 | null> => {
@@ -2619,9 +2619,26 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       if (spent >= budget) throw new Error(`This notebook has used its artwork budget (${budget} drawings)`)
       await saveSetting(spentKey, spent + 1)
       const drawn = await generateObjectSvg(brief, { model: body.model, traceId: `appearance-${key}` })
-      const accepted = acceptArtwork(drawn.svg, brief)
+      let accepted = acceptArtwork(drawn.svg, brief)
+      let repair: GeneratedArtwork | null = null
+      // The drawing may be right while the rig is missing. One bounded repair
+      // asks for the pieces to be grouped and named without redrawing them; a
+      // repair that does not help is discarded, not accepted quietly.
+      if (!accepted.ok && accepted.missing.length && !accepted.problems.some(problem => problem.startsWith('it '))) {
+        try {
+          repair = await repairObjectSvg(drawn.svg, brief, { model: body.model, traceId: `appearance-${key}-rig` })
+          const repaired = acceptArtwork(repair.svg, brief)
+          if (repaired.missing.length < accepted.missing.length) accepted = repaired
+          else repair = null
+        } catch (error) {
+          accepted.problems.push(`the parts could not be grouped: ${error instanceof Error ? error.message : 'the repair failed'}`)
+        }
+      }
       // Both are kept: what came back, and what the studio will use.
       const original = await storeAsset({ body: Buffer.from(drawn.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance-original', extension: '.svg' })
+      const rigged = repair
+        ? await storeAsset({ body: Buffer.from(repair.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance-rigged', extension: '.svg' })
+        : null
       const normalized = accepted.svg
         ? await storeAsset({ body: Buffer.from(accepted.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance', extension: '.svg' })
         : null
@@ -2635,8 +2652,8 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         ports: accepted.ports,
         viewBox: accepted.viewBox,
         svg: accepted.svg,
-        provenance: { provider: 'quiver', model: drawn.model, requestId: drawn.requestId, at: new Date().toISOString(), ...(drawn.credits !== undefined ? { credits: drawn.credits } : {}), usage: drawn.usage },
-        assets: { original: original.objectKey, ...(normalized ? { normalized: normalized.objectKey } : {}) },
+        provenance: { provider: 'quiver', model: drawn.model, requestId: drawn.requestId, at: new Date().toISOString(), ...(drawn.credits !== undefined ? { credits: drawn.credits } : {}), usage: drawn.usage, ...(repair ? { repairedBy: repair.requestId, repairUsage: repair.usage } : {}) },
+        assets: { original: original.objectKey, ...(rigged ? { rigged: rigged.objectKey } : {}), ...(normalized ? { normalized: normalized.objectKey } : {}) },
       }
       // A failed candidate never replaces artwork that was accepted before.
       if (accepted.ok) await saveSetting(`appearance:${key}`, record)

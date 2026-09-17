@@ -161,7 +161,9 @@ export type AcceptedArtwork = {
   svg: string
   viewBox: { width: number; height: number }
   /** Which of the brief's parts were found, by their new ids. */
-  parts: Array<{ id: string; element: string }>
+  /** The element found for each part the brief named: its id in the accepted
+   * drawing, the element it is, and the name the scene knows it by. */
+  parts: Array<{ id: string; element: string; as: string }>
   missing: string[]
   /** Ports in the object's own box, carried from the brief. */
   ports: ObjectBrief['ports']
@@ -182,12 +184,20 @@ export const acceptArtwork = (raw: string, brief: ObjectBrief): AcceptedArtwork 
   if (EXTERNAL_REFERENCE.test(svg)) problems.push('it points at something outside itself')
   // One prefix per object, so two objects on one page cannot collide.
   const prefix = `ap-${briefKey(brief).slice(0, 8)}`
-  const found: Array<{ id: string; element: string }> = []
+  const found: Array<{ id: string; element: string; as: string }> = []
   const missing: string[] = []
   brief.parts.forEach(part => {
-    const pattern = new RegExp(`<\\s*([a-zA-Z]+)\\b[^>]*\\bid\\s*=\\s*["']${part.id}["']`, 'i')
-    const hit = pattern.exec(svg)
-    if (hit) found.push({ id: `${prefix}-${part.id}`, element: hit[1].toLowerCase() })
+    // A part has to be findable, not spelled exactly: a generator that groups
+    // the tokens as "tokens", "tokens--part-1" or marks them data-part="tokens"
+    // has given the scene what it needs. The name is ours; the id is theirs.
+    const candidates = [
+      new RegExp(`<\\s*([a-zA-Z]+)\\b[^>]*\\bid\\s*=\\s*["']${part.id}["']`, 'i'),
+      new RegExp(`<\\s*([a-zA-Z]+)\\b[^>]*\\bdata-part\\s*=\\s*["']${part.id}["'][^>]*\\bid\\s*=\\s*["']([^"']+)["']`, 'i'),
+      new RegExp(`<\\s*([a-zA-Z]+)\\b[^>]*\\bid\\s*=\\s*["'](${part.id}[-_][^"']*)["']`, 'i'),
+      new RegExp(`<\\s*([a-zA-Z]+)\\b[^>]*\\bid\\s*=\\s*["']([^"']*[-_]${part.id})["']`, 'i'),
+    ]
+    const hit = candidates.map(pattern => pattern.exec(svg)).find(Boolean)
+    if (hit) found.push({ id: `${prefix}-${hit[2] || part.id}`, element: hit[1].toLowerCase(), as: part.id })
     else missing.push(part.id)
   })
   if (missing.length) problems.push(`the scene needs these parts and they are not in the drawing: ${missing.join(', ')}`)

@@ -15,6 +15,8 @@ export type QuiverCapability = {
   model: string
   /** Models this key may actually call, with the operations they advertise. */
   models?: Array<{ id: string; operations: string[] }>
+  /** Whether this key may browse the catalogue at all. */
+  canList?: boolean
   reason?: string
 }
 
@@ -34,15 +36,20 @@ export const quiverCapability = async (): Promise<QuiverCapability> => {
   }
   try {
     const response = await fetch(`${BASE_URL}/v1/models`, { headers: headers() })
+    if (response.status === 401 || response.status === 403) {
+      // Some keys may draw but may not browse the catalogue. That is a
+      // narrower authority, not an unusable provider.
+      return { configured: true, baseUrl: BASE_URL, model: DEFAULT_MODEL, canList: false, reason: 'this key may not list models; generation is attempted with the configured model' }
+    }
     if (!response.ok) {
-      return { configured: true, baseUrl: BASE_URL, model: DEFAULT_MODEL, reason: `the provider answered ${response.status}: ${(await response.text()).slice(0, 160)}` }
+      return { configured: true, baseUrl: BASE_URL, model: DEFAULT_MODEL, canList: false, reason: `the provider answered ${response.status}: ${(await response.text()).slice(0, 160)}` }
     }
     const body = (await response.json()) as { data?: Array<Record<string, unknown>> }
     const models = (body.data || []).map(entry => ({
       id: String(entry.id || entry.model || ''),
       operations: (Array.isArray(entry.supported_operations) ? entry.supported_operations : []).map(String),
     }))
-    return { configured: true, baseUrl: BASE_URL, model: DEFAULT_MODEL, models }
+    return { configured: true, baseUrl: BASE_URL, model: DEFAULT_MODEL, canList: true, models }
   } catch (error) {
     return { configured: true, baseUrl: BASE_URL, model: DEFAULT_MODEL, reason: error instanceof Error ? error.message : 'the provider could not be reached' }
   }
@@ -129,6 +136,46 @@ export const generateObjectSvg = async (
     }
     throw new Error(`The artwork provider answered ${response.status}: ${message}`)
   }
+  const payload = JSON.parse(text) as Record<string, unknown>
+  return {
+    svg: svgFrom(payload),
+    model,
+    requestId: String(payload.id || ''),
+    usage: (payload.usage as Record<string, unknown>) || undefined,
+    credits: typeof payload.credits === 'number' ? payload.credits : undefined,
+  }
+}
+
+/**
+ * A bounded repair: the drawing is right but the scene cannot hold it, because
+ * the pieces it must move are not separable. The provider is asked to group
+ * and name them, changing nothing that is drawn. One attempt, then the
+ * limitation is reported rather than papered over.
+ */
+export const repairObjectSvg = async (
+  svg: string,
+  brief: ObjectBrief,
+  options: { model?: string; signal?: AbortSignal; traceId?: string } = {},
+): Promise<GeneratedArtwork> => {
+  if (!quiverConfigured()) throw new Error('The artwork provider is not configured (QUIVER_API_KEY is not set)')
+  const model = options.model || DEFAULT_MODEL
+  const response = await fetch(`${BASE_URL}/v1/svgs/edits`, {
+    method: 'POST',
+    headers: { ...headers(), ...(options.traceId ? { 'x-trace-id': options.traceId } : {}) },
+    signal: options.signal,
+    body: JSON.stringify({
+      model,
+      svg_source: { base64: Buffer.from(svg, 'utf8').toString('base64') },
+      prompt: [
+        'Do not change what this drawing looks like. Change only its structure.',
+        `Wrap the existing shapes into groups so the animation can move them: ${brief.parts.map(part => `<g id="${part.id}"> around ${part.what}`).join('; ')}.`,
+        'Every shape already in the file must end up inside exactly one of those groups, keeping its own attributes and its drawing order.',
+        'Add no new shapes, no text, and no background rectangle.',
+      ].join(' '),
+    }),
+  })
+  const text = await response.text()
+  if (!response.ok) throw new Error(`The artwork provider could not group the parts (${response.status}): ${text.slice(0, 200)}`)
   const payload = JSON.parse(text) as Record<string, unknown>
   return {
     svg: svgFrom(payload),

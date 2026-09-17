@@ -45,7 +45,15 @@ export type ProgramActor = {
   state?: string
   // What the thing holds, when it holds anything countable: tokens in a
   // bucket, slots in a pool. The compiler counts it up and down on screen.
-  quantity?: { of?: string; value: number; max?: number; shownOn?: string }
+  //
+  // One quantity, shown every way the artwork can show it: a number counts, a
+  // bar drains, and countable pieces leave one at a time. `shownOn` is the
+  // number or the bar; `counted` names the pieces — "bucket.tokens" when the
+  // drawing gave them a group, and each child of that group is one unit.
+  quantity?: { of?: string; value: number; max?: number; shownOn?: string; counted?: string }
+  // Which piece of its artwork answers which kind of event: the indicator
+  // that lights while it works, the mark that turns when a call is refused.
+  shows?: { spend?: string; refill?: string; pass?: string; reject?: string; arrive?: string }
 }
 
 export type ProgramEvent = {
@@ -109,10 +117,18 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
       if (!id || !known.has(id)) return null
       const quantity = actor.quantity && typeof actor.quantity === 'object' ? (actor.quantity as Record<string, unknown>) : null
       const shownOn = quantity ? asString(quantity.shownOn, 120) : ''
+      const counted = quantity ? asString(quantity.counted, 120) : ''
+      const shows = (actor.shows && typeof actor.shows === 'object' ? actor.shows : {}) as Record<string, unknown>
+      const reactions = Object.fromEntries(
+        (['spend', 'refill', 'pass', 'reject', 'arrive'] as const)
+          .map(kind => [kind, asString(shows[kind], 120)])
+          .filter(([, piece]) => piece && known.has(piece as string)),
+      )
       return {
         id,
         role: asString(actor.role, 24) || undefined,
         state: asString(actor.state, 24) || undefined,
+        ...(Object.keys(reactions).length ? { shows: reactions } : {}),
         ...(quantity && Number.isFinite(Number(quantity.value))
           ? {
               quantity: {
@@ -120,6 +136,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
                 value: Math.max(0, Math.round(Number(quantity.value))),
                 ...(Number.isFinite(Number(quantity.max)) ? { max: Math.max(1, Math.round(Number(quantity.max))) } : {}),
                 ...(shownOn && known.has(shownOn) ? { shownOn } : {}),
+                ...(counted && known.has(counted) ? { counted } : {}),
               },
             }
           : {}),
@@ -220,7 +237,7 @@ const speechMs = (text: string, wpm: number) => Math.max(900, Math.round((text.s
  */
 type Box = { x: number; y: number; width: number; height: number }
 
-type Held = { of?: string; value: number; max?: number; shownOn?: string }
+type Held = { of?: string; value: number; max?: number; shownOn?: string; counted?: string }
 
 // Where a recomposed thing goes: the page's own thirds, so two outcomes end
 // up on opposite sides and a subject ends up in the middle of the frame.
@@ -425,21 +442,63 @@ export const compileSceneProgram = (
   }
   const boxOf = (id: string) => unitFor(partOf(id) || id)?.bbox
   const held = new Map(program.cast.filter(actor => actor.quantity).map(actor => [actor.id, { ...actor.quantity! }]))
+  // Which piece of an actor's artwork answers which kind of event.
+  const reacting = new Map(program.cast.filter(actor => actor.shows).map(actor => [actor.id, actor.shows!]))
+  const reactionFor = (actorId: string, action: ProgramAction) => {
+    const piece = reacting.get(actorId)?.[action === 'travel' ? 'arrive' : (action as 'spend' | 'refill' | 'pass' | 'reject')]
+    return piece ? partOf(piece) || piece : ''
+  }
   // How much a thing holds, shown the way the page drew it: a number counts,
   // anything else is a bar and moves by how full it is.
+  // The countable pieces of a thing, in the order they were drawn: the
+  // children of the group the quantity names, one element per unit held.
+  const piecesOf = (name: string | undefined) => {
+    if (!name) return []
+    const group = partOf(name) || name
+    const owner = unitFor(name.split('.')[0])
+    const parts = owner?.appearance?.parts || {}
+    const prefix = `${name.split('.').slice(1).join('.')}-`
+    const numbered = Object.keys(parts)
+      .filter(part => part.startsWith(prefix) && /\d+$/.test(part))
+      .sort((a, b) => Number(a.match(/\d+$/)![0]) - Number(b.match(/\d+$/)![0]))
+      .map(part => parts[part])
+    if (numbered.length) return numbered
+    // No numbered siblings: the group itself is the only piece there is.
+    return group ? [group] : []
+  }
   const showQuantity = (store: Held, before: number, after: number, at: number): MotionAction[] => {
-    if (!store.shownOn) return []
-    // The element the page named, not the thing it sits inside: a bar drawn
-    // within a node belongs to that node's unit, and scaling the unit would
-    // shrink the node itself.
-    // The element the page named — or the piece of the artwork it named.
-    const shown = partOf(store.shownOn) || store.shownOn
-    const itself = flattenUnits(units).find(unit => unit.id === shown)
+    const out: MotionAction[] = []
     const ceiling = store.max || Math.max(1, before, after)
-    if (itself?.kind === 'label') {
-      return [act('count', [shown], at, { durationMs: 520, value: { from: before, to: after } })]
+    // The number, and the bar. The element the page named — or the piece of
+    // the artwork it named, because scaling the whole node would shrink the
+    // thing rather than what it holds.
+    if (store.shownOn) {
+      const shown = partOf(store.shownOn) || store.shownOn
+      const itself = flattenUnits(units).find(unit => unit.id === shown)
+      out.push(
+        itself?.kind === 'label'
+          ? act('count', [shown], at, { durationMs: 520, value: { from: before, to: after } })
+          : act('level', [shown], at, { value: { from: before / ceiling, to: after / ceiling } }),
+      )
     }
-    return [act('level', [shown], at, { value: { from: before / ceiling, to: after / ceiling } })]
+    // And the pieces themselves: one leaves for each unit spent, one returns
+    // for each refilled, in the order they were drawn. The same quantity — so
+    // the number, the bar and the tokens can never disagree.
+    const pieces = piecesOf(store.counted)
+    if (pieces.length > 1) {
+      const kept = Math.max(0, Math.min(pieces.length, after))
+      const was = Math.max(0, Math.min(pieces.length, before))
+      if (after < before) {
+        pieces.slice(kept, was).reverse().forEach((piece, index) => {
+          out.push(act('exit', [piece], at + index * 160, { durationMs: 260 }))
+        })
+      } else if (after > before) {
+        pieces.slice(was, kept).forEach((piece, index) => {
+          out.push(act('reveal', [piece], at + index * 160, { durationMs: 320 }))
+        })
+      }
+    }
+    return out
   }
   // A page's labelled node stays where it was drawn: sliding it across the
   // page breaks the arrangement the reader learned. Only a thing the page
@@ -587,6 +646,13 @@ export const compileSceneProgram = (
       cursor = Math.max(cursor, landsAt(eventIndex))
       const actorUnit = unitFor(event.actor)
       if (actorUnit) parts.add(actorUnit.id)
+      // The piece of its artwork that answers this kind of event: an
+      // indicator that lights while it works, a mark that turns when a call
+      // is refused. One flourish, at the moment the event lands.
+      const reacts = reactionFor(event.actor, event.action)
+      if (reacts) {
+        actions.push(act(event.action === 'reject' ? 'pulse' : 'emphasize', [reacts], cursor, { persistence: 'flourish' }))
+      }
       const targetUnit = event.to ? unitFor(event.to) : undefined
       if (targetUnit) parts.add(targetUnit.id)
       switch (event.action) {
