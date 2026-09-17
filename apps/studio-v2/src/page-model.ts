@@ -113,7 +113,7 @@ export const pageModelFor = (units: SlideUnit[]): PageModel => {
   const page = { id: 'page', kind: 'group', label: 'Page', ids: [], bbox: { x: 0, y: 0, width: viewBoxOf(units).width, height: viewBoxOf(units).height }, chrome: false, children: units } as SlideUnit
   const candidates = [...groups, page]
   candidates.forEach(group => {
-    const members = leafUnits([group]).filter(unit => (unit.kind === 'box' || unit.kind === 'shape') && !unit.chrome)
+    const members = leafUnits([group]).filter(unit => (unit.kind === 'box' || unit.kind === 'shape') && !unit.chrome && !unit.actorRole)
     if (members.length < 2) return
     const memberIds = new Set(members.map(unit => unit.id))
     const inner = edges.filter(edge => memberIds.has(edge.source.id) && memberIds.has(edge.target.id))
@@ -158,7 +158,8 @@ export const pageModelFor = (units: SlideUnit[]): PageModel => {
   diagrams.push(...unique)
 
   const entities: PageEntity[] = leafUnits(units)
-    .filter(unit => (unit.kind === 'box' || unit.kind === 'shape') && !unit.chrome)
+    // An actor is a thing the page moves, not part of what the page shows.
+    .filter(unit => (unit.kind === 'box' || unit.kind === 'shape') && !unit.chrome && !unit.actorRole)
     .map(unit => {
       // A page that declares what a thing is beats a guess from its words.
       const declared = unit.entityType && ENTITY_TYPES[unit.entityType] ? unit.entityType : ''

@@ -28,6 +28,9 @@ export type SlideUnit = {
   // service, cache, worker, browser, cdn …): the appearance layer draws it
   // and the driver gives it its own motion.
   entityType?: string
+  // A thing the page drew to be moved: a request, a token, a packet. It
+  // starts hidden and only a scene program brings it on and travels it.
+  actorRole?: string
   verb?: string
   declared?: { from?: string; to?: string }
 }
@@ -145,6 +148,24 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
     Array.from(parent.children).forEach(child => {
       const tag = child.tagName.toLowerCase()
       if (tag === 'defs' || tag === 'metadata' || tag === 'style' || tag === 'title' || tag === 'desc') return
+      // An actor is a unit of its own, never page ink: it is not part of
+      // what the page shows at rest, so it never counts for layout.
+      if (child.hasAttribute('data-actor')) {
+        ensureId(child, counter)
+        while (used.has(`u${counter.next}`)) counter.next += 1
+        const box = bboxOf(child as SVGGraphicsElement)
+        units.push({
+          id: child.id,
+          ids: [child.id, ...Array.from(child.querySelectorAll('[id]')).map(node => node.id).filter(Boolean)],
+          kind: 'shape',
+          label: humanize(child.id),
+          bbox: box,
+          chrome: false,
+          children: [],
+          actorRole: (child.getAttribute('data-actor') || 'actor').trim().toLowerCase(),
+        })
+        return
+      }
       // Artwork the page drew for a thing belongs to that thing, whole. Its
       // shapes are not parts of the page: a gauge's needle is not a node and
       // a rack's rails are not arrows.

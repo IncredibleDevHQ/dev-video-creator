@@ -67,10 +67,16 @@ export const registerHarnessIpc = (
     if (!run) return { pages: [], receipt: null }
     const pagesDir = join(run.projectDir, 'pages')
     const names = await readdir(pagesDir).catch(() => [] as string[])
-    const pages: Array<{ name: string; svg: string }> = []
+    const pages: Array<{ name: string; svg: string; program: unknown | null }> = []
     for (const name of names.filter(entry => entry.toLowerCase().endsWith('.svg')).sort()) {
       const svg = await readFile(join(pagesDir, name), 'utf8').catch(() => '')
-      if (svg.trim()) pages.push({ name, svg })
+      if (!svg.trim()) continue
+      // The page and the story it can tell are drawn together, so they
+      // arrive together: NN_slug.svg beside NN_slug.program.json.
+      const program = await readFile(join(pagesDir, name.replace(/\.svg$/i, '.program.json')), 'utf8')
+        .then(text => JSON.parse(text) as unknown)
+        .catch(() => null)
+      pages.push({ name, svg, program })
     }
     const receipt = await readFile(join(pagesDir, 'receipt.json'), 'utf8').then(text => JSON.parse(text) as unknown).catch(() => null)
     return { pages, receipt }

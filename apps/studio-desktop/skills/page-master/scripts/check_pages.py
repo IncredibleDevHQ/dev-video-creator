@@ -11,6 +11,9 @@ VERBS = {'sends to', 'waits for', 'calls', 'reads', 'writes', 'returns', 'splits
 ROLES = {'title', 'list', 'diagram', 'numbers', 'quote', 'close'}
 ENTITIES = {'server', 'database', 'cache', 'queue', 'client', 'service'}
 ANIMS = {'blink', 'pulse', 'flow', 'fill', 'spin', 'wave'}
+MOMENTS = {'establish', 'explain', 'tension', 'consequence', 'resolve', 'aside'}
+ACTIONS = {'appear', 'travel', 'spend', 'refill', 'pass', 'reject', 'become', 'highlight', 'leave', 'state'}
+TRAVELS = {'travel', 'pass', 'reject', 'become'}
 
 def local(tag):
     return tag.split('}', 1)[1] if '}' in tag else tag
@@ -149,6 +152,22 @@ def check(path):
             problems.append(f'connector {c.get("id")!r} verb {c.get("data-verb")!r} is not in the vocabulary')
         if not c.get('id'):
             problems.append('a connector has no id')
+    # Anything that travels is an actor of its own: nodes stay where they were
+    # drawn, so a page about things moving has to draw the moving thing.
+    actors = [el for el in root.iter() if el.get('data-actor')]
+    moving = {'sends to', 'feeds', 'triggers', 'calls', 'returns', 'writes', 'reads', 'splits into', 'merges into'}
+    if role == 'diagram' and any(c.get('data-verb') in moving for c in connectors) and not actors:
+        problems.append('this page moves things between nodes but draws no actor — add a data-actor group for the travelling thing')
+    for a in actors:
+        if not a.get('id'):
+            problems.append('an actor has no id')
+        if (a.get('opacity') or '').strip() not in ('0', '0.0'):
+            problems.append(f'actor {a.get("id")!r} must start at opacity="0" — the scene brings it on')
+        if len(a.get('data-actor', '').split()) != 1:
+            problems.append(f'actor {a.get("id")!r} data-actor {a.get("data-actor")!r} should be one lowercase word')
+        for parent in nodes:
+            if a in list(parent.iter())[1:]:
+                problems.append(f'actor {a.get("id")!r} sits inside node {parent.get("id")!r} — actors travel over the page, put them last')
     if role == 'diagram' and len(nodes) < 2:
         problems.append('a diagram page needs at least two nodes')
     if role == 'list' and not nodes:
@@ -164,12 +183,68 @@ def check(path):
         problems.append('no chrome group (background / header / footer)')
     return problems
 
+def check_program(path, svg_path):
+    """The story the page can tell: every id real, only actors moving."""
+    problems = []
+    try:
+        program = json.load(open(path))
+    except Exception as error:
+        return [f'program is not readable JSON: {error}']
+    root = ET.parse(svg_path).getroot()
+    role = root.get('data-page-role') or ''
+    ids = {el.get('id') for el in root.iter() if el.get('id')}
+    actors = {el.get('id') for el in root.iter() if el.get('data-actor')}
+    beats = program.get('beats') or []
+    if len(beats) < (3 if role == 'diagram' else 2):
+        problems.append(f'{len(beats)} beat(s) — a scene needs at least {3 if role == "diagram" else 2}')
+    for actor in program.get('cast') or []:
+        if actor.get('id') not in ids:
+            problems.append(f'cast {actor.get("id")!r} is not on the page')
+        q = actor.get('quantity')
+        if q and q.get('shownOn') and q['shownOn'] not in ids:
+            problems.append(f'quantity of {actor.get("id")!r} is shown on {q["shownOn"]!r}, which is not on the page')
+    moments = [b.get('moment') for b in beats]
+    for beat in beats:
+        where = beat.get('id') or beat.get('moment') or '?'
+        if beat.get('moment') not in MOMENTS:
+            problems.append(f'beat {where!r} moment {beat.get("moment")!r} is not one of {sorted(MOMENTS)}')
+        if not (beat.get('say') or '').strip():
+            problems.append(f'beat {where!r} has no say')
+        camera = beat.get('camera')
+        for target in (camera if isinstance(camera, list) else []):
+            if target not in ids:
+                problems.append(f'beat {where!r} looks at {target!r}, which is not on the page')
+        if beat.get('speaker') not in (None, 'me', 'beside', 'page'):
+            problems.append(f'beat {where!r} speaker {beat.get("speaker")!r} is not me/beside/page')
+        for event in beat.get('events') or []:
+            for key in ('actor', 'to'):
+                target = event.get(key)
+                if target and target not in ids:
+                    problems.append(f'beat {where!r} {key} {target!r} is not on the page')
+            if event.get('action') not in ACTIONS:
+                problems.append(f'beat {where!r} action {event.get("action")!r} is not one of {sorted(ACTIONS)}')
+            if event.get('action') in TRAVELS and event.get('actor') not in actors:
+                problems.append(f'beat {where!r} moves {event.get("actor")!r}, which is a node — only a data-actor travels, so draw one')
+            cue = event.get('cue')
+            if cue and cue.lower() not in (beat.get('say') or '').lower():
+                problems.append(f'beat {where!r} cue {cue!r} is not a word in its say')
+    if role == 'diagram' and beats and len(set(moments)) < 3:
+        problems.append(f'moments are {moments} — a scene needs a shape, not one note repeated')
+    if role == 'diagram' and beats and 'consequence' not in moments and 'tension' not in moments:
+        problems.append('no tension and no consequence — nothing is at stake in this scene')
+    return problems
+
 def main():
     folder = sys.argv[1] if len(sys.argv) > 1 else 'pages'
     files = sorted(f for f in os.listdir(folder) if f.lower().endswith('.svg'))
     report = {'pages': [], 'ok': True}
     for name in files:
         problems = check(os.path.join(folder, name))
+        program_path = os.path.join(folder, re.sub(r'\.svg$', '.program.json', name, flags=re.I))
+        if os.path.exists(program_path):
+            problems += [f'program: {p}' for p in check_program(program_path, os.path.join(folder, name))]
+        else:
+            problems.append('no program — write NN_<slug>.program.json beside the page (Stage 4b)')
         report['pages'].append({'file': name, 'ok': not problems, 'problems': problems})
         if problems:
             report['ok'] = False

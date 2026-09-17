@@ -94,13 +94,43 @@ The studio reveals the artwork with the thing it dresses, never counts it as ink
 
 A `<path>` is allowed instead of a `<line>` when the route bends. `data-from` and `data-to` name existing node ids; `data-verb` is one of: `sends to`, `waits for`, `calls`, `reads`, `writes`, `returns`, `splits into`, `merges into`, `depends on`, `becomes`, `contains`, `compares with`, `feeds`, `triggers`. Define one arrowhead marker per page, `id="s<NN>-arrow"`, inside `<defs>`.
 
+## Actors (the things that move)
+
+Nodes never move. A node is a place on the page; once the reader has learned
+where it is, sliding it somewhere else destroys the arrangement. So when the
+narration says something *travels* — a request arrives, a token is spent, a
+packet crosses the wire — the page draws that travelling thing as its own small
+actor, separate from every node:
+
+```xml
+<g id="s<NN>-actor-request" data-actor="request" opacity="0">
+  <circle cx="…" cy="…" r="14" fill="…"/>
+  <text x="…" y="…" font-size="20" text-anchor="middle" fill="…">req</text>
+</g>
+```
+
+Rules for actors:
+
+- `data-actor` names what it is: `request`, `token`, `packet`, `message`, `job`,
+  `record`, `event`. One word, lowercase.
+- It starts at `opacity="0"`, parked at the place it comes from. The scene brings
+  it on; the page never shows it at rest.
+- It is small — 24–40 px across — and carries at most three characters of text.
+  It must read at a glance while moving.
+- It sits at the top of the document, after every node and connector, so it
+  travels over the diagram rather than under it.
+- Draw one per travelling thing the narration names, not one per hop. The same
+  actor makes every trip.
+- Actors are the only thing a scene may move. Everything else is revealed,
+  emphasised, dimmed, or changed in place.
+
 ## Text
 
 Real `<text>` elements only. The smallest text on the page is 20 px; labels inside nodes 22–26 px; the title 34–44 px. No text overflows its box; break long labels into two `<tspan>` lines rather than shrinking below 20 px.
 
 ## Never
 
-No `<image>`, no external `href`, no `<style>` blocks with classes the studio cannot see (inline attributes only), no `<foreignObject>`, no glyph outlines, no filters heavier than a soft drop shadow.
+No moving nodes (draw an actor instead), no `<image>`, no external `href`, no `<style>` blocks with classes the studio cannot see (inline attributes only), no `<foreignObject>`, no glyph outlines, no filters heavier than a soft drop shadow.
 
 ## Safe area
 

@@ -46,11 +46,70 @@ Then, per page, follow executor-base's decision chain and write `pages/NN_<slug>
 
 **Icons are inlined, not referenced.** The contract forbids external references, so an icon becomes part of the page: read `${SKILL_DIR}/templates/icons/tabler-outline/<name>.svg`, take its path elements, and place them inside the thing's artwork group scaled into a 44 px box (`transform="translate(x,y) scale(44/24)"`), `fill="none" stroke="<line or accent>" stroke-width="2"`. Then add the one or two parts that make it live — a status light, a level, a token — and mark them `data-anim` (see the contract). Two or three moving parts per thing.
 
+## Stage 4b — The scene program, page by page
+
+A page is a stage; the program is what happens on it. Straight after writing
+`pages/NN_<slug>.svg`, write `pages/NN_<slug>.program.json` — the same page's
+story, in beats. The studio compiles it into motion and timing; it does not
+invent one for you.
+
+```json
+{
+  "version": 1,
+  "page": "07_central_bucket.svg",
+  "cast": [
+    { "id": "s07-node-redis-bucket", "role": "bucket", "quantity": { "of": "tokens", "value": 3, "max": 3, "shownOn": "s07-bucket-level" } },
+    { "id": "s07-actor-request", "role": "request" }
+  ],
+  "beats": [
+    { "id": "b1", "moment": "establish", "say": "…", "camera": "page", "speaker": "beside",
+      "events": [{ "actor": "s07-node-redis-bucket", "action": "appear" }] },
+    { "id": "b2", "moment": "explain", "say": "A request arrives and takes one token.", "speaker": "page",
+      "events": [
+        { "actor": "s07-actor-request", "action": "travel", "to": "s07-node-redis-bucket", "cue": "arrives" },
+        { "actor": "s07-node-redis-bucket", "action": "spend", "amount": 1, "cue": "takes" }
+      ] }
+  ]
+}
+```
+
+**Moments** — one per beat, and they are the shape of the scene, not decoration:
+`establish` (put the reader in the place), `explain` (the normal case working),
+`tension` (the pressure arriving), `consequence` (what it costs — this beat is
+held longest), `resolve` (what fixes it), `aside` (a step to the side). A scene
+that is all `explain` has no story; most scenes run establish → explain →
+tension → consequence → resolve.
+
+**Actions** — `appear`, `travel` (actor → `to`), `spend` (`amount` off a
+quantity), `refill`, `pass` (through, to `to`), `reject` (turned away at `to`),
+`become` (an actor takes another's place), `highlight`, `leave`, `state`
+(`state: "backed up"` — one of the entity's own states).
+
+Rules the studio enforces:
+
+- Only a `data-actor` may `travel`, `pass`, `reject` or `become`. Nodes never
+  move; naming one in those actions degrades to plain emphasis, which is a
+  weaker scene. If the story needs something to move, the page must draw it.
+- `cue` is a word from that beat's `say`: the event lands when the narrator
+  says it. Without a cue, events spread evenly across the line.
+- `camera` is `"page"` or a list of ids to move in on. Use it about twice per
+  scene; a scene that is all close-ups loses the reader.
+- `speaker` is `me`, `beside` or `page` — how the frame is shared for that
+  beat. `me` puts the presenter front and centre (openings, a direct address),
+  `beside` shares the frame, `page` gives the page the whole frame while it
+  works. Open and close `beside`, hand the frame to the page in between.
+- `quantity.shownOn` names the element whose height or width is the level, so
+  spending and refilling are seen, not asserted.
+- Every id must exist on the page you just drew.
+- `cast` is where a thing's *state* lives — a quantity it holds, a role, a
+  starting state. An event may name anything on the page; only things whose
+  amount or state changes need a cast entry.
+
 ## Stage 5 — Checker cadence
 
 ppt-master checks early and finally; so do you.
 
-1. After the **first** page: `python3 ${SKILL_DIR}/scripts/check_pages.py pages` — fix what it names before drawing page two, so a mistake is made once.
+1. After the **first** page and its program: `python3 ${SKILL_DIR}/scripts/check_pages.py pages` — fix what it names before drawing page two, so a mistake is made once.
 2. After the **last** page: run it again over all pages and fix until it passes.
 
 ## Stage 6 — Visual review
@@ -59,7 +118,7 @@ The checker sees geometry, not judgement. Read your own pages back and ask of ea
 
 ## Stage 7 — Receipt
 
-Write `pages/receipt.json`: `{ "pages": [{ "file", "index", "title", "kind", "topology", "entities": [{ "id", "entity", "icon", "moving parts" }], "checks": "pass" }], "spec": "pages/design_spec.md", "lock": "pages/spec_lock.md", "notes": "" }`. Then stop: do not open the notebook, do not plan motion, do not ask questions.
+Write `pages/receipt.json`: `{ "pages": [{ "file", "program", "index", "title", "kind", "topology", "entities": [{ "id", "entity", "icon", "moving parts" }], "moments": ["establish", "…"], "checks": "pass" }], "spec": "pages/design_spec.md", "lock": "pages/spec_lock.md", "notes": "" }`. Then stop: do not open the notebook, do not plan motion, do not ask questions.
 
 ## The look, in one place
 

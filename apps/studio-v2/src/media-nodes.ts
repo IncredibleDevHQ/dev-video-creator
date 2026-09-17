@@ -194,6 +194,10 @@ export const SlideBlock = Node.create({
       arcNote: { default: null },
       // The article's own sentences this scene rests on (Phase 0 sources).
       sourcePassages: { default: [] },
+      // The scene program: what happens on this page, as events (stage 3).
+      program: { default: null },
+      // The thing this page shares with its neighbours, performed at the cut.
+      thread: { default: null },
       // Animation mode for title-like pages: 'auto' (a living field) or 'off'.
       animationMode: { default: 'auto' },
       requiredArea: { default: '' },

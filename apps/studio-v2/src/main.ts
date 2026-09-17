@@ -98,6 +98,7 @@ import { placementAt, placementsFor, unitsOnScreenPerBeat } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
+import { compileSceneProgram, sanitizeSceneProgram } from './scene-program'
 import { arcChanges, entityKey, videoPlanFor, type VideoPlan } from './video-plan'
 import type { AssetRecordV1 } from 'markdown-composition'
 import { ENTITY_TYPES } from './page-model'
@@ -12293,7 +12294,30 @@ slideEditorDialog.addEventListener('cancel', event => {
   contract: () => (slideEditor ? slideEditor.contract : null),
   replan: () => replan({ quiet: true }),
   writeToBrief: (nodeId: string) => writeSceneToBrief(nodeId),
+  // Stage 3: give a scene its program and re-plan from its events.
+  setProgram: (nodeId: string, program: unknown) => {
+    writeSlideLikeNode(nodeId, { program })
+    return animateSceneLocally(nodeId)
+  },
+  // A page and the story it tells arrive together, as the drawer wrote them.
+  setPage: (nodeId: string, svg: string, program: unknown) => {
+    writeSlideLikeNode(nodeId, { svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, ...(program === undefined ? {} : { program }) })
+    return animateSceneLocally(nodeId)
+  },
+  compileProgram: (nodeId: string) => {
+    const found = findSlideLikeNode(nodeId)
+    if (!found) return null
+    const atomized = atomizeSlideSvg(String(found.attrs.svg || ''))
+    const program = sanitizeSceneProgram(found.attrs.program, atomized.units)
+    return program ? compileSceneProgram(program, atomized.units, { viewBox: atomized.viewBox, wpm: 150 }) : null
+  },
   plan: (nodeId: string) => animateSceneLocally(nodeId),
+  attrsOf: (nodeId: string) => {
+    const found = findSlideLikeNode(nodeId)
+    if (!found) return null
+    const { svg, svgSrc, ...rest } = found.attrs as Record<string, unknown>
+    return rest
+  },
   ask: (instruction: string, scope: EditScope = 'line') => requestEdit(instruction, scope),
   pin: (index: number, family: string | null) => {
     const state = slideEditor
@@ -12773,7 +12797,13 @@ const animateSceneLocally = (nodeId: string) => {
   const savedWindows = (Array.isArray(found.attrs.windows) ? (found.attrs.windows as SceneWindow[]) : [])
     .filter(window => window && typeof window.say === 'string' && window.say.trim())
     .map(window => ({ ...window, parts: (window.parts || []).filter(id => valid.has(id)) }))
-  const result = !atomized.units.length
+  // A page with a program is authored, not inferred: its events are the
+  // plan and its beats are the dialogue.
+  const program = sanitizeSceneProgram(found.attrs.program, atomized.units)
+  const compiled = program ? compileSceneProgram(program, atomized.units, { viewBox: atomized.viewBox, wpm: pace.wpm }) : null
+  const result = compiled
+    ? { ...compiled, beats: compiled.windows.map((window, index) => ({ index, title: window.title || '', text: window.say, directions: [] })), steps: [], coverage: null }
+    : !atomized.units.length
     ? null
     : found.attrs.breakdownApproved && savedWindows.length
       ? planFromWindows(savedWindows, atomized.units, { viewBox: atomized.viewBox, wpm: pace.wpm, entities: model.entities, diagrams: model.diagrams, sceneKind: declaredSceneKind(atomized.pageRole) || classifyScene(atomized.units).kind, animationMode: found.attrs.animationMode === 'off' ? 'off' : 'auto' })
@@ -13115,7 +13145,7 @@ queueMicrotask(() => {
 // Phase 0 of the plan. Whatever comes in, three things come out and the rest
 // of the pipeline reads only those: a brand read off the source, an outline
 // with a runtime target, and pages that carry the contract.
-type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean }; drawnBy?: string; drawnContract?: number }
+type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; program?: unknown; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean }; drawnBy?: string; drawnContract?: number }
 const sourceState: {
   kind: 'link' | 'narrative'
   source: SourceRead | null
@@ -13498,6 +13528,7 @@ const applyDrawnPages = async (runId: string) => {
       const report = contractReport(atomized.units, atomized.pageRole)
       const leaves = leafUnits(atomized.units)
       page.svg = entry.svg
+      page.program = entry.program || undefined
       page.drawnBy = drawerLabel
       page.drawnContract = report.declared
       page.contract = { groups: report.groups, roles: report.roles, connectors: report.connectors, verbs: report.verbs, labels: leaves.filter(unit => unit.kind === 'label').length, declared: report.declared >= 0.9 }
@@ -13798,7 +13829,7 @@ const sourceFinish = async () => {
   // leaves a node selection behind, and the next insert replaces it.
   // the card's poster is the page itself, as a data url, so a generated scene previews like an imported one
   const bySceneTitle = new Map(outline.scenes.map(scene => [scene.title, scene]))
-  const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true } }))
+  const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, program: page.program || null, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true } }))
   editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
   const inserted = pages.map(page => page.title)
   // Each new scene gets its block, then its first plan from the draft line,
