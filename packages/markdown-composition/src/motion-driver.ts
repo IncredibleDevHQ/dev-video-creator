@@ -564,7 +564,9 @@ export const MOTION_DRIVER_SOURCE = `
       if (action.op === 'level') {
         entry.targets.forEach(function (t) {
           var box = t.node.getBBox ? t.node.getBBox() : null;
-          t.levelAxis = !box || box.width >= box.height ? 'x' : 'y';
+          // The drawing may say which way it fills; only guess when it does not.
+          var fills = t.node.getAttribute ? t.node.getAttribute('data-fills') : null;
+          t.levelAxis = fills === 'up' ? 'y' : fills === 'right' ? 'x' : !box || box.width >= box.height ? 'x' : 'y';
           t.node.style.transformBox = 'fill-box';
           t.node.style.transformOrigin = t.levelAxis === 'x' ? 'left center' : 'center bottom';
         });

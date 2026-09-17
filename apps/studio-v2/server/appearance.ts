@@ -37,8 +37,13 @@ export type ObjectBrief = {
   subject?: string
   /** The states the scene puts it in — the artwork must be able to show them. */
   states: string[]
-  /** The pieces the scene controls by name. */
-  parts: Array<{ id: string; what: string }>
+  /**
+   * The pieces the scene controls by name. A piece that stands for how full
+   * the thing is says which way it fills: a container's contents drop as it
+   * empties ("up"), a bar shortens from its right end ("right"). Left unsaid,
+   * the studio guesses from the shape.
+   */
+  parts: Array<{ id: string; what: string; fills?: 'up' | 'right' }>
   /** Where things arrive and leave, in the object's own box (0–1). */
   ports: { in?: { x: number; y: number }; out?: { x: number; y: number } }
   /** Where the page's own label sits, so the drawing leaves room for it. */
@@ -72,7 +77,7 @@ export const referenceObjects = (style: ObjectStyle = REFERENCE_STYLE): ObjectBr
     parts: [
       { id: 'shell', what: 'the container itself, open at the top' },
       { id: 'tokens', what: 'three identical tokens stacked inside, each separately controllable' },
-      { id: 'level', what: 'the fill the tokens sit in, so how full it is reads at a glance' },
+      { id: 'level', what: 'the fill the tokens sit in, so how full it is reads at a glance', fills: 'up' },
       { id: 'inlet', what: 'where the refill drips in' },
     ],
     ports: { in: { x: 0.08, y: 0.5 }, out: { x: 0.92, y: 0.5 } },
@@ -131,7 +136,7 @@ export const concurrencyObjects = (style: ObjectStyle = REFERENCE_STYLE): Object
     parts: [
       { id: 'shell', what: 'the frame that holds the row, making the number of slots countable at a glance' },
       { id: 'slots', what: 'four identical slots in a row, each separately controllable' },
-      { id: 'occupied', what: 'the mark that shows a slot is taken, so how full the pool is reads at a glance' },
+      { id: 'occupied', what: 'the mark that shows a slot is taken, so how full the pool is reads at a glance', fills: 'right' },
       { id: 'gate', what: 'the mouth work passes through on its way in' },
     ],
     ports: { in: { x: 0.06, y: 0.5 }, out: { x: 0.94, y: 0.5 } },
@@ -148,7 +153,7 @@ export const concurrencyObjects = (style: ObjectStyle = REFERENCE_STYLE): Object
     states: ['empty', 'holding', 'releasing the next one'],
     parts: [
       { id: 'shell', what: 'the lane the waiting work stands in, open at both ends' },
-      { id: 'waiting', what: 'three identical items queued along it, each separately controllable' },
+      { id: 'waiting', what: 'three identical items queued along it, each separately controllable', fills: 'right' },
       { id: 'head', what: 'a mark on the one at the front, the next to be admitted' },
     ],
     ports: { in: { x: 0.94, y: 0.5 }, out: { x: 0.06, y: 0.5 } },
@@ -224,7 +229,7 @@ export type AcceptedArtwork = {
   /** Which of the brief's parts were found, by their new ids. */
   /** The element found for each part the brief named: its id in the accepted
    * drawing, the element it is, and the name the scene knows it by. */
-  parts: Array<{ id: string; element: string; as: string }>
+  parts: Array<{ id: string; element: string; as: string; fills?: 'up' | 'right' }>
   missing: string[]
   /** Ports in the object's own box, carried from the brief. */
   ports: ObjectBrief['ports']
@@ -245,7 +250,7 @@ export const acceptArtwork = (raw: string, brief: ObjectBrief): AcceptedArtwork 
   if (EXTERNAL_REFERENCE.test(svg)) problems.push('it points at something outside itself')
   // One prefix per object, so two objects on one page cannot collide.
   const prefix = `ap-${briefKey(brief).slice(0, 8)}`
-  const found: Array<{ id: string; element: string; as: string }> = []
+  const found: Array<{ id: string; element: string; as: string; fills?: 'up' | 'right' }> = []
   const missing: string[] = []
   brief.parts.forEach(part => {
     // A part has to be findable, not spelled exactly: a generator that groups
@@ -258,7 +263,7 @@ export const acceptArtwork = (raw: string, brief: ObjectBrief): AcceptedArtwork 
       new RegExp(`<\\s*([a-zA-Z]+)\\b[^>]*\\bid\\s*=\\s*["']([^"']*[-_]${part.id})["']`, 'i'),
     ]
     const hit = candidates.map(pattern => pattern.exec(svg)).find(Boolean)
-    if (hit) found.push({ id: `${prefix}-${hit[2] || part.id}`, element: hit[1].toLowerCase(), as: part.id })
+    if (hit) found.push({ id: `${prefix}-${hit[2] || part.id}`, element: hit[1].toLowerCase(), as: part.id, ...(part.fills ? { fills: part.fills } : {}) })
     else missing.push(part.id)
   })
   if (missing.length) problems.push(`the scene needs these parts and they are not in the drawing: ${missing.join(', ')}`)

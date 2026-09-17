@@ -542,7 +542,7 @@ export class AppearanceTooSmall extends Error {}
 export const wearAppearance = (
   svg: string,
   unitId: string,
-  artwork: { svg: string; key?: string; parts: Array<{ id: string; element: string; as?: string }>; viewBox: { width: number; height: number } },
+  artwork: { svg: string; key?: string; parts: Array<{ id: string; element: string; as?: string; fills?: 'up' | 'right' }>; viewBox: { width: number; height: number } },
 ) => {
   const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml')
   const root = parsed.documentElement
@@ -602,8 +602,12 @@ export const wearAppearance = (
   // Name the pieces the scene will move, by the brief's own names.
   artwork.parts.forEach(part => {
     const piece = group.querySelector(`#${CSS.escape(part.id)}`)
+    if (!piece) return
     // The scene's own name for it, whatever the drawing happened to call it.
-    if (piece) piece.setAttribute('data-part', part.as || part.id.split('-').slice(-1)[0])
+    piece.setAttribute('data-part', part.as || part.id.split('-').slice(-1)[0])
+    // And which way it fills, so a container's contents drop as it empties
+    // rather than sliding off to one side.
+    if (part.fills) piece.setAttribute('data-fills', part.fills)
   })
   host.appendChild(group)
   return new XMLSerializer().serializeToString(root)
