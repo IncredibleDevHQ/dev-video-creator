@@ -89,6 +89,13 @@ export const prepareSlideSvg = (svg: string, prefix: string) => {
     .replace(/\bid="([^"]+)"/g, (_match, id: string) => `id="${safe}-${id}"`)
     .replace(/url\(#([^)]+)\)/g, (_match, id: string) => `url(#${safe}-${id})`)
     .replace(/\b(xlink:href|href)="#([^"]+)"/g, (_match, attr: string, id: string) => `${attr}="#${safe}-${id}"`)
+    // The page's own references to its ids move with them: a connector's ends,
+    // the thing a piece of artwork belongs to, the level a quantity is shown
+    // on. Renaming an id without renaming what points at it loses the link.
+    .replace(
+      /\b(data-appearance-for|data-from|data-to|data-shown-on|data-owner)="([^"#][^"]*)"/g,
+      (_match, attr: string, id: string) => `${attr}="${safe}-${id}"`,
+    )
   markup = markup.replace(/^<svg\b([^>]*)>/, (_match, attrs: string) => {
     const viewBox = /viewBox="\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*"/.exec(attrs)
     const width = viewBox ? Number(viewBox[3]) : 0

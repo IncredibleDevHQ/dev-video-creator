@@ -97,6 +97,10 @@ const asString = (value: unknown, limit = 80) => String(value ?? '').trim().slic
 export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): SceneProgram | null => {
   if (!raw || typeof raw !== 'object') return null
   const known = new Set(flattenUnits(units).flatMap(unit => [unit.id, ...unit.ids]))
+  // A thing may also be named through the artwork it wears: "bucket.tokens".
+  flattenUnits(units).forEach(unit => {
+    Object.keys(unit.appearance?.parts || {}).forEach(part => known.add(`${unit.id}.${part}`))
+  })
   const value = raw as Record<string, unknown>
   const cast = (Array.isArray(value.cast) ? value.cast : [])
     .map(entry => {
@@ -405,8 +409,21 @@ export const compileSceneProgram = (
   const wpm = options.wpm || 150
   const leaves = leafUnits(units)
   const unitFor = (id: string) => leaves.find(unit => unit.id === id || unit.ids.includes(id)) || flattenUnits(units).find(unit => unit.id === id)
-  const idsOf = (id: string) => unitFor(id)?.ids || [id]
-  const boxOf = (id: string) => unitFor(id)?.bbox
+  // A thing, or one named piece of the artwork it wears: "bucket.tokens" is
+  // the tokens inside the bucket, whatever element id the drawing gave them
+  // and whatever the composition later prefixes it with.
+  const partOf = (id: string) => {
+    const dot = id.lastIndexOf('.')
+    if (dot < 1) return ''
+    const owner = unitFor(id.slice(0, dot))
+    return owner?.appearance?.parts[id.slice(dot + 1)] || ''
+  }
+  const idsOf = (id: string) => {
+    const part = partOf(id)
+    if (part) return [part]
+    return unitFor(id)?.ids || [id]
+  }
+  const boxOf = (id: string) => unitFor(partOf(id) || id)?.bbox
   const held = new Map(program.cast.filter(actor => actor.quantity).map(actor => [actor.id, { ...actor.quantity! }]))
   // How much a thing holds, shown the way the page drew it: a number counts,
   // anything else is a bar and moves by how full it is.
@@ -415,12 +432,14 @@ export const compileSceneProgram = (
     // The element the page named, not the thing it sits inside: a bar drawn
     // within a node belongs to that node's unit, and scaling the unit would
     // shrink the node itself.
-    const itself = flattenUnits(units).find(unit => unit.id === store.shownOn)
+    // The element the page named — or the piece of the artwork it named.
+    const shown = partOf(store.shownOn) || store.shownOn
+    const itself = flattenUnits(units).find(unit => unit.id === shown)
     const ceiling = store.max || Math.max(1, before, after)
     if (itself?.kind === 'label') {
-      return [act('count', [store.shownOn], at, { durationMs: 520, value: { from: before, to: after } })]
+      return [act('count', [shown], at, { durationMs: 520, value: { from: before, to: after } })]
     }
-    return [act('level', [store.shownOn], at, { value: { from: before / ceiling, to: after / ceiling } })]
+    return [act('level', [shown], at, { value: { from: before / ceiling, to: after / ceiling } })]
   }
   // A page's labelled node stays where it was drawn: sliding it across the
   // page breaks the arrangement the reader learned. Only a thing the page

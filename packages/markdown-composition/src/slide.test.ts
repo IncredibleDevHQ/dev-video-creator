@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { slideDriverScript } from './slide'
+import { prepareSlideSvg, slideDriverScript } from './slide'
 
 // Pulls the easing factory out of the generated in-composition driver so the
 // exact code that ships in the page is what gets tested.
@@ -275,5 +275,26 @@ describe('stepsFromResolvedPlan', () => {
       }),
     ).toThrow(/schema/)
     expect(() => stepsFromResolvedPlan({ steps: 'nope' })).toThrow()
+  })
+})
+
+describe('prefixing a page for composition', () => {
+  it('moves a page’s own references along with the ids they point at', () => {
+    const page = [
+      '<svg viewBox="0 0 1280 720">',
+      '<g id="node-a" data-role="node"><rect id="node-a-box" x="0" y="0" width="10" height="10"/></g>',
+      '<g id="art" data-appearance-for="node-a"><g id="art-level" data-part="level"/></g>',
+      '<line id="edge-1" data-role="connector" data-from="node-a" data-to="node-b"/>',
+      '</svg>',
+    ].join('')
+    const prepared = prepareSlideSvg(page, 's3')
+    expect(prepared).toContain('id="s3-node-a"')
+    // The artwork still belongs to the thing it was drawn for…
+    expect(prepared).toContain('data-appearance-for="s3-node-a"')
+    // …the connector still joins the same two things…
+    expect(prepared).toContain('data-from="s3-node-a"')
+    expect(prepared).toContain('data-to="s3-node-b"')
+    // …and the part keeps its name, which is never prefixed.
+    expect(prepared).toContain('data-part="level"')
   })
 })

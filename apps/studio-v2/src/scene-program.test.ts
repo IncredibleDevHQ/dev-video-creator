@@ -331,6 +331,30 @@ describe('the scene program', () => {
     expect(edited.beats[2].camera).toBeUndefined()
   })
 
+  it('moves a named piece of the artwork a thing is wearing', () => {
+    // A bucket wearing accepted artwork: the tokens and the level are pieces
+    // the scene may move by name, whatever ids the drawing gave them.
+    const dressed: SlideUnit[] = [
+      {
+        ...unit('node-bucket', 'Token bucket', [700, 300, 260, 140]),
+        ids: ['node-bucket', 'ap-1234-shell', 'ap-1234-tokens', 'ap-1234-level'],
+        appearance: {
+          key: 'ap-1234',
+          parts: { shell: 'ap-1234-shell', tokens: 'ap-1234-tokens', level: 'ap-1234-level' },
+          envelope: { x: 690, y: 290, width: 280, height: 160 },
+        },
+      },
+      unit('actor-request', 'Request', [150, 340, 40, 40], { kind: 'shape', actorRole: 'request' }),
+    ]
+    const wearing = program([{ actor: 'node-bucket', action: 'spend', amount: 1, cue: 'takes' }])
+    wearing.cast[0].quantity!.shownOn = 'node-bucket.level'
+    const compiled = compileSceneProgram(wearing, dressed, { viewBox })!
+    const level = compiled.plan.steps[1].actions.find(action => action.op === 'level')!
+    // The level op targets the piece inside the drawing, not the whole thing.
+    expect(level.targets).toEqual(['ap-1234-level'])
+    expect(level.value).toMatchObject({ from: 1, to: 2 / 3 })
+  })
+
   it('refuses ids the page does not have', () => {
     const raw = program([{ actor: 'ghost', action: 'travel', to: 'node-bucket' }])
     const clean = sanitizeSceneProgram(raw, units)

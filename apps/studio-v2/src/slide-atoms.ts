@@ -31,6 +31,14 @@ export type SlideUnit = {
   // A thing the page drew to be moved: a request, a token, a packet. It
   // starts hidden and only a scene program brings it on and travels it.
   actorRole?: string
+  // The artwork this thing wears: the pieces the scene may move by name
+  // (the bucket's tokens, the server's indicator), and the box the drawing
+  // occupies while it plays — which is not always its box at rest.
+  appearance?: {
+    key?: string
+    parts: Record<string, string>
+    envelope?: { x: number; y: number; width: number; height: number }
+  }
   verb?: string
   declared?: { from?: string; to?: string }
 }
@@ -477,6 +485,23 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
     // inside it, so the group and everything drawn in it reveal and move
     // with the thing itself.
     const owner = named.kind === 'group' ? leafUnits([named]).find(leaf => leaf.kind === 'box' || leaf.kind === 'shape') || named : named
+    // The pieces the artwork exposes, by the name the brief gave them. The
+    // element id may be prefixed by the composition; the name never is.
+    const parts: Record<string, string> = {}
+    Array.from(element.querySelectorAll('[data-part]')).forEach(piece => {
+      const name = (piece.getAttribute('data-part') || '').trim()
+      if (name && piece.id) parts[name] = piece.id
+    })
+    const ownName = (element.getAttribute('data-part') || '').trim()
+    if (ownName && element.id) parts[ownName] = element.id
+    const envelope = bboxOf(element as SVGGraphicsElement)
+    owner.appearance = {
+      ...(element.getAttribute('data-appearance-key') ? { key: element.getAttribute('data-appearance-key') || '' } : {}),
+      parts,
+      // What it covers while it plays, not only at rest: a drawing whose
+      // parts move needs the room they move through.
+      ...(envelope.width && envelope.height ? { envelope } : {}),
+    }
     ;[element, ...Array.from(element.querySelectorAll('[id]'))]
       .map(node => node.id)
       .filter(Boolean)
@@ -484,6 +509,58 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
         if (!owner.ids.includes(id)) owner.ids.push(id)
       })
   })
+}
+
+/**
+ * Dress a thing on the page in accepted artwork.
+ *
+ * The drawing goes in as that thing's appearance: it reveals, dims and travels
+ * with it, never counts as ink of its own, and the pieces the scene animates
+ * keep the names the brief gave them. The page's own label and numbers stay
+ * where they were — the artwork replaces the picture, not the words.
+ */
+export const wearAppearance = (
+  svg: string,
+  unitId: string,
+  artwork: { svg: string; key?: string; parts: Array<{ id: string; element: string }>; viewBox: { width: number; height: number } },
+) => {
+  const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml')
+  const root = parsed.documentElement
+  const host = root.querySelector(`#${CSS.escape(unitId)}`)
+  if (!host) return svg
+  // A box can only be measured where the page is laid out, so the fitting
+  // happens in the same hidden host the atomiser measures in.
+  const measuring = document.createElement('div')
+  measuring.style.cssText = 'position:absolute;left:-100000px;top:0;width:1280px;height:720px;overflow:hidden;visibility:hidden;'
+  const live = document.importNode(root, true) as unknown as SVGSVGElement
+  measuring.append(live)
+  document.body.append(measuring)
+  const measured = live.querySelector(`#${CSS.escape(unitId)}`) as SVGGraphicsElement | null
+  const box = measured?.getBBox ? measured.getBBox() : { x: 0, y: 0, width: 0, height: 0 }
+  measuring.remove()
+  if (!box.width || !box.height) return svg
+  const drawing = new DOMParser().parseFromString(artwork.svg, 'image/svg+xml').documentElement
+  if (drawing.tagName.toLowerCase() !== 'svg') return svg
+  const group = parsed.createElementNS('http://www.w3.org/2000/svg', 'g')
+  group.setAttribute('data-appearance-for', unitId)
+  if (artwork.key) group.setAttribute('data-appearance-key', artwork.key)
+  // Fitted into the thing's own box, keeping the drawing's proportions.
+  const scale = Math.min(box.width / artwork.viewBox.width, box.height / artwork.viewBox.height)
+  const width = artwork.viewBox.width * scale
+  const height = artwork.viewBox.height * scale
+  group.setAttribute(
+    'transform',
+    `translate(${(box.x + (box.width - width) / 2).toFixed(2)} ${(box.y + (box.height - height) / 2).toFixed(2)}) scale(${scale.toFixed(4)})`,
+  )
+  Array.from(drawing.childNodes).forEach(node => group.appendChild(parsed.importNode(node, true)))
+  // Name the pieces the scene will move, by the brief's own names.
+  artwork.parts.forEach(part => {
+    const name = part.id.split('-').slice(-1)[0]
+    const piece = group.querySelector(`#${CSS.escape(part.id)}`)
+    if (piece) piece.setAttribute('data-part', name)
+  })
+  host.appendChild(group)
+  return new XMLSerializer().serializeToString(root)
 }
 
 // ——— The contract, scored: what a page declared and what had to be inferred ———
