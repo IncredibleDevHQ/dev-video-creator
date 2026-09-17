@@ -101,6 +101,9 @@ describe('the scene program', () => {
     expect(opening.startMs).toBe(0)
     const spent = compiled.plan.steps[1].actions.find(action => action.op === 'level')!
     expect(spent.value).toMatchObject({ from: 1, to: 1 / 3 })
+    // The bar itself, never the node it is drawn inside.
+    expect(spent.targets).toEqual(['bucket-level'])
+    expect(opening.targets).toEqual(['bucket-level'])
     expect(compiled.plan.steps[1].actions.some(action => action.op === 'count')).toBe(false)
   })
 

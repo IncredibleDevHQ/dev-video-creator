@@ -248,13 +248,15 @@ export const compileSceneProgram = (
   // anything else is a bar and moves by how full it is.
   const showQuantity = (store: Held, before: number, after: number, at: number): MotionAction[] => {
     if (!store.shownOn) return []
-    const shown = unitFor(store.shownOn)
-    if (!shown) return []
+    // The element the page named, not the thing it sits inside: a bar drawn
+    // within a node belongs to that node's unit, and scaling the unit would
+    // shrink the node itself.
+    const itself = flattenUnits(units).find(unit => unit.id === store.shownOn)
     const ceiling = store.max || Math.max(1, before, after)
-    if (shown.kind === 'label') {
-      return [act('count', idsOf(store.shownOn), at, { durationMs: 520, value: { from: before, to: after } })]
+    if (itself?.kind === 'label') {
+      return [act('count', [store.shownOn], at, { durationMs: 520, value: { from: before, to: after } })]
     }
-    return [act('level', idsOf(store.shownOn).slice(0, 1), at, { value: { from: before / ceiling, to: after / ceiling } })]
+    return [act('level', [store.shownOn], at, { value: { from: before / ceiling, to: after / ceiling } })]
   }
   // A page's labelled node stays where it was drawn: sliding it across the
   // page breaks the arrangement the reader learned. Only a thing the page

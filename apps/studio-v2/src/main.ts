@@ -10476,7 +10476,12 @@ const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolea
       state.motion = compiled.plan
       state.coverage = null
       state.steps = []
-      state.windows = compiled.windows.map((window, index) => ({ ...state.windows[index], ...window }))
+      state.windows = compiled.windows.map((window, index) => {
+        const current = state.windows[index]
+        // Parts the author pinned by hand stay pinned; everything else follows
+        // the events.
+        return current?.pinned ? { ...window, parts: current.parts, hero: current.hero, pinned: true } : { ...current, ...window }
+      })
       state.current = Math.min(state.current, state.windows.length - 1)
       state.scriptApproved = true
       state.breakdownApproved = true
@@ -12304,7 +12309,9 @@ const openSlideEditor = (nodeId: string) => {
   if (state.windows.length) {
     // The dialogue exists as windows: the motion follows it (re-planned if
     // the saved plan is missing).
-    if (!state.motion || !dialogueInSync(state)) replan({ quiet: true, initial: true })
+    // A programmed scene always re-plans on open: the storyboard and the
+    // brief are then the program's, not whatever was cached beside it.
+    if (!state.motion || state.program || !dialogueInSync(state)) replan({ quiet: true, initial: true })
     else {
       renderWindowCards()
       renderSlideEditorPreview()

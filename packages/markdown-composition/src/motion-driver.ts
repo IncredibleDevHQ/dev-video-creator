@@ -127,6 +127,15 @@ export const MOTION_DRIVER_SOURCE = `
   // nouns keep their place; the program is focal during the beat that names
   // it and ambient afterwards, until a later phase replaces it.
   var living = [];
+  // Elements whose amount the plan states outright (a quantity's level): the
+  // living layer leaves them alone.
+  var levelled = {};
+  (plan.steps || []).forEach(function (step) {
+    (step.actions || []).forEach(function (action) {
+      if (action.op !== 'level') return;
+      (action.targets || []).forEach(function (id) { levelled[id] = true; });
+    });
+  });
   var livingLayer = null;
   var layer = function () {
     if (livingLayer) return livingLayer;
@@ -193,6 +202,9 @@ export const MOTION_DRIVER_SOURCE = `
         }
         if (marked.length) {
           marked.slice(0, 12).forEach(function (part) {
+            // A part the plan drives by amount is not ambient decoration: an
+            // authored level wins over the living layer's own idea of fullness.
+            if (part.id && levelled[part.id]) return;
             var partBox = bboxOf(part);
             if (!partBox) return;
             part.style.transformBox = 'fill-box';

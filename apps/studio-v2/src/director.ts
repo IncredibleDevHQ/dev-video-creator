@@ -513,7 +513,7 @@ export const outroFor = (
   const lastIndex = beats.length - 1
   // An author who said where the presenter stands for the closing beat has
   // already closed the scene: the automatic outro does not overrule them.
-  if (layoutsByAuthor[lastIndex] && layouts[lastIndex] === 'page') return null
+  if (layoutsByAuthor[lastIndex] && layouts[lastIndex]) return null
   const last = plan.steps[lastIndex]
   if (!last) return null
   const brings = last.actions.some(action => ['reveal', 'trace', 'count', 'connect'].includes(action.op))
@@ -560,8 +560,10 @@ export const storyboardFor = (
           : undefined
     const wish = perBeat.layouts?.[beat.index] || directed
     // The author said where the presenter stands for this beat: that is a
-    // decision, not a preference, and the automatic staging yields to it.
-    const staged = Boolean(perBeat.layoutsByAuthor?.[beat.index]) && wish === 'page'
+    // decision, not a preference, and the automatic staging yields to it —
+    // whichever of the three places they chose.
+    const authored = perBeat.layoutsByAuthor?.[beat.index] ? wish : undefined
+    const staged = Boolean(authored) && authored !== 'me'
     let contentFamily: StageFamily =
       wish === 'beside' ? 'speaker-panel' : wish === 'page' ? FAMILY_FOR_AREA[beatArea === 'none' ? 'takeover' : beatArea] : FAMILY_FOR_AREA[beatArea]
     // A page busy to its corners leaves no clear spot for a chip: the page
@@ -579,6 +581,15 @@ export const storyboardFor = (
     // writer's "me" is weighed like any other wish.
     const onMe = (wish === 'me' && (perBeat.layoutsByAuthor?.[beat.index] || !choice)) || beat.directions.some(direction => direction.kind === 'open')
     const last = beat.index === beats.length - 1
+    if (authored === 'beside') {
+      return {
+        label: beat.title,
+        family: 'speaker-panel',
+        note: `${describeBeat(beat, plan)} · beside you, as the author staged it`,
+        beats: [beat.index],
+        why: 'the author put you beside the page for this beat',
+      }
+    }
     if (!staged && (onMe || (!brings && !moves && (beat.index === 0 || last)))) {
       return {
         label: beat.index === 0 ? 'Open' : last ? 'Back to you' : 'On you',

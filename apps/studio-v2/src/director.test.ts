@@ -81,6 +81,28 @@ describe('director', () => {
     expect(result.storyboard.some(entry => entry.label === 'Outro')).toBe(false)
   })
 
+  it('stages the beats the author put beside the page, and adds no tail of its own', () => {
+    const script = `Before 2017, order was everything.\n\nThe encoder reads the sentence, the attention block relates every word, the decoder writes.\n\nThe wait was the price.`
+    const planned = planFromScript(script, diagram(), { viewBox })!
+    const staged: Array<'page' | 'beside'> = ['beside', 'page', 'beside']
+    const result = direct({
+      title: 'The machine',
+      units: diagram(),
+      viewBox,
+      beats: planned.beats,
+      plan: planned.plan,
+      position: { index: 2, count: 10 },
+      layouts: staged,
+      layoutsByAuthor: staged.map(() => true),
+    })
+    const families = result.storyboard.map(entry => entry.family)
+    expect(families[0]).toBe('speaker-panel')
+    expect(families[families.length - 1]).toBe('speaker-panel')
+    expect(families[1].startsWith('content-')).toBe(true)
+    // No tail of its own: the author closed the scene beside the page.
+    expect(families.some(family => family === 'speaker-full')).toBe(false)
+  })
+
   it('respects [panel] and [takeover] directions', () => {
     const planned = planFromScript(`The encoder and the decoder. [panel]`, diagram(), { viewBox })!
     const result = direct({ title: 'x', units: diagram(), viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } })
