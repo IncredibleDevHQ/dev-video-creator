@@ -110,6 +110,7 @@ import {
   atomizeSlideSvg,
   attachLeftovers,
   wearAppearance,
+  AppearanceTooSmall,
   contractReport,
   inferEdges,
   flattenUnits,
@@ -11008,7 +11009,16 @@ const drawObjectOn = async (unit: SlideUnit, options: { entity?: string; force?:
     setSlideEditorStatus(`The drawing of ${unit.label} came back without ${artwork.missing.length ? artwork.missing.join(', ') : 'its pieces'} — the page keeps its wireframe`, 'error')
     return artwork
   }
-  const worn = wearAppearance(state.svg, unit.id, artwork)
+  let worn = state.svg
+  try {
+    worn = wearAppearance(state.svg, unit.id, artwork)
+  } catch (error) {
+    if (error instanceof AppearanceTooSmall) {
+      setSlideEditorStatus(`${unit.label} keeps its wireframe — ${error.message}`, 'error')
+      return artwork
+    }
+    throw error
+  }
   if (worn === state.svg) {
     setSlideEditorStatus('This part has no element of its own to dress', 'error')
     return artwork

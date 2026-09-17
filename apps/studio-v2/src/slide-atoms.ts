@@ -533,6 +533,12 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
  * keep the names the brief gave them. The page's own label and numbers stay
  * where they were — the artwork replaces the picture, not the words.
  */
+/** The narrowest column a drawn object can read in, at 1280x720. */
+export const MIN_OBJECT_COLUMN = 96
+
+/** Raised when the page left no room for the drawing it asked for. */
+export class AppearanceTooSmall extends Error {}
+
 export const wearAppearance = (
   svg: string,
   unitId: string,
@@ -564,6 +570,15 @@ export const wearAppearance = (
       : { x: box.x, y: box.y, width: box.width, height: box.height }
   measuring.remove()
   if (!room.width || !room.height) return svg
+  // A drawn object is the subject of its node, not a badge in the corner. A
+  // column too narrow for it would put a smudge on the page and call it
+  // artwork: better to keep the wireframe and say so.
+  const wanted = Math.min(room.width / artwork.viewBox.width, room.height / artwork.viewBox.height) * artwork.viewBox.width
+  if (room.width < MIN_OBJECT_COLUMN || wanted < MIN_OBJECT_COLUMN) {
+    throw new AppearanceTooSmall(
+      `${unitId} reserves ${Math.round(room.width)} px for its drawing; a drawn object needs about ${MIN_OBJECT_COLUMN} — widen the node or start its words further right`,
+    )
+  }
   const drawing = new DOMParser().parseFromString(artwork.svg, 'image/svg+xml').documentElement
   if (drawing.tagName.toLowerCase() !== 'svg') return svg
   const group = parsed.createElementNS('http://www.w3.org/2000/svg', 'g')

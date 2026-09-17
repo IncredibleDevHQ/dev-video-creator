@@ -84,6 +84,13 @@ its own named parts). Declaring one does three things:
   — wherever it names an element (`quantity.shownOn`, `shows`);
 - a page that names an object nobody can draw fails the check.
 
+**Leave it room.** A drawn object is the subject of its node, not a badge in
+the corner: a node that declares `data-object` starts its words at least
+**120 px** from the node's left edge, and is at least 300 px wide and 140 px
+tall, so the drawing has a column it can read in. The studio refuses to wear a
+drawing into a column narrower than 96 px — the node keeps its wireframe and
+says why.
+
 Declare it only where the name is right. The drawing is filed under what was
 asked for, so the same object named on five pages is drawn once and reused.
 

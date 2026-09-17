@@ -84,6 +84,21 @@ def check(path):
         if obj and not entity:
             problems.append(f'node {n.get("id")!r} asks for object {obj!r} without saying what it is — add data-entity')
         shapes = [c for c in n.iter() if local(c.tag) in ('rect', 'ellipse', 'circle')]
+        # A drawn object is the subject of its node: a badge-sized corner
+        # crushes it, and the studio will refuse to wear it there.
+        if obj and shapes:
+            labels = [c for c in n.iter() if local(c.tag) == 'text']
+            try:
+                left = float(shapes[0].get('x') or 0)
+                width = float(shapes[0].get('width') or 0)
+                height = float(shapes[0].get('height') or 0)
+                first = min(float(t.get('x') or 0) for t in labels) if labels else left + 120
+                if first - left < 120:
+                    problems.append(f'node {n.get("id")!r} wears a drawn {obj} but leaves {round(first - left)} px for it — start its words at least 120 px from the node\'s left edge')
+                if width and width < 300 or height and height < 140:
+                    problems.append(f'node {n.get("id")!r} wears a drawn {obj} in a {round(width)}x{round(height)} box — a drawn object needs about 300x140')
+            except (TypeError, ValueError):
+                pass
         if entity and shapes:
             labels = [c for c in n.iter() if local(c.tag) == 'text']
             anchored = any((t.get('text-anchor') or '') in ('middle', 'end') for t in labels)
