@@ -537,21 +537,38 @@ export const wearAppearance = (
   document.body.append(measuring)
   const measured = live.querySelector(`#${CSS.escape(unitId)}`) as SVGGraphicsElement | null
   const box = measured?.getBBox ? measured.getBBox() : { x: 0, y: 0, width: 0, height: 0 }
+  // The words keep their place; the drawing takes the room left over. A node
+  // that already carries text gets the artwork beside it, not on top of it.
+  const words = measured ? Array.from(measured.querySelectorAll('text')) : []
+  const textLeft = words.reduce((left, word) => {
+    const at = (word as SVGGraphicsElement).getBBox?.()
+    return at && at.width ? Math.min(left, at.x) : left
+  }, Number.POSITIVE_INFINITY)
+  const room =
+    Number.isFinite(textLeft) && textLeft > box.x + 24
+      ? { x: box.x + 8, y: box.y + 8, width: Math.max(24, textLeft - box.x - 16), height: Math.max(24, box.height - 16) }
+      : { x: box.x, y: box.y, width: box.width, height: box.height }
   measuring.remove()
-  if (!box.width || !box.height) return svg
+  if (!room.width || !room.height) return svg
   const drawing = new DOMParser().parseFromString(artwork.svg, 'image/svg+xml').documentElement
   if (drawing.tagName.toLowerCase() !== 'svg') return svg
   const group = parsed.createElementNS('http://www.w3.org/2000/svg', 'g')
   group.setAttribute('data-appearance-for', unitId)
   if (artwork.key) group.setAttribute('data-appearance-key', artwork.key)
   // Fitted into the thing's own box, keeping the drawing's proportions.
-  const scale = Math.min(box.width / artwork.viewBox.width, box.height / artwork.viewBox.height)
+  const scale = Math.min(room.width / artwork.viewBox.width, room.height / artwork.viewBox.height)
   const width = artwork.viewBox.width * scale
   const height = artwork.viewBox.height * scale
   group.setAttribute(
     'transform',
-    `translate(${(box.x + (box.width - width) / 2).toFixed(2)} ${(box.y + (box.height - height) / 2).toFixed(2)}) scale(${scale.toFixed(4)})`,
+    `translate(${(room.x + (room.width - width) / 2).toFixed(2)} ${(room.y + (room.height - height) / 2).toFixed(2)}) scale(${scale.toFixed(4)})`,
   )
+  // The wireframe's own picture of this thing steps aside: one drawing per
+  // thing, and the richer one wins.
+  Array.from(host.querySelectorAll(`[data-appearance-for="${unitId}"]`)).forEach(previous => {
+    previous.setAttribute('data-appearance-replaced', '1')
+    previous.setAttribute('style', 'display:none')
+  })
   Array.from(drawing.childNodes).forEach(node => group.appendChild(parsed.importNode(node, true)))
   // Name the pieces the scene will move, by the brief's own names.
   artwork.parts.forEach(part => {

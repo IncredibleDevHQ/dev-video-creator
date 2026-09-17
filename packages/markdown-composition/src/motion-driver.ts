@@ -139,6 +139,42 @@ export const MOTION_DRIVER_SOURCE = `
     });
   });
   var isLevelled = function (node) { return levelled.indexOf(node) >= 0; };
+  // Artwork that animates itself is taken hold of here: paused at load and
+  // seeked from this clock, so a frame is the same however it was reached.
+  var clips = {};
+  var holdClips = function () {
+    var nodes = [root].concat(Array.prototype.slice.call(root.querySelectorAll('[data-part], [data-appearance-for], [id]')));
+    nodes.forEach(function (node) {
+      if (!node.id || clips[node.id] || typeof node.getAnimations !== 'function') return;
+      var list = [];
+      try { list = node.getAnimations({ subtree: true }) || []; } catch (e) { list = node.getAnimations() || []; }
+      if (!list.length) return;
+      var longest = 0;
+      list.forEach(function (animation) {
+        try {
+          animation.pause();
+          animation.currentTime = 0;
+          var timing = animation.effect && animation.effect.getComputedTiming ? animation.effect.getComputedTiming() : null;
+          var span = timing ? (Number(timing.delay) || 0) + (Number(timing.duration) || 0) * (Number(timing.iterations) || 1) : 0;
+          if (isFinite(span) && span > longest) longest = span;
+        } catch (e) { /* a clip that will not be held is left alone */ }
+      });
+      clips[node.id] = { list: list, durationMs: longest };
+    });
+  };
+  holdClips();
+  var seekClip = function (id, localMs) {
+    var clip = clips[id];
+    if (!clip) return false;
+    clip.list.forEach(function (animation) {
+      try {
+        var timing = animation.effect && animation.effect.getComputedTiming ? animation.effect.getComputedTiming() : null;
+        var span = timing ? (Number(timing.delay) || 0) + (Number(timing.duration) || 0) * (Number(timing.iterations) || 1) : clip.durationMs;
+        animation.currentTime = Math.max(0, Math.min(localMs, isFinite(span) ? span : localMs));
+      } catch (e) { /* ignore */ }
+    });
+    return true;
+  };
   var livingLayer = null;
   var layer = function () {
     if (livingLayer) return livingLayer;
@@ -543,7 +579,7 @@ export const MOTION_DRIVER_SOURCE = `
 
   // ——— fold ———
   var rest = function (t) {
-    return { alpha: t.hiddenAtRest ? 0 : 1, dim: 1, scale: 1, resized: null, dx: 0, dy: 0, trace: 1, body: null, glow: 0, count: null, level: null };
+    return { alpha: t.hiddenAtRest ? 0 : 1, dim: 1, scale: 1, resized: null, dx: 0, dy: 0, trace: 1, body: null, glow: 0, count: null, level: null, clipMs: null };
   };
   var format = function (text, value) {
     var fixed = Math.abs(value).toFixed(text.decimals);
@@ -609,6 +645,15 @@ export const MOTION_DRIVER_SOURCE = `
             // Made bigger on purpose, and it stays that way — always measured
             // from the size the page drew, never from the last resize.
             s.resized = lerp(typeof a.value.from === 'number' ? a.value.from : 1, typeof a.value.to === 'number' ? a.value.to : 1, ev); break;
+          case 'clip':
+            // Its own timeline, driven by ours: a behaviour that has played
+            // stays played, because the end is where the state is.
+            var cf = typeof a.value.from === 'number' ? a.value.from : 0;
+            var ct = typeof a.value.to === 'number' ? a.value.to : 0;
+            s.clipMs = lerp(cf, ct, ev);
+            // Artwork that cannot be seeked still answers the event.
+            if (!clips[t.id]) { var bell = Math.sin(Math.PI * p); s.scale *= 1 + 0.05 * bell; s.glow = Math.max(s.glow, bell); }
+            break;
           case 'level':
             // How full the thing is: the bar the page drew, scaled along its
             // own longer side, from the edge it fills from.
@@ -639,6 +684,7 @@ export const MOTION_DRIVER_SOURCE = `
       t.strokes.forEach(function (stroke) { stroke.node.style.strokeDashoffset = String(stroke.length * (1 - s.trace)); });
       t.bodies.forEach(function (leaf) { if (leaf !== node) leaf.style.opacity = s.body === null ? '' : String(s.body); });
       if (t.text) t.text.node.textContent = s.count === null ? t.text.base : format(t.text, s.count);
+      if (s.clipMs !== null) seekClip(t.id, s.clipMs);
     });
     drawLiving(activeLiving);
     root.setAttribute('viewBox', camera.x.toFixed(2) + ' ' + camera.y.toFixed(2) + ' ' + camera.width.toFixed(2) + ' ' + camera.height.toFixed(2));

@@ -19,6 +19,9 @@ export const MOTION_OPS = [
   // resize: a thing is deliberately made larger or smaller and stays that
   // way — value { to } as a factor of the size the page drew it at.
   'resize',
+  // clip: a piece of artwork that animates itself, seeked from this clock
+  // rather than playing on its own — value { from, to } in its local ms.
+  'clip',
 ] as const
 export type MotionOp = (typeof MOTION_OPS)[number]
 
@@ -119,6 +122,8 @@ export const MOTION_DURATION_MS: Record<MotionOp, number> = {
   level: 720,
   // resize: a recomposition, slower than a flourish so the eye follows it.
   resize: 720,
+  // clip: as long as the behaviour it plays; the compiler sets the real one.
+  clip: 900,
 }
 
 export const MOTION_EASE_FOR: Record<MotionOp, MotionEase> = {
@@ -138,6 +143,7 @@ export const MOTION_EASE_FOR: Record<MotionOp, MotionEase> = {
   phase: 'settle',
   level: 'settle',
   resize: 'settle',
+  clip: 'settle',
 }
 
 export const MOTION_STAGGER_MS = 70
@@ -252,7 +258,7 @@ export const sanitizeMotionPlan = (value: unknown): MotionPlanV2 | null => {
 // it: where it has been moved to, how big it has been made, whether it is on
 // screen, and how full it is. The renderer, the camera and the director all
 // read this rather than each measuring the page their own way.
-export type StageEntry = { dx: number; dy: number; scale: number; visible: boolean; level: number | null }
+export type StageEntry = { dx: number; dy: number; scale: number; visible: boolean; level: number | null; clipMs?: number }
 
 const STAGE_REST: StageEntry = { dx: 0, dy: 0, scale: 1, visible: false, level: null }
 
@@ -295,6 +301,9 @@ export const stageStateAt = (plan: MotionPlanV2, beatIndex: number): Map<string,
           break
         case 'level':
           action.targets.forEach(id => { entry(id).level = Number(value.to) || 0 })
+          break
+        case 'clip':
+          action.targets.forEach(id => { entry(id).clipMs = Number(value.to) || 0 })
           break
         case 'morph':
         case 'swap': {

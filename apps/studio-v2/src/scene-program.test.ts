@@ -412,7 +412,10 @@ describe('the scene program', () => {
       dressed,
       { viewBox },
     )!
-    expect(onServer.plan.steps[1].actions.some(action => action.targets[0] === 'art-indicator')).toBe(true)
+    const played = onServer.plan.steps[1].actions.find(action => action.targets[0] === 'art-indicator')!
+    // Its own behaviour, seeked from the scene's clock rather than played.
+    expect(played.op).toBe('clip')
+    expect(played.value).toMatchObject({ from: 0 })
   })
 
   it('refuses ids the page does not have', () => {

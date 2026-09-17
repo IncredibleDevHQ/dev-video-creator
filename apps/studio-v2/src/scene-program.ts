@@ -651,7 +651,10 @@ export const compileSceneProgram = (
       // is refused. One flourish, at the moment the event lands.
       const reacts = reactionFor(event.actor, event.action)
       if (reacts) {
-        actions.push(act(event.action === 'reject' ? 'pulse' : 'emphasize', [reacts], cursor, { persistence: 'flourish' }))
+        // Artwork that animates itself is seeked through its own behaviour
+        // from this clock; the driver falls back to a flourish for artwork
+        // that has no timeline of its own.
+        actions.push(act('clip', [reacts], cursor, { durationMs: MOTION_DURATION_MS.clip, value: { from: 0, to: MOTION_DURATION_MS.clip } }))
       }
       const targetUnit = event.to ? unitFor(event.to) : undefined
       if (targetUnit) parts.add(targetUnit.id)
