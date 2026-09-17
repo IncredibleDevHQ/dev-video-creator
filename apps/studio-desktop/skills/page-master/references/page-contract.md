@@ -87,12 +87,23 @@ its own named parts). Declaring one does three things:
 - a page that names an object nobody can draw fails the check.
 
 **Leave it room.** A drawn object is the subject of its node, not a badge in
-the corner: a node that declares `data-object` starts its words at least
-**120 px** from the node's left edge, and is at least 300 px wide and 140 px
-tall, so the drawing has a column it can read in. Plan the page around that —
-a diagram usually has one or two such nodes, and they are the ones the story is
-about. The studio refuses to wear a drawing that would come out under 48 px a
-side; that node keeps its wireframe and the author is told which one to widen.
+the corner. The studio fits it into whichever is roomier — the column beside
+the node's words, or the space above them — and it must come out at least
+**110 px a side**. Two layouts do that, and the object's own proportions decide
+which:
+
+- **Words below the drawing** (`objects.json` gives each object's size; the
+  wide ones — the slot pool, the waiting line, the server — want this). The
+  node is about 320x260: the drawing fills the top ~170 px across the node's
+  full width, the label and its detail sit under it.
+- **Words beside the drawing**, for an object taller than it is wide: the node
+  is about 380x200 and its words start at least 200 px from the left edge.
+
+Check it: the checker works out what the drawing would come out as and says so
+before anything is rendered. A diagram usually has one or two of these nodes —
+they are what the scene is about, so plan the page around them. The studio
+refuses to wear a drawing that would come out under 48 px a side; that node
+keeps its wireframe and the author is told which one to change.
 
 Declare it only where the name is right — a node that is not one of these
 objects says nothing. The drawing is filed under what was asked for, so the

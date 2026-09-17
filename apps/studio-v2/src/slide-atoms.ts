@@ -560,14 +560,23 @@ export const wearAppearance = (
   // The words keep their place; the drawing takes the room left over. A node
   // that already carries text gets the artwork beside it, not on top of it.
   const words = measured ? Array.from(measured.querySelectorAll('text')) : []
-  const textLeft = words.reduce((left, word) => {
-    const at = (word as SVGGraphicsElement).getBBox?.()
-    return at && at.width ? Math.min(left, at.x) : left
-  }, Number.POSITIVE_INFINITY)
-  const room =
+  const marks = words.map(word => (word as SVGGraphicsElement).getBBox?.()).filter((at): at is DOMRect => Boolean(at && at.width))
+  const textLeft = marks.reduce((left, at) => Math.min(left, at.x), Number.POSITIVE_INFINITY)
+  const textTop = marks.reduce((top, at) => Math.min(top, at.y), Number.POSITIVE_INFINITY)
+  // Two ways to leave a drawing room: a column beside the words, or the space
+  // above them. A tall object reads beside a label, a wide one reads above it;
+  // rather than pick a house style, take whichever leaves the drawing bigger.
+  const beside =
     Number.isFinite(textLeft) && textLeft > box.x + 24
       ? { x: box.x + 8, y: box.y + 8, width: Math.max(24, textLeft - box.x - 16), height: Math.max(24, box.height - 16) }
       : { x: box.x, y: box.y, width: box.width, height: box.height }
+  const above =
+    Number.isFinite(textTop) && textTop > box.y + 24
+      ? { x: box.x + 8, y: box.y + 8, width: Math.max(24, box.width - 16), height: Math.max(24, textTop - box.y - 16) }
+      : null
+  const fits = (at: { width: number; height: number }) =>
+    Math.min(at.width / artwork.viewBox.width, at.height / artwork.viewBox.height)
+  const room = above && fits(above) > fits(beside) ? above : beside
   measuring.remove()
   if (!room.width || !room.height) return svg
   // A drawn object is the subject of its node, not a badge in the corner. A

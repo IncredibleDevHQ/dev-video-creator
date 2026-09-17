@@ -27,7 +27,17 @@ def known_objects():
     except Exception:
         return {}
 
+def object_sizes():
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'references', 'objects.json')
+    try:
+        return {o['entity']: (o['size']['width'], o['size']['height']) for o in json.load(open(path)).get('objects') or [] if o.get('size')}
+    except Exception:
+        return {}
+
 OBJECTS = known_objects()
+SIZES = object_sizes()
+# The smallest a drawn object may come out and still carry a scene.
+MIN_DRAWN_SIDE = 110
 
 def local(tag):
     return tag.split('}', 1)[1] if '}' in tag else tag
@@ -84,19 +94,30 @@ def check(path):
         if obj and not entity:
             problems.append(f'node {n.get("id")!r} asks for object {obj!r} without saying what it is — add data-entity')
         shapes = [c for c in n.iter() if local(c.tag) in ('rect', 'ellipse', 'circle')]
-        # A drawn object is the subject of its node: a badge-sized corner
-        # crushes it, and the studio will refuse to wear it there.
-        if obj and shapes:
+        # A drawn object is the subject of its node, and the studio fits it into
+        # whichever is roomier: the column beside the words, or the space above
+        # them. Work out what the drawing would come out as, the same way.
+        if obj and shapes and obj in SIZES:
             labels = [c for c in n.iter() if local(c.tag) == 'text']
             try:
                 left = float(shapes[0].get('x') or 0)
+                top = float(shapes[0].get('y') or 0)
                 width = float(shapes[0].get('width') or 0)
                 height = float(shapes[0].get('height') or 0)
-                first = min(float(t.get('x') or 0) for t in labels) if labels else left + 120
-                if first - left < 120:
-                    problems.append(f'node {n.get("id")!r} wears a drawn {obj} but leaves {round(first - left)} px for it — start its words at least 120 px from the node\'s left edge')
-                if width and width < 300 or height and height < 140:
-                    problems.append(f'node {n.get("id")!r} wears a drawn {obj} in a {round(width)}x{round(height)} box — a drawn object needs about 300x140')
+                first_x = min(float(t.get('x') or 0) for t in labels) if labels else left + width
+                # A text's y is its baseline; its top is about one line above.
+                first_y = min(float(t.get('y') or 0) - 22 for t in labels) if labels else top + height
+                ow, oh = SIZES[obj]
+                beside = (max(24.0, first_x - left - 16), max(24.0, height - 16)) if first_x > left + 24 else (width, height)
+                above = (max(24.0, width - 16), max(24.0, first_y - top - 16)) if first_y > top + 24 else None
+                fit = lambda room: min(room[0] / ow, room[1] / oh)
+                room = above if above and fit(above) > fit(beside) else beside
+                drawn = (ow * fit(room), oh * fit(room))
+                if min(drawn) < MIN_DRAWN_SIDE:
+                    problems.append(
+                        f'node {n.get("id")!r} wears a drawn {obj}, but the room it leaves draws it {round(drawn[0])}x{round(drawn[1])} — '
+                        f'put the words below the drawing, or give the node a wider column, so it comes out at least {MIN_DRAWN_SIDE} px a side'
+                    )
             except (TypeError, ValueError):
                 pass
         if entity and shapes:
