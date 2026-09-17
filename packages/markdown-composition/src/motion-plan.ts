@@ -310,22 +310,32 @@ export const stageStateAt = (plan: MotionPlanV2, beatIndex: number): Map<string,
   return stage
 }
 
+/** A box after one transform, scaled about the drawn centre of whatever
+ * carries it and then moved. The renderer scales each element about its own
+ * box, so a thing inside a moved group is carried by that group's transform
+ * as well as its own — geometry anywhere else has to compose them the same. */
+export const boxCarriedBy = (
+  box: { x: number; y: number; width: number; height: number },
+  at: StageEntry | undefined,
+  about: { x: number; y: number; width: number; height: number },
+) => {
+  if (!at) return box
+  const cx = about.x + about.width / 2
+  const cy = about.y + about.height / 2
+  return {
+    x: cx + (box.x - cx) * at.scale + at.dx,
+    y: cy + (box.y - cy) * at.scale + at.dy,
+    width: box.width * at.scale,
+    height: box.height * at.scale,
+  }
+}
+
 /** Where a box the page drew actually sits, once the stage has moved and
  * sized it: scaled about its own centre, then translated. */
 export const boxOnStage = (
   box: { x: number; y: number; width: number; height: number },
   at: StageEntry | undefined,
-) => {
-  if (!at) return box
-  const width = box.width * at.scale
-  const height = box.height * at.scale
-  return {
-    x: box.x + at.dx - (width - box.width) / 2,
-    y: box.y + at.dy - (height - box.height) / 2,
-    width,
-    height,
-  }
-}
+) => boxCarriedBy(box, at, box)
 
 export const unitOffsetsAt = (plan: MotionPlanV2, beatIndex: number): Map<string, { dx: number; dy: number }> => {
   const offsets = new Map<string, { dx: number; dy: number }>()

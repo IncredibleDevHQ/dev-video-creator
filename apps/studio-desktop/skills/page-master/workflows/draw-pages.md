@@ -117,6 +117,22 @@ still be named by every later beat; an actor travelling to it goes to where it
 now stands. Use this at the turn of a scene — a consequence, a resolve — not
 on every beat.
 
+**Each shot is about one action.** A beat is a shot, and what the reader sees
+in it should be the thing happening — not the whole page competing with it:
+
+- Show what the words claim. "A burst arrives" means several arrivals: send one
+  actor per unit spent, one after another, not a single marker with a caption
+  saying three. The checker refuses a beat that spends more than it shows.
+- Frame cause and outcome together. A `consequence` close-up that holds the
+  thing that failed but crops the outcome hides the point; name both in the
+  beat's `camera` (the checker asks for it), or restage the outcome next to it.
+- Clear what has done its job. An intro line, a caption, a legend: `restage`
+  them away with `clear` before the beat that needs the room. What stays should
+  be what the beat is about.
+- Make an amount unmistakable. The `shownOn` level is the largest thing in its
+  node, and every change to it gets a moment to land — 3 → 2 → 0 → 1 should be
+  readable without the caption.
+
 Rules the studio enforces:
 
 - Only a `data-actor` may `travel`, `pass`, `reject` or `become`. Nodes never
@@ -133,6 +149,9 @@ Rules the studio enforces:
 - `quantity.shownOn` names the element whose height or width is the level, so
   spending and refilling are seen, not asserted.
 - Every id must exist on the page you just drew.
+- A line merged with another keeps both moments: the second lives in the
+  first's `then`, with its own events, staging and shot, playing after it
+  inside the same line. Write `then` only if you mean two moments in one line.
 - `cast` is where a thing's *state* lives — a quantity it holds, a role, a
   starting state. An event may name anything on the page; only things whose
   amount or state changes need a cast entry.

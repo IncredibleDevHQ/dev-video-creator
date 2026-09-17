@@ -95,7 +95,7 @@ import {
 } from './script-plan'
 import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
-import { placementAt, placementsFor, unitsOnScreenPerBeat } from './placements'
+import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
@@ -9940,7 +9940,10 @@ const windowPartsFromWords = (state: SlideEditorState, say: string) => {
 
 const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] => {
   if (!Array.isArray(raw)) return []
-  const valid = new Set(leafUnits(state.units).map(unit => unit.id))
+  // Anything the page named, not only its leaves: a camera or a part may be a
+  // whole node — a group with its box and its artwork inside — and trimming
+  // those silently drops things out of the shot when a scene is reopened.
+  const valid = new Set(flattenUnits(state.units).map(unit => unit.id))
   return raw
     .map((entry): SceneWindow | null => {
       if (!entry || typeof entry !== 'object') return null
@@ -9958,7 +9961,9 @@ const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] =
         title: String(window.title || '').trim() || undefined,
         parts: [...new Set([...parts, ...(hero ? [hero] : [])])],
         hero,
-        ...(camera && camera.length ? { camera } : {}),
+        // An empty camera is a decision (stay on the page); no camera at all
+        // means the shot carries on from the beat before.
+        ...(camera ? { camera } : {}),
         ...(layout ? { layout } : {}),
         ...(layout && window.layoutByAuthor ? { layoutByAuthor: true } : {}),
         ...(typeof window.intent === 'string' && window.intent ? { intent: window.intent as SceneWindow['intent'] } : {}),
@@ -12387,6 +12392,7 @@ slideEditorDialog.addEventListener('cancel', event => {
   planFromScript,
   placementsFor,
   unitsOnScreenPerBeat,
+  unitsOnStageAt,
   cameraRectAt,
   direct,
   pageModelFor,

@@ -237,6 +237,21 @@ def check_program(path, svg_path):
             cue = event.get('cue')
             if cue and cue.lower() not in (beat.get('say') or '').lower():
                 problems.append(f'beat {where!r} cue {cue!r} is not a word in its say')
+    # A burst is shown, not asserted: spending several units needs several
+    # arrivals in the same beat, or the picture and the words disagree.
+    for beat in beats:
+        where = beat.get('id') or beat.get('moment') or '?'
+        events = beat.get('events') or []
+        spent = sum(int(e.get('amount') or 1) for e in events if e.get('action') == 'spend')
+        arrivals = len([e for e in events if e.get('action') in ('travel', 'pass', 'reject')])
+        if spent > 1 and arrivals < 2:
+            problems.append(f'beat {where!r} spends {spent} but shows {arrivals} arrival(s) — a burst has to be seen, so send one actor per unit spent')
+        # A consequence is cause and outcome in one frame: a close-up that
+        # leaves the outcome outside it hides the point of the beat.
+        if beat.get('moment') == 'consequence' and isinstance(beat.get('camera'), list) and beat['camera']:
+            outcomes = {e.get('to') for e in events if e.get('to')}
+            if outcomes and not (outcomes & set(beat['camera'])):
+                problems.append(f'beat {where!r} moves in on {beat["camera"]} but its outcome is {sorted(outcomes)} — frame them together')
     if role == 'diagram' and beats and len(set(moments)) < 3:
         problems.append(f'moments are {moments} — a scene needs a shape, not one note repeated')
     if role == 'diagram' and beats and 'consequence' not in moments and 'tension' not in moments:

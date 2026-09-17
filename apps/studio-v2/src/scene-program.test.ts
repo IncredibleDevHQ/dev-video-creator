@@ -209,8 +209,10 @@ describe('the scene program', () => {
     ]
     const edited = programWithEdits(authored, merged)
     expect(edited.beats).toHaveLength(2)
-    // Both lines' events are now in the paragraph that carries both lines.
-    expect(edited.beats[0].events!.map(event => event.action)).toEqual(['appear', 'appear', 'spend'])
+    // Both moments live on in the paragraph that carries both lines, each
+    // keeping its own events rather than being folded into the first.
+    expect(edited.beats[0].events!.map(event => event.action)).toEqual(['appear', 'appear'])
+    expect(edited.beats[0].then!.map(part => part.events!.map(event => event.action))).toEqual([['spend']])
     expect(edited.beats[1].events!.map(event => event.action)).toEqual(['state'])
   })
 
@@ -233,6 +235,59 @@ describe('the scene program', () => {
     expect(actions[1]).toContain('travel')
     expect(actions[2]).toContain('spend')
     expect(actions[1]).not.toContain('spend')
+  })
+
+  it('keeps a merged moment\u2019s staging in its own place in the line', () => {
+    const authored = program([{ actor: 'actor-request', action: 'travel', to: 'node-bucket', cue: 'arrives' }])
+    authored.beats[2].restage = [{ id: 'node-bucket', to: 'left' }]
+    authored.beats[2].camera = ['node-bucket']
+    authored.beats[2].speaker = 'beside'
+    const merged: SceneWindow[] = [
+      { say: authored.beats[0].say, parts: [] },
+      { say: `${authored.beats[1].say} ${authored.beats[2].say}`, parts: [] },
+    ]
+    const edited = programWithEdits(authored, merged)
+    const line = edited.beats[1]
+    expect(line.restage).toBeUndefined()
+    expect(line.then).toHaveLength(1)
+    // The later moment's own recomposition and shot stay with it, after the
+    // arrival rather than before it.
+    expect(line.then![0].restage).toEqual([{ id: 'node-bucket', to: 'left' }])
+    expect(line.then![0].camera).toEqual(['node-bucket'])
+    const compiled = compileSceneProgram(edited, units, { viewBox })!
+    const ops = compiled.plan.steps[1].actions
+    const travel = ops.findIndex(action => action.op === 'move' && action.targets.includes('actor-request'))
+    const restaged = ops.findIndex(action => action.op === 'move' && action.targets.includes('node-bucket'))
+    expect(travel).toBeGreaterThanOrEqual(0)
+    expect(restaged).toBeGreaterThan(travel)
+    // And its shot is taken later in the line, not at its first syllable.
+    expect(ops.find(action => action.op === 'camera')!.startMs).toBeGreaterThan(0)
+  })
+
+  it('cuts one paragraph into three sentences and keeps the order', () => {
+    const paragraph: SceneProgram = {
+      version: 1,
+      page: 'test.svg',
+      cast: [{ id: 'node-bucket', role: 'bucket', quantity: { of: 'tokens', value: 3, max: 3 } }],
+      beats: [
+        {
+          id: 'b1',
+          moment: 'explain',
+          say: 'A request arrives at the bucket. It spends one of the three tokens. The refill drips one back a second later.',
+          events: [
+            { actor: 'actor-request', action: 'travel', to: 'node-bucket', cue: 'arrives' },
+            { actor: 'node-bucket', action: 'spend', amount: 1, cue: 'spends' },
+            { actor: 'node-bucket', action: 'refill', amount: 1, cue: 'refill' },
+          ],
+        },
+      ],
+    }
+    const sentences = paragraph.beats[0].say.split('. ').map((text, index, all) => ({
+      say: index === all.length - 1 ? text : `${text}.`,
+      parts: [],
+    }))
+    const edited = programWithEdits(paragraph, sentences)
+    expect(edited.beats.map(beat => (beat.events || []).map(event => event.action))).toEqual([['travel'], ['spend'], ['refill']])
   })
 
   it('takes the camera choice back from the card, and leaves the events alone', () => {

@@ -13,7 +13,8 @@ import {
   unitOffsetsAt,
   cameraRectAt,
   stageStateAt,
-  boxOnStage,
+  boxCarriedBy,
+  type StageEntry,
 } from 'markdown-composition'
 import { flattenUnits, type SlideUnit } from './slide-atoms'
 
@@ -81,16 +82,31 @@ export const coveredFraction = (camera: StageRect, boxes: FrameBox[], grid = 24)
 // The units on screen after each beat, with their boxes where the plan's
 // moves have put them — so a placement is computed from the moved ink and
 // the presenter's corner adjusts when a box travels.
-/** Every unit with the box it now has: moved and resized as the plan says. */
+/** Every unit with the box it now has: moved and resized as the plan says,
+ * and carried by whatever its ancestors were moved and resized by — a group
+ * that travels takes what is drawn inside it, exactly as the renderer does. */
 export const unitsOnStageAt = (plan: MotionPlanV2, units: SlideUnit[], beatIndex: number): SlideUnit[] => {
   const stage = stageStateAt(plan, beatIndex)
-  const restage = (unit: SlideUnit): SlideUnit => {
-    const at = unit.ids.map(id => stage.get(id)).find(entry => entry && (entry.dx || entry.dy || entry.scale !== 1))
-    const children = unit.children.length ? unit.children.map(restage) : unit.children
-    return at || children !== unit.children ? { ...unit, bbox: at ? boxOnStage(unit.bbox, at) : unit.bbox, children } : unit
+  // Only the element that owns a unit carries its transform: a group's id
+  // list includes its children, and reading those would move it twice.
+  const moved = (unit: SlideUnit) => {
+    const at = stage.get(unit.id)
+    return at && (at.dx || at.dy || at.scale !== 1) ? at : undefined
   }
-  return units.map(restage)
+  const carry = (unit: SlideUnit, ancestors: Array<{ at: StageEntry; about: SlideUnit['bbox'] }>): SlideUnit => {
+    const own = moved(unit)
+    // Innermost first: a thing moves within its parent, then the parent moves.
+    const chain = own ? [{ at: own, about: unit.bbox }, ...ancestors] : ancestors
+    const bbox = chain.reduce((box, link) => boxCarriedBy(box, link.at, link.about), unit.bbox)
+    const children = unit.children.length ? unit.children.map(child => carry(child, chain)) : unit.children
+    return chain.length || children !== unit.children ? { ...unit, bbox, children } : unit
+  }
+  return units.map(unit => carry(unit, []))
 }
+
+/** One unit's box, staged the same way, wherever it sits in the tree. */
+export const boxOnStageAt = (plan: MotionPlanV2, units: SlideUnit[], beatIndex: number, id: string) =>
+  flattenUnits(unitsOnStageAt(plan, units, beatIndex)).find(unit => unit.id === id)?.bbox
 
 export const unitsOnScreenPerBeat = (
   plan: MotionPlanV2,
@@ -106,6 +122,7 @@ export const unitsOnScreenPerBeat = (
     const stage = stageStateAt(plan, index)
     const shown = new Set<string>()
     stage.forEach((entry, id) => { if (entry.visible) shown.add(id) })
+    const stagedById = new Map(flattenUnits(unitsOnStageAt(plan, units, index)).map(unit => [unit.id, unit]))
     const crop = viewBox ? cameraRectAt(plan, index, viewBox) : null
     const inside = (box: SlideUnit['bbox']) =>
       !crop ||
@@ -116,8 +133,8 @@ export const unitsOnScreenPerBeat = (
     return all
       .filter(unit => unit.chrome || unit.ids.some(id => shown.has(id)))
       .map(unit => {
-        const at = unit.ids.map(id => stage.get(id)).find(entry => entry && (entry.dx || entry.dy || entry.scale !== 1))
-        return at ? { ...unit, bbox: boxOnStage(unit.bbox, at) } : unit
+        const staged = stagedById.get(unit.id)
+        return staged ? { ...unit, bbox: staged.bbox } : unit
       })
       .filter(unit => inside(unit.bbox))
   })

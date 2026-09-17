@@ -13,7 +13,7 @@
 import {
   MOTION_DURATION_MS,
   MOTION_EASE_FOR,
-  boxOnStage,
+  boxCarriedBy,
   type MotionAction,
   type MotionBeat,
   type MotionIntent,
@@ -73,6 +73,10 @@ export type ProgramBeat = {
   camera?: string[] | 'page'
   speaker?: WindowLayout
   restage?: ProgramStaging[]
+  // Moments that ended up sharing this one's line — when two beats are merged
+  // into one paragraph, the second keeps its own events, staging and shot, and
+  // plays after the first inside the same line.
+  then?: ProgramBeat[]
 }
 
 export type SceneProgram = { version: 1; page?: string; cast: ProgramActor[]; beats: ProgramBeat[] }
@@ -119,8 +123,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
     })
     .filter((actor): actor is ProgramActor => Boolean(actor))
     .slice(0, 24)
-  const beats = (Array.isArray(value.beats) ? value.beats : [])
-    .map(entry => {
+  const cleanBeat = (entry: unknown, nested: boolean): ProgramBeat | null => {
       const beat = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>
       const say = asString(beat.say, 600)
       if (!say) return null
@@ -166,6 +169,14 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
         rawCamera === 'page'
           ? ('page' as const)
           : (Array.isArray(rawCamera) ? rawCamera : []).map(id => asString(id, 120)).filter(id => known.has(id))
+      // Moments merged into this one's line keep everything but their own
+      // line; they are never nested further than one deep.
+      const then = nested
+        ? []
+        : (Array.isArray(beat.then) ? beat.then : [])
+            .map(item => cleanBeat(item, true))
+            .filter((item): item is ProgramBeat => Boolean(item))
+            .slice(0, 6)
       return {
         id: asString(beat.id, 40) || undefined,
         moment: MOMENTS.includes(beat.moment as ProgramMoment) ? (beat.moment as ProgramMoment) : undefined,
@@ -174,8 +185,11 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
         ...(camera === 'page' ? { camera: 'page' as const } : camera.length ? { camera } : {}),
         ...(restage.length ? { restage } : {}),
         ...(beat.speaker === 'me' || beat.speaker === 'beside' || beat.speaker === 'page' ? { speaker: beat.speaker as WindowLayout } : {}),
+        ...(then.length ? { then } : {}),
       } as ProgramBeat
-    })
+  }
+  const beats = (Array.isArray(value.beats) ? value.beats : [])
+    .map(entry => cleanBeat(entry, false))
     .filter((beat): beat is ProgramBeat => Boolean(beat))
     .slice(0, 16)
   if (!cast.length || !beats.length) return null
@@ -258,7 +272,10 @@ const carriedOver = (beatSay: string, windowSay: string) => {
   return pairs.filter(pair => present.has(pair)).length / pairs.length
 }
 export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]): SceneProgram => {
-  const beats = program.beats
+  // Every moment in the scene, including those already sharing a line: each
+  // one is lined up on its own, so splitting a merged paragraph gives them
+  // back their own beats.
+  const beats = program.beats.flatMap(beat => [{ ...beat, then: undefined }, ...(beat.then || [])])
   if (!beats.length || !windows.length) return program
   // Lining the beats up with the lines on screen: an alignment, not a lookup.
   // Beats keep their order, two beats may land in one merged line, and a line
@@ -317,12 +334,13 @@ export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]):
     const part = saidWords(windows[index].say).join(' ')
     return (part.length > 8 && line.includes(part)) || carries[at][index] >= 0.4
   }
+  // Any fragment of the same line, not only the one next to it: a paragraph
+  // cut into three sends each event to the sentence that names its cue.
   const otherHalf = (at: number, where: number, cue: string) =>
     windows.findIndex(
       (window, index) =>
         index !== where &&
         !claimed.has(index) &&
-        Math.abs(index - where) === 1 &&
         cutFrom(at, index) &&
         window.say.toLowerCase().includes(cue),
     )
@@ -343,19 +361,37 @@ export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]):
     beats: windows.map((window, index) => {
       const mine = beats.map((beat, at) => ({ beat, at })).filter(entry => home.get(entry.at) === index)
       const first = mine[0]?.beat
-      const restage = mine.flatMap(entry => entry.beat.restage || [])
       const speaker = window.layoutByAuthor && (window.layout === 'me' || window.layout === 'beside' || window.layout === 'page') ? window.layout : first?.speaker
       // Three states, not two: no camera line at all (the shot carries on),
       // back to the page, or a named close-up.
       const camera = window.camera === undefined ? first?.camera : window.camera.length ? window.camera : ('page' as const)
+      // The events this line now carries, split back among the moments that
+      // own them, so a moment merged into the line keeps its own staging and
+      // its own place in the sequence rather than being folded into the first.
+      const carried = lands.get(index) || []
+      const mineEvents = new Map<number, ProgramEvent[]>()
+      carried.forEach(event => {
+        const owner = mine.find(entry => (entry.beat.events || []).includes(event))?.at ?? mine[0]?.at ?? -1
+        mineEvents.set(owner, [...(mineEvents.get(owner) || []), event])
+      })
+      const later = mine.slice(1).map(entry => ({
+        id: entry.beat.id,
+        moment: entry.beat.moment,
+        say: entry.beat.say,
+        events: mineEvents.get(entry.at) || [],
+        ...(entry.beat.restage?.length ? { restage: entry.beat.restage } : {}),
+        ...(entry.beat.camera ? { camera: entry.beat.camera } : {}),
+      }))
+      const restage = first?.restage || []
       return {
         id: first?.id || `b${index + 1}`,
         moment: first?.moment || ('explain' as const),
         say: window.say,
-        events: lands.get(index) || [],
+        events: mineEvents.get(mine[0]?.at ?? -1) || carried.filter(event => !later.some(part => part.events.includes(event))),
         ...(restage.length ? { restage } : {}),
         ...(camera ? { camera } : {}),
         ...(speaker ? { speaker } : {}),
+        ...(later.length ? { then: later } : {}),
       }
     }),
   }
@@ -415,9 +451,24 @@ export const compileSceneProgram = (
   // One element carries the transform; everything drawn inside it comes along.
   const owning = (id: string) => unitFor(id)?.id || id
   const standing = (id: string) => stage.get(owning(id)) || { dx: 0, dy: 0, scale: 1 }
+  const parentOf = new Map<string, SlideUnit>()
+  const index = (list: SlideUnit[], parent?: SlideUnit) =>
+    list.forEach(unit => {
+      if (parent) parentOf.set(unit.id, parent)
+      index(unit.children, unit)
+    })
+  index(units)
+  // A thing moves within its parent, and the parent moves too: the same
+  // composition the renderer does, so both agree on where anything is.
   const standingAt = (id: string) => {
-    const box = boxOf(id)
-    return box ? boxOnStage(box, { ...standing(id), visible: true, level: null }) : undefined
+    const unit = unitFor(id)
+    if (!unit) return undefined
+    let box = unit.bbox
+    for (let link: SlideUnit | undefined = unit; link; link = parentOf.get(link.id)) {
+      const at = stage.get(link.id)
+      if (at) box = boxCarriedBy(box, { ...at, visible: true, level: null }, link.bbox)
+    }
+    return box
   }
   const seen = new Set<string>()
   const windows: SceneWindow[] = []
@@ -425,21 +476,17 @@ export const compileSceneProgram = (
     const actions: MotionAction[] = []
     const parts = new Set<string>()
     const spokenMs = speechMs(beat.say, wpm)
-    const events = beat.events || []
-    // When each event should land inside the spoken line. A cue word puts
-    // it where that word falls; otherwise the events are spread across the
-    // sentence rather than fired at its first syllable and then waited out.
     // A line is spoken word by word, not character by character: a cue lands
-    // when the words before it have been said.
+    // when the words before it have been said. Moments that share one line
+    // (a merged window) read their cues from that same line.
     const spokenWords = beat.say.split(/\s+/).filter(Boolean)
-    const landsAt = (index: number) => {
-      const event = events[index]
-      const cue = event?.cue ? beat.say.toLowerCase().indexOf(event.cue.toLowerCase()) : -1
-      if (cue >= 0) {
-        const before = beat.say.slice(0, cue).split(/\s+/).filter(Boolean).length
+    const cueAt = (cue: string | undefined, index: number, count: number) => {
+      const found = cue ? beat.say.toLowerCase().indexOf(cue.toLowerCase()) : -1
+      if (found >= 0) {
+        const before = beat.say.slice(0, found).split(/\s+/).filter(Boolean).length
         return Math.round(spokenMs * (before / Math.max(1, spokenWords.length)))
       }
-      const share = (index + 0.35) / Math.max(1, events.length)
+      const share = (index + 0.35) / Math.max(1, count)
       return Math.round(spokenMs * share * 0.82)
     }
     let cursor = 0
@@ -481,9 +528,16 @@ export const compileSceneProgram = (
         if (words.length) actions.push(act('reveal', words.flatMap(id => idsOf(id)), cursor - 60))
       })
     }
-    // Recomposition happens as the beat opens, so the events that follow play
-    // out on the new arrangement.
-    ;(beat.restage || []).forEach(entry => {
+    // Every moment on this line, in order: the first is the beat itself, and
+    // anything after it is a moment that was merged into the same line and
+    // keeps its own staging, its own events and its own place in time.
+    const playPart = (part: ProgramBeat) => {
+    const startedAt = cursor
+    const events = part.events || []
+    const landsAt = (index: number) => Math.max(startedAt, cueAt(events[index]?.cue, index, events.length))
+    // Recomposition happens as the moment opens, so the events that follow
+    // play out on the new arrangement.
+    ;(part.restage || []).forEach(entry => {
       const unit = unitFor(entry.id)
       if (!unit) return
       parts.add(unit.id)
@@ -507,7 +561,7 @@ export const compileSceneProgram = (
         }
       }
     })
-    if (beat.restage?.length) cursor += MOTION_DURATION_MS.move + 120
+    if (part.restage?.length) cursor += MOTION_DURATION_MS.move + 120
     events.forEach((event, eventIndex) => {
       // Never before the line has reached it, never before the previous
       // event has finished.
@@ -627,18 +681,21 @@ export const compileSceneProgram = (
       }
       if (event.holdMs) cursor += event.holdMs
     })
-    if (beat.camera && beat.camera !== 'page' && beat.camera.length) {
-      const boxes = beat.camera.map(standingAt).filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>
+    if (part.camera && part.camera !== 'page' && part.camera.length) {
+      const boxes = part.camera.map(standingAt).filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>
       if (boxes.length) {
         const x = Math.min(...boxes.map(box => box.x))
         const y = Math.min(...boxes.map(box => box.y))
         const right = Math.max(...boxes.map(box => box.x + box.width))
         const bottom = Math.max(...boxes.map(box => box.y + box.height))
-        actions.push(act('camera', [], 0, { value: { x, y, width: right - x, height: bottom - y, move: 'in' } }))
+        actions.push(act('camera', [], startedAt, { value: { x, y, width: right - x, height: bottom - y, move: 'in' } }))
       }
-    } else if (beat.camera === 'page') {
-      actions.push(act('camera', [], 0, { implicit: true }))
+    } else if (part.camera === 'page') {
+      actions.push(act('camera', [], startedAt, { implicit: true }))
     }
+    }
+    playPart(beat)
+    ;(beat.then || []).forEach(playPart)
     const motionWindowMs = Math.max(400, actions.reduce((max, item) => Math.max(max, item.startMs + item.durationMs), 0))
     const spoken = spokenMs
     const hold = MOMENT_HOLD[beat.moment || 'explain'] ?? 260

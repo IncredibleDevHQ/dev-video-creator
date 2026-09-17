@@ -39,6 +39,38 @@ describe('the stage everything reads', () => {
     expect(second.map(unit => unit.id)).toEqual(['response'])
   })
 
+  it('carries what is drawn inside a group that moves', () => {
+    const grouped: SlideUnit[] = [
+      {
+        id: 'pair', ids: ['pair'], kind: 'group', label: 'Pair', chrome: false,
+        bbox: { x: 700, y: 300, width: 300, height: 100 },
+        children: [
+          unit('left-node', 'Left', [700, 300, 100, 100]),
+          unit('right-node', 'Right', [900, 300, 100, 100]),
+        ],
+      },
+    ]
+    const moving: MotionPlanV2 = {
+      version: 2,
+      steps: [
+        { id: 'b1', title: 'one', explanation: '', motionWindowMs: 500, holdMs: 0, actions: [] },
+        {
+          id: 'b2', title: 'two', explanation: '', motionWindowMs: 500, holdMs: 0,
+          actions: [
+            { op: 'move', targets: ['pair'], startMs: 0, durationMs: 400, ease: 'travel', persistence: 'state', value: { dx: -200, dy: 0 } },
+            { op: 'resize', targets: ['pair'], startMs: 0, durationMs: 400, ease: 'settle', persistence: 'state', value: { from: 1, to: 1.5 } },
+          ],
+        },
+      ],
+    }
+    const staged = unitsOnStageAt(moving, grouped, 1)
+    const right = staged[0].children.find(child => child.id === 'right-node')!
+    // The group grew by half about its own centre (850) and then moved 200
+    // left: the child goes with it, at the size the group now is.
+    expect(right.bbox.width).toBe(150)
+    expect(Math.round(right.bbox.x)).toBe(725)
+  })
+
   it('reports things at the size the scene made them', () => {
     const before = unitsOnStageAt(plan, page, 0).find(unit => unit.id === 'response')!
     const after = unitsOnStageAt(plan, page, 1).find(unit => unit.id === 'response')!
