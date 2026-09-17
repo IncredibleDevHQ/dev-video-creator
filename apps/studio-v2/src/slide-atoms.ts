@@ -566,6 +566,7 @@ export const wearAppearance = (
   // Two ways to leave a drawing room: a column beside the words, or the space
   // above them. A tall object reads beside a label, a wide one reads above it;
   // rather than pick a house style, take whichever leaves the drawing bigger.
+  const clear = !marks.length || textLeft > box.x + 24 || textTop > box.y + 24
   const beside =
     Number.isFinite(textLeft) && textLeft > box.x + 24
       ? { x: box.x + 8, y: box.y + 8, width: Math.max(24, textLeft - box.x - 16), height: Math.max(24, box.height - 16) }
@@ -579,6 +580,11 @@ export const wearAppearance = (
   const room = above && fits(above) > fits(beside) ? above : beside
   measuring.remove()
   if (!room.width || !room.height) return svg
+  // Words at the very left with nothing above them leave nowhere to draw. The
+  // whole box is not room: it is the words' own place.
+  if (!clear) {
+    throw new AppearanceTooSmall(`${unitId} has no room for a drawing — its words start at its edge; move them right or down`)
+  }
   // A drawn object is the subject of its node, not a badge in the corner. A
   // column too narrow for it would put a smudge on the page and call it
   // artwork: better to keep the wireframe and say so. What matters is how big
