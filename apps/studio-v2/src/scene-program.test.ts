@@ -184,6 +184,20 @@ describe('the scene program', () => {
     expect(edited.beats[0].events!.map(event => event.action)).toEqual(['appear', 'appear'])
   })
 
+  it('leaves a reworded line\u2019s events exactly where they were', () => {
+    // Two lines about successive requests; the first is reworded so its cue
+    // word now only appears in the second. Rewording is not a split.
+    const authored = program([{ actor: 'node-bucket', action: 'spend', amount: 1, cue: 'takes' }])
+    authored.beats[2].say = 'The next request takes the last token and the bucket is empty.'
+    const reworded = authored.beats.map((beat, index) => ({
+      say: index === 1 ? 'A request arrives and consumes one credit from the bucket.' : beat.say,
+      parts: [],
+    }))
+    const edited = programWithEdits(authored, reworded)
+    expect(edited.beats[1].events!.map(event => event.action)).toEqual(['spend'])
+    expect(edited.beats[2].events!.map(event => event.action)).toEqual(['state'])
+  })
+
   it('keeps the events when two lines are merged into one paragraph', () => {
     const authored = program([{ actor: 'node-bucket', action: 'spend', amount: 1, cue: 'takes' }])
     const merged: SceneWindow[] = [
@@ -205,10 +219,13 @@ describe('the scene program', () => {
       { actor: 'actor-request', action: 'travel', to: 'node-bucket', cue: 'arrives' },
       { actor: 'node-bucket', action: 'spend', amount: 1, cue: 'takes' },
     ])
+    // The line cut where it was written, as pressing return mid-sentence does.
+    const line = authored.beats[1].say
+    const cut = line.indexOf(' and takes')
     const split: SceneWindow[] = [
       { say: authored.beats[0].say, parts: [] },
-      { say: 'A request arrives at the bucket.', parts: [] },
-      { say: 'It takes a token from it.', parts: [] },
+      { say: line.slice(0, cut), parts: [] },
+      { say: line.slice(cut + 1), parts: [] },
       { say: authored.beats[2].say, parts: [] },
     ]
     const edited = programWithEdits(authored, split)
@@ -225,6 +242,38 @@ describe('the scene program', () => {
     const edited = programWithEdits(authored, stay)
     expect(edited.beats[1].camera).toBe('page')
     expect(edited.beats[1].events!.map(event => event.action)).toEqual(['spend'])
+  })
+
+  it('becomes something else from where it now stands, moving one group', () => {
+    const page: SlideUnit[] = [
+      ...units,
+      { ...unit('node-response', 'Response', [1000, 300, 200, 100]), ids: ['node-response', 'node-response-box'] },
+      { ...unit('actor-request', 'Request', [150, 340, 40, 40], { kind: 'shape', actorRole: 'request' }), ids: ['actor-request', 'actor-request-dot'] },
+    ]
+    const becoming = program([
+      { actor: 'actor-request', action: 'travel', to: 'node-bucket' },
+      { actor: 'actor-request', action: 'become', to: 'node-response' },
+    ])
+    const compiled = compileSceneProgram(becoming, page, { viewBox })!
+    const moves = compiled.plan.steps[1].actions.filter(action => action.op === 'move')
+    expect(moves.every(action => action.targets.length === 1 && action.targets[0] === 'actor-request')).toBe(true)
+    // Where it ends up: the response's own centre, not one journey past it.
+    const travelled = moves.reduce((sum, action) => sum + Number(action.value!.dx), 0)
+    const centre = 150 + 40 / 2 + travelled
+    expect(Math.round(centre)).toBe(1000 + 200 / 2)
+  })
+
+  it('leaves the camera alone when a beat says nothing about it', () => {
+    const quiet = program([{ actor: 'node-bucket', action: 'spend', amount: 1 }])
+    quiet.beats[1].camera = ['node-bucket']
+    const compiled = compileSceneProgram(quiet, units, { viewBox })!
+    // The beat that asked for a close-up carries one; the next carries no
+    // camera line at all, so the shot stays where the scene put it.
+    expect(compiled.windows[1].camera).toEqual(['node-bucket'])
+    expect(compiled.windows[2].camera).toBeUndefined()
+    const edited = programWithEdits(quiet, compiled.windows)
+    expect(edited.beats[1].camera).toEqual(['node-bucket'])
+    expect(edited.beats[2].camera).toBeUndefined()
   })
 
   it('refuses ids the page does not have', () => {

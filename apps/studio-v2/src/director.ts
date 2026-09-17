@@ -6,7 +6,7 @@
 // each beat, and the coach cues that follow. Pure functions; the studio
 // writes the result onto the scene node, the agent path can replace it.
 import type { MotionPlanV2, StageVariant, StageFamily as AnyStageFamily, StageTreatment as AnyStageTreatment } from 'markdown-composition'
-import { FLOATING_FAMILIES, bestVariant, coveredFraction, pageToFrame, placementAt, placementsFor, unitsOnScreenPerBeat, type PlacementTrack } from './placements'
+import { FLOATING_FAMILIES, bestVariant, coveredFraction, pageToFrame, placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt, type PlacementTrack } from './placements'
 import { STAGE_BOARD_CONTENT, STAGE_LABELS, STAGE_OVERLAY_CONTENT, cameraRectAt, stageGeometryFor, isStageFamily } from 'markdown-composition'
 import { leafUnits, type SlideUnit } from './slide-atoms'
 import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
@@ -714,7 +714,14 @@ const notesFor = (kind: SceneKind, arcRole: ArcRole, requiredArea: RequiredArea,
 export const direct = (input: DirectorInput): DirectorResult => {
   const kind = declaredSceneKind(input.pageRole) || classifyScene(input.units).kind
   const arcRole = arcRoleFor(kind, input.position, input.beats, input.pageRole)
-  const legibility = legibilityFor(input.units, input.viewBox)
+  // Everything is measured at the size the scene makes it, not only as drawn.
+  const stagedPerBeat = input.plan.steps.map((_, index) => unitsOnStageAt(input.plan, input.units, index))
+  // A page is as legible as its hardest moment: whatever the scene shrinks,
+  // the reader still has to read it.
+  const legibility = stagedPerBeat.reduce((worst, staged) => {
+    const here = legibilityFor(staged, input.viewBox)
+    return here.minTextPx.takeover < worst.minTextPx.takeover ? here : worst
+  }, legibilityFor(input.units, input.viewBox))
   const sceneArea = requiredAreaFor(kind, input.plan, legibility, input.beats)
   // Per beat: the area the beat's own parts need; the scene's area is the
   // largest any beat needs (what the pill shows), never more than the
@@ -723,7 +730,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
   // What a beat needs is measured against what the camera is showing at that
   // beat: a close-up makes its subject bigger, and the staging must know.
   const framePerBeat = input.plan.steps.map((_, index) => cameraRectAt(input.plan, index, input.viewBox) || input.viewBox)
-  const areas = input.plan.steps.map((step, index) => requiredAreaForBeat(input.units, framePerBeat[index], step, kind))
+  const areas = input.plan.steps.map((step, index) => requiredAreaForBeat(stagedPerBeat[index], framePerBeat[index], step, kind))
   const requiredArea = areas.length
     ? order[Math.min(order.indexOf(sceneArea), Math.max(...areas.map(area => order.indexOf(area))))]
     : sceneArea
@@ -755,7 +762,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
       // As a share of the presenter's own area, counted once (a union).
       ink[family] = best ? { variant: best.variant, ink: coveredFraction(stageGeometryFor(family, best.variant).camera!, boxes) } : null
     })
-    const options = layoutOptionsFor(input.units, framePerBeat[beat.index] || input.viewBox, input.plan, beat, {
+    const options = layoutOptionsFor(stagedPerBeat[beat.index] || input.units, framePerBeat[beat.index] || input.viewBox, input.plan, beat, {
       kind,
       arcRole,
       count: input.beats.length,

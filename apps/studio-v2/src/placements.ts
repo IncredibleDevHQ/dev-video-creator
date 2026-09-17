@@ -81,6 +81,17 @@ export const coveredFraction = (camera: StageRect, boxes: FrameBox[], grid = 24)
 // The units on screen after each beat, with their boxes where the plan's
 // moves have put them — so a placement is computed from the moved ink and
 // the presenter's corner adjusts when a box travels.
+/** Every unit with the box it now has: moved and resized as the plan says. */
+export const unitsOnStageAt = (plan: MotionPlanV2, units: SlideUnit[], beatIndex: number): SlideUnit[] => {
+  const stage = stageStateAt(plan, beatIndex)
+  const restage = (unit: SlideUnit): SlideUnit => {
+    const at = unit.ids.map(id => stage.get(id)).find(entry => entry && (entry.dx || entry.dy || entry.scale !== 1))
+    const children = unit.children.length ? unit.children.map(restage) : unit.children
+    return at || children !== unit.children ? { ...unit, bbox: at ? boxOnStage(unit.bbox, at) : unit.bbox, children } : unit
+  }
+  return units.map(restage)
+}
+
 export const unitsOnScreenPerBeat = (
   plan: MotionPlanV2,
   units: SlideUnit[],
@@ -89,17 +100,12 @@ export const unitsOnScreenPerBeat = (
   viewBox?: { width: number; height: number },
 ): SlideUnit[][] => {
   const all = flattenUnits(units).filter(unit => unit.kind !== 'group')
-  const shown = new Set<string>()
   return plan.steps.map((step, index) => {
-    step.actions
-      .filter(action => action.op === 'reveal' || action.op === 'trace' || action.op === 'count')
-      .forEach(action => action.targets.forEach(id => shown.add(id)))
-    // What leaves is gone: an exited unit stops occupying the frame.
-    step.actions
-      .filter(action => action.op === 'exit')
-      .forEach(action => action.targets.forEach(id => shown.delete(id)))
-    // Where everything stands at this beat: moved, resized, on or off.
+    // Where everything stands at this beat — moved, resized, on or off — read
+    // from the one record, not from a second opinion kept here.
     const stage = stageStateAt(plan, index)
+    const shown = new Set<string>()
+    stage.forEach((entry, id) => { if (entry.visible) shown.add(id) })
     const crop = viewBox ? cameraRectAt(plan, index, viewBox) : null
     const inside = (box: SlideUnit['bbox']) =>
       !crop ||

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { direct, legibilityFor } from './director'
+import { direct, legibilityFor, requiredAreaForBeat } from './director'
+import { unitsOnStageAt } from './placements'
 import { planFromScript } from './script-plan'
 import type { SlideUnit } from './slide-atoms'
 
@@ -101,6 +102,37 @@ describe('director', () => {
     expect(families[1].startsWith('content-')).toBe(true)
     // No tail of its own: the author closed the scene beside the page.
     expect(families.some(family => family === 'speaker-full')).toBe(false)
+  })
+
+  it('measures a subject at the size the scene made it', () => {
+    // A plain page: no arrows to trace, so nothing forces the frame but size.
+    const page = (): SlideUnit[] => [
+      unit('encoder', 'box', 'Encoder', [100, 200, 260, 120]),
+      unit('decoder', 'box', 'Decoder', [700, 200, 260, 120]),
+    ]
+    const sized = (scale: number) => {
+      const planned = planFromScript('The encoder reads the sentence.', page(), { viewBox })!
+      planned.plan.steps[0].actions.push({
+        op: 'resize', targets: ['encoder'], startMs: 0, durationMs: 400, ease: 'settle', persistence: 'state', value: { from: 1, to: scale },
+      })
+      const staged = unitsOnStageAt(planned.plan, page(), 0)
+      return {
+        beatArea: requiredAreaForBeat(staged, viewBox, planned.plan.steps[0], 'diagram'),
+        scene: direct({ title: 'x', units: page(), viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } }),
+      }
+    }
+    const small = sized(0.2)
+    const same = sized(1)
+    const large = sized(3)
+    // Shrunk to a fifth the subject needs the whole frame; at its drawn size
+    // and enlarged it reads in a slot.
+    expect(small.beatArea).toBe('takeover')
+    expect(same.beatArea).toBe('slot')
+    expect(large.beatArea).toBe('slot')
+    // The page's legibility is its hardest moment: shrinking something lowers
+    // it, enlarging one thing does not raise it.
+    expect(small.scene.legibility.minTextPx.takeover).toBeLessThan(same.scene.legibility.minTextPx.takeover)
+    expect(large.scene.legibility.minTextPx.takeover).toBe(same.scene.legibility.minTextPx.takeover)
   })
 
   it('respects [panel] and [takeover] directions', () => {

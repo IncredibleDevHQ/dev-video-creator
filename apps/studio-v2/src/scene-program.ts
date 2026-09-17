@@ -307,14 +307,34 @@ export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]):
   // happens to appear elsewhere in the scene moves nothing.
   const lands = new Map<number, ProgramEvent[]>()
   const give = (index: number, event: ProgramEvent) => lands.set(index, [...(lands.get(index) || []), event])
+  // Windows no beat was aligned to: these are the other halves of a line that
+  // was cut in two, and the only places an event may follow its cue word to.
+  const claimed = new Set(home.values())
+  // Provenance: this window's own words are a piece of that beat's line, or
+  // most of the line is here. A reworded line matches neither.
+  const cutFrom = (at: number, index: number) => {
+    const line = saidWords(beats[at].say).join(' ')
+    const part = saidWords(windows[index].say).join(' ')
+    return (part.length > 8 && line.includes(part)) || carries[at][index] >= 0.4
+  }
+  const otherHalf = (at: number, where: number, cue: string) =>
+    windows.findIndex(
+      (window, index) =>
+        index !== where &&
+        !claimed.has(index) &&
+        Math.abs(index - where) === 1 &&
+        cutFrom(at, index) &&
+        window.say.toLowerCase().includes(cue),
+    )
   beats.forEach((beat, at) => {
     const where = home.get(at)
     if (where === undefined) return
     ;(beat.events || []).forEach(event => {
       const cue = event.cue?.toLowerCase()
-      const stays = !cue || windows[where].say.toLowerCase().includes(cue)
-      if (stays) return give(where, event)
-      const half = windows.findIndex((window, index) => index !== where && carries[at][index] >= 0.25 && window.say.toLowerCase().includes(cue))
+      // Rewording a line is not a split: its events stay in its beat, whatever
+      // other lines in the scene happen to say.
+      if (!cue || windows[where].say.toLowerCase().includes(cue)) return give(where, event)
+      const half = otherHalf(at, where, cue)
       give(half >= 0 ? half : where, event)
     })
   })
@@ -325,7 +345,9 @@ export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]):
       const first = mine[0]?.beat
       const restage = mine.flatMap(entry => entry.beat.restage || [])
       const speaker = window.layoutByAuthor && (window.layout === 'me' || window.layout === 'beside' || window.layout === 'page') ? window.layout : first?.speaker
-      const camera = window.camera ? (window.camera.length ? window.camera : ('page' as const)) : first?.camera
+      // Three states, not two: no camera line at all (the shot carries on),
+      // back to the page, or a named close-up.
+      const camera = window.camera === undefined ? first?.camera : window.camera.length ? window.camera : ('page' as const)
       return {
         id: first?.id || `b${index + 1}`,
         moment: first?.moment || ('explain' as const),
@@ -574,10 +596,17 @@ export const compileSceneProgram = (
         case 'become': {
           if (!event.to) break
           arrive(event.actor)
-          const from = movable(event.actor) ? boxOf(event.actor) : undefined
-          const to = boxOf(event.to)
+          const from = movable(event.actor) ? standingAt(event.actor) : undefined
+          const to = standingAt(event.to)
           if (from && to) {
-            actions.push(act('move', idsOf(event.actor), cursor, { value: { dx: Math.round(to.x - from.x), dy: Math.round(to.y - from.y) } }))
+            // It takes the other thing's place, from wherever it now stands.
+            const dx = Math.round(to.x + to.width / 2 - (from.x + from.width / 2))
+            const dy = Math.round(to.y + to.height / 2 - (from.y + from.height / 2))
+            if (dx || dy) {
+              const where = standing(event.actor)
+              stage.set(owning(event.actor), { ...where, dx: where.dx + dx, dy: where.dy + dy })
+              actions.push(act('move', [owning(event.actor)], cursor, { value: { dx, dy } }))
+            }
           }
           actions.push(act('morph', [...idsOf(event.actor), ...idsOf(event.to)], cursor + 200, { value: { fromCount: idsOf(event.actor).length } }))
           seen.add(event.to)
@@ -620,8 +649,9 @@ export const compileSceneProgram = (
       parts: partIds,
       hero: partIds[0] || '',
       // What the program asks of the camera, so the card shows the program's
-      // own choice and an edit to it comes back as one.
-      camera: beat.camera === 'page' || !beat.camera ? [] : [...beat.camera],
+      // own choice and an edit to it comes back as one. A beat that says
+      // nothing about the camera carries no camera line at all.
+      ...(beat.camera ? { camera: beat.camera === 'page' ? [] : [...beat.camera] } : {}),
       ...(beat.speaker ? { layout: beat.speaker, layoutByAuthor: true } : {}),
       intent: MOMENT_INTENT[beat.moment || 'explain'],
     })

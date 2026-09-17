@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bestVariant, pageToFrame, placementsFor } from './placements'
+import { bestVariant, pageToFrame, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
 import { stageGeometryFor, type MotionPlanV2 } from 'markdown-composition'
 import type { SlideUnit } from './slide-atoms'
 
@@ -8,6 +8,46 @@ const unit = (id: string, label: string, bbox: [number, number, number, number],
 })
 const viewBox = { width: 1280, height: 720 }
 const content = stageGeometryFor('content-pip').content!
+
+describe('the stage everything reads', () => {
+  const page: SlideUnit[] = [
+    unit('request', 'Request', [100, 300, 60, 60]),
+    unit('response', 'Response', [900, 300, 240, 120]),
+  ]
+  const plan: MotionPlanV2 = {
+    version: 2,
+    steps: [
+      {
+        id: 'b1', title: 'one', explanation: '', motionWindowMs: 1000, holdMs: 0,
+        actions: [{ op: 'reveal', targets: ['request'], startMs: 0, durationMs: 200, ease: 'enter', persistence: 'state' }],
+      },
+      {
+        id: 'b2', title: 'two', explanation: '', motionWindowMs: 1000, holdMs: 0,
+        actions: [
+          { op: 'morph', targets: ['request', 'response'], startMs: 0, durationMs: 400, ease: 'travel', persistence: 'state', value: { fromCount: 1 } },
+          { op: 'resize', targets: ['response'], startMs: 0, durationMs: 400, ease: 'settle', persistence: 'state', value: { from: 1, to: 2 } },
+        ],
+      },
+    ],
+  }
+
+  it('reports what the plan says is on screen, not a second opinion', () => {
+    const [first, second] = unitsOnScreenPerBeat(plan, page, viewBox)
+    expect(first.map(unit => unit.id)).toEqual(['request'])
+    // After becoming something else, the thing that left is gone and the
+    // thing it became is there.
+    expect(second.map(unit => unit.id)).toEqual(['response'])
+  })
+
+  it('reports things at the size the scene made them', () => {
+    const before = unitsOnStageAt(plan, page, 0).find(unit => unit.id === 'response')!
+    const after = unitsOnStageAt(plan, page, 1).find(unit => unit.id === 'response')!
+    expect(before.bbox.width).toBe(240)
+    expect(after.bbox.width).toBe(480)
+    // Grown about its own centre.
+    expect(after.bbox.x + after.bbox.width / 2).toBe(before.bbox.x + before.bbox.width / 2)
+  })
+})
 
 describe('placements', () => {
   it('maps page boxes into the frame where the page is fitted', () => {
