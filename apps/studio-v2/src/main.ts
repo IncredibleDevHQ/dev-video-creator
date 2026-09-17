@@ -3068,6 +3068,15 @@ const topLevelNodePosition = (nodeId: string) => {
   return result
 }
 
+/** Where a block starts, and whether it is a thing rather than words. */
+const topLevelNodeAt = (nodeId: string) => {
+  let found: { at: number; leaf: boolean } | null = null
+  editor.state.doc.forEach((node, offset) => {
+    if (node.attrs.id === nodeId) found = { at: offset, leaf: node.isAtom || node.isLeaf }
+  })
+  return found as { at: number; leaf: boolean } | null
+}
+
 const ensureBlockConfiguration = (document: TiptapDocument) => {
   const activeIds = new Set<string>()
   document.content.forEach(node => {
@@ -4508,8 +4517,15 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
     .forEach(element => element.classList.remove('selected-block'))
   document.getElementById(nodeId)?.classList.add('selected-block')
   if (focusEditor) {
-    const position = topLevelNodePosition(nodeId)
-    if (position !== null) editor.commands.setTextSelection(position)
+    // A scene is one thing, not a place in a line: putting the caret after it
+    // lands on the boundary it shares with the next block, and the next block
+    // wins. Select the thing itself.
+    const found = topLevelNodeAt(nodeId)
+    if (found?.leaf) editor.commands.setNodeSelection(found.at)
+    else {
+      const position = topLevelNodePosition(nodeId)
+      if (position !== null) editor.commands.setTextSelection(position)
+    }
   }
   renderSceneRail()
   updateInspector()
@@ -7158,7 +7174,18 @@ const sceneScript = (scene: Scene) => {
     node.type === 'text'
       ? node.text || ''
       : (node.content || []).map(collect).join(' ')
-  return collect(scene.node).replace(/\s+/g, ' ').trim()
+  const words = collect(scene.node).replace(/\s+/g, ' ').trim()
+  if (words) return words
+  // A drawn scene has no text of its own: its words are the lines its program
+  // speaks, which is exactly what the presenter reads.
+  const attrs = (scene.node.attrs || {}) as Record<string, unknown>
+  const beats = ((attrs.program as { beats?: unknown } | null)?.beats || []) as Array<{ say?: unknown; then?: Array<{ say?: unknown }> }>
+  const spoken = beats
+    .flatMap(beat => [beat.say, ...((beat.then || []) as Array<{ say?: unknown }>).map(part => part.say)])
+    .map(say => String(say || '').trim())
+    .filter(Boolean)
+    .join(' ')
+  return spoken || scriptForNode(scene.id, attrs)
 }
 
 const setCameraStatus = (
