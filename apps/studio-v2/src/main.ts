@@ -99,7 +99,7 @@ import { placementAt, placementsFor, unitsOnScreenPerBeat } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
-import { compileSceneProgram, sanitizeSceneProgram, type SceneProgram } from './scene-program'
+import { compileSceneProgram, programWithEdits, sanitizeSceneProgram, type SceneProgram } from './scene-program'
 import { arcChanges, entityKey, videoPlanFor, type VideoPlan } from './video-plan'
 import type { AssetRecordV1 } from 'markdown-composition'
 import { ENTITY_TYPES } from './page-model'
@@ -9217,7 +9217,10 @@ type SceneVersion = {
   seconds: number
   snapshot: Record<string, unknown>
 }
-const VERSION_ATTRS = ['script', 'sourceText', 'windows', 'motion', 'steps', 'pace', 'scriptApproved', 'breakdownApproved', 'directorAuto', 'directorBrief', 'stageTrack', 'stagePlacements', 'requiredArea', 'storyboard', 'cues', 'arcRole', 'directorNotes', 'lengthBrief', 'lengthDepth'] as const
+// A version is the scene as it was: its words, its plan, and the program those
+// words belong to — restoring one without its program would recompile old
+// dialogue against a newer story.
+const VERSION_ATTRS = ['script', 'sourceText', 'windows', 'program', 'motion', 'steps', 'pace', 'scriptApproved', 'breakdownApproved', 'directorAuto', 'directorBrief', 'stageTrack', 'stagePlacements', 'requiredArea', 'storyboard', 'cues', 'arcRole', 'directorNotes', 'lengthBrief', 'lengthDepth'] as const
 const MAX_VERSIONS = 6
 
 const versionSnapshotOf = (attrs: Record<string, unknown>, nodeId: string): Record<string, unknown> => {
@@ -10449,21 +10452,6 @@ const markDirty = (dirty: boolean) => {
   saveButton.title = dirty ? 'Unsaved changes' : ''
 }
 
-// An edit changes what is said, not what happens: the words and the
-// presenter's place come back from the cards, the events stay the author's.
-const programWithEdits = (program: SceneProgram, windows: SceneWindow[]): SceneProgram => ({
-  ...program,
-  beats: windows.map((window, index) => {
-    const beat = program.beats[index]
-    const speaker = window.layoutByAuthor && (window.layout === 'me' || window.layout === 'beside' || window.layout === 'page') ? window.layout : beat?.speaker
-    return {
-      ...(beat || { id: `b${index + 1}`, moment: 'explain' as const, events: [] }),
-      say: window.say,
-      ...(speaker ? { speaker } : {}),
-    }
-  }),
-})
-
 const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolean } = {}) => {
   const state = slideEditor
   if (!state || !state.windows.length) return false
@@ -10476,6 +10464,7 @@ const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolea
       state.motion = compiled.plan
       state.coverage = null
       state.steps = []
+      state.sourceText = scriptFromWindows(compiled.windows)
       state.windows = compiled.windows.map((window, index) => {
         const current = state.windows[index]
         // Parts the author pinned by hand stay pinned; everything else follows
@@ -12393,7 +12382,7 @@ slideEditorDialog.addEventListener('cancel', event => {
     else delete state.windows[index].stage
     return replan({ quiet: true })
   },
-  driverFor: (svg: SVGSVGElement, plan: MotionPlanV2) => instantiateMotionDriver(svg, plan, ''),
+  driverFor: (svg: SVGSVGElement, plan: MotionPlanV2, prefix = '') => instantiateMotionDriver(svg, plan, prefix),
   planFromWindows,
   planFromScript,
   placementsFor,
@@ -12950,7 +12939,10 @@ const animateSceneLocally = (nodeId: string) => {
   const labelOf = new Map(leafUnits(atomized.units).map(unit => [unit.id, unit.label]))
   writeSlideLikeNode(nodeId, {
     svg: atomized.svg,
-    script,
+    // A programmed scene speaks its program's lines: they are the script, and
+    // the text a re-cut re-cuts, so merging sentences merges the story too.
+    script: compiled ? scriptFromWindows(result.windows) : script,
+    ...(compiled ? { sourceText: scriptFromWindows(result.windows) } : {}),
     pace,
     windows: result.windows.map(window => ({ ...window, ...(window.hero ? { heroLabel: labelOf.get(window.hero) || '' } : {}) })),
     motion: result.plan,

@@ -12,6 +12,8 @@ import {
   type StageVariant,
   unitOffsetsAt,
   cameraRectAt,
+  stageStateAt,
+  boxOnStage,
 } from 'markdown-composition'
 import { flattenUnits, type SlideUnit } from './slide-atoms'
 
@@ -23,10 +25,13 @@ export const FLOATING_FAMILIES: StageFamily[] = ['content-pip', 'content-tile', 
 // frame) a placement may cover before the presenter moves.
 const CLEAR_THRESHOLD = 0.25
 
-/** A page-space box as a frame box, given the rect the page is fitted into. */
+/** A page-space box as a frame box, given the rect the page is fitted into.
+ * The third argument may be the whole page or the rect the camera is showing
+ * (with its own origin) — everything downstream then measures the same frame
+ * the viewer sees. */
 export const pageToFrame = (
   bbox: { x: number; y: number; width: number; height: number },
-  viewBox: { width: number; height: number },
+  viewBox: { width: number; height: number; x?: number; y?: number },
   content: StageRect,
 ): FrameBox => {
   // The page keeps its aspect inside the content rect (frame is 16:9).
@@ -37,9 +42,11 @@ export const pageToFrame = (
   const pageH = viewBox.height * scale
   const originX = (content.left / 100) * 1920 + (rectW - pageW) / 2
   const originY = (content.top / 100) * 1080 + (rectH - pageH) / 2
+  const shownX = bbox.x - (viewBox.x || 0)
+  const shownY = bbox.y - (viewBox.y || 0)
   return {
-    left: ((originX + bbox.x * scale) / 1920) * 100,
-    top: ((originY + bbox.y * scale) / 1080) * 100,
+    left: ((originX + shownX * scale) / 1920) * 100,
+    top: ((originY + shownY * scale) / 1080) * 100,
     width: ((bbox.width * scale) / 1920) * 100,
     height: ((bbox.height * scale) / 1080) * 100,
   }
@@ -91,7 +98,8 @@ export const unitsOnScreenPerBeat = (
     step.actions
       .filter(action => action.op === 'exit')
       .forEach(action => action.targets.forEach(id => shown.delete(id)))
-    const moved = unitOffsetsAt(plan, index)
+    // Where everything stands at this beat: moved, resized, on or off.
+    const stage = stageStateAt(plan, index)
     const crop = viewBox ? cameraRectAt(plan, index, viewBox) : null
     const inside = (box: SlideUnit['bbox']) =>
       !crop ||
@@ -102,8 +110,8 @@ export const unitsOnScreenPerBeat = (
     return all
       .filter(unit => unit.chrome || unit.ids.some(id => shown.has(id)))
       .map(unit => {
-        const offset = unit.ids.map(id => moved.get(id)).find(Boolean)
-        return offset ? { ...unit, bbox: { ...unit.bbox, x: unit.bbox.x + offset.dx, y: unit.bbox.y + offset.dy } } : unit
+        const at = unit.ids.map(id => stage.get(id)).find(entry => entry && (entry.dx || entry.dy || entry.scale !== 1))
+        return at ? { ...unit, bbox: boxOnStage(unit.bbox, at) } : unit
       })
       .filter(unit => inside(unit.bbox))
   })

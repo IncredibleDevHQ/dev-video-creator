@@ -13,6 +13,7 @@
 import {
   MOTION_DURATION_MS,
   MOTION_EASE_FOR,
+  boxOnStage,
   type MotionAction,
   type MotionBeat,
   type MotionIntent,
@@ -233,6 +234,111 @@ const travelTo = (from: Box, to: Box) => {
   return { dx: Math.round(vx * (1 - share)), dy: Math.round(vy * (1 - share)) }
 }
 
+// An edit changes what is said, not what happens. The words, the presenter's
+// place and the camera come back from the cards; the events stay the author's
+// and follow their own words — so a line can be split, merged or rewritten
+// without the story falling out of it.
+const saidWords = (text: string) => text.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean)
+// Word pairs, not words: every line in a scene talks about the same things, so
+// single words match everywhere and would put a beat's events in the wrong
+// line. A pair of adjacent words belongs to the line that was written.
+const wordPairs = (text: string) => {
+  const words = saidWords(text)
+  if (words.length < 2) return words
+  return words.slice(0, -1).map((word, index) => `${word} ${words[index + 1]}`)
+}
+// How much of a beat's line still lives in a window's text.
+const carriedOver = (beatSay: string, windowSay: string) => {
+  const said = saidWords(beatSay).join(' ')
+  const now = saidWords(windowSay).join(' ')
+  if (said && now.includes(said)) return 1
+  const pairs = wordPairs(beatSay)
+  if (!pairs.length) return 0
+  const present = new Set(wordPairs(windowSay))
+  return pairs.filter(pair => present.has(pair)).length / pairs.length
+}
+export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]): SceneProgram => {
+  const beats = program.beats
+  if (!beats.length || !windows.length) return program
+  // Lining the beats up with the lines on screen: an alignment, not a lookup.
+  // Beats keep their order, two beats may land in one merged line, and a line
+  // written from scratch still holds the beat that was in its place — so the
+  // events never cross each other or jump to the end of the scene.
+  const span = Math.max(beats.length, windows.length)
+  const carries = beats.map(beat => windows.map(window => carriedOver(beat.say, window.say)))
+  const fit = (at: number, index: number) => carries[at][index] + 0.2 * (1 - Math.abs(at - index) / span)
+  const best: number[][] = Array.from({ length: beats.length + 1 }, () => new Array(windows.length + 1).fill(-Infinity))
+  best[0][0] = 0
+  for (let j = 1; j <= windows.length; j += 1) best[0][j] = 0
+  for (let i = 1; i <= beats.length; i += 1) {
+    for (let j = 1; j <= windows.length; j += 1) {
+      const paired = best[i - 1][j - 1] + fit(i - 1, j - 1)
+      // Two beats in one line only when there is no line of their own left.
+      const merged = best[i - 1][j] + fit(i - 1, j - 1) - 0.05
+      const spare = best[i][j - 1]
+      best[i][j] = Math.max(paired, merged, spare)
+    }
+  }
+  const home = new Map<number, number>()
+  let i = beats.length
+  let j = windows.length
+  while (i > 0 && j > 0) {
+    const paired = best[i - 1][j - 1] + fit(i - 1, j - 1)
+    const merged = best[i - 1][j] + fit(i - 1, j - 1) - 0.05
+    const spare = best[i][j - 1]
+    if (best[i][j] === paired) {
+      home.set(i - 1, j - 1)
+      i -= 1
+      j -= 1
+    } else if (best[i][j] === merged) {
+      home.set(i - 1, j - 1)
+      i -= 1
+    } else {
+      void spare
+      j -= 1
+    }
+  }
+  while (i > 0) {
+    home.set(i - 1, 0)
+    i -= 1
+  }
+  // A line cut in two: an event whose cue word went to the other half goes
+  // with it. Only halves of the same line are considered, so a word that
+  // happens to appear elsewhere in the scene moves nothing.
+  const lands = new Map<number, ProgramEvent[]>()
+  const give = (index: number, event: ProgramEvent) => lands.set(index, [...(lands.get(index) || []), event])
+  beats.forEach((beat, at) => {
+    const where = home.get(at)
+    if (where === undefined) return
+    ;(beat.events || []).forEach(event => {
+      const cue = event.cue?.toLowerCase()
+      const stays = !cue || windows[where].say.toLowerCase().includes(cue)
+      if (stays) return give(where, event)
+      const half = windows.findIndex((window, index) => index !== where && carries[at][index] >= 0.25 && window.say.toLowerCase().includes(cue))
+      give(half >= 0 ? half : where, event)
+    })
+  })
+  return {
+    ...program,
+    beats: windows.map((window, index) => {
+      const mine = beats.map((beat, at) => ({ beat, at })).filter(entry => home.get(entry.at) === index)
+      const first = mine[0]?.beat
+      const restage = mine.flatMap(entry => entry.beat.restage || [])
+      const speaker = window.layoutByAuthor && (window.layout === 'me' || window.layout === 'beside' || window.layout === 'page') ? window.layout : first?.speaker
+      const camera = window.camera ? (window.camera.length ? window.camera : ('page' as const)) : first?.camera
+      return {
+        id: first?.id || `b${index + 1}`,
+        moment: first?.moment || ('explain' as const),
+        say: window.say,
+        events: lands.get(index) || [],
+        ...(restage.length ? { restage } : {}),
+        ...(camera ? { camera } : {}),
+        ...(speaker ? { speaker } : {}),
+      }
+    }),
+  }
+}
+
 export const compileSceneProgram = (
   program: SceneProgram,
   units: SlideUnit[],
@@ -280,12 +386,16 @@ export const compileSceneProgram = (
       ]
     }),
   )
-  const moved = new Map<string, { dx: number; dy: number }>()
+  // Where each thing stands as the program plays: the same record the
+  // placements and the camera read back from the finished plan. Moves fold
+  // onto each other; a size is always a factor of how the page drew it.
+  const stage = new Map<string, { dx: number; dy: number; scale: number }>()
+  // One element carries the transform; everything drawn inside it comes along.
+  const owning = (id: string) => unitFor(id)?.id || id
+  const standing = (id: string) => stage.get(owning(id)) || { dx: 0, dy: 0, scale: 1 }
   const standingAt = (id: string) => {
     const box = boxOf(id)
-    if (!box) return undefined
-    const shift = moved.get(id)
-    return shift ? { ...box, x: box.x + shift.dx, y: box.y + shift.dy } : box
+    return box ? boxOnStage(box, { ...standing(id), visible: true, level: null }) : undefined
   }
   const seen = new Set<string>()
   const windows: SceneWindow[] = []
@@ -323,10 +433,10 @@ export const compileSceneProgram = (
     // starts its next trip from wherever the last one ended.
     const leave = (id: string) => {
       const out = [act('exit', idsOf(id), cursor)]
-      const standing = moved.get(id)
-      if (standing && (standing.dx || standing.dy)) {
-        out.push(act('move', idsOf(id), cursor + MOTION_DURATION_MS.exit, { durationMs: 1, value: { dx: -standing.dx, dy: -standing.dy } }))
-        moved.delete(id)
+      const where = standing(id)
+      if (where.dx || where.dy) {
+        out.push(act('move', [owning(id)], cursor + MOTION_DURATION_MS.exit, { durationMs: 1, value: { dx: -where.dx, dy: -where.dy } }))
+        stage.set(owning(id), { ...where, dx: 0, dy: 0 })
       }
       seen.delete(id)
       return out
@@ -360,14 +470,18 @@ export const compileSceneProgram = (
         return
       }
       seen.add(entry.id)
-      if (entry.grow) actions.push(act('resize', idsOf(entry.id).slice(0, 1), cursor, { value: { to: entry.grow } }))
+      if (entry.grow) {
+        const was = standing(entry.id)
+        actions.push(act('resize', [owning(entry.id)], cursor, { value: { from: was.scale, to: entry.grow } }))
+        stage.set(owning(entry.id), { ...was, scale: entry.grow })
+      }
       if (entry.to) {
         const box = standingAt(entry.id)
         if (box) {
           const anchor = placeOn(entry.to, box, options.viewBox)
-          const standing = moved.get(entry.id) || { dx: 0, dy: 0 }
-          moved.set(entry.id, { dx: standing.dx + anchor.dx, dy: standing.dy + anchor.dy })
-          actions.push(act('move', idsOf(entry.id), cursor, { durationMs: MOTION_DURATION_MS.move + 200, value: { dx: anchor.dx, dy: anchor.dy } }))
+          const was = standing(entry.id)
+          stage.set(owning(entry.id), { ...was, dx: was.dx + anchor.dx, dy: was.dy + anchor.dy })
+          actions.push(act('move', [owning(entry.id)], cursor, { durationMs: MOTION_DURATION_MS.move + 200, value: { dx: anchor.dx, dy: anchor.dy } }))
         }
       }
     })
@@ -407,9 +521,9 @@ export const compileSceneProgram = (
             // Already standing there: no journey to make, but everything that
             // happens on arrival still happens.
             if (dx || dy) {
-              const standing = moved.get(event.actor) || { dx: 0, dy: 0 }
-              moved.set(event.actor, { dx: standing.dx + dx, dy: standing.dy + dy })
-              actions.push(act('move', idsOf(event.actor), cursor, { durationMs: MOTION_DURATION_MS.move + 260, value: { dx, dy } }))
+              const where = standing(event.actor)
+              stage.set(owning(event.actor), { ...where, dx: where.dx + dx, dy: where.dy + dy })
+              actions.push(act('move', [owning(event.actor)], cursor, { durationMs: MOTION_DURATION_MS.move + 260, value: { dx, dy } }))
               cursor += MOTION_DURATION_MS.move + 200
             }
           }
@@ -485,7 +599,7 @@ export const compileSceneProgram = (
       if (event.holdMs) cursor += event.holdMs
     })
     if (beat.camera && beat.camera !== 'page' && beat.camera.length) {
-      const boxes = beat.camera.map(boxOf).filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>
+      const boxes = beat.camera.map(standingAt).filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>
       if (boxes.length) {
         const x = Math.min(...boxes.map(box => box.x))
         const y = Math.min(...boxes.map(box => box.y))
@@ -505,6 +619,9 @@ export const compileSceneProgram = (
       title: beat.id || beat.moment || `Beat ${index + 1}`,
       parts: partIds,
       hero: partIds[0] || '',
+      // What the program asks of the camera, so the card shows the program's
+      // own choice and an edit to it comes back as one.
+      camera: beat.camera === 'page' || !beat.camera ? [] : [...beat.camera],
       ...(beat.speaker ? { layout: beat.speaker, layoutByAuthor: true } : {}),
       intent: MOMENT_INTENT[beat.moment || 'explain'],
     })

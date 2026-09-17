@@ -731,8 +731,8 @@ export const direct = (input: DirectorInput): DirectorResult => {
   const placements = placementsFor(input.plan, input.units, input.viewBox)
   // Crowded: on most beats even the best chip placement covers ink.
   const chipContent = stageGeometryFor('content-pip').content!
-  const inkPerBeat = unitsOnScreenPerBeat(input.plan, input.units, input.viewBox).map(visible => {
-    const boxes = visible.map(unit => pageToFrame(unit.bbox, input.viewBox, chipContent))
+  const inkPerBeat = unitsOnScreenPerBeat(input.plan, input.units, input.viewBox).map((visible, index) => {
+    const boxes = visible.map(unit => pageToFrame(unit.bbox, cameraRectAt(input.plan, index, input.viewBox) || input.viewBox, chipContent))
     return bestVariant('content-pip', boxes)?.ink ?? 0
   })
   const crowded = inkPerBeat.length > 0 && inkPerBeat.filter(ink => ink > 0.6).length >= Math.ceil(inkPerBeat.length / 2)
@@ -750,12 +750,12 @@ export const direct = (input: DirectorInput): DirectorResult => {
     const ink: Partial<Record<StageFamily, { variant: StageVariant; ink: number } | null>> = {}
     FLOATING_FAMILIES.forEach(family => {
       const content = stageGeometryFor(family).content!
-      const boxes = visible.map(unit => pageToFrame(unit.bbox, input.viewBox, content))
+      const boxes = visible.map(unit => pageToFrame(unit.bbox, framePerBeat[beat.index] || input.viewBox, content))
       const best = bestVariant(family, boxes, placementAt(placements[family], offsets[beat.index] ?? 0))
       // As a share of the presenter's own area, counted once (a union).
       ink[family] = best ? { variant: best.variant, ink: coveredFraction(stageGeometryFor(family, best.variant).camera!, boxes) } : null
     })
-    const options = layoutOptionsFor(input.units, input.viewBox, input.plan, beat, {
+    const options = layoutOptionsFor(input.units, framePerBeat[beat.index] || input.viewBox, input.plan, beat, {
       kind,
       arcRole,
       count: input.beats.length,

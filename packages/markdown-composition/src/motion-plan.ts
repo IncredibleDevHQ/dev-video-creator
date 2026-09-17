@@ -247,6 +247,86 @@ export const sanitizeMotionPlan = (value: unknown): MotionPlanV2 | null => {
 
 /** Where every moved unit sits by the end of a beat: the sum of its `move`
  * actions up to and including that beat, keyed by target id. */
+// ——— the stage: where everything stands at a beat ———
+// One record per element, folded from the plan the same way the driver folds
+// it: where it has been moved to, how big it has been made, whether it is on
+// screen, and how full it is. The renderer, the camera and the director all
+// read this rather than each measuring the page their own way.
+export type StageEntry = { dx: number; dy: number; scale: number; visible: boolean; level: number | null }
+
+const STAGE_REST: StageEntry = { dx: 0, dy: 0, scale: 1, visible: false, level: null }
+
+export const stageStateAt = (plan: MotionPlanV2, beatIndex: number): Map<string, StageEntry> => {
+  const stage = new Map<string, StageEntry>()
+  const entry = (id: string) => {
+    const current = stage.get(id)
+    if (current) return current
+    const fresh = { ...STAGE_REST }
+    stage.set(id, fresh)
+    return fresh
+  }
+  plan.steps.slice(0, beatIndex + 1).forEach(step => {
+    step.actions.forEach(action => {
+      const value = action.value || {}
+      switch (action.op) {
+        case 'reveal':
+        case 'trace':
+        case 'count':
+        case 'connect':
+          action.targets.forEach(id => { entry(id).visible = true })
+          break
+        case 'exit':
+          action.targets.forEach(id => { entry(id).visible = false })
+          break
+        case 'move': {
+          const dx = Number(value.dx) || 0
+          const dy = Number(value.dy) || 0
+          if (!dx && !dy) break
+          action.targets.forEach(id => {
+            const item = entry(id)
+            item.dx += dx
+            item.dy += dy
+          })
+          break
+        }
+        case 'resize':
+          // A size is a factor of how the page drew it, so the last one wins.
+          action.targets.forEach(id => { entry(id).scale = Number(value.to) || 1 })
+          break
+        case 'level':
+          action.targets.forEach(id => { entry(id).level = Number(value.to) || 0 })
+          break
+        case 'morph':
+        case 'swap': {
+          const fromCount = Number(value.fromCount) > 0 ? Number(value.fromCount) : 1
+          action.targets.forEach((id, index) => { entry(id).visible = index >= fromCount })
+          break
+        }
+        default:
+          break
+      }
+    })
+  })
+  return stage
+}
+
+/** Where a box the page drew actually sits, once the stage has moved and
+ * sized it: scaled about its own centre, then translated. */
+export const boxOnStage = (
+  box: { x: number; y: number; width: number; height: number },
+  at: StageEntry | undefined,
+) => {
+  if (!at) return box
+  const width = box.width * at.scale
+  const height = box.height * at.scale
+  return {
+    x: box.x + at.dx - (width - box.width) / 2,
+    y: box.y + at.dy - (height - box.height) / 2,
+    width,
+    height,
+  }
+}
+
 export const unitOffsetsAt = (plan: MotionPlanV2, beatIndex: number): Map<string, { dx: number; dy: number }> => {
   const offsets = new Map<string, { dx: number; dy: number }>()
   plan.steps.slice(0, beatIndex + 1).forEach(step => {

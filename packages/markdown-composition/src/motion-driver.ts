@@ -129,13 +129,16 @@ export const MOTION_DRIVER_SOURCE = `
   var living = [];
   // Elements whose amount the plan states outright (a quantity's level): the
   // living layer leaves them alone.
-  var levelled = {};
+  var levelled = [];
   (plan.steps || []).forEach(function (step) {
     (step.actions || []).forEach(function (action) {
       if (action.op !== 'level') return;
-      (action.targets || []).forEach(function (id) { levelled[id] = true; });
+      // The element itself, resolved the same way the schedule resolves it —
+      // composition prefixes every id, so comparing spellings would miss.
+      (action.targets || []).forEach(function (id) { var node = find(id); if (node) levelled.push(node); });
     });
   });
+  var isLevelled = function (node) { return levelled.indexOf(node) >= 0; };
   var livingLayer = null;
   var layer = function () {
     if (livingLayer) return livingLayer;
@@ -204,7 +207,7 @@ export const MOTION_DRIVER_SOURCE = `
           marked.slice(0, 12).forEach(function (part) {
             // A part the plan drives by amount is not ambient decoration: an
             // authored level wins over the living layer's own idea of fullness.
-            if (part.id && levelled[part.id]) return;
+            if (isLevelled(part)) return;
             var partBox = bboxOf(part);
             if (!partBox) return;
             part.style.transformBox = 'fill-box';
@@ -540,7 +543,7 @@ export const MOTION_DRIVER_SOURCE = `
 
   // ——— fold ———
   var rest = function (t) {
-    return { alpha: t.hiddenAtRest ? 0 : 1, dim: 1, scale: 1, dx: 0, dy: 0, trace: 1, body: null, glow: 0, count: null, level: null };
+    return { alpha: t.hiddenAtRest ? 0 : 1, dim: 1, scale: 1, resized: null, dx: 0, dy: 0, trace: 1, body: null, glow: 0, count: null, level: null };
   };
   var format = function (text, value) {
     var fixed = Math.abs(value).toFixed(text.decimals);
@@ -603,8 +606,9 @@ export const MOTION_DRIVER_SOURCE = `
           case 'move':
             s.dx += (Number(a.value.dx) || 0) * ev; s.dy += (Number(a.value.dy) || 0) * ev; break;
           case 'resize':
-            // Made bigger on purpose, and it stays that way.
-            s.scale *= lerp(1, typeof a.value.to === 'number' ? a.value.to : 1, ev); break;
+            // Made bigger on purpose, and it stays that way — always measured
+            // from the size the page drew, never from the last resize.
+            s.resized = lerp(typeof a.value.from === 'number' ? a.value.from : 1, typeof a.value.to === 'number' ? a.value.to : 1, ev); break;
           case 'level':
             // How full the thing is: the bar the page drew, scaled along its
             // own longer side, from the edge it fills from.
@@ -627,7 +631,8 @@ export const MOTION_DRIVER_SOURCE = `
       node.style.opacity = String(clamp(s.alpha * s.dim));
       var transform = '';
       if (Math.abs(s.dx) > 0.05 || Math.abs(s.dy) > 0.05) transform += 'translate(' + s.dx.toFixed(2) + 'px, ' + s.dy.toFixed(2) + 'px)';
-      if (Math.abs(s.scale - 1) > 0.001) transform += (transform ? ' ' : '') + 'scale(' + s.scale.toFixed(4) + ')';
+      var sized = s.scale * (s.resized === null ? 1 : s.resized);
+      if (Math.abs(sized - 1) > 0.001) transform += (transform ? ' ' : '') + 'scale(' + sized.toFixed(4) + ')';
       if (s.level !== null) transform += (transform ? ' ' : '') + (t.levelAxis === 'y' ? 'scaleY(' : 'scaleX(') + s.level.toFixed(4) + ')';
       node.style.transform = transform;
       node.style.filter = s.glow > 0.02 ? 'drop-shadow(0 0 ' + (8 * s.glow).toFixed(1) + 'px ' + accent + ')' : '';
