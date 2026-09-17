@@ -99,7 +99,7 @@ import { placementAt, placementsFor, unitsOnScreenPerBeat } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
-import { compileSceneProgram, sanitizeSceneProgram } from './scene-program'
+import { compileSceneProgram, sanitizeSceneProgram, type SceneProgram } from './scene-program'
 import { arcChanges, entityKey, videoPlanFor, type VideoPlan } from './video-plan'
 import type { AssetRecordV1 } from 'markdown-composition'
 import { ENTITY_TYPES } from './page-model'
@@ -9197,6 +9197,9 @@ type SlideEditorState = {
   model: PageModel
   // Animation mode for a title-like page: a living field, or calm.
   animationMode: 'auto' | 'off'
+  // The authored story: what happens on this page, as events. While it is
+  // here it is the authority — an edit changes its words, never its events.
+  program: SceneProgram | null
 }
 let slideEditor: SlideEditorState | null = null
 const sceneKindOf = (state: SlideEditorState) => declaredSceneKind(state.pageRole) || classifyScene(state.units).kind
@@ -10446,9 +10449,63 @@ const markDirty = (dirty: boolean) => {
   saveButton.title = dirty ? 'Unsaved changes' : ''
 }
 
+// An edit changes what is said, not what happens: the words and the
+// presenter's place come back from the cards, the events stay the author's.
+const programWithEdits = (program: SceneProgram, windows: SceneWindow[]): SceneProgram => ({
+  ...program,
+  beats: windows.map((window, index) => {
+    const beat = program.beats[index]
+    const speaker = window.layoutByAuthor && (window.layout === 'me' || window.layout === 'beside' || window.layout === 'page') ? window.layout : beat?.speaker
+    return {
+      ...(beat || { id: `b${index + 1}`, moment: 'explain' as const, events: [] }),
+      say: window.say,
+      ...(speaker ? { speaker } : {}),
+    }
+  }),
+})
+
 const replan = (options: { quiet?: boolean; rerender?: boolean; initial?: boolean } = {}) => {
   const state = slideEditor
   if (!state || !state.windows.length) return false
+  // A page with a program is planned from its events, at whatever pace the
+  // scene is now set to, with whatever the dialogue now says.
+  if (state.program) {
+    state.program = programWithEdits(state.program, state.windows)
+    const compiled = compileSceneProgram(state.program, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm })
+    if (compiled) {
+      state.motion = compiled.plan
+      state.coverage = null
+      state.steps = []
+      state.windows = compiled.windows.map((window, index) => ({ ...state.windows[index], ...window }))
+      state.current = Math.min(state.current, state.windows.length - 1)
+      state.scriptApproved = true
+      state.breakdownApproved = true
+      if (!options.initial) markDirty(true)
+      const node = findSlideLikeNode(state.nodeId)
+      state.director = direct({
+        title: String(node?.attrs.title || 'Scene'),
+        units: state.units,
+        viewBox: state.viewBox,
+        beats: compiled.windows.map((window, index) => ({ index, title: window.title || '', text: window.say, directions: [] })),
+        plan: compiled.plan,
+        position: scenePosition(state.nodeId),
+        layouts: state.windows.map(window => window.layout),
+        layoutsByAuthor: state.windows.map(window => Boolean(window.layoutByAuthor)),
+        stagePins: state.windows.map(window => window.stage),
+        pageRole: state.pageRole,
+      })
+      if (options.rerender !== false) renderWindowCards()
+      renderSlideEditorPreview()
+      renderStoryboard()
+      renderDirectorBrief(state.director.brief)
+      renderCoverage()
+      renderEstimate()
+      renderStateChips()
+      renderLengthBrief()
+      if (!options.quiet) showToast(`Re-planned from the scene program · ${compiled.windows.length} beats`)
+      return true
+    }
+  }
   const result = planFromWindows(state.windows, state.units, { viewBox: state.viewBox, wpm: state.pace.wpm, entities: state.model.entities, diagrams: state.model.diagrams, sceneKind: sceneKindOf(state), animationMode: state.animationMode })
   if (!result) return false
   state.motion = result.plan
@@ -12214,6 +12271,7 @@ const openSlideEditor = (nodeId: string) => {
     lastChange: '',
     brief: null,
     depth: found.attrs.lengthDepth === 'skim' || found.attrs.lengthDepth === 'deep' ? found.attrs.lengthDepth : 'walk',
+    program: sanitizeSceneProgram(found.attrs.program, atomized.units),
   }
   const state = slideEditor
   state.windows = sanitizeWindows(found.attrs.windows, state)
@@ -13002,6 +13060,7 @@ assistCancel.addEventListener('click', () => {
     lengthDepth: state.depth,
     animationMode: state.animationMode,
     arcNote: null,
+    program: state.program,
     motion: inWindows ? state.motion : null,
     ...(state.director && found && inWindows ? directorAttrs(found.attrs, state.director, state.motion) : {}),
   })
@@ -13620,7 +13679,9 @@ const sourceDrawPages = async (choice?: string) => {
   const inputs = {
     video: { title: outline.title, site: source.site },
     brand: { palette: { ...source.palette, accent: sourceState.brandColor || source.palette.accent }, fonts: source.fonts, mode: 'dark' },
-    scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, parts: scene.parts, relations: scene.relations })),
+    // The article's own sentences travel with the scene: whoever decides what
+    // happens on the page needs the example and the causation, not a summary.
+    scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, source: scene.source || [], parts: scene.parts, relations: scene.relations })),
     pageCount: outline.scenes.length,
     contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
     ...(model ? { model } : {}),
@@ -13767,6 +13828,7 @@ const headlessSceneState = (nodeId: string): SlideEditorState | null => {
     lastChange: '',
     brief: null,
     depth: found.attrs.lengthDepth === 'skim' || found.attrs.lengthDepth === 'deep' ? found.attrs.lengthDepth : 'walk',
+    program: sanitizeSceneProgram(found.attrs.program, atomized.units),
   } as SlideEditorState
   state.brief = computeLengthBrief(state)
   return state

@@ -508,6 +508,16 @@ export const MOTION_DRIVER_SOURCE = `
       if (action.op === 'reveal' || action.op === 'trace' || action.op === 'count') {
         entry.targets.forEach(function (t) { t.hiddenAtRest = true; });
       }
+      // A level is a shape the page already drew: it is never hidden at rest,
+      // and it scales from the edge it fills from rather than its middle.
+      if (action.op === 'level') {
+        entry.targets.forEach(function (t) {
+          var box = t.node.getBBox ? t.node.getBBox() : null;
+          t.levelAxis = !box || box.width >= box.height ? 'x' : 'y';
+          t.node.style.transformBox = 'fill-box';
+          t.node.style.transformOrigin = t.levelAxis === 'x' ? 'left center' : 'center bottom';
+        });
+      }
       if ((action.op === 'morph' || action.op === 'swap') && Number(value.fromCount) > 0) {
         entry.targets.forEach(function (t, index) { if (index >= Number(value.fromCount)) t.hiddenAtRest = true; });
       }
@@ -518,7 +528,7 @@ export const MOTION_DRIVER_SOURCE = `
 
   // ——— fold ———
   var rest = function (t) {
-    return { alpha: t.hiddenAtRest ? 0 : 1, dim: 1, scale: 1, dx: 0, dy: 0, trace: 1, body: null, glow: 0, count: null };
+    return { alpha: t.hiddenAtRest ? 0 : 1, dim: 1, scale: 1, dx: 0, dy: 0, trace: 1, body: null, glow: 0, count: null, level: null };
   };
   var format = function (text, value) {
     var fixed = Math.abs(value).toFixed(text.decimals);
@@ -580,6 +590,15 @@ export const MOTION_DRIVER_SOURCE = `
             s.scale *= 1 + 0.05 * Math.abs(Math.sin(Math.PI * 2 * p)) * (1 - p * 0.5); s.glow = Math.max(s.glow, Math.abs(Math.sin(Math.PI * 2 * p)) * (1 - p)); break;
           case 'move':
             s.dx += (Number(a.value.dx) || 0) * ev; s.dy += (Number(a.value.dy) || 0) * ev; break;
+          case 'resize':
+            // Made bigger on purpose, and it stays that way.
+            s.scale *= lerp(1, typeof a.value.to === 'number' ? a.value.to : 1, ev); break;
+          case 'level':
+            // How full the thing is: the bar the page drew, scaled along its
+            // own longer side, from the edge it fills from.
+            var lf = typeof a.value.from === 'number' ? a.value.from : 1;
+            var lt = typeof a.value.to === 'number' ? a.value.to : 1;
+            s.level = Math.max(0, lerp(lf, lt, ev)); break;
           case 'swap':
           case 'morph':
             // The first fromCount targets fade out as the rest fade in.
@@ -597,6 +616,7 @@ export const MOTION_DRIVER_SOURCE = `
       var transform = '';
       if (Math.abs(s.dx) > 0.05 || Math.abs(s.dy) > 0.05) transform += 'translate(' + s.dx.toFixed(2) + 'px, ' + s.dy.toFixed(2) + 'px)';
       if (Math.abs(s.scale - 1) > 0.001) transform += (transform ? ' ' : '') + 'scale(' + s.scale.toFixed(4) + ')';
+      if (s.level !== null) transform += (transform ? ' ' : '') + (t.levelAxis === 'y' ? 'scaleY(' : 'scaleX(') + s.level.toFixed(4) + ')';
       node.style.transform = transform;
       node.style.filter = s.glow > 0.02 ? 'drop-shadow(0 0 ' + (8 * s.glow).toFixed(1) + 'px ' + accent + ')' : '';
       t.strokes.forEach(function (stroke) { stroke.node.style.strokeDashoffset = String(stroke.length * (1 - s.trace)); });

@@ -96,8 +96,14 @@ A `<path>` is allowed instead of a `<line>` when the route bends. `data-from` an
 
 ## Actors (the things that move)
 
-Nodes never move. A node is a place on the page; once the reader has learned
-where it is, sliding it somewhere else destroys the arrangement. So when the
+Nodes never drift. A node is a place on the page; once the reader has learned
+where it is, having it slide around under the narration destroys the
+arrangement. A scene may still recompose the page on purpose — enlarge the
+thing it is about, send two outcomes to opposite sides, clear away what has
+done its job — but that is a decision the program states (`restage`), and the
+things keep their identity through it.
+
+What a node must never be is a stand-in for something in motion. When the
 narration says something *travels* — a request arrives, a token is spent, a
 packet crosses the wire — the page draws that travelling thing as its own small
 actor, separate from every node:
@@ -121,8 +127,8 @@ Rules for actors:
   travels over the diagram rather than under it.
 - Draw one per travelling thing the narration names, not one per hop. The same
   actor makes every trip.
-- Actors are the only thing a scene may move. Everything else is revealed,
-  emphasised, dimmed, or changed in place.
+- Actors are the only thing a scene moves as part of its story. A node moves
+  only where the program restages the page, never to act something out.
 
 ## Text
 
@@ -130,7 +136,7 @@ Real `<text>` elements only. The smallest text on the page is 20 px; labels insi
 
 ## Never
 
-No moving nodes (draw an actor instead), no `<image>`, no external `href`, no `<style>` blocks with classes the studio cannot see (inline attributes only), no `<foreignObject>`, no glyph outlines, no filters heavier than a soft drop shadow.
+No node standing in for something in motion (draw an actor instead), no `<image>`, no external `href`, no `<style>` blocks with classes the studio cannot see (inline attributes only), no `<foreignObject>`, no glyph outlines, no filters heavier than a soft drop shadow.
 
 ## Safe area
 

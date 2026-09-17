@@ -10,7 +10,13 @@ ppt-master's Default pipeline, with its ends replaced: research and template sel
 
 - `video`: `{ title, site }`
 - `brand`: `{ palette: { ground, text, accent, secondary }, fonts: { display, body, mono }, mode }`
-- `scenes[]`: `{ index, title, kind, seconds, idea, narration, parts[{ kind, label, detail }], relations[{ from, to, verb }] }`
+- `scenes[]`: `{ index, title, kind, seconds, idea, narration, source[], parts[{ kind, label, detail }], relations[{ from, to, verb }] }`
+
+`source` is the article's own sentences for this scene, copied verbatim. They
+are the ground truth for the page and its program: the example the author
+chose, the number they gave, the reason one thing causes another. Read them
+before deciding what the page shows and what happens on it — the narration is
+a draft, the passages are what the article actually said.
 
 Scene kinds: `title`, `list`, `diagram`, `numbers`, `quote`, `close`. The narration is the line the page must support — read it; it says what the page is for.
 
@@ -73,6 +79,11 @@ invent one for you.
 }
 ```
 
+Write the beats from the scene's `source` passages: the example they name is
+the example the actors play out, and the causes they give are what `tension`
+and `consequence` are about. A program that could have been written from the
+title alone has not used them.
+
 **Moments** — one per beat, and they are the shape of the scene, not decoration:
 `establish` (put the reader in the place), `explain` (the normal case working),
 `tension` (the pressure arriving), `consequence` (what it costs — this beat is
@@ -84,6 +95,27 @@ tension → consequence → resolve.
 quantity), `refill`, `pass` (through, to `to`), `reject` (turned away at `to`),
 `become` (an actor takes another's place), `highlight`, `leave`, `state`
 (`state: "backed up"` — one of the entity's own states).
+
+**Recomposition** — a beat may also carry `restage`, which changes the
+arrangement itself, deliberately, while every thing keeps its identity:
+
+```json
+{ "id": "b4", "moment": "consequence", "say": "…",
+  "restage": [
+    { "id": "s01-node-token-bucket", "grow": 1.5 },
+    { "id": "s01-node-served", "to": "left" },
+    { "id": "s01-node-rejected", "to": "right" },
+    { "id": "s01-label-intro", "clear": true }
+  ] }
+```
+
+`grow` is a factor of the size the page drew (0.2–3). `to` sends a thing to
+`left`, `right`, `centre`, `up` or `down` — the page's own thirds — so two
+outcomes can be separated. `clear` takes something off the page once it has
+done its job. A restaged thing stays where it was put, keeps its id, and can
+still be named by every later beat; an actor travelling to it goes to where it
+now stands. Use this at the turn of a scene — a consequence, a resolve — not
+on every beat.
 
 Rules the studio enforces:
 

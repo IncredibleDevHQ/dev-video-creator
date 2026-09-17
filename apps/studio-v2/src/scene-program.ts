@@ -57,6 +57,13 @@ export type ProgramEvent = {
   holdMs?: number
 }
 
+// Recomposing the page on purpose: a thing is made bigger, sent to one side,
+// or cleared away because the story has moved on. It keeps its identity — the
+// same element, still nameable by every later beat.
+export const STAGE_PLACES = ['left', 'right', 'centre', 'up', 'down'] as const
+export type StagePlace = (typeof STAGE_PLACES)[number]
+export type ProgramStaging = { id: string; grow?: number; to?: StagePlace; clear?: boolean }
+
 export type ProgramBeat = {
   id?: string
   moment?: ProgramMoment
@@ -64,6 +71,7 @@ export type ProgramBeat = {
   events?: ProgramEvent[]
   camera?: string[] | 'page'
   speaker?: WindowLayout
+  restage?: ProgramStaging[]
 }
 
 export type SceneProgram = { version: 1; page?: string; cast: ProgramActor[]; beats: ProgramBeat[] }
@@ -136,6 +144,22 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
         })
         .filter((event): event is ProgramEvent => Boolean(event))
         .slice(0, 12)
+      const restage = (Array.isArray(beat.restage) ? beat.restage : [])
+        .map(item => {
+          const entry = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>
+          const id = asString(entry.id, 120)
+          if (!id || !known.has(id)) return null
+          const grow = Number(entry.grow)
+          const to = asString(entry.to, 12) as StagePlace
+          return {
+            id,
+            ...(Number.isFinite(grow) && grow > 0 ? { grow: Math.max(0.2, Math.min(3, grow)) } : {}),
+            ...(STAGE_PLACES.includes(to) ? { to } : {}),
+            ...(entry.clear === true ? { clear: true } : {}),
+          } as ProgramStaging
+        })
+        .filter((entry): entry is ProgramStaging => Boolean(entry) && Boolean(entry!.grow || entry!.to || entry!.clear))
+        .slice(0, 8)
       const rawCamera = beat.camera
       const camera =
         rawCamera === 'page'
@@ -147,6 +171,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
         say,
         events,
         ...(camera === 'page' ? { camera: 'page' as const } : camera.length ? { camera } : {}),
+        ...(restage.length ? { restage } : {}),
         ...(beat.speaker === 'me' || beat.speaker === 'beside' || beat.speaker === 'page' ? { speaker: beat.speaker as WindowLayout } : {}),
       } as ProgramBeat
     })
@@ -176,6 +201,23 @@ const speechMs = (text: string, wpm: number) => Math.max(900, Math.round((text.s
  */
 type Box = { x: number; y: number; width: number; height: number }
 
+type Held = { of?: string; value: number; max?: number; shownOn?: string }
+
+// Where a recomposed thing goes: the page's own thirds, so two outcomes end
+// up on opposite sides and a subject ends up in the middle of the frame.
+const placeOn = (place: StagePlace, box: Box, viewBox: { width: number; height: number }) => {
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  const margin = Math.max(box.width, box.height) / 2 + viewBox.width * 0.04
+  const target = {
+    left: { x: Math.max(margin, viewBox.width * 0.25), y: centre.y },
+    right: { x: Math.min(viewBox.width - margin, viewBox.width * 0.75), y: centre.y },
+    centre: { x: viewBox.width / 2, y: viewBox.height / 2 },
+    up: { x: centre.x, y: Math.max(margin, viewBox.height * 0.28) },
+    down: { x: centre.x, y: Math.min(viewBox.height - margin, viewBox.height * 0.72) },
+  }[place]
+  return { dx: Math.round(target.x - centre.x), dy: Math.round(target.y - centre.y) }
+}
+
 // Where a travelling thing stops: at the edge of what it is going to, not on
 // top of it. Landing on the centre buries the target's own label.
 const travelTo = (from: Box, to: Box) => {
@@ -202,6 +244,18 @@ export const compileSceneProgram = (
   const idsOf = (id: string) => unitFor(id)?.ids || [id]
   const boxOf = (id: string) => unitFor(id)?.bbox
   const held = new Map(program.cast.filter(actor => actor.quantity).map(actor => [actor.id, { ...actor.quantity! }]))
+  // How much a thing holds, shown the way the page drew it: a number counts,
+  // anything else is a bar and moves by how full it is.
+  const showQuantity = (store: Held, before: number, after: number, at: number): MotionAction[] => {
+    if (!store.shownOn) return []
+    const shown = unitFor(store.shownOn)
+    if (!shown) return []
+    const ceiling = store.max || Math.max(1, before, after)
+    if (shown.kind === 'label') {
+      return [act('count', idsOf(store.shownOn), at, { durationMs: 520, value: { from: before, to: after } })]
+    }
+    return [act('level', idsOf(store.shownOn).slice(0, 1), at, { value: { from: before / ceiling, to: after / ceiling } })]
+  }
   // A page's labelled node stays where it was drawn: sliding it across the
   // page breaks the arrangement the reader learned. Only a thing the page
   // drew as an actor travels; anything else lands as attention instead.
@@ -241,14 +295,40 @@ export const compileSceneProgram = (
     // When each event should land inside the spoken line. A cue word puts
     // it where that word falls; otherwise the events are spread across the
     // sentence rather than fired at its first syllable and then waited out.
+    // A line is spoken word by word, not character by character: a cue lands
+    // when the words before it have been said.
+    const spokenWords = beat.say.split(/\s+/).filter(Boolean)
     const landsAt = (index: number) => {
       const event = events[index]
       const cue = event?.cue ? beat.say.toLowerCase().indexOf(event.cue.toLowerCase()) : -1
-      if (cue >= 0) return Math.round(spokenMs * (cue / Math.max(1, beat.say.length)))
+      if (cue >= 0) {
+        const before = beat.say.slice(0, cue).split(/\s+/).filter(Boolean).length
+        return Math.round(spokenMs * (before / Math.max(1, spokenWords.length)))
+      }
       const share = (index + 0.35) / Math.max(1, events.length)
       return Math.round(spokenMs * share * 0.82)
     }
     let cursor = 0
+    if (!index) {
+      // What each thing holds when the scene opens, visible in the first frame.
+      held.forEach(store => {
+        if (!store.shownOn) return
+        actions.push(...showQuantity(store, store.value, store.value, 0).map(action => ({ ...action, durationMs: 1 })))
+      })
+    }
+    // Leaving is two things: going off screen, and going home. The renderer
+    // keeps whatever transform it was given, so an actor that is not put back
+    // starts its next trip from wherever the last one ended.
+    const leave = (id: string) => {
+      const out = [act('exit', idsOf(id), cursor)]
+      const standing = moved.get(id)
+      if (standing && (standing.dx || standing.dy)) {
+        out.push(act('move', idsOf(id), cursor + MOTION_DURATION_MS.exit, { durationMs: 1, value: { dx: -standing.dx, dy: -standing.dy } }))
+        moved.delete(id)
+      }
+      seen.delete(id)
+      return out
+    }
     const arrive = (id: string) => {
       if (seen.has(id)) return
       seen.add(id)
@@ -267,6 +347,29 @@ export const compileSceneProgram = (
         if (words.length) actions.push(act('reveal', words.flatMap(id => idsOf(id)), cursor - 60))
       })
     }
+    // Recomposition happens as the beat opens, so the events that follow play
+    // out on the new arrangement.
+    ;(beat.restage || []).forEach(entry => {
+      const unit = unitFor(entry.id)
+      if (!unit) return
+      parts.add(unit.id)
+      if (entry.clear) {
+        actions.push(...leave(entry.id))
+        return
+      }
+      seen.add(entry.id)
+      if (entry.grow) actions.push(act('resize', idsOf(entry.id).slice(0, 1), cursor, { value: { to: entry.grow } }))
+      if (entry.to) {
+        const box = standingAt(entry.id)
+        if (box) {
+          const anchor = placeOn(entry.to, box, options.viewBox)
+          const standing = moved.get(entry.id) || { dx: 0, dy: 0 }
+          moved.set(entry.id, { dx: standing.dx + anchor.dx, dy: standing.dy + anchor.dy })
+          actions.push(act('move', idsOf(entry.id), cursor, { durationMs: MOTION_DURATION_MS.move + 200, value: { dx: anchor.dx, dy: anchor.dy } }))
+        }
+      }
+    })
+    if (beat.restage?.length) cursor += MOTION_DURATION_MS.move + 120
     events.forEach((event, eventIndex) => {
       // Never before the line has reached it, never before the previous
       // event has finished.
@@ -285,7 +388,7 @@ export const compileSceneProgram = (
           arrive(event.actor)
           if (event.to) arrive(event.to)
           const from = standingAt(event.actor)
-          const to = event.to ? boxOf(event.to) : undefined
+          const to = event.to ? standingAt(event.to) : undefined
           if (!movable(event.actor)) {
             // The meaning without the movement: the source takes the eye,
             // then the target does.
@@ -299,11 +402,14 @@ export const compileSceneProgram = (
           }
           if (from && to) {
             const { dx, dy } = travelTo(from, to)
-            if (!dx && !dy) break
-            const standing = moved.get(event.actor) || { dx: 0, dy: 0 }
-            moved.set(event.actor, { dx: standing.dx + dx, dy: standing.dy + dy })
-            actions.push(act('move', idsOf(event.actor), cursor, { durationMs: MOTION_DURATION_MS.move + 260, value: { dx, dy } }))
-            cursor += MOTION_DURATION_MS.move + 200
+            // Already standing there: no journey to make, but everything that
+            // happens on arrival still happens.
+            if (dx || dy) {
+              const standing = moved.get(event.actor) || { dx: 0, dy: 0 }
+              moved.set(event.actor, { dx: standing.dx + dx, dy: standing.dy + dy })
+              actions.push(act('move', idsOf(event.actor), cursor, { durationMs: MOTION_DURATION_MS.move + 260, value: { dx, dy } }))
+              cursor += MOTION_DURATION_MS.move + 200
+            }
           }
           if (event.action === 'pass' && event.to) {
             actions.push(act('emphasize', idsOf(event.to), cursor, { persistence: 'flourish' }))
@@ -313,9 +419,7 @@ export const compileSceneProgram = (
             if (event.to) actions.push(act('emphasize', idsOf(event.to), cursor, { persistence: 'flourish' }))
             actions.push(act('pulse', idsOf(event.actor), cursor, { persistence: 'flourish' }))
             cursor += 360
-            actions.push(act('exit', idsOf(event.actor), cursor))
-            moved.delete(event.actor)
-            seen.delete(event.actor)
+            actions.push(...leave(event.actor))
             cursor += 260
           }
           break
@@ -328,13 +432,16 @@ export const compileSceneProgram = (
             const before = store.value
             const ceiling = store.max ?? Number.MAX_SAFE_INTEGER
             store.value = Math.max(0, Math.min(ceiling, before + (event.action === 'spend' ? -amount : amount)))
-            if (store.shownOn) actions.push(act('count', idsOf(store.shownOn), cursor, { durationMs: 520, value: { from: before, to: store.value } }))
-            const level = store.max ? store.value / store.max : store.value > 0 ? 1 : 0
-            actions.push(
-              act('phase', idsOf(event.actor).slice(0, 1), cursor, {
-                value: { program: 'entity', kind: 'queue', phase: store.value === 0 ? 'empty' : level < 0.4 ? 'backed up' : 'flowing' },
-              }),
-            )
+            actions.push(...showQuantity(store, before, store.value, cursor))
+            // A thing that has just run dry says so; a thing that is simply
+            // less full does not need a state of its own.
+            if (store.value === 0 || before === 0) {
+              actions.push(
+                act('phase', idsOf(event.actor).slice(0, 1), cursor, {
+                  value: { program: 'entity', phase: store.value === 0 ? 'empty' : 'running' },
+                }),
+              )
+            }
             cursor += 420
           } else {
             // Nothing declared how much this thing holds: the beat still lands
@@ -367,8 +474,7 @@ export const compileSceneProgram = (
           cursor += 300
           break
         case 'leave':
-          actions.push(act('exit', idsOf(event.actor), cursor))
-          seen.delete(event.actor)
+          actions.push(...leave(event.actor))
           cursor += 280
           break
         default:

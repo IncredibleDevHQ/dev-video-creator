@@ -13,6 +13,12 @@ import type { SlideStepV1 } from './slide'
 export const MOTION_OPS = [
   'reveal', 'trace', 'dim', 'undim', 'emphasize', 'pulse', 'move',
   'connect', 'camera', 'morph', 'swap', 'count', 'exit', 'phase',
+  // level: how full a drawn bar, gauge or fill is — value { from, to } as
+  // fractions of the shape the page drew, animated along its longer side.
+  'level',
+  // resize: a thing is deliberately made larger or smaller and stays that
+  // way — value { to } as a factor of the size the page drew it at.
+  'resize',
 ] as const
 export type MotionOp = (typeof MOTION_OPS)[number]
 
@@ -109,6 +115,10 @@ export const MOTION_DURATION_MS: Record<MotionOp, number> = {
   exit: 360,
   // phase: a living diagram's program switches phase (the fade-in of its clip).
   phase: 400,
+  // level: a bar draining or filling reads as a movement, not a jump.
+  level: 720,
+  // resize: a recomposition, slower than a flourish so the eye follows it.
+  resize: 720,
 }
 
 export const MOTION_EASE_FOR: Record<MotionOp, MotionEase> = {
@@ -126,6 +136,8 @@ export const MOTION_EASE_FOR: Record<MotionOp, MotionEase> = {
   count: 'settle',
   exit: 'exit',
   phase: 'settle',
+  level: 'settle',
+  resize: 'settle',
 }
 
 export const MOTION_STAGGER_MS = 70

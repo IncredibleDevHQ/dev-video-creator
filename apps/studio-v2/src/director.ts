@@ -7,7 +7,7 @@
 // writes the result onto the scene node, the agent path can replace it.
 import type { MotionPlanV2, StageVariant, StageFamily as AnyStageFamily, StageTreatment as AnyStageTreatment } from 'markdown-composition'
 import { FLOATING_FAMILIES, bestVariant, coveredFraction, pageToFrame, placementAt, placementsFor, unitsOnScreenPerBeat, type PlacementTrack } from './placements'
-import { STAGE_BOARD_CONTENT, STAGE_LABELS, STAGE_OVERLAY_CONTENT, stageGeometryFor, isStageFamily } from 'markdown-composition'
+import { STAGE_BOARD_CONTENT, STAGE_LABELS, STAGE_OVERLAY_CONTENT, cameraRectAt, stageGeometryFor, isStageFamily } from 'markdown-composition'
 import { leafUnits, type SlideUnit } from './slide-atoms'
 import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
 
@@ -507,9 +507,13 @@ export const outroFor = (
   position: { index: number; count: number },
   layouts: Array<WindowLayout | undefined> = [],
   requiredArea: RequiredArea = 'takeover',
+  layoutsByAuthor: boolean[] = [],
 ): { entries: StoryboardEntry[]; scripted: boolean } | null => {
   if (position.index >= position.count - 1 || beats.length < 2) return null
   const lastIndex = beats.length - 1
+  // An author who said where the presenter stands for the closing beat has
+  // already closed the scene: the automatic outro does not overrule them.
+  if (layoutsByAuthor[lastIndex] && layouts[lastIndex] === 'page') return null
   const last = plan.steps[lastIndex]
   if (!last) return null
   const brings = last.actions.some(action => ['reveal', 'trace', 'count', 'connect'].includes(action.op))
@@ -555,6 +559,9 @@ export const storyboardFor = (
           ? 'page'
           : undefined
     const wish = perBeat.layouts?.[beat.index] || directed
+    // The author said where the presenter stands for this beat: that is a
+    // decision, not a preference, and the automatic staging yields to it.
+    const staged = Boolean(perBeat.layoutsByAuthor?.[beat.index]) && wish === 'page'
     let contentFamily: StageFamily =
       wish === 'beside' ? 'speaker-panel' : wish === 'page' ? FAMILY_FOR_AREA[beatArea === 'none' ? 'takeover' : beatArea] : FAMILY_FOR_AREA[beatArea]
     // A page busy to its corners leaves no clear spot for a chip: the page
@@ -562,7 +569,7 @@ export const storyboardFor = (
     if (perBeat.crowded && contentFamily === 'content-pip') contentFamily = 'content-card'
     let contentTreatment: StageTreatment = beatArea === 'slot' && contentFamily === 'speaker-full' ? 'overlay' : ''
     // The scored choice wins where the director scored the beat.
-    if (choice) {
+    if (choice && !(staged && (choice.family === 'speaker-full' || choice.family === 'speaker-panel'))) {
       contentFamily = choice.family
       contentTreatment = choice.treatment || ''
     }
@@ -572,7 +579,7 @@ export const storyboardFor = (
     // writer's "me" is weighed like any other wish.
     const onMe = (wish === 'me' && (perBeat.layoutsByAuthor?.[beat.index] || !choice)) || beat.directions.some(direction => direction.kind === 'open')
     const last = beat.index === beats.length - 1
-    if (onMe || (!brings && !moves && (beat.index === 0 || last))) {
+    if (!staged && (onMe || (!brings && !moves && (beat.index === 0 || last)))) {
       return {
         label: beat.index === 0 ? 'Open' : last ? 'Back to you' : 'On you',
         family: 'speaker-full',
@@ -582,7 +589,7 @@ export const storyboardFor = (
         why: onMe ? 'your line, on you' : beat.index === 0 ? 'open on you — the first line belongs to your face' : 'the last line belongs to your face',
       }
     }
-    if (beatArea === 'none' && wish !== 'page' && !choice) {
+    if (!staged && beatArea === 'none' && wish !== 'page' && !choice) {
       return {
         label: beat.title,
         family: 'speaker-full',
@@ -702,15 +709,18 @@ export const direct = (input: DirectorInput): DirectorResult => {
   // largest any beat needs (what the pill shows), never more than the
   // whole-page measure.
   const order: RequiredArea[] = ['none', 'slot', 'beside', 'frame', 'takeover']
-  const areas = input.plan.steps.map(step => requiredAreaForBeat(input.units, input.viewBox, step, kind))
+  // What a beat needs is measured against what the camera is showing at that
+  // beat: a close-up makes its subject bigger, and the staging must know.
+  const framePerBeat = input.plan.steps.map((_, index) => cameraRectAt(input.plan, index, input.viewBox) || input.viewBox)
+  const areas = input.plan.steps.map((step, index) => requiredAreaForBeat(input.units, framePerBeat[index], step, kind))
   const requiredArea = areas.length
     ? order[Math.min(order.indexOf(sceneArea), Math.max(...areas.map(area => order.indexOf(area))))]
     : sceneArea
-  const outro = outroFor(input.beats, input.plan, input.position, input.layouts, requiredArea)
+  const outro = outroFor(input.beats, input.plan, input.position, input.layouts, requiredArea, input.layoutsByAuthor)
   const placements = placementsFor(input.plan, input.units, input.viewBox)
   // Crowded: on most beats even the best chip placement covers ink.
   const chipContent = stageGeometryFor('content-pip').content!
-  const inkPerBeat = unitsOnScreenPerBeat(input.plan, input.units).map(visible => {
+  const inkPerBeat = unitsOnScreenPerBeat(input.plan, input.units, input.viewBox).map(visible => {
     const boxes = visible.map(unit => pageToFrame(unit.bbox, input.viewBox, chipContent))
     return bestVariant('content-pip', boxes)?.ink ?? 0
   })
@@ -720,7 +730,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
   input.plan.steps.forEach(step => { offsets.push(at); at += step.motionWindowMs + step.holdMs })
   // Every way each beat could be staged, scored; the best runs into the
   // storyboard with a little loyalty to the previous beat's choice.
-  const visiblePerBeat = unitsOnScreenPerBeat(input.plan, input.units)
+  const visiblePerBeat = unitsOnScreenPerBeat(input.plan, input.units, input.viewBox)
   const layoutOptions: LayoutOption[][] = []
   const choices: LayoutOption[] = []
   let previous: StageFamily | undefined

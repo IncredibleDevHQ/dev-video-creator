@@ -210,6 +210,15 @@ def check_program(path, svg_path):
             problems.append(f'beat {where!r} moment {beat.get("moment")!r} is not one of {sorted(MOMENTS)}')
         if not (beat.get('say') or '').strip():
             problems.append(f'beat {where!r} has no say')
+        for entry in beat.get('restage') or []:
+            if entry.get('id') not in ids:
+                problems.append(f'beat {where!r} restages {entry.get("id")!r}, which is not on the page')
+            if entry.get('to') and entry.get('to') not in ('left', 'right', 'centre', 'up', 'down'):
+                problems.append(f'beat {where!r} sends {entry.get("id")!r} to {entry.get("to")!r} — use left/right/centre/up/down')
+            if entry.get('grow') is not None and not (0.2 <= float(entry.get('grow')) <= 3):
+                problems.append(f'beat {where!r} grows {entry.get("id")!r} by {entry.get("grow")} — keep it between 0.2 and 3')
+            if not any(entry.get(key) for key in ('grow', 'to', 'clear')):
+                problems.append(f'beat {where!r} restages {entry.get("id")!r} without saying how')
         camera = beat.get('camera')
         for target in (camera if isinstance(camera, list) else []):
             if target not in ids:

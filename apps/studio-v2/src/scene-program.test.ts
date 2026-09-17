@@ -13,6 +13,11 @@ const units: SlideUnit[] = [
   unit('actor-request', 'Request', [150, 340, 40, 40], { kind: 'shape', actorRole: 'request' }),
 ]
 const viewBox = { width: 1280, height: 720 }
+// The same page, with the bar the bucket's level is drawn on.
+const withLevel: SlideUnit[] = [
+  ...units,
+  { ...unit('bucket-level', 'Level', [720, 420, 200, 12], { kind: 'shape' }) },
+]
 
 const program = (events: SceneProgram['beats'][number]['events']): SceneProgram => ({
   version: 1,
@@ -55,6 +60,69 @@ describe('the scene program', () => {
     expect(compiled.windows[0].layout).toBe('beside')
     expect(compiled.windows[0].layoutByAuthor).toBe(true)
     expect(compiled.windows[1].layout).toBeUndefined()
+  })
+
+  it('rejects a request that is already standing at the door', () => {
+    const compiled = compileSceneProgram(
+      program([
+        { actor: 'actor-request', action: 'travel', to: 'node-bucket' },
+        { actor: 'actor-request', action: 'reject', to: 'node-bucket' },
+      ]),
+      units,
+      { viewBox },
+    )!
+    const ops = compiled.plan.steps[1].actions.map(action => action.op)
+    expect(ops).toContain('pulse')
+    expect(ops).toContain('exit')
+  })
+
+  it('sends a rejected request home, so its next trip is the same journey', () => {
+    const twice = program([
+      { actor: 'actor-request', action: 'travel', to: 'node-bucket' },
+      { actor: 'actor-request', action: 'reject', to: 'node-bucket' },
+      { actor: 'actor-request', action: 'travel', to: 'node-bucket' },
+    ])
+    const compiled = compileSceneProgram(twice, units, { viewBox })!
+    const moves = compiled.plan.steps[1].actions.filter(action => action.op === 'move')
+    const net = moves.reduce((sum, action) => sum + Number(action.value!.dx), 0)
+    const trips = moves.filter(action => Number(action.value!.dx) > 0)
+    expect(trips).toHaveLength(2)
+    expect(Number(trips[0].value!.dx)).toBe(Number(trips[1].value!.dx))
+    // Two identical journeys and one trip home: the actor ends one away.
+    expect(net).toBe(Number(trips[0].value!.dx))
+  })
+
+  it('shows what a thing holds as the bar the page drew, from the first frame', () => {
+    const spending = program([{ actor: 'node-bucket', action: 'spend', amount: 2, cue: 'takes' }])
+    spending.cast[0].quantity!.shownOn = 'bucket-level'
+    const compiled = compileSceneProgram(spending, withLevel, { viewBox })!
+    const opening = compiled.plan.steps[0].actions.find(action => action.op === 'level')!
+    expect(opening.value).toMatchObject({ from: 1, to: 1 })
+    expect(opening.startMs).toBe(0)
+    const spent = compiled.plan.steps[1].actions.find(action => action.op === 'level')!
+    expect(spent.value).toMatchObject({ from: 1, to: 1 / 3 })
+    expect(compiled.plan.steps[1].actions.some(action => action.op === 'count')).toBe(false)
+  })
+
+  it('recomposes the page on purpose, and what moved keeps its identity', () => {
+    const restaged = program([{ actor: 'actor-request', action: 'travel', to: 'node-bucket' }])
+    restaged.beats[2].restage = [
+      { id: 'node-bucket', grow: 1.5, to: 'right' },
+      { id: 'node-client', clear: true },
+    ]
+    restaged.beats.push({ id: 'b4', moment: 'resolve', say: 'The bucket refills and the next call goes through.', events: [{ actor: 'actor-request', action: 'travel', to: 'node-bucket' }] })
+    const compiled = compileSceneProgram(restaged, units, { viewBox })!
+    const staging = compiled.plan.steps[2].actions
+    expect(staging.find(action => action.op === 'resize')!.value).toMatchObject({ to: 1.5 })
+    expect(staging.find(action => action.op === 'resize')!.targets).toContain('node-bucket')
+    expect(staging.some(action => action.op === 'exit' && action.targets.includes('node-client'))).toBe(true)
+    // The bucket moved right; the request's next trip goes to where it now
+    // stands, not to where the page drew it.
+    const moved = staging.find(action => action.op === 'move' && action.targets.includes('node-bucket'))!
+    const firstTrip = compiled.plan.steps[1].actions.find(action => action.op === 'move')!
+    const secondTrip = compiled.plan.steps[3].actions.find(action => action.op === 'move')!
+    expect(Number(moved.value!.dx)).not.toBe(0)
+    expect(Number(secondTrip.value!.dx)).not.toBe(Number(firstTrip.value!.dx))
   })
 
   it('refuses ids the page does not have', () => {
