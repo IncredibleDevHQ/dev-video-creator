@@ -160,3 +160,31 @@ describe('motion driver state fold', () => {
     expect(synth!.style.opacity).toBe('0')
   })
 })
+
+describe('a level fills the way the drawing says', () => {
+  const levelPlan = sanitizeMotionPlan({
+    steps: [
+      { title: 'empties', explanation: 'x', actions: [{ op: 'level', targets: ['fill'], durationMs: 400, value: { from: 1, to: 0.5 } }], motionWindowMs: 400, holdMs: 400 },
+    ],
+  })!
+  const withFill = (fills?: string, bbox = { x: 0, y: 0, width: 80, height: 20 }) => {
+    const root = makeNode('', 'svg', { attrs: { viewBox: '0 0 1280 720' } })
+    root.ownerDocument = fakeDocument
+    const fill = makeNode('fill', 'rect', { bbox, ...(fills ? { attrs: { 'data-fills': fills } } : {}) })
+    root.children.push(fill)
+    const driver = instantiateMotionDriver(root as unknown as SVGSVGElement, levelPlan)
+    driver.draw(400)
+    return fill
+  }
+  it('drops a container’s contents rather than sliding them sideways', () => {
+    // The shape is wider than it is tall, so the old guess said "sideways".
+    expect(withFill('up').style.transform).toContain('scaleY(')
+    expect(withFill('up').style.transformOrigin).toBe('center bottom')
+  })
+  it('still shortens a bar from its own end', () => {
+    expect(withFill('right').style.transform).toContain('scaleX(')
+    expect(withFill().style.transform).toContain('scaleX(')
+    // And a tall shape with nothing to say for itself still fills upward.
+    expect(withFill(undefined, { x: 0, y: 0, width: 20, height: 80 }).style.transform).toContain('scaleY(')
+  })
+})
