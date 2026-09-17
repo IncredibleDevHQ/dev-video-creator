@@ -62,12 +62,37 @@ renderer and the same controls. The one list of drawable objects is shared by
 the studio and the drawing agent, and the page checker refuses an object
 nothing can draw or a piece an object does not have.
 
+Both explanations are rendered narrated: each scene's own lines go through the
+studio's guide-voice route and are kept as that scene's narration track, and
+the export carries a real audio track alongside the burned-in captions.
+
+## What driving the real controls turned up
+
+Watching the renders and using the product's own panels found seven defects
+that reading the code had not:
+
+1. A binding to a drawn object's piece was dropped whenever the drawing had not
+   arrived yet, and the next save wrote the weaker program over the authored one.
+2. A 300x160 object fitted into a 56 px column rendered as a smudge.
+3. A level scaled along the longer side of its shape, so a bucket's contents
+   slid sideways instead of dropping.
+4. With no column reserved, a drawing was placed over the node's own words.
+5. Objects were only ever fitted beside a label, never above it — a badge
+   idiom that no wide object can read in.
+6. Clicking a scene in the rail selected its neighbour, so recording, directing
+   and the inspector acted on the wrong block.
+7. The teleprompter was empty for drawn scenes, which are exactly the ones with
+   something to say.
+
 ## Known gaps
 
-- **Narration.** A scene's voice comes from a recorded take or the studio's
-  own guide-voice route. The videos rendered for this proof carry burned-in
-  captions; a take needs a person at a microphone.
-- **Nodes drawn before the object rule.** Pages drawn before the contract
-  asked for a real column give a drawn object too little room. The studio now
-  refuses to wear a drawing that would come out under 48 px a side and says
-  which node to widen, and the checker asks for 120 px before the words.
+- **Palette.** The object briefs carry the reference family's light palette, so
+  a drawing worn on a dark page reads as a silhouette. The brief should take the
+  video's own palette; changing it re-keys the brief, so the drawings would be
+  generated again.
+- **Nodes drawn before the object rule.** Pages drawn before the contract asked
+  for a real column give a drawn object too little room. The studio refuses to
+  wear a drawing that would come out under 48 px a side and names the node; the
+  checker predicts the fitted size and asks for 110 px a side.
+- **A recorded human presenter.** The guide voice is the studio's own; a camera
+  take still needs a person.
