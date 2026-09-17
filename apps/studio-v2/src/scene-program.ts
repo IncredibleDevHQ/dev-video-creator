@@ -114,6 +114,13 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
   flattenUnits(units).forEach(unit => {
     Object.keys(unit.appearance?.parts || {}).forEach(part => known.add(`${unit.id}.${part}`))
   })
+  // A thing that asked for a drawn object may name its pieces before the
+  // drawing arrives: the page said what it wants, and a wireframe stage is
+  // not the moment to throw that away. The compiler resolves the piece when
+  // there is one and passes over it when there is not.
+  const asksFor = new Set(flattenUnits(units).filter(unit => unit.objectName).flatMap(unit => [unit.id, ...unit.ids]))
+  const namesSomething = (name: string) =>
+    known.has(name) || (name.includes('.') && asksFor.has(name.slice(0, name.indexOf('.'))))
   const value = raw as Record<string, unknown>
   const cast = (Array.isArray(value.cast) ? value.cast : [])
     .map(entry => {
@@ -127,7 +134,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
       const reactions = Object.fromEntries(
         (['spend', 'refill', 'pass', 'reject', 'arrive'] as const)
           .map(kind => [kind, asString(shows[kind], 120)])
-          .filter(([, piece]) => piece && known.has(piece as string)),
+          .filter(([, piece]) => piece && namesSomething(piece as string)),
       )
       return {
         id,
@@ -140,8 +147,8 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
                 of: asString(quantity.of, 24) || 'items',
                 value: Math.max(0, Math.round(Number(quantity.value))),
                 ...(Number.isFinite(Number(quantity.max)) ? { max: Math.max(1, Math.round(Number(quantity.max))) } : {}),
-                ...(shownOn && known.has(shownOn) ? { shownOn } : {}),
-                ...(counted && known.has(counted) ? { counted } : {}),
+                ...(shownOn && namesSomething(shownOn) ? { shownOn } : {}),
+                ...(counted && namesSomething(counted) ? { counted } : {}),
               },
             }
           : {}),

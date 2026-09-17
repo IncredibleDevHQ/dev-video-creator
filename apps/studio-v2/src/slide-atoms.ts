@@ -31,6 +31,10 @@ export type SlideUnit = {
   // A thing the page drew to be moved: a request, a token, a packet. It
   // starts hidden and only a scene program brings it on and travels it.
   actorRole?: string
+  // The drawn object this thing asked for by name (data-object): the studio
+  // looks the brief up under it, draws it once, and reuses it wherever the
+  // same object is named.
+  objectName?: string
   // The artwork this thing wears: the pieces the scene may move by name
   // (the bucket's tokens, the server's indicator), and the box the drawing
   // occupies while it plays — which is not always its box at rest.
@@ -478,7 +482,17 @@ export const inferEdges = (units: SlideUnit[]): SlideEdge[] => {
 // moves with it and never counts as ink of its own.
 const attachAppearance = (root: Element, units: SlideUnit[]) => {
   const byId = new Map(flattenUnits(units).map(unit => [unit.id, unit]))
+  // What the page asked to be drawn as, whether or not a drawing has arrived.
+  Array.from(root.querySelectorAll('[data-object]')).forEach(element => {
+    const asked = (element.getAttribute('data-object') || '').trim()
+    const unit = byId.get(element.id)
+    const owner = unit && unit.kind === 'group' ? leafUnits([unit]).find(leaf => leaf.kind === 'box' || leaf.kind === 'shape') || unit : unit
+    if (asked && owner) owner.objectName = asked
+  })
   Array.from(root.querySelectorAll('[data-appearance-for]')).forEach(element => {
+    // A drawing that has been stood down keeps its place in the page and
+    // stops speaking for the thing it used to dress.
+    if (element.hasAttribute('data-appearance-replaced')) return
     const named = byId.get(element.getAttribute('data-appearance-for') || '')
     if (!named) return
     // A page may name the node's group; the artwork belongs to the thing

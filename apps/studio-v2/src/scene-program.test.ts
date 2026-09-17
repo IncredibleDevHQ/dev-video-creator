@@ -447,6 +447,25 @@ describe('the scene program', () => {
     expect(clean.beats.flatMap(beat => beat.events || []).every(one => Boolean(one.id))).toBe(true)
   })
 
+  it('keeps a binding to a drawn object before the drawing has arrived', () => {
+    // The page asked to be drawn as a slot pool and bound its quantity to that
+    // object's own piece. Nothing is drawn yet; the binding must survive until
+    // it is, or the wireframe stage quietly rewrites what the author meant.
+    const asking: SlideUnit[] = [
+      { ...unit('node-pool', 'Slot pool', [700, 300, 260, 140]), objectName: 'slot-pool' },
+      unit('actor-request', 'Request', [150, 340, 40, 40], { kind: 'shape', actorRole: 'request' }),
+    ]
+    const authored = program([{ actor: 'node-pool', action: 'spend', amount: 1, cue: 'takes' }])
+    authored.cast = [{ id: 'node-pool', role: 'pool', quantity: { of: 'slots', value: 4, max: 4, shownOn: 'node-pool.occupied' }, shows: { pass: 'node-pool.gate' } }]
+    const clean = sanitizeSceneProgram(authored, asking)!
+    expect(clean.cast[0].quantity!.shownOn).toBe('node-pool.occupied')
+    expect(clean.cast[0].shows!.pass).toBe('node-pool.gate')
+    // A thing that asked for nothing keeps the old rule: a piece it does not
+    // have is not a name.
+    const plain = sanitizeSceneProgram(authored, [unit('node-pool', 'Slot pool', [700, 300, 260, 140]), asking[1]])!
+    expect(plain.cast[0].quantity!.shownOn).toBeUndefined()
+  })
+
   it('refuses ids the page does not have', () => {
     const raw = program([{ actor: 'ghost', action: 'travel', to: 'node-bucket' }])
     const clean = sanitizeSceneProgram(raw, units)

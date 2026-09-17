@@ -10959,7 +10959,7 @@ const primeArtwork = () => {
 // Which brief a part on the page is asking for: its own declared object
 // first, then its name, then the name of what it is.
 const briefForUnit = (unit: SlideUnit, briefs: ObjectBriefCard[]) => {
-  const declared = unit.appearance?.key
+  const declared = unit.objectName || unit.appearance?.key
   const named = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
   return (
     briefs.find(brief => brief.entity === declared) ||
@@ -11014,6 +11014,17 @@ const drawObjectOn = async (unit: SlideUnit, options: { entity?: string; force?:
     return artwork
   }
   state.svg = worn
+  // The page now wears pieces it did not have a moment ago. Read it again, so
+  // the scene's names for them ("the pool's occupied") resolve to the drawing
+  // rather than to nothing.
+  const reread = atomizeSlideSvg(state.svg)
+  if (reread.units.length) {
+    state.svg = reread.svg
+    state.units = reread.units
+    state.unitByElement = new Map<string, SlideUnit>()
+    leafUnits(reread.units).forEach(one => one.ids.forEach(id => state.unitByElement.set(id, one)))
+    state.model = pageModelFor(reread.units)
+  }
   state.lastChange = `Drew ${unit.label}`
   markDirty(true)
   writeSlideLikeNode(state.nodeId, { svg: state.svg })
