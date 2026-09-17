@@ -1214,7 +1214,7 @@ const buildCompositionHtml = (
     .scene { --content-layout-width: 1500px; --presenter-safe-width: 100%; position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); isolation: isolate; }
     .scene > .scene-index, .scene > .content, .scene > footer, .scene > .composition-corner-logo { position: relative; z-index: 22; }
     .scene > * { position: relative; z-index: 25; }
-    .scene::before { content: ""; position: absolute; z-index: 24; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
+    .scene::before { content: ""; position: absolute; z-index: 21; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
     #composition[data-surface-style="none"] .scene::before { display: none; }
     #composition[data-surface-style="card"] .scene::before { border-color: transparent; background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: 0 32px 90px rgba(0,0,0,.16); }
     .scene-index { color: var(--primary); font-size: 24px; font-weight: 800; letter-spacing: .18em; }

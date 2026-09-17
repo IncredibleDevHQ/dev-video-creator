@@ -349,6 +349,8 @@ export type BeatSpec = {
   hero: SlideUnit | null
   // null = decide automatically; [] = stay on the page.
   camera: SlideUnit[] | null
+  // The camera was asked for in the script itself, by the person writing it.
+  cameraByAuthor?: boolean
   zoomOut: boolean
   dim: SlideUnit[] | null
   exits: SlideUnit[]
@@ -665,18 +667,20 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
     // writer asked for.
     const worthClosing = focusArea < pageArea * 0.45
     const directedClose = Boolean(spec.camera && spec.camera.length)
+    // A [camera: …] in the script is the author's shot, not a suggestion.
+    const authorClose = directedClose && Boolean(spec.cameraByAuthor)
     const allowed = !spec.zoomOut && !(spec.camera && spec.camera.length === 0) && index !== specs.length - 1 && Boolean(focusBox)
     // The page is established first: no beat opens a scene close up.
     const wantsClose =
       allowed &&
-      worthClosing &&
       index > 0 &&
-      (directedClose || (tight && visible.size >= 4 && subject.length <= 3 && spec.layout !== 'me'))
+      (authorClose || (worthClosing && (directedClose || (tight && visible.size >= 4 && subject.length <= 3 && spec.layout !== 'me'))))
     const follows = allowed && !cameraOnPage && persists && roomy && spec.layout !== 'me'
     // A close-up is only ever entered from the page: when the subject moves
     // somewhere else entirely the camera comes back out first, rather than
-    // cutting sideways from one corner of the page to another.
-    if (focusBox && ((wantsClose && cameraOnPage) || follows)) {
+    // cutting sideways from one corner of the page to another. The exception
+    // is a shot the author asked for, which the camera glides to directly.
+    if (focusBox && ((wantsClose && cameraOnPage) || follows || (wantsClose && authorClose))) {
       const move = cameraOnPage ? 'in' : 'follow'
       actions.push(action('camera', [], Math.min(cursor, 200), {
         // A follow glides; a fresh move-in is the default.
@@ -936,6 +940,7 @@ const specsFromPlacement = (
       mentioned,
       hero,
       camera: cameraById && cameras[index] !== undefined ? cameraById : cameraDirected.length ? cameraDirected : null,
+      cameraByAuthor: !(cameraById && cameras[index] !== undefined) && cameraDirected.length > 0,
       zoomOut: beat.directions.some(direction => direction.kind === 'zoomout'),
       dim: dimExplicit,
       exits: named('exit'),

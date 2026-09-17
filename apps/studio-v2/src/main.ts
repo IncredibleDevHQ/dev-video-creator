@@ -44,6 +44,7 @@ import {
   type ThemeCodeSyntax,
   type TiptapDocument,
   type TiptapNode,
+  type MotionBeat,
   sanitizeSlideSteps,
   slideDurationSeconds,
   stepsFromResolvedPlan,
@@ -107,6 +108,7 @@ import {
   attachLeftovers,
   contractReport,
   inferEdges,
+  flattenUnits,
   leafUnits,
   oneStepPerUnit,
   orderByArrows,
@@ -12782,6 +12784,56 @@ assistButton.addEventListener('click', () => {
 
 // Local deterministic planning (no agent): assigns the page's units to the
 // block's existing narration beats. Same write/persist path as assist.
+// The thread between two pages is whatever thing they both show. Today it is
+// recorded as a note for the author; here it is performed: the scene that
+// ends holds the eye on the shared thing, and the one that follows opens on
+// it, so the cut reads as continuing rather than starting over.
+const threadLabel = (label: string) => label.trim().toLowerCase().replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ')
+// The words a page writes on its arrows are not things: two pages both
+// saying "feeds" share nothing.
+const RELATION_WORDS = /^(sends to|waits for|calls|reads|writes|returns|splits into|merges into|depends on|becomes|contains|compares with|feeds|triggers|reads writes)$/
+const isThing = (unit: SlideUnit) =>
+  !unit.chrome &&
+  (unit.kind === 'box' || unit.kind === 'group') &&
+  unit.label.trim().length > 5 &&
+  !RELATION_WORDS.test(threadLabel(unit.label))
+const sharedThing = (units: SlideUnit[], neighbour: TiptapNode | undefined) => {
+  if (!neighbour) return ''
+  const svg = String(neighbour.attrs?.svg || '')
+  if (!svg) return ''
+  const mine = flattenUnits(units).filter(isThing)
+  const theirs = new Set(flattenUnits(atomizeSlideSvg(svg).units).filter(isThing).map(unit => threadLabel(unit.label)))
+  // The biggest thing they both name: the page's own subject, not a footnote.
+  const shared = mine
+    .filter(unit => theirs.has(threadLabel(unit.label)))
+    .sort((a, b) => b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height)
+  return shared[0]?.id || ''
+}
+const performContinuity = (nodeId: string, units: SlideUnit[], plan: MotionPlanV2) => {
+  const slideLike = project.notebook.content.filter(node => node.type === 'scene' || node.type === 'slide')
+  const index = slideLike.findIndex(node => String(node.attrs?.id || '') === nodeId)
+  if (index < 0 || !plan.steps.length) return { opened: '', handed: '' }
+  const carriedIn = sharedThing(units, slideLike[index - 1])
+  const handedOn = sharedThing(units, slideLike[index + 1])
+  const held = (step: MotionBeat, id: string, when: number) =>
+    step.actions.push({ op: 'emphasize', targets: [id], startMs: when, durationMs: 620, ease: 'settle', persistence: 'flourish' })
+  if (carriedIn) {
+    // Picked up where the last page left it: it is the first thing here.
+    const first = plan.steps[0]
+    const reveal = first.actions.find(action => action.op === 'reveal' && action.targets.includes(carriedIn))
+    if (reveal) reveal.startMs = 0
+    held(first, carriedIn, 120)
+    first.hero = [carriedIn, ...(first.hero || []).filter(id => id !== carriedIn)]
+  }
+  if (handedOn) {
+    // Handed over: the last thing this scene holds is what the next opens on.
+    const last = plan.steps[plan.steps.length - 1]
+    held(last, handedOn, Math.max(0, last.motionWindowMs - 480))
+    last.holdMs = Math.max(last.holdMs, 420)
+  }
+  return { opened: carriedIn, handed: handedOn }
+}
+
 // Writes BOTH the atomized svg (stable `u*` ids stamped in) and the steps —
 // the reveals only resolve at compile time against the annotated svg.
 const animateSceneLocally = (nodeId: string) => {
@@ -12817,6 +12869,7 @@ const animateSceneLocally = (nodeId: string) => {
     syncProject()
     return true
   }
+  const thread = performContinuity(nodeId, atomized.units, result.plan)
   const directed = direct({
     title: String(found.attrs.title || 'Scene'),
     units: atomized.units,
@@ -12824,7 +12877,10 @@ const animateSceneLocally = (nodeId: string) => {
     beats: result.beats,
     plan: result.plan,
     position: scenePosition(nodeId),
+    // A program says where the presenter stands, beat by beat; the director
+    // composes around that instead of deciding it after the fact.
     layouts: result.windows.map(window => window.layout),
+    layoutsByAuthor: result.windows.map(window => Boolean(window.layoutByAuthor)),
   })
   const labelOf = new Map(leafUnits(atomized.units).map(unit => [unit.id, unit.label]))
   writeSlideLikeNode(nodeId, {
@@ -12834,6 +12890,7 @@ const animateSceneLocally = (nodeId: string) => {
     windows: result.windows.map(window => ({ ...window, ...(window.hero ? { heroLabel: labelOf.get(window.hero) || '' } : {}) })),
     motion: result.plan,
     steps: result.steps,
+    thread: thread.opened || thread.handed ? { ...(thread.opened ? { opensOn: thread.opened } : {}), ...(thread.handed ? { handsOver: thread.handed } : {}) } : null,
     ...directorAttrs(found.attrs, directed, result.plan),
   })
   const config = project.blocks[nodeId]

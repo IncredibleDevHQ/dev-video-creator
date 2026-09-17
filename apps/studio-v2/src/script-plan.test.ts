@@ -86,8 +86,14 @@ That is the whole machine.`
     expect(b3.actions.find(a => a.op === 'emphasize')!.targets).toEqual(['attention', 'attention-text'])
     // Beat 4: the number counts and the camera moves in on it.
     expect(b4.actions.find(a => a.op === 'count')!.targets).toEqual(['score'])
+    // The script asked for this shot by name, so it is taken — and the rect
+    // is the one the driver will crop to, which holds the number it framed.
     const camera = b4.actions.find(a => a.op === 'camera')!
-    expect(camera.value).toMatchObject({ x: 700, y: 400 })
+    const shot = camera.value as Record<string, number>
+    expect(shot.x).toBeLessThanOrEqual(700)
+    expect(shot.y).toBeLessThanOrEqual(400)
+    expect(shot.x + shot.width).toBeGreaterThanOrEqual(780)
+    expect(shot.y + shot.height).toBeGreaterThanOrEqual(430)
     // Beat 5: nothing new, camera returns to the page, intent recap.
     expect(b5.actions.find(a => a.op === 'camera')!.implicit).toBe(true)
     // The closing line is the outro: beside the page, a transition.
@@ -176,7 +182,10 @@ describe('planFromWindows', () => {
     expect(w1.actions.filter(a => a.op === 'reveal')).toHaveLength(0)
     expect(w2.actions.find(a => a.op === 'reveal')!.targets).toEqual(['encoder', 'encoder-text', 'attention', 'attention-text'])
     expect(w2.hero).toEqual(['attention', 'attention-text'])
-    expect(w3.actions.find(a => a.op === 'camera')!.value).toMatchObject({ x: 700, y: 200 })
+    const framed = w3.actions.find(a => a.op === 'camera')!.value as Record<string, number>
+    expect(framed.x).toBeLessThanOrEqual(700)
+    expect(framed.x + framed.width).toBeGreaterThanOrEqual(900)
+    expect(framed.y).toBeLessThanOrEqual(200)
     expect(w4.actions.find(a => a.op === 'count')!.targets).toEqual(['score'])
     expect(result.windows[0].layout).toBe('me')
     expect(result.coverage.beats.map(beat => beat.anchored)).toEqual([true, true, true, true])
