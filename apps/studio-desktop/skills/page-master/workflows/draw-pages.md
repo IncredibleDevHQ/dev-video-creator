@@ -96,6 +96,13 @@ quantity), `refill`, `pass` (through, to `to`), `reject` (turned away at `to`),
 `become` (an actor takes another's place), `highlight`, `leave`, `state`
 (`state: "backed up"` — one of the entity's own states).
 
+**The things the studio can really draw** — before drawing a diagram page, read
+`references/objects.json`. If one of its objects is on this page (a bucket of
+tokens, a server, a request, a pool of slots, a line of waiting work), the node
+for it declares `data-object` and leaves it the room the contract asks for, and
+the program binds the story to that object's own pieces. This is how a page
+gets real artwork instead of a wireframe box.
+
 **Recomposition** — a beat may also carry `restage`, which changes the
 arrangement itself, deliberately, while every thing keeps its identity:
 

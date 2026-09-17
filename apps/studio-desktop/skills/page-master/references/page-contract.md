@@ -68,7 +68,9 @@ Rules for the artwork:
 ### Ask for the real thing
 
 Some things the studio can draw properly — a real object, rigged into pieces it
-can move one at a time. A node says which one with `data-object`:
+can move one at a time. **When a node is one of them, say so.** A page about a
+bucket that never asks for the bucket gets a wireframe where it could have had
+the thing itself. A node says which one with `data-object`:
 
 ```xml
 <g id="s04-node-slot-pool" data-role="node" data-kind="box" data-entity="queue" data-object="slot-pool">
@@ -87,12 +89,14 @@ its own named parts). Declaring one does three things:
 **Leave it room.** A drawn object is the subject of its node, not a badge in
 the corner: a node that declares `data-object` starts its words at least
 **120 px** from the node's left edge, and is at least 300 px wide and 140 px
-tall, so the drawing has a column it can read in. The studio refuses to wear a
-drawing into a column narrower than 96 px — the node keeps its wireframe and
-says why.
+tall, so the drawing has a column it can read in. Plan the page around that —
+a diagram usually has one or two such nodes, and they are the ones the story is
+about. The studio refuses to wear a drawing that would come out under 48 px a
+side; that node keeps its wireframe and the author is told which one to widen.
 
-Declare it only where the name is right. The drawing is filed under what was
-asked for, so the same object named on five pages is drawn once and reused.
+Declare it only where the name is right — a node that is not one of these
+objects says nothing. The drawing is filed under what was asked for, so the
+same object named on five pages is drawn once and reused.
 
 Your own `data-appearance-for` artwork stays required either way: it is what the
 page reads as until the drawing arrives, and what it falls back to if it never
