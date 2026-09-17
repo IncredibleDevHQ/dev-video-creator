@@ -42,8 +42,10 @@ import {
   listProjectArtifacts,
   loadLatestProjectArtifact,
   loadProjectArtifact,
+  loadSetting,
   persistenceHealth,
   saveProjectArtifact,
+  saveSetting,
   saveRecordedBlock,
   storeAsset,
 } from './persistence'
@@ -60,6 +62,8 @@ import {
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
 import { checkPageContract, outlinePrompt, outlineSchema, pageBrandFrom, readSourceNarrative, readSourceUrl, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
+import { REFERENCE_STYLE, acceptArtwork, briefKey, briefPrompt, referenceObjects, type ObjectBrief } from './appearance'
+import { generateObjectSvg, quiverCapability, quiverConfigured } from './providers/quiver'
 const require = createRequire(import.meta.url)
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
@@ -70,6 +74,11 @@ const hyperframesRuntimePath = join(
 
 const readEnvFileValue = async (name: string) => {
   const candidates = [
+    // The repository's own .env, resolved from this file rather than from
+    // whatever directory the command happened to be run in.
+    fileURLToPath(new URL('../../../.env', import.meta.url)),
+    fileURLToPath(new URL('../../../../.env', import.meta.url)),
+    resolve(process.cwd(), '.env'),
     resolve(process.cwd(), '../agents/.env'),
     fileURLToPath(new URL('../../../../agents/.env', import.meta.url)),
   ]
@@ -91,6 +100,14 @@ const openAIKey =
   process.env.OPENAI_API_KEY || (await readEnvFileValue('OPENAI_API_KEY'))
 // The env key seeds the gateway until the user saves a provider in Models.
 configureModelGateway({ envKey: openAIKey })
+// The artwork provider reads its key from the environment. A value the
+// deployment already supplied wins; otherwise the repository's .env fills it
+// in for local work. It stays on the server: never a browser variable, never
+// a prompt, a log line, a saved notebook or a render artifact.
+if (!process.env.QUIVER_API_KEY) {
+  const key = await readEnvFileValue('QUIVER_API_KEY')
+  if (key) process.env.QUIVER_API_KEY = key
+}
 
 export type StudioHandlerOptions = {
   dataDir?: string
@@ -151,6 +168,22 @@ const readBody = async (request: IncomingMessage, maximumBytes: number) => {
 
 // The base a video was forked from, as it was at the fork. Missing or
 // unreadable is not an error: the video simply has less to compare against.
+// One object's accepted artwork: what it draws, what the scene may move, and
+// where it came from.
+type AppearanceRecord = {
+  entity: string
+  key: string
+  accepted: boolean
+  problems: string[]
+  parts: Array<{ id: string; element: string }>
+  missing: string[]
+  ports: ObjectBrief['ports']
+  viewBox: { width: number; height: number }
+  svg: string
+  provenance: { provider: string; model: string; requestId: string; at: string; credits?: number; usage?: Record<string, unknown> }
+  assets: { original: string; normalized?: string }
+}
+
 const readSnapshot = async (objectKey: string | undefined): Promise<ProjectDocumentV1 | null> => {
   if (!objectKey) return null
   try {
@@ -2548,6 +2581,66 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       const body = format === 'vtt' ? formatWebVtt(cues) : formatSrt(cues)
       response.writeHead(200, { 'content-type': format === 'vtt' ? 'text/vtt; charset=utf-8' : 'application/x-subrip; charset=utf-8', 'content-disposition': `attachment; filename="${String(stored.title || 'captions').replace(/[^\w.-]+/g, '-').slice(0, 60)}.${format}"`, 'x-caption-count': String(cues.length) })
       response.end(body)
+      return
+    }
+    // ——— Object artwork ———
+    // What the artwork provider can do for this installation. Reported, not
+    // assumed: an absent key is a plain answer, not an error.
+    if (request.method === 'GET' && url.pathname === '/api/appearance/provider') {
+      json(response, 200, await quiverCapability())
+      return
+    }
+    // The briefs this scene's objects are drawn from.
+    if (request.method === 'GET' && url.pathname === '/api/appearance/briefs') {
+      const objects = referenceObjects()
+      json(response, 200, {
+        style: REFERENCE_STYLE,
+        briefs: objects.map(brief => ({ entity: brief.entity, role: brief.role, key: briefKey(brief), parts: brief.parts.map(part => part.id), prompt: briefPrompt(brief) })),
+      })
+      return
+    }
+    // Draw one object. The same brief is never drawn twice: the accepted
+    // artwork is kept by what it draws, so rewording a scene reuses it.
+    if (request.method === 'POST' && url.pathname === '/api/appearance/generate') {
+      const body = await readJson<{ entity: string; projectId?: string; force?: boolean; model?: string }>(request, 256 * 1024)
+      const brief = referenceObjects().find(object => object.entity === body.entity)
+      if (!brief) throw new Error(`No brief for "${body.entity}"`)
+      const key = briefKey(brief)
+      const cached = (await loadSetting(`appearance:${key}`)) as AppearanceRecord | null
+      if (cached && !body.force) {
+        json(response, 200, { appearance: cached, reused: true })
+        return
+      }
+      if (!quiverConfigured()) throw new Error('The artwork provider is not configured (QUIVER_API_KEY is not set)')
+      // A budget per notebook, so a loop cannot spend an account.
+      const spentKey = `appearance-budget:${body.projectId || 'unattached'}`
+      const spent = Number((await loadSetting(spentKey)) || 0)
+      const budget = Number(process.env.STUDIO_APPEARANCE_BUDGET || 24)
+      if (spent >= budget) throw new Error(`This notebook has used its artwork budget (${budget} drawings)`)
+      await saveSetting(spentKey, spent + 1)
+      const drawn = await generateObjectSvg(brief, { model: body.model, traceId: `appearance-${key}` })
+      const accepted = acceptArtwork(drawn.svg, brief)
+      // Both are kept: what came back, and what the studio will use.
+      const original = await storeAsset({ body: Buffer.from(drawn.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance-original', extension: '.svg' })
+      const normalized = accepted.svg
+        ? await storeAsset({ body: Buffer.from(accepted.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance', extension: '.svg' })
+        : null
+      const record: AppearanceRecord = {
+        entity: brief.entity,
+        key,
+        accepted: accepted.ok,
+        problems: accepted.problems,
+        parts: accepted.parts,
+        missing: accepted.missing,
+        ports: accepted.ports,
+        viewBox: accepted.viewBox,
+        svg: accepted.svg,
+        provenance: { provider: 'quiver', model: drawn.model, requestId: drawn.requestId, at: new Date().toISOString(), ...(drawn.credits !== undefined ? { credits: drawn.credits } : {}), usage: drawn.usage },
+        assets: { original: original.objectKey, ...(normalized ? { normalized: normalized.objectKey } : {}) },
+      }
+      // A failed candidate never replaces artwork that was accepted before.
+      if (accepted.ok) await saveSetting(`appearance:${key}`, record)
+      json(response, accepted.ok ? 201 : 200, { appearance: record, reused: false, kept: accepted.ok })
       return
     }
     // What a video was made from, and whether that base has moved since.
