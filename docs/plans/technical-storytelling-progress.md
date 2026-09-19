@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — fix: canonical digests across the store boundary
+
+**Commits**
+
+- `44acf8ca` — The jsonb key-reorder finding generalised: `digest()` (narration, proofs, export hashes) and the finish/export "changed?" guards all hashed or compared raw `JSON.stringify`. Across a PG round-trip that falsely reads as a different scene: a re-finish after a reload would have reported "the notebook changed during generation", and export would have refused a faithfully applied scene. One canonical recipe now (stableStringify inside digest; the export guard compares canonical forms). `explainer-persistence-check.mjs` proves both: re-finish and re-export after a key-reordering round-trip pass, and the concurrent-edit guard still fires.
+
 ## 2026-09-19 — §3.9: reviewed stamps carry a content hash
 
 **Commits**
