@@ -264,6 +264,47 @@ try {
   const dialogAfterKeep = await evalInWindow(origin, `document.getElementById('camera-dialog')?.open === true`)
   check('keeping closes the dialog with the take saved', dialogAfterKeep === false, `open=${dialogAfterKeep}`)
 
+  // A failed Keep must not eat the take: the review stays and retries.
+  await evalInWindow(origin, `(() => {
+    const chip = [...document.querySelectorAll('#scene-rail .scene-card')].find(b => b.textContent.includes('Take scene'))
+    if (!chip) throw new Error('no chip for the take scene')
+    chip.click()
+    document.getElementById('record-this-block').click()
+  })()`)
+  for (let i = 0; i < 20; i += 1) {
+    const open = await evalInWindow(origin, `document.getElementById('camera-dialog')?.open === true`).catch(() => false)
+    if (open) break
+    await sleep(400)
+  }
+  await evalInWindow(origin, `window.__timing.stageReview()`)
+  await evalInWindow(origin, `(() => {
+    const real = window.fetch
+    window.fetch = (url, ...rest) => String(url).includes('/api/assets') ? Promise.resolve(new Response('nope', { status: 500 })) : real(url, ...rest)
+    window.__restoreFetch = () => { window.fetch = real }
+    return true
+  })()`)
+  await evalInWindow(origin, `document.getElementById('keep-take').click()`)
+  await sleep(800)
+  const afterFail = await evalInWindow(origin, `(() => ({
+    visible: !document.getElementById('take-review').hidden,
+    status: document.getElementById('camera-status').textContent,
+    keepDisabled: document.getElementById('keep-take').disabled,
+    dialogOpen: document.getElementById('camera-dialog').open,
+  }))()`)
+  check('a failed upload keeps the take reviewable for a retry', afterFail.visible && afterFail.dialogOpen && !afterFail.keepDisabled && /Upload failed/.test(afterFail.status), JSON.stringify(afterFail).slice(0, 140))
+  const takesAfterFail = await fetch(`${origin}/api/takes?projectId=${PROJECT_ID}`).then(r => r.json())
+  check('nothing was archived on the failed attempt', takesAfterFail.takes?.length === 5, `takes=${takesAfterFail.takes?.length}`)
+
+  await evalInWindow(origin, `window.__restoreFetch()`)
+  await evalInWindow(origin, `document.getElementById('keep-take').click()`)
+  let afterRetry = null
+  for (let i = 0; i < 30; i += 1) {
+    afterRetry = await fetch(`${origin}/api/takes?projectId=${PROJECT_ID}`).then(r => r.json()).catch(() => null)
+    if (afterRetry?.takes?.length === 6) break
+    await sleep(400)
+  }
+  check('the retry uploads and archives the same take', afterRetry?.takes?.length === 6, `takes=${afterRetry?.takes?.length}`)
+
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })
   check('cleanup', true, 'fixture notebook deleted')
 } catch (error) {

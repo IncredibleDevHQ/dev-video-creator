@@ -7398,6 +7398,8 @@ const stopCameraStream = () => {
 
 const enableCamera = async () => {
   stopCameraStream()
+  // Re-enabling the camera is a new capture context; a pending review ends.
+  if (pendingTakeBlob) exitTakeReview()
   const microphone = audioMode.value === 'microphone'
   cameraStream = await navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -7666,6 +7668,8 @@ const renderCameraBrief = (sceneId: string) => {
 audioMode.addEventListener('change', () => {
   generatedVoiceUrl = ''
   guideAudio.removeAttribute('src')
+  // The audio approach the take was captured under changed — its review ends.
+  if (pendingTakeBlob) exitTakeReview()
   stopCameraStream()
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
@@ -7888,6 +7892,9 @@ const enterTakeReview = (blob: Blob) => {
   takeReviewBox.hidden = false
   stopRecordingButton.hidden = true
   startRecordingButton.hidden = true
+  // Each review gets a fresh Keep; a disabled one from a prior take's upload
+  // must not follow the next take.
+  ;($('#keep-take') as HTMLButtonElement).disabled = false
   setCameraStatus('Review the take — Keep archives it, Discard drops it', 'live')
 }
 
@@ -7901,14 +7908,20 @@ const exitTakeReview = () => {
   startRecordingButton.hidden = false
 }
 
-;($('#keep-take') as HTMLButtonElement).addEventListener('click', async () => {
+;($('#keep-take') as HTMLButtonElement).addEventListener('click', async event => {
   const blob = pendingTakeBlob
   if (!blob) return
-  exitTakeReview()
+  const button = event.currentTarget as HTMLButtonElement
+  button.disabled = true
   setCameraStatus('Uploading take…', 'live')
   try {
     await uploadRecording(blob)
+    // uploadRecording closed the dialog; the review state still resets.
+    exitTakeReview()
   } catch (error) {
+    // A failed upload must not eat the take: the review stays, Keep retries.
+    button.disabled = false
+    setCameraStatus('Upload failed — the take is still here; Keep retries, Discard drops it', 'live')
     showToast(error instanceof Error ? error.message : 'Could not upload take')
   }
 })
