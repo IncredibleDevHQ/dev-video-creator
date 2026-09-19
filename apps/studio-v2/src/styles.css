@@ -676,6 +676,18 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .camera-brief { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid #e4e4e7; border-radius: 10px; background: #fafafa; font-size: 11.5px; line-height: 1.5; color: #52525b; }
 .camera-brief strong { color: #18181b; font-size: 12px; }
 .camera-brief .camera-brief-progress { color: #16a34a; font-weight: 700; letter-spacing: .02em; }
+.camera-left { min-width: 0; display: grid; gap: 12px; align-content: start; }
+.rehearsal { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fafafa; }
+.rehearsal-head { display: flex; justify-content: space-between; align-items: baseline; }
+.rehearsal-head span { color: #15803d; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
+.rehearsal-head b { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.rehearsal-stage { aspect-ratio: 16 / 9; overflow: hidden; border-radius: 5px; background: #111827; }
+.rehearsal-stage svg { width: 100%; height: 100%; display: block; }
+.rehearsal-shot { min-height: 11px; color: var(--muted); font-size: 9px; }
+.rehearsal-line { min-height: 40px; margin: 0; color: var(--ink); font-size: 14px; line-height: 1.5; }
+.rehearsal-controls { display: flex; gap: 6px; }
+.rehearsal-controls .button { min-height: 32px; padding: 0 10px; font-size: 10px; }
+.rehearsal-note { color: var(--muted); font-size: 9px; line-height: 1.5; }
 #explainer-objects { display: grid; gap: 2px; padding: 6px 0; font-size: 11.5px; color: #3f3f46; }
 #explainer-objects .is-pending { color: #b45309; }
 .camera-status span.recording { background: #ef4444; animation: pulse 1s infinite; }

@@ -874,11 +874,26 @@
     <dialog id="camera-dialog" class="modal camera-modal">
       <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Camera first. Microphone optional.</h2></div><button id="close-camera" class="icon-button">×</button></div>
       <div class="camera-grid">
-        <div class="camera-preview-shell">
-          <video id="camera-preview" autoplay muted playsinline></video>
-          <div id="camera-placeholder"><span>◎</span><strong>Your camera stays human</strong><small>Enable it when you are ready to rehearse.</small></div>
-          <div id="countdown" class="countdown" hidden>3</div>
-          <div class="camera-status"><span id="camera-status-dot"></span><strong id="camera-status">Camera off</strong></div>
+        <div class="camera-left">
+          <div class="camera-preview-shell">
+            <video id="camera-preview" autoplay muted playsinline></video>
+            <div id="camera-placeholder"><span>◎</span><strong>Your camera stays human</strong><small>Enable it when you are ready to rehearse.</small></div>
+            <div id="countdown" class="countdown" hidden>3</div>
+            <div class="camera-status"><span id="camera-status-dot"></span><strong id="camera-status">Camera off</strong></div>
+          </div>
+          <div id="rehearsal" class="rehearsal" hidden>
+            <div class="rehearsal-head"><span>Rehearsal · proposed graphics, estimated pace</span><b id="rehearsal-beat"></b></div>
+            <div id="rehearsal-stage" class="rehearsal-stage"></div>
+            <small id="rehearsal-shot" class="rehearsal-shot"></small>
+            <p id="rehearsal-line" class="rehearsal-line"></p>
+            <div class="rehearsal-controls">
+              <button id="rehearse-toggle" class="button secondary" type="button">▶ Rehearse</button>
+              <button id="rehearse-prev" class="button ghost" type="button">← Beat</button>
+              <button id="rehearse-replay" class="button ghost" type="button">Replay</button>
+              <button id="rehearse-next" class="button ghost" type="button">Beat →</button>
+            </div>
+            <small class="rehearsal-note">Estimated timing from the plan — your take sets the real pace. None of this is recorded.</small>
+          </div>
         </div>
         <div class="presenter-setup">
           <label>Audio approach<select id="audio-mode"><option value="generated">Generated guide voice — no microphone</option><option value="microphone">Use my microphone</option></select></label>

@@ -7379,8 +7379,138 @@ const openCamera = () => {
   engineRecordingButton.hidden = audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
   renderCameraBrief(scene.id)
+  setupRehearsal(scene)
   cameraDialog.showModal()
 }
+
+// ——— Rehearsal (§3.8): the scene's proposed graphics play beside its cue
+// lines at the plan's estimated pace, with manual beat controls to practice.
+// The pace is an aid, never a constraint — the recorded take sets the real
+// timing, and nothing in this pane reaches the recorded media. ———
+type Rehearsal = {
+  sceneId: string
+  driver: MotionDriverInstance
+  windows: SceneWindow[]
+  beat: number
+  playing: { frame: number } | null
+}
+let rehearsal: Rehearsal | null = null
+const rehearsalBox = $('#rehearsal') as HTMLElement
+const rehearsalStage = $('#rehearsal-stage') as HTMLElement
+const rehearsalBeat = $('#rehearsal-beat') as HTMLElement
+const rehearsalShot = $('#rehearsal-shot') as HTMLElement
+const rehearsalLine = $('#rehearsal-line') as HTMLElement
+const rehearseToggle = $('#rehearse-toggle') as HTMLButtonElement
+
+const stopRehearsalPlayback = () => {
+  if (rehearsal?.playing) cancelAnimationFrame(rehearsal.playing.frame)
+  if (rehearsal) rehearsal.playing = null
+  rehearseToggle.textContent = '▶ Rehearse'
+}
+
+const renderRehearsalBeat = () => {
+  if (!rehearsal) return
+  const window = rehearsal.windows[rehearsal.beat]
+  rehearsalBeat.textContent = `${rehearsal.beat + 1} / ${rehearsal.windows.length}`
+  // The shot the director pencilled in for this beat — approximate, so the
+  // presenter knows roughly where they will be, not a timeline to chase.
+  rehearsalShot.textContent = window?.layout ? layoutLabel[window.layout] : window?.camera?.length ? 'A closer look' : ''
+  rehearsalLine.textContent = window?.say || ''
+}
+
+const drawRehearsalBeat = (beat: number) => {
+  if (!rehearsal) return
+  stopRehearsalPlayback()
+  rehearsal.beat = Math.max(0, Math.min(rehearsal.windows.length - 1, beat))
+  rehearsal.driver.draw(rehearsal.driver.offsets[rehearsal.beat] ?? 0)
+  renderRehearsalBeat()
+}
+
+const playRehearsal = (fromMs = 0) => {
+  if (!rehearsal) return
+  stopRehearsalPlayback()
+  const driver = rehearsal.driver
+  const startedAt = performance.now()
+  const tick = (now: number) => {
+    const current = rehearsal
+    if (!current || current.driver !== driver || !current.playing) return
+    const t = fromMs + (now - startedAt)
+    driver.draw(t)
+    const offsets = driver.offsets
+    let beat = 0
+    offsets.forEach((offset, i) => { if (t >= offset) beat = i })
+    if (beat !== current.beat) {
+      current.beat = beat
+      renderRehearsalBeat()
+    }
+    if (t >= driver.durationMs) {
+      // A finished pass resets to the top, ready to rehearse again.
+      drawRehearsalBeat(0)
+      return
+    }
+    current.playing.frame = requestAnimationFrame(tick)
+  }
+  rehearsal.playing = { frame: requestAnimationFrame(tick) }
+  rehearseToggle.textContent = '■ Stop'
+}
+
+const teardownRehearsal = () => {
+  stopRehearsalPlayback()
+  rehearsal = null
+  rehearsalStage.replaceChildren()
+  rehearsalBox.hidden = true
+}
+
+const setupRehearsal = (scene: Scene) => {
+  teardownRehearsal()
+  const plan = sanitizeMotionPlan(scene.node.attrs?.motion)
+  const svg = String(scene.node.attrs?.svg || '')
+  if (!plan || !svg) return
+  const atomized = atomizeSlideSvg(svg)
+  const windows = sanitizeWindowsForUnits(scene.node.attrs?.windows, atomized.units)
+  if (!atomized.units.length || !windows.length) return
+  rehearsalStage.innerHTML = atomized.svg
+  const stage = rehearsalStage.querySelector('svg')
+  if (!stage) {
+    rehearsalStage.replaceChildren()
+    return
+  }
+  stage.removeAttribute('width')
+  stage.removeAttribute('height')
+  try {
+    rehearsal = { sceneId: scene.id, driver: instantiateMotionDriver(stage as SVGSVGElement, plan, ''), windows, beat: 0, playing: null }
+  } catch (error) {
+    console.warn('rehearsal preview failed', error)
+    rehearsalStage.replaceChildren()
+    return
+  }
+  rehearsalBox.hidden = false
+  drawRehearsalBeat(0)
+}
+
+rehearseToggle.addEventListener('click', () => {
+  if (!rehearsal) return
+  if (rehearsal.playing) {
+    stopRehearsalPlayback()
+    return
+  }
+  playRehearsal(rehearsal.driver.offsets[rehearsal.beat] ?? 0)
+})
+;($('#rehearse-prev') as HTMLButtonElement).addEventListener('click', () => {
+  if (rehearsal) drawRehearsalBeat(rehearsal.beat - 1)
+})
+;($('#rehearse-replay') as HTMLButtonElement).addEventListener('click', () => {
+  if (rehearsal) {
+    drawRehearsalBeat(rehearsal.beat)
+    playRehearsal(rehearsal.driver.offsets[rehearsal.beat] ?? 0)
+  }
+})
+;($('#rehearse-next') as HTMLButtonElement).addEventListener('click', () => {
+  if (rehearsal) drawRehearsalBeat(rehearsal.beat + 1)
+})
+// Every close path — the × button, a committed take, Escape — ends rehearsal.
+cameraDialog.addEventListener('close', teardownRehearsal)
+cameraDialog.addEventListener('cancel', () => teardownRehearsal())
 
 // ——— The coach card (D6): this scene's recording brief, its place in the
 // journey, and what happens next. ———
@@ -7566,6 +7696,9 @@ startRecordingButton.addEventListener('click', async () => {
     showToast('Generate the guide voice before recording')
     return
   }
+  // A take is its own timing authority: rehearsal playback stops here, and
+  // the speaker never chases the plan's estimated clock.
+  stopRehearsalPlayback()
   await runCountdown()
   recordingChunks = []
   const recorderType = supportedRecorderType()
@@ -10270,12 +10403,12 @@ const windowPartsFromWords = (state: SlideEditorState, say: string) => {
   return { parts: scored.map(entry => entry.unit.id), hero: scored[0]?.unit.id }
 }
 
-const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] => {
+const sanitizeWindowsForUnits = (raw: unknown, units: SlideUnit[]): SceneWindow[] => {
   if (!Array.isArray(raw)) return []
   // Anything the page named, not only its leaves: a camera or a part may be a
   // whole node — a group with its box and its artwork inside — and trimming
   // those silently drops things out of the shot when a scene is reopened.
-  const valid = new Set(flattenUnits(state.units).map(unit => unit.id))
+  const valid = new Set(flattenUnits(units).map(unit => unit.id))
   return raw
     .map((entry): SceneWindow | null => {
       if (!entry || typeof entry !== 'object') return null
@@ -10303,6 +10436,8 @@ const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] =
     })
     .filter((window): window is SceneWindow => Boolean(window))
 }
+
+const sanitizeWindows = (raw: unknown, state: SlideEditorState): SceneWindow[] => sanitizeWindowsForUnits(raw, state.units)
 
 const layoutLabel: Record<WindowLayout, string> = { page: 'Page owns the frame', beside: 'Beside me', me: 'On me' }
 

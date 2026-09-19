@@ -23,6 +23,7 @@ const CHECKS = [
   'explainer-persistence-check.mjs', // D3: finish/export guards
   'run-history-check.mjs',        // D3: durable runs + stage checkpoints
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration
+  'rehearsal-check.mjs',          // §3.8: rehearsal loop — graphics + cue lines, beat controls, reset
   'skill-references-check.mjs',   // D4: shipped instruction dependency graph
   'align-take-check.mjs',         // D5: take-aligned timing on canned transcripts
   'take-alignment-e2e-check.mjs', // D5: synthesized speech through the real aligner (SKIP without uv)
