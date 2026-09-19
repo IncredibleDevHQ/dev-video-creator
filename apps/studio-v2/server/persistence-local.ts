@@ -292,3 +292,81 @@ export const persistenceHealth = async () => {
   await initializePersistence()
   return { database: 'files', objectStorage: 'files', bucket: dataDirectory() }
 }
+
+// ——— Theme library (D1) ———
+// The isolated file backend keeps the same revisioned contract in its
+// settings store; PostgreSQL (persistence-pg.ts) is the production store.
+type LocalThemeEntry = {
+  name: string
+  source: string
+  site: string | null
+  currentRevision: number
+  revisions: Array<{ revision: number; hash: string; theme: unknown }>
+  updatedAt: string
+}
+
+const readThemeEntries = async (): Promise<Record<string, LocalThemeEntry>> =>
+  ((await loadSetting('studio-theme-library')) as Record<string, LocalThemeEntry> | null) || {}
+
+export const listThemeLibrary = async () => {
+  const entries = await readThemeEntries()
+  return Object.entries(entries)
+    .map(([id, entry]) => {
+      const current = entry.revisions.find(revision => revision.revision === entry.currentRevision) || entry.revisions[entry.revisions.length - 1]
+      return {
+        id,
+        name: entry.name,
+        source: entry.source,
+        site: entry.site,
+        revision: entry.currentRevision,
+        revisions: entry.revisions.length,
+        hash: current?.hash || '',
+        theme: current?.theme,
+        updatedAt: entry.updatedAt,
+      }
+    })
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
+export const saveThemeRevision = async (input: {
+  id: string
+  name: string
+  source?: string
+  theme: unknown
+  site?: string
+}): Promise<{ id: string; revision: number; hash: string; unchanged: boolean }> => {
+  const hash = createHash('sha256').update(JSON.stringify(input.theme)).digest('hex')
+  const entries = await readThemeEntries()
+  const entry = entries[input.id]
+  if (!entry) {
+    entries[input.id] = {
+      name: input.name,
+      source: input.source || 'custom',
+      site: input.site || null,
+      currentRevision: 1,
+      revisions: [{ revision: 1, hash, theme: input.theme }],
+      updatedAt: new Date().toISOString(),
+    }
+    await saveSetting('studio-theme-library', entries)
+    return { id: input.id, revision: 1, hash, unchanged: false }
+  }
+  const current = entry.revisions.find(revision => revision.revision === entry.currentRevision)
+  if (current?.hash === hash) return { id: input.id, revision: entry.currentRevision, hash, unchanged: true }
+  const next = entry.currentRevision + 1
+  entry.name = input.name
+  entry.source = input.source || 'custom'
+  entry.site = input.site || null
+  entry.currentRevision = next
+  entry.revisions.push({ revision: next, hash, theme: input.theme })
+  entry.updatedAt = new Date().toISOString()
+  await saveSetting('studio-theme-library', entries)
+  return { id: input.id, revision: next, hash, unchanged: false }
+}
+
+export const deleteTheme = async (id: string) => {
+  const entries = await readThemeEntries()
+  const existed = Boolean(entries[id])
+  delete entries[id]
+  await saveSetting('studio-theme-library', entries)
+  return existed
+}

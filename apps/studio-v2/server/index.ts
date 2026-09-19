@@ -40,6 +40,7 @@ import {
   deleteProjectArtifact,
   getObjectMetadata,
   listProjectArtifacts,
+  listThemeLibrary,
   loadLatestProjectArtifact,
   loadProjectArtifact,
   loadSetting,
@@ -47,7 +48,9 @@ import {
   saveProjectArtifact,
   saveSetting,
   saveRecordedBlock,
+  saveThemeRevision,
   storeAsset,
+  deleteTheme,
 } from './persistence'
 import {
   configureModelGateway,
@@ -2587,6 +2590,29 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         json(response, 200, { report: await legacy.importLocalStore() })
         return
       }
+    }
+    // Theme library (D1): durable, revisioned, port-independent.
+    if (request.method === 'GET' && url.pathname === '/api/themes') {
+      json(response, 200, { themes: await listThemeLibrary() })
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/themes') {
+      const body = await readJson<{ theme?: unknown; site?: string }>(request, 512 * 1024)
+      const input = body.theme as { id?: unknown; name?: unknown } | undefined
+      if (!input || typeof input.id !== 'string' || !input.id || typeof input.name !== 'string') {
+        json(response, 400, { error: 'A theme needs an id and a name' })
+        return
+      }
+      // Normalize before hashing: what is stored is the resolved contract.
+      const theme = normalizeStudioTheme(body.theme as Parameters<typeof normalizeStudioTheme>[0])
+      const saved = await saveThemeRevision({ id: theme.id, name: theme.name, source: theme.source, theme, site: body.site })
+      json(response, 200, { saved: { ...saved, theme } })
+      return
+    }
+    if (request.method === 'DELETE' && /^\/api\/themes\/[^/]+$/.test(url.pathname)) {
+      const id = decodeURIComponent(url.pathname.split('/')[3])
+      json(response, 200, { deleted: await deleteTheme(id) })
+      return
     }
     if (request.method === 'GET' && url.pathname === '/api/projects/latest') {
       json(response, 200, { project: await loadLatestProjectArtifact() })

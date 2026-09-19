@@ -310,6 +310,103 @@ export const persistenceHealth = async () => {
   return { database: 'postgres', objectStorage: 'minio', bucket }
 }
 
+// ——— Durable theme library (D1) ———
+export type ThemeLibraryRecord = {
+  id: string
+  name: string
+  source: string
+  site: string | null
+  revision: number
+  revisions: number
+  hash: string
+  theme: unknown
+  updatedAt: string
+}
+
+export const listThemeLibrary = async (): Promise<ThemeLibraryRecord[]> => {
+  await initializePersistence()
+  const result = await database.query(
+    `select t.id, t.name, t.source, t.site, t.current_revision, r.hash, r.theme, t.updated_at,
+       (select count(*)::int from studio_theme_revisions where theme_id = t.id) as revisions
+     from studio_themes t
+     join studio_theme_revisions r on r.theme_id = t.id and r.revision = t.current_revision
+     order by t.updated_at desc`,
+  )
+  return result.rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    source: row.source,
+    site: row.site,
+    revision: row.current_revision,
+    revisions: row.revisions,
+    hash: row.hash,
+    theme: row.theme,
+    updatedAt: new Date(row.updated_at).toISOString(),
+  }))
+}
+
+// Idempotent by content: re-saving the same theme changes nothing; saving
+// changed content under the same id creates the next revision.
+export const saveThemeRevision = async (input: {
+  id: string
+  name: string
+  source?: string
+  theme: unknown
+  site?: string
+}): Promise<{ id: string; revision: number; hash: string; unchanged: boolean }> => {
+  await initializePersistence()
+  const hash = createHash('sha256').update(JSON.stringify(input.theme)).digest('hex')
+  const client = await database.connect()
+  try {
+    await client.query('begin')
+    const existing = await client.query<{ current_revision: number; hash: string }>(
+      `select t.current_revision, r.hash from studio_themes t
+       join studio_theme_revisions r on r.theme_id = t.id and r.revision = t.current_revision
+       where t.id = $1 for update of t`,
+      [input.id],
+    )
+    const current = existing.rows[0]
+    if (!current) {
+      await client.query(
+        `insert into studio_themes (id, name, source, site) values ($1, $2, $3, $4)`,
+        [input.id, input.name, input.source || 'custom', input.site || null],
+      )
+      await client.query(
+        `insert into studio_theme_revisions (theme_id, revision, theme, hash) values ($1, 1, $2::jsonb, $3)`,
+        [input.id, JSON.stringify(input.theme), hash],
+      )
+      await client.query('commit')
+      return { id: input.id, revision: 1, hash, unchanged: false }
+    }
+    if (current.hash === hash) {
+      await client.query('rollback')
+      return { id: input.id, revision: current.current_revision, hash, unchanged: true }
+    }
+    const next = current.current_revision + 1
+    await client.query(
+      `update studio_themes set name = $2, source = $3, site = $4, current_revision = $5, updated_at = now() where id = $1`,
+      [input.id, input.name, input.source || 'custom', input.site || null, next],
+    )
+    await client.query(
+      `insert into studio_theme_revisions (theme_id, revision, theme, hash) values ($1, $2, $3::jsonb, $4)`,
+      [input.id, next, JSON.stringify(input.theme), hash],
+    )
+    await client.query('commit')
+    return { id: input.id, revision: next, hash, unchanged: false }
+  } catch (error) {
+    await client.query('rollback')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export const deleteTheme = async (id: string) => {
+  await initializePersistence()
+  const result = await database.query('delete from studio_themes where id = $1', [id])
+  return (result.rowCount || 0) > 0
+}
+
 // ——— Legacy file-store import (D0a) ———
 // One-way, non-destructive import of the file backend's data directory into
 // PostgreSQL + MinIO. Ids and object keys are preserved so takes and

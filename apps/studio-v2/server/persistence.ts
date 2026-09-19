@@ -49,11 +49,32 @@ type PersistenceBackend = {
     range?: { offset: number; length: number },
   ) => Promise<{ metadata: StoredObjectMetadata; stream: Readable }>
   getObjectMetadata: (objectKey: string) => Promise<StoredObjectMetadata>
+  listThemeLibrary: () => Promise<ThemeLibraryRecord[]>
+  saveThemeRevision: (input: {
+    id: string
+    name: string
+    source?: string
+    theme: unknown
+    site?: string
+  }) => Promise<{ id: string; revision: number; hash: string; unchanged: boolean }>
+  deleteTheme: (id: string) => Promise<boolean>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
     bucket: string
   }>
+}
+
+export type ThemeLibraryRecord = {
+  id: string
+  name: string
+  source: string
+  site: string | null
+  revision: number
+  revisions: number
+  hash: string
+  theme: unknown
+  updatedAt: string
 }
 
 let backend: Promise<PersistenceBackend> | null = null
@@ -107,3 +128,15 @@ export const getObjectMetadata = async (objectKey: string) =>
 
 export const persistenceHealth = async () =>
   (await loadBackend()).persistenceHealth()
+
+export const listThemeLibrary = async () => (await loadBackend()).listThemeLibrary()
+
+export const saveThemeRevision = async (input: {
+  id: string
+  name: string
+  source?: string
+  theme: unknown
+  site?: string
+}) => (await loadBackend()).saveThemeRevision(input)
+
+export const deleteTheme = async (id: string) => (await loadBackend()).deleteTheme(id)

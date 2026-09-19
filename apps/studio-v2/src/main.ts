@@ -1997,7 +1997,11 @@ window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 const cloneTheme = (theme: StudioThemeV1): StudioThemeV1 =>
   structuredClone(theme)
 
-const readSavedThemes = (): StudioThemeV1[] => {
+// Browser themes are a cache, never the only copy: since D1 the durable,
+// revisioned theme library lives server-side (PostgreSQL), so themes survive
+// ports, origins and cache clears. The browser copy is imported once and
+// kept only as a read-only offline fallback.
+const readBrowserCachedThemes = (): StudioThemeV1[] => {
   try {
     const parsed = JSON.parse(
       window.localStorage.getItem(THEME_STORAGE_KEY) || '[]',
@@ -2012,7 +2016,45 @@ const readSavedThemes = (): StudioThemeV1[] => {
   }
 }
 
-let savedThemes = readSavedThemes()
+let savedThemes: StudioThemeV1[] = []
+// Revision provenance per saved theme id, for the library's badges.
+const savedThemeMeta = new Map<string, { revision: number; revisions: number; hash: string }>()
+
+const loadThemeLibrary = async () => {
+  try {
+    const { themes } = await fetchJson<{ themes: Array<{ id: string; revision: number; revisions: number; hash: string; theme: StudioThemeV1 }> }>('/api/themes')
+    savedThemes = themes.map(record => normalizeStudioTheme(record.theme))
+    savedThemeMeta.clear()
+    for (const record of themes) {
+      savedThemeMeta.set(record.id, { revision: record.revision, revisions: record.revisions, hash: record.hash })
+    }
+    // One-time import of browser-cached themes the durable store lacks; the
+    // server dedups by content hash. The browser copy is left untouched.
+    const missing = readBrowserCachedThemes().filter(
+      theme => !savedThemes.some(saved => saved.id === theme.id),
+    )
+    for (const theme of missing) {
+      const { saved } = await fetchJson<{ saved: { revision: number; hash: string } }>('/api/themes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ theme }),
+      })
+      savedThemes.push(normalizeStudioTheme(theme))
+      savedThemeMeta.set(theme.id, { revision: saved.revision, revisions: saved.revision, hash: saved.hash })
+    }
+    if (missing.length) {
+      showToast(`Imported ${missing.length} browser theme${missing.length === 1 ? '' : 's'} into the durable theme library`)
+    }
+  } catch {
+    // Offline or isolated-test mode: the browser cache is a read-only fallback.
+    savedThemes = readBrowserCachedThemes()
+  }
+  renderStudioThemeSelector()
+  renderThemeLibrary()
+}
+// Deferred past module evaluation: fetchJson and the render functions are
+// declared further down.
+window.setTimeout(() => void loadThemeLibrary(), 0)
 let generatedThemes: StudioThemeV1[] = []
 let themeDraft = cloneTheme(project.theme)
 let themePreviewKind: ThemePreviewKind = 'title'
@@ -2123,7 +2165,9 @@ const createThemeCard = (
   description.textContent = theme.description
   copy.append(name, description)
   const badge = document.createElement('span')
-  badge.textContent = theme.source === 'built-in' ? 'Incredible' : theme.source
+  const themeMeta = savedThemeMeta.get(theme.id)
+  badge.textContent = theme.source === 'built-in' ? 'Incredible' : themeMeta ? `${theme.source} · rev ${themeMeta.revision}` : theme.source
+  if (themeMeta) badge.title = `Revision ${themeMeta.revision} of ${themeMeta.revisions} — earlier revisions stay pinned to the notebooks drawn with them`
   meta.append(copy, badge)
   article.append(meta)
 
@@ -7122,14 +7166,31 @@ const updateThemeDraftFromControls = () => {
 ;($('#save-theme') as HTMLButtonElement).addEventListener('click', () => {
   updateThemeDraftFromControls()
   themeDraft.source = 'custom'
-  const existingIndex = savedThemes.findIndex(theme => theme.id === themeDraft.id)
-  if (existingIndex >= 0) savedThemes[existingIndex] = cloneTheme(themeDraft)
-  else savedThemes.push(cloneTheme(themeDraft))
-  window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(savedThemes))
-  applyThemeToProject(themeDraft)
-  renderThemeLibrary()
-  ;($('#theme-ai-status') as HTMLElement).textContent =
-    'Saved. This theme is now available in the notebook theme picker.'
+  void (async () => {
+    try {
+      // The durable store is authoritative; a failed save must not pretend.
+      const { saved } = await fetchJson<{ saved: { revision: number; hash: string; unchanged: boolean } }>('/api/themes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ theme: themeDraft }),
+      })
+      const existingIndex = savedThemes.findIndex(theme => theme.id === themeDraft.id)
+      if (existingIndex >= 0) savedThemes[existingIndex] = cloneTheme(themeDraft)
+      else savedThemes.push(cloneTheme(themeDraft))
+      savedThemeMeta.set(themeDraft.id, { revision: saved.revision, revisions: saved.revision, hash: saved.hash })
+      // Mirror into the browser cache as a fallback copy, never the only one.
+      window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(savedThemes))
+      applyThemeToProject(themeDraft)
+      renderThemeLibrary()
+      ;($('#theme-ai-status') as HTMLElement).textContent = saved.unchanged
+        ? 'Saved — identical to the stored revision. Available in the notebook theme picker.'
+        : `Saved as revision ${saved.revision}. This theme is now available in the notebook theme picker.`
+    } catch (error) {
+      ;($('#theme-ai-status') as HTMLElement).textContent =
+        'The durable store is unavailable — the theme was NOT saved. Start the local services (yarn studio:infra) and retry.'
+      showToast(error instanceof Error ? error.message : 'Theme save failed')
+    }
+  })()
 })
 
 document
