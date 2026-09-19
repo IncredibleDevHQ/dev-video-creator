@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — D1: themes carry their site
+
+**Commits**
+
+- `0f4d5d8d` — Site associations (the D1 work-list item left open): a brand read's picked direction can be saved as a durable theme with the site on it (stable id per site + direction, so re-saving revises one theme); reading the same site again names the saved theme and revision in the brand step. **Bug found by the check:** a palette revision that said nothing about the site dropped the association (`site || null` on every revision update) — both backends now keep the site unless it is explicitly changed. The private-network read guard relaxes only under the existing test-hooks flag so checks can run a fixture brand site on loopback. `theme-library-check.mjs` +2 assertions (site round-trip, survives a site-less revision and a restart); `theme-site-check.mjs` PASS (5, UI loop with a fixture brand server); in the release suite (20).
+
 ## 2026-09-19 — D4: revision lineage is proven
 
 **Commits**
