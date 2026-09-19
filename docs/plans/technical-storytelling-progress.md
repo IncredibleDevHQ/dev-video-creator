@@ -2,6 +2,16 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — the live provider proof completed
+
+**Commits**
+
+- `20a68c4c` — fix: the fork's base snapshot was stored against the child notebook before the child existed (FK violation on PG, latent since the file-backend era). Now an unattached global asset that outlives both notebooks. Adds `live-explainer-check.mjs`.
+
+**The live proof (plan §8 top tier), one real run:** a fresh one-scene base about retry storms, forked, then built by the local Kimi harness with installed skills only: story authored, 4 Quiver objects acquired (`arrow-2`), reused across placements, `preview`/`narrate`/`finish`/`export` stages all `succeeded` in `studio_build_stages`; the finish receipt carries a verified cast; `verifyExplainerExport` passed and the 36.1s MP4 exists (in the 30–45s proof band). The run dir is preserved under KEEP_LIVE_DIR. Eyeballed export frames show the real artwork performing (clients + server with capacity gauge), not cards.
+
+**Cost honestly measured:** one scene took ~95 minutes wall — dominated by the agent's visual review loop and one finish/hash-guard retry. That is the plan's predicted creative-quality bottleneck: the stage checkpoints make it visible; bounding and coaching the review loop is the D7 efficiency follow-up.
+
 ## 2026-09-19 — D6 slice 6: emphasis headlines render
 
 **Commits**
