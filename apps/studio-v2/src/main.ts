@@ -6156,6 +6156,19 @@ const baseStatusFor = async (notebookId: string) => {
   }
 }
 
+// The library's Draft/Reviewed badge: a video notebook is reviewed only
+// when every video scene carries the rich build's reviewed stamp.
+const videoReviewStateFor = async (notebookId: string) => {
+  try {
+    const { project: doc } = await fetchJson<{ project: ProjectDocumentV1 }>(`/api/projects/${encodeURIComponent(notebookId)}`)
+    const videoScenes = doc.notebook.content.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.svg)
+    const reviewedCount = videoScenes.filter(node => (node.attrs?.explainer as { reviewed?: boolean } | undefined)?.reviewed === true).length
+    return { sceneCount: videoScenes.length, reviewedCount, isReviewed: videoScenes.length > 0 && reviewedCount === videoScenes.length }
+  } catch {
+    return null
+  }
+}
+
 const deleteNotebook = async (notebookId: string, title: string) => {  if (!window.confirm(`Delete the notebook "${title}"? Its recordings and assets go with it.`)) return
   await fetchJson<{ deleted: boolean }>(
     `/api/projects/${encodeURIComponent(notebookId)}`,
@@ -6297,6 +6310,23 @@ const notebookCard = (
     badge.className = `notebook-kind-badge${entry.derivedFrom.kind && !orphan ? ` kind-${entry.derivedFrom.kind}` : ' is-orphan'}`
     badge.textContent = entry.derivedFrom.kind && !orphan ? entry.derivedFrom.kind : 'derived'
     badges.append(badge)
+    // Draft until the rich build's reviewed scenes are applied to it.
+    void videoReviewStateFor(entry.id).then(state => {
+      if (!state || !card.isConnected) return
+      const review = document.createElement('span')
+      review.className = `notebook-kind-badge${state.isReviewed ? ' is-open' : ' is-orphan'}`
+      review.textContent = state.isReviewed ? 'Reviewed' : 'Draft'
+      review.title = state.isReviewed
+        ? 'Every scene passed the rich explainer build’s review'
+        : `${state.reviewedCount} of ${state.sceneCount} scenes reviewed — Publish renders a draft, Build explainer completes it`
+      badges.append(review)
+    })
+  } else {
+    const base = document.createElement('span')
+    base.className = 'notebook-kind-badge'
+    base.textContent = 'Base'
+    base.title = 'Reusable base notebook — source, theme and wireframes'
+    badges.append(base)
   }
   if (entry.id === project.id) {
     const current = document.createElement('span')
@@ -7560,9 +7590,12 @@ const startPublish = async () => {
     const link = $('#download-render') as HTMLAnchorElement
     link.href = result.url
     resultPanel.hidden = false
+    const review = explainerReviewState()
     ;($('#publish-count') as HTMLElement).textContent =
-      `published · ${result.durationSeconds.toFixed(1)}s`
-    showToast(`Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`)
+      `${review.isReviewed ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
+    showToast(review.isReviewed
+      ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`
+      : `Draft export rendered (${result.durationSeconds.toFixed(1)}s) — not a reviewed explainer`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Publish failed')
   } finally {
@@ -7578,10 +7611,33 @@ const closePublishTakePreview = () => {
   ;($('#publish-take-preview-wrap') as HTMLElement).hidden = true
 }
 
+// ——— Draft vs reviewed export ———
+// A derived video notebook earns the reviewed-explainer label only when its
+// scenes were applied by the rich build (explainer_finish stamps
+// attrs.explainer.reviewed). Anything else rendered through Publish is a
+// draft: useful, but visibly not a completed rich explainer. An MP4 render
+// alone never advances rich-build status.
+const explainerReviewState = () => {
+  const derived = Boolean(project.derivedFrom?.notebook)
+  const videoScenes = project.notebook.content.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.svg)
+  const reviewedCount = videoScenes.filter(node => (node.attrs?.explainer as { reviewed?: boolean } | undefined)?.reviewed === true).length
+  return { derived, sceneCount: videoScenes.length, reviewedCount, isReviewed: derived && videoScenes.length > 0 && reviewedCount === videoScenes.length }
+}
+
 const openPublishSummary = () => {
   publishExcluded.clear()
   ;($('#render-result') as HTMLElement).hidden = true
   closePublishTakePreview()
+  const exportKind = $('#publish-export-kind') as HTMLElement
+  const review = explainerReviewState()
+  exportKind.hidden = false
+  if (review.isReviewed) {
+    exportKind.textContent = 'Reviewed explainer export — every scene passed the rich build’s review.'
+  } else if (review.derived) {
+    exportKind.textContent = `Draft export — ${review.reviewedCount} of ${review.sceneCount} scenes reviewed by the rich build. Build explainer produces the reviewed explainer export.`
+  } else {
+    exportKind.textContent = 'Draft export — this notebook has not been through the rich explainer build. Create explainer starts that journey.'
+  }
   renderPublishBlockList()
   ;($('#burn-captions') as HTMLInputElement).checked = Boolean(project.captions?.burnIn)
   publishDialog.showModal()
