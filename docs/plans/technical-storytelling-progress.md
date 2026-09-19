@@ -2,6 +2,15 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D5 slices 1+2: cue identity and take-aligned timing
+
+**Commits**
+
+- `6dddbd10` — cue occurrence identity: `retry#2` pins the second occurrence — resolved against the measured alignment first, the text estimate second; narration alignment refuses a cue whose occurrence was never said; scene contract documents it. Unit: 106 (3 new).
+- `724bbb94` — `explainer_align_take`: a selected human take becomes the timing authority. `align_take.py` transcribes once and maps beats onto the actual transcript in order (near-misses don't consume the take); missing/changed passages return as named review items (rebind or record a pickup — speech is never invented); stage checkpoint reports `needs-input`. Human-mode run inputs carry each scene's take audio; the skill routes generated→`explainer_narrate`, human→`explainer_align_take`. `align-take-check.mjs` 8/8 on canned transcripts (no model needed).
+
+**D5 remaining:** the paired end-to-end export proof (same mechanism, real take + generated narration) needs a live run with provider keys and a real recording; the object-performance required stage (isolated + in-scene review receipts) is partially covered by the clip contract and needs the dedicated §5.4a workflow stage.
+
 ## 2026-09-19 — D4 slice 2: role-driven briefs + compatible reuse
 
 **Commits**
