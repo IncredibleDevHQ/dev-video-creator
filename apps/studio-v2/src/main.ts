@@ -15498,8 +15498,15 @@ const showLastBuildState = async (projectId: string) => {
     progress.hidden = false
     progress.open = false
     ;($('#explainer-run-location') as HTMLElement).textContent = last.projectDir ? `Build files: ${last.projectDir}` : ''
+    // Name the scenes, not the stage ids: the pickup map resolves file stems
+    // to notebook scenes and drops any a newer take already answered.
+    await refreshPickupNotes()
+    const names = [...pickupNotesByScene.keys()]
+      .map(id => String(project.notebook.content.find(n => n.attrs?.id === id)?.attrs?.title || id))
     ;($('#explainer-status') as HTMLElement).textContent = waiting.length
-      ? `The last build paused for you: ${waiting.map(stage => stage.stage).join(', ')} ${waiting.length === 1 ? 'needs' : 'need'} a person. Rehearse and record in the camera dialog; Build explainer continues from accepted work.`
+      ? names.length
+        ? `The last build paused for you: ${names.join(', ')} ${names.length === 1 ? 'needs' : 'need'} a take. Rehearse and record in the camera dialog; Build explainer continues from accepted work.`
+        : `The last build paused for you: ${waiting.map(stage => stage.stage).join(', ')} ${waiting.length === 1 ? 'needs' : 'need'} a person. Rehearse and record in the camera dialog; Build explainer continues from accepted work.`
       : `The last build ${status === 'cancelled' ? 'was cancelled' : 'stopped'} before completion — its stage record is below; Build explainer continues from accepted work.`
     void renderExplainerStages(last.id)
   } catch {

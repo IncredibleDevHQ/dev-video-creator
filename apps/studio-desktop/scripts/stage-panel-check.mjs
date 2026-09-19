@@ -138,8 +138,8 @@ try {
     rows: [...document.querySelectorAll('#explainer-stages .stage-row')].map(r => r.textContent),
   }))()`)
   check(
-    'reopening shows the build paused for a person, with its checklist',
-    /paused for you/.test(reopened.status) && reopened.rows.includes('align-take · waiting for you') && reopened.rows.some(r => r.startsWith('beat 2:')),
+    'reopening shows the build paused for a person, naming the scene, with its checklist',
+    /paused for you/.test(reopened.status) && reopened.status.includes('Pickup scene') && reopened.rows.includes('align-take · waiting for you') && reopened.rows.some(r => r.startsWith('beat 2:')),
     JSON.stringify(reopened).slice(0, 200),
   )
 
