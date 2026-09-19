@@ -274,6 +274,9 @@ if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()
 
   void app.whenReady().then(async () => {
     try {
+      // The vendored skills root, visible to the worker's diagnostics (§8
+      // records skill versions per proof). The worker runs in-process.
+      process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../skills', import.meta.url))
       worker = await startWorker({ preHandler: mcpPreHandler })
     } catch (error) {
       log('worker failed to start:', error instanceof Error ? error.message : error)

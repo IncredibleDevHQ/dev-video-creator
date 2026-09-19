@@ -14,6 +14,7 @@ import { basename, dirname, extname, join, normalize, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import { skillVersions } from './skill-versions'
 import { createRenderJob, executeRenderJob } from '@hyperframes/producer'
 import {
   baseStatusOf,
@@ -2657,6 +2658,8 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
           fishAudio: Boolean(process.env.FISH_AUDIO_API_KEY),
           themeAI: await hasModelAccess().catch(() => false),
         },
+        // §8: which skills produced the evidence — name, version, fingerprint.
+        skills: await skillVersions().catch(() => [] as Awaited<ReturnType<typeof skillVersions>>),
         runs: withStages,
       })
       return

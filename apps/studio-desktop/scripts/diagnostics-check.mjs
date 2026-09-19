@@ -52,6 +52,12 @@ try {
   check('provider flags are present without secrets', 'configured' in (diag.providers?.quiver || {}) && typeof diag.providers?.fishAudio === 'boolean')
   const run = diag.runs?.find(entry => entry.id === runId)
   check('recent runs carry their stage outcomes', run?.stages?.[0]?.status === 'succeeded', JSON.stringify(run?.stages || []))
+  const skills = diag.skills || []
+  check(
+    'installed skills carry name, version and a content fingerprint',
+    ['explainer-master', 'page-master', 'story-master'].every(name => skills.some(s => s.name === name && /^\d/.test(s.version) && /^[0-9a-f]{16}$/.test(s.hash))),
+    JSON.stringify(skills.map(s => `${s.name}@${s.version}`)),
+  )
   const raw = JSON.stringify(diag)
   const leaks = ['SuperSecretRootPwd', 'QUIVER_API_KEY=', 'FISH_AUDIO_API_KEY='].filter(secret => raw.includes(secret))
   check('the bundle carries no credential values', leaks.length === 0, leaks.join(','))
