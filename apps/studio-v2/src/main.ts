@@ -14065,7 +14065,8 @@ const sourceDrawPages = async (choice?: string) => {
         void (async () => {
           const outcome = await applyDrawnPages(String(finished))
           sourceState.drawOutcome = outcome
-          if (outcome.drawn) sourceDrawStatus(`${outcome.drawn} of ${outcome.of} pages drawn by ${sourceState.drawer}${outcome.failed.length ? ` · ${outcome.failed.length} rejected` : ''} — open the notebook to use them`)
+          const receiptPages = Array.isArray((outcome.receipt as { pages?: unknown[] } | null)?.pages) ? (outcome.receipt as { pages: unknown[] }).pages.length : 0
+          if (outcome.drawn) sourceDrawStatus(`${outcome.drawn} of ${outcome.of} pages drawn by ${sourceState.drawer}${outcome.failed.length ? ` · ${outcome.failed.length} rejected` : ''}${receiptPages ? ` · receipt: ${receiptPages} pages checked` : ''} — open the notebook to use them`)
           else sourceDrawStatus(`${sourceState.drawer} drew nothing usable (exit ${event.exitCode ?? '?'}) — the template pages stay`, true)
         })()
       }
@@ -14459,6 +14460,46 @@ document.querySelectorAll<HTMLButtonElement>('#create-explainer-materials [data-
 ;($('#create-explainer-cancel') as HTMLButtonElement).addEventListener('click', () => createExplainerDialog.close())
 ;($('#close-create-explainer') as HTMLButtonElement).addEventListener('click', () => createExplainerDialog.close())
 
+// The build panel surfaces the run's accepted-artifact receipts once it
+// finishes: which reviewed scenes were applied, and the verified export.
+type ExplainerRunReceipts = {
+  receipt: { projectId?: string; scenes?: number; at?: string } | null
+  export: { url?: string; videoPath?: string; durationSeconds?: number; expectedDurationMs?: number; sceneHashes?: string[] } | null
+}
+const renderExplainerReceipts = (receipts: ExplainerRunReceipts | null) => {
+  const box = $('#explainer-receipts') as HTMLElement
+  box.replaceChildren()
+  if (!receipts || (!receipts.receipt && !receipts.export)) {
+    box.hidden = true
+    return
+  }
+  const list = document.createElement('ul')
+  list.className = 'explainer-receipt-list'
+  if (receipts.receipt) {
+    const item = document.createElement('li')
+    const when = receipts.receipt.at ? new Date(receipts.receipt.at).toLocaleString() : ''
+    item.textContent = `Receipt: ${receipts.receipt.scenes ?? '?'} reviewed scenes applied to the video notebook${when ? ` · ${when}` : ''}`
+    list.append(item)
+  }
+  if (receipts.export) {
+    const item = document.createElement('li')
+    const seconds = typeof receipts.export.durationSeconds === 'number' ? `${receipts.export.durationSeconds.toFixed(1)}s` : 'unknown duration'
+    item.textContent = `Export receipt: ${seconds} MP4 verified against ${receipts.export.sceneHashes?.length ?? '?'} reviewed scene hashes`
+    list.append(item)
+    if (receipts.export.url) {
+      const row = document.createElement('li')
+      const link = document.createElement('a')
+      link.href = receipts.export.url
+      link.download = ''
+      link.textContent = 'Download the reviewed MP4'
+      row.append(link)
+      list.append(row)
+    }
+  }
+  box.append(list)
+  box.hidden = false
+}
+
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
@@ -14473,6 +14514,7 @@ const startExplainerBuild = async () => {
   progress.hidden = false
   progress.open = true
   log.textContent = ''
+  renderExplainerReceipts(null)
   status.textContent = 'Preparing the video notebook…'
   cancel.hidden = false
   try {
@@ -14509,8 +14551,9 @@ const startExplainerBuild = async () => {
         button.disabled = false
         button.textContent = 'Build explainer'
         cancel.hidden = true
-        status.textContent = event.exitCode === 0 ? 'Explainer built and exported. Open Preview to watch it.' : 'Build stopped. Candidate artwork and review files are retained.'
+        status.textContent = event.exitCode === 0 ? 'Explainer built, reviewed and exported. Open Preview to watch it.' : 'Build stopped. Candidate artwork and review files are retained.'
         if (event.exitCode === 0) {
+          void bridge.harness.artefacts(runId).then(artefacts => renderExplainerReceipts(artefacts.explainer as ExplainerRunReceipts | null)).catch(() => {})
           if (project.id === targetId) void openNotebook(targetId)
           showToast('Explainer built, reviewed and exported. Its editable video notebook is ready.')
         } else showToast('The explainer run stopped before completion. Its candidate files and review remain available.')

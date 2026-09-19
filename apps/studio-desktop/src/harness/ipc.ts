@@ -85,23 +85,28 @@ export const registerHarnessIpc = (
   // Read a finished run's artefacts from its projectDir (nulls for missing).
   ipcMain.handle('harness:artefacts', async (_event, runId: string) => {
     const run = manager.list().find(candidate => candidate.id === runId)
-    if (!run) return { resolved: null, receipt: null, validation: null, brief: null }
+    if (!run) return { resolved: null, receipt: null, validation: null, brief: null, explainer: null }
     const motionDir = join(run.projectDir, 'motion')
-    const readJson = async (name: string) => {
+    const readJson = async (dir: string, name: string) => {
       try {
-        return JSON.parse(await readFile(join(motionDir, name), 'utf8')) as unknown
+        return JSON.parse(await readFile(join(dir, name), 'utf8')) as unknown
       } catch {
         return null
       }
     }
     const brief = await readFile(join(motionDir, 'brief.md'), 'utf8').catch(() => null)
     const validation =
-      (await readJson('validate.final.json')) || (await readJson('validate.early.json'))
+      (await readJson(motionDir, 'validate.final.json')) || (await readJson(motionDir, 'validate.early.json'))
+    // Explainer runs keep their finish/export receipts beside the scenes.
+    const explainerDir = join(run.projectDir, 'explainer')
+    const explainerReceipt = await readJson(explainerDir, 'receipt.json')
+    const explainerExport = await readJson(explainerDir, 'export.json')
     return {
-      resolved: await readJson('resolved.json'),
-      receipt: await readJson('receipt.json'),
+      resolved: await readJson(motionDir, 'resolved.json'),
+      receipt: await readJson(motionDir, 'receipt.json'),
       validation,
       brief,
+      explainer: explainerReceipt || explainerExport ? { receipt: explainerReceipt, export: explainerExport } : null,
     }
   })
 }
