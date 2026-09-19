@@ -2,6 +2,12 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D5 proof: take alignment end to end
+
+**Commits**
+
+- `71f6a4c8` — `take-alignment-e2e-check.mjs`: a synthesized system-voice take (labeled stand-in) through the real `explainer_align_take` + whisper — beats re-time to the measured delivery, beat-local anchors, cue occurrences validated, faithful take needs no review, checkpoint lands, preview hash matches the re-timed program. In the release suite (15 checks; SKIP-marks honestly when uv/whisper can't run). Fixed the tool's missing `requests` uv dependency, found by this check.
+
 ## 2026-09-19 — D7 diagnostics
 
 **Commits**
