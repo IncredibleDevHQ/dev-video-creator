@@ -333,13 +333,13 @@ Important gap: `apps/studio-v2` does not yet contain a proper automated browser 
 - Abandoned draft recordings can leave orphaned MinIO objects.
 - Replacing a saved take can leave the previous asset unreferenced; garbage collection is not implemented.
 - The normalized recorded-take row and the embedded `recordedBlocks` artifact are updated through adjacent requests rather than one server transaction. Consolidate this into a single transactional command.
-- Whole-project render artifacts still use `.studio-data/`, not MinIO, and there is no durable render-job queue.
+- Render jobs run synchronously per request; there is no durable render-job queue. Exported MP4s register in MinIO with verified asset rows (2026-09-19).
 - There is no production retry, progress, cancellation, or failure-recovery model for render jobs.
-- No trim editor, timeline rearrangement, captions, or take version history exists yet.
+- Trim editing and timeline rearrangement still don't exist. Take version history, the durable take archive + selection, and cue captions (VTT/SRT download + burn-in) landed 2026-09-19 — see docs/plans/technical-storytelling-progress.md.
 
 ### Camera, voice, and automation
 
-- Generated voice exists as guide/final audio, but reliable alignment/lip sync to a real person's silent camera performance is not complete.
+- Take alignment to a real recorded delivery exists (transcribe once, map beats onto the take's transcript in order; paraphrases and missing passages come back as named review items — 2026-09-19). Lip sync to a *silent* camera performance is not the model: the take carries the voice.
 - Fish Audio is the only optional remote voice path currently wired.
 - OpenAI-assisted theme directions are present, but Gemini generation is not.
 - Automated research, cited script generation, avatars, and third-party lip sync remain future milestones.
@@ -347,7 +347,7 @@ Important gap: `apps/studio-v2` does not yet contain a proper automated browser 
 
 ### Themes and design
 
-- The saved theme library is localStorage-based rather than a normalized database entity.
+- The saved theme library is durable PostgreSQL with stable ids and revisions; browser localStorage is only a one-time import cache (2026-09-19).
 - There is no automated contrast, overflow, safe-area, or perceptual-quality gate for every selectable combination.
 - Some historical UI options were repeatedly reported as visually indistinct or unattractive. Do not add more options until screenshot-based review can prove each is meaningfully different and aesthetically safe.
 - The Figma references and screenshots are design guidance, but they are not a complete, production-ready token specification.
