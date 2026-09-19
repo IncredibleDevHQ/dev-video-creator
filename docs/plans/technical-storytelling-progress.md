@@ -2,6 +2,16 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D2 slice 1: story records
+
+**Commits**
+
+- `11d3e4f1` — narrative revisions + explanation models. `studio_narrative_revisions` / `studio_explanation_models` (migration 005, content-addressed, immutable; KV variant on the file backend). Narrative reads persist the author's text under the chosen wording policy (policy is part of the record's identity). New `/api/story/model` turns an outline into claims/objects/relations with stable positional scene ids, cross-scene object identity, object-id relations, and illustrative flags — persisted and returned. Wording policy threads into the outline prompt. Notebooks pin `project.story = { wordingPolicy, narrativeId, modelId }`. UI: wording segment in the source dialog (narrative → "Keep my wording" default, link → draft, always changeable).
+
+**Checks:** 6 new unit tests (studio-v2 suite now 95); `story-records-check.mjs` 10/10 (policy-as-identity, duplicate-title uniqueness, shared object identity, idempotent model, UI defaults).
+
+**D2 remaining:** page-master explanation-form selection + varied constructions; moving outline assistance into the self-contained local harness workflow (the server model-gateway path is still in use today); base draft/revision persistence beyond the notebook row.
+
 ## 2026-09-19 — D1: durable theme library + source capture
 
 **Commits**
