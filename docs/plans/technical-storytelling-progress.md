@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §3.7: review the take before it counts
+
+**Commits**
+
+- `b7b8dab4` — The camera dialog auto-committed on stop; now stopping shows the take in the preview with its sound, and only **Keep take** uploads and archives it — **Discard** drops it and offers a fresh take. Closing mid-recording stops into the review (never a silent commit, never a silent loss); closing while reviewing discards. The commit path clamps duration to 1h (an int4 overflow the check caught). `__timing.stageReview` stages a stand-in blob into the recorder's own review step for headless coverage. `take-workflow-check.mjs` 20/20 (review shown, discard leaves nothing, keep archives + closes).
+
 ## 2026-09-19 — fix: kept-plan takes align against the voice-carrying track
 
 **Commits**
