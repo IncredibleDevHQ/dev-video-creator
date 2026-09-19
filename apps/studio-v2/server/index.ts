@@ -50,6 +50,9 @@ import {
   listBuildRuns,
   recordBuildStage,
   listBuildStages,
+  listPresenterTakes,
+  selectPresenterTake,
+  listTakeSelections,
   saveProjectArtifact,
   saveSetting,
   saveRecordedBlock,
@@ -2877,6 +2880,31 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       url.pathname === '/api/recordings/commit'
     ) {
       await handleCommitDirectedRecording(request, response)
+      return
+    }
+    // Take archive and selections (D3): every preserved take, and the chosen
+    // one per block, are durable records independent of document rewrites.
+    if (request.method === 'GET' && url.pathname === '/api/takes') {
+      const projectId = String(url.searchParams.get('projectId') || '')
+      if (!projectId) {
+        json(response, 400, { error: 'projectId is required' })
+        return
+      }
+      const blockId = url.searchParams.get('blockId') || undefined
+      json(response, 200, {
+        takes: await listPresenterTakes(projectId, blockId),
+        selections: await listTakeSelections(projectId),
+      })
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/takes/select') {
+      const body = await readJson<{ projectId?: string; blockId?: string; takeId?: string }>(request, 64 * 1024)
+      if (!body.projectId || !body.blockId || !body.takeId) {
+        json(response, 400, { error: 'projectId, blockId and takeId are required' })
+        return
+      }
+      await selectPresenterTake({ projectId: body.projectId, blockId: body.blockId, takeId: body.takeId })
+      json(response, 200, { selected: true })
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/preview') {

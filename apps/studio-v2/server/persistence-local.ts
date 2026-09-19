@@ -477,3 +477,33 @@ export const recordBuildStage = async (stage: { runId: string; stage: string; st
 
 export const listBuildStages = async (runId: string) =>
   ((await loadSetting(`build-stages:${runId}`)) as Array<Record<string, unknown>> | null) || []
+
+// ——— Presenter takes and selections (D3), file-backend variant ———
+export const savePresenterTake = async (take: { id: string; projectId: string; blockId: string; assetId: string; durationMs: number; detail?: unknown }) => {
+  const key = `presenter-takes:${take.projectId}`
+  const list = ((await loadSetting(key)) as Array<Record<string, unknown>> | null) || []
+  if (!list.some(entry => entry.id === take.id)) {
+    list.push({ ...take, createdAt: new Date().toISOString() })
+    await saveSetting(key, list)
+  }
+}
+
+export const listPresenterTakes = async (projectId: string, blockId?: string) => {
+  const list = ((await loadSetting(`presenter-takes:${projectId}`)) as Array<Record<string, unknown>> | null) || []
+  return blockId ? list.filter(take => take.blockId === blockId) : list
+}
+
+export const selectPresenterTake = async (input: { projectId: string; blockId: string; takeId: string }) => {
+  const takes = ((await loadSetting(`presenter-takes:${input.projectId}`)) as Array<Record<string, unknown>> | null) || []
+  if (!takes.some(take => take.id === input.takeId && take.blockId === input.blockId)) {
+    throw new Error('That take does not belong to this block')
+  }
+  const selections = ((await loadSetting(`take-selections:${input.projectId}`)) as Record<string, string> | null) || {}
+  selections[input.blockId] = input.takeId
+  await saveSetting(`take-selections:${input.projectId}`, selections)
+}
+
+export const listTakeSelections = async (projectId: string) => {
+  const selections = ((await loadSetting(`take-selections:${projectId}`)) as Record<string, string> | null) || {}
+  return Object.entries(selections).map(([blockId, takeId]) => ({ projectId, blockId, takeId, selectedAt: '' }))
+}

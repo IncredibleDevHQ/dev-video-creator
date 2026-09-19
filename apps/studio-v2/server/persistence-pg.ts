@@ -157,8 +157,12 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
 
 // Removing a notebook cascades to its blocks, assets and recorded takes in
 // the database; the objects stay in the bucket (cheap, and recoverable).
+// The take archive is removed explicitly first: takes protect their media
+// asset with delete-restrict, so the cascade alone would fail.
 export const deleteProjectArtifact = async (projectId: string) => {
   await initializePersistence()
+  await database.query('delete from studio_take_selections where notebook_id = $1', [projectId])
+  await database.query('delete from studio_presenter_takes where notebook_id = $1', [projectId])
   const result = await database.query(
     'delete from studio_notebooks where id = $1',
     [projectId],
@@ -275,6 +279,20 @@ export const saveRecordedBlock = async ({
   )
   const saved = result.rows[0]
   if (!saved) throw new Error('The recorded block could not be saved')
+  // The take archive (D3): this commit is one preserved take, and committing
+  // selects it. The active row above stays the fast path for the document.
+  await database.query(
+    `insert into studio_presenter_takes (id, notebook_id, block_id, asset_id, duration_ms, detail)
+     values ($1, $2, $3, $4, $5, $6::jsonb)
+     on conflict (id) do nothing`,
+    [saved.id, projectId, blockId, assetId, Math.round(durationMs), JSON.stringify({ mediaUrl })],
+  )
+  await database.query(
+    `insert into studio_take_selections (notebook_id, block_id, take_id)
+     values ($1, $2, $3)
+     on conflict (notebook_id, block_id) do update set take_id = excluded.take_id, selected_at = now()`,
+    [projectId, blockId, saved.id],
+  )
   return {
     blockId,
     recordingId: saved.id,
@@ -599,6 +617,70 @@ export const listBuildStages = async (runId: string) => {
     fingerprint: row.fingerprint,
     detail: row.detail,
     updatedAt: new Date(row.updated_at).toISOString(),
+  }))
+}
+
+// ——— Presenter takes and selections (D3) ———
+// Every take is an immutable row; the active take is a separate selection.
+export const savePresenterTake = async (take: {
+  id: string
+  projectId: string
+  blockId: string
+  assetId: string
+  durationMs: number
+  detail?: unknown
+}) => {
+  await initializePersistence()
+  await database.query(
+    `insert into studio_presenter_takes (id, notebook_id, block_id, asset_id, duration_ms, detail)
+     values ($1, $2, $3, $4, $5, $6::jsonb)
+     on conflict (id) do nothing`,
+    [take.id, take.projectId, take.blockId, take.assetId, Math.round(take.durationMs), JSON.stringify(take.detail || {})],
+  )
+}
+
+export const listPresenterTakes = async (projectId: string, blockId?: string) => {
+  await initializePersistence()
+  const result = blockId
+    ? await database.query('select * from studio_presenter_takes where notebook_id = $1 and block_id = $2 order by created_at', [projectId, blockId])
+    : await database.query('select * from studio_presenter_takes where notebook_id = $1 order by created_at', [projectId])
+  return result.rows.map(row => ({
+    id: row.id,
+    projectId: row.notebook_id,
+    blockId: row.block_id,
+    assetId: row.asset_id,
+    durationMs: row.duration_ms,
+    detail: row.detail,
+    createdAt: new Date(row.created_at).toISOString(),
+  }))
+}
+
+export const selectPresenterTake = async (input: { projectId: string; blockId: string; takeId: string }) => {
+  await initializePersistence()
+  const take = await database.query(
+    'select 1 from studio_presenter_takes where id = $1 and notebook_id = $2 and block_id = $3',
+    [input.takeId, input.projectId, input.blockId],
+  )
+  if (!take.rows.length) throw new Error('That take does not belong to this block')
+  await database.query(
+    `insert into studio_take_selections (notebook_id, block_id, take_id)
+     values ($1, $2, $3)
+     on conflict (notebook_id, block_id) do update set take_id = excluded.take_id, selected_at = now()`,
+    [input.projectId, input.blockId, input.takeId],
+  )
+}
+
+export const listTakeSelections = async (projectId: string) => {
+  await initializePersistence()
+  const result = await database.query(
+    'select * from studio_take_selections where notebook_id = $1',
+    [projectId],
+  )
+  return result.rows.map(row => ({
+    projectId: row.notebook_id,
+    blockId: row.block_id,
+    takeId: row.take_id,
+    selectedAt: new Date(row.selected_at).toISOString(),
   }))
 }
 

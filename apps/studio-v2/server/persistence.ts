@@ -55,6 +55,15 @@ export type BuildStageInput = {
   detail?: unknown
 }
 
+export type PresenterTakeInput = {
+  id: string
+  projectId: string
+  blockId: string
+  assetId: string
+  durationMs: number
+  detail?: unknown
+}
+
 type StoreAssetInput = {
   body: Buffer
   contentType: string
@@ -127,6 +136,10 @@ type PersistenceBackend = {
   listBuildRuns: (projectId?: string) => Promise<BuildRunRow[]>
   recordBuildStage: (stage: BuildStageInput) => Promise<void>
   listBuildStages: (runId: string) => Promise<Array<Record<string, unknown>>>
+  savePresenterTake: (take: PresenterTakeInput) => Promise<void>
+  listPresenterTakes: (projectId: string, blockId?: string) => Promise<Array<Record<string, unknown>>>
+  selectPresenterTake: (input: { projectId: string; blockId: string; takeId: string }) => Promise<void>
+  listTakeSelections: (projectId: string) => Promise<Array<{ projectId: string; blockId: string; takeId: string; selectedAt: string }>>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
@@ -251,3 +264,15 @@ export const recordBuildStage = async (stage: BuildStageInput) =>
 
 export const listBuildStages = async (runId: string) =>
   (await loadBackend()).listBuildStages(runId)
+
+export const savePresenterTake = async (take: PresenterTakeInput) =>
+  (await loadBackend()).savePresenterTake(take)
+
+export const listPresenterTakes = async (projectId: string, blockId?: string) =>
+  (await loadBackend()).listPresenterTakes(projectId, blockId)
+
+export const selectPresenterTake = async (input: { projectId: string; blockId: string; takeId: string }) =>
+  (await loadBackend()).selectPresenterTake(input)
+
+export const listTakeSelections = async (projectId: string) =>
+  (await loadBackend()).listTakeSelections(projectId)

@@ -1994,6 +1994,40 @@ Object.entries(project.recordedBlocks).forEach(([blockId, recording]) => {
 sanitizeNotebookMedia(project.notebook)
 window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 
+// Hydrate the take archive from the durable store (D3): takes recorded in
+// another session reappear, and a block with no active take falls back to
+// its stored selection. Deferred past module evaluation (fetchJson below).
+const hydratePresenterTakes = async () => {
+  try {
+    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
+    if (!takes.length) return
+    let merged = 0
+    project.recordedBlocks ||= {}
+    project.recordedBlockTakes ||= {}
+    const byId = new Map(takes.map(take => [take.id, take]))
+    for (const take of takes) {
+      const mediaUrl = take.detail?.mediaUrl
+      if (!mediaUrl) continue
+      const list = (project.recordedBlockTakes[take.blockId] ||= [])
+      if (list.some(existing => existing.recordingId === take.id)) continue
+      list.push({ blockId: take.blockId, recordingId: take.id, videoUrl: mediaUrl, durationMs: take.durationMs, recordedAt: take.createdAt, storage: 'minio' })
+      merged += 1
+    }
+    for (const selection of selections) {
+      if (project.recordedBlocks[selection.blockId]) continue
+      const take = byId.get(selection.takeId)
+      if (!take?.detail?.mediaUrl) continue
+      project.recordedBlocks[selection.blockId] = { blockId: selection.blockId, recordingId: take.id, videoUrl: take.detail.mediaUrl, durationMs: take.durationMs, recordedAt: take.createdAt, storage: 'minio' }
+      merged += 1
+    }
+    if (merged) await persistProjectNow(structuredClone(project))
+  } catch (error) {
+    console.warn('take hydration failed', error)
+    // No durable store or no takes: the document stands alone.
+  }
+}
+window.setTimeout(() => void hydratePresenterTakes(), 0)
+
 const cloneTheme = (theme: StudioThemeV1): StudioThemeV1 =>
   structuredClone(theme)
 
@@ -3081,8 +3115,10 @@ const setSaving = (saving: boolean) => {
 
 const scheduleDatabaseSync = () => {
   window.clearTimeout(databaseSyncTimer)
-  const snapshot = structuredClone(project)
   databaseSyncTimer = window.setTimeout(async () => {
+    // Clone at fire time, not schedule time: a stale snapshot must never
+    // clobber state that landed meanwhile (e.g. the take hydration).
+    const snapshot = structuredClone(project)
     try {
       await persistProjectNow(snapshot)
       saveState.textContent = 'Saved'
@@ -4769,6 +4805,13 @@ const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
   project.recordedBlocks ||= {}
   if (project.recordedBlocks[blockId]?.recordingId === take.recordingId) return
   project.recordedBlocks[blockId] = take
+  // The selection is a durable record too (D3): the archive, not just the
+  // document, remembers which take the edit uses.
+  void fetchJson('/api/takes/select', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ projectId: project.id, blockId, takeId: take.recordingId }),
+  }).catch(error => console.warn('take selection not recorded durably', error))
   renderCanvasBlockTimeline()
   syncProject()
   syncCanvasViewSwitch()
