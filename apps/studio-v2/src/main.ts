@@ -11813,9 +11813,61 @@ const renderStoryboard = () => {
   const state = slideEditor
   if (!state?.director) {
     storyboardBox.replaceChildren()
+    renderShotPlan(null)
     return
   }
   renderStoryboardEntries(state.director.storyboard)
+  renderShotPlan(state.director)
+}
+
+// ——— Shot plan (D6) ———
+// The applied shot sequence with its transitions, reviewable as data, and —
+// for human delivery — the scene's recording brief.
+const SHOT_VIEW_LABELS: Record<string, string> = {
+  'camera-full': 'You, full frame',
+  'camera-text': 'You + key phrase',
+  shared: 'You beside the page',
+  'animation-full': 'Animation full frame',
+}
+const renderShotPlan = (director: DirectorResult | null) => {
+  const box = $('#se-shot-plan') as HTMLElement
+  const body = $('#se-shot-plan-body') as HTMLElement
+  body.replaceChildren()
+  if (!director?.shots?.length) {
+    box.hidden = true
+    return
+  }
+  box.hidden = false
+  director.shots.forEach(shot => {
+    const first = Math.min(...shot.beats)
+    const last = Math.max(...shot.beats)
+    const row = document.createElement('span')
+    row.className = 'se-shot'
+    row.textContent = `${shot.id} · ${SHOT_VIEW_LABELS[shot.view] || shot.view} · line${first === last ? ` ${first + 1}` : `s ${first + 1}–${last + 1}`}${shot.emphasis ? ` · “${shot.emphasis}”` : ''}`
+    row.title = shot.reason
+    body.append(row)
+    if (shot.transitionOut.kind !== 'hold') {
+      const transition = document.createElement('span')
+      transition.className = 'se-shot-transition'
+      transition.textContent = `→ ${shot.transitionOut.kind} (${shot.transitionOut.durationMs} ms)`
+      body.append(transition)
+    }
+  })
+  const brief = director.recordingBrief
+  if (project.explainerDelivery === 'human' && brief) {
+    const heading = document.createElement('strong')
+    heading.textContent = 'Recording brief'
+    const next = document.createElement('span')
+    next.className = 'se-brief-shot'
+    next.textContent = brief.next
+    body.append(heading, next)
+    brief.shots.forEach(shot => {
+      const line = document.createElement('span')
+      line.className = 'se-brief-shot'
+      line.textContent = `${shot.id}: ${shot.look} ${shot.record}`
+      body.append(line)
+    })
+  }
 }
 
 // "Plan from dialogue" (advanced): the words alone, ignoring pinned parts.
