@@ -2058,16 +2058,17 @@ const readBrowserCachedThemes = (): StudioThemeV1[] => {
 }
 
 let savedThemes: StudioThemeV1[] = []
-// Revision provenance per saved theme id, for the library's badges.
-const savedThemeMeta = new Map<string, { revision: number; revisions: number; hash: string }>()
+// Revision provenance per saved theme id, for the library's badges — and the
+// site a theme was read from, so revisiting that site can name it (D1).
+const savedThemeMeta = new Map<string, { revision: number; revisions: number; hash: string; site?: string }>()
 
 const loadThemeLibrary = async () => {
   try {
-    const { themes } = await fetchJson<{ themes: Array<{ id: string; revision: number; revisions: number; hash: string; theme: StudioThemeV1 }> }>('/api/themes')
+    const { themes } = await fetchJson<{ themes: Array<{ id: string; revision: number; revisions: number; hash: string; site?: string; theme: StudioThemeV1 }> }>('/api/themes')
     savedThemes = themes.map(record => normalizeStudioTheme(record.theme))
     savedThemeMeta.clear()
     for (const record of themes) {
-      savedThemeMeta.set(record.id, { revision: record.revision, revisions: record.revisions, hash: record.hash })
+      savedThemeMeta.set(record.id, { revision: record.revision, revisions: record.revisions, hash: record.hash, ...(record.site ? { site: record.site } : {}) })
     }
     // One-time import of browser-cached themes the durable store lacks; the
     // server dedups by content hash. The browser copy is left untouched.
@@ -14251,6 +14252,64 @@ const renderSourceBrand = () => {
     }),
   )
   renderSourceDirections()
+  renderSourceThemeAssociation()
+}
+
+// ——— Site association (D1): a direction read off a site can be saved as a
+// durable theme with that site on it; the next read of the same site names
+// what the library already holds, instead of starting from scratch. ———
+const renderSourceThemeAssociation = () => {
+  const box = $('#source-theme-association') as HTMLElement
+  box.replaceChildren()
+  const source = sourceState.source
+  const site = (source?.site || '').trim().toLowerCase()
+  if (!source || !site) {
+    box.hidden = true
+    return
+  }
+  box.hidden = false
+  const saved = savedThemes
+    .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
+    .filter(entry => (entry.meta?.site || '').trim().toLowerCase() === site)
+  if (saved.length) {
+    const note = document.createElement('span')
+    note.id = 'source-theme-association-note'
+    note.textContent = `Saved from this site: ${saved.map(entry => `${entry.theme.name} · rev ${entry.meta?.revision}`).join(', ')} — in the theme library.`
+    box.append(note)
+  }
+  const save = document.createElement('button')
+  save.type = 'button'
+  save.id = 'source-save-direction'
+  save.className = 'button ghost'
+  save.textContent = 'Save this direction as a theme'
+  save.addEventListener('click', () => void saveSourceDirectionAsTheme())
+  box.append(save)
+}
+
+const saveSourceDirectionAsTheme = async () => {
+  const source = sourceState.source
+  const direction = sourceState.directions[sourceState.direction]
+  const site = (source?.site || '').trim()
+  if (!source || !direction || !site) return
+  // A stable id per site + direction: re-saving revises one theme instead of
+  // stacking duplicates (the store dedups identical content anyway).
+  const slug = site.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+  const theme = { ...direction, id: `site-${slug}-${sourceState.direction}`, source: 'custom' as const }
+  const button = $('#source-save-direction') as HTMLButtonElement | null
+  if (button) button.disabled = true
+  try {
+    const { saved } = await fetchJson<{ saved: { revision: number; hash: string; unchanged: boolean } }>('/api/themes', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ theme, site }),
+    })
+    await loadThemeLibrary()
+    renderSourceBrand()
+    showToast(saved.unchanged ? 'This direction is already the stored theme for the site' : `Saved as a theme for ${site} (revision ${saved.revision}) — pick it any time from the theme library`)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Could not save the theme')
+    if (button) button.disabled = false
+  }
 }
 
 // The story planned by the local harness (D2): the primary journey's outline

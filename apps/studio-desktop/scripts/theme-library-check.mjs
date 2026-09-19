@@ -66,8 +66,10 @@ const list = origin => fetch(`${origin}/api/themes`).then(r => r.json())
 let first
 try {
   first = await startApp()
-  const saved = await post(first.origin, { theme: themeFixture(THEME_ID, 'D1 check theme', '#f59e0b') })
+  const saved = await post(first.origin, { theme: themeFixture(THEME_ID, 'D1 check theme', '#f59e0b'), site: 'example.com' })
   check('theme saved at revision 1', saved.saved?.revision === 1 && saved.saved?.unchanged === false, JSON.stringify(saved.saved && { revision: saved.saved.revision }))
+  const withSite = await list(first.origin)
+  check('the site association is stored with the theme', withSite.themes?.find(t => t.id === THEME_ID)?.site === 'example.com', JSON.stringify(withSite.themes?.find(t => t.id === THEME_ID)?.site))
 
   const again = await post(first.origin, { theme: themeFixture(THEME_ID, 'D1 check theme', '#f59e0b') })
   check('identical re-save is a no-op', again.saved?.unchanged === true && again.saved?.revision === 1)
@@ -81,6 +83,7 @@ try {
     record?.revision === 2 && record?.revisions === 2 && record?.theme?.brand?.accent === '#10b981',
     JSON.stringify(record && { revision: record.revision, revisions: record.revisions, accent: record.theme?.brand?.accent }),
   )
+  check('a revision that omits the site keeps the association', record?.site === 'example.com', JSON.stringify(record?.site))
 } catch (error) {
   check(`first app: ${error.message}`, false)
 } finally {
@@ -96,6 +99,7 @@ try {
   const relisted = await list(second.origin)
   const record = relisted.themes?.find(t => t.id === THEME_ID)
   check('theme survives an app restart on a new port', record?.revision === 2 && record?.theme?.name === 'D1 check theme', second.origin)
+  check('the site association survives the restart too', record?.site === 'example.com', JSON.stringify(record?.site))
 
   // Seed a browser-cached theme, reload, and let the app import it.
   const evaluate = async js => {

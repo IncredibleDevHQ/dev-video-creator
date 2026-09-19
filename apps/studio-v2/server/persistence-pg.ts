@@ -377,8 +377,8 @@ export const saveThemeRevision = async (input: {
   const client = await database.connect()
   try {
     await client.query('begin')
-    const existing = await client.query<{ current_revision: number; hash: string }>(
-      `select t.current_revision, r.hash from studio_themes t
+    const existing = await client.query<{ current_revision: number; hash: string; site: string | null }>(
+      `select t.current_revision, t.site, r.hash from studio_themes t
        join studio_theme_revisions r on r.theme_id = t.id and r.revision = t.current_revision
        where t.id = $1 for update of t`,
       [input.id],
@@ -400,10 +400,13 @@ export const saveThemeRevision = async (input: {
       await client.query('rollback')
       return { id: input.id, revision: current.current_revision, hash, unchanged: true }
     }
+    // A revision that says nothing about the site keeps the association;
+    // only an explicit site (or an explicit empty one) changes it.
+    const site = input.site === undefined ? current.site : input.site || null
     const next = current.current_revision + 1
     await client.query(
       `update studio_themes set name = $2, source = $3, site = $4, current_revision = $5, updated_at = now() where id = $1`,
-      [input.id, input.name, input.source || 'custom', input.site || null, next],
+      [input.id, input.name, input.source || 'custom', site, next],
     )
     await client.query(
       `insert into studio_theme_revisions (theme_id, revision, theme, hash) values ($1, $2, $3::jsonb, $4)`,

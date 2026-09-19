@@ -44,7 +44,10 @@ const assertPublicUrl = (raw: string) => {
   }
   if (!/^https?:$/.test(url.protocol)) throw new Error('Only http and https links can be read')
   const host = url.hostname.toLowerCase()
-  if (host === 'localhost' || host.endsWith('.local') || /^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) || host === '::1' || host === '[::1]') {
+  // The private-network guard stands in normal launches; scripted checks run
+  // a fixture brand site on loopback under the test-hooks flag (the same flag
+  // that already exposes /__eval — never set in a normal launch).
+  if (process.env.STUDIO_ENABLE_TEST_HOOKS !== '1' && (host === 'localhost' || host.endsWith('.local') || /^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) || host === '::1' || host === '[::1]')) {
     throw new Error('Links to this machine or a private network cannot be read')
   }
   return url

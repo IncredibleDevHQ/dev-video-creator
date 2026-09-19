@@ -2081,6 +2081,8 @@ button.se-state:hover { filter: brightness(.97); }
 .source-or { text-align: center; font: 500 12px/1 system-ui; color: #a1a1aa; }
 .source-status { font: 13px/1.4 system-ui; color: #71717a; margin-right: auto; }
 .source-status.is-error { color: #b91c1c; }
+.source-theme-association { display: flex; align-items: center; gap: 10px; margin-top: 10px; font: 12px/1.4 system-ui; color: #71717a; }
+.source-theme-association .button { flex: none; }
 .source-summary { display: grid; gap: 2px; font: 13px/1.4 system-ui; color: #52525b; }
 .source-summary strong { font-size: 15px; color: #18181b; }
 .source-step h3 { font: 600 12px/1.2 system-ui; text-transform: uppercase; letter-spacing: .06em; color: #71717a; margin: 6px 0 0; }

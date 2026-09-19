@@ -356,7 +356,8 @@ export const saveThemeRevision = async (input: {
   const next = entry.currentRevision + 1
   entry.name = input.name
   entry.source = input.source || 'custom'
-  entry.site = input.site || null
+  // A revision that says nothing about the site keeps the association.
+  entry.site = input.site === undefined ? (entry.site ?? null) : input.site || null
   entry.currentRevision = next
   entry.revisions.push({ revision: next, hash, theme: input.theme })
   entry.updatedAt = new Date().toISOString()
