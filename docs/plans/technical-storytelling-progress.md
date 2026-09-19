@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §3.7: pickup notes on the coach card
+
+**Commits**
+
+- `4794c111` — When the last build's take alignment flagged beats for a scene, its camera dialog opens with "The last take needs a pickup: beat 2 — The take skips the second sentence." — the targeted-pickup loop lands where the creator records. The needs-input checkpoint names the scene's file stem; `harness:artefacts` now exposes the run's `story.json` so the product maps it back to the notebook scene id. `stage-panel-check.mjs` 9/9 (new coach-card assertion with a real run dir on disk).
+
 ## 2026-09-19 — D4: the Assets dialog names parts and behaviors
 
 **Commits**
