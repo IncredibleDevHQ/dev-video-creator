@@ -14560,6 +14560,13 @@ const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
   if (explainerRun) { showToast('The explainer is still being built'); return }
+  // The delivery path is an explicit journey choice made in Create
+  // explainer; a notebook that has not chosen is asked, not defaulted.
+  if (!project.explainerDelivery) {
+    openCreateExplainer()
+    showToast('Choose Present it myself or Generate automatically to continue')
+    return
+  }
   const button = $('#build-explainer') as HTMLButtonElement
   button.disabled = true
   let off: (() => void) | undefined
@@ -14578,12 +14585,6 @@ const startExplainerBuild = async () => {
     if (!kimi) throw new Error('Install Kimi CLI to build an explainer with the local harness')
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
-    // The delivery path is an explicit journey choice made in Create
-    // explainer; a notebook that has not chosen is asked, not defaulted.
-    if (!project.explainerDelivery) {
-      openCreateExplainer()
-      throw new Error('Choose Present it myself or Generate automatically to continue')
-    }
     if (!project.derivedFrom?.notebook) {
       const child = await createVideoFromBase(project.id, project.title)
       if (!child) throw new Error('Could not create the video derivative')
