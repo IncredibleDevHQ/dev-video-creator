@@ -2,6 +2,56 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — Where this stands
+
+Every D-phase (D0–D7) of the plan's software work has shipped — 72 commits today, each slice committed only after its tests passed. The deterministic release suite is green at **18/18** (`yarn studio:check`: unit gates + 16 scripted journey/storage/renderer checks). The live provider proof also passed: one real Kimi + Quiver + whisper build end to end, verified 36.1s MP4 at `~/Downloads/Incredible Studio/retry-storm-live-proof.mp4`.
+
+What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
+
+## 2026-09-19 — §5.8a: take-picker provenance
+
+**Commits**
+
+- `591d8435` — The take version picker shows each preserved take's recorded time and keeps-the-plan mark, so choosing among takes never guesses which retake is which. `take-workflow-check.mjs` extended (3 new UI assertions on the reopened, hydrated notebook) and PASS.
+
+## 2026-09-19 — §5.5: the build panel shows durable stage checkpoints
+
+**Commits**
+
+- `295aac66` — The build panel lists the run's recorded stage checkpoints in plain language, polled during the build and kept at the end; a `needs-input` stage reads "waiting for you" with its named beats (the intentional human-waiting state, never a failure). Pure presentation in `stage-view.ts` (vitest 4); `stage-panel-check.mjs` PASS (6 assertions) via the `__buildStages` dev hook; in the release suite (18).
+
+## 2026-09-19 — §3.8: rehearsal loop in the camera dialog
+
+**Commits**
+
+- `d45a92da` — Rehearse beside the camera: the scene's proposed graphics play at the plan's estimated pace with its cue lines, beat jump/replay controls, and the director's pencilled shot per beat; the take stays the timing authority (playback stops when recording starts, nothing in the pane is recorded, closing resets). `rehearsal-check.mjs` PASS (10 assertions); in the release suite (17).
+
+## 2026-09-19 — §5.5: bounded review loops + per-scene review status
+
+**Commits**
+
+- `dde89d49` — per-scene review status (◆) in the notebook rail from the rich build's reviewed stamp.
+- `ff4bc0b0` — the preview loop is bounded: per-scene review budget (default 8), the retained best passing proof answers over-budget calls with the exact remaining issue. Motivated by the live build's ~30-minute review loop. `review-budget-check.mjs` PASS; in the release suite (16).
+
+## 2026-09-19 — §3.9 staleness tool + human audio path
+
+**Commits**
+
+- `dd2af87a` — `explainer_status`: per-scene freshness across preview proof, narration, and notebook application, so dependent stages are visibly stale before anything re-runs. Lineage check covers fresh-after-finish and stale-after-edit (11/11).
+- `73df9dc4` — the human path's export carries the take: take alignment stores the take audio as an asset and writes the narration record the finish applies as `recorded-mic`; a guide never silently substitutes for an unrecorded segment. Take-alignment e2e 8/8 proves the chain end to end on real synthesized speech.
+
+## 2026-09-19 — D5 §5.4a: the isolated object-performance review is required
+
+**Commits**
+
+- `12758188` — `explainer_review_object`: an accepted asset rendered alone at display size, each clip driven rest/action/settle in the real renderer, frames captured, fidelity against the parent enforced (a performance may not redraw the art). Receipt per object; the rich finish refuses a performed object without one. Skill instructs the review before finishing. Real-DOM proof in `object-performance-check.mjs` (captures + fidelity refusal); the lineage check proves the gate refuses then admits.
+
+## 2026-09-19 — D4 slice 3: the Objects panel
+
+**Commits**
+
+- `706999f2` — the build's progress panel shows the cast live: reused / generated / edited / generating (brief written, artwork pending), from run-dir assets via `harness:artefacts`; the asset tool records reuse per asset. Release suite re-verified after the story-master change: 15/15.
+
 ## 2026-09-19 — D2 complete: the local harness plans the story
 
 **Commits**
@@ -195,59 +245,3 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 - The human path records the choice and routes into the shared rich build; scene-by-scene recording, takes and coaching are D3/D6.
 - Draft/Reviewed badge state is computed per card from saved scene stamps; fine at library scale, revisit if the listing grows.
 - Pre-existing: `markdown-composition` `tsc --noEmit` fails on `derive.test.ts` (`BlockRenderConfigV1.blockId`) on the base commit; not part of `studio:test`, left as-is.
-
-## Next up
-
-- **D0a** — PostgreSQL/MinIO authoritative: `worker-host.ts` still forces the file backend (`persistence: 'local'`; smoke probe reports `database: "files"`). Tracked migrations, global asset rows, upload reconciliation, importer, backup/restore.
-
-## 2026-09-19 — D4 slice 3: the Objects panel
-
-**Commits**
-
-- `706999f2` — the build's progress panel shows the cast live: reused / generated / edited / generating (brief written, artwork pending), from run-dir assets via `harness:artefacts`; the asset tool records reuse per asset. Release suite re-verified after the story-master change: 15/15.
-
-**D4 remaining:** §5.4a's isolated object-performance review stage (render the accepted object alone at display size, inspect action/settle against the original, receipt) — the in-scene half exists via cast verification; the isolated half is next.
-
-## 2026-09-19 — D5 §5.4a: the isolated object-performance review is required
-
-**Commits**
-
-- `12758188` — `explainer_review_object`: an accepted asset rendered alone at display size, each clip driven rest/action/settle in the real renderer, frames captured, fidelity against the parent enforced (a performance may not redraw the art). Receipt per object; the rich finish refuses a performed object without one. Skill instructs the review before finishing. Real-DOM proof in `object-performance-check.mjs` (captures + fidelity refusal); the lineage check proves the gate refuses then admits.
-
-## 2026-09-19 — §3.9: staleness as a tool
-
-**Commits**
-
-- `dd2af87a` — `explainer_status`: per-scene freshness across preview proof, narration, and notebook application, so dependent stages are visibly stale before anything re-runs. Lineage check covers fresh-after-finish and stale-after-edit (11/11).
-
-## 2026-09-19 — §3.9 staleness tool + human audio path
-
-**Commits**
-
-- `dd2af87a` — `explainer_status`: per-scene freshness across preview proof, narration, and notebook application, so dependent stages are visibly stale before anything re-runs. Lineage check covers fresh-after-finish and stale-after-edit (11/11).
-- `73df9dc4` — the human path's export carries the take: take alignment stores the take audio as an asset and writes the narration record the finish applies as `recorded-mic`; a guide never silently substitutes for an unrecorded segment. Take-alignment e2e 8/8 proves the chain end to end on real synthesized speech.
-
-## 2026-09-19 — §5.5: bounded review loops + per-scene review status
-
-**Commits**
-
-- `dde89d49` — per-scene review status (◆) in the notebook rail from the rich build's reviewed stamp.
-- `ff4bc0b0` — the preview loop is bounded: per-scene review budget (default 8), the retained best passing proof answers over-budget calls with the exact remaining issue. Motivated by the live build's ~30-minute review loop. `review-budget-check.mjs` PASS; in the release suite (16).
-
-## 2026-09-19 — §3.8: rehearsal loop in the camera dialog
-
-**Commits**
-
-- (this run) — Rehearse beside the camera: the scene's proposed graphics play at the plan's estimated pace with its cue lines, beat jump/replay controls, and the director's pencilled shot per beat; the take stays the timing authority (playback stops when recording starts, nothing in the pane is recorded, closing resets). `rehearsal-check.mjs` PASS (10 assertions); in the release suite (17).
-
-## 2026-09-19 — §5.5: the build panel shows durable stage checkpoints
-
-**Commits**
-
-- (this run) — The build panel lists the run's recorded stage checkpoints in plain language, polled during the build and kept at the end; a `needs-input` stage reads "waiting for you" with its named beats (the intentional human-waiting state, never a failure). Pure presentation in `stage-view.ts` (vitest 4); `stage-panel-check.mjs` PASS (6 assertions) via the `__buildStages` dev hook; in the release suite (18).
-
-## 2026-09-19 — §5.8a: take-picker provenance
-
-**Commits**
-
-- (this run) — The take version picker shows each preserved take's recorded time and keeps-the-plan mark, so choosing among takes never guesses which retake is which. `take-workflow-check.mjs` extended (3 new UI assertions on the reopened, hydrated notebook) and PASS.
