@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import { createHash, randomUUID } from 'node:crypto'
 import { Client as MinioClient } from 'minio'
 import { Pool } from 'pg'
 import type { ProjectDocumentV1, RecordedBlockV1, TiptapNode } from 'markdown-composition'
+import { runMigrations } from './migrations'
 
 const databaseUrl =
   process.env.STUDIO_DATABASE_URL ||
@@ -22,16 +21,30 @@ const objects = new MinioClient({
   secretKey: process.env.STUDIO_MINIO_SECRET_KEY || 'SuperSecretRootPwd',
 })
 
-const migrationPath = fileURLToPath(
-  new URL('./migrations/001_studio_artifacts.sql', import.meta.url),
-)
-
 let ready: Promise<void> | null = null
+
+// Rows left 'pending' by an interrupted upload are reconciled before the
+// store serves traffic: bytes that landed whole become ready; anything else
+// is dropped so a missing/corrupt object never poses as accepted.
+const reconcilePendingAssets = async () => {
+  const pending = await database.query<{ id: string; object_key: string; byte_size: string | number }>(
+    `select id, object_key, byte_size from studio_assets where status = 'pending'`,
+  )
+  for (const row of pending.rows) {
+    const stat = await objects.statObject(bucket, row.object_key).catch(() => null)
+    if (stat && stat.size === Number(row.byte_size)) {
+      await database.query(`update studio_assets set status = 'ready' where id = $1`, [row.id])
+    } else {
+      await database.query(`delete from studio_assets where id = $1`, [row.id])
+    }
+  }
+}
 
 export const initializePersistence = () => {
   ready ||= (async () => {
-    await database.query(await readFile(migrationPath, 'utf8'))
+    await runMigrations(database)
     if (!(await objects.bucketExists(bucket))) await objects.makeBucket(bucket)
+    await reconcilePendingAssets()
   })().catch(error => {
     ready = null
     throw error
@@ -203,17 +216,25 @@ export const storeAsset = async ({
     safePart(blockId || kind),
     `${assetId}${extension}`,
   ].join('/')
+  const sha256 = createHash('sha256').update(body).digest('hex')
+  // 1. Reserve the row as pending — global library assets (no owning
+  //    notebook) are first-class rows, never silently skipped.
+  await database.query(
+    `insert into studio_assets
+      (id, notebook_id, block_id, object_key, content_type, byte_size, kind, status, sha256)
+     values ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)`,
+    [assetId, projectId || null, blockId || null, objectKey, contentType, body.length, kind, sha256],
+  )
+  // 2. Upload, then verify the stored byte count before the row goes ready.
+  //    (The store's ETag is not a universal content checksum.)
   await objects.putObject(bucket, objectKey, body, body.length, {
     'Content-Type': contentType,
   })
-  if (projectId) {
-    await database.query(
-      `insert into studio_assets
-        (id, notebook_id, block_id, object_key, content_type, byte_size, kind)
-       values ($1, $2, $3, $4, $5, $6, $7)`,
-      [assetId, projectId, blockId || null, objectKey, contentType, body.length, kind],
-    )
+  const stored = await objects.statObject(bucket, objectKey)
+  if (stored.size !== body.length) {
+    throw new Error(`Stored ${stored.size} of ${body.length} bytes for ${objectKey}`)
   }
+  await database.query(`update studio_assets set status = 'ready' where id = $1`, [assetId])
   return { assetId, objectKey }
 }
 
@@ -233,7 +254,7 @@ export const saveRecordedBlock = async ({
   await initializePersistence()
   const asset = await database.query<{ object_key: string }>(
     `select object_key from studio_assets
-     where id = $1 and notebook_id = $2 and block_id = $3`,
+     where id = $1 and notebook_id = $2 and block_id = $3 and status = 'ready'`,
     [assetId, projectId, blockId],
   )
   if (!asset.rows[0]) throw new Error('The recording asset does not match this block')
