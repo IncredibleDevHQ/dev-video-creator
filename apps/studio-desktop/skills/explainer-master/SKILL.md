@@ -96,13 +96,21 @@ Retain its object identities when useful and its source scene id always.
    fails, stop with the explicit issue instead of calling it finished. Carry
    the successful visual treatment through the other scenes.
 
-6. **Narrate and synchronize.** Call `explainer_narrate` for each scene. The
-   product makes guide speech and runs a local word alignment model. It writes
+6. **Narrate and synchronize.** The delivery mode is in the run's inputs
+   (`delivery.mode`): `generated` calls `explainer_narrate` for each scene;
+   `human` with a recorded take calls `explainer_align_take` instead — the
+   take's actual delivery becomes the timing authority. Feed it the take's
+   audio (a run file, or its stored object URL); beats the take did not say
+   come back flagged: rebind their cues or list them for a pickup, never
+   invent the missing speech. A cue is one spoken word; pin an occurrence
+   with `#n` when the word repeats in a line.
+   `explainer_narrate` details: the product makes guide speech and runs a
+   local word alignment model. It writes
    measured word times into the program, recompiles events, pads readable holds,
    and captures the final frames. Its runtime uses `uv`, ffmpeg, and a cached
    faster-whisper environment/model. If a dependency is missing, report the
    precise missing dependency; do not silently substitute guessed word times.
-   A cue is one spoken word. Inspect the new frames and listen to the returned
+   Inspect the new frames and listen to the returned
    audio. Re-run narration after changing the words, SVG or events. Voice style
    is inherited from the configured guide voice; a human presenter is recorded
    separately in the app. Do not manufacture a human likeness or pretend a

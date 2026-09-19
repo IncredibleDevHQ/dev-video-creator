@@ -40,8 +40,10 @@ const paths = (args: Args) => {
 
 // Stage checkpoints (D3): when this run lives in a runs/ directory, each
 // tool records its typed outcome against the durable run row — the stage
-// history survives the agent and the app.
-const recordStage = async (context: Context, projectDir: string, stage: string, status: 'succeeded' | 'failed', detail?: unknown) => {
+// history survives the agent and the app. The states are the plan's:
+// a human branch may durably wait for a recording (needs-input).
+const STAGE_STATES = ['pending', 'running', 'succeeded', 'needs-input', 'failed', 'cancelled', 'stale'] as const
+const recordStage = async (context: Context, projectDir: string, stage: string, status: (typeof STAGE_STATES)[number], detail?: unknown) => {
   const runId = basename(projectDir)
   if (!/^run-/.test(runId)) return
   try {
@@ -381,11 +383,66 @@ const exportTool = async (args: Args, context: Context) => {
   return exported
 }
 
+const alignTakeTool = async (args: Args, context: Context) => {
+  const p = paths(args)
+  const program = await jsonFile(p.programPath) as SceneProgram
+  const audioDir = join(p.folder, 'audio', p.scene)
+  await mkdir(audioDir, { recursive: true })
+  // The take's audio: a file the run already holds, or a stored object URL.
+  let audioPath = typeof args.audioPath === 'string' && args.audioPath ? local(p.projectDir, args.audioPath) : ''
+  if (!audioPath) {
+    const audioUrl = String(args.audioUrl || '')
+    if (!audioUrl) throw new Error('Give the take audio as a run file (audioPath) or a stored object URL (audioUrl)')
+    const response = await fetch(/^https?:/.test(audioUrl) ? audioUrl : `${context.origin}${audioUrl}`)
+    if (!response.ok) throw new Error('Could not read the take audio')
+    audioPath = join(audioDir, 'take-source.mp3')
+    await writeFile(audioPath, Buffer.from(await response.arrayBuffer()))
+  }
+  const manifest = join(audioDir, 'take.json')
+  await save(manifest, { audio: audioPath, beats: program.beats.map(beat => ({ id: beat.id, say: beat.say })) })
+  const aligner = fileURLToPath(new URL('../skills/explainer-master/scripts/align_take.py', import.meta.url))
+  try {
+    await execute('uv', ['run', '--with', 'faster-whisper==1.2.0', 'python', aligner, manifest], { timeout: 600_000, maxBuffer: 2 * 1024 * 1024 })
+  } catch (error) {
+    throw new Error(`Take alignment failed. Install uv and allow its cached faster-whisper runtime/model download, then retry. ${String((error as Error).message).slice(0, 250)}`)
+  }
+  const aligned = await jsonFile(join(audioDir, 'take.take-aligned.json')) as { beats: Array<{ id?: string; words: Array<{ word: string; startMs: number; endMs: number }>; coverage: number; startMs: number; durationMs: number; review: string | null }> }
+  // The take becomes the timing authority: beat durations and word anchors
+  // are its measured spans; nothing is invented to fill a gap.
+  const normalize = (word: string) => word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+  const review: Array<{ beat: number; note: string }> = []
+  program.beats.forEach((beat, index) => {
+    const alignedBeat = aligned.beats[index]
+    if (!alignedBeat) throw new Error(`Beat ${index + 1} has no alignment`)
+    beat.words = alignedBeat.words.map(word => ({ word: word.word, startMs: word.startMs - alignedBeat.startMs, endMs: word.endMs - alignedBeat.startMs }))
+    if (alignedBeat.review) review.push({ beat: index + 1, note: alignedBeat.review })
+    for (const event of [beat, ...(beat.then || [])].flatMap(b => b.events || [])) {
+      if (!event.cue) continue
+      const { word, occurrence } = splitCue(event.cue)
+      const occurrences = beat.words.filter(w => normalize(w.word) === normalize(word))
+      if (occurrences.length < occurrence) {
+        review.push({ beat: index + 1, note: `Cue "${event.cue}" needs ${occurrence > 1 ? `occurrence ${occurrence} of ` : ''}"${word}"; the take has ${occurrences.length}. Rebind the cue or record a pickup.` })
+      }
+    }
+  })
+  program.beats.forEach((beat, index) => {
+    const startMs = aligned.beats[index].startMs
+    const next = aligned.beats[index + 1]
+    beat.durationMs = Math.max(400, Math.round(next ? next.startMs - startMs : beat.durationMs || 2000))
+  })
+  await save(p.programPath, program)
+  await save(join(p.folder, `${p.scene}.take-alignment.json`), { beats: aligned.beats.map(beat => ({ id: beat.id, coverage: beat.coverage, startMs: beat.startMs, durationMs: beat.durationMs, review: beat.review })) })
+  const preview = await previewTool(args)
+  await recordStage(context, p.projectDir, 'align-take', review.length ? 'needs-input' : 'succeeded', { scene: p.scene, review })
+  return { ...preview, review, alignment: 'selected-take', instruction: review.length ? 'These beats were not said as written; rebind their cues or record the named pickups, then align again.' : 'The take is the timing authority. Inspect the frames: motion follows the actual delivery.' }
+}
+
 const common = { projectDir: { type: 'string', description: 'Absolute run project directory' } }
 export const EXPLAINER_TOOLS = [
   { name: 'explainer_asset', description: 'Reuse, generate, edit or animate a rich Quiver SVG. Uses the server credential and permanent asset library. Returns local SVG and metadata paths, never credentials.', inputSchema: { type: 'object', properties: { ...common, operation: { enum: ['list', 'generate', 'edit', 'animate'] }, briefPath: { type: 'string' }, brief: { type: 'object' }, key: { type: 'string' }, prompt: { type: 'string' } }, required: ['projectDir', 'operation'] }, call: assetTool },
   { name: 'explainer_preview', description: 'Compile explainer/<scene>.svg and .program.json using the production player; validate and capture before/action/settled frames. Re-run after every edit.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: previewTool },
   { name: 'explainer_narrate', description: 'Generate guide speech, align its spoken words locally, recompile the events against measured timestamps, render review frames, and store a padded scene audio track. Requires local uv and ffmpeg; caches voice/model downloads.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: narrateTool },
+  { name: 'explainer_align_take', description: 'Make a recorded human take the timing authority: transcribe it once, map the beats onto the actual words in order, rebind cue occurrences, and recompile. Beats the take does not say come back flagged for review or pickup, never silently invented.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, audioPath: { type: 'string' }, audioUrl: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: alignTakeTool },
   { name: 'explainer_finish', description: 'Validate the reviewed story.json bundle and apply it to its derived notebook. Rejects stale reviews and concurrent edits; preserves the base.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: finishTool },
   { name: 'explainer_export', description: 'Render the saved explainer through the product export engine, writing export.json with the MP4 URL.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: exportTool },
 ]

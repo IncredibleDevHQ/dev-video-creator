@@ -14856,6 +14856,9 @@ const startExplainerBuild = async () => {
     const scenes = project.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(n => ({
       id: String(n.attrs!.id), title: String(n.attrs!.title || ''), svg: String(n.attrs!.svg),
       script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: n.attrs!.directorNotes || '',
+      // The human path carries the selected take's audio so the harness can
+      // align to the actual delivery, never a synthesized substitute.
+      ...(project.explainerDelivery === 'human' ? { takeAudioUrl: project.recordedBlocks?.[String(n.attrs!.id)]?.videoUrl || '' } : {}),
     }))
     if (!scenes.length) throw new Error('Create the base wireframes before building an explainer')
     button.textContent = 'Building explainer…'

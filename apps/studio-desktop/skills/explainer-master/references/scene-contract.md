@@ -141,7 +141,10 @@ internal change needs to be read. Speaker: page, beside, me. The generated guide
 is voice-only; use page where the mechanism needs the frame. Recorded human
 speaker staging is handled by the editor's director, not by drawing a fake face.
 
-`explainer_narrate` owns `durationMs` and `words:[{word,startMs,endMs}]` on beats.
+`explainer_narrate` owns `durationMs` and `words:[{word,startMs,endMs}]` on beats
+for generated delivery. For human delivery, `explainer_align_take` owns them,
+measured from the selected take's audio; the scene's input `takeAudioUrl`
+carries the take.
 Do not invent measured timestamps. It updates these fields from synthesized
 audio and local alignment, then returns production frames for another review.
 
