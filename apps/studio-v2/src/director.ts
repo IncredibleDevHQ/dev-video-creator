@@ -10,6 +10,7 @@ import { CAPTION_BAND, FLOATING_FAMILIES, bestVariant, coveredFraction, faceBoxI
 import { STAGE_BOARD_CONTENT, STAGE_LABELS, STAGE_OVERLAY_CONTENT, cameraRectAt, stageGeometryFor, isStageFamily } from 'markdown-composition'
 import { leafUnits, type SlideUnit } from './slide-atoms'
 import { NUMERIC_LABEL, type ScriptBeat, type WindowLayout } from './script-plan'
+import { planShots, recordingBriefFor, type DirectedShot, type RecordingBrief } from './shot-plan'
 
 export type SceneKind = 'title' | 'text' | 'list' | 'diagram' | 'figure' | 'numbers' | 'table'
 export type ArcRole = 'hook' | 'map' | 'build' | 'idea' | 'explain' | 'evidence' | 'close'
@@ -64,6 +65,10 @@ export type DirectorResult = {
   placements: Record<string, PlacementTrack>
   // Per beat, every way it could be staged, best first.
   layoutOptions: LayoutOption[][]
+  // The applied shot sequence (D6) and its recording brief: focus, view,
+  // transitions and guidance derived from the storyboard, reviewable as data.
+  shots: DirectedShot[]
+  recordingBrief: RecordingBrief
 }
 
 export type DirectorInput = {
@@ -843,6 +848,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
   const cues = cuesFor(storyboard, input.beats, input.plan, outro)
   const directorNotes = notesFor(kind, arcRole, requiredArea, storyboard, legibility)
   const totalSeconds = Math.round(input.plan.steps.reduce((sum, step) => sum + step.motionWindowMs + step.holdMs, 0) / 100) / 10
+  const shots = planShots(storyboard, input.beats)
   const dominant = storyboard.reduce<StoryboardEntry | null>((best, entry) => {
     const seconds = entry.beats.reduce((sum, index) => sum + beatSeconds(input.plan, index), 0)
     const bestSeconds = best ? best.beats.reduce((sum, index) => sum + beatSeconds(input.plan, index), 0) : -1
@@ -858,6 +864,8 @@ export const direct = (input: DirectorInput): DirectorResult => {
     directorNotes,
     placements,
     layoutOptions,
+    shots,
+    recordingBrief: recordingBriefFor(shots, input.beats, { arcRole, kind }),
     brief: {
       layout: dominant?.family || FAMILY_FOR_AREA[requiredArea],
       layoutReason: dominant?.why
