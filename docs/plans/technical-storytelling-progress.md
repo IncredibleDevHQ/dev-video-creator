@@ -2,6 +2,16 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D2 complete: the local harness plans the story
+
+**Commits**
+
+- `0e1b3046` — `story-master` skill (SKILL.md + workflows/plan-story.md): reads the source + wording policy + target, writes `story/outline.json` + receipt. The source dialog's outline step runs it through the local Kimi harness when the desktop is present (the server model route remains the browser-only fallback); the harness events stream into the dialog's status line; the result is validated + modeled through `/api/story/model`, which now returns the sanitized outline. `harness:artefacts` exposes story outputs.
+
+**Live proof:** `story-live-check.mjs` PASS — a real Kimi run planned 6 scenes from a 56-word creator narrative under `preserve`, narration carrying the author's sentences verbatim, with an honest receipt note about the 60s target trade-off; the product validated and persisted the model. ~2 minutes per outline.
+
+**Plan status after this:** every D-phase's software work has shipped and been proven at the deterministic tier; the live tier is proven for story planning and the full explainer build. Human-bound remainders: the paired presenter export and the viewing-gate evaluation.
+
 ## 2026-09-19 — the live provider proof completed
 
 **Commits**
