@@ -113,6 +113,24 @@ Your own `data-appearance-for` artwork stays required either way: it is what the
 page reads as until the drawing arrives, and what it falls back to if it never
 does.
 
+### The thing's model identity
+
+A node that stands for a thing in the explanation model also declares its
+stable model id:
+
+```xml
+<g id="s04-node-slot-pool" data-role="node" data-kind="box" data-entity="queue" data-object="slot-pool" data-object-id="obj-slot-pool-2">
+```
+
+`data-object-id` comes from the inputs' `objects[]` list and names the thing
+itself, not its drawing on this page: the same object keeps one id on every
+page that names it, while `id="s04-…"` stays the page's own element. Declare
+it whenever the node's label matches an object from the inputs — labels are
+presentation and may be reworded; the id is how the base, the video and the
+asset library all mean the same thing. It is independent of `data-object`
+(whether the studio can draw it) and of `data-entity` (what kind of thing it
+reads as). The checker rejects a malformed one.
+
 ### Make the thing live
 
 The studio animates the parts you name. Mark the pieces of your artwork that should move with `data-anim`, and the thing lives on the page — no external animation file, no video: the drawing you made moves.

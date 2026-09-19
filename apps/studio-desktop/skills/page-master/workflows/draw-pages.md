@@ -11,6 +11,7 @@ ppt-master's Default pipeline, with its ends replaced: research and template sel
 - `video`: `{ title, site }`
 - `brand`: `{ palette: { ground, text, accent, secondary }, fonts: { display, body, mono }, mode }`
 - `scenes[]`: `{ index, title, kind, seconds, idea, narration, source[], parts[{ kind, label, detail }], relations[{ from, to, verb }] }`
+- `objects[]` (when present): the explanation model's things — `{ id, label, kind, scenes[] }`, where `id` is the stable model id (`obj-…-<n>`) that stays the same on every page that names the thing. A node whose label matches an object declares `data-object-id` with it (see the contract). `modelId` identifies the model revision these pages are drawn from.
 
 `source` is the article's own sentences for this scene, copied verbatim. They
 are the ground truth for the page and its program: the example the author
@@ -19,6 +20,29 @@ before deciding what the page shows and what happens on it — the narration is
 a draft, the passages are what the article actually said.
 
 Scene kinds: `title`, `list`, `diagram`, `numbers`, `quote`, `close`. The narration is the line the page must support — read it; it says what the page is for.
+
+## Forms, not boxes
+
+The scene's kind sorts the deck; the page's **form** is how it explains.
+Choose the form from what the viewer must understand, then draw that — a
+rectangle is acceptable when it is a genuine container or an honest
+placeholder, never the universal answer.
+
+| What the scene explains | The form to draw |
+| --- | --- |
+| A mechanism (cause → effect) | The parts and the travelling actor between them; the change is visible |
+| Capacity or a budget | A pool of slots that fill and free, not two boxes and an arrow |
+| Waiting or scheduling | A timeline or queue with positions, not a static row |
+| A rate or quantity over time | A chart or meter with a baseline, not a number alone |
+| A comparison | Aligned panels, same frame, same axes — difference is the point |
+| A sequence | Ordered stages left to right, one direction of travel |
+| A definition or summary | Typography-led node(s); no invented mechanism |
+| Code or data | The real code block or table, with the one line that matters marked |
+
+Record the choice as the page's `topology` in the receipt, and say `form`
+alongside it (`mechanism`, `pool`, `timeline`, `chart`, `comparison`,
+`sequence`, `definition`, `code`). A deck where every page is a grid of
+identical boxes has failed this stage, whatever the checker says.
 
 ## Stage 1 — Communication contract
 
@@ -183,7 +207,7 @@ The checker sees geometry, not judgement. Read your own pages back and ask of ea
 
 ## Stage 7 — Receipt
 
-Write `pages/receipt.json`: `{ "pages": [{ "file", "program", "index", "title", "kind", "topology", "entities": [{ "id", "entity", "icon", "moving parts" }], "moments": ["establish", "…"], "checks": "pass" }], "spec": "pages/design_spec.md", "lock": "pages/spec_lock.md", "notes": "" }`. Then stop: do not open the notebook, do not plan motion, do not ask questions.
+Write `pages/receipt.json`: `{ "pages": [{ "file", "program", "index", "title", "kind", "form", "topology", "entities": [{ "id", "entity", "objectId", "icon", "moving parts" }], "moments": ["establish", "…"], "checks": "pass" }], "spec": "pages/design_spec.md", "lock": "pages/spec_lock.md", "model": "<modelId or ''>", "notes": "" }`. Then stop: do not open the notebook, do not plan motion, do not ask questions.
 
 ## The look, in one place
 

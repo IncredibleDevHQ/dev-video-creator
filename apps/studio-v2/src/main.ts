@@ -13751,6 +13751,9 @@ const sourceState: {
   // The authored narrative revision and the outline's explanation model (D2).
   narrative?: { id: string } | null
   model?: { id: string } | null
+  // The model's objects, passed to the drawing run so pages can declare
+  // stable data-object-id identity.
+  modelData?: { objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } | null
   // How much the studio may rewrite the creator's words (D2).
   wording: 'preserve' | 'assist' | 'draft'
   brandColor: string
@@ -13970,14 +13973,16 @@ const sourceOutline = async () => {
     // The model is derived again after any manual outline edits at the
     // pages step, so this record is the planning-time version.
     try {
-      const { model } = await fetchJson<{ model: { id: string } }>('/api/story/model', {
+      const { model } = await fetchJson<{ model: { id: string; objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } }>('/api/story/model', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
       })
-      sourceState.model = model
+      sourceState.model = { id: model.id }
+      sourceState.modelData = model
     } catch {
       sourceState.model = null
+      sourceState.modelData = null
     }
     renderSourceOutline()
     showSourceStep('outline')
@@ -14095,6 +14100,14 @@ const renderSourcePagesGrid = (pages: SourcePage[]) => {
         badge.className = 'drawn'
         badge.textContent = `drawn by ${page.drawnBy}${typeof page.drawnContract === 'number' ? ` · ${Math.round(page.drawnContract * 100)}% declared` : ''}`
         card.append(badge)
+      } else {
+        // The deterministic template is an explicit draft fallback, never
+        // mistaken for agent-drawn pages.
+        const badge = document.createElement('span')
+        badge.className = 'drawn'
+        badge.textContent = 'template draft'
+        badge.title = 'Drawn by the deterministic template — a starting point the drawing agent can redraw'
+        card.append(badge)
       }
       return card
     }),
@@ -14202,6 +14215,9 @@ const sourceDrawPages = async (choice?: string) => {
     // The article's own sentences travel with the scene: whoever decides what
     // happens on the page needs the example and the causation, not a summary.
     scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, source: scene.source || [], parts: scene.parts, relations: scene.relations })),
+    // The explanation model's objects travel with the run so drawn pages can
+    // declare data-object-id — the same thing keeps one id on every page.
+    ...(sourceState.modelData?.objects?.length ? { objects: sourceState.modelData.objects, modelId: sourceState.model?.id || '' } : {}),
     pageCount: outline.scenes.length,
     contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
     ...(model ? { model } : {}),

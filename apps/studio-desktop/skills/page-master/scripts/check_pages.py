@@ -93,6 +93,12 @@ def check(path):
             problems.append(f'node {n.get("id")!r} asks for object {obj!r}, which nothing can draw — use one of {sorted(OBJECTS)}')
         if obj and not entity:
             problems.append(f'node {n.get("id")!r} asks for object {obj!r} without saying what it is — add data-entity')
+        # A node that stands for a thing in the explanation model carries its
+        # stable model id (data-object-id), so the same thing is the same
+        # thing on every page. Per-page element ids stay the page's own.
+        object_id = n.get('data-object-id')
+        if object_id and not re.match(r'^obj-[a-z0-9-]+-\d+$', object_id):
+            problems.append(f'node {n.get("id")!r} data-object-id {object_id!r} is not a model object id (obj-…-<n>)')
         shapes = [c for c in n.iter() if local(c.tag) in ('rect', 'ellipse', 'circle')]
         # A drawn object is the subject of its node, and the studio fits it into
         # whichever is roomier: the column beside the words, or the space above
