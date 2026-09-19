@@ -203,26 +203,39 @@ try {
 
   // Publish on an unreviewed notebook is visibly a draft export. With two
   // scenes the junction walkthrough comes first — walk it to the summary.
-  await evaluate(`() => { document.getElementById('render-video').click(); return true }`, 'publish click')
-  let publish = null
-  for (let i = 0; i < 20; i += 1) {
-    publish = await evaluate(`() => {
-      const dialog = document.getElementById('publish-dialog')
-      if (dialog?.open) return { kind: document.getElementById('publish-export-kind')?.textContent || '' }
-      const walkthrough = document.getElementById('finalize-bar')
-      if (walkthrough && !walkthrough.hidden) { document.getElementById('finalize-next')?.click(); return null }
-      return null
-    }`, 'publish dialog').catch(() => null)
-    if (publish) break
-    await sleep(400)
+  const publishKind = async () => {
+    await evaluate(`() => { document.getElementById('render-video').click(); return true }`, 'publish click')
+    for (let i = 0; i < 20; i += 1) {
+      const result = await evaluate(`() => {
+        const dialog = document.getElementById('publish-dialog')
+        if (dialog?.open) return { kind: document.getElementById('publish-export-kind')?.textContent || '' }
+        const walkthrough = document.getElementById('finalize-bar')
+        if (walkthrough && !walkthrough.hidden) { document.getElementById('finalize-next')?.click(); return null }
+        return null
+      }`, 'publish dialog').catch(() => null)
+      if (result) return result
+      await sleep(400)
+    }
+    return null
   }
+  const closePublish = () => evaluate(`() => { document.getElementById('publish-dialog')?.close(); return true }`, 'close publish')
+  const bootInto = async (id, title) => {
+    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.reload(); return true }`, `open ${id}`)
+    for (let i = 0; i < 60; i += 1) {
+      const state = await evaluate(`() => document.getElementById('project-title')?.value || ''`, 'boot').catch(() => '')
+      if (state === title) return
+      await sleep(500)
+    }
+    throw new Error(`notebook ${id} did not open`)
+  }
+  const publish = await publishKind()
   if (!publish) {
     const openModals = await evaluate(`() => [...document.querySelectorAll('dialog[open]')].map(d => d.id)`, 'open modals').catch(() => [])
     check('Publish labels the render a draft export, not a reviewed explainer', false, `dialog never opened; open dialogs: ${JSON.stringify(openModals)}`)
   } else {
     check('Publish labels the render a draft export, not a reviewed explainer', /Draft export/.test(publish.kind), JSON.stringify(publish))
   }
-  await evaluate(`() => { document.getElementById('publish-dialog')?.close(); return true }`, 'close publish')
+  await closePublish()
 
   // The library shows the Base badge on a root notebook.
   await evaluate(`async () => {
@@ -246,8 +259,41 @@ try {
   }
   check('library marks the root notebook as Base', Boolean(library && library.badges.includes('Base')), JSON.stringify(library))
 
+  // The reviewed label tracks the stamped content hash (§3.9): a scene edited
+  // after the build's review reads as a draft again, before anything re-runs.
+  const VIDEO_ID = `${PROJECT_ID}-video`
+  const VSCENE_SVG = '<svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg"><rect id="r1" x="40" y="40" width="200" height="120" fill="#4f46e5"/></svg>'
+  const VPROGRAM = { version: 1, beats: [{ id: 'b1', say: 'Reviewed line.' }] }
+  const { createHash } = await import('node:crypto')
+  // Canonical key order — PG jsonb reorders object keys, so the stamp hashes
+  // the canonical form (same recipe as the finish tool and the page).
+  const stableStringify = value => JSON.stringify(value, (_key, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v))
+  const stampHash = createHash('sha256').update(VSCENE_SVG).update(stableStringify(VPROGRAM)).digest('hex')
+  const videoProject = svg => ({
+    version: 1, id: VIDEO_ID, title: 'D0 video notebook',
+    derivedFrom: { notebook: PROJECT_ID, kind: 'video' },
+    notebook: { type: 'doc', content: [
+      { type: 'heading', attrs: { id: 'blk-vh', level: 1 }, content: [{ type: 'text', text: 'Video' }] },
+      { type: 'scene', attrs: { id: 'blk-v1', title: 'Reviewed scene', svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, program: VPROGRAM, explainer: { reviewed: true, hash: stampHash } } },
+    ] },
+    fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
+  })
+  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(videoProject(VSCENE_SVG)) })
+  await bootInto(VIDEO_ID, 'D0 video notebook')
+  const reviewedLabel = await publishKind()
+  check('a fully reviewed notebook reads as a reviewed export', /Reviewed explainer export/.test(reviewedLabel?.kind || ''), JSON.stringify(reviewedLabel))
+  await closePublish()
+
+  const editedSvg = VSCENE_SVG.replace('#4f46e5', '#dc2626')
+  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(videoProject(editedSvg)) })
+  await bootInto(VIDEO_ID, 'D0 video notebook')
+  const staleLabel = await publishKind()
+  check('a scene changed since the review reads as a draft again', /1 of 1 scenes changed since the rich build's review/.test(staleLabel?.kind || ''), JSON.stringify(staleLabel))
+  await closePublish()
+  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'DELETE' })
+
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })
-  check('cleanup', true, 'fixture notebook deleted')
+  check('cleanup', true, 'fixture notebooks deleted')
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

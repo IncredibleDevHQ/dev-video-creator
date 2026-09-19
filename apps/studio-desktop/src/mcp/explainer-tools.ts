@@ -15,6 +15,11 @@ type Args = Record<string, unknown>
 type Context = { origin: string }
 type Proof = { hash: string; errors: string[]; warnings: string[]; frames: Array<{ atMs: number; path: string }>; program: SceneProgram; plan: MotionPlanV2; windows: unknown[]; durationMs: number }
 const digest = (svg: string, program: unknown) => createHash('sha256').update(svg).update(JSON.stringify(program)).digest('hex')
+// The stamp on the notebook doc crosses the PG jsonb boundary, which reorders
+// object keys — so it hashes a canonical key order instead of raw JSON text.
+const stableStringify = (value: unknown): string =>
+  JSON.stringify(value, (_key, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b))) : v))
+const contentStamp = (svg: string, program: unknown) => createHash('sha256').update(svg).update(stableStringify(program)).digest('hex')
 const jsonFile = async (path: string) => JSON.parse(await readFile(path, 'utf8'))
 const save = async (path: string, value: unknown) => writeFile(path, JSON.stringify(value, null, 2))
 const execute = promisify(execFile)
@@ -334,6 +339,9 @@ const finishTool = async (args: Args, context: Context) => {
       program: scene.program, motion: scene.motion, windows: scene.windows, script: say, sourceText: say, scriptApproved: true, breakdownApproved: true,
       directorNotes: `${scene.question}\n${scene.answer}`, structureApproved: true, stageTrack: [], stagePlacements: null, directorAuto: null,
       explainer: { run: projectDir, question: scene.question, answer: scene.answer, assets: scene.assets, reviewed: true,
+        // The hash of exactly what was reviewed: a later edit keeps the
+        // boolean but breaks the hash, and staleness becomes visible (§3.9).
+        hash: contentStamp(scene.svg, scene.program),
         previousPresenterTracks: earlier?.previousPresenterTracks ?? project.presenterTracks?.[scene.id] ?? [], previousRecording: earlier?.previousRecording ?? project.recordedBlocks?.[scene.id] ?? null } }
     // The surviving node remembers every base scene it now covers.
     const originScenes = [...new Set(covers.flatMap(cid => {

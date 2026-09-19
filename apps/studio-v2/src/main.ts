@@ -3591,7 +3591,7 @@ const exitFinalizeMode = () => {
 
 const enterFinalizeMode = () => {
   if (scenes.length < 2) {
-    openPublishSummary()
+    void openPublishSummary()
     return
   }
   if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
@@ -3605,7 +3605,7 @@ const enterFinalizeMode = () => {
 ;($('#finalize-next') as HTMLButtonElement).addEventListener('click', () => {
   if (finalizeJunctionIndex >= scenes.length - 2) {
     exitFinalizeMode()
-    openPublishSummary()
+    void openPublishSummary()
     return
   }
   finalizeJunctionIndex += 1
@@ -6288,9 +6288,8 @@ const baseStatusFor = async (notebookId: string) => {
 const videoReviewStateFor = async (notebookId: string) => {
   try {
     const { project: doc } = await fetchJson<{ project: ProjectDocumentV1 }>(`/api/projects/${encodeURIComponent(notebookId)}`)
-    const videoScenes = doc.notebook.content.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.svg)
-    const reviewedCount = videoScenes.filter(node => (node.attrs?.explainer as { reviewed?: boolean } | undefined)?.reviewed === true).length
-    return { sceneCount: videoScenes.length, reviewedCount, isReviewed: videoScenes.length > 0 && reviewedCount === videoScenes.length }
+    const review = await sceneReviewFor(doc.notebook.content)
+    return { ...review, isReviewed: review.sceneCount > 0 && review.changedCount === 0 && review.reviewedCount === review.sceneCount }
   } catch {
     return null
   }
@@ -6445,7 +6444,9 @@ const notebookCard = (
       review.textContent = state.isReviewed ? 'Reviewed' : 'Draft'
       review.title = state.isReviewed
         ? 'Every scene passed the rich explainer build’s review'
-        : `${state.reviewedCount} of ${state.sceneCount} scenes reviewed — Publish renders a draft, Build explainer completes it`
+        : state.changedCount
+          ? `${state.changedCount} of ${state.sceneCount} scenes changed since the build's review — Publish renders a draft, Build explainer re-reviews them`
+          : `${state.reviewedCount} of ${state.sceneCount} scenes reviewed — Publish renders a draft, Build explainer completes it`
       badges.append(review)
     })
   } else {
@@ -7998,7 +7999,7 @@ const startPublish = async () => {
     const link = $('#download-render') as HTMLAnchorElement
     link.href = result.url
     resultPanel.hidden = false
-    const review = explainerReviewState()
+    const review = await explainerReviewState()
     ;($('#publish-count') as HTMLElement).textContent =
       `${review.isReviewed ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
     showToast(review.isReviewed
@@ -8022,25 +8023,56 @@ const closePublishTakePreview = () => {
 // ——— Draft vs reviewed export ———
 // A derived video notebook earns the reviewed-explainer label only when its
 // scenes were applied by the rich build (explainer_finish stamps
-// attrs.explainer.reviewed). Anything else rendered through Publish is a
-// draft: useful, but visibly not a completed rich explainer. An MP4 render
-// alone never advances rich-build status.
-const explainerReviewState = () => {
-  const derived = Boolean(project.derivedFrom?.notebook)
-  const videoScenes = project.notebook.content.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.svg)
-  const reviewedCount = videoScenes.filter(node => (node.attrs?.explainer as { reviewed?: boolean } | undefined)?.reviewed === true).length
-  return { derived, sceneCount: videoScenes.length, reviewedCount, isReviewed: derived && videoScenes.length > 0 && reviewedCount === videoScenes.length }
+// attrs.explainer.reviewed) AND the stamped content hash still matches what
+// is on the page — editing a reviewed scene turns its label back into a
+// draft, visible before anything re-runs (§3.9). Stamps from before the hash
+// existed count as reviewed, unchanged. An MP4 render alone never advances
+// rich-build status.
+// Canonical key order: the notebook store (PG jsonb) reorders object keys, so
+// the stamp's hash must not depend on textual key order. Same recipe as the
+// finish tool's contentStamp.
+const stableStringify = (value: unknown): string =>
+  JSON.stringify(value, (_key, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b))) : v))
+
+const sceneContentHash = async (node: TiptapNode) => {
+  const attrs = node.attrs || {}
+  const bytes = new TextEncoder().encode(String(attrs.svg || '') + stableStringify(attrs.program))
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
-const openPublishSummary = () => {
+const sceneReviewFor = async (content: TiptapNode[]) => {
+  const videoScenes = content.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.svg)
+  let reviewedCount = 0
+  let changedCount = 0
+  for (const node of videoScenes) {
+    const stamp = node.attrs?.explainer as { reviewed?: boolean; hash?: string } | undefined
+    if (stamp?.reviewed !== true) continue
+    if (stamp.hash && (await sceneContentHash(node)) !== stamp.hash) {
+      changedCount += 1
+      continue
+    }
+    reviewedCount += 1
+  }
+  return { sceneCount: videoScenes.length, reviewedCount, changedCount }
+}
+
+const explainerReviewState = async () => {
+  const derived = Boolean(project.derivedFrom?.notebook)
+  const review = await sceneReviewFor(project.notebook.content)
+  return { derived, ...review, isReviewed: derived && review.sceneCount > 0 && review.changedCount === 0 && review.reviewedCount === review.sceneCount }
+}
+
+const openPublishSummary = async () => {
   publishExcluded.clear()
   ;($('#render-result') as HTMLElement).hidden = true
   closePublishTakePreview()
   const exportKind = $('#publish-export-kind') as HTMLElement
-  const review = explainerReviewState()
+  const review = await explainerReviewState()
   exportKind.hidden = false
   if (review.isReviewed) {
     exportKind.textContent = 'Reviewed explainer export — every scene passed the rich build’s review.'
+  } else if (review.derived && review.changedCount) {
+    exportKind.textContent = `Draft export — ${review.changedCount} of ${review.sceneCount} scenes changed since the rich build's review. Build explainer re-reviews them; accepted artwork is reused.`
   } else if (review.derived) {
     exportKind.textContent = `Draft export — ${review.reviewedCount} of ${review.sceneCount} scenes reviewed by the rich build. Build explainer produces the reviewed explainer export.`
   } else {
