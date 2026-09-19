@@ -319,7 +319,10 @@ const finishTool = async (args: Args, context: Context) => {
     const rawProgram = await jsonFile(join(projectDir, 'explainer', `${scene.file}.program.json`))
     if (narration.hash !== digest(scene.svg, rawProgram)) throw new Error(`${scene.file}: narration or picture changed; run explainer_narrate again`)
     project.presenterTracks ||= {}
-    project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl: narration.audioUrl, audioKind: 'generated' }]
+    // The human path's narration record is the selected take: the export must
+    // carry the person's voice, not a guide-voice substitute.
+    const recorded = narration.alignment === 'selected-take'
+    project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl: narration.audioUrl, audioKind: recorded ? 'recorded-mic' : 'generated' }]
     // Merged-away pages leave the notebook; their origin lives on in the survivor.
     for (const extra of covers.slice(1)) {
       if (extra === scene.id) continue
@@ -442,6 +445,15 @@ const alignTakeTool = async (args: Args, context: Context) => {
   })
   await save(p.programPath, program)
   await save(join(p.folder, `${p.scene}.take-alignment.json`), { beats: aligned.beats.map(beat => ({ id: beat.id, coverage: beat.coverage, startMs: beat.startMs, durationMs: beat.durationMs, review: beat.review })) })
+  // The take IS this scene's audio on the human path: store it and write the
+  // narration record the finish applies, so the export carries the person's
+  // actual voice — never a guide substitute (§3.8).
+  const inputs = await jsonFile(join(p.projectDir, 'motion', 'inputs.json'))
+  const uploaded = await fetch(`${context.origin}/api/assets`, { method: 'POST', headers: { 'content-type': 'audio/mpeg', 'x-project-id': inputs.projectId }, body: new Uint8Array(await readFile(audioPath)) })
+  if (!uploaded.ok) throw new Error('Could not store the take audio')
+  const track = await uploaded.json() as { url: string }
+  const sceneSvg = await readFile(p.svgPath, 'utf8')
+  await save(join(p.folder, `${p.scene}.narration.json`), { hash: digest(sceneSvg, program), audioUrl: track.url, alignment: 'selected-take', durationMs: program.beats.reduce((sum, beat) => sum + (beat.durationMs || 0), 0) })
   const preview = await previewTool(args)
   await recordStage(context, p.projectDir, 'align-take', review.length ? 'needs-input' : 'succeeded', { scene: p.scene, review })
   return { ...preview, review, alignment: 'selected-take', instruction: review.length ? 'These beats were not said as written; rebind their cues or record the named pickups, then align again.' : 'The take is the timing authority. Inspect the frames: motion follows the actual delivery.' }

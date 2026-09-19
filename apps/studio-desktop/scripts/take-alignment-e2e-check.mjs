@@ -44,10 +44,10 @@ try {
       { id: 'b2', say: 'Each client waits a different interval, so retries spread out.', events: [{ id: 'e2', actor: 'scheduler', action: 'perform', cue: 'spread', clip: { fromMs: 0, toMs: 400, durationMs: 400 } }] },
     ],
   }
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
   await mkdir(join(projectDir, 'explainer'), { recursive: true })
   await mkdir(join(projectDir, 'motion'), { recursive: true })
-  await writeFile(join(projectDir, 'motion', 'inputs.json'), JSON.stringify({ projectId: 'nb' }))
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
+  await writeFile(join(projectDir, 'motion', 'inputs.json'), JSON.stringify({ projectId: 'nb', scenes: [{ id: 'scene', svg, script: '' }] }))
   await writeFile(join(projectDir, 'explainer', 'scene.svg'), svg)
   await writeFile(join(projectDir, 'explainer', 'scene.program.json'), JSON.stringify(program))
 
@@ -74,16 +74,30 @@ try {
     bundle: true, platform: 'node', format: 'esm', outfile: join(dir, 'dist-electron', 'tools.mjs'),
     plugins: [{ name: 'stub-render-window', setup(b) {
       b.onResolve({ filter: /hidden-window$/ }, () => ({ path: 'window', namespace: 'stub' }))
-      b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({ contents: 'export const runAtomizer = async () => ({ errors: [], warnings: [], frames: [], durationMs: 1000 }); export const captureHiddenPage = async () => Buffer.from([]);' }))
+      b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({ contents: 'export const runAtomizer = async (name, svg, program) => { if (name === "objectClipSeek") return { found: true }; if (name === "explainerFrame") return { ms: 0, beat: 0 }; const beats = (program && program.beats) || []; return { errors: [], warnings: [], frames: [0], durationMs: Math.max(1, beats.length) * 200, program, plan: { version: 2, steps: beats.map(() => ({ motionWindowMs: 100, holdMs: 100, actions: [] })) }, windows: [] } }; export const captureHiddenPage = async () => Buffer.from([]);' }))
     } }],
   })
   const { EXPLAINER_TOOLS } = await import(pathToFileURL(join(dir, 'dist-electron', 'tools.mjs')))
+  let project = {
+    id: 'nb', derivedFrom: { notebook: 'base' },
+    blocks: { scene: { nodeId: 'scene', durationMs: 6000 } },
+    presenterTracks: {},
+    notebook: { type: 'doc', content: [{ type: 'scene', attrs: { id: 'scene', svg, script: '' } }] },
+  }
   const previousFetch = globalThis.fetch
   globalThis.fetch = async (url, options) => {
-    if (String(url).includes('/api/runs/') && String(url).endsWith('/stages')) {
+    const u = String(url)
+    if (u.includes('/api/runs/') && u.endsWith('/stages')) {
       stageCalls.push(JSON.parse(options?.body || '{}'))
       return Response.json({ saved: true })
     }
+    if (u.endsWith('/api/assets')) return Response.json({ url: 'http://fixture/take-audio.mp3' })
+    if (u.endsWith('/api/appearance/verify-cast')) return Response.json({ ok: true, cast: [] })
+    if (u.endsWith('/api/projects/nb')) {
+      if (options?.method === 'PUT') project = JSON.parse(options.body)
+      return Response.json({ project })
+    }
+    if (u.endsWith('/api/preview')) return Response.json({})
     throw new Error(`Unexpected fixture URL: ${url}`)
   }
   try {
@@ -102,6 +116,13 @@ try {
     check('the align-take stage checkpoint landed', stageCalls.some(c => c.stage === 'align-take' && c.status === 'succeeded'), JSON.stringify(stageCalls))
     const proof = JSON.parse(await readFile(join(projectDir, 'explainer', 'scene.proof.json'), 'utf8'))
     check('the preview recompiled against the take timing', proof.hash === createHash('sha256').update(svg).update(JSON.stringify(retimed)).digest('hex'))
+
+    // The human delivery path completes: the finish applies the take as the
+    // scene's audio track, kind recorded — never a guide substitute.
+    await writeFile(join(projectDir, 'explainer', 'story.json'), JSON.stringify({ scenes: [{ id: 'scene', file: 'scene', title: 'Mechanism', question: 'Why?', answer: 'Because.', review: 'States checked.', assets: [] }] }))
+    await EXPLAINER_TOOLS.find(t => t.name === 'explainer_finish').call({ projectDir }, { origin: 'http://fixture' })
+    const track = project.presenterTracks?.scene?.[0]
+    check('the export carries the take, not a guide', track?.audioUrl === 'http://fixture/take-audio.mp3' && track?.audioKind === 'recorded-mic', JSON.stringify(track || null))
   } finally {
     globalThis.fetch = previousFetch
   }
