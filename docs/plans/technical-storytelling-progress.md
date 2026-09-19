@@ -2,6 +2,16 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D4 slice 1: cast receipts + complete motion bundle
+
+**Commits**
+
+- `7313d8a7` — cast verification: `/api/appearance/verify-cast` proves every `data-appearance-key` marker resolves to an accepted library asset with its real geometry (path/points tokens survive the import's id prefixing); rich finish/export refuse forged or mismatched markers; the finish receipt records the cast per scene. The adapted diffusionstudio bundle gains `svg-compatibility.md` (retargeted to native SVG/SMIL, Skottie instructions replaced), transitive upstream references resolved (`player-contract.md` inlined as a rule; chapterization pointer → our scene-contract), and `skill-references-check.mjs` guards the shipped instruction graph (58 refs, vendor trees excluded by design).
+
+**Checks:** appearance-cast.test.ts 5/5 (suite 100); lineage 8/8 incl. forged-marker refusal; persistence check green.
+
+**D4 remaining:** role-record-driven briefs (the D2 model's objects → artwork briefs), visible acquisition states in the Objects panel (exists partially), bounded repair budget surfacing, used-in references in Assets UI, live Quiver provider proof (needs the key at run time).
+
 ## 2026-09-19 — D3 slice 3: durable presenter takes
 
 **Commits**
