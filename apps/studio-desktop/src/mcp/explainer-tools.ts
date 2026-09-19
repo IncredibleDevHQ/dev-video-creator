@@ -528,6 +528,16 @@ const alignTakeTool = async (args: Args, context: Context) => {
   return { ...preview, review, alignment: 'selected-take', instruction: review.length ? 'These beats were not said as written; rebind their cues or record the named pickups, then align again.' : 'The take is the timing authority. Inspect the frames: motion follows the actual delivery.' }
 }
 
+// The vendored skill's declared version, memoized — the review receipt cites
+// it so a skill change invalidates the right proofs (§5.4a).
+let explainerSkillVersionCache = ''
+const explainerSkillVersion = async () => {
+  if (explainerSkillVersionCache) return explainerSkillVersionCache
+  const doc = await readFile(fileURLToPath(new URL('../skills/explainer-master/SKILL.md', import.meta.url)), 'utf8').catch(() => '')
+  explainerSkillVersionCache = /^ {2}version:\s*["']?([^"'\n]+)["']?/m.exec(doc)?.[1]?.trim() || 'unversioned'
+  return explainerSkillVersionCache
+}
+
 const reviewObjectTool = async (args: Args, context: Context) => {
   const projectDir = String(args.projectDir || '')
   if (!isAbsolute(projectDir)) throw new Error('projectDir must be absolute')
@@ -558,7 +568,15 @@ const reviewObjectTool = async (args: Args, context: Context) => {
     await writeFile(path, await captureHiddenPage())
     frames.push({ ...capture, path })
   }
-  const receipt = { key, errors: result.errors, warnings: result.warnings, clips: result.clips, fidelity: result.fidelity, frames, at: new Date().toISOString() }
+  const receipt = {
+    key,
+    // §5.4a provenance: which accepted asset this review covered and which
+    // skill version's instructions shaped it — an artwork or instruction
+    // change invalidates this proof.
+    sourceHash: createHash('sha256').update(record.svg).digest('hex'),
+    skillVersion: await explainerSkillVersion(),
+    errors: result.errors, warnings: result.warnings, clips: result.clips, fidelity: result.fidelity, frames, at: new Date().toISOString(),
+  }
   await save(join(projectDir, 'explainer', 'objects', `${key}.review.json`), receipt)
   await recordStage(context, projectDir, 'object-review', result.errors.length ? 'failed' : 'succeeded', { key, clips: result.clips.length, fidelity: result.fidelity })
   return {

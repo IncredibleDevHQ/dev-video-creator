@@ -33,6 +33,7 @@ const CHECKS = [
   'narrate-guard-check.mjs',      // §3.7/§5.5: narrate refuses the human path, needs-input checkpoint
   'take-alignment-e2e-check.mjs', // D5: synthesized speech through the real aligner (SKIP without uv)
   'review-budget-check.mjs',      // D5/§5.5: bounded preview loops, retained best proof
+  'object-review-check.mjs',      // §5.4a: review receipts carry source hash + skill version
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 
