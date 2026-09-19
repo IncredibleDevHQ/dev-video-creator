@@ -6,7 +6,8 @@ import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { runAtomizer, captureHiddenPage } from './hidden-window'
 import type { ProjectDocumentV1, MotionPlanV2 } from 'markdown-composition'
-import { createDefaultBlockConfig } from 'markdown-composition'
+import { createDefaultBlockConfig, motionPlanOffsetsMs } from 'markdown-composition'
+import { stageTrackFromShots, type DirectedShot } from '../../../studio-v2/src/shot-plan'
 import type { SceneProgram } from '../../../studio-v2/src/scene-program'
 import { splitCue } from '../../../studio-v2/src/scene-program'
 import type { LibraryArtwork } from '../../../studio-v2/server/appearance-library'
@@ -335,9 +336,29 @@ const finishTool = async (args: Args, context: Context) => {
     }
     const earlier = node.attrs?.explainer as { previousPresenterTracks?: unknown; previousRecording?: unknown } | undefined
     const say = scene.program.beats.map(b => b.say).join('\n\n')
+    // The applied scene's staging comes from a fresh director pass over the
+    // reviewed content (D6): the pre-build directorAuto is stale by index, so
+    // it is replaced, not carried. Without a working renderer the scene keeps
+    // no staging claims rather than stale ones.
+    let stageTrack: unknown[] = []
+    let directorAuto: unknown = null
+    try {
+      const directed = await runAtomizer<{ storyboard?: unknown; shots?: DirectedShot[]; recordingBrief?: unknown }>(
+        'direct',
+        scene.svg,
+        { windows: scene.windows, title: scene.title, position: { index: scenes.indexOf(scene), count: scenes.length } },
+      )
+      if (directed?.shots?.length) {
+        const { offsets } = motionPlanOffsetsMs(scene.motion)
+        stageTrack = stageTrackFromShots(directed.shots, offsets, scene.motion.steps.map(step => step.motionWindowMs + step.holdMs))
+        directorAuto = { storyboard: directed.storyboard, shots: directed.shots, recordingBrief: directed.recordingBrief }
+      }
+    } catch {
+      // No renderer on this host: the scene applies without staging claims.
+    }
     node.attrs = { ...node.attrs, title: scene.title, svg: scene.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(scene.svg)}`,
       program: scene.program, motion: scene.motion, windows: scene.windows, script: say, sourceText: say, scriptApproved: true, breakdownApproved: true,
-      directorNotes: `${scene.question}\n${scene.answer}`, structureApproved: true, stageTrack: [], stagePlacements: null, directorAuto: null,
+      directorNotes: `${scene.question}\n${scene.answer}`, structureApproved: true, stageTrack, stagePlacements: null, directorAuto,
       explainer: { run: projectDir, question: scene.question, answer: scene.answer, assets: scene.assets, reviewed: true,
         // The hash of exactly what was reviewed: a later edit keeps the
         // boolean but breaks the hash, and staleness becomes visible (§3.9).

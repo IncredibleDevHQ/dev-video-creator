@@ -200,6 +200,8 @@ const directPage = (markup: string, args: DirectArgs = {}) => {
     requiredArea: directed.requiredArea,
     directorBrief: directed.brief,
     storyboard: directed.storyboard,
+    shots: directed.shots,
+    recordingBrief: directed.recordingBrief,
     layoutOptions: directed.layoutOptions.map(list => list.slice(0, 4)),
     placements: directed.placements,
     legibility: directed.legibility,
