@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §3.9: reviewed stamps carry a content hash
+
+**Commits**
+
+- `ee0392e5` — `explainer_finish` stamps each applied scene with `explainer.hash` over the exact reviewed svg+program. Publish and the library badge compare it to the scene on the page: a scene edited after the review reads "Draft export — N of M scenes changed since the rich build's review" (Publish dialog and badge tooltip), instead of wearing the reviewed label forever. **Found by the check:** PG jsonb reorders object keys, so the stamp hashes a canonical key order (stableStringify) on all three sides — finish tool, page, fixture. `create-explainer-check.mjs` 16 assertions incl. reviewed → edited → draft-again.
+
 ## 2026-09-19 — fix: take archive on every backend; presenter removal clears the selection
 
 **Commits**
