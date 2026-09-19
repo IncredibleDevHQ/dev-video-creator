@@ -2,6 +2,14 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D4 slice 2: role-driven briefs + compatible reuse
+
+**Commits**
+
+- `6f11b69a` — `briefFromRole` turns the explanation model's objects into validated artwork briefs (model id is provenance, excluded from the brief key so notebooks share drawings). `findCompatibleArtwork` reuses an accepted library asset when entity/role/family/palette match and its parts cover the scene's needs — before any provider call. `/api/appearance/library` answers "used in N notebooks" from the durable store; the Assets dialog shows it. Unit: appearance-briefs.test.ts 4/4 (suite 104), including reuse with no provider key configured (a call would throw).
+
+**D4 remaining:** the Objects panel's live acquisition states during a build (reused/generating/checking/accepted — data exists in run stage rows, wiring is D7 UX), behavior revisions, and the live Quiver provider proof (needs QUIVER_API_KEY at run time).
+
 ## 2026-09-19 — D4 slice 1: cast receipts + complete motion bundle
 
 **Commits**
