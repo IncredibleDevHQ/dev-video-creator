@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — D6: finish stages applied scenes from a fresh director pass
+
+**Commits**
+
+- `176d9f52` — `explainer_finish` wrote `stageTrack: []` + `directorAuto: null` on applied scenes: the pre-build staging was stale by beat index, but nulling it also dropped the coach brief and every emphasis overlay, and the export fell back to a static camera mode. Finish now runs a fresh director pass over the reviewed content (the hidden window's `direct` atomizer, which now passes `shots` + `recordingBrief` through): shots → the saved `stageTrack` (via `stageTrackFromShots`), and `directorAuto` carries storyboard/shots/brief again. Fail-soft: without a renderer the scene applies with no staging claims rather than stale ones. `explainer-persistence-check.mjs` proves both arms (stub absent → clean nulls; stub present → track + brief on the applied scene), 7 groups green.
+
 ## 2026-09-19 — §5.5: the paused-build notice names the scenes
 
 **Commits**
