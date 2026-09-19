@@ -115,7 +115,9 @@ try {
     check('the take alignment receipt is written', true)
     check('the align-take stage checkpoint landed', stageCalls.some(c => c.stage === 'align-take' && c.status === 'succeeded'), JSON.stringify(stageCalls))
     const proof = JSON.parse(await readFile(join(projectDir, 'explainer', 'scene.proof.json'), 'utf8'))
-    check('the preview recompiled against the take timing', proof.hash === createHash('sha256').update(svg).update(JSON.stringify(retimed)).digest('hex'))
+    // The product hashes a canonical key order (PG jsonb reorders keys).
+    const stable = value => JSON.stringify(value, (_k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v)
+    check('the preview recompiled against the take timing', proof.hash === createHash('sha256').update(svg).update(stable(retimed)).digest('hex'))
 
     // The human delivery path completes: the finish applies the take as the
     // scene's audio track, kind recorded — never a guide substitute.

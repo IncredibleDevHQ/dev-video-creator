@@ -37,7 +37,9 @@ try {
 
   const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
   const program = { version: 1, cast: [], beats: [{ say: 'A complete explanation.', events: [] }] }
-  const hash = createHash('sha256').update(svg).update(JSON.stringify(program)).digest('hex')
+  // The product hashes a canonical key order (PG jsonb reorders keys).
+  const stable = value => JSON.stringify(value, (_k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v)
+  const hash = createHash('sha256').update(svg).update(stable(program)).digest('hex')
   const save = (name, value) => writeFile(join(dir, name), JSON.stringify(value))
   const writeSceneFiles = async () => {
     await mkdir(join(dir, 'explainer'), { recursive: true })
@@ -140,7 +142,7 @@ try {
   console.log('PASS  unknown covers are rejected')
   // §5.4a: an object that performs must carry an isolated review receipt.
   const clipSvg = '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="known-key"><svg id="clip-1" data-object-clip="1" data-duration-ms="1000"><circle cx="5" cy="5" r="4"><animate attributeName="r" values="4;6;4" dur="1s" fill="freeze"/></circle></svg></g></svg>'
-  const clipHash = createHash('sha256').update(clipSvg).update(JSON.stringify(program)).digest('hex')
+  const clipHash = createHash('sha256').update(clipSvg).update(stable(program)).digest('hex')
   await writeFile(join(dir, 'explainer/scene.svg'), clipSvg)
   await save('explainer/scene.program.json', program)
   await save('explainer/scene.proof.json', { hash: clipHash, errors: [], warnings: [], frames: [{ atMs: 0, path: 'review.png' }], program, plan: { version: 2, steps: [{ motionWindowMs: 0, holdMs: 2000, actions: [] }] }, windows: [], durationMs: 2000 })
@@ -175,8 +177,8 @@ try {
   // A forged artwork marker is not proof: the cast receipt refuses it (D4).
   await writeFile(join(dir, 'explainer/scene.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>')
   await save('explainer/scene.program.json', program)
-  await save('explainer/scene.proof.json', { hash: createHash('sha256').update('<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>').update(JSON.stringify(program)).digest('hex'), errors: [], warnings: [], frames: [{ atMs: 0, path: 'review.png' }], program, plan: { version: 2, steps: [{ motionWindowMs: 0, holdMs: 2000, actions: [] }] }, windows: [], durationMs: 2000 })
-  await save('explainer/scene.narration.json', { hash: createHash('sha256').update('<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>').update(JSON.stringify(program)).digest('hex'), audioUrl: 'http://fixture/audio.mp3' })
+  await save('explainer/scene.proof.json', { hash: createHash('sha256').update('<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>').update(stable(program)).digest('hex'), errors: [], warnings: [], frames: [{ atMs: 0, path: 'review.png' }], program, plan: { version: 2, steps: [{ motionWindowMs: 0, holdMs: 2000, actions: [] }] }, windows: [], durationMs: 2000 })
+  await save('explainer/scene.narration.json', { hash: createHash('sha256').update('<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>').update(stable(program)).digest('hex'), audioUrl: 'http://fixture/audio.mp3' })
   await story([storyScene('scene-a'), storyScene('scene-b'), storyScene('scene-c')])
   await assert.rejects(invoke('explainer_finish'), /not verified against the library/)
   console.log('PASS  a forged artwork marker cannot pass rich completion')
