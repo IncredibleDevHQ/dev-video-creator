@@ -2,6 +2,15 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D6 slices 1+2: shot sequences and the recording brief
+
+**Commits**
+
+- `66af24cc` — `shot-plan.ts`: the director's storyboard compiles into DirectedShots (beats, focus, view: camera-full/camera-text/shared/animation-full, emphasis on camera-led shots only, explicit transition out — object-expand/cut/reframe/hold with restrained durations — and per-shot reasons). `validateShots` enforces full ordered coverage; `recordingBriefFor` turns the plan into per-scene plain-language guidance. `direct()` returns both. Unit: 115 (9 new).
+- `ccff68ad` — the scene editor's staging area shows the shot sequence with transitions, and the recording brief when the notebook is in human delivery.
+
+**D6 remaining:** the composition engine executing shot views directly (today the storyboard drives stageTrack as before; shots are the review/authoring surface), the scene-by-scene coach card loop (ready → recording → analyzing → accepted) consuming `RecordingBrief`, full-camera emphasis text in the renderer, and transition execution in the composition.
+
 ## 2026-09-19 — D5 slices 1+2: cue identity and take-aligned timing
 
 **Commits**
