@@ -108,7 +108,10 @@ Retain its object identities when useful and its source scene id always.
    take's actual delivery becomes the timing authority. Feed it the take's
    audio (a run file, or its stored object URL); beats the take did not say
    come back flagged: rebind their cues or list them for a pickup, never
-   invent the missing speech. A cue is one spoken word; pin an occurrence
+   invent the missing speech. A scene whose take is not recorded yet is a
+   `needs-input` stop, not a narration: name the scene, record the
+   checkpoint, and end the run there — `explainer_narrate` refuses the human
+   path, and generated speech never substitutes for an unrecorded segment. A cue is one spoken word; pin an occurrence
    with `#n` when the word repeats in a line.
    `explainer_narrate` details: the product makes guide speech and runs a
    local word alignment model. It writes

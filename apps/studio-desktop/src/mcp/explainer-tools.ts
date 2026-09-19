@@ -137,6 +137,14 @@ const previewTool = (args: Args, context?: Context) => {
 const narrateTool = async (args: Args, context: Context) => {
   const p = paths(args)
   const inputs = await jsonFile(join(p.projectDir, 'motion', 'inputs.json'))
+  // The human path never synthesizes a presenter's voice (§3.7/§5.5): its
+  // narration comes from the selected take via explainer_align_take. Refuse
+  // here, and leave the run durably waiting for a person — never failed, and
+  // never silently substituted.
+  if (inputs.delivery?.mode === 'human') {
+    await recordStage(context, p.projectDir, 'narrate', 'needs-input', { scene: p.scene, reason: 'The human path narrates from the recorded take; none is aligned in this run yet. Record or select the take in the app, then run explainer_align_take.' })
+    throw new Error(`Scene ${p.scene} is on the human delivery path: narration comes from the creator's recorded take. Record or select the take in the app and call explainer_align_take with its audio — generated speech is never a silent substitute.`)
+  }
   const program = await jsonFile(p.programPath) as SceneProgram
   const audioDir = join(p.folder, 'audio', p.scene)
   await mkdir(audioDir, { recursive: true })
