@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — fix: take archive on every backend; presenter removal clears the selection
+
+**Commits**
+
+- `ecb3515c` — Two more seam bugs from the camera-archive audit. (1) The archive + selection writes were inlined in the **PostgreSQL** `saveRecordedBlock` only — the file backend's commit path never wrote them, so takes/selections silently didn't exist on the opt-out store. The dispatcher now composes archive + selection for every backend. (2) "Remove presenter track" cleared only the legacy presenterTracks, leaving the archived take active — and hydration resurrected it on reopen. A new `/api/takes/clear` route clears the active take + durable selection on both backends while the archive keeps every take; the remove control is enabled when either system has a take (its legacy `presenterTracks`-only predicate would have left archived takes unremovable). `take-workflow-check.mjs` 16/16 (removal, archive retention, no resurrection); `local-store-check.mjs` proves archive+selection on the file backend and joins the release suite (21).
+
 ## 2026-09-19 — fix: camera-dialog takes join the durable archive
 
 **Commits**
