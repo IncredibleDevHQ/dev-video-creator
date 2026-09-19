@@ -130,7 +130,7 @@ export const ExplainerBlock = Node.create({
         'div',
         { class: 'notebook-explainer-prompt' },
         ['span', { class: 'notebook-explainer-glyph' }, '◈'],
-        ['strong', {}, topic ? String(topic) : 'Explainer'],
+        ['strong', {}, topic ? String(topic) : 'Basic diagram'],
         [
           'button',
           {
@@ -138,7 +138,7 @@ export const ExplainerBlock = Node.create({
             class: 'notebook-image-action',
             'data-explainer-action': 'edit',
           },
-          'Edit explainer',
+          'Edit diagram',
         ],
       ],
       stepList,
@@ -147,7 +147,7 @@ export const ExplainerBlock = Node.create({
         {},
         steps.length
           ? `${entityCount} entities · ${steps.length} animated steps${canvasCode ? ' · canvas program' : ''}`
-          : String(topic || 'Explainer'),
+          : String(topic || 'Basic diagram'),
       ],
     ]
   },

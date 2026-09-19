@@ -671,7 +671,7 @@ const textContent = (node: TiptapNode): string => {
     return String(node.attrs?.title || 'Screen recording')
   }
   if (node.type === 'explainer') {
-    return String(node.attrs?.topic || 'Explainer')
+    return String(node.attrs?.topic || 'Basic diagram')
   }
   if (isSlideLikeNode(node)) {
     return String(node.attrs?.title || (node.type === 'scene' ? 'Scene' : 'Slide'))

@@ -530,7 +530,7 @@ const TIMELINE_BLOCK_META = {
   code: { label: 'Code', icon: '</>' },
   image: { label: 'Image', icon: '▧' },
   screen: { label: 'Screen', icon: '▶' },
-  explainer: { label: 'Explainer', icon: '◈' },
+  explainer: { label: 'Basic diagram', icon: '◈' },
   slide: { label: 'Slide', icon: '▤' },
   scene: { label: 'Scene', icon: '▦' },
 } as const
@@ -2578,7 +2578,7 @@ const SLASH_BLOCKS: Array<{
   { id: 'code', label: 'Code', description: 'Walk through code', icon: '</>', keywords: 'snippet terminal developer' },
   { id: 'image', label: 'Image', description: 'Show a visual', icon: '▧', keywords: 'photo picture media upload' },
   { id: 'screen', label: 'Screen recording', description: 'Capture your screen', icon: '▶', keywords: 'video screencast demo capture' },
-  { id: 'explainer', label: 'Explainer', description: 'AI-planned animated diagram', icon: '◈', keywords: 'explain diagram animation concept ai shapes entities' },
+  { id: 'explainer', label: 'Basic diagram', description: 'AI-planned animated diagram', icon: '◈', keywords: 'basic diagram animation concept ai shapes entities' },
 ]
 
 let slashMenuActiveIndex = 0
@@ -4416,7 +4416,7 @@ const syncExplainerDirectorTabs = (scene: Scene) => {
     note = document.createElement('p')
     note.className = 'director-section-note explainer-director-note'
     note.textContent =
-      'Explainer blocks compose themselves — the diagram fills the frame and animates step by step. Direct the presenter, background and transition here; change the diagram itself with “Edit explainer” on the block.'
+      'Basic diagram blocks compose themselves — the diagram fills the frame and animates step by step. Direct the presenter, background and transition here; change the diagram itself with “Edit diagram” on the block.'
     layoutGroup.parentElement.insertBefore(note, layoutGroup)
   }
   if (note) note.hidden = !isExplainer
@@ -8081,7 +8081,7 @@ const saveExplainerWizard = () => {
   exWizard = null
   explainerDialog.close()
   syncProject()
-  showToast('Explainer block saved — it animates step by step in the video')
+  showToast('Basic diagram saved — it animates step by step in the video')
 }
 
 document

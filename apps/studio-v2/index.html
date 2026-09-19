@@ -283,7 +283,7 @@
                       <div id="popover-duration-slot"></div>
                     </div>
                     <div id="canvas-recording-controls" class="canvas-recording-controls" aria-label="Canvas recording controls">
-                      <div id="explainer-step-bar" class="explainer-step-bar" role="group" aria-label="Explainer animation steps" hidden>
+                      <div id="explainer-step-bar" class="explainer-step-bar" role="group" aria-label="Diagram animation steps" hidden>
                         <button id="ex-canvas-restart" type="button" title="Restart the flow from the beginning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v5h5"/><path d="M3.3 9A9 9 0 1 1 3 12"/></svg></button>
                         <button id="ex-canvas-prev" type="button" title="Previous animation step">←</button>
                         <span id="ex-canvas-step-label">Steps</span>
@@ -711,13 +711,13 @@
 
     <dialog id="explainer-dialog" class="modal explainer-modal">
       <div class="explainer-header">
-        <div class="explainer-header-copy"><span class="eyebrow">Explainer block</span><h2>Explain a concept, animated</h2></div>
-        <div class="explainer-stepper" role="tablist" aria-label="Explainer steps">
+        <div class="explainer-header-copy"><span class="eyebrow">Basic diagram</span><h2>Explain a concept with a simple animated diagram</h2><p class="source-hint">Shapes and reveals, animated step by step — a basic diagram. For the rich explainer (reusable objects, narration, reviewed export), use Create explainer.</p></div>
+        <div class="explainer-stepper" role="tablist" aria-label="Basic diagram steps">
           <span data-ex-wizard-step="0" class="active"><i>1</i><em>Explain</em></span>
           <span data-ex-wizard-step="1"><i>2</i><em>Diagram</em></span>
           <span data-ex-wizard-step="2"><i>3</i><em>Preview</em></span>
         </div>
-        <button id="close-explainer" class="icon-button" type="button" aria-label="Close explainer">×</button>
+        <button id="close-explainer" class="icon-button" type="button" aria-label="Close basic diagram">×</button>
       </div>
       <section id="explainer-step-explain" class="explainer-panel">
         <div class="explainer-promptbar">
@@ -764,7 +764,7 @@
     </dialog>
 
     <dialog id="shape-collection-dialog" class="modal shapes-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Explainer</span><h2>Shape collection</h2></div><button id="close-shape-collection" class="icon-button" type="button" aria-label="Close shapes">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Basic diagram</span><h2>Shape collection</h2></div><button id="close-shape-collection" class="icon-button" type="button" aria-label="Close shapes">×</button></div>
       <div id="shape-collection-grid" class="shape-collection-grid"></div>
       <div id="shape-editor" class="shape-editor" hidden>
         <label class="field"><span>Shape name</span><input id="shape-editor-label" placeholder="e.g. Neuron" /></label>
