@@ -3,7 +3,8 @@
 // automatically as equal peers with independent material selection, the
 // choice is recorded on the notebook (remembered, never assumed), Build
 // explainer on an unchosen notebook opens the chooser, Publish labels a
-// non-reviewed render as a draft, and the library shows the Base badge.
+// non-reviewed render as a draft, the library shows the Base badge, and
+// changing the delivery path keeps existing takes and artwork (§3.7/§10).
 // Follows notebooks-hierarchy-check.mjs's pattern (smoke app + /__eval).
 import { spawn } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -64,13 +65,16 @@ try {
   check('empty state offers Create explainer', html.includes('data-start="explainer"'))
   check('legacy wizard is labeled Basic diagram', html.includes('<span class="eyebrow">Basic diagram</span>') && !html.includes('>Explainer block<'), 'wizard header')
 
-  // A fresh base notebook with one block, so Publish is enabled.
+  // A fresh base notebook with one block, so Publish is enabled. The scene
+  // carries artwork so the delivery-switch test has something to keep.
+  const SCENE_SVG = '<svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg"><rect id="r1" x="40" y="40" width="200" height="120" fill="#4f46e5"/></svg>'
   const project = {
     version: 1,
     id: PROJECT_ID,
     title: 'D0 check notebook',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Retry storms' }] },
+      { type: 'scene', attrs: { id: 'blk-s1', title: 'Scene one', svg: SCENE_SVG, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SCENE_SVG)}` } },
     ] },
     fps: 30,
     width: 1920,
@@ -158,14 +162,56 @@ try {
   }`, 'remembered')
   check('the explicit previous choice is remembered', remembered.checked && /Present it myself/.test(remembered.status), JSON.stringify(remembered))
 
-  // Publish on an unreviewed notebook is visibly a draft export.
+  // Changing delivery paths keeps the work (§3.7 / §10): the recorded take,
+  // the scene's artwork, and its words all survive a human ↔ generated switch.
+  await evaluate(`() => { window.__timing.standInTake('blk-s1', 8000); return true }`, 'stand-in take')
+  let before = null
+  for (let i = 0; i < 20; i += 1) {
+    const body = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).catch(() => null)
+    if (body?.project?.recordedBlocks?.['blk-s1']) { before = body.project; break }
+    await sleep(400)
+  }
+  check('a recorded take exists before the switch', Boolean(before?.recordedBlocks?.['blk-s1']?.recordingId))
+  const sceneShape = p => p.notebook.content.find(n => n.attrs?.id === 'blk-s1')
+  const switchDelivery = async path => {
+    await evaluate(`() => { document.getElementById('create-explainer').click(); return true }`, 'reopen chooser')
+    await sleep(300)
+    await evaluate(`() => { document.querySelector('#create-explainer-paths [data-delivery="${path}"]').click(); return true }`, `choose ${path}`)
+    await sleep(200)
+    await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="narrative"]').click(); return true }`, 'start from narrative')
+    await sleep(600)
+    await evaluate(`() => { document.getElementById('source-dialog').close(); return true }`, 'close source')
+    await sleep(400)
+  }
+  await switchDelivery('generated')
+  const afterGenerated = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).then(b => b.project)
+  check(
+    'switching to generated keeps the take archive, the active take, and the scene artwork',
+    afterGenerated?.explainerDelivery === 'generated'
+      && afterGenerated?.recordedBlocks?.['blk-s1']?.recordingId === before.recordedBlocks['blk-s1'].recordingId
+      && (afterGenerated?.recordedBlockTakes?.['blk-s1'] || []).length === 1
+      && JSON.stringify(sceneShape(afterGenerated)) === JSON.stringify(sceneShape(before)),
+  )
+  await switchDelivery('human')
+  const afterHuman = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).then(b => b.project)
+  check(
+    'switching back to human keeps everything again',
+    afterHuman?.explainerDelivery === 'human'
+      && afterHuman?.recordedBlocks?.['blk-s1']?.recordingId === before.recordedBlocks['blk-s1'].recordingId
+      && JSON.stringify(sceneShape(afterHuman)) === JSON.stringify(sceneShape(before)),
+  )
+
+  // Publish on an unreviewed notebook is visibly a draft export. With two
+  // scenes the junction walkthrough comes first — walk it to the summary.
   await evaluate(`() => { document.getElementById('render-video').click(); return true }`, 'publish click')
   let publish = null
   for (let i = 0; i < 20; i += 1) {
     publish = await evaluate(`() => {
       const dialog = document.getElementById('publish-dialog')
-      if (!dialog?.open) return null
-      return { kind: document.getElementById('publish-export-kind')?.textContent || '' }
+      if (dialog?.open) return { kind: document.getElementById('publish-export-kind')?.textContent || '' }
+      const walkthrough = document.getElementById('finalize-bar')
+      if (walkthrough && !walkthrough.hidden) { document.getElementById('finalize-next')?.click(); return null }
+      return null
     }`, 'publish dialog').catch(() => null)
     if (publish) break
     await sleep(400)
