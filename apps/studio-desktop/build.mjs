@@ -15,6 +15,7 @@
 // Everything else (node builtins excluded automatically) is bundled —
 // including the workspace TS sources markdown-composition.
 import { build } from 'esbuild'
+import { cp } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 const appDir = fileURLToPath(new URL('.', import.meta.url))
@@ -71,5 +72,9 @@ await build({
   outfile: `${outdir}mcp-stdio.mjs`,
   format: 'esm',
 })
+
+// SQL migrations are read from disk at runtime (persistence-pg.ts resolves
+// them relative to the worker module), so the bundle needs its own copy.
+await cp(`${studioV2Dir}server/migrations`, `${outdir}migrations`, { recursive: true })
 
 console.log('built dist-electron/main.js, preload.cjs, worker.mjs, atomizer.js, mcp-stdio.mjs')

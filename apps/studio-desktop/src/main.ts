@@ -102,8 +102,10 @@ const SMOKE_PROBE = `(async () => {
 
 const smokeFailure = (probe: SmokeProbe | null): string => {
   if (!probe) return 'page probe failed'
-  if (probe.health?.persistence?.database !== 'files') {
-    return `health persistence is not files (${JSON.stringify(probe.health?.persistence ?? null)})`
+  // The desktop's durable store is local PostgreSQL + MinIO; a null
+  // persistence means the services are unavailable (yarn studio:infra).
+  if (probe.health?.persistence?.database !== 'postgres' || probe.health?.persistence?.objectStorage !== 'minio') {
+    return `health persistence is not postgres/minio (${JSON.stringify(probe.health?.persistence ?? null)}) — start the local services with \`yarn studio:infra\``
   }
   if (probe.title !== 'Incredible Studio') return `unexpected title ${JSON.stringify(probe.title)}`
   if (!probe.hasEditor) return 'editor did not mount'

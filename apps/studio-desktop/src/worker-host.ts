@@ -87,7 +87,10 @@ export const startWorker = async (
   )) as StudioWorkerModule
   const handler = createStudioHandler({
     dataDir,
-    persistence: 'local',
+    // The desktop's production store is local PostgreSQL + MinIO. Plain files
+    // remain as an explicit opt-out (STUDIO_PERSISTENCE=local) for isolated
+    // tests and the labeled legacy path — never a silent fallback.
+    persistence: process.env.STUDIO_PERSISTENCE === 'local' ? 'local' : 'postgres',
     serveDist: true,
     distDir,
     outputsDir,
@@ -101,7 +104,7 @@ export const startWorker = async (
     server.listen(port, '127.0.0.1', () => resolve())
   })
   const origin = `http://127.0.0.1:${port}`
-  log(`worker in-process on ${origin} (data: ${dataDir}, exports: ${outputsDir})`)
+  log(`worker in-process on ${origin} (data: ${dataDir}, exports: ${outputsDir}, persistence: ${process.env.STUDIO_PERSISTENCE === 'local' ? 'local files (explicit test mode)' : 'postgres+minio'})`)
   return {
     origin,
     port,

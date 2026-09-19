@@ -14556,6 +14556,32 @@ const renderExplainerReceipts = (receipts: ExplainerRunReceipts | null) => {
   box.hidden = false
 }
 
+// ——— Durable storage state (D0a) ———
+// The production store is local PostgreSQL + MinIO. When the health probe
+// cannot confirm them, say so persistently instead of letting work look
+// saved. The file backend is an explicit isolated-test mode, not a fallback.
+const storageWarning = $('#storage-warning') as HTMLElement
+const reportStorageHealth = async () => {
+  const text = $('#storage-warning-text') as HTMLElement
+  try {
+    const health = await fetchJson<{ persistence?: { database: string; objectStorage: string; bucket: string } | null }>('/api/health')
+    const persistence = health.persistence
+    if (persistence && persistence.database === 'postgres' && persistence.objectStorage === 'minio') {
+      storageWarning.hidden = true
+      return
+    }
+    text.textContent = persistence
+      ? `Storage is ${persistence.database}/${persistence.objectStorage} — not the durable local PostgreSQL + MinIO store. Work may not survive a restart.`
+      : 'Local PostgreSQL/MinIO are unavailable — nothing is being saved durably. Start them with `yarn studio:infra`, then retry.'
+    storageWarning.hidden = false
+  } catch {
+    text.textContent = 'Cannot reach the local studio server — work is not being saved.'
+    storageWarning.hidden = false
+  }
+}
+void reportStorageHealth()
+;($('#storage-warning-retry') as HTMLButtonElement).addEventListener('click', () => void reportStorageHealth())
+
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
