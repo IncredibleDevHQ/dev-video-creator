@@ -2446,10 +2446,26 @@ const handleRender = async (
     await rm(jobDirectory, { recursive: true, force: true })
   }
 
+  // An export is a durable artifact, not just a file in an outputs folder:
+  // register the MP4 in the object store with its own asset row (D0a).
+  let exportAsset: { assetId: string; objectKey: string } | null = null
+  try {
+    exportAsset = await storeAsset({
+      body: await readFile(outputPath),
+      contentType: 'video/mp4',
+      projectId: project.id,
+      kind: 'export',
+      extension: '.mp4',
+    })
+  } catch (error) {
+    console.warn('[render] export could not be stored durably', error instanceof Error ? error.message : error)
+  }
+
   json(response, 200, {
     url: `${publicBaseUrl(request)}/outputs/${id}.mp4`,
     durationSeconds: composition.durationSeconds,
     fonts: { shipped: fonts.shipped, substituted: fonts.substituted },
+    exportAsset,
   })
 }
 
