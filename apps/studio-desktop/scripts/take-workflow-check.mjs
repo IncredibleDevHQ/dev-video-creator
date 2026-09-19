@@ -223,6 +223,47 @@ try {
     JSON.stringify(rehydrated).slice(0, 160),
   )
 
+  // Review before the take counts (§3.7): a stopped take waits for review;
+  // Discard drops it, Keep uploads and archives it — nothing auto-commits.
+  // __timing.stageReview stages a stand-in blob into the recorder's own
+  // review step (MediaRecorder is unavailable headless).
+  await evalInWindow(origin, `(() => {
+    const chip = [...document.querySelectorAll('#scene-rail .scene-card')].find(b => b.textContent.includes('Take scene'))
+    if (!chip) throw new Error('no chip for the take scene')
+    chip.click()
+    document.getElementById('record-this-block').click()
+  })()`)
+  for (let i = 0; i < 20; i += 1) {
+    const open = await evalInWindow(origin, `document.getElementById('camera-dialog')?.open === true`).catch(() => false)
+    if (open) break
+    await sleep(400)
+  }
+  await evalInWindow(origin, `window.__timing.stageReview()`)
+  const review = await evalInWindow(origin, `(() => ({
+    visible: !document.getElementById('take-review').hidden,
+    status: document.getElementById('camera-status').textContent,
+    src: document.getElementById('camera-preview').getAttribute('src') || '',
+  }))()`)
+  check('a stopped take waits for review instead of auto-committing', review.visible && /Review the take/.test(review.status) && review.src.startsWith('blob:'), JSON.stringify(review).slice(0, 140))
+
+  await evalInWindow(origin, `document.getElementById('discard-take').click()`)
+  await sleep(300)
+  const afterDiscard = await fetch(`${origin}/api/takes?projectId=${PROJECT_ID}`).then(r => r.json())
+  const discardState = await evalInWindow(origin, `(() => ({ hidden: document.getElementById('take-review').hidden, startBack: !document.getElementById('start-recording').hidden }))()`)
+  check('discarding uploads nothing and offers a fresh take', afterDiscard.takes?.length === 4 && discardState.hidden && discardState.startBack, `takes=${afterDiscard.takes?.length}`)
+
+  await evalInWindow(origin, `window.__timing.stageReview()`)
+  await evalInWindow(origin, `document.getElementById('keep-take').click()`)
+  let afterKeep = null
+  for (let i = 0; i < 30; i += 1) {
+    afterKeep = await fetch(`${origin}/api/takes?projectId=${PROJECT_ID}`).then(r => r.json()).catch(() => null)
+    if (afterKeep?.takes?.length === 5) break
+    await sleep(400)
+  }
+  check('keeping the take uploads and archives it', afterKeep?.takes?.length === 5, `takes=${afterKeep?.takes?.length}`)
+  const dialogAfterKeep = await evalInWindow(origin, `document.getElementById('camera-dialog')?.open === true`)
+  check('keeping closes the dialog with the take saved', dialogAfterKeep === false, `open=${dialogAfterKeep}`)
+
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })
   check('cleanup', true, 'fixture notebook deleted')
 } catch (error) {

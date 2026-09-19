@@ -700,6 +700,7 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .camera-status span.recording { background: #ef4444; animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 .countdown { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(24,24,27,.5); color: white; font-size: 100px; font-weight: 800; }
+.take-review { position: absolute; right: 15px; bottom: 15px; z-index: 5; display: flex; gap: 8px; padding: 8px; border-radius: 20px; background: rgba(24,24,27,.78); backdrop-filter: blur(8px); }
 .presenter-setup { min-width: 0; }
 .presenter-setup > label { grid-template-columns: 1fr; }
 .presenter-setup > label span { color: var(--muted); font-size: 8px; font-weight: 400; }

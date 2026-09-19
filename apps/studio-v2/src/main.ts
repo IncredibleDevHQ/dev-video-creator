@@ -7418,6 +7418,7 @@ const openCamera = () => {
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
+  resetTakeReview()
   renderCameraBrief(scene.id)
   setupRehearsal(scene)
   void renderPickupNotes(scene.id)
@@ -7644,7 +7645,14 @@ const renderCameraBrief = (sceneId: string) => {
 
 ;($('#record-this-block') as HTMLButtonElement).addEventListener('click', openCamera)
 ;($('#close-camera') as HTMLButtonElement).addEventListener('click', () => {
-  if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
+  if (mediaRecorder?.state === 'recording') {
+    // A take in progress stops into the review step — never silently
+    // committed, never silently dropped.
+    mediaRecorder.stop()
+    return
+  }
+  // Closing while reviewing is a Discard.
+  if (pendingTakeBlob) exitTakeReview()
   stopCameraStream()
   cameraDialog.close()
 })
@@ -7800,7 +7808,7 @@ const uploadRecording = async (blob: Blob) => {
   // The durable archive is the take system of record; a commit failure must
   // not eat the take already on the block.
   try {
-    await archiveCameraTake(recordingNodeId, { url: response.url, assetId: response.assetId }, Math.max(1, Date.now() - recordingStartedAt))
+    await archiveCameraTake(recordingNodeId, { url: response.url, assetId: response.assetId }, Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)))
   } catch (error) {
     console.warn('take archive commit failed', error)
     showToast('The take is on the block, but the durable archive did not record it')
@@ -7830,17 +7838,12 @@ startRecordingButton.addEventListener('click', async () => {
   mediaRecorder.ondataavailable = event => {
     if (event.data.size) recordingChunks.push(event.data)
   }
-  mediaRecorder.onstop = async () => {
-    setCameraStatus('Uploading take…', 'live')
-    stopRecordingButton.hidden = true
-    startRecordingButton.hidden = false
-    try {
-      await uploadRecording(
-        new Blob(recordingChunks, { type: mediaRecorder?.mimeType || 'video/webm' }),
-      )
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not upload take')
-    }
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordingChunks, { type: mediaRecorder?.mimeType || 'video/webm' })
+    recordingChunks = []
+    // Review before the take counts (§3.7): stopping shows the take in the
+    // preview with its sound; only Keep uploads and archives it.
+    enterTakeReview(blob)
   }
   mediaRecorder.start(250)
   recordingStartedAt = Date.now()
@@ -7856,6 +7859,63 @@ startRecordingButton.addEventListener('click', async () => {
 stopRecordingButton.addEventListener('click', () => {
   guideAudio.pause()
   if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
+})
+
+// ——— Review before the take counts (§3.7): a stopped take plays back in the
+// preview with its sound. Keep uploads and archives it; Discard drops it.
+// Closing mid-take stops into this review — never a silent commit, never a
+// silent loss. ———
+const takeReviewBox = $('#take-review') as HTMLElement
+let pendingTakeBlob: Blob | null = null
+let takeReviewUrl = ''
+
+const resetTakeReview = () => {
+  if (takeReviewUrl) URL.revokeObjectURL(takeReviewUrl)
+  takeReviewUrl = ''
+  pendingTakeBlob = null
+  takeReviewBox.hidden = true
+}
+
+const enterTakeReview = (blob: Blob) => {
+  resetTakeReview()
+  pendingTakeBlob = blob
+  takeReviewUrl = URL.createObjectURL(blob)
+  cameraPreview.srcObject = null
+  cameraPreview.src = takeReviewUrl
+  cameraPreview.muted = false
+  cameraPreview.loop = true
+  void cameraPreview.play().catch(() => {})
+  takeReviewBox.hidden = false
+  stopRecordingButton.hidden = true
+  startRecordingButton.hidden = true
+  setCameraStatus('Review the take — Keep archives it, Discard drops it', 'live')
+}
+
+const exitTakeReview = () => {
+  resetTakeReview()
+  cameraPreview.pause()
+  cameraPreview.removeAttribute('src')
+  cameraPreview.muted = true
+  cameraPreview.loop = false
+  if (cameraStream) cameraPreview.srcObject = cameraStream
+  startRecordingButton.hidden = false
+}
+
+;($('#keep-take') as HTMLButtonElement).addEventListener('click', async () => {
+  const blob = pendingTakeBlob
+  if (!blob) return
+  exitTakeReview()
+  setCameraStatus('Uploading take…', 'live')
+  try {
+    await uploadRecording(blob)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Could not upload take')
+  }
+})
+;($('#discard-take') as HTMLButtonElement).addEventListener('click', () => {
+  exitTakeReview()
+  setCameraStatus(cameraStream ? (audioMode.value === 'microphone' ? 'Camera + microphone ready' : 'Camera-only ready') : 'Camera off', cameraStream ? 'live' : 'off')
+  showToast('Take discarded — nothing was uploaded')
 })
 
 ;($('#remove-presenter') as HTMLButtonElement).addEventListener('click', () => {
@@ -15598,6 +15658,12 @@ const startExplainerBuild = async () => {
   // take through the durable path.
   archive: (nodeId: string, asset: { url: string; assetId?: string }, durationMs = 8000) =>
     archiveCameraTake(nodeId, asset, durationMs).then(() => project.recordedBlocks?.[nodeId] || null),
+  // The review step without a camera: stage a stand-in blob into the same
+  // review the recorder's onstop enters, as if three seconds were recorded.
+  stageReview: () => {
+    recordingStartedAt = Date.now() - 3000
+    enterTakeReview(new Blob(['stand-in take bytes'], { type: 'video/webm' }))
+  },
 }
 ;($('#video-length') as HTMLButtonElement).addEventListener('click', () => {
   const current = project.outline?.targetSeconds

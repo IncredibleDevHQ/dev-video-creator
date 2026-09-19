@@ -2275,7 +2275,7 @@ const handleCommitDirectedRecording = async (
     blockId: body.blockId,
     assetId: body.assetId,
     mediaUrl: body.mediaUrl,
-    durationMs: Math.max(1, Number(body.durationMs) || 1),
+  durationMs: Math.min(3_600_000, Math.max(1, Number(body.durationMs) || 1)),
     ...(body.keepsPlan && beatMarksMs.length
       ? {
           keepsPlan: true,
