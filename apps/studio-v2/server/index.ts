@@ -2861,11 +2861,12 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       if (!base) throw new Error('Base notebook not found')
       const childId = `video-${randomUUID()}`
       // The base as it was, kept with the child: the video stays renderable
-      // and intelligible even if the base later changes or goes away.
+      // and intelligible even if the base later changes or goes away. The
+      // snapshot is a global (unattached) asset: it is not owned by the
+      // child notebook, and it outlives either notebook being deleted.
       const snapshot = await storeAsset({
         body: Buffer.from(JSON.stringify(base), 'utf8'),
         contentType: 'application/json; charset=utf-8',
-        projectId: childId,
         kind: 'base-snapshot',
         extension: '.json',
       })
