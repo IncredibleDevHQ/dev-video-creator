@@ -213,3 +213,9 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 **Commits**
 
 - `12758188` — `explainer_review_object`: an accepted asset rendered alone at display size, each clip driven rest/action/settle in the real renderer, frames captured, fidelity against the parent enforced (a performance may not redraw the art). Receipt per object; the rich finish refuses a performed object without one. Skill instructs the review before finishing. Real-DOM proof in `object-performance-check.mjs` (captures + fidelity refusal); the lineage check proves the gate refuses then admits.
+
+## 2026-09-19 — §3.9: staleness as a tool
+
+**Commits**
+
+- `dd2af87a` — `explainer_status`: per-scene freshness across preview proof, narration, and notebook application, so dependent stages are visibly stale before anything re-runs. Lineage check covers fresh-after-finish and stale-after-edit (11/11).
