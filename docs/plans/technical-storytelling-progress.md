@@ -2,6 +2,12 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D6 slice 6: emphasis headlines render
+
+**Commits**
+
+- `4967dc60` — camera-led shots with a short headline compile a timed `.scene-emphasis` overlay into the composition: theme-colored, in the frame's safe corner, live only during the shot's beat window (the scene driver toggles it with the stage). Unit: index.test.ts 38 (2 new).
+
 ## 2026-09-19 — D6 slice 5: transitions execute in the renderer
 
 **Commits**
