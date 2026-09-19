@@ -147,8 +147,8 @@ not clear, the design will usually drift toward generic shapes.
   number, icon and caption), align them by their cap-height centers, not by a
   shared baseline. A shared baseline makes the smaller run appear to sink. Center
   a single run inside a container by its cap-height box, not the em box or the
-  baseline. See `player-contract.md` "Vector Text Vertical Placement" for the
-  formula, since vector text has no auto-centering.
+  baseline. Vector text has no auto-centering: center a single run inside a
+  container by its cap-height box, not the em box or the baseline.
 - Set vertical spacing between stacked text blocks relative to type size, not by
   eyeballed pixels. A workable default for a headline and the line directly below
   it is a gap of about 0.5 to 0.8 of the headline cap height; keep one consistent

@@ -129,10 +129,8 @@ by what it is doing this beat. Bezier is `x1,y1,x2,y2`.
 - Choose each transition by seam purpose — preserve continuity, create contrast,
   reset rhythm, or land a point — not at random. A transition is chapter role +
   timing + direction + cut point + masking + easing, not easing alone.
-- For dense/multi-part prompts, read
-  `references/chapterization-transition-grammar.md` for the full when/when-not,
-  roles, structure modes, transition grammar, selection, cut-on-action mechanics,
-  easing-anchor support, and guardrails.
+- For dense/multi-part scenes, read `../scene-contract.md` for the beat
+  structure, cue rules, and staging vocabulary this runtime compiles.
 
 ## Motion Economy
 

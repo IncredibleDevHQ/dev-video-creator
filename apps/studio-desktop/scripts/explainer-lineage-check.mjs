@@ -77,6 +77,12 @@ try {
       return Response.json({ project })
     }
     if (String(url).endsWith('/api/preview')) return Response.json({})
+    if (String(url).endsWith('/api/appearance/verify-cast')) {
+      const forged = String(JSON.parse(options?.body || '{}').svg || '').includes('data-appearance-key')
+      return Response.json(forged
+        ? { ok: false, cast: [{ key: 'forged-key', status: 'unknown', tokensFound: 0, tokensTotal: 0 }] }
+        : { ok: true, cast: [] })
+    }
     throw new Error(`Unexpected fixture URL: ${url}`)
   }
 
@@ -131,6 +137,14 @@ try {
   await story([storyScene('scene-a', ['scene-a', 'nope']), storyScene('scene-b'), storyScene('scene-c')])
   await assert.rejects(invoke('explainer_finish'), /unknown input scene "nope"/)
   console.log('PASS  unknown covers are rejected')
+  // A forged artwork marker is not proof: the cast receipt refuses it (D4).
+  await writeFile(join(dir, 'explainer/scene.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>')
+  await save('explainer/scene.program.json', program)
+  await save('explainer/scene.proof.json', { hash: createHash('sha256').update('<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>').update(JSON.stringify(program)).digest('hex'), errors: [], warnings: [], frames: [{ atMs: 0, path: 'review.png' }], program, plan: { version: 2, steps: [{ motionWindowMs: 0, holdMs: 2000, actions: [] }] }, windows: [], durationMs: 2000 })
+  await save('explainer/scene.narration.json', { hash: createHash('sha256').update('<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>').update(JSON.stringify(program)).digest('hex'), audioUrl: 'http://fixture/audio.mp3' })
+  await story([storyScene('scene-a'), storyScene('scene-b'), storyScene('scene-c')])
+  await assert.rejects(invoke('explainer_finish'), /not verified against the library/)
+  console.log('PASS  a forged artwork marker cannot pass rich completion')
 } catch (error) {
   failures += 1
   console.log(`FAIL  run: ${error.message}`)

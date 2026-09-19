@@ -166,8 +166,8 @@ const narrateTool = async (args: Args, context: Context) => {
   return { ...preview, audioPath, audioUrl: track.url, alignment: 'local-whisper-word-timestamps', instruction: 'Listen to the narration and inspect these final timed frames. The MP4 will use these same durations and word anchors.' }
 }
 
-export const readExplainer = async (projectDir: string) => {
-  const manifest = await jsonFile(join(projectDir, 'explainer', 'story.json')) as { scenes: Array<{ id: string; file: string; title: string; question: string; answer: string; review: string; assets: string[]; covers?: string[] }> }
+export const readExplainer = async (projectDir: string, origin?: string) => {
+  const manifest = await jsonFile(join(projectDir, 'explainer', 'story.json')) as { scenes: Array<{ id: string; file: string; title: string; question: string; answer: string; review: string; assets: string[]; covers?: string[]; cast?: Array<{ key: string; status: string }> }> }
   const inputs = await jsonFile(join(projectDir, 'motion', 'inputs.json'))
   if (!Array.isArray(manifest.scenes) || !manifest.scenes.length) throw new Error('No scenes in explainer/story.json')
   const scenes: Array<(typeof manifest.scenes)[number] & { svg: string; program: SceneProgram; motion: MotionPlanV2; windows: unknown[]; durationMs: number }> = []
@@ -195,11 +195,26 @@ export const readExplainer = async (projectDir: string) => {
   }
   const missing = inputs.scenes.filter((s: { id: string }) => !covered.has(s.id))
   if (missing.length) throw new Error(`Every input scene must be covered by a reviewed derivative; nothing covers: ${missing.map((s: { id: string }) => s.id).join(', ')}`)
+  // Cast receipts (D4): when the server is reachable, every artwork marker
+  // must resolve to the accepted library asset with its real geometry — a
+  // forged or empty marker cannot pass rich completion.
+  if (origin) {
+    for (const scene of scenes) {
+      const verdict = await call<{ ok: boolean; cast: Array<{ key: string; status: string; tokensFound: number; tokensTotal: number }> }>(
+        { origin }, '/api/appearance/verify-cast', { svg: scene.svg },
+      )
+      scene.cast = verdict.cast
+      const bad = verdict.cast.filter(entry => entry.status !== 'verified')
+      if (bad.length) {
+        throw new Error(`${scene.file}: artwork marker(s) not verified against the library: ${bad.map(entry => `${entry.key} (${entry.status}, ${entry.tokensFound}/${entry.tokensTotal} parts found)`).join(', ')}. Use the accepted artwork from explainer_asset; a marker alone is not proof.`)
+      }
+    }
+  }
   return { scenes, inputs }
 }
 
-export const verifyExplainerExport = async (projectDir: string) => {
-  const { scenes, inputs } = await readExplainer(projectDir)
+export const verifyExplainerExport = async (projectDir: string, origin?: string) => {
+  const { scenes, inputs } = await readExplainer(projectDir, origin)
   const receipt = await jsonFile(join(projectDir, 'explainer', 'receipt.json'))
   const exported = await jsonFile(join(projectDir, 'explainer', 'export.json'))
   const durationMs = scenes.reduce((sum, scene) => sum + scene.durationMs, 0)
@@ -208,7 +223,7 @@ export const verifyExplainerExport = async (projectDir: string) => {
 
 const finishTool = async (args: Args, context: Context) => {
   const projectDir = String(args.projectDir || '')
-  const { scenes, inputs } = await readExplainer(projectDir)
+  const { scenes, inputs } = await readExplainer(projectDir, context.origin)
   const { project } = await call<{ project: ProjectDocumentV1 }>(context, `/api/projects/${encodeURIComponent(inputs.projectId)}`)
   if (!project?.derivedFrom?.notebook) throw new Error('Build an explainer in a derived video notebook; the base is preserved')
   const previous = await jsonFile(join(projectDir, 'explainer', 'receipt.json')).catch(() => null)
@@ -314,14 +329,15 @@ const finishTool = async (args: Args, context: Context) => {
   }
   await call(context, `/api/projects/${encodeURIComponent(project.id)}`, project, 'PUT')
   const preview = await call(context, '/api/preview', { project })
-  await save(join(projectDir, 'explainer', 'receipt.json'), { projectId: project.id, scenes: scenes.length, applied, preview, at: new Date().toISOString() })
+  const cast = Object.fromEntries(scenes.map(scene => [scene.id, (scene.cast || []).map(entry => `${entry.key}:${entry.status}`)]))
+  await save(join(projectDir, 'explainer', 'receipt.json'), { projectId: project.id, scenes: scenes.length, applied, cast, preview, at: new Date().toISOString() })
   await recordStage(context, projectDir, 'finish', 'succeeded', { scenes: scenes.length, projectId: project.id })
   return { projectId: project.id, scenes: scenes.length, preview, next: 'The reviewed editable scenes are saved. Use explainer_export to render the video after narration is attached.' }
 }
 
 const exportTool = async (args: Args, context: Context) => {
   const projectDir = String(args.projectDir)
-  const { inputs, scenes } = await readExplainer(projectDir)
+  const { inputs, scenes } = await readExplainer(projectDir, context.origin)
   const receipt = await jsonFile(join(projectDir, 'explainer', 'receipt.json'))
   if (receipt.projectId !== inputs.projectId) throw new Error('Apply this reviewed explainer before exporting')
   const { project } = await call<{ project: ProjectDocumentV1 }>(context, `/api/projects/${encodeURIComponent(inputs.projectId)}`)

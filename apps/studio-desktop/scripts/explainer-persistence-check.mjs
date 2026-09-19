@@ -37,6 +37,7 @@ try {
       return Response.json({ project })
     }
     if (String(url).endsWith('/api/preview')) return Response.json({})
+    if (String(url).endsWith('/api/appearance/verify-cast')) return Response.json({ ok: true, cast: [] })
     if (String(url).endsWith('/api/render')) return Response.json({ url: 'http://fixture/video.mp4', durationSeconds: 2 })
     if (String(url).endsWith('/video.mp4')) return new Response(await readFile(video))
     throw new Error(`Unexpected fixture URL: ${url}`)

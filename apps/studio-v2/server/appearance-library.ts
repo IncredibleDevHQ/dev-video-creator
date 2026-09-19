@@ -15,6 +15,56 @@ export const listArtwork = async (): Promise<LibraryArtwork[]> => {
   const keys = await loadSetting(INDEX) as string[] | null
   return (await Promise.all((keys || []).map(key => loadSetting(`artwork:${key}`)))).filter(Boolean) as LibraryArtwork[]
 }
+
+// Cast verification (D4): every data-appearance-key subtree must resolve to
+// an accepted library asset and actually contain its geometry — the import
+// inlines the artwork verbatim (ids are prefixed per placement, path data is
+// untouched), so a forged marker or a hand-retyped approximation is not the
+// accepted artwork and cannot pass rich completion.
+export type CastVerdict = { key: string; status: 'verified' | 'unknown' | 'mismatch'; tokensFound: number; tokensTotal: number }
+
+export const verifyCast = async (sceneSvg: string): Promise<{ ok: boolean; cast: CastVerdict[] }> => {
+  const library = await listArtwork()
+  const byKey = new Map(library.map(asset => [asset.key, asset]))
+  const geometryOf = (svg: string) => [...svg.matchAll(/\b(?:d|points)="([^"]+)"/g)].map(match => match[1])
+  const cast: CastVerdict[] = []
+  for (const match of sceneSvg.matchAll(/data-appearance-key="([^"]+)"/g)) {
+    const key = match[1]
+    // The element carrying the marker, from its opening tag to its balanced close.
+    const open = sceneSvg.lastIndexOf('<', match.index)
+    const tag = /^([a-zA-Z][\w:-]*)/.exec(sceneSvg.slice(open + 1))?.[1] || 'g'
+    const tokenRe = new RegExp(`<${tag}\\b[^>]*>|</${tag}>`, 'g')
+    tokenRe.lastIndex = open
+    let depth = 0
+    let end = sceneSvg.length
+    for (let token; (token = tokenRe.exec(sceneSvg));) {
+      if (token[0].startsWith('</')) {
+        depth -= 1
+        if (depth === 0) { end = tokenRe.lastIndex; break }
+      } else if (!token[0].endsWith('/>')) {
+        depth += 1
+      }
+    }
+    const subtree = sceneSvg.slice(open, end)
+    const asset = byKey.get(key)
+    if (!asset) {
+      cast.push({ key, status: 'unknown', tokensFound: 0, tokensTotal: 0 })
+      continue
+    }
+    const assetTokens = geometryOf(asset.svg)
+    const subtreeTokens = new Set(geometryOf(subtree))
+    const found = assetTokens.filter(token => subtreeTokens.has(token)).length
+    const total = assetTokens.length
+    const needed = total <= 3 ? total : Math.ceil(total * 0.8)
+    cast.push({
+      key,
+      status: total > 0 && found >= needed ? 'verified' : 'mismatch',
+      tokensFound: found,
+      tokensTotal: total,
+    })
+  }
+  return { ok: cast.every(entry => entry.status === 'verified'), cast }
+}
 export const makeArtwork = (request: { brief?: unknown; key?: string; prompt?: string; operation?: 'generate' | 'edit' | 'animate'; projectId?: string; force?: boolean; palette?: Partial<ObjectStyle['palette']> }) => {
   const job = pending.catch(() => {}).then(async () => {
     const parent = request.key ? await loadSetting(`artwork:${request.key}`) as LibraryArtwork | null : null

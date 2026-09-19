@@ -284,7 +284,7 @@ export class RunManager {
     if (result.exitCode === 0) {
       if (record.options.skill === 'explainer-master') {
         try {
-          await verifyExplainerExport(record.summary.projectDir)
+          await verifyExplainerExport(record.summary.projectDir, this.context.origin)
         } catch (error) {
           await this.fail(record, `Explainer incomplete: ${error instanceof Error ? error.message : error}`)
           return

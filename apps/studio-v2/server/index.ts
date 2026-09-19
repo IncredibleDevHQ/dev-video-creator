@@ -78,7 +78,7 @@ const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
 import { checkPageContract, outlinePrompt, outlineSchema, pageBrandFrom, readSourceNarrative, readSourceUrl, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
 import { buildExplanationModel, wordingPolicyFrom } from './story-model'
-import { listArtwork, makeArtwork } from './appearance-library'
+import { listArtwork, makeArtwork, verifyCast } from './appearance-library'
 import { REFERENCE_STYLE, briefKey, briefPrompt, knownObjects } from './appearance'
 import { quiverCapability } from './providers/quiver'
 const require = createRequire(import.meta.url)
@@ -2769,6 +2769,17 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       const brief = body.brief || (body.entity ? knownObjects().find(object => object.entity === body.entity) : undefined)
       const answer = await makeArtwork({ ...body, brief, operation })
       json(response, answer.reused ? 200 : 201, answer)
+      return
+    }
+    // Cast receipts (D4): prove each artwork marker in a scene is the
+    // accepted library asset, present with its real geometry.
+    if (request.method === 'POST' && url.pathname === '/api/appearance/verify-cast') {
+      const body = await readJson<{ svg?: string }>(request, 2 * 1024 * 1024)
+      if (!body.svg?.trim()) {
+        json(response, 400, { error: 'verify-cast needs the scene SVG' })
+        return
+      }
+      json(response, 200, await verifyCast(body.svg))
       return
     }
     // What a video was made from, and whether that base has moved since.

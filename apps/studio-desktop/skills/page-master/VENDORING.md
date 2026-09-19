@@ -65,7 +65,12 @@ gates), and the template libraries unless wanted.
 
 ## Running ppt-master itself
 
+The vendored skill is a partial reference tree, not a standalone runnable
+skill: its own `SKILL.md` load order (including its upstream integrity gate,
+`attribution_guard.py`, which is not vendored) does not apply to this
+copy. page-master's route reads only the vendored manuals it names.
+
 The vendored skill still runs as a harness skill for producing decks outside the
 studio: point the harness at `vendor/ppt-master/SKILL.md` and follow its load order
-(its `scripts/attribution_guard.py` checks the tree; the assets it may ask for are
+(its `attribution_guard.py` checks the tree; the assets it may ask for are
 the ones left out above).
