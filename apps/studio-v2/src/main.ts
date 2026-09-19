@@ -101,6 +101,7 @@ import { stageTrackFromShots } from './shot-plan'
 import { coachStateFor } from './coach'
 import { stageRowsFor, type BuildStageRow } from './stage-view'
 import { artworkDetailFor, artworkDetailLine } from './artwork-detail'
+import { takeAudioUrlFor } from './take-audio'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
@@ -15478,8 +15479,9 @@ const startExplainerBuild = async () => {
       id: String(n.attrs!.id), title: String(n.attrs!.title || ''), svg: String(n.attrs!.svg),
       script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: n.attrs!.directorNotes || '',
       // The human path carries the selected take's audio so the harness can
-      // align to the actual delivery, never a synthesized substitute.
-      ...(project.explainerDelivery === 'human' ? { takeAudioUrl: project.recordedBlocks?.[String(n.attrs!.id)]?.videoUrl || '' } : {}),
+      // align to the actual delivery, never a synthesized substitute. A
+      // kept-plan take's voice lives on its camera track, not the composite.
+      ...(project.explainerDelivery === 'human' ? { takeAudioUrl: takeAudioUrlFor(project.recordedBlocks?.[String(n.attrs!.id)]) } : {}),
     }))
     if (!scenes.length) throw new Error('Create the base wireframes before building an explainer')
     button.textContent = 'Building explainer…'
