@@ -44,10 +44,12 @@ import {
   loadLatestProjectArtifact,
   loadProjectArtifact,
   loadSetting,
+  loadSourceRevision,
   persistenceHealth,
   saveProjectArtifact,
   saveSetting,
   saveRecordedBlock,
+  saveSourceRevision,
   saveThemeRevision,
   storeAsset,
   deleteTheme,
@@ -1378,12 +1380,39 @@ Every window also has "stage": "" to leave the frame to the director, or — onl
 // A link or a narrative is read into text, headings, a palette, fonts and
 // logo candidates; the model turns the text into an outline with a runtime;
 // pages are rendered here from the outline so they carry the contract.
+// Every read is captured as an immutable source revision (D1): content and
+// brand evidence are stored separately, and a pasted narrative may name an
+// optional brand website for colours/fonts/logo — text alone cannot
+// reveal them.
 const handleSourceRead = async (request: IncomingMessage, response: ServerResponse) => {
-  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string }>(request, 400 * 1024)
+  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string; brandUrl?: string }>(request, 400 * 1024)
   const projectId = String(body.projectId || request.headers['x-project-id'] || '') || undefined
   const source = body.url?.trim() ? await readSourceUrl(body.url, { projectId }) : readSourceNarrative(String(body.narrative || ''), String(body.title || ''))
   if (!source.text.trim()) throw new Error('Nothing to read — paste a link to an article or a narrative of your own')
-  json(response, 200, { source })
+  let brandEvidence: SourceRead | null = null
+  if (!body.url?.trim() && body.brandUrl?.trim()) {
+    try {
+      brandEvidence = await readSourceUrl(body.brandUrl, { projectId })
+      // Brand from the website; the words stay the creator's own.
+      source.palette = brandEvidence.palette
+      source.logos = brandEvidence.logos
+      if (brandEvidence.fonts.seen.length) source.fonts = brandEvidence.fonts
+      source.site = source.site || brandEvidence.site
+    } catch (error) {
+      source.warnings = [...source.warnings, `Brand website could not be read: ${error instanceof Error ? error.message : error}`]
+    }
+  }
+  const snapshot = await saveSourceRevision({
+    projectId,
+    kind: body.url?.trim() ? 'url' : 'narrative',
+    url: body.url?.trim() || undefined,
+    brandUrl: brandEvidence ? body.brandUrl?.trim() : undefined,
+    title: source.title,
+    site: source.site,
+    content: source,
+    brandContent: brandEvidence || undefined,
+  })
+  json(response, 200, { source, snapshot })
 }
 
 const handleSourceOutline = async (request: IncomingMessage, response: ServerResponse) => {
@@ -2612,6 +2641,17 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     if (request.method === 'DELETE' && /^\/api\/themes\/[^/]+$/.test(url.pathname)) {
       const id = decodeURIComponent(url.pathname.split('/')[3])
       json(response, 200, { deleted: await deleteTheme(id) })
+      return
+    }
+    // Immutable source revisions (D1): read back exactly what a run consumed.
+    if (request.method === 'GET' && /^\/api\/source\/revisions\/[^/]+$/.test(url.pathname)) {
+      const id = decodeURIComponent(url.pathname.split('/')[4])
+      const revision = await loadSourceRevision(id)
+      if (!revision) {
+        json(response, 404, { error: 'Unknown source revision' })
+        return
+      }
+      json(response, 200, { revision })
       return
     }
     if (request.method === 'GET' && url.pathname === '/api/projects/latest') {

@@ -370,3 +370,30 @@ export const deleteTheme = async (id: string) => {
   await saveSetting('studio-theme-library', entries)
   return existed
 }
+
+// ——— Immutable source revisions (D1), file-backend variant ———
+// Content-addressed ids; the settings store keeps the newest 50.
+export const saveSourceRevision = async (input: {
+  projectId?: string
+  kind: string
+  url?: string
+  brandUrl?: string
+  title?: string
+  site?: string
+  content: unknown
+  brandContent?: unknown
+}): Promise<{ id: string; hash: string }> => {
+  const hash = createHash('sha256').update(JSON.stringify([input.kind, input.url || '', input.brandUrl || '', input.content, input.brandContent || null])).digest('hex')
+  const id = `src-${hash.slice(0, 16)}`
+  const list = ((await loadSetting('source-revisions')) as Array<Record<string, unknown>> | null) || []
+  if (!list.some(record => record.id === id)) {
+    list.unshift({ id, projectId: input.projectId || null, kind: input.kind, url: input.url || null, brandUrl: input.brandUrl || null, title: input.title || '', site: input.site || '', hash, content: input.content, brandContent: input.brandContent || null, createdAt: new Date().toISOString() })
+    await saveSetting('source-revisions', list.slice(0, 50))
+  }
+  return { id, hash }
+}
+
+export const loadSourceRevision = async (id: string) => {
+  const list = ((await loadSetting('source-revisions')) as Array<Record<string, unknown>> | null) || []
+  return list.find(record => record.id === id) || null
+}

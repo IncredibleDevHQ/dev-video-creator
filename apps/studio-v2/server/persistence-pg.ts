@@ -407,6 +407,81 @@ export const deleteTheme = async (id: string) => {
   return (result.rowCount || 0) > 0
 }
 
+// ——— Immutable source revisions (D1) ———
+export type SourceRevisionRecord = {
+  id: string
+  projectId: string | null
+  kind: string
+  url: string | null
+  brandUrl: string | null
+  title: string
+  site: string
+  hash: string
+  content: unknown
+  brandContent: unknown | null
+  createdAt: string
+}
+
+const sourceRevisionId = (input: { kind: string; url?: string; brandUrl?: string; content: unknown; brandContent?: unknown }) => {
+  const hash = createHash('sha256').update(JSON.stringify([input.kind, input.url || '', input.brandUrl || '', input.content, input.brandContent || null])).digest('hex')
+  return { id: `src-${hash.slice(0, 16)}`, hash }
+}
+
+export const saveSourceRevision = async (input: {
+  projectId?: string
+  kind: string
+  url?: string
+  brandUrl?: string
+  title?: string
+  site?: string
+  content: unknown
+  brandContent?: unknown
+}): Promise<{ id: string; hash: string }> => {
+  await initializePersistence()
+  const { id, hash } = sourceRevisionId(input)
+  await database.query(
+    `insert into studio_source_revisions (id, project_id, kind, url, brand_url, title, site, hash, content, brand_content)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb)
+     on conflict (id) do nothing`,
+    [
+      id,
+      input.projectId || null,
+      input.kind,
+      input.url || null,
+      input.brandUrl || null,
+      input.title || '',
+      input.site || '',
+      hash,
+      JSON.stringify(input.content),
+      input.brandContent ? JSON.stringify(input.brandContent) : null,
+    ],
+  )
+  return { id, hash }
+}
+
+export const loadSourceRevision = async (id: string): Promise<SourceRevisionRecord | null> => {
+  await initializePersistence()
+  const result = await database.query(
+    'select * from studio_source_revisions where id = $1',
+    [id],
+  )
+  const row = result.rows[0]
+  if (!row) return null
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    kind: row.kind,
+    url: row.url,
+    brandUrl: row.brand_url,
+    title: row.title,
+    site: row.site,
+    hash: row.hash,
+    content: row.content,
+    brandContent: row.brand_content,
+    createdAt: new Date(row.created_at).toISOString(),
+  }
+}
+
 // ——— Legacy file-store import (D0a) ———
 // One-way, non-destructive import of the file backend's data directory into
 // PostgreSQL + MinIO. Ids and object keys are preserved so takes and

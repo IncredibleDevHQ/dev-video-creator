@@ -344,7 +344,7 @@ export type ProjectDocumentV1 = {
   theme?: StudioThemeV1
   // Phase 0: where this video began and the outline it was planned from.
   // Additive; older notebooks have neither.
-  source?: { kind: 'url' | 'narrative'; url: string; site: string; title: string; readAt: string; logoUrl?: string }
+  source?: { kind: 'url' | 'narrative'; url: string; site: string; title: string; readAt: string; snapshotId?: string; logoUrl?: string }
   outline?: {
     title: string
     targetSeconds: number

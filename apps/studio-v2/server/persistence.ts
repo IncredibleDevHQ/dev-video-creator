@@ -58,6 +58,17 @@ type PersistenceBackend = {
     site?: string
   }) => Promise<{ id: string; revision: number; hash: string; unchanged: boolean }>
   deleteTheme: (id: string) => Promise<boolean>
+  saveSourceRevision: (input: {
+    projectId?: string
+    kind: string
+    url?: string
+    brandUrl?: string
+    title?: string
+    site?: string
+    content: unknown
+    brandContent?: unknown
+  }) => Promise<{ id: string; hash: string }>
+  loadSourceRevision: (id: string) => Promise<unknown>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
@@ -140,3 +151,16 @@ export const saveThemeRevision = async (input: {
 }) => (await loadBackend()).saveThemeRevision(input)
 
 export const deleteTheme = async (id: string) => (await loadBackend()).deleteTheme(id)
+
+export const saveSourceRevision = async (input: {
+  projectId?: string
+  kind: string
+  url?: string
+  brandUrl?: string
+  title?: string
+  site?: string
+  content: unknown
+  brandContent?: unknown
+}) => (await loadBackend()).saveSourceRevision(input)
+
+export const loadSourceRevision = async (id: string) => (await loadBackend()).loadSourceRevision(id)
