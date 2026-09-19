@@ -7731,11 +7731,32 @@ const supportedRecorderType = () =>
   ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
     .find(type => MediaRecorder.isTypeSupported(type)) || ''
 
+// A take saved from the camera dialog joins the durable take archive (D3)
+// like any other: the coach, the take picker, and the human build's take
+// audio all read recordedBlocks — a presenter-track-only write would record
+// nothing they can see.
+let recordingStartedAt = 0
+const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?: string }, durationMs: number) => {
+  if (!asset.assetId) throw new Error('The uploaded take has no asset id to archive')
+  const { recording } = await fetchJson<{ recording: RecordedBlockV1 }>('/api/recordings/commit', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs }),
+  })
+  project.recordedBlocks ||= {}
+  project.recordedBlockTakes ||= {}
+  const takes = (project.recordedBlockTakes[recording.blockId] ||= [])
+  if (!takes.some(take => take.recordingId === recording.recordingId)) takes.push(recording)
+  project.recordedBlocks[recording.blockId] = recording
+  syncProject()
+  void refreshPickupNotes()
+}
+
 const uploadRecording = async (blob: Blob) => {
   project.notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(project.notebook)
   await persistProjectNow(structuredClone(project))
-  const response = await fetchJson<{ url: string }>('/api/assets', {
+  const response = await fetchJson<{ url: string; assetId?: string }>('/api/assets', {
     method: 'POST',
     headers: {
       'content-type': blob.type || 'video/webm',
@@ -7759,6 +7780,14 @@ const uploadRecording = async (blob: Blob) => {
       audioKind: hasGeneratedVoice ? 'generated' : 'recorded-mic',
     },
   ]
+  // The durable archive is the take system of record; a commit failure must
+  // not eat the take already on the block.
+  try {
+    await archiveCameraTake(recordingNodeId, { url: response.url, assetId: response.assetId }, Math.max(1, Date.now() - recordingStartedAt))
+  } catch (error) {
+    console.warn('take archive commit failed', error)
+    showToast('The take is on the block, but the durable archive did not record it')
+  }
   syncProject()
   showToast('Real camera take attached to this block')
   cameraDialog.close()
@@ -7797,6 +7826,7 @@ startRecordingButton.addEventListener('click', async () => {
     }
   }
   mediaRecorder.start(250)
+  recordingStartedAt = Date.now()
   if (audioMode.value === 'generated') {
     guideAudio.currentTime = 0
     await guideAudio.play()
@@ -15504,6 +15534,11 @@ const startExplainerBuild = async () => {
     return project.recordedBlocks?.[nodeId] || null
   },
   takeOn: (nodeId: string) => project.recordedBlocks?.[nodeId] || null,
+  // The camera dialog's archive step without a camera (MediaRecorder is
+  // unavailable headless): commit an already-uploaded asset as the block's
+  // take through the durable path.
+  archive: (nodeId: string, asset: { url: string; assetId?: string }, durationMs = 8000) =>
+    archiveCameraTake(nodeId, asset, durationMs).then(() => project.recordedBlocks?.[nodeId] || null),
 }
 ;($('#video-length') as HTMLButtonElement).addEventListener('click', () => {
   const current = project.outline?.targetSeconds

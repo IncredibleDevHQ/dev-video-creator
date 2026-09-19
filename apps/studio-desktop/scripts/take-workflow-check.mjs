@@ -157,6 +157,26 @@ try {
   check('the selected take reads as used, with when it was recorded', picker.buttons[0]?.title === `Take v1 · used for the final video · ${picker.when[0]}`, picker.buttons[0]?.title)
   check('the other take offers its duration and provenance', picker.buttons[1]?.title === `Use take v2 (00:05) · ${picker.when[1]} for the final video`, picker.buttons[1]?.title)
 
+  // A take saved from the camera dialog joins the durable archive too (D3):
+  // the __timing.archive hook stands in for MediaRecorder, which is
+  // unavailable headless — everything past the upload is the real path.
+  const cameraAsset = await fetch(`${origin}/api/assets`, { method: 'POST', headers: { 'content-type': 'video/webm', 'x-project-id': PROJECT_ID, 'x-block-id': 'blk-p1' }, body: Buffer.from('camera take bytes') }).then(r => r.json())
+  const cameraTake = await evalInWindow(origin, `window.__timing.archive('blk-p1', ${JSON.stringify({ url: cameraAsset.url, assetId: cameraAsset.assetId })}, 3000)`)
+  check('a camera-dialog take lands in the durable archive', Boolean(cameraTake?.recordingId), String(cameraTake?.recordingId || '').slice(0, 8))
+  const afterCamera = await fetch(`${origin}/api/takes?projectId=${PROJECT_ID}`).then(r => r.json())
+  check(
+    'the archive holds all three takes with the camera one selected',
+    afterCamera.takes?.length === 3 && afterCamera.selections?.[0]?.takeId === cameraTake.recordingId,
+    `${afterCamera.takes?.length} takes`,
+  )
+  let docAfterCamera = null
+  for (let i = 0; i < 20; i += 1) {
+    const body = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).catch(() => null)
+    if (body?.project?.recordedBlocks?.['blk-p1']?.recordingId === cameraTake.recordingId) { docAfterCamera = body.project; break }
+    await sleep(400)
+  }
+  check('the notebook document picks the camera take as active', Boolean(docAfterCamera))
+
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })
   check('cleanup', true, 'fixture notebook deleted')
 } catch (error) {
