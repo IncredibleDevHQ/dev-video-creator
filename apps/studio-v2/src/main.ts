@@ -99,6 +99,7 @@ import {
 import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
 import { stageTrackFromShots } from './shot-plan'
 import { coachStateFor } from './coach'
+import { stageRowsFor, type BuildStageRow } from './stage-view'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
@@ -15154,6 +15155,26 @@ const renderExplainerObjects = async (bridge: NonNullable<Window['studioDesktop'
   }
 }
 
+// The stage checklist (§5.5): the run's durable checkpoints in plain view.
+// A needs-input stage is the build waiting for its person — an intentional
+// saved state, shown as "waiting for you", never as a failure.
+const renderExplainerStages = async (runId: string) => {
+  const box = $('#explainer-stages') as HTMLElement
+  const { stages } = await fetchJson<{ stages: BuildStageRow[] }>(`/api/runs/${encodeURIComponent(runId)}/stages`).catch(() => ({ stages: [] as BuildStageRow[] }))
+  if (!stages.length) return
+  box.hidden = false
+  box.replaceChildren()
+  for (const row of stageRowsFor(stages)) {
+    const line = document.createElement('div')
+    line.className = `stage-row is-${row.tone}${row.indent ? ' stage-note' : ''}`
+    line.textContent = row.text
+    box.append(line)
+  }
+}
+// Dev hook: render a run's stage checklist on demand, so checks drive the
+// build panel without a live harness (same pattern as __timing).
+;(window as unknown as { __buildStages?: unknown }).__buildStages = (runId: string) => renderExplainerStages(runId)
+
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
@@ -15176,6 +15197,10 @@ const startExplainerBuild = async () => {
   progress.open = true
   log.textContent = ''
   renderExplainerReceipts(null)
+  // A new build replaces the last run's checkpoints.
+  const stagesBox = $('#explainer-stages') as HTMLElement
+  stagesBox.replaceChildren()
+  stagesBox.hidden = true
   status.textContent = 'Preparing the video notebook…'
   cancel.hidden = false
   let objectsTimer: number | undefined
@@ -15207,6 +15232,7 @@ const startExplainerBuild = async () => {
       if (event.type === 'done') {
         window.clearInterval(objectsTimer)
         void renderExplainerObjects(bridge, runId)
+        void renderExplainerStages(runId)
         explainerRun?.unsubscribe()
         explainerRun = null
         button.disabled = false
@@ -15225,8 +15251,12 @@ const startExplainerBuild = async () => {
       inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
     ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
-    objectsTimer = window.setInterval(() => void renderExplainerObjects(bridge, run.id), 5000)
+    objectsTimer = window.setInterval(() => {
+      void renderExplainerObjects(bridge, run.id)
+      void renderExplainerStages(run.id)
+    }, 5000)
     void renderExplainerObjects(bridge, run.id)
+    void renderExplainerStages(run.id)
     showToast(`Kimi is building the explainer (${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]}): story, reusable objects, performances, narration and rendered review.`)
   } catch (error) {
     window.clearInterval(objectsTimer)

@@ -690,6 +690,11 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .rehearsal-note { color: var(--muted); font-size: 9px; line-height: 1.5; }
 #explainer-objects { display: grid; gap: 2px; padding: 6px 0; font-size: 11.5px; color: #3f3f46; }
 #explainer-objects .is-pending { color: #b45309; }
+#explainer-stages { display: grid; gap: 2px; padding: 6px 0; font-size: 11.5px; color: #3f3f46; }
+.stage-row.is-waiting { color: #b45309; font-weight: 600; }
+.stage-row.is-failed { color: #b91c1c; }
+.stage-row.is-active { color: #1d4ed8; }
+.stage-row.stage-note { padding-left: 14px; font-size: 10.5px; font-weight: 400; }
 .camera-status span.recording { background: #ef4444; animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 .countdown { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(24,24,27,.5); color: white; font-size: 100px; font-weight: 800; }
