@@ -101,6 +101,50 @@ try {
   await evalInWindow(`window.__buildStages('no-such-run')`)
   const empty = await evalInWindow(`(() => ({ hidden: document.getElementById('explainer-stages').hidden, rows: document.getElementById('explainer-stages').children.length }))()`)
   check('an unknown run leaves the panel untouched', empty.hidden === false && empty.rows === 5, `hidden=${empty.hidden} rows=${empty.rows}`)
+
+  // On reopen the notebook surfaces the waiting build with its checklist
+  // (§5.5: waiting for a person is a saved state, reopening loses nothing).
+  const REOPEN_PROJECT = `nb-stage-panel-${Date.now().toString(36)}`
+  const REOPEN_RUN = `${RUN_ID}-reopen`
+  const fixture = {
+    version: 1, id: REOPEN_PROJECT, title: 'Stage panel fixture',
+    notebook: { type: 'doc', content: [{ type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Stages' }] }] },
+    fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
+  }
+  await fetch(`${origin}/api/projects/${REOPEN_PROJECT}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fixture) })
+  await fetch(`${origin}/api/runs`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: REOPEN_RUN, projectId: REOPEN_PROJECT, skill: 'explainer-master', route: 'Build Explainer', adapter: 'kimi', projectDir: '/tmp/x', status: 'running' }),
+  })
+  await fetch(`${origin}/api/runs/${REOPEN_RUN}/stages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ stage: 'align-take', status: 'needs-input', detail: { scene: 's2', review: [{ beat: 2, note: 'The take skips the second sentence.' }] } }),
+  })
+  await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${REOPEN_PROJECT}'); location.assign('/studio')`)
+  await waitFor(`document.getElementById('project-title')?.value === 'Stage panel fixture'`)
+  await waitFor(`document.getElementById('explainer-progress')?.hidden === false`)
+  const reopened = await evalInWindow(`(() => ({
+    status: document.getElementById('explainer-status')?.textContent || '',
+    rows: [...document.querySelectorAll('#explainer-stages .stage-row')].map(r => r.textContent),
+  }))()`)
+  check(
+    'reopening shows the build paused for a person, with its checklist',
+    /paused for you/.test(reopened.status) && reopened.rows.includes('align-take · waiting for you') && reopened.rows.some(r => r.startsWith('beat 2:')),
+    JSON.stringify(reopened).slice(0, 200),
+  )
+
+  // A finished build stays quiet on reopen.
+  await fetch(`${origin}/api/runs`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: REOPEN_RUN, projectId: REOPEN_PROJECT, skill: 'explainer-master', route: 'Build Explainer', adapter: 'kimi', projectDir: '/tmp/x', status: 'done', exitCode: 0, finishedAt: new Date().toISOString() }),
+  })
+  await evalInWindow(`location.reload()`)
+  await waitFor(`document.getElementById('project-title')?.value === 'Stage panel fixture'`)
+  await new Promise(resolve => setTimeout(resolve, 1500))
+  const quiet = await evalInWindow(`document.getElementById('explainer-progress')?.hidden`)
+  check('a finished build stays quiet on reopen', quiet === true, `hidden=${quiet}`)
+
+  await fetch(`${origin}/api/projects/${REOPEN_PROJECT}`, { method: 'DELETE' })
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

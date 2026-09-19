@@ -15240,6 +15240,39 @@ const renderExplainerStages = async (runId: string) => {
 // build panel without a live harness (same pattern as __timing).
 ;(window as unknown as { __buildStages?: unknown }).__buildStages = (runId: string) => renderExplainerStages(runId)
 
+// The last build's durable state on reopen (§5.5): a run that ended waiting
+// for a person, or stopped short, stays visible with its stage checklist —
+// leaving and reopening the notebook loses nothing. A finished build stays
+// quiet; its receipts live on the notebook's badges.
+const showLastBuildState = async (projectId: string) => {
+  const bridge = window.studioDesktop
+  const progress = $('#explainer-progress') as HTMLDetailsElement
+  if (!bridge?.isDesktop || !progress.hidden) return
+  try {
+    const { runs } = await fetchJson<{ runs: Array<{ id: string; status: string; route?: string; projectDir?: string }> }>(`/api/runs?projectId=${encodeURIComponent(projectId)}`)
+    const last = runs.find(run => run.route === 'Build Explainer')
+    if (!last) return
+    // The harness's merged history reports an interrupted run honestly (its
+    // durable row still says "running"); the raw row alone would not.
+    const merged = (await bridge.harness.list()).find(run => run.id === last.id)
+    const status = merged?.status || last.status
+    if (status === 'done') return
+    const { stages } = await fetchJson<{ stages: BuildStageRow[] }>(`/api/runs/${encodeURIComponent(last.id)}/stages`).catch(() => ({ stages: [] as BuildStageRow[] }))
+    const waiting = stages.filter(stage => stage.status === 'needs-input')
+    if (!waiting.length && status !== 'error' && status !== 'cancelled') return
+    progress.hidden = false
+    progress.open = false
+    ;($('#explainer-run-location') as HTMLElement).textContent = last.projectDir ? `Build files: ${last.projectDir}` : ''
+    ;($('#explainer-status') as HTMLElement).textContent = waiting.length
+      ? `The last build paused for you: ${waiting.map(stage => stage.stage).join(', ')} ${waiting.length === 1 ? 'needs' : 'need'} a person. Rehearse and record in the camera dialog; Build explainer continues from accepted work.`
+      : `The last build ${status === 'cancelled' ? 'was cancelled' : 'stopped'} before completion — its stage record is below; Build explainer continues from accepted work.`
+    void renderExplainerStages(last.id)
+  } catch {
+    // No history available — the notebook simply opens.
+  }
+}
+void showLastBuildState(project.id)
+
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
