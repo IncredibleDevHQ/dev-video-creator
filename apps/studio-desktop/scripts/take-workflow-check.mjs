@@ -198,6 +198,31 @@ try {
   const afterReload = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json())
   check('the removal does not resurrect on reopen', !afterReload.project?.recordedBlocks?.['blk-p1'])
 
+  // A kept-plan take hydrates back with its beat marks (D5): the archive
+  // detail carries what the active document had.
+  const keptAsset = await fetch(`${origin}/api/assets`, { method: 'POST', headers: { 'content-type': 'video/webm', 'x-project-id': PROJECT_ID, 'x-block-id': 'blk-p1' }, body: Buffer.from('kept plan bytes') }).then(r => r.json())
+  const keptCommit = await fetch(`${origin}/api/recordings/commit`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ projectId: PROJECT_ID, blockId: 'blk-p1', assetId: keptAsset.assetId, mediaUrl: keptAsset.url, durationMs: 4200, keepsPlan: true, beatMarksMs: [800, 1600] }),
+  }).then(r => r.json())
+  const stripped = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).then(b => b.project)
+  stripped.recordedBlocks = {}
+  stripped.recordedBlockTakes = {}
+  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(stripped) })
+  await evalInWindow(origin, `location.reload()`)
+  await evalInWindow(origin, `(() => new Promise(r => { const t = setInterval(() => { if (document.getElementById('project-title')?.value === 'Takes fixture') { clearInterval(t); r(true) } }, 400) }))()`)
+  let rehydrated = null
+  for (let i = 0; i < 20; i += 1) {
+    const body = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).catch(() => null)
+    if (body?.project?.recordedBlocks?.['blk-p1']) { rehydrated = body.project.recordedBlocks['blk-p1']; break }
+    await sleep(400)
+  }
+  check(
+    'a kept-plan take hydrates with its beat marks',
+    rehydrated?.recordingId === keptCommit.recording?.recordingId && rehydrated?.keepsPlan === true && (rehydrated?.beatMarksMs || []).length === 2,
+    JSON.stringify(rehydrated).slice(0, 160),
+  )
+
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })
   check('cleanup', true, 'fixture notebook deleted')
 } catch (error) {

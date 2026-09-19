@@ -2009,25 +2009,38 @@ window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 // its stored selection. Deferred past module evaluation (fetchJson below).
 const hydratePresenterTakes = async () => {
   try {
-    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
+    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
     if (!takes.length) return
     let merged = 0
     project.recordedBlocks ||= {}
     project.recordedBlockTakes ||= {}
     const byId = new Map(takes.map(take => [take.id, take]))
+    // Kept-plan fields ride the take's detail: hydration restores the whole
+    // take, including the camera track and the beat marks the plan re-times to.
+    const hydrateTake = (take: (typeof takes)[number]): RecordedBlockV1 => ({
+      blockId: take.blockId,
+      recordingId: take.id,
+      videoUrl: take.detail!.mediaUrl!,
+      durationMs: take.durationMs,
+      recordedAt: take.createdAt,
+      storage: 'minio',
+      ...(take.detail?.keepsPlan ? { keepsPlan: true } : {}),
+      ...(Array.isArray(take.detail?.beatMarksMs) ? { beatMarksMs: take.detail.beatMarksMs.map(Number).filter(Number.isFinite) } : {}),
+      ...(take.detail?.cameraUrl ? { cameraUrl: String(take.detail.cameraUrl), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
+    })
     for (const take of takes) {
       const mediaUrl = take.detail?.mediaUrl
       if (!mediaUrl) continue
       const list = (project.recordedBlockTakes[take.blockId] ||= [])
       if (list.some(existing => existing.recordingId === take.id)) continue
-      list.push({ blockId: take.blockId, recordingId: take.id, videoUrl: mediaUrl, durationMs: take.durationMs, recordedAt: take.createdAt, storage: 'minio' })
+      list.push(hydrateTake(take))
       merged += 1
     }
     for (const selection of selections) {
       if (project.recordedBlocks[selection.blockId]) continue
       const take = byId.get(selection.takeId)
       if (!take?.detail?.mediaUrl) continue
-      project.recordedBlocks[selection.blockId] = { blockId: selection.blockId, recordingId: take.id, videoUrl: take.detail.mediaUrl, durationMs: take.durationMs, recordedAt: take.createdAt, storage: 'minio' }
+      project.recordedBlocks[selection.blockId] = hydrateTake(take)
       merged += 1
     }
     if (merged) await persistProjectNow(structuredClone(project))

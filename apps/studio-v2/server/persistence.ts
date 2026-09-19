@@ -79,6 +79,12 @@ type SaveRecordedBlockInput = {
   assetId: string
   mediaUrl: string
   durationMs: number
+  // A page scene's kept plan (D5): camera track + the presses that advanced
+  // beats — they ride the archive so hydration restores them.
+  keepsPlan?: boolean
+  cameraUrl?: string
+  cameraAssetId?: string
+  beatMarksMs?: number[]
 }
 
 type PersistenceBackend = {
@@ -206,13 +212,17 @@ export const saveRecordedBlock = async (
   const saved = await backend.saveRecordedBlock(recording)
   // The take archive (D3) on every backend: this commit is one preserved
   // take, and committing selects it. The active row stays the fast path.
+  // Kept-plan fields ride the detail so hydration restores the full take.
   await backend.savePresenterTake({
     id: saved.recordingId,
     projectId: recording.projectId,
     blockId: recording.blockId,
     assetId: recording.assetId,
     durationMs: saved.durationMs,
-    detail: { mediaUrl: recording.mediaUrl },
+    detail: {
+      mediaUrl: recording.mediaUrl,
+      ...(recording.keepsPlan ? { keepsPlan: true, ...(recording.beatMarksMs ? { beatMarksMs: recording.beatMarksMs } : {}), ...(recording.cameraUrl ? { cameraUrl: recording.cameraUrl, cameraAssetId: recording.cameraAssetId } : {}) } : {}),
+    },
   })
   await backend.selectPresenterTake({ projectId: recording.projectId, blockId: recording.blockId, takeId: saved.recordingId })
   return saved
