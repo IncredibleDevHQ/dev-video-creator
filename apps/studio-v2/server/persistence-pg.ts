@@ -697,6 +697,13 @@ export const findNotebooksReferencing = async (marker: string): Promise<Array<{ 
   return result.rows.map(row => ({ id: row.id, title: row.title }))
 }
 
+export const settingsWithPrefix = async (prefix: string): Promise<Record<string, unknown>> => {
+  await initializePersistence()
+  const safe = prefix.replace(/[%_\\]/g, '')
+  const result = await database.query('select key, value from studio_settings where key like $1', [`${safe}%`])
+  return Object.fromEntries(result.rows.map(row => [row.key, row.value]))
+}
+
 // ——— Legacy file-store import (D0a) ———
 // One-way, non-destructive import of the file backend's data directory into
 // PostgreSQL + MinIO. Ids and object keys are preserved so takes and

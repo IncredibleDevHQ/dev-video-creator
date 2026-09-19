@@ -521,3 +521,8 @@ export const findNotebooksReferencing = async (marker: string): Promise<Array<{ 
   }
   return hits
 }
+
+export const settingsWithPrefix = async (prefix: string): Promise<Record<string, unknown>> => {
+  const settings = (await readJsonFile<Record<string, unknown>>(settingsPath())) || {}
+  return Object.fromEntries(Object.entries(settings).filter(([key]) => key.startsWith(prefix)))
+}

@@ -63,6 +63,7 @@ import {
   storeAsset,
   deleteTheme,
   findNotebooksReferencing,
+  settingsWithPrefix,
   type BuildRunInput,
 } from './persistence'
 import {
@@ -2623,6 +2624,41 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       const override = await readJson<Partial<ModelSettingsV1>>(request, 64 * 1024)
       const models = await listModels(override)
       json(response, 200, { ok: true, models: models.slice(0, 400) })
+      return
+    }
+    // A secrets-free diagnostic bundle (D7): store health, counts, provider
+    // availability flags, budget usage, and recent runs with their stage
+    // outcomes. No credentials, no absolute user paths beyond what the app
+    // itself prints.
+    if (request.method === 'GET' && url.pathname === '/api/diagnostics') {
+      const persistence = await persistenceHealth().catch(() => null)
+      const [notebooks, themes, runs, budgets] = await Promise.all([
+        listProjectArtifacts().catch(() => [] as Awaited<ReturnType<typeof listProjectArtifacts>>),
+        listThemeLibrary().catch(() => [] as Awaited<ReturnType<typeof listThemeLibrary>>),
+        listBuildRuns().catch(() => [] as Awaited<ReturnType<typeof listBuildRuns>>),
+        settingsWithPrefix('appearance-budget:').catch(() => ({} as Record<string, unknown>)),
+      ])
+      const recent = runs.slice(0, 10)
+      const withStages = await Promise.all(recent.map(async run => ({
+        ...run,
+        stages: await listBuildStages(String(run.id)).catch(() => [] as Array<Record<string, unknown>>),
+      })))
+      json(response, 200, {
+        at: new Date().toISOString(),
+        persistence,
+        counts: {
+          notebooks: notebooks.length,
+          themes: themes.length,
+          runs: runs.length,
+          artworkCallsSpent: Object.values(budgets).reduce((sum: number, value) => sum + (Number(value) || 0), 0),
+        },
+        providers: {
+          quiver: await quiverCapability().catch(() => ({ configured: false })),
+          fishAudio: Boolean(process.env.FISH_AUDIO_API_KEY),
+          themeAI: await hasModelAccess().catch(() => false),
+        },
+        runs: withStages,
+      })
       return
     }
     if (request.method === 'GET' && url.pathname === '/api/projects') {

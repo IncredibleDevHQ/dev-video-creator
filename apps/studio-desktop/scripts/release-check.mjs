@@ -25,6 +25,7 @@ const CHECKS = [
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration
   'skill-references-check.mjs',   // D4: shipped instruction dependency graph
   'align-take-check.mjs',         // D5: take-aligned timing on canned transcripts
+  'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 
 const runOne = (command, args, cwd) =>
