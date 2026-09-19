@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — fix: kept-plan fields survive the archive round-trip
+
+**Commits**
+
+- `95e2de0f` — `keepsPlan`/`beatMarksMs`/`cameraUrl` reached the commit route but were silently dropped before the archive (the dispatcher's input type lacked them; the spread hid the excess-property check). They now ride the take's `detail`, and hydration restores them — a kept-plan take reopened on a fresh client re-renders at the pace it was spoken, as designed. `take-workflow-check.mjs` 17/17 (commit with beat marks → strip the doc → reload → hydrated whole).
+
 ## 2026-09-19 — fix: canonical digests across the store boundary
 
 **Commits**
