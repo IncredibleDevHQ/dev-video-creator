@@ -219,3 +219,10 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 **Commits**
 
 - `dd2af87a` — `explainer_status`: per-scene freshness across preview proof, narration, and notebook application, so dependent stages are visibly stale before anything re-runs. Lineage check covers fresh-after-finish and stale-after-edit (11/11).
+
+## 2026-09-19 — §3.9 staleness tool + human audio path
+
+**Commits**
+
+- `dd2af87a` — `explainer_status`: per-scene freshness across preview proof, narration, and notebook application, so dependent stages are visibly stale before anything re-runs. Lineage check covers fresh-after-finish and stale-after-edit (11/11).
+- `73df9dc4` — the human path's export carries the take: take alignment stores the take audio as an asset and writes the narration record the finish applies as `recorded-mic`; a guide never silently substitutes for an unrecorded segment. Take-alignment e2e 8/8 proves the chain end to end on real synthesized speech.
