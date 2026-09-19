@@ -65,6 +65,23 @@ export const verifyCast = async (sceneSvg: string): Promise<{ ok: boolean; cast:
   }
   return { ok: cast.every(entry => entry.status === 'verified'), cast }
 }
+// Reuse is earned by compatibility, not a matching name (D4): same entity
+// and role, same visual family and palette, and every part the new scene
+// needs present in the accepted drawing. A hit skips the provider call.
+export const briefCompatible = (brief: ObjectBrief, candidate: LibraryArtwork): boolean => {
+  const other = candidate.brief
+  return Boolean(candidate.accepted)
+    && candidate.entity === brief.entity
+    && other.role === brief.role
+    && other.style.family === brief.style.family
+    && other.style.palette.accent === brief.style.palette.accent
+    && other.style.palette.ground === brief.style.palette.ground
+    && brief.parts.every(part => other.parts.some(existing => existing.id === part.id))
+}
+
+export const findCompatibleArtwork = async (brief: ObjectBrief): Promise<LibraryArtwork | null> =>
+  (await listArtwork()).find(candidate => briefCompatible(brief, candidate)) || null
+
 export const makeArtwork = (request: { brief?: unknown; key?: string; prompt?: string; operation?: 'generate' | 'edit' | 'animate'; projectId?: string; force?: boolean; palette?: Partial<ObjectStyle['palette']> }) => {
   const job = pending.catch(() => {}).then(async () => {
     const parent = request.key ? await loadSetting(`artwork:${request.key}`) as LibraryArtwork | null : null
@@ -91,6 +108,12 @@ export const makeArtwork = (request: { brief?: unknown; key?: string; prompt?: s
     const key = createHash('sha256').update(JSON.stringify([briefKey(brief), operation, parent?.key, request.prompt || '', request.force ? randomUUID() : ''])).digest('hex').slice(0, 24)
     const cached = await loadSetting(`artwork:${key}`) as LibraryArtwork | null
     if (cached) return { appearance: cached, reused: true }
+    // Then a compatible accepted sibling — same entity, role, family and
+    // palette, with the parts this scene needs. No provider call.
+    if (operation === 'generate' && !request.force) {
+      const compatible = await findCompatibleArtwork(brief)
+      if (compatible) return { appearance: compatible, reused: true }
+    }
     const budgetKey = `appearance-budget:${request.projectId || 'library'}`
     const spent = Number(await loadSetting(budgetKey) || 0)
     const budget = Number(process.env.STUDIO_APPEARANCE_BUDGET || 24)

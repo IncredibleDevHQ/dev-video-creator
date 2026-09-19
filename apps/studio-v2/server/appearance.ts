@@ -25,6 +25,8 @@ export type ObjectStyle = {
 export type ObjectBrief = {
   /** The entity on the page this artwork stands for. */
   entity: string
+  /** The explanation model's stable object id, when the brief came from one. */
+  objectId?: string
   /** Its role in the story: bucket, server, request, queue, gate. */
   role: string
   /** A sentence a person would recognise it by. */
@@ -61,6 +63,42 @@ export const REFERENCE_STYLE: ObjectStyle = {
   angle: 'three-quarter',
   density: 'considered',
   depth: 'flat',
+}
+
+// The role record drives the artwork brief (D4): the explanation model's
+// object — its identity, its job, the states the scene puts it in — becomes
+// the same brief the library, the provider and the later behavior bindings
+// all read. Labels are presentation; the model id is the identity.
+export const briefFromRole = (input: {
+  id: string
+  label: string
+  kind: string
+  detail?: string
+  role?: string
+  states?: string[]
+  subject?: string
+  style?: ObjectStyle
+}): ObjectBrief => {
+  const entity = (input.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'object').slice(0, 64)
+  return {
+    entity: /^[a-z]/.test(entity) ? entity : `obj-${entity}`,
+    objectId: input.id,
+    role: input.role || input.label.toLowerCase(),
+    represents: input.detail || `the ${input.label}`,
+    subject: input.subject,
+    states: input.states?.length ? input.states : ['idle'],
+    parts: [
+      { id: 'body', what: `the ${input.label} itself` },
+      ...(input.kind === 'box' ? [{ id: 'contents', what: 'what it holds right now', fills: 'up' as const }] : []),
+    ],
+    ports: input.kind === 'box' || input.kind === 'step'
+      ? { in: { x: 0, y: 0.5 }, out: { x: 1, y: 0.5 } }
+      : {},
+    labelAnchor: 'below',
+    size: { width: 320, height: 240 },
+    style: input.style || REFERENCE_STYLE,
+    keepsTextOut: [input.label],
+  }
 }
 
 /**
@@ -193,6 +231,9 @@ export const objectBriefFrom = (value: unknown): ObjectBrief => {
     ports[name] = { x: point.x, y: point.y }
   }
   return { entity: b.entity, role: text(b.role, 80), represents: text(b.represents), subject: text(b.subject, 120), parts, ports, size,
+    // The model's object id is provenance, never part of the brief key: two
+    // notebooks asking for the same thing share one drawing.
+    ...(typeof b.objectId === 'string' && /^obj-[a-z0-9-]+-\d+$/.test(b.objectId) ? { objectId: b.objectId } : {}),
     states: (Array.isArray(b.states) ? b.states : []).slice(0, 12).map(s => text(s, 100)), labelAnchor: ['below', 'right', 'inside-top', 'none'].includes(b.labelAnchor) ? b.labelAnchor : 'below',
     style: { family: text(b.style.family, 100), palette, angle: b.style.angle === 'front' ? 'front' : 'three-quarter', density: b.style.density === 'rich' ? 'rich' : 'considered', depth: b.style.depth === 'soft' ? 'soft' : 'flat' },
     keepsTextOut: (Array.isArray(b.keepsTextOut) ? b.keepsTextOut : []).slice(0, 12).map(s => text(s, 120)) }

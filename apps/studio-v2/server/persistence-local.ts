@@ -507,3 +507,17 @@ export const listTakeSelections = async (projectId: string) => {
   const selections = ((await loadSetting(`take-selections:${projectId}`)) as Record<string, string> | null) || {}
   return Object.entries(selections).map(([blockId, takeId]) => ({ projectId, blockId, takeId, selectedAt: '' }))
 }
+
+export const findNotebooksReferencing = async (marker: string): Promise<Array<{ id: string; title: string }>> => {
+  await initializePersistence()
+  if (!marker) return []
+  const names = await readdir(notebooksDirectory()).catch(() => [] as string[])
+  const hits: Array<{ id: string; title: string }> = []
+  for (const name of names.filter(entry => entry.endsWith('.json') && !entry.endsWith('.takes.json'))) {
+    const text = await readFile(join(notebooksDirectory(), name), 'utf8').catch(() => '')
+    if (!text.includes(marker)) continue
+    const doc = await readJsonFile<ProjectDocumentV1>(join(notebooksDirectory(), name))
+    if (doc?.id) hits.push({ id: doc.id, title: doc.title })
+  }
+  return hits
+}

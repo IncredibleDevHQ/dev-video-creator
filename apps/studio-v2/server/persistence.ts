@@ -140,6 +140,7 @@ type PersistenceBackend = {
   listPresenterTakes: (projectId: string, blockId?: string) => Promise<Array<Record<string, unknown>>>
   selectPresenterTake: (input: { projectId: string; blockId: string; takeId: string }) => Promise<void>
   listTakeSelections: (projectId: string) => Promise<Array<{ projectId: string; blockId: string; takeId: string; selectedAt: string }>>
+  findNotebooksReferencing: (marker: string) => Promise<Array<{ id: string; title: string }>>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
@@ -276,3 +277,6 @@ export const selectPresenterTake = async (input: { projectId: string; blockId: s
 
 export const listTakeSelections = async (projectId: string) =>
   (await loadBackend()).listTakeSelections(projectId)
+
+export const findNotebooksReferencing = async (marker: string) =>
+  (await loadBackend()).findNotebooksReferencing(marker)

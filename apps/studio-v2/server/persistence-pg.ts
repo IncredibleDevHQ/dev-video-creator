@@ -684,6 +684,19 @@ export const listTakeSelections = async (projectId: string) => {
   }))
 }
 
+// Which notebooks reference a marker (an artwork key, an object key) in
+// their stored document — the library's "used in" answers.
+export const findNotebooksReferencing = async (marker: string): Promise<Array<{ id: string; title: string }>> => {
+  await initializePersistence()
+  const safe = marker.replace(/[%_\\]/g, '')
+  if (!safe) return []
+  const result = await database.query(
+    `select id, title from studio_notebooks where artifact::text like $1 order by updated_at desc limit 20`,
+    [`%${safe}%`],
+  )
+  return result.rows.map(row => ({ id: row.id, title: row.title }))
+}
+
 // ——— Legacy file-store import (D0a) ———
 // One-way, non-destructive import of the file backend's data directory into
 // PostgreSQL + MinIO. Ids and object keys are preserved so takes and

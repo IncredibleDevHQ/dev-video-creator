@@ -62,6 +62,7 @@ import {
   saveThemeRevision,
   storeAsset,
   deleteTheme,
+  findNotebooksReferencing,
   type BuildRunInput,
 } from './persistence'
 import {
@@ -2760,7 +2761,13 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     // Draw one object. The same brief is never drawn twice: the accepted
     // artwork is kept by what it draws, so rewording a scene reuses it.
     if (request.method === 'GET' && url.pathname === '/api/appearance/library') {
-      json(response, 200, { assets: await listArtwork() })
+      const assets = await listArtwork()
+      // "Used in": notebooks whose stored scenes carry the artwork's key.
+      const withUsage = await Promise.all(assets.map(async asset => ({
+        ...asset,
+        usedIn: await findNotebooksReferencing(asset.key).catch(() => []),
+      })))
+      json(response, 200, { assets: withUsage })
       return
     }
     if (request.method === 'POST' && ['/api/appearance/generate', '/api/appearance/edit', '/api/appearance/animate'].includes(url.pathname)) {

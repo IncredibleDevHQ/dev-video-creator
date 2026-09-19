@@ -11340,7 +11340,7 @@ const renderReusableArtwork = async () => {
   const request = ++libraryRequest
   const grid = $('#assets-grid') as HTMLElement
   try {
-    const { assets } = await fetchJson<{ assets: Array<WornArtwork & { url: string; brief: { role: string; style: { family: string } }; operation: string }> }>('/api/appearance/library')
+    const { assets } = await fetchJson<{ assets: Array<WornArtwork & { url: string; brief: { role: string; style: { family: string } }; operation: string; usedIn?: Array<{ id: string; title: string }> }> }>('/api/appearance/library')
     if (request !== libraryRequest || !assets.length) return
     grid.querySelector('.assets-empty')?.remove()
     grid.querySelector('[data-reusable-library]')?.remove()
@@ -11361,7 +11361,9 @@ const renderReusableArtwork = async () => {
       label.textContent = asset.entity.replace(/-/g, ' ')
       const meta = document.createElement('span')
       meta.className = 'asset-meta'
-      meta.textContent = `${asset.brief.role} · ${asset.brief.style.family} · ${asset.parts.length} editable parts · ${asset.operation}`
+      const usedIn = asset.usedIn || []
+      meta.textContent = `${asset.brief.role} · ${asset.brief.style.family} · ${asset.parts.length} editable parts · ${asset.operation}${usedIn.length ? ` · used in ${usedIn.length} notebook${usedIn.length === 1 ? '' : 's'}` : ''}`
+      if (usedIn.length) meta.title = `Used in: ${usedIn.map(notebook => notebook.title).join(', ')}`
       const download = document.createElement('a')
       download.href = asset.url
       download.download = `${asset.entity}.svg`
