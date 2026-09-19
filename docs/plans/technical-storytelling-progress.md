@@ -199,3 +199,11 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 ## Next up
 
 - **D0a** — PostgreSQL/MinIO authoritative: `worker-host.ts` still forces the file backend (`persistence: 'local'`; smoke probe reports `database: "files"`). Tracked migrations, global asset rows, upload reconciliation, importer, backup/restore.
+
+## 2026-09-19 — D4 slice 3: the Objects panel
+
+**Commits**
+
+- `706999f2` — the build's progress panel shows the cast live: reused / generated / edited / generating (brief written, artwork pending), from run-dir assets via `harness:artefacts`; the asset tool records reuse per asset. Release suite re-verified after the story-master change: 15/15.
+
+**D4 remaining:** §5.4a's isolated object-performance review stage (render the accepted object alone at display size, inspect action/settle against the original, receipt) — the in-scene half exists via cast verification; the isolated half is next.
