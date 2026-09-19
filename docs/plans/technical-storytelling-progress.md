@@ -233,3 +233,9 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 
 - `dde89d49` — per-scene review status (◆) in the notebook rail from the rich build's reviewed stamp.
 - `ff4bc0b0` — the preview loop is bounded: per-scene review budget (default 8), the retained best passing proof answers over-budget calls with the exact remaining issue. Motivated by the live build's ~30-minute review loop. `review-budget-check.mjs` PASS; in the release suite (16).
+
+## 2026-09-19 — §3.8: rehearsal loop in the camera dialog
+
+**Commits**
+
+- (this run) — Rehearse beside the camera: the scene's proposed graphics play at the plan's estimated pace with its cue lines, beat jump/replay controls, and the director's pencilled shot per beat; the take stays the timing authority (playback stops when recording starts, nothing in the pane is recorded, closing resets). `rehearsal-check.mjs` PASS (10 assertions); in the release suite (17).
