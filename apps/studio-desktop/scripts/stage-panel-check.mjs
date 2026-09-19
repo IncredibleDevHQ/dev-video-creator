@@ -157,8 +157,22 @@ try {
     return note.includes('needs a pickup') ? note : null
   })()`)
   check('the coach card names the pickup beats for this scene', pickup.includes('beat 2') && pickup.includes('The take skips the second sentence.'), pickup.slice(0, 140))
+
+  const railMarked = await evalInWindow(`(() => {
+    const chip = [...document.querySelectorAll('#scene-rail .scene-card')].find(b => b.textContent.includes('Pickup scene'))
+    return chip?.querySelector('.pickup-pill')?.textContent || ''
+  })()`)
+  check('the rail marks the scene as needing a pickup', railMarked === 'needs pickup', railMarked)
   await evalInWindow(`document.getElementById('close-camera').click()`)
   await waitFor(`document.getElementById('camera-dialog')?.open === false`)
+
+  // A take recorded after the checkpoint answers it: the mark clears.
+  await evalInWindow(`window.__timing.standInTake('blk-s2', 6000)`)
+  const cleared = await waitFor(`(() => {
+    const chip = [...document.querySelectorAll('#scene-rail .scene-card')].find(b => b.textContent.includes('Pickup scene'))
+    return chip && !chip.querySelector('.pickup-pill') ? 'cleared' : null
+  })()`)
+  check('a newer take clears the pickup mark', cleared === 'cleared')
 
   // A finished build stays quiet on reopen.
   await fetch(`${origin}/api/runs`, {

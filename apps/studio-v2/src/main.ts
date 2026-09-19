@@ -1833,6 +1833,8 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
     renderCanvasBlockTimeline()
     syncProject()
     await persistProjectNow(structuredClone(project))
+    // A fresh take answers any pickup note the last build left on the scene.
+    void refreshPickupNotes()
     saveState.textContent = 'Saved'
     const versionNumber =
       takes.findIndex(take => take.recordingId === recording.recordingId) + 1
@@ -3963,6 +3965,16 @@ const renderSceneRail = () => {
       dot.className = 'presenter-pill'
       footer.append(dot)
     }
+    // A scene the last build flagged for a pickup shows it in the rail until
+    // a newer take answers the note.
+    const pickup = pickupNotesByScene.get(scene.id)
+    if (pickup?.length) {
+      const mark = document.createElement('span')
+      mark.className = 'pickup-pill'
+      mark.title = `The last build flagged: ${pickup.map(item => `beat ${item.beat}`).join(', ')} — record a pickup from the camera dialog`
+      mark.textContent = 'needs pickup'
+      footer.append(mark)
+    }
     footer.append(document.createTextNode(scene.kind))
     button.append(top, title, footer)
     button.addEventListener('click', () => selectNode(scene.id, true))
@@ -4833,6 +4845,8 @@ const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
   renderCanvasBlockTimeline()
   syncProject()
   syncCanvasViewSwitch()
+  // Selecting a take answers any pickup note the build left on this scene.
+  void refreshPickupNotes()
   const takes = project.recordedBlockTakes?.[blockId] || []
   const versionNumber =
     takes.findIndex(item => item.recordingId === take.recordingId) + 1
@@ -7393,36 +7407,55 @@ const openCamera = () => {
   cameraDialog.showModal()
 }
 
-// Pickup notes on the coach card (§3.7): when the last build's take alignment
-// flagged beats on this scene, the card names them where the creator records.
-// The checkpoint names the scene's file stem; the run's story manifest maps
-// it back to the notebook scene id.
+// Pickup notes (§3.7): when the last build's take alignment flagged beats,
+// the notes ride both the coach card (where the creator records) and the
+// scene rail (so the unfinished scene is visible from the notebook). The
+// checkpoint names the scene's file stem; the run's story manifest maps it
+// back to the notebook scene id. A take recorded after the checkpoint answers
+// it — the mark clears until the next alignment.
+const pickupNotesByScene = new Map<string, Array<{ beat: number; note: string }>>()
+const refreshPickupNotes = async () => {
+  pickupNotesByScene.clear()
+  const bridge = window.studioDesktop
+  if (bridge?.isDesktop) {
+    try {
+      const { runs } = await fetchJson<{ runs: Array<{ id: string; route?: string }> }>(`/api/runs?projectId=${encodeURIComponent(project.id)}`)
+      const last = runs.find(run => run.route === 'Build Explainer')
+      if (last) {
+        const { stages } = await fetchJson<{ stages: BuildStageRow[] }>(`/api/runs/${encodeURIComponent(last.id)}/stages`).catch(() => ({ stages: [] as BuildStageRow[] }))
+        const waiting = stages.filter(stage => stage.status === 'needs-input' && stage.detail?.review?.length)
+        if (waiting.length) {
+          const artefacts = await bridge.harness.artefacts(last.id).catch(() => null)
+          const story = artefacts?.explainer?.story
+          const idForFile = new Map((story?.scenes || []).map(scene => [String(scene.file || ''), String(scene.id || '')]))
+          for (const stage of waiting) {
+            const sceneId = idForFile.get(String(stage.detail?.scene || ''))
+            if (!sceneId) continue
+            const take = project.recordedBlocks?.[sceneId]
+            if (take && Date.parse(take.recordedAt || '') > (Date.parse(stage.updatedAt || '') || 0)) continue
+            pickupNotesByScene.set(sceneId, stage.detail!.review!)
+          }
+        }
+      }
+    } catch {
+      // No build history — no marks.
+    }
+  }
+  renderSceneRail()
+}
+
 let pickupNotesRequest = 0
 const renderPickupNotes = async (sceneId: string) => {
   const request = ++pickupNotesRequest
-  const bridge = window.studioDesktop
-  if (!bridge?.isDesktop) return
-  try {
-    const { runs } = await fetchJson<{ runs: Array<{ id: string; route?: string }> }>(`/api/runs?projectId=${encodeURIComponent(project.id)}`)
-    const last = runs.find(run => run.route === 'Build Explainer')
-    if (!last) return
-    const { stages } = await fetchJson<{ stages: BuildStageRow[] }>(`/api/runs/${encodeURIComponent(last.id)}/stages`).catch(() => ({ stages: [] as BuildStageRow[] }))
-    const waiting = stages.filter(stage => stage.status === 'needs-input' && stage.detail?.review?.length)
-    if (!waiting.length) return
-    const artefacts = await bridge.harness.artefacts(last.id).catch(() => null)
-    const story = artefacts?.explainer?.story
-    const idForFile = new Map((story?.scenes || []).map(scene => [String(scene.file || ''), String(scene.id || '')]))
-    const notes = waiting.filter(stage => idForFile.get(String(stage.detail?.scene || '')) === sceneId)
-    if (!notes.length || request !== pickupNotesRequest) return
-    const box = $('#camera-brief') as HTMLElement
-    box.hidden = false
-    const flagged = document.createElement('small')
-    flagged.className = 'camera-brief-pickup'
-    flagged.textContent = `The last take needs a pickup: ${notes.flatMap(stage => (stage.detail?.review || []).map(item => `beat ${item.beat} — ${item.note}`)).join(' · ')}`
-    box.append(flagged)
-  } catch {
-    // No build history — the card stands as it is.
-  }
+  await refreshPickupNotes()
+  const notes = pickupNotesByScene.get(sceneId)
+  if (!notes?.length || request !== pickupNotesRequest) return
+  const box = $('#camera-brief') as HTMLElement
+  box.hidden = false
+  const flagged = document.createElement('small')
+  flagged.className = 'camera-brief-pickup'
+  flagged.textContent = `The last take needs a pickup: ${notes.map(item => `beat ${item.beat} — ${item.note}`).join(' · ')}`
+  box.append(flagged)
 }
 
 // ——— Rehearsal (§3.8): the scene's proposed graphics play beside its cue
@@ -15313,6 +15346,7 @@ const showLastBuildState = async (projectId: string) => {
   }
 }
 void showLastBuildState(project.id)
+void refreshPickupNotes()
 
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop

@@ -5,6 +5,7 @@ export type BuildStageRow = {
   stage: string
   status: string
   detail?: { scene?: string; review?: Array<{ beat: number; note: string }> } | null
+  updatedAt?: string
 }
 
 export type StageViewRow = {

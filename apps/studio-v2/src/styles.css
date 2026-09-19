@@ -677,6 +677,7 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .camera-brief strong { color: #18181b; font-size: 12px; }
 .camera-brief .camera-brief-progress { color: #16a34a; font-weight: 700; letter-spacing: .02em; }
 .camera-brief .camera-brief-pickup { color: #b45309; font-weight: 600; }
+.scene-card .pickup-pill { color: #b45309; font-size: 9px; font-weight: 700; }
 .camera-left { min-width: 0; display: grid; gap: 12px; align-content: start; }
 .rehearsal { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fafafa; }
 .rehearsal-head { display: flex; justify-content: space-between; align-items: baseline; }
