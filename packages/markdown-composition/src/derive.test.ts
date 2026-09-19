@@ -34,7 +34,7 @@ describe('deriving a video from a base', () => {
     ])
     const scenes = project.notebook.content.filter(node => node.type === 'scene')
     expect(scenes.map(node => node.attrs!.id)).toEqual(['video-1-s01', 'video-1-s02'])
-    expect(scenes[0].attrs!.origin).toEqual({ notebook: 'base-1', scene: 'blk-a' })
+    expect(scenes[0].attrs!.origin).toEqual({ notebook: 'base-1', scene: 'blk-a', scenes: ['blk-a'] })
     // Block configuration and presenter lanes follow the new ids.
     expect(Object.keys(project.blocks)).toEqual(['video-1-s01', 'video-1-s02'])
     expect(project.blocks['video-1-s01'].blockId).toBe('video-1-s01')
@@ -79,5 +79,20 @@ describe('deriving a video from a base', () => {
     const status = baseStatusOf(project, null, null)
     expect(status.missing).toBe(true)
     expect(sceneOriginsOf(project).map(entry => entry.id)).toEqual(['video-1-s01', 'video-1-s02'])
+  })
+
+  it('follows merged origins: one video scene can cover two base scenes', () => {
+    const original = base()
+    const { project } = forkNotebook(original, { id: 'video-1' })
+    // Merge: the second node is folded into the first, which remembers both.
+    const scenes = project.notebook.content.filter(node => node.type === 'scene')
+    scenes[0].attrs!.origin = { notebook: 'base-1', scene: 'blk-a', scenes: ['blk-a', 'blk-b'] }
+    project.notebook.content = project.notebook.content.filter(node => node.attrs?.id !== 'video-1-s02')
+    const moved = base()
+    moved.notebook.content[2].attrs!.title = 'The shedder, rewritten'
+    const status = baseStatusOf(project, moved, original)
+    expect(status.stale).toBe(true)
+    expect(status.scenes.map(scene => scene.scene)).toEqual(['blk-a', 'blk-b'])
+    expect(status.scenes.find(scene => scene.scene === 'blk-b')!.state).toBe('changed')
   })
 })

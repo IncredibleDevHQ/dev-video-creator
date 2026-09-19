@@ -147,7 +147,7 @@ const narrateTool = async (args: Args, context: Context) => {
 }
 
 export const readExplainer = async (projectDir: string) => {
-  const manifest = await jsonFile(join(projectDir, 'explainer', 'story.json')) as { scenes: Array<{ id: string; file: string; title: string; question: string; answer: string; review: string; assets: string[] }> }
+  const manifest = await jsonFile(join(projectDir, 'explainer', 'story.json')) as { scenes: Array<{ id: string; file: string; title: string; question: string; answer: string; review: string; assets: string[]; covers?: string[] }> }
   const inputs = await jsonFile(join(projectDir, 'motion', 'inputs.json'))
   if (!Array.isArray(manifest.scenes) || !manifest.scenes.length) throw new Error('No scenes in explainer/story.json')
   const scenes: Array<(typeof manifest.scenes)[number] & { svg: string; program: SceneProgram; motion: MotionPlanV2; windows: unknown[]; durationMs: number }> = []
@@ -160,7 +160,21 @@ export const readExplainer = async (projectDir: string) => {
     if (!scene.question?.trim() || !scene.answer?.trim() || !scene.review?.trim()) throw new Error(`${scene.file}: explain the causal question, answer, and what the frame review established`)
     scenes.push({ ...scene, svg, program: proof.program, motion: proof.plan, windows: proof.windows, durationMs: proof.durationMs })
   }
-  if (new Set(scenes.map(s => s.id)).size !== scenes.length || scenes.length !== inputs.scenes.length || inputs.scenes.some((s: { id: string }) => !scenes.some(scene => scene.id === s.id))) throw new Error('Every input scene must have exactly one reviewed derivative')
+  // Lineage, not counting (D3): a reviewed scene declares the input scenes
+  // it covers — a split shares one input across several scenes, a merge
+  // lists several inputs in one scene's covers. Every input scene must be
+  // covered, and nothing unknown may be claimed.
+  if (new Set(scenes.map(s => s.id)).size !== scenes.length) throw new Error('Every reviewed scene needs its own id')
+  const known = new Set(inputs.scenes.map((s: { id: string }) => s.id))
+  const covered = new Set<string>()
+  for (const scene of scenes) {
+    for (const id of scene.covers?.length ? scene.covers : [scene.id]) {
+      if (!known.has(id)) throw new Error(`${scene.file}: covers unknown input scene "${id}". Declare covers only from the run's input scenes.`)
+      covered.add(id)
+    }
+  }
+  const missing = inputs.scenes.filter((s: { id: string }) => !covered.has(s.id))
+  if (missing.length) throw new Error(`Every input scene must be covered by a reviewed derivative; nothing covers: ${missing.map((s: { id: string }) => s.id).join(', ')}`)
   return { scenes, inputs }
 }
 
@@ -180,12 +194,54 @@ const finishTool = async (args: Args, context: Context) => {
   const previous = await jsonFile(join(projectDir, 'explainer', 'receipt.json')).catch(() => null)
   const snapshot = (attrs: Record<string, unknown>) => digest(String(attrs.svg || ''), { script: attrs.script, program: attrs.program, motion: attrs.motion })
   const applied: Record<string, string> = {}
+  const coversOf = (scene: (typeof scenes)[number]) => (scene.covers?.length ? scene.covers : [scene.id])
+  const content = project.notebook.content
+  const nodeNamed = (id: string) => content.find(n => n.attrs?.id === id)
+  const inputNamed = (id: string) => inputs.scenes.find((s: { id: string }) => s.id === id)
+  const unchangedFromInput = (nodeAttrs: Record<string, unknown> | undefined, id: string) => {
+    const original = inputNamed(id)
+    return Boolean(nodeAttrs && original && nodeAttrs.svg === original.svg && String(nodeAttrs.script || '') === String(original.script || ''))
+  }
+
+  // Pass 1 — the whole story must apply cleanly before anything changes:
+  // each scene's page exists (or its split parent does), and no covered page
+  // carries edits made after the run started.
   for (const scene of scenes) {
-    const node = project.notebook.content.find(n => n.attrs?.id === scene.id)
-    const original = inputs.scenes.find((s: { id: string }) => s.id === scene.id)
-    const unchangedInput = node?.attrs?.svg === original.svg && String(node?.attrs?.script || '') === original.script
-    const ownPrevious = previous?.projectId === project.id && node?.attrs && previous.applied?.[scene.id] === snapshot(node.attrs)
-    if (!node || (!unchangedInput && !ownPrevious)) throw new Error('The notebook changed during generation. The reviewed candidate is saved in this run; refresh before applying it.')
+    const covers = coversOf(scene)
+    const node = nodeNamed(scene.id)
+    const parentNode = node || nodeNamed(covers[0])
+    const ownPrevious = Boolean(previous?.projectId === project.id && node?.attrs && previous.applied?.[scene.id] === snapshot(node.attrs))
+    if (!parentNode && !previous?.applied?.[scene.id]) throw new Error(`The notebook has no page "${scene.id}" to receive the reviewed scene. The candidate is saved in this run; refresh before applying it.`)
+    if (parentNode && !unchangedFromInput(parentNode.attrs as Record<string, unknown>, covers[0]) && !ownPrevious) throw new Error('The notebook changed during generation. The reviewed candidate is saved in this run; refresh before applying it.')
+    for (const extra of covers.slice(1)) {
+      if (extra === scene.id) continue
+      const extraNode = nodeNamed(extra)
+      if (!extraNode) {
+        if (!previous?.applied?.[scene.id]) throw new Error(`${scene.file}: covers ${extra}, but that page is not in the notebook`)
+        continue
+      }
+      if (!unchangedFromInput(extraNode.attrs as Record<string, unknown>, extra) && !previous?.applied?.[scene.id]) throw new Error('The notebook changed during generation. The reviewed candidate is saved in this run; refresh before applying it.')
+    }
+  }
+
+  // Pass 2 — apply: clone split children, write the reviewed content, fold
+  // merged pages into the surviving node's origin.
+  for (const scene of scenes) {
+    const covers = coversOf(scene)
+    let node = nodeNamed(scene.id)
+    if (!node) {
+      // A split child: a new node cloned from the page it came from.
+      const parentNode = nodeNamed(covers[0])!
+      const cloned = structuredClone(parentNode)
+      cloned.attrs = { ...cloned.attrs, id: scene.id }
+      // After the parent's last applied half, so splits keep story order.
+      const siblings = [covers[0], ...scenes.filter(other => coversOf(other)[0] === covers[0]).map(other => other.id)]
+      const lastSibling = Math.max(...siblings.map(id => content.findIndex(n => n.attrs?.id === id)).filter(index => index >= 0))
+      content.splice(lastSibling + 1, 0, cloned)
+      project.blocks ||= {}
+      project.blocks[scene.id] = structuredClone(project.blocks[String(parentNode.attrs?.id)] || createDefaultBlockConfig(scene.id, cloned))
+      node = cloned
+    }
     const earlier = node.attrs?.explainer as { previousPresenterTracks?: unknown; previousRecording?: unknown } | undefined
     const say = scene.program.beats.map(b => b.say).join('\n\n')
     node.attrs = { ...node.attrs, title: scene.title, svg: scene.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(scene.svg)}`,
@@ -193,8 +249,16 @@ const finishTool = async (args: Args, context: Context) => {
       directorNotes: `${scene.question}\n${scene.answer}`, structureApproved: true, stageTrack: [], stagePlacements: null, directorAuto: null,
       explainer: { run: projectDir, question: scene.question, answer: scene.answer, assets: scene.assets, reviewed: true,
         previousPresenterTracks: earlier?.previousPresenterTracks ?? project.presenterTracks?.[scene.id] ?? [], previousRecording: earlier?.previousRecording ?? project.recordedBlocks?.[scene.id] ?? null } }
+    // The surviving node remembers every base scene it now covers.
+    const originScenes = [...new Set(covers.flatMap(cid => {
+      const origin = nodeNamed(cid)?.attrs?.origin as { scene?: string; scenes?: string[] } | undefined
+      return origin?.scenes?.length ? origin.scenes : origin?.scene ? [origin.scene] : []
+    }))]
+    if (originScenes.length) {
+      const origin = (node.attrs.origin || {}) as Record<string, unknown>
+      node.attrs.origin = { ...origin, scenes: originScenes, scene: originScenes[0] }
+    }
     applied[scene.id] = snapshot(node.attrs)
-    project.blocks ||= {}
     project.blocks[scene.id] = { ...(project.blocks[scene.id] || createDefaultBlockConfig(scene.id, node)), durationMs: scene.durationMs }
     // An old take cannot cover a newly composed mechanism.
     if (project.recordedBlocks) delete project.recordedBlocks[scene.id]
@@ -203,6 +267,30 @@ const finishTool = async (args: Args, context: Context) => {
     if (narration.hash !== digest(scene.svg, rawProgram)) throw new Error(`${scene.file}: narration or picture changed; run explainer_narrate again`)
     project.presenterTracks ||= {}
     project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl: narration.audioUrl, audioKind: 'generated' }]
+    // Merged-away pages leave the notebook; their origin lives on in the survivor.
+    for (const extra of covers.slice(1)) {
+      if (extra === scene.id) continue
+      const index = content.findIndex(n => n.attrs?.id === extra)
+      if (index >= 0) content.splice(index, 1)
+      delete project.blocks[extra]
+      delete project.presenterTracks[extra]
+      if (project.recordedBlocks) delete project.recordedBlocks[extra]
+    }
+  }
+
+  // Pages that were split: no reviewed scene took their id, so the original
+  // wireframe page leaves once both halves are applied.
+  for (const input of inputs.scenes as Array<{ id: string }>) {
+    if (scenes.some(scene => scene.id === input.id)) continue
+    const covered = scenes.some(scene => coversOf(scene).includes(input.id))
+    if (!covered) continue
+    const node = nodeNamed(input.id)
+    if (!node) continue
+    if (!unchangedFromInput(node.attrs as Record<string, unknown>, input.id)) throw new Error('The notebook changed during generation. The reviewed candidate is saved in this run; refresh before applying it.')
+    content.splice(content.findIndex(n => n.attrs?.id === input.id), 1)
+    delete project.blocks[input.id]
+    delete project.presenterTracks[input.id]
+    if (project.recordedBlocks) delete project.recordedBlocks[input.id]
   }
   await call(context, `/api/projects/${encodeURIComponent(project.id)}`, project, 'PUT')
   const preview = await call(context, '/api/preview', { project })

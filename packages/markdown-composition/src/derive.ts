@@ -85,9 +85,10 @@ export const forkNotebook = (
       attrs: {
         ...node.attrs,
         id: to,
-        // Where this scene came from. A split later gives both halves the
-        // same origin, which is how one source scene becomes two video ones.
-        origin: { notebook: base.id, scene: from },
+        // Where this scene came from. `scenes` is the array form: a merge
+        // later lists several base scenes, a split shares one across two
+        // video scenes, and the reference survives both.
+        origin: { notebook: base.id, scene: from, scenes: [from] },
       },
     }
   })
@@ -137,7 +138,10 @@ export const baseStatusOf = (
   const now = new Map(sceneOriginsOf(base).map(entry => [entry.id, entry]))
   const usedByChild = new Set(
     (child.notebook?.content || [])
-      .map(node => String((node.attrs?.origin as { scene?: string } | undefined)?.scene || ''))
+      .flatMap(node => {
+        const origin = node.attrs?.origin as { scene?: string; scenes?: string[] } | undefined
+        return origin?.scenes?.length ? origin.scenes : origin?.scene ? [origin.scene] : []
+      })
       .filter(Boolean),
   )
   const scenes = [...usedByChild].map(scene => {

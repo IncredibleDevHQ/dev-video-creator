@@ -61,7 +61,7 @@ const stopWorker = async () => {
 
 type SmokeProbe = {
   title: string
-  health: { persistence?: { database?: string } } | null
+  health: { persistence?: { database?: string; objectStorage?: string } } | null
   projectCount: number | null
   hasEditor: boolean
   hasModelSettings: boolean

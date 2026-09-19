@@ -1,0 +1,141 @@
+// D3 lineage check: the rich explainer finish no longer demands one
+// derivative per input scene. A merge folds two pages into one surviving
+// node whose origin lists both base scenes; a split clones new nodes from
+// the page they came from and retires the original; uncovered inputs and
+// unknown covers are rejected. Runs the real finish tool against an
+// in-memory product API, per explainer-persistence-check.mjs.
+import { build } from 'esbuild'
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { pathToFileURL, fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
+import assert from 'node:assert/strict'
+
+const dir = await mkdtemp(join(tmpdir(), 'explainer-lineage-'))
+let failures = 0
+const check = (label, fn) => {
+  try {
+    fn()
+    console.log(`PASS  ${label}`)
+  } catch (error) {
+    failures += 1
+    console.log(`FAIL  ${label}  ${String(error.message || error).slice(0, 200)}`)
+  }
+}
+try {
+  await build({
+    entryPoints: [fileURLToPath(new URL('../src/mcp/explainer-tools.ts', import.meta.url))],
+    bundle: true, platform: 'node', format: 'esm', outfile: join(dir, 'tools.mjs'),
+    plugins: [{ name: 'unused-render-window', setup(b) {
+      b.onResolve({ filter: /hidden-window$/ }, () => ({ path: 'window', namespace: 'stub' }))
+      b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({ contents: 'export const runAtomizer = () => {}; export const captureHiddenPage = () => {};' }))
+    } }],
+  })
+  const { EXPLAINER_TOOLS } = await import(pathToFileURL(join(dir, 'tools.mjs')))
+  const invoke = name => EXPLAINER_TOOLS.find(t => t.name === name).call({ projectDir: dir }, { origin: 'http://fixture' })
+
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
+  const program = { version: 1, cast: [], beats: [{ say: 'A complete explanation.', events: [] }] }
+  const hash = createHash('sha256').update(svg).update(JSON.stringify(program)).digest('hex')
+  const save = (name, value) => writeFile(join(dir, name), JSON.stringify(value))
+  const writeSceneFiles = async () => {
+    await mkdir(join(dir, 'explainer'), { recursive: true })
+    await mkdir(join(dir, 'motion'), { recursive: true })
+    await writeFile(join(dir, 'explainer/scene.svg'), svg)
+    await save('explainer/scene.program.json', program)
+    await save('explainer/scene.proof.json', { hash, errors: [], warnings: [], frames: [{ atMs: 0, path: 'review.png' }], program, plan: { version: 2, steps: [{ motionWindowMs: 0, holdMs: 2000, actions: [] }] }, windows: [], durationMs: 2000 })
+    await save('explainer/scene.narration.json', { hash, audioUrl: 'http://fixture/audio.mp3' })
+  }
+
+  const baseProject = () => ({
+    id: 'video',
+    derivedFrom: { notebook: 'base' },
+    blocks: {
+      'scene-a': { nodeId: 'scene-a', durationMs: 6000 },
+      'scene-b': { nodeId: 'scene-b', durationMs: 6000 },
+      'scene-c': { nodeId: 'scene-c', durationMs: 6000 },
+    },
+    presenterTracks: {},
+    notebook: { type: 'doc', content: [
+      { type: 'scene', attrs: { id: 'scene-a', title: 'A', svg: 'wire-a', script: '', origin: { notebook: 'base', scene: 'base-a', scenes: ['base-a'] } } },
+      { type: 'scene', attrs: { id: 'scene-b', title: 'B', svg: 'wire-b', script: '', origin: { notebook: 'base', scene: 'base-b', scenes: ['base-b'] } } },
+      { type: 'scene', attrs: { id: 'scene-c', title: 'C', svg: 'wire-c', script: '', origin: { notebook: 'base', scene: 'base-c', scenes: ['base-c'] } } },
+    ] },
+  })
+  const INPUTS = { projectId: 'video', scenes: [
+    { id: 'scene-a', svg: 'wire-a', script: '' },
+    { id: 'scene-b', svg: 'wire-b', script: '' },
+    { id: 'scene-c', svg: 'wire-c', script: '' },
+  ] }
+
+  let project
+  const previousFetch = globalThis.fetch
+  globalThis.fetch = async (url, options) => {
+    if (String(url).endsWith('/api/projects/video')) {
+      if (options?.method === 'PUT') project = JSON.parse(options.body)
+      return Response.json({ project })
+    }
+    if (String(url).endsWith('/api/preview')) return Response.json({})
+    throw new Error(`Unexpected fixture URL: ${url}`)
+  }
+
+  const storyScene = (id, covers) => ({ id, file: 'scene', title: 'Mechanism', question: 'Why?', answer: 'Because.', review: 'States checked.', assets: [], ...(covers ? { covers } : {}) })
+  const story = async scenes => save('explainer/story.json', { scenes })
+
+  // ——— Merge: scene-a covers scene-b; scene-c stays 1:1 ———
+  project = baseProject()
+  await writeSceneFiles()
+  await save('motion/inputs.json', INPUTS)
+  await story([storyScene('scene-a', ['scene-a', 'scene-b']), storyScene('scene-c')])
+  await invoke('explainer_finish')
+  check('merge folds scene-b into scene-a and removes its node', () => {
+    const ids = project.notebook.content.map(n => n.attrs.id)
+    assert.deepEqual(ids, ['scene-a', 'scene-c'])
+    assert.equal(project.blocks['scene-b'], undefined)
+  })
+  check('the survivor’s origin lists both base scenes', () => {
+    const a = project.notebook.content[0].attrs
+    assert.deepEqual(a.origin.scenes, ['base-a', 'base-b'])
+    assert.equal(a.origin.notebook, 'base')
+  })
+  check('reviewed stamps and durations applied on merge', () => {
+    assert.equal(project.notebook.content[0].attrs.explainer.reviewed, true)
+    assert.equal(project.blocks['scene-a'].durationMs, 2000)
+  })
+
+  // ——— Split: scene-a becomes a1 + a2; the original retires ———
+  project = baseProject()
+  await writeSceneFiles()
+  await save('motion/inputs.json', INPUTS)
+  await rm(join(dir, 'explainer', 'receipt.json'), { force: true })
+  await story([storyScene('scene-a1', ['scene-a']), storyScene('scene-a2', ['scene-a']), storyScene('scene-b'), storyScene('scene-c')])
+  await invoke('explainer_finish')
+  check('split clones two nodes from the original and retires it', () => {
+    const ids = project.notebook.content.map(n => n.attrs.id)
+    assert.deepEqual(ids, ['scene-a1', 'scene-a2', 'scene-b', 'scene-c'])
+  })
+  check('both halves keep the base origin', () => {
+    const [a1, a2] = project.notebook.content
+    assert.deepEqual(a1.attrs.origin.scenes, ['base-a'])
+    assert.deepEqual(a2.attrs.origin.scenes, ['base-a'])
+    assert.equal(a1.attrs.explainer.reviewed, true)
+  })
+
+  // ——— Rejections ———
+  project = baseProject()
+  await rm(join(dir, 'explainer', 'receipt.json'), { force: true })
+  await story([storyScene('scene-a'), storyScene('scene-b')])
+  await assert.rejects(invoke('explainer_finish'), /nothing covers: scene-c/)
+  console.log('PASS  an uncovered input scene is rejected')
+  await story([storyScene('scene-a', ['scene-a', 'nope']), storyScene('scene-b'), storyScene('scene-c')])
+  await assert.rejects(invoke('explainer_finish'), /unknown input scene "nope"/)
+  console.log('PASS  unknown covers are rejected')
+} catch (error) {
+  failures += 1
+  console.log(`FAIL  run: ${error.message}`)
+} finally {
+  await rm(dir, { recursive: true, force: true })
+}
+console.log(failures ? `EXPLAINER LINEAGE CHECK FAIL (${failures})` : 'EXPLAINER LINEAGE CHECK PASS')
+process.exitCode = failures ? 1 : 0
