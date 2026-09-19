@@ -207,3 +207,9 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 - `706999f2` — the build's progress panel shows the cast live: reused / generated / edited / generating (brief written, artwork pending), from run-dir assets via `harness:artefacts`; the asset tool records reuse per asset. Release suite re-verified after the story-master change: 15/15.
 
 **D4 remaining:** §5.4a's isolated object-performance review stage (render the accepted object alone at display size, inspect action/settle against the original, receipt) — the in-scene half exists via cast verification; the isolated half is next.
+
+## 2026-09-19 — D5 §5.4a: the isolated object-performance review is required
+
+**Commits**
+
+- `12758188` — `explainer_review_object`: an accepted asset rendered alone at display size, each clip driven rest/action/settle in the real renderer, frames captured, fidelity against the parent enforced (a performance may not redraw the art). Receipt per object; the rich finish refuses a performed object without one. Skill instructs the review before finishing. Real-DOM proof in `object-performance-check.mjs` (captures + fidelity refusal); the lineage check proves the gate refuses then admits.
