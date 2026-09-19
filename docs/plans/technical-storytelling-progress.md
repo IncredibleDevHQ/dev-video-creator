@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — D4: revision lineage is proven
+
+**Commits**
+
+- `a4d5557c` — `appearance-revisions.test.ts` (provider mocked): an edit records a new content-addressed revision with `parentKey`, the parent record and index entry survive untouched, a palette override lands on the revision brief, repeating the same edit reuses the cached revision with no provider call, and prompt-less/parent-less edits are refused before any call. Suite 19/19 re-verified after the commit.
+
 ## 2026-09-19 — §5.5: a missing take is a durable needs-input, never a silent voice
 
 **Commits**
