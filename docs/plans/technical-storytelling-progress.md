@@ -2,6 +2,14 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D3 slice 3: durable presenter takes
+
+**Commits**
+
+- `c1c8fe2c` — `studio_presenter_takes` + `studio_take_selections` (migration 007): every committed recording is an immutable take row over its media asset; the active take is a separate selection. `/api/takes` list + `/api/takes/select` (unknown takes refused). Notebook deletion removes take records explicitly before the cascade (delete-restrict on media preserved). Reopen hydrates archive + selected take into the document. **Bug found by the check:** the debounced DB sync cloned the project at schedule time and clobbered hydration's fresher write — now clones at fire time. `take-workflow-check.mjs` 8/8 (incl. restart survival + reopen hydration).
+
+**D3 remaining:** recording coach consuming the director's scene cards (D6 territory), rehearsal workspace polish, `needs-input` stage state in the run UI (the run rows already persist; the coach state machine is D6).
+
 ## 2026-09-19 — D3 slices 1+2: lineage and durable run state
 
 **Commits**
