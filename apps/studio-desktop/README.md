@@ -32,7 +32,36 @@ adds the harness port (spec §3) and the studio MCP server (spec §4).
 - `node scripts/animate-check.mjs` — the money test: import → approve → real
   Plan motion (assist) run → apply → save → step bar (`ANIMATE_TIMEOUT_MS`,
   `KEEP_ANIMATE_DIR` optional).
+- `node scripts/create-explainer-check.mjs` — D0 journey: Create explainer's
+  two delivery paths, recorded choice, draft-vs-reviewed Publish labels,
+  library Base/Draft badges, Basic diagram rename.
+- `node scripts/migration-check.mjs` — D0a: legacy file store → PostgreSQL +
+  MinIO import through the UI banner; idempotent, non-destructive.
 - Full §7 results: `TEST-REPORT.md`.
+
+## Durable storage: local PostgreSQL + MinIO
+
+The desktop's production store is the repo's local stack, not files:
+
+- **PostgreSQL** (`studio-db` service, `postgres:17-alpine`) owns notebooks,
+  blocks, assets metadata, recorded takes, settings and the migration ledger.
+  Named volume `studio-db`; port `54329`.
+- **MinIO** (`minio` service) owns every binary object (recordings, artwork,
+  exported MP4s). Named volume `minio_storage`; API `59000`, console `59001`.
+- Lifecycle: `yarn studio:infra` / `yarn studio:infra:stop` (docker compose).
+- The smoke requires the `postgres`/`minio` health report; when the services
+  are down the app shows a storage warning instead of pretending work is
+  saved. `STUDIO_PERSISTENCE=local` is an explicit isolated-test mode (plain
+  files), never a silent fallback.
+- First run with existing file-backed work: the studio offers a
+  non-destructive import (`/api/migrate/local`); files stay put.
+- Backup/restore: `yarn studio:backup <dir>` and `yarn studio:restore <dir>`
+  (overrides: `--database-url`, `--bucket`). Proof:
+  `node apps/studio-v2/scripts/backup-restore-check.mjs` restores into a
+  fresh database + bucket and verifies row counts and object checksums.
+  Named volumes survive restarts but are not backups.
+- Schema changes ship as ordered, recorded files in
+  `apps/studio-v2/server/migrations/` (ledger: `studio_schema_migrations`).
 
 ## Skills install (spec §5)
 
@@ -48,9 +77,16 @@ helper; the MCP `validate` tool shape-checks `resolved` against them.
 
 ## Environment
 
+- `STUDIO_PERSISTENCE` — `local` selects the plain-file store for isolated
+  tests; anything else (the desktop default) is local PostgreSQL + MinIO.
+- `STUDIO_DATABASE_URL`, `STUDIO_MINIO_ENDPOINT`, `STUDIO_MINIO_PORT`,
+  `STUDIO_MINIO_USE_SSL`, `STUDIO_MINIO_ACCESS_KEY`, `STUDIO_MINIO_SECRET_KEY`,
+  `STUDIO_MINIO_BUCKET` — durable-store connection, defaulting to the
+  docker-compose services. Credentials stay server-side.
 - `STUDIO_DATA_DIR` — overrides the data dir (default
   `~/Library/Application Support/studio-desktop/studio`); harness projects
-  live in `<dataDir>/projects/<projectId>` unless `projectDir` is passed.
+  live in `<dataDir>/projects/<projectId>` unless `projectDir` is passed. In
+  `STUDIO_PERSISTENCE=local` this is also the file store.
 - `STUDIO_DIST_DIR` — overrides the studio-v2 `dist/` location.
 - `STUDIO_OUTPUTS_DIR` — overrides where published MP4s are written (default
   `~/Downloads/Incredible Studio/`); the dev worker (`server/bin.ts`) honours

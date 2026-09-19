@@ -1,5 +1,15 @@
 # Incredible Studio — test report (implementation-spec §7)
 
+> **Update 2026-09-19 (D0/D0a, technical-storytelling plan):** the desktop now
+> runs on local PostgreSQL + MinIO by default; the smoke expects
+> `persistence: postgres/minio` (the `files` report below was pre-switch).
+> `STUDIO_PERSISTENCE=local` is the explicit isolated-test mode. New checks:
+> `create-explainer-check.mjs` (15/15), `migration-check.mjs` (10/10),
+> `apps/studio-v2/scripts/backup-restore-check.mjs` (fresh-volume restore,
+> row counts + checksums). Gate: `yarn studio:test` + desktop
+> build/smoke/product test all green on the durable stack. Progress log:
+> `docs/plans/technical-storytelling-progress.md`.
+
 Update 2026-09-07 (script-first iteration): `claude-code` adapter now discovers the desktop-app bundle (`~/Library/Application Support/Claude/claude-code/<v>/claude.app/Contents/MacOS/claude`) and passes `--verbose`; smoke shows `Agent · Claude Code · 2 online`. Re-run: markdown-composition 80/80, studio-v2 22/22 (script planner + director), typecheck ✓, `yarn studio:build` ✓, smoke PASS (`STUDIO_ALLOW_MULTI_INSTANCE=1` while the app is open), `harness-e2e.mjs` PASS for claude-code (stub pinned via `STUDIO_CLAUDE_BIN`) and codex.
 
 
