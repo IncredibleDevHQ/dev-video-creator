@@ -2,6 +2,17 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D6 slice 3 + D7 suite runner
+
+**Commits**
+
+- `527e6a66` — shots drive the composition: DirectedShots carry their stage-family mapping, `stageTrackFromShots` builds the renderer's track from the applied plan (parity-tested against the storyboard's, lead-outs included), and the editor preview, saved `stageTrack`, and persisted `directorAuto` all read the shot plan.
+- release suite — `apps/studio-desktop/scripts/release-check.mjs` runs the unit gates plus all eleven scripted journey/storage checks and reports; `yarn studio:check` builds both apps and runs it. Latest run: **13/13 PASS**.
+
+**What this release proves deterministically** (per plan §8's lower tiers): delivery-path discovery and recording, durable PostgreSQL/MinIO persistence with migration + backup/restore, revisioned themes across restarts/ports, immutable source/narrative/model records, lineage-preserving splits and merges, durable runs/takes with reopen hydration, verified artwork casts, complete vendored instruction graphs, cue occurrence identity, and take-aligned timing.
+
+**Known remaining gaps (need live providers or a human):** the paired end-to-end export proof with a real Quiver generation and a real recorded presenter; the scene-by-scene coach loop UI consuming RecordingBrief with capture controls; full-camera emphasis text rendering and transition execution in the renderer (the plan is applied and validated; the visual execution of the new transition kinds lands with the composition work); the viewing-gate evaluation with independent viewers.
+
 ## 2026-09-19 — D6 slices 1+2: shot sequences and the recording brief
 
 **Commits**

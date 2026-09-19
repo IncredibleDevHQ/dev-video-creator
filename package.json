@@ -21,6 +21,7 @@
 		"studio:build": "yarn workspace studio-v2 build",
 		"studio:start": "yarn workspace studio-v2 start",
 		"studio:test": "yarn workspace node-identifier test && yarn workspace markdown-composition test && yarn workspace studio-v2 typecheck",
+		"studio:check": "yarn workspace studio-v2 build && yarn workspace studio-desktop build && node apps/studio-desktop/scripts/release-check.mjs",
 		"prepare": "husky install && turbo run prepare",
 		"postinstall": "turbo run postinstall"
 	},
