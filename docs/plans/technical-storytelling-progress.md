@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §3.7: pickup marks in the scene rail
+
+**Commits**
+
+- `87b27c15` — A scene the last build flagged for a pickup carries a "needs pickup" mark in the notebook rail, so the unfinished scene is visible without opening it; a take recorded after the checkpoint answers the note and the mark clears (compared by checkpoint `updatedAt` vs take `recordedAt`). The coach card and the rail now share one pickup map (`refreshPickupNotes`, refreshed at boot, on take commit, on take selection, on camera open). `stage-panel-check.mjs` 11/11.
+
 ## 2026-09-19 — §8: diagnostics record skill versions
 
 **Commits**
