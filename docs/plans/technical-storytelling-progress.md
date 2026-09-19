@@ -2,6 +2,12 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D6 slice 4: the coach card loop
+
+**Commits**
+
+- `2c005128` — `coach.ts`: the recording journey as data — scenes in order, done when it has an accepted take, resumes at the first unfinished one. The camera dialog opens with the scene's coach card (recording brief objective, per-shot framing, what happens next) plus journey position. The take-saved toast names the next scene. The brief is persisted on the scene node with the director's plan. Unit: 121 (4 new).
+
 ## 2026-09-19 — D6 slice 3 + D7 suite runner
 
 **Commits**
