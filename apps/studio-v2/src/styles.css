@@ -2128,6 +2128,7 @@ button.se-state:hover { filter: brightness(.97); }
 .asset-card img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:6px;background:repeating-conic-gradient(#1c1c22 0 25%,#16161b 0 50%) 0 0/16px 16px}
 .asset-card strong{font-size:13px;line-height:1.3}
 .asset-card .asset-meta{font-size:11px;opacity:.7}
+.asset-card .asset-detail{display:block;font-size:10px;opacity:.55}
 .asset-card .asset-actions{display:flex;gap:6px;margin-top:2px}
 .asset-card .asset-actions button{font-size:11px;padding:4px 8px}
 .assets-empty{opacity:.7;font-size:13px;padding:18px 4px}

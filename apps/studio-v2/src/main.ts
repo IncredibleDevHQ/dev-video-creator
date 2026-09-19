@@ -100,6 +100,7 @@ import { arcRoleFor, classifyScene, direct, type DirectorResult } from './direct
 import { stageTrackFromShots } from './shot-plan'
 import { coachStateFor } from './coach'
 import { stageRowsFor, type BuildStageRow } from './stage-view'
+import { artworkDetailFor, artworkDetailLine } from './artwork-detail'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
@@ -11540,7 +11541,7 @@ const renderReusableArtwork = async () => {
   const request = ++libraryRequest
   const grid = $('#assets-grid') as HTMLElement
   try {
-    const { assets } = await fetchJson<{ assets: Array<WornArtwork & { url: string; brief: { role: string; style: { family: string } }; operation: string; usedIn?: Array<{ id: string; title: string }> }> }>('/api/appearance/library')
+    const { assets } = await fetchJson<{ assets: Array<WornArtwork & { url: string; svg?: string; brief: { role: string; style: { family: string } }; operation: string; usedIn?: Array<{ id: string; title: string }> }> }>('/api/appearance/library')
     if (request !== libraryRequest || !assets.length) return
     grid.querySelector('.assets-empty')?.remove()
     grid.querySelector('[data-reusable-library]')?.remove()
@@ -11564,6 +11565,13 @@ const renderReusableArtwork = async () => {
       const usedIn = asset.usedIn || []
       meta.textContent = `${asset.brief.role} · ${asset.brief.style.family} · ${asset.parts.length} editable parts · ${asset.operation}${usedIn.length ? ` · used in ${usedIn.length} notebook${usedIn.length === 1 ? '' : 's'}` : ''}`
       if (usedIn.length) meta.title = `Used in: ${usedIn.map(notebook => notebook.title).join(', ')}`
+      // What the object offers a scene (D4): editable part ids and the named
+      // behavior clips it carries, from the accepted record itself.
+      const detail = document.createElement('span')
+      detail.className = 'asset-meta asset-detail'
+      const { parts: assetParts, behaviors } = artworkDetailFor(asset)
+      detail.textContent = artworkDetailLine(asset)
+      detail.title = [...assetParts, ...behaviors.map(behavior => `behavior: ${behavior}`)].join(', ')
       const download = document.createElement('a')
       download.href = asset.url
       download.download = `${asset.entity}.svg`
@@ -11585,7 +11593,7 @@ const renderReusableArtwork = async () => {
           showToast(`Reused ${asset.entity} from the asset library`)
         } catch (error) { showToast(error instanceof Error ? error.message : 'Could not place this artwork') }
       })
-      card.append(picture, label, meta, use, download)
+      card.append(picture, label, meta, detail, use, download)
       collection.append(card)
     }
   } catch (error) { ($('#assets-status') as HTMLElement).textContent = error instanceof Error ? error.message : 'Could not read reusable artwork' }
