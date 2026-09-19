@@ -6,6 +6,7 @@
 // they are validated as a small, coherent vocabulary.
 import type { StoryboardEntry } from './director'
 import type { ScriptBeat } from './script-plan'
+import { isStageFamily, isStageTreatment, isStageVariant, sanitizeStageTrack, type StageSegment, type StageVariant } from 'markdown-composition'
 
 export type ShotFocus = 'speaker' | 'mechanism' | 'shared'
 export type ShotView = 'camera-full' | 'camera-text' | 'shared' | 'animation-full'
@@ -16,6 +17,9 @@ export type DirectedShot = {
   beats: number[]
   focus: ShotFocus
   view: ShotView
+  // The existing stage family this view maps onto (D6): the renderer plays
+  // the stage families; the shot layer never creates a second one.
+  stage: { family: string; treatment?: string; variant?: string; fromEndMs?: number }
   // A sparse, deliberate headline in safe space; only camera-led shots carry one.
   emphasis?: string
   transitionOut: { kind: ShotTransitionKind; durationMs: number }
@@ -63,6 +67,12 @@ export const planShots = (storyboard: StoryboardEntry[], beats: ScriptBeat[]): D
       beats: [...entry.beats],
       focus,
       view,
+      stage: {
+        family: entry.family,
+        ...(entry.treatment ? { treatment: entry.treatment } : {}),
+        ...(entry.variant ? { variant: entry.variant } : {}),
+        ...(entry.fromEndMs ? { fromEndMs: entry.fromEndMs } : {}),
+      },
       ...(emphasis ? { emphasis } : {}),
       transitionOut: { kind: 'hold' as const, durationMs: 0 },
       reason: entry.why || entry.note,
@@ -73,6 +83,27 @@ export const planShots = (storyboard: StoryboardEntry[], beats: ScriptBeat[]): D
     if (next) shot.transitionOut = transitionBetween(shot.view, next.view)
   })
   return shots
+}
+
+// The shot sequence as the renderer's stage track — same timing math as the
+// storyboard's, sourced from the applied plan (D6).
+export const stageTrackFromShots = (shots: DirectedShot[], beatOffsetsMs: number[], beatDurationsMs: number[] = []): StageSegment[] => {
+  const track: StageSegment[] = []
+  shots.forEach(shot => {
+    const family = isStageFamily(shot.stage.family) ? shot.stage.family : null
+    if (!family || !shot.beats.length) return
+    const first = Math.min(...shot.beats)
+    const last = Math.max(...shot.beats)
+    const fromEnd = Number(shot.stage.fromEndMs)
+    const atMs =
+      Number.isFinite(fromEnd) && fromEnd > 0
+        ? Math.max(beatOffsetsMs[first] ?? 0, (beatOffsetsMs[last] ?? 0) + (beatDurationsMs[last] ?? 0) - fromEnd)
+        : beatOffsetsMs[first] ?? 0
+    const treatment = isStageTreatment(shot.stage.treatment) ? shot.stage.treatment : ''
+    const variant = isStageVariant(family, shot.stage.variant) ? (shot.stage.variant as StageVariant) : undefined
+    track.push({ atMs, family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}) })
+  })
+  return sanitizeStageTrack(track)
 }
 
 // Every beat is in exactly one shot, in order — the plan's coherence check.

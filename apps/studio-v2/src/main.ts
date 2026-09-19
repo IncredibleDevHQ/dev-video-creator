@@ -97,6 +97,7 @@ import {
   type WindowLayout,
 } from './script-plan'
 import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
+import { stageTrackFromShots } from './shot-plan'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
@@ -9427,7 +9428,7 @@ type SlideEditorState = {
   scriptApproved: boolean
   windows: SceneWindow[]
   breakdownApproved: boolean
-  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string; version?: string; seconds?: number; storyboard?: DirectorResult['storyboard']; changes?: Record<number, string>; summary?: string } | null
+  proposal: { windows: SceneWindow[]; plan: MotionPlanV2 | null; source: string; version?: string; seconds?: number; storyboard?: DirectorResult['storyboard']; shots?: DirectorResult['shots']; changes?: Record<number, string>; summary?: string } | null
   // When set, the preview runs this plan instead of the scene's (proposal preview).
   previewPlan: MotionPlanV2 | null
   // The dialogue as authored (paragraphs), so a re-cut by paragraph can
@@ -9683,8 +9684,11 @@ const studioStageTrack = (state: SlideEditorState): StageSegment[] => {
       if (fromAuto.length) return fromAuto
     }
   }
+  const shots = state.previewPlan ? state.proposal?.shots : state.director?.shots
   const storyboard = state.previewPlan ? state.proposal?.storyboard || [] : state.director?.storyboard || []
-  const track = stageTrackFromStoryboard(storyboard, offsets, durations)
+  // The applied shot plan drives the track when it exists; the storyboard
+  // remains the fallback for proposals and older saved scenes.
+  const track = shots?.length ? stageTrackFromShots(shots, offsets, durations) : stageTrackFromStoryboard(storyboard, offsets, durations)
   return track.length ? track : [{ atMs: 0, family: 'content-pip' }]
 }
 
@@ -11513,7 +11517,7 @@ const requestProposal = async (instruction: string) => {
     const staged = planned
       ? direct({ title: String(found?.attrs.title || 'Scene'), units: state.units, viewBox: state.viewBox, beats: planned.beats, plan: planned.plan, position: scenePosition(state.nodeId), layouts: windows.map(window => window.layout), layoutsByAuthor: windows.map(window => Boolean(window.layoutByAuthor)) })
       : null
-    state.proposal = { windows, plan: planned?.plan || null, storyboard: staged?.storyboard, source: instruction ? `“${instruction.slice(0, 48)}${instruction.length > 48 ? '…' : ''}”` : 'with the page' }
+    state.proposal = { windows, plan: planned?.plan || null, storyboard: staged?.storyboard, shots: staged?.shots, source: instruction ? `“${instruction.slice(0, 48)}${instruction.length > 48 ? '…' : ''}”` : 'with the page' }
     writeNote.value = ''
     if (!state.windows.length) {
       // Nothing to compare against: take it straight in.
@@ -11935,7 +11939,9 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
     ...(seed ? { directorSeed: seed } : {}),
     directorBrief: result.brief,
     ...(plan
-      ? { stageTrack: stageTrackFromStoryboard(result.storyboard, motionPlanOffsetsMs(plan).offsets, plan.steps.map(step => step.motionWindowMs + step.holdMs)) }
+      ? { stageTrack: result.shots.length
+          ? stageTrackFromShots(result.shots, motionPlanOffsetsMs(plan).offsets, plan.steps.map(step => step.motionWindowMs + step.holdMs))
+          : stageTrackFromStoryboard(result.storyboard, motionPlanOffsetsMs(plan).offsets, plan.steps.map(step => step.motionWindowMs + step.holdMs)) }
       : {}),
     stagePlacements: Object.fromEntries(Object.entries(result.placements).map(([family, track]) => [family, track.map(entry => ({ atMs: entry.atMs, variant: entry.variant }))])),
     directorAuto: {
@@ -11943,6 +11949,7 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
       arcRole: result.arcRole,
       requiredArea: result.requiredArea,
       storyboard: result.storyboard,
+      shots: result.shots,
       cues: result.cues,
       directorNotes: result.directorNotes,
       legibility: result.legibility,

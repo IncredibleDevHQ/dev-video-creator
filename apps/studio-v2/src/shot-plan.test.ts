@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { planShots, recordingBriefFor, validateShots } from './shot-plan'
+import { stageTrackFromStoryboard } from 'markdown-composition'
+import { planShots, recordingBriefFor, stageTrackFromShots, validateShots } from './shot-plan'
 import type { StoryboardEntry } from './director'
 import type { ScriptBeat } from './script-plan'
 
@@ -52,6 +53,26 @@ describe('planShots', () => {
     ]
     const same = planShots(stable, beats)
     expect(same[0].transitionOut).toEqual({ kind: 'hold', durationMs: 0 })
+  })
+})
+
+describe('stageTrackFromShots', () => {
+  it('produces the track the storyboard would, from the applied shot plan', () => {
+    const offsets = [0, 5000, 12000]
+    const durations = [5000, 7000, 6000]
+    expect(stageTrackFromShots(planShots(storyboard, beats), offsets, durations))
+      .toEqual(stageTrackFromStoryboard(storyboard, offsets, durations))
+  })
+
+  it('honours a lead-out entry the same way', () => {
+    const withLead: StoryboardEntry[] = [
+      ...storyboard.slice(0, 2),
+      { label: 'Lead', family: 'speaker-full', note: 'you alone', beats: [2], fromEndMs: 1100 },
+    ]
+    const offsets = [0, 5000, 12000]
+    const durations = [5000, 7000, 6000]
+    expect(stageTrackFromShots(planShots(withLead, beats), offsets, durations))
+      .toEqual(stageTrackFromStoryboard(withLead, offsets, durations))
   })
 })
 
