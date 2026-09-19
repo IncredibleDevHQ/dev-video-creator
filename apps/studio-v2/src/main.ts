@@ -4849,9 +4849,15 @@ const renderTakeVersionPicker = (blockId: string) => {
     const isActive = take.recordingId === active?.recordingId
     button.className = isActive ? 'active' : ''
     button.textContent = `v${index + 1}`
+    // Provenance for the choice (§5.8a): when the take was recorded and
+    // whether it keeps the plan — which retake is which is never a guess.
+    const when = Date.parse(take.recordedAt || '')
+      ? ` · ${new Date(take.recordedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+      : ''
+    const keepsPlan = take.keepsPlan ? ' · keeps the plan' : ''
     button.title = isActive
-      ? `Take v${index + 1} · used for the final video`
-      : `Use take v${index + 1} (${formatTime(take.durationMs / 1000)}) for the final video`
+      ? `Take v${index + 1} · used for the final video${when}${keepsPlan}`
+      : `Use take v${index + 1} (${formatTime(take.durationMs / 1000)})${when}${keepsPlan} for the final video`
     button.addEventListener('click', () => selectRecordedTake(blockId, take))
     canvasTakeVersions.append(button)
   })

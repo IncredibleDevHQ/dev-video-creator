@@ -46,6 +46,17 @@ const check = (label, ok, detail = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? `  ${detail}` : ''}`)
   if (!ok) failures += 1
 }
+// Take ids cross from the recording phase into the restarted-app phase.
+let take1Id = ''
+let take2Id = ''
+const evalInWindow = async (origin, js) => {
+  const response = await fetch(`${origin}/__eval`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ js }),
+  }).then(r => r.json())
+  if (!response.ok) throw new Error(response.error || 'eval failed')
+  return response.result
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 let first
@@ -54,7 +65,10 @@ try {
   const { origin } = first
   const project = {
     version: 1, id: PROJECT_ID, title: 'Takes fixture',
-    notebook: { type: 'doc', content: [{ type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Takes' }] }] },
+    notebook: { type: 'doc', content: [
+      { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Takes' }] },
+      { type: 'scene', attrs: { id: 'blk-p1', title: 'Take scene' } },
+    ] },
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
   }
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project) })
@@ -76,6 +90,8 @@ try {
   const take1 = await commitTake(asset1, 4000)
   const asset2 = await uploadTake('two')
   const take2 = await commitTake(asset2, 5200)
+  take1Id = take1.recording.recordingId
+  take2Id = take2.recording.recordingId
   const afterTwo = await listTakes()
   check('two commits are two preserved takes', afterTwo.takes?.length === 2, `${afterTwo.takes?.length}`)
   check('committing selects the new take', afterTwo.selections?.[0]?.takeId === take2.recording?.recordingId, JSON.stringify(afterTwo.selections))
@@ -118,6 +134,28 @@ try {
     Boolean(active && active.recordingId === relisted.selections[0].takeId && archived.length === 2),
     `active=${active?.recordingId?.slice(0, 8)}… takes=${archived.length}`,
   )
+
+  // The take picker shows the archive's provenance (§5.8a): which take the
+  // edit uses, and when each take was recorded.
+  await evalInWindow(origin, `(() => {
+    const chip = [...document.querySelectorAll('#scene-rail .scene-card')].find(b => b.textContent.includes('Take scene'))
+    if (!chip) throw new Error('no chip for the take scene')
+    chip.click()
+  })()`)
+  const created1 = relisted.takes.find(t => t.id === take1Id)?.createdAt
+  const created2 = relisted.takes.find(t => t.id === take2Id)?.createdAt
+  const picker = await evalInWindow(origin, `(() => {
+    const box = document.getElementById('canvas-take-versions')
+    const fmt = d => new Date(d).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return {
+      hidden: box.hidden,
+      buttons: [...box.querySelectorAll('button')].map(b => ({ label: b.textContent, title: b.title })),
+      when: [fmt(${JSON.stringify(created1)}), fmt(${JSON.stringify(created2)})],
+    }
+  })()`)
+  check('the picker shows both preserved takes', picker.hidden === false && picker.buttons.length === 2, `${picker.buttons.length} buttons`)
+  check('the selected take reads as used, with when it was recorded', picker.buttons[0]?.title === `Take v1 · used for the final video · ${picker.when[0]}`, picker.buttons[0]?.title)
+  check('the other take offers its duration and provenance', picker.buttons[1]?.title === `Use take v2 (00:05) · ${picker.when[1]} for the final video`, picker.buttons[1]?.title)
 
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })
   check('cleanup', true, 'fixture notebook deleted')
