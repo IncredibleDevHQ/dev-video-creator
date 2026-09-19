@@ -25,6 +25,7 @@ const CHECKS = [
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration
   'skill-references-check.mjs',   // D4: shipped instruction dependency graph
   'align-take-check.mjs',         // D5: take-aligned timing on canned transcripts
+  'take-alignment-e2e-check.mjs', // D5: synthesized speech through the real aligner (SKIP without uv)
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 
@@ -47,7 +48,7 @@ for (const [command, args, label] of UNIT_GATES) {
 for (const script of CHECKS) {
   process.stdout.write(`${script}… `)
   const { code, out } = await runOne('node', [join(desktopDir, 'scripts', script)], desktopDir)
-  const lines = out.split('\n').filter(line => /CHECK (PASS|FAIL)|\d+\/\d+ passed/.test(line))
+  const lines = out.split('\n').filter(line => /CHECK (PASS|FAIL|SKIP)/.test(line))
   results.push([script, code === 0])
   console.log(code === 0 ? `PASS  (${lines[lines.length - 1] || 'ok'})` : `FAIL\n${out.split('\n').filter(line => /FAIL/.test(line)).slice(0, 12).join('\n')}`)
 }

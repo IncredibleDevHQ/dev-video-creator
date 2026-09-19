@@ -402,7 +402,7 @@ const alignTakeTool = async (args: Args, context: Context) => {
   await save(manifest, { audio: audioPath, beats: program.beats.map(beat => ({ id: beat.id, say: beat.say })) })
   const aligner = fileURLToPath(new URL('../skills/explainer-master/scripts/align_take.py', import.meta.url))
   try {
-    await execute('uv', ['run', '--with', 'faster-whisper==1.2.0', 'python', aligner, manifest], { timeout: 600_000, maxBuffer: 2 * 1024 * 1024 })
+    await execute('uv', ['run', '--with', 'faster-whisper==1.2.0', '--with', 'requests==2.32.5', 'python', aligner, manifest], { timeout: 600_000, maxBuffer: 2 * 1024 * 1024 })
   } catch (error) {
     throw new Error(`Take alignment failed. Install uv and allow its cached faster-whisper runtime/model download, then retry. ${String((error as Error).message).slice(0, 250)}`)
   }
