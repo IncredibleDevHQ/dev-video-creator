@@ -245,3 +245,9 @@ What remains is human-bound by the plan's own release definition (§10): a real 
 - The human path records the choice and routes into the shared rich build; scene-by-scene recording, takes and coaching are D3/D6.
 - Draft/Reviewed badge state is computed per card from saved scene stamps; fine at library scale, revisit if the listing grows.
 - Pre-existing: `markdown-composition` `tsc --noEmit` fails on `derive.test.ts` (`BlockRenderConfigV1.blockId`) on the base commit; not part of `studio:test`, left as-is.
+
+## 2026-09-19 — §10: the delivery-path switch is proven non-destructive
+
+**Commits**
+
+- (this run) — `create-explainer-check.mjs` gains the switch criterion: with a recorded take and scene artwork in place, human → generated → human keeps the take archive, the active take, and the scene's SVG byte-identical. 14 assertions PASS; the publish walkthrough now clicks through the junction step when the notebook has 2+ scenes.
