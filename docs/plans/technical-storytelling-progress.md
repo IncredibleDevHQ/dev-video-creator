@@ -8,6 +8,18 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 123 commits 
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — The human-bound remainder, as a runbook
+
+The deterministic and live-provider tiers are done (see above). The release definition's last gates need a person at a microphone and independent viewers. To run them:
+
+1. **Start the app:** `yarn studio:infra` once (PostgreSQL + MinIO), then `yarn workspace studio-desktop start`.
+2. **The presenter proof (§10):** open the retry-storm base (or create one), Create explainer → *Present it myself* → *My own narrative*. Read your own short mechanism narrative — include one deliberate paraphrase of a written line and one natural pause. Per scene: open the camera dialog, read the coach card, rehearse with the cue lines + proposed graphics, record, review the take, Keep. Retake one flagged passage if the alignment names one. Build explainer: the build aligns to your actual delivery; the export carries your voice (`recorded-mic`), your camera, and the synchronized graphics.
+3. **Verify the pair:** the generated-delivery MP4 of the same mechanism exists (`retry-storm-live-proof.mp4` / `retry-storm-live-rerun.mp4` in ~/Downloads/Incredible Studio). The human export is its peer — same mechanism, your timing.
+4. **The viewing gates:** independent viewers watch both exports and answer the mechanism + prediction questions (what changed, what caused it, why the behavior makes sense), plus readability/timing/coherence scores. §10's bars: ≥4/5 viewers answer correctly per benchmark; median ≥4/5, no category <3/5.
+5. **Keep the receipts:** each build's `receipt.json`/`export.json` (run dir, preserved) + the diagnostics bundle (`GET /api/diagnostics` — store health, skill versions/fingerprints, budgets, run stages) are the versioned evidence.
+
+If a gate fails, the failure lands in the product's own vocabulary: a beat the take didn't say becomes a needs-input pickup; a stale scene reads as a draft; a tampered export fails verification.
+
 ## 2026-09-19 — §4: the export receipt pins the MP4
 
 **Commits**
