@@ -3,7 +3,7 @@
 // you" with its per-beat notes, never as a failure. Pattern per
 // rehearsal-check.mjs (smoke app + __eval via the __buildStages dev hook).
 import { spawn } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -106,15 +106,25 @@ try {
   // (§5.5: waiting for a person is a saved state, reopening loses nothing).
   const REOPEN_PROJECT = `nb-stage-panel-${Date.now().toString(36)}`
   const REOPEN_RUN = `${RUN_ID}-reopen`
+  // The run directory holds the story manifest mapping file stems to scene ids.
+  const runDir = join(root, 'run-reopen')
+  await mkdir(join(runDir, 'explainer'), { recursive: true })
+  await writeFile(join(runDir, 'explainer', 'story.json'), JSON.stringify({
+    version: 1,
+    scenes: [{ id: 'blk-s2', file: 's2', title: 'Pickup scene', question: 'q', answer: 'a', review: 'r' }],
+  }))
   const fixture = {
     version: 1, id: REOPEN_PROJECT, title: 'Stage panel fixture',
-    notebook: { type: 'doc', content: [{ type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Stages' }] }] },
+    notebook: { type: 'doc', content: [
+      { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Stages' }] },
+      { type: 'scene', attrs: { id: 'blk-s2', title: 'Pickup scene' } },
+    ] },
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
   }
   await fetch(`${origin}/api/projects/${REOPEN_PROJECT}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fixture) })
   await fetch(`${origin}/api/runs`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id: REOPEN_RUN, projectId: REOPEN_PROJECT, skill: 'explainer-master', route: 'Build Explainer', adapter: 'kimi', projectDir: '/tmp/x', status: 'running' }),
+    body: JSON.stringify({ id: REOPEN_RUN, projectId: REOPEN_PROJECT, skill: 'explainer-master', route: 'Build Explainer', adapter: 'kimi', projectDir: runDir, status: 'running' }),
   })
   await fetch(`${origin}/api/runs/${REOPEN_RUN}/stages`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -132,6 +142,23 @@ try {
     /paused for you/.test(reopened.status) && reopened.rows.includes('align-take · waiting for you') && reopened.rows.some(r => r.startsWith('beat 2:')),
     JSON.stringify(reopened).slice(0, 200),
   )
+
+  // The same checkpoint reaches the scene's coach card (§3.7): the camera
+  // dialog names the pickup beats where the creator records.
+  await evalInWindow(`(() => {
+    const chip = [...document.querySelectorAll('#scene-rail .scene-card')].find(b => b.textContent.includes('Pickup scene'))
+    if (!chip) throw new Error('no chip for the pickup scene')
+    chip.click()
+    document.getElementById('record-this-block').click()
+  })()`)
+  await waitFor(`document.getElementById('camera-dialog')?.open === true`)
+  const pickup = await waitFor(`(() => {
+    const note = document.querySelector('#camera-brief .camera-brief-pickup')?.textContent || ''
+    return note.includes('needs a pickup') ? note : null
+  })()`)
+  check('the coach card names the pickup beats for this scene', pickup.includes('beat 2') && pickup.includes('The take skips the second sentence.'), pickup.slice(0, 140))
+  await evalInWindow(`document.getElementById('close-camera').click()`)
+  await waitFor(`document.getElementById('camera-dialog')?.open === false`)
 
   // A finished build stays quiet on reopen.
   await fetch(`${origin}/api/runs`, {

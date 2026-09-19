@@ -7389,7 +7389,40 @@ const openCamera = () => {
   guideAudio.removeAttribute('src')
   renderCameraBrief(scene.id)
   setupRehearsal(scene)
+  void renderPickupNotes(scene.id)
   cameraDialog.showModal()
+}
+
+// Pickup notes on the coach card (§3.7): when the last build's take alignment
+// flagged beats on this scene, the card names them where the creator records.
+// The checkpoint names the scene's file stem; the run's story manifest maps
+// it back to the notebook scene id.
+let pickupNotesRequest = 0
+const renderPickupNotes = async (sceneId: string) => {
+  const request = ++pickupNotesRequest
+  const bridge = window.studioDesktop
+  if (!bridge?.isDesktop) return
+  try {
+    const { runs } = await fetchJson<{ runs: Array<{ id: string; route?: string }> }>(`/api/runs?projectId=${encodeURIComponent(project.id)}`)
+    const last = runs.find(run => run.route === 'Build Explainer')
+    if (!last) return
+    const { stages } = await fetchJson<{ stages: BuildStageRow[] }>(`/api/runs/${encodeURIComponent(last.id)}/stages`).catch(() => ({ stages: [] as BuildStageRow[] }))
+    const waiting = stages.filter(stage => stage.status === 'needs-input' && stage.detail?.review?.length)
+    if (!waiting.length) return
+    const artefacts = await bridge.harness.artefacts(last.id).catch(() => null)
+    const story = artefacts?.explainer?.story
+    const idForFile = new Map((story?.scenes || []).map(scene => [String(scene.file || ''), String(scene.id || '')]))
+    const notes = waiting.filter(stage => idForFile.get(String(stage.detail?.scene || '')) === sceneId)
+    if (!notes.length || request !== pickupNotesRequest) return
+    const box = $('#camera-brief') as HTMLElement
+    box.hidden = false
+    const flagged = document.createElement('small')
+    flagged.className = 'camera-brief-pickup'
+    flagged.textContent = `The last take needs a pickup: ${notes.flatMap(stage => (stage.detail?.review || []).map(item => `beat ${item.beat} — ${item.note}`)).join(' · ')}`
+    box.append(flagged)
+  } catch {
+    // No build history — the card stands as it is.
+  }
 }
 
 // ——— Rehearsal (§3.8): the scene's proposed graphics play beside its cue

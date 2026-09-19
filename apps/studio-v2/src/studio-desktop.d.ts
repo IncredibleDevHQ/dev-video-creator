@@ -50,7 +50,7 @@ type StudioDesktopBridge = {
       receipt: unknown | null
       validation: { errors?: unknown[]; warnings?: unknown[]; gateSignal?: unknown } | null
       brief: string | null
-      explainer: { receipt: unknown | null; export: unknown | null; assets?: unknown[]; briefs?: Array<{ file: string; entity: string }> } | null
+      explainer: { receipt: unknown | null; export: unknown | null; story?: { scenes?: Array<{ id?: string; file?: string }> } | null; assets?: unknown[]; briefs?: Array<{ file: string; entity: string }> } | null
       story: { outline: unknown | null; receipt: unknown | null } | null
     }>
     onEvent: (listener: (payload: StudioDesktopHarnessEvent) => void) => () => void

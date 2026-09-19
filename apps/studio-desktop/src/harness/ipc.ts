@@ -97,10 +97,12 @@ export const registerHarnessIpc = (
     const brief = await readFile(join(motionDir, 'brief.md'), 'utf8').catch(() => null)
     const validation =
       (await readJson(motionDir, 'validate.final.json')) || (await readJson(motionDir, 'validate.early.json'))
-    // Explainer runs keep their finish/export receipts beside the scenes.
+    // Explainer runs keep their finish/export receipts beside the scenes, and
+    // the story manifest maps each scene's file stem to its notebook id.
     const explainerDir = join(run.projectDir, 'explainer')
     const explainerReceipt = await readJson(explainerDir, 'receipt.json')
     const explainerExport = await readJson(explainerDir, 'export.json')
+    const explainerStory = await readJson(explainerDir, 'story.json')
     // The cast so far (D4's Objects panel): briefs written and assets
     // accepted or reused, read from the run directory.
     const assetsDir = join(explainerDir, 'assets')
@@ -125,8 +127,8 @@ export const registerHarnessIpc = (
       receipt: await readJson(motionDir, 'receipt.json'),
       validation,
       brief,
-      explainer: explainerReceipt || explainerExport || castAssets.length || briefs.length
-        ? { receipt: explainerReceipt, export: explainerExport, assets: castAssets, briefs }
+      explainer: explainerReceipt || explainerExport || explainerStory || castAssets.length || briefs.length
+        ? { receipt: explainerReceipt, export: explainerExport, story: explainerStory, assets: castAssets, briefs }
         : null,
       story: storyOutline || storyReceipt ? { outline: storyOutline, receipt: storyReceipt } : null,
     }
