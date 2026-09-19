@@ -34,6 +34,7 @@ export const PROGRAM_ACTIONS = [
   'highlight', // the actor takes the eye without moving
   'leave',     // the object goes off screen
   'state',     // the actor's state changes (running, loaded, failing…)
+  'perform',   // seek an authored object's local animation from the scene clock
 ] as const
 export type ProgramAction = (typeof PROGRAM_ACTIONS)[number]
 const MOMENTS = ['establish', 'explain', 'tension', 'consequence', 'resolve', 'aside'] as const
@@ -69,6 +70,9 @@ export type ProgramEvent = {
   holdMs?: number
   // Later or earlier than where the words put it, in milliseconds.
   nudgeMs?: number
+  clip?: { fromMs: number; toMs: number; durationMs: number }
+  atMs?: number
+  after?: string
 }
 
 // Recomposing the page on purpose: a thing is made bigger, sent to one side,
@@ -90,6 +94,8 @@ export type ProgramBeat = {
   // into one paragraph, the second keeps its own events, staging and shot, and
   // plays after the first inside the same line.
   then?: ProgramBeat[]
+  durationMs?: number
+  words?: Array<{ word: string; startMs: number; endMs: number }>
 }
 
 export type SceneProgram = { version: 1; page?: string; cast: ProgramActor[]; beats: ProgramBeat[] }
@@ -174,6 +180,13 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
             id: asString(event.id, 40) || `${act}-${actor}-${index}`,
             actor,
             action: act,
+            ...(typeof event.after === 'string' ? { after: asString(event.after, 40) } : {}),
+            ...(Number.isFinite(event.atMs) ? { atMs: Math.max(0, Math.min(120_000, Number(event.atMs))) } : {}),
+            ...(event.clip && typeof event.clip === 'object' ? { clip: {
+              fromMs: Math.max(0, Number((event.clip as ProgramEvent['clip'])?.fromMs) || 0),
+              toMs: Math.max(0, Number((event.clip as ProgramEvent['clip'])?.toMs) || 0),
+              durationMs: Math.max(100, Math.min(30_000, Number((event.clip as ProgramEvent['clip'])?.durationMs) || 1000)),
+            } } : {}),
             ...(Number.isFinite(nudge) && nudge !== 0 ? { nudgeMs: Math.max(-4_000, Math.min(4_000, Math.round(nudge))) } : {}),
             ...(to && known.has(to) ? { to } : {}),
             ...(Number.isFinite(Number(event.amount)) ? { amount: Math.max(1, Math.round(Number(event.amount))) } : {}),
@@ -183,7 +196,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
           } as ProgramEvent
         })
         .filter((event): event is ProgramEvent => Boolean(event))
-        .slice(0, 12)
+        .slice(0, 64)
       const restage = (Array.isArray(beat.restage) ? beat.restage : [])
         .map(item => {
           const entry = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>
@@ -218,6 +231,8 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
         moment: MOMENTS.includes(beat.moment as ProgramMoment) ? (beat.moment as ProgramMoment) : undefined,
         say,
         events,
+        ...(Number.isFinite(beat.durationMs) && Number(beat.durationMs) > 0 ? { durationMs: Number(beat.durationMs) } : {}),
+        ...(Array.isArray(beat.words) ? { words: beat.words.filter(w => w && typeof w.word === 'string' && Number.isFinite(w.startMs) && Number.isFinite(w.endMs) && w.startMs >= 0 && w.endMs >= w.startMs).slice(0, 300) } : {}),
         ...(camera === 'page' ? { camera: 'page' as const } : camera.length ? { camera } : {}),
         ...(restage.length ? { restage } : {}),
         ...(beat.speaker === 'me' || beat.speaker === 'beside' || beat.speaker === 'page' ? { speaker: beat.speaker as WindowLayout } : {}),
@@ -423,6 +438,7 @@ export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]):
         id: first?.id || `b${index + 1}`,
         moment: first?.moment || ('explain' as const),
         say: window.say,
+        ...(mine.length === 1 && first?.say === window.say ? { durationMs: first.durationMs, words: first.words } : {}),
         events: mineEvents.get(mine[0]?.at ?? -1) || carried.filter(event => !later.some(part => part.events.includes(event))),
         ...(restage.length ? { restage } : {}),
         ...(camera ? { camera } : {}),
@@ -490,8 +506,10 @@ export const compileSceneProgram = (
     if (store.shownOn) {
       const shown = partOf(store.shownOn) || store.shownOn
       const itself = flattenUnits(units).find(unit => unit.id === shown)
+      const [ownerName, ...pieceName] = store.shownOn.split('.')
+      const textPart = unitFor(ownerName)?.appearance?.kinds?.[pieceName.join('.')] === 'text'
       out.push(
-        itself?.kind === 'label'
+        itself?.kind === 'label' || textPart
           ? act('count', [shown], at, { durationMs: 520, value: { from: before, to: after } })
           : act('level', [shown], at, { value: { from: before / ceiling, to: after / ceiling } }),
       )
@@ -500,7 +518,7 @@ export const compileSceneProgram = (
     // for each refilled, in the order they were drawn. The same quantity — so
     // the number, the bar and the tokens can never disagree.
     const pieces = piecesOf(store.counted)
-    if (pieces.length > 1) {
+    if (pieces.length) {
       const kept = Math.max(0, Math.min(pieces.length, after))
       const was = Math.max(0, Math.min(pieces.length, before))
       if (after < before) {
@@ -568,12 +586,14 @@ export const compileSceneProgram = (
   const steps: MotionBeat[] = program.beats.map((beat, index) => {
     const actions: MotionAction[] = []
     const parts = new Set<string>()
-    const spokenMs = speechMs(beat.say, wpm)
+    const spokenMs = beat.durationMs || speechMs(beat.say, wpm)
     // A line is spoken word by word, not character by character: a cue lands
     // when the words before it have been said. Moments that share one line
     // (a merged window) read their cues from that same line.
     const spokenWords = beat.say.split(/\s+/).filter(Boolean)
     const cueAt = (cue: string | undefined, index: number, count: number) => {
+      const measured = cue && beat.words?.find(word => word.word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') === cue.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))
+      if (measured) return measured.startMs
       const found = cue ? beat.say.toLowerCase().indexOf(cue.toLowerCase()) : -1
       if (found >= 0) {
         const before = beat.say.slice(0, found).split(/\s+/).filter(Boolean).length
@@ -586,8 +606,14 @@ export const compileSceneProgram = (
     if (!index) {
       // What each thing holds when the scene opens, visible in the first frame.
       held.forEach(store => {
-        if (!store.shownOn) return
+        if (!store.shownOn && !store.counted) return
         actions.push(...showQuantity(store, store.value, store.value, 0).map(action => ({ ...action, durationMs: 1 })))
+        // A later refill schedules reveals, which the driver hides at rest.
+        // State the initial inventory explicitly so those future reveals do
+        // not make a full container look empty at the beginning.
+        piecesOf(store.counted).forEach((piece, at) => {
+          actions.push(act(at < store.value ? 'reveal' : 'exit', [piece], 0, { durationMs: 1 }))
+        })
       })
     }
     // Leaving is two things: going off screen, and going home. The renderer
@@ -606,7 +632,8 @@ export const compileSceneProgram = (
     const arrive = (id: string) => {
       if (seen.has(id)) return
       seen.add(id)
-      actions.push(act('reveal', idsOf(id), cursor))
+      const node = unitFor(id)
+      actions.push(act('reveal', node?.role === 'node' && node.id === id ? [node.id] : idsOf(id), cursor))
       cursor += 220
       // A relation arrives with the second of the two things it joins: an
       // arrow with nothing at its end is a line to nowhere.
@@ -627,8 +654,9 @@ export const compileSceneProgram = (
     const playPart = (part: ProgramBeat) => {
     const startedAt = cursor
     const events = part.events || []
+    const eventEnds = new Map<string, number>()
     const landsAt = (index: number) =>
-      Math.max(startedAt, cueAt(events[index]?.cue, index, events.length) + (Number(events[index]?.nudgeMs) || 0))
+      Math.max(startedAt, (events[index]?.atMs ?? cueAt(events[index]?.cue, index, events.length)) + (Number(events[index]?.nudgeMs) || 0))
     // Recomposition happens as the moment opens, so the events that follow
     // play out on the new arrangement.
     ;(part.restage || []).forEach(entry => {
@@ -656,10 +684,15 @@ export const compileSceneProgram = (
       }
     })
     if (part.restage?.length) cursor += MOTION_DURATION_MS.move + 120
+    let furthestEnd = cursor
     events.forEach((event, eventIndex) => {
       // Never before the line has reached it, never before the previous
       // event has finished.
-      cursor = Math.max(cursor, landsAt(eventIndex))
+      // Explicit timing can overlap independent performances. Dependencies
+      // name the event that must finish; the legacy implicit order is kept.
+      cursor = event.atMs !== undefined || event.after
+        ? Math.max(landsAt(eventIndex), event.after ? eventEnds.get(event.after) || startedAt : startedAt)
+        : Math.max(cursor, landsAt(eventIndex))
       const actorUnit = unitFor(event.actor)
       if (actorUnit) parts.add(actorUnit.id)
       // The piece of its artwork that answers this kind of event: an
@@ -675,6 +708,12 @@ export const compileSceneProgram = (
       const targetUnit = event.to ? unitFor(event.to) : undefined
       if (targetUnit) parts.add(targetUnit.id)
       switch (event.action) {
+        case 'perform':
+          if (event.clip) {
+            actions.push(act('clip', idsOf(event.actor).slice(0, 1), cursor, { durationMs: event.clip.durationMs, value: { from: event.clip.fromMs, to: event.clip.toMs }, ease: 'draw' }))
+            cursor += event.clip.durationMs
+          }
+          break
         case 'appear':
           arrive(event.actor)
           break
@@ -731,7 +770,7 @@ export const compileSceneProgram = (
             actions.push(...showQuantity(store, before, store.value, cursor))
             // A thing that has just run dry says so; a thing that is simply
             // less full does not need a state of its own.
-            if (store.value === 0 || before === 0) {
+            if ((store.value === 0 || before === 0) && !store.shownOn && !store.counted) {
               actions.push(
                 act('phase', idsOf(event.actor).slice(0, 1), cursor, {
                   value: { program: 'entity', phase: store.value === 0 ? 'empty' : 'running' },
@@ -784,7 +823,10 @@ export const compileSceneProgram = (
           break
       }
       if (event.holdMs) cursor += event.holdMs
+      if (event.id) eventEnds.set(event.id, cursor)
+      furthestEnd = Math.max(furthestEnd, cursor)
     })
+    cursor = furthestEnd
     if (part.camera && part.camera !== 'page' && part.camera.length) {
       const boxes = part.camera.map(standingAt).filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>
       if (boxes.length) {

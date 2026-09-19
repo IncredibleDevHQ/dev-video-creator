@@ -1502,6 +1502,14 @@ const buildCompositionHtml = (
     .slide-stage { position: relative; width: 100%; display: grid; gap: 10px; }
     .slide-stage svg.slide-svg { display: block; width: min(100%, calc(700px * var(--slide-aspect, 1.7778))); aspect-ratio: var(--slide-aspect, 16 / 9); height: auto; margin-inline: auto; border-radius: 12px; overflow: visible; }
     .slide-stage .slide-svg text, .slide-stage .slide-svg rect, .slide-stage .slide-svg circle, .slide-stage .slide-svg ellipse, .slide-stage .slide-svg polygon, .slide-stage .slide-svg image, .slide-stage .slide-svg path, .slide-stage .slide-svg line, .slide-stage .slide-svg polyline { transform-box: fill-box; }
+    .scene.camera-absent:has(svg[data-scene-mode="explainer"]) { padding: 0 !important; }
+    .scene:has(svg[data-scene-mode="explainer"])::before { display: none; }
+    .scene:has(svg[data-scene-mode="explainer"]) > .scene-index, .scene:has(svg[data-scene-mode="explainer"]) > footer { display: none; }
+    .scene.camera-absent:has(svg[data-scene-mode="explainer"]) { display: block; }
+    .scene.scene.camera-absent[data-stage]:has(svg[data-scene-mode="explainer"]) > .content { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; max-width: none; margin: 0 !important; }
+    .slide-stage:has(svg[data-scene-mode="explainer"]) { height: 100%; gap: 0; }
+    .slide-stage svg.slide-svg[data-scene-mode="explainer"] { width: 100%; height: 100%; border-radius: 0; }
+    .slide-stage:has(svg[data-scene-mode="explainer"]) .ex-captions { position: absolute; bottom: 24px; left: 8%; right: 8%; }
     .slide-stage .ex-captions { min-height: 64px; }
     .slide-stage .ex-caption strong { font-size: 30px; }
     .slide-stage .ex-caption span { display: none; }

@@ -110,3 +110,25 @@ describe('accepting artwork', () => {
     })
   })
 })
+
+describe('reusable SVG normalization', () => {
+  it('fits a provider canvas instead of cropping it to the brief', () => {
+    const brief = { ...referenceObjects()[0], size: { width: 260, height: 220 }, parts: [{ id: 'body', what: 'body' }] }
+    const result = acceptArtwork('<svg viewBox="100 200 500 500"><g id="body"><rect x="100" y="200" width="500" height="500"/></g></svg>', brief)
+    expect(result.ok).toBe(true)
+    expect(result.svg).toContain('matrix(0.44 0 0 0.44 -24 -88)')
+  })
+  it('prefixes single-quoted IDs and their references together', () => {
+    const brief = { ...referenceObjects()[0], parts: [{ id: 'body', what: 'body' }] }
+    const result = acceptArtwork("<svg viewBox='0 0 260 220'><defs><linearGradient id='ink'/></defs><g id='body' fill=\"url('#ink')\"/></svg>", brief)
+    expect(result.ok).toBe(true)
+    expect(result.svg).toContain(`id="${result.parts[0].id}"`)
+    expect(result.svg).not.toContain("url('#ink')")
+  })
+  it('rejects event handlers and external CSS paints in reusable artwork', () => {
+    const brief = { ...referenceObjects()[0], parts: [{ id: 'body', what: 'body' }] }
+    for (const attribute of ['onload="alert(1)"', 'fill="url(https://example.com/paint.svg)"']) {
+      expect(acceptArtwork(`<svg><g id="body" ${attribute}/></svg>`, brief).ok).toBe(false)
+    }
+  })
+})

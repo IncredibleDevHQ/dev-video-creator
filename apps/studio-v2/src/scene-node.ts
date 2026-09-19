@@ -133,6 +133,7 @@ export const SceneBlock = Node.create({
       sourcePassages: { default: [] },
       // The scene program: what happens on this page, as events (stage 3).
       program: { default: null },
+      explainer: { default: null },
       // The thing this page shares with its neighbours, performed at the cut.
       thread: { default: null },
       // Where this scene came from when the notebook was forked from a base:

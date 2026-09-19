@@ -163,10 +163,10 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
   id: 'claude-code',
   available: async () => {
     const found = await resolveClaudeBinary()
-    if (found.path) return { ok: true, version: `${found.version} · ${found.path}` }
+    if (found.path && 'version' in found) return { ok: true, version: `${found.version} · ${found.path}` }
     return {
       ok: false,
-      reason: `claude not found — set STUDIO_CLAUDE_BIN or install it (npm i -g @anthropic-ai/claude-code). Looked in: ${(found.tried || []).slice(0, 6).join(', ')}`,
+      reason: `claude not found — set STUDIO_CLAUDE_BIN or install it (npm i -g @anthropic-ai/claude-code). Looked in: ${('tried' in found ? found.tried : []).slice(0, 6).join(', ')}`,
     }
   },
   async run(run, onEvent, signal) {

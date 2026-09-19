@@ -20,6 +20,7 @@ const ensureWindow = () => {
     const win = new BrowserWindow({
       width: 1600,
       height: 900,
+      useContentSize: true,
       show: false,
       webPreferences: {
         sandbox: true,
@@ -53,6 +54,11 @@ export const runAtomizer = async <T>(fn: string, ...args: unknown[]): Promise<T>
 // Renders the current page state in the hidden window and captures a PNG.
 export const captureHiddenPage = async (): Promise<Buffer> => {
   const win = await ensureWindow()
+  // DOM evaluation can finish before Chromium presents the seeked frame.
+  // Invalidate and allow a paint, so the first capture cannot reuse the last
+  // scene's compositor surface. The timeout also supports occluded windows.
+  win.webContents.invalidate()
+  await win.webContents.executeJavaScript('new Promise(resolve => { requestAnimationFrame(() => requestAnimationFrame(resolve)); setTimeout(resolve, 100); })')
   const image = await win.webContents.capturePage()
   return image.toPNG()
 }

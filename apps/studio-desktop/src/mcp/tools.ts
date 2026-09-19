@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { captureHiddenPage, runAtomizer } from './hidden-window'
+import { EXPLAINER_TOOLS } from './explainer-tools'
 import { validateArtefact } from 'markdown-composition/src/schemas'
 import {
   MotionRules,
@@ -416,6 +417,7 @@ export const TOOLS: Array<{
   inputSchema: Json
   call: (args: Json, context: ToolContext) => Promise<unknown>
 }> = [
+  ...EXPLAINER_TOOLS,
   {
     name: 'atomize',
     description:
@@ -547,7 +549,7 @@ export const TOOLS: Array<{
         geometry: { ...pathOrObject, ...geometryArg },
         at: {
           type: 'array',
-          items: { type: 'array', items: [{ type: 'number' }, { type: 'number' }] },
+          items: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 },
           description: '[stepIndex, tMs] positions to capture',
         },
         projectDir: { type: 'string' },

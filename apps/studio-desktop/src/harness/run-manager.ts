@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { installSkills, resolveSkillDir } from './skills-install'
+import { verifyExplainerExport } from '../mcp/explainer-tools'
 import type {
   GateRequest,
   HarnessAdapter,
@@ -24,6 +25,7 @@ export type StartRunOptions = {
   projectId?: string
   projectDir?: string
   inputs?: Record<string, unknown>
+  resumeId?: string
 }
 
 type RunRecord = {
@@ -95,6 +97,7 @@ export class RunManager {
       skill: record.summary.skill,
       harness: record.summary.adapter,
       harnessVersion: '1',
+      model: typeof record.inputs.model === 'string' ? record.inputs.model : undefined,
       startedAt: record.summary.startedAt,
       resumeId: record.resumeId,
       status: record.summary.status,
@@ -115,7 +118,9 @@ export class RunManager {
   async start(options: StartRunOptions): Promise<RunSummary> {
     const id = `run-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`
     const projectDir =
-      options.projectDir || join(this.projectsRoot, options.projectId || 'default')
+      options.projectDir || (options.skill === 'explainer-master'
+        ? join(this.projectsRoot, options.projectId || 'default', 'runs', id)
+        : join(this.projectsRoot, options.projectId || 'default'))
     // Install the vendored skills into the project first (spec §5): the
     // adapter then reads SKILL.md from the project's .claude/skills copy.
     try {
@@ -144,6 +149,7 @@ export class RunManager {
         startedAt: new Date().toISOString(),
       },
       controller: new AbortController(),
+      resumeId: options.resumeId,
       inputs,
       options,
     }
@@ -207,6 +213,14 @@ export class RunManager {
       return
     }
     if (result.exitCode === 0) {
+      if (record.options.skill === 'explainer-master') {
+        try {
+          await verifyExplainerExport(record.summary.projectDir)
+        } catch (error) {
+          await this.fail(record, `Explainer incomplete: ${error instanceof Error ? error.message : error}`)
+          return
+        }
+      }
       await this.finish(record, 'done', 0)
     } else {
       await this.finish(record, 'error', result.exitCode)

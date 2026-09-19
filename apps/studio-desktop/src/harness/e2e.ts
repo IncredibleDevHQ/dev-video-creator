@@ -13,6 +13,7 @@ import { RunManager } from './run-manager'
 import { createClaudeCodeAdapter } from './adapters/claude-code'
 import { createKimiAdapter } from './adapters/kimi'
 import { createCodexAdapter } from './adapters/codex'
+import type { ProjectDocumentV1 } from 'markdown-composition'
 
 type E2EConfig = {
   adapter: 'claude-code' | 'codex' | 'kimi'
@@ -25,6 +26,8 @@ type E2EConfig = {
   // Real-agent runs may legitimately still be working through later gates
   // when the timeout hits; accept a proven gate round trip as the pass.
   allowIncomplete?: boolean
+  seedProject?: ProjectDocumentV1
+  resumeId?: string
 }
 
 const adapters = (context: HarnessContext): Record<string, HarnessAdapter> => ({
@@ -40,6 +43,14 @@ export const runHarnessE2E = async (
   const configPath = process.env.STUDIO_HARNESS_E2E
   if (!configPath) return 1
   const config = JSON.parse(await readFile(configPath, 'utf8')) as E2EConfig
+  if (config.seedProject) {
+    const base = config.seedProject
+    const stored = await fetch(`${context.origin}/api/projects/${base.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(base) })
+    if (!stored.ok) throw new Error('Could not seed the test base')
+    const fork = await fetch(`${context.origin}/api/projects/${base.id}/fork`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ forkKey: `test-${Date.now()}`, title: `${base.title} · explainer` }) })
+    const { project } = await fork.json() as { project: ProjectDocumentV1 }
+    config.inputs = { ...config.inputs, projectId: project.id, scenes: project.notebook.content.map(node => ({ id: node.attrs?.id, title: node.attrs?.title, svg: node.attrs?.svg, script: String(node.attrs?.script || ''), source: node.attrs?.sourcePassages || [], idea: node.attrs?.directorNotes || '' })) }
+  }
   const events: Array<HarnessEvent & { runId: string }> = []
   let sawGate = false
   const manager = new RunManager(context, projectsRoot, async () => {
@@ -60,6 +71,7 @@ export const runHarnessE2E = async (
     route: config.route,
     projectDir: config.projectDir,
     inputs: config.inputs,
+    resumeId: config.resumeId,
   })
   const deadline = Date.now() + (config.timeoutMs || 120_000)
   while (Date.now() < deadline) {

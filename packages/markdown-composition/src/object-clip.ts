@@ -52,6 +52,8 @@ const endOf = (animation: Animation) => {
  * caller asks for, which is what makes a rendered frame reproducible.
  */
 export const holdObjectClip = (node: Element): ObjectClip => {
+  const svg = node.matches('svg[data-object-clip]') ? node as SVGSVGElement : null
+  if (svg) { svg.pauseAnimations(); svg.setCurrentTime(0) }
   const animations = animationsOf(node)
   animations.forEach(animation => {
     try {
@@ -62,12 +64,13 @@ export const holdObjectClip = (node: Element): ObjectClip => {
       // simply does nothing, which is better than a half-driven clip.
     }
   })
-  const durationMs = animations.reduce((longest, animation) => Math.max(longest, endOf(animation)), 0)
+  const durationMs = svg ? Number(svg.getAttribute('data-duration-ms')) || 1000 : animations.reduce((longest, animation) => Math.max(longest, endOf(animation)), 0)
   return {
     node,
     durationMs,
     seek: (localMs: number) => {
       const at = Math.max(0, localMs)
+      if (svg) svg.setCurrentTime(Math.min(at, durationMs) / 1000)
       animations.forEach(animation => {
         try {
           animation.currentTime = Math.min(at, endOf(animation))
@@ -95,7 +98,7 @@ export const holdObjectClip = (node: Element): ObjectClip => {
 /** Every animated object under a root, held the same way. */
 export const holdObjectClips = (root: Element): Map<string, ObjectClip> => {
   const held = new Map<string, ObjectClip>()
-  const candidates = [root, ...Array.from(root.querySelectorAll('[data-part], [data-appearance-for]'))]
+  const candidates = [root, ...Array.from(root.querySelectorAll('[data-part], [data-appearance-for], svg[data-object-clip]'))]
   candidates.forEach(node => {
     if (!node.id) return
     const clip = holdObjectClip(node)

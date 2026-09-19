@@ -186,6 +186,19 @@ export const repairObjectSvg = async (
   }
 }
 
+/** A named local performance. SVG SMIL is isolated and seeked by the player. */
+export const reviseObjectSvg = async (svg: string, brief: ObjectBrief, prompt: string, operation: 'edit' | 'animate'): Promise<GeneratedArtwork> => {
+  if (!quiverConfigured()) throw new Error('QUIVER_API_KEY is not set')
+  const response = await fetch(`${BASE_URL}/v1/svgs/${operation === 'animate' ? 'animations' : 'edits'}`, {
+    method: 'POST', headers: headers(), signal: AbortSignal.timeout(240_000),
+    body: JSON.stringify({ model: DEFAULT_MODEL, svg_source: { base64: Buffer.from(svg).toString('base64') }, reasoning_effort: 'high',
+      prompt: `${prompt}\nPreserve the viewBox and these part ids: ${brief.parts.map(p => p.id).join(', ')}. No scripts, external assets, text or background rectangle. ${operation === 'animate' ? 'Use SVG SMIL animate/animateTransform only, no CSS or JavaScript. All begins are numeric seconds, all durations finite, repeatCount=1, fill=freeze. Make one readable performance with anticipation, action, settle and hold. Preserve factual quantity parts: the scene controls them.' : 'Keep parts separately editable and preserve the palette and silhouette unless the requested change says otherwise.'}` }),
+  })
+  const body = await response.json() as Record<string, unknown>
+  if (!response.ok) throw new Error(`Quiver ${operation} failed (${response.status}): ${String(body.code || body.message || 'provider error').slice(0, 180)}`)
+  return { svg: svgFrom(body), model: DEFAULT_MODEL, requestId: String(body.id || ''), usage: body.usage as Record<string, unknown> }
+}
+
 /** A brief for one of the reference objects, by entity name. */
 export const referenceBriefFor = (entity: string, objects: ObjectBrief[]) =>
   objects.find(object => object.entity === entity) ||

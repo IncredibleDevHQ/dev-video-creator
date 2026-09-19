@@ -41,6 +41,7 @@ export type SlideUnit = {
   appearance?: {
     key?: string
     parts: Record<string, string>
+    kinds?: Record<string, string>
     envelope?: { x: number; y: number; width: number; height: number }
   }
   verb?: string
@@ -75,7 +76,17 @@ const ensureId = (element: Element, counter: { next: number }) => {
 const bboxOf = (element: SVGGraphicsElement) => {
   try {
     const box = element.getBBox()
-    return { x: box.x, y: box.y, width: box.width, height: box.height }
+    // getBBox omits this element's and its ancestors' authored transforms.
+    // Every semantic unit must be measured in the same outer scene space.
+    let root = element.ownerSVGElement
+    while (root?.ownerSVGElement) root = root.ownerSVGElement
+    const rootMatrix = root?.getScreenCTM()
+    const elementMatrix = element.getScreenCTM()
+    if (!rootMatrix || !elementMatrix) return { x: box.x, y: box.y, width: box.width, height: box.height }
+    const matrix = rootMatrix.inverse().multiply(elementMatrix)
+    const points = [[box.x, box.y], [box.x + box.width, box.y], [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]].map(([x, y]) => new DOMPoint(x, y).matrixTransform(matrix))
+    const x = Math.min(...points.map(p => p.x)), y = Math.min(...points.map(p => p.y))
+    return { x, y, width: Math.max(...points.map(p => p.x)) - x, height: Math.max(...points.map(p => p.y)) - y }
   } catch {
     return { x: 0, y: 0, width: 0, height: 0 }
   }
@@ -191,7 +202,9 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
           units.push(...children)
           return
         }
-        if (!children.length) return
+        // A rich object can consist entirely of its appearance. It is still
+        // a semantic node even without a rectangle or a separate label.
+        if (!children.length && child.getAttribute('data-role') !== 'node') return
         ensureId(child, counter)
         while (used.has(`u${counter.next}`)) counter.next += 1
         const box = bboxOf(child as SVGGraphicsElement)
@@ -201,8 +214,8 @@ export const atomizeSlideSvg = (markup: string): AtomizedSlide => {
         // A declared node is one part: its box carries the group's label and
         // its declared kind, so a connector can point at the group's id.
         const only = children.length === 1 && children[0].kind !== 'group' ? children[0] : null
-        if (role === 'node' && only) {
-          units.push({ ...only, id: child.id, ids: [child.id, ...only.ids], role, declaredKind, ...(entityType ? { entityType } : {}), bbox: box })
+        if (role === 'node' && declaredKind !== 'group') {
+          units.push({ id: child.id, ids: [child.id, ...children.flatMap(unit => unit.ids)], kind: only?.kind === 'label' ? 'box' : only?.kind || 'box', label: children.map(unit => unit.label).filter(Boolean).join(' ') || humanize(child.id), children: [], chrome, role, declaredKind, ...(entityType ? { entityType } : {}), bbox: box })
           return
         }
         units.push({
@@ -523,6 +536,23 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
         if (!owner.ids.includes(id)) owner.ids.push(id)
       })
   })
+  // Scene-owned quantities and clip handles may be siblings of the imported
+  // artwork. Their semantic address belongs to the node, not its provider.
+  Array.from(root.querySelectorAll('[data-role="node"]')).forEach(element => {
+    const owner = byId.get(element.id)
+    if (!owner) return
+    const pieces = Array.from(element.querySelectorAll('[data-part]')).filter(piece => piece.closest('[data-role="node"]') === element && !piece.closest('[data-appearance-replaced]'))
+    if (!pieces.length) return
+    owner.appearance ||= { parts: {} }
+    owner.appearance.kinds ||= {}
+    pieces.forEach(piece => {
+      const name = piece.getAttribute('data-part')!
+      if (!piece.id) return
+      owner.appearance!.parts[name] = piece.id
+      owner.appearance!.kinds![name] = piece.tagName.toLowerCase()
+      if (!owner.ids.includes(piece.id)) owner.ids.push(piece.id)
+    })
+  })
 }
 
 /**
@@ -600,6 +630,20 @@ export const wearAppearance = (
   }
   const drawing = new DOMParser().parseFromString(artwork.svg, 'image/svg+xml').documentElement
   if (drawing.tagName.toLowerCase() !== 'svg') return svg
+  // Each placement gets its own ids, even when it reuses the same library
+  // drawing twice in one scene. Gradient and clip references follow them.
+  const placementIds = new Map<string, string>()
+  drawing.querySelectorAll('[id]').forEach(element => {
+    placementIds.set(element.id, `${unitId}-art-${element.id}`)
+    element.id = placementIds.get(element.id)!
+  })
+  drawing.querySelectorAll('*').forEach(element => {
+    Array.from(element.attributes).forEach(attribute => {
+      let value = attribute.value.replace(/url\(\s*["']?#([^)'"\s]+)["']?\s*\)/g, (all, id: string) => placementIds.has(id) ? `url(#${placementIds.get(id)})` : all)
+      if ((attribute.name === 'href' || attribute.name === 'xlink:href') && value.startsWith('#')) value = `#${placementIds.get(value.slice(1)) || value.slice(1)}`
+      if (value !== attribute.value) element.setAttribute(attribute.name, value)
+    })
+  })
   const group = parsed.createElementNS('http://www.w3.org/2000/svg', 'g')
   group.setAttribute('data-appearance-for', unitId)
   if (artwork.key) group.setAttribute('data-appearance-key', artwork.key)
@@ -614,13 +658,29 @@ export const wearAppearance = (
   // The wireframe's own picture of this thing steps aside: one drawing per
   // thing, and the richer one wins.
   Array.from(host.querySelectorAll(`[data-appearance-for="${unitId}"]`)).forEach(previous => {
-    previous.setAttribute('data-appearance-replaced', '1')
-    previous.setAttribute('style', 'display:none')
+    previous.remove()
   })
-  Array.from(drawing.childNodes).forEach(node => group.appendChild(parsed.importNode(node, true)))
+  const animations = Array.from(drawing.querySelectorAll('animate,animateTransform,animateMotion'))
+  if (animations.length) {
+    const milliseconds = (value: string) => {
+      if (!/^\d+(?:\.\d+)?(?:ms|s)?$/.test(value)) throw new Error('Reusable performances need finite numeric SVG timings')
+      return parseFloat(value) * (value.endsWith('ms') ? 1 : 1000)
+    }
+    const duration = Math.max(...animations.map(animation => {
+      if (animation.getAttribute('repeatCount') === 'indefinite') throw new Error('Reusable performances must not loop autonomously')
+      return milliseconds(animation.getAttribute('begin') || '0') + milliseconds(animation.getAttribute('dur') || '') * Math.max(1, Number(animation.getAttribute('repeatCount') || 1))
+    }))
+    drawing.id = `${unitId}-performance`
+    drawing.setAttribute('data-object-clip', '1')
+    drawing.setAttribute('data-part', 'performance')
+    drawing.setAttribute('data-duration-ms', String(duration))
+    drawing.setAttribute('width', String(artwork.viewBox.width))
+    drawing.setAttribute('height', String(artwork.viewBox.height))
+    group.appendChild(parsed.importNode(drawing, true))
+  } else Array.from(drawing.childNodes).forEach(node => group.appendChild(parsed.importNode(node, true)))
   // Name the pieces the scene will move, by the brief's own names.
   artwork.parts.forEach(part => {
-    const piece = group.querySelector(`#${CSS.escape(part.id)}`)
+    const piece = group.querySelector(`#${CSS.escape(placementIds.get(part.id) || part.id)}`)
     if (!piece) return
     // The scene's own name for it, whatever the drawing happened to call it.
     piece.setAttribute('data-part', part.as || part.id.split('-').slice(-1)[0])

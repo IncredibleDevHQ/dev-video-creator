@@ -171,17 +171,45 @@ export const concurrencyObjects = (style: ObjectStyle = REFERENCE_STYLE): Object
  */
 export const knownObjects = (style: ObjectStyle = REFERENCE_STYLE): ObjectBrief[] => [...referenceObjects(style), ...concurrencyObjects(style)]
 
+/** A scene author's brief, not an entry in a closed icon catalogue. */
+export const objectBriefFrom = (value: unknown): ObjectBrief => {
+  const b = value as ObjectBrief
+  const text = (v: unknown, max = 800) => typeof v === 'string' ? v.trim().slice(0, max) : ''
+  if (!b || !/^[a-z][a-z0-9-]{1,63}$/.test(b.entity || '') || !text(b.role) || !text(b.represents)) throw new Error('An object needs an entity, a role, and what it represents')
+  if (!Array.isArray(b.parts) || !b.parts.length || b.parts.length > 24) throw new Error('An object needs 1–24 named parts')
+  const parts = b.parts.map(p => {
+    if (!/^[a-z][a-z0-9-]{0,63}$/.test(p.id || '') || !text(p.what)) throw new Error('Each part needs a stable id and a description')
+    return { id: p.id, what: text(p.what), ...(p.fills === 'up' || p.fills === 'right' ? { fills: p.fills } : {}) }
+  })
+  if (new Set(parts.map(p => p.id)).size !== parts.length) throw new Error('Object part ids must be unique')
+  const palette = b.style?.palette
+  if (!palette || Object.values(palette).some(v => !/^#[0-9a-f]{6}$/i.test(v))) throw new Error('Use six-digit hex colours from the scene palette')
+  for (const key of ['ground', 'text', 'accent', 'secondary', 'warning'] as const) if (!palette[key]) throw new Error(`Missing palette ${key}`)
+  const size = b.size
+  if (!size || ![size.width, size.height].every(v => Number.isFinite(v) && v >= 48 && v <= 1600)) throw new Error('Object dimensions must be 48–1600')
+  const ports: ObjectBrief['ports'] = {}
+  for (const [name, point] of Object.entries(b.ports || {})) {
+    if ((name !== 'in' && name !== 'out') || ![point.x, point.y].every(v => Number.isFinite(v) && v >= 0 && v <= 1)) throw new Error('Ports use normalized coordinates')
+    ports[name] = { x: point.x, y: point.y }
+  }
+  return { entity: b.entity, role: text(b.role, 80), represents: text(b.represents), subject: text(b.subject, 120), parts, ports, size,
+    states: (Array.isArray(b.states) ? b.states : []).slice(0, 12).map(s => text(s, 100)), labelAnchor: ['below', 'right', 'inside-top', 'none'].includes(b.labelAnchor) ? b.labelAnchor : 'below',
+    style: { family: text(b.style.family, 100), palette, angle: b.style.angle === 'front' ? 'front' : 'three-quarter', density: b.style.density === 'rich' ? 'rich' : 'considered', depth: b.style.depth === 'soft' ? 'soft' : 'flat' },
+    keepsTextOut: (Array.isArray(b.keepsTextOut) ? b.keepsTextOut : []).slice(0, 12).map(s => text(s, 120)) }
+}
+
 /** The words a generator is given. Everything the brief knows, nothing else. */
 export const briefPrompt = (brief: ObjectBrief) => {
   const { style } = brief
   return [
     `Draw one object for a technical explainer: ${brief.represents}.`,
-    `It is the ${brief.role} in a diagram about ${brief.subject || 'rate limiting'}, seen ${style.angle === 'front' ? 'from the front' : 'at a slight three-quarter angle'}.`,
+    `It is the ${brief.role} in a diagram about ${brief.subject || 'the technical mechanism'}, seen ${style.angle === 'front' ? 'from the front' : 'at a slight three-quarter angle'}.`,
     `Flat vector artwork on a transparent background, ${style.depth === 'flat' ? 'flat fills with at most one soft shadow' : 'soft shading'}, ${style.density} detail — it has to read at 640 pixels wide.`,
     `Palette: ${style.palette.accent} as the accent, ${style.palette.secondary} for secondary surfaces, ${style.palette.text} for outlines, on nothing (transparent). It belongs to a family called "${style.family}": the same angle, weight and palette as the others.`,
     `Give it a concrete silhouette — a viewer should recognise what it is with the label covered.`,
     `These parts must be separate groups, each with its own id, because the scene animates them: ${brief.parts.map(part => `"${part.id}" (${part.what})`).join('; ')}.`,
     `It must be able to show these states without redrawing: ${brief.states.join(', ')}.`,
+    `Keep containers empty unless the named parts explicitly request their controllable contents. Never bake decorative coins, packets, jobs or other countable items into the shell or interior: the scene owns those quantities.`,
     brief.ports.in || brief.ports.out
       ? `Things enter at ${brief.ports.in ? `${Math.round(brief.ports.in.x * 100)}%, ${Math.round(brief.ports.in.y * 100)}%` : 'no entrance'} and leave at ${brief.ports.out ? `${Math.round(brief.ports.out.x * 100)}%, ${Math.round(brief.ports.out.y * 100)}%` : 'no exit'} of its box.`
       : 'It travels; nothing enters or leaves it.',
@@ -205,7 +233,7 @@ export const briefKey = (brief: ObjectBrief) =>
         // field existed keeps the key its accepted drawing is filed under.
         ...(brief.subject ? { subject: brief.subject } : {}),
         states: [...brief.states].sort(),
-        parts: brief.parts.map(part => [part.id, part.what]).sort(),
+        parts: brief.parts.map(part => [part.id, part.what, part.fills || null]).sort(),
         ports: brief.ports,
         size: brief.size,
         style: brief.style,
@@ -247,7 +275,8 @@ export const acceptArtwork = (raw: string, brief: ObjectBrief): AcceptedArtwork 
     return { ok: false, svg: '', viewBox: brief.size, parts: [], missing: brief.parts.map(part => part.id), ports: brief.ports, problems: ['the answer is not an SVG'] }
   }
   if (SVG_FORBIDDEN.test(svg)) problems.push('it contains an image, script or foreignObject')
-  if (EXTERNAL_REFERENCE.test(svg)) problems.push('it points at something outside itself')
+  if (EXTERNAL_REFERENCE.test(svg) || [...svg.matchAll(/url\(([^)]+)\)/gi)].some(match => !/^['\"]?#/.test(match[1].trim())) || /@import/i.test(svg)) problems.push('it points at something outside itself')
+  if (/\son[a-z]+\s*=/i.test(svg) || /<!DOCTYPE|<!ENTITY/i.test(svg)) problems.push('it contains executable or external markup')
   // One prefix per object, so two objects on one page cannot collide.
   const prefix = `ap-${briefKey(brief).slice(0, 8)}`
   const found: Array<{ id: string; element: string; as: string; fills?: 'up' | 'right' }> = []
@@ -269,15 +298,22 @@ export const acceptArtwork = (raw: string, brief: ObjectBrief): AcceptedArtwork 
   if (missing.length) problems.push(`the scene needs these parts and they are not in the drawing: ${missing.join(', ')}`)
   // Prefix every id and every local reference to one.
   const prefixed = svg
-    .replace(/\bid\s*=\s*"([^"]+)"/g, (_, id: string) => `id="${prefix}-${id}"`)
-    .replace(/\burl\(#([^)]+)\)/g, (_, id: string) => `url(#${prefix}-${id})`)
-    .replace(/\b(href|xlink:href)\s*=\s*"#([^"]+)"/g, (_, attribute: string, id: string) => `${attribute}="#${prefix}-${id}"`)
-  // The root carries the size the page will place it at, whatever came back.
-  const normalizedRoot = rootMatch[0]
-    .replace(/\s(width|height)\s*=\s*"[^"]*"/gi, '')
-    .replace(/\sviewBox\s*=\s*"[^"]*"/i, '')
+    .replace(/\bid\s*=\s*(["'])([^"']+)\1/g, (_, _quote: string, id: string) => `id="${prefix}-${id}"`)
+    .replace(/\burl\(\s*["']?#([^)'"\s]+)["']?\s*\)/g, (_, id: string) => `url(#${prefix}-${id})`)
+    .replace(/\b(href|xlink:href)\s*=\s*(["'])#([^"']+)\2/g, (_, attribute: string, _quote: string, id: string) => `${attribute}="#${prefix}-${id}"`)
+  // Fit the original coordinate system into the requested viewport. Merely
+  // rewriting viewBox crops provider artwork when its canvas differs.
+  const originalBox = /viewBox\s*=\s*["']([^"']+)["']/i.exec(rootMatch[0])?.[1].split(/[\s,]+/).map(Number)
+  const source = originalBox?.length === 4 && originalBox.every(Number.isFinite) && originalBox[2] > 0 && originalBox[3] > 0 ? originalBox : [0, 0, brief.size.width, brief.size.height]
+  const scale = Math.min(brief.size.width / source[2], brief.size.height / source[3])
+  const dx = (brief.size.width - source[2] * scale) / 2 - source[0] * scale
+  const dy = (brief.size.height - source[3] * scale) / 2 - source[1] * scale
+  const prefixedRoot = /<svg\b[^>]*>/i.exec(prefixed)![0]
+  const normalizedRoot = prefixedRoot
+    .replace(/\s(width|height|viewBox)\s*=\s*(["'])[^"']*\2/gi, '')
     .replace(/<svg\b/i, `<svg viewBox="0 0 ${brief.size.width} ${brief.size.height}"`)
-  const normalized = prefixed.replace(/<svg\b[^>]*>/i, normalizedRoot)
+  const fit = scale !== 1 || dx !== 0 || dy !== 0
+  const normalized = prefixed.replace(prefixedRoot, normalizedRoot + (fit ? `<g transform="matrix(${scale} 0 0 ${scale} ${dx} ${dy})">` : '')).replace(/<\/svg>\s*$/i, `${fit ? '</g>' : ''}</svg>`)
   return {
     ok: problems.length === 0,
     svg: normalized,

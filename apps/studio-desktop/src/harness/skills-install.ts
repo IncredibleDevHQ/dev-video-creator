@@ -80,9 +80,11 @@ const ensureAgentsPointer = async (projectDir: string, skillNames: string[]) => 
     AGENTS_MARKER,
     '## Skills',
     '',
+    'Read the skill named by the current task and its referenced files. Other skills below are available routes, not additional mandatory instructions. A video composition need not follow presentation-page conventions.',
+    '',
     ...skillNames.map(
       name =>
-        `- Before any motion, stage, speaker or publish task read \`.claude/skills/${name}/SKILL.md\`.`,
+        `- ${name}: \`.claude/skills/${name}/SKILL.md\`.`,
     ),
     '',
   ].join('\n')

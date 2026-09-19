@@ -6134,6 +6134,7 @@ const createVideoFromBase = async (baseId: string, baseTitle: string) => {
     )
     showToast(reused ? 'That video already existed — opening it' : `Video notebook ready · ${child.derivedFrom?.receipt?.scenes || 0} scenes from ${baseTitle}`)
     await openNotebook(child.id)
+    return child
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Could not create the video notebook')
   }
@@ -9319,7 +9320,7 @@ type SceneVersion = {
 // A version is the scene as it was: its words, its plan, and the program those
 // words belong to — restoring one without its program would recompile old
 // dialogue against a newer story.
-const VERSION_ATTRS = ['script', 'sourceText', 'windows', 'program', 'motion', 'steps', 'pace', 'scriptApproved', 'breakdownApproved', 'directorAuto', 'directorBrief', 'stageTrack', 'stagePlacements', 'requiredArea', 'storyboard', 'cues', 'arcRole', 'directorNotes', 'lengthBrief', 'lengthDepth'] as const
+const VERSION_ATTRS = ['script', 'sourceText', 'windows', 'program', 'explainer', 'motion', 'steps', 'pace', 'scriptApproved', 'breakdownApproved', 'directorAuto', 'directorBrief', 'stageTrack', 'stagePlacements', 'requiredArea', 'storyboard', 'cues', 'arcRole', 'directorNotes', 'lengthBrief', 'lengthDepth'] as const
 const MAX_VERSIONS = 6
 
 const versionSnapshotOf = (attrs: Record<string, unknown>, nodeId: string): Record<string, unknown> => {
@@ -10576,14 +10577,14 @@ const renderLengthBrief = () => {
   if (!state?.brief) return
   targetInput.value = String(state.brief.seconds)
   const hasDraft = state.windows.length > 0 || Boolean(state.script.trim())
-  void requestProposal(hasDraft ? `match the director's length — cover every part it walks, in its order` : '')
+  void requestProposal(hasDraft ? `explain the causal idea using the source; cover only the parts needed to understand it, never narrate row numbers or decorative shapes` : '')
 })
 ;($('#se-next-save') as HTMLButtonElement).addEventListener('click', () => saveButton.click())
 ;($('#se-length-rewrite') as HTMLButtonElement).addEventListener('click', () => {
   const state = slideEditor
   if (!state?.brief) return
   targetInput.value = String(state.brief.seconds)
-  void requestProposal(`match the director's length — cover every part it walks, in its order`)
+  void requestProposal(`explain the causal idea using the source; cover only the parts needed to understand it, never narrate row numbers or decorative shapes`)
 })
 
 const renderWindowCards = () => {
@@ -11167,7 +11168,62 @@ const renderAssetLibrary = () => {
 }
 const openAssetLibrary = () => {
   renderAssetLibrary()
+  void renderReusableArtwork()
   if (!assetsDialog.open) assetsDialog.showModal()
+}
+// This collection belongs to the product, not the current notebook.
+let libraryRequest = 0
+const renderReusableArtwork = async () => {
+  const request = ++libraryRequest
+  const grid = $('#assets-grid') as HTMLElement
+  try {
+    const { assets } = await fetchJson<{ assets: Array<WornArtwork & { url: string; brief: { role: string; style: { family: string } }; operation: string }> }>('/api/appearance/library')
+    if (request !== libraryRequest || !assets.length) return
+    grid.querySelector('.assets-empty')?.remove()
+    grid.querySelector('[data-reusable-library]')?.remove()
+    const collection = document.createElement('section')
+    collection.dataset.reusableLibrary = 'true'
+    collection.style.display = 'contents'
+    grid.append(collection)
+    const heading = document.createElement('h3')
+    heading.textContent = 'Reusable SVG objects · all notebooks'
+    collection.append(heading)
+    for (const asset of assets) {
+      const card = document.createElement('article')
+      card.className = 'asset-card'
+      const picture = document.createElement('img')
+      picture.src = asset.url
+      picture.alt = asset.entity
+      const label = document.createElement('strong')
+      label.textContent = asset.entity.replace(/-/g, ' ')
+      const meta = document.createElement('span')
+      meta.className = 'asset-meta'
+      meta.textContent = `${asset.brief.role} · ${asset.brief.style.family} · ${asset.parts.length} editable parts · ${asset.operation}`
+      const download = document.createElement('a')
+      download.href = asset.url
+      download.download = `${asset.entity}.svg`
+      download.className = 'button chrome-ghost'
+      download.textContent = 'Download SVG'
+      const use = document.createElement('button')
+      use.type = 'button'
+      use.className = 'button chrome-secondary'
+      use.textContent = 'Use on selected object'
+      use.addEventListener('click', () => {
+        const unit = slideEditor && slideEditor.selection.parts.length === 1 ? unitOf(slideEditor, slideEditor.selection.parts[0]) : null
+        if (!slideEditor || !unit) { showToast('Open a scene and select one object before choosing its artwork'); return }
+        try {
+          const svg = wearAppearance(slideEditor.svg, unit.id, asset)
+          writeSlideLikeNode(slideEditor.nodeId, { svg })
+          const nodeId = slideEditor.nodeId
+          assetsDialog.close()
+          void openSlideEditor(nodeId)
+          showToast(`Reused ${asset.entity} from the asset library`)
+        } catch (error) { showToast(error instanceof Error ? error.message : 'Could not place this artwork') }
+      })
+      card.append(picture, label, meta, use, download)
+      collection.append(card)
+    }
+  } catch (error) { ($('#assets-status') as HTMLElement).textContent = error instanceof Error ? error.message : 'Could not read reusable artwork' }
 }
 ;($('#assets-close') as HTMLButtonElement).addEventListener('click', () => assetsDialog.close())
 ;($('#assets-done') as HTMLButtonElement).addEventListener('click', () => assetsDialog.close())
@@ -14151,7 +14207,7 @@ const writeSceneToBrief = async (nodeId: string) => {
       notes: sceneNotesFor(state),
       // The outline's line is the seed; the writer grows it to the brief.
       existing: state.script,
-      instruction: state.script ? `match the director's length — cover every part it walks, in its order` : '',
+      instruction: state.script ? `explain the causal idea using the source; cover only the parts needed to understand it, never narrate row numbers or decorative shapes` : '',
       granularity: state.pace.granularity,
       targetSeconds: state.brief.seconds,
       wpm: state.pace.wpm,
@@ -14332,6 +14388,77 @@ const sourceReadFile = async (file: File) => {
 ;($('#source-close') as HTMLButtonElement).addEventListener('click', () => sourceDialog.close())
 ;($('#start-from-source') as HTMLButtonElement).addEventListener('click', () => openSourceDialog('link'))
 ;($('#open-assets') as HTMLButtonElement).addEventListener('click', () => openAssetLibrary())
+let explainerRun: { id: string; projectId: string; unsubscribe: () => void } | null = null
+;($('#explainer-cancel') as HTMLButtonElement).addEventListener('click', () => {
+  if (explainerRun) void window.studioDesktop?.harness.cancel(explainerRun.id)
+})
+const startExplainerBuild = async () => {
+  const bridge = window.studioDesktop
+  if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
+  if (explainerRun) { showToast('The explainer is still being built'); return }
+  const button = $('#build-explainer') as HTMLButtonElement
+  button.disabled = true
+  let off: (() => void) | undefined
+  const progress = $('#explainer-progress') as HTMLDetailsElement
+  const status = $('#explainer-status') as HTMLElement
+  const log = $('#explainer-log') as HTMLElement
+  const cancel = $('#explainer-cancel') as HTMLButtonElement
+  progress.hidden = false
+  progress.open = true
+  log.textContent = ''
+  status.textContent = 'Preparing the video notebook…'
+  cancel.hidden = false
+  try {
+    const kimi = (await bridge.harness.adapters()).find(a => a.id === 'kimi' && a.ok)
+    if (!kimi) throw new Error('Install Kimi CLI to build an explainer with the local harness')
+    project.notebook = editor.getJSON() as TiptapDocument
+    await persistProjectNow(structuredClone(project))
+    if (!project.derivedFrom?.notebook) {
+      const child = await createVideoFromBase(project.id, project.title)
+      if (!child) throw new Error('Could not create the video derivative')
+    }
+    const targetId = project.id
+    const scenes = project.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(n => ({
+      id: String(n.attrs!.id), title: String(n.attrs!.title || ''), svg: String(n.attrs!.svg),
+      script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: n.attrs!.directorNotes || '',
+    }))
+    if (!scenes.length) throw new Error('Create the base wireframes before building an explainer')
+    button.textContent = 'Building explainer…'
+    const unsubscribe = bridge.harness.onEvent(({ runId, event }) => {
+      if (runId !== explainerRun?.id) return
+      if (event.type === 'text' && event.text) button.title = event.text.slice(-400)
+      const message = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
+      if (message) { status.textContent = message.slice(0, 180); log.textContent = `${log.textContent}\n${message}`.slice(-12000); log.scrollTop = log.scrollHeight }
+      if (event.type === 'error') showToast(event.error || 'The local harness needs attention')
+      if (event.type === 'done') {
+        explainerRun?.unsubscribe()
+        explainerRun = null
+        button.disabled = false
+        button.textContent = 'Build explainer'
+        cancel.hidden = true
+        status.textContent = event.exitCode === 0 ? 'Explainer built and exported. Open Preview to watch it.' : 'Build stopped. Candidate artwork and review files are retained.'
+        if (event.exitCode === 0) {
+          if (project.id === targetId) void openNotebook(targetId)
+          showToast('Explainer built, reviewed and exported. Its editable video notebook is ready.')
+        } else showToast('The explainer run stopped before completion. Its candidate files and review remain available.')
+      }
+    })
+    off = unsubscribe
+    const run = await bridge.harness.run({ adapter: 'kimi', skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
+      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
+    explainerRun = { id: run.id, projectId: targetId, unsubscribe }
+    ;($('#explainer-run-location') as HTMLElement).textContent = `Build files: ${run.projectDir}`
+    showToast('Kimi is building the explainer: story, reusable objects, performances, narration and rendered review.')
+  } catch (error) {
+    off?.()
+    cancel.hidden = true
+    status.textContent = error instanceof Error ? error.message : 'Could not start the explainer'
+    button.disabled = false
+    button.textContent = 'Build explainer'
+    showToast(error instanceof Error ? error.message : 'Could not start the explainer')
+  }
+}
+;($('#build-explainer') as HTMLButtonElement).addEventListener('click', () => void startExplainerBuild())
 // Dev hook: the asset library.
 ;(window as unknown as { __assets?: unknown }).__assets = {
   list: () => projectAssets(),

@@ -91,7 +91,7 @@ export const MOTION_DRIVER_SOURCE = `
       if (isStroke(leaf) && typeof leaf.getTotalLength === 'function') {
         var length = 0;
         try { length = leaf.getTotalLength(); } catch (e) { length = 0; }
-        if (length > 0) { leaf.style.strokeDasharray = String(length); strokes.push({ node: leaf, length: length }); return; }
+        if (length > 0) { strokes.push({ node: leaf, length: length }); return; }
       }
       bodies.push(leaf);
     });
@@ -106,9 +106,22 @@ export const MOTION_DRIVER_SOURCE = `
         text = { node: textNode, base: raw, value: numeric, decimals: decimals, before: raw.slice(0, match.index), after: raw.slice(match.index + match[0].length), grouped: match[0].indexOf(',') >= 0 };
       }
     }
-    var entry = { id: id, node: node, strokes: strokes, bodies: bodies, text: text, hiddenAtRest: false };
-    node.style.transformBox = 'fill-box';
-    node.style.transformOrigin = 'center';
+    // CSS transforms replace SVG's transform attribute. Keep authored local
+    // coordinates on the original and apply stage motion to a separate group.
+    var motionNode = node;
+    if ((node.getAttribute('transform') || node.style.transform) && node.parentNode && node.parentNode.insertBefore) {
+      var parent = node.parentNode;
+      if (parent.getAttribute && parent.getAttribute('data-motion-transform') === id) motionNode = parent;
+      else {
+        motionNode = doc.createElementNS(SVG_NS, 'g');
+        motionNode.setAttribute('data-motion-transform', id);
+        parent.insertBefore(motionNode, node);
+        motionNode.appendChild(node);
+      }
+    }
+    var entry = { id: id, node: node, motionNode: motionNode, strokes: strokes, bodies: bodies, text: text, hiddenAtRest: false };
+    motionNode.style.transformBox = 'fill-box';
+    motionNode.style.transformOrigin = 'center';
     targets[id] = entry;
     order.push(entry);
     return entry;
@@ -143,6 +156,11 @@ export const MOTION_DRIVER_SOURCE = `
   // seeked from this clock, so a frame is the same however it was reached.
   var clips = {};
   var holdClips = function () {
+    Array.prototype.slice.call(root.querySelectorAll('svg[data-object-clip]')).forEach(function (node) {
+      if (!node.id || typeof node.setCurrentTime !== 'function') return;
+      node.pauseAnimations(); node.setCurrentTime(0);
+      clips[node.id] = { svg: node, list: [], durationMs: Number(node.getAttribute('data-duration-ms')) || 1000 };
+    });
     var nodes = [root].concat(Array.prototype.slice.call(root.querySelectorAll('[data-part], [data-appearance-for], [id]')));
     nodes.forEach(function (node) {
       if (!node.id || clips[node.id] || typeof node.getAnimations !== 'function') return;
@@ -164,8 +182,9 @@ export const MOTION_DRIVER_SOURCE = `
   };
   holdClips();
   var seekClip = function (id, localMs) {
-    var clip = clips[id];
+    var clip = clips[id] || clips[prefix ? prefix + '-' + id : id];
     if (!clip) return false;
+    if (clip.svg) { clip.svg.setCurrentTime(Math.max(0, Math.min(localMs, clip.durationMs)) / 1000); return true; }
     clip.list.forEach(function (animation) {
       try {
         var timing = animation.effect && animation.effect.getComputedTiming ? animation.effect.getComputedTiming() : null;
@@ -559,6 +578,12 @@ export const MOTION_DRIVER_SOURCE = `
       if (action.op === 'reveal' || action.op === 'trace' || action.op === 'count') {
         entry.targets.forEach(function (t) { t.hiddenAtRest = true; });
       }
+      if (action.op === 'trace' || action.op === 'connect') {
+        entry.targets.forEach(function (t) {
+          t.traceOwned = true;
+          t.strokes.forEach(function (stroke) { stroke.node.style.strokeDasharray = String(stroke.length); });
+        });
+      }
       // A level is a shape the page already drew: it is never hidden at rest,
       // and it scales from the edge it fills from rather than its middle.
       if (action.op === 'level') {
@@ -567,8 +592,8 @@ export const MOTION_DRIVER_SOURCE = `
           // The drawing may say which way it fills; only guess when it does not.
           var fills = t.node.getAttribute ? t.node.getAttribute('data-fills') : null;
           t.levelAxis = fills === 'up' ? 'y' : fills === 'right' ? 'x' : !box || box.width >= box.height ? 'x' : 'y';
-          t.node.style.transformBox = 'fill-box';
-          t.node.style.transformOrigin = t.levelAxis === 'x' ? 'left center' : 'center bottom';
+          t.motionNode.style.transformBox = 'fill-box';
+          t.motionNode.style.transformOrigin = t.levelAxis === 'x' ? 'left center' : 'center bottom';
         });
       }
       if ((action.op === 'morph' || action.op === 'swap') && Number(value.fromCount) > 0) {
@@ -590,6 +615,7 @@ export const MOTION_DRIVER_SOURCE = `
   };
   var draw = function (timeMs) {
     var time = Math.max(0, Number(timeMs) || 0);
+    Object.keys(clips).forEach(function (id) { seekClip(id, 0); });
     var states = {};
     order.forEach(function (t) { states[t.id] = rest(t); });
     var camera = { x: pageBox.x, y: pageBox.y, width: pageBox.width, height: pageBox.height };
@@ -652,9 +678,10 @@ export const MOTION_DRIVER_SOURCE = `
             // stays played, because the end is where the state is.
             var cf = typeof a.value.from === 'number' ? a.value.from : 0;
             var ct = typeof a.value.to === 'number' ? a.value.to : 0;
-            s.clipMs = lerp(cf, ct, ev);
+            // The clip owns its own easing. Warping its clock eases twice.
+            s.clipMs = lerp(cf, ct, p);
             // Artwork that cannot be seeked still answers the event.
-            if (!clips[t.id]) { var bell = Math.sin(Math.PI * p); s.scale *= 1 + 0.05 * bell; s.glow = Math.max(s.glow, bell); }
+            if (!clips[t.id] && !clips[prefix ? prefix + '-' + t.id : t.id]) { var bell = Math.sin(Math.PI * p); s.scale *= 1 + 0.05 * bell; s.glow = Math.max(s.glow, bell); }
             break;
           case 'level':
             // How full the thing is: the bar the page drew, scaled along its
@@ -681,13 +708,20 @@ export const MOTION_DRIVER_SOURCE = `
       var sized = s.scale * (s.resized === null ? 1 : s.resized);
       if (Math.abs(sized - 1) > 0.001) transform += (transform ? ' ' : '') + 'scale(' + sized.toFixed(4) + ')';
       if (s.level !== null) transform += (transform ? ' ' : '') + (t.levelAxis === 'y' ? 'scaleY(' : 'scaleX(') + s.level.toFixed(4) + ')';
-      node.style.transform = transform;
+      t.motionNode.style.transform = transform;
       node.style.filter = s.glow > 0.02 ? 'drop-shadow(0 0 ' + (8 * s.glow).toFixed(1) + 'px ' + accent + ')' : '';
-      t.strokes.forEach(function (stroke) { stroke.node.style.strokeDashoffset = String(stroke.length * (1 - s.trace)); });
-      t.bodies.forEach(function (leaf) { if (leaf !== node) leaf.style.opacity = s.body === null ? '' : String(s.body); });
-      if (t.text) t.text.node.textContent = s.count === null ? t.text.base : format(t.text, s.count);
+      if (t.traceOwned) t.strokes.forEach(function (stroke) { stroke.node.style.strokeDashoffset = String(stroke.length * (1 - s.trace)); });
+      t.bodies.forEach(function (leaf) {
+        // A named child may have its own quantity/visibility track. A reveal
+        // on its parent must not clear the child's independently folded state.
+        if (leaf !== node && !order.some(function (other) { return other.node === leaf; })) leaf.style.opacity = s.body === null ? '' : String(s.body);
+      });
       if (s.clipMs !== null) seekClip(t.id, s.clipMs);
     });
+    // Reset text before applying count owners. A containing group's base text
+    // otherwise overwrites the count drawn by its explicitly targeted child.
+    order.forEach(function (t) { if (t.text) t.text.node.textContent = t.text.base; });
+    order.forEach(function (t) { if (t.text && states[t.id].count !== null) t.text.node.textContent = format(t.text, states[t.id].count); });
     drawLiving(activeLiving);
     root.setAttribute('viewBox', camera.x.toFixed(2) + ' ' + camera.y.toFixed(2) + ' ' + camera.width.toFixed(2) + ' ' + camera.height.toFixed(2));
   };

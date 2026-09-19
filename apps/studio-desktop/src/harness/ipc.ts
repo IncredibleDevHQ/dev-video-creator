@@ -43,8 +43,8 @@ export const registerHarnessIpc = (
         inputs?: Record<string, unknown>
       },
     ) => {
-      const adapter =
-        adapters.find(candidate => candidate.id === options.adapter) || adapters[0]
+      const adapter = options.adapter ? adapters.find(candidate => candidate.id === options.adapter) : adapters[0]
+      if (!adapter) throw new Error(`The requested local harness ${options.adapter} is not available`)
       return manager.start({ ...options, adapter })
     },
   )

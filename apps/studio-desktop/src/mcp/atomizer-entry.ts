@@ -15,6 +15,7 @@ import { pageModelFor } from '../../../studio-v2/src/page-model'
 import { planFromScript, planFromWindows, type SceneWindow } from '../../../studio-v2/src/script-plan'
 import { arcRoleFor, classifyScene, declaredSceneKind, direct } from '../../../studio-v2/src/director'
 import { lengthBriefFor } from '../../../studio-v2/src/length-brief'
+import { reviewExplainer, explainerFrame } from '../../../studio-v2/src/explainer-review'
 
 type Rect = { x: number; y: number; w: number; h: number }
 
@@ -207,5 +208,5 @@ const directPage = (markup: string, args: DirectArgs = {}) => {
   }
 }
 
-const api = { atomize, measure, renderFold, direct: directPage }
+const api = { atomize, measure, renderFold, direct: directPage, reviewExplainer, explainerFrame }
 ;(globalThis as unknown as { StudioAtomize: typeof api }).StudioAtomize = api

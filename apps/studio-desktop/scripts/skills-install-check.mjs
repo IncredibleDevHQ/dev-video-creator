@@ -41,7 +41,7 @@ check(
 const agents = await readFile(join(projectDir, 'AGENTS.md'), 'utf8')
 check(
   'AGENTS.md pointer written',
-  agents.includes('Before any motion, stage, speaker or publish task read `.claude/skills/motion-master/SKILL.md`'),
+  agents.includes('motion-master: `.claude/skills/motion-master/SKILL.md`') && agents.includes('not additional mandatory instructions'),
 )
 const lock1 = JSON.parse(await readFile(join(projectDir, 'skills.lock'), 'utf8'))
 const entry1 = lock1.skills['motion-master']
@@ -51,8 +51,8 @@ check(
   `version ${entry1?.version}`,
 )
 check(
-  'all five vendored skills installed',
-  first.installed.sort().join(',') === 'motion-master,page-master,speaker-crew,stage-director,video-producer',
+  'all six vendored skills installed',
+  first.installed.sort().join(',') === 'explainer-master,motion-master,page-master,speaker-crew,stage-director,video-producer',
   first.installed.join(','),
 )
 

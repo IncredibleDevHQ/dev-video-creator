@@ -62,8 +62,9 @@ import {
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
 import { checkPageContract, outlinePrompt, outlineSchema, pageBrandFrom, readSourceNarrative, readSourceUrl, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
-import { REFERENCE_STYLE, acceptArtwork, briefKey, briefPrompt, knownObjects, type ObjectBrief } from './appearance'
-import { generateObjectSvg, quiverCapability, quiverConfigured, repairObjectSvg, type GeneratedArtwork } from './providers/quiver'
+import { listArtwork, makeArtwork } from './appearance-library'
+import { REFERENCE_STYLE, briefKey, briefPrompt, knownObjects } from './appearance'
+import { quiverCapability } from './providers/quiver'
 const require = createRequire(import.meta.url)
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
@@ -168,22 +169,6 @@ const readBody = async (request: IncomingMessage, maximumBytes: number) => {
 
 // The base a video was forked from, as it was at the fork. Missing or
 // unreadable is not an error: the video simply has less to compare against.
-// One object's accepted artwork: what it draws, what the scene may move, and
-// where it came from.
-type AppearanceRecord = {
-  entity: string
-  key: string
-  accepted: boolean
-  problems: string[]
-  parts: Array<{ id: string; element: string; as: string }>
-  missing: string[]
-  ports: ObjectBrief['ports']
-  viewBox: { width: number; height: number }
-  svg: string
-  provenance: { provider: string; model: string; requestId: string; at: string; credits?: number; usage?: Record<string, unknown>; repairedBy?: string; repairUsage?: Record<string, unknown> }
-  assets: { original: string; rigged?: string; normalized?: string }
-}
-
 const readSnapshot = async (objectKey: string | undefined): Promise<ProjectDocumentV1 | null> => {
   if (!objectKey) return null
   try {
@@ -1257,7 +1242,7 @@ ${brief.outline
   .slice(0, 12)
   .map((stretch, index) => `${index + 1}. ${String(stretch.label).slice(0, 60)} (≈ ${Math.max(3, Math.round(Number(stretch.seconds) * briefScale))} s)${stretch.parts?.length ? ` — ${stretch.parts.slice(0, 12).map(part => `${part.id} "${String(part.label).slice(0, 40)}"`).join(', ')}${stretch.parts.length > 12 ? ` +${stretch.parts.length - 12}` : ''}` : ''}`)
   .join('\n')}
-Every walked part is named in some window (a window may carry two to four parts of one stretch). Arrows and connectors are drawn by the motion engine when the parts they join are named — never say "connector" or "arrow #N"; list an arrow's id in a window's parts only when the line follows it. ${brief.passing?.length ? `Name in passing, inside a window, no window of their own: ${brief.passing.slice(0, 16).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}. ` : ''}${brief.skip?.length ? `Do not mention: ${brief.skip.slice(0, 10).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}.` : ''}`
+Cover the causal idea rather than every drawn label. Omit decorative shapes and ordinal badges from speech; their presence never earns a sentence. Arrows and connectors are drawn by the motion engine when the parts they join are named — never say "connector" or "arrow #N"; list an arrow's id in a window's parts only when the line follows it. ${brief.passing?.length ? `Optional context, only if it contributes to the explanation: ${brief.passing.slice(0, 16).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}. ` : ''}${brief.skip?.length ? `Do not mention: ${brief.skip.slice(0, 10).map(part => `"${String(part.label).slice(0, 30)}"`).join(', ')}.` : ''}`
     : ''
   const notes = String(body.notes || '').trim().slice(0, 4_000)
   const existing = String(body.existing || '').trim().slice(0, 6_000)
@@ -1276,7 +1261,7 @@ ${sceneInventory(units, relations, diagrams, entities)}
 ${SCENE_CAPABILITIES}
 
 ${neighbourText ? `${neighbourText}\n` : ''}${notes ? `SOURCE NOTES (what this scene must convey):\n${notes}\n` : ''}${existing ? `CURRENT DIALOGUE (rewrite it; keep what works):\n${existing}\n` : ''}${instruction ? `INSTRUCTION FROM THE AUTHOR: ${instruction}\n` : ''}
-Write the dialogue as a sequence of windows of attention. One window = ${granularity === 'paragraph' ? 'a short paragraph (2–3 sentences)' : granularity === 'clause' ? 'one clause or a very short sentence' : 'one sentence'} that is about specific parts of the page. Name the parts with the words the page uses (their labels), in an order the page can support: what is on screen before what depends on it, arrows after the boxes they join, a number when it is quoted. Every window lists the ids of the parts it is about (the ones that come on screen or are highlighted while it is spoken), exactly one hero id (or "" if the window belongs to the presenter), the camera ids (parts to move in on; [] to stay on the page), the layout ("me" for a line that needs no page, "beside" when a small figure sits next to the presenter, "page" when the page needs the frame), and the intent. Do not name parts that are not on the page. ${briefText ? `${briefText}\n` : `Aim for about ${targetWords} words in total (≈ ${targetSeconds} s at ${wpm} words a minute), between 3 and 12 windows.`} Spoken, plain, first person plural or second person; no bullet points, no headings inside "say".`
+Explain what happens, why it happens, and what the viewer should infer. Never narrate page construction, a row number, a Circle label, a title, or truncated inventory text. Geometry names are metadata, not source facts. Write the dialogue as a sequence of windows of attention. One window = ${granularity === 'paragraph' ? 'a short paragraph (2–3 sentences)' : granularity === 'clause' ? 'one clause or a very short sentence' : 'one sentence'} that is about specific parts of the page. Name the parts with the words the page uses (their labels), in an order the page can support: what is on screen before what depends on it, arrows after the boxes they join, a number when it is quoted. Every window lists the ids of the parts it is about (the ones that come on screen or are highlighted while it is spoken), exactly one hero id (or "" if the window belongs to the presenter), the camera ids (parts to move in on; [] to stay on the page), the layout ("me" for a line that needs no page, "beside" when a small figure sits next to the presenter, "page" when the page needs the frame), and the intent. Do not name parts that are not on the page. ${briefText ? `${briefText}\n` : `Aim for about ${targetWords} words in total (≈ ${targetSeconds} s at ${wpm} words a minute), between 3 and 12 windows.`} Spoken, plain, first person plural or second person; no bullet points, no headings inside "say".`
   const windows = await sceneWindowsFromModel(prompt, windowSchema(true), units)
   json(response, 200, { windows, provider: 'openai' })
 }
@@ -2601,63 +2586,16 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     // Draw one object. The same brief is never drawn twice: the accepted
     // artwork is kept by what it draws, so rewording a scene reuses it.
-    if (request.method === 'POST' && url.pathname === '/api/appearance/generate') {
-      const body = await readJson<{ entity: string; projectId?: string; force?: boolean; model?: string }>(request, 256 * 1024)
-      const brief = knownObjects().find(object => object.entity === body.entity)
-      if (!brief) throw new Error(`No brief for "${body.entity}"`)
-      const key = briefKey(brief)
-      const cached = (await loadSetting(`appearance:${key}`)) as AppearanceRecord | null
-      if (cached && !body.force) {
-        json(response, 200, { appearance: cached, reused: true })
-        return
-      }
-      if (!quiverConfigured()) throw new Error('The artwork provider is not configured (QUIVER_API_KEY is not set)')
-      // A budget per notebook, so a loop cannot spend an account.
-      const spentKey = `appearance-budget:${body.projectId || 'unattached'}`
-      const spent = Number((await loadSetting(spentKey)) || 0)
-      const budget = Number(process.env.STUDIO_APPEARANCE_BUDGET || 24)
-      if (spent >= budget) throw new Error(`This notebook has used its artwork budget (${budget} drawings)`)
-      await saveSetting(spentKey, spent + 1)
-      const drawn = await generateObjectSvg(brief, { model: body.model, traceId: `appearance-${key}` })
-      let accepted = acceptArtwork(drawn.svg, brief)
-      let repair: GeneratedArtwork | null = null
-      // The drawing may be right while the rig is missing. One bounded repair
-      // asks for the pieces to be grouped and named without redrawing them; a
-      // repair that does not help is discarded, not accepted quietly.
-      if (!accepted.ok && accepted.missing.length && !accepted.problems.some(problem => problem.startsWith('it '))) {
-        try {
-          repair = await repairObjectSvg(drawn.svg, brief, { model: body.model, traceId: `appearance-${key}-rig` })
-          const repaired = acceptArtwork(repair.svg, brief)
-          if (repaired.missing.length < accepted.missing.length) accepted = repaired
-          else repair = null
-        } catch (error) {
-          accepted.problems.push(`the parts could not be grouped: ${error instanceof Error ? error.message : 'the repair failed'}`)
-        }
-      }
-      // Both are kept: what came back, and what the studio will use.
-      const original = await storeAsset({ body: Buffer.from(drawn.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance-original', extension: '.svg' })
-      const rigged = repair
-        ? await storeAsset({ body: Buffer.from(repair.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance-rigged', extension: '.svg' })
-        : null
-      const normalized = accepted.svg
-        ? await storeAsset({ body: Buffer.from(accepted.svg, 'utf8'), contentType: 'image/svg+xml', projectId: body.projectId, kind: 'appearance', extension: '.svg' })
-        : null
-      const record: AppearanceRecord = {
-        entity: brief.entity,
-        key,
-        accepted: accepted.ok,
-        problems: accepted.problems,
-        parts: accepted.parts,
-        missing: accepted.missing,
-        ports: accepted.ports,
-        viewBox: accepted.viewBox,
-        svg: accepted.svg,
-        provenance: { provider: 'quiver', model: drawn.model, requestId: drawn.requestId, at: new Date().toISOString(), ...(drawn.credits !== undefined ? { credits: drawn.credits } : {}), usage: drawn.usage, ...(repair ? { repairedBy: repair.requestId, repairUsage: repair.usage } : {}) },
-        assets: { original: original.objectKey, ...(rigged ? { rigged: rigged.objectKey } : {}), ...(normalized ? { normalized: normalized.objectKey } : {}) },
-      }
-      // A failed candidate never replaces artwork that was accepted before.
-      if (accepted.ok) await saveSetting(`appearance:${key}`, record)
-      json(response, accepted.ok ? 201 : 200, { appearance: record, reused: false, kept: accepted.ok })
+    if (request.method === 'GET' && url.pathname === '/api/appearance/library') {
+      json(response, 200, { assets: await listArtwork() })
+      return
+    }
+    if (request.method === 'POST' && ['/api/appearance/generate', '/api/appearance/edit', '/api/appearance/animate'].includes(url.pathname)) {
+      const body = await readJson<{ entity?: string; brief?: unknown; key?: string; prompt?: string; projectId?: string; force?: boolean }>(request, 256 * 1024)
+      const operation = url.pathname.endsWith('/edit') ? 'edit' : url.pathname.endsWith('/animate') ? 'animate' : 'generate'
+      const brief = body.brief || (body.entity ? knownObjects().find(object => object.entity === body.entity) : undefined)
+      const answer = await makeArtwork({ ...body, brief, operation })
+      json(response, answer.reused ? 200 : 201, answer)
       return
     }
     // What a video was made from, and whether that base has moved since.

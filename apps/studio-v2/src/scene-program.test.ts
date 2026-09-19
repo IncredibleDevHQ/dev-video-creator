@@ -472,3 +472,40 @@ describe('the scene program', () => {
     expect(clean!.beats[1].events).toHaveLength(0)
   })
 })
+
+describe('authored performances and measured narration', () => {
+  it('starts a performance on the measured word, with independent overlap and named dependencies', () => {
+    const story = program([])
+    story.beats = [{ say: 'The request arrives, then the gate opens.', durationMs: 5000,
+      words: [{ word: 'arrives,', startMs: 1700, endMs: 2100 }],
+      events: [
+        { id: 'arrival', actor: 'actor-request', action: 'perform', cue: 'arrives', clip: { fromMs: 100, toMs: 1100, durationMs: 1000 } },
+        { id: 'parallel', actor: 'node-client', action: 'perform', atMs: 1700, clip: { fromMs: 0, toMs: 300, durationMs: 300 } },
+        { actor: 'node-bucket', action: 'perform', atMs: 0, after: 'arrival', clip: { fromMs: 0, toMs: 500, durationMs: 500 } },
+      ] }]
+    const compiled = compileSceneProgram(story, units, { viewBox })!
+    const clips = compiled.plan.steps[0].actions.filter(a => a.op === 'clip')
+    expect(clips.map(a => a.startMs)).toEqual([1700, 1700, 2700])
+    expect(clips[0].value).toEqual({ from: 100, to: 1100 })
+    expect(compiled.plan.steps[0].motionWindowMs + compiled.plan.steps[0].holdMs).toBeGreaterThanOrEqual(5000)
+  })
+
+  it('keeps measured words on a layout-only edit and discards them when dialogue changes', () => {
+    const story = program([])
+    story.beats = [{ id: 'a', say: 'A request arrives.', durationMs: 2300, words: [{ word: 'arrives', startMs: 1000, endMs: 1800 }], events: [] }]
+    const windows = compileSceneProgram(story, units, { viewBox })!.windows
+    expect(programWithEdits(story, windows).beats[0].words).toEqual(story.beats[0].words)
+    windows[0].say = 'Another request reaches the gate.'
+    const revised = programWithEdits(story, windows).beats[0]
+    expect(revised.words).toBeUndefined()
+    expect(revised.durationMs).toBeUndefined()
+  })
+})
+
+it('does not invent an ambient capacity bar when authored quantities already show the empty state', () => {
+  const story = program([{ actor: 'node-bucket', action: 'spend', amount: 3 }])
+  story.cast[0].quantity!.shownOn = 'bucket-level'
+  const compiled = compileSceneProgram(story, withLevel, { viewBox })!
+  expect(compiled.plan.steps[1].actions.some(a => a.op === 'level' && a.value?.to === 0)).toBe(true)
+  expect(compiled.plan.steps[1].actions.some(a => a.op === 'phase')).toBe(false)
+})

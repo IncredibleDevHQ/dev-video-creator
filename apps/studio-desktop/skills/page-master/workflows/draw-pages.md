@@ -192,7 +192,7 @@ The spec you wrote in Stage 2 governs. What follows is the floor, not the ceilin
 - Canvas 1280×720, the ground filled, a faint construction (grid, rules, a horizon) as `data-role="decoration"` at 1–3 % opacity.
 - Header: eyebrow `§ NN · VIDEO TITLE` in mono, small, accent; the page title in the display face, 34–44 px.
 - Footer: site and `SHEET NN / TOTAL` in small mono, bottom right.
-- Nodes: rounded rectangles (rx 12), stroke in the line colour, a real translucent fill (never `fill="none"`), label 22–26 px with its detail beneath at 17–19 px in the muted colour, and 64 px clear at the left when the node carries artwork.
+- Nodes: choose their native shape from their meaning. `data-kind="box"` is a parser category, not an instruction to draw a rectangle. A container is justified only when containment is part of the explanation. Use a direct object silhouette, open typography, a quantitative diagram or a labelled mechanism when it communicates better. Labels 22–26 px; details at least 20 px. The base may remain schematic; the video derivative is separately recomposed by explainer-master.
 - Connectors: 1.5–2 px in the accent at ~60 %, an arrowhead marker, the verb near the middle when it helps.
 - Emphasis with the accent, one thing at a time. Depth from fill and weight, not from shadow.
 - No page is a grid of identical boxes; the topology is the page's argument.

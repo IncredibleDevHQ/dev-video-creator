@@ -17,6 +17,8 @@
         </nav>
         <button id="theme-open-notebook" class="button primary" type="button">Open notebook</button>
       </header>
+
+
       <main class="theme-main">
         <section id="theme-library-panel" class="theme-library-panel">
           <div class="theme-hero">
@@ -171,9 +173,16 @@
             </div>
             <span class="commandbar-divider" aria-hidden="true"></span>
             <button id="open-fullscreen" class="button chrome-secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/></svg>Open canvas</button>
+            <button id="build-explainer" class="button chrome-secondary" type="button">Build explainer</button>
           </nav>
         </div>
       </header>
+      <details id="explainer-progress" hidden style="margin:12px 24px;padding:12px 16px;border:1px solid #64748b55;border-radius:12px">
+        <summary id="explainer-status" aria-live="polite">Preparing explainer…</summary>
+        <p id="explainer-run-location"></p>
+        <button id="explainer-cancel" class="button chrome-secondary" type="button">Stop build</button>
+        <pre id="explainer-log" style="max-height:180px;overflow:auto;white-space:pre-wrap;font-size:12px"></pre>
+      </details>
 
       <main class="studio-workspace">
         <section class="notebook-document" aria-labelledby="notebook-title">
