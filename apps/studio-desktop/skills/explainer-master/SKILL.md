@@ -86,6 +86,9 @@ Retain its object identities when useful and its source scene id always.
    SMIL on the accepted SVG yourself. Preserve its visual fidelity. Use an
    isolated nested SVG for each clip and a `perform` event to seek it. The scene
    owns counts and outcome decisions; the clip never invents token availability.
+   **Every library object that performs needs an isolated review before the
+   finish:** run `explainer_review_object(key)` after acquiring or animating
+   it; the finish refuses a performed object without that receipt.
 
 5. **Prove the first mechanism before expanding.** Call `explainer_preview` for
    the first substantive scene. Open its returned PNGs using your image/file

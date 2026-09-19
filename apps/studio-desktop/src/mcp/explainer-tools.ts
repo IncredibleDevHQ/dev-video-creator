@@ -216,6 +216,16 @@ export const readExplainer = async (projectDir: string, origin?: string) => {
       if (bad.length) {
         throw new Error(`${scene.file}: artwork marker(s) not verified against the library: ${bad.map(entry => `${entry.key} (${entry.status}, ${entry.tokensFound}/${entry.tokensTotal} parts found)`).join(', ')}. Use the accepted artwork from explainer_asset; a marker alone is not proof.`)
       }
+      // §5.4a: an object that performs must carry an isolated review receipt.
+      const markers = [...scene.svg.matchAll(/data-appearance-key="([^"]+)"/g)]
+      const performedKeys = [...new Set(markers
+        .filter((marker, index) => /data-object-clip/.test(scene.svg.slice(marker.index, markers[index + 1]?.index ?? scene.svg.length)))
+        .map(marker => marker[1]))]
+      for (const key of performedKeys) {
+        const reviewReceipt = await jsonFile(join(projectDir, 'explainer', 'objects', `${key}.review.json`)).catch(() => null)
+        if (!reviewReceipt) throw new Error(`${scene.file}: object ${key} performs without an isolated review. Run explainer_review_object for it first.`)
+        if (reviewReceipt.errors?.length) throw new Error(`${scene.file}: object ${key}'s isolated review has errors: ${reviewReceipt.errors.join('; ')}`)
+      }
     }
   }
   return { scenes, inputs }
@@ -437,12 +447,57 @@ const alignTakeTool = async (args: Args, context: Context) => {
   return { ...preview, review, alignment: 'selected-take', instruction: review.length ? 'These beats were not said as written; rebind their cues or record the named pickups, then align again.' : 'The take is the timing authority. Inspect the frames: motion follows the actual delivery.' }
 }
 
+const reviewObjectTool = async (args: Args, context: Context) => {
+  const projectDir = String(args.projectDir || '')
+  if (!isAbsolute(projectDir)) throw new Error('projectDir must be absolute')
+  const key = String(args.key || '')
+  if (!/^[a-z0-9]{6,64}$/i.test(key)) throw new Error('key is the library asset key')
+  // The asset from the run's local copy, else the library.
+  const assetsDir = join(projectDir, 'explainer', 'assets')
+  let record = await jsonFile(join(assetsDir, `${key}.json`)).catch(() => null)
+  if (!record?.svg) {
+    const { assets } = await call<{ assets: LibraryArtwork[] }>(context, '/api/appearance/library')
+    record = assets.find(asset => asset.key === key) || null
+  }
+  if (!record?.svg) throw new Error(`No accepted artwork named ${key}`)
+  // An animated revision is judged against its source, never overwriting it.
+  let parentSvg = ''
+  if (record.parentKey) {
+    const parent = (await jsonFile(join(assetsDir, `${record.parentKey}.json`)).catch(() => null))
+      || (await call<{ assets: LibraryArtwork[] }>(context, '/api/appearance/library')).assets.find(asset => asset.key === record.parentKey)
+    parentSvg = parent?.svg || ''
+  }
+  const result = await runAtomizer<{ errors: string[]; warnings: string[]; captures: Array<{ clipId: string; atMs: number; label: string }>; clips: Array<{ id: string; durationMs: number }>; fidelity: { kept: number; total: number } | null }>('reviewObjectClip', { svg: record.svg, parentSvg: parentSvg || undefined })
+  const folder = join(projectDir, 'explainer', 'objects', key)
+  await mkdir(folder, { recursive: true })
+  const frames: Array<{ label: string; clipId: string; atMs: number; path: string }> = []
+  for (const capture of result.captures || []) {
+    await runAtomizer('objectClipSeek', capture.clipId, capture.atMs)
+    const path = join(folder, `${capture.clipId}-${capture.label}.png`)
+    await writeFile(path, await captureHiddenPage())
+    frames.push({ ...capture, path })
+  }
+  const receipt = { key, errors: result.errors, warnings: result.warnings, clips: result.clips, fidelity: result.fidelity, frames, at: new Date().toISOString() }
+  await save(join(projectDir, 'explainer', 'objects', `${key}.review.json`), receipt)
+  await recordStage(context, projectDir, 'object-review', result.errors.length ? 'failed' : 'succeeded', { key, clips: result.clips.length, fidelity: result.fidelity })
+  return {
+    errors: result.errors,
+    warnings: result.warnings,
+    clips: result.clips,
+    fidelity: result.fidelity,
+    frames,
+    receiptPath: join(projectDir, 'explainer', 'objects', `${key}.review.json`),
+    instruction: 'Open the frames: at rest the object must read as the accepted artwork; the action midpoint must show the named behavior; the settled frame must be readable. A fidelity error means the performance redrew the art.',
+  }
+}
+
 const common = { projectDir: { type: 'string', description: 'Absolute run project directory' } }
 export const EXPLAINER_TOOLS = [
   { name: 'explainer_asset', description: 'Reuse, generate, edit or animate a rich Quiver SVG. Uses the server credential and permanent asset library. Returns local SVG and metadata paths, never credentials.', inputSchema: { type: 'object', properties: { ...common, operation: { enum: ['list', 'generate', 'edit', 'animate'] }, briefPath: { type: 'string' }, brief: { type: 'object' }, key: { type: 'string' }, prompt: { type: 'string' } }, required: ['projectDir', 'operation'] }, call: assetTool },
   { name: 'explainer_preview', description: 'Compile explainer/<scene>.svg and .program.json using the production player; validate and capture before/action/settled frames. Re-run after every edit.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: previewTool },
   { name: 'explainer_narrate', description: 'Generate guide speech, align its spoken words locally, recompile the events against measured timestamps, render review frames, and store a padded scene audio track. Requires local uv and ffmpeg; caches voice/model downloads.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: narrateTool },
   { name: 'explainer_align_take', description: 'Make a recorded human take the timing authority: transcribe it once, map the beats onto the actual words in order, rebind cue occurrences, and recompile. Beats the take does not say come back flagged for review or pickup, never silently invented.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, audioPath: { type: 'string' }, audioUrl: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: alignTakeTool },
+  { name: 'explainer_review_object', description: 'Isolated object-performance review (required before finishing when a library object performs): render the accepted asset alone at display size, drive each clip through rest/action/settle, capture frames, check fidelity against the original, and write the review receipt.', inputSchema: { type: 'object', properties: { ...common, key: { type: 'string' } }, required: ['projectDir', 'key'] }, call: reviewObjectTool },
   { name: 'explainer_finish', description: 'Validate the reviewed story.json bundle and apply it to its derived notebook. Rejects stale reviews and concurrent edits; preserves the base.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: finishTool },
   { name: 'explainer_export', description: 'Render the saved explainer through the product export engine, writing export.json with the MP4 URL.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: exportTool },
 ]

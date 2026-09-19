@@ -104,3 +104,59 @@ export const explainerFrame = (ms: number) => {
   if (caption) caption.textContent = lines[beat] || ''
   return { ms, beat }
 }
+
+// ——— Isolated object-performance review (§5.4a) ———
+// An accepted asset is rendered alone, at its display size, and each clip is
+// driven through its range: rest, action midpoint, settle. The animated
+// revision is also checked against its parent — performance must not redraw
+// the artwork. The tool captures the frames; this returns what to capture.
+let objectRoot: SVGSVGElement | null = null
+export const reviewObjectClip = (input: { svg: string; parentSvg?: string }) => {
+  const errors: string[] = []
+  const warnings: string[] = []
+  const parsed = new DOMParser().parseFromString(input.svg, 'image/svg+xml')
+  const root = parsed.documentElement
+  if (parsed.querySelector('parsererror') || root.tagName !== 'svg') return { errors: ['Invalid SVG'], warnings, captures: [], clips: [], fidelity: null }
+  document.body.replaceChildren()
+  document.body.style.cssText = 'margin:0;background:#101827;'
+  const host = document.createElement('div')
+  host.innerHTML = input.svg
+  objectRoot = host.querySelector('svg')!
+  document.body.append(host)
+  const clips = Array.from(objectRoot.querySelectorAll('svg[data-object-clip]'))
+  const clipInfo: Array<{ id: string; durationMs: number }> = []
+  const captures: Array<{ clipId: string; atMs: number; label: string }> = []
+  for (const clip of clips) {
+    const id = clip.id || ''
+    const durationMs = Number(clip.getAttribute('data-duration-ms'))
+    if (!id) errors.push('A performance clip has no id')
+    if (!(durationMs > 0)) errors.push(`Clip ${id || '(unnamed)'} needs a positive data-duration-ms`)
+    if (!clip.querySelector('animate,animateTransform,animateMotion')) errors.push(`Clip ${id} has no authored animation`)
+    clip.querySelectorAll('animate,animateTransform,animateMotion').forEach(a => {
+      if (!/^\d+(?:\.\d+)?(?:ms|s)$/.test(a.getAttribute('dur') || '') || a.getAttribute('repeatCount') === 'indefinite') errors.push(`Clip ${id} must use finite numeric timings, no autonomous loops`)
+    })
+    clipInfo.push({ id, durationMs })
+    captures.push({ clipId: id, atMs: 0, label: 'rest' }, { clipId: id, atMs: Math.floor(durationMs / 2), label: 'action' }, { clipId: id, atMs: Math.max(0, durationMs - 1), label: 'settle' })
+  }
+  // Fidelity: the revision keeps the parent's geometry (ids/prefixes may
+  // change; path data may not).
+  let fidelity: { kept: number; total: number } | null = null
+  if (input.parentSvg) {
+    const tokens = (svg: string) => [...svg.matchAll(/\b(?:d|points)="([^"]+)"/g)].map(match => match[1])
+    const parentTokens = tokens(input.parentSvg)
+    const own = new Set(tokens(input.svg))
+    fidelity = { kept: parentTokens.filter(token => own.has(token)).length, total: parentTokens.length }
+    if (fidelity.total > 0 && fidelity.kept < fidelity.total) errors.push(`The performance redraws the artwork: ${fidelity.kept} of ${fidelity.total} shapes kept from the accepted original`)
+  }
+  return { errors, warnings, captures, clips: clipInfo, fidelity }
+}
+
+// Seek one clip to a moment for a capture: pause its clock, then set it.
+export const objectClipSeek = (clipId: string, ms: number) => {
+  const clip = objectRoot?.querySelector(`#${CSS.escape(clipId)}`)
+  if (!clip) return { clipId, ms, found: false }
+  const svg = clip as SVGSVGElement
+  svg.pauseAnimations()
+  svg.setCurrentTime(ms / 1000)
+  return { clipId, ms, found: true }
+}

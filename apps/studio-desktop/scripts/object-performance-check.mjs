@@ -92,4 +92,24 @@ try {
   const frame = await page.evaluate(() => { const b = document.querySelector('.scene > .content').getBoundingClientRect(); return [b.x, b.y, b.width, b.height] })
   assert.deepEqual(frame, [0, 0, 1920, 1080], 'A voice-only explainer fills the output frame, including staged layout CSS')
   console.log('PASS composed explainer: no inherited presentation inset or border')
+
+  // §5.4a isolated object review: rest/action/settle captures, clip contract,
+  // and fidelity against the accepted original.
+  const isolated = await page.evaluate(() => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><svg id="spin" data-object-clip="1" data-duration-ms="1000" width="200" height="200"><path d="M10 10 L90 90" stroke="#000"/><circle cx="100" cy="100" r="80"><animate attributeName="r" values="80;60;80" dur="1s" fill="freeze"/></circle></svg></svg>'
+    const parent = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><path d="M10 10 L90 90" stroke="#000"/></svg>'
+    const result = StudioAtomize.reviewObjectClip({ svg, parentSvg: parent })
+    StudioAtomize.objectClipSeek('spin', 500)
+    return result
+  })
+  assert.deepEqual(isolated.errors, [])
+  assert.deepEqual(isolated.captures.map(c => c.label), ['rest', 'action', 'settle'])
+  assert.deepEqual(isolated.fidelity, { kept: 1, total: 1 })
+  console.log('PASS isolated object review: clips, captures, fidelity kept')
+  const redrawn = await page.evaluate(() => StudioAtomize.reviewObjectClip({
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><svg id="spin" data-object-clip="1" data-duration-ms="1000"><path d="M0 0 L50 50" stroke="#000"/><circle cx="100" cy="100" r="80"><animate attributeName="r" values="80;60;80" dur="1s" fill="freeze"/></circle></svg></svg>',
+    parentSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><path d="M10 10 L90 90" stroke="#000"/></svg>',
+  }))
+  assert.ok(redrawn.errors.some(e => /redraws the artwork/.test(e)), 'A performance that redraws the art fails fidelity')
+  console.log('PASS isolated object review: a redrawn performance fails fidelity')
 } finally { await browser.close() }

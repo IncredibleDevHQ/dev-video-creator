@@ -78,10 +78,11 @@ try {
     }
     if (String(url).endsWith('/api/preview')) return Response.json({})
     if (String(url).endsWith('/api/appearance/verify-cast')) {
-      const forged = String(JSON.parse(options?.body || '{}').svg || '').includes('data-appearance-key')
+      const sceneSvg = String(JSON.parse(options?.body || '{}').svg || '')
+      const forged = sceneSvg.includes('data-appearance-key') && !sceneSvg.includes('data-appearance-key="known-key"')
       return Response.json(forged
         ? { ok: false, cast: [{ key: 'forged-key', status: 'unknown', tokensFound: 0, tokensTotal: 0 }] }
-        : { ok: true, cast: [] })
+        : { ok: true, cast: sceneSvg.includes('known-key') ? [{ key: 'known-key', status: 'verified', tokensFound: 3, tokensTotal: 3 }] : [] })
     }
     throw new Error(`Unexpected fixture URL: ${url}`)
   }
@@ -137,6 +138,22 @@ try {
   await story([storyScene('scene-a', ['scene-a', 'nope']), storyScene('scene-b'), storyScene('scene-c')])
   await assert.rejects(invoke('explainer_finish'), /unknown input scene "nope"/)
   console.log('PASS  unknown covers are rejected')
+  // §5.4a: an object that performs must carry an isolated review receipt.
+  const clipSvg = '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="known-key"><svg id="clip-1" data-object-clip="1" data-duration-ms="1000"><circle cx="5" cy="5" r="4"><animate attributeName="r" values="4;6;4" dur="1s" fill="freeze"/></circle></svg></g></svg>'
+  const clipHash = createHash('sha256').update(clipSvg).update(JSON.stringify(program)).digest('hex')
+  await writeFile(join(dir, 'explainer/scene.svg'), clipSvg)
+  await save('explainer/scene.program.json', program)
+  await save('explainer/scene.proof.json', { hash: clipHash, errors: [], warnings: [], frames: [{ atMs: 0, path: 'review.png' }], program, plan: { version: 2, steps: [{ motionWindowMs: 0, holdMs: 2000, actions: [] }] }, windows: [], durationMs: 2000 })
+  await save('explainer/scene.narration.json', { hash: clipHash, audioUrl: 'http://fixture/audio.mp3' })
+  await story([storyScene('scene-a'), storyScene('scene-b'), storyScene('scene-c')])
+  await assert.rejects(invoke('explainer_finish'), /isolated review/)
+  console.log('PASS  a performing object without an isolated review is refused')
+  await mkdir(join(dir, 'explainer', 'objects'), { recursive: true })
+  await save('explainer/objects/known-key.review.json', { key: 'known-key', errors: [], clips: [{ id: 'clip-1', durationMs: 1000 }], frames: [], at: new Date().toISOString() })
+  await invoke('explainer_finish')
+  check('the isolated review receipt lets the performed object through', () => {
+    assert.equal(project.blocks['scene-a'].durationMs, 2000)
+  })
   // A forged artwork marker is not proof: the cast receipt refuses it (D4).
   await writeFile(join(dir, 'explainer/scene.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>')
   await save('explainer/scene.program.json', program)
