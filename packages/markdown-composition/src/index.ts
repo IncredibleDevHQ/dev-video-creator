@@ -1206,9 +1206,10 @@ const buildCompositionHtml = (
     body { color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     #composition { position: relative; width: ${project.width}px; height: ${project.height}px; overflow: hidden; background: var(--theme-canvas); }
     .clip { visibility: hidden; }
-    /* Captions burned into the picture: one cue at a time, low in the frame. */
+    /* Captions burned into the picture: one cue at a time, low in the frame.
+       Colours come from the resolved theme, not a fixed dark band (D1). */
     .burned-captions { position: absolute; left: 6%; right: 6%; bottom: 4.5%; z-index: 60; pointer-events: none; text-align: center; }
-    .burned-caption { opacity: 0; visibility: hidden; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 10px 20px; border-radius: 12px; background: rgba(8, 10, 14, .66); color: #fff; font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-sizing: border-box; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; }
+    .burned-caption { opacity: 0; visibility: hidden; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 10px 20px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 84%, transparent); color: var(--text); font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 55%, transparent); box-sizing: border-box; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; }
     /* isolation: each scene is its own stacking context, so z-indexed
        overlays (camera tiles, person-background gradients) can never paint
        across a sibling scene — frame switchovers rely on later scenes

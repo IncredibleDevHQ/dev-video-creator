@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { acceptArtwork, briefKey, objectBriefFrom, type ObjectBrief } from './appearance'
+import { acceptArtwork, briefKey, objectBriefFrom, type ObjectBrief, type ObjectStyle } from './appearance'
 import { generateObjectSvg, repairObjectSvg, reviseObjectSvg } from './providers/quiver'
 import { loadSetting, saveSetting, storeAsset } from './persistence'
 
@@ -15,13 +15,29 @@ export const listArtwork = async (): Promise<LibraryArtwork[]> => {
   const keys = await loadSetting(INDEX) as string[] | null
   return (await Promise.all((keys || []).map(key => loadSetting(`artwork:${key}`)))).filter(Boolean) as LibraryArtwork[]
 }
-export const makeArtwork = (request: { brief?: unknown; key?: string; prompt?: string; operation?: 'generate' | 'edit' | 'animate'; projectId?: string; force?: boolean }) => {
+export const makeArtwork = (request: { brief?: unknown; key?: string; prompt?: string; operation?: 'generate' | 'edit' | 'animate'; projectId?: string; force?: boolean; palette?: Partial<ObjectStyle['palette']> }) => {
   const job = pending.catch(() => {}).then(async () => {
     const parent = request.key ? await loadSetting(`artwork:${request.key}`) as LibraryArtwork | null : null
     const operation = request.operation || 'generate'
     if (operation !== 'generate' && !parent) throw new Error('Choose an existing library object to edit or animate')
     if (operation !== 'generate' && !request.prompt?.trim()) throw new Error('Describe the change or named performance')
     const brief = objectBriefFrom(request.brief || parent?.brief)
+    // The resolved project theme reaches the artwork brief (D1). Palette is
+    // inside the brief key, so themed artwork caches and reuses separately.
+    if (request.palette) {
+      const hex = (value: unknown) => (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value.trim()) ? value.trim() : undefined)
+      brief.style = {
+        ...brief.style,
+        palette: {
+          ...brief.style.palette,
+          ...(hex(request.palette.ground) ? { ground: hex(request.palette.ground)! } : {}),
+          ...(hex(request.palette.text) ? { text: hex(request.palette.text)! } : {}),
+          ...(hex(request.palette.accent) ? { accent: hex(request.palette.accent)! } : {}),
+          ...(hex(request.palette.secondary) ? { secondary: hex(request.palette.secondary)! } : {}),
+          ...(hex(request.palette.warning) ? { warning: hex(request.palette.warning)! } : {}),
+        },
+      }
+    }
     const key = createHash('sha256').update(JSON.stringify([briefKey(brief), operation, parent?.key, request.prompt || '', request.force ? randomUUID() : ''])).digest('hex').slice(0, 24)
     const cached = await loadSetting(`artwork:${key}`) as LibraryArtwork | null
     if (cached) return { appearance: cached, reused: true }

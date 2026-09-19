@@ -11144,7 +11144,9 @@ const drawObjectOn = async (unit: SlideUnit, options: { entity?: string; force?:
     answer = await fetchJson<{ appearance: WornArtwork; reused: boolean }>('/api/appearance/generate', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ entity, projectId: project.id, force: options.force || false }),
+      // The resolved notebook theme reaches the artwork brief (D1); themed
+      // artwork caches separately from the unthemed reference family.
+      body: JSON.stringify({ entity, projectId: project.id, force: options.force || false, palette: { ground: project.brand.background, text: project.brand.text, accent: project.brand.accent, secondary: project.brand.secondary } }),
     })
   } catch (error) {
     setSlideEditorStatus(error instanceof Error ? error.message : 'The artwork provider could not draw this', 'error')
@@ -13744,6 +13746,8 @@ type SourcePage = { title: string; kind: string; seconds: number; idea: string; 
 const sourceState: {
   kind: 'link' | 'narrative'
   source: SourceRead | null
+  // The immutable source revision captured by the read (D1).
+  snapshot?: { id: string; hash: string } | null
   brandColor: string
   logoUrl: string
   directions: StudioThemeV1[]
@@ -13807,12 +13811,13 @@ const sourceRead = async () => {
   button.disabled = true
   sourceStatus('#source-status', url ? 'Reading the page, its stylesheets and its painted colours…' : 'Reading your narrative…')
   try {
-    const { source } = await fetchJson<{ source: SourceRead }>('/api/source/read', {
+    const { source, snapshot } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string } }>('/api/source/read', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, title: url ? undefined : sourceState.fileTitle || undefined, projectId: project.id }),
+      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, brandUrl: url ? undefined : ($('#source-brand-url') as HTMLInputElement).value.trim() || undefined, title: url ? undefined : sourceState.fileTitle || undefined, projectId: project.id }),
     })
     sourceState.source = source
+    sourceState.snapshot = snapshot
     sourceState.brandColor = source.palette.accent
     sourceState.logoUrl = source.logos.find(logo => logo.localUrl)?.localUrl || ''
     sourceState.outline = null
@@ -13866,7 +13871,7 @@ const renderSourceBrand = () => {
   const source = sourceState.source
   if (!source) return
   ;($('#source-read-title') as HTMLElement).textContent = source.title || 'Untitled'
-  const meta = [source.site, `${source.words} words`, source.headings.length ? `${source.headings.length} headings` : '', source.fonts.display && source.fonts.display !== 'Segoe UI' ? `type: ${source.fonts.display}` : '']
+  const meta = [source.site, `${source.words} words`, source.headings.length ? `${source.headings.length} headings` : '', source.fonts.display && source.fonts.display !== 'Segoe UI' ? `type: ${source.fonts.display}` : '', sourceState.snapshot ? `source revision ${sourceState.snapshot.id}` : '']
     .filter(Boolean)
     .join(' · ')
   ;($('#source-read-meta') as HTMLElement).textContent = meta + (source.warnings.length ? ` · ${source.warnings[0]}` : '')
@@ -14157,7 +14162,7 @@ const sourceDrawPages = async (choice?: string) => {
   sourceState.drawer = drawer ? drawer.label : adapter
   const inputs = {
     video: { title: outline.title, site: source.site },
-    brand: { palette: { ...source.palette, accent: sourceState.brandColor || source.palette.accent }, fonts: source.fonts, mode: 'dark' },
+    brand: { palette: sourcePageBrand(source).palette, fonts: source.fonts, mode: sourcePageBrand(source).mode },
     // The article's own sentences travel with the scene: whoever decides what
     // happens on the page needs the example and the causation, not a summary.
     scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, source: scene.source || [], parts: scene.parts, relations: scene.relations })),
@@ -14204,6 +14209,35 @@ const sourceDrawPages = async (choice?: string) => {
 }
 ;($('#source-draw') as HTMLButtonElement).addEventListener('click', () => void sourceDrawPages())
 
+// The page palette and mode come from the chosen theme direction, not a
+// forced dark default (D1): a selected light theme stays light.
+const isLightColor = (value: string) => {
+  const match = /^#?([0-9a-f]{6})$/i.exec(value.trim())
+  if (!match) return false
+  const n = parseInt(match[1], 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.6
+}
+const sourcePageBrand = (source: SourceRead) => {
+  const chosen = sourceState.directions[sourceState.direction]
+  if (!chosen) {
+    return {
+      palette: { ...source.palette, accent: sourceState.brandColor || source.palette.accent },
+      mode: 'dark' as const,
+    }
+  }
+  return {
+    palette: {
+      ...source.palette,
+      ground: chosen.brand.background,
+      text: chosen.brand.text,
+      accent: chosen.brand.accent,
+      secondary: chosen.brand.secondary,
+    },
+    mode: isLightColor(chosen.brand.background) ? ('light' as const) : ('dark' as const),
+  }
+}
+
 const sourceMakePages = async () => {
   const source = sourceState.source
   const outline = readOutlineFromForm()
@@ -14217,11 +14251,11 @@ const sourceMakePages = async () => {
   button.disabled = true
   sourceStatus('#source-outline-status', 'Drawing the pages in your brand…')
   try {
-    const palette = { ...source.palette, accent: sourceState.brandColor || source.palette.accent }
+    const { palette, mode } = sourcePageBrand(source)
     const { pages } = await fetchJson<{ pages: SourcePage[] }>('/api/source/pages', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ outline, palette, fonts: source.fonts, site: source.site, mode: 'dark' }),
+      body: JSON.stringify({ outline, palette, fonts: source.fonts, site: source.site, mode }),
     })
     sourceState.outline = outline
     sourceState.pages = pages
@@ -14444,7 +14478,7 @@ const sourceFinish = async () => {
     }
   })
   project.title = outline.title
-  project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
+  project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.snapshot ? { snapshotId: sourceState.snapshot.id } : {}), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
   project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title
