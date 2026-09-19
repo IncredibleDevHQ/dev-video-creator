@@ -3727,6 +3727,15 @@ const renderNotebookTimeline = () => {
       saved.textContent = '✓'
       icon.append(saved)
     }
+    // The rich explainer build's reviewed stamp, per scene (§3.9).
+    const reviewed = (scene.node.attrs?.explainer as { reviewed?: boolean } | undefined)?.reviewed === true
+    if (reviewed) {
+      const mark = document.createElement('em')
+      mark.className = 'notebook-timeline-reviewed'
+      mark.title = 'This scene passed the rich explainer build’s review'
+      mark.textContent = '◆'
+      icon.append(mark)
+    }
     const copy = document.createElement('span')
     copy.className = 'notebook-timeline-copy'
     const kind = document.createElement('strong')

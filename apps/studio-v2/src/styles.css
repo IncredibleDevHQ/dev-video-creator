@@ -416,6 +416,7 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .notebook-timeline-chip.recorded { border-color: color-mix(in srgb, var(--brand-light) 34%, rgba(255,255,255,.13)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-light) 22%, transparent); }
 .notebook-timeline-chip.recorded.active { box-shadow: 0 0 0 1px color-mix(in srgb, var(--timeline-accent) 40%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--brand-light) 26%, transparent); }
 .notebook-timeline-recorded { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; display: grid; place-items: center; border: 1.5px solid #101012; border-radius: 50%; background: var(--brand-light); color: #04220d; font-size: 7px; font-style: normal; font-weight: 900; line-height: 1; }
+.notebook-timeline-reviewed { position: absolute; bottom: -4px; right: -4px; width: 12px; height: 12px; display: grid; place-items: center; border: 1.5px solid #101012; border-radius: 50%; background: #7dd3fc; color: #082f3f; font-size: 7px; font-style: normal; line-height: 1; }
 @media (max-width: 1080px) { .notebook-timeline { left: 50%; width: calc(100vw - 36px); } }
 .player-shell.canvas-open .canvas-director { min-height: 0; display: flex; flex-direction: column; overflow-y: auto; background: white; color: var(--ink); box-shadow: -16px 0 50px rgba(0,0,0,.2); }
 .director-heading { min-height: 72px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
