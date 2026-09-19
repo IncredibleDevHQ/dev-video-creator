@@ -2,6 +2,26 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D1: durable theme library + source capture
+
+**Commits**
+
+- `12a55cc7` — theme library in the durable store: `studio_themes` + `studio_theme_revisions` (migration 003), content-hash idempotence, revision badges, one-time browser-cache import, failed durable saves say so. File backend keeps the same contract over its settings KV.
+- theme→wireframes/briefs — `sourceMakePages`/`sourceDrawPages` derive palette + light/dark mode from the chosen direction instead of forcing `mode: 'dark'`; `/api/appearance/*` accepts a validated palette override that lands in the brief (and its cache key); burned captions use theme CSS vars.
+- source revisions — `studio_source_revisions` (migration 004), content-addressed immutable snapshots captured in `/api/source/read`, optional **Brand website** for pasted narratives (kept separate from content; fails soft), `project.source.snapshotId`, revision id shown in the brand step; `GET /api/source/revisions/:id`.
+
+**Acceptance checks (D1)**
+
+- Theme survives an app restart on a different port; palette edit creates rev 2 with rev 1 retained — `theme-library-check.mjs` 8/8. ✔
+- Light palette reaches wireframe SVG unforced; dark still darkens — `source-capture-check.mjs` 8/8. ✔
+- Every read captured immutably; identical re-read is a no-op; creator's words verifiable from the stored revision; unreadable brand URL warns without touching the narrative. ✔
+- Quiver palette threading is typechecked and brief-key covered; a live provider run is pending Quiver key availability (none exercised here).
+
+**Not done / notes**
+
+- Saved-theme → brand/site association and the three explicit brand choices (saved / from website / from colors) beyond the current directions UI remain open; the store has `site` for it.
+- `pageBrandFrom`'s `auto` mode still always darkens; all product callers now pass an explicit mode.
+
 ## 2026-09-19 — D0a: PostgreSQL and MinIO are authoritative
 
 **Commits**
