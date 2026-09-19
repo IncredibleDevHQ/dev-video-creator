@@ -245,3 +245,9 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 **Commits**
 
 - (this run) — The build panel lists the run's recorded stage checkpoints in plain language, polled during the build and kept at the end; a `needs-input` stage reads "waiting for you" with its named beats (the intentional human-waiting state, never a failure). Pure presentation in `stage-view.ts` (vitest 4); `stage-panel-check.mjs` PASS (6 assertions) via the `__buildStages` dev hook; in the release suite (18).
+
+## 2026-09-19 — §5.8a: take-picker provenance
+
+**Commits**
+
+- (this run) — The take version picker shows each preserved take's recorded time and keeps-the-plan mark, so choosing among takes never guesses which retake is which. `take-workflow-check.mjs` extended (3 new UI assertions on the reopened, hydrated notebook) and PASS.
