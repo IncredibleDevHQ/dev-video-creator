@@ -64,12 +64,17 @@ try {
   const fork = await fetch(`${origin}/api/projects/${BASE_ID}/fork`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ forkKey: `live-${Date.now()}`, title: 'Live proof · video' }) }).then(r => r.json())
   const child = fork.project
   check('the base forked to a video notebook', Boolean(child?.id) && child.id !== BASE_ID, child?.id)
+  // §10: a repeat build over the same material must not spend new provider
+  // calls — the compatible library objects answer the cast. Snapshot the
+  // spent budget now; after the run it must not have moved.
+  const budgetBefore = await fetch(`${origin}/api/diagnostics`).then(r => r.json()).then(d => d.counts?.artworkCallsSpent ?? -1).catch(() => -1)
   const scenes = child.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(n => ({
     id: String(n.attrs.id), title: String(n.attrs.title || ''), svg: String(n.attrs.svg),
     script: String(n.attrs.script || ''), source: n.attrs.sourcePassages || [], idea: String(n.attrs.directorNotes || ''),
   }))
 
   // The real build: local Kimi, installed skills, product tools.
+  const runStartedAt = Date.now()
   await evaluate(`async () => {
     window.__liveLog = []
     window.studioDesktop.harness.onEvent(({ event }) => {
@@ -109,6 +114,48 @@ try {
 
   const stages = await fetch(`${origin}/api/runs/${run.id}/stages`).then(r => r.json()).catch(() => ({ stages: [] }))
   console.log('stage checkpoints:', JSON.stringify((stages.stages || []).map(s => `${s.stage}:${s.status}`)))
+  check('stage checkpoints record the journey', ['preview', 'narrate', 'finish', 'export'].every(stage => (stages.stages || []).some(s => s.stage === stage && s.status === 'succeeded')), JSON.stringify((stages.stages || []).map(s => `${s.stage}:${s.status}`)))
+
+  // §10 reuse criterion, live-measurable form. Two parts: (a) a provider
+  // GENERATION is a violation when the library already held a compatible
+  // accepted object at run start; (b) the cast should include objects created
+  // before this run — cross-run reuse is the point of the library. (Run-dir
+  // records can't carry this: the list op copies every library record into
+  // the run without a reused marker, so the receipt's cast keys + the
+  // library's createdAt are the evidence.)
+  const budgetAfter = await fetch(`${origin}/api/diagnostics`).then(r => r.json()).then(d => d.counts?.artworkCallsSpent ?? -1).catch(() => -1)
+  const cast = (artefacts?.explainer?.assets || [])
+  const { assets: library } = await fetch(`${origin}/api/appearance/library`).then(r => r.json()).catch(() => ({ assets: [] }))
+  const freshGenerations = cast.filter(a => a.operation === 'generate' && a.reused === false)
+  const compatible = (record, candidate) => candidate.accepted
+    && candidate.entity === record.entity
+    && candidate.brief?.role === record.brief?.role
+    && candidate.brief?.style?.family === record.brief?.style?.family
+    && candidate.brief?.style?.palette?.accent === record.brief?.style?.palette?.accent
+    && (record.brief?.parts || []).every(p => (candidate.parts || []).some(cp => cp.id === p.id))
+  const coverable = freshGenerations.filter(record => library.some(candidate => Date.parse(candidate.createdAt || '') < runStartedAt && compatible(record, candidate)))
+  const castKeys = [...new Set(Object.values(finishReceipt?.cast || {}).flat().map(entry => String(entry).split(':')[0]))]
+  const libraryByKey = new Map(library.map(asset => [asset.key, asset]))
+  const reusedFromBefore = castKeys.filter(key => Date.parse(libraryByKey.get(key)?.createdAt || '') < runStartedAt)
+  check(
+    'no provider generation for a brief the library already covers',
+    coverable.length === 0 && cast.length > 0,
+    `fresh generations: ${freshGenerations.length}, coverable: ${coverable.length}; spend ${budgetBefore} → ${budgetAfter}`,
+  )
+  check(
+    'the cast reuses library objects from earlier runs',
+    castKeys.length > 0 && reusedFromBefore.length > 0,
+    `cast keys: ${castKeys.length}, predating this run: ${reusedFromBefore.length}`,
+  )
+
+  // D6 live: the applied scene carries the director's staging, not nulls.
+  const appliedDoc = await fetch(`${origin}/api/projects/${child.id}`).then(r => r.json()).catch(() => null)
+  const appliedScene = appliedDoc?.project?.notebook?.content?.find(n => n.attrs?.explainer?.reviewed)?.attrs
+  check(
+    'the applied scene carries the director staging and coach brief',
+    Array.isArray(appliedScene?.stageTrack) && appliedScene.stageTrack.length > 0 && Array.isArray(appliedScene?.directorAuto?.shots) && appliedScene.directorAuto.shots.length > 0,
+    JSON.stringify({ track: appliedScene?.stageTrack?.length, shots: appliedScene?.directorAuto?.shots?.length }),
+  )
 
   await fetch(`${origin}/api/projects/${child.id}`, { method: 'DELETE' })
   await fetch(`${origin}/api/projects/${BASE_ID}`, { method: 'DELETE' })

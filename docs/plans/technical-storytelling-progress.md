@@ -8,6 +8,14 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 117 commits 
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. A live rerun of the provider proof on the final tree is in flight (`live-explainer-check.mjs`, asserting zero new Quiver calls on repeat + the director staging live). Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — the live provider proof, rerun on the final tree
+
+**Result: PASS on the build** — one real Kimi + Quiver + whisper run on the final tree: fork → story → cast → preview → narrate → finish → export, all five stage checkpoints succeeded (object-review included), verified 24.1s MP4 (`~/Downloads/Incredible Studio/retry-storm-live-rerun.mp4`), cast verified, and the applied scene carries the director's staging live (stageTrack + shots + coach brief — last turn's finish behavior in production). Wall ~50 min for one scene (first proof ~95 min; not a controlled comparison — a different review path and partly reused artwork).
+
+**Reuse evidence (§10):** the cast reuses an object accepted by the first proof — cross-run library reuse, proven live by `live-reuse-probe.mjs` against the preserved run dir + the durable library (cast keys vs createdAt). The run spent 2 provider calls: one new animation revision (a fresh performance prompt → a new key — authored work, now in the library) and one that left no accepted record. Zero fresh generations of briefs the library already covered.
+
+**Check corrected:** my first form of the reuse assertion was wrong twice over — it treated a fresh story's re-derived entities as a repeat run, and read `reused` from run-dir records, which the library `list` op copies in without the flag. `live-explainer-check.mjs` now measures the plan-faithful form: cast keys predating the run prove reuse; a provider generation fails only when a pre-existing library object covered its brief.
+
 ## 2026-09-19 — §5.4a: review receipts carry provenance
 
 **Commits**
