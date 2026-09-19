@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — fix: kept-plan takes align against the voice-carrying track
+
+**Commits**
+
+- `acdd5b41` — The human build fed the aligner the take's `videoUrl` — for a kept-plan take that is the composite, which need not carry the voice at all (the camera track does). `takeAudioUrlFor` picks the camera track for kept-plan takes and the take's own file otherwise; vitest 4. Whisper would otherwise have aligned against silence.
+
 ## 2026-09-19 — fix: take disposition at finish
 
 **Commits**
