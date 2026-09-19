@@ -14,12 +14,12 @@ import type { LibraryArtwork } from '../../../studio-v2/server/appearance-librar
 type Args = Record<string, unknown>
 type Context = { origin: string }
 type Proof = { hash: string; errors: string[]; warnings: string[]; frames: Array<{ atMs: number; path: string }>; program: SceneProgram; plan: MotionPlanV2; windows: unknown[]; durationMs: number }
-const digest = (svg: string, program: unknown) => createHash('sha256').update(svg).update(JSON.stringify(program)).digest('hex')
-// The stamp on the notebook doc crosses the PG jsonb boundary, which reorders
-// object keys — so it hashes a canonical key order instead of raw JSON text.
+// Canonical key order everywhere: the notebook store (PG jsonb) reorders
+// object keys, and run-dir files cross it at finish/export time. Hashing or
+// comparing raw JSON text would report false mismatches after a round-trip.
 const stableStringify = (value: unknown): string =>
   JSON.stringify(value, (_key, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b))) : v))
-const contentStamp = (svg: string, program: unknown) => createHash('sha256').update(svg).update(stableStringify(program)).digest('hex')
+const digest = (svg: string, program: unknown) => createHash('sha256').update(svg).update(stableStringify(program)).digest('hex')
 const jsonFile = async (path: string) => JSON.parse(await readFile(path, 'utf8'))
 const save = async (path: string, value: unknown) => writeFile(path, JSON.stringify(value, null, 2))
 const execute = promisify(execFile)
@@ -341,7 +341,7 @@ const finishTool = async (args: Args, context: Context) => {
       explainer: { run: projectDir, question: scene.question, answer: scene.answer, assets: scene.assets, reviewed: true,
         // The hash of exactly what was reviewed: a later edit keeps the
         // boolean but breaks the hash, and staleness becomes visible (§3.9).
-        hash: contentStamp(scene.svg, scene.program),
+        hash: digest(scene.svg, scene.program),
         previousPresenterTracks: earlier?.previousPresenterTracks ?? project.presenterTracks?.[scene.id] ?? [], previousRecording: earlier?.previousRecording ?? project.recordedBlocks?.[scene.id] ?? null } }
     // The surviving node remembers every base scene it now covers.
     const originScenes = [...new Set(covers.flatMap(cid => {
@@ -407,7 +407,7 @@ const exportTool = async (args: Args, context: Context) => {
   await rm(join(projectDir, 'explainer', 'export.json'), { force: true })
   for (const scene of scenes) {
     const node = project.notebook.content.find(n => n.attrs?.id === scene.id)
-    if (node?.attrs?.svg !== scene.svg || JSON.stringify(node.attrs.program) !== JSON.stringify(scene.program) || project.blocks[scene.id]?.durationMs !== scene.durationMs) throw new Error('The saved scene differs from its reviewed performance. Apply it with explainer_finish before exporting.')
+    if (node?.attrs?.svg !== scene.svg || stableStringify(node.attrs.program) !== stableStringify(scene.program) || project.blocks[scene.id]?.durationMs !== scene.durationMs) throw new Error('The saved scene differs from its reviewed performance. Apply it with explainer_finish before exporting.')
   }
   const result = await call<{ url: string; durationSeconds: number }>(context, '/api/render', project)
   const response = await fetch(result.url)

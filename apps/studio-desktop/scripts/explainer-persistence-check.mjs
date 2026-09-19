@@ -21,7 +21,10 @@ try {
   const save = (name, value) => writeFile(join(dir, name), JSON.stringify(value))
   const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
   const program = { version: 1, cast: [], beats: [{ say: 'A complete explanation.', events: [] }] }
-  const hash = createHash('sha256').update(svg).update(JSON.stringify(program)).digest('hex')
+  // The notebook store (PG jsonb) reorders object keys; the product hashes a
+  // canonical key order, so this fixture does the same.
+  const stable = value => JSON.stringify(value, (_k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v)
+  const hash = createHash('sha256').update(svg).update(stable(program)).digest('hex')
   await writeFile(join(dir, 'explainer/scene.svg'), svg)
   await save('explainer/scene.program.json', program)
   await save('explainer/scene.proof.json', { hash, errors: [], warnings: [], frames: [{ atMs: 0, path: 'review.png' }], program, plan: { version: 2, steps: [{ motionWindowMs: 0, holdMs: 2000, actions: [] }] }, windows: [], durationMs: 2000 })
@@ -49,6 +52,12 @@ try {
   await assert.rejects(invoke('explainer_finish'), /notebook changed/)
   project.notebook.content[0].attrs.script = program.beats[0].say
   console.log('PASS finish: reviewed duration, safe re-application, concurrent edit protection')
+  // A store round-trip (PG jsonb reorders keys) is not an edit: re-finishing
+  // must still recognize the applied scene.
+  const reorder = value => JSON.parse(stable(value))
+  project = reorder(project)
+  await invoke('explainer_finish')
+  console.log('PASS finish: a store round-trip with reordered keys is not a false edit')
   await save('explainer/export.json', { stale: true })
   renderVideo(1)
   await assert.rejects(invoke('explainer_export'), /Export duration/)
@@ -57,6 +66,9 @@ try {
   renderVideo(2)
   await invoke('explainer_export')
   await verifyExplainerExport(dir)
+  project = reorder(project)
+  await invoke('explainer_export')
+  console.log('PASS export: a store round-trip with reordered keys is not a false mismatch')
   const exported = JSON.parse(await readFile(join(dir, 'explainer/export.json')))
   exported.sceneHashes = ['stale']
   await save('explainer/export.json', exported)
