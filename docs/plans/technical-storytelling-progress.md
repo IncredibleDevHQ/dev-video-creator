@@ -2,6 +2,14 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D7 diagnostics
+
+**Commits**
+
+- `0d9c3293` — `GET /api/diagnostics`: a secrets-free bundle — store health, counts, provider capability flags (booleans, never values), artwork budget usage, recent runs with stage outcomes. `diagnostics-check.mjs` verifies shape + scans for credential leakage; the release suite covers it (14 checks).
+
+**Release suite:** `yarn studio:check` → unit gates + 12 scripted checks, all green.
+
 ## 2026-09-19 — D6 slice 4: the coach card loop
 
 **Commits**
