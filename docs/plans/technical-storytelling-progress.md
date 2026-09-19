@@ -2,6 +2,12 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D6 slice 5: transitions execute in the renderer
+
+**Commits**
+
+- `42b04340` — the shot plan's boundary treatments play: the outgoing shot's transition becomes the incoming segment's `transitionIn` (sanitize keeps known kinds, drops others); the motion driver applies `data-stage-transition` + `--stage-glide` at the boundary — cut lands at once, dissolve crosses on opacity, reframe/object-expand glide at their own durations. Unit: stage 8, shot-plan 13 (parity + boundary carriage).
+
 ## 2026-09-19 — D5 proof: take alignment end to end
 
 **Commits**
