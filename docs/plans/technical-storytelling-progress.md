@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §5.5: a paused build survives reopening
+
+**Commits**
+
+- `ce062b92` — On notebook open, the last Build Explainer run's durable state surfaces in the build panel: a run with `needs-input` stages opens with "The last build paused for you: align-take needs a person…" and its stage checklist; an interrupted or cancelled run shows its record; a finished build stays quiet. Status honesty comes from the harness's merged history (an interrupted run's durable row still says "running"; the merge reports it as error). `stage-panel-check.mjs` +2 assertions (reopen shows the wait, a done build stays quiet); 8/8 PASS.
+
 ## 2026-09-19 — D1: themes carry their site
 
 **Commits**
