@@ -75,7 +75,7 @@ const assetTool = async (args: Args, context: Context) => {
   const folder = join(projectDir, 'explainer', 'assets')
   await mkdir(folder, { recursive: true })
   await writeFile(join(folder, `${appearance.key}.svg`), appearance.svg)
-  await save(join(folder, `${appearance.key}.json`), appearance)
+  await save(join(folder, `${appearance.key}.json`), { ...appearance, reused })
   return { key: appearance.key, reused, svgPath: join(folder, `${appearance.key}.svg`), metadataPath: join(folder, `${appearance.key}.json`), parts: appearance.parts, viewBox: appearance.viewBox, operation }
 }
 

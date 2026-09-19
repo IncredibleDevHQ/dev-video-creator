@@ -14985,6 +14985,31 @@ void checkMigrationOffer()
   }
 })
 
+// The Objects panel (D4): the cast as it is acquired — reused from the
+// library, generated, or still in flight (a brief exists, no artwork yet).
+const renderExplainerObjects = async (bridge: NonNullable<Window['studioDesktop']>, runId: string) => {
+  const box = $('#explainer-objects') as HTMLElement
+  const artefacts = await bridge.harness.artefacts(runId).catch(() => null)
+  const cast = (artefacts?.explainer?.assets || []) as Array<{ entity?: string; reused?: boolean; operation?: string }>
+  const briefs = artefacts?.explainer?.briefs || []
+  if (!cast.length && !briefs.length) return
+  box.hidden = false
+  box.replaceChildren()
+  const acquired = new Set(cast.map(asset => asset.entity))
+  for (const asset of cast) {
+    const row = document.createElement('div')
+    row.textContent = `${asset.entity || 'object'} · ${asset.reused ? 'reused from the library' : asset.operation === 'animate' ? 'animated' : asset.operation === 'edit' ? 'edited' : 'generated'}`
+    box.append(row)
+  }
+  for (const brief of briefs) {
+    if (acquired.has(brief.entity)) continue
+    const row = document.createElement('div')
+    row.textContent = `${brief.entity} · generating…`
+    row.className = 'is-pending'
+    box.append(row)
+  }
+}
+
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
@@ -15009,6 +15034,7 @@ const startExplainerBuild = async () => {
   renderExplainerReceipts(null)
   status.textContent = 'Preparing the video notebook…'
   cancel.hidden = false
+  let objectsTimer: number | undefined
   try {
     const kimi = (await bridge.harness.adapters()).find(a => a.id === 'kimi' && a.ok)
     if (!kimi) throw new Error('Install Kimi CLI to build an explainer with the local harness')
@@ -15035,6 +15061,8 @@ const startExplainerBuild = async () => {
       if (message) { status.textContent = message.slice(0, 180); log.textContent = `${log.textContent}\n${message}`.slice(-12000); log.scrollTop = log.scrollHeight }
       if (event.type === 'error') showToast(event.error || 'The local harness needs attention')
       if (event.type === 'done') {
+        window.clearInterval(objectsTimer)
+        void renderExplainerObjects(bridge, runId)
         explainerRun?.unsubscribe()
         explainerRun = null
         button.disabled = false
@@ -15053,8 +15081,11 @@ const startExplainerBuild = async () => {
       inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
     ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
+    objectsTimer = window.setInterval(() => void renderExplainerObjects(bridge, run.id), 5000)
+    void renderExplainerObjects(bridge, run.id)
     showToast(`Kimi is building the explainer (${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]}): story, reusable objects, performances, narration and rendered review.`)
   } catch (error) {
+    window.clearInterval(objectsTimer)
     off?.()
     cancel.hidden = true
     status.textContent = error instanceof Error ? error.message : 'Could not start the explainer'

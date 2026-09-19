@@ -101,6 +101,21 @@ export const registerHarnessIpc = (
     const explainerDir = join(run.projectDir, 'explainer')
     const explainerReceipt = await readJson(explainerDir, 'receipt.json')
     const explainerExport = await readJson(explainerDir, 'export.json')
+    // The cast so far (D4's Objects panel): briefs written and assets
+    // accepted or reused, read from the run directory.
+    const assetsDir = join(explainerDir, 'assets')
+    const assetFiles = await readdir(assetsDir).catch(() => [] as string[])
+    const castAssets = []
+    for (const name of assetFiles.filter(entry => entry.endsWith('.json'))) {
+      const record = await readJson(assetsDir, name)
+      if (record && typeof record === 'object' && 'key' in (record as Record<string, unknown>)) castAssets.push(record)
+    }
+    const briefFiles = (await readdir(explainerDir).catch(() => [] as string[])).filter(entry => /^brief-.*\.json$/.test(entry))
+    const briefs = []
+    for (const name of briefFiles) {
+      const brief = await readJson(explainerDir, name)
+      briefs.push({ file: name, entity: (brief as { entity?: string } | null)?.entity || name.replace(/^brief-|\.json$/g, '') })
+    }
     // Story runs keep the outline and its receipt beside the story.
     const storyDir = join(run.projectDir, 'story')
     const storyOutline = await readJson(storyDir, 'outline.json')
@@ -110,7 +125,9 @@ export const registerHarnessIpc = (
       receipt: await readJson(motionDir, 'receipt.json'),
       validation,
       brief,
-      explainer: explainerReceipt || explainerExport ? { receipt: explainerReceipt, export: explainerExport } : null,
+      explainer: explainerReceipt || explainerExport || castAssets.length || briefs.length
+        ? { receipt: explainerReceipt, export: explainerExport, assets: castAssets, briefs }
+        : null,
       story: storyOutline || storyReceipt ? { outline: storyOutline, receipt: storyReceipt } : null,
     }
   })
