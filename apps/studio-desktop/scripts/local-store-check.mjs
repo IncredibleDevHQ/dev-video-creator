@@ -142,6 +142,12 @@ try {
     if (!recording || recording.storage !== 'local') throw new Error('recording not local: ' + JSON.stringify(recording).slice(0, 120))
     return `recording ${recording.recordingId?.slice(0, 8) || recording.assetId.slice(0, 8)}… storage ${recording.storage}`
   })
+  await step('the commit archives and selects the take on the file backend too (D3)', async () => {
+    const { takes, selections } = await j(origin, `/api/takes?projectId=${id}`)
+    if (!takes?.length) throw new Error('no takes archived')
+    if (selections?.[0]?.takeId !== takes[0].id) throw new Error('commit did not select: ' + JSON.stringify(selections))
+    return `${takes.length} take archived and selected`
+  })
   await step('save recordedBlocks mapping (studio save path)', async () => {
     // The studio updates its in-memory project and saves after a commit;
     // mirror that via the API. NOTE: doing this out-of-band races the booted

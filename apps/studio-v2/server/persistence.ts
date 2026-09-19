@@ -139,6 +139,7 @@ type PersistenceBackend = {
   savePresenterTake: (take: PresenterTakeInput) => Promise<void>
   listPresenterTakes: (projectId: string, blockId?: string) => Promise<Array<Record<string, unknown>>>
   selectPresenterTake: (input: { projectId: string; blockId: string; takeId: string }) => Promise<void>
+  clearPresenterTake: (input: { projectId: string; blockId: string }) => Promise<void>
   listTakeSelections: (projectId: string) => Promise<Array<{ projectId: string; blockId: string; takeId: string; selectedAt: string }>>
   findNotebooksReferencing: (marker: string) => Promise<Array<{ id: string; title: string }>>
   settingsWithPrefix: (prefix: string) => Promise<Record<string, unknown>>
@@ -200,7 +201,25 @@ export const storeAsset = async (asset: StoreAssetInput) =>
 
 export const saveRecordedBlock = async (
   recording: SaveRecordedBlockInput,
-): Promise<RecordedBlockV1> => (await loadBackend()).saveRecordedBlock(recording)
+): Promise<RecordedBlockV1> => {
+  const backend = await loadBackend()
+  const saved = await backend.saveRecordedBlock(recording)
+  // The take archive (D3) on every backend: this commit is one preserved
+  // take, and committing selects it. The active row stays the fast path.
+  await backend.savePresenterTake({
+    id: saved.recordingId,
+    projectId: recording.projectId,
+    blockId: recording.blockId,
+    assetId: recording.assetId,
+    durationMs: saved.durationMs,
+    detail: { mediaUrl: recording.mediaUrl },
+  })
+  await backend.selectPresenterTake({ projectId: recording.projectId, blockId: recording.blockId, takeId: saved.recordingId })
+  return saved
+}
+
+export const clearPresenterTake = async (input: { projectId: string; blockId: string }) =>
+  (await loadBackend()).clearPresenterTake(input)
 
 export const getObject = async (
   objectKey: string,

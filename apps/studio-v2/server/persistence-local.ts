@@ -509,6 +509,18 @@ export const listTakeSelections = async (projectId: string) => {
   return Object.entries(selections).map(([blockId, takeId]) => ({ projectId, blockId, takeId, selectedAt: '' }))
 }
 
+// Removing the presenter clears the active take and its selection; the take
+// itself stays in the archive (presenter-takes setting).
+export const clearPresenterTake = async (input: { projectId: string; blockId: string }) => {
+  const selections = ((await loadSetting(`take-selections:${input.projectId}`)) as Record<string, string> | null) || {}
+  delete selections[input.blockId]
+  await saveSetting(`take-selections:${input.projectId}`, selections)
+  const takesPath = join(notebooksDirectory(), `${input.projectId}.takes.json`)
+  const takes = (await readJsonFile<Record<string, unknown>>(takesPath)) || {}
+  delete takes[input.blockId]
+  await writeFileAtomic(takesPath, JSON.stringify(takes, null, 2))
+}
+
 export const findNotebooksReferencing = async (marker: string): Promise<Array<{ id: string; title: string }>> => {
   await initializePersistence()
   if (!marker) return []

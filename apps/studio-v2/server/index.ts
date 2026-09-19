@@ -54,6 +54,7 @@ import {
   listPresenterTakes,
   selectPresenterTake,
   listTakeSelections,
+  clearPresenterTake,
   saveProjectArtifact,
   saveSetting,
   saveRecordedBlock,
@@ -2963,6 +2964,18 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       }
       await selectPresenterTake({ projectId: body.projectId, blockId: body.blockId, takeId: body.takeId })
       json(response, 200, { selected: true })
+      return
+    }
+    // Clearing a selection (remove presenter): the active take and its
+    // selection go; the archive keeps every take.
+    if (request.method === 'POST' && url.pathname === '/api/takes/clear') {
+      const body = await readJson<{ projectId?: string; blockId?: string }>(request, 64 * 1024)
+      if (!body.projectId || !body.blockId) {
+        json(response, 400, { error: 'projectId and blockId are required' })
+        return
+      }
+      await clearPresenterTake({ projectId: body.projectId, blockId: body.blockId })
+      json(response, 200, { cleared: true })
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/preview') {

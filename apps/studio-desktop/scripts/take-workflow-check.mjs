@@ -177,6 +177,27 @@ try {
   }
   check('the notebook document picks the camera take as active', Boolean(docAfterCamera))
 
+  // Removing the presenter clears the active take and its durable selection;
+  // the archive keeps every take, and nothing resurrects on reload.
+  await evalInWindow(origin, `(() => { document.getElementById('remove-presenter').click(); return true })()`)
+  let clearedDoc = null
+  for (let i = 0; i < 20; i += 1) {
+    const body = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).catch(() => null)
+    if (body?.project && !body.project.recordedBlocks?.['blk-p1']) { clearedDoc = body.project; break }
+    await sleep(400)
+  }
+  const afterClear = await fetch(`${origin}/api/takes?projectId=${PROJECT_ID}`).then(r => r.json())
+  check(
+    'remove presenter clears the active take and the selection, keeps the archive',
+    Boolean(clearedDoc) && afterClear.selections?.length === 0 && afterClear.takes?.length === 3,
+    `selections=${afterClear.selections?.length} takes=${afterClear.takes?.length}`,
+  )
+  await evalInWindow(origin, `location.reload()`)
+  await evalInWindow(origin, `(() => new Promise(r => { const t = setInterval(() => { if (document.getElementById('project-title')?.value === 'Takes fixture') { clearInterval(t); r(true) } }, 400) }))()`)
+  await sleep(1500)
+  const afterReload = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json())
+  check('the removal does not resurrect on reopen', !afterReload.project?.recordedBlocks?.['blk-p1'])
+
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })
   check('cleanup', true, 'fixture notebook deleted')
 } catch (error) {

@@ -279,20 +279,8 @@ export const saveRecordedBlock = async ({
   )
   const saved = result.rows[0]
   if (!saved) throw new Error('The recorded block could not be saved')
-  // The take archive (D3): this commit is one preserved take, and committing
-  // selects it. The active row above stays the fast path for the document.
-  await database.query(
-    `insert into studio_presenter_takes (id, notebook_id, block_id, asset_id, duration_ms, detail)
-     values ($1, $2, $3, $4, $5, $6::jsonb)
-     on conflict (id) do nothing`,
-    [saved.id, projectId, blockId, assetId, Math.round(durationMs), JSON.stringify({ mediaUrl })],
-  )
-  await database.query(
-    `insert into studio_take_selections (notebook_id, block_id, take_id)
-     values ($1, $2, $3)
-     on conflict (notebook_id, block_id) do update set take_id = excluded.take_id, selected_at = now()`,
-    [projectId, blockId, saved.id],
-  )
+  // The take archive and the selection are written by the dispatcher
+  // (persistence.ts saveRecordedBlock) so every backend behaves the same.
   return {
     blockId,
     recordingId: saved.id,
@@ -685,6 +673,15 @@ export const listTakeSelections = async (projectId: string) => {
     takeId: row.take_id,
     selectedAt: new Date(row.selected_at).toISOString(),
   }))
+}
+
+// Removing the presenter clears the active take and its selection; the take
+// itself stays in the archive (studio_presenter_takes) — retakes preserve
+// previous versions.
+export const clearPresenterTake = async (input: { projectId: string; blockId: string }) => {
+  await initializePersistence()
+  await database.query('delete from studio_take_selections where notebook_id = $1 and block_id = $2', [input.projectId, input.blockId])
+  await database.query('delete from studio_recorded_blocks where notebook_id = $1 and block_id = $2', [input.projectId, input.blockId])
 }
 
 // Which notebooks reference a marker (an artwork key, an object key) in

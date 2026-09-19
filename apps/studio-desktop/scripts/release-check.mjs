@@ -16,6 +16,7 @@ const UNIT_GATES = [
 const CHECKS = [
   'create-explainer-check.mjs',   // D0: delivery paths, no default, draft labels, badges, rename
   'migration-check.mjs',          // D0a: legacy file store → PostgreSQL/MinIO import
+  'local-store-check.mjs',        // D0a: the explicit file-backend opt-out stays green (takes included)
   'theme-library-check.mjs',      // D1: durable revisioned themes, restart, browser import, site kept over revisions
   'theme-site-check.mjs',         // D1: save a read direction as the site's theme; re-reading names it
   'source-capture-check.mjs',     // D1: immutable source revisions, brand URL, light wireframes

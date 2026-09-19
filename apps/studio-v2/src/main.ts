@@ -4560,8 +4560,10 @@ const updateInspector = () => {
   ;($('#camera-shape') as HTMLSelectElement).value = config.camera.shape
   ;($('#block-background-color') as HTMLInputElement).value =
     config.background.color
+  // The remove control answers both the presenter track and an archived take
+  // (D3): either one means there is a person on this block to remove.
   ;($('#remove-presenter') as HTMLButtonElement).disabled =
-    scene.presenterTracks.length === 0
+    scene.presenterTracks.length === 0 && !project.recordedBlocks?.[scene.id]
   ;($('#director-block-number') as HTMLElement).textContent = `Block ${String(
     scene.index + 1,
   ).padStart(2, '0')}`
@@ -7844,8 +7846,18 @@ stopRecordingButton.addEventListener('click', () => {
 ;($('#remove-presenter') as HTMLButtonElement).addEventListener('click', () => {
   if (!selectedNodeId) return
   delete project.presenterTracks[selectedNodeId]
+  // The active take leaves the document and the durable selection; the take
+  // itself stays in the archive (the picker can bring it back).
+  delete project.recordedBlocks?.[selectedNodeId]
+  void fetchJson('/api/takes/clear', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ projectId: project.id, blockId: selectedNodeId }),
+  }).catch(error => console.warn('take selection clear not recorded durably', error))
   syncProject()
-  showToast('Presenter track removed')
+  syncCanvasViewSwitch()
+  void refreshPickupNotes()
+  showToast('Presenter track removed — the take stays in the archive')
 })
 
 const publishDialog = $('#publish-dialog') as HTMLDialogElement
