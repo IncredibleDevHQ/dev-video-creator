@@ -105,6 +105,15 @@ try {
   renderVideo(2)
   await invoke('explainer_export')
   await verifyExplainerExport(dir)
+  // §4: the receipt pins the MP4 itself — a tampered artifact fails
+  // verification even with scene hashes intact.
+  const pinned = JSON.parse(await readFile(join(dir, 'explainer/export.json'), 'utf8'))
+  assert.ok(/^[0-9a-f]{64}$/.test(pinned.videoHash || ''), 'the receipt carries the MP4 hash')
+  const { appendFile } = await import('node:fs/promises')
+  await appendFile(join(dir, 'explainer', 'export.mp4'), 'tampered')
+  await assert.rejects(verifyExplainerExport(dir), /changed or is missing/)
+  await invoke('explainer_export')
+  console.log('PASS export: the receipt pins the MP4; a tampered video is rejected')
   project = reorder(project)
   await invoke('explainer_export')
   console.log('PASS export: a store round-trip with reordered keys is not a false mismatch')

@@ -276,6 +276,12 @@ export const verifyExplainerExport = async (projectDir: string, origin?: string)
   const exported = await jsonFile(join(projectDir, 'explainer', 'export.json'))
   const durationMs = scenes.reduce((sum, scene) => sum + scene.durationMs, 0)
   if (receipt.projectId !== inputs.projectId || !Number.isFinite(exported.durationSeconds) || Math.abs(exported.durationSeconds * 1000 - durationMs) > 100 || JSON.stringify(exported.sceneHashes) !== JSON.stringify(scenes.map(s => digest(s.svg, s.program)))) throw new Error('The export is stale or does not contain the complete reviewed performance')
+  // The receipt pins the artifact: a replaced or truncated MP4 fails here
+  // even when the scene hashes still match. Hashless receipts predate the pin.
+  if (exported.videoHash) {
+    const bytes = await readFile(String(exported.videoPath || join(projectDir, 'explainer', 'export.mp4'))).catch(() => null)
+    if (!bytes || createHash('sha256').update(bytes).digest('hex') !== exported.videoHash) throw new Error('The exported MP4 changed or is missing — export again so the receipt and the video agree')
+  }
 }
 
 const finishTool = async (args: Args, context: Context) => {
@@ -416,6 +422,7 @@ const finishTool = async (args: Args, context: Context) => {
     delete project.blocks[input.id]
     delete project.presenterTracks[input.id]
     if (project.recordedBlocks) delete project.recordedBlocks[input.id]
+    await call(context, '/api/takes/clear', { projectId: project.id, blockId: input.id }).catch(() => {})
   }
   await call(context, `/api/projects/${encodeURIComponent(project.id)}`, project, 'PUT')
   const preview = await call(context, '/api/preview', { project })
@@ -441,7 +448,11 @@ const exportTool = async (args: Args, context: Context) => {
   const response = await fetch(result.url)
   if (!response.ok) throw new Error('Export completed but its video could not be inspected')
   const videoPath = join(projectDir, 'explainer', 'export.mp4')
-  await writeFile(videoPath, Buffer.from(await response.arrayBuffer()))
+  const videoBuffer = Buffer.from(await response.arrayBuffer())
+  await writeFile(videoPath, videoBuffer)
+  // The receipt pins the artifact itself (§4 ExportReceipt): a replaced or
+  // truncated MP4 fails verification even when the scene hashes match.
+  const videoHash = createHash('sha256').update(videoBuffer).digest('hex')
   const probe = await execute('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', videoPath])
   const measuredDurationMs = Number(probe.stdout.trim()) * 1000
   const expectedDurationMs = scenes.reduce((sum, scene) => sum + scene.durationMs, 0)
@@ -459,7 +470,7 @@ const exportTool = async (args: Args, context: Context) => {
     }
     offset += scene.durationMs
   }
-  const exported = { ...result, durationSeconds: measuredDurationMs / 1000, expectedDurationMs, sceneHashes: scenes.map(s => digest(s.svg, s.program)), videoPath, frames, instruction: 'Inspect these frames from the actual MP4 for full-frame composition, captions, clipping and state continuity. Report any remaining visual limitation.' }
+  const exported = { ...result, durationSeconds: measuredDurationMs / 1000, expectedDurationMs, sceneHashes: scenes.map(s => digest(s.svg, s.program)), videoPath, videoHash, frames, instruction: 'Inspect these frames from the actual MP4 for full-frame composition, captions, clipping and state continuity. Report any remaining visual limitation.' }
   await save(join(projectDir, 'explainer', 'export.json'), exported)
   await recordStage(context, projectDir, 'export', 'succeeded', { durationSeconds: exported.durationSeconds, scenes: scenes.length })
   return exported
