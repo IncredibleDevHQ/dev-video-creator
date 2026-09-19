@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — fix: camera-dialog takes join the durable archive
+
+**Commits**
+
+- `f8ae5424` — **Integration bug found by audit:** the camera dialog's take (the plan's own recording surface, with the coach card and rehearsal) wrote only the legacy `presenterTracks` — the take archive, the coach's recorded state, and the human build's `takeAudioUrl` (all keyed on `recordedBlocks`) never saw it. The take would have recorded, composed, and then been treated as unrecorded by the build. Now the dialog's save commits through `/api/recordings/commit` like the canvas flow: archived, auto-selected, on the block, pickup notes refreshed; a failed archive commit says so without eating the local take. `take-workflow-check.mjs` +3 assertions (real asset upload → archive → selection → document), 14/14 PASS.
+
 ## 2026-09-19 — §3.7: pickup marks in the scene rail
 
 **Commits**
