@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §5.5: the paused-build notice names the scenes
+
+**Commits**
+
+- `9babe82b` — The reopen notice said "align-take needs a person" — a stage id. It now names the scenes that need a take ("The last build paused for you: Pickup scene needs a take…"), resolved through the same pickup map the rail marks use (so a scene whose pickup was already recorded drops out). `stage-panel-check.mjs` asserts the scene name.
+
 ## 2026-09-19 — §5.5: a failed take upload keeps the review
 
 **Commits**
