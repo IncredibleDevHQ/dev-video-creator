@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — D4: the Assets dialog names parts and behaviors
+
+**Commits**
+
+- `e8d02920` — Reusable-object cards now list the editable part ids and the named behavior clips the artwork carries (scanned from the accepted record's `data-object-clip` markers, which survive id-prefixing), so choosing artwork for a scene no longer guesses from a thumbnail. Pure presentation in `artwork-detail.ts` (vitest 5); the Assets dialog has no scripted seed route — the library read path is provider-gated by design — so coverage is unit + typecheck, stated plainly.
+
 ## 2026-09-19 — §5.5: a paused build survives reopening
 
 **Commits**
