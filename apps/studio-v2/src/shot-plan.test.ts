@@ -57,10 +57,12 @@ describe('planShots', () => {
 })
 
 describe('stageTrackFromShots', () => {
+  const offsets = [0, 5000, 12000]
+  const durations = [5000, 7000, 6000]
+  const geometry = (track: ReturnType<typeof stageTrackFromShots>) => track.map(({ transitionIn: _transitionIn, ...rest }) => rest)
+
   it('produces the track the storyboard would, from the applied shot plan', () => {
-    const offsets = [0, 5000, 12000]
-    const durations = [5000, 7000, 6000]
-    expect(stageTrackFromShots(planShots(storyboard, beats), offsets, durations))
+    expect(geometry(stageTrackFromShots(planShots(storyboard, beats), offsets, durations)))
       .toEqual(stageTrackFromStoryboard(storyboard, offsets, durations))
   })
 
@@ -69,10 +71,24 @@ describe('stageTrackFromShots', () => {
       ...storyboard.slice(0, 2),
       { label: 'Lead', family: 'speaker-full', note: 'you alone', beats: [2], fromEndMs: 1100 },
     ]
-    const offsets = [0, 5000, 12000]
-    const durations = [5000, 7000, 6000]
-    expect(stageTrackFromShots(planShots(withLead, beats), offsets, durations))
+    expect(geometry(stageTrackFromShots(planShots(withLead, beats), offsets, durations)))
       .toEqual(stageTrackFromStoryboard(withLead, offsets, durations))
+  })
+
+  it('carries the boundary treatment from the outgoing shot onto the incoming segment', () => {
+    const track = stageTrackFromShots(planShots(storyboard, beats), offsets, durations)
+    expect(track[0].transitionIn).toBeUndefined()
+    expect(track[1].transitionIn).toEqual({ kind: 'object-expand', durationMs: 450 })
+    expect(track[2].transitionIn).toEqual({ kind: 'cut', durationMs: 250 })
+  })
+
+  it('writes nothing for a hold boundary', () => {
+    const stable: StoryboardEntry[] = [
+      { label: 'One', family: 'speaker-panel', note: '', beats: [0] },
+      { label: 'Two', family: 'speaker-panel', note: '', beats: [1, 2] },
+    ]
+    const track = stageTrackFromShots(planShots(stable, beats), offsets, durations)
+    expect(track.every(segment => !segment.transitionIn)).toBe(true)
   })
 })
 

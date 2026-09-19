@@ -50,7 +50,23 @@ describe('stage track', () => {
     for (const family of ['content-full', 'speaker-full', 'speaker-panel', 'split', 'content-pip', 'content-card', 'content-cutout']) {
       expect(css).toContain(`.scene[data-stage="${family}"]`)
     }
-    expect(css).toContain('transition: left .62s')
+    expect(css).toContain('transition: left var(--stage-glide, .62s)')
+  })
+
+  it('keeps the boundary treatment through sanitize, and drops unknown kinds', () => {
+    const track = sanitizeStageTrack([
+      { atMs: 0, family: 'speaker-full' },
+      { atMs: 4000, family: 'content-card', transitionIn: { kind: 'object-expand', durationMs: 450 } },
+      { atMs: 9000, family: 'content-pip', transitionIn: { kind: 'nonsense', durationMs: 10 } },
+    ])
+    expect(track[1].transitionIn).toEqual({ kind: 'object-expand', durationMs: 450 })
+    expect(track[2].transitionIn).toBeUndefined()
+  })
+
+  it('has the boundary treatments in the stage CSS', () => {
+    const css = stageCss()
+    expect(css).toContain('.scene[data-stage-transition="cut"]')
+    expect(css).toContain('.scene[data-stage-transition="dissolve"]')
   })
 })
 

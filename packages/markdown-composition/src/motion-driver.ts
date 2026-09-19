@@ -768,13 +768,24 @@ export const motionDriverScript = (
   var applyStage = function (ms) {
     if (!scene) return;
     var override = scene.getAttribute('data-stage-override');
-    var family = override || '', treatment = '', variant = override ? (scene.getAttribute('data-stage-override-variant') || '') : '';
+    var family = override || '', treatment = '', variant = override ? (scene.getAttribute('data-stage-override-variant') || '') : '', transitionIn = null;
     if (!override) {
-      for (var i = 0; i < track.length; i += 1) { if (track[i].atMs <= ms) { family = track[i].family; treatment = track[i].treatment || ''; variant = track[i].variant || ''; } }
+      for (var i = 0; i < track.length; i += 1) { if (track[i].atMs <= ms) { family = track[i].family; treatment = track[i].treatment || ''; variant = track[i].variant || ''; transitionIn = track[i].transitionIn || null; } }
       if (!family && track.length) { family = track[0].family; treatment = track[0].treatment || ''; variant = track[0].variant || ''; }
     }
     if (!family) return;
-    if (scene.getAttribute('data-stage') !== family) scene.setAttribute('data-stage', family);
+    if (scene.getAttribute('data-stage') !== family) {
+      // The boundary treatment the shot plan named for arriving here (D6):
+      // a cut lands at once, a dissolve crosses on opacity, the rest glide.
+      if (transitionIn && transitionIn.kind) {
+        scene.setAttribute('data-stage-transition', transitionIn.kind);
+        scene.style.setProperty('--stage-glide', (Number(transitionIn.durationMs) || 620) + 'ms');
+      } else {
+        scene.removeAttribute('data-stage-transition');
+        scene.style.removeProperty('--stage-glide');
+      }
+      scene.setAttribute('data-stage', family);
+    }
     if ((scene.getAttribute('data-stage-treatment') || '') !== treatment) {
       if (treatment) scene.setAttribute('data-stage-treatment', treatment); else scene.removeAttribute('data-stage-treatment');
     }

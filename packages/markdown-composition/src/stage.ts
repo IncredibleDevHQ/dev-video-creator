@@ -46,7 +46,7 @@ export type StageAnchor = 'br' | 'bl' | 'tr' | 'tl' | 'mr' | 'ml'
 export type StageSize = 's' | 'm' | 'l'
 export type StageVariant = `${StageAnchor}-${StageSize}`
 
-export type StageSegment = { atMs: number; family: StageFamily; treatment?: StageTreatment; variant?: StageVariant }
+export type StageSegment = { atMs: number; family: StageFamily; treatment?: StageTreatment; variant?: StageVariant; transitionIn?: { kind: string; durationMs: number } }
 
 export type StageRect = { left: number; top: number; width: number; height: number }
 export type StageGeometry = {
@@ -188,7 +188,13 @@ export const sanitizeStageTrack = (value: unknown): StageSegment[] => {
       const atMs = Number(segment.atMs)
       const treatment = isStageTreatment(segment.treatment) ? segment.treatment : ''
       const variant = isStageVariant(segment.family, segment.variant) ? (segment.variant as StageVariant) : undefined
-      return { atMs: Number.isFinite(atMs) ? Math.max(0, atMs) : 0, family: segment.family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}) }
+      // The boundary treatment arriving at this segment (D6): the shot plan's
+      // transition kinds, kept through sanitize.
+      const transition = segment.transitionIn as { kind?: unknown; durationMs?: unknown } | undefined
+      const transitionIn = transition && typeof transition.kind === 'string' && ['hold', 'cut', 'reframe', 'object-expand', 'reveal', 'dissolve'].includes(transition.kind)
+        ? { kind: transition.kind, durationMs: Math.max(0, Number(transition.durationMs) || 0) }
+        : undefined
+      return { atMs: Number.isFinite(atMs) ? Math.max(0, atMs) : 0, family: segment.family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}), ...(transitionIn ? { transitionIn } : {}) }
     })
     .filter((segment): segment is StageSegment => Boolean(segment))
     .sort((a, b) => a.atMs - b.atMs)
@@ -267,13 +273,18 @@ export const stageCss = () => {
   const ease = 'cubic-bezier(.65,.05,.25,1)'
   const rules: string[] = [
     // Any staged scene: the camera and the page are positioned by the stage,
-    // never by the per-block presenter mode; both travel smoothly.
+    // never by the per-block presenter mode; both travel smoothly. The glide
+    // duration is the boundary's own when the shot plan named one (D6), and
+    // a cut lands at once.
     // (Inactive scenes stay hidden: visibility is inherited from the scene.)
-    `.scene[data-stage] .camera { transition: left .62s ${ease}, top .62s ${ease}, width .62s ${ease}, height .62s ${ease}, border-radius .62s ${ease}, opacity .45s ease; object-fit: cover; scale: 1 !important; z-index: 30; }`,
+    `.scene[data-stage] .camera { transition: left var(--stage-glide, .62s) ${ease}, top var(--stage-glide, .62s) ${ease}, width var(--stage-glide, .62s) ${ease}, height var(--stage-glide, .62s) ${ease}, border-radius var(--stage-glide, .62s) ${ease}, opacity .45s ease; object-fit: cover; scale: 1 !important; z-index: 30; }`,
     `.scene[data-stage] .camera.camera-hidden { display: block !important; }`,
+    // A cut is not a slow reframe; a dissolve crosses on opacity alone.
+    `.scene[data-stage-transition="cut"] .camera, .scene[data-stage-transition="cut"] > .content { transition: none !important; }`,
+    `.scene[data-stage-transition="dissolve"] .camera, .scene[data-stage-transition="dissolve"] > .content { transition-property: opacity !important; transition-duration: var(--stage-glide, .45s) !important; }`,
     // Doubled class so a stage always beats the presenter-less flow layout
     // (.scene.camera-absent > .content), which shares its specificity.
-    `.scene.scene[data-stage] > .content { position: absolute; margin: 0 !important; max-width: none !important; display: flex; flex-direction: column; justify-content: center; align-items: stretch; transition: left .62s ${ease}, top .62s ${ease}, width .62s ${ease}, height .62s ${ease}, opacity .45s ease; box-sizing: border-box; padding: 0 !important; }`,
+    `.scene.scene[data-stage] > .content { position: absolute; margin: 0 !important; max-width: none !important; display: flex; flex-direction: column; justify-content: center; align-items: stretch; transition: left var(--stage-glide, .62s) ${ease}, top var(--stage-glide, .62s) ${ease}, width var(--stage-glide, .62s) ${ease}, height var(--stage-glide, .62s) ${ease}, opacity .45s ease; box-sizing: border-box; padding: 0 !important; }`,
     `.scene[data-stage] > .content .slide-stage svg.slide-svg { width: 100% !important; max-height: 100%; }`,
     `.scene[data-stage] { padding: 0 !important; }`,
     // Without the scene's padding the index and footer would sit on the

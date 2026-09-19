@@ -101,7 +101,13 @@ export const stageTrackFromShots = (shots: DirectedShot[], beatOffsetsMs: number
         : beatOffsetsMs[first] ?? 0
     const treatment = isStageTreatment(shot.stage.treatment) ? shot.stage.treatment : ''
     const variant = isStageVariant(family, shot.stage.variant) ? (shot.stage.variant as StageVariant) : undefined
-    track.push({ atMs, family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}) })
+    // The outgoing shot's transition becomes the incoming segment's boundary
+    // treatment; a hold is no attribute at all (the default glide stands).
+    const previous = shots[shots.indexOf(shot) - 1]
+    const transitionIn = previous && previous.transitionOut.kind !== 'hold'
+      ? { kind: previous.transitionOut.kind, durationMs: previous.transitionOut.durationMs }
+      : undefined
+    track.push({ atMs, family, ...(treatment ? { treatment } : {}), ...(variant ? { variant } : {}), ...(transitionIn ? { transitionIn } : {}) })
   })
   return sanitizeStageTrack(track)
 }
