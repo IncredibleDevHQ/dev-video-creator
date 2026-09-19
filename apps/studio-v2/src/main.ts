@@ -4675,7 +4675,8 @@ const syncNotebookStart = () => {
 notebookStart.addEventListener('click', event => {
   const card = (event.target as HTMLElement).closest<HTMLElement>('[data-start]')
   if (!card) return
-  if (card.dataset.start === 'svg') ($('#import-svg-pages') as HTMLButtonElement).click()
+  if (card.dataset.start === 'explainer') openCreateExplainer()
+  else if (card.dataset.start === 'svg') ($('#import-svg-pages') as HTMLButtonElement).click()
   else if (card.dataset.start === 'markdown') ($('#paste-markdown') as HTMLButtonElement).click()
   else if (card.dataset.start === 'link' || card.dataset.start === 'narrative') openSourceDialog(card.dataset.start)
   else void openAttentionSample()
@@ -14392,6 +14393,72 @@ let explainerRun: { id: string; projectId: string; unsubscribe: () => void } | n
 ;($('#explainer-cancel') as HTMLButtonElement).addEventListener('click', () => {
   if (explainerRun) void window.studioDesktop?.harness.cancel(explainerRun.id)
 })
+// ——— Create explainer: two equal delivery paths over the same material ———
+// Present it myself and Generate automatically are peers. The explicit
+// choice is recorded on the notebook (project.explainerDelivery) and is
+// remembered there, but never assumed for a notebook that has not chosen.
+type ExplainerDelivery = 'human' | 'generated'
+const createExplainerDialog = $('#create-explainer-dialog') as HTMLDialogElement
+const EXPLAINER_DELIVERY_LABELS: Record<ExplainerDelivery, string> = { human: 'Present it myself', generated: 'Generate automatically' }
+let createExplainerChoice: ExplainerDelivery | null = null
+
+const syncCreateExplainer = () => {
+  document.querySelectorAll<HTMLButtonElement>('#create-explainer-paths [data-delivery]').forEach(card => {
+    const selected = card.dataset.delivery === createExplainerChoice
+    card.classList.toggle('is-primary', selected)
+    card.setAttribute('aria-checked', String(selected))
+  })
+  const status = $('#create-explainer-status') as HTMLElement
+  status.textContent = project.explainerDelivery
+    ? `This notebook's choice so far: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery]} — you can change it.`
+    : 'No delivery path chosen for this notebook yet.'
+  status.classList.remove('is-error')
+  ;($('#create-explainer-use-base') as HTMLButtonElement).disabled = !notebookHasScenes()
+}
+
+const openCreateExplainer = () => {
+  createExplainerChoice = project.explainerDelivery || null
+  syncCreateExplainer()
+  if (!createExplainerDialog.open) createExplainerDialog.showModal()
+}
+
+const recordExplainerDelivery = async (delivery: ExplainerDelivery) => {
+  if (project.explainerDelivery === delivery) return
+  project.explainerDelivery = delivery
+  await persistProjectNow(structuredClone(project))
+}
+
+const startCreateExplainer = async (material: 'link' | 'narrative' | 'base') => {
+  if (!createExplainerChoice) {
+    const status = $('#create-explainer-status') as HTMLElement
+    status.textContent = 'Choose Present it myself or Generate automatically first'
+    status.classList.add('is-error')
+    return
+  }
+  try {
+    await recordExplainerDelivery(createExplainerChoice)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Could not save the delivery choice')
+    return
+  }
+  createExplainerDialog.close()
+  if (material === 'base') void startExplainerBuild()
+  else openSourceDialog(material)
+}
+
+document.querySelectorAll<HTMLButtonElement>('#create-explainer-paths [data-delivery]').forEach(card =>
+  card.addEventListener('click', () => {
+    createExplainerChoice = (card.dataset.delivery as ExplainerDelivery) || null
+    syncCreateExplainer()
+  }),
+)
+document.querySelectorAll<HTMLButtonElement>('#create-explainer-materials [data-material]').forEach(card =>
+  card.addEventListener('click', () => void startCreateExplainer(card.dataset.material as 'link' | 'narrative' | 'base')),
+)
+;($('#create-explainer') as HTMLButtonElement).addEventListener('click', openCreateExplainer)
+;($('#create-explainer-cancel') as HTMLButtonElement).addEventListener('click', () => createExplainerDialog.close())
+;($('#close-create-explainer') as HTMLButtonElement).addEventListener('click', () => createExplainerDialog.close())
+
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
@@ -14413,6 +14480,12 @@ const startExplainerBuild = async () => {
     if (!kimi) throw new Error('Install Kimi CLI to build an explainer with the local harness')
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
+    // The delivery path is an explicit journey choice made in Create
+    // explainer; a notebook that has not chosen is asked, not defaulted.
+    if (!project.explainerDelivery) {
+      openCreateExplainer()
+      throw new Error('Choose Present it myself or Generate automatically to continue')
+    }
     if (!project.derivedFrom?.notebook) {
       const child = await createVideoFromBase(project.id, project.title)
       if (!child) throw new Error('Could not create the video derivative')
@@ -14445,10 +14518,10 @@ const startExplainerBuild = async () => {
     })
     off = unsubscribe
     const run = await bridge.harness.run({ adapter: 'kimi', skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
-      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
+      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
-    ;($('#explainer-run-location') as HTMLElement).textContent = `Build files: ${run.projectDir}`
-    showToast('Kimi is building the explainer: story, reusable objects, performances, narration and rendered review.')
+    ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
+    showToast(`Kimi is building the explainer (${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]}): story, reusable objects, performances, narration and rendered review.`)
   } catch (error) {
     off?.()
     cancel.hidden = true

@@ -351,6 +351,11 @@ export type ProjectDocumentV1 = {
     scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string; source?: string[] }>
     glossary: Array<{ term: string; meaning: string }>
   }
+  // The explainer delivery journey chosen in Create explainer: a recorded
+  // human presenter or generated narration. Recorded per notebook; an
+  // explicit previous choice is remembered, never assumed for a new one.
+  // Additive; older notebooks have none until they choose.
+  explainerDelivery?: 'human' | 'generated'
   // The asset library: one asset per thing (keyed by what it is, not by
   // which unit shows it), in the video's palette, reused on every page
   // that names the thing. Additive; older notebooks have none.

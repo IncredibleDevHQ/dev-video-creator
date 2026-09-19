@@ -173,6 +173,7 @@
             </div>
             <span class="commandbar-divider" aria-hidden="true"></span>
             <button id="open-fullscreen" class="button chrome-secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/></svg>Open canvas</button>
+            <button id="create-explainer" class="button primary" type="button">Create explainer</button>
             <button id="build-explainer" class="button chrome-secondary" type="button">Build explainer</button>
           </nav>
         </div>
@@ -208,6 +209,7 @@
               <section id="notebook-start" class="notebook-start" hidden aria-label="Start this notebook">
                 <p class="notebook-start-lead">A notebook is pages plus what you say over them. Start with pages, or write first.</p>
                 <div class="notebook-start-grid">
+                  <button type="button" class="notebook-start-card is-primary" data-start="explainer"><strong>Create explainer</strong><span>Present it yourself or generate it automatically — reusable objects perform your story, timed to the delivery.</span></button>
                   <button type="button" class="notebook-start-card is-primary" data-start="link"><strong>Paste a link</strong><span>A blog post or a README becomes a brand, an outline and pages you can animate.</span></button>
                   <button type="button" class="notebook-start-card is-primary" data-start="narrative"><strong>Paste a narrative</strong><span>Your own words become the outline; pages are drawn to serve them.</span></button>
                   <button type="button" class="notebook-start-card" data-start="svg"><strong>Import SVG pages</strong><span>Pages from ppt-master or any SVG deck become scenes you can animate from the dialogue.</span></button>
@@ -818,6 +820,22 @@
         <div id="source-destination-row" class="source-destination" hidden><span>This notebook already has scenes.</span><label><input type="radio" name="source-destination" value="new" checked /> Start a new notebook</label><label><input type="radio" name="source-destination" value="append" /> Add them to this notebook</label></div>
         <div class="modal-actions"><button type="button" class="button ghost" data-source-back="outline">Back</button><span id="source-pages-note" class="source-status"></span><button id="source-finish" type="button" class="button primary">Open the notebook</button></div>
       </section>
+    </dialog>
+
+    <dialog id="create-explainer-dialog" class="modal source-modal">
+      <div class="modal-heading"><div><span class="eyebrow">Create explainer</span><h2>How do you want to tell this story?</h2></div><button id="close-create-explainer" class="icon-button" type="button" aria-label="Close create explainer">×</button></div>
+      <p class="source-hint">Both paths share the same material, theme, base wireframes, reusable objects and export. Neither is a default — the choice stays with the notebook and can be changed later.</p>
+      <div class="notebook-start-grid" id="create-explainer-paths" role="radiogroup" aria-label="Delivery path">
+        <button type="button" class="notebook-start-card" data-delivery="human" role="radio" aria-checked="false"><strong>Present it myself</strong><span>Shape and record your own narrative — the rich graphics are timed to your actual delivery.</span></button>
+        <button type="button" class="notebook-start-card" data-delivery="generated" role="radio" aria-checked="false"><strong>Generate automatically</strong><span>The studio drafts the script and generates the narration from your material — you can edit everything.</span></button>
+      </div>
+      <h3>Start from</h3>
+      <div class="notebook-start-grid" id="create-explainer-materials">
+        <button type="button" class="notebook-start-card" data-material="link"><strong>A link or article</strong><span>A blog post, docs page or README is read for its words, brand and figures.</span></button>
+        <button type="button" class="notebook-start-card" data-material="narrative"><strong>My own narrative</strong><span>Write or paste your words — the story leads, no article required.</span></button>
+        <button type="button" class="notebook-start-card" data-material="base" id="create-explainer-use-base"><strong>This notebook's base</strong><span>Build the video from the wireframes already in this notebook.</span></button>
+      </div>
+      <div class="modal-actions"><span id="create-explainer-status" class="source-status"></span><button id="create-explainer-cancel" type="button" class="button ghost">Cancel</button></div>
     </dialog>
 
     <dialog id="markdown-dialog" class="modal markdown-modal">
