@@ -356,6 +356,10 @@ export type ProjectDocumentV1 = {
   // explicit previous choice is remembered, never assumed for a new one.
   // Additive; older notebooks have none until they choose.
   explainerDelivery?: 'human' | 'generated'
+  // The story records this notebook was built from (D2): the wording policy
+  // in force, the authored narrative revision and the explanation model.
+  // Additive; older notebooks have none.
+  story?: { wordingPolicy?: 'preserve' | 'assist' | 'draft'; narrativeId?: string; modelId?: string }
   // The asset library: one asset per thing (keyed by what it is, not by
   // which unit shows it), in the video's palette, reused on every page
   // that names the thing. Additive; older notebooks have none.

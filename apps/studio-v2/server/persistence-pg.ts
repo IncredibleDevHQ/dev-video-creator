@@ -482,6 +482,46 @@ export const loadSourceRevision = async (id: string): Promise<SourceRevisionReco
   }
 }
 
+// ——— Story records (D2): narrative revisions and explanation models ———
+export const saveNarrativeRevision = async (input: {
+  projectId?: string
+  sourceRevision?: string
+  origin: 'authored' | 'article' | 'notes'
+  wordingPolicy: string
+  audience?: string
+  takeaway?: string
+  text: string
+}): Promise<{ id: string; hash: string }> => {
+  await initializePersistence()
+  const hash = createHash('sha256').update(JSON.stringify([input.origin, input.wordingPolicy, input.text, input.audience || '', input.takeaway || ''])).digest('hex')
+  const id = `nar-${hash.slice(0, 16)}`
+  await database.query(
+    `insert into studio_narrative_revisions (id, project_id, source_revision, origin, wording_policy, audience, takeaway, text, hash)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     on conflict (id) do nothing`,
+    [id, input.projectId || null, input.sourceRevision || null, input.origin, input.wordingPolicy, input.audience || null, input.takeaway || null, input.text, hash],
+  )
+  return { id, hash }
+}
+
+export const saveExplanationModel = async (input: {
+  projectId?: string
+  sourceRevision?: string
+  narrativeRevision?: string
+  model: unknown
+}): Promise<{ id: string; hash: string }> => {
+  await initializePersistence()
+  const hash = createHash('sha256').update(JSON.stringify(input.model)).digest('hex')
+  const id = `model-${hash.slice(0, 16)}`
+  await database.query(
+    `insert into studio_explanation_models (id, project_id, source_revision, narrative_revision, model, hash)
+     values ($1, $2, $3, $4, $5::jsonb, $6)
+     on conflict (id) do nothing`,
+    [id, input.projectId || null, input.sourceRevision || null, input.narrativeRevision || null, JSON.stringify(input.model), hash],
+  )
+  return { id, hash }
+}
+
 // ——— Legacy file-store import (D0a) ———
 // One-way, non-destructive import of the file backend's data directory into
 // PostgreSQL + MinIO. Ids and object keys are preserved so takes and

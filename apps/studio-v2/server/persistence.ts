@@ -69,6 +69,21 @@ type PersistenceBackend = {
     brandContent?: unknown
   }) => Promise<{ id: string; hash: string }>
   loadSourceRevision: (id: string) => Promise<unknown>
+  saveNarrativeRevision: (input: {
+    projectId?: string
+    sourceRevision?: string
+    origin: 'authored' | 'article' | 'notes'
+    wordingPolicy: string
+    audience?: string
+    takeaway?: string
+    text: string
+  }) => Promise<{ id: string; hash: string }>
+  saveExplanationModel: (input: {
+    projectId?: string
+    sourceRevision?: string
+    narrativeRevision?: string
+    model: unknown
+  }) => Promise<{ id: string; hash: string }>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
@@ -164,3 +179,20 @@ export const saveSourceRevision = async (input: {
 }) => (await loadBackend()).saveSourceRevision(input)
 
 export const loadSourceRevision = async (id: string) => (await loadBackend()).loadSourceRevision(id)
+
+export const saveNarrativeRevision = async (input: {
+  projectId?: string
+  sourceRevision?: string
+  origin: 'authored' | 'article' | 'notes'
+  wordingPolicy: string
+  audience?: string
+  takeaway?: string
+  text: string
+}) => (await loadBackend()).saveNarrativeRevision(input)
+
+export const saveExplanationModel = async (input: {
+  projectId?: string
+  sourceRevision?: string
+  narrativeRevision?: string
+  model: unknown
+}) => (await loadBackend()).saveExplanationModel(input)

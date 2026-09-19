@@ -475,9 +475,16 @@ export const outlineSchema = () => ({
   },
 })
 
-export const outlinePrompt = (source: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>, targetSeconds: number | null) => {
+export const outlinePrompt = (source: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>, targetSeconds: number | null, wordingPolicy: 'preserve' | 'assist' | 'draft' = 'draft') => {
   const target = targetSeconds || Math.max(180, Math.min(540, Math.round((source.words / 2.4) * 0.45)))
+  const wording = wordingPolicy === 'preserve'
+    ? `WORDING POLICY — preserve: this text is the author's own narrative. The narration fields must reuse their sentences word for word wherever they carry the idea; your job is structure and order, not rewriting. Never replace a personal account with generic explanatory prose.`
+    : wordingPolicy === 'assist'
+      ? `WORDING POLICY — assist: this is the author's own narrative. Keep their voice, claims and examples; you may tighten sentences and propose clearer transitions, but every edit must stay recognisably theirs.`
+      : `WORDING POLICY — draft: draft fresh narration from this material in a clear presenter voice.`
   return `You plan a narrated technical explainer video from a written source. A presenter speaks over pages; each page is a scene with one idea. Plan the outline, not the pages.
+
+${wording}
 
 SOURCE: "${source.title}"${source.site ? ` from ${source.site}` : ''} (${source.words} words)
 ---

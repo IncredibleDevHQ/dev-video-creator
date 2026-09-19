@@ -50,6 +50,8 @@ import {
   saveSetting,
   saveRecordedBlock,
   saveSourceRevision,
+  saveNarrativeRevision,
+  saveExplanationModel,
   saveThemeRevision,
   storeAsset,
   deleteTheme,
@@ -67,6 +69,7 @@ import {
 const HOST = process.env.STUDIO_RENDER_HOST || '127.0.0.1'
 const PORT = Number(process.env.STUDIO_RENDER_PORT || 4319)
 import { checkPageContract, outlinePrompt, outlineSchema, pageBrandFrom, readSourceNarrative, readSourceUrl, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
+import { buildExplanationModel, wordingPolicyFrom } from './story-model'
 import { listArtwork, makeArtwork } from './appearance-library'
 import { REFERENCE_STYLE, briefKey, briefPrompt, knownObjects } from './appearance'
 import { quiverCapability } from './providers/quiver'
@@ -1385,7 +1388,7 @@ Every window also has "stage": "" to leave the frame to the director, or — onl
 // optional brand website for colours/fonts/logo — text alone cannot
 // reveal them.
 const handleSourceRead = async (request: IncomingMessage, response: ServerResponse) => {
-  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string; brandUrl?: string }>(request, 400 * 1024)
+  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string; brandUrl?: string; wordingPolicy?: string }>(request, 400 * 1024)
   const projectId = String(body.projectId || request.headers['x-project-id'] || '') || undefined
   const source = body.url?.trim() ? await readSourceUrl(body.url, { projectId }) : readSourceNarrative(String(body.narrative || ''), String(body.title || ''))
   if (!source.text.trim()) throw new Error('Nothing to read — paste a link to an article or a narrative of your own')
@@ -1412,20 +1415,35 @@ const handleSourceRead = async (request: IncomingMessage, response: ServerRespon
     content: source,
     brandContent: brandEvidence || undefined,
   })
-  json(response, 200, { source, snapshot })
+  // An authored narrative is also a narrative revision under its wording
+  // policy (D2): the creator's voice and editorial intent are durable
+  // records, not dialog state.
+  let narrative = null
+  if (!body.url?.trim()) {
+    narrative = await saveNarrativeRevision({
+      projectId,
+      sourceRevision: snapshot.id,
+      origin: 'authored',
+      wordingPolicy: wordingPolicyFrom(body.wordingPolicy, 'preserve'),
+      text: source.text,
+      takeaway: source.title,
+    })
+  }
+  json(response, 200, { source, snapshot, narrative })
 }
 
 const handleSourceOutline = async (request: IncomingMessage, response: ServerResponse) => {
-  const body = await readJson<{ source?: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>; targetSeconds?: number }>(request, 400 * 1024)
+  const body = await readJson<{ source?: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>; targetSeconds?: number; wordingPolicy?: string }>(request, 400 * 1024)
   const source = body.source
   if (!source || !String(source.text || '').trim()) throw new Error('The outline needs the source text')
   if (!(await hasModelAccess())) throw new Error('Outlining a source needs an AI provider — open Models in the top bar')
   const targetSeconds = Number.isFinite(Number(body.targetSeconds)) && Number(body.targetSeconds) > 0 ? Math.round(Number(body.targetSeconds)) : null
+  const wordingPolicy = wordingPolicyFrom(body.wordingPolicy, 'draft')
   const apiResponse = await modelFetch('writing', {
     method: 'POST',
     body: JSON.stringify({
       model: 'ignored',
-      input: outlinePrompt({ title: String(source.title || ''), site: String(source.site || ''), text: String(source.text), words: Number(source.words) || String(source.text).split(/\s+/).length }, targetSeconds),
+      input: outlinePrompt({ title: String(source.title || ''), site: String(source.site || ''), text: String(source.text), words: Number(source.words) || String(source.text).split(/\s+/).length }, targetSeconds, wordingPolicy),
       reasoning: { effort: 'medium' },
       text: { format: { type: 'json_schema', name: 'video_outline', strict: true, schema: outlineSchema() } },
     }),
@@ -2652,6 +2670,22 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         return
       }
       json(response, 200, { revision })
+      return
+    }
+    // Explanation model (D2): the outline becomes claims, objects and
+    // relations with stable ids, persisted as its own immutable record.
+    if (request.method === 'POST' && url.pathname === '/api/story/model') {
+      const body = await readJson<{ outline?: unknown; projectId?: string; sourceRevisionId?: string; narrativeRevisionId?: string }>(request, 512 * 1024)
+      const outline = sanitizeOutline(body.outline, 'Untitled')
+      if (!outline.scenes.length) throw new Error('The outline has no scenes to model')
+      const model = buildExplanationModel(outline)
+      const saved = await saveExplanationModel({
+        projectId: body.projectId,
+        sourceRevision: body.sourceRevisionId,
+        narrativeRevision: body.narrativeRevisionId,
+        model,
+      })
+      json(response, 200, { model: { id: saved.id, hash: saved.hash, ...model } })
       return
     }
     if (request.method === 'GET' && url.pathname === '/api/projects/latest') {

@@ -397,3 +397,39 @@ export const loadSourceRevision = async (id: string) => {
   const list = ((await loadSetting('source-revisions')) as Array<Record<string, unknown>> | null) || []
   return list.find(record => record.id === id) || null
 }
+
+// ——— Story records (D2), file-backend variant ———
+const appendCapped = async (key: string, record: Record<string, unknown>, cap = 50) => {
+  const list = ((await loadSetting(key)) as Array<Record<string, unknown>> | null) || []
+  if (!list.some(entry => entry.id === record.id)) {
+    list.unshift(record)
+    await saveSetting(key, list.slice(0, cap))
+  }
+}
+
+export const saveNarrativeRevision = async (input: {
+  projectId?: string
+  sourceRevision?: string
+  origin: string
+  wordingPolicy: string
+  audience?: string
+  takeaway?: string
+  text: string
+}): Promise<{ id: string; hash: string }> => {
+  const hash = createHash('sha256').update(JSON.stringify([input.origin, input.wordingPolicy, input.text, input.audience || '', input.takeaway || ''])).digest('hex')
+  const id = `nar-${hash.slice(0, 16)}`
+  await appendCapped('narrative-revisions', { id, ...input, hash, createdAt: new Date().toISOString() })
+  return { id, hash }
+}
+
+export const saveExplanationModel = async (input: {
+  projectId?: string
+  sourceRevision?: string
+  narrativeRevision?: string
+  model: unknown
+}): Promise<{ id: string; hash: string }> => {
+  const hash = createHash('sha256').update(JSON.stringify(input.model)).digest('hex')
+  const id = `model-${hash.slice(0, 16)}`
+  await appendCapped('explanation-models', { id, ...input, hash, createdAt: new Date().toISOString() })
+  return { id, hash }
+}

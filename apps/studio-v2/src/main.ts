@@ -13748,6 +13748,11 @@ const sourceState: {
   source: SourceRead | null
   // The immutable source revision captured by the read (D1).
   snapshot?: { id: string; hash: string } | null
+  // The authored narrative revision and the outline's explanation model (D2).
+  narrative?: { id: string } | null
+  model?: { id: string } | null
+  // How much the studio may rewrite the creator's words (D2).
+  wording: 'preserve' | 'assist' | 'draft'
   brandColor: string
   logoUrl: string
   directions: StudioThemeV1[]
@@ -13760,7 +13765,21 @@ const sourceState: {
   // The agent drawing the pages through the harness, and how it went.
   drawer?: string
   drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
-} = { kind: 'link', source: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
+} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
+
+// Narratives default to preserve, links to draft: the author's own words are
+// never silently rewritten, and the choice is always visible and changeable.
+const syncSourceWording = () => {
+  document.querySelectorAll<HTMLButtonElement>('#source-wording-segment [data-wording]').forEach(button => {
+    button.classList.toggle('active', button.dataset.wording === sourceState.wording)
+  })
+}
+document.querySelectorAll<HTMLButtonElement>('#source-wording-segment [data-wording]').forEach(button =>
+  button.addEventListener('click', () => {
+    sourceState.wording = (button.dataset.wording as typeof sourceState.wording) || 'draft'
+    syncSourceWording()
+  }),
+)
 const sourceDialog = $('#source-dialog') as HTMLDialogElement
 const sourceStatus = (id: string, text: string, error = false) => {
   const element = $(id) as HTMLElement
@@ -13785,6 +13804,8 @@ const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
 }
 const openSourceDialog = (kind: 'link' | 'narrative') => {
   sourceState.kind = kind
+  sourceState.wording = kind === 'narrative' ? 'preserve' : 'draft'
+  syncSourceWording()
   showSourceStep('read')
   ;($('#source-heading') as HTMLElement).textContent = kind === 'link' ? 'From a link' : 'From a narrative'
   sourceStatus('#source-status', kind === 'link' ? 'The page is read for its words, its colours and its logo.' : 'Your words become the outline; pages are drawn to serve them.')
@@ -13811,13 +13832,14 @@ const sourceRead = async () => {
   button.disabled = true
   sourceStatus('#source-status', url ? 'Reading the page, its stylesheets and its painted colours…' : 'Reading your narrative…')
   try {
-    const { source, snapshot } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string } }>('/api/source/read', {
+    const { source, snapshot, narrative: narrativeRevision } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string }; narrative?: { id: string } | null }>('/api/source/read', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, brandUrl: url ? undefined : ($('#source-brand-url') as HTMLInputElement).value.trim() || undefined, title: url ? undefined : sourceState.fileTitle || undefined, projectId: project.id }),
+      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, brandUrl: url ? undefined : ($('#source-brand-url') as HTMLInputElement).value.trim() || undefined, wordingPolicy: sourceState.wording, title: url ? undefined : sourceState.fileTitle || undefined, projectId: project.id }),
     })
     sourceState.source = source
     sourceState.snapshot = snapshot
+    sourceState.narrative = narrativeRevision || null
     sourceState.brandColor = source.palette.accent
     sourceState.logoUrl = source.logos.find(logo => logo.localUrl)?.localUrl || ''
     sourceState.outline = null
@@ -13939,10 +13961,24 @@ const sourceOutline = async () => {
     const { outline } = await fetchJson<{ outline: Outline }>('/api/source/outline', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ source: { title: source.title, site: source.site, text: source.text, words: source.words } }),
+      body: JSON.stringify({ source: { title: source.title, site: source.site, text: source.text, words: source.words }, wordingPolicy: sourceState.wording }),
     })
     sourceState.outline = outline
     sourceState.pages = null
+    // The outline becomes the explanation model: claims, objects and
+    // relations with stable ids, stored as their own durable record (D2).
+    // The model is derived again after any manual outline edits at the
+    // pages step, so this record is the planning-time version.
+    try {
+      const { model } = await fetchJson<{ model: { id: string } }>('/api/story/model', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
+      })
+      sourceState.model = model
+    } catch {
+      sourceState.model = null
+    }
     renderSourceOutline()
     showSourceStep('outline')
     sourceStatus('#source-brand-status', '')
@@ -14479,6 +14515,13 @@ const sourceFinish = async () => {
   })
   project.title = outline.title
   project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.snapshot ? { snapshotId: sourceState.snapshot.id } : {}), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
+  // The story records this base was built from (D2): wording policy, the
+  // authored narrative revision and the outline's explanation model.
+  project.story = {
+    wordingPolicy: sourceState.wording,
+    ...(sourceState.narrative ? { narrativeId: sourceState.narrative.id } : {}),
+    ...(sourceState.model ? { modelId: sourceState.model.id } : {}),
+  }
   project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title

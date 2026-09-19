@@ -802,6 +802,14 @@
         <div class="source-or">or</div>
         <label class="source-field">Narrative<textarea id="source-narrative" rows="7" placeholder="Paste your own words: the story you want to tell, one paragraph per thought."></textarea></label>
         <label class="source-field">Brand website <small class="source-hint">optional — only its colours, fonts and logo are read; your words stay yours</small><input id="source-brand-url" type="url" placeholder="https://yoursite.com" spellcheck="false" /></label>
+        <div class="source-field" id="source-wording-row">
+          <span>Your words</span>
+          <div class="explainer-segment" id="source-wording-segment" role="group" aria-label="How the studio may use your wording">
+            <button type="button" data-wording="preserve" class="active">Keep my wording</button>
+            <button type="button" data-wording="assist">Help shape my story</button>
+            <button type="button" data-wording="draft">Draft from these notes</button>
+          </div>
+        </div>
         <div class="source-or">or</div>
         <label class="source-field">A PDF or a deck<input id="source-file" type="file" accept=".pdf,.pptx,.md,.markdown,.txt" /><small class="source-hint">Its text is read into the narrative above, then read like one. Keynote and Google Slides export to .pptx.</small></label>
         <div class="modal-actions"><span id="source-status" class="source-status"></span><button id="source-read" type="button" class="button primary">Read it</button></div>
