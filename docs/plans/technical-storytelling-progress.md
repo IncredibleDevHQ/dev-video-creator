@@ -239,3 +239,9 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 **Commits**
 
 - (this run) — Rehearse beside the camera: the scene's proposed graphics play at the plan's estimated pace with its cue lines, beat jump/replay controls, and the director's pencilled shot per beat; the take stays the timing authority (playback stops when recording starts, nothing in the pane is recorded, closing resets). `rehearsal-check.mjs` PASS (10 assertions); in the release suite (17).
+
+## 2026-09-19 — §5.5: the build panel shows durable stage checkpoints
+
+**Commits**
+
+- (this run) — The build panel lists the run's recorded stage checkpoints in plain language, polled during the build and kept at the end; a `needs-input` stage reads "waiting for you" with its named beats (the intentional human-waiting state, never a failure). Pure presentation in `stage-view.ts` (vitest 4); `stage-panel-check.mjs` PASS (6 assertions) via the `__buildStages` dev hook; in the release suite (18).
