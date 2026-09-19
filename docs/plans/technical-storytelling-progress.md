@@ -226,3 +226,10 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 
 - `dd2af87a` — `explainer_status`: per-scene freshness across preview proof, narration, and notebook application, so dependent stages are visibly stale before anything re-runs. Lineage check covers fresh-after-finish and stale-after-edit (11/11).
 - `73df9dc4` — the human path's export carries the take: take alignment stores the take audio as an asset and writes the narration record the finish applies as `recorded-mic`; a guide never silently substitutes for an unrecorded segment. Take-alignment e2e 8/8 proves the chain end to end on real synthesized speech.
+
+## 2026-09-19 — §5.5: bounded review loops + per-scene review status
+
+**Commits**
+
+- `dde89d49` — per-scene review status (◆) in the notebook rail from the rich build's reviewed stamp.
+- `ff4bc0b0` — the preview loop is bounded: per-scene review budget (default 8), the retained best passing proof answers over-budget calls with the exact remaining issue. Motivated by the live build's ~30-minute review loop. `review-budget-check.mjs` PASS; in the release suite (16).
