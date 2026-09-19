@@ -23,6 +23,7 @@ const CHECKS = [
   'story-records-check.mjs',      // D2: narrative revisions, explanation model, wording policy
   'explainer-lineage-check.mjs',  // D3: splits/merges, coverage, forged markers refused
   'explainer-persistence-check.mjs', // D3: finish/export guards
+  'finish-director-check.mjs',    // D6: finish stages scenes via the real hidden-window director
   'run-history-check.mjs',        // D3: durable runs + stage checkpoints
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration
   'rehearsal-check.mjs',          // §3.8: rehearsal loop — graphics + cue lines, beat controls, reset
