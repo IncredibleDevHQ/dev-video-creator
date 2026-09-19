@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §5.5: a missing take is a durable needs-input, never a silent voice
+
+**Commits**
+
+- `c86c5e4d` — `explainer_narrate` refuses a human-delivery run: the refusal records a `needs-input` checkpoint naming the scene, so the build durably waits for its person instead of failing or synthesizing a substitute (§3.7's "never silently generated speech" made deterministic, not just instructed). The skill states the stop rule. `narrate-guard-check.mjs` PASS (5); in the release suite (19).
+
 ## 2026-09-19 — §10: the delivery-path switch is proven non-destructive
 
 **Commits**
