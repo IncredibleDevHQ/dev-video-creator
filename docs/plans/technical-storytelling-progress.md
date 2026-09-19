@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — D6: the director pass is proven through the real renderer
+
+**Commits**
+
+- `514533d0` — `finish-director-check.mjs` drives `explainer_finish` through the smoke app's real `/mcp` endpoint and real hidden window (no stub): the applied scene carries a stage track the director actually chose (`speaker-full` + overlay for the fixture), the shot plan and coach brief persist, and the finish checkpoint lands on the durable run row. In the release suite (22).
+
 ## 2026-09-19 — D6: finish stages applied scenes from a fresh director pass
 
 **Commits**
