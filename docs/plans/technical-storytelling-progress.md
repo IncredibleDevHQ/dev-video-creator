@@ -4,9 +4,15 @@ Companion to [technical-storytelling-product-architecture.md](technical-storytel
 
 ## 2026-09-19 — Where this stands
 
-Every D-phase (D0–D7) of the plan's software work has shipped — 72 commits today, each slice committed only after its tests passed. The deterministic release suite is green at **18/18** (`yarn studio:check`: unit gates + 16 scripted journey/storage/renderer checks). The live provider proof also passed: one real Kimi + Quiver + whisper build end to end, verified 36.1s MP4 at `~/Downloads/Incredible Studio/retry-storm-live-proof.mp4`.
+Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits today, each slice committed only after its tests passed. The deterministic release suite is green at **18/18** (`yarn studio:check`: unit gates + 16 scripted journey/storage/renderer checks, including the §10 delivery-switch criterion: changing human ↔ generated keeps takes, artwork, and words byte-identical). The live provider proof also passed: one real Kimi + Quiver + whisper build end to end, verified 36.1s MP4 at `~/Downloads/Incredible Studio/retry-storm-live-proof.mp4`.
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
+
+## 2026-09-19 — §10: the delivery-path switch is proven non-destructive
+
+**Commits**
+
+- `6eb92a69` — `create-explainer-check.mjs` gains the switch criterion: with a recorded take and scene artwork in place, human → generated → human keeps the take archive, the active take, and the scene's SVG byte-identical. 14 assertions PASS; the publish walkthrough now clicks through the junction step when the notebook has 2+ scenes.
 
 ## 2026-09-19 — §5.8a: take-picker provenance
 
@@ -246,8 +252,3 @@ What remains is human-bound by the plan's own release definition (§10): a real 
 - Draft/Reviewed badge state is computed per card from saved scene stamps; fine at library scale, revisit if the listing grows.
 - Pre-existing: `markdown-composition` `tsc --noEmit` fails on `derive.test.ts` (`BlockRenderConfigV1.blockId`) on the base commit; not part of `studio:test`, left as-is.
 
-## 2026-09-19 — §10: the delivery-path switch is proven non-destructive
-
-**Commits**
-
-- (this run) — `create-explainer-check.mjs` gains the switch criterion: with a recorded take and scene artwork in place, human → generated → human keeps the take archive, the active take, and the scene's SVG byte-identical. 14 assertions PASS; the publish walkthrough now clicks through the junction step when the notebook has 2+ scenes.
