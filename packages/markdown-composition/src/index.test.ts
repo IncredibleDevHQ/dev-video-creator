@@ -195,6 +195,76 @@ describe('slide blocks', () => {
   })
 })
 
+describe('shot-plan emphasis overlays', () => {
+  it('emits the camera-led shot’s headline as a timed overlay the driver toggles', () => {
+    const scene: TiptapNode = {
+      type: 'scene',
+      attrs: {
+        id: 'scene-1',
+        title: 'The mechanism',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><g id="encoder"><rect x="10" y="10" width="80" height="40"/></g></svg>',
+        steps: [{ title: 'Encoder', explanation: 'Inputs enter the stack.', reveals: ['encoder'], verb: 'reveal' }],
+        directorAuto: {
+          shots: [
+            { beats: [0], view: 'camera-full', emphasis: 'Retries fail together', stage: { family: 'speaker-full' }, transitionOut: { kind: 'hold', durationMs: 0 }, reason: 'test' },
+          ],
+        },
+      },
+    }
+    const doc: ProjectDocumentV1 = {
+      version: 1,
+      id: 'emphasis',
+      title: 'Emphasis',
+      notebook: { type: 'doc', content: [scene] },
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      blocks: { 'scene-1': createDefaultBlockConfig('scene-1', scene) },
+      presenterTracks: {},
+      brand: defaultBrand,
+    }
+    const result = compileProject(doc)
+    expect(result.html).toContain('class="scene-emphasis"')
+    expect(result.html).toContain('Retries fail together')
+    expect(result.html).toMatch(/data-from="[\d.]+" data-to="[\d.]+"/)
+    expect(result.html).toContain('applyEmphasis')
+    expect(result.html).toContain('.scene-emphasis')
+  })
+
+  it('emits nothing for shots without emphasis or with animation-led views', () => {
+    const scene: TiptapNode = {
+      type: 'scene',
+      attrs: {
+        id: 'scene-1',
+        title: 'The mechanism',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><g id="encoder"><rect x="10" y="10" width="80" height="40"/></g></svg>',
+        steps: [{ title: 'Encoder', explanation: 'Inputs enter the stack.', reveals: ['encoder'], verb: 'reveal' }],
+        directorAuto: {
+          shots: [
+            { beats: [0], view: 'animation-full', emphasis: 'Not shown here', stage: { family: 'content-full' }, transitionOut: { kind: 'hold', durationMs: 0 }, reason: 'test' },
+            { beats: [0], view: 'shared', stage: { family: 'speaker-panel' }, transitionOut: { kind: 'hold', durationMs: 0 }, reason: 'test' },
+          ],
+        },
+      },
+    }
+    const doc: ProjectDocumentV1 = {
+      version: 1,
+      id: 'emphasis',
+      title: 'Emphasis',
+      notebook: { type: 'doc', content: [scene] },
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      blocks: { 'scene-1': createDefaultBlockConfig('scene-1', scene) },
+      presenterTracks: {},
+      brand: defaultBrand,
+    }
+    const result = compileProject(doc)
+    expect(result.html).not.toContain('class="scene-emphasis"')
+    expect(result.html).not.toContain('Not shown here')
+  })
+})
+
 describe('compileProject', () => {
   it('keeps every presenter layout inside normalized canvas bounds', () => {
     const modes: PresenterLayoutMode[] = [

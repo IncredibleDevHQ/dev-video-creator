@@ -793,18 +793,29 @@ export const motionDriverScript = (
       if (variant) scene.setAttribute('data-stage-variant', variant); else scene.removeAttribute('data-stage-variant');
     }
   };
-  window.__slideDrawScene${sceneIndex} = function (sceneTime) { driver.draw(sceneTime * 1000); applyStage(sceneTime * 1000); };
+  // Shot-plan emphasis (D6): the camera-led headline rides its beat window.
+  var emphasisEls = scene ? scene.querySelectorAll('.scene-emphasis') : [];
+  var applyEmphasis = function (ms) {
+    for (var i = 0; i < emphasisEls.length; i += 1) {
+      var el = emphasisEls[i];
+      el.classList.toggle('is-live', Number(el.getAttribute('data-from')) * 1000 <= ms && ms < Number(el.getAttribute('data-to')) * 1000);
+    }
+  };
+  window.__slideDrawScene${sceneIndex} = function (sceneTime) { driver.draw(sceneTime * 1000); applyStage(sceneTime * 1000); applyEmphasis(sceneTime * 1000); };
   window.__explainerDrivers = window.__explainerDrivers || {};
   window.__explainerDrivers[${JSON.stringify(sceneId)}] = {
     stepCount: driver.stepCount,
     setStep: function (stepIndex, progress) {
       driver.setStep(stepIndex, progress);
       var index = Math.max(0, Math.min(driver.offsets.length - 1, stepIndex | 0));
-      applyStage(driver.offsets[index] + (progress == null ? 1 : progress) * (plan.steps[index] && plan.steps[index].motionWindowMs || 0));
+      var atMs = driver.offsets[index] + (progress == null ? 1 : progress) * (plan.steps[index] && plan.steps[index].motionWindowMs || 0);
+      applyStage(atMs);
+      applyEmphasis(atMs);
     },
     stage: { track: track, apply: applyStage, current: function () { return scene ? scene.getAttribute('data-stage') : null; } },
   };
   driver.draw(0);
   applyStage(0);
+  applyEmphasis(0);
 })();
 </script>`

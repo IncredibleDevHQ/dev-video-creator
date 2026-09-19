@@ -987,6 +987,22 @@ const buildCompositionHtml = (
       // owns the frame for the whole scene.
       const nobodyInFrame = !(hasRecordedCamera || recordedTakeUrl || previewPresenterUrl)
       const stageTrack = isSlideLikeNode(scene.node) ? (nobodyInFrame ? [{ atMs: 0, family: 'content-full' as const }] : sceneStageTrack(scene)) : []
+      // Shot-plan emphasis (D6): a camera-led shot's sparse headline, shown
+      // only while its beats play, in the frame's safe corner.
+      const directorShots = (scene.node.attrs?.directorAuto as { shots?: Array<{ beats?: number[]; view?: string; emphasis?: string }> } | undefined)?.shots
+      const sceneTimeline = slideNodeTimeline(scene.node)
+      const emphasisMarkup = (directorShots || [])
+        .filter(shot => shot.emphasis && (shot.view === 'camera-full' || shot.view === 'camera-text') && shot.beats?.length)
+        .map(shot => {
+          const first = Math.min(...shot.beats!)
+          const last = Math.max(...shot.beats!)
+          const step = sceneTimeline.plan?.steps[last]
+          const lastSeconds = step ? (step.motionWindowMs + step.holdMs) / 1000 : 2
+          const from = sceneTimeline.offsets[first] ?? 0
+          const to = (sceneTimeline.offsets[last] ?? 0) + (lastSeconds || 2)
+          return `<p class="scene-emphasis" data-from="${from.toFixed(2)}" data-to="${to.toFixed(2)}">${escapeHtml(shot.emphasis!)}</p>`
+        })
+        .join('')
       const stageAttributes = stageTrack.length
         ? ` data-stage="${stageTrack[0].family}"${stageTrack[0].treatment ? ` data-stage-treatment="${stageTrack[0].treatment}"` : ''}${stageTrack[0].variant ? ` data-stage-variant="${stageTrack[0].variant}"` : ''} data-stage-track="${escapeHtml(JSON.stringify(stageTrack))}"`
         : ''
@@ -1028,7 +1044,7 @@ const buildCompositionHtml = (
             ? userLogoMarkup || renderIncredibleBrand(scene.index)
             : ''
         }<span>${escapeHtml(project.title)}</span></footer>
-        ${previewPresenterMarkup}${recordedTakeMarkup}
+        ${previewPresenterMarkup}${recordedTakeMarkup}${emphasisMarkup}
       </section>${recordedTakeUrl ? '' : presenterMarkup}`
     })
     .join('\n')
@@ -1210,6 +1226,10 @@ const buildCompositionHtml = (
        Colours come from the resolved theme, not a fixed dark band (D1). */
     .burned-captions { position: absolute; left: 6%; right: 6%; bottom: 4.5%; z-index: 60; pointer-events: none; text-align: center; }
     .burned-caption { opacity: 0; visibility: hidden; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 10px 20px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 84%, transparent); color: var(--text); font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 55%, transparent); box-sizing: border-box; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; }
+    /* Shot-plan emphasis (D6): the camera-led shot's sparse headline in the
+       frame's safe corner, live only while its beats play. */
+    .scene-emphasis { position: absolute; top: 7%; right: 5%; max-width: 36%; z-index: 45; margin: 0; padding: 14px 22px; border-radius: 14px; background: color-mix(in srgb, var(--surface) 72%, transparent); color: var(--text); font: 700 40px/1.25 Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; text-align: right; opacity: 0; transform: translateY(8px); transition: opacity .3s ease, transform .3s ease; pointer-events: none; text-wrap: balance; }
+    .scene-emphasis.is-live { opacity: 1; transform: none; }
     /* isolation: each scene is its own stacking context, so z-indexed
        overlays (camera tiles, person-background gradients) can never paint
        across a sibling scene — frame switchovers rely on later scenes
