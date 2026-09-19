@@ -68,6 +68,7 @@ const bridge = {
       validation: unknown | null
       brief: string | null
       explainer: { receipt: unknown | null; export: unknown | null } | null
+      story: { outline: unknown | null; receipt: unknown | null } | null
     }> => ipcRenderer.invoke('harness:artefacts', runId),
     onEvent: (listener: (payload: HarnessEventPayload) => void) => {
       const wrapped = (_event: unknown, payload: HarnessEventPayload) => listener(payload)

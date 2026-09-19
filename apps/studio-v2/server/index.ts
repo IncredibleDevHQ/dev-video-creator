@@ -2730,7 +2730,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         narrativeRevision: body.narrativeRevisionId,
         model,
       })
-      json(response, 200, { model: { id: saved.id, hash: saved.hash, ...model } })
+      json(response, 200, { model: { id: saved.id, hash: saved.hash, ...model }, outline })
       return
     }
     // Durable build-run history and per-stage checkpoints (D3).

@@ -101,12 +101,17 @@ export const registerHarnessIpc = (
     const explainerDir = join(run.projectDir, 'explainer')
     const explainerReceipt = await readJson(explainerDir, 'receipt.json')
     const explainerExport = await readJson(explainerDir, 'export.json')
+    // Story runs keep the outline and its receipt beside the story.
+    const storyDir = join(run.projectDir, 'story')
+    const storyOutline = await readJson(storyDir, 'outline.json')
+    const storyReceipt = await readJson(storyDir, 'receipt.json')
     return {
       resolved: await readJson(motionDir, 'resolved.json'),
       receipt: await readJson(motionDir, 'receipt.json'),
       validation,
       brief,
       explainer: explainerReceipt || explainerExport ? { receipt: explainerReceipt, export: explainerExport } : null,
+      story: storyOutline || storyReceipt ? { outline: storyOutline, receipt: storyReceipt } : null,
     }
   })
 }

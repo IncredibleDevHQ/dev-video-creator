@@ -14102,9 +14102,71 @@ const renderSourceBrand = () => {
   renderSourceDirections()
 }
 
+// The story planned by the local harness (D2): the primary journey's outline
+// comes from the installed story-master skill, never the direct model path,
+// when the desktop harness is present. The server route remains the
+// browser-only fallback.
+const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDesktop']>, source: SourceRead) => {
+  sourceState.busy = true
+  const button = $('#source-to-outline') as HTMLButtonElement
+  button.disabled = true
+  sourceStatus('#source-brand-status', 'The local harness is planning the story…')
+  let stopListening: (() => void) | undefined
+  try {
+    stopListening = bridge.harness.onEvent(({ event }) => {
+      const message = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
+      if (message) sourceStatus('#source-brand-status', message.replace(/\s+/g, ' ').slice(0, 110))
+    })
+    const target = parseTarget(($('#source-target') as HTMLInputElement).value)
+    const run = await bridge.harness.run({
+      adapter: 'kimi', skill: 'story-master', route: 'Plan Story', projectId: project.id,
+      inputs: {
+        source: { title: source.title, site: source.site, text: source.text, words: source.words },
+        wordingPolicy: sourceState.wording,
+        ...(target ? { targetSeconds: target } : {}),
+        model: 'kimi-code/k3', effort: 'high', autonomous: true,
+      },
+    })
+    const deadline = Date.now() + 20 * 60 * 1000
+    let status = 'running'
+    while (['running', 'gate'].includes(status) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      status = (await bridge.harness.list()).find(r => r.id === run.id)?.status || 'error'
+    }
+    if (status !== 'done') throw new Error(status === 'running' ? 'The story run is still going in the background — its outline will be there when it finishes' : `The story run ended ${status}`)
+    const artefacts = await bridge.harness.artefacts(run.id)
+    const outline = (artefacts.story?.outline || null) as Outline | null
+    if (!outline?.scenes?.length) throw new Error('The story run wrote no outline')
+    // The server validates the outline and persists the explanation model.
+    const { model, outline: sanitized } = await fetchJson<{ model: { id: string; objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> }; outline: Outline }>('/api/story/model', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
+    })
+    sourceState.outline = sanitized
+    sourceState.pages = null
+    sourceState.model = { id: model.id }
+    sourceState.modelData = model
+    renderSourceOutline()
+    showSourceStep('outline')
+    sourceStatus('#source-brand-status', '')
+  } catch (error) {
+    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The story run failed', true)
+  } finally {
+    stopListening?.()
+    sourceState.busy = false
+    button.disabled = false
+  }
+}
+
 const sourceOutline = async () => {
   const source = sourceState.source
   if (!source || sourceState.busy) return
+  const bridge = window.studioDesktop
+  if (bridge?.isDesktop) {
+    const kimi = (await bridge.harness.adapters()).find(a => a.id === 'kimi' && a.ok)
+    if (kimi) return sourceOutlineWithHarness(bridge, source)
+  }
   sourceState.busy = true
   const button = $('#source-to-outline') as HTMLButtonElement
   button.disabled = true
