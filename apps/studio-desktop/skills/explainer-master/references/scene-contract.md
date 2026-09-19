@@ -126,7 +126,9 @@ a fill or numeric text; `counted` names a part family with separate
 These fields are bindings, not instructions to invent decorative token art.
 Do not also `appear` those count-controlled pieces; the quantity owns them.
 
-Events have stable ids. `cue` is one word actually spoken in this beat. `after`
+Events have stable ids. `cue` is one word actually spoken in this beat; when
+the word repeats in the same line, pin the occurrence — `"retry#2"` is the
+second "retry". The bare word means its first occurrence. `after`
 names an earlier event that must finish. `atMs` explicitly starts an independent
 overlapping action; omit it for ordinary causal ordering. `nudgeMs` is an author
 correction. Dependencies and narration cues both constrain starts. Use a

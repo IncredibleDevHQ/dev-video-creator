@@ -8,6 +8,7 @@ import { runAtomizer, captureHiddenPage } from './hidden-window'
 import type { ProjectDocumentV1, MotionPlanV2 } from 'markdown-composition'
 import { createDefaultBlockConfig } from 'markdown-composition'
 import type { SceneProgram } from '../../../studio-v2/src/scene-program'
+import { splitCue } from '../../../studio-v2/src/scene-program'
 import type { LibraryArtwork } from '../../../studio-v2/server/appearance-library'
 
 type Args = Record<string, unknown>
@@ -141,7 +142,12 @@ const narrateTool = async (args: Args, context: Context) => {
     const alignment = aligned.beats[index]
     if (!alignment || (alignment.coverage || 0) < 0.75) throw new Error(`Could not reliably align beat ${index + 1}; revise its narration or voice before retrying`)
     for (const event of [beat, ...(beat.then || [])].flatMap(b => b.events || [])) {
-      if (event.cue && !alignment.words?.some(w => normalize(w.word) === normalize(event.cue!))) throw new Error(`Beat ${index + 1}: cue "${event.cue}" was not aligned. Use a single spoken word captured in alignment.aligned.json`)
+      if (event.cue) {
+        // Occurrence identity (D5): "retry#2" needs a second aligned "retry".
+        const { word, occurrence } = splitCue(event.cue)
+        const occurrences = (alignment.words || []).filter(w => normalize(w.word) === normalize(word))
+        if (occurrences.length < occurrence) throw new Error(`Beat ${index + 1}: cue "${event.cue}" needs ${occurrence > 1 ? `occurrence ${occurrence} of ` : ''}"${word}" in the take; the alignment captured ${occurrences.length}. Use a spoken word from alignment.aligned.json`)
+      }
     }
     beat.durationMs = alignment.durationMs
     beat.words = alignment.words

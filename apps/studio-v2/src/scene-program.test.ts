@@ -490,6 +490,37 @@ describe('authored performances and measured narration', () => {
     expect(compiled.plan.steps[0].motionWindowMs + compiled.plan.steps[0].holdMs).toBeGreaterThanOrEqual(5000)
   })
 
+  it('pins a cue to a stable occurrence of a repeated word, measured or estimated', () => {
+    const story = program([])
+    story.beats = [{
+      say: 'Clients retry. They retry together.', durationMs: 5000,
+      words: [
+        { word: 'retry.', startMs: 900, endMs: 1400 },
+        { word: 'retry', startMs: 2600, endMs: 3100 },
+      ],
+      events: [
+        { actor: 'node-client', action: 'perform', cue: 'retry', clip: { fromMs: 0, toMs: 300, durationMs: 300 } },
+        { actor: 'actor-request', action: 'perform', cue: 'retry#2', clip: { fromMs: 0, toMs: 300, durationMs: 300 } },
+      ],
+    }]
+    const clips = compileSceneProgram(story, units, { viewBox })!.plan.steps[0].actions.filter(a => a.op === 'clip')
+    // The bare cue is the first occurrence; #2 is the second.
+    expect(clips.map(a => a.startMs)).toEqual([900, 2600])
+    // Without measured words, the estimate counts to the nth occurrence.
+    delete story.beats[0].words
+    const estimated = compileSceneProgram(story, units, { viewBox })!.plan.steps[0].actions.filter(a => a.op === 'clip')
+    // 5000 ms over 5 words; the second 'retry' starts after 3 of them.
+    expect(estimated.map(a => a.startMs)).toEqual([1000, 3000])
+  })
+
+  it('keeps an impossible occurrence count harmless: the event spreads instead of crashing', () => {
+    const story = program([])
+    story.beats = [{ say: 'It just works.', durationMs: 3000, events: [{ actor: 'actor-request', action: 'perform', cue: 'retry#9', clip: { fromMs: 0, toMs: 300, durationMs: 300 } }] }]
+    const clips = compileSceneProgram(story, units, { viewBox })!.plan.steps[0].actions.filter(a => a.op === 'clip')
+    expect(clips).toHaveLength(1)
+    expect(clips[0].startMs).toBeGreaterThan(0)
+  })
+
   it('keeps measured words on a layout-only edit and discards them when dialogue changes', () => {
     const story = program([])
     story.beats = [{ id: 'a', say: 'A request arrives.', durationMs: 2300, words: [{ word: 'arrives', startMs: 1000, endMs: 1800 }], events: [] }]

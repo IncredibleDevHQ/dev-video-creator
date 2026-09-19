@@ -75,6 +75,14 @@ export type ProgramEvent = {
   after?: string
 }
 
+// A cue is a spoken word; "retry#2" pins the second occurrence when the word
+// repeats in the same line — a stable occurrence identity, not a fresh
+// first-match search (D5). The bare word always means its first occurrence.
+export const splitCue = (cue: string): { word: string; occurrence: number } => {
+  const match = /^(.*?)(?:#(\d+))?$/.exec(cue.trim())
+  return { word: (match?.[1] || cue).trim(), occurrence: Math.max(1, Number(match?.[2]) || 1) }
+}
+
 // Recomposing the page on purpose: a thing is made bigger, sent to one side,
 // or cleared away because the story has moved on. It keeps its identity — the
 // same element, still nameable by every later beat.
@@ -399,7 +407,7 @@ export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]):
     const where = home.get(at)
     if (where === undefined) return
     ;(beat.events || []).forEach(event => {
-      const cue = event.cue?.toLowerCase()
+      const cue = event.cue ? splitCue(event.cue).word.toLowerCase() : ''
       // Rewording a line is not a split: its events stay in its beat, whatever
       // other lines in the scene happen to say.
       if (!cue || windows[where].say.toLowerCase().includes(cue)) return give(where, event)
@@ -592,12 +600,23 @@ export const compileSceneProgram = (
     // (a merged window) read their cues from that same line.
     const spokenWords = beat.say.split(/\s+/).filter(Boolean)
     const cueAt = (cue: string | undefined, index: number, count: number) => {
-      const measured = cue && beat.words?.find(word => word.word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') === cue.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))
-      if (measured) return measured.startMs
-      const found = cue ? beat.say.toLowerCase().indexOf(cue.toLowerCase()) : -1
-      if (found >= 0) {
-        const before = beat.say.slice(0, found).split(/\s+/).filter(Boolean).length
-        return Math.round(spokenMs * (before / Math.max(1, spokenWords.length)))
+      if (cue) {
+        const { word, occurrence } = splitCue(cue)
+        const normalizeWord = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+        const measured = (beat.words || []).filter(w => normalizeWord(w.word) === normalizeWord(word))
+        // A measured occurrence wins; a repeated word's nth occurrence is a
+        // stable identity, not a loose first-match search.
+        if (measured.length >= occurrence) return measured[occurrence - 1].startMs
+        const lower = beat.say.toLowerCase()
+        let found = -1
+        for (let n = 0; n < occurrence; n += 1) {
+          found = lower.indexOf(word.toLowerCase(), found + 1)
+          if (found < 0) break
+        }
+        if (found >= 0) {
+          const before = beat.say.slice(0, found).split(/\s+/).filter(Boolean).length
+          return Math.round(spokenMs * (before / Math.max(1, spokenWords.length)))
+        }
       }
       const share = (index + 0.35) / Math.max(1, count)
       return Math.round(spokenMs * share * 0.82)
