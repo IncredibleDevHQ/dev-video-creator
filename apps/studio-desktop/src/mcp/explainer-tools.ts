@@ -354,15 +354,21 @@ const finishTool = async (args: Args, context: Context) => {
     }
     applied[scene.id] = snapshot(node.attrs)
     project.blocks[scene.id] = { ...(project.blocks[scene.id] || createDefaultBlockConfig(scene.id, node)), durationMs: scene.durationMs }
-    // An old take cannot cover a newly composed mechanism.
-    if (project.recordedBlocks) delete project.recordedBlocks[scene.id]
     const narration = await jsonFile(join(projectDir, 'explainer', `${scene.file}.narration.json`))
     const rawProgram = await jsonFile(join(projectDir, 'explainer', `${scene.file}.program.json`))
     if (narration.hash !== digest(scene.svg, rawProgram)) throw new Error(`${scene.file}: narration or picture changed; run explainer_narrate again`)
-    project.presenterTracks ||= {}
     // The human path's narration record is the selected take: the export must
     // carry the person's voice, not a guide-voice substitute.
     const recorded = narration.alignment === 'selected-take'
+    // An old take cannot cover a newly composed mechanism — unless the build
+    // aligned this scene to it: then the take IS the timing authority and
+    // stays. Otherwise it leaves the document AND the durable selection, so
+    // it does not resurrect on reopen.
+    if (!recorded) {
+      if (project.recordedBlocks) delete project.recordedBlocks[scene.id]
+      await call(context, '/api/takes/clear', { projectId: project.id, blockId: scene.id }).catch(() => {})
+    }
+    project.presenterTracks ||= {}
     project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl: narration.audioUrl, audioKind: recorded ? 'recorded-mic' : 'generated' }]
     // Merged-away pages leave the notebook; their origin lives on in the survivor.
     for (const extra of covers.slice(1)) {
@@ -372,6 +378,7 @@ const finishTool = async (args: Args, context: Context) => {
       delete project.blocks[extra]
       delete project.presenterTracks[extra]
       if (project.recordedBlocks) delete project.recordedBlocks[extra]
+      await call(context, '/api/takes/clear', { projectId: project.id, blockId: extra }).catch(() => {})
     }
   }
 

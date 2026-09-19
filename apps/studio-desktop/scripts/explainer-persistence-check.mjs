@@ -34,7 +34,9 @@ try {
   let project = { id: 'video', derivedFrom: { notebook: 'base' }, blocks: { scene: { nodeId: 'scene', durationMs: 6000 } }, notebook: { content: [{ type: 'scene', attrs: { id: 'scene', svg: 'wireframe', script: '' } }] } }
   const video = join(dir, 'fixture.mp4')
   const renderVideo = seconds => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=320x180:r=30', '-t', String(seconds), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', video])
+  const clearedTakes = []
   globalThis.fetch = async (url, options) => {
+    if (String(url).endsWith('/api/takes/clear')) { clearedTakes.push(JSON.parse(options?.body || '{}')); return Response.json({ cleared: true }) }
     if (String(url).endsWith('/api/projects/video')) {
       if (options?.method === 'PUT') project = JSON.parse(options.body)
       return Response.json({ project })
@@ -58,6 +60,24 @@ try {
   project = reorder(project)
   await invoke('explainer_finish')
   console.log('PASS finish: a store round-trip with reordered keys is not a false edit')
+
+  // Take disposition at finish (§3.7/§5.8a): a scene the build did not align
+  // to a take loses it — document and durable selection both — while a scene
+  // aligned to its take keeps it, because the take is the timing authority.
+  project.recordedBlocks = { scene: { blockId: 'scene', recordingId: 'take-stale', videoUrl: 'http://fixture/take.webm', durationMs: 3000, recordedAt: '2026-09-19T00:00:00.000Z', storage: 'minio' } }
+  await invoke('explainer_finish')
+  assert.equal(project.recordedBlocks.scene, undefined, 'an unaligned take leaves with the new composition')
+  assert.ok(clearedTakes.some(entry => entry.blockId === 'scene'), 'the durable selection is cleared too')
+
+  const narration = JSON.parse(await readFile(join(dir, 'explainer/scene.narration.json'), 'utf8'))
+  narration.alignment = 'selected-take'
+  await save('explainer/scene.narration.json', narration)
+  project.recordedBlocks = { scene: { blockId: 'scene', recordingId: 'take-aligned', videoUrl: 'http://fixture/take.webm', durationMs: 3000, recordedAt: '2026-09-19T00:00:00.000Z', storage: 'minio' } }
+  const clearsBefore = clearedTakes.length
+  await invoke('explainer_finish')
+  assert.equal(project.recordedBlocks.scene?.recordingId, 'take-aligned', 'the aligned take stays — it is the timing authority')
+  assert.equal(clearedTakes.length, clearsBefore, 'no clear call for the kept take')
+  console.log('PASS finish: take disposition — unaligned leaves durably, aligned stays')
   await save('explainer/export.json', { stale: true })
   renderVideo(1)
   await assert.rejects(invoke('explainer_export'), /Export duration/)
