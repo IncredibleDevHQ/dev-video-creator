@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 76 commits t
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §5.5: a failed take upload keeps the review
+
+**Commits**
+
+- `a540426d` — Keep's failure path no longer eats the take: the review stays open with the blob intact and Keep retries ("Upload failed — the take is still here"). The check surfaced that a prior Keep left the button disabled into the next take's review — `enterTakeReview` re-arms it. Audio-mode switch and camera re-enable end a pending review (the capture context it came from is gone). `take-workflow-check.mjs` 22/22 (500 on the upload → review stays → retry archives).
+
 ## 2026-09-19 — §3.7: review the take before it counts
 
 **Commits**
