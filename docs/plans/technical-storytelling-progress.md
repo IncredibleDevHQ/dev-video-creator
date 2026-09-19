@@ -2,6 +2,15 @@
 
 Companion to [technical-storytelling-product-architecture.md](technical-storytelling-product-architecture.md). Newest first. Branch `feat/hyperframes-markdown-mvp`; commits as Karthic <Kartronics85@gmail.com>.
 
+## 2026-09-19 — D3 slices 1+2: lineage and durable run state
+
+**Commits**
+
+- `ed033f1f` — video scenes may split/merge base pages: origins carry scenes arrays from the fork; rich finish validates *coverage* instead of one-to-one counts (unknown covers rejected, every input must be covered); two-pass apply (validate all, then mutate); merges fold origin + consume the page; splits clone ordered children; concurrent-edit guards watch every covered page. derive tests 6; `explainer-lineage-check.mjs` 7/7.
+- `d30f2d99` — durable run/stage state: `studio_build_runs` + `studio_build_stages` (migration 006) with routes; RunManager records start/gate/finish with inputs hash and resume id; `harness:list` merges live over durable (interrupted runs report as errors with resume ids, never as running); artefacts/pages resolve past runs; explainer tools checkpoint preview/narrate/finish/export per run. `run-history-check.mjs` PASS; stub-CLI harness e2e row verified in PostgreSQL.
+
+**D3 remaining:** the narrative workspace + recording coach wired to director scene plans (stable beat ids, take selection/edit lists, durable needs-input wait), rehearsal playback. The fork idempotency (forkKey) predates; resume without duplicate forks holds.
+
 ## 2026-09-19 — D2 slice 1+2: story records; page-master forms and identity
 
 **Commits**
