@@ -8,6 +8,12 @@ Every D-phase (D0–D7) of the plan's software work has shipped — 117 commits 
 
 What remains is human-bound by the plan's own release definition (§10): a real presenter recording the benchmark mechanism in the app, and the viewing-gate evaluation with independent viewers. A live rerun of the provider proof on the final tree is in flight (`live-explainer-check.mjs`, asserting zero new Quiver calls on repeat + the director staging live). Two recording-surface decisions also want a product call: whether teleprompter edits in the camera dialog should write back to the authored script (the records are deliberately separate today), and whether a "Change direction" override belongs in the camera dialog when per-beat author layout overrides already exist in the scene studio.
 
+## 2026-09-19 — §5.4a: review receipts carry provenance
+
+**Commits**
+
+- `74dfe8a5` — The isolated object-performance receipt now records the covered asset's content hash and the explainer-master skill version ("so an appearance or instruction change invalidates the correct proof"). `object-review-check.mjs` proves the receipt fields + the checkpoint (6/6); in the release suite (23). Full suite re-verify deferred until the live rerun lands, to keep the machine quiet for it.
+
 ## 2026-09-19 — D6: the director pass is proven through the real renderer
 
 **Commits**
