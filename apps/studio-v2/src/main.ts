@@ -98,6 +98,7 @@ import {
 } from './script-plan'
 import { arcRoleFor, classifyScene, direct, type DirectorResult } from './director'
 import { stageTrackFromShots } from './shot-plan'
+import { coachStateFor } from './coach'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
 import type { Outline, OutlineScene, SourceRead } from '../server/source'
@@ -1841,7 +1842,11 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
     showToast(
       mode === 'replace'
         ? `Replaced the current take with v${versionNumber}`
-        : `Saved take v${versionNumber} — it's now the active version`,
+        : (() => {
+            const coach = coachStateFor(project)
+            const next = coach.nextId ? coach.scenes.find(item => item.id === coach.nextId) : null
+            return `Saved take v${versionNumber} — it's now the active version${next ? ` · next scene: ${next.title}` : ''}`
+          })(),
     )
   } catch (error) {
     saveCanvasRecordingButton.disabled = false
@@ -7364,7 +7369,46 @@ const openCamera = () => {
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
+  renderCameraBrief(scene.id)
   cameraDialog.showModal()
+}
+
+// ——— The coach card (D6): this scene's recording brief, its place in the
+// journey, and what happens next. ———
+const renderCameraBrief = (sceneId: string) => {
+  const box = $('#camera-brief') as HTMLElement
+  box.replaceChildren()
+  const coach = coachStateFor(project)
+  const entry = coach.scenes.find(item => item.id === sceneId)
+  if (!entry) {
+    box.hidden = true
+    return
+  }
+  const brief = entry.brief
+  if (!brief && !coach.total) {
+    box.hidden = true
+    return
+  }
+  box.hidden = false
+  const progress = document.createElement('small')
+  progress.className = 'camera-brief-progress'
+  progress.textContent = `Scene ${entry.index + 1} of ${coach.total} · ${coach.done} recorded${coach.nextId && coach.nextId !== sceneId ? ` · next: ${coach.scenes.find(item => item.id === coach.nextId)?.title}` : ''}`
+  box.append(progress)
+  if (brief?.objective) {
+    const objective = document.createElement('strong')
+    objective.textContent = brief.objective
+    box.append(objective)
+  }
+  brief?.shots?.forEach(shot => {
+    const line = document.createElement('small')
+    line.textContent = `${shot.look} ${shot.record}`
+    box.append(line)
+  })
+  if (brief?.next) {
+    const next = document.createElement('small')
+    next.textContent = brief.next
+    box.append(next)
+  }
 }
 
 ;($('#record-this-block') as HTMLButtonElement).addEventListener('click', openCamera)
@@ -11950,6 +11994,7 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
       requiredArea: result.requiredArea,
       storyboard: result.storyboard,
       shots: result.shots,
+      recordingBrief: result.recordingBrief,
       cues: result.cues,
       directorNotes: result.directorNotes,
       legibility: result.legibility,

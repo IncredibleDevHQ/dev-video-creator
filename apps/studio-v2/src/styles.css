@@ -672,6 +672,9 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .camera-status { position: absolute; left: 15px; bottom: 15px; padding: 8px 10px; display: flex; align-items: center; gap: 7px; border-radius: 20px; background: rgba(24,24,27,.78); color: white; font-size: 9px; backdrop-filter: blur(8px); }
 .camera-status span { width: 7px; height: 7px; border-radius: 50%; background: #71717a; }
 .camera-status span.live { background: var(--brand-light); }
+.camera-brief { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid #e4e4e7; border-radius: 10px; background: #fafafa; font-size: 11.5px; line-height: 1.5; color: #52525b; }
+.camera-brief strong { color: #18181b; font-size: 12px; }
+.camera-brief .camera-brief-progress { color: #16a34a; font-weight: 700; letter-spacing: .02em; }
 .camera-status span.recording { background: #ef4444; animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 .countdown { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(24,24,27,.5); color: white; font-size: 100px; font-weight: 800; }
