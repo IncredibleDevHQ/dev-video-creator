@@ -491,6 +491,44 @@ const reviewObjectTool = async (args: Args, context: Context) => {
   }
 }
 
+// §3.9 staleness as data: per scene, which stages are current and which are
+// stale — the svg/program changed since its preview proof, the narration no
+// longer matches, the notebook diverged from what was applied. Read this
+// before re-running anything; local edits never cascade blindly.
+const statusTool = async (args: Args, context: Context) => {
+  const projectDir = String(args.projectDir || '')
+  if (!isAbsolute(projectDir)) throw new Error('projectDir must be absolute')
+  const manifest = await jsonFile(join(projectDir, 'explainer', 'story.json')).catch(() => null) as { scenes?: Array<{ id: string; file: string }> } | null
+  const scenes = manifest?.scenes || []
+  if (!scenes.length) throw new Error('No scenes in explainer/story.json')
+  const inputs = await jsonFile(join(projectDir, 'motion', 'inputs.json')).catch(() => ({ projectId: '' }))
+  const receipt = await jsonFile(join(projectDir, 'explainer', 'receipt.json')).catch(() => null)
+  const projectResponse = inputs.projectId
+    ? await call<{ project: ProjectDocumentV1 }>(context, `/api/projects/${encodeURIComponent(inputs.projectId)}`).catch(() => null)
+    : null
+  const snapshot = (attrs: Record<string, unknown>) => digest(String(attrs?.svg || ''), { script: attrs?.script, program: attrs?.program, motion: attrs?.motion })
+  const rows = []
+  for (const scene of scenes) {
+    const p = paths({ projectDir, scene: scene.file })
+    const svg = await readFile(p.svgPath, 'utf8')
+    const program = await jsonFile(p.programPath)
+    const hash = digest(svg, program)
+    const proof = await jsonFile(join(p.folder, `${p.scene}.proof.json`)).catch(() => null)
+    const narration = await jsonFile(join(p.folder, `${p.scene}.narration.json`)).catch(() => null)
+    const stale: string[] = []
+    if (!proof) stale.push('never previewed')
+    else if (proof.hash !== hash) stale.push('svg or program changed since the preview proof')
+    else if (proof.errors?.length) stale.push('the preview proof has errors')
+    if (narration && narration.hash !== hash) stale.push('narration predates the current svg/program — narrate again')
+    if (!narration) stale.push('never narrated')
+    const node = projectResponse?.project?.notebook?.content?.find((n: { attrs?: { id?: unknown } }) => n.attrs?.id === scene.id)
+    if (receipt?.applied?.[scene.id] && node?.attrs && receipt.applied[scene.id] !== snapshot(node.attrs)) stale.push('the notebook diverged from what was applied — refresh or re-apply')
+    if (!receipt?.applied?.[scene.id]) stale.push('not applied to the notebook')
+    rows.push({ scene: scene.id, file: scene.file, hash, fresh: !stale.length, stale })
+  }
+  return { projectId: inputs.projectId, scenes: rows, fresh: rows.every(row => row.fresh) }
+}
+
 const common = { projectDir: { type: 'string', description: 'Absolute run project directory' } }
 export const EXPLAINER_TOOLS = [
   { name: 'explainer_asset', description: 'Reuse, generate, edit or animate a rich Quiver SVG. Uses the server credential and permanent asset library. Returns local SVG and metadata paths, never credentials.', inputSchema: { type: 'object', properties: { ...common, operation: { enum: ['list', 'generate', 'edit', 'animate'] }, briefPath: { type: 'string' }, brief: { type: 'object' }, key: { type: 'string' }, prompt: { type: 'string' } }, required: ['projectDir', 'operation'] }, call: assetTool },
@@ -498,6 +536,7 @@ export const EXPLAINER_TOOLS = [
   { name: 'explainer_narrate', description: 'Generate guide speech, align its spoken words locally, recompile the events against measured timestamps, render review frames, and store a padded scene audio track. Requires local uv and ffmpeg; caches voice/model downloads.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: narrateTool },
   { name: 'explainer_align_take', description: 'Make a recorded human take the timing authority: transcribe it once, map the beats onto the actual words in order, rebind cue occurrences, and recompile. Beats the take does not say come back flagged for review or pickup, never silently invented.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, audioPath: { type: 'string' }, audioUrl: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: alignTakeTool },
   { name: 'explainer_review_object', description: 'Isolated object-performance review (required before finishing when a library object performs): render the accepted asset alone at display size, drive each clip through rest/action/settle, capture frames, check fidelity against the original, and write the review receipt.', inputSchema: { type: 'object', properties: { ...common, key: { type: 'string' } }, required: ['projectDir', 'key'] }, call: reviewObjectTool },
+  { name: 'explainer_status', description: 'Report per-scene freshness across the pipeline: preview proof, narration, notebook application, and what is stale. Read before re-running anything; never re-narrate or re-finish blindly.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: statusTool },
   { name: 'explainer_finish', description: 'Validate the reviewed story.json bundle and apply it to its derived notebook. Rejects stale reviews and concurrent edits; preserves the base.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: finishTool },
   { name: 'explainer_export', description: 'Render the saved explainer through the product export engine, writing export.json with the MP4 URL.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: exportTool },
 ]

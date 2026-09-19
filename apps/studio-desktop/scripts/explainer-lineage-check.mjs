@@ -5,7 +5,7 @@
 // unknown covers are rejected. Runs the real finish tool against an
 // in-memory product API, per explainer-persistence-check.mjs.
 import { build } from 'esbuild'
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
@@ -153,6 +153,24 @@ try {
   await invoke('explainer_finish')
   check('the isolated review receipt lets the performed object through', () => {
     assert.equal(project.blocks['scene-a'].durationMs, 2000)
+  })
+
+  // §3.9: staleness is data the harness reads before re-running anything.
+  const statusFresh = await invoke('explainer_status')
+  check('after a finish, every scene reports fresh', () => {
+    assert.equal(statusFresh.fresh, true)
+    assert.deepEqual(statusFresh.scenes.map(s => s.stale), [[], [], []])
+  })
+  const edited = JSON.parse(await readFile(join(dir, 'explainer', 'scene.program.json'), 'utf8'))
+  edited.beats[0].say = 'A rewritten line.'
+  await save('explainer/scene.program.json', edited)
+  const statusStale = await invoke('explainer_status')
+  check('editing the program marks preview and narration stale, without touching the notebook', () => {
+    assert.equal(statusStale.fresh, false)
+    const stale = statusStale.scenes[0].stale.join('; ')
+    assert.match(stale, /changed since the preview proof/)
+    assert.match(stale, /narration predates/)
+    assert.doesNotMatch(stale, /notebook diverged/)
   })
   // A forged artwork marker is not proof: the cast receipt refuses it (D4).
   await writeFile(join(dir, 'explainer/scene.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="forged-key"><rect width="10" height="10"/></g></svg>')
