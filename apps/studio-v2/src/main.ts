@@ -14582,6 +14582,44 @@ const reportStorageHealth = async () => {
 void reportStorageHealth()
 ;($('#storage-warning-retry') as HTMLButtonElement).addEventListener('click', () => void reportStorageHealth())
 
+// ——— Legacy file-store import offer (D0a) ———
+// When the durable store is live and the old file store still holds work,
+// offer a one-click import. The source files are never touched.
+const migrationBanner = $('#migration-banner') as HTMLElement
+const checkMigrationOffer = async () => {
+  try {
+    const health = await fetchJson<{ persistence?: { database: string } | null }>('/api/health')
+    if (health.persistence?.database !== 'postgres') return
+    const { local } = await fetchJson<{ local: { notebooks: number; pendingNotebooks: number; objects: number } }>('/api/migrate/local')
+    if (!local.pendingNotebooks) return
+    ;($('#migration-banner-text') as HTMLElement).textContent =
+      `Legacy file storage holds ${local.pendingNotebooks} notebook${local.pendingNotebooks === 1 ? '' : 's'} not yet in the durable store (${local.notebooks} total, ${local.objects} objects). Import them? The files stay where they are.`
+    migrationBanner.hidden = false
+  } catch {
+    // No offer when the server cannot answer; the storage warning covers that.
+  }
+}
+void checkMigrationOffer()
+;($('#migration-dismiss') as HTMLButtonElement).addEventListener('click', () => {
+  migrationBanner.hidden = true
+})
+;($('#migration-import') as HTMLButtonElement).addEventListener('click', async () => {
+  const button = $('#migration-import') as HTMLButtonElement
+  button.disabled = true
+  button.textContent = 'Importing…'
+  try {
+    const { report } = await fetchJson<{ report: { notebooks: { imported: number }; assets: { imported: number }; takes: { imported: number }; settings: { imported: number }; unresolved: string[] } }>('/api/migrate/local', { method: 'POST' })
+    migrationBanner.hidden = true
+    showToast(`Imported ${report.notebooks.imported} notebooks, ${report.assets.imported} objects, ${report.takes.imported} takes, ${report.settings.imported} settings${report.unresolved.length ? ` · ${report.unresolved.length} unresolved (kept as-is)` : ''}`)
+    if (report.notebooks.imported) await renderNotebookMenu()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Import failed')
+  } finally {
+    button.disabled = false
+    button.textContent = 'Import'
+  }
+})
+
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
   if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }

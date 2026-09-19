@@ -1,4 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { createReadStream } from 'node:fs'
+import { readdir, readFile, stat } from 'node:fs/promises'
+import { join, relative, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Client as MinioClient } from 'minio'
 import { Pool } from 'pg'
 import type { ProjectDocumentV1, RecordedBlockV1, TiptapNode } from 'markdown-composition'
@@ -304,4 +308,201 @@ export const persistenceHealth = async () => {
   await initializePersistence()
   await database.query('select 1')
   return { database: 'postgres', objectStorage: 'minio', bucket }
+}
+
+// ——— Legacy file-store import (D0a) ———
+// One-way, non-destructive import of the file backend's data directory into
+// PostgreSQL + MinIO. Ids and object keys are preserved so takes and
+// references keep resolving; existing rows are skipped, never overwritten;
+// the source directory is left untouched.
+type LocalStoreInspection = {
+  directory: string
+  notebooks: number
+  // Notebooks not yet in PostgreSQL — the offer is only useful for these.
+  pendingNotebooks: number
+  objects: number
+  takes: number
+  settings: number
+}
+
+export type LocalStoreImportReport = {
+  notebooks: { imported: number; skipped: number }
+  assets: { imported: number; skipped: number }
+  takes: { imported: number; skipped: number }
+  settings: { imported: number; skipped: number }
+  unresolved: string[]
+}
+
+const legacyDataDirectory = () =>
+  process.env.STUDIO_DATA_DIR ||
+  fileURLToPath(new URL('../../../.studio-data/', import.meta.url))
+
+const legacyJson = async <T>(path: string): Promise<T | null> => {
+  try {
+    return JSON.parse(await readFile(path, 'utf8')) as T
+  } catch {
+    return null
+  }
+}
+
+// All object files under a directory, as MinIO-style keys (posix slashes),
+// skipping the file backend's .meta.json sidecars.
+const listLegacyObjects = async (root: string, sub = ''): Promise<string[]> => {
+  const entries = await readdir(join(root, sub), { withFileTypes: true }).catch(() => [])
+  const keys: string[] = []
+  for (const entry of entries) {
+    const rel = sub ? `${sub}/${entry.name}` : entry.name
+    if (entry.isDirectory()) keys.push(...(await listLegacyObjects(root, rel)))
+    else if (!entry.name.endsWith('.meta.json')) keys.push(rel)
+  }
+  return keys
+}
+
+export const inspectLocalStore = async (): Promise<LocalStoreInspection> => {
+  const directory = legacyDataDirectory()
+  const notebooksDir = join(directory, 'notebooks')
+  const names = await readdir(notebooksDir).catch(() => [] as string[])
+  const notebookNames = names.filter(name => name.endsWith('.json') && !name.endsWith('.takes.json'))
+  const objectsList = await listLegacyObjects(join(directory, 'objects')).catch(() => [] as string[])
+  const settings = await legacyJson<Record<string, unknown>>(join(directory, 'settings.json'))
+  let pendingNotebooks = 0
+  for (const name of notebookNames) {
+    const id = name.slice(0, -'.json'.length)
+    const existing = await database.query('select 1 from studio_notebooks where id = $1', [id]).catch(() => null)
+    if (!existing?.rows.length) pendingNotebooks += 1
+  }
+  return {
+    directory,
+    notebooks: notebookNames.length,
+    pendingNotebooks,
+    objects: objectsList.length,
+    takes: names.filter(name => name.endsWith('.takes.json')).length,
+    settings: settings ? Object.keys(settings).length : 0,
+  }
+}
+
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export const importLocalStore = async (): Promise<LocalStoreImportReport> => {
+  await initializePersistence()
+  const directory = legacyDataDirectory()
+  const report: LocalStoreImportReport = {
+    notebooks: { imported: 0, skipped: 0 },
+    assets: { imported: 0, skipped: 0 },
+    takes: { imported: 0, skipped: 0 },
+    settings: { imported: 0, skipped: 0 },
+    unresolved: [],
+  }
+
+  // Notebooks first: assets and takes reference them.
+  const notebooksDir = join(directory, 'notebooks')
+  const names = await readdir(notebooksDir).catch(() => [] as string[])
+  for (const name of names.filter(entry => entry.endsWith('.json') && !entry.endsWith('.takes.json'))) {
+    const project = await legacyJson<ProjectDocumentV1>(join(notebooksDir, name))
+    if (project?.version !== 1 || !project.id) {
+      report.unresolved.push(`notebook ${name}: not a readable project document`)
+      continue
+    }
+    const existing = await database.query('select 1 from studio_notebooks where id = $1', [project.id])
+    if (existing.rows.length) {
+      report.notebooks.skipped += 1
+      continue
+    }
+    await saveProjectArtifact(project)
+    report.notebooks.imported += 1
+  }
+
+  // Objects: same keys, same asset ids, verified byte counts.
+  const objectsDir = join(directory, 'objects')
+  for (const key of await listLegacyObjects(objectsDir).catch(() => [] as string[])) {
+    const path = join(objectsDir, key)
+    const sidecar = await legacyJson<{
+      assetId?: string
+      contentType?: string
+      kind?: string
+      projectId?: string
+      blockId?: string
+    }>(`${path}.meta.json`)
+    const file = await stat(path)
+    const assetId = sidecar?.assetId && UUID_LIKE.test(sidecar.assetId) ? sidecar.assetId : randomUUID()
+    const duplicate = await database.query('select 1 from studio_assets where id = $1', [assetId])
+    if (duplicate.rows.length) {
+      report.assets.skipped += 1
+      continue
+    }
+    const present = await objects.statObject(bucket, key).catch(() => null)
+    if (!present || present.size !== file.size) {
+      await objects.putObject(bucket, key, createReadStream(path), file.size, {
+        'Content-Type': sidecar?.contentType || 'application/octet-stream',
+      })
+      const storedStat = await objects.statObject(bucket, key)
+      if (storedStat.size !== file.size) {
+        report.unresolved.push(`object ${key}: stored ${storedStat.size} of ${file.size} bytes`)
+        continue
+      }
+    }
+    const body = await readFile(path)
+    await database.query(
+      `insert into studio_assets
+        (id, notebook_id, block_id, object_key, content_type, byte_size, kind, status, sha256)
+       values ($1, $2, $3, $4, $5, $6, $7, 'ready', $8)
+       on conflict (id) do nothing`,
+      [
+        assetId,
+        sidecar?.projectId || null,
+        sidecar?.blockId || null,
+        key,
+        sidecar?.contentType || 'application/octet-stream',
+        file.size,
+        sidecar?.kind || 'imported',
+        createHash('sha256').update(body).digest('hex'),
+      ],
+    )
+    report.assets.imported += 1
+  }
+
+  // Recorded takes: only when both the notebook and its asset are resolvable.
+  for (const name of names.filter(entry => entry.endsWith('.takes.json'))) {
+    const projectId = name.slice(0, -'.takes.json'.length)
+    const takes = await legacyJson<Record<string, { recordingId?: string; assetId?: string; durationMs?: number; recordedAt?: string }>>(
+      join(notebooksDir, name),
+    )
+    if (!takes) continue
+    const notebook = await database.query('select 1 from studio_notebooks where id = $1', [projectId])
+    if (!notebook.rows.length) {
+      report.unresolved.push(`takes ${name}: notebook ${projectId} is not imported`)
+      continue
+    }
+    for (const [blockId, take] of Object.entries(takes)) {
+      if (!take.assetId || !UUID_LIKE.test(take.assetId) || !take.durationMs) {
+        report.unresolved.push(`takes ${name}: block ${blockId} has no resolvable asset`)
+        continue
+      }
+      const asset = await database.query('select 1 from studio_assets where id = $1', [take.assetId])
+      if (!asset.rows.length) {
+        report.unresolved.push(`takes ${name}: block ${blockId} asset ${take.assetId} missing`)
+        continue
+      }
+      const written = await database.query(
+        `insert into studio_recorded_blocks (id, notebook_id, block_id, asset_id, duration_ms)
+         values ($1, $2, $3, $4, $5)
+         on conflict (notebook_id, block_id) do nothing`,
+        [take.recordingId && UUID_LIKE.test(take.recordingId) ? take.recordingId : randomUUID(), projectId, blockId, take.assetId, Math.round(take.durationMs)],
+      )
+      if (written.rowCount) report.takes.imported += 1
+      else report.takes.skipped += 1
+    }
+  }
+
+  // Settings: never clobber a choice the durable store already holds.
+  const settings = await legacyJson<Record<string, unknown>>(join(directory, 'settings.json'))
+  for (const [key, value] of Object.entries(settings || {})) {
+    const written = await database.query(
+      `insert into studio_settings (key, value) values ($1, $2::jsonb) on conflict (key) do nothing`,
+      [key, JSON.stringify(value)],
+    )
+    if (written.rowCount) report.settings.imported += 1
+    else report.settings.skipped += 1
+  }
+  return report
 }

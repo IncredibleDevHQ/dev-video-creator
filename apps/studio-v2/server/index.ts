@@ -2570,6 +2570,24 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       json(response, 200, { projects: await listProjectArtifacts() })
       return
     }
+    // Legacy file-store import (D0a): inspect what the file backend holds,
+    // or import it into PostgreSQL + MinIO. Meaningful only when the durable
+    // backend is the active one.
+    if (url.pathname === '/api/migrate/local') {
+      if (process.env.STUDIO_PERSISTENCE === 'local') {
+        json(response, 400, { error: 'This server is running on the explicit file store; there is nothing to import into PostgreSQL from here.' })
+        return
+      }
+      const legacy = await import('./persistence-pg')
+      if (request.method === 'GET') {
+        json(response, 200, { local: await legacy.inspectLocalStore() })
+        return
+      }
+      if (request.method === 'POST') {
+        json(response, 200, { report: await legacy.importLocalStore() })
+        return
+      }
+    }
     if (request.method === 'GET' && url.pathname === '/api/projects/latest') {
       json(response, 200, { project: await loadLatestProjectArtifact() })
       return
