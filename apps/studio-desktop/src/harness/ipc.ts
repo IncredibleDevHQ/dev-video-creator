@@ -16,7 +16,7 @@ export const registerHarnessIpc = (
     if (win && !win.isDestroyed()) win.webContents.send('harness:event', { runId, event })
   })
 
-  ipcMain.handle('harness:list', () => manager.list())
+  ipcMain.handle('harness:list', () => manager.history())
 
   ipcMain.handle('harness:adapters', () =>
     Promise.all(
@@ -63,7 +63,7 @@ export const registerHarnessIpc = (
 
   // The pages a page-master run drew: every pages/*.svg with its receipt.
   ipcMain.handle('harness:pages', async (_event, runId: string) => {
-    const run = manager.list().find(candidate => candidate.id === runId)
+    const run = (await manager.history()).find(candidate => candidate.id === runId)
     if (!run) return { pages: [], receipt: null }
     const pagesDir = join(run.projectDir, 'pages')
     const names = await readdir(pagesDir).catch(() => [] as string[])
@@ -84,7 +84,7 @@ export const registerHarnessIpc = (
 
   // Read a finished run's artefacts from its projectDir (nulls for missing).
   ipcMain.handle('harness:artefacts', async (_event, runId: string) => {
-    const run = manager.list().find(candidate => candidate.id === runId)
+    const run = (await manager.history()).find(candidate => candidate.id === runId)
     if (!run) return { resolved: null, receipt: null, validation: null, brief: null, explainer: null }
     const motionDir = join(run.projectDir, 'motion')
     const readJson = async (dir: string, name: string) => {

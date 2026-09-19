@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile, rm } from 'node:fs/promises'
-import { join, resolve, relative, isAbsolute } from 'node:path'
+import { basename, join, resolve, relative, isAbsolute } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
@@ -37,6 +37,19 @@ const paths = (args: Args) => {
   return { projectDir, scene, folder: join(projectDir, 'explainer'), svgPath: local(projectDir, `explainer/${scene}.svg`), programPath: local(projectDir, `explainer/${scene}.program.json`) }
 }
 
+// Stage checkpoints (D3): when this run lives in a runs/ directory, each
+// tool records its typed outcome against the durable run row — the stage
+// history survives the agent and the app.
+const recordStage = async (context: Context, projectDir: string, stage: string, status: 'succeeded' | 'failed', detail?: unknown) => {
+  const runId = basename(projectDir)
+  if (!/^run-/.test(runId)) return
+  try {
+    await call(context, `/api/runs/${encodeURIComponent(runId)}/stages`, { stage, status, detail })
+  } catch {
+    // The run dir remains the working record; the durable row is best-effort.
+  }
+}
+
 const assetTool = async (args: Args, context: Context) => {
   const projectDir = String(args.projectDir || '')
   if (!isAbsolute(projectDir)) throw new Error('projectDir must be absolute')
@@ -65,7 +78,7 @@ const assetTool = async (args: Args, context: Context) => {
 
 // The hidden renderer is shared, so keep each review and its captures together.
 let reviewQueue: Promise<unknown> = Promise.resolve()
-const previewTool = (args: Args) => {
+const previewTool = (args: Args, context?: Context) => {
   const work = reviewQueue.catch(() => {}).then(async () => {
     const p = paths(args)
     const svg = await readFile(p.svgPath, 'utf8')
@@ -84,6 +97,9 @@ const previewTool = (args: Args) => {
     }
     const proof = { ...result, frames, hash: digest(svg, program) }
     await save(join(p.folder, `${p.scene}.proof.json`), proof)
+    if (context) {
+      await recordStage(context, p.projectDir, 'preview', result.errors.length ? 'failed' : 'succeeded', { scene: p.scene, errors: result.errors, warnings: result.warnings, durationMs: result.durationMs })
+    }
     return { errors: result.errors, warnings: result.warnings, durationMs: result.durationMs, frames, proofPath: join(p.folder, `${p.scene}.proof.json`), instruction: 'Open the frame files and inspect the actual artwork, state changes, readability and motion. A schema pass is not visual approval.' }
   })
   reviewQueue = work
@@ -132,7 +148,10 @@ const narrateTool = async (args: Args, context: Context) => {
   })
   await save(p.programPath, program)
   const preview = await previewTool(args)
-  if (preview.errors.length) return preview
+  if (preview.errors.length) {
+    await recordStage(context, p.projectDir, 'narrate', 'failed', { scene: p.scene, errors: preview.errors })
+    return preview
+  }
   const proof = await jsonFile(join(p.folder, `${p.scene}.proof.json`)) as Proof
   const ffmpegArgs = ['-y', ...beats.flatMap(b => ['-i', b.path])]
   const filters = proof.plan.steps.map((b, i) => `[${i}:a]apad,atrim=duration=${(b.motionWindowMs + b.holdMs) / 1000},asetpts=PTS-STARTPTS[a${i}]`)
@@ -143,6 +162,7 @@ const narrateTool = async (args: Args, context: Context) => {
   if (!uploaded.ok) throw new Error('Could not store scene narration')
   const track = await uploaded.json() as { url: string }
   await save(join(p.folder, `${p.scene}.narration.json`), { hash: proof.hash, audioUrl: track.url, alignment: 'local-whisper-word-timestamps', durationMs: proof.durationMs })
+  await recordStage(context, p.projectDir, 'narrate', 'succeeded', { scene: p.scene, durationMs: proof.durationMs, audioUrl: track.url })
   return { ...preview, audioPath, audioUrl: track.url, alignment: 'local-whisper-word-timestamps', instruction: 'Listen to the narration and inspect these final timed frames. The MP4 will use these same durations and word anchors.' }
 }
 
@@ -295,6 +315,7 @@ const finishTool = async (args: Args, context: Context) => {
   await call(context, `/api/projects/${encodeURIComponent(project.id)}`, project, 'PUT')
   const preview = await call(context, '/api/preview', { project })
   await save(join(projectDir, 'explainer', 'receipt.json'), { projectId: project.id, scenes: scenes.length, applied, preview, at: new Date().toISOString() })
+  await recordStage(context, projectDir, 'finish', 'succeeded', { scenes: scenes.length, projectId: project.id })
   return { projectId: project.id, scenes: scenes.length, preview, next: 'The reviewed editable scenes are saved. Use explainer_export to render the video after narration is attached.' }
 }
 
@@ -334,6 +355,7 @@ const exportTool = async (args: Args, context: Context) => {
   }
   const exported = { ...result, durationSeconds: measuredDurationMs / 1000, expectedDurationMs, sceneHashes: scenes.map(s => digest(s.svg, s.program)), videoPath, frames, instruction: 'Inspect these frames from the actual MP4 for full-frame composition, captions, clipping and state continuity. Report any remaining visual limitation.' }
   await save(join(projectDir, 'explainer', 'export.json'), exported)
+  await recordStage(context, projectDir, 'export', 'succeeded', { durationSeconds: exported.durationSeconds, scenes: scenes.length })
   return exported
 }
 

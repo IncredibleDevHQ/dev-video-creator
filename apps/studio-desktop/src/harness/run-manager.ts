@@ -6,7 +6,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { installSkills, resolveSkillDir } from './skills-install'
 import { verifyExplainerExport } from '../mcp/explainer-tools'
 import type {
@@ -108,6 +108,73 @@ export class RunManager {
     )
   }
 
+  // Durable run record (D3): the run is written to the store before its
+  // side effects begin, and every later state lands in the same row — a
+  // restarted app can see what ran, what finished, and what was interrupted.
+  private async persistRun(record: RunRecord, exitCode: number | null = null) {
+    const summary = record.summary
+    try {
+      await fetch(`${this.context.origin}/api/runs`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: summary.id,
+          projectId: record.options.projectId || null,
+          skill: summary.skill,
+          route: summary.route,
+          adapter: summary.adapter,
+          projectDir: summary.projectDir,
+          status: summary.status,
+          inputsHash: createHash('sha256').update(JSON.stringify(record.inputs)).digest('hex'),
+          resumeId: record.resumeId,
+          exitCode,
+          startedAt: summary.startedAt,
+          finishedAt: summary.finishedAt || null,
+        }),
+      })
+    } catch {
+      // The store may be unreachable while services start; the run dir
+      // remains the working record and the row is retried on the next event.
+    }
+  }
+
+  // In-memory runs merged over the durable history (D3): rows whose process
+  // is gone mid-run report as interrupted errors, never as still running.
+  async history(): Promise<RunSummary[]> {
+    let durable: Array<Record<string, unknown>> = []
+    try {
+      const response = await fetch(`${this.context.origin}/api/runs`)
+      durable = ((await response.json()) as { runs?: Array<Record<string, unknown>> }).runs || []
+    } catch {
+      // offline store: the in-memory list stands alone
+    }
+    const live = new Map([...this.runs.values()].map(record => [record.summary.id, record]))
+    const merged: RunSummary[] = []
+    for (const row of durable) {
+      const id = String(row.id)
+      const record = live.get(id)
+      if (record) {
+        merged.push({ ...record.summary })
+        live.delete(id)
+        continue
+      }
+      const interrupted = ['running', 'gate'].includes(String(row.status))
+      merged.push({
+        id,
+        skill: String(row.skill),
+        route: String(row.route),
+        adapter: String(row.adapter),
+        projectDir: String(row.projectDir),
+        status: (interrupted ? 'error' : row.status) as RunSummary['status'],
+        resumeId: row.resumeId ? String(row.resumeId) : undefined,
+        startedAt: String(row.startedAt),
+        finishedAt: row.finishedAt ? String(row.finishedAt) : undefined,
+      })
+    }
+    for (const record of live.values()) merged.push({ ...record.summary })
+    return merged
+  }
+
   private async writeInputs(record: RunRecord) {
     await writeFile(
       join(this.motionDir(record), 'inputs.json'),
@@ -156,6 +223,7 @@ export class RunManager {
     this.runs.set(id, record)
     await this.writeInputs(record)
     await this.writeRunFile(record)
+    await this.persistRun(record)
     void this.attempt(record)
     return { ...record.summary }
   }
@@ -201,6 +269,7 @@ export class RunManager {
       record.pendingGate = gate
       record.summary.status = 'gate'
       await this.writeRunFile(record)
+      await this.persistRun(record)
       this.emit(runId, { type: 'gate', ts: Date.now(), gate })
       const answers = AUTO_ANSWER
         ? (JSON.parse(AUTO_ANSWER) as Record<string, unknown>)
@@ -271,6 +340,7 @@ export class RunManager {
     record.summary.finishedAt = new Date().toISOString()
     record.summary.resumeId = record.resumeId
     await this.writeRunFile(record).catch(() => {})
+    await this.persistRun(record, exitCode)
     this.emit(record.summary.id, { type: 'done', ts: Date.now(), exitCode })
     log(`run ${record.summary.id} ${status} (adapter ${record.summary.adapter})`)
   }

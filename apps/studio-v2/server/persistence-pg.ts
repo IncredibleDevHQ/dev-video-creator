@@ -460,6 +460,8 @@ export const saveSourceRevision = async (input: {
 }
 
 export const loadSourceRevision = async (id: string): Promise<SourceRevisionRecord | null> => {
+
+
   await initializePersistence()
   const result = await database.query(
     'select * from studio_source_revisions where id = $1',
@@ -520,6 +522,84 @@ export const saveExplanationModel = async (input: {
     [id, input.projectId || null, input.sourceRevision || null, input.narrativeRevision || null, JSON.stringify(input.model), hash],
   )
   return { id, hash }
+}
+
+import type { BuildRunInput, BuildRunRow, BuildStageInput } from './persistence'
+
+// ——— Durable build runs and stage checkpoints (D3) ———
+export const saveBuildRun = async (run: BuildRunInput) => {
+  await initializePersistence()
+  await database.query(
+    `insert into studio_build_runs
+      (id, project_id, skill, route, adapter, project_dir, status, inputs_hash, resume_id, exit_code, started_at, finished_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, coalesce($11::timestamptz, now()), $12::timestamptz)
+     on conflict (id) do update set
+       status = excluded.status, resume_id = excluded.resume_id,
+       exit_code = excluded.exit_code, finished_at = excluded.finished_at`,
+    [
+      run.id,
+      run.projectId || null,
+      run.skill,
+      run.route,
+      run.adapter,
+      run.projectDir,
+      run.status,
+      run.inputsHash || null,
+      run.resumeId || null,
+      run.exitCode ?? null,
+      run.startedAt || null,
+      run.finishedAt || null,
+    ],
+  )
+}
+
+export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> => {
+  await initializePersistence()
+  const result = projectId
+    ? await database.query('select * from studio_build_runs where project_id = $1 order by started_at desc limit 100', [projectId])
+    : await database.query('select * from studio_build_runs order by started_at desc limit 100')
+  return result.rows.map(row => ({
+    id: row.id,
+    projectId: row.project_id,
+    skill: row.skill,
+    route: row.route,
+    adapter: row.adapter,
+    projectDir: row.project_dir,
+    status: row.status,
+    inputsHash: row.inputs_hash,
+    resumeId: row.resume_id,
+    exitCode: row.exit_code,
+    startedAt: new Date(row.started_at).toISOString(),
+    finishedAt: row.finished_at ? new Date(row.finished_at).toISOString() : null,
+  }))
+}
+
+export const recordBuildStage = async (stage: BuildStageInput) => {
+  await initializePersistence()
+  await database.query(
+    `insert into studio_build_stages (run_id, stage, status, fingerprint, detail)
+     values ($1, $2, $3, $4, $5::jsonb)
+     on conflict (run_id, stage) do update set
+       status = excluded.status, fingerprint = excluded.fingerprint,
+       detail = excluded.detail, updated_at = now()`,
+    [stage.runId, stage.stage, stage.status, stage.fingerprint || null, JSON.stringify(stage.detail || {})],
+  )
+}
+
+export const listBuildStages = async (runId: string) => {
+  await initializePersistence()
+  const result = await database.query(
+    'select * from studio_build_stages where run_id = $1 order by updated_at',
+    [runId],
+  )
+  return result.rows.map(row => ({
+    runId: row.run_id,
+    stage: row.stage,
+    status: row.status,
+    fingerprint: row.fingerprint,
+    detail: row.detail,
+    updatedAt: new Date(row.updated_at).toISOString(),
+  }))
 }
 
 // ——— Legacy file-store import (D0a) ———

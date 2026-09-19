@@ -4,6 +4,7 @@ import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/p
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
+import type { BuildRunInput, BuildRunRow, BuildStageInput } from './persistence'
 
 const dataDirectory = () =>
   process.env.STUDIO_DATA_DIR ||
@@ -433,3 +434,46 @@ export const saveExplanationModel = async (input: {
   await appendCapped('explanation-models', { id, ...input, hash, createdAt: new Date().toISOString() })
   return { id, hash }
 }
+
+// ——— Durable build runs and stage checkpoints (D3), file-backend variant ——
+export const saveBuildRun = async (run: BuildRunInput) => {
+  const list = ((await loadSetting('build-runs')) as Array<Record<string, unknown>> | null) || []
+  const index = list.findIndex(entry => entry.id === run.id)
+  const merged = { ...list[index], ...run }
+  if (index >= 0) list[index] = merged
+  else list.unshift(merged)
+  await saveSetting('build-runs', list.slice(0, 100))
+}
+
+export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> => {
+  const list = ((await loadSetting('build-runs')) as Array<Record<string, unknown>> | null) || []
+  return list
+    .filter(run => !projectId || run.projectId === projectId)
+    .map(run => ({
+      id: String(run.id),
+      projectId: (run.projectId as string | null) ?? null,
+      skill: String(run.skill || ''),
+      route: String(run.route || ''),
+      adapter: String(run.adapter || ''),
+      projectDir: String(run.projectDir || ''),
+      status: String(run.status || ''),
+      inputsHash: (run.inputsHash as string | null) ?? null,
+      resumeId: (run.resumeId as string | null) ?? null,
+      exitCode: (run.exitCode as number | null) ?? null,
+      startedAt: String(run.startedAt || ''),
+      finishedAt: (run.finishedAt as string | null) ?? null,
+    }))
+}
+
+export const recordBuildStage = async (stage: { runId: string; stage: string; status: string; fingerprint?: string; detail?: unknown }) => {
+  const key = `build-stages:${stage.runId}`
+  const list = ((await loadSetting(key)) as Array<Record<string, unknown>> | null) || []
+  const index = list.findIndex(entry => entry.stage === stage.stage)
+  const row = { ...stage, updatedAt: new Date().toISOString() }
+  if (index >= 0) list[index] = row
+  else list.push(row)
+  await saveSetting(key, list)
+}
+
+export const listBuildStages = async (runId: string) =>
+  ((await loadSetting(`build-stages:${runId}`)) as Array<Record<string, unknown>> | null) || []

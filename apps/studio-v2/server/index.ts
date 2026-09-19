@@ -46,6 +46,10 @@ import {
   loadSetting,
   loadSourceRevision,
   persistenceHealth,
+  saveBuildRun,
+  listBuildRuns,
+  recordBuildStage,
+  listBuildStages,
   saveProjectArtifact,
   saveSetting,
   saveRecordedBlock,
@@ -55,6 +59,7 @@ import {
   saveThemeRevision,
   storeAsset,
   deleteTheme,
+  type BuildRunInput,
 } from './persistence'
 import {
   configureModelGateway,
@@ -2686,6 +2691,37 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         model,
       })
       json(response, 200, { model: { id: saved.id, hash: saved.hash, ...model } })
+      return
+    }
+    // Durable build-run history and per-stage checkpoints (D3).
+    if (request.method === 'POST' && url.pathname === '/api/runs') {
+      const run = await readJson<BuildRunInput>(request, 256 * 1024)
+      if (!run?.id || !run.skill) {
+        json(response, 400, { error: 'A run needs an id and a skill' })
+        return
+      }
+      await saveBuildRun(run)
+      json(response, 200, { saved: true })
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/runs') {
+      json(response, 200, { runs: await listBuildRuns(url.searchParams.get('projectId') || undefined) })
+      return
+    }
+    if (request.method === 'POST' && /^\/api\/runs\/[^/]+\/stages$/.test(url.pathname)) {
+      const runId = decodeURIComponent(url.pathname.split('/')[3])
+      const stage = await readJson<{ stage?: string; status?: string; fingerprint?: string; detail?: unknown }>(request, 256 * 1024)
+      if (!stage?.stage || !stage.status) {
+        json(response, 400, { error: 'A stage checkpoint needs a stage and a status' })
+        return
+      }
+      await recordBuildStage({ runId, stage: stage.stage, status: stage.status, fingerprint: stage.fingerprint, detail: stage.detail })
+      json(response, 200, { saved: true })
+      return
+    }
+    if (request.method === 'GET' && /^\/api\/runs\/[^/]+\/stages$/.test(url.pathname)) {
+      const runId = decodeURIComponent(url.pathname.split('/')[3])
+      json(response, 200, { stages: await listBuildStages(runId) })
       return
     }
     if (request.method === 'GET' && url.pathname === '/api/projects/latest') {

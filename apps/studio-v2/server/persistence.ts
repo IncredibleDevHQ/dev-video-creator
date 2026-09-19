@@ -16,6 +16,45 @@ export type StoredObjectMetadata = {
   lastModified: Date
 }
 
+// A harness run persisted before its side effects begin (D3).
+export type BuildRunInput = {
+  id: string
+  projectId?: string | null
+  skill: string
+  route: string
+  adapter: string
+  projectDir: string
+  status: string
+  inputsHash?: string
+  resumeId?: string
+  exitCode?: number | null
+  startedAt?: string
+  finishedAt?: string | null
+}
+
+export type BuildRunRow = {
+  id: string
+  projectId: string | null
+  skill: string
+  route: string
+  adapter: string
+  projectDir: string
+  status: string
+  inputsHash: string | null
+  resumeId: string | null
+  exitCode: number | null
+  startedAt: string
+  finishedAt: string | null
+}
+
+export type BuildStageInput = {
+  runId: string
+  stage: string
+  status: string
+  fingerprint?: string
+  detail?: unknown
+}
+
 type StoreAssetInput = {
   body: Buffer
   contentType: string
@@ -84,6 +123,10 @@ type PersistenceBackend = {
     narrativeRevision?: string
     model: unknown
   }) => Promise<{ id: string; hash: string }>
+  saveBuildRun: (run: BuildRunInput) => Promise<void>
+  listBuildRuns: (projectId?: string) => Promise<BuildRunRow[]>
+  recordBuildStage: (stage: BuildStageInput) => Promise<void>
+  listBuildStages: (runId: string) => Promise<Array<Record<string, unknown>>>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
@@ -196,3 +239,15 @@ export const saveExplanationModel = async (input: {
   narrativeRevision?: string
   model: unknown
 }) => (await loadBackend()).saveExplanationModel(input)
+
+export const saveBuildRun = async (run: BuildRunInput) =>
+  (await loadBackend()).saveBuildRun(run)
+
+export const listBuildRuns = async (projectId?: string) =>
+  (await loadBackend()).listBuildRuns(projectId)
+
+export const recordBuildStage = async (stage: BuildStageInput) =>
+  (await loadBackend()).recordBuildStage(stage)
+
+export const listBuildStages = async (runId: string) =>
+  (await loadBackend()).listBuildStages(runId)
