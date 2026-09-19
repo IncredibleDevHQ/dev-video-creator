@@ -26,6 +26,7 @@ const CHECKS = [
   'skill-references-check.mjs',   // D4: shipped instruction dependency graph
   'align-take-check.mjs',         // D5: take-aligned timing on canned transcripts
   'take-alignment-e2e-check.mjs', // D5: synthesized speech through the real aligner (SKIP without uv)
+  'review-budget-check.mjs',      // D5/§5.5: bounded preview loops, retained best proof
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 

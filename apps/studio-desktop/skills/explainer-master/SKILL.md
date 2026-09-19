@@ -97,7 +97,10 @@ Retain its object identities when useful and its source scene id always.
    art, clutter, collisions, weak contrast, actions that do not explain, and
    dead airtime. At most three substantial revisions per scene; if it still
    fails, stop with the explicit issue instead of calling it finished. Carry
-   the successful visual treatment through the other scenes.
+   the successful visual treatment through the other scenes. The product bounds
+   previews per scene (default 8; STUDIO_REVIEW_BUDGET tunes it): over the
+   budget, `explainer_preview` refuses and answers with the retained best proof
+   — finish with that if it passes, or report the exact remaining issue.
 
 6. **Narrate and synchronize.** The delivery mode is in the run's inputs
    (`delivery.mode`): `generated` calls `explainer_narrate` for each scene;

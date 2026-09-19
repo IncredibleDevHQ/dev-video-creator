@@ -81,9 +81,32 @@ const assetTool = async (args: Args, context: Context) => {
 
 // The hidden renderer is shared, so keep each review and its captures together.
 let reviewQueue: Promise<unknown> = Promise.resolve()
+// §5.5: previews cost a render each; a scene's revision loop is bounded.
+// Direct tool calls count; the narration tool's own recompile does not.
+const REVIEW_BUDGET = Math.max(1, Number(process.env.STUDIO_REVIEW_BUDGET || 8))
 const previewTool = (args: Args, context?: Context) => {
   const work = reviewQueue.catch(() => {}).then(async () => {
     const p = paths(args)
+    if (context) {
+      const countsPath = join(p.folder, 'review-counts.json')
+      const counts = await jsonFile(countsPath).catch(() => ({} as Record<string, number>))
+      const spent = Number(counts[p.scene] || 0)
+      if (spent >= REVIEW_BUDGET) {
+        // Over budget: the best retained proof answers, and the agent must
+        // report the exact remaining issue instead of revising forever.
+        const best = await jsonFile(join(p.folder, `${p.scene}.best-proof.json`)).catch(() => jsonFile(join(p.folder, `${p.scene}.proof.json`)).catch(() => null))
+        return {
+          errors: [`The review budget for ${p.scene} is spent (${REVIEW_BUDGET} previews). Do not revise further: finish with the retained proof if it passes, or stop and report the exact remaining issue.`],
+          warnings: [] as string[],
+          durationMs: best?.durationMs || 0,
+          frames: best?.frames || [],
+          proofPath: join(p.folder, `${p.scene}.proof.json`),
+          instruction: 'Review budget spent — report the remaining issue instead of revising.',
+        }
+      }
+      counts[p.scene] = spent + 1
+      await save(countsPath, counts)
+    }
     const svg = await readFile(p.svgPath, 'utf8')
     const program = await jsonFile(p.programPath)
     const result = await runAtomizer<Omit<Proof, 'hash' | 'frames'> & { frames: number[] }>('reviewExplainer', svg, program)
@@ -100,6 +123,8 @@ const previewTool = (args: Args, context?: Context) => {
     }
     const proof = { ...result, frames, hash: digest(svg, program) }
     await save(join(p.folder, `${p.scene}.proof.json`), proof)
+    // The best retained candidate survives later failed revisions (§5.5).
+    if (context && !result.errors.length) await save(join(p.folder, `${p.scene}.best-proof.json`), proof)
     if (context) {
       await recordStage(context, p.projectDir, 'preview', result.errors.length ? 'failed' : 'succeeded', { scene: p.scene, errors: result.errors, warnings: result.warnings, durationMs: result.durationMs })
     }
