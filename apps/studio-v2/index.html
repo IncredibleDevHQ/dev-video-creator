@@ -904,7 +904,7 @@
         <div class="presenter-setup">
           <label>Audio approach<select id="audio-mode"><option value="generated">Generated guide voice — no microphone</option><option value="microphone">Use my microphone</option></select></label>
           <label id="voice-reference-label">Authorized Fish voice reference ID <span>optional</span><input id="voice-reference" placeholder="Uses local system voice when blank" /></label>
-          <div class="script-box"><span>Teleprompter · selected block</span><textarea id="presenter-script"></textarea></div>
+          <div class="script-box"><span>Teleprompter · selected block</span><textarea id="presenter-script" readonly aria-label="Teleprompter for the selected block"></textarea><button id="teleprompter-edit" class="button ghost" type="button">Edit the script in the notebook</button></div>
           <div id="camera-brief" class="camera-brief" hidden></div>
           <audio id="guide-audio" controls></audio>
           <div id="voice-capability" class="capability">Checking local voice capability…</div>

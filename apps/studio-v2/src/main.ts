@@ -7741,6 +7741,20 @@ audioMode.addEventListener('change', () => {
     audioMode.value === 'microphone'
 })
 
+// The teleprompter mirrors the scene's saved script (it feeds the guide
+// voice and is the alignment target), so it is read-only here: the words
+// change in the notebook, and this button takes the author there.
+;($('#teleprompter-edit') as HTMLButtonElement).addEventListener('click', () => {
+  const nodeId = recordingNodeId || selectedNodeId
+  if (pendingTakeBlob) exitTakeReview()
+  stopCameraStream()
+  cameraDialog.close()
+  if (nodeId) {
+    selectNode(nodeId, true)
+    document.getElementById(nodeId)?.scrollIntoView({ block: 'center' })
+  }
+})
+
 const refreshCapabilities = async () => {
   try {
     const capabilities = await fetchJson<{

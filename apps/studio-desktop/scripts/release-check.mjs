@@ -35,6 +35,7 @@ const CHECKS = [
   'mic-default-check.mjs',        // #4: the human path records the microphone by default, devices on demand
   'presenter-take-check.mjs',     // P2: a camera take compiles to graphics + presenter overlay, never a scene swap
   'take-duration-check.mjs',      // P5: a take's duration is fixed at stop, not after review/upload
+  'teleprompter-check.mjs',       // #11: read-only teleprompter mirrors the saved script; the edit path is the notebook
   'stage-panel-check.mjs',        // §5.5: build panel stage checklist, needs-input as waiting
   'skill-references-check.mjs',   // D4: shipped instruction dependency graph
   'align-take-check.mjs',         // D5: take-aligned timing on canned transcripts
