@@ -3,9 +3,9 @@
 // the gate protocol (skill writes motion/gate.json and exits 0 → the app
 // shows the dialog / auto-answers → writes motion/gate.<id>.answer.json →
 // re-runs with resumeId + inputs.gateAnswer), and cancels via AbortSignal.
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { installSkills, resolveSkillDir } from './skills-install'
 import { verifyExplainerExport } from '../mcp/explainer-tools'
@@ -205,6 +205,15 @@ export class RunManager {
       task: taskText(skillDir, options.route, projectDir),
     }
     await mkdir(join(projectDir, 'motion'), { recursive: true })
+    // Continue from accepted work (issue #8): an explicit resume block in the
+    // inputs names the prior run; its reviewed artifacts are carried into this
+    // run's fresh directory, so accepted scenes keep their review state instead
+    // of being regenerated. The resume is data, not implicit directory reuse:
+    // this run gets its own id, directory and durable row.
+    const resume = (options.inputs?.resume || null) as { runId?: unknown; projectDir?: unknown } | null
+    if (resume && typeof resume.projectDir === 'string' && typeof resume.runId === 'string') {
+      await this.carryResumeArtifacts(resume.projectDir, projectDir)
+    }
     const record: RunRecord = {
       summary: {
         id,
@@ -283,6 +292,14 @@ export class RunManager {
     }
     if (result.exitCode === 0) {
       if (record.options.skill === 'explainer-master') {
+        // A run that parked on a per-scene needs-input checkpoint ended
+        // normally: it durably waits for its person (a take to record), so
+        // the export verification does not apply — waiting is not an error
+        // and needs no gate protocol.
+        if (await this.waitingOnInput(record)) {
+          await this.finish(record, 'waiting', 0)
+          return
+        }
         try {
           await verifyExplainerExport(record.summary.projectDir, this.context.origin)
         } catch (error) {
@@ -293,6 +310,54 @@ export class RunManager {
       await this.finish(record, 'done', 0)
     } else {
       await this.finish(record, 'error', result.exitCode)
+    }
+  }
+
+  // Waiting is read from the durable stage rows the tools recorded: any
+  // checkpoint still at needs-input means the run waits for a person. Because
+  // checkpoints key on their scene/object (issue #7), a scene's resolved
+  // checkpoint clears only its own wait — another scene's stays.
+  private async waitingOnInput(record: RunRecord): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.context.origin}/api/runs/${encodeURIComponent(record.summary.id)}/stages`)
+      const { stages } = (await response.json()) as { stages?: Array<{ status?: unknown }> }
+      return Boolean(stages?.some(stage => stage.status === 'needs-input'))
+    } catch {
+      // The store is unreachable: fall back to the export verification, which
+      // reports an incomplete run honestly.
+      return false
+    }
+  }
+
+  // The resume carry (issue #8): the prior run's reviewed explainer artifacts
+  // (story, candidates, proofs, narrations, receipts, the review budget) move
+  // into the new run's own directory, so accepted scenes keep their review
+  // state instead of being regenerated. The source must be one of this
+  // manager's run directories, and a stale export is never carried — a
+  // continued run re-renders and re-verifies its own.
+  private async carryResumeArtifacts(fromDir: string, toDir: string) {
+    try {
+      const source = resolve(fromDir)
+      const target = resolve(toDir)
+      const root = resolve(this.projectsRoot)
+      if (source === target || (source !== root && !source.startsWith(root + sep))) {
+        log('resume source is not a run directory — continuing without carried artifacts:', fromDir)
+        return
+      }
+      const explainerDir = join(source, 'explainer')
+      if (!existsSync(explainerDir)) return
+      await cp(explainerDir, join(target, 'explainer'), {
+        recursive: true,
+        filter: name => {
+          const base = name.split(sep).pop() || ''
+          return base !== 'export.json' && base !== 'export.mp4' && base !== 'export-review'
+        },
+      })
+      log(`carried the prior run's reviewed artifacts into ${target}`)
+    } catch (error) {
+      // The new run still names the prior run in its inputs; without the
+      // carried files it simply rebuilds, as before resume existed.
+      log('resume carry failed:', error instanceof Error ? error.message : error)
     }
   }
 
@@ -341,7 +406,7 @@ export class RunManager {
     record.summary.resumeId = record.resumeId
     await this.writeRunFile(record).catch(() => {})
     await this.persistRun(record, exitCode)
-    this.emit(record.summary.id, { type: 'done', ts: Date.now(), exitCode })
+    this.emit(record.summary.id, { type: 'done', ts: Date.now(), exitCode, status })
     log(`run ${record.summary.id} ${status} (adapter ${record.summary.adapter})`)
   }
 

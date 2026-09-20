@@ -100,6 +100,7 @@ import { arcRoleFor, classifyScene, direct, type DirectorResult } from './direct
 import { stageTrackFromShots } from './shot-plan'
 import { coachStateFor } from './coach'
 import { stageRowsFor, type BuildStageRow } from './stage-view'
+import { resumeBlockFor, type ExplainerResume } from './explainer-resume'
 import { artworkDetailFor, artworkDetailLine } from './artwork-detail'
 import { takeAudioUrlFor } from './take-audio'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
@@ -15720,7 +15721,29 @@ const startExplainerBuild = async () => {
       ...(project.explainerDelivery === 'human' ? { takeAudioUrl: takeAudioUrlFor(project.recordedBlocks?.[String(n.attrs!.id)]) } : {}),
     })))
     if (!scenes.length) throw new Error('Create the base wireframes before building an explainer')
-    button.textContent = 'Building explainer…'
+    // Continue from accepted work (issue #8): when the last build for this
+    // notebook stopped or parked on a person, the new run names it explicitly —
+    // the run id and directory, which scenes still carry exactly what it
+    // applied (never regenerated), and the checkpoints still waiting for a
+    // person (the requested pickups). The harness carries the prior run's
+    // reviewed artifacts into the new run's own directory.
+    const { runs: priorRuns } = await fetchJson<{ runs: Array<{ id: string; status: string; route?: string; projectDir?: string }> }>(`/api/runs?projectId=${encodeURIComponent(targetId)}`).catch(() => ({ runs: [] }))
+    const lastRun = priorRuns.find(entry => entry.route === 'Build Explainer')
+    let resume: ExplainerResume | null = null
+    if (lastRun) {
+      const mergedStatus = (await bridge.harness.list().catch(() => [])).find(entry => entry.id === lastRun.id)?.status || lastRun.status
+      const [{ stages: lastStages }, lastArtefacts] = await Promise.all([
+        fetchJson<{ stages: BuildStageRow[] }>(`/api/runs/${encodeURIComponent(lastRun.id)}/stages`).catch(() => ({ stages: [] as BuildStageRow[] })),
+        bridge.harness.artefacts(lastRun.id).catch(() => null),
+      ])
+      resume = resumeBlockFor({
+        run: { ...lastRun, status: mergedStatus },
+        stages: lastStages,
+        receipt: (lastArtefacts?.explainer?.receipt || null) as { applied?: Record<string, unknown> } | null,
+        scenes,
+      })
+    }
+    button.textContent = resume ? 'Continuing from accepted work…' : 'Building explainer…'
     const unsubscribe = bridge.harness.onEvent(({ runId, event }) => {
       if (runId !== explainerRun?.id) return
       if (event.type === 'text' && event.text) button.title = event.text.slice(-400)
@@ -15736,19 +15759,27 @@ const startExplainerBuild = async () => {
         button.disabled = false
         button.textContent = 'Build explainer'
         cancel.hidden = true
-        status.textContent = event.exitCode === 0 ? 'Explainer built, reviewed and exported. Open Preview to watch it.' : 'Build stopped. Candidate artwork and review files are retained.'
-        if (event.exitCode === 0) {
-          void bridge.harness.artefacts(runId).then(artefacts => renderExplainerReceipts(artefacts.explainer as ExplainerRunReceipts | null)).catch(() => {})
-          if (project.id === targetId) void openNotebook(targetId)
-          showToast('Explainer built, reviewed and exported. Its editable video notebook is ready.')
-        } else showToast('The explainer run stopped before completion. Its candidate files and review remain available.')
+        if (event.status === 'waiting') {
+          // The run parked on a person-facing checkpoint (§5.5): a normal
+          // durable wait, not a failure — the stage checklist names what is
+          // needed, and the next Build continues from the accepted work.
+          status.textContent = 'The build paused for you: record the take it is waiting for in the camera dialog, then Build explainer continues from the accepted work.'
+          showToast('The build is waiting for your take — the reviewed work is kept, nothing was lost.')
+        } else {
+          status.textContent = event.exitCode === 0 ? 'Explainer built, reviewed and exported. Open Preview to watch it.' : 'Build stopped. Candidate artwork and review files are retained.'
+          if (event.exitCode === 0) {
+            void bridge.harness.artefacts(runId).then(artefacts => renderExplainerReceipts(artefacts.explainer as ExplainerRunReceipts | null)).catch(() => {})
+            if (project.id === targetId) void openNotebook(targetId)
+            showToast('Explainer built, reviewed and exported. Its editable video notebook is ready.')
+          } else showToast('The explainer run stopped before completion. Its candidate files and review remain available.')
+        }
       }
     })
     off = unsubscribe
     const run = await bridge.harness.run({ adapter: 'kimi', skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
       // The story record travels into the build: the wording policy in force
       // and the authored narrative revision the scenes' words came from (D2).
-      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
+      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), ...(resume ? { resume } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
     ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
     objectsTimer = window.setInterval(() => {

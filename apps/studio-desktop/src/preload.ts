@@ -9,7 +9,7 @@ export type RunSummary = {
   route: string
   adapter: string
   projectDir: string
-  status: 'running' | 'gate' | 'done' | 'error' | 'cancelled'
+  status: 'running' | 'gate' | 'waiting' | 'done' | 'error' | 'cancelled'
   resumeId?: string
   startedAt: string
   finishedAt?: string
@@ -26,6 +26,8 @@ export type HarnessEventPayload = {
     gate?: unknown
     error?: string
     exitCode?: number
+    // Terminal run status on a done event ('waiting' = parked for a person).
+    status?: RunSummary['status']
   }
 }
 

@@ -6,7 +6,7 @@ type StudioDesktopRunSummary = {
   route: string
   adapter: string
   projectDir: string
-  status: 'running' | 'gate' | 'done' | 'error' | 'cancelled'
+  status: 'running' | 'gate' | 'waiting' | 'done' | 'error' | 'cancelled'
   resumeId?: string
   startedAt: string
   finishedAt?: string
@@ -23,6 +23,8 @@ type StudioDesktopHarnessEvent = {
     gate?: { id?: string; stage?: string }
     error?: string
     exitCode?: number
+    // Terminal run status on a done event ('waiting' = parked for a person).
+    status?: StudioDesktopRunSummary['status']
   }
 }
 

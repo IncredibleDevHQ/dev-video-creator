@@ -25,6 +25,9 @@ export interface HarnessEvent {
   gate?: GateRequest
   error?: string
   exitCode?: number
+  // The run's terminal status on a done event (e.g. 'waiting': the run parked
+  // on a person-facing checkpoint — a normal durable state, not an error).
+  status?: RunStatus
 }
 
 export interface HarnessAdapter {
@@ -51,6 +54,9 @@ export type HarnessContext = {
 export type RunStatus =
   | 'running'
   | 'gate'
+  // The run ended normally on a needs-input checkpoint: it waits for its
+  // person (a take to record), durably — never an error.
+  | 'waiting'
   | 'done'
   | 'error'
   | 'cancelled'
