@@ -10,7 +10,7 @@ import { createDefaultBlockConfig, motionPlanOffsetsMs } from 'markdown-composit
 import { stageTrackFromShots, type DirectedShot } from '../../../studio-v2/src/shot-plan'
 import type { SceneProgram } from '../../../studio-v2/src/scene-program'
 import { splitCue } from '../../../studio-v2/src/scene-program'
-import { sceneRevisionPayload } from '../../../studio-v2/src/scene-revision'
+import { sceneRevisionPayload, sceneRenderedExtras } from '../../../studio-v2/src/scene-revision'
 import type { LibraryArtwork } from '../../../studio-v2/server/appearance-library'
 
 type Args = Record<string, unknown>
@@ -26,7 +26,7 @@ const digest = (svg: string, program: unknown) => createHash('sha256').update(sv
 // motion, staging and layout intent as a single canonical digest. The field
 // set is the shared scene-revision contract, so the build dispatch, the
 // finish conflict check and the status tool all hash the same revision.
-const revisionDigest = (attrs: Record<string, unknown> | undefined) => digest(String(attrs?.svg || ''), sceneRevisionPayload(attrs))
+const revisionDigest = (attrs: Record<string, unknown> | undefined, extras: Record<string, unknown> = {}) => digest(String(attrs?.svg || ''), sceneRevisionPayload(attrs, extras))
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 // Balanced-tag subtree extraction over raw SVG text — the same approach the
@@ -474,6 +474,7 @@ const finishTool = async (args: Args, context: Context) => {
   // merged pages into the surviving node's origin. Nothing durable happens in
   // this loop — take selections retire only once the project PUT has landed.
   const takeClears: string[] = []
+  const rendered: Record<string, string> = {}
   for (const scene of scenes) {
     const covers = coversOf(scene)
     let node = nodeNamed(scene.id)
@@ -491,6 +492,8 @@ const finishTool = async (args: Args, context: Context) => {
       node = cloned
     }
     const earlier = node.attrs?.explainer as { previousPresenterTracks?: unknown; previousRecording?: unknown } | undefined
+    const previousTracks = project.presenterTracks?.[scene.id]
+    const previousRecording = project.recordedBlocks?.[scene.id]
     const say = scene.program.beats.map(b => b.say).join('\n\n')
     // The applied scene's staging comes from a fresh director pass over the
     // reviewed content (D6): the pre-build directorAuto is stale by index, so
@@ -516,10 +519,7 @@ const finishTool = async (args: Args, context: Context) => {
       program: scene.program, motion: scene.motion, windows: scene.windows, script: say, sourceText: say, scriptApproved: true, breakdownApproved: true,
       directorNotes: `${scene.question}\n${scene.answer}`, structureApproved: true, stageTrack, stagePlacements: null, directorAuto,
       explainer: { run: projectDir, question: scene.question, answer: scene.answer, assets: scene.assets, reviewed: true,
-        // The hash of exactly what was reviewed: a later edit keeps the
-        // boolean but breaks the hash, and staleness becomes visible (§3.9).
-        hash: digest(scene.svg, scene.program),
-        previousPresenterTracks: earlier?.previousPresenterTracks ?? project.presenterTracks?.[scene.id] ?? [], previousRecording: earlier?.previousRecording ?? project.recordedBlocks?.[scene.id] ?? null } }
+        previousPresenterTracks: earlier?.previousPresenterTracks ?? previousTracks ?? [], previousRecording: earlier?.previousRecording ?? previousRecording ?? null } }
     // The surviving node remembers every base scene it now covers.
     const originScenes = [...new Set(covers.flatMap(cid => {
       const origin = nodeNamed(cid)?.attrs?.origin as { scene?: string; scenes?: string[] } | undefined
@@ -529,7 +529,6 @@ const finishTool = async (args: Args, context: Context) => {
       const origin = (node.attrs.origin || {}) as Record<string, unknown>
       node.attrs.origin = { ...origin, scenes: originScenes, scene: originScenes[0] }
     }
-    applied[scene.id] = snapshot(node.attrs)
     project.blocks[scene.id] = { ...(project.blocks[scene.id] || createDefaultBlockConfig(scene.id, node)), durationMs: scene.durationMs }
     const { audioUrl, recorded } = narrations.get(scene.id)!
     // An old take cannot cover a newly composed mechanism — unless the build
@@ -542,6 +541,14 @@ const finishTool = async (args: Args, context: Context) => {
     }
     project.presenterTracks ||= {}
     project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl, audioKind: recorded ? 'recorded-mic' : 'generated' }]
+    // The pin of exactly what was reviewed AND is now applied (issue #17):
+    // the complete scene revision plus everything else the export draws or
+    // plays — camera, duration, the narration track and the take identity. A
+    // later edit keeps the reviewed boolean but breaks the pin, and staleness
+    // becomes visible (§3.9) and blocking at export.
+    rendered[scene.id] = revisionDigest(node.attrs, sceneRenderedExtras(project.blocks[scene.id], project.presenterTracks[scene.id], project.recordedBlocks?.[scene.id]))
+    ;(node.attrs.explainer as Record<string, unknown>).hash = rendered[scene.id]
+    applied[scene.id] = snapshot(node.attrs)
     // Merged-away pages leave the notebook; their origin lives on in the survivor.
     for (const extra of covers.slice(1)) {
       if (extra === scene.id) continue
@@ -577,7 +584,7 @@ const finishTool = async (args: Args, context: Context) => {
   }
   const preview = await call(context, '/api/preview', { project })
   const cast = Object.fromEntries(scenes.map(scene => [scene.id, (scene.cast || []).map(entry => `${entry.key}:${entry.status}`)]))
-  await save(join(projectDir, 'explainer', 'receipt.json'), { projectId: project.id, scenes: scenes.length, applied, cast, preview, at: new Date().toISOString() })
+  await save(join(projectDir, 'explainer', 'receipt.json'), { projectId: project.id, scenes: scenes.length, applied, rendered, cast, preview, at: new Date().toISOString() })
   await recordStage(context, projectDir, 'finish', 'succeeded', { scenes: scenes.length, projectId: project.id })
   return { projectId: project.id, scenes: scenes.length, preview, next: 'The reviewed editable scenes are saved. Use explainer_export to render the video after narration is attached.' }
 }
@@ -592,7 +599,14 @@ const exportTool = async (args: Args, context: Context) => {
   await rm(join(projectDir, 'explainer', 'export.json'), { force: true })
   for (const scene of scenes) {
     const node = project.notebook.content.find(n => n.attrs?.id === scene.id)
-    if (node?.attrs?.svg !== scene.svg || stableStringify(node.attrs.program) !== stableStringify(scene.program) || project.blocks[scene.id]?.durationMs !== scene.durationMs) throw new Error('The saved scene differs from its reviewed performance. Apply it with explainer_finish before exporting.')
+    // The reviewed export pins the whole rendered performance (issue #17):
+    // the scene revision plus camera, duration, narration and take identity —
+    // anything the render would draw or play. Receipts from before the pin
+    // fall back to the svg/program/duration compare.
+    if (receipt.rendered?.[scene.id]) {
+      const current = revisionDigest(node?.attrs as Record<string, unknown> | undefined, sceneRenderedExtras(project.blocks?.[scene.id], project.presenterTracks?.[scene.id], project.recordedBlocks?.[scene.id]))
+      if (!node || current !== receipt.rendered[scene.id]) throw new Error('The saved scene differs from its reviewed performance — motion, staging, camera or audio changed after the finish. Re-apply with explainer_finish (an unchanged review re-pins the presentation) or build again.')
+    } else if (node?.attrs?.svg !== scene.svg || stableStringify(node.attrs.program) !== stableStringify(scene.program) || project.blocks[scene.id]?.durationMs !== scene.durationMs) throw new Error('The saved scene differs from its reviewed performance. Apply it with explainer_finish before exporting.')
   }
   const result = await call<{ url: string; durationSeconds: number }>(context, '/api/render', project)
   const response = await fetch(result.url)
@@ -818,6 +832,13 @@ const statusTool = async (args: Args, context: Context) => {
     const node = projectResponse?.project?.notebook?.content?.find((n: { attrs?: { id?: unknown } }) => n.attrs?.id === scene.id)
     if (receipt?.applied?.[scene.id] && node?.attrs && receipt.applied[scene.id] !== snapshot(node.attrs)) stale.push('the notebook diverged from what was applied — refresh or re-apply')
     if (!receipt?.applied?.[scene.id]) stale.push('not applied to the notebook')
+    // The rendered pin goes wider than the applied revision: motion, staging,
+    // camera, narration and the take identity are what the export draws.
+    const project = projectResponse?.project
+    if (receipt?.rendered?.[scene.id] && node?.attrs && project) {
+      const current = revisionDigest(node.attrs as Record<string, unknown>, sceneRenderedExtras(project.blocks?.[scene.id], project.presenterTracks?.[scene.id], project.recordedBlocks?.[scene.id]))
+      if (current !== receipt.rendered[scene.id]) stale.push('the rendered performance diverged from the finish (motion, staging, camera or audio) — re-apply or rebuild before exporting')
+    }
     rows.push({ scene: scene.id, file: scene.file, hash, fresh: !stale.length, stale })
   }
   return { projectId: inputs.projectId, scenes: rows, fresh: rows.every(row => row.fresh) }

@@ -10,8 +10,9 @@ import { spawn } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
+import { build } from 'esbuild'
 
 const require = createRequire(import.meta.url)
 const appDir = fileURLToPath(new URL('..', import.meta.url))
@@ -259,37 +260,74 @@ try {
   }
   check('library marks the root notebook as Base', Boolean(library && library.badges.includes('Base')), JSON.stringify(library))
 
-  // The reviewed label tracks the stamped content hash (§3.9): a scene edited
-  // after the build's review reads as a draft again, before anything re-runs.
+  // The reviewed label tracks the stamped revision (§3.9): since issue #17
+  // the stamp pins the whole rendered performance — the scene revision plus
+  // camera, duration, narration and take identity — the same contract the
+  // finish tool writes and the export verifies. The stamp is computed over
+  // the page-normalized project (the editor materializes defaults and block
+  // config) with the shared revision contract, so this also proves the page
+  // and the tool hash the same revision.
   const VIDEO_ID = `${PROJECT_ID}-video`
   const VSCENE_SVG = '<svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg"><rect id="r1" x="40" y="40" width="200" height="120" fill="#4f46e5"/></svg>'
   const VPROGRAM = { version: 1, beats: [{ id: 'b1', say: 'Reviewed line.' }] }
   const { createHash } = await import('node:crypto')
+  const revisionModule = join(root, 'scene-revision.mjs')
+  await build({ entryPoints: [fileURLToPath(new URL('../../studio-v2/src/scene-revision.ts', import.meta.url))], bundle: true, platform: 'node', format: 'esm', outfile: revisionModule, logLevel: 'silent' })
+  const { sceneRevisionPayload, sceneRenderedExtras } = await import(pathToFileURL(revisionModule).href)
   // Canonical key order — PG jsonb reorders object keys, so the stamp hashes
   // the canonical form (same recipe as the finish tool and the page).
   const stableStringify = value => JSON.stringify(value, (_key, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v))
-  const stampHash = createHash('sha256').update(VSCENE_SVG).update(stableStringify(VPROGRAM)).digest('hex')
-  const videoProject = svg => ({
+  const stampFor = doc => {
+    const node = doc.notebook.content.find(n => n.attrs?.id === 'blk-v1')
+    const attrs = node?.attrs || {}
+    return createHash('sha256').update(String(attrs.svg || '')).update(stableStringify(sceneRevisionPayload(attrs, sceneRenderedExtras(doc.blocks?.['blk-v1'], doc.presenterTracks?.['blk-v1'], doc.recordedBlocks?.['blk-v1'])))).digest('hex')
+  }
+  const videoProject = (svg, hash) => ({
     version: 1, id: VIDEO_ID, title: 'D0 video notebook',
     derivedFrom: { notebook: PROJECT_ID, kind: 'video' },
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-vh', level: 1 }, content: [{ type: 'text', text: 'Video' }] },
-      { type: 'scene', attrs: { id: 'blk-v1', title: 'Reviewed scene', svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, program: VPROGRAM, explainer: { reviewed: true, hash: stampHash } } },
+      { type: 'scene', attrs: { id: 'blk-v1', title: 'Reviewed scene', svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, program: VPROGRAM, ...(hash ? { explainer: { reviewed: true, hash } } : {}) } },
     ] },
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
   })
   await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(videoProject(VSCENE_SVG)) })
   await bootInto(VIDEO_ID, 'D0 video notebook')
+  const unstamped = await publishKind()
+  check('an unstamped derived scene reads as a draft export', /Draft export/.test(unstamped?.kind || ''), JSON.stringify(unstamped))
+  await closePublish()
+  // The publish pass normalized and persisted the page's copy; stamp exactly
+  // what the page now holds.
+  let normalized = null
+  for (let i = 0; i < 20; i += 1) {
+    const body = await fetch(`${origin}/api/projects/${VIDEO_ID}`).then(r => r.json()).catch(() => null)
+    if (body?.project?.blocks?.['blk-v1']?.camera) { normalized = body.project; break }
+    await sleep(300)
+  }
+  check('the page normalized and persisted the scene', Boolean(normalized))
+  const stamped = JSON.parse(JSON.stringify(normalized))
+  stamped.notebook.content.find(n => n.attrs?.id === 'blk-v1').attrs.explainer = { reviewed: true, hash: stampFor(stamped) }
+  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(stamped) })
+  await bootInto(VIDEO_ID, 'D0 video notebook')
   const reviewedLabel = await publishKind()
   check('a fully reviewed notebook reads as a reviewed export', /Reviewed explainer export/.test(reviewedLabel?.kind || ''), JSON.stringify(reviewedLabel))
   await closePublish()
 
-  const editedSvg = VSCENE_SVG.replace('#4f46e5', '#dc2626')
-  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(videoProject(editedSvg)) })
-  await bootInto(VIDEO_ID, 'D0 video notebook')
-  const staleLabel = await publishKind()
-  check('a scene changed since the review reads as a draft again', /1 of 1 scenes changed since the rich build's review/.test(staleLabel?.kind || ''), JSON.stringify(staleLabel))
-  await closePublish()
+  // Every rendered input the stamp covers flips the label back to draft.
+  const driftCases = [
+    ['the artwork', doc => { const node = doc.notebook.content.find(n => n.attrs?.id === 'blk-v1'); node.attrs.svg = node.attrs.svg.replace('#4f46e5', '#dc2626'); node.attrs.svgSrc = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(node.attrs.svg)}` }],
+    ['the compiled motion', doc => { doc.notebook.content.find(n => n.attrs?.id === 'blk-v1').attrs.motion = { version: 2, steps: [{ motionWindowMs: 100, holdMs: 900, actions: [] }] } }],
+    ['the narration track', doc => { doc.presenterTracks = { 'blk-v1': [{ kind: 'narration', audioUrl: '/objects/swapped.mp3', audioKind: 'generated' }] } }],
+  ]
+  for (const [label, mutate] of driftCases) {
+    const drifted = JSON.parse(JSON.stringify(stamped))
+    mutate(drifted)
+    await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(drifted) })
+    await bootInto(VIDEO_ID, 'D0 video notebook')
+    const driftLabel = await publishKind()
+    check(`changing ${label} after the review reads as a draft again`, /1 of 1 scenes changed since the rich build's review/.test(driftLabel?.kind || ''), JSON.stringify(driftLabel))
+    await closePublish()
+  }
   await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'DELETE' })
 
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'DELETE' })

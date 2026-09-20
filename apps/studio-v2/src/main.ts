@@ -108,7 +108,7 @@ import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
 import { compileSceneProgram, programWithEdits, sanitizeSceneProgram, type SceneProgram } from './scene-program'
-import { sceneRevisionPayload } from './scene-revision'
+import { sceneRevisionPayload, sceneRenderedExtras } from './scene-revision'
 import { arcChanges, entityKey, videoPlanFor, type VideoPlan } from './video-plan'
 import type { AssetRecordV1 } from 'markdown-composition'
 import { ENTITY_TYPES } from './page-model'
@@ -8198,20 +8198,24 @@ const closePublishTakePreview = () => {
 // ——— Draft vs reviewed export ———
 // A derived video notebook earns the reviewed-explainer label only when its
 // scenes were applied by the rich build (explainer_finish stamps
-// attrs.explainer.reviewed) AND the stamped content hash still matches what
-// is on the page — editing a reviewed scene turns its label back into a
-// draft, visible before anything re-runs (§3.9). Stamps from before the hash
-// existed count as reviewed, unchanged. An MP4 render alone never advances
-// rich-build status.
+// attrs.explainer.reviewed) AND the stamped hash still matches what is on the
+// page — editing a reviewed scene turns its label back into a draft, visible
+// before anything re-runs (§3.9). The stamp pins the whole rendered
+// performance (issue #17): artwork, words, program, motion, staging, camera,
+// duration, narration and the selected take — the same contract the export
+// re-verifies. Stamps from before the hash existed count as reviewed,
+// unchanged. An MP4 render alone never advances rich-build status.
 // Canonical key order: the notebook store (PG jsonb) reorders object keys, so
 // the stamp's hash must not depend on textual key order. Same recipe as the
-// finish tool's contentStamp.
+// finish tool's revisionDigest.
 const stableStringify = (value: unknown): string =>
   JSON.stringify(value, (_key, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b))) : v))
 
 const sceneContentHash = async (node: TiptapNode) => {
-  const attrs = node.attrs || {}
-  const bytes = new TextEncoder().encode(String(attrs.svg || '') + stableStringify(attrs.program))
+  const attrs = (node.attrs || {}) as Record<string, unknown>
+  const id = String(attrs.id || '')
+  const payload = sceneRevisionPayload(attrs, sceneRenderedExtras(project.blocks?.[id], project.presenterTracks?.[id], project.recordedBlocks?.[id]))
+  const bytes = new TextEncoder().encode(String(attrs.svg || '') + stableStringify(payload))
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
