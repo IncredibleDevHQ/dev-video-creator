@@ -200,6 +200,7 @@ export const saveRecordedBlock = async ({
   assetId,
   mediaUrl,
   durationMs,
+  role,
   keepsPlan,
   cameraUrl,
   cameraAssetId,
@@ -210,6 +211,7 @@ export const saveRecordedBlock = async ({
   assetId: string
   mediaUrl: string
   durationMs: number
+  role?: 'scene' | 'presenter'
   keepsPlan?: boolean
   cameraUrl?: string
   cameraAssetId?: string
@@ -230,6 +232,7 @@ export const saveRecordedBlock = async ({
   // The camera of a take that keeps the plan is stored beside the composite.
   const camera = keepsPlan && cameraUrl && cameraAssetId && has(cameraAssetId) ? { cameraUrl, cameraAssetId } : {}
   const kept = keepsPlan && beatMarksMs?.length ? { keepsPlan: true as const, beatMarksMs, ...camera } : {}
+  const presenter = role === 'presenter' ? { role: 'presenter' as const } : {}
   const takesPath = join(notebooksDirectory(), `${projectId}.takes.json`)
   const takes =
     (await readJsonFile<
@@ -237,7 +240,7 @@ export const saveRecordedBlock = async ({
     >(takesPath)) || {}
   const recordedAt = new Date().toISOString()
   const recordingId = randomUUID()
-  takes[blockId] = { recordingId, assetId, durationMs, recordedAt, ...kept }
+  takes[blockId] = { recordingId, assetId, durationMs, recordedAt, ...presenter, ...kept }
   await writeFileAtomic(takesPath, JSON.stringify(takes, null, 2))
   return {
     blockId,
@@ -246,6 +249,7 @@ export const saveRecordedBlock = async ({
     durationMs,
     recordedAt,
     storage: 'local',
+    ...presenter,
     ...kept,
   }
 }

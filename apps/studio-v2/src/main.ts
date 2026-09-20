@@ -2044,14 +2044,15 @@ window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 // its stored selection. Deferred past module evaluation (fetchJson below).
 const hydratePresenterTakes = async () => {
   try {
-    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
+    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; role?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
     if (!takes.length) return
     let merged = 0
     project.recordedBlocks ||= {}
     project.recordedBlockTakes ||= {}
     const byId = new Map(takes.map(take => [take.id, take]))
-    // Kept-plan fields ride the take's detail: hydration restores the whole
-    // take, including the camera track and the beat marks the plan re-times to.
+    // The take's role and kept-plan fields ride the take's detail: hydration
+    // restores the whole take — presenter footage stays a presenter track,
+    // and a kept plan keeps its camera track and beat marks.
     const hydrateTake = (take: (typeof takes)[number]): RecordedBlockV1 => ({
       blockId: take.blockId,
       recordingId: take.id,
@@ -2059,6 +2060,7 @@ const hydratePresenterTakes = async () => {
       durationMs: take.durationMs,
       recordedAt: take.createdAt,
       storage: 'minio',
+      ...(take.detail?.role === 'presenter' ? { role: 'presenter' as const } : {}),
       ...(take.detail?.keepsPlan ? { keepsPlan: true } : {}),
       ...(Array.isArray(take.detail?.beatMarksMs) ? { beatMarksMs: take.detail.beatMarksMs.map(Number).filter(Number.isFinite) } : {}),
       ...(take.detail?.cameraUrl ? { cameraUrl: String(take.detail.cameraUrl), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
@@ -7832,7 +7834,9 @@ const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?
   const { recording } = await fetchJson<{ recording: RecordedBlockV1 }>('/api/recordings/commit', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs }),
+    // Raw presenter footage composes with the scene's graphics at compile;
+    // only a composed scene recording (the directed canvas) replaces one.
+    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter' }),
   })
   project.recordedBlocks ||= {}
   project.recordedBlockTakes ||= {}

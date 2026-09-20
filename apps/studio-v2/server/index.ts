@@ -2259,6 +2259,7 @@ const handleCommitDirectedRecording = async (
     assetId?: string
     mediaUrl?: string
     durationMs?: number
+    role?: string
     keepsPlan?: boolean
     cameraUrl?: string
     cameraAssetId?: string
@@ -2276,6 +2277,9 @@ const handleCommitDirectedRecording = async (
     assetId: body.assetId,
     mediaUrl: body.mediaUrl,
   durationMs: Math.min(3_600_000, Math.max(1, Number(body.durationMs) || 1)),
+    // A camera-dialog take is raw presenter footage; anything else is a
+    // composed scene recording that may replace the scene at compile.
+    ...(body.role === 'presenter' ? { role: 'presenter' as const } : {}),
     ...(body.keepsPlan && beatMarksMs.length
       ? {
           keepsPlan: true,

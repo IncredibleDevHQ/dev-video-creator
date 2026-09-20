@@ -925,12 +925,27 @@ const buildCompositionHtml = (
       // A page scene's take keeps the plan: the page re-renders from the
       // plan (re-timed to the take's presses) and the camera, carrying the
       // voice, rides as its own presenter track. Without a camera the voice
-      // comes from the composite's audio. Other takes replace the scene.
+      // comes from the composite's audio. A camera-dialog take is raw
+      // presenter footage: it composes WITH the scene's graphics as the
+      // presenter track, never replaces them. Composed scene recordings
+      // replace the scene.
       const recording = project.recordedBlocks?.[scene.id]
       const keepsPlan = Boolean(recording?.keepsPlan) && isSlideLikeNode(scene.node) && scene.id !== contentViewNodeId
+      const presenterTake = !keepsPlan && recording?.role === 'presenter'
       const takeCameraUrl = keepsPlan ? safeUrl(recording?.cameraUrl) : null
       const takeTracks: Scene['presenterTracks'] = takeCameraUrl ? [{ kind: 'human-camera', videoUrl: takeCameraUrl, audioKind: 'recorded-mic' }] : []
-      const presenterTracks = [...scene.presenterTracks, ...takeTracks]
+      // The camera-dialog flow writes the presenter track when the take is
+      // kept; a hydrated archive can restore the take without it, so the
+      // recording itself is the fallback — its file carries the voice.
+      const presenterTakeUrl = presenterTake ? safeUrl(recording?.videoUrl) : null
+      const presenterTakeTracks: Scene['presenterTracks'] =
+        presenterTakeUrl &&
+        !scene.presenterTracks.some(
+          track => track.kind === 'human-camera' && safeUrl(track.videoUrl) === presenterTakeUrl,
+        )
+          ? [{ kind: 'human-camera' as const, videoUrl: presenterTakeUrl, audioUrl: presenterTakeUrl, audioKind: 'recorded-mic' as const }]
+          : []
+      const presenterTracks = [...scene.presenterTracks, ...presenterTakeTracks, ...takeTracks]
       const presenterMarkup = presenterTracks
         .map((track, trackIndex) => {
           if (track.kind === 'narration') {
@@ -959,13 +974,14 @@ const buildCompositionHtml = (
       // The director's content view swaps the selected block's take out for
       // the live composed scene so the block stays directable.
       const recordedTakeUrl =
-        scene.id === contentViewNodeId || keepsPlan
+        scene.id === contentViewNodeId || keepsPlan || presenterTake
           ? null
           : safeUrl(recording?.videoUrl)
       const takeVoiceUrl = keepsPlan && !takeCameraUrl ? safeUrl(recording?.videoUrl) : null
       // A saved take already contains the directed canvas, camera, and audio,
       // so it replaces the live scene visuals and presenter tracks outright —
-      // unless it keeps the plan, when only its voice is used.
+      // unless it keeps the plan, when only its voice is used. A raw
+      // presenter take never reaches here: it rides as a presenter track.
       const recordedTakeMarkup = recordedTakeUrl
         ? `<video class="recorded-take clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`
         : takeVoiceUrl

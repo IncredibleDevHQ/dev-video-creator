@@ -79,6 +79,9 @@ type SaveRecordedBlockInput = {
   assetId: string
   mediaUrl: string
   durationMs: number
+  // What the take is: raw presenter footage composes with the scene's
+  // graphics; an absent role is a composed scene recording.
+  role?: 'scene' | 'presenter'
   // A page scene's kept plan (D5): camera track + the presses that advanced
   // beats — they ride the archive so hydration restores them.
   keepsPlan?: boolean
@@ -212,7 +215,8 @@ export const saveRecordedBlock = async (
   const saved = await backend.saveRecordedBlock(recording)
   // The take archive (D3) on every backend: this commit is one preserved
   // take, and committing selects it. The active row stays the fast path.
-  // Kept-plan fields ride the detail so hydration restores the full take.
+  // The role and kept-plan fields ride the detail so hydration restores the
+  // full take; the role also rides the returned recording on every backend.
   await backend.savePresenterTake({
     id: saved.recordingId,
     projectId: recording.projectId,
@@ -221,11 +225,12 @@ export const saveRecordedBlock = async (
     durationMs: saved.durationMs,
     detail: {
       mediaUrl: recording.mediaUrl,
+      ...(recording.role === 'presenter' ? { role: 'presenter' } : {}),
       ...(recording.keepsPlan ? { keepsPlan: true, ...(recording.beatMarksMs ? { beatMarksMs: recording.beatMarksMs } : {}), ...(recording.cameraUrl ? { cameraUrl: recording.cameraUrl, cameraAssetId: recording.cameraAssetId } : {}) } : {}),
     },
   })
   await backend.selectPresenterTake({ projectId: recording.projectId, blockId: recording.blockId, takeId: saved.recordingId })
-  return saved
+  return recording.role === 'presenter' ? { ...saved, role: 'presenter' } : saved
 }
 
 export const clearPresenterTake = async (input: { projectId: string; blockId: string }) =>

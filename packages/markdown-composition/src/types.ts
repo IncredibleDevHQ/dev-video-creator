@@ -141,6 +141,11 @@ export type RecordedBlockV1 = {
   durationMs: number
   recordedAt: string
   storage: 'minio' | 'supabase' | 'local'
+  // What the take is: absent or 'scene' is a composed scene recording (the
+  // directed canvas capture — it legitimately replaces the scene at compile).
+  // 'presenter' is raw camera footage from the camera dialog: it composes
+  // WITH the scene's graphics as the presenter track, never replaces them.
+  role?: 'scene' | 'presenter'
   // A page scene's take keeps the plan: the composite is kept for review,
   // the camera (carrying the voice) is its own track, and the presses that
   // advanced the beats are marks the plan is re-timed to at compile — so

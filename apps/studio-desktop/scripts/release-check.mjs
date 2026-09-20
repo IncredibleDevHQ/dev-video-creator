@@ -33,6 +33,7 @@ const CHECKS = [
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration
   'rehearsal-check.mjs',          // §3.8: rehearsal loop — graphics + cue lines, beat controls, reset
   'mic-default-check.mjs',        // #4: the human path records the microphone by default, devices on demand
+  'presenter-take-check.mjs',     // P2: a camera take compiles to graphics + presenter overlay, never a scene swap
   'stage-panel-check.mjs',        // §5.5: build panel stage checklist, needs-input as waiting
   'skill-references-check.mjs',   // D4: shipped instruction dependency graph
   'align-take-check.mjs',         // D5: take-aligned timing on canned transcripts
