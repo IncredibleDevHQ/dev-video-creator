@@ -134,12 +134,13 @@ const assetTool = async (args: Args, context: Context) => {
 // The hidden renderer is shared, so keep each review and its captures together.
 let reviewQueue: Promise<unknown> = Promise.resolve()
 // §5.5: previews cost a render each; a scene's revision loop is bounded.
-// Direct tool calls count; the narration tool's own recompile does not.
+// Direct tool calls count; the narration and take tools' own recompiles do
+// not (chargeBudget = false) — but their passing revisions still snapshot.
 const REVIEW_BUDGET = Math.max(1, Number(process.env.STUDIO_REVIEW_BUDGET || 8))
-const previewTool = (args: Args, context?: Context) => {
+const previewTool = (args: Args, context?: Context, chargeBudget = true) => {
   const work = reviewQueue.catch(() => {}).then(async () => {
     const p = paths(args)
-    if (context) {
+    if (context && chargeBudget) {
       const countsPath = join(p.folder, 'review-counts.json')
       const counts = await jsonFile(countsPath).catch(() => ({} as Record<string, number>))
       const spent = Number(counts[p.scene] || 0)
@@ -148,12 +149,12 @@ const previewTool = (args: Args, context?: Context) => {
         // report the exact remaining issue instead of revising forever.
         const best = await jsonFile(join(p.folder, `${p.scene}.best-proof.json`)).catch(() => jsonFile(join(p.folder, `${p.scene}.proof.json`)).catch(() => null))
         return {
-          errors: [`The review budget for ${p.scene} is spent (${REVIEW_BUDGET} previews). Do not revise further: finish with the retained proof if it passes, or stop and report the exact remaining issue.`],
+          errors: [`The review budget for ${p.scene} is spent (${REVIEW_BUDGET} previews). Do not revise further: run explainer_restore to put the retained passing revision back (its artwork, program, timing and frames), then finish with it if it passes — or stop and report the exact remaining issue.`],
           warnings: [] as string[],
           durationMs: best?.durationMs || 0,
           frames: best?.frames || [],
           proofPath: join(p.folder, `${p.scene}.proof.json`),
-          instruction: 'Review budget spent — report the remaining issue instead of revising.',
+          instruction: 'Review budget spent — restore the retained passing revision with explainer_restore, or report the remaining issue instead of revising.',
         }
       }
       counts[p.scene] = spent + 1
@@ -162,7 +163,11 @@ const previewTool = (args: Args, context?: Context) => {
     const svg = await readFile(p.svgPath, 'utf8')
     const program = await jsonFile(p.programPath)
     const result = await runAtomizer<Omit<Proof, 'hash' | 'frames'> & { frames: number[] }>('reviewExplainer', svg, program)
-    const folder = join(p.folder, 'review', p.scene)
+    const hash = digest(svg, program)
+    // Each revision's frames live under their own content address (issue #16):
+    // a later failed revision can never overwrite the retained best's frames.
+    const revision = hash.slice(0, 12)
+    const folder = join(p.folder, 'review', p.scene, revision)
     await mkdir(folder, { recursive: true })
     const frames: Proof['frames'] = []
     if (result.frames?.length) {
@@ -173,10 +178,19 @@ const previewTool = (args: Args, context?: Context) => {
         frames.push({ atMs, path })
       }
     }
-    const proof = { ...result, frames, hash: digest(svg, program) }
+    const proof = { ...result, frames, hash }
     await save(join(p.folder, `${p.scene}.proof.json`), proof)
-    // The best retained candidate survives later failed revisions (§5.5).
-    if (context && !result.errors.length) await save(join(p.folder, `${p.scene}.best-proof.json`), proof)
+    // The best retained candidate survives later failed revisions (§5.5): an
+    // immutable snapshot of artwork, program and proof that explainer_restore
+    // can put back exactly (issue #16).
+    if (context && !result.errors.length) {
+      await save(join(p.folder, `${p.scene}.best-proof.json`), proof)
+      const candidate = join(p.folder, 'candidates', p.scene, revision)
+      await mkdir(candidate, { recursive: true })
+      await writeFile(join(candidate, `${p.scene}.svg`), svg)
+      await save(join(candidate, `${p.scene}.program.json`), program)
+      await save(join(candidate, 'proof.json'), proof)
+    }
     if (context) {
       await recordStage(context, p.projectDir, 'preview', result.errors.length ? 'failed' : 'succeeded', { scene: p.scene, errors: result.errors, warnings: result.warnings, durationMs: result.durationMs })
     }
@@ -184,6 +198,44 @@ const previewTool = (args: Args, context?: Context) => {
   })
   reviewQueue = work
   return work
+}
+
+// §5.5 recovery (issue #16): every passing preview snapshots the candidate —
+// artwork, program, timing and frames — under its content hash, so the
+// retained best revision is recoverable after later failed revisions.
+// Restoring puts it back as the working revision with its original frames,
+// ready to narrate (if it predates them) and finish.
+const restoreTool = async (args: Args, context: Context) => {
+  const p = paths(args)
+  const requested = String(args.hash || '').trim()
+  const best = await jsonFile(join(p.folder, `${p.scene}.best-proof.json`)).catch(() => null) as Proof | null
+  const hash = requested || String(best?.hash || '')
+  if (!hash) throw new Error(`No retained passing candidate for ${p.scene} — preview a passing revision first`)
+  const candidate = join(p.folder, 'candidates', p.scene, hash.slice(0, 12))
+  const proof = await jsonFile(join(candidate, 'proof.json')).catch(() => null) as Proof | null
+  if (!proof || proof.hash !== hash) throw new Error(`No retained candidate ${hash.slice(0, 12)} for ${p.scene}`)
+  if (proof.errors?.length) throw new Error(`The retained candidate for ${p.scene} has review errors; it was never a passing revision`)
+  const svg = await readFile(join(candidate, `${p.scene}.svg`), 'utf8')
+  const program = await jsonFile(join(candidate, `${p.scene}.program.json`))
+  if (proof.hash !== digest(svg, program)) throw new Error(`The retained candidate for ${p.scene} is corrupt — its proof no longer matches its files`)
+  // The candidate's frames must still be the ones its review captured.
+  for (const frame of proof.frames || []) await readFile(frame.path)
+  await writeFile(p.svgPath, svg)
+  await save(p.programPath, program)
+  await save(join(p.folder, `${p.scene}.proof.json`), proof)
+  const narration = await jsonFile(join(p.folder, `${p.scene}.narration.json`)).catch(() => null) as { hash?: string } | null
+  const staleNarration = Boolean(narration?.hash && narration.hash !== proof.hash)
+  await recordStage(context, p.projectDir, 'restore', 'succeeded', { scene: p.scene, hash })
+  return {
+    scene: p.scene,
+    hash,
+    durationMs: proof.durationMs,
+    frames: proof.frames,
+    warnings: staleNarration ? ['The narration predates the restored revision — narrate again before finishing'] : [],
+    instruction: staleNarration
+      ? 'The retained passing revision is back as the working copy with its original frames. Its narration predates it — run explainer_narrate (or explainer_align_take) again, then finish.'
+      : 'The retained passing revision is back as the working copy with its original frames. Narration still matches — finish when ready.',
+  }
 }
 
 const narrateTool = async (args: Args, context: Context) => {
@@ -240,7 +292,9 @@ const narrateTool = async (args: Args, context: Context) => {
     beat.words = alignment.words
   })
   await save(p.programPath, program)
-  const preview = await previewTool(args)
+  // The recompile does not spend the scene's review budget, but a passing
+  // narrated revision is still snapshotted as the retained candidate.
+  const preview = await previewTool(args, context, false)
   if (preview.errors.length) {
     await recordStage(context, p.projectDir, 'narrate', 'failed', { scene: p.scene, errors: preview.errors })
     return preview
@@ -646,7 +700,9 @@ const alignTakeTool = async (args: Args, context: Context) => {
   // it as `review`, and the finish refuses a scene whose latest take still
   // needs input — a needs-input beat is a wait, never a completable review.
   await save(join(p.folder, `${p.scene}.narration.json`), { hash: digest(sceneSvg, program), audioUrl: track.url, alignment: 'selected-take', durationMs: program.beats.reduce((sum, beat) => sum + (beat.durationMs || 0), 0), ...(review.length ? { review } : {}) })
-  const preview = await previewTool(args)
+  // Same recompile rule as narration: no budget spent, but a passing
+  // take-aligned revision is snapshotted as the retained candidate.
+  const preview = await previewTool(args, context, false)
   await recordStage(context, p.projectDir, 'align-take', review.length ? 'needs-input' : 'succeeded', { scene: p.scene, review })
   return { ...preview, review, alignment: 'selected-take', instruction: review.length ? 'These beats were not said as written; rebind their cues or record the named pickups, then align again.' : 'The take is the timing authority. Inspect the frames: motion follows the actual delivery.' }
 }
@@ -771,6 +827,7 @@ const common = { projectDir: { type: 'string', description: 'Absolute run projec
 export const EXPLAINER_TOOLS = [
   { name: 'explainer_asset', description: 'Reuse, generate, edit or animate a rich Quiver SVG. Uses the server credential and permanent asset library. Returns local SVG and metadata paths, never credentials.', inputSchema: { type: 'object', properties: { ...common, operation: { enum: ['list', 'generate', 'edit', 'animate'] }, briefPath: { type: 'string' }, brief: { type: 'object' }, key: { type: 'string' }, prompt: { type: 'string' } }, required: ['projectDir', 'operation'] }, call: assetTool },
   { name: 'explainer_preview', description: 'Compile explainer/<scene>.svg and .program.json using the production player; validate and capture before/action/settled frames. Re-run after every edit.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: previewTool },
+  { name: 'explainer_restore', description: 'Restore a retained passing candidate (the best by default, or a given proof hash) as the scene\'s working revision — its artwork, program, timing and original frames. Use when the review budget is spent or a later revision regressed.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, hash: { type: 'string', description: 'Full hash of the candidate to restore; defaults to the retained best' } }, required: ['projectDir', 'scene'] }, call: restoreTool },
   { name: 'explainer_narrate', description: 'Generate guide speech, align its spoken words locally, recompile the events against measured timestamps, render review frames, and store a padded scene audio track. Requires local uv and ffmpeg; caches voice/model downloads.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: narrateTool },
   { name: 'explainer_align_take', description: 'Make a recorded human take the timing authority: transcribe it once, map the beats onto the actual words in order, rebind cue occurrences, and recompile. Beats the take does not say come back flagged for review or pickup, never silently invented.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, audioPath: { type: 'string' }, audioUrl: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: alignTakeTool },
   { name: 'explainer_review_object', description: 'Isolated object-performance review (required before finishing when a library object performs): render the accepted asset alone at display size, drive each clip through rest/action/settle, capture frames, check fidelity against the original, and write the review receipt.', inputSchema: { type: 'object', properties: { ...common, key: { type: 'string' } }, required: ['projectDir', 'key'] }, call: reviewObjectTool },

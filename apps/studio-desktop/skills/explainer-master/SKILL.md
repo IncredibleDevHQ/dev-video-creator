@@ -103,7 +103,9 @@ Retain its object identities when useful and its source scene id always.
    the successful visual treatment through the other scenes. The product bounds
    previews per scene (default 8; STUDIO_REVIEW_BUDGET tunes it): over the
    budget, `explainer_preview` refuses and answers with the retained best proof
-   — finish with that if it passes, or report the exact remaining issue.
+   — run `explainer_restore` to put that passing revision back (its artwork,
+   program, timing and original frames), then finish with it if it passes, or
+   report the exact remaining issue.
 
 6. **Narrate and synchronize.** The delivery mode is in the run's inputs
    (`delivery.mode`): `generated` calls `explainer_narrate` for each scene;
