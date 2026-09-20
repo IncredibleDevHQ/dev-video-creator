@@ -28,6 +28,7 @@ const CHECKS = [
   'source-delivery-check.mjs',    // P2: a new source notebook keeps the journey's delivery choice
   'explainer-lineage-check.mjs',  // D3: splits/merges, coverage, forged markers refused
   'explainer-persistence-check.mjs', // D3: finish/export guards
+  'finish-atomic-check.mjs',      // #5: a failed finish changes nothing — no project write, no take clears
   'finish-director-check.mjs',    // D6: finish stages scenes via the real hidden-window director
   'run-history-check.mjs',        // D3: durable runs + stage checkpoints
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration
@@ -35,6 +36,9 @@ const CHECKS = [
   'mic-default-check.mjs',        // #4: the human path records the microphone by default, devices on demand
   'presenter-take-check.mjs',     // P2: a camera take compiles to graphics + presenter overlay, never a scene swap
   'take-duration-check.mjs',      // P5: a take's duration is fixed at stop, not after review/upload
+  'finish-pickup-check.mjs',      // P4: an unresolved pickup blocks the finish until the take is re-aligned
+  'take-clock-check.mjs',         // P3: the take's measured clock survives alignment, compile and finish
+  'take-audio-authority-check.mjs', // P6: one voice per scene — the aligned narration, the take muted
   'teleprompter-check.mjs',       // #11: read-only teleprompter mirrors the saved script; the edit path is the notebook
   'stage-panel-check.mjs',        // §5.5: build panel stage checklist, needs-input as waiting
   'skill-references-check.mjs',   // D4: shipped instruction dependency graph
