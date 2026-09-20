@@ -7876,9 +7876,10 @@ const uploadRecording = async (blob: Blob) => {
     },
   ]
   // The durable archive is the take system of record; a commit failure must
-  // not eat the take already on the block.
+  // not eat the take already on the block. The duration was fixed when the
+  // recording stopped — review and upload time never inflate it.
   try {
-    await archiveCameraTake(recordingNodeId, { url: response.url, assetId: response.assetId }, Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)))
+    await archiveCameraTake(recordingNodeId, { url: response.url, assetId: response.assetId }, pendingTakeDurationMs || Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)))
   } catch (error) {
     console.warn('take archive commit failed', error)
     showToast('The take is on the block, but the durable archive did not record it')
@@ -7912,8 +7913,9 @@ startRecordingButton.addEventListener('click', async () => {
     const blob = new Blob(recordingChunks, { type: mediaRecorder?.mimeType || 'video/webm' })
     recordingChunks = []
     // Review before the take counts (§3.7): stopping shows the take in the
-    // preview with its sound; only Keep uploads and archives it.
-    enterTakeReview(blob)
+    // preview with its sound; only Keep uploads and archives it. The take's
+    // length is fixed here — review and upload time never inflate it.
+    enterTakeReview(blob, Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)))
   }
   mediaRecorder.start(250)
   recordingStartedAt = Date.now()
@@ -7937,18 +7939,23 @@ stopRecordingButton.addEventListener('click', () => {
 // silent loss. ———
 const takeReviewBox = $('#take-review') as HTMLElement
 let pendingTakeBlob: Blob | null = null
+// The pending take's length, fixed when recording stopped. It rides with the
+// blob through review and upload, so the archived duration is the take's own.
+let pendingTakeDurationMs = 0
 let takeReviewUrl = ''
 
 const resetTakeReview = () => {
   if (takeReviewUrl) URL.revokeObjectURL(takeReviewUrl)
   takeReviewUrl = ''
   pendingTakeBlob = null
+  pendingTakeDurationMs = 0
   takeReviewBox.hidden = true
 }
 
-const enterTakeReview = (blob: Blob) => {
+const enterTakeReview = (blob: Blob, durationMs: number) => {
   resetTakeReview()
   pendingTakeBlob = blob
+  pendingTakeDurationMs = durationMs
   takeReviewUrl = URL.createObjectURL(blob)
   cameraPreview.srcObject = null
   cameraPreview.src = takeReviewUrl
@@ -15808,10 +15815,10 @@ const startExplainerBuild = async () => {
   archive: (nodeId: string, asset: { url: string; assetId?: string }, durationMs = 8000) =>
     archiveCameraTake(nodeId, asset, durationMs).then(() => project.recordedBlocks?.[nodeId] || null),
   // The review step without a camera: stage a stand-in blob into the same
-  // review the recorder's onstop enters, as if three seconds were recorded.
+  // review the recorder's onstop enters, as if three seconds were recorded —
+  // the duration is fixed at staging, just as onstop fixes it at stop.
   stageReview: () => {
-    recordingStartedAt = Date.now() - 3000
-    enterTakeReview(new Blob(['stand-in take bytes'], { type: 'video/webm' }))
+    enterTakeReview(new Blob(['stand-in take bytes'], { type: 'video/webm' }), 3000)
   },
 }
 ;($('#video-length') as HTMLButtonElement).addEventListener('click', () => {
