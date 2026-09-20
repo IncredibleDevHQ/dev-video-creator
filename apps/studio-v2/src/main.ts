@@ -411,6 +411,9 @@ const THEME_STORAGE_KEY = 'incredible-studio-v2-themes'
 // A Build explainer click that first has to fork its base survives the
 // navigation into the child as this intent: the child id the build resumes on.
 const BUILD_INTENT_KEY = 'incredible-studio-v2-build-intent'
+// Edits durable storage never acknowledged (their save failed) are kept per
+// notebook under this prefix until a save of that notebook lands.
+const DRAFT_STORAGE_PREFIX = 'incredible-studio-v2-draft-'
 const WORKER_URL = import.meta.env.VITE_RENDER_WORKER_URL || ''
 const LEGACY_MVP_BRAND = {
   background: '#f4f2ec',
@@ -1928,6 +1931,30 @@ const readStoredProject = (): ProjectDocumentV1 | null => {
   }
 }
 
+// The single cache slot holds one notebook, so it cannot keep a dirty
+// notebook's edits while another one opens. Drafts can: one entry per
+// notebook, written when a durable save fails, cleared when one succeeds.
+const readStoredDraft = (notebookId: string): ProjectDocumentV1 | null => {
+  try {
+    const stored = window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${notebookId}`)
+    if (!stored) return null
+    const parsed = JSON.parse(stored) as ProjectDocumentV1
+    return parsed.version === 1 && parsed.id === notebookId ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+const rememberDraft = (notebook: ProjectDocumentV1) => {
+  try {
+    const stored = structuredClone(notebook)
+    sanitizeNotebookMedia(stored.notebook)
+    window.localStorage.setItem(`${DRAFT_STORAGE_PREFIX}${stored.id}`, JSON.stringify(stored))
+  } catch {
+    // localStorage full: the open page still holds the notebook.
+  }
+}
+
 const localProject = readStoredProject()
 // The notebook to open: an explicit pick from the switcher wins, then the
 // locally cached notebook, then whatever was saved most recently.
@@ -1959,7 +1986,11 @@ const readPersistedProject = async (
 }
 
 const persistedProject = await readPersistedProject(localProject)
+// An unacknowledged draft outranks the store copy: it holds edits the store
+// never saw, so opening the notebook must start from the draft.
+const draftProject = activeProjectId ? readStoredDraft(activeProjectId) : null
 const storedProject =
+  draftProject ||
   persistedProject ||
   (localProject && (!activeProjectId || localProject.id === activeProjectId)
     ? localProject
@@ -3151,6 +3182,7 @@ const scheduleDatabaseSync = () => {
       await persistProjectNow(snapshot)
       saveState.textContent = 'Saved'
     } catch {
+      rememberDraft(snapshot)
       saveState.textContent = 'Saved offline'
     }
   }, 450)
@@ -6100,7 +6132,8 @@ const openNotebook = async (notebookId: string) => {
     try {
       await persistProjectNow(structuredClone(project))
     } catch {
-      // The switch still proceeds; the local cache keeps the edits.
+      // The switch still proceeds; the draft keeps the edits until a save lands.
+      rememberDraft(project)
     }
   }
   window.localStorage.setItem(ACTIVE_PROJECT_KEY, notebookId)
@@ -6320,6 +6353,7 @@ const deleteNotebook = async (notebookId: string, title: string) => {  if (!wind
     `/api/projects/${encodeURIComponent(notebookId)}`,
     { method: 'DELETE' },
   )
+  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${notebookId}`)
   if (notebookId === project.id) {
     window.localStorage.removeItem(ACTIVE_PROJECT_KEY)
     window.localStorage.removeItem(STORAGE_KEY)
@@ -6854,11 +6888,11 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return body
 }
 
-const persistProjectNow = (snapshot: ProjectDocumentV1) => {
+const persistProjectNow = async (snapshot: ProjectDocumentV1) => {
   // Callers always pass a detached clone; the live editor keeps its blob
   // preview while the persisted copy stays retryable.
   sanitizeNotebookMedia(snapshot.notebook)
-  return fetchJson<{ projectId: string; saved: boolean }>(
+  const result = await fetchJson<{ projectId: string; saved: boolean }>(
     `/api/projects/${encodeURIComponent(snapshot.id)}`,
     {
       method: 'PUT',
@@ -6866,6 +6900,9 @@ const persistProjectNow = (snapshot: ProjectDocumentV1) => {
       body: JSON.stringify(snapshot),
     },
   )
+  // Durable storage acknowledged this notebook: its draft has done its job.
+  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${snapshot.id}`)
+  return result
 }
 
 const updateMediaNode = (
@@ -15138,7 +15175,8 @@ const startFreshNotebook = async (title: string) => {
   try {
     await persistProjectNow(structuredClone(project))
   } catch {
-    // the local cache keeps the edits; the new notebook still begins
+    // the draft keeps the edits; the new notebook still begins
+    rememberDraft(project)
   }
   const fresh = blankProjectDocument(title)
   if (project.theme) {
