@@ -29,11 +29,11 @@ try {
     bundle: true, platform: 'node', format: 'esm', outfile: join(dir, 'tools.mjs'),
     plugins: [{ name: 'unused-render-window', setup(b) {
       b.onResolve({ filter: /hidden-window$/ }, () => ({ path: 'window', namespace: 'stub' }))
-      b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({ contents: 'export const runAtomizer = () => {}; export const captureHiddenPage = () => {};' }))
+      b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({ contents: `export const runAtomizer = async name => name === 'reviewObjectClip' ? { errors: [], warnings: [], captures: [{ clipId: 'clip-1', atMs: 0, label: 'rest' }], clips: [{ id: 'clip-1', durationMs: 1000 }], fidelity: null } : undefined; export const captureHiddenPage = async () => Buffer.from([]);` }))
     } }],
   })
   const { EXPLAINER_TOOLS } = await import(pathToFileURL(join(dir, 'tools.mjs')))
-  const invoke = name => EXPLAINER_TOOLS.find(t => t.name === name).call({ projectDir: dir }, { origin: 'http://fixture' })
+  const invoke = (name, args = {}) => EXPLAINER_TOOLS.find(t => t.name === name).call({ projectDir: dir, ...args }, { origin: 'http://fixture' })
 
   const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
   const program = { version: 1, cast: [], beats: [{ say: 'A complete explanation.', events: [] }] }
@@ -81,10 +81,10 @@ try {
     if (String(url).endsWith('/api/preview')) return Response.json({})
     if (String(url).endsWith('/api/appearance/verify-cast')) {
       const sceneSvg = String(JSON.parse(options?.body || '{}').svg || '')
-      const forged = sceneSvg.includes('data-appearance-key') && !sceneSvg.includes('data-appearance-key="known-key"')
+      const forged = sceneSvg.includes('data-appearance-key') && !sceneSvg.includes('data-appearance-key="c0ffee00cafe1234"')
       return Response.json(forged
         ? { ok: false, cast: [{ key: 'forged-key', status: 'unknown', tokensFound: 0, tokensTotal: 0 }] }
-        : { ok: true, cast: sceneSvg.includes('known-key') ? [{ key: 'known-key', status: 'verified', tokensFound: 3, tokensTotal: 3 }] : [] })
+        : { ok: true, cast: sceneSvg.includes('c0ffee00cafe1234') ? [{ key: 'c0ffee00cafe1234', status: 'verified', tokensFound: 3, tokensTotal: 3 }] : [] })
     }
     throw new Error(`Unexpected fixture URL: ${url}`)
   }
@@ -141,7 +141,7 @@ try {
   await assert.rejects(invoke('explainer_finish'), /unknown input scene "nope"/)
   console.log('PASS  unknown covers are rejected')
   // §5.4a: an object that performs must carry an isolated review receipt.
-  const clipSvg = '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="known-key"><svg id="clip-1" data-object-clip="1" data-duration-ms="1000"><circle cx="5" cy="5" r="4"><animate attributeName="r" values="4;6;4" dur="1s" fill="freeze"/></circle></svg></g></svg>'
+  const clipSvg = '<svg xmlns="http://www.w3.org/2000/svg"><g data-appearance-key="c0ffee00cafe1234"><svg id="clip-1" data-object-clip="1" data-duration-ms="1000"><circle cx="5" cy="5" r="4"><animate attributeName="r" values="4;6;4" dur="1s" fill="freeze"/></circle></svg></g></svg>'
   const clipHash = createHash('sha256').update(clipSvg).update(stable(program)).digest('hex')
   await writeFile(join(dir, 'explainer/scene.svg'), clipSvg)
   await save('explainer/scene.program.json', program)
@@ -150,8 +150,12 @@ try {
   await story([storyScene('scene-a'), storyScene('scene-b'), storyScene('scene-c')])
   await assert.rejects(invoke('explainer_finish'), /isolated review/)
   console.log('PASS  a performing object without an isolated review is refused')
-  await mkdir(join(dir, 'explainer', 'objects'), { recursive: true })
-  await save('explainer/objects/known-key.review.json', { key: 'known-key', errors: [], clips: [{ id: 'clip-1', durationMs: 1000 }], frames: [], at: new Date().toISOString() })
+  // The receipt must bind the exact embedded performance (issue #15): write
+  // the accepted asset and run the real review tool so the receipt it writes
+  // covers this scene's clip revision, then the finish lets it through.
+  await mkdir(join(dir, 'explainer', 'assets'), { recursive: true })
+  await save('explainer/assets/c0ffee00cafe1234.json', { key: 'c0ffee00cafe1234', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><svg id="clip" data-object-clip="1" data-duration-ms="1000"><circle cx="5" cy="5" r="4"><animate attributeName="r" values="4;6;4" dur="1s" fill="freeze"/></circle></svg></svg>' })
+  await invoke('explainer_review_object', { key: 'c0ffee00cafe1234' })
   await invoke('explainer_finish')
   check('the isolated review receipt lets the performed object through', () => {
     assert.equal(project.blocks['scene-a'].durationMs, 2000)

@@ -27,6 +27,46 @@ const digest = (svg: string, program: unknown) => createHash('sha256').update(sv
 // set is the shared scene-revision contract, so the build dispatch, the
 // finish conflict check and the status tool all hash the same revision.
 const revisionDigest = (attrs: Record<string, unknown> | undefined) => digest(String(attrs?.svg || ''), sceneRevisionPayload(attrs))
+
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// Balanced-tag subtree extraction over raw SVG text — the same approach the
+// server's cast verification uses: from the opening tag that matches to its
+// balanced close. The tool side has no DOM; the run's SVG is written
+// machine-side, so tag scanning is exact for it. Nested same-tag elements
+// balance; a nested match is covered by its outer subtree.
+const subtreesWhere = (svg: string, match: (openingTag: string) => boolean): string[] => {
+  const out: string[] = []
+  const tagRe = /<([a-zA-Z][\w:-]*)(?:\s[^>]*)?\/?>/g
+  for (let token; (token = tagRe.exec(svg));) {
+    if (token[0].endsWith('/>') || !match(token[0])) continue
+    const inner = new RegExp(`<${token[1]}\\b[^>]*>|</${token[1]}>`, 'g')
+    inner.lastIndex = token.index
+    let depth = 0
+    let end = svg.length
+    for (let part; (part = inner.exec(svg));) {
+      if (part[0].startsWith('</')) {
+        depth -= 1
+        if (depth === 0) { end = inner.lastIndex; break }
+      } else if (!part[0].endsWith('/>')) {
+        depth += 1
+      }
+    }
+    out.push(svg.slice(token.index, end))
+    tagRe.lastIndex = end
+  }
+  return out
+}
+// The exact embedded performance of a library object inside a scene: the
+// clip subtrees carried by the element marked data-appearance-key. Editing a
+// clip — or embedding another revision — changes this set (issue #15).
+const embeddedClipMarkups = (sceneSvg: string, key: string): string[] =>
+  subtreesWhere(sceneSvg, tag => new RegExp(`\\bdata-appearance-key="${escapeRegExp(key)}"`).test(tag))
+    .flatMap(markup => subtreesWhere(markup, tag => /\bdata-object-clip\b/.test(tag)))
+const clipIdOf = (markup: string) => /\bid="([^"]+)"/.exec(markup.slice(0, markup.indexOf('>') + 1))?.[1] || ''
+const embeddedPerformance = (sceneSvg: string, key: string) => {
+  const markups = embeddedClipMarkups(sceneSvg, key)
+  return { hash: markups.length ? createHash('sha256').update(markups.join('\n')).digest('hex') : '', clips: [...new Set(markups.map(clipIdOf))] }
+}
 const jsonFile = async (path: string) => JSON.parse(await readFile(path, 'utf8'))
 const save = async (path: string, value: unknown) => writeFile(path, JSON.stringify(value, null, 2))
 const execute = promisify(execFile)
@@ -270,6 +310,21 @@ export const readExplainer = async (projectDir: string, origin?: string) => {
         const reviewReceipt = await jsonFile(join(projectDir, 'explainer', 'objects', `${key}.review.json`)).catch(() => null)
         if (!reviewReceipt) throw new Error(`${scene.file}: object ${key} performs without an isolated review. Run explainer_review_object for it first.`)
         if (reviewReceipt.errors?.length) throw new Error(`${scene.file}: object ${key}'s isolated review has errors: ${reviewReceipt.errors.join('; ')}`)
+        // The receipt must name WHAT it reviewed (issue #15): the current
+        // review instructions, the current artwork revision, and this scene's
+        // exact embedded performance with its clip ids and captured frames.
+        // Anything else is stale until the object is re-reviewed.
+        const currentSkill = await explainerSkillVersion()
+        if (reviewReceipt.skillVersion !== currentSkill) throw new Error(`${scene.file}: object ${key}'s isolated review predates the current review instructions; run explainer_review_object for it again.`)
+        const assetRecord = (await jsonFile(join(projectDir, 'explainer', 'assets', `${key}.json`)).catch(() => null))
+          || (await call<{ assets: LibraryArtwork[] }>({ origin }, '/api/appearance/library')).assets.find(asset => asset.key === key)
+        const sourceHash = assetRecord?.svg ? createHash('sha256').update(String(assetRecord.svg)).digest('hex') : ''
+        if (!sourceHash || reviewReceipt.sourceHash !== sourceHash) throw new Error(`${scene.file}: object ${key} is a different revision than its isolated review covered; run explainer_review_object for it again.`)
+        const embedded = embeddedPerformance(scene.svg, key)
+        const bound = (reviewReceipt.performances as Array<{ scene?: string; hash?: string; clips?: string[] }> | undefined)?.find(entry => entry.scene === scene.file)
+        if (!bound?.hash || bound.hash !== embedded.hash) throw new Error(`${scene.file}: object ${key}'s embedded performance changed since its isolated review; run explainer_review_object for it again.`)
+        if (!embedded.clips.length || !embedded.clips.every(id => (bound.clips || []).includes(id))) throw new Error(`${scene.file}: object ${key} performs clip(s) its isolated review did not cover (${embedded.clips.join(', ') || 'unknown'}); run explainer_review_object for it again.`)
+        if (!Array.isArray(reviewReceipt.frames) || !reviewReceipt.frames.length) throw new Error(`${scene.file}: object ${key}'s isolated review captured no frames; run explainer_review_object for it again.`)
       }
     }
   }
@@ -636,6 +691,20 @@ const reviewObjectTool = async (args: Args, context: Context) => {
     await writeFile(path, await captureHiddenPage())
     frames.push({ ...capture, path })
   }
+  // §5.4a binding (issue #15): pin the exact embedded performance revision
+  // this run's scenes carry for the object — the clip subtrees and their ids,
+  // per scene file. Editing a clip or embedding another revision makes this
+  // receipt stale at finish/export until the object is re-reviewed.
+  const performances: Array<{ scene: string; hash: string; clips: string[] }> = []
+  const story = await jsonFile(join(projectDir, 'explainer', 'story.json')).catch(() => null) as { scenes?: Array<{ file?: unknown }> } | null
+  for (const storyScene of story?.scenes || []) {
+    const file = String(storyScene?.file || '')
+    if (!file) continue
+    const sceneSvg = await readFile(local(projectDir, `explainer/${file}.svg`), 'utf8').catch(() => '')
+    if (!sceneSvg) continue
+    const embedded = embeddedPerformance(sceneSvg, key)
+    if (embedded.hash) performances.push({ scene: file, ...embedded })
+  }
   const receipt = {
     key,
     // §5.4a provenance: which accepted asset this review covered and which
@@ -643,6 +712,7 @@ const reviewObjectTool = async (args: Args, context: Context) => {
     // change invalidates this proof.
     sourceHash: createHash('sha256').update(record.svg).digest('hex'),
     skillVersion: await explainerSkillVersion(),
+    performances,
     errors: result.errors, warnings: result.warnings, clips: result.clips, fidelity: result.fidelity, frames, at: new Date().toISOString(),
   }
   await save(join(projectDir, 'explainer', 'objects', `${key}.review.json`), receipt)
@@ -653,8 +723,9 @@ const reviewObjectTool = async (args: Args, context: Context) => {
     clips: result.clips,
     fidelity: result.fidelity,
     frames,
+    performances,
     receiptPath: join(projectDir, 'explainer', 'objects', `${key}.review.json`),
-    instruction: 'Open the frames: at rest the object must read as the accepted artwork; the action midpoint must show the named behavior; the settled frame must be readable. A fidelity error means the performance redrew the art.',
+    instruction: 'Open the frames: at rest the object must read as the accepted artwork; the action midpoint must show the named behavior; the settled frame must be readable. A fidelity error means the performance redrew the art. The receipt binds this run\'s embedded performances of the object; editing a clip or embedding another revision requires a fresh review.',
   }
 }
 

@@ -48,6 +48,7 @@ const CHECKS = [
   'take-alignment-e2e-check.mjs', // D5: synthesized speech through the real aligner (SKIP without uv)
   'review-budget-check.mjs',      // D5/§5.5: bounded preview loops, retained best proof
   'object-review-check.mjs',      // §5.4a: review receipts carry source hash + skill version
+  'object-review-binding-check.mjs', // #15: receipts bind the exact embedded performance + clip ids
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 
