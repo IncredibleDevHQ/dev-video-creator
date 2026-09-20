@@ -108,6 +108,7 @@ import type { Outline, OutlineScene, SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
 import { compileSceneProgram, programWithEdits, sanitizeSceneProgram, type SceneProgram } from './scene-program'
+import { sceneRevisionPayload } from './scene-revision'
 import { arcChanges, entityKey, videoPlanFor, type VideoPlan } from './video-plan'
 import type { AssetRecordV1 } from 'markdown-composition'
 import { ENTITY_TYPES } from './page-model'
@@ -8214,6 +8215,16 @@ const sceneContentHash = async (node: TiptapNode) => {
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
+// The complete scene revision at build dispatch (shared contract in
+// scene-revision.ts; the desktop finish re-derives it from the stored
+// notebook): an edit to motion, staging or layout while the run is live
+// becomes a reviewable conflict instead of being silently overwritten.
+const sceneRevisionHash = async (node: TiptapNode) => {
+  const attrs = (node.attrs || {}) as Record<string, unknown>
+  const bytes = new TextEncoder().encode(String(attrs.svg || '') + stableStringify(sceneRevisionPayload(attrs)))
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
 const sceneReviewFor = async (content: TiptapNode[]) => {
   const videoScenes = content.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.svg)
   let reviewedCount = 0
@@ -15693,14 +15704,17 @@ const startExplainerBuild = async () => {
       return
     }
     const targetId = project.id
-    const scenes = project.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(n => ({
+    const scenes = await Promise.all(project.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(async n => ({
       id: String(n.attrs!.id), title: String(n.attrs!.title || ''), svg: String(n.attrs!.svg),
       script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: n.attrs!.directorNotes || '',
+      // The complete scene revision captured as the run starts: the finish
+      // refuses to apply over a page whose direction moved meanwhile.
+      revision: await sceneRevisionHash(n),
       // The human path carries the selected take's audio so the harness can
       // align to the actual delivery, never a synthesized substitute. A
       // kept-plan take's voice lives on its camera track, not the composite.
       ...(project.explainerDelivery === 'human' ? { takeAudioUrl: takeAudioUrlFor(project.recordedBlocks?.[String(n.attrs!.id)]) } : {}),
-    }))
+    })))
     if (!scenes.length) throw new Error('Create the base wireframes before building an explainer')
     button.textContent = 'Building explainer…'
     const unsubscribe = bridge.harness.onEvent(({ runId, event }) => {

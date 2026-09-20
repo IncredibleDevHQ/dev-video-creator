@@ -29,6 +29,7 @@ const CHECKS = [
   'explainer-lineage-check.mjs',  // D3: splits/merges, coverage, forged markers refused
   'explainer-persistence-check.mjs', // D3: finish/export guards
   'finish-atomic-check.mjs',      // #5: a failed finish changes nothing — no project write, no take clears
+  'revision-conflict-check.mjs',  // #6: mid-run motion/staging edits conflict at finish; the page is preserved
   'finish-director-check.mjs',    // D6: finish stages scenes via the real hidden-window director
   'run-history-check.mjs',        // D3: durable runs + stage checkpoints
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration

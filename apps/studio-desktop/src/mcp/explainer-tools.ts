@@ -10,6 +10,7 @@ import { createDefaultBlockConfig, motionPlanOffsetsMs } from 'markdown-composit
 import { stageTrackFromShots, type DirectedShot } from '../../../studio-v2/src/shot-plan'
 import type { SceneProgram } from '../../../studio-v2/src/scene-program'
 import { splitCue } from '../../../studio-v2/src/scene-program'
+import { sceneRevisionPayload } from '../../../studio-v2/src/scene-revision'
 import type { LibraryArtwork } from '../../../studio-v2/server/appearance-library'
 
 type Args = Record<string, unknown>
@@ -21,6 +22,11 @@ type Proof = { hash: string; errors: string[]; warnings: string[]; frames: Array
 const stableStringify = (value: unknown): string =>
   JSON.stringify(value, (_key, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b))) : v))
 const digest = (svg: string, program: unknown) => createHash('sha256').update(svg).update(stableStringify(program)).digest('hex')
+// One complete scene revision (§3.9): artwork, words, program, compiled
+// motion, staging and layout intent as a single canonical digest. The field
+// set is the shared scene-revision contract, so the build dispatch, the
+// finish conflict check and the status tool all hash the same revision.
+const revisionDigest = (attrs: Record<string, unknown> | undefined) => digest(String(attrs?.svg || ''), sceneRevisionPayload(attrs))
 const jsonFile = async (path: string) => JSON.parse(await readFile(path, 'utf8'))
 const save = async (path: string, value: unknown) => writeFile(path, JSON.stringify(value, null, 2))
 const execute = promisify(execFile)
@@ -290,15 +296,24 @@ const finishTool = async (args: Args, context: Context) => {
   const { project } = await call<{ project: ProjectDocumentV1 }>(context, `/api/projects/${encodeURIComponent(inputs.projectId)}`)
   if (!project?.derivedFrom?.notebook) throw new Error('Build an explainer in a derived video notebook; the base is preserved')
   const previous = await jsonFile(join(projectDir, 'explainer', 'receipt.json')).catch(() => null)
-  const snapshot = (attrs: Record<string, unknown>) => digest(String(attrs.svg || ''), { script: attrs.script, program: attrs.program, motion: attrs.motion })
+  // The applied snapshot is the complete scene revision: a page that still
+  // carries what this run applied is a safe re-application; anything else is
+  // a reviewable conflict.
+  const snapshot = (attrs: Record<string, unknown>) => revisionDigest(attrs)
   const applied: Record<string, string> = {}
   const coversOf = (scene: (typeof scenes)[number]) => (scene.covers?.length ? scene.covers : [scene.id])
   const content = project.notebook.content
   const nodeNamed = (id: string) => content.find(n => n.attrs?.id === id)
-  const inputNamed = (id: string) => inputs.scenes.find((s: { id: string }) => s.id === id)
+  const inputNamed = (id: string) => inputs.scenes.find((s: { id: string; revision?: string }) => s.id === id)
+  // Compare-and-swap against the revision captured when the run started: an
+  // edit to beat motion, staging or camera/layout while the run was live is
+  // flagged here, and the user's version stays untouched. Runs dispatched by
+  // an older build carry no revision; fall back to the svg/script compare.
   const unchangedFromInput = (nodeAttrs: Record<string, unknown> | undefined, id: string) => {
     const original = inputNamed(id)
-    return Boolean(nodeAttrs && original && nodeAttrs.svg === original.svg && String(nodeAttrs.script || '') === String(original.script || ''))
+    if (!nodeAttrs || !original) return false
+    if (typeof original.revision === 'string' && original.revision) return revisionDigest(nodeAttrs) === original.revision
+    return nodeAttrs.svg === original.svg && String(nodeAttrs.script || '') === String(original.script || '')
   }
 
   // Pass 1 — the whole story must apply cleanly before anything changes:
@@ -658,7 +673,7 @@ const statusTool = async (args: Args, context: Context) => {
   const projectResponse = inputs.projectId
     ? await call<{ project: ProjectDocumentV1 }>(context, `/api/projects/${encodeURIComponent(inputs.projectId)}`).catch(() => null)
     : null
-  const snapshot = (attrs: Record<string, unknown>) => digest(String(attrs?.svg || ''), { script: attrs?.script, program: attrs?.program, motion: attrs?.motion })
+  const snapshot = (attrs: Record<string, unknown>) => revisionDigest(attrs)
   const rows = []
   for (const scene of scenes) {
     const p = paths({ projectDir, scene: scene.file })
