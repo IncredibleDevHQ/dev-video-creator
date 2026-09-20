@@ -46,6 +46,9 @@ Retain its object identities when useful and its source scene id always.
    overview, or summary may use its natural structure; do not force a dramatic
    crisis into every scene. No narration of rows, circles, slide titles, labels
    being revealed, or truncated text. Do not cover every wireframe label.
+   When `inputs.story.wordingPolicy` is `preserve`, each scene's `script` is
+   the author's own approved narration: speak those sentences verbatim and
+   derive cues and timing around them — never rewrite them.
 
 2. **Direct a coherent visual treatment.** Write `explainer/design.md`: palette,
    material/fill treatment, common angle, typography, object proportions, text

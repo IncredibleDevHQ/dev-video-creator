@@ -15102,6 +15102,28 @@ const writeSceneToBrief = async (nodeId: string) => {
   const state = headlessSceneState(nodeId)
   const found = findSlideLikeNode(nodeId)
   if (!state?.brief || !found) return false
+  // Keep my wording (D2): the author's sentences are the dialogue, so the
+  // windows and timing derive around them locally. A rewrite stays an
+  // explicit per-scene ask in the scene studio, never an automatic pass here.
+  if (project.story?.wordingPolicy === 'preserve' && state.script.trim()) {
+    const script = state.script.trim()
+    const preserved: SceneWindow[] = splitWindows(script, state.pace.granularity).map(beat => {
+      const matched = windowPartsFromWords(state, beat.text)
+      return { say: beat.text, title: beat.title, parts: matched.parts, ...(matched.hero ? { hero: matched.hero } : {}) }
+    })
+    if (!preserved.length) return false
+    const preservedLabels = new Map(leafUnits(state.units).map(unit => [unit.id, unit.label]))
+    writeSlideLikeNode(nodeId, {
+      windows: preserved.map(window => ({ ...window, ...(window.hero ? { heroLabel: preservedLabels.get(window.hero) || '' } : {}) })),
+      script,
+      sourceText: script,
+      scriptApproved: true,
+      breakdownApproved: true,
+      lengthBrief: state.brief,
+      lengthDepth: state.depth,
+    })
+    return animateSceneLocally(nodeId)
+  }
   const body = await fetchJson<{ windows: SceneWindow[] }>('/api/scene/dialogue', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -15243,12 +15265,14 @@ const sourceFinish = async () => {
   if (titleInput) titleInput.value = project.title
   syncProject()
   // Every scene is written to its brief now — the budget is known, so the
-  // notebook opens on the fullest draft rather than a line to grow.
+  // notebook opens on the fullest draft rather than a line to grow. Kept
+  // wording is only segmented around the author's own sentences instead.
+  const preserving = sourceState.wording === 'preserve'
   const finishButton = $('#source-finish') as HTMLButtonElement
   finishButton.disabled = true
   const note = (text: string) => sourceStatus('#source-pages-note', text)
-  note(`Writing ${fresh.length} scenes to their briefs…`)
-  const written = await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(`Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
+  note(preserving ? `Timing ${fresh.length} scenes around your words…` : `Writing ${fresh.length} scenes to their briefs…`)
+  const written = await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(preserving ? `Timing scenes around your words · ${done} of ${total}` : `Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
   finishButton.disabled = false
   syncProject()
   sourceDialog.close()
@@ -15637,7 +15661,9 @@ const startExplainerBuild = async () => {
     })
     off = unsubscribe
     const run = await bridge.harness.run({ adapter: 'kimi', skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
-      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
+      // The story record travels into the build: the wording policy in force
+      // and the authored narrative revision the scenes' words came from (D2).
+      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
     ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
     objectsTimer = window.setInterval(() => {
