@@ -322,8 +322,26 @@ const finishTool = async (args: Args, context: Context) => {
     }
   }
 
+  // Pass 1.5 — every scene's narration proves current before anything
+  // changes: a missing or stale record anywhere fails the whole finish here,
+  // with the notebook and every take selection exactly as they were. (The
+  // durable take clears collected below fire only after the project PUT.)
+  type NarrationRecord = { hash?: string; audioUrl?: string; alignment?: string; review?: Array<{ beat: number; note: string }> }
+  const narrations = new Map<string, { audioUrl: string; recorded: boolean; narration: NarrationRecord }>()
+  for (const scene of scenes) {
+    const narration = await jsonFile(join(projectDir, 'explainer', `${scene.file}.narration.json`)).catch(() => null) as NarrationRecord | null
+    if (!narration?.audioUrl) throw new Error(`${scene.file}: no narration yet — run explainer_narrate (or align the scene's take) before finishing`)
+    const rawProgram = await jsonFile(join(projectDir, 'explainer', `${scene.file}.program.json`))
+    if (narration.hash !== digest(scene.svg, rawProgram)) throw new Error(`${scene.file}: narration or picture changed; run explainer_narrate again`)
+    // The human path's narration record is the selected take: the export must
+    // carry the person's voice, not a guide-voice substitute.
+    narrations.set(scene.id, { audioUrl: narration.audioUrl, recorded: narration.alignment === 'selected-take', narration })
+  }
+
   // Pass 2 — apply: clone split children, write the reviewed content, fold
-  // merged pages into the surviving node's origin.
+  // merged pages into the surviving node's origin. Nothing durable happens in
+  // this loop — take selections retire only once the project PUT has landed.
+  const takeClears: string[] = []
   for (const scene of scenes) {
     const covers = coversOf(scene)
     let node = nodeNamed(scene.id)
@@ -381,22 +399,17 @@ const finishTool = async (args: Args, context: Context) => {
     }
     applied[scene.id] = snapshot(node.attrs)
     project.blocks[scene.id] = { ...(project.blocks[scene.id] || createDefaultBlockConfig(scene.id, node)), durationMs: scene.durationMs }
-    const narration = await jsonFile(join(projectDir, 'explainer', `${scene.file}.narration.json`))
-    const rawProgram = await jsonFile(join(projectDir, 'explainer', `${scene.file}.program.json`))
-    if (narration.hash !== digest(scene.svg, rawProgram)) throw new Error(`${scene.file}: narration or picture changed; run explainer_narrate again`)
-    // The human path's narration record is the selected take: the export must
-    // carry the person's voice, not a guide-voice substitute.
-    const recorded = narration.alignment === 'selected-take'
+    const { audioUrl, recorded } = narrations.get(scene.id)!
     // An old take cannot cover a newly composed mechanism — unless the build
     // aligned this scene to it: then the take IS the timing authority and
     // stays. Otherwise it leaves the document AND the durable selection, so
     // it does not resurrect on reopen.
     if (!recorded) {
       if (project.recordedBlocks) delete project.recordedBlocks[scene.id]
-      await call(context, '/api/takes/clear', { projectId: project.id, blockId: scene.id }).catch(() => {})
+      takeClears.push(scene.id)
     }
     project.presenterTracks ||= {}
-    project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl: narration.audioUrl, audioKind: recorded ? 'recorded-mic' : 'generated' }]
+    project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl, audioKind: recorded ? 'recorded-mic' : 'generated' }]
     // Merged-away pages leave the notebook; their origin lives on in the survivor.
     for (const extra of covers.slice(1)) {
       if (extra === scene.id) continue
@@ -405,7 +418,7 @@ const finishTool = async (args: Args, context: Context) => {
       delete project.blocks[extra]
       delete project.presenterTracks[extra]
       if (project.recordedBlocks) delete project.recordedBlocks[extra]
-      await call(context, '/api/takes/clear', { projectId: project.id, blockId: extra }).catch(() => {})
+      takeClears.push(extra)
     }
   }
 
@@ -422,9 +435,14 @@ const finishTool = async (args: Args, context: Context) => {
     delete project.blocks[input.id]
     delete project.presenterTracks[input.id]
     if (project.recordedBlocks) delete project.recordedBlocks[input.id]
-    await call(context, '/api/takes/clear', { projectId: project.id, blockId: input.id }).catch(() => {})
+    takeClears.push(input.id)
   }
   await call(context, `/api/projects/${encodeURIComponent(project.id)}`, project, 'PUT')
+  // Selections retire only now that the notebook is durably applied: a finish
+  // that failed above left every project page and take selection untouched.
+  for (const blockId of takeClears) {
+    await call(context, '/api/takes/clear', { projectId: project.id, blockId }).catch(() => {})
+  }
   const preview = await call(context, '/api/preview', { project })
   const cast = Object.fromEntries(scenes.map(scene => [scene.id, (scene.cast || []).map(entry => `${entry.key}:${entry.status}`)]))
   await save(join(projectDir, 'explainer', 'receipt.json'), { projectId: project.id, scenes: scenes.length, applied, cast, preview, at: new Date().toISOString() })
