@@ -526,14 +526,19 @@ const alignTakeTool = async (args: Args, context: Context) => {
     throw new Error(`Take alignment failed. Install uv and allow its cached faster-whisper runtime/model download, then retry. ${String((error as Error).message).slice(0, 250)}`)
   }
   const aligned = await jsonFile(join(audioDir, 'take.take-aligned.json')) as { beats: Array<{ id?: string; words: Array<{ word: string; startMs: number; endMs: number }>; coverage: number; startMs: number; durationMs: number; review: string | null }> }
-  // The take becomes the timing authority: beat durations and word anchors
-  // are its measured spans; nothing is invented to fill a gap.
+  // The take becomes the timing authority — on the take's own clock. The
+  // scene starts where the take starts, so the opening beat keeps the silence
+  // before the first word; every later beat starts where its first word was
+  // actually said; the last beat ends at the last measured word. Word anchors
+  // are beat-local offsets on that same clock, and nothing is invented to
+  // fill a gap.
   const normalize = (word: string) => word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
   const review: Array<{ beat: number; note: string }> = []
+  const beatStartMs = aligned.beats.map((beat, index) => (index === 0 ? 0 : beat.startMs))
   program.beats.forEach((beat, index) => {
     const alignedBeat = aligned.beats[index]
     if (!alignedBeat) throw new Error(`Beat ${index + 1} has no alignment`)
-    beat.words = alignedBeat.words.map(word => ({ word: word.word, startMs: word.startMs - alignedBeat.startMs, endMs: word.endMs - alignedBeat.startMs }))
+    beat.words = alignedBeat.words.map(word => ({ word: word.word, startMs: word.startMs - beatStartMs[index], endMs: word.endMs - beatStartMs[index] }))
     if (alignedBeat.review) review.push({ beat: index + 1, note: alignedBeat.review })
     for (const event of [beat, ...(beat.then || [])].flatMap(b => b.events || [])) {
       if (!event.cue) continue
@@ -544,11 +549,19 @@ const alignTakeTool = async (args: Args, context: Context) => {
       }
     }
   })
+  // The final beat ends at the take's last measured word — never at the old
+  // estimate. (A beat the take does not say keeps its estimate; its review
+  // note blocks the finish until the pickup lands.)
+  const closingWords = aligned.beats[aligned.beats.length - 1]?.words || []
+  const takeEndMs = closingWords.length ? closingWords[closingWords.length - 1].endMs : 0
   program.beats.forEach((beat, index) => {
-    const startMs = aligned.beats[index].startMs
     const next = aligned.beats[index + 1]
-    beat.durationMs = Math.max(400, Math.round(next ? next.startMs - startMs : beat.durationMs || 2000))
+    const endMs = next ? next.startMs : takeEndMs || beatStartMs[index] + (beat.durationMs || 2000)
+    beat.durationMs = Math.max(400, Math.round(endMs - beatStartMs[index]))
   })
+  // Measured times are the whole beat: the compiler must not pad its own
+  // holds between them, or the scene would drift off the take's clock.
+  program.clock = 'take'
   await save(p.programPath, program)
   await save(join(p.folder, `${p.scene}.take-alignment.json`), { beats: aligned.beats.map(beat => ({ id: beat.id, coverage: beat.coverage, startMs: beat.startMs, durationMs: beat.durationMs, review: beat.review })) })
   // The take IS this scene's audio on the human path: store it and write the

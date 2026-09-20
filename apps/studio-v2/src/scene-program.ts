@@ -106,7 +106,16 @@ export type ProgramBeat = {
   words?: Array<{ word: string; startMs: number; endMs: number }>
 }
 
-export type SceneProgram = { version: 1; page?: string; cast: ProgramActor[]; beats: ProgramBeat[] }
+export type SceneProgram = {
+  version: 1
+  page?: string
+  // 'take': the beats were aligned to a recorded take (explainer_align_take),
+  // so their durations and word anchors are measured spans of the take's own
+  // clock — the compiler adds no holds of its own between them.
+  clock?: 'take'
+  cast: ProgramActor[]
+  beats: ProgramBeat[]
+}
 
 const MOMENT_INTENT: Record<string, MotionIntent> = {
   establish: 'introduce',
@@ -252,7 +261,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
     .filter((beat): beat is ProgramBeat => Boolean(beat))
     .slice(0, 16)
   if (!cast.length || !beats.length) return null
-  return { version: 1, page: asString(value.page, 120) || undefined, cast, beats }
+  return { version: 1, page: asString(value.page, 120) || undefined, ...(value.clock === 'take' ? { clock: 'take' as const } : {}), cast, beats }
 }
 
 const act = (op: MotionOp, targets: string[], startMs: number, extra: Partial<MotionAction> = {}): MotionAction => ({
@@ -463,6 +472,10 @@ export const compileSceneProgram = (
   options: { viewBox: { width: number; height: number }; wpm?: number },
 ): { windows: SceneWindow[]; plan: MotionPlanV2 } | null => {
   const wpm = options.wpm || 150
+  // A take-aligned program runs on the take's own clock: each beat's measured
+  // span already reaches the next beat's first word, so no moment hold is
+  // added — inserting one would stretch the scene off the recorded delivery.
+  const takeClock = program.clock === 'take'
   const leaves = leafUnits(units)
   const unitFor = (id: string) => leaves.find(unit => unit.id === id || unit.ids.includes(id)) || flattenUnits(units).find(unit => unit.id === id)
   // A thing, or one named piece of the artwork it wears: "bucket.tokens" is
@@ -885,8 +898,10 @@ export const compileSceneProgram = (
       ...(partIds.length ? { hero: idsOf(partIds[0]) } : {}),
       actions,
       motionWindowMs,
-      // The line runs as long as it is spoken; a consequence then holds.
-      holdMs: Math.max(hold, spoken - motionWindowMs + hold),
+      // The line runs as long as it is spoken; a consequence then holds. On
+      // the take's clock the pause after the line belongs to the next beat's
+      // measured start — the beat ends where the measured words end.
+      holdMs: takeClock ? Math.max(0, spoken - motionWindowMs) : Math.max(hold, spoken - motionWindowMs + hold),
     }
   })
   if (!steps.length) return null

@@ -118,6 +118,17 @@ export const retimePlanToMarks = (plan: MotionPlanV2, marks: number[], totalMs: 
   return { ...plan, steps }
 }
 
+// The build's answer to a human take (§5.8a): explainer_align_take measured
+// the take's words, and the finish attached that very audio as the scene's
+// recorded-mic narration track. Where that track is present, the reviewed
+// plan already runs on the take's measured clock — so the take's press marks
+// must not re-time the scene, its recorded length must not stretch the scene,
+// and its own audio stays out of the mix: the narration is the one voice.
+const alignedTakeNarration = (project: ProjectDocumentV1, nodeId: string): boolean =>
+  (project.presenterTracks?.[nodeId] || []).some(
+    track => track.kind === 'narration' && track.audioKind === 'recorded-mic' && Boolean(safeUrl(track.audioUrl)),
+  )
+
 // The project as the takes shaped it: every page scene whose take keeps
 // the plan carries the re-timed plan, so timeline, captions, stage track
 // and the driver all read one timing.
@@ -128,6 +139,9 @@ const withTakenPlans = (project: ProjectDocumentV1): ProjectDocumentV1 => {
     const id = typeof node.attrs?.id === 'string' ? node.attrs.id : ''
     const recording = id ? recordings[id] : undefined
     if (!recording?.keepsPlan || !recording.beatMarksMs?.length || !isSlideLikeNode(node)) return node
+    // The build's alignment already put this scene on the take's clock, at
+    // word precision; the coarser press marks would only pull it off again.
+    if (alignedTakeNarration(project, id)) return node
     const plan = slideNodeMotion(node)
     if (!plan) return node
     const retimed = retimePlanToMarks(plan, recording.beatMarksMs, recording.durationMs)
@@ -1735,8 +1749,10 @@ export const compileProject = (
       const config = normalizeBlockConfig(nodeId, node, project.blocks[nodeId])
       const recordedBlock = project.recordedBlocks?.[nodeId]
       // A saved take replaces the scene, so the scene must run for the take's
-      // real length rather than the authored block duration.
-      const requestedDurationMs = recordedBlock?.videoUrl
+      // real length rather than the authored block duration — unless the build
+      // aligned the scene to that take: the reviewed plan already runs on the
+      // take's measured clock, and the block's reviewed duration stands.
+      const requestedDurationMs = recordedBlock?.videoUrl && !alignedTakeNarration(project, nodeId)
         ? recordedBlock.durationMs
         : config.durationMs
       // A scene runs as long as its plan (or its take) says. The only cap is
