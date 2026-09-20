@@ -32,6 +32,7 @@ const CHECKS = [
   'revision-conflict-check.mjs',  // #6: mid-run motion/staging edits conflict at finish; the page is preserved
   'finish-director-check.mjs',    // D6: finish stages scenes via the real hidden-window director
   'run-history-check.mjs',        // D3: durable runs + stage checkpoints
+  'stage-identity-check.mjs',     // #7: per-scene/object stage checkpoints never overwrite each other
   'take-workflow-check.mjs',      // D3: take archive, selections, reopen hydration
   'rehearsal-check.mjs',          // §3.8: rehearsal loop — graphics + cue lines, beat controls, reset
   'mic-default-check.mjs',        // #4: the human path records the microphone by default, devices on demand

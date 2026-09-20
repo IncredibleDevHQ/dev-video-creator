@@ -470,11 +470,14 @@ export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> 
     }))
 }
 
-export const recordBuildStage = async (stage: { runId: string; stage: string; status: string; fingerprint?: string; detail?: unknown }) => {
+export const recordBuildStage = async (stage: BuildStageInput) => {
   const key = `build-stages:${stage.runId}`
   const list = ((await loadSetting(key)) as Array<Record<string, unknown>> | null) || []
-  const index = list.findIndex(entry => entry.stage === stage.stage)
-  const row = { ...stage, updatedAt: new Date().toISOString() }
+  // Same key as the Postgres backend: (run, stage, subject) — a scene's or
+  // object's checkpoint updates in place and never overwrites another's.
+  const subject = stage.subject || ''
+  const index = list.findIndex(entry => entry.stage === stage.stage && String(entry.subject || '') === subject)
+  const row = { ...stage, subject, updatedAt: new Date().toISOString() }
   if (index >= 0) list[index] = row
   else list.push(row)
   await saveSetting(key, list)

@@ -2758,12 +2758,12 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'POST' && /^\/api\/runs\/[^/]+\/stages$/.test(url.pathname)) {
       const runId = decodeURIComponent(url.pathname.split('/')[3])
-      const stage = await readJson<{ stage?: string; status?: string; fingerprint?: string; detail?: unknown }>(request, 256 * 1024)
+      const stage = await readJson<{ stage?: string; subject?: string; status?: string; fingerprint?: string; detail?: unknown }>(request, 256 * 1024)
       if (!stage?.stage || !stage.status) {
         json(response, 400, { error: 'A stage checkpoint needs a stage and a status' })
         return
       }
-      await recordBuildStage({ runId, stage: stage.stage, status: stage.status, fingerprint: stage.fingerprint, detail: stage.detail })
+      await recordBuildStage({ runId, stage: stage.stage, subject: typeof stage.subject === 'string' ? stage.subject : undefined, status: stage.status, fingerprint: stage.fingerprint, detail: stage.detail })
       json(response, 200, { saved: true })
       return
     }

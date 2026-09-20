@@ -94,12 +94,14 @@ const paths = (args: Args) => {
 // tool records its typed outcome against the durable run row — the stage
 // history survives the agent and the app. The states are the plan's:
 // a human branch may durably wait for a recording (needs-input).
+// Per-scene and per-object stages key their checkpoint on that subject, so
+// one scene's waiting state is never overwritten by another scene's progress.
 const STAGE_STATES = ['pending', 'running', 'succeeded', 'needs-input', 'failed', 'cancelled', 'stale'] as const
-const recordStage = async (context: Context, projectDir: string, stage: string, status: (typeof STAGE_STATES)[number], detail?: unknown) => {
+const recordStage = async (context: Context, projectDir: string, stage: string, status: (typeof STAGE_STATES)[number], detail?: unknown, subject?: string) => {
   const runId = basename(projectDir)
   if (!/^run-/.test(runId)) return
   try {
-    await call(context, `/api/runs/${encodeURIComponent(runId)}/stages`, { stage, status, detail })
+    await call(context, `/api/runs/${encodeURIComponent(runId)}/stages`, { stage, ...(subject ? { subject } : {}), status, detail })
   } catch {
     // The run dir remains the working record; the durable row is best-effort.
   }
@@ -192,7 +194,7 @@ const previewTool = (args: Args, context?: Context, chargeBudget = true) => {
       await save(join(candidate, 'proof.json'), proof)
     }
     if (context) {
-      await recordStage(context, p.projectDir, 'preview', result.errors.length ? 'failed' : 'succeeded', { scene: p.scene, errors: result.errors, warnings: result.warnings, durationMs: result.durationMs })
+      await recordStage(context, p.projectDir, 'preview', result.errors.length ? 'failed' : 'succeeded', { scene: p.scene, errors: result.errors, warnings: result.warnings, durationMs: result.durationMs }, p.scene)
     }
     return { errors: result.errors, warnings: result.warnings, durationMs: result.durationMs, frames, proofPath: join(p.folder, `${p.scene}.proof.json`), instruction: 'Open the frame files and inspect the actual artwork, state changes, readability and motion. A schema pass is not visual approval.' }
   })
@@ -225,7 +227,7 @@ const restoreTool = async (args: Args, context: Context) => {
   await save(join(p.folder, `${p.scene}.proof.json`), proof)
   const narration = await jsonFile(join(p.folder, `${p.scene}.narration.json`)).catch(() => null) as { hash?: string } | null
   const staleNarration = Boolean(narration?.hash && narration.hash !== proof.hash)
-  await recordStage(context, p.projectDir, 'restore', 'succeeded', { scene: p.scene, hash })
+  await recordStage(context, p.projectDir, 'restore', 'succeeded', { scene: p.scene, hash }, p.scene)
   return {
     scene: p.scene,
     hash,
@@ -246,7 +248,7 @@ const narrateTool = async (args: Args, context: Context) => {
   // here, and leave the run durably waiting for a person — never failed, and
   // never silently substituted.
   if (inputs.delivery?.mode === 'human') {
-    await recordStage(context, p.projectDir, 'narrate', 'needs-input', { scene: p.scene, reason: 'The human path narrates from the recorded take; none is aligned in this run yet. Record or select the take in the app, then run explainer_align_take.' })
+    await recordStage(context, p.projectDir, 'narrate', 'needs-input', { scene: p.scene, reason: 'The human path narrates from the recorded take; none is aligned in this run yet. Record or select the take in the app, then run explainer_align_take.' }, p.scene)
     throw new Error(`Scene ${p.scene} is on the human delivery path: narration comes from the creator's recorded take. Record or select the take in the app and call explainer_align_take with its audio — generated speech is never a silent substitute.`)
   }
   const program = await jsonFile(p.programPath) as SceneProgram
@@ -296,7 +298,7 @@ const narrateTool = async (args: Args, context: Context) => {
   // narrated revision is still snapshotted as the retained candidate.
   const preview = await previewTool(args, context, false)
   if (preview.errors.length) {
-    await recordStage(context, p.projectDir, 'narrate', 'failed', { scene: p.scene, errors: preview.errors })
+    await recordStage(context, p.projectDir, 'narrate', 'failed', { scene: p.scene, errors: preview.errors }, p.scene)
     return preview
   }
   const proof = await jsonFile(join(p.folder, `${p.scene}.proof.json`)) as Proof
@@ -309,7 +311,7 @@ const narrateTool = async (args: Args, context: Context) => {
   if (!uploaded.ok) throw new Error('Could not store scene narration')
   const track = await uploaded.json() as { url: string }
   await save(join(p.folder, `${p.scene}.narration.json`), { hash: proof.hash, audioUrl: track.url, alignment: 'local-whisper-word-timestamps', durationMs: proof.durationMs })
-  await recordStage(context, p.projectDir, 'narrate', 'succeeded', { scene: p.scene, durationMs: proof.durationMs, audioUrl: track.url })
+  await recordStage(context, p.projectDir, 'narrate', 'succeeded', { scene: p.scene, durationMs: proof.durationMs, audioUrl: track.url }, p.scene)
   return { ...preview, audioPath, audioUrl: track.url, alignment: 'local-whisper-word-timestamps', instruction: 'Listen to the narration and inspect these final timed frames. The MP4 will use these same durations and word anchors.' }
 }
 
@@ -717,7 +719,7 @@ const alignTakeTool = async (args: Args, context: Context) => {
   // Same recompile rule as narration: no budget spent, but a passing
   // take-aligned revision is snapshotted as the retained candidate.
   const preview = await previewTool(args, context, false)
-  await recordStage(context, p.projectDir, 'align-take', review.length ? 'needs-input' : 'succeeded', { scene: p.scene, review })
+  await recordStage(context, p.projectDir, 'align-take', review.length ? 'needs-input' : 'succeeded', { scene: p.scene, review }, p.scene)
   return { ...preview, review, alignment: 'selected-take', instruction: review.length ? 'These beats were not said as written; rebind their cues or record the named pickups, then align again.' : 'The take is the timing authority. Inspect the frames: motion follows the actual delivery.' }
 }
 
@@ -786,7 +788,7 @@ const reviewObjectTool = async (args: Args, context: Context) => {
     errors: result.errors, warnings: result.warnings, clips: result.clips, fidelity: result.fidelity, frames, at: new Date().toISOString(),
   }
   await save(join(projectDir, 'explainer', 'objects', `${key}.review.json`), receipt)
-  await recordStage(context, projectDir, 'object-review', result.errors.length ? 'failed' : 'succeeded', { key, clips: result.clips.length, fidelity: result.fidelity })
+  await recordStage(context, projectDir, 'object-review', result.errors.length ? 'failed' : 'succeeded', { key, clips: result.clips.length, fidelity: result.fidelity }, key)
   return {
     errors: result.errors,
     warnings: result.warnings,

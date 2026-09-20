@@ -3,6 +3,10 @@
 // for its person — an intentional saved state, never rendered as a failure.
 export type BuildStageRow = {
   stage: string
+  // Scene/object identity of the checkpoint (D3): per-scene stages carry the
+  // scene's file stem, object stages the asset key; run-level stages carry
+  // none. Two scenes' checkpoints of the same stage are distinct rows.
+  subject?: string
   status: string
   detail?: { scene?: string; review?: Array<{ beat: number; note: string }> } | null
   updatedAt?: string
@@ -37,7 +41,9 @@ export const stageRowsFor = (stages: BuildStageRow[]): StageViewRow[] =>
   stages.flatMap(stage => {
     const rows: StageViewRow[] = [
       {
-        text: `${stage.stage} · ${STATE_LABEL[stage.status] || stage.status}`,
+        // A checkpoint with a scene/object subject names it: with per-scene
+        // checkpoints the same stage appears once per scene.
+        text: `${stage.stage}${stage.subject ? ` · ${stage.subject}` : ''} · ${STATE_LABEL[stage.status] || stage.status}`,
         tone: toneFor(stage.status),
         indent: false,
       },

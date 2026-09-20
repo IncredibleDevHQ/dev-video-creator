@@ -50,6 +50,11 @@ export type BuildRunRow = {
 export type BuildStageInput = {
   runId: string
   stage: string
+  // Scene/object identity within the stage: a per-scene stage (preview,
+  // narrate, align-take, restore) keys on the scene's file stem, object-review
+  // on the asset key, so two scenes never overwrite each other's checkpoint.
+  // Run-level stages (finish, export) leave it empty.
+  subject?: string
   status: string
   fingerprint?: string
   detail?: unknown

@@ -37,4 +37,18 @@ describe('stageRowsFor', () => {
   it('leaves a needs-input stage without review notes as a single row', () => {
     expect(stageRowsFor([{ stage: 'align-take', status: 'needs-input' }])).toHaveLength(1)
   })
+
+  it('names the scene/object subject when two scenes checkpoint the same stage', () => {
+    const rows = stageRowsFor([
+      { stage: 'preview', subject: '01-bucket', status: 'succeeded' },
+      { stage: 'preview', subject: '02-pool', status: 'needs-input', detail: { scene: '02-pool', review: [{ beat: 1, note: 'Not recorded yet.' }] } },
+      { stage: 'finish', status: 'pending' },
+    ])
+    expect(rows.map(row => row.text)).toEqual([
+      'preview · 01-bucket · done',
+      'preview · 02-pool · waiting for you',
+      'beat 1: Not recorded yet.',
+      'finish · pending',
+    ])
+  })
 })

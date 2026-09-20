@@ -586,12 +586,12 @@ export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> 
 export const recordBuildStage = async (stage: BuildStageInput) => {
   await initializePersistence()
   await database.query(
-    `insert into studio_build_stages (run_id, stage, status, fingerprint, detail)
-     values ($1, $2, $3, $4, $5::jsonb)
-     on conflict (run_id, stage) do update set
+    `insert into studio_build_stages (run_id, stage, subject, status, fingerprint, detail)
+     values ($1, $2, $3, $4, $5, $6::jsonb)
+     on conflict (run_id, stage, subject) do update set
        status = excluded.status, fingerprint = excluded.fingerprint,
        detail = excluded.detail, updated_at = now()`,
-    [stage.runId, stage.stage, stage.status, stage.fingerprint || null, JSON.stringify(stage.detail || {})],
+    [stage.runId, stage.stage, stage.subject || '', stage.status, stage.fingerprint || null, JSON.stringify(stage.detail || {})],
   )
 }
 
@@ -604,6 +604,7 @@ export const listBuildStages = async (runId: string) => {
   return result.rows.map(row => ({
     runId: row.run_id,
     stage: row.stage,
+    subject: row.subject,
     status: row.status,
     fingerprint: row.fingerprint,
     detail: row.detail,
