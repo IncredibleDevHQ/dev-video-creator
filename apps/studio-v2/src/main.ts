@@ -14346,6 +14346,9 @@ const sourceState: {
   modelData?: { objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } | null
   // How much the studio may rewrite the creator's words (D2).
   wording: 'preserve' | 'assist' | 'draft'
+  // The delivery path the journey chose in Create explainer, captured when the
+  // dialog opens so a notebook created for this source keeps the choice (D0).
+  delivery: 'human' | 'generated' | null
   brandColor: string
   logoUrl: string
   directions: StudioThemeV1[]
@@ -14358,7 +14361,7 @@ const sourceState: {
   // The agent drawing the pages through the harness, and how it went.
   drawer?: string
   drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
-} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
+} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', delivery: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
 
 // Narratives default to preserve, links to draft: the author's own words are
 // never silently rewritten, and the choice is always visible and changeable.
@@ -14398,6 +14401,9 @@ const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
 const openSourceDialog = (kind: 'link' | 'narrative') => {
   sourceState.kind = kind
   sourceState.wording = kind === 'narrative' ? 'preserve' : 'draft'
+  // The journey's delivery choice rides the source state: a notebook created
+  // at the finish belongs to the same journey and keeps it.
+  sourceState.delivery = project.explainerDelivery || null
   syncSourceWording()
   showSourceStep('read')
   ;($('#source-heading') as HTMLElement).textContent = kind === 'link' ? 'From a link' : 'From a narrative'
@@ -15210,7 +15216,8 @@ const notebookHasOwnContent = () => {
   return !starterContentJson || JSON.stringify(content) !== starterContentJson
 }
 // A source can begin a new notebook without a reload: the current one is
-// kept, a fresh document takes the theme, and the studio continues in it.
+// kept, a fresh document takes the theme and the journey's delivery choice,
+// and the studio continues in it.
 const startFreshNotebook = async (title: string) => {
   project.notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(project.notebook)
@@ -15225,6 +15232,7 @@ const startFreshNotebook = async (title: string) => {
     fresh.theme = structuredClone(project.theme)
     fresh.brand = { ...project.theme.brand }
   }
+  if (sourceState.delivery) fresh.explainerDelivery = sourceState.delivery
   project = fresh
   slideEditor = null
   lastVideoPlan = null
