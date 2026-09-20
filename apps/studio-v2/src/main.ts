@@ -7469,10 +7469,18 @@ const openCamera = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   recordingNodeId = scene.id
+  // The journey's delivery choice sets the audio default: Present it myself
+  // records the presenter's own microphone, Generate automatically starts
+  // from the guide voice. Device access still waits for Enable camera.
+  if (project.explainerDelivery) {
+    audioMode.value = project.explainerDelivery === 'human' ? 'microphone' : 'generated'
+  }
   presenterScript.value = sceneScript(scene)
   generatedVoiceUrl = ''
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
+  ;($('#voice-reference-label') as HTMLElement).hidden =
+    audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
   resetTakeReview()
   renderCameraBrief(scene.id)
