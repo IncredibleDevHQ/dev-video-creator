@@ -335,7 +335,15 @@ const finishTool = async (args: Args, context: Context) => {
     if (narration.hash !== digest(scene.svg, rawProgram)) throw new Error(`${scene.file}: narration or picture changed; run explainer_narrate again`)
     // The human path's narration record is the selected take: the export must
     // carry the person's voice, not a guide-voice substitute.
-    narrations.set(scene.id, { audioUrl: narration.audioUrl, recorded: narration.alignment === 'selected-take', narration })
+    const recorded = narration.alignment === 'selected-take'
+    // An aligned take whose latest alignment still reports needs-input (an
+    // unresolved pickup) blocks the finish — the run waits for the person;
+    // it never completes over a beat the take did not say as written.
+    const pending = Array.isArray(narration.review) ? narration.review : []
+    if (recorded && pending.length) {
+      throw new Error(`${scene.file}: the aligned take still needs input — ${pending.map(item => `beat ${item.beat}: ${item.note}`).join(' · ')} Record the pickup or rebind the cue, then run explainer_align_take again.`)
+    }
+    narrations.set(scene.id, { audioUrl: narration.audioUrl, recorded, narration })
   }
 
   // Pass 2 — apply: clone split children, write the reviewed content, fold
@@ -551,7 +559,10 @@ const alignTakeTool = async (args: Args, context: Context) => {
   if (!uploaded.ok) throw new Error('Could not store the take audio')
   const track = await uploaded.json() as { url: string }
   const sceneSvg = await readFile(p.svgPath, 'utf8')
-  await save(join(p.folder, `${p.scene}.narration.json`), { hash: digest(sceneSvg, program), audioUrl: track.url, alignment: 'selected-take', durationMs: program.beats.reduce((sum, beat) => sum + (beat.durationMs || 0), 0) })
+  // The receipt is also the alignment verdict (§3.8): unresolved pickups ride
+  // it as `review`, and the finish refuses a scene whose latest take still
+  // needs input — a needs-input beat is a wait, never a completable review.
+  await save(join(p.folder, `${p.scene}.narration.json`), { hash: digest(sceneSvg, program), audioUrl: track.url, alignment: 'selected-take', durationMs: program.beats.reduce((sum, beat) => sum + (beat.durationMs || 0), 0), ...(review.length ? { review } : {}) })
   const preview = await previewTool(args)
   await recordStage(context, p.projectDir, 'align-take', review.length ? 'needs-input' : 'succeeded', { scene: p.scene, review })
   return { ...preview, review, alignment: 'selected-take', instruction: review.length ? 'These beats were not said as written; rebind their cues or record the named pickups, then align again.' : 'The take is the timing authority. Inspect the frames: motion follows the actual delivery.' }
