@@ -944,20 +944,26 @@ const buildCompositionHtml = (
       // presenter track, never replaces them. Composed scene recordings
       // replace the scene.
       const recording = project.recordedBlocks?.[scene.id]
+      // One voice per scene: when the build aligned this scene to its take,
+      // the recorded-mic narration track IS the take's audio — the very track
+      // the alignment listened to. Every other copy of that voice (the camera
+      // file's sound, the composite's) stays out of the mix.
+      const narrationVoice = alignedTakeNarration(project, scene.id)
       const keepsPlan = Boolean(recording?.keepsPlan) && isSlideLikeNode(scene.node) && scene.id !== contentViewNodeId
       const presenterTake = !keepsPlan && recording?.role === 'presenter'
       const takeCameraUrl = keepsPlan ? safeUrl(recording?.cameraUrl) : null
       const takeTracks: Scene['presenterTracks'] = takeCameraUrl ? [{ kind: 'human-camera', videoUrl: takeCameraUrl, audioKind: 'recorded-mic' }] : []
       // The camera-dialog flow writes the presenter track when the take is
       // kept; a hydrated archive can restore the take without it, so the
-      // recording itself is the fallback — its file carries the voice.
+      // recording itself is the fallback — its file carries the voice, unless
+      // the aligned narration already does.
       const presenterTakeUrl = presenterTake ? safeUrl(recording?.videoUrl) : null
       const presenterTakeTracks: Scene['presenterTracks'] =
         presenterTakeUrl &&
         !scene.presenterTracks.some(
           track => track.kind === 'human-camera' && safeUrl(track.videoUrl) === presenterTakeUrl,
         )
-          ? [{ kind: 'human-camera' as const, videoUrl: presenterTakeUrl, audioUrl: presenterTakeUrl, audioKind: 'recorded-mic' as const }]
+          ? [{ kind: 'human-camera' as const, videoUrl: presenterTakeUrl, ...(narrationVoice ? {} : { audioUrl: presenterTakeUrl }), audioKind: 'recorded-mic' as const }]
           : []
       const presenterTracks = [...scene.presenterTracks, ...presenterTakeTracks, ...takeTracks]
       const presenterMarkup = presenterTracks
@@ -975,7 +981,9 @@ const buildCompositionHtml = (
             1.6,
             Math.max(0.6, scene.config.camera.scale),
           )
-          const muted = track.audioKind === 'recorded-mic' && !audioUrl ? '' : ' muted'
+          // The aligned narration carries the voice; the take's own picture
+          // stays, muted — otherwise the same voice plays twice.
+          const muted = !narrationVoice && track.audioKind === 'recorded-mic' && !audioUrl ? '' : ' muted'
           const video = videoUrl
             ? `<video class="camera camera-kind-${scene.kind} clip ${cameraClass(scene.config.camera.position)} ${scene.config.camera.shape} presenter-${scene.config.camera.mode}" style="--camera-scale:${cameraScale};${cameraGeometryStyle}" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${10 + trackIndex}" src="${escapeHtml(videoUrl)}"${muted} playsinline></video>`
             : ''
@@ -991,11 +999,12 @@ const buildCompositionHtml = (
         scene.id === contentViewNodeId || keepsPlan || presenterTake
           ? null
           : safeUrl(recording?.videoUrl)
-      const takeVoiceUrl = keepsPlan && !takeCameraUrl ? safeUrl(recording?.videoUrl) : null
+      const takeVoiceUrl = keepsPlan && !takeCameraUrl && !narrationVoice ? safeUrl(recording?.videoUrl) : null
       // A saved take already contains the directed canvas, camera, and audio,
       // so it replaces the live scene visuals and presenter tracks outright —
-      // unless it keeps the plan, when only its voice is used. A raw
-      // presenter take never reaches here: it rides as a presenter track.
+      // the composite's own audio is its one voice (a narration track never
+      // reaches these scenes). A raw presenter take never reaches here: it
+      // rides as a presenter track.
       const recordedTakeMarkup = recordedTakeUrl
         ? `<video class="recorded-take clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`
         : takeVoiceUrl
