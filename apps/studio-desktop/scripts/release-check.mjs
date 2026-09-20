@@ -24,6 +24,7 @@ const CHECKS = [
   'source-capture-check.mjs',     // D1: immutable source revisions, brand URL, light wireframes
   'story-records-check.mjs',      // D2: narrative revisions, explanation model, wording policy
   'wording-preserve-check.mjs',   // P1: Keep my wording survives finish, reopen and the build inputs
+  'source-destination-check.mjs', // P1: a fresh source starts its own notebook; append stays a choice
   'explainer-lineage-check.mjs',  // D3: splits/merges, coverage, forged markers refused
   'explainer-persistence-check.mjs', // D3: finish/export guards
   'finish-director-check.mjs',    // D6: finish stages scenes via the real hidden-window director

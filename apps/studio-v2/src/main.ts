@@ -3157,6 +3157,17 @@ editor.on('update', () => {
   scheduleArcPass()
 })
 
+// The starter sample as first loaded: a notebook still holding exactly it has
+// no content of its own yet. Only captured on a fresh launch — a stored
+// notebook's content is always the author's. NodeIdentifier stamps the ids in
+// a microtask after the view exists, so the fingerprint waits for that tick.
+let starterContentJson: string | null = null
+if (!storedProject) {
+  queueMicrotask(() => {
+    starterContentJson = JSON.stringify((editor.getJSON() as TiptapDocument).content)
+  })
+}
+
 const showToast = (message: string) => {
   const toast = $('#toast')
   toast.textContent = message
@@ -14371,7 +14382,7 @@ const sourceStatus = (id: string, text: string, error = false) => {
 const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
   if (step === 'pages') {
     const row = document.getElementById('source-destination-row')
-    if (row) row.hidden = !notebookHasScenes()
+    if (row) row.hidden = !notebookHasOwnContent()
     void populateSourceDrawers()
   }
   const order = ['read', 'brand', 'outline', 'pages']
@@ -15189,6 +15200,15 @@ const writeScenesToBrief = async (nodeIds: string[], onProgress: (done: number, 
   return { done, failed, stopped: stop }
 }
 const notebookHasScenes = () => (editor.getJSON() as TiptapDocument).content.some(node => node.type === 'scene' || node.type === 'slide')
+// The new-or-append destination turns on the author's own content: scenes or
+// any written block count, blank paragraphs never do, and a notebook still
+// holding only the untouched starter sample counts as empty (a fresh launch's
+// story begins in a new notebook, not appended to the sample).
+const notebookHasOwnContent = () => {
+  const content = (editor.getJSON() as TiptapDocument).content || []
+  if (!content.some(node => node.type !== 'paragraph' || (node.content || []).length)) return false
+  return !starterContentJson || JSON.stringify(content) !== starterContentJson
+}
 // A source can begin a new notebook without a reload: the current one is
 // kept, a fresh document takes the theme, and the studio continues in it.
 const startFreshNotebook = async (title: string) => {
@@ -15220,8 +15240,14 @@ const sourceFinish = async () => {
   const outline = sourceState.outline
   const pages = sourceState.pages
   if (!source || !outline || !pages?.length) return
-  const destination = document.querySelector<HTMLInputElement>('input[name="source-destination"]:checked')?.value || 'new'
-  const startedNew = notebookHasScenes() && destination === 'new'
+  // The choice is offered only when the notebook holds the author's own
+  // content; a notebook with none (or only the untouched starter sample) is
+  // not a destination — the story starts a notebook of its own.
+  const hasOwnContent = notebookHasOwnContent()
+  const destination = hasOwnContent
+    ? document.querySelector<HTMLInputElement>('input[name="source-destination"]:checked')?.value || 'new'
+    : 'new'
+  const startedNew = destination === 'new'
   if (startedNew) await startFreshNotebook(outline.title)
   // the brand, with the logo the author picked
   const direction = sourceState.directions[sourceState.direction] || sourceState.directions[0]
