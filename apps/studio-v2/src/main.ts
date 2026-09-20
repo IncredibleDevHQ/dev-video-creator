@@ -408,6 +408,9 @@ const STORAGE_KEY = 'incredible-studio-v2-project'
 // Which saved notebook the studio opens; set by the notebook switcher.
 const ACTIVE_PROJECT_KEY = 'incredible-studio-v2-active-project'
 const THEME_STORAGE_KEY = 'incredible-studio-v2-themes'
+// A Build explainer click that first has to fork its base survives the
+// navigation into the child as this intent: the child id the build resumes on.
+const BUILD_INTENT_KEY = 'incredible-studio-v2-build-intent'
 const WORKER_URL = import.meta.env.VITE_RENDER_WORKER_URL || ''
 const LEGACY_MVP_BRAND = {
   background: '#f4f2ec',
@@ -6264,7 +6267,7 @@ const openAttentionVideoSample = async () => {
 // The base keeps the narrative, the facts and the wireframes; the video is a
 // notebook of its own, taken from a pinned revision of the base and free to
 // be enriched, restaged and recomposed without touching it.
-const createVideoFromBase = async (baseId: string, baseTitle: string) => {
+const createVideoFromBase = async (baseId: string, baseTitle: string, options?: { resumeBuild?: boolean }) => {
   // One key per attempt: a retry after an interrupted request returns the
   // video that was already made instead of making a second one.
   const forkKey = `fork-${baseId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -6275,6 +6278,9 @@ const createVideoFromBase = async (baseId: string, baseTitle: string) => {
       { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ forkKey, title: `${baseTitle} · video` }) },
     )
     showToast(reused ? 'That video already existed — opening it' : `Video notebook ready · ${child.derivedFrom?.receipt?.scenes || 0} scenes from ${baseTitle}`)
+    // The open below reloads the page, so a build that needed the fork cannot
+    // be dispatched from here: it resumes in the child from this intent.
+    if (options?.resumeBuild) window.localStorage.setItem(BUILD_INTENT_KEY, child.id)
     await openNotebook(child.id)
     return child
   } catch (error) {
@@ -15551,8 +15557,11 @@ const startExplainerBuild = async () => {
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
     if (!project.derivedFrom?.notebook) {
-      const child = await createVideoFromBase(project.id, project.title)
+      const child = await createVideoFromBase(project.id, project.title, { resumeBuild: true })
       if (!child) throw new Error('Could not create the video derivative')
+      // The fork navigated into the child; the intent resumes the build
+      // there, against the child's own id and its remapped scenes.
+      return
     }
     const targetId = project.id
     const scenes = project.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(n => ({
@@ -15611,6 +15620,16 @@ const startExplainerBuild = async () => {
   }
 }
 ;($('#build-explainer') as HTMLButtonElement).addEventListener('click', () => void startExplainerBuild())
+// Resume a build that had to fork its base first: the click saved this intent
+// and navigated into the new video notebook, which is the page now running.
+// One shot — consumed whether or not the build can start here.
+{
+  const intent = window.localStorage.getItem(BUILD_INTENT_KEY)
+  if (intent) {
+    window.localStorage.removeItem(BUILD_INTENT_KEY)
+    if (intent === project.id) void startExplainerBuild()
+  }
+}
 // Dev hook: the asset library.
 ;(window as unknown as { __assets?: unknown }).__assets = {
   list: () => projectAssets(),

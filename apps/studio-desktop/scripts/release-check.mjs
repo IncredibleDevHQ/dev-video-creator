@@ -15,6 +15,7 @@ const UNIT_GATES = [
 ]
 const CHECKS = [
   'create-explainer-check.mjs',   // D0: delivery paths, no default, draft labels, badges, rename
+  'build-fork-check.mjs',         // P1: first Build on a base forks once, then builds the derivative
   'migration-check.mjs',          // D0a: legacy file store → PostgreSQL/MinIO import
   'local-store-check.mjs',        // D0a: the explicit file-backend opt-out stays green (takes included)
   'theme-library-check.mjs',      // D1: durable revisioned themes, restart, browser import, site kept over revisions
