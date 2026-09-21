@@ -4,6 +4,8 @@ Product specification, current gaps, architecture, and development plan
 
 19 September 2026 · Proposed · Explainer scope only
 
+> **21 September repair priority:** Follow the [live-review repair plan and motion-quality packages](../reviews/2026-09-21-explainer-video-root-causes.md#architecture-and-implementation-order) for the next implementation slices. It adds the inspected Lottie repository's choreography, object continuity, safe controls and production-player review practices to the existing SVG/SMIL architecture. Protect accepted work and fix export/target/timing defects first; then prove reusable behaviors in one excellent scene before expanding the video. The detailed findings distinguish current failures from already-repaired candidates. This update changes the plan only.
+
 ## Working branch and commit conventions
 
 - **Implementation branch:** `feat/hyperframes-markdown-mvp` in `/Users/think/Documents/code/dev-video-creator-main`. Continue this plan on that branch; verify the checkout before editing or committing. Change branches only when the user requests it.
