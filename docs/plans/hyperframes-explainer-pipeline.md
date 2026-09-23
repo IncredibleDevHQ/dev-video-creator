@@ -94,6 +94,8 @@ The current `ExplanationModelV1` already provides an identity/provenance startin
 
 ## 4. Handoff to Hyperframes: a prepared brief and one workflow owner
 
+The [Explanation Brief contract audit](hyperframes-explanation-brief-contract.md) traces the upstream brief, storyboard and packet readers. It proposes the input sections and adapter needed to turn source meaning into scenes with overlapping narration, presenter, graphics and text. The top-level router selects the production workflow; skill-led planning selects capabilities within it.
+
 Incredible prepares a durable video brief containing the explanation revision, pinned base and theme, audience, wording policy, approximate duration, available assets, per-scene delivery choices, reference style and user overrides. It writes the agreed fields into the upstream brief format through an adapter, with product-specific fields retained in a versioned companion record.
 
 Only existing choices belong in this handoff. Undecided scene boundaries, camera moves, actor appearances, presenter framing and recipe selection remain open. The local harness uses the selected Hyperframes skills to propose those decisions, source assets and refine them. The source-reduction stage does not pre-plan every effect for the skills to execute.
@@ -152,6 +154,8 @@ Audio generation/alignment can overlap asset work after its text is fixed. Final
 ### 7.1 Reduce the meaning before planning the production
 
 The brief can be short structured prose. It must preserve enough source detail for the skills to reason, with references back to the retained material when a summary omits context. The goal is to make the explanation legible to the planning harness, not to decide its cinematography in advance.
+
+Organize that prose around purpose, source meaning, provisional explanation units, communication needs, available material/delivery, and constraints/open decisions. Communication needs describe what the viewer should hear, see or read and why; they do not preselect a skill or force each channel into a separate scene. The [audited handoff proposal](hyperframes-explanation-brief-contract.md) specifies which consumers must receive these fields and how the skills enrich them.
 
 An illustrative input form:
 
@@ -270,8 +274,8 @@ These are integration points, not a claim that all new types should be added to 
 | Slice | Deliverable | Acceptance evidence |
 | --- | --- | --- |
 | H0: capability baseline | Tested/pinned runtime, selected skill dependencies and schema adapters | Known small fixtures demonstrate camera, Quiver part animation, clip/media seeking and required diagnostics; unsupported capabilities are explicit |
-| H1: explanation layer | Lightweight ExplanationBrief from retained source and creator intent | Claims link to evidence; illustrative choices are marked; mechanism and non-mechanism examples are expressible without a kind enum, shots or recipes; presentation categories cannot select the route |
-| H2: skill planning and asset handoff | Brief adapter, saved workflow, skills-produced scene plan, verified rig and library reuse | Product local harness develops moments and combines capabilities within one scene; unresolved bindings are reported before construction; reopen resumes; Quiver failure cannot silently satisfy rich-art acceptance |
+| H1: explanation layer | Lightweight ExplanationBrief from retained source and creator intent, following the audited consumer contract | Claims link to evidence; requirements and suggestions stay distinct; mechanism and non-mechanism examples are expressible without a kind enum, shots or recipes; presentation categories cannot select the route |
+| H2: skill planning and asset handoff | Native brief adapter and explicit companion reader, saved workflow, scene/moment/channel treatment, complete recipe packets, verified rig and library reuse | Product local harness combines capabilities within one scene; meaning, global constraints and delivery survive the packet boundary; missing recipes/bindings are reported before construction; reopen resumes; Quiver failure cannot silently satisfy rich-art acceptance |
 | H3: one new composition | End-to-end narrated reference scene using the selected Hyperframes skills | Objects perform a correct mechanism, a motivated camera move works, timing follows real audio, no presenter placeholder in generated mode |
 | H4: presenter and edits | Same scene with an actual selected take and directed presenter shots | Coaching → recording → alignment → preview → export; voice continues during graphics takeover; speaker return remains readable |
 | H5: notebook integration | Multiple connected scenes, selective rebuild, durable versions and export | One-to-many origin mapping, split/merge identity, backward seek, repeated instances, refresh/reopen and old SVG scene compatibility |
