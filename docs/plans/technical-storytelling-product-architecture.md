@@ -4,6 +4,8 @@ Product specification, current gaps, architecture, and development plan
 
 19 September 2026 · Proposed · Explainer scope only
 
+> **23 September architecture proposal:** [Rethinking the explainer pipeline around Hyperframes](hyperframes-explainer-pipeline.md) retains the presentation path, adds a source-grounded explanation record, and defines a local-harness handoff to Hyperframes workflows and domain skills. It proposes composed video scenes beyond the SVG-only route and carries forward scene-level delivery and selectable local providers. Its delivery decisions supersede this document's earlier mandatory whole-project choice; the architecture remains proposed work.
+
 > **21 September repair priority:** Follow the [live-review repair plan and motion-quality packages](../reviews/2026-09-21-explainer-video-root-causes.md#architecture-and-implementation-order) for the next implementation slices. It adds the inspected Lottie repository's choreography, object continuity, safe controls and production-player review practices to the existing SVG/SMIL architecture. Protect accepted work and fix export/target/timing defects first; then prove reusable behaviors in one excellent scene before expanding the video. The detailed findings distinguish current failures from already-repaired candidates. This update changes the plan only.
 
 ## Working branch and commit conventions
