@@ -12,17 +12,17 @@ Presentation categories belong exclusively to the presentation workflow. The vid
 
 Derive a source-grounded explanation record directly from the source and creator's narrative. This record supplies the video's meaning. The saved theme and base notebook supply visual references and provenance. The video planner designs an unfolding explanation with its own objects, shots, camera, artwork and timing.
 
-Video needs its own structured planning vocabulary, just as presentation has one. The replacement is a versioned **VideoScenePlan** with `intents`, `cast`, `beats`, `shots`, `timing`, `treatment` and `proofs` (section 7). These are proposed product fields, not existing Hyperframes API names. The explanation record supplies their source meaning; the scene plan makes that meaning concrete enough to build and review.
+The video handoff is a lightweight **ExplanationBrief**: a reduction of the source into what needs explaining, the relevant entities and facts, how the idea develops, and the creator's constraints. It does not require a concrete shot plan, a fixed video-kind taxonomy, camera choices or selected recipes. Hyperframes' creative and production skills perform that planning afterward. A concrete **VideoScenePlan** is a downstream output of those skills and supplies editable execution details only once those decisions have been made. These names describe proposed product records, not existing Hyperframes APIs.
 
-| Presentation-only planning | Video planning |
+| Presentation-only planning | Source reduction for video |
 | --- | --- |
-| Page `kind` such as `diagram` or `numbers` | `intents`: demonstrate a mechanism, trace a flow, compare, inspect, quantify or another supported explanation purpose |
-| Parts classified as `box`, `step`, `note` or `number` | `cast`: actors with technical roles, appearances, controllable parts and relevant state |
-| Page relationships expressed as labelled edges | `beats`: spoken ideas, interactions, dependencies, state changes and observations |
-| At most eight parts on a page | As many or as few entities as the explanation needs, staged for readability |
-| Page duration estimate | `timing`: estimates followed by measured narration cues, action durations and readable holds |
-| Page roster and geometry | `shots`: camera, attention, presenter placement and transitions over the same actors |
-| Page styling and static checks | `treatment` and `proofs`: selected Hyperframes recipes, visual rules and required rendered evidence |
+| Page `kind` such as `diagram` or `numbers` | The question or idea to communicate, expressed in ordinary language |
+| Parts classified as `box`, `step`, `note` or `number` | The entities and concepts involved, their roles and useful relationships |
+| Page relationships expressed as labelled edges | What happens, why it happens, or what needs to be compared or understood |
+| At most eight parts on a page | Relevant source content without an inherited page-size limit |
+| Page duration estimate | The requested video length and any existing narration/take; detailed pacing comes later |
+| Page roster and geometry | A provisional progression of ideas; skills decide scenes, moments and shots |
+| Page styling and static checks | Theme, visual references and the evidence that the eventual explanation must preserve |
 
 Existing labels and object IDs can be reconciled with the explanation record to preserve identity. A part's presentation `kind` must never be treated as its technical role. Existing wireframe metadata may remain in the archived reference artifact; it is not a video planning instruction.
 
@@ -38,12 +38,12 @@ This proposal supersedes earlier assumptions that the video must retain one scen
 flowchart TD
     S[Retained source and creator narrative] --> P[Existing presentation outline]
     P --> W[Page-master wireframes and base notebook]
-    S --> E[Explanation record with source evidence]
+    S --> E[Source meaning and explanation brief]
     W -->|Visual reference and lineage| B[Revision-pinned video brief]
     E -->|Content authority| B
     T[Saved theme and author preferences] --> B
     B --> R[Hyperframes workflow routing]
-    R --> D[Story, asset needs and shot intentions]
+    R --> D[Skills plan moments and combine capabilities]
     D --> A[Quiver or reusable assets and verified rigs]
     A --> C[Final composition and camera design]
     C --> N[Narration or presenter take alignment]
@@ -60,7 +60,7 @@ The base notebook retains the original presentation and links to the explanation
 
 ## 3. What the explanation record contains
 
-This is a content model, independent of drawing technology and screen layout. It uses prose for ideas and explicit data where correctness can be checked. Its downstream VideoScenePlan supplies a structured, extensible video vocabulary. Intent categories guide production; they do not fix the layout or exhaust the ways a scene can be composed.
+This is a content model, independent of drawing technology and screen layout. It uses prose for ideas and explicit data where correctness can be checked. The initial brief may leave demonstration, visual observation and scene segmentation decisions open for the skills to develop. Source-supported conditions and user decisions are constraints; illustrative choices proposed during reduction remain candidates. There is no mandatory intent-category enum. The downstream VideoScenePlan records the creative and execution decisions produced by the skills.
 
 | Field | Purpose |
 | --- | --- |
@@ -68,8 +68,8 @@ This is a content model, independent of drawing technology and screen layout. It
 | Evidence | Source revision, exact passage locations and claim-to-passage links; creator statements identified separately |
 | Entities | Stable identities, technical roles, interactions, inputs and outputs |
 | Conditions and state | Only the state needed for this explanation, with units, limits and relevant conditions |
-| Demonstration | A concrete example, its starting conditions, actions and resulting observations |
-| Observation targets | What must visibly change for the explanation to make sense |
+| Demonstration, when already available | A source example or creator-requested example; otherwise the skills develop a suitable demonstration later |
+| Observation targets, when already specified | What the creator requires the viewer to notice; otherwise the skills develop these with the visual treatment |
 | Narrative constraints | Approved wording, audience, terminology and intentional omissions |
 | Uncertainty | Unsupported claims, ambiguous mechanisms and gaps needing resolution |
 
@@ -77,7 +77,9 @@ Keep sourced facts, creator claims and illustrative parameters distinguishable. 
 
 Definitions, comparisons, code walkthroughs and summaries use observation targets suited to their content. They do not need invented state machines or a crisis. Examples: preserve an aligned baseline for a comparison; connect a highlighted code statement to its described effect; reveal membership for a definition.
 
-### Example: a token bucket
+### Example: a token bucket after a demonstration has been proposed
+
+The following shows how the record can be enriched during skill-led planning. This level of detail is not required in the initial handoff.
 
 - **Question:** Why can a burst pass while the next request is rejected?
 - **Role:** The bucket stores admission capacity; an admitted request consumes one token.
@@ -93,6 +95,8 @@ The current `ExplanationModelV1` already provides an identity/provenance startin
 ## 4. Handoff to Hyperframes: a prepared brief and one workflow owner
 
 Incredible prepares a durable video brief containing the explanation revision, pinned base and theme, audience, wording policy, approximate duration, available assets, per-scene delivery choices, reference style and user overrides. It writes the agreed fields into the upstream brief format through an adapter, with product-specific fields retained in a versioned companion record.
+
+Only existing choices belong in this handoff. Undecided scene boundaries, camera moves, actor appearances, presenter framing and recipe selection remain open. The local harness uses the selected Hyperframes skills to propose those decisions, source assets and refine them. The source-reduction stage does not pre-plan every effect for the skills to execute.
 
 The adapter explicitly selects these inputs; it does not forward the presentation outline wholesale. Presentation `kind`, part `kind`, page limits and page timing are excluded from the video's planning controls. Missing explanation data must be derived from the source, not replaced by a mapping such as `diagram → diagram animation` or `numbers → count-up`. A user-selected total video duration is a separate input from a presentation page's estimated seconds.
 
@@ -110,7 +114,7 @@ There is one top-level workflow owner per build. Domain skills can be combined w
 
 The product's local Kimi, Claude Code or Codex harness runs the adapted workflow. Self-contained run packets include the brief, source records, selected references, tool contracts and accepted artifacts. The development assistant builds this machinery; it does not hand-author the production video to make a demonstration pass.
 
-## 5. Skills become an implementation library
+## 5. Skills own creative planning as well as construction
 
 | Responsibility | Hyperframes material to use | Product-specific addition |
 | --- | --- | --- |
@@ -132,8 +136,8 @@ Adapt upstream provider setup, approval language, skill refresh and filesystem a
 
 ## 6. The video production sequence
 
-1. **Explain.** Derive or reuse the explanation record and resolve material evidence gaps. Draft spoken ideas and intended visible observations together. Preserve the author's wording when requested.
-2. **Direct.** Plan the story's progression, persistent objects, approximate shots and attention changes. Select a video visual treatment from the saved theme. Estimate time without freezing it to the presentation's `seconds` fields.
+1. **Explain.** Derive or reuse the lightweight explanation brief and identify material evidence gaps. Retain the source meaning, current narrative and creator constraints. Preserve the author's wording when requested; leave visual treatment open unless already specified.
+2. **Direct with the selected skills.** Let the local harness read the relevant Hyperframes creative/workflow guidance and develop the brief into a story. Draft spoken ideas and intended visible observations together. Break scenes into meaningful moments, consider combinations of capabilities for each moment and layer, and propose assets, shots and attention changes. Select a video treatment from the saved theme. Estimate time without freezing it to the presentation's `seconds` fields.
 3. **Acquire.** Search the product's accepted asset library. Generate or edit Quiver artwork when needed. Keep native text, graphs, code and exact geometry where they explain best. Store originals, normalised variants, previews, rig definitions and provenance durably.
 4. **Inspect and stage.** Verify actual SVG parts, bounds, ports, clipping and paint. Build the key visible states with that artwork before detailed motion. A request for named groups is not proof that Quiver delivered a controllable rig.
 5. **Resolve speech timing.** Automatic scenes use the selected generated audio. Human scenes use the selected recorded take; before recording they have explicitly provisional rehearsal timing and coaching. Resolve cue occurrences and causal dependencies together; flag conflicts instead of reversing event order or silently rushing a critical action.
@@ -143,99 +147,69 @@ Adapt upstream provider setup, approval language, skill refresh and filesystem a
 
 Audio generation/alignment can overlap asset work after its text is fixed. Final event timing depends on measured speech. Layout changes can require a new shot plan without regenerating the explanation or all artwork.
 
-## 7. The scene plan must describe time and attention
+## 7. A lightweight handoff; many recipes within a scene
 
-The scene plan is the concrete video alternative to the presentation outline. It carries stable event and shot IDs, origin references, object/asset bindings, intended observations, cue/dependency timing, camera intent, presenter presence, captions and transitions. It does not restrict the creative vocabulary to existing `ProgramAction` names.
+### 7.1 Reduce the meaning before planning the production
 
-### 7.1 Starter vocabulary for scene intent
+The brief can be short structured prose. It must preserve enough source detail for the skills to reason, with references back to the retained material when a summary omits context. The goal is to make the explanation legible to the planning harness, not to decide its cinematography in advance.
 
-The planner selects one or more intents, with a primary intent when needed for choosing guidance. These describe the job of the scene. They are product-level vocabulary, not names of upstream Hyperframes workflows or fixed visual templates.
-
-| Intent | What the scene must accomplish | Example |
-| --- | --- | --- |
-| `introduce-question` | Establish what the viewer is about to understand | Show a burst arriving and ask why some requests fail |
-| `demonstrate-mechanism` | Show a condition, action and consequence | A token is consumed; exhaustion causes rejection |
-| `trace-flow` | Follow something through successive interactions | Follow one request through the gateway, worker and response |
-| `compare` | Make a meaningful difference visible on a common basis | Synchronized retries beside staggered retries |
-| `show-change` | Explain a transition between states or structures | A replica falls behind and then catches up |
-| `inspect-detail` | Reveal an internal detail, code or data that explains the result | Move into the admission check and connect it to rejection |
-| `quantify` | Make magnitude, proportion, rate or change in a value understandable | Show throughput against a capacity threshold |
-| `recap` | Reconnect the demonstrated results into a takeaway | Revisit the protected service and the admission rule |
-
-A `trace-flow` scene may contain a `demonstrate-mechanism` beat; a comparison can include a close-up. No intent mandates rectangles, a camera move, a particular asset count or a transition. New intents can be registered with guidance and observation requirements without changing the renderer. Unknown intents are surfaced or resolved to an explicitly authored composition; they are never silently coerced to an unrelated category.
-
-### 7.2 The fields that make a video scene buildable
-
-| Field | What it records |
-| --- | --- |
-| `intents` | The scene's explanatory purpose, question and expected understanding |
-| `cast` | Actor IDs linked to source entities; semantic roles; state; asset/rig bindings; inputs and outputs |
-| `beats` | Stable beat/event IDs; spoken lines; who acts on what; conditions/dependencies; expected changes and viewer focus |
-| `shots` | Which beats share a continuous view; camera target/path; presenter presence and framing; text placement; transitions |
-| `timing` | Provisional budget or selected audio/take; cue occurrences; event milestones; action and hold intervals |
-| `treatment` | Theme, visual style, selected Hyperframes blueprint/rule/component IDs, runtime requirements and editable controls |
-| `proofs` | Required state assertions and actual frames/playback to inspect; acceptance belongs to the matching artifact revision |
-
-Every plan also carries its schema version, source/explanation/base revision references and asset provenance. A cast member's semantic role (for example, capacity store, travelling work or processing service) is independent of its representation (Quiver SVG, native geometry, chart, code, text or footage). Roles and supported performances are registered and versioned; the initial behavior library is a starting set rather than an exhaustive list of possible explanations. A new performance needs an implementation and observable checkpoints before it can be treated as executable.
-
-### 7.3 Abbreviated authoring example
-
-The following illustrates the proposed vocabulary; it is not a complete executable schema. The one-token starting state is an illustrative close-up of the last admission, not a sourced capacity claim.
+An illustrative input form:
 
 ```yaml
-intents: [demonstrate-mechanism, trace-flow]
-question: Why is the next request rejected?
-cast:
-  bucket:
-    role: capacity-store
-    initialState: { tokens: 1 }
-    appearance: accepted-quiver-bucket
-  request-c: { role: travelling-work }
-  request-d: { role: travelling-work }
-beats:
-  - id: last-admission
-    say: This request uses the last token.
-    events: [request-c-arrives, consume-last-token, request-c-proceeds]
-    observe: The bucket has zero tokens after request C is admitted.
-  - id: rejection
-    say: The next request finds no token and is rejected.
-    events: [request-d-arrives, reject-request-d]
-    observe: D leaves by the rejection path; the count stays at zero.
-shots:
-  - beats: [last-admission, rejection]
-    camera: Follow C into the bucket, then hold on the empty state and D's outcome.
-    presenter: Graphics take the frame; the selected voice continues.
-timing:
-  driver: selected-narration-or-take
-  resolve: Cue occurrences plus arrival, consumption and rejection dependencies.
-treatment:
-  direction: A filled vessel with individually controllable tokens.
-  cameraRecipe: coordinate-target-zoom
-proofs:
-  - Consumption follows arrival and never produces a negative token count.
-  - D is visibly rejected after the bucket is empty.
+question: Why can a burst pass while a later request is rejected?
+takeaway: Available tokens allow requests through; exhaustion causes rejection until refill.
+involved:
+  - Requests consume admission capacity.
+  - The token bucket stores and replenishes that capacity.
+  - The service receives admitted requests.
+progression:
+  - Explain available capacity and ordinary admission.
+  - Show how a burst exhausts it.
+  - Connect the empty state to rejection, then explain refill.
+preserve:
+  - Rejection must follow exhaustion.
+  - Invented token counts must be identified as illustrative.
+references: Retained source passages, current narrative, saved theme and available artwork.
 ```
 
-Event IDs in this abbreviated example must resolve to full actor, target, behavior and timing definitions before construction. Camera prose is design intent; construction resolves it to concrete target bindings, transforms and hold intervals. The implementation validates those bindings and renders their actual result.
+The entries above are illustrative, not quotations from a particular article. A real brief links to exact source revisions and evidence. It can also carry audience, desired length, existing audio, wording constraints and user decisions. It does not need `kind`, a preselected camera recipe, a rig, coordinates, exact seconds or a final scene boundary. An explicit user request for one of those decisions remains binding.
 
-### 7.4 How the vocabulary selects skills
+The progression is a suggested explanation order, with causal dependencies distinguished from editorial ordering. The skills may split, merge or restage it while preserving the source meaning and creator constraints. A comparison or definition uses the same lightweight form without inventing events or state changes.
 
-The top-level router selects the production workflow from the whole brief. Within that workflow, VideoScenePlan selects capabilities: `trace-flow` suggests path travel and camera tracking; `compare` suggests aligned composition and coordinated change; `inspect-detail` suggests target zoom and focused annotation; `quantify` suggests chart, fill and number treatments. These are candidate techniques, not automatic one-to-one conversions. `cast` drives Quiver/library needs, `beats` drive performance and cue scheduling, `shots` drive camera/presenter composition, and `proofs` drive inspection.
+### 7.2 The skills develop the brief into moments and capabilities
 
-The local harness must read the selected recipe bodies and implement them against the actual assets. The schema gives it a precise authoring brief without trying to reimplement Hyperframes' entire animation system in a closed list of commands.
+The top-level router selects one owning workflow. Within it, the local harness uses creative guidance to decide how the idea unfolds, then loads relevant animation, camera, composition, media and registry capabilities for individual moments. It can revise those choices after seeing the real assets. A single scene can use many recipes; a single moment can combine several simultaneously.
 
-### 7.5 A continuous shot sequence
+| Meaningful moment inside one bucket scene | Capabilities the skills could combine |
+| --- | --- |
+| Establish available capacity | Quiver artwork, restrained text introduction and presenter composition |
+| Follow an admitted request | Path travel plus camera tracking, with an internal SVG response at the inlet |
+| Make depletion understandable | Target zoom plus token/fill animation and a coordinated count change |
+| Show rejection | A changed request trajectory, object-state treatment and a short outcome label |
+| Explain refill and return to context | Refill animation, a camera pull-back and an optional presenter return |
 
-| Moment | Object performance | Camera and focus | Presenter and speech |
-| --- | --- | --- | --- |
-| Establish capacity | Three visible tokens and the request route | Stable overview | Presenter may introduce the question |
-| Spend the last token | Request C arrives; one token leaves; count reaches zero | Follow C, then settle close enough to read depletion | Graphics take the frame; the human voice can continue |
-| Show the consequence | D arrives at the empty bucket and follows the rejection path | Frame the empty bucket and D's outcome together | Outcome lands on the corresponding spoken phrase |
-| Restore capacity | Refill produces a token; a later request proceeds | Pull back if the wider relationship helps | Presenter can return after the result is readable |
+These are candidate treatments illustrating the planning freedom, not a mandatory recipe list. The skill might find a clearer alternative. It chooses named recipes from the pinned library/catalog and reads their actual instructions before building. A blueprint can supply part of a scene, or the harness can compose smaller rules where a full blueprint does not fit. Unsupported combinations must be adapted and checked rather than assumed to work.
 
-This is an illustrative shot sequence, not a fixed template or factual assertion about any article. Camera motion should clarify spatial or causal relationships. Holding still is a valid authored camera choice. Pitch-like whip pans, forced pattern changes and continuous object wobble are not explainer defaults.
+"Parts" here has two useful senses: successive moments in the story, and simultaneous visual/audio layers within a moment. Neither requires a screen change. Following a request, animating a token and moving the camera can happen in one continuous world. This preserves the explainer's calm spatial continuity while using several Hyperframes techniques.
 
-Keep the mechanism's world camera separate from the screen-space presenter and caption layers. Moving the world must not accidentally scale the presenter's face or move a caption out of its safe region. A shot can deliberately move both through an explicit higher-level composition choice.
+### 7.3 Compose recipes into one coherent performance
+
+- Keep shared object identities, world state, theme and narration across all moments. A later recipe receives the state produced earlier; it must not reset the bucket or substitute a new request unnoticed.
+- Resolve each recipe's time interval against the scene's shared clock and measured speech. Preserve dependencies and hold time when recipes overlap.
+- Give each property one owner. Object-local motion, world camera transforms, presenter framing and caption layout are distinct channels; multiple recipes cannot independently overwrite the same transform.
+- Keep the mechanism camera separate from screen-space presenter/caption layers unless the shot deliberately moves both.
+- Scope a reused catalog block's selectors, dimensions and timeline before composing it with other elements. A standalone block is not automatically a safe layer; use a sub-composition or adapt the relevant internal rule.
+- Review the transitions between recipe segments and the complete scene, including sound and readable settled states. Passing each isolated recipe does not prove the combined explanation works.
+
+Holding still is a valid authored choice. Do not add a camera move or effect merely to demonstrate that a capability was loaded. Unnecessary scene cuts, forced pattern changes and perpetual wobble remain inappropriate explainer defaults.
+
+### 7.4 Save the concrete plan after the skills make it
+
+The skills' output becomes a versioned VideoScenePlan with actual actors/asset bindings, beats/events, shots, camera targets, presenter choices, timing, selected recipe references and required proof moments. These fields are produced progressively; they are not prerequisites for entering the router.
+
+In particular, record which recipes serve each moment and layer, what observation each supports, which actors/properties they control, their dependencies and their entry/exit state. This enables focused editing: changing a camera treatment need not regenerate the source understanding, the narration or every object.
+
+At the construction boundary, unresolved event targets, missing rig parts, recipe dependencies and timing conflicts are actionable errors. The plan must become concrete enough to execute and verify at that point. The initial reduction remains free of those implementation obligations.
 
 ## 8. Meaning, animation and runtime ownership
 
@@ -296,8 +270,8 @@ These are integration points, not a claim that all new types should be added to 
 | Slice | Deliverable | Acceptance evidence |
 | --- | --- | --- |
 | H0: capability baseline | Tested/pinned runtime, selected skill dependencies and schema adapters | Known small fixtures demonstrate camera, Quiver part animation, clip/media seeking and required diagnostics; unsupported capabilities are explicit |
-| H1: explanation layer | Derivation from retained source plus current author intent, with a versioned VideoScenePlan schema | Claims link to evidence; illustrative choices are marked; mechanism and non-mechanism examples populate the video fields; presentation categories cannot select the route; unresolved actors/events/recipes are reported before construction |
-| H2: router and asset handoff | Brief adapter, saved route, verified rig and library reuse | Product local harness creates the plans and assets; reopen resumes; Quiver failure is visible and cannot silently satisfy rich-art acceptance |
+| H1: explanation layer | Lightweight ExplanationBrief from retained source and creator intent | Claims link to evidence; illustrative choices are marked; mechanism and non-mechanism examples are expressible without a kind enum, shots or recipes; presentation categories cannot select the route |
+| H2: skill planning and asset handoff | Brief adapter, saved workflow, skills-produced scene plan, verified rig and library reuse | Product local harness develops moments and combines capabilities within one scene; unresolved bindings are reported before construction; reopen resumes; Quiver failure cannot silently satisfy rich-art acceptance |
 | H3: one new composition | End-to-end narrated reference scene using the selected Hyperframes skills | Objects perform a correct mechanism, a motivated camera move works, timing follows real audio, no presenter placeholder in generated mode |
 | H4: presenter and edits | Same scene with an actual selected take and directed presenter shots | Coaching → recording → alignment → preview → export; voice continues during graphics takeover; speaker return remains readable |
 | H5: notebook integration | Multiple connected scenes, selective rebuild, durable versions and export | One-to-many origin mapping, split/merge identity, backward seek, repeated instances, refresh/reopen and old SVG scene compatibility |
@@ -314,4 +288,4 @@ The prior [repair re-review](../reviews/2026-09-21-motion-repair-rereview.md) re
 
 The first implementation proves one excellent scene and the same scene with human presentation. It does not add pitch mode, rebuild the presentation designer, implement an arbitrary physics engine, or promise quality from skill installation alone. Expansion follows evidence from product-generated output.
 
-The central change is the handoff: source meaning and intended observations drive a video brief; Hyperframes' skills turn that brief into authored performances and compositions. The wireframe stays a useful, separately saved reference throughout.
+The central change is the handoff: reduce source meaning into an explanation brief; let Hyperframes' skills plan how to tell it, combining multiple recipes across moments and layers within each scene; then construct and verify the concrete composition. The wireframe stays a useful, separately saved reference throughout.
