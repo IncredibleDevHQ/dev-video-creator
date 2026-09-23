@@ -12,14 +12,17 @@ Presentation categories belong exclusively to the presentation workflow. The vid
 
 Derive a source-grounded explanation record directly from the source and creator's narrative. This record supplies the video's meaning. The saved theme and base notebook supply visual references and provenance. The video planner designs an unfolding explanation with its own objects, shots, camera, artwork and timing.
 
+Video needs its own structured planning vocabulary, just as presentation has one. The replacement is a versioned **VideoScenePlan** with `intents`, `cast`, `beats`, `shots`, `timing`, `treatment` and `proofs` (section 7). These are proposed product fields, not existing Hyperframes API names. The explanation record supplies their source meaning; the scene plan makes that meaning concrete enough to build and review.
+
 | Presentation-only planning | Video planning |
 | --- | --- |
-| Page `kind` such as `diagram` or `numbers` | Viewer question, intended understanding and observable evidence |
-| Parts classified as `box`, `step`, `note` or `number` | Entities with technical roles, interactions and relevant state |
-| Page relationships expressed as labelled edges | Source-supported interactions and the sequence that demonstrates them |
+| Page `kind` such as `diagram` or `numbers` | `intents`: demonstrate a mechanism, trace a flow, compare, inspect, quantify or another supported explanation purpose |
+| Parts classified as `box`, `step`, `note` or `number` | `cast`: actors with technical roles, appearances, controllable parts and relevant state |
+| Page relationships expressed as labelled edges | `beats`: spoken ideas, interactions, dependencies, state changes and observations |
 | At most eight parts on a page | As many or as few entities as the explanation needs, staged for readability |
-| Page duration estimate | Timing resolved from the chosen narration/take and readable actions |
-| Page roster and geometry | Independently authored shots with explicit source lineage |
+| Page duration estimate | `timing`: estimates followed by measured narration cues, action durations and readable holds |
+| Page roster and geometry | `shots`: camera, attention, presenter placement and transitions over the same actors |
+| Page styling and static checks | `treatment` and `proofs`: selected Hyperframes recipes, visual rules and required rendered evidence |
 
 Existing labels and object IDs can be reconciled with the explanation record to preserve identity. A part's presentation `kind` must never be treated as its technical role. Existing wireframe metadata may remain in the archived reference artifact; it is not a video planning instruction.
 
@@ -57,7 +60,7 @@ The base notebook retains the original presentation and links to the explanation
 
 ## 3. What the explanation record contains
 
-This is a content model, independent of drawing technology and screen layout. It should use open prose for ideas and explicit data where correctness can be checked. It should not introduce another exhaustive scene-type enum.
+This is a content model, independent of drawing technology and screen layout. It uses prose for ideas and explicit data where correctness can be checked. Its downstream VideoScenePlan supplies a structured, extensible video vocabulary. Intent categories guide production; they do not fix the layout or exhaust the ways a scene can be composed.
 
 | Field | Purpose |
 | --- | --- |
@@ -142,7 +145,86 @@ Audio generation/alignment can overlap asset work after its text is fixed. Final
 
 ## 7. The scene plan must describe time and attention
 
-The scene plan is editable data plus creative direction. It carries stable event and shot IDs, origin references, object/asset bindings, intended observations, cue/dependency timing, camera intent, presenter presence, captions and transitions. It does not restrict the creative vocabulary to existing `ProgramAction` names.
+The scene plan is the concrete video alternative to the presentation outline. It carries stable event and shot IDs, origin references, object/asset bindings, intended observations, cue/dependency timing, camera intent, presenter presence, captions and transitions. It does not restrict the creative vocabulary to existing `ProgramAction` names.
+
+### 7.1 Starter vocabulary for scene intent
+
+The planner selects one or more intents, with a primary intent when needed for choosing guidance. These describe the job of the scene. They are product-level vocabulary, not names of upstream Hyperframes workflows or fixed visual templates.
+
+| Intent | What the scene must accomplish | Example |
+| --- | --- | --- |
+| `introduce-question` | Establish what the viewer is about to understand | Show a burst arriving and ask why some requests fail |
+| `demonstrate-mechanism` | Show a condition, action and consequence | A token is consumed; exhaustion causes rejection |
+| `trace-flow` | Follow something through successive interactions | Follow one request through the gateway, worker and response |
+| `compare` | Make a meaningful difference visible on a common basis | Synchronized retries beside staggered retries |
+| `show-change` | Explain a transition between states or structures | A replica falls behind and then catches up |
+| `inspect-detail` | Reveal an internal detail, code or data that explains the result | Move into the admission check and connect it to rejection |
+| `quantify` | Make magnitude, proportion, rate or change in a value understandable | Show throughput against a capacity threshold |
+| `recap` | Reconnect the demonstrated results into a takeaway | Revisit the protected service and the admission rule |
+
+A `trace-flow` scene may contain a `demonstrate-mechanism` beat; a comparison can include a close-up. No intent mandates rectangles, a camera move, a particular asset count or a transition. New intents can be registered with guidance and observation requirements without changing the renderer. Unknown intents are surfaced or resolved to an explicitly authored composition; they are never silently coerced to an unrelated category.
+
+### 7.2 The fields that make a video scene buildable
+
+| Field | What it records |
+| --- | --- |
+| `intents` | The scene's explanatory purpose, question and expected understanding |
+| `cast` | Actor IDs linked to source entities; semantic roles; state; asset/rig bindings; inputs and outputs |
+| `beats` | Stable beat/event IDs; spoken lines; who acts on what; conditions/dependencies; expected changes and viewer focus |
+| `shots` | Which beats share a continuous view; camera target/path; presenter presence and framing; text placement; transitions |
+| `timing` | Provisional budget or selected audio/take; cue occurrences; event milestones; action and hold intervals |
+| `treatment` | Theme, visual style, selected Hyperframes blueprint/rule/component IDs, runtime requirements and editable controls |
+| `proofs` | Required state assertions and actual frames/playback to inspect; acceptance belongs to the matching artifact revision |
+
+Every plan also carries its schema version, source/explanation/base revision references and asset provenance. A cast member's semantic role (for example, capacity store, travelling work or processing service) is independent of its representation (Quiver SVG, native geometry, chart, code, text or footage). Roles and supported performances are registered and versioned; the initial behavior library is a starting set rather than an exhaustive list of possible explanations. A new performance needs an implementation and observable checkpoints before it can be treated as executable.
+
+### 7.3 Abbreviated authoring example
+
+The following illustrates the proposed vocabulary; it is not a complete executable schema. The one-token starting state is an illustrative close-up of the last admission, not a sourced capacity claim.
+
+```yaml
+intents: [demonstrate-mechanism, trace-flow]
+question: Why is the next request rejected?
+cast:
+  bucket:
+    role: capacity-store
+    initialState: { tokens: 1 }
+    appearance: accepted-quiver-bucket
+  request-c: { role: travelling-work }
+  request-d: { role: travelling-work }
+beats:
+  - id: last-admission
+    say: This request uses the last token.
+    events: [request-c-arrives, consume-last-token, request-c-proceeds]
+    observe: The bucket has zero tokens after request C is admitted.
+  - id: rejection
+    say: The next request finds no token and is rejected.
+    events: [request-d-arrives, reject-request-d]
+    observe: D leaves by the rejection path; the count stays at zero.
+shots:
+  - beats: [last-admission, rejection]
+    camera: Follow C into the bucket, then hold on the empty state and D's outcome.
+    presenter: Graphics take the frame; the selected voice continues.
+timing:
+  driver: selected-narration-or-take
+  resolve: Cue occurrences plus arrival, consumption and rejection dependencies.
+treatment:
+  direction: A filled vessel with individually controllable tokens.
+  cameraRecipe: coordinate-target-zoom
+proofs:
+  - Consumption follows arrival and never produces a negative token count.
+  - D is visibly rejected after the bucket is empty.
+```
+
+Event IDs in this abbreviated example must resolve to full actor, target, behavior and timing definitions before construction. Camera prose is design intent; construction resolves it to concrete target bindings, transforms and hold intervals. The implementation validates those bindings and renders their actual result.
+
+### 7.4 How the vocabulary selects skills
+
+The top-level router selects the production workflow from the whole brief. Within that workflow, VideoScenePlan selects capabilities: `trace-flow` suggests path travel and camera tracking; `compare` suggests aligned composition and coordinated change; `inspect-detail` suggests target zoom and focused annotation; `quantify` suggests chart, fill and number treatments. These are candidate techniques, not automatic one-to-one conversions. `cast` drives Quiver/library needs, `beats` drive performance and cue scheduling, `shots` drive camera/presenter composition, and `proofs` drive inspection.
+
+The local harness must read the selected recipe bodies and implement them against the actual assets. The schema gives it a precise authoring brief without trying to reimplement Hyperframes' entire animation system in a closed list of commands.
+
+### 7.5 A continuous shot sequence
 
 | Moment | Object performance | Camera and focus | Presenter and speech |
 | --- | --- | --- | --- |
@@ -214,7 +296,7 @@ These are integration points, not a claim that all new types should be added to 
 | Slice | Deliverable | Acceptance evidence |
 | --- | --- | --- |
 | H0: capability baseline | Tested/pinned runtime, selected skill dependencies and schema adapters | Known small fixtures demonstrate camera, Quiver part animation, clip/media seeking and required diagnostics; unsupported capabilities are explicit |
-| H1: explanation layer | Derivation from full retained source plus current author intent | Claims link to evidence; illustrative choices are marked; mechanism and non-mechanism examples fit; the video brief excludes presentation categories and limits, and those categories cannot select the video route |
+| H1: explanation layer | Derivation from retained source plus current author intent, with a versioned VideoScenePlan schema | Claims link to evidence; illustrative choices are marked; mechanism and non-mechanism examples populate the video fields; presentation categories cannot select the route; unresolved actors/events/recipes are reported before construction |
 | H2: router and asset handoff | Brief adapter, saved route, verified rig and library reuse | Product local harness creates the plans and assets; reopen resumes; Quiver failure is visible and cannot silently satisfy rich-art acceptance |
 | H3: one new composition | End-to-end narrated reference scene using the selected Hyperframes skills | Objects perform a correct mechanism, a motivated camera move works, timing follows real audio, no presenter placeholder in generated mode |
 | H4: presenter and edits | Same scene with an actual selected take and directed presenter shots | Coaching → recording → alignment → preview → export; voice continues during graphics takeover; speaker return remains readable |
