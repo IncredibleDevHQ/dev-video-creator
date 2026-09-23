@@ -8,7 +8,20 @@ Implementation stays on `feat/hyperframes-markdown-mvp`. Commit coherent, valida
 
 ## 1. The architectural decision
 
-Keep the presentation workflow and its `title/list/diagram/numbers/quote/close` categories. Add a source-grounded explanation record alongside that workflow. The video planner consumes that record, the creator's narrative, the saved theme and the base notebook as a visual reference. It designs an unfolding explanation with its own shots, camera, artwork and timing.
+Presentation categories belong exclusively to the presentation workflow. The video planning contract must not use `title/list/diagram/numbers/quote/close`, the part categories `box/step/note/number`, the eight-part limit, or one-page-per-scene as its foundation. Keeping the presentation path does not carry those constraints into video.
+
+Derive a source-grounded explanation record directly from the source and creator's narrative. This record supplies the video's meaning. The saved theme and base notebook supply visual references and provenance. The video planner designs an unfolding explanation with its own objects, shots, camera, artwork and timing.
+
+| Presentation-only planning | Video planning |
+| --- | --- |
+| Page `kind` such as `diagram` or `numbers` | Viewer question, intended understanding and observable evidence |
+| Parts classified as `box`, `step`, `note` or `number` | Entities with technical roles, interactions and relevant state |
+| Page relationships expressed as labelled edges | Source-supported interactions and the sequence that demonstrates them |
+| At most eight parts on a page | As many or as few entities as the explanation needs, staged for readability |
+| Page duration estimate | Timing resolved from the chosen narration/take and readable actions |
+| Page roster and geometry | Independently authored shots with explicit source lineage |
+
+Existing labels and object IDs can be reconciled with the explanation record to preserve identity. A part's presentation `kind` must never be treated as its technical role. Existing wireframe metadata may remain in the archived reference artifact; it is not a video planning instruction.
 
 Hyperframes supplies production knowledge, reusable visual components and the composition runtime. Incredible supplies the explanation, durable project state, Quiver asset library, recording experience, local harness selection and editable authoring records.
 
@@ -23,8 +36,8 @@ flowchart TD
     S[Retained source and creator narrative] --> P[Existing presentation outline]
     P --> W[Page-master wireframes and base notebook]
     S --> E[Explanation record with source evidence]
-    W --> B[Revision-pinned video brief]
-    E --> B
+    W -->|Visual reference and lineage| B[Revision-pinned video brief]
+    E -->|Content authority| B
     T[Saved theme and author preferences] --> B
     B --> R[Hyperframes workflow routing]
     R --> D[Story, asset needs and shot intentions]
@@ -72,11 +85,13 @@ Definitions, comparisons, code walkthroughs and summaries use observation target
 
 These conditions become supported assertions over scheduled events and rendered bindings. The open description can express more than the currently implemented validators; unsupported assertions must be identified rather than reported as checked.
 
-The current `ExplanationModelV1` already provides an identity/provenance starting point. Extend it with versioned records instead of creating a competing store. Reuse existing behavior definitions, event identities and cue-occurrence alignment where their contracts fit; repair their known scheduling/state defects before treating them as authoritative.
+The current `ExplanationModelV1` already provides an identity/provenance starting point. Extend its persistence with versioned records instead of creating a competing store. Its outline-derived `kind` and part categories remain legacy presentation metadata; the new explanation schema is defined independently of them. Reuse existing behavior definitions, event identities and cue-occurrence alignment where their contracts fit; repair their known scheduling/state defects before treating them as authoritative.
 
 ## 4. Handoff to Hyperframes: a prepared brief and one workflow owner
 
 Incredible prepares a durable video brief containing the explanation revision, pinned base and theme, audience, wording policy, approximate duration, available assets, per-scene delivery choices, reference style and user overrides. It writes the agreed fields into the upstream brief format through an adapter, with product-specific fields retained in a versioned companion record.
+
+The adapter explicitly selects these inputs; it does not forward the presentation outline wholesale. Presentation `kind`, part `kind`, page limits and page timing are excluded from the video's planning controls. Missing explanation data must be derived from the source, not replaced by a mapping such as `diagram → diagram animation` or `numbers → count-up`. A user-selected total video duration is a separate input from a presentation page's estimated seconds.
 
 The Hyperframes router chooses an owning production workflow from the deliverable. It should not infer the route from a slide's `kind` or from the mere presence of a blog URL. A technical article on a product website is still an explanation request unless the user requests promotion. Existing brief and run state support resumption without a second intake interview. [Router](https://github.com/heygen-com/hyperframes/blob/main/skills/hyperframes/SKILL.md)
 
@@ -199,7 +214,7 @@ These are integration points, not a claim that all new types should be added to 
 | Slice | Deliverable | Acceptance evidence |
 | --- | --- | --- |
 | H0: capability baseline | Tested/pinned runtime, selected skill dependencies and schema adapters | Known small fixtures demonstrate camera, Quiver part animation, clip/media seeking and required diagnostics; unsupported capabilities are explicit |
-| H1: explanation layer | Derivation from full retained source plus current author intent | Claims link to evidence; illustrative choices are marked; both a mechanism and a non-mechanism example fit without adding scene kinds |
+| H1: explanation layer | Derivation from full retained source plus current author intent | Claims link to evidence; illustrative choices are marked; mechanism and non-mechanism examples fit; the video brief excludes presentation categories and limits, and those categories cannot select the video route |
 | H2: router and asset handoff | Brief adapter, saved route, verified rig and library reuse | Product local harness creates the plans and assets; reopen resumes; Quiver failure is visible and cannot silently satisfy rich-art acceptance |
 | H3: one new composition | End-to-end narrated reference scene using the selected Hyperframes skills | Objects perform a correct mechanism, a motivated camera move works, timing follows real audio, no presenter placeholder in generated mode |
 | H4: presenter and edits | Same scene with an actual selected take and directed presenter shots | Coaching → recording → alignment → preview → export; voice continues during graphics takeover; speaker return remains readable |
