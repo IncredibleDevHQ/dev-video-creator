@@ -25,8 +25,9 @@ When a burst arrives, the requests are admitted until the bucket is empty; the n
 
 Tokens are added back at a steady refill rate, so a later request can pass again.`
 
-// A base notebook with two pages and its video fork.
-const makeVideo = async (tag: string) => {
+// A base notebook with two pages and its video fork. `fragmentsOnly`: the
+// full source was never retained, only the passages kept on the pages.
+const makeVideo = async (tag: string, options: { fragmentsOnly?: boolean } = {}) => {
   const source = await persistence.saveSourceRevision({ kind: 'url', url: `https://example.com/bucket-${tag}`, title: 'Token bucket', site: 'example.com', content: { text: ARTICLE, title: 'Token bucket' } })
   const base: ProjectDocumentV1 = {
     version: 1,
@@ -35,7 +36,7 @@ const makeVideo = async (tag: string) => {
     notebook: { type: 'doc', content: [scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.']), scene('b2', 'Rejection', 'When it is empty, the next one is refused.', ['the next request is rejected'])] },
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
     brand: { name: 'x' } as unknown as ProjectDocumentV1['brand'],
-    source: { kind: 'url', url: `https://example.com/bucket-${tag}`, site: 'example.com', title: 'Token bucket', readAt: '2026-09-24T00:00:00Z', snapshotId: source.id },
+    source: { kind: 'url', url: `https://example.com/bucket-${tag}`, site: 'example.com', title: 'Token bucket', readAt: '2026-09-24T00:00:00Z', ...(options.fragmentsOnly ? {} : { snapshotId: source.id }) },
     outline: { title: 'Rate limiting', targetSeconds: 60, scenes: [], glossary: [] },
     story: { wordingPolicy: 'draft' },
   }
@@ -110,7 +111,7 @@ const treatmentFor = (scene: string, origin: string) => ({
   treatments: { presenter: 'Undecided', text: 'None', camera: 'Hold' },
   skills: [{ skill: 'hyperframes-creative', references: ['skills/hyperframes-creative/references/beat-direction.md'], why: 'Rhythm' }, { skill: 'hyperframes-animation', references: ['skills/hyperframes-animation/rules-index.md'], why: 'Recipes' }],
   requirements: { assets: [], takes: [], decisions: [] },
-  continuity: { entry: 'Full bucket', exit: 'One token spent' },
+  continuity: { entry: 'Full bucket', exit: 'One token spent', incoming: { kind: 'self-contained' }, outgoing: { kind: 'self-contained' } },
   unresolved: [],
   coverage: [{ unit: 'admission', need: 'Show a token being spent', moments: ['m1'] }],
   rosterProposal: null,
@@ -183,7 +184,7 @@ describe('planning a forked video', () => {
     const [sceneId] = videoScenes
     const first = await service.queueTreatment(videoId, sceneId)
     const packet = await service.loadPacket(first.record.id)
-    expect(Object.keys(packet.files).sort()).toEqual(['packet/BRIEF.md', 'packet/CONTEXT.json', 'packet/EXPLANATION.md', 'packet/SCENE.md'])
+    expect(Object.keys(packet.files).sort()).toEqual(['packet/BRIEF.md', 'packet/CONTEXT.json', 'packet/EXPLANATION.md', 'packet/NEIGHBORS.json', 'packet/SCENE.md'])
     expect(packet.files['packet/BRIEF.md']).toMatch(/^---\nworkflow: general-video/)
     await service.attachRun(first.record.id, { runId: 'run-plan-1' })
     // The creator adds direction while the plan is being made.
@@ -284,6 +285,69 @@ describe('planning integrity', () => {
     await expect(service.queueTreatment(id, scenes[0])).rejects.toThrow(/brief is stale/)
     const plan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }] }
     expect(await service.submitTreatment(running.id, plan, 'run-ancestry-late')).toMatchObject({ accepted: true, status: 'superseded' })
+  })
+
+  // The review's R3 probe, corrected: the packet offers the passages kept on
+  // the pages, and a brief quoting one exactly is accepted with its page.
+  it('checks source quotations against the kept passages when only fragments survive', async () => {
+    const { videoId: id } = await makeVideo('fragments', { fragmentsOnly: true })
+    const { record } = await service.queueBrief(id)
+    await service.attachRun(record.id, { runId: 'run-fragments' })
+    const packet = (await service.loadPacket(record.id)).files
+    const context = JSON.parse(packet['packet/CONTEXT.json'])
+    expect(context.sourcePool).toEqual({ coverage: 'fragments', passages: 2, pagesWithPassages: 2, pages: 2 })
+    expect(packet['packet/SOURCE.md']).toContain('- "Each request that is admitted consumes one token."')
+    expect(packet['packet/SOURCE.md']).toMatch(/## b1: Admission/)
+    const brief = goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds })
+    // A quotation the pages never kept is refused — even labelled the creator's.
+    const invented = { ...brief, source: { ...brief.source, coverage: 'fragments', limitations: ['Only page passages survive.'] }, evidence: [{ id: 'ev-consume', kind: 'source', text: 'A token bucket holds a fixed number of tokens.' }, brief.evidence[1]] }
+    expect(await service.submitBrief(record.id, invented, 'run-fragments')).toMatchObject({ accepted: false, problems: [expect.stringMatching(/not one of the source passages kept on the base pages/)] })
+    const relabelled = { ...invented, evidence: [{ id: 'ev-consume', kind: 'creator', text: 'A token bucket holds a fixed number of tokens.' }, brief.evidence[1]] }
+    expect((await service.submitBrief(record.id, relabelled, 'run-fragments')).accepted).toBe(false)
+    const grounded = { ...brief, source: { ...brief.source, coverage: 'fragments', limitations: ['Only page passages survive.'] } }
+    const landed = await service.submitBrief(record.id, grounded, 'run-fragments')
+    expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+    const stored = (await persistence.loadPlanningRecord(record.id))!.content as { evidence: Array<{ id: string; lineage?: unknown }> }
+    expect(stored.evidence.map(entry => entry.lineage)).toEqual([{ pool: 'fragments', pages: ['b1'] }, { pool: 'fragments', pages: ['b2'] }])
+  })
+
+  // R8: a scene may open on its neighbour's image only when the neighbour's
+  // reviewed plan promises it; the agreement breaks when that plan changes.
+  it('agrees a seam only with a reviewed neighbour, and breaks it when that plan changes', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('seam')
+    await readyBrief(id, 'run-seam-brief')
+    const rejectionPlan = (runScene: string) => ({ ...treatmentFor(runScene, 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }] })
+    const agreed = (runScene: string) => ({ ...rejectionPlan(runScene), continuity: { entry: 'One token spent', exit: 'Empty bucket', incoming: { kind: 'agreed' }, outgoing: { kind: 'self-contained' } } })
+    const planFor = async (sceneId: string, runId: string, plan: unknown) => {
+      const { record } = await service.queueTreatment(id, sceneId)
+      await service.attachRun(record.id, { runId })
+      return { record, packet: (await service.loadPacket(record.id)).files, result: await service.submitTreatment(record.id, plan, runId) }
+    }
+    // Scene 2 cannot agree with a scene 1 that has no reviewed plan.
+    const early = await planFor(scenes[1], 'run-seam-early', agreed(scenes[1]))
+    expect(JSON.parse(early.packet['packet/NEIGHBORS.json']).neighbors[0]).toMatchObject({ position: 'before', scene: scenes[0], plan: 'none' })
+    expect(early.result).toMatchObject({ accepted: false, problems: [expect.stringMatching(/continuity.incoming is agreed, but .* has no reviewed plan/)] })
+    await service.runFinished('run-seam-early', { status: 'error', exitCode: 1 })
+    // Scene 1 is planned and reviewed.
+    const first = await planFor(scenes[0], 'run-seam-first', treatmentFor(scenes[0], 'b1'))
+    expect(first.result).toMatchObject({ accepted: true, status: 'candidate' })
+    await service.reviewTreatment(first.record.id)
+    // Now the seam can be agreed, and the product records what it rests on.
+    const second = await planFor(scenes[1], 'run-seam-second', agreed(scenes[1]))
+    expect(JSON.parse(second.packet['packet/NEIGHBORS.json']).neighbors[0]).toMatchObject({ plan: 'reviewed', reviewed: { revision: first.record.revision, exit: 'One token spent' } })
+    expect(second.packet['packet/SCENE.md']).toMatch(/Seam: its reviewed plan \(revision \d+\) ends: "One token spent" — you may agree a seam with it/)
+    expect(second.result).toMatchObject({ accepted: true, status: 'candidate' })
+    const stored = (await persistence.loadPlanningRecord(second.record.id))!.content as { continuity: { incoming: unknown } }
+    expect(stored.continuity.incoming).toEqual({ kind: 'agreed', scene: scenes[0], record: first.record.id, revision: first.record.revision })
+    let overview = await service.planningOverview(id)
+    expect(overview.scenes[1].continuity?.[0]).toMatchObject({ side: 'incoming', state: 'agreed', scene: scenes[0] })
+    // Scene 1 is re-planned and the new plan reviewed: the seam breaks.
+    const revised = await planFor(scenes[0], 'run-seam-revised', { ...treatmentFor(scenes[0], 'b1'), continuity: { entry: 'Full bucket', exit: 'Two tokens spent', incoming: { kind: 'self-contained' }, outgoing: { kind: 'self-contained' } } })
+    await service.reviewTreatment(revised.record.id)
+    overview = await service.planningOverview(id)
+    expect(overview.scenes[1].continuity?.[0]).toMatchObject({ state: 'broken', reason: expect.stringMatching(/reviewed plan changed since this seam was agreed/) })
+    // The plan itself is not stale: only its seam needs a new agreement.
+    expect(overview.scenes[1].view.state).toBe('candidate')
   })
 
   it('fails the records of a run interrupted by a restart, with a way on', async () => {

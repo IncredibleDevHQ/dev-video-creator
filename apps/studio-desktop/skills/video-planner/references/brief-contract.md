@@ -94,7 +94,12 @@ A condition may also be `illustrative`: a value you chose to demonstrate with
 - `source.revisionRef`, `source.wordingPolicy` and all of `material` repeat
   exactly the values pinned in `CONTEXT.json`.
 - `source.coverage` is `full` only when `SOURCE.md` holds the full retained
-  text. With fragments, say `fragments` and write the limitation.
+  text. With fragments, say `fragments` and write the limitation. Then
+  `SOURCE.md` lists the passages kept on each base page: quote one of them
+  (a quotation never joins two pages' passages), and the product records
+  the page it came from. When nothing was retained there is no `source`
+  evidence — cite the creator, or record the gap under `uncertainty`.
+  Never relabel a source passage as the creator's to make it pass.
 - **Evidence is quoted exactly.** Every `source` passage must occur in
   `SOURCE.md`; every `creator` passage in `NARRATIVE.md`. Spacing, case and
   typographic quotes are forgiven; an ellipsis (`…`) may join fragments in

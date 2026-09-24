@@ -176,7 +176,16 @@ export type ScenePacketInput = {
   presentation: Array<{ scene: string; title: string; idea: string; narration: string; sourcePassages: string[]; wireframe: string | null }>
   script: string
   units: string[]
-  adjacent: Array<{ position: 'before' | 'after'; id: string; title: string; units: string[]; takeaway: string | null }>
+  adjacent: Array<{
+    position: 'before' | 'after'
+    id: string
+    title: string
+    units: string[]
+    takeaway: string | null
+    // Its plan now: a reviewed one can be agreed with; a candidate's
+    // boundary is only a proposal.
+    plan?: { state: 'reviewed' | 'candidate'; revision: number; entry: string; exit: string } | null
+  }>
   direction: { video: string; scene: string }
   delivery: 'human' | 'generated' | 'silent' | null
   reviewed: SceneTreatmentV1 | null
@@ -219,11 +228,19 @@ export const renderScenePacket = (input: ScenePacketInput) => {
     '## Neighbours',
     '',
     bullet(
-      input.adjacent.map(
-        neighbour =>
-          `${neighbour.position === 'before' ? 'Before' : 'After'}: \`${neighbour.id}\` ${neighbour.title}${neighbour.units.length ? ` (units ${neighbour.units.join(', ')})` : ''}${neighbour.takeaway ? ` — reviewed takeaway: ${neighbour.takeaway}` : ''}`,
-      ),
+      input.adjacent.map(neighbour => {
+        const before = neighbour.position === 'before'
+        const boundary = neighbour.plan ? (before ? neighbour.plan.exit : neighbour.plan.entry) : ''
+        const seam = !neighbour.plan
+          ? `it has no plan yet, so how it ${before ? 'ends' : 'begins'} is unknown: ${before ? 'open' : 'end'} self-contained, or record a proposal`
+          : neighbour.plan.state === 'reviewed'
+            ? `its reviewed plan (revision ${neighbour.plan.revision}) ${before ? 'ends' : 'begins'}: "${boundary}" — you may agree a seam with it`
+            : `its unreviewed candidate (revision ${neighbour.plan.revision}) ${before ? 'ends' : 'begins'}: "${boundary}" — a seam with it is only a proposal`
+        return `${before ? 'Before' : 'After'}: \`${neighbour.id}\` ${neighbour.title}${neighbour.units.length ? ` (units ${neighbour.units.join(', ')})` : ''}${neighbour.takeaway ? ` — reviewed takeaway: ${neighbour.takeaway}` : ''}. Seam: ${seam}.`
+      }),
     ) || '- This is the only scene.',
+    '',
+    'NEIGHBORS.json says the same as data. State `continuity.incoming` and `continuity.outgoing` as self-contained, agreed or proposed; never write a neighbour\'s image as fact when its plan does not promise it.',
     '',
     '## Decisions already made',
     '',

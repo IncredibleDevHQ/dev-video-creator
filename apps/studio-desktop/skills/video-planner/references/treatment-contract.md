@@ -23,6 +23,11 @@ Use only the channels a moment needs; `null` means the channel is unused.
   "evidenceRefs": ["ev-consume"],
   "development": "Establish the bucket as stored capacity, then follow one request as it spends a token and passes.",
   "demonstration": { "text": "Three tokens; request A arrives", "values": [ { "value": "3 tokens", "basis": "illustrative" } ] },
+  "ledger": {
+    "quantity": "tokens in the bucket", "capacity": 3, "initial": 3,
+    "events": [ { "moment": "m1", "what": "request A is admitted", "change": "consume", "amount": 1, "after": 2 } ],
+    "final": 2
+  },
   "moments": [
     {
       "id": "m1",
@@ -53,7 +58,11 @@ Use only the channels a moment needs; `null` means the channel is unused.
     { "skill": "hyperframes-animation", "references": ["skills/hyperframes-animation/rules-index.md"], "why": "Choosing the path and camera recipes" }
   ],
   "requirements": { "assets": ["A request packet"], "takes": [], "decisions": ["Delivery for this scene"] },
-  "continuity": { "entry": "Bucket full, no requests", "exit": "Bucket holds two tokens; request A admitted" },
+  "continuity": {
+    "entry": "Bucket full, no requests", "exit": "Bucket holds two tokens; request A admitted",
+    "incoming": { "kind": "self-contained" },
+    "outgoing": { "kind": "proposed", "note": "The next scene could open on the two remaining tokens" }
+  },
   "unresolved": ["Presenter visibility depends on the delivery choice"],
   "coverage": [ { "unit": "admission", "need": "Make the link between a token and admission perceptible", "moments": ["m1"] } ],
   "rosterProposal": null,
@@ -96,6 +105,24 @@ Use only the channels a moment needs; `null` means the channel is unused.
 - `rosterProposal` — `null`, or a proposal to `split`, `merge` or
   `resequence` scenes, naming video scene ids and the reason. Proposals are
   reviewed; they never change the roster by themselves.
+- `ledger` — required when the demonstration counts something (tokens,
+  slots, requests, retries): what is counted, its `capacity` (or `null`),
+  the `initial` count, every change in the order it happens — `add`,
+  `consume` or `refuse`, with the `moment` it happens in and the count
+  `after` it — and the `final` count. The product replays it: nothing is
+  consumed that is not there, a refused request consumes nothing (amount 0)
+  and is refused only when too little remains (`needs`, default 1), an add
+  never overfills the capacity, and every stated count must be the count.
+  Illustrative numbers are welcome; they must still obey the mechanism.
+  `null` when nothing is counted.
+- `continuity.incoming` / `continuity.outgoing` — how the opening and the
+  ending meet the neighbours in `NEIGHBORS.json`: `self-contained` (needs
+  nothing from them), `agreed` (rests on the neighbour's **reviewed** plan;
+  the product records which revision, and the agreement breaks when that plan
+  changes) or `proposed` (asks for a boundary the neighbour has not promised —
+  provisional until both sides agree; say what in `note`). Never describe a
+  neighbour's image as fact when its plan does not promise it; with no
+  reviewed plan, open self-contained or propose.
 - `delivery.voice` — the creator's choice when SCENE.md states one;
   otherwise `undecided`, with any suggestion in `note`. A scene the creator
   made generated-only shows no presenter.
@@ -107,6 +134,8 @@ Everything above that says "must", plus: `scene` matches SCENE.md;
 are unique; every moment has a purpose, an observation, an attention target
 and at least one channel; catalogued recipe ids exist in the pinned catalog;
 skills and references are files of the pinned bundle; reused assets exist in
-the library; roster proposals name real scenes and give a reason. It also
+the library; roster proposals name real scenes and give a reason; a ledger
+adds up, moment by moment; an agreed seam rests on a reviewed neighbour. A
+demonstration that counts without a ledger is reported. It also
 reports, as construction risks, every adapted recipe and every catalogued one
 not yet proven in the installed runtime.

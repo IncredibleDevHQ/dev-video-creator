@@ -31,7 +31,7 @@ import { skillVersions } from './skill-versions'
 import { listArtwork } from './appearance-library'
 import { fingerprintOf } from '../src/planning/fingerprint'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
-import { validateTreatment, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
+import { continuityStatus, validateTreatment, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
 import {
   ACTIVE_STATUSES,
@@ -257,6 +257,32 @@ const freshnessOf = (planning: VideoPlanning, records: PlanningRecord[]) => {
   }
 }
 
+// The adjacent scenes and their plans now (R8): a reviewed plan is what an
+// agreed seam can rest on; a candidate or no plan leaves the seam open.
+const neighborsOf = (planning: VideoPlanning, records: PlanningRecord[], sceneId: string) => {
+  const scene = planning.videoScenes.find(entry => entry.id === sceneId)
+  if (!scene) return []
+  return [
+    { position: 'before' as const, entry: planning.videoScenes[scene.index - 1] },
+    { position: 'after' as const, entry: planning.videoScenes[scene.index + 1] },
+  ]
+    .filter(item => item.entry)
+    .map(item => {
+      const view = scenePlanningView(records, item.entry!.id, null)
+      const reviewedPlan = view.reviewed?.content as SceneTreatmentV1 | null | undefined
+      const currentPlan = view.current?.content as SceneTreatmentV1 | null | undefined
+      return {
+        position: item.position,
+        scene: item.entry!.id,
+        title: item.entry!.title,
+        reviewed: view.reviewed && reviewedPlan ? { recordId: view.reviewed.id, revision: view.reviewed.revision, entry: reviewedPlan.continuity.entry, exit: reviewedPlan.continuity.exit } : null,
+        candidate: view.current && view.current.status === 'candidate' && currentPlan ? { recordId: view.current.id, revision: view.current.revision, entry: currentPlan.continuity.entry, exit: currentPlan.continuity.exit } : null,
+      }
+    })
+}
+const agreementBasis = (neighbors: ReturnType<typeof neighborsOf>): NeighborPlan[] =>
+  neighbors.map(({ position, scene, reviewed }) => ({ position, scene, reviewed }))
+
 // ——— The overview the workspace reads ———
 export const planningOverview = async (projectId: string) => {
   const planning = await loadVideoPlanning(projectId)
@@ -275,12 +301,19 @@ export const planningOverview = async (projectId: string) => {
       stale: Boolean(brief && !fresh.briefFresh.fresh),
       staleBecause: brief && !fresh.briefFresh.fresh ? fresh.briefFresh.reason : null,
     },
-    scenes: planning.videoScenes.map(scene => ({
-      ...scene,
-      direction: directionFor(planning, scene.id),
-      delivery: deliveryFor(planning, scene.id),
-      view: scenePlanningView(records, scene.id, fresh.sceneNow(scene.id)),
-    })),
+    scenes: planning.videoScenes.map(scene => {
+      const view = scenePlanningView(records, scene.id, fresh.sceneNow(scene.id))
+      const plan = view.current?.content as SceneTreatmentV1 | null | undefined
+      return {
+        ...scene,
+        direction: directionFor(planning, scene.id),
+        delivery: deliveryFor(planning, scene.id),
+        view,
+        // How the current plan meets its neighbours now: an agreement breaks
+        // when the reviewed plan it rests on changes.
+        continuity: plan?.continuity ? continuityStatus(plan, agreementBasis(neighborsOf(planning, records, scene.id))) : null,
+      }
+    }),
     videoDirection: directionFor(planning, ''),
     basePages: planning.basePages,
     records,
@@ -296,10 +329,16 @@ const numberedSource = (text: string) =>
     .map((paragraph, index) => `¶${index + 1}  ${paragraph}`)
     .join('\n\n')
 
+// The passages kept on each base page, with the page they belong to: the
+// source evidence a run has when the full text was not retained.
+const sourceFragmentsOf = (planning: VideoPlanning) =>
+  planning.basePages.flatMap(page => page.sourcePassages.map(text => ({ scene: page.scene, text })))
+
 const briefContextOf = (planning: VideoPlanning): BriefContext & { videoScenes: VideoPlanning['videoScenes'] } => ({
   baseSceneIds: planning.basePages.map(page => page.scene),
   sourceRevision: planning.source.revision,
   sourceText: planning.source.text,
+  sourceFragments: sourceFragmentsOf(planning),
   // The creator's own words. A base page's notes are the presentation's
   // layout notes for its slides and presenter: reference, never quotable as
   // the creator's.
@@ -323,6 +362,13 @@ const briefContextOf = (planning: VideoPlanning): BriefContext & { videoScenes: 
 
 const briefPacket = (planning: VideoPlanning) => {
   const context = briefContextOf(planning)
+  const fragments = context.sourceFragments || []
+  const keptOn = planning.basePages.filter(page => page.sourcePassages.length)
+  const sourcePool = planning.source.text
+    ? { coverage: 'full' as const }
+    : fragments.length
+      ? { coverage: 'fragments' as const, passages: fragments.length, pagesWithPassages: keptOn.length, pages: planning.basePages.length }
+      : { coverage: 'none' as const }
   const files: Record<string, string> = {
     'packet/CONTEXT.json': JSON.stringify(
       {
@@ -340,9 +386,14 @@ const briefPacket = (planning: VideoPlanning) => {
         requestedSeconds: context.requestedSeconds,
         sceneDecisions: context.sceneDecisions,
         videoDirection: directionFor(planning, ''),
+        sourcePool,
         limitations: [
           ...(planning.baseLimitation ? [planning.baseLimitation] : []),
-          ...(planning.source.text ? [] : ['Only fragments of the source were retained: the per-page source passages in PRESENTATION.md.']),
+          ...(sourcePool.coverage === 'fragments'
+            ? [`Only fragments of the source were retained: ${sourcePool.passages} passages kept on ${sourcePool.pagesWithPassages} of ${sourcePool.pages} base pages, listed by page in SOURCE.md.`]
+            : sourcePool.coverage === 'none'
+              ? ['Nothing of the source was retained: source claims can rest only on the creator\'s words, or stay open.']
+              : []),
         ],
       },
       null,
@@ -350,7 +401,18 @@ const briefPacket = (planning: VideoPlanning) => {
     ),
     'packet/SOURCE.md': planning.source.text
       ? `# ${planning.source.title}\n\n${planning.source.site ? `From ${planning.source.site}${planning.source.url ? ` — ${planning.source.url}` : ''}. ` : ''}Retained source revision \`${planning.source.revision}\`, paragraph-numbered.\n\n${numberedSource(planning.source.text)}\n`
-      : `# Source\n\nThe full source was not retained for this notebook. Only the passages attached to each base page survive; they are listed in PRESENTATION.md.\n`,
+      : fragments.length
+        ? [
+            `# ${planning.source.title} — retained fragments`,
+            '',
+            `The full source was not retained for this notebook. These passages, kept on the base pages, are all the source evidence there is: quote one exactly as \`source\` evidence, and the page it was kept on is recorded with it. A quotation never joins passages from two pages.`,
+            '',
+            ...keptOn.map(page => [`## ${page.scene}: ${page.title}`, '', ...page.sourcePassages.map(passage => `- "${passage}"`), ''].join('\n')),
+            ...(keptOn.length < planning.basePages.length
+              ? [`Pages that kept no passage: ${planning.basePages.filter(page => !page.sourcePassages.length).map(page => page.scene).join(', ')}.`, '']
+              : []),
+          ].join('\n')
+        : `# Source\n\nNothing of the source was retained for this notebook — not even passages on the base pages. Source claims can rest only on the creator's words (NARRATIVE.md), or stay open as uncertainty.\n`,
     'packet/NARRATIVE.md': [
       '# What the creator wrote',
       '',
@@ -391,12 +453,8 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
   const scene = planning.videoScenes.find(entry => entry.id === sceneId)!
   const unitsFor = (origins: string[]) =>
     [...new Set(brief.coverage.filter(entry => origins.includes(entry.scene)).flatMap(entry => entry.units))]
-  const reviewedOf = (id: string) => scenePlanningView(records, id, null).reviewed
-  const neighbours = [
-    { position: 'before' as const, scene: planning.videoScenes[scene.index - 1] },
-    { position: 'after' as const, scene: planning.videoScenes[scene.index + 1] },
-  ].filter(entry => entry.scene)
-  const reviewed = reviewedOf(scene.id)
+  const reviewed = scenePlanningView(records, scene.id, null).reviewed
+  const neighbors = neighborsOf(planning, records, scene.id)
   const assets = await libraryAssets()
   const packet = renderScenePacket({
     videoTitle: planning.project.title,
@@ -406,13 +464,22 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
       .map(({ scene: id, title, idea, narration, sourcePassages, wireframe }) => ({ scene: id, title, idea, narration, sourcePassages, wireframe })),
     script: scene.script,
     units: unitsFor(scene.originScenes),
-    adjacent: neighbours.map(entry => ({
-      position: entry.position,
-      id: entry.scene!.id,
-      title: entry.scene!.title,
-      units: unitsFor(entry.scene!.originScenes),
-      takeaway: (reviewedOf(entry.scene!.id)?.content as SceneTreatmentV1 | null)?.takeaway || null,
-    })),
+    adjacent: neighbors.map(entry => {
+      const origin = planning.videoScenes.find(candidate => candidate.id === entry.scene)!
+      const reviewedPlan = entry.reviewed ? (records.find(record => record.id === entry.reviewed!.recordId)?.content as SceneTreatmentV1 | null) : null
+      return {
+        position: entry.position,
+        id: entry.scene,
+        title: entry.title,
+        units: unitsFor(origin.originScenes),
+        takeaway: reviewedPlan?.takeaway || null,
+        plan: entry.reviewed
+          ? { state: 'reviewed' as const, revision: entry.reviewed.revision, entry: entry.reviewed.entry, exit: entry.reviewed.exit }
+          : entry.candidate
+            ? { state: 'candidate' as const, revision: entry.candidate.revision, entry: entry.candidate.entry, exit: entry.candidate.exit }
+            : null,
+      }
+    }),
     direction: { video: directionFor(planning, ''), scene: directionFor(planning, scene.id) },
     delivery: deliveryFor(planning, scene.id),
     reviewed: (reviewed?.content as SceneTreatmentV1 | null) || null,
@@ -422,6 +489,25 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
     'packet/BRIEF.md': renderNativeBrief(brief),
     'packet/EXPLANATION.md': renderExplanation(brief),
     'packet/SCENE.md': packet,
+    // The seams: what each neighbour's plan promises now. Only a reviewed
+    // plan's boundary can be agreed; a candidate's is a proposal; with no
+    // plan the neighbour's image is unknown.
+    'packet/NEIGHBORS.json': JSON.stringify(
+      {
+        scene: scene.id,
+        neighbors: neighbors.map(entry => ({
+          position: entry.position,
+          scene: entry.scene,
+          title: entry.title,
+          plan: entry.reviewed ? 'reviewed' : entry.candidate ? 'candidate' : 'none',
+          ...(entry.reviewed ? { reviewed: { revision: entry.reviewed.revision, [entry.position === 'before' ? 'exit' : 'entry']: entry.position === 'before' ? entry.reviewed.exit : entry.reviewed.entry } } : {}),
+          ...(entry.candidate ? { candidate: { revision: entry.candidate.revision, [entry.position === 'before' ? 'exit' : 'entry']: entry.position === 'before' ? entry.candidate.exit : entry.candidate.entry } } : {}),
+        })),
+        rule: 'A seam may be agreed only with a reviewed plan. Otherwise open (or end) self-contained, or record a proposal that stays provisional until both sides agree.',
+      },
+      null,
+      2,
+    ),
     'packet/CONTEXT.json': JSON.stringify(
       {
         route: 'Plan Scene',
@@ -633,6 +719,7 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
     bundleReferences: planning.bundle.references,
     delivery: ((record.inputs as { delivery?: string | null }).delivery as TreatmentContext['delivery']) ?? null,
     assetKeys: (await libraryAssets()).map(asset => asset.key),
+    neighbors: agreementBasis(neighborsOf(planning, await listPlanningRecords(record.projectId), scene.id)),
   }
   const report = validateTreatment(raw, context)
   if (!report.ok) return { accepted: false as const, problems: report.problems, warnings: report.warnings }

@@ -36,6 +36,10 @@ export type BriefEvidence = {
   text: string
   // Where it is, when that helps a person find it: a heading or paragraph.
   locator?: string
+  // Where the check found it — set by validation, never by the harness: the
+  // full retained source, the passages kept on named base pages, or the
+  // creator's own words.
+  lineage?: { pool: 'full' | 'fragments' | 'creator'; pages?: string[] }
 }
 
 export type BriefEntity = {
@@ -126,6 +130,9 @@ export type BriefContext = {
   sourceRevision: string | null
   // The retained source's full text; empty when only fragments survive.
   sourceText: string
+  // The passages kept on each base page. When the full text is gone they are
+  // the source evidence the run was given, each with the page it came from.
+  sourceFragments?: Array<{ scene: string; text: string }>
   // Everything the creator wrote: narration, scripts, notes, direction.
   creatorText: string
   wordingPolicy: 'preserve' | 'assist' | 'draft'
@@ -335,11 +342,21 @@ export const validateBrief = (raw: unknown, context: BriefContext): BriefReport 
   if (brief.source.wordingPolicy !== context.wordingPolicy) {
     problems.push(`source.wordingPolicy is "${brief.source.wordingPolicy}", but the notebook's policy is "${context.wordingPolicy}"`)
   }
-  if (!context.sourceText.trim() && brief.source.coverage === 'full') {
+  // The source pool the run was given: the retained text, or only the
+  // passages kept on the base pages, or nothing at all.
+  const fragments = (context.sourceFragments || []).filter(entry => entry.text.trim())
+  const pool: 'full' | 'fragments' | 'none' = context.sourceText.trim() ? 'full' : fragments.length ? 'fragments' : 'none'
+  if (pool !== 'full' && brief.source.coverage === 'full') {
     problems.push('source.coverage says the full source was read, but only fragments of it were retained — record the limitation instead')
   }
   if (brief.source.coverage === 'fragments' && !brief.source.limitations.length) {
     warnings.push('source.coverage is fragments but no limitation is recorded')
+  }
+  if (pool === 'fragments') {
+    const bare = context.baseSceneIds.filter(id => !fragments.some(entry => entry.scene === id))
+    if (bare.length) {
+      warnings.push(`Only fragments of the source survive, and ${bare.length} of ${context.baseSceneIds.length} base pages kept none (${bare.join(', ')}): what they claim rests on the creator's words or stays open`)
+    }
   }
 
   // Evidence: every quotation is really there.
@@ -351,13 +368,26 @@ export const validateBrief = (raw: unknown, context: BriefContext): BriefReport 
       problems.push(`evidence ${entry.id || '?'} is too short to identify a passage`)
       continue
     }
-    const pool = entry.kind === 'source' ? context.sourceText : context.creatorText
-    if (!quotedIn(entry.text, pool)) {
-      problems.push(
-        entry.kind === 'source'
-          ? `evidence ${entry.id} is not a passage of the retained source — quote it exactly (an ellipsis may join fragments)`
-          : `evidence ${entry.id} is not something the creator wrote — quote their narration, notes or direction exactly`,
+    // Lineage is the check's finding, never the harness's claim.
+    delete entry.lineage
+    if (entry.kind === 'creator') {
+      if (quotedIn(entry.text, context.creatorText)) entry.lineage = { pool: 'creator' }
+      else problems.push(`evidence ${entry.id} is not something the creator wrote — quote their narration, notes or direction exactly`)
+      continue
+    }
+    if (pool === 'full') {
+      if (quotedIn(entry.text, context.sourceText)) entry.lineage = { pool: 'full' }
+      else problems.push(`evidence ${entry.id} is not a passage of the retained source — quote it exactly (an ellipsis may join fragments)`)
+    } else if (pool === 'fragments') {
+      // A passage kept on a page, or passages of one page joined by an
+      // ellipsis. A quotation never spans two pages' passages.
+      const pages = [...new Set(fragments.map(fragment => fragment.scene))].filter(scene =>
+        quotedIn(entry.text, fragments.filter(fragment => fragment.scene === scene).map(fragment => fragment.text).join('\n\n')),
       )
+      if (pages.length) entry.lineage = { pool: 'fragments', pages }
+      else problems.push(`evidence ${entry.id} is not one of the source passages kept on the base pages — only those survive; quote one exactly (SOURCE.md lists them by page)`)
+    } else {
+      problems.push(`evidence ${entry.id} quotes the source, but nothing of the source was retained — cite the creator's words, or record the gap under uncertainty`)
     }
   }
   const knownEvidence = new Set(evidenceIds)

@@ -133,13 +133,16 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
     const units = brief.coverage.filter(entry => context.scene.originScenes.includes(entry.scene)).flatMap(entry => entry.units)
     const needs = units.flatMap(unit => brief.units.find(entry => entry.id === unit).communicationNeeds.map(need => ({ unit, need: need.need, moments: ['m1'] })))
     if (control.delayMs) await sleep(control.delayMs)
+    const moment = index => ({ id: 'm' + index, title: index === 1 ? 'Show it' : 'Beat ' + index, purpose: 'The viewer needs to see it', observation: 'It appears', narration: { job: 'Name it', guide: 'This is the subject.' }, objects: { change: 'It settles into view', actors: ['thing'] }, text: null, presenter: null, camera: { treatment: 'hold', subject: 'thing', reason: 'Nothing to follow yet' }, audio: null, attention: 'the thing', recipes: [{ id: 'coordinate-target-zoom', catalog: 'rule', purpose: 'Look closer', channel: 'camera', controls: ['world'] }], evidenceRefs: ['ev-1'], estimateSeconds: 5 })
+    const neighbour = (context.videoScenes || []).includes(context.scene.id) && context.videoScenes.indexOf(context.scene.id) < context.videoScenes.length - 1
     fs.writeFileSync('planning/treatment.json', JSON.stringify({
       schemaVersion: 1, scene: context.scene.id, originScenes: context.scene.originScenes, units: [...new Set(units)],
       question: 'What is it?', takeaway: 'It is the subject.', evidenceRefs: ['ev-1'], development: 'Show it, then name it.', demonstration: null,
-      moments: [{ id: 'm1', title: 'Show it', purpose: 'The viewer needs to see it', observation: 'It appears', narration: { job: 'Name it', guide: 'This is the subject.' }, objects: { change: 'It settles into view', actors: ['thing'] }, text: null, presenter: null, camera: { treatment: 'hold', subject: 'thing', reason: 'Nothing to follow yet' }, audio: null, attention: 'the thing', recipes: [{ id: 'coordinate-target-zoom', catalog: 'rule', purpose: 'Look closer', channel: 'camera', controls: ['world'] }], evidenceRefs: ['ev-1'], estimateSeconds: 5 }],
+      ledger: control.ledger ? { quantity: 'things on the page', capacity: null, initial: 2, events: [{ moment: 'm1', what: 'one is taken away', change: 'consume', amount: 1, after: 1 }], final: 1 } : null,
+      moments: Array.from({ length: control.moments || 1 }, (_, index) => moment(index + 1)),
       objects: [], treatments: { presenter: 'Undecided', text: 'None', camera: 'Hold' },
       skills: [{ skill: 'hyperframes-creative', references: ['skills/hyperframes-creative/references/beat-direction.md'], why: 'Rhythm' }, { skill: 'hyperframes-animation', references: ['skills/hyperframes-animation/rules-index.md'], why: 'Recipe' }],
-      requirements: { assets: [], takes: [], decisions: [] }, continuity: { entry: 'Empty', exit: 'The thing in view' }, unresolved: [],
+      requirements: { assets: [], takes: [], decisions: [] }, continuity: { entry: 'Empty', exit: 'The thing in view', incoming: { kind: 'self-contained' }, outgoing: control.ledger && neighbour ? { kind: 'proposed', note: 'The next scene could open on the thing in view' } : { kind: 'self-contained' } }, unresolved: [],
       coverage: needs, rosterProposal: null, delivery: { voice: context.delivery || 'undecided', note: '' },
     }))
     report.submitted = await tool('plan_submit_treatment', { projectDir })
@@ -326,6 +329,75 @@ try {
   const reviewed = await until('the review', async () => (await overview(videoId)).scenes[0].view.reviewed)
   check(reviewed.id === fresh.id, 'the candidate is the reviewed plan')
   await shot('04-reviewed')
+
+  // A plan with a counted demonstration and a proposed seam (R7, R8): the
+  // workspace shows the checked count and where each seam stands.
+  await setMode({ mode: 'plan', moments: 12, ledger: true })
+  await evaluate(`document.querySelector('.planning-scene')?.click(); true`)
+  check(await press('Regenerate with direction'), 'a twelve-moment plan is requested')
+  const wide = await until('the twelve-moment candidate', async () => {
+    const view = (await overview(videoId)).scenes[0].view
+    return view.state === 'candidate' && view.current?.id !== reviewed.id && view.current
+  }, 90_000)
+  const shownPlan = await until('the plan view to show it', () => evaluate(`(() => {
+    const ledger = document.querySelector('.planning-ledger')
+    const seams = document.querySelector('.planning-seams')
+    return ledger && seams ? { ledger: ledger.textContent, rows: ledger.querySelectorAll('tbody tr').length, seams: seams.textContent } : null
+  })()`), 20_000).catch(() => null)
+  check(Boolean(wide) && shownPlan?.rows === 1 && /The count — things on the page/.test(shownPlan.ledger) && /Checked: every step adds up/.test(shownPlan.ledger), `the plan shows its checked count (${shownPlan?.ledger?.slice(0, 80)})`)
+  check(/Opens: Empty self-contained/.test(shownPlan?.seams || '') && /Leaves: The thing in view proposed to Keep late plans out/.test(shownPlan?.seams || ''), `the plan shows each seam — self-contained, or proposed to its neighbour (${shownPlan?.seams})`)
+
+  // R11: a run lands while the creator reads a packet file with the stored
+  // record collapsed, types a model id and has scrolled the moments. The
+  // real re-render keeps all of it where they left it.
+  await setMode({ mode: 'plan', moments: 12, ledger: true, delayMs: 9000 })
+  check(await press('Regenerate with direction'), 'a slow run starts while the creator inspects the plan')
+  await until('the run to be planning', async () => (await overview(videoId)).scenes[0].view.state === 'planning', 30_000)
+  check(await press('Raw files'), 'Raw files opens')
+  await until('the packet files', () => evaluate(`Boolean(document.querySelector('[data-disclosure="raw:file:packet/SCENE.md"]'))`), 20_000)
+  const arranged = await evaluate(`(async () => {
+    const stored = document.querySelector('[data-disclosure="raw:record"]')
+    stored.open = false
+    stored.dispatchEvent(new Event('toggle'))
+    const scene = document.querySelector('[data-disclosure="raw:file:packet/SCENE.md"]')
+    scene.open = true
+    scene.dispatchEvent(new Event('toggle'))
+    const sequence = document.querySelector('.planning-sequence')
+    sequence.scrollLeft = 400
+    const select = document.querySelector('.planning-model')
+    select.value = '__custom__'
+    select.dispatchEvent(new Event('change'))
+    await new Promise(r => setTimeout(r, 300))
+    const input = document.getElementById('planning-model-custom')
+    input.focus()
+    input.value = 'claude-half-typed'
+    input.dispatchEvent(new Event('input'))
+    await new Promise(r => setTimeout(r, 100))
+    const now = document.querySelector('.planning-sequence')
+    return { scrollLeft: now.scrollLeft, overflow: now.scrollWidth > now.clientWidth }
+  })()`)
+  check(arranged.overflow && arranged.scrollLeft > 0, `the moments overflow and are scrolled (${arranged.scrollLeft})`)
+  await until('the slow run to land', async () => {
+    const view = (await overview(videoId)).scenes[0].view
+    return view.state === 'candidate' && view.current?.id !== wide.id
+  }, 90_000)
+  await sleep(4000)
+  const after = await evaluate(`({
+    stored: document.querySelector('[data-disclosure="raw:record"]')?.open,
+    scene: document.querySelector('[data-disclosure="raw:file:packet/SCENE.md"]')?.open,
+    rendered: document.querySelector('.planning-raw .planning-muted')?.textContent || '',
+    custom: document.getElementById('planning-model-custom')?.value,
+    focused: document.activeElement?.id,
+    scrollLeft: document.querySelector('.planning-sequence')?.scrollLeft,
+  })`)
+  check(/r\d+ · candidate/.test(after.rendered), `the workspace re-rendered with the landed plan (${after.rendered.slice(0, 60)})`)
+  check(after.stored === false && after.scene === true, `the collapsed record stays collapsed and the open packet stays open (${after.stored} / ${after.scene})`)
+  check(after.custom === 'claude-half-typed' && after.focused === 'planning-model-custom', `the half-typed model id and its focus survive (${after.custom} / ${after.focused})`)
+  check(after.scrollLeft === arranged.scrollLeft, `the moments keep their scroll (${after.scrollLeft})`)
+  await shot('04b-inspector-kept')
+  await evaluate(`(() => { const input = document.getElementById('planning-model-custom'); input.value = ''; input.dispatchEvent(new Event('input')); document.querySelector('.planning-model').value = 'claude-opus-5-5'; document.querySelector('.planning-model').dispatchEvent(new Event('change')); return true })()`)
+  await press('Back to the plan')
+  await setMode({ mode: 'plan' })
 
   // A run that dies without submitting: failed, with the provider's word.
   await setMode({ mode: 'fail' })

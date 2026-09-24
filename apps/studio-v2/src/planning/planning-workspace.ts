@@ -13,7 +13,7 @@
 // the same plans and any run still going. Reviewing a plan changes its status
 // and nothing else.
 import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
-import { channelsOf, TREATMENT_CHANNELS, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
+import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, type PlanningRecord, type ScenePlanningView } from './planning-records'
 import {
   failureTitle,
@@ -37,6 +37,8 @@ type SceneRow = {
   direction: string
   delivery: 'human' | 'generated' | 'silent' | null
   view: ScenePlanningView
+  // How the current plan meets its neighbours now.
+  continuity?: ContinuityState[] | null
 }
 export type PlanningOverviewV1 = {
   projectId: string
@@ -140,8 +142,22 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
 
   let preferences: HarnessPreferences = { default: null, stages: {}, updatedAt: null }
   let harnessStatus: HarnessStatus = {}
-  // Typing a model id: shown until it is saved.
+  // Typing a model id: shown until it is saved, whatever renders meanwhile.
   let customModelFor = ''
+  let customModelDraft = ''
+  // What the creator opened or closed, by a stable key, so a render never
+  // reopens what they collapsed or closes what they are reading (R11).
+  const disclosures = new Map<string, boolean>()
+  // A run's files, read once per record update rather than on every render.
+  const rawFiles = new Map<string, Record<string, string> | 'missing'>()
+  // What the last render showed; a poll that brings nothing new renders nothing.
+  let shown = ''
+
+  const disclosure = (key: string, summary: string, content: Node, openByDefault = false, attributes: Record<string, string> = {}) => {
+    const details = h('details', { ...attributes, 'data-disclosure': key, ...((disclosures.get(key) ?? openByDefault) ? { open: true } : {}) }, h('summary', { text: summary, 'data-focus': `summary:${key}` }), content)
+    details.addEventListener('toggle', () => disclosures.set(key, details.open))
+    return details
+  }
 
   // The durable "Video planning" choice, resolved against what is installed.
   const planningChoice = () => resolveStage(preferences, 'planning', harnesses)
@@ -178,7 +194,13 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       return
     }
     if (!selectedScene || !overview.scenes.some(scene => scene.id === selectedScene)) selectedScene = overview.scenes[0]?.id || ''
-    render()
+    // A poll that brings nothing new leaves the page exactly as it is: what
+    // is open stays open, focus and scroll stay put (R11).
+    const signature = JSON.stringify([overview.records.map(record => [record.id, record.status, record.updatedAt, record.reportedModel]), overview.scenes.map(scene => [scene.id, scene.view.state, scene.direction, scene.delivery, scene.continuity]), overview.brief.stale, overview.videoDirection, harnessStatus])
+    if (signature !== shown) {
+      shown = signature
+      render()
+    }
     schedulePoll()
   }
 
@@ -315,11 +337,18 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   }
 
   // ——— Rendering ———
-  const SCROLLERS = ['.planning-nav', '.planning-stage', '.planning-inspector', '.planning-sequence']
+  const SCROLLERS = ['.planning-nav', '.planning-stage', '.planning-inspector', '.planning-sequence', '.planning-raw']
+  // What held focus, found again after a render by its id or its key.
+  const focusKey = (element: Element) =>
+    element.id ? `#${CSS.escape(element.id)}` : element.getAttribute('data-focus') ? `[data-focus="${CSS.escape(element.getAttribute('data-focus')!)}"]` : ''
   const render = (error = '') => {
-    const scrolled = SCROLLERS.map(selector => root.querySelector<HTMLElement>(selector)?.scrollTop || 0)
-    const focused = document.activeElement instanceof HTMLTextAreaElement && root.contains(document.activeElement) ? document.activeElement : null
-    const caret = focused ? { id: focused.id, start: focused.selectionStart, end: focused.selectionEnd } : null
+    const scrolled = SCROLLERS.map(selector => {
+      const element = root.querySelector<HTMLElement>(selector)
+      return { top: element?.scrollTop || 0, left: element?.scrollLeft || 0 }
+    })
+    const active = document.activeElement && root.contains(document.activeElement) ? document.activeElement : null
+    const focused = active ? focusKey(active) : ''
+    const caret = active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && active.type === 'text') ? { start: active.selectionStart, end: active.selectionEnd } : null
     root.replaceChildren()
     root.append(renderHeader(error))
     if (!overview) return
@@ -330,13 +359,15 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     )
     SCROLLERS.forEach((selector, index) => {
       const element = root.querySelector<HTMLElement>(selector)
-      if (element && scrolled[index]) element.scrollTop = scrolled[index]
+      if (!element) return
+      if (scrolled[index].top) element.scrollTop = scrolled[index].top
+      if (scrolled[index].left) element.scrollLeft = scrolled[index].left
     })
-    root.querySelector('.planning-scene.is-selected')?.scrollIntoView({ block: 'nearest' })
-    if (caret) {
-      const box = root.querySelector<HTMLTextAreaElement>(`#${caret.id}`)
-      box?.focus()
-      box?.setSelectionRange(caret.start, caret.end)
+    if (!scrolled[0].top) root.querySelector('.planning-scene.is-selected')?.scrollIntoView({ block: 'nearest' })
+    if (focused) {
+      const again = root.querySelector<HTMLElement>(focused)
+      again?.focus({ preventScroll: true })
+      if (caret && (again instanceof HTMLTextAreaElement || again instanceof HTMLInputElement)) again.setSelectionRange(caret.start, caret.end)
     }
   }
 
@@ -362,7 +393,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         ? `Base “${current.title}” · showing video “${forkName(forks.find(fork => fork.id === projectId))}” (read-only — its records belong to the video)`
         : `Video “${current.title}” · from base “${overview.baseTitle}”${current.derivedFrom?.baseRevision ? ` @ ${current.derivedFrom.baseRevision}` : ''}${overview.bundle ? ` · skills ${overview.bundle.name} ${overview.bundle.version} (Hyperframes ${overview.bundle.upstreamCommit.slice(0, 8)})` : ''}`
       : ''
-    const harnessSelect = h('select', { class: 'planning-harness', 'aria-label': 'Local harness for planning runs', ...(readOnly ? { disabled: true } : {}) })
+    const harnessSelect = h('select', { class: 'planning-harness', 'data-focus': 'planning-harness', 'aria-label': 'Local harness for planning runs', ...(readOnly ? { disabled: true } : {}) })
     const choice = planningChoice()
     const preferred = choice.harness || ''
     for (const entry of harnesses) {
@@ -443,7 +474,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const models = entry?.models
     const current = modelFor()
     const custom = customModelFor === harness
-    const select = h('select', { class: 'planning-harness planning-model', 'aria-label': `Model for ${HARNESS_LABELS[harness] || harness}`, title: models?.source || '' })
+    const select = h('select', { class: 'planning-harness planning-model', 'data-focus': 'planning-model', 'aria-label': `Model for ${HARNESS_LABELS[harness] || harness}`, title: models?.source || '' })
     const cliDefault = h('option', { value: '', text: `CLI default${models?.default ? ` (${models.default})` : ''}` })
     select.append(cliDefault)
     for (const option of models?.options || []) {
@@ -466,11 +497,14 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const source = choice.source === 'stage' ? 'planning choice' : choice.source === 'default' ? 'your default' : choice.source === 'suggested' ? 'suggested — not chosen yet' : ''
     const field = h('label', { class: 'planning-field', title: source ? `The ${source}; Agent settings holds every stage's choice` : '' }, 'Model ', select)
     if (!custom) return [field]
-    const input = h('input', { class: 'planning-model-custom', type: 'text', placeholder: 'model id, e.g. claude-opus-5-5', 'aria-label': 'Model id' })
+    const input = h('input', { id: 'planning-model-custom', class: 'planning-model-custom', type: 'text', placeholder: 'model id, e.g. claude-opus-5-5', 'aria-label': 'Model id' })
+    input.value = customModelDraft
+    input.addEventListener('input', () => (customModelDraft = input.value))
     input.addEventListener('change', () => {
       const id = input.value.trim()
       if (!id) return
       customModelFor = ''
+      customModelDraft = ''
       void savePlanningChoice({ harness: harness as HarnessChoice['harness'], model: id })
     })
     return [field, input]
@@ -738,7 +772,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         ),
         h('article', { class: 'planning-card' },
           h('h5', { text: 'Skills that shaped it' }),
-          h('ul', { class: 'planning-list' }, ...plan.skills.map(skill => h('li', {}, h('code', { text: skill.skill }), ` — ${skill.why}`, skill.references.length ? h('details', {}, h('summary', { text: `${skill.references.length} reference${skill.references.length === 1 ? '' : 's'}` }), h('ul', {}, ...skill.references.map(reference => h('li', {}, h('code', { text: reference }))))) : null))),
+          h('ul', { class: 'planning-list' }, ...plan.skills.map(skill => h('li', {}, h('code', { text: skill.skill }), ` — ${skill.why}`, skill.references.length ? disclosure(`skill:${record.id}:${skill.skill}`, `${skill.references.length} reference${skill.references.length === 1 ? '' : 's'}`, h('ul', {}, ...skill.references.map(reference => h('li', {}, h('code', { text: reference }))))) : null))),
         ),
         h('article', { class: 'planning-card' },
           h('h5', { text: 'Before it can be built' }),
@@ -748,14 +782,50 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
             ...plan.requirements.decisions.map(text => h('li', {}, chip('decision'), ` ${text}`)),
             ...plan.unresolved.map(text => h('li', {}, chip('open', 'warn'), ` ${text}`)),
             ...((record.report?.constructionRisks || []).map(text => h('li', {}, chip('unproven', 'warn'), ` ${text}`))),
+            ...((record.report?.warnings || []).map(text => h('li', {}, chip('check', 'warn'), ` ${text}`))),
           ),
-          h('p', { class: 'planning-muted', text: `Continuity — enters: ${plan.continuity.entry} · leaves: ${plan.continuity.exit}` }),
         ),
+        renderSeams(plan, record.id === scene.view.current?.id ? scene.continuity || null : null),
       ),
+      plan.ledger ? renderLedger(plan) : '',
       plan.rosterProposal ? h('p', { class: 'planning-warn', text: `Roster proposal (${plan.rosterProposal.action} ${plan.rosterProposal.scenes.join(', ')}): ${plan.rosterProposal.reason}. A proposal only — the scenes are unchanged until you decide.` }) : '',
       h('p', { class: 'planning-provenance', text: `Plan r${record.revision} · ${statusOf(record)} · ${madeWith(record)} · workflow ${record.workflow || '—'} · requested ${when(record.createdAt)}${record.reviewedAt ? ` · reviewed ${when(record.reviewedAt)}` : ''}` }),
     )
     return pane
+  }
+
+  // The demonstration's count, moment by moment, as the product checked it.
+  const renderLedger = (plan: SceneTreatmentV1) => {
+    const ledger = plan.ledger!
+    const titleOf = (id: string) => plan.moments.find(item => item.id === id)?.title || id
+    const change = (event: NonNullable<SceneTreatmentV1['ledger']>['events'][number]) =>
+      event.change === 'add' ? `+${event.amount}` : event.change === 'consume' ? `−${event.amount}` : 'refused (nothing spent)'
+    return h('article', { class: 'planning-card planning-ledger' },
+      h('h5', { text: `The count — ${ledger.quantity}` }),
+      h('p', { class: 'planning-muted', text: `Starts at ${ledger.initial}${ledger.capacity !== null ? ` of ${ledger.capacity}` : ''}; ends at ${ledger.final}. Checked: every step adds up.` }),
+      h('table', {},
+        h('thead', {}, h('tr', {}, h('th', { text: 'Moment' }), h('th', { text: 'What happens' }), h('th', { text: 'Change' }), h('th', { text: 'Left' }))),
+        h('tbody', {}, ...ledger.events.map(event => h('tr', { class: event.change === 'refuse' ? 'is-refused' : '' }, h('td', { text: titleOf(event.moment) }), h('td', { text: event.what }), h('td', { text: change(event) }), h('td', { text: String(event.after) })))),
+      ),
+    )
+  }
+
+  // How the plan meets its neighbours: self-contained, agreed (and whether
+  // that still holds) or a proposal that stays provisional.
+  const renderSeams = (plan: SceneTreatmentV1, status: ContinuityState[] | null) => {
+    const name = (scene: string | null) => (scene ? overview!.scenes.find(entry => entry.id === scene)?.title || scene : 'the neighbour')
+    const line = (side: 'incoming' | 'outgoing', text: string) => {
+      const state = status?.find(entry => entry.side === side)
+      const stated = plan.continuity[side]
+      const kind = state?.state || (stated?.kind || 'unstated')
+      const label = kind === 'self-contained' ? 'self-contained' : kind === 'agreed' ? `agreed with ${name(state?.scene || stated?.scene || null)}${stated?.revision ? ` r${stated.revision}` : ''}` : kind === 'broken' ? `agreement broken — ${name(state?.scene || null)}` : kind === 'proposed' ? `proposed to ${name(state?.scene || stated?.scene || null)}` : 'not stated'
+      const tone = kind === 'agreed' ? 'good' : kind === 'broken' ? 'bad' : kind === 'proposed' || kind === 'unstated' ? 'warn' : ''
+      return h('li', {}, h('strong', { text: side === 'incoming' ? 'Opens: ' : 'Leaves: ' }), text || '—', ' ', chip(label, tone), state?.reason ? h('small', { class: 'planning-muted', text: ` ${state.reason}` }) : null, stated?.note ? h('small', { class: 'planning-muted', text: ` ${stated.note}` }) : null)
+    }
+    return h('article', { class: 'planning-card planning-seams' },
+      h('h5', { text: 'Seams with the neighbours' }),
+      h('ul', { class: 'planning-list' }, line('incoming', plan.continuity.entry), line('outgoing', plan.continuity.exit)),
+    )
   }
 
   const renderComparison = (plan: SceneTreatmentV1, other: SceneTreatmentV1, otherRevision: number, revisionNumber: number) => {
@@ -820,7 +890,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const grid = h('div', { class: 'planning-lanes', style: `grid-template-columns: 108px repeat(${plan.moments.length}, minmax(150px, 1fr))` })
     grid.append(h('div', { class: 'planning-lane-head', text: 'Moment' }))
     plan.moments.forEach((item, index) => {
-      const head = h('button', { type: 'button', class: `planning-moment${(moment || plan.moments[0].id) === item.id ? ' is-selected' : ''}` },
+      const head = h('button', { type: 'button', 'data-focus': `moment:${item.id}`, class: `planning-moment${(moment || plan.moments[0].id) === item.id ? ' is-selected' : ''}` },
         h('span', { class: 'planning-scene-number', text: String(index + 1) }),
         h('strong', { text: item.title }),
         item.estimateSeconds ? h('small', { text: `≈${item.estimateSeconds}s est.` }) : null,
@@ -916,18 +986,28 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const record = tab === 'brief' || !scene ? overview!.brief.latest : shownPlan() || scene.view.latest
     const pane = h('div', { class: 'planning-pane planning-raw' }, h('p', { class: 'planning-muted', text: record ? `Record ${record.id} · r${record.revision} · ${record.status}${record.runId ? ` · run ${record.runId}` : ''}` : 'No record yet.' }))
     if (!record) return pane
-    pane.append(h('details', { open: true }, h('summary', { text: 'Stored record (JSON)' }), h('pre', { text: JSON.stringify(record, null, 2) })))
+    pane.append(disclosure('raw:record', 'Stored record (JSON)', h('pre', { text: JSON.stringify(record, null, 2) }), true))
     if (record.runId && bridge?.isDesktop) {
-      const holder = h('div', {}, h('p', { class: 'planning-muted', text: 'Reading the run directory…' }))
-      pane.append(holder)
-      void bridge.harness.artefacts(record.runId).then(artefacts => {
-        const files = { ...(artefacts.planning?.packet || {}), ...(artefacts.planning?.planning || {}) }
+      const holder = h('div', {})
+      const fill = (files: Record<string, string> | 'missing') =>
         holder.replaceChildren(
-          ...(Object.keys(files).length
-            ? Object.entries(files).map(([name, text]) => h('details', {}, h('summary', { text: name }), h('pre', { text })))
+          ...(files !== 'missing' && Object.keys(files).length
+            ? Object.entries(files).map(([name, text]) => disclosure(`raw:file:${name}`, name, h('pre', { text })))
             : [h('p', { class: 'planning-muted', text: 'The run directory is no longer available; the stored record above is the durable copy.' })]),
         )
-      }).catch(() => holder.replaceChildren(h('p', { class: 'planning-muted', text: 'The run directory could not be read.' })))
+      // The files of this record as it stands; read again only when it changes.
+      const key = `${record.runId}:${record.updatedAt}`
+      const cached = rawFiles.get(key)
+      if (cached) fill(cached)
+      else {
+        holder.append(h('p', { class: 'planning-muted', text: 'Reading the run directory…' }))
+        void bridge.harness.artefacts(record.runId).then(artefacts => {
+          const files = { ...(artefacts.planning?.packet || {}), ...(artefacts.planning?.planning || {}) }
+          rawFiles.set(key, Object.keys(files).length ? files : 'missing')
+          fill(rawFiles.get(key)!)
+        }).catch(() => holder.replaceChildren(h('p', { class: 'planning-muted', text: 'The run directory could not be read.' })))
+      }
+      pane.append(holder)
     }
     return pane
   }
@@ -937,6 +1017,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     readOnly = !current.derivedFrom?.notebook
     progress.clear()
     drafts.clear()
+    rawFiles.clear()
+    shown = ''
     showRaw = false
     if (readOnly) {
       forks = await host.forksOf(current.id)

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { quotedIn, fingerprintOf } from './fingerprint'
 import { buildCapabilityCatalog, parseBlueprintsIndex, parseRulesIndex, parseTechniques } from './capability-catalog'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './explanation-brief'
-import { validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
+import { continuityStatus, validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from './brief-adapter'
 import { PLANNING_SCHEMA, briefFingerprint, briefFreshness, landingFor, scenePlanningView, treatmentFingerprint, treatmentFreshness, type BriefInputs, type PlanningRecord, type TreatmentInputs } from './planning-records'
 
@@ -151,6 +151,63 @@ describe('the Explanation Brief', () => {
   it('does not claim a full reading of a source that survives only in fragments', () => {
     expect(validateBrief(goodBrief(), context({ sourceText: '' })).problems.join('\n')).toMatch(/only fragments of it were retained/)
   })
+
+  // R3: with only the passages kept on the base pages, those passages are
+  // the source evidence — checked against that pool, with their page.
+  const KEPT = [
+    { scene: 'base-1', text: 'Each request that is admitted consumes one token.' },
+    { scene: 'base-1', text: 'When a burst arrives, the requests are admitted until the bucket is empty; the next request is rejected.' },
+    { scene: 'base-2', text: 'Tokens are added back at a steady refill rate, so a later request can pass again.' },
+  ]
+  const fragmentBrief = () => {
+    const brief = goodBrief()
+    brief.source.coverage = 'fragments'
+    brief.source.limitations = ['Only the passages kept on the base pages survive.']
+    return brief
+  }
+
+  it('accepts a passage kept on a base page as source evidence, and records the page', () => {
+    const report = validateBrief(fragmentBrief(), context({ sourceText: '', sourceFragments: KEPT }))
+    expect(report.problems).toEqual([])
+    expect(report.brief.evidence.map(entry => entry.lineage)).toEqual([
+      { pool: 'fragments', pages: ['base-1'] },
+      { pool: 'fragments', pages: ['base-1'] },
+      { pool: 'fragments', pages: ['base-2'] },
+    ])
+  })
+
+  it('refuses a source quotation the kept passages do not contain, or one joining two pages', () => {
+    const missing = fragmentBrief()
+    missing.evidence[0].text = 'A token bucket holds a fixed number of tokens.'
+    expect(validateBrief(missing, context({ sourceText: '', sourceFragments: KEPT })).problems.join('\n')).toMatch(/evidence ev-consume is not one of the source passages kept on the base pages/)
+    const joined = fragmentBrief()
+    joined.evidence[0].text = 'Each request that is admitted consumes one token … Tokens are added back at a steady refill rate'
+    expect(validateBrief(joined, context({ sourceText: '', sourceFragments: KEPT })).problems.join('\n')).toMatch(/not one of the source passages kept/)
+  })
+
+  it('warns which base pages kept no passage', () => {
+    const report = validateBrief(fragmentBrief(), context({ sourceText: '', sourceFragments: KEPT.filter(entry => entry.scene === 'base-1'), baseSceneIds: ['base-1', 'base-2'] }))
+    expect(report.warnings.join('\n')).toMatch(/1 of 2 base pages kept none \(base-2\)/)
+  })
+
+  it('has no source evidence when nothing of the source was retained', () => {
+    const report = validateBrief(fragmentBrief(), context({ sourceText: '', sourceFragments: [] }))
+    expect(report.problems.join('\n')).toMatch(/nothing of the source was retained/)
+  })
+
+  it('never takes a lineage from the harness, and keeps the creator\'s words apart', () => {
+    const brief = goodBrief()
+    brief.evidence.push({ id: 'ev-creator', kind: 'creator', text: 'A bucket holds three tokens, and the calls that arrive spend them.', lineage: { pool: 'full' } })
+    brief.evidence[0] = { ...brief.evidence[0], lineage: { pool: 'creator' } }
+    const report = validateBrief(brief, context())
+    expect(report.problems).toEqual([])
+    expect(report.brief.evidence[0].lineage).toEqual({ pool: 'full' })
+    expect(report.brief.evidence.find(entry => entry.id === 'ev-creator')?.lineage).toEqual({ pool: 'creator' })
+    // A source passage relabelled as the creator's does not pass.
+    const relabelled = goodBrief()
+    relabelled.evidence[0].kind = 'creator'
+    expect(validateBrief(relabelled, context()).problems.join('\n')).toMatch(/evidence ev-consume is not something the creator wrote/)
+  })
 })
 
 const catalog = buildCapabilityCatalog({
@@ -184,6 +241,7 @@ const goodTreatment = (): SceneTreatmentV1 => ({
   evidenceRefs: ['ev-consume'],
   development: 'Establish the bucket holding capacity, then follow one request as it spends a token and passes.',
   demonstration: { text: 'Three tokens; request A arrives', values: [{ value: '3 tokens', basis: 'illustrative' }] },
+  ledger: null,
   moments: [
     {
       id: 'm1', title: 'Establish capacity', purpose: 'The viewer needs the store before the spend', observation: 'Three tokens sit in the bucket',
@@ -213,7 +271,7 @@ const goodTreatment = (): SceneTreatmentV1 => ({
     { skill: 'hyperframes-animation', references: ['skills/hyperframes-animation/rules-index.md'], why: 'Choosing the path and camera recipes' },
   ],
   requirements: { assets: ['A request packet'], takes: [], decisions: ['Delivery for this scene'] },
-  continuity: { entry: 'Bucket full, no requests', exit: 'Bucket holds two tokens; request A admitted' },
+  continuity: { entry: 'Bucket full, no requests', exit: 'Bucket holds two tokens; request A admitted', incoming: { kind: 'self-contained' }, outgoing: { kind: 'self-contained' } },
   unresolved: ['Presenter visibility depends on the delivery choice'],
   coverage: [{ unit: 'admission', need: 'Make the link between a token and admission perceptible', moments: ['m2'] }],
   rosterProposal: null,
@@ -261,6 +319,104 @@ describe('the scene treatment', () => {
     const problems = validateTreatment(treatment, treatmentContext()).problems.join('\n')
     expect(problems).toMatch(/"pitch-master", which is not in the pinned bundle/)
     expect(problems).toMatch(/not in the accepted asset library/)
+  })
+
+  // R7: an illustrative example still obeys its own mechanism.
+  const stripeBucket = () => {
+    const treatment = goodTreatment()
+    treatment.moments.push(
+      { ...treatment.moments[1], id: 'm3', title: 'A burst drains it', observation: 'Eight requests arrive; the bucket empties' },
+      { ...treatment.moments[1], id: 'm4', title: 'The ninth is refused', observation: 'Request nine is turned away' },
+    )
+    treatment.demonstration = { text: 'Five tokens, two refills, a burst of eight requests; the ninth is refused', values: [{ value: '5 tokens', basis: 'illustrative' }, { value: '2 refill tokens', basis: 'illustrative' }, { value: '8 requests', basis: 'illustrative' }] }
+    return treatment
+  }
+
+  it('warns when a demonstration counts without a ledger', () => {
+    const report = validateTreatment(stripeBucket(), treatmentContext())
+    expect(report.warnings.join('\n')).toMatch(/the demonstration counts \(5 tokens, 2 refill tokens, 8 requests\) but has no ledger/)
+  })
+
+  it('refuses the review\'s impossible bucket: eight admitted from seven tokens', () => {
+    const treatment = stripeBucket()
+    const consume = (moment: string, after: number) => ({ moment, what: 'a request is admitted', change: 'consume' as const, amount: 1, after })
+    treatment.ledger = {
+      quantity: 'tokens in the bucket',
+      capacity: 5,
+      initial: 5,
+      events: [
+        consume('m2', 4), consume('m3', 3), consume('m3', 2), consume('m3', 1), consume('m3', 0),
+        { moment: 'm3', what: 'refill', change: 'add', amount: 2, after: 2 },
+        consume('m3', 1), consume('m3', 0), consume('m3', 0),
+        { moment: 'm4', what: 'request nine', change: 'refuse', amount: 0, after: 0 },
+      ],
+      final: 0,
+    }
+    const problems = validateTreatment(treatment, treatmentContext()).problems.join('\n')
+    expect(problems).toMatch(/event 9 \("a request is admitted"\) consumes 1 while only 0 remain — it would be refused/)
+    // The r2 correction: seven admitted, the eighth refused.
+    treatment.ledger.events.splice(8, 2, { moment: 'm4', what: 'request eight', change: 'refuse', amount: 0, after: 0 })
+    expect(validateTreatment(treatment, treatmentContext()).problems).toEqual([])
+  })
+
+  it('checks a ledger\'s order, refusals, capacity and stated counts', () => {
+    const treatment = stripeBucket()
+    treatment.ledger = {
+      quantity: 'tokens',
+      capacity: 3,
+      initial: 3,
+      events: [
+        { moment: 'm3', what: 'spend', change: 'consume', amount: 1, after: 2 },
+        { moment: 'm2', what: 'early', change: 'consume', amount: 1, after: 2 },
+        { moment: 'm3', what: 'refused too soon', change: 'refuse', amount: 1, after: 1 },
+        { moment: 'm4', what: 'overfill', change: 'add', amount: 5, after: 3 },
+      ],
+      final: 4,
+    }
+    const problems = validateTreatment(treatment, treatmentContext()).problems.join('\n')
+    expect(problems).toMatch(/event 2 \("early"\) is listed after an event of a later moment/)
+    expect(problems).toMatch(/event 2 \("early"\) says 2 remain after it, but the count is 1/)
+    expect(problems).toMatch(/event 3 \("refused too soon"\): a refused request consumes nothing/)
+    expect(problems).toMatch(/event 3 \("refused too soon"\) is refused while 1 remain/)
+    expect(problems).toMatch(/event 4 \("overfill"\) adds 5 to 1, past the capacity of 3/)
+    expect(problems).toMatch(/final is 4, but the events leave 3/)
+  })
+
+  // R8: a seam rests on a reviewed neighbour, or is self-contained, or is
+  // a proposal that stays provisional.
+  const reviewedBefore = { position: 'before' as const, scene: 'video-s00', reviewed: { recordId: 'rec-s00', revision: 2, entry: 'Nothing', exit: 'Four limiter tiles; one marked most frequent' } }
+
+  it('refuses an agreed seam with a neighbour that has no reviewed plan', () => {
+    const treatment = goodTreatment()
+    treatment.continuity.incoming = { kind: 'agreed' }
+    const unplanned = { ...reviewedBefore, reviewed: null }
+    expect(validateTreatment(treatment, treatmentContext({ neighbors: [unplanned] })).problems.join('\n')).toMatch(/continuity.incoming is agreed, but video-s00 has no reviewed plan/)
+    // Proposed is allowed, and stays provisional.
+    treatment.continuity.incoming = { kind: 'proposed', note: 'Open on the four tiles if scene 9 ends there' }
+    const report = validateTreatment(treatment, treatmentContext({ neighbors: [unplanned] }))
+    expect(report.problems).toEqual([])
+    expect(report.warnings.join('\n')).toMatch(/proposes a seam with video-s00 .* stays provisional/)
+  })
+
+  it('records the agreement it rests on, and it breaks when that plan changes', () => {
+    const treatment = goodTreatment()
+    treatment.continuity.incoming = { kind: 'agreed' }
+    const report = validateTreatment(treatment, treatmentContext({ neighbors: [reviewedBefore] }))
+    expect(report.problems).toEqual([])
+    expect(report.treatment.continuity.incoming).toMatchObject({ kind: 'agreed', scene: 'video-s00', record: 'rec-s00', revision: 2 })
+    expect(continuityStatus(report.treatment, [reviewedBefore])[0]).toMatchObject({ state: 'agreed' })
+    const revised = { ...reviewedBefore, reviewed: { ...reviewedBefore.reviewed, recordId: 'rec-s00-r3', revision: 3 } }
+    expect(continuityStatus(report.treatment, [revised])[0]).toMatchObject({ state: 'broken', reason: expect.stringMatching(/reviewed plan changed/) })
+    expect(continuityStatus(report.treatment, [revised])[1]).toMatchObject({ state: 'self-contained' })
+  })
+
+  it('needs every side stated, and only real neighbours', () => {
+    const treatment = goodTreatment()
+    treatment.continuity.incoming = { kind: '' as never }
+    treatment.continuity.outgoing = { kind: 'proposed' }
+    const problems = validateTreatment(treatment, treatmentContext({ neighbors: [] })).problems.join('\n')
+    expect(problems).toMatch(/continuity.incoming must say whether the opening is self-contained/)
+    expect(problems).toMatch(/continuity.outgoing is proposed, but no scene comes after this one/)
   })
 
   it('notices an actor its moments move but never cast', () => {

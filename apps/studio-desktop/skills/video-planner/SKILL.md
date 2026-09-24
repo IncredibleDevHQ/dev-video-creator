@@ -73,8 +73,9 @@ Develop one scene's creative plan — the scene treatment.
    product's meaning: evidence, units, needs, constraints — mandatory, the
    stock workflow would not discover it), `packet/SCENE.md` (this scene: its
    units, its presentation input as reference, its words, its neighbours, the
-   decisions already made and the creator's direction) and
-   `packet/CONTEXT.json`. The presentation input's page notes were written
+   decisions already made and the creator's direction), `packet/NEIGHBORS.json`
+   (what each neighbour's plan promises at the seam — only a reviewed plan
+   can be agreed with) and `packet/CONTEXT.json`. The presentation input's page notes were written
    for a slide and its presenter panel: never plan to their layout or their
    text-size gate as if the creator had asked for it.
 2. Read [the treatment contract](references/treatment-contract.md).

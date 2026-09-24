@@ -2219,6 +2219,12 @@ button.se-state:hover { filter: brightness(.97); }
 .planning-pane { display: grid; gap: 12px; max-width: 980px; }
 .planning-pane p { margin: 0; line-height: 1.5; }
 .planning-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.planning-ledger table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.planning-ledger th, .planning-ledger td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.planning-ledger th { color: var(--muted); font-weight: 600; font-size: 11px; }
+.planning-ledger td:last-child, .planning-ledger th:last-child { text-align: right; }
+.planning-ledger tr.is-refused td { color: #b45309; }
+.planning-seams small { display: block; margin-top: 2px; }
 .planning-card h4 { margin: 0 0 8px; font-size: 15px; }
 .planning-card h5 { margin: 12px 0 6px; color: var(--muted); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
 .planning-card p + p { margin-top: 6px; }

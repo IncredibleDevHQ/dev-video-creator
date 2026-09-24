@@ -51,6 +51,30 @@ export type TreatmentMoment = {
   estimateSeconds: number | null
 }
 
+// A countable demonstration's running count (R7): what is counted, what it
+// starts at, and every change moment by moment. The product replays it, so
+// an illustrative example still obeys its own mechanism — a refused request
+// consumes nothing, and nothing is spent that is not there.
+export type LedgerEvent = {
+  moment: string
+  what: string
+  change: 'add' | 'consume' | 'refuse'
+  amount: number
+  // What one admission needs, for a refusal (default 1).
+  needs?: number
+  // The count after this event, as the plan tells it.
+  after: number
+}
+export type TreatmentLedger = { quantity: string; capacity: number | null; initial: number; events: LedgerEvent[]; final: number }
+
+// How one side of the scene meets its neighbour (R8). self-contained: needs
+// nothing from it. agreed: rests on the neighbour's reviewed plan — the
+// product records which revision, and the agreement breaks when that plan
+// changes. proposed: asks for a boundary the neighbour has not promised; it
+// stays provisional until both sides agree.
+export const CONTINUITY_KINDS = ['self-contained', 'agreed', 'proposed'] as const
+export type ContinuitySide = { kind: (typeof CONTINUITY_KINDS)[number]; scene?: string; record?: string; revision?: number; note?: string }
+
 export type SceneTreatmentV1 = {
   schemaVersion: typeof TREATMENT_SCHEMA_VERSION
   scene: string
@@ -62,6 +86,7 @@ export type SceneTreatmentV1 = {
   // How the idea develops — not a recital of the slide.
   development: string
   demonstration: { text: string; values: Array<{ value: string; basis: 'source' | 'creator' | 'illustrative' }> } | null
+  ledger: TreatmentLedger | null
   moments: TreatmentMoment[]
   objects: Array<{
     entity: string
@@ -73,7 +98,7 @@ export type SceneTreatmentV1 = {
   treatments: { presenter: string; text: string; camera: string }
   skills: Array<{ skill: string; references: string[]; why: string }>
   requirements: { assets: string[]; takes: string[]; decisions: string[] }
-  continuity: { entry: string; exit: string }
+  continuity: { entry: string; exit: string; incoming: ContinuitySide; outgoing: ContinuitySide }
   unresolved: string[]
   coverage: Array<{ unit: string; need: string; moments: string[]; deferred?: string }>
   rosterProposal: { action: 'split' | 'merge' | 'resequence'; scenes: string[]; reason: string } | null
@@ -94,6 +119,15 @@ export type TreatmentContext = {
   // A delivery choice the creator already made for this scene, if any.
   delivery: 'human' | 'generated' | 'silent' | null
   assetKeys: string[]
+  // The adjacent video scenes and their reviewed plans now, when they have
+  // one: what an agreed seam can rest on.
+  neighbors?: NeighborPlan[]
+}
+
+export type NeighborPlan = {
+  position: 'before' | 'after'
+  scene: string
+  reviewed: { recordId: string; revision: number; entry: string; exit: string } | null
 }
 
 export type TreatmentReport = {
@@ -116,6 +150,38 @@ const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback
 
 const channelOrNull = <T>(value: unknown, read: (entry: Record<string, unknown>) => T): T | null =>
   isRecord(value) ? read(value) : null
+// A number as given, NaN when it is not one — validation says so.
+const numeric = (value: unknown) => (value === null || value === undefined || value === '' ? Number.NaN : Number(value))
+
+const ledgerOf = (value: unknown): TreatmentLedger | null => {
+  if (!isRecord(value)) return null
+  const capacity = numeric(value.capacity)
+  return {
+    quantity: text(value.quantity, 200),
+    capacity: Number.isFinite(capacity) ? capacity : null,
+    initial: numeric(value.initial),
+    events: records(value.events).map(event => ({
+      moment: text(event.moment, 80),
+      what: text(event.what, 300),
+      change: text(event.change, 20) as LedgerEvent['change'],
+      amount: event.amount === undefined && text(event.change, 20) === 'refuse' ? 0 : numeric(event.amount),
+      ...(event.needs !== undefined ? { needs: numeric(event.needs) } : {}),
+      after: numeric(event.after),
+    })),
+    final: numeric(value.final),
+  }
+}
+
+const sideOf = (value: unknown): ContinuitySide => {
+  if (!isRecord(value)) return { kind: '' as ContinuitySide['kind'] }
+  const revision = numeric(value.revision)
+  return {
+    kind: text(value.kind, 40) as ContinuitySide['kind'],
+    ...(text(value.scene, 120) ? { scene: text(value.scene, 120) } : {}),
+    ...(Number.isFinite(revision) ? { revision } : {}),
+    ...(text(value.note, 600) ? { note: text(value.note, 600) } : {}),
+  }
+}
 
 export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
   const value = isRecord(raw) ? raw : {}
@@ -143,6 +209,7 @@ export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
           })),
         }
       : null,
+    ledger: ledgerOf(value.ledger),
     moments: records(value.moments).map(moment => {
       const seconds = Number(moment.estimateSeconds)
       return {
@@ -190,7 +257,7 @@ export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
     treatments: { presenter: text(treatments.presenter, 2000), text: text(treatments.text, 2000), camera: text(treatments.camera, 2000) },
     skills: records(value.skills).map(entry => ({ skill: text(entry.skill, 80), references: texts(entry.references, 200), why: text(entry.why, 800) })),
     requirements: { assets: texts(requirements.assets), takes: texts(requirements.takes), decisions: texts(requirements.decisions) },
-    continuity: { entry: text(continuity.entry, 1000), exit: text(continuity.exit, 1000) },
+    continuity: { entry: text(continuity.entry, 1000), exit: text(continuity.exit, 1000), incoming: sideOf(continuity.incoming), outgoing: sideOf(continuity.outgoing) },
     unresolved: texts(value.unresolved),
     coverage: records(value.coverage).map(entry => ({
       unit: text(entry.unit, 80),
@@ -206,6 +273,79 @@ export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
 }
 
 const duplicates = (values: string[]) => [...new Set(values.filter((value, index) => values.indexOf(value) !== index))]
+
+const whole = (value: number) => Number.isInteger(value) && value >= 0
+
+// Replays a ledger in moment order: every stated count must be the count.
+export const ledgerProblems = (ledger: TreatmentLedger, momentIds: string[]) => {
+  const problems: string[] = []
+  const label = `ledger (${ledger.quantity || 'no quantity named'})`
+  if (!ledger.quantity) problems.push('ledger.quantity must say what is counted')
+  if (!whole(ledger.initial)) problems.push(`${label}: initial must be a whole number`)
+  if (ledger.capacity !== null && (!whole(ledger.capacity) || (whole(ledger.initial) && ledger.capacity < ledger.initial))) {
+    problems.push(`${label}: a capacity of ${ledger.capacity} cannot hold the initial ${ledger.initial}`)
+  }
+  if (!ledger.events.length) problems.push(`${label}: events is empty — a counted demonstration changes the count`)
+  let count = whole(ledger.initial) ? ledger.initial : 0
+  let latest = -1
+  ledger.events.forEach((event, index) => {
+    const where = `${label} event ${index + 1}${event.what ? ` ("${event.what}")` : ''}`
+    const at = momentIds.indexOf(event.moment)
+    if (at < 0) problems.push(`${where} happens in moment "${event.moment}", which is not a moment of this plan`)
+    else if (at < latest) problems.push(`${where} is listed after an event of a later moment — list events in the order they happen`)
+    else latest = at
+    if (event.change === 'refuse') {
+      const needs = event.needs ?? 1
+      if (event.amount !== 0) problems.push(`${where}: a refused request consumes nothing — its amount is 0`)
+      if (count >= needs) problems.push(`${where} is refused while ${count} remain — with that supply it would be admitted`)
+    } else if (event.change === 'add' || event.change === 'consume') {
+      if (!whole(event.amount) || event.amount === 0) problems.push(`${where}: amount must be a whole number above 0`)
+      else if (event.change === 'add') {
+        if (ledger.capacity !== null && count + event.amount > ledger.capacity) problems.push(`${where} adds ${event.amount} to ${count}, past the capacity of ${ledger.capacity}`)
+        count = ledger.capacity !== null ? Math.min(ledger.capacity, count + event.amount) : count + event.amount
+      } else {
+        if (event.amount > count) problems.push(`${where} consumes ${event.amount} while only ${count} remain — it would be refused`)
+        count = Math.max(0, count - event.amount)
+      }
+    } else {
+      problems.push(`${where}: change must be add, consume or refuse`)
+    }
+    if (event.after !== count) problems.push(`${where} says ${Number.isFinite(event.after) ? event.after : 'nothing'} remain after it, but the count is ${count}`)
+  })
+  if (ledger.final !== count) problems.push(`${label}: final is ${Number.isFinite(ledger.final) ? ledger.final : 'missing'}, but the events leave ${count}`)
+  return problems
+}
+
+// Does the plan count things without a ledger? Numbers of countable things
+// in the demonstration or the moments' visible changes.
+const COUNTED = /\b(\d+)\s+(?:[a-z-]+\s+)?(tokens?|slots?|requests?|calls?|retries|items?|jobs?|connections?|workers?|messages?|packets?|credits?|permits?|seats?|tickets?|units?)\b/gi
+const countedMentions = (treatment: SceneTreatmentV1) =>
+  [
+    treatment.demonstration?.text || '',
+    ...(treatment.demonstration?.values.map(value => value.value) || []),
+    ...treatment.moments.flatMap(moment => [moment.objects?.change || '', moment.observation]),
+  ].flatMap(value => [...value.matchAll(COUNTED)].map(match => match[0].toLowerCase()))
+
+// Where each seam stands now: an agreement holds only while the neighbour's
+// reviewed plan is the one it was made with.
+export type ContinuityState = { side: 'incoming' | 'outgoing'; kind: ContinuitySide['kind'] | 'unstated'; scene: string | null; state: 'self-contained' | 'agreed' | 'broken' | 'proposed' | 'unstated'; reason: string | null }
+export const continuityStatus = (treatment: SceneTreatmentV1, neighbors: NeighborPlan[]): ContinuityState[] =>
+  (['incoming', 'outgoing'] as const).map(side => {
+    const stated = treatment.continuity[side]
+    const neighbor = neighbors.find(entry => entry.position === (side === 'incoming' ? 'before' : 'after')) || null
+    const scene = stated?.scene || neighbor?.scene || null
+    if (!stated || !(CONTINUITY_KINDS as readonly string[]).includes(stated.kind)) return { side, kind: 'unstated', scene, state: 'unstated', reason: 'The plan does not say how this side meets its neighbour.' }
+    if (stated.kind === 'self-contained') return { side, kind: stated.kind, scene: null, state: 'self-contained', reason: null }
+    if (stated.kind === 'proposed') return { side, kind: stated.kind, scene, state: 'proposed', reason: `Provisional until ${scene || 'the neighbour'} agrees.` }
+    const holds = Boolean(neighbor?.reviewed && neighbor.reviewed.recordId === stated.record && neighbor.reviewed.revision === stated.revision)
+    return {
+      side,
+      kind: stated.kind,
+      scene,
+      state: holds ? 'agreed' : 'broken',
+      reason: holds ? null : neighbor?.reviewed ? `${scene}'s reviewed plan changed since this seam was agreed.` : `${scene} no longer has the reviewed plan this seam was agreed with.`,
+    }
+  })
 
 // Selectors and frame timing belong to construction; a plan that states them
 // pretends to precision it does not have.
@@ -299,6 +439,49 @@ export const validateTreatment = (raw: unknown, context: TreatmentContext): Trea
     if (!object.performance) warnings.push(`object ${object.entity} has no performance — does it do explanatory work beyond appearing?`)
     if (object.asset.status === 'reuse' && (!object.asset.ref || !assets.has(object.asset.ref))) {
       problems.push(`object ${object.entity} reuses asset "${object.asset.ref || ''}", which is not in the accepted asset library`)
+    }
+  }
+
+  // The demonstration's arithmetic (R7).
+  if (treatment.ledger) problems.push(...ledgerProblems(treatment.ledger, momentIds))
+  else {
+    const counted = [...new Set(countedMentions(treatment))]
+    if (counted.length >= 2) {
+      warnings.push(`the demonstration counts (${counted.slice(0, 4).join(', ')}) but has no ledger — add one so its arithmetic is checked`)
+    }
+  }
+
+  // Continuity (R8): each side says whether it needs its neighbour, and an
+  // agreement rests on the neighbour's reviewed plan, recorded here.
+  const neighbors = context.neighbors || []
+  for (const side of ['incoming', 'outgoing'] as const) {
+    const stated = treatment.continuity[side]
+    const position = side === 'incoming' ? 'before' : 'after'
+    const neighbor = neighbors.find(entry => entry.position === position) || null
+    const label = `continuity.${side}`
+    if (!(CONTINUITY_KINDS as readonly string[]).includes(stated.kind)) {
+      problems.push(`${label} must say whether the ${side === 'incoming' ? 'opening' : 'ending'} is self-contained, agreed with a reviewed neighbour, or proposed`)
+      continue
+    }
+    if (stated.kind === 'self-contained') continue
+    if (!neighbor) {
+      problems.push(`${label} is ${stated.kind}, but no scene comes ${position} this one`)
+      continue
+    }
+    if (stated.scene && stated.scene !== neighbor.scene) problems.push(`${label} names "${stated.scene}", but the scene ${position} this one is "${neighbor.scene}"`)
+    stated.scene = neighbor.scene
+    if (stated.kind === 'agreed') {
+      if (!neighbor.reviewed) {
+        problems.push(`${label} is agreed, but ${neighbor.scene} has no reviewed plan to agree with — open self-contained, or mark the seam proposed`)
+      } else if (stated.revision !== undefined && stated.revision !== neighbor.reviewed.revision) {
+        problems.push(`${label} agrees with revision ${stated.revision} of ${neighbor.scene}, but its reviewed plan is revision ${neighbor.reviewed.revision}`)
+      } else {
+        // The agreement is the check's record, not the harness's claim.
+        stated.record = neighbor.reviewed.recordId
+        stated.revision = neighbor.reviewed.revision
+      }
+    } else {
+      warnings.push(`${label} proposes a seam with ${neighbor.scene} that its plan has not promised — it stays provisional until both sides agree`)
     }
   }
 
