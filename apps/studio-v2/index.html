@@ -847,28 +847,33 @@
         </div>
         <ol id="source-scenes" class="source-scenes"></ol>
         <div id="source-glossary" class="source-glossary"></div>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="brand">Back</button><span id="source-outline-status" class="source-status"></span><button id="source-make-pages" type="button" class="button primary">Make the pages</button></div>
+        <p id="source-design-hint" class="source-hint"></p>
+        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="brand">Back</button><span id="source-outline-status" class="source-status"></span><button id="source-make-pages" type="button" class="button ghost">Instant schematic drafts</button><button id="source-design-pages" type="button" class="button primary" hidden>Design the pages</button></div>
       </section>
       <section id="source-step-pages" class="source-step" hidden>
+        <div id="source-draw-row" class="source-draw" data-phase="drafts">
+          <div class="source-draw-lines"><span id="source-draw-status" class="source-status" role="status" aria-live="polite"></span><span id="source-draw-failure" class="source-status" hidden></span></div>
+          <button id="source-draw" type="button" class="button secondary" hidden>Design the pages</button><button id="source-draw-stop" type="button" class="button ghost" hidden>Stop designing</button>
+        </div>
         <div id="source-pages-grid" class="source-pages-grid"></div>
-        <div id="source-draw-row" class="source-draw" hidden><span>Draw the pages with</span><select id="source-drawer"><option value="template">the studio's template (instant)</option></select><button id="source-draw" type="button" class="button ghost">Draw</button><span id="source-draw-status" class="source-status"></span></div>
+        <details id="source-design-log" class="source-design-log" hidden><summary>Designer activity</summary><ol></ol></details>
         <div id="source-destination-row" class="source-destination" hidden><span>This notebook already has content.</span><label><input type="radio" name="source-destination" value="new" checked /> Start a new notebook</label><label><input type="radio" name="source-destination" value="append" /> Add them to this notebook</label></div>
         <div class="modal-actions"><button type="button" class="button ghost" data-source-back="outline">Back</button><span id="source-pages-note" class="source-status"></span><button id="source-finish" type="button" class="button primary">Open the notebook</button></div>
       </section>
     </dialog>
 
     <dialog id="create-explainer-dialog" class="modal source-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Create explainer</span><h2>How do you want to tell this story?</h2></div><button id="close-create-explainer" class="icon-button" type="button" aria-label="Close create explainer">×</button></div>
-      <p class="source-hint">Both paths share the same material, theme, base wireframes, reusable objects and export. Neither is a default — the choice stays with the notebook and can be changed later.</p>
-      <div class="notebook-start-grid" id="create-explainer-paths" role="radiogroup" aria-label="Delivery path">
-        <button type="button" class="notebook-start-card" data-delivery="human" role="radio" aria-checked="false"><strong>Present it myself</strong><span>Shape and record your own narrative — the rich graphics are timed to your actual delivery.</span></button>
-        <button type="button" class="notebook-start-card" data-delivery="generated" role="radio" aria-checked="false"><strong>Generate automatically</strong><span>The studio drafts the script and generates the narration from your material — you can edit everything.</span></button>
-      </div>
-      <h3>Start from</h3>
+      <div class="modal-heading"><div><span class="eyebrow">Create explainer</span><h2>What do you want to start from?</h2></div><button id="close-create-explainer" class="icon-button" type="button" aria-label="Close create explainer">×</button></div>
+      <p class="source-hint">Your material becomes a base notebook first. Whether each video scene is presented by you or narrated by the studio is decided scene by scene, later.</p>
       <div class="notebook-start-grid" id="create-explainer-materials">
         <button type="button" class="notebook-start-card" data-material="link"><strong>A link or article</strong><span>A blog post, docs page or README is read for its words, brand and figures.</span></button>
         <button type="button" class="notebook-start-card" data-material="narrative"><strong>My own narrative</strong><span>Write or paste your words — the story leads, no article required.</span></button>
-        <button type="button" class="notebook-start-card" data-material="base" id="create-explainer-use-base"><strong>This notebook's base</strong><span>Build the video from the wireframes already in this notebook.</span></button>
+        <button type="button" class="notebook-start-card" data-material="base" id="create-explainer-use-base"><strong>This notebook's base</strong><span>Build the whole video from the wireframes already in this notebook, with one delivery for all of it.</span></button>
+      </div>
+      <h3>Delivery for the whole notebook <small>(optional)</small></h3>
+      <div class="notebook-start-grid" id="create-explainer-paths" role="radiogroup" aria-label="Delivery path">
+        <button type="button" class="notebook-start-card" data-delivery="human" role="radio" aria-checked="false"><strong>Present it myself</strong><span>Shape and record your own narrative — the rich graphics are timed to your actual delivery.</span></button>
+        <button type="button" class="notebook-start-card" data-delivery="generated" role="radio" aria-checked="false"><strong>Generate automatically</strong><span>The studio drafts the script and generates the narration from your material — you can edit everything.</span></button>
       </div>
       <div class="modal-actions"><span id="create-explainer-status" class="source-status"></span><button id="create-explainer-cancel" type="button" class="button ghost">Cancel</button></div>
     </dialog>

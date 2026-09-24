@@ -157,6 +157,10 @@ export const SceneBlock = Node.create({
       breakdownApproved: { default: false },
       // The dialogue as authored (paragraphs), kept for re-cuts.
       sourceText: { default: '' },
+      // How the page was made when a source became the base deck:
+      // { kind: 'designed', by, runId } or { kind: 'schematic' } — an
+      // instant template draft stays identified as one.
+      pageOrigin: { default: null },
     }
   },
 
@@ -187,6 +191,7 @@ export const SceneBlock = Node.create({
       pace,
       windows,
       breakdownApproved,
+      pageOrigin,
       ...attributes
     } = HTMLAttributes
     const entries = (Array.isArray(storyboard) ? storyboard : []) as SceneStoryboardEntry[]
@@ -211,6 +216,7 @@ export const SceneBlock = Node.create({
     void stageTrack
     void stagePlacements
     const area = String(requiredArea || '')
+    const schematic = Boolean(pageOrigin && typeof pageOrigin === 'object' && (pageOrigin as { kind?: string }).kind === 'schematic')
     const auto = (directorAuto && typeof directorAuto === 'object' ? directorAuto : null) as { kind?: string; legibility?: { minTextPx?: Record<string, number> } } | null
     return [
       'figure',
@@ -225,6 +231,7 @@ export const SceneBlock = Node.create({
         ['strong', { class: 'scene-title' }, title ? String(title) : 'Scene'],
         ['span', { class: `scene-arc scene-arc-${role}` }, role],
         ...(area ? [['span', { class: `scene-area scene-area-${area}`, title: auto?.kind ? `${auto.kind} · needs ${area === 'none' ? 'no' : `a ${area}`} area` : '' }, area === 'none' ? 'behind you' : area]] : []),
+        ...(schematic ? [['span', { class: 'scene-page-origin', title: 'An instant schematic layout, not the designed presentation page' }, 'schematic draft']] : []),
         [
           'button',
           { type: 'button', class: 'notebook-image-action', 'data-slide-action': 'edit' },

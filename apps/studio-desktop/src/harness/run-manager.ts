@@ -71,6 +71,8 @@ const log = (...args: unknown[]) => console.log('[harness]', ...args)
 const AUTO_ANSWER = process.env.STUDIO_GATE_AUTO_ANSWER
 
 // The one-line task text (spec §3.3): everything else travels in files.
+const RUN_SCOPED_SKILLS = new Set(['explainer-master', 'page-master', 'story-master'])
+
 const taskText = (skillDir: string, route: string, projectDir: string) =>
   `Read ${skillDir}/SKILL.md and run route ${route} for project ${projectDir} with inputs in motion/inputs.json.`
 
@@ -242,10 +244,13 @@ export class RunManager {
     const planningRecord = planningOf(options.inputs)
     // A planning record is answered by the planning skill, and only by it.
     if (planningRecord && options.skill !== PLANNING_SKILL) throw new Error(`A planning run uses the ${PLANNING_SKILL} skill, not ${options.skill}`)
+    // A creation run — the story, the pages, the explainer — works in a
+    // directory of its own, so a run never reads an earlier run's pages or
+    // outline as its own result. Motion assist keeps the project directory.
     const projectDir =
       options.projectDir || (planningRecord
         ? join(this.projectsRoot, options.projectId || 'default', 'plans', id)
-        : options.skill === 'explainer-master'
+        : RUN_SCOPED_SKILLS.has(options.skill)
           ? join(this.projectsRoot, options.projectId || 'default', 'runs', id)
           : join(this.projectsRoot, options.projectId || 'default'))
     // Install the vendored skills into the project first (spec §5): the

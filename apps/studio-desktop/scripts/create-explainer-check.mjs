@@ -118,19 +118,32 @@ try {
   })`, 'gate state')
   check('Build explainer on an unchosen notebook opens the chooser, no build starts', gate.chooserOpen && gate.progressHidden, JSON.stringify(gate))
 
-  // No default: neither path is preselected; proceeding without one is refused.
+  // No default: neither path is preselected.
   const noDefault = await evaluate(`() => ({
     selected: [...document.querySelectorAll('#create-explainer-paths [data-delivery]')].filter(c => c.classList.contains('is-primary')).length,
   })`, 'no default')
   check('no delivery path is preselected', noDefault.selected === 0, JSON.stringify(noDefault))
-  await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="narrative"]').click(); return true }`, 'material without path')
+  // Delivery is decided per scene: a narrative starts without a notebook-wide choice.
+  await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="narrative"]').click(); return true }`, 'narrative without path')
+  await sleep(600)
+  const free = await evaluate(`() => ({
+    chooserOpen: document.getElementById('create-explainer-dialog')?.open === true,
+    sourceOpen: document.getElementById('source-dialog')?.open === true,
+  })`, 'free start')
+  check('a narrative starts without a notebook-wide delivery choice', !free.chooserOpen && free.sourceOpen, JSON.stringify(free))
+  const unrecorded = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).then(body => body?.project?.explainerDelivery ?? null).catch(() => 'unreadable')
+  check('no delivery is recorded for it', unrecorded === null, String(unrecorded))
+  // Building this whole notebook at once still needs its one delivery.
+  await evaluate(`() => { document.getElementById('source-dialog').close(); document.getElementById('create-explainer').click(); return true }`, 'reopen chooser')
+  await sleep(300)
+  await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="base"]').click(); return true }`, 'whole build without path')
   await sleep(300)
   const refused = await evaluate(`() => ({
     open: document.getElementById('create-explainer-dialog')?.open === true,
     status: document.getElementById('create-explainer-status')?.textContent || '',
     sourceOpen: document.getElementById('source-dialog')?.open === true,
   })`, 'refused')
-  check('material without a path is refused with guidance', refused.open && /Choose Present it myself or Generate automatically/.test(refused.status) && !refused.sourceOpen, JSON.stringify(refused))
+  check('building the whole notebook without a delivery asks for one', refused.open && /needs one delivery for it/.test(refused.status) && !refused.sourceOpen, JSON.stringify(refused))
 
   // Choose Present it myself + own narrative → recorded, source flow opens.
   await evaluate(`() => { document.querySelector('#create-explainer-paths [data-delivery="human"]').click(); return true }`, 'choose human')
