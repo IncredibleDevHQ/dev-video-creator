@@ -127,6 +127,20 @@ describe('planning a forked video', () => {
     expect(context.basePages.map((page: { scene: string }) => page.scene)).toEqual(baseScenes)
     expect(context.requestedSeconds).toBe(60)
     expect(packet.files['packet/PRESENTATION.md']).toMatch(/not the video's scenes, layouts or durations/)
+    // A slide's page notes are layout reference, not the creator's words.
+    expect(packet.files['packet/PRESENTATION.md']).toMatch(/Page notes \(slide layout, reference only\): Admission idea/)
+    expect(packet.files['packet/NARRATIVE.md']).not.toMatch(/Admission idea/)
+  })
+
+  it('will not take a slide\'s page notes as the creator\'s words', async () => {
+    const { record } = await service.queueBrief(videoId)
+    await service.attachRun(record.id, { runId: 'run-brief-notes', adapter: 'claude-code' })
+    const context = JSON.parse((await service.loadPacket(record.id)).files['packet/CONTEXT.json'])
+    const brief = goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds })
+    const cited = { ...brief, evidence: [...brief.evidence, { id: 'ev-note', kind: 'creator', text: 'Admission idea' }] }
+    const refused = await service.submitBrief(record.id, cited)
+    expect(refused.accepted).toBe(false)
+    expect(JSON.stringify(refused)).toMatch(/ev-note/)
   })
 
   it('refuses a brief that quotes what the source never said, then keeps a grounded one', async () => {

@@ -10,8 +10,15 @@ prose.
 Keep three kinds of statement apart everywhere a `basis` is asked for:
 
 - `source` — the retained source says so (and a unit cites the passage);
-- `creator` — the creator wrote or decided it (narration, notes, direction);
+- `creator` — the creator wrote or decided it (narrative, scene scripts,
+  direction), as `NARRATIVE.md` carries it;
 - `suggestion` — you propose it. Suggestions stay revisable.
+
+The page notes in `PRESENTATION.md` were written for the slides — their
+layout, their presenter panel, their legibility — not by the creator for the
+video. Read them as reference. Never cite them as `creator`, and do not carry
+their slide-layout constraints (a presenter chip or panel, a text-size gate)
+into the brief as requirements.
 
 A condition may also be `illustrative`: a value you chose to demonstrate with
 (three tokens, request A) that the source does not specify.

@@ -293,10 +293,13 @@ const briefContextOf = (planning: VideoPlanning): BriefContext & { videoScenes: 
   baseSceneIds: planning.basePages.map(page => page.scene),
   sourceRevision: planning.source.revision,
   sourceText: planning.source.text,
+  // The creator's own words. A base page's notes are the presentation's
+  // layout notes for its slides and presenter: reference, never quotable as
+  // the creator's.
   creatorText: [
     planning.source.kind === 'narrative' ? planning.source.text : '',
     ...planning.videoScenes.map(scene => scene.script),
-    ...planning.basePages.map(page => `${page.idea}\n${page.narration}`),
+    ...planning.basePages.map(page => page.narration),
     ...planning.inputs.map(row => row.direction),
   ].filter(Boolean).join('\n\n'),
   wordingPolicy: planning.wordingPolicy,
@@ -348,25 +351,24 @@ const briefPacket = (planning: VideoPlanning) => {
       '## Scene scripts (the words each scene speaks now)',
       '',
       ...planning.videoScenes.map(scene => `### ${scene.id}: ${scene.title}\n\n${scene.script || '_No script._'}\n`),
-      '## Notes on the base pages',
-      '',
-      ...planning.basePages.map(page => `- ${page.scene}: ${page.idea || '_none_'}`),
-      '',
       '## Direction for the video',
       '',
       directionFor(planning, '') || '_None given._',
       '',
+      ...(planning.inputs.some(row => row.subject && row.direction)
+        ? ['## Direction for individual scenes', '', ...planning.inputs.filter(row => row.subject && row.direction).map(row => `- ${row.subject}: ${row.direction}`), '']
+        : []),
     ].join('\n'),
     'packet/PRESENTATION.md': [
       '# The base presentation (reference only)',
       '',
-      'These are the pages the presentation designer drew and what each was given. They divide the material for slides; they are a storyboard and a lineage map, not the video\'s scenes, layouts or durations.',
+      'These are the pages the presentation designer drew and what each was given. They divide the material for slides; they are a storyboard and a lineage map, not the video\'s scenes, layouts or durations. Each page\'s notes were written for the slide\'s layout and presenter — reference only, not the creator\'s decisions for the video.',
       '',
       ...planning.basePages.map(page =>
         [
           `## ${page.scene}: ${page.title}`,
           '',
-          page.idea ? `Idea: ${page.idea}` : '',
+          page.idea ? `Page notes (slide layout, reference only): ${page.idea}` : '',
           page.narration ? `Narration: ${page.narration}` : '',
           ...(page.sourcePassages.length ? ['', 'Source passages:', ...page.sourcePassages.map(passage => `- "${passage}"`)] : []),
           '',

@@ -204,7 +204,7 @@ export const renderScenePacket = (input: ScenePacketInput) => {
     lines.push(
       `### Base page \`${page.scene}\`: ${page.title}`,
       '',
-      page.idea ? `Idea: ${page.idea}` : '',
+      page.idea ? `Page notes (slide layout, reference only): ${page.idea}` : '',
       page.narration ? `Narration: ${page.narration}` : '',
       ...(page.sourcePassages.length ? ['', 'Source passages it rests on:', bullet(page.sourcePassages.map(passage => `"${passage}"`))] : []),
       page.wireframe ? `\nWireframe: \`${page.wireframe}\` (a visual reference; its coordinates and cards are not binding).` : '',

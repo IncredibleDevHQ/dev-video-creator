@@ -2,7 +2,7 @@
 name: video-planner
 description: Plan a technical explainer video before anything is built — reduce the retained source into an Explanation Brief, then develop one scene's creative plan with the pinned Hyperframes creative and workflow skills. Planning only; this route never generates artwork, narration, recordings, compositions or exports. Use for the Prepare Brief and Plan Scene routes.
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   hyperframes: "99221c50a5e5927ca243454b4e4f02f9adf7cfc6"
 ---
 
@@ -44,9 +44,11 @@ Reduce the retained source into the video's Explanation Brief.
 
 1. Read `packet/CONTEXT.json` (the pinned revisions and the base pages),
    `packet/SOURCE.md` (the retained source, with paragraph locators),
-   `packet/NARRATIVE.md` (everything the creator wrote: narration, scripts,
-   notes, direction) and `packet/PRESENTATION.md` (what the base's slides were
-   given — a storyboard and a lineage map, not the video's structure).
+   `packet/NARRATIVE.md` (the creator's own words: narrative, scene scripts,
+   direction) and `packet/PRESENTATION.md` (what the base's slides were
+   given — a storyboard and a lineage map, not the video's structure; its
+   page notes were written for the slides' layout and presenter, and are
+   reference, never the creator's decisions for the video).
 2. Read [the brief contract](references/brief-contract.md). It is the schema
    and the rules the product checks.
 3. Route once. Read `skills/hyperframes/SKILL.md` §2 and the matched
@@ -72,7 +74,9 @@ Develop one scene's creative plan — the scene treatment.
    stock workflow would not discover it), `packet/SCENE.md` (this scene: its
    units, its presentation input as reference, its words, its neighbours, the
    decisions already made and the creator's direction) and
-   `packet/CONTEXT.json`.
+   `packet/CONTEXT.json`. The presentation input's page notes were written
+   for a slide and its presenter panel: never plan to their layout or their
+   text-size gate as if the creator had asked for it.
 2. Read [the treatment contract](references/treatment-contract.md).
 3. Plan as the owning workflow's **Plan** stage would, adapted by
    [the product overrides](references/product-overrides.md). Read, in order
