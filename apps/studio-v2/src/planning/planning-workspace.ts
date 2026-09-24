@@ -128,6 +128,7 @@ const basisTag = (basis: string) => h('span', { class: `planning-basis is-${basi
 const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString() : '')
 
 const STATE_TONES: Record<ScenePlanningView['state'], string> = {
+  'needs-brief': '',
   preparing: 'busy',
   'brief-failed': 'bad',
   'ready-to-plan': '',
@@ -340,7 +341,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   const review = async (record: PlanningRecord) => {
     try {
       await host.fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/review`, { method: 'POST' })
-      host.toast(`Revision ${record.revision} is the reviewed plan. Nothing else was started.`)
+      host.toast(`Revision ${record.revision} is this scene's approved plan. Nothing else was started.`)
     } catch (error) {
       host.toast(error instanceof Error ? error.message : 'Could not mark the plan reviewed')
     }
@@ -564,7 +565,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
           h('strong', { text: scene.title || scene.id }),
           chip(PLANNING_STATE_LABELS[scene.view.state], STATE_TONES[scene.view.state]),
           h('small', { text: `from base ${scene.originScenes.map(origin => overview!.basePages.find(page => page.scene === origin)?.title || origin).join(' + ') || '—'}` }),
-          scene.view.reviewed && scene.view.state !== 'reviewed' ? h('small', { class: 'planning-kept', text: `reviewed r${scene.view.reviewed.revision} kept` }) : null,
+          scene.view.reviewed && scene.view.state !== 'reviewed' ? h('small', { class: 'planning-kept', text: `approved r${scene.view.reviewed.revision} kept` }) : null,
         ),
       )
       item.querySelector('button')!.addEventListener('click', () => {
@@ -633,7 +634,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const scene = sceneRow()
     const origins = scene?.originScenes || []
     const card = (entry: VisualCastSummary['entries'][number]) => {
-      const image = h('img', { alt: entry.label || entry.node, loading: 'lazy' })
+      const image = h('img', { alt: entry.label || entry.node })
       image.src = entry.thumbnail
       const parts = entry.parts.map(part => `${part.name}${part.count > 1 ? ` ×${part.count}` : ''}${part.animations.length ? ` (${part.animations.join(', ')})` : ''}`)
       return h('article', { class: `planning-cast-card${entry.verification === 'verified' ? '' : ' is-reference'}`, 'data-cast': entry.id },
@@ -784,19 +785,19 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const view = scene.view
     const all = recordsFor('treatment', scene.id)
     const pane = h('div', { class: 'planning-pane' })
-    if (view.state === 'preparing' || view.state === 'brief-failed') {
-      pane.append(h('p', { text: view.state === 'preparing' ? 'The brief comes first: this scene can be planned once it is ready.' : 'The brief failed. Retry it from the header; this scene waits for it.' }))
+    if (view.state === 'preparing' || view.state === 'needs-brief' || view.state === 'brief-failed') {
+      pane.append(h('p', { text: view.state === 'brief-failed' ? 'The brief failed. Retry it from the header; this scene waits for it.' : view.state === 'preparing' ? 'The brief is being prepared: this scene can be planned once it is ready.' : 'The brief comes first: prepare it from the header, then plan this scene.' }))
       return pane
     }
     if (view.latest && (view.latest.status === 'queued' || view.latest.status === 'running')) {
       pane.append(h('p', { class: 'planning-busy', 'data-progress': view.latest.id, text: progress.get(view.latest.id) || `Planning revision ${view.latest.revision} with your local harness…` }))
-      if (view.reviewed) pane.append(h('p', { class: 'planning-muted', text: `The reviewed plan (r${view.reviewed.revision}) stays in place until you review a new one.` }))
+      if (view.reviewed) pane.append(h('p', { class: 'planning-muted', text: `The approved plan (r${view.reviewed.revision}) stays in place until you approve a new one.` }))
       const stopButton = h('button', { type: 'button', class: 'button ghost', text: 'Stop this run' })
       stopButton.addEventListener('click', () => void stop(view.latest!))
       if (!readOnly) pane.append(stopButton)
     }
     if (view.latest?.status === 'failed') {
-      pane.append(...failure(view.latest, `Revision ${view.latest.revision} failed`, `${view.reviewed ? `The reviewed plan (r${view.reviewed.revision}) is unchanged. ` : ''}Retry, or switch the harness at the top first.`, () => void generatePlan()))
+      pane.append(...failure(view.latest, `Revision ${view.latest.revision} failed`, `${view.reviewed ? `The approved plan (r${view.reviewed.revision}) is unchanged. ` : ''}Retry, or switch the harness at the top first.`, () => void generatePlan()))
     }
     const record = shownPlan()
     if (!record?.content) {
@@ -804,8 +805,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       return pane
     }
     const plan = record.content as SceneTreatmentV1
-    // Only the newest reviewed revision is the reviewed plan; earlier ones keep their history.
-    const statusOf = (entry: PlanningRecord) => (entry.status === 'reviewed' && entry.id !== view.reviewed?.id ? 'previously reviewed' : entry.status)
+    // Only the newest approved revision is the approved plan; earlier ones keep their history.
+    const statusOf = (entry: PlanningRecord) => (entry.status === 'reviewed' ? (entry.id !== view.reviewed?.id ? 'approved earlier' : 'approved') : entry.status)
     const cast = new Set(plan.objects.map(object => object.entity))
     const uncast = [...new Set(plan.moments.flatMap(item => item.objects?.actors || []))].filter(actor => !cast.has(actor))
     // Revisions: what exists, what happened to each, and a comparison.
@@ -1056,7 +1057,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     generate.addEventListener('click', () => void generatePlan())
     const shown = shownPlan()
     const canReview = shown?.status === 'candidate' && !(shown.id === view.current?.id && view.staleBecause)
-    const reviewButton = h('button', { type: 'button', class: 'button secondary', text: shown?.status === 'reviewed' ? (shown.id === view.reviewed?.id ? 'Reviewed' : 'Previously reviewed') : 'Mark reviewed', ...(canReview ? {} : { disabled: true }) })
+    const reviewButton = h('button', { type: 'button', class: 'button secondary', text: shown?.status === 'reviewed' ? (shown.id === view.reviewed?.id ? 'Approved' : 'Approved earlier') : 'Approve plan', ...(canReview ? {} : { disabled: true }) })
     reviewButton.addEventListener('click', () => shown && void review(shown))
     footer.append(
       h('div', { class: 'planning-direction' }, videoBox, sceneBox),

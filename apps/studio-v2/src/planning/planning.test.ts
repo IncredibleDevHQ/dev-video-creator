@@ -3,6 +3,8 @@ import { quotedIn, fingerprintOf } from './fingerprint'
 import { buildCapabilityCatalog, parseBlueprintsIndex, parseRulesIndex, parseTechniques } from './capability-catalog'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './explanation-brief'
 import { continuityStatus, validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
+import { compareTreatments } from './plan-compare'
+import { recordingGuide } from './recording-guide'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from './brief-adapter'
 import { PLANNING_SCHEMA, briefFingerprint, briefFreshness, landingFor, scenePlanningView, treatmentFingerprint, treatmentFreshness, type BriefInputs, type PlanningRecord, type TreatmentInputs } from './planning-records'
 
@@ -473,7 +475,7 @@ describe('the handoff files', () => {
 const record = (overrides: Partial<PlanningRecord>): PlanningRecord => ({
   id: 'r', kind: 'treatment', projectId: 'p', subject: 'video-s01', revision: 1, status: 'candidate', fingerprint: 'f1', inputs: { briefId: 'brief-1' },
   content: null, report: null, artifacts: null, runId: null, adapter: null, model: null, reportedModel: null, skillBundle: null, workflow: null, direction: '', error: null,
-  createdAt: '', updatedAt: '', reviewedAt: null, ...overrides,
+  createdAt: '', updatedAt: '', reviewedAt: null, approval: null, ...overrides,
 })
 const briefNow: BriefInputs = { schema: PLANNING_SCHEMA, baseNotebook: 'b', baseRevision: 'r1', sourceRevision: 's1', narrativeRevision: null, modelRevision: null, wordingPolicy: 'draft', scripts: [{ scene: 'video-s01', text: 'A bucket holds tokens.' }], themeRef: 't1', requestedSeconds: 360, videoDirection: '', sceneDecisions: [], bundleHash: 'h' }
 const brief = record({ id: 'brief-1', kind: 'brief', subject: '', status: 'ready', inputs: briefNow, fingerprint: briefFingerprint(briefNow) })
@@ -525,7 +527,7 @@ describe('planning states', () => {
   })
 
   it('waits for the brief before a scene can plan', () => {
-    expect(scenePlanningView([], 'video-s01', null).state).toBe('preparing')
+    expect(scenePlanningView([], 'video-s01', null).state).toBe('needs-brief')
     expect(scenePlanningView([{ ...brief, status: 'failed' }], 'video-s01', null).state).toBe('brief-failed')
     expect(scenePlanningView([brief], 'video-s01', fresh).state).toBe('ready-to-plan')
   })
@@ -543,5 +545,52 @@ describe('planning states', () => {
   it('fingerprints the same inputs the same way whatever their key order', () => {
     expect(fingerprintOf({ a: 1, b: [1, { c: 2, d: 3 }] })).toBe(fingerprintOf({ b: [1, { d: 3, c: 2 }], a: 1 }))
     expect(fingerprintOf({ a: 1 })).not.toBe(fingerprintOf({ a: 2 }))
+  })
+})
+
+describe('comparing plan revisions', () => {
+  it('names what changed by what a creator would notice', () => {
+    const before = goodTreatment()
+    const after = goodTreatment()
+    after.takeaway = 'Admission costs exactly one token.'
+    after.moments[1].camera = { treatment: 'push in', subject: 'the bucket', reason: 'Show the spend up close' }
+    after.moments[1].presenter = { visibility: 'hidden', reason: 'The graphics carry it' }
+    after.moments.push({ ...after.moments[1], id: 'm3', title: 'The next request waits', observation: 'The bucket is empty' })
+    after.objects[1].asset = { status: 'native', reason: 'A plain packet reads fastest' }
+    after.continuity.outgoing = { kind: 'proposed', note: 'Open the next scene on the empty bucket' }
+    const differences = compareTreatments(before, after)
+    const labels = differences.map(entry => `${entry.category}:${entry.change}:${entry.label}`)
+    expect(labels).toEqual(expect.arrayContaining([
+      'purpose:changed:The takeaway',
+      'camera:changed:A request spends a token: camera',
+      'presenter:changed:A request spends a token: presenter',
+      'moments:added:The next request waits',
+      'objects:changed:request: artwork',
+      'continuity:changed:How it leaves',
+    ]))
+    expect(differences.find(entry => entry.label === 'request: artwork')).toMatchObject({ before: 'generate', after: 'native' })
+    expect(compareTreatments(before, goodTreatment())).toEqual([])
+  })
+})
+
+describe('the recording guide', () => {
+  it('asks for every spoken line, and says where the speaker is for each moment', () => {
+    const plan = goodTreatment()
+    plan.moments[0].presenter = { visibility: 'full', reason: 'Introduce the idea' }
+    plan.moments[1].presenter = { visibility: 'hidden', reason: 'The spend carries it' }
+    const guide = recordingGuide({ plan, script: 'A token bucket holds capacity.\n\nEach admitted request consumes one token. [pause]', wordingPolicy: 'preserve', delivery: null })
+    expect(guide.lines).toEqual([{ text: 'A token bucket holds capacity.', wording: 'approved' }, { text: 'Each admitted request consumes one token.', wording: 'approved' }])
+    expect(guide.steps.map(step => step.framing)).toEqual(['full', 'hidden'])
+    expect(guide.steps[1].instruction).toMatch(/keep speaking; the graphics take the frame/)
+    expect(guide.offCamera).toBe(true)
+    expect(guide.sections.map(section => section.label)).toEqual(['1. Establish capacity — on camera', '2. A request spends a token — voice only'])
+    expect(guide.delivery.join(' ')).toMatch(/The take sets the timing/)
+    expect(guide.note).toMatch(/No take is needed to plan or to preview/)
+  })
+
+  it('has nothing to record for a generated or silent scene, and marks draft wording', () => {
+    const generated = recordingGuide({ plan: goodTreatment(), script: 'Draft line.', wordingPolicy: 'draft', delivery: 'generated' })
+    expect(generated.note).toMatch(/generated voice: there is nothing to record/)
+    expect(generated.lines[0].wording).toBe('draft')
   })
 })

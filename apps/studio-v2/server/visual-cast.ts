@@ -168,7 +168,9 @@ export const themeTokens = (theme: StudioThemeV1 | null | undefined): Record<str
 // One browser for the whole base; the page script does the drawing work.
 export const extractPages = async (pages: CastSourcePage[], palette: { ground?: string; ink?: string; muted?: string } = {}): Promise<PageResult[]> => {
   const { default: puppeteer } = await import('puppeteer')
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] })
+  // The host app owns SIGTERM/SIGINT: puppeteer's own handlers would
+  // swallow the app's quit while a browser is open.
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'], handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false })
   try {
     const page = await browser.newPage()
     // Nothing the base page names may be fetched while it is drawn.

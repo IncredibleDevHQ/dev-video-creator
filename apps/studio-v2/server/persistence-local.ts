@@ -512,6 +512,7 @@ const newRecord = (file: PlanningFile, record: NewPlanningRecord): PlanningRecor
       createdAt: at,
       updatedAt: at,
       reviewedAt: null,
+      approval: null,
     }
     file.records.push(created)
     return created

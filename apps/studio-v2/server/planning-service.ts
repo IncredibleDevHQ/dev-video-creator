@@ -931,18 +931,33 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
 }
 
 // ——— The creator's steps ———
+// Approving a scene plan (P2) pins it: the plan's own inputs, the brief it
+// came from and the visual cast it saw are recorded with it. It is this
+// scene's decision alone, and it starts nothing — no artwork, voice,
+// recording or production.
 export const reviewTreatment = async (recordId: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'treatment') throw new PlanningError('Scene plan record not found', 404)
-  if (record.status !== 'candidate') throw new PlanningError(`Only a candidate plan can be marked reviewed (this one is ${record.status})`, 409)
+  if (record.status !== 'candidate') throw new PlanningError(`Only a candidate plan can be approved (this one is ${record.status})`, 409)
   const planning = await loadVideoPlanning(record.projectId)
   const records = await listPlanningRecords(record.projectId)
-  const freshness = freshnessOf(planning, records).treatment(record)
+  const fresh = freshnessOf(planning, records)
+  const freshness = fresh.treatment(record)
   if (!freshness.fresh) throw new PlanningError(`This plan is stale: ${freshness.reason}. Generate a new candidate first.`, 409)
-  const updated = await updatePlanningRecord(record.id, { status: 'reviewed', reviewedAt: new Date().toISOString() }, ['candidate'])
-  if (!updated) throw new PlanningError('This plan changed while it was being reviewed', 409)
+  const cast = await knownCast(planning)
+  const at = new Date().toISOString()
+  const approval = {
+    at,
+    fingerprint: record.fingerprint,
+    briefId: String(record.inputs.briefId || ''),
+    briefFingerprint: String(record.inputs.briefFingerprint || fresh.brief?.fingerprint || ''),
+    castId: cast?.status === 'ready' ? cast.id : null,
+  }
+  const updated = await updatePlanningRecord(record.id, { status: 'reviewed', reviewedAt: at, approval }, ['candidate'])
+  if (!updated) throw new PlanningError('This plan changed while it was being approved', 409)
   return updated
 }
+export const approveTreatment = reviewTreatment
 
 export const failRecord = async (recordId: string, error: NonNullable<PlanningRecord['error']>) => {
   const updated = await updatePlanningRecord(recordId, { status: 'failed', error }, ['queued', 'running'])

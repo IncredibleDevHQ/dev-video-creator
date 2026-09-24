@@ -333,7 +333,7 @@ try {
     return view.state === 'candidate' && view.current
   }, 90_000)
   await sleep(500)
-  check(await press('Mark reviewed'), 'Mark reviewed is offered for a current candidate')
+  check(await press('Approve plan'), 'Approve plan is offered for a current candidate')
   const reviewed = await until('the review', async () => (await overview(videoId)).scenes[0].view.reviewed)
   check(reviewed.id === fresh.id, 'the candidate is the reviewed plan')
   await shot('04-reviewed')
@@ -432,7 +432,7 @@ try {
   await until('the reopened workspace', () => evaluate(`document.querySelectorAll('.planning-scene').length > 0`))
   const reopened = await evaluate(`[...document.querySelectorAll('.planning-scene .planning-chip')].map(chip => chip.textContent)`)
   check(reopened[0] === 'Failed' && reopened[1] === 'Ready to plan', `the reopened workspace shows the same states (${reopened})`)
-  check(await evaluate(`/reviewed r\\d+ kept/.test(document.querySelector('.planning-scene')?.textContent || '')`), 'the reopened workspace says the reviewed plan is kept')
+  check(await evaluate(`/approved r\\d+ kept/.test(document.querySelector('.planning-scene')?.textContent || '')`), 'the reopened workspace says the approved plan is kept')
   await shot('06-reopened')
 
   // Nothing downstream started.
@@ -445,7 +445,7 @@ try {
   await reloadInto(base.id, base.title)
   await click('#open-planning')
   await until('the read-only view', () => evaluate(`document.querySelector('.planning-title .eyebrow')?.textContent || ''`))
-  const readOnlyView = await evaluate(`({ eyebrow: document.querySelector('.planning-title .eyebrow')?.textContent, actions: [...document.querySelectorAll('#planning-workspace button')].filter(b => /Generate|Regenerate|Retry|Mark reviewed|Prepare/.test(b.textContent)).length, inputs: document.querySelectorAll('.planning-footer textarea, .planning-footer select').length, direction: document.querySelector('.planning-direction')?.textContent || '', open: [...document.querySelectorAll('#planning-workspace button')].some(b => b.textContent === 'Open the video notebook') })`)
+  const readOnlyView = await evaluate(`({ eyebrow: document.querySelector('.planning-title .eyebrow')?.textContent, actions: [...document.querySelectorAll('#planning-workspace button')].filter(b => /Generate|Regenerate|Retry|Approve|Prepare/.test(b.textContent)).length, inputs: document.querySelectorAll('.planning-footer textarea, .planning-footer select').length, direction: document.querySelector('.planning-direction')?.textContent || '', open: [...document.querySelectorAll('#planning-workspace button')].some(b => b.textContent === 'Open the video notebook') })`)
   check(/read-only/.test(readOnlyView.eyebrow) && readOnlyView.actions === 0 && readOnlyView.inputs === 0 && /Hold the camera still/.test(readOnlyView.direction) && readOnlyView.open, 'the base shows the video\'s plans and direction read-only, with a way to the video')
   await shot('07-base-read-only')
 

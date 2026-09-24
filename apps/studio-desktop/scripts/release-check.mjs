@@ -60,6 +60,7 @@ const CHECKS = [
   'harness-models-check.mjs',     // M0: each harness's model list — Claude gated by CLI version, Kimi/Codex from config
   'planning-check.mjs',           // M0: brief + scene plans — planning-only tools, stale-safe, reload, no downstream
   'visual-cast-check.mjs',        // P1: the base's icons and objects lifted, verified and shown while planning
+  'scene-review-check.mjs',       // P2: scene review in the notebook — stage, moments, approvals, guide, restart
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 

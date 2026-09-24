@@ -175,7 +175,7 @@ type Rendered = { backgrounds: Array<[string, number]>; inks: Array<[string, num
 const renderedRead = async (url: string): Promise<Rendered | null> => {
   try {
     const { default: puppeteer } = await import('puppeteer')
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] })
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'], handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false })
     try {
       const page = await browser.newPage()
       await page.setUserAgent(UA)

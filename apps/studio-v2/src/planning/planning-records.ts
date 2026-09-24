@@ -56,6 +56,18 @@ export type PlanningRecord = {
   createdAt: string
   updatedAt: string
   reviewedAt: string | null
+  // Set when the creator approves the plan (P2): what it was approved with.
+  approval: PlanApproval | null
+}
+
+// The pin an approval records: the plan's own inputs and what they came
+// from. Approval is a decision about direction; it starts nothing.
+export type PlanApproval = {
+  at: string
+  fingerprint: string
+  briefId: string
+  briefFingerprint: string
+  castId: string | null
 }
 
 // Version of the dependency rules below; a record made under older rules
@@ -191,7 +203,8 @@ export const treatmentFreshness = (
 
 // The states the planning workspace shows for a scene.
 export type ScenePlanningState =
-  | 'preparing' // the video's brief is not ready yet
+  | 'needs-brief' // no brief has been asked for yet
+  | 'preparing' // the video's brief is being prepared
   | 'brief-failed' // the brief could not be prepared; the fork is still usable
   | 'ready-to-plan'
   | 'planning'
@@ -236,7 +249,7 @@ export const scenePlanningView = (
   const freshness = current && now ? treatmentFreshness(current, { brief, ...now }) : null
   const staleBecause = freshness && !freshness.fresh ? freshness.reason : null
   let state: ScenePlanningState
-  if (!brief) state = newestBrief?.status === 'failed' ? 'brief-failed' : 'preparing'
+  if (!brief) state = newestBrief?.status === 'failed' ? 'brief-failed' : newestBrief && ACTIVE_STATUSES.includes(newestBrief.status) ? 'preparing' : 'needs-brief'
   else if (latest && (latest.status === 'queued' || latest.status === 'running')) state = 'planning'
   else if (latest?.status === 'failed') state = 'failed'
   else if (current && staleBecause) state = 'stale'
@@ -247,12 +260,13 @@ export const scenePlanningView = (
 }
 
 export const PLANNING_STATE_LABELS: Record<ScenePlanningState, string> = {
+  'needs-brief': 'Needs the brief',
   preparing: 'Preparing the brief',
   'brief-failed': 'Brief failed',
   'ready-to-plan': 'Ready to plan',
   planning: 'Planning',
   candidate: 'Candidate ready',
-  reviewed: 'Reviewed',
+  reviewed: 'Approved',
   stale: 'Stale',
   failed: 'Failed',
 }

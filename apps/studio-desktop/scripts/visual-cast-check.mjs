@@ -87,7 +87,7 @@ try {
   const videoId = fork.body?.project?.id
   check(Boolean(videoId && fork.body.project.derivedFrom?.snapshot), 'a video is forked from it')
 
-  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(videoId)}); location.reload(); return true }`).catch(() => {})
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(videoId)}); location.assign('/studio'); return true }`).catch(() => {})
   await sleep(2500)
   check(Boolean(await waitFor(`() => document.getElementById('project-title')?.value === 'Rate limiters · video'`)), 'the video notebook opens')
   await evaluate(`() => { document.getElementById('open-planning').click(); return true }`)
@@ -100,7 +100,10 @@ try {
     return all.map(card => ({ label: card.querySelector('strong')?.textContent, chips: [...card.querySelectorAll('.planning-chip')].map(chip => chip.textContent), parts: card.querySelector('small')?.textContent || '', image: card.querySelector('img')?.naturalWidth || 0, reference: card.classList.contains('is-reference') }))
   }`, 180)
   check(Boolean(cards?.length), `the cast appears while the video is planned (${cards?.length || 0} cards)`)
+  // Its thumbnail, once it has loaded.
+  const poolImage = await waitFor(`() => { const card = [...document.querySelectorAll('.planning-cast-card')].find(item => item.querySelector('strong')?.textContent === 'Concurrency cap'); const image = card?.querySelector('img'); return image && image.complete && image.naturalWidth > 0 ? image.naturalWidth : null }`, 40)
   const pool = cards?.find(card => card.label === 'Concurrency cap')
+  if (pool) pool.image = poolImage || 0
   check(Boolean(pool) && pool.chips.includes('slot-pool rig — every part separate') && pool.chips.includes('matches the page') && /slots ×20/.test(pool.parts) && /occupied ×14/.test(pool.parts) && pool.image > 0, `the twenty-slot pool is whole, rigged and matches its page (${JSON.stringify(pool)})`)
   await sleep(800)
   await capture('01-scene-cast')

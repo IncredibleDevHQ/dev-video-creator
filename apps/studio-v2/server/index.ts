@@ -695,7 +695,7 @@ const screenshotExplainerPlan = async (
   shapes: ShapeDefV1[],
 ) => {
   const { default: puppeteer } = await import('puppeteer')
-  const browser = await puppeteer.launch()
+  const browser = await puppeteer.launch({ handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false })
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1600, height: 860 })
@@ -752,7 +752,7 @@ const runCanvasCodeSandbox = async (
   steps: CanvasAgentStep[],
 ) => {
   const { default: puppeteer } = await import('puppeteer')
-  const browser = await puppeteer.launch()
+  const browser = await puppeteer.launch({ handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false })
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1600, height: 860 })

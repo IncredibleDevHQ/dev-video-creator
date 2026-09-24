@@ -252,8 +252,9 @@ export const SceneBlock = Node.create({
             ],
           ]
         : []),
-      ...(svgSrc
-        ? [['img', { class: 'scene-poster', src: String(svgSrc), alt: String(title || 'Scene') }]]
+      // The poster: the stored one, else the page itself.
+      ...(svgSrc || svg
+        ? [['img', { class: 'scene-poster', src: String(svgSrc || `data:image/svg+xml;charset=utf-8,${encodeURIComponent(String(svg))}`), alt: String(title || 'Scene') }]]
         : [['div', { class: 'notebook-media-placeholder' }, ['span', {}, '▦'], ['strong', {}, 'Scene without a preview']]]),
       ...(directorNotes
         ? [

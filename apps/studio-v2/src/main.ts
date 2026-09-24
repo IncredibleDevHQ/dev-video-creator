@@ -3,6 +3,7 @@ import { applyAppearanceControl } from './appearance-controls'
 import { controlValue, type ObjectBehavior, type AppearanceControl } from './object-behavior'
 import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
+import { createSceneReview } from './planning/scene-review'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -3130,6 +3131,47 @@ const buildExplanationDecorations = (state: EditorState) => {
   return DecorationSet.create(state.doc, decorations)
 }
 
+// ——— Scene review in a video notebook (P2) ———
+// Every scene block carries its review strip; the selected scene opens its
+// review below the block, beside the stage. The widgets are keyed by what
+// they show, so a redraw that changes nothing keeps the same DOM.
+let sceneReview: ReturnType<typeof createSceneReview> | null = null
+let reviewSelectedScene = ''
+let onSceneSelected: (nodeId: string) => void = () => {}
+const sceneReviewKey = new PluginKey('scene-review')
+const SceneReviewWidgets = Extension.create({
+  name: 'sceneReviewWidgets',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: sceneReviewKey,
+        props: {
+          decorations: state => {
+            const review = sceneReview
+            if (!review?.active()) return null
+            const decorations: Decoration[] = []
+            state.doc.forEach((node, offset) => {
+              if (node.type.name !== 'scene') return
+              const id = String(node.attrs.id || '')
+              if (!id || !review.has(id)) return
+              const expanded = id === reviewSelectedScene
+              decorations.push(
+                Decoration.widget(offset + node.nodeSize, () => review.widget(id, expanded), {
+                  key: `scene-review:${id}:${review.signature(id, expanded)}`,
+                  side: -1,
+                  stopEvent: () => true,
+                  ignoreSelection: true,
+                }),
+              )
+            })
+            return DecorationSet.create(state.doc, decorations)
+          },
+        },
+      }),
+    ]
+  },
+})
+
 const BlockExplanations = Extension.create({
   name: 'blockExplanations',
   addProseMirrorPlugins() {
@@ -3154,6 +3196,7 @@ editor = new Editor({
     ExplainerBlock,
     SlideBlock,
     SceneBlock,
+    SceneReviewWidgets,
     Markdown.configure({
       markedOptions: { gfm: true, breaks: false },
     }),
@@ -4776,6 +4819,7 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
   }
   renderSceneRail()
   updateInspector()
+  onSceneSelected(nodeId)
   window.requestAnimationFrame(positionInlinePreview)
   const scene = scenes.find(item => item.id === nodeId)
   // While a switchover audition owns the canvas it also owns the parked
@@ -16799,3 +16843,99 @@ const planningWorkspace = createPlanningWorkspace({
     if (intent === project.id) void planningWorkspace.open({ prepare: true })
   }
 }
+
+// ——— Scene review in the notebook, and the stage beside it (P2) ———
+const sceneStage = $('#scene-stage') as HTMLElement
+const sceneStageReference = $('#scene-stage-reference') as HTMLElement
+const sceneStageNote = $('#scene-stage-note') as HTMLElement
+let sceneStageFor = ''
+// What the selected moment is about, kept across redraws of the stage.
+let sceneStageTargets: { nodes: string[]; objectIds: string[] } | null = null
+// The wireframe as live SVG, so a moment can point at what it is about.
+// It is the notebook's own page; anything executable is dropped anyway.
+const referenceSvg = (markup: string) => {
+  const parsed = new DOMParser().parseFromString(markup, 'image/svg+xml').documentElement
+  if (!parsed || parsed.nodeName.toLowerCase() !== 'svg') return null
+  parsed.querySelectorAll('script, foreignObject').forEach(element => element.remove())
+  parsed.querySelectorAll('*').forEach(element => {
+    for (const attribute of [...element.attributes]) if (/^on/i.test(attribute.name)) element.removeAttribute(attribute.name)
+  })
+  parsed.removeAttribute('width')
+  parsed.removeAttribute('height')
+  return document.importNode(parsed, true) as unknown as SVGSVGElement
+}
+const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
+  const stage = sceneReview?.active() && reviewSelectedScene ? sceneReview.stageOf(reviewSelectedScene) : null
+  const node = stage ? findSlideLikeNode(reviewSelectedScene) : null
+  if (!stage || !node) {
+    sceneStage.hidden = true
+    sceneStageFor = ''
+    sceneStageTargets = null
+    return
+  }
+  sceneStage.hidden = false
+  if (next !== undefined) sceneStageTargets = next
+  const targets = stage.moment ? sceneStageTargets : null
+  if (sceneStageFor !== reviewSelectedScene) {
+    sceneStageFor = reviewSelectedScene
+    const svg = referenceSvg(String(node.attrs.svg || ''))
+    sceneStageReference.replaceChildren(...(svg ? [svg] : []))
+    if (!svg) sceneStageReference.append(Object.assign(document.createElement('p'), { textContent: 'This scene has no wireframe.' }))
+  }
+  const svg = sceneStageReference.querySelector('svg')
+  svg?.querySelectorAll('.stage-hit').forEach(element => element.classList.remove('stage-hit'))
+  svg?.classList.toggle('has-hits', false)
+  if (!targets) {
+    sceneStageNote.textContent = 'The page this scene comes from — a reference for what the video explains, not a preview of its motion.'
+    return
+  }
+  const hits = [
+    ...targets.nodes.map(id => svg?.querySelector(`[id="${CSS.escape(id)}"]`)),
+    ...targets.objectIds.map(id => svg?.querySelector(`[data-object-id="${CSS.escape(id)}"]`)),
+  ].filter((element): element is Element => Boolean(element))
+  hits.forEach(element => element.classList.add('stage-hit'))
+  svg?.classList.toggle('has-hits', hits.length > 0)
+  sceneStageNote.textContent = hits.length
+    ? `Highlighted: what this moment is about, where the page draws it (${hits.length} ${hits.length === 1 ? 'thing' : 'things'}). The video may restage it.`
+    : 'This moment names nothing the page draws — there is no mapping to show on the reference.'
+}
+const refreshSceneReview = () => {
+  const focus = sceneReview?.focusKey() || ''
+  editor.view.dispatch(editor.state.tr.setMeta(sceneReviewKey, 'refresh'))
+  window.requestAnimationFrame(() => {
+    sceneReview?.restoreFocus(focus)
+    positionInlinePreview()
+  })
+}
+sceneReview = createSceneReview({
+  fetchJson,
+  toast: showToast,
+  projectId: () => (project.derivedFrom?.notebook ? project.id : null),
+  wordingPolicy: () => (project.story?.wordingPolicy === 'preserve' || project.story?.wordingPolicy === 'assist' ? project.story.wordingPolicy : 'draft'),
+  script: sceneId => String(findSlideLikeNode(sceneId)?.attrs.script || ''),
+  refresh: () => {
+    refreshSceneReview()
+    renderSceneStage()
+  },
+  record: sceneId => {
+    selectNode(sceneId, false)
+    openCamera()
+  },
+  openWorkspace: () => void planningWorkspace.open(),
+  selectMoment: (_sceneId, targets) => renderSceneStage(targets),
+})
+onSceneSelected = nodeId => {
+  const next = sceneReview?.has(nodeId) ? nodeId : ''
+  if (next === reviewSelectedScene) return
+  reviewSelectedScene = next
+  sceneStageTargets = null
+  refreshSceneReview()
+  renderSceneStage()
+}
+document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
+if (project.derivedFrom?.notebook) {
+  sceneReview.listen()
+  void sceneReview.load().then(() => onSceneSelected(selectedNodeId))
+}
+;($('#planning-dialog') as HTMLDialogElement).addEventListener('close', () => void sceneReview?.load())
+window.addEventListener('focus', () => void sceneReview?.load())
