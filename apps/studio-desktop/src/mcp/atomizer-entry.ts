@@ -4,6 +4,7 @@
 // hidden window's page context; functions take and return JSON values only.
 import {
   atomizeSlideSvg,
+  wearAppearance,
   contractReport,
   flattenUnits,
   inferEdges,
@@ -210,5 +211,5 @@ const directPage = (markup: string, args: DirectArgs = {}) => {
   }
 }
 
-const api = { atomize, measure, renderFold, direct: directPage, reviewExplainer, explainerFrame, reviewObjectClip, objectClipSeek }
+const api = { wearAppearance, atomize, measure, renderFold, direct: directPage, reviewExplainer, explainerFrame, reviewObjectClip, objectClipSeek }
 ;(globalThis as unknown as { StudioAtomize: typeof api }).StudioAtomize = api

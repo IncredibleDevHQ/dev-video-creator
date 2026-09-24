@@ -832,6 +832,10 @@
         <div id="source-logos" class="source-logos"></div>
         <h3>Direction</h3>
         <div id="source-directions" class="source-directions"></div>
+        <h3>Saved themes</h3>
+        <div id="source-saved-themes" class="source-directions"></div>
+        <h3>Custom palette</h3>
+        <div id="source-custom-palette"></div>
         <div id="source-theme-association" class="source-theme-association" hidden></div>
         <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status"></span><button id="source-to-outline" type="button" class="button primary">Outline it</button></div>
       </section>
@@ -878,7 +882,7 @@
     </dialog>
 
     <dialog id="camera-dialog" class="modal camera-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Camera first. Microphone optional.</h2></div><button id="close-camera" class="icon-button">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Record your delivery.</h2></div><button id="close-camera" class="icon-button">×</button></div>
       <div class="camera-grid">
         <div class="camera-left">
           <div class="camera-preview-shell">
@@ -919,7 +923,7 @@
             <button id="stop-recording" class="button danger" hidden>Stop take</button>
             <button id="engine-recording" class="button chrome-secondary wide" disabled>Use voice + live canvas</button>
           </div>
-          <p class="privacy-note">Camera-only mode never requests microphone access. Generated voice and real footage remain separate tracks. Only use a voice reference you own or are authorized to use.</p>
+          <p id="camera-privacy-note" class="privacy-note">Camera-only mode never requests microphone access. Generated voice and real footage remain separate tracks. Only use a voice reference you own or are authorized to use.</p>
         </div>
       </div>
     </dialog>

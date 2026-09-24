@@ -120,8 +120,10 @@ export const MOTION_DRIVER_SOURCE = `
       }
     }
     var entry = { id: id, node: node, motionNode: motionNode, strokes: strokes, bodies: bodies, text: text, hiddenAtRest: false };
-    motionNode.style.transformBox = 'fill-box';
-    motionNode.style.transformOrigin = 'center';
+    var restBox = bboxOf(motionNode) || { x: 0, y: 0, width: 0, height: 0 };
+    entry.restBox = restBox;
+    motionNode.style.transformBox = 'view-box';
+    motionNode.style.transformOrigin = (restBox.x + restBox.width / 2) + 'px ' + (restBox.y + restBox.height / 2) + 'px';
     targets[id] = entry;
     order.push(entry);
     return entry;
@@ -592,8 +594,8 @@ export const MOTION_DRIVER_SOURCE = `
           // The drawing may say which way it fills; only guess when it does not.
           var fills = t.node.getAttribute ? t.node.getAttribute('data-fills') : null;
           t.levelAxis = fills === 'up' ? 'y' : fills === 'right' ? 'x' : !box || box.width >= box.height ? 'x' : 'y';
-          t.motionNode.style.transformBox = 'fill-box';
-          t.motionNode.style.transformOrigin = t.levelAxis === 'x' ? 'left center' : 'center bottom';
+          t.motionNode.style.transformBox = 'view-box';
+          t.motionNode.style.transformOrigin = (t.restBox.x + (t.levelAxis === 'x' ? 0 : t.restBox.width / 2)) + 'px ' + (t.restBox.y + (t.levelAxis === 'x' ? t.restBox.height / 2 : t.restBox.height)) + 'px';
         });
       }
       if ((action.op === 'morph' || action.op === 'swap') && Number(value.fromCount) > 0) {
@@ -623,7 +625,7 @@ export const MOTION_DRIVER_SOURCE = `
     for (var i = 0; i < schedule.length; i += 1) {
       var a = schedule[i];
       if (time < a.start) continue;
-      var overall = clamp((time - a.start) / a.duration);
+      var overall = Number(a.value.instant) === 1 ? 1 : clamp((time - a.start) / a.duration);
       if (!a.state && overall >= 1) continue;
       if (a.op === 'phase') {
         // The latest phase on a diagram wins; focal in its beat, ambient after.
@@ -642,7 +644,7 @@ export const MOTION_DRIVER_SOURCE = `
       for (var k = 0; k < count; k += 1) {
         var t = a.targets[k];
         var s = states[t.id];
-        var p = clamp((time - a.start - a.stagger * k) / each);
+        var p = Number(a.value.instant) === 1 ? 1 : clamp((time - a.start - a.stagger * k) / each);
         var ev = a.ease(p);
         switch (a.op) {
           case 'reveal':
@@ -699,12 +701,23 @@ export const MOTION_DRIVER_SOURCE = `
         }
       }
     }
-    order.forEach(function (t) {
+    // Parent placement must settle before child deltas are converted from
+    // scene coordinates into the parent's authored coordinate system.
+    order.slice().sort(function (a, b) { return a.node.contains(b.node) ? -1 : b.node.contains(a.node) ? 1 : 0; }).forEach(function (t) {
       var s = states[t.id];
       var node = t.node;
       node.style.opacity = String(clamp(s.alpha * s.dim));
       var transform = '';
-      if (Math.abs(s.dx) > 0.05 || Math.abs(s.dy) > 0.05) transform += 'translate(' + s.dx.toFixed(2) + 'px, ' + s.dy.toFixed(2) + 'px)';
+      var dx = s.dx, dy = s.dy;
+      var parent = t.motionNode.parentNode;
+      if (parent && parent.getScreenCTM && root.getScreenCTM) {
+        try {
+          var matrix = root.getScreenCTM().inverse().multiply(parent.getScreenCTM()).inverse();
+          dx = matrix.a * s.dx + matrix.c * s.dy;
+          dy = matrix.b * s.dx + matrix.d * s.dy;
+        } catch (error) {}
+      }
+      if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) transform += 'translate(' + dx.toFixed(2) + 'px, ' + dy.toFixed(2) + 'px)';
       var sized = s.scale * (s.resized === null ? 1 : s.resized);
       if (Math.abs(sized - 1) > 0.001) transform += (transform ? ' ' : '') + 'scale(' + sized.toFixed(4) + ')';
       if (s.level !== null) transform += (transform ? ' ' : '') + (t.levelAxis === 'y' ? 'scaleY(' : 'scaleX(') + s.level.toFixed(4) + ')';

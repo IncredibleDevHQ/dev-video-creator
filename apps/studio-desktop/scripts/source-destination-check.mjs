@@ -178,7 +178,7 @@ try {
 
   // Present it myself is irrelevant to the destination; the generated path is
   // exercised here so the delivery chooser runs the real entry.
-  await evaluate(`() => { document.getElementById('create-explainer').click(); return true }`, 'open chooser')
+  await evaluate(`() => { window.localStorage.setItem('studio.codingAgent', 'kimi'); document.getElementById('create-explainer').click(); return true }`, 'open chooser')
   await sleep(300)
   await evaluate(`() => { document.querySelector('#create-explainer-paths [data-delivery="generated"]').click(); return true }`, 'choose generated')
   await sleep(200)
@@ -259,7 +259,7 @@ try {
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
   }
   await fetch(`${origin}/api/projects/${MD_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(mdProject) })
-  await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(MD_ID)}); window.location.assign('/studio'); return true }`, 'open markdown notebook')
+  await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(MD_ID)}); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, 'open markdown notebook')
   const mdBoot = await waitFor(`() => document.getElementById('project-title')?.value === 'Markdown notes'`, 'markdown notebook boot')
   check('the markdown notebook opens', Boolean(mdBoot))
   const flowC = await runWizard(narrativeOf(FLOW_C_ONE), 'new')

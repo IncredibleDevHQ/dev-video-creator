@@ -156,6 +156,7 @@ try {
     // single-user flow where the studio itself drives the commit).
     const writeMapping = async () => {
       const current = (await j(origin, '/api/projects/' + id)).project
+      const expectedProject = structuredClone(current)
       current.recordedBlocks = {
         [blockId]: {
           recordingId: draft.draft.assetId,
@@ -165,7 +166,7 @@ try {
           storage: 'local',
         },
       }
-      await j(origin, '/api/projects/' + id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(current) })
+      await j(origin, '/api/projects/' + id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: current, expectedProject }) })
     }
     await writeMapping()
     await new Promise(resolve => setTimeout(resolve, 2_500))

@@ -166,7 +166,7 @@ try {
   check('the fixture provider is the studio model setting', settings.settings?.source === 'saved' && settings.settings?.baseUrl?.includes(String(providerPort)), JSON.stringify(settings.settings?.baseUrl || ''))
 
   // Boot the studio UI on a fresh notebook.
-  await evaluate(`() => { window.location.assign('/studio'); return true }`, 'open studio')
+  await evaluate(`() => { window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, 'open studio')
   const booted = await waitFor(`() => Boolean(document.getElementById('app') && !document.getElementById('app').hidden && document.querySelector('#editor .ProseMirror'))`, 'boot')
   check('studio booted on a fresh notebook', Boolean(booted))
 
@@ -249,7 +249,7 @@ try {
     }
     return null
   })()
-  check('the build dispatches an explainer run (delivery never re-asked)', Boolean(buildRun), buildRun?.id || '')
+  check('the build dispatches an explainer run (delivery never re-asked)', Boolean(buildRun), buildRun?.id || await evaluate(`() => document.getElementById('explainer-status')?.textContent + ' / ' + document.getElementById('save-status')?.textContent`, 'build failure'))
   let inputs = null
   if (buildRun?.projectDir) {
     inputs = JSON.parse(await readFile(join(buildRun.projectDir, 'motion', 'inputs.json'), 'utf8').catch(() => 'null'))

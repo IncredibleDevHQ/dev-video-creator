@@ -1,3 +1,5 @@
+import { startExportJob, getExportJob, cancelExportJob, exportJobView } from './export-jobs'
+import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
 import { createHash, randomUUID } from 'node:crypto'
@@ -2289,7 +2291,7 @@ const handleCommitDirectedRecording = async (
         }
       : {}),
   })
-  json(response, 201, { recording })
+  json(response, 201, { recording, project: await loadProjectArtifact(body.projectId) })
 }
 
 const handlePreview = async (
@@ -2325,12 +2327,11 @@ const handlePreview = async (
   })
 }
 
-const handleRender = async (
-  context: StudioWorkerContext,
-  request: IncomingMessage,
-  response: ServerResponse,
-) => {
+const handleRender = async (context: StudioWorkerContext, request: IncomingMessage, response: ServerResponse) => {
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
+  json(response, 200, await renderProjectArtifact(context, project, publicBaseUrl(request)))
+}
+const renderProjectArtifact = async (context: StudioWorkerContext, project: ProjectDocumentV1, baseUrl: string, signal?: AbortSignal) => {
   const renderProject = structuredClone(project)
   type StagedRenderAsset = {
     localPath?: string
@@ -2500,7 +2501,7 @@ const handleRender = async (
       outputResolution: 'landscape',
     })
     try {
-      await executeRenderJob(job, jobDirectory, outputPath)
+      await executeRenderJob(job, jobDirectory, outputPath, undefined, signal)
     } catch (error) {
       const warningDetails = job.warnings
         .map(warning => warning.message)
@@ -2528,12 +2529,12 @@ const handleRender = async (
     console.warn('[render] export could not be stored durably', error instanceof Error ? error.message : error)
   }
 
-  json(response, 200, {
-    url: `${publicBaseUrl(request)}/outputs/${id}.mp4`,
+  return {
+    url: exportAsset ? `${baseUrl}/objects/${exportAsset.objectKey}` : `${baseUrl}/outputs/${id}.mp4`,
     durationSeconds: composition.durationSeconds,
     fonts: { shipped: fonts.shipped, substituted: fonts.substituted },
     exportAsset,
-  })
+  }
 }
 
 const safeStaticPath = (root: string, pathname: string) => {
@@ -2807,6 +2808,11 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     // Draw one object. The same brief is never drawn twice: the accepted
     // artwork is kept by what it draws, so rewording a scene reuses it.
+    if (request.method === 'POST' && url.pathname === '/api/appearance/register') {
+      const body = await readJson<Parameters<typeof registerLocalArtwork>[0]>(request, 4 * 1024 * 1024)
+      json(response, 201, await registerLocalArtwork(body))
+      return
+    }
     if (request.method === 'GET' && url.pathname === '/api/appearance/library') {
       const assets = await listArtwork()
       // "Used in": notebooks whose stored scenes carry the artwork's key.
@@ -2899,10 +2905,17 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'PUT' && url.pathname.startsWith('/api/projects/')) {
       const projectId = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
-      const project = await readJson<ProjectDocumentV1>(request, 5 * 1024 * 1024)
+      const body = await readJson<ProjectDocumentV1 | { project: ProjectDocumentV1; expectedProject: ProjectDocumentV1; clearTakeBlocks?: string[] }>(request, 10 * 1024 * 1024)
+      const project = 'project' in body ? body.project : body
+      const options = 'project' in body && body.expectedProject ? { expectedProject: body.expectedProject, clearTakeBlocks: body.clearTakeBlocks } : { createOnly: true }
       if (!projectId || project.id !== projectId) throw new Error('Project ID mismatch')
-      await saveProjectArtifact(project)
-      json(response, 200, { projectId, saved: true })
+      try {
+        await saveProjectArtifact(project, options)
+      } catch (error) {
+        if ((error as { statusCode?: number }).statusCode === 409) { json(response, 409, { error: (error as Error).message }); return }
+        throw error
+      }
+      json(response, 200, { projectId, saved: true, project })
       return
     }
     if (request.method === 'DELETE' && url.pathname.startsWith('/api/projects/')) {
@@ -2970,7 +2983,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         return
       }
       await selectPresenterTake({ projectId: body.projectId, blockId: body.blockId, takeId: body.takeId })
-      json(response, 200, { selected: true })
+      json(response, 200, { selected: true, project: await loadProjectArtifact(body.projectId) })
       return
     }
     // Clearing a selection (remove presenter): the active take and its
@@ -3053,6 +3066,28 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/themes/generate') {
       await handleThemeGeneration(request, response)
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/review-fonts') {
+      const project = await readJson<ProjectDocumentV1>(request, 10 * 1024 * 1024)
+      const fonts = await shipFonts(context, fontFamiliesIn(project), join(context.previewsDirectory, 'media'))
+      json(response, 200, { ...fonts, css: fonts.css.replaceAll('./media/fonts/', `${publicBaseUrl(request)}/assets/fonts/`) })
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/exports') {
+      const project = await readJson<ProjectDocumentV1>(request, 10 * 1024 * 1024)
+      const baseUrl = publicBaseUrl(request)
+      json(response, 202, { job: exportJobView(await startExportJob(project, signal => renderProjectArtifact(context, project, baseUrl, signal), url.searchParams.get('retry') === 'true')) })
+      return
+    }
+    if (/^\/api\/exports\/[a-f0-9]{64}$/.test(url.pathname) && ['GET', 'DELETE'].includes(request.method || '')) {
+      const id = url.pathname.split('/').pop()!
+      let job = request.method === 'DELETE' ? await cancelExportJob(id) : await getExportJob(id)
+      if (request.method === 'GET' && job?.project && ['queued', 'running'].includes(job.status) && Date.now() - job.updatedAt >= 90000) {
+        const manifest = job.project
+        job = await startExportJob(manifest, signal => renderProjectArtifact(context, manifest, publicBaseUrl(request), signal))
+      }
+      json(response, job ? 200 : 404, { job: exportJobView(job) })
       return
     }
     if (request.method === 'POST' && url.pathname === '/api/render') {

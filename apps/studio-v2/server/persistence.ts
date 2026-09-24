@@ -98,11 +98,12 @@ type SaveRecordedBlockInput = {
 
 type PersistenceBackend = {
   initializePersistence: () => Promise<void>
-  saveProjectArtifact: (project: ProjectDocumentV1) => Promise<void>
+  saveProjectArtifact: (project: ProjectDocumentV1, options?: ProjectSaveOptions) => Promise<void>
   loadProjectArtifact: (projectId: string) => Promise<ProjectDocumentV1 | null>
   listProjectArtifacts: () => Promise<ProjectArtifactSummary[]>
   deleteProjectArtifact: (projectId: string) => Promise<boolean>
   loadSetting: (key: string) => Promise<unknown>
+  compareAndSwapSetting: (key: string, expected: unknown, value: unknown) => Promise<boolean>
   saveSetting: (key: string, value: unknown) => Promise<void>
   loadLatestProjectArtifact: () => Promise<ProjectDocumentV1 | null>
   storeAsset: (asset: StoreAssetInput) => Promise<{ assetId: string; objectKey: string }>
@@ -207,8 +208,9 @@ const loadBackend = () => {
 export const initializePersistence = async () =>
   (await loadBackend()).initializePersistence()
 
-export const saveProjectArtifact = async (project: ProjectDocumentV1) =>
-  (await loadBackend()).saveProjectArtifact(project)
+export type ProjectSaveOptions = { createOnly?: boolean; expectedProject?: ProjectDocumentV1; clearTakeBlocks?: string[] }
+export const saveProjectArtifact = async (project: ProjectDocumentV1, options?: ProjectSaveOptions) =>
+  (await loadBackend()).saveProjectArtifact(project, options)
 
 export const loadProjectArtifact = async (projectId: string) =>
   (await loadBackend()).loadProjectArtifact(projectId)
@@ -362,3 +364,6 @@ export const findNotebooksReferencing = async (marker: string) =>
 
 export const settingsWithPrefix = async (prefix: string) =>
   (await loadBackend()).settingsWithPrefix(prefix)
+
+export const compareAndSwapSetting = async (key: string, expected: unknown, value: unknown) =>
+  (await loadBackend()).compareAndSwapSetting(key, expected, value)

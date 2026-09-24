@@ -45,7 +45,9 @@ try {
   const previousFetch = globalThis.fetch
   globalThis.fetch = async (url, options) => {
     const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
     if (u.includes('/api/runs/') && u.endsWith('/stages')) { stageCalls.push(JSON.parse(options?.body || '{}')); return Response.json({ saved: true }) }
+    if (u.endsWith('/api/projects/nb')) return Response.json({ project: null })
     if (u.endsWith('/api/appearance/verify-cast')) return Response.json({ ok: true, cast: [] })
     throw new Error(`Unexpected fixture URL: ${url}`)
   }

@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util'
+import type { ProjectSaveOptions } from './persistence'
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
@@ -61,8 +63,30 @@ const readIndex = async (): Promise<ProjectIndex> =>
 const writeIndex = async (index: ProjectIndex) =>
   writeFileAtomic(indexPath(), JSON.stringify(index, null, 2))
 
-export const saveProjectArtifact = async (project: ProjectDocumentV1) => {
+type LocalProject = ProjectDocumentV1 & { retiredTakeIds?: Record<string, boolean> }
+let documentWrites: Promise<unknown> = Promise.resolve()
+export const saveProjectArtifact = (project: ProjectDocumentV1, options?: ProjectSaveOptions): Promise<void> => {
+  const pending = documentWrites.catch(() => {}).then(() => saveProjectLocked(project, options))
+  documentWrites = pending
+  return pending
+}
+const saveProjectLocked = async (project: ProjectDocumentV1, options?: ProjectSaveOptions) => {
   await initializePersistence()
+  if (options?.createOnly && await loadProjectArtifact(project.id)) throw Object.assign(new Error('This notebook already exists. Load its current revision before saving.'), { statusCode: 409 })
+  if (options?.expectedProject && !isDeepStrictEqual(await loadProjectArtifact(project.id), options.expectedProject)) {
+    throw Object.assign(new Error('The notebook changed during generation. Refresh before applying the saved candidate.'), { statusCode: 409 })
+  }
+  // Retire selection identities in the same atomically renamed artifact.
+  // Legacy archive/settings files remain readable, but cannot resurrect them.
+  const retired = { ...((await loadProjectArtifact(project.id)) as LocalProject | null)?.retiredTakeIds }
+  if (options?.clearTakeBlocks?.length) {
+    const selections = ((await loadSetting(`take-selections:${project.id}`)) as Record<string, string> | null) || {}
+    for (const blockId of options.clearTakeBlocks) {
+      const id = selections[blockId]
+      if (id) retired[id] = true
+    }
+  }
+  ;(project as LocalProject).retiredTakeIds = retired
   const blockCount = project.notebook.content.filter(
     node => typeof node.attrs?.id === 'string' && node.attrs.id,
   ).length
@@ -606,11 +630,21 @@ export const selectPresenterTake = async (input: { projectId: string; blockId: s
   const selections = ((await loadSetting(`take-selections:${input.projectId}`)) as Record<string, string> | null) || {}
   selections[input.blockId] = input.takeId
   await saveSetting(`take-selections:${input.projectId}`, selections)
+  const restored = documentWrites.catch(() => {}).then(async () => {
+    const project = await loadProjectArtifact(input.projectId) as LocalProject | null
+    if (project?.retiredTakeIds?.[input.takeId]) {
+      delete project.retiredTakeIds[input.takeId]
+      await writeFileAtomic(join(notebooksDirectory(), `${project.id}.json`), JSON.stringify(project))
+    }
+  })
+  documentWrites = restored
+  await restored
 }
 
 export const listTakeSelections = async (projectId: string) => {
   const selections = ((await loadSetting(`take-selections:${projectId}`)) as Record<string, string> | null) || {}
-  return Object.entries(selections).map(([blockId, takeId]) => ({ projectId, blockId, takeId, selectedAt: '' }))
+  const retired = ((await loadProjectArtifact(projectId)) as LocalProject | null)?.retiredTakeIds || {}
+  return Object.entries(selections).filter(([, takeId]) => !retired[takeId]).map(([blockId, takeId]) => ({ projectId, blockId, takeId, selectedAt: '' }))
 }
 
 // Removing the presenter clears the active take and its selection; the take
@@ -642,4 +676,15 @@ export const findNotebooksReferencing = async (marker: string): Promise<Array<{ 
 export const settingsWithPrefix = async (prefix: string): Promise<Record<string, unknown>> => {
   const settings = (await readJsonFile<Record<string, unknown>>(settingsPath())) || {}
   return Object.fromEntries(Object.entries(settings).filter(([key]) => key.startsWith(prefix)))
+}
+
+let settingComparisons: Promise<unknown> = Promise.resolve()
+export const compareAndSwapSetting = (key: string, expected: unknown, value: unknown): Promise<boolean> => {
+  const operation = settingComparisons.catch(() => {}).then(async () => {
+    if (!isDeepStrictEqual(await loadSetting(key), expected)) return false
+    await saveSetting(key, value)
+    return true
+  })
+  settingComparisons = operation
+  return operation
 }

@@ -47,9 +47,12 @@ export const sceneRenderedExtras = (
   block: { camera?: unknown; durationMs?: unknown } | null | undefined,
   presenterTracks: unknown,
   recorded: unknown,
+  rendering?: { brand?: unknown; theme?: unknown; captions?: unknown; fps?: number; width?: number; height?: number },
 ): Record<string, unknown> => ({
   camera: block?.camera ?? null,
   durationMs: block?.durationMs ?? null,
   presenterTracks: presenterTracks ?? null,
   recorded: recorded ?? null,
+  renderer: 'studio-composition-3',
+  rendering: rendering ? { brand: rendering.brand, theme: rendering.theme, captions: rendering.captions ?? null, fps: rendering.fps, width: rendering.width, height: rendering.height } : null,
 })

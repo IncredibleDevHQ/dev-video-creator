@@ -1,3 +1,5 @@
+import { validateBehavior, type ObjectBehavior } from '../src/object-behavior'
+import { isDeepStrictEqual } from 'node:util'
 import { createHash, randomUUID } from 'node:crypto'
 import { acceptArtwork, briefKey, objectBriefFrom, type ObjectBrief, type ObjectStyle } from './appearance'
 import { generateObjectSvg, repairObjectSvg, reviseObjectSvg } from './providers/quiver'
@@ -5,8 +7,11 @@ import { loadSetting, saveSetting, storeAsset } from './persistence'
 
 export type LibraryArtwork = ReturnType<typeof acceptArtwork> & {
   key: string; entity: string; accepted: boolean; brief: ObjectBrief; parentKey?: string
-  url: string; createdAt: string; operation: 'generate' | 'edit' | 'animate'
-  provenance: { provider: 'quiver'; model: string; requestId: string }
+  url: string; createdAt: string; operation: 'generate' | 'edit' | 'animate' | 'local-repair'
+  behaviors?: ObjectBehavior[]
+  contentHash?: string
+  reviewReceipt?: { sourceHash: string; frames: string[]; observations: string[] }
+  provenance: { provider: 'quiver' | 'local-harness'; model: string; requestId: string }
 }
 const INDEX = 'artwork-library-v1'
 // One writer for both the cache and the index, including requests from local agents.
@@ -73,9 +78,7 @@ export const briefCompatible = (brief: ObjectBrief, candidate: LibraryArtwork): 
   return Boolean(candidate.accepted)
     && candidate.entity === brief.entity
     && other.role === brief.role
-    && other.style.family === brief.style.family
-    && other.style.palette.accent === brief.style.palette.accent
-    && other.style.palette.ground === brief.style.palette.ground
+    && isDeepStrictEqual(other.style, brief.style)
     && brief.parts.every(part => other.parts.some(existing => existing.id === part.id))
 }
 
@@ -143,6 +146,39 @@ export const makeArtwork = (request: { brief?: unknown; key?: string; prompt?: s
     await saveSetting(`artwork:${key}`, record)
     const keys = (await loadSetting(INDEX) as string[] | null) || []
     await saveSetting(INDEX, [...new Set([key, ...keys])])
+    return { appearance: record, reused: false }
+  })
+  pending = job
+  return job
+}
+
+/** Accepted local repairs are immutable library versions, just like provider output. */
+export const registerLocalArtwork = (input: { parentKey: string; svg: string; behaviors?: ObjectBehavior[]; review: { sourceHash: string; frames: string[]; observations: string[] } }) => {
+  const job = pending.catch(() => {}).then(async () => {
+    const parent = await loadSetting(`artwork:${input.parentKey}`) as LibraryArtwork | null
+    if (!parent?.accepted) throw new Error('A local repair must name an accepted parent')
+    const hash = createHash('sha256').update(input.svg).digest('hex')
+    if (input.review?.sourceHash !== hash || !input.review.frames?.length || !input.review.observations?.length || input.review.observations.some(note => note.trim().length < 20)) throw new Error('Register the exact reviewed SVG with frame evidence and concrete observations')
+    const accepted = acceptArtwork(input.svg, parent.brief)
+    if (!accepted.ok) throw new Error(accepted.problems.join('; '))
+    // Validation must not rewrite the bytes that the local review approved.
+    const prefix = `ap-${briefKey(parent.brief).slice(0, 8)}-`
+    accepted.svg = input.svg
+    accepted.parts = accepted.parts.map(part => ({ ...part, id: part.id.slice(prefix.length) }))
+    const box = /viewBox\s*=\s*["']([^"']+)["']/i.exec(input.svg)?.[1].split(/[\s,]+/).map(Number)
+    if (box?.length === 4 && box.every(Number.isFinite) && box[2] > 0 && box[3] > 0) accepted.viewBox = { width: box[2], height: box[3] }
+    const parts = Object.fromEntries(accepted.parts.map(part => [part.as || part.id, part.id]))
+    for (const definition of input.behaviors || []) validateBehavior(definition, parts)
+    const key = createHash('sha256').update(input.parentKey).update(hash).update(JSON.stringify(input.behaviors || [])).digest('hex').slice(0, 24)
+    const existing = await loadSetting(`artwork:${key}`) as LibraryArtwork | null
+    if (existing) return { appearance: existing, reused: true }
+    const asset = await storeAsset({ body: Buffer.from(accepted.svg), contentType: 'image/svg+xml', kind: 'library-artwork', extension: '.svg' })
+    const record: LibraryArtwork = { ...accepted, key, parentKey: parent.key, entity: parent.entity, brief: parent.brief, accepted: true,
+      operation: 'local-repair', contentHash: hash, behaviors: (input.behaviors || []).map(def => ({ ...def, artworkKey: key, key: `${key}:${def.name}` })),
+      reviewReceipt: input.review, url: `/objects/${asset.objectKey}`, createdAt: new Date().toISOString(), provenance: { provider: 'local-harness', model: 'local-repair', requestId: hash } }
+    await saveSetting(`artwork:${key}`, record)
+    const keys = await loadSetting(INDEX) as string[] | null
+    await saveSetting(INDEX, [...new Set([key, ...(keys || [])])])
     return { appearance: record, reused: false }
   })
   pending = job

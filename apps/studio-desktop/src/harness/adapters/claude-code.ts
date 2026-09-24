@@ -211,6 +211,7 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       mcpConfig,
     ]
     if (typeof run.inputs.model === 'string' && run.inputs.model) args.push('--model', run.inputs.model)
+    if (typeof run.inputs.effort === 'string' && ['low', 'medium', 'high', 'xhigh', 'max'].includes(run.inputs.effort)) args.push('--effort', run.inputs.effort)
     if (run.resumeId) args.push('--resume', run.resumeId)
     const state: { resumeId?: string; reportedError?: boolean } = {}
     let stderrTail = ''

@@ -126,7 +126,7 @@ export const retimePlanToMarks = (plan: MotionPlanV2, marks: number[], totalMs: 
 // and its own audio stays out of the mix: the narration is the one voice.
 const alignedTakeNarration = (project: ProjectDocumentV1, nodeId: string): boolean =>
   (project.presenterTracks?.[nodeId] || []).some(
-    track => track.kind === 'narration' && track.audioKind === 'recorded-mic' && Boolean(safeUrl(track.audioUrl)),
+    track => track.kind === 'narration' && track.audioKind === 'recorded-mic' && (!track.recordingId || track.recordingId === project.recordedBlocks?.[nodeId]?.recordingId) && Boolean(safeUrl(track.audioUrl)),
   )
 
 // The project as the takes shaped it: every page scene whose take keeps
@@ -760,22 +760,23 @@ const explainerCanvasScript = (
 // A slide scene inlines the authored SVG (ids prefixed per scene), stacks
 // the step captions beneath it, and registers the step driver.
 const renderSlideScene = (scene: Scene, stageTrack?: ReturnType<typeof sceneStageTrack>) => {
-  const attrs = (scene.node.attrs || {}) as { svg?: unknown; title?: unknown }
+  const attrs = (scene.node.attrs || {}) as { svg?: unknown; title?: unknown; captionPolicy?: 'none' | 'heading' | 'narration' }
   const { plan, steps } = slideNodeTimeline(scene.node)
   const svg = prepareSlideSvg(String(attrs.svg || ''), slidePrefix(scene.index))
   if (!svg) {
     return `<div class="media-block media-placeholder"><span>▤</span><strong>${escapeHtml(String(attrs.title || 'Slide'))}</strong></div>`
   }
-  const captions = steps
+  const captionPolicy = attrs.captionPolicy || (/data-scene-mode="explainer"/.test(svg) ? 'none' : 'heading')
+  const captions = (captionPolicy === 'none' ? [] : steps)
     .map(
       (step, index) =>
-        `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(step.title)}</strong><span>${escapeHtml(step.explanation)}</span></div>`,
+        `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(captionPolicy === 'narration' ? step.explanation : step.title)}</strong></div>`,
     )
     .join('')
   const driver = plan
     ? motionDriverScript(scene.index, scene.id, plan, slidePrefix(scene.index), { stageTrack: stageTrack || sceneStageTrack(scene) })
     : ''
-  return `<div class="slide-stage">${svg}${steps.length ? `<div class="ex-captions">${captions}</div>` : ''}${driver}</div>`
+  return `<div class="slide-stage">${svg}${captions ? `<div class="ex-captions">${captions}</div>` : ''}${driver}</div>`
 }
 
 const renderExplainerScene = (
@@ -1561,7 +1562,6 @@ const buildCompositionHtml = (
     .scene.camera-absent::after { display: none; }
     .slide-stage { position: relative; width: 100%; display: grid; gap: 10px; }
     .slide-stage svg.slide-svg { display: block; width: min(100%, calc(700px * var(--slide-aspect, 1.7778))); aspect-ratio: var(--slide-aspect, 16 / 9); height: auto; margin-inline: auto; border-radius: 12px; overflow: visible; }
-    .slide-stage .slide-svg text, .slide-stage .slide-svg rect, .slide-stage .slide-svg circle, .slide-stage .slide-svg ellipse, .slide-stage .slide-svg polygon, .slide-stage .slide-svg image, .slide-stage .slide-svg path, .slide-stage .slide-svg line, .slide-stage .slide-svg polyline { transform-box: fill-box; }
     .scene.camera-absent:has(svg[data-scene-mode="explainer"]) { padding: 0 !important; }
     .scene:has(svg[data-scene-mode="explainer"])::before { display: none; }
     .scene:has(svg[data-scene-mode="explainer"]) > .scene-index, .scene:has(svg[data-scene-mode="explainer"]) > footer { display: none; }
@@ -1780,7 +1780,12 @@ export const compileProject = (
         startSeconds,
         durationSeconds,
         config: { ...config, durationMs },
-        presenterTracks: project.presenterTracks[nodeId] || [],
+        presenterTracks: (project.presenterTracks[nodeId] || []).filter(track => {
+          const selected = project.recordedBlocks?.[nodeId]
+          if (track.kind === 'narration') return !track.recordingId || track.recordingId === selected?.recordingId
+          if (!selected || (selected.role !== 'presenter' && !selected.keepsPlan)) return true
+          return track.videoUrl === (selected.keepsPlan ? selected.cameraUrl : selected.videoUrl)
+        }),
       }
       startSeconds += durationSeconds
       return scene

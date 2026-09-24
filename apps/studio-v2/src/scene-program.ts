@@ -1,3 +1,6 @@
+import type { ActorBoundary } from './continuity'
+import { expandBehavior, type BehaviorCall } from './object-behavior'
+import { orderEvents, type EventTiming, type TimingDiagnostic, type EventMilestone } from './event-schedule'
 // The scene program: what happens on a page, as a sequence of events.
 //
 // A window of dialogue says what a line is about; it cannot say that this
@@ -24,6 +27,7 @@ import { flattenUnits, leafUnits, type SlideUnit } from './slide-atoms'
 import type { SceneWindow, WindowLayout } from './script-plan'
 
 export const PROGRAM_ACTIONS = [
+  'behavior', // a versioned recipe bound to accepted artwork
   'appear',    // the object comes on screen where it is
   'travel',    // the object moves to another object's place
   'spend',     // a quantity goes down on the actor
@@ -61,6 +65,8 @@ export type ProgramEvent = {
   // A name of its own, so an author can nudge this event's timing and the
   // nudge survives the line being rewritten, split, merged or re-cut.
   id?: string
+  behavior?: BehaviorCall
+  guard?: { actor: string; notState: string }
   actor: string
   action: ProgramAction
   to?: string
@@ -73,6 +79,9 @@ export type ProgramEvent = {
   clip?: { fromMs: number; toMs: number; durationMs: number }
   atMs?: number
   after?: string
+  dependsOn?: Array<{ event: string; milestone: EventMilestone }>
+  anchor?: EventMilestone
+  durationMs?: number
 }
 
 // A cue is a spoken word; "retry#2" pins the second occurrence when the word
@@ -93,6 +102,7 @@ export type ProgramStaging = { id: string; grow?: number; to?: StagePlace; clear
 export type ProgramBeat = {
   id?: string
   moment?: ProgramMoment
+  heading?: string
   say: string
   events?: ProgramEvent[]
   camera?: string[] | 'page'
@@ -108,6 +118,8 @@ export type ProgramBeat = {
 
 export type SceneProgram = {
   version: 1
+  initialState?: ActorBoundary[]
+  scheduling?: 2
   page?: string
   // 'take': the beats were aligned to a recorded take (explainer_align_take),
   // so their durations and word anchors are measured spans of the take's own
@@ -190,13 +202,17 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
           const act = PROGRAM_ACTIONS.includes(event.action as ProgramAction) ? (event.action as ProgramAction) : null
           // The cast is where a thing's state lives, not a guest list: an
           // event may name anything the page drew.
-          if (!act || !known.has(actor)) return null
+          if (!act || !namesSomething(actor)) return null
           const to = asString(event.to, 120)
           const nudge = Number(event.nudgeMs)
           return {
             id: asString(event.id, 40) || `${act}-${actor}-${index}`,
             actor,
             action: act,
+            ...(act === 'behavior' && event.behavior ? { behavior: event.behavior as BehaviorCall } : {}),
+            ...(Array.isArray(event.dependsOn) ? { dependsOn: event.dependsOn.filter(d => d && typeof d.event === 'string' && ['start', 'arrival', 'outcome', 'settled'].includes(d.milestone)).map(d => ({ event: asString(d.event, 40), milestone: d.milestone })) } : {}),
+            ...(['start', 'arrival', 'outcome', 'settled'].includes(String(event.anchor)) ? { anchor: event.anchor as EventMilestone } : {}),
+            ...(Number.isFinite(event.durationMs) && Number(event.durationMs) > 0 ? { durationMs: Math.min(30_000, Number(event.durationMs)) } : {}),
             ...(typeof event.after === 'string' ? { after: asString(event.after, 40) } : {}),
             ...(Number.isFinite(event.atMs) ? { atMs: Math.max(0, Math.min(120_000, Number(event.atMs))) } : {}),
             ...(event.clip && typeof event.clip === 'object' ? { clip: {
@@ -205,7 +221,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
               durationMs: Math.max(100, Math.min(30_000, Number((event.clip as ProgramEvent['clip'])?.durationMs) || 1000)),
             } } : {}),
             ...(Number.isFinite(nudge) && nudge !== 0 ? { nudgeMs: Math.max(-4_000, Math.min(4_000, Math.round(nudge))) } : {}),
-            ...(to && known.has(to) ? { to } : {}),
+            ...(to && namesSomething(to) ? { to } : {}),
             ...(Number.isFinite(Number(event.amount)) ? { amount: Math.max(1, Math.round(Number(event.amount))) } : {}),
             ...(asString(event.state, 24) ? { state: asString(event.state, 24) } : {}),
             ...(asString(event.cue, 40) ? { cue: asString(event.cue, 40) } : {}),
@@ -245,6 +261,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
             .slice(0, 6)
       return {
         id: asString(beat.id, 40) || undefined,
+        heading: asString(beat.heading, 120) || undefined,
         moment: MOMENTS.includes(beat.moment as ProgramMoment) ? (beat.moment as ProgramMoment) : undefined,
         say,
         events,
@@ -261,7 +278,7 @@ export const sanitizeSceneProgram = (raw: unknown, units: SlideUnit[]): ScenePro
     .filter((beat): beat is ProgramBeat => Boolean(beat))
     .slice(0, 16)
   if (!cast.length || !beats.length) return null
-  return { version: 1, page: asString(value.page, 120) || undefined, ...(value.clock === 'take' ? { clock: 'take' as const } : {}), cast, beats }
+  return { version: 1, ...(Array.isArray(value.initialState) ? { initialState: value.initialState.filter(a => a && known.has(a.id) && [a.dx, a.dy, a.scale, a.bounds?.x, a.bounds?.y, a.bounds?.width, a.bounds?.height].every(Number.isFinite) && a.scale > 0) } : {}), ...(value.scheduling === 2 ? { scheduling: 2 as const } : {}), page: asString(value.page, 120) || undefined, ...(value.clock === 'take' ? { clock: 'take' as const } : {}), cast, beats }
 }
 
 const act = (op: MotionOp, targets: string[], startMs: number, extra: Partial<MotionAction> = {}): MotionAction => ({
@@ -469,13 +486,17 @@ export const programWithEdits = (program: SceneProgram, windows: SceneWindow[]):
 export const compileSceneProgram = (
   program: SceneProgram,
   units: SlideUnit[],
-  options: { viewBox: { width: number; height: number }; wpm?: number },
-): { windows: SceneWindow[]; plan: MotionPlanV2 } | null => {
+  options: { viewBox: { width: number; height: number }; wpm?: number; fps?: number },
+): { windows: SceneWindow[]; plan: MotionPlanV2; schedule: EventTiming[]; diagnostics: TimingDiagnostic[]; boundaryState: ActorBoundary[]; arrivals: Array<{ event: string; beat: number; actor: string; x: number; y: number }> } | null => {
+  const diagnostics: TimingDiagnostic[] = []
+  const schedule: EventTiming[] = []
+  const arrivals: Array<{ event: string; beat: number; actor: string; x: number; y: number }> = []
+  const modern = program.scheduling === 2
   const wpm = options.wpm || 150
   // A take-aligned program runs on the take's own clock: each beat's measured
   // span already reaches the next beat's first word, so no moment hold is
   // added — inserting one would stretch the scene off the recorded delivery.
-  const takeClock = program.clock === 'take'
+  const takeClock = program.clock === 'take' || (modern && program.beats.every(b => b.durationMs && b.words?.length))
   const leaves = leafUnits(units)
   const unitFor = (id: string) => leaves.find(unit => unit.id === id || unit.ids.includes(id)) || flattenUnits(units).find(unit => unit.id === id)
   // A thing, or one named piece of the artwork it wears: "bucket.tokens" is
@@ -493,6 +514,8 @@ export const compileSceneProgram = (
     return unitFor(id)?.ids || [id]
   }
   const boxOf = (id: string) => unitFor(partOf(id) || id)?.bbox
+  const clipStates = new Map<string, Record<string, number>>()
+  const actorStates = new Map(program.cast.map(actor => [actor.id, actor.state]))
   const held = new Map(program.cast.filter(actor => actor.quantity).map(actor => [actor.id, { ...actor.quantity! }]))
   // Which piece of an actor's artwork answers which kind of event.
   const reacting = new Map(program.cast.filter(actor => actor.shows).map(actor => [actor.id, actor.shows!]))
@@ -593,9 +616,13 @@ export const compileSceneProgram = (
   // A thing moves within its parent, and the parent moves too: the same
   // composition the renderer does, so both agree on where anything is.
   const standingAt = (id: string) => {
-    const unit = unitFor(id)
+    const dot = id.lastIndexOf('.')
+    const owner = dot > 0 ? unitFor(id.slice(0, dot)) : undefined
+    const partBox = owner?.appearance?.bounds?.[id.slice(dot + 1)]
+    if (dot > 0 && !partBox) return undefined
+    const unit = owner || unitFor(id)
     if (!unit) return undefined
-    let box = unit.bbox
+    let box = partBox || unit.bbox
     for (let link: SlideUnit | undefined = unit; link; link = parentOf.get(link.id)) {
       const at = stage.get(link.id)
       if (at) box = boxCarriedBy(box, { ...at, visible: true, level: null }, link.bbox)
@@ -603,9 +630,21 @@ export const compileSceneProgram = (
     return box
   }
   const seen = new Set<string>()
+  for (const initial of program.initialState || []) {
+    const unit = unitFor(initial.id)
+    if (!unit) { diagnostics.push({ event: initial.id, severity: 'error', code: 'missing-carry', message: 'Carried actor is missing' }); continue }
+    if (['x', 'y', 'width', 'height'].some(key => Math.abs(unit.bbox[key as keyof typeof unit.bbox] - initial.bounds[key as keyof typeof initial.bounds]) > 1)) diagnostics.push({ event: initial.id, severity: 'error', code: 'carry-geometry', message: 'Incoming geography differs; choose an explicit settled cut' })
+    stage.set(owning(initial.id), { dx: initial.dx, dy: initial.dy, scale: initial.scale })
+    if (initial.visible) seen.add(initial.id)
+    if (initial.state) actorStates.set(initial.id, initial.state)
+    if (initial.clips) clipStates.set(initial.id, { ...initial.clips })
+    const quantity = held.get(initial.id)
+    if (quantity && initial.quantity !== undefined) quantity.value = initial.quantity
+  }
   const windows: SceneWindow[] = []
   const steps: MotionBeat[] = program.beats.map((beat, index) => {
     const actions: MotionAction[] = []
+    const writes: Array<{ event: string; target: string; channel: string; start: number; end: number }> = []
     const parts = new Set<string>()
     const spokenMs = beat.durationMs || speechMs(beat.say, wpm)
     // A line is spoken word by word, not character by character: a cue lands
@@ -636,6 +675,16 @@ export const compileSceneProgram = (
     }
     let cursor = 0
     if (!index) {
+      for (const initial of program.initialState || []) {
+        for (const [part, atMs] of Object.entries(initial.clips || {})) {
+          const targets = idsOf(`${initial.id}.${part}`)
+          if (!partOf(`${initial.id}.${part}`) || !Number.isFinite(atMs) || atMs < 0) diagnostics.push({ event: initial.id, severity: 'error', code: 'missing-carry-clip', message: `Cannot carry finite clip ${part}` })
+          else actions.push(act('clip', targets.slice(0, 1), 0, { durationMs: 1, value: { from: atMs, to: atMs, instant: 1 } }))
+        }
+        actions.push(act('move', [owning(initial.id)], 0, { durationMs: 1, value: { dx: initial.dx, dy: initial.dy, instant: 1 } }))
+        actions.push(act('resize', [owning(initial.id)], 0, { durationMs: 1, value: { from: initial.scale, to: initial.scale, instant: 1 } }))
+        actions.unshift(act(initial.visible ? 'reveal' : 'exit', [owning(initial.id)], 0, { durationMs: 1, value: { instant: 1 } }))
+      }
       // What each thing holds when the scene opens, visible in the first frame.
       held.forEach(store => {
         if (!store.shownOn && !store.counted) return
@@ -685,10 +734,19 @@ export const compileSceneProgram = (
     // keeps its own staging, its own events and its own place in time.
     const playPart = (part: ProgramBeat) => {
     const startedAt = cursor
-    const events = part.events || []
+    const expanded = (part.events || []).flatMap(event => {
+      if (event.action !== 'behavior') return [event]
+      try {
+        const appearance = unitFor(event.actor)?.appearance
+        if (appearance?.key && appearance.key !== event.behavior?.definition.artworkKey) throw new Error('Behavior version belongs to a different artwork version')
+        return expandBehavior(event, program.cast, appearance?.parts || {})
+      }
+      catch (error) { diagnostics.push({ event: event.id || event.actor, severity: 'error', code: 'invalid-behavior', message: String(error) }); return [] }
+    })
+    const events = modern ? orderEvents(expanded, diagnostics) : expanded
     const eventEnds = new Map<string, number>()
     const landsAt = (index: number) =>
-      Math.max(startedAt, (events[index]?.atMs ?? cueAt(events[index]?.cue, index, events.length)) + (Number(events[index]?.nudgeMs) || 0))
+      Math.max(startedAt, (events[index]?.atMs ?? (modern && (events[index]?.after || events[index]?.dependsOn?.length) && !events[index]?.cue ? startedAt : cueAt(events[index]?.cue, index, events.length))) + (Number(events[index]?.nudgeMs) || 0))
     // Recomposition happens as the moment opens, so the events that follow
     // play out on the new arrangement.
     ;(part.restage || []).forEach(entry => {
@@ -718,13 +776,26 @@ export const compileSceneProgram = (
     if (part.restage?.length) cursor += MOTION_DURATION_MS.move + 120
     let furthestEnd = cursor
     events.forEach((event, eventIndex) => {
+      const actionIndex = actions.length
+      if (event.guard && actorStates.get(event.guard.actor) === event.guard.notState) {
+        diagnostics.push({ event: event.id || event.actor, severity: 'error', code: 'state-precondition', message: `${event.guard.actor} is ${event.guard.notState} and cannot enter processing` })
+        return
+      }
       // Never before the line has reached it, never before the previous
       // event has finished.
       // Explicit timing can overlap independent performances. Dependencies
       // name the event that must finish; the legacy implicit order is kept.
-      cursor = event.atMs !== undefined || event.after
+      cursor = modern || event.atMs !== undefined || event.after
         ? Math.max(landsAt(eventIndex), event.after ? eventEnds.get(event.after) || startedAt : startedAt)
         : Math.max(cursor, landsAt(eventIndex))
+      const dependencyTime = Math.max(startedAt, ...(event.dependsOn || []).map(d => schedule.find(t => t.beat === index && t.id === d.event)?.[d.milestone] || 0))
+      if (modern) cursor = Math.max(cursor, dependencyTime)
+      if (modern && event.cue && beat.words?.length) {
+        const { word, occurrence } = splitCue(event.cue)
+        const normalize = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+        if (beat.words.filter(w => normalize(w.word) === normalize(word)).length < occurrence) diagnostics.push({ event: event.id || event.actor, severity: 'error', code: 'missing-cue', message: `Measured narration lacks cue ${event.cue}` })
+      }
+      const eventStart = cursor
       const actorUnit = unitFor(event.actor)
       if (actorUnit) parts.add(actorUnit.id)
       // The piece of its artwork that answers this kind of event: an
@@ -737,12 +808,16 @@ export const compileSceneProgram = (
         // that has no timeline of its own.
         actions.push(act('clip', [reacts], cursor, { durationMs: MOTION_DURATION_MS.clip, value: { from: 0, to: MOTION_DURATION_MS.clip } }))
       }
-      const targetUnit = event.to ? unitFor(event.to) : undefined
+      const targetUnit = event.to ? unitFor(event.to) || unitFor(event.to.split('.')[0]) : undefined
+      if (['travel', 'pass', 'reject', 'become'].includes(event.action) && (!event.to || !standingAt(event.to))) diagnostics.push({ event: event.id || event.actor, severity: 'error', code: 'unresolved-target', message: `Destination ${event.to || '(missing)'} has no resolved geometry` })
+      if (modern && ['travel', 'pass', 'reject'].includes(event.action) && !movable(event.actor)) diagnostics.push({ event: event.id || event.actor, severity: 'error', code: 'immovable-actor', message: `${event.actor} must declare data-actor for a journey` })
       if (targetUnit) parts.add(targetUnit.id)
       switch (event.action) {
         case 'perform':
           if (event.clip) {
             actions.push(act('clip', idsOf(event.actor).slice(0, 1), cursor, { durationMs: event.clip.durationMs, value: { from: event.clip.fromMs, to: event.clip.toMs }, ease: 'draw' }))
+            const split = event.actor.lastIndexOf('.')
+            if (split > 0) { const owner = event.actor.slice(0, split); clipStates.set(owner, { ...clipStates.get(owner), [event.actor.slice(split + 1)]: event.clip.toMs }) }
             cursor += event.clip.durationMs
           }
           break
@@ -769,6 +844,7 @@ export const compileSceneProgram = (
           }
           if (from && to) {
             const { dx, dy } = travelTo(from, to)
+            arrivals.push({ event: event.id || `${event.action}-${event.actor}-${eventIndex}`, beat: index, actor: event.actor, x: from.x + from.width / 2 + dx, y: from.y + from.height / 2 + dy })
             // Already standing there: no journey to make, but everything that
             // happens on arrival still happens.
             if (dx || dy) {
@@ -783,6 +859,7 @@ export const compileSceneProgram = (
             cursor += 240
           }
           if (event.action === 'reject') {
+            actorStates.set(event.actor, 'rejected')
             if (event.to) actions.push(act('emphasize', idsOf(event.to), cursor, { persistence: 'flourish' }))
             actions.push(act('pulse', idsOf(event.actor), cursor, { persistence: 'flourish' }))
             cursor += 360
@@ -796,6 +873,7 @@ export const compileSceneProgram = (
           const store = held.get(event.actor)
           const amount = event.amount || 1
           if (store) {
+            if (modern && event.action === 'spend' && store.value < amount) diagnostics.push({ event: event.id || event.actor, severity: 'error', code: 'quantity-precondition', message: `Cannot consume ${amount} from ${store.value}` })
             const before = store.value
             const ceiling = store.max ?? Number.MAX_SAFE_INTEGER
             store.value = Math.max(0, Math.min(ceiling, before + (event.action === 'spend' ? -amount : amount)))
@@ -819,6 +897,7 @@ export const compileSceneProgram = (
           break
         }
         case 'state':
+          actorStates.set(event.actor, event.state || 'running')
           actions.push(act('phase', idsOf(event.actor).slice(0, 1), cursor, { value: { program: 'entity', phase: event.state || 'running' } }))
           cursor += 300
           break
@@ -854,7 +933,34 @@ export const compileSceneProgram = (
         default:
           break
       }
-      if (event.holdMs) cursor += event.holdMs
+      const emitted = actions.slice(actionIndex)
+      let end = Math.max(cursor, ...emitted.map(a => a.startMs + a.durationMs))
+      if (modern && event.durationMs && end > eventStart) {
+        const scale = event.durationMs / (end - eventStart)
+        emitted.forEach(a => { a.startMs = eventStart + (a.startMs - eventStart) * scale; a.durationMs *= scale })
+        end = eventStart + event.durationMs
+      }
+      const arrival = Math.max(eventStart, ...emitted.filter(a => a.op === 'move').map(a => a.startMs + a.durationMs))
+      const outcome = Math.max(arrival, ...emitted.filter(a => ['count', 'level', 'phase', 'morph'].includes(a.op)).map(a => a.startMs + a.durationMs))
+      const timing = { id: event.id || `${event.action}-${event.actor}-${eventIndex}`, beat: index, start: eventStart, arrival, outcome, settled: end + (event.holdMs || 0) }
+      if (modern && event.anchor && event.anchor !== 'start') {
+        const shift = landsAt(eventIndex) - timing[event.anchor]
+        if (timing.start + shift < dependencyTime) diagnostics.push({ event: timing.id, severity: 'error', code: 'anchor-conflict', message: `Cue anchor requires preparation before the beat or dependency completes` })
+        else {
+          emitted.forEach(a => { a.startMs += shift })
+          for (const milestone of ['start', 'arrival', 'outcome', 'settled'] as const) timing[milestone] += shift
+        }
+      }
+      if (modern) for (const action of emitted) {
+        const channel = ['move', 'resize'].includes(action.op) ? 'transform' : ['count', 'level'].includes(action.op) ? 'quantity' : action.op === 'clip' ? 'performance' : ''
+        if (!channel) continue
+        for (const target of action.targets) {
+          if (writes.some(w => w.event !== timing.id && w.target === target && w.channel === channel && w.start < action.startMs + action.durationMs && action.startMs < w.end)) diagnostics.push({ event: timing.id, severity: 'error', code: 'concurrent-write', message: `Overlapping ${channel} ownership on ${target}` })
+          writes.push({ event: timing.id, target, channel, start: action.startMs, end: action.startMs + action.durationMs })
+        }
+      }
+      schedule.push(timing)
+      cursor = modern ? timing.settled : cursor + (event.holdMs || 0)
       if (event.id) eventEnds.set(event.id, cursor)
       furthestEnd = Math.max(furthestEnd, cursor)
     })
@@ -874,13 +980,20 @@ export const compileSceneProgram = (
     }
     playPart(beat)
     ;(beat.then || []).forEach(playPart)
-    const motionWindowMs = Math.max(400, actions.reduce((max, item) => Math.max(max, item.startMs + item.durationMs), 0))
+    // Recorded speech is the clock. Compress late actions into the remaining
+    // beat time instead of moving the next spoken cue.
+    if (takeClock) for (const action of actions) {
+      if (action.startMs + action.durationMs > spokenMs) diagnostics.push({ event: action.targets.join(','), severity: modern ? 'error' : 'warning', code: 'truncated-action', message: `Action ${action.op} ends at ${Math.round(action.startMs + action.durationMs)}ms beyond measured speech ${spokenMs}ms` })
+      action.startMs = Math.min(action.startMs, Math.max(0, spokenMs - 1))
+      action.durationMs = Math.min(action.durationMs, Math.max(1, spokenMs - action.startMs))
+    }
+    const motionWindowMs = Math.min(takeClock ? spokenMs : Infinity, Math.max(400, actions.reduce((max, item) => Math.max(max, item.startMs + item.durationMs), 0)))
     const spoken = spokenMs
     const hold = MOMENT_HOLD[beat.moment || 'explain'] ?? 260
     const partIds = [...parts]
     windows.push({
       say: beat.say,
-      title: beat.id || beat.moment || `Beat ${index + 1}`,
+      title: beat.heading || '',
       parts: partIds,
       hero: partIds[0] || '',
       // What the program asks of the camera, so the card shows the program's
@@ -892,7 +1005,7 @@ export const compileSceneProgram = (
     })
     return {
       id: `B${String(index + 1).padStart(2, '0')}`,
-      title: beat.id || beat.moment || `Beat ${index + 1}`,
+      title: beat.heading || '',
       explanation: beat.say,
       intent: MOMENT_INTENT[beat.moment || 'explain'],
       ...(partIds.length ? { hero: idsOf(partIds[0]) } : {}),
@@ -905,5 +1018,5 @@ export const compileSceneProgram = (
     }
   })
   if (!steps.length) return null
-  return { windows, plan: { version: 2, steps } }
+  return { windows, plan: { version: 2, steps }, schedule, diagnostics, arrivals, boundaryState: program.cast.flatMap(actor => { const unit = unitFor(actor.id); return unit ? [{ id: actor.id, ...standing(actor.id), visible: seen.has(actor.id), bounds: unit.bbox, ...(held.has(actor.id) ? { quantity: held.get(actor.id)!.value } : {}), state: actorStates.get(actor.id), ...(clipStates.has(actor.id) ? { clips: clipStates.get(actor.id) } : {}) }] : [] }) }
 }

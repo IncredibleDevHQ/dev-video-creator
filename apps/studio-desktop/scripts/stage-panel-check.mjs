@@ -114,7 +114,7 @@ try {
     scenes: [{ id: 'blk-s2', file: 's2', title: 'Pickup scene', question: 'q', answer: 'a', review: 'r' }],
   }))
   const fixture = {
-    version: 1, id: REOPEN_PROJECT, title: 'Stage panel fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: REOPEN_PROJECT, title: 'Stage panel fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Stages' }] },
       { type: 'scene', attrs: { id: 'blk-s2', title: 'Pickup scene' } },

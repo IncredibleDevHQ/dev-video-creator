@@ -137,7 +137,7 @@ try {
       fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
     }
     await fetch(`${origin}/api/projects/${BASE_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fixture) })
-    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(BASE_ID)}); window.location.assign('/studio'); return true }`, `open ${delivery} base`)
+    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(BASE_ID)}); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, `open ${delivery} base`)
     check(`${delivery}: the base notebook opens`, Boolean(await waitFor(`() => document.getElementById('project-title')?.value === ${JSON.stringify(BASE_TITLE)}`, 'base boot')))
 
     // The journey chooses the delivery path, then walks the source flow.

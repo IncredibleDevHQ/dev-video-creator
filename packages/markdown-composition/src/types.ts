@@ -127,6 +127,7 @@ export type HumanCameraTrackV1 = {
 }
 
 export type NarrationTrackV1 = {
+  recordingId?: string
   kind: 'narration'
   audioUrl: string
   audioKind: 'generated' | 'recorded-mic'
@@ -306,6 +307,10 @@ export type StudioThemeV1 = {
     code: RevealStyle
     quote: RevealStyle
   }
+  // The type families read off the brand's site, when the theme was saved
+  // from a site read: reusing the theme restores its typography too.
+  // Optional — hand-authored themes carry none.
+  fonts?: { display: string; body: string; mono: string; seen?: string[] }
 }
 
 // Where a derived notebook came from. A video fork pins the revision of the

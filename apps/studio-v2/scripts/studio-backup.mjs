@@ -40,7 +40,7 @@ const objects = new MinioClient({
 })
 const database = new pg.Pool({ connectionString: databaseUrl, max: 3 })
 
-const TABLES = ['studio_notebooks', 'studio_blocks', 'studio_assets', 'studio_recorded_blocks', 'studio_settings', 'studio_schema_migrations']
+const TABLES = ['studio_notebooks', 'studio_blocks', 'studio_assets', 'studio_recorded_blocks', 'studio_settings', 'studio_themes', 'studio_theme_revisions', 'studio_source_revisions', 'studio_narrative_revisions', 'studio_explanation_models', 'studio_build_runs', 'studio_build_stages', 'studio_presenter_takes', 'studio_take_selections', 'studio_schema_migrations']
 
 const listObjects = async () => {
   const keys = []
@@ -51,10 +51,13 @@ const listObjects = async () => {
 const backup = async () => {
   await mkdir(join(dir, 'objects'), { recursive: true })
   const tables = {}
-  for (const table of TABLES) {
-    const result = await database.query(`select * from ${table}`)
-    tables[table] = result.rows
-  }
+  const client = await database.connect()
+  try {
+    await client.query('begin isolation level repeatable read read only')
+    for (const table of TABLES) tables[table] = (await client.query(`select * from ${table}`)).rows
+    await client.query('commit')
+  } catch (error) { await client.query('rollback'); throw error }
+  finally { client.release() }
   const manifest = { createdAt: new Date().toISOString(), database: { tables: {} }, objects: { count: 0, bytes: 0, sha256: {} } }
   for (const [table, rows] of Object.entries(tables)) {
     await writeFile(join(dir, `${table}.json`), JSON.stringify(rows, null, 2))
@@ -137,7 +140,7 @@ const restore = async () => {
     await runMigrations(database)
     await client.query('begin')
     const restored = {}
-    for (const table of TABLES) {
+    for (const table of TABLES.filter(table => table in manifest.database.tables)) {
       const rows = JSON.parse(await readFile(join(dir, `${table}.json`), 'utf8'))
       restored[table] = await restoreTable(client, table, rows)
     }

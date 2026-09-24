@@ -76,9 +76,10 @@ try {
   const cleared = []
   globalThis.fetch = async (url, options) => {
     const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
     if (u.endsWith('/api/takes/clear')) { cleared.push(JSON.parse(options?.body || '{}')); return Response.json({ cleared: true }) }
     if (u.endsWith('/api/projects/video')) {
-      if (options?.method === 'PUT') { putCalls += 1; project = JSON.parse(options.body) }
+      if (options?.method === 'PUT') { putCalls += 1; cleared.push(...(JSON.parse(options.body).clearTakeBlocks || []).map(blockId => ({ blockId }))); project = JSON.parse(options.body).project || JSON.parse(options.body) }
       return Response.json({ project })
     }
     if (u.endsWith('/api/preview')) return Response.json({})

@@ -280,7 +280,7 @@ try {
   const stampFor = doc => {
     const node = doc.notebook.content.find(n => n.attrs?.id === 'blk-v1')
     const attrs = node?.attrs || {}
-    return createHash('sha256').update(String(attrs.svg || '')).update(stableStringify(sceneRevisionPayload(attrs, sceneRenderedExtras(doc.blocks?.['blk-v1'], doc.presenterTracks?.['blk-v1'], doc.recordedBlocks?.['blk-v1'])))).digest('hex')
+    return createHash('sha256').update(String(attrs.svg || '')).update(stableStringify(sceneRevisionPayload(attrs, sceneRenderedExtras(doc.blocks?.['blk-v1'], doc.presenterTracks?.['blk-v1'], doc.recordedBlocks?.['blk-v1'], doc)))).digest('hex')
   }
   const videoProject = (svg, hash) => ({
     version: 1, id: VIDEO_ID, title: 'D0 video notebook',
@@ -307,11 +307,20 @@ try {
   check('the page normalized and persisted the scene', Boolean(normalized))
   const stamped = JSON.parse(JSON.stringify(normalized))
   stamped.notebook.content.find(n => n.attrs?.id === 'blk-v1').attrs.explainer = { reviewed: true, hash: stampFor(stamped) }
-  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(stamped) })
+  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: stamped, expectedProject: normalized }) })
   await bootInto(VIDEO_ID, 'D0 video notebook')
   const reviewedLabel = await publishKind()
   check('a fully reviewed notebook reads as a reviewed export', /Reviewed explainer export/.test(reviewedLabel?.kind || ''), JSON.stringify(reviewedLabel))
   await closePublish()
+
+  // Settle this UI's autosave before simulating an external document edit.
+  const settleSave = async () => {
+    for (let i = 0; i < 40; i++) {
+      if (await evaluate(`() => document.getElementById('save-state')?.textContent === 'Saved'`, 'save settled')) return
+      await sleep(150)
+    }
+    throw new Error('autosave did not settle')
+  }
 
   // Every rendered input the stamp covers flips the label back to draft.
   const driftCases = [
@@ -320,9 +329,10 @@ try {
     ['the narration track', doc => { doc.presenterTracks = { 'blk-v1': [{ kind: 'narration', audioUrl: '/objects/swapped.mp3', audioKind: 'generated' }] } }],
   ]
   for (const [label, mutate] of driftCases) {
+    await settleSave()
     const drifted = JSON.parse(JSON.stringify(stamped))
     mutate(drifted)
-    await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(drifted) })
+    await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: drifted, expectedProject: (await fetch(`${origin}/api/projects/${VIDEO_ID}`).then(r => r.json())).project }) })
     await bootInto(VIDEO_ID, 'D0 video notebook')
     const driftLabel = await publishKind()
     check(`changing ${label} after the review reads as a draft again`, /1 of 1 scenes changed since the rich build's review/.test(driftLabel?.kind || ''), JSON.stringify(driftLabel))

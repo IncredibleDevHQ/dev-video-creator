@@ -65,7 +65,7 @@ const waitFor = async (js, timeoutMs = 30_000) => {
 
 const putProject = async delivery => {
   const project = {
-    version: 1, id: PROJECT_ID, title: 'Mic default fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: PROJECT_ID, title: 'Mic default fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Mic default' }] },
       { type: 'scene', attrs: { id: SCENE_ID, title: 'Mic scene', script: 'Words the presenter reads.' } },
@@ -73,7 +73,7 @@ const putProject = async delivery => {
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
     ...(delivery ? { explainerDelivery: delivery } : {}),
   }
-  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project) })
+  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project, expectedProject: (await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json())).project }) })
 }
 const openCameraFor = async title => {
   await evalInWindow(`(() => {
@@ -125,6 +125,7 @@ try {
   await waitFor(`document.getElementById('camera-dialog')?.open === false`)
 
   // The generated path keeps its guide-voice default: no microphone request.
+  await waitFor(`document.getElementById('save-state')?.textContent === 'Saved'`)
   await putProject('generated')
   await evalInWindow(`location.reload()`)
   await waitFor(`!!document.getElementById('${SCENE_ID}')`)

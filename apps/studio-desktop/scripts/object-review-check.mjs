@@ -9,6 +9,8 @@ import { join } from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 
+const skillText = await readFile(new URL('../skills/explainer-master/SKILL.md', import.meta.url), 'utf8')
+const expectedSkillVersion = /^ {2}version:\s*["']?([^"'\n]+)/m.exec(skillText)?.[1]?.trim()
 const dir = await mkdtemp(join(tmpdir(), 'object-review-'))
 const stageCalls = []
 
@@ -41,6 +43,7 @@ try {
   const previousFetch = globalThis.fetch
   globalThis.fetch = async (url, options) => {
     const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
     if (u.includes('/api/runs/') && u.endsWith('/stages')) {
       stageCalls.push(JSON.parse(options?.body || '{}'))
       return Response.json({ saved: true })
@@ -63,7 +66,7 @@ try {
     const receipt = JSON.parse(await readFile(join(projectDir, 'explainer', 'objects', `${KEY}.review.json`), 'utf8'))
     const expectedHash = createHash('sha256').update(SVG).digest('hex')
     check('the receipt records the covered asset hash', receipt.sourceHash === expectedHash, receipt.sourceHash)
-    check('the receipt records the skill version whose instructions shaped it', receipt.skillVersion === '1.0.0', receipt.skillVersion)
+    check('the receipt records the skill version whose instructions shaped it', receipt.skillVersion === expectedSkillVersion, receipt.skillVersion)
     check('the receipt keeps clips, fidelity and timestamp', receipt.clips?.[0]?.id === 'fill' && receipt.fidelity?.kept === 1 && Boolean(receipt.at))
     check('the object-review checkpoint landed', stageCalls.some(c => c.stage === 'object-review' && c.status === 'succeeded'), JSON.stringify(stageCalls))
   } finally {

@@ -14,6 +14,9 @@ const UNIT_GATES = [
   ['yarn', ['workspace', 'studio-v2', 'test'], 'unit: studio-v2 suite'],
 ]
 const CHECKS = [
+  '../../studio-v2/scripts/composed-review-check.mjs',
+  'reliability-regressions-check.mjs',
+  'source-theme-reuse-check.mjs',
   'create-explainer-check.mjs',   // D0: delivery paths, no default, draft labels, badges, rename
   'build-fork-check.mjs',         // P1: first Build on a base forks once, then builds the derivative
   'notebook-draft-check.mjs',     // P1: failed-save drafts survive notebook switches until a save lands

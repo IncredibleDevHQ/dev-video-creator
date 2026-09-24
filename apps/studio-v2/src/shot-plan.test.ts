@@ -110,11 +110,17 @@ describe('recordingBriefFor', () => {
   it('turns the shot plan into scene guidance', () => {
     const shots = planShots(storyboard, beats)
     const brief = recordingBriefFor(shots, beats, { arcRole: 'build', kind: 'diagram' })
-    expect(brief.objective).toBe('build: diagram')
+    expect(brief.objective).toBe('Explain the next step in your own voice.')
     expect(brief.say).toHaveLength(3)
     expect(brief.shots[0].record).toContain('lens')
     expect(brief.shots[1].record).toContain('voice continues')
     expect(brief.next).toContain('voice continues')
+  })
+
+  it('keeps a single animation-only shot consistent with its coach', () => {
+    const brief = recordingBriefFor(planShots([{ label: 'Mechanism', family: 'content-card', note: '', beats: [0, 1, 2] }], beats), beats, { arcRole: 'build', kind: 'diagram' })
+    expect(brief.next).toContain('voice continues')
+    expect(brief.next).not.toContain('You hold')
   })
 
   it('says so when the speaker holds the frame throughout', () => {

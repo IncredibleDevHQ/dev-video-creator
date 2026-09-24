@@ -49,6 +49,7 @@ const stageKey = (runId, stage, subject) => `${runId}${stage}${subject || ''}`
 const previousFetch = globalThis.fetch
 globalThis.fetch = async (url, options) => {
   const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
   const stagesMatch = /\/api\/runs\/([^/]+)\/stages$/.exec(u)
   if (stagesMatch && options?.method === 'POST') {
     const body = JSON.parse(options.body || '{}')

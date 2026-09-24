@@ -13,6 +13,8 @@ import { join } from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 
+const skillText = await readFile(new URL('../skills/explainer-master/SKILL.md', import.meta.url), 'utf8')
+const expectedSkillVersion = /^ {2}version:\s*["']?([^"'\n]+)/m.exec(skillText)?.[1]?.trim()
 const dir = await mkdtemp(join(tmpdir(), 'object-review-binding-'))
 const projectDir = join(dir, 'run-binding')
 const previousFetch = globalThis.fetch
@@ -73,9 +75,10 @@ try {
   let putCalls = 0
   globalThis.fetch = async (url, options) => {
     const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
     if (u.endsWith('/api/takes/clear')) return Response.json({ cleared: true })
     if (u.endsWith('/api/projects/video')) {
-      if (options?.method === 'PUT') { putCalls += 1; project = JSON.parse(options.body) }
+      if (options?.method === 'PUT') { putCalls += 1; project = JSON.parse(options.body).project || JSON.parse(options.body) }
       return Response.json({ project })
     }
     if (u.endsWith('/api/preview')) return Response.json({})
@@ -92,7 +95,7 @@ try {
   const receipt = JSON.parse(await readFile(receiptPath, 'utf8'))
   check('the receipt binds the scene\'s embedded performance revision', receipt.performances?.length === 1 && receipt.performances[0].scene === 'scene' && /^[0-9a-f]{64}$/.test(receipt.performances[0].hash), JSON.stringify(receipt.performances))
   check('the binding names the performed clip ids', JSON.stringify(receipt.performances?.[0]?.clips) === '["tank-performance"]', JSON.stringify(receipt.performances?.[0]?.clips))
-  check('the receipt keeps the asset hash, skill version, clips and frames', receipt.sourceHash === createHash('sha256').update(ASSET_SVG).digest('hex') && receipt.skillVersion === '1.0.0' && receipt.clips?.length === 1 && receipt.frames?.length === 3)
+  check('the receipt keeps the asset hash, skill version, clips and frames', receipt.sourceHash === createHash('sha256').update(ASSET_SVG).digest('hex') && receipt.skillVersion === expectedSkillVersion && receipt.clips?.length === 1 && receipt.frames?.length === 3)
 
   const applied = await finish()
   check('a bound receipt lets the finish through', applied?.projectId === 'video' && putCalls === 1, JSON.stringify(applied).slice(0, 100))

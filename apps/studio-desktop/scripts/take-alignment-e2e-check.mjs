@@ -87,6 +87,7 @@ try {
   const previousFetch = globalThis.fetch
   globalThis.fetch = async (url, options) => {
     const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
     if (u.includes('/api/runs/') && u.endsWith('/stages')) {
       stageCalls.push(JSON.parse(options?.body || '{}'))
       return Response.json({ saved: true })
@@ -94,7 +95,7 @@ try {
     if (u.endsWith('/api/assets')) return Response.json({ url: 'http://fixture/take-audio.mp3' })
     if (u.endsWith('/api/appearance/verify-cast')) return Response.json({ ok: true, cast: [] })
     if (u.endsWith('/api/projects/nb')) {
-      if (options?.method === 'PUT') project = JSON.parse(options.body)
+      if (options?.method === 'PUT') project = JSON.parse(options.body).project || JSON.parse(options.body)
       return Response.json({ project })
     }
     if (u.endsWith('/api/preview')) return Response.json({})

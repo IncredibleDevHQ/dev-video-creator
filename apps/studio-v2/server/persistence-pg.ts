@@ -1,3 +1,4 @@
+import type { ProjectSaveOptions } from './persistence'
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
@@ -73,11 +74,22 @@ const blockKind = (node: TiptapNode) =>
               ? 'screen'
               : 'content'
 
-export const saveProjectArtifact = async (project: ProjectDocumentV1) => {
+export const saveProjectArtifact = async (project: ProjectDocumentV1, options?: ProjectSaveOptions) => {
   await initializePersistence()
   const client = await database.connect()
   try {
     await client.query('begin')
+    // All document writers take the same lock, including ordinary autosaves.
+    await client.query('select pg_advisory_xact_lock(hashtext($1))', [project.id])
+    if (options?.createOnly && (await client.query('select 1 from studio_notebooks where id = $1', [project.id])).rowCount) throw Object.assign(new Error('This notebook already exists. Load its current revision before saving.'), { statusCode: 409 })
+    if (options?.expectedProject) {
+      const match = await client.query('select 1 from studio_notebooks where id = $1 and artifact = $2::jsonb for update', [project.id, JSON.stringify(options.expectedProject)])
+      if (!match.rowCount) throw Object.assign(new Error('The notebook changed during generation. Refresh before applying the saved candidate.'), { statusCode: 409 })
+    }
+    for (const blockId of options?.clearTakeBlocks || []) {
+      await client.query('delete from studio_take_selections where notebook_id = $1 and block_id = $2', [project.id, blockId])
+      await client.query('delete from studio_recorded_blocks where notebook_id = $1 and block_id = $2', [project.id, blockId])
+    }
     await client.query(
       `insert into studio_notebooks (id, title, artifact)
        values ($1, $2, $3::jsonb)
@@ -802,17 +814,33 @@ export const listPresenterTakes = async (projectId: string, blockId?: string) =>
 
 export const selectPresenterTake = async (input: { projectId: string; blockId: string; takeId: string }) => {
   await initializePersistence()
-  const take = await database.query(
-    'select 1 from studio_presenter_takes where id = $1 and notebook_id = $2 and block_id = $3',
-    [input.takeId, input.projectId, input.blockId],
-  )
-  if (!take.rows.length) throw new Error('That take does not belong to this block')
-  await database.query(
-    `insert into studio_take_selections (notebook_id, block_id, take_id)
-     values ($1, $2, $3)
-     on conflict (notebook_id, block_id) do update set take_id = excluded.take_id, selected_at = now()`,
-    [input.projectId, input.blockId, input.takeId],
-  )
+  const client = await database.connect()
+  try {
+    await client.query('begin')
+    await client.query('select pg_advisory_xact_lock(hashtext($1))', [input.projectId])
+    const take = (await client.query('select * from studio_presenter_takes where id = $1 and notebook_id = $2 and block_id = $3', [input.takeId, input.projectId, input.blockId])).rows[0]
+    if (!take) throw new Error('That take does not belong to this block')
+    const project = (await client.query('select artifact from studio_notebooks where id = $1 for update', [input.projectId])).rows[0]?.artifact as ProjectDocumentV1 | undefined
+    if (!project) throw new Error('Notebook not found')
+    if (take.detail?.mediaUrl) {
+      project.recordedBlocks ||= {}
+      project.recordedBlocks[input.blockId] = {
+        ...take.detail, blockId: input.blockId, recordingId: input.takeId,
+        videoUrl: take.detail.mediaUrl, durationMs: take.duration_ms,
+        recordedAt: new Date(take.created_at).toISOString(), storage: 'minio',
+      }
+      project.presenterTracks ||= {}
+      project.presenterTracks[input.blockId] = take.detail.role === 'presenter'
+        ? [{ kind: 'human-camera', videoUrl: take.detail.mediaUrl, audioUrl: take.detail.mediaUrl, audioKind: 'recorded-mic' }]
+        : []
+      await client.query('update studio_notebooks set artifact = $2::jsonb, updated_at = now() where id = $1', [input.projectId, JSON.stringify(project)])
+    }
+    await client.query(`insert into studio_take_selections (notebook_id, block_id, take_id)
+      values ($1, $2, $3) on conflict (notebook_id, block_id) do update
+      set take_id = excluded.take_id, selected_at = now()`, [input.projectId, input.blockId, input.takeId])
+    await client.query('commit')
+  } catch (error) { await client.query('rollback'); throw error }
+  finally { client.release() }
 }
 
 export const listTakeSelections = async (projectId: string) => {
@@ -1053,4 +1081,10 @@ export const importLocalStore = async (): Promise<LocalStoreImportReport> => {
     else report.settings.skipped += 1
   }
   return report
+}
+
+export const compareAndSwapSetting = async (key: string, expected: unknown, value: unknown): Promise<boolean> => {
+  await initializePersistence()
+  if (expected === null) return Boolean((await database.query('insert into studio_settings (key,value) values ($1,$2::jsonb) on conflict do nothing returning key', [key, JSON.stringify(value)])).rowCount)
+  return Boolean((await database.query('update studio_settings set value=$3::jsonb,updated_at=now() where key=$1 and value=$2::jsonb returning key', [key, JSON.stringify(expected), JSON.stringify(value)])).rowCount)
 }

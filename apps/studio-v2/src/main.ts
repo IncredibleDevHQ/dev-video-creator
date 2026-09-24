@@ -1,3 +1,6 @@
+import { fitLabel } from './text-fit'
+import { applyAppearanceControl } from './appearance-controls'
+import { controlValue, type ObjectBehavior, type AppearanceControl } from './object-behavior'
 import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
@@ -648,7 +651,7 @@ let previewFetchTimer: number | undefined
 let previewFetchInFlight = false
 let pendingPreviewRequest: {
   requestNumber: number
-  previewPresenter: { imageUrl: string; name: string }
+  previewPresenter?: { imageUrl: string; name: string }
   includeEmptyNodeId?: string
   contentViewNodeId?: string
 } | null = null
@@ -1619,6 +1622,13 @@ const startExplainerBufferCapture = (scene: Scene): MediaStream => {
 const startCanvasRecording = async () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
+  if (project.explainerDelivery === 'human' && !project.derivedFrom?.notebook) {
+    try {
+      await persistProjectNow(structuredClone(project))
+      await createVideoFromBase(project.id, project.title, { recordScene: scene.id, recordCanvas: true })
+    } catch (error) { showToast(String(error)) }
+    return
+  }
   // Canvas-program explainers record from our own buffer (no tab-capture
   // permission); every other block kind still films the live composed DOM.
   const bufferCapture =
@@ -1813,7 +1823,7 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
   replaceCanvasRecordingButton.disabled = true
   activeButton.textContent = 'Saving…'
   try {
-    const result = await fetchJson<{ recording: RecordedBlockV1 }>(
+    const result = await fetchJson<{ recording: RecordedBlockV1; project?: ProjectDocumentV1 }>(
       '/api/recordings/commit',
       {
         method: 'POST',
@@ -1822,6 +1832,7 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
       },
     )
     const recording = result.recording
+    acknowledgeTakeMutation(project.id, recording.blockId, result.project)
     project.recordedBlocks ||= {}
     project.recordedBlockTakes ||= {}
     const takes = (project.recordedBlockTakes[recording.blockId] ||= [])
@@ -1939,7 +1950,7 @@ const readStoredProject = (): ProjectDocumentV1 | null => {
 
 // The single cache slot holds one notebook, so it cannot keep a dirty
 // notebook's edits while another one opens. Drafts can: one entry per
-// notebook, written when a durable save fails, cleared when one succeeds.
+// notebook, written as edits become dirty and cleared only by a matching acknowledgement.
 const readStoredDraft = (notebookId: string): ProjectDocumentV1 | null => {
   try {
     const stored = window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${notebookId}`)
@@ -1955,12 +1966,17 @@ const rememberDraft = (notebook: ProjectDocumentV1) => {
   try {
     const stored = structuredClone(notebook)
     sanitizeNotebookMedia(stored.notebook)
+    if (!window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${stored.id}`)) {
+      const baseline = acknowledgedProjects.get(stored.id)
+      if (baseline) window.localStorage.setItem(`${DRAFT_STORAGE_PREFIX}base:${stored.id}`, JSON.stringify(baseline))
+    }
     window.localStorage.setItem(`${DRAFT_STORAGE_PREFIX}${stored.id}`, JSON.stringify(stored))
   } catch {
     // localStorage full: the open page still holds the notebook.
   }
 }
 
+const acknowledgedProjects = new Map<string, ProjectDocumentV1>()
 const localProject = readStoredProject()
 // The notebook to open: an explicit pick from the switcher wins, then the
 // locally cached notebook, then whatever was saved most recently.
@@ -1981,6 +1997,12 @@ const readPersistedProject = async (
       const response = await fetch(`${WORKER_URL}${path}`)
       if (response.ok) {
         const body = (await response.json()) as { project?: ProjectDocumentV1 | null }
+        if (body.project?.version === 1) {
+          const base = window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}base:${body.project.id}`)
+          let expected = body.project
+          if (base) { try { expected = JSON.parse(base) } catch { /* retain the durable snapshot */ } }
+          acknowledgedProjects.set(body.project.id, structuredClone(expected))
+        }
         return body.project?.version === 1 ? body.project : null
       }
     } catch {
@@ -1995,6 +2017,12 @@ const persistedProject = await readPersistedProject(localProject)
 // An unacknowledged draft outranks the store copy: it holds edits the store
 // never saw, so opening the notebook must start from the draft.
 const draftProject = activeProjectId ? readStoredDraft(activeProjectId) : null
+// Older recovery drafts have no saved base. Never assume they were based on
+// the newest durable document: require conflict recovery instead of overwriting it.
+if (draftProject && !window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}base:${draftProject.id}`) && persistedProject && JSON.stringify(draftProject) !== JSON.stringify(persistedProject)) {
+  acknowledgedProjects.set(draftProject.id, structuredClone(draftProject))
+  window.localStorage.setItem(`${DRAFT_STORAGE_PREFIX}base:${draftProject.id}`, JSON.stringify(draftProject))
+}
 const storedProject =
   draftProject ||
   persistedProject ||
@@ -2193,6 +2221,7 @@ const appearanceFromTheme = (kind: ThemeBlockKind, theme: StudioThemeV1) => ({
 const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
   project.theme = cloneTheme(normalizeStudioTheme(theme))
   project.brand = { ...project.theme.brand }
+  refreshBrandColors()
   const nodesById = new Map(
     project.notebook.content
       .filter(node => typeof node.attrs?.id === 'string')
@@ -3191,6 +3220,23 @@ const setSaving = (saving: boolean) => {
   saveState.parentElement?.classList.toggle('saving', saving)
 }
 
+const saveConflictButton = document.createElement('button')
+saveConflictButton.textContent = 'Keep draft copy and reload saved'
+saveConflictButton.hidden = true
+saveState.parentElement?.append(saveConflictButton)
+saveConflictButton.onclick = async () => {
+  saveConflictButton.disabled = true
+  try {
+    const original = project.id
+    const copy = structuredClone(project); copy.id = crypto.randomUUID(); copy.title += ' (recovered draft)'
+    await persistProjectNow(copy)
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${original}`)
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${original}`)
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.location.reload()
+  } catch (error) { saveConflictButton.disabled = false; showToast(String(error)) }
+}
+
 const scheduleDatabaseSync = () => {
   window.clearTimeout(databaseSyncTimer)
   databaseSyncTimer = window.setTimeout(async () => {
@@ -3199,10 +3245,11 @@ const scheduleDatabaseSync = () => {
     const snapshot = structuredClone(project)
     try {
       await persistProjectNow(snapshot)
-      saveState.textContent = 'Saved'
-    } catch {
-      rememberDraft(snapshot)
-      saveState.textContent = 'Saved offline'
+      saveState.textContent = readStoredDraft(snapshot.id) ? 'Saving…' : 'Saved'
+    } catch (error) {
+      const conflict = (error as { statusCode?: number }).statusCode === 409
+      saveState.textContent = conflict ? 'Newer saved version · draft kept' : 'Saved offline'
+      saveConflictButton.hidden = !conflict
     }
   }, 450)
 }
@@ -4782,7 +4829,7 @@ const updatePreview = () => {
     const contentViewNodeId =
       recordedTakeCanvasView === 'content' ? selectedNodeId : undefined
     const compiled = compileProject(project, {
-      previewPresenter: {
+      previewPresenter: project.explainerDelivery === 'generated' ? undefined : {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
@@ -4790,6 +4837,7 @@ const updatePreview = () => {
       contentViewNodeId,
     })
     scenes = compiled.scenes
+    window.setTimeout(resumeRecordingIntent, 0)
 
     if (!selectedNodeId || !scenes.some(scene => scene.id === selectedNodeId)) {
       selectedNodeId = scenes[0]?.id || ''
@@ -4819,7 +4867,7 @@ const updatePreview = () => {
     playerLoading.textContent = 'Compiling live canvas…'
     pendingPreviewRequest = {
       requestNumber,
-      previewPresenter: {
+      previewPresenter: project.explainerDelivery === 'generated' ? undefined : {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
@@ -4871,12 +4919,14 @@ const syncProject = () => {
   const stored = structuredClone(project)
   sanitizeNotebookMedia(stored.notebook)
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  rememberDraft(stored)
   scheduleDatabaseSync()
+  refreshBrandColors()
   updatePreview()
-  setSaving(false)
 }
 
 function scheduleSync() {
+  rememberDraft({ ...project, notebook: editor.getJSON() as TiptapDocument })
   setSaving(true)
   window.clearTimeout(syncTimer)
   syncTimer = window.setTimeout(syncProject, 120)
@@ -4901,17 +4951,39 @@ const selectedPlayableRecordingScene = () => {
     : undefined
 }
 
+const acknowledgeTakeMutation = (notebookId: string, blockId: string, stored?: ProjectDocumentV1) => {
+  const baseline = acknowledgedProjects.get(notebookId)
+  if (!baseline || !stored) return
+  for (const field of ['recordedBlocks', 'presenterTracks'] as const) {
+    baseline[field] ||= {}
+    if (stored[field]?.[blockId]) (baseline[field] as Record<string, unknown>)[blockId] = structuredClone(stored[field][blockId])
+    else delete baseline[field][blockId]
+  }
+  const selected = stored.recordedBlocks?.[blockId]?.recordingId
+  if (selected) {
+    const retired = (baseline as unknown as { retiredTakeIds?: Record<string, boolean> }).retiredTakeIds
+    if (retired) delete retired[selected]
+  }
+}
+
 const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
   project.recordedBlocks ||= {}
   if (project.recordedBlocks[blockId]?.recordingId === take.recordingId) return
   project.recordedBlocks[blockId] = take
+  // Picture and aligned voice belong to the previously selected take.
+  project.presenterTracks[blockId] = []
   // The selection is a durable record too (D3): the archive, not just the
   // document, remembers which take the edit uses.
-  void fetchJson('/api/takes/select', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ projectId: project.id, blockId, takeId: take.recordingId }),
-  }).catch(error => console.warn('take selection not recorded durably', error))
+  const notebookId = project.id
+  const selection = (projectSaveQueues.get(notebookId) || Promise.resolve()).catch(() => {}).then(async () => {
+    const result = await fetchJson<{ project?: ProjectDocumentV1 }>('/api/takes/select', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ projectId: notebookId, blockId, takeId: take.recordingId }),
+    })
+    acknowledgeTakeMutation(notebookId, blockId, result.project)
+  })
+  projectSaveQueues.set(notebookId, selection)
+  void selection.catch(error => showToast(`Take selection could not be saved: ${String(error)}`))
   renderCanvasBlockTimeline()
   syncProject()
   syncCanvasViewSwitch()
@@ -4920,7 +4992,7 @@ const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
   const takes = project.recordedBlockTakes?.[blockId] || []
   const versionNumber =
     takes.findIndex(item => item.recordingId === take.recordingId) + 1
-  showToast(`Take v${versionNumber} is now used for the final video`)
+  showToast(`Take v${versionNumber} selected — build again to align its narration and review the timing`)
 }
 
 const renderTakeVersionPicker = (blockId: string) => {
@@ -6050,6 +6122,21 @@ const resolveAssistAgent = () => {
   return chosen.id
 }
 
+// Story, pages and the rich derivative use the creator's selected harness.
+// Keep the explicit model visible, and never silently switch providers.
+const CREATION_AGENTS = [
+  { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 · thinking high' },
+  { id: 'claude-code', model: 'claude-fable-5-1', label: 'Claude Fable 5.1 · thinking high' },
+]
+const resolveCreationAgent = async () => {
+  const selected = getPreferredAgent() || 'kimi'
+  const config = CREATION_AGENTS.find(agent => agent.id === selected)
+  if (!config) throw new Error('Choose Kimi or Claude Code in Agent settings for story, pages and explainer creation')
+  const available = await window.studioDesktop?.harness.adapters()
+  if (!available?.some(agent => agent.id === selected && agent.ok)) throw new Error(`${config.label} is unavailable. Open Agent settings to choose an installed harness.`)
+  return config
+}
+
 const setAgentStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   agentStatusLine.textContent = text
   agentStatusLine.classList.toggle('is-ok', tone === 'ok')
@@ -6082,11 +6169,11 @@ const renderAgentList = () => {
         setPreferredAgent(agent.id)
         renderAgentList()
         renderAgentSummary()
-        setAgentStatus(`${agentLabel(agent.id)} will run Plan motion (assist)`, 'ok')
+        setAgentStatus(`${CREATION_AGENTS.find(option => option.id === agent.id)?.label || agentLabel(agent.id)} selected for creation and motion assist`, 'ok')
       })
       const name = document.createElement('span')
       name.className = 'agent-row-name'
-      name.textContent = agentLabel(agent.id)
+      name.textContent = CREATION_AGENTS.find(option => option.id === agent.id)?.label || agentLabel(agent.id)
       const dot = document.createElement('span')
       dot.className = `agent-status-dot ${agent.ok ? 'is-online' : 'is-offline'}`
       const detail = document.createElement('span')
@@ -6319,7 +6406,7 @@ const openAttentionVideoSample = async () => {
 // The base keeps the narrative, the facts and the wireframes; the video is a
 // notebook of its own, taken from a pinned revision of the base and free to
 // be enriched, restaged and recomposed without touching it.
-const createVideoFromBase = async (baseId: string, baseTitle: string, options?: { resumeBuild?: boolean }) => {
+const createVideoFromBase = async (baseId: string, baseTitle: string, options?: { resumeBuild?: boolean; recordScene?: string; recordCanvas?: boolean }) => {
   // One key per attempt: a retry after an interrupted request returns the
   // video that was already made instead of making a second one.
   const forkKey = `fork-${baseId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -6332,6 +6419,7 @@ const createVideoFromBase = async (baseId: string, baseTitle: string, options?: 
     showToast(reused ? 'That video already existed — opening it' : `Video notebook ready · ${child.derivedFrom?.receipt?.scenes || 0} scenes from ${baseTitle}`)
     // The open below reloads the page, so a build that needed the fork cannot
     // be dispatched from here: it resumes in the child from this intent.
+    if (options?.recordScene) window.localStorage.setItem('studio.recordIntent', JSON.stringify({ projectId: child.id, sourceScene: options.recordScene, canvas: options.recordCanvas }))
     if (options?.resumeBuild) window.localStorage.setItem(BUILD_INTENT_KEY, child.id)
     // The fork is saved; preparing its explanation brief starts as it opens.
     // A provider failure leaves the fork intact with a retry in the workspace.
@@ -6792,6 +6880,12 @@ document.addEventListener('click', event => {
   })
 })
 
+function refreshBrandColors() {
+  for (const key of ['primary', 'secondary', 'accent', 'background', 'text'] as const) {
+    const input = document.querySelector<HTMLInputElement>(`#brand-${key}`)
+    if (input) input.value = project.brand[key]
+  }
+}
 const bindBrandColor = (selector: string, key: keyof ProjectDocumentV1['brand']) => {
   const input = $(selector) as HTMLInputElement
   input.value = project.brand[key]
@@ -6907,24 +7001,35 @@ const importSvgPages = async (
 const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`${WORKER_URL}${path}`, init)
   const body = (await response.json().catch(() => ({}))) as T & { error?: string }
-  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`)
+  if (!response.ok) throw Object.assign(new Error(body.error || `Request failed (${response.status})`), { statusCode: response.status })
   return body
 }
 
-const persistProjectNow = async (snapshot: ProjectDocumentV1) => {
+const projectSaveQueues = new Map<string, Promise<unknown>>()
+const persistProjectNow = (snapshot: ProjectDocumentV1, clearTakeBlocks?: string[]) => {
+  rememberDraft(snapshot)
+  const pending = (projectSaveQueues.get(snapshot.id) || Promise.resolve()).catch(() => {}).then(() => persistProjectSnapshot(snapshot, clearTakeBlocks))
+  projectSaveQueues.set(snapshot.id, pending)
+  return pending
+}
+const persistProjectSnapshot = async (snapshot: ProjectDocumentV1, clearTakeBlocks?: string[]) => {
   // Callers always pass a detached clone; the live editor keeps its blob
   // preview while the persisted copy stays retryable.
   sanitizeNotebookMedia(snapshot.notebook)
-  const result = await fetchJson<{ projectId: string; saved: boolean }>(
+  const result = await fetchJson<{ projectId: string; saved: boolean; project?: ProjectDocumentV1 }>(
     `/api/projects/${encodeURIComponent(snapshot.id)}`,
     {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(snapshot),
+      body: JSON.stringify(acknowledgedProjects.has(snapshot.id) ? { project: snapshot, expectedProject: acknowledgedProjects.get(snapshot.id), ...(clearTakeBlocks?.length ? { clearTakeBlocks } : {}) } : snapshot),
     },
   )
+  acknowledgedProjects.set(snapshot.id, structuredClone(result.project || snapshot))
   // Durable storage acknowledged this notebook: its draft has done its job.
-  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${snapshot.id}`)
+  if (window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${snapshot.id}`) === JSON.stringify(snapshot)) {
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${snapshot.id}`)
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${snapshot.id}`)
+  }
   return result
 }
 
@@ -7463,9 +7568,8 @@ const stopCameraStream = () => {
 }
 
 const enableCamera = async () => {
+  if (pendingTakeBlob) { showToast('Keep or discard this take before recording again'); return }
   stopCameraStream()
-  // Re-enabling the camera is a new capture context; a pending review ends.
-  if (pendingTakeBlob) exitTakeReview()
   const microphone = audioMode.value === 'microphone'
   cameraStream = await navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -7477,9 +7581,23 @@ const enableCamera = async () => {
   setCameraStatus(microphone ? 'Camera + microphone ready' : 'Camera-only ready', 'live')
 }
 
+function refreshCameraAudioControls() {
+  const microphone = audioMode.value === 'microphone'
+  guideAudio.hidden = microphone
+  voiceCapability.hidden = microphone
+  ;($('#generate-guide') as HTMLElement).hidden = microphone
+  ;($('#camera-privacy-note') as HTMLElement).textContent = microphone
+    ? 'Your camera and microphone capture your delivery. Stop to review it, then Keep or Discard. Closing releases your devices and keeps a pending take available.'
+    : 'Camera-only mode uses a generated guide voice. Only use a voice reference you own or are authorized to use.'
+}
 const openCamera = () => {
+  if (pendingTakeBlob) { cameraDialog.showModal(); void cameraPreview.play().catch(() => {}); return }
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
+  if (!project.derivedFrom?.notebook) {
+    void persistProjectNow(structuredClone(project)).then(() => createVideoFromBase(project.id, project.title, { recordScene: scene.id })).catch(error => showToast(String(error)))
+    return
+  }
   recordingNodeId = scene.id
   // The journey's delivery choice sets the audio default: Present it myself
   // records the presenter's own microphone, Generate automatically starts
@@ -7487,6 +7605,7 @@ const openCamera = () => {
   if (project.explainerDelivery) {
     audioMode.value = project.explainerDelivery === 'human' ? 'microphone' : 'generated'
   }
+  refreshCameraAudioControls()
   presenterScript.value = sceneScript(scene)
   generatedVoiceUrl = ''
   engineRecordingButton.disabled = true
@@ -7494,6 +7613,10 @@ const openCamera = () => {
   ;($('#voice-reference-label') as HTMLElement).hidden =
     audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
+  if (pendingTakeBlob) {
+    cameraDialog.showModal()
+    return
+  }
   resetTakeReview()
   renderCameraBrief(scene.id)
   setupRehearsal(scene)
@@ -7678,8 +7801,29 @@ rehearseToggle.addEventListener('click', () => {
   if (rehearsal) drawRehearsalBeat(rehearsal.beat + 1)
 })
 // Every close path — the × button, a committed take, Escape — ends rehearsal.
-cameraDialog.addEventListener('close', teardownRehearsal)
-cameraDialog.addEventListener('cancel', () => teardownRehearsal())
+const requestCameraClose = () => {
+  teardownRehearsal()
+  guideAudio.pause()
+  cameraPreview.pause()
+  if (mediaRecorder?.state === 'recording') {
+    mediaRecorder.stop()
+    stopCameraStream()
+    return
+  }
+  stopCameraStream()
+  cameraDialog.close()
+}
+cameraDialog.addEventListener('close', () => {
+  teardownRehearsal()
+  guideAudio.pause()
+  cameraPreview.pause()
+  if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
+  stopCameraStream()
+})
+cameraDialog.addEventListener('cancel', event => {
+  event.preventDefault()
+  requestCameraClose()
+})
 
 // ——— The coach card (D6): this scene's recording brief, its place in the
 // journey, and what happens next. ———
@@ -7720,18 +7864,7 @@ const renderCameraBrief = (sceneId: string) => {
 }
 
 ;($('#record-this-block') as HTMLButtonElement).addEventListener('click', openCamera)
-;($('#close-camera') as HTMLButtonElement).addEventListener('click', () => {
-  if (mediaRecorder?.state === 'recording') {
-    // A take in progress stops into the review step — never silently
-    // committed, never silently dropped.
-    mediaRecorder.stop()
-    return
-  }
-  // Closing while reviewing is a Discard.
-  if (pendingTakeBlob) exitTakeReview()
-  stopCameraStream()
-  cameraDialog.close()
-})
+;($('#close-camera') as HTMLButtonElement).addEventListener('click', requestCameraClose)
 ;($('#enable-camera') as HTMLButtonElement).addEventListener('click', async () => {
   try {
     await enableCamera()
@@ -7740,10 +7873,10 @@ const renderCameraBrief = (sceneId: string) => {
   }
 })
 audioMode.addEventListener('change', () => {
+  if (pendingTakeBlob) { audioMode.value = pendingTakeAudioMode; showToast('Keep or discard this take before changing audio'); return }
+  refreshCameraAudioControls()
   generatedVoiceUrl = ''
   guideAudio.removeAttribute('src')
-  // The audio approach the take was captured under changed — its review ends.
-  if (pendingTakeBlob) exitTakeReview()
   stopCameraStream()
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
@@ -7756,7 +7889,11 @@ audioMode.addEventListener('change', () => {
 // change in the notebook, and this button takes the author there.
 ;($('#teleprompter-edit') as HTMLButtonElement).addEventListener('click', () => {
   const nodeId = recordingNodeId || selectedNodeId
-  if (pendingTakeBlob) exitTakeReview()
+  if (mediaRecorder?.state === 'recording') {
+    requestCameraClose()
+    showToast('Review your take before editing the script')
+    return
+  }
   stopCameraStream()
   cameraDialog.close()
   if (nodeId) {
@@ -7855,13 +7992,14 @@ const supportedRecorderType = () =>
 let recordingStartedAt = 0
 const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?: string }, durationMs: number) => {
   if (!asset.assetId) throw new Error('The uploaded take has no asset id to archive')
-  const { recording } = await fetchJson<{ recording: RecordedBlockV1 }>('/api/recordings/commit', {
+  const { recording, project: accepted } = await fetchJson<{ recording: RecordedBlockV1; project?: ProjectDocumentV1 }>('/api/recordings/commit', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     // Raw presenter footage composes with the scene's graphics at compile;
     // only a composed scene recording (the directed canvas) replaces one.
     body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter' }),
   })
+  acknowledgeTakeMutation(project.id, blockId, accepted)
   project.recordedBlocks ||= {}
   project.recordedBlockTakes ||= {}
   const takes = (project.recordedBlockTakes[recording.blockId] ||= [])
@@ -7924,6 +8062,7 @@ startRecordingButton.addEventListener('click', async () => {
   // the speaker never chases the plan's estimated clock.
   stopRehearsalPlayback()
   await runCountdown()
+  if (!cameraDialog.open || !cameraStream) return
   recordingChunks = []
   const recorderType = supportedRecorderType()
   mediaRecorder = new MediaRecorder(
@@ -7939,6 +8078,8 @@ startRecordingButton.addEventListener('click', async () => {
     // Review before the take counts (§3.7): stopping shows the take in the
     // preview with its sound; only Keep uploads and archives it. The take's
     // length is fixed here — review and upload time never inflate it.
+    stopCameraStream()
+    if (!cameraDialog.open) cameraDialog.showModal()
     enterTakeReview(blob, Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)))
   }
   mediaRecorder.start(250)
@@ -7962,6 +8103,7 @@ stopRecordingButton.addEventListener('click', () => {
 // Closing mid-take stops into this review — never a silent commit, never a
 // silent loss. ———
 const takeReviewBox = $('#take-review') as HTMLElement
+let pendingTakeAudioMode = ''
 let pendingTakeBlob: Blob | null = null
 // The pending take's length, fixed when recording stopped. It rides with the
 // blob through review and upload, so the archived duration is the take's own.
@@ -7978,6 +8120,7 @@ const resetTakeReview = () => {
 
 const enterTakeReview = (blob: Blob, durationMs: number) => {
   resetTakeReview()
+  pendingTakeAudioMode = audioMode.value
   pendingTakeBlob = blob
   pendingTakeDurationMs = durationMs
   takeReviewUrl = URL.createObjectURL(blob)
@@ -8028,21 +8171,21 @@ const exitTakeReview = () => {
   showToast('Take discarded — nothing was uploaded')
 })
 
-;($('#remove-presenter') as HTMLButtonElement).addEventListener('click', () => {
-  if (!selectedNodeId) return
-  delete project.presenterTracks[selectedNodeId]
-  // The active take leaves the document and the durable selection; the take
-  // itself stays in the archive (the picker can bring it back).
-  delete project.recordedBlocks?.[selectedNodeId]
-  void fetchJson('/api/takes/clear', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ projectId: project.id, blockId: selectedNodeId }),
-  }).catch(error => console.warn('take selection clear not recorded durably', error))
-  syncProject()
-  syncCanvasViewSwitch()
-  void refreshPickupNotes()
-  showToast('Presenter track removed — the take stays in the archive')
+;($('#remove-presenter') as HTMLButtonElement).addEventListener('click', async () => {
+  const blockId = selectedNodeId
+  if (!blockId) return
+  const candidate = structuredClone(project)
+  delete candidate.presenterTracks[blockId]
+  delete candidate.recordedBlocks?.[blockId]
+  try {
+    await persistProjectNow(candidate, [blockId])
+    delete project.presenterTracks[blockId]
+    delete project.recordedBlocks?.[blockId]
+    syncProject()
+    syncCanvasViewSwitch()
+    void refreshPickupNotes()
+    showToast('Presenter track removed — the take stays in the archive')
+  } catch (error) { showToast(`Presenter removal was not saved: ${String(error)}`) }
 })
 
 const publishDialog = $('#publish-dialog') as HTMLDialogElement
@@ -8157,6 +8300,13 @@ const renderPublishBlockList = () => {
   syncPublishSummary()
 }
 
+let activePublishJob = ''
+const cancelPublishJob = document.createElement('button')
+cancelPublishJob.textContent = 'Cancel export'
+cancelPublishJob.hidden = true
+startPublishButton.parentElement?.append(cancelPublishJob)
+cancelPublishJob.onclick = () => { if (activePublishJob) void fetchJson(`/api/exports/${activePublishJob}`, { method: 'DELETE' }).catch(error => showToast(String(error))) }
+
 const startPublish = async () => {
   startPublishButton.disabled = true
   startPublishButton.textContent = 'Rendering…'
@@ -8172,14 +8322,18 @@ const startPublish = async () => {
       const nodeId = node.attrs?.id
       return typeof nodeId !== 'string' || !publishExcluded.has(nodeId)
     })
-    const result = await fetchJson<{ url: string; durationSeconds: number }>(
-      '/api/render',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      },
-    )
+    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number } }
+    let { job } = await fetchJson<{ job: Job }>('/api/exports?retry=true', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+    activePublishJob = job.id
+    window.localStorage.setItem(`studio.export:${payload.id}`, job.id)
+    cancelPublishJob.hidden = false
+    while (job.status === 'queued' || job.status === 'running') {
+      startPublishButton.textContent = `Export ${job.status}…`
+      await new Promise(resolve => window.setTimeout(resolve, 1000))
+      job = (await fetchJson<{ job: Job }>(`/api/exports/${job.id}`)).job
+    }
+    if (job.status !== 'stored' || !job.result) throw new Error(job.error || `Export ${job.status}`)
+    const result = job.result
     const link = $('#download-render') as HTMLAnchorElement
     link.href = result.url
     resultPanel.hidden = false
@@ -8194,6 +8348,8 @@ const startPublish = async () => {
   } finally {
     startPublishButton.disabled = false
     startPublishButton.textContent = 'Publish video'
+    cancelPublishJob.hidden = true
+    activePublishJob = ''
   }
 }
 
@@ -8223,7 +8379,7 @@ const stableStringify = (value: unknown): string =>
 const sceneContentHash = async (node: TiptapNode) => {
   const attrs = (node.attrs || {}) as Record<string, unknown>
   const id = String(attrs.id || '')
-  const payload = sceneRevisionPayload(attrs, sceneRenderedExtras(project.blocks?.[id], project.presenterTracks?.[id], project.recordedBlocks?.[id]))
+  const payload = sceneRevisionPayload(attrs, sceneRenderedExtras(project.blocks?.[id], project.presenterTracks?.[id], project.recordedBlocks?.[id], project))
   const bytes = new TextEncoder().encode(String(attrs.svg || '') + stableStringify(payload))
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
 }
@@ -9229,6 +9385,7 @@ const scheduleStageSync = () => {
   const stored = structuredClone(project)
   sanitizeNotebookMedia(stored.notebook)
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  rememberDraft(stored)
   scheduleDatabaseSync()
   window.clearTimeout(stageSyncTimer)
   stageSyncTimer = window.setTimeout(() => {
@@ -10200,6 +10357,7 @@ const lineStageText = $('#se-line-stage-text') as HTMLElement
 // The scene's frame plan as the studio knows it right now: the director's
 // storyboard for the current plan, or the block's fixed frame.
 const studioStageTrack = (state: SlideEditorState): StageSegment[] => {
+  if (project.explainerDelivery === 'generated') return [{ atMs: 0, family: 'content-full' }]
   const plan = state.previewPlan || state.motion
   if (!plan) return []
   const block = project.blocks[state.nodeId]?.stage
@@ -10229,9 +10387,11 @@ const applyStudioStage = (timeMs: number) => {
   const state = slideEditor
   if (!state) return
   const segment = stageAt(studioStageTrack(state), timeMs)
-  const family: StageFamily = segment?.family || 'content-pip'
+  const family: StageFamily = project.explainerDelivery === 'generated' ? 'content-full' : segment?.family || 'content-pip'
   const geometry = stageGeometryFor(family, segment?.variant)
   const content = family === 'speaker-full' ? (segment?.treatment === 'board' ? STAGE_BOARD_CONTENT : segment?.treatment === 'overlay' ? STAGE_OVERLAY_CONTENT : null) : geometry.content
+  const hint = document.getElementById('se-frame-hint')
+  if (hint) hint.textContent = project.explainerDelivery === 'generated' ? 'Click a part of the page to change it' : 'Click a part of the page — or yourself — to change it'
   studioFrame.dataset.stage = family
   if (segment?.treatment) studioFrame.dataset.stageTreatment = segment.treatment
   else delete studioFrame.dataset.stageTreatment
@@ -10245,6 +10405,7 @@ const applyStudioStage = (timeMs: number) => {
   rect(studioFrameContent, content || geometry.content || { left: 4.7, top: 5, width: 90.6, height: 90 })
   rect(studioFrameCamera, geometry.camera || { left: 80, top: 64.5, width: 16, height: 28.4 })
   studioFrameCamera.className = `se-frame-camera shape-${geometry.cameraShape}`
+  studioFrameCamera.style.display = project.explainerDelivery === 'generated' ? 'none' : ''
   studioFrameContent.classList.toggle('is-board', segment?.treatment === 'board')
   studioFrameContent.classList.toggle('is-card', family === 'speaker-lead')
   const presenter = studioFrameCamera.querySelector('img')
@@ -10323,7 +10484,7 @@ const renderLineStage = () => {
     return
   }
   lineStageBox.hidden = false
-  lineStageBox.querySelector<HTMLElement>('.se-line-stage-buttons')!.hidden = Boolean(state.previewPlan)
+  lineStageBox.querySelector<HTMLElement>('.se-line-stage-buttons')!.hidden = Boolean(state.previewPlan) || project.explainerDelivery === 'generated'
   const model = studioBeatModel(state)
   const segment = model ? stageAt(model.frames, model.beats[state.current]?.atMs || 0) : null
   const family = segment?.family || 'content-pip'
@@ -11194,7 +11355,7 @@ const renderLengthBrief = () => {
     nextNote.textContent = 'Saving keeps a version — you can always go back.'
     more.hidden = false
   } else {
-    nextTitle.textContent = 'Review it, then record'
+    nextTitle.textContent = project.explainerDelivery === 'generated' ? 'Review the animation and narration' : 'Review it, then record'
     ;($('#se-length-why') as HTMLElement).textContent = `${state.windows.length} windows · ${Math.round(spoken)} s — the motion follows these lines. Play it on the left; click a line to change its words; ask the writer below for a change.`
     writeButton.hidden = true
     nextSave.hidden = true
@@ -11708,6 +11869,63 @@ const wornKey = (state: SlideEditorState, unit: SlideUnit) =>
 // Draw the thing, then wear it. A drawing that came back without its
 // pieces is reported and not worn: a scene that moves a piece by name
 // would silently do nothing.
+const refineObjectAppearance = async (unit: SlideUnit) => {
+  const state = slideEditor
+  if (!state) return
+  const { assets } = await fetchJson<{ assets: Array<{ key: string; behaviors?: ObjectBehavior[] }> }>('/api/appearance/library')
+  const asset = assets.find(item => item.key === wornKey(state, unit))
+  const controls = [...new Map((asset?.behaviors || []).flatMap(behavior => behavior.controls || []).map(control => [control.id, control])).values()]
+  if (!controls.length) { showToast('This version has no declared refinement controls. Register controls with its accepted behavior first.'); return }
+  const dialog = document.createElement('dialog')
+  dialog.style.cssText = 'max-width:440px;width:90%;padding:24px;border:1px solid #ccc;border-radius:16px;'
+  const form = document.createElement('form')
+  form.style.cssText = 'display:grid;gap:16px'
+  const owner = new DOMParser().parseFromString(state.svg, 'image/svg+xml').getElementById(unit.id)
+  const heading = document.createElement('h2'); heading.textContent = `Refine ${unit.label}`; form.append(heading)
+  const inputs: Array<{ control: AppearanceControl; input: HTMLInputElement; initial: string }> = []
+  for (const control of controls) {
+    const label = document.createElement('label'); label.textContent = control.label
+    const input = document.createElement('input'); input.type = control.type === 'color' ? 'color' : 'number'; input.value = owner?.getAttribute(`data-control-${control.id}`) || String(control.default)
+    if (control.type === 'number') { input.min = String(control.min); input.max = String(control.max); input.step = 'any' }
+    label.append(input); form.append(label); inputs.push({ control, input, initial: input.value })
+  }
+  const status = document.createElement('p'); status.setAttribute('role', 'status'); form.append(status)
+  const apply = document.createElement('button'); apply.type = 'submit'; apply.textContent = 'Apply refinement'; form.append(apply)
+  const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Cancel'; close.onclick = () => dialog.close(); form.append(close)
+  form.onsubmit = event => {
+    event.preventDefault()
+    try {
+      let svg = state.svg
+      const program = state.program ? structuredClone(state.program) : null
+      for (const { control, input, initial } of inputs) if (input.value !== initial) {
+        if (control.property === 'durationMs') {
+          const value = Number(controlValue(control, input.value))
+          const events = program?.beats.flatMap(beat => [beat, ...(beat.then || [])]).flatMap(beat => beat.events || []).filter(event => event.actor === unit.id && event.behavior?.definition.artworkKey === asset?.key) || []
+          if (!events.length) throw new Error('This control needs a bound behavior event')
+          events.forEach(event => { event.durationMs = value })
+          const document = new DOMParser().parseFromString(svg, 'image/svg+xml')
+          document.getElementById(unit.id)?.setAttribute(`data-control-${control.id}`, String(value))
+          svg = new XMLSerializer().serializeToString(document.documentElement)
+        } else svg = applyAppearanceControl(svg, unit.id, unit.appearance?.parts || {}, control, input.value)
+      }
+      const reread = atomizeSlideSvg(svg)
+      const compiled = program ? compileSceneProgram(program, reread.units, { viewBox: reread.viewBox }) : null
+      if (program) {
+        const errors = compiled?.diagnostics.filter(d => d.severity === 'error') || []
+        if (errors.length) throw new Error(errors.map(d => d.message).join('; '))
+      }
+      if (program) state.program = program
+      if (compiled) state.motion = compiled.plan
+      state.svg = reread.svg; state.units = reread.units
+      state.lastChange = 'Refined object appearance'
+      markDirty(true); writeSlideLikeNode(state.nodeId, { svg: state.svg, ...(program ? { program } : {}), ...(compiled ? { motion: compiled.plan } : {}) })
+      renderSlideEditorPreview()
+      dialog.close(); showToast('Appearance updated. Review the new geometry before export.')
+    } catch (error) { status.textContent = String(error) }
+  }
+  dialog.append(form); document.body.append(dialog); dialog.addEventListener('close', () => dialog.remove(), { once: true }); dialog.showModal()
+}
+
 const drawObjectOn = async (unit: SlideUnit, options: { entity?: string; force?: boolean } = {}) => {
   const state = slideEditor
   if (!state) return null
@@ -12705,8 +12923,13 @@ const writeUnitText = (unit: SlideUnit, text: string) => {
   const parsed = new DOMParser().parseFromString(state.svg, 'image/svg+xml')
   const saved = (live.id && parsed.getElementById(live.id)) || Array.from(parsed.querySelectorAll('text'))[order] || null
   if (!saved) return false
-  setTextOf(live, words)
-  setTextOf(saved, words)
+  try {
+    const matrix = live.getCTM()
+    const scale = matrix ? Math.hypot(matrix.a, matrix.b) : 1
+    const fit = fitLabel(live, words, Math.max(live.getBBox().width, unit.bbox.width / Math.max(.01, scale)))
+    setTextOf(saved, words)
+    ;(saved as unknown as SVGElement).style.fontSize = `${fit.fontSize}px`
+  } catch (error) { setSlideEditorStatus(String(error), 'error'); return false }
   state.svg = new XMLSerializer().serializeToString(parsed.documentElement)
   unit.label = words.slice(0, 40)
   state.lastChange = 'Edited the words on the page'
@@ -12745,8 +12968,8 @@ const commitTextEdit = () => {
   const editing = textEditing
   if (!editing) return
   const value = textEditInput.value
+  if (!writeUnitText(editing.unit, value)) return
   closeTextEdit()
-  writeUnitText(editing.unit, value)
   renderFrameBubble()
 }
 textEditInput.addEventListener('keydown', event => {
@@ -12909,6 +13132,7 @@ const renderFrameBubble = () => {
         }, { active: cameraOn })
         if (unitHasText(unit)) quick('Edit the words', 'Change what the page says here', () => openTextEdit(unit))
         if (unit.kind === 'box' || unit.kind === 'shape' || unit.kind === 'group') {
+          if (wornKey(state, unit)) quick('Refine appearance', 'Change declared visual controls without regenerating artwork or narration', () => void refineObjectAppearance(unit))
           if (hasAppearance(state, unit)) quick('Remove the illustration', 'Back to the wireframe for this part', () => removeAppearance(unit))
           else quick('Illustrate this', 'An illustration of this thing in the video’s palette, kept in the asset library and reused wherever it appears', () => void illustrateUnit(unit), { ai: true })
           // The drawn object: a real picture of this thing, rigged into
@@ -14406,6 +14630,13 @@ const sourceState: {
   // The delivery path the journey chose in Create explainer, captured when the
   // dialog opens so a notebook created for this source keeps the choice (D0).
   delivery: 'human' | 'generated' | null
+  // The brand bound before pages are drawn: a fresh direction generated from
+  // this read (default), a saved theme revision from the library, or a custom
+  // palette entered at the brand step. Pages, the drawing brief and the
+  // notebook all consume this binding — never a regenerated default.
+  brandChoice: 'direction' | 'saved' | 'custom'
+  brandThemeId: string
+  brandCustom: { background: string; text: string; primary: string; accent: string; secondary: string } | null
   brandColor: string
   logoUrl: string
   directions: StudioThemeV1[]
@@ -14418,7 +14649,7 @@ const sourceState: {
   // The agent drawing the pages through the harness, and how it went.
   drawer?: string
   drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
-} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', delivery: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
+} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', delivery: null, brandChoice: 'direction', brandThemeId: '', brandCustom: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
 
 // Narratives default to preserve, links to draft: the author's own words are
 // never silently rewritten, and the choice is always visible and changeable.
@@ -14498,6 +14729,11 @@ const sourceRead = async () => {
     sourceState.narrative = narrativeRevision || null
     sourceState.brandColor = source.palette.accent
     sourceState.logoUrl = source.logos.find(logo => logo.localUrl)?.localUrl || ''
+    // A new read starts the brand choice fresh: a generated direction is the
+    // default until the author binds a saved theme or a custom palette.
+    sourceState.brandChoice = 'direction'
+    sourceState.brandThemeId = ''
+    sourceState.brandCustom = null
     sourceState.outline = null
     sourceState.pages = null
     renderSourceBrand()
@@ -14521,7 +14757,7 @@ const renderSourceDirections = () => {
     ...sourceState.directions.map((theme, index) => {
       const card = document.createElement('button')
       card.type = 'button'
-      card.className = `source-direction${index === sourceState.direction ? ' is-picked' : ''}`
+      card.className = `source-direction${sourceState.brandChoice === 'direction' && index === sourceState.direction ? ' is-picked' : ''}`
       const frame = document.createElement('div')
       frame.className = 'frame'
       frame.style.background = theme.canvas.treatment === 'gradient' ? `linear-gradient(135deg, ${theme.canvas.gradient[0]}, ${theme.canvas.gradient[1]})` : theme.brand.background
@@ -14538,11 +14774,47 @@ const renderSourceDirections = () => {
       card.append(frame, label)
       card.addEventListener('click', () => {
         sourceState.direction = index
-        renderSourceDirections()
+        sourceState.brandChoice = 'direction'
+        renderSourceBrand()
       })
       return card
     }),
   )
+}
+
+// The brand the wizard binds before pages are drawn: a saved theme revision
+// from the library, a custom palette over the picked direction, or — the
+// default — a freshly generated direction. Pages, the drawing brief and the
+// notebook all consume this binding, never a regenerated default.
+const sourceBrandTheme = (): StudioThemeV1 | null => {
+  if (sourceState.brandChoice === 'saved') {
+    const saved = savedThemes.find(theme => theme.id === sourceState.brandThemeId)
+    if (saved) return cloneTheme(normalizeStudioTheme(saved))
+  }
+  const direction = sourceState.directions[sourceState.direction] || sourceState.directions[0]
+  if (!direction) return null
+  const theme = cloneTheme(normalizeStudioTheme(direction))
+  if (sourceState.brandChoice === 'custom' && sourceState.brandCustom) {
+    theme.id = `${theme.id}-custom`
+    theme.name = `${theme.name} · custom palette`
+    theme.source = 'custom'
+    theme.brand = { ...theme.brand, ...sourceState.brandCustom }
+    // A custom canvas colour reads as itself, not under a direction gradient.
+    theme.canvas = { ...theme.canvas, treatment: 'solid' }
+  }
+  return theme
+}
+
+// The bound theme's fonts when it carries them (a theme saved from a site
+// read), else the fonts this read saw.
+const sourceBrandFonts = (source: SourceRead): SourceRead['fonts'] => {
+  const bound = sourceState.brandChoice === 'saved'
+    ? savedThemes.find(theme => theme.id === sourceState.brandThemeId)
+    : null
+  const carried = bound?.fonts
+  return carried?.display
+    ? { display: carried.display, body: carried.body, mono: carried.mono, seen: carried.seen || [] }
+    : source.fonts
 }
 
 const renderSourceBrand = () => {
@@ -14605,6 +14877,8 @@ const renderSourceBrand = () => {
   )
   renderSourceDirections()
   renderSourceThemeAssociation()
+  renderSourceSavedThemes()
+  renderSourceCustomPalette()
 }
 
 // ——— Site association (D1): a direction read off a site can be saved as a
@@ -14614,15 +14888,17 @@ const renderSourceThemeAssociation = () => {
   const box = $('#source-theme-association') as HTMLElement
   box.replaceChildren()
   const source = sourceState.source
-  const site = (source?.site || '').trim().toLowerCase()
-  if (!source || !site) {
+  if (!source) {
     box.hidden = true
     return
   }
   box.hidden = false
-  const saved = savedThemes
-    .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
-    .filter(entry => (entry.meta?.site || '').trim().toLowerCase() === site)
+  const site = (source.site || '').trim().toLowerCase()
+  const saved = site
+    ? savedThemes
+        .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
+        .filter(entry => (entry.meta?.site || '').trim().toLowerCase() === site)
+    : []
   if (saved.length) {
     const note = document.createElement('span')
     note.id = 'source-theme-association-note'
@@ -14633,35 +14909,160 @@ const renderSourceThemeAssociation = () => {
   save.type = 'button'
   save.id = 'source-save-direction'
   save.className = 'button ghost'
-  save.textContent = 'Save this direction as a theme'
+  save.textContent = 'Save this brand as a theme'
   save.addEventListener('click', () => void saveSourceDirectionAsTheme())
   box.append(save)
 }
 
 const saveSourceDirectionAsTheme = async () => {
   const source = sourceState.source
-  const direction = sourceState.directions[sourceState.direction]
-  const site = (source?.site || '').trim()
-  if (!source || !direction || !site) return
-  // A stable id per site + direction: re-saving revises one theme instead of
-  // stacking duplicates (the store dedups identical content anyway).
-  const slug = site.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
-  const theme = { ...direction, id: `site-${slug}-${sourceState.direction}`, source: 'custom' as const }
+  const chosen = sourceBrandTheme()
+  if (!source || !chosen) return
+  const site = (source.site || '').trim()
+  // A stable id per site (or title) + choice: re-saving revises one theme
+  // instead of stacking duplicates (the store dedups identical content anyway).
+  const basis = (site || source.title || 'brand').toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+  const theme = sourceState.brandChoice === 'saved'
+    ? { ...chosen }
+    : {
+        ...chosen,
+        id: `site-${basis}-${sourceState.brandChoice === 'custom' ? 'custom' : sourceState.direction}`,
+        source: 'custom' as const,
+        // A theme saved from a site read carries the site's fonts, so reusing
+        // it later restores the typography with the colours.
+        ...(source.fonts?.seen?.length ? { fonts: source.fonts } : {}),
+      }
   const button = $('#source-save-direction') as HTMLButtonElement | null
   if (button) button.disabled = true
   try {
     const { saved } = await fetchJson<{ saved: { revision: number; hash: string; unchanged: boolean } }>('/api/themes', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ theme, site }),
+      body: JSON.stringify({ theme, ...(site ? { site } : {}) }),
     })
     await loadThemeLibrary()
     renderSourceBrand()
-    showToast(saved.unchanged ? 'This direction is already the stored theme for the site' : `Saved as a theme for ${site} (revision ${saved.revision}) — pick it any time from the theme library`)
+    showToast(saved.unchanged ? 'This brand is already the stored theme' : `Saved as a theme${site ? ` for ${site}` : ''} (revision ${saved.revision}) — pick it any time from the theme library`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Could not save the theme')
     if (button) button.disabled = false
   }
+}
+
+// ——— Brand choice: reuse before drawing (issue #10) ———
+// The brand step offers three explicit choices on equal footing: a saved
+// theme revision from the library (site matches first), a direction freshly
+// generated from this read, or a custom palette. The bound choice is what
+// pages, the drawing brief and the finished notebook consume.
+const renderSourceSavedThemes = () => {
+  const box = $('#source-saved-themes') as HTMLElement
+  box.replaceChildren()
+  const site = (sourceState.source?.site || '').trim().toLowerCase()
+  const entries = savedThemes
+    .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
+    .sort((a, b) => {
+      const aSite = site && (a.meta?.site || '').trim().toLowerCase() === site ? 1 : 0
+      const bSite = site && (b.meta?.site || '').trim().toLowerCase() === site ? 1 : 0
+      return bSite - aSite
+    })
+  if (!entries.length) {
+    const hint = document.createElement('p')
+    hint.className = 'source-saved-themes-empty'
+    hint.textContent = 'No saved themes yet — save this brand below, or customize one in the theme library.'
+    box.append(hint)
+    return
+  }
+  box.append(
+    ...entries.map(({ theme, meta }) => {
+      const card = document.createElement('button')
+      card.type = 'button'
+      card.dataset.themeId = theme.id
+      const picked = sourceState.brandChoice === 'saved' && sourceState.brandThemeId === theme.id
+      card.className = `source-direction source-saved-theme${picked ? ' is-picked' : ''}`
+      card.title = 'Bind this saved theme — its fonts and colours lead the pages'
+      const frame = document.createElement('div')
+      frame.className = 'frame'
+      frame.style.background = themeCanvasCss(theme)
+      frame.style.color = theme.brand.text
+      const title = document.createElement('b')
+      title.textContent = theme.name.slice(0, 40)
+      const bar = document.createElement('i')
+      bar.style.background = theme.brand.primary
+      const line = document.createElement('span')
+      line.textContent = theme.fonts?.display ? `type: ${theme.fonts.display}` : `${theme.canvas.treatment} · ${theme.video.layout}`
+      frame.append(title, bar, line)
+      const label = document.createElement('small')
+      const siteMatch = Boolean(site) && (meta?.site || '').trim().toLowerCase() === site
+      label.textContent = `${meta ? `rev ${meta.revision}` : theme.source}${siteMatch ? ' · from this site' : ''}`
+      card.append(frame, label)
+      card.addEventListener('click', () => {
+        sourceState.brandChoice = 'saved'
+        sourceState.brandThemeId = theme.id
+        renderSourceBrand()
+      })
+      return card
+    }),
+  )
+}
+
+const SOURCE_CUSTOM_PALETTE_FIELDS: Array<{ key: keyof NonNullable<(typeof sourceState)['brandCustom']>; label: string }> = [
+  { key: 'background', label: 'Canvas' },
+  { key: 'text', label: 'Text' },
+  { key: 'primary', label: 'Primary' },
+  { key: 'accent', label: 'Accent' },
+  { key: 'secondary', label: 'Secondary' },
+]
+const seedSourceCustomPalette = () => {
+  if (sourceState.brandCustom) return
+  const base = sourceBrandTheme()
+  sourceState.brandCustom = base
+    ? { background: base.brand.background, text: base.brand.text, primary: base.brand.primary, accent: base.brand.accent, secondary: base.brand.secondary }
+    : { background: '#111827', text: '#f9fafb', primary: sourceState.brandColor || '#16a34a', accent: '#4ade80', secondary: '#15803d' }
+}
+const renderSourceCustomPalette = () => {
+  const box = $('#source-custom-palette') as HTMLElement
+  box.replaceChildren()
+  const active = sourceState.brandChoice === 'custom'
+  const pick = document.createElement('button')
+  pick.type = 'button'
+  pick.id = 'source-custom-pick'
+  pick.className = `button ghost${active ? ' is-picked' : ''}`
+  pick.textContent = active ? 'Custom palette — in use' : 'Use a custom palette'
+  pick.addEventListener('click', () => {
+    seedSourceCustomPalette()
+    sourceState.brandChoice = 'custom'
+    renderSourceBrand()
+  })
+  const grid = document.createElement('div')
+  grid.className = 'color-grid source-custom-colors'
+  const shown = sourceState.brandCustom || (() => {
+    const base = sourceBrandTheme()
+    return base ? base.brand : null
+  })()
+  SOURCE_CUSTOM_PALETTE_FIELDS.forEach(({ key, label }) => {
+    const wrap = document.createElement('label')
+    const input = document.createElement('input')
+    input.type = 'color'
+    input.dataset.customColor = key
+    input.value = /^#[0-9a-f]{6}$/i.test(shown?.[key] || '') ? shown![key] : '#111827'
+    // Live edits bind the custom palette without a re-render (a re-render
+    // would close the colour well mid-drag); the drop re-renders the step.
+    input.addEventListener('input', () => {
+      seedSourceCustomPalette()
+      sourceState.brandCustom![key] = input.value
+      if (sourceState.brandChoice !== 'custom') {
+        sourceState.brandChoice = 'custom'
+        pick.classList.add('is-picked')
+        pick.textContent = 'Custom palette — in use'
+      }
+    })
+    input.addEventListener('change', () => renderSourceBrand())
+    const name = document.createElement('span')
+    name.textContent = label
+    wrap.append(input, name)
+    grid.append(wrap)
+  })
+  box.append(pick, grid)
 }
 
 // The story planned by the local harness (D2): the primary journey's outline
@@ -14675,18 +15076,19 @@ const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDeskto
   sourceStatus('#source-brand-status', 'The local harness is planning the story…')
   let stopListening: (() => void) | undefined
   try {
+    const creationAgent = await resolveCreationAgent()
     stopListening = bridge.harness.onEvent(({ event }) => {
       const message = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
       if (message) sourceStatus('#source-brand-status', message.replace(/\s+/g, ' ').slice(0, 110))
     })
     const target = parseTarget(($('#source-target') as HTMLInputElement).value)
     const run = await bridge.harness.run({
-      adapter: 'kimi', skill: 'story-master', route: 'Plan Story', projectId: project.id,
+      adapter: creationAgent.id, skill: 'story-master', route: 'Plan Story', projectId: project.id,
       inputs: {
         source: { title: source.title, site: source.site, text: source.text, words: source.words },
         wordingPolicy: sourceState.wording,
         ...(target ? { targetSeconds: target } : {}),
-        model: 'kimi-code/k3', effort: 'high', autonomous: true,
+        model: creationAgent.model, effort: 'high', autonomous: true,
       },
     })
     const deadline = Date.now() + 20 * 60 * 1000
@@ -14725,10 +15127,7 @@ const sourceOutline = async () => {
   const source = sourceState.source
   if (!source || sourceState.busy) return
   const bridge = window.studioDesktop
-  if (bridge?.isDesktop) {
-    const kimi = (await bridge.harness.adapters()).find(a => a.id === 'kimi' && a.ok)
-    if (kimi) return sourceOutlineWithHarness(bridge, source)
-  }
+  if (bridge?.isDesktop) return sourceOutlineWithHarness(bridge, source)
   sourceState.busy = true
   const button = $('#source-to-outline') as HTMLButtonElement
   button.disabled = true
@@ -14892,12 +15291,7 @@ const renderSourcePagesGrid = (pages: SourcePage[]) => {
 // can redraw them through the page-master skill: the outline, the palette
 // and the fonts go in as inputs, the harness composes pages/NN_slug.svg to
 // the page contract, and the drawn pages replace the template ones here.
-// Pages are drawn by Kimi and only by Kimi: one harness, one look across a
-// video. Other CLIs stay detected for the motion assist; they are not
-// offered here.
-const SOURCE_DRAWERS: Array<{ id: string; model: string; label: string }> = [
-  { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 · thinking high' },
-]
+const SOURCE_DRAWERS = CREATION_AGENTS
 let sourceDrawRunId: string | null = null
 let sourceDrawListening = false
 const sourceDrawStatus = (text: string, error = false) => sourceStatus('#source-draw-status', text, error)
@@ -14927,8 +15321,8 @@ const populateSourceDrawers = async () => {
     }),
   )
   if ([...select.options].some(option => option.value === keep)) select.value = keep
-  if (online.length) select.value = [...select.options].map(option => option.value).find(value => value.startsWith('kimi|')) || select.value
-  sourceDrawStatus(online.length ? `Kimi draws the pages${others ? ` · ${others} other ${others === 1 ? 'CLI is' : 'CLIs are'} installed and left for motion` : ''}` : 'Install the Kimi CLI to have an agent draw the pages')
+  if (online.length) select.value = [...select.options].map(option => option.value).find(value => value.startsWith(`${getPreferredAgent()}|`)) || select.value
+  sourceDrawStatus(online.length ? `Choose the harness that draws your pages${others ? ` · ${others} other CLI available for motion assist` : ''}` : 'Install Kimi CLI or Claude Code to have an agent draw the pages')
   row.hidden = false
 }
 const applyDrawnPages = async (runId: string) => {
@@ -14984,7 +15378,7 @@ const sourceDrawPages = async (choice?: string) => {
   sourceState.drawer = drawer ? drawer.label : adapter
   const inputs = {
     video: { title: outline.title, site: source.site },
-    brand: { palette: sourcePageBrand(source).palette, fonts: source.fonts, mode: sourcePageBrand(source).mode },
+    brand: { palette: sourcePageBrand(source).palette, fonts: sourceBrandFonts(source), mode: sourcePageBrand(source).mode },
     // The article's own sentences travel with the scene: whoever decides what
     // happens on the page needs the example and the causation, not a summary.
     scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, source: scene.source || [], parts: scene.parts, relations: scene.relations })),
@@ -15044,7 +15438,7 @@ const isLightColor = (value: string) => {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.6
 }
 const sourcePageBrand = (source: SourceRead) => {
-  const chosen = sourceState.directions[sourceState.direction]
+  const chosen = sourceBrandTheme()
   if (!chosen) {
     return {
       palette: { ...source.palette, accent: sourceState.brandColor || source.palette.accent },
@@ -15080,7 +15474,7 @@ const sourceMakePages = async () => {
     const { pages } = await fetchJson<{ pages: SourcePage[] }>('/api/source/pages', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ outline, palette, fonts: source.fonts, site: source.site, mode }),
+      body: JSON.stringify({ outline, palette, fonts: sourceBrandFonts(source), site: source.site, mode }),
     })
     sourceState.outline = outline
     sourceState.pages = pages
@@ -15315,11 +15709,11 @@ const sourceFinish = async () => {
   const startedNew = destination === 'new'
   if (startedNew) await startFreshNotebook(outline.title)
   // the brand, with the logo the author picked
-  const direction = sourceState.directions[sourceState.direction] || sourceState.directions[0]
+  const direction = sourceBrandTheme()
   if (direction) {
     const theme = cloneTheme(normalizeStudioTheme(direction))
-    theme.name = `${source.site || outline.title} · ${theme.name}`.slice(0, 60)
-    theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
+    if (sourceState.brandChoice !== 'saved') theme.name = `${source.site || outline.title} · ${theme.name}`.slice(0, 60)
+    if (sourceState.logoUrl) theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
     applyThemeToProject(theme)
   }
   // the pages as scenes, each with its idea for the director and its first-draft line as the script
@@ -15677,7 +16071,7 @@ void refreshPickupNotes()
 
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
-  if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
+  if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your selected local harness'); return }
   if (explainerRun) { showToast('The explainer is still being built'); return }
   // The delivery path is an explicit journey choice made in Create
   // explainer; a notebook that has not chosen is asked, not defaulted.
@@ -15705,8 +16099,7 @@ const startExplainerBuild = async () => {
   cancel.hidden = false
   let objectsTimer: number | undefined
   try {
-    const kimi = (await bridge.harness.adapters()).find(a => a.id === 'kimi' && a.ok)
-    if (!kimi) throw new Error('Install Kimi CLI to build an explainer with the local harness')
+    const creationAgent = await resolveCreationAgent()
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
     if (!project.derivedFrom?.notebook) {
@@ -15726,7 +16119,7 @@ const startExplainerBuild = async () => {
       // The human path carries the selected take's audio so the harness can
       // align to the actual delivery, never a synthesized substitute. A
       // kept-plan take's voice lives on its camera track, not the composite.
-      ...(project.explainerDelivery === 'human' ? { takeAudioUrl: takeAudioUrlFor(project.recordedBlocks?.[String(n.attrs!.id)]) } : {}),
+      ...(project.explainerDelivery === 'human' ? { takeAudioUrl: takeAudioUrlFor(project.recordedBlocks?.[String(n.attrs!.id)]), recordingId: project.recordedBlocks?.[String(n.attrs!.id)]?.recordingId } : {}),
     })))
     if (!scenes.length) throw new Error('Create the base wireframes before building an explainer')
     // Continue from accepted work (issue #8): when the last build for this
@@ -15779,15 +16172,18 @@ const startExplainerBuild = async () => {
             void bridge.harness.artefacts(runId).then(artefacts => renderExplainerReceipts(artefacts.explainer as ExplainerRunReceipts | null)).catch(() => {})
             if (project.id === targetId) void openNotebook(targetId)
             showToast('Explainer built, reviewed and exported. Its editable video notebook is ready.')
-          } else showToast('The explainer run stopped before completion. Its candidate files and review remain available.')
+          } else {
+            if (project.id === targetId) void openNotebook(targetId)
+            showToast('The run stopped. Accepted scenes are reloaded; candidate files and reviews remain available.')
+          }
         }
       }
     })
     off = unsubscribe
-    const run = await bridge.harness.run({ adapter: 'kimi', skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
+    const run = await bridge.harness.run({ adapter: creationAgent.id, skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
       // The story record travels into the build: the wording policy in force
       // and the authored narrative revision the scenes' words came from (D2).
-      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), ...(resume ? { resume } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
+      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), ...(resume ? { resume } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: creationAgent.model, effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
     ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
     objectsTimer = window.setInterval(() => {
@@ -15796,7 +16192,7 @@ const startExplainerBuild = async () => {
     }, 5000)
     void renderExplainerObjects(bridge, run.id)
     void renderExplainerStages(run.id)
-    showToast(`Kimi is building the explainer (${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]}): story, reusable objects, performances, narration and rendered review.`)
+    showToast(`${creationAgent.label} is building the explainer (${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]}): story, reusable objects, performances, narration and rendered review.`)
   } catch (error) {
     window.clearInterval(objectsTimer)
     off?.()
@@ -15817,6 +16213,20 @@ const startExplainerBuild = async () => {
     window.localStorage.removeItem(BUILD_INTENT_KEY)
     if (intent === project.id) void startExplainerBuild()
   }
+}
+function resumeRecordingIntent() {
+  const raw = window.localStorage.getItem('studio.recordIntent')
+  if (!raw) return
+  try {
+    const intent = JSON.parse(raw)
+    if (intent.projectId !== project.id) return
+    const scene = scenes.find(item => (item.node.attrs?.origin as { scene?: string })?.scene === intent.sourceScene)
+    if (!scene) return
+    window.localStorage.removeItem('studio.recordIntent')
+    selectNode(scene.id, true)
+    if (intent.canvas) void startCanvasRecording()
+    else openCamera()
+  } catch { window.localStorage.removeItem('studio.recordIntent') }
 }
 // Dev hook: the asset library.
 ;(window as unknown as { __assets?: unknown }).__assets = {

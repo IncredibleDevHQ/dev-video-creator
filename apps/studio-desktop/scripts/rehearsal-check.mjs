@@ -105,7 +105,7 @@ const rehearsalState = () => evalInWindow(`(() => ({
 
 try {
   const project = {
-    version: 1, id: PROJECT_ID, title: 'Rehearsal fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: PROJECT_ID, title: 'Rehearsal fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Rehearsal' }] },
       sceneNode(SCENE_ID, 'Rehearse scene', { windows: WINDOWS, motion: MOTION }),

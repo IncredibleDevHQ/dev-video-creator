@@ -85,29 +85,35 @@ export const prepareSlideSvg = (svg: string, prefix: string) => {
     .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, '')
     .replace(/\bjavascript:/gi, '')
   const safe = prefix.replace(/[^A-Za-z0-9_-]/g, '')
+  const ids = new Map<string, string>()
+  markup = markup.replace(/\bid=(['"])(.*?)\1/g, (_match, quote: string, id: string) => {
+    ids.set(id, `${safe}-${id}`)
+    return `id=${quote}${safe}-${id}${quote}`
+  })
   markup = markup
-    .replace(/\bid="([^"]+)"/g, (_match, id: string) => `id="${safe}-${id}"`)
-    .replace(/url\(#([^)]+)\)/g, (_match, id: string) => `url(#${safe}-${id})`)
-    .replace(/\b(xlink:href|href)="#([^"]+)"/g, (_match, attr: string, id: string) => `${attr}="#${safe}-${id}"`)
-    // The page's own references to its ids move with them: a connector's ends,
-    // the thing a piece of artwork belongs to, the level a quantity is shown
-    // on. Renaming an id without renaming what points at it loses the link.
-    .replace(
-      /\b(data-appearance-for|data-from|data-to|data-shown-on|data-owner)="([^"#][^"]*)"/g,
-      (_match, attr: string, id: string) => `${attr}="${safe}-${id}"`,
-    )
+    .replace(/url\(\s*(['"]?)#([^)'"\s]+)\1\s*\)/g, (_match, _quote: string, id: string) => `url(#${ids.get(id) || id})`)
+    .replace(/\b(xlink:href|href)=(['"])#([^'"]+)\2/g, (_match, attr: string, quote: string, id: string) => `${attr}=${quote}#${ids.get(id) || id}${quote}`)
+    .replace(/\b(data-appearance-for|data-from|data-to|data-shown-on|data-owner)=(['"])([^'"]+)\2/g, (_match, attr: string, quote: string, id: string) => `${attr}=${quote}${ids.get(id) || `${safe}-${id}`}${quote}`)
+    .replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attrs: string, css: string) => {
+      // Rewrite selectors separately from declarations: a hex color is not an ID.
+      const prefixed = css.replace(/([^{}]+)\{/g, (_rule, selector: string) => selector.replace(/#([\w:-]+)/g, (token, id: string) => ids.has(id) ? `#${ids.get(id)}` : token) + '{')
+      return `<style${attrs}>${prefixed}</style>`
+    })
   markup = markup.replace(/^<svg\b([^>]*)>/, (_match, attrs: string) => {
     const viewBox = /viewBox="\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*"/.exec(attrs)
     const width = viewBox ? Number(viewBox[3]) : 0
     const height = viewBox ? Number(viewBox[4]) : 0
     const aspect = width > 0 && height > 0 ? `${width} / ${height}` : '16 / 9'
+    const sourceStyle = /\sstyle=(["'])(.*?)\1/.exec(attrs)?.[2] || ''
+    const sourceClass = /\sclass=(["'])(.*?)\1/.exec(attrs)?.[2] || ''
+    const aspectMode = /\spreserveAspectRatio=(["'])(.*?)\1/.exec(attrs)?.[2] || 'xMidYMid meet'
     const cleaned = attrs
-      .replace(/\s(width|height)="[^"]*"/g, '')
-      .replace(/\sclass="[^"]*"/, '')
-      .replace(/\sstyle="[^"]*"/, '')
+      .replace(/\s(width|height|preserveAspectRatio)=(["'])(.*?)\2/g, '')
+      .replace(/\sclass=(["'])(.*?)\1/, '')
+      .replace(/\sstyle=(["'])(.*?)\1/, '')
     // The aspect ratio travels as a CSS variable so the stylesheet can size the
     // slide to the frame without knowing the page format.
-    return `<svg${cleaned} class="slide-svg" style="--slide-aspect: ${aspect}" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true">`
+    return `<svg${cleaned} class="slide-svg${sourceClass ? ` ${sourceClass}` : ''}" style="${sourceStyle.replace(/"/g, '&quot;')};--slide-aspect: ${aspect}" preserveAspectRatio="${aspectMode}" focusable="false" aria-hidden="true">`
   })
   return markup
 }

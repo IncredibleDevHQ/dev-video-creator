@@ -66,9 +66,10 @@ try {
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=320x180:r=30', '-t', '2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', video])
   globalThis.fetch = async (url, options) => {
     const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
     if (u.endsWith('/api/takes/clear')) return Response.json({ cleared: true })
     if (u.endsWith('/api/projects/video')) {
-      if (options?.method === 'PUT') project = JSON.parse(options.body)
+      if (options?.method === 'PUT') project = JSON.parse(options.body).project || JSON.parse(options.body)
       return Response.json({ project })
     }
     if (u.endsWith('/api/preview')) return Response.json({})

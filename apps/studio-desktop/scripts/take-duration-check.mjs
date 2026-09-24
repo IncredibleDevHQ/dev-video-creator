@@ -65,7 +65,7 @@ const waitFor = async (js, timeoutMs = 30_000) => {
 
 try {
   const project = {
-    version: 1, id: PROJECT_ID, title: 'Take duration fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: PROJECT_ID, title: 'Take duration fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Duration' }] },
       { type: 'scene', attrs: { id: SCENE_ID, title: 'Timed scene', script: 'Three seconds of delivery.' } },

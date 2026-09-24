@@ -88,7 +88,7 @@ const MOTION = {
 
 try {
   const project = {
-    version: 1, id: PROJECT_ID, title: 'Presenter take fixture', explainerDelivery: 'human',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: PROJECT_ID, title: 'Presenter take fixture', explainerDelivery: 'human',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Presenter take' }] },
       { type: 'scene', attrs: { id: SCENE_ID, title: 'Presenter scene', svg: SVG, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SVG)}`, structureApproved: true, windows: WINDOWS, motion: MOTION, script: WINDOWS[0].say } },
@@ -134,6 +134,16 @@ try {
     JSON.stringify({ role: active?.role, track: doc?.presenterTracks?.[SCENE_ID]?.[0]?.kind || null }),
   )
 
+  // Suspend the editor before the fixture's external document writes. An
+  // open editor correctly retains a conflicting draft when its baseline is
+  // changed behind it; that conflict journey has its own regression.
+  for (let i = 0; i < 40; i++) {
+    if (await evalInWindow(`document.getElementById('save-state')?.textContent === 'Saved'`)) break
+    await sleep(150)
+  }
+  await evalInWindow(`location.assign('/api/projects/${PROJECT_ID}')`)
+  await sleep(300)
+
   // A composed scene recording (no role — the directed canvas capture) sits
   // on the second scene, so one compile sees both roles.
   const legacyAsset = await fetch(`${origin}/api/assets`, { method: 'POST', headers: { 'content-type': 'video/webm', 'x-project-id': PROJECT_ID, 'x-block-id': LEGACY_ID }, body: Buffer.from('legacy take bytes') }).then(r => r.json())
@@ -144,7 +154,7 @@ try {
   check('a commit without a role stays a composed scene recording', !legacyCommit.recording?.role, JSON.stringify(legacyCommit.recording?.role || null))
   doc = await getProject()
   doc.recordedBlocks[LEGACY_ID] = legacyCommit.recording
-  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(doc) })
+  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: doc, expectedProject: (await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json())).project }) })
 
   const html = await compileHtml(doc)
   const presenterSection = sceneTag(html, SCENE_ID)
@@ -174,8 +184,8 @@ try {
   delete stripped.recordedBlocks
   delete stripped.recordedBlockTakes
   stripped.presenterTracks = {}
-  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(stripped) })
-  await evalInWindow(`location.reload()`)
+  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: stripped, expectedProject: (await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json())).project }) })
+  await evalInWindow(`location.assign('/studio')`)
   await evalInWindow(`(() => new Promise(r => { const t = setInterval(() => { if (document.getElementById('project-title')?.value === 'Presenter take fixture') { clearInterval(t); r(true) } }, 400) }))()`)
   let rehydrated = null
   for (let i = 0; i < 30; i += 1) {
@@ -186,7 +196,7 @@ try {
   check(
     'hydration restores the take with its presenter role',
     rehydrated?.recordedBlocks?.[SCENE_ID]?.role === 'presenter',
-    JSON.stringify(rehydrated?.recordedBlocks?.[SCENE_ID] || null).slice(0, 160),
+    JSON.stringify(rehydrated?.recordedBlocks?.[SCENE_ID] || { save: await evalInWindow(`document.getElementById('save-state')?.textContent`), selected: (await fetch(`${origin}/api/takes?projectId=${PROJECT_ID}`).then(r => r.json())).selections }).slice(0, 500),
   )
   const rehtml = await compileHtml(rehydrated)
   const reSection = sceneTag(rehtml, SCENE_ID)
