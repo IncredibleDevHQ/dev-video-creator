@@ -155,20 +155,26 @@ const setMode = mode => writeFile(controlPath, JSON.stringify(mode))
 await setMode({ mode: 'plan' })
 
 // ——— The app ———
-const child = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
-  cwd: appDir,
-  env: { ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1', STUDIO_ENABLE_TEST_HOOKS: '1', STUDIO_PERSISTENCE: 'local', STUDIO_DATA_DIR: dataDir, STUDIO_OUTPUTS_DIR: join(root, 'outputs'), STUDIO_CLAUDE_BIN: stubPath },
-  stdio: ['ignore', 'pipe', 'inherit'],
-})
-const origin = await new Promise((resolve, reject) => {
-  let text = ''
-  const timer = setTimeout(() => reject(new Error('the app did not start')), 120_000)
-  child.stdout.on('data', chunk => {
-    text += chunk.toString()
-    const match = /STUDIO_ORIGIN (\S+)/.exec(text)
-    if (match && /SMOKE PASS/.test(text)) { clearTimeout(timer); resolve(match[1]) }
+// Launched again on the same data dir to prove what survives a restart.
+let child
+let origin
+const launch = async () => {
+  child = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
+    cwd: appDir,
+    env: { ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1', STUDIO_ENABLE_TEST_HOOKS: '1', STUDIO_PERSISTENCE: 'local', STUDIO_DATA_DIR: dataDir, STUDIO_OUTPUTS_DIR: join(root, 'outputs'), STUDIO_CLAUDE_BIN: stubPath },
+    stdio: ['ignore', 'pipe', 'inherit'],
   })
-})
+  origin = await new Promise((resolve, reject) => {
+    let text = ''
+    const timer = setTimeout(() => reject(new Error('the app did not start')), 120_000)
+    child.stdout.on('data', chunk => {
+      text += chunk.toString()
+      const match = /STUDIO_ORIGIN (\S+)/.exec(text)
+      if (match && /SMOKE PASS/.test(text)) { clearTimeout(timer); resolve(match[1]) }
+    })
+  })
+}
+await launch()
 const api = async (path, init) => {
   const response = await fetch(origin + path, init)
   return { status: response.status, body: await response.json() }
@@ -252,7 +258,7 @@ try {
   check(briefReport.numberedSource === true && briefReport.packet.includes('packet/SOURCE.md'), 'the packet carries the retained source, paragraph-numbered')
   check(briefReport.invented?.accepted === false && /not a passage of the retained source/.test(JSON.stringify(briefReport.invented.problems)), 'an invented quotation is refused')
   check(briefReady.status === 'ready' && briefReady.adapter === 'claude-code', 'the grounded brief lands, with its harness recorded')
-  check(briefReport.model === 'claude-opus-5-5' && briefReady.model === 'claude-opus-5-5', `Claude Code plans on the latest Opus by default, and the record keeps the model the session reported (${briefReport.model} / ${briefReady.model})`)
+  check(briefReport.model === 'claude-opus-5-5' && briefReady.model === 'claude-opus-5-5' && briefReady.reportedModel === 'claude-opus-5-5', `Claude Code plans on the latest Opus by default; the record keeps the requested and the session-reported model (${briefReport.model} / ${briefReady.model} / ${briefReady.reportedModel})`)
   await shot('01-brief-ready')
 
   // A scene plan lands as a candidate.
@@ -271,7 +277,7 @@ try {
   check(await press('Generate creative plan'), 'Generate creative plan is offered')
   const planned = await until('a candidate', async () => (await overview(videoId)).scenes[0].view.current, 90_000)
   check(planned.status === 'candidate' && (planned.report?.constructionRisks || []).length > 0, 'the plan is a candidate, with its unproven recipe reported')
-  check(planned.model === 'claude-fable-5-1', `the plan ran on the model picked for it (${planned.model})`)
+  check(planned.model === 'claude-fable-5-1' && planned.reportedModel === 'claude-fable-5-1', `the plan ran on the model picked for it (${planned.model} / ${planned.reportedModel})`)
   await evaluate(`(() => { const select = document.querySelector('.planning-model'); select.value = 'claude-opus-5-5'; select.dispatchEvent(new Event('change')); return true })()`)
   await shot('02-candidate')
 
@@ -349,6 +355,27 @@ try {
   const readOnlyView = await evaluate(`({ eyebrow: document.querySelector('.planning-title .eyebrow')?.textContent, actions: [...document.querySelectorAll('#planning-workspace button')].filter(b => /Generate|Regenerate|Retry|Mark reviewed|Prepare/.test(b.textContent)).length, inputs: document.querySelectorAll('.planning-footer textarea, .planning-footer select').length, direction: document.querySelector('.planning-direction')?.textContent || '', open: [...document.querySelectorAll('#planning-workspace button')].some(b => b.textContent === 'Open the video notebook') })`)
   check(/read-only/.test(readOnlyView.eyebrow) && readOnlyView.actions === 0 && readOnlyView.inputs === 0 && /Hold the camera still/.test(readOnlyView.direction) && readOnlyView.open, 'the base shows the video\'s plans and direction read-only, with a way to the video')
   await shot('07-base-read-only')
+
+  // A run cut off by the app closing is settled on restart: its record fails
+  // as interrupted, with a retry, instead of reading "running" forever.
+  await setMode({ mode: 'plan', delayMs: 120_000 })
+  const orphan = (await post(`/api/planning/${videoId}/scenes/${scenes[1].id}`)).body.record
+  await evaluate(`window.studioDesktop.harness.run({ adapter: 'claude-code', skill: 'video-planner', route: 'Plan Scene', projectId: ${JSON.stringify(videoId)}, inputs: { planning: { recordId: ${JSON.stringify(orphan.id)} } } }).then(() => true)`)
+  await until('the plan to be running', async () => (await api(`/api/planning/records/${orphan.id}`)).body.record.status === 'running')
+  const closing = new Promise(resolve => child.once('exit', resolve))
+  child.kill('SIGKILL')
+  await closing
+  spawn('pkill', ['-f', stubPath])
+  await launch()
+  const settled = await until('the interrupted plan to settle', async () => {
+    const record = (await api(`/api/planning/records/${orphan.id}`)).body.record
+    return record.status === 'failed' && record
+  })
+  check(/^Interrupted: the app closed while this run was working/.test(settled.error?.message || ''), `a run cut off by a restart fails as interrupted (${settled.error?.message})`)
+  const runsAfter = (await api('/api/runs')).body.runs
+  check(runsAfter.find(run => run.id === settled.runId)?.status === 'error', 'its run is recorded as ended, not running')
+  const afterRestart = (await overview(videoId)).scenes[1].view
+  check(afterRestart.state === 'failed', `the scene reads failed after the restart, ready to retry (${afterRestart.state})`)
 } catch (error) {
   failures.push(String(error))
   console.error(error)

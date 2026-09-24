@@ -294,10 +294,25 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     await load()
   }
 
+  // Stops the run; a record whose run is already gone (the app restarted,
+  // the harness died) is settled here instead of staying "running".
   const stop = async (record: PlanningRecord) => {
-    if (record.runId && bridge?.isDesktop) await bridge.harness.cancel(record.runId).catch(() => false)
-    else await host.fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: 'Stopped before it started' }) }).catch(() => {})
+    const cancelled = record.runId && bridge?.isDesktop ? await bridge.harness.cancel(record.runId).catch(() => false) : false
+    if (!cancelled) {
+      const message = record.runId ? 'Stopped: its run was no longer active' : 'Stopped before it started'
+      await host.fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message }) }).catch(() => {})
+    }
     await load()
+  }
+
+  // Which harness and model made a record: the one its session reported, and
+  // the one asked for when they differ.
+  const madeWith = (record: PlanningRecord) => {
+    if (!record.adapter) return 'harness unknown'
+    const harness = HARNESS_LABELS[record.adapter] || record.adapter
+    const ran = record.reportedModel || record.model
+    if (!ran) return harness
+    return record.reportedModel && record.model && record.reportedModel !== record.model ? `${harness} ${ran} (asked for ${record.model})` : `${harness} ${ran}`
   }
 
   // ——— Rendering ———
@@ -595,7 +610,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         h('h5', { text: 'Route' }),
         h('p', {}, h('code', { text: brief.route.workflow }), ` — ${brief.route.reason}`),
       ),
-      h('p', { class: 'planning-provenance', text: `Brief r${record.revision} · ${record.adapter ? `${HARNESS_LABELS[record.adapter] || record.adapter}${record.model ? ` ${record.model}` : ''}` : 'harness unknown'} · ${when(record.updatedAt)} · source ${brief.source.revisionRef} · base ${brief.material.baseRevision}` }),
+      h('p', { class: 'planning-provenance', text: `Brief r${record.revision} · ${madeWith(record)} · ${when(record.updatedAt)} · source ${brief.source.revisionRef} · base ${brief.material.baseRevision}` }),
     )
   }
 
@@ -631,7 +646,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     }
     const record = shownPlan()
     if (!record?.content) {
-      if (view.state === 'ready-to-plan') pane.append(h('p', { text: 'Ready to plan. Add direction below if you want, then generate the creative plan.' }))
+      if (view.state === 'ready-to-plan') pane.append(h('p', { text: overview!.brief.stale ? `The explanation brief is stale — ${overview!.brief.staleBecause || 'its inputs changed'}. Prepare it again, then plan this scene.` : 'Ready to plan. Add direction below if you want, then generate the creative plan.' }))
       return pane
     }
     const plan = record.content as SceneTreatmentV1
@@ -704,7 +719,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         ),
       ),
       plan.rosterProposal ? h('p', { class: 'planning-warn', text: `Roster proposal (${plan.rosterProposal.action} ${plan.rosterProposal.scenes.join(', ')}): ${plan.rosterProposal.reason}. A proposal only — the scenes are unchanged until you decide.` }) : '',
-      h('p', { class: 'planning-provenance', text: `Plan r${record.revision} · ${statusOf(record)} · ${record.adapter ? `${HARNESS_LABELS[record.adapter] || record.adapter}${record.model ? ` ${record.model}` : ''}` : 'harness unknown'} · workflow ${record.workflow || '—'} · requested ${when(record.createdAt)}${record.reviewedAt ? ` · reviewed ${when(record.reviewedAt)}` : ''}` }),
+      h('p', { class: 'planning-provenance', text: `Plan r${record.revision} · ${statusOf(record)} · ${madeWith(record)} · workflow ${record.workflow || '—'} · requested ${when(record.createdAt)}${record.reviewedAt ? ` · reviewed ${when(record.reviewedAt)}` : ''}` }),
     )
     return pane
   }
@@ -828,7 +843,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     }
     delivery.addEventListener('change', async () => {
       await saveInputs(scene.id, { delivery: delivery.value || null }).catch(error => host.toast(error instanceof Error ? error.message : 'Could not save the delivery'))
-      host.toast('Delivery saved. Plans made before it are now stale.')
+      host.toast('Delivery saved. This scene\'s plans made before it are now stale; other scenes are unchanged.')
       await load()
     })
     for (const [box, subject, saved] of [[videoBox, '', overview!.videoDirection], [sceneBox, scene.id, scene.direction]] as const) {
@@ -845,7 +860,9 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     }
     const view = scene.view
     const generating = view.state === 'planning'
-    const generate = h('button', { type: 'button', class: 'button primary', text: view.latest?.status === 'failed' ? 'Retry creative plan' : view.current ? 'Regenerate with direction' : 'Generate creative plan', ...(generating || !overview!.brief.current || !overview!.available ? { disabled: true } : {}) })
+    // A plan from a stale brief could never become current: prepare it first.
+    const briefStale = overview!.brief.stale ? `Prepare the brief again first — ${overview!.brief.staleBecause || 'it is stale'}` : ''
+    const generate = h('button', { type: 'button', class: 'button primary', text: view.latest?.status === 'failed' ? 'Retry creative plan' : view.current ? 'Regenerate with direction' : 'Generate creative plan', ...(briefStale ? { title: briefStale } : {}), ...(generating || !overview!.brief.current || !overview!.available || briefStale ? { disabled: true } : {}) })
     generate.addEventListener('click', () => void generatePlan())
     const shown = shownPlan()
     const canReview = shown?.status === 'candidate' && !(shown.id === view.current?.id && view.staleBecause)

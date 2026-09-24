@@ -327,6 +327,8 @@ if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()
       createKimiAdapter(harnessContext),
     ]
     registerHarnessIpc(runManager, adapters, () => mainWindow)
+    // Runs cut off when the app last closed are settled before anyone looks.
+    await runManager.reconcileInterrupted()
 
     // Headless harness protocol test (STUDIO_HARNESS_E2E=<config.json>).
     if (process.env.STUDIO_HARNESS_E2E) {

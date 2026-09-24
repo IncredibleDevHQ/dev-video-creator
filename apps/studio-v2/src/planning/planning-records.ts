@@ -5,12 +5,13 @@
 // ready (a brief), as a candidate (a plan), or failed. A creator marks a
 // candidate reviewed; reviewing never starts any generation.
 //
-// Every record keeps the fingerprint of the inputs it was made from. When the
-// source, the narrative, the theme, the brief or the creator's direction
-// changes, the current fingerprint moves and the old result is stale: still
-// readable, never silently treated as current, and never able to overwrite
-// newer work. A newer run supersedes an older one for the same subject; the
-// last reviewed plan stays in place while a new candidate runs or fails.
+// Every record pins the inputs it was made from and keeps the fingerprint of
+// the ones it depends on. Freshness runs down one chain — retained inputs →
+// brief → scene plan — and the same check decides what the workspace shows,
+// what may be queued, which late result may land and what may be reviewed.
+// A stale result stays readable but never becomes current or reviewed. A
+// newer run supersedes an older one for the same subject; the last reviewed
+// plan stays in place while a new candidate runs or fails.
 import { fingerprintOf, stableJson } from './fingerprint'
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
@@ -40,9 +41,12 @@ export type PlanningRecord = {
   // What the checks said: warnings, construction risks.
   report: { warnings: string[]; constructionRisks?: string[] } | null
   artifacts: { objectKey: string; assetId: string } | null
+  // The run that owns the record once it starts; nothing else may claim it.
   runId: string | null
   adapter: string | null
+  // The model the run asked for, and the one its harness session reported.
   model: string | null
+  reportedModel: string | null
   skillBundle: SkillBundleRef | null
   workflow: string | null
   direction: string
@@ -52,8 +56,13 @@ export type PlanningRecord = {
   reviewedAt: string | null
 }
 
-// What the brief is made from. Anything here changing makes the brief stale.
+// Version of the dependency rules below; a record made under older rules
+// reads as stale with that reason, once.
+export const PLANNING_SCHEMA = 2
+
+// What a brief pins. Not all of it is a dependency: see briefDependencies.
 export type BriefInputs = {
+  schema: number
   baseNotebook: string
   baseRevision: string
   sourceRevision: string | null
@@ -69,8 +78,9 @@ export type BriefInputs = {
   bundleHash: string
 }
 
-// What one scene's plan is made from.
+// What one scene's plan pins.
 export type TreatmentInputs = {
+  schema: number
   briefId: string
   briefFingerprint: string
   scene: string
@@ -80,27 +90,60 @@ export type TreatmentInputs = {
   themeRef: string | null
   delivery: string | null
   bundleHash: string
+  script: string
 }
 
-export const briefFingerprint = (inputs: BriefInputs) => fingerprintOf({ kind: 'brief', ...inputs })
+// What a brief depends on: the source and the creator's narrative and
+// intent for the whole video. A scene's words, theme and delivery belong to
+// that scene's plan, so changing one scene never makes the brief — and with
+// it every scene — stale. Preserved wording is the brief's own content.
+export const briefDependencies = (inputs: Record<string, unknown>) => ({
+  schema: Number(inputs.schema || 1),
+  baseNotebook: inputs.baseNotebook ?? null,
+  baseRevision: inputs.baseRevision ?? null,
+  sourceRevision: inputs.sourceRevision ?? null,
+  narrativeRevision: inputs.narrativeRevision ?? null,
+  modelRevision: inputs.modelRevision ?? null,
+  wordingPolicy: inputs.wordingPolicy ?? null,
+  requestedSeconds: inputs.requestedSeconds ?? null,
+  videoDirection: inputs.videoDirection ?? '',
+  bundleHash: inputs.bundleHash ?? '',
+  preservedScripts: inputs.wordingPolicy === 'preserve' ? inputs.scripts ?? [] : [],
+})
+
+// What a scene plan depends on: its brief and its own scene.
+export const treatmentDependencies = (inputs: Record<string, unknown>) => ({
+  schema: Number(inputs.schema || 1),
+  briefId: inputs.briefId ?? null,
+  scene: inputs.scene ?? null,
+  originScenes: inputs.originScenes ?? [],
+  direction: inputs.direction ?? '',
+  videoDirection: inputs.videoDirection ?? '',
+  themeRef: inputs.themeRef ?? null,
+  delivery: inputs.delivery ?? null,
+  bundleHash: inputs.bundleHash ?? '',
+  script: inputs.script ?? '',
+})
+
+export const briefFingerprint = (inputs: BriefInputs) => fingerprintOf({ kind: 'brief', ...briefDependencies(inputs) })
 
 // What moved, in the creator's words, when a result no longer matches its
 // inputs. A key missing from the labels is bookkeeping and never named.
 const BRIEF_INPUT_LABELS: Record<string, string> = {
+  schema: 'the planning rules',
   baseNotebook: 'the base notebook',
   baseRevision: 'the base it was forked from',
   sourceRevision: 'the retained source',
   narrativeRevision: 'the narrative',
   modelRevision: 'the story model',
   wordingPolicy: 'the wording policy',
-  scripts: 'the scene scripts',
-  themeRef: 'the theme',
+  preservedScripts: 'the preserved wording',
   requestedSeconds: 'the requested length',
   videoDirection: 'the video direction',
-  sceneDecisions: 'the delivery decisions',
   bundleHash: 'the planning skills',
 }
 const TREATMENT_INPUT_LABELS: Record<string, string> = {
+  schema: 'the planning rules',
   originScenes: 'the scene\'s base pages',
   direction: 'the scene direction',
   videoDirection: 'the video direction',
@@ -115,13 +158,34 @@ export const changedInputs = (made: Record<string, unknown>, now: Record<string,
 
 const sentence = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items[0] || '')
 
-// Why the current brief no longer matches its inputs, or null.
-export const briefStaleBecause = (brief: PlanningRecord | null, fingerprint: string, now: BriefInputs) => {
-  if (!brief || brief.fingerprint === fingerprint) return null
-  const moved = changedInputs(brief.inputs, now, BRIEF_INPUT_LABELS)
-  return `${moved.length ? sentence(moved) : 'its inputs'} changed since it was made`
+export const treatmentFingerprint = (inputs: TreatmentInputs) => fingerprintOf({ kind: 'treatment', ...treatmentDependencies(inputs) })
+
+// Whether a result may still be used, and if not, why — in the creator's words.
+export type Freshness = { fresh: true; reason: null } | { fresh: false; reason: string }
+const FRESH: Freshness = { fresh: true, reason: null }
+const stale = (reason: string): Freshness => ({ fresh: false, reason })
+
+// A brief (ready, or still running) against the inputs as they are now.
+export const briefFreshness = (brief: PlanningRecord | null, now: BriefInputs): Freshness => {
+  if (!brief) return stale('no explanation brief is ready')
+  if (brief.fingerprint === briefFingerprint(now)) return FRESH
+  const moved = changedInputs(briefDependencies(brief.inputs), briefDependencies(now), BRIEF_INPUT_LABELS)
+  return stale(`${moved.length ? sentence(moved) : 'its inputs'} changed since it was made`)
 }
-export const treatmentFingerprint = (inputs: TreatmentInputs) => fingerprintOf({ kind: 'treatment', ...inputs })
+
+// A scene plan against its brief and its scene as they are now. A plan made
+// from a stale brief is stale too, whatever its own inputs say.
+export const treatmentFreshness = (
+  record: PlanningRecord,
+  now: { brief: PlanningRecord | null; briefFresh: Freshness; inputs: TreatmentInputs | null },
+): Freshness => {
+  if (!now.brief || !now.inputs) return stale('no explanation brief is ready')
+  if (record.inputs.briefId !== now.brief.id) return stale('the explanation brief has changed since this plan was made')
+  if (!now.briefFresh.fresh) return stale(`its explanation brief is stale: ${now.briefFresh.reason}`)
+  if (record.fingerprint === treatmentFingerprint(now.inputs)) return FRESH
+  const moved = changedInputs(treatmentDependencies(record.inputs), treatmentDependencies(now.inputs), TREATMENT_INPUT_LABELS)
+  return stale(`${moved.length ? sentence(moved) : 'its inputs'} changed since this plan was made`)
+}
 
 // The states the planning workspace shows for a scene.
 export type ScenePlanningState =
@@ -154,10 +218,12 @@ export const currentBrief = (records: PlanningRecord[]) =>
 export const latestBrief = (records: PlanningRecord[]) =>
   newestFirst(records.filter(record => record.kind === 'brief'))[0] || null
 
+// `now` is the scene's freshness context; without one (a packet looking up
+// neighbours) staleness is not judged.
 export const scenePlanningView = (
   records: PlanningRecord[],
   scene: string,
-  now: { briefFingerprint: string | null; treatmentFingerprint: string | null; treatmentInputs?: Record<string, unknown> },
+  now: { briefFresh: Freshness; inputs: TreatmentInputs | null } | null,
 ): ScenePlanningView => {
   const brief = currentBrief(records)
   const newestBrief = latestBrief(records)
@@ -165,13 +231,8 @@ export const scenePlanningView = (
   const latest = mine[0] || null
   const reviewed = mine.find(record => record.status === 'reviewed') || null
   const current = mine.find(record => record.status === 'candidate' || record.status === 'reviewed') || null
-  const moved = current && now.treatmentInputs ? changedInputs(current.inputs, now.treatmentInputs, TREATMENT_INPUT_LABELS) : []
-  const staleBecause =
-    current && now.treatmentFingerprint && current.fingerprint !== now.treatmentFingerprint
-      ? brief && current.inputs.briefId !== brief.id
-        ? 'the explanation brief has changed since this plan was made'
-        : `${moved.length ? sentence(moved) : 'its inputs'} changed since this plan was made`
-      : null
+  const freshness = current && now ? treatmentFreshness(current, { brief, ...now }) : null
+  const staleBecause = freshness && !freshness.fresh ? freshness.reason : null
   let state: ScenePlanningState
   if (!brief) state = newestBrief?.status === 'failed' ? 'brief-failed' : 'preparing'
   else if (latest && (latest.status === 'queued' || latest.status === 'running')) state = 'planning'
@@ -195,21 +256,21 @@ export const PLANNING_STATE_LABELS: Record<ScenePlanningState, string> = {
 }
 
 // Can this result still land? A run's result is applied only when the record
-// is the newest for its subject, still running, and made from the inputs
-// that are current now. Otherwise it is kept as a superseded or stale
+// is the newest for its subject, still running, and fresh by the same check
+// the workspace and review use. Otherwise it is kept as a superseded
 // revision, never over newer work.
 export const landingFor = (
   record: PlanningRecord,
   siblings: PlanningRecord[],
-  currentFingerprint: string,
+  freshness: Freshness,
 ): { lands: true } | { lands: false; status: PlanningStatus; reason: string } => {
   if (!ACTIVE_STATUSES.includes(record.status)) {
     return { lands: false, status: record.status, reason: `this ${record.kind} already finished as ${record.status}` }
   }
   const newer = siblings.some(other => other.id !== record.id && other.kind === record.kind && other.subject === record.subject && other.revision > record.revision)
   if (newer) return { lands: false, status: 'superseded', reason: 'a newer run for the same subject has started since' }
-  if (record.fingerprint !== currentFingerprint) {
-    return { lands: false, status: 'superseded', reason: 'its inputs changed while it ran; the result is kept for reference but not used' }
+  if (!freshness.fresh) {
+    return { lands: false, status: 'superseded', reason: `its inputs changed while it ran (${freshness.reason}); the result is kept for reference but not used` }
   }
   return { lands: true }
 }

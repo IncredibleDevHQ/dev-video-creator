@@ -10,6 +10,7 @@ import {
   planningOverview,
   queueBrief,
   queueTreatment,
+  recordReportedModel,
   reviewTreatment,
   runFinished,
   saveDirection,
@@ -61,9 +62,17 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
         send(response, 200, { record: await attachRun(id, { runId: input.runId, adapter: input.adapter, model: input.model }) })
         return true
       }
+      // The owning run's harness reports the model its session runs.
+      if (method === 'POST' && action === 'model') {
+        const input = await body<{ runId?: string; model?: string }>(request)
+        if (!input.runId) throw new PlanningError('A run id is required', 400)
+        send(response, 200, { record: await recordReportedModel(id, { runId: input.runId, model: String(input.model || '') }) })
+        return true
+      }
       if (method === 'POST' && (action === 'brief' || action === 'treatment')) {
-        const input = await body<{ brief?: unknown; treatment?: unknown }>(request, 4 * 1024 * 1024)
-        const result = action === 'brief' ? await submitBrief(id, input.brief) : await submitTreatment(id, input.treatment)
+        const input = await body<{ brief?: unknown; treatment?: unknown; runId?: string }>(request, 4 * 1024 * 1024)
+        const runId = input.runId ? String(input.runId) : undefined
+        const result = action === 'brief' ? await submitBrief(id, input.brief, runId) : await submitTreatment(id, input.treatment, runId)
         // Problems are an answer, not a failure: the harness fixes and resubmits.
         send(response, result.accepted ? 200 : 422, result)
         return true

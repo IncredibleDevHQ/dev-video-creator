@@ -14,7 +14,7 @@
 import type { Readable } from 'node:stream'
 import type { ProjectDocumentV1, TiptapNode } from 'markdown-composition'
 import {
-  createPlanningRecord,
+  claimPlanningRecord,
   getObject,
   listPlanningInputs,
   listPlanningRecords,
@@ -35,12 +35,14 @@ import { validateTreatment, type SceneTreatmentV1, type TreatmentContext } from 
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
 import {
   ACTIVE_STATUSES,
+  PLANNING_SCHEMA,
   briefFingerprint,
-  briefStaleBecause,
+  briefFreshness,
   currentBrief,
   landingFor,
   scenePlanningView,
   treatmentFingerprint,
+  treatmentFreshness,
   type BriefInputs,
   type PlanningRecord,
   type SkillBundleRef,
@@ -206,6 +208,7 @@ const sceneDecisionsOf = (planning: VideoPlanning) =>
 
 // ——— Current fingerprints ———
 export const briefInputsOf = (planning: VideoPlanning): BriefInputs => ({
+  schema: PLANNING_SCHEMA,
   baseNotebook: planning.project.derivedFrom!.notebook,
   baseRevision: planning.project.derivedFrom!.baseRevision || '',
   sourceRevision: planning.source.revision,
@@ -220,10 +223,11 @@ export const briefInputsOf = (planning: VideoPlanning): BriefInputs => ({
   bundleHash: planning.bundle?.ref.hash || '',
 })
 
-export const treatmentInputsOf = (planning: VideoPlanning, brief: PlanningRecord, sceneId: string): TreatmentInputs & { script: string } => {
+export const treatmentInputsOf = (planning: VideoPlanning, brief: PlanningRecord, sceneId: string): TreatmentInputs => {
   const scene = planning.videoScenes.find(entry => entry.id === sceneId)
   if (!scene) throw new PlanningError(`Scene ${sceneId} is not in this video`, 404)
   return {
+    schema: PLANNING_SCHEMA,
     briefId: brief.id,
     briefFingerprint: brief.fingerprint,
     scene: scene.id,
@@ -237,21 +241,28 @@ export const treatmentInputsOf = (planning: VideoPlanning, brief: PlanningRecord
   }
 }
 
-const currentFingerprints = (planning: VideoPlanning, records: PlanningRecord[]) => {
+// The one freshness check. The workspace, queueing, landing and review all
+// ask it, so none of them can disagree about what is current.
+const freshnessOf = (planning: VideoPlanning, records: PlanningRecord[]) => {
   const brief = currentBrief(records)
-  const scenes: Record<string, string | null> = {}
-  for (const scene of planning.videoScenes) {
-    scenes[scene.id] = brief ? treatmentFingerprint(treatmentInputsOf(planning, brief, scene.id)) : null
+  const briefNow = briefInputsOf(planning)
+  const briefFresh = briefFreshness(brief, briefNow)
+  const sceneNow = (sceneId: string) => ({ briefFresh, inputs: brief ? treatmentInputsOf(planning, brief, sceneId) : null })
+  return {
+    brief,
+    briefNow,
+    briefFresh,
+    sceneNow,
+    treatment: (record: PlanningRecord) => treatmentFreshness(record, { brief, ...sceneNow(record.subject) }),
   }
-  return { brief: briefFingerprint(briefInputsOf(planning)), scenes }
 }
 
 // ——— The overview the workspace reads ———
 export const planningOverview = async (projectId: string) => {
   const planning = await loadVideoPlanning(projectId)
   const records = await listPlanningRecords(projectId)
-  const fingerprints = currentFingerprints(planning, records)
-  const brief = currentBrief(records)
+  const fresh = freshnessOf(planning, records)
+  const brief = fresh.brief
   return {
     projectId,
     available: Boolean(planning.bundle),
@@ -261,18 +272,14 @@ export const planningOverview = async (projectId: string) => {
     brief: {
       current: brief,
       latest: records.filter(record => record.kind === 'brief').sort((a, b) => b.revision - a.revision)[0] || null,
-      stale: Boolean(brief && brief.fingerprint !== fingerprints.brief),
-      staleBecause: briefStaleBecause(brief, fingerprints.brief, briefInputsOf(planning)),
+      stale: Boolean(brief && !fresh.briefFresh.fresh),
+      staleBecause: brief && !fresh.briefFresh.fresh ? fresh.briefFresh.reason : null,
     },
     scenes: planning.videoScenes.map(scene => ({
       ...scene,
       direction: directionFor(planning, scene.id),
       delivery: deliveryFor(planning, scene.id),
-      view: scenePlanningView(records, scene.id, {
-        briefFingerprint: fingerprints.brief,
-        treatmentFingerprint: fingerprints.scenes[scene.id],
-        ...(brief ? { treatmentInputs: treatmentInputsOf(planning, brief, scene.id) } : {}),
-      }),
+      view: scenePlanningView(records, scene.id, fresh.sceneNow(scene.id)),
     })),
     videoDirection: directionFor(planning, ''),
     basePages: planning.basePages,
@@ -384,7 +391,7 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
   const scene = planning.videoScenes.find(entry => entry.id === sceneId)!
   const unitsFor = (origins: string[]) =>
     [...new Set(brief.coverage.filter(entry => origins.includes(entry.scene)).flatMap(entry => entry.units))]
-  const reviewedOf = (id: string) => scenePlanningView(records, id, { briefFingerprint: null, treatmentFingerprint: null }).reviewed
+  const reviewedOf = (id: string) => scenePlanningView(records, id, null).reviewed
   const neighbours = [
     { position: 'before' as const, scene: planning.videoScenes[scene.index - 1] },
     { position: 'after' as const, scene: planning.videoScenes[scene.index + 1] },
@@ -477,7 +484,7 @@ export const queueBrief = async (projectId: string) => {
   if (existing) return { record: existing, reused: true }
   const { files } = briefPacket(planning)
   const packet = await storePacket(projectId, files)
-  const record = await createPlanningRecord({
+  return claimPlanningRecord({
     projectId,
     kind: 'brief',
     subject: '',
@@ -486,22 +493,24 @@ export const queueBrief = async (projectId: string) => {
     direction: inputs.videoDirection,
     skillBundle: planning.bundle.ref,
   })
-  return { record, reused: false }
 }
 
 export const queueTreatment = async (projectId: string, sceneId: string) => {
   const planning = await loadVideoPlanning(projectId)
   if (!planning.bundle) throw new PlanningError('Planning runs in the desktop app, where the pinned skill bundle and your local harness are', 409)
   const records = await listPlanningRecords(projectId)
-  const brief = currentBrief(records)
+  const fresh = freshnessOf(planning, records)
+  const brief = fresh.brief
   if (!brief) throw new PlanningError('Prepare the video\'s explanation brief before planning a scene', 409)
+  // A plan made from a stale brief could never become current.
+  if (!fresh.briefFresh.fresh) throw new PlanningError(`The explanation brief is stale: ${fresh.briefFresh.reason}. Prepare it again before planning scenes.`, 409)
   const inputs = treatmentInputsOf(planning, brief, sceneId)
   const fingerprint = treatmentFingerprint(inputs)
   const existing = reuseActive(records, 'treatment', sceneId, fingerprint)
   if (existing) return { record: existing, reused: true }
   const files = await scenePacket(planning, brief, sceneId, records)
   const packet = await storePacket(projectId, files)
-  const record = await createPlanningRecord({
+  return claimPlanningRecord({
     projectId,
     kind: 'treatment',
     subject: sceneId,
@@ -511,14 +520,34 @@ export const queueTreatment = async (projectId: string, sceneId: string) => {
     skillBundle: planning.bundle.ref,
     workflow: (brief.content as ExplanationBriefV1).route.workflow,
   })
-  return { record, reused: false }
 }
 
-// The run that serves a record is linked by the desktop host as it starts.
+// The run that serves a record claims it as it starts: queued → running,
+// once. The same run asking again (a retry after a lost response) gets the
+// record; any other run is refused, so a record never changes owner.
 export const attachRun = async (recordId: string, run: { runId: string; adapter?: string; model?: string }) => {
-  const updated = await updatePlanningRecord(recordId, { status: 'running', runId: run.runId, adapter: run.adapter || null, model: run.model || null }, ['queued', 'running'])
-  if (!updated) throw new PlanningError('This planning record already finished', 409)
+  const claimed = await updatePlanningRecord(recordId, { status: 'running', runId: run.runId, adapter: run.adapter || null, model: run.model || null }, ['queued'], { runId: null })
+  if (claimed) return claimed
+  const record = await loadPlanningRecord(recordId)
+  if (!record) throw new PlanningError('Planning record not found', 404)
+  if (record.status === 'running' && record.runId === run.runId) return record
+  if (ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This planning request is already running as ${record.runId}`, 409)
+  throw new PlanningError(`This planning record already finished as ${record.status}`, 409)
+}
+
+// The model the owning run's harness session reported. Only the owner may
+// say; it changes nothing else about the record.
+export const recordReportedModel = async (recordId: string, run: { runId: string; model: string }) => {
+  const model = String(run.model || '').slice(0, 200)
+  if (!model) throw new PlanningError('A reported model is required', 400)
+  const updated = await updatePlanningRecord(recordId, { reportedModel: model }, undefined, { runId: run.runId })
+  if (!updated) throw new PlanningError('Only the run that owns this planning record can report its model', 409)
   return updated
+}
+
+// A submission must come from the record's own run when it names one.
+const assertOwner = (record: PlanningRecord, runId?: string) => {
+  if (runId && record.runId && record.runId !== runId) throw new PlanningError('This run does not own the planning record it is submitting to', 409)
 }
 
 // ——— Submitting a result ———
@@ -550,15 +579,16 @@ const pinnedBriefContext = async (record: PlanningRecord) => {
   return { planning, context }
 }
 
-export const submitBrief = async (recordId: string, raw: unknown) => {
+export const submitBrief = async (recordId: string, raw: unknown, runId?: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'brief') throw new PlanningError('Brief record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This brief already finished as ${record.status}`, 409)
+  assertOwner(record, runId)
   const { planning, context } = await pinnedBriefContext(record)
   const report = validateBrief(raw, context)
   if (!report.ok) return { accepted: false as const, problems: report.problems, warnings: report.warnings }
   const records = await listPlanningRecords(record.projectId)
-  const landing = landingFor(record, records, briefFingerprint(briefInputsOf(planning)))
+  const landing = landingFor(record, records, briefFreshness(record, briefInputsOf(planning)))
   const artifacts = await storeResult(record, {
     'brief.json': JSON.stringify(report.brief, null, 2),
     'BRIEF.md': renderNativeBrief(report.brief),
@@ -576,15 +606,17 @@ export const submitBrief = async (recordId: string, raw: unknown) => {
       ...(landing.lands ? {} : { error: { message: landing.reason } }),
     },
     ['queued', 'running'],
+    { runId: record.runId },
   )
   if (!updated) throw new PlanningError('This brief finished elsewhere while it was being checked', 409)
   return { accepted: true as const, status, record: updated, warnings: report.warnings, ...(landing.lands ? {} : { note: landing.reason }) }
 }
 
-export const submitTreatment = async (recordId: string, raw: unknown) => {
+export const submitTreatment = async (recordId: string, raw: unknown, runId?: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'treatment') throw new PlanningError('Scene plan record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This scene plan already finished as ${record.status}`, 409)
+  assertOwner(record, runId)
   const planning = await loadVideoPlanning(record.projectId)
   const briefRecord = await loadPlanningRecord(String(record.inputs.briefId || ''))
   if (!briefRecord?.content) throw new PlanningError('The brief this plan was made from is gone', 409)
@@ -605,9 +637,7 @@ export const submitTreatment = async (recordId: string, raw: unknown) => {
   const report = validateTreatment(raw, context)
   if (!report.ok) return { accepted: false as const, problems: report.problems, warnings: report.warnings }
   const records = await listPlanningRecords(record.projectId)
-  const brief = currentBrief(records)
-  const current = brief ? treatmentFingerprint(treatmentInputsOf(planning, brief, scene.id)) : ''
-  const landing = landingFor(record, records, current)
+  const landing = landingFor(record, records, freshnessOf(planning, records).treatment(record))
   const artifacts = await storeResult(record, { 'treatment.json': JSON.stringify(report.treatment, null, 2) })
   const status = landing.lands ? 'candidate' : 'superseded'
   const updated = await updatePlanningRecord(
@@ -620,6 +650,7 @@ export const submitTreatment = async (recordId: string, raw: unknown) => {
       ...(landing.lands ? {} : { error: { message: landing.reason } }),
     },
     ['queued', 'running'],
+    { runId: record.runId },
   )
   if (!updated) throw new PlanningError('This scene plan finished elsewhere while it was being checked', 409)
   return { accepted: true as const, status, record: updated, warnings: report.warnings, constructionRisks: report.constructionRisks, ...(landing.lands ? {} : { note: landing.reason }) }
@@ -632,10 +663,8 @@ export const reviewTreatment = async (recordId: string) => {
   if (record.status !== 'candidate') throw new PlanningError(`Only a candidate plan can be marked reviewed (this one is ${record.status})`, 409)
   const planning = await loadVideoPlanning(record.projectId)
   const records = await listPlanningRecords(record.projectId)
-  const brief = currentBrief(records)
-  if (!brief || record.fingerprint !== treatmentFingerprint(treatmentInputsOf(planning, brief, record.subject))) {
-    throw new PlanningError('This plan is stale — its inputs changed since it was made. Generate a new candidate first.', 409)
-  }
+  const freshness = freshnessOf(planning, records).treatment(record)
+  if (!freshness.fresh) throw new PlanningError(`This plan is stale: ${freshness.reason}. Generate a new candidate first.`, 409)
   const updated = await updatePlanningRecord(record.id, { status: 'reviewed', reviewedAt: new Date().toISOString() }, ['candidate'])
   if (!updated) throw new PlanningError('This plan changed while it was being reviewed', 409)
   return updated
@@ -657,7 +686,9 @@ export const runFinished = async (runId: string, outcome: { status: string; exit
     const message =
       outcome.status === 'cancelled'
         ? 'The run was cancelled before it submitted a result.'
-        : `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) without submitting a result.`
+        : outcome.status === 'interrupted'
+          ? 'Interrupted: the app closed while this run was working. Retry it; any earlier result is unchanged.'
+          : `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) without submitting a result.`
     const providerStatus = (outcome.error || '').replace(/^[\s·:-]+/, '').trim()
     const updated = await failRecord(record.id, { message, ...(providerStatus ? { providerStatus } : {}) })
     if (updated) failed.push(updated)

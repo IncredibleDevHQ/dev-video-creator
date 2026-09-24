@@ -33,7 +33,9 @@ const runOf = async (args: Json) => {
   }
   const recordId = String(inputs.planning?.recordId || '')
   if (!recordId) throw new Error('This is not a planning run: it names no planning record')
-  return { projectDir, recordId, route: String(inputs.planning?.route || ''), files: inputs.packet?.files || [] }
+  // The run's own id, so the product can check this run owns the record.
+  const runId = await readFile(join(projectDir, 'motion', 'run.json'), 'utf8').then(text => String(JSON.parse(text).id || ''), () => '')
+  return { projectDir, recordId, runId, route: String(inputs.planning?.route || ''), files: inputs.packet?.files || [] }
 }
 
 const call = async <T>(context: Context, path: string, body?: unknown): Promise<{ status: number; body: T }> => {
@@ -101,7 +103,7 @@ const submit = (kind: 'brief' | 'treatment') => async (args: Json, context: Cont
     throw new Error(`${file} is not readable JSON: ${error instanceof Error ? error.message : error}`)
   }
   const attempt = await spendSubmission(run.projectDir)
-  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/${kind}`, { [kind]: content })
+  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/${kind}`, { [kind]: content, ...(run.runId ? { runId: run.runId } : {}) })
   // Keep the product's answer beside the work, for the creator's raw view.
   await writeFile(join(run.projectDir, 'planning', `${kind}.report.${attempt}.json`), JSON.stringify({ status, ...body }, null, 2)).catch(() => {})
   if (status === 422) {

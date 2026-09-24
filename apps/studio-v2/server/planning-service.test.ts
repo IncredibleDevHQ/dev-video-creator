@@ -5,9 +5,13 @@ import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { forkNotebook, type ProjectDocumentV1 } from 'markdown-composition'
 
-// The file backend in a scratch directory, and the real vendored skills.
-process.env.STUDIO_PERSISTENCE = 'local'
+// The file backend in a scratch directory, and the real vendored skills. With
+// PLANNING_TEST_BACKEND=postgres the same tests run against the PostgreSQL and
+// MinIO the STUDIO_DATABASE_URL / STUDIO_MINIO_* variables name — an isolated
+// test instance, never real studio data. Fixture ids are unique per run.
+process.env.STUDIO_PERSISTENCE = process.env.PLANNING_TEST_BACKEND === 'postgres' ? 'postgres' : 'local'
 process.env.STUDIO_DATA_DIR = mkdtempSync(join(tmpdir(), 'planning-'))
+const RUN = Date.now().toString(36)
 process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../../studio-desktop/skills/', import.meta.url))
 
 const persistence = await import('./persistence')
@@ -20,6 +24,37 @@ A token bucket holds a fixed number of tokens. Each request that is admitted con
 When a burst arrives, the requests are admitted until the bucket is empty; the next request is rejected.
 
 Tokens are added back at a steady refill rate, so a later request can pass again.`
+
+// A base notebook with two pages and its video fork.
+const makeVideo = async (tag: string) => {
+  const source = await persistence.saveSourceRevision({ kind: 'url', url: `https://example.com/bucket-${tag}`, title: 'Token bucket', site: 'example.com', content: { text: ARTICLE, title: 'Token bucket' } })
+  const base: ProjectDocumentV1 = {
+    version: 1,
+    id: `base-${tag}-${RUN}`,
+    title: 'Rate limiting',
+    notebook: { type: 'doc', content: [scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.']), scene('b2', 'Rejection', 'When it is empty, the next one is refused.', ['the next request is rejected'])] },
+    fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
+    brand: { name: 'x' } as unknown as ProjectDocumentV1['brand'],
+    source: { kind: 'url', url: `https://example.com/bucket-${tag}`, site: 'example.com', title: 'Token bucket', readAt: '2026-09-24T00:00:00Z', snapshotId: source.id },
+    outline: { title: 'Rate limiting', targetSeconds: 60, scenes: [], glossary: [] },
+    story: { wordingPolicy: 'draft' },
+  }
+  await persistence.saveProjectArtifact(base)
+  const snapshot = await persistence.storeAsset({ body: Buffer.from(JSON.stringify(base)), contentType: 'application/json', kind: 'base-snapshot', extension: '.json' })
+  const { project } = forkNotebook(base, { id: `video-${tag}-${RUN}`, snapshot })
+  await persistence.saveProjectArtifact(project)
+  return { videoId: project.id, videoScenes: (project.notebook.content || []).map(node => String(node.attrs?.id)) }
+}
+
+// Queues, runs and lands a grounded brief for a video.
+const readyBrief = async (id: string, runId: string) => {
+  const { record } = await service.queueBrief(id)
+  await service.attachRun(record.id, { runId, adapter: 'claude-code' })
+  const context = JSON.parse((await service.loadPacket(record.id)).files['packet/CONTEXT.json'])
+  const landed = await service.submitBrief(record.id, goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds }), runId)
+  expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+  return record
+}
 
 const scene = (id: string, title: string, script: string, passages: string[]) => ({
   type: 'scene',
@@ -84,25 +119,8 @@ const treatmentFor = (scene: string, origin: string) => ({
 
 beforeAll(async () => {
   await persistence.initializePersistence()
-  const source = await persistence.saveSourceRevision({ kind: 'url', url: 'https://example.com/bucket', title: 'Token bucket', site: 'example.com', content: { text: ARTICLE, title: 'Token bucket' } })
-  const base: ProjectDocumentV1 = {
-    version: 1,
-    id: 'base-nb',
-    title: 'Rate limiting',
-    notebook: { type: 'doc', content: [scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.']), scene('b2', 'Rejection', 'When it is empty, the next one is refused.', ['the next request is rejected'])] },
-    fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
-    brand: { name: 'x' } as unknown as ProjectDocumentV1['brand'],
-    source: { kind: 'url', url: 'https://example.com/bucket', site: 'example.com', title: 'Token bucket', readAt: '2026-09-24T00:00:00Z', snapshotId: source.id },
-    outline: { title: 'Rate limiting', targetSeconds: 60, scenes: [], glossary: [] },
-    story: { wordingPolicy: 'draft' },
-  }
-  await persistence.saveProjectArtifact(base)
-  const snapshot = await persistence.storeAsset({ body: Buffer.from(JSON.stringify(base)), contentType: 'application/json', kind: 'base-snapshot', extension: '.json' })
-  const { project } = forkNotebook(base, { id: 'video-nb', snapshot })
-  await persistence.saveProjectArtifact(project)
-  videoId = project.id
   baseScenes = ['b1', 'b2']
-  videoScenes = (project.notebook.content || []).map(node => String(node.attrs?.id))
+  ;({ videoId, videoScenes } = await makeVideo('main'))
 })
 
 describe('planning a forked video', () => {
@@ -141,6 +159,8 @@ describe('planning a forked video', () => {
     const refused = await service.submitBrief(record.id, cited)
     expect(refused.accepted).toBe(false)
     expect(JSON.stringify(refused)).toMatch(/ev-note/)
+    // The run gives up; its record is no longer anyone's to take over.
+    await service.runFinished('run-brief-notes', { status: 'error', exitCode: 1 })
   })
 
   it('refuses a brief that quotes what the source never said, then keeps a grounded one', async () => {
@@ -199,8 +219,81 @@ describe('planning a forked video', () => {
     const plan = { ...treatmentFor(sceneId, 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }] }
     await service.submitTreatment(queued.record.id, plan)
     await service.saveDirection(videoId, { subject: sceneId, delivery: 'generated' })
-    const view = (await service.planningOverview(videoId)).scenes.find(entry => entry.id === sceneId)!.view
+    const overview = await service.planningOverview(videoId)
+    const view = overview.scenes.find(entry => entry.id === sceneId)!.view
     expect(view.state).toBe('stale')
+    expect(view.staleBecause).toBe('the scene\'s delivery changed since this plan was made')
+    // One scene's delivery is that scene's input, not the brief's.
+    expect(overview.brief.stale).toBe(false)
     await expect(service.reviewTreatment(queued.record.id)).rejects.toThrow(/stale/)
+  })
+})
+
+// The independent M0 review's probes (R1, R2), with the defect expectations
+// inverted: each now describes the repaired behaviour.
+describe('planning integrity', () => {
+  it('starts one record for simultaneous identical requests', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('claim')
+    const briefs = await Promise.all(Array.from({ length: 4 }, () => service.queueBrief(id)))
+    expect(new Set(briefs.map(entry => entry.record.id)).size).toBe(1)
+    expect(briefs.filter(entry => !entry.reused)).toHaveLength(1)
+    const brief = briefs[0].record
+    await service.attachRun(brief.id, { runId: 'run-claim-brief', adapter: 'claude-code' })
+    const context = JSON.parse((await service.loadPacket(brief.id)).files['packet/CONTEXT.json'])
+    await service.submitBrief(brief.id, goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds }), 'run-claim-brief')
+    const plans = await Promise.all(Array.from({ length: 4 }, () => service.queueTreatment(id, scenes[0])))
+    expect(new Set(plans.map(entry => entry.record.id)).size).toBe(1)
+    expect(plans.map(entry => entry.record.revision)).toEqual([1, 1, 1, 1])
+  })
+
+  it('lets one run own a record: the same run may ask again, no other run may take it', async () => {
+    const { videoId: id } = await makeVideo('owner')
+    const { record } = await service.queueBrief(id)
+    const first = await service.attachRun(record.id, { runId: 'run-owner-a', adapter: 'claude-code', model: 'claude-opus-5-5' })
+    expect(first).toMatchObject({ status: 'running', runId: 'run-owner-a', model: 'claude-opus-5-5' })
+    // A retry after a lost response is the same owner.
+    expect((await service.attachRun(record.id, { runId: 'run-owner-a', adapter: 'claude-code' })).runId).toBe('run-owner-a')
+    await expect(service.attachRun(record.id, { runId: 'run-owner-b', adapter: 'claude-code' })).rejects.toThrow(/already running as run-owner-a/)
+    // Only the owner reports the model its session runs; nothing else moves.
+    await expect(service.recordReportedModel(record.id, { runId: 'run-owner-b', model: 'x' })).rejects.toThrow(/Only the run that owns/)
+    const reported = await service.recordReportedModel(record.id, { runId: 'run-owner-a', model: 'claude-opus-5-5' })
+    expect(reported).toMatchObject({ runId: 'run-owner-a', status: 'running', model: 'claude-opus-5-5', reportedModel: 'claude-opus-5-5' })
+    // Nor can another run submit to it.
+    await expect(service.submitBrief(record.id, {}, 'run-owner-b')).rejects.toThrow(/does not own/)
+  })
+
+  it('keeps a plan from a stale brief readable but never current, reviewable or plannable', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('ancestry')
+    await readyBrief(id, 'run-ancestry-brief')
+    const { record } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(record.id, { runId: 'run-ancestry-plan' })
+    expect(await service.submitTreatment(record.id, treatmentFor(scenes[0], 'b1'), 'run-ancestry-plan')).toMatchObject({ accepted: true, status: 'candidate' })
+    // A plan still running when the source moves.
+    const { record: running } = await service.queueTreatment(id, scenes[1])
+    await service.attachRun(running.id, { runId: 'run-ancestry-late' })
+    // The video's retained source changes; scene scripts, theme and direction do not.
+    const project = (await persistence.loadProjectArtifact(id))!
+    const changed = await persistence.saveSourceRevision({ kind: 'url', url: 'https://example.com/bucket-v2', title: 'Changed source', site: 'example.com', content: { text: `${ARTICLE}\n\nThis is a revised article.` } })
+    project.source!.snapshotId = changed.id
+    await persistence.saveProjectArtifact(project)
+    const overview = await service.planningOverview(id)
+    expect(overview.brief).toMatchObject({ stale: true, staleBecause: 'the retained source changed since it was made' })
+    expect(overview.scenes[0].view).toMatchObject({ state: 'stale', staleBecause: 'its explanation brief is stale: the retained source changed since it was made' })
+    expect(overview.scenes[0].view.current?.id).toBe(record.id)
+    await expect(service.reviewTreatment(record.id)).rejects.toThrow(/stale/)
+    await expect(service.queueTreatment(id, scenes[0])).rejects.toThrow(/brief is stale/)
+    const plan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }] }
+    expect(await service.submitTreatment(running.id, plan, 'run-ancestry-late')).toMatchObject({ accepted: true, status: 'superseded' })
+  })
+
+  it('fails the records of a run interrupted by a restart, with a way on', async () => {
+    const { videoId: id } = await makeVideo('interrupt')
+    const { record } = await service.queueBrief(id)
+    await service.attachRun(record.id, { runId: 'run-interrupted' })
+    const failed = await service.runFinished('run-interrupted', { status: 'interrupted', exitCode: null })
+    expect(failed).toHaveLength(1)
+    expect(failed[0]).toMatchObject({ status: 'failed', error: { message: expect.stringMatching(/^Interrupted: the app closed while this run was working\. Retry it/) } })
+    // A retry queues afresh.
+    expect((await service.queueBrief(id)).reused).toBe(false)
   })
 })

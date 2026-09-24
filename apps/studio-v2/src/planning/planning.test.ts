@@ -4,7 +4,7 @@ import { buildCapabilityCatalog, parseBlueprintsIndex, parseRulesIndex, parseTec
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './explanation-brief'
 import { validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from './brief-adapter'
-import { briefStaleBecause, landingFor, scenePlanningView, type BriefInputs, type PlanningRecord } from './planning-records'
+import { PLANNING_SCHEMA, briefFingerprint, briefFreshness, landingFor, scenePlanningView, treatmentFingerprint, treatmentFreshness, type BriefInputs, type PlanningRecord, type TreatmentInputs } from './planning-records'
 
 // A retained article, short enough to read in a test.
 const SOURCE = `Rate limiting with a token bucket
@@ -316,53 +316,72 @@ describe('the handoff files', () => {
 
 const record = (overrides: Partial<PlanningRecord>): PlanningRecord => ({
   id: 'r', kind: 'treatment', projectId: 'p', subject: 'video-s01', revision: 1, status: 'candidate', fingerprint: 'f1', inputs: { briefId: 'brief-1' },
-  content: null, report: null, artifacts: null, runId: null, adapter: null, model: null, skillBundle: null, workflow: null, direction: '', error: null,
+  content: null, report: null, artifacts: null, runId: null, adapter: null, model: null, reportedModel: null, skillBundle: null, workflow: null, direction: '', error: null,
   createdAt: '', updatedAt: '', reviewedAt: null, ...overrides,
 })
-const brief = record({ id: 'brief-1', kind: 'brief', subject: '', status: 'ready' })
+const briefNow: BriefInputs = { schema: PLANNING_SCHEMA, baseNotebook: 'b', baseRevision: 'r1', sourceRevision: 's1', narrativeRevision: null, modelRevision: null, wordingPolicy: 'draft', scripts: [{ scene: 'video-s01', text: 'A bucket holds tokens.' }], themeRef: 't1', requestedSeconds: 360, videoDirection: '', sceneDecisions: [], bundleHash: 'h' }
+const brief = record({ id: 'brief-1', kind: 'brief', subject: '', status: 'ready', inputs: briefNow, fingerprint: briefFingerprint(briefNow) })
+const sceneNow: TreatmentInputs = { schema: PLANNING_SCHEMA, briefId: 'brief-1', briefFingerprint: brief.fingerprint, scene: 'video-s01', originScenes: ['base-1'], direction: 'Calm', videoDirection: '', themeRef: 't1', delivery: null, bundleHash: 'h', script: 'A bucket holds tokens.' }
+const plan = (overrides: Partial<PlanningRecord> = {}) => record({ id: 't1', inputs: sceneNow, fingerprint: treatmentFingerprint(sceneNow), ...overrides })
+const fresh = { briefFresh: briefFreshness(brief, briefNow), inputs: sceneNow }
 
 describe('planning states', () => {
   it('keeps the reviewed plan while a newer candidate runs, then fails', () => {
-    const reviewed = record({ id: 't1', revision: 1, status: 'reviewed' })
-    const running = record({ id: 't2', revision: 2, status: 'running' })
-    const view = scenePlanningView([brief, reviewed, running], 'video-s01', { briefFingerprint: 'b', treatmentFingerprint: 'f1' })
+    const reviewed = plan({ id: 't1', revision: 1, status: 'reviewed' })
+    const running = plan({ id: 't2', revision: 2, status: 'running' })
+    const view = scenePlanningView([brief, reviewed, running], 'video-s01', fresh)
     expect(view.state).toBe('planning')
     expect(view.reviewed?.id).toBe('t1')
-    const failed = scenePlanningView([brief, reviewed, { ...running, status: 'failed' }], 'video-s01', { briefFingerprint: 'b', treatmentFingerprint: 'f1' })
+    const failed = scenePlanningView([brief, reviewed, { ...running, status: 'failed' }], 'video-s01', fresh)
     expect(failed.state).toBe('failed')
     expect(failed.reviewed?.id).toBe('t1')
   })
 
-  it('shows a plan made from inputs that have since changed as stale', () => {
-    const view = scenePlanningView([brief, record({ id: 't1', status: 'candidate', fingerprint: 'old' })], 'video-s01', { briefFingerprint: 'b', treatmentFingerprint: 'new' })
+  it('names what moved when a scene plan goes stale', () => {
+    const view = scenePlanningView([brief, plan({ status: 'reviewed' })], 'video-s01', { ...fresh, inputs: { ...sceneNow, delivery: 'human', script: 'A bucket holds tokens, one per request.' } })
     expect(view.state).toBe('stale')
-    expect(view.staleBecause).toMatch(/inputs changed/)
+    expect(view.staleBecause).toBe('the scene\'s script and the scene\'s delivery changed since this plan was made')
   })
 
-  it('names what moved when a plan or the brief goes stale', () => {
-    const made = { briefId: 'brief-1', scene: 'video-s01', direction: 'Calm', videoDirection: '', delivery: null, script: 'A bucket holds tokens.', themeRef: 't1', bundleHash: 'h', originScenes: ['base-1'] }
-    const plan = record({ id: 't1', status: 'reviewed', fingerprint: 'old', inputs: made })
-    const view = scenePlanningView([brief, plan], 'video-s01', { briefFingerprint: 'b', treatmentFingerprint: 'new', treatmentInputs: { ...made, delivery: 'human', script: 'A bucket holds tokens, one per request.' } })
-    expect(view.staleBecause).toBe('the scene\'s script and the scene\'s delivery changed since this plan was made')
-    const inputs: BriefInputs = { baseNotebook: 'b', baseRevision: 'r1', sourceRevision: 's1', narrativeRevision: null, modelRevision: null, wordingPolicy: 'draft', scripts: [], themeRef: 't1', requestedSeconds: 360, videoDirection: '', sceneDecisions: [], bundleHash: 'h' }
-    const ready = record({ id: 'brief-1', kind: 'brief', subject: '', status: 'ready', fingerprint: 'b1', inputs })
-    expect(briefStaleBecause(ready, 'b1', inputs)).toBeNull()
-    expect(briefStaleBecause(ready, 'b2', { ...inputs, sceneDecisions: [{ scene: 'video-s01', voice: 'human' }] })).toBe('the delivery decisions changed since it was made')
+  it('makes every plan from a stale brief stale, and says why', () => {
+    const moved = { ...briefNow, sourceRevision: 's2' }
+    const view = scenePlanningView([brief, plan()], 'video-s01', { briefFresh: briefFreshness(brief, moved), inputs: sceneNow })
+    expect(view.state).toBe('stale')
+    expect(view.staleBecause).toBe('its explanation brief is stale: the retained source changed since it was made')
+    expect(treatmentFreshness(plan(), { brief, briefFresh: briefFreshness(brief, moved), inputs: sceneNow })).toMatchObject({ fresh: false })
+    expect(treatmentFreshness(plan(), { brief, ...fresh })).toEqual({ fresh: true, reason: null })
+  })
+
+  it('keeps one scene\'s words, theme and delivery out of the brief', () => {
+    // Scene-level edits never make the brief — and so every scene — stale.
+    for (const change of [{ scripts: [{ scene: 'video-s01', text: 'Reworded.' }] }, { themeRef: 't2' }, { sceneDecisions: [{ scene: 'video-s01', voice: 'human' }] }]) {
+      expect(briefFreshness(brief, { ...briefNow, ...change })).toEqual({ fresh: true, reason: null })
+    }
+    // What the brief does depend on is named.
+    expect(briefFreshness(brief, { ...briefNow, narrativeRevision: 'n2', wordingPolicy: 'preserve' })).toEqual({ fresh: false, reason: 'the narrative, the wording policy and the preserved wording changed since it was made' })
+    expect(briefFreshness(brief, { ...briefNow, videoDirection: 'Shorter' }).reason).toBe('the video direction changed since it was made')
+  })
+
+  it('reads a record made under older rules as stale, once, with that reason', () => {
+    const { schema: _schema, ...older } = briefNow
+    const old = record({ id: 'brief-0', kind: 'brief', subject: '', status: 'ready', inputs: older, fingerprint: 'fp-under-old-rules' })
+    expect(briefFreshness(old, briefNow).reason).toMatch(/^the planning rules changed/)
   })
 
   it('waits for the brief before a scene can plan', () => {
-    expect(scenePlanningView([], 'video-s01', { briefFingerprint: null, treatmentFingerprint: null }).state).toBe('preparing')
-    expect(scenePlanningView([{ ...brief, status: 'failed' }], 'video-s01', { briefFingerprint: null, treatmentFingerprint: null }).state).toBe('brief-failed')
-    expect(scenePlanningView([brief], 'video-s01', { briefFingerprint: 'b', treatmentFingerprint: 'f1' }).state).toBe('ready-to-plan')
+    expect(scenePlanningView([], 'video-s01', null).state).toBe('preparing')
+    expect(scenePlanningView([{ ...brief, status: 'failed' }], 'video-s01', null).state).toBe('brief-failed')
+    expect(scenePlanningView([brief], 'video-s01', fresh).state).toBe('ready-to-plan')
   })
 
   it('lands a result only on the newest run whose inputs are still current', () => {
-    const older = record({ id: 't1', revision: 1, status: 'running', fingerprint: 'f1' })
-    const newer = record({ id: 't2', revision: 2, status: 'running', fingerprint: 'f1' })
-    expect(landingFor(older, [older, newer], 'f1')).toMatchObject({ lands: false, status: 'superseded' })
-    expect(landingFor(newer, [older, newer], 'f1')).toEqual({ lands: true })
-    expect(landingFor(newer, [older, newer], 'f2')).toMatchObject({ lands: false, reason: expect.stringMatching(/inputs changed/) })
-    expect(landingFor({ ...newer, status: 'candidate' }, [newer], 'f1')).toMatchObject({ lands: false })
+    const older = plan({ id: 't1', revision: 1, status: 'running' })
+    const newer = plan({ id: 't2', revision: 2, status: 'running' })
+    const ok = { fresh: true, reason: null } as const
+    expect(landingFor(older, [older, newer], ok)).toMatchObject({ lands: false, status: 'superseded' })
+    expect(landingFor(newer, [older, newer], ok)).toEqual({ lands: true })
+    expect(landingFor(newer, [older, newer], { fresh: false, reason: 'the scene direction changed since this plan was made' })).toMatchObject({ lands: false, reason: expect.stringMatching(/inputs changed while it ran \(the scene direction changed/) })
+    expect(landingFor({ ...newer, status: 'candidate' }, [newer], ok)).toMatchObject({ lands: false })
   })
 
   it('fingerprints the same inputs the same way whatever their key order', () => {

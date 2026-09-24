@@ -485,8 +485,7 @@ const withPlanning = <T>(change: (file: PlanningFile) => T | Promise<T>, write =
 }
 const copy = <T>(value: T): T => structuredClone(value)
 
-export const createPlanningRecord = (record: NewPlanningRecord): Promise<PlanningRecord> =>
-  withPlanning(file => {
+const newRecord = (file: PlanningFile, record: NewPlanningRecord): PlanningRecord => {
     const revision =
       Math.max(0, ...file.records.filter(entry => entry.projectId === record.projectId && entry.kind === record.kind && entry.subject === (record.subject || '')).map(entry => entry.revision)) + 1
     const at = new Date().toISOString()
@@ -505,6 +504,7 @@ export const createPlanningRecord = (record: NewPlanningRecord): Promise<Plannin
       runId: null,
       adapter: record.adapter || null,
       model: record.model || null,
+      reportedModel: null,
       skillBundle: record.skillBundle || null,
       workflow: record.workflow || null,
       direction: record.direction || '',
@@ -514,7 +514,21 @@ export const createPlanningRecord = (record: NewPlanningRecord): Promise<Plannin
       reviewedAt: null,
     }
     file.records.push(created)
-    return copy(created)
+    return created
+}
+
+export const createPlanningRecord = (record: NewPlanningRecord): Promise<PlanningRecord> =>
+  withPlanning(file => copy(newRecord(file, record)))
+
+// The check and the create happen under the one planning lock: two identical
+// requests can never both start.
+export const claimPlanningRecord = (record: NewPlanningRecord): Promise<{ record: PlanningRecord; reused: boolean }> =>
+  withPlanning(file => {
+    const active = file.records
+      .filter(entry => entry.projectId === record.projectId && entry.kind === record.kind && entry.subject === (record.subject || '') && entry.fingerprint === record.fingerprint && (entry.status === 'queued' || entry.status === 'running'))
+      .sort((a, b) => b.revision - a.revision)[0]
+    if (active) return { record: copy(active), reused: true }
+    return { record: copy(newRecord(file, record)), reused: false }
   })
 
 export const listPlanningRecords = (projectId: string): Promise<PlanningRecord[]> =>
@@ -531,10 +545,11 @@ export const listPlanningRecords = (projectId: string): Promise<PlanningRecord[]
 export const loadPlanningRecord = (id: string): Promise<PlanningRecord | null> =>
   withPlanning(file => copy(file.records.find(entry => entry.id === id) || null), false)
 
-export const updatePlanningRecord = (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[]): Promise<PlanningRecord | null> =>
+export const updatePlanningRecord = (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[], owner?: { runId: string | null }): Promise<PlanningRecord | null> =>
   withPlanning(file => {
     const record = file.records.find(entry => entry.id === id)
     if (!record || (expected?.length && !expected.includes(record.status))) return null
+    if (owner && (record.runId ?? null) !== owner.runId) return null
     for (const [key, value] of Object.entries(patch)) {
       if (value !== undefined) (record as Record<string, unknown>)[key] = value
     }

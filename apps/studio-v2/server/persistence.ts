@@ -160,11 +160,15 @@ type PersistenceBackend = {
   findNotebooksReferencing: (marker: string) => Promise<Array<{ id: string; title: string }>>
   settingsWithPrefix: (prefix: string) => Promise<Record<string, unknown>>
   createPlanningRecord: (record: NewPlanningRecord) => Promise<PlanningRecord>
+  // Atomically: the queued or running record for the same project, kind,
+  // subject and fingerprint if there is one, else a new queued record.
+  claimPlanningRecord: (record: NewPlanningRecord) => Promise<{ record: PlanningRecord; reused: boolean }>
   listPlanningRecords: (projectId: string) => Promise<PlanningRecord[]>
   loadPlanningRecord: (id: string) => Promise<PlanningRecord | null>
-  // Applies the patch only while the record's status is one of `expected`;
+  // Applies the patch only while the record's status is one of `expected`
+  // and, when `owner` is given, while its run is that owner (null: unowned);
   // answers null when another writer got there first.
-  updatePlanningRecord: (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[]) => Promise<PlanningRecord | null>
+  updatePlanningRecord: (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[], owner?: { runId: string | null }) => Promise<PlanningRecord | null>
   listPlanningRecordsForRun: (runId: string) => Promise<PlanningRecord[]>
   listPlanningInputs: (projectId: string) => Promise<PlanningInputRow[]>
   savePlanningInput: (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) => Promise<PlanningInputRow>
@@ -179,7 +183,7 @@ type PersistenceBackend = {
 export type NewPlanningRecord = Pick<PlanningRecord, 'projectId' | 'kind' | 'subject' | 'fingerprint' | 'inputs' | 'direction'> &
   Partial<Pick<PlanningRecord, 'skillBundle' | 'workflow' | 'adapter' | 'model'>>
 export type PlanningRecordPatch = Partial<
-  Pick<PlanningRecord, 'status' | 'content' | 'report' | 'artifacts' | 'runId' | 'adapter' | 'model' | 'workflow' | 'error' | 'reviewedAt'>
+  Pick<PlanningRecord, 'status' | 'content' | 'report' | 'artifacts' | 'runId' | 'adapter' | 'model' | 'reportedModel' | 'workflow' | 'error' | 'reviewedAt'>
 >
 export type PlanningInputRow = { projectId: string; subject: string; direction: string; delivery: string | null; updatedAt: string }
 
@@ -329,14 +333,17 @@ export const listBuildStages = async (runId: string) =>
 export const createPlanningRecord = async (record: NewPlanningRecord) =>
   (await loadBackend()).createPlanningRecord(record)
 
+export const claimPlanningRecord = async (record: NewPlanningRecord) =>
+  (await loadBackend()).claimPlanningRecord(record)
+
 export const listPlanningRecords = async (projectId: string) =>
   (await loadBackend()).listPlanningRecords(projectId)
 
 export const loadPlanningRecord = async (id: string) =>
   (await loadBackend()).loadPlanningRecord(id)
 
-export const updatePlanningRecord = async (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[]) =>
-  (await loadBackend()).updatePlanningRecord(id, patch, expected)
+export const updatePlanningRecord = async (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[], owner?: { runId: string | null }) =>
+  (await loadBackend()).updatePlanningRecord(id, patch, expected, owner)
 
 export const listPlanningRecordsForRun = async (runId: string) =>
   (await loadBackend()).listPlanningRecordsForRun(runId)

@@ -77,8 +77,9 @@ export type RunSummary = {
   projectDir: string
   status: RunStatus
   resumeId?: string
-  // The model the run asked for, then the one its harness reported running.
+  // The model the run asked for, and the one its harness session reported.
   model?: string
+  reportedModel?: string
   startedAt: string
   finishedAt?: string
 }

@@ -567,6 +567,7 @@ const planningRecordFrom = (row: Record<string, unknown>): PlanningRecord => ({
   runId: (row.run_id as string | null) ?? null,
   adapter: (row.adapter as string | null) ?? null,
   model: (row.model as string | null) ?? null,
+  reportedModel: (row.reported_model as string | null) ?? null,
   skillBundle: (row.skill_bundle as PlanningRecord['skillBundle']) ?? null,
   workflow: (row.workflow as string | null) ?? null,
   direction: String(row.direction || ''),
@@ -612,6 +613,47 @@ export const createPlanningRecord = async (record: NewPlanningRecord): Promise<P
   throw new Error('Could not allocate a planning revision; try again')
 }
 
+// Claims a request once: an identical queued or running record answers the
+// claim. The partial unique index on active (project, kind, subject,
+// fingerprint) makes a concurrent insert lose; the loser then finds and
+// returns the winner. A clash on the revision number retries.
+export const claimPlanningRecord = async (record: NewPlanningRecord): Promise<{ record: PlanningRecord; reused: boolean }> => {
+  await initializePersistence()
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const active = await database.query(
+      `select * from studio_planning_records
+        where project_id = $1 and kind = $2 and subject = $3 and fingerprint = $4 and status in ('queued', 'running')
+        order by revision desc limit 1`,
+      [record.projectId, record.kind, record.subject || '', record.fingerprint],
+    )
+    if (active.rows[0]) return { record: planningRecordFrom(active.rows[0]), reused: true }
+    const id = `plan-${record.kind}-${randomUUID()}`
+    const result = await database.query(
+      `insert into studio_planning_records
+        (id, project_id, kind, subject, revision, status, fingerprint, inputs, direction, skill_bundle, workflow, adapter, model)
+       select $1, $2, $3, $4, coalesce(max(revision), 0) + 1, 'queued', $5, $6::jsonb, $7, $8::jsonb, $9, $10, $11
+         from studio_planning_records where project_id = $2 and kind = $3 and subject = $4
+       on conflict do nothing
+       returning *`,
+      [
+        id,
+        record.projectId,
+        record.kind,
+        record.subject || '',
+        record.fingerprint,
+        JSON.stringify(record.inputs || {}),
+        record.direction || '',
+        record.skillBundle ? JSON.stringify(record.skillBundle) : null,
+        record.workflow || null,
+        record.adapter || null,
+        record.model || null,
+      ],
+    )
+    if (result.rows[0]) return { record: planningRecordFrom(result.rows[0]), reused: false }
+  }
+  throw new Error('Could not claim this planning request; try again')
+}
+
 export const listPlanningRecords = async (projectId: string): Promise<PlanningRecord[]> => {
   await initializePersistence()
   const result = await database.query(
@@ -635,6 +677,7 @@ const PLANNING_COLUMNS: Record<keyof PlanningRecordPatch, { column: string; json
   runId: { column: 'run_id' },
   adapter: { column: 'adapter' },
   model: { column: 'model' },
+  reportedModel: { column: 'reported_model' },
   workflow: { column: 'workflow' },
   error: { column: 'error', json: true },
   reviewedAt: { column: 'reviewed_at', time: true },
@@ -644,6 +687,7 @@ export const updatePlanningRecord = async (
   id: string,
   patch: PlanningRecordPatch,
   expected?: PlanningStatus[],
+  owner?: { runId: string | null },
 ): Promise<PlanningRecord | null> => {
   await initializePersistence()
   const sets: string[] = []
@@ -658,6 +702,10 @@ export const updatePlanningRecord = async (
   if (expected?.length) {
     values.push(expected)
     guard = ` and status = any($${values.length}::text[])`
+  }
+  if (owner) {
+    values.push(owner.runId)
+    guard += ` and run_id is not distinct from $${values.length}::text`
   }
   const result = await database.query(
     `update studio_planning_records set ${[...sets, 'updated_at = now()'].join(', ')} where id = $1${guard} returning *`,

@@ -56,6 +56,7 @@ type RunFile = {
   harness: string
   harnessVersion: string
   model?: string
+  reportedModel?: string
   skillVersion?: string
   startedAt: string
   resumeId?: string
@@ -111,6 +112,7 @@ export class RunManager {
       harness: record.summary.adapter,
       harnessVersion: '1',
       model: record.summary.model,
+      reportedModel: record.summary.reportedModel,
       startedAt: record.summary.startedAt,
       resumeId: record.resumeId,
       status: record.summary.status,
@@ -186,6 +188,38 @@ export class RunManager {
     }
     for (const record of live.values()) merged.push({ ...record.summary })
     return merged
+  }
+
+  // Runs the store still shows running or at a gate were cut off when the
+  // app last closed: no process serves them now. Each is recorded as an
+  // interrupted error, and a planning record it owned fails with a way to
+  // retry — nothing stays "running" forever after a restart.
+  async reconcileInterrupted(): Promise<string[]> {
+    let durable: Array<Record<string, unknown>> = []
+    try {
+      const response = await fetch(`${this.context.origin}/api/runs`)
+      durable = ((await response.json()) as { runs?: Array<Record<string, unknown>> }).runs || []
+    } catch {
+      return []
+    }
+    const interrupted: string[] = []
+    for (const row of durable) {
+      const id = String(row.id)
+      if (!['running', 'gate'].includes(String(row.status)) || this.runs.has(id)) continue
+      try {
+        await fetch(`${this.context.origin}/api/runs`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ...row, status: 'error', exitCode: null, finishedAt: new Date().toISOString() }),
+        })
+        await this.worker(`/api/planning/runs/${encodeURIComponent(id)}/finished`, { status: 'interrupted', exitCode: null })
+        interrupted.push(id)
+      } catch (error) {
+        log('could not reconcile interrupted run', id, error instanceof Error ? error.message : error)
+      }
+    }
+    if (interrupted.length) log(`interrupted runs reconciled: ${interrupted.join(', ')}`)
+    return interrupted
   }
 
   private async writeInputs(record: RunRecord) {
@@ -289,16 +323,15 @@ export class RunManager {
   // The harness said which model its session runs: the run and a planning
   // record keep that, not only the model that was asked for.
   private async sessionModel(record: RunRecord, model: string) {
-    if (record.summary.model === model) return
-    record.summary.model = model
+    if (record.summary.reportedModel === model) return
+    record.summary.reportedModel = model
     await this.writeRunFile(record).catch(() => {})
     await this.persistRun(record).catch(() => {})
     if (record.planningRecord) {
-      await this.worker(`/api/planning/records/${encodeURIComponent(record.planningRecord)}/run`, {
+      await this.worker(`/api/planning/records/${encodeURIComponent(record.planningRecord)}/model`, {
         runId: record.summary.id,
-        adapter: record.summary.adapter,
         model,
-      }).catch(error => log('planning record kept the requested model:', error instanceof Error ? error.message : error))
+      }).catch(error => log('planning record did not take the reported model:', error instanceof Error ? error.message : error))
     }
   }
 
