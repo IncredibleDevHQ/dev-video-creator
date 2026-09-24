@@ -59,6 +59,7 @@ const CHECKS = [
   'object-review-binding-check.mjs', // #15: receipts bind the exact embedded performance + clip ids
   'harness-models-check.mjs',     // M0: each harness's model list — Claude gated by CLI version, Kimi/Codex from config
   'planning-check.mjs',           // M0: brief + scene plans — planning-only tools, stale-safe, reload, no downstream
+  'visual-cast-check.mjs',        // P1: the base's icons and objects lifted, verified and shown while planning
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 

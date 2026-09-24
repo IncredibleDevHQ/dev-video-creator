@@ -43,6 +43,7 @@ recipe is a proposal the construction stage must still verify.
 Reduce the retained source into the video's Explanation Brief.
 
 1. Read `packet/CONTEXT.json` (the pinned revisions and the base pages),
+   `packet/THEME.json` (the video's actual colours and type),
    `packet/SOURCE.md` (the retained source, with paragraph locators),
    `packet/NARRATIVE.md` (the creator's own words: narrative, scene scripts,
    direction) and `packet/PRESENTATION.md` (what the base's slides were
@@ -75,7 +76,20 @@ Develop one scene's creative plan — the scene treatment.
    units, its presentation input as reference, its words, its neighbours, the
    decisions already made and the creator's direction), `packet/NEIGHBORS.json`
    (what each neighbour's plan promises at the seam — only a reviewed plan
-   can be agreed with) and `packet/CONTEXT.json`. The presentation input's page notes were written
+   can be agreed with), `packet/PREVIOUS_PLAN.json` (the scene's reviewed
+   plan, if any) and `packet/CONTEXT.json`.
+   Then the visual material: `packet/THEME.json` (the actual colours with
+   what each means, the type families and their fallbacks) and
+   `packet/VISUAL_CAST.json` (the icons and objects lifted from the base
+   page: what each is, its parts and what the page animates on them, its
+   rig, how sure the extraction is, and its library key). **Look at**
+   `packet/references/page.png` and `packet/references/visual-cast.png`
+   (the files `CONTEXT.json` lists under `images`) with your image-reading
+   tool, and open an ingredient's `assets/<id>/asset.svg` or `preview.png`
+   when you need its detail. The page is a reference: the video may restage
+   everything. `packet/RUN.json` says whether your harness has been shown to
+   view images; if you cannot, say so in `unresolved` and work from
+   `VISUAL_CAST.json` and the SVG sources. The presentation input's page notes were written
    for a slide and its presenter panel: never plan to their layout or their
    text-size gate as if the creator had asked for it.
 2. Read [the treatment contract](references/treatment-contract.md).

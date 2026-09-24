@@ -179,6 +179,8 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
 
 export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter => ({
   id: 'claude-code',
+  // Its Read tool renders images for the model.
+  images: 'native',
   available: async () => {
     const found = await resolveClaudeBinary()
     if (found.path && 'version' in found) return { ok: true, version: `${found.version} · ${found.path}` }

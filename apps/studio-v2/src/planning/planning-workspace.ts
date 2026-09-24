@@ -40,8 +40,33 @@ type SceneRow = {
   // How the current plan meets its neighbours now.
   continuity?: ContinuityState[] | null
 }
+// The cast of the video's pinned base, as the overview reports it.
+export type VisualCastSummary = {
+  id: string | null
+  status: 'ready' | 'failed' | 'extracting'
+  error: string | null
+  createdAt: string | null
+  pages: Array<{ scene: string; title: string; preview: string; contactSheet: string | null; notes: string[] }>
+  entries: Array<{
+    id: string
+    libraryKey: string | null
+    kind: string
+    label: string
+    page: string
+    node: string
+    object: string | null
+    svg: string
+    thumbnail: string
+    parts: Array<{ name: string; count: number; animations: string[] }>
+    rig: string
+    grouping: string
+    checks: string[]
+    verification: string
+  }>
+}
 export type PlanningOverviewV1 = {
   projectId: string
+  visualCast?: VisualCastSummary
   available: boolean
   bundle: { name: string; version: string; hash: string; upstreamCommit: string } | null
   baseTitle: string
@@ -126,7 +151,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   const forkName = (fork: Fork | undefined) =>
     !fork ? projectId : forks.filter(entry => entry.title === fork.title).length > 1 && fork.createdAt ? `${fork.title} (made ${when(fork.createdAt)})` : fork.title
   let selectedScene = ''
-  let tab: 'presentation' | 'brief' | 'plan' = 'plan'
+  let tab: 'presentation' | 'brief' | 'plan' | 'cast' = 'plan'
   let revision = ''
   let compareWith = ''
   let moment = ''
@@ -174,6 +199,12 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     render()
   }
 
+  // A library key, by the cast ingredient it is when it came from the base.
+  const castLabel = (key: string) => {
+    const entry = overview?.visualCast?.entries.find(item => item.libraryKey === key)
+    return entry ? `“${entry.label}” (${entry.kind})` : key
+  }
+
   const recordsFor = (kind: PlanningRecord['kind'], subject: string) =>
     (overview?.records || []).filter(record => record.kind === kind && record.subject === subject).sort((a, b) => b.revision - a.revision)
 
@@ -196,7 +227,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     if (!selectedScene || !overview.scenes.some(scene => scene.id === selectedScene)) selectedScene = overview.scenes[0]?.id || ''
     // A poll that brings nothing new leaves the page exactly as it is: what
     // is open stays open, focus and scroll stay put (R11).
-    const signature = JSON.stringify([overview.records.map(record => [record.id, record.status, record.updatedAt, record.reportedModel]), overview.scenes.map(scene => [scene.id, scene.view.state, scene.direction, scene.delivery, scene.continuity]), overview.brief.stale, overview.videoDirection, harnessStatus])
+    const signature = JSON.stringify([overview.records.map(record => [record.id, record.status, record.updatedAt, record.reportedModel]), overview.scenes.map(scene => [scene.id, scene.view.state, scene.direction, scene.delivery, scene.continuity]), overview.brief.stale, overview.videoDirection, harnessStatus, overview.visualCast?.id, overview.visualCast?.status])
     if (signature !== shown) {
       shown = signature
       render()
@@ -206,7 +237,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
 
   const schedulePoll = () => {
     window.clearTimeout(pollTimer)
-    if (!dialog.open || !active().length) return
+    // While a run works, or while the cast is being extracted.
+    if (!dialog.open || (!active().length && overview?.visualCast?.status !== 'extracting')) return
     pollTimer = window.setTimeout(() => void load(), 3000)
   }
 
@@ -561,7 +593,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
 
   const renderStage = () => {
     const tabs = h('div', { class: 'planning-tabs', role: 'tablist' })
-    for (const [id, label] of [['presentation', 'Presentation brief'], ['brief', 'Video explanation brief'], ['plan', 'Creative plan']] as const) {
+    for (const [id, label] of [['presentation', 'Presentation brief'], ['brief', 'Video explanation brief'], ['plan', 'Creative plan'], ['cast', 'Visual cast']] as const) {
       const button = h('button', { type: 'button', role: 'tab', class: `planning-tab${tab === id ? ' is-active' : ''}`, 'aria-selected': tab === id ? 'true' : 'false', text: label })
       button.addEventListener('click', () => {
         tab = id
@@ -572,8 +604,62 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       })
       tabs.append(button)
     }
-    const body = showRaw ? renderRaw() : tab === 'presentation' ? renderPresentation() : tab === 'brief' ? renderBrief() : renderPlan()
+    const body = showRaw ? renderRaw() : tab === 'presentation' ? renderPresentation() : tab === 'brief' ? renderBrief() : tab === 'cast' ? renderCast() : renderPlan()
     return h('section', { class: 'planning-column planning-stage' }, tabs, body)
+  }
+
+  // The icons and objects lifted from the base: this scene's pages first,
+  // then the rest of the base, each with how sure the extraction is.
+  const renderCast = () => {
+    const cast = overview!.visualCast
+    const pane = h('div', { class: 'planning-pane planning-cast' })
+    if (!cast || cast.status === 'extracting') {
+      pane.append(h('p', { class: 'planning-busy', text: 'Extracting the visual cast from the base pages…' }))
+      return pane
+    }
+    if (cast.status === 'failed') {
+      pane.append(h('p', { class: 'planning-error', text: `The visual cast could not be extracted: ${cast.error || 'no reason given'}` }))
+      if (!readOnly) {
+        const retry = h('button', { type: 'button', class: 'button ghost', text: 'Extract again' })
+        retry.addEventListener('click', async () => {
+          retry.setAttribute('disabled', '')
+          await host.fetchJson(`/api/planning/${encodeURIComponent(projectId)}/cast`, { method: 'POST' }).catch(error => host.toast(error instanceof Error ? error.message : 'Could not extract the cast'))
+          await load()
+        })
+        pane.append(retry)
+      }
+      return pane
+    }
+    const scene = sceneRow()
+    const origins = scene?.originScenes || []
+    const card = (entry: VisualCastSummary['entries'][number]) => {
+      const image = h('img', { alt: entry.label || entry.node, loading: 'lazy' })
+      image.src = entry.thumbnail
+      const parts = entry.parts.map(part => `${part.name}${part.count > 1 ? ` ×${part.count}` : ''}${part.animations.length ? ` (${part.animations.join(', ')})` : ''}`)
+      return h('article', { class: `planning-cast-card${entry.verification === 'verified' ? '' : ' is-reference'}`, 'data-cast': entry.id },
+        h('div', { class: 'planning-cast-art' }, image),
+        h('strong', { text: entry.label || entry.node }),
+        h('div', { class: 'planning-cast-chips' },
+          chip(entry.kind),
+          entry.object ? chip(`${entry.object} rig${entry.rig === 'verified' ? ' — every part separate' : entry.rig === 'partial' ? ' — some parts separate' : ' — parts not separate'}`, entry.rig === 'verified' ? 'good' : 'warn') : null,
+          chip(entry.verification === 'verified' ? 'matches the page' : 'reference only', entry.verification === 'verified' ? 'good' : 'bad'),
+          entry.grouping === 'inferred' ? chip('grouping inferred', 'warn') : null,
+        ),
+        parts.length ? h('small', { class: 'planning-muted', text: `Parts: ${parts.join(' · ')}` }) : h('small', { class: 'planning-muted', text: 'One piece, no named parts' }),
+        entry.checks.length ? disclosure(`cast:checks:${entry.id}`, `What to check (${entry.checks.length})`, h('ul', { class: 'planning-list' }, ...entry.checks.map(check => h('li', { text: check }))), false, { class: 'planning-cast-checks' }) : '',
+      )
+    }
+    const mine = cast.entries.filter(entry => origins.includes(entry.page))
+    const rest = cast.entries.filter(entry => !origins.includes(entry.page))
+    const pagesOf = cast.pages.filter(page => origins.includes(page.scene))
+    pane.append(
+      h('p', { class: 'planning-note', text: 'Icons and objects lifted from the base pages, each checked against the page it came from. The video may reuse, adapt, enrich or replace them; the base is never changed.' }),
+      ...pagesOf.flatMap(page => page.notes.map(note => h('p', { class: 'planning-warn', text: note }))),
+      h('h4', { text: `From this scene's page${pagesOf.length === 1 ? '' : 's'} (${mine.length})` }),
+      mine.length ? h('div', { class: 'planning-cast-grid' }, ...mine.map(card)) : h('p', { class: 'planning-muted', text: 'Its pages drew no reusable icon or object — only labels and text.' }),
+      rest.length ? disclosure('cast:elsewhere', `Elsewhere in the base (${rest.length})`, h('div', { class: 'planning-cast-grid' }, ...rest.map(card))) : '',
+    )
+    return pane
   }
 
   const renderPresentation = () => {
@@ -759,7 +845,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       h('div', { class: 'planning-grid' },
         h('article', { class: 'planning-card' },
           h('h5', { text: 'Objects' }),
-          plan.objects.length ? h('ul', { class: 'planning-list' }, ...plan.objects.map(object => h('li', {}, h('strong', { text: object.entity }), ` — ${object.role}. `, h('em', { text: object.performance || 'No performance described.' }), ' ', chip(object.asset.status === 'reuse' ? `reuse ${object.asset.ref}` : object.asset.status)))) : null,
+          plan.objects.length ? h('ul', { class: 'planning-list' }, ...plan.objects.map(object => h('li', {}, h('strong', { text: object.entity }), ` — ${object.role}. `, h('em', { text: object.performance || 'No performance described.' }), ' ', chip(object.asset.ref ? `${object.asset.status} ${castLabel(object.asset.ref)}` : object.asset.status, object.asset.status === 'undecided' ? 'warn' : ''), object.asset.reason ? h('small', { class: 'planning-muted', text: ` ${object.asset.reason}` }) : null))) : null,
           uncast.length ? h('p', { class: 'planning-warn', text: `Moved in its moments but not cast, so no look or asset is decided: ${uncast.join(', ')}.` }) : null,
           !plan.objects.length && !uncast.length ? h('p', { class: 'planning-muted', text: 'No objects: this scene is carried by other channels.' }) : null,
         ),

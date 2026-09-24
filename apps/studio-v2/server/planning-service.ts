@@ -32,6 +32,7 @@ import { listArtwork } from './appearance-library'
 import { fingerprintOf } from '../src/planning/fingerprint'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
 import { continuityStatus, validateTreatment, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
+import { ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
 import {
   ACTIVE_STATUSES,
@@ -257,6 +258,149 @@ const freshnessOf = (planning: VideoPlanning, records: PlanningRecord[]) => {
   }
 }
 
+// ——— The visual cast and the theme a packet carries (P1) ———
+// A packet file is text, or bytes — a preview image — carried as base64.
+export type PacketFile = string | { base64: string; contentType: string }
+export type PacketFiles = Record<string, PacketFile>
+
+const castSourcesOf = (planning: VideoPlanning) =>
+  planning.basePages.map(page => ({ scene: page.scene, title: page.title, svg: page.svg, sourcePassages: page.sourcePassages }))
+// The cast of this video's pinned base: extracted once per base revision.
+export const visualCastFor = (planning: VideoPlanning, options: { retryFailed?: boolean } = {}) =>
+  ensureVisualCast({
+    notebook: planning.project.derivedFrom!.notebook,
+    revision: planning.project.derivedFrom!.baseRevision || '',
+    pages: castSourcesOf(planning),
+    theme: planning.project.theme,
+    ...options,
+  })
+const knownCast = (planning: VideoPlanning) => loadVisualCast(planning.project.derivedFrom!.notebook, planning.project.derivedFrom!.baseRevision || '')
+export const retryVisualCast = async (projectId: string) => visualCastFor(await loadVideoPlanning(projectId), { retryFailed: true })
+
+// The theme's actual tokens, not its id: colours with what each means,
+// the type families with their fallbacks, and the shapes it keeps.
+const COLOUR_MEANINGS: Record<string, string> = {
+  background: 'the ground every scene sits on',
+  surface: 'cards and panels on the ground',
+  text: 'primary text and labels',
+  mutedText: 'secondary text, captions and quiet detail',
+  primary: 'the main structural colour of the drawn things',
+  secondary: 'a second family, for contrast between things',
+  accent: 'emphasis — what the viewer must look at now; keep it one meaning',
+  codeBackground: 'code and data blocks',
+}
+const COLOUR = /^(#[0-9a-f]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\))$/i
+const themeFile = (planning: VideoPlanning) => {
+  const theme = planning.project.theme
+  const brand = (theme?.brand || planning.project.brand || {}) as Record<string, string>
+  const fonts = theme?.fonts
+  return JSON.stringify(
+    {
+      ref: planning.themeRef,
+      name: theme?.name || null,
+      colors: Object.fromEntries(Object.entries(brand).filter(([, value]) => typeof value === 'string' && COLOUR.test(value))),
+      meanings: Object.fromEntries(Object.entries(brand).filter(([key, value]) => COLOUR_MEANINGS[key] && typeof value === 'string' && COLOUR.test(value)).map(([key]) => [key, COLOUR_MEANINGS[key]])),
+      typography: {
+        display: fonts?.display || null,
+        body: fonts?.body || null,
+        mono: fonts?.mono || null,
+        fallbacks: { display: 'Inter, system-ui, sans-serif', body: 'Inter, system-ui, sans-serif', mono: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
+        note: fonts ? 'The families the theme names; where one is not installed, its fallback renders.' : 'The theme names no type families: use the fallbacks.',
+      },
+      shape: { cornerRadius: theme?.blocks?.borderRadius ?? null, canvas: theme?.canvas || null },
+    },
+    null,
+    2,
+  )
+}
+
+// What a scene's packet carries of the cast: its pages as reference (SVG
+// and a usable preview), the page's contact sheet, and every ingredient's
+// standalone artwork, preview and parts. Every path it declares is a file.
+const castFiles = async (cast: VisualCastRevision | null, origins: string[]): Promise<PacketFiles> => {
+  if (!cast || cast.status !== 'ready') {
+    return {
+      'packet/VISUAL_CAST.json': JSON.stringify({ status: cast ? 'failed' : 'not extracted', reason: cast?.error || 'The visual cast has not been extracted.', note: 'Plan from the brief and the scene; name the objects that need artwork in requirements.assets.' }, null, 2),
+    }
+  }
+  const files: PacketFiles = {}
+  const pages = cast.pages.filter(page => origins.includes(page.scene))
+  const entries = cast.entries.filter(entry => origins.includes(entry.identity.base.page))
+  const bytes = async (objectKey: string) => (await readObject(objectKey)).toString('base64')
+  const pageRefs = []
+  for (const [index, page] of pages.entries()) {
+    const suffix = pages.length > 1 ? `-${index + 1}` : ''
+    const reference = `references/page${suffix}.svg`
+    const preview = `references/page${suffix}.png`
+    const sheet = page.contactSheet ? `references/visual-cast${suffix}.png` : null
+    files[`packet/${reference}`] = (await readObject(page.page.objectKey)).toString('utf8')
+    files[`packet/${preview}`] = { base64: await bytes(page.preview.objectKey), contentType: 'image/png' }
+    if (sheet && page.contactSheet) files[`packet/${sheet}`] = { base64: await bytes(page.contactSheet.objectKey), contentType: 'image/png' }
+    pageRefs.push({ scene: page.scene, title: page.title, reference, preview, contactSheet: sheet, furniture: page.furniture.map(item => item.role).filter((role, at, all) => all.indexOf(role) === at), notes: page.notes })
+  }
+  const entryOf = (entry: CastEntry) => {
+    const folder = `assets/${entry.id}`
+    return {
+      id: entry.id,
+      libraryKey: entry.libraryKey,
+      kind: entry.kind,
+      label: entry.meaning.label,
+      detail: entry.meaning.detail,
+      entity: entry.identity.entity,
+      entityKind: entry.identity.entityKind,
+      object: entry.identity.object,
+      objectId: entry.identity.objectId,
+      page: entry.identity.base.page,
+      node: entry.identity.base.node,
+      interactions: entry.meaning.interactions,
+      parts: entry.parts.map(part => ({ id: part.id, name: part.name, named: part.named, count: part.count, animations: part.animations })),
+      rig: { object: entry.rig.object, status: entry.rig.status, missing: entry.rig.pieces.filter(piece => !piece.found).map(piece => piece.id) },
+      confidence: entry.confidence,
+      verification: { status: entry.verification.status, notes: entry.verification.notes },
+      themeBindings: entry.artwork.themeBindings,
+      fonts: entry.artwork.fonts,
+      size: entry.artwork.viewBox,
+      files: { svg: `${folder}/asset.svg`, preview: `${folder}/preview.png`, parts: `${folder}/parts.json` },
+    }
+  }
+  for (const entry of entries) {
+    const folder = `packet/assets/${entry.id}`
+    files[`${folder}/asset.svg`] = (await readObject(entry.artwork.svg.objectKey)).toString('utf8')
+    files[`${folder}/preview.png`] = { base64: await bytes(entry.artwork.thumbnail.objectKey), contentType: 'image/png' }
+    files[`${folder}/parts.json`] = JSON.stringify({ parts: entry.parts, rig: entry.rig }, null, 2)
+  }
+  files['packet/VISUAL_CAST.json'] = JSON.stringify(
+    {
+      status: 'ready',
+      cast: cast.id,
+      extractor: cast.version,
+      base: cast.base,
+      pages: pageRefs,
+      entries: entries.map(entryOf),
+      // The rest of the base's cast: reusable by library key.
+      elsewhere: cast.entries.filter(entry => !origins.includes(entry.identity.base.page)).map(entry => ({ id: entry.id, libraryKey: entry.libraryKey, kind: entry.kind, label: entry.meaning.label, page: entry.identity.base.page, verification: entry.verification.status })),
+      decide: 'For each thing the scene needs: reuse it unchanged, adapt it (recolour, re-rig), enrich it (a richer version from its silhouette, role and parts), build it native (exact shapes, charts, counts, code), or omit it — with the reason the viewer needs it. A reference-only ingredient (verification mismatch) is not equivalent to the page.',
+    },
+    null,
+    2,
+  )
+  return files
+}
+
+// Every path VISUAL_CAST.json declares must be a file of the packet before
+// a run is dispatched with it.
+const assertPacketPaths = (files: PacketFiles) => {
+  const cast = files['packet/VISUAL_CAST.json']
+  if (typeof cast !== 'string') return
+  const declared = JSON.parse(cast) as { pages?: Array<Record<string, unknown>>; entries?: Array<{ files?: Record<string, string> }> }
+  const paths = [
+    ...(declared.pages || []).flatMap(page => [page.reference, page.preview, page.contactSheet]),
+    ...(declared.entries || []).flatMap(entry => Object.values(entry.files || {})),
+  ].filter((path): path is string => typeof path === 'string' && Boolean(path))
+  const missing = paths.filter(path => !(`packet/${path}` in files))
+  if (missing.length) throw new PlanningError(`The planning packet declares files it does not carry: ${missing.join(', ')}`, 500)
+}
+
 // The adjacent scenes and their plans now (R8): a reviewed plan is what an
 // agreed seam can rest on; a candidate or no plan leaves the seam open.
 const neighborsOf = (planning: VideoPlanning, records: PlanningRecord[], sceneId: string) => {
@@ -284,12 +428,44 @@ const agreementBasis = (neighbors: ReturnType<typeof neighborsOf>): NeighborPlan
   neighbors.map(({ position, scene, reviewed }) => ({ position, scene, reviewed }))
 
 // ——— The overview the workspace reads ———
+// What the workspace shows of the cast: every ingredient with its preview.
+const castSummary = (cast: VisualCastRevision | null) =>
+  cast
+    ? {
+        id: cast.id,
+        status: cast.status,
+        error: cast.error || null,
+        createdAt: cast.createdAt,
+        pages: cast.pages.map(page => ({ scene: page.scene, title: page.title, preview: page.preview.url, contactSheet: page.contactSheet?.url || null, notes: page.notes })),
+        entries: cast.entries.map(entry => ({
+          id: entry.id,
+          libraryKey: entry.libraryKey,
+          kind: entry.kind,
+          label: entry.meaning.label,
+          page: entry.identity.base.page,
+          node: entry.identity.base.node,
+          object: entry.identity.object,
+          svg: entry.artwork.svg.url,
+          thumbnail: entry.artwork.thumbnail.url,
+          parts: entry.parts.map(part => ({ name: part.name, count: part.count, animations: part.animations })),
+          rig: entry.rig.status,
+          grouping: entry.confidence.grouping,
+          checks: entry.confidence.checks,
+          verification: entry.verification.status,
+        })),
+      }
+    : { id: null, status: 'extracting' as const, error: null, createdAt: null, pages: [], entries: [] }
+
 export const planningOverview = async (projectId: string) => {
   const planning = await loadVideoPlanning(projectId)
   const records = await listPlanningRecords(projectId)
   const fresh = freshnessOf(planning, records)
   const brief = fresh.brief
+  // The cast is extracted in the background the first time it is asked for.
+  const cast = await knownCast(planning)
+  if (!cast) void visualCastFor(planning).catch(() => {})
   return {
+    visualCast: castSummary(cast),
     projectId,
     available: Boolean(planning.bundle),
     bundle: planning.bundle?.ref || null,
@@ -399,6 +575,7 @@ const briefPacket = (planning: VideoPlanning) => {
       null,
       2,
     ),
+    'packet/THEME.json': themeFile(planning),
     'packet/SOURCE.md': planning.source.text
       ? `# ${planning.source.title}\n\n${planning.source.site ? `From ${planning.source.site}${planning.source.url ? ` — ${planning.source.url}` : ''}. ` : ''}Retained source revision \`${planning.source.revision}\`, paragraph-numbered.\n\n${numberedSource(planning.source.text)}\n`
       : fragments.length
@@ -485,7 +662,12 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
     reviewed: (reviewed?.content as SceneTreatmentV1 | null) || null,
     assets,
   })
-  const files: Record<string, string> = {
+  const cast = await visualCastFor(planning)
+  const files: PacketFiles = {
+    ...(await castFiles(cast, scene.originScenes)),
+    'packet/THEME.json': themeFile(planning),
+    // The plan this scene already has, kept unless the direction changes it.
+    'packet/PREVIOUS_PLAN.json': JSON.stringify(reviewed ? { record: reviewed.id, revision: reviewed.revision, status: reviewed.status, plan: reviewed.content, retainedEdits: [] } : { record: null, note: 'This scene has no reviewed plan yet.' }, null, 2),
     'packet/BRIEF.md': renderNativeBrief(brief),
     'packet/EXPLANATION.md': renderExplanation(brief),
     'packet/SCENE.md': packet,
@@ -508,7 +690,8 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
       null,
       2,
     ),
-    'packet/CONTEXT.json': JSON.stringify(
+  }
+  files['packet/CONTEXT.json'] = JSON.stringify(
       {
         route: 'Plan Scene',
         video: { id: planning.project.id, title: planning.project.title },
@@ -517,11 +700,15 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
         briefRecord: briefRecord.id,
         delivery: deliveryFor(planning, scene.id),
         assetKeys: assets.map(asset => asset.key),
+        visualCast: { id: cast.id, status: cast.status },
+        // Look at the pictures, not only their paths: the page previews and
+        // contact sheets, with your image-reading tool.
+        images: Object.keys(files).filter(path => /^packet\/references\/.*\.png$/.test(path)).map(path => path.slice('packet/'.length)).sort(),
       },
       null,
       2,
-    ),
-  }
+    )
+  assertPacketPaths(files)
   return files
 }
 
@@ -536,7 +723,7 @@ const libraryAssets = async () =>
       parts: (asset.parts || []).map(part => part.as || part.id),
     }))
 
-const storePacket = async (projectId: string, files: Record<string, string>) =>
+const storePacket = async (projectId: string, files: PacketFiles) =>
   storeAsset({
     body: Buffer.from(JSON.stringify({ files }), 'utf8'),
     contentType: 'application/json; charset=utf-8',
@@ -550,7 +737,7 @@ export const loadPacket = async (recordId: string) => {
   if (!record) throw new PlanningError('Planning record not found', 404)
   const key = String(record.inputs.packetObjectKey || '')
   if (!key) throw new PlanningError('This planning record has no packet', 409)
-  const packet = JSON.parse((await readStream((await getObject(key)).stream)).toString('utf8')) as { files: Record<string, string> }
+  const packet = JSON.parse((await readStream((await getObject(key)).stream)).toString('utf8')) as { files: PacketFiles }
   return { record, route: record.kind === 'brief' ? 'Prepare Brief' : 'Plan Scene', files: packet.files }
 }
 

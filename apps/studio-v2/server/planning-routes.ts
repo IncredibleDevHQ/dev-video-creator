@@ -16,6 +16,7 @@ import {
   saveDirection,
   submitBrief,
   submitTreatment,
+  retryVisualCast,
 } from './planning-service'
 import { loadPlanningRecord } from './persistence'
 
@@ -107,6 +108,11 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
     }
     if (method === 'POST' && parts[1] === 'brief') {
       send(response, 200, await queueBrief(projectId))
+      return true
+    }
+    // Extract the base's visual cast again after a failure.
+    if (method === 'POST' && parts[1] === 'cast') {
+      send(response, 200, { status: (await retryVisualCast(projectId)).status })
       return true
     }
     if (method === 'POST' && parts[1] === 'scenes' && parts[2]) {

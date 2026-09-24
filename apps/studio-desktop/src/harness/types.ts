@@ -43,6 +43,10 @@ export type HarnessModels = { default: string | null; options: HarnessModelOptio
 
 export interface HarnessAdapter {
   id: 'claude-code' | 'codex' | 'kimi'
+  // Whether the harness's own tools let the model look at an image file in
+  // its project (P1): 'native' when known to, 'unverified' otherwise — the
+  // run says so, and the planner falls back to the SVG sources.
+  images?: 'native' | 'unverified'
   available(): Promise<{ ok: boolean; version?: string; reason?: string }>
   models?(): Promise<HarnessModels>
   run(

@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -16,6 +16,11 @@ process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../../studio-desktop/skil
 
 const persistence = await import('./persistence')
 const service = await import('./planning-service')
+// A packet's text file (binary files — previews — are base64 objects).
+const text = (file: unknown) => {
+  if (typeof file !== 'string') throw new Error('not a text file of the packet')
+  return file
+}
 
 const ARTICLE = `Rate limiting with a token bucket
 
@@ -27,13 +32,14 @@ Tokens are added back at a steady refill rate, so a later request can pass again
 
 // A base notebook with two pages and its video fork. `fragmentsOnly`: the
 // full source was never retained, only the passages kept on the pages.
-const makeVideo = async (tag: string, options: { fragmentsOnly?: boolean } = {}) => {
+const makeVideo = async (tag: string, options: { fragmentsOnly?: boolean; pages?: ReturnType<typeof scene>[]; theme?: ProjectDocumentV1['theme'] } = {}) => {
   const source = await persistence.saveSourceRevision({ kind: 'url', url: `https://example.com/bucket-${tag}`, title: 'Token bucket', site: 'example.com', content: { text: ARTICLE, title: 'Token bucket' } })
   const base: ProjectDocumentV1 = {
     version: 1,
     id: `base-${tag}-${RUN}`,
     title: 'Rate limiting',
-    notebook: { type: 'doc', content: [scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.']), scene('b2', 'Rejection', 'When it is empty, the next one is refused.', ['the next request is rejected'])] },
+    notebook: { type: 'doc', content: options.pages || [scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.']), scene('b2', 'Rejection', 'When it is empty, the next one is refused.', ['the next request is rejected'])] },
+    ...(options.theme ? { theme: options.theme } : {}),
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
     brand: { name: 'x' } as unknown as ProjectDocumentV1['brand'],
     source: { kind: 'url', url: `https://example.com/bucket-${tag}`, site: 'example.com', title: 'Token bucket', readAt: '2026-09-24T00:00:00Z', ...(options.fragmentsOnly ? {} : { snapshotId: source.id }) },
@@ -51,15 +57,15 @@ const makeVideo = async (tag: string, options: { fragmentsOnly?: boolean } = {})
 const readyBrief = async (id: string, runId: string) => {
   const { record } = await service.queueBrief(id)
   await service.attachRun(record.id, { runId, adapter: 'claude-code' })
-  const context = JSON.parse((await service.loadPacket(record.id)).files['packet/CONTEXT.json'])
+  const context = JSON.parse(text((await service.loadPacket(record.id)).files['packet/CONTEXT.json']))
   const landed = await service.submitBrief(record.id, goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds }), runId)
   expect(landed).toMatchObject({ accepted: true, status: 'ready' })
   return record
 }
 
-const scene = (id: string, title: string, script: string, passages: string[]) => ({
+const scene = (id: string, title: string, script: string, passages: string[], svg = '<svg xmlns="http://www.w3.org/2000/svg"/>') => ({
   type: 'scene',
-  attrs: { id, title, script, sourcePassages: passages, directorNotes: `${title} idea`, svg: '<svg xmlns="http://www.w3.org/2000/svg"/>' },
+  attrs: { id, title, script, sourcePassages: passages, directorNotes: `${title} idea`, svg },
 })
 
 let videoId = ''
@@ -142,7 +148,7 @@ describe('planning a forked video', () => {
     const packet = await service.loadPacket(record.id)
     expect(packet.route).toBe('Prepare Brief')
     expect(packet.files['packet/SOURCE.md']).toMatch(/¶2 {2}A token bucket holds a fixed number of tokens/)
-    const context = JSON.parse(packet.files['packet/CONTEXT.json'])
+    const context = JSON.parse(text(packet.files['packet/CONTEXT.json']))
     expect(context.basePages.map((page: { scene: string }) => page.scene)).toEqual(baseScenes)
     expect(context.requestedSeconds).toBe(60)
     expect(packet.files['packet/PRESENTATION.md']).toMatch(/not the video's scenes, layouts or durations/)
@@ -154,7 +160,7 @@ describe('planning a forked video', () => {
   it('will not take a slide\'s page notes as the creator\'s words', async () => {
     const { record } = await service.queueBrief(videoId)
     await service.attachRun(record.id, { runId: 'run-brief-notes', adapter: 'claude-code' })
-    const context = JSON.parse((await service.loadPacket(record.id)).files['packet/CONTEXT.json'])
+    const context = JSON.parse(text((await service.loadPacket(record.id)).files['packet/CONTEXT.json']))
     const brief = goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds })
     const cited = { ...brief, evidence: [...brief.evidence, { id: 'ev-note', kind: 'creator', text: 'Admission idea' }] }
     const refused = await service.submitBrief(record.id, cited)
@@ -167,7 +173,7 @@ describe('planning a forked video', () => {
   it('refuses a brief that quotes what the source never said, then keeps a grounded one', async () => {
     const { record } = await service.queueBrief(videoId)
     await service.attachRun(record.id, { runId: 'run-brief-1', adapter: 'kimi', model: 'k3' })
-    const context = JSON.parse((await service.loadPacket(record.id)).files['packet/CONTEXT.json'])
+    const context = JSON.parse(text((await service.loadPacket(record.id)).files['packet/CONTEXT.json']))
     const brief = goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds })
     const invented = { ...brief, evidence: [{ id: 'ev-consume', kind: 'source', text: 'Each request that is admitted consumes two tokens.' }, brief.evidence[1]] }
     const refused = await service.submitBrief(record.id, invented)
@@ -184,7 +190,13 @@ describe('planning a forked video', () => {
     const [sceneId] = videoScenes
     const first = await service.queueTreatment(videoId, sceneId)
     const packet = await service.loadPacket(first.record.id)
-    expect(Object.keys(packet.files).sort()).toEqual(['packet/BRIEF.md', 'packet/CONTEXT.json', 'packet/EXPLANATION.md', 'packet/NEIGHBORS.json', 'packet/SCENE.md'])
+    expect(Object.keys(packet.files).sort()).toEqual(['packet/BRIEF.md', 'packet/CONTEXT.json', 'packet/EXPLANATION.md', 'packet/NEIGHBORS.json', 'packet/PREVIOUS_PLAN.json', 'packet/SCENE.md', 'packet/THEME.json', 'packet/VISUAL_CAST.json', 'packet/references/page.png', 'packet/references/page.svg', 'packet/references/visual-cast.png'])
+    // The packet carries the theme's actual tokens and a usable page preview.
+    expect(JSON.parse(text(packet.files['packet/THEME.json']))).toMatchObject({ colors: {}, typography: { fallbacks: { body: expect.stringMatching(/Inter/) }, note: expect.stringMatching(/no type families/) } })
+    expect(JSON.parse(text(packet.files['packet/VISUAL_CAST.json']))).toMatchObject({ status: 'ready', pages: [{ reference: 'references/page.svg', preview: 'references/page.png' }] })
+    const preview = packet.files['packet/references/page.png'] as { base64: string; contentType: string }
+    expect(preview.contentType).toBe('image/png')
+    expect(Buffer.from(preview.base64, 'base64').subarray(1, 4).toString()).toBe('PNG')
     expect(packet.files['packet/BRIEF.md']).toMatch(/^---\nworkflow: general-video/)
     await service.attachRun(first.record.id, { runId: 'run-plan-1' })
     // The creator adds direction while the plan is being made.
@@ -240,7 +252,7 @@ describe('planning integrity', () => {
     expect(briefs.filter(entry => !entry.reused)).toHaveLength(1)
     const brief = briefs[0].record
     await service.attachRun(brief.id, { runId: 'run-claim-brief', adapter: 'claude-code' })
-    const context = JSON.parse((await service.loadPacket(brief.id)).files['packet/CONTEXT.json'])
+    const context = JSON.parse(text((await service.loadPacket(brief.id)).files['packet/CONTEXT.json']))
     await service.submitBrief(brief.id, goodBrief({ sourceRevision: context.sourceRevision, baseNotebook: context.baseNotebook, baseRevision: context.baseRevision, themeRef: context.themeRef, requestedSeconds: context.requestedSeconds }), 'run-claim-brief')
     const plans = await Promise.all(Array.from({ length: 4 }, () => service.queueTreatment(id, scenes[0])))
     expect(new Set(plans.map(entry => entry.record.id)).size).toBe(1)
@@ -294,7 +306,7 @@ describe('planning integrity', () => {
     const { record } = await service.queueBrief(id)
     await service.attachRun(record.id, { runId: 'run-fragments' })
     const packet = (await service.loadPacket(record.id)).files
-    const context = JSON.parse(packet['packet/CONTEXT.json'])
+    const context = JSON.parse(text(packet['packet/CONTEXT.json']))
     expect(context.sourcePool).toEqual({ coverage: 'fragments', passages: 2, pagesWithPassages: 2, pages: 2 })
     expect(packet['packet/SOURCE.md']).toContain('- "Each request that is admitted consumes one token."')
     expect(packet['packet/SOURCE.md']).toMatch(/## b1: Admission/)
@@ -325,7 +337,7 @@ describe('planning integrity', () => {
     }
     // Scene 2 cannot agree with a scene 1 that has no reviewed plan.
     const early = await planFor(scenes[1], 'run-seam-early', agreed(scenes[1]))
-    expect(JSON.parse(early.packet['packet/NEIGHBORS.json']).neighbors[0]).toMatchObject({ position: 'before', scene: scenes[0], plan: 'none' })
+    expect(JSON.parse(text(early.packet['packet/NEIGHBORS.json'])).neighbors[0]).toMatchObject({ position: 'before', scene: scenes[0], plan: 'none' })
     expect(early.result).toMatchObject({ accepted: false, problems: [expect.stringMatching(/continuity.incoming is agreed, but .* has no reviewed plan/)] })
     await service.runFinished('run-seam-early', { status: 'error', exitCode: 1 })
     // Scene 1 is planned and reviewed.
@@ -334,7 +346,7 @@ describe('planning integrity', () => {
     await service.reviewTreatment(first.record.id)
     // Now the seam can be agreed, and the product records what it rests on.
     const second = await planFor(scenes[1], 'run-seam-second', agreed(scenes[1]))
-    expect(JSON.parse(second.packet['packet/NEIGHBORS.json']).neighbors[0]).toMatchObject({ plan: 'reviewed', reviewed: { revision: first.record.revision, exit: 'One token spent' } })
+    expect(JSON.parse(text(second.packet['packet/NEIGHBORS.json'])).neighbors[0]).toMatchObject({ plan: 'reviewed', reviewed: { revision: first.record.revision, exit: 'One token spent' } })
     expect(second.packet['packet/SCENE.md']).toMatch(/Seam: its reviewed plan \(revision \d+\) ends: "One token spent" — you may agree a seam with it/)
     expect(second.result).toMatchObject({ accepted: true, status: 'candidate' })
     const stored = (await persistence.loadPlanningRecord(second.record.id))!.content as { continuity: { incoming: unknown } }
@@ -349,6 +361,46 @@ describe('planning integrity', () => {
     // The plan itself is not stale: only its seam needs a new agreement.
     expect(overview.scenes[1].view.state).toBe('candidate')
   })
+
+  // P1: the scene's packet carries its page and its cast — the actual
+  // artwork, previews, parts and rigs — and a plan can reuse them by key.
+  it('ships the rich page, its verified cast and the actual theme in the scene packet', async () => {
+    const rich = (name: string) => readFileSync(fileURLToPath(new URL(`./fixtures/visual-cast/${name}`, import.meta.url)), 'utf8')
+    const theme = { id: 'stripe-theme', name: 'Stripe', brand: { background: '#0e0c17', surface: '#15121f', text: '#ffffff', mutedText: '#a9b3cc', primary: '#635bff', secondary: '#ff7d6b', accent: '#ef61ef', codeBackground: '#0a0912' }, fonts: { display: 'sohne-var', body: 'sohne-var', mono: 'Consolas' } } as unknown as ProjectDocumentV1['theme']
+    const { videoId: id, videoScenes: scenes } = await makeVideo('cast', {
+      theme,
+      pages: [
+        scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.'], rich('05_request_rate_limiter.svg')),
+        scene('b2', 'Rejection', 'Only so many run at once.', ['the next request is rejected'], rich('06_concurrent_requests_limiter.svg')),
+      ],
+    })
+    await readyBrief(id, 'run-cast-brief')
+    const { record } = await service.queueTreatment(id, scenes[1])
+    await service.attachRun(record.id, { runId: 'run-cast-plan' })
+    const files = (await service.loadPacket(record.id)).files
+    const theme_ = JSON.parse(text(files['packet/THEME.json']))
+    expect(theme_).toMatchObject({ colors: { primary: '#635bff', accent: '#ef61ef' }, meanings: { accent: expect.stringMatching(/emphasis/) }, typography: { display: 'sohne-var' } })
+    const cast = JSON.parse(text(files['packet/VISUAL_CAST.json']))
+    expect(cast.status).toBe('ready')
+    const pool = cast.entries.find((entry: { object: string | null }) => entry.object === 'slot-pool')
+    expect(pool).toMatchObject({ kind: 'object', label: 'Concurrency cap', rig: { status: 'verified', missing: [] }, verification: { status: 'verified' } })
+    expect(pool.parts.find((part: { name: string }) => part.name === 'slots')).toMatchObject({ count: 20 })
+    // Every declared file is in the packet, as real artwork and a real preview.
+    for (const path of Object.values(pool.files) as string[]) expect(files).toHaveProperty([`packet/${path}`])
+    expect(text(files[`packet/${pool.files.svg}`])).toMatch(/data-part="slots"/)
+    expect((files[`packet/${pool.files.preview}`] as { contentType: string }).contentType).toBe('image/png')
+    expect(files).toHaveProperty(['packet/references/page.png'])
+    expect(JSON.parse(text(files['packet/CONTEXT.json'])).images).toEqual(['references/page.png', 'references/visual-cast.png'])
+    // The gauge and the icon from the other page are reusable by key too.
+    expect(cast.elsewhere.map((entry: { label: string; kind: string }) => `${entry.kind}:${entry.label}`)).toEqual(expect.arrayContaining(['icon:User script', 'icon:Per-user cap']))
+    // A plan that reuses the pool by its library key lands.
+    const plan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }], objects: [{ entity: 'bucket', role: 'The calls in progress', appearance: 'The page\'s own twenty-slot pool', performance: 'Slots fill one by one until none is free', asset: { status: 'reuse', ref: pool.libraryKey, reason: 'Twenty countable slots are the limit the viewer must see' } }] }
+    expect(await service.submitTreatment(record.id, plan, 'run-cast-plan')).toMatchObject({ accepted: true, status: 'candidate' })
+    // The overview shows the cast, with previews.
+    const overview = await service.planningOverview(id)
+    expect(overview.visualCast.status).toBe('ready')
+    expect(overview.visualCast.entries.find(entry => entry.object === 'slot-pool')).toMatchObject({ thumbnail: expect.stringMatching(/^\/objects\//), rig: 'verified' })
+  }, 120_000)
 
   it('fails the records of a run interrupted by a restart, with a way on', async () => {
     const { videoId: id } = await makeVideo('interrupt')

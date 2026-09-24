@@ -276,6 +276,7 @@ export class RunManager {
     if (planningRecord) {
       try {
         const packet = await this.materialisePacket(planningRecord, projectDir)
+        await this.describeRun(projectDir, options.adapter, typeof options.inputs?.model === 'string' ? options.inputs.model : null)
         inputs.capabilityScope = 'planning'
         inputs.planning = { ...(inputs.planning as Record<string, unknown>), recordId: planningRecord, route: packet.route }
         inputs.packet = { files: packet.files }
@@ -362,18 +363,38 @@ export class RunManager {
   // Writes the pinned packet into the run directory. Only packet/ paths are
   // accepted, and none may leave the directory.
   private async materialisePacket(recordId: string, projectDir: string) {
-    const packet = (await this.worker(`/api/planning/records/${encodeURIComponent(recordId)}/packet`)) as { route?: string; files?: Record<string, string> }
+    // A file is text, or bytes (a preview image) carried as base64.
+    const packet = (await this.worker(`/api/planning/records/${encodeURIComponent(recordId)}/packet`)) as { route?: string; files?: Record<string, string | { base64: string; contentType?: string }> }
     const root = resolve(projectDir)
     const written: string[] = []
     for (const [name, contents] of Object.entries(packet.files || {})) {
       const path = resolve(root, name)
       if (!name.startsWith('packet/') || !path.startsWith(root + sep)) throw new Error(`unexpected packet path ${name}`)
       await mkdir(join(path, '..'), { recursive: true })
-      await writeFile(path, contents)
+      await writeFile(path, typeof contents === 'string' ? contents : Buffer.from(contents.base64, 'base64'))
       written.push(name)
     }
     if (!written.length) throw new Error('the packet is empty')
     return { route: String(packet.route || ''), files: written.sort() }
+  }
+
+  // This run's own facts beside the packet: which harness reads it, and
+  // whether it can look at the packet's images.
+  private async describeRun(projectDir: string, adapter: HarnessAdapter, model: string | null) {
+    const images = adapter.images || 'unverified'
+    await writeFile(
+      join(projectDir, 'packet', 'RUN.json'),
+      JSON.stringify(
+        {
+          harness: adapter.id,
+          model,
+          imageInspection: images,
+          note: images === 'native' ? 'Open the packet\'s PNG files with your file-reading tool to see them.' : 'Viewing images has not been verified for this harness: try to open the PNG files; if you cannot see them, say so in unresolved and work from VISUAL_CAST.json and the SVG sources.',
+        },
+        null,
+        2,
+      ),
+    )
   }
 
   private async attempt(record: RunRecord) {

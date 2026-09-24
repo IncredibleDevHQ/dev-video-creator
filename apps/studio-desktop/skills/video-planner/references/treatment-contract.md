@@ -50,7 +50,8 @@ Use only the channels a moment needs; `null` means the channel is unused.
   ],
   "objects": [
     { "entity": "bucket", "role": "Holds admission capacity", "appearance": "A dimensional bucket with separable tokens",
-      "performance": "Tokens leave one at a time as requests are admitted", "asset": { "status": "reuse", "ref": "<asset key from plan_assets>" } }
+      "performance": "Tokens leave one at a time as requests are admitted",
+      "asset": { "status": "reuse", "ref": "<libraryKey from VISUAL_CAST.json>", "reason": "The page's own bucket already has three separate tokens to spend" } }
   ],
   "treatments": { "presenter": "…", "text": "…", "camera": "…" },
   "skills": [
@@ -94,9 +95,23 @@ Use only the channels a moment needs; `null` means the channel is unused.
   - `adapted`: something no index covers, described in `purpose`.
   Give each its `purpose`, the `channel` it serves, and the actors or layers
   it `controls` — one writer per property.
-- `objects[].asset.status` — `reuse` (with the asset key from `plan_assets`),
-  `generate`, `native` (drawn as text, code or exact geometry) or
-  `undecided`. Planning never generates anything.
+- `objects[].asset` — what the scene does for the thing's artwork, with a
+  `reason` tied to what the viewer needs to understand:
+  - `reuse` — an ingredient unchanged, by its `libraryKey` in
+    `VISUAL_CAST.json` (or a key from `plan_assets`) as `ref`;
+  - `adapt` — that ingredient recoloured or re-rigged (`ref` as above);
+  - `enrich` — a richer version made from its silhouette, role and parts
+    (`ref` as above); a provider failure leaves an unmet requirement, never
+    a plain box;
+  - `native` — exact shapes, charts, counts, code or labels, where exactness
+    preserves correctness;
+  - `generate` — new artwork where nothing in the cast serves;
+  - `omit` — left out (then no moment may move it);
+  - `undecided`.
+  Planning never generates, adapts or enriches anything itself; it decides.
+  A cast ingredient whose verification is `mismatch` is a reference only.
+  An affordance (a part the page animates) says what can move, never what
+  the scene must do with it.
 - `skills[]` — the pinned skills whose guidance shaped the plan, the files
   you read, and why. A scene may combine several.
 - `coverage[]` — for **every** communication need of every unit you take on

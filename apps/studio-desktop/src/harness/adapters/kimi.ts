@@ -112,6 +112,8 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
 
 export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
   id: 'kimi',
+  // Not yet shown to read image files in a run.
+  images: 'unverified',
   available: () => probeVersion('kimi'),
   models: kimiModels,
   async run(run, onEvent, signal) {

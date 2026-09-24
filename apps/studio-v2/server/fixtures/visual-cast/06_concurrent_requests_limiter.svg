@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="sohne-var, Inter, sans-serif" font-size="22" data-page-role="diagram" data-page-index="06">
+  <defs>
+    <marker id="s06-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ef61ef"/></marker>
+  </defs>
+  <g id="s06-background" data-role="background">
+    <rect x="0" y="0" width="1280" height="720" fill="#0e0c17"/>
+  </g>
+  <g id="s06-decoration" data-role="decoration">
+    <path d="M80 0V720M160 0V720M240 0V720M320 0V720M400 0V720M480 0V720M560 0V720M640 0V720M720 0V720M800 0V720M880 0V720M960 0V720M1040 0V720M1120 0V720M1200 0V720M0 120H1280M0 180H1280M0 240H1280M0 300H1280M0 360H1280M0 420H1280M0 480H1280M0 540H1280M0 600H1280M0 660H1280" stroke="#ffffff" stroke-width="1" opacity="0.03"/>
+    <text x="80" y="600" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99" letter-spacing="1">TWO PROGRAMMING MODELS</text>
+    <text x="780" y="600" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99" letter-spacing="1">THE LOOP THE CAP BREAKS</text>
+  </g>
+  <g id="s06-header" data-role="header">
+    <text id="s06-eyebrow" x="80" y="56" font-family="Consolas, Menlo, monospace" font-size="20" fill="#ef61ef" letter-spacing="1">§ 06 · SCALING YOUR API WITH RATE LIMITERS</text>
+    <text id="s06-title" x="80" y="104" font-size="40" font-weight="600" fill="#ffffff">Concurrent requests limiter</text>
+  </g>
+  <g id="s06-footer" data-role="footer">
+    <text x="80" y="696" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99">stripe.com</text>
+    <text x="1200" y="696" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99" text-anchor="end">SHEET 06 / 12</text>
+  </g>
+
+  <g id="s06-node-api-user" data-role="node" data-kind="box" data-entity="client" data-object-id="obj-api-user-21">
+    <rect id="s06-node-api-user-box" x="80" y="170" width="260" height="200" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g id="s06-node-api-user-art" data-appearance-for="s06-node-api-user">
+      <g transform="translate(188,186) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></g>
+      <circle cx="210" cy="199" r="16" fill="none" stroke="#ef61ef" stroke-width="1.5" data-anim="wave" data-anim-order="0"/>
+      <circle cx="210" cy="199" r="24" fill="none" stroke="#ef61ef" stroke-width="1" data-anim="wave" data-anim-order="1"/>
+      <rect x="236" y="186" width="10" height="4" rx="1" fill="#ef61ef" data-anim="blink" data-anim-order="0"/>
+      <rect x="236" y="194" width="10" height="4" rx="1" fill="#ef61ef" data-anim="blink" data-anim-order="1"/>
+    </g>
+    <text x="210" y="282" font-size="24" fill="#ffffff" text-anchor="middle">API user</text>
+    <text x="210" y="312" font-size="20" fill="#a9b3cc" text-anchor="middle">calls a slow,</text>
+    <text x="210" y="340" font-size="20" fill="#a9b3cc" text-anchor="middle">expensive endpoint</text>
+  </g>
+
+  <g id="s06-node-concurrency-cap" data-role="node" data-kind="box" data-entity="service" data-object="slot-pool" data-object-id="obj-concurrency-cap-22">
+    <rect id="s06-node-concurrency-cap-box" x="400" y="140" width="320" height="260" rx="12" fill="#ef61ef" fill-opacity="0.10" stroke="#ef61ef" stroke-opacity="0.7" stroke-width="2"/>
+    <g id="s06-node-concurrency-cap-art" data-appearance-for="s06-node-concurrency-cap">
+      <rect id="s06-pool-shell" x="416" y="164" width="288" height="144" rx="8" fill="#635bff" fill-opacity="0.08" stroke="#635bff" stroke-opacity="0.6" stroke-width="1.5"/>
+      <g id="s06-pool-slots" data-part="slots" fill="none" stroke="#635bff" stroke-opacity="0.7" stroke-width="1.5">
+        <rect x="424" y="176" width="22" height="50" rx="3"/><rect x="452" y="176" width="22" height="50" rx="3"/><rect x="480" y="176" width="22" height="50" rx="3"/><rect x="508" y="176" width="22" height="50" rx="3"/><rect x="536" y="176" width="22" height="50" rx="3"/><rect x="564" y="176" width="22" height="50" rx="3"/><rect x="592" y="176" width="22" height="50" rx="3"/><rect x="620" y="176" width="22" height="50" rx="3"/><rect x="648" y="176" width="22" height="50" rx="3"/><rect x="676" y="176" width="22" height="50" rx="3"/>
+        <rect x="424" y="246" width="22" height="50" rx="3"/><rect x="452" y="246" width="22" height="50" rx="3"/><rect x="480" y="246" width="22" height="50" rx="3"/><rect x="508" y="246" width="22" height="50" rx="3"/><rect x="536" y="246" width="22" height="50" rx="3"/><rect x="564" y="246" width="22" height="50" rx="3"/><rect x="592" y="246" width="22" height="50" rx="3"/><rect x="620" y="246" width="22" height="50" rx="3"/><rect x="648" y="246" width="22" height="50" rx="3"/><rect x="676" y="246" width="22" height="50" rx="3"/>
+      </g>
+      <g id="s06-pool-occupied" data-part="occupied" fill="#ef61ef" fill-opacity="0.65">
+        <rect x="428" y="180" width="14" height="42" rx="2" data-anim="blink" data-anim-order="0"/><rect x="456" y="180" width="14" height="42" rx="2"/><rect x="484" y="180" width="14" height="42" rx="2"/><rect x="512" y="180" width="14" height="42" rx="2"/><rect x="540" y="180" width="14" height="42" rx="2" data-anim="blink" data-anim-order="1"/><rect x="568" y="180" width="14" height="42" rx="2"/><rect x="596" y="180" width="14" height="42" rx="2"/><rect x="624" y="180" width="14" height="42" rx="2"/>
+        <rect x="428" y="250" width="14" height="42" rx="2"/><rect x="456" y="250" width="14" height="42" rx="2"/><rect x="484" y="250" width="14" height="42" rx="2" data-anim="blink" data-anim-order="2"/><rect x="512" y="250" width="14" height="42" rx="2"/><rect x="540" y="250" width="14" height="42" rx="2"/><rect x="568" y="250" width="14" height="42" rx="2"/>
+      </g>
+      <path id="s06-pool-gate" d="M404 236l8 -6v12z" fill="#ef61ef" data-anim="pulse"/>
+    </g>
+    <text x="560" y="345" font-size="24" fill="#ffffff" text-anchor="middle">Concurrency cap</text>
+    <text x="560" y="375" font-size="20" fill="#a9b3cc" text-anchor="middle">only 20 in progress at once</text>
+  </g>
+
+  <g id="s06-node-expensive-endpoint" data-role="node" data-kind="box" data-entity="server" data-object="server" data-object-id="obj-expensive-endpoint-23">
+    <rect id="s06-node-expensive-endpoint-box" x="780" y="140" width="320" height="260" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g id="s06-node-expensive-endpoint-art" data-appearance-for="s06-node-expensive-endpoint">
+      <rect x="820" y="166" width="240" height="40" rx="6" fill="#635bff" fill-opacity="0.12" stroke="#635bff" stroke-opacity="0.7" stroke-width="1.5"/>
+      <rect x="820" y="214" width="240" height="40" rx="6" fill="#635bff" fill-opacity="0.12" stroke="#635bff" stroke-opacity="0.7" stroke-width="1.5"/>
+      <rect x="820" y="262" width="240" height="40" rx="6" fill="#635bff" fill-opacity="0.12" stroke="#635bff" stroke-opacity="0.7" stroke-width="1.5"/>
+      <circle cx="838" cy="186" r="4" fill="#ef61ef" data-anim="blink" data-anim-order="0"/>
+      <circle cx="838" cy="234" r="4" fill="#ef61ef" data-anim="blink" data-anim-order="1"/>
+      <circle cx="838" cy="282" r="4" fill="#ff7d6b" data-anim="blink" data-anim-order="2" data-anim-rate="fast"/>
+      <rect x="856" y="180" width="120" height="12" rx="2" fill="#ef61ef" fill-opacity="0.5" data-anim="fill" data-anim-order="0"/>
+      <rect x="856" y="228" width="150" height="12" rx="2" fill="#ef61ef" fill-opacity="0.5" data-anim="fill" data-anim-order="1"/>
+      <rect x="856" y="276" width="190" height="12" rx="2" fill="#ff7d6b" fill-opacity="0.6" data-anim="fill" data-anim-order="2"/>
+      <circle cx="1040" cy="234" r="6" fill="none" stroke="#ef61ef" stroke-width="1.5" data-anim="pulse"/>
+    </g>
+    <text x="940" y="345" font-size="24" fill="#ffffff" text-anchor="middle">Expensive endpoint</text>
+    <text x="940" y="375" font-size="20" fill="#a9b3cc" text-anchor="middle">CPU-heavy, slow to return</text>
+  </g>
+
+  <g id="s06-node-impatient-retries" data-role="node" data-kind="box" data-object-id="obj-impatient-retries-24">
+    <rect id="s06-node-impatient-retries-box" x="780" y="470" width="320" height="90" rx="12" fill="#ff7d6b" fill-opacity="0.10" stroke="#ff7d6b" stroke-opacity="0.6" stroke-width="1.5"/>
+    <g transform="translate(796,493) scale(1.8333)" fill="none" stroke="#ff7d6b" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3"/><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3"/></g>
+    <text x="856" y="508" font-size="24" fill="#ffffff">Impatient retries</text>
+    <text x="856" y="538" font-size="20" fill="#a9b3cc">retries add more demand</text>
+  </g>
+
+  <g id="s06-node-queue-model" data-role="node" data-kind="label" data-object-id="obj-queue-model-25">
+    <rect id="s06-node-queue-model-box" x="80" y="470" width="290" height="90" rx="12" fill="#ef61ef" fill-opacity="0.08" stroke="#ef61ef" stroke-opacity="0.55" stroke-width="1.5"/>
+    <text x="100" y="508" font-size="24" fill="#ffffff">Queue model</text>
+    <text x="100" y="538" font-size="20" fill="#a9b3cc">fork X jobs, work a queue</text>
+  </g>
+  <g id="s06-node-hammer-model" data-role="node" data-kind="label" data-object-id="obj-hammer-model-26">
+    <rect id="s06-node-hammer-model-box" x="430" y="470" width="290" height="90" rx="12" fill="#635bff" fill-opacity="0.06" stroke="#635bff" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="450" y="508" font-size="24" fill="#ffffff">Hammer model</text>
+    <text x="450" y="538" font-size="20" fill="#a9b3cc">hit hard, back off on 429</text>
+  </g>
+
+  <line id="s06-edge-1" data-role="connector" data-verb="sends to" data-from="s06-node-api-user" data-to="s06-node-concurrency-cap" x1="340" y1="270" x2="398" y2="270" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s06-arrow)"/>
+  <line id="s06-edge-2" data-role="connector" data-verb="sends to" data-from="s06-node-concurrency-cap" data-to="s06-node-expensive-endpoint" x1="720" y1="270" x2="778" y2="270" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s06-arrow)"/>
+  <line id="s06-edge-3" data-role="connector" data-verb="feeds" data-from="s06-node-impatient-retries" data-to="s06-node-expensive-endpoint" x1="940" y1="470" x2="940" y2="402" stroke="#ff7d6b" stroke-opacity="0.7" stroke-width="2" marker-end="url(#s06-arrow)"/>
+  <text x="954" y="442" font-family="Consolas, Menlo, monospace" font-size="20" fill="#a9b3cc">feeds</text>
+  <line id="s06-edge-4" data-role="connector" data-verb="compares with" data-from="s06-node-queue-model" data-to="s06-node-hammer-model" x1="372" y1="515" x2="428" y2="515" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-start="url(#s06-arrow)" marker-end="url(#s06-arrow)"/>
+
+  <g id="s06-actor-request" data-actor="request" opacity="0">
+    <circle cx="340" cy="270" r="18" fill="#ef61ef"/>
+    <text x="340" y="277" font-size="20" font-weight="600" text-anchor="middle" fill="#0e0c17">req</text>
+  </g>
+  <g id="s06-actor-retry" data-actor="request" opacity="0">
+    <circle cx="940" cy="466" r="18" fill="#ff7d6b"/>
+    <text x="940" y="473" font-size="20" font-weight="600" text-anchor="middle" fill="#0e0c17">try</text>
+  </g>
+</svg>

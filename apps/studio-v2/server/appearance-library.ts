@@ -7,11 +7,13 @@ import { loadSetting, saveSetting, storeAsset } from './persistence'
 
 export type LibraryArtwork = ReturnType<typeof acceptArtwork> & {
   key: string; entity: string; accepted: boolean; brief: ObjectBrief; parentKey?: string
-  url: string; createdAt: string; operation: 'generate' | 'edit' | 'animate' | 'local-repair'
+  url: string; createdAt: string; operation: 'generate' | 'edit' | 'animate' | 'local-repair' | 'extract'
   behaviors?: ObjectBehavior[]
   contentHash?: string
   reviewReceipt?: { sourceHash: string; frames: string[]; observations: string[] }
-  provenance: { provider: 'quiver' | 'local-harness'; model: string; requestId: string }
+  provenance: { provider: 'quiver' | 'local-harness' | 'base-extraction'; model: string; requestId: string }
+  // Where an extracted ingredient came from: the base, its page and node.
+  origin?: { notebook: string; revision: string; page: string; node: string; castEntry: string }
 }
 const INDEX = 'artwork-library-v1'
 // One writer for both the cache and the index, including requests from local agents.
@@ -147,6 +149,70 @@ export const makeArtwork = (request: { brief?: unknown; key?: string; prompt?: s
     const keys = (await loadSetting(INDEX) as string[] | null) || []
     await saveSetting(INDEX, [...new Set([key, ...keys])])
     return { appearance: record, reused: false }
+  })
+  pending = job
+  return job
+}
+
+/**
+ * A verified ingredient of a base presentation joins the library as its own
+ * immutable version (P1): the same bytes always give the same key, and a
+ * video's edit or recolour becomes a variant with a parent, never a change
+ * to this one.
+ */
+export const registerExtractedArtwork = (input: {
+  entry: {
+    id: string
+    kind: string
+    identity: { entity: string; entityKind: string | null; object: string | null; objectId: string | null; base: { notebook: string; revision: string; page: string; node: string }; contentHash: string }
+    meaning: { label: string; detail: string[] }
+    artwork: { svg: { url: string }; viewBox: { width: number; height: number } }
+    parts: Array<{ id: string; name: string; element: string; animations: string[] }>
+  }
+  svg: string
+  castId: string
+}) => {
+  const job = pending.catch(() => {}).then(async () => {
+    const { entry } = input
+    const key = `cast-${entry.identity.contentHash.slice(0, 20)}`
+    const existing = await loadSetting(`artwork:${key}`) as LibraryArtwork | null
+    if (existing) return existing
+    const brief: ObjectBrief = {
+      entity: entry.identity.entity,
+      ...(entry.identity.objectId ? { objectId: entry.identity.objectId } : {}),
+      role: entry.identity.object || entry.identity.entityKind || entry.kind,
+      represents: [entry.meaning.label, ...entry.meaning.detail].filter(Boolean).join(' — ') || entry.identity.entity,
+      states: [],
+      parts: entry.parts.map(part => ({ id: part.name, what: `${part.element}${part.animations.length ? `, animated on the page (${part.animations.join(', ')})` : ''}` })),
+      ports: {},
+      labelAnchor: 'none',
+      size: entry.artwork.viewBox,
+      style: { family: `base:${entry.identity.base.notebook}`, palette: { ground: '', text: '', accent: '', secondary: '' }, angle: 'front', density: 'considered', depth: 'flat' },
+      keepsTextOut: [],
+    }
+    const record: LibraryArtwork = {
+      ok: true,
+      svg: input.svg,
+      viewBox: entry.artwork.viewBox,
+      parts: entry.parts.map(part => ({ id: part.id, element: part.element, as: part.name })),
+      missing: [],
+      ports: {},
+      problems: [],
+      key,
+      entity: entry.identity.entity,
+      accepted: true,
+      brief,
+      url: entry.artwork.svg.url,
+      createdAt: new Date().toISOString(),
+      operation: 'extract',
+      contentHash: entry.identity.contentHash,
+      provenance: { provider: 'base-extraction', model: 'visual-cast', requestId: input.castId },
+      origin: { notebook: entry.identity.base.notebook, revision: entry.identity.base.revision, page: entry.identity.base.page, node: entry.identity.base.node, castEntry: entry.id },
+    }
+    await saveSetting(`artwork:${key}`, record)
+    const keys = (await loadSetting(INDEX) as string[] | null) || []
+    await saveSetting(INDEX, [...new Set([key, ...keys])])
+    return record
   })
   pending = job
   return job

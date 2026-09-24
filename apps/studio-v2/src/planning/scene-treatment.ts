@@ -75,6 +75,9 @@ export type TreatmentLedger = { quantity: string; capacity: number | null; initi
 export const CONTINUITY_KINDS = ['self-contained', 'agreed', 'proposed'] as const
 export type ContinuitySide = { kind: (typeof CONTINUITY_KINDS)[number]; scene?: string; record?: string; revision?: number; note?: string }
 
+export const ASSET_DECISIONS = ['reuse', 'adapt', 'enrich', 'native', 'generate', 'omit', 'undecided'] as const
+export type AssetDecision = (typeof ASSET_DECISIONS)[number]
+
 export type SceneTreatmentV1 = {
   schemaVersion: typeof TREATMENT_SCHEMA_VERSION
   scene: string
@@ -93,7 +96,12 @@ export type SceneTreatmentV1 = {
     role: string
     appearance: string
     performance: string
-    asset: { status: 'reuse' | 'generate' | 'native' | 'undecided'; ref?: string }
+    // What the scene does for its artwork (P1): reuse a library or cast
+    // ingredient unchanged, adapt it (recolour, re-rig), enrich it (a richer
+    // version from its silhouette, role and parts), build it native (exact
+    // shapes, charts, counts, code), generate something new, or omit it —
+    // with the reason the viewer needs it.
+    asset: { status: AssetDecision; ref?: string; reason?: string }
   }>
   treatments: { presenter: string; text: string; camera: string }
   skills: Array<{ skill: string; references: string[]; why: string }>
@@ -249,8 +257,9 @@ export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
         appearance: text(entry.appearance, 1000),
         performance: text(entry.performance, 1000),
         asset: {
-          status: oneOf(asset.status, ['reuse', 'generate', 'native', 'undecided'] as const, 'undecided'),
+          status: oneOf(asset.status, ASSET_DECISIONS, 'undecided'),
           ...(text(asset.ref, 120) ? { ref: text(asset.ref, 120) } : {}),
+          ...(text(asset.reason, 600) ? { reason: text(asset.reason, 600) } : {}),
         },
       }
     }),
@@ -434,12 +443,16 @@ export const validateTreatment = (raw: unknown, context: TreatmentContext): Trea
     if (entityIds.has(actor) && !cast.has(actor)) warnings.push(`"${actor}" moves in a moment but is not cast among the plan's objects, so its look and asset are undecided`)
   }
   const assets = new Set(context.assetKeys)
+  const moveActors = new Set(treatment.moments.flatMap(moment => moment.objects?.actors || []))
   for (const object of treatment.objects) {
     if (!object.entity || !object.role) problems.push('each object needs the entity it plays and its role')
     if (!object.performance) warnings.push(`object ${object.entity} has no performance — does it do explanatory work beyond appearing?`)
-    if (object.asset.status === 'reuse' && (!object.asset.ref || !assets.has(object.asset.ref))) {
-      problems.push(`object ${object.entity} reuses asset "${object.asset.ref || ''}", which is not in the accepted asset library`)
+    const decision = object.asset.status
+    if ((decision === 'reuse' || decision === 'adapt' || decision === 'enrich') && (!object.asset.ref || !assets.has(object.asset.ref))) {
+      problems.push(`object ${object.entity} ${decision === 'reuse' ? 'reuses' : decision === 'adapt' ? 'adapts' : 'enriches'} asset "${object.asset.ref || ''}", which is not in the accepted asset library`)
     }
+    if (decision !== 'undecided' && !object.asset.reason) warnings.push(`object ${object.entity}: say why "${decision}" serves what the viewer needs to understand`)
+    if (decision === 'omit' && moveActors.has(object.entity)) problems.push(`object ${object.entity} is omitted, but a moment moves it`)
   }
 
   // The demonstration's arithmetic (R7).

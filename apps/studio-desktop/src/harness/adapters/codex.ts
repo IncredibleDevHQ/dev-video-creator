@@ -68,6 +68,8 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
 
 export const createCodexAdapter = (context: HarnessContext): HarnessAdapter => ({
   id: 'codex',
+  // Not yet shown to read image files in a run.
+  images: 'unverified',
   available: () => probeVersion('codex'),
   models: codexModels,
   async run(run, onEvent, signal) {
