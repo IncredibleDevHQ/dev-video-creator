@@ -143,6 +143,11 @@ describe('the Explanation Brief', () => {
     expect(problems).toMatch(/depend on each other in a circle/)
   })
 
+  it('takes the video length from the creator, not from the slides', () => {
+    expect(validateBrief(goodBrief(), context({ requestedSeconds: 60 })).ok).toBe(true)
+    expect(validateBrief(goodBrief(), context({ requestedSeconds: null })).problems.join('\n')).toMatch(/creator's chosen length/)
+  })
+
   it('does not claim a full reading of a source that survives only in fragments', () => {
     expect(validateBrief(goodBrief(), context({ sourceText: '' })).problems.join('\n')).toMatch(/only fragments of it were retained/)
   })

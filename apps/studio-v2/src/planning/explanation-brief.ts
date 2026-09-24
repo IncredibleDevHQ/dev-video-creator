@@ -135,6 +135,8 @@ export type BriefContext = {
   baseRevision: string
   themeRef: string | null
   sceneDecisions: Array<{ scene: string; voice: 'human' | 'generated' | 'silent' }>
+  // The creator's chosen total length, when the notebook has one.
+  requestedSeconds?: number | null
 }
 
 export type BriefReport = { ok: boolean; problems: string[]; warnings: string[] }
@@ -322,6 +324,9 @@ export const validateBrief = (raw: unknown, context: BriefContext): BriefReport 
   if (!brief.purpose.deliverable) problems.push('purpose.deliverable is missing')
   if (!brief.purpose.audience) problems.push('purpose.audience is missing')
   if (!brief.purpose.message) problems.push('purpose.message — the one thing the video must communicate — is missing')
+  if (context.requestedSeconds !== undefined && (brief.purpose.requestedSeconds ?? null) !== (context.requestedSeconds ?? null)) {
+    problems.push(`purpose.requestedSeconds must be the creator's chosen length (${context.requestedSeconds ?? 'none'}), not an estimate from the slides`)
+  }
 
   // Source: the brief names exactly the revisions its fork pinned.
   if (context.sourceRevision && brief.source.revisionRef !== context.sourceRevision) {
