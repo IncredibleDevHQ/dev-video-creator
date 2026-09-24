@@ -2159,6 +2159,20 @@ button.se-state:hover { filter: brightness(.97); }
 .planning-field { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 11px; font-weight: 600; }
 .planning-harness { min-height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font-size: 12px; }
 .planning-model { max-width: 230px; }
+.planning-failure-actions { display: flex; gap: 8px; margin-top: 4px; }
+.planning-last-status { margin-top: 6px; font-size: 12px; }
+.run-failure-actions { display: inline-flex; gap: 6px; margin-left: 8px; vertical-align: middle; }
+.run-failure-actions .button { min-height: 26px; padding-inline: 9px; font-size: 10px; }
+.agent-choices { display: grid; gap: 8px; margin-top: 14px; }
+.agent-choices h3 { margin: 4px 0 2px; font-size: 13px; }
+.agent-choice { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; align-items: center; }
+.agent-choice small { grid-column: 2; color: #71717a; font-size: 11px; }
+.agent-choice-label { font-size: 12px; font-weight: 700; color: #18181b; }
+.agent-choice-fields { display: flex; gap: 6px; min-width: 0; }
+.agent-choice-fields select { min-width: 0; min-height: 30px; padding: 0 8px; border: 1px solid #e4e4e7; border-radius: 6px; background: white; font-size: 12px; }
+.agent-choice-fields select:first-child { flex: 0 0 150px; }
+.agent-choice-fields select + select { flex: 1 1 auto; max-width: 240px; }
+.agent-row .agent-row-detail { min-width: 0; overflow-wrap: anywhere; }
 .planning-model-custom { min-height: 30px; width: 190px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .planning-model-custom:focus { outline: 2px solid var(--brand); outline-offset: 0; }
 .planning-close { font-size: 20px; }

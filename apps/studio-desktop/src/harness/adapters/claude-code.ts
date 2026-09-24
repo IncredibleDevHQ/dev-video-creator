@@ -14,6 +14,7 @@ import type {
 import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
 import { claudeModels, compareVersions } from '../models'
+import { operationOf } from '../operations'
 import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 
@@ -150,10 +151,12 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
       }
       if (part.type === 'text' && part.text) onEvent({ type: 'text', ts, text: String(part.text) })
       if (part.type === 'tool_use') {
-        onEvent({ type: 'tool', ts, tool: String(part.name || 'tool') })
+        const tool = String(part.name || 'tool')
+        const operation = operationOf(tool)
+        onEvent({ type: 'tool', ts, tool, operation })
         const input = (part.input || {}) as Record<string, unknown>
-        const file = input.file_path || input.path
-        if (file) onEvent({ type: 'file', ts, file: String(file) })
+        const file = input.file_path || input.path || input.notebook_path
+        if (file) onEvent({ type: 'file', ts, file: String(file), operation })
       }
     }
     return

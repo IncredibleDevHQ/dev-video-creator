@@ -57,11 +57,11 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
     return
   }
   if (kind === 'command_execution' || kind === 'local_shell_call' || kind === 'mcp_tool_call') {
-    onEvent({ type: 'tool', ts, tool: String(item.name || item.command || kind).slice(0, 120) })
+    onEvent({ type: 'tool', ts, tool: String(item.name || item.command || kind).slice(0, 120), operation: kind === 'mcp_tool_call' ? 'tool' : 'run' })
     return
   }
   if (kind === 'file_change' && item.path) {
-    onEvent({ type: 'file', ts, file: String(item.path) })
+    onEvent({ type: 'file', ts, file: String(item.path), operation: 'write' })
     return
   }
 }

@@ -8,8 +8,11 @@ type StudioDesktopRunSummary = {
   projectDir: string
   status: 'running' | 'gate' | 'waiting' | 'done' | 'error' | 'cancelled'
   resumeId?: string
-  // The model asked for, then the one the harness reported running.
+  // The model asked for, and the one the harness session reported.
   model?: string
+  reportedModel?: string
+  // Why it failed: category, the provider's own words, the ways on.
+  failure?: { category: string; message: string; harness: string; requestedModel?: string; reportedModel?: string; at: string; recovery: string[] }
   startedAt: string
   finishedAt?: string
 }
@@ -28,6 +31,8 @@ type StudioDesktopHarnessEvent = {
     ts: number
     // On a session event: the model the harness says it runs.
     model?: string
+    // On tool and file events: what the harness does (read, write, edit, …).
+    operation?: 'read' | 'search' | 'write' | 'edit' | 'run' | 'tool'
     text?: string
     tool?: string
     file?: string

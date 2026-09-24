@@ -133,6 +133,25 @@ import {
   type OrderedStepDraft,
   type SlideUnit,
 } from './slide-atoms'
+import {
+  HARNESS_LABELS,
+  HARNESS_STAGES,
+  STAGE_LABELS as HARNESS_STAGE_LABELS,
+  adoptLegacyChoices,
+  failureTitle,
+  progressText,
+  loadHarnessPreferences,
+  loadHarnessStatus,
+  resolveStage,
+  resolvedLabel,
+  saveHarnessPreferences,
+  type HarnessAvailability,
+  type HarnessChoice,
+  type HarnessPreferences,
+  type HarnessStage,
+  type HarnessStatus,
+  type RunFailureView,
+} from './harness-choice'
 import './styles.css'
 
 const studioLogoUrl = new URL(
@@ -6076,17 +6095,14 @@ msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, 
 })
 void loadModelSettingsUi()
 
-// ——— Coding agent status (desktop shell only) ———
-// Detects the coding-agent CLIs through the desktop bridge, shows the active
-// one in the top bar, and lets the user pick which agent Plan motion (assist)
-// runs on. Web builds never see any of this (the button stays hidden).
-type AgentAvailability = { id: string; ok: boolean; version?: string; reason?: string }
-const AGENT_LABELS: Record<string, string> = {
-  kimi: 'Kimi CLI',
-  'claude-code': 'Claude Code',
-  codex: 'Codex CLI',
-}
-const agentLabel = (id: string) => AGENT_LABELS[id] || id
+// ——— Local harness and model, per stage (desktop shell only) ———
+// Detects the coding-agent CLIs through the desktop bridge and keeps the
+// creator's choice of harness and model — one default, with overrides for
+// the story, page drawing, planning and scene production — in the durable
+// settings store. Each harness shows its last provider status. Web builds
+// never see any of this (the button stays hidden).
+type AgentAvailability = HarnessAvailability
+const agentLabel = (id: string) => HARNESS_LABELS[id] || id
 const agentButton = $('#open-agent-settings') as HTMLButtonElement
 const agentDialog = $('#agent-settings-dialog') as HTMLDialogElement
 const agentSummary = $('#agent-settings-summary') as HTMLElement
@@ -6094,48 +6110,65 @@ const agentDot = $('#agent-status-dot') as HTMLElement
 const agentList = $('#agent-list') as HTMLElement
 const agentStatusLine = $('#agent-status') as HTMLElement
 let agentAvailability: AgentAvailability[] = []
+let harnessPreferences: HarnessPreferences = { default: null, stages: {}, updatedAt: null }
+let harnessStatus: HarnessStatus = {}
 
-const getPreferredAgent = () => {
-  try {
-    return localStorage.getItem('studio.codingAgent') || ''
-  } catch {
-    return ''
-  }
-}
-const setPreferredAgent = (id: string) => {
-  try {
-    if (id) localStorage.setItem('studio.codingAgent', id)
-    else localStorage.removeItem('studio.codingAgent')
-  } catch {
-    // Private browsing and friends — the picker just won't persist.
-  }
-}
+// The harness the default choice names, for the motion assist.
+const getPreferredAgent = () => harnessPreferences.default?.harness || ''
 
-// The agent an assist run should use: the preferred one when it is online,
-// else the first online one (remembered, so the top bar stays honest).
+// The agent an assist run should use: the default when it is online, else
+// the first online one.
 const resolveAssistAgent = () => {
   const online = agentAvailability.filter(agent => agent.ok)
   if (!online.length) return ''
-  const preferred = getPreferredAgent()
-  const chosen = online.find(agent => agent.id === preferred) || online[0]
-  if (chosen.id !== preferred) setPreferredAgent(chosen.id)
-  return chosen.id
+  return (online.find(agent => agent.id === getPreferredAgent()) || online[0]).id
 }
 
-// Story, pages and the rich derivative use the creator's selected harness.
-// Keep the explicit model visible, and never silently switch providers.
-const CREATION_AGENTS = [
-  { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 · thinking high' },
-  { id: 'claude-code', model: 'claude-fable-5-1', label: 'Claude Fable 5.1 · thinking high' },
-]
-const resolveCreationAgent = async () => {
-  const selected = getPreferredAgent() || 'kimi'
-  const config = CREATION_AGENTS.find(agent => agent.id === selected)
-  if (!config) throw new Error('Choose Kimi or Claude Code in Agent settings for story, pages and explainer creation')
-  const available = await window.studioDesktop?.harness.adapters()
-  if (!available?.some(agent => agent.id === selected && agent.ok)) throw new Error(`${config.label} is unavailable. Open Agent settings to choose an installed harness.`)
-  return config
+// The harness and model a creation stage runs on, from the durable choice.
+// An unavailable choice stops with how to fix it; it is never swapped.
+const resolveCreationAgent = async (stage: HarnessStage) => {
+  const bridge = window.studioDesktop
+  if (!bridge?.isDesktop) throw new Error('Creation with a local harness runs in the desktop app')
+  const [available, preferences] = await Promise.all([bridge.harness.adapters(), loadHarnessPreferences(fetchJson).catch(() => harnessPreferences)])
+  agentAvailability = available
+  harnessPreferences = preferences
+  const resolved = resolveStage(preferences, stage, available)
+  if (!resolved.available || !resolved.harness) throw new Error(resolved.reason || 'Choose a local harness in Agent settings')
+  return { id: resolved.harness, model: resolved.model || undefined, label: resolvedLabel(resolved, available), source: resolved.source }
 }
+
+// Where a run failed, the creator sees what went wrong, the provider's own
+// words and the ways on — never only "the run ended error". A known quota or
+// sign-in failure is not retried by itself.
+const showRunFailure = (element: HTMLElement | null, failure: RunFailureView | undefined, fallback: string, retry?: () => void) => {
+  if (!element) return
+  element.replaceChildren()
+  element.classList.add('is-error')
+  const text = document.createElement('span')
+  text.textContent = failure ? `${failureTitle(failure.category)}: ${failure.message}` : fallback
+  element.append(text)
+  const actions = document.createElement('span')
+  actions.className = 'run-failure-actions'
+  const action = (label: string, run: () => void) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'button ghost'
+    button.textContent = label
+    button.addEventListener('click', run)
+    actions.append(button)
+  }
+  if (retry && failure?.category !== 'unavailable') action('Retry', retry)
+  action('Switch harness or model', () => {
+    setAgentStatus('')
+    agentDialog.showModal()
+    renderAgentList()
+    void refreshAgents()
+  })
+  element.append(actions)
+}
+
+// The durable summary of a finished run, with its failure when it failed.
+const finishedRun = async (runId: string) => (await window.studioDesktop?.harness.list())?.find(run => run.id === runId)
 
 const setAgentStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   agentStatusLine.textContent = text
@@ -6154,40 +6187,128 @@ const renderAgentSummary = () => {
   if (hint) hint.textContent = active ? `via ${agentLabel(active)}` : 'no agent CLI found'
 }
 
+const saveHarnessChoice = async (patch: Parameters<typeof saveHarnessPreferences>[1], message: string) => {
+  try {
+    harnessPreferences = await saveHarnessPreferences(fetchJson, patch)
+    setAgentStatus(message, 'ok')
+  } catch (error) {
+    setAgentStatus(error instanceof Error ? error.message : 'Could not save the choice', 'error')
+  }
+  renderAgentList()
+  renderAgentSummary()
+}
+
+// A harness select and a model select for one choice; `inherit` offers
+// "Use the default" for a stage.
+const harnessChoiceFields = (current: HarnessChoice | null, onChange: (choice: HarnessChoice | null) => void, inherit: boolean) => {
+  const wrap = document.createElement('div')
+  wrap.className = 'agent-choice-fields'
+  const harness = document.createElement('select')
+  harness.setAttribute('aria-label', 'Harness')
+  if (inherit) harness.append(new Option('Use the default', ''))
+  else if (!current) harness.append(new Option('Not chosen', ''))
+  for (const agent of agentAvailability) {
+    const option = new Option(`${agentLabel(agent.id)}${agent.ok ? '' : ' (not found)'}`, agent.id)
+    option.disabled = !agent.ok && agent.id !== current?.harness
+    harness.append(option)
+  }
+  harness.value = current?.harness || ''
+  const model = document.createElement('select')
+  model.setAttribute('aria-label', 'Model')
+  const models = agentAvailability.find(agent => agent.id === current?.harness)?.models
+  // A stage using the default has no model of its own to pick.
+  model.hidden = !current
+  if (current) {
+    model.append(new Option(`CLI default${models?.default ? ` (${models.default})` : ''}`, ''))
+    for (const option of models?.options || []) {
+      const element = new Option(option.unavailable ? `${option.label} — ${option.unavailable}` : option.label, option.id)
+      element.disabled = Boolean(option.unavailable)
+      model.append(element)
+    }
+    if (current.model && !(models?.options || []).some(option => option.id === current.model)) model.append(new Option(current.model, current.model))
+    model.value = current.model || ''
+  } else {
+    model.disabled = true
+  }
+  harness.addEventListener('change', () => {
+    if (!harness.value) return onChange(null)
+    const picked = agentAvailability.find(agent => agent.id === harness.value)
+    const recommended = harness.value === 'claude-code' ? 'claude-opus-5-5' : picked?.models?.default || null
+    const usable = recommended && !picked?.models?.options.find(option => option.id === recommended)?.unavailable ? recommended : null
+    onChange({ harness: harness.value as HarnessChoice['harness'], model: usable })
+  })
+  model.addEventListener('change', () => current && onChange({ harness: current.harness, model: model.value || null }))
+  wrap.append(harness, model)
+  return wrap
+}
+
 const renderAgentList = () => {
-  const preferred = getPreferredAgent()
-  agentList.replaceChildren(
-    ...agentAvailability.map(agent => {
-      const row = document.createElement('label')
-      row.className = `agent-row${agent.id === preferred ? ' is-selected' : ''}${agent.ok ? '' : ' is-offline'}`
-      const radio = document.createElement('input')
-      radio.type = 'radio'
-      radio.name = 'coding-agent'
-      radio.checked = agent.id === preferred
-      radio.disabled = !agent.ok
-      radio.addEventListener('change', () => {
-        setPreferredAgent(agent.id)
-        renderAgentList()
-        renderAgentSummary()
-        setAgentStatus(`${CREATION_AGENTS.find(option => option.id === agent.id)?.label || agentLabel(agent.id)} selected for creation and motion assist`, 'ok')
-      })
-      const name = document.createElement('span')
-      name.className = 'agent-row-name'
-      name.textContent = CREATION_AGENTS.find(option => option.id === agent.id)?.label || agentLabel(agent.id)
-      const dot = document.createElement('span')
-      dot.className = `agent-status-dot ${agent.ok ? 'is-online' : 'is-offline'}`
-      const detail = document.createElement('span')
-      detail.className = 'agent-row-detail'
-      const reason = (agent.reason || '').replace(/\s+/g, ' ').slice(0, 90)
-      detail.textContent = agent.ok
-        ? `online · ${agent.version || 'version unknown'}`
-        : reason
-          ? `not found — ${reason}`
-          : 'not found — install the CLI to enable it'
-      row.append(radio, name, dot, detail)
-      return row
-    }),
+  const rows: HTMLElement[] = []
+  // Each harness: whether it is here, and how its last run went.
+  for (const agent of agentAvailability) {
+    const row = document.createElement('div')
+    row.className = `agent-row${agent.ok ? '' : ' is-offline'}`
+    const name = document.createElement('span')
+    name.className = 'agent-row-name'
+    name.textContent = agentLabel(agent.id)
+    const dot = document.createElement('span')
+    dot.className = `agent-status-dot ${agent.ok ? 'is-online' : 'is-offline'}`
+    const detail = document.createElement('span')
+    detail.className = 'agent-row-detail'
+    const reason = (agent.reason || '').replace(/\s+/g, ' ').slice(0, 90)
+    const last = harnessStatus[agent.id]
+    // The version and where it came from; the full path is in the tooltip.
+    const [fullVersion, path] = (agent.version || '').split(' · ')
+    const version = fullVersion?.replace(/\s*\(Claude Code\)$/, '')
+    const origin = path ? (/Application Support\/Claude\//.test(path) ? ' (Claude desktop app)' : '') : ''
+    detail.textContent = agent.ok
+      ? `online · ${version || 'version unknown'}${origin}${last ? ` · last run ${last.state === 'error' ? `failed — ${failureTitle(last.failure?.category).toLowerCase()}` : 'ok'}${last.model ? ` on ${last.model}` : ''}` : ''}`
+      : reason
+        ? `not found — ${reason}`
+        : 'not found — install the CLI to enable it'
+    detail.title = [path, last?.state === 'error' ? last.failure?.message : ''].filter(Boolean).join('\n')
+    row.append(name, dot, detail)
+    rows.push(row)
+  }
+  const choices = document.createElement('div')
+  choices.className = 'agent-choices'
+  const heading = document.createElement('h3')
+  heading.textContent = 'Harness and model'
+  choices.append(heading)
+  const line = (label: string, fields: HTMLElement, note = '') => {
+    const row = document.createElement('div')
+    row.className = 'agent-choice'
+    const name = document.createElement('span')
+    name.className = 'agent-choice-label'
+    name.textContent = label
+    row.append(name, fields)
+    if (note) {
+      const small = document.createElement('small')
+      small.textContent = note
+      row.append(small)
+    }
+    return row
+  }
+  const suggested = resolveStage({ default: null, stages: {}, updatedAt: null }, 'story', agentAvailability)
+  choices.append(
+    line(
+      'Default',
+      harnessChoiceFields(harnessPreferences.default, choice => void saveHarnessChoice({ default: choice }, choice ? `Default: ${agentLabel(choice.harness)}` : 'Default cleared'), false),
+      harnessPreferences.default ? '' : suggested.harness ? `Nothing chosen: stages suggest ${resolvedLabel(suggested, agentAvailability)}.` : '',
+    ),
   )
+  for (const stage of HARNESS_STAGES) {
+    const override = harnessPreferences.stages[stage] || null
+    const effective = resolveStage(harnessPreferences, stage, agentAvailability)
+    choices.append(
+      line(
+        HARNESS_STAGE_LABELS[stage],
+        harnessChoiceFields(override, choice => void saveHarnessChoice({ stages: { [stage]: choice } }, `${HARNESS_STAGE_LABELS[stage]}: ${choice ? agentLabel(choice.harness) : 'uses the default'}`), true),
+        override ? '' : `Runs on ${resolvedLabel(effective, agentAvailability)}${effective.reason ? ` — ${effective.reason}` : ''}`,
+      ),
+    )
+  }
+  agentList.replaceChildren(...rows, choices)
 }
 
 const refreshAgents = async () => {
@@ -6197,6 +6318,10 @@ const refreshAgents = async () => {
   } catch {
     agentAvailability = []
   }
+  harnessPreferences = await loadHarnessPreferences(fetchJson)
+    .then(preferences => adoptLegacyChoices(fetchJson, preferences))
+    .catch(() => harnessPreferences)
+  harnessStatus = await loadHarnessStatus(fetchJson)
   renderAgentSummary()
   if (agentDialog.open) renderAgentList()
 }
@@ -13957,7 +14082,7 @@ if (desktopBridge?.isDesktop) {
     if (runId !== assistRunId) return
     if (event.type === 'text' && event.text) assistLog(event.text.replace(/\s+/g, ' ').slice(0, 140))
     if (event.type === 'tool') assistLog(`tool: ${event.tool}`)
-    if (event.type === 'file' && event.file) assistLog(`file: ${event.file.split('/').pop()}`)
+    if (event.type === 'file' && event.file) assistLog(progressText(event))
     if (event.type === 'gate') assistLog(`gate: ${event.gate?.stage || 'confirmation'} — answer in the dialog`, 'is-gate')
     if (event.type === 'error') assistLog(`error: ${event.error}`, 'is-error')
     if (event.type === 'done') {
@@ -15075,12 +15200,10 @@ const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDeskto
   button.disabled = true
   sourceStatus('#source-brand-status', 'The local harness is planning the story…')
   let stopListening: (() => void) | undefined
+  let storyFailure: RunFailureView | undefined
   try {
-    const creationAgent = await resolveCreationAgent()
-    stopListening = bridge.harness.onEvent(({ event }) => {
-      const message = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
-      if (message) sourceStatus('#source-brand-status', message.replace(/\s+/g, ' ').slice(0, 110))
-    })
+    const creationAgent = await resolveCreationAgent('story')
+    sourceStatus('#source-brand-status', `Planning the story with ${creationAgent.label}…`)
     const target = parseTarget(($('#source-target') as HTMLInputElement).value)
     const run = await bridge.harness.run({
       adapter: creationAgent.id, skill: 'story-master', route: 'Plan Story', projectId: project.id,
@@ -15091,13 +15214,24 @@ const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDeskto
         model: creationAgent.model, effort: 'high', autonomous: true,
       },
     })
+    // This run's progress only: a planning run elsewhere never talks over it.
+    stopListening = bridge.harness.onEvent(({ runId, event }) => {
+      if (runId !== run.id) return
+      const message = progressText(event)
+      if (message && event.type !== 'error') sourceStatus('#source-brand-status', `${creationAgent.label}: ${message.slice(0, 110)}`)
+    })
     const deadline = Date.now() + 20 * 60 * 1000
     let status = 'running'
     while (['running', 'gate'].includes(status) && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 3000))
       status = (await bridge.harness.list()).find(r => r.id === run.id)?.status || 'error'
     }
-    if (status !== 'done') throw new Error(status === 'running' ? 'The story run is still going in the background — its outline will be there when it finishes' : `The story run ended ${status}`)
+    if (status === 'running') throw new Error('The story run is still going in the background — its outline will be there when it finishes')
+    if (status !== 'done') {
+      const failed = await finishedRun(run.id)
+      storyFailure = failed?.failure
+      throw new Error(`The story run ended ${status}`)
+    }
     const artefacts = await bridge.harness.artefacts(run.id)
     const outline = (artefacts.story?.outline || null) as Outline | null
     if (!outline?.scenes?.length) throw new Error('The story run wrote no outline')
@@ -15115,7 +15249,8 @@ const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDeskto
     showSourceStep('outline')
     sourceStatus('#source-brand-status', '')
   } catch (error) {
-    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The story run failed', true)
+    // The source and theme draft stay; the provider's reason and the ways on show.
+    showRunFailure(document.getElementById('source-brand-status'), storyFailure, error instanceof Error ? error.message : 'The story run failed', () => void sourceOutline())
   } finally {
     stopListening?.()
     sourceState.busy = false
@@ -15291,7 +15426,6 @@ const renderSourcePagesGrid = (pages: SourcePage[]) => {
 // can redraw them through the page-master skill: the outline, the palette
 // and the fonts go in as inputs, the harness composes pages/NN_slug.svg to
 // the page contract, and the drawn pages replace the template ones here.
-const SOURCE_DRAWERS = CREATION_AGENTS
 let sourceDrawRunId: string | null = null
 let sourceDrawListening = false
 const sourceDrawStatus = (text: string, error = false) => sourceStatus('#source-draw-status', text, error)
@@ -15303,17 +15437,11 @@ const populateSourceDrawers = async () => {
     row.hidden = true
     return
   }
-  let adapters: Array<{ id: string; ok: boolean; version?: string }> = []
-  try {
-    adapters = await window.studioDesktop.harness.adapters()
-  } catch {
-    adapters = []
-  }
-  const online = SOURCE_DRAWERS.filter(drawer => adapters.some(adapter => adapter.id === drawer.id && adapter.ok))
-  const others = adapters.filter(adapter => adapter.ok && !SOURCE_DRAWERS.some(drawer => drawer.id === adapter.id)).length
+  // Pages are drawn with the creator's "Page drawing" choice (Agent settings).
+  const drawer = await resolveCreationAgent('drawing').catch(error => ({ error: error instanceof Error ? error.message : String(error) }))
   const keep = select.value
   select.replaceChildren(
-    ...[{ value: 'template', label: "the studio's template (instant)" }, ...online.map(drawer => ({ value: `${drawer.id}|${drawer.model}`, label: `${drawer.label}${drawer.model ? ` · ${drawer.model}` : ''} · through the harness` }))].map(option => {
+    ...[{ value: 'template', label: "the studio's template (instant)" }, ...('id' in drawer ? [{ value: `${drawer.id}|${drawer.model || ''}`, label: `${drawer.label} · through the harness` }] : [])].map(option => {
       const element = document.createElement('option')
       element.value = option.value
       element.textContent = option.label
@@ -15321,8 +15449,8 @@ const populateSourceDrawers = async () => {
     }),
   )
   if ([...select.options].some(option => option.value === keep)) select.value = keep
-  if (online.length) select.value = [...select.options].map(option => option.value).find(value => value.startsWith(`${getPreferredAgent()}|`)) || select.value
-  sourceDrawStatus(online.length ? `Choose the harness that draws your pages${others ? ` · ${others} other CLI available for motion assist` : ''}` : 'Install Kimi CLI or Claude Code to have an agent draw the pages')
+  if ('id' in drawer) select.value = [...select.options].map(option => option.value).find(value => value.startsWith(`${drawer.id}|`)) || select.value
+  sourceDrawStatus('id' in drawer ? `Pages are drawn with ${drawer.label} — change it in Agent settings` : drawer.error)
   row.hidden = false
 }
 const applyDrawnPages = async (runId: string) => {
@@ -15374,8 +15502,7 @@ const sourceDrawPages = async (choice?: string) => {
     return null
   }
   const [adapter, model] = value.split('|')
-  const drawer = SOURCE_DRAWERS.find(entry => entry.id === adapter)
-  sourceState.drawer = drawer ? drawer.label : adapter
+  sourceState.drawer = select?.selectedOptions[0]?.textContent?.replace(/ · through the harness$/, '') || agentLabel(adapter)
   const inputs = {
     video: { title: outline.title, site: source.site },
     brand: { palette: sourcePageBrand(source).palette, fonts: sourceBrandFonts(source), mode: sourcePageBrand(source).mode },
@@ -15397,7 +15524,7 @@ const sourceDrawPages = async (choice?: string) => {
     bridge.harness.onEvent(({ runId, event }) => {
       if (runId !== sourceDrawRunId) return
       if (event.type === 'text' && event.text) sourceDrawStatus(`${sourceState.drawer}: ${event.text.replace(/\s+/g, ' ').slice(0, 110)}`)
-      if (event.type === 'file' && event.file) sourceDrawStatus(`${sourceState.drawer} wrote ${event.file.split('/').pop()}`)
+      if (event.type === 'file' && event.file) sourceDrawStatus(`${sourceState.drawer}: ${progressText(event)}`)
       if (event.type === 'error') sourceDrawStatus(`${sourceState.drawer}: ${event.error}`, true)
       if (event.type === 'done') {
         const finished = sourceDrawRunId
@@ -15408,7 +15535,10 @@ const sourceDrawPages = async (choice?: string) => {
           sourceState.drawOutcome = outcome
           const receiptPages = Array.isArray((outcome.receipt as { pages?: unknown[] } | null)?.pages) ? (outcome.receipt as { pages: unknown[] }).pages.length : 0
           if (outcome.drawn) sourceDrawStatus(`${outcome.drawn} of ${outcome.of} pages drawn by ${sourceState.drawer}${outcome.failed.length ? ` · ${outcome.failed.length} rejected` : ''}${receiptPages ? ` · receipt: ${receiptPages} pages checked` : ''} — open the notebook to use them`)
-          else sourceDrawStatus(`${sourceState.drawer} drew nothing usable (exit ${event.exitCode ?? '?'}) — the template pages stay`, true)
+          else {
+            const failed = await finishedRun(String(finished))
+            showRunFailure(document.getElementById('source-draw-status'), failed?.failure, `${sourceState.drawer} drew nothing usable (exit ${event.exitCode ?? '?'}) — the template pages stay`, () => void sourceDrawPages())
+          }
         })()
       }
     })
@@ -16099,7 +16229,7 @@ const startExplainerBuild = async () => {
   cancel.hidden = false
   let objectsTimer: number | undefined
   try {
-    const creationAgent = await resolveCreationAgent()
+    const creationAgent = await resolveCreationAgent('composition')
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
     if (!project.derivedFrom?.notebook) {
@@ -16148,7 +16278,7 @@ const startExplainerBuild = async () => {
     const unsubscribe = bridge.harness.onEvent(({ runId, event }) => {
       if (runId !== explainerRun?.id) return
       if (event.type === 'text' && event.text) button.title = event.text.slice(-400)
-      const message = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
+      const message = progressText(event)
       if (message) { status.textContent = message.slice(0, 180); log.textContent = `${log.textContent}\n${message}`.slice(-12000); log.scrollTop = log.scrollHeight }
       if (event.type === 'error') showToast(event.error || 'The local harness needs attention')
       if (event.type === 'done') {
@@ -16173,6 +16303,9 @@ const startExplainerBuild = async () => {
             if (project.id === targetId) void openNotebook(targetId)
             showToast('Explainer built, reviewed and exported. Its editable video notebook is ready.')
           } else {
+            void finishedRun(runId).then(failed => {
+              if (failed?.failure) status.textContent = `Build stopped — ${failureTitle(failed.failure.category)}: ${failed.failure.message} (${failed.failure.recovery.join(' · ')}). Candidate artwork and review files are retained.`
+            })
             if (project.id === targetId) void openNotebook(targetId)
             showToast('The run stopped. Accepted scenes are reloaded; candidate files and reviews remain available.')
           }

@@ -753,11 +753,14 @@ export const saveBuildRun = async (run: BuildRunInput) => {
   await initializePersistence()
   await database.query(
     `insert into studio_build_runs
-      (id, project_id, skill, route, adapter, project_dir, status, inputs_hash, resume_id, exit_code, started_at, finished_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, coalesce($11::timestamptz, now()), $12::timestamptz)
+      (id, project_id, skill, route, adapter, project_dir, status, inputs_hash, resume_id, exit_code, started_at, finished_at, model, reported_model, failure)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, coalesce($11::timestamptz, now()), $12::timestamptz, $13, $14, $15::jsonb)
      on conflict (id) do update set
        status = excluded.status, resume_id = excluded.resume_id,
-       exit_code = excluded.exit_code, finished_at = excluded.finished_at`,
+       exit_code = excluded.exit_code, finished_at = excluded.finished_at,
+       model = coalesce(excluded.model, studio_build_runs.model),
+       reported_model = coalesce(excluded.reported_model, studio_build_runs.reported_model),
+       failure = excluded.failure`,
     [
       run.id,
       run.projectId || null,
@@ -771,6 +774,9 @@ export const saveBuildRun = async (run: BuildRunInput) => {
       run.exitCode ?? null,
       run.startedAt || null,
       run.finishedAt || null,
+      run.model || null,
+      run.reportedModel || null,
+      run.failure ? JSON.stringify(run.failure) : null,
     ],
   )
 }
@@ -790,6 +796,9 @@ export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> 
     status: row.status,
     inputsHash: row.inputs_hash,
     resumeId: row.resume_id,
+    model: row.model ?? null,
+    reportedModel: row.reported_model ?? null,
+    failure: row.failure ?? null,
     exitCode: row.exit_code,
     startedAt: new Date(row.started_at).toISOString(),
     finishedAt: row.finished_at ? new Date(row.finished_at).toISOString() : null,

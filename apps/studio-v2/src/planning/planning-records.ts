@@ -50,7 +50,9 @@ export type PlanningRecord = {
   skillBundle: SkillBundleRef | null
   workflow: string | null
   direction: string
-  error: { message: string; providerStatus?: string } | null
+  // Why it failed: what happened, the provider's own last status, its
+  // category (quota, auth, model, …) and the ways on.
+  error: { message: string; providerStatus?: string; category?: string; recovery?: string[] } | null
   createdAt: string
   updatedAt: string
   reviewedAt: string | null

@@ -28,6 +28,9 @@ export type BuildRunInput = {
   status: string
   inputsHash?: string
   resumeId?: string
+  model?: string | null
+  reportedModel?: string | null
+  failure?: Record<string, unknown> | null
   exitCode?: number | null
   startedAt?: string
   finishedAt?: string | null
@@ -43,6 +46,9 @@ export type BuildRunRow = {
   status: string
   inputsHash: string | null
   resumeId: string | null
+  model: string | null
+  reportedModel: string | null
+  failure: Record<string, unknown> | null
   exitCode: number | null
   startedAt: string
   finishedAt: string | null

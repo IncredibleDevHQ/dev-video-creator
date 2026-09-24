@@ -16,11 +16,15 @@ export type GateRequest = {
   recommendation?: unknown
 }
 
+// What a tool or file event did: reading a manual is not writing a page.
+export type HarnessOperation = 'read' | 'search' | 'write' | 'edit' | 'run' | 'tool'
+
 export interface HarnessEvent {
   // 'session': the harness started its session and says which model it runs.
   type: 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done' | 'session'
   ts: number
   model?: string
+  operation?: HarnessOperation
   text?: string
   tool?: string
   file?: string
@@ -69,6 +73,19 @@ export type RunStatus =
   | 'error'
   | 'cancelled'
 
+// Why a run failed, kept with the run so every stage can show it and offer
+// the right way on. `message` is the provider's own public text.
+export type FailureCategory = 'quota' | 'auth' | 'model' | 'rate-limit' | 'network' | 'unavailable' | 'interrupted' | 'other'
+export type RunFailure = {
+  category: FailureCategory
+  message: string
+  harness: string
+  requestedModel?: string
+  reportedModel?: string
+  at: string
+  recovery: string[]
+}
+
 export type RunSummary = {
   id: string
   skill: string
@@ -80,6 +97,8 @@ export type RunSummary = {
   // The model the run asked for, and the one its harness session reported.
   model?: string
   reportedModel?: string
+  // Set when the run ended in error.
+  failure?: RunFailure
   startedAt: string
   finishedAt?: string
 }

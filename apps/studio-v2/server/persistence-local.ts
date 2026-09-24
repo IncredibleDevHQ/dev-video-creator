@@ -577,13 +577,20 @@ export const savePlanningInput = (input: { projectId: string; subject: string; d
   })
 
 // ——— Durable build runs and stage checkpoints (D3), file-backend variant ——
-export const saveBuildRun = async (run: BuildRunInput) => {
-  const list = ((await loadSetting('build-runs')) as Array<Record<string, unknown>> | null) || []
-  const index = list.findIndex(entry => entry.id === run.id)
-  const merged = { ...list[index], ...run }
-  if (index >= 0) list[index] = merged
-  else list.unshift(merged)
-  await saveSetting('build-runs', list.slice(0, 100))
+// Runs finish concurrently; their read-modify-write is serialised so one
+// run's update never erases another's.
+let buildRunsLock: Promise<unknown> = Promise.resolve()
+export const saveBuildRun = (run: BuildRunInput) => {
+  const next = buildRunsLock.then(async () => {
+    const list = ((await loadSetting('build-runs')) as Array<Record<string, unknown>> | null) || []
+    const index = list.findIndex(entry => entry.id === run.id)
+    const merged = { ...list[index], ...Object.fromEntries(Object.entries(run).filter(([key, value]) => value !== null || (key !== 'model' && key !== 'reportedModel'))) }
+    if (index >= 0) list[index] = merged
+    else list.unshift(merged)
+    await saveSetting('build-runs', list.slice(0, 100))
+  })
+  buildRunsLock = next.catch(() => undefined)
+  return next
 }
 
 export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> => {
@@ -600,6 +607,9 @@ export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> 
       status: String(run.status || ''),
       inputsHash: (run.inputsHash as string | null) ?? null,
       resumeId: (run.resumeId as string | null) ?? null,
+      model: (run.model as string | null) ?? null,
+      reportedModel: (run.reportedModel as string | null) ?? null,
+      failure: (run.failure as Record<string, unknown> | null) ?? null,
       exitCode: (run.exitCode as number | null) ?? null,
       startedAt: String(run.startedAt || ''),
       finishedAt: (run.finishedAt as string | null) ?? null,

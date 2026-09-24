@@ -9,9 +9,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const appDir = fileURLToPath(new URL('..', import.meta.url))
 const dir = await mkdtemp(join(tmpdir(), 'harness-models-check-'))
-const outfile = join(dir, 'models.mjs')
-await build({ entryPoints: [join(appDir, 'src/harness/models.ts')], bundle: true, platform: 'node', format: 'esm', outfile, logLevel: 'silent' })
-const models = await import(pathToFileURL(outfile).href)
+const load = async name => {
+  const outfile = join(dir, `${name}.mjs`)
+  await build({ entryPoints: [join(appDir, `src/harness/${name}.ts`)], bundle: true, platform: 'node', format: 'esm', outfile, logLevel: 'silent' })
+  return import(pathToFileURL(outfile).href)
+}
+const models = await load('models')
+const errors = await load('provider-errors')
+const operations = await load('operations')
 
 const failures = []
 const check = (ok, message) => {
@@ -45,6 +50,26 @@ check(!JSON.stringify(kimi).includes('must-not-appear'), 'only model names are r
 const codex = models.codexModelsFrom(['model = "gpt-5.6-luna"', '', '[profiles.fast]', 'model = "some-other-model"'].join('\n'))
 check(codex.options.length === 1 && codex.options[0].id === 'gpt-5.6-luna', 'Codex offers the model its config names at the top level, not a profile\'s')
 check(models.codexModelsFrom('').options.length === 0, 'a Codex config without a model offers only the CLI default')
+
+// Failures a creator can act on, from providers' real public messages.
+const kinds = [
+  ['Run `kimi` here and choose "Trust this folder" to enable them. · error: failed to run prompt: provider.auth_error: 403 You\'ve reached your weekly (7-day) usage limit.', 'quota'],
+  ["You're out of usage credits. Switch to a different model or manage credits.", 'quota'],
+  ['API Error: 400 Claude Code 2.1.278 does not support this model; version 2.1.280 or newer is required.', 'model'],
+  ['Claude Code is not logged in for the command line. Open a terminal, run `claude`, then `/login` once', 'auth'],
+  ['API Error: 429 Too Many Requests', 'rate-limit'],
+  ['request to https://api.example failed, reason: getaddrinfo ENOTFOUND api.example', 'network'],
+  ['spawn codex ENOENT', 'unavailable'],
+  ['The model produced an empty page', 'other'],
+]
+for (const [message, expected] of kinds) check(errors.categorise(message) === expected, `"${message.slice(0, 48)}…" reads as ${expected} (${errors.categorise(message)})`)
+const quota = errors.describeFailure({ message: kinds[0][0], harness: 'kimi', requestedModel: 'kimi-code/k3' })
+check(quota.recovery[0] === 'Retry after restoring Kimi credits' && quota.recovery.includes('Switch harness or model') && quota.requestedModel === 'kimi-code/k3', 'a quota failure offers restoring credits or switching, never an automatic retry')
+check(errors.describeFailure({ message: '', harness: 'claude-code', category: 'interrupted' }).recovery.join() === 'Retry', 'an interrupted run offers a retry')
+
+// Reading a manual is not writing a page.
+const ops = [['Read', 'read'], ['Glob', 'search'], ['Grep', 'search'], ['Write', 'write'], ['Edit', 'edit'], ['MultiEdit', 'edit'], ['Bash', 'run'], ['ReadFile', 'read'], ['WriteFile', 'write'], ['StrReplaceFile', 'edit'], ['mcp__studio__plan_submit_brief', 'tool'], ['SomethingNew', 'tool']]
+for (const [tool, expected] of ops) check(operations.operationOf(tool) === expected, `${tool} is ${expected} (${operations.operationOf(tool)})`)
 
 await rm(dir, { recursive: true, force: true })
 console.log(failures.length ? `HARNESS MODELS CHECK FAIL (${failures.length})` : 'HARNESS MODELS CHECK PASS')

@@ -670,14 +670,14 @@ export const reviewTreatment = async (recordId: string) => {
   return updated
 }
 
-export const failRecord = async (recordId: string, error: { message: string; providerStatus?: string }) => {
+export const failRecord = async (recordId: string, error: NonNullable<PlanningRecord['error']>) => {
   const updated = await updatePlanningRecord(recordId, { status: 'failed', error }, ['queued', 'running'])
   return updated
 }
 
 // A run that ended without submitting leaves its records failed, with the
 // provider's last word, so the creator sees why and can retry or switch.
-export const runFinished = async (runId: string, outcome: { status: string; exitCode?: number | null; error?: string }) => {
+export const runFinished = async (runId: string, outcome: { status: string; exitCode?: number | null; error?: string; failure?: { category?: string; message?: string; recovery?: string[] } }) => {
   const records = await listPlanningRecordsForRun(runId)
   const failed: PlanningRecord[] = []
   for (const record of records) {
@@ -689,8 +689,10 @@ export const runFinished = async (runId: string, outcome: { status: string; exit
         : outcome.status === 'interrupted'
           ? 'Interrupted: the app closed while this run was working. Retry it; any earlier result is unchanged.'
           : `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) without submitting a result.`
-    const providerStatus = (outcome.error || '').replace(/^[\s·:-]+/, '').trim()
-    const updated = await failRecord(record.id, { message, ...(providerStatus ? { providerStatus } : {}) })
+    const providerStatus = (outcome.failure?.message || outcome.error || '').replace(/^[\s·:-]+/, '').trim()
+    const category = outcome.status === 'interrupted' ? 'interrupted' : outcome.failure?.category
+    const recovery = outcome.status === 'interrupted' ? ['Retry'] : outcome.failure?.recovery
+    const updated = await failRecord(record.id, { message, ...(providerStatus ? { providerStatus } : {}), ...(category ? { category } : {}), ...(recovery?.length ? { recovery } : {}) })
     if (updated) failed.push(updated)
   }
   return failed

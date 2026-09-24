@@ -18,6 +18,7 @@ import { homedir } from 'node:os'
 import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
 import { kimiModels } from '../models'
+import { operationOf } from '../operations'
 
 // Kimi reads its settings from KIMI_CODE_HOME. A drawing run wants the
 // model thinking hard, but the effort lives in the user's own config and
@@ -93,11 +94,13 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
     const toolCalls = (message.tool_calls || []) as Array<Record<string, unknown>>
     for (const call of toolCalls) {
       const fn = (call.function || {}) as { name?: string; arguments?: string }
-      onEvent({ type: 'tool', ts, tool: String(fn.name || 'tool') })
+      const tool = String(fn.name || 'tool')
+      const operation = operationOf(tool)
+      onEvent({ type: 'tool', ts, tool, operation })
       try {
         const args = JSON.parse(fn.arguments || '{}') as Record<string, unknown>
         const file = args.path || args.file_path
-        if (file) onEvent({ type: 'file', ts, file: String(file) })
+        if (file) onEvent({ type: 'file', ts, file: String(file), operation })
       } catch {
         // Arguments stream in chunks in some modes; the tool event is enough.
       }

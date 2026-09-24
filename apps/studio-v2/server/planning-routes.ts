@@ -90,8 +90,8 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
     }
     // /api/planning/runs/:runId/finished — the desktop host, when a run ends.
     if (parts[0] === 'runs' && parts[1] && parts[2] === 'finished' && method === 'POST') {
-      const input = await body<{ status?: string; exitCode?: number | null; error?: string }>(request)
-      send(response, 200, { failed: await runFinished(parts[1], { status: String(input.status || 'done'), exitCode: input.exitCode ?? null, ...(input.error ? { error: String(input.error) } : {}) }) })
+      const input = await body<{ status?: string; exitCode?: number | null; error?: string; failure?: { category?: string; message?: string; recovery?: string[] } }>(request)
+      send(response, 200, { failed: await runFinished(parts[1], { status: String(input.status || 'done'), exitCode: input.exitCode ?? null, ...(input.error ? { error: String(input.error) } : {}), ...(input.failure ? { failure: input.failure } : {}) }) })
       return true
     }
     const projectId = parts[0]

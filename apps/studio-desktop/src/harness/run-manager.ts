@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { installSkills, resolveSkillDir } from './skills-install'
+import { describeFailure } from './provider-errors'
 import { verifyExplainerExport } from '../mcp/explainer-tools'
 import type {
   GateRequest,
@@ -142,6 +143,9 @@ export class RunManager {
           status: summary.status,
           inputsHash: createHash('sha256').update(JSON.stringify(record.inputs)).digest('hex'),
           resumeId: record.resumeId,
+          model: summary.model || null,
+          reportedModel: summary.reportedModel || null,
+          failure: summary.failure || null,
           exitCode,
           startedAt: summary.startedAt,
           finishedAt: summary.finishedAt || null,
@@ -182,6 +186,9 @@ export class RunManager {
         projectDir: String(row.projectDir),
         status: (interrupted ? 'error' : row.status) as RunSummary['status'],
         resumeId: row.resumeId ? String(row.resumeId) : undefined,
+        ...(row.model ? { model: String(row.model) } : {}),
+        ...(row.reportedModel ? { reportedModel: String(row.reportedModel) } : {}),
+        ...(row.failure ? { failure: row.failure as RunSummary['failure'] } : interrupted ? { failure: describeFailure({ message: 'The app closed while this run was working', harness: String(row.adapter), category: 'interrupted' }) } : {}),
         startedAt: String(row.startedAt),
         finishedAt: row.finishedAt ? String(row.finishedAt) : undefined,
       })
@@ -207,10 +214,11 @@ export class RunManager {
       const id = String(row.id)
       if (!['running', 'gate'].includes(String(row.status)) || this.runs.has(id)) continue
       try {
+        const failure = describeFailure({ message: 'The app closed while this run was working', harness: String(row.adapter), category: 'interrupted', ...(row.model ? { requestedModel: String(row.model) } : {}) })
         await fetch(`${this.context.origin}/api/runs`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ ...row, status: 'error', exitCode: null, finishedAt: new Date().toISOString() }),
+          body: JSON.stringify({ ...row, status: 'error', exitCode: null, failure, finishedAt: new Date().toISOString() }),
         })
         await this.worker(`/api/planning/runs/${encodeURIComponent(id)}/finished`, { status: 'interrupted', exitCode: null })
         interrupted.push(id)
@@ -388,6 +396,7 @@ export class RunManager {
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      record.lastError = message
       this.emit(runId, { type: 'error', ts: Date.now(), error: message })
       result = { exitCode: 1 }
     }
@@ -533,6 +542,15 @@ export class RunManager {
     if (record.summary.finishedAt) return
     record.summary.status = status
     record.summary.finishedAt = new Date().toISOString()
+    // A failed run keeps why, in a form every stage can act on.
+    if (status === 'error') {
+      record.summary.failure = describeFailure({
+        message: record.lastError || `The ${record.summary.adapter} run ended with exit code ${exitCode}`,
+        harness: record.summary.adapter,
+        ...(record.summary.model ? { requestedModel: record.summary.model } : {}),
+        ...(record.summary.reportedModel ? { reportedModel: record.summary.reportedModel } : {}),
+      })
+    }
     record.summary.resumeId = record.resumeId
     await this.writeRunFile(record).catch(() => {})
     await this.persistRun(record, exitCode)
@@ -543,6 +561,7 @@ export class RunManager {
         status,
         exitCode,
         ...(record.lastError ? { error: record.lastError } : {}),
+        ...(record.summary.failure ? { failure: record.summary.failure } : {}),
       }).catch(error => log('planning finish report failed:', error instanceof Error ? error.message : error))
     }
     this.emit(record.summary.id, { type: 'done', ts: Date.now(), exitCode, status })
@@ -550,6 +569,7 @@ export class RunManager {
   }
 
   private async fail(record: RunRecord, message: string) {
+    record.lastError = message
     this.emit(record.summary.id, { type: 'error', ts: Date.now(), error: message })
     await this.finish(record, 'error', 1)
   }

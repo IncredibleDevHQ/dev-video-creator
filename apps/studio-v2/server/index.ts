@@ -18,6 +18,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { skillVersions } from './skill-versions'
 import { handlePlanningRoute } from './planning-routes'
+import { HARNESS_STAGES, HarnessPreferenceError, loadHarnessPreferences, saveHarnessPreferences } from './harness-preferences'
 import { createRenderJob, executeRenderJob } from '@hyperframes/producer'
 import {
   baseStatusOf,
@@ -2620,6 +2621,39 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/settings/models') {
       json(response, 200, { settings: await publicModelSettings(), presets: MODEL_PRESETS })
+      return
+    }
+    // The creator's local harness and model, per stage, durably.
+    if (request.method === 'GET' && url.pathname === '/api/settings/harness') {
+      json(response, 200, { preferences: await loadHarnessPreferences(), stages: HARNESS_STAGES })
+      return
+    }
+    if (request.method === 'PUT' && url.pathname === '/api/settings/harness') {
+      const patch = await readJson<{ default?: unknown; stages?: Record<string, unknown> }>(request, 16 * 1024)
+      try {
+        json(response, 200, { preferences: await saveHarnessPreferences(patch || {}) })
+      } catch (error) {
+        if (!(error instanceof HarnessPreferenceError)) throw error
+        json(response, 400, { error: error.message })
+      }
+      return
+    }
+    // Each harness's last provider status: its newest finished run, with the
+    // failure (category, message, recovery) when that run failed.
+    if (request.method === 'GET' && url.pathname === '/api/harness/status') {
+      const status: Record<string, unknown> = {}
+      for (const run of await listBuildRuns()) {
+        if (!run.finishedAt || status[run.adapter]) continue
+        status[run.adapter] = {
+          state: run.status === 'error' ? 'error' : 'ok',
+          runId: run.id,
+          skill: run.skill,
+          model: run.reportedModel || run.model,
+          at: run.finishedAt,
+          ...(run.failure ? { failure: run.failure } : {}),
+        }
+      }
+      json(response, 200, { status })
       return
     }
     if (request.method === 'PUT' && url.pathname === '/api/settings/models') {

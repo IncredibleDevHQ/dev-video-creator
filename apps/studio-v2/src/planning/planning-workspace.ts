@@ -15,6 +15,17 @@
 import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
 import { channelsOf, TREATMENT_CHANNELS, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, type PlanningRecord, type ScenePlanningView } from './planning-records'
+import {
+  failureTitle,
+  progressText,
+  loadHarnessPreferences,
+  loadHarnessStatus,
+  resolveStage,
+  saveHarnessPreferences,
+  type HarnessChoice,
+  type HarnessPreferences,
+  type HarnessStatus,
+} from '../harness-choice'
 
 type BasePage = { scene: string; title: string; idea: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
 type SceneRow = {
@@ -55,9 +66,8 @@ export type PlanningWorkspaceHost = {
 }
 
 const HARNESS_LABELS: Record<string, string> = { kimi: 'Kimi', 'claude-code': 'Claude Code', codex: 'Codex' }
-// A planning run asks its harness for a model by name. Claude Code plans on
-// the latest Opus unless the creator picks another; Kimi and Codex start
-// from their own configured default.
+// A planning run asks its harness for a model by name: the creator's durable
+// "Video planning" choice (Agent settings), which this header also sets.
 const RECOMMENDED_MODELS: Record<string, string> = { 'claude-code': 'claude-opus-5-5' }
 const CUSTOM_MODEL = '__custom__'
 const CHANNEL_LABELS: Record<TreatmentChannel, string> = {
@@ -69,22 +79,6 @@ const CHANNEL_LABELS: Record<TreatmentChannel, string> = {
   audio: 'Sound',
 }
 const DELIVERY_LABELS: Record<string, string> = { '': 'Delivery undecided', human: 'My voice / presenter', generated: 'Generated narration', silent: 'Silent' }
-const PREFERRED_HARNESS_KEY = 'studio.planningHarness'
-const MODEL_KEY = (harness: string) => `studio.planningModel.${harness}`
-const remembered = (key: string) => {
-  try {
-    return localStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-const remember = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value)
-  } catch {
-    // not remembered; the choice still applies now
-  }
-}
 
 const h = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -144,26 +138,24 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   // The workspace re-renders as runs report; a draft outlives those renders.
   const drafts = new Map<string, string>()
 
-  const preferredHarness = () => {
-    let preferred = ''
-    try {
-      preferred = localStorage.getItem(PREFERRED_HARNESS_KEY) || ''
-    } catch {
-      preferred = ''
-    }
-    const online = harnesses.filter(entry => entry.ok)
-    return online.find(entry => entry.id === preferred)?.id || online[0]?.id || ''
-  }
+  let preferences: HarnessPreferences = { default: null, stages: {}, updatedAt: null }
+  let harnessStatus: HarnessStatus = {}
+  // Typing a model id: shown until it is saved.
+  let customModelFor = ''
 
-  // The model a run on this harness asks for; '' leaves it to the CLI.
-  const modelFor = (harness: string) => {
-    const entry = harnesses.find(candidate => candidate.id === harness)
-    const usable = (id: string) => !entry?.models?.options.find(option => option.id === id)?.unavailable
-    const chosen = remembered(MODEL_KEY(harness))
-    if (chosen === CUSTOM_MODEL) return ''
-    if (chosen !== null) return usable(chosen) ? chosen : ''
-    const recommended = RECOMMENDED_MODELS[harness] || entry?.models?.default || ''
-    return recommended && usable(recommended) ? recommended : ''
+  // The durable "Video planning" choice, resolved against what is installed.
+  const planningChoice = () => resolveStage(preferences, 'planning', harnesses)
+  const preferredHarness = () => (planningChoice().available ? planningChoice().harness || '' : '')
+  // The model a run asks for; '' leaves it to the CLI.
+  const modelFor = () => planningChoice().model || ''
+
+  const savePlanningChoice = async (choice: HarnessChoice) => {
+    try {
+      preferences = await saveHarnessPreferences(host.fetchJson, { stages: { planning: choice } })
+    } catch (error) {
+      host.toast(error instanceof Error ? error.message : 'Could not save the planning harness')
+    }
+    render()
   }
 
   const recordsFor = (kind: PlanningRecord['kind'], subject: string) =>
@@ -178,6 +170,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       overview = readOnly
         ? await host.fetchJson<PlanningOverviewV1>(`/api/planning/${encodeURIComponent(host.current().id)}/child/${encodeURIComponent(projectId)}`)
         : await host.fetchJson<PlanningOverviewV1>(`/api/planning/${encodeURIComponent(projectId)}`)
+      // After the records, so the status is never older than what it explains.
+      if (bridge?.isDesktop && !readOnly) harnessStatus = await loadHarnessStatus(host.fetchJson).catch(() => harnessStatus)
     } catch (error) {
       overview = null
       render(error instanceof Error ? error.message : 'Planning could not be loaded')
@@ -197,12 +191,17 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   const listen = () => {
     if (unsubscribe || !bridge?.isDesktop) return
     unsubscribe = bridge.harness.onEvent(({ runId, event }) => {
+      // A run can end before its record reaches this view; any run ending
+      // while the workspace is open refreshes it.
+      if (event.type === 'done' && dialog.open) {
+        void load()
+        return
+      }
       const owner = (overview?.records || []).find(record => record.runId === runId)
       if (!owner) return
-      const text = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '') || (event.type === 'session' && event.model ? `${HARNESS_LABELS[owner.adapter || ''] || 'The harness'} started on ${event.model}` : '')
-      if (text) progress.set(owner.id, text.replace(/\s+/g, ' ').slice(0, 220))
-      if (event.type === 'done') void load()
-      else renderProgress(owner.id)
+      const text = event.type === 'session' && event.model ? `${HARNESS_LABELS[owner.adapter || ''] || 'The harness'} started on ${event.model}` : progressText(event)
+      if (text) progress.set(owner.id, text.slice(0, 220))
+      renderProgress(owner.id)
     })
   }
 
@@ -213,9 +212,9 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       return
     }
     const adapter = preferredHarness()
-    const model = modelFor(adapter)
+    const model = modelFor()
     if (!adapter) {
-      const message = 'No local harness is available — install Kimi, Claude Code or Codex, then retry.'
+      const message = planningChoice().reason || 'No local harness is available — install Kimi, Claude Code or Codex, then retry.'
       await host.fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, providerStatus: 'no harness online' }) }).catch(() => {})
       host.toast(message)
       return
@@ -364,16 +363,19 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         : `Video “${current.title}” · from base “${overview.baseTitle}”${current.derivedFrom?.baseRevision ? ` @ ${current.derivedFrom.baseRevision}` : ''}${overview.bundle ? ` · skills ${overview.bundle.name} ${overview.bundle.version} (Hyperframes ${overview.bundle.upstreamCommit.slice(0, 8)})` : ''}`
       : ''
     const harnessSelect = h('select', { class: 'planning-harness', 'aria-label': 'Local harness for planning runs', ...(readOnly ? { disabled: true } : {}) })
-    const preferred = preferredHarness()
+    const choice = planningChoice()
+    const preferred = choice.harness || ''
     for (const entry of harnesses) {
-      const option = h('option', { value: entry.id, text: `${HARNESS_LABELS[entry.id] || entry.id}${entry.ok ? '' : ' (not found)'}`, ...(entry.ok ? {} : { disabled: true }) })
+      const option = h('option', { value: entry.id, text: `${HARNESS_LABELS[entry.id] || entry.id}${entry.ok ? '' : ' (not found)'}`, ...(entry.ok || entry.id === preferred ? {} : { disabled: true }) })
       if (entry.id === preferred) option.selected = true
       harnessSelect.append(option)
     }
     if (!harnesses.length) harnessSelect.append(h('option', { text: 'No local harness found' }))
     harnessSelect.addEventListener('change', () => {
-      remember(PREFERRED_HARNESS_KEY, harnessSelect.value)
-      render()
+      const picked = harnesses.find(entry => entry.id === harnessSelect.value)
+      const recommended = RECOMMENDED_MODELS[harnessSelect.value] || picked?.models?.default || null
+      const usable = recommended && !picked?.models?.options.find(option => option.id === recommended)?.unavailable ? recommended : null
+      void savePlanningChoice({ harness: harnessSelect.value as HarnessChoice['harness'], model: usable })
     })
     const actions = h('div', { class: 'planning-header-actions' })
     if (readOnly) {
@@ -426,6 +428,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         h('p', { class: 'planning-lineage', text: lineage }),
         error ? h('p', { class: 'planning-error', text: error }) : null,
         overview && !overview.available ? h('p', { class: 'planning-error', text: 'Planning needs the desktop app: the pinned skill bundle and your local harness live there.' }) : null,
+        ...(!readOnly && overview?.available ? harnessNotes() : []),
         overview?.baseLimitation ? h('p', { class: 'planning-note', text: overview.baseLimitation }) : null,
       ),
       actions,
@@ -438,8 +441,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     if (!harness) return []
     const entry = harnesses.find(candidate => candidate.id === harness)
     const models = entry?.models
-    const current = modelFor(harness)
-    const custom = remembered(MODEL_KEY(harness)) === CUSTOM_MODEL
+    const current = modelFor()
+    const custom = customModelFor === harness
     const select = h('select', { class: 'planning-harness planning-model', 'aria-label': `Model for ${HARNESS_LABELS[harness] || harness}`, title: models?.source || '' })
     const cliDefault = h('option', { value: '', text: `CLI default${models?.default ? ` (${models.default})` : ''}` })
     select.append(cliDefault)
@@ -451,18 +454,35 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     select.append(h('option', { value: CUSTOM_MODEL, text: 'Other model id…' }))
     select.value = custom ? CUSTOM_MODEL : current
     select.addEventListener('change', () => {
-      remember(MODEL_KEY(harness), select.value)
-      render()
+      if (select.value === CUSTOM_MODEL) {
+        customModelFor = harness
+        render()
+        return
+      }
+      customModelFor = ''
+      void savePlanningChoice({ harness: harness as HarnessChoice['harness'], model: select.value || null })
     })
-    const field = h('label', { class: 'planning-field' }, 'Model ', select)
+    const choice = planningChoice()
+    const source = choice.source === 'stage' ? 'planning choice' : choice.source === 'default' ? 'your default' : choice.source === 'suggested' ? 'suggested — not chosen yet' : ''
+    const field = h('label', { class: 'planning-field', title: source ? `The ${source}; Agent settings holds every stage's choice` : '' }, 'Model ', select)
     if (!custom) return [field]
     const input = h('input', { class: 'planning-model-custom', type: 'text', placeholder: 'model id, e.g. claude-opus-5-5', 'aria-label': 'Model id' })
     input.addEventListener('change', () => {
       const id = input.value.trim()
-      remember(MODEL_KEY(harness), id)
-      render()
+      if (!id) return
+      customModelFor = ''
+      void savePlanningChoice({ harness: harness as HarnessChoice['harness'], model: id })
     })
     return [field, input]
+  }
+
+  // Before a run: whether the chosen harness can run, and how its last run went.
+  const harnessNotes = () => {
+    const choice = planningChoice()
+    if (!choice.available) return [h('p', { class: 'planning-error', text: choice.reason || 'Choose a local harness for planning.' })]
+    const last = choice.harness ? harnessStatus[choice.harness] : undefined
+    if (last?.state !== 'error' || !last.failure) return []
+    return [h('p', { class: 'planning-warn planning-last-status', text: `Last ${HARNESS_LABELS[choice.harness!] || choice.harness} run failed — ${failureTitle(last.failure.category)}: ${last.failure.message.slice(0, 220)}` })]
   }
 
   const renderScenes = () => {
@@ -583,7 +603,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         return h('div', { class: 'planning-pane' }, h('p', { class: 'planning-busy', 'data-progress': latest.id, text: progress.get(latest.id) || 'Preparing the explanation brief with your local harness…' }))
       }
       if (latest?.status === 'failed') {
-        return h('div', { class: 'planning-pane' }, ...failure(latest, 'The brief could not be prepared', 'The video notebook is intact. Retry the brief, or switch the harness at the top first.'))
+        return h('div', { class: 'planning-pane' }, ...failure(latest, 'The brief could not be prepared', 'The video notebook is intact. Retry the brief, or switch the harness at the top first.', () => void prepareBrief()))
       }
       return h('div', { class: 'planning-pane' }, h('p', { text: 'No brief yet. Prepare it from the retained source and your narrative.' }))
     }
@@ -614,13 +634,27 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     )
   }
 
-  const failure = (record: PlanningRecord, what: string, next: string) => {
+  const failure = (record: PlanningRecord, what: string, next: string, retry?: () => void) => {
     const message = record.error?.message || 'no reason given'
     const provider = record.error?.providerStatus && record.error.providerStatus !== message ? record.error.providerStatus : ''
+    const category = record.error?.category
+    const actions = h('div', { class: 'planning-failure-actions' })
+    if (retry && !readOnly) {
+      const again = h('button', { type: 'button', class: 'button primary', text: 'Retry' })
+      again.addEventListener('click', retry)
+      actions.append(again)
+    }
+    if (!readOnly) {
+      const change = h('button', { type: 'button', class: 'button ghost', text: 'Switch harness or model' })
+      change.addEventListener('click', () => root.querySelector<HTMLSelectElement>('.planning-header .planning-harness')?.focus())
+      actions.append(change)
+    }
     return [
       h('p', { class: 'planning-error', text: `${what}: ${message}` }),
-      provider ? h('p', { class: 'planning-muted', text: `Last provider status: ${provider}` }) : null,
-      h('p', { class: 'planning-muted', text: `${next}${record.adapter ? ` It ran on ${HARNESS_LABELS[record.adapter] || record.adapter}.` : ''}` }),
+      provider ? h('p', { class: 'planning-muted', text: `${category ? `${failureTitle(category)} — ` : ''}last provider status: ${provider}` }) : null,
+      record.error?.recovery?.length ? h('p', { class: 'planning-muted', text: `Ways on: ${record.error.recovery.join(' · ')}` }) : null,
+      h('p', { class: 'planning-muted', text: `${next}${record.adapter ? ` It ran on ${madeWith(record)}.` : ''}` }),
+      actions.childElementCount ? actions : null,
     ].filter(Boolean) as HTMLElement[]
   }
 
@@ -642,7 +676,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       if (!readOnly) pane.append(stopButton)
     }
     if (view.latest?.status === 'failed') {
-      pane.append(...failure(view.latest, `Revision ${view.latest.revision} failed`, `${view.reviewed ? `The reviewed plan (r${view.reviewed.revision}) is unchanged. ` : ''}Retry below, or switch the harness at the top first.`))
+      pane.append(...failure(view.latest, `Revision ${view.latest.revision} failed`, `${view.reviewed ? `The reviewed plan (r${view.reviewed.revision}) is unchanged. ` : ''}Retry, or switch the harness at the top first.`, () => void generatePlan()))
     }
     const record = shownPlan()
     if (!record?.content) {
@@ -925,7 +959,13 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     } else {
       projectId = current.id
     }
-    if (bridge?.isDesktop) harnesses = await bridge.harness.adapters().catch(() => [])
+    if (bridge?.isDesktop) {
+      ;[harnesses, preferences, harnessStatus] = await Promise.all([
+        bridge.harness.adapters().catch(() => [] as Harness[]),
+        loadHarnessPreferences(host.fetchJson).catch(() => preferences),
+        loadHarnessStatus(host.fetchJson).catch(() => harnessStatus),
+      ])
+    }
     listen()
     if (!dialog.open) dialog.showModal()
     await load()

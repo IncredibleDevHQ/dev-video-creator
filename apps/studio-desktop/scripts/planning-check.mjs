@@ -274,11 +274,17 @@ try {
     return { options, now: document.querySelector('.planning-model')?.value }
   })()`)
   check(picked.options.includes('') && picked.options.includes('claude-opus-5-5') && picked.now === 'claude-fable-5-1', `the header offers the CLI default and Claude's models (${picked.options.join(', ')})`)
+  const savedChoice = await until('the planning choice to be saved', async () => {
+    const { preferences } = (await api('/api/settings/harness')).body
+    return preferences.stages.planning?.model === 'claude-fable-5-1' && preferences.stages.planning
+  })
+  check(savedChoice.harness === 'claude-code', 'the header saves the video-planning choice durably')
   check(await press('Generate creative plan'), 'Generate creative plan is offered')
   const planned = await until('a candidate', async () => (await overview(videoId)).scenes[0].view.current, 90_000)
   check(planned.status === 'candidate' && (planned.report?.constructionRisks || []).length > 0, 'the plan is a candidate, with its unproven recipe reported')
   check(planned.model === 'claude-fable-5-1' && planned.reportedModel === 'claude-fable-5-1', `the plan ran on the model picked for it (${planned.model} / ${planned.reportedModel})`)
   await evaluate(`(() => { const select = document.querySelector('.planning-model'); select.value = 'claude-opus-5-5'; select.dispatchEvent(new Event('change')); return true })()`)
+  await until('the planning choice back on Opus 5.5', async () => (await api('/api/settings/harness')).body.preferences.stages.planning?.model === 'claude-opus-5-5')
   await shot('02-candidate')
 
   // Direction being typed survives the workspace re-rendering around it.
@@ -330,6 +336,13 @@ try {
     return view.state === 'failed' && view
   }, 60_000)
   check(/weekly usage limit/.test(failed.latest?.error?.providerStatus || '') && /without submitting/.test(failed.latest?.error?.message || ''), `a failed run says what happened and keeps the provider's own message (${failed.latest?.error?.providerStatus})`)
+  check(failed.latest?.error?.category === 'quota' && failed.latest?.error?.recovery?.[0] === 'Retry after restoring Claude Code credits', `the failure is classified with its ways on (${failed.latest?.error?.category}: ${failed.latest?.error?.recovery})`)
+  const failedRun = (await api('/api/runs')).body.runs.find(run => run.id === failed.latest?.runId)
+  check(failedRun?.failure?.category === 'quota', 'the run itself keeps the classified failure')
+  const status = (await api('/api/harness/status')).body.status['claude-code']
+  check(status?.state === 'error' && status.failure?.category === 'quota', 'Claude Code\'s last provider status is that failure')
+  const lastStatusLine = await until('the header to show the last provider status', () => evaluate(`document.querySelector('.planning-last-status')?.textContent || ''`), 20_000).catch(() => '')
+  check(/^Last Claude Code run failed — Out of credits or over the usage limit/.test(lastStatusLine), `the header shows the harness's last provider status before the next run (${lastStatusLine.slice(0, 80)})`)
   check(failed.reviewed?.id === reviewed.id, 'the reviewed plan survives a failed regeneration')
   await shot('05-failed-reviewed-kept')
 
@@ -376,6 +389,9 @@ try {
   check(runsAfter.find(run => run.id === settled.runId)?.status === 'error', 'its run is recorded as ended, not running')
   const afterRestart = (await overview(videoId)).scenes[1].view
   check(afterRestart.state === 'failed', `the scene reads failed after the restart, ready to retry (${afterRestart.state})`)
+  // The harness choice survives a restart on a new local port.
+  const keptChoice = (await api('/api/settings/harness')).body.preferences.stages.planning
+  check(keptChoice?.harness === 'claude-code' && keptChoice.model === 'claude-opus-5-5', `the planning harness and model survive the restart (${keptChoice?.harness} ${keptChoice?.model})`)
 } catch (error) {
   failures.push(String(error))
   console.error(error)
