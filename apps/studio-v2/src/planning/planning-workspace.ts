@@ -514,7 +514,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     return h(
       'div',
       { class: 'planning-pane' },
-      overview!.brief.stale ? h('p', { class: 'planning-warn', text: `Stale — ${overview!.brief.staleBecause || 'its inputs changed since it was made'}. Scenes can still be planned from it; prepare it again to take the change into the brief.` }) : null,
+      overview!.brief.stale ? h('p', { class: 'planning-warn', text: `Stale — ${overview!.brief.staleBecause || 'its inputs changed since it was made'}. Scenes can still be planned from it; ${readOnly ? 'the video notebook prepares it again' : 'prepare it again'} to take the change into the brief.` }) : null,
       h('p', { class: 'planning-message' }, h('strong', { text: 'Message. ' }), brief.purpose.message),
       h('p', { class: 'planning-muted', text: `${brief.purpose.deliverable} · ${brief.purpose.audience} · ${brief.purpose.requestedSeconds ? `about ${brief.purpose.requestedSeconds}s requested` : 'no length requested'} · wording ${brief.source.wordingPolicy} · source ${brief.source.coverage}` }),
       h('h4', { text: 'This scene' }),
@@ -596,7 +596,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     versions.append(compare)
     pane.append(versions)
     if (record.status === 'superseded') pane.append(h('p', { class: 'planning-warn', text: `This revision was superseded: ${record.error?.message || 'a newer run or changed inputs replaced it'}. It is kept for reference.` }))
-    if (record.id === view.current?.id && view.staleBecause) pane.append(h('p', { class: 'planning-warn', text: `Stale — ${view.staleBecause}. Generate a new candidate to plan from the current inputs.` }))
+    if (record.id === view.current?.id && view.staleBecause) pane.append(h('p', { class: 'planning-warn', text: `Stale — ${view.staleBecause}. ${readOnly ? 'A new candidate is generated from the video notebook.' : 'Generate a new candidate to plan from the current inputs.'}` }))
     const other = compareWith ? all.find(entry => entry.id === compareWith)?.content as SceneTreatmentV1 | undefined : undefined
     if (other) pane.append(renderComparison(plan, other, all.find(entry => entry.id === compareWith)!.revision, record.revision))
     pane.append(
