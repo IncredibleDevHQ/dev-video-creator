@@ -39,6 +39,26 @@ type SceneRow = {
   view: ScenePlanningView
   // How the current plan meets its neighbours now.
   continuity?: ContinuityState[] | null
+  // The scene's newest plan preview, and the one ready to play.
+  preview?: ScenePreviewSummary | null
+}
+export type ScenePreviewSummary = {
+  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null }
+  ready: {
+    id: string
+    url: string
+    of: { record: string; revision: number }
+    current: boolean
+    summary: {
+      duration: number
+      moments: Array<{ id: string; title: string; start: number; end: number }>
+      layers: Array<{ id: string; kind: string; label: string; moments: string[]; reuses: string | null; placeholder: string | null }>
+      provisional: string[]
+    }
+    warnings: string[]
+    adapter: string | null
+    model: string | null
+  } | null
 }
 // The cast of the video's pinned base, as the overview reports it.
 export type VisualCastSummary = {

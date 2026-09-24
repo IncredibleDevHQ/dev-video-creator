@@ -15,7 +15,7 @@ import { PLANNING_STATE_LABELS, type PlanningRecord, type ScenePlanningView } fr
 import type { PlanningOverviewV1, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
-import { approvePlan, loadPlanning, planScene, saveSceneDirection } from './planning-client'
+import { approvePlan, loadPlanning, planScene, previewScene, saveSceneDirection } from './planning-client'
 import { progressText } from '../harness-choice'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
@@ -36,10 +36,11 @@ export type SceneReviewHost = {
   refresh: () => void
   record: (sceneId: string) => void
   openWorkspace: () => void
-  // The stage shows which page objects a moment is about.
-  selectMoment: (sceneId: string, targets: { nodes: string[]; objectIds: string[] } | null) => void
-  previewPlan?: (sceneId: string, record: PlanningRecord) => void
-  previewState?: (sceneId: string) => PreviewState
+  // The stage shows which page objects a moment is about — and, when the
+  // stage plays the plan's preview, goes to the moment.
+  selectMoment: (sceneId: string, targets: { nodes: string[]; objectIds: string[] } | null, at: number | null) => void
+  // The stage switches to the scene's plan preview.
+  showPreview: (sceneId: string) => void
 }
 
 type SceneUi = { revision: string; compare: string; moment: string; direction: string | null; producing: boolean }
@@ -99,6 +100,15 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return all.find(record => record.id === state.revision) || scene.view.current || all[0] || null
   }
   const active = () => (overview?.records || []).some(record => record.status === 'queued' || record.status === 'running')
+  // Where the scene's preview stands.
+  const previewStateOf = (scene: Scene): PreviewState => {
+    const preview = scene.preview
+    if (!preview) return { state: 'none' }
+    if (preview.latest.status === 'queued' || preview.latest.status === 'running') return { state: 'building', recordId: preview.latest.id }
+    if (preview.ready) return { state: 'ready', recordId: preview.ready.id, stale: !preview.ready.current }
+    if (preview.latest.status === 'failed') return { state: 'failed', recordId: preview.latest.id, message: preview.latest.error?.message }
+    return { state: 'none' }
+  }
 
   // ——— Loading ———
   const load = async () => {
@@ -194,6 +204,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
       const { reused } = await planScene(host.fetchJson, projectId, scene.id)
       host.toast(reused ? 'This plan is already being made from the same inputs' : 'Planning a new candidate — the approved plan stays until you approve another')
     })
+  const preview = (scene: Scene, record: PlanningRecord, again: boolean) =>
+    run('preview the plan', async () => {
+      const projectId = host.projectId()
+      if (!projectId) return
+      const { reused, record: previewRecord } = await previewScene(host.fetchJson, projectId, scene.id, { recordId: record.id, again })
+      if (reused && previewRecord.status === 'ready') host.showPreview(scene.id)
+      else host.toast(`Sketching a rough preview of plan r${record.revision} — the harness builds it; nothing is produced`)
+    })
   const approve = (record: PlanningRecord) =>
     run('approve the plan', async () => {
       await approvePlan(host.fetchJson, record.id)
@@ -219,8 +237,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
         ? chip('Recording: guide ready · no take yet')
         : chip('Recording: waits for a plan')
   const previewChip = (scene: Scene) => {
-    const preview = host.previewState?.(scene.id)
-    if (!preview || preview.state === 'none') return null
+    const preview = previewStateOf(scene)
+    if (preview.state === 'none') return null
     return chip(`Preview: ${preview.state === 'ready' ? (preview.stale ? 'out of date' : 'ready') : preview.state === 'building' ? 'building…' : 'failed'}`, preview.state === 'ready' && !preview.stale ? 'good' : preview.state === 'failed' ? 'bad' : preview.state === 'building' ? 'busy' : 'warn')
   }
 
@@ -291,7 +309,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
       )
       head.addEventListener('click', () => {
         state.moment = selected ? '' : moment.id
-        host.selectMoment(scene.id, state.moment ? targetsOf(scene, plan, moment) : null)
+        // On a preview of this very plan, the stage goes to the moment.
+        const ready = scene.preview?.ready
+        const at = state.moment && ready && ready.of.record === shownRecord(scene)?.id ? ready.summary.moments.find(entry => entry.id === moment.id)?.start ?? null : null
+        host.selectMoment(scene.id, state.moment ? targetsOf(scene, plan, moment) : null, at)
         host.refresh()
       })
       item.append(
@@ -380,6 +401,47 @@ export const createSceneReview = (host: SceneReviewHost) => {
     )
   }
 
+  // The plan preview: what the sketch shows, what is provisional, and its
+  // timeline — read-only, from the manifest the sketch declared.
+  const previewSection = (scene: Scene): HTMLElement[] => {
+    const preview = scene.preview
+    if (!preview) return []
+    const state = previewStateOf(scene)
+    if (state.state === 'building') return [h('p', { class: 'review-busy', 'data-review-progress': preview.latest.id, text: progress.get(preview.latest.id) || `Sketching a rough preview with your local harness…` })]
+    const items: HTMLElement[] = []
+    if (preview.latest.status === 'failed') items.push(h('p', { class: 'review-error', text: `The preview could not be built: ${preview.latest.error?.message || 'no reason given'}${preview.ready ? ' — the earlier preview stays' : ''}.` }))
+    const ready = preview.ready
+    if (!ready) return items
+    const show = h('button', { type: 'button', class: 'button ghost', text: 'Play it on the stage', 'data-focus': `show-preview:${scene.id}` })
+    show.addEventListener('click', () => host.showPreview(scene.id))
+    const total = ready.summary.duration || 1
+    const lanes = h('div', { class: 'review-timeline', role: 'table', 'aria-label': 'Preview timeline (read-only)' },
+      h('div', { class: 'review-timeline-row is-moments', role: 'row' },
+        h('span', { class: 'review-timeline-label', text: 'Moments' }),
+        h('span', { class: 'review-timeline-track' }, ...ready.summary.moments.map(moment => h('span', { class: 'review-timeline-clip is-moment', style: `left:${(moment.start / total) * 100}%;width:${((moment.end - moment.start) / total) * 100}%`, title: `${moment.title}: ${moment.start}–${moment.end}s (estimated)`, text: moment.title }))),
+      ),
+      ...ready.summary.layers.map(layer => {
+        const spans = ready.summary.moments.filter(moment => layer.moments.includes(moment.id))
+        return h('div', { class: 'review-timeline-row', role: 'row' },
+          h('span', { class: 'review-timeline-label', text: `${layer.label}` , title: `${layer.kind}${layer.reuses ? ' · reuses the cast' : ''}${layer.placeholder ? ` · ${layer.placeholder}` : ''}` }),
+          h('span', { class: 'review-timeline-track' }, ...spans.map(moment => h('span', { class: `review-timeline-clip is-${layer.kind}${layer.placeholder ? ' is-placeholder' : ''}`, style: `left:${(moment.start / total) * 100}%;width:${((moment.end - moment.start) / total) * 100}%` }))),
+        )
+      }),
+    )
+    items.push(h('div', { class: `review-preview${ready.current ? '' : ' is-stale'}` },
+      h('div', { class: 'review-preview-head' },
+        h('h4', { text: `Plan preview — a rough sketch of r${ready.of.revision}` }),
+        show,
+      ),
+      !ready.current ? h('p', { class: 'review-warn', text: 'Out of date: the scene\'s plan has changed since this sketch. Preview the current plan to see it.' }) : null,
+      h('p', { class: 'review-muted', text: `${ready.summary.duration}s · ${ready.summary.moments.length} moments · ${ready.summary.layers.length} layers${ready.adapter ? ` · sketched by ${ready.adapter}${ready.model ? ` ${ready.model}` : ''}` : ''}` }),
+      h('ul', { class: 'review-provisional' }, ...ready.summary.provisional.map(item => h('li', { text: item }))),
+      lanes,
+      h('p', { class: 'review-muted', text: 'The timeline is read-only and estimated — no voice or take has set it. Editing arrives with production.' }),
+    ))
+    return items
+  }
+
   // The selected scene's review.
   const panel = (scene: Scene) => {
     const state = uiOf(scene.id)
@@ -392,9 +454,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const canApprove = record?.status === 'candidate' && !(record.id === view.current?.id && view.staleBecause)
     const approveButton = h('button', { type: 'button', class: 'button primary', 'data-focus': `approve:${scene.id}`, text: record?.status === 'reviewed' ? (record.id === view.reviewed?.id ? 'Approved ✓' : 'Approved earlier') : 'Approve plan', ...(canApprove ? {} : { disabled: true }) })
     approveButton.addEventListener('click', () => record && void approve(record))
-    const preview = host.previewState?.(scene.id)
-    const previewButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `preview:${scene.id}`, text: preview?.state === 'building' ? 'Building the preview…' : preview?.state === 'ready' && !preview.stale ? 'Preview again' : 'Preview plan', ...(record && host.previewPlan && preview?.state !== 'building' ? {} : { disabled: true }) })
-    previewButton.addEventListener('click', () => record && host.previewPlan?.(scene.id, record))
+    const previewState = previewStateOf(scene)
+    const previewOfShown = Boolean(record && scene.preview?.ready?.of.record === record.id)
+    const previewButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `preview:${scene.id}`, text: previewState.state === 'building' ? 'Building the preview…' : previewOfShown ? 'Sketch it again' : 'Preview plan', ...(record && previewState.state !== 'building' ? {} : { disabled: true }) })
+    previewButton.addEventListener('click', () => record && void preview(scene, record, previewOfShown))
     const produce = h('button', { type: 'button', class: 'button ghost', 'data-focus': `produce:${scene.id}`, text: state.producing ? 'Hide production' : 'Produce scene…' })
     produce.addEventListener('click', () => {
       state.producing = !state.producing
@@ -409,7 +472,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       button.addEventListener('click', () => {
         state.revision = entry.id
         state.moment = ''
-        host.selectMoment(scene.id, null)
+        host.selectMoment(scene.id, null, null)
         host.refresh()
       })
       revisions.append(button)
@@ -428,6 +491,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     }
     if (view.latest?.status === 'failed') root.append(h('p', { class: 'review-error', text: `Revision ${view.latest.revision} failed: ${view.latest.error?.message || 'no reason given'}${view.reviewed ? ` — the approved plan (r${view.reviewed.revision}) is unchanged` : ''}` }))
     if (record && record.id === view.current?.id && view.staleBecause) root.append(h('p', { class: 'review-warn', text: `Stale — ${view.staleBecause}. Revise to plan from the current inputs.` }))
+    root.append(...previewSection(scene))
     if (!plan) {
       root.append(h('p', { class: 'review-muted', text: view.state === 'needs-brief' ? 'The video\'s explanation brief comes first — prepare it in the planning workspace.' : view.state === 'preparing' ? 'The explanation brief is being prepared; this scene can be planned once it is ready.' : 'No plan yet. Add direction below if you want, then plan the scene.' }))
     } else {
@@ -494,8 +558,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
   const signature = (sceneId: string, expanded: boolean) => {
     const scene = sceneOf(sceneId)
     const state = uiOf(sceneId)
-    const preview = host.previewState?.(sceneId)
-    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, state.producing, preview?.state, preview?.stale, error])
+    const preview = scene ? previewStateOf(scene) : null
+    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, state.producing, preview?.state, preview?.stale, preview?.recordId, error])
   }
 
   return {
@@ -521,7 +585,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       const scene = sceneOf(sceneId)
       if (!scene) return null
       const record = shownRecord(scene)
-      return { scene, record, moment: uiOf(sceneId).moment }
+      return { scene, record, moment: uiOf(sceneId).moment, preview: scene.preview?.ready || null }
     },
   }
 }

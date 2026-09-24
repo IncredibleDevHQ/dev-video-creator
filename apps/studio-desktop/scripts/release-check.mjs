@@ -61,6 +61,7 @@ const CHECKS = [
   'planning-check.mjs',           // M0: brief + scene plans — planning-only tools, stale-safe, reload, no downstream
   'visual-cast-check.mjs',        // P1: the base's icons and objects lifted, verified and shown while planning
   'scene-review-check.mjs',       // P2: scene review in the notebook — stage, moments, approvals, guide, restart
+  'plan-preview-check.mjs',       // P3: a plan's rough sketch, checked by the pinned engine, played and seeked on the stage
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 

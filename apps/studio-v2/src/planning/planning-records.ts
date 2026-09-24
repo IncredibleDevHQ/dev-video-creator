@@ -15,8 +15,11 @@
 import { fingerprintOf, stableJson } from './fingerprint'
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
+import type { SketchManifest } from './sketch-bundle'
 
-export type PlanningKind = 'brief' | 'treatment'
+// brief: the video's explanation brief · treatment: a scene's creative plan ·
+// preview: a rough, seekable sketch of one plan revision (P3).
+export type PlanningKind = 'brief' | 'treatment' | 'preview'
 
 export const PLANNING_STATUSES = ['queued', 'running', 'ready', 'candidate', 'reviewed', 'failed', 'superseded'] as const
 export type PlanningStatus = (typeof PLANNING_STATUSES)[number]
@@ -37,7 +40,7 @@ export type PlanningRecord = {
   fingerprint: string
   // The pinned references the record was made from.
   inputs: Record<string, unknown>
-  content: ExplanationBriefV1 | SceneTreatmentV1 | null
+  content: ExplanationBriefV1 | SceneTreatmentV1 | SketchManifest | null
   // What the checks said: warnings, construction risks.
   report: { warnings: string[]; constructionRisks?: string[] } | null
   artifacts: { objectKey: string; assetId: string } | null

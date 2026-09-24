@@ -17,6 +17,9 @@ import {
   submitBrief,
   submitTreatment,
   retryVisualCast,
+  queuePreview,
+  submitSketch,
+  loadPreviewFile,
 } from './planning-service'
 import { loadPlanningRecord } from './persistence'
 
@@ -43,6 +46,13 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
   const parts = url.pathname.split('/').slice(3).map(decodeURIComponent)
   const method = request.method || 'GET'
   try {
+    // /api/planning/previews/:id/<file> — a preview's files, for the player.
+    if (parts[0] === 'previews' && parts[1] && method === 'GET') {
+      const file = await loadPreviewFile(parts[1], parts.slice(2).join('/') || 'index.html')
+      response.writeHead(200, { 'content-type': file.contentType, 'cache-control': 'no-store' })
+      response.end(file.body)
+      return true
+    }
     // /api/planning/records/:id[/action]
     if (parts[0] === 'records' && parts[1]) {
       const id = parts[1]
@@ -75,6 +85,12 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
         const runId = input.runId ? String(input.runId) : undefined
         const result = action === 'brief' ? await submitBrief(id, input.brief, runId) : await submitTreatment(id, input.treatment, runId)
         // Problems are an answer, not a failure: the harness fixes and resubmits.
+        send(response, result.accepted ? 200 : 422, result)
+        return true
+      }
+      if (method === 'POST' && action === 'sketch') {
+        const input = await body<{ files?: unknown; runId?: string }>(request, 12 * 1024 * 1024)
+        const result = await submitSketch(id, input.files, input.runId ? String(input.runId) : undefined)
         send(response, result.accepted ? 200 : 422, result)
         return true
       }
@@ -113,6 +129,11 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
     // Extract the base's visual cast again after a failure.
     if (method === 'POST' && parts[1] === 'cast') {
       send(response, 200, { status: (await retryVisualCast(projectId)).status })
+      return true
+    }
+    if (method === 'POST' && parts[1] === 'scenes' && parts[2] && parts[3] === 'preview') {
+      const input = await body<{ recordId?: string; again?: boolean }>(request)
+      send(response, 200, await queuePreview(projectId, parts[2], { ...(input.recordId ? { recordId: String(input.recordId) } : {}), again: Boolean(input.again) }))
       return true
     }
     if (method === 'POST' && parts[1] === 'scenes' && parts[2]) {

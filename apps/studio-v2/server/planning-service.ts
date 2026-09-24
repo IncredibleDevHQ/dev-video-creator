@@ -33,6 +33,7 @@ import { fingerprintOf } from '../src/planning/fingerprint'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
 import { continuityStatus, validateTreatment, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
 import { ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
+import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest } from '../src/planning/sketch-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
 import {
   ACTIVE_STATUSES,
@@ -47,8 +48,7 @@ import {
   type BriefInputs,
   type PlanningRecord,
   type SkillBundleRef,
-  type TreatmentInputs,
-} from '../src/planning/planning-records'
+  type TreatmentInputs, type ScenePlanningView } from '../src/planning/planning-records'
 import type { CapabilityCatalog } from '../src/planning/capability-catalog'
 import { readFile, readdir } from 'node:fs/promises'
 import { join, relative } from 'node:path'
@@ -488,6 +488,7 @@ export const planningOverview = async (projectId: string) => {
         // How the current plan meets its neighbours now: an agreement breaks
         // when the reviewed plan it rests on changes.
         continuity: plan?.continuity ? continuityStatus(plan, agreementBasis(neighborsOf(planning, records, scene.id))) : null,
+        preview: previewOf(records, scene.id, view),
       }
     }),
     videoDirection: directionFor(planning, ''),
@@ -738,7 +739,7 @@ export const loadPacket = async (recordId: string) => {
   const key = String(record.inputs.packetObjectKey || '')
   if (!key) throw new PlanningError('This planning record has no packet', 409)
   const packet = JSON.parse((await readStream((await getObject(key)).stream)).toString('utf8')) as { files: PacketFiles }
-  return { record, route: record.kind === 'brief' ? 'Prepare Brief' : 'Plan Scene', files: packet.files }
+  return { record, route: record.kind === 'brief' ? 'Prepare Brief' : record.kind === 'preview' ? 'Sketch Scene' : 'Plan Scene', files: packet.files }
 }
 
 // ——— Queueing ———
@@ -793,6 +794,176 @@ export const queueTreatment = async (projectId: string, sceneId: string) => {
     skillBundle: planning.bundle.ref,
     workflow: (brief.content as ExplanationBriefV1).route.workflow,
   })
+}
+
+// ——— Plan previews (P3): a rough, seekable sketch of one plan revision ———
+// A preview is of an exact plan: its revision, the cast it may reuse and
+// the theme. It lands whatever happens to the scene afterwards, and reads
+// as out of date once the scene's current plan is another revision.
+const previewInputsOf = (planning: VideoPlanning, treatment: PlanningRecord, cast: VisualCastRevision | null) => ({
+  schema: PLANNING_SCHEMA,
+  scene: treatment.subject,
+  treatmentId: treatment.id,
+  treatmentFingerprint: treatment.fingerprint,
+  castId: cast?.status === 'ready' ? cast.id : null,
+  themeRef: planning.themeRef,
+  bundleHash: planning.bundle?.ref.hash || '',
+})
+const compositionIdOf = (treatment: PlanningRecord) => `sketch-${treatment.subject.replace(/[^a-z0-9-]/gi, '-').slice(-40)}-r${treatment.revision}`
+// A first length for the sketch: the plan's estimates, bounded.
+const sketchLengthOf = (plan: SceneTreatmentV1) =>
+  Math.min(120, Math.max(6, Math.round(plan.moments.reduce((sum, moment) => sum + (moment.estimateSeconds || 4), 0) * 10) / 10))
+
+const sketchPacket = async (planning: VideoPlanning, treatment: PlanningRecord, records: PlanningRecord[]) => {
+  const briefRecord = records.find(record => record.id === String(treatment.inputs.briefId || '')) || currentBrief(records)
+  if (!briefRecord?.content) throw new PlanningError('The brief this plan was made from is gone', 409)
+  const files = await scenePacket(planning, briefRecord, treatment.subject, records)
+  const plan = treatment.content as SceneTreatmentV1
+  const compositionId = compositionIdOf(treatment)
+  const length = sketchLengthOf(plan)
+  files['packet/PLAN.json'] = JSON.stringify({ record: treatment.id, revision: treatment.revision, status: treatment.status, plan }, null, 2)
+  files['packet/SKETCH.md'] = [
+    `# Sketch: a rough preview of plan r${treatment.revision}`,
+    '',
+    'Build one standalone Hyperframes composition that lets the creator feel how this plan unfolds. It is a sketch, not the scene: show the whole progression, one representative object interaction, the intended camera framing, the major text and any presenter transition. A montage of static wireframes is not a sketch.',
+    '',
+    `- Composition id: \`${compositionId}\` — the root's \`data-composition-id\` and the \`window.__timelines\` key.`,
+    `- Canvas: 1920×1080 at 30 fps. Length: about ${length}s, from the plan's estimates; every moment gets an interval, in the plan's order.`,
+    `- Runtime: load only \`${SKETCH_RUNTIME_SCRIPTS.join('` and `')}\` (Hyperframes ${SKETCH_RUNTIME.hyperframes}, pinned). Nothing from the network, no clock, no randomness.`,
+    '- Artwork: reuse the cast in `assets/<id>/asset.svg` (copy what you use into `sketch/assets/`), or draw native shapes. Never generate paid artwork. Where the plan wants artwork you do not have, draw a labelled placeholder and say so in the manifest.',
+    '- A presenter the plan shows is a labelled stand-in: a framed silhouette in its reserved region, never a person.',
+    '- Timing is an estimate: no voice or take exists yet. Say so in the manifest.',
+    '',
+    'Write `sketch/index.html`, `sketch/manifest.json` and any `sketch/assets/`, following `references/sketch-contract.md`, then call `plan_submit_sketch`. Fix exactly the problems it names; stop when it is accepted.',
+    '',
+  ].join('\n')
+  const context = JSON.parse(String(files['packet/CONTEXT.json'])) as Record<string, unknown>
+  files['packet/CONTEXT.json'] = JSON.stringify({ ...context, route: 'Sketch Scene', plan: { record: treatment.id, revision: treatment.revision }, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: length }, runtime: { hyperframes: SKETCH_RUNTIME.hyperframes, scripts: SKETCH_RUNTIME_SCRIPTS } }, null, 2)
+  return files
+}
+
+// Preview this scene's current plan, or a named revision of it. The same
+// plan already previewed is shown again unless a new sketch is asked for.
+export const queuePreview = async (projectId: string, sceneId: string, options: { recordId?: string; again?: boolean } = {}) => {
+  const planning = await loadVideoPlanning(projectId)
+  if (!planning.bundle) throw new PlanningError('Previews run in the desktop app, where the pinned skill bundle and your local harness are', 409)
+  const records = await listPlanningRecords(projectId)
+  const view = scenePlanningView(records, sceneId, null)
+  const treatment = options.recordId ? records.find(record => record.id === options.recordId && record.kind === 'treatment' && record.subject === sceneId) : view.current
+  if (!treatment?.content) throw new PlanningError('Plan this scene before previewing it', 409)
+  const cast = await visualCastFor(planning)
+  const inputs = previewInputsOf(planning, treatment, cast)
+  const fingerprint = fingerprintOf(inputs)
+  const existing = reuseActive(records, 'preview', sceneId, fingerprint)
+  if (existing) return { record: existing, reused: true }
+  if (!options.again) {
+    const ready = records.filter(record => record.kind === 'preview' && record.subject === sceneId && record.status === 'ready' && record.fingerprint === fingerprint).sort((a, b) => b.revision - a.revision)[0]
+    if (ready) return { record: ready, reused: true }
+  }
+  const files = await sketchPacket(planning, treatment, records)
+  const packet = await storePacket(projectId, files)
+  return claimPlanningRecord({
+    projectId,
+    kind: 'preview',
+    subject: sceneId,
+    fingerprint,
+    inputs: { ...inputs, packetObjectKey: packet.objectKey },
+    direction: '',
+    skillBundle: planning.bundle.ref,
+    workflow: 'sketch',
+  })
+}
+
+// The engine's own lint, pinned with the runtime the Studio plays.
+const lintSketch = async (html: string) => {
+  try {
+    const { lintHyperframeHtml } = await import('@hyperframes/lint')
+    return await lintHyperframeHtml(html, { filePath: 'index.html' })
+  } catch (error) {
+    return { ok: false, errorCount: 1, warningCount: 0, infoCount: 0, findings: [{ code: 'lint_unavailable', severity: 'error' as const, message: `The Hyperframes lint could not run: ${error instanceof Error ? error.message : error}` }] }
+  }
+}
+
+const sketchFilesOf = (raw: unknown): SketchFiles => {
+  const files: SketchFiles = {}
+  if (!raw || typeof raw !== 'object') return files
+  for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'string') files[name] = value
+    else if (value && typeof value === 'object' && typeof (value as { base64?: unknown }).base64 === 'string') {
+      files[name] = { base64: String((value as { base64: string }).base64), contentType: String((value as { contentType?: string }).contentType || 'application/octet-stream') }
+    }
+  }
+  return files
+}
+
+export const submitSketch = async (recordId: string, raw: unknown, runId?: string) => {
+  const record = await loadPlanningRecord(recordId)
+  if (!record || record.kind !== 'preview') throw new PlanningError('Preview record not found', 404)
+  if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This preview already finished as ${record.status}`, 409)
+  assertOwner(record, runId)
+  const treatment = await loadPlanningRecord(String(record.inputs.treatmentId || ''))
+  if (!treatment?.content) throw new PlanningError('The plan this preview is of is gone', 409)
+  const files = sketchFilesOf(raw)
+  const report = validateSketch(files, {
+    scene: record.subject,
+    plan: { record: treatment.id, revision: treatment.revision, content: treatment.content as SceneTreatmentV1 },
+    assetKeys: (await libraryAssets()).map(asset => asset.key),
+  })
+  const html = typeof files['index.html'] === 'string' ? files['index.html'] : ''
+  const lint = html ? await lintSketch(html) : null
+  const lintProblems = (lint?.findings || []).filter(finding => finding.severity === 'error').map(finding => `hyperframes lint ${finding.code}: ${finding.message}${finding.fixHint ? ` — ${finding.fixHint}` : ''}`)
+  const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
+  const problems = [...report.problems, ...lintProblems]
+  if (problems.length || !report.manifest) return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
+  // The bundle is kept whole and immutable; the manifest is the record.
+  const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-preview', extension: '.json' })
+  const warnings = [...report.warnings, ...lintWarnings]
+  const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings }, artifacts }, ['queued', 'running'], { runId: record.runId })
+  if (!updated) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
+  return { accepted: true as const, status: 'ready', record: updated, warnings }
+}
+
+// A preview's files, for the Studio's player: the bundle as it was accepted.
+const bundles = new Map<string, Record<string, SketchFiles[string]>>()
+const PREVIEW_TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' }
+export const loadPreviewFile = async (recordId: string, path: string) => {
+  const record = await loadPlanningRecord(recordId)
+  if (!record || record.kind !== 'preview' || record.status !== 'ready' || !record.artifacts) throw new PlanningError('Preview not found', 404)
+  let files = bundles.get(record.artifacts.objectKey)
+  if (!files) {
+    files = (JSON.parse((await readStream((await getObject(record.artifacts.objectKey)).stream)).toString('utf8')) as { files: SketchFiles }).files
+    if (bundles.size > 24) bundles.delete(bundles.keys().next().value as string)
+    bundles.set(record.artifacts.objectKey, files)
+  }
+  const file = files[path]
+  if (file === undefined) throw new PlanningError('No such file in the preview', 404)
+  const extension = path.slice(path.lastIndexOf('.')).toLowerCase()
+  return typeof file === 'string'
+    ? { body: Buffer.from(file, 'utf8'), contentType: PREVIEW_TYPES[extension] || 'text/plain; charset=utf-8' }
+    : { body: Buffer.from(file.base64, 'base64'), contentType: file.contentType }
+}
+
+// Each scene's newest preview, and whether it is of the plan shown now.
+const previewOf = (records: PlanningRecord[], sceneId: string, view: ScenePlanningView) => {
+  const newest = records.filter(record => record.kind === 'preview' && record.subject === sceneId).sort((a, b) => b.revision - a.revision)[0]
+  if (!newest) return null
+  const readyOne = newest.status === 'ready' ? newest : records.filter(record => record.kind === 'preview' && record.subject === sceneId && record.status === 'ready').sort((a, b) => b.revision - a.revision)[0] || null
+  const manifest = readyOne?.content as SketchManifest | null | undefined
+  return {
+    latest: { id: newest.id, status: newest.status, revision: newest.revision, error: newest.error, runId: newest.runId },
+    ready: readyOne && manifest
+      ? {
+          id: readyOne.id,
+          url: `/api/planning/previews/${encodeURIComponent(readyOne.id)}/index.html`,
+          of: { record: String(readyOne.inputs.treatmentId || ''), revision: manifest.plan.revision },
+          current: String(readyOne.inputs.treatmentId || '') === view.current?.id,
+          summary: sketchSummary(manifest),
+          warnings: readyOne.report?.warnings || [],
+          adapter: readyOne.adapter,
+          model: readyOne.reportedModel || readyOne.model,
+        }
+      : null,
+  }
 }
 
 // The run that serves a record claims it as it starts: queued → running,

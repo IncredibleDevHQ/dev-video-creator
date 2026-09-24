@@ -120,6 +120,28 @@ Develop one scene's creative plan — the scene treatment.
 5. Call `plan_submit_treatment` with the project directory. Fix exactly the
    problems it reports (at most four submissions). When it is accepted, stop.
 
+## Route: Sketch Scene
+
+Build a rough, seekable preview of one scene plan — a sketch, not the scene.
+
+1. Read `packet/PLAN.json` (the plan to preview), `packet/SKETCH.md` (its
+   composition id, length and limits), `packet/CONTEXT.json`,
+   `packet/THEME.json`, `packet/VISUAL_CAST.json` and `packet/RUN.json`. Look
+   at `packet/references/page.png` and `packet/references/visual-cast.png`
+   with your image-reading tool.
+2. Read [the sketch contract](references/sketch-contract.md). For the
+   composition itself, `skills/hyperframes-core/SKILL.md` and
+   `skills/hyperframes-animation/rules-index.md` are the authority on GSAP,
+   clips and seeking — as the contract adapts them to the pinned runtime.
+3. Write `sketch/index.html`, `sketch/manifest.json` and any `sketch/assets/`.
+   Reuse the cast's artwork (copy `assets/<id>/asset.svg`) or draw native
+   shapes; label every placeholder and the presenter stand-in. Show the
+   plan's whole progression in its order, with its camera intent and major
+   text.
+4. Call `plan_submit_sketch` with the project directory. Fix exactly the
+   problems it reports. When it is accepted, stop: a sketch never approves,
+   records, generates artwork or produces anything.
+
 ## Judgment that applies to every plan
 
 - The viewer should understand why the outcome follows, not merely watch

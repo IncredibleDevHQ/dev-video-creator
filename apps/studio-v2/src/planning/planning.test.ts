@@ -5,6 +5,7 @@ import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './exp
 import { continuityStatus, validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
 import { compareTreatments } from './plan-compare'
 import { recordingGuide } from './recording-guide'
+import { sketchSummary, validateSketch } from './sketch-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from './brief-adapter'
 import { PLANNING_SCHEMA, briefFingerprint, briefFreshness, landingFor, scenePlanningView, treatmentFingerprint, treatmentFreshness, type BriefInputs, type PlanningRecord, type TreatmentInputs } from './planning-records'
 
@@ -592,5 +593,58 @@ describe('the recording guide', () => {
     const generated = recordingGuide({ plan: goodTreatment(), script: 'Draft line.', wordingPolicy: 'draft', delivery: 'generated' })
     expect(generated.note).toMatch(/generated voice: there is nothing to record/)
     expect(generated.lines[0].wording).toBe('draft')
+  })
+})
+
+describe('the plan preview sketch', () => {
+  const sketchOf = (overrides: { html?: string; manifest?: Record<string, unknown> } = {}) => {
+    const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script></head><body>
+<div id="root" data-composition-id="sketch-s01-r1" data-start="0" data-width="1920" data-height="1080" data-duration="12">
+<div id="m1" class="clip" data-start="0" data-duration="5" data-track-index="0"><h1>Capacity</h1></div>
+<div id="m2" class="clip" data-start="5" data-duration="7" data-track-index="0"><svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><rect width="4" height="4"/></svg></div>
+</div><script>window.__timelines = window.__timelines || {}; const tl = gsap.timeline({ paused: true }); window.__timelines["sketch-s01-r1"] = tl</script></body></html>`
+    const manifest = {
+      version: 1, scene: 'video-s01', plan: { record: 'plan-1', revision: 1 },
+      composition: { id: 'sketch-s01-r1', width: 1920, height: 1080, fps: 30, duration: 12 },
+      runtime: { hyperframes: '0.7.106' },
+      moments: [{ id: 'm1', title: 'Establish capacity', start: 0, end: 5, estimated: true }, { id: 'm2', title: 'A request spends a token', start: 5, end: 12, estimated: true }],
+      layers: [{ id: 'bucket', kind: 'object', label: 'Bucket', moments: ['m1', 'm2'], asset: { libraryKey: 'token-bucket@2' } }],
+      provisional: ['Timing is estimated from the plan'],
+      ...overrides.manifest,
+    }
+    return { 'index.html': overrides.html ?? html, 'manifest.json': JSON.stringify(manifest) }
+  }
+  const sketchContext = (plan = goodTreatment()) => ({ scene: 'video-s01', plan: { record: 'plan-1', revision: 1, content: plan }, assetKeys: ['token-bucket@2'] })
+
+  it('accepts a sketch that covers the plan, reuses the cast and says what is estimated', () => {
+    const report = validateSketch(sketchOf(), sketchContext())
+    expect(report.problems).toEqual([])
+    expect(sketchSummary(report.manifest!)).toMatchObject({ duration: 12, moments: [{ id: 'm1', start: 0, end: 5 }, { id: 'm2', start: 5, end: 12 }], layers: [{ id: 'bucket', reuses: 'token-bucket@2' }] })
+  })
+
+  it('refuses a sketch that skips a moment, runs past its length or pretends its timing is measured', () => {
+    const skipped = validateSketch(sketchOf({ manifest: { moments: [{ id: 'm2', title: 'x', start: 0, end: 13, estimated: false }] } }), sketchContext()).problems.join('\n')
+    expect(skipped).toMatch(/must be the plan's moments in order \(m1, m2\)/)
+    expect(skipped).toMatch(/moment m2 ends at 13s, after the composition \(12s\)/)
+    expect(skipped).toMatch(/moment m2 must say its timing is estimated/)
+    expect(validateSketch(sketchOf({ manifest: { provisional: [] } }), sketchContext()).problems.join('\n')).toMatch(/must say the timing is estimated/)
+  })
+
+  it('refuses code that reaches outside the sketch or cannot be seeked', () => {
+    const html = sketchOf()['index.html']
+    const reaching = validateSketch(sketchOf({ html: html.replace('</body>', '<script>fetch("https://example.com/x"); Math.random()</script></body>') }), sketchContext()).problems.join('\n')
+    expect(reaching).toMatch(/refers to "https:\/\/example\.com\/x"/)
+    expect(reaching).toMatch(/fetches from the network/)
+    expect(reaching).toMatch(/is random/)
+    const unregistered = validateSketch(sketchOf({ html: html.replace('window.__timelines["sketch-s01-r1"] = tl', '') }), sketchContext()).problems.join('\n')
+    expect(unregistered).toMatch(/does not register window.__timelines\["sketch-s01-r1"\]/)
+  })
+
+  it('needs a labelled stand-in wherever the plan shows a presenter, and cast it can reuse', () => {
+    const plan = goodTreatment()
+    plan.moments[0].presenter = { visibility: 'full', reason: 'Introduce it' }
+    expect(validateSketch(sketchOf(), sketchContext(plan)).problems.join('\n')).toMatch(/shows a presenter in m1: add a presenter layer/)
+    const stranger = validateSketch(sketchOf({ manifest: { layers: [{ id: 'bucket', kind: 'object', label: 'Bucket', moments: ['m1'], asset: { libraryKey: 'not-in-library' } }] } }), sketchContext()).problems.join('\n')
+    expect(stranger).toMatch(/reuses "not-in-library", which is not in the cast or the library/)
   })
 })

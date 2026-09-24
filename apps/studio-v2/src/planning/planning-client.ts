@@ -19,7 +19,7 @@ export const saveSceneDirection = (fetchJson: FetchJson, projectId: string, subj
 
 // Starts the run that answers a queued record, on the durable planning
 // choice. A harness that cannot start leaves the record failed, with why.
-export const startPlanningRun = async (fetchJson: FetchJson, input: { record: PlanningRecord; route: 'Prepare Brief' | 'Plan Scene'; projectId: string }) => {
+export const startPlanningRun = async (fetchJson: FetchJson, input: { record: PlanningRecord; route: 'Prepare Brief' | 'Plan Scene' | 'Sketch Scene'; projectId: string }) => {
   const bridge = window.studioDesktop
   const fail = (message: string, providerStatus?: string) =>
     fetchJson(`/api/planning/records/${encodeURIComponent(input.record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, ...(providerStatus ? { providerStatus } : {}) }) }).catch(() => {})
@@ -51,6 +51,18 @@ export const startPlanningRun = async (fetchJson: FetchJson, input: { record: Pl
 export const planScene = async (fetchJson: FetchJson, projectId: string, sceneId: string) => {
   const { record, reused } = await fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/scenes/${encodeURIComponent(sceneId)}`, { method: 'POST' })
   if (!reused || record.status === 'queued') await startPlanningRun(fetchJson, { record, route: 'Plan Scene', projectId })
+  return { record, reused }
+}
+
+// A rough, seekable preview of one plan revision (P3), built on the same
+// harness; the same plan already previewed is shown again unless `again`.
+export const previewScene = async (fetchJson: FetchJson, projectId: string, sceneId: string, options: { recordId?: string; again?: boolean } = {}) => {
+  const { record, reused } = await fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/scenes/${encodeURIComponent(sceneId)}/preview`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(options),
+  })
+  if (!reused || record.status === 'queued') await startPlanningRun(fetchJson, { record, route: 'Sketch Scene', projectId })
   return { record, reused }
 }
 

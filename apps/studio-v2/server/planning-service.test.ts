@@ -403,6 +403,58 @@ describe('planning integrity', () => {
     expect(overview.visualCast.entries.find(entry => entry.object === 'slot-pool')).toMatchObject({ thumbnail: expect.stringMatching(/^\/objects\//), rig: 'verified' })
   }, 120_000)
 
+  // P3: a rough, seekable preview of one plan revision, built by a run,
+  // checked against the plan and the pinned engine, kept and served.
+  it('previews a plan: a checked, stored sketch the Studio can play, out of date once the plan moves', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('preview')
+    await readyBrief(id, 'run-preview-brief')
+    const { record: plan } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(plan.id, { runId: 'run-preview-plan' })
+    expect(await service.submitTreatment(plan.id, treatmentFor(scenes[0], 'b1'), 'run-preview-plan')).toMatchObject({ accepted: true })
+    const queued = await service.queuePreview(id, scenes[0])
+    expect(queued).toMatchObject({ reused: false, record: { kind: 'preview', status: 'queued', subject: scenes[0] } })
+    const packet = await service.loadPacket(queued.record.id)
+    expect(packet.route).toBe('Sketch Scene')
+    const context = JSON.parse(text(packet.files['packet/CONTEXT.json']))
+    expect(context).toMatchObject({ route: 'Sketch Scene', plan: { record: plan.id, revision: plan.revision }, runtime: { hyperframes: '0.7.106' } })
+    expect(JSON.parse(text(packet.files['packet/PLAN.json']))).toMatchObject({ record: plan.id, plan: { moments: [{ id: 'm1' }] } })
+    expect(text(packet.files['packet/SKETCH.md'])).toMatch(/Composition id: `sketch-/)
+    await service.attachRun(queued.record.id, { runId: 'run-preview-sketch' })
+    const compositionId = context.composition.id
+    const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden}.clip{position:absolute;inset:0}</style></head><body>
+<div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="6">
+<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title">Spend</div></div>
+</div><script>window.__timelines = window.__timelines || {}
+const tl = gsap.timeline({ paused: true })
+tl.fromTo('#m1 .title', { opacity: 0 }, { opacity: 1, duration: 1 }, 0)
+window.__timelines["${compositionId}"] = tl</script></body></html>`
+    const manifest = { version: 1, scene: scenes[0], plan: { record: plan.id, revision: plan.revision }, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6, estimated: true }], layers: [{ id: 'title', kind: 'text', label: 'Spend', moments: ['m1'] }], provisional: ['Timing is estimated from the plan'] }
+    // Refused: nothing to play.
+    expect(await service.submitSketch(queued.record.id, { 'manifest.json': JSON.stringify(manifest) }, 'run-preview-sketch')).toMatchObject({ accepted: false, problems: expect.arrayContaining(['index.html is missing']) })
+    // Refused by the pinned engine's lint: no timeline registry initialised.
+    const unlinted = await service.submitSketch(queued.record.id, { 'index.html': html.replace('window.__timelines = window.__timelines || {}', ''), 'manifest.json': JSON.stringify(manifest) }, 'run-preview-sketch')
+    expect(unlinted).toMatchObject({ accepted: false, problems: [expect.stringMatching(/hyperframes lint timeline_registry_missing_init/)] })
+    const landed = await service.submitSketch(queued.record.id, { 'index.html': html, 'manifest.json': JSON.stringify(manifest) }, 'run-preview-sketch')
+    expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+    // Served as accepted, for the player.
+    const index = await service.loadPreviewFile(queued.record.id, 'index.html')
+    expect(index.contentType).toMatch(/text\/html/)
+    expect(index.body.toString('utf8')).toContain(`data-composition-id="${compositionId}"`)
+    await expect(service.loadPreviewFile(queued.record.id, '../secret')).rejects.toThrow(/No such file/)
+    let overview = await service.planningOverview(id)
+    expect(overview.scenes[0].preview?.ready).toMatchObject({ current: true, of: { record: plan.id }, url: expect.stringMatching(/^\/api\/planning\/previews\/.+\/index\.html$/), summary: { duration: 6, moments: [{ id: 'm1', start: 0, end: 6 }] } })
+    // The same plan is shown again, not sketched again — unless asked.
+    expect(await service.queuePreview(id, scenes[0])).toMatchObject({ reused: true, record: { id: queued.record.id } })
+    expect((await service.queuePreview(id, scenes[0], { again: true })).reused).toBe(false)
+    // A new candidate: the preview is of the old plan, and says so.
+    await service.saveDirection(id, { subject: scenes[0], direction: 'Slower' })
+    const { record: next } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(next.id, { runId: 'run-preview-plan-2' })
+    await service.submitTreatment(next.id, treatmentFor(scenes[0], 'b1'), 'run-preview-plan-2')
+    overview = await service.planningOverview(id)
+    expect(overview.scenes[0].preview?.ready).toMatchObject({ current: false, of: { record: plan.id } })
+  }, 60_000)
+
   it('fails the records of a run interrupted by a restart, with a way on', async () => {
     const { videoId: id } = await makeVideo('interrupt')
     const { record } = await service.queueBrief(id)

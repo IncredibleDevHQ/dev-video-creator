@@ -7,7 +7,7 @@
 // The record a run submits to is read from the run's own inputs file, never
 // taken from the harness's arguments, so a run can only answer for the
 // brief or scene it was started for. Submissions are budgeted.
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 
 type Json = Record<string, unknown>
@@ -61,15 +61,57 @@ const spendSubmission = async (projectDir: string) => {
 
 const contextTool = async (args: Json) => {
   const run = await runOf(args)
+  const sketch = run.route === 'Sketch Scene'
   return {
     route: run.route,
     record: run.recordId,
     packet: run.files,
-    writes: run.route === 'Prepare Brief' ? 'planning/brief.json' : 'planning/treatment.json',
-    contract: run.route === 'Prepare Brief' ? 'references/brief-contract.md' : 'references/treatment-contract.md',
+    writes: run.route === 'Prepare Brief' ? 'planning/brief.json' : sketch ? 'sketch/index.html and sketch/manifest.json (and sketch/assets/)' : 'planning/treatment.json',
+    contract: run.route === 'Prepare Brief' ? 'references/brief-contract.md' : sketch ? 'references/sketch-contract.md' : 'references/treatment-contract.md',
     submissionBudget: PLANNING_SUBMISSION_BUDGET,
-    boundary: 'Planning only: no artwork, narration, recording, composition, finish or export. Stop when the submission is accepted.',
+    boundary: sketch
+      ? 'A rough preview of one plan only: no paid artwork, no narration, no recording, no approval, no production or export. Stop when the sketch is accepted.'
+      : 'Planning only: no artwork, narration, recording, composition, finish or export. Stop when the submission is accepted.',
   }
+}
+
+// The sketch folder as the product receives it: text as text, images and
+// fonts as bytes.
+const TEXT_FILES = /\.(html|css|js|json|svg|txt|md)$/i
+const BINARY_TYPES: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' }
+const readSketch = async (root: string, folder = '', files: Record<string, string | { base64: string; contentType: string }> = {}) => {
+  for (const entry of await readdir(join(root, folder), { withFileTypes: true })) {
+    const path = folder ? `${folder}/${entry.name}` : entry.name
+    if (entry.isDirectory()) {
+      await readSketch(root, path, files)
+      continue
+    }
+    if (TEXT_FILES.test(entry.name)) files[path] = await readFile(join(root, path), 'utf8')
+    else {
+      const extension = entry.name.slice(entry.name.lastIndexOf('.')).toLowerCase()
+      if (BINARY_TYPES[extension]) files[path] = { base64: (await readFile(join(root, path))).toString('base64'), contentType: BINARY_TYPES[extension] }
+    }
+  }
+  return files
+}
+
+const submitSketch = async (args: Json, context: Context) => {
+  const run = await runOf(args)
+  if (run.route !== 'Sketch Scene') throw new Error(`This run is for route ${run.route}; it cannot submit a sketch`)
+  let files: Awaited<ReturnType<typeof readSketch>>
+  try {
+    files = await readSketch(inside(run.projectDir, 'sketch'))
+  } catch (error) {
+    throw new Error(`sketch/ is not readable: ${error instanceof Error ? error.message : error}`)
+  }
+  const attempt = await spendSubmission(run.projectDir)
+  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/sketch`, { files, ...(run.runId ? { runId: run.runId } : {}) })
+  await writeFile(join(run.projectDir, 'planning', `sketch.report.${attempt}.json`), JSON.stringify({ status, ...body }, null, 2)).catch(() => {})
+  if (status === 422) {
+    return { accepted: false, attempt, remaining: PLANNING_SUBMISSION_BUDGET - attempt, problems: body.problems, warnings: body.warnings, next: 'Fix exactly these problems and submit again.' }
+  }
+  if (status >= 400) throw new Error(String(body.error || `The studio answered ${status}`))
+  return { accepted: true, status: body.status, warnings: body.warnings, next: 'Accepted. Stop the run now; the creator watches the preview in the product.' }
 }
 
 const assetsTool = async (_args: Json, context: Context) => {
@@ -131,6 +173,7 @@ export const PLANNING_TOOLS: Array<{
   { name: 'plan_context', description: 'Read this planning run\'s route, its packet files, the file to write and the contract the product checks.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: contextTool },
   { name: 'plan_assets', description: 'List the accepted, reusable objects in the asset library — what each represents and its named parts. Read-only.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: assetsTool },
   { name: 'plan_submit_brief', description: 'Hand planning/brief.json to the product. It is checked against the pinned inputs; the answer is accepted, or the problems to fix.', inputSchema: { type: 'object', properties: { ...common, path: { type: 'string' } }, required: ['projectDir'] }, call: submit('brief') },
+  { name: 'plan_submit_sketch', description: 'Hand the sketch/ folder (index.html, manifest.json, assets) — a rough, seekable preview of one scene plan — to the product. It is checked against the plan and the pinned runtime; the answer is accepted, or the problems to fix.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: submitSketch },
   { name: 'plan_submit_treatment', description: 'Hand planning/treatment.json (this scene\'s creative plan) to the product. It is checked against the brief and the pinned catalog; the answer is accepted, or the problems to fix.', inputSchema: { type: 'object', properties: { ...common, path: { type: 'string' } }, required: ['projectDir'] }, call: submit('treatment') },
 ]
 

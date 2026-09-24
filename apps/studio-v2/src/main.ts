@@ -16848,7 +16848,70 @@ const planningWorkspace = createPlanningWorkspace({
 const sceneStage = $('#scene-stage') as HTMLElement
 const sceneStageReference = $('#scene-stage-reference') as HTMLElement
 const sceneStageNote = $('#scene-stage-note') as HTMLElement
+const sceneStagePreview = $('#scene-stage-preview') as HTMLElement
 let sceneStageFor = ''
+// The stage shows the page as a reference, or plays the plan's preview.
+let sceneStageMode: 'reference' | 'preview' = 'reference'
+type StagePlayer = HTMLElement & { play(): void; pause(): void; seek(time: number): void; readonly currentTime: number; readonly duration: number }
+let stagePlayer: StagePlayer | null = null
+let stagePlayerUrl = ''
+let stagePreviewMoments: Array<{ id: string; title: string; start: number; end: number }> = []
+let stagePreviewDuration = 1
+const stageTransport = document.createElement('div')
+stageTransport.className = 'scene-stage-transport'
+const stagePlay = Object.assign(document.createElement('button'), { type: 'button', textContent: '▶', title: 'Play or pause the preview' })
+stagePlay.setAttribute('aria-label', 'Play or pause the preview')
+const stageTrack = document.createElement('div')
+stageTrack.className = 'scene-stage-track'
+const stageHead = document.createElement('span')
+stageHead.className = 'scene-stage-playhead'
+const stageClock = document.createElement('span')
+stageClock.className = 'scene-stage-clock'
+stageTransport.append(stagePlay, stageTrack, stageClock)
+sceneStagePreview.append(stageTransport)
+let stagePlaying = false
+stagePlay.addEventListener('click', () => {
+  if (!stagePlayer) return
+  if (stagePlaying) stagePlayer.pause()
+  else stagePlayer.play()
+})
+const updateStageClock = () => {
+  const time = stagePlayer?.currentTime || 0
+  stageHead.style.left = `${Math.min(100, (time / stagePreviewDuration) * 100)}%`
+  stageClock.textContent = `${time.toFixed(1)}s / ${stagePreviewDuration}s est.`
+  const current = stagePreviewMoments.find(moment => time >= moment.start && time < moment.end)
+  stageTrack.querySelectorAll<HTMLElement>('[data-stage-moment]').forEach(element => element.classList.toggle('is-current', element.dataset.stageMoment === current?.id))
+}
+const ensureStagePlayer = () => {
+  if (stagePlayer) return stagePlayer
+  stagePlayer = document.createElement('hyperframes-player') as StagePlayer
+  stagePlayer.setAttribute('width', '1920')
+  stagePlayer.setAttribute('height', '1080')
+  stagePlayer.className = 'scene-stage-player'
+  stagePlayer.addEventListener('timeupdate', updateStageClock)
+  stagePlayer.addEventListener('play', () => {
+    stagePlaying = true
+    stagePlay.textContent = '❚❚'
+  })
+  const stopped = () => {
+    stagePlaying = false
+    stagePlay.textContent = '▶'
+    updateStageClock()
+  }
+  stagePlayer.addEventListener('pause', stopped)
+  stagePlayer.addEventListener('ended', stopped)
+  sceneStagePreview.prepend(stagePlayer)
+  return stagePlayer
+}
+sceneStage.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
+  button.addEventListener('click', () => {
+    const mode = button.dataset.stageMode === 'preview' ? 'preview' : 'reference'
+    if (mode === sceneStageMode) return
+    if (mode === 'reference') stagePlayer?.pause()
+    sceneStageMode = mode
+    renderSceneStage()
+  }),
+)
 // What the selected moment is about, kept across redraws of the stage.
 let sceneStageTargets: { nodes: string[]; objectIds: string[] } | null = null
 // The wireframe as live SVG, so a moment can point at what it is about.
@@ -16876,6 +16939,54 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   sceneStage.hidden = false
   if (next !== undefined) sceneStageTargets = next
   const targets = stage.moment ? sceneStageTargets : null
+  // Which view the stage offers: the page always; the preview once there is one.
+  const ready = stage.preview
+  if (sceneStageMode === 'preview' && !ready) sceneStageMode = 'reference'
+  sceneStage.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
+    const mode = button.dataset.stageMode
+    button.disabled = mode === 'preview' ? !ready : mode === 'output'
+    button.classList.toggle('is-active', mode === sceneStageMode)
+    button.setAttribute('aria-pressed', String(mode === sceneStageMode))
+  })
+  const previewing = sceneStageMode === 'preview' && ready
+  sceneStage.classList.toggle('is-preview', Boolean(previewing))
+  sceneStageReference.hidden = Boolean(previewing)
+  sceneStagePreview.hidden = !previewing
+  if (previewing && ready) {
+    const player = ensureStagePlayer()
+    if (stagePlayerUrl !== ready.url) {
+      stagePlayerUrl = ready.url
+      player.setAttribute('src', ready.url)
+      stagePreviewMoments = ready.summary.moments
+      stagePreviewDuration = ready.summary.duration || 1
+      stageTrack.replaceChildren(
+        ...ready.summary.moments.map(moment => {
+          const segment = Object.assign(document.createElement('button'), { type: 'button', textContent: moment.title, title: `${moment.title}: ${moment.start}–${moment.end}s (estimated)` })
+          segment.dataset.stageMoment = moment.id
+          segment.className = 'scene-stage-moment'
+          segment.style.left = `${(moment.start / stagePreviewDuration) * 100}%`
+          segment.style.width = `${((moment.end - moment.start) / stagePreviewDuration) * 100}%`
+          segment.addEventListener('click', () => {
+            player.seek(moment.start)
+            updateStageClock()
+          })
+          return segment
+        }),
+        stageHead,
+      )
+      updateStageClock()
+    }
+    // One line on the stage; the full list is in the review and the title.
+    const shows = [
+      ready.summary.provisional.some(item => /tim/i.test(item)) ? 'timing estimated' : '',
+      ready.summary.layers.some(layer => layer.kind === 'presenter' && layer.placeholder) ? 'presenter stand-in' : '',
+      ready.summary.layers.some(layer => layer.kind !== 'presenter' && layer.placeholder) ? 'placeholder artwork' : '',
+    ].filter(Boolean)
+    sceneStageNote.textContent = `Rough sketch of plan r${ready.of.revision}${ready.current ? '' : ' — out of date'}${shows.length ? ` · ${shows.join(' · ')}` : ''}`
+    sceneStageNote.title = ready.summary.provisional.join('\n')
+    return
+  }
+  stagePlayer?.pause()
   if (sceneStageFor !== reviewSelectedScene) {
     sceneStageFor = reviewSelectedScene
     const svg = referenceSvg(String(node.attrs.svg || ''))
@@ -16895,6 +17006,7 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   ].filter((element): element is Element => Boolean(element))
   hits.forEach(element => element.classList.add('stage-hit'))
   svg?.classList.toggle('has-hits', hits.length > 0)
+  sceneStageNote.title = ''
   sceneStageNote.textContent = hits.length
     ? `Highlighted: what this moment is about, where the page draws it (${hits.length} ${hits.length === 1 ? 'thing' : 'things'}). The video may restage it.`
     : 'This moment names nothing the page draws — there is no mapping to show on the reference.'
@@ -16922,7 +17034,18 @@ sceneReview = createSceneReview({
     openCamera()
   },
   openWorkspace: () => void planningWorkspace.open(),
-  selectMoment: (_sceneId, targets) => renderSceneStage(targets),
+  selectMoment: (_sceneId, targets, at) => {
+    renderSceneStage(targets)
+    if (at !== null && sceneStageMode === 'preview' && stagePlayer) {
+      stagePlayer.seek(at)
+      updateStageClock()
+    }
+  },
+  showPreview: sceneId => {
+    if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
+    sceneStageMode = 'preview'
+    renderSceneStage()
+  },
 })
 onSceneSelected = nodeId => {
   const next = sceneReview?.has(nodeId) ? nodeId : ''
