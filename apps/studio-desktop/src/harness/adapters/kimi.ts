@@ -154,7 +154,7 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
       signal,
     })
     // A CLI that refuses to start says why on stderr; the run shows it.
-    if (exitCode !== 0 && stderrTail.trim()) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400) })
+    if (exitCode !== 0 && stderrTail.trim()) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.split('\n').map(line => line.trim()).filter(Boolean).slice(-3).join(' · ').slice(0, 400) })
     return { resumeId: state.resumeId, exitCode }
   },
 })

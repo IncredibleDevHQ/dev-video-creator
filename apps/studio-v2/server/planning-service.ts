@@ -650,7 +650,8 @@ export const runFinished = async (runId: string, outcome: { status: string; exit
       outcome.status === 'cancelled'
         ? 'The run was cancelled before it submitted a result.'
         : `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) without submitting a result.`
-    const updated = await failRecord(record.id, { message, ...(outcome.error ? { providerStatus: outcome.error } : {}) })
+    const providerStatus = (outcome.error || '').replace(/^[\s·:-]+/, '').trim()
+    const updated = await failRecord(record.id, { message, ...(providerStatus ? { providerStatus } : {}) })
     if (updated) failed.push(updated)
   }
   return failed

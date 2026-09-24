@@ -43,6 +43,8 @@ type RunRecord = {
 }
 
 // A planning run names the record it works for (M0).
+const PLANNING_SKILL = 'video-planner'
+
 const planningOf = (inputs?: Record<string, unknown>) => {
   const planning = inputs?.planning as { recordId?: unknown } | undefined
   return typeof planning?.recordId === 'string' && planning.recordId ? planning.recordId : ''
@@ -196,6 +198,8 @@ export class RunManager {
   async start(options: StartRunOptions): Promise<RunSummary> {
     const id = `run-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`
     const planningRecord = planningOf(options.inputs)
+    // A planning record is answered by the planning skill, and only by it.
+    if (planningRecord && options.skill !== PLANNING_SKILL) throw new Error(`A planning run uses the ${PLANNING_SKILL} skill, not ${options.skill}`)
     const projectDir =
       options.projectDir || (planningRecord
         ? join(this.projectsRoot, options.projectId || 'default', 'plans', id)
@@ -205,7 +209,7 @@ export class RunManager {
     // Install the vendored skills into the project first (spec §5): the
     // adapter then reads SKILL.md from the project's .claude/skills copy.
     try {
-      const install = await installSkills(this.context.skillsDir, projectDir)
+      const install = await installSkills(this.context.skillsDir, projectDir, planningRecord ? { only: [PLANNING_SKILL] } : {})
       if (install.installed.length) log(`skills installed: ${install.installed.join(', ')}`)
       if (install.modifiedLocally.length) {
         log(`skills modified locally (kept): ${install.modifiedLocally.join(', ')}`)

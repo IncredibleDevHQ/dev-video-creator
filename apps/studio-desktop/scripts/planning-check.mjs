@@ -97,6 +97,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
   report.context = await tool('plan_context', { projectDir })
   const inputs = JSON.parse(fs.readFileSync('motion/inputs.json', 'utf8'))
   report.packet = inputs.packet.files
+  report.skills = fs.readdirSync('.claude/skills').sort()
   const context = JSON.parse(fs.readFileSync('packet/CONTEXT.json', 'utf8'))
   fs.mkdirSync('planning', { recursive: true })
   if (inputs.planning.route === 'Prepare Brief') {
@@ -245,6 +246,7 @@ try {
   check(/not available to a planning run/.test(briefReport.refused?.error || ''), 'a build tool is refused to a planning run')
   check(!/Bash/.test(briefReport.allowedTools) && /mcp__studio__plan_\*/.test(briefReport.allowedTools), `Claude Code plans without a shell (${briefReport.allowedTools})`)
   check(/scope=planning/.test(briefReport.mcpUrl), 'the run\'s tool URL carries its planning scope')
+  check(JSON.stringify(briefReport.skills) === JSON.stringify(['video-planner']), `a planning run is handed only the planning skill (${briefReport.skills})`)
   check(briefReport.numberedSource === true && briefReport.packet.includes('packet/SOURCE.md'), 'the packet carries the retained source, paragraph-numbered')
   check(briefReport.invented?.accepted === false && /not a passage of the retained source/.test(JSON.stringify(briefReport.invented.problems)), 'an invented quotation is refused')
   check(briefReady.status === 'ready' && briefReady.adapter === 'claude-code', 'the grounded brief lands, with its harness recorded')
