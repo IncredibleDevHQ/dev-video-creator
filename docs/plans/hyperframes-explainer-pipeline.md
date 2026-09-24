@@ -262,6 +262,34 @@ The director card explains the scene's question, planned demonstration, recordin
 
 Expose useful progress: understanding the story, preparing objects, designing shots, waiting for a take, composing, checking and ready for review. Show provider errors and resumable actions. Technical skill names can be visible in diagnostics without being choices a creator must understand to make a video.
 
+### Composition workspace inspired by Motionity
+
+Use Motionity as a reference for editor interaction, with our own implementation connected to the product's authoring records and Hyperframes engine. Its source exposes a central canvas, asset browser, properties panel, layer list, timeline, playhead, playback controls and undo/redo. Those are useful patterns for making overlapping activity inspectable. [Motionity editor source](https://github.com/alyssaxuu/motionity/blob/main/src/index.html), [feature overview](https://github.com/alyssaxuu/motionity#features).
+
+The workspace should answer both **what happens when** and **why the viewer needs to see it**:
+
+| Workspace area | Planning milestone | Constructed composition, later |
+| --- | --- | --- |
+| Scene navigation | Inherited scene cards, source-slide links, brief/plan status, proposed split/merge changes | Same identities with playable composition versions |
+| Centre stage | Retained wireframe clearly labelled as a reference, alongside the selected moment's proposed treatment | Actual Hyperframes playback with selections and optional camera/safe-area guides |
+| Bottom sequence | Ordered moments and overlapping narration, graphics, text, presenter and camera lanes; estimated timing only where supplied | Time-scaled clips, measured narration cues, playhead and range playback tied to the runtime |
+| Inspector | Selected moment's purpose, visible change, narration, evidence, recipe rationale and unresolved decisions | Those explanations plus the composition's declared editable properties |
+| Assets and versions | Existing references, required objects/takes, candidate-versus-reviewed plans | Reusable Quiver assets, selected takes, composition versions and affected review status |
+
+These lanes describe simultaneous communication channels, not a new closed list of scene types or a compulsory number of layers. A scene can use just the channels it needs, and one moment can span several lanes. A later advanced view can expand objects and supported animation properties without requiring every creator to work with raw keyframes.
+
+For example, selecting **Last token consumed** reveals the proposed spoken phrase, the token's disappearance, the bucket's resulting state, the count change and the camera's intended focus. It also states the observation: the following rejection is caused by depleted capacity. Once constructed, selecting that same moment seeks to its bound interval in the actual composition. A track labelled only `opacity 0 → 1` would omit the explanation that the creator needs to assess.
+
+**M0 stays a planning workspace.** Selecting moments reveals the plan; it does not pretend to play an animation that has not been built. Where duration is unresolved, show an ordered sequence instead of fabricated second marks. Any supplied timings are visibly provisional. Do not generate new images, animatics or composition code just to populate this view. Keep the briefs and raw planning artifacts accessible. Begin with selection, inspection, comments and regeneration; review the creative direction before adding a full keyframe editor.
+
+**The later editing contract must be explicit.** An arbitrary generated HTML/JavaScript composition cannot reliably be reverse-engineered into a complete editable timeline. Require its authored manifest to bind stable scene/moment/object IDs to time intervals, assets, exposed properties, cue dependencies and runtime targets. The manifest records what the bundle exposes; the canonical authoring revisions remain authoritative for intended edits. Validate those bindings against the bundle and reject stale/missing ones instead of displaying fictitious controls.
+
+An editor action changes the corresponding authoring parameter or direction, validates dependencies, and either updates a supported runtime control or asks the local harness to rebuild the affected candidate. Persist the resulting authoring and bundle revisions together; do not mutate the preview DOM and call that a saved edit. A changed camera parameter can update through an exposed control; a changed visual metaphor generally needs planning/construction again. Regeneration must carry forward accepted user edits. Unsupported controls remain inspectable with a clear regeneration path rather than being falsely advertised as draggable keyframes. The control catalog limits direct UI editing, not creative expression: supported custom composition code can remain an authored component with a harness-edit path.
+
+Retiming is equally deliberate: moving an action must preserve causal order and any binding to a narration cue. A request to add a hold may require changed narration or a pickup; it must not silently stretch an accepted human recording. Undo/redo restores coherent revisions of parameters and artifacts, including review status. Every preview control seeks the Hyperframes runtime; the editor does not introduce another animation clock or rebuild the scene in Motionity's drawing system.
+
+After M0, deliver this in small steps: (1) playback with synchronized read-only tracks and selection; (2) declared text, placement and camera controls with persistence and export verification; (3) constrained clip timing and selected keyframe controls where the bindings support them. Check click-to-seek, backward scrubbing, edit → reopen → export consistency, and regeneration preserving manual direction. The editor makes plans and compositions understandable and correctable; better output still depends on creative planning, asset performance and rendered review.
+
 ## 10. Durable state and reproducibility
 
 Extend existing PostgreSQL persistence for source/narrative/explanation revisions, notebook lineage, scene/shot plans, delivery settings, take selections, asset metadata, run stages and quality decisions. Extend MinIO storage for SVGs, rigs, audio/video, composition bundles, snapshots and exports. Local harness directories are materialised working copies.
@@ -315,7 +343,7 @@ This is the immediate product milestone, before artwork generation, animation co
 | Asset/take requirements, continuity and unresolved choices | What must be acquired or decided before this plan can be executed? |
 | Optional roster-change proposals and source-slide links | Would a split, merge or resequence improve the explanation without losing its origin? |
 
-Use a readable moment table or annotated sequence for the primary view, with the raw saved artifacts available for inspection. Do not require an executable state machine, exact selectors, generated artwork or frame-accurate timing yet. Durations and speech cues remain estimates until audio/takes exist. Delivery can remain undecided per scene; a presenter suggestion does not mandate a recording or switch the voice source.
+Use the Motionity-inspired planning workspace in section 9: a readable moment sequence with overlapping channels and an inspector, with the raw saved artifacts available for inspection. Do not require an executable state machine, exact selectors, generated artwork or frame-accurate timing yet. Durations and speech cues remain estimates until audio/takes exist. Delivery can remain undecided per scene; a presenter suggestion does not mandate a recording or switch the voice source.
 
 **Implementation slices and stop boundary**
 
