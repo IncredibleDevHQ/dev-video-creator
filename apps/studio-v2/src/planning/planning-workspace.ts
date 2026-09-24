@@ -574,12 +574,14 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       return pane
     }
     const plan = record.content as SceneTreatmentV1
+    // Only the newest reviewed revision is the reviewed plan; earlier ones keep their history.
+    const statusOf = (entry: PlanningRecord) => (entry.status === 'reviewed' && entry.id !== view.reviewed?.id ? 'previously reviewed' : entry.status)
     const cast = new Set(plan.objects.map(object => object.entity))
     const uncast = [...new Set(plan.moments.flatMap(item => item.objects?.actors || []))].filter(actor => !cast.has(actor))
     // Revisions: what exists, what happened to each, and a comparison.
     const versions = h('div', { class: 'planning-versions' }, h('span', { class: 'planning-muted', text: 'Revisions ' }))
     for (const entry of all) {
-      const button = h('button', { type: 'button', class: `planning-version${entry.id === record.id ? ' is-selected' : ''}${entry.id === compareWith ? ' is-compared' : ''}`, text: `r${entry.revision} ${entry.status}`, ...(entry.content ? {} : { disabled: true }) })
+      const button = h('button', { type: 'button', class: `planning-version${entry.id === record.id ? ' is-selected' : ''}${entry.id === compareWith ? ' is-compared' : ''}`, text: `r${entry.revision} ${statusOf(entry)}`, ...(entry.content ? {} : { disabled: true }) })
       button.addEventListener('click', event => {
         if ((event as MouseEvent).altKey || (event as MouseEvent).shiftKey) compareWith = compareWith === entry.id ? '' : entry.id
         else {
@@ -641,7 +643,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         ),
       ),
       plan.rosterProposal ? h('p', { class: 'planning-warn', text: `Roster proposal (${plan.rosterProposal.action} ${plan.rosterProposal.scenes.join(', ')}): ${plan.rosterProposal.reason}. A proposal only — the scenes are unchanged until you decide.` }) : '',
-      h('p', { class: 'planning-provenance', text: `Plan r${record.revision} · ${record.status} · ${record.adapter ? `${HARNESS_LABELS[record.adapter] || record.adapter}${record.model ? ` ${record.model}` : ''}` : 'harness unknown'} · workflow ${record.workflow || '—'} · ${when(record.updatedAt)}${record.reviewedAt ? ` · reviewed ${when(record.reviewedAt)}` : ''}` }),
+      h('p', { class: 'planning-provenance', text: `Plan r${record.revision} · ${statusOf(record)} · ${record.adapter ? `${HARNESS_LABELS[record.adapter] || record.adapter}${record.model ? ` ${record.model}` : ''}` : 'harness unknown'} · workflow ${record.workflow || '—'} · ${when(record.updatedAt)}${record.reviewedAt ? ` · reviewed ${when(record.reviewedAt)}` : ''}` }),
     )
     return pane
   }
@@ -786,7 +788,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     generate.addEventListener('click', () => void generatePlan())
     const shown = shownPlan()
     const canReview = shown?.status === 'candidate' && !(shown.id === view.current?.id && view.staleBecause)
-    const reviewButton = h('button', { type: 'button', class: 'button secondary', text: shown?.status === 'reviewed' ? 'Reviewed' : 'Mark reviewed', ...(canReview ? {} : { disabled: true }) })
+    const reviewButton = h('button', { type: 'button', class: 'button secondary', text: shown?.status === 'reviewed' ? (shown.id === view.reviewed?.id ? 'Reviewed' : 'Previously reviewed') : 'Mark reviewed', ...(canReview ? {} : { disabled: true }) })
     reviewButton.addEventListener('click', () => shown && void review(shown))
     footer.append(
       h('div', { class: 'planning-direction' }, videoBox, sceneBox),
