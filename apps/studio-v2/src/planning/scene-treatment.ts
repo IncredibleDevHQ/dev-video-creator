@@ -289,6 +289,10 @@ export const validateTreatment = (raw: unknown, context: TreatmentContext): Trea
   }
 
   // Objects: what each does, and whether an asset exists for it.
+  const cast = new Set(treatment.objects.map(object => object.entity))
+  for (const actor of new Set(treatment.moments.flatMap(moment => moment.objects?.actors || []))) {
+    if (entityIds.has(actor) && !cast.has(actor)) warnings.push(`"${actor}" moves in a moment but is not cast among the plan's objects, so its look and asset are undecided`)
+  }
   const assets = new Set(context.assetKeys)
   for (const object of treatment.objects) {
     if (!object.entity || !object.role) problems.push('each object needs the entity it plays and its role')

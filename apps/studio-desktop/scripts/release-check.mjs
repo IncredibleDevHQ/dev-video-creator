@@ -53,6 +53,7 @@ const CHECKS = [
   'export-pin-check.mjs',         // #17: export pins the whole rendered performance — motion, staging, audio
   'object-review-check.mjs',      // §5.4a: review receipts carry source hash + skill version
   'object-review-binding-check.mjs', // #15: receipts bind the exact embedded performance + clip ids
+  'planning-check.mjs',           // M0: brief + scene plans — planning-only tools, stale-safe, reload, no downstream
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 

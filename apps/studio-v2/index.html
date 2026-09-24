@@ -173,6 +173,7 @@
             </div>
             <span class="commandbar-divider" aria-hidden="true"></span>
             <button id="open-fullscreen" class="button chrome-secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/></svg>Open canvas</button>
+            <button id="open-planning" class="button chrome-secondary" type="button" title="Explanation brief and creative plans for this video">Plan video</button>
             <button id="create-explainer" class="button primary" type="button">Create explainer</button>
             <button id="build-explainer" class="button chrome-secondary" type="button">Build explainer</button>
           </nav>
@@ -506,6 +507,9 @@
       </main>
     </div>
 
+    <dialog id="planning-dialog" class="modal planning-modal" aria-label="Plan the video">
+      <div id="planning-workspace" class="planning-workspace"></div>
+    </dialog>
     <dialog id="slide-editor-dialog" class="modal slide-editor-modal">
       <div class="modal-heading">
         <div><span class="eyebrow">Scene studio</span><h2 id="slide-editor-title">Scene</h2><div class="se-meta"><span id="se-saved-state">Saved</span><span class="se-meta-dot">·</span><button type="button" id="se-versions-toggle" class="se-link-quiet" title="Every save of this scene — preview one, or go back to it" aria-haspopup="dialog" aria-expanded="false">Versions</button><span class="se-meta-dot">·</span><button type="button" id="se-canvas" class="se-link-quiet" title="See this scene on the live canvas — closes the studio">Open on the canvas</button></div></div>

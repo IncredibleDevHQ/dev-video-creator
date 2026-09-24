@@ -87,7 +87,17 @@ const scenesOf = (project: ProjectDocumentV1) =>
 const attr = (node: TiptapNode, key: string) => (node.attrs as Record<string, unknown> | undefined)?.[key]
 const stringAttr = (node: TiptapNode, key: string) => String(attr(node, key) ?? '').trim()
 
-type PinnedPage = { scene: string; title: string; idea: string; narration: string; sourcePassages: string[]; wireframe: string | null }
+type PinnedPage = {
+  scene: string
+  title: string
+  idea: string
+  narration: string
+  sourcePassages: string[]
+  wireframe: string | null
+  // Presentation-only metadata, shown as such and never used to plan video.
+  presentationKind: string
+  svg: string
+}
 
 export type VideoPlanning = {
   project: ProjectDocumentV1
@@ -116,6 +126,8 @@ const pagesFrom = (base: ProjectDocumentV1): PinnedPage[] =>
       narration: stringAttr(node, 'script'),
       sourcePassages: (Array.isArray(passages) ? passages : outline?.source || []).map(String).filter(Boolean),
       wireframe: stringAttr(node, 'svg') ? `pages/${id}.svg` : null,
+      presentationKind: outline?.kind || stringAttr(node, 'kind'),
+      svg: stringAttr(node, 'svg'),
     }
   })
 
@@ -374,7 +386,9 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
   const packet = renderScenePacket({
     videoTitle: planning.project.title,
     scene: { id: scene.id, title: scene.title, index: scene.index, originScenes: scene.originScenes },
-    presentation: planning.basePages.filter(page => scene.originScenes.includes(page.scene)),
+    presentation: planning.basePages
+      .filter(page => scene.originScenes.includes(page.scene))
+      .map(({ scene: id, title, idea, narration, sourcePassages, wireframe }) => ({ scene: id, title, idea, narration, sourcePassages, wireframe })),
     script: scene.script,
     units: unitsFor(scene.originScenes),
     adjacent: neighbours.map(entry => ({
@@ -631,10 +645,11 @@ export const runFinished = async (runId: string, outcome: { status: string; exit
   const failed: PlanningRecord[] = []
   for (const record of records) {
     if (!ACTIVE_STATUSES.includes(record.status)) continue
+    // What happened to the run; the provider's own last word travels apart.
     const message =
       outcome.status === 'cancelled'
         ? 'The run was cancelled before it submitted a result.'
-        : outcome.error || `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) without submitting a result.`
+        : `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) without submitting a result.`
     const updated = await failRecord(record.id, { message, ...(outcome.error ? { providerStatus: outcome.error } : {}) })
     if (updated) failed.push(updated)
   }

@@ -258,6 +258,15 @@ describe('the scene treatment', () => {
     expect(problems).toMatch(/"pitch-master", which is not in the pinned bundle/)
     expect(problems).toMatch(/not in the accepted asset library/)
   })
+
+  it('notices an actor its moments move but never cast', () => {
+    const treatment = goodTreatment()
+    treatment.objects = treatment.objects.filter(object => object.entity !== 'request')
+    const report = validateTreatment(treatment, treatmentContext())
+    expect(report.problems).toEqual([])
+    expect(report.warnings.join('\n')).toMatch(/"request" moves in a moment but is not cast/)
+    expect(validateTreatment(goodTreatment(), treatmentContext()).warnings.join('\n')).not.toMatch(/not cast/)
+  })
 })
 
 describe('the capability catalog', () => {

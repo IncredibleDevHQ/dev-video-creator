@@ -224,6 +224,28 @@ const mcpPreHandler = async (
     }
     return true
   }
+  // GET /__capture — the same TEST HOOK gate: a PNG of the main window, for
+  // check scripts that record what the creator saw.
+  if (url.pathname === '/__capture' && request.method === 'GET' && process.env.STUDIO_ENABLE_TEST_HOOKS === '1') {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      response.writeHead(503, { 'content-type': 'text/plain' })
+      response.end('no main window')
+      return true
+    }
+    // An occluded or busy window can hold its next frame back; never hang.
+    const image = await Promise.race([
+      mainWindow.webContents.capturePage(),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 15_000)),
+    ])
+    if (!image) {
+      response.writeHead(504, { 'content-type': 'text/plain' })
+      response.end('the window did not paint a frame in time')
+      return true
+    }
+    response.writeHead(200, { 'content-type': 'image/png' })
+    response.end(image.toPNG())
+    return true
+  }
   if (url.pathname !== '/mcp' || request.method !== 'POST') return false
   const chunks: Buffer[] = []
   for await (const chunk of request) chunks.push(chunk as Buffer)

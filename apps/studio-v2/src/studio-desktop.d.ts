@@ -54,6 +54,8 @@ type StudioDesktopBridge = {
       brief: string | null
       explainer: { receipt: unknown | null; export: unknown | null; story?: { scenes?: Array<{ id?: string; file?: string }> } | null; assets?: unknown[]; briefs?: Array<{ file: string; entity: string }> } | null
       story: { outline: unknown | null; receipt: unknown | null } | null
+      // A planning run's packet and what it wrote (M0).
+      planning?: { packet: Record<string, string>; planning: Record<string, string> } | null
     }>
     onEvent: (listener: (payload: StudioDesktopHarnessEvent) => void) => () => void
   }
