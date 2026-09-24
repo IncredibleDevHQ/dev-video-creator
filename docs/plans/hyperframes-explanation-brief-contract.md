@@ -1,6 +1,6 @@
 # Explanation Brief: design derived from the Hyperframes consumers
 
-23 September 2026 · Proposed contract, not implemented or quality-accepted
+24 September 2026 · Proposed contract, not implemented or quality-accepted
 
 Companion to [the explainer pipeline proposal](hyperframes-explainer-pipeline.md). Research inspected upstream commit `99221c50a5e5927ca243454b4e4f02f9adf7cfc6`. This does not change the application's installed Hyperframes version or approve an upgrade. Work stays on `feat/hyperframes-markdown-mvp`; commit validated slices as Karthic `<Kartronics85@gmail.com>`.
 
@@ -22,6 +22,8 @@ Consequently, keep three progressively enriched artifacts:
 - **Executable composition plan and bundle:** resolve assets, rigs, cues, camera, layout, recipe dependencies and controls; construct and review.
 
 These are stages of one authoring record with versioned derivatives, not three unrelated sources of truth. The initial brief must not masquerade as the final scene treatment.
+
+The immediate [M0 milestone](hyperframes-explainer-pipeline.md#12-implementation-order-and-acceptance) starts with the retained wireframe deck, prepares the Explanation Brief after creating a video fork, then exposes a per-scene **Generate creative plan** action. Presentation and video modes both show the original presentation input and the selected video fork's brief/treatment with explicit revision and ownership. M0 stops after scene-treatment review. Subsequent construction has the product's local harness author coded Hyperframes compositions that play on the Studio canvas and render through the same pinned runtime/artifacts; this is not merely a source of animation advice for the old slide renderer.
 
 ## 2. What the upstream readers actually consume
 
@@ -175,11 +177,12 @@ These prove adapter constraints at this upstream revision. They do not prove tha
 
 ## 7. Implementation and validation
 
-Fold this work into H1–H3 of the [pipeline plan](hyperframes-explainer-pipeline.md):
+Deliver the brief and scene-treatment review first through M0 in the [pipeline plan](hyperframes-explainer-pipeline.md), then continue the executable packets, assets and rendering through H1–H3:
 
 1. Define a small versioned brief and durable references. Make source meaning/creator requirements distinguishable from creative suggestions. Keep scene boundaries and treatment optional.
 2. Implement the native brief adapter and explicit companion reader. Persist chosen workflow, reason and input revision; keep provider selection separate from creative routing.
 3. Implement skill-led scene/moment/channel planning and requirement coverage. Record proposed, accepted and unresolved decisions without promoting suggestions to creator mandates.
+   **M0 stops here:** persist and display the candidate treatment for review, with retry/revision support. Enforce the planning-only dispatch and tool contract; do not continue into acquisition or rendering because the upstream workflow normally does so.
 4. Implement recipe/dependency resolution and self-contained packets. Support several rules or explicitly adapted blueprint segments within one scene. Validate assets and property ownership at construction, not intake.
 5. Run the following cases through the product's local harness, using pinned skill/runtime inputs and clean runs. The development assistant must not hand-author the production video.
 

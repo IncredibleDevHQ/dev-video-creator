@@ -1,8 +1,8 @@
 # Rethinking the explainer pipeline around Hyperframes
 
-23 September 2026 · Architecture proposal · Explainers first
+24 September 2026 · Architecture proposal · Explainers first · Immediate milestone: creative-plan review
 
-Inspected repository: `feat/hyperframes-markdown-mvp`, HEAD `42806b5d`, including the existing uncommitted repairs. Installed Hyperframes core/player/producer: `0.7.106`. Upstream skills were inspected on 23 September; the latest inspected tree was `b73df3549eb52744fe54dac2728a2f9d0fb6a9c7`. This document proposes work; it does not establish implementation or output-quality acceptance.
+Initial repository inspection: `feat/hyperframes-markdown-mvp`, HEAD `42806b5d`, including the existing uncommitted repairs. Installed Hyperframes core/player/producer: `0.7.106`. The initial upstream inspection used `b73df3549eb52744fe54dac2728a2f9d0fb6a9c7`; the follow-up brief/packet audit pins `99221c50a5e5927ca243454b4e4f02f9adf7cfc6`. The 24 September revision adds the planning-only milestone and composition-engine integration contract. This document proposes work; it does not establish implementation or output-quality acceptance.
 
 Implementation stays on `feat/hyperframes-markdown-mvp`. Commit coherent, validated slices with author and committer `Karthic <Kartronics85@gmail.com>`, staging only the slice's files and preserving other work.
 
@@ -28,7 +28,7 @@ Existing labels and object IDs can be reconciled with the explanation record to 
 
 Hyperframes supplies production knowledge, reusable visual components and the composition runtime. Incredible supplies the explanation, durable project state, Quiver asset library, recording experience, local harness selection and editable authoring records.
 
-The video output is a composed Hyperframes scene with independently controlled objects and layers. A video scene is no longer required to be one page SVG played through the existing slide driver. Existing SVG/program scenes remain supported during migration.
+The video output is a coded Hyperframes composition with independently controlled objects and layers. The product's local harness writes the composition HTML, CSS and JavaScript using compatible Hyperframes conventions, recipes and adapters. The Hyperframes runtime plays that artifact on the Studio canvas, and the producer renders the same pinned artifact for export. Using the skills for advice alone does not satisfy this architecture. A video scene is no longer required to be one page SVG played through the existing slide driver. Existing SVG/program scenes remain supported during migration.
 
 This proposal supersedes earlier assumptions that the video must retain one scene per wireframe, use only the current scene-program action vocabulary, or fit every performance into an SVG-only contract. It also carries forward the user's later decisions: delivery is chosen per scene; users can select their local harness and see provider status. Earlier documents' compulsory whole-project delivery choice is superseded.
 
@@ -38,13 +38,16 @@ This proposal supersedes earlier assumptions that the video must retain one scen
 flowchart TD
     S[Retained source and creator narrative] --> P[Existing presentation outline]
     P --> W[Page-master wireframes and base notebook]
+    W --> F[Create revision-pinned video fork]
     S --> E[Source meaning and explanation brief]
-    W -->|Visual reference and lineage| B[Revision-pinned video brief]
+    F -->|Prepare after fork| E
+    F -->|Visual reference and lineage| B[Revision-pinned video brief]
     E -->|Content authority| B
     T[Saved theme and author preferences] --> B
     B --> R[Hyperframes workflow routing]
     R --> D[Skills plan moments and combine capabilities]
-    D --> A[Quiver or reusable assets and verified rigs]
+    D --> G[Review creative plans: first milestone stops here]
+    G -->|Later milestone| A[Quiver or reusable assets and verified rigs]
     A --> C[Final composition and camera design]
     C --> N[Narration or presenter take alignment]
     N --> H[Hyperframes scene construction]
@@ -52,11 +55,13 @@ flowchart TD
     V --> O[Saved video notebook and export]
 ```
 
-For a new source, the explanation record is derived directly from the retained source and authored narrative. It can run alongside presentation planning so it does not delay a presentation-only user. The existing presentation generator need not change its input schema in the first implementation.
+For the first milestone, produce the presentation wireframes first. They give the creator a useful storyboard and initial division of the material. After the creator forks the base into a video notebook, prepare its Explanation Brief from the retained source and authored narrative. Do not make presentation-only users wait for video planning. The existing presentation generator need not change its input schema.
 
 For an existing base, retrieve its pinned source snapshot, current narration and source references. Reconcile the explanation with intentional author edits. If only fragments are available, record that limitation and build only the supported explanation; never claim to have read the full article or silently re-fetch a changed page as the same revision.
 
 The base notebook retains the original presentation and links to the explanation revision. The video child pins both. One base page can support several shots; several pages can support one continuous scene. Explicit many-to-many origin references preserve edit and split/merge lineage. A source edit offers selective adoption into the child and never silently rewrites accepted video work.
+
+The initial review UI anchors one planning card to each inherited slide so the creator can understand the correspondence. That is a navigation convenience, not a final composition constraint. Skills can propose splitting, combining or resequencing material with explicit origin references and a reason. Review those proposals before changing the roster; never silently change the base deck.
 
 ## 3. What the explanation record contains
 
@@ -233,6 +238,20 @@ Hyperframes owns clip presence, media seeking and the render clock. Registered t
 
 Scene preview, proof capture and export consume one manifest, the same actual runtime and media readiness rules. The current composed-review path strips the runtime and recreates clip/media control; replace that divergence for the new route. Test the fully assembled view with its real captions and selected presenter take.
 
+### Hyperframes is the composition engine on the Studio canvas
+
+The application already imports `@hyperframes/player` and uses its playback/seek API. Extend that integration to load the new authored composition bundles. The installed player's documented entry point is `<hyperframes-player src="...">`, which hosts the HTML composition in an iframe. Here, "canvas" means Studio's visible composition stage; this does not require rasterizing everything into an HTML canvas element.
+
+The implementation boundary is:
+
+1. **Author with code.** The selected local harness uses the accepted treatment, skills, verified assets and measured audio to write the actual composition. SVG groups, HTML text, presenter video, masks, paths, camera transforms and supported adapters can participate in the same scene. Quiver SVGs are assets within that composition, rather than mandatory containers for the whole scene.
+2. **Publish a complete bundle.** Validate and version the entry HTML, scripts/styles, asset references, runtime requirements and editable bindings. Persist the bundle in MinIO and its revision/manifest in PostgreSQL. Materialize dependencies through the product's artifact service; preview must not depend on a provider's temporary URL or an abandoned harness directory.
+3. **Load it into the Studio stage.** Use the embedded Hyperframes player for playback and scrubbing. The host owns project navigation, editor controls and selections; the composition owns its internal drawing and animation. Scope generated code to the composition surface and expose an explicit host bridge for declared edits and diagnostics. Do not grant generated code access to provider credentials or broad project mutation APIs.
+4. **Share time and state.** The composition runtime coordinates registered animation timelines and media; a scene's local time maps explicitly to the notebook timeline. Camera/world layers, object-local animation, presenter and captions have deliberate ownership. A continuous mechanism can remain one composition across several moments; scene/shot count does not dictate one file per moment.
+5. **Review and export the artifact that was played.** Player preview, proof capture and producer export use the same pinned bundle, fonts, media, runtime version and time mapping. Verify forward and backward seeks, cold loads, object continuity, presenter/audio synchronization and export frames. Do not rebuild an approximation with a second slide renderer for review.
+
+Use the engine's supported composition, timing, camera recipes, media and adapter capabilities where they serve the explanation. Capability selection is motivated by the scene; using the engine fully does not mean adding every effect. The installed player supports embedding, but parity and advanced capabilities still need the H0/H3 integration proofs below. No application integration is claimed by this document.
+
 ## 9. Scene-level delivery and user experience
 
 The user starts with their source, narrative and theme. They do not have to choose a whole-project delivery mode. Each video scene can use the creator's recorded voice/presenter, generated narration, or an explicitly silent treatment when appropriate.
@@ -271,6 +290,49 @@ These are integration points, not a claim that all new types should be added to 
 
 ## 12. Implementation order and acceptance
 
+### M0: inspect the briefs and skill-led creative plans
+
+This is the immediate product milestone, before artwork generation, animation construction, narration generation or video export. It exercises the actual selected local harness and pinned Hyperframes creative-planning instructions through the visible product UI. A development-assistant-written plan is a fixture, not acceptance evidence.
+
+**Creator flow**
+
+1. Paste a blog and create the existing themed wireframe deck. Keep the generated presentation brief/outline and source references alongside each slide.
+2. Choose **Create video fork**. Save the child and pinned base/source/theme revisions first, then start a durable preparation run to derive the video Explanation Brief. Show progress; provider failure leaves a usable fork with a retry action.
+3. Inspect each inherited scene with **Presentation brief**, **Video explanation brief**, and **Creative plan** views. Both notebook modes expose these references: the base shows the original presentation input and a linked, read-only view of the selected child's video records; the video shows its pinned presentation input and its own video records. Multiple forks require an explicit fork selector. Before a video brief exists, show that state rather than synthesizing a fake saved brief. Edits to video records belong to the child.
+4. In the video notebook, choose **Generate creative plan** for a scene. Run the adapted owning workflow's planning stage with the video-wide brief/design context, that scene's explanation, adjacent scene summaries, existing decisions and the selected skill references. The owning workflow remains consistent across the video while each scene can combine different capabilities. Access from the base opens the corresponding child scene.
+5. Read the result, add direction, regenerate a candidate, compare revisions and mark a plan reviewed. Preserve the last reviewed revision while a new candidate runs or fails. Reviewing a plan does not automatically start asset or video generation.
+
+**What the creative-plan view must make understandable**
+
+| Visible output | Review question |
+| --- | --- |
+| Viewer question, takeaway and evidence | Is the planned explanation correct and worth showing? |
+| Narrative progression and proposed example | Does it develop the idea rather than recite the slide? Are invented demonstration values labelled? |
+| Ordered moments with overlapping channels | What is spoken, what visibly changes, why, and where should attention go? |
+| Object roles, proposed appearance and performance | Does the object do explanatory work beyond appearing as an icon or card? |
+| Presenter, text and camera treatment | When is each useful, what remains visible, and what stays still long enough to understand? |
+| Selected skills/recipes and their purpose, in expandable detail | Why is each capability suitable, and how do simultaneous actions share the scene? |
+| Asset/take requirements, continuity and unresolved choices | What must be acquired or decided before this plan can be executed? |
+| Optional roster-change proposals and source-slide links | Would a split, merge or resequence improve the explanation without losing its origin? |
+
+Use a readable moment table or annotated sequence for the primary view, with the raw saved artifacts available for inspection. Do not require an executable state machine, exact selectors, generated artwork or frame-accurate timing yet. Durations and speech cues remain estimates until audio/takes exist. Delivery can remain undecided per scene; a presenter suggestion does not mandate a recording or switch the voice source.
+
+**Implementation slices and stop boundary**
+
+- Add explicit fork-preparation and scene-planning routes, separate from the current full `Build Explainer` route in `main.ts` and `explainer-master`. Give planning its own completion contract: a persisted brief/treatment candidate with source coverage and open decisions. The current build's "built, reviewed and exported" success message is invalid here.
+- Vendor the required, pinned Hyperframes router/creative/workflow references and adapt the workflow to stop after planning. Expose only the planning artifact/read capabilities for this route; the application must not dispatch Quiver generation, TTS, recording, composition construction, finish or export on planning completion. Enforce this in dispatch/tool capabilities as well as instructions. A route without a restricted execution environment must not claim that arbitrary shell actions are technically prevented.
+- Reuse durable run/stage infrastructure with scene identity and input fingerprints. Persist canonical brief/treatment revisions in PostgreSQL and materialized artifacts in MinIO. Record provider/model, skill version, selected workflow and input revisions. Make queueing idempotent, survive refresh, and reject stale results after a source, brief, theme or direction edit.
+- Show preparing, ready to plan, planning, candidate ready, reviewed, stale and failed states, with an actionable provider error and last provider status. Retrying or switching provider retains the fork and existing accepted work. Scene failures must not discard successful scene plans.
+- Keep video-wide direction in every scene packet. Plan a few different scenes through the same product flow, including a mechanism, a text/comparison-led explanation and a possible presenter scene, rather than proving only that one token-bucket prompt succeeds.
+
+**M0 acceptance:** a fresh blog can reach inspectable, source-grounded creative plans through the visible UI and the selected local harness; both brief views have correct lineage; a scene can combine multiple skills with a coherent reason; refresh/reopen and retry preserve the result; stale output cannot overwrite current work; no downstream generation starts. Test with recorded run/artifact evidence and capture the UI states. Interpret the plans against the original wireframes and source, then revise the brief/router before expanding.
+
+M0 demonstrates whether the handoff produces convincing creative direction. It cannot prove smooth motion, speech synchronization, rendering parity or delightful final output. The next production-quality milestone is one scene authored as code by the product harness, played through Hyperframes on the Studio canvas and exported for comparison.
+
+### Subsequent engineering and production milestones
+
+M0 takes the brief and planning portions of H1/H2 first, with the minimum pinned capability catalog needed to avoid unsupported promises. The remaining H0 tests, asset work and construction follow the planning review; they are not prerequisites for simply viewing a creative plan.
+
 | Slice | Deliverable | Acceptance evidence |
 | --- | --- | --- |
 | H0: capability baseline | Tested/pinned runtime, selected skill dependencies and schema adapters | Known small fixtures demonstrate camera, Quiver part animation, clip/media seeking and required diagnostics; unsupported capabilities are explicit |
@@ -282,7 +344,7 @@ These are integration points, not a claim that all new types should be added to 
 
 Use one retained blog and a matched mechanism from it for the first new run. Keep a baseline export and source/theme/asset versions for comparison. Where testing recipe quality, hold narration and artwork fixed; where testing the new explanation planner, allow planned changes and record them so the comparison is interpretable.
 
-The development assistant supplies the software and tests. The product's selected local harness must generate the production artifacts from a clean run. A hand-authored demo by the development assistant is only an engineering fixture and cannot satisfy H2–H5 production acceptance.
+The development assistant supplies the software and tests. The product's selected local harness must generate the production artifacts from a clean run. A hand-authored demo by the development assistant is only an engineering fixture and cannot satisfy M0 or H2–H5 production acceptance.
 
 Acceptance includes source accuracy, visible before/action/after states, meaningful internal object changes, purposeful camera, readable holds, narrative alignment, correct presenter/audio composition and identical reviewed/exported inputs. Inspect playback with sound and the key frames; runtime success and static screenshots alone cannot establish delightful output. Human presenter acceptance requires real footage and remains unproven until exercised.
 
@@ -290,6 +352,6 @@ The prior [repair re-review](../reviews/2026-09-21-motion-repair-rereview.md) re
 
 ## 13. Boundary of this proposal
 
-The first implementation proves one excellent scene and the same scene with human presentation. It does not add pitch mode, rebuild the presentation designer, implement an arbitrary physics engine, or promise quality from skill installation alone. Expansion follows evidence from product-generated output.
+The first implementation stops at inspectable explanation briefs and creative plans for the forked video's scenes. After that review, prove one excellent coded Hyperframes scene on the Studio canvas and in export, then the same scene with human presentation. This proposal does not add pitch mode, rebuild the presentation designer, implement an arbitrary physics engine, or promise quality from skill installation alone. Expansion follows evidence from product-generated output.
 
 The central change is the handoff: reduce source meaning into an explanation brief; let Hyperframes' skills plan how to tell it, combining multiple recipes across moments and layers within each scene; then construct and verify the concrete composition. The wireframe stays a useful, separately saved reference throughout.
