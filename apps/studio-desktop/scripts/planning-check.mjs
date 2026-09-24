@@ -261,6 +261,21 @@ try {
   check(planned.status === 'candidate' && (planned.report?.constructionRisks || []).length > 0, 'the plan is a candidate, with its unproven recipe reported')
   await shot('02-candidate')
 
+  // Direction being typed survives the workspace re-rendering around it.
+  const kept = await evaluate(`(async () => {
+    const box = document.getElementById('planning-scene-direction')
+    box.focus(); box.value = 'Half-typed direction'; box.dispatchEvent(new Event('input'))
+    document.querySelectorAll('.planning-tab')[1].click()
+    await new Promise(r => setTimeout(r, 200))
+    document.querySelectorAll('.planning-tab')[2].click()
+    await new Promise(r => setTimeout(r, 200))
+    const after = document.getElementById('planning-scene-direction')
+    const result = { value: after.value, focused: document.activeElement === after }
+    after.value = ''; after.dispatchEvent(new Event('input'))
+    return result
+  })()`)
+  check(kept.value === 'Half-typed direction' && kept.focused, 'direction being typed survives a re-render, focus included')
+
   // Direction changed while a plan runs: the late result never becomes current.
   await setMode({ mode: 'plan', delayMs: 6000 })
   const queued = (await post(`/api/planning/${videoId}/scenes/${scenes[0].id}`)).body.record

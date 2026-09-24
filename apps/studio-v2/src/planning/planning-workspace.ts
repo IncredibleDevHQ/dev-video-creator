@@ -117,6 +117,9 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   let unsubscribe: (() => void) | null = null
   const progress = new Map<string, string>()
   let busy = false
+  // Direction typed but not yet saved, by subject ('' is the whole video).
+  // The workspace re-renders as runs report; a draft outlives those renders.
+  const drafts = new Map<string, string>()
 
   const preferredHarness = () => {
     let preferred = ''
@@ -231,6 +234,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       const scene = overview?.scenes.find(entry => entry.id === selectedScene)
       if (sceneBox && scene && sceneBox.value !== scene.direction) await saveInputs(selectedScene, { direction: sceneBox.value })
       if (videoBox && overview && videoBox.value !== overview.videoDirection) await saveInputs('', { direction: videoBox.value })
+      drafts.delete(selectedScene)
+      drafts.delete('')
       const { record, reused } = await host.fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/scenes/${encodeURIComponent(selectedScene)}`, { method: 'POST' })
       if (!reused || record.status === 'queued') await startRun(record, 'Plan Scene')
       else host.toast('This plan is already being made from the same inputs')
@@ -261,7 +266,11 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   }
 
   // ——— Rendering ———
+  const SCROLLERS = ['.planning-nav', '.planning-stage', '.planning-inspector', '.planning-sequence']
   const render = (error = '') => {
+    const scrolled = SCROLLERS.map(selector => root.querySelector<HTMLElement>(selector)?.scrollTop || 0)
+    const focused = document.activeElement instanceof HTMLTextAreaElement && root.contains(document.activeElement) ? document.activeElement : null
+    const caret = focused ? { id: focused.id, start: focused.selectionStart, end: focused.selectionEnd } : null
     root.replaceChildren()
     root.append(renderHeader(error))
     if (!overview) return
@@ -270,6 +279,16 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       renderSequence(),
       renderFooter(),
     )
+    SCROLLERS.forEach((selector, index) => {
+      const element = root.querySelector<HTMLElement>(selector)
+      if (element && scrolled[index]) element.scrollTop = scrolled[index]
+    })
+    root.querySelector('.planning-scene.is-selected')?.scrollIntoView({ block: 'nearest' })
+    if (caret) {
+      const box = root.querySelector<HTMLTextAreaElement>(`#${caret.id}`)
+      box?.focus()
+      box?.setSelectionRange(caret.start, caret.end)
+    }
   }
 
   const renderProgress = (recordId: string) => {
@@ -388,6 +407,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         compareWith = ''
         moment = ''
         showRaw = false
+        const stage = root.querySelector<HTMLElement>('.planning-stage')
+        if (stage) stage.scrollTop = 0
         render()
       })
       list.append(item)
@@ -411,6 +432,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       button.addEventListener('click', () => {
         tab = id
         showRaw = false
+        const stage = root.querySelector<HTMLElement>('.planning-stage')
+        if (stage) stage.scrollTop = 0
         render()
       })
       tabs.append(button)
@@ -727,9 +750,9 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       return footer
     }
     const videoBox = h('textarea', { id: 'planning-video-direction', rows: '2', placeholder: 'Direction for the whole video (optional)' })
-    videoBox.value = overview!.videoDirection
+    videoBox.value = drafts.get('') ?? overview!.videoDirection
     const sceneBox = h('textarea', { id: 'planning-scene-direction', rows: '2', placeholder: 'Direction for this scene (optional) — what should change in the next candidate?' })
-    sceneBox.value = scene.direction
+    sceneBox.value = drafts.get(scene.id) ?? scene.direction
     const delivery = h('select', { 'aria-label': 'Delivery for this scene' })
     for (const [value, label] of Object.entries(DELIVERY_LABELS)) {
       const option = h('option', { value, text: label })
@@ -741,9 +764,15 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       host.toast('Delivery saved. Plans made before it are now stale.')
       await load()
     })
-    for (const [box, subject] of [[videoBox, ''], [sceneBox, scene.id]] as const) {
+    for (const [box, subject, saved] of [[videoBox, '', overview!.videoDirection], [sceneBox, scene.id, scene.direction]] as const) {
+      box.addEventListener('input', () => (box.value === saved ? drafts.delete(subject) : drafts.set(subject, box.value)))
       box.addEventListener('change', async () => {
-        await saveInputs(subject, { direction: box.value }).catch(error => host.toast(error instanceof Error ? error.message : 'Could not save the direction'))
+        try {
+          await saveInputs(subject, { direction: box.value })
+          drafts.delete(subject)
+        } catch (error) {
+          host.toast(error instanceof Error ? error.message : 'Could not save the direction')
+        }
         await load()
       })
     }
@@ -789,6 +818,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const current = host.current()
     readOnly = !current.derivedFrom?.notebook
     progress.clear()
+    drafts.clear()
     showRaw = false
     if (readOnly) {
       forks = await host.forksOf(current.id)
