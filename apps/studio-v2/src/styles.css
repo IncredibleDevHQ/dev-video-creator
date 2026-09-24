@@ -2158,6 +2158,9 @@ button.se-state:hover { filter: brightness(.97); }
 .planning-header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .planning-field { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 11px; font-weight: 600; }
 .planning-harness { min-height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font-size: 12px; }
+.planning-model { max-width: 230px; }
+.planning-model-custom { min-height: 30px; width: 190px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.planning-model-custom:focus { outline: 2px solid var(--brand); outline-offset: 0; }
 .planning-close { font-size: 20px; }
 .planning-body { min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 330px; }
 .planning-column { min-height: 0; overflow: auto; padding: 14px 16px; }

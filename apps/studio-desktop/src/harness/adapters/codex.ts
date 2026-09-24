@@ -15,6 +15,7 @@ import type {
 } from '../types'
 import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
+import { codexModels } from '../models'
 
 const writeCodexHome = async (run: HarnessRun, context: HarnessContext) => {
   const home = join(run.projectDir, '.codex')
@@ -68,11 +69,14 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
 export const createCodexAdapter = (context: HarnessContext): HarnessAdapter => ({
   id: 'codex',
   available: () => probeVersion('codex'),
+  models: codexModels,
   async run(run, onEvent, signal) {
     const codexHome = await writeCodexHome(run, context)
+    // A resumed thread keeps the model it started with.
+    const model = typeof run.inputs.model === 'string' && run.inputs.model ? ['--model', run.inputs.model] : []
     const args = run.resumeId
       ? ['exec', 'resume', run.resumeId, '--json', '--sandbox', 'workspace-write', String(run.inputs.task || '')]
-      : ['exec', '--json', '--sandbox', 'workspace-write', String(run.inputs.task || '')]
+      : ['exec', '--json', '--sandbox', 'workspace-write', ...model, String(run.inputs.task || '')]
     const state: { resumeId?: string } = {}
     const { exitCode } = await spawnJsonLines({
       command: 'codex',

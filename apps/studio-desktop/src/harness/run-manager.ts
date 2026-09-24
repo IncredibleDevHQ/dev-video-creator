@@ -110,7 +110,7 @@ export class RunManager {
       skill: record.summary.skill,
       harness: record.summary.adapter,
       harnessVersion: '1',
-      model: typeof record.inputs.model === 'string' ? record.inputs.model : undefined,
+      model: record.summary.model,
       startedAt: record.summary.startedAt,
       resumeId: record.resumeId,
       status: record.summary.status,
@@ -255,6 +255,7 @@ export class RunManager {
         adapter: options.adapter.id,
         projectDir,
         status: 'running',
+        ...(typeof inputs.model === 'string' && inputs.model ? { model: inputs.model } : {}),
         startedAt: new Date().toISOString(),
       },
       controller: new AbortController(),
@@ -283,6 +284,22 @@ export class RunManager {
     }
     void this.attempt(record)
     return { ...record.summary }
+  }
+
+  // The harness said which model its session runs: the run and a planning
+  // record keep that, not only the model that was asked for.
+  private async sessionModel(record: RunRecord, model: string) {
+    if (record.summary.model === model) return
+    record.summary.model = model
+    await this.writeRunFile(record).catch(() => {})
+    await this.persistRun(record).catch(() => {})
+    if (record.planningRecord) {
+      await this.worker(`/api/planning/records/${encodeURIComponent(record.planningRecord)}/run`, {
+        runId: record.summary.id,
+        adapter: record.summary.adapter,
+        model,
+      }).catch(error => log('planning record kept the requested model:', error instanceof Error ? error.message : error))
+    }
   }
 
   private async worker(path: string, body?: unknown) {
@@ -331,6 +348,7 @@ export class RunManager {
         },
         event => {
           if (event.type === 'error' && event.error) record.lastError = event.error
+          if (event.type === 'session' && event.model) void this.sessionModel(record, event.model)
           this.emit(runId, event)
         },
         record.controller.signal,

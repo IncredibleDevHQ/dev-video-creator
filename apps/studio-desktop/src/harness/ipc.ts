@@ -44,6 +44,7 @@ export const registerHarnessIpc = (
           ok: false,
           reason: String(error),
         }))),
+        ...(adapter.models ? { models: await adapter.models().catch(() => undefined) } : {}),
       })),
     ),
   )

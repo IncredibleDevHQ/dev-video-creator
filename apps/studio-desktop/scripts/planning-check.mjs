@@ -49,11 +49,13 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
 const args = process.argv.slice(2)
+if (args[0] === '--version') { console.log('9.9.9 (Claude Code stub)'); process.exit(0) }
 const flag = name => { const at = args.indexOf(name); return at >= 0 ? args[at + 1] : '' }
 const control = JSON.parse(fs.readFileSync(${JSON.stringify(controlPath)}, 'utf8'))
 const emit = value => process.stdout.write(JSON.stringify(value) + '\n')
-emit({ type: 'system', subtype: 'init', session_id: 'stub-plan' })
-const report = { allowedTools: flag('--allowedTools'), mode: control.mode }
+// Like the real CLI, the session says which model it runs.
+emit({ type: 'system', subtype: 'init', session_id: 'stub-plan', model: flag('--model') || 'stub-cli-default' })
+const report = { allowedTools: flag('--allowedTools'), model: flag('--model'), mode: control.mode }
 const finish = code => {
   fs.mkdirSync('planning', { recursive: true })
   fs.writeFileSync(path.join('planning', 'stub-report.json'), JSON.stringify(report, null, 2))
@@ -250,15 +252,27 @@ try {
   check(briefReport.numberedSource === true && briefReport.packet.includes('packet/SOURCE.md'), 'the packet carries the retained source, paragraph-numbered')
   check(briefReport.invented?.accepted === false && /not a passage of the retained source/.test(JSON.stringify(briefReport.invented.problems)), 'an invented quotation is refused')
   check(briefReady.status === 'ready' && briefReady.adapter === 'claude-code', 'the grounded brief lands, with its harness recorded')
+  check(briefReport.model === 'claude-opus-5-5' && briefReady.model === 'claude-opus-5-5', `Claude Code plans on the latest Opus by default, and the record keeps the model the session reported (${briefReport.model} / ${briefReady.model})`)
   await shot('01-brief-ready')
 
   // A scene plan lands as a candidate.
   const scenes = (await overview(videoId)).scenes
   check(scenes.every(scene => scene.view.state === 'ready-to-plan'), 'every scene is ready to plan')
   await evaluate(`document.querySelector('.planning-scene')?.click(); true`)
+  // The creator picks another model for this plan from the header.
+  const picked = await evaluate(`(() => {
+    const select = document.querySelector('.planning-model')
+    const options = [...select.options].map(option => option.value)
+    select.value = 'claude-fable-5-1'
+    select.dispatchEvent(new Event('change'))
+    return { options, now: document.querySelector('.planning-model')?.value }
+  })()`)
+  check(picked.options.includes('') && picked.options.includes('claude-opus-5-5') && picked.now === 'claude-fable-5-1', `the header offers the CLI default and Claude's models (${picked.options.join(', ')})`)
   check(await press('Generate creative plan'), 'Generate creative plan is offered')
   const planned = await until('a candidate', async () => (await overview(videoId)).scenes[0].view.current, 90_000)
   check(planned.status === 'candidate' && (planned.report?.constructionRisks || []).length > 0, 'the plan is a candidate, with its unproven recipe reported')
+  check(planned.model === 'claude-fable-5-1', `the plan ran on the model picked for it (${planned.model})`)
+  await evaluate(`(() => { const select = document.querySelector('.planning-model'); select.value = 'claude-opus-5-5'; select.dispatchEvent(new Event('change')); return true })()`)
   await shot('02-candidate')
 
   // Direction being typed survives the workspace re-rendering around it.

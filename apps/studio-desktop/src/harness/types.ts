@@ -17,8 +17,10 @@ export type GateRequest = {
 }
 
 export interface HarnessEvent {
-  type: 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done'
+  // 'session': the harness started its session and says which model it runs.
+  type: 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done' | 'session'
   ts: number
+  model?: string
   text?: string
   tool?: string
   file?: string
@@ -30,9 +32,15 @@ export interface HarnessEvent {
   status?: RunStatus
 }
 
+// The models a harness can run, for the creator to choose from. `default`
+// is what the CLI runs when no model is named (null when it cannot be known).
+export type HarnessModelOption = { id: string; label: string; unavailable?: string }
+export type HarnessModels = { default: string | null; options: HarnessModelOption[]; source: string }
+
 export interface HarnessAdapter {
   id: 'claude-code' | 'codex' | 'kimi'
   available(): Promise<{ ok: boolean; version?: string; reason?: string }>
+  models?(): Promise<HarnessModels>
   run(
     run: HarnessRun,
     onEvent: (e: HarnessEvent) => void,
@@ -69,6 +77,8 @@ export type RunSummary = {
   projectDir: string
   status: RunStatus
   resumeId?: string
+  // The model the run asked for, then the one its harness reported running.
+  model?: string
   startedAt: string
   finishedAt?: string
 }

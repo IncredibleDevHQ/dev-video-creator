@@ -40,7 +40,7 @@ export type PlanningOverviewV1 = {
   records: PlanningRecord[]
 }
 
-type Harness = { id: string; ok: boolean; version?: string; reason?: string }
+type Harness = { id: string; ok: boolean; version?: string; reason?: string; models?: StudioDesktopHarnessModels }
 type Fork = { id: string; title: string; createdAt?: string }
 
 export type PlanningWorkspaceHost = {
@@ -55,7 +55,11 @@ export type PlanningWorkspaceHost = {
 }
 
 const HARNESS_LABELS: Record<string, string> = { kimi: 'Kimi', 'claude-code': 'Claude Code', codex: 'Codex' }
-const HARNESS_MODELS: Record<string, string | undefined> = { kimi: 'kimi-code/k3' }
+// A planning run asks its harness for a model by name. Claude Code plans on
+// the latest Opus unless the creator picks another; Kimi and Codex start
+// from their own configured default.
+const RECOMMENDED_MODELS: Record<string, string> = { 'claude-code': 'claude-opus-5-5' }
+const CUSTOM_MODEL = '__custom__'
 const CHANNEL_LABELS: Record<TreatmentChannel, string> = {
   narration: 'Narration',
   objects: 'Objects',
@@ -66,6 +70,21 @@ const CHANNEL_LABELS: Record<TreatmentChannel, string> = {
 }
 const DELIVERY_LABELS: Record<string, string> = { '': 'Delivery undecided', human: 'My voice / presenter', generated: 'Generated narration', silent: 'Silent' }
 const PREFERRED_HARNESS_KEY = 'studio.planningHarness'
+const MODEL_KEY = (harness: string) => `studio.planningModel.${harness}`
+const remembered = (key: string) => {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+const remember = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // not remembered; the choice still applies now
+  }
+}
 
 const h = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -136,6 +155,17 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     return online.find(entry => entry.id === preferred)?.id || online[0]?.id || ''
   }
 
+  // The model a run on this harness asks for; '' leaves it to the CLI.
+  const modelFor = (harness: string) => {
+    const entry = harnesses.find(candidate => candidate.id === harness)
+    const usable = (id: string) => !entry?.models?.options.find(option => option.id === id)?.unavailable
+    const chosen = remembered(MODEL_KEY(harness))
+    if (chosen === CUSTOM_MODEL) return ''
+    if (chosen !== null) return usable(chosen) ? chosen : ''
+    const recommended = RECOMMENDED_MODELS[harness] || entry?.models?.default || ''
+    return recommended && usable(recommended) ? recommended : ''
+  }
+
   const recordsFor = (kind: PlanningRecord['kind'], subject: string) =>
     (overview?.records || []).filter(record => record.kind === kind && record.subject === subject).sort((a, b) => b.revision - a.revision)
 
@@ -169,7 +199,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     unsubscribe = bridge.harness.onEvent(({ runId, event }) => {
       const owner = (overview?.records || []).find(record => record.runId === runId)
       if (!owner) return
-      const text = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
+      const text = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '') || (event.type === 'session' && event.model ? `${HARNESS_LABELS[owner.adapter || ''] || 'The harness'} started on ${event.model}` : '')
       if (text) progress.set(owner.id, text.replace(/\s+/g, ' ').slice(0, 220))
       if (event.type === 'done') void load()
       else renderProgress(owner.id)
@@ -183,6 +213,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       return
     }
     const adapter = preferredHarness()
+    const model = modelFor(adapter)
     if (!adapter) {
       const message = 'No local harness is available — install Kimi, Claude Code or Codex, then retry.'
       await host.fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, providerStatus: 'no harness online' }) }).catch(() => {})
@@ -195,7 +226,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         skill: 'video-planner',
         route,
         projectId,
-        inputs: { planning: { recordId: record.id }, ...(HARNESS_MODELS[adapter] ? { model: HARNESS_MODELS[adapter] } : {}), effort: 'high', autonomous: true },
+        inputs: { planning: { recordId: record.id }, ...(model ? { model } : {}), effort: 'high', autonomous: true },
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -326,11 +357,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     }
     if (!harnesses.length) harnessSelect.append(h('option', { text: 'No local harness found' }))
     harnessSelect.addEventListener('change', () => {
-      try {
-        localStorage.setItem(PREFERRED_HARNESS_KEY, harnessSelect.value)
-      } catch {
-        // not remembered; the choice still applies now
-      }
+      remember(PREFERRED_HARNESS_KEY, harnessSelect.value)
+      render()
     })
     const actions = h('div', { class: 'planning-header-actions' })
     if (readOnly) {
@@ -362,7 +390,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         if (brief?.current && planned && !window.confirm('Prepare the brief again? Creative plans made from the current brief will read as stale; they stay available for reference.')) return
         void prepareBrief()
       })
-      actions.append(h('label', { class: 'planning-field' }, 'Harness ', harnessSelect), prepare)
+      actions.append(h('label', { class: 'planning-field' }, 'Harness ', harnessSelect), ...renderModelPicker(preferred), prepare)
       if (running && briefRecord) {
         const stopButton = h('button', { type: 'button', class: 'button ghost', text: 'Stop' })
         stopButton.addEventListener('click', () => void stop(briefRecord))
@@ -387,6 +415,39 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       ),
       actions,
     )
+  }
+
+  // The model for the chosen harness: its known models, the CLI's own
+  // default, or any model id the creator types.
+  const renderModelPicker = (harness: string) => {
+    if (!harness) return []
+    const entry = harnesses.find(candidate => candidate.id === harness)
+    const models = entry?.models
+    const current = modelFor(harness)
+    const custom = remembered(MODEL_KEY(harness)) === CUSTOM_MODEL
+    const select = h('select', { class: 'planning-harness planning-model', 'aria-label': `Model for ${HARNESS_LABELS[harness] || harness}`, title: models?.source || '' })
+    const cliDefault = h('option', { value: '', text: `CLI default${models?.default ? ` (${models.default})` : ''}` })
+    select.append(cliDefault)
+    for (const option of models?.options || []) {
+      const element = h('option', { value: option.id, text: option.unavailable ? `${option.label} — ${option.unavailable}` : option.label, ...(option.unavailable ? { disabled: true } : {}) })
+      select.append(element)
+    }
+    if (current && !(models?.options || []).some(option => option.id === current)) select.append(h('option', { value: current, text: current }))
+    select.append(h('option', { value: CUSTOM_MODEL, text: 'Other model id…' }))
+    select.value = custom ? CUSTOM_MODEL : current
+    select.addEventListener('change', () => {
+      remember(MODEL_KEY(harness), select.value)
+      render()
+    })
+    const field = h('label', { class: 'planning-field' }, 'Model ', select)
+    if (!custom) return [field]
+    const input = h('input', { class: 'planning-model-custom', type: 'text', placeholder: 'model id, e.g. claude-opus-5-5', 'aria-label': 'Model id' })
+    input.addEventListener('change', () => {
+      const id = input.value.trim()
+      remember(MODEL_KEY(harness), id)
+      render()
+    })
+    return [field, input]
   }
 
   const renderScenes = () => {

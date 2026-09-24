@@ -17,6 +17,7 @@ import type {
 import { homedir } from 'node:os'
 import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
+import { kimiModels } from '../models'
 
 // Kimi reads its settings from KIMI_CODE_HOME. A drawing run wants the
 // model thinking hard, but the effort lives in the user's own config and
@@ -109,6 +110,7 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
 export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
   id: 'kimi',
   available: () => probeVersion('kimi'),
+  models: kimiModels,
   async run(run, onEvent, signal) {
     const mcpConfig = await writeMcpConfig(run, context)
     // Skills discovery reads the project's installed copy when present
