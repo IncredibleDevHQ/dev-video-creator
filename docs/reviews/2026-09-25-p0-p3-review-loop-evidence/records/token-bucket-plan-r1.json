@@ -1,0 +1,675 @@
+{
+	"id": "plan-treatment-bc18e0ff-0b92-4b72-b71b-88d54ceb4e27",
+	"kind": "treatment",
+	"error": null,
+	"model": "claude-opus-5-5",
+	"inputs": {
+		"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+		"schema": 2,
+		"script": "Under the hood, Stripe uses the token bucket algorithm.\n\nEvery user gets a bucket; each request takes a token,\n\nand fresh tokens drip back in slowly.\n\nIf requests come faster than the drip, the bucket runs empty.\n\nIf the bucket is empty, the request is rejected.\n\nThe buckets live centrally, in Redis.",
+		"briefId": "plan-brief-9f16a47b-74c9-4116-a77b-1f824df18a53",
+		"delivery": null,
+		"themeRef": "generated-1790281981587-0:bd8b60cb2ac65aae",
+		"direction": "",
+		"bundleHash": "9e430540653ef12c",
+		"originScenes": ["c4ac823b-132e-439c-9d27-7d9dcd9e1f42"],
+		"videoDirection": "",
+		"packetObjectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-packet/7125de43-2aea-4e8c-a284-d838cfb7eff2.json",
+		"briefFingerprint": "db08f0eb2d112151"
+	},
+	"report": {
+		"warnings": [
+			"continuity.outgoing proposes a seam with video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s06 that its plan has not promised — it stays provisional until both sides agree"
+		],
+		"constructionRisks": [
+			"rule \"card-morph-anchor\" is catalogued but not yet proven in the installed runtime",
+			"rule \"svg-path-draw\" is catalogued but not yet proven in the installed runtime",
+			"adapted recipe \"token-rides-request\" (A token detaches from the bucket and travels locked to the admitted request along the lane; the request and its token share one tween so the pair reads as one spend) must be built and verified at construction",
+			"rule \"stat-bars-and-fills\" is catalogued but not yet proven in the installed runtime",
+			"adapted recipe \"token-drip\" (The inlet's drop swells over a deliberately long hold, then falls and becomes a token in the empty slot; the long swell is what makes the drip read as slow) must be built and verified at construction",
+			"adapted recipe \"token-rides-request\" (The same request-with-token pairing as m2, repeated three times at a tighter cadence) must be built and verified at construction",
+			"adapted recipe \"refuse-recoil\" (Request 5 decelerates into the inlet, holds a beat with nothing to take, and is pushed back along the lane; no token moves) must be built and verified at construction",
+			"rule \"spring-pop-entrance\" is catalogued but not yet proven in the installed runtime",
+			"adapted recipe \"token-drip\" (The half-formed drop from m4 finishes and falls, refilling one token after the refusal) must be built and verified at construction",
+			"blueprint \"zoom-out-workspace-reveal\" is catalogued but not yet proven in the installed runtime",
+			"rule \"viewport-change\" is catalogued but not yet proven in the installed runtime"
+		]
+	},
+	"run_id": "run-mug0h0lg-e228400e",
+	"status": "candidate",
+	"adapter": "claude-code",
+	"content": {
+		"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+		"units": ["token-bucket"],
+		"ledger": {
+			"final": 1,
+			"events": [
+				{
+					"what": "request 1 is admitted and takes one token",
+					"after": 2,
+					"amount": 1,
+					"change": "consume",
+					"moment": "m2"
+				},
+				{
+					"what": "a fresh token drips back in",
+					"after": 3,
+					"amount": 1,
+					"change": "add",
+					"moment": "m3"
+				},
+				{
+					"what": "request 2 is admitted and takes one token",
+					"after": 2,
+					"amount": 1,
+					"change": "consume",
+					"moment": "m4"
+				},
+				{
+					"what": "request 3 is admitted and takes one token",
+					"after": 1,
+					"amount": 1,
+					"change": "consume",
+					"moment": "m4"
+				},
+				{
+					"what": "request 4 is admitted and takes the last token",
+					"after": 0,
+					"amount": 1,
+					"change": "consume",
+					"moment": "m4"
+				},
+				{
+					"what": "request 5 finds the bucket empty and is rejected with 429",
+					"after": 0,
+					"needs": 1,
+					"amount": 0,
+					"change": "refuse",
+					"moment": "m5"
+				},
+				{
+					"what": "the next token drips back in",
+					"after": 1,
+					"amount": 1,
+					"change": "add",
+					"moment": "m5"
+				}
+			],
+			"initial": 3,
+			"capacity": 3,
+			"quantity": "tokens in this user's bucket"
+		},
+		"skills": [
+			{
+				"why": "The owning workflow; this plan is its Plan stage for one scene, stopped at Plan by the product",
+				"skill": "general-video",
+				"references": ["skills/general-video/SKILL.md"]
+			},
+			{
+				"why": "The props come from the source's own metaphor (bucket, token, drip), and each moment has a verb and a reason; rhythm is hold–hold–hold–burst–hold–pull-back",
+				"skill": "hyperframes-creative",
+				"references": [
+					"skills/hyperframes-creative/references/story-spine.md",
+					"skills/hyperframes-creative/references/beat-direction.md"
+				]
+			},
+			{
+				"why": "Each moment is cued to its narration line, with nothing shown before the line reaches it, and the scene ends on a held read; the windows are moments in one continuous scene, not cuts",
+				"skill": "faceless-explainer",
+				"references": ["skills/faceless-explainer/references/visual-design.md"]
+			},
+			{
+				"why": "One dominant motif (a token leaving with a request), with attention directed to one thing per moment",
+				"skill": "motion-graphics",
+				"references": [
+					"skills/motion-graphics/agents/director.md",
+					"skills/motion-graphics/references/motion-vocabulary.md"
+				]
+			},
+			{
+				"why": "Choosing the scene shape (zoom-out-workspace-reveal) and the rules for the morph, lane, level, tag and camera",
+				"skill": "hyperframes-animation",
+				"references": [
+					"skills/hyperframes-animation/rules-index.md",
+					"skills/hyperframes-animation/blueprints-index.md",
+					"skills/hyperframes-animation/techniques.md"
+				]
+			}
+		],
+		"moments": [
+			{
+				"id": "m1",
+				"text": {
+					"role": "term",
+					"content": "token bucket — one per user"
+				},
+				"audio": null,
+				"title": "Under the hood",
+				"camera": {
+					"reason": "The object changes identity in place; a camera move here would compete with the morph and spend the scene's only move too early",
+					"subject": "the limiter becoming the bucket",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["request-rate-limiter", "token-bucket"],
+					"change": "Request rate limiter card at centre → its outer card and 'N requests per second' caption fall away and the same shell, level and three dots resolve as the token bucket, full with three tokens"
+				},
+				"purpose": "The viewer needs to see that the bucket is not a new topic but the inside of the request rate limiter they already know; that is what connects enforcement to the per-user cap",
+				"recipes": [
+					{
+						"id": "card-morph-anchor",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The limiter's card and caption morph away around the shared bucket body, revealing the token bucket underneath at the same position and scale",
+						"controls": [
+							"request-rate-limiter card surface",
+							"token-bucket reveal"
+						]
+					}
+				],
+				"attention": "the bucket body that carries over from the limiter",
+				"narration": {
+					"job": "Name the algorithm and frame the scene as a look inside the limiter",
+					"guide": "Under the hood, Stripe uses the token bucket algorithm."
+				},
+				"presenter": {
+					"reason": "If the scene is presented, a small corner chip could carry this opening line; the diagram needs the frame from m2 on",
+					"visibility": "undecided"
+				},
+				"observation": "The request rate limiter's body — its shell, its level, its three dots — stays exactly where it is while its label changes to 'token bucket · one per user'",
+				"evidenceRefs": ["ev-bucket", "ev-per-user-bucket"],
+				"estimateSeconds": 3.5
+			},
+			{
+				"id": "m2",
+				"text": {
+					"role": "label",
+					"content": "one user"
+				},
+				"audio": {
+					"cue": "a soft tick as the token leaves",
+					"reason": "Gives each spend the same audible unit, so the later burst is heard as three quick spends"
+				},
+				"title": "One request, one token",
+				"camera": {
+					"reason": "The ledger must be countable; a still frame lets the viewer count the tokens",
+					"subject": "the bucket with the user left and the API right",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["user", "request", "token-bucket", "api"],
+					"change": "Bucket full (3) → request 1 arrives from the user, one token lifts out, lit in the accent, and rides with the request out towards the API → bucket holds 2, its level drops one step"
+				},
+				"purpose": "Admission has to read as spending: the viewer should see one token leave with one request, not a request simply passing a gate",
+				"recipes": [
+					{
+						"id": "svg-path-draw",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "Draw the lane from the user through the bucket's inlet to the API, so every request follows one visible route",
+						"controls": ["request lane"]
+					},
+					{
+						"id": "token-rides-request",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "A token detaches from the bucket and travels locked to the admitted request along the lane; the request and its token share one tween so the pair reads as one spend",
+						"controls": ["request 1 position", "token 3 position"]
+					},
+					{
+						"id": "stat-bars-and-fills",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The bucket level steps down by one token's height in the same beat the token leaves",
+						"controls": ["bucket-level"]
+					}
+				],
+				"attention": "the token leaving with request 1",
+				"narration": {
+					"job": "State the per-user bucket and the cost of a request",
+					"guide": "Every user gets a bucket; each request takes a token,"
+				},
+				"presenter": {
+					"reason": "Delivery is open; the demonstration uses the whole frame",
+					"visibility": "undecided"
+				},
+				"observation": "Request 1 flies in from the user on the left, touches the bucket's inlet, and leaves to the right carrying one token; the bucket now holds two",
+				"evidenceRefs": ["ev-per-user-bucket", "cr-drip"],
+				"estimateSeconds": 4
+			},
+			{
+				"id": "m3",
+				"text": {
+					"role": "label",
+					"content": "drip"
+				},
+				"audio": null,
+				"title": "The slow drip",
+				"camera": {
+					"reason": "The pace of the drip is the information; a steady frame lets it be judged",
+					"subject": "the bucket and its inlet",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["token-drip", "token-bucket"],
+					"change": "Bucket at 2 → the inlet swells slowly, a drop falls and settles as a token → bucket at 3, level back up"
+				},
+				"purpose": "The refill must read as slow and steady before the burst, so the viewer can later see arrivals outpacing it",
+				"recipes": [
+					{
+						"id": "token-drip",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "The inlet's drop swells over a deliberately long hold, then falls and becomes a token in the empty slot; the long swell is what makes the drip read as slow",
+						"controls": ["bucket-inlet", "dripped token"]
+					},
+					{
+						"id": "stat-bars-and-fills",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The level rises one step as the token lands",
+						"controls": ["bucket-level"]
+					}
+				],
+				"attention": "the drop forming and falling",
+				"narration": {
+					"job": "Introduce the refill and its slow pace",
+					"guide": "and fresh tokens drip back in slowly."
+				},
+				"presenter": {
+					"reason": "Delivery is open",
+					"visibility": "undecided"
+				},
+				"observation": "A drop forms at the inlet above the bucket, falls, and becomes a token; the bucket is full again",
+				"evidenceRefs": ["ev-bucket", "cr-drip"],
+				"estimateSeconds": 3
+			},
+			{
+				"id": "m4",
+				"text": null,
+				"audio": {
+					"cue": "three quick ticks, one per token",
+					"reason": "The same unit as m2 heard three times fast makes the pace difference audible"
+				},
+				"title": "Faster than the drip",
+				"camera": {
+					"reason": "The contrast between the fast arrivals and the unmoved drip only reads in a steady frame",
+					"subject": "the bucket draining",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["request", "token-bucket", "token-drip"],
+					"change": "Bucket at 3 → requests 2, 3 and 4 arrive in quick succession, each taking one token → bucket at 0, level at the floor, the inlet's next drop still only half formed"
+				},
+				"purpose": "This is the cause of the rejection: the viewer must see arrivals outpacing the refill, not just an empty bucket",
+				"recipes": [
+					{
+						"id": "token-rides-request",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "The same request-with-token pairing as m2, repeated three times at a tighter cadence",
+						"controls": ["requests 2–4 positions", "tokens 1–3 positions"]
+					},
+					{
+						"id": "stat-bars-and-fills",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The level steps down three times to the floor",
+						"controls": ["bucket-level"]
+					}
+				],
+				"attention": "the tokens leaving one after another",
+				"narration": {
+					"job": "Give the condition under which the bucket empties",
+					"guide": "If requests come faster than the drip, the bucket runs empty."
+				},
+				"presenter": {
+					"reason": "Delivery is open",
+					"visibility": "undecided"
+				},
+				"observation": "Three requests arrive close together and each leaves with a token; meanwhile the next drop at the inlet has only begun to swell. The bucket is empty",
+				"evidenceRefs": ["cr-empty", "ev-bucket"],
+				"estimateSeconds": 4
+			},
+			{
+				"id": "m5",
+				"text": {
+					"role": "label",
+					"content": "429 Too Many Requests"
+				},
+				"audio": {
+					"cue": "a dull knock as the request is turned back",
+					"reason": "Marks the refusal as different in kind from the spend ticks"
+				},
+				"title": "Rejected — then a token returns",
+				"camera": {
+					"reason": "The refusal is the scene's payoff and needs a clean, unmoving read",
+					"subject": "the empty bucket and the rejected request",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["request", "token-bucket", "rejection", "token-drip"],
+					"change": "Bucket at 0 → request 5 arrives, takes nothing, recoils back along the lane lit in the accent with a 429 tag → after the line, a drop falls and the bucket holds 1"
+				},
+				"purpose": "The viewer should understand why this request fails: there is no token to spend. The returning token shows that the limit is a pace, which is the per-user cap from earlier",
+				"recipes": [
+					{
+						"id": "refuse-recoil",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "Request 5 decelerates into the inlet, holds a beat with nothing to take, and is pushed back along the lane; no token moves",
+						"controls": ["request 5 position"]
+					},
+					{
+						"id": "spring-pop-entrance",
+						"catalog": "rule",
+						"channel": "text",
+						"purpose": "The 429 tag springs onto the rejected request as it recoils",
+						"controls": ["429 tag"]
+					},
+					{
+						"id": "token-drip",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "The half-formed drop from m4 finishes and falls, refilling one token after the refusal",
+						"controls": ["bucket-inlet", "dripped token"]
+					}
+				],
+				"attention": "request 5 being turned back",
+				"narration": {
+					"job": "State the rejection rule",
+					"guide": "If the bucket is empty, the request is rejected."
+				},
+				"presenter": {
+					"reason": "Delivery is open",
+					"visibility": "undecided"
+				},
+				"observation": "Request 5 reaches the inlet, finds nothing to take and is knocked back towards the user with a 429 tag; a moment later a drop lands and the bucket holds one token again",
+				"evidenceRefs": ["cr-empty", "ev-bucket", "cr-429"],
+				"estimateSeconds": 4
+			},
+			{
+				"id": "m6",
+				"text": {
+					"role": "label",
+					"content": "Redis — every user's bucket"
+				},
+				"audio": null,
+				"title": "Every bucket, in Redis",
+				"camera": {
+					"reason": "The widening of scope is the information: one bucket per user, all in one central place. It is the scene's only camera move",
+					"subject": "from this user's bucket to the Redis store that holds every bucket",
+					"treatment": "one continuous decelerating pull-back, then lock"
+				},
+				"objects": {
+					"actors": ["token-bucket", "redis"],
+					"change": "One bucket filling the frame → the same bucket, with its one token, sitting among other users' buckets inside a Redis store panel"
+				},
+				"purpose": "The algorithm has to be grounded in Stripe's implementation: the bucket the viewer just watched is one of many kept centrally",
+				"recipes": [
+					{
+						"id": "zoom-out-workspace-reveal",
+						"catalog": "blueprint",
+						"channel": "camera",
+						"purpose": "Adapted scene shape: the close-up bucket work of m2–m5 is the tight detail, and this pull-back reveals the containing whole — the Redis store; kept signature move: one continuous decelerating zoom-out, no zoom-in anywhere",
+						"controls": ["world"]
+					},
+					{
+						"id": "viewport-change",
+						"catalog": "rule",
+						"channel": "camera",
+						"purpose": "The pull-back is a single transform of the world wrapper that holds the bucket, the other buckets and the Redis panel, all pre-placed from the start of the scene",
+						"controls": ["world"]
+					}
+				],
+				"attention": "the Redis store holding the buckets",
+				"narration": {
+					"job": "Place the buckets in Redis",
+					"guide": "The buckets live centrally, in Redis."
+				},
+				"presenter": {
+					"reason": "If presented, the locked wide frame leaves room for a chip at the close",
+					"visibility": "undecided"
+				},
+				"observation": "The camera pulls back and the bucket shrinks into a row of many buckets at different levels, all inside one Redis store; the frame locks",
+				"evidenceRefs": ["ev-redis", "cr-redis", "ev-bucket"],
+				"estimateSeconds": 3.5
+			}
+		],
+		"objects": [
+			{
+				"role": "The object the viewer already knows; its body is revealed as the token bucket",
+				"asset": {
+					"ref": "cast-be8d129feaa5af3270de",
+					"reason": "Its shell, level and three dots mirror the bucket's parts, so reusing it unchanged lets the viewer recognise the limiter before it turns into the bucket",
+					"status": "reuse"
+				},
+				"entity": "request-rate-limiter",
+				"appearance": "The limiter card as drawn earlier in the video: shell, level and three dots with its 'N requests per second' caption",
+				"performance": "Appears only at the start of m1; its card and caption morph away around the shared bucket body"
+			},
+			{
+				"role": "This user's store of request allowance; the ledger lives here",
+				"asset": {
+					"ref": "cast-9fa5e36e9ae63d7d1885",
+					"reason": "Its three tokens are already separate parts to spend, but the page colours the whole bucket in the accent; recolouring the shell and resting tokens frees the accent for the token being taken and the rejected request",
+					"status": "adapt"
+				},
+				"entity": "token-bucket",
+				"appearance": "The page's bucket: a tapered shell, a level and three separate round tokens. The shell and level in the theme's primary; tokens at rest in a softened tint; the token being taken lit in the accent",
+				"performance": "Tokens leave one at a time with admitted requests and return one at a time from the drip; the level steps with the count; it shrinks into the Redis row in m6"
+			},
+			{
+				"role": "The slow refill",
+				"asset": {
+					"ref": "cast-e402bea443366ccd2f0d",
+					"reason": "The page's own inlet drop already sits where the refill enters, so the drip reads as coming into this bucket",
+					"status": "reuse"
+				},
+				"entity": "token-drip",
+				"appearance": "The page's small drop at the bucket's inlet, above the bucket",
+				"performance": "Swells slowly, falls and becomes a token (m3, m5); visibly still forming during the burst (m4)"
+			},
+			{
+				"role": "The page's 'Token drip' card icon (refresh arrows)",
+				"asset": {
+					"ref": "cast-60c74074dcdfea389d8f",
+					"reason": "The drip is shown as a falling drop at the inlet; a refresh icon would restate it as a label and suggest an instant reset rather than a slow refill",
+					"status": "omit"
+				},
+				"entity": "token-drip-icon",
+				"appearance": "Not shown",
+				"performance": "None"
+			},
+			{
+				"role": "The unit of traffic; each one is a spend attempt",
+				"asset": {
+					"ref": "cast-7e5a78d981cbff2953de",
+					"reason": "Keeps the request's single visual identity, so the viewer knows every plane is a request",
+					"status": "reuse"
+				},
+				"entity": "request",
+				"appearance": "The paper-plane request icon used for requests across the video",
+				"performance": "Five instances fly along one lane from the user through the inlet; four leave with a token, the fifth recoils"
+			},
+			{
+				"role": "The one user whose bucket this is; the source of the requests",
+				"asset": {
+					"ref": "cast-4e8f7fd4476d20bcfb21",
+					"reason": "Ties the bucket to one user, which is what makes the limit per user",
+					"status": "reuse"
+				},
+				"entity": "user",
+				"appearance": "The user-requests icon from earlier in the video, at the left end of the lane",
+				"performance": "Sends each request; receives request 5 back"
+			},
+			{
+				"role": "Where admitted requests go",
+				"asset": {
+					"reason": "A plain labelled end point is enough to show that an admitted request goes through",
+					"status": "native"
+				},
+				"entity": "api",
+				"appearance": "A small labelled 'API' end mark at the right end of the lane",
+				"performance": "Receives requests 1–4; nothing else"
+			},
+			{
+				"role": "The status the refused request carries back",
+				"asset": {
+					"ref": "cast-c637a420e8125820e51c",
+					"reason": "The same 429 the viewer met at the per-user cap links the empty bucket back to that limiter",
+					"status": "reuse"
+				},
+				"entity": "rejection",
+				"appearance": "The HTTP 429 tag from the request rate limiter scene, in the accent",
+				"performance": "Springs onto request 5 as it recoils"
+			},
+			{
+				"role": "The page's 'Empty bucket' card icon",
+				"asset": {
+					"ref": "cast-a670248a6ef73148138d",
+					"reason": "The bucket itself is visibly empty and the 429 tag carries the refusal; a separate prohibition icon in an off-theme red would duplicate both",
+					"status": "omit"
+				},
+				"entity": "empty-bucket-icon",
+				"appearance": "Not shown",
+				"performance": "None"
+			},
+			{
+				"role": "The central store that holds every user's bucket",
+				"asset": {
+					"ref": "cast-a1847d19888736efd5ec",
+					"reason": "The page's Redis icon identifies the store; the other buckets are further instances of the bucket asset at small scale, so the viewer sees the same kind of object repeated",
+					"status": "reuse"
+				},
+				"entity": "redis",
+				"appearance": "A surface panel carrying the Redis store icon and a row of other users' buckets at different illustrative levels, drawn in the same silhouette as the hero bucket",
+				"performance": "Pre-placed outside the close-up; revealed by the m6 pull-back; still"
+			}
+		],
+		"coverage": [
+			{
+				"need": "Make the link between one request and one token perceptible",
+				"unit": "token-bucket",
+				"moments": ["m2", "m4"]
+			},
+			{
+				"need": "Show the before, the draining and the after: arrivals faster than the drip empty the bucket, then a request is rejected",
+				"unit": "token-bucket",
+				"moments": ["m3", "m4", "m5"]
+			},
+			{
+				"need": "Connect the empty bucket to the per-user cap from earlier",
+				"unit": "token-bucket",
+				"moments": ["m1", "m5"]
+			},
+			{
+				"need": "Say that the buckets live centrally, in Redis",
+				"unit": "token-bucket",
+				"moments": ["m6"]
+			}
+		],
+		"delivery": {
+			"note": "The worked example is mostly a full-frame diagram, so a voice-over with a hidden presenter, or a corner chip at the opening and close, would both work",
+			"voice": "undecided"
+		},
+		"question": "How is a per-user limit actually enforced?",
+		"takeaway": "Each request spends one token from its user's bucket; tokens drip back slowly, so a user who asks faster than the drip empties the bucket and the next request is rejected. Every bucket lives centrally, in Redis.",
+		"continuity": {
+			"exit": "Wide, locked frame: the Redis store holding many per-user buckets, this user's bucket among them with one token",
+			"entry": "The request rate limiter card at centre, full; no requests in flight",
+			"incoming": {
+				"kind": "self-contained",
+				"note": "Opens on the request rate limiter's own mark, so the scene does not depend on how the load-shedder scene before it ends"
+			},
+			"outgoing": {
+				"kind": "proposed",
+				"note": "The safe-launch scene could open on this wide Redis frame, so 'fail open if Redis breaks' starts from the store the viewer has just seen",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s06"
+			}
+		},
+		"treatments": {
+			"text": "Few words on screen: the term 'token bucket — one per user', the labels 'one user', 'drip', 'API', the 429 tag and the Redis label. Narration never becomes on-screen sentences. Body type in Inter; the 429 status in the mono fallback.",
+			"camera": "Held for m1–m5 so the token count can be read; one continuous decelerating pull-back in m6 reveals Redis and then locks. No other camera movement.",
+			"presenter": "Undecided. The worked example needs the whole frame from m2 to m5; if the creator chooses a presenter, a small corner chip at m1 and m6 suits the diagram, and a hidden presenter suits it just as well."
+		},
+		"unresolved": [
+			"Presenter visibility and voice source depend on the delivery choice for this scene",
+			"The narration lines are drafts under the draft wording policy; the moment split follows them line by line and should be re-cut if they change",
+			"The bucket size (3), the drip pace, the five requests and the other buckets' levels are illustrative; the source gives no values. Whether a small 'illustrative' note appears on screen is for the creator to decide",
+			"The brief leaves open whether this scene should follow the request rate limiter directly; the m1 reveal from the limiter's mark is designed to work in either position, so no resequence is proposed",
+			"The page colours rejection in a red that is not in the theme; this plan uses the accent for the rejected request instead",
+			"Durations are estimates until audio or a take exists"
+		],
+		"development": "Open on the request rate limiter the viewer already knows and reveal that its body is a token bucket: 'under the hood' becomes a literal relabelling of the same object, not a new diagram. Then run one user's bucket as a worked example in close-up with the camera held still, so every change is on the objects: one request leaves with one token, one token drips back, a quick burst of three requests spends the bucket faster than the next drop can form, and a fifth request is refused with the 429 the viewer met earlier. A token drips back after the refusal, so the viewer sees the limit is a pace, not a ban. Only then does the single camera move of the scene happen: one decelerating pull-back reveals this bucket as one of many sitting inside a Redis store. Shape: the zoom-out-workspace-reveal blueprint, adapted — tight on the detail, micro-action in close-up, one pull-back to the containing whole, the frame locks.",
+		"evidenceRefs": [
+			"ev-bucket",
+			"ev-per-user-bucket",
+			"ev-redis",
+			"cr-drip",
+			"cr-empty",
+			"cr-redis",
+			"cr-429"
+		],
+		"originScenes": ["c4ac823b-132e-439c-9d27-7d9dcd9e1f42"],
+		"requirements": {
+			"takes": [],
+			"assets": [
+				"A recolour of the token bucket (cast-9fa5e36e9ae63d7d1885): shell and level in primary, resting tokens in a softened tint, accent reserved for the token in motion",
+				"Small-scale instances of the bucket for the other users' buckets in the Redis panel, at illustrative levels"
+			],
+			"decisions": [
+				"Delivery for this scene: voice source and presenter visibility",
+				"Whether the video adds an error colour to the theme, or the accent carries the rejection as planned"
+			]
+		},
+		"demonstration": {
+			"text": "One user's bucket holds three tokens. Request 1 is admitted and spends a token; one token drips back. Requests 2–4 arrive faster than the drip and spend all three. Request 5 finds the bucket empty and is rejected with 429. A token then drips back in. The bucket is revealed as one of many per-user buckets in Redis.",
+			"values": [
+				{
+					"basis": "illustrative",
+					"value": "bucket size of 3 tokens"
+				},
+				{
+					"basis": "illustrative",
+					"value": "one token per drip, slower than the burst of requests"
+				},
+				{
+					"basis": "illustrative",
+					"value": "5 requests from one user"
+				},
+				{
+					"basis": "illustrative",
+					"value": "the token levels of the other users' buckets in Redis"
+				},
+				{
+					"basis": "creator",
+					"value": "HTTP 429 for the rejected request"
+				}
+			]
+		},
+		"schemaVersion": 1,
+		"rosterProposal": null
+	},
+	"subject": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+	"approval": null,
+	"revision": 1,
+	"workflow": "general-video",
+	"artifacts": {
+		"assetId": "921edffb-ce62-430c-8876-b9d9809bc7fe",
+		"objectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-treatment/921edffb-ce62-430c-8876-b9d9809bc7fe.json"
+	},
+	"direction": "",
+	"created_at": "2026-09-24T20:55:32.318451+00:00",
+	"project_id": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+	"updated_at": "2026-09-24T20:59:33.306346+00:00",
+	"fingerprint": "c4e39ecb588edeb5",
+	"reviewed_at": null,
+	"skill_bundle": {
+		"hash": "9e430540653ef12c",
+		"name": "video-planner",
+		"version": "0.1.1",
+		"upstreamCommit": "99221c50a5e5927ca243454b4e4f02f9adf7cfc6"
+	},
+	"reported_model": "claude-opus-5-5"
+}

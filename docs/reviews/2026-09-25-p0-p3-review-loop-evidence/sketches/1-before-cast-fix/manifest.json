@@ -1,0 +1,212 @@
+{
+	"version": 1,
+	"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+	"plan": {
+		"record": "plan-treatment-50664953-a9e3-4b93-b289-7a37f3871be5",
+		"revision": 2
+	},
+	"composition": {
+		"id": "sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r2",
+		"width": 1920,
+		"height": 1080,
+		"fps": 30,
+		"duration": 24
+	},
+	"runtime": { "hyperframes": "0.7.106" },
+	"moments": [
+		{
+			"id": "m1",
+			"title": "Open the limiter",
+			"start": 0,
+			"end": 4,
+			"estimated": true
+		},
+		{
+			"id": "m2",
+			"title": "One request, one token",
+			"start": 4,
+			"end": 7,
+			"estimated": true
+		},
+		{
+			"id": "m3",
+			"title": "A burst drains it",
+			"start": 7,
+			"end": 10.5,
+			"estimated": true
+		},
+		{
+			"id": "m4",
+			"title": "Refused",
+			"start": 10.5,
+			"end": 13.5,
+			"estimated": true
+		},
+		{
+			"id": "m5",
+			"title": "Hold on the refill",
+			"start": 13.5,
+			"end": 16.5,
+			"estimated": true
+		},
+		{
+			"id": "m6",
+			"title": "Name the rate",
+			"start": 16.5,
+			"end": 20,
+			"estimated": true
+		},
+		{
+			"id": "m7",
+			"title": "Every bucket, in Redis",
+			"start": 20,
+			"end": 24,
+			"estimated": true
+		}
+	],
+	"layers": [
+		{
+			"id": "grid",
+			"kind": "background",
+			"label": "Theme ground with a faint world grid (scales with the camera, so the pull-back reads)",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "camera",
+			"kind": "camera",
+			"label": "Hold on the bucket m1–m6; one decelerating pull-back (viewport-change, zoom-out-workspace-reveal adapted) to the Redis store in m7; no zoom-in",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "token-bucket",
+			"kind": "object",
+			"label": "Token bucket: page bucket recoloured to primary, three tokens re-rigged as separate slots, level follows the count",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": {
+				"libraryKey": "cast-9fa5e36e9ae63d7d1885",
+				"path": "assets/token-bucket.svg"
+			}
+		},
+		{
+			"id": "token-hand-off",
+			"kind": "object",
+			"label": "Token hand-off (adapted): the taken token lights in accent, lifts to the request and rides with it to the API",
+			"moments": ["m2", "m3", "m6"]
+		},
+		{
+			"id": "drip",
+			"kind": "object",
+			"label": "Inlet drop recoloured to primary: swells (still forming through the burst), falls and becomes a token",
+			"moments": ["m3", "m4", "m5", "m6", "m7"],
+			"asset": {
+				"libraryKey": "cast-e402bea443366ccd2f0d",
+				"path": "assets/drip.svg"
+			}
+		},
+		{
+			"id": "request",
+			"kind": "object",
+			"label": "Requests A–E: page paper-plane icon on one fixed route (user → over the rim → API); D stops at the rim and recoils in accent",
+			"moments": ["m2", "m3", "m4", "m6"],
+			"asset": {
+				"libraryKey": "cast-7e5a78d981cbff2953de",
+				"path": "assets/request.svg"
+			}
+		},
+		{
+			"id": "request-rate-limiter",
+			"kind": "object",
+			"label": "Request rate limiter glyph that grows into the bucket (card-morph-anchor)",
+			"moments": ["m1"],
+			"asset": { "libraryKey": "cast-be8d129feaa5af3270de" },
+			"placeholder": "Native outline stand-in: the library artwork is not in this packet"
+		},
+		{
+			"id": "user",
+			"kind": "object",
+			"label": "User chip docked at the bucket's left rim (spring-pop-entrance)",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6"],
+			"asset": { "libraryKey": "cast-4e8f7fd4476d20bcfb21" },
+			"placeholder": "Native circle-and-silhouette stand-in: the library artwork is not in this packet"
+		},
+		{
+			"id": "http-429",
+			"kind": "object",
+			"label": "429 Too Many Requests badge in accent, popped onto request D",
+			"moments": ["m4"],
+			"asset": { "libraryKey": "cast-c637a420e8125820e51c" },
+			"placeholder": "Native pill stand-in: the library 429 mark is not in this packet"
+		},
+		{
+			"id": "api",
+			"kind": "object",
+			"label": "API endpoint (native), receives A, B, C and E",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6"]
+		},
+		{
+			"id": "redis",
+			"kind": "object",
+			"label": "Redis store panel headed by the page's Redis icon; icon pulses once",
+			"moments": ["m7"],
+			"asset": {
+				"libraryKey": "cast-a1847d19888736efd5ec",
+				"path": "assets/redis-store.svg"
+			}
+		},
+		{
+			"id": "other-buckets",
+			"kind": "object",
+			"label": "Other users' buckets (native, dimmed, illustrative levels 1 / 3 / 0 / 2) settling into the row",
+			"moments": ["m7"]
+		},
+		{
+			"id": "term",
+			"kind": "text",
+			"label": "token bucket · one per user",
+			"moments": ["m1"]
+		},
+		{
+			"id": "token-count",
+			"kind": "text",
+			"label": "Mono 'tokens: n' readout with a rolling digit (vertical-spring-ticker): 3 → 2 → 1 → 0 → 1 → 2 → 1 → 2",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "refill-label",
+			"kind": "text",
+			"label": "refill: N tokens / second (N set apart in white)",
+			"moments": ["m6", "m7"]
+		},
+		{
+			"id": "redis-label",
+			"kind": "text",
+			"label": "Redis · every user's bucket",
+			"moments": ["m7"]
+		},
+		{
+			"id": "annotation",
+			"kind": "text",
+			"label": "Sketch annotation strip: moment, camera, estimate and the narration guide. Sketch chrome only, not scene text",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"placeholder": "Stands in for narration: no voice exists yet"
+		},
+		{
+			"id": "presenter",
+			"kind": "presenter",
+			"label": "Presenter (visibility undecided): possible short appearance at the open and beside the wide Redis view",
+			"moments": ["m1", "m7"],
+			"placeholder": "Stand-in: framed silhouette, no take recorded"
+		}
+	],
+	"provisional": [
+		"Timing is estimated from the plan's per-moment estimates (about 24 s): no voice or take exists yet",
+		"Presenter is a stand-in: visibility is undecided and no take is recorded; shown only where the plan suggests (m1, m7)",
+		"The request rate limiter glyph, the user chip and the 429 badge are native placeholders: their library artwork (cast-be8d129feaa5af3270de, cast-4e8f7fd4476d20bcfb21, cast-c637a420e8125820e51c) is not in this packet",
+		"The token bucket and drip are rough adaptations of the page artwork (recoloured to primary, re-rigged here by hand); the finished rig is a construction task",
+		"The request route is approximated with two straight x/y legs; the plan's MotionPath technique is still to be built and verified",
+		"token-hand-off and refusal-recoil are adapted moves sketched by hand; no catalogued recipe covers them",
+		"Capacity 3, requests A–E, the drop count and the other buckets' levels are illustrative; N is left symbolic as in the source",
+		"The bottom annotation strip and its narration guide are sketch chrome, not on-screen text for the scene",
+		"The inlet stub above the bucket is a native shape the plan does not name; it only gives the drops a visible source"
+	]
+}

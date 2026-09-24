@@ -1,0 +1,1219 @@
+{
+	"harness": "claude-code",
+	"model": "claude-opus-5-5",
+	"sourceUrl": "https://stripe.com/blog/rate-limiters",
+	"target": "2:00",
+	"persistence": "postgres",
+	"startedAt": "2026-09-24T20:32:38.601Z",
+	"stages": [
+		{
+			"name": "Launch and choose the planning harness",
+			"startedAt": "2026-09-24T20:32:38.602Z",
+			"seconds": 9,
+			"harnessVersion": "2.1.280 (Claude Code) · /Users/think/Library/Application Support/Claude/claude-code/2.1.280/claude.app/Contents/MacOS/claude"
+		},
+		{
+			"name": "Read the article",
+			"startedAt": "2026-09-24T20:32:47.401Z",
+			"seconds": 16,
+			"title": "Scaling your API with rate limiters",
+			"meta": "stripe.com · 1963 words · 8 headings · type: sohne-var · source revision src-e261ebcb35a05969"
+		},
+		{
+			"name": "Plan the story",
+			"startedAt": "2026-09-24T20:33:03.804Z",
+			"seconds": 162,
+			"scenes": [
+				"Scaling your API with rate limiters",
+				"Why limit at all",
+				"Limit each user",
+				"Shed load for the whole system",
+				"The token bucket",
+				"Launch limiters safely",
+				"Start with one"
+			]
+		},
+		{
+			"name": "Design the pages",
+			"startedAt": "2026-09-24T20:35:45.763Z",
+			"seconds": 980,
+			"baseId": "9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652",
+			"phases": [
+				"drafts:0/7",
+				"designing:0/7",
+				"designing:1/7",
+				"designing:2/7",
+				"designing:3/7",
+				"designing:4/7",
+				"designing:5/7",
+				"designing:6/7",
+				"checking:7/7",
+				"ready:7/7"
+			]
+		},
+		{
+			"name": "Make the video and prepare its brief",
+			"startedAt": "2026-09-24T20:52:05.897Z",
+			"seconds": 202,
+			"videoId": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+			"brief": {
+				"id": "plan-brief-9f16a47b-74c9-4116-a77b-1f824df18a53",
+				"adapter": "claude-code",
+				"model": "claude-opus-5-5",
+				"reportedModel": "claude-opus-5-5",
+				"units": 10,
+				"entities": 10,
+				"evidence": 58
+			}
+		},
+		{
+			"name": "The visual cast",
+			"startedAt": "2026-09-24T20:55:27.809Z",
+			"seconds": 3,
+			"status": "ready",
+			"entries": 30,
+			"verified": 30,
+			"byPage": {
+				"Scaling your API with rate limiters": ["capacity"],
+				"Why limit at all": [
+					"More capacity",
+					"More capacity",
+					"More capacity",
+					"1",
+					"2",
+					"3",
+					"4"
+				],
+				"Limit each user": [
+					"User",
+					"Request rate limiter",
+					"Request rate limiter",
+					"in flight ≤ 20",
+					"Expensive",
+					"HTTP 429"
+				],
+				"Shed load for the whole system": [
+					"Incoming",
+					"Critical",
+					"Non-critical",
+					"Fleet usage shedder",
+					"Worker shedder",
+					"Worker capacity"
+				],
+				"The token bucket": [
+					"Incoming request",
+					"Token bucket",
+					"Token bucket",
+					"Token drip",
+					"Empty bucket",
+					"Redis store"
+				],
+				"Launch limiters safely": ["01", "02", "03", "04"],
+				"Start with one": []
+			}
+		},
+		{
+			"name": "Plan two scenes",
+			"startedAt": "2026-09-24T20:55:30.567Z",
+			"seconds": 249,
+			"a1": {
+				"id": "plan-treatment-bc18e0ff-0b92-4b72-b71b-88d54ceb4e27",
+				"revision": 1,
+				"adapter": "claude-code",
+				"model": "claude-opus-5-5",
+				"reportedModel": "claude-opus-5-5",
+				"question": "How is a per-user limit actually enforced?",
+				"moments": [
+					"Under the hood",
+					"One request, one token",
+					"The slow drip",
+					"Faster than the drip",
+					"Rejected — then a token returns",
+					"Every bucket, in Redis"
+				],
+				"assets": [
+					"request-rate-limiter: reuse",
+					"token-bucket: adapt",
+					"token-drip: reuse",
+					"token-drip-icon: omit",
+					"request: reuse",
+					"user: reuse",
+					"api: native",
+					"rejection: reuse",
+					"empty-bucket-icon: omit",
+					"redis: reuse"
+				]
+			},
+			"b1": {
+				"id": "plan-treatment-b51ea45e-1276-41b8-a7f3-dcbe5652765e",
+				"revision": 1,
+				"question": "Why does an API need protecting from traffic at all?",
+				"moments": [
+					"The spike",
+					"Where the spike comes from",
+					"Down for everyone",
+					"Four kinds of limiters"
+				]
+			}
+		},
+		{
+			"name": "Review the plan in the notebook",
+			"startedAt": "2026-09-24T20:59:39.931Z",
+			"seconds": 3,
+			"state": {
+				"expanded": true,
+				"strip": [
+					"Plan: Candidate r1",
+					"Recording: guide ready · no take yet",
+					"Output: not produced"
+				],
+				"thumbs": 6,
+				"question": "How is a per-user limit actually enforced?",
+				"cast": [
+					{
+						"entity": "request-rate-limiter",
+						"image": true
+					},
+					{
+						"entity": "token-bucket",
+						"image": true
+					},
+					{
+						"entity": "token-drip",
+						"image": true
+					},
+					{
+						"entity": "token-drip-icon",
+						"image": true
+					},
+					{
+						"entity": "request",
+						"image": true
+					},
+					{
+						"entity": "user",
+						"image": true
+					},
+					{
+						"entity": "api",
+						"image": false
+					},
+					{
+						"entity": "rejection",
+						"image": true
+					},
+					{
+						"entity": "empty-bucket-icon",
+						"image": true
+					},
+					{
+						"entity": "redis",
+						"image": true
+					}
+				],
+				"moments": [
+					"Under the hood",
+					"One request, one token",
+					"The slow drip",
+					"Faster than the drip",
+					"Rejected — then a token returns",
+					"Every bucket, in Redis"
+				],
+				"approve": "Approve plan",
+				"revisions": ["r1 candidate"],
+				"provenance": "Plan r1 · candidate · claude-code claude-opus-5-5"
+			}
+		},
+		{
+			"name": "Revise with creator direction",
+			"startedAt": "2026-09-24T20:59:42.535Z",
+			"seconds": 336,
+			"revision": 2,
+			"differences": 0
+		},
+		{
+			"name": "Preview the plan on the stage",
+			"startedAt": "2026-09-24T21:05:18.429Z",
+			"seconds": 409,
+			"duration": 24,
+			"moments": 7
+		},
+		{
+			"name": "Approve one scene",
+			"startedAt": "2026-09-24T21:12:06.929Z",
+			"seconds": 9,
+			"approval": {
+				"at": "2026-09-24T21:12:07.066Z",
+				"castId": "visual-cast:9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652:a3fde129894498da:v1",
+				"briefId": "plan-brief-9f16a47b-74c9-4116-a77b-1f824df18a53",
+				"fingerprint": "3a310a4977a3f877",
+				"briefFingerprint": "db08f0eb2d112151"
+			}
+		},
+		{
+			"name": "Restart and return",
+			"startedAt": "2026-09-24T21:12:15.863Z",
+			"seconds": 12,
+			"strips": {
+				"a": [
+					"Plan: Approved r2",
+					"Recording: guide ready · no take yet",
+					"Preview: ready",
+					"Output: not produced",
+					"adapt",
+					"adapt",
+					"reuse",
+					"reuse",
+					"reuse",
+					"adapt",
+					"native",
+					"native",
+					"native",
+					"reuse",
+					"native",
+					"omit",
+					"omit",
+					"presenter undecided",
+					"text: token bucket · one per user",
+					"camera hold",
+					"presenter hidden",
+					"text: tokens: 2",
+					"camera hold",
+					"presenter hidden",
+					"text: tokens: 0",
+					"camera hold",
+					"presenter hidden",
+					"text: 429 Too Many Requests",
+					"camera hold",
+					"presenter hidden",
+					"camera hold",
+					"presenter hidden",
+					"text: refill: N tokens / second",
+					"camera hold",
+					"presenter undecided",
+					"text: Redis · every user's bucket",
+					"camera pull-back"
+				],
+				"b": [
+					"Plan: Candidate r1",
+					"Recording: guide ready · no take yet",
+					"Output: not produced"
+				]
+			}
+		},
+		{
+			"name": "Nothing downstream started",
+			"startedAt": "2026-09-24T21:12:27.963Z",
+			"seconds": 0,
+			"runs": 7
+		}
+	],
+	"checks": [
+		{
+			"ok": true,
+			"label": "the durable harness choice is claude-code · claude-opus-5-5 ({\"harness\":\"claude-code\",\"model\":\"claude-opus-5-5\"})",
+			"at": "2026-09-24T20:32:44.434Z"
+		},
+		{
+			"ok": true,
+			"label": "the studio opens",
+			"at": "2026-09-24T20:32:46.945Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness is available with the model (claude-code 2.1.280 (Claude Code) · /Users/think/Library/Application Support/Claude/claude-code/2.1.280/claude.app/Contents/MacOS/claude · Claude Opus 5.5)",
+			"at": "2026-09-24T20:32:47.401Z"
+		},
+		{
+			"ok": true,
+			"label": "the article is read ({\"title\":\"Scaling your API with rate limiters\",\"meta\":\"stripe.com · 1963 words · 8 headings · type: sohne-var · source revision src-e261ebcb35a05969\"})",
+			"at": "2026-09-24T20:33:02.479Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness plans the story ({\"titles\":[\"Scaling your API with rate limiters\",\"Why limit at all\",\"Limit each user\",\"Shed load for the whole system\",\"The token bucket\",\"Launch limiters safely\",\"Start with one\"],\"sum\":\"7 scenes · 2:06 planned\",\"hint\":\"\",\"designHidden\":true})",
+			"at": "2026-09-24T20:35:44.476Z"
+		},
+		{
+			"ok": false,
+			"label": "designing the pages is offered on the chosen harness ()",
+			"at": "2026-09-24T20:35:44.484Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness designs every page (Ready — 7 of 7 pages designed by Claude Code · Claude Opus 5.5, checked · 16 min 16 s)",
+			"at": "2026-09-24T20:52:03.508Z"
+		},
+		{
+			"ok": true,
+			"label": "the base opens with every page designed ([[\"Scaling your API with rate limiters\",\"designed\",\"Claude Code · Claude Opus 5.5\",4117],[\"Why limit at all\",\"designed\",\"Claude Code · Claude Opus 5.5\",8501],[\"Limit each user\",\"designed\",\"Claude Code · Claude Opus 5.5\",10995],[\"Shed load for the whole system\",\"designed\",\"Claude Code · Claude Opus 5.5\",12962],[\"The token bucket\",\"designed\",\"Claude Code · Claude Opus 5.5\",9463],[\"Launch limiters safely\",\"designed\",\"Claude Code · Claude Opus 5.5\",7457],[\"Start with one\",\"designed\",\"Claude Code · Claude Opus 5.5\",5191]])",
+			"at": "2026-09-24T20:52:05.897Z"
+		},
+		{
+			"ok": true,
+			"label": "Create video is offered on the base in the library",
+			"at": "2026-09-24T20:52:10.930Z"
+		},
+		{
+			"ok": true,
+			"label": "a video notebook is made from the base (Scaling your API with rate limiters · video)",
+			"at": "2026-09-24T20:52:13.943Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness prepares the video's explanation brief (claude-code claude-opus-5-5)",
+			"at": "2026-09-24T20:55:27.799Z"
+		},
+		{
+			"ok": true,
+			"label": "the base's cast is extracted and verified (30 of 30 verified, 7 pages)",
+			"at": "2026-09-24T20:55:27.961Z"
+		},
+		{
+			"ok": true,
+			"label": "The token bucket: Plan the scene is offered in its notebook block",
+			"at": "2026-09-24T20:55:30.708Z"
+		},
+		{
+			"ok": true,
+			"label": "The token bucket: the block shows the cast its page offers (6 thumbnails)",
+			"at": "2026-09-24T20:55:30.710Z"
+		},
+		{
+			"ok": true,
+			"label": "Scaling your API with rate limiters: Plan the scene is offered in its notebook block",
+			"at": "2026-09-24T20:55:36.110Z"
+		},
+		{
+			"ok": true,
+			"label": "The token bucket: the harness plans it (candidate)",
+			"at": "2026-09-24T20:59:39.825Z"
+		},
+		{
+			"ok": true,
+			"label": "Scaling your API with rate limiters: the harness plans it (candidate)",
+			"at": "2026-09-24T20:59:39.826Z"
+		},
+		{
+			"ok": true,
+			"label": "The token bucket: the review shows the plan's question and moments ({\"question\":\"How is a per-user limit actually enforced?\",\"moments\":[\"Under the hood\",\"One request, one token\",\"The slow drip\",\"Faster than the drip\",\"Rejected — then a token returns\",\"Every bucket, in Redis\"]})",
+			"at": "2026-09-24T20:59:39.960Z"
+		},
+		{
+			"ok": true,
+			"label": "The token bucket: the review shows the cast the plan uses, with images ([{\"entity\":\"request-rate-limiter\",\"image\":true},{\"entity\":\"token-bucket\",\"image\":true},{\"entity\":\"token-drip\",\"image\":true},{\"entity\":\"token-drip-icon\",\"image\":true},{\"entity\":\"request\",\"image\":true},{\"entity\":\"user\",\"image\":true},{\"entity\":\"api\",\"image\":false},{\"entity\":\"rejection\",\"image\":true},{\"entity\":\"empty-bucket-icon\",\"image\":true},{\"entity\":\"redis\",\"image\":true}])",
+			"at": "2026-09-24T20:59:39.961Z"
+		},
+		{
+			"ok": true,
+			"label": "the review names the harness and model that made the plan (Plan r1 · candidate · claude-code claude-opus-5-5)",
+			"at": "2026-09-24T20:59:39.961Z"
+		},
+		{
+			"ok": true,
+			"label": "the stage shows the rich page as the reference ({\"mode\":\"Wireframe reference\",\"note\":\"The page this scene comes from — a reference for what the video explains, not a preview of its motion.\",\"page\":true})",
+			"at": "2026-09-24T20:59:39.965Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness revises the plan from the direction (r2 candidate)",
+			"at": "2026-09-24T21:05:16.341Z"
+		},
+		{
+			"ok": false,
+			"label": "the revision is compared with r1 (0 differences)",
+			"at": "2026-09-24T21:05:17.158Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness sketches a preview of the revised plan ({\"record\":\"plan-treatment-50664953-a9e3-4b93-b289-7a37f3871be5\",\"revision\":2})",
+			"at": "2026-09-24T21:11:57.196Z"
+		},
+		{
+			"ok": true,
+			"label": "the sketch declares every moment of the plan (7 of 7)",
+			"at": "2026-09-24T21:11:57.202Z"
+		},
+		{
+			"ok": true,
+			"label": "the sketch says what is provisional ([\"Timing is estimated from the plan's per-moment estimates (about 24 s): no voice or take exists yet\",\"Presenter is a stand-in: visibility is undecided and no take is recorded; shown only where the plan suggests (m1, m7)\",\"The request rate limiter glyph, the user chip and the 429 badge are native placeholders: their library artwork (cast-be8d129feaa5af3270de, cast-4e8f7fd4476d20bcfb21, cast-c637a420e8125820e51c) is not in this packet\",\"The token bucket and drip are rough adaptations of the page artwork (recoloured to primary, re-rigged here by hand); the finished rig is a construction task\",\"The request route is approximated with two straight x/y legs; the plan's MotionPath technique is still to be built and verified\",\"token-hand-off and refusal-recoil are adapted moves sketched by hand; no catalogued recipe covers them\",\"Capacity 3, requests A–E, the drop count and the other buckets' levels are illustrative; N is left symbolic as in the source\",\"The bottom annotation strip and its narration guide are sketch chrome, not on-screen text for the scene\",\"The inlet stub above the bucket is a native shape the plan does not name; it only gives the drops a visible source\"])",
+			"at": "2026-09-24T21:11:57.202Z"
+		},
+		{
+			"ok": true,
+			"label": "the sketch reuses the page's own cast artwork (Token bucket: page bucket recoloured to primary, three tokens re-rigged as separate slots, level follows the count, Inlet drop recoloured to primary: swells (still forming through the burst), falls and becomes a token, Requests A–E: page paper-plane icon on one fixed route (user → over the rim → API); D stops at the rim and recoils in accent, Request rate limiter glyph that grows into the bucket (card-morph-anchor), User chip docked at the bucket's left rim (spring-pop-entrance), 429 Too Many Requests badge in accent, popped onto request D, Redis store panel headed by the page's Redis icon; icon pulses once)",
+			"at": "2026-09-24T21:11:57.203Z"
+		},
+		{
+			"ok": true,
+			"label": "the review offers the preview on the stage",
+			"at": "2026-09-24T21:11:58.214Z"
+		},
+		{
+			"ok": true,
+			"label": "the Studio stage plays the sketch through the Hyperframes player ({\"src\":\"/api/planning/previews/plan-preview-346fb579-0859-437f-bf9b-1c3cfc958633/index.html\",\"duration\":24,\"mode\":\"Plan preview\",\"note\":\"Rough sketch of plan r2 · timing estimated · presenter stand-in · placeholder artwork\",\"moments\":[\"Open the limiter\",\"One request, one token\",\"A burst drains it\",\"Refused\",\"Hold on the refill\",\"Name the rate\",\"Every bucket, in Redis\"]})",
+			"at": "2026-09-24T21:11:59.220Z"
+		},
+		{
+			"ok": true,
+			"label": "the stage labels it a rough sketch with its limitations (Rough sketch of plan r2 · timing estimated · presenter stand-in · placeholder artwork)",
+			"at": "2026-09-24T21:11:59.221Z"
+		},
+		{
+			"ok": true,
+			"label": "the stage's timeline seeks the preview to a moment (4s)",
+			"at": "2026-09-24T21:11:59.228Z"
+		},
+		{
+			"ok": true,
+			"label": "selecting a moment in the review seeks the preview (20s)",
+			"at": "2026-09-24T21:12:02.754Z"
+		},
+		{
+			"ok": true,
+			"label": "the review shows the sketch's read-only timeline (Moments,Theme ground with a faint world grid (scales with the camera, so the pull-back reads),Hold on the bucket m1–m6; one decelerating pull-back (viewport-change, zoom-out-workspace-reveal adapted) to the Redis store in m7; no zoom-in,Token bucket: page bucket recoloured to primary, three tokens re-rigged as separate slots, level follows the count,Token hand-off (adapted): the taken token lights in accent, lifts to the request and rides with it to the API,Inlet drop recoloured to primary: swells (still forming through the burst), falls and becomes a token,Requests A–E: page paper-plane icon on one fixed route (user → over the rim → API); D stops at the rim and recoils in accent,Request rate limiter glyph that grows into the bucket (card-morph-anchor),User chip docked at the bucket's left rim (spring-pop-entrance),429 Too Many Requests badge in accent, popped onto request D,API endpoint (native), receives A, B, C and E,Redis store panel headed by the page's Redis icon; icon pulses once,Other users' buckets (native, dimmed, illustrative levels 1 / 3 / 0 / 2) settling into the row,token bucket · one per user,Mono 'tokens: n' readout with a rolling digit (vertical-spring-ticker): 3 → 2 → 1 → 0 → 1 → 2 → 1 → 2,refill: N tokens / second (N set apart in white),Redis · every user's bucket,Sketch annotation strip: moment, camera, estimate and the narration guide. Sketch chrome only, not scene text,Presenter (visibility undecided): possible short appearance at the open and beside the wide Redis view)",
+			"at": "2026-09-24T21:12:05.660Z"
+		},
+		{
+			"ok": true,
+			"label": "the only run the preview started is the sketch (Sketch Scene)",
+			"at": "2026-09-24T21:12:06.929Z"
+		},
+		{
+			"ok": true,
+			"label": "approval pins the revised plan with what it was made from ({\"at\":\"2026-09-24T21:12:07.066Z\",\"castId\":\"visual-cast:9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652:a3fde129894498da:v1\",\"briefId\":\"plan-brief-9f16a47b-74c9-4116-a77b-1f824df18a53\",\"fingerprint\":\"3a310a4977a3f877\",\"briefFingerprint\":\"db08f0eb2d112151\"})",
+			"at": "2026-09-24T21:12:10.169Z"
+		},
+		{
+			"ok": true,
+			"label": "approving starts no run",
+			"at": "2026-09-24T21:12:13.174Z"
+		},
+		{
+			"ok": true,
+			"label": "the recording guide explains the human contribution, moment by moment (7 steps, 6 lines)",
+			"at": "2026-09-24T21:12:13.179Z"
+		},
+		{
+			"ok": true,
+			"label": "no take is needed to plan or preview (Plan: Approved r2 | Recording: guide ready · no take yet | Preview: ready | Output: not produced)",
+			"at": "2026-09-24T21:12:14.473Z"
+		},
+		{
+			"ok": true,
+			"label": "Produce scene is a separate action that approval never starts (Producing turns the approved plan into the scene's code, with its artwork, voice and timing. It runs on your “Scene production” harness (Agent settings).✓ An ap)",
+			"at": "2026-09-24T21:12:14.486Z"
+		},
+		{
+			"ok": true,
+			"label": "Scaling your API with rate limiters stays an unapproved candidate",
+			"at": "2026-09-24T21:12:15.863Z"
+		},
+		{
+			"ok": true,
+			"label": "the app restarts on the video notebook",
+			"at": "2026-09-24T21:12:24.976Z"
+		},
+		{
+			"ok": true,
+			"label": "The token bucket: still approved at r2 after the restart",
+			"at": "2026-09-24T21:12:25.218Z"
+		},
+		{
+			"ok": true,
+			"label": "Scaling your API with rate limiters: still an unapproved candidate after the restart",
+			"at": "2026-09-24T21:12:25.218Z"
+		},
+		{
+			"ok": true,
+			"label": "the preview of the approved plan is still there and current",
+			"at": "2026-09-24T21:12:25.326Z"
+		},
+		{
+			"ok": true,
+			"label": "the notebook blocks read as they were left ({\"a\":[\"Plan: Approved r2\",\"Recording: guide ready · no take yet\",\"Preview: ready\",\"Output: not produced\",\"adapt\",\"adapt\",\"reuse\",\"reuse\",\"reuse\",\"adapt\",\"native\",\"native\",\"native\",\"reuse\",\"native\",\"omit\",\"omit\",\"presenter undecided\",\"text: token bucket · one per user\",\"camera hold\",\"presenter hidden\",\"text: tokens: 2\",\"camera hold\",\"presenter hidden\",\"text: tokens: 0\",\"camera hold\",\"presenter hidden\",\"text: 429 Too Many Requests\",\"camera hold\",\"presenter hidden\",\"camera hold\",\"presenter hidden\",\"text: refill: N tokens / second\",\"camera hold\",\"presenter undecided\",\"text: Redis · every user's bucket\",\"camera pull-back\"],\"b\":[\"Plan: Candidate r1\",\"Recording: guide ready · no take yet\",\"Output: not produced\"]})",
+			"at": "2026-09-24T21:12:25.357Z"
+		},
+		{
+			"ok": true,
+			"label": "only story, page and planning runs ran (video-planner,page-master,story-master)",
+			"at": "2026-09-24T21:12:27.967Z"
+		},
+		{
+			"ok": true,
+			"label": "planning runs were briefs, plans and the sketch (Sketch Scene,Plan Scene,Prepare Brief,Draw Pages,Plan Story)",
+			"at": "2026-09-24T21:12:27.968Z"
+		},
+		{
+			"ok": true,
+			"label": "the base is as it was designed",
+			"at": "2026-09-24T21:12:27.978Z"
+		}
+	],
+	"runs": [
+		{
+			"id": "run-mufzo44v-5d8c0cb0",
+			"skill": "story-master",
+			"route": "Plan Story",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:33:04.831Z",
+			"finishedAt": "2026-09-24T20:35:41.625Z",
+			"seconds": 157,
+			"requestedModel": "claude-opus-5-5"
+		},
+		{
+			"id": "run-mufzrldu-e52584e2",
+			"skill": "page-master",
+			"route": "Draw Pages",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:35:47.100Z",
+			"finishedAt": "2026-09-24T20:52:02.850Z",
+			"seconds": 976,
+			"requestedModel": "claude-opus-5-5"
+		},
+		{
+			"id": "run-mug0cpjk-066919e5",
+			"skill": "video-planner",
+			"route": "Prepare Brief",
+			"adapter": "claude-code",
+			"status": "running",
+			"startedAt": "2026-09-24T20:52:12.046Z",
+			"finishedAt": null,
+			"seconds": null,
+			"packetRun": {
+				"harness": "claude-code",
+				"model": "claude-opus-5-5",
+				"imageInspection": "native"
+			},
+			"requestedModel": "claude-opus-5-5"
+		},
+		{
+			"id": "run-mug0h3sg-9c944873",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "running",
+			"startedAt": "2026-09-24T20:55:37.129Z",
+			"finishedAt": null,
+			"seconds": null,
+			"packetRun": {
+				"harness": "claude-code",
+				"model": "claude-opus-5-5",
+				"imageInspection": "native"
+			},
+			"requestedModel": "claude-opus-5-5"
+		},
+		{
+			"id": "run-mug0h0lg-e228400e",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "running",
+			"startedAt": "2026-09-24T20:55:32.997Z",
+			"finishedAt": null,
+			"seconds": null,
+			"packetRun": {
+				"harness": "claude-code",
+				"model": "claude-opus-5-5",
+				"imageInspection": "native"
+			},
+			"requestedModel": "claude-opus-5-5"
+		},
+		{
+			"id": "run-mug0mf0l-2c73c5ed",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "running",
+			"startedAt": "2026-09-24T20:59:44.968Z",
+			"finishedAt": null,
+			"seconds": null,
+			"packetRun": {
+				"harness": "claude-code",
+				"model": "claude-opus-5-5",
+				"imageInspection": "native"
+			},
+			"requestedModel": "claude-opus-5-5"
+		},
+		{
+			"id": "run-mug0tl1n-eb1143fe",
+			"skill": "video-planner",
+			"route": "Sketch Scene",
+			"adapter": "claude-code",
+			"status": "running",
+			"startedAt": "2026-09-24T21:05:19.372Z",
+			"finishedAt": null,
+			"seconds": null,
+			"packetRun": {
+				"harness": "claude-code",
+				"model": "claude-opus-5-5",
+				"imageInspection": "native"
+			},
+			"requestedModel": "claude-opus-5-5"
+		}
+	],
+	"notes": [
+		{
+			"text": "scene A: The token bucket · scene B: Scaling your API with rate limiters",
+			"at": "2026-09-24T20:55:30.684Z"
+		},
+		{
+			"text": "moment highlight on the page: [\"s05-node-incoming-request\",\"s05-node-token-bucket\"]",
+			"at": "2026-09-24T20:59:39.978Z"
+		},
+		{
+			"text": "sketch layers: background:Theme ground with a faint world grid (scales with the camera, so the pull-back reads) · camera:Hold on the bucket m1–m6; one decelerating pull-back (viewport-change, zoom-out-workspace-reveal adapted) to the Redis store in m7; no zoom-in · object:Token bucket: page bucket recoloured to primary, three tokens re-rigged as separate slots, level follows the count [cast] · object:Token hand-off (adapted): the taken token lights in accent, lifts to the request and rides with it to the API · object:Inlet drop recoloured to primary: swells (still forming through the burst), falls and becomes a token [cast] · object:Requests A–E: page paper-plane icon on one fixed route (user → over the rim → API); D stops at the rim and recoils in accent [cast] · object:Request rate limiter glyph that grows into the bucket (card-morph-anchor) [cast] [placeholder] · object:User chip docked at the bucket's left rim (spring-pop-entrance) [cast] [placeholder] · object:429 Too Many Requests badge in accent, popped onto request D [cast] [placeholder] · object:API endpoint (native), receives A, B, C and E · object:Redis store panel headed by the page's Redis icon; icon pulses once [cast] · object:Other users' buckets (native, dimmed, illustrative levels 1 / 3 / 0 / 2) settling into the row · text:token bucket · one per user · text:Mono 'tokens: n' readout with a rolling digit (vertical-spring-ticker): 3 → 2 → 1 → 0 → 1 → 2 → 1 → 2 · text:refill: N tokens / second (N set apart in white) · text:Redis · every user's bucket · text:Sketch annotation strip: moment, camera, estimate and the narration guide. Sketch chrome only, not scene text [placeholder] · presenter:Presenter (visibility undecided): possible short appearance at the open and beside the wide Redis view [placeholder]",
+			"at": "2026-09-24T21:11:57.203Z"
+		}
+	],
+	"harnessVersion": "2.1.280 (Claude Code) · /Users/think/Library/Application Support/Claude/claude-code/2.1.280/claude.app/Contents/MacOS/claude",
+	"designPhases": [
+		{
+			"key": "drafts:0/7",
+			"at": "2026-09-24T20:35:45.773Z",
+			"status": "Schematic drafts — plain layouts made instantly. Design them with Claude Code · Claude Opus 5.5 for the presentation drawing."
+		},
+		{
+			"key": "designing:0/7",
+			"at": "2026-09-24T20:35:48.775Z",
+			"status": "Designing with Claude Code · Claude Opus 5.5 — 0 of 7 pages · 1 s"
+		},
+		{
+			"key": "designing:1/7",
+			"at": "2026-09-24T20:42:25.312Z",
+			"status": "Designing with Claude Code · Claude Opus 5.5 — 1 of 7 pages · 6 min 38 s"
+		},
+		{
+			"key": "designing:2/7",
+			"at": "2026-09-24T20:43:32.777Z",
+			"status": "Designing with Claude Code · Claude Opus 5.5 — 2 of 7 pages · 7 min 44 s"
+		},
+		{
+			"key": "designing:3/7",
+			"at": "2026-09-24T20:45:17.920Z",
+			"status": "Designing with Claude Code · Claude Opus 5.5 — 3 of 7 pages · 9 min 28 s"
+		},
+		{
+			"key": "designing:4/7",
+			"at": "2026-09-24T20:47:09.074Z",
+			"status": "Designing with Claude Code · Claude Opus 5.5 — 4 of 7 pages · 11 min 20 s"
+		},
+		{
+			"key": "designing:5/7",
+			"at": "2026-09-24T20:48:21.191Z",
+			"status": "Designing with Claude Code · Claude Opus 5.5 — 5 of 7 pages · 12 min 32 s"
+		},
+		{
+			"key": "designing:6/7",
+			"at": "2026-09-24T20:49:21.279Z",
+			"status": "Designing with Claude Code · Claude Opus 5.5 — 6 of 7 pages · 13 min 32 s"
+		},
+		{
+			"key": "checking:7/7",
+			"at": "2026-09-24T20:50:00.352Z",
+			"status": "Checking — all 7 pages are drawn; Claude Code · Claude Opus 5.5 is reviewing and checking them · 14 min 12 s"
+		},
+		{
+			"key": "ready:7/7",
+			"at": "2026-09-24T20:52:03.508Z",
+			"status": "Ready — 7 of 7 pages designed by Claude Code · Claude Opus 5.5, checked · 16 min 16 s"
+		}
+	],
+	"base": {
+		"id": "9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652",
+		"title": "Scaling your API with rate limiters",
+		"scenes": [
+			{
+				"id": "0d1843e1-2251-4753-8aa9-c1d960f7a030",
+				"title": "Scaling your API with rate limiters",
+				"origin": {
+					"by": "Claude Code · Claude Opus 5.5",
+					"kind": "designed",
+					"runId": "run-mufzrldu-e52584e2"
+				},
+				"svg": 4117
+			},
+			{
+				"id": "dc32f90c-1ecc-438f-9b80-c4eda2b38f49",
+				"title": "Why limit at all",
+				"origin": {
+					"by": "Claude Code · Claude Opus 5.5",
+					"kind": "designed",
+					"runId": "run-mufzrldu-e52584e2"
+				},
+				"svg": 8501
+			},
+			{
+				"id": "eae420f9-4bb7-467e-8e1e-30a124b21f0d",
+				"title": "Limit each user",
+				"origin": {
+					"by": "Claude Code · Claude Opus 5.5",
+					"kind": "designed",
+					"runId": "run-mufzrldu-e52584e2"
+				},
+				"svg": 10995
+			},
+			{
+				"id": "450efb4e-52d4-4613-a6be-402e922825cf",
+				"title": "Shed load for the whole system",
+				"origin": {
+					"by": "Claude Code · Claude Opus 5.5",
+					"kind": "designed",
+					"runId": "run-mufzrldu-e52584e2"
+				},
+				"svg": 12962
+			},
+			{
+				"id": "c4ac823b-132e-439c-9d27-7d9dcd9e1f42",
+				"title": "The token bucket",
+				"origin": {
+					"by": "Claude Code · Claude Opus 5.5",
+					"kind": "designed",
+					"runId": "run-mufzrldu-e52584e2"
+				},
+				"svg": 9463
+			},
+			{
+				"id": "98184316-e76b-4747-b0a9-265f2d7fbf9f",
+				"title": "Launch limiters safely",
+				"origin": {
+					"by": "Claude Code · Claude Opus 5.5",
+					"kind": "designed",
+					"runId": "run-mufzrldu-e52584e2"
+				},
+				"svg": 7457
+			},
+			{
+				"id": "83831333-bf0a-4a4d-826c-839bbb45aafd",
+				"title": "Start with one",
+				"origin": {
+					"by": "Claude Code · Claude Opus 5.5",
+					"kind": "designed",
+					"runId": "run-mufzrldu-e52584e2"
+				},
+				"svg": 5191
+			}
+		]
+	},
+	"video": {
+		"id": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+		"title": "Scaling your API with rate limiters · video"
+	},
+	"brief": {
+		"id": "plan-brief-9f16a47b-74c9-4116-a77b-1f824df18a53",
+		"adapter": "claude-code",
+		"model": "claude-opus-5-5",
+		"reportedModel": "claude-opus-5-5",
+		"units": 10,
+		"entities": 10,
+		"evidence": 58
+	},
+	"cast": {
+		"status": "ready",
+		"entries": 30,
+		"verified": 30,
+		"byPage": {
+			"Scaling your API with rate limiters": ["capacity"],
+			"Why limit at all": [
+				"More capacity",
+				"More capacity",
+				"More capacity",
+				"1",
+				"2",
+				"3",
+				"4"
+			],
+			"Limit each user": [
+				"User",
+				"Request rate limiter",
+				"Request rate limiter",
+				"in flight ≤ 20",
+				"Expensive",
+				"HTTP 429"
+			],
+			"Shed load for the whole system": [
+				"Incoming",
+				"Critical",
+				"Non-critical",
+				"Fleet usage shedder",
+				"Worker shedder",
+				"Worker capacity"
+			],
+			"The token bucket": [
+				"Incoming request",
+				"Token bucket",
+				"Token bucket",
+				"Token drip",
+				"Empty bucket",
+				"Redis store"
+			],
+			"Launch limiters safely": ["01", "02", "03", "04"],
+			"Start with one": []
+		}
+	},
+	"scenes": {
+		"a": {
+			"id": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+			"title": "The token bucket"
+		},
+		"b": {
+			"id": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s01",
+			"title": "Scaling your API with rate limiters"
+		}
+	},
+	"plans": {
+		"a1": {
+			"id": "plan-treatment-bc18e0ff-0b92-4b72-b71b-88d54ceb4e27",
+			"revision": 1,
+			"adapter": "claude-code",
+			"model": "claude-opus-5-5",
+			"reportedModel": "claude-opus-5-5",
+			"question": "How is a per-user limit actually enforced?",
+			"moments": [
+				"Under the hood",
+				"One request, one token",
+				"The slow drip",
+				"Faster than the drip",
+				"Rejected — then a token returns",
+				"Every bucket, in Redis"
+			],
+			"assets": [
+				"request-rate-limiter: reuse",
+				"token-bucket: adapt",
+				"token-drip: reuse",
+				"token-drip-icon: omit",
+				"request: reuse",
+				"user: reuse",
+				"api: native",
+				"rejection: reuse",
+				"empty-bucket-icon: omit",
+				"redis: reuse"
+			]
+		},
+		"b1": {
+			"id": "plan-treatment-b51ea45e-1276-41b8-a7f3-dcbe5652765e",
+			"revision": 1,
+			"question": "Why does an API need protecting from traffic at all?",
+			"moments": [
+				"The spike",
+				"Where the spike comes from",
+				"Down for everyone",
+				"Four kinds of limiters"
+			]
+		},
+		"a2": {
+			"id": "plan-treatment-50664953-a9e3-4b93-b289-7a37f3871be5",
+			"revision": 2,
+			"direction": "Let a burst drain the bucket until a request is refused, then hold on the steady refill before the narration names the rate.",
+			"reportedModel": "claude-opus-5-5",
+			"question": "How is a per-user limit actually enforced?",
+			"moments": [
+				"Open the limiter · camera: hold",
+				"One request, one token · camera: hold",
+				"A burst drains it · camera: hold",
+				"Refused · camera: hold",
+				"Hold on the refill · camera: hold",
+				"Name the rate · camera: hold",
+				"Every bucket, in Redis · camera: pull-back"
+			]
+		}
+	},
+	"compare": [],
+	"preview": {
+		"url": "/api/planning/previews/plan-preview-346fb579-0859-437f-bf9b-1c3cfc958633/index.html",
+		"duration": 24,
+		"moments": [
+			{
+				"id": "m1",
+				"title": "Open the limiter",
+				"start": 0,
+				"end": 4
+			},
+			{
+				"id": "m2",
+				"title": "One request, one token",
+				"start": 4,
+				"end": 7
+			},
+			{
+				"id": "m3",
+				"title": "A burst drains it",
+				"start": 7,
+				"end": 10.5
+			},
+			{
+				"id": "m4",
+				"title": "Refused",
+				"start": 10.5,
+				"end": 13.5
+			},
+			{
+				"id": "m5",
+				"title": "Hold on the refill",
+				"start": 13.5,
+				"end": 16.5
+			},
+			{
+				"id": "m6",
+				"title": "Name the rate",
+				"start": 16.5,
+				"end": 20
+			},
+			{
+				"id": "m7",
+				"title": "Every bucket, in Redis",
+				"start": 20,
+				"end": 24
+			}
+		],
+		"layers": [
+			{
+				"id": "grid",
+				"kind": "background",
+				"label": "Theme ground with a faint world grid (scales with the camera, so the pull-back reads)",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "camera",
+				"kind": "camera",
+				"label": "Hold on the bucket m1–m6; one decelerating pull-back (viewport-change, zoom-out-workspace-reveal adapted) to the Redis store in m7; no zoom-in",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "token-bucket",
+				"kind": "object",
+				"label": "Token bucket: page bucket recoloured to primary, three tokens re-rigged as separate slots, level follows the count",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+				"reuses": "cast-9fa5e36e9ae63d7d1885",
+				"placeholder": null
+			},
+			{
+				"id": "token-hand-off",
+				"kind": "object",
+				"label": "Token hand-off (adapted): the taken token lights in accent, lifts to the request and rides with it to the API",
+				"moments": ["m2", "m3", "m6"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "drip",
+				"kind": "object",
+				"label": "Inlet drop recoloured to primary: swells (still forming through the burst), falls and becomes a token",
+				"moments": ["m3", "m4", "m5", "m6", "m7"],
+				"reuses": "cast-e402bea443366ccd2f0d",
+				"placeholder": null
+			},
+			{
+				"id": "request",
+				"kind": "object",
+				"label": "Requests A–E: page paper-plane icon on one fixed route (user → over the rim → API); D stops at the rim and recoils in accent",
+				"moments": ["m2", "m3", "m4", "m6"],
+				"reuses": "cast-7e5a78d981cbff2953de",
+				"placeholder": null
+			},
+			{
+				"id": "request-rate-limiter",
+				"kind": "object",
+				"label": "Request rate limiter glyph that grows into the bucket (card-morph-anchor)",
+				"moments": ["m1"],
+				"reuses": "cast-be8d129feaa5af3270de",
+				"placeholder": "Native outline stand-in: the library artwork is not in this packet"
+			},
+			{
+				"id": "user",
+				"kind": "object",
+				"label": "User chip docked at the bucket's left rim (spring-pop-entrance)",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6"],
+				"reuses": "cast-4e8f7fd4476d20bcfb21",
+				"placeholder": "Native circle-and-silhouette stand-in: the library artwork is not in this packet"
+			},
+			{
+				"id": "http-429",
+				"kind": "object",
+				"label": "429 Too Many Requests badge in accent, popped onto request D",
+				"moments": ["m4"],
+				"reuses": "cast-c637a420e8125820e51c",
+				"placeholder": "Native pill stand-in: the library 429 mark is not in this packet"
+			},
+			{
+				"id": "api",
+				"kind": "object",
+				"label": "API endpoint (native), receives A, B, C and E",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "redis",
+				"kind": "object",
+				"label": "Redis store panel headed by the page's Redis icon; icon pulses once",
+				"moments": ["m7"],
+				"reuses": "cast-a1847d19888736efd5ec",
+				"placeholder": null
+			},
+			{
+				"id": "other-buckets",
+				"kind": "object",
+				"label": "Other users' buckets (native, dimmed, illustrative levels 1 / 3 / 0 / 2) settling into the row",
+				"moments": ["m7"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "term",
+				"kind": "text",
+				"label": "token bucket · one per user",
+				"moments": ["m1"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "token-count",
+				"kind": "text",
+				"label": "Mono 'tokens: n' readout with a rolling digit (vertical-spring-ticker): 3 → 2 → 1 → 0 → 1 → 2 → 1 → 2",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "refill-label",
+				"kind": "text",
+				"label": "refill: N tokens / second (N set apart in white)",
+				"moments": ["m6", "m7"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "redis-label",
+				"kind": "text",
+				"label": "Redis · every user's bucket",
+				"moments": ["m7"],
+				"reuses": null,
+				"placeholder": null
+			},
+			{
+				"id": "annotation",
+				"kind": "text",
+				"label": "Sketch annotation strip: moment, camera, estimate and the narration guide. Sketch chrome only, not scene text",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+				"reuses": null,
+				"placeholder": "Stands in for narration: no voice exists yet"
+			},
+			{
+				"id": "presenter",
+				"kind": "presenter",
+				"label": "Presenter (visibility undecided): possible short appearance at the open and beside the wide Redis view",
+				"moments": ["m1", "m7"],
+				"reuses": null,
+				"placeholder": "Stand-in: framed silhouette, no take recorded"
+			}
+		],
+		"provisional": [
+			"Timing is estimated from the plan's per-moment estimates (about 24 s): no voice or take exists yet",
+			"Presenter is a stand-in: visibility is undecided and no take is recorded; shown only where the plan suggests (m1, m7)",
+			"The request rate limiter glyph, the user chip and the 429 badge are native placeholders: their library artwork (cast-be8d129feaa5af3270de, cast-4e8f7fd4476d20bcfb21, cast-c637a420e8125820e51c) is not in this packet",
+			"The token bucket and drip are rough adaptations of the page artwork (recoloured to primary, re-rigged here by hand); the finished rig is a construction task",
+			"The request route is approximated with two straight x/y legs; the plan's MotionPath technique is still to be built and verified",
+			"token-hand-off and refusal-recoil are adapted moves sketched by hand; no catalogued recipe covers them",
+			"Capacity 3, requests A–E, the drop count and the other buckets' levels are illustrative; N is left symbolic as in the source",
+			"The bottom annotation strip and its narration guide are sketch chrome, not on-screen text for the scene",
+			"The inlet stub above the bucket is a native shape the plan does not name; it only gives the drops a visible source"
+		]
+	},
+	"guide": {
+		"purpose": "What it is for. Each request spends one token from its user's bucket; a burst empties it, the next request is refused, and the bucket refills at a steady rate. Every user's bucket lives centrally, in Redis.",
+		"lines": [
+			"Under the hood, Stripe uses the token bucket algorithm.",
+			"Every user gets a bucket; each request takes a token,",
+			"and fresh tokens drip back in slowly.",
+			"If requests come faster than the drip, the bucket runs empty.",
+			"If the bucket is empty, the request is rejected.",
+			"The buckets live centrally, in Redis."
+		],
+		"steps": [
+			"Open the limiter: Framing not decided yet — record the line; where you appear is chosen later.",
+			"One request, one token: Off screen — keep speaking; the graphics take the frame while your voice continues.",
+			"A burst drains it: Off screen — keep speaking; the graphics take the frame while your voice continues.",
+			"Refused: Off screen — keep speaking; the graphics take the frame while your voice continues.",
+			"Hold on the refill: Off screen — keep speaking; the graphics take the frame while your voice continues.",
+			"Name the rate: Off screen — keep speaking; the graphics take the frame while your voice continues.",
+			"Every bucket, in Redis: Framing not decided yet — record the line; where you appear is chosen later."
+		],
+		"record": true
+	},
+	"allRuns": [
+		{
+			"id": "run-mug0tl1n-eb1143fe",
+			"skill": "video-planner",
+			"route": "Sketch Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T21:05:19.372Z",
+			"finishedAt": "2026-09-24T21:12:09.868Z"
+		},
+		{
+			"id": "run-mug0mf0l-2c73c5ed",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:59:44.968Z",
+			"finishedAt": "2026-09-24T21:05:28.505Z"
+		},
+		{
+			"id": "run-mug0h3sg-9c944873",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:55:37.129Z",
+			"finishedAt": "2026-09-24T20:59:49.629Z"
+		},
+		{
+			"id": "run-mug0h0lg-e228400e",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:55:32.997Z",
+			"finishedAt": "2026-09-24T20:59:45.749Z"
+		},
+		{
+			"id": "run-mug0cpjk-066919e5",
+			"skill": "video-planner",
+			"route": "Prepare Brief",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:52:12.046Z",
+			"finishedAt": "2026-09-24T20:55:36.576Z"
+		},
+		{
+			"id": "run-mufzrldu-e52584e2",
+			"skill": "page-master",
+			"route": "Draw Pages",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:35:47.100Z",
+			"finishedAt": "2026-09-24T20:52:02.850Z"
+		},
+		{
+			"id": "run-mufzo44v-5d8c0cb0",
+			"skill": "story-master",
+			"route": "Plan Story",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-24T20:33:04.831Z",
+			"finishedAt": "2026-09-24T20:35:41.625Z"
+		}
+	],
+	"baseId": "9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652",
+	"videoId": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+	"finishedAt": "2026-09-24T21:12:27.978Z",
+	"failures": 2
+}

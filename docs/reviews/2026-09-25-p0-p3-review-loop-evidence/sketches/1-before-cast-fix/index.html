@@ -1,0 +1,311 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/runtime/gsap.min.js"></script>
+<script src="/runtime/hyperframes.iife.js"></script>
+<style>
+  html, body { margin: 0; background: #0e0c17; }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0e0c17; font-family: system-ui, sans-serif; color: #ffffff; }
+  .clip { position: absolute; inset: 0; }
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #world svg { display: block; width: 1920px; height: 1080px; overflow: visible; }
+  .mono { font-family: ui-monospace, monospace; }
+  .muted { fill: #b1afc0; }
+  .term { position: absolute; left: 120px; top: 96px; font-size: 64px; font-weight: 600; letter-spacing: -0.5px; }
+  .term span { color: #b1afc0; font-weight: 400; }
+  .ann { position: absolute; left: 48px; right: 48px; bottom: 28px; height: 56px; display: flex; align-items: center; gap: 28px; padding: 0 24px; border-radius: 14px; background: rgba(10, 9, 16, 0.78); border: 1px solid rgba(177, 175, 192, 0.25); font-family: ui-monospace, monospace; font-size: 21px; color: #b1afc0; }
+  .ann b { color: #ffffff; font-weight: 600; }
+  .ann .tag { color: #0e0c17; background: #b1afc0; padding: 3px 10px; border-radius: 6px; font-size: 16px; font-weight: 700; }
+  .ann .vo { margin-left: auto; font-style: italic; }
+  .stand-in { position: absolute; top: 280px; width: 280px; height: 520px; border: 3px dashed rgba(177, 175, 192, 0.6); border-radius: 26px; background: rgba(30, 27, 50, 0.55); }
+  .stand-in .head { position: absolute; left: 95px; top: 110px; width: 90px; height: 90px; border-radius: 50%; background: rgba(177, 175, 192, 0.35); }
+  .stand-in .body { position: absolute; left: 50px; top: 215px; width: 180px; height: 200px; border-radius: 90px 90px 20px 20px; background: rgba(177, 175, 192, 0.35); }
+  .stand-in .label { position: absolute; left: 16px; right: 16px; top: 430px; text-align: center; font-family: ui-monospace, monospace; font-size: 17px; line-height: 1.35; color: #b1afc0; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r2" data-start="0" data-width="1920" data-height="1080" data-duration="24">
+
+  <!-- One continuous world: every object lives here for the whole scene; the camera (m7) scales this wrapper only -->
+  <div id="world-clip" class="clip" data-start="0" data-duration="24" data-track-index="0">
+    <div id="world">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+        <defs>
+          <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+            <path d="M80 0 H0 V80" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2"/>
+          </pattern>
+          <clipPath id="digitWindow"><rect x="1222" y="572" width="56" height="64"/></clipPath>
+        </defs>
+
+        <!-- background grid, big enough to stay under the pulled-back frame -->
+        <rect x="-2400" y="-1200" width="6800" height="3600" fill="url(#grid)"/>
+
+        <!-- m7: Redis store panel (revealed by the pull-back) -->
+        <g id="redisPanel">
+          <rect x="-1300" y="-150" width="4120" height="1400" rx="70" fill="#0a2540" fill-opacity="0.75" stroke="#533afd" stroke-opacity="0.6" stroke-width="6"/>
+          <g id="redisIcon"><image href="assets/redis-store.svg" x="-1220" y="-118" width="174" height="144"/></g>
+          <text x="-1010" y="-10" font-size="100" font-weight="600" fill="#ffffff">Redis · every user's bucket</text>
+        </g>
+
+        <!-- m7: other users' buckets (native, dimmed; levels illustrative) -->
+        <g id="others">
+          <g id="ob1"><g opacity="0.5">
+            <path d="M-1046.8 341.8 L-985.2 698.2 H-694.8 L-633.2 341.8" fill="#533afd" fill-opacity="0.08" stroke="#b1afc0" stroke-width="6" stroke-linejoin="round"/>
+            <rect x="-1009.4" y="628" width="338.8" height="66" fill="#533afd" fill-opacity="0.35"/>
+            <circle cx="-928" cy="650" r="40" fill="#533afd"/>
+          </g><text x="-840" y="800" font-size="56" text-anchor="middle" class="muted">user 1</text></g>
+          <g id="ob2"><g opacity="0.5">
+            <path d="M-246.8 341.8 L-185.2 698.2 H105.2 L166.8 341.8" fill="#533afd" fill-opacity="0.08" stroke="#b1afc0" stroke-width="6" stroke-linejoin="round"/>
+            <rect x="-209.4" y="495.8" width="338.8" height="198" fill="#533afd" fill-opacity="0.35"/>
+            <circle cx="-128" cy="650" r="40" fill="#533afd"/><circle cx="-40" cy="650" r="40" fill="#533afd"/><circle cx="48" cy="650" r="40" fill="#533afd"/>
+          </g><text x="-40" y="800" font-size="56" text-anchor="middle" class="muted">user 2</text></g>
+          <g id="ob3"><g opacity="0.5">
+            <path d="M1353.2 341.8 L1414.8 698.2 H1705.2 L1766.8 341.8" fill="#533afd" fill-opacity="0.08" stroke="#b1afc0" stroke-width="6" stroke-linejoin="round"/>
+          </g><text x="1560" y="800" font-size="56" text-anchor="middle" class="muted">user 4</text></g>
+          <g id="ob4"><g opacity="0.5">
+            <path d="M2153.2 341.8 L2214.8 698.2 H2505.2 L2566.8 341.8" fill="#533afd" fill-opacity="0.08" stroke="#b1afc0" stroke-width="6" stroke-linejoin="round"/>
+            <rect x="2190.6" y="561.8" width="338.8" height="132" fill="#533afd" fill-opacity="0.35"/>
+            <circle cx="2272" cy="650" r="40" fill="#533afd"/><circle cx="2360" cy="650" r="40" fill="#533afd"/>
+          </g><text x="2360" y="800" font-size="56" text-anchor="middle" class="muted">user 5</text></g>
+          <text id="ourLabel" x="760" y="800" font-size="56" text-anchor="middle" fill="#ffffff">this user</text>
+        </g>
+
+        <!-- route: user → over the rim → API -->
+        <path id="route" d="M470 400 L760 290 L1560 290" fill="none" stroke="#b1afc0" stroke-opacity="0.35" stroke-width="3" stroke-dasharray="10 12"/>
+
+        <!-- API endpoint (native) -->
+        <g id="api">
+          <rect x="1560" y="240" width="200" height="100" rx="26" fill="#1e1b32" stroke="#b1afc0" stroke-opacity="0.5" stroke-width="3"/>
+          <text x="1660" y="302" font-size="38" font-weight="600" text-anchor="middle" class="muted mono">API</text>
+        </g>
+
+        <!-- m1: request rate limiter glyph (placeholder: library art cast-be8d129feaa5af3270de not in packet) -->
+        <g id="ghost">
+          <path d="M698 466.5 L716.4 573.5 H803.6 L822 466.5" fill="none" stroke="#533afd" stroke-width="4" stroke-linejoin="round"/>
+          <text x="760" y="614" font-size="26" text-anchor="middle" class="muted">request rate limiter</text>
+          <text x="760" y="644" font-size="18" text-anchor="middle" class="muted mono">placeholder · library art not in packet</text>
+        </g>
+
+        <!-- inlet the drip falls from (native stub) -->
+        <g id="inlet">
+          <rect x="740" y="112" width="40" height="36" rx="8" fill="#1e1b32" stroke="#533afd" stroke-width="3"/>
+        </g>
+
+        <!-- token bucket: adapted from cast-9fa5e36e9ae63d7d1885 (recoloured to primary; tokens re-rigged as separate slots) -->
+        <g id="bucket">
+          <path d="M553.2 341.8 L614.8 698.2 H905.2 L966.8 341.8" fill="#533afd" fill-opacity="0.1" stroke="#533afd" stroke-width="6.6" stroke-linejoin="round"/>
+          <rect id="level" x="590.6" y="495.8" width="338.8" height="198" fill="#533afd" fill-opacity="0.3"/>
+          <circle id="s1" cx="672" cy="650" r="40" fill="#533afd" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3"/>
+          <circle id="s2" cx="760" cy="650" r="40" fill="#533afd" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3"/>
+          <circle id="s3" cx="848" cy="650" r="40" fill="#533afd" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3"/>
+        </g>
+
+        <!-- drops: adapted from cast-e402bea443366ccd2f0d (recoloured to primary; swell-and-fall rig) -->
+        <path id="d1" d="M0 0 C -16 20, -18 34, 0 42 C 18 34, 16 20, 0 0 Z" fill="#533afd" fill-opacity="0.6" stroke="#8f80ff" stroke-width="3"/>
+        <path id="d2" d="M0 0 C -16 20, -18 34, 0 42 C 18 34, 16 20, 0 0 Z" fill="#533afd" fill-opacity="0.6" stroke="#8f80ff" stroke-width="3"/>
+        <path id="d3" d="M0 0 C -16 20, -18 34, 0 42 C 18 34, 16 20, 0 0 Z" fill="#533afd" fill-opacity="0.6" stroke="#8f80ff" stroke-width="3"/>
+
+        <!-- token counter (native): mono readout, vertical ticker digit -->
+        <g id="counter">
+          <text x="1010" y="620" font-size="48" class="mono" fill="#ffffff">tokens:</text>
+          <g clip-path="url(#digitWindow)">
+            <g id="digits">
+              <text x="1234" y="620" font-size="48" class="mono" fill="#ffffff">0</text>
+              <text x="1234" y="680" font-size="48" class="mono" fill="#ffffff">1</text>
+              <text x="1234" y="740" font-size="48" class="mono" fill="#ffffff">2</text>
+              <text x="1234" y="800" font-size="48" class="mono" fill="#ffffff">3</text>
+            </g>
+          </g>
+          <text x="1010" y="664" font-size="22" class="muted mono">capacity 3 · illustrative</text>
+        </g>
+
+        <!-- m6: refill-rate label (native) -->
+        <text id="refill" x="800" y="142" font-size="40" class="mono"><tspan class="muted">refill: </tspan><tspan fill="#ffffff" font-weight="700">N</tspan><tspan class="muted"> tokens / second</tspan></text>
+
+        <!-- user chip (placeholder: library art cast-4e8f7fd4476d20bcfb21 not in packet) -->
+        <g id="user">
+          <circle cx="0" cy="0" r="44" fill="#1e1b32" stroke="#533afd" stroke-width="4"/>
+          <circle cx="0" cy="-10" r="12" fill="#b1afc0"/>
+          <path d="M-20 22 C -18 4, 18 4, 20 22 Z" fill="#b1afc0"/>
+          <text x="0" y="78" font-size="24" text-anchor="middle" class="muted">user</text>
+          <text x="0" y="102" font-size="16" text-anchor="middle" class="muted mono">stand-in art</text>
+        </g>
+
+        <!-- carried tokens (token hand-off, adapted): lit in accent while taken -->
+        <circle id="cA" cx="0" cy="0" r="40" fill="#ef61ef"/>
+        <circle id="cB" cx="0" cy="0" r="40" fill="#ef61ef"/>
+        <circle id="cC" cx="0" cy="0" r="40" fill="#ef61ef"/>
+        <circle id="cE" cx="0" cy="0" r="40" fill="#ef61ef"/>
+
+        <!-- requests A–E: cast-7e5a78d981cbff2953de paper plane, drawn centred on each group's origin -->
+        <g id="rA"><g transform="rotate(45) scale(3.5) translate(-12 -12)" fill="none" stroke="#635bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g><text x="0" y="-52" font-size="26" text-anchor="middle" class="muted mono">A</text></g>
+        <g id="rB"><g transform="rotate(45) scale(3.5) translate(-12 -12)" fill="none" stroke="#635bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g><text x="0" y="-52" font-size="26" text-anchor="middle" class="muted mono">B</text></g>
+        <g id="rC"><g transform="rotate(45) scale(3.5) translate(-12 -12)" fill="none" stroke="#635bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g><text x="0" y="-52" font-size="26" text-anchor="middle" class="muted mono">C</text></g>
+        <g id="rD">
+          <g transform="rotate(45) scale(3.5) translate(-12 -12)" fill="none" stroke="#635bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g>
+          <g id="rDhot"><g transform="rotate(45) scale(3.5) translate(-12 -12)" fill="none" stroke="#ef61ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></g>
+          <text x="0" y="-52" font-size="26" text-anchor="middle" class="muted mono">D</text>
+          <!-- 429 badge (placeholder for library mark cast-c637a420e8125820e51c) -->
+          <g id="b429">
+            <rect x="-190" y="62" width="380" height="58" rx="29" fill="#ef61ef"/>
+            <text x="0" y="101" font-size="26" font-weight="700" text-anchor="middle" class="mono" fill="#0e0c17">429 Too Many Requests</text>
+            <text x="0" y="146" font-size="16" text-anchor="middle" class="muted mono">429 mark · stand-in</text>
+          </g>
+        </g>
+        <g id="rE"><g transform="rotate(45) scale(3.5) translate(-12 -12)" fill="none" stroke="#635bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g><text x="0" y="-52" font-size="26" text-anchor="middle" class="muted mono">E</text></g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Moment clips: screen-space overlays only (term, presenter stand-in, sketch annotation strip) -->
+  <div id="m1" class="clip" data-start="0" data-duration="4" data-track-index="1">
+    <div class="term" id="m1-term">token bucket <span>· one per user</span></div>
+    <div class="stand-in" id="m1-presenter" style="left: 1520px;"><div class="head"></div><div class="body"></div><div class="label">PRESENTER STAND-IN · visibility undecided · no take</div></div>
+    <div class="ann" id="m1-ann"><span class="tag">SKETCH</span><b>m1 · Open the limiter</b><span>camera: hold · ~4s est.</span><span class="vo">VO guide: "Under the hood, Stripe uses the token bucket algorithm. Every user gets a bucket;"</span></div>
+  </div>
+  <div id="m2" class="clip" data-start="4" data-duration="3" data-track-index="1">
+    <div class="ann" id="m2-ann"><span class="tag">SKETCH</span><b>m2 · One request, one token</b><span>camera: hold · ~3s est.</span><span class="vo">VO guide: "each request takes a token,"</span></div>
+  </div>
+  <div id="m3" class="clip" data-start="7" data-duration="3.5" data-track-index="1">
+    <div class="ann" id="m3-ann"><span class="tag">SKETCH</span><b>m3 · A burst drains it</b><span>camera: hold · ~3.5s est.</span><span class="vo">VO guide: "If requests come faster than the drip, the bucket runs empty."</span></div>
+  </div>
+  <div id="m4" class="clip" data-start="10.5" data-duration="3" data-track-index="1">
+    <div class="ann" id="m4-ann"><span class="tag">SKETCH</span><b>m4 · Refused</b><span>camera: hold · ~3s est.</span><span class="vo">VO guide: "If the bucket is empty, the request is rejected."</span></div>
+  </div>
+  <div id="m5" class="clip" data-start="13.5" data-duration="3" data-track-index="1">
+    <div class="ann" id="m5-ann"><span class="tag">SKETCH</span><b>m5 · Hold on the refill</b><span>camera: hold · ~3s est.</span><span class="vo">VO guide: (silent held beat)</span></div>
+  </div>
+  <div id="m6" class="clip" data-start="16.5" data-duration="3.5" data-track-index="1">
+    <div class="ann" id="m6-ann"><span class="tag">SKETCH</span><b>m6 · Name the rate</b><span>camera: hold · ~3.5s est.</span><span class="vo">VO guide: "Fresh tokens drip back in slowly."</span></div>
+  </div>
+  <div id="m7" class="clip" data-start="20" data-duration="4" data-track-index="1">
+    <div class="stand-in" id="m7-presenter" style="left: 1604px; width: 270px;"><div class="head" style="left: 90px;"></div><div class="body" style="left: 45px;"></div><div class="label">PRESENTER STAND-IN · visibility undecided · no take</div></div>
+    <div class="ann" id="m7-ann"><span class="tag">SKETCH</span><b>m7 · Every bucket, in Redis</b><span>camera: pull-back · ~4s est.</span><span class="vo">VO guide: "The buckets live centrally, in Redis."</span></div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {}
+
+  // World coordinates (camera scale 1): user chip, meeting point over the rim, API, token slots
+  const U = { x: 470, y: 400 }
+  const M = { x: 760, y: 290 }
+  const API = { x: 1560, y: 290 }
+  const SLOT = { s1: { x: 672, y: 650 }, s2: { x: 760, y: 650 }, s3: { x: 848, y: 650 } }
+
+  // Initial state (GSAP only; no CSS transforms on anything tweened)
+  gsap.set('#world', { transformOrigin: '0 0', x: 0, y: 0, scale: 1 })
+  gsap.set('#ghost', { svgOrigin: '760 520', scale: 1, opacity: 0 })
+  gsap.set('#bucket', { svgOrigin: '760 520', scale: 0.3, opacity: 0 })
+  gsap.set('#level', { transformOrigin: '50% 100%', scaleY: 1 })
+  gsap.set(['#s1', '#s2', '#s3'], { transformOrigin: '50% 50%', scale: 1, opacity: 1 })
+  gsap.set(['#d1', '#d2', '#d3'], { x: 760, y: 152, scale: 0, opacity: 1, transformOrigin: '50% 0%' })
+  gsap.set(['#cA', '#cB', '#cC', '#cE'], { x: 0, y: 0, scale: 1, opacity: 0, transformOrigin: '50% 50%' })
+  gsap.set(['#rA', '#rB', '#rC', '#rD', '#rE'], { x: U.x, y: U.y, opacity: 0 })
+  gsap.set('#rDhot', { opacity: 0 })
+  gsap.set('#b429', { scale: 0, transformOrigin: '50% 0%' })
+  gsap.set('#user', { x: 330, y: U.y, scale: 0.6, opacity: 0, transformOrigin: '50% 50%' })
+  gsap.set('#digits', { y: -180 })
+  gsap.set(['#route', '#api', '#inlet', '#counter', '#refill', '#redisPanel', '#ourLabel'], { opacity: 0 })
+  gsap.set(['#ob1', '#ob2', '#ob3', '#ob4'], { scale: 0, transformOrigin: '50% 50%' })
+  gsap.set('#redisIcon', { transformOrigin: '50% 50%', scale: 1 })
+  gsap.set(['#m1-term', '#m1-presenter', '#m7-presenter', '.ann'], { opacity: 0 })
+
+  const tl = gsap.timeline({ paused: true })
+
+  // --- helpers (all positions absolute, so every seek lands on the same frame)
+  function count(t, n) { // vertical-spring-ticker on the counter + stat-bars-and-fills on the level
+    tl.to('#digits', { y: -n * 60, duration: 0.45, ease: 'back.out(2.2)' }, t)
+    tl.to('#level', { scaleY: n / 3, duration: 0.4, ease: 'power2.out' }, t)
+  }
+  function fly(id, t0, tMeet, tApi) { // one fixed route: user → over the rim → API
+    tl.to(id, { opacity: 1, duration: 0.2 }, t0)
+    tl.to(id, { x: M.x, y: M.y, duration: tMeet - t0, ease: 'power1.inOut' }, t0)
+    tl.to(id, { x: API.x, y: API.y, duration: tApi - tMeet, ease: 'power1.in' }, tMeet)
+    tl.to(id, { opacity: 0, duration: 0.25 }, tApi)
+  }
+  function take(slot, carrier, tTake, tMeet, tApi) { // token hand-off (adapted): token lifts, lights, rides with the request
+    tl.set(carrier, { x: SLOT[slot].x, y: SLOT[slot].y, opacity: 1, scale: 1 }, tTake)
+    tl.set('#' + slot, { opacity: 0 }, tTake)
+    tl.to(carrier, { x: M.x - 30, y: M.y + 44, scale: 0.45, duration: tMeet - tTake, ease: 'power2.out' }, tTake)
+    tl.to(carrier, { x: API.x - 30, duration: tApi - tMeet, ease: 'power1.in' }, tMeet)
+    tl.to(carrier, { opacity: 0, duration: 0.25 }, tApi)
+  }
+  function drop(id, slot, tSwell, tFall, tLand) { // svg-icon-enrichment: swell at the inlet, fall, become a token
+    tl.to(id, { scale: 1, duration: tFall - tSwell, ease: 'sine.inOut' }, tSwell)
+    tl.to(id, { x: SLOT[slot].x, y: SLOT[slot].y - 30, duration: tLand - tFall, ease: 'power2.in' }, tFall)
+    tl.set(id, { opacity: 0 }, tLand)
+    tl.fromTo('#' + slot, { opacity: 1, scale: 0 }, { scale: 1, duration: 0.45, ease: 'back.out(2.5)', immediateRender: false }, tLand)
+  }
+  function ann(id, t) { tl.to(id, { opacity: 1, duration: 0.3 }, t) }
+
+  // --- m1 · Open the limiter (0–4): card-morph-anchor + spring-pop-entrance; camera holds
+  ann('#m1-ann', 0.1)
+  tl.to('#ghost', { opacity: 1, duration: 0.4 }, 0.1)
+  tl.to('#m1-presenter', { opacity: 1, duration: 0.4 }, 0.3)
+  tl.to('#m1-term', { opacity: 1, duration: 0.5 }, 0.5)
+  tl.to('#ghost', { scale: 3.3, opacity: 0, duration: 1.2, ease: 'power2.inOut' }, 0.9)
+  tl.to('#bucket', { scale: 1, opacity: 1, duration: 1.2, ease: 'power2.inOut' }, 0.9)
+  tl.to('#inlet', { opacity: 1, duration: 0.4 }, 1.9)
+  tl.to('#user', { x: U.x, scale: 1, opacity: 1, duration: 0.7, ease: 'back.out(2.4)' }, 2.2)
+  tl.to('#counter', { opacity: 1, duration: 0.4 }, 2.6)
+  tl.to(['#route', '#api'], { opacity: 1, duration: 0.5 }, 3.1)
+  tl.to('#m1-presenter', { opacity: 0, duration: 0.5 }, 3.3)
+
+  // --- m2 · One request, one token (4–7): A takes one token; 3 → 2
+  ann('#m2-ann', 4.05)
+  fly('#rA', 4.3, 5.1, 6.1)
+  take('s3', '#cA', 4.7, 5.1, 6.1)
+  count(4.8, 2)
+
+  // --- m3 · A burst drains it (7–10.5): B and C back to back; 2 → 0; drop d1 still forming
+  ann('#m3-ann', 7.05)
+  drop('#d1', 's1', 7.3, 13.8, 14.35)
+  fly('#rB', 7.1, 7.8, 8.7)
+  take('s2', '#cB', 7.5, 7.8, 8.7)
+  count(7.6, 1)
+  fly('#rC', 7.7, 8.4, 9.3)
+  take('s1', '#cC', 8.1, 8.4, 9.3)
+  count(8.2, 0)
+
+  // --- m4 · Refused (10.5–13.5): D stops at the empty rim, turns accent, 429 pops, recoils
+  ann('#m4-ann', 10.55)
+  tl.to('#rD', { opacity: 1, duration: 0.2 }, 10.6)
+  tl.to('#rD', { x: 690, y: 306, duration: 0.9, ease: 'power3.out' }, 10.6)
+  tl.to('#rDhot', { opacity: 1, duration: 0.2 }, 11.55)
+  tl.to('#b429', { scale: 1, duration: 0.45, ease: 'back.out(2.6)' }, 11.6)
+  tl.to('#rD', { x: 520, y: 382, duration: 0.7, ease: 'power2.out' }, 11.95)
+  tl.to('#rD', { opacity: 0, duration: 0.4 }, 13.0)
+
+  // --- m5 · Hold on the refill (13.5–16.5): no requests; two drops land at an even interval; 0 → 2
+  ann('#m5-ann', 13.55)
+  count(14.35, 1)
+  drop('#d2', 's2', 14.4, 15.4, 15.95)
+  count(15.95, 2)
+
+  // --- m6 · Name the rate (16.5–20): label at the inlet, then E admitted; 2 → 1
+  ann('#m6-ann', 16.55)
+  tl.fromTo('#refill', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out', immediateRender: false }, 16.7)
+  drop('#d3', 's2', 17.0, 22.2, 22.8)
+  fly('#rE', 18.0, 18.8, 19.7)
+  take('s2', '#cE', 18.4, 18.8, 19.7)
+  count(18.5, 1)
+
+  // --- m7 · Every bucket, in Redis (20–24): the only camera move — one decelerating pull-back (viewport-change)
+  ann('#m7-ann', 20.05)
+  tl.to('#world', { scale: 0.36, x: 548, y: 362, duration: 3.0, ease: 'power3.out' }, 20.2)
+  tl.to(['#user', '#route', '#api'], { opacity: 0, duration: 0.6 }, 20.2)
+  tl.to('#redisPanel', { opacity: 1, duration: 1.0 }, 20.3)
+  tl.to(['#ob2', '#ob3', '#ob1', '#ob4'], { scale: 1, duration: 0.6, ease: 'back.out(2)', stagger: 0.2 }, 20.9)
+  tl.to('#redisIcon', { scale: 1.25, duration: 0.25, ease: 'power2.out', yoyo: true, repeat: 1 }, 21.8)
+  tl.to('#ourLabel', { opacity: 1, duration: 0.4 }, 22.3)
+  count(22.8, 2)
+  tl.to('#m7-presenter', { opacity: 1, duration: 0.5 }, 22.9)
+
+  // hold the settled wide frame to the end of the composition
+  tl.to({}, { duration: 0.01 }, 23.99)
+
+  window.__timelines["sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r2"] = tl
+</script>
+</body>
+</html>
