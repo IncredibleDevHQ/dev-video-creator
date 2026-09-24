@@ -275,6 +275,18 @@ try {
   await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[1].click(); return true }`)
   const highlight = await waitFor(`() => { const hits = [...document.querySelectorAll('#scene-stage-reference .stage-hit')].map(element => element.id); return hits.length ? { hits, note: document.getElementById('scene-stage-note').textContent } : null }`, 10)
   check(Boolean(highlight) && /Highlighted: what this moment is about/.test(highlight.note), `selecting a moment highlights what it is about on the page (${JSON.stringify(highlight)})`)
+  // Reading down the review, the stage stays in view beside it, and what it
+  // shows is said under the frame — nothing is drawn over the page.
+  const follows = await evaluate(`async () => {
+    document.querySelector('.scene-review.is-expanded .review-panel').scrollIntoView({ block: 'end' })
+    await new Promise(resolve => setTimeout(resolve, 600))
+    const viewport = document.querySelector('.studio-workspace').getBoundingClientRect()
+    const stage = document.getElementById('scene-stage').getBoundingClientRect()
+    const block = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1].getBoundingClientRect()
+    const frame = document.getElementById('scene-stage')
+    return { blockAbove: block.bottom < viewport.top, stageInView: stage.top >= viewport.top - 1 && stage.bottom <= viewport.bottom + 1, clear: !frame.contains(document.querySelector('.scene-stage-modes')) && !frame.contains(document.getElementById('scene-stage-note')) }
+  }`)
+  check(follows.stageInView && follows.clear, `the stage stays in view beside the review, with nothing over the page (${JSON.stringify(follows)})`)
   await shot('01-scene-review')
 
   // Approve it: this scene alone, and nothing starts.

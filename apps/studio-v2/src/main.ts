@@ -4167,10 +4167,19 @@ const positionInlinePreview = () => {
   if (!selectedNode) return
   const layoutTop = editorLayout.getBoundingClientRect().top
   const selectedTop = selectedNode.getBoundingClientRect().top
-  inlinePreview.style.setProperty(
-    '--preview-offset',
-    `${Math.max(0, selectedTop - layoutTop)}px`,
-  )
+  let offset = Math.max(0, selectedTop - layoutTop)
+  // While the selected scene's review is open below its block, the stage
+  // stays in view beside it — the moments being reviewed point at it — and
+  // never runs past the review's end.
+  const review = document.querySelector<HTMLElement>(`.scene-review.is-expanded[data-review-scene="${CSS.escape(selectedNodeId)}"]`)
+  const following = Boolean(review && !document.getElementById('scene-stage')?.hidden)
+  if (review && following) {
+    const viewportTop = (editorLayout.closest('.studio-workspace') || document.documentElement).getBoundingClientRect().top
+    const reviewBottom = review.getBoundingClientRect().bottom - layoutTop
+    offset = Math.max(offset, Math.min(viewportTop + 16 - layoutTop, reviewBottom - inlinePreview.offsetHeight))
+  }
+  inlinePreview.classList.toggle('is-following', following)
+  inlinePreview.style.setProperty('--preview-offset', `${Math.max(0, offset)}px`)
 }
 
 const createContentLayoutButton = (
@@ -5932,6 +5941,10 @@ window.addEventListener('resize', () => {
   positionInlinePreview()
   attachLiveCameraToPlayer()
 })
+// The stage follows an open scene review as the notebook scrolls.
+document.querySelector('.studio-workspace')?.addEventListener('scroll', () => {
+  if (inlinePreview.classList.contains('is-following')) window.requestAnimationFrame(positionInlinePreview)
+}, { passive: true })
 
 const importMenuToggle = $('#import-menu-toggle') as HTMLButtonElement
 const importMenuList = $('#import-menu-list')
@@ -16846,6 +16859,8 @@ const planningWorkspace = createPlanningWorkspace({
 
 // ——— Scene review in the notebook, and the stage beside it (P2) ———
 const sceneStage = $('#scene-stage') as HTMLElement
+// What the stage shows, and why, sits under the frame so nothing covers the page.
+const sceneStageBar = $('#scene-stage-bar') as HTMLElement
 const sceneStageReference = $('#scene-stage-reference') as HTMLElement
 const sceneStageNote = $('#scene-stage-note') as HTMLElement
 const sceneStagePreview = $('#scene-stage-preview') as HTMLElement
@@ -16903,7 +16918,7 @@ const ensureStagePlayer = () => {
   sceneStagePreview.prepend(stagePlayer)
   return stagePlayer
 }
-sceneStage.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
+sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
   button.addEventListener('click', () => {
     const mode = button.dataset.stageMode === 'preview' ? 'preview' : 'reference'
     if (mode === sceneStageMode) return
@@ -16932,17 +16947,19 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   const node = stage ? findSlideLikeNode(reviewSelectedScene) : null
   if (!stage || !node) {
     sceneStage.hidden = true
+    sceneStageBar.hidden = true
     sceneStageFor = ''
     sceneStageTargets = null
     return
   }
   sceneStage.hidden = false
+  sceneStageBar.hidden = false
   if (next !== undefined) sceneStageTargets = next
   const targets = stage.moment ? sceneStageTargets : null
   // Which view the stage offers: the page always; the preview once there is one.
   const ready = stage.preview
   if (sceneStageMode === 'preview' && !ready) sceneStageMode = 'reference'
-  sceneStage.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
+  sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
     const mode = button.dataset.stageMode
     button.disabled = mode === 'preview' ? !ready : mode === 'output'
     button.classList.toggle('is-active', mode === sceneStageMode)
@@ -16950,6 +16967,7 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   })
   const previewing = sceneStageMode === 'preview' && ready
   sceneStage.classList.toggle('is-preview', Boolean(previewing))
+  sceneStageBar.classList.toggle('is-preview', Boolean(previewing))
   sceneStageReference.hidden = Boolean(previewing)
   sceneStagePreview.hidden = !previewing
   if (previewing && ready) {

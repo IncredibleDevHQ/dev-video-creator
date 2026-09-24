@@ -2363,12 +2363,17 @@ button.se-state:hover { filter: brightness(.97); }
 .scene-stage-reference svg { width: 100%; height: 100%; }
 .scene-stage-reference svg.has-hits [data-role="node"]:not(.stage-hit), .scene-stage-reference svg.has-hits [data-role="connector"] { opacity: .28; transition: opacity .2s ease; }
 .scene-stage-reference .stage-hit { filter: drop-shadow(0 0 10px rgba(250, 204, 21, .9)); }
-.scene-stage-modes { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 4px; }
-.scene-stage-modes button { border: 1px solid rgba(255,255,255,.22); background: rgba(15,13,24,.72); color: #d4d4d8; border-radius: 999px; padding: 2px 9px; font: 600 10.5px/1.5 'InterBody', Inter, sans-serif; white-space: nowrap; cursor: pointer; backdrop-filter: blur(4px); }
-.scene-stage-modes button.is-active { background: #f4f4f5; color: #18181b; border-color: #f4f4f5; }
-.scene-stage-modes button:disabled { opacity: .5; cursor: default; }
+/* What the stage shows, and why: a bar under the frame, never over the page. */
+.scene-stage-bar { margin-top: 8px; display: grid; gap: 6px; }
+.scene-stage-bar[hidden] { display: none; }
+.scene-stage-modes { display: flex; flex-wrap: wrap; gap: 4px; }
+.scene-stage-modes button { border: 1px solid #d4d4d8; background: white; color: #3f3f46; border-radius: 999px; padding: 2px 9px; font: 600 10.5px/1.5 'InterBody', Inter, sans-serif; white-space: nowrap; cursor: pointer; }
+.scene-stage-modes button.is-active { background: #18181b; color: #fafafa; border-color: #18181b; }
+.scene-stage-modes button:disabled { opacity: .45; cursor: default; }
+.inline-preview.is-following { transition: none; }
 .scene-stage-preview { position: absolute; inset: 0; }
-.scene-stage-note { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; margin: 0; padding: 22px 12px 8px; background: linear-gradient(transparent, rgba(15,13,24,.94) 55%); color: #d4d4d8; font: 11.5px/1.4 'InterBody', Inter, sans-serif; }
+.scene-stage-note { margin: 0; color: #52525b; font: 11.5px/1.45 'InterBody', Inter, sans-serif; }
+.scene-stage-bar.is-preview .scene-stage-note { color: #a21caf; }
 /* A video notebook's scene cards are compact: the page as a thumbnail beside
    its words, the review below. */
 body.is-video-notebook .notebook-scene-block { grid-template-columns: 220px minmax(0, 1fr); column-gap: 14px; row-gap: 8px; align-items: start; }
@@ -2381,8 +2386,6 @@ body.is-video-notebook .notebook-scene-block > .scene-director, body.is-video-no
 .scene-stage-preview { position: absolute; inset: 0; }
 .scene-stage-preview[hidden] { display: none; }
 .scene-stage-player { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.scene-stage.is-preview .scene-stage-note { top: auto; bottom: 44px; z-index: 4; padding: 0 12px; background: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: #f5d0fe; }
-.scene-stage.is-preview .scene-stage-transport { padding-top: 30px; }
 .scene-stage-transport { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 18px 10px 8px; background: linear-gradient(transparent, rgba(15,13,24,.94) 45%); }
 .scene-stage-transport > button { width: 30px; height: 26px; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; background: rgba(15,13,24,.7); color: #f4f4f5; font-size: 11px; cursor: pointer; }
 .scene-stage-track { position: relative; height: 24px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden; }
