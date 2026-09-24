@@ -1,0 +1,92 @@
+[
+	{
+		"snapshot": "stripe-reviewed-before-reopen.json",
+		"records": [
+			{
+				"id": "plan-brief-c0d56cfb-58bf-4cf4-ae4e-25e031bf756b",
+				"subject": "",
+				"revision": 1,
+				"status": "ready",
+				"fingerprint": "a16ba46c72576931",
+				"model": "claude-opus-5-5",
+				"direction": "",
+				"reviewedAt": null
+			},
+			{
+				"id": "plan-treatment-1b083cd2-25d8-42b5-905e-78c347c0f135",
+				"subject": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s03",
+				"revision": 1,
+				"status": "candidate",
+				"fingerprint": "26dca50c592faac8",
+				"model": "claude-opus-5-5",
+				"direction": "",
+				"reviewedAt": null
+			},
+			{
+				"id": "plan-treatment-3df1aaca-addf-425e-961d-2139235ee136",
+				"subject": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s10",
+				"revision": 2,
+				"status": "reviewed",
+				"fingerprint": "cb44dcfb7480e527",
+				"model": "claude-opus-5-5",
+				"direction": "Keep the continuous world and the two motivated camera moves. Correct the demonstration: five initial tokens plus two refills can admit at most seven requests, so do not show eight passing before rejecting the ninth. Spell out a consistent illustrative event order. Plan a rich, filled Quiver SVG for the bucket hero with named animatable parts; countable tokens and request markers may remain native. Scene 9 has no reviewed video plan: do not assert that it ends with four tiles. Use a self-contained opening or mark the incoming match as an unresolved continuity agreement.",
+				"reviewedAt": "2026-09-24T14:33:52.269Z"
+			},
+			{
+				"id": "plan-treatment-fb064e45-1ead-4681-b331-3b08852bc750",
+				"subject": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s10",
+				"revision": 1,
+				"status": "candidate",
+				"fingerprint": "403e60a155ac2e28",
+				"model": "claude-opus-5-5",
+				"direction": "",
+				"reviewedAt": null
+			}
+		]
+	},
+	{
+		"snapshot": "stripe-reviewed-after-restart.json",
+		"records": [
+			{
+				"id": "plan-brief-c0d56cfb-58bf-4cf4-ae4e-25e031bf756b",
+				"subject": "",
+				"revision": 1,
+				"status": "ready",
+				"fingerprint": "a16ba46c72576931",
+				"model": "claude-opus-5-5",
+				"direction": "",
+				"reviewedAt": null
+			},
+			{
+				"id": "plan-treatment-1b083cd2-25d8-42b5-905e-78c347c0f135",
+				"subject": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s03",
+				"revision": 1,
+				"status": "candidate",
+				"fingerprint": "26dca50c592faac8",
+				"model": "claude-opus-5-5",
+				"direction": "",
+				"reviewedAt": null
+			},
+			{
+				"id": "plan-treatment-3df1aaca-addf-425e-961d-2139235ee136",
+				"subject": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s10",
+				"revision": 2,
+				"status": "reviewed",
+				"fingerprint": "cb44dcfb7480e527",
+				"model": "claude-opus-5-5",
+				"direction": "Keep the continuous world and the two motivated camera moves. Correct the demonstration: five initial tokens plus two refills can admit at most seven requests, so do not show eight passing before rejecting the ninth. Spell out a consistent illustrative event order. Plan a rich, filled Quiver SVG for the bucket hero with named animatable parts; countable tokens and request markers may remain native. Scene 9 has no reviewed video plan: do not assert that it ends with four tiles. Use a self-contained opening or mark the incoming match as an unresolved continuity agreement.",
+				"reviewedAt": "2026-09-24T14:33:52.269Z"
+			},
+			{
+				"id": "plan-treatment-fb064e45-1ead-4681-b331-3b08852bc750",
+				"subject": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s10",
+				"revision": 1,
+				"status": "candidate",
+				"fingerprint": "403e60a155ac2e28",
+				"model": "claude-opus-5-5",
+				"direction": "",
+				"reviewedAt": null
+			}
+		]
+	}
+]

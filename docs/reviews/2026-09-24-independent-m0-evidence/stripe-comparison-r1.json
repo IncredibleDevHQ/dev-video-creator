@@ -1,0 +1,530 @@
+{
+	"id": "plan-treatment-1b083cd2-25d8-42b5-905e-78c347c0f135",
+	"projectId": "video-830fce2a-873d-4511-a6f0-804e9303bf33",
+	"subject": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s03",
+	"revision": 1,
+	"status": "candidate",
+	"model": "claude-opus-5-5",
+	"runId": "run-mufm8icw-51936ca5",
+	"direction": "",
+	"content": {
+		"scene": "video-830fce2a-873d-4511-a6f0-804e9303bf33-s03",
+		"units": ["limiter-vs-shedder"],
+		"skills": [
+			{
+				"why": "The owning workflow's Plan stage (\u00a74\u20135 step 1): viewer arc, structure, rhythm and duration driver, and citing a blueprint or rules for the scene's shape",
+				"skill": "general-video",
+				"references": ["skills/general-video/SKILL.md"]
+			},
+			{
+				"why": "Value-first order inside the scene and the rhythm of holds versus the single move; visuals traced to the source's own terms (pace, whole system, low-priority, critical)",
+				"skill": "hyperframes-creative",
+				"references": [
+					"skills/hyperframes-creative/references/story-spine.md",
+					"skills/hyperframes-creative/references/beat-direction.md"
+				]
+			},
+			{
+				"why": "Visual treatment, density and focal points; type register for terms and labels; pacing estimates from the draft lines; presenter-sharing patterns considered and left undecided",
+				"skill": "hyperframes-creative",
+				"references": [
+					"skills/hyperframes-creative/references/video-composition.md",
+					"skills/hyperframes-creative/references/house-style.md",
+					"skills/hyperframes-creative/references/typography.md",
+					"skills/hyperframes-creative/references/narration.md",
+					"skills/hyperframes-creative/references/composition-patterns.md"
+				]
+			},
+			{
+				"why": "Borrowed method only: develop one frame through spoken-cue windows, never front-load, end on a held read \u2014 without turning windows into cuts or assuming a faceless delivery",
+				"skill": "faceless-explainer",
+				"references": ["skills/faceless-explainer/references/visual-design.md"]
+			},
+			{
+				"why": "One dominant motif (the zoom-out) and restrained entry and emphasis vocabulary for directing attention",
+				"skill": "motion-graphics",
+				"references": [
+					"skills/motion-graphics/agents/director.md",
+					"skills/motion-graphics/references/motion-vocabulary.md"
+				]
+			},
+			{
+				"why": "Naming the scene shape (zoom-out-workspace-reveal, adapted) and the rules and techniques each moment uses",
+				"skill": "hyperframes-animation",
+				"references": [
+					"skills/hyperframes-animation/blueprints-index.md",
+					"skills/hyperframes-animation/rules-index.md",
+					"skills/hyperframes-animation/techniques.md"
+				]
+			}
+		],
+		"moments": [
+			{
+				"id": "m1",
+				"text": {
+					"role": "term",
+					"content": "rate limiter \u2014 one user's pace"
+				},
+				"audio": {
+					"cue": "",
+					"reason": "Makes 'pace' audible, so the viewer hears the rhythm the limiter enforces"
+				},
+				"title": "One user, one pace",
+				"camera": {
+					"reason": "The scene opens already close so the later zoom-out is the only camera move; holding keeps attention on the pace, not on the frame",
+					"subject": "the single user's lane and its rate limiter collar, framed tight",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["user", "request", "rate-limiter", "api", "context-tag"],
+					"change": "Before: one user's lane, tight in frame, running calmly into the edge of the API with the rate limiter collar on the lane and a pace tick beside it. Action: the user fires a tight burst; requests pass the collar one per tick, and the ones arriving between ticks are refused and rebound to the user. After: the lane is calm again, a few requests delivered, the refused ones back at the sender."
+				},
+				"purpose": "The viewer needs to see where a rate limiter looks before it is contrasted with anything: it sits on one user's lane and reads that user's own pace, and it acts in ordinary day-to-day traffic",
+				"recipes": [
+					{
+						"id": "zoom-out-workspace-reveal",
+						"catalog": "blueprint",
+						"channel": "camera",
+						"purpose": "Scene shape (Adapt): open tight on one detail where micro-action plays, then one decelerating zoom-out reveals the containing whole. Keep: the single zoom-out as the engine, no zoom-in anywhere. Change: the detail is one user's lane and the whole is the API system, not a design workspace",
+						"controls": ["world"]
+					},
+					{
+						"id": "svg-path-draw",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "Draw the user's lane and the collar outline as the line names the rate limiter",
+						"controls": ["lane-stroke", "collar-outline"]
+					},
+					{
+						"id": "gsap-motionpathplugin",
+						"catalog": "technique",
+						"channel": "objects",
+						"purpose": "Carry each request along the lane on a baked, deterministic schedule so the burst spacing is exact",
+						"controls": ["request-position"]
+					},
+					{
+						"id": "adapted-refusal-rebound",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "A request arriving between pace ticks meets the closed collar, stops short and rebounds along the lane to its sender, dimming \u2014 a refusal, not a destruction. No catalogued rule covers a gated rebound; construction builds it as a second motion-path leg owned by the same request driver",
+						"controls": ["request-position", "request-opacity"]
+					}
+				],
+				"attention": "the rate limiter collar on the user's lane",
+				"narration": {
+					"job": "Define the rate limiter by what it watches: the pace of a single user",
+					"guide": "A rate limiter controls the pace at which a single user hits your API."
+				},
+				"presenter": {
+					"reason": "The close-up lane benefits from the whole frame; a presenter could introduce the contrast if a take is recorded, but delivery is undecided",
+					"visibility": "undecided"
+				},
+				"observation": "The gate on this user's lane lets requests through at the user's allowed pace and refuses the ones in the burst that come faster; nothing else in the system is consulted, and the context tag reads day-to-day",
+				"evidenceRefs": ["ev-rl-def", "cr-rl-pace"],
+				"estimateSeconds": 6
+			},
+			{
+				"id": "m2",
+				"text": {
+					"role": "label",
+					"content": "same requests \u00b7 same outcome \u00b7 spread out"
+				},
+				"audio": {
+					"cue": "",
+					"reason": "The rhythm resolving is the audible version of 'spread out, nothing refused'"
+				},
+				"title": "Spread out, same outcome",
+				"camera": {
+					"reason": "The comparison between bunched and spaced timing must be read in one fixed frame",
+					"subject": "the lane, from sender to API edge",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["user", "request", "rate-limiter", "api"],
+					"change": "Before: the refused requests wait at the sender. Action: the full set leaves again, evenly spaced on the tick, and each passes the collar. After: six result marks sit at the API edge \u2014 the complete set \u2014 and a faint ghost of the earlier bunched burst shows how the timing changed while the result did not."
+				},
+				"purpose": "The viewer needs to see why a rate limiter is fair to use: spacing requests out changes their timing, not their result",
+				"recipes": [
+					{
+						"id": "gsap-motionpathplugin",
+						"catalog": "technique",
+						"channel": "objects",
+						"purpose": "Re-send the same requests on an even spacing along the same lane path",
+						"controls": ["request-position"]
+					},
+					{
+						"id": "spring-pop-entrance",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "Each result mark settles at the API edge as its request arrives, with a restrained overshoot so completions register one by one",
+						"controls": ["result-mark-scale"]
+					}
+				],
+				"attention": "the six evenly spaced requests reaching the API edge",
+				"narration": {
+					"job": "State when a rate limiter fits, and Stripe's finding that it almost always does",
+					"guide": "It fits when users can spread out their requests without changing the outcome, which Stripe finds is almost always the case."
+				},
+				"presenter": {
+					"reason": "No presenter need; the before/after comparison reads best with the frame to itself",
+					"visibility": "undecided"
+				},
+				"observation": "The same six requests, re-sent evenly, all pass the collar and the same six results land at the API edge; the only difference from the burst is the spacing",
+				"evidenceRefs": ["ev-rl-fit", "ev-rl-spread"],
+				"estimateSeconds": 9
+			},
+			{
+				"id": "m3",
+				"text": {
+					"role": "term",
+					"content": "load shedder \u2014 the whole system's state"
+				},
+				"audio": {
+					"cue": "",
+					"reason": "Signals the change of scale from one user to the system"
+				},
+				"title": "Widen to the whole system",
+				"camera": {
+					"reason": "The move is the explanation: the rate limiter's world is one lane, the shedder's world is everything; the camera widening is 'rather than the user' made visible",
+					"subject": "from the single user's lane to the whole API system",
+					"treatment": "One continuous decelerating zoom-out from the single lane to the whole system, then lock"
+				},
+				"objects": {
+					"actors": [
+						"user",
+						"request",
+						"api",
+						"load-shedder",
+						"system-gauge",
+						"rate-limiter"
+					],
+					"change": "Before: one tinted user's lane fills the frame. Action: the view widens; three more lanes and the full API come into view, the load shedder valve at the intake and the system gauge beside it draw on, and every request's user tint drains away while its critical (solid) or low-priority (hollow) shape stays. After: a wide, calm system with traffic from all lanes, identity gone, priority visible, gauge in the calm zone."
+				},
+				"purpose": "The viewer needs to see a load shedder look somewhere else entirely: not at any one user, but at the state of the whole system \u2014 the zoom-out makes that difference physical",
+				"recipes": [
+					{
+						"id": "viewport-change",
+						"catalog": "rule",
+						"channel": "camera",
+						"purpose": "The zoom-out itself: one world wrapper scales down and re-centres from the lane to the whole system on a decelerating curve; the only camera writer in the scene",
+						"controls": ["world"]
+					},
+					{
+						"id": "depth-of-field-blur",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The newly revealed lanes arrive slightly soft and sharpen as the frame locks, so the eye travels from the old focal lane to the shedder",
+						"controls": ["non-focal-lanes-blur"]
+					},
+					{
+						"id": "svg-path-draw",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "Draw the shedder valve and the gauge outline as the line names the load shedder",
+						"controls": ["valve-outline", "gauge-outline"]
+					},
+					{
+						"id": "adapted-identity-drain",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "Each request's user tint desaturates to the neutral request colour while its priority shape (solid versus hollow) stays, showing that the shedder ignores who sent a request. No catalogued rule covers a per-object tint drain; construction builds it as a paint-only colour tween owned by the request objects",
+						"controls": ["request-tint"]
+					}
+				],
+				"attention": "the load shedder at the API intake and its system gauge",
+				"narration": {
+					"job": "Introduce the load shedder by contrast: its deciding input is the whole system's state, not the user",
+					"guide": "A load shedder is different: it looks at the whole system's state rather than the user,"
+				},
+				"presenter": {
+					"reason": "The wide reveal needs the whole frame; if a presenter is chosen, they should not occupy this move",
+					"visibility": "undecided"
+				},
+				"observation": "As the frame widens from one lane to all lanes and the whole API, a second control appears on the API's intake reading a system gauge, and the requests lose the user tint that said who sent them, keeping only their priority mark",
+				"evidenceRefs": ["ev-ls-def", "cr-ls-system"],
+				"estimateSeconds": 7
+			},
+			{
+				"id": "m4",
+				"text": {
+					"role": "label",
+					"content": "low priority dropped \u00b7 critical gets through"
+				},
+				"audio": {
+					"cue": "",
+					"reason": "An incident should feel tense without turning the explainer into a crisis"
+				},
+				"title": "An incident: shed the low priority",
+				"camera": {
+					"reason": "The frame locked after the zoom-out; stillness lets the two flows be compared",
+					"subject": "the wide system, the shedder at the intake",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": [
+						"api",
+						"request",
+						"load-shedder",
+						"system-gauge",
+						"context-tag"
+					],
+					"change": "Before: calm wide system, gauge in calm, tag reads day-to-day. Action: one service inside the API slows (its pulse lengthens), the gauge climbs into strain, the tag flips to incident, and the shedder valve starts dropping hollow requests out of the flow at the intake while solid ones pass. After: critical requests complete; the gauge eases back from its peak; the dropped requests lie below the intake, the rest of the system still standing."
+				},
+				"purpose": "The viewer needs to see when the shedder acts and what it does: in an incident, it drops low-priority requests so critical ones still get through",
+				"recipes": [
+					{
+						"id": "stat-bars-and-fills",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The system gauge fills from calm into strain and eases back \u2014 a qualitative progress fill with no numbers",
+						"controls": ["gauge-fill"]
+					},
+					{
+						"id": "gsap-motionpathplugin",
+						"catalog": "technique",
+						"channel": "objects",
+						"purpose": "Critical requests continue along the intake path into the API",
+						"controls": ["request-position"]
+					},
+					{
+						"id": "adapted-shed-drop",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "At the valve, a hollow low-priority request is diverted off the intake path and falls out of the flow to rest below it, while the solid critical request behind it passes. No catalogued rule covers a priority-sorted divert; construction builds it as an alternate motion-path leg on the same request driver",
+						"controls": ["request-position", "request-opacity"]
+					}
+				],
+				"attention": "the shedder valve separating dropped hollow requests from passing solid ones",
+				"narration": {
+					"job": "Say when the load shedder acts and what it protects",
+					"guide": "and during incidents it drops low-priority requests so critical work gets through."
+				},
+				"presenter": {
+					"reason": "The incident needs the full wide frame to show both flows",
+					"visibility": "undecided"
+				},
+				"observation": "A service slows, the gauge moves into strain and the tag flips to incident; at the intake the hollow low-priority requests are dropped while the solid critical ones continue and complete",
+				"evidenceRefs": ["ev-ls-incidents", "ev-ls-core"],
+				"estimateSeconds": 8
+			},
+			{
+				"id": "m5",
+				"text": {
+					"role": "takeaway",
+					"content": "rate limiter \u00b7 one user's pace \u00b7 day-to-day  |  load shedder \u00b7 whole system \u00b7 incidents"
+				},
+				"audio": null,
+				"title": "Two families, named",
+				"camera": {
+					"reason": "A held read closes the scene; the frame is already where scene 4 needs it",
+					"subject": "the whole system with both controls",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["rate-limiter", "load-shedder", "api"],
+					"change": "Before: the wide system after the incident. Action: the rate limiter collar and the shedder valve each brighten in place as their labels land beside them; everything else dims. After: two named controls in one held frame."
+				},
+				"purpose": "The viewer needs the contrast packed into one readable pair \u2014 what each reads and when each acts \u2014 to carry into the map of four limiters in the next scene",
+				"recipes": [
+					{
+						"id": "clip-path-reveal-masks",
+						"catalog": "technique",
+						"channel": "text",
+						"purpose": "Each family label slides out from its control through a fixed mask, anchored to the object it names",
+						"controls": ["family-labels"]
+					},
+					{
+						"id": "skills/hyperframes-creative/references/typography.md",
+						"catalog": "reference",
+						"channel": "text",
+						"purpose": "Register switching: family names in the display face, what-it-reads and when-it-acts in the secondary voice, sized for a two-second read",
+						"controls": ["family-labels"]
+					}
+				],
+				"attention": "the paired labels on the rate limiter and the load shedder",
+				"narration": null,
+				"presenter": {
+					"reason": "If a presenter is chosen, this held read is the one moment that could share the frame",
+					"visibility": "undecided"
+				},
+				"observation": "The rate limiter on its lane and the load shedder on the API are labelled side by side: one user's pace, day-to-day; the whole system's state, incidents",
+				"evidenceRefs": ["ev-rl-def", "ev-ls-def", "ev-ls-incidents"],
+				"estimateSeconds": 3
+			}
+		],
+		"objects": [
+			{
+				"role": "The shared service every lane feeds; home of the load shedder and the slowing service during the incident",
+				"asset": {
+					"status": "native"
+				},
+				"entity": "api",
+				"appearance": "A broad block at the right of the world with a visible intake mouth and a few internal service cells; one cell can visibly slow",
+				"performance": "Calm steady pulse by default; one internal cell's pulse lengthens during the incident; stays still otherwise"
+			},
+			{
+				"role": "The senders; one is the rate-limiter example, all four feed the system view",
+				"asset": {
+					"status": "native"
+				},
+				"entity": "user",
+				"appearance": "Four simple sender nodes at the left edge, each with its own tint from the theme; tints identify who sent a request",
+				"performance": "The focal user fires the burst and the spaced re-send; the others send steady mixed traffic once the frame is wide"
+			},
+			{
+				"role": "The unit that is paced, refused, passed or shed",
+				"asset": {
+					"status": "native"
+				},
+				"entity": "request",
+				"appearance": "A small packet carrying two independent marks: its sender's tint and its priority shape \u2014 solid for critical, hollow outline for low priority \u2014 so priority never depends on colour alone",
+				"performance": "Travels its lane; rebounds when refused by the rate limiter; loses its tint as the frame widens; falls out of the flow when shed"
+			},
+			{
+				"role": "The rate-limiter family: a control on one user's lane",
+				"asset": {
+					"status": "native"
+				},
+				"entity": "rate-limiter",
+				"appearance": "A collar ring around a single lane, with a small pace tick beside it",
+				"performance": "Opens on each pace tick, closes between; stays in place on its lane through the zoom-out so the viewer sees it is local to one user"
+			},
+			{
+				"role": "The load-shedder family: a control on the API's intake that reads the whole system",
+				"asset": {
+					"status": "native"
+				},
+				"entity": "load-shedder",
+				"appearance": "A valve across the API's intake, visibly wired to the system gauge rather than to any lane",
+				"performance": "Idle while the gauge is calm; diverts hollow requests while the gauge is in strain"
+			},
+			{
+				"role": "The system state the load shedder reads",
+				"asset": {
+					"status": "native"
+				},
+				"entity": "system-gauge",
+				"appearance": "A qualitative gauge on the API from calm to strained, no numeric scale",
+				"performance": "Rests in calm, fills into strain as the service slows, eases back as shedding takes effect"
+			},
+			{
+				"role": "When a control is acting: day-to-day versus incident",
+				"asset": {
+					"status": "native"
+				},
+				"entity": "context-tag",
+				"appearance": "A small status tag pinned to the top edge of the world",
+				"performance": "Reads day-to-day from the first frame; flips to incident as the gauge strains; stays readable through the zoom-out"
+			}
+		],
+		"coverage": [
+			{
+				"need": "Make the deciding input of each mechanism visible: the user's own pace versus the state of the whole system",
+				"unit": "limiter-vs-shedder",
+				"moments": ["m1", "m3", "m5"]
+			},
+			{
+				"need": "Convey when each applies: day-to-day for rate limiters, incidents for load shedders",
+				"unit": "limiter-vs-shedder",
+				"moments": ["m1", "m4", "m5"]
+			}
+		],
+		"delivery": {
+			"note": "The scene is a single continuous diagram that needs the full frame for m1\u2013m4; voice-only suits it. If a presenter is recorded, sharing the frame only for the held read in m5 would not disturb the demonstration.",
+			"voice": "undecided"
+		},
+		"question": "What separates a rate limiter from a load shedder?",
+		"takeaway": "A rate limiter reads one user's pace and works day to day; a load shedder reads the state of the whole system and acts during incidents, dropping low-priority work so critical work gets through.",
+		"continuity": {
+			"exit": "Wide, locked view of the whole system: four user lanes, one rate limiter collar on the focal lane, one load shedder valve on the API intake wired to the gauge (back near calm), requests showing priority but no user tint, and the two families labelled. Scene 4 can split the collar into the request rate and concurrent requests limiters and the valve into the fleet usage and worker utilization load shedders without re-establishing the world.",
+			"entry": "Receives the shared API and its users from scene 2, whose fourth situation (an internal failure) already hinted at the system-wide view. This scene opens tight on one user's lane into the API; the context tag already reads day-to-day."
+		},
+		"treatments": {
+			"text": "Few words, anchored to objects: the two family terms land as the narration names them (m1, m3), short labels mark the before/after of each mechanism (m2, m4), and a paired takeaway closes (m5). No narration paragraphs on screen. Keep the planned content out of the bottom caption band.",
+			"camera": "One camera move in the whole scene: the decelerating zoom-out in m3 from one user's lane to the whole system (zoom-out-workspace-reveal shape, viewport-change as its only writer). Every other moment holds. No zoom-in anywhere.",
+			"presenter": "Undecided. The scene is one continuous diagram that uses the whole frame in m1\u2013m4; if a presenter is chosen, the natural place is the held read in m5, or voice only. The base page's chip-and-gate notes are slide reference and are not followed."
+		},
+		"unresolved": [
+			"The draft narration never says 'day-to-day'; the when-contrast for rate limiters currently rests on the context tag and the m5 label. The source's own words (\u00b612, 'Rate limiters are amazing for day-to-day operations') could be added if the creator wants it spoken.",
+			"Entry continuity depends on how scene 2 ends; if scene 2 does not leave users and the API in frame, this scene opens on them fresh.",
+			"The saved theme's palette is not in this run's packet; the four user tints and the accent must be mapped from it, and it must offer enough distinct tints \u2014 otherwise users are distinguished by glyph shape as well.",
+			"Refusals here show no status code; 429 and 503 are introduced by later scenes (request rate, fleet shedder). Construction should not label the rebound with a code.",
+			"Presenter visibility and voice source are undecided; the plan works voice-only.",
+			"All counts (four users, a six-request burst, which requests are refused or shed) are illustrative; no value for N is shown.",
+			"Three adapted recipes (refusal rebound, identity drain, shed drop) and all catalogued recipes still need to be proven in the installed runtime."
+		],
+		"development": "One continuous world, opened tight and ended wide. We start close on a single user's lane into the API, where a rate limiter sits on that lane and reads nothing but that user's own pace: a burst faster than the pace is partly refused, then the same requests re-sent at an even pace all pass with the same results \u2014 the outcome did not depend on the timing. Then the frame makes its single move: one decelerating zoom-out from that one lane to the whole system, where the viewer discovers a second control sitting on the API itself, reading a system-wide gauge. As the camera widens, the requests lose the user tint that told us who sent them and keep only their priority mark, because the load shedder does not ask who. A service slows, the gauge strains, the day-to-day tag turns to incident, and the shedder drops the hollow low-priority requests while the solid critical ones keep flowing. The frame locks wide and the two controls are named side by side by what they read and when they act \u2014 the two-family grammar scene 4 fills with four limiters.",
+		"evidenceRefs": [
+			"ev-rl-def",
+			"ev-rl-fit",
+			"ev-rl-spread",
+			"ev-ls-incidents",
+			"ev-ls-def",
+			"ev-ls-core",
+			"cr-rl-pace",
+			"cr-ls-system"
+		],
+		"originScenes": ["e8e6e795-51a9-44fa-afee-b12d3af2a1db"],
+		"requirements": {
+			"takes": [],
+			"assets": [
+				"User sender nodes (four, distinct theme tints)",
+				"Request packet with independent tint and priority shape (solid critical, hollow low priority)",
+				"API block with intake mouth and internal service cells",
+				"Rate limiter collar with pace tick",
+				"Load shedder valve wired to a qualitative system gauge",
+				"Day-to-day / incident context tag"
+			],
+			"decisions": [
+				"Delivery for this scene (voice source and presenter visibility)",
+				"Whether the narration should name 'day-to-day' explicitly",
+				"Whether to use the suggested pace-tick sound design"
+			]
+		},
+		"demonstration": {
+			"text": "Four user lanes feed one shared API. Close on one lane: that user fires a tight burst of six requests against a rate limiter that reads only their pace; the requests over pace are refused and return to the sender. The same six, re-sent evenly spaced, all pass and produce the same six results. Zoom out to the whole system: a load shedder at the API's intake reads a system-state gauge. A service slows, the gauge moves into strain, and mixed traffic from every lane arrives; hollow low-priority requests are dropped at the intake while solid critical requests continue and complete.",
+			"values": [
+				{
+					"basis": "illustrative",
+					"value": "four user lanes"
+				},
+				{
+					"basis": "illustrative",
+					"value": "a burst of six requests from one user"
+				},
+				{
+					"basis": "illustrative",
+					"value": "which of the six are refused (the ones arriving faster than the pace)"
+				},
+				{
+					"basis": "illustrative",
+					"value": "system-state gauge drawn as a qualitative calm-to-strained scale with no numbers"
+				},
+				{
+					"basis": "illustrative",
+					"value": "the mix of critical and low-priority requests during the incident"
+				}
+			]
+		},
+		"schemaVersion": 1,
+		"rosterProposal": null
+	},
+	"report": {
+		"warnings": [],
+		"constructionRisks": [
+			"blueprint \"zoom-out-workspace-reveal\" is catalogued but not yet proven in the installed runtime",
+			"rule \"svg-path-draw\" is catalogued but not yet proven in the installed runtime",
+			"technique \"gsap-motionpathplugin\" is catalogued but not yet proven in the installed runtime",
+			"adapted recipe \"adapted-refusal-rebound\" (A request arriving between pace ticks meets the closed collar, stops short and rebounds along the lane to its sender, dimming \u2014 a refusal, not a destruction. No catalogued rule covers a gated rebound; construction builds it as a second motion-path leg owned by the same request driver) must be built and verified at construction",
+			"rule \"spring-pop-entrance\" is catalogued but not yet proven in the installed runtime",
+			"rule \"viewport-change\" is catalogued but not yet proven in the installed runtime",
+			"rule \"depth-of-field-blur\" is catalogued but not yet proven in the installed runtime",
+			"adapted recipe \"adapted-identity-drain\" (Each request's user tint desaturates to the neutral request colour while its priority shape (solid versus hollow) stays, showing that the shedder ignores who sent a request. No catalogued rule covers a per-object tint drain; construction builds it as a paint-only colour tween owned by the request objects) must be built and verified at construction",
+			"rule \"stat-bars-and-fills\" is catalogued but not yet proven in the installed runtime",
+			"adapted recipe \"adapted-shed-drop\" (At the valve, a hollow low-priority request is diverted off the intake path and falls out of the flow to rest below it, while the solid critical request behind it passes. No catalogued rule covers a priority-sorted divert; construction builds it as an alternate motion-path leg on the same request driver) must be built and verified at construction",
+			"technique \"clip-path-reveal-masks\" is catalogued but not yet proven in the installed runtime"
+		]
+	},
+	"updatedAt": "2026-09-24T14:20:42.911Z",
+	"reviewedAt": null
+}

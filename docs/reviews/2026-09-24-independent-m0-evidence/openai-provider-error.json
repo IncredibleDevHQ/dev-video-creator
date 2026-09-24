@@ -1,0 +1,8 @@
+{
+	"run": "run-mufmmj85-2f190b96",
+	"session": "18189cb7-4421-47e6-a2f1-06ca53ad6fa8",
+	"model": "claude-fable-5-1",
+	"providerPublicError": "You're out of usage credits. Switch to another model, or manage usage credits at claude.ai/settings/usage?from=cc_cli_limit_message, to continue.",
+	"visibleUiError": "The story run ended error",
+	"source": "https://openai.com/index/scaling-postgresql/"
+}

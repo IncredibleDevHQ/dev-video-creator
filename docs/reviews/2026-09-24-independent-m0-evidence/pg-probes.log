@@ -1,0 +1,27 @@
+yarn workspace v1.22.10
+yarn run v1.22.10
+$ vitest run --passWithNoTests server/planning-independent-pg-review.test.ts
+
+ RUN  v3.2.7 /Users/think/Documents/code/dev-video-creator-main/.claude/worktrees/m0-integration/apps/studio-v2
+
+stdout | server/planning-independent-pg-review.test.ts > independent review reproductions > reproduces duplicate active records for concurrent identical requests
+REVIEW concurrent queue: {"requests":4,"distinct":4,"revisions":[1,2,3,4]}
+
+stdout | server/planning-independent-pg-review.test.ts > independent review reproductions > reproduces an active record being claimed by a second run
+REVIEW run ownership: {"first":"review-owner-a","stored":"review-owner-b"}
+
+stdout | server/planning-independent-pg-review.test.ts > independent review reproductions > reproduces a current and reviewable plan after its source changes
+REVIEW stale ancestry: {"briefStale":true,"sceneState":"candidate","reviewStatus":"reviewed"}
+
+stdout | server/planning-independent-pg-review.test.ts > independent review reproductions > reproduces the fragment-only source path rejecting retained page evidence
+REVIEW retained fragments: {"passageInPacket":true,"accepted":false,"problems":["evidence ev-consume is not a passage of the retained source — quote it exactly (an ellipsis may join fragments)","evidence ev-burst is not a passage of the retained source — quote it exactly (an ellipsis may join fragments)"]}
+
+ ✓ server/planning-independent-pg-review.test.ts (5 tests) 965ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  19:10:38
+   Duration  1.41s (transform 181ms, setup 0ms, collect 219ms, tests 965ms, environment 0ms, prepare 64ms)
+
+Done in 2.11s.
+Done in 2.28s.

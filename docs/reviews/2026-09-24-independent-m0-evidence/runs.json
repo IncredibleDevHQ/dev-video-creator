@@ -1,0 +1,102 @@
+{
+	"runs": [
+		{
+			"id": "run-mufmmj85-2f190b96",
+			"projectId": "video-830fce2a-873d-4511-a6f0-804e9303bf33",
+			"skill": "story-master",
+			"route": "Plan Story",
+			"adapter": "claude-code",
+			"projectDir": "/Users/think/Downloads/Incredible Studio/reviews/2026-09-24-independent-review/data/projects/video-830fce2a-873d-4511-a6f0-804e9303bf33",
+			"status": "error",
+			"inputsHash": "70ce5d876ef3c3f5cb096214a92f570b96c9df8dd88cd0f18063dbf50f52283a",
+			"resumeId": "18189cb7-4421-47e6-a2f1-06ca53ad6fa8",
+			"exitCode": 1,
+			"startedAt": "2026-09-24T14:27:56.082Z",
+			"finishedAt": "2026-09-24T14:31:23.987Z"
+		},
+		{
+			"id": "run-mufmk9hf-f3ffc4b9",
+			"projectId": "video-830fce2a-873d-4511-a6f0-804e9303bf33",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"projectDir": "/Users/think/Downloads/Incredible Studio/reviews/2026-09-24-independent-review/data/projects/video-830fce2a-873d-4511-a6f0-804e9303bf33/plans/run-mufmk9hf-f3ffc4b9",
+			"status": "done",
+			"inputsHash": "36cd8d84f3a4800cd119c45d23b8b86e3482f94a352e4e560cc2cf8c35cfe324",
+			"resumeId": "cd814d2f-1d13-41d5-9dcf-24933f77e0fc",
+			"exitCode": 0,
+			"startedAt": "2026-09-24T14:26:09.902Z",
+			"finishedAt": "2026-09-24T14:31:04.885Z"
+		},
+		{
+			"id": "run-mufm8icw-51936ca5",
+			"projectId": "video-830fce2a-873d-4511-a6f0-804e9303bf33",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"projectDir": "/Users/think/Downloads/Incredible Studio/reviews/2026-09-24-independent-review/data/projects/video-830fce2a-873d-4511-a6f0-804e9303bf33/plans/run-mufm8icw-51936ca5",
+			"status": "done",
+			"inputsHash": "91bb78ec4a869842cef3f645a154fcd21d0d0c8523ebb86277f4085ed7c2e388",
+			"resumeId": "37db2cfb-3dda-455e-bf6c-090f2b225286",
+			"exitCode": 0,
+			"startedAt": "2026-09-24T14:17:01.473Z",
+			"finishedAt": "2026-09-24T14:20:54.113Z"
+		},
+		{
+			"id": "run-mufm7rtb-5d579380",
+			"projectId": "video-830fce2a-873d-4511-a6f0-804e9303bf33",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"projectDir": "/Users/think/Downloads/Incredible Studio/reviews/2026-09-24-independent-review/data/projects/video-830fce2a-873d-4511-a6f0-804e9303bf33/plans/run-mufm7rtb-5d579380",
+			"status": "done",
+			"inputsHash": "1f53ff652afa9b63895e620b7cc4a6870954537d636e1baed8f2d7327fe7c08c",
+			"resumeId": "1daef6cc-67b4-49af-abe8-153ce0e3f675",
+			"exitCode": 0,
+			"startedAt": "2026-09-24T14:16:27.067Z",
+			"finishedAt": "2026-09-24T14:19:24.149Z"
+		},
+		{
+			"id": "run-mufm1965-339fc1aa",
+			"projectId": "video-830fce2a-873d-4511-a6f0-804e9303bf33",
+			"skill": "video-planner",
+			"route": "Prepare Brief",
+			"adapter": "claude-code",
+			"projectDir": "/Users/think/Downloads/Incredible Studio/reviews/2026-09-24-independent-review/data/projects/video-830fce2a-873d-4511-a6f0-804e9303bf33/plans/run-mufm1965-339fc1aa",
+			"status": "done",
+			"inputsHash": "47c565f6f3d847f3440df713942d5242a941582891ec6512f33f82b77fd8ca32",
+			"resumeId": "dfda16eb-a5cf-4a5a-884b-d441fb8d4c91",
+			"exitCode": 0,
+			"startedAt": "2026-09-24T14:11:22.984Z",
+			"finishedAt": "2026-09-24T14:15:06.995Z"
+		},
+		{
+			"id": "run-mufl0qng-1cb9f399",
+			"projectId": "3c70d79f-05b9-4820-b469-6b6204f5033e",
+			"skill": "page-master",
+			"route": "Draw Pages",
+			"adapter": "claude-code",
+			"projectDir": "/Users/think/Downloads/Incredible Studio/reviews/2026-09-24-independent-review/data/projects/3c70d79f-05b9-4820-b469-6b6204f5033e",
+			"status": "done",
+			"inputsHash": "5f4e4d1314ef445bc061a235f779fcb6faeffc5a8595ea9098be24e362497c71",
+			"resumeId": "0fe33629-9615-4fcf-95ef-2e59a433c966",
+			"exitCode": 0,
+			"startedAt": "2026-09-24T13:42:59.665Z",
+			"finishedAt": "2026-09-24T14:09:33.136Z"
+		},
+		{
+			"id": "run-mufkqtds-e440ee25",
+			"projectId": "3c70d79f-05b9-4820-b469-6b6204f5033e",
+			"skill": "story-master",
+			"route": "Plan Story",
+			"adapter": "claude-code",
+			"projectDir": "/Users/think/Downloads/Incredible Studio/reviews/2026-09-24-independent-review/data/projects/3c70d79f-05b9-4820-b469-6b6204f5033e",
+			"status": "done",
+			"inputsHash": "51cefb050365fb2785aad532683772aba1a1fe3c00bf49d8e6f8620959472b19",
+			"resumeId": "4877a1aa-10af-4d68-a9d8-7e01682cbc49",
+			"exitCode": 0,
+			"startedAt": "2026-09-24T13:35:16.566Z",
+			"finishedAt": "2026-09-24T13:41:10.352Z"
+		}
+	]
+}
