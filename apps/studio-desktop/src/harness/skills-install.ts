@@ -98,9 +98,12 @@ const ensureAgentsPointer = async (projectDir: string, skillNames: string[]) => 
 }
 
 // Installs (or refreshes) the vendored skills in a project directory.
+// `only` narrows the install to the named skills: a planning run is handed
+// the planning skill alone, never the skills that draw, record or build.
 export const installSkills = async (
   vendoredSkillsDir: string,
   projectDir: string,
+  options: { only?: string[] } = {},
 ): Promise<InstallReport> => {
   const report: InstallReport = {
     projectDir,
@@ -114,6 +117,7 @@ export const installSkills = async (
   for (const entry of entries) {
     if (!entry.isDirectory()) continue
     const name = entry.name
+    if (options.only && !options.only.includes(name)) continue
     skillNames.push(name)
     const vendoredDir = join(vendoredSkillsDir, name)
     const targetDir = join(projectDir, '.claude', 'skills', name)

@@ -15,6 +15,7 @@ import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { skillVersions } from './skill-versions'
+import { handlePlanningRoute } from './planning-routes'
 import { createRenderJob, executeRenderJob } from '@hyperframes/producer'
 import {
   baseStatusOf,
@@ -2742,6 +2743,8 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       return
     }
     // Durable build-run history and per-stage checkpoints (D3).
+    // Planning (M0): the video's Explanation Brief and scene plans.
+    if (await handlePlanningRoute(request, response, url)) return
     if (request.method === 'POST' && url.pathname === '/api/runs') {
       const run = await readJson<BuildRunInput>(request, 256 * 1024)
       if (!run?.id || !run.skill) {

@@ -1,4 +1,5 @@
 import '@hyperframes/player'
+import { createPlanningWorkspace } from './planning/planning-workspace'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -413,6 +414,9 @@ const THEME_STORAGE_KEY = 'incredible-studio-v2-themes'
 // A Build explainer click that first has to fork its base survives the
 // navigation into the child as this intent: the child id the build resumes on.
 const BUILD_INTENT_KEY = 'incredible-studio-v2-build-intent'
+// A video fork just made, whose explanation brief should be prepared as soon
+// as it opens (M0 planning).
+const PREPARE_INTENT_KEY = 'incredible-studio-v2-prepare-intent'
 // Edits durable storage never acknowledged (their save failed) are kept per
 // notebook under this prefix until a save of that notebook lands.
 const DRAFT_STORAGE_PREFIX = 'incredible-studio-v2-draft-'
@@ -6329,6 +6333,9 @@ const createVideoFromBase = async (baseId: string, baseTitle: string, options?: 
     // The open below reloads the page, so a build that needed the fork cannot
     // be dispatched from here: it resumes in the child from this intent.
     if (options?.resumeBuild) window.localStorage.setItem(BUILD_INTENT_KEY, child.id)
+    // The fork is saved; preparing its explanation brief starts as it opens.
+    // A provider failure leaves the fork intact with a retry in the workspace.
+    else if (!reused && window.studioDesktop?.isDesktop) window.localStorage.setItem(PREPARE_INTENT_KEY, child.id)
     await openNotebook(child.id)
     return child
   } catch (error) {
@@ -6386,6 +6393,7 @@ type NotebookRow = {
   id: string
   title: string
   blockCount: number
+  createdAt?: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
 }
@@ -15941,4 +15949,41 @@ sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(b
   sync()
   ;($('#publish-dialog') as HTMLDialogElement).addEventListener('toggle', sync)
   document.addEventListener('studio:project-opened', sync)
+}
+
+// ——— Planning (M0): the explanation brief and the scenes' creative plans ———
+const planningWorkspace = createPlanningWorkspace({
+  fetchJson,
+  toast: showToast,
+  openNotebook: id => openNotebook(id),
+  current: () => ({ id: project.id, title: project.title, derivedFrom: project.derivedFrom || null }),
+  forksOf: async baseId => {
+    const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
+    return projects.filter(row => row.derivedFrom?.notebook === baseId).map(row => ({ id: row.id, title: row.title, createdAt: row.createdAt }))
+  },
+  basePages: () =>
+    (project.notebook.content || [])
+      .filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id)
+      .map(node => {
+        const attrs = node.attrs as Record<string, unknown>
+        const id = String(attrs.id)
+        const outline = project.outline?.scenes.find(scene => scene.nodeId === id)
+        return {
+          scene: id,
+          title: String(attrs.title || outline?.title || ''),
+          idea: String(attrs.directorNotes || outline?.idea || ''),
+          narration: String(attrs.script || ''),
+          sourcePassages: (Array.isArray(attrs.sourcePassages) ? attrs.sourcePassages : outline?.source || []).map(String),
+          presentationKind: String(outline?.kind || ''),
+          svg: String(attrs.svg || ''),
+        }
+      }),
+})
+;($('#open-planning') as HTMLButtonElement).addEventListener('click', () => void planningWorkspace.open())
+{
+  const intent = window.localStorage.getItem(PREPARE_INTENT_KEY)
+  if (intent) {
+    window.localStorage.removeItem(PREPARE_INTENT_KEY)
+    if (intent === project.id) void planningWorkspace.open({ prepare: true })
+  }
 }

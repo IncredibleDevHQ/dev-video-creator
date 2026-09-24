@@ -6,6 +6,24 @@ import { join } from 'node:path'
 import type { RunManager } from './run-manager'
 import type { HarnessAdapter } from './types'
 
+// A planning run's raw files (M0): the packet it read and what it wrote,
+// including the product's answer to every submission, for the creator's
+// raw-artifact view.
+const planningArtefacts = async (projectDir: string) => {
+  const read = async (folder: string) => {
+    const names = await readdir(join(projectDir, folder)).catch(() => [] as string[])
+    const files: Record<string, string> = {}
+    for (const name of names.filter(entry => /\.(json|md)$/.test(entry)).sort()) {
+      const text = await readFile(join(projectDir, folder, name), 'utf8').catch(() => null)
+      if (text !== null) files[`${folder}/${name}`] = text.slice(0, 200_000)
+    }
+    return files
+  }
+  const packet = await read('packet')
+  const planning = await read('planning')
+  return Object.keys(packet).length || Object.keys(planning).length ? { packet, planning } : null
+}
+
 export const registerHarnessIpc = (
   manager: RunManager,
   adapters: HarnessAdapter[],
@@ -26,6 +44,7 @@ export const registerHarnessIpc = (
           ok: false,
           reason: String(error),
         }))),
+        ...(adapter.models ? { models: await adapter.models().catch(() => undefined) } : {}),
       })),
     ),
   )
@@ -131,6 +150,7 @@ export const registerHarnessIpc = (
         ? { receipt: explainerReceipt, export: explainerExport, story: explainerStory, assets: castAssets, briefs }
         : null,
       story: storyOutline || storyReceipt ? { outline: storyOutline, receipt: storyReceipt } : null,
+      planning: await planningArtefacts(run.projectDir),
     }
   })
 }

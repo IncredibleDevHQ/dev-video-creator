@@ -35,6 +35,19 @@ type RunRecord = {
   resumeId?: string
   inputs: Record<string, unknown>
   options: StartRunOptions
+  // A planning run's record, reported to when the run ends.
+  planningRecord?: string
+  // The harness's last reported error: the provider status a failed
+  // planning record keeps.
+  lastError?: string
+}
+
+// A planning run names the record it works for (M0).
+const PLANNING_SKILL = 'video-planner'
+
+const planningOf = (inputs?: Record<string, unknown>) => {
+  const planning = inputs?.planning as { recordId?: unknown } | undefined
+  return typeof planning?.recordId === 'string' && planning.recordId ? planning.recordId : ''
 }
 
 type RunFile = {
@@ -97,7 +110,7 @@ export class RunManager {
       skill: record.summary.skill,
       harness: record.summary.adapter,
       harnessVersion: '1',
-      model: typeof record.inputs.model === 'string' ? record.inputs.model : undefined,
+      model: record.summary.model,
       startedAt: record.summary.startedAt,
       resumeId: record.resumeId,
       status: record.summary.status,
@@ -184,14 +197,19 @@ export class RunManager {
 
   async start(options: StartRunOptions): Promise<RunSummary> {
     const id = `run-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`
+    const planningRecord = planningOf(options.inputs)
+    // A planning record is answered by the planning skill, and only by it.
+    if (planningRecord && options.skill !== PLANNING_SKILL) throw new Error(`A planning run uses the ${PLANNING_SKILL} skill, not ${options.skill}`)
     const projectDir =
-      options.projectDir || (options.skill === 'explainer-master'
-        ? join(this.projectsRoot, options.projectId || 'default', 'runs', id)
-        : join(this.projectsRoot, options.projectId || 'default'))
+      options.projectDir || (planningRecord
+        ? join(this.projectsRoot, options.projectId || 'default', 'plans', id)
+        : options.skill === 'explainer-master'
+          ? join(this.projectsRoot, options.projectId || 'default', 'runs', id)
+          : join(this.projectsRoot, options.projectId || 'default'))
     // Install the vendored skills into the project first (spec §5): the
     // adapter then reads SKILL.md from the project's .claude/skills copy.
     try {
-      const install = await installSkills(this.context.skillsDir, projectDir)
+      const install = await installSkills(this.context.skillsDir, projectDir, planningRecord ? { only: [PLANNING_SKILL] } : {})
       if (install.installed.length) log(`skills installed: ${install.installed.join(', ')}`)
       if (install.modifiedLocally.length) {
         log(`skills modified locally (kept): ${install.modifiedLocally.join(', ')}`)
@@ -205,6 +223,21 @@ export class RunManager {
       task: taskText(skillDir, options.route, projectDir),
     }
     await mkdir(join(projectDir, 'motion'), { recursive: true })
+    // A planning run reads exactly the packet the product pinned when it was
+    // queued, written into the run directory before the harness starts, and
+    // is offered only the planning tools (M0).
+    if (planningRecord) {
+      try {
+        const packet = await this.materialisePacket(planningRecord, projectDir)
+        inputs.capabilityScope = 'planning'
+        inputs.planning = { ...(inputs.planning as Record<string, unknown>), recordId: planningRecord, route: packet.route }
+        inputs.packet = { files: packet.files }
+      } catch (error) {
+        const message = `The planning packet could not be prepared: ${error instanceof Error ? error.message : error}`
+        await this.worker(`/api/planning/records/${encodeURIComponent(planningRecord)}/fail`, { message }).catch(() => {})
+        throw new Error(message)
+      }
+    }
     // Continue from accepted work (issue #8): an explicit resume block in the
     // inputs names the prior run; its reviewed artifacts are carried into this
     // run's fresh directory, so accepted scenes keep their review state instead
@@ -222,19 +255,79 @@ export class RunManager {
         adapter: options.adapter.id,
         projectDir,
         status: 'running',
+        ...(typeof inputs.model === 'string' && inputs.model ? { model: inputs.model } : {}),
         startedAt: new Date().toISOString(),
       },
       controller: new AbortController(),
       resumeId: options.resumeId,
       inputs,
       options,
+      ...(planningRecord ? { planningRecord } : {}),
     }
     this.runs.set(id, record)
     await this.writeInputs(record)
     await this.writeRunFile(record)
     await this.persistRun(record)
+    // The record learns which run serves it before the run does anything. A
+    // record that already finished (superseded, failed, cancelled) is not run.
+    if (planningRecord) {
+      try {
+        await this.worker(`/api/planning/records/${encodeURIComponent(planningRecord)}/run`, {
+          runId: id,
+          adapter: options.adapter.id,
+          ...(typeof inputs.model === 'string' ? { model: inputs.model } : {}),
+        })
+      } catch (error) {
+        await this.finish(record, 'cancelled', 0)
+        throw new Error(`This planning request can no longer run: ${error instanceof Error ? error.message : error}`)
+      }
+    }
     void this.attempt(record)
     return { ...record.summary }
+  }
+
+  // The harness said which model its session runs: the run and a planning
+  // record keep that, not only the model that was asked for.
+  private async sessionModel(record: RunRecord, model: string) {
+    if (record.summary.model === model) return
+    record.summary.model = model
+    await this.writeRunFile(record).catch(() => {})
+    await this.persistRun(record).catch(() => {})
+    if (record.planningRecord) {
+      await this.worker(`/api/planning/records/${encodeURIComponent(record.planningRecord)}/run`, {
+        runId: record.summary.id,
+        adapter: record.summary.adapter,
+        model,
+      }).catch(error => log('planning record kept the requested model:', error instanceof Error ? error.message : error))
+    }
+  }
+
+  private async worker(path: string, body?: unknown) {
+    const response = await fetch(`${this.context.origin}${path}`, {
+      method: body === undefined ? 'GET' : 'POST',
+      headers: { 'content-type': 'application/json' },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    })
+    const result = (await response.json().catch(() => ({}))) as Record<string, unknown>
+    if (!response.ok) throw new Error(String(result.error || `the studio answered ${response.status}`))
+    return result
+  }
+
+  // Writes the pinned packet into the run directory. Only packet/ paths are
+  // accepted, and none may leave the directory.
+  private async materialisePacket(recordId: string, projectDir: string) {
+    const packet = (await this.worker(`/api/planning/records/${encodeURIComponent(recordId)}/packet`)) as { route?: string; files?: Record<string, string> }
+    const root = resolve(projectDir)
+    const written: string[] = []
+    for (const [name, contents] of Object.entries(packet.files || {})) {
+      const path = resolve(root, name)
+      if (!name.startsWith('packet/') || !path.startsWith(root + sep)) throw new Error(`unexpected packet path ${name}`)
+      await mkdir(join(path, '..'), { recursive: true })
+      await writeFile(path, contents)
+      written.push(name)
+    }
+    if (!written.length) throw new Error('the packet is empty')
+    return { route: String(packet.route || ''), files: written.sort() }
   }
 
   private async attempt(record: RunRecord) {
@@ -253,7 +346,11 @@ export class RunManager {
           inputs: record.inputs,
           resumeId: record.resumeId,
         },
-        event => this.emit(runId, event),
+        event => {
+          if (event.type === 'error' && event.error) record.lastError = event.error
+          if (event.type === 'session' && event.model) void this.sessionModel(record, event.model)
+          this.emit(runId, event)
+        },
         record.controller.signal,
       )
     } catch (error) {
@@ -406,6 +503,15 @@ export class RunManager {
     record.summary.resumeId = record.resumeId
     await this.writeRunFile(record).catch(() => {})
     await this.persistRun(record, exitCode)
+    // A planning run that ended without submitting leaves its record failed,
+    // with the provider's last word; one that submitted is already settled.
+    if (record.planningRecord) {
+      await this.worker(`/api/planning/runs/${encodeURIComponent(record.summary.id)}/finished`, {
+        status,
+        exitCode,
+        ...(record.lastError ? { error: record.lastError } : {}),
+      }).catch(error => log('planning finish report failed:', error instanceof Error ? error.message : error))
+    }
     this.emit(record.summary.id, { type: 'done', ts: Date.now(), exitCode, status })
     log(`run ${record.summary.id} ${status} (adapter ${record.summary.adapter})`)
   }

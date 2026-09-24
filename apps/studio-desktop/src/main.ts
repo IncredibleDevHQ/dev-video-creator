@@ -224,10 +224,34 @@ const mcpPreHandler = async (
     }
     return true
   }
+  // GET /__capture — the same TEST HOOK gate: a PNG of the main window, for
+  // check scripts that record what the creator saw.
+  if (url.pathname === '/__capture' && request.method === 'GET' && process.env.STUDIO_ENABLE_TEST_HOOKS === '1') {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      response.writeHead(503, { 'content-type': 'text/plain' })
+      response.end('no main window')
+      return true
+    }
+    // An occluded or busy window can hold its next frame back; never hang.
+    const image = await Promise.race([
+      mainWindow.webContents.capturePage(),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 15_000)),
+    ])
+    if (!image) {
+      response.writeHead(504, { 'content-type': 'text/plain' })
+      response.end('the window did not paint a frame in time')
+      return true
+    }
+    response.writeHead(200, { 'content-type': 'image/png' })
+    response.end(image.toPNG())
+    return true
+  }
   if (url.pathname !== '/mcp' || request.method !== 'POST') return false
   const chunks: Buffer[] = []
   for await (const chunk of request) chunks.push(chunk as Buffer)
   const origin = `http://${request.headers.host}`
+  // The run's capability scope travels in its MCP URL (see the adapters).
+  const scope = url.searchParams.get('scope') === 'planning' ? ('planning' as const) : undefined
   const write = (status: number, value: unknown) => {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
     response.end(JSON.stringify(value))
@@ -242,13 +266,13 @@ const mcpPreHandler = async (
   if (Array.isArray(message)) {
     const results = []
     for (const entry of message) {
-      const result = await handleMcpMessage(entry, { origin })
+      const result = await handleMcpMessage(entry, { origin, scope })
       if (result) results.push(result)
     }
     write(200, results)
     return true
   }
-  const result = await handleMcpMessage(message as Record<string, unknown>, { origin })
+  const result = await handleMcpMessage(message as Record<string, unknown>, { origin, scope })
   write(200, result || {})
   return true
 }

@@ -1,0 +1,268 @@
+{
+	"upstream": "https://github.com/heygen-com/hyperframes",
+	"commit": "99221c50a5e5927ca243454b4e4f02f9adf7cfc6",
+	"license": "Apache-2.0 (LICENSE, verbatim)",
+	"vendoredAt": "2026-09-24",
+	"files": [
+		{
+			"path": "LICENSE",
+			"blob": "ae06b37e1c5116ccfaa615ac25ec1aabf5658d8c",
+			"bytes": 10763
+		},
+		{
+			"path": "skills/faceless-explainer/references/story-design.md",
+			"blob": "8266855e7a570dd8d46eaa11d9b916a7314e9740",
+			"bytes": 20924
+		},
+		{
+			"path": "skills/faceless-explainer/references/visual-design.md",
+			"blob": "9c65b208271d158128491e51573a81f75de78c35",
+			"bytes": 20692
+		},
+		{
+			"path": "skills/general-video/SKILL.md",
+			"blob": "223880b16466115f61ffde5d5797a08f03256586",
+			"bytes": 20864
+		},
+		{
+			"path": "skills/hyperframes-animation/SKILL.md",
+			"blob": "8571c1005222f15caafbe5dedb238f9832591d92",
+			"bytes": 7924
+		},
+		{
+			"path": "skills/hyperframes-animation/blueprints-index.md",
+			"blob": "864a68b7555998de0bbc5f47df8565d29701d1b7",
+			"bytes": 26512
+		},
+		{
+			"path": "skills/hyperframes-animation/references/motion-blur.md",
+			"blob": "483762c641fd550340470cc6256044350b2fc01f",
+			"bytes": 12792
+		},
+		{
+			"path": "skills/hyperframes-animation/rules-index.md",
+			"blob": "8568d22791ec1ef7690c175df6bf5cfeecf33559",
+			"bytes": 21204
+		},
+		{
+			"path": "skills/hyperframes-animation/techniques.md",
+			"blob": "88abb439bf9bc1b4cd00ce72dd029c79966f8944",
+			"bytes": 15772
+		},
+		{
+			"path": "skills/hyperframes-audio/SKILL.md",
+			"blob": "2fbedd407dd2f014e44cd98bd880fff5d05001ac",
+			"bytes": 25578
+		},
+		{
+			"path": "skills/hyperframes-core/SKILL.md",
+			"blob": "f7555e09d43228382e5e72935b651f18e22da38f",
+			"bytes": 12153
+		},
+		{
+			"path": "skills/hyperframes-core/references/composition-patterns.md",
+			"blob": "cdb337883bdf89263d937efbea409eb51401d2a2",
+			"bytes": 10853
+		},
+		{
+			"path": "skills/hyperframes-creative/SKILL.md",
+			"blob": "4c41dfd7fcd47b84ec2ee8c92289a3894a5bced6",
+			"bytes": 6354
+		},
+		{
+			"path": "skills/hyperframes-creative/references/audio-reactive.md",
+			"blob": "69549bbebac1a16b5696c58e8b715949e7e675d1",
+			"bytes": 3062
+		},
+		{
+			"path": "skills/hyperframes-creative/references/beat-direction.md",
+			"blob": "b1d436a5b9b371452e2186c9489cf1c7ee78616c",
+			"bytes": 13640
+		},
+		{
+			"path": "skills/hyperframes-creative/references/composition-patterns.md",
+			"blob": "e2ddb391c06f492897dc49e8762f7235b9634418",
+			"bytes": 5685
+		},
+		{
+			"path": "skills/hyperframes-creative/references/data-in-motion.md",
+			"blob": "0578cd155a7bbc1c3af7e31d1a6ce7f6416e86f3",
+			"bytes": 1274
+		},
+		{
+			"path": "skills/hyperframes-creative/references/design-adherence.md",
+			"blob": "130d469df25aed5f057c81e507b22226417da43b",
+			"bytes": 1423
+		},
+		{
+			"path": "skills/hyperframes-creative/references/design-picker.md",
+			"blob": "b0a9019226c9885fb6a385a93c94f51bbcd6b9c8",
+			"bytes": 12221
+		},
+		{
+			"path": "skills/hyperframes-creative/references/design-spec.md",
+			"blob": "696f91d95fac415a6afdc1fd7a5e8df5cd21fe8b",
+			"bytes": 10498
+		},
+		{
+			"path": "skills/hyperframes-creative/references/house-style.md",
+			"blob": "2455737525af4413e1c0855c6041107746b57cc6",
+			"bytes": 5025
+		},
+		{
+			"path": "skills/hyperframes-creative/references/motion-principles.md",
+			"blob": "44a4604a6ed49a6fb3d9ab883d8a48a056676093",
+			"bytes": 9335
+		},
+		{
+			"path": "skills/hyperframes-creative/references/narration.md",
+			"blob": "c28fff2ee65ec0620db9033a62834c6aa580384e",
+			"bytes": 3482
+		},
+		{
+			"path": "skills/hyperframes-creative/references/prompt-expansion.md",
+			"blob": "ef6450d46c289e1027250a87e857835f9b68c75f",
+			"bytes": 5707
+		},
+		{
+			"path": "skills/hyperframes-creative/references/story-spine.md",
+			"blob": "f87cd872a8a8c60846e0259c6dc2d90a45f120ad",
+			"bytes": 4154
+		},
+		{
+			"path": "skills/hyperframes-creative/references/storyboard-recipe.md",
+			"blob": "78211d670f9930a3a500aabf2710ede0ef3f9015",
+			"bytes": 7242
+		},
+		{
+			"path": "skills/hyperframes-creative/references/typography.md",
+			"blob": "ccd2a6388cba0885ce29e81acd3b2748671319ce",
+			"bytes": 14481
+		},
+		{
+			"path": "skills/hyperframes-creative/references/video-composition.md",
+			"blob": "fb2a19320a30e10a9801b93e2053f30dde737aa6",
+			"bytes": 4298
+		},
+		{
+			"path": "skills/hyperframes-creative/references/visual-styles.md",
+			"blob": "621ff9e6bfd4f0fd4b2e8c0e2a121939082bf3ea",
+			"bytes": 11967
+		},
+		{
+			"path": "skills/hyperframes-keyframes/SKILL.md",
+			"blob": "0640bd6c9c5f6622f80e7c26432e26d991ab6863",
+			"bytes": 15901
+		},
+		{
+			"path": "skills/hyperframes-registry/SKILL.md",
+			"blob": "5a5096f3dab750feb0a710771a8ad5604f51fed7",
+			"bytes": 9643
+		},
+		{
+			"path": "skills/hyperframes/SKILL.md",
+			"blob": "884cbd65a044112fbefdf8a72fc23e0e37045d55",
+			"bytes": 16760
+		},
+		{
+			"path": "skills/hyperframes/references/brief-contract.md",
+			"blob": "a1805f7672968195b968b2fd50864020000234f1",
+			"bytes": 11889
+		},
+		{
+			"path": "skills/hyperframes/references/brief-format.md",
+			"blob": "04d0972617916d0cff68d3e9297472a9d2dcfce9",
+			"bytes": 7090
+		},
+		{
+			"path": "skills/hyperframes/references/capability-menu.md",
+			"blob": "98c3662d9cade84c6dc69121492a628cd1695820",
+			"bytes": 15611
+		},
+		{
+			"path": "skills/hyperframes/references/review-loop.md",
+			"blob": "c3b248b35b075a466f1909c7a36c4451243a9ae0",
+			"bytes": 6122
+		},
+		{
+			"path": "skills/hyperframes/references/route-briefs.md",
+			"blob": "2a5e9dcdf556f8cb3d48719d2c1ad749a4c6a318",
+			"bytes": 579
+		},
+		{
+			"path": "skills/hyperframes/references/routes/faceless-explainer.md",
+			"blob": "b75b6ed311a316fad9b99bb934d1fd2f61b2a6f0",
+			"bytes": 1020
+		},
+		{
+			"path": "skills/hyperframes/references/routes/general-video.md",
+			"blob": "d3e7c2d2b871e04f870143edff7f25f73ca7c89e",
+			"bytes": 1374
+		},
+		{
+			"path": "skills/hyperframes/references/routes/motion-graphics.md",
+			"blob": "049483a3cc9833925cb05760f741b1e98e7a0a29",
+			"bytes": 864
+		},
+		{
+			"path": "skills/hyperframes/references/routes/talking-head-recut.md",
+			"blob": "42ec6e65b3af1aabaf70cdc539ed6a8e6ee69a25",
+			"bytes": 765
+		},
+		{
+			"path": "skills/hyperframes/references/script-format.md",
+			"blob": "94bfe04483d9e7cfd5fe6b19855301eb259272e7",
+			"bytes": 2778
+		},
+		{
+			"path": "skills/hyperframes/references/skill-lifecycle.md",
+			"blob": "cf5c79d05ee880cde8c86a4b199b642151eec88e",
+			"bytes": 1901
+		},
+		{
+			"path": "skills/hyperframes/references/storyboard-format.md",
+			"blob": "7d84f4cbf7e2b48e1ced8d88224245b43f39e776",
+			"bytes": 5781
+		},
+		{
+			"path": "skills/hyperframes/references/workflow-catalog.md",
+			"blob": "934de53086041e3bfea4048f632157bde7fdd363",
+			"bytes": 458
+		},
+		{
+			"path": "skills/media-use/SKILL.md",
+			"blob": "d9debca6802acde1b390dcb00d7212ba6ab5bf76",
+			"bytes": 7976
+		},
+		{
+			"path": "skills/motion-graphics/SKILL.md",
+			"blob": "0aba87e475856342ed3f8edeee393d34a1eaa571",
+			"bytes": 15671
+		},
+		{
+			"path": "skills/motion-graphics/agents/director.md",
+			"blob": "b2206181ca0702b76e6c1c857452fc1312b262cf",
+			"bytes": 6078
+		},
+		{
+			"path": "skills/motion-graphics/catalog-map.md",
+			"blob": "b0da00bd08e21bbf1d2ac71c080a531476238542",
+			"bytes": 10641
+		},
+		{
+			"path": "skills/motion-graphics/references/motion-vocabulary.md",
+			"blob": "71779a3ecef034a5fa42b214354ec8180edacfcd",
+			"bytes": 3978
+		},
+		{
+			"path": "skills/motion-graphics/references/shot-plan-ir.md",
+			"blob": "5a847af7d6314432d7d61d2099a6cf56f86ca099",
+			"bytes": 2616
+		},
+		{
+			"path": "skills/talking-head-recut/SKILL.md",
+			"blob": "128bac4c5657f3a3b14209678b2ba085447eee4e",
+			"bytes": 65847
+		}
+	]
+}

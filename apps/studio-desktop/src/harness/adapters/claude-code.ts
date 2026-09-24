@@ -11,17 +11,18 @@ import type {
   HarnessEvent,
   HarnessRun,
 } from '../types'
-import { probeVersion, spawnJsonLines } from './util'
+import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
+import { claudeModels, compareVersions } from '../models'
 import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 
 // Where Claude Code lives on a developer machine. The Claude desktop app
 // ships its own copy under Application Support (versioned folders) and never
 // puts `claude` on PATH; the npm/curl installs land in ~/.local/bin or
-// ~/.claude/local; Homebrew in /opt/homebrew/bin. Order: an explicit
-// STUDIO_CLAUDE_BIN, the known install paths, the newest desktop bundle,
-// then whatever PATH resolves.
+// ~/.claude/local; Homebrew in /opt/homebrew/bin. An explicit
+// STUDIO_CLAUDE_BIN wins; otherwise the newest working copy is used, since a
+// newer model can need a newer CLI than the one first on the list.
 const desktopBundles = () => {
   const roots = [
     join(homedir(), 'Library', 'Application Support', 'Claude', 'claude-code'),
@@ -70,7 +71,8 @@ let resolvedBinary: { path: string; version: string } | null = null
 /**
  * The binary to run: an explicit STUDIO_CLAUDE_BIN is trusted as long as it
  * exists (it may be a wrapper or a test stub that does not answer
- * --version); auto-discovered candidates must answer --version. Cached.
+ * --version); auto-discovered candidates must answer --version, and the
+ * newest of them is used. Cached.
  */
 export const resolveClaudeBinary = async () => {
   if (resolvedBinary) return resolvedBinary
@@ -81,17 +83,23 @@ export const resolveClaudeBinary = async () => {
     return resolvedBinary
   }
   const tried: string[] = explicit ? [`${explicit} (STUDIO_CLAUDE_BIN, missing)`] : []
-  for (const candidate of claudeBinaryCandidates().filter(path => path !== explicit)) {
+  let newest: { path: string; version: string } | null = null
+  for (const candidate of [...new Set(claudeBinaryCandidates().filter(path => path !== explicit))]) {
     if (candidate !== 'claude' && !existsSync(candidate)) {
       tried.push(candidate)
       continue
     }
     const probe = await probeVersion(candidate)
-    if (probe.ok) {
-      resolvedBinary = { path: candidate, version: probe.version || '' }
-      return resolvedBinary
+    if (!probe.ok) {
+      tried.push(`${candidate} (${probe.reason || 'no answer'})`)
+      continue
     }
-    tried.push(`${candidate} (${probe.reason || 'no answer'})`)
+    const version = probe.version || ''
+    if (!newest || compareVersions(version, newest.version) > 0) newest = { path: candidate, version }
+  }
+  if (newest) {
+    resolvedBinary = newest
+    return resolvedBinary
   }
   return { path: null as string | null, tried }
 }
@@ -108,7 +116,7 @@ const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
           studio: {
             command: 'node',
             args: [context.mcpShimPath],
-            env: { STUDIO_MCP_URL: `${context.origin}/mcp` },
+            env: { STUDIO_MCP_URL: studioMcpUrl(context.origin, run.inputs) },
           },
         },
       },
@@ -152,11 +160,18 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
   }
   if (message.type === 'result') {
     if (typeof message.result === 'string' && message.result) {
-      onEvent({ type: 'text', ts, text: message.result })
+      // The CLI reports provider refusals (an unsupported model, an API
+      // error) as a result flagged is_error; that text is the useful status.
+      if (message.is_error === true) onEvent({ type: 'error', ts, error: message.result.slice(0, 400) })
+      else onEvent({ type: 'text', ts, text: message.result })
     }
     return
   }
-  if (message.type === 'system' && message.subtype === 'init') return
+  // The session's own account of the model it runs.
+  if (message.type === 'system' && message.subtype === 'init') {
+    if (typeof message.model === 'string' && message.model) onEvent({ type: 'session', ts, model: message.model })
+    return
+  }
 }
 
 export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter => ({
@@ -168,6 +183,10 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       ok: false,
       reason: `claude not found — set STUDIO_CLAUDE_BIN or install it (npm i -g @anthropic-ai/claude-code). Looked in: ${('tried' in found ? found.tried : []).slice(0, 6).join(', ')}`,
     }
+  },
+  models: async () => {
+    const found = await resolveClaudeBinary()
+    return claudeModels(found.path && 'version' in found ? found.version : '')
   },
   async run(run, onEvent, signal) {
     const found = await resolveClaudeBinary()
@@ -185,26 +204,31 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       '--permission-mode',
       'acceptEdits',
       '--allowedTools',
-      'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
+      // A planning run gets no shell at all: it reads, writes its plan and
+      // calls the planning tools, nothing else.
+      run.inputs.capabilityScope === 'planning' ? 'Read,Write,Edit,Glob,Grep,mcp__studio__plan_*' : 'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
       '--mcp-config',
       mcpConfig,
     ]
     if (typeof run.inputs.model === 'string' && run.inputs.model) args.push('--model', run.inputs.model)
     if (run.resumeId) args.push('--resume', run.resumeId)
-    const state: { resumeId?: string } = {}
+    const state: { resumeId?: string; reportedError?: boolean } = {}
     let stderrTail = ''
     const { exitCode } = await spawnJsonLines({
       command: found.path,
       args,
       cwd: run.projectDir,
       env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill) },
-      onLine: line => emitLine(line, onEvent, state),
+      onLine: line => emitLine(line, event => {
+        if (event.type === 'error') state.reportedError = true
+        onEvent(event)
+      }, state),
       onStderr: text => {
         stderrTail = (stderrTail + text).slice(-1_200)
       },
       signal,
     })
-    if (exitCode !== 0 && stderrTail.trim()) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400) })
+    if (exitCode !== 0 && stderrTail.trim() && !state.reportedError) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400) })
     return { resumeId: state.resumeId, exitCode }
   },
 })

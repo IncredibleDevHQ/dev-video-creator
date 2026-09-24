@@ -4,7 +4,8 @@ import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/p
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
-import type { BuildRunInput, BuildRunRow, BuildStageInput } from './persistence'
+import type { BuildRunInput, BuildRunRow, BuildStageInput, NewPlanningRecord, PlanningInputRow, PlanningRecordPatch } from './persistence'
+import type { PlanningRecord, PlanningStatus } from '../src/planning/planning-records'
 
 const dataDirectory = () =>
   process.env.STUDIO_DATA_DIR ||
@@ -439,6 +440,102 @@ export const saveExplanationModel = async (input: {
   await appendCapped('explanation-models', { id, ...input, hash, createdAt: new Date().toISOString() })
   return { id, hash }
 }
+
+// ——— Planning records (M0), file-backend variant ———
+// One file for the records and the creator's planning inputs. Every change
+// is read-modify-write under one lock, so a compare-and-swap here means the
+// same as in Postgres: a late result cannot overwrite newer work.
+type PlanningFile = { records: PlanningRecord[]; inputs: PlanningInputRow[] }
+const planningPath = () => join(dataDirectory(), 'planning.json')
+let planningLock: Promise<unknown> = Promise.resolve()
+const withPlanning = <T>(change: (file: PlanningFile) => T | Promise<T>, write = true): Promise<T> => {
+  const next = planningLock.then(async () => {
+    await initializePersistence()
+    const file = (await readJsonFile<PlanningFile>(planningPath())) || { records: [], inputs: [] }
+    const result = await change(file)
+    if (write) await writeFileAtomic(planningPath(), JSON.stringify(file))
+    return result
+  })
+  planningLock = next.catch(() => undefined)
+  return next
+}
+const copy = <T>(value: T): T => structuredClone(value)
+
+export const createPlanningRecord = (record: NewPlanningRecord): Promise<PlanningRecord> =>
+  withPlanning(file => {
+    const revision =
+      Math.max(0, ...file.records.filter(entry => entry.projectId === record.projectId && entry.kind === record.kind && entry.subject === (record.subject || '')).map(entry => entry.revision)) + 1
+    const at = new Date().toISOString()
+    const created: PlanningRecord = {
+      id: `plan-${record.kind}-${randomUUID()}`,
+      kind: record.kind,
+      projectId: record.projectId,
+      subject: record.subject || '',
+      revision,
+      status: 'queued',
+      fingerprint: record.fingerprint,
+      inputs: record.inputs || {},
+      content: null,
+      report: null,
+      artifacts: null,
+      runId: null,
+      adapter: record.adapter || null,
+      model: record.model || null,
+      skillBundle: record.skillBundle || null,
+      workflow: record.workflow || null,
+      direction: record.direction || '',
+      error: null,
+      createdAt: at,
+      updatedAt: at,
+      reviewedAt: null,
+    }
+    file.records.push(created)
+    return copy(created)
+  })
+
+export const listPlanningRecords = (projectId: string): Promise<PlanningRecord[]> =>
+  withPlanning(
+    file =>
+      copy(
+        file.records
+          .filter(entry => entry.projectId === projectId)
+          .sort((a, b) => a.kind.localeCompare(b.kind) || a.subject.localeCompare(b.subject) || b.revision - a.revision),
+      ),
+    false,
+  )
+
+export const loadPlanningRecord = (id: string): Promise<PlanningRecord | null> =>
+  withPlanning(file => copy(file.records.find(entry => entry.id === id) || null), false)
+
+export const updatePlanningRecord = (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[]): Promise<PlanningRecord | null> =>
+  withPlanning(file => {
+    const record = file.records.find(entry => entry.id === id)
+    if (!record || (expected?.length && !expected.includes(record.status))) return null
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) (record as Record<string, unknown>)[key] = value
+    }
+    record.updatedAt = new Date().toISOString()
+    return copy(record)
+  })
+
+export const listPlanningRecordsForRun = (runId: string): Promise<PlanningRecord[]> =>
+  withPlanning(file => copy(file.records.filter(entry => entry.runId === runId)), false)
+
+export const listPlanningInputs = (projectId: string): Promise<PlanningInputRow[]> =>
+  withPlanning(file => copy(file.inputs.filter(entry => entry.projectId === projectId)), false)
+
+export const savePlanningInput = (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }): Promise<PlanningInputRow> =>
+  withPlanning(file => {
+    let row = file.inputs.find(entry => entry.projectId === input.projectId && entry.subject === (input.subject || ''))
+    if (!row) {
+      row = { projectId: input.projectId, subject: input.subject || '', direction: '', delivery: null, updatedAt: '' }
+      file.inputs.push(row)
+    }
+    if (input.direction !== undefined) row.direction = input.direction
+    if (input.delivery !== undefined) row.delivery = input.delivery
+    row.updatedAt = new Date().toISOString()
+    return copy(row)
+  })
 
 // ——— Durable build runs and stage checkpoints (D3), file-backend variant ——
 export const saveBuildRun = async (run: BuildRunInput) => {

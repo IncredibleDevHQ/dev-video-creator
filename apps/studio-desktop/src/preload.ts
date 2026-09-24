@@ -36,6 +36,8 @@ export type AdapterAvailability = {
   ok: boolean
   version?: string
   reason?: string
+  // The models the harness can run; `default` is what the CLI runs unnamed.
+  models?: { default: string | null; options: Array<{ id: string; label: string; unavailable?: string }>; source: string }
 }
 
 const bridge = {
