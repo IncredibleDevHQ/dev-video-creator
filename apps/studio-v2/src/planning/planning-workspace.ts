@@ -33,7 +33,7 @@ export type PlanningOverviewV1 = {
   bundle: { name: string; version: string; hash: string; upstreamCommit: string } | null
   baseTitle: string
   baseLimitation: string | null
-  brief: { current: PlanningRecord | null; latest: PlanningRecord | null; stale: boolean }
+  brief: { current: PlanningRecord | null; latest: PlanningRecord | null; stale: boolean; staleBecause: string | null }
   scenes: SceneRow[]
   videoDirection: string
   basePages: BasePage[]
@@ -491,7 +491,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     return h(
       'div',
       { class: 'planning-pane' },
-      overview!.brief.stale ? h('p', { class: 'planning-warn', text: 'The inputs have moved since this brief was made (source, scripts, theme or direction). Prepare it again to plan from the current state.' }) : null,
+      overview!.brief.stale ? h('p', { class: 'planning-warn', text: `Stale — ${overview!.brief.staleBecause || 'its inputs changed since it was made'}. Scenes can still be planned from it; prepare it again to take the change into the brief.` }) : null,
       h('p', { class: 'planning-message' }, h('strong', { text: 'Message. ' }), brief.purpose.message),
       h('p', { class: 'planning-muted', text: `${brief.purpose.deliverable} · ${brief.purpose.audience} · ${brief.purpose.requestedSeconds ? `about ${brief.purpose.requestedSeconds}s requested` : 'no length requested'} · wording ${brief.source.wordingPolicy} · source ${brief.source.coverage}` }),
       h('h4', { text: 'This scene' }),

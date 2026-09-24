@@ -11,7 +11,7 @@
 // readable, never silently treated as current, and never able to overwrite
 // newer work. A newer run supersedes an older one for the same subject; the
 // last reviewed plan stays in place while a new candidate runs or fails.
-import { fingerprintOf } from './fingerprint'
+import { fingerprintOf, stableJson } from './fingerprint'
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
 
@@ -83,6 +83,44 @@ export type TreatmentInputs = {
 }
 
 export const briefFingerprint = (inputs: BriefInputs) => fingerprintOf({ kind: 'brief', ...inputs })
+
+// What moved, in the creator's words, when a result no longer matches its
+// inputs. A key missing from the labels is bookkeeping and never named.
+const BRIEF_INPUT_LABELS: Record<string, string> = {
+  baseNotebook: 'the base notebook',
+  baseRevision: 'the base it was forked from',
+  sourceRevision: 'the retained source',
+  narrativeRevision: 'the narrative',
+  modelRevision: 'the story model',
+  wordingPolicy: 'the wording policy',
+  scripts: 'the scene scripts',
+  themeRef: 'the theme',
+  requestedSeconds: 'the requested length',
+  videoDirection: 'the video direction',
+  sceneDecisions: 'the delivery decisions',
+  bundleHash: 'the planning skills',
+}
+const TREATMENT_INPUT_LABELS: Record<string, string> = {
+  originScenes: 'the scene\'s base pages',
+  direction: 'the scene direction',
+  videoDirection: 'the video direction',
+  script: 'the scene\'s script',
+  delivery: 'the scene\'s delivery',
+  themeRef: 'the theme',
+  bundleHash: 'the planning skills',
+}
+
+export const changedInputs = (made: Record<string, unknown>, now: Record<string, unknown>, labels: Record<string, string>) =>
+  Object.keys(labels).filter(key => stableJson(made[key] ?? null) !== stableJson(now[key] ?? null)).map(key => labels[key])
+
+const sentence = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items[0] || '')
+
+// Why the current brief no longer matches its inputs, or null.
+export const briefStaleBecause = (brief: PlanningRecord | null, fingerprint: string, now: BriefInputs) => {
+  if (!brief || brief.fingerprint === fingerprint) return null
+  const moved = changedInputs(brief.inputs, now, BRIEF_INPUT_LABELS)
+  return `${moved.length ? sentence(moved) : 'its inputs'} changed since it was made`
+}
 export const treatmentFingerprint = (inputs: TreatmentInputs) => fingerprintOf({ kind: 'treatment', ...inputs })
 
 // The states the planning workspace shows for a scene.
@@ -119,7 +157,7 @@ export const latestBrief = (records: PlanningRecord[]) =>
 export const scenePlanningView = (
   records: PlanningRecord[],
   scene: string,
-  now: { briefFingerprint: string | null; treatmentFingerprint: string | null },
+  now: { briefFingerprint: string | null; treatmentFingerprint: string | null; treatmentInputs?: Record<string, unknown> },
 ): ScenePlanningView => {
   const brief = currentBrief(records)
   const newestBrief = latestBrief(records)
@@ -127,11 +165,12 @@ export const scenePlanningView = (
   const latest = mine[0] || null
   const reviewed = mine.find(record => record.status === 'reviewed') || null
   const current = mine.find(record => record.status === 'candidate' || record.status === 'reviewed') || null
+  const moved = current && now.treatmentInputs ? changedInputs(current.inputs, now.treatmentInputs, TREATMENT_INPUT_LABELS) : []
   const staleBecause =
     current && now.treatmentFingerprint && current.fingerprint !== now.treatmentFingerprint
       ? brief && current.inputs.briefId !== brief.id
         ? 'the explanation brief has changed since this plan was made'
-        : 'its inputs changed since it was made (direction, theme or source)'
+        : `${moved.length ? sentence(moved) : 'its inputs'} changed since this plan was made`
       : null
   let state: ScenePlanningState
   if (!brief) state = newestBrief?.status === 'failed' ? 'brief-failed' : 'preparing'

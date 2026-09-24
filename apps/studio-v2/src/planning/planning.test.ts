@@ -4,7 +4,7 @@ import { buildCapabilityCatalog, parseBlueprintsIndex, parseRulesIndex, parseTec
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './explanation-brief'
 import { validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from './brief-adapter'
-import { landingFor, scenePlanningView, type PlanningRecord } from './planning-records'
+import { briefStaleBecause, landingFor, scenePlanningView, type BriefInputs, type PlanningRecord } from './planning-records'
 
 // A retained article, short enough to read in a test.
 const SOURCE = `Rate limiting with a token bucket
@@ -333,6 +333,17 @@ describe('planning states', () => {
     const view = scenePlanningView([brief, record({ id: 't1', status: 'candidate', fingerprint: 'old' })], 'video-s01', { briefFingerprint: 'b', treatmentFingerprint: 'new' })
     expect(view.state).toBe('stale')
     expect(view.staleBecause).toMatch(/inputs changed/)
+  })
+
+  it('names what moved when a plan or the brief goes stale', () => {
+    const made = { briefId: 'brief-1', scene: 'video-s01', direction: 'Calm', videoDirection: '', delivery: null, script: 'A bucket holds tokens.', themeRef: 't1', bundleHash: 'h', originScenes: ['base-1'] }
+    const plan = record({ id: 't1', status: 'reviewed', fingerprint: 'old', inputs: made })
+    const view = scenePlanningView([brief, plan], 'video-s01', { briefFingerprint: 'b', treatmentFingerprint: 'new', treatmentInputs: { ...made, delivery: 'human', script: 'A bucket holds tokens, one per request.' } })
+    expect(view.staleBecause).toBe('the scene\'s script and the scene\'s delivery changed since this plan was made')
+    const inputs: BriefInputs = { baseNotebook: 'b', baseRevision: 'r1', sourceRevision: 's1', narrativeRevision: null, modelRevision: null, wordingPolicy: 'draft', scripts: [], themeRef: 't1', requestedSeconds: 360, videoDirection: '', sceneDecisions: [], bundleHash: 'h' }
+    const ready = record({ id: 'brief-1', kind: 'brief', subject: '', status: 'ready', fingerprint: 'b1', inputs })
+    expect(briefStaleBecause(ready, 'b1', inputs)).toBeNull()
+    expect(briefStaleBecause(ready, 'b2', { ...inputs, sceneDecisions: [{ scene: 'video-s01', voice: 'human' }] })).toBe('the delivery decisions changed since it was made')
   })
 
   it('waits for the brief before a scene can plan', () => {

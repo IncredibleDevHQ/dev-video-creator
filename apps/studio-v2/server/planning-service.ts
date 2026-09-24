@@ -36,6 +36,7 @@ import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/
 import {
   ACTIVE_STATUSES,
   briefFingerprint,
+  briefStaleBecause,
   currentBrief,
   landingFor,
   scenePlanningView,
@@ -261,12 +262,17 @@ export const planningOverview = async (projectId: string) => {
       current: brief,
       latest: records.filter(record => record.kind === 'brief').sort((a, b) => b.revision - a.revision)[0] || null,
       stale: Boolean(brief && brief.fingerprint !== fingerprints.brief),
+      staleBecause: briefStaleBecause(brief, fingerprints.brief, briefInputsOf(planning)),
     },
     scenes: planning.videoScenes.map(scene => ({
       ...scene,
       direction: directionFor(planning, scene.id),
       delivery: deliveryFor(planning, scene.id),
-      view: scenePlanningView(records, scene.id, { briefFingerprint: fingerprints.brief, treatmentFingerprint: fingerprints.scenes[scene.id] }),
+      view: scenePlanningView(records, scene.id, {
+        briefFingerprint: fingerprints.brief,
+        treatmentFingerprint: fingerprints.scenes[scene.id],
+        ...(brief ? { treatmentInputs: treatmentInputsOf(planning, brief, scene.id) } : {}),
+      }),
     })),
     videoDirection: directionFor(planning, ''),
     basePages: planning.basePages,
