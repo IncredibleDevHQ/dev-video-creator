@@ -538,6 +538,157 @@ export const saveExplanationModel = async (input: {
 import type { BuildRunInput, BuildRunRow, BuildStageInput } from './persistence'
 
 // ——— Durable build runs and stage checkpoints (D3) ———
+// ——— Planning records (M0) ———
+const iso = (value: unknown) => (value ? new Date(value as string).toISOString() : null)
+const planningRecordFrom = (row: Record<string, unknown>): PlanningRecord => ({
+  id: String(row.id),
+  kind: row.kind as PlanningRecord['kind'],
+  projectId: String(row.project_id),
+  subject: String(row.subject || ''),
+  revision: Number(row.revision),
+  status: row.status as PlanningStatus,
+  fingerprint: String(row.fingerprint),
+  inputs: (row.inputs as Record<string, unknown>) || {},
+  content: (row.content as PlanningRecord['content']) ?? null,
+  report: (row.report as PlanningRecord['report']) ?? null,
+  artifacts: (row.artifacts as PlanningRecord['artifacts']) ?? null,
+  runId: (row.run_id as string | null) ?? null,
+  adapter: (row.adapter as string | null) ?? null,
+  model: (row.model as string | null) ?? null,
+  skillBundle: (row.skill_bundle as PlanningRecord['skillBundle']) ?? null,
+  workflow: (row.workflow as string | null) ?? null,
+  direction: String(row.direction || ''),
+  error: (row.error as PlanningRecord['error']) ?? null,
+  createdAt: iso(row.created_at) || '',
+  updatedAt: iso(row.updated_at) || '',
+  reviewedAt: iso(row.reviewed_at),
+})
+
+// The next revision for the subject is taken inside the insert; two
+// concurrent queues for the same subject meet the unique key and the loser
+// retries with the revision after.
+export const createPlanningRecord = async (record: NewPlanningRecord): Promise<PlanningRecord> => {
+  await initializePersistence()
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const id = `plan-${record.kind}-${randomUUID()}`
+    try {
+      const result = await database.query(
+        `insert into studio_planning_records
+          (id, project_id, kind, subject, revision, status, fingerprint, inputs, direction, skill_bundle, workflow, adapter, model)
+         select $1, $2, $3, $4, coalesce(max(revision), 0) + 1, 'queued', $5, $6::jsonb, $7, $8::jsonb, $9, $10, $11
+           from studio_planning_records where project_id = $2 and kind = $3 and subject = $4
+         returning *`,
+        [
+          id,
+          record.projectId,
+          record.kind,
+          record.subject || '',
+          record.fingerprint,
+          JSON.stringify(record.inputs || {}),
+          record.direction || '',
+          record.skillBundle ? JSON.stringify(record.skillBundle) : null,
+          record.workflow || null,
+          record.adapter || null,
+          record.model || null,
+        ],
+      )
+      return planningRecordFrom(result.rows[0])
+    } catch (error) {
+      if ((error as { code?: string }).code !== '23505') throw error
+    }
+  }
+  throw new Error('Could not allocate a planning revision; try again')
+}
+
+export const listPlanningRecords = async (projectId: string): Promise<PlanningRecord[]> => {
+  await initializePersistence()
+  const result = await database.query(
+    'select * from studio_planning_records where project_id = $1 order by kind, subject, revision desc',
+    [projectId],
+  )
+  return result.rows.map(planningRecordFrom)
+}
+
+export const loadPlanningRecord = async (id: string): Promise<PlanningRecord | null> => {
+  await initializePersistence()
+  const result = await database.query('select * from studio_planning_records where id = $1', [id])
+  return result.rows[0] ? planningRecordFrom(result.rows[0]) : null
+}
+
+const PLANNING_COLUMNS: Record<keyof PlanningRecordPatch, { column: string; json?: boolean; time?: boolean }> = {
+  status: { column: 'status' },
+  content: { column: 'content', json: true },
+  report: { column: 'report', json: true },
+  artifacts: { column: 'artifacts', json: true },
+  runId: { column: 'run_id' },
+  adapter: { column: 'adapter' },
+  model: { column: 'model' },
+  workflow: { column: 'workflow' },
+  error: { column: 'error', json: true },
+  reviewedAt: { column: 'reviewed_at', time: true },
+}
+
+export const updatePlanningRecord = async (
+  id: string,
+  patch: PlanningRecordPatch,
+  expected?: PlanningStatus[],
+): Promise<PlanningRecord | null> => {
+  await initializePersistence()
+  const sets: string[] = []
+  const values: unknown[] = [id]
+  for (const [key, value] of Object.entries(patch) as Array<[keyof PlanningRecordPatch, unknown]>) {
+    const spec = PLANNING_COLUMNS[key]
+    if (!spec || value === undefined) continue
+    values.push(spec.json ? (value === null ? null : JSON.stringify(value)) : value)
+    sets.push(`${spec.column} = $${values.length}${spec.json ? '::jsonb' : spec.time ? '::timestamptz' : ''}`)
+  }
+  let guard = ''
+  if (expected?.length) {
+    values.push(expected)
+    guard = ` and status = any($${values.length}::text[])`
+  }
+  const result = await database.query(
+    `update studio_planning_records set ${[...sets, 'updated_at = now()'].join(', ')} where id = $1${guard} returning *`,
+    values,
+  )
+  return result.rows[0] ? planningRecordFrom(result.rows[0]) : null
+}
+
+export const listPlanningRecordsForRun = async (runId: string): Promise<PlanningRecord[]> => {
+  await initializePersistence()
+  const result = await database.query('select * from studio_planning_records where run_id = $1', [runId])
+  return result.rows.map(planningRecordFrom)
+}
+
+const planningInputFrom = (row: Record<string, unknown>): PlanningInputRow => ({
+  projectId: String(row.project_id),
+  subject: String(row.subject || ''),
+  direction: String(row.direction || ''),
+  delivery: (row.delivery as string | null) ?? null,
+  updatedAt: iso(row.updated_at) || '',
+})
+
+export const listPlanningInputs = async (projectId: string): Promise<PlanningInputRow[]> => {
+  await initializePersistence()
+  const result = await database.query('select * from studio_planning_inputs where project_id = $1', [projectId])
+  return result.rows.map(planningInputFrom)
+}
+
+export const savePlanningInput = async (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) => {
+  await initializePersistence()
+  const result = await database.query(
+    `insert into studio_planning_inputs (project_id, subject, direction, delivery)
+     values ($1, $2, coalesce($3, ''), $4)
+     on conflict (project_id, subject) do update set
+       direction = coalesce($3, studio_planning_inputs.direction),
+       delivery = case when $5 then $4 else studio_planning_inputs.delivery end,
+       updated_at = now()
+     returning *`,
+    [input.projectId, input.subject || '', input.direction ?? null, input.delivery ?? null, input.delivery !== undefined],
+  )
+  return planningInputFrom(result.rows[0])
+}
+
 export const saveBuildRun = async (run: BuildRunInput) => {
   await initializePersistence()
   await database.query(
@@ -902,155 +1053,4 @@ export const importLocalStore = async (): Promise<LocalStoreImportReport> => {
     else report.settings.skipped += 1
   }
   return report
-}
-
-// ——— Planning records (M0) ———
-const iso = (value: unknown) => (value ? new Date(value as string).toISOString() : null)
-const planningRecordFrom = (row: Record<string, unknown>): PlanningRecord => ({
-  id: String(row.id),
-  kind: row.kind as PlanningRecord['kind'],
-  projectId: String(row.project_id),
-  subject: String(row.subject || ''),
-  revision: Number(row.revision),
-  status: row.status as PlanningStatus,
-  fingerprint: String(row.fingerprint),
-  inputs: (row.inputs as Record<string, unknown>) || {},
-  content: (row.content as PlanningRecord['content']) ?? null,
-  report: (row.report as PlanningRecord['report']) ?? null,
-  artifacts: (row.artifacts as PlanningRecord['artifacts']) ?? null,
-  runId: (row.run_id as string | null) ?? null,
-  adapter: (row.adapter as string | null) ?? null,
-  model: (row.model as string | null) ?? null,
-  skillBundle: (row.skill_bundle as PlanningRecord['skillBundle']) ?? null,
-  workflow: (row.workflow as string | null) ?? null,
-  direction: String(row.direction || ''),
-  error: (row.error as PlanningRecord['error']) ?? null,
-  createdAt: iso(row.created_at) || '',
-  updatedAt: iso(row.updated_at) || '',
-  reviewedAt: iso(row.reviewed_at),
-})
-
-// The next revision for the subject is taken inside the insert; two
-// concurrent queues for the same subject meet the unique key and the loser
-// retries with the revision after.
-export const createPlanningRecord = async (record: NewPlanningRecord): Promise<PlanningRecord> => {
-  await initializePersistence()
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const id = `plan-${record.kind}-${randomUUID()}`
-    try {
-      const result = await database.query(
-        `insert into studio_planning_records
-          (id, project_id, kind, subject, revision, status, fingerprint, inputs, direction, skill_bundle, workflow, adapter, model)
-         select $1, $2, $3, $4, coalesce(max(revision), 0) + 1, 'queued', $5, $6::jsonb, $7, $8::jsonb, $9, $10, $11
-           from studio_planning_records where project_id = $2 and kind = $3 and subject = $4
-         returning *`,
-        [
-          id,
-          record.projectId,
-          record.kind,
-          record.subject || '',
-          record.fingerprint,
-          JSON.stringify(record.inputs || {}),
-          record.direction || '',
-          record.skillBundle ? JSON.stringify(record.skillBundle) : null,
-          record.workflow || null,
-          record.adapter || null,
-          record.model || null,
-        ],
-      )
-      return planningRecordFrom(result.rows[0])
-    } catch (error) {
-      if ((error as { code?: string }).code !== '23505') throw error
-    }
-  }
-  throw new Error('Could not allocate a planning revision; try again')
-}
-
-export const listPlanningRecords = async (projectId: string): Promise<PlanningRecord[]> => {
-  await initializePersistence()
-  const result = await database.query(
-    'select * from studio_planning_records where project_id = $1 order by kind, subject, revision desc',
-    [projectId],
-  )
-  return result.rows.map(planningRecordFrom)
-}
-
-export const loadPlanningRecord = async (id: string): Promise<PlanningRecord | null> => {
-  await initializePersistence()
-  const result = await database.query('select * from studio_planning_records where id = $1', [id])
-  return result.rows[0] ? planningRecordFrom(result.rows[0]) : null
-}
-
-const PLANNING_COLUMNS: Record<keyof PlanningRecordPatch, { column: string; json?: boolean; time?: boolean }> = {
-  status: { column: 'status' },
-  content: { column: 'content', json: true },
-  report: { column: 'report', json: true },
-  artifacts: { column: 'artifacts', json: true },
-  runId: { column: 'run_id' },
-  adapter: { column: 'adapter' },
-  model: { column: 'model' },
-  workflow: { column: 'workflow' },
-  error: { column: 'error', json: true },
-  reviewedAt: { column: 'reviewed_at', time: true },
-}
-
-export const updatePlanningRecord = async (
-  id: string,
-  patch: PlanningRecordPatch,
-  expected?: PlanningStatus[],
-): Promise<PlanningRecord | null> => {
-  await initializePersistence()
-  const sets: string[] = []
-  const values: unknown[] = [id]
-  for (const [key, value] of Object.entries(patch) as Array<[keyof PlanningRecordPatch, unknown]>) {
-    const spec = PLANNING_COLUMNS[key]
-    if (!spec || value === undefined) continue
-    values.push(spec.json ? (value === null ? null : JSON.stringify(value)) : value)
-    sets.push(`${spec.column} = $${values.length}${spec.json ? '::jsonb' : spec.time ? '::timestamptz' : ''}`)
-  }
-  let guard = ''
-  if (expected?.length) {
-    values.push(expected)
-    guard = ` and status = any($${values.length}::text[])`
-  }
-  const result = await database.query(
-    `update studio_planning_records set ${[...sets, 'updated_at = now()'].join(', ')} where id = $1${guard} returning *`,
-    values,
-  )
-  return result.rows[0] ? planningRecordFrom(result.rows[0]) : null
-}
-
-export const listPlanningRecordsForRun = async (runId: string): Promise<PlanningRecord[]> => {
-  await initializePersistence()
-  const result = await database.query('select * from studio_planning_records where run_id = $1', [runId])
-  return result.rows.map(planningRecordFrom)
-}
-
-const planningInputFrom = (row: Record<string, unknown>): PlanningInputRow => ({
-  projectId: String(row.project_id),
-  subject: String(row.subject || ''),
-  direction: String(row.direction || ''),
-  delivery: (row.delivery as string | null) ?? null,
-  updatedAt: iso(row.updated_at) || '',
-})
-
-export const listPlanningInputs = async (projectId: string): Promise<PlanningInputRow[]> => {
-  await initializePersistence()
-  const result = await database.query('select * from studio_planning_inputs where project_id = $1', [projectId])
-  return result.rows.map(planningInputFrom)
-}
-
-export const savePlanningInput = async (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) => {
-  await initializePersistence()
-  const result = await database.query(
-    `insert into studio_planning_inputs (project_id, subject, direction, delivery)
-     values ($1, $2, coalesce($3, ''), $4)
-     on conflict (project_id, subject) do update set
-       direction = coalesce($3, studio_planning_inputs.direction),
-       delivery = case when $5 then $4 else studio_planning_inputs.delivery end,
-       updated_at = now()
-     returning *`,
-    [input.projectId, input.subject || '', input.direction ?? null, input.delivery ?? null, input.delivery !== undefined],
-  )
-  return planningInputFrom(result.rows[0])
 }
