@@ -1,8 +1,8 @@
 # M0 creative planning: acceptance evidence
 
-24 September 2026 · `claude/hyperframes-markdown-handover-674230` (fast-forward of `feat/hyperframes-markdown-mvp` at `e2984d85`) · planning code at `ecef1a06`
+24 September 2026 · `claude/hyperframes-markdown-handover-674230` (fast-forward of `feat/hyperframes-markdown-mvp` at `e2984d85`) · planning code at `dba2cdd6`
 
-**A fresh blog reached inspectable, source-grounded creative plans through the visible workspace and the product's local harness, and nothing downstream started.** Claude Code prepared the video's Explanation Brief and planned four contrasting scenes. Every submission passed the product's checks on the first attempt. Kimi's exhausted quota exercised the failure path with a real provider three times. Refresh, restart, retry, review, compare and stale protection held. Reading the plans against the wireframes and the source exposed one real problem: the slides' layout notes were being handed to the planner as the creator's words. That was fixed, the brief was prepared again and three scenes were replanned before this review closed, as the M0 acceptance in section 12 of the [pipeline plan](../plans/hyperframes-explainer-pipeline.md) asks.
+**A fresh blog reached inspectable, source-grounded creative plans through the visible workspace and the product's local harness, and nothing downstream started.** Claude Code prepared the video's Explanation Brief and planned four contrasting scenes. Every submission passed the product's checks on the first attempt. Kimi's exhausted quota exercised the failure path with a real provider three times. Refresh, restart, retry, review, compare and stale protection held. Reading the plans against the wireframes and the source exposed one real problem: the slides' layout notes were being handed to the planner as the creator's words. That was fixed, the brief was prepared again and three scenes were replanned before this review closed, as the M0 acceptance in section 12 of the [pipeline plan](../plans/hyperframes-explainer-pipeline.md) asks. The first pass ran on Claude Code's default model, Opus 5, because the workspace named none. A second pass chose **Claude Opus 5.5** in the workspace and passed it on the harness call. It re-prepared the brief and replanned the four scenes in about half the time, and every run's model is confirmed by Claude Code's own session logs.
 
 - [Evidence folder: captures, durable records, run packets and outputs](</Users/think/Downloads/Incredible Studio/reviews/2026-09-24-m0-planning/README.md>)
 - [Captures](</Users/think/Downloads/Incredible Studio/reviews/2026-09-24-m0-planning/captures/>) are referenced below by number.
@@ -14,7 +14,7 @@
 | Source | Stripe, "Scaling your API with rate limiters" (stripe.com/blog/rate-limiters), read by the product and retained as `src-c97384e65f02df62`: 61 paragraphs, about 2,000 words |
 | Base notebook | Outline by `story-master` on Claude Code (`run-mufefz4n-50d915d2`); 12 pages drawn with the studio's template; base `666100eb…` at revision `6689db6105cf7206` |
 | Video | Made with **Create video** in the library: `video-dfdc86be-4b0b-4920-9010-8f6aa5e882ae`. A second fork, `video-ce341eae…`, was made later to show the base's fork selector |
-| Harnesses | Claude Code 2.1.278 for every completed run. Kimi 2.0.1 with its weekly quota exhausted (the failure path). Codex not installed |
+| Harnesses | Claude Code 2.1.278 for every completed run of the first pass, on the CLI's default model `claude-opus-5` (Opus 5). The workspace named no model for Claude Code then and the records stored none; Claude Code's own session logs show the model. The Opus 5.5 pass below names its model. Kimi 2.0.1 with its weekly quota exhausted (the failure path). Codex not installed |
 | Skills | `video-planner` 0.1.0, then 0.1.1 after the revision below; Hyperframes bundle pinned at `99221c50` |
 | App | Desktop app on local persistence in a scratch data directory, with the test hooks on for scripted clicks (`POST /__eval`) and window captures (`GET /__capture`) |
 
@@ -26,7 +26,7 @@ Every action went through the workspace's own buttons, selects and text boxes. T
 
 | M0 criterion | Result | Evidence |
 |---|---|---|
-| A fresh blog reaches inspectable, source-grounded creative plans through the visible UI and the selected local harness | Met. Two accepted briefs and seven accepted plans across four scenes, all from Claude Code | captures 09, 11–14, 18, 22–26; `video-1/records` |
+| A fresh blog reaches inspectable, source-grounded creative plans through the visible UI and the selected local harness | Met. On Opus 5: two accepted briefs and seven accepted plans across four scenes. On Opus 5.5, chosen in the workspace: one brief and four plans. All from Claude Code | captures 09, 11–14, 18, 22–26, 27–31; `video-1/records` |
 | Both brief views have correct lineage | Met. The video's **Presentation brief** shows what it pinned from base `6689db61`: wireframe, passages, and the page notes labelled as slide layout. **Video explanation brief** shows the brief with its source and base revisions. The base shows its video's records read-only, with a fork selector | 08, 09, 17, 20, 21 |
 | A scene can combine multiple skills with a coherent reason | Met. Every plan names five skills with a reason each: `general-video` (owner), `hyperframes-creative`, `hyperframes-animation`, `motion-graphics`, and the cue-window method of `faceless-explainer`. Recipes come from the pinned catalog; looks the catalog lacks are declared `adapted` and reported as construction risks | `video-1/records/treatment-*` |
 | Refresh/reopen and retry preserve the result | Met. Three app restarts and four window reloads, one with four runs in flight. The brief was retried after Kimi failed (r1 → r2), and so was a plan (s03 r2 → r3) | 03–06, 10, 15, 26 |
@@ -53,6 +53,8 @@ All times IST. Durations are from the durable records.
 | 17:21 | A second **Create video** on Kimi; opened the base's planning | video-2 brief r1 · `run-mufh1nod` | Failed on the quota. The base offers both videos, named by when each was made (20, 21) |
 | 17:29 | **Compare with…** on s10, then **Mark reviewed** on r2 | — | Side-by-side with changed moments marked; r1 now reads **previously reviewed** (22, 23) |
 | 17:31 | Final reload | — | Every state read back from the records (26) |
+| 18:43 | Relaunched on the model-choice build; **Model: Claude Opus 5.5** in the header; **Prepare again** | brief r4 · `run-mufjzew0` | Ready in 3 min 46 s on `claude-opus-5-5`, Claude Code 2.1.280 (27, 28, 30) |
+| 18:48 | **Regenerate with direction** on s10, s03, s12 and s09 | s10 r3, s03 r4, s12 r3, s09 r3 | Candidates in 3 min 25 s to 4 min 25 s, each accepted on its first submission (31) |
 
 ## The Explanation Brief
 
@@ -76,6 +78,29 @@ The base wireframes are static slides. s10 is five labelled boxes joined by arro
 
 **Across scenes.** The two mechanism plans converge on a video-wide refusal language. They estimate 31–41 s for scenes against a 30 s average and each says so. They flag script gaps instead of filling them. That is the input H0 needs, as the next section describes.
 
+## Opus 5.5 through the harness call
+
+**What was wrong.** The workspace named a model only when the harness was Kimi. Claude Code planned on its CLI's default, `claude-opus-5`, and the planning records stored no model at all; only Claude Code's own session logs showed it. The CLI the app found first, `~/.local/bin/claude` 2.1.278, refuses Opus 5.5: "Claude Code 2.1.278 does not support this model; version 2.1.280 or newer is required". The Claude desktop app bundles 2.1.280.
+
+**The change (`dba2cdd6`).** The planning header offers a **Model** beside the **Harness**:
+- For Claude Code, the current Claude models, with Opus 5.5 as the default. A model the found CLI is too old for is shown unavailable, with the version it needs.
+- For Kimi, the models its config names: `kimi-code/k3` (its default), `k3-256k`, `kimi-for-coding` and `kimi-for-coding-highspeed`.
+- For Codex, the model its config names (`gpt-6-astra` on this machine).
+- In every case, the CLI default or any model id.
+
+The choice is remembered per harness and passed on the harness call; Codex now takes a model too. Claude Code resolves to the newest working CLI, here the desktop app's 2.1.280. The harness's session event reports the model it runs, and the run and the planning record keep it, so provenance names the model that planned (30, 31). A run the CLI refuses now reports the CLI's own reason.
+
+**The run.** Every run below was accepted on its first submission. Claude Code's session log for each shows `claude-opus-5-5` on 2.1.280.
+
+| Scene | Opus 5 plan | Opus 5.5 plan |
+|---|---|---|
+| s10 Token bucket in Redis | r2 (reviewed): 7 moments; 13 construction risks; the uncast-actor warning | r3: 7 moments; 10 risks, no warnings. It follows the direction with "Requests outrun the drip". Its demonstration (5 tokens, 1 per beat, bursts of 3) is all illustrative, and Stripe's N stays symbolic. Where the draft script has no line, it leaves a pause and says any added line should be the creator's own words |
+| s03 Rate limiters vs load shedders | r3: 6 moments, 11 risks | r4: 7 moments, 9 risks. It ends on the source's point that the core keeps working "while the rest is on fire" |
+| s12 Start with one limiter | r2: 5 moments, 10 risks, human voice kept | r3: 5 moments, 6 risks. It keeps the human voice, leaves presence undecided and estimates about 25 s from the script's length |
+| s09 How often each one fires | r1 (stale; r2 was superseded): 7 moments, 11 risks | r3: 6 moments, 4 risks. It honours the later direction ("all four figures visible together at the end") and quotes it. All four figures are Stripe's, with source basis; the open-ended bar for "millions" is marked illustrative |
+
+Brief r4 matches r3 in shape: 12 units covering all 12 pages, 63 evidence passages (15 from the creator), no warnings, and no slide-layout leakage. It is more concise, with five guidance items. On this material Opus 5.5 was faster and named fewer unproven recipes, and it followed the saved directions and wording rules at least as closely. The Opus 5.5 plans are left as candidates for your review.
+
 ## Fixes made during acceptance
 
 | Finding | Fix | Commit |
@@ -90,6 +115,7 @@ The base wireframes are static slides. s10 is five labelled boxes joined by arro
 | Two forks of one base had identical names in the selector | A shared title is completed with when each was made | `460bf99a` |
 | Reviewing a newer candidate left two revisions reading "reviewed" | Earlier ones read **previously reviewed** | `05a78bc7` |
 | A reviewed plan's time showed when it was reviewed | Shows when it was requested | `ecef1a06` |
+| Claude Code planned on its CLI default, which the records never named, and the CLI found first could not run Opus 5.5 | Model picker per harness, newest CLI, session-reported model recorded, CLI refusals reported plainly | `dba2cdd6` |
 
 Before the run, the workspace's first captures had shown buttons styled for the dark app chrome, editable direction boxes in the read-only view, and failure text that repeated itself. Those were fixed in `931f53b7`.
 
@@ -100,7 +126,9 @@ Before the run, the workspace's first captures had shown buttons styled for the 
 - **Persistence.** Acceptance ran on local persistence. The PostgreSQL path is covered by unit tests and an earlier SQL check, not by this run.
 - **Build under test.** The branch was accepted together with the main checkout's uncommitted repairs; the branch alone was not driven with a real harness.
 - **Two runs predate a fix.** Brief r1 and r2 ran before planning runs were narrowed to the planning skill (each run's `installed-skills.txt` shows it). s10 r1's risk list predates the deduplication.
-- **Harness preference.** It is stored per origin. The test app took a new port at each restart, so the preference reset. The product's own origin was not checked here.
+- **Harness preference.** Harness and model choices are stored per origin. The test app took a new port at each restart, so they reset. The product's own origin was not checked here.
+- **Effort.** Both passes ran with `--effort high` for Claude Code. That flag comes from the pending repairs in the tree under test; the branch alone passes no effort to Claude Code.
+- **Model coverage.** Only Claude Code's model choice was exercised with a real run; Kimi and Codex model choices are covered by the checks, not by a completed run.
 - **Clicks.** They were issued through the test hook to the page's real handlers, and the captures are stills of the app window.
 
 ## What H0 should take from this
@@ -112,7 +140,15 @@ Before the run, the workspace's first captures had shown buttons styled for the 
 
 ## Validation of the branch
 
-At `ecef1a06`:
+At `dba2cdd6`:
 
 - `apps/studio-v2`: typecheck, 186 tests and the production build pass.
-- `apps/studio-desktop`: typecheck and 7 unit tests pass. The planning check passes all 28 assertions: a stub harness driven through the real workspace, registered in the release check. It covers tool and skill scope, packet contents, grounded and invented briefs, candidate, superseded and failed plans with the reviewed plan kept, typed direction surviving renders, reload, the base's read-only view, and that nothing downstream runs.
+- `apps/studio-desktop`: typecheck and 7 unit tests pass.
+- The harness-models check passes all 10 assertions: Claude's list gated by CLI version, and Kimi's and Codex's read from config, names only.
+- The planning check passes all 31 assertions. It drives a stub harness through the real workspace, and both checks are registered in the release check. It covers:
+  - tool and skill scope, and packet contents;
+  - grounded and invented briefs;
+  - the default model and one picked in the header, each as the session reported it;
+  - candidate, superseded and failed plans, with the reviewed plan kept;
+  - typed direction surviving renders, and reload;
+  - the base's read-only view, and that nothing downstream runs.
