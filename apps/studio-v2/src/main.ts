@@ -6393,6 +6393,7 @@ type NotebookRow = {
   id: string
   title: string
   blockCount: number
+  createdAt?: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
 }
@@ -15958,7 +15959,7 @@ const planningWorkspace = createPlanningWorkspace({
   current: () => ({ id: project.id, title: project.title, derivedFrom: project.derivedFrom || null }),
   forksOf: async baseId => {
     const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
-    return projects.filter(row => row.derivedFrom?.notebook === baseId).map(row => ({ id: row.id, title: row.title }))
+    return projects.filter(row => row.derivedFrom?.notebook === baseId).map(row => ({ id: row.id, title: row.title, createdAt: row.createdAt }))
   },
   basePages: () =>
     (project.notebook.content || [])

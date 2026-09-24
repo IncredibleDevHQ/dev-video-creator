@@ -41,6 +41,7 @@ export type PlanningOverviewV1 = {
 }
 
 type Harness = { id: string; ok: boolean; version?: string; reason?: string }
+type Fork = { id: string; title: string; createdAt?: string }
 
 export type PlanningWorkspaceHost = {
   fetchJson: <T>(path: string, init?: RequestInit) => Promise<T>
@@ -48,7 +49,7 @@ export type PlanningWorkspaceHost = {
   openNotebook: (id: string) => Promise<void> | void
   // The notebook open in the editor now, and its forks when it is a base.
   current: () => { id: string; title: string; derivedFrom?: { notebook: string; baseTitle?: string; baseRevision?: string } | null }
-  forksOf: (baseId: string) => Promise<Array<{ id: string; title: string }>>
+  forksOf: (baseId: string) => Promise<Fork[]>
   // The base's own pages, for the presentation view in a base notebook.
   basePages: () => BasePage[]
 }
@@ -105,7 +106,10 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   let overview: PlanningOverviewV1 | null = null
   let projectId = ''
   let readOnly = false
-  let forks: Array<{ id: string; title: string }> = []
+  let forks: Fork[] = []
+  // Forks share their base's title; one that shares it is named by when it was made.
+  const forkName = (fork: Fork | undefined) =>
+    !fork ? projectId : forks.filter(entry => entry.title === fork.title).length > 1 && fork.createdAt ? `${fork.title} (made ${when(fork.createdAt)})` : fork.title
   let selectedScene = ''
   let tab: 'presentation' | 'brief' | 'plan' = 'plan'
   let revision = ''
@@ -310,7 +314,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
             : chip('No brief yet')
     const lineage = overview
       ? readOnly
-        ? `Base “${current.title}” · showing video “${forks.find(fork => fork.id === projectId)?.title || projectId}” (read-only — its records belong to the video)`
+        ? `Base “${current.title}” · showing video “${forkName(forks.find(fork => fork.id === projectId))}” (read-only — its records belong to the video)`
         : `Video “${current.title}” · from base “${overview.baseTitle}”${current.derivedFrom?.baseRevision ? ` @ ${current.derivedFrom.baseRevision}` : ''}${overview.bundle ? ` · skills ${overview.bundle.name} ${overview.bundle.version} (Hyperframes ${overview.bundle.upstreamCommit.slice(0, 8)})` : ''}`
       : ''
     const harnessSelect = h('select', { class: 'planning-harness', 'aria-label': 'Local harness for planning runs', ...(readOnly ? { disabled: true } : {}) })
@@ -333,7 +337,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       if (forks.length > 1) {
         const picker = h('select', { class: 'planning-harness', 'aria-label': 'Video fork' })
         for (const fork of forks) {
-          const option = h('option', { value: fork.id, text: fork.title })
+          const option = h('option', { value: fork.id, text: forkName(fork) })
           if (fork.id === projectId) option.selected = true
           picker.append(option)
         }
