@@ -643,7 +643,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         ),
       ),
       plan.rosterProposal ? h('p', { class: 'planning-warn', text: `Roster proposal (${plan.rosterProposal.action} ${plan.rosterProposal.scenes.join(', ')}): ${plan.rosterProposal.reason}. A proposal only — the scenes are unchanged until you decide.` }) : '',
-      h('p', { class: 'planning-provenance', text: `Plan r${record.revision} · ${statusOf(record)} · ${record.adapter ? `${HARNESS_LABELS[record.adapter] || record.adapter}${record.model ? ` ${record.model}` : ''}` : 'harness unknown'} · workflow ${record.workflow || '—'} · ${when(record.updatedAt)}${record.reviewedAt ? ` · reviewed ${when(record.reviewedAt)}` : ''}` }),
+      h('p', { class: 'planning-provenance', text: `Plan r${record.revision} · ${statusOf(record)} · ${record.adapter ? `${HARNESS_LABELS[record.adapter] || record.adapter}${record.model ? ` ${record.model}` : ''}` : 'harness unknown'} · workflow ${record.workflow || '—'} · requested ${when(record.createdAt)}${record.reviewedAt ? ` · reviewed ${when(record.reviewedAt)}` : ''}` }),
     )
     return pane
   }
