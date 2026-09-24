@@ -13,7 +13,7 @@ import type {
   HarnessEvent,
   HarnessRun,
 } from '../types'
-import { probeVersion, spawnJsonLines } from './util'
+import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
 
 const writeCodexHome = async (run: HarnessRun, context: HarnessContext) => {
@@ -26,7 +26,7 @@ const writeCodexHome = async (run: HarnessRun, context: HarnessContext) => {
       '[mcp_servers.studio]',
       'command = "node"',
       `args = [${JSON.stringify(context.mcpShimPath)}]`,
-      `env = { STUDIO_MCP_URL = ${JSON.stringify(`${context.origin}/mcp`)} }`,
+      `env = { STUDIO_MCP_URL = ${JSON.stringify(studioMcpUrl(context.origin, run.inputs))} }`,
       '',
     ].join('\n'),
   )

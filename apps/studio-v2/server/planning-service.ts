@@ -28,6 +28,7 @@ import {
   type PlanningInputRow,
 } from './persistence'
 import { skillVersions } from './skill-versions'
+import { listArtwork } from './appearance-library'
 import { fingerprintOf } from '../src/planning/fingerprint'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
 import { validateTreatment, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
@@ -369,7 +370,7 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
     { position: 'after' as const, scene: planning.videoScenes[scene.index + 1] },
   ].filter(entry => entry.scene)
   const reviewed = reviewedOf(scene.id)
-  const assets = (planning.project.assets || []).map(asset => ({ key: asset.entityKey, role: `${asset.type}: ${asset.label}`, parts: [] as string[] }))
+  const assets = await libraryAssets()
   const packet = renderScenePacket({
     videoTitle: planning.project.title,
     scene: { id: scene.id, title: scene.title, index: scene.index, originScenes: scene.originScenes },
@@ -408,6 +409,17 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
   }
   return files
 }
+
+// The accepted object library a plan may reuse from: what each object is,
+// and the named parts a performance can drive.
+const libraryAssets = async () =>
+  (await listArtwork().catch(() => []))
+    .filter(asset => asset.accepted)
+    .map(asset => ({
+      key: asset.key,
+      role: `${asset.entity}: ${asset.brief?.represents || asset.brief?.role || 'object'}`,
+      parts: (asset.parts || []).map(part => part.as || part.id),
+    }))
 
 const storePacket = async (projectId: string, files: Record<string, string>) =>
   storeAsset({
@@ -566,7 +578,7 @@ export const submitTreatment = async (recordId: string, raw: unknown) => {
     bundleSkills: planning.bundle.skills,
     bundleReferences: planning.bundle.references,
     delivery: ((record.inputs as { delivery?: string | null }).delivery as TreatmentContext['delivery']) ?? null,
-    assetKeys: (planning.project.assets || []).map(asset => asset.entityKey),
+    assetKeys: (await libraryAssets()).map(asset => asset.key),
   }
   const report = validateTreatment(raw, context)
   if (!report.ok) return { accepted: false as const, problems: report.problems, warnings: report.warnings }

@@ -15,7 +15,7 @@ import type {
   HarnessRun,
 } from '../types'
 import { homedir } from 'node:os'
-import { probeVersion, spawnJsonLines } from './util'
+import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
 
 // Kimi reads its settings from KIMI_CODE_HOME. A drawing run wants the
@@ -53,7 +53,7 @@ const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
           studio: {
             command: 'node',
             args: [context.mcpShimPath],
-            env: { STUDIO_MCP_URL: `${context.origin}/mcp` },
+            env: { STUDIO_MCP_URL: studioMcpUrl(context.origin, run.inputs) },
             toolTimeoutMs: 900_000,
           },
         },

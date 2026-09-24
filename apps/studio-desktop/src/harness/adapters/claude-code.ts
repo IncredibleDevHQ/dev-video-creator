@@ -11,7 +11,7 @@ import type {
   HarnessEvent,
   HarnessRun,
 } from '../types'
-import { probeVersion, spawnJsonLines } from './util'
+import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
 import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -108,7 +108,7 @@ const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
           studio: {
             command: 'node',
             args: [context.mcpShimPath],
-            env: { STUDIO_MCP_URL: `${context.origin}/mcp` },
+            env: { STUDIO_MCP_URL: studioMcpUrl(context.origin, run.inputs) },
           },
         },
       },
@@ -185,7 +185,9 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       '--permission-mode',
       'acceptEdits',
       '--allowedTools',
-      'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
+      // A planning run gets no shell at all: it reads, writes its plan and
+      // calls the planning tools, nothing else.
+      run.inputs.capabilityScope === 'planning' ? 'Read,Write,Edit,Glob,Grep,mcp__studio__plan_*' : 'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
       '--mcp-config',
       mcpConfig,
     ]

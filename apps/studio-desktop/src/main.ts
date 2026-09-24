@@ -228,6 +228,8 @@ const mcpPreHandler = async (
   const chunks: Buffer[] = []
   for await (const chunk of request) chunks.push(chunk as Buffer)
   const origin = `http://${request.headers.host}`
+  // The run's capability scope travels in its MCP URL (see the adapters).
+  const scope = url.searchParams.get('scope') === 'planning' ? ('planning' as const) : undefined
   const write = (status: number, value: unknown) => {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
     response.end(JSON.stringify(value))
@@ -242,13 +244,13 @@ const mcpPreHandler = async (
   if (Array.isArray(message)) {
     const results = []
     for (const entry of message) {
-      const result = await handleMcpMessage(entry, { origin })
+      const result = await handleMcpMessage(entry, { origin, scope })
       if (result) results.push(result)
     }
     write(200, results)
     return true
   }
-  const result = await handleMcpMessage(message as Record<string, unknown>, { origin })
+  const result = await handleMcpMessage(message as Record<string, unknown>, { origin, scope })
   write(200, result || {})
   return true
 }
