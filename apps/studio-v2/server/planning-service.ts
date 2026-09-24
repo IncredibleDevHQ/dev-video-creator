@@ -317,7 +317,10 @@ const themeFile = (planning: VideoPlanning) => {
 // What a scene's packet carries of the cast: its pages as reference (SVG
 // and a usable preview), the page's contact sheet, and every ingredient's
 // standalone artwork, preview and parts. Every path it declares is a file.
-const castFiles = async (cast: VisualCastRevision | null, origins: string[]): Promise<PacketFiles> => {
+// A packet carries the cast of the scene's own pages, plus any entry named
+// by library key in castKeys — the artwork a plan chose from elsewhere in the
+// base, which a sketch must be able to draw.
+const castFiles = async (cast: VisualCastRevision | null, origins: string[], castKeys: string[] = []): Promise<PacketFiles> => {
   if (!cast || cast.status !== 'ready') {
     return {
       'packet/VISUAL_CAST.json': JSON.stringify({ status: cast ? 'failed' : 'not extracted', reason: cast?.error || 'The visual cast has not been extracted.', note: 'Plan from the brief and the scene; name the objects that need artwork in requirements.assets.' }, null, 2),
@@ -325,7 +328,8 @@ const castFiles = async (cast: VisualCastRevision | null, origins: string[]): Pr
   }
   const files: PacketFiles = {}
   const pages = cast.pages.filter(page => origins.includes(page.scene))
-  const entries = cast.entries.filter(entry => origins.includes(entry.identity.base.page))
+  const carried = (entry: CastEntry) => origins.includes(entry.identity.base.page) || Boolean(entry.libraryKey && castKeys.includes(entry.libraryKey))
+  const entries = cast.entries.filter(carried)
   const bytes = async (objectKey: string) => (await readObject(objectKey)).toString('base64')
   const pageRefs = []
   for (const [index, page] of pages.entries()) {
@@ -378,7 +382,7 @@ const castFiles = async (cast: VisualCastRevision | null, origins: string[]): Pr
       pages: pageRefs,
       entries: entries.map(entryOf),
       // The rest of the base's cast: reusable by library key.
-      elsewhere: cast.entries.filter(entry => !origins.includes(entry.identity.base.page)).map(entry => ({ id: entry.id, libraryKey: entry.libraryKey, kind: entry.kind, label: entry.meaning.label, page: entry.identity.base.page, verification: entry.verification.status })),
+      elsewhere: cast.entries.filter(entry => !carried(entry)).map(entry => ({ id: entry.id, libraryKey: entry.libraryKey, kind: entry.kind, label: entry.meaning.label, page: entry.identity.base.page, verification: entry.verification.status })),
       decide: 'For each thing the scene needs: reuse it unchanged, adapt it (recolour, re-rig), enrich it (a richer version from its silhouette, role and parts), build it native (exact shapes, charts, counts, code), or omit it — with the reason the viewer needs it. A reference-only ingredient (verification mismatch) is not equivalent to the page.',
     },
     null,
@@ -626,7 +630,7 @@ const briefPacket = (planning: VideoPlanning) => {
   return { files, context }
 }
 
-const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord, sceneId: string, records: PlanningRecord[]) => {
+const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord, sceneId: string, records: PlanningRecord[], options: { castKeys?: string[] } = {}) => {
   const brief = briefRecord.content as ExplanationBriefV1
   const scene = planning.videoScenes.find(entry => entry.id === sceneId)!
   const unitsFor = (origins: string[]) =>
@@ -665,7 +669,7 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
   })
   const cast = await visualCastFor(planning)
   const files: PacketFiles = {
-    ...(await castFiles(cast, scene.originScenes)),
+    ...(await castFiles(cast, scene.originScenes, options.castKeys)),
     'packet/THEME.json': themeFile(planning),
     // The plan this scene already has, kept unless the direction changes it.
     'packet/PREVIOUS_PLAN.json': JSON.stringify(reviewed ? { record: reviewed.id, revision: reviewed.revision, status: reviewed.status, plan: reviewed.content, retainedEdits: [] } : { record: null, note: 'This scene has no reviewed plan yet.' }, null, 2),
@@ -817,8 +821,10 @@ const sketchLengthOf = (plan: SceneTreatmentV1) =>
 const sketchPacket = async (planning: VideoPlanning, treatment: PlanningRecord, records: PlanningRecord[]) => {
   const briefRecord = records.find(record => record.id === String(treatment.inputs.briefId || '')) || currentBrief(records)
   if (!briefRecord?.content) throw new PlanningError('The brief this plan was made from is gone', 409)
-  const files = await scenePacket(planning, briefRecord, treatment.subject, records)
   const plan = treatment.content as SceneTreatmentV1
+  // The artwork the plan reuses, adapts or enriches, wherever in the base it is drawn.
+  const castKeys = [...new Set(plan.objects.filter(object => ['reuse', 'adapt', 'enrich'].includes(object.asset.status) && object.asset.ref).map(object => object.asset.ref!))]
+  const files = await scenePacket(planning, briefRecord, treatment.subject, records, { castKeys })
   const compositionId = compositionIdOf(treatment)
   const length = sketchLengthOf(plan)
   files['packet/PLAN.json'] = JSON.stringify({ record: treatment.id, revision: treatment.revision, status: treatment.status, plan }, null, 2)

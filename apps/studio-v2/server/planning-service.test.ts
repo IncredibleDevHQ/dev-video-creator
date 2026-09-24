@@ -394,9 +394,25 @@ describe('planning integrity', () => {
     expect(JSON.parse(text(files['packet/CONTEXT.json'])).images).toEqual(['references/page.png', 'references/visual-cast.png'])
     // The gauge and the icon from the other page are reusable by key too.
     expect(cast.elsewhere.map((entry: { label: string; kind: string }) => `${entry.kind}:${entry.label}`)).toEqual(expect.arrayContaining(['icon:User script', 'icon:Per-user cap']))
-    // A plan that reuses the pool by its library key lands.
-    const plan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }], objects: [{ entity: 'bucket', role: 'The calls in progress', appearance: 'The page\'s own twenty-slot pool', performance: 'Slots fill one by one until none is free', asset: { status: 'reuse', ref: pool.libraryKey, reason: 'Twenty countable slots are the limit the viewer must see' } }] }
+    // A plan that reuses the pool by its library key lands — and so does
+    // one piece of artwork drawn on the other page.
+    const script = cast.elsewhere.find((entry: { label: string }) => entry.label === 'User script')
+    expect(script?.libraryKey).toBeTruthy()
+    const plan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }], objects: [
+      { entity: 'bucket', role: 'The calls in progress', appearance: 'The page\'s own twenty-slot pool', performance: 'Slots fill one by one until none is free', asset: { status: 'reuse', ref: pool.libraryKey, reason: 'Twenty countable slots are the limit the viewer must see' } },
+      { entity: 'script', role: 'The client sending too much', appearance: 'The script icon from the rate limiter page', performance: 'It keeps firing requests', asset: { status: 'reuse', ref: script.libraryKey, reason: 'The same runaway client the video already showed' } },
+    ] }
     expect(await service.submitTreatment(record.id, plan, 'run-cast-plan')).toMatchObject({ accepted: true, status: 'candidate' })
+    // Its sketch carries the artwork the plan reuses from elsewhere in the
+    // base, not only its own page — or it could only draw placeholders.
+    const sketch = (await service.loadPacket((await service.queuePreview(id, scenes[1])).record.id)).files
+    const sketchCast = JSON.parse(text(sketch['packet/VISUAL_CAST.json']))
+    const carried = sketchCast.entries.find((entry: { libraryKey: string }) => entry.libraryKey === script.libraryKey)
+    expect(carried).toMatchObject({ label: 'User script', verification: { status: 'verified' } })
+    for (const path of Object.values(carried.files) as string[]) expect(sketch).toHaveProperty([`packet/${path}`])
+    expect(sketchCast.elsewhere.map((entry: { libraryKey: string }) => entry.libraryKey)).not.toContain(script.libraryKey)
+    // The plan's own packet still lists it by key only.
+    expect(cast.entries.map((entry: { libraryKey: string }) => entry.libraryKey)).not.toContain(script.libraryKey)
     // The overview shows the cast, with previews.
     const overview = await service.planningOverview(id)
     expect(overview.visualCast.status).toBe('ready')
