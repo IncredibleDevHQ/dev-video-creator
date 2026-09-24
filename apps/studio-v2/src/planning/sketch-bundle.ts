@@ -55,6 +55,28 @@ export type SketchContext = {
 
 export type SketchReport = { ok: boolean; problems: string[]; warnings: string[]; manifest: SketchManifest | null }
 
+// A provisional line names a placeholder layer however the harness phrases
+// it: it says the layer's id ("presenter"), shares two of its words (the id,
+// or the lead phrase of its label), or names what the lead phrase ends on
+// ("inlet drop" → "the drop").
+const PLAIN_WORDS = new Set(['the', 'and', 'for', 'with', 'into', 'onto', 'that', 'this', 'its', 'are', 'from', 'too', 'not', 'all', 'each', 'any', 'one', 'only', 'their', 'there', 'than', 'then', 'but', 'has', 'have', 'was', 'were', 'will'])
+const wordsOf = (text: string) =>
+  text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map(word => (word.length > 3 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word))
+    .filter(word => /^\d+$/.test(word) || (word.length >= 3 && !PLAIN_WORDS.has(word)))
+const namesLayer = (line: string, layer: SketchManifest['layers'][number]) => {
+  const said = new Set(wordsOf(line))
+  const id = wordsOf(layer.id)
+  if (id.length && id.every(word => said.has(word))) return true
+  const lead = wordsOf(layer.label.split(/[:(,;—–]/)[0] || layer.label)
+  const words = [...new Set([...id, ...lead])]
+  const shared = words.filter(word => said.has(word)).length
+  return (words.length > 0 && shared >= Math.min(2, words.length)) || (lead.length > 0 && said.has(lead[lead.length - 1]))
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 const textOf = (file: SketchFile | undefined) => (typeof file === 'string' ? file : '')
 const sizeOf = (file: SketchFile) => (typeof file === 'string' ? new TextEncoder().encode(file).length : Math.floor((file.base64.length * 3) / 4))
@@ -154,7 +176,7 @@ export const validateSketch = (files: SketchFiles, context: SketchContext): Sket
   const provisional = Array.isArray(manifest.provisional) ? manifest.provisional.filter(item => typeof item === 'string' && item.trim()) : []
   if (!provisional.some(item => /tim/i.test(item))) problems.push('manifest.provisional must say the timing is estimated')
   for (const layer of layers.filter(item => item.placeholder)) {
-    if (!provisional.some(item => item.includes(layer.label) || item.includes(String(layer.placeholder)))) warnings.push(`layer ${layer.id} has a placeholder that manifest.provisional does not mention`)
+    if (!provisional.some(item => item.includes(layer.label) || item.includes(String(layer.placeholder)) || namesLayer(item, layer))) warnings.push(`layer ${layer.id} has a placeholder that manifest.provisional does not mention`)
   }
 
   // The composition: one standalone root, its timeline registered, only

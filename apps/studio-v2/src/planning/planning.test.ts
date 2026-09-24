@@ -640,6 +640,30 @@ describe('the plan preview sketch', () => {
     expect(unregistered).toMatch(/does not register window.__timelines\["sketch-s01-r1"\]/)
   })
 
+  // The wording of a real sketch (Claude Code, Opus 5.5): every placeholder
+  // is named in provisional, in its own words — none is flagged.
+  it('reads a placeholder as said when provisional names it in other words, and flags one it never names', () => {
+    const layer = (id: string, label: string, placeholder: string) => ({ id, kind: 'object', label, moments: ['m1'], placeholder })
+    const layers = [
+      layer('request-rate-limiter', 'Request rate limiter glyph that grows into the bucket (card-morph-anchor)', 'Native outline stand-in: the library artwork is not in this packet'),
+      layer('user', 'User chip docked at the bucket\'s left rim (spring-pop-entrance)', 'Native circle-and-silhouette stand-in'),
+      layer('http-429', '429 Too Many Requests badge in accent, popped onto request D', 'Native pill stand-in: the library 429 mark is not in this packet'),
+      layer('drip', 'Inlet drop: swells slowly during the burst without falling', 'Sketch recolour of the page\'s drop to primary'),
+      layer('sketch-annotations', 'Sketch-only strips: the moment tag at top left and the draft narration guide', 'Not planned on-screen text'),
+      layer('presenter', 'Presenter slot at the right edge, shown only where the plan leaves it undecided', 'Stand-in: a framed silhouette'),
+      layer('redis', 'Redis store panel in the secondary colour', 'Native panel'),
+    ]
+    const provisional = [
+      'Timing is estimated from the plan (about 24 s) — no voice or take exists yet',
+      'The request rate limiter glyph, the user chip and the 429 badge are native placeholders: their library artwork is not in this packet',
+      'The bucket, drop and 429 badge are sketch recolours and re-rigs of the page artwork; the planned adapted assets do not exist yet',
+      'The bottom strip shows the draft narration only as a timing aid; the plan puts no narration on screen',
+      'Presenter is a stand-in: visibility is undecided and no take is recorded',
+    ]
+    const warnings = validateSketch(sketchOf({ manifest: { layers, provisional } }), sketchContext()).warnings.filter(text => /placeholder/.test(text))
+    expect(warnings).toEqual(['layer redis has a placeholder that manifest.provisional does not mention'])
+  })
+
   it('needs a labelled stand-in wherever the plan shows a presenter, and cast it can reuse', () => {
     const plan = goodTreatment()
     plan.moments[0].presenter = { visibility: 'full', reason: 'Introduce it' }
