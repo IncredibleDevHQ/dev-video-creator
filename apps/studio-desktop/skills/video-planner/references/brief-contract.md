@@ -107,9 +107,13 @@ A condition may also be `illustrative`: a value you chose to demonstrate with
   units, or leave it out with an `omittedReason`. `originScenes` of a unit
   are base page ids — lineage, not scene boundaries.
 - With `wordingPolicy` `preserve`, `narrative.approvedLines` carries the
-  approved scripts verbatim, one entry per base page that has one.
-- `delivery.sceneDecisions` repeats only choices listed in `CONTEXT.json`;
-  everything else stays in `delivery.unresolved`.
+  approved scripts verbatim, one entry per video scene that has one (the
+  scene ids in `CONTEXT.json` `videoScenes`; the scripts in `NARRATIVE.md`).
+- `delivery.sceneDecisions` repeats only choices listed in `CONTEXT.json`
+  (keyed by video scene id); everything else stays in `delivery.unresolved`.
+- Two id spaces, used on purpose: `coverage` and `originScenes` name **base
+  pages** (lineage); `approvedLines` and `sceneDecisions` name **video
+  scenes** (what the video speaks and how).
 - `route.workflow` is one of `general-video`, `faceless-explainer`,
   `motion-graphics`, `talking-head-recut`, with a reason.
 - None of these keys may appear anywhere as structure: `kind` (outside

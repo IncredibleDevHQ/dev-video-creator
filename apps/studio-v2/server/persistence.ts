@@ -4,6 +4,7 @@
 import type { Readable } from 'node:stream'
 import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
 import type { ProjectArtifactSummary } from './persistence-local'
+import type { PlanningRecord, PlanningStatus } from '../src/planning/planning-records'
 
 export type { ProjectArtifactSummary }
 
@@ -157,12 +158,29 @@ type PersistenceBackend = {
   listTakeSelections: (projectId: string) => Promise<Array<{ projectId: string; blockId: string; takeId: string; selectedAt: string }>>
   findNotebooksReferencing: (marker: string) => Promise<Array<{ id: string; title: string }>>
   settingsWithPrefix: (prefix: string) => Promise<Record<string, unknown>>
+  createPlanningRecord: (record: NewPlanningRecord) => Promise<PlanningRecord>
+  listPlanningRecords: (projectId: string) => Promise<PlanningRecord[]>
+  loadPlanningRecord: (id: string) => Promise<PlanningRecord | null>
+  // Applies the patch only while the record's status is one of `expected`;
+  // answers null when another writer got there first.
+  updatePlanningRecord: (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[]) => Promise<PlanningRecord | null>
+  listPlanningRecordsForRun: (runId: string) => Promise<PlanningRecord[]>
+  listPlanningInputs: (projectId: string) => Promise<PlanningInputRow[]>
+  savePlanningInput: (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) => Promise<PlanningInputRow>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
     bucket: string
   }>
 }
+
+// Planning records (M0): the Explanation Brief and scene plans, versioned.
+export type NewPlanningRecord = Pick<PlanningRecord, 'projectId' | 'kind' | 'subject' | 'fingerprint' | 'inputs' | 'direction'> &
+  Partial<Pick<PlanningRecord, 'skillBundle' | 'workflow' | 'adapter' | 'model'>>
+export type PlanningRecordPatch = Partial<
+  Pick<PlanningRecord, 'status' | 'content' | 'report' | 'artifacts' | 'runId' | 'adapter' | 'model' | 'workflow' | 'error' | 'reviewedAt'>
+>
+export type PlanningInputRow = { projectId: string; subject: string; direction: string; delivery: string | null; updatedAt: string }
 
 export type ThemeLibraryRecord = {
   id: string
@@ -323,3 +341,24 @@ export const findNotebooksReferencing = async (marker: string) =>
 
 export const settingsWithPrefix = async (prefix: string) =>
   (await loadBackend()).settingsWithPrefix(prefix)
+
+export const createPlanningRecord = async (record: NewPlanningRecord) =>
+  (await loadBackend()).createPlanningRecord(record)
+
+export const listPlanningRecords = async (projectId: string) =>
+  (await loadBackend()).listPlanningRecords(projectId)
+
+export const loadPlanningRecord = async (id: string) =>
+  (await loadBackend()).loadPlanningRecord(id)
+
+export const updatePlanningRecord = async (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[]) =>
+  (await loadBackend()).updatePlanningRecord(id, patch, expected)
+
+export const listPlanningRecordsForRun = async (runId: string) =>
+  (await loadBackend()).listPlanningRecordsForRun(runId)
+
+export const listPlanningInputs = async (projectId: string) =>
+  (await loadBackend()).listPlanningInputs(projectId)
+
+export const savePlanningInput = async (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) =>
+  (await loadBackend()).savePlanningInput(input)
