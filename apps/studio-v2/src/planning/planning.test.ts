@@ -227,6 +227,10 @@ describe('the scene treatment', () => {
     // Catalogued is not proven: construction must still verify these.
     expect(report.constructionRisks.join('\n')).toMatch(/camera-journey/)
     expect(report.constructionRisks.join('\n')).toMatch(/adapted recipe "token-spend"/)
+    // A catalogued recipe used by two moments is one risk.
+    const shared = goodTreatment()
+    shared.moments[1].recipes.push({ ...shared.moments[0].recipes[0] })
+    expect(validateTreatment(shared, treatmentContext()).constructionRisks.filter(risk => /svg-path-draw/.test(risk))).toHaveLength(1)
   })
 
   it('refuses a recipe the pinned catalog does not have unless it says it adapts one', () => {

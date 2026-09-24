@@ -342,7 +342,8 @@ export const validateTreatment = (raw: unknown, context: TreatmentContext): Trea
     if (!treatment.rosterProposal.reason) problems.push('rosterProposal gives no reason')
   }
 
-  return { ok: problems.length === 0, problems, warnings, constructionRisks, treatment }
+  // A recipe several moments share is one risk, reported once.
+  return { ok: problems.length === 0, problems, warnings: [...new Set(warnings)], constructionRisks: [...new Set(constructionRisks)], treatment }
 }
 
 // The channels a plan actually uses, for the workspace's lanes.
