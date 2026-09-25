@@ -808,10 +808,17 @@ export const motionDriverScript = (
   };
   // Shot-plan emphasis (D6): the camera-led headline rides its beat window.
   var emphasisEls = scene ? scene.querySelectorAll('.scene-emphasis') : [];
+  // Its fade follows the scene's own time (F12 of the Perplexity review):
+  // seeking to a moment and playing into it draw the same frame.
   var applyEmphasis = function (ms) {
     for (var i = 0; i < emphasisEls.length; i += 1) {
       var el = emphasisEls[i];
-      el.classList.toggle('is-live', Number(el.getAttribute('data-from')) * 1000 <= ms && ms < Number(el.getAttribute('data-to')) * 1000);
+      var from = Number(el.getAttribute('data-from')) * 1000;
+      var to = Number(el.getAttribute('data-to')) * 1000;
+      var shown = ms < from || ms >= to ? 0 : Math.max(0, Math.min(1, (ms - from) / 300, (to - ms) / 300));
+      el.style.opacity = String(shown);
+      el.style.transform = 'translateY(' + ((1 - shown) * 8).toFixed(2) + 'px)';
+      el.classList.toggle('is-live', shown > 0);
     }
   };
   window.__slideDrawScene${sceneIndex} = function (sceneTime) { driver.draw(sceneTime * 1000); applyStage(sceneTime * 1000); applyEmphasis(sceneTime * 1000); };
