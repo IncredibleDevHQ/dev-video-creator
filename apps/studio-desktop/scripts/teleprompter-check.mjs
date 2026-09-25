@@ -93,7 +93,7 @@ const teleprompterState = () => evalInWindow(`(() => ({
 
 try {
   await putProject(ORIGINAL)
-  await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
+  await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
   await waitFor(`!!document.getElementById('${SCENE_ID}')`)
 
   await openCameraFor('Tele scene')

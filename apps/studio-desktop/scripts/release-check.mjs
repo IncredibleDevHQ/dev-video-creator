@@ -65,6 +65,7 @@ const CHECKS = [
   'visual-cast-check.mjs',        // P1: the base's icons and objects lifted, verified and shown while planning
   'scene-review-check.mjs',       // P2: scene review in the notebook — stage, moments, approvals, guide, restart
   'review-layout-check.mjs',      // Perplexity F6: the review readable at 1280/1440 — own type, no clipping, compact moments
+  'scene-workspace-check.mjs',    // U2: a video's scenes around one stage — plan, inspect, approve and record in one workspace
   'plan-preview-check.mjs',       // P3: a plan's rough sketch, checked by the pinned engine, played and seeked on the stage
   'production-check.mjs',         // P4: an approved scene produced on its real clock, accepted, played and exported
   'presented-production-check.mjs', // P5/P6: a scene you present produced on your aligned take, its timing edited, exported (SKIP without uv)

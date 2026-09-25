@@ -211,7 +211,7 @@ const until = async (what, test, ms = 60_000) => {
 }
 // The title first shows whatever notebook boots; wait for the one asked for.
 const reloadInto = async (id, title) => {
-  await evaluate(`localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); localStorage.setItem('studio.planningHarness', 'claude-code'); location.reload(); true`).catch(() => {})
+  await evaluate(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); localStorage.setItem('studio.planningHarness', 'claude-code'); location.reload(); true`).catch(() => {})
   await sleep(2500)
   await until(`the notebook "${title}" to open`, () => evaluate(`(document.getElementById('project-title') || {}).value === ${JSON.stringify(title)}`).catch(() => false))
 }

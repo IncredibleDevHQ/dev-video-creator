@@ -2684,3 +2684,10 @@ body.canvas-is-open .scene-stage-bar .scene-stage-full { display: none; }
 .source-modal #source-wording-segment { justify-self: start; }
 .source-theme-association input { min-width: 0; padding: 7px 9px; border: 1px solid #d4d4d8; border-radius: 7px; font: 13px/1.3 'InterBody', Inter, system-ui, sans-serif; color: #27272a; }
 .source-modal .source-step > .modal-actions .button { flex: none; }
+
+/* The stage's three views: the Reference (the designed slide, its schematic,
+   or the base's newer slide to compare), the plan preview, the produced scene. */
+.scene-stage-reference-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border: 1px solid #e4e4e7; border-radius: 999px; }
+.scene-stage-group-label { font: 700 9.5px/1.5 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; }
+body.canvas-is-open .scene-stage-reference-group { border-color: rgba(255,255,255,.24); }
+body.canvas-is-open .scene-stage-group-label { color: #d4d4d8; }

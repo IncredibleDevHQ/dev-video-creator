@@ -122,7 +122,7 @@ try {
       presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
     }
     await j(origin, '/api/projects/' + id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project) })
-    await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
+    await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
     await waitFor(`!!document.getElementById('${BLOCK_ID}')`)
     const card = await evalInWindow(`(() => {
       const card = document.getElementById('${BLOCK_ID}')

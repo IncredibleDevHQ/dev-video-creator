@@ -84,7 +84,7 @@ try {
   const put = await fetch(`${origin}/api/projects/${BASE_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(base) }).then(r => r.json())
   check('fixture base notebook created', put.saved === true, JSON.stringify(put))
 
-  await evalInWindow(`(() => { window.localStorage.setItem('incredible-studio-v2-active-project', '${BASE_ID}'); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); })()`)
+  await evalInWindow(`(() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${BASE_ID}'); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); })()`)
   let opened = false
   for (let i = 0; i < 60; i += 1) {
     const title = await evalInWindow(`document.getElementById('project-title')?.value || ''`).catch(() => '')

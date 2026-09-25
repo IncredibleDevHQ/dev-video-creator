@@ -110,7 +110,7 @@ try {
     await j(origin, '/api/projects/' + id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project) })
     // This check exercises the stub kimi on PATH; pin it as the preferred
     // agent so a real claude/codex install on the machine is not picked.
-    await evalInWindow(`localStorage.setItem('studio.codingAgent', 'kimi'); localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
+    await evalInWindow(`localStorage.setItem('studio.codingAgent', 'kimi'); localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
     await waitFor(`!!document.getElementById('blk-slide')`)
     await evalInWindow(`document.querySelector('#blk-slide [data-slide-action="edit"]').click()`)
     await waitFor(`document.getElementById('slide-editor-dialog').open`)

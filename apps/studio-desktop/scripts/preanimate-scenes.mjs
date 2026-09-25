@@ -87,7 +87,7 @@ const sceneReveals = async () => {
 try {
   // Open the derived notebook.
   await evalInWindow(`async () => {
-    localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT}')
+    localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT}')
     location.href = '/studio'
   }`).catch(() => {})
   await waitFor(`() => !!document.getElementById('${TARGETS[0]}')`, 60_000)

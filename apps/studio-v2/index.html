@@ -153,7 +153,8 @@
         <div class="commandbar">
           <div class="workspace-nav">
             <div class="format-control"><span>Format:</span><strong>▷ Landscape</strong><span>⌄</span></div>
-            <button type="button" class="workspace-tab active">Notebook</button>
+            <button id="workspace-tab-scenes" type="button" class="workspace-tab" aria-pressed="false" title="The video's scenes around one stage" hidden>Scenes</button>
+            <button id="workspace-tab-notebook" type="button" class="workspace-tab active" aria-pressed="true" title="The notebook: the outline and the words">Notebook</button>
             <button id="open-fullscreen-tab" type="button" class="workspace-tab">Preview</button>
           </div>
           <nav class="actions" aria-label="Project actions">
@@ -208,6 +209,7 @@
       </div>
 
       <main class="studio-workspace">
+        <section id="scene-workspace" class="scene-workspace" aria-label="Scene workspace" hidden></section>
         <section class="notebook-document" aria-labelledby="notebook-title">
           <div class="panel-heading">
             <div>
@@ -459,9 +461,11 @@
                 </div>
                 <div id="scene-stage-bar" class="scene-stage-bar" hidden>
                   <div class="scene-stage-modes" role="group" aria-label="What the stage shows">
-                    <button type="button" data-stage-mode="reference" class="is-active" aria-pressed="true">Page reference</button>
-                    <button type="button" data-stage-mode="schematic" aria-pressed="false" hidden>Schematic</button>
-                    <button type="button" data-stage-mode="base" aria-pressed="false" hidden>Base's designed slide</button>
+                    <span class="scene-stage-reference-group" role="group" aria-label="Reference"><span class="scene-stage-group-label" aria-hidden="true">Reference</span>
+                      <button type="button" data-stage-mode="reference" class="is-active" aria-pressed="true">Page reference</button>
+                      <button type="button" data-stage-mode="schematic" aria-pressed="false" hidden>Schematic</button>
+                      <button type="button" data-stage-mode="base" aria-pressed="false" hidden>Base's designed slide</button>
+                    </span>
                     <button type="button" data-stage-mode="preview" aria-pressed="false" disabled>Plan preview</button>
                     <button type="button" data-stage-mode="output" aria-pressed="false" disabled title="The scene produced from its approved plan">Produced scene</button>
                   </div>

@@ -4,6 +4,7 @@ import { controlValue, type ObjectBehavior, type AppearanceControl } from './obj
 import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
+import { createSceneWorkspace } from './scene-workspace/workspace'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
 import { bindingOf, landingFor, pageFingerprint, pageReadinessOf, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
@@ -3166,6 +3167,9 @@ const buildExplanationDecorations = (state: EditorState) => {
 // dialogue folds into one line until asked for (F7). The widgets are keyed
 // by what they show, so a redraw that changes nothing keeps the same DOM.
 let sceneReview: ReturnType<typeof createSceneReview> | null = null
+// The video scene workspace (U2 of the scene workspace plan): the scenes
+// around one stage. While it shows, the notebook's own review stays folded.
+let sceneWorkspace: ReturnType<typeof createSceneWorkspace> | null = null
 let reviewSelectedScene = ''
 // The selected scene whose inherited dialogue is unfolded, if any.
 let sceneSourceOpen = ''
@@ -3192,7 +3196,7 @@ const SceneReviewWidgets = Extension.create({
               if (node.type.name !== 'scene') return
               const id = String(node.attrs.id || '')
               if (!id || !review.has(id)) return
-              const expanded = id === reviewSelectedScene
+              const expanded = id === reviewSelectedScene && !sceneWorkspace?.active()
               // The selected scene's review sits before its block, after
               // anything the block above left at that position.
               decorations.push(
@@ -18078,6 +18082,11 @@ const sceneStage = $('#scene-stage') as HTMLElement
 const sceneStageBar = $('#scene-stage-bar') as HTMLElement
 // The stage enlarged: the same composition, full screen.
 ;($('#scene-stage-full') as HTMLButtonElement).addEventListener('click', () => {
+  // In the scene workspace the stage itself goes full screen — the same player.
+  if (sceneWorkspace?.active()) {
+    void sceneWorkspace.frame().requestFullscreen?.().catch(() => showToast('Full screen is not available here'))
+    return
+  }
   if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
 })
 const sceneStageReference = $('#scene-stage-reference') as HTMLElement
@@ -18098,6 +18107,9 @@ let stageClockEstimated = true
 // Where the stage goes once a newly loaded composition is ready (an edited
 // production reloads at the moment that was nudged).
 let stageSeekOnReady: number | null = null
+// Whatever follows the stage's playback — the scene workspace's transport.
+const stageListeners = new Set<() => void>()
+const notifyStage = () => stageListeners.forEach(listener => listener())
 const stageTransport = document.createElement('div')
 stageTransport.className = 'scene-stage-transport'
 const stagePlay = Object.assign(document.createElement('button'), { type: 'button', textContent: '▶', title: 'Play or pause the preview' })
@@ -18119,6 +18131,7 @@ const syncStagePlay = () => {
   stagePlay.textContent = stagePlaying ? '❚❚' : stageEnded ? '↻' : '▶'
   stagePlay.title = label
   stagePlay.setAttribute('aria-label', label)
+  notifyStage()
 }
 stagePlay.addEventListener('click', () => {
   if (!stagePlayer) return
@@ -18135,6 +18148,7 @@ const updateStageClock = () => {
   stageClock.textContent = `${time.toFixed(1)}s / ${stagePreviewDuration}s${stageClockEstimated ? ' est.' : ''}`
   const current = stagePreviewMoments.find(moment => time >= moment.start && time < moment.end)
   stageTrack.querySelectorAll<HTMLElement>('[data-stage-moment]').forEach(element => element.classList.toggle('is-current', element.dataset.stageMoment === current?.id))
+  notifyStage()
 }
 const ensureStagePlayer = () => {
   if (stagePlayer) return stagePlayer
@@ -18214,6 +18228,10 @@ const showSceneStage = (shown: boolean) => {
   else if (!was) (document.getElementById('player') as (HTMLElement & { pause?: () => void }) | null)?.pause?.()
 }
 const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
+  drawSceneStage(next)
+  notifyStage()
+}
+const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
   // Finalizing and exporting work on the notebook's own composition: the
   // stage steps aside for as long as they do.
   const notebookComposition = finalizeModeActive || publishDialog.open
@@ -18460,7 +18478,10 @@ sceneReview = createSceneReview({
   refresh: () => {
     refreshSceneReview()
     renderSceneStage()
+    sceneWorkspace?.render()
   },
+  momentPicked: (sceneId, momentId) => sceneWorkspace?.momentPicked(sceneId, momentId),
+  stageMode: () => sceneStageMode,
   // Recording and rehearsal work on the notebook's composition: the stage
   // steps aside while the camera dialog is open.
   record: sceneId => recordScene(sceneId),
@@ -18560,19 +18581,107 @@ sceneReview = createSceneReview({
 onSceneSelected = nodeId => {
   renderNextStep()
   const next = sceneReview?.has(nodeId) ? nodeId : ''
-  if (next === reviewSelectedScene) return
+  if (next === reviewSelectedScene) {
+    sceneWorkspace?.render()
+    return
+  }
   reviewSelectedScene = next
   if (sceneSourceOpen !== next) sceneSourceOpen = ''
   if (sceneStageAsideFor !== next) sceneStageAsideFor = ''
   sceneStageTargets = null
   refreshSceneReview()
   renderSceneStage()
+  sceneWorkspace?.render()
 }
 cameraDialog.addEventListener('close', () => {
   if (!sceneStageAsideFor) return
   sceneStageAsideFor = ''
   renderSceneStage()
 })
+// ——— The video scene workspace (U2 of the scene workspace plan) ———
+// The stage and its bar move between the notebook's canvas and the
+// workspace; moveBefore keeps the player and its loaded composition alive.
+const stageHome = { stage: { parent: sceneStage.parentElement!, next: sceneStage.nextSibling }, bar: { parent: sceneStageBar.parentElement!, next: sceneStageBar.nextSibling } }
+const moveNode = (parent: Element, node: Element, before: Node | null) => {
+  const move = (parent as Element & { moveBefore?: (node: Node, child: Node | null) => void }).moveBefore
+  if (typeof move === 'function' && node.isConnected && parent.isConnected) {
+    try {
+      move.call(parent, node, before)
+      return
+    } catch {
+      // Fall back: a composition playing inside reloads.
+    }
+  }
+  parent.insertBefore(node, before)
+}
+const railThumbnails = new Map<string, { svg: string; url: string }>()
+const stagePlayback = {
+  state: () => ({
+    playable: Boolean(stagePlayer) && !sceneStage.hidden && !sceneStagePreview.hidden,
+    playing: stagePlaying,
+    ended: stageEnded,
+    time: stagePlayer?.currentTime || 0,
+    duration: stagePreviewDuration,
+    estimated: stageClockEstimated,
+  }),
+  toggle: () => stagePlay.click(),
+  seek: (time: number) => {
+    if (!stagePlayer) return
+    stageEnded = false
+    stagePlayer.seek(time)
+    updateStageClock()
+    syncStagePlay()
+  },
+  subscribe: (listener: () => void) => {
+    stageListeners.add(listener)
+    return () => stageListeners.delete(listener)
+  },
+}
+sceneWorkspace = createSceneWorkspace({
+  review: () => (sceneReview?.active() ? sceneReview.workspace : null),
+  projectId: () => project.id,
+  video: () => Boolean(project.derivedFrom?.notebook),
+  selectedScene: () => reviewSelectedScene || selectedNodeId,
+  selectScene: sceneId => selectNode(sceneId, true),
+  thumbnailOf: sceneId => {
+    const attrs = findSlideLikeNode(sceneId)?.attrs as Record<string, unknown> | undefined
+    const stored = String(attrs?.svgSrc || '')
+    if (stored) return stored
+    const svg = String(attrs?.svg || '')
+    if (!svg) return ''
+    // The page as a picture, made once per version of the page.
+    const cached = railThumbnails.get(sceneId)
+    if (cached?.svg === svg) return cached.url
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+    railThumbnails.set(sceneId, { svg, url })
+    return url
+  },
+  mountStage: (frame, bar) => {
+    moveNode(frame, sceneStage, null)
+    moveNode(bar, sceneStageBar, null)
+    renderSceneStage()
+  },
+  unmountStage: () => {
+    moveNode(stageHome.stage.parent, sceneStage, stageHome.stage.next?.parentNode === stageHome.stage.parent ? stageHome.stage.next : null)
+    moveNode(stageHome.bar.parent, sceneStageBar, stageHome.bar.next?.parentNode === stageHome.bar.parent ? stageHome.bar.next : null)
+    renderSceneStage()
+  },
+  playback: stagePlayback,
+  aspect: () => (project.width || 1920) / (project.height || 1080),
+  viewChanged: view => {
+    // The notebook's review folds while the workspace shows, and opens again.
+    refreshSceneReview()
+    syncLayoutBands()
+    if (view === 'notebook' && reviewSelectedScene) window.requestAnimationFrame(() => revealBlock(reviewSelectedScene))
+  },
+  toast: showToast,
+})
+;(window as unknown as { __workspace?: unknown }).__workspace = {
+  show: (view: 'scenes' | 'notebook') => sceneWorkspace?.show(view),
+  view: () => sceneWorkspace?.view(),
+  active: () => Boolean(sceneWorkspace?.active()),
+}
+sceneWorkspace.start()
 document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
 // A video notebook's work is its scene plans; the older whole-notebook build
 // says what it is, and that it does not use them.
@@ -18652,7 +18761,11 @@ nextStepButton.addEventListener('click', () => {
 renderNextStep()
 if (project.derivedFrom?.notebook) {
   sceneReview.listen()
-  void sceneReview.load().then(() => onSceneSelected(selectedNodeId))
+  void sceneReview.load().then(() => {
+    onSceneSelected(selectedNodeId)
+    // The workspace reopens on the scene it last showed.
+    sceneWorkspace?.restore()
+  })
 }
 // Closing the workspace brings the notebook to the scene, revision and
 // moment it was showing: one selection across both views (R8). The close

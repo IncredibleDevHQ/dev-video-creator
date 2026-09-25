@@ -119,7 +119,7 @@ try {
 
   await fetch(`${origin}/__eval`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ js: `(() => { window.localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); window.location.assign('/studio'); })()` }),
+    body: JSON.stringify({ js: `(() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); window.location.assign('/studio'); })()` }),
   })
   let doc = null
   for (let i = 0; i < 40; i += 1) {

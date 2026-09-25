@@ -87,7 +87,7 @@ try {
   const videoId = fork.body?.project?.id
   check(Boolean(videoId && fork.body.project.derivedFrom?.snapshot), 'a video is forked from it')
 
-  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(videoId)}); location.assign('/studio'); return true }`).catch(() => {})
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(videoId)}); location.assign('/studio'); return true }`).catch(() => {})
   await sleep(2500)
   check(Boolean(await waitFor(`() => document.getElementById('project-title')?.value === 'Rate limiters · video'`)), 'the video notebook opens')
   await evaluate(`() => { document.getElementById('open-planning').click(); return true }`)

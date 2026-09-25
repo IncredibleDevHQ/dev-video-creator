@@ -100,7 +100,7 @@ const installGumStub = () => evalInWindow(`(() => {
 
 try {
   await putProject('human')
-  await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
+  await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
   await waitFor(`!!document.getElementById('${SCENE_ID}')`)
   await installGumStub()
 

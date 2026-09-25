@@ -155,7 +155,7 @@ try {
     // The app boots on the theme-library surface unless the path is /studio,
     // and it restores the localStorage active project id — point it at the
     // API-created notebook first (the studio does the same on save).
-    await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
+    await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
     await waitFor(`!!document.querySelector('#editor .ProseMirror, #editor [contenteditable="true"]')`)
     const hasSlide = await waitFor(`!!document.getElementById('blk-slide')`)
     return hasSlide ? 'slide block in the editor' : ''

@@ -138,7 +138,7 @@ const openStudio = async () => {
   return waitFor(`() => Boolean(document.querySelector('#editor .ProseMirror'))`, 90)
 }
 const openNotebook = async id => {
-  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); location.assign('/studio'); return true }`).catch(() => {})
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); location.assign('/studio'); return true }`).catch(() => {})
   await sleep(3000)
   return waitFor(`async () => { const id = localStorage.getItem('incredible-studio-v2-active-project'); return id === ${JSON.stringify(id)} && document.querySelector('#editor .ProseMirror') ? document.getElementById('project-title')?.value || true : null }`, 90)
 }

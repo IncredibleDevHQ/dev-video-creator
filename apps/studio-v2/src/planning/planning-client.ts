@@ -112,3 +112,32 @@ export const saveProductionEdits = (fetchJson: FetchJson, recordId: string, revi
 // Approval pins the plan with what it was made from. It starts nothing.
 export const approvePlan = (fetchJson: FetchJson, recordId: string) =>
   fetchJson<{ record: PlanningRecord }>(`/api/planning/records/${encodeURIComponent(recordId)}/review`, { method: 'POST' })
+
+// The video's explanation brief, prepared on the "Video planning" harness —
+// the first step of every scene's plan.
+export const prepareBrief = async (fetchJson: FetchJson, projectId: string) => {
+  assertDesktop()
+  const { record, reused } = await fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/brief`, { method: 'POST' })
+  if (!reused || record.status === 'queued') await startPlanningRun(fetchJson, { record, route: 'Prepare Brief', projectId })
+  return { record, reused }
+}
+
+// Stops a record's run. One whose run is already gone (the app restarted,
+// the harness died) is settled instead of staying "running".
+export const stopRun = async (fetchJson: FetchJson, record: Pick<PlanningRecord, 'id' | 'runId'>) => {
+  const bridge = window.studioDesktop
+  const cancelled = record.runId && bridge?.isDesktop ? await bridge.harness.cancel(record.runId).catch(() => false) : false
+  if (!cancelled) {
+    const message = record.runId ? 'Stopped: its run was no longer active' : 'Stopped before it started'
+    await fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message }) }).catch(() => {})
+  }
+}
+
+// Who speaks in a scene: you, a generated voice, or nobody. It is an input to
+// the scene's plans, so plans made before it read as out of date.
+export const saveSceneDelivery = (fetchJson: FetchJson, projectId: string, subject: string, delivery: 'human' | 'generated' | 'silent' | null) =>
+  fetchJson(`/api/planning/${encodeURIComponent(projectId)}/inputs`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ subject, delivery }),
+  })

@@ -55,7 +55,7 @@ const check = (label, ok, detail = '') => {
   if (!ok) failures += 1
 }
 try {
-  await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT}'); location.href = '/studio'`).catch(() => {})
+  await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT}'); location.href = '/studio'`).catch(() => {})
   await waitFor(`!!document.querySelector('#editor .ProseMirror, #editor [contenteditable="true"]')`, 60_000)
   // Per-scene: the card's Animate button re-plans locally (idempotent; writes
   // the atomized svg + steps through the normal persist path).

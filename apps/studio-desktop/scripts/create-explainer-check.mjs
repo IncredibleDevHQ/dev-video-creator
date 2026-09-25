@@ -91,7 +91,7 @@ try {
 
   // Open it in the UI and wait for the editor.
   await evaluate(`async () => {
-    window.localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}')
+    window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}')
     window.location.assign('/studio')
     return true
   }`, 'open fixture notebook')
@@ -239,7 +239,7 @@ try {
   }
   const closePublish = () => evaluate(`() => { document.getElementById('publish-dialog')?.close(); return true }`, 'close publish')
   const bootInto = async (id, title) => {
-    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.reload(); return true }`, `open ${id}`)
+    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.reload(); return true }`, `open ${id}`)
     for (let i = 0; i < 60; i += 1) {
       const state = await evaluate(`() => document.getElementById('project-title')?.value || ''`, 'boot').catch(() => '')
       if (state === title) return

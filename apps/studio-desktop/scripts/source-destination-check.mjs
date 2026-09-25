@@ -259,7 +259,7 @@ try {
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
   }
   await fetch(`${origin}/api/projects/${MD_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(mdProject) })
-  await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(MD_ID)}); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, 'open markdown notebook')
+  await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(MD_ID)}); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, 'open markdown notebook')
   const mdBoot = await waitFor(`() => document.getElementById('project-title')?.value === 'Markdown notes'`, 'markdown notebook boot')
   check('the markdown notebook opens', Boolean(mdBoot))
   const flowC = await runWizard(narrativeOf(FLOW_C_ONE), 'new')

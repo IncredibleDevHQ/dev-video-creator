@@ -243,7 +243,7 @@ const shot = async name => {
   await writeFile(join(process.env.PRODUCTION_SHOTS, `${name}.png`), Buffer.from(await response.arrayBuffer()))
 }
 const openNotebook = async (id, title) => {
-  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); location.assign('/studio'); return true }`).catch(() => {})
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); location.assign('/studio'); return true }`).catch(() => {})
   await sleep(2500)
   return waitFor(`() => document.getElementById('project-title')?.value === ${JSON.stringify(title)}`)
 }

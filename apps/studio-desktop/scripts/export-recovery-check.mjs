@@ -75,7 +75,7 @@ const notebook = (id, title, lines) => ({
   notebook: { type: 'doc', content: lines.map((line, index) => ({ type: 'paragraph', attrs: { id: `${id}-p${index + 1}` }, content: [{ type: 'text', text: line }] })) },
 })
 const openNotebook = async (id, title) => {
-  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); localStorage.removeItem('incredible-studio-v2-project'); location.assign('/studio'); return true }`, 'open').catch(() => {})
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); localStorage.removeItem('incredible-studio-v2-project'); location.assign('/studio'); return true }`, 'open').catch(() => {})
   await sleep(2500)
   return waitFor(`() => document.getElementById('project-title')?.value === ${JSON.stringify(title)} ? true : null`, `open ${title}`, 60)
 }

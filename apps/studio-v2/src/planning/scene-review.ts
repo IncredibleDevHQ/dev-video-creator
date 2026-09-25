@@ -15,17 +15,16 @@ import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type SceneP
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
-import { acceptProduction, approvePlan, loadPlanning, planScene, previewScene, produceScene, saveProductionEdits, saveSceneDirection } from './planning-client'
+import { acceptProduction, approvePlan, loadPlanning, planScene, prepareBrief, previewScene, produceScene, saveProductionEdits, saveSceneDelivery, saveSceneDirection, stopRun } from './planning-client'
 import { BROWSER_REVIEW_MESSAGE, progressText } from '../harness-choice'
 import { videoNextStep, type NextStep } from './next-step'
+import { previewFor, previewStateOf, producedFor, productionShown, productionStateOf, railStateOf, sceneActionsOf, treatmentRecordsOf, type PreviewState, type SceneAction, type SceneActions } from './scene-state'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
 type Scene = PlanningOverviewV1['scenes'][number]
 type CastEntry = VisualCastSummary['entries'][number]
 
-// checking: the harness submitted it, and the product is playing it in the
-// pinned player before it can read ready.
-export type PreviewState = { state: 'none' | 'building' | 'ready' | 'failed'; recordId?: string; message?: string; stale?: boolean; checking?: boolean }
+export type { PreviewState }
 
 export type SceneReviewHost = {
   fetchJson: FetchJson
@@ -71,6 +70,10 @@ export type SceneReviewHost = {
   // notebook's own scene back in its place.
   producedIn: (sceneId: string) => string | null
   releaseProduction: (sceneId: string) => Promise<void>
+  // A moment was chosen (the scene workspace opens it in its inspector).
+  momentPicked?: (sceneId: string, momentId: string) => void
+  // What the stage shows now, so the workspace's one action can follow it.
+  stageMode?: () => 'reference' | 'schematic' | 'base' | 'preview' | 'output'
 }
 
 type SceneUi = { revision: string; compare: string; moment: string; direction: string | null }
@@ -122,45 +125,13 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return state
   }
   const sceneOf = (sceneId: string) => overview?.scenes.find(scene => scene.id === sceneId) || null
-  const recordsOf = (sceneId: string) =>
-    (overview?.records || []).filter(record => record.kind === 'treatment' && record.subject === sceneId).sort((a, b) => b.revision - a.revision)
+  const recordsOf = (sceneId: string) => treatmentRecordsOf(overview?.records || [], sceneId)
   const shownRecord = (scene: Scene) => {
     const state = uiOf(scene.id)
     const all = recordsOf(scene.id).filter(record => record.content)
     return all.find(record => record.id === state.revision) || scene.view.current || all[0] || null
   }
   const active = () => (overview?.records || []).some(record => isActiveStatus(record.status))
-  // A plan revision's own sketch: another revision's is never shown for it.
-  const previewFor = (scene: Scene, record: PlanningRecord | null | undefined): ScenePreviewView | null =>
-    (record && scene.preview?.byTreatment?.[record.id]) || null
-  // What the stage plays as the scene's production: the newest one, else
-  // the one accepted — and, for a moment, only the one of that revision.
-  const productionShown = (scene: Scene) => scene.production?.ready || scene.production?.accepted || null
-  const producedFor = (scene: Scene, record: PlanningRecord | null | undefined) => {
-    const production = productionShown(scene)
-    return production && record && production.of.record === record.id ? production : null
-  }
-  // Where the scene's production stands, for the next step.
-  const productionStateOf = (scene: Scene): 'none' | 'producing' | 'ready' | 'accepted' | 'stale' | 'failed' => {
-    const production = scene.production
-    if (!production) return 'none'
-    if (isActiveStatus(production.latest.status)) return 'producing'
-    if (production.ready && !production.ready.accepted && production.ready.current) return 'ready'
-    if (production.accepted?.current) return 'accepted'
-    if (production.ready || production.accepted) return 'stale'
-    return production.latest.status === 'failed' ? 'failed' : 'none'
-  }
-  // Where the sketch of one plan revision stands.
-  const previewStateOf = (scene: Scene, record: PlanningRecord | null | undefined): PreviewState => {
-    const preview = scene.preview
-    if (!preview || !record) return { state: 'none' }
-    const latest = preview.latest
-    if (latest.treatmentId === record.id && isActiveStatus(latest.status)) return { state: 'building', recordId: latest.id, checking: latest.status === 'verifying' }
-    const ready = previewFor(scene, record)
-    if (ready) return { state: 'ready', recordId: ready.id, stale: !ready.current }
-    if (latest.treatmentId === record.id && latest.status === 'failed') return { state: 'failed', recordId: latest.id, message: latest.error?.message }
-    return { state: 'none' }
-  }
 
   // ——— Loading ———
   const load = async () => {
@@ -185,7 +156,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       loadedFor,
       error,
       (overview?.records || []).map(record => [record.id, record.status, record.updatedAt, record.reportedModel]),
-      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.continuity, scene.reference?.revision, scene.reference?.adopted?.revision, scene.reference?.newer?.revision, scene.reference?.newer?.designing, scene.reference?.baseDesigning, scene.production?.latest?.id, scene.production?.latest?.status, scene.production?.ready?.id, scene.production?.ready?.current, scene.production?.accepted?.id, scene.production?.ready?.edits?.revision, scene.production?.accepted?.edits?.revision, scene.production?.accepted?.accepted?.edits, scene.productionWaits]),
+      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.delivery, scene.direction, scene.continuity, scene.reference?.revision, scene.reference?.adopted?.revision, scene.reference?.newer?.revision, scene.reference?.newer?.designing, scene.reference?.baseDesigning, scene.production?.latest?.id, scene.production?.latest?.status, scene.production?.ready?.id, scene.production?.ready?.current, scene.production?.accepted?.id, scene.production?.ready?.edits?.revision, scene.production?.accepted?.edits?.revision, scene.production?.accepted?.accepted?.edits, scene.productionWaits]),
       overview?.visualCast?.status,
       overview?.visualCast?.id,
       overview?.brief.stale,
@@ -280,9 +251,13 @@ export const createSceneReview = (host: SceneReviewHost) => {
       host.toast(`Revision ${record.revision} is this scene's approved plan. Nothing else was started.`)
     })
 
-  // Focus a review control by its key; false when it is gone or disabled.
+  // Focus a review control by its key — in the notebook's review or the
+  // scene workspace, whichever is on screen; false when it is gone or disabled.
+  const SURFACES = '.scene-review, .scene-workspace'
+  const findFocus = (key: string) =>
+    [...document.querySelectorAll<HTMLElement>(`[data-focus="${CSS.escape(key)}"]`)].find(element => element.closest(SURFACES) && element.getClientRects().length > 0) || null
   const refocus = (key: string) => {
-    const again = document.querySelector<HTMLElement>(`.scene-review [data-focus="${CSS.escape(key)}"]`)
+    const again = findFocus(key)
     if (!again || (again as HTMLButtonElement).disabled) return false
     again.focus({ preventScroll: true })
     return document.activeElement === again
@@ -393,19 +368,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
     generate: { label: 'Replace · new artwork', tone: '' },
     omit: { label: 'Omit', tone: '' },
   }
-  const castFor = (plan: SceneTreatmentV1, scene: Scene) => {
+  // The page's own objects, each with the plan's decision, and their tally.
+  const castDecisions = (plan: SceneTreatmentV1, scene: Scene) => {
     const cast = overview?.visualCast?.entries || []
-    const byKey = (key?: string) => (key ? cast.find(entry => entry.libraryKey === key) : undefined)
-    const art = (entry: (typeof cast)[number] | undefined, fallback: string) => {
-      const box = h('span', { class: 'review-cast-art' })
-      if (entry) {
-        const image = h('img', { alt: entry.label, loading: 'lazy' })
-        image.src = entry.thumbnail
-        box.append(image)
-      } else box.append(h('span', { class: 'review-cast-none', text: fallback }))
-      return box
-    }
-    // The page's own objects, each with the plan's decision.
     const pageCast = cast.filter(entry => scene.originScenes.includes(entry.page) && entry.verification === 'verified' && entry.libraryKey)
     const designed = scene.reference?.kind === 'designed'
     const decisions = pageCast.map(entry => {
@@ -419,6 +384,21 @@ export const createSceneReview = (host: SceneReviewHost) => {
       counts.set(key, (counts.get(key) || 0) + 1)
     }
     const tally = ['Use', 'Adapt', 'Replace', 'Omit', 'Not decided'].filter(key => counts.get(key)).map(key => `${counts.get(key)} ${key === 'Use' ? 'used' : key === 'Adapt' ? 'adapted' : key === 'Replace' ? 'replaced' : key === 'Omit' ? 'omitted' : 'not decided'}`)
+    const tallyText = pageCast.length ? `The ${designed ? 'designed slide' : 'page'}'s ${pageCast.length} object${pageCast.length === 1 ? '' : 's'}: ${tally.join(', ')}.` : ''
+    return { cast, pageCast, designed, decisions, tally, tallyText, undecided: counts.get('Not decided') || 0 }
+  }
+  const castFor = (plan: SceneTreatmentV1, scene: Scene) => {
+    const { cast, pageCast, designed, decisions, tallyText } = castDecisions(plan, scene)
+    const byKey = (key?: string) => (key ? cast.find(entry => entry.libraryKey === key) : undefined)
+    const art = (entry: (typeof cast)[number] | undefined, fallback: string) => {
+      const box = h('span', { class: 'review-cast-art' })
+      if (entry) {
+        const image = h('img', { alt: entry.label, loading: 'lazy' })
+        image.src = entry.thumbnail
+        box.append(image)
+      } else box.append(h('span', { class: 'review-cast-none', text: fallback }))
+      return box
+    }
     const pageList = decisions.map(({ entry, object, decision }) =>
       h('li', { class: 'review-cast-item', 'data-cast-decision': decision ? decision.label.split(' · ')[0].toLowerCase() : 'undecided' },
         art(entry, '—'),
@@ -450,7 +430,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return h('div', { 'data-review-cast': scene.id },
       pageCast.length
         ? h('div', {},
-            h('p', { class: 'review-cast-tally', text: `The ${designed ? 'designed slide' : 'page'}'s ${pageCast.length} object${pageCast.length === 1 ? '' : 's'}: ${tally.join(', ')}.` }),
+            h('p', { class: 'review-cast-tally', text: tallyText }),
             h('ul', { class: 'review-cast' }, ...pageList),
           )
         : null,
@@ -467,7 +447,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const state = uiOf(scene.id)
     // What had the keyboard: the stage's redraw takes focus, so it is put
     // back once the stage and the review are drawn again.
-    const focused = document.activeElement instanceof HTMLElement && document.activeElement.closest('.scene-review') ? document.activeElement.getAttribute('data-focus') || '' : ''
+    const focused = document.activeElement instanceof HTMLElement && document.activeElement.closest(SURFACES) ? document.activeElement.getAttribute('data-focus') || '' : ''
     state.moment = id
     const moment = plan.moments.find(entry => entry.id === id)
     // On the sketch of this very revision, the stage goes to the moment.
@@ -487,6 +467,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       keep()
       // The opened moment in view, scrolling only when it is not.
       if (id) document.querySelector(`.scene-review [data-review-moment="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+      host.momentPicked?.(scene.id, id)
     })
   }
   const momentsOf = (scene: Scene, plan: SceneTreatmentV1) => {
@@ -1157,6 +1138,440 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return root
   }
 
+  // ——— The scene workspace (U2 of the scene workspace plan) ———
+  // The same scene, revision and moment as the notebook's review, laid out
+  // around the central stage: a header with the revision on show and its one
+  // action; an inspector with the scene's story, one moment, how it is voiced
+  // and its output; and a drawer with the context — briefs, evidence, the
+  // cast's decisions and how each part was made.
+  const onDesktop = () => Boolean(window.studioDesktop?.isDesktop)
+  const briefStateOf = () => {
+    const latest = overview?.brief.latest
+    return {
+      ready: Boolean(overview?.brief.current),
+      stale: Boolean(overview?.brief.stale),
+      preparing: Boolean(latest && latest.kind === 'brief' && isActiveStatus(latest.status)),
+      failed: latest?.status === 'failed',
+      recordId: latest?.id || null,
+    }
+  }
+  const actionsOf = (scene: Scene): SceneActions =>
+    sceneActionsOf({ scene, shown: shownRecord(scene), brief: briefStateOf(), take: host.takeOf(scene.id), desktop: onDesktop(), available: Boolean(overview?.available), stage: host.stageMode?.() })
+  const recordById = (id?: string) => (id ? (overview?.records || []).find(record => record.id === id) || null : null)
+  // How long a run has been going, from when it was asked for.
+  const elapsedOf = (record: PlanningRecord | null) => {
+    const since = record ? Date.parse(String((record as { createdAt?: string }).createdAt || '')) : NaN
+    if (!Number.isFinite(since)) return ''
+    const seconds = Math.max(0, Math.round((Date.now() - since) / 1000))
+    return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  }
+  type WorkspaceTab = 'story' | 'moment' | 'record' | 'output'
+  type Lead = (tab: WorkspaceTab, focus?: string) => void
+  // The scene's script against the plan: recording waits until they agree.
+  const scriptLags = (scene: Scene) => {
+    const record = shownRecord(scene)
+    const plan = record?.content as SceneTreatmentV1 | undefined
+    if (!plan) return false
+    const guide = recordingGuide({ plan, script: host.script(scene.id), wordingPolicy: host.wordingPolicy(), delivery: scene.delivery })
+    return guide.source === 'plan' && !guide.matchesScript
+  }
+  const perform = (scene: Scene, action: SceneAction, lead: Lead) => {
+    if (action.disabled) return
+    const record = recordById(action.recordId)
+    switch (action.kind) {
+      case 'prepare-brief':
+        void run('prepare the brief', async () => {
+          const projectId = host.projectId()
+          if (!projectId) return
+          const { reused } = await prepareBrief(host.fetchJson, projectId)
+          host.toast(reused ? 'The brief is already being prepared' : 'Preparing the explanation brief with your planning harness — every scene is planned from it')
+        })
+        return
+      case 'plan':
+        void revise(scene)
+        return
+      case 'revise':
+        lead('story', `direction:${scene.id}`)
+        return
+      case 'stop':
+        if (record) void run('stop the run', () => stopRun(host.fetchJson, record))
+        return
+      case 'preview':
+        if (record) void preview(scene, record, previewStateOf(scene, record).state === 'ready')
+        return
+      case 'show-preview':
+        host.showPreview(scene.id)
+        return
+      case 'approve':
+      case 'approve-unpreviewed':
+        if (record) void approve(record)
+        return
+      case 'show-current': {
+        const state = uiOf(scene.id)
+        state.revision = ''
+        state.moment = ''
+        host.selectMoment(scene.id, null, null, null)
+        host.refresh()
+        return
+      }
+      case 'choose-delivery':
+        lead('record', `delivery:${scene.id}`)
+        return
+      case 'record': {
+        // The teleprompter reads the scene's script: it says what the plan
+        // says before anything is recorded against it.
+        if (scriptLags(scene)) {
+          lead('record', `use-plan-script:${scene.id}`)
+          host.toast('Use the plan\'s lines as the scene\'s script first, so the teleprompter shows what the plan says')
+          return
+        }
+        lead('record')
+        const take = host.takeOf(scene.id)
+        if (take && take.known && !take.current && take.changed?.length) host.recordPickup(scene.id, take.changed)
+        else host.record(scene.id)
+        return
+      }
+      case 'produce':
+        void produce(scene, Boolean(productionShown(scene)))
+        return
+      case 'review-output':
+        lead('output')
+        host.showProduction(scene.id)
+        return
+      case 'accept': {
+        const ready = scene.production?.ready
+        if (ready) accept(scene, ready)
+        return
+      }
+    }
+  }
+  const actionButton = (scene: Scene, action: SceneAction, primary: boolean, lead: Lead) => {
+    const button = h('button', {
+      type: 'button',
+      class: `button ${primary ? 'primary' : 'ghost'}`,
+      'data-focus': `ws-action:${action.kind}:${scene.id}`,
+      'data-action': action.kind,
+      text: action.label,
+      ...(action.disabled ? { disabled: true, title: action.disabled } : busy ? { disabled: true } : {}),
+    })
+    button.addEventListener('click', () => perform(scene, action, lead))
+    return button
+  }
+  // The one revision control: every revision with where it stands.
+  const revisionPicker = (scene: Scene) => {
+    const view = scene.view
+    const entries = recordsOf(scene.id).filter(item => item.content)
+    const record = shownRecord(scene)
+    if (!entries.length) return chip(`Plan: ${PLANNING_STATE_LABELS[view.state]}`, PLAN_TONES[view.state])
+    const select = h('select', { class: 'ws-revision', 'aria-label': 'Plan revision on show', 'data-focus': `ws-revision:${scene.id}` })
+    for (const entry of entries) {
+      const status = entry.status === 'reviewed' ? (entry.id === view.reviewed?.id ? 'approved' : 'approved earlier') : entry.status
+      const option = h('option', { value: entry.id, text: `Plan r${entry.revision} · ${status}${entry.id === view.current?.id && view.staleBecause ? ' · out of date' : ''}` })
+      if (entry.id === record?.id) option.selected = true
+      select.append(option)
+    }
+    select.addEventListener('change', () => {
+      const state = uiOf(scene.id)
+      state.revision = select.value
+      state.moment = ''
+      host.selectMoment(scene.id, null, null, null)
+      host.refresh()
+    })
+    return select
+  }
+  // What is running for the scene, said once, with how long it has run.
+  const activityLine = (scene: Scene, actions: SceneActions) => {
+    const activity = actions.activity
+    if (!activity) return null
+    const record = recordById(activity.recordId)
+    const elapsed = elapsedOf(record)
+    return h('p', { class: 'ws-activity', role: 'status', 'data-ws-activity': activity.kind },
+      h('span', { class: 'ws-activity-dot', 'aria-hidden': 'true' }),
+      h('strong', { text: `${activity.label}…` }),
+      elapsed ? h('span', { class: 'ws-activity-time', text: ` ${elapsed}` }) : null,
+      record && progress.get(record.id) ? h('small', { class: 'ws-activity-last', 'data-review-progress': record.id, text: progress.get(record.id) || '' }) : null,
+    )
+  }
+  const workspaceHead = (scene: Scene, lead: Lead) => {
+    const actions = actionsOf(scene)
+    return {
+      revision: revisionPicker(scene),
+      primary: actions.primary ? actionButton(scene, actions.primary, true, lead) : null,
+      secondary: actions.secondary.map(action => actionButton(scene, action, false, lead)),
+      activity: activityLine(scene, actions),
+      actions,
+    }
+  }
+
+  // Story: what the scene teaches and how the plan stands — the question and
+  // takeaway first, the rest on demand.
+  const storyOf = (scene: Scene, lead: Lead) => {
+    const view = scene.view
+    const record = shownRecord(scene)
+    const plan = record?.content as SceneTreatmentV1 | undefined
+    const box = h('div', { class: 'ws-story' })
+    if (error) box.append(h('p', { class: 'review-error', text: error }))
+    if (!onDesktop()) box.append(h('p', { class: 'review-muted review-host-note', text: BROWSER_REVIEW_MESSAGE }))
+    const notice = referenceNotice(scene)
+    if (notice) box.append(notice)
+    const planning = view.latest && isActiveStatus(view.latest.status) ? view.latest : null
+    if (planning) box.append(h('p', { class: 'review-busy', 'data-review-progress': planning.id, text: progress.get(planning.id) || `Planning revision ${planning.revision} with your local harness…` }))
+    if (view.latest?.status === 'failed') box.append(h('p', { class: 'review-error', text: `Revision ${view.latest.revision} failed: ${view.latest.error?.message || 'no reason given'}${view.reviewed ? ` — the approved plan (r${view.reviewed.revision}) is unchanged` : ''}` }))
+    if (record && record.id === view.current?.id && view.staleBecause) box.append(h('p', { class: 'review-warn', text: `Out of date — ${view.staleBecause}. Plan again from the current inputs.` }))
+    if (!plan) {
+      const objectives = (overview?.basePages || []).filter(page => scene.originScenes.includes(page.scene) && page.objective).map(page => page.objective)
+      if (objectives.length) box.append(h('h4', { class: 'ws-label', text: 'What it should teach' }), ...objectives.map(text => h('p', { class: 'ws-question', text })))
+      // Never "no plan yet … plan the scene" while it is being planned.
+      if (!planning) box.append(h('p', { class: 'review-muted', text: view.state === 'needs-brief' ? 'The video\'s explanation brief comes first: prepare it, then plan this scene.' : view.state === 'preparing' ? 'The explanation brief is being prepared; this scene can be planned once it is ready.' : 'No plan yet. Add direction below if you want, then plan the scene.' }))
+    } else {
+      box.append(
+        h('h4', { class: 'ws-label', text: `What it teaches · plan r${record!.revision}` }),
+        h('p', { class: 'ws-question', text: plan.question }),
+        h('p', { class: 'ws-takeaway' }, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
+      )
+      const brief = overview?.brief.current?.content as ExplanationBriefV1 | undefined
+      const evidence = brief ? [...new Set(plan.moments.flatMap(moment => moment.evidenceRefs || []))].map(ref => brief.evidence.find(entry => entry.id === ref)).filter(Boolean) as ExplanationBriefV1['evidence'] : []
+      if (plan.demonstration || plan.ledger || evidence.length) {
+        box.append(disclosure(`ws-example:${scene.id}`, 'Example and evidence', h('div', { class: 'ws-example' },
+          plan.demonstration ? h('p', {}, h('strong', { text: 'Example. ' }), plan.demonstration.text) : null,
+          plan.ledger ? h('p', { class: 'review-muted', text: `The count: ${plan.ledger.quantity} from ${plan.ledger.initial} to ${plan.ledger.final} over ${plan.ledger.events.length} changes — checked.` }) : null,
+          evidence.length ? h('ul', { class: 'ws-evidence' }, ...evidence.slice(0, 8).map(entry => h('li', {}, h('q', { text: entry.text }), entry.locator ? h('small', { text: ` ${entry.locator}` }) : null))) : null,
+        )))
+      }
+      const { tallyText, undecided, designed } = castDecisions(plan, scene)
+      if (tallyText) {
+        const more = h('button', { type: 'button', class: 'link-button', 'data-focus': `ws-cast:${scene.id}`, text: 'Each object' })
+        more.addEventListener('click', () => lead('story', 'context:cast'))
+        box.append(h('p', { class: undecided ? (designed ? 'review-error ws-cast-line' : 'review-warn ws-cast-line') : 'review-muted ws-cast-line' }, tallyText, ' ', more))
+      }
+      const open = [
+        ...plan.unresolved.map(text => `Open: ${text}`),
+        ...plan.requirements.decisions.map(text => `Decide: ${text}`),
+        ...plan.requirements.assets.map(text => `Artwork: ${text}`),
+        ...(record!.report?.warnings || []).map(text => `Check: ${text}`),
+        ...(scene.continuity || []).filter(seam => seam.state === 'proposed' || seam.state === 'broken').map(seam => `Seam (${seam.side === 'incoming' ? 'opening' : 'ending'}): ${seam.state}${seam.reason ? ` — ${seam.reason}` : ''}`),
+      ]
+      if (open.length) box.append(disclosure(`ws-open:${scene.id}`, `Still to resolve (${open.length})`, h('ul', { class: 'ws-open' }, ...open.map(text => h('li', { text: readable(text) })))))
+    }
+    // Direction for the next candidate, and planning it.
+    const state = uiOf(scene.id)
+    const field = h('textarea', { rows: '3', 'data-focus': `direction:${scene.id}`, placeholder: view.current ? 'Direction for the next candidate — what should change?' : 'Direction for the plan (optional) — what should it show?', 'aria-label': 'Direction for this scene' })
+    field.value = state.direction ?? scene.direction
+    field.addEventListener('input', () => (state.direction = field.value))
+    const planBlocked = view.state === 'planning' || !overview?.brief.current || overview.brief.stale || !overview.available || !onDesktop()
+    const planButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Plan again with this direction' : 'Plan the scene', ...(planBlocked ? { disabled: true } : {}), ...(onDesktop() ? {} : { title: 'Planning runs in the desktop app' }) })
+    planButton.addEventListener('click', () => void revise(scene))
+    box.append(h('div', { class: 'ws-direction' }, h('label', { class: 'ws-label', text: 'Direction' }), field, planButton))
+    if (plan && record) box.append(disclosure(`ws-compare:${scene.id}`, 'Compare with another revision', compareOf(scene, plan, record)))
+    return box
+  }
+
+  // Moment: one moment at a time — what changes on screen, the words said
+  // over it, where the viewer looks — with its direction on demand.
+  const momentOf = (scene: Scene) => {
+    const record = shownRecord(scene)
+    const plan = record?.content as SceneTreatmentV1 | undefined
+    const box = h('div', { class: 'ws-moment' })
+    if (!plan) {
+      box.append(h('p', { class: 'review-muted', text: 'The scene\'s moments appear here once it has a plan.' }))
+      return box
+    }
+    const state = uiOf(scene.id)
+    const index = plan.moments.findIndex(moment => moment.id === state.moment)
+    if (index < 0) {
+      box.append(h('p', { class: 'review-muted', text: `${plan.moments.length} moments. Choose one under the stage, or here:` }))
+      const list = h('ol', { class: 'ws-moment-list' })
+      plan.moments.forEach((moment, at) => {
+        const pick = h('button', { type: 'button', 'data-focus': `ws-moment:${scene.id}:${moment.id}` }, h('span', { class: 'review-moment-number', text: String(at + 1) }), h('span', { text: moment.title }))
+        pick.addEventListener('click', () => pickMoment(scene, plan, moment.id))
+        list.append(h('li', {}, pick))
+      })
+      box.append(list)
+      return box
+    }
+    const moment = plan.moments[index]
+    const step = (to: number, text: string, key: string) => {
+      const button = h('button', { type: 'button', class: 'button ghost ws-step', 'data-focus': `${key}:${scene.id}`, text, ...(to < 0 || to >= plan.moments.length ? { disabled: true } : {}) })
+      button.addEventListener('click', () => pickMoment(scene, plan, plan.moments[to].id))
+      return button
+    }
+    const ready = previewFor(scene, record)
+    const produced = producedFor(scene, record)
+    const timed = (produced || ready)?.summary.moments.find(entry => entry.id === moment.id)
+    const seconds = timed ? `${Math.round((timed.end - timed.start) * 10) / 10}s${produced ? '' : ' est.'}` : moment.estimateSeconds ? `≈${moment.estimateSeconds}s est.` : ''
+    const field = (label: string, text: string | null | undefined, className = '') => (text ? [h('dt', { text: label }), h('dd', { class: className, text: readable(text) })] : [])
+    const targets = targetsOf(scene, plan, moment)
+    const mapped = targets.nodes.length + targets.objectIds.length
+    box.append(
+      h('div', { class: 'ws-moment-head' },
+        h('span', { class: 'ws-moment-count', text: `Moment ${index + 1} of ${plan.moments.length}` }),
+        h('span', { class: 'ws-moment-steps' }, step(index - 1, '‹ Previous', 'moment-previous'), step(index + 1, 'Next ›', 'moment-next')),
+      ),
+      h('h3', { class: 'ws-moment-title', 'data-review-moment': moment.id }, moment.title, seconds ? h('small', { text: ` ${seconds}` }) : null),
+      h('dl', { class: 'ws-moment-fields' },
+        ...field('On screen', moment.objects?.change || moment.observation),
+        ...field('Spoken line', moment.narration ? moment.narration.guide || moment.narration.job : '', 'ws-spoken'),
+        ...field('Viewer focus', moment.attention),
+      ),
+      h('p', { class: 'review-muted ws-mapping', text: mapped ? `On the reference, what this moment is about is highlighted (${mapped} ${mapped === 1 ? 'thing' : 'things'}). The video may restage it.` : 'Nothing on the reference maps to this moment: the scene will stage it on its own.' }),
+      disclosure(`ws-direction:${scene.id}`, 'Direction', h('dl', { class: 'ws-moment-fields' },
+        ...field('Why it is there', moment.purpose),
+        ...field('Presenter', moment.presenter ? `${moment.presenter.visibility}${moment.presenter.reason ? ` — ${moment.presenter.reason}` : ''}` : ''),
+        ...field('Text', moment.text ? `${moment.text.content} (${moment.text.role})` : ''),
+        ...field('Camera', moment.camera ? `${moment.camera.treatment} on ${moment.camera.subject}${moment.camera.reason ? ` — ${moment.camera.reason}` : ''}` : ''),
+        ...field('Objects', moment.objects?.actors?.length ? moment.objects.actors.join(', ') : ''),
+        ...field('Sound', moment.audio ? `${moment.audio.cue}${moment.audio.reason ? ` — ${moment.audio.reason}` : ''}` : ''),
+        ...field('Recipes', moment.recipes?.length ? moment.recipes.map(recipe => recipe.id).join(', ') : ''),
+      )),
+    )
+    return box
+  }
+
+  // Record: who speaks in the scene, and — for a scene you present — what to
+  // say and where, your take, and recording it.
+  const DELIVERY_CHOICES: Array<['human' | 'generated' | 'silent', string, string]> = [
+    ['human', 'You present it', 'Your voice — and your picture where the plan shows you. Your take sets the scene\'s clock.'],
+    ['generated', 'Generated voice', 'The plan\'s lines are spoken by a generated voice when the scene is produced. Nothing to record.'],
+    ['silent', 'Silent', 'No voice: the scene keeps the plan\'s timing, with its sound cues only.'],
+  ]
+  let savingDelivery = ''
+  const recordOf = (scene: Scene) => {
+    const box = h('div', { class: 'ws-record' })
+    const choice = h('div', { class: 'ws-delivery', role: 'radiogroup', 'aria-label': 'Who speaks in this scene' })
+    for (const [value, label] of DELIVERY_CHOICES) {
+      const selected = scene.delivery === value
+      const button = h('button', { type: 'button', role: 'radio', 'aria-checked': selected ? 'true' : 'false', class: selected ? 'is-selected' : '', 'data-focus': value === (scene.delivery || 'human') ? `delivery:${scene.id}` : `delivery-${value}:${scene.id}`, text: label, ...(savingDelivery ? { disabled: true } : {}) })
+      button.addEventListener('click', () => {
+        if (selected || savingDelivery) return
+        const projectId = host.projectId()
+        if (!projectId) return
+        if (scene.view.current && !window.confirm(`Change who speaks in this scene? Its plans made before read as out of date — they are kept — and it is planned again with ${label.toLowerCase()}.`)) return
+        savingDelivery = scene.id
+        host.refresh()
+        void saveSceneDelivery(host.fetchJson, projectId, scene.id, value)
+          .then(() => host.toast(`${label}: saved for this scene. Its earlier plans are kept, marked out of date; other scenes are unchanged.`))
+          .catch(failure => host.toast(failure instanceof Error ? failure.message : 'Could not save who speaks'))
+          .finally(() => {
+            savingDelivery = ''
+            void load()
+          })
+      })
+      choice.append(button)
+    }
+    const said = DELIVERY_CHOICES.find(([value]) => value === scene.delivery)
+    box.append(h('h4', { class: 'ws-label', text: 'Who speaks' }), choice, h('p', { class: 'review-muted', text: said ? said[2] : 'Not chosen yet: choose who speaks before the scene is produced. Planning can start without it.' }))
+    const record = shownRecord(scene)
+    const plan = record?.content as SceneTreatmentV1 | undefined
+    if (!plan || !record) {
+      box.append(h('p', { class: 'review-muted', text: 'What to say, and where, comes with the plan.' }))
+      return box
+    }
+    if (scene.delivery === 'generated' || scene.delivery === 'silent') {
+      const guide = recordingGuide({ plan, script: host.script(scene.id), wordingPolicy: host.wordingPolicy(), delivery: scene.delivery })
+      if (scene.delivery === 'generated' && guide.lines.length) box.append(h('h4', { class: 'ws-label', text: `The lines the voice speaks — plan r${record.revision}` }), h('ol', { class: 'review-guide-lines' }, ...guide.lines.map(line => h('li', { text: line.text }))))
+      return box
+    }
+    box.append(h('h4', { class: 'ws-label', text: `Recording guide — plan r${record.revision}` }), guideOf(scene, plan, record))
+    return box
+  }
+
+  // Context: what the scene was planned from and how each part was made.
+  const contextOf = (scene: Scene, section: 'brief' | 'explanation' | 'cast' | 'details') => {
+    const record = shownRecord(scene)
+    const plan = record?.content as SceneTreatmentV1 | undefined
+    const box = h('div', { class: `ws-context-body is-${section}` })
+    if (section === 'brief') {
+      const pages = (overview?.basePages || []).filter(page => scene.originScenes.includes(page.scene))
+      if (!pages.length) box.append(h('p', { class: 'review-muted', text: 'This scene has no base page on record.' }))
+      for (const page of pages) {
+        box.append(h('article', { class: 'ws-context-card' },
+          h('h4', { text: page.title }),
+          page.objective ? h('p', {}, h('strong', { text: 'Teaching objective. ' }), page.objective) : null,
+          page.narration ? h('p', {}, h('strong', { text: 'Narration. ' }), page.narration) : null,
+          page.sourcePassages.length ? h('div', {}, h('strong', { text: 'Source passages' }), h('ul', {}, ...page.sourcePassages.map(passage => h('li', { class: 'ws-quote', text: passage })))) : null,
+          page.layoutGuidance ? disclosure(`ws-layout:${page.scene}`, 'Previous layout guidance', h('p', { class: 'review-muted', text: page.layoutGuidance })) : null,
+        ))
+      }
+      return box
+    }
+    if (section === 'explanation') {
+      const brief = overview?.brief.current
+      const content = brief?.content as ExplanationBriefV1 | undefined
+      if (!content) {
+        box.append(h('p', { class: 'review-muted', text: overview?.brief.latest && isActiveStatus(overview.brief.latest.status) ? 'The explanation brief is being prepared.' : 'No explanation brief yet: it is prepared before the first plan.' }))
+        return box
+      }
+      if (overview?.brief.stale) box.append(h('p', { class: 'review-warn', text: `Out of date — ${overview.brief.staleBecause || 'its inputs changed'}.` }))
+      box.append(h('p', {}, h('strong', { text: 'Message. ' }), content.purpose.message))
+      const mine = content.coverage.filter(entry => scene.originScenes.includes(entry.scene))
+      const units = [...new Set(mine.flatMap(entry => entry.units))].map(id => content.units.find(unit => unit.id === id)).filter(Boolean) as ExplanationBriefV1['units']
+      if (!units.length) box.append(h('p', { class: 'review-muted', text: mine.find(entry => entry.omittedReason)?.omittedReason || 'The brief maps no explanation unit to this scene\'s pages.' }))
+      for (const unit of units) {
+        box.append(h('article', { class: 'ws-context-card' },
+          h('h4', { text: unit.question }),
+          h('p', { text: unit.explain }),
+          h('ul', {}, ...unit.communicationNeeds.map(need => h('li', {}, h('strong', { text: need.need }), ` — ${need.why}`))),
+          h('ul', { class: 'ws-evidence' }, ...unit.evidenceRefs.map(ref => content.evidence.find(entry => entry.id === ref)).filter(Boolean).map(entry => h('li', {}, h('q', { text: entry!.text }), entry!.locator ? h('small', { text: ` ${entry!.locator}` }) : null))),
+        ))
+      }
+      box.append(h('p', { class: 'review-muted', text: `Brief r${brief!.revision} · ${brief!.adapter || 'harness unknown'} ${brief!.reportedModel || brief!.model || ''}` }))
+      return box
+    }
+    if (section === 'cast') {
+      if (!plan) {
+        const cast = (overview?.visualCast?.entries || []).filter(entry => scene.originScenes.includes(entry.page))
+        box.append(h('p', { class: 'review-muted', text: cast.length ? `The scene's page offers ${cast.length} object${cast.length === 1 ? '' : 's'}; the plan decides what to do with each.` : 'The scene\'s page offers no reusable objects.' }))
+        return box
+      }
+      box.append(castFor(plan, scene))
+      return box
+    }
+    // Details: how the plan, its preview and the production were made, and
+    // the plan's full text to read or copy.
+    if (!record || !plan) {
+      box.append(h('p', { class: 'review-muted', text: 'Nothing has been planned for this scene yet.' }))
+    } else {
+      box.append(
+        h('p', { class: 'review-muted', text: `Plan r${record.revision} · ${record.status === 'reviewed' ? 'approved' : record.status} · ${record.adapter || 'harness unknown'} ${record.reportedModel || record.model || ''}${record.workflow ? ` · workflow ${record.workflow}` : ''}${record.approval ? ` · approved ${new Date(record.approval.at).toLocaleString()}` : ''}` }),
+        h('p', {}, h('strong', { text: 'Skills. ' }), plan.skills.map(skill => skill.skill).join(', ') || '—'),
+      )
+      const details = previewDetails(scene, record)
+      if (details) box.append(details)
+      const text = JSON.stringify(plan, null, 2)
+      const copy = h('button', { type: 'button', class: 'button ghost', 'data-focus': `ws-copy-plan:${scene.id}`, text: 'Copy the plan' })
+      copy.addEventListener('click', () => {
+        void navigator.clipboard?.writeText(text).then(() => host.toast('The plan\'s full text is on the clipboard'), () => host.toast('Could not copy: select the text instead'))
+      })
+      box.append(disclosure(`ws-plan-text:${scene.id}`, `The plan's full text (r${record.revision})`, h('div', { class: 'ws-plan-text' }, copy, h('pre', { text }))))
+    }
+    const workspace = h('button', { type: 'button', class: 'button ghost', 'data-focus': `workspace:${scene.id}`, text: 'Open the planning workspace' })
+    workspace.addEventListener('click', () => host.openWorkspace(scene.id, record?.id || '', uiOf(scene.id).moment))
+    box.append(h('p', { class: 'review-muted', text: 'The planning workspace holds the harness and model for planning, the brief\'s preparation and each run\'s raw files.' }), workspace)
+    return box
+  }
+
+  // The moments of the revision on show, for the row under the stage: timed
+  // by what the stage plays of that revision, else by the plan's estimates.
+  const momentsRow = (sceneId: string) => {
+    const scene = sceneOf(sceneId)
+    const record = scene ? shownRecord(scene) : null
+    const plan = record?.content as SceneTreatmentV1 | undefined
+    if (!scene || !plan) return null
+    const mode = host.stageMode?.()
+    const produced = producedFor(scene, record)
+    const ready = previewFor(scene, record)
+    const playing = mode === 'output' ? produced : mode === 'preview' ? ready : null
+    return {
+      selected: uiOf(sceneId).moment,
+      measured: Boolean(playing && playing === produced),
+      duration: playing?.summary.duration ?? null,
+      moments: plan.moments.map((moment, index) => {
+        const timed = playing?.summary.moments.find(entry => entry.id === moment.id)
+        return { id: moment.id, index, title: moment.title, start: timed?.start ?? null, end: timed?.end ?? null, seconds: timed ? Math.round((timed.end - timed.start) * 10) / 10 : moment.estimateSeconds ?? null }
+      }),
+    }
+  }
+
   // One widget per scene block: the strip, or the review when selected —
   // which then leads, above the block it reviews (F7).
   const widget = (sceneId: string, expanded: boolean) => {
@@ -1178,9 +1593,59 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId), reference?.revision, reference?.adopted?.revision, reference?.newer?.revision, reference?.newer?.designing, reference?.baseDesigning, adopting === sceneId, scene?.production?.latest?.status, scene?.production?.ready?.id, scene?.production?.ready?.current, scene?.production?.accepted?.id, scene?.production?.accepted?.current, accepting, using, host.producedIn(sceneId), scene?.production?.ready?.edits?.revision, scene?.production?.accepted?.accepted?.edits, scene?.productionWaits, savingEdit, editHistory.get(scene?.production?.ready?.id || '')?.past.length, editHistory.get(scene?.production?.ready?.id || '')?.future.length])
   }
 
+  const workspaceScene = (sceneId: string) => sceneOf(sceneId)
   return {
     load,
     listen,
+    // The scene workspace's parts (U2 of the scene workspace plan): drawn
+    // from the same records, state and actions as the notebook's review.
+    workspace: {
+      scenes: () =>
+        (overview?.scenes || []).map(scene => ({ id: scene.id, index: scene.index, title: scene.title || scene.id, state: railStateOf(scene, host.takeOf(scene.id)) })),
+      head: (sceneId: string, lead: Lead) => {
+        const scene = workspaceScene(sceneId)
+        return scene ? workspaceHead(scene, lead) : null
+      },
+      story: (sceneId: string, lead: Lead) => {
+        const scene = workspaceScene(sceneId)
+        return scene ? storyOf(scene, lead) : null
+      },
+      moment: (sceneId: string) => {
+        const scene = workspaceScene(sceneId)
+        return scene ? momentOf(scene) : null
+      },
+      record: (sceneId: string) => {
+        const scene = workspaceScene(sceneId)
+        return scene ? recordOf(scene) : null
+      },
+      output: (sceneId: string) => {
+        const scene = workspaceScene(sceneId)
+        return scene ? productionOf(scene) : null
+      },
+      context: (sceneId: string, section: 'brief' | 'explanation' | 'cast' | 'details') => {
+        const scene = workspaceScene(sceneId)
+        return scene ? contextOf(scene, section) : null
+      },
+      moments: momentsRow,
+      // Playback moved into another moment: the inspector follows, the
+      // stage is not sought.
+      follow: (sceneId: string, momentId: string) => {
+        if (!workspaceScene(sceneId)) return
+        uiOf(sceneId).moment = momentId
+        host.refresh()
+      },
+      pick: (sceneId: string, momentId: string) => {
+        const scene = workspaceScene(sceneId)
+        const plan = scene ? (shownRecord(scene)?.content as SceneTreatmentV1 | undefined) : undefined
+        if (scene && plan) pickMoment(scene, plan, momentId)
+      },
+      // What the scene's workspace shows, so an unchanged one is not redrawn.
+      signature: (sceneId: string) => JSON.stringify([signature(sceneId, true), host.stageMode?.(), savingDelivery, busy, overview?.brief.current?.id, overview?.brief.stale, briefStateOf().preparing, overview?.scenes.map(scene => [scene.id, scene.title, railStateOf(scene, host.takeOf(scene.id))])]),
+      // Whether the scene has anything to produce yet (the Output tab).
+      approved: (sceneId: string) => Boolean(workspaceScene(sceneId)?.view.reviewed),
+      // A run's progress, for lines drawn outside the review.
+      progress: (recordId: string) => progress.get(recordId) || '',
+    },
     active: () => Boolean(overview),
     has: (sceneId: string) => Boolean(sceneOf(sceneId)),
     widget,
@@ -1188,7 +1653,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     // Focus inside a review, so a redraw can put it back.
     focusKey: () => {
       const active = document.activeElement
-      if (!(active instanceof HTMLElement) || !active.closest('.scene-review')) return ''
+      if (!(active instanceof HTMLElement) || !active.closest(SURFACES)) return ''
       return active.getAttribute('data-focus') || ''
     },
     restoreFocus: (key: string) => {

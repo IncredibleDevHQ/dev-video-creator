@@ -119,7 +119,7 @@ try {
       fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
     }
     await j(origin, '/api/projects/' + id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project) })
-    await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
+    await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.href = '/studio'`)
     await waitFor(`!!document.querySelector('#editor .ProseMirror, #editor [contenteditable="true"]')`)
     const summary = await evalInWindow(`window.importSvgPages([{ name: '05_architecture.svg', text: ${JSON.stringify(svgText)} }])`)
     if (summary.imported.length !== 1) throw new Error(JSON.stringify(summary).slice(0, 120))

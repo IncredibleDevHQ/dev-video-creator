@@ -58,7 +58,7 @@ const until = async (test, seconds = 40) => {
 const project = id => fetch(`${origin}/api/projects/${encodeURIComponent(id)}`).then(response => response.json()).then(body => body.project)
 const put = body => fetch(`${origin}/api/projects/${encodeURIComponent(body.id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(response => response.status)
 const open = async (id, title) => {
-  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); localStorage.removeItem('incredible-studio-v2-project'); location.assign('/studio'); return true }`, 'open').catch(() => {})
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(id)}); localStorage.removeItem('incredible-studio-v2-project'); location.assign('/studio'); return true }`, 'open').catch(() => {})
   await sleep(2500)
   return until(() => evaluate(`() => document.getElementById('project-title')?.value === ${JSON.stringify(title)} ? true : null`, 'opened'), 40)
 }

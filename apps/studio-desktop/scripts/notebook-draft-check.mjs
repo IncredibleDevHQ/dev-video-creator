@@ -94,7 +94,7 @@ try {
   await fetch(`${origin}/api/projects/${A}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fixture(A, A_TITLE)) })
   await fetch(`${origin}/api/projects/${B}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fixture(B, B_TITLE)) })
 
-  await evalInWindow(`(() => { window.localStorage.setItem('incredible-studio-v2-active-project', '${A}'); window.location.assign('/studio'); })()`)
+  await evalInWindow(`(() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${A}'); window.location.assign('/studio'); })()`)
   check('notebook A open in the editor', await waitForTitle(A_TITLE))
 
   // The outage: durable saves of A fail, everything else works.
