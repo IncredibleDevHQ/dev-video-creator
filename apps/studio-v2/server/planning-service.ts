@@ -32,7 +32,7 @@ import { listArtwork } from './appearance-library'
 import { fingerprintOf } from '../src/planning/fingerprint'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
 import { continuityStatus, validateTreatment, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
-import { ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
+import { castEntriesForKeys, ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
 import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest, type SketchProof } from '../src/planning/sketch-bundle'
 import { previewFileBody, verifySketchRuntime } from './sketch-runtime'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
@@ -331,7 +331,12 @@ const castFiles = async (cast: VisualCastRevision | null, origins: string[], cas
   }
   const files: PacketFiles = {}
   const pages = cast.pages.filter(page => origins.includes(page.scene))
-  const carried = (entry: CastEntry) => origins.includes(entry.identity.base.page) || Boolean(entry.libraryKey && castKeys.includes(entry.libraryKey))
+  // The artwork the plan names, by the key it used, even one an earlier
+  // extraction gave: the entry says which of its keys the plan used.
+  const named = await castEntriesForKeys(cast, castKeys)
+  const formerKeys = new Map<string, string[]>()
+  for (const [key, entry] of named) if (entry.libraryKey !== key) formerKeys.set(entry.id, [...(formerKeys.get(entry.id) || []), key])
+  const carried = (entry: CastEntry) => origins.includes(entry.identity.base.page) || [...named.values()].some(found => found.id === entry.id)
   const entries = cast.entries.filter(carried)
   const bytes = async (objectKey: string) => (await readObject(objectKey)).toString('base64')
   const pageRefs = []
@@ -350,6 +355,8 @@ const castFiles = async (cast: VisualCastRevision | null, origins: string[], cas
     return {
       id: entry.id,
       libraryKey: entry.libraryKey,
+      // The keys an earlier extraction gave it, which the plan may name.
+      ...(formerKeys.get(entry.id) ? { formerKeys: formerKeys.get(entry.id) } : {}),
       kind: entry.kind,
       label: entry.meaning.label,
       detail: entry.meaning.detail,

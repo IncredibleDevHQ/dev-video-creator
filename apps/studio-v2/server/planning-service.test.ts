@@ -16,6 +16,7 @@ process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../../studio-desktop/skil
 
 const persistence = await import('./persistence')
 const service = await import('./planning-service')
+const library = await import('./appearance-library')
 // A packet's text file (binary files — previews — are base64 objects).
 const text = (file: unknown) => {
   if (typeof file !== 'string') throw new Error('not a text file of the packet')
@@ -382,6 +383,41 @@ describe('planning integrity', () => {
     expect(text(files[`packet/${bucket.files.svg}`])).toContain(`clip-path="url(#${bucket.rig.inside.clipPath})"`)
     const parts = JSON.parse(text(files[`packet/${bucket.files.parts}`]))
     expect(parts.rig.inside).toMatchObject({ contained: true, states: expect.arrayContaining([expect.objectContaining({ fill: 1, scale: 1.5, outside: 0 })]) })
+  }, 60_000)
+
+  // Extracting again (version 2's inside clip) gave the live bucket a new
+  // library key; a plan still naming the old one got no artwork in its
+  // sketch packet, and the harness drew a placeholder. The old key names the
+  // same drawn thing, so the packet carries the current entry for it.
+  it('carries the artwork a plan names by a key an earlier extraction gave', async () => {
+    const rich = (name: string) => readFileSync(fileURLToPath(new URL(`./fixtures/visual-cast/${name}`, import.meta.url)), 'utf8')
+    const { videoId: id, videoScenes: scenes } = await makeVideo('earlier-key', {
+      pages: [
+        scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.'], rich('10_the_token_bucket.svg')),
+        scene('b2', 'Rejection', 'Only so many run at once.', ['the next request is rejected'], rich('06_concurrent_requests_limiter.svg')),
+      ],
+    })
+    await readyBrief(id, 'run-earlier-brief')
+    const { record } = await service.queueTreatment(id, scenes[1])
+    await service.attachRun(record.id, { runId: 'run-earlier-plan' })
+    const castId = JSON.parse(text((await service.loadPacket(record.id)).files['packet/VISUAL_CAST.json'])).cast as string
+    const stored = (await persistence.loadSetting(castId)) as { base: unknown; entries: Array<{ id: string; libraryKey: string | null; identity: { object: string | null; contentHash: string } }> }
+    const bucket = stored.entries.find(entry => entry.identity.object === 'token-bucket')!
+    // The same bucket as an earlier extractor version lifted it, in the library under its own key.
+    const earlier = { ...bucket, id: `cast-earlier-${RUN}`, libraryKey: null, identity: { ...bucket.identity, contentHash: `e${RUN}`.padEnd(64, '0') } }
+    const v1 = castId.replace(/:v\d+$/, ':v1')
+    await persistence.saveSetting(v1, { ...stored, id: v1, version: 1, entries: [earlier] })
+    const oldKey = (await library.registerExtractedArtwork({ entry: earlier as never, svg: '<svg xmlns="http://www.w3.org/2000/svg"/>', castId: v1 })).key
+    expect(oldKey).not.toBe(bucket.libraryKey)
+    const plan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }], objects: [
+      { entity: 'bucket', role: 'Holds the tokens', appearance: 'The page\'s own bucket', performance: 'Its level falls as tokens are spent', asset: { status: 'reuse', ref: oldKey, reason: 'The bucket the video already showed' } },
+    ] }
+    expect(await service.submitTreatment(record.id, plan, 'run-earlier-plan')).toMatchObject({ accepted: true, status: 'candidate' })
+    const sketch = (await service.loadPacket((await service.queuePreview(id, scenes[1])).record.id)).files
+    const sketchCast = JSON.parse(text(sketch['packet/VISUAL_CAST.json']))
+    const carried = sketchCast.entries.find((entry: { object: string | null }) => entry.object === 'token-bucket')
+    expect(carried).toMatchObject({ libraryKey: bucket.libraryKey, formerKeys: [oldKey], rig: { inside: { clipPath: expect.stringMatching(/-inside$/) } } })
+    for (const path of Object.values(carried.files) as string[]) expect(sketch).toHaveProperty([`packet/${path}`])
   }, 60_000)
 
   // P1: the scene's packet carries its page and its cast — the actual

@@ -18,7 +18,7 @@ import type { Readable } from 'node:stream'
 import type { StudioThemeV1 } from 'markdown-composition'
 import { CAST_PAGE_SCRIPT } from './visual-cast-page'
 import { getObject, loadSetting, saveSetting, storeAsset } from './persistence'
-import { registerExtractedArtwork } from './appearance-library'
+import { listArtwork, registerExtractedArtwork } from './appearance-library'
 
 // 2: a container's level is held inside its shell (R10 of the scene-review
 // review), so every base is extracted again once.
@@ -161,7 +161,7 @@ type PageResult = {
 }
 
 const hashOf = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
-const castKey = (notebook: string, revision: string) => `visual-cast:${notebook}:${revision || 'unpinned'}:v${EXTRACTOR_VERSION}`
+const castKey = (notebook: string, revision: string, version: number = EXTRACTOR_VERSION) => `visual-cast:${notebook}:${revision || 'unpinned'}:v${version}`
 
 // ——— The rigged objects the page-master skill can ask for ———
 type RigPieces = Record<string, string[]>
@@ -376,6 +376,36 @@ export const ensureVisualCast = (input: {
   })().finally(() => inFlight.delete(key))
   inFlight.set(key, job)
   return job
+}
+
+// The current cast's entry for each library key a plan names. A key an
+// earlier extraction gave (before the extractor changed the artwork, as
+// version 2's inside clip did) names the same drawn thing: the entry of the
+// same base, page and node whose painted bounds on the page are the same.
+export const castEntriesForKeys = async (cast: VisualCastRevision, keys: string[]): Promise<Map<string, CastEntry>> => {
+  const found = new Map<string, CastEntry>()
+  const missing: string[] = []
+  for (const key of new Set(keys)) {
+    const entry = cast.entries.find(item => item.libraryKey === key)
+    if (entry) found.set(key, entry)
+    else missing.push(key)
+  }
+  if (!missing.length) return found
+  const library = new Map((await listArtwork().catch(() => [])).map(asset => [asset.key, asset]))
+  const earlier = new Map<string, CastEntry>()
+  for (let version = 1; version < EXTRACTOR_VERSION; version += 1) {
+    const old = (await loadSetting(castKey(cast.base.notebook, cast.base.revision, version))) as VisualCastRevision | null
+    for (const entry of old?.entries || []) earlier.set(entry.id, entry)
+  }
+  const sameBounds = (a: CastBounds, b: CastBounds) => ['x', 'y', 'width', 'height'].every(side => Math.abs(a[side as keyof CastBounds] - b[side as keyof CastBounds]) < 0.5)
+  for (const key of missing) {
+    const origin = library.get(key)?.origin
+    const was = origin ? earlier.get(origin.castEntry) : undefined
+    if (!origin || !was || origin.notebook !== cast.base.notebook || origin.revision !== cast.base.revision) continue
+    const same = cast.entries.filter(entry => entry.identity.base.page === origin.page && entry.identity.base.node === origin.node && sameBounds(entry.artwork.bounds, was.artwork.bounds))
+    if (same.length === 1) found.set(key, same[0])
+  }
+  return found
 }
 
 export const readObject = async (objectKey: string) => {
