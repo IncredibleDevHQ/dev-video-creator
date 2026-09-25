@@ -17,6 +17,19 @@ process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../../studio-desktop/skil
 
 const persistence = await import('./persistence')
 const service = await import('./planning-service')
+const { systemVoiceAvailable } = await import('./voice')
+const systemVoice = await systemVoiceAvailable()
+
+// A produced scene's composition (P4): the bucket appears and grows in m1,
+// playing the clock's sound when it has one.
+const productionHtml = (compositionId: string, duration: number, audio: string | null) => `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}.bucket{position:absolute;left:760px;top:340px;width:400px;height:400px;border-radius:40px;background:#635bff}</style></head><body>
+<div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="${duration}">
+<div id="m1" class="clip" data-start="0" data-duration="${duration}" data-track-index="0"><div class="bucket" data-sketch-layer="bucket"></div></div>
+${audio ? `<audio id="voice" src="${audio}" data-start="0" data-duration="${duration}" data-track-index="20"></audio>` : ''}
+</div><script>window.__timelines = window.__timelines || {}
+const tl = gsap.timeline({ paused: true })
+tl.fromTo('#m1 .bucket', { opacity: 0.2, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2 }, 0)
+window.__timelines["${compositionId}"] = tl</script></body></html>`
 const library = await import('./appearance-library')
 // A packet's text file (binary files — previews — are base64 objects).
 const text = (file: unknown) => {
@@ -668,6 +681,111 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     overview = await service.planningOverview(id)
     expect(overview.scenes[0].preview?.ready).toMatchObject({ current: false, of: { record: plan.id } })
   }, 60_000)
+
+  // P4: a scene produced from its approved plan on its real clock — checked
+  // against the plan and the clock, played in the pinned engine, served to
+  // the stage, and accepted into the render the notebook plays and exports.
+  it('produces an approved plan on its clock: checked, served, accepted into one render', async () => {
+    // A scene whose delivery is undecided has no clock to produce on; its
+    // plan is made for its delivery, so it is chosen first.
+    const undecided = await makeVideo('production-undecided')
+    await readyBrief(undecided.videoId, 'run-undecided-brief')
+    const { record: open } = await service.queueTreatment(undecided.videoId, undecided.videoScenes[0])
+    await service.attachRun(open.id, { runId: 'run-undecided-plan' })
+    await service.submitTreatment(open.id, treatmentFor(undecided.videoScenes[0], 'b1'), 'run-undecided-plan')
+    await service.reviewTreatment(open.id)
+    await expect(service.queueProduction(undecided.videoId, undecided.videoScenes[0])).rejects.toThrow(/Choose how this scene is delivered .* plan and approve the scene again/)
+
+    const { videoId: id, videoScenes: scenes } = await makeVideo('production')
+    await service.saveDirection(id, { subject: scenes[0], delivery: 'silent' })
+    await readyBrief(id, 'run-production-brief')
+    const { record: plan } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(plan.id, { runId: 'run-production-plan' })
+    expect(await service.submitTreatment(plan.id, { ...treatmentFor(scenes[0], 'b1'), delivery: { voice: 'silent', note: '' } }, 'run-production-plan')).toMatchObject({ accepted: true })
+    // Nothing is produced before the plan is approved.
+    await expect(service.queueProduction(id, scenes[0])).rejects.toThrow(/Approve this scene's plan/)
+    await service.reviewTreatment(plan.id)
+    const queued = await service.queueProduction(id, scenes[0])
+    expect(queued).toMatchObject({ reused: false, record: { kind: 'production', status: 'queued', subject: scenes[0], skillBundle: { name: 'scene-producer' } } })
+    const packet = await service.loadPacket(queued.record.id)
+    expect(packet.route).toBe('Produce Scene')
+    const context = JSON.parse(text(packet.files['packet/CONTEXT.json']))
+    expect(context).toMatchObject({ route: 'Produce Scene', plan: { record: plan.id, revision: plan.revision }, clock: { kind: 'silent', duration: 6 }, composition: { width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' } })
+    expect(JSON.parse(text(packet.files['packet/CLOCK.json']))).toMatchObject({ kind: 'silent', audio: null, duration: 6, moments: [{ id: 'm1', start: 0, end: 6 }] })
+    expect(JSON.parse(text(packet.files['packet/PLAN.json']))).toMatchObject({ record: plan.id, approvedAt: expect.any(String) })
+    expect(text(packet.files['packet/PRODUCTION.md'])).toMatch(/silent by the creator's choice/)
+    await service.attachRun(queued.record.id, { runId: 'run-production' })
+    const compositionId = context.composition.id
+    expect(compositionId).toMatch(/^production-/)
+    const html = productionHtml(compositionId, 6, null)
+    const manifest = { version: 1, kind: 'production', scene: scenes[0], plan: context.plan, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, clock: { kind: 'silent', audio: null }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6 }], layers: [{ id: 'bucket', kind: 'object', label: 'Token bucket', moments: ['m1'] }], unmet: [] }
+    // Refused: off the clock, and a stand-in where the scene needs the thing.
+    const off = await service.submitProduction(queued.record.id, { 'index.html': html, 'manifest.json': JSON.stringify({ ...manifest, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 4 }], layers: [{ ...manifest.layers[0], placeholder: 'A box for now' }] }) }, 'run-production')
+    expect(off).toMatchObject({ accepted: false, problems: expect.arrayContaining([expect.stringMatching(/^moment m1 must keep the clock: 0–6s/), expect.stringMatching(/^layer bucket is a placeholder/)]) })
+    // Refused: a presenter with no take to show.
+    const presenter = await service.submitProduction(queued.record.id, { 'index.html': html, 'manifest.json': JSON.stringify({ ...manifest, layers: [...manifest.layers, { id: 'presenter', kind: 'presenter', label: 'Presenter', moments: ['m1'] }] }) }, 'run-production')
+    expect(presenter).toMatchObject({ accepted: false, problems: expect.arrayContaining([expect.stringMatching(/no take to show/)]) })
+    const landed = await service.submitProduction(queued.record.id, { 'index.html': html, 'manifest.json': JSON.stringify(manifest) }, 'run-production')
+    expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+    const proof = landed.accepted ? landed.record.report?.verification : undefined
+    expect(proof).toMatchObject({ bundle: expect.stringMatching(/^[0-9a-f]{64}$/), runtime: '0.7.106', duration: 6, layers: [{ id: 'bucket', moments: ['m1'] }] })
+    // Served as accepted, for the stage.
+    const index = await service.loadProductionFile(queued.record.id, 'index.html')
+    expect(index.body.toString('utf8')).toContain(`data-composition-id="${compositionId}"`)
+    let overview = await service.planningOverview(id)
+    expect(overview.scenes[0].production).toMatchObject({ ready: { current: true, of: { record: plan.id }, url: expect.stringMatching(/^\/api\/planning\/productions\/.+\/index\.html$/), summary: { duration: 6, clock: 'silent', unmet: [] } }, accepted: null })
+    // Accepted: rendered once, by the pinned producer, into the scene's output.
+    const accepted = await service.acceptProduction(queued.record.id)
+    expect(accepted).toMatchObject({ status: 'reviewed', approval: { render: { durationMs: 6000, bundle: proof!.bundle, objectKey: expect.stringMatching(/\.mp4$/) } } })
+    const render = await new Promise<Buffer>(async (resolve, reject) => {
+      const chunks: Buffer[] = []
+      const { stream } = await persistence.getObject(accepted.approval!.render!.objectKey)
+      stream.on('data', chunk => chunks.push(chunk as Buffer)).on('end', () => resolve(Buffer.concat(chunks))).on('error', reject)
+    })
+    expect(render.subarray(4, 8).toString('latin1')).toBe('ftyp')
+    overview = await service.planningOverview(id)
+    expect(overview.scenes[0].production?.accepted).toMatchObject({ id: queued.record.id, accepted: { url: expect.stringMatching(/^\/objects\//), durationMs: 6000 } })
+    await expect(service.acceptProduction(queued.record.id)).rejects.toThrow(/Only a produced scene can be accepted/)
+    // The same approved plan on the same clock is not produced again, unless asked.
+    expect(await service.queueProduction(id, scenes[0])).toMatchObject({ reused: true, record: { id: queued.record.id } })
+    // A newly approved plan leaves the production, and its acceptance, as history.
+    await service.saveDirection(id, { subject: scenes[0], direction: 'Slower' })
+    const { record: next } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(next.id, { runId: 'run-production-plan-2' })
+    await service.submitTreatment(next.id, { ...treatmentFor(scenes[0], 'b1'), delivery: { voice: 'silent', note: '' } }, 'run-production-plan-2')
+    await service.reviewTreatment(next.id)
+    overview = await service.planningOverview(id)
+    expect(overview.scenes[0].production?.accepted).toMatchObject({ current: false, staleBecause: expect.stringMatching(/^it produces r1; the scene's approved plan is r2/) })
+  }, 240_000)
+
+  it.runIf(systemVoice)('produces a generated-voice scene on the voice\'s clock, playing its sound', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('production-voice')
+    await service.saveDirection(id, { subject: scenes[0], delivery: 'generated' })
+    await readyBrief(id, 'run-voice-brief')
+    const { record: plan } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(plan.id, { runId: 'run-voice-plan' })
+    await service.submitTreatment(plan.id, { ...treatmentFor(scenes[0], 'b1'), delivery: { voice: 'generated', note: '' } }, 'run-voice-plan')
+    await service.reviewTreatment(plan.id)
+    const queued = await service.queueProduction(id, scenes[0])
+    const packet = await service.loadPacket(queued.record.id)
+    const clock = JSON.parse(text(packet.files['packet/CLOCK.json']))
+    // The approved words were spoken and measured before the run.
+    expect(clock).toMatchObject({ kind: 'generated-voice', audio: 'audio/narration.mp3', provider: 'Local system voice', spoken: [{ id: 'm1', words: 'Each request consumes one token.' }] })
+    expect(clock.moments[0].end).toBeGreaterThan(1)
+    const sound = packet.files['packet/audio/narration.mp3'] as { base64: string; contentType: string }
+    expect(sound).toMatchObject({ contentType: 'audio/mpeg', base64: expect.any(String) })
+    await service.attachRun(queued.record.id, { runId: 'run-voice' })
+    const context = JSON.parse(text(packet.files['packet/CONTEXT.json']))
+    const duration = clock.duration
+    const manifest = { version: 1, kind: 'production', scene: scenes[0], plan: context.plan, composition: { id: context.composition.id, width: 1920, height: 1080, fps: 30, duration }, runtime: { hyperframes: '0.7.106' }, clock: { kind: 'generated-voice', audio: 'audio/narration.mp3' }, moments: [{ id: 'm1', title: 'Spend', start: clock.moments[0].start, end: clock.moments[0].end }], layers: [{ id: 'bucket', kind: 'object', label: 'Token bucket', moments: ['m1'] }], unmet: [] }
+    // Refused: the voice is not played.
+    const unvoiced = await service.submitProduction(queued.record.id, { 'index.html': productionHtml(context.composition.id, duration, null), 'manifest.json': JSON.stringify(manifest), 'audio/narration.mp3': sound }, 'run-voice')
+    expect(unvoiced).toMatchObject({ accepted: false, problems: expect.arrayContaining([expect.stringMatching(/must play the clock's sound/)]) })
+    const landed = await service.submitProduction(queued.record.id, { 'index.html': productionHtml(context.composition.id, duration, 'audio/narration.mp3'), 'manifest.json': JSON.stringify(manifest), 'audio/narration.mp3': sound }, 'run-voice')
+    expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+    const proof = landed.accepted ? landed.record.report?.verification : undefined
+    expect(proof?.loaded.some(path => path.endsWith('audio/narration.mp3'))).toBe(true)
+  }, 240_000)
 
   // R1/R2 of the scene-review review: a preview belongs to one plan revision
   // and is current only while nothing it was sketched from has moved.

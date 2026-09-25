@@ -16,10 +16,12 @@ import { fingerprintOf, stableJson } from './fingerprint'
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
 import type { SketchManifest, SketchProof } from './sketch-bundle'
+import type { ProductionManifest } from './production-bundle'
 
 // brief: the video's explanation brief · treatment: a scene's creative plan ·
-// preview: a rough, seekable sketch of one plan revision (P3).
-export type PlanningKind = 'brief' | 'treatment' | 'preview'
+// preview: a rough, seekable sketch of one plan revision (P3) · production:
+// the scene produced from its approved plan, on its real clock (P4).
+export type PlanningKind = 'brief' | 'treatment' | 'preview' | 'production'
 
 // verifying: a sketch the harness submitted, being played in the pinned
 // player before it can read ready (a preview only).
@@ -43,7 +45,7 @@ export type PlanningRecord = {
   fingerprint: string
   // The pinned references the record was made from.
   inputs: Record<string, unknown>
-  content: ExplanationBriefV1 | SceneTreatmentV1 | SketchManifest | null
+  content: ExplanationBriefV1 | SceneTreatmentV1 | SketchManifest | ProductionManifest | null
   // What the checks said: warnings, construction risks.
   report: { warnings: string[]; constructionRisks?: string[]; verification?: SketchProof } | null
   artifacts: { objectKey: string; assetId: string } | null
@@ -74,6 +76,9 @@ export type PlanApproval = {
   briefId: string
   briefFingerprint: string
   castId: string | null
+  // A production's acceptance (P4): the render of the accepted bundle the
+  // notebook plays and exports, and the bundle it was rendered from.
+  render?: { assetId: string; objectKey: string; durationMs: number; bundle: string }
 }
 
 // Version of the dependency rules below; a record made under older rules

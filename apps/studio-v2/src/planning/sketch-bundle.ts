@@ -104,8 +104,8 @@ const namesLayer = (line: string, layer: SketchManifest['layers'][number]) => {
   return (words.length > 0 && shared >= Math.min(2, words.length)) || (lead.length > 0 && said.has(lead[lead.length - 1]))
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-const textOf = (file: SketchFile | undefined) => (typeof file === 'string' ? file : '')
+export const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+export const textOf = (file: SketchFile | undefined) => (typeof file === 'string' ? file : '')
 const sizeOf = (file: SketchFile) => (typeof file === 'string' ? new TextEncoder().encode(file).length : Math.floor((file.base64.length * 3) / 4))
 
 // Code a preview must never run: network, storage, clocks, randomness.
@@ -122,6 +122,39 @@ const NAMESPACES = /^https?:\/\/www\.w3\.org\//
 
 const pathSafe = (path: string) => /^[a-z0-9][a-z0-9._\-/]*$/i.test(path) && !path.split('/').some(part => part === '..' || part === '')
 
+// The files of a bundle: how many, how large, plain relative paths.
+export const bundleFileProblems = (files: SketchFiles, what: string, limits = { files: MAX_FILES, bytes: MAX_BYTES }) => {
+  const problems: string[] = []
+  const names = Object.keys(files)
+  if (names.length > limits.files) problems.push(`the ${what} has ${names.length} files — keep it under ${limits.files}`)
+  const total = names.reduce((sum, name) => sum + sizeOf(files[name]), 0)
+  if (total > limits.bytes) problems.push(`the ${what} is ${(total / 1024 / 1024).toFixed(1)} MB — keep it under ${limits.bytes / 1024 / 1024} MB`)
+  for (const name of names) if (!pathSafe(name)) problems.push(`"${name}" is not a plain relative path inside the ${what}`)
+  return problems
+}
+
+// The composition: one standalone root, its timeline registered, only the
+// pinned runtime, nothing fetched, nothing random.
+export const compositionProblems = (files: SketchFiles, html: string, id: string, duration: number, what: string) => {
+  const problems: string[] = []
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (!new RegExp(`data-composition-id=["']${escaped}["']`).test(html)) problems.push(`index.html has no root with data-composition-id="${id}"`)
+  if (!new RegExp(`__timelines\\s*\\[\\s*["']${escaped}["']\\s*\\]\\s*=`).test(html)) problems.push(`index.html does not register window.__timelines["${id}"]`)
+  const rootDuration = /data-composition-id=["'][^"']+["'][^>]*data-duration=["']([\d.]+)["']|data-duration=["']([\d.]+)["'][^>]*data-composition-id=/.exec(html)
+  const declared = Number(rootDuration?.[1] || rootDuration?.[2])
+  if (!Number.isFinite(declared) || Math.abs(declared - duration) > 0.05) problems.push(`the root's data-duration must equal manifest.composition.duration (${duration}s)`)
+  for (const src of [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)].map(match => match[1])) {
+    if (!(SKETCH_RUNTIME_SCRIPTS as readonly string[]).includes(src) && !(src in files)) problems.push(`index.html loads "${src}" — only the Studio runtime (${SKETCH_RUNTIME_SCRIPTS.join(', ')}) or the ${what}'s own files`)
+  }
+  for (const name of Object.keys(files)) {
+    const text = /\.(html|js|css|svg|json)$/i.test(name) ? textOf(files[name]) : ''
+    if (!text) continue
+    for (const url of text.match(/https?:\/\/[^\s"'<>)]+/g) || []) if (!NAMESPACES.test(url)) problems.push(`${name} refers to "${url}" — a ${what} uses nothing outside itself`)
+    if (/\.(html|js)$/i.test(name)) for (const rule of FORBIDDEN) if (rule.pattern.test(text)) problems.push(`${name} ${rule.why}`)
+  }
+  return problems
+}
+
 // Checks a submitted sketch against its plan. The engine's own lint runs
 // separately (server side) and adds its errors.
 export const validateSketch = (files: SketchFiles, context: SketchContext): SketchReport => {
@@ -129,10 +162,7 @@ export const validateSketch = (files: SketchFiles, context: SketchContext): Sket
   const warnings: string[] = []
   const names = Object.keys(files)
   if (!names.length) return { ok: false, problems: ['the sketch has no files'], warnings, manifest: null }
-  if (names.length > MAX_FILES) problems.push(`the sketch has ${names.length} files — keep it under ${MAX_FILES}`)
-  const total = names.reduce((sum, name) => sum + sizeOf(files[name]), 0)
-  if (total > MAX_BYTES) problems.push(`the sketch is ${(total / 1024 / 1024).toFixed(1)} MB — keep it under ${MAX_BYTES / 1024 / 1024} MB`)
-  for (const name of names) if (!pathSafe(name)) problems.push(`"${name}" is not a plain relative path inside the sketch`)
+  problems.push(...bundleFileProblems(files, 'sketch'))
 
   // The manifest.
   let manifest: SketchManifest | null = null
@@ -211,23 +241,7 @@ export const validateSketch = (files: SketchFiles, context: SketchContext): Sket
 
   // The composition: one standalone root, its timeline registered, only
   // the pinned runtime, nothing fetched, nothing random.
-  if (html) {
-    const id = String(composition?.id || '')
-    if (!new RegExp(`data-composition-id=["']${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(html)) problems.push(`index.html has no root with data-composition-id="${id}"`)
-    if (!new RegExp(`__timelines\\s*\\[\\s*["']${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']\\s*\\]\\s*=`).test(html)) problems.push(`index.html does not register window.__timelines["${id}"]`)
-    const rootDuration = /data-composition-id=["'][^"']+["'][^>]*data-duration=["']([\d.]+)["']|data-duration=["']([\d.]+)["'][^>]*data-composition-id=/.exec(html)
-    const declared = Number(rootDuration?.[1] || rootDuration?.[2])
-    if (!Number.isFinite(declared) || Math.abs(declared - duration) > 0.05) problems.push(`the root's data-duration must equal manifest.composition.duration (${duration}s)`)
-    for (const src of [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)].map(match => match[1])) {
-      if (!(SKETCH_RUNTIME_SCRIPTS as readonly string[]).includes(src) && !(src in files)) problems.push(`index.html loads "${src}" — only the Studio runtime (${SKETCH_RUNTIME_SCRIPTS.join(', ')}) or the sketch's own files`)
-    }
-    for (const name of names) {
-      const text = /\.(html|js|css|svg|json)$/i.test(name) ? textOf(files[name]) : ''
-      if (!text) continue
-      for (const url of text.match(/https?:\/\/[^\s"'<>)]+/g) || []) if (!NAMESPACES.test(url)) problems.push(`${name} refers to "${url}" — a preview uses nothing outside itself`)
-      if (/\.(html|js)$/i.test(name)) for (const rule of FORBIDDEN) if (rule.pattern.test(text)) problems.push(`${name} ${rule.why}`)
-    }
-  }
+  if (html) problems.push(...compositionProblems(files, html, String(composition?.id || ''), duration, 'sketch').map(problem => problem.replace('a sketch uses nothing outside itself', 'a preview uses nothing outside itself')))
   return { ok: problems.length === 0, problems: [...new Set(problems)], warnings, manifest }
 }
 

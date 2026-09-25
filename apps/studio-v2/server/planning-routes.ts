@@ -20,6 +20,10 @@ import {
   queuePreview,
   submitSketch,
   loadPreviewFile,
+  queueProduction,
+  submitProduction,
+  loadProductionFile,
+  acceptProduction,
 } from './planning-service'
 import { loadPlanningRecord } from './persistence'
 
@@ -49,6 +53,13 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
     // /api/planning/previews/:id/<file> — a preview's files, for the player.
     if (parts[0] === 'previews' && parts[1] && method === 'GET') {
       const file = await loadPreviewFile(parts[1], parts.slice(2).join('/') || 'index.html')
+      response.writeHead(200, { 'content-type': file.contentType, 'cache-control': 'no-store' })
+      response.end(file.body)
+      return true
+    }
+    // /api/planning/productions/:id/<file> — a produced scene's files, for the stage.
+    if (parts[0] === 'productions' && parts[1] && method === 'GET') {
+      const file = await loadProductionFile(parts[1], parts.slice(2).join('/') || 'index.html')
       response.writeHead(200, { 'content-type': file.contentType, 'cache-control': 'no-store' })
       response.end(file.body)
       return true
@@ -94,6 +105,17 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
         send(response, result.accepted ? 200 : 422, result)
         return true
       }
+      if (method === 'POST' && action === 'production') {
+        const input = await body<{ files?: unknown; runId?: string }>(request, 60 * 1024 * 1024)
+        const result = await submitProduction(id, input.files, input.runId ? String(input.runId) : undefined)
+        send(response, result.accepted ? 200 : 422, result)
+        return true
+      }
+      // The creator accepts a produced scene: it is rendered once, as the scene's output.
+      if (method === 'POST' && action === 'accept') {
+        send(response, 200, { record: await acceptProduction(id) })
+        return true
+      }
       if (method === 'POST' && action === 'review') {
         send(response, 200, { record: await reviewTreatment(id) })
         return true
@@ -129,6 +151,11 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
     // Extract the base's visual cast again after a failure.
     if (method === 'POST' && parts[1] === 'cast') {
       send(response, 200, { status: (await retryVisualCast(projectId)).status })
+      return true
+    }
+    if (method === 'POST' && parts[1] === 'scenes' && parts[2] && parts[3] === 'produce') {
+      const input = await body<{ again?: boolean }>(request)
+      send(response, 200, await queueProduction(projectId, parts[2], { again: Boolean(input.again) }))
       return true
     }
     if (method === 'POST' && parts[1] === 'scenes' && parts[2] && parts[3] === 'preview') {

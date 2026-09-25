@@ -1,4 +1,5 @@
 import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, type ExportReport } from './export-jobs'
+import { generateFishVoice, generateSystemVoice } from './voice'
 import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
@@ -340,58 +341,6 @@ const commandExists = async (path: string) => {
   } catch {
     return false
   }
-}
-
-const generateSystemVoice = async (text: string, outputPath: string) => {
-  if (process.platform !== 'darwin' || !(await commandExists('/usr/bin/say'))) {
-    throw new Error(
-      'No keyless system voice is available. Configure FISH_AUDIO_API_KEY or use microphone audio.',
-    )
-  }
-  const intermediatePath = outputPath.replace(/\.mp3$/, '.aiff')
-  await runProcess('/usr/bin/say', ['-o', intermediatePath, text])
-  try {
-    await runProcess('ffmpeg', [
-      '-y',
-      '-i',
-      intermediatePath,
-      '-codec:a',
-      'libmp3lame',
-      '-q:a',
-      '2',
-      outputPath,
-    ])
-  } finally {
-    await rm(intermediatePath, { force: true })
-  }
-}
-
-const generateFishVoice = async (
-  text: string,
-  referenceId: string,
-  outputPath: string,
-) => {
-  const apiKey = process.env.FISH_AUDIO_API_KEY
-  if (!apiKey) throw new Error('FISH_AUDIO_API_KEY is not configured')
-  const response = await fetch('https://api.fish.audio/v1/tts', {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      'content-type': 'application/json',
-      model: process.env.FISH_AUDIO_MODEL || 's2.1-pro',
-    },
-    body: JSON.stringify({
-      text,
-      reference_id: referenceId,
-      format: 'mp3',
-      normalize: true,
-      prosody: { speed: 1, volume: 0, normalize_loudness: true },
-    }),
-  })
-  if (!response.ok) {
-    throw new Error(`Fish Audio failed (${response.status})`)
-  }
-  await writeFile(outputPath, Buffer.from(await response.arrayBuffer()))
 }
 
 const handleVoice = async (
