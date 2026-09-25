@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { forkNotebook, type ProjectDocumentV1 } from 'markdown-composition'
+import type { SketchManifest } from '../src/planning/sketch-bundle'
 
 // The file backend in a scratch directory, and the real vendored skills. With
 // PLANNING_TEST_BACKEND=postgres the same tests run against the PostgreSQL and
@@ -525,6 +526,13 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     await expect(service.loadPreviewFile(queued.record.id, '../secret')).rejects.toThrow(/No such file/)
     let overview = await service.planningOverview(id)
     expect(overview.scenes[0].preview?.ready).toMatchObject({ current: true, of: { record: plan.id }, url: expect.stringMatching(/^\/api\/planning\/previews\/.+\/index\.html$/), summary: { duration: 6, moments: [{ id: 'm1', start: 0, end: 6 }] }, checked: { bundle: proof!.bundle, runtime: '0.7.106', layers: 1, changes: 1 } })
+    // A sketch made for another pinned runtime is history, and says why (R2).
+    const accepted = (await persistence.loadPlanningRecord(queued.record.id))!
+    const manifestOf = accepted.content as SketchManifest
+    await persistence.updatePlanningRecord(queued.record.id, { content: { ...manifestOf, runtime: { hyperframes: '0.7.105' } } })
+    expect((await service.planningOverview(id)).scenes[0].preview?.ready).toMatchObject({ current: false, staleBecause: 'the pinned Hyperframes runtime changed (0.7.105 → 0.7.106)' })
+    await persistence.updatePlanningRecord(queued.record.id, { content: manifestOf })
+    expect((await service.planningOverview(id)).scenes[0].preview?.ready).toMatchObject({ current: true })
     // The same plan is shown again, not sketched again — unless asked.
     expect(await service.queuePreview(id, scenes[0])).toMatchObject({ reused: true, record: { id: queued.record.id } })
     const again = await service.queuePreview(id, scenes[0], { again: true })

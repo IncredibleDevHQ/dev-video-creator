@@ -832,14 +832,19 @@ const previewInputsOf = (planning: VideoPlanning, treatment: PlanningRecord, cas
   bundleHash: planning.bundle?.ref.hash || '',
 })
 // A preview shows what its plan would show now only while that plan is the
-// scene's current, fresh plan and the theme, the cast and the pinned skills
-// are the ones it was sketched with. Anything else keeps it, as history.
+// scene's current, fresh plan and the theme, the cast, the pinned skills and
+// the pinned runtime are the ones it was sketched with. Anything else keeps
+// it, as history.
 const previewFreshness = (planning: VideoPlanning, cast: VisualCastRevision | null, records: PlanningRecord[], view: ScenePlanningView, preview: PlanningRecord) => {
   const treatment = records.find(record => record.id === String(preview.inputs.treatmentId || '') && record.kind === 'treatment')
   if (!treatment) return { current: false, staleBecause: 'the plan it sketches is gone' }
   if (treatment.id !== view.current?.id) return { current: false, staleBecause: `it sketches r${treatment.revision}; the scene's current plan is ${view.current ? `r${view.current.revision}` : 'not settled'}` }
   if (view.staleBecause) return { current: false, staleBecause: `its plan is stale — ${view.staleBecause}` }
-  const changed = inputsChanged(previewInputsOf(planning, treatment, cast), preview.inputs)
+  const runtime = (preview.content as SketchManifest | null)?.runtime?.hyperframes
+  const changed = [
+    ...inputsChanged(previewInputsOf(planning, treatment, cast), preview.inputs),
+    ...(runtime && runtime !== SKETCH_RUNTIME.hyperframes ? [`the pinned Hyperframes runtime changed (${runtime} → ${SKETCH_RUNTIME.hyperframes})`] : []),
+  ]
   return changed.length ? { current: false, staleBecause: changed.join('; ') } : { current: true, staleBecause: null }
 }
 // What moved between the inputs a preview was sketched from and now.
