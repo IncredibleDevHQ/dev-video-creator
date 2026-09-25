@@ -539,10 +539,15 @@ describe('planning integrity', () => {
     await service.attachRun(second.id, { runId: 'run-adopt-plan-2' })
     const secondCast = JSON.parse(text((await service.loadPacket(second.id)).files['packet/VISUAL_CAST.json']))
     const pool = secondCast.entries.find((entry: { object: string | null }) => entry.object === 'slot-pool')
-    const secondPlan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }], objects: [
-      { entity: 'bucket', role: 'The calls in progress', appearance: 'The page\'s own twenty-slot pool', performance: 'Slots fill one by one', asset: { status: 'reuse', ref: pool.libraryKey, reason: 'The limit the viewer must see' } },
-    ] }
-    expect(await service.submitTreatment(second.id, secondPlan, 'run-adopt-plan-2')).toMatchObject({ accepted: true, status: 'candidate' })
+    const bucket = { entity: 'bucket', role: 'The calls in progress', appearance: 'The page\'s own twenty-slot pool', performance: 'Slots fill one by one', asset: { status: 'reuse', ref: pool.libraryKey, reason: 'The limit the viewer must see' } }
+    const secondPlan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }], objects: [bucket] }
+    // A designed slide's objects are each decided: using only the pool is not enough.
+    const others = secondCast.entries.filter((entry: { page: string; libraryKey: string; verification: { status: string } }) => entry.page === 'b2' && entry.verification.status === 'verified' && entry.libraryKey !== pool.libraryKey)
+    expect(others.length).toBeGreaterThan(0)
+    const undecided = await service.submitTreatment(second.id, secondPlan, 'run-adopt-plan-2')
+    expect(undecided).toMatchObject({ accepted: false, problems: [expect.stringMatching(new RegExp(`^the designed slide's .*\\(${others[0].libraryKey}\\).* no decision: in objects, use, adapt or replace`))] })
+    const omitted = others.map((entry: { id: string; label: string; libraryKey: string }) => ({ entity: `page-${entry.id}`, role: entry.label, appearance: 'Not shown', performance: 'None', asset: { status: 'omit', ref: entry.libraryKey, reason: 'The limit is carried by the pool alone' } }))
+    expect(await service.submitTreatment(second.id, { ...secondPlan, objects: [bucket, ...omitted] }, 'run-adopt-plan-2')).toMatchObject({ accepted: true, status: 'candidate' })
     expect((await service.reviewTreatment(second.id)).status).toBe('reviewed')
     const { record: sketchRecord } = await service.queuePreview(id, scenes[1])
     await service.attachRun(sketchRecord.id, { runId: 'run-adopt-sketch' })
@@ -565,11 +570,12 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     // The base designs the first page after the fork: offered, not taken.
     const base = (await persistence.loadProjectArtifact(`base-adopt-${RUN}`))!
     const designedPage = rich('05_request_rate_limiter.svg').trim()
-    base.notebook.content[0].attrs = { ...base.notebook.content[0].attrs, svg: designedPage, pageOrigin: { kind: 'designed', by: 'Kimi', runId: 'run-design' } }
+    // Designed, the base keeps the schematic beside the slide.
+    base.notebook.content[0].attrs = { ...base.notebook.content[0].attrs, svg: designedPage, pageOrigin: { kind: 'designed', by: 'Kimi', runId: 'run-design' }, schematic: { svg: schematicPage, program: null } }
     await persistence.saveProjectArtifact(base)
     overview = await service.planningOverview(id)
     const newer = overview.scenes[0].reference!.newer!
-    expect(newer).toMatchObject({ baseScene: 'b1', kind: 'designed', by: 'Kimi', designing: false })
+    expect(newer).toMatchObject({ baseScene: 'b1', kind: 'designed', by: 'Kimi', designing: false, schematic: schematicPage })
     expect(newer.svg).toBe(designedPage)
     expect(newer.revision).not.toBe(overview.scenes[0].reference!.revision)
     expect(overview.scenes[1].reference!.newer).toBeNull()
@@ -579,7 +585,7 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     // says which revision of the base's page it took.
     const video = (await persistence.loadProjectArtifact(id))!
     const firstNode = video.notebook.content.find(node => node.attrs?.id === scenes[0])!
-    firstNode.attrs = { ...firstNode.attrs, svg: newer.svg, pageOrigin: { kind: 'designed', by: 'Kimi' }, reference: { baseScene: 'b1', revision: newer.revision, kind: 'designed', adoptedAt: '2026-09-25T12:00:00.000Z' } }
+    firstNode.attrs = { ...firstNode.attrs, svg: newer.svg, pageOrigin: { kind: 'designed', by: 'Kimi' }, reference: { baseScene: 'b1', revision: newer.revision, kind: 'designed', adoptedAt: '2026-09-25T12:00:00.000Z' }, schematic: { svg: newer.schematic, program: null } }
     await persistence.saveProjectArtifact(video)
     overview = await service.planningOverview(id)
     expect(overview.scenes[0].reference).toMatchObject({ kind: 'designed', revision: newer.revision, adopted: { revision: newer.revision }, newer: null })
@@ -599,6 +605,10 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     expect(again.inputs).toMatchObject({ reference: newer.revision })
     const files = (await service.loadPacket(again.id)).files
     expect(text(files['packet/references/page.svg'])).toBe(designedPage)
+    // Both references: the designed slide, and the schematic it was designed from.
+    expect(text(files['packet/references/schematic.svg'])).toBe(schematicPage)
+    expect(JSON.parse(text(files['packet/CONTEXT.json'])).references).toMatchObject({ designed: 'references/page.svg', schematic: 'references/schematic.svg' })
+    expect(JSON.parse(text(files['packet/VISUAL_CAST.json'])).decide).toMatch(/^Decide every verified entry of this scene's own page/)
     const cast = JSON.parse(text(files['packet/VISUAL_CAST.json']))
     expect(cast.status).toBe('ready')
     const script = cast.entries.find((entry: { label: string }) => entry.label === 'User script')

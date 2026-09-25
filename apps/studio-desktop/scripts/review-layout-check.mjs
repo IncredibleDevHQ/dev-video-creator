@@ -124,6 +124,16 @@ const tool = async (name, args2) => {
       coverage: units.flatMap(unit => brief.units.find(entry => entry.id === unit).communicationNeeds.map(need => ({ unit, need: need.need, moments: ['m1'] }))),
       rosterProposal: null, delivery: { voice: context.delivery || 'undecided', note: '' },
     }))
+    // A designed slide's objects are each decided: the ones the stub does not use are omitted.
+    {
+      const written = JSON.parse(fs.readFileSync('planning/treatment.json', 'utf8'))
+      const visual = JSON.parse(fs.readFileSync('packet/VISUAL_CAST.json', 'utf8'))
+      const decided = new Set(written.objects.map(object => object.asset && object.asset.ref))
+      for (const entry of (visual.entries || []).filter(entry => context.scene.originScenes.includes(entry.page) && entry.verification.status === 'verified' && entry.libraryKey && !decided.has(entry.libraryKey))) {
+        written.objects.push({ entity: 'page-' + entry.id, role: entry.label, appearance: 'Not shown', performance: 'None', asset: { status: 'omit', ref: entry.libraryKey, reason: 'Not needed for this scene' } })
+      }
+      fs.writeFileSync('planning/treatment.json', JSON.stringify(written))
+    }
     const answer = await tool('plan_submit_treatment', { projectDir })
     if (!answer.accepted) process.stderr.write('stub plan refused: ' + JSON.stringify(answer) + '\n')
   }

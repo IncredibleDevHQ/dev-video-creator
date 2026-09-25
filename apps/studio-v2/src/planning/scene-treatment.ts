@@ -133,6 +133,11 @@ export type TreatmentContext = {
   // A delivery choice the creator already made for this scene, if any.
   delivery: 'human' | 'generated' | 'silent' | null
   assetKeys: string[]
+  // The verified objects of the scene's own page, by library key, and what
+  // that page is. Each object is decided (used, adapted, replaced or
+  // omitted); on a designed slide a plan that leaves one undecided is refused.
+  pageObjects?: Array<{ key: string; label: string }>
+  pageKind?: string
   // The adjacent video scenes and their reviewed plans now, when they have
   // one: what an agreed seam can rest on.
   neighbors?: NeighborPlan[]
@@ -476,6 +481,16 @@ export const validateTreatment = (raw: unknown, context: TreatmentContext): Trea
     }
     if (decision !== 'undecided' && !object.asset.reason) warnings.push(`object ${object.entity}: say why "${decision}" serves what the viewer needs to understand`)
     if (decision === 'omit' && moveActors.has(object.entity)) problems.push(`object ${object.entity} is omitted, but a moment moves it`)
+  }
+  // Every object on the scene's page gets a decision, so a designed slide's
+  // artwork is never dropped without one.
+  const decided = new Set(treatment.objects.filter(object => object.asset.status !== 'undecided' && object.asset.ref).map(object => object.asset.ref!))
+  const undecided = (context.pageObjects || []).filter(entry => !decided.has(entry.key))
+  if (undecided.length) {
+    const one = undecided.length === 1
+    const message = `the ${context.pageKind === 'designed' ? 'designed slide' : 'page'}'s ${undecided.map(entry => `${entry.label} (${entry.key})`).join(', ')} ${one ? 'has' : 'have'} no decision: in objects, use, adapt or replace ${one ? 'it' : 'each'}, or omit ${one ? 'it' : 'those the scene does not need'} (asset.status "omit" with ${one ? 'its' : 'their'} key as asset.ref) — each with why`
+    if (context.pageKind === 'designed') problems.push(message)
+    else warnings.push(message)
   }
 
   // The demonstration's arithmetic (R7).

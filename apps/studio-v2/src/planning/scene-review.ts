@@ -376,34 +376,80 @@ export const createSceneReview = (host: SceneReviewHost) => {
     )
   }
 
+  // What the plan does with each object of the scene's own page — use it,
+  // adapt it, replace it or omit it — then what else it brings in. A
+  // designed slide's artwork is never dropped without a decision shown here.
+  const DECISIONS: Record<string, { label: string; tone: string }> = {
+    reuse: { label: 'Use', tone: 'good' },
+    adapt: { label: 'Adapt', tone: 'new' },
+    enrich: { label: 'Adapt · richer', tone: 'new' },
+    native: { label: 'Replace · drawn exactly', tone: '' },
+    generate: { label: 'Replace · new artwork', tone: '' },
+    omit: { label: 'Omit', tone: '' },
+  }
   const castFor = (plan: SceneTreatmentV1, scene: Scene) => {
     const cast = overview?.visualCast?.entries || []
     const byKey = (key?: string) => (key ? cast.find(entry => entry.libraryKey === key) : undefined)
-    const items = plan.objects.map(object => {
-      const entry = byKey(object.asset.ref)
-      const art = h('span', { class: 'review-cast-art' })
+    const art = (entry: (typeof cast)[number] | undefined, fallback: string) => {
+      const box = h('span', { class: 'review-cast-art' })
       if (entry) {
         const image = h('img', { alt: entry.label, loading: 'lazy' })
         image.src = entry.thumbnail
-        art.append(image)
-      } else art.append(h('span', { class: 'review-cast-none', text: object.asset.status === 'native' ? 'native' : '—' }))
+        box.append(image)
+      } else box.append(h('span', { class: 'review-cast-none', text: fallback }))
+      return box
+    }
+    // The page's own objects, each with the plan's decision.
+    const pageCast = cast.filter(entry => scene.originScenes.includes(entry.page) && entry.verification === 'verified' && entry.libraryKey)
+    const designed = scene.reference?.kind === 'designed'
+    const decisions = pageCast.map(entry => {
+      const objects = plan.objects.filter(object => object.asset.ref === entry.libraryKey && object.asset.status !== 'undecided')
+      const object = objects.find(candidate => candidate.asset.status !== 'omit') || objects[0]
+      return { entry, object, decision: object ? DECISIONS[object.asset.status] || { label: object.asset.status, tone: '' } : null }
+    })
+    const counts = new Map<string, number>()
+    for (const item of decisions) {
+      const key = item.decision ? item.decision.label.split(' · ')[0] : 'Not decided'
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+    const tally = ['Use', 'Adapt', 'Replace', 'Omit', 'Not decided'].filter(key => counts.get(key)).map(key => `${counts.get(key)} ${key === 'Use' ? 'used' : key === 'Adapt' ? 'adapted' : key === 'Replace' ? 'replaced' : key === 'Omit' ? 'omitted' : 'not decided'}`)
+    const pageList = decisions.map(({ entry, object, decision }) =>
+      h('li', { class: 'review-cast-item', 'data-cast-decision': decision ? decision.label.split(' · ')[0].toLowerCase() : 'undecided' },
+        art(entry, '—'),
+        h('span', {},
+          h('strong', { text: entry.label }),
+          ' ',
+          decision ? chip(decision.label, decision.tone) : chip('Not decided', designed ? 'bad' : 'warn'),
+          object && object.asset.status !== 'omit' ? h('small', { text: ` as ${object.entity}${object.performance ? ` — ${object.performance}` : ''}` }) : null,
+          object?.asset.reason ? h('small', { class: 'review-muted', text: ` ${object.asset.status === 'omit' ? '' : '· '}${readable(object.asset.reason)}` }) : null,
+        ),
+      ))
+    // What the plan brings from elsewhere, or draws new.
+    const pageKeys = new Set(pageCast.map(entry => entry.libraryKey))
+    const others = plan.objects.filter(object => !(object.asset.ref && pageKeys.has(object.asset.ref)) && object.asset.status !== 'omit')
+    const otherList = others.map(object => {
+      const entry = byKey(object.asset.ref)
       return h('li', { class: 'review-cast-item' },
-        art,
+        art(entry, object.asset.status === 'native' ? 'native' : '—'),
         h('span', {},
           h('strong', { text: object.entity }),
           ' ',
-          chip(object.asset.status, object.asset.status === 'undecided' ? 'warn' : object.asset.status === 'reuse' ? 'good' : ''),
+          chip(DECISIONS[object.asset.status]?.label || object.asset.status, object.asset.status === 'undecided' ? 'warn' : DECISIONS[object.asset.status]?.tone || ''),
           entry ? h('small', { text: ` ${entry.label} (${entry.kind}${scene.originScenes.includes(entry.page) ? '' : `, from “${pageTitle(entry.page)}”`})` }) : null,
           h('small', { class: 'review-muted', text: ` ${object.performance || object.role}` }),
           object.asset.reason ? h('small', { class: 'review-muted', text: ` — ${readable(object.asset.reason)}` }) : null,
         ),
       )
     })
-    const pageCast = cast.filter(entry => scene.originScenes.includes(entry.page))
-    const unused = pageCast.filter(entry => !plan.objects.some(object => object.asset.ref && object.asset.ref === entry.libraryKey))
-    return h('div', {},
-      items.length ? h('ul', { class: 'review-cast' }, ...items) : h('p', { class: 'review-muted', text: 'The plan casts no objects: speech, text or the camera carry it.' }),
-      unused.length ? h('p', { class: 'review-muted', text: `From the page but not used: ${unused.map(entry => entry.label).join(', ')}.` }) : null,
+    return h('div', { 'data-review-cast': scene.id },
+      pageCast.length
+        ? h('div', {},
+            h('p', { class: 'review-cast-tally', text: `The ${designed ? 'designed slide' : 'page'}'s ${pageCast.length} object${pageCast.length === 1 ? '' : 's'}: ${tally.join(', ')}.` }),
+            h('ul', { class: 'review-cast' }, ...pageList),
+          )
+        : null,
+      otherList.length ? h('div', {}, h('p', { class: 'review-muted', text: pageCast.length ? 'Also in the scene:' : 'The scene\'s objects:' }), h('ul', { class: 'review-cast' }, ...otherList)) : null,
+      !pageCast.length && !otherList.length ? h('p', { class: 'review-muted', text: 'The plan casts no objects: speech, text or the camera carry it.' }) : null,
     )
   }
 

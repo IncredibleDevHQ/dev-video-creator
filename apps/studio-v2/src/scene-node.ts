@@ -167,6 +167,10 @@ export const SceneBlock = Node.create({
       // A newer page of its base the scene adopted since the fork:
       // { baseScene, revision, kind, adoptedAt } (F1 of the Perplexity review).
       reference: { default: null },
+      // The schematic draft a designed slide was made from, kept beside it:
+      // { svg, program }. The slide is the reference; the schematic shows
+      // the page's structure.
+      schematic: { default: null },
     }
   },
 
@@ -200,6 +204,7 @@ export const SceneBlock = Node.create({
       pageOrigin,
       scriptSource: _scriptSource,
       reference: _reference,
+      schematic: _schematicPage,
       ...attributes
     } = HTMLAttributes
     const entries = (Array.isArray(storyboard) ? storyboard : []) as SceneStoryboardEntry[]

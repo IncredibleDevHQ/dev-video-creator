@@ -25,7 +25,8 @@ export type SceneReference = {
   kind: string
   revision: string
   adopted: { at: string; revision: string } | null
-  newer: { baseScene: string; revision: string; kind: string; by: string; designing: boolean; svg: string; program: unknown } | null
+  // schematic: the schematic the base's newer slide was designed from.
+  newer: { baseScene: string; revision: string; kind: string; by: string; designing: boolean; svg: string; program: unknown; schematic?: string | null } | null
   baseDesigning: boolean
 }
 

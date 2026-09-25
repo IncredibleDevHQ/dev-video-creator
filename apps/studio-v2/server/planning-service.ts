@@ -130,7 +130,8 @@ export type VideoPlanning = {
   // A limitation worth telling the planner, when the pinned base is gone.
   baseLimitation: string | null
   // scriptSource: the plan record whose lines the scene's script was taken from.
-  videoScenes: Array<{ id: string; title: string; index: number; originScenes: string[]; script: string; scriptSource: string | null }>
+  // schematic: the schematic draft the scene's designed slide was made from.
+  videoScenes: Array<{ id: string; title: string; index: number; originScenes: string[]; script: string; scriptSource: string | null; schematic: string | null }>
   source: { revision: string | null; text: string; kind: string; title: string; site: string; url: string }
   wordingPolicy: 'preserve' | 'assist' | 'draft'
   themeRef: string | null
@@ -214,6 +215,7 @@ export const loadVideoPlanning = async (projectId: string): Promise<VideoPlannin
       originScenes: (origin?.scenes?.length ? origin.scenes : origin?.scene ? [origin.scene] : []).map(String),
       script: stringAttr(node, 'script'),
       scriptSource: String((attr(node, 'scriptSource') as { treatment?: string } | null | undefined)?.treatment || '') || null,
+      schematic: pageKindOf(node) === 'designed' ? String((attr(node, 'schematic') as { svg?: string } | null | undefined)?.svg || '') || null : null,
     }
   })
 
@@ -464,7 +466,7 @@ const castFiles = async (cast: VisualCastRevision | null, origins: string[], cas
       entries: entries.map(entryOf),
       // The rest of the base's cast: reusable by library key.
       elsewhere: cast.entries.filter(entry => !carried(entry)).map(entry => ({ id: entry.id, libraryKey: entry.libraryKey, kind: entry.kind, label: entry.meaning.label, page: entry.identity.base.page, verification: entry.verification.status })),
-      decide: 'For each thing the scene needs: reuse it unchanged, adapt it (recolour, re-rig), enrich it (a richer version from its silhouette, role and parts), build it native (exact shapes, charts, counts, code), or omit it — with the reason the viewer needs it. A reference-only ingredient (verification mismatch) is not equivalent to the page.',
+      decide: 'Decide every verified entry of this scene\'s own page, in objects with its libraryKey as asset.ref: reuse it unchanged, adapt it (recolour, re-rig), enrich it (a richer version from its silhouette, role and parts), build it native (exact shapes, charts, counts, code) or generate something new in its place — or omit it, with asset.status "omit", when the scene does not need it. Each decision says why the viewer needs it. On a designed slide a plan that leaves one undecided is refused. A reference-only ingredient (verification mismatch) is not equivalent to the page.',
     },
     null,
     2,
@@ -564,6 +566,8 @@ const referenceOf = (planning: VideoPlanning, scene: VideoPlanning['videoScenes'
         designing: Boolean(pageOrigin?.designing),
         svg: pageOrigin?.designing ? '' : stringAttr(node, 'svg'),
         program: pageOrigin?.designing ? null : attr(node, 'program') ?? null,
+        // The schematic the base's slide was designed from, kept beside it.
+        schematic: pageOrigin?.designing ? null : String((attr(node, 'schematic') as { svg?: string } | null | undefined)?.svg || '') || null,
       }
     : null
   // The base still designing this scene's page, as yet unchanged.
@@ -792,6 +796,9 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
   const cast = await visualCastFor(planning)
   const files: PacketFiles = {
     ...(await castFiles(cast, scene.originScenes, options.castKeys)),
+    // Both references: the designed slide (the page), and the schematic it
+    // was designed from, for its structure.
+    ...(scene.schematic ? { 'packet/references/schematic.svg': scene.schematic } : {}),
     'packet/THEME.json': themeFile(planning),
     // The plan this scene already has, kept unless the direction changes it.
     'packet/PREVIOUS_PLAN.json': JSON.stringify(reviewed ? { record: reviewed.id, revision: reviewed.revision, status: reviewed.status, plan: reviewed.content, retainedEdits: [] } : { record: null, note: 'This scene has no reviewed plan yet.' }, null, 2),
@@ -828,6 +835,8 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
         delivery: deliveryFor(planning, scene.id),
         assetKeys: assets.map(asset => asset.key),
         visualCast: { id: cast.id, status: cast.status },
+        // The page's two references, when the scene keeps both.
+        ...(scene.schematic ? { references: { designed: 'references/page.svg', schematic: 'references/schematic.svg', note: 'The designed slide is this scene\'s page reference; the schematic it was designed from shows the page\'s structure. Neither is the video\'s end state.' } } : {}),
         // Look at the pictures, not only their paths: the page previews and
         // contact sheets, with your image-reading tool.
         images: Object.keys(files).filter(path => /^packet\/references\/.*\.png$/.test(path)).map(path => path.slice('packet/'.length)).sort(),
@@ -1835,6 +1844,18 @@ export const submitBrief = async (recordId: string, raw: unknown, runId?: string
   return { accepted: true as const, status, record: updated, warnings: report.warnings, ...(landing.lands ? {} : { note: landing.reason }) }
 }
 
+// The verified objects of a scene's own page, which its plan decides one by
+// one, and what that page is (a designed slide, a schematic, a page).
+const pageObjectsOf = async (planning: VideoPlanning, origins: string[]) => {
+  const cast = await knownCast(planning)
+  const pageKind = planning.basePages.find(page => origins.includes(page.scene))?.pageKind || 'page'
+  if (cast?.status !== 'ready') return { pageKind, pageObjects: [] }
+  const pageObjects = cast.entries
+    .filter(entry => origins.includes(entry.identity.base.page) && entry.verification.status === 'verified' && entry.libraryKey)
+    .map(entry => ({ key: String(entry.libraryKey), label: entry.meaning.label }))
+  return { pageKind, pageObjects }
+}
+
 export const submitTreatment = async (recordId: string, raw: unknown, runId?: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'treatment') throw new PlanningError('Scene plan record not found', 404)
@@ -1857,6 +1878,7 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
     delivery: ((record.inputs as { delivery?: string | null }).delivery as TreatmentContext['delivery']) ?? null,
     assetKeys: (await libraryAssets()).map(asset => asset.key),
     neighbors: agreementBasis(neighborsOf(planning, await listPlanningRecords(record.projectId), scene.id)),
+    ...(await pageObjectsOf(planning, scene.originScenes)),
   }
   const report = validateTreatment(raw, context)
   if (!report.ok) return { accepted: false as const, problems: report.problems, warnings: report.warnings }

@@ -17010,6 +17010,10 @@ const readDesignedPage = (svg: string) => {
   if (!atomized.units.length) throw new Error('the page has no parts the studio can read')
   return atomized
 }
+// A scene's page as its schematic, when it is one: what a designed slide
+// keeps beside it once the slide replaces it.
+const schematicOf = (attrs: Record<string, unknown>) =>
+  (attrs.pageOrigin as { kind?: string } | null | undefined)?.kind !== 'designed' && typeof attrs.svg === 'string' && attrs.svg ? { svg: attrs.svg, program: attrs.program ?? null } : null
 const writePageOrigin = (nodeId: string, attrs: (current: Record<string, unknown>) => Record<string, unknown>) => {
   const found = topLevelNodeAt(nodeId)
   const node = found ? editor.state.doc.nodeAt(found.at) : null
@@ -17053,11 +17057,13 @@ const landDesignedPages = async () => {
             continue
           }
           const origin = { kind: 'designed', by: binding.by, runId }
-          const applied = writePageOrigin(entry.nodeId, () => ({
+          const applied = writePageOrigin(entry.nodeId, current => ({
             svg: page.svg,
             svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`,
             program: page.program || null,
             pageOrigin: ended ? origin : { ...origin, designing: { ...binding, placeholder: pageFingerprint(page.svg), landed: pageFingerprint(page.svg) } },
+            // The schematic it was designed from stays beside the slide.
+            schematic: current.schematic ?? schematicOf(current),
           }))
           if (!applied) continue
           landed += 1
@@ -17820,7 +17826,7 @@ let sceneStageFor = ''
 // The stage shows the scene's page as a reference, the base's newer page
 // to compare (F1 of the Perplexity review), or plays the plan's preview —
 // or the scene produced from its approved plan, on its real clock (P4).
-let sceneStageMode: 'reference' | 'base' | 'preview' | 'output' = 'reference'
+let sceneStageMode: 'reference' | 'schematic' | 'base' | 'preview' | 'output' = 'reference'
 type StagePlayer = HTMLElement & { play(): void; pause(): void; seek(time: number): void; readonly currentTime: number; readonly duration: number }
 let stagePlayer: StagePlayer | null = null
 let stagePlayerUrl = ''
@@ -17913,7 +17919,7 @@ const ensureStagePlayer = () => {
 }
 sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
   button.addEventListener('click', () => {
-    const mode = button.dataset.stageMode === 'preview' ? 'preview' : button.dataset.stageMode === 'base' ? 'base' : button.dataset.stageMode === 'output' ? 'output' : 'reference'
+    const mode = (['preview', 'base', 'output', 'schematic'] as const).find(value => value === button.dataset.stageMode) || 'reference'
     if (mode === sceneStageMode) return
     if (mode === 'reference') stagePlayer?.pause()
     sceneStageMode = mode
@@ -17968,6 +17974,10 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   const produced = stage.production
   const reference = stage.scene.reference || null
   const newer = reference?.newer && !reference.newer.designing && reference.newer.svg ? reference.newer : null
+  // A designed slide keeps the schematic it was designed from: both are the
+  // page's references, the slide first.
+  const schematicSvg = (node.attrs.pageOrigin as { kind?: string } | null | undefined)?.kind === 'designed' ? String((node.attrs.schematic as { svg?: string } | null | undefined)?.svg || '') : ''
+  if (sceneStageMode === 'schematic' && !schematicSvg) sceneStageMode = 'reference'
   if (sceneStageMode === 'preview' && !ready) sceneStageMode = 'reference'
   if (sceneStageMode === 'output' && !produced) sceneStageMode = 'reference'
   if (sceneStageMode === 'base' && !newer) sceneStageMode = 'reference'
@@ -17985,6 +17995,10 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
       button.title = newer ? `The base's page for this scene now: revision ${newer.revision.slice(0, 8)}${newer.by ? `, by ${newer.by}` : ''}` : ''
     }
     if (mode === 'preview') button.title = ready ? `Rough sketch of plan r${ready.of.revision}` : stage.record ? `No preview of r${stage.record.revision} yet` : 'No plan yet'
+    if (mode === 'schematic') {
+      button.hidden = !schematicSvg
+      button.title = schematicSvg ? 'The schematic this scene\'s designed slide was made from: its structure' : ''
+    }
     if (mode === 'output') button.title = produced ? `The scene produced from approved plan r${produced.of.revision}, on its real clock` : stage.scene.view.reviewed ? 'Not produced yet: produce the scene from its approved plan in its review' : 'A scene is produced from its approved plan'
     button.classList.toggle('is-active', mode === sceneStageMode)
     button.setAttribute('aria-pressed', String(mode === sceneStageMode))
@@ -18059,10 +18073,11 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
     return
   }
   stagePlayer?.pause()
-  // The page shown: the scene's own, or the base's newer one to compare.
+  // The page shown: the scene's own, its schematic, or the base's newer one to compare.
   const comparing = sceneStageMode === 'base' && newer
-  const markup = comparing ? newer.svg : String(node.attrs.svg || '')
-  const shownKey = `${comparing ? 'base' : 'scene'}:${reviewSelectedScene}:${comparing ? newer.revision : pageFingerprint(markup)}`
+  const structure = sceneStageMode === 'schematic' && schematicSvg
+  const markup = comparing ? newer.svg : structure ? schematicSvg : String(node.attrs.svg || '')
+  const shownKey = `${comparing ? 'base' : structure ? 'schematic' : 'scene'}:${reviewSelectedScene}:${comparing ? newer.revision : pageFingerprint(markup)}`
   if (sceneStageFor !== shownKey) {
     sceneStageFor = shownKey
     const svg = referenceSvg(markup)
@@ -18075,6 +18090,11 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   if (comparing) {
     sceneStageNote.title = ''
     sceneStageNote.textContent = `The base's ${newer.kind === 'designed' ? 'designed slide' : 'page'} for this scene${newer.by ? `, by ${newer.by}` : ''} — newer than the ${reference?.kind === 'schematic' ? 'schematic' : 'page'} this video is planned from. The review offers to use it.`
+    return
+  }
+  if (structure && !targets) {
+    sceneStageNote.title = ''
+    sceneStageNote.textContent = 'The schematic this scene\'s designed slide was made from — its structure. The video is planned from the designed slide.'
     return
   }
   if (!targets) {
@@ -18247,6 +18267,9 @@ sceneReview = createSceneReview({
       program: newer.program ?? null,
       pageOrigin: kind ? { kind, ...(newer.by ? { by: newer.by } : {}) } : null,
       reference: { baseScene: newer.baseScene, revision: newer.revision, kind: newer.kind, adoptedAt: new Date().toISOString() },
+      // A designed slide keeps the schematic it replaces (the base's own,
+      // else the one this scene had), side by side.
+      schematic: kind === 'designed' ? (newer.schematic ? { svg: newer.schematic, program: null } : node.attrs.schematic ?? schematicOf(node.attrs as Record<string, unknown>)) : null,
     }))
     try {
       animateSceneLocally(sceneId)

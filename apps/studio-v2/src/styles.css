@@ -2422,6 +2422,7 @@ button.se-state:hover { filter: brightness(.97); }
 .review-busy { color: #5b21b6; margin: 0; }
 .review-cast { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .review-cast-item { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: start; }
+.review-cast-tally { margin: 0 0 6px; font-weight: 600; }
 .review-cast-art { display: grid; place-items: center; width: 54px; height: 42px; border-radius: 6px; background: #0f0d18; overflow: hidden; }
 .review-cast-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .review-cast-none { color: #a1a1aa; font-size: 10px; }

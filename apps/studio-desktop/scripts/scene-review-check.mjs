@@ -122,6 +122,16 @@ const tool = async (name, args2) => {
       coverage: units.flatMap(unit => brief.units.find(entry => entry.id === unit).communicationNeeds.map(need => ({ unit, need: need.need, moments: ['m1'] }))),
       rosterProposal: null, delivery: { voice: context.delivery || 'undecided', note: '' },
     }))
+    // A designed slide's objects are each decided: the ones the stub does not use are omitted.
+    {
+      const written = JSON.parse(fs.readFileSync('planning/treatment.json', 'utf8'))
+      const visual = JSON.parse(fs.readFileSync('packet/VISUAL_CAST.json', 'utf8'))
+      const decided = new Set(written.objects.map(object => object.asset && object.asset.ref))
+      for (const entry of (visual.entries || []).filter(entry => context.scene.originScenes.includes(entry.page) && entry.verification.status === 'verified' && entry.libraryKey && !decided.has(entry.libraryKey))) {
+        written.objects.push({ entity: 'page-' + entry.id, role: entry.label, appearance: 'Not shown', performance: 'None', asset: { status: 'omit', ref: entry.libraryKey, reason: 'Not needed for this scene' } })
+      }
+      fs.writeFileSync('planning/treatment.json', JSON.stringify(written))
+    }
     const answer = await tool('plan_submit_treatment', { projectDir })
     if (!answer.accepted) process.stderr.write('stub plan refused: ' + JSON.stringify(answer) + '\n')
   }
@@ -224,7 +234,8 @@ const reviewOf = index => evaluate(`() => {
     thumbs: review.querySelectorAll('.review-strip-cast img').length,
     panel: Boolean(review.querySelector('.review-panel')),
     question: review.querySelector('.review-question')?.textContent || '',
-    cast: [...review.querySelectorAll('.review-cast-item')].map(item => ({ entity: item.querySelector('strong')?.textContent, image: Boolean(item.querySelector('img')) })),
+    cast: [...review.querySelectorAll('.review-cast-item')].map(item => ({ entity: item.querySelector('strong')?.textContent, image: Boolean(item.querySelector('img')), decision: item.dataset.castDecision || null })),
+    tally: review.querySelector('.review-cast-tally')?.textContent || '',
     moments: [...review.querySelectorAll('.review-moment-head strong')].map(entry => entry.textContent),
     approve: review.querySelector('[data-focus^="approve:"]')?.textContent || '',
     approveDisabled: review.querySelector('[data-focus^="approve:"]')?.disabled,
@@ -303,7 +314,9 @@ try {
   check(planned?.status === 'candidate', 'Plan the scene makes a candidate from the notebook')
   const review = await waitFor(`() => { const panel = document.querySelector('.scene-review.is-expanded .review-panel'); return panel && panel.querySelector('.review-question') ? true : null }`)
   const state = await reviewOf(1)
-  check(Boolean(review) && state.question === 'What does this limiter do?' && state.moments.length === 3 && state.cast.length === 2 && state.cast.every(item => item.image), `the review shows the plan, its moments and the cast it reuses (${JSON.stringify(state)})`)
+  // Each object of the designed slide shows the plan's decision: two used, the rest omitted.
+  const used = state?.cast.filter(item => item.decision === 'use') || []
+  check(Boolean(review) && state.question === 'What does this limiter do?' && state.moments.length === 3 && used.length === 2 && used.every(item => item.image) && state.cast.every(item => item.decision === 'use' || item.decision === 'omit') && /^The designed slide's \d+ objects: 2 used, \d+ omitted\.$/.test(state.tally), `the review shows the plan, its moments, and a decision for each of the slide's objects (${JSON.stringify(state && { tally: state.tally, cast: state.cast.map(item => `${item.entity}:${item.decision}`) })})`)
   // The plan's state is said once, by its revision control (F6 of the
   // Perplexity review); the status line keeps the rest.
   const toReview = await nextStepIs('Review scene 2')
@@ -589,7 +602,9 @@ try {
   const GPU = '<g id="s05-node-gpu" data-role="node" data-kind="box" data-entity="service" data-object-id="obj-gpu-17"><rect id="s05-node-gpu-box" x="940" y="170" width="260" height="200" rx="12" fill="#22c55e" fill-opacity="0.10" stroke="#22c55e" stroke-opacity="0.55" stroke-width="1.5"/><g id="s05-node-gpu-art" data-appearance-for="s05-node-gpu"><g transform="translate(1048,186) scale(1.8333)" fill="none" stroke="#22c55e" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14v10h-14z"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M2 10h3M2 14h3M19 10h3M19 14h3"/></g></g><text x="1070" y="282" font-size="24" fill="#ffffff" text-anchor="middle">GPU</text></g>'
   const storedBase = after
   const designedBase = structuredClone(storedBase)
-  designedBase.notebook.content[0].attrs = { ...designedBase.notebook.content[0].attrs, svg: storedBase.notebook.content[0].attrs.svg.replace('</svg>', `${GPU}</svg>`), pageOrigin: { kind: 'designed', by: 'Claude Code · Claude Opus 5.5', runId: 'run-later' } }
+  // Designed, the page keeps the schematic it was designed from beside it.
+  const SCHEMATIC = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><rect id="schematic-frame" width="1280" height="720" fill="#ffffff"/><text x="80" y="120" font-size="40">Request rate limiter · schematic</text></svg>'
+  designedBase.notebook.content[0].attrs = { ...designedBase.notebook.content[0].attrs, svg: storedBase.notebook.content[0].attrs.svg.replace('</svg>', `${GPU}</svg>`), pageOrigin: { kind: 'designed', by: 'Claude Code · Claude Opus 5.5', runId: 'run-later' }, schematic: { svg: SCHEMATIC, program: null } }
   check((await api(`/api/projects/${base.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: designedBase, expectedProject: storedBase }) })).status === 200, 'the base designs its first page after the video was made')
   const videoBefore = (await api(`/api/projects/${videoId}`)).body.project
   const otherBefore = (await overview(videoId)).scenes[1].view
@@ -610,6 +625,11 @@ try {
   const stageNow = await waitFor(`() => { const svg = document.querySelector('#scene-stage-reference svg'); const active = document.querySelector('.scene-stage-modes .is-active'); return svg?.querySelector('[data-object-id="obj-gpu-17"]') && active?.dataset.stageMode === 'reference' ? { mode: active.textContent, offersBase: !document.querySelector('[data-stage-mode="base"]').hidden, note: document.getElementById('scene-stage-note').textContent, notice: Boolean(document.querySelector('.scene-review.is-expanded [data-review-reference]')) } : null }`, 30)
   check(stageNow?.mode === 'Designed slide' && stageNow.offersBase === false && /adopted from the base/.test(stageNow.note) && !stageNow.notice, `the stage shows the scene's adopted designed slide, and nothing more is offered (${JSON.stringify(stageNow)})`)
   await shot('06-adopted-designed-slide')
+  // Both references are kept: the stage offers the schematic beside the slide.
+  await evaluate(`() => { const button = document.querySelector('[data-stage-mode="schematic"]'); if (!button || button.hidden) return false; button.click(); return true }`)
+  const structure = await waitFor(`() => { const active = document.querySelector('.scene-stage-modes .is-active'); const svg = document.querySelector('#scene-stage-reference svg'); return active?.dataset.stageMode === 'schematic' ? { mode: active.textContent, schematic: Boolean(svg?.querySelector('#schematic-frame')), note: document.getElementById('scene-stage-note').textContent } : null }`, 20)
+  check(structure?.mode === 'Schematic' && structure.schematic && /^The schematic this scene's designed slide was made from/.test(structure.note), `the scene keeps the schematic beside its designed slide, on the stage (${JSON.stringify(structure)})`)
+  await evaluate(`() => { document.querySelector('[data-stage-mode="reference"]').click(); return true }`)
   const otherAfter = (await overview(videoId)).scenes[1].view
   check(otherAfter.reviewed?.id === otherBefore.reviewed?.id && otherAfter.current?.id === otherBefore.current?.id && otherAfter.state === otherBefore.state && !otherAfter.staleBecause, `the other scene's approval and plans are untouched (${otherAfter.state})`)
   const videoAfter = (await api(`/api/projects/${videoId}`)).body.project
@@ -621,6 +641,7 @@ try {
   const gpuEntry = replanCast.entries.find(entry => entry.objectId === 'obj-gpu-17')
   check(replanPacket.files['packet/references/page.svg'].includes('data-object-id="obj-gpu-17"') && Boolean(gpuEntry) && /~/.test(replanCast.cast || ''), `the planning packet carries the designed slide and its GPU artwork by object id, from the cast revision that includes it (${JSON.stringify(gpuEntry && { label: gpuEntry.label, objectId: gpuEntry.objectId, page: gpuEntry.page, node: gpuEntry.node })}; cast ${replanCast.cast})`)
   check(replan.inputs.reference === adoptedScene.reference.revision, 'the new plan pins the adopted page')
+  check(replanPacket.files['packet/references/schematic.svg']?.includes('schematic-frame') && JSON.parse(replanPacket.files['packet/CONTEXT.json']).references?.schematic === 'references/schematic.svg', 'the planning packet carries both references: the designed slide and its schematic')
 } catch (error) {
   check(false, `run: ${error instanceof Error ? error.stack || error.message : error}`)
 } finally {
