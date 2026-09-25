@@ -271,6 +271,19 @@ try {
   const state = await reviewOf(1)
   check(Boolean(review) && state.question === 'What does this limiter do?' && state.moments.length === 3 && state.cast.length === 2 && state.cast.every(item => item.image), `the review shows the plan, its moments and the cast it reuses (${JSON.stringify(state)})`)
   check(state.strip.includes(`Plan: Candidate r${planned.revision}`) && state.strip.includes('Recording: guide ready · no take yet'), `the strip reads the candidate and the recording state (${state.strip})`)
+  // The first screen of a selected scene (R6): its title, what it explains,
+  // its first moment, the stage and the next action, without scrolling past
+  // the notebook's older lines.
+  const firstScreen = await evaluate(`async () => {
+    document.querySelector('#editor .tiptap > .selected-block').scrollIntoView({ block: 'start' })
+    await new Promise(resolve => setTimeout(resolve, 600))
+    const top = document.querySelector('.studio-workspace').getBoundingClientRect().top
+    const bottom = Math.min(innerHeight, document.getElementById('notebook-timeline').getBoundingClientRect().top)
+    const seen = element => { const box = element?.getBoundingClientRect(); return Boolean(box) && box.height > 0 && box.top >= top - 1 && box.bottom <= bottom + 1 }
+    const review = document.querySelector('.scene-review.is-expanded')
+    return { height: Math.round(bottom - top), title: seen(review.querySelector('.review-head h3')), question: seen(review.querySelector('.review-question')), moment: seen(review.querySelector('.review-moment-head')), action: seen(review.querySelector('[data-focus^="approve:"]')), stage: seen(document.getElementById('scene-stage')) }
+  }`)
+  check(Object.entries(firstScreen).every(([key, value]) => key === 'height' || value), `the first screen of the scene shows its title, what it explains, a moment, the stage and the next action (${JSON.stringify(firstScreen)})`)
   // A moment points at what it is about on the page.
   await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[1].click(); return true }`)
   const highlight = await waitFor(`() => { const hits = [...document.querySelectorAll('#scene-stage-reference .stage-hit')].map(element => element.id); return hits.length ? { hits, note: document.getElementById('scene-stage-note').textContent } : null }`, 10)

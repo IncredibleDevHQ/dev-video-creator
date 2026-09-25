@@ -2415,7 +2415,10 @@ body.is-video-notebook #create-explainer, body.is-video-notebook .scene-animate-
 body.is-video-notebook .block-dialogue { padding: 10px 12px; }
 body.is-video-notebook .block-dialogue-meta { display: none; }
 body.is-video-notebook .block-dialogue-edit { border-color: #d4d4d8; background: white; color: #18181b; }
-body.is-video-notebook .notebook-scene-block:not(.selected-block) .block-dialogue-windows { max-height: 6.6em; overflow: hidden; mask-image: linear-gradient(#000 60%, transparent); }
+/* The notebook's own lines stay a glance even while the scene is under
+   review (R6): the review below carries the plan and its recording guide,
+   and it opens in the first screen. Edit dialogue & motion shows them all. */
+body.is-video-notebook .notebook-scene-block .block-dialogue-windows, body.is-video-notebook .notebook-scene-block .block-dialogue-draft { max-height: 6.6em; overflow: hidden; mask-image: linear-gradient(#000 60%, transparent); }
 /* The plan preview on the stage (P3): the sketch, a transport, and the
    moments it declared — estimated, and labelled as a sketch. */
 .scene-stage-preview { position: absolute; inset: 0; }
