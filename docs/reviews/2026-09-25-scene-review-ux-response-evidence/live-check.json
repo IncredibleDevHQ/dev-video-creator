@@ -1,0 +1,206 @@
+{
+	"date": "2026-09-25",
+	"harness": "Claude Code 2.1.280",
+	"model": "claude-opus-5-5",
+	"store": "the P0\u2013P3 acceptance store (local PostgreSQL + MinIO)",
+	"video": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+	"scene": "The token bucket (s05)",
+	"passes": [
+		{
+			"what": "Prepare the brief again, plan the scene (r5) and sketch it",
+			"note": "Two earlier attempts were cut off by the tester, not the product: a second app started on the same store and its restart recovery ended the plan run in flight (r3), then a driver bug matched that failed r3 (r4 cut off). The checks below are the clean pass. Its one failure is the driver looking for the wrong disclosure attribute; the text it needed was right and is captured in review-how-checked.png.",
+			"checks": [
+				{
+					"result": "note",
+					"text": "app at http://127.0.0.1:59255"
+				},
+				{
+					"result": "pass",
+					"text": "the video notebook opens on the acceptance store"
+				},
+				{
+					"result": "note",
+					"text": "before: brief stale=false (null); bundle 1d160fe6766be6f3"
+				},
+				{
+					"result": "pass",
+					"text": "the base's cast is extracted again (ready, 30 entries)"
+				},
+				{
+					"result": "note",
+					"text": "plan revisions before: up to r4"
+				},
+				{
+					"result": "pass",
+					"text": "Plan the scene is offered"
+				},
+				{
+					"result": "pass",
+					"text": "the harness plans the scene again (r5 candidate; claude-opus-5-5)"
+				},
+				{
+					"result": "pass",
+					"text": "the plan counts with a ledger (tokens in this user's bucket: 10 changes, rates [{\"id\":\"drip\",\"what\":\"one token drips into the bucket on each beat while there is room\",\"amount\":1,\"change\":\"add\"}])"
+				},
+				{
+					"result": "pass",
+					"text": "the review shows r5"
+				},
+				{
+					"result": "note",
+					"text": "sketch.report.1.json: ready accepted"
+				},
+				{
+					"result": "pass",
+					"text": "the harness's sketch is accepted after 1 submission(s)"
+				},
+				{
+					"result": "note",
+					"text": "verifying seen while polling: true"
+				},
+				{
+					"result": "pass",
+					"text": "every drawn layer is marked in the composition"
+				},
+				{
+					"result": "pass",
+					"text": "where the plan counts, the sketch declares its clock ([{\"id\":\"drip\",\"change\":\"add\",\"amount\":1,\"every\":4.4,\"from\":6.8}])"
+				},
+				{
+					"result": "pass",
+					"text": "a level the sketch animates keeps the rig's clip to its shell"
+				},
+				{
+					"result": "pass",
+					"text": "the proof names the bundle it played (ca273c0f6ab7), with 28 frames and repeatable seeks"
+				},
+				{
+					"result": "pass",
+					"text": "every counted change was seen on screen (7.1s:10700px, 8.4s:7560px, 9.3s:10646px, 11.2s:9571px, 11.6s:7655px, 12.9s:7304px, 15.6s:8944px, 20s:6965px, 22.1s:7110px, 24.4s:5306px)"
+				},
+				{
+					"result": "fail",
+					"text": "the review says how the sketch was checked (Played in the pinned Hyperframes 0.7.106 player (9/25/2026, 9:01:03 AM): 98 tweens over 26.5s; all 3 files it asked for were in the sketch; 3 moments sought aga)"
+				},
+				{
+					"result": "pass",
+					"text": "the review shows the sketch's clock (10 counted changes, replayed against the plan's count \u00b7 drip: +1 every 4.4s from 6.8s, whenever there is room)"
+				}
+			],
+			"attempts": [
+				{
+					"file": "sketch.report.1.json",
+					"status": "ready",
+					"accepted": true,
+					"problems": [],
+					"warnings": [
+						"hyperframes lint timeline_track_too_dense: Track 2 has 7 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff."
+					]
+				}
+			]
+		},
+		{
+			"what": "Sketch r5 again, after the fix for earlier artwork keys (c0a9980c)",
+			"checks": [
+				{
+					"result": "note",
+					"text": "app at http://127.0.0.1:61954"
+				},
+				{
+					"result": "pass",
+					"text": "the video notebook opens on the acceptance store"
+				},
+				{
+					"result": "note",
+					"text": "before: brief stale=false (null); bundle 1d160fe6766be6f3"
+				},
+				{
+					"result": "pass",
+					"text": "the base's cast is extracted again (ready, 30 entries)"
+				},
+				{
+					"result": "pass",
+					"text": "the plan to sketch again is r5 (candidate)"
+				},
+				{
+					"result": "note",
+					"text": "its current sketch: plan-preview-bc4970f4-bd14-4569-88e0-bf1c99cfff4d"
+				},
+				{
+					"result": "pass",
+					"text": "the review shows r5"
+				},
+				{
+					"result": "note",
+					"text": "sketch.report.1.json: 422 problems: [\"hyperframes lint font_family_without_font_face: Font family used without @font-face declaration: sfmono-regular. These are not in the auto-resolved font list, so the renderer cannot supply them automatically. Text will fall back to a generic font, producing incorrect typography in the video. \u2014 Add @font-face { font-family: '...'; src: url('capture/assets/fonts/...woff2'); } for each font family, pointing to the captured .woff2 files. For an OS-bundled system font (e.g. Hiragino Sans, Microsoft YaHei) that has no downloadable file, use src: local('Exact Font Name') instead \u2014 the declaration alone satisfies this check without needing a font file.\"]"
+				},
+				{
+					"result": "note",
+					"text": "sketch.report.2.json: ready accepted"
+				},
+				{
+					"result": "pass",
+					"text": "the harness's sketch is accepted after 2 submission(s)"
+				},
+				{
+					"result": "note",
+					"text": "verifying seen while polling: true"
+				},
+				{
+					"result": "pass",
+					"text": "every drawn layer is marked in the composition"
+				},
+				{
+					"result": "pass",
+					"text": "where the plan counts, the sketch declares its clock ([{\"id\":\"drip\",\"change\":\"add\",\"amount\":1,\"every\":4.5,\"from\":6}])"
+				},
+				{
+					"result": "pass",
+					"text": "a level the sketch animates keeps the rig's clip to its shell"
+				},
+				{
+					"result": "pass",
+					"text": "the proof names the bundle it played (66221d93767f), with 28 frames and repeatable seeks"
+				},
+				{
+					"result": "pass",
+					"text": "every counted change was seen on screen (6.6s:9301px, 8.2s:7307px, 8.75s:11201px, 10.5s:9533px, 11s:10039px, 13s:2071px, 15s:9533px, 19.5s:6173px, 21.5s:6995px, 24s:3931px)"
+				},
+				{
+					"result": "pass",
+					"text": "the review says how the sketch was checked (Played in the pinned Hyperframes 0.7.106 player (9/25/2026, 9:21:37 AM): 106 tweens over 26.5s; all 3 files it asked for were in the sketch; 3 moments sought ag)"
+				},
+				{
+					"result": "pass",
+					"text": "the review shows the sketch's clock (10 counted changes, replayed against the plan's count \u00b7 drip: +1 every 4.5s from 6s, whenever there is room)"
+				}
+			],
+			"attempts": [
+				{
+					"file": "sketch.report.1.json",
+					"status": 422,
+					"accepted": false,
+					"problems": [
+						"hyperframes lint font_family_without_font_face: Font family used without @font-face declaration: sfmono-regular. These are not in the auto-resolved font list, so the renderer cannot supply them automatically. Text will fall back to a generic font, producing incorrect typography in the video. \u2014 Add @font-face { font-family: '...'; src: url('capture/assets/fonts/...woff2'); } for each font family, pointing to the captured .woff2 files. For an OS-bundled system font (e.g. Hiragino Sans, Microsoft YaHei) that has no downloadable file, use src: local('Exact Font Name') instead \u2014 the declaration alone satisfies this check without needing a font file."
+					],
+					"warnings": [
+						"hyperframes lint overlapping_gsap_tweens: GSAP tweens overlap on \"#reqA\" for x between 6.95s and 6.95s.",
+						"hyperframes lint overlapping_gsap_tweens: GSAP tweens overlap on \"#n1\" for x between 11.00s and 11.10s.",
+						"hyperframes lint timeline_track_too_dense: Track 1 has 7 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff."
+					]
+				},
+				{
+					"file": "sketch.report.2.json",
+					"status": "ready",
+					"accepted": true,
+					"problems": [],
+					"warnings": [
+						"hyperframes lint overlapping_gsap_tweens: GSAP tweens overlap on \"#reqA\" for x between 6.95s and 6.95s.",
+						"hyperframes lint overlapping_gsap_tweens: GSAP tweens overlap on \"#n1\" for x between 11.00s and 11.10s.",
+						"hyperframes lint timeline_track_too_dense: Track 1 has 7 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff."
+					]
+				}
+			]
+		}
+	]
+}

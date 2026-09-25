@@ -2,7 +2,7 @@
 
 Response to [the scene review, user experience and output quality review](./2026-09-25-scene-review-ux-and-output-review.md) of `claude/scene-review-loop` at `f91c0984`. That review is commit `4d36edb1` on `feat/hyperframes-markdown-mvp`. Every finding R1–R11 is fixed on the same branch, one verified commit at a time. G1 and G3 are done to the extent the review asked for "now". G2, and the production halves of G1 and G3, remain the next milestone.
 
-Nothing here was checked against a live model. Every check below ran against the product's code, its pinned Hyperframes 0.7.106 runtime and player, headless Chrome and the local PostgreSQL + MinIO store. The harness's own sketch from the live P0–P3 run is the fixture where one was needed. No acceptance video, sketch or plan was written by hand in the harness's place.
+Most checks below are deterministic. They ran against the product's code, its pinned Hyperframes 0.7.106 runtime and player, headless Chrome and the local PostgreSQL + MinIO store, with the harness's own sketch from the live P0–P3 run as the fixture where one was needed. A live check on the real harness then confirmed the new gates, and found one more bug; see [Live check on the real harness](#live-check-on-the-real-harness). No acceptance video, sketch or plan was written by hand in the harness's place.
 
 ## Findings
 
@@ -20,7 +20,10 @@ Nothing here was checked against a live model. Every check below ran against the
 | R10 | the bucket's fill escaped its body | `615f82b0` | `visual-cast.test.ts` (inside at empty, half, full and 1.5×; a spilled page trimmed; a transformed level mapped); `planning-service.test.ts` (the packet carries it) |
 | R11 | the motion contradicted the steady refill | `6ccf15f6` | `planning.test.ts` (count, beat, pauses); `sketch-runtime.test.ts` (the live sketch's own timings refused; changes and pauses seen on screen) |
 
-A further fix, `a7a8f767`, gives a side-by-side desktop instance its own browser profile. Checks running beside the creator's app had shared its local storage, and could lose state or fail to start.
+Two further fixes:
+
+- `a7a8f767` gives a side-by-side desktop instance its own browser profile. Checks running beside the creator's app had shared its local storage, and could lose state or fail to start.
+- `c0a9980c`, found by the live check, carries a plan's artwork to its sketch even when the plan names it by a key an earlier extraction gave.
 
 ## What changed, finding by finding
 
@@ -90,11 +93,44 @@ The live sketch's own timings are refused, with the plan's refill declared as a 
 
 ## Verification
 
-- Unit: studio-v2, 267 tests in 29 files, all passing. They include `sketch-runtime.test.ts` (8, in headless Chrome) and `visual-cast.test.ts` (9). `planning-service.test.ts` passes on the file store and on PostgreSQL.
+- Unit: studio-v2, 268 tests in 29 files, all passing. They include `sketch-runtime.test.ts` (8, in headless Chrome) and `visual-cast.test.ts` (9). `planning-service.test.ts` (18) and `visual-cast.test.ts` pass on the file store and on PostgreSQL.
 - Desktop checks on the isolated store, each passing: `plan-preview-check` 35/35, `planning-check` 53/53, `scene-review-check` 37/37, `visual-cast-check` 10/10. The earlier slices also passed `take-workflow-check`, `presenter-take-check`, `rehearsal-check` and `teleprompter-check`.
 - Release suite (`apps/studio-desktop/scripts/release-check.mjs`, on the isolated store after both builds): 50 of 51 pass. The one failure is `skill-references-check`. It reports the same 132 broken links as before this work, all inside the vendored Hyperframes skills, none in a file this work touched.
 
+## Live check on the real harness
+
+This ran on Claude Code 2.1.280 with Claude Opus 5.5, on the P0–P3 acceptance store, through the product's own controls. The files are in [the evidence folder](./2026-09-25-scene-review-ux-response-evidence/README.md).
+
+**Setup.**
+
+- The brief read stale, "the planning skills changed", as expected after the contract changes. The harness prepared it again.
+- The cast was extracted again at version 2. On the real base, the extractor found the R10 defect in the page itself. The level of "The token bucket" crossed its shell by 496 pixels, and the one on "Limit each user" by 186. Both rigs now hold the level inside, at every state.
+
+**The new plan (r5).** The harness planned the token-bucket scene again from the new contracts. Its ledger declares the refill a steady rate, "one token drips into the bucket on each beat while there is room". It lists all ten changes that implies, including a drop that lands mid-burst and is spent at once. That is an honest steady mechanism, where r2 was a narrated one.
+
+**The sketch.** Accepted on the first submission, having passed the static contract, the pinned lint and the play in the pinned player:
+
+- 15 marked layers, each shown in its moments;
+- all 7 planned changes visible;
+- 3 re-seeks repeatable;
+- 98 tweens over 26.5 s.
+
+The schedule keeps the drip's beat, every 4.4 s from 6.8 s: drops at 11.2, 15.6, 20.0 and 24.4 s. All ten counted changes were seen on screen when the schedule says, each moving 5,300–10,700 pixels. The review shows how it was checked and its clock. On the stage, the level follows the bucket's walls at every fill, including after the camera pulls back to Redis.
+
+**The bug it found.** Re-extracting the cast changed the rigged "request rate limiter"'s library key, because its artwork gained the inside clip. The new plan still named the old key, from the plan it was revising, and the library keeps that key, so the plan was valid. But the sketch packet only carried current cast entries by key, so the harness had no artwork and drew a placeholder.
+
+`c0a9980c` fixes it. An earlier key now names the entry of the same base, page and node whose painted bounds on the page match. The bounds come from the page, so they hold across extractor versions and tell the parts of a split node apart. The packet lists the old key among the entry's `formerKeys`.
+
+After the fix, the harness sketched r5 again:
+
+- the pinned lint refused its first attempt, for a font with no `@font-face`, and the harness repaired it;
+- the second attempt was accepted, with the cast's artwork for all seven reused objects;
+- its notes name the rate limiter's new key, "formerly" the one the plan names;
+- the drip keeps a 4.5 s beat from 6 s, and every counted change was seen on screen.
+
+**A caution for testing.** Two earlier attempts were cut off by the tester, not the product. Restart recovery treats every run in flight as orphaned, so a second app started on the same store ended the first app's plan run. That is correct for the product's single app. Side-by-side test instances must not share a store while runs are live.
+
 ## Not established
 
-- **No live run on the new contracts.** Opus 5.5 has not yet made a sketch against the new contracts, so it is unproven that the harness meets the layer marks and a steady schedule within its four submissions. The next live acceptance run should do that on the token-bucket scene. The approved plan r2 is a hard case. Its ledger has no refill while the bucket has room from m2 to m4, then two drops within m5. A steady refill fits it only by holding the clock through most of m2–m4, between the counted changes. A new plan should list every change a steady refill makes.
 - **No production or export.** A preview is not a produced scene, and there is still no narrated MP4 from this path (G1).
+- **One scene, one harness.** The live check covered the token-bucket scene on Claude Code with Opus 5.5. Kimi and Codex have not made a sketch against the new contracts.

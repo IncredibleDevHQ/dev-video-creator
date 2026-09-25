@@ -1,0 +1,143 @@
+{
+	"id": "plan-treatment-0ec488ad-7098-4e7a-bce1-7c3e6a5cbba6",
+	"ledger": {
+		"final": 2,
+		"rates": [
+			{
+				"id": "drip",
+				"what": "one token drips into the bucket on each beat while there is room",
+				"amount": 1,
+				"change": "add"
+			}
+		],
+		"events": [
+			{
+				"what": "request A is admitted and takes a token",
+				"after": 2,
+				"amount": 1,
+				"change": "consume",
+				"moment": "m2"
+			},
+			{
+				"what": "burst request B is admitted",
+				"after": 1,
+				"amount": 1,
+				"change": "consume",
+				"moment": "m3"
+			},
+			{
+				"what": "burst request C is admitted; the bucket is empty",
+				"after": 0,
+				"amount": 1,
+				"change": "consume",
+				"moment": "m3"
+			},
+			{
+				"rate": "drip",
+				"what": "a drop lands mid-burst as a token",
+				"after": 1,
+				"amount": 1,
+				"change": "add",
+				"moment": "m3"
+			},
+			{
+				"what": "burst request D takes the fresh token at once; the bucket is empty again",
+				"after": 0,
+				"amount": 1,
+				"change": "consume",
+				"moment": "m3"
+			},
+			{
+				"what": "burst request E finds no token and is refused with a 429",
+				"after": 0,
+				"needs": 1,
+				"amount": 0,
+				"change": "refuse",
+				"moment": "m4"
+			},
+			{
+				"rate": "drip",
+				"what": "the next drop lands as a token",
+				"after": 1,
+				"amount": 1,
+				"change": "add",
+				"moment": "m5"
+			},
+			{
+				"rate": "drip",
+				"what": "one beat later another drop lands",
+				"after": 2,
+				"amount": 1,
+				"change": "add",
+				"moment": "m5"
+			},
+			{
+				"what": "request F is admitted with a refilled token",
+				"after": 1,
+				"amount": 1,
+				"change": "consume",
+				"moment": "m6"
+			},
+			{
+				"rate": "drip",
+				"what": "another drop lands as the view pulls back",
+				"after": 2,
+				"amount": 1,
+				"change": "add",
+				"moment": "m7"
+			}
+		],
+		"initial": 3,
+		"capacity": 3,
+		"quantity": "tokens in this user's bucket"
+	},
+	"status": "candidate",
+	"moments": [
+		{
+			"id": "m1",
+			"title": "Open the limiter",
+			"change": "Small request-rate-limiter glyph \u2192 full-size bucket with three tokens at rest; the user chip docks at its left rim; the inlet drop appears, still",
+			"estimateSeconds": 5.5
+		},
+		{
+			"id": "m2",
+			"title": "One request, one token",
+			"change": "3 tokens \u2192 2; request A passes through to the API carrying its token; the drop starts to swell",
+			"estimateSeconds": 2
+		},
+		{
+			"id": "m3",
+			"title": "A burst outruns the drip",
+			"change": "2 tokens \u2192 1 \u2192 0 \u2192 1 (drop lands) \u2192 0; the level empties; the drop resets and starts swelling again",
+			"estimateSeconds": 4
+		},
+		{
+			"id": "m4",
+			"title": "Refused",
+			"change": "E approaches \u2192 stops at the empty rim \u2192 recoils back along its route with a 429; the bucket stays at 0",
+			"estimateSeconds": 3.5
+		},
+		{
+			"id": "m5",
+			"title": "Hold on the refill",
+			"change": "0 tokens \u2192 1 \u2192 2 in two landings one beat apart; the level rises with each",
+			"estimateSeconds": 4.5
+		},
+		{
+			"id": "m6",
+			"title": "Name the rate",
+			"change": "2 tokens \u2192 1; request F passes to the API",
+			"estimateSeconds": 3
+		},
+		{
+			"id": "m7",
+			"title": "Every bucket, in Redis",
+			"change": "One large bucket \u2192 one of many in the Redis store; ours goes from 1 token to 2",
+			"estimateSeconds": 4
+		}
+	],
+	"question": "How is a per-user limit actually enforced?",
+	"revision": 5,
+	"takeaway": "Each request spends one token from its user's bucket. A burst spends tokens faster than the drip returns them, so the bucket empties and the next request is refused; the drip keeps refilling at a steady rate. Every user's bucket lives centrally, in Redis.",
+	"reportedModel": "claude-opus-5-5"
+}

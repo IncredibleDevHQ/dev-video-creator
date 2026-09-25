@@ -1,0 +1,652 @@
+[
+	{
+		"id": "plan-preview-bc4970f4-bd14-4569-88e0-bf1c99cfff4d",
+		"plan": "plan-treatment-0ec488ad-7098-4e7a-bce1-7c3e6a5cbba6",
+		"status": "ready",
+		"revision": 4,
+		"warnings": [
+			"hyperframes lint timeline_track_too_dense: Track 2 has 7 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff."
+		],
+		"verification": {
+			"bundle": "ca273c0f6ab7ee90bc7d04bb20d46b709e7db20a932030c703caec2c9e54ce8f",
+			"frames": [
+				{
+					"at": 0.1,
+					"frame": "23ebc5dab5cd46ea",
+					"moment": "m1"
+				},
+				{
+					"at": 1.833,
+					"frame": "a4b8020ae99fe247",
+					"moment": "m1"
+				},
+				{
+					"at": 3.667,
+					"frame": "1ff3f71070e9f74c",
+					"moment": "m1"
+				},
+				{
+					"at": 5.06,
+					"frame": "679ca1bd5b02d528",
+					"moment": "m1"
+				},
+				{
+					"at": 5.6,
+					"frame": "7ebe306b1f3cde3c",
+					"moment": "m2"
+				},
+				{
+					"at": 6.2,
+					"frame": "6780c5205efd2a3c",
+					"moment": "m2"
+				},
+				{
+					"at": 6.9,
+					"frame": "655b1e46153d9a55",
+					"moment": "m2"
+				},
+				{
+					"at": 7.432,
+					"frame": "e9c2e3692d9e27c9",
+					"moment": "m2"
+				},
+				{
+					"at": 7.7,
+					"frame": "2058fd40d53fa888",
+					"moment": "m3"
+				},
+				{
+					"at": 9,
+					"frame": "879be8885fe079d6",
+					"moment": "m3"
+				},
+				{
+					"at": 10.4,
+					"frame": "f9c8367e7d0bf8fa",
+					"moment": "m3"
+				},
+				{
+					"at": 11.464,
+					"frame": "2d0a5587894c4b5b",
+					"moment": "m3"
+				},
+				{
+					"at": 11.9,
+					"frame": "5ad0445eb7f30e8e",
+					"moment": "m4"
+				},
+				{
+					"at": 13,
+					"frame": "2d917e891666fc02",
+					"moment": "m4"
+				},
+				{
+					"at": 14.2,
+					"frame": "58345557d634ef66",
+					"moment": "m4"
+				},
+				{
+					"at": 15.112,
+					"frame": "471ed1d17baf3b27",
+					"moment": "m4"
+				},
+				{
+					"at": 15.5,
+					"frame": "b281d304fd96f5e2",
+					"moment": "m5"
+				},
+				{
+					"at": 17.033,
+					"frame": "3440fafbac6022d5",
+					"moment": "m5"
+				},
+				{
+					"at": 18.667,
+					"frame": "416ba0190a88de95",
+					"moment": "m5"
+				},
+				{
+					"at": 19.908,
+					"frame": "827e80527b28cc35",
+					"moment": "m5"
+				},
+				{
+					"at": 20.4,
+					"frame": "649424ddc64f5246",
+					"moment": "m6"
+				},
+				{
+					"at": 21.2,
+					"frame": "dfa9c17c6ae4c8de",
+					"moment": "m6"
+				},
+				{
+					"at": 22.1,
+					"frame": "807bac9a31e43f88",
+					"moment": "m6"
+				},
+				{
+					"at": 22.784,
+					"frame": "d0fd7dce4e7551a8",
+					"moment": "m6"
+				},
+				{
+					"at": 23.1,
+					"frame": "2e25111603ff3ade",
+					"moment": "m7"
+				},
+				{
+					"at": 24.167,
+					"frame": "692356753c798747",
+					"moment": "m7"
+				},
+				{
+					"at": 25.333,
+					"frame": "d41986475062af4b",
+					"moment": "m7"
+				},
+				{
+					"at": 26.22,
+					"frame": "bbba981384f3ffc3",
+					"moment": "m7"
+				}
+			],
+			"layers": [
+				{
+					"id": "background",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "headline",
+					"moments": ["m1", "m2"]
+				},
+				{
+					"id": "request-rate-limiter",
+					"moments": ["m1"]
+				},
+				{
+					"id": "token-bucket",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "drip",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "user",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "api",
+					"moments": ["m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "request",
+					"moments": ["m2", "m3", "m4", "m6", "m7"]
+				},
+				{
+					"id": "token-count",
+					"moments": ["m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "http-429",
+					"moments": ["m4"]
+				},
+				{
+					"id": "refill-label",
+					"moments": ["m6", "m7"]
+				},
+				{
+					"id": "redis",
+					"moments": ["m7"]
+				},
+				{
+					"id": "redis-label",
+					"moments": ["m7"]
+				},
+				{
+					"id": "other-buckets",
+					"moments": ["m7"]
+				},
+				{
+					"id": "narration-guide",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				}
+			],
+			"loaded": [
+				"/runtime/gsap.min.js",
+				"/runtime/hyperframes.iife.js",
+				"index.html"
+			],
+			"changes": [
+				{
+					"moment": "m1",
+					"pixels": 28355,
+					"within": "actors"
+				},
+				{
+					"moment": "m2",
+					"pixels": 22734,
+					"within": "actors"
+				},
+				{
+					"moment": "m3",
+					"pixels": 18409,
+					"within": "actors"
+				},
+				{
+					"moment": "m4",
+					"pixels": 17919,
+					"within": "actors"
+				},
+				{
+					"moment": "m5",
+					"pixels": 9346,
+					"within": "actors"
+				},
+				{
+					"moment": "m6",
+					"pixels": 13070,
+					"within": "actors"
+				},
+				{
+					"moment": "m7",
+					"pixels": 244312,
+					"within": "actors"
+				}
+			],
+			"reseeks": [
+				{
+					"at": 1.833,
+					"same": true
+				},
+				{
+					"at": 14.2,
+					"same": true
+				},
+				{
+					"at": 25.333,
+					"same": true
+				}
+			],
+			"runtime": "0.7.106",
+			"version": 1,
+			"duration": 26.5,
+			"schedule": {
+				"events": [
+					{
+						"at": 7.1,
+						"pixels": 10700
+					},
+					{
+						"at": 8.4,
+						"pixels": 7560
+					},
+					{
+						"at": 9.3,
+						"pixels": 10646
+					},
+					{
+						"at": 11.2,
+						"pixels": 9571
+					},
+					{
+						"at": 11.6,
+						"pixels": 7655
+					},
+					{
+						"at": 12.9,
+						"pixels": 7304
+					},
+					{
+						"at": 15.6,
+						"pixels": 8944
+					},
+					{
+						"at": 20,
+						"pixels": 6965
+					},
+					{
+						"at": 22.1,
+						"pixels": 7110
+					},
+					{
+						"at": 24.4,
+						"pixels": 5306
+					}
+				],
+				"pauses": []
+			},
+			"timeline": {
+				"tweens": 98,
+				"duration": 26.5
+			},
+			"checkedAt": "2026-09-25T03:31:03.113Z"
+		},
+		"reportedModel": "claude-opus-5-5"
+	},
+	{
+		"id": "plan-preview-316bb10a-ece4-4599-a692-0d6c7ea5da54",
+		"plan": "plan-treatment-0ec488ad-7098-4e7a-bce1-7c3e6a5cbba6",
+		"status": "ready",
+		"revision": 5,
+		"warnings": [
+			"hyperframes lint overlapping_gsap_tweens: GSAP tweens overlap on \"#reqA\" for x between 6.95s and 6.95s.",
+			"hyperframes lint overlapping_gsap_tweens: GSAP tweens overlap on \"#n1\" for x between 11.00s and 11.10s.",
+			"hyperframes lint timeline_track_too_dense: Track 1 has 7 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff."
+		],
+		"verification": {
+			"bundle": "66221d93767fb11c84af7152ab2483d25d260d684028cdf062174428a92fb175",
+			"frames": [
+				{
+					"at": 0.1,
+					"frame": "e9b48270fc63e355",
+					"moment": "m1"
+				},
+				{
+					"at": 1.833,
+					"frame": "5fef762d6c531759",
+					"moment": "m1"
+				},
+				{
+					"at": 3.667,
+					"frame": "df0b3f27719e386e",
+					"moment": "m1"
+				},
+				{
+					"at": 5.06,
+					"frame": "e18e8f71d056a44c",
+					"moment": "m1"
+				},
+				{
+					"at": 5.6,
+					"frame": "c20fed86130210b4",
+					"moment": "m2"
+				},
+				{
+					"at": 6.167,
+					"frame": "2ba0a07185eb96b0",
+					"moment": "m2"
+				},
+				{
+					"at": 6.833,
+					"frame": "c256380961b43e7e",
+					"moment": "m2"
+				},
+				{
+					"at": 7.34,
+					"frame": "4b95d7379e36feea",
+					"moment": "m2"
+				},
+				{
+					"at": 7.6,
+					"frame": "f46e5fcfb1577845",
+					"moment": "m3"
+				},
+				{
+					"at": 8.833,
+					"frame": "48324ec7dd92fe60",
+					"moment": "m3"
+				},
+				{
+					"at": 10.167,
+					"frame": "25a8fa252f4c84de",
+					"moment": "m3"
+				},
+				{
+					"at": 11.18,
+					"frame": "f4b2bca912c96aab",
+					"moment": "m3"
+				},
+				{
+					"at": 11.6,
+					"frame": "b4718c9064e65bf7",
+					"moment": "m4"
+				},
+				{
+					"at": 12.6,
+					"frame": "075ec8335e0980b1",
+					"moment": "m4"
+				},
+				{
+					"at": 13.7,
+					"frame": "ee968fcb0fb4ad6e",
+					"moment": "m4"
+				},
+				{
+					"at": 14.536,
+					"frame": "32ea2cbeb63642d0",
+					"moment": "m4"
+				},
+				{
+					"at": 14.9,
+					"frame": "c360fdc92d8cc275",
+					"moment": "m5"
+				},
+				{
+					"at": 16.467,
+					"frame": "e94f48e0bb05dd6d",
+					"moment": "m5"
+				},
+				{
+					"at": 18.133,
+					"frame": "94d2cb3650a71651",
+					"moment": "m5"
+				},
+				{
+					"at": 19.4,
+					"frame": "e4e6455755c4b1c3",
+					"moment": "m5"
+				},
+				{
+					"at": 19.9,
+					"frame": "2f8c0fa3314a594f",
+					"moment": "m6"
+				},
+				{
+					"at": 20.733,
+					"frame": "9d3b67011c64a17f",
+					"moment": "m6"
+				},
+				{
+					"at": 21.667,
+					"frame": "5f45d88486d04d44",
+					"moment": "m6"
+				},
+				{
+					"at": 22.376,
+					"frame": "6449d698015e7fcb",
+					"moment": "m6"
+				},
+				{
+					"at": 22.7,
+					"frame": "c43bcc2cfb50b559",
+					"moment": "m7"
+				},
+				{
+					"at": 23.9,
+					"frame": "a8b89fac8caff6c0",
+					"moment": "m7"
+				},
+				{
+					"at": 25.2,
+					"frame": "08e6f3e3e6b993fa",
+					"moment": "m7"
+				},
+				{
+					"at": 26.188,
+					"frame": "0f3a58fd49169b04",
+					"moment": "m7"
+				}
+			],
+			"layers": [
+				{
+					"id": "background",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "request-rate-limiter",
+					"moments": ["m1"]
+				},
+				{
+					"id": "token-bucket",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "user",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "drip",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "api",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "request",
+					"moments": ["m2", "m3", "m4", "m5", "m6"]
+				},
+				{
+					"id": "http-429",
+					"moments": ["m4", "m5"]
+				},
+				{
+					"id": "token-count",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				},
+				{
+					"id": "term",
+					"moments": ["m1", "m2"]
+				},
+				{
+					"id": "refill-label",
+					"moments": ["m6", "m7"]
+				},
+				{
+					"id": "redis",
+					"moments": ["m7"]
+				},
+				{
+					"id": "other-buckets",
+					"moments": ["m7"]
+				},
+				{
+					"id": "sketch-notes",
+					"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+				}
+			],
+			"loaded": [
+				"/runtime/gsap.min.js",
+				"/runtime/hyperframes.iife.js",
+				"index.html"
+			],
+			"changes": [
+				{
+					"moment": "m1",
+					"pixels": 39649,
+					"within": "actors"
+				},
+				{
+					"moment": "m2",
+					"pixels": 8966,
+					"within": "actors"
+				},
+				{
+					"moment": "m3",
+					"pixels": 15215,
+					"within": "actors"
+				},
+				{
+					"moment": "m4",
+					"pixels": 3828,
+					"within": "actors"
+				},
+				{
+					"moment": "m5",
+					"pixels": 9790,
+					"within": "actors"
+				},
+				{
+					"moment": "m6",
+					"pixels": 7663,
+					"within": "actors"
+				},
+				{
+					"moment": "m7",
+					"pixels": 69565,
+					"within": "actors"
+				}
+			],
+			"reseeks": [
+				{
+					"at": 1.833,
+					"same": true
+				},
+				{
+					"at": 13.7,
+					"same": true
+				},
+				{
+					"at": 25.2,
+					"same": true
+				}
+			],
+			"runtime": "0.7.106",
+			"version": 1,
+			"duration": 26.5,
+			"schedule": {
+				"events": [
+					{
+						"at": 6.6,
+						"pixels": 9301
+					},
+					{
+						"at": 8.2,
+						"pixels": 7307
+					},
+					{
+						"at": 8.75,
+						"pixels": 11201
+					},
+					{
+						"at": 10.5,
+						"pixels": 9533
+					},
+					{
+						"at": 11,
+						"pixels": 10039
+					},
+					{
+						"at": 13,
+						"pixels": 2071
+					},
+					{
+						"at": 15,
+						"pixels": 9533
+					},
+					{
+						"at": 19.5,
+						"pixels": 6173
+					},
+					{
+						"at": 21.5,
+						"pixels": 6995
+					},
+					{
+						"at": 24,
+						"pixels": 3931
+					}
+				],
+				"pauses": []
+			},
+			"timeline": {
+				"tweens": 106,
+				"duration": 26.5
+			},
+			"checkedAt": "2026-09-25T03:51:37.043Z"
+		},
+		"reportedModel": "claude-opus-5-5"
+	}
+]
