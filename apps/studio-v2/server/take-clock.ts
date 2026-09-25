@@ -50,6 +50,39 @@ export const takeFrame = async (input: string, seconds: number, output: string) 
 
 export const alignerAvailable = async () => access(alignerPath()).then(() => true, () => false)
 
+// A take's picture size, or null when it has no picture.
+export const pictureSize = async (path: string) => {
+  const found = (await runCommand('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', path], 30_000)).trim()
+  const [width, height] = found.split(',').map(Number)
+  return width > 0 && height > 0 ? { width, height } : null
+}
+
+// One run of a take: from where its first line starts to where its last
+// line ends, in seconds on that take.
+export type TakeRun = { path: string; from: number; to: number }
+// Several takes as one: each run cut from its take and joined in order, the
+// pictures at one size (the first take's), the sound at one rate. Nothing
+// is stretched: each run keeps its own timing, and the joins fall in the
+// pauses between lines.
+export const composeTakes = async (runs: TakeRun[], output: string, size: { width: number; height: number } | null) => {
+  const filters: string[] = []
+  runs.forEach((run, index) => {
+    const span = `start=${run.from.toFixed(3)}:end=${run.to.toFixed(3)}`
+    if (size) filters.push(`[${index}:v]trim=${span},setpts=PTS-STARTPTS,scale=${size.width}:${size.height}:force_original_aspect_ratio=decrease,pad=${size.width}:${size.height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${index}]`)
+    filters.push(`[${index}:a]atrim=${span},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo[a${index}]`)
+  })
+  filters.push(`${runs.map((_, index) => `${size ? `[v${index}]` : ''}[a${index}]`).join('')}concat=n=${runs.length}:v=${size ? 1 : 0}:a=1${size ? '[v][a]' : '[a]'}`)
+  await runCommand('ffmpeg', [
+    '-y',
+    ...runs.flatMap(run => ['-i', run.path]),
+    '-filter_complex', filters.join(';'),
+    ...(size ? ['-map', '[v]', '-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '2500k', '-g', '15'] : []),
+    '-map', '[a]', '-c:a', 'libopus', '-b:a', '128k',
+    output,
+  ], 600_000)
+  return Math.round((await probeSeconds(output)) * 1000) / 1000
+}
+
 // Aligns the take's speech to the plan's lines, in order, with the pinned
 // aligner (faster-whisper through uv).
 export const alignTake = async (audio: string, lines: TakeLine[]) => {

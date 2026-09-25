@@ -63,6 +63,7 @@ import {
   saveProjectArtifact,
   saveSetting,
   saveRecordedBlock,
+  savePickupTake,
   saveSourceRevision,
   saveNarrativeRevision,
   saveExplanationModel,
@@ -2230,6 +2231,7 @@ const handleCommitDirectedRecording = async (
     cameraAssetId?: string
     beatMarksMs?: number[]
     script?: { hash?: unknown; lines?: unknown; treatment?: unknown; revision?: unknown }
+    pickup?: boolean
   }>(request, 64_000)
   if (!body.projectId || !body.blockId || !body.assetId || !body.mediaUrl) {
     throw new Error('The recorded block is incomplete')
@@ -2246,6 +2248,13 @@ const handleCommitDirectedRecording = async (
         ...(Number.isInteger(body.script.revision) && Number(body.script.revision) > 0 ? { revision: Number(body.script.revision) } : {}),
       }
     : undefined
+  // A pickup of some lines joins the archive; the selected take stays.
+  if (body.pickup === true) {
+    if (!script?.lines?.length) throw new Error('A pickup names the lines it was spoken against')
+    const recording = await savePickupTake({ projectId: body.projectId, blockId: body.blockId, assetId: body.assetId, mediaUrl: body.mediaUrl, durationMs: Math.min(3_600_000, Math.max(1, Number(body.durationMs) || 1)), script })
+    json(response, 201, { recording, project: await loadProjectArtifact(body.projectId) })
+    return
+  }
   const recording = await saveRecordedBlock({
     projectId: body.projectId,
     blockId: body.blockId,

@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -920,6 +921,86 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     await selectTake('take-2', lines)
     const overview = await service.planningOverview(id)
     expect(overview.scenes[0].production?.accepted).toMatchObject({ current: false, staleBecause: 'the scene\'s take changed' })
+  }, 300_000)
+
+  // Only the changed lines are recorded again: a pickup of the line a newer
+  // plan changed fills in for the take, which stays; the scene's clock is
+  // the take's runs and the pickup's, joined in the pauses between lines.
+  it.runIf(aligner)('produces a scene from your take and a pickup of the one line the plan changed', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('production-pickup')
+    await service.saveDirection(id, { subject: scenes[0], delivery: 'human' })
+    await readyBrief(id, 'run-pickup-brief')
+    const base = treatmentFor(scenes[0], 'b1')
+    const planWith = (second: string) => ({
+      ...base,
+      moments: [
+        { ...base.moments[0], objects: null, recipes: [], presenter: { visibility: 'full', reason: 'On camera' } },
+        { ...base.moments[0], id: 'm2', title: 'Refill', observation: 'Tokens come back', objects: null, recipes: [], narration: { job: 'Explain', guide: second }, presenter: { visibility: 'full', reason: 'On camera' } },
+      ],
+      delivery: { voice: 'human', note: '' },
+    })
+    const approve = async (runId: string, second: string) => {
+      const { record } = await service.queueTreatment(id, scenes[0])
+      await service.attachRun(record.id, { runId })
+      expect(await service.submitTreatment(record.id, planWith(second), runId)).toMatchObject({ accepted: true })
+      await service.reviewTreatment(record.id)
+      return record
+    }
+    await approve('run-pickup-plan-1', 'Tokens are added back at a steady refill rate.')
+    const dir = mkdtempSync(join(tmpdir(), 'pickup-production-'))
+    const record = async (name: string, colour: string, words: string) => {
+      await runCommand('/usr/bin/say', ['-o', join(dir, `${name}.aiff`), words])
+      await runCommand('ffmpeg', ['-y', '-f', 'lavfi', '-i', `color=c=${colour}:size=640x360:rate=24`, '-i', join(dir, `${name}.aiff`), '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', join(dir, `${name}.mp4`)])
+      const seconds = await probeSeconds(join(dir, `${name}.mp4`))
+      const stored = await persistence.storeAsset({ body: readFileSync(join(dir, `${name}.mp4`)), contentType: 'video/mp4', projectId: id, blockId: scenes[0], kind: 'camera-take', extension: '.mp4' })
+      return { seconds, url: `http://127.0.0.1:1/objects/${stored.objectKey}`, assetId: stored.assetId }
+    }
+    // The take, red, of the first plan's two lines.
+    const take = await record('take', '0xe11d48', 'Each request consumes one token. [[slnc 700]] Tokens are added back at a steady refill rate.')
+    const first = 'Each request consumes one token.\n\nTokens are added back at a steady refill rate.'
+    const project = (await persistence.loadProjectArtifact(id))!
+    project.recordedBlocks = { [scenes[0]]: { blockId: scenes[0], recordingId: 'take-1', videoUrl: take.url, durationMs: Math.round(take.seconds * 1000), recordedAt: new Date().toISOString(), storage: 'local', role: 'presenter', script: { hash: scriptFingerprint(first), lines: lineFingerprints(first) } } }
+    await persistence.saveProjectArtifact(project)
+    // A newer plan changes the second line: only it is asked for again.
+    await service.saveDirection(id, { subject: scenes[0], direction: 'Say the refill plainly' })
+    await approve('run-pickup-plan-2', 'Tokens return at a steady rate.')
+    const waits = async () => (await service.planningOverview(id)).scenes[0].productionWaits
+    expect(await waits()).toBe('Your take does not say the plan\'s line “Tokens return at a steady rate.”. Record only that line — a pickup — or the whole scene again.')
+    // The pickup, blue, of that line alone — the take stays selected.
+    const pickup = await record('pickup', '0x1d4ed8', 'Tokens return at a steady rate.')
+    const recorded = await persistence.savePickupTake({ projectId: id, blockId: scenes[0], assetId: pickup.assetId, mediaUrl: pickup.url, durationMs: Math.round(pickup.seconds * 1000), script: { hash: scriptFingerprint('Tokens return at a steady rate.'), lines: lineFingerprints('Tokens return at a steady rate.') } })
+    expect(recorded).toMatchObject({ pickup: true, role: 'presenter' })
+    expect((await persistence.loadProjectArtifact(id))!.recordedBlocks![scenes[0]].recordingId).toBe('take-1')
+    expect(await waits()).toBeNull()
+    const queued = await service.queueProduction(id, scenes[0])
+    const packet = await service.loadPacket(queued.record.id)
+    const clock = JSON.parse(text(packet.files['packet/CLOCK.json']))
+    expect(clock).toMatchObject({ kind: 'take', provider: 'Your take, with a pickup', spoken: [{ id: 'm1', words: 'Each request consumes one token.' }, { id: 'm2', words: 'Tokens return at a steady rate.' }] })
+    // The joined take: the take's first line, then the pickup's line.
+    const media = (await service.loadProductionFile(queued.record.id, 'media/take.webm').catch(() => null))
+    expect(media).toBeNull()
+    const composed = join(dir, 'composed.webm')
+    const { stream } = await persistence.getObject((queued.record.inputs.media as Record<string, string>)['media/take.webm'])
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) chunks.push(chunk as Buffer)
+    await (await import('node:fs/promises')).writeFile(composed, Buffer.concat(chunks))
+    expect(Math.abs((await probeSeconds(composed)) - clock.duration)).toBeLessThan(0.15)
+    // Shorter than the take and the pickup together: only runs, cut in pauses.
+    expect(clock.duration).toBeLessThan(take.seconds + pickup.seconds)
+    const colourAt = async (seconds: number) => {
+      const raw = await new Promise<Buffer>((resolve, reject) => {
+        const chunks2: Buffer[] = []
+        const child = spawn('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', composed, '-frames:v', '1', '-vf', 'scale=1:1:flags=area', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'])
+        child.stdout.on('data', chunk => chunks2.push(chunk as Buffer))
+        child.on('close', code => (code === 0 ? resolve(Buffer.concat(chunks2)) : reject(new Error(`ffmpeg ${code}`))))
+      })
+      return [...raw.subarray(0, 3)]
+    }
+    const inTake = await colourAt(clock.moments[0].start + 0.5)
+    const inPickup = await colourAt(clock.moments[1].start + 0.6)
+    expect(inTake[0]).toBeGreaterThan(150)
+    expect(inPickup[2]).toBeGreaterThan(150)
+    expect(inPickup[0]).toBeLessThan(90)
   }, 300_000)
 
   it.runIf(systemVoice)('produces a generated-voice scene on the voice\'s clock, playing its sound', async () => {

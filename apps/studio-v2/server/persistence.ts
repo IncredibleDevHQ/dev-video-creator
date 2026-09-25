@@ -1,6 +1,7 @@
 // Backend switch: STUDIO_PERSISTENCE=local selects the plain-file store,
 // anything else keeps the Postgres + MinIO stack. Neither backend is
 // imported statically, so the local path never loads pg or minio.
+import { randomUUID } from 'node:crypto'
 import type { Readable } from 'node:stream'
 import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
 import type { ProjectArtifactSummary } from './persistence-local'
@@ -269,6 +270,24 @@ export const saveRecordedBlock = async (
   })
   await backend.selectPresenterTake({ projectId: recording.projectId, blockId: recording.blockId, takeId: saved.recordingId })
   return { ...saved, ...(recording.role === 'presenter' ? { role: 'presenter' as const } : {}), ...(recording.script ? { script: recording.script } : {}) }
+}
+
+// A pickup: a take of only some of a scene's lines. It joins the take
+// archive with the lines it was spoken against, and the scene's selected
+// take stays selected: the pickup fills in for its changed lines.
+export const savePickupTake = async (input: { projectId: string; blockId: string; assetId: string; mediaUrl: string; durationMs: number; script: NonNullable<RecordedBlockV1['script']> }): Promise<RecordedBlockV1> => {
+  const backend = await loadBackend()
+  const recordingId = randomUUID()
+  const recordedAt = new Date().toISOString()
+  await backend.savePresenterTake({
+    id: recordingId,
+    projectId: input.projectId,
+    blockId: input.blockId,
+    assetId: input.assetId,
+    durationMs: input.durationMs,
+    detail: { mediaUrl: input.mediaUrl, role: 'presenter', pickup: true, script: input.script },
+  })
+  return { blockId: input.blockId, recordingId, videoUrl: input.mediaUrl, durationMs: input.durationMs, recordedAt, storage: process.env.STUDIO_PERSISTENCE === 'local' ? 'local' : 'minio', role: 'presenter', pickup: true, script: input.script }
 }
 
 export const clearPresenterTake = async (input: { projectId: string; blockId: string }) =>

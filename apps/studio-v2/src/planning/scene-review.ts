@@ -40,12 +40,16 @@ export type SceneReviewHost = {
   // The scene's current take against its script now: changed are the
   // script's lines the take was not spoken against; null when the take kept
   // only the whole script's fingerprint.
-  takeOf: (sceneId: string) => { known: boolean; current: boolean; revision: number | null; changed: string[] | null; dropped: number | null } | null
+  // pickups: how many pickups fill in lines for the take.
+  takeOf: (sceneId: string) => { known: boolean; current: boolean; revision: number | null; changed: string[] | null; dropped: number | null; pickups?: number } | null
   // Make a plan revision's lines the scene's script, with that lineage.
   applyScript: (sceneId: string, script: string, lineage: { treatment: string; revision: number }) => void
   // The notebook redraws the review of every scene.
   refresh: () => void
   record: (sceneId: string) => void
+  // Record only these lines of the scene: a pickup that fills in for the
+  // selected take, which stays selected.
+  recordPickup: (sceneId: string, lines: string[]) => void
   // The planning workspace, on this scene, revision and moment.
   openWorkspace: (sceneId: string, revision: string, moment: string) => void
   // The stage shows which page objects a moment is about — and, when the
@@ -318,7 +322,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     if (scene.delivery === 'generated' || scene.delivery === 'silent') return chip(`Recording: not needed (${scene.delivery})`)
     const take = host.takeOf(scene.id)
     if (take) {
-      if (take.current) return chip('Recording: take matches the script', 'good')
+      if (take.current) return chip(take.pickups ? `Recording: take and pickup${take.pickups === 1 ? '' : 's'} match the script` : 'Recording: take matches the script', 'good')
       if (take.changed?.length) return chip(`Recording: ${take.changed.length} line${take.changed.length === 1 ? '' : 's'} to re-record`, 'warn')
       return take.known ? chip('Recording: take is of an earlier script', 'warn') : chip('Recording: take recorded')
     }
@@ -343,8 +347,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const production = scene.production
     if (!production) return chip('Output: not produced')
     if (isActiveStatus(production.latest.status)) return chip(production.latest.status === 'verifying' ? 'Output: checking…' : 'Output: producing…', 'busy')
+    // A newer production waiting for review comes first: it is what to do next.
+    if (production.ready && !production.ready.accepted && production.ready.current) return chip('Output: produced — review it', 'new')
     if (production.accepted) return chip(production.accepted.current ? 'Output: accepted' : 'Output: accepted, out of date', production.accepted.current ? 'good' : 'warn')
-    if (production.ready) return chip(production.ready.current ? 'Output: produced — review it' : 'Output: produced, out of date', production.ready.current ? 'new' : 'warn')
+    if (production.ready) return chip('Output: produced, out of date', 'warn')
     if (production.latest.status === 'failed') return chip('Output: production failed', 'bad')
     return chip('Output: not produced')
   }
@@ -530,12 +536,18 @@ export const createSceneReview = (host: SceneReviewHost) => {
 
   // What an earlier take still covers, and what to re-record: by line where
   // the take kept its lines, otherwise the whole.
-  const takeNote = (take: NonNullable<ReturnType<SceneReviewHost['takeOf']>>) => {
+  const takeNote = (take: NonNullable<ReturnType<SceneReviewHost['takeOf']>>, sceneId: string) => {
     const of = `Your current take was spoken against an earlier script${take.revision ? ` (plan r${take.revision})` : ''}. It is kept`
     if (take.changed?.length) {
+      // Only the lines that changed are asked for again: a pickup of them
+      // fills in for the take, which stays.
+      const changed = take.changed
+      const pickup = h('button', { type: 'button', class: 'button secondary', 'data-focus': `record-pickup:${sceneId}`, text: `Record only ${changed.length === 1 ? 'this line' : `these ${changed.length} lines`}` })
+      pickup.addEventListener('click', () => host.recordPickup(sceneId, changed))
       return h('div', { class: 'review-warn review-take-lines' },
-        h('p', { text: `${of}, and still covers the other lines. Re-record ${take.changed.length === 1 ? 'this line' : `these ${take.changed.length} lines`}, or align the take there:` }),
-        h('ol', {}, ...take.changed.map(line => h('li', { text: line }))),
+        h('p', { text: `${of}, and still covers the other lines. Record ${changed.length === 1 ? 'this line' : `these ${changed.length} lines`} as a pickup — the rest of your take stays — or align the take there:` }),
+        h('ol', {}, ...changed.map(line => h('li', { text: line }))),
+        pickup,
       )
     }
     if (take.dropped) return h('p', { class: 'review-warn', text: `${of}. The script has since lost ${take.dropped} of its lines: align the take, or re-record the scene.` })
@@ -573,7 +585,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return h('div', { class: 'review-guide' },
       h('p', {}, h('strong', { text: 'What it is for. ' }), guide.purpose),
       h('p', { class: 'review-muted', text: guide.note }),
-      take && take.known && !take.current ? takeNote(take) : null,
+      take && take.known && !take.current ? takeNote(take, scene.id) : null,
       guide.lines.length
         ? h('div', {}, h('h6', { text: `Lines to record — ${guide.source === 'plan' ? `plan r${planRecord.revision}'s narration, in its order` : 'the notebook\'s script'} (${lineLabel})` }), h('ol', { class: 'review-guide-lines' }, ...guide.lines.map(line => {
           // A line the current take was not spoken against: only these need

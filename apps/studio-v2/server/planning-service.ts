@@ -20,6 +20,7 @@ import {
   listPlanningInputs,
   listPlanningRecords,
   listPlanningRecordsForRun,
+  listPresenterTakes,
   loadPlanningRecord,
   loadProjectArtifact,
   loadSetting,
@@ -39,7 +40,7 @@ import { castEntriesForKeys, ensureVisualCast, loadVisualCast, readObject, type 
 import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest, type SketchProof } from '../src/planning/sketch-bundle'
 import { previewFileBody, verifySketchRuntime } from './sketch-runtime'
 import { narrationClock, type NarrationLine } from './voice'
-import { alignTake, normalizeTake, takeClockOf, takeFrame } from './take-clock'
+import { alignTake, composeTakes, normalizeTake, pictureSize, takeClockOf, takeFrame, type AlignedLine } from './take-clock'
 import { lineFingerprints, scriptFingerprint, scriptLinesOf } from '../src/planning/recording-guide'
 import { mkdtemp, rm, writeFile as writeLocalFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -141,6 +142,9 @@ export type VideoPlanning = {
   // The revision the visual cast is extracted from: the pinned base, and
   // the pages its scenes adopted since.
   castRevision: string
+  // The pickups recorded for each scene, newest first: takes of some of its
+  // lines, which fill in for the selected take where it does not say them.
+  pickups: Map<string, Array<{ recordingId: string; videoUrl: string; lines: string[]; recordedAt: string }>>
 }
 
 const pageKindOf = (node: TiptapNode) => {
@@ -233,6 +237,16 @@ export const loadVideoPlanning = async (projectId: string): Promise<VideoPlannin
     const adopted = adoptions.get(page.scene)
     return adopted ? { ...page, svg: adopted.svg, pageKind: adopted.kind, pageRevision: adopted.revision, adopted: { at: adopted.at, revision: adopted.revision } } : page
   })
+  const pickups = new Map<string, Array<{ recordingId: string; videoUrl: string; lines: string[]; recordedAt: string }>>()
+  for (const take of await listPresenterTakes(project.id).catch(() => [] as Array<Record<string, unknown>>)) {
+    const detail = (take.detail || {}) as { mediaUrl?: string; pickup?: boolean; script?: { lines?: unknown } }
+    const lines = Array.isArray(detail.script?.lines) ? (detail.script!.lines as unknown[]).map(String) : []
+    if (!detail.pickup || !detail.mediaUrl || !lines.length) continue
+    const list = pickups.get(String(take.blockId)) || []
+    list.push({ recordingId: String(take.id), videoUrl: detail.mediaUrl, lines, recordedAt: String(take.createdAt || '') })
+    pickups.set(String(take.blockId), list)
+  }
+  for (const list of pickups.values()) list.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
   const baseRevision = project.derivedFrom.baseRevision || ''
   const castRevision = adoptions.size
     ? `${baseRevision}~${fingerprintOf([...adoptions].map(([scene, adopted]) => [scene, adopted.revision]).sort())}`
@@ -257,6 +271,7 @@ export const loadVideoPlanning = async (projectId: string): Promise<VideoPlannin
     requestedSeconds: project.outline?.targetSeconds && project.outline.targetSeconds > 0 ? Math.round(project.outline.targetSeconds) : null,
     inputs: await listPlanningInputs(projectId),
     bundle: await loadBundle(),
+    pickups,
   }
 }
 
@@ -1222,7 +1237,9 @@ const objectKeyOf = (url: string | undefined) => {
 // What the scene's clock will be made from, before it is made. The same
 // approved words in the same voice make the same clock; the same take
 // makes the same clock.
-type ClockSource = { kind: ProductionClock['kind']; ref: string; missing?: string; take?: { recordingId: string; objectKey: string } }
+// takes: the selected take, then any pickups, each with the moments whose
+// lines it gives.
+type ClockSource = { kind: ProductionClock['kind']; ref: string; missing?: string; takes?: Array<{ recordingId: string; objectKey: string; lines: string[] }> }
 const clockSourceOf = (planning: VideoPlanning, sceneId: string, plan: SceneTreatmentV1): ClockSource => {
   const delivery = deliveryFor(planning, sceneId)
   if (delivery === 'generated') return { kind: 'generated-voice', ref: fingerprintOf({ lines: narrationOf(plan), voice: process.env.FISH_AUDIO_API_KEY ? 'fish' : 'system' }) }
@@ -1235,14 +1252,37 @@ const clockSourceOf = (planning: VideoPlanning, sceneId: string, plan: SceneTrea
     const objectKey = objectKeyOf(camera)
     if (!camera) return { kind: 'take', ref: '', missing: 'This take records the whole canvas, not you: production needs your camera take. Record the scene with the camera, then produce it.' }
     if (!objectKey) return { kind: 'take', ref: '', missing: 'This take\'s file is not stored in this Studio: record the scene again, then produce it.' }
-    // Spoken against the approved plan's lines, which the moments are timed by.
+    // Spoken against the approved plan's lines, which the moments are timed
+    // by: each line from the selected take when it says it, else from the
+    // newest pickup that does.
     const lines = spokenLinesOf(plan).filter(line => line.say)
     if (!lines.length) return { kind: 'take', ref: '', missing: 'The approved plan gives this scene no words: there is nothing for a take to be aligned to. Plan the scene again with its narration.' }
     const script = lines.map(line => line.say).join('\n\n')
     const recorded = take.script
-    const spokenAgainst = recorded?.lines ? lineFingerprints(script).every(hash => recorded.lines!.includes(hash)) : recorded?.hash === scriptFingerprint(script)
-    if (!spokenAgainst) return { kind: 'take', ref: '', missing: 'Your take was not recorded against the approved plan\'s lines. Use the plan\'s lines as the scene\'s script, record them, then produce the scene.' }
-    return { kind: 'take', ref: `${take.recordingId}:${objectKey}`, take: { recordingId: take.recordingId, objectKey } }
+    const wholeScript = !recorded?.lines && recorded?.hash === scriptFingerprint(script)
+    const selected = { recordingId: take.recordingId, objectKey, lines: [] as string[] }
+    const pickups = (planning.pickups.get(sceneId) || []).map(pickup => ({ ...pickup, objectKey: objectKeyOf(pickup.videoUrl) })).filter(pickup => pickup.objectKey)
+    const used = new Map<string, { recordingId: string; objectKey: string; lines: string[] }>()
+    const unsaid: string[] = []
+    for (const line of lines) {
+      const hash = lineFingerprints(line.say)[0]
+      if (wholeScript || recorded?.lines?.includes(hash)) {
+        selected.lines.push(line.id)
+        continue
+      }
+      const pickup = pickups.find(entry => entry.lines.includes(hash))
+      if (!pickup) {
+        unsaid.push(line.say)
+        continue
+      }
+      const entry = used.get(pickup.recordingId) || { recordingId: pickup.recordingId, objectKey: pickup.objectKey!, lines: [] }
+      entry.lines.push(line.id)
+      used.set(pickup.recordingId, entry)
+    }
+    if (unsaid.length === lines.length) return { kind: 'take', ref: '', missing: 'Your take was not recorded against the approved plan\'s lines. Use the plan\'s lines as the scene\'s script, record them, then produce the scene.' }
+    if (unsaid.length) return { kind: 'take', ref: '', missing: `Your take does not say ${unsaid.length === 1 ? 'the plan\'s line' : `${unsaid.length} of the plan's lines, first`} “${unsaid[0]}”. Record only ${unsaid.length === 1 ? 'that line' : 'those lines'} — a pickup — or the whole scene again.` }
+    const takes = [...(selected.lines.length ? [selected] : []), ...used.values()]
+    return { kind: 'take', ref: takes.map(entry => `${entry.recordingId}:${entry.objectKey}:${entry.lines.join(',')}`).join('+'), takes }
   }
   return { kind: 'silent', ref: '', missing: 'Choose how this scene is delivered — you present it, a generated voice, or silent. A plan is made for its delivery, so plan and approve the scene again once it is chosen.' }
 }
@@ -1269,30 +1309,90 @@ const productionIdOf = (approved: PlanningRecord) => `production-${approved.subj
 type MadeClock = { clock: ProductionClock; audio: Buffer | null; provider: string | null; words: Array<{ id: string; words: string; spokenEnd: number }>; media?: Record<string, string>; review?: string[]; frame?: Buffer | null }
 // The take, normalized, lives at this path in every production of it.
 const TAKE_MEDIA = 'media/take.webm'
-// A take's normalized file and its alignment, once per take and plan lines.
-type TakeMade = { objectKey: string; picture: boolean; duration: number; aligned: Awaited<ReturnType<typeof alignTake>>; frame: string | null }
+// A take's normalized file and its alignment, once per set of takes and plan lines.
+type TakeMade = { objectKey: string; picture: boolean; duration: number; aligned: AlignedLine[]; frame: string | null }
+// A take, normalized once: the file every production of it plays.
+type NormalizedTake = { objectKey: string; picture: boolean; duration: number }
+const normalizedTakeOf = async (projectId: string, sceneId: string, objectKey: string, dir: string) => {
+  const key = `take-normal:${objectKey}`
+  const path = join(dir, `${fingerprintOf(objectKey).slice(0, 16)}.webm`)
+  let made = (await loadSetting(key)) as NormalizedTake | null
+  if (made) {
+    await writeLocalFile(path, await readStream((await getObject(made.objectKey)).stream))
+    return { ...made, path }
+  }
+  const original = `${path}.original`
+  await writeLocalFile(original, await readStream((await getObject(objectKey)).stream))
+  const { picture, duration } = await normalizeTake(original, path)
+  const stored = await storeAsset({ body: await readFile(path), contentType: 'video/webm', projectId, blockId: sceneId, kind: 'production-take', extension: '.webm' })
+  made = { objectKey: stored.objectKey, picture, duration }
+  await compareAndSwapSetting(key, null, made)
+  return { ...made, path }
+}
+// Where a run of lines starts before its first word, and ends after its last.
+const LEAD = 0.3
+const TAIL = 0.45
 const takeClock = async (projectId: string, sceneId: string, source: ClockSource, plan: SceneTreatmentV1): Promise<MadeClock> => {
   const lines = spokenLinesOf(plan)
-  const key = `take-clock:${fingerprintOf({ take: source.take, lines: lines.filter(line => line.say) })}`
+  const spoken = lines.filter(line => line.say)
+  const takes = source.takes || []
+  const key = `take-clock:${fingerprintOf({ takes, lines: spoken })}`
   let made = (await loadSetting(key)) as TakeMade | null
   if (!made) {
     const dir = await mkdtemp(join(tmpdir(), 'studio-take-clock-'))
     try {
-      const original = join(dir, 'take-original')
-      await writeLocalFile(original, await readStream((await getObject(source.take!.objectKey)).stream))
-      const normalized = join(dir, 'take.webm')
-      const { picture, duration } = await normalizeTake(original, normalized)
-      const aligned = await alignTake(normalized, lines.filter(line => line.say))
-      const stored = await storeAsset({ body: await readFile(normalized), contentType: 'video/webm', projectId, blockId: sceneId, kind: 'production-take', extension: '.webm' })
+      const sources: Array<{ normalized: NormalizedTake & { path: string }; aligned: AlignedLine[] }> = []
+      for (const take of takes) {
+        const normalized = await normalizedTakeOf(projectId, sceneId, take.objectKey, dir)
+        sources.push({ normalized, aligned: await alignTake(normalized.path, spoken.filter(line => take.lines.includes(line.id))) })
+      }
+      let result: { objectKey: string; picture: boolean; duration: number; aligned: AlignedLine[]; path: string }
+      if (sources.length === 1) {
+        result = { ...sources[0].normalized, aligned: sources[0].aligned }
+      } else {
+        // Runs of consecutive lines from one take, in the plan's order, each
+        // cut in the pauses around its words and joined.
+        const found = new Map(sources.flatMap((entry, index) => entry.aligned.map(line => [line.id, { index, line }] as const)))
+        const runs: Array<{ index: number; lines: AlignedLine[] }> = []
+        for (const line of spoken) {
+          const at = found.get(line.id)
+          if (!at || at.line.coverage < 0.5 || !at.line.words.length) throw new PlanningError(`Your ${at && at.index > 0 ? 'pickup' : 'take'} does not say “${line.say}”: record that line again.`, 409)
+          const last = runs[runs.length - 1]
+          if (last && last.index === at.index) last.lines.push(at.line)
+          else runs.push({ index: at.index, lines: [at.line] })
+        }
+        const cuts = runs.map((run, at) => {
+          const from = sources[run.index].normalized
+          const first = run.lines[0].words[0].startMs / 1000
+          const lastWords = run.lines[run.lines.length - 1].words
+          const end = lastWords[lastWords.length - 1].endMs / 1000
+          return { path: from.path, from: at === 0 ? 0 : Math.max(0, first - LEAD), to: at === runs.length - 1 ? from.duration : Math.min(from.duration, end + TAIL) }
+        })
+        const size = sources[0].normalized.picture ? await pictureSize(sources[0].normalized.path) : null
+        const path = join(dir, 'composed.webm')
+        const duration = await composeTakes(cuts, path, size)
+        // Each line's words on the joined take's clock.
+        const aligned: AlignedLine[] = []
+        let offset = 0
+        runs.forEach((run, at) => {
+          const cut = cuts[at]
+          const shift = (ms: number) => Math.round((offset + ms / 1000 - cut.from) * 1000)
+          for (const line of run.lines) aligned.push({ ...line, startMs: shift(line.startMs), words: line.words.map(word => ({ ...word, startMs: shift(word.startMs), endMs: shift(word.endMs) })) })
+          offset += cut.to - cut.from
+        })
+        const stored = await storeAsset({ body: await readFile(path), contentType: 'video/webm', projectId, blockId: sceneId, kind: 'production-take', extension: '.webm' })
+        result = { objectKey: stored.objectKey, picture: Boolean(size), duration, aligned, path }
+      }
       let frame: string | null = null
-      if (picture) {
+      if (result.picture) {
         const still = join(dir, 'frame.jpg')
-        await takeFrame(normalized, Math.min(duration / 2, 2), still).catch(() => {})
+        await takeFrame(result.path, Math.min(result.duration / 2, 2), still).catch(() => {})
         frame = await readFile(still).then(bytes => bytes.toString('base64'), () => null)
       }
-      made = { objectKey: stored.objectKey, picture, duration, aligned, frame }
+      made = { objectKey: result.objectKey, picture: result.picture, duration: result.duration, aligned: result.aligned, frame }
       await compareAndSwapSetting(key, null, made)
     } catch (error) {
+      if (error instanceof PlanningError) throw error
       throw new PlanningError(`Your take could not set the scene's clock: ${error instanceof Error ? error.message : String(error)}`, 503)
     } finally {
       await rm(dir, { recursive: true, force: true })
@@ -1303,7 +1403,7 @@ const takeClock = async (projectId: string, sceneId: string, source: ClockSource
   return {
     clock: { kind: 'take', audio: TAKE_MEDIA, video: made.picture ? TAKE_MEDIA : null, duration: made.duration, moments: clock.moments },
     audio: null,
-    provider: 'Your take',
+    provider: takes.length > 1 ? 'Your take, with a pickup' : 'Your take',
     words: clock.spoken,
     media: { [TAKE_MEDIA]: made.objectKey },
     review: clock.review,

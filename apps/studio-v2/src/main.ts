@@ -692,6 +692,8 @@ let injectedLiveCameraPreview: HTMLVideoElement | null = null
 let mediaRecorder: MediaRecorder | null = null
 let recordingChunks: Blob[] = []
 let recordingNodeId = ''
+// While the camera records a pickup: the scene, and only the lines asked for.
+let pickupFor: { sceneId: string; lines: string[] } | null = null
 let canvasRecorder: MediaRecorder | null = null
 let canvasCaptureStream: MediaStream | null = null
 let canvasMicrophoneStream: MediaStream | null = null
@@ -2106,7 +2108,7 @@ window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 // its stored selection. Deferred past module evaluation (fetchJson below).
 const hydratePresenterTakes = async () => {
   try {
-    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; role?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string; script?: { hash: string; treatment?: string; revision?: number } } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
+    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; role?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string; script?: { hash: string; lines?: string[]; treatment?: string; revision?: number }; pickup?: boolean } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
     if (!takes.length) return
     let merged = 0
     project.recordedBlocks ||= {}
@@ -2127,6 +2129,7 @@ const hydratePresenterTakes = async () => {
       ...(Array.isArray(take.detail?.beatMarksMs) ? { beatMarksMs: take.detail.beatMarksMs.map(Number).filter(Number.isFinite) } : {}),
       ...(take.detail?.cameraUrl ? { cameraUrl: String(take.detail.cameraUrl), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
       ...(take.detail?.script?.hash ? { script: take.detail.script } : {}),
+      ...(take.detail?.pickup ? { pickup: true } : {}),
     })
     for (const take of takes) {
       const mediaUrl = take.detail?.mediaUrl
@@ -8038,6 +8041,8 @@ const openCamera = () => {
   }
   refreshCameraAudioControls()
   presenterScript.value = sceneScript(scene)
+  // A pickup records only the lines asked for: the teleprompter shows them alone.
+  if (pickupFor?.sceneId === scene.id) presenterScript.value = pickupFor.lines.join('\n\n')
   generatedVoiceUrl = ''
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
@@ -8052,6 +8057,7 @@ const openCamera = () => {
   renderCameraBrief(scene.id)
   setupRehearsal(scene)
   void renderPickupNotes(scene.id)
+  if (pickupFor?.sceneId === scene.id) setCameraStatus(`Pickup: record only ${pickupFor.lines.length === 1 ? 'this line' : `these ${pickupFor.lines.length} lines`} — your take keeps the rest`, 'off')
   cameraDialog.showModal()
 }
 
@@ -8435,6 +8441,25 @@ const scriptLineageOf = (sceneId: string) => {
 // audio all read recordedBlocks — a presenter-track-only write would record
 // nothing they can see.
 let recordingStartedAt = 0
+// A pickup of some of a scene's lines: archived with the lines it was
+// spoken against, beside the selected take, which stays selected.
+const archivePickupTake = async (blockId: string, asset: { url: string; assetId?: string }, durationMs: number, lines: string[]) => {
+  if (!asset.assetId) throw new Error('The uploaded pickup has no asset id to archive')
+  const node = findSlideLikeNode(blockId)
+  const source = node?.attrs.scriptSource as { treatment?: string; revision?: number } | null | undefined
+  const script = lines.join('\n\n')
+  const lineage = { hash: scriptFingerprint(script), lines: lineFingerprints(script), ...(source?.treatment ? { treatment: source.treatment, ...(source.revision ? { revision: source.revision } : {}) } : {}) }
+  const { recording } = await fetchJson<{ recording: RecordedBlockV1 }>('/api/recordings/commit', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter', pickup: true, script: lineage }),
+  })
+  project.recordedBlockTakes ||= {}
+  const takes = (project.recordedBlockTakes[blockId] ||= [])
+  if (!takes.some(take => take.recordingId === recording.recordingId)) takes.push(recording)
+  syncProject()
+  return recording
+}
 const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?: string }, durationMs: number) => {
   if (!asset.assetId) throw new Error('The uploaded take has no asset id to archive')
   const { recording, project: accepted } = await fetchJson<{ recording: RecordedBlockV1; project?: ProjectDocumentV1 }>('/api/recordings/commit', {
@@ -8468,6 +8493,16 @@ const uploadRecording = async (blob: Blob) => {
     },
     body: blob,
   })
+  if (pickupFor?.sceneId === recordingNodeId) {
+    const lines = pickupFor.lines
+    await archivePickupTake(recordingNodeId, { url: response.url, assetId: response.assetId }, pendingTakeDurationMs || Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)), lines)
+    pickupFor = null
+    showToast(`Pickup kept: ${lines.length === 1 ? 'the line' : `${lines.length} lines`} fill in for your take, which stays`)
+    cameraDialog.close()
+    stopCameraStream()
+    refreshSceneReview()
+    return
+  }
   const hasGeneratedVoice = audioMode.value === 'generated' && generatedVoiceUrl
   const audioUrl = hasGeneratedVoice
     ? generatedVoiceUrl
@@ -17657,6 +17692,9 @@ function resumeRecordingIntent() {
   // take through the durable path.
   archive: (nodeId: string, asset: { url: string; assetId?: string }, durationMs = 8000) =>
     archiveCameraTake(nodeId, asset, durationMs).then(() => project.recordedBlocks?.[nodeId] || null),
+  // A pickup of these lines, through the camera dialog's archive step.
+  archivePickup: (nodeId: string, asset: { url: string; assetId?: string }, durationMs: number, lines: string[]) =>
+    archivePickupTake(nodeId, asset, durationMs, lines).then(recording => { refreshSceneReview(); return recording }),
   // The review step without a camera: stage a stand-in blob into the same
   // review the recorder's onstop enters, as if three seconds were recorded —
   // the duration is fixed at staging, just as onstop fixes it at stop.
@@ -18115,7 +18153,8 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
 }
 // Recording and rehearsal work on the notebook's composition: the stage
 // steps aside while the camera dialog is open.
-const recordScene = (sceneId: string) => {
+const recordScene = (sceneId: string, pickupLines?: string[]) => {
+  pickupFor = pickupLines?.length ? { sceneId, lines: pickupLines } : null
   selectNode(sceneId, false)
   sceneStageAsideFor = sceneId
   renderSceneStage()
@@ -18174,7 +18213,12 @@ sceneReview = createSceneReview({
     const script = active.script || archived?.script
     if (!script) return { known: false, current: false, revision: null, changed: null, dropped: null }
     const against = takeAgainst(script, String(findSlideLikeNode(sceneId)?.attrs.script || ''))
-    return { known: true, current: against.current, revision: script.revision ?? null, changed: against.changed, dropped: against.dropped }
+    // Lines the take does not say are covered by a pickup that says them.
+    const pickups = (project.recordedBlockTakes?.[sceneId] || []).filter(take => take.pickup && take.script?.lines?.length)
+    const covered = new Set(pickups.flatMap(take => take.script!.lines!))
+    const changed = against.changed ? against.changed.filter(line => !covered.has(lineFingerprints(line)[0])) : null
+    const filled = Boolean(changed && against.changed && changed.length < against.changed.length)
+    return { known: true, current: against.current || (filled && changed!.length === 0), revision: script.revision ?? null, changed, dropped: against.dropped, pickups: filled ? pickups.length : 0 }
   },
   // The plan's lines become the scene's script; the words they replace are
   // kept with the lineage, and earlier takes keep what they were spoken to.
@@ -18197,6 +18241,7 @@ sceneReview = createSceneReview({
   // Recording and rehearsal work on the notebook's composition: the stage
   // steps aside while the camera dialog is open.
   record: sceneId => recordScene(sceneId),
+  recordPickup: (sceneId, lines) => recordScene(sceneId, lines),
   openWorkspace: (sceneId, revision, moment) => void planningWorkspace.open({ sceneId, revision, moment, tab: 'plan' }),
   selectMoment: (_sceneId, targets, at, producedAt) => {
     renderSceneStage(targets)

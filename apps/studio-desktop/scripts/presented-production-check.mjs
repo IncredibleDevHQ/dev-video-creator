@@ -50,12 +50,14 @@ if (!need('uv', ['--version']) || !need('/usr/bin/say', ['-v', '?'])) {
   process.exit(0)
 }
 
-// The plan's lines, which the take speaks.
+// The plan's lines, which the take speaks; and the second line as a newer
+// plan says it, plainly.
 const LINES = [
   'Every request passes through the limiter first.',
   'When the bucket is empty, the next request is turned away.',
   'That is how the limit keeps the service alive.',
 ]
+const PLAIN = 'When the bucket is empty, the request is refused.'
 
 // ——— The stub harness ———
 const stub = String.raw`#!/usr/bin/env node
@@ -91,6 +93,7 @@ const tool = async (name, args2) => {
   return answer.result.isError ? { error: text } : JSON.parse(text)
 }
 const LINES = ${JSON.stringify(LINES)}
+const PLAIN = ${JSON.stringify(PLAIN)}
 ;(async () => {
   const projectDir = process.cwd()
   await rpc('initialize', { protocolVersion: '2024-11-05' })
@@ -166,10 +169,11 @@ const LINES = ${JSON.stringify(LINES)}
     const brief = (await (await fetch(origin + '/api/planning/records/' + context.briefRecord)).json()).record.content
     const units = brief.coverage.filter(entry => context.scene.originScenes.includes(entry.scene)).flatMap(entry => entry.units)
     const moment = (id, title, say, visibility) => ({ id, title, purpose: 'The viewer needs to see it', observation: title, narration: { job: 'Say what happens', guide: say }, objects: null, text: null, presenter: { visibility, reason: 'The creator presents it' }, camera: { treatment: 'hold', subject: 'the scene', reason: 'Keep the map' }, audio: null, attention: title, recipes: [], evidenceRefs: ['ev-1'], estimateSeconds: 3 })
+    const plainly = /plainly/i.test(fs.readFileSync('packet/SCENE.md', 'utf8'))
     fs.writeFileSync('planning/treatment.json', JSON.stringify({
       schemaVersion: 1, scene: context.scene.id, originScenes: context.scene.originScenes, units: [...new Set(units)],
       question: 'What does this limiter do?', takeaway: 'It turns excess load away before it hurts.', evidenceRefs: ['ev-1'], development: 'Meet the limiter, see it bite, come back to the viewer.', demonstration: null, ledger: null,
-      moments: [moment('m1', 'Meet the limiter', LINES[0], 'full'), moment('m2', 'The limit bites', LINES[1], 'hidden'), moment('m3', 'Load stays safe', LINES[2], 'shared')],
+      moments: [moment('m1', 'Meet the limiter', LINES[0], 'full'), moment('m2', 'The limit bites', plainly ? PLAIN : LINES[1], 'hidden'), moment('m3', 'Load stays safe', LINES[2], 'shared')],
       objects: [], treatments: { presenter: 'On camera, off for the mechanism, beside it to close', text: 'Headlines', camera: 'Holds' },
       skills: [{ skill: 'hyperframes-creative', references: ['skills/hyperframes-creative/references/beat-direction.md'], why: 'Rhythm' }],
       requirements: { assets: [], takes: [], decisions: [] },
@@ -312,14 +316,14 @@ const stageOpacityAt = (seconds, selector) => evaluate(`async () => {
   return null
 }`)
 
-// A take of the plan's lines: the camera's picture (red, with a white box
-// that moves, so its frames differ) and the creator's voice, with pauses.
-const makeTake = async () => {
-  const voice = join(root, 'voice.aiff')
-  const said = spawnSync('/usr/bin/say', ['-o', voice, LINES.join(' [[slnc 800]] ')])
+// A take of lines: the camera's picture (a colour, with a white box that
+// moves, so its frames differ) and the creator's voice, with pauses.
+const makeTake = async (lines = LINES, colour = '0xe11d48', name = 'take') => {
+  const voice = join(root, `${name}.aiff`)
+  const said = spawnSync('/usr/bin/say', ['-o', voice, lines.join(' [[slnc 800]] ')])
   if (said.status !== 0) throw new Error('say failed')
-  const take = join(root, 'take.webm')
-  const made = spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=0xe11d48:size=1280x720:rate=30', '-i', voice, '-filter_complex', "[0:v]drawbox=x='mod(t*300,1180)':y=40:w=100:h=100:color=white:t=fill[v]", '-map', '[v]', '-map', '1:a', '-shortest', '-c:v', 'libvpx', '-deadline', 'realtime', '-b:v', '1500k', '-c:a', 'libopus', take])
+  const take = join(root, `${name}.webm`)
+  const made = spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', `color=c=${colour}:size=1280x720:rate=30`, '-i', voice, '-filter_complex', "[0:v]drawbox=x='mod(t*300,1180)':y=40:w=100:h=100:color=white:t=fill[v]", '-map', '[v]', '-map', '1:a', '-shortest', '-c:v', 'libvpx', '-deadline', 'realtime', '-b:v', '1500k', '-c:a', 'libopus', take])
   if (made.status !== 0) throw new Error('ffmpeg take failed: ' + String(made.stderr).slice(0, 200))
   return { path: take, seconds: Number(ffprobe(['-show_entries', 'format=duration', '-of', 'csv=p=0', take])) }
 }
@@ -387,7 +391,8 @@ try {
   check(record?.report?.verification?.loaded.includes('media/take.webm') && !JSON.stringify(record.inputs.media || {}).includes('base64'), 'the pinned player played the take the product supplied')
 
   // ——— The stage plays it ———
-  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="show-production:"]').click(); return true }`)
+  await focusApp()
+  await click('.scene-review.is-expanded [data-focus^="show-production:"]')
   const stage = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return player && !document.getElementById('scene-stage-preview').hidden && player.duration > 0 ? { src: player.getAttribute('src'), note: document.getElementById('scene-stage-note').textContent, markers: document.querySelectorAll('.scene-stage-marker').length } : null }`, 40)
   check(/\?e=0$/.test(stage?.src || '') && /^Produced from plan r\d+, on your take · not accepted yet$/.test(stage.note) && stage.markers === 1, `the stage plays it on the take, with where the headline's timing can be nudged (${JSON.stringify(stage)})`)
   const m2 = clock.moments[1]
@@ -470,6 +475,49 @@ try {
   const newest = asked && asked.sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))[0]
   const instructions = newest ? await readFile(join(newest.projectDir, 'packet', 'PRODUCTION.md'), 'utf8') : ''
   check(/## The creator asks for a change[\s\S]*> Hold on the empty bucket a beat longer before the request is refused\./.test(instructions), 'the change the controls cannot make goes to the producer, with a new production')
+  // ——— A newer plan changes one line: only that line is recorded again ———
+  await evaluate(`() => { const box = document.querySelector('.scene-review.is-expanded [data-focus^="direction:"]'); box.value = 'Say the refusal plainly'; box.dispatchEvent(new Event('input')); return true }`)
+  await click('.scene-review.is-expanded [data-focus^="revise:"]')
+  const plan2 = await until(async () => { const view = (await overview(videoId)).scenes[0].view; return view.current?.id !== plan.id && view.current?.status === 'candidate' && view.current }, 90)
+  await click('.scene-review.is-expanded [data-focus^="approve:"]')
+  check(Boolean(await until(async () => (await overview(videoId)).scenes[0].view.reviewed?.id === plan2?.id, 30)), `a newer plan with the second line said plainly is approved (r${plan2?.revision})`)
+  await click('.scene-review.is-expanded [data-focus^="use-plan-script:"]')
+  const lines2 = [LINES[0], PLAIN, LINES[2]]
+  await until(async () => (await saved(videoId))?.notebook?.content?.find(node => node.attrs?.id === sceneId)?.attrs?.script === lines2.join('\n\n'), 30)
+  await focusApp()
+  const askedLine = await waitFor(`() => { const note = document.querySelector('.scene-review.is-expanded .review-take-lines'); const button = note?.querySelector('[data-focus^="record-pickup:"]'); return note && button ? { lines: [...note.querySelectorAll('li')].map(item => item.textContent), button: button.textContent, chip: [...document.querySelectorAll('.scene-review.is-expanded .review-strip .review-chip')].map(chip => chip.textContent).find(text => /^Recording:/.test(text)) } : null }`, 30)
+  check(askedLine?.lines.join('|') === PLAIN && askedLine.button === 'Record only this line' && askedLine.chip === 'Recording: 1 line to re-record', `only the changed line is asked for again (${JSON.stringify(askedLine)})`)
+  await click('.scene-review.is-expanded [data-focus^="record-pickup:"]')
+  const camera = await waitFor(`() => { const dialog = document.getElementById('camera-dialog'); return dialog?.open ? { prompt: document.getElementById('presenter-script').value, status: document.getElementById('camera-status').textContent } : null }`, 20)
+  check(camera?.prompt === PLAIN && /^Pickup: record only this line/.test(camera.status || ''), `the camera opens on that line alone (${JSON.stringify(camera)})`)
+  await evaluate(`() => { document.getElementById('camera-dialog').close(); return true }`)
+  // The pickup (blue), through the camera dialog's own archive step.
+  const pickupTake = await makeTake([PLAIN], '0x1d4ed8', 'pickup')
+  const pickupAsset = await fetch(`${origin}/api/assets`, { method: 'POST', headers: { 'content-type': 'video/webm', 'x-asset-name': `camera-${sceneId}-pickup.webm`, 'x-project-id': videoId, 'x-block-id': sceneId }, body: await readFile(pickupTake.path) }).then(response => response.json())
+  const pickedUp = await evaluate(`() => window.__timing.archivePickup(${JSON.stringify(sceneId)}, ${JSON.stringify({ url: pickupAsset.url, assetId: pickupAsset.assetId })}, ${Math.round(pickupTake.seconds * 1000)}, ${JSON.stringify([PLAIN])})`)
+  const stillSelected = (await saved(videoId))?.recordedBlocks?.[sceneId]?.recordingId
+  check(pickedUp?.pickup === true && stillSelected === committed?.recordingId, 'the pickup is kept beside the take, which stays selected')
+  const matched = await waitFor(`() => [...document.querySelectorAll('.scene-review.is-expanded .review-strip .review-chip')].map(chip => chip.textContent).find(text => text === 'Recording: take and pickup match the script') || null`, 30)
+  check(Boolean(matched), 'the take and the pickup together match the script')
+  const againStep = await waitStep('Produce scene 1 again', 40)
+  check(againStep?.action === 'produce' && !againStep.disabled, `the next step produces the scene again from them (${againStep?.title})`)
+  const before3 = (await overview(videoId)).scenes[0].production.ready?.id
+  await evaluate(`() => { document.getElementById('next-step').click(); return true }`)
+  const produced3 = await until(async () => { const ready = (await overview(videoId)).scenes[0].production.ready; return ready && ready.id !== before3 && ready.of.record === plan2?.id ? ready : null }, 240)
+  const run3 = (await api('/api/runs')).body.runs.filter(entry => entry.route === 'Produce Scene').sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))[0]
+  const clock3 = run3 && JSON.parse(await readFile(join(run3.projectDir, 'packet', 'CLOCK.json'), 'utf8'))
+  check(Boolean(produced3) && clock3?.provider === 'Your take, with a pickup' && clock3.spoken.map(entry => entry.words).join('|') === lines2.join('|'), `the scene is produced on your take and the pickup, joined (${JSON.stringify(clock3?.moments)})`)
+  // The joined take plays the pickup's picture where its line is said, the take's elsewhere.
+  const joined = join(root, 'joined.webm')
+  await writeFile(joined, Buffer.from(await (await fetch(`${origin}${produced3.url.replace('index.html', 'media/take.webm')}`)).arrayBuffer()))
+  const [p1, p2, p3] = clock3.moments
+  const pictures = { first: colourAt(joined, p1.start + 0.6, [600, 500, 60, 60]), second: colourAt(joined, p2.start + 0.8, [600, 500, 60, 60]), third: colourAt(joined, p3.start + 0.8, [600, 500, 60, 60]) }
+  check(near(pictures.first, '#e11d48') && near(pictures.second, '#1d4ed8') && near(pictures.third, '#e11d48'), `your take, then the pickup's line, then your take again (${pictures.first} · ${pictures.second} · ${pictures.third})`)
+  check(Math.abs(Number(ffprobe(['-show_entries', 'format=duration', '-of', 'csv=p=0', joined])) - clock3.duration) < 0.15, `the joined take is the scene's clock (${clock3.duration}s)`)
+  const reviewIt = await waitFor(`() => [...document.querySelectorAll('.scene-review.is-expanded .review-strip .review-chip')].map(chip => chip.textContent).find(text => /^Output:/.test(text)) || null`, 30)
+  check(reviewIt === 'Output: produced — review it', `the new production waits for review before the older accepted one (${reviewIt})`)
+  await shot('04-pickup')
+
   // Nothing here asked for a sketch: none is made, and no model is spent on one.
   const routes = (await api('/api/runs')).body.runs.map(entry => entry.route)
   check(!routes.includes('Sketch Scene'), `only the runs the creator asked for ran (${routes.join(', ')})`)

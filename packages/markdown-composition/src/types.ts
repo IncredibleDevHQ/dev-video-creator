@@ -176,6 +176,9 @@ export type RecordedBlockV1 = {
   // fingerprint and, when a scene plan supplied them, that plan's record and
   // revision. A later script never relabels an earlier take as current.
   script?: { hash: string; lines?: string[]; treatment?: string; revision?: number }
+  // A pickup: a take of only some of the scene's lines, recorded to replace
+  // those lines of the selected take. It is never the scene's selected take.
+  pickup?: boolean
 }
 
 export type BrandTemplateV1 = {
