@@ -358,10 +358,11 @@ export const verifySketchRuntime = async (files: SketchFiles, manifest: SketchMa
 
     // Every layer shows during the moments it takes part in.
     const layers: SketchProof['layers'] = []
+    const times: number[] = []
+    let shown: string[][] = []
     if (marked.length) {
-      const times: number[] = []
       for (let at = 0; at <= last + 1e-9; at += SCAN_STEP) times.push(Number(at.toFixed(3)))
-      const shown = (await within(page.evaluate(`window.__sketch.scan(${JSON.stringify(times)}, ${JSON.stringify(marked)})`), STEP_WAIT * 3, 'the layers to be scanned')) as string[][]
+      shown = (await within(page.evaluate(`window.__sketch.scan(${JSON.stringify(times)}, ${JSON.stringify(marked)})`), STEP_WAIT * 3, 'the layers to be scanned')) as string[][]
       for (const layer of manifest.layers.filter(item => marked.includes(item.id))) {
         const showsIn: string[] = []
         for (const moment of manifest.moments) {
@@ -397,6 +398,31 @@ export const verifySketchRuntime = async (files: SketchFiles, manifest: SketchMa
       }
     }
 
+    // The mechanism's clock (R11): each counted change shows in its layers
+    // when the schedule says it happens, and each pause is shown while it
+    // holds the clock.
+    const schedule = manifest.schedule
+    const scheduled: NonNullable<SketchProof['schedule']> = { events: [], pauses: [] }
+    if (schedule) {
+      for (const [index, event] of (schedule.events || []).entries()) {
+        const before = Math.max(0, Math.min(last, event.at - 0.3))
+        const after = Math.max(0, Math.min(last, event.at + 0.3))
+        const one = await capture(before, `event-${index}-before`)
+        const two = await capture(after, `event-${index}-after`)
+        const boxes = (event.layers || []).filter(id => marked.includes(id)).flatMap(id => [one.boxes[id], two.boxes[id]]).filter((box): box is Box => Boolean(box))
+        const pixels = one.hash === two.hash ? 0 : await diff(`event-${index}-before`, `event-${index}-after`, boxes)
+        scheduled.events.push({ at: event.at, pixels })
+        if (pixels <= NOISE) problems.push(`The schedule's ${event.change} at ${seconds(event.at)} (${event.moment}) shows no change in ${(event.layers || []).join(', ') || 'the frame'} from ${seconds(before)} to ${seconds(after)}. Show each counted change on screen when the schedule says it happens.`)
+      }
+      for (const pause of schedule.pauses || []) {
+        const inside = times.map((at, index) => ({ at, index })).filter(({ at }) => at >= pause.start && at < pause.end)
+        const unseen = inside.filter(({ index }) => !shown[index]?.includes(pause.shown)).map(({ at }) => at)
+        if (!marked.includes(pause.shown) || unseen.length) {
+          problems.push(`The pause from ${seconds(pause.start)} to ${seconds(pause.end)} holds the clock, but layer "${pause.shown}" does not show throughout it${unseen.length ? ` (not at ${unseen.slice(0, 3).map(seconds).join(', ')}${unseen.length > 3 ? '…' : ''})` : ''}. Tell the viewer the clock is held for as long as it is.`)
+        } else scheduled.pauses.push({ start: pause.start, end: pause.end, shown: pause.shown })
+      }
+    }
+
     const proof: SketchProof = {
       version: 1,
       bundle: sketchBundleHash(files),
@@ -409,6 +435,7 @@ export const verifySketchRuntime = async (files: SketchFiles, manifest: SketchMa
       reseeks,
       layers,
       changes,
+      ...(schedule ? { schedule: scheduled } : {}),
     }
     return { problems: [...new Set(problems)], warnings, proof: problems.length ? null : proof }
   } catch (error) {

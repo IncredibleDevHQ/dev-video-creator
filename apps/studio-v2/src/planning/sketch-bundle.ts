@@ -11,6 +11,7 @@
 // one from the code. A sketch cannot publish, approve, choose a take or
 // generate paid artwork: it is a preview of a plan, labelled as one.
 import type { SceneTreatmentV1 } from './scene-treatment'
+import { scheduleProblems, scheduleSummary, type SketchSchedule } from './sketch-schedule'
 
 export const SKETCH_VERSION = 1 as const
 export const SKETCH_RUNTIME = { hyperframes: '0.7.106' } as const
@@ -44,6 +45,9 @@ export type SketchManifest = {
   }>
   // Everything a viewer must not mistake for the finished scene.
   provisional: string[]
+  // Where the plan counts something: when each counted change happens, the
+  // rule behind a steady rate and any pause that holds the clock (R11).
+  schedule?: SketchSchedule | null
 }
 
 // What playing a sketch in the pinned player proved, kept with the preview
@@ -64,6 +68,9 @@ export type SketchProof = {
   // Where each marked layer showed, and how much each planned change moved.
   layers: Array<{ id: string; moments: string[] }>
   changes: Array<{ moment: string; within: 'actors' | 'frame'; pixels: number }>
+  // Each counted change seen in its layers when it happens, and each pause
+  // shown while it holds the clock.
+  schedule?: { events: Array<{ at: number; pixels: number }>; pauses: Array<{ start: number; end: number; shown: string }> }
 }
 
 export type SketchContext = {
@@ -192,6 +199,9 @@ export const validateSketch = (files: SketchFiles, context: SketchContext): Sket
   if (presenterMoments.length && !presenterLayer) problems.push(`the plan shows a presenter in ${presenterMoments.join(', ')}: add a presenter layer with a labelled stand-in`)
   if (presenterLayer && !presenterLayer.placeholder) problems.push('the presenter layer must say it is a stand-in (placeholder) — no take is recorded')
 
+  // The mechanism's clock, replayed against the plan's count.
+  problems.push(...scheduleProblems(manifest.schedule, plan, { duration, moments, layers }))
+
   // Provisional: what the viewer must not take for the finished scene.
   const provisional = Array.isArray(manifest.provisional) ? manifest.provisional.filter(item => typeof item === 'string' && item.trim()) : []
   if (!provisional.some(item => /tim/i.test(item))) problems.push('manifest.provisional must say the timing is estimated')
@@ -227,4 +237,5 @@ export const sketchSummary = (manifest: SketchManifest) => ({
   moments: manifest.moments.map(({ id, title, start, end }) => ({ id, title, start, end })),
   layers: manifest.layers.map(({ id, kind, label, moments, asset, placeholder }) => ({ id, kind, label, moments, reuses: asset?.libraryKey || null, placeholder: placeholder || null })),
   provisional: manifest.provisional,
+  schedule: scheduleSummary(manifest.schedule),
 })

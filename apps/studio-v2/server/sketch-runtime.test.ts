@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { SceneTreatmentV1 } from '../src/planning/scene-treatment'
-import type { SketchManifest } from '../src/planning/sketch-bundle'
+import { validateSketch, type SketchManifest } from '../src/planning/sketch-bundle'
 import { sketchBundleHash, verifySketchRuntime } from './sketch-runtime'
 
 // R3 of the scene-review review: a sketch reads ready only once it has run.
@@ -126,6 +126,61 @@ describe('playing a sketch before it reads ready', () => {
     expect(drifting.problems).toEqual(expect.arrayContaining([expect.stringMatching(/^Seeking to [\d.]+s twice shows two different frames/)]))
     const outside = await verifySketchRuntime(small(`${ENTER}\n${SLIDE}`, '<img src="//example.com/logo.png" alt="">'), smallManifest, smallPlan)
     expect(outside.problems).toEqual([expect.stringMatching(/reaches outside the sketch for http:\/\/example\.com\/logo\.png/)])
+  }, 60_000)
+
+  // R11: the live sketch landed its refills at 14.2s, 15.6s and 22.8s — where
+  // the narration fell — while the plan described a steady refill. Declared
+  // as the plan's rate, that schedule is refused, with the beats it missed.
+  it('refuses the live sketch\'s refills: timed to the narration, not a steady beat', () => {
+    const rated = structuredClone(plan)
+    rated.ledger!.rates = [{ id: 'refill', what: 'a drop lands as a token', change: 'add', amount: 1 }]
+    for (const event of rated.ledger!.events) if (event.change === 'add') event.rate = 'refill'
+    const shows = ['token-bucket', 'token-count']
+    const event = (at: number, moment: string, change: 'add' | 'consume' | 'refuse', after: number, extra: Record<string, unknown> = {}) => ({ at, moment, change, amount: change === 'refuse' ? 0 : 1, after, layers: change === 'add' ? ['drip', ...shows] : ['request', ...shows], ...extra })
+    const schedule = {
+      quantity: rated.ledger!.quantity, capacity: 3, initial: 3,
+      rules: [{ id: 'refill', change: 'add', amount: 1, every: 1.4, from: 12.8 }],
+      pauses: [],
+      // The times its own timeline gives each change of the count.
+      events: [
+        event(5.05, 'm2', 'consume', 2), event(7.6, 'm3', 'consume', 1), event(8.15, 'm3', 'consume', 0),
+        event(11.6, 'm4', 'refuse', 0, { needs: 1 }),
+        event(14.2, 'm5', 'add', 1, { rule: 'refill' }), event(15.6, 'm5', 'add', 2, { rule: 'refill' }),
+        event(18.5, 'm6', 'consume', 1), event(22.8, 'm7', 'add', 2, { rule: 'refill' }),
+      ],
+    }
+    const context = { scene: manifest.scene, plan: { record: manifest.plan.record, revision: manifest.plan.revision, content: rated }, assetKeys: manifest.layers.flatMap(layer => (layer.asset ? [layer.asset.libraryKey] : [])) }
+    const problems = validateSketch({ ...sketch, 'manifest.json': JSON.stringify({ ...manifest, schedule }) }, context).problems
+    expect(problems).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^rule refill starts at 12\.8s, but it could add from 5\.05s: a steady rate runs whenever there is room/),
+      expect.stringMatching(/^rule refill \(adds 1 every 1\.4s from 12\.8s\) is due at 17s, with 2 of 3, but nothing lands then/),
+      expect.stringMatching(/^manifest\.schedule event 8 \(add at 22\.8s\) is made by rule refill but falls off its beat \(due at 22\.6s\)/),
+    ]))
+    expect(problems.every(problem => /rule refill|schedule/.test(problem))).toBe(true)
+  })
+
+  it('sees each counted change when the schedule says it happens, and every pause shown', async () => {
+    const schedule = {
+      quantity: 'boxes', capacity: null, initial: 0, rules: [],
+      pauses: [{ start: 2.2, end: 3.8, note: 'The clock holds while the box is named', shown: 'held' }],
+      // Each while its tween is under way, not once it has eased to rest.
+      events: [{ at: 0.7, moment: 'm1', change: 'add' as const, amount: 1, after: 1, layers: ['box'] }, { at: 4.8, moment: 'm3', change: 'add' as const, amount: 1, after: 2, layers: ['box'] }],
+    }
+    const withClock = { ...smallManifest, layers: [...smallManifest.layers, { id: 'held', kind: 'caption' as const, label: 'Clock held', moments: ['m2'] }], schedule }
+    const HELD = "tl.fromTo('#held', { opacity: 0 }, { opacity: 1, duration: 0.1 }, 2.05)\ntl.to('#held', { opacity: 0, duration: 0.1 }, 3.85)"
+    const tag = '<div id="held" data-sketch-layer="held" style="position:absolute;left:120px;top:900px;color:#fff;font:600 40px system-ui;opacity:0">Clock held</div>'
+    const good = await verifySketchRuntime(small(`${ENTER}\n${SLIDE}\n${HELD}`, tag), withClock, smallPlan)
+    expect(good.problems).toEqual([])
+    expect(good.proof!.schedule).toMatchObject({ events: [{ at: 0.7 }, { at: 4.8 }], pauses: [{ start: 2.2, end: 3.8, shown: 'held' }] })
+    expect(good.proof!.schedule!.events.every(item => item.pixels > 24)).toBe(true)
+    // A change timed where nothing moves, and a pause the viewer is never told of.
+    const late = { ...withClock, schedule: { ...schedule, events: [schedule.events[0], { ...schedule.events[1], at: 5.6 }] } }
+    const wrong = await verifySketchRuntime(small(`${ENTER}\n${SLIDE}`, tag), late, smallPlan)
+    expect(wrong.problems).toEqual([
+      expect.stringMatching(/^Layer "held" takes part in m2 \(2s–4s\), but nothing marked data-sketch-layer="held" shows then/),
+      expect.stringMatching(/^The schedule's add at 5\.6s \(m3\) shows no change in box from 5\.3s to 5\.9s/),
+      expect.stringMatching(/^The pause from 2\.2s to 3\.8s holds the clock, but layer "held" does not show throughout it \(not at 2\.2s, 2\.3s, 2\.4s…\)/),
+    ])
   }, 60_000)
 
   it('gives up on a script that never returns, instead of waiting on it', async () => {

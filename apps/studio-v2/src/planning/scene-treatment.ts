@@ -64,8 +64,14 @@ export type LedgerEvent = {
   needs?: number
   // The count after this event, as the plan tells it.
   after: number
+  // The steady process that makes this change, when one does (a refill).
+  rate?: string
 }
-export type TreatmentLedger = { quantity: string; capacity: number | null; initial: number; events: LedgerEvent[]; final: number }
+// A change the mechanism makes by itself at a steady pace — a refill, a
+// leak. The events it makes carry its id; a sketch gives it a period and
+// must keep to it (R11 of the scene-review review).
+export type LedgerRate = { id: string; what: string; change: 'add' | 'consume'; amount: number }
+export type TreatmentLedger = { quantity: string; capacity: number | null; initial: number; rates?: LedgerRate[]; events: LedgerEvent[]; final: number }
 
 // How one side of the scene meets its neighbour (R8). self-contained: needs
 // nothing from it. agreed: rests on the neighbour's reviewed plan — the
@@ -168,6 +174,7 @@ const ledgerOf = (value: unknown): TreatmentLedger | null => {
     quantity: text(value.quantity, 200),
     capacity: Number.isFinite(capacity) ? capacity : null,
     initial: numeric(value.initial),
+    ...(value.rates !== undefined ? { rates: records(value.rates).map(rate => ({ id: text(rate.id, 80), what: text(rate.what, 300), change: text(rate.change, 20) as LedgerRate['change'], amount: numeric(rate.amount) })) } : {}),
     events: records(value.events).map(event => ({
       moment: text(event.moment, 80),
       what: text(event.what, 300),
@@ -175,6 +182,7 @@ const ledgerOf = (value: unknown): TreatmentLedger | null => {
       amount: event.amount === undefined && text(event.change, 20) === 'refuse' ? 0 : numeric(event.amount),
       ...(event.needs !== undefined ? { needs: numeric(event.needs) } : {}),
       after: numeric(event.after),
+      ...(event.rate !== undefined && event.rate !== null && text(event.rate, 80) ? { rate: text(event.rate, 80) } : {}),
     })),
     final: numeric(value.final),
   }
@@ -295,6 +303,16 @@ export const ledgerProblems = (ledger: TreatmentLedger, momentIds: string[]) => 
     problems.push(`${label}: a capacity of ${ledger.capacity} cannot hold the initial ${ledger.initial}`)
   }
   if (!ledger.events.length) problems.push(`${label}: events is empty — a counted demonstration changes the count`)
+  const rates = ledger.rates || []
+  const rateIds = rates.map(rate => rate.id)
+  for (const id of rateIds.filter((value, index) => rateIds.indexOf(value) !== index)) problems.push(`${label}: rate "${id}" is declared twice`)
+  for (const rate of rates) {
+    const where = `${label} rate ${rate.id || '?'}`
+    if (!rate.id) problems.push(`${label}: every rate needs an id`)
+    if (rate.change !== 'add' && rate.change !== 'consume') problems.push(`${where}: change must be add or consume`)
+    if (!whole(rate.amount) || rate.amount === 0) problems.push(`${where}: amount must be a whole number above 0`)
+    if (rate.id && !ledger.events.some(event => event.rate === rate.id)) problems.push(`${where} makes none of the changes — tag the events it makes with its id, or remove it`)
+  }
   let count = whole(ledger.initial) ? ledger.initial : 0
   let latest = -1
   ledger.events.forEach((event, index) => {
@@ -303,6 +321,11 @@ export const ledgerProblems = (ledger: TreatmentLedger, momentIds: string[]) => 
     if (at < 0) problems.push(`${where} happens in moment "${event.moment}", which is not a moment of this plan`)
     else if (at < latest) problems.push(`${where} is listed after an event of a later moment — list events in the order they happen`)
     else latest = at
+    if (event.rate) {
+      const rate = rates.find(entry => entry.id === event.rate)
+      if (!rate) problems.push(`${where} is made by rate "${event.rate}", which the ledger does not declare`)
+      else if (rate.change !== event.change || rate.amount !== event.amount) problems.push(`${where} is made by rate ${rate.id}, which ${rate.change === 'add' ? 'adds' : 'consumes'} ${rate.amount} each time`)
+    }
     if (event.change === 'refuse') {
       const needs = event.needs ?? 1
       if (event.amount !== 0) problems.push(`${where}: a refused request consumes nothing — its amount is 0`)

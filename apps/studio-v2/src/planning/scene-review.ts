@@ -525,6 +525,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
       h('p', { class: 'review-muted review-checked', text: ready.checked
         ? `Played in the pinned Hyperframes ${ready.checked.runtime} player (${new Date(ready.checked.at).toLocaleString()}): ${ready.checked.tweens} tweens over ${ready.checked.duration}s; all ${ready.checked.files} files it asked for were in the sketch; ${ready.checked.reseeks} moments sought again showed the same frame; ${ready.checked.layers} layers each showed in their moments; ${ready.checked.changes} planned changes visible on screen.`
         : 'Never played to check it: this sketch was accepted before the product played sketches in the player. Sketch it again for a checked one.' }),
+      ...(ready.summary.schedule ? [
+        h('h6', { text: 'Its clock' }),
+        h('p', { class: 'review-muted review-clock', text: [
+          `${ready.summary.schedule.events} counted changes, replayed against the plan's count`,
+          ...ready.summary.schedule.rules.map(rule => `${rule.id}: ${rule.change === 'add' ? '+' : '−'}${rule.amount} every ${rule.every}s from ${rule.from}s, whenever there is ${rule.change === 'add' ? 'room' : 'supply'}`),
+          ...ready.summary.schedule.pauses.map(pause => `held ${pause.start}–${pause.end}s (${pause.note})`),
+        ].join(' · ') }),
+      ] : []),
       h('h6', { text: 'What the sketch cannot show yet' }),
       h('ul', { class: 'review-provisional' }, ...ready.summary.provisional.map(item => h('li', { text: readable(item) }))),
       h('h6', { text: 'Moment map' }),

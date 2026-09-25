@@ -385,6 +385,29 @@ describe('the scene treatment', () => {
     expect(problems).toMatch(/final is 4, but the events leave 3/)
   })
 
+  // R11: a plan can say a change is made by a steady rate (a refill), so
+  // its sketch must keep that rate's beat.
+  it('checks the steady rates a ledger declares and the changes they make', () => {
+    const treatment = stripeBucket()
+    const ledger = (rates: unknown, rate: string) => ({
+      quantity: 'tokens', capacity: 3, initial: 3,
+      rates,
+      events: [
+        { moment: 'm2', what: 'spend', change: 'consume', amount: 1, after: 2 },
+        { moment: 'm3', what: 'a drop lands', change: 'add', amount: 1, after: 3, rate },
+      ],
+      final: 3,
+    })
+    treatment.ledger = ledger([{ id: 'refill', what: 'a drop lands as a token', change: 'add', amount: 1 }], 'refill') as SceneTreatmentV1['ledger']
+    expect(validateTreatment(treatment, treatmentContext()).problems).toEqual([])
+    treatment.ledger = ledger([{ id: 'refill', what: 'drops', change: 'add', amount: 2 }, { id: 'leak', what: 'a leak', change: 'consume', amount: 1 }], 'drip') as SceneTreatmentV1['ledger']
+    const problems = validateTreatment(treatment, treatmentContext()).problems.join('\n')
+    expect(problems).toMatch(/event 2 \("a drop lands"\) is made by rate "drip", which the ledger does not declare/)
+    expect(problems).toMatch(/rate refill makes none of the changes/)
+    treatment.ledger = ledger([{ id: 'refill', what: 'drops', change: 'add', amount: 2 }], 'refill') as SceneTreatmentV1['ledger']
+    expect(validateTreatment(treatment, treatmentContext()).problems.join('\n')).toMatch(/event 2 \("a drop lands"\) is made by rate refill, which adds 2 each time/)
+  })
+
   // R8: a seam rests on a reviewed neighbour, or is self-contained, or is
   // a proposal that stays provisional.
   const reviewedBefore = { position: 'before' as const, scene: 'video-s00', reviewed: { recordId: 'rec-s00', revision: 2, entry: 'Nothing', exit: 'Four limiter tiles; one marked most frequent' } }
@@ -687,6 +710,88 @@ describe('the plan preview sketch', () => {
     ]
     const warnings = validateSketch(sketchOf({ manifest: { layers, provisional } }), sketchContext()).warnings.filter(text => /placeholder/.test(text))
     expect(warnings).toEqual(['layer redis has a placeholder that manifest.provisional does not mention'])
+  })
+
+  // R11 of the scene-review review: the mechanism's clock. The plan counts
+  // tokens and declares the refill a steady rate; the sketch times each
+  // change, and the product holds it to the count and the beat.
+  const refillPlan = () => {
+    const plan = goodTreatment()
+    plan.ledger = {
+      quantity: 'tokens in the bucket', capacity: 3, initial: 3,
+      rates: [{ id: 'refill', what: 'a drop lands as a token', change: 'add', amount: 1 }],
+      events: [
+        { moment: 'm1', what: 'request A takes a token', change: 'consume', amount: 1, after: 2 },
+        { moment: 'm1', what: 'request B takes a token', change: 'consume', amount: 1, after: 1 },
+        { moment: 'm2', what: 'a drop lands', change: 'add', amount: 1, after: 2, rate: 'refill' },
+        { moment: 'm2', what: 'another drop lands', change: 'add', amount: 1, after: 3, rate: 'refill' },
+      ],
+      final: 3,
+    }
+    return plan
+  }
+  type Schedule = { rules: Array<Record<string, unknown>>; pauses: Array<Record<string, unknown>>; events: Array<Record<string, unknown>> }
+  const steady = (change: (schedule: Schedule) => void = () => {}) => {
+    const schedule = {
+      quantity: 'tokens in the bucket', capacity: 3, initial: 3,
+      rules: [{ id: 'refill', change: 'add', amount: 1, every: 3, from: 4 }] as Array<Record<string, unknown>>,
+      pauses: [] as Array<Record<string, unknown>>,
+      events: [
+        { at: 4, moment: 'm1', change: 'consume', amount: 1, after: 2, layers: ['bucket'] },
+        { at: 4.5, moment: 'm1', change: 'consume', amount: 1, after: 1, layers: ['bucket'] },
+        { at: 7, moment: 'm2', change: 'add', amount: 1, after: 2, rule: 'refill', layers: ['bucket'] },
+        { at: 10, moment: 'm2', change: 'add', amount: 1, after: 3, rule: 'refill', layers: ['bucket'] },
+      ] as Array<Record<string, unknown>>,
+    }
+    change(schedule)
+    return schedule
+  }
+  const held = { id: 'held', kind: 'caption', label: 'Clock held', moments: ['m2'] }
+  const layers = [{ id: 'bucket', kind: 'object', label: 'Bucket', moments: ['m1', 'm2'], asset: { libraryKey: 'token-bucket@2' } }, held]
+  const clockProblems = (schedule: unknown, plan = refillPlan()) => validateSketch(sketchOf({ manifest: { layers, schedule } }), sketchContext(plan)).problems
+
+  it('keeps the mechanism\'s clock: the plan\'s count, a steady refill, pauses shown', () => {
+    expect(clockProblems(steady())).toEqual([])
+    const report = validateSketch(sketchOf({ manifest: { layers, schedule: steady() } }), sketchContext(refillPlan()))
+    expect(sketchSummary(report.manifest!).schedule).toEqual({ rules: [{ id: 'refill', change: 'add', amount: 1, every: 3, from: 4 }], pauses: [], events: 4 })
+    // A counted plan needs a clock.
+    expect(clockProblems(undefined)).toEqual([expect.stringMatching(/^the plan counts tokens in the bucket: add manifest\.schedule/)])
+    // A pause holds the clock, so the beat lands later by as long.
+    const paused = steady(schedule => {
+      schedule.pauses = [{ start: 5.5, end: 7, note: 'The clock holds while the refill is named', shown: 'held' }]
+      schedule.events[2].at = 8.5
+      schedule.events[3].at = 11.5
+    })
+    expect(clockProblems(paused)).toEqual([])
+  })
+
+  it('refuses a refill timed to the narration instead of its beat', () => {
+    // As the live sketch did: two drops close together, where the words fell.
+    const narrated = clockProblems(steady(schedule => {
+      schedule.rules[0].every = 1.4
+      schedule.events[2].at = 7
+      schedule.events[3].at = 8.4
+    })).join('\n')
+    expect(narrated).toMatch(/rule refill \(adds 1 every 1\.4s from 4s\) is due at 5\.4s, with 1 of 3, but nothing lands then/)
+    // A drop late for its beat, and the beat it missed.
+    const late = clockProblems(steady(schedule => { schedule.events[3].at = 11 })).join('\n')
+    expect(late).toMatch(/is due at 10s, with 2 of 3, but nothing lands then/)
+    expect(late).toMatch(/event 4 \(add at 11s\) is made by rule refill but falls off its beat \(due at 10s\)/)
+    // A steady rate runs whenever there is room.
+    expect(clockProblems(steady(schedule => { schedule.rules[0].from = 5; schedule.events[2].at = 8; schedule.events[3].at = 11 }))).toEqual([expect.stringMatching(/^rule refill starts at 5s, but it could add from 4s: a steady rate runs whenever there is room/)])
+    // The plan's rate needs its rule.
+    expect(clockProblems(steady(schedule => { schedule.rules = []; delete schedule.events[2].rule; delete schedule.events[3].rule })).join('\n')).toMatch(/the plan's rate refill \(a drop lands as a token\) needs a rule in manifest\.schedule\.rules/)
+  })
+
+  it('holds the schedule to the plan\'s count and to its pauses', () => {
+    const miscounted = clockProblems(steady(schedule => { schedule.events[1].after = 2 })).join('\n')
+    expect(miscounted).toMatch(/manifest\.schedule event 2 \(consume 1 → 2 in m1\) is not the plan's change 2 \(consume 1 → 1 in m1: "request B takes a token"\)/)
+    const during = clockProblems(steady(schedule => { schedule.pauses = [{ start: 6.5, end: 7.5, note: 'Held', shown: 'held' }] })).join('\n')
+    expect(during).toMatch(/event 3 \(add at 7s\) happens while the clock is held \(6\.5s–7\.5s\): nothing counted happens in a pause/)
+    const unexplained = clockProblems(steady(schedule => { schedule.pauses = [{ start: 3, end: 3.5, note: '', shown: 'held' }] })).join('\n')
+    expect(unexplained).toMatch(/the pause from 3s to 3\.5s needs a note/)
+    expect(unexplained).toMatch(/the pause from 3s to 3\.5s is shown by layer "held", which does not take part in m1/)
+    expect(clockProblems(steady(schedule => { schedule.events[0].layers = [] })).join('\n')).toMatch(/event 1 \(consume at 4s\) must name the layers that show it/)
   })
 
   it('needs a labelled stand-in wherever the plan shows a presenter, and cast it can reuse', () => {

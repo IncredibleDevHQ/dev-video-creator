@@ -102,7 +102,16 @@ are problems):
     { "id": "camera", "kind": "camera", "label": "Push in on the pool", "moments": ["m2"] },
     { "id": "presenter", "kind": "presenter", "label": "Presenter", "moments": ["m1"], "placeholder": "Stand-in: no take recorded" }
   ],
-  "provisional": ["Timing is estimated from the plan — no voice or take yet", "Presenter is a stand-in: no take recorded"]
+  "provisional": ["Timing is estimated from the plan — no voice or take yet", "Presenter is a stand-in: no take recorded"],
+  "schedule": {
+    "quantity": "free slots in the pool", "capacity": 20, "initial": 20,
+    "rules": [ { "id": "release", "change": "add", "amount": 1, "every": 3, "from": 4.5 } ],
+    "pauses": [],
+    "events": [
+      { "at": 4.5, "moment": "m2", "change": "consume", "amount": 1, "after": 19, "layers": ["pool"] },
+      { "at": 7.5, "moment": "m2", "change": "add", "amount": 1, "after": 20, "rule": "release", "layers": ["pool"] }
+    ]
+  }
 }
 ```
 
@@ -114,6 +123,20 @@ are problems):
   A layer standing in for something missing says so in `placeholder`.
 - `provisional` — everything a viewer must not take for the finished scene:
   always the estimated timing; the presenter stand-in; each placeholder.
+- `schedule` — required when `PLAN.json` has a `ledger`: the mechanism's
+  clock. `quantity`, `capacity` and `initial` are the ledger's. `events` are
+  the ledger's changes one for one, in order — the same `change`, `amount`,
+  `after` (and `needs`), in the same moment — each at the time it happens on
+  the composition's clock (`at`), with the drawn `layers` that show it. Each
+  of the ledger's `rates` is a `rule` with the same id: a change every
+  `every` seconds, its clock running from `from` (no later than the first
+  time there is room, or supply); tag the events it makes with `rule`. A rule
+  changes the count on every beat while there is room, and at no other time:
+  time the scene to the beat, never the beat to the narration. To hold the
+  clock while the scene explains, add a pause — `start`, `end`, a `note`, and
+  `shown`, the layer that tells the viewer the clock is held. Nothing counted
+  happens in a pause, and the beat resumes after it. Narration and camera may
+  dwell on a change; they never move it.
 
 ## How the product checks it
 
@@ -130,7 +153,9 @@ loads. It is refused, with the reason, when:
 - seeking to the same time twice shows two different frames;
 - a layer is not marked, or shows at no time during a moment it declares;
 - a moment whose plan changes objects (`objects.change`) shows no change in
-  those objects' layers — or, where none is marked, anywhere on screen.
+  those objects' layers — or, where none is marked, anywhere on screen;
+- a counted change of the schedule shows no change in its layers within
+  0.3 s of its time, or a pause's layer does not show throughout it.
 
 A moment the plan does not change may hold still. What it proved is kept
 with the preview, against the bundle's hash.

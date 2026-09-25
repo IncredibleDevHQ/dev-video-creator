@@ -129,7 +129,12 @@ Use only the channels a moment needs; `null` means the channel is unused.
   and is refused only when too little remains (`needs`, default 1), an add
   never overfills the capacity, and every stated count must be the count.
   Illustrative numbers are welcome; they must still obey the mechanism.
-  `null` when nothing is counted.
+  `null` when nothing is counted. A change the mechanism makes by itself at
+  a steady pace — a refill, a leak — is a rate: declare it in `ledger.rates`
+  (`id`, `what`, `change`, `amount`) and tag each change it makes with
+  `rate`. A rate acts on every beat while there is room (or supply), so list
+  every change it makes, between the others, in order. The sketch gives the
+  rate its period, and is refused if its beat and your ledger disagree.
 - `continuity.incoming` / `continuity.outgoing` — how the opening and the
   ending meet the neighbours in `NEIGHBORS.json`: `self-contained` (needs
   nothing from them), `agreed` (rests on the neighbour's **reviewed** plan;

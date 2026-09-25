@@ -46,6 +46,7 @@ export type ScenePreviewView = {
     moments: Array<{ id: string; title: string; start: number; end: number }>
     layers: Array<{ id: string; kind: string; label: string; moments: string[]; reuses: string | null; placeholder: string | null }>
     provisional: string[]
+    schedule?: { rules: Array<{ id: string; change: string; amount: number; every: number; from: number }>; pauses: Array<{ start: number; end: number; note: string }>; events: number } | null
   }
   warnings: string[]
   adapter: string | null
@@ -922,9 +923,10 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     return h('article', { class: 'planning-card planning-ledger' },
       h('h5', { text: `The count — ${ledger.quantity}` }),
       h('p', { class: 'planning-muted', text: `Starts at ${ledger.initial}${ledger.capacity !== null ? ` of ${ledger.capacity}` : ''}; ends at ${ledger.final}. Checked: every step adds up.` }),
+      ...(ledger.rates?.length ? [h('p', { class: 'planning-muted', text: `Steady: ${ledger.rates.map(rate => `${rate.what || rate.id} (${rate.change === 'add' ? '+' : '−'}${rate.amount} each beat)`).join('; ')} — a sketch must keep its beat.` })] : []),
       h('table', {},
         h('thead', {}, h('tr', {}, h('th', { text: 'Moment' }), h('th', { text: 'What happens' }), h('th', { text: 'Change' }), h('th', { text: 'Left' }))),
-        h('tbody', {}, ...ledger.events.map(event => h('tr', { class: event.change === 'refuse' ? 'is-refused' : '' }, h('td', { text: titleOf(event.moment) }), h('td', { text: event.what }), h('td', { text: change(event) }), h('td', { text: String(event.after) })))),
+        h('tbody', {}, ...ledger.events.map(event => h('tr', { class: event.change === 'refuse' ? 'is-refused' : '' }, h('td', { text: titleOf(event.moment) }), h('td', { text: `${event.what}${event.rate ? ` · ${event.rate}` : ''}` }), h('td', { text: change(event) }), h('td', { text: String(event.after) })))),
       ),
     )
   }
