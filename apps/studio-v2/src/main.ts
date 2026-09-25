@@ -94,6 +94,7 @@ import {
   planFromScript,
   planFromWindows,
   relationsOf,
+  repairStationMorphs,
   scriptFromSteps,
   scriptFromWindows,
   splitWindows,
@@ -15164,7 +15165,29 @@ window.addEventListener('beforeunload', () => {
   editor.destroy()
 })
 
+// Motion planned before F11 of the Perplexity review can still move a
+// station into the thing it makes. It is repaired once, when its notebook
+// opens — the station stays and the product emerges from it — and saved
+// like any edit; the rest of each plan is kept.
+const repairStoredMotion = () => {
+  const tr = editor.state.tr
+  let scenes = 0
+  editor.state.doc.forEach((node, offset) => {
+    const plan = sanitizeMotionPlan(node.attrs?.motion)
+    // Only a plan with a morph can need it; atomizing a page needs layout.
+    if (!plan || !node.attrs?.svg || !plan.steps.some(step => step.actions.some(action => action.op === 'morph'))) return
+    const { plan: repaired, repaired: count } = repairStationMorphs(plan, atomizeSlideSvg(String(node.attrs.svg)).units)
+    if (!count) return
+    tr.setNodeMarkup(offset, undefined, { ...node.attrs, motion: repaired })
+    scenes += 1
+  })
+  if (!scenes) return
+  editor.view.dispatch(tr)
+  showToast(`${scenes === 1 ? 'One scene' : `${scenes} scenes`} planned before a fix moved a processing step into its output; ${scenes === 1 ? 'its' : 'their'} stored motion now keeps the step in place.`)
+}
+
 queueMicrotask(() => {
+  repairStoredMotion()
   renderThemeLibrary()
   renderStudioThemeSelector()
   renderPreviewPresenterPicker()

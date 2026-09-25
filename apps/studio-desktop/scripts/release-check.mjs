@@ -32,6 +32,7 @@ const CHECKS = [
   'source-design-check.mjs',      // R4: designed pages by default, bound to their draft, stop/retry, drafts labelled
   'source-intake-check.mjs',      // Perplexity F3–F5: refused links, thin reads, colour provenance
   'export-recovery-check.mjs',    // Perplexity F8: an export found again after reload and notebook switches
+  'motion-repair-check.mjs',      // Perplexity F11: motion stored before the fix is repaired when its notebook opens
   'explainer-lineage-check.mjs',  // D3: splits/merges, coverage, forged markers refused
   'explainer-persistence-check.mjs', // D3: finish/export guards
   'finish-atomic-check.mjs',      // #5: a failed finish changes nothing — no project write, no take clears

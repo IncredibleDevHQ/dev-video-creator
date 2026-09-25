@@ -1017,6 +1017,42 @@ export const transformable = (source: SlideUnit, connector: SlideUnit, edges: Ar
   return !STATION_NAME.test(source.label)
 }
 
+// Motion stored before F11 of the Perplexity review can still carry a
+// station into the thing it makes: a `move` of the station and a `morph`
+// onto its product. This rewrites each such pair as the planner does now —
+// the station keeps its place and the result emerges from it: revealed if
+// nothing showed it before, then emphasised. A thing that can be
+// transformed keeps its morph, every other action is left as it was, and
+// repairing a repaired plan changes nothing.
+export const repairStationMorphs = (plan: MotionPlanV2, units: SlideUnit[]): { plan: MotionPlanV2; repaired: number } => {
+  const edges = inferEdges(units)
+  const same = (a: string[], b: string[]) => a.length === b.length && a.every(id => b.includes(id))
+  const revealed = new Set<string>()
+  let repaired = 0
+  const steps = plan.steps.map(step => {
+    let actions = step.actions
+    for (const morph of step.actions.filter(item => item.op === 'morph')) {
+      const count = Number(morph.value?.fromCount || 0)
+      if (!count || count >= morph.targets.length) continue
+      const sourceIds = morph.targets.slice(0, count)
+      const targetIds = morph.targets.slice(count)
+      const edge = edges.find(candidate => candidate.source && candidate.target && String(candidate.connector.verb || '').toLowerCase() === 'becomes' && same(candidate.source.ids, sourceIds) && same(candidate.target.ids, targetIds))
+      if (!edge?.source || !edge.target || transformable(edge.source, edge.connector, edges)) continue
+      const move = actions.find(item => item.op === 'move' && same(item.targets, sourceIds) && item.startMs <= morph.startMs)
+      const at = move ? move.startMs : morph.startMs
+      const shown = targetIds.every(id => revealed.has(id)) || actions.some(item => item.op === 'reveal' && item.startMs <= morph.startMs && targetIds.every(id => item.targets.includes(id)))
+      actions = actions.filter(item => item !== morph && item !== move)
+      if (!shown) actions = [...actions, action('reveal', targetIds, at, { durationMs: MOTION_DURATION_MS.reveal })]
+      actions = [...actions, action('emphasize', targetIds, at + MOTION_DURATION_MS.reveal, { persistence: 'flourish' })]
+      repaired += 1
+    }
+    if (actions !== step.actions) actions = [...actions].sort((a, b) => a.startMs - b.startMs)
+    for (const item of actions) if (item.op === 'reveal') item.targets.forEach(id => revealed.add(id))
+    return actions === step.actions ? step : { ...step, actions }
+  })
+  return { plan: repaired ? { ...plan, steps } : plan, repaired }
+}
+
 export const planFromScript = (
   script: string,
   units: SlideUnit[],

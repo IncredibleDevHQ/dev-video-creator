@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimateSeconds, matchScore, parseScript, planFromScript, planFromWindows, scriptFromSteps, splitWindows, tokenSpread, tokens } from './script-plan'
+import { estimateSeconds, matchScore, parseScript, planFromScript, planFromWindows, repairStationMorphs, scriptFromSteps, splitWindows, tokenSpread, tokens } from './script-plan'
 import type { SlideUnit } from './slide-atoms'
 import { boxOnStageAt, unitsOnScreenPerBeat } from './placements'
 
@@ -221,6 +221,52 @@ describe('a becomes relation', () => {
     expect(boxOnStageAt(plan, moe(), last, 'combine')).toEqual({ x: 450, y: 275, width: 200, height: 80 })
     const onScreen = unitsOnScreenPerBeat(plan, moe(), viewBox)[last].map(unit => unit.id)
     expect(onScreen).toEqual(expect.arrayContaining(['combine', 'output', 'same', 'other', 'e1', 'e2', 'e3']))
+  })
+
+  // Motion stored before the fix keeps its morph until it is repaired: the
+  // page as it was once read (the combine step taken for data, nothing
+  // routed through it) planned a move and a morph; today's page is the one
+  // the notebook holds.
+  const script = 'The same-node experts and the other-node experts send their results to the combine step.\n\nThe combine step becomes the output tokens.'
+  const storedBefore = () => {
+    const then = moe().filter(item => item.id !== 'e1' && item.id !== 'e2').map(item => (item.id === 'combine' ? { ...item, label: 'Combined results', declaredKind: 'data' } : item))
+    return planFromScript(script, then, { viewBox })!.plan
+  }
+
+  it('repairs a stored plan that moved a station into its product', () => {
+    const stored = storedBefore()
+    const storedActions = stored.steps.flatMap(step => step.actions)
+    expect(storedActions.some(action => action.op === 'morph' && action.targets.includes('combine') && action.targets.includes('output'))).toBe(true)
+    expect(storedActions.some(action => action.op === 'move' && action.targets.includes('combine'))).toBe(true)
+
+    const { plan, repaired } = repairStationMorphs(stored, moe())
+    expect(repaired).toBe(1)
+    const actions = plan.steps.flatMap(step => step.actions)
+    expect(actions.filter(action => action.targets.some(id => id === 'combine' || id === 'combine-text')).filter(action => action.op === 'move' || action.op === 'morph')).toEqual([])
+    expect(actions.some(action => action.op === 'reveal' && action.targets.includes('output'))).toBe(true)
+    expect(actions.some(action => action.op === 'emphasize' && action.targets.includes('output'))).toBe(true)
+    // The causal state at the end, as the planner leaves it now.
+    const last = plan.steps.length - 1
+    expect(boxOnStageAt(plan, moe(), last, 'combine')).toEqual({ x: 450, y: 275, width: 200, height: 80 })
+    expect(unitsOnScreenPerBeat(plan, moe(), viewBox)[last].map(unit => unit.id)).toEqual(expect.arrayContaining(['combine', 'output']))
+    // The output is not shown before the beat that makes it.
+    expect(unitsOnScreenPerBeat(plan, moe(), viewBox)[0].map(unit => unit.id)).not.toContain('output')
+    // Repairing again changes nothing; the rest of the plan is kept.
+    const again = repairStationMorphs(plan, moe())
+    expect(again.repaired).toBe(0)
+    expect(again.plan).toBe(plan)
+    expect(plan.steps[0]).toBe(stored.steps[0])
+  })
+
+  it('leaves a plan with nothing to repair as it was', () => {
+    const units = [
+      unit('scores', 'box', 'Raw scores', [100, 300, 200, 80]),
+      unit('weights', 'box', 'Attention weights', [600, 300, 200, 80]),
+      unit('e', 'connector', 'softmax', [300, 340, 300, 2], { from: { x: 300, y: 340 }, to: { x: 600, y: 340 }, verb: 'becomes', declared: { from: 'scores', to: 'weights' } }),
+    ]
+    const { plan } = planFromScript('The raw scores become the attention weights.', units, { viewBox })!
+    const result = repairStationMorphs(plan, units)
+    expect(result).toEqual({ plan, repaired: 0 })
   })
 
   it('still turns data into data', () => {
