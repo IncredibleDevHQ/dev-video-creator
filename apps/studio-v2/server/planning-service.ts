@@ -1672,8 +1672,10 @@ export const loadProductionFile = async (recordId: string, path: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'production' || !['ready', 'reviewed'].includes(record.status)) throw new PlanningError('Production not found', 404)
   // The take, as bytes: a player asks for it range by range.
-  const media = (await mediaOf(record))[path]
-  if (media) return media
+  if (path in ((record.inputs.media || {}) as Record<string, string>)) {
+    const media = (await mediaOf(record))[path]
+    if (media) return media
+  }
   const files = await bundleFilesOf(record)
   const file = path === 'index.html' && typeof files[path] === 'string' ? withControlValues(files[path] as string, (await productionEdits(record.id)).values) : files[path]
   if (file === undefined) throw new PlanningError('No such file in the production', 404)

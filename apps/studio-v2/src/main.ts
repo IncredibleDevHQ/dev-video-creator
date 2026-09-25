@@ -8715,6 +8715,7 @@ const renderPublishBlockList = () => {
     ...scenes.map(scene => {
       const row = document.createElement('div')
       row.className = 'publish-block-row'
+      row.dataset.nodeId = scene.id
       row.classList.toggle('excluded', publishExcluded.has(scene.id))
 
       const include = document.createElement('input')
