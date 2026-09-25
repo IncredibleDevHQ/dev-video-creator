@@ -2124,6 +2124,15 @@ button.se-state:hover { filter: brightness(.97); }
 .source-scene button { border: 0; background: none; color: #a1a1aa; cursor: pointer; font-size: 16px; }
 .source-glossary { display: flex; flex-wrap: wrap; gap: 6px; }
 .source-glossary span { font: 500 11px/1.2 system-ui; padding: 4px 8px; border-radius: 999px; background: #f4f4f5; color: #3f3f46; }
+/* F8: the notebook's export, found again whatever became of Publish. */
+.export-status { display: inline-flex; align-items: center; gap: 6px; max-width: 360px; min-height: 30px; padding: 0 6px 0 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #e4e4e7; font: 600 11px/1.2 'InterBody', Inter, system-ui, sans-serif; }
+.export-status[hidden] { display: none; }
+.export-status > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.export-status[data-status="stored"] { border-color: rgba(74,222,128,.55); color: #bbf7d0; }
+.export-status[data-status="failed"], .export-status[data-status="stalled"] { border-color: rgba(248,113,113,.6); color: #fecaca; }
+.export-status-action { padding: 3px 8px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: transparent; color: inherit; font: inherit; text-decoration: none; cursor: pointer; }
+.export-status-action[hidden], .export-status-dismiss[hidden] { display: none; }
+.export-status-dismiss { border: 0; background: transparent; color: inherit; font-size: 14px; cursor: pointer; }
 /* F9: what each block sounds like in the export. */
 .publish-audio.is-silent { color: #92400e; font-weight: 600; }
 .publish-audio-chip { display: inline-block; margin-top: 2px; font-size: 11px; color: #166534; }

@@ -1,4 +1,4 @@
-import { startExportJob, getExportJob, cancelExportJob, exportJobView } from './export-jobs'
+import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, type ExportReport } from './export-jobs'
 import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
@@ -2354,7 +2354,8 @@ const handleRender = async (context: StudioWorkerContext, request: IncomingMessa
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
   json(response, 200, await renderProjectArtifact(context, project, publicBaseUrl(request)))
 }
-const renderProjectArtifact = async (context: StudioWorkerContext, project: ProjectDocumentV1, baseUrl: string, signal?: AbortSignal) => {
+const renderProjectArtifact = async (context: StudioWorkerContext, project: ProjectDocumentV1, baseUrl: string, signal?: AbortSignal, report?: ExportReport) => {
+  report?.({ stage: 'preparing', percent: 0 })
   const renderProject = structuredClone(project)
   type StagedRenderAsset = {
     localPath?: string
@@ -2524,7 +2525,9 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
       outputResolution: 'landscape',
     })
     try {
-      await executeRenderJob(job, jobDirectory, outputPath, undefined, signal)
+      report?.({ stage: 'rendering', percent: 0 })
+      // The renderer's own progress, kept with the export job (F8).
+      await executeRenderJob(job, jobDirectory, outputPath, progress => report?.({ stage: progress.currentStage || 'rendering', percent: progress.progress || 0, ...(progress.totalFrames ? { frame: progress.framesRendered || 0, frames: progress.totalFrames } : {}) }), signal)
     } catch (error) {
       const warningDetails = job.warnings
         .map(warning => warning.message)
@@ -2537,6 +2540,7 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
     await rm(jobDirectory, { recursive: true, force: true })
   }
 
+  report?.({ stage: 'storing', percent: 100 })
   // An export is a durable artifact, not just a file in an outputs folder:
   // register the MP4 in the object store with its own asset row (D0a).
   let exportAsset: { assetId: string; objectKey: string } | null = null
@@ -2954,6 +2958,11 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       json(response, 201, { project: child, reused: false })
       return
     }
+    // A notebook's exports, newest first (F8): found again on every open.
+    if (request.method === 'GET' && /^\/api\/projects\/[^/]+\/exports$/.test(url.pathname)) {
+      json(response, 200, { exports: await listProjectExports(decodeURIComponent(url.pathname.split('/')[3])) })
+      return
+    }
     if (request.method === 'GET' && url.pathname.startsWith('/api/projects/')) {
       const projectId = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
       json(response, 200, { project: await loadProjectArtifact(projectId) })
@@ -3133,7 +3142,19 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     if (request.method === 'POST' && url.pathname === '/api/exports') {
       const project = await readJson<ProjectDocumentV1>(request, 10 * 1024 * 1024)
       const baseUrl = publicBaseUrl(request)
-      json(response, 202, { job: exportJobView(await startExportJob(project, signal => renderProjectArtifact(context, project, baseUrl, signal), url.searchParams.get('retry') === 'true')) })
+      json(response, 202, { job: exportJobView(await startExportJob(project, (signal, report) => renderProjectArtifact(context, project, baseUrl, signal, report), url.searchParams.get('retry') === 'true')) })
+      return
+    }
+    // A failed or cancelled export, again, from the manifest it was made of.
+    if (request.method === 'POST' && /^\/api\/exports\/[a-f0-9]{64}\/retry$/.test(url.pathname)) {
+      const id = url.pathname.split('/')[3]
+      const previous = await getExportJob(id)
+      if (!previous?.project) {
+        json(response, 404, { error: 'Export not found' })
+        return
+      }
+      const manifest = previous.project
+      json(response, 202, { job: exportJobView(await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, publicBaseUrl(request), signal, report), true)) })
       return
     }
     if (/^\/api\/exports\/[a-f0-9]{64}$/.test(url.pathname) && ['GET', 'DELETE'].includes(request.method || '')) {
@@ -3141,7 +3162,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       let job = request.method === 'DELETE' ? await cancelExportJob(id) : await getExportJob(id)
       if (request.method === 'GET' && job?.project && ['queued', 'running'].includes(job.status) && Date.now() - job.updatedAt >= 90000) {
         const manifest = job.project
-        job = await startExportJob(manifest, signal => renderProjectArtifact(context, manifest, publicBaseUrl(request), signal))
+        job = await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, publicBaseUrl(request), signal, report))
       }
       json(response, job ? 200 : 404, { job: exportJobView(job) })
       return

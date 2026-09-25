@@ -8618,16 +8618,18 @@ const startPublish = async () => {
       const nodeId = node.attrs?.id
       return typeof nodeId !== 'string' || !publishExcluded.has(nodeId)
     })
-    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number }; audio?: { voiced: number; missing: number; silentDraft: boolean } }
+    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number }; audio?: { voiced: number; missing: number; silentDraft: boolean }; progress?: { percent: number } }
     let { job } = await fetchJson<{ job: Job }>('/api/exports?retry=true', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
     activePublishJob = job.id
     window.localStorage.setItem(`studio.export:${payload.id}`, job.id)
     cancelPublishJob.hidden = false
+    void refreshExportStatus()
     while (job.status === 'queued' || job.status === 'running') {
-      startPublishButton.textContent = `Export ${job.status}…`
+      startPublishButton.textContent = job.status === 'running' && job.progress ? `Exporting · ${job.progress.percent}%` : `Export ${job.status}…`
       await new Promise(resolve => window.setTimeout(resolve, 1000))
       job = (await fetchJson<{ job: Job }>(`/api/exports/${job.id}`)).job
     }
+    void refreshExportStatus()
     if (job.status !== 'stored' || !job.result) throw new Error(job.error || `Export ${job.status}`)
     const result = job.result
     const link = $('#download-render') as HTMLAnchorElement
@@ -8651,6 +8653,87 @@ const startPublish = async () => {
     startPublishButton.textContent = publishActionLabel(publishAudio())
   }
 }
+
+// ——— A notebook's exports, found again (F8 of the Perplexity review) ———
+// An export runs in the app, not in the Publish window: closing it,
+// reloading, switching notebooks or restarting the window finds the same
+// job again — running, with the renderer's progress; ready, with its
+// download; or failed, with a retry from the manifest it was made of.
+type ExportView = { id: string; status: string; updatedAt: number; startedAt?: number; error?: string; result?: { url: string; durationSeconds: number }; progress?: { stage: string; percent: number; frame?: number; frames?: number }; audio?: { silentDraft: boolean; missing: number } }
+let exportStatusTimer = 0
+let exportStatusJob: ExportView | null = null
+const exportDismissedKey = () => `studio.export-dismissed:${project.id}`
+const renderExportStatus = (job: ExportView | null) => {
+  exportStatusJob = job
+  const box = $('#export-status') as HTMLElement
+  const text = $('#export-status-text') as HTMLElement
+  const download = $('#export-status-download') as HTMLAnchorElement
+  const retry = $('#export-status-retry') as HTMLButtonElement
+  const cancel = $('#export-status-cancel') as HTMLButtonElement
+  const dismiss = $('#export-status-dismiss') as HTMLButtonElement
+  let dismissed = ''
+  try {
+    dismissed = window.localStorage.getItem(exportDismissedKey()) || ''
+  } catch {
+    dismissed = ''
+  }
+  const active = job && (job.status === 'queued' || job.status === 'running')
+  // A job whose app stopped beating for long reads as stalled, with a retry.
+  const stalled = Boolean(active && Date.now() - job!.updatedAt > 90_000)
+  if (!job || (!active && dismissed === job.id)) {
+    box.hidden = true
+    return
+  }
+  box.hidden = false
+  box.dataset.status = stalled ? 'stalled' : job.status
+  box.dataset.job = job.id
+  const progress = job.progress
+  const silent = job.audio?.silentDraft ? ' · silent draft' : job.audio?.missing ? ` · ${job.audio.missing} silent` : ''
+  text.textContent = stalled
+    ? 'Export stalled — the app rendering it stopped'
+    : job.status === 'queued'
+      ? 'Export queued'
+      : job.status === 'running'
+        ? `Exporting · ${progress?.stage || 'starting'} ${progress ? `${progress.percent}%` : ''}${progress?.frames ? ` · frame ${progress.frame || 0} of ${progress.frames}` : ''}`
+        : job.status === 'stored'
+          ? `Export ready · ${formatTime(job.result?.durationSeconds || 0)}${silent}`
+          : job.status === 'failed'
+            ? `Export failed — ${String(job.error || 'no reason given').split('\n')[0].slice(0, 120)}`
+            : 'Export cancelled'
+  download.hidden = job.status !== 'stored' || !job.result
+  if (job.result) download.href = job.result.url
+  retry.hidden = !(stalled || job.status === 'failed' || job.status === 'cancelled')
+  cancel.hidden = !active || stalled
+  dismiss.hidden = Boolean(active) && !stalled
+}
+const refreshExportStatus = async () => {
+  window.clearTimeout(exportStatusTimer)
+  const projectId = project.id
+  const { exports } = await fetchJson<{ exports: ExportView[] }>(`/api/projects/${encodeURIComponent(projectId)}/exports`).catch(() => ({ exports: [] as ExportView[] }))
+  if (projectId !== project.id) return
+  const latest = exports[0] || null
+  renderExportStatus(latest)
+  if (latest && (latest.status === 'queued' || latest.status === 'running')) exportStatusTimer = window.setTimeout(() => void refreshExportStatus(), 2000)
+}
+;($('#export-status-cancel') as HTMLButtonElement).addEventListener('click', async () => {
+  if (!exportStatusJob) return
+  await fetchJson(`/api/exports/${exportStatusJob.id}`, { method: 'DELETE' }).catch(() => undefined)
+  void refreshExportStatus()
+})
+;($('#export-status-retry') as HTMLButtonElement).addEventListener('click', async () => {
+  if (!exportStatusJob) return
+  await fetchJson(`/api/exports/${exportStatusJob.id}/retry`, { method: 'POST' }).catch(error => showToast(error instanceof Error ? error.message : 'Could not retry the export'))
+  void refreshExportStatus()
+})
+;($('#export-status-dismiss') as HTMLButtonElement).addEventListener('click', () => {
+  if (!exportStatusJob) return
+  try {
+    window.localStorage.setItem(exportDismissedKey(), exportStatusJob.id)
+  } catch {
+    /* the notice simply stays */
+  }
+  renderExportStatus(exportStatusJob)
+})
 
 const closePublishTakePreview = () => {
   const video = $('#publish-take-preview-video') as HTMLVideoElement
@@ -17483,8 +17566,10 @@ const planningWorkspace = createPlanningWorkspace({
       }),
 })
 ;($('#open-planning') as HTMLButtonElement).addEventListener('click', () => void planningWorkspace.open())
-// Pages still being designed when this notebook was last open (F2).
+// Pages still being designed when this notebook was last open (F2), and
+// exports still running or finished since (F8).
 watchPageDesign()
+void refreshExportStatus()
 {
   const raw = window.localStorage.getItem(PREPARE_INTENT_KEY)
   if (raw) {
