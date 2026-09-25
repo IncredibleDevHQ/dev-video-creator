@@ -111,6 +111,9 @@ export type TreatmentInputs = {
   delivery: string | null
   bundleHash: string
   script: string
+  // The base pages the scene adopted since the fork (F1 of the Perplexity
+  // review), when it adopted any.
+  reference?: string
 }
 
 // What a brief depends on: the source and the creator's narrative and
@@ -143,6 +146,9 @@ export const treatmentDependencies = (inputs: Record<string, unknown>) => ({
   delivery: inputs.delivery ?? null,
   bundleHash: inputs.bundleHash ?? '',
   script: inputs.script ?? '',
+  // Only a scene that adopted a page pins one: every other plan's
+  // fingerprint stays what it was.
+  ...(inputs.reference ? { reference: inputs.reference } : {}),
 })
 
 export const briefFingerprint = (inputs: BriefInputs) => fingerprintOf({ kind: 'brief', ...briefDependencies(inputs) })
@@ -171,6 +177,7 @@ const TREATMENT_INPUT_LABELS: Record<string, string> = {
   delivery: 'the scene\'s delivery',
   themeRef: 'the theme',
   bundleHash: 'the planning skills',
+  reference: 'the scene\'s page reference',
 }
 
 export const changedInputs = (made: Record<string, unknown>, now: Record<string, unknown>, labels: Record<string, string>) =>

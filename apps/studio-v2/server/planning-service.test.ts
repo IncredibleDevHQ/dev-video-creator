@@ -500,6 +500,98 @@ describe('planning integrity', () => {
     expect(overview.visualCast.entries.find(entry => entry.object === 'slot-pool')).toMatchObject({ thumbnail: expect.stringMatching(/^\/objects\//), rig: 'verified' })
   }, 120_000)
 
+  // F1 of the Perplexity review: a video forked while its base was still
+  // being designed kept the schematic, and its planner was handed
+  // rectangle-only artwork after the base had designed the slide. The base's
+  // newer page is offered to its scene; adopting it re-plans that scene only.
+  it('offers a scene its base\'s newer designed page, and plans that scene alone from it once adopted', async () => {
+    const rich = (name: string) => readFileSync(fileURLToPath(new URL(`./fixtures/visual-cast/${name}`, import.meta.url)), 'utf8')
+    const schematicPage = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><rect width="1280" height="720" fill="#ffffff"/><g id="s1-node-script" data-role="node"><rect x="100" y="300" width="240" height="90" fill="#eeeeee" stroke="#999999"/><text x="130" y="352" font-size="24">User script</text></g></svg>'
+    const withOrigin = (page: ReturnType<typeof scene>, pageOrigin: Record<string, unknown>) => ({ ...page, attrs: { ...page.attrs, pageOrigin } })
+    const { videoId: id, videoScenes: scenes } = await makeVideo('adopt', {
+      pages: [
+        withOrigin(scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.'], schematicPage), { kind: 'schematic' }),
+        withOrigin(scene('b2', 'Rejection', 'Only so many run at once.', ['the next request is rejected'], rich('06_concurrent_requests_limiter.svg')), { kind: 'designed', by: 'Kimi' }),
+      ],
+    })
+    await readyBrief(id, 'run-adopt-brief')
+    let overview = await service.planningOverview(id)
+    expect(overview.scenes[0].reference).toMatchObject({ baseScene: 'b1', kind: 'schematic', adopted: null, newer: null })
+    expect(overview.scenes[1].reference).toMatchObject({ baseScene: 'b2', kind: 'designed', newer: null })
+
+    // The second scene is planned with its page's slot pool, approved and sketched.
+    const { record: second } = await service.queueTreatment(id, scenes[1])
+    await service.attachRun(second.id, { runId: 'run-adopt-plan-2' })
+    const secondCast = JSON.parse(text((await service.loadPacket(second.id)).files['packet/VISUAL_CAST.json']))
+    const pool = secondCast.entries.find((entry: { object: string | null }) => entry.object === 'slot-pool')
+    const secondPlan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }], objects: [
+      { entity: 'bucket', role: 'The calls in progress', appearance: 'The page\'s own twenty-slot pool', performance: 'Slots fill one by one', asset: { status: 'reuse', ref: pool.libraryKey, reason: 'The limit the viewer must see' } },
+    ] }
+    expect(await service.submitTreatment(second.id, secondPlan, 'run-adopt-plan-2')).toMatchObject({ accepted: true, status: 'candidate' })
+    expect((await service.reviewTreatment(second.id)).status).toBe('reviewed')
+    const { record: sketchRecord } = await service.queuePreview(id, scenes[1])
+    await service.attachRun(sketchRecord.id, { runId: 'run-adopt-sketch' })
+    const compositionId = JSON.parse(text((await service.loadPacket(sketchRecord.id)).files['packet/CONTEXT.json'])).composition.id
+    const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font:600 64px system-ui}</style></head><body>
+<div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="6">
+<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title" data-sketch-layer="title">Spend</div></div>
+</div><script>window.__timelines = window.__timelines || {}
+const tl = gsap.timeline({ paused: true })
+tl.fromTo('#m1 .title', { opacity: 0 }, { opacity: 1, duration: 1 }, 0)
+window.__timelines["${compositionId}"] = tl</script></body></html>`
+    const manifest = { version: 1, scene: scenes[1], plan: { record: second.id, revision: second.revision }, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6, estimated: true }], layers: [{ id: 'title', kind: 'text', label: 'Spend', moments: ['m1'] }], provisional: ['Timing is estimated from the plan'] }
+    expect(await service.submitSketch(sketchRecord.id, { 'index.html': html, 'manifest.json': JSON.stringify(manifest) }, 'run-adopt-sketch')).toMatchObject({ accepted: true, status: 'ready' })
+
+    // The first scene is planned from its schematic.
+    const { record: first } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(first.id, { runId: 'run-adopt-plan-1' })
+    expect(await service.submitTreatment(first.id, treatmentFor(scenes[0], 'b1'), 'run-adopt-plan-1')).toMatchObject({ accepted: true, status: 'candidate' })
+
+    // The base designs the first page after the fork: offered, not taken.
+    const base = (await persistence.loadProjectArtifact(`base-adopt-${RUN}`))!
+    const designedPage = rich('05_request_rate_limiter.svg').trim()
+    base.notebook.content[0].attrs = { ...base.notebook.content[0].attrs, svg: designedPage, pageOrigin: { kind: 'designed', by: 'Kimi', runId: 'run-design' } }
+    await persistence.saveProjectArtifact(base)
+    overview = await service.planningOverview(id)
+    const newer = overview.scenes[0].reference!.newer!
+    expect(newer).toMatchObject({ baseScene: 'b1', kind: 'designed', by: 'Kimi', designing: false })
+    expect(newer.svg).toBe(designedPage)
+    expect(newer.revision).not.toBe(overview.scenes[0].reference!.revision)
+    expect(overview.scenes[1].reference!.newer).toBeNull()
+    expect(overview.scenes[0].view.state).toBe('candidate')
+
+    // The creator adopts it for the first scene: the scene takes the page and
+    // says which revision of the base's page it took.
+    const video = (await persistence.loadProjectArtifact(id))!
+    const firstNode = video.notebook.content.find(node => node.attrs?.id === scenes[0])!
+    firstNode.attrs = { ...firstNode.attrs, svg: newer.svg, pageOrigin: { kind: 'designed', by: 'Kimi' }, reference: { baseScene: 'b1', revision: newer.revision, kind: 'designed', adoptedAt: '2026-09-25T12:00:00.000Z' } }
+    await persistence.saveProjectArtifact(video)
+    overview = await service.planningOverview(id)
+    expect(overview.scenes[0].reference).toMatchObject({ kind: 'designed', revision: newer.revision, adopted: { revision: newer.revision }, newer: null })
+    // That scene's plan is stale, and says why; the other scene's approved
+    // plan and its sketch are untouched — the artwork it uses is unchanged.
+    expect(overview.scenes[0].view).toMatchObject({ state: 'stale', staleBecause: 'the scene\'s page reference changed since this plan was made' })
+    expect(overview.scenes[1].view).toMatchObject({ reviewed: { id: second.id }, current: { id: second.id } })
+    expect(overview.scenes[1].view.staleBecause).toBeFalsy()
+    // While the cast is extracted again from the adopted page, and once it is.
+    expect(overview.scenes[1].preview?.ready).toMatchObject({ id: sketchRecord.id, current: true })
+    expect((await service.visualCastFor(await service.loadVideoPlanning(id))).status).toBe('ready')
+    overview = await service.planningOverview(id)
+    expect(overview.visualCast.status).toBe('ready')
+    expect(overview.scenes[1].preview?.ready).toMatchObject({ id: sketchRecord.id, current: true })
+    // A new plan of the first scene is handed the designed page and its artwork.
+    const { record: again } = await service.queueTreatment(id, scenes[0])
+    expect(again.inputs).toMatchObject({ reference: newer.revision })
+    const files = (await service.loadPacket(again.id)).files
+    expect(text(files['packet/references/page.svg'])).toBe(designedPage)
+    const cast = JSON.parse(text(files['packet/VISUAL_CAST.json']))
+    expect(cast.status).toBe('ready')
+    const script = cast.entries.find((entry: { label: string }) => entry.label === 'User script')
+    expect(script).toMatchObject({ kind: 'icon', verification: { status: 'verified' } })
+    // The pinned base revision itself never moved: the brief stays fresh.
+    expect(overview.brief.stale).toBe(false)
+  }, 180_000)
+
   // P3: a rough, seekable preview of one plan revision, built by a run,
   // checked against the plan and the pinned engine, kept and served.
   it('previews a plan: a checked, stored sketch the Studio can play, out of date once the plan moves', async () => {

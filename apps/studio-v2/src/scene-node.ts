@@ -164,6 +164,9 @@ export const SceneBlock = Node.create({
       // Where the scene's words came from when a plan supplied them:
       // { treatment, revision, at } — the lineage a recording is bound to.
       scriptSource: { default: null },
+      // A newer page of its base the scene adopted since the fork:
+      // { baseScene, revision, kind, adoptedAt } (F1 of the Perplexity review).
+      reference: { default: null },
     }
   },
 
@@ -196,6 +199,7 @@ export const SceneBlock = Node.create({
       breakdownApproved,
       pageOrigin,
       scriptSource: _scriptSource,
+      reference: _reference,
       ...attributes
     } = HTMLAttributes
     const entries = (Array.isArray(storyboard) ? storyboard : []) as SceneStoryboardEntry[]

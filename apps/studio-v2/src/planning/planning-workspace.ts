@@ -18,10 +18,22 @@ import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type SceneP
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 
 type BasePage = { scene: string; title: string; objective: string; layoutGuidance: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
+// Which page a video scene is planned from, and a newer one its base offers
+// (F1 of the Perplexity review).
+export type SceneReference = {
+  baseScene: string
+  kind: string
+  revision: string
+  adopted: { at: string; revision: string } | null
+  newer: { baseScene: string; revision: string; kind: string; by: string; designing: boolean; svg: string; program: unknown } | null
+  baseDesigning: boolean
+}
+
 type SceneRow = {
   id: string
   title: string
   index: number
+  reference?: SceneReference | null
   originScenes: string[]
   script: string
   direction: string
@@ -116,6 +128,9 @@ export type PlanningWorkspaceHost = {
   createFork?: (options: { scene?: string }) => Promise<void>
   // The scene selected in the notebook now, if any.
   selectedScene?: () => string | null
+  // What the base's pages are now: designed, schematic drafts, and pages
+  // still being designed (F1 of the Perplexity review).
+  pageReadiness?: () => { total: number; designed: number; schematic: number; pending: number; other: number }
   // Where a video can always be made: the notebook library.
   openLibrary?: () => void
   // Closing hands the scene, revision and moment shown back to the notebook,
@@ -1163,7 +1178,13 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       : !pages.length
         ? 'This base has no pages yet: design its pages first, then make its video.'
         : ''
-    const create = h('button', { type: 'button', class: 'button primary planning-create-fork', text: desktop ? 'Create video fork and prepare brief' : 'Create video fork', ...(blocked ? { disabled: true } : {}) })
+    // A video made while pages are still being designed starts from their
+    // schematic drafts (F1 of the Perplexity review): say so, and let the
+    // creator wait for the designed pages or go on with the schematics.
+    const readiness = host.pageReadiness?.() || null
+    const waiting = Boolean(readiness?.pending)
+    const createLabel = waiting ? 'Continue with schematics' : desktop ? 'Create video fork and prepare brief' : 'Create video fork'
+    const create = h('button', { type: 'button', class: `button ${waiting ? 'ghost' : 'primary'} planning-create-fork`, text: createLabel, ...(blocked ? { disabled: true } : {}) })
     const status = h('p', { class: 'planning-muted planning-fork-status', role: 'status' })
     create.addEventListener('click', async () => {
       create.disabled = true
@@ -1176,9 +1197,19 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         // The fork opens in its own notebook; if this window is still here,
         // the offer can be tried again.
         create.disabled = Boolean(blocked)
-        create.textContent = desktop ? 'Create video fork and prepare brief' : 'Create video fork'
+        create.textContent = createLabel
       }
     })
+    const wait = waiting
+      ? (() => {
+          const button = h('button', { type: 'button', class: 'button primary planning-wait-pages', text: 'Wait for the designed pages' })
+          button.addEventListener('click', () => {
+            dialog.close()
+            host.toast('The pages keep designing in this notebook. Plan video again once they have landed — the notebook says when.')
+          })
+          return button
+        })()
+      : null
     const library = host.openLibrary
       ? (() => {
           const button = h('button', { type: 'button', class: 'button ghost', text: 'Open All notebooks' })
@@ -1186,15 +1217,22 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
           return button
         })()
       : null
+    const pageLine = readiness
+      ? readiness.pending
+        ? `${readiness.designed} of ${readiness.total} pages are designed; ${readiness.pending} ${readiness.pending === 1 ? 'is' : 'are'} still being designed. A video made now starts from ${readiness.pending === 1 ? 'that page\'s schematic draft' : 'their schematic drafts'}; each scene can adopt its designed slide once it lands. `
+        : readiness.schematic
+          ? `${readiness.schematic} of ${readiness.total} pages ${readiness.schematic === 1 ? 'is a schematic draft' : 'are schematic drafts'}. `
+          : ''
+      : ''
     status.textContent = blocked
-      || `It opens the new video${chosenTitle ? ` on “${chosenTitle}”` : ''}${desktop ? ' and prepares its explanation brief with your planning harness' : '; preparing its explanation brief runs in the desktop app'}. This base stays as it is.`
+      || `${pageLine}It opens the new video${chosenTitle ? ` on “${chosenTitle}”` : ''}${desktop ? ' and prepares its explanation brief with your planning harness' : '; preparing its explanation brief runs in the desktop app'}. This base stays as it is.`
     return [
       h('header', { class: 'planning-header' },
         h('div', { class: 'planning-title' }, h('span', { class: 'eyebrow', text: 'Video plans' }), h('h2', { text: current.title }), h('p', { class: 'planning-lineage', text: 'This is a base notebook. Its video plans live in a video fork of it.' })),
         h('div', { class: 'planning-header-actions' }, close),
       ),
       h('section', { class: 'planning-pane planning-fork-offer' },
-        h('div', { class: 'planning-actions' }, create, library),
+        h('div', { class: 'planning-actions' }, wait, create, library),
         status,
         blocked && host.openLibrary ? h('p', { class: 'planning-muted', text: 'A video can also be made from All notebooks → Create video.' }) : null,
       ),

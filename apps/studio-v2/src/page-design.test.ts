@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bindingOf, landingFor, pageFingerprint, runPageFor, settledOrigin } from './page-design'
+import { bindingOf, landingFor, pageFingerprint, pageReadinessOf, runPageFor, settledOrigin } from './page-design'
 
 // F2 of the fresh end-to-end review: opening the notebook stopped the pages
 // still being designed. They now land on their scene, bound to the page the
@@ -50,5 +50,19 @@ describe('a page designed after its notebook opened', () => {
     expect(settledOrigin({ kind: 'designed', by: 'Kimi', runId: 'run-1', designing: binding })).toEqual({ kind: 'designed', by: 'Kimi', runId: 'run-1' })
     expect(settledOrigin({ kind: 'schematic', designing: binding })).toEqual({ kind: 'schematic' })
     expect(settledOrigin(null)).toBeNull()
+  })
+
+  // F1 of the Perplexity review: a video made while pages were still being
+  // designed kept their schematics, and nothing said so before the fork.
+  it('counts what the base\'s pages are before a video is made from them', () => {
+    const page = (id: string, pageOrigin: unknown) => ({ type: 'scene', attrs: { id, pageOrigin } })
+    expect(pageReadinessOf([
+      page('a', { kind: 'designed', by: 'Kimi' }),
+      page('b', { kind: 'designed', by: 'Kimi', designing: binding }),
+      page('c', { kind: 'schematic', designing: binding }),
+      page('d', { kind: 'schematic' }),
+      page('e', null),
+      { type: 'paragraph', attrs: { id: 'p' } },
+    ])).toEqual({ total: 5, designed: 2, schematic: 1, pending: 1, other: 1 })
   })
 })

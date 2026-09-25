@@ -310,6 +310,15 @@ try {
   check('the scene still being designed waits for its page from that run', opened?.origins?.[1]?.kind === 'schematic' && opened?.origins?.[1]?.designing?.runId === runF && opened?.origins?.[1]?.designing?.page === 2 && opened?.svgs?.[1] === '', JSON.stringify(opened?.origins?.[1]))
   check('the notebook says the page is being designed', opened?.chips?.length === 1 && opened.chips[0] === 'schematic draft · being designed' && /still designing 1 page; each lands on its scene when it is finished/.test(opened?.status || ''), JSON.stringify({ chips: opened?.chips, status: opened?.status }))
   check('opening did not stop the designer', (await runStatus(runF)) === 'running', String(await runStatus(runF)))
+  // F1 of the Perplexity review: a video made now would start from the
+  // schematic still being designed. The offer says so, and waiting comes first.
+  await evaluate(`() => { document.getElementById('open-planning').click(); return true }`, 'plan video')
+  const waitOffer = await waitFor(`() => { const wait = document.querySelector('#planning-workspace .planning-wait-pages'); const create = document.querySelector('#planning-workspace .planning-create-fork'); return wait && create ? { wait: wait.textContent, create: create.textContent, status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer', 40)
+  check('a video offered while a page is still being designed says so, and offers to wait', waitOffer?.wait === 'Wait for the designed pages' && waitOffer.create === 'Continue with schematics' && /^1 of 2 pages are designed; 1 is still being designed\. A video made now starts from that page's schematic draft; each scene can adopt its designed slide once it lands\./.test(waitOffer.status), JSON.stringify(waitOffer))
+  await capture('06a-fork-offer-while-designing')
+  await evaluate(`() => { document.querySelector('#planning-workspace .planning-wait-pages').click(); return true }`, 'wait')
+  const waited = await waitFor(`async () => document.getElementById('planning-dialog').open ? null : (await fetch('/api/projects').then(r => r.json())).projects.filter(row => row.derivedFrom).length + 1`, 'offer closed', 20)
+  check('waiting closes the offer and makes no video', waited === 1, String(waited))
   await evaluate(`() => { document.querySelector('.notebook-scene-block .scene-page-origin')?.scrollIntoView({ block: 'center' }); return true }`, 'scroll to draft').catch(() => {})
   await sleep(600)
   const sticky = await evaluate(`() => { const bar = document.getElementById('page-design-status').getBoundingClientRect(); return bar.height > 0 && bar.top >= 0 && bar.bottom <= innerHeight }`, 'status in view')
@@ -324,6 +333,11 @@ try {
   }`, 'landed', 120)
   check('the page designed after opening lands on its scene', landed?.origin?.by === 'Kimi' && landed?.origin?.runId === runF && landed?.chips === 0, JSON.stringify(landed))
   check('once the run is done, the notebook stops waiting', landed?.statusHidden === true && (await runStatus(runF)) === 'done', JSON.stringify({ statusHidden: landed?.statusHidden, run: await runStatus(runF) }))
+  // Every page designed: the offer makes the video from them.
+  await evaluate(`() => { document.getElementById('open-planning').click(); return true }`, 'plan video again')
+  const readyOffer = await waitFor(`() => { const create = document.querySelector('#planning-workspace .planning-create-fork'); return create ? { create: create.textContent, wait: Boolean(document.querySelector('#planning-workspace .planning-wait-pages')), status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer ready', 40)
+  check('once every page is designed, the offer makes the video from them', readyOffer?.create === 'Create video fork and prepare brief' && readyOffer.wait === false && !/schematic|still being designed/.test(readyOffer.status), JSON.stringify(readyOffer))
+  await evaluate(`() => { document.querySelector('#planning-workspace .planning-close').click(); return true }`, 'close offer')
   await capture('07-notebook-landed')
 
   // 6. Stop remaining work, from the notebook: what was finished stays, the

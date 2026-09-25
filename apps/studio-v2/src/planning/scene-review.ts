@@ -52,6 +52,10 @@ export type SceneReviewHost = {
   selectMoment: (sceneId: string, targets: { nodes: string[]; objectIds: string[] } | null, at: number | null) => void
   // The stage switches to the scene's plan preview.
   showPreview: (sceneId: string) => void
+  // The stage shows the base's newer page for this scene, to compare; and
+  // the scene takes it as its page (F1 of the Perplexity review).
+  showBaseReference: (sceneId: string) => void
+  adoptReference: (sceneId: string) => Promise<void>
 }
 
 type SceneUi = { revision: string; compare: string; moment: string; direction: string | null }
@@ -149,7 +153,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       loadedFor,
       error,
       (overview?.records || []).map(record => [record.id, record.status, record.updatedAt, record.reportedModel]),
-      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.continuity]),
+      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.continuity, scene.reference?.revision, scene.reference?.adopted?.revision, scene.reference?.newer?.revision, scene.reference?.newer?.designing, scene.reference?.baseDesigning]),
       overview?.visualCast?.status,
       overview?.visualCast?.id,
       overview?.brief.stale,
@@ -256,6 +260,24 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const label = view.state === 'reviewed' ? `Approved r${view.reviewed?.revision}` : view.state === 'candidate' ? `Candidate r${view.current?.revision}` : PLANNING_STATE_LABELS[view.state]
     return chip(`Plan: ${label}`, PLAN_TONES[view.state])
   }
+  // Which page the scene is planned from (F1): a schematic draft, a
+  // designed slide, a page — adopted from the base after the fork, or the
+  // one it was forked with — and whether the base offers a newer one.
+  const PAGE_KIND: Record<string, string> = { designed: 'designed slide', schematic: 'schematic', page: 'page' }
+  const pageState = (scene: Scene) => {
+    const reference = scene.reference
+    if (!reference) return null
+    const kind = PAGE_KIND[reference.kind] || reference.kind
+    const element = chip(`Page: ${kind}${reference.adopted ? ' (adopted)' : ''}`, reference.kind === 'schematic' ? 'warn' : '')
+    element.title = `Planned from revision ${reference.revision.slice(0, 8)} of base page ${reference.baseScene}${reference.adopted ? `, adopted ${new Date(reference.adopted.at).toLocaleString()}` : ''}`
+    return element
+  }
+  const newerPage = (scene: Scene) => {
+    const newer = scene.reference?.newer
+    if (newer && !newer.designing && newer.svg) return chip(`Base has a newer ${PAGE_KIND[newer.kind] || 'page'}`, 'new')
+    if (newer?.designing || scene.reference?.baseDesigning) return chip('Base still designing this page', 'busy')
+    return null
+  }
   const recordingState = (scene: Scene) => {
     if (scene.delivery === 'generated' || scene.delivery === 'silent') return chip(`Recording: not needed (${scene.delivery})`)
     const take = host.takeOf(scene.id)
@@ -295,6 +317,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
       'div',
       { class: `review-strip${inline ? ' is-inline' : ''}` },
       inline ? null : h('span', { class: 'review-strip-label', text: 'Scene review' }),
+      pageState(scene),
+      newerPage(scene),
       planState(scene),
       recordingState(scene),
       previewChip(scene),
@@ -568,6 +592,42 @@ export const createSceneReview = (host: SceneReviewHost) => {
     ))
   }
 
+  // The base designed this scene's page after the video was made (F1): it
+  // is offered — compared on the stage, and taken only when the creator
+  // says so. Taking it keeps the scene's recordings and earlier plans; its
+  // plans and sketches made from the old page read as out of date.
+  let adopting = ''
+  const referenceNotice = (scene: Scene) => {
+    const reference = scene.reference
+    const newer = reference?.newer
+    if (!reference || (!newer && !reference.baseDesigning)) return null
+    if (!newer || newer.designing || !newer.svg) {
+      return h('p', { class: 'review-muted review-reference', 'data-review-reference': 'designing', text: `The base is still designing this scene's slide. When it lands you can compare it here and adopt it; this scene keeps its ${PAGE_KIND[reference.kind] || 'page'} until you do.` })
+    }
+    const kind = PAGE_KIND[newer.kind] || 'page'
+    const compare = h('button', { type: 'button', class: 'button ghost', 'data-focus': `compare-reference:${scene.id}`, text: 'Compare on the stage' })
+    compare.addEventListener('click', () => host.showBaseReference(scene.id))
+    const adopt = h('button', { type: 'button', class: 'button primary', 'data-focus': `adopt-reference:${scene.id}`, text: `Use this ${newer.kind === 'designed' ? 'designed reference' : 'page'}`, ...(adopting === scene.id ? { disabled: true } : {}) })
+    adopt.addEventListener('click', async () => {
+      adopting = scene.id
+      host.refresh()
+      try {
+        await host.adoptReference(scene.id)
+      } finally {
+        adopting = ''
+        host.refresh()
+      }
+    })
+    const planned = Boolean(scene.view.current || scene.view.reviewed)
+    return h(
+      'div',
+      { class: 'review-reference', 'data-review-reference': 'newer' },
+      h('p', {}, h('strong', { text: `The base has a newer ${kind} for this scene${newer.by ? `, by ${newer.by}` : ''}. ` }), `This video was made from its ${PAGE_KIND[reference.kind] || 'page'} (revision ${reference.revision.slice(0, 8)}; the base's is ${newer.revision.slice(0, 8)}).`),
+      h('p', { class: 'review-muted', text: `Using it gives this scene that page and its artwork for planning.${planned ? ' Its plans and sketches made from the old page read as out of date; they are kept.' : ''} Recordings and the other scenes are not touched.` }),
+      h('div', { class: 'review-actions' }, compare, adopt),
+    )
+  }
+
   // The selected scene's review.
   const panel = (scene: Scene) => {
     const state = uiOf(scene.id)
@@ -609,6 +669,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
     )
     if (error) root.append(h('p', { class: 'review-error', text: error }))
     if (!desktop) root.append(h('p', { class: 'review-muted review-host-note', text: BROWSER_REVIEW_MESSAGE }))
+    const notice = referenceNotice(scene)
+    if (notice) root.append(notice)
     // Where the plan stands.
     if (view.latest && isActiveStatus(view.latest.status)) {
       root.append(h('p', { class: 'review-busy', 'data-review-progress': view.latest.id, text: progress.get(view.latest.id) || `Planning revision ${view.latest.revision} with your local harness…` }))
@@ -690,7 +752,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const record = scene ? shownRecord(scene) : null
     const preview = scene ? previewStateOf(scene, record) : null
     const current = scene ? previewStateOf(scene, scene.view.current) : null
-    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId)])
+    const reference = scene?.reference
+    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId), reference?.revision, reference?.adopted?.revision, reference?.newer?.revision, reference?.newer?.designing, reference?.baseDesigning, adopting === sceneId])
   }
 
   return {

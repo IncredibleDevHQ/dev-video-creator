@@ -6,7 +6,7 @@ import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
-import { bindingOf, landingFor, pageFingerprint, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
+import { bindingOf, landingFor, pageFingerprint, pageReadinessOf, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -6897,6 +6897,13 @@ const notebookCard = (
     video.textContent = 'Create video'
     video.title = 'Make a separate video notebook from this base — the base stays as it is'
     video.addEventListener('click', async () => {
+      // Pages still being designed would start the video from their
+      // schematic drafts (F1 of the Perplexity review): ask first.
+      const doc = entry.id === project.id
+        ? (editor.getJSON() as TiptapDocument)
+        : (await fetchJson<{ project: ProjectDocumentV1 }>(`/api/projects/${encodeURIComponent(entry.id)}`).catch(() => null))?.project.notebook
+      const readiness = pageReadinessOf(doc?.content || [])
+      if (readiness.pending && !window.confirm(`${readiness.pending} of ${readiness.total} pages of this base are still being designed. A video made now starts from their schematic drafts; each scene can adopt its designed slide once it lands.\n\nCreate the video now? Cancel to wait for the designed pages.`)) return
       await createVideoFromBase(entry.id, entry.title || 'Untitled notebook')
     })
     actions.append(video)
@@ -16468,8 +16475,10 @@ const landDesignedPages = async () => {
   const kept: string[] = []
   const stayed: string[] = []
   let landed = 0
+  let awaited = false
   try {
     const bound = pageDesignBindings()
+    awaited = bound.some(entry => !entry.designed)
     for (const runId of [...new Set(bound.map(entry => entry.binding.runId))]) {
       // Whether the run has ended first, then its pages: an ended run's
       // pages are all there is.
@@ -16526,8 +16535,10 @@ const landDesignedPages = async () => {
     pageDesignBusy = false
   }
   if (landed || kept.length || stayed.length) syncProject()
+  const done = pageDesignBindings().length === 0
   if (kept.length) showToast(`${kept.map(title => `“${title}”`).join(', ')} changed while ${kept.length === 1 ? 'its page was' : 'their pages were'} designed — ${kept.length === 1 ? 'it keeps' : 'they keep'} your change`)
   else if (stayed.length) showToast(`${stayed.length} page${stayed.length === 1 ? '' : 's'} stayed schematic draft${stayed.length === 1 ? '' : 's'} — the design run ended before ${stayed.length === 1 ? 'it was' : 'they were'} finished`)
+  else if (done && (landed || awaited)) showToast('Every page this notebook was waiting for is designed. Plan video makes a video from the designed pages; a video made earlier can adopt them scene by scene.')
   else if (landed) showToast(`${landed} designed page${landed === 1 ? '' : 's'} landed on ${landed === 1 ? 'its scene' : 'their scenes'}`)
   if (!pageDesignBindings().length && pageDesignTimer !== null) {
     window.clearInterval(pageDesignTimer)
@@ -17196,6 +17207,7 @@ const planningWorkspace = createPlanningWorkspace({
   },
   selectedScene: () => selectedNodeId || null,
   openLibrary: () => openNotebooksPage(),
+  pageReadiness: () => pageReadinessOf((editor.getJSON() as TiptapDocument).content || []),
   basePages: () =>
     (project.notebook.content || [])
       .filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id)
@@ -17254,8 +17266,9 @@ const sceneStageReference = $('#scene-stage-reference') as HTMLElement
 const sceneStageNote = $('#scene-stage-note') as HTMLElement
 const sceneStagePreview = $('#scene-stage-preview') as HTMLElement
 let sceneStageFor = ''
-// The stage shows the page as a reference, or plays the plan's preview.
-let sceneStageMode: 'reference' | 'preview' = 'reference'
+// The stage shows the scene's page as a reference, the base's newer page
+// to compare (F1 of the Perplexity review), or plays the plan's preview.
+let sceneStageMode: 'reference' | 'base' | 'preview' = 'reference'
 type StagePlayer = HTMLElement & { play(): void; pause(): void; seek(time: number): void; readonly currentTime: number; readonly duration: number }
 let stagePlayer: StagePlayer | null = null
 let stagePlayerUrl = ''
@@ -17341,7 +17354,7 @@ const ensureStagePlayer = () => {
 }
 sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
   button.addEventListener('click', () => {
-    const mode = button.dataset.stageMode === 'preview' ? 'preview' : 'reference'
+    const mode = button.dataset.stageMode === 'preview' ? 'preview' : button.dataset.stageMode === 'base' ? 'base' : 'reference'
     if (mode === sceneStageMode) return
     if (mode === 'reference') stagePlayer?.pause()
     sceneStageMode = mode
@@ -17389,13 +17402,27 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   showSceneStage(true)
   if (next !== undefined) sceneStageTargets = next
   const targets = stage.moment ? sceneStageTargets : null
-  // Which view the stage offers: the page always; the preview of the shown
-  // revision once there is one — never another revision's.
+  // Which view the stage offers: the scene's page always, named for what it
+  // is; the base's newer page when there is one to compare; the preview of
+  // the shown revision once there is one — never another revision's.
   const ready = stage.preview
+  const reference = stage.scene.reference || null
+  const newer = reference?.newer && !reference.newer.designing && reference.newer.svg ? reference.newer : null
   if (sceneStageMode === 'preview' && !ready) sceneStageMode = 'reference'
+  if (sceneStageMode === 'base' && !newer) sceneStageMode = 'reference'
+  const pageLabel = reference?.kind === 'schematic' ? 'Schematic' : reference?.kind === 'designed' ? 'Designed slide' : 'Page reference'
   sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
     const mode = button.dataset.stageMode
     button.disabled = mode === 'preview' ? !ready : mode === 'output'
+    if (mode === 'reference') {
+      button.textContent = pageLabel
+      button.title = reference ? `The page this scene is planned from: revision ${reference.revision.slice(0, 8)}${reference.adopted ? ', adopted from the base' : ''}` : 'The page this scene comes from'
+    }
+    if (mode === 'base') {
+      button.hidden = !newer
+      button.textContent = newer?.kind === 'designed' ? 'Base\'s designed slide' : 'Base\'s newer page'
+      button.title = newer ? `The base's page for this scene now: revision ${newer.revision.slice(0, 8)}${newer.by ? `, by ${newer.by}` : ''}` : ''
+    }
     if (mode === 'preview') button.title = ready ? `Rough sketch of plan r${ready.of.revision}` : stage.record ? `No preview of r${stage.record.revision} yet` : 'No plan yet'
     button.classList.toggle('is-active', mode === sceneStageMode)
     button.setAttribute('aria-pressed', String(mode === sceneStageMode))
@@ -17442,17 +17469,27 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
     return
   }
   stagePlayer?.pause()
-  if (sceneStageFor !== reviewSelectedScene) {
-    sceneStageFor = reviewSelectedScene
-    const svg = referenceSvg(String(node.attrs.svg || ''))
+  // The page shown: the scene's own, or the base's newer one to compare.
+  const comparing = sceneStageMode === 'base' && newer
+  const markup = comparing ? newer.svg : String(node.attrs.svg || '')
+  const shownKey = `${comparing ? 'base' : 'scene'}:${reviewSelectedScene}:${comparing ? newer.revision : pageFingerprint(markup)}`
+  if (sceneStageFor !== shownKey) {
+    sceneStageFor = shownKey
+    const svg = referenceSvg(markup)
     sceneStageReference.replaceChildren(...(svg ? [svg] : []))
     if (!svg) sceneStageReference.append(Object.assign(document.createElement('p'), { textContent: 'This scene has no wireframe.' }))
   }
   const svg = sceneStageReference.querySelector('svg')
   svg?.querySelectorAll('.stage-hit').forEach(element => element.classList.remove('stage-hit'))
   svg?.classList.toggle('has-hits', false)
+  if (comparing) {
+    sceneStageNote.title = ''
+    sceneStageNote.textContent = `The base's ${newer.kind === 'designed' ? 'designed slide' : 'page'} for this scene${newer.by ? `, by ${newer.by}` : ''} — newer than the ${reference?.kind === 'schematic' ? 'schematic' : 'page'} this video is planned from. The review offers to use it.`
+    return
+  }
   if (!targets) {
-    sceneStageNote.textContent = 'The page this scene comes from — a reference for what the video explains, not a preview of its motion.'
+    sceneStageNote.title = ''
+    sceneStageNote.textContent = `The ${pageLabel === 'Page reference' ? 'page' : pageLabel.toLowerCase()} this scene is planned from${reference?.adopted ? ', adopted from the base' : ''} — a reference for what the video explains, not a preview of its motion.`
     return
   }
   const hits = [
@@ -17528,6 +17565,47 @@ sceneReview = createSceneReview({
     sceneStageAsideFor = ''
     sceneStageMode = 'preview'
     renderSceneStage()
+  },
+  showBaseReference: sceneId => {
+    if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
+    sceneStageAsideFor = ''
+    sceneStageMode = 'base'
+    renderSceneStage()
+  },
+  // The scene takes its base's newer page (F1 of the Perplexity review): its
+  // words, takes and plans stay; the page, and the motion planned on it
+  // from its words, are the new ones. Planning reads the adopted page, so
+  // this scene's plans made from the old one read as out of date.
+  adoptReference: async sceneId => {
+    const newer = sceneReview?.stageOf(sceneId)?.scene.reference?.newer
+    const found = topLevelNodeAt(sceneId)
+    const node = found ? editor.state.doc.nodeAt(found.at) : null
+    if (!newer || newer.designing || !newer.svg || !found || !node) return
+    const kind = newer.kind === 'designed' || newer.kind === 'schematic' ? newer.kind : null
+    editor.view.dispatch(editor.state.tr.setNodeMarkup(found.at, undefined, {
+      ...node.attrs,
+      svg: newer.svg,
+      svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(newer.svg)}`,
+      program: newer.program ?? null,
+      pageOrigin: kind ? { kind, ...(newer.by ? { by: newer.by } : {}) } : null,
+      reference: { baseScene: newer.baseScene, revision: newer.revision, kind: newer.kind, adoptedAt: new Date().toISOString() },
+    }))
+    try {
+      animateSceneLocally(sceneId)
+    } catch (error) {
+      console.warn('re-plan after adopting a page failed', sceneId, error)
+    }
+    if (sceneStageMode === 'base') sceneStageMode = 'reference'
+    project.notebook = editor.getJSON() as TiptapDocument
+    try {
+      await persistProjectNow(structuredClone(project))
+    } catch (error) {
+      showToast(error instanceof Error ? `The scene took the page, but it is not saved yet: ${error.message}` : 'The scene took the page, but it is not saved yet')
+    }
+    await sceneReview?.load()
+    refreshSceneReview()
+    renderSceneStage()
+    showToast(`This scene now uses the base's ${newer.kind === 'designed' ? 'designed slide' : 'page'}. Plan it again to use its artwork — its earlier plans and your recordings are kept.`)
   },
 })
 onSceneSelected = nodeId => {

@@ -12,7 +12,7 @@
 // compare-and-swap. Reviewing a plan changes its status and nothing else: no
 // artwork, narration, recording, construction or export is started here.
 import type { Readable } from 'node:stream'
-import type { ProjectDocumentV1, TiptapNode } from 'markdown-composition'
+import { sceneRevisionOf, type ProjectDocumentV1, type TiptapNode } from 'markdown-composition'
 import {
   claimPlanningRecord,
   getObject,
@@ -101,6 +101,12 @@ type PinnedPage = {
   objective: string
   layoutGuidance: string
   narration: string
+  // What the page is — a designed slide, a schematic draft, or a page — and
+  // its revision; and, when the video adopted a newer page of its base for
+  // this scene, when and which (F1 of the Perplexity review).
+  pageKind: string
+  pageRevision: string
+  adopted: { at: string; revision: string } | null
   sourcePassages: string[]
   wireframe: string | null
   // Presentation-only metadata, shown as such and never used to plan video.
@@ -122,6 +128,29 @@ export type VideoPlanning = {
   requestedSeconds: number | null
   inputs: PlanningInputRow[]
   bundle: Bundle | null
+  // The revision the visual cast is extracted from: the pinned base, and
+  // the pages its scenes adopted since.
+  castRevision: string
+}
+
+const pageKindOf = (node: TiptapNode) => {
+  const kind = (attr(node, 'pageOrigin') as { kind?: string } | null | undefined)?.kind
+  return kind === 'designed' || kind === 'schematic' ? kind : 'page'
+}
+
+// The pages a video's scenes adopted from their base since the fork, by
+// base scene: the scene carries the page it took and which revision of the
+// base's page that was. Only a scene made of one base page adopts.
+const adoptedPagesOf = (project: ProjectDocumentV1) => {
+  const adopted = new Map<string, { svg: string; kind: string; revision: string; at: string }>()
+  for (const node of scenesOf(project)) {
+    const reference = attr(node, 'reference') as { baseScene?: string; revision?: string; kind?: string; adoptedAt?: string } | null | undefined
+    const origin = attr(node, 'origin') as { scene?: string; scenes?: string[] } | undefined
+    const origins = (origin?.scenes?.length ? origin.scenes : origin?.scene ? [origin.scene] : []).map(String)
+    if (!reference?.baseScene || !reference.revision || origins.length !== 1 || origins[0] !== reference.baseScene) continue
+    adopted.set(reference.baseScene, { svg: stringAttr(node, 'svg'), kind: String(reference.kind || 'designed'), revision: String(reference.revision), at: String(reference.adoptedAt || '') })
+  }
+  return adopted
 }
 
 const pagesFrom = (base: ProjectDocumentV1): PinnedPage[] =>
@@ -135,6 +164,9 @@ const pagesFrom = (base: ProjectDocumentV1): PinnedPage[] =>
       title: stringAttr(node, 'title') || outline?.title || '',
       ...pageObjectiveOf(attrs, base.outline?.scenes),
       narration: stringAttr(node, 'script'),
+      pageKind: pageKindOf(node),
+      pageRevision: sceneRevisionOf(node).inputs.page,
+      adopted: null,
       sourcePassages: (Array.isArray(passages) ? passages : outline?.source || []).map(String).filter(Boolean),
       wireframe: stringAttr(node, 'svg') ? `pages/${id}.svg` : null,
       presentationKind: outline?.kind || stringAttr(node, 'kind'),
@@ -183,11 +215,23 @@ export const loadVideoPlanning = async (projectId: string): Promise<VideoPlannin
     sourceText = String(revision?.content?.text || '')
   }
   const wordingPolicy = (['preserve', 'assist', 'draft'] as const).find(policy => policy === project.story?.wordingPolicy) || 'draft'
+  // A scene that adopted a newer page of its base is planned from it: its
+  // packet, its cast and its plan's inputs read the adopted page (F1).
+  const adoptions = adoptedPagesOf(project)
+  const basePages = pagesFrom(base).map(page => {
+    const adopted = adoptions.get(page.scene)
+    return adopted ? { ...page, svg: adopted.svg, pageKind: adopted.kind, pageRevision: adopted.revision, adopted: { at: adopted.at, revision: adopted.revision } } : page
+  })
+  const baseRevision = project.derivedFrom.baseRevision || ''
+  const castRevision = adoptions.size
+    ? `${baseRevision}~${fingerprintOf([...adoptions].map(([scene, adopted]) => [scene, adopted.revision]).sort())}`
+    : baseRevision
   return {
     project,
     baseTitle: base.title,
-    basePages: pagesFrom(base),
+    basePages,
     baseLimitation,
+    castRevision,
     videoScenes,
     source: {
       revision: sourceRevision,
@@ -247,6 +291,12 @@ export const treatmentInputsOf = (planning: VideoPlanning, brief: PlanningRecord
     delivery: deliveryFor(planning, scene.id),
     bundleHash: planning.bundle?.ref.hash || '',
     script: scene.script,
+    // A page the scene adopted is an input of its plan; a scene that adopted
+    // nothing pins nothing more, so its plans stay as they were (F1).
+    ...(() => {
+      const adopted = scene.originScenes.map(origin => planning.basePages.find(page => page.scene === origin)?.adopted?.revision).filter(Boolean)
+      return adopted.length ? { reference: adopted.join(',') } : {}
+    })(),
   }
 }
 
@@ -277,12 +327,12 @@ const castSourcesOf = (planning: VideoPlanning) =>
 export const visualCastFor = (planning: VideoPlanning, options: { retryFailed?: boolean } = {}) =>
   ensureVisualCast({
     notebook: planning.project.derivedFrom!.notebook,
-    revision: planning.project.derivedFrom!.baseRevision || '',
+    revision: planning.castRevision,
     pages: castSourcesOf(planning),
     theme: planning.project.theme,
     ...options,
   })
-const knownCast = (planning: VideoPlanning) => loadVisualCast(planning.project.derivedFrom!.notebook, planning.project.derivedFrom!.baseRevision || '')
+const knownCast = (planning: VideoPlanning) => loadVisualCast(planning.project.derivedFrom!.notebook, planning.castRevision)
 export const retryVisualCast = async (projectId: string) => visualCastFor(await loadVideoPlanning(projectId), { retryFailed: true })
 
 // The theme's actual tokens, not its id: colours with what each means,
@@ -482,9 +532,41 @@ const castSummary = (cast: VisualCastRevision | null) =>
       }
     : { id: null, status: 'extracting' as const, error: null, createdAt: null, pages: [], entries: [] }
 
+// Which page a scene is planned from — its kind and revision, and whether it
+// was adopted — and whether its base has a newer page to offer: the
+// designed slide that landed after this video was made from a schematic
+// (F1 of the Perplexity review). Offered, never taken: adopting is the
+// creator's call. Only a scene made of one base page can adopt.
+const referenceOf = (planning: VideoPlanning, scene: VideoPlanning['videoScenes'][number], live: Map<string, TiptapNode>) => {
+  if (scene.originScenes.length !== 1) return null
+  const origin = scene.originScenes[0]
+  const pinned = planning.basePages.find(page => page.scene === origin)
+  if (!pinned) return null
+  const node = live.get(origin)
+  const revision = node ? sceneRevisionOf(node).inputs.page : null
+  const pageOrigin = node ? (attr(node, 'pageOrigin') as { kind?: string; by?: string; designing?: unknown } | null | undefined) : null
+  const newer = node && revision && revision !== pinned.pageRevision
+    ? {
+        baseScene: origin,
+        revision,
+        kind: pageKindOf(node),
+        by: String(pageOrigin?.by || ''),
+        // Still being designed: said, not offered.
+        designing: Boolean(pageOrigin?.designing),
+        svg: pageOrigin?.designing ? '' : stringAttr(node, 'svg'),
+        program: pageOrigin?.designing ? null : attr(node, 'program') ?? null,
+      }
+    : null
+  // The base still designing this scene's page, as yet unchanged.
+  const baseDesigning = Boolean(pageOrigin?.designing) && !newer
+  return { baseScene: origin, kind: pinned.pageKind, revision: pinned.pageRevision, adopted: pinned.adopted, newer, baseDesigning }
+}
+
 export const planningOverview = async (projectId: string) => {
   const planning = await loadVideoPlanning(projectId)
   const records = await listPlanningRecords(projectId)
+  const liveBase = await loadProjectArtifact(planning.project.derivedFrom!.notebook).catch(() => null)
+  const live = new Map((liveBase ? scenesOf(liveBase) : []).map(node => [stringAttr(node, 'id'), node]))
   const fresh = freshnessOf(planning, records)
   const brief = fresh.brief
   // The cast is extracted in the background the first time it is asked for.
@@ -516,6 +598,7 @@ export const planningOverview = async (projectId: string) => {
         // when the reviewed plan it rests on changes.
         continuity: plan?.continuity ? continuityStatus(plan, agreementBasis(neighborsOf(planning, records, scene.id))) : null,
         preview: previewOf(records, scene.id, preview => previewNow(view, preview)),
+        reference: referenceOf(planning, scene, live),
       }
     }),
     videoDirection: directionFor(planning, ''),
@@ -848,17 +931,26 @@ const previewFreshness = (planning: VideoPlanning, cast: VisualCastRevision | nu
   if (view.staleBecause) return { current: false, staleBecause: `its plan is stale — ${view.staleBecause}` }
   const runtime = (preview.content as SketchManifest | null)?.runtime?.hyperframes
   const changed = [
-    ...inputsChanged(previewInputsOf(planning, treatment, cast), preview.inputs),
+    ...inputsChanged(previewInputsOf(planning, treatment, cast), preview.inputs, castKeysKept(treatment, cast)),
     ...(runtime && runtime !== SKETCH_RUNTIME.hyperframes ? [`the pinned Hyperframes runtime changed (${runtime} → ${SKETCH_RUNTIME.hyperframes})`] : []),
   ]
   return changed.length ? { current: false, staleBecause: changed.join('; ') } : { current: true, staleBecause: null }
 }
+// The artwork a plan reuses, adapts or enriches, by library key.
+const castKeysOf = (plan: SceneTreatmentV1 | null | undefined) =>
+  [...new Set((plan?.objects || []).filter(object => ['reuse', 'adapt', 'enrich'].includes(object.asset.status) && object.asset.ref).map(object => object.asset.ref!))]
+// A cast extracted again — because a scene adopted a newer page (F1) — is
+// the same cast for a sketch whose every piece of artwork it still holds:
+// library keys are content hashes, so a kept key is unchanged artwork.
+const castKeysKept = (treatment: PlanningRecord, cast: VisualCastRevision | null) =>
+  Boolean(cast && cast.status === 'ready') && castKeysOf(treatment.content as SceneTreatmentV1 | null).every(key => cast!.entries.some(entry => entry.libraryKey === key))
 // What moved between the inputs a preview was sketched from and now.
-const inputsChanged = (now: ReturnType<typeof previewInputsOf>, was: Record<string, unknown>) =>
+const inputsChanged = (now: ReturnType<typeof previewInputsOf>, was: Record<string, unknown>, castKept = false) =>
   [
     now.treatmentFingerprint !== was.treatmentFingerprint ? 'the plan changed' : '',
     now.themeRef !== was.themeRef ? 'the theme changed' : '',
-    now.castId !== (was.castId ?? null) ? 'the visual cast changed' : '',
+    // A cast still being extracted is not yet known, not changed.
+    now.castId !== null && now.castId !== (was.castId ?? null) && !castKept ? 'the visual cast changed' : '',
     now.bundleHash !== was.bundleHash ? 'the planning skills changed' : '',
     now.schema !== was.schema ? 'the planning records changed format' : '',
   ].filter(Boolean)
@@ -872,7 +964,7 @@ const sketchPacket = async (planning: VideoPlanning, treatment: PlanningRecord, 
   if (!briefRecord?.content) throw new PlanningError('The brief this plan was made from is gone', 409)
   const plan = treatment.content as SceneTreatmentV1
   // The artwork the plan reuses, adapts or enriches, wherever in the base it is drawn.
-  const castKeys = [...new Set(plan.objects.filter(object => ['reuse', 'adapt', 'enrich'].includes(object.asset.status) && object.asset.ref).map(object => object.asset.ref!))]
+  const castKeys = castKeysOf(plan)
   const files = await scenePacket(planning, briefRecord, treatment.subject, records, { castKeys })
   const compositionId = compositionIdOf(treatment)
   const length = sketchLengthOf(plan)
@@ -997,7 +1089,8 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   // the proof names the bundle it was taken from.
   const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-preview', extension: '.json' })
   const planning = await loadVideoPlanning(record.projectId)
-  const moved = inputsChanged(previewInputsOf(planning, treatment, await knownCast(planning)), record.inputs)
+  const castNow = await knownCast(planning)
+  const moved = inputsChanged(previewInputsOf(planning, treatment, castNow), record.inputs, castKeysKept(treatment, castNow))
   const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...(moved.length ? [`While this sketch was made, ${moved.join('; ')} — it is kept, as out of date`] : [])]
   const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof }, artifacts }, ['verifying'], { runId: record.runId })
   if (!updated) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)

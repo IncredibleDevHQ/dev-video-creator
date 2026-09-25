@@ -380,7 +380,7 @@ try {
   check(state?.cast?.length >= 1 && state.cast.some(item => item.image), `${sceneA.title}: the review shows the cast the plan uses, with images (${JSON.stringify(state?.cast)})`)
   check(/Claude Code|claude-code|Kimi|kimi|Codex|codex/.test(state?.provenance || ''), `the review names the harness and model that made the plan (${state?.provenance})`)
   const stageShown = await evaluate(`() => ({ mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, page: Boolean(document.querySelector('#scene-stage-reference svg')) })`)
-  check(stageShown.mode === 'Wireframe reference' && stageShown.page, `the stage shows the rich page as the reference (${JSON.stringify(stageShown)})`)
+  check(['Designed slide', 'Schematic', 'Page reference'].includes(stageShown.mode) && stageShown.page, `the stage shows the rich page as the reference (${JSON.stringify(stageShown)})`)
   await evaluate(`() => { const heads = document.querySelectorAll('.scene-review[data-review-scene="${sceneA.id}"] .review-moment-head'); heads[Math.min(1, heads.length - 1)].click(); return true }`)
   const highlight = await waitFor(`() => { const hits = [...document.querySelectorAll('#scene-stage-reference .stage-hit')].map(element => element.id); return hits.length ? hits : null }`, 10)
   note(`moment highlight on the page: ${JSON.stringify(highlight)}`)

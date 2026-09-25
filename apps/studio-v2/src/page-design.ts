@@ -53,3 +53,21 @@ export const settledOrigin = (origin: unknown) => {
   const { designing: _designing, ...rest } = origin as Record<string, unknown>
   return rest
 }
+
+// What a base's pages are now, before a video is made from it (F1 of the
+// Perplexity review): designed slides, schematic drafts, pages still being
+// designed by a run, and pages made some other way.
+export const pageReadinessOf = (nodes: Array<{ type: string; attrs?: Record<string, unknown> | null }>) => {
+  const readiness = { total: 0, designed: 0, schematic: 0, pending: 0, other: 0 }
+  for (const node of nodes) {
+    if (node.type !== 'scene' || !node.attrs?.id) continue
+    readiness.total += 1
+    const origin = node.attrs.pageOrigin as { kind?: string; designing?: unknown } | null | undefined
+    if (origin?.designing && origin.kind !== 'designed') readiness.pending += 1
+    else if (origin?.kind === 'designed') readiness.designed += 1
+    else if (origin?.kind === 'schematic') readiness.schematic += 1
+    else readiness.other += 1
+  }
+  return readiness
+}
+export type PageReadiness = ReturnType<typeof pageReadinessOf>

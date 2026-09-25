@@ -417,7 +417,7 @@ try {
     if (!note) return null
     return { note, approve: review.querySelector('[data-focus^="approve:"]').textContent, preview: review.querySelector('[data-focus^="preview:"]').textContent, stagePreview: document.querySelector('[data-stage-mode="preview"]').disabled, stageTitle: document.querySelector('[data-stage-mode="preview"]').title, mode: document.querySelector('.scene-stage-modes .is-active')?.textContent }
   }`, 30)
-  check(/^No preview of r\d+ yet — the stage shows its page\. Sketches exist for r\d+\./.test(onR2?.note || '') && onR2.mode === 'Wireframe reference' && onR2.stagePreview === true, `the new revision shows its page, not the older revision's sketch (${JSON.stringify(onR2)})`)
+  check(/^No preview of r\d+ yet — the stage shows its page\. Sketches exist for r\d+\./.test(onR2?.note || '') && onR2.mode === 'Designed slide' && onR2.stagePreview === true, `the new revision shows its page, not the older revision's sketch (${JSON.stringify(onR2)})`)
   check(onR2?.approve === `Approve r${revised.revision}` && onR2.preview === `Preview r${revised.revision}`, `the actions name the revision they act on (${onR2?.approve} · ${onR2?.preview})`)
   await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="show-revision:"]').click(); return true }`)
   const onR1 = await waitFor(`() => {

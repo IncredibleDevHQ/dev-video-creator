@@ -277,7 +277,7 @@ try {
   }`)
   check(order.reviewFirst && order.folded && order.toggle === 'Edit source dialogue' && order.blockHeight < 80 && order.strips === 1 && order.inline, `the review leads, above its block folded to one line with its one status line in the header (${JSON.stringify(order)})`)
   const stage = await evaluate(`() => ({ mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, pool: Boolean(document.querySelector('#scene-stage-reference svg [id="s06-node-concurrency-cap"]')) })`)
-  check(stage.mode === 'Wireframe reference' && /not a preview of its motion/.test(stage.note) && stage.pool, `the stage starts on the page, labelled as a reference, not a preview (${JSON.stringify(stage)})`)
+  check(stage.mode === 'Designed slide' && /not a preview of its motion/.test(stage.note) && stage.pool, `the stage starts on the page, labelled as a reference, not a preview (${JSON.stringify(stage)})`)
   const beforePlan = await reviewOf(1)
   check(beforePlan.expanded && beforePlan.thumbs >= 3, `the strip shows the cast the page offers (${beforePlan.thumbs} thumbnails)`)
   await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="revise:"]').click(); return true }`)
@@ -542,6 +542,47 @@ try {
   check(runs.every(run => run.skill === 'video-planner'), `only planning runs ran (${[...new Set(runs.map(run => run.skill))]})`)
   const after = (await api(`/api/projects/${base.id}`)).body.project
   check(after.notebook.content[1].attrs.svg === base.notebook.content[1].attrs.svg, 'the base page is unchanged')
+
+  // ——— F1 of the Perplexity review: the base designs a page afterwards ———
+  // The first page gains its designed artwork after the video was made. Its
+  // scene is offered the newer page — compared on the stage, taken only when
+  // asked — and is then planned from it alone: the other scene's approval,
+  // plans and takes stay as they are.
+  const GPU = '<g id="s05-node-gpu" data-role="node" data-kind="box" data-entity="service" data-object-id="obj-gpu-17"><rect id="s05-node-gpu-box" x="940" y="170" width="260" height="200" rx="12" fill="#22c55e" fill-opacity="0.10" stroke="#22c55e" stroke-opacity="0.55" stroke-width="1.5"/><g id="s05-node-gpu-art" data-appearance-for="s05-node-gpu"><g transform="translate(1048,186) scale(1.8333)" fill="none" stroke="#22c55e" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14v10h-14z"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M2 10h3M2 14h3M19 10h3M19 14h3"/></g></g><text x="1070" y="282" font-size="24" fill="#ffffff" text-anchor="middle">GPU</text></g>'
+  const storedBase = after
+  const designedBase = structuredClone(storedBase)
+  designedBase.notebook.content[0].attrs = { ...designedBase.notebook.content[0].attrs, svg: storedBase.notebook.content[0].attrs.svg.replace('</svg>', `${GPU}</svg>`), pageOrigin: { kind: 'designed', by: 'Claude Code · Claude Opus 5.5', runId: 'run-later' } }
+  check((await api(`/api/projects/${base.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: designedBase, expectedProject: storedBase }) })).status === 200, 'the base designs its first page after the video was made')
+  const videoBefore = (await api(`/api/projects/${videoId}`)).body.project
+  const otherBefore = (await overview(videoId)).scenes[1].view
+  const reported = (await overview(videoId)).scenes[0].reference
+  check(reported?.newer?.kind === 'designed' && reported.newer.svg.includes('obj-gpu-17') && reported.kind === 'designed' && !reported.adopted, `the video's overview reports the base's newer page for that scene (${JSON.stringify(reported && { kind: reported.kind, revision: reported.revision, newer: reported.newer && { kind: reported.newer.kind, revision: reported.newer.revision, by: reported.newer.by } })})`)
+  await evaluate(`() => { window.dispatchEvent(new Event('focus')); return true }`)
+  await selectScene(0)
+  const offered = await waitFor(`() => { const notice = document.querySelector('.scene-review.is-expanded [data-review-reference="newer"]'); return notice ? { text: notice.textContent, chips: [...document.querySelectorAll('.scene-review.is-expanded .review-strip .review-chip')].map(chip => chip.textContent) } : null }`, 60)
+  check(/The base has a newer designed slide for this scene, by Claude Code/.test(offered?.text || '') && offered.chips.includes('Page: designed slide') && offered.chips.includes('Base has a newer designed slide'), `the scene is offered the base's newer designed slide (${JSON.stringify(offered)})`)
+  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="compare-reference:"]').click(); return true }`)
+  const comparedStage = await waitFor(`() => { const active = document.querySelector('.scene-stage-modes .is-active'); const svg = document.querySelector('#scene-stage-reference svg'); return active?.dataset.stageMode === 'base' ? { mode: active.textContent, gpu: Boolean(svg?.querySelector('[data-object-id="obj-gpu-17"]')), note: document.getElementById('scene-stage-note').textContent } : null }`, 20)
+  check(comparedStage?.mode === "Base's designed slide" && comparedStage.gpu && /^The base's designed slide for this scene, by Claude Code/.test(comparedStage.note), `the stage compares the base's designed slide (${JSON.stringify(comparedStage)})`)
+  await shot('05-compare-base-slide')
+  check(!(await api(`/api/projects/${videoId}`)).body.project.notebook.content.filter(node => node.type === 'scene')[0].attrs.reference, 'comparing takes nothing')
+  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="adopt-reference:"]').click(); return true }`)
+  const adoptedScene = await until(async () => { const scene = (await overview(videoId)).scenes[0]; return scene.reference?.adopted ? scene : null }, 60)
+  check(adoptedScene?.reference?.kind === 'designed' && adoptedScene.reference.newer === null && adoptedScene.view.state === 'stale' && /the scene's page reference changed/.test(adoptedScene.view.staleBecause || ''), `the scene takes the designed slide, and its plan made from the old page reads as out of date (${JSON.stringify({ kind: adoptedScene?.reference?.kind, adopted: adoptedScene?.reference?.adopted, state: adoptedScene?.view.state, why: adoptedScene?.view.staleBecause })})`)
+  const stageNow = await waitFor(`() => { const svg = document.querySelector('#scene-stage-reference svg'); const active = document.querySelector('.scene-stage-modes .is-active'); return svg?.querySelector('[data-object-id="obj-gpu-17"]') && active?.dataset.stageMode === 'reference' ? { mode: active.textContent, offersBase: !document.querySelector('[data-stage-mode="base"]').hidden, note: document.getElementById('scene-stage-note').textContent, notice: Boolean(document.querySelector('.scene-review.is-expanded [data-review-reference]')) } : null }`, 30)
+  check(stageNow?.mode === 'Designed slide' && stageNow.offersBase === false && /adopted from the base/.test(stageNow.note) && !stageNow.notice, `the stage shows the scene's adopted designed slide, and nothing more is offered (${JSON.stringify(stageNow)})`)
+  await shot('06-adopted-designed-slide')
+  const otherAfter = (await overview(videoId)).scenes[1].view
+  check(otherAfter.reviewed?.id === otherBefore.reviewed?.id && otherAfter.current?.id === otherBefore.current?.id && otherAfter.state === otherBefore.state && !otherAfter.staleBecause, `the other scene's approval and plans are untouched (${otherAfter.state})`)
+  const videoAfter = (await api(`/api/projects/${videoId}`)).body.project
+  check(JSON.stringify(Object.keys(videoAfter.recordedBlocks || {}).sort()) === JSON.stringify(Object.keys(videoBefore.recordedBlocks || {}).sort()) && JSON.stringify(videoAfter.recordedBlocks || {}) === JSON.stringify(videoBefore.recordedBlocks || {}), 'recordings are untouched')
+  // The next plan of this scene is handed the designed slide and its artwork.
+  const replan = (await post(`/api/planning/${videoId}/scenes/${adoptedScene.id}`)).body.record
+  const replanPacket = (await api(`/api/planning/records/${replan.id}/packet`)).body
+  const replanCast = JSON.parse(replanPacket.files['packet/VISUAL_CAST.json'])
+  const gpuEntry = replanCast.entries.find(entry => entry.objectId === 'obj-gpu-17')
+  check(replanPacket.files['packet/references/page.svg'].includes('data-object-id="obj-gpu-17"') && Boolean(gpuEntry) && /~/.test(replanCast.cast || ''), `the planning packet carries the designed slide and its GPU artwork by object id, from the cast revision that includes it (${JSON.stringify(gpuEntry && { label: gpuEntry.label, objectId: gpuEntry.objectId, page: gpuEntry.page, node: gpuEntry.node })}; cast ${replanCast.cast})`)
+  check(replan.inputs.reference === adoptedScene.reference.revision, 'the new plan pins the adopted page')
 } catch (error) {
   check(false, `run: ${error instanceof Error ? error.stack || error.message : error}`)
 } finally {

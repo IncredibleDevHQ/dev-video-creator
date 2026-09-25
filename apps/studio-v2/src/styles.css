@@ -2324,6 +2324,10 @@ button.se-state:hover { filter: brightness(.97); }
 .review-chip.is-busy { background: #ede9fe; color: #5b21b6; }
 .review-chip.is-warn { background: #fef3c7; color: #92400e; }
 .review-chip.is-bad { background: #fee2e2; color: #991b1b; }
+/* F1: the base's newer page, offered to the scene. */
+.review-reference { display: grid; gap: 6px; margin: 0; padding: 10px 12px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; color: #1e3a8a; }
+.review-reference p { margin: 0; }
+.review-reference .review-muted { color: #3b5b8c; }
 .review-panel { display: grid; gap: 12px; padding: 14px 16px 16px; border: 1px solid #d4d4d8; border-radius: 12px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
 .review-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; justify-content: space-between; }
 .review-head h3 { margin: 2px 0 6px; font: 650 17px/1.25 'InterBody', Inter, sans-serif; }
