@@ -56,6 +56,7 @@ const kinds = [
   ['Run `kimi` here and choose "Trust this folder" to enable them. · error: failed to run prompt: provider.auth_error: 403 You\'ve reached your weekly (7-day) usage limit.', 'quota'],
   ["You're out of usage credits. Switch to a different model or manage credits.", 'quota'],
   ['API Error: 400 Claude Code 2.1.278 does not support this model; version 2.1.280 or newer is required.', 'model'],
+  ["There's an issue with the selected model (claude-opus-0-0). It may not exist or you may not have access to it. Run --model to pick a different model.", 'model'],
   ['Claude Code is not logged in for the command line. Open a terminal, run `claude`, then `/login` once', 'auth'],
   ['API Error: 429 Too Many Requests', 'rate-limit'],
   ['request to https://api.example failed, reason: getaddrinfo ENOTFOUND api.example', 'network'],

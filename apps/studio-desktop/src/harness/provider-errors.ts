@@ -9,7 +9,8 @@ import type { FailureCategory, RunFailure } from './types'
 const PATTERNS: Array<[FailureCategory, RegExp]> = [
   // Quota first: a provider's 403 "usage limit" is a quota, not a sign-in.
   ['quota', /usage limit|usage credits|out of (?:usage )?credits|credit balance|quota|insufficient (?:funds|credits|balance)|purchase extra usage|billing/i],
-  ['model', /does not support this model|unrecognized[_ ]model|model[_ ]not[_ ]found|invalid model|unknown model|not available (?:for|on) your (?:account|plan)|requires? (?:a )?newer version/i],
+  // Claude Code names a model it cannot use as "an issue with the selected model".
+  ['model', /does not support this model|unrecognized[_ ]model|model[_ ]not[_ ]found|invalid model|unknown model|not available (?:for|on) your (?:account|plan)|requires? (?:a )?newer version|issue with the selected model|pick a different model/i],
   ['auth', /not logged in|\/login|log ?in again|unauthori[sz]ed|authentication|invalid (?:api )?key|expired token|\b401\b|forbidden|\b403\b/i],
   ['rate-limit', /rate[ -]?limit|too many requests|\b429\b|overloaded|\b529\b|try again later/i],
   ['network', /ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|network|socket hang up|fetch failed|timed? ?out/i],
