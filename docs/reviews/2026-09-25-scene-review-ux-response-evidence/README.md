@@ -15,5 +15,8 @@ These files support the "Live check on the real harness" section of [the respons
 - `review-how-checked.png` — the scene review's Preview details for sketch 1: how it was checked, and its clock.
 - `bucket-fill-inside.png` — sketch 1 at 20.1 s ("tokens: 2"), enlarged: the level follows the bucket's walls.
 - `stage-moments.png` — sketch 2 on the Studio stage at the end of each of its seven moments.
+- `export-parity.json`, `export-vs-player-bucket.png`, `export-diff-map.png` — sketch 2 exported through the pinned producer (the Studio's export path) and compared with the pinned player's frames at 11 instants.
+  - The bucket's walls, level and tokens coincide at 0, 1 and 2 tokens.
+  - The difference map shows the only differences: text, where the exporter substituted a font for the sketch's `ui-monospace`, and colour subsampling on the thin walls.
 
 The harness's run directories, packets and the app logs stay in the local acceptance data directory. Nothing here contains credentials, private model reasoning or Claude session files.

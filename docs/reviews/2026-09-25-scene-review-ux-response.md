@@ -1,6 +1,6 @@
 # PR #16 review: what was fixed, and how it is proven
 
-Response to [the scene review, user experience and output quality review](./2026-09-25-scene-review-ux-and-output-review.md) of `claude/scene-review-loop` at `f91c0984`. That review is commit `4d36edb1` on `feat/hyperframes-markdown-mvp`. Every finding R1–R11 is fixed on the same branch, one verified commit at a time. G1 and G3 are done to the extent the review asked for "now". G2, and the production halves of G1 and G3, remain the next milestone.
+Response to [the scene review, user experience and output quality review](./2026-09-25-scene-review-ux-and-output-review.md) of `claude/scene-review-loop` at `f91c0984`. That review is commit `4d36edb1` on `feat/hyperframes-markdown-mvp`. Every finding R1–R11 is fixed on the same branch, one verified commit at a time. A second pass against each acceptance line closed four smaller gaps: the runtime pin in R2, per-line takes in R4, the first screen in R6 and exported frames in R10. G1 and G3 are done to the extent the review asked for "now". G2, and the production halves of G1 and G3, remain the next milestone.
 
 Most checks below are deterministic. They ran against the product's code, its pinned Hyperframes 0.7.106 runtime and player, headless Chrome and the local PostgreSQL + MinIO store, with the harness's own sketch from the live P0–P3 run as the fixture where one was needed. A live check on the real harness then confirmed the new gates, and found one more bug; see [Live check on the real harness](#live-check-on-the-real-harness). No acceptance video, sketch or plan was written by hand in the harness's place.
 
@@ -9,15 +9,15 @@ Most checks below are deterministic. They ran against the product's code, its pi
 | | Finding | Commit | Proven by |
 | --- | --- | --- | --- |
 | R1 | r1 showed r2's preview | `6cc64aa0` | `planning-service.test.ts` (each revision's own sketch); `scene-review-check` |
-| R2 | preview freshness ignored its other inputs | `6cc64aa0` | `planning-service.test.ts` (late and moved sketches kept as history, with what moved) |
+| R2 | preview freshness ignored its other inputs | `6cc64aa0`, `3c3277c5` | `planning-service.test.ts` (late and moved sketches kept as history, with what moved; another pinned runtime) |
 | R3 | "Preview ready" proved static validity only | `b47e0894` | `sketch-runtime.test.ts`: the review's three probes and five further cases; `plan-preview-check` in the desktop app |
-| R4 | the recording guide contradicted the approved sequence | `cc43c91f` | `planning.test.ts` (guide from the plan, take fingerprints); `scene-review-check`, `take-workflow-check`, `teleprompter-check` |
+| R4 | the recording guide contradicted the approved sequence | `cc43c91f`, `d9511795` | `planning.test.ts` (guide from the plan, whole and per-line take fingerprints); `scene-review-check` (a take flagged by the one line reworded since), `take-workflow-check`, `teleprompter-check` |
 | R5 | full screen combined two compositions and two clocks | `6ab8cdbd` | `plan-preview-check` (one composition, first frame, hold at end, full screen) |
-| R6 | implementation detail ahead of the creative decision | `8c585d30` | `scene-review-check` |
+| R6 | implementation detail ahead of the creative decision | `8c585d30`, `3afa1325` | `scene-review-check` (the first screen of a selected scene) |
 | R7 | fixed widths clipped the canvas | `1e7100e3` | browser checks at 1440, 1280, 1024 and 860 px; `scene-review-check` in the app's own window |
 | R8 | Planning workspace lost the selected scene | `aaa7994c` | `scene-review-check` (open on the reviewed scene and revision, hand back on close) |
 | R9 | browser review read as a missing harness | `aaa7994c` | `harness-choice.test.ts`; browser check (nothing queued, each control says why) |
-| R10 | the bucket's fill escaped its body | `615f82b0` | `visual-cast.test.ts` (inside at empty, half, full and 1.5×; a spilled page trimmed; a transformed level mapped); `planning-service.test.ts` (the packet carries it) |
+| R10 | the bucket's fill escaped its body | `615f82b0` | `visual-cast.test.ts` (inside at empty, half, full and 1.5×; a spilled page trimmed; a transformed level mapped); `planning-service.test.ts` (the packet carries it); the live sketch exported through the pinned producer (`export-parity.json`) |
 | R11 | the motion contradicted the steady refill | `6ccf15f6` | `planning.test.ts` (count, beat, pauses); `sketch-runtime.test.ts` (the live sketch's own timings refused; changes and pauses seen on screen) |
 
 Two further fixes:
@@ -27,7 +27,7 @@ Two further fixes:
 
 ## What changed, finding by finding
 
-**R1, R2.** The overview reports each plan revision's newest ready sketch. The review, the stage and moment seeking use the selected revision's own sketch, and never lend it another's. A revision without a sketch shows its page and says which revisions have one. A sketch counts as current only while its plan is the scene's current, fresh plan, and its theme, cast, pinned skills and plan fingerprint are unchanged. Otherwise it names what moved. A sketch whose inputs move while it is made lands as history, with a warning. A late result never replaces a newer one of its plan.
+**R1, R2.** The overview reports each plan revision's newest ready sketch. The review, the stage and moment seeking use the selected revision's own sketch, and never lend it another's. A revision without a sketch shows its page and says which revisions have one. A sketch counts as current only while its plan is the scene's current, fresh plan, and its theme, cast, pinned skills, plan fingerprint and pinned Hyperframes runtime are unchanged. Otherwise it names what moved. A sketch whose inputs move while it is made lands as history, with a warning. A late result never replaces a newer one of its plan.
 
 **R3.** After the static contract and the pinned lint, the record reads *verifying*. The exact bundle then plays through the pinned player in headless Chrome, served as the Studio serves it, with nothing else reachable. It is refused, with a reason the harness can act on, when:
 
@@ -50,11 +50,11 @@ The review's probes are the regression cases:
 
 The harness's own token-bucket sketch passes, with every one of its 18 drawn layers seen in its moments. A stub harness in the desktop app has a throwing attempt refused, then repaired. `verifying` holds the active claim (migration 013), and a check cut off by a restart fails with a retry.
 
-**R4.** The recording guide's lines are the approved plan's narration, in its order, with silent moments marked. When the notebook's script is older than the plan, the guide shows both and offers the plan's lines as the scene's script. Recording waits until then, so the teleprompter shows what the plan says. Every take stores a fingerprint of the words it was spoken against, and the plan revision. An earlier take is flagged, never relabelled. Taking the plan's own narration does not make the plan stale.
+**R4.** The recording guide's lines are the approved plan's narration, in its order, with silent moments marked. When the notebook's script is older than the plan, the guide shows both and offers the plan's lines as the scene's script. Recording waits until then, so the teleprompter shows what the plan says. Every take stores a fingerprint of the words it was spoken against, and the plan revision. An earlier take is flagged, never relabelled. It is flagged only where affected: a take also keeps each line's fingerprint (not its words). The strip reads "1 line to re-record", and the guide names and marks that line, saying the take still covers the rest. A take made before this knows only its whole script, and says so. Taking the plan's own narration does not make the plan stale.
 
 **R5.** While the stage shows a sketch, the controls that work on the notebook's own composition step back, and that composition pauses. Full screen shows only the sketch and its one transport, with the provisional label on top. The sketch starts at its first frame, paused. At the end it holds the last frame and offers Replay.
 
-**R6, G3 (now).** The review opens on what the scene explains and its moments. The sketch follows as one line, with Play. Its provisional list and the read-only moment map sit in a collapsed "Preview details and moment map", labelled as not the composition's timeline. Titles replace record ids.
+**R6, G3 (now).** The review opens on what the scene explains and its moments. The sketch follows as one line, with Play. Its provisional list and the read-only moment map sit in a collapsed "Preview details and moment map", labelled as not the composition's timeline. Titles replace record ids. The notebook's older dialogue lines stay a glance while the scene is under review. The first screen of a selected scene therefore holds its title, what it explains, its first moment, the stage and the next action; `scene-review-check` measures that.
 
 **G1 (now).** Production is a collapsed "Production — not connected yet" section. It states that this build stops at approved plans and sketches, and that approving a plan never starts production. In video notebooks, the older Build reads "Build whole notebook" and says it does not use approved plans.
 
@@ -66,7 +66,9 @@ The harness's own token-bucket sketch passes, with every one of its 18 drawn lay
 
 **R10.** The fill spilled because the page drew the bucket's level wider than its trapezoid's bottom, and the sketch reused that geometry. Where a rig has a shell and a level, the visual-cast extractor first checks the faithful lift against the page. It then clips the level to the shell's closed outline, mapped into the level's own coordinates through any transforms between them.
 
-The extractor draws the level alone at empty, half and full, and at 1.5× size. It counts the level's pixels outside the shell's own painted inside, which is independent of the clip. A full level must cover that inside. The rig records the clip, the extent to animate a level within, what the clip trimmed from the page and each state. `VISUAL_CAST.json` and `parts.json` hand this to the harness, and the sketch contract says to keep the clip. A clip in the level's own coordinates holds through resize and camera transforms, and the exporter renders in the same Chrome. The extractor version is 2, so every base's cast is extracted again, once.
+The extractor draws the level alone at empty, half and full, and at 1.5× size. It counts the level's pixels outside the shell's own painted inside, which is independent of the clip. A full level must cover that inside. The rig records the clip, the extent to animate a level within, what the clip trimmed from the page and each state. `VISUAL_CAST.json` and `parts.json` hand this to the harness, and the sketch contract says to keep the clip. A clip in the level's own coordinates holds through resize and camera transforms. The extractor version is 2, so every base's cast is extracted again, once.
+
+The live sketch (below) was also exported through the pinned producer, as the Studio exports a notebook: 795 frames, no warnings. Its frames were compared with the pinned player's at 11 instants. The bucket's walls, level and tokens coincide, with the level inside the walls at 0, 1 and 2 tokens in both. The only differences are text, where the exporter substituted a font for the sketch's `ui-monospace`, and colour subsampling on the thin walls (`export-vs-player-bucket.png`, `export-diff-map.png`).
 
 **R11.** A plan's ledger can declare a steady rate (a refill, a leak) and tag the changes it makes. Where a plan counts, its sketch declares a schedule:
 
@@ -93,8 +95,8 @@ The live sketch's own timings are refused, with the plan's refill declared as a 
 
 ## Verification
 
-- Unit: studio-v2, 268 tests in 29 files, all passing. They include `sketch-runtime.test.ts` (8, in headless Chrome) and `visual-cast.test.ts` (9). `planning-service.test.ts` (18) and `visual-cast.test.ts` pass on the file store and on PostgreSQL.
-- Desktop checks on the isolated store, each passing: `plan-preview-check` 35/35, `planning-check` 53/53, `scene-review-check` 37/37, `visual-cast-check` 10/10. The earlier slices also passed `take-workflow-check`, `presenter-take-check`, `rehearsal-check` and `teleprompter-check`.
+- Unit: studio-v2, 269 tests in 29 files, all passing. They include `sketch-runtime.test.ts` (8, in headless Chrome) and `visual-cast.test.ts` (9). `planning-service.test.ts` (18) and `visual-cast.test.ts` pass on the file store and on PostgreSQL.
+- Desktop checks on the isolated store, each passing: `plan-preview-check` 35/35, `planning-check` 53/53, `scene-review-check` 44/44, `visual-cast-check` 10/10, `take-workflow-check` 23/23, `presenter-take-check` 10/10, `teleprompter-check` 7/7. The earlier slices also passed `take-workflow-check`, `presenter-take-check`, `rehearsal-check` and `teleprompter-check`.
 - Release suite (`apps/studio-desktop/scripts/release-check.mjs`, on the isolated store after both builds): 50 of 51 pass. The one failure is `skill-references-check`. It reports the same 132 broken links as before this work, all inside the vendored Hyperframes skills, none in a file this work touched.
 
 ## Live check on the real harness
@@ -132,5 +134,5 @@ After the fix, the harness sketched r5 again:
 
 ## Not established
 
-- **No production or export.** A preview is not a produced scene, and there is still no narrated MP4 from this path (G1).
+- **No production or export.** A preview is not a produced scene, and there is still no narrated MP4 from this path (G1). The export of a sketch above was a test of the exporter. It shows one thing production must add: ship the fonts a scene names, as the notebook export already does. The exporter substituted the sketch's `ui-monospace`.
 - **One scene, one harness.** The live check covered the token-bucket scene on Claude Code with Opus 5.5. Kimi and Codex have not made a sketch against the new contracts.
