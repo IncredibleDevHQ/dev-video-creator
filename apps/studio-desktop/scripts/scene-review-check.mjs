@@ -189,7 +189,7 @@ const until = async (test, seconds = 90) => {
 const shot = async name => {
   if (!process.env.SCENE_REVIEW_SHOTS) return
   // The selected scene at the top of the notebook, its review below it.
-  await evaluate(`() => { const node = document.querySelector('#editor .tiptap > .selected-block'); if (node) node.scrollIntoView({ block: 'start' }); return true }`).catch(() => {})
+  await evaluate(`() => { const node = document.querySelector('.scene-review.is-expanded') || document.querySelector('#editor .tiptap > .selected-block'); if (node) node.scrollIntoView({ block: 'start' }); return true }`).catch(() => {})
   await sleep(900)
   const response = await fetch(`${origin}/__capture`).catch(() => null)
   if (!response?.ok) return
@@ -259,7 +259,23 @@ try {
   // ——— The concurrency scene, opened beside its stage ———
   await selectScene(1)
   const opened = await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-panel') && !document.getElementById('scene-stage').hidden ? true : null`)
-  check(Boolean(opened), 'selecting a scene opens its review below the block, beside the stage')
+  check(Boolean(opened), 'selecting a scene opens its review beside the stage')
+  // The plan leads (F7): the review sits above the block, and the block's
+  // inherited dialogue folds to one line — one header, one status line.
+  const order = await evaluate(`() => {
+    const block = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]
+    const review = document.querySelector('.scene-review.is-expanded')
+    const visible = element => Boolean(element) && element.getBoundingClientRect().height > 0
+    return {
+      reviewFirst: Boolean(review.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING),
+      folded: !visible(block.querySelector('.block-dialogue')) && !visible(block.querySelector('.scene-poster')) && visible(block.querySelector('.scene-source-toggle')),
+      toggle: block.querySelector('.scene-source-toggle')?.innerText || '',
+      blockHeight: Math.round(block.getBoundingClientRect().height),
+      strips: review.querySelectorAll('.review-strip').length,
+      inline: Boolean(review.querySelector('.review-head .review-strip.is-inline')),
+    }
+  }`)
+  check(order.reviewFirst && order.folded && order.toggle === 'Edit source dialogue' && order.blockHeight < 80 && order.strips === 1 && order.inline, `the review leads, above its block folded to one line with its one status line in the header (${JSON.stringify(order)})`)
   const stage = await evaluate(`() => ({ mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, pool: Boolean(document.querySelector('#scene-stage-reference svg [id="s06-node-concurrency-cap"]')) })`)
   check(stage.mode === 'Wireframe reference' && /not a preview of its motion/.test(stage.note) && stage.pool, `the stage starts on the page, labelled as a reference, not a preview (${JSON.stringify(stage)})`)
   const beforePlan = await reviewOf(1)
@@ -271,19 +287,52 @@ try {
   const state = await reviewOf(1)
   check(Boolean(review) && state.question === 'What does this limiter do?' && state.moments.length === 3 && state.cast.length === 2 && state.cast.every(item => item.image), `the review shows the plan, its moments and the cast it reuses (${JSON.stringify(state)})`)
   check(state.strip.includes(`Plan: Candidate r${planned.revision}`) && state.strip.includes('Recording: guide ready · no take yet'), `the strip reads the candidate and the recording state (${state.strip})`)
-  // The first screen of a selected scene (R6): its title, what it explains,
-  // its first moment, the stage and the next action, without scrolling past
-  // the notebook's older lines.
+  // The first screen of a selected scene (R6, F7), reached as the review
+  // reached it: another scene selected, then this one picked from the rail
+  // in the 1440 × 900 window. Its title, what it explains, its first moment,
+  // its revision, the preview and approve actions and the stage show
+  // without scrolling, and nothing inherited stands before them.
+  await selectScene(0)
+  await sleep(400)
   const firstScreen = await evaluate(`async () => {
-    document.querySelector('#editor .tiptap > .selected-block').scrollIntoView({ block: 'start' })
-    await new Promise(resolve => setTimeout(resolve, 600))
+    const title = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1].querySelector('.scene-title').textContent
+    const chip = [...document.querySelectorAll('#notebook-timeline .notebook-timeline-chip')].find(entry => entry.title.endsWith(title))
+    chip.click()
+    await new Promise(resolve => setTimeout(resolve, 900))
     const top = document.querySelector('.studio-workspace').getBoundingClientRect().top
     const bottom = Math.min(innerHeight, document.getElementById('notebook-timeline').getBoundingClientRect().top)
     const seen = element => { const box = element?.getBoundingClientRect(); return Boolean(box) && box.height > 0 && box.top >= top - 1 && box.bottom <= bottom + 1 }
     const review = document.querySelector('.scene-review.is-expanded')
-    return { height: Math.round(bottom - top), title: seen(review.querySelector('.review-head h3')), question: seen(review.querySelector('.review-question')), moment: seen(review.querySelector('.review-moment-head')), action: seen(review.querySelector('[data-focus^="approve:"]')), stage: seen(document.getElementById('scene-stage')) }
+    const block = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]
+    return {
+      window: outerWidth + '×' + outerHeight,
+      height: Math.round(bottom - top),
+      title: seen(review.querySelector('.review-head h3')),
+      status: seen(review.querySelector('.review-head .review-strip')),
+      question: seen(review.querySelector('.review-question')),
+      moment: seen(review.querySelector('.review-moment-head')),
+      revision: seen(review.querySelector('.review-revision')),
+      preview: seen(review.querySelector('[data-focus^="preview:"]')),
+      action: seen(review.querySelector('[data-focus^="approve:"]')),
+      stage: seen(document.getElementById('scene-stage')),
+      nothingBefore: review.getBoundingClientRect().top >= top - 1 && review.getBoundingClientRect().top - top < 40 && !(block.getBoundingClientRect().bottom <= review.getBoundingClientRect().top),
+    }
   }`)
-  check(Object.entries(firstScreen).every(([key, value]) => key === 'height' || value), `the first screen of the scene shows its title, what it explains, a moment, the stage and the next action (${JSON.stringify(firstScreen)})`)
+  check(firstScreen.window === '1440×900' && Object.entries(firstScreen).every(([key, value]) => key === 'height' || key === 'window' || value), `picked from the rail, the scene's first screen shows its title, status, what it explains, a moment, its revision, preview and approve, and the stage — the plan first (${JSON.stringify(firstScreen)})`)
+  await shot('00-first-screen')
+  // The inherited dialogue is one click away, and folds again.
+  const unfolded = await evaluate(`async () => {
+    const block = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]
+    block.querySelector('.scene-source-toggle').click()
+    await new Promise(resolve => setTimeout(resolve, 300))
+    const again = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]
+    const open = { dialogue: again.querySelector('.block-dialogue').getBoundingClientRect().height > 0, edit: again.querySelector('[data-slide-action="edit"]').getBoundingClientRect().height > 0, toggle: again.querySelector('.scene-source-toggle').innerText }
+    again.querySelector('.scene-source-toggle').click()
+    await new Promise(resolve => setTimeout(resolve, 300))
+    const last = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]
+    return { ...open, foldedAgain: last.querySelector('.block-dialogue').getBoundingClientRect().height === 0, reviewKept: Boolean(document.querySelector('.scene-review.is-expanded .review-question')) }
+  }`)
+  check(unfolded.dialogue && unfolded.edit && unfolded.toggle === 'Fold source dialogue' && unfolded.foldedAgain && unfolded.reviewKept, `Edit source dialogue unfolds the inherited dialogue and its editor, and folds it again (${JSON.stringify(unfolded)})`)
   // A moment points at what it is about on the page.
   await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[1].click(); return true }`)
   const highlight = await waitFor(`() => { const hits = [...document.querySelectorAll('#scene-stage-reference .stage-hit')].map(element => element.id); return hits.length ? { hits, note: document.getElementById('scene-stage-note').textContent } : null }`, 10)

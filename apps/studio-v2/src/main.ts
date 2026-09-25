@@ -3137,11 +3137,14 @@ const buildExplanationDecorations = (state: EditorState) => {
 }
 
 // ——— Scene review in a video notebook (P2) ———
-// Every scene block carries its review strip; the selected scene opens its
-// review below the block, beside the stage. The widgets are keyed by what
-// they show, so a redraw that changes nothing keeps the same DOM.
+// Every scene block carries its review strip; the selected scene's review
+// leads, above its block and beside the stage, and the block's inherited
+// dialogue folds into one line until asked for (F7). The widgets are keyed
+// by what they show, so a redraw that changes nothing keeps the same DOM.
 let sceneReview: ReturnType<typeof createSceneReview> | null = null
 let reviewSelectedScene = ''
+// The selected scene whose inherited dialogue is unfolded, if any.
+let sceneSourceOpen = ''
 // The scene the stage stepped aside for, so its take can be recorded on the
 // composition the recording controls operate on.
 let sceneStageAsideFor = ''
@@ -3163,14 +3166,17 @@ const SceneReviewWidgets = Extension.create({
               const id = String(node.attrs.id || '')
               if (!id || !review.has(id)) return
               const expanded = id === reviewSelectedScene
+              // The selected scene's review sits before its block, after
+              // anything the block above left at that position.
               decorations.push(
-                Decoration.widget(offset + node.nodeSize, () => review.widget(id, expanded), {
+                Decoration.widget(expanded ? offset : offset + node.nodeSize, () => review.widget(id, expanded), {
                   key: `scene-review:${id}:${review.signature(id, expanded)}`,
-                  side: -1,
+                  side: expanded ? 2 : -1,
                   stopEvent: () => true,
                   ignoreSelection: true,
                 }),
               )
+              if (expanded) decorations.push(Decoration.node(offset, offset + node.nodeSize, { class: `is-review-source${sceneSourceOpen === id ? ' is-source-open' : ''}` }))
             })
             return DecorationSet.create(state.doc, decorations)
           },
@@ -3973,7 +3979,7 @@ const renderNotebookTimeline = () => {
       // Focusing the editor would drop the caret after atom nodes and
       // re-select the following block, so only select and scroll.
       selectNode(scene.id, false)
-      document.getElementById(scene.id)?.scrollIntoView({ block: 'center' })
+      revealBlock(scene.id)
     })
     makeChipReorderable(chip, scene.id)
     track.append(chip)
@@ -4196,13 +4202,14 @@ const renderSceneRail = () => {
 const positionInlinePreview = () => {
   const selectedNode = document.getElementById(selectedNodeId)
   if (!selectedNode) return
-  const layoutTop = editorLayout.getBoundingClientRect().top
-  const selectedTop = selectedNode.getBoundingClientRect().top
-  let offset = Math.max(0, selectedTop - layoutTop)
-  // While the selected scene's review is open below its block, the stage
-  // stays in view beside it — the moments being reviewed point at it — and
-  // never runs past the review's end.
+  // The selected scene's review leads its block (F7): the stage lines up
+  // with the review, where the plan it shows begins.
   const review = document.querySelector<HTMLElement>(`.scene-review.is-expanded[data-review-scene="${CSS.escape(selectedNodeId)}"]`)
+  const layoutTop = editorLayout.getBoundingClientRect().top
+  const selectedTop = (review || selectedNode).getBoundingClientRect().top
+  let offset = Math.max(0, selectedTop - layoutTop)
+  // While the review is open, the stage stays in view beside it — the
+  // moments being reviewed point at it — and never runs past its end.
   const following = Boolean(review && !document.getElementById('scene-stage')?.hidden)
   if (review && following) {
     const viewportTop = (editorLayout.closest('.studio-workspace') || document.documentElement).getBoundingClientRect().top
@@ -4831,6 +4838,15 @@ const updateInspector = () => {
       : 'Choose takes and transitions, then publish the MP4'
 }
 
+// Brings a selected block into view. A scene under review shows its review
+// from the top, since the plan leads (F7); any other block is centred.
+const revealBlock = (nodeId: string) => {
+  window.requestAnimationFrame(() => {
+    const review = nodeId === reviewSelectedScene ? document.querySelector<HTMLElement>(`.scene-review.is-expanded[data-review-scene="${CSS.escape(nodeId)}"]`) : null
+    if (review) review.scrollIntoView({ block: 'start' })
+    else document.getElementById(nodeId)?.scrollIntoView({ block: 'center' })
+  })
+}
 const selectNode = (nodeId: string, focusEditor: boolean) => {
   if (selectedNodeId !== nodeId) {
     stopScreenPlayback()
@@ -8128,6 +8144,11 @@ audioMode.addEventListener('change', () => {
   cameraDialog.close()
   if (nodeId) {
     selectNode(nodeId, true)
+    // Under review, the words are in the folded source dialogue: open it.
+    if (nodeId === reviewSelectedScene) {
+      sceneSourceOpen = nodeId
+      refreshSceneReview()
+    }
     document.getElementById(nodeId)?.scrollIntoView({ block: 'center' })
   }
 })
@@ -14685,6 +14706,15 @@ assistCancel.addEventListener('click', () => {
     syncCanvasExplainerStepper()
   }
 })
+// A scene under review folds its inherited dialogue; this unfolds it (F7).
+document.addEventListener('click', event => {
+  const toggle = (event.target as HTMLElement).closest<HTMLElement>('[data-scene-source]')
+  const block = toggle?.closest<HTMLElement>('.notebook-scene-block')
+  if (!toggle || !block?.id) return
+  event.preventDefault()
+  sceneSourceOpen = sceneSourceOpen === block.id ? '' : block.id
+  refreshSceneReview()
+})
 document.addEventListener('click', event => {
   const action = (event.target as HTMLElement).closest<HTMLElement>('[data-slide-action]')
   if (!action) return
@@ -17238,6 +17268,7 @@ onSceneSelected = nodeId => {
   const next = sceneReview?.has(nodeId) ? nodeId : ''
   if (next === reviewSelectedScene) return
   reviewSelectedScene = next
+  if (sceneSourceOpen !== next) sceneSourceOpen = ''
   if (sceneStageAsideFor !== next) sceneStageAsideFor = ''
   sceneStageTargets = null
   refreshSceneReview()
@@ -17275,10 +17306,10 @@ const handBackFromWorkspace = (selection: { sceneId: string; revision: string; m
     // notebook back on the block that text was in.
     window.getSelection()?.removeAllRanges()
     selectNode(selection.sceneId, true)
-    document.getElementById(selection.sceneId)?.scrollIntoView({ block: 'start' })
   }
   refreshSceneReview()
   renderSceneStage()
+  revealBlock(selection.sceneId)
 }
 ;($('#planning-dialog') as HTMLDialogElement).addEventListener('close', () => {
   handBackFromWorkspace(planningWorkspace.selection())

@@ -231,6 +231,15 @@ export const SceneBlock = Node.create({
       [
         'div',
         { class: 'scene-head' },
+        // Under review in a video notebook (F7), the block folds to this one
+        // line below the plan: the inherited dialogue, and a way to edit it.
+        ['span', { class: 'scene-source-summary' }, ['span', { class: 'scene-source-label' }, 'Source dialogue'], ` ${dialogueCaption(HTMLAttributes as Record<string, unknown>)}`],
+        [
+          'button',
+          { type: 'button', class: 'scene-source-toggle', 'data-scene-source': 'toggle' },
+          ['span', { class: 'scene-source-when-folded' }, 'Edit source dialogue'],
+          ['span', { class: 'scene-source-when-open' }, 'Fold source dialogue'],
+        ],
         ['span', { class: 'scene-badge' }, 'SCENE'],
         ['strong', { class: 'scene-title' }, title ? String(title) : 'Scene'],
         ['span', { class: `scene-arc scene-arc-${role}` }, role],

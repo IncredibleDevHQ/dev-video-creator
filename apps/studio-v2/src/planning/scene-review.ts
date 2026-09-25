@@ -280,8 +280,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return chip(`Preview: ${preview.state === 'ready' ? (preview.stale ? 'out of date' : 'ready') : preview.state === 'building' ? (preview.checking ? 'checking…' : 'building…') : 'failed'}`, preview.state === 'ready' && !preview.stale ? 'good' : preview.state === 'failed' ? 'bad' : preview.state === 'building' ? 'busy' : 'warn')
   }
 
-  // The compact strip every scene block carries.
-  const strip = (scene: Scene, expanded: boolean) => {
+  // The compact strip every other scene block carries; inline, the selected
+  // scene's one status line under its title (F7).
+  const strip = (scene: Scene, inline: boolean) => {
     const cast = (overview?.visualCast?.entries || []).filter(entry => scene.originScenes.includes(entry.page) && entry.verification === 'verified')
     const thumbs = h('span', { class: 'review-strip-cast', title: cast.map(entry => entry.label).join(', ') })
     for (const entry of cast.slice(0, 6)) {
@@ -292,14 +293,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
     if (cast.length > 6) thumbs.append(h('small', { text: `+${cast.length - 6}` }))
     return h(
       'div',
-      { class: 'review-strip' },
-      h('span', { class: 'review-strip-label', text: 'Scene review' }),
+      { class: `review-strip${inline ? ' is-inline' : ''}` },
+      inline ? null : h('span', { class: 'review-strip-label', text: 'Scene review' }),
       planState(scene),
       recordingState(scene),
       previewChip(scene),
       chip('Output: not produced'),
       cast.length ? thumbs : null,
-      h('span', { class: 'review-strip-open', text: expanded ? 'Selected — reviewing below' : 'Select the scene to review it' }),
+      inline ? null : h('span', { class: 'review-strip-open', text: 'Select the scene to review it' }),
     )
   }
 
@@ -598,9 +599,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
       })
       revisions.append(button)
     }
+    // One header for the scene (F7): its title, where it stands in one
+    // line, its revisions and what to do next.
     root.append(
       h('header', { class: 'review-head' },
-        h('div', {}, h('span', { class: 'review-eyebrow', text: 'Scene review' }), h('h3', { text: scene.title || scene.id }), revisions),
+        h('div', { class: 'review-head-main' }, h('span', { class: 'review-eyebrow', text: `Scene ${scene.index + 1} · review` }), h('h3', { text: scene.title || scene.id }), strip(scene, true), revisions),
         actions,
       ),
     )
@@ -613,6 +616,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
     if (view.latest?.status === 'failed') root.append(h('p', { class: 'review-error', text: `Revision ${view.latest.revision} failed: ${view.latest.error?.message || 'no reason given'}${view.reviewed ? ` — the approved plan (r${view.reviewed.revision}) is unchanged` : ''}` }))
     if (record && record.id === view.current?.id && view.staleBecause) root.append(h('p', { class: 'review-warn', text: `Stale — ${view.staleBecause}. Revise to plan from the current inputs.` }))
     if (!plan) {
+      // Before a plan, what the scene's pages were made to teach.
+      const objectives = (overview?.basePages || []).filter(page => scene.originScenes.includes(page.scene) && page.objective).map(page => page.objective)
+      if (objectives.length) root.append(h('div', { class: 'review-objective' }, h('h4', { text: 'What it should teach' }), ...objectives.map(text => h('p', { class: 'review-question', text }))))
       root.append(h('p', { class: 'review-muted', text: view.state === 'needs-brief' ? 'The video\'s explanation brief comes first — prepare it in the planning workspace.' : view.state === 'preparing' ? 'The explanation brief is being prepared; this scene can be planned once it is ready.' : 'No plan yet. Add direction below if you want, then plan the scene.' }))
     } else {
       const ledger = plan.ledger
@@ -667,13 +673,13 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return root
   }
 
-  // One widget per scene block: the strip, and the review when selected.
+  // One widget per scene block: the strip, or the review when selected —
+  // which then leads, above the block it reviews (F7).
   const widget = (sceneId: string, expanded: boolean) => {
     const scene = sceneOf(sceneId)
     const element = h('div', { class: `scene-review${expanded ? ' is-expanded' : ''}`, contenteditable: 'false', 'data-review-scene': sceneId })
     if (!scene) return element
-    element.append(strip(scene, expanded))
-    if (expanded) element.append(panel(scene))
+    element.append(expanded ? panel(scene) : strip(scene, false))
     return element
   }
 

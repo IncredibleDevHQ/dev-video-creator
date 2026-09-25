@@ -2294,7 +2294,9 @@ button.se-state:hover { filter: brightness(.97); }
 .review-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fbfbfa; }
 .review-strip-label { font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; margin-right: 2px; }
 .review-strip-open { margin-left: auto; font-size: 11px; color: #a1a1aa; }
-.scene-review.is-expanded .review-strip { border-color: #86efac; background: #f0fdf4; }
+/* The selected scene's status: one line under its title (F7). */
+.review-strip.is-inline { padding: 0; border: 0; background: transparent; margin: 0 0 6px; }
+.scene-review.is-expanded { scroll-margin-top: 12px; }
 .review-strip-cast { display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px; border-radius: 6px; background: #0f0d18; }
 .review-strip-cast img { width: 26px; height: 22px; object-fit: contain; }
 .review-strip-cast small { color: #d4d4d8; font-size: 10px; padding: 0 3px; }
@@ -2421,6 +2423,19 @@ body.is-video-notebook .block-dialogue-edit { border-color: #d4d4d8; background:
    review (R6): the review below carries the plan and its recording guide,
    and it opens in the first screen. Edit dialogue & motion shows them all. */
 body.is-video-notebook .notebook-scene-block .block-dialogue-windows, body.is-video-notebook .notebook-scene-block .block-dialogue-draft { max-height: 6.6em; overflow: hidden; mask-image: linear-gradient(#000 60%, transparent); }
+/* Under review, the plan leads (F7): the scene's block folds to one line
+   below it — its inherited dialogue and a way to edit it — until unfolded. */
+.scene-source-summary, .scene-source-toggle, .scene-source-when-open { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source .scene-source-toggle { display: inline-flex; align-items: center; min-height: 28px; padding: 0 11px; border: 1px solid #d4d4d8; border-radius: 6px; background: white; color: #18181b; font-size: 11px; font-weight: 700; cursor: pointer; }
+body.is-video-notebook .notebook-scene-block.is-review-source .scene-source-toggle:hover { background: #f4f4f5; }
+body.is-video-notebook .notebook-scene-block.is-source-open .scene-source-when-open { display: inline; }
+body.is-video-notebook .notebook-scene-block.is-source-open .scene-source-when-folded { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) > :not(.scene-head) { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) { min-height: 0; border: 0; background: transparent; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) .scene-head > :not(.scene-source-summary):not(.scene-source-toggle) { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) .scene-head { border-style: dashed; background: #fafafa; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) .scene-source-summary { display: block; flex: 1 1 auto; min-width: 0; color: #52525b; font-size: 12px; }
+.scene-source-label { font-weight: 700; color: #3f3f46; }
 /* The plan preview on the stage (P3): the sketch, a transport, and the
    moments it declared — estimated, and labelled as a sketch. */
 .scene-stage-preview { position: absolute; inset: 0; }
