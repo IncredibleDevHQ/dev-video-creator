@@ -517,8 +517,10 @@ try {
   const afterPreview = (await sceneOf(videoId, sceneA.id))?.preview
   check(afterPreview?.ready?.current === true, 'the preview of the approved plan is still there and current')
   await selectScene(sceneA.id)
-  const strips = await waitFor(`() => { const a = [...document.querySelectorAll('.scene-review[data-review-scene="${sceneA.id}"] .review-chip')].map(chip => chip.textContent); const b = [...document.querySelectorAll('.scene-review[data-review-scene="${sceneB.id}"] .review-chip')].map(chip => chip.textContent); return a.some(chip => chip.startsWith('Plan:')) && b.some(chip => chip.startsWith('Plan:')) ? { a, b } : null }`, 60)
-  check(strips?.a?.includes(`Plan: Approved r${revised?.revision}`) && strips?.b?.includes(`Plan: Candidate r${planned?.b?.revision}`), `the notebook blocks read as they were left (${JSON.stringify(strips)})`)
+  // The selected scene says where its plan stands in its revision control
+  // (F6 of the Perplexity review); the other scene's strip in its chip.
+  const strips = await waitFor(`() => { const a = [...document.querySelectorAll('.scene-review[data-review-scene="${sceneA.id}"] .review-revision')].map(button => button.textContent); const b = [...document.querySelectorAll('.scene-review[data-review-scene="${sceneB.id}"] .review-chip')].map(chip => chip.textContent); return a.length && b.some(chip => chip.startsWith('Plan:')) ? { a, b } : null }`, 60)
+  check(strips?.a?.includes(`r${revised?.revision} approved`) && strips?.b?.includes(`Plan: Candidate r${planned?.b?.revision}`), `the notebook blocks read as they were left (${JSON.stringify(strips)})`)
   await shot('16-after-restart-approved', scrollToScene(sceneA.id))
   await selectScene(sceneB.id)
   await waitFor(`() => ${inReview(sceneB.id, '.review-question')} ? true : null`, 30)

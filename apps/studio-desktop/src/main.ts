@@ -231,6 +231,21 @@ const mcpPreHandler = async (
     }
     return true
   }
+  // POST /__window {width, height} — the same TEST HOOK gate: sizes the main
+  // window, for check scripts that read a layout at a given window size.
+  if (url.pathname === '/__window' && request.method === 'POST' && process.env.STUDIO_ENABLE_TEST_HOOKS === '1') {
+    const chunks: Buffer[] = []
+    for await (const chunk of request) chunks.push(chunk as Buffer)
+    response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      response.end(JSON.stringify({ ok: false, error: 'no main window' }))
+      return true
+    }
+    const { width, height } = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as { width?: number; height?: number }
+    if (width && height) mainWindow.setSize(Math.round(width), Math.round(height))
+    response.end(JSON.stringify({ ok: true, size: mainWindow.getSize(), content: mainWindow.getContentSize() }))
+    return true
+  }
   // GET /__capture — the same TEST HOOK gate: a PNG of the main window, for
   // check scripts that record what the creator saw.
   if (url.pathname === '/__capture' && request.method === 'GET' && process.env.STUDIO_ENABLE_TEST_HOOKS === '1') {

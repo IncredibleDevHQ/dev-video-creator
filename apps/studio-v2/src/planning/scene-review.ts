@@ -248,6 +248,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
       host.toast(`Revision ${record.revision} is this scene's approved plan. Nothing else was started.`)
     })
 
+  // Focus a review control by its key; false when it is gone or disabled.
+  const refocus = (key: string) => {
+    const again = document.querySelector<HTMLElement>(`.scene-review [data-focus="${CSS.escape(key)}"]`)
+    if (!again || (again as HTMLButtonElement).disabled) return false
+    again.focus({ preventScroll: true })
+    return document.activeElement === again
+  }
+
   // ——— Rendering ———
   const disclosure = (key: string, summary: string, content: Node, openByDefault = false) => {
     const details = h('details', { class: 'review-disclosure', 'data-review-open': key, ...((disclosures.get(key) ?? openByDefault) ? { open: true } : {}) }, h('summary', { text: summary, 'data-focus': `summary:${key}` }), content)
@@ -303,7 +311,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
   }
 
   // The compact strip every other scene block carries; inline, the selected
-  // scene's one status line under its title (F7).
+  // scene's one status line under its title (F7). Inline, the plan's state
+  // is the revision control's to say, once (F6 of the Perplexity review).
   const strip = (scene: Scene, inline: boolean) => {
     const cast = (overview?.visualCast?.entries || []).filter(entry => scene.originScenes.includes(entry.page) && entry.verification === 'verified')
     const thumbs = h('span', { class: 'review-strip-cast', title: cast.map(entry => entry.label).join(', ') })
@@ -319,7 +328,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       inline ? null : h('span', { class: 'review-strip-label', text: 'Scene review' }),
       pageState(scene),
       newerPage(scene),
-      planState(scene),
+      inline ? null : planState(scene),
       recordingState(scene),
       previewChip(scene),
       chip('Output: not produced'),
@@ -359,41 +368,73 @@ export const createSceneReview = (host: SceneReviewHost) => {
     )
   }
 
+  // The scene's moments as a compact list, a line each, with the selected
+  // one opened under its own line (F6 of the Perplexity review): the whole
+  // sequence scans at a glance, and only the moment being compared with the
+  // stage is read.
+  const pickMoment = (scene: Scene, plan: SceneTreatmentV1, id: string) => {
+    const state = uiOf(scene.id)
+    // What had the keyboard: the stage's redraw takes focus, so it is put
+    // back once the stage and the review are drawn again.
+    const focused = document.activeElement instanceof HTMLElement && document.activeElement.closest('.scene-review') ? document.activeElement.getAttribute('data-focus') || '' : ''
+    state.moment = id
+    const moment = plan.moments.find(entry => entry.id === id)
+    // On the sketch of this very revision, the stage goes to the moment.
+    const ready = previewFor(scene, shownRecord(scene))
+    const at = moment && ready ? ready.summary.moments.find(entry => entry.id === moment.id)?.start ?? null : null
+    host.selectMoment(scene.id, moment ? targetsOf(scene, plan, moment) : null, at)
+    host.refresh()
+    window.requestAnimationFrame(() => {
+      // A step at either end is disabled there: the moment's own line then
+      // keeps the keyboard.
+      if (focused && !refocus(focused)) refocus(`moment:${scene.id}:${id}`)
+      // The opened moment in view, scrolling only when it is not.
+      if (id) document.querySelector(`.scene-review [data-review-moment="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+    })
+  }
   const momentsOf = (scene: Scene, plan: SceneTreatmentV1) => {
     const state = uiOf(scene.id)
     const list = h('ol', { class: 'review-moments' })
     plan.moments.forEach((moment, index) => {
       const selected = state.moment === moment.id
-      const item = h('li', { class: `review-moment${selected ? ' is-selected' : ''}` })
-      const head = h('button', { type: 'button', class: 'review-moment-head', 'data-focus': `moment:${scene.id}:${moment.id}`, 'aria-pressed': selected ? 'true' : 'false' },
+      const head = h('button', { type: 'button', class: 'review-moment-head', 'data-focus': `moment:${scene.id}:${moment.id}`, 'aria-expanded': selected ? 'true' : 'false' },
         h('span', { class: 'review-moment-number', text: String(index + 1) }),
         h('strong', { text: moment.title }),
-        moment.estimateSeconds ? h('small', { text: `≈${moment.estimateSeconds}s est.` }) : null,
+        moment.estimateSeconds ? h('small', { text: `≈${moment.estimateSeconds}s` }) : null,
       )
-      head.addEventListener('click', () => {
-        state.moment = selected ? '' : moment.id
-        // On the sketch of this very revision, the stage goes to the moment.
-        const ready = previewFor(scene, shownRecord(scene))
-        const at = state.moment && ready ? ready.summary.moments.find(entry => entry.id === moment.id)?.start ?? null : null
-        host.selectMoment(scene.id, state.moment ? targetsOf(scene, plan, moment) : null, at)
-        host.refresh()
-      })
-      item.append(
-        head,
-        h('div', { class: 'review-moment-body' },
-          h('p', {}, h('span', { class: 'review-label', text: 'Sees ' }), moment.objects?.change || moment.observation),
-          moment.narration ? h('p', {}, h('span', { class: 'review-label', text: 'Hears ' }), moment.narration.guide || moment.narration.job) : null,
-          h('p', { class: 'review-muted' }, h('span', { class: 'review-label', text: 'Attention ' }), moment.attention),
-          h('div', { class: 'review-chips' },
-            moment.presenter ? chip(`presenter ${moment.presenter.visibility}`) : null,
-            moment.text ? chip(`text: ${moment.text.content.slice(0, 40)}`) : null,
-            moment.camera ? chip(`camera ${moment.camera.treatment}`) : null,
-          ),
-        ),
-      )
-      list.append(item)
+      head.addEventListener('click', () => pickMoment(scene, plan, selected ? '' : moment.id))
+      list.append(h('li', { class: `review-moment${selected ? ' is-selected' : ''}` }, head, selected ? momentDetail(scene, plan, index) : null))
     })
     return list
+  }
+  // The opened moment: why it is there, what changes on screen and what is
+  // said — the things to hold against the stage — and a step to its
+  // neighbours.
+  const momentDetail = (scene: Scene, plan: SceneTreatmentV1, index: number) => {
+    const moment = plan.moments[index]
+    const step = (to: number, text: string, key: string) => {
+      const button = h('button', { type: 'button', class: 'review-moment-step', 'data-focus': `${key}:${scene.id}`, text, ...(to < 0 || to >= plan.moments.length ? { disabled: true } : {}) })
+      button.addEventListener('click', () => pickMoment(scene, plan, plan.moments[to].id))
+      return button
+    }
+    const field = (label: string, text: string | null | undefined) => (text ? [h('dt', { text: label }), h('dd', { text: readable(text) })] : [])
+    const chips = [
+      moment.presenter ? chip(`presenter ${moment.presenter.visibility}`) : null,
+      moment.text ? chip(`text: ${moment.text.content}`) : null,
+      moment.camera ? chip(`camera ${moment.camera.treatment}`) : null,
+    ].filter(Boolean) as HTMLElement[]
+    return h('div', { class: 'review-moment-detail', 'data-review-moment': moment.id, role: 'region', 'aria-label': `Moment ${index + 1} of ${plan.moments.length}: ${moment.title}` },
+      h('dl', { class: 'review-moment-fields' },
+        ...field('Purpose', moment.purpose),
+        ...field('On screen', moment.objects?.change || moment.observation),
+        ...field('Narration', moment.narration ? moment.narration.guide || moment.narration.job : ''),
+        ...field('Attention', moment.attention),
+      ),
+      h('div', { class: 'review-moment-foot' },
+        chips.length ? h('div', { class: 'review-chips' }, ...chips) : h('span'),
+        h('span', { class: 'review-moment-steps' }, step(index - 1, '‹ Previous', 'moment-previous'), step(index + 1, 'Next ›', 'moment-next')),
+      ),
+    )
   }
 
   // What an earlier take still covers, and what to re-record: by line where
@@ -647,10 +688,18 @@ export const createSceneReview = (host: SceneReviewHost) => {
     previewButton.addEventListener('click', () => record && void preview(scene, record, previewOfShown))
     const workspace = h('button', { type: 'button', class: 'button ghost', text: 'Planning workspace', 'data-focus': `workspace:${scene.id}` })
     workspace.addEventListener('click', () => host.openWorkspace(scene.id, record?.id || '', state.moment))
-    actions.append(approveButton, previewButton, workspace)
-    const revisions = h('div', { class: 'review-revisions' })
-    for (const entry of recordsOf(scene.id).filter(item => item.content)) {
-      const button = h('button', { type: 'button', class: `review-revision${entry.id === record?.id ? ' is-selected' : ''}`, 'data-focus': `revision:${entry.id}`, text: `r${entry.revision} ${entry.status === 'reviewed' ? (entry.id === view.reviewed?.id ? 'approved' : 'approved earlier') : entry.status}` })
+    // One approval action, there only while the revision shown can be
+    // approved: an approved revision says so in the revision control, not
+    // again on a disabled button (F6 of the Perplexity review).
+    actions.append(...(canApprove ? [approveButton] : []), previewButton, workspace)
+    // The plan's one revision and status control: each revision with where
+    // it stands, or, before any, the plan's state.
+    const revisions = h('div', { class: 'review-revisions', role: 'group', 'aria-label': 'Plan revisions' }, h('span', { class: 'review-revisions-label', text: 'Plan' }))
+    const entries = recordsOf(scene.id).filter(item => item.content)
+    if (!entries.length) revisions.append(chip(PLANNING_STATE_LABELS[view.state], PLAN_TONES[view.state]))
+    for (const entry of entries) {
+      const status = entry.status === 'reviewed' ? (entry.id === view.reviewed?.id ? 'approved' : 'approved earlier') : entry.status
+      const button = h('button', { type: 'button', class: `review-revision${entry.id === record?.id ? ' is-selected' : ''}${entry.status === 'reviewed' && entry.id === view.reviewed?.id ? ' is-approved' : ''}`, 'data-focus': `revision:${entry.id}`, 'aria-pressed': entry.id === record?.id ? 'true' : 'false', text: `r${entry.revision} ${status}${entry.id === view.current?.id && view.staleBecause ? ' · out of date' : ''}` })
       button.addEventListener('click', () => {
         state.revision = entry.id
         state.moment = ''
@@ -660,11 +709,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
       revisions.append(button)
     }
     // One header for the scene (F7): its title, where it stands in one
-    // line, its revisions and what to do next.
+    // line, then its plan revisions and what to do next.
     root.append(
       h('header', { class: 'review-head' },
-        h('div', { class: 'review-head-main' }, h('span', { class: 'review-eyebrow', text: `Scene ${scene.index + 1} · review` }), h('h3', { text: scene.title || scene.id }), strip(scene, true), revisions),
-        actions,
+        h('div', { class: 'review-head-main' }, h('span', { class: 'review-eyebrow', text: `Scene ${scene.index + 1} · review` }), h('h3', { text: scene.title || scene.id }), strip(scene, true)),
+        h('div', { class: 'review-controls' }, revisions, actions),
       ),
     )
     if (error) root.append(h('p', { class: 'review-error', text: error }))
@@ -695,8 +744,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
           ),
           h('div', { class: 'review-column' },
             h('h4', { text: `Moments (${plan.moments.length})` }),
-            h('p', { class: 'review-muted', text: 'Select a moment to see what it is about on the stage.' }),
             momentsOf(scene, plan),
+            plan.moments.some(moment => moment.id === state.moment) ? null : h('p', { class: 'review-muted review-moment-hint', text: 'Select a moment to read what it shows and says; the stage goes to it.' }),
           ),
         ),
       )
@@ -770,9 +819,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       return active.getAttribute('data-focus') || ''
     },
     restoreFocus: (key: string) => {
-      if (!key) return
-      const again = document.querySelector<HTMLElement>(`.scene-review [data-focus="${CSS.escape(key)}"]`)
-      again?.focus({ preventScroll: true })
+      if (key) refocus(key)
     },
     // Show this scene's revision and moment, as another view left them.
     focus: (sceneId: string, revision: string, moment: string) => {

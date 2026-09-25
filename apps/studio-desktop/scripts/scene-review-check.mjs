@@ -217,6 +217,7 @@ const reviewOf = index => evaluate(`() => {
     moments: [...review.querySelectorAll('.review-moment-head strong')].map(entry => entry.textContent),
     approve: review.querySelector('[data-focus^="approve:"]')?.textContent || '',
     approveDisabled: review.querySelector('[data-focus^="approve:"]')?.disabled,
+    revisions: [...review.querySelectorAll('.review-revision')].map(button => button.textContent),
   }
 }`)
 
@@ -247,7 +248,9 @@ try {
   await api('/api/settings/harness', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ default: { harness: 'claude-code', model: 'claude-opus-5-5' } }) })
 
   // Every scene block carries its review strip; the brief comes first.
-  const strips = await waitFor(`() => { const all = [...document.querySelectorAll('.scene-review')]; return all.length === 2 ? all.map(review => [...review.querySelectorAll('.review-chip')].map(chip => chip.textContent)) : null }`)
+  // A collapsed scene says where its plan stands in its strip; the selected
+  // one in its revision control, labelled Plan (F6 of the Perplexity review).
+  const strips = await waitFor(`() => { const all = [...document.querySelectorAll('.scene-review')]; return all.length === 2 ? all.map(review => [...review.querySelectorAll('.review-strip .review-chip')].map(chip => chip.textContent).concat([...review.querySelectorAll('.review-revisions .review-chip')].map(chip => 'Plan: ' + chip.textContent))) : null }`)
   check(Boolean(strips) && strips.every(chips => chips.includes('Plan: Needs the brief') && chips.includes('Output: not produced')), `each scene block carries its review strip (${JSON.stringify(strips)})`)
   const { record: briefRecord } = (await post(`/api/planning/${videoId}/brief`)).body
   await evaluate(`() => window.studioDesktop.harness.run({ adapter: 'claude-code', skill: 'video-planner', route: 'Prepare Brief', projectId: ${JSON.stringify(videoId)}, inputs: { planning: { recordId: ${JSON.stringify(briefRecord.id)} }, model: 'claude-opus-5-5' } }).then(() => true)`)
@@ -286,7 +289,9 @@ try {
   const review = await waitFor(`() => { const panel = document.querySelector('.scene-review.is-expanded .review-panel'); return panel && panel.querySelector('.review-question') ? true : null }`)
   const state = await reviewOf(1)
   check(Boolean(review) && state.question === 'What does this limiter do?' && state.moments.length === 3 && state.cast.length === 2 && state.cast.every(item => item.image), `the review shows the plan, its moments and the cast it reuses (${JSON.stringify(state)})`)
-  check(state.strip.includes(`Plan: Candidate r${planned.revision}`) && state.strip.includes('Recording: guide ready · no take yet'), `the strip reads the candidate and the recording state (${state.strip})`)
+  // The plan's state is said once, by its revision control (F6 of the
+  // Perplexity review); the status line keeps the rest.
+  check(state.revisions.includes(`r${planned.revision} candidate`) && !state.strip.some(chip => chip.startsWith('Plan:')) && state.strip.includes('Recording: guide ready · no take yet'), `the revision control reads the candidate, the status line the recording state (${JSON.stringify({ revisions: state.revisions, strip: state.strip })})`)
   // The first screen of a selected scene (R6, F7), reached as the review
   // reached it: another scene selected, then this one picked from the rail
   // in the 1440 × 900 window. Its title, what it explains, its first moment,
@@ -316,9 +321,10 @@ try {
       action: seen(review.querySelector('[data-focus^="approve:"]')),
       stage: seen(document.getElementById('scene-stage')),
       nothingBefore: review.getBoundingClientRect().top >= top - 1 && review.getBoundingClientRect().top - top < 40 && !(block.getBoundingClientRect().bottom <= review.getBoundingClientRect().top),
+      at: { top: Math.round(top), review: Math.round(review.getBoundingClientRect().top), block: [Math.round(block.getBoundingClientRect().top), Math.round(block.getBoundingClientRect().bottom)] },
     }
   }`)
-  check(firstScreen.window === '1440×900' && Object.entries(firstScreen).every(([key, value]) => key === 'height' || key === 'window' || value), `picked from the rail, the scene's first screen shows its title, status, what it explains, a moment, its revision, preview and approve, and the stage — the plan first (${JSON.stringify(firstScreen)})`)
+  check(firstScreen.window === '1440×900' && Object.entries(firstScreen).every(([key, value]) => key === 'height' || key === 'window' || key === 'at' || value), `picked from the rail, the scene's first screen shows its title, status, what it explains, a moment, its revision, preview and approve, and the stage — the plan first (${JSON.stringify(firstScreen)})`)
   await shot('00-first-screen')
   // The inherited dialogue is one click away, and folds again.
   const unfolded = await evaluate(`async () => {
@@ -358,7 +364,7 @@ try {
   check(approved?.id === planned.id && approved.approval?.castId && approved.approval.fingerprint === planned.fingerprint, `approval pins the plan with what it was made from (${JSON.stringify(approved?.approval)})`)
   await sleep(1500)
   check((await api('/api/runs')).body.runs.length === runsBefore, 'approving starts no run')
-  check(Boolean(await waitFor(`() => /^r\\d+ approved ✓$/.test(document.querySelector('.scene-review.is-expanded [data-focus^="approve:"]')?.textContent || '') || null`, 20)), 'the review reads Approved')
+  check(Boolean(await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-revision.is-selected')?.textContent === 'r${planned.revision} approved' && !document.querySelector('.scene-review.is-expanded [data-focus^="approve:"]') || null`, 20)), 'the review reads Approved once, in its revision control, with no approval action left')
 
   // The recording guide and the production explanation.
   const guide = await evaluate(`() => {
@@ -535,9 +541,11 @@ try {
   await quit()
   await launch()
   check(Boolean(await openNotebook(videoId, 'Rate limiters · video')), 'the app restarts on the video notebook')
-  const afterRestart = await waitFor(`() => { const all = [...document.querySelectorAll('.scene-review')].map(review => [...review.querySelectorAll('.review-strip .review-chip')].map(chip => chip.textContent)); return all.length === 2 && all[0].some(chip => chip.startsWith('Plan:')) ? all : null }`, 60)
-  check(afterRestart?.[0]?.includes(`Plan: Candidate r${first.revision}`), `the unapproved scene is still a candidate after the restart (${afterRestart?.[0]})`)
-  check(afterRestart?.[1]?.some(chip => chip === `Plan: Candidate r${revised.revision}`), `the approved scene shows its newer candidate (${afterRestart?.[1]})`)
+  // Collapsed, a scene's strip says where its plan stands; the selected one
+  // says it in its revision control.
+  const afterRestart = await waitFor(`() => { const all = [...document.querySelectorAll('.scene-review')].map(review => [...review.querySelectorAll('.review-strip .review-chip')].map(chip => chip.textContent).concat([...review.querySelectorAll('.review-revision')].map(button => 'Plan: ' + button.textContent))); return all.length === 2 && all.every(chips => chips.some(chip => chip.startsWith('Plan:'))) ? all : null }`, 60)
+  check(Boolean(afterRestart?.[0]?.some(chip => chip === `Plan: Candidate r${first.revision}` || chip === `Plan: r${first.revision} candidate`)), `the unapproved scene is still a candidate after the restart (${afterRestart?.[0]})`)
+  check(Boolean(afterRestart?.[1]?.some(chip => chip === `Plan: Candidate r${revised.revision}` || chip === `Plan: r${revised.revision} candidate`)), `the approved scene shows its newer candidate (${afterRestart?.[1]})`)
   const kept = (await overview(videoId)).scenes[1].view
   check(kept.reviewed?.id === planned.id && kept.reviewed.approval?.castId, 'and its approval is intact, with its pin')
   await selectScene(1)

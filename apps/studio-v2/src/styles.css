@@ -95,8 +95,10 @@ h1, h2, h3, h4, strong { font-family: 'Gilroy', sans-serif; }
 .tiptap h1 { font-size: 36px; line-height: 1.12; letter-spacing: -.035em; }
 .tiptap h2 { margin-top: 32px; font-size: 24px; letter-spacing: -.025em; }
 .tiptap h3 { font-size: 17px; }
-.tiptap p, .tiptap li, .tiptap blockquote { font-size: 15px; line-height: 1.75; }
-.tiptap ul, .tiptap ol { padding-left: 30px; }
+/* The document's type stops at a scene review, which the editor hosts but
+   sets its own (F6 of the Perplexity review); same specificity as before. */
+:where(.tiptap) :is(p, li, blockquote):not(.scene-review *) { font-size: 15px; line-height: 1.75; }
+:where(.tiptap) :is(ul, ol):not(.scene-review *) { padding-left: 30px; }
 .tiptap blockquote { border-left: 3px solid var(--brand); color: var(--muted); }
 .tiptap pre { padding: 16px; background: #111827 !important; color: #f9fafb; font: 11px/1.65 'Roboto Mono', monospace; }
 .tiptap code { font-family: 'Roboto Mono', monospace; }
@@ -2336,7 +2338,10 @@ button.se-state:hover { filter: brightness(.97); }
 @media (prefers-reduced-motion: reduce) { .planning-scene, .planning-version { transition: none; } }
 
 /* ——— Scene review in the video notebook (P2) ——— */
-.scene-review { margin: 6px 0 18px; display: grid; gap: 10px; font: 13px/1.45 'InterBody', Inter, system-ui, sans-serif; color: #27272a; user-select: text; }
+.scene-review { margin: 6px 0 18px; display: grid; gap: 10px; min-width: 0; font: 13px/1.45 'InterBody', Inter, system-ui, sans-serif; color: #27272a; user-select: text; white-space: normal; overflow-wrap: anywhere; container: scene-review / inline-size; }
+/* The review is laid out by the room its own column gives it, not by the
+   window (F6 of the Perplexity review); the editor's hover wash is not its. */
+.tiptap > .scene-review:hover { background: none; }
 .review-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fbfbfa; }
 .review-strip-label { font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; margin-right: 2px; }
 .review-strip-open { margin-left: auto; font-size: 11px; color: #a1a1aa; }
@@ -2346,7 +2351,7 @@ button.se-state:hover { filter: brightness(.97); }
 .review-strip-cast { display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px; border-radius: 6px; background: #0f0d18; }
 .review-strip-cast img { width: 26px; height: 22px; object-fit: contain; }
 .review-strip-cast small { color: #d4d4d8; font-size: 10px; padding: 0 3px; }
-.review-chip { display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border-radius: 999px; background: #f4f4f5; color: #3f3f46; font: 600 11px/1 'InterBody', Inter, sans-serif; white-space: nowrap; }
+.review-chip { display: inline-flex; align-items: center; min-height: 20px; max-width: 100%; box-sizing: border-box; padding: 3px 8px; border-radius: 10px; background: #f4f4f5; color: #3f3f46; font: 600 11px/1.25 'InterBody', Inter, sans-serif; overflow-wrap: anywhere; }
 .review-chip.is-good { background: #dcfce7; color: #166534; }
 .review-chip.is-new { background: #dbeafe; color: #1e40af; }
 .review-chip.is-busy { background: #ede9fe; color: #5b21b6; }
@@ -2357,16 +2362,22 @@ button.se-state:hover { filter: brightness(.97); }
 .review-reference p { margin: 0; }
 .review-reference .review-muted { color: #3b5b8c; }
 .review-panel { display: grid; gap: 12px; padding: 14px 16px 16px; border: 1px solid #d4d4d8; border-radius: 12px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-.review-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; justify-content: space-between; }
+.review-head { display: grid; gap: 8px; min-width: 0; }
+.review-head-main { min-width: 0; }
+.review-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; min-width: 0; }
 .review-head h3 { margin: 2px 0 6px; font: 650 17px/1.25 'InterBody', Inter, sans-serif; }
 .review-eyebrow { font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #16a34a; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .review-actions .button { min-height: 32px; font-size: 12px; }
-.review-revisions { display: flex; flex-wrap: wrap; gap: 4px; }
+.review-revisions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.review-revisions-label { margin-right: 2px; font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; }
 .review-revision { border: 1px solid #e4e4e7; background: #fafafa; border-radius: 999px; padding: 2px 9px; font: 600 11px/1.6 'InterBody', Inter, sans-serif; color: #52525b; cursor: pointer; }
+.review-revision.is-approved { color: #166534; }
 .review-revision.is-selected { border-color: #16a34a; background: #f0fdf4; color: #166534; }
-.review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; }
-@media (max-width: 1100px) { .review-grid { grid-template-columns: 1fr; } }
+.review-revision:focus-visible, .review-moment-head:focus-visible, .review-moment-step:focus-visible { outline: 2px solid #16a34a; outline-offset: 1px; }
+/* One column in a notebook beside the stage; two where the column is wide. */
+.review-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@container scene-review (min-width: 780px) { .review-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; } }
 .review-column { display: grid; gap: 6px; align-content: start; min-width: 0; }
 .review-column h4, .review-open h4 { margin: 4px 0 0; font: 700 11px/1.2 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #71717a; }
 .review-column p, .review-open p { margin: 0; }
@@ -2381,15 +2392,28 @@ button.se-state:hover { filter: brightness(.97); }
 .review-cast-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .review-cast-none { color: #a1a1aa; font-size: 10px; }
 .review-cast-item small { font-size: 12px; }
-.review-moments { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.review-moment { border: 1px solid #e4e4e7; border-radius: 9px; background: #fafafa; overflow: hidden; }
-.review-moment.is-selected { border-color: #f59e0b; background: #fffbeb; }
-.review-moment-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 0; background: none; text-align: left; cursor: pointer; font: 600 13px/1.3 'InterBody', Inter, sans-serif; color: #18181b; }
-.review-moment-head small { margin-left: auto; color: #a1a1aa; font-weight: 500; }
-.review-moment-number { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: #e4e4e7; font-size: 11px; }
+/* F6: the moments as a compact list, a line each, and the selected one in
+   detail — the sequence scans at a glance. */
+.review-moments { list-style: none; margin: 0; padding: 3px; display: grid; gap: 2px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fafafa; }
+.review-moment { margin: 0; min-width: 0; border: 1px solid transparent; border-radius: 6px; }
+.review-moment.is-selected { border-color: #fcd34d; background: #fffbeb; }
+.review-moment-head { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: start; gap: 8px; width: 100%; padding: 5px 7px; border: 0; border-radius: 6px; background: none; text-align: left; cursor: pointer; font: 600 13px/1.35 'InterBody', Inter, sans-serif; color: #18181b; }
+.review-moment:not(.is-selected) .review-moment-head:hover { background: #f1f1f3; }
+.review-moment-head strong { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.review-moment-head small { color: #a1a1aa; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.review-moment-number { display: inline-grid; place-items: center; width: 20px; height: 18px; border-radius: 999px; background: #e4e4e7; font-size: 11px; font-variant-numeric: tabular-nums; }
 .review-moment.is-selected .review-moment-number { background: #f59e0b; color: #fff; }
-.review-moment-body { display: grid; gap: 3px; padding: 0 10px 9px 38px; }
-.review-moment-body p { margin: 0; }
+.review-moment-hint { margin: 0; font-size: 12px; }
+/* The opened moment, under its own line, aligned with its title. */
+.review-moment-detail { display: grid; gap: 8px; min-width: 0; padding: 2px 10px 10px 35px; scroll-margin: 12px; }
+.review-moment-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+.review-moment-steps { display: inline-flex; gap: 4px; margin-left: auto; }
+.review-moment-step { padding: 2px 8px; border: 1px solid #fcd34d; border-radius: 999px; background: #ffffff; color: #92400e; font: 600 11px/1.5 'InterBody', Inter, sans-serif; cursor: pointer; }
+.review-moment-step:disabled { opacity: .45; cursor: default; }
+.review-moment-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 12px; margin: 0; }
+.review-moment-fields dt { padding-top: 2px; font: 700 10px/1.45 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #a16207; }
+.review-moment-fields dd { margin: 0; min-width: 0; }
+@container scene-review (max-width: 420px) { .review-moment-fields { grid-template-columns: minmax(0, 1fr); } .review-moment-fields dd { margin-bottom: 4px; } .review-moment-detail { padding-left: 10px; } }
 .review-label { font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #a1a1aa; }
 .review-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .review-open ul { margin: 4px 0 0; padding-left: 18px; }
