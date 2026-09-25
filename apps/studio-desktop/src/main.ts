@@ -20,6 +20,13 @@ import { createKimiAdapter } from './harness/adapters/kimi'
 import { createCodexAdapter } from './harness/adapters/codex'
 import type { HarnessContext } from './harness/types'
 
+// A side-by-side instance — a check, or a second app on its own data
+// directory — keeps its own browser profile there, so it never shares the
+// creator's local storage, caches or their locks.
+if (process.env.STUDIO_ALLOW_MULTI_INSTANCE && process.env.STUDIO_DATA_DIR) {
+  app.setPath('userData', join(process.env.STUDIO_DATA_DIR, 'electron-profile'))
+}
+
 // A Finder-launched Electron inherits a minimal PATH (no ~/.local/bin, no
 // Homebrew on some setups), so agent CLIs installed from a terminal are
 // invisible. Merge the login shell's PATH once before the adapters probe.
