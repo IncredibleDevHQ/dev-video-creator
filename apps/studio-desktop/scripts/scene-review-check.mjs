@@ -318,6 +318,15 @@ try {
   const chrome = await evaluate(`() => ({ rail: [...document.querySelectorAll('.notebook-timeline-chip strong')].map(item => item.textContent), create: getComputedStyle(document.getElementById('create-explainer')).display, build: document.getElementById('build-explainer').textContent, buildTitle: document.getElementById('build-explainer').title })`)
   check(chrome.rail.join('|') === 'Request rate limiter|Concurrent requests limiter', `the scene rail names its scenes (${chrome.rail})`)
   check(chrome.create === 'none' && chrome.build === 'Build whole notebook' && /does not use approved scene plans/.test(chrome.buildTitle), `a video notebook shows its own workflow; the older build says what it is (${JSON.stringify(chrome)})`)
+  // The notebook fits its window, the stage large enough to judge, the rail
+  // in its own band (R7).
+  const fit = await evaluate(`() => {
+    const rail = document.getElementById('notebook-timeline').getBoundingClientRect()
+    const workspace = document.querySelector('.studio-workspace').getBoundingClientRect()
+    const hidden = [...document.querySelectorAll('.commandbar .actions > *, .topbar-actions > *')].filter(element => element.offsetParent && element.getBoundingClientRect().right > innerWidth + 1).map(element => element.textContent.trim().slice(0, 24))
+    return { width: innerWidth, sideways: document.documentElement.scrollWidth > innerWidth, hidden, stage: Math.round(document.getElementById('player-shell').getBoundingClientRect().width), railOverDocument: rail.top < workspace.bottom - 1 }
+  }`)
+  check(!fit.sideways && fit.hidden.length === 0 && !fit.railOverDocument && fit.stage >= Math.min(560, fit.width * 0.38), `the notebook fits its window, with a stage large enough to judge (${JSON.stringify(fit)})`)
   await shot('02-approved-guide')
 
   // Revise with direction, and compare the new candidate with the approved plan.

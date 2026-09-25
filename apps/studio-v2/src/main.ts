@@ -3874,6 +3874,18 @@ const makeChipReorderable = (chip: HTMLElement, sceneId: string) => {
   })
 }
 
+// The workspace fills what the header, any notice above it and the scene
+// rail leave of the window: the document ends above the rail, whatever
+// height its chips and scrollbar give it.
+const syncLayoutBands = () =>
+  window.requestAnimationFrame(() => {
+    const rail = document.getElementById('notebook-timeline')
+    const shown = rail && !rail.hidden && getComputedStyle(rail).display !== 'none'
+    document.body.style.setProperty('--rail-band', shown ? `${Math.ceil(rail!.getBoundingClientRect().height)}px` : '0px')
+    const workspace = document.querySelector<HTMLElement>('.studio-workspace')
+    if (workspace) document.body.style.setProperty('--workspace-top', `${Math.ceil(workspace.getBoundingClientRect().top + window.scrollY)}px`)
+  })
+
 const renderNotebookTimeline = () => {
   const notebookTimeline = $('#notebook-timeline')
   const track = document.createElement('div')
@@ -3955,6 +3967,7 @@ const renderNotebookTimeline = () => {
   })
   notebookTimeline.replaceChildren(track)
   notebookTimeline.hidden = scenes.length === 0
+  syncLayoutBands()
   const activeChip = track.querySelector<HTMLElement>(
     '.notebook-timeline-chip.active',
   )
@@ -5949,6 +5962,7 @@ document.addEventListener('keydown', event => {
 window.addEventListener('resize', () => {
   positionInlinePreview()
   attachLiveCameraToPlayer()
+  syncLayoutBands()
 })
 // The stage follows an open scene review as the notebook scrolls.
 document.querySelector('.studio-workspace')?.addEventListener('scroll', () => {
@@ -16377,6 +16391,7 @@ const reportStorageHealth = async () => {
     const persistence = health.persistence
     if (persistence && persistence.database === 'postgres' && persistence.objectStorage === 'minio') {
       storageWarning.hidden = true
+      syncLayoutBands()
       return
     }
     text.textContent = persistence
@@ -16387,6 +16402,7 @@ const reportStorageHealth = async () => {
     text.textContent = 'Cannot reach the local studio server — work is not being saved.'
     storageWarning.hidden = false
   }
+  syncLayoutBands()
 }
 void reportStorageHealth()
 ;($('#storage-warning-retry') as HTMLButtonElement).addEventListener('click', () => void reportStorageHealth())
@@ -16871,6 +16887,10 @@ const planningWorkspace = createPlanningWorkspace({
 const sceneStage = $('#scene-stage') as HTMLElement
 // What the stage shows, and why, sits under the frame so nothing covers the page.
 const sceneStageBar = $('#scene-stage-bar') as HTMLElement
+// The stage enlarged: the same composition, full screen.
+;($('#scene-stage-full') as HTMLButtonElement).addEventListener('click', () => {
+  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+})
 const sceneStageReference = $('#scene-stage-reference') as HTMLElement
 const sceneStageNote = $('#scene-stage-note') as HTMLElement
 const sceneStagePreview = $('#scene-stage-preview') as HTMLElement

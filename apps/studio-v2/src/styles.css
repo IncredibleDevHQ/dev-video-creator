@@ -2453,3 +2453,50 @@ body.is-video-notebook .notebook-scene-block:not(.selected-block) .block-dialogu
 .review-timeline-clip.is-presenter { background: #f472b6; }
 .review-timeline-clip.is-background { background: #a1a1aa; }
 .review-timeline-clip.is-placeholder { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 4px, transparent 4px 8px); }
+
+/* ——— The notebook fits its window (R7) ———
+   No page-wide minimum: the header and toolbar give way, the document and the
+   canvas share the width — the stage taking the larger share in a video
+   notebook, where it is what is reviewed — and the scene rail has its own
+   band at the bottom instead of lying over the document. */
+body { min-width: 0; }
+.topbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; }
+.project-title { min-width: 0; }
+.notebook-lineage { min-width: 0; }
+.topbar-actions { min-width: 0; gap: 10px; }
+.commandbar { gap: 12px; }
+.commandbar .workspace-nav { flex: none; }
+/* At a large text zoom the actions scroll within their own bar, never the page. */
+.commandbar .actions { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.commandbar .actions::-webkit-scrollbar { display: none; }
+.commandbar .actions > * { flex: none; }
+.editor-layout { width: min(1320px, 100%); grid-template-columns: minmax(0, 1fr) clamp(300px, 30vw, 420px); gap: clamp(20px, 3vw, 48px); }
+body.is-video-notebook .editor-layout { grid-template-columns: minmax(400px, 1fr) clamp(340px, 40vw, 640px); }
+@media (max-width: 1200px) {
+  .format-control { min-width: 0; }
+  .format-control > span:first-child { display: none; }
+  .studio-theme-picker { max-width: 190px; overflow: hidden; }
+  .topbar .notebook-lineage { max-width: 220px; }
+  .notebook-document { padding-inline: 20px; }
+}
+@media (max-width: 1080px) {
+  .topbar .notebook-lineage { display: none; }
+  .topbar-status strong, .topbar-status-button strong { display: none; }
+  .save-state strong { display: none; }
+}
+/* Narrow windows: the canvas sits above the document instead of beside it. */
+@media (max-width: 900px) {
+  .editor-layout, body.is-video-notebook .editor-layout { grid-template-columns: minmax(0, 1fr); }
+  .inline-canvas-rail { position: sticky; top: 0; z-index: 6; order: -1; min-height: 0; padding: 8px 0; background: white; box-shadow: 0 1px 0 var(--line); }
+  .inline-preview { position: relative; top: 0 !important; max-width: 440px; margin: 0 auto; }
+  .inline-preview > p, .inline-preview-meta { display: none; }
+}
+/* The scene rail: a band of its own; the document ends above it. */
+.notebook-timeline { left: 0; right: 0; bottom: 0; width: auto; translate: none; padding: 8px 16px; border-width: 1px 0 0; border-radius: 0; box-shadow: none; }
+body:has(.notebook-timeline:not([hidden])) { --rail-band: 58px; }
+.studio-workspace { height: calc(100vh - var(--workspace-top, 96px) - var(--rail-band, 0px)); }
+body.theme-surface-open, body:has(.player-shell.canvas-open) { --rail-band: 0px; }
+/* The stage, enlarged: the same composition, full screen. */
+.scene-stage-bar .scene-stage-full { justify-self: start; border: 1px solid #d4d4d8; background: white; color: #3f3f46; border-radius: 999px; padding: 2px 9px; font: 600 10.5px/1.5 'InterBody', Inter, sans-serif; cursor: pointer; }
+.scene-stage-bar .scene-stage-full:focus-visible, .scene-stage-modes button:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; }
+body.canvas-is-open .scene-stage-bar .scene-stage-full { display: none; }
