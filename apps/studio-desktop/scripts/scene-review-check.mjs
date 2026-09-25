@@ -196,10 +196,11 @@ const until = async (test, seconds = 90) => {
   }
   return null
 }
-const shot = async name => {
+const shot = async (name, focus = '') => {
   if (!process.env.SCENE_REVIEW_SHOTS) return
-  // The selected scene at the top of the notebook, its review below it.
-  await evaluate(`() => { const node = document.querySelector('.scene-review.is-expanded') || document.querySelector('#editor .tiptap > .selected-block'); if (node) node.scrollIntoView({ block: 'start' }); return true }`).catch(() => {})
+  // The selected scene at the top of the notebook, its review below it — or
+  // the part of the review the shot is about.
+  await evaluate(`() => { const node = (${JSON.stringify(focus)} && document.querySelector(${JSON.stringify(focus)})) || document.querySelector('.scene-review.is-expanded') || document.querySelector('#editor .tiptap > .selected-block'); if (node) node.scrollIntoView({ block: 'start' }); return true }`).catch(() => {})
   await sleep(900)
   const response = await fetch(`${origin}/__capture`).catch(() => null)
   if (!response?.ok) return
@@ -386,6 +387,7 @@ try {
   }`)
   check(follows.stageInView && follows.clear, `the stage stays in view beside the review, with nothing over the page (${JSON.stringify(follows)})`)
   await shot('01-scene-review')
+  await shot('01b-object-decisions', '.scene-review.is-expanded [data-review-cast]')
 
   // Approve it: this scene alone, and nothing starts.
   const runsBefore = (await api('/api/runs')).body.runs.length
@@ -629,6 +631,7 @@ try {
   await evaluate(`() => { const button = document.querySelector('[data-stage-mode="schematic"]'); if (!button || button.hidden) return false; button.click(); return true }`)
   const structure = await waitFor(`() => { const active = document.querySelector('.scene-stage-modes .is-active'); const svg = document.querySelector('#scene-stage-reference svg'); return active?.dataset.stageMode === 'schematic' ? { mode: active.textContent, schematic: Boolean(svg?.querySelector('#schematic-frame')), note: document.getElementById('scene-stage-note').textContent } : null }`, 20)
   check(structure?.mode === 'Schematic' && structure.schematic && /^The schematic this scene's designed slide was made from/.test(structure.note), `the scene keeps the schematic beside its designed slide, on the stage (${JSON.stringify(structure)})`)
+  await shot('06b-schematic-kept')
   await evaluate(`() => { document.querySelector('[data-stage-mode="reference"]').click(); return true }`)
   const otherAfter = (await overview(videoId)).scenes[1].view
   check(otherAfter.reviewed?.id === otherBefore.reviewed?.id && otherAfter.current?.id === otherBefore.current?.id && otherAfter.state === otherBefore.state && !otherAfter.staleBecause, `the other scene's approval and plans are untouched (${otherAfter.state})`)

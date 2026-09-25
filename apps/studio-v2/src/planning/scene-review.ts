@@ -859,7 +859,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     }
     const shown = ready || accepted
     if (shown) {
-      const clock = shown.summary.clock === 'generated-voice' ? `a generated voice (${shown.voice || 'system voice'})` : shown.summary.clock === 'take' ? 'your take' : 'silence, by choice'
+      const clock = shown.summary.clock === 'generated-voice' ? `a generated voice (${shown.voice || 'system voice'})` : shown.summary.clock === 'take' ? (shown.voice || 'Your take').replace(/^Your/, 'your') : 'silence, by choice'
       box.append(
         ...([
           h('p', {}, h('strong', { text: `Produced from r${shown.of.revision}` }), ` · ${shown.summary.duration}s on ${clock} · ${shown.checked ? 'played and checked' : 'never checked'}${shown.accepted ? ` · accepted ${new Date(shown.accepted.at).toLocaleString()}` : ''}`),

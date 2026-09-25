@@ -231,11 +231,11 @@ Built, for F1:
 - invalidation of that scene's plans and sketches alone;
 - recordings and earlier plans kept.
 
-Not built:
+Built since, in [the follow-up](./2026-09-26-production-follow-up.md):
 
-- **Keeping the schematic alongside the adopted slide.** The proposal's `SceneVisualReferences` keeps both side by side. Adoption replaces the scene's page reference; the schematic remains in the base's history, not beside the slide.
-- **Deciding each object.** Use, adapt, replace or omit, shown per relevant object, is not built.
-- **Re-recording only what the adoption changed.** Adoption keeps takes untouched, and does not yet ask for affected lines again.
+- **Both references side by side.** The schematic stays beside the adopted designed slide, on the stage and in the planning packet (`b9f3648d`).
+- **A decision for each object.** Use, adapt, replace or omit, shown per object. On a designed slide a plan that leaves one undecided is refused (`b9f3648d`).
+- **Only the affected lines, again.** A newer plan's changed lines are recorded as a pickup, and the scene is produced from the take and the pickup together (`879a937e`).
 
 ## Checks
 
@@ -248,6 +248,6 @@ Not built:
 
 ## Limits
 
-- **Production from approved plans is not implemented.** Publish exports the notebook's own composition as a draft, and says so.
-- **Stored motion keeps its morph.** Scenes whose motion was planned before F11 keep it until they are planned again.
+- **Production from approved plans** was not implemented at this answer. It is built since: P4–P6 in [the follow-up](./2026-09-26-production-follow-up.md).
+- **Stored motion kept its morph.** Scenes whose motion was planned before F11 are repaired since, when their notebook opens (`6d892a3a`).
 - **The end-to-end run was not repeated.** The review's step 6 (an accessible article through import, design, fork, a changed reference, plan revision, preview, a human recording, narration and MP4) needs the harness's model budget and a human take. The fixes are proven by the checks above, not by a new film.

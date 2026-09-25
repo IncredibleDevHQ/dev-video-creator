@@ -18092,7 +18092,7 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
     }
     if (outputting && produced) {
       // A production says what it plays on, and what it could not meet.
-      const clock = produced.summary.clock === 'generated-voice' ? 'a generated voice' : produced.summary.clock === 'take' ? 'your take' : 'silence, by choice'
+      const clock = produced.summary.clock === 'generated-voice' ? 'a generated voice' : produced.summary.clock === 'take' ? (produced.voice || 'Your take').replace(/^Your/, 'your') : 'silence, by choice'
       const unmet = produced.summary.unmet.length
       const edit = produced.edits?.revision ? ` · edit ${produced.edits.revision}${produced.accepted && produced.accepted.edits !== produced.edits.revision ? ', not in the output yet' : ''}` : ''
       sceneStageNote.textContent = `Produced from plan r${produced.of.revision}, on ${clock}${produced.accepted ? ' · accepted' : ' · not accepted yet'}${produced.current ? '' : ' — out of date'}${unmet ? ` · ${unmet} unmet` : ''}${edit}`

@@ -255,8 +255,9 @@ const until = async (test, seconds = 90) => {
   }
   return null
 }
-const shot = async name => {
+const shot = async (name, focus = '') => {
   if (!process.env.PRODUCTION_SHOTS) return
+  if (focus) await evaluate(`() => { document.querySelector(${JSON.stringify(focus)})?.scrollIntoView({ block: 'center' }); return true }`).catch(() => {})
   await sleep(900)
   const response = await fetch(`${origin}/__capture`).catch(() => null)
   if (!response?.ok) return
@@ -417,6 +418,7 @@ try {
   const redone = await until(async () => { const view = (await overview(videoId)).scenes[0].production.ready; return view.edits.revision === 3 ? view.edits : null }, 30)
   check(redone?.values['m2-title'] === nudge, `redo is saved as edit 3 (${JSON.stringify(redone?.values)})`)
   await shot('02-timing-edited')
+  await shot('02b-timing-panel', '.scene-review.is-expanded [data-review-timing]')
 
   // ——— Accepted with the edit; the export is the video ———
   await click('.scene-review.is-expanded [data-focus^="accept-production:"]')
@@ -517,6 +519,7 @@ try {
   const reviewIt = await waitFor(`() => [...document.querySelectorAll('.scene-review.is-expanded .review-strip .review-chip')].map(chip => chip.textContent).find(text => /^Output:/.test(text)) || null`, 30)
   check(reviewIt === 'Output: produced — review it', `the new production waits for review before the older accepted one (${reviewIt})`)
   await shot('04-pickup')
+  await shot('04b-pickup-produced', '.scene-review.is-expanded [data-review-production]')
 
   // Nothing here asked for a sketch: none is made, and no model is spent on one.
   const routes = (await api('/api/runs')).body.runs.map(entry => entry.route)
