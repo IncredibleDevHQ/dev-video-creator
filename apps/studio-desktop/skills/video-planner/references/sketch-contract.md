@@ -38,7 +38,9 @@ the pinned engine's lint:
 </head>
 <body>
 <div id="root" data-composition-id="<CONTEXT.json composition.id>" data-start="0" data-width="1920" data-height="1080" data-duration="<seconds>">
-  <div id="m1" class="clip" data-start="0" data-duration="4" data-track-index="0">…</div>
+  <div id="m1" class="clip" data-start="0" data-duration="4" data-track-index="0">
+    <div class="title" data-sketch-layer="headline">Only twenty at once</div>
+  </div>
   <div id="m2" class="clip" data-start="4" data-duration="5" data-track-index="0">…</div>
 </div>
 <script>
@@ -63,6 +65,12 @@ are problems):
   `Math.random`, no infinite `repeat`. Every seek must show the same frame.
 - Never tween `display`, `visibility` or `autoAlpha` on a `.clip`; animate a
   child. Never pair a CSS `transform` with a GSAP tween of the same property.
+- Mark what draws each layer of the manifest with
+  `data-sketch-layer="<layer id>"` — every layer but the camera. Several
+  elements may share a mark, and one element may carry several ids,
+  space-separated. Name an object's layer by its entity id in `PLAN.json`
+  (the ids a moment's `objects.actors` lists), so the product can find what a
+  moment changes. Not `data-layer`: Hyperframes reads that as a track.
 - Artwork is the packet's cast (reuse it by its `libraryKey`) or native shapes
   and text. Never generate or fetch artwork. Where the plan wants something you
   do not have, draw a labelled placeholder.
@@ -100,6 +108,26 @@ are problems):
   A layer standing in for something missing says so in `placeholder`.
 - `provisional` — everything a viewer must not take for the finished scene:
   always the estimated timing; the presenter stand-in; each placeholder.
+
+## How the product checks it
+
+Before a sketch is accepted, the product plays it in the pinned Hyperframes
+0.7.106 player, as the Studio's stage does, where nothing outside `sketch/`
+loads. It is refused, with the reason, when:
+
+- a script throws, or the composition asks for a file that is not in
+  `sketch/` (a relative path resolves against `index.html`) or anything
+  outside it;
+- the player never becomes ready, the timeline is never registered under the
+  composition id, or it has no tweens;
+- the player's length differs from `manifest.composition.duration`;
+- seeking to the same time twice shows two different frames;
+- a layer is not marked, or shows at no time during a moment it declares;
+- a moment whose plan changes objects (`objects.change`) shows no change in
+  those objects' layers — or, where none is marked, anywhere on screen.
+
+A moment the plan does not change may hold still. What it proved is kept
+with the preview, against the bundle's hash.
 
 Stop when the submission is accepted. A sketch never approves a plan, chooses
 a take, generates artwork or produces the scene.

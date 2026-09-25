@@ -437,9 +437,9 @@ describe('planning integrity', () => {
     expect(text(packet.files['packet/SKETCH.md'])).toMatch(/Composition id: `sketch-/)
     await service.attachRun(queued.record.id, { runId: 'run-preview-sketch' })
     const compositionId = context.composition.id
-    const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden}.clip{position:absolute;inset:0}</style></head><body>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font:600 64px system-ui}</style></head><body>
 <div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="6">
-<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title">Spend</div></div>
+<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title" data-sketch-layer="title">Spend</div></div>
 </div><script>window.__timelines = window.__timelines || {}
 const tl = gsap.timeline({ paused: true })
 tl.fromTo('#m1 .title', { opacity: 0 }, { opacity: 1, duration: 1 }, 0)
@@ -450,18 +450,36 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     // Refused by the pinned engine's lint: no timeline registry initialised.
     const unlinted = await service.submitSketch(queued.record.id, { 'index.html': html.replace('window.__timelines = window.__timelines || {}', ''), 'manifest.json': JSON.stringify(manifest) }, 'run-preview-sketch')
     expect(unlinted).toMatchObject({ accepted: false, problems: [expect.stringMatching(/hyperframes lint timeline_registry_missing_init/)] })
+    // Refused once played (R3): well formed, but the title never shows.
+    const unseen = await service.submitSketch(queued.record.id, { 'index.html': html.replace('</style>', '.title{display:none}</style>'), 'manifest.json': JSON.stringify(manifest) }, 'run-preview-sketch')
+    expect(unseen).toMatchObject({ accepted: false, problems: expect.arrayContaining([expect.stringMatching(/^Layer "title" takes part in m1 \(0s–6s\), but nothing marked data-sketch-layer="title" shows then/), expect.stringMatching(/^m1 "Spend": the plan changes objects here \("A token leaves the bucket"\), but the frame stays the same/)]) })
+    // Back to the run, to fix and submit again.
+    expect((await persistence.loadPlanningRecord(queued.record.id))!.status).toBe('running')
     const landed = await service.submitSketch(queued.record.id, { 'index.html': html, 'manifest.json': JSON.stringify(manifest) }, 'run-preview-sketch')
     expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+    // Ready only once played; the proof names the bundle it played.
+    const proof = landed.accepted ? landed.record.report?.verification : undefined
+    expect(proof).toMatchObject({ bundle: expect.stringMatching(/^[0-9a-f]{64}$/), runtime: '0.7.106', duration: 6, layers: [{ id: 'title', moments: ['m1'] }], changes: [{ moment: 'm1', within: 'frame' }] })
+    expect(proof!.reseeks.every(item => item.same)).toBe(true)
     // Served as accepted, for the player.
     const index = await service.loadPreviewFile(queued.record.id, 'index.html')
     expect(index.contentType).toMatch(/text\/html/)
     expect(index.body.toString('utf8')).toContain(`data-composition-id="${compositionId}"`)
     await expect(service.loadPreviewFile(queued.record.id, '../secret')).rejects.toThrow(/No such file/)
     let overview = await service.planningOverview(id)
-    expect(overview.scenes[0].preview?.ready).toMatchObject({ current: true, of: { record: plan.id }, url: expect.stringMatching(/^\/api\/planning\/previews\/.+\/index\.html$/), summary: { duration: 6, moments: [{ id: 'm1', start: 0, end: 6 }] } })
+    expect(overview.scenes[0].preview?.ready).toMatchObject({ current: true, of: { record: plan.id }, url: expect.stringMatching(/^\/api\/planning\/previews\/.+\/index\.html$/), summary: { duration: 6, moments: [{ id: 'm1', start: 0, end: 6 }] }, checked: { bundle: proof!.bundle, runtime: '0.7.106', layers: 1, changes: 1 } })
     // The same plan is shown again, not sketched again — unless asked.
     expect(await service.queuePreview(id, scenes[0])).toMatchObject({ reused: true, record: { id: queued.record.id } })
-    expect((await service.queuePreview(id, scenes[0], { again: true })).reused).toBe(false)
+    const again = await service.queuePreview(id, scenes[0], { again: true })
+    expect(again.reused).toBe(false)
+    // The app closes while a sketch is being played to check it: on
+    // restart it reads interrupted, with a retry, and the checked one stays.
+    await service.attachRun(again.record.id, { runId: 'run-preview-again' })
+    await persistence.updatePlanningRecord(again.record.id, { status: 'verifying' }, ['running'])
+    expect(await service.queuePreview(id, scenes[0], { again: true })).toMatchObject({ reused: true, record: { id: again.record.id, status: 'verifying' } })
+    const interrupted = await service.runFinished('run-preview-again', { status: 'interrupted', exitCode: null })
+    expect(interrupted).toMatchObject([{ id: again.record.id, status: 'failed', error: { message: expect.stringMatching(/^Interrupted/), recovery: ['Retry'] } }])
+    expect((await service.planningOverview(id)).scenes[0].preview?.ready).toMatchObject({ id: queued.record.id, current: true })
     // A new candidate: the preview is of the old plan, and says so.
     await service.saveDirection(id, { subject: scenes[0], direction: 'Slower' })
     const { record: next } = await service.queueTreatment(id, scenes[0])
@@ -486,9 +504,9 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
       await service.attachRun(recordId, { runId })
       const context = JSON.parse(text((await service.loadPacket(recordId)).files['packet/CONTEXT.json']))
       const compositionId = context.composition.id
-      const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden}.clip{position:absolute;inset:0}</style></head><body>
+      const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font:600 64px system-ui}</style></head><body>
 <div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="6">
-<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title">Spend</div></div>
+<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title" data-sketch-layer="title">Spend</div></div>
 </div><script>window.__timelines = window.__timelines || {}
 const tl = gsap.timeline({ paused: true })
 tl.fromTo('#m1 .title', { opacity: 0 }, { opacity: 1, duration: 1 }, 0)

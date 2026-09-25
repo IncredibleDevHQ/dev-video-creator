@@ -15,17 +15,20 @@
 import { fingerprintOf, stableJson } from './fingerprint'
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
-import type { SketchManifest } from './sketch-bundle'
+import type { SketchManifest, SketchProof } from './sketch-bundle'
 
 // brief: the video's explanation brief · treatment: a scene's creative plan ·
 // preview: a rough, seekable sketch of one plan revision (P3).
 export type PlanningKind = 'brief' | 'treatment' | 'preview'
 
-export const PLANNING_STATUSES = ['queued', 'running', 'ready', 'candidate', 'reviewed', 'failed', 'superseded'] as const
+// verifying: a sketch the harness submitted, being played in the pinned
+// player before it can read ready (a preview only).
+export const PLANNING_STATUSES = ['queued', 'running', 'verifying', 'ready', 'candidate', 'reviewed', 'failed', 'superseded'] as const
 export type PlanningStatus = (typeof PLANNING_STATUSES)[number]
 
 // Statuses a record can still move from: it has not produced a result.
-export const ACTIVE_STATUSES: readonly PlanningStatus[] = ['queued', 'running']
+export const ACTIVE_STATUSES: readonly PlanningStatus[] = ['queued', 'running', 'verifying']
+export const isActiveStatus = (status: PlanningStatus | string | null | undefined) => (ACTIVE_STATUSES as readonly string[]).includes(String(status))
 
 export type SkillBundleRef = { name: string; version: string; hash: string; upstreamCommit: string }
 
@@ -42,7 +45,7 @@ export type PlanningRecord = {
   inputs: Record<string, unknown>
   content: ExplanationBriefV1 | SceneTreatmentV1 | SketchManifest | null
   // What the checks said: warnings, construction risks.
-  report: { warnings: string[]; constructionRisks?: string[] } | null
+  report: { warnings: string[]; constructionRisks?: string[]; verification?: SketchProof } | null
   artifacts: { objectKey: string; assetId: string } | null
   // The run that owns the record once it starts; nothing else may claim it.
   runId: string | null
@@ -273,7 +276,7 @@ export const scenePlanningView = (
   const staleBecause = freshness && !freshness.fresh ? freshness.reason : null
   let state: ScenePlanningState
   if (!brief) state = newestBrief?.status === 'failed' ? 'brief-failed' : newestBrief && ACTIVE_STATUSES.includes(newestBrief.status) ? 'preparing' : 'needs-brief'
-  else if (latest && (latest.status === 'queued' || latest.status === 'running')) state = 'planning'
+  else if (latest && isActiveStatus(latest.status)) state = 'planning'
   else if (latest?.status === 'failed') state = 'failed'
   else if (current && staleBecause) state = 'stale'
   else if (current?.status === 'reviewed') state = 'reviewed'

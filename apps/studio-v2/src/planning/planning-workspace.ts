@@ -14,7 +14,7 @@
 // and nothing else.
 import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
 import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, type PlanningRecord, type ScenePlanningView } from './planning-records'
+import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView } from './planning-records'
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 
 type BasePage = { scene: string; title: string; idea: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
@@ -50,6 +50,8 @@ export type ScenePreviewView = {
   warnings: string[]
   adapter: string | null
   model: string | null
+  // What playing it in the pinned player proved; null if it never was.
+  checked: { at: string; runtime: string; bundle: string; duration: number; tweens: number; files: number; reseeks: number; layers: number; changes: number } | null
 }
 export type ScenePreviewSummary = {
   latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string }
@@ -230,7 +232,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   const recordsFor = (kind: PlanningRecord['kind'], subject: string) =>
     (overview?.records || []).filter(record => record.kind === kind && record.subject === subject).sort((a, b) => b.revision - a.revision)
 
-  const active = () => (overview?.records || []).filter(record => record.status === 'queued' || record.status === 'running')
+  const active = () => (overview?.records || []).filter(record => isActiveStatus(record.status))
 
   // ——— Loading ———
   const load = async () => {
@@ -440,7 +442,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       ? chip('unavailable', 'bad')
       : brief?.current
         ? chip(`Brief r${brief.current.revision}${brief.stale ? ' · stale' : ''}`, brief.stale ? 'warn' : 'good')
-        : brief?.latest && (brief.latest.status === 'queued' || brief.latest.status === 'running')
+        : brief?.latest && isActiveStatus(brief.latest.status)
           ? chip('Preparing the brief', 'busy')
           : brief?.latest?.status === 'failed'
             ? chip('Brief failed', 'bad')
@@ -487,7 +489,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       actions.append(open)
     } else if (overview) {
       const briefRecord = brief?.latest
-      const running = briefRecord && (briefRecord.status === 'queued' || briefRecord.status === 'running')
+      const running = briefRecord && isActiveStatus(briefRecord.status)
       const label = !brief?.current ? (briefRecord?.status === 'failed' ? 'Retry the brief' : 'Prepare the brief') : brief.stale ? 'Prepare the brief again' : 'Prepare again'
       const prepare = h('button', { type: 'button', class: `button ${brief?.current && !brief.stale ? 'ghost' : 'primary'}`, text: running ? 'Preparing…' : label, ...(running || !overview.available || !bridge?.isDesktop ? { disabled: true } : {}), ...(bridge?.isDesktop ? {} : { title: 'Preparing the brief runs in the desktop app' }) })
       prepare.addEventListener('click', () => {
@@ -750,7 +752,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const record = overview!.brief.current
     const latest = overview!.brief.latest
     if (!record?.content) {
-      if (latest && (latest.status === 'queued' || latest.status === 'running')) {
+      if (latest && isActiveStatus(latest.status)) {
         return h('div', { class: 'planning-pane' }, h('p', { class: 'planning-busy', 'data-progress': latest.id, text: progress.get(latest.id) || 'Preparing the explanation brief with your local harness…' }))
       }
       if (latest?.status === 'failed') {
@@ -819,7 +821,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       pane.append(h('p', { text: view.state === 'brief-failed' ? 'The brief failed. Retry it from the header; this scene waits for it.' : view.state === 'preparing' ? 'The brief is being prepared: this scene can be planned once it is ready.' : 'The brief comes first: prepare it from the header, then plan this scene.' }))
       return pane
     }
-    if (view.latest && (view.latest.status === 'queued' || view.latest.status === 'running')) {
+    if (view.latest && isActiveStatus(view.latest.status)) {
       pane.append(h('p', { class: 'planning-busy', 'data-progress': view.latest.id, text: progress.get(view.latest.id) || `Planning revision ${view.latest.revision} with your local harness…` }))
       if (view.reviewed) pane.append(h('p', { class: 'planning-muted', text: `The approved plan (r${view.reviewed.revision}) stays in place until you approve a new one.` }))
       const stopButton = h('button', { type: 'button', class: 'button ghost', text: 'Stop this run' })

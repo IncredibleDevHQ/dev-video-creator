@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
 import type { BuildRunInput, BuildRunRow, BuildStageInput, NewPlanningRecord, PlanningInputRow, PlanningRecordPatch } from './persistence'
-import type { PlanningRecord, PlanningStatus } from '../src/planning/planning-records'
+import { ACTIVE_STATUSES, type PlanningRecord, type PlanningStatus } from '../src/planning/planning-records'
 
 const dataDirectory = () =>
   process.env.STUDIO_DATA_DIR ||
@@ -526,7 +526,7 @@ export const createPlanningRecord = (record: NewPlanningRecord): Promise<Plannin
 export const claimPlanningRecord = (record: NewPlanningRecord): Promise<{ record: PlanningRecord; reused: boolean }> =>
   withPlanning(file => {
     const active = file.records
-      .filter(entry => entry.projectId === record.projectId && entry.kind === record.kind && entry.subject === (record.subject || '') && entry.fingerprint === record.fingerprint && (entry.status === 'queued' || entry.status === 'running'))
+      .filter(entry => entry.projectId === record.projectId && entry.kind === record.kind && entry.subject === (record.subject || '') && entry.fingerprint === record.fingerprint && ACTIVE_STATUSES.includes(entry.status))
       .sort((a, b) => b.revision - a.revision)[0]
     if (active) return { record: copy(active), reused: true }
     return { record: copy(newRecord(file, record)), reused: false }

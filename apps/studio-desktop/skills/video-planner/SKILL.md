@@ -137,8 +137,9 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
    Reuse the cast's artwork (copy `assets/<id>/asset.svg`) or draw native
    shapes; label every placeholder and the presenter stand-in. Show the
    plan's whole progression in its order, with its camera intent and major
-   text.
-4. Call `plan_submit_sketch` with the project directory. Fix exactly the
+   text. Mark what draws each layer with `data-sketch-layer`.
+4. Call `plan_submit_sketch` with the project directory. The product plays
+   the sketch in the pinned player before it accepts it. Fix exactly the
    problems it reports. When it is accepted, stop: a sketch never approves,
    records, generates artwork or produces anything.
 

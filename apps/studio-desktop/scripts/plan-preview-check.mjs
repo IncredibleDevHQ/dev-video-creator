@@ -105,13 +105,13 @@ const tool = async (name, args2) => {
     const moments = plan.plan.moments.map((moment, index) => ({ id: moment.id, title: moment.title, start: index * per, end: (index + 1) * per, estimated: true }))
     const duration = moments.length * per
     const clip = (moment, body) => '<div id="' + moment.id + '" class="clip" data-start="' + moment.start + '" data-duration="' + (moment.end - moment.start) + '" data-track-index="0">' + body + '</div>'
-    const html = (registry) => '<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>' +
+    const html = (registry, broken = false) => '<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>' +
       'html,body{margin:0;background:#0e0c17}#root{position:relative;width:100%;height:100%;overflow:hidden;background:#0e0c17;font-family:system-ui,sans-serif}.clip{position:absolute;inset:0}' +
       '.title{position:absolute;left:120px;top:90px;color:#fff;font-size:60px;font-weight:600}.stand-in{position:absolute;right:120px;top:260px;width:420px;height:560px;border:4px dashed #f472b6;border-radius:24px;color:#f472b6;font-size:32px;display:flex;align-items:center;justify-content:center}' +
       '.pool{position:absolute;left:520px;top:300px;width:880px}</style></head><body>' +
       '<div id="root" data-composition-id="' + id + '" data-start="0" data-width="1920" data-height="1080" data-duration="' + duration + '">' +
-      moments.map((moment, index) => clip(moment, '<div class="title">' + moment.title + '</div>' + (index === 0 ? '<div class="stand-in">Presenter stand-in</div>' : '') + (index === 1 ? '<img class="pool" src="assets/pool.svg" alt="The page\'s twenty-slot pool">' : ''))).join('') +
-      '</div><script>' + (registry ? 'window.__timelines = window.__timelines || {}\n' : '') +
+      moments.map((moment, index) => clip(moment, '<div class="title" data-sketch-layer="titles">' + moment.title + '</div>' + (index === 0 ? '<div class="stand-in" data-sketch-layer="presenter">Presenter stand-in</div>' : '') + (index === 1 ? '<img class="pool" data-sketch-layer="pool" src="assets/pool.svg" alt="The page\'s twenty-slot pool">' : ''))).join('') +
+      '</div><script>' + (registry ? 'window.__timelines = window.__timelines || {}\n' : '') + (broken ? "throw new Error('stub: the timeline cannot start')\n" : '') +
       'const tl = gsap.timeline({ paused: true })\n' +
       moments.map((moment, index) => "tl.fromTo('#" + moment.id + " .title', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.8 }, " + moment.start + ")").join('\n') + '\n' +
       (moments[1] ? "tl.fromTo('#" + moments[1].id + " .pool', { scale: 1 }, { scale: 1.25, duration: 3 }, " + moments[1].start + ")\n" : '') +
@@ -132,6 +132,10 @@ const tool = async (name, args2) => {
     fs.writeFileSync('sketch/index.html', html(false))
     const first = await tool('plan_submit_sketch', { projectDir })
     fs.writeFileSync('planning/sketch-first.json', JSON.stringify(first))
+    // Second: it passes the lint, but throws when it plays.
+    fs.writeFileSync('sketch/index.html', html(true, true))
+    const second = await tool('plan_submit_sketch', { projectDir })
+    fs.writeFileSync('planning/sketch-second.json', JSON.stringify(second))
     fs.writeFileSync('sketch/index.html', html(true))
     const answer = await tool('plan_submit_sketch', { projectDir })
     if (!answer.accepted) process.stderr.write('stub sketch refused: ' + JSON.stringify(answer) + '\n')
@@ -303,6 +307,14 @@ try {
   check(sketchRun?.skill === 'video-planner' && sketchRun.status === 'done', `it ran as a Sketch Scene run on the planning skill (${sketchRun?.skill} ${sketchRun?.status})`)
   const first = JSON.parse(await readFile(join(sketchRun.projectDir, 'planning', 'sketch-first.json'), 'utf8'))
   check(first.accepted === false && first.problems.some(problem => /hyperframes lint timeline_registry_missing_init/.test(problem)), `the pinned engine's lint refused the first attempt, and the run repaired it (${first.problems?.[0]})`)
+  // R3: well formed is not working. The second attempt passes the lint but
+  // throws; playing it in the pinned player refuses it, with the reason.
+  const second = JSON.parse(await readFile(join(sketchRun.projectDir, 'planning', 'sketch-second.json'), 'utf8'))
+  check(second.accepted === false && second.problems.some(problem => /throws in the pinned player: "Error: stub: the timeline cannot start"/.test(problem)), `playing it in the pinned player refused the attempt that throws (${second.problems?.[0]})`)
+  const previewRecord = (await api(`/api/planning/records/${ready.ready.id}`)).body.record
+  const proof = previewRecord?.report?.verification
+  check(previewRecord?.status === 'ready' && /^[0-9a-f]{64}$/.test(proof?.bundle || '') && proof.runtime === '0.7.106' && proof.timeline.tweens > 0 && proof.reseeks.every(item => item.same) && proof.frames.length === 12, `the accepted sketch was played before it read ready, and the proof names its bundle (${JSON.stringify(proof && { bundle: proof.bundle.slice(0, 12), tweens: proof.timeline.tweens, frames: proof.frames.length, layers: proof.layers.map(layer => layer.id) })})`)
+  check(ready.ready.checked?.bundle === proof?.bundle && ready.ready.checked.layers === 3, `the review is told what was checked (${JSON.stringify(ready.ready.checked)})`)
   check(ready.ready.summary.moments.length === 3 && ready.ready.summary.provisional.some(item => /stand-in/.test(item)), `the manifest declares every moment and what is provisional (${JSON.stringify(ready.ready.summary.provisional)})`)
   const served = await fetch(origin + ready.ready.url).then(async response => ({ status: response.status, type: response.headers.get('content-type'), html: await response.text() }))
   check(served.status === 200 && /text\/html/.test(served.type) && served.html.includes('assets/pool.svg'), 'the accepted sketch is served for the player')

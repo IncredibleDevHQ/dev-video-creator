@@ -9,7 +9,7 @@ import { Pool } from 'pg'
 import type { ProjectDocumentV1, RecordedBlockV1, TiptapNode } from 'markdown-composition'
 import { runMigrations } from './migrations'
 import type { NewPlanningRecord, PlanningInputRow, PlanningRecordPatch } from './persistence'
-import type { PlanningRecord, PlanningStatus } from '../src/planning/planning-records'
+import { ACTIVE_STATUSES, type PlanningRecord, type PlanningStatus } from '../src/planning/planning-records'
 
 const databaseUrl =
   process.env.STUDIO_DATABASE_URL ||
@@ -614,8 +614,8 @@ export const createPlanningRecord = async (record: NewPlanningRecord): Promise<P
   throw new Error('Could not allocate a planning revision; try again')
 }
 
-// Claims a request once: an identical queued or running record answers the
-// claim. The partial unique index on active (project, kind, subject,
+// Claims a request once: an identical active (queued, running or verifying)
+// record answers the claim. The partial unique index on active (project, kind, subject,
 // fingerprint) makes a concurrent insert lose; the loser then finds and
 // returns the winner. A clash on the revision number retries.
 export const claimPlanningRecord = async (record: NewPlanningRecord): Promise<{ record: PlanningRecord; reused: boolean }> => {
@@ -623,9 +623,9 @@ export const claimPlanningRecord = async (record: NewPlanningRecord): Promise<{ 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const active = await database.query(
       `select * from studio_planning_records
-        where project_id = $1 and kind = $2 and subject = $3 and fingerprint = $4 and status in ('queued', 'running')
+        where project_id = $1 and kind = $2 and subject = $3 and fingerprint = $4 and status = any($5::text[])
         order by revision desc limit 1`,
-      [record.projectId, record.kind, record.subject || '', record.fingerprint],
+      [record.projectId, record.kind, record.subject || '', record.fingerprint, [...ACTIVE_STATUSES]],
     )
     if (active.rows[0]) return { record: planningRecordFrom(active.rows[0]), reused: true }
     const id = `plan-${record.kind}-${randomUUID()}`

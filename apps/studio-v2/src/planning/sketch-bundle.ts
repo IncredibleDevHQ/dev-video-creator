@@ -46,6 +46,26 @@ export type SketchManifest = {
   provisional: string[]
 }
 
+// What playing a sketch in the pinned player proved, kept with the preview
+// against the hash of the bundle it played (see server/sketch-runtime.ts).
+export type SketchProof = {
+  version: 1
+  bundle: string
+  runtime: string
+  checkedAt: string
+  // As the player read them.
+  duration: number
+  timeline: { duration: number; tweens: number }
+  // Every file the composition asked for, all found.
+  loaded: string[]
+  // A frame hash for each sampled time, and the times sought again.
+  frames: Array<{ at: number; moment: string; frame: string }>
+  reseeks: Array<{ at: number; same: boolean }>
+  // Where each marked layer showed, and how much each planned change moved.
+  layers: Array<{ id: string; moments: string[] }>
+  changes: Array<{ moment: string; within: 'actors' | 'frame'; pixels: number }>
+}
+
 export type SketchContext = {
   scene: string
   plan: { record: string; revision: number; content: SceneTreatmentV1 }

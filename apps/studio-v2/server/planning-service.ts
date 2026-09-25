@@ -33,7 +33,8 @@ import { fingerprintOf } from '../src/planning/fingerprint'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
 import { continuityStatus, validateTreatment, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
 import { ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
-import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest } from '../src/planning/sketch-bundle'
+import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest, type SketchProof } from '../src/planning/sketch-bundle'
+import { previewFileBody, verifySketchRuntime } from './sketch-runtime'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
 import {
   ACTIVE_STATUSES,
@@ -931,6 +932,7 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'preview') throw new PlanningError('Preview record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This preview already finished as ${record.status}`, 409)
+  if (record.status === 'verifying') throw new PlanningError('A submission of this sketch is being played to check it; wait for its answer', 409)
   assertOwner(record, runId)
   const treatment = await loadPlanningRecord(String(record.inputs.treatmentId || ''))
   if (!treatment?.content) throw new PlanningError('The plan this preview is of is gone', 409)
@@ -946,19 +948,39 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
   const problems = [...report.problems, ...lintProblems]
   if (problems.length || !report.manifest) return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
-  // The bundle is kept whole and immutable; the manifest is the record.
+  // Well formed is not working: the bundle plays in the pinned player
+  // before it can read ready. While it plays, the record says so.
+  const verifying = await updatePlanningRecord(record.id, { status: 'verifying' }, ['queued', 'running'], { runId: record.runId })
+  if (!verifying) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
+  let runtime: Awaited<ReturnType<typeof verifySketchRuntime>>
+  try {
+    runtime = await verifySketchRuntime(files, report.manifest, treatment.content as SceneTreatmentV1)
+  } catch (error) {
+    // The check could not run at all: not the sketch's fault, and nothing
+    // the run can fix. The record says why; the creator can retry.
+    const message = `The sketch could not be played to check it: ${error instanceof Error ? error.message : String(error)}`
+    await updatePlanningRecord(record.id, { status: 'failed', error: { message, category: 'verification', recovery: ['Retry'] } }, ['verifying'])
+    throw new PlanningError(`${message}. Stop the run; the creator can retry the preview.`, 503)
+  }
+  if (runtime.problems.length || !runtime.proof) {
+    // Back to the run, to fix and submit again.
+    const back = await updatePlanningRecord(record.id, { status: 'running' }, ['verifying'], { runId: record.runId })
+    if (!back) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
+    return { accepted: false as const, problems: runtime.problems, warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings] }
+  }
+  // The bundle is kept whole and immutable; the manifest is the record, and
+  // the proof names the bundle it was taken from.
   const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-preview', extension: '.json' })
   const planning = await loadVideoPlanning(record.projectId)
   const moved = inputsChanged(previewInputsOf(planning, treatment, await knownCast(planning)), record.inputs)
-  const warnings = [...report.warnings, ...lintWarnings, ...(moved.length ? [`While this sketch was made, ${moved.join('; ')} — it is kept, as out of date`] : [])]
-  const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings }, artifacts }, ['queued', 'running'], { runId: record.runId })
+  const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...(moved.length ? [`While this sketch was made, ${moved.join('; ')} — it is kept, as out of date`] : [])]
+  const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof }, artifacts }, ['verifying'], { runId: record.runId })
   if (!updated) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
   return { accepted: true as const, status: 'ready', record: updated, warnings }
 }
 
 // A preview's files, for the Studio's player: the bundle as it was accepted.
 const bundles = new Map<string, Record<string, SketchFiles[string]>>()
-const PREVIEW_TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' }
 export const loadPreviewFile = async (recordId: string, path: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'preview' || record.status !== 'ready' || !record.artifacts) throw new PlanningError('Preview not found', 404)
@@ -970,11 +992,15 @@ export const loadPreviewFile = async (recordId: string, path: string) => {
   }
   const file = files[path]
   if (file === undefined) throw new PlanningError('No such file in the preview', 404)
-  const extension = path.slice(path.lastIndexOf('.')).toLowerCase()
-  return typeof file === 'string'
-    ? { body: Buffer.from(file, 'utf8'), contentType: PREVIEW_TYPES[extension] || 'text/plain; charset=utf-8' }
-    : { body: Buffer.from(file.base64, 'base64'), contentType: file.contentType }
+  return previewFileBody(path, file)
 }
+
+// What playing a sketch proved, in brief; null for one never played (made
+// before sketches were checked in the player).
+const checkedOf = (proof: SketchProof | undefined) =>
+  proof
+    ? { at: proof.checkedAt, runtime: proof.runtime, bundle: proof.bundle, duration: proof.duration, tweens: proof.timeline.tweens, files: proof.loaded.length, reseeks: proof.reseeks.length, layers: proof.layers.length, changes: proof.changes.length }
+    : null
 
 // A scene's previews: the newest of any status, the newest ready one of each
 // plan revision, and the one of the scene's current plan. Each says whether
@@ -997,6 +1023,7 @@ const previewOf = (records: PlanningRecord[], sceneId: string, freshness: (previ
       warnings: preview.report?.warnings || [],
       adapter: preview.adapter,
       model: preview.reportedModel || preview.model,
+      checked: checkedOf(preview.report?.verification),
     }
   }
   // Newest first, so a late result never replaces a newer one of its plan.
@@ -1181,7 +1208,7 @@ export const reviewTreatment = async (recordId: string) => {
 export const approveTreatment = reviewTreatment
 
 export const failRecord = async (recordId: string, error: NonNullable<PlanningRecord['error']>) => {
-  const updated = await updatePlanningRecord(recordId, { status: 'failed', error }, ['queued', 'running'])
+  const updated = await updatePlanningRecord(recordId, { status: 'failed', error }, [...ACTIVE_STATUSES])
   return updated
 }
 
