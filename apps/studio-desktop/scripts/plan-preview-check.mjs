@@ -368,6 +368,16 @@ try {
   const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Pause the preview' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
   check(replayed !== null, `replay starts again from the beginning (${replayed}s)`)
   await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); player.pause(); return true }`)
+  // The decision first; the sketch in one line; its details and the moment
+  // map on demand (R6, G3).
+  const order = await evaluate(`() => {
+    const review = document.querySelector('.scene-review.is-expanded')
+    const question = review.querySelector('.review-question')
+    const preview = review.querySelector('.review-preview')
+    const details = review.querySelector('[data-review-open^="preview-details:"]')
+    return { questionFirst: Boolean(question && preview && (question.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING)), summary: review.querySelector('.review-preview-summary')?.textContent || '', provisionalOutside: [...review.querySelectorAll('.review-provisional')].every(list => details && details.contains(list)), mapClosed: Boolean(details && !details.open && details.contains(review.querySelector('.review-timeline'))), mapLabel: details?.querySelector('summary')?.textContent || '' }
+  }`)
+  check(order.questionFirst && /rough: timing estimated · draft artwork · presenter stand-in/.test(order.summary) && order.provisionalOutside && order.mapClosed && /^Preview details and moment map \(r\d+\)$/.test(order.mapLabel), `the plan comes first, the sketch in one line, its details and moment map collapsed (${JSON.stringify(order)})`)
   const lanes = await evaluate(`() => [...document.querySelectorAll('.scene-review.is-expanded .review-timeline-row .review-timeline-label')].map(label => label.textContent)`)
   check(lanes.includes('Moments') && lanes.includes('Twenty-slot pool') && lanes.includes('Presenter'), `the review shows the preview's read-only timeline (${lanes})`)
   await shot('02-preview-review')

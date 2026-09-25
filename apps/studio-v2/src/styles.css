@@ -409,7 +409,7 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .notebook-timeline-chip.active { border-color: var(--timeline-accent); background: color-mix(in srgb, var(--timeline-accent) 18%, #18181b); color: white; box-shadow: 0 0 0 1px color-mix(in srgb, var(--timeline-accent) 40%, transparent); }
 .notebook-timeline-icon { position: relative; width: 26px; height: 26px; display: grid; flex: none; place-items: center; border: 1px solid color-mix(in srgb, var(--timeline-accent) 50%, transparent); border-radius: 7px; background: color-mix(in srgb, var(--timeline-accent) 16%, #18181b); color: var(--timeline-accent); font-size: 10px; font-weight: 900; font-style: normal; }
 .notebook-timeline-copy { display: block; line-height: 1; }
-.notebook-timeline-copy strong { display: block; font-size: 8px; font-weight: 800; letter-spacing: .02em; }
+.notebook-timeline-copy strong { display: block; max-width: 112px; overflow: hidden; font-size: 8px; font-weight: 800; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
 .notebook-timeline-copy time { margin-top: 3px; display: block; color: #8b8b93; font-size: 7px; font-variant-numeric: tabular-nums; }
 .notebook-timeline-copy time.recorded-length, .canvas-timeline-block-top time.recorded-length { color: var(--brand-light); font-weight: 800; }
 .notebook-timeline-chip.active .notebook-timeline-copy time { color: #d4d4d8; }
@@ -2409,6 +2409,13 @@ body.is-video-notebook .notebook-scene-block > * { grid-column: 1 / -1; }
 body.is-video-notebook .notebook-scene-block > .scene-poster, body.is-video-notebook .notebook-scene-block > .notebook-media-placeholder { grid-column: 1; width: 220px; min-height: 0; }
 body.is-video-notebook .notebook-scene-block > .block-dialogue { grid-column: 2; grid-row: 2; margin: 0; }
 body.is-video-notebook .notebook-scene-block > .scene-director, body.is-video-notebook .notebook-scene-block > .scene-storyboard, body.is-video-notebook .notebook-scene-block > .scene-cues, body.is-video-notebook .notebook-scene-block > figcaption, body.is-video-notebook .notebook-scene-block > .scene-provenance { display: none; }
+/* A video notebook's work is the scene review: the older dialogue-and-motion
+   tools stay reachable but quiet, and the new-explainer journey steps back. */
+body.is-video-notebook #create-explainer, body.is-video-notebook .scene-animate-action { display: none; }
+body.is-video-notebook .block-dialogue { padding: 10px 12px; }
+body.is-video-notebook .block-dialogue-meta { display: none; }
+body.is-video-notebook .block-dialogue-edit { border-color: #d4d4d8; background: white; color: #18181b; }
+body.is-video-notebook .notebook-scene-block:not(.selected-block) .block-dialogue-windows { max-height: 6.6em; overflow: hidden; mask-image: linear-gradient(#000 60%, transparent); }
 /* The plan preview on the stage (P3): the sketch, a transport, and the
    moments it declared — estimated, and labelled as a sketch. */
 .scene-stage-preview { position: absolute; inset: 0; }
@@ -2426,6 +2433,14 @@ body.is-video-notebook .notebook-scene-block > .scene-director, body.is-video-no
 .review-preview-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .review-preview-head h4 { margin: 0; font: 700 12px/1.3 'InterBody', Inter, sans-serif; color: #3730a3; }
 .review-provisional { margin: 0; padding-left: 18px; color: #6d28d9; font-size: 12px; }
+.review-preview-summary { margin: 0; }
+.review-objects { display: grid; gap: 6px; }
+.review-objects h4 { margin: 0; }
+.review-preview-details { display: grid; gap: 8px; }
+.review-preview-details h6 { margin: 6px 0 0; }
+.review-no-preview { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.link-button { padding: 0; border: 0; background: none; color: #4338ca; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.link-button:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; border-radius: 2px; }
 .review-timeline { display: grid; gap: 3px; padding: 6px 0 2px; }
 .review-timeline-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; align-items: center; }
 .review-timeline-label { font-size: 11px; color: #52525b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

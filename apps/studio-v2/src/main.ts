@@ -3924,8 +3924,10 @@ const renderNotebookTimeline = () => {
     }
     const copy = document.createElement('span')
     copy.className = 'notebook-timeline-copy'
+    // The scene's own title, so the rail tells blocks apart; the kind is in
+    // its label and tooltip.
     const kind = document.createElement('strong')
-    kind.textContent = meta.label
+    kind.textContent = scene.title || meta.label
     copy.append(kind)
     if (showTime) {
       const duration = document.createElement('time')
@@ -17137,6 +17139,15 @@ cameraDialog.addEventListener('close', () => {
   renderSceneStage()
 })
 document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
+// A video notebook's work is its scene plans; the older whole-notebook build
+// says what it is, and that it does not use them.
+{
+  const build = $('#build-explainer') as HTMLButtonElement
+  if (project.derivedFrom?.notebook) {
+    build.textContent = 'Build whole notebook'
+    build.title = 'The older build: it works from the notebook\'s scripts and pages and does not use approved scene plans. Producing scenes from approved plans comes next.'
+  }
+}
 if (project.derivedFrom?.notebook) {
   sceneReview.listen()
   void sceneReview.load().then(() => onSceneSelected(selectedNodeId))

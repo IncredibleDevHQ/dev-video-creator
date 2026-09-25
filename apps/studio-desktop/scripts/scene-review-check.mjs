@@ -306,9 +306,18 @@ try {
     return { lines: [...details.querySelectorAll('.review-guide > div ol li')].map(item => item.textContent), steps: [...details.querySelectorAll('.review-guide > ol li')].map(item => item.textContent), record: Boolean(details.querySelector('[data-focus^="record:"]')) }
   }`)
   check(guide.lines.length === 2 && guide.steps.some(step => /keep speaking; the graphics take the frame/.test(step)) && guide.record, `the recording guide gives the lines, where the speaker is and a way to record (${JSON.stringify(guide)})`)
-  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="produce:"]').click(); return true }`)
-  const production = await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-production')?.textContent || null`, 10)
-  check(/approved plan \(r\d+\)/.test(production || '') && /Production is not part of this build yet\. Approving a plan never starts it\./.test(production || ''), 'Produce scene is its own action, and says what it needs and that it does not run yet')
+  const production = await evaluate(`() => {
+    const details = document.querySelector('.scene-review.is-expanded [data-review-open^="production:"]')
+    if (!details) return null
+    const closed = !details.open
+    details.open = true
+    details.dispatchEvent(new Event('toggle'))
+    return { closed, summary: details.querySelector('summary').textContent, text: document.querySelector('.scene-review.is-expanded .review-production')?.textContent || '', button: Boolean(document.querySelector('.scene-review.is-expanded [data-focus^="produce:"]')) }
+  }`)
+  check(production?.closed && production.summary === 'Production — not connected yet' && !production.button && /^Not connected yet: this build stops at approved plans and rough sketches\. Approving a plan never starts production\./.test(production.text) && /approved plan \(r\d+\)/.test(production.text) && /does not use approved plans/.test(production.text), `production is a stated boundary, not a promising action (${JSON.stringify(production)})`)
+  const chrome = await evaluate(`() => ({ rail: [...document.querySelectorAll('.notebook-timeline-chip strong')].map(item => item.textContent), create: getComputedStyle(document.getElementById('create-explainer')).display, build: document.getElementById('build-explainer').textContent, buildTitle: document.getElementById('build-explainer').title })`)
+  check(chrome.rail.join('|') === 'Request rate limiter|Concurrent requests limiter', `the scene rail names its scenes (${chrome.rail})`)
+  check(chrome.create === 'none' && chrome.build === 'Build whole notebook' && /does not use approved scene plans/.test(chrome.buildTitle), `a video notebook shows its own workflow; the older build says what it is (${JSON.stringify(chrome)})`)
   await shot('02-approved-guide')
 
   // Revise with direction, and compare the new candidate with the approved plan.

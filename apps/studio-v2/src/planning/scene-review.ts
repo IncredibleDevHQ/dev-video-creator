@@ -43,7 +43,7 @@ export type SceneReviewHost = {
   showPreview: (sceneId: string) => void
 }
 
-type SceneUi = { revision: string; compare: string; moment: string; direction: string | null; producing: boolean }
+type SceneUi = { revision: string; compare: string; moment: string; direction: string | null }
 
 const h = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -88,7 +88,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
 
   const uiOf = (sceneId: string) => {
     let state = ui.get(sceneId)
-    if (!state) ui.set(sceneId, (state = { revision: '', compare: '', moment: '', direction: null, producing: false }))
+    if (!state) ui.set(sceneId, (state = { revision: '', compare: '', moment: '', direction: null }))
     return state
   }
   const sceneOf = (sceneId: string) => overview?.scenes.find(scene => scene.id === sceneId) || null
@@ -168,6 +168,16 @@ export const createSceneReview = (host: SceneReviewHost) => {
       document.querySelectorAll<HTMLElement>(`[data-review-progress="${owner.id}"]`).forEach(element => (element.textContent = text.slice(0, 200)))
     })
   }
+
+  // What the creator reads names scenes, pages and artwork by their titles,
+  // never by the ids the records use.
+  const readable = (text: string) => {
+    let out = text
+    for (const scene of overview?.scenes || []) if (scene.id && out.includes(scene.id)) out = out.split(scene.id).join(`“${scene.title || 'untitled scene'}”`)
+    for (const entry of overview?.visualCast?.entries || []) if (entry.libraryKey && out.includes(entry.libraryKey)) out = out.split(entry.libraryKey).join(`“${entry.label}”`)
+    return out
+  }
+  const pageTitle = (page: string) => overview?.visualCast?.pages.find(entry => entry.scene === page)?.title || overview?.basePages.find(entry => entry.scene === page)?.title || 'another page'
 
   // ——— What a moment is about, on the page ———
   const targetsOf = (scene: Scene, plan: SceneTreatmentV1, moment: TreatmentMoment) => {
@@ -295,9 +305,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
           h('strong', { text: object.entity }),
           ' ',
           chip(object.asset.status, object.asset.status === 'undecided' ? 'warn' : object.asset.status === 'reuse' ? 'good' : ''),
-          entry ? h('small', { text: ` ${entry.label} (${entry.kind}${entry.page !== scene.originScenes[0] ? `, from ${entry.page}` : ''})` }) : null,
+          entry ? h('small', { text: ` ${entry.label} (${entry.kind}${scene.originScenes.includes(entry.page) ? '' : `, from “${pageTitle(entry.page)}”`})` }) : null,
           h('small', { class: 'review-muted', text: ` ${object.performance || object.role}` }),
-          object.asset.reason ? h('small', { class: 'review-muted', text: ` — ${object.asset.reason}` }) : null,
+          object.asset.reason ? h('small', { class: 'review-muted', text: ` — ${readable(object.asset.reason)}` }) : null,
         ),
       )
     })
@@ -408,9 +418,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
       ...(plan?.objects || []).filter(object => ['enrich', 'generate'].includes(object.asset.status)).map(object => `✗ Artwork for ${object.entity} (${object.asset.status}).`),
     ]
     return h('div', { class: 'review-production' },
-      h('p', {}, 'Producing turns the approved plan into the scene\'s code, with its artwork, voice and timing. It runs on your “Scene production” harness (Agent settings).'),
+      h('p', { class: 'review-warn', text: 'Not connected yet: this build stops at approved plans and rough sketches. Approving a plan never starts production.' }),
+      h('p', {}, 'Producing a scene from its approved plan — its code, artwork, voice and timing, on your “Scene production” harness — comes next. It will need:'),
       h('ul', {}, ...needs.map(line => h('li', { text: line }))),
-      h('p', { class: 'review-warn', text: 'Production is not part of this build yet. Approving a plan never starts it.' }),
+      h('p', { class: 'review-muted', text: 'Build whole notebook, in the toolbar, is the older build: it works from the notebook\'s scripts and pages, and does not use approved plans.' }),
     )
   }
 
@@ -444,8 +455,29 @@ export const createSceneReview = (host: SceneReviewHost) => {
     }
     const show = h('button', { type: 'button', class: 'button ghost', text: 'Play it on the stage', 'data-focus': `show-preview:${scene.id}` })
     show.addEventListener('click', () => host.showPreview(scene.id))
+    items.push(h('div', { class: `review-preview${ready.current ? '' : ' is-stale'}` },
+      h('div', { class: 'review-preview-head' },
+        h('h4', { text: `Plan preview — a rough sketch of r${ready.of.revision}` }),
+        show,
+      ),
+      !ready.current ? h('p', { class: 'review-warn', text: `Out of date: ${readable(ready.staleBecause || 'the scene\'s plan has changed since this sketch')}. Sketch it again to see what the plan shows now.` }) : null,
+      h('p', { class: 'review-muted review-preview-summary', text: `${ready.summary.duration}s · ${ready.summary.moments.length} moments · rough: ${previewFlags(ready).join(' · ')} — what it cannot show yet is under Preview details.` }),
+    ))
+    return items
+  }
+  // What a sketch cannot show yet, in brief.
+  const previewFlags = (ready: ScenePreviewView) => [
+    ready.summary.provisional.some(item => /tim/i.test(item)) ? 'timing estimated' : '',
+    'draft artwork',
+    ready.summary.layers.some(layer => layer.kind === 'presenter' && layer.placeholder) ? 'presenter stand-in' : '',
+    ready.summary.layers.some(layer => layer.kind !== 'presenter' && layer.placeholder) ? 'placeholders' : '',
+  ].filter(Boolean)
+  // The sketch's own account, and which moments each layer takes part in.
+  const previewDetails = (scene: Scene, record: PlanningRecord) => {
+    const ready = previewFor(scene, record)
+    if (!ready) return null
     const total = ready.summary.duration || 1
-    const lanes = h('div', { class: 'review-timeline', role: 'table', 'aria-label': 'Preview timeline (read-only)' },
+    const lanes = h('div', { class: 'review-timeline', role: 'table', 'aria-label': 'Moment map (read-only)' },
       h('div', { class: 'review-timeline-row is-moments', role: 'row' },
         h('span', { class: 'review-timeline-label', text: 'Moments' }),
         h('span', { class: 'review-timeline-track' }, ...ready.summary.moments.map(moment => h('span', { class: 'review-timeline-clip is-moment', style: `left:${(moment.start / total) * 100}%;width:${((moment.end - moment.start) / total) * 100}%`, title: `${moment.title}: ${moment.start}–${moment.end}s (estimated)`, text: moment.title }))),
@@ -458,18 +490,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
         )
       }),
     )
-    items.push(h('div', { class: `review-preview${ready.current ? '' : ' is-stale'}` },
-      h('div', { class: 'review-preview-head' },
-        h('h4', { text: `Plan preview — a rough sketch of r${ready.of.revision}` }),
-        show,
-      ),
-      !ready.current ? h('p', { class: 'review-warn', text: `Out of date: ${ready.staleBecause || 'the scene\'s plan has changed since this sketch'}. Sketch it again to see what the plan shows now.` }) : null,
+    return disclosure(`preview-details:${scene.id}`, `Preview details and moment map (r${ready.of.revision})`, h('div', { class: 'review-preview-details' },
       h('p', { class: 'review-muted', text: `${ready.summary.duration}s · ${ready.summary.moments.length} moments · ${ready.summary.layers.length} layers${ready.adapter ? ` · sketched by ${ready.adapter}${ready.model ? ` ${ready.model}` : ''}` : ''}` }),
-      h('ul', { class: 'review-provisional' }, ...ready.summary.provisional.map(item => h('li', { text: item }))),
+      h('h6', { text: 'What the sketch cannot show yet' }),
+      h('ul', { class: 'review-provisional' }, ...ready.summary.provisional.map(item => h('li', { text: readable(item) }))),
+      h('h6', { text: 'Moment map' }),
+      h('p', { class: 'review-muted', text: 'Which moments each layer takes part in. It is read-only and estimated — not the composition\'s timeline; editing timing arrives with production.' }),
       lanes,
-      h('p', { class: 'review-muted', text: 'The timeline is read-only and estimated — no voice or take has set it. Editing arrives with production.' }),
     ))
-    return items
   }
 
   // The selected scene's review.
@@ -488,14 +516,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const previewOfShown = Boolean(previewFor(scene, record))
     const previewButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `preview:${scene.id}`, text: !record ? 'Preview plan' : previewState.state === 'building' ? `Building the preview of r${record.revision}…` : previewOfShown ? `Sketch r${record.revision} again` : `Preview r${record.revision}`, ...(record && previewState.state !== 'building' ? {} : { disabled: true }) })
     previewButton.addEventListener('click', () => record && void preview(scene, record, previewOfShown))
-    const produce = h('button', { type: 'button', class: 'button ghost', 'data-focus': `produce:${scene.id}`, text: state.producing ? 'Hide production' : 'Produce scene…' })
-    produce.addEventListener('click', () => {
-      state.producing = !state.producing
-      host.refresh()
-    })
     const workspace = h('button', { type: 'button', class: 'button ghost', text: 'Planning workspace', 'data-focus': `workspace:${scene.id}` })
     workspace.addEventListener('click', () => host.openWorkspace())
-    actions.append(approveButton, previewButton, produce, workspace)
+    actions.append(approveButton, previewButton, workspace)
     const revisions = h('div', { class: 'review-revisions' })
     for (const entry of recordsOf(scene.id).filter(item => item.content)) {
       const button = h('button', { type: 'button', class: `review-revision${entry.id === record?.id ? ' is-selected' : ''}`, 'data-focus': `revision:${entry.id}`, text: `r${entry.revision} ${entry.status === 'reviewed' ? (entry.id === view.reviewed?.id ? 'approved' : 'approved earlier') : entry.status}` })
@@ -514,14 +537,12 @@ export const createSceneReview = (host: SceneReviewHost) => {
       ),
     )
     if (error) root.append(h('p', { class: 'review-error', text: error }))
-    if (state.producing) root.append(productionOf(scene, record))
     // Where the plan stands.
     if (view.latest && (view.latest.status === 'queued' || view.latest.status === 'running')) {
       root.append(h('p', { class: 'review-busy', 'data-review-progress': view.latest.id, text: progress.get(view.latest.id) || `Planning revision ${view.latest.revision} with your local harness…` }))
     }
     if (view.latest?.status === 'failed') root.append(h('p', { class: 'review-error', text: `Revision ${view.latest.revision} failed: ${view.latest.error?.message || 'no reason given'}${view.reviewed ? ` — the approved plan (r${view.reviewed.revision}) is unchanged` : ''}` }))
     if (record && record.id === view.current?.id && view.staleBecause) root.append(h('p', { class: 'review-warn', text: `Stale — ${view.staleBecause}. Revise to plan from the current inputs.` }))
-    if (record) root.append(...previewSection(scene, record))
     if (!plan) {
       root.append(h('p', { class: 'review-muted', text: view.state === 'needs-brief' ? 'The video\'s explanation brief comes first — prepare it in the planning workspace.' : view.state === 'preparing' ? 'The explanation brief is being prepared; this scene can be planned once it is ready.' : 'No plan yet. Add direction below if you want, then plan the scene.' }))
     } else {
@@ -534,16 +555,16 @@ export const createSceneReview = (host: SceneReviewHost) => {
             h('p', {}, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
             plan.demonstration ? h('p', {}, h('strong', { text: 'Example. ' }), plan.demonstration.text) : null,
             ledger ? h('p', { class: 'review-muted', text: `The count: ${ledger.quantity} from ${ledger.initial} to ${ledger.final} over ${ledger.events.length} changes — checked.` }) : null,
-            h('h4', { text: 'Objects and their artwork' }),
-            castFor(plan, scene),
           ),
           h('div', { class: 'review-column' },
             h('h4', { text: `Moments (${plan.moments.length})` }),
-            h('p', { class: 'review-muted', text: 'Select a moment to see what it is about on the page.' }),
+            h('p', { class: 'review-muted', text: 'Select a moment to see what it is about on the stage.' }),
             momentsOf(scene, plan),
           ),
         ),
       )
+      if (record) root.append(...previewSection(scene, record))
+      root.append(h('div', { class: 'review-objects' }, h('h4', { text: 'Objects and their artwork' }), castFor(plan, scene)))
       const open = [
         ...plan.unresolved.map(text => `Open: ${text}`),
         ...plan.requirements.decisions.map(text => `Decide: ${text}`),
@@ -551,7 +572,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         ...(record.report?.warnings || []).map(text => `Check: ${text}`),
         ...(scene.continuity || []).filter(seam => seam.state === 'proposed' || seam.state === 'broken').map(seam => `Seam (${seam.side === 'incoming' ? 'opening' : 'ending'}): ${seam.state}${seam.reason ? ` — ${seam.reason}` : ''}`),
       ]
-      if (open.length) root.append(h('div', { class: 'review-open' }, h('h4', { text: 'Still to resolve' }), h('ul', {}, ...open.map(text => h('li', { text })))))
+      if (open.length) root.append(h('div', { class: 'review-open' }, h('h4', { text: 'Still to resolve' }), h('ul', {}, ...open.map(text => h('li', { text: readable(text) })))))
     }
     // Direction for the next candidate.
     const box = h('textarea', { rows: '2', 'data-focus': `direction:${scene.id}`, placeholder: 'Direction for the next candidate — what should change?', 'aria-label': 'Direction for this scene' })
@@ -560,10 +581,13 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const reviseButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Revise the plan' : 'Plan the scene', ...(view.state === 'planning' || !overview?.brief.current || overview.brief.stale || !overview.available ? { disabled: true } : {}) })
     reviseButton.addEventListener('click', () => void revise(scene))
     root.append(h('div', { class: 'review-direction' }, box, reviseButton))
+    if (!plan && record) root.append(...previewSection(scene, record))
     if (plan && record) {
       root.append(
         disclosure(`guide:${scene.id}`, 'Recording guide', guideOf(scene, plan)),
         disclosure(`compare:${scene.id}`, 'Compare with another revision', compareOf(scene, plan, record)),
+        previewDetails(scene, record) || '',
+        disclosure(`production:${scene.id}`, 'Production — not connected yet', productionOf(scene, record)),
         disclosure(`details:${scene.id}`, 'Details: evidence, skills, provenance', h('div', { class: 'review-details' },
           h('p', { class: 'review-muted', text: `Plan r${record.revision} · ${record.status === 'reviewed' ? 'approved' : record.status} · ${record.adapter || 'harness unknown'} ${record.reportedModel || record.model || ''}${record.approval ? ` · approved ${new Date(record.approval.at).toLocaleString()} with brief ${record.approval.briefId.slice(0, 18)}…${record.approval.castId ? ' and the visual cast' : ''}` : ''}` }),
           h('p', {}, h('strong', { text: 'Skills. ' }), plan.skills.map(skill => skill.skill).join(', ') || '—'),
@@ -591,7 +615,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const record = scene ? shownRecord(scene) : null
     const preview = scene ? previewStateOf(scene, record) : null
     const current = scene ? previewStateOf(scene, scene.view.current) : null
-    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, state.producing, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error])
+    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error])
   }
 
   return {

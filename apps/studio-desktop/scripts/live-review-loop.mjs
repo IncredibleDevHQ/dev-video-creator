@@ -498,9 +498,8 @@ try {
   await shot('14-recording-guide', `() => { const details = document.querySelector('.scene-review[data-review-scene="${sceneA.id}"] [data-review-open^="guide:"]'); if (details) details.scrollIntoView({ block: 'start' }); return true }`)
   const strip = (await reviewState(sceneA.id))?.strip || []
   check(strip.some(chip => /^Recording: guide ready · no take yet/.test(chip)), `no take is needed to plan or preview (${strip.join(' | ')})`)
-  await click(sceneA.id, '[data-focus^="produce:"]')
-  const production = await waitFor(`() => ${inReview(sceneA.id, '.review-production')}?.textContent || null`, 10)
-  check(/never starts it/.test(production || ''), `Produce scene is a separate action that approval never starts (${(production || '').slice(0, 160)})`)
+  const production = await evaluate(`() => { const details = ${inReview(sceneA.id, '[data-review-open^="production:"]')}; if (!details) return null; details.open = true; details.dispatchEvent(new Event('toggle')); return ${inReview(sceneA.id, '.review-production')}?.textContent || null }`)
+  check(/Approving a plan never starts production/.test(production || ''), `production is a stated boundary that approval never crosses (${(production || '').slice(0, 160)})`)
   await shot('15-approved', scrollToReview(sceneA.id))
   const bNow = (await sceneOf(videoId, sceneB.id))?.view
   check(bNow?.current?.status === 'candidate' && !bNow.reviewed, `${sceneB.title} stays an unapproved candidate`)
