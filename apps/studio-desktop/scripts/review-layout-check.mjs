@@ -316,6 +316,25 @@ try {
     check(seen?.horizontal.panel <= 0 && seen.horizontal.workspace <= 0 && seen.horizontal.page <= 0, `${at} nothing scrolls sideways (${JSON.stringify(seen?.horizontal)})`)
     check(seen?.rows === 7 && seen.details === 0 && /^Select a moment/.test(seen.hint) && seen.listHeight <= seen.viewport * 0.5, `${at} the seven moments are one compact list that fits in half the view (${seen?.listHeight}px of ${seen?.viewport}px), with no detail until one is chosen (${JSON.stringify({ rows: seen?.rows, details: seen?.details, columns: seen?.columns, panel: seen?.panelWidth })})`)
     check(seen?.approve.length === 1 && seen.approve[0] === `Approve r${planned.revision}` && seen.revisions.length === 1 && seen.revisions[0] === `r${planned.revision} candidate *` && seen.planChips.length === 0, `${at} one revision control and one approval action (${JSON.stringify({ approve: seen?.approve, revisions: seen?.revisions, planChips: seen?.planChips })})`)
+    // The chrome (F10): one primary action — the scene's next step — the
+    // title once, one AI entry, and nothing crowded out of either bar.
+    const chrome = await evaluate(`() => {
+      const visible = element => element && element.getClientRects().length > 0
+      const title = document.getElementById('project-title').value
+      const bars = ['.topbar', '.commandbar'].map(selector => { const bar = document.querySelector(selector); return bar.scrollWidth - bar.clientWidth })
+      const clipped = [...document.querySelectorAll('.topbar button, .topbar a, .commandbar button')].filter(visible).filter(element => { const box = element.getBoundingClientRect(); return box.right > innerWidth + 1 || box.left < -1 }).map(element => element.id || element.textContent.trim().slice(0, 20))
+      return {
+        primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(visible).map(element => element.textContent.trim()),
+        next: document.getElementById('next-step').textContent,
+        titles: [...document.querySelectorAll('.topbar *')].filter(visible).filter(element => !element.children.length && element.id !== 'project-title' && element.textContent.includes(title)).length,
+        lineage: [...document.querySelectorAll('#notebook-lineage .notebook-lineage-segment')].map(element => element.textContent),
+        ai: [...document.querySelectorAll('#open-ai-settings')].filter(visible).length,
+        older: ['build-explainer', 'create-explainer', 'open-fullscreen'].filter(id => visible(document.getElementById(id))),
+        bars,
+        clipped,
+      }
+    }`)
+    check(JSON.stringify(chrome.primaries) === '["Review scene 1"]' && chrome.titles === 0 && chrome.lineage.length === 1 && chrome.ai === 1 && chrome.older.length === 0 && chrome.bars.every(extra => extra <= 0) && chrome.clipped.length === 0, `${at} one primary action, the scene's next step; the title once; one AI entry; the older paths under Advanced; nothing clipped (${JSON.stringify(chrome)})`)
     await shot(`${width}-01-review`)
 
     // One moment in detail: why, what changes on screen, what is said.
@@ -354,8 +373,32 @@ try {
   // Other scenes keep their compact strip, with the plan's state in it.
   const other = await evaluate(`() => [...document.querySelectorAll('.scene-review:not(.is-expanded) .review-strip .review-chip')].map(chip => chip.textContent)`)
   check(other.some(text => text.startsWith('Plan:')), `an unselected scene's strip still says where its plan stands (${JSON.stringify(other)})`)
-  // ——— The notebook's own document keeps its type ———
+  // ——— The base: its one next step is its video; the rest under Advanced ———
   check(Boolean(await openNotebook(base.id, base.title)), 'the base notebook opens')
+  const baseStep = await waitFor(`() => { const button = document.getElementById('next-step'); return button.textContent === 'Open video' ? { label: button.textContent, title: button.title, primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(element => element.getClientRects().length).map(element => element.textContent.trim()) } : null }`, 30)
+  check(baseStep?.label === 'Open video' && JSON.stringify([...baseStep.primaries].sort()) === '["Open video","Publish"]' && /fabric-lib · video/.test(baseStep.title), `the base leads with its video (${JSON.stringify(baseStep)})`)
+  // Import's menu shows whole too: the command bar no longer clips it.
+  const imports = await evaluate(`async () => {
+    document.getElementById('import-menu-toggle').click()
+    await new Promise(resolve => setTimeout(resolve, 300))
+    const buttons = [...document.querySelectorAll('#import-menu-list button')].filter(element => element.getClientRects().length)
+    const shown = buttons.filter(element => { const box = element.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return box.bottom <= innerHeight && Boolean(hit && element.contains(hit)) }).length
+    document.getElementById('import-menu-toggle').click()
+    return { items: buttons.length, shown }
+  }`)
+  check(imports.items > 0 && imports.shown === imports.items, `Import's menu shows every item whole (${JSON.stringify(imports)})`)
+  const advanced = await evaluate(`async () => {
+    document.getElementById('advanced-menu-toggle').click()
+    await new Promise(resolve => setTimeout(resolve, 300))
+    const list = document.getElementById('advanced-menu-list')
+    const buttons = [...list.querySelectorAll('button')].filter(element => element.getClientRects().length)
+    // Each item really shows: inside the window, and on top where it is.
+    const shown = buttons.filter(element => { const box = element.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return box.top >= 0 && box.bottom <= innerHeight && box.right <= innerWidth && Boolean(hit && element.contains(hit)) }).length
+    return { open: !list.hidden, expanded: document.getElementById('advanced-menu-toggle').getAttribute('aria-expanded'), shown, barScrolled: document.querySelector('.commandbar .actions').scrollTop + document.querySelector('.commandbar .actions').scrollLeft, next: document.getElementById('next-step').getClientRects().length > 0, items: buttons.map(element => ({ label: element.querySelector('.menu-label').textContent, note: element.querySelector('.menu-note').textContent })) }
+  }`)
+  check(advanced.open && advanced.expanded === 'true' && advanced.shown === 3 && advanced.barScrolled === 0 && advanced.next && advanced.items.map(item => item.label).join('|') === 'Open canvas|Create explainer…|Build explainer' && /does not use approved scene plans/.test(advanced.items[2]?.note || ''), `Advanced holds the older and other paths, each saying what it is (${JSON.stringify(advanced)})`)
+  await shot('base-advanced')
+  await evaluate(`() => { document.getElementById('advanced-menu-toggle').click(); return true }`)
   const documentType = await waitFor(`() => { const paragraph = document.querySelector('#editor .tiptap > p'); const list = document.querySelector('#editor .tiptap > ul'); if (!paragraph || !list) return null; const style = getComputedStyle(paragraph); return { paragraph: style.fontSize + '/' + style.lineHeight, item: getComputedStyle(list.querySelector('li')).fontSize + '/' + getComputedStyle(list.querySelector('li')).lineHeight, list: getComputedStyle(list).paddingLeft } }`, 30)
   check(documentType?.paragraph === '15px/26.25px' && documentType.item === '15px/26.25px' && documentType.list === '30px', `the notebook's paragraphs and lists keep the document's type (${JSON.stringify(documentType)})`)
 } catch (error) {

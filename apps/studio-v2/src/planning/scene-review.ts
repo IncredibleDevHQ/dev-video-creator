@@ -17,6 +17,7 @@ import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
 import { approvePlan, loadPlanning, planScene, previewScene, saveSceneDirection } from './planning-client'
 import { BROWSER_REVIEW_MESSAGE, progressText } from '../harness-choice'
+import { videoNextStep, type NextStep } from './next-step'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
 type Scene = PlanningOverviewV1['scenes'][number]
@@ -827,6 +828,27 @@ export const createSceneReview = (host: SceneReviewHost) => {
       const state = uiOf(sceneId)
       if (revision && recordsOf(sceneId).some(record => record.id === revision)) state.revision = revision
       state.moment = moment
+    },
+    // The video's one next step, from the selected scene (F10 of the
+    // Perplexity review); null until the plans are read.
+    nextStep: (selected: string | null): NextStep | null => {
+      if (!overview) return null
+      const brief = overview.brief.latest
+      return videoNextStep({
+        scenes: overview.scenes.map(scene => {
+          const take = host.takeOf(scene.id)
+          // A take whose script is not known is not asked for again.
+          return { id: scene.id, index: scene.index, title: scene.title, state: scene.view.state, delivery: scene.delivery, take: !take ? 'none' : take.current || !take.known ? 'current' : 'earlier' }
+        }),
+        brief: { ready: Boolean(overview.brief.current), stale: overview.brief.stale, preparing: Boolean(brief && brief.kind === 'brief' && isActiveStatus(brief.status)), failed: brief?.status === 'failed' },
+        selected,
+        desktop: Boolean(window.studioDesktop?.isDesktop),
+      })
+    },
+    // Plan the scene, as its review's own button does.
+    plan: (sceneId: string) => {
+      const scene = sceneOf(sceneId)
+      if (scene) void revise(scene)
     },
     // The plan the stage should show for a scene, and its current moment.
     stageOf: (sceneId: string) => {

@@ -117,12 +117,16 @@ try {
     if (lineage?.segments.length) break
     await sleep(500)
   }
+  // One compact link to the mother; the notebook's own title is the
+  // editable one, not repeated beside it (F10 of the Perplexity review).
+  const titles = await evaluate(`() => ({ title: document.getElementById('project-title').value, repeated: [...document.querySelectorAll('.topbar *')].filter(element => element.getClientRects().length && !element.children.length && element.id !== 'project-title' && element.textContent.includes(document.getElementById('project-title').value)).length })`, 'titles')
   check(
-    'breadcrumb on the derived notebook: mother › video',
+    'breadcrumb on the derived notebook: one link to the mother, the title not repeated',
     lineage?.segments.length === 1 &&
       lineage.segments[0].includes('Attention Is All You Need') &&
-      lineage.current.includes('Video'),
-    JSON.stringify(lineage),
+      lineage.current === '' &&
+      titles.title.includes('Video') && titles.repeated === 0,
+    JSON.stringify({ lineage, titles }),
   )
 
   // The switcher nests the video under its mother.
@@ -192,11 +196,13 @@ try {
     if (motherLineage && (motherLineage.chip || motherLineage.hidden === false)) break
     await sleep(500)
   }
+  const motherStep = await evaluate(`() => ({ label: document.getElementById('next-step').textContent, action: document.getElementById('next-step').dataset.action, hidden: document.getElementById('next-step').hidden })`, 'mother next step')
+  check('the mother leads with its video: Open video', motherStep.label === 'Open video' && motherStep.action === 'open-video' && !motherStep.hidden, JSON.stringify(motherStep))
   check(
-    'mother breadcrumb navigates back; mother shows a quiet single segment + derivatives chip',
+    'mother breadcrumb navigates back; mother shows only its derivatives chip',
     motherLineage &&
       motherLineage.segments.length === 0 &&
-      motherLineage.current.includes('Attention Is All You Need') &&
+      motherLineage.current === '' &&
       /1 derivative/.test(motherLineage.chip),
     JSON.stringify(motherLineage),
   )

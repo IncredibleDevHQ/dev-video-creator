@@ -202,6 +202,17 @@ const openNotebook = async (id, title) => {
   return waitFor(`() => document.getElementById('project-title')?.value === ${JSON.stringify(title)}`)
 }
 const overview = id => api(`/api/planning/${encodeURIComponent(id)}`).then(r => r.body)
+// The notebook's one next step (F10 of the Perplexity review).
+const nextStep = () => evaluate(`() => { const button = document.getElementById('next-step'); return { label: button.textContent, action: button.dataset.action, scene: button.dataset.scene, disabled: button.disabled, hidden: button.hidden, primaries: [...document.querySelectorAll('.commandbar .button.primary, .topbar .button.primary')].filter(element => !element.hidden).map(element => element.id) } }`)
+const nextStepIs = async (label, seconds = 20) => {
+  let step = null
+  for (let i = 0; i < seconds * 2; i++) {
+    step = await nextStep().catch(() => null)
+    if (step?.label === label) return step
+    await sleep(500)
+  }
+  return step
+}
 const selectScene = index => evaluate(`() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[${index}]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return node.id }`)
 const reviewOf = index => evaluate(`() => {
   const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[${index}]
@@ -263,6 +274,10 @@ try {
   await selectScene(1)
   const opened = await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-panel') && !document.getElementById('scene-stage').hidden ? true : null`)
   check(Boolean(opened), 'selecting a scene opens its review beside the stage')
+  // One next step leads (F10): the selected scene's, and it is the only
+  // primary action; the older build waits under Advanced.
+  const toPlan = await nextStepIs('Plan scene 2')
+  check(toPlan?.label === 'Plan scene 2' && toPlan.action === 'plan' && !toPlan.disabled && JSON.stringify(toPlan.primaries) === '["next-step"]', `the one next step is to plan the selected scene (${JSON.stringify(toPlan)})`)
   // The plan leads (F7): the review sits above the block, and the block's
   // inherited dialogue folds to one line — one header, one status line.
   const order = await evaluate(`() => {
@@ -291,6 +306,8 @@ try {
   check(Boolean(review) && state.question === 'What does this limiter do?' && state.moments.length === 3 && state.cast.length === 2 && state.cast.every(item => item.image), `the review shows the plan, its moments and the cast it reuses (${JSON.stringify(state)})`)
   // The plan's state is said once, by its revision control (F6 of the
   // Perplexity review); the status line keeps the rest.
+  const toReview = await nextStepIs('Review scene 2')
+  check(toReview?.label === 'Review scene 2' && toReview.action === 'review', `planned, the next step is to review it (${JSON.stringify(toReview)})`)
   check(state.revisions.includes(`r${planned.revision} candidate`) && !state.strip.some(chip => chip.startsWith('Plan:')) && state.strip.includes('Recording: guide ready · no take yet'), `the revision control reads the candidate, the status line the recording state (${JSON.stringify({ revisions: state.revisions, strip: state.strip })})`)
   // The first screen of a selected scene (R6, F7), reached as the review
   // reached it: another scene selected, then this one picked from the rail
@@ -364,6 +381,8 @@ try {
   check(approved?.id === planned.id && approved.approval?.castId && approved.approval.fingerprint === planned.fingerprint, `approval pins the plan with what it was made from (${JSON.stringify(approved?.approval)})`)
   await sleep(1500)
   check((await api('/api/runs')).body.runs.length === runsBefore, 'approving starts no run')
+  const toRecord = await nextStepIs('Record scene 2')
+  check(toRecord?.label === 'Record scene 2' && toRecord.action === 'record', `approved and presented by the creator, the next step is to record it (${JSON.stringify(toRecord)})`)
   check(Boolean(await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-revision.is-selected')?.textContent === 'r${planned.revision} approved' && !document.querySelector('.scene-review.is-expanded [data-focus^="approve:"]') || null`, 20)), 'the review reads Approved once, in its revision control, with no approval action left')
 
   // The recording guide and the production explanation.
@@ -477,9 +496,9 @@ try {
     return { closed, summary: details.querySelector('summary').textContent, text: document.querySelector('.scene-review.is-expanded .review-production')?.textContent || '', button: Boolean(document.querySelector('.scene-review.is-expanded [data-focus^="produce:"]')) }
   }`)
   check(production?.closed && production.summary === 'Production — not connected yet' && !production.button && /^Not connected yet: this build stops at approved plans and rough sketches\. Approving a plan never starts production\./.test(production.text) && /approved plan \(r\d+\)/.test(production.text) && /does not use approved plans/.test(production.text), `production is a stated boundary, not a promising action (${JSON.stringify(production)})`)
-  const chrome = await evaluate(`() => ({ rail: [...document.querySelectorAll('.notebook-timeline-chip strong')].map(item => item.textContent), create: getComputedStyle(document.getElementById('create-explainer')).display, build: document.getElementById('build-explainer').textContent, buildTitle: document.getElementById('build-explainer').title })`)
+  const chrome = await evaluate(`() => ({ rail: [...document.querySelectorAll('.notebook-timeline-chip strong')].map(item => item.textContent), create: getComputedStyle(document.getElementById('create-explainer')).display, build: document.getElementById('build-explainer').querySelector('.menu-label').textContent, buildTitle: document.getElementById('build-explainer').title, underAdvanced: Boolean(document.getElementById('build-explainer').closest('#advanced-menu-list')) })`)
   check(chrome.rail.join('|') === 'Request rate limiter|Concurrent requests limiter', `the scene rail names its scenes (${chrome.rail})`)
-  check(chrome.create === 'none' && chrome.build === 'Build whole notebook' && /does not use approved scene plans/.test(chrome.buildTitle), `a video notebook shows its own workflow; the older build says what it is (${JSON.stringify(chrome)})`)
+  check(chrome.create === 'none' && chrome.build === 'Build whole notebook' && chrome.underAdvanced && /does not use approved scene plans/.test(chrome.buildTitle), `a video notebook shows its own workflow; the older build waits under Advanced and says what it is (${JSON.stringify(chrome)})`)
   // The notebook fits its window, the stage large enough to judge, the rail
   // in its own band (R7).
   const fit = await evaluate(`() => {

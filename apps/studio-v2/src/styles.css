@@ -1038,10 +1038,20 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .studio-theme-picker > button { padding: 2px 5px; border: 0; border-radius: 3px; background: transparent; color: #a1a1aa; font-size: 11px; line-height: 1; cursor: pointer; }
 .studio-theme-picker > button:hover { background: rgba(255,255,255,.1); color: white; }
 .import-menu { position: relative; }
-.import-menu-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 130; min-width: 172px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
+.import-menu-list { position: fixed; z-index: 130; min-width: 172px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
 .import-menu-list[hidden] { display: none; }
 .import-menu-list button { padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: #d4d4d8; font-size: 10px; font-weight: 600; text-align: left; }
 .import-menu-list button:hover { background: #33333a; color: white; }
+/* F10 of the Perplexity review: the older and other paths, each saying what
+   it is, out of the way of the one next step. */
+.advanced-menu { position: relative; }
+.advanced-menu-list { position: fixed; z-index: 130; width: 300px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
+.advanced-menu-list[hidden] { display: none; }
+.advanced-menu-list button { display: grid; gap: 3px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; text-align: left; cursor: pointer; }
+.advanced-menu-list button:hover, .advanced-menu-list button:focus-visible { background: #33333a; color: white; outline: none; }
+.advanced-menu-list button:disabled { opacity: .5; cursor: default; }
+.advanced-menu-list .menu-label { font-size: 11px; font-weight: 700; }
+.advanced-menu-list .menu-note { font-size: 10px; line-height: 1.4; font-weight: 500; color: #a1a1aa; }
 .commandbar-divider { width: 1px; height: 22px; margin: 0 4px; background: #3f3f46; }
 .button.record-cta { border: 1px solid rgba(239,68,68,.6); background: transparent; color: #fca5a5; }
 .button.record-cta:hover { border-color: #ef4444; background: rgba(239,68,68,.14); color: white; }
@@ -1677,7 +1687,9 @@ button.se-state:hover { filter: brightness(.97); }
 
 /* ——— Notebook derivation hierarchy ——— */
 .notebook-lineage { display: flex; align-items: center; gap: 4px; max-width: 380px; overflow: hidden; font-size: 11px; }
-.notebook-lineage-segment { border: 0; background: none; color: #a1a1aa; font-size: 11px; padding: 2px 4px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.notebook-lineage-segment { border: 0; background: none; color: #a1a1aa; font-size: 11px; padding: 2px 4px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+/* F10: one compact link to where the notebook comes from. */
+.notebook-lineage-segment::before { content: "from "; color: #71717a; }
 .notebook-lineage-segment:hover { color: #e4e4e7; background: #2a2a30; }
 .notebook-lineage-separator { color: #52525b; }
 .notebook-lineage-current { color: #e4e4e7; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }

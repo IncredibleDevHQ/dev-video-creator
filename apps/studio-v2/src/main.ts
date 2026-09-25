@@ -7,6 +7,7 @@ import { createSceneReview } from './planning/scene-review'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
 import { bindingOf, landingFor, pageFingerprint, pageReadinessOf, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
+import { baseNextStep, type NextStep } from './planning/next-step'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -3150,6 +3151,9 @@ let sceneSourceOpen = ''
 // composition the recording controls operate on.
 let sceneStageAsideFor = ''
 let onSceneSelected: (nodeId: string) => void = () => {}
+// The notebook's one next step (F10 of the Perplexity review), drawn once
+// the parts it reads are there.
+let renderNextStep: () => void = () => {}
 const sceneReviewKey = new PluginKey('scene-review')
 const SceneReviewWidgets = Extension.create({
   name: 'sceneReviewWidgets',
@@ -3270,6 +3274,7 @@ editor = new Editor({
 editor.on('update', () => {
   syncNotebookStart()
   scheduleArcPass()
+  renderNextStep()
 })
 
 // The starter sample as first loaded: a notebook still holding exactly it has
@@ -6008,10 +6013,18 @@ const closeImportMenu = () => {
   importMenuList.hidden = true
   importMenuToggle.setAttribute('aria-expanded', 'false')
 }
+// A command-bar menu opens on the viewport under its toggle: the bar
+// scrolls sideways in a narrow window, and would clip a list inside it.
+const placeMenu = (toggle: HTMLElement, list: HTMLElement) => {
+  const box = toggle.getBoundingClientRect()
+  list.style.top = `${Math.round(box.bottom + 6)}px`
+  list.style.right = `${Math.max(8, Math.round(window.innerWidth - box.right))}px`
+}
 
 importMenuToggle.addEventListener('click', event => {
   event.stopPropagation()
   const open = importMenuList.hidden
+  if (open) placeMenu(importMenuToggle, importMenuList)
   importMenuList.hidden = !open
   importMenuToggle.setAttribute('aria-expanded', String(open))
 })
@@ -6024,6 +6037,37 @@ document.addEventListener('click', event => {
   ) {
     closeImportMenu()
   }
+})
+
+// The older and other paths, each saying what it is (F10 of the Perplexity
+// review): out of the way of the one next step.
+const advancedMenuToggle = $('#advanced-menu-toggle') as HTMLButtonElement
+const advancedMenuList = $('#advanced-menu-list')
+const closeAdvancedMenu = () => {
+  advancedMenuList.hidden = true
+  advancedMenuToggle.setAttribute('aria-expanded', 'false')
+}
+advancedMenuToggle.addEventListener('click', event => {
+  event.stopPropagation()
+  const open = advancedMenuList.hidden
+  if (open) placeMenu(advancedMenuToggle, advancedMenuList)
+  advancedMenuList.hidden = !open
+  advancedMenuToggle.setAttribute('aria-expanded', String(open))
+  if (open) [...advancedMenuList.querySelectorAll<HTMLButtonElement>('button')].find(button => button.getClientRects().length)?.focus({ preventScroll: true })
+})
+window.addEventListener('resize', () => {
+  closeImportMenu()
+  closeAdvancedMenu()
+})
+advancedMenuList.addEventListener('click', () => closeAdvancedMenu())
+document.addEventListener('click', event => {
+  if (advancedMenuList.hidden) return
+  if (!(event.target instanceof Node) || !advancedMenuToggle.parentElement?.contains(event.target)) closeAdvancedMenu()
+})
+advancedMenuList.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return
+  closeAdvancedMenu()
+  advancedMenuToggle.focus()
 })
 
 ;($('#project-title') as HTMLInputElement).value = project.title
@@ -6899,6 +6943,7 @@ const notebookDate = (updatedAt: string) => {
 }
 
 // ——— Lineage breadcrumb (top bar, next to the Notebooks toggle) ———
+let baseVideos: Array<{ id: string; title: string }> = []
 const renderNotebookLineage = async () => {
   const lineage = $('#notebook-lineage') as HTMLElement
   try {
@@ -6906,29 +6951,29 @@ const renderNotebookLineage = async () => {
     const chain = ancestorChain(projects, project.id)
     const derivatives = projects.filter(row => row.derivedFrom?.notebook === project.id)
     if (!chain.length && !derivatives.length) {
+      baseVideos = []
+      renderNextStep()
       lineage.hidden = true
       lineage.replaceChildren()
       return
     }
+    // A base's videos, newest first: its next step opens the newest.
+    baseVideos = [...derivatives].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).map(row => ({ id: row.id, title: row.title || 'Untitled video' }))
+    renderNextStep()
     lineage.hidden = false
     lineage.replaceChildren()
-    chain.forEach(ancestor => {
+    // One compact link to where this notebook comes from (F10 of the
+    // Perplexity review): the notebook's own title is the editable one.
+    const parent = chain[chain.length - 1]
+    if (parent) {
       const segment = document.createElement('button')
       segment.type = 'button'
       segment.className = 'notebook-lineage-segment'
-      segment.textContent = ancestor.title || 'Untitled notebook'
-      segment.title = `Open ${ancestor.title || 'Untitled notebook'}`
-      segment.addEventListener('click', () => void openNotebook(ancestor.id))
+      segment.textContent = parent.title || 'Untitled notebook'
+      segment.title = `Made from ${chain.map(ancestor => `“${ancestor.title || 'Untitled notebook'}”`).join(' › ')} — open it`
+      segment.addEventListener('click', () => void openNotebook(parent.id))
       lineage.append(segment)
-      const separator = document.createElement('span')
-      separator.className = 'notebook-lineage-separator'
-      separator.textContent = '›'
-      lineage.append(separator)
-    })
-    const current = document.createElement('span')
-    current.className = 'notebook-lineage-current'
-    current.textContent = project.title || 'Untitled notebook'
-    lineage.append(current)
+    }
     if (derivatives.length) {
       const chip = document.createElement('button')
       chip.type = 'button'
@@ -17973,9 +18018,18 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
     ? `Highlighted: what this moment is about, where the page draws it (${hits.length} ${hits.length === 1 ? 'thing' : 'things'}). The video may restage it.`
     : 'This moment names nothing the page draws — there is no mapping to show on the reference.'
 }
+// Recording and rehearsal work on the notebook's composition: the stage
+// steps aside while the camera dialog is open.
+const recordScene = (sceneId: string) => {
+  selectNode(sceneId, false)
+  sceneStageAsideFor = sceneId
+  renderSceneStage()
+  openCamera()
+}
 const refreshSceneReview = () => {
   const focus = sceneReview?.focusKey() || ''
   editor.view.dispatch(editor.state.tr.setMeta(sceneReviewKey, 'refresh'))
+  renderNextStep()
   window.requestAnimationFrame(() => {
     sceneReview?.restoreFocus(focus)
     positionInlinePreview()
@@ -18016,12 +18070,7 @@ sceneReview = createSceneReview({
   },
   // Recording and rehearsal work on the notebook's composition: the stage
   // steps aside while the camera dialog is open.
-  record: sceneId => {
-    selectNode(sceneId, false)
-    sceneStageAsideFor = sceneId
-    renderSceneStage()
-    openCamera()
-  },
+  record: sceneId => recordScene(sceneId),
   openWorkspace: (sceneId, revision, moment) => void planningWorkspace.open({ sceneId, revision, moment, tab: 'plan' }),
   selectMoment: (_sceneId, targets, at) => {
     renderSceneStage(targets)
@@ -18079,6 +18128,7 @@ sceneReview = createSceneReview({
   },
 })
 onSceneSelected = nodeId => {
+  renderNextStep()
   const next = sceneReview?.has(nodeId) ? nodeId : ''
   if (next === reviewSelectedScene) return
   reviewSelectedScene = next
@@ -18099,10 +18149,66 @@ document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?
 {
   const build = $('#build-explainer') as HTMLButtonElement
   if (project.derivedFrom?.notebook) {
-    build.textContent = 'Build whole notebook'
+    build.querySelector('.menu-label')!.textContent = 'Build whole notebook'
     build.title = 'The older build: it works from the notebook\'s scripts and pages and does not use approved scene plans. Producing scenes from approved plans comes next.'
+    // The scene's next step leads; the draft export is its last one.
+    renderButton.classList.remove('primary')
+    renderButton.classList.add('chrome-secondary')
   }
 }
+// ——— The one next step (F10 of the Perplexity review) ———
+const nextStepButton = $('#next-step') as HTMLButtonElement
+const openPlanningButton = $('#open-planning') as HTMLButtonElement
+let nextStepShown: NextStep | null = null
+renderNextStep = () => {
+  const video = Boolean(project.derivedFrom?.notebook)
+  const step = video
+    ? sceneReview?.nextStep(selectedNodeId || reviewSelectedScene) || null
+    : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
+  nextStepShown = step
+  nextStepButton.hidden = !step
+  // A base with no video yet has no plans to show: Create video is its way in.
+  openPlanningButton.hidden = !video && !baseVideos.length
+  if (!step) return
+  nextStepButton.textContent = step.label
+  nextStepButton.title = step.title
+  nextStepButton.disabled = step.disabled
+  nextStepButton.dataset.action = step.action
+  nextStepButton.dataset.scene = step.sceneId || ''
+}
+nextStepButton.addEventListener('click', () => {
+  const step = nextStepShown
+  if (!step || step.disabled) return
+  const scene = step.sceneId
+  switch (step.action) {
+    case 'create-explainer':
+      openCreateExplainer()
+      break
+    case 'create-video':
+      void planningWorkspace.open()
+      break
+    case 'open-video':
+      if (baseVideos[0]) void openNotebook(baseVideos[0].id)
+      break
+    case 'brief':
+      void planningWorkspace.open({ prepare: true })
+      break
+    case 'plan':
+    case 'review':
+      if (!scene) break
+      if (reviewSelectedScene !== scene) selectNode(scene, true)
+      revealBlock(scene)
+      if (step.action === 'plan') sceneReview?.plan(scene)
+      break
+    case 'record':
+      if (scene) recordScene(scene)
+      break
+    case 'export':
+      renderButton.click()
+      break
+  }
+})
+renderNextStep()
 if (project.derivedFrom?.notebook) {
   sceneReview.listen()
   void sceneReview.load().then(() => onSceneSelected(selectedNodeId))

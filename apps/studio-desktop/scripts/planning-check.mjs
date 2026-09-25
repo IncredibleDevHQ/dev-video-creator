@@ -479,7 +479,11 @@ try {
   await reloadInto(lone.id, lone.title)
   const lonePicked = await evaluate(`(() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return node.id })()`)
   check(lonePicked === 'l2', `the creator is on the second page (${lonePicked})`)
-  check(await click('#open-planning'), 'Plan video opens on a base with no video')
+  // Its one next step is Create video (F10 of the Perplexity review); the
+  // planning workspace has nothing to show until there is a video.
+  const lead = await until('the base\'s next step', () => evaluate(`(() => { const button = document.getElementById('next-step'); return button && button.textContent === 'Create video' ? { label: button.textContent, hidden: button.hidden, workspaceHidden: document.getElementById('open-planning').hidden } : null })()`))
+  check(lead.label === 'Create video' && !lead.hidden && lead.workspaceHidden, `a base with no video leads with Create video (${JSON.stringify(lead)})`)
+  check(await click('#next-step'), 'Create video opens on a base with no video')
   const offer = await until('the fork offer', () => evaluate(`(() => {
     const button = document.querySelector('#planning-workspace .planning-create-fork')
     return button && { text: button.textContent, disabled: button.disabled, status: document.querySelector('.planning-fork-status')?.textContent || '', library: [...document.querySelectorAll('#planning-workspace button')].some(b => b.textContent === 'Open All notebooks'), closeOnly: [...document.querySelectorAll('#planning-workspace button')].length === 1 }

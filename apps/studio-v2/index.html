@@ -172,10 +172,19 @@
               </div>
             </div>
             <span class="commandbar-divider" aria-hidden="true"></span>
-            <button id="open-fullscreen" class="button chrome-secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/></svg>Open canvas</button>
-            <button id="open-planning" class="button chrome-secondary" type="button" title="Explanation brief and creative plans for this video">Plan video</button>
-            <button id="create-explainer" class="button primary" type="button">Create explainer</button>
-            <button id="build-explainer" class="button chrome-secondary" type="button">Build explainer</button>
+            <!-- One next step (F10 of the Perplexity review): a base's video,
+                 or the selected scene's next step; the older and other paths
+                 wait under Advanced, saying what they are. -->
+            <button id="next-step" class="button primary" type="button" hidden>Next step</button>
+            <button id="open-planning" class="button chrome-secondary" type="button" title="The explanation brief, every scene's plans and their evidence">Planning workspace</button>
+            <div class="advanced-menu">
+              <button id="advanced-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="advanced-menu-list">Advanced <span aria-hidden="true">⌄</span></button>
+              <div id="advanced-menu-list" class="advanced-menu-list" role="menu" hidden>
+                <button id="open-fullscreen" type="button" role="menuitem"><span class="menu-label">Open canvas</span><small class="menu-note">The notebook's composition, full screen — as Preview shows it.</small></button>
+                <button id="create-explainer" type="button" role="menuitem"><span class="menu-label">Create explainer…</span><small class="menu-note">A new base from a link or your own narrative, or this one built whole.</small></button>
+                <button id="build-explainer" type="button" role="menuitem"><span class="menu-label">Build explainer</span><small class="menu-note">The older build: the whole notebook at once, from its scripts and pages, with one delivery. It does not use approved scene plans.</small></button>
+              </div>
+            </div>
           </nav>
         </div>
       </header>
