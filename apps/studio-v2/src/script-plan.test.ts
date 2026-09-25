@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { estimateSeconds, matchScore, parseScript, planFromScript, planFromWindows, scriptFromSteps, splitWindows, tokenSpread, tokens } from './script-plan'
 import type { SlideUnit } from './slide-atoms'
+import { boxOnStageAt, unitsOnScreenPerBeat } from './placements'
 
 const unit = (id: string, kind: SlideUnit['kind'], label: string, bbox: [number, number, number, number], extra: Partial<SlideUnit> = {}): SlideUnit => ({
   id,
@@ -189,5 +190,47 @@ describe('planFromWindows', () => {
     expect(w4.actions.find(a => a.op === 'count')!.targets).toEqual(['score'])
     expect(result.windows[0].layout).toBe('me')
     expect(result.coverage.beats.map(beat => beat.anchored)).toEqual([true, true, true, true])
+  })
+})
+
+// F11 of the Perplexity review: "Combine step → Output tokens" was declared
+// "becomes", and the planner moved the combine station onto the output and
+// morphed it away — the routes from the experts left pointing at nothing.
+describe('a becomes relation', () => {
+  const moe = (): SlideUnit[] => [
+    unit('same', 'box', 'Same-node experts', [100, 150, 200, 80]),
+    unit('other', 'box', 'Other-node experts', [100, 400, 200, 80]),
+    unit('combine', 'box', 'Combine step', [450, 275, 200, 80]),
+    unit('output', 'box', 'Output tokens', [800, 275, 200, 80]),
+    unit('e1', 'connector', 'Connector #1', [300, 190, 150, 120], { from: { x: 300, y: 190 }, to: { x: 450, y: 300 }, verb: 'merges into', declared: { from: 'same', to: 'combine' } }),
+    unit('e2', 'connector', 'Connector #2', [300, 330, 150, 110], { from: { x: 300, y: 440 }, to: { x: 450, y: 330 }, verb: 'merges into', declared: { from: 'other', to: 'combine' } }),
+    unit('e3', 'connector', 'Connector #3', [650, 315, 150, 2], { from: { x: 650, y: 315 }, to: { x: 800, y: 315 }, verb: 'becomes', declared: { from: 'combine', to: 'output' } }),
+  ]
+
+  it('keeps a station in place and lets its result emerge from it', () => {
+    const script = 'The same-node experts and the other-node experts send their results to the combine step.\n\nThe combine step becomes the output tokens.'
+    const { plan } = planFromScript(script, moe(), { viewBox })!
+    const actions = plan.steps.flatMap(step => step.actions)
+    expect(actions.some(action => action.op === 'trace' && action.targets.includes('e3'))).toBe(true)
+    const onCombine = actions.filter(action => action.targets.some(id => id === 'combine' || id === 'combine-text'))
+    expect(onCombine.filter(action => action.op === 'move' || action.op === 'morph' || action.op === 'exit')).toEqual([])
+    expect(actions.some(action => action.op === 'emphasize' && action.targets.includes('output'))).toBe(true)
+    // The causal state at the end: the station still stands where it was,
+    // on screen, with the output beside it — not in its place.
+    const last = plan.steps.length - 1
+    expect(boxOnStageAt(plan, moe(), last, 'combine')).toEqual({ x: 450, y: 275, width: 200, height: 80 })
+    const onScreen = unitsOnScreenPerBeat(plan, moe(), viewBox)[last].map(unit => unit.id)
+    expect(onScreen).toEqual(expect.arrayContaining(['combine', 'output', 'same', 'other', 'e1', 'e2', 'e3']))
+  })
+
+  it('still turns data into data', () => {
+    const units = [
+      unit('scores', 'box', 'Raw scores', [100, 300, 200, 80]),
+      unit('weights', 'box', 'Attention weights', [600, 300, 200, 80]),
+      unit('e', 'connector', 'softmax', [300, 340, 300, 2], { from: { x: 300, y: 340 }, to: { x: 600, y: 340 }, verb: 'becomes', declared: { from: 'scores', to: 'weights' } }),
+    ]
+    const { plan } = planFromScript('The raw scores become the attention weights.', units, { viewBox })!
+    const actions = plan.steps.flatMap(step => step.actions)
+    expect(actions.some(action => action.op === 'morph' && action.targets.includes('scores') && action.targets.includes('weights'))).toBe(true)
   })
 })

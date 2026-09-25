@@ -519,7 +519,11 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
       if (becoming.length) {
         // An of-place verb: the source travels onto the target's place and
         // becomes it — the target appears as the source fades, the camera
-        // follows the travel (the subject persists).
+        // follows the travel (the subject persists). Only a thing that can
+        // be transformed does: a station that does the transforming keeps
+        // its place and the result emerges from it (F11 of the Perplexity
+        // review — "Combine step" travelled into "Output tokens" and
+        // vanished, the routes into it left pointing at nothing).
         becoming.forEach(connector => {
           const edge = edges.find(candidate => candidate.connector.id === connector.id)
           const source = edge?.source
@@ -527,6 +531,16 @@ export const buildPlan = (specs: BeatSpec[], units: SlideUnit[], options: Script
           actions.push(action('trace', connector.ids, cursor, { durationMs: MOTION_DURATION_MS.trace, value: { verb: 'becomes' } }))
           cursor += MOTION_DURATION_MS.trace * 0.6
           if (!source || !target) return
+          if (!transformable(source, connector, edges)) {
+            if (entering.includes(target)) {
+              const already = actions.find(item => item.op === 'reveal' && target.ids.every(id => item.targets.includes(id)))
+              if (already) already.targets = already.targets.filter(id => !target.ids.includes(id))
+              actions.push(action('reveal', target.ids, cursor, { durationMs: MOTION_DURATION_MS.reveal }))
+            }
+            actions.push(action('emphasize', target.ids, cursor + MOTION_DURATION_MS.reveal, { persistence: 'flourish' }))
+            cursor += MOTION_DURATION_MS.reveal + 200
+            return
+          }
           const dx = Math.round(target.bbox.x + target.bbox.width / 2 - (source.bbox.x + source.bbox.width / 2))
           const dy = Math.round(target.bbox.y + target.bbox.height / 2 - (source.bbox.y + source.bbox.height / 2))
           if (entering.includes(target)) {
@@ -984,6 +998,25 @@ const windowsFromSpecs = (specs: BeatSpec[], placed: Map<string, Placement>): Sc
   }))
 
 /** Plan from prose: the words decide which parts each window is about. */
+// Whether a becomes-connector's source can turn into its target: a thing
+// drawn to move, or declared as data — never a station the diagram routes
+// other relations through, a thing declared as a process or a service, or
+// one whose name says it does work (a step, an engine, a layer…).
+const STATION_KINDS = new Set(['step', 'process', 'service', 'server', 'worker', 'engine', 'function', 'module', 'gateway', 'router'])
+const DATA_KINDS = new Set(['data', 'token', 'tokens', 'message', 'packet', 'document', 'tensor', 'value', 'request', 'response', 'record', 'batch', 'result', 'score', 'scores', 'weights'])
+const STATION_NAME = /\b(steps?|stages?|layers?|engines?|kernels?|services?|servers?|workers?|routers?|dispatch(er)?|combine(r)?|schedulers?|functions?|modules?|process(or)?|handlers?|gateways?|stations?|pipelines?|models?|encoders?|decoders?|blocks?|nodes?|machines?|gpus?|cpus?|nics?|clusters?)\b/i
+export const transformable = (source: SlideUnit, connector: SlideUnit, edges: Array<{ connector: SlideUnit; source?: SlideUnit | null; target?: SlideUnit | null }>) => {
+  const routedThrough = edges.some(edge => edge.connector.id !== connector.id && (edge.source?.id === source.id || edge.target?.id === source.id))
+  if (routedThrough) return false
+  if (source.actorRole) return true
+  const kind = String(source.declaredKind || '').toLowerCase()
+  if (DATA_KINDS.has(kind)) return true
+  if (STATION_KINDS.has(kind)) return false
+  const entity = String(source.entityType || '').toLowerCase()
+  if (entity) return DATA_KINDS.has(entity)
+  return !STATION_NAME.test(source.label)
+}
+
 export const planFromScript = (
   script: string,
   units: SlideUnit[],
