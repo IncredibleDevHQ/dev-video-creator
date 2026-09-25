@@ -6683,7 +6683,7 @@ type BaseStatus = {
   derived: boolean
   base?: { id: string; title: string } | null
   lineage?: { notebook: string; kind?: string; baseTitle?: string; forkedAt?: string }
-  status?: { stale: boolean; missing: boolean; pinned: string; revision: string; scenes: Array<{ scene: string; title: string; state: string }> }
+  status?: { stale: boolean; moved?: boolean; missing: boolean; pinned: string; revision: string; scenes: Array<{ scene: string; title: string; state: string; changed?: string[] }> }
 }
 const baseStatusFor = async (notebookId: string) => {
   try {
@@ -6915,8 +6915,10 @@ const notebookCard = (
       const note = document.createElement('span')
       note.className = 'notebook-kind-badge is-orphan'
       note.textContent = 'base has changed'
+      // What changed in each scene the video was made from (F2).
+      const what: Record<string, string> = { page: 'its page', script: 'its words', source: 'its source', title: 'its title' }
       note.title = changed.length
-        ? `Since this video was made: ${changed.map(scene => `${scene.title} (${scene.state})`).join(', ')}`
+        ? `Since this video was made: ${changed.map(scene => `${scene.title} (${scene.state === 'removed' ? 'removed' : (scene.changed || []).map(field => what[field] || field).join(', ') || 'changed'})`).join('; ')}`
         : 'The base notebook has changed since this video was made'
       badges.append(note)
     })

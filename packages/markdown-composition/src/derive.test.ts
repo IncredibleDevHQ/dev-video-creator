@@ -88,6 +88,39 @@ describe('deriving a video from a base', () => {
     expect(status.scenes.find(scene => scene.scene === 'blk-b')!.state).toBe('same')
   })
 
+  // F2 of the Perplexity review: a video's early fork kept its schematic
+  // while the base's page more than doubled, and every scene read "same" —
+  // only ids and titles were compared.
+  it('tells a scene changed by what it is made of, and not by key order or staging', () => {
+    const original = base()
+    original.notebook.content[1].attrs = { ...original.notebook.content[1].attrs, script: 'The bucket holds tokens.', sourcePassages: ['A bucket holds tokens.'], pageOrigin: { kind: 'schematic' } }
+    const { project } = forkNotebook(original, { id: 'video-1' })
+    // The page is designed, the title unchanged.
+    const designed = structuredClone(original)
+    designed.notebook.content[1].attrs = { ...designed.notebook.content[1].attrs, svg: '<svg id="a"><g data-icon="gpu"/></svg>', pageOrigin: { kind: 'designed', by: 'Kimi' } }
+    const redrawn = baseStatusOf(project, designed, original)
+    expect(redrawn.stale).toBe(true)
+    expect(redrawn.scenes.find(scene => scene.scene === 'blk-a')).toMatchObject({ state: 'changed', changed: ['page'] })
+    expect(redrawn.scenes.find(scene => scene.scene === 'blk-a')!.was).not.toBe(redrawn.scenes.find(scene => scene.scene === 'blk-a')!.now)
+    expect(redrawn.scenes.find(scene => scene.scene === 'blk-b')!.state).toBe('same')
+    // New words, the same title.
+    const reworded = structuredClone(original)
+    reworded.notebook.content[1].attrs!.script = 'The bucket holds a fixed number of tokens.'
+    expect(baseStatusOf(project, reworded, original).scenes.find(scene => scene.scene === 'blk-a')!.changed).toEqual(['script'])
+    // The same scene saved with its keys in another order, restaged, or
+    // still waiting for a page from a design run: nothing changed.
+    const resaved = structuredClone(original)
+    const attrs = resaved.notebook.content[1].attrs!
+    resaved.notebook.content[1].attrs = Object.fromEntries(Object.entries(attrs).reverse())
+    resaved.notebook.content[1].attrs!.directorNotes = 'Open on you.'
+    resaved.notebook.content[1].attrs!.motion = { steps: [{ actions: [] }] }
+    resaved.notebook.content[1].attrs!.pageOrigin = { kind: 'schematic', designing: { runId: 'run-1', page: 1, by: 'Kimi', placeholder: 'f00d' } }
+    const unchanged = baseStatusOf(project, resaved, original)
+    expect(unchanged.scenes.every(scene => scene.state === 'same')).toBe(true)
+    expect(unchanged.stale).toBe(false)
+    expect(unchanged.moved).toBe(true)
+  })
+
   it('survives a base that is gone, and still knows what it was made of', () => {
     const { project } = forkNotebook(base(), { id: 'video-1' })
     const status = baseStatusOf(project, null, null)

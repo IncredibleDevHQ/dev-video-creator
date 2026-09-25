@@ -8,25 +8,27 @@
 // of, and editing either one cannot reach into the other.
 import type { ProjectDerivationV1, ProjectDocumentV1, TiptapNode } from './types'
 
-/** A stable content revision for a notebook: the same document always hashes
- * the same, whatever order its keys happen to be in. */
-export const revisionOf = (project: ProjectDocumentV1): string => {
-  const stable = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(stable)
-    if (value && typeof value === 'object') {
-      return Object.keys(value as Record<string, unknown>)
+// A value as stable text: the same value always reads the same, whatever
+// order its keys happen to be in. `skip` names keys left out at any depth.
+const stableText = (value: unknown, skip: Set<string> = new Set()): string => {
+  const stable = (entry: unknown): unknown => {
+    if (Array.isArray(entry)) return entry.map(stable)
+    if (entry && typeof entry === 'object') {
+      return Object.keys(entry as Record<string, unknown>)
         .sort()
         .reduce<Record<string, unknown>>((out, key) => {
-          if (key === 'derivedFrom') return out
-          out[key] = stable((value as Record<string, unknown>)[key])
+          if (skip.has(key)) return out
+          out[key] = stable((entry as Record<string, unknown>)[key])
           return out
         }, {})
     }
-    return value
+    return entry
   }
-  const text = JSON.stringify(stable(project))
-  // FNV-1a, 64 bits as two 32-bit halves: no crypto, same answer in the
-  // browser and on the server.
+  return JSON.stringify(stable(value)) ?? ''
+}
+// FNV-1a, 64 bits as two 32-bit halves: no crypto, same answer in the
+// browser and on the server.
+const hashOf = (text: string) => {
   let high = 0x811c9dc5
   let low = 0x811c9dc5
   for (let i = 0; i < text.length; i += 1) {
@@ -37,13 +39,39 @@ export const revisionOf = (project: ProjectDocumentV1): string => {
   return `${high.toString(16).padStart(8, '0')}${low.toString(16).padStart(8, '0')}`
 }
 
+/** A stable content revision for a notebook: the same document always hashes
+ * the same, whatever order its keys happen to be in. */
+export const revisionOf = (project: ProjectDocumentV1): string => hashOf(stableText(project, new Set(['derivedFrom'])))
+
 const SCENE_TYPES = new Set(['scene', 'slide', 'explainer'])
+
+/** What a scene is made of, for telling whether it changed: its title, its
+ * page (the drawing, its program, any explainer), its words and the source
+ * passages it rests on. Staging derived from those, timestamps and a page
+ * still being designed are not part of it. */
+export const SCENE_INPUTS = ['title', 'page', 'script', 'source'] as const
+export type SceneInput = (typeof SCENE_INPUTS)[number]
+const sceneInputsOf = (node: TiptapNode): Record<SceneInput, unknown> => {
+  const attrs = (node.attrs || {}) as Record<string, unknown>
+  return {
+    title: String(attrs.title || ''),
+    page: { svg: String(attrs.svg || ''), program: attrs.program ?? null, explainer: attrs.explainer ?? null },
+    script: String(attrs.script || ''),
+    source: Array.isArray(attrs.sourcePassages) ? attrs.sourcePassages.map(String) : [],
+  }
+}
+/** Each input's fingerprint, and the scene's revision from them. */
+export const sceneRevisionOf = (node: TiptapNode) => {
+  const inputs = sceneInputsOf(node)
+  const fingerprints = Object.fromEntries(SCENE_INPUTS.map(input => [input, hashOf(stableText(inputs[input]))])) as Record<SceneInput, string>
+  return { inputs: fingerprints, revision: hashOf(stableText(fingerprints)) }
+}
 
 /** The scenes a fork carries, with the id each one had in the base. */
 export const sceneOriginsOf = (project: ProjectDocumentV1) =>
   (project.notebook?.content || [])
     .filter(node => SCENE_TYPES.has(node.type))
-    .map(node => ({ id: String(node.attrs?.id || ''), title: String(node.attrs?.title || '') }))
+    .map(node => ({ id: String(node.attrs?.id || ''), title: String(node.attrs?.title || ''), ...sceneRevisionOf(node) }))
     .filter(entry => entry.id)
 
 export type ForkOptions = {
@@ -131,15 +159,26 @@ export const forkNotebook = (
   return { project: child, origins }
 }
 
+export type BaseSceneStatus = {
+  scene: string
+  title: string
+  state: 'same' | 'changed' | 'removed'
+  // What changed in it, and its revision then and now.
+  changed: SceneInput[]
+  was: string | null
+  now: string | null
+}
+
 /** Whether a video's base has moved since the fork, and which of the scenes
- * it was made from have changed. Nothing is merged: this only reports. */
+ * it was made from have changed — by what they are made of, not only their
+ * titles. Nothing is merged: this only reports. */
 export const baseStatusOf = (
   child: ProjectDocumentV1,
   base: ProjectDocumentV1 | null,
   snapshot: ProjectDocumentV1 | null,
 ) => {
   const pinned = child.derivedFrom?.baseRevision || ''
-  if (!base) return { stale: false, missing: true, pinned, revision: '', scenes: [] as Array<{ scene: string; title: string; state: string }> }
+  if (!base) return { stale: false, moved: false, missing: true, pinned, revision: '', scenes: [] as BaseSceneStatus[] }
   const revision = revisionOf(base)
   const was = new Map(sceneOriginsOf(snapshot || base).map(entry => [entry.id, entry]))
   const now = new Map(sceneOriginsOf(base).map(entry => [entry.id, entry]))
@@ -151,15 +190,19 @@ export const baseStatusOf = (
       })
       .filter(Boolean),
   )
-  const scenes = [...usedByChild].map(scene => {
+  const scenes = [...usedByChild].map((scene): BaseSceneStatus => {
     const before = was.get(scene)
     const after = now.get(scene)
-    if (!after) return { scene, title: before?.title || scene, state: 'removed' }
-    if (before && JSON.stringify(before) !== JSON.stringify(after)) return { scene, title: after.title, state: 'changed' }
-    return { scene, title: after.title, state: 'same' }
+    if (!after) return { scene, title: before?.title || scene, state: 'removed', changed: [], was: before?.revision || null, now: null }
+    const changed = before ? SCENE_INPUTS.filter(input => before.inputs[input] !== after.inputs[input]) : [...SCENE_INPUTS]
+    return { scene, title: after.title, state: changed.length ? 'changed' : 'same', changed, was: before?.revision || null, now: after.revision }
   })
+  // Without the snapshot the fork pinned, which scenes changed cannot be
+  // told: only that the base moved.
+  const moved = Boolean(pinned) && pinned !== revision
   return {
-    stale: Boolean(pinned) && pinned !== revision,
+    stale: snapshot ? scenes.some(entry => entry.state !== 'same') : moved,
+    moved,
     missing: false,
     pinned,
     revision,
