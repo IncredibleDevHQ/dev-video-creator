@@ -77,15 +77,15 @@ type SmokeProbe = {
 }
 
 // The editor DOM checks mirror the reference shell's product smoke: the
-// ProseMirror/contenteditable editor, the model-settings entry point and the
-// notebook list (fetched from the same origin the page uses).
+// ProseMirror/contenteditable editor, the one AI settings entry point (with
+// the local harness detected) and the notebook list (fetched from the same
+// origin the page uses).
 const SMOKE_PROBE = `(async () => {
   for (let i = 0; i < 40 && !document.querySelector('.ProseMirror, [contenteditable="true"]'); i++) {
     await new Promise(r => setTimeout(r, 250))
   }
   for (let i = 0; i < 20; i++) {
-    const summary = (document.getElementById('agent-settings-summary') || {}).textContent || ''
-    if (summary.startsWith('Agent ·')) break
+    if ((document.getElementById('open-ai-settings') || { dataset: {} }).dataset.harness === 'detected') break
     await new Promise(r => setTimeout(r, 250))
   }
   const health = await fetch('/api/health').then(r => r.json()).catch(() => null)
@@ -96,13 +96,13 @@ const SMOKE_PROBE = `(async () => {
     health,
     projectCount: Array.isArray(list) ? list.length : null,
     hasEditor: !!document.querySelector('.ProseMirror, [contenteditable="true"]'),
-    hasModelSettings: !!document.getElementById('open-model-settings'),
+    hasModelSettings: !!document.getElementById('open-ai-settings'),
     hasAssistButton: !!document.getElementById('se-plan-assist') &&
       !(document.getElementById('se-assist-row') || { hidden: true }).hidden,
     agentSummary: (() => {
-      const button = document.getElementById('open-agent-settings')
-      if (!button || button.hidden) return null
-      return (document.getElementById('agent-settings-summary') || {}).textContent || null
+      const button = document.getElementById('open-ai-settings')
+      if (!button || button.dataset.harness !== 'detected') return null
+      return (document.getElementById('ai-settings-summary') || {}).textContent || null
     })(),
   }
 })()`
@@ -123,9 +123,9 @@ const smokeFailure = (probe: SmokeProbe | null): string => {
   }
   if (probe.title !== 'Incredible Studio') return `unexpected title ${JSON.stringify(probe.title)}`
   if (!probe.hasEditor) return 'editor did not mount'
-  if (!probe.hasModelSettings) return 'model settings entry missing'
+  if (!probe.hasModelSettings) return 'AI settings entry missing'
   if (!probe.hasAssistButton) return 'assist button missing or hidden in desktop mode'
-  if (!probe.agentSummary?.startsWith('Agent ·')) {
+  if (!probe.agentSummary?.startsWith('AI ·')) {
     return `agent detection did not report (${JSON.stringify(probe.agentSummary)})`
   }
   if (probe.projectCount === null) return 'notebook list unavailable'

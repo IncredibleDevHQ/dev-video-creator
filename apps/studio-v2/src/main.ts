@@ -6044,6 +6044,8 @@ type ModelSettingsPublic = {
   hasKey: boolean
   keyHint: string
   source: 'saved' | 'environment' | 'none'
+  // Each task's last request since the worker started.
+  results?: Partial<Record<ModelTask | 'image', { ok: boolean; status: number; model: string; reportedModel?: string; at: string }>>
 }
 type ModelPreset = {
   label: string
@@ -6052,8 +6054,15 @@ type ModelPreset = {
   models: Record<ModelTask, string>
   note: string
 }
-const modelSettingsDialog = $('#model-settings-dialog') as HTMLDialogElement
-const modelSettingsSummary = $('#model-settings-summary') as HTMLElement
+// One AI settings entry (F7 of the Perplexity review): what each job runs
+// on, the local harness's stages and the direct API, in one dialog.
+const aiSettingsDialog = $('#ai-settings-dialog') as HTMLDialogElement
+const aiSettingsButton = $('#open-ai-settings') as HTMLButtonElement
+const aiSettingsSummary = $('#ai-settings-summary') as HTMLElement
+const aiStatusDot = $('#ai-status-dot') as HTMLElement
+const aiRoutesBody = $('#ai-routes tbody') as HTMLElement
+const aiApiUses = $('#ai-api-uses') as HTMLElement
+const aiHarnessSection = $('#ai-harness-section') as HTMLElement
 const msProvider = $('#ms-provider') as HTMLSelectElement
 const msBaseUrl = $('#ms-base-url') as HTMLInputElement
 const msApiKey = $('#ms-api-key') as HTMLInputElement
@@ -6069,6 +6078,10 @@ const msStatus = $('#ms-status') as HTMLElement
 const msModelList = $('#ms-model-list') as HTMLDataListElement
 let modelPresets: Record<string, ModelPreset> = {}
 let modelSettings: ModelSettingsPublic | null = null
+// The AI settings render lives with the harness section below; the direct
+// API's settings, which can load before the rest of this module has run,
+// reach it through this once it is there.
+let renderAiSettingsHook = () => {}
 
 const setModelStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   msStatus.textContent = text
@@ -6076,16 +6089,20 @@ const setModelStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   msStatus.classList.toggle('is-error', tone === 'error')
 }
 
-const renderModelSummary = () => {
-  if (!modelSettings) {
-    modelSettingsSummary.textContent = 'Models'
-    return
-  }
-  const label = modelPresets[modelSettings.provider]?.label || modelSettings.provider
-  const configured = modelSettings.hasKey || !modelPresets[modelSettings.provider]?.keyRequired
-  modelSettingsSummary.textContent = configured
-    ? `${label.split(' (')[0]} · ${modelSettings.models.writing || 'choose a model'}`
-    : 'Models · add a key'
+// The direct API as the jobs it serves see it: its provider, the model a
+// task uses (the worker's own fallback), and whether requests can go out.
+const apiProviderLabel = () => (modelSettings ? (modelPresets[modelSettings.provider]?.label || modelSettings.provider).split(' (')[0] : 'Direct API')
+const apiModelFor = (task: ModelTask | 'image') => {
+  if (!modelSettings) return ''
+  if (task === 'image') return modelSettings.provider === 'openai' || modelSettings.provider === 'litellm' ? (modelSettings.models as Record<string, string | undefined>).image || 'gpt-image-1' : ''
+  return modelSettings.models[task] || modelSettings.models.writing || modelPresets[modelSettings.provider]?.models[task] || ''
+}
+const apiState = (): { text: string; ok: boolean } => {
+  if (!modelSettings) return { text: 'Settings could not be read from the worker', ok: false }
+  if (modelSettings.source === 'environment') return { text: 'Key from the environment', ok: true }
+  if (modelSettings.hasKey) return { text: `Key saved (ending ${modelSettings.keyHint})`, ok: true }
+  if (!modelPresets[modelSettings.provider]?.keyRequired) return { text: 'No key needed', ok: true }
+  return { text: 'No key — these fail until one is added below', ok: false }
 }
 
 const loadModelSettingsUi = async () => {
@@ -6103,9 +6120,9 @@ const loadModelSettingsUi = async () => {
         return option
       }),
     )
-    renderModelSummary()
+    renderAiSettingsHook()
   } catch {
-    modelSettingsSummary.textContent = 'Models'
+    renderAiSettingsHook()
   }
 }
 
@@ -6121,10 +6138,12 @@ const applyPresetToForm = (providerId: string, { keepModels }: { keepModels: boo
   msApiKey.placeholder = preset.keyRequired ? 'Paste a key' : 'Optional for this provider'
 }
 
-const openModelSettings = async () => {
+// The form, from what is saved; only when the dialog opens, so nothing the
+// creator is typing is replaced by a later refresh.
+const fillModelForm = async () => {
   await loadModelSettingsUi()
   if (!modelSettings) {
-    showToast('Could not reach the worker to read model settings')
+    setModelStatus('Could not reach the worker to read the direct API settings', 'error')
     return
   }
   msProvider.value = modelSettings.provider
@@ -6137,13 +6156,12 @@ const openModelSettings = async () => {
   msApiKey.value = ''
   msKeyHint.textContent =
     modelSettings.source === 'environment'
-      ? 'Using the OPENAI_API_KEY from the environment until you save a key here.'
+      ? 'Using the OPENAI_API_KEY from the environment — used, never saved — until you save a key of your own here.'
       : modelSettings.hasKey
         ? `A key ending ${modelSettings.keyHint} is saved. Leave blank to keep it.`
         : 'No key saved yet.'
   msModelList.replaceChildren()
   setModelStatus('')
-  modelSettingsDialog.showModal()
 }
 
 const modelFormPatch = () => {
@@ -6161,8 +6179,6 @@ const modelFormPatch = () => {
 }
 
 msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, { keepModels: false }))
-;($('#open-model-settings') as HTMLButtonElement).addEventListener('click', () => void openModelSettings())
-;($('#close-model-settings') as HTMLButtonElement).addEventListener('click', () => modelSettingsDialog.close())
 ;($('#ms-test') as HTMLButtonElement).addEventListener('click', async () => {
   setModelStatus('Contacting the provider…')
   try {
@@ -6198,10 +6214,9 @@ msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, 
       body: JSON.stringify(modelFormPatch()),
     })
     modelSettings = body.settings
-    renderModelSummary()
-    setModelStatus('Saved', 'ok')
-    showToast('Model settings saved — new AI requests use them immediately')
-    modelSettingsDialog.close()
+    renderAiSettingsHook()
+    setModelStatus('Saved — new requests use it now', 'ok')
+    showToast('Direct API settings saved — new requests use them immediately')
   } catch (error) {
     setModelStatus(error instanceof Error ? error.message : 'Could not save', 'error')
   }
@@ -6216,15 +6231,13 @@ void loadModelSettingsUi()
 // never see any of this (the button stays hidden).
 type AgentAvailability = HarnessAvailability
 const agentLabel = (id: string) => HARNESS_LABELS[id] || id
-const agentButton = $('#open-agent-settings') as HTMLButtonElement
-const agentDialog = $('#agent-settings-dialog') as HTMLDialogElement
-const agentSummary = $('#agent-settings-summary') as HTMLElement
-const agentDot = $('#agent-status-dot') as HTMLElement
 const agentList = $('#agent-list') as HTMLElement
 const agentStatusLine = $('#agent-status') as HTMLElement
 let agentAvailability: AgentAvailability[] = []
 let harnessPreferences: HarnessPreferences = { default: null, stages: {}, updatedAt: null }
 let harnessStatus: HarnessStatus = {}
+// The harness's recent runs, for each stage's last result.
+let aiRuns: StudioDesktopRunSummary[] = []
 
 // The harness the default choice names, for the motion assist.
 const getPreferredAgent = () => harnessPreferences.default?.harness || ''
@@ -6251,7 +6264,7 @@ const resolveCreationAgent = async (stage: HarnessStage) => {
   agentAvailability = available
   harnessPreferences = preferences
   const resolved = resolveStage(preferences, stage, available)
-  if (!resolved.available || !resolved.harness) throw new Error(resolved.reason || 'Choose a local harness in Agent settings')
+  if (!resolved.available || !resolved.harness) throw new Error(resolved.reason || 'Choose a local harness in AI settings')
   return { id: resolved.harness, model: resolved.model || undefined, label: resolvedLabel(resolved, available), source: resolved.source }
 }
 
@@ -6276,12 +6289,7 @@ const showRunFailure = (element: HTMLElement | null, failure: RunFailureView | u
     actions.append(button)
   }
   if (retry && failure?.category !== 'unavailable') action('Retry', retry)
-  action('Switch harness or model', () => {
-    setAgentStatus('')
-    agentDialog.showModal()
-    renderAgentList()
-    void refreshAgents()
-  })
+  action('Switch harness or model', () => void openAiSettings('harness'))
   element.append(actions)
 }
 
@@ -6294,16 +6302,140 @@ const setAgentStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   agentStatusLine.classList.toggle('is-error', tone === 'error')
 }
 
-const renderAgentSummary = () => {
-  const online = agentAvailability.filter(agent => agent.ok)
+// ——— What each job runs on (F7 of the Perplexity review) ———
+// One table for every AI job: the local harness's stages with the harness
+// and model each resolves to now and its last run; the jobs the direct API
+// serves with its provider, model and whether requests can go out.
+const STAGE_SKILLS: Record<HarnessStage, string[]> = { story: ['story-master'], drawing: ['page-master'], planning: ['video-planner'], composition: ['explainer-master'] }
+const STAGE_JOBS: Record<HarnessStage, string> = {
+  story: 'the scenes and their words, from a source',
+  drawing: 'each designed page',
+  planning: 'the brief, each scene’s plan and its rough sketch',
+  composition: 'Build explainer’s scenes',
+}
+const API_JOBS: Array<{ id: string; job: string; detail: string; task: ModelTask | 'image' }> = [
+  { id: 'writing', job: 'Writing help', detail: 'scene dialogue drafts and edits, recording notes, theme ideas, slide steps', task: 'writing' },
+  { id: 'vision', job: 'Frame checks', detail: 'basic diagrams, scene edits with a picture', task: 'vision' },
+  { id: 'coding', job: 'Canvas programs', detail: 'basic diagrams', task: 'coding' },
+  { id: 'image', job: 'Illustrations', detail: 'artwork for a page’s things, when asked', task: 'image' },
+]
+type AiRoute = { id: string; job: string; detail: string; runsOn: string; status: string; ok: boolean | null; title?: string }
+const lastRunOf = (skills: string[]) =>
+  aiRuns.filter(run => skills.includes(run.skill)).sort((a, b) => (b.finishedAt || b.startedAt).localeCompare(a.finishedAt || a.startedAt))[0]
+const runStatus = (run: StudioDesktopRunSummary | undefined): { text: string; ok: boolean | null; title?: string } => {
+  if (!run) return { text: 'No run yet', ok: null }
+  const model = run.reportedModel || run.model
+  const when = timeAgo(run.finishedAt || run.startedAt)
+  if (run.status === 'error') return { text: `Last run failed — ${failureTitle(run.failure?.category).toLowerCase()} · ${when}`, ok: false, title: run.failure?.message }
+  if (run.status === 'cancelled') return { text: `Last run stopped · ${when}`, ok: null }
+  if (run.status !== 'done') return { text: 'Running now', ok: null }
+  return { text: `Last run ok${model ? ` on ${model}` : ''} · ${when}`, ok: true }
+}
+const aiRoutes = (): AiRoute[] => {
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  const api = apiState()
+  const apiRow = (entry: (typeof API_JOBS)[number], extra = ''): AiRoute => {
+    const model = apiModelFor(entry.task)
+    if (entry.task === 'image' && !model) return { id: entry.id, job: entry.job, detail: entry.detail, runsOn: `Direct API · ${apiProviderLabel()}`, status: 'This provider has no image model: things get palette glyphs', ok: null }
+    // The key's state leads until a request has gone out; then how the
+    // last one went, and on which model.
+    const last = modelSettings?.results?.[entry.task]
+    const status = !api.ok || !last
+      ? { text: api.text, ok: api.ok && Boolean(model) }
+      : last.ok
+        ? { text: `${api.text} · last request ok on ${last.reportedModel || last.model} · ${timeAgo(last.at)}`, ok: true }
+        : { text: `${api.text} · last request failed (${last.status || 'no answer'}) on ${last.model} · ${timeAgo(last.at)}`, ok: false }
+    return { id: entry.id, job: entry.job, detail: `${entry.detail}${extra}`, runsOn: `Direct API · ${apiProviderLabel()} · ${model || 'no model chosen'}`, status: status.text, ok: status.ok }
+  }
+  const stages: AiRoute[] = HARNESS_STAGES.map(stage => {
+    if (!desktop) {
+      return stage === 'story'
+        ? { ...apiRow(API_JOBS[0]), id: stage, job: HARNESS_STAGE_LABELS[stage], detail: `${STAGE_JOBS[stage]} — in a browser, on the direct API` }
+        : { id: stage, job: HARNESS_STAGE_LABELS[stage], detail: STAGE_JOBS[stage], runsOn: 'The desktop app’s local harness', status: 'Not in a browser', ok: null }
+    }
+    const effective = resolveStage(harnessPreferences, stage, agentAvailability)
+    const last = runStatus(lastRunOf(STAGE_SKILLS[stage]))
+    return {
+      id: stage,
+      job: HARNESS_STAGE_LABELS[stage],
+      detail: STAGE_JOBS[stage],
+      runsOn: effective.harness ? `Local harness · ${resolvedLabel(effective, agentAvailability)}${effective.source === 'stage' ? ' — this stage’s own choice' : ''}` : 'Local harness · none available',
+      status: effective.available ? last.text : effective.reason || 'Not available',
+      ok: effective.available ? last.ok : false,
+      title: last.title,
+    }
+  })
+  const assist = desktop ? resolveAssistAgent() : ''
+  const motion: AiRoute[] = desktop
+    ? [{ id: 'motion', job: 'Motion assist', detail: 'Plan motion, in the slide editor', runsOn: assist ? `Local harness · ${agentLabel(assist)} · its default model` : 'Local harness · none available', ...(() => { const last = runStatus(lastRunOf(['motion-master'])); return { status: assist ? last.text : 'No harness is online', ok: assist ? last.ok : false, title: last.title } })() }]
+    : []
+  return [...stages, ...motion, ...API_JOBS.map(entry => apiRow(entry))]
+}
+const renderAiRoutes = () => {
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  aiRoutesBody.replaceChildren(
+    ...aiRoutes().map(route => {
+      const row = document.createElement('tr')
+      row.dataset.aiJob = route.id
+      const job = document.createElement('th')
+      job.scope = 'row'
+      const name = document.createElement('strong')
+      name.textContent = route.job
+      const detail = document.createElement('small')
+      detail.textContent = route.detail
+      job.append(name, detail)
+      const runsOn = document.createElement('td')
+      runsOn.className = 'ai-route-runs-on'
+      runsOn.textContent = route.runsOn
+      const status = document.createElement('td')
+      status.className = `ai-route-status${route.ok === true ? ' is-ok' : route.ok === false ? ' is-error' : ''}`
+      status.textContent = route.status
+      if (route.title) status.title = route.title
+      row.append(job, runsOn, status)
+      return row
+    }),
+  )
+  aiApiUses.textContent = desktop
+    ? 'Used by writing help (scene dialogue drafts and edits, recording notes, theme ideas, slide steps), frame checks and canvas programs for basic diagrams, and illustrations. The local harness’s stages never use it.'
+    : 'In a browser, everything that asks AI — the story outline, writing help, frame checks, basic diagrams and illustrations — uses this provider. Page designing, video planning and scene production run in the desktop app.'
+}
+// The top bar's one entry: what creation runs on, and whether it can.
+const renderAiSummary = () => {
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  const routes = aiRoutes()
+  aiSettingsButton.title = `AI settings — what each job runs on:\n${routes.map(route => `${route.job}: ${route.runsOn}`).join('\n')}`
+  if (desktop) {
+    // Until the harnesses are detected, nothing is claimed about them.
+    const detected = aiSettingsButton.dataset.harness === 'detected'
+    const story = resolveStage(harnessPreferences, 'story', agentAvailability)
+    aiStatusDot.hidden = false
+    aiStatusDot.className = `agent-status-dot ${!detected ? '' : story.available ? 'is-online' : 'is-offline'}`
+    aiSettingsSummary.textContent = !detected ? 'AI · detecting harnesses…' : story.harness && story.available ? `AI · ${resolvedLabel(story, agentAvailability)}` : 'AI · choose a harness'
+  } else {
+    const api = apiState()
+    aiStatusDot.hidden = true
+    aiSettingsSummary.textContent = modelSettings && api.ok ? `AI · ${apiProviderLabel()} · ${apiModelFor('writing') || 'choose a model'}` : 'AI · add a provider'
+  }
   const active = resolveAssistAgent()
-  agentDot.className = `agent-status-dot ${active ? 'is-online' : 'is-offline'}`
-  agentSummary.textContent = active
-    ? `Agent · ${agentLabel(active)}${online.length > 1 ? ` · ${online.length} online` : ''}`
-    : 'Agent · none found'
   const hint = $('#se-assist-agent') as HTMLElement | null
   if (hint) hint.textContent = active ? `via ${agentLabel(active)}` : 'no agent CLI found'
 }
+const renderAiSettings = () => {
+  renderAiSummary()
+  if (aiSettingsDialog.open) renderAiRoutes()
+}
+const openAiSettings = async (focus?: 'harness' | 'api') => {
+  setAgentStatus('')
+  setModelStatus('')
+  renderAiRoutes()
+  if (!aiSettingsDialog.open) aiSettingsDialog.showModal()
+  renderAgentList()
+  if (focus) (focus === 'harness' ? aiHarnessSection : aiApiUses.closest('section'))?.scrollIntoView({ block: 'start' })
+  await Promise.all([fillModelForm(), refreshAgents()])
+  renderAiRoutes()
+}
+aiSettingsButton.addEventListener('click', () => void openAiSettings())
+;($('#close-ai-settings') as HTMLButtonElement).addEventListener('click', () => aiSettingsDialog.close())
 
 const saveHarnessChoice = async (patch: Parameters<typeof saveHarnessPreferences>[1], message: string) => {
   try {
@@ -6313,7 +6445,7 @@ const saveHarnessChoice = async (patch: Parameters<typeof saveHarnessPreferences
     setAgentStatus(error instanceof Error ? error.message : 'Could not save the choice', 'error')
   }
   renderAgentList()
-  renderAgentSummary()
+  renderAiSettings()
 }
 
 // A harness select and a model select for one choice; `inherit` offers
@@ -6440,26 +6572,23 @@ const refreshAgents = async () => {
     .then(preferences => adoptLegacyChoices(fetchJson, preferences))
     .catch(() => harnessPreferences)
   harnessStatus = await loadHarnessStatus(fetchJson)
-  renderAgentSummary()
-  if (agentDialog.open) renderAgentList()
+  aiRuns = await window.studioDesktop.harness.list().catch(() => aiRuns)
+  aiSettingsButton.dataset.harness = 'detected'
+  renderAiSettings()
+  if (aiSettingsDialog.open) renderAgentList()
 }
 
-agentButton.addEventListener('click', () => {
-  setAgentStatus('')
-  agentDialog.showModal()
-  renderAgentList()
-  void refreshAgents()
-})
-;($('#close-agent-settings') as HTMLButtonElement).addEventListener('click', () => agentDialog.close())
 ;($('#agent-refresh') as HTMLButtonElement).addEventListener('click', () => {
   setAgentStatus('Detecting…')
   void refreshAgents().then(() => setAgentStatus(''))
 })
 
 if (window.studioDesktop?.isDesktop) {
-  agentButton.hidden = false
+  aiHarnessSection.hidden = false
   void refreshAgents()
 }
+renderAiSettingsHook = renderAiSettings
+renderAiSettings()
 
 // ——— Notebook switcher ———
 // Every saved notebook lives in the worker's database; the switcher lists
@@ -14534,7 +14663,7 @@ const startAssistRun = async (state: SlideEditorState): Promise<boolean> => {
   }
   // Fresh detection on every run, then the preferred-online agent wins.
   agentAvailability = await desktopBridge.harness.adapters()
-  renderAgentSummary()
+  renderAiSettings()
   const adapter = resolveAssistAgent()
   if (!adapter) {
     setSlideEditorStatus('No coding-agent CLI found (install kimi, claude or codex)', 'error')
@@ -16146,7 +16275,7 @@ const syncSourceDesignAgent = async () => {
   const draftsButton = document.getElementById('source-make-pages') as HTMLButtonElement | null
   if (designButton) {
     designButton.hidden = !sourceDesignAgent
-    designButton.title = sourceDesignAgent ? `Designed with ${sourceDesignAgent.label} — change it in Agent settings` : ''
+    designButton.title = sourceDesignAgent ? `Designed with ${sourceDesignAgent.label} — change it in AI settings` : ''
   }
   if (draftsButton) {
     draftsButton.classList.toggle('primary', !sourceDesignAgent)
@@ -16262,7 +16391,7 @@ const stopSourceDesign = async (draft: SourceDraft) => {
 
 // Design the current draft's pages through the page-master skill. `choice`
 // ('adapter|model') names a harness directly; otherwise the Page drawing
-// choice from Agent settings runs it.
+// choice from AI settings runs it.
 const sourceDrawPages = async (choice?: string) => {
   const bridge = window.studioDesktop
   const source = sourceState.source
@@ -16717,7 +16846,7 @@ const sourceFinish = async () => {
   finishButton.disabled = false
   syncProject()
   sourceDialog.close()
-  if (written.stopped) showToast('No AI provider is configured — the scenes keep their outline lines; open Models in the top bar to write them to their briefs')
+  if (written.stopped) showToast('No AI provider is configured — the scenes keep their outline lines; add a provider under Direct API in AI settings to write them to their briefs')
   else if (written.failed) showToast(`${written.failed} scene${written.failed === 1 ? '' : 's'} kept the outline line — open ${written.failed === 1 ? 'it' : 'them'} and press Write`)
   if (startedNew) {
     try {

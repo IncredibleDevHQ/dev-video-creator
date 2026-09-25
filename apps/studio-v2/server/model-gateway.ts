@@ -30,10 +30,17 @@ export type ModelSettingsV1 = {
   reasoningEffort: ReasoningEffort
 }
 
+// How a task's last request went since the worker started (F7 of the
+// Perplexity review): the AI settings show it beside each job.
+export type ModelTaskResult = { ok: boolean; status: number; model: string; reportedModel?: string; at: string }
+
 export type ModelSettingsPublic = Omit<ModelSettingsV1, 'apiKey'> & {
   hasKey: boolean
   keyHint: string
+  // 'environment': the key is the worker's OPENAI_API_KEY, used without ever
+  // being copied into the settings store.
   source: 'saved' | 'environment' | 'none'
+  results: Partial<Record<ModelTask | 'image', ModelTaskResult>>
 }
 
 type PresetInfo = {
@@ -119,6 +126,10 @@ const TASKS: ModelTask[] = ['writing', 'vision', 'coding']
 let environmentKey = ''
 let cache: { settings: ModelSettingsV1 | null; source: ModelSettingsPublic['source'] } | null =
   null
+const results: ModelSettingsPublic['results'] = {}
+const recordResult = (task: ModelTask | 'image', result: ModelTaskResult) => {
+  results[task] = result
+}
 
 export const configureModelGateway = ({ envKey }: { envKey: string }) => {
   environmentKey = envKey
@@ -173,7 +184,11 @@ export const loadModelSettings = async () => {
   if (cache) return cache
   const saved = normalizeSettings(await loadSetting(SETTINGS_KEY))
   if (saved) {
-    cache = { settings: saved, source: 'saved' }
+    // A saved OpenAI choice without a key of its own uses the environment's
+    // key at request time; the key itself is never saved.
+    cache = !saved.apiKey && environmentKey && saved.provider === 'openai'
+      ? { settings: { ...saved, apiKey: environmentKey }, source: 'environment' }
+      : { settings: saved, source: 'saved' }
   } else {
     const fromEnv = environmentSettings()
     cache = { settings: fromEnv, source: fromEnv ? 'environment' : 'none' }
@@ -184,12 +199,14 @@ export const loadModelSettings = async () => {
 export const saveModelSettings = async (
   patch: Partial<ModelSettingsV1> & { models?: Partial<Record<ModelTask, string>> },
 ) => {
-  const current = (await loadModelSettings()).settings
+  const { settings: current, source } = await loadModelSettings()
   const merged = normalizeSettings({
     ...(current || {}),
     ...patch,
     // A blank key means "keep what is saved"; users never see the stored key.
-    apiKey: patch.apiKey ? patch.apiKey : current?.apiKey || '',
+    // A key from the environment is not the creator's to save: it stays out
+    // of the store, and is used again while no key is saved.
+    apiKey: patch.apiKey ? patch.apiKey : source === 'saved' ? current?.apiKey || '' : '',
     models: { ...(current?.models || {}), ...(patch.models || {}) },
   })
   if (!merged) throw new Error('Model settings are invalid')
@@ -214,6 +231,7 @@ export const publicModelSettings = async (): Promise<ModelSettingsPublic> => {
     hasKey: Boolean(apiKey),
     keyHint: apiKey ? `…${apiKey.slice(-4)}` : '',
     source,
+    results: { ...results },
   }
 }
 
@@ -326,6 +344,7 @@ export const imageGenerate = async ({ prompt, size }: { prompt: string; size?: '
       ...(gptImage ? { quality: 'medium', background: 'transparent', output_format: 'png' } : { response_format: 'b64_json' }),
     }),
   })
+  recordResult('image', { ok: response.ok, status: response.status, model, at: new Date().toISOString() })
   if (!response.ok) throw new Error(`The image model answered ${response.status}: ${(await response.text()).slice(0, 200)}`)
   const data = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> }
   const first = data.data?.[0]
@@ -343,12 +362,12 @@ export const modelFetch = async (
 ): Promise<ModelFetchResult> => {
   const { settings } = await loadModelSettings()
   if (!settings) {
-    throw new Error('No AI provider configured — open Models in the top bar to add one')
+    throw new Error('No AI provider configured — add one under Direct API in AI settings')
   }
   const preset = MODEL_PRESETS[settings.provider]
   const payload = JSON.parse(init.body) as ResponsesPayload
   const model = settings.models[task] || settings.models.writing || preset.models[task]
-  if (!model) throw new Error(`Choose a ${task} model in Models settings`)
+  if (!model) throw new Error(`Choose a ${task} model under Direct API in AI settings`)
 
   if (preset.responsesApi) {
     const body: ResponsesPayload = { ...payload, model }
@@ -358,11 +377,20 @@ export const modelFetch = async (
       method: 'POST',
       headers: authHeaders(settings),
       body: JSON.stringify(body),
+    }).catch(error => {
+      recordResult(task, { ok: false, status: 0, model, at: new Date().toISOString() })
+      throw error
     })
+    recordResult(task, { ok: response.ok, status: response.status, model, at: new Date().toISOString() })
     return {
       ok: response.ok,
       status: response.status,
-      json: () => response.json() as Promise<ResponsesShape>,
+      // The model the provider says answered, kept with the result.
+      json: async () => {
+        const reply = (await response.json()) as ResponsesShape & { model?: unknown }
+        if (typeof reply.model === 'string' && results[task]) results[task] = { ...results[task]!, reportedModel: reply.model }
+        return reply
+      },
     }
   }
 
@@ -417,11 +445,15 @@ export const modelFetch = async (
       body: JSON.stringify(body),
     })
   }
-  let response = await send(true)
+  let response = await send(true).catch(error => {
+    recordResult(task, { ok: false, status: 0, model, at: new Date().toISOString() })
+    throw error
+  })
   if (!response.ok && structured && (response.status === 400 || response.status === 422)) {
     // Provider does not support structured outputs: guide the JSON by prompt.
     response = await send(false)
   }
+  recordResult(task, { ok: response.ok, status: response.status, model, at: new Date().toISOString() })
   if (!response.ok) {
     // Surface the provider's own message: it is what the user needs to fix.
     const detail = (await response.text().catch(() => '')).slice(0, 400)

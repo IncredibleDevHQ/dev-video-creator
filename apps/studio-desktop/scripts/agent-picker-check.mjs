@@ -1,10 +1,12 @@
-// Verifies the harness picker: the top-bar pill shows the detected agent,
-// Agent settings lists all three CLIs with their online state, a default and
-// a per-stage harness and model are chosen there, and the choice is the
-// durable server preference — it survives a restart of the app, which comes
-// back on a new local port. Uses the loopback /__eval test hook.
+// Verifies the harness picker: the top bar's one AI entry shows what
+// creation runs on, AI settings lists all three CLIs with their online
+// state, a default and a per-stage harness and model are chosen there, and
+// the choice is the durable server preference — it survives a restart of
+// the app, which comes back on a new local port. One screen says what every
+// job runs on, harness stage and direct API alike (F7 of the Perplexity
+// review). Uses the loopback /__eval test hook.
 import { spawn } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -79,9 +81,9 @@ const readDialog = () =>
   evaluate(`async () => {
     // The app may still be booting after a restart: keep opening the dialog
     // until its rows are there.
-    const dialog = document.getElementById('agent-settings-dialog')
+    const dialog = document.getElementById('ai-settings-dialog')
     for (let i = 0; i < 120; i++) {
-      if (!dialog.open) document.getElementById('open-agent-settings').click()
+      if (!dialog.open) document.getElementById('open-ai-settings').click()
       if (document.querySelectorAll('#agent-list .agent-row').length && document.querySelectorAll('#agent-list .agent-choice').length) break
       await new Promise(r => setTimeout(r, 250))
     }
@@ -104,6 +106,17 @@ const readDialog = () =>
       }),
     }
   }`)
+// What runs where, as the one screen says it.
+const readRoutes = () =>
+  evaluate(`() => [...document.querySelectorAll('#ai-routes tbody tr')].map(row => ({ id: row.dataset.aiJob, job: row.querySelector('th strong').textContent, runsOn: row.querySelector('.ai-route-runs-on').textContent, status: row.querySelector('.ai-route-status').textContent }))`)
+const routeOf = (routes, id) => routes.find(route => route.id === id)
+const shot = async name => {
+  if (!process.env.AGENT_PICKER_SHOTS) return
+  const response = await fetch(`${origin}/__capture`).catch(() => null)
+  if (!response?.ok) return
+  await mkdir(process.env.AGENT_PICKER_SHOTS, { recursive: true })
+  await writeFile(join(process.env.AGENT_PICKER_SHOTS, `${name}.png`), Buffer.from(await response.arrayBuffer()))
+}
 const choose = (label, which, value) =>
   evaluate(`async () => {
     const row = [...document.querySelectorAll('#agent-list .agent-choice')].find(entry => entry.querySelector('.agent-choice-label').textContent === ${JSON.stringify(label)})
@@ -117,17 +130,18 @@ const choose = (label, which, value) =>
 try {
   await launch()
   const summary = await evaluate(`async () => {
-    for (let i = 0; i < 20; i++) {
-      const text = document.getElementById('agent-settings-summary').textContent
-      if (text.startsWith('Agent ·')) return text
+    for (let i = 0; i < 40; i++) {
+      if (document.getElementById('open-ai-settings').dataset.harness === 'detected') break
       await new Promise(r => setTimeout(r, 250))
     }
-    return document.getElementById('agent-settings-summary').textContent
+    return document.getElementById('ai-settings-summary').textContent
   }`)
-  check('top-bar pill shows the detected agent', summary.startsWith('Agent ·'), JSON.stringify(summary))
+  check('the top bar\'s AI entry shows what creation runs on, once the harnesses are detected', /^AI · (Claude Code|Kimi|Codex) · /.test(summary), JSON.stringify(summary))
+  const entries = await evaluate(`() => ({ ai: document.querySelectorAll('#open-ai-settings').length, models: Boolean(document.getElementById('open-model-settings')), agent: Boolean(document.getElementById('open-agent-settings')), dialogs: document.querySelectorAll('dialog#model-settings-dialog, dialog#agent-settings-dialog').length })`)
+  check('there is one AI settings entry, not a Models and an Agent one', entries.ai === 1 && !entries.models && !entries.agent && entries.dialogs === 0, JSON.stringify(entries))
 
   const first = await readDialog()
-  check('Agent settings lists all three harnesses', first.rows.length === 3, first.rows.map(r => r.name).join(', '))
+  check('AI settings lists all three harnesses', first.rows.length === 3, first.rows.map(r => r.name).join(', '))
   const online = first.rows.filter(r => !r.offline)
   check('at least one harness is online', online.length >= 1, online.map(r => `${r.name} (${r.detail})`).join('; '))
   for (const row of first.rows.filter(r => r.offline)) {
@@ -152,6 +166,18 @@ try {
   const hint = await evaluate(`() => (document.getElementById('se-assist-agent') || {}).textContent || ''`)
   check('slide editor hint names the chosen harness', hint.includes(online[0].name), JSON.stringify(hint))
 
+  // One screen says what every job runs on (F7): each harness stage on the
+  // chosen harness, the direct API's jobs on its provider — and which
+  // features the direct API serves.
+  await readDialog()
+  const routes = await readRoutes()
+  const stageIds = ['story', 'drawing', 'planning', 'composition']
+  check('every harness stage names the harness and model it runs on', stageIds.every(id => routeOf(routes, id)?.runsOn.startsWith(`Local harness · ${online[0].name} · `)), JSON.stringify(stageIds.map(id => routeOf(routes, id))))
+  check('the direct API\'s jobs name its provider and model', ['writing', 'vision', 'coding'].every(id => /^Direct API · \S/.test(routeOf(routes, id)?.runsOn || '')) && Boolean(routeOf(routes, 'image')), JSON.stringify(['writing', 'vision', 'coding', 'image'].map(id => routeOf(routes, id))))
+  const uses = await evaluate(`() => document.getElementById('ai-api-uses').textContent`)
+  check('the direct API says which features it serves, and that the harness stages never use it', /writing help/.test(uses) && /illustrations/.test(uses) && /never use it/.test(uses), JSON.stringify(uses))
+  await shot('01-ai-settings')
+
   // A stage override with a model of its own.
   await readDialog()
   await choose('Page drawing', 'harness', picked)
@@ -167,6 +193,16 @@ try {
   await choose('Page drawing', 'model', otherModel)
   const modelled = await waitForPreference(current => (current.stages?.drawing?.model || '') === otherModel)
   check('the stage keeps the model picked for it', (modelled?.stages?.drawing?.model || '') === otherModel, `${JSON.stringify(modelled?.stages?.drawing)} options=${modelOptions.join(',')}`)
+  // Which model will draw a page, and which will plan a scene, read off the
+  // same screen: the override shows on its stage alone.
+  let overridden = null
+  for (let i = 0; i < 20 && !overridden; i++) {
+    const now = await readRoutes()
+    if (/this stage’s own choice/.test(routeOf(now, 'drawing')?.runsOn || '')) overridden = now
+    else await new Promise(r => setTimeout(r, 250))
+  }
+  check('the page-drawing override shows on its row, and planning keeps the default', Boolean(overridden) && routeOf(overridden, 'drawing').runsOn !== routeOf(overridden, 'planning').runsOn && !/own choice/.test(routeOf(overridden, 'planning').runsOn), JSON.stringify(overridden && { drawing: routeOf(overridden, 'drawing'), planning: routeOf(overridden, 'planning') }))
+  await shot('02-stage-override')
 
   // Restart: the app returns on a new port, and the choice is still there.
   const before = origin
@@ -183,7 +219,7 @@ try {
   await choose('Page drawing', 'harness', '')
   const cleared = await waitForPreference(current => !current.stages?.drawing)
   check('clearing a stage returns it to the default', !cleared?.stages?.drawing, JSON.stringify(cleared?.stages))
-  await evaluate(`() => { document.getElementById('close-agent-settings').click(); return true }`)
+  await evaluate(`() => { document.getElementById('close-ai-settings').click(); return true }`)
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

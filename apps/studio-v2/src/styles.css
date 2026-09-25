@@ -1294,6 +1294,28 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .agent-row .agent-status-dot + .agent-row-detail { margin-left: 6px; }
 .slide-editor-assist-agent { font-size: 11px; color: #71717a; align-self: center; }
 
+/* ——— One AI settings entry (F7 of the Perplexity review) ——— */
+.ai-settings-modal { width: min(800px, 94vw); max-height: 90vh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.ai-settings-modal:not([open]) { display: none; }
+.ai-settings-body { overflow-y: auto; gap: 18px; padding-bottom: 8px; }
+.ai-section { display: grid; gap: 10px; min-width: 0; }
+.ai-section + .ai-section { padding-top: 16px; border-top: 1px solid #e4e4e7; }
+.ai-section h3 { margin: 0; font-size: 14px; color: #18181b; }
+.ai-section .settings-note { margin: 0; }
+.ai-routes-scroll { overflow-x: auto; border: 1px solid #e4e4e7; border-radius: 10px; }
+.ai-routes { width: 100%; min-width: 560px; border-collapse: collapse; font: 500 12px/1.4 system-ui, sans-serif; color: #27272a; }
+.ai-routes th, .ai-routes td { padding: 8px 10px; border-bottom: 1px solid #f0f0f2; text-align: left; vertical-align: top; }
+.ai-routes tbody tr:last-child > * { border-bottom: 0; }
+.ai-routes thead th { background: #fafafa; font: 700 10px/1.2 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #71717a; }
+.ai-routes tbody th { width: 34%; font-weight: 500; }
+.ai-routes tbody th strong { display: block; font-size: 12.5px; color: #18181b; }
+.ai-routes tbody th small { display: block; margin-top: 2px; color: #71717a; }
+.ai-route-runs-on { width: 36%; overflow-wrap: anywhere; }
+.ai-route-status { color: #52525b; overflow-wrap: anywhere; }
+.ai-route-status.is-ok { color: #15803d; }
+.ai-route-status.is-error { color: #b91c1c; }
+.ai-api-form { display: grid; gap: 14px; }
+
 /* ——— Slide build-order editor ——— */
 .slide-editor-modal { width: min(1280px, 96vw); max-height: 92vh; border-radius: 16px; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 /* Author display beats the UA's dialog:not([open]) rule — keep it closed when closed. */

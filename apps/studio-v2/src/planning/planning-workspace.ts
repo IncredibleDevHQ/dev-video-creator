@@ -140,7 +140,7 @@ export type PlanningWorkspaceHost = {
 
 const HARNESS_LABELS: Record<string, string> = { kimi: 'Kimi', 'claude-code': 'Claude Code', codex: 'Codex' }
 // A planning run asks its harness for a model by name: the creator's durable
-// "Video planning" choice (Agent settings), which this header also sets.
+// "Video planning" choice (AI settings), which this header also sets.
 const RECOMMENDED_MODELS: Record<string, string> = { 'claude-code': 'claude-opus-5-5' }
 const CUSTOM_MODEL = '__custom__'
 const CHANNEL_LABELS: Record<TreatmentChannel, string> = {
@@ -581,7 +581,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     })
     const choice = planningChoice()
     const source = choice.source === 'stage' ? 'planning choice' : choice.source === 'default' ? 'your default' : choice.source === 'suggested' ? 'suggested — not chosen yet' : ''
-    const field = h('label', { class: 'planning-field', title: source ? `The ${source}; Agent settings holds every stage's choice` : '' }, 'Model ', select)
+    const field = h('label', { class: 'planning-field', title: source ? `The ${source}; AI settings holds every stage's choice` : '' }, 'Model ', select)
     if (!custom) return [field]
     const input = h('input', { id: 'planning-model-custom', class: 'planning-model-custom', type: 'text', placeholder: 'model id, e.g. claude-opus-5-5', 'aria-label': 'Model id' })
     input.value = customModelDraft

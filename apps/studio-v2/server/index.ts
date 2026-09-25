@@ -123,7 +123,8 @@ const readEnvFileValue = async (name: string) => {
 
 const openAIKey =
   process.env.OPENAI_API_KEY || (await readEnvFileValue('OPENAI_API_KEY'))
-// The env key seeds the gateway until the user saves a provider in Models.
+// The env key serves the direct API until the creator saves a key of their
+// own in AI settings; it is used, never saved.
 configureModelGateway({ envKey: openAIKey })
 // The artwork provider reads its key from the environment. A value the
 // deployment already supplied wins; otherwise the repository's .env fills it
@@ -1083,7 +1084,7 @@ const handleSlidePlan = async (
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   if (!units.length) throw new Error('The slide has no parts to plan')
   if (!(await hasModelAccess())) {
-    throw new Error('Planning from narration needs an AI provider — open Models in the top bar')
+    throw new Error('Planning from narration needs an AI provider — add one under Direct API in AI settings')
   }
   const narration = String(body.narration || '').trim().slice(0, 6_000)
   const instruction = String(body.instruction || '').trim().slice(0, 1_500)
@@ -1246,7 +1247,7 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
   }>(request, 2 * 1024 * 1024)
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   if (!units.length) throw new Error('The page has no parts to write about')
-  if (!(await hasModelAccess())) throw new Error('Writing with the page needs an AI provider — open Models in the top bar')
+  if (!(await hasModelAccess())) throw new Error('Writing with the page needs an AI provider — add one under Direct API in AI settings')
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
   const diagrams = Array.isArray(body.diagrams) ? body.diagrams.slice(0, 12) : []
   const entities = Array.isArray(body.entities) ? body.entities.slice(0, 40) : []
@@ -1333,7 +1334,7 @@ const handleSceneEdit = async (request: IncomingMessage, response: ServerRespons
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   const windows = Array.isArray(body.windows) ? body.windows.slice(0, 48) : []
   if (!units.length || !windows.length) throw new Error('An edit needs the page and the dialogue')
-  if (!(await hasModelAccess())) throw new Error('Editing with the page needs an AI provider — open Models in the top bar')
+  if (!(await hasModelAccess())) throw new Error('Editing with the page needs an AI provider — add one under Direct API in AI settings')
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
   const focus = body.focus || { line: 0, scope: 'line' as const }
   const scope = focus.scope === 'scene' || focus.scope === 'part' ? focus.scope : 'line'
@@ -1463,7 +1464,7 @@ const handleSourceOutline = async (request: IncomingMessage, response: ServerRes
   const body = await readJson<{ source?: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>; targetSeconds?: number; wordingPolicy?: string }>(request, 400 * 1024)
   const source = body.source
   if (!source || !String(source.text || '').trim()) throw new Error('The outline needs the source text')
-  if (!(await hasModelAccess())) throw new Error('Outlining a source needs an AI provider — open Models in the top bar')
+  if (!(await hasModelAccess())) throw new Error('Outlining a source needs an AI provider — add one under Direct API in AI settings')
   const targetSeconds = Number.isFinite(Number(body.targetSeconds)) && Number(body.targetSeconds) > 0 ? Math.round(Number(body.targetSeconds)) : null
   const wordingPolicy = wordingPolicyFrom(body.wordingPolicy, 'draft')
   const apiResponse = await modelFetch('writing', {
@@ -1513,7 +1514,7 @@ const handleSceneBreakdown = async (request: IncomingMessage, response: ServerRe
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   const windows = Array.isArray(body.windows) ? body.windows.slice(0, 48) : []
   if (!units.length || !windows.length) throw new Error('The breakdown needs the page and the approved dialogue')
-  if (!(await hasModelAccess())) throw new Error('The breakdown needs an AI provider — open Models in the top bar')
+  if (!(await hasModelAccess())) throw new Error('The breakdown needs an AI provider — add one under Direct API in AI settings')
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
   const prompt = `You break an approved dialogue down for the motion engine. The words are final and must not change; you decide, per window, which parts of the page the window is about.
 

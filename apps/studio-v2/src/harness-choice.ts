@@ -88,14 +88,14 @@ export const resolveStage = (preferences: HarnessPreferences, stage: HarnessStag
     const option = chosen.model ? adapter?.models?.options.find(entry => entry.id === chosen.model) : undefined
     const label = HARNESS_LABELS[chosen.harness] || chosen.harness
     const reason = !adapter?.ok
-      ? `${label} is not available${adapter?.reason ? ` (${adapter.reason.replace(/\s+/g, ' ').slice(0, 120)})` : ''}. Choose another harness in Agent settings.`
+      ? `${label} is not available${adapter?.reason ? ` (${adapter.reason.replace(/\s+/g, ' ').slice(0, 120)})` : ''}. Choose another harness in AI settings.`
       : option?.unavailable
-        ? `${option.label} ${option.unavailable}. Choose another model in Agent settings.`
+        ? `${option.label} ${option.unavailable}. Choose another model in AI settings.`
         : null
     return { harness: chosen.harness, model: chosen.model, source: chosen.source, available: !reason, reason }
   }
   const online = SUGGESTION_ORDER.map(id => adapters.find(entry => entry.id === id && entry.ok)).find(Boolean)
-  if (!online) return { harness: null, model: null, source: 'none', available: false, reason: 'No local harness is available — install Claude Code, Kimi or Codex, then choose it in Agent settings.' }
+  if (!online) return { harness: null, model: null, source: 'none', available: false, reason: 'No local harness is available — install Claude Code, Kimi or Codex, then choose it in AI settings.' }
   const recommended = RECOMMENDED_MODELS[online.id as HarnessId] ?? online.models?.default ?? null
   const usable = recommended && !online.models?.options.find(option => option.id === recommended)?.unavailable ? recommended : null
   return { harness: online.id as HarnessId, model: usable, source: 'suggested', available: true, reason: null }
@@ -111,7 +111,7 @@ export const planningHostOf = (isDesktop: boolean, adapters: HarnessAvailability
   !isDesktop
     ? { state: 'browser', message: BROWSER_REVIEW_MESSAGE }
     : !adapters.some(adapter => adapter.ok)
-      ? { state: 'no-harness', message: 'No local harness was found on this computer — install Claude Code, Kimi or Codex, then choose it in Agent settings.' }
+      ? { state: 'no-harness', message: 'No local harness was found on this computer — install Claude Code, Kimi or Codex, then choose it in AI settings.' }
       : !resolved.available
         ? { state: 'unavailable', message: resolved.reason }
         : { state: 'ready', message: null }
