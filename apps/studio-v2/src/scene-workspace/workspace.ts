@@ -50,6 +50,9 @@ export type SceneWorkspaceHost = {
   // view or recorded (U4); and playing it.
   notice: (sceneId: string) => { kind: 'offer' | 'elsewhere' | 'held'; revision: number } | null
   playOffer: (sceneId: string) => void
+  // Closing the recording, as its × does: devices released, a take still
+  // under review kept (U5).
+  closeCapture: () => void
 }
 
 const VIEW_KEY = 'incredible-studio-v2-video-view'
@@ -141,9 +144,27 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const transport = h('div', { class: 'sw-transport' })
   const barRow = h('div', { class: 'sw-stage-row' }, bar, barTools)
   const centre = h('section', { class: 'sw-centre', 'aria-label': 'Stage' }, stageArea, barRow, activity, transport)
+  // A take played on the stage, over what the stage shows, until closed (U5).
+  const takeLayer = h('div', { class: 'sw-take-layer', hidden: true })
+  stageArea.append(takeLayer)
+  let takeFor = ''
+  const closeTake = () => {
+    const video = takeLayer.querySelector('video')
+    if (video) {
+      video.pause()
+      video.removeAttribute('src')
+      video.load()
+    }
+    takeLayer.replaceChildren()
+    takeLayer.hidden = true
+    takeFor = ''
+  }
   const tabs = h('div', { class: 'sw-tabs', role: 'tablist', 'aria-label': 'Inspector' })
   const panel = h('div', { class: 'sw-panel', role: 'tabpanel' })
-  const inspector = h('aside', { class: 'sw-inspector', 'aria-label': 'Inspector' }, tabs, panel)
+  // Recording (U5): the camera dialog opens here, in place of the tabs.
+  const captureHead = h('p', { class: 'sw-capture-head' })
+  const capture = h('section', { class: 'sw-capture', 'aria-label': 'Recording' }, captureHead)
+  const inspector = h('aside', { class: 'sw-inspector', 'aria-label': 'Inspector' }, tabs, panel, capture)
   const context = h('aside', { class: 'sw-context', role: 'dialog', 'aria-label': 'Context', hidden: true })
   const announcer = h('p', { class: 'sr-only', 'aria-live': 'polite', role: 'status' })
   // The grid sits inside the workspace, so the workspace's width can reshape it.
@@ -195,7 +216,16 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     shown = ''
     if (on) render()
   }
+  // While recording, the scene and the view stay put: the teleprompter and
+  // the take belong to the scene being recorded (the capture lock).
+  let capturing = ''
+  const locked = () => {
+    if (!capturing) return false
+    host.toast('Finish or close the recording first — the take belongs to the scene being recorded')
+    return true
+  }
   const show = (next: WorkspaceView) => {
+    if (next === 'notebook' && locked()) return
     view = next
     try {
       window.localStorage.setItem(VIEW_KEY, next)
@@ -285,7 +315,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
         h('span', { class: 'sw-scene-text' }, h('strong', { text: scene.title }), h('span', { class: `sw-scene-state is-${scene.state.tone}`, text: scene.state.label })),
       )
       button.addEventListener('click', () => {
-        if (scene.id === currentScene()) return
+        if (scene.id === currentScene() || locked()) return
         savePrefs({ scene: scene.id })
         host.selectScene(scene.id)
       })
@@ -371,7 +401,11 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     const row = sceneId ? review()?.moments(sceneId) : null
     const state = host.playback.state()
     const play = h('button', { type: 'button', class: 'sw-play', 'data-focus': 'sw-play', 'aria-label': state.playing ? 'Pause' : state.ended ? 'Play again from the start' : 'Play', text: state.playing ? '❚❚' : state.ended ? '↻' : '▶', ...(state.playable ? {} : { disabled: true, title: 'Nothing playable on the stage — the reference is a still page' }) })
-    play.addEventListener('click', () => host.playback.toggle())
+    play.addEventListener('click', () => {
+      // The stage plays again: a take shown over it gives way.
+      if (!takeLayer.hidden) closeTake()
+      host.playback.toggle()
+    })
     const clock = h('span', { class: 'sw-clock', text: state.playable ? `${seconds(state.time)} / ${seconds(state.duration)}${state.estimated ? ' est.' : ''}` : '—' })
     const moments = h('div', { class: 'sw-moments', role: 'listbox', 'aria-label': 'Moments', 'aria-orientation': 'horizontal' })
     let current = ''
@@ -447,7 +481,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   }
 
   const signatureOf = (sceneId: string) =>
-    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen, sceneIds().map(id => host.notice(id))])
+    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen, capturing, sceneIds().map(id => host.notice(id))])
 
   const render = () => {
     if (root.hidden || !host.video()) return
@@ -456,6 +490,9 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     root.classList.toggle('is-rail-collapsed', Boolean(prefs.rail))
     root.classList.toggle('is-focus-stage', focusStage)
     root.classList.toggle('is-inspector-open', inspectorOpen)
+    root.classList.toggle('is-capturing', Boolean(capturing))
+    // A take played for another scene closes with it.
+    if (takeFor && takeFor !== sceneId) closeTake()
     const signature = signatureOf(sceneId)
     if (signature === shown) {
       renderTransport()
@@ -504,6 +541,16 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
 
   root.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return
+    if (!takeLayer.hidden) {
+      event.preventDefault()
+      closeTake()
+      return
+    }
+    if (capturing) {
+      event.preventDefault()
+      host.closeCapture()
+      return
+    }
     if (!context.hidden) {
       event.preventDefault()
       closeContext()
@@ -524,6 +571,10 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   document.getElementById('workspace-tab-notebook')?.addEventListener('click', () => {
     if (host.video()) show('notebook')
   })
+  const sceneLabel = (sceneId: string) => {
+    const scene = review()?.scenes().find(entry => entry.id === sceneId)
+    return scene ? `scene ${scene.index + 1} · ${scene.title}` : 'this scene'
+  }
 
   return {
     // Called when a notebook opens, and whenever the review or the stage changes.
@@ -549,5 +600,46 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     },
     announce,
     frame: () => frame,
+    // Recording opens here, in place of the inspector's tabs, beside the
+    // stage; the dialog is the page's own, moved in and back (U5).
+    mountCapture: (dialog: HTMLDialogElement, sceneId: string) => {
+      if (dialog.parentNode !== capture) capture.append(dialog)
+      capturing = sceneId || currentScene()
+      captureHead.textContent = `Recording ${sceneLabel(capturing)}`
+      inspectorOpen = true
+      shown = ''
+      render()
+    },
+    captureClosed: () => {
+      if (!capturing) return
+      capturing = ''
+      captureHead.textContent = ''
+      shown = ''
+      render()
+      focusKey('sw-tab:record')
+    },
+    // A take plays on the stage; one whose file will not load says so.
+    playTake: (sceneId: string, take: { url: string; label: string; failed: () => void }) => {
+      closeTake()
+      if (host.playback.state().playing) host.playback.toggle()
+      const note = h('p', { class: 'sw-take-note', role: 'status', text: take.label })
+      const video = h('video', { controls: true, playsinline: true, preload: 'auto', 'aria-label': take.label }) as HTMLVideoElement
+      video.addEventListener('error', () => {
+        note.textContent = `${take.label} — its file could not be loaded.`
+        takeLayer.classList.add('is-failed')
+        take.failed()
+      })
+      const back = h('button', { type: 'button', class: 'sw-tool', 'data-focus': 'sw-take-close', text: 'Back to the stage' })
+      back.addEventListener('click', closeTake)
+      takeLayer.classList.remove('is-failed')
+      takeLayer.replaceChildren(video, h('div', { class: 'sw-take-bar' }, note, back))
+      takeLayer.hidden = false
+      takeFor = sceneId
+      if (take.url) {
+        video.src = take.url
+        void video.play().catch(() => undefined)
+      } else video.dispatchEvent(new Event('error'))
+      back.focus({ preventScroll: true })
+    },
   }
 }

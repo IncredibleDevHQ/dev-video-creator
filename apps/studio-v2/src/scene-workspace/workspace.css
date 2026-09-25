@@ -292,3 +292,49 @@ body.is-scene-workspace .toast { bottom: 96px; }
 .ws-build-failure .ws-failure-provider { flex-basis: 100%; order: 2; }
 .ws-build-failure .button { flex: none; min-height: 30px; font-size: 12px; }
 .ws-build-failure[data-failure="stopped"] { border-color: var(--sw-line); background: var(--sw-soft); color: #3f3f46; }
+
+/* Recording in place (U5): the page's own camera dialog opens in the
+   inspector's place beside the stage — its two columns stacked, nothing
+   modal, the scene still on the stage. */
+.sw-capture { display: none; }
+.scene-workspace.is-capturing .sw-tabs,
+.scene-workspace.is-capturing .sw-panel { display: none; }
+.scene-workspace.is-capturing .sw-capture { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; overflow-y: auto; }
+.sw-capture-head { flex: none; display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--sw-line); color: #b91c1c; font: 700 11px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.sw-capture-head::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #dc2626; }
+.sw-capture #camera-dialog { position: static; inset: auto; width: auto; max-width: none; max-height: none; margin: 0; padding: 0; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--sw-text); }
+.sw-capture #camera-dialog .modal-heading { padding: 10px 14px; }
+.sw-capture #camera-dialog .modal-heading h2 { font-size: 15px; }
+.sw-capture #camera-dialog .camera-grid { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px 16px; }
+.sw-capture #camera-dialog .camera-preview-shell { min-height: 0; aspect-ratio: 16 / 9; }
+.sw-capture #camera-dialog .take-review { right: 8px; bottom: 8px; }
+.sw-capture #camera-dialog .script-box textarea { min-height: 160px; font-size: 14px; }
+.sw-capture #camera-dialog .presenter-actions { grid-template-columns: 1fr; }
+
+/* A take on the stage (U5): over what the stage shows, with the way back. */
+.sw-stage-area { position: relative; }
+/* The stage's own layers stay inside its frame, under a take shown over it. */
+.sw-stage-frame { isolation: isolate; }
+.sw-take-layer { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; gap: 8px; padding: 12px 20px; background: var(--sw-surround); }
+.sw-take-layer[hidden] { display: none; }
+.sw-take-layer video { flex: 1 1 auto; min-height: 0; width: 100%; border-radius: 10px; background: #0f0d18; object-fit: contain; }
+.sw-take-bar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sw-take-note { margin: 0; color: #3f3f46; font: 600 12.5px/1.4 'InterBody', Inter, sans-serif; }
+.sw-take-layer.is-failed .sw-take-note { color: #b91c1c; }
+
+/* The scene's takes in the Record tab (U5). */
+.ws-takes { display: grid; gap: 6px; margin: 0 0 16px; }
+.ws-take-none { margin: 0; padding: 8px 10px; border: 1px dashed #d4d4d8; border-radius: 8px; color: #52525b; font-size: 12.5px; }
+.ws-take-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ws-take { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--sw-line); border-radius: 8px; background: #fff; }
+.ws-take.is-selected { border-color: var(--sw-accent); box-shadow: inset 3px 0 0 var(--sw-accent); }
+.ws-take.is-missing { background: #fafafa; }
+.ws-take-head { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 12.5px; }
+.ws-take-head span { color: var(--sw-muted); font-variant-numeric: tabular-nums; }
+.ws-take-state { margin: 0; color: #52525b; font-size: 12px; }
+.ws-take-state.is-older { color: #a16207; }
+.ws-take-state.is-missing { color: #b91c1c; }
+.ws-take-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ws-take-actions .button { min-height: 28px; padding: 0 10px; font-size: 12px; }
+.ws-take-used { color: #15803d; font: 650 12px/1.3 'InterBody', Inter, sans-serif; }
+.ws-voice-made { margin: 0 0 10px; color: #3f3f46; }

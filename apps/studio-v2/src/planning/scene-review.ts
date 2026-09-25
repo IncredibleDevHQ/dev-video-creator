@@ -27,6 +27,23 @@ type CastEntry = VisualCastSummary['entries'][number]
 
 export type { PreviewState }
 
+// One of a scene's takes, as the Record tab lists it (U5).
+export type SceneTakeView = {
+  recordingId: string
+  // Its number among all the scene's takes, v1 first.
+  version: number
+  durationMs: number
+  recordedAt: string
+  // The one the scene uses.
+  selected: boolean
+  // A pickup fills in some lines of the selected take; it is never selected.
+  pickup: boolean
+  lines: number | null
+  hasMedia: boolean
+  // Spoken to the script as it is now; null when the take kept no record.
+  current: boolean | null
+}
+
 export type SceneReviewHost = {
   fetchJson: FetchJson
   toast: (message: string) => void
@@ -84,6 +101,10 @@ export type SceneReviewHost = {
   // Whether an approved plan stays on show while a newer one is planned
   // (the scene workspace; the notebook shows the newest).
   pinApproved?: () => boolean
+  // The scene's takes; using another; playing one on the stage (U5).
+  takesOf?: (sceneId: string) => SceneTakeView[]
+  selectTake?: (sceneId: string, recordingId: string) => void
+  playTake?: (sceneId: string, recordingId: string) => void
 }
 
 type SceneUi = { revision: string; compare: string; moment: string; direction: string | null }
@@ -1547,6 +1568,62 @@ export const createSceneReview = (host: SceneReviewHost) => {
     ['silent', 'Silent', 'No voice: the scene keeps the plan\'s timing, with its sound cues only.'],
   ]
   let savingDelivery = ''
+  // Takes whose file would not play, said so until the video is reopened.
+  const failedTakes = new Set<string>()
+  const minutes = (ms: number) => {
+    const seconds = Math.max(0, Math.round(ms / 1000))
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  }
+  // The scene's takes (U5): every take kept, the one the scene uses said so,
+  // another used only when asked; each played on the stage. A take without
+  // its file — missing, or one that would not load — says so, and is not
+  // offered for use.
+  const takesOf = (scene: Scene) => {
+    const takes = host.takesOf?.(scene.id) || []
+    const full = takes.filter(take => !take.pickup)
+    const pickups = takes.filter(take => take.pickup)
+    const box = h('div', { class: 'ws-takes' }, h('h4', { class: 'ws-label', text: full.length ? `Takes · ${full.length}` : 'Takes' }))
+    if (!full.length) {
+      box.append(h('p', { class: 'ws-take-none', text: 'No take yet. What follows is guidance; nothing is recorded for this scene.' }))
+      return box
+    }
+    const list = h('ol', { class: 'ws-take-list' })
+    for (const take of full) {
+      const missing = !take.hasMedia || failedTakes.has(take.recordingId)
+      const when = Date.parse(take.recordedAt) ? new Date(take.recordedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
+      const play = h('button', { type: 'button', class: 'button ghost', 'data-focus': `take-play:${take.recordingId}`, text: 'Play', ...(take.hasMedia ? {} : { disabled: true }) })
+      play.addEventListener('click', () => host.playTake?.(scene.id, take.recordingId))
+      let use: HTMLElement
+      if (take.selected) use = h('span', { class: 'ws-take-used', text: 'Used for this scene' })
+      else {
+        use = h('button', { type: 'button', class: 'button secondary', 'data-focus': `take-use:${take.recordingId}`, text: `Use take v${take.version}`, ...(missing ? { disabled: true, title: 'Its file is missing' } : {}) })
+        use.addEventListener('click', () => host.selectTake?.(scene.id, take.recordingId))
+      }
+      const state = !take.hasMedia
+        ? 'Its file is missing: the take is on record, but there is nothing to play.'
+        : failedTakes.has(take.recordingId)
+          ? 'Its file could not be loaded.'
+          : take.current === false
+            ? 'Spoken to earlier words than the script now.'
+            : take.current
+              ? 'Spoken to the script as it is now.'
+              : ''
+      list.append(h('li', { class: `ws-take${take.selected ? ' is-selected' : ''}${missing ? ' is-missing' : ''}`, 'data-take': take.recordingId },
+        h('p', { class: 'ws-take-head' }, h('strong', { text: `v${take.version}` }), h('span', { text: [minutes(take.durationMs), when].filter(Boolean).join(' · ') })),
+        state ? h('p', { class: `ws-take-state${missing ? ' is-missing' : take.current === false ? ' is-older' : ''}`, text: state }) : null,
+        h('div', { class: 'ws-take-actions' }, play, use),
+      ))
+    }
+    box.append(list)
+    if (pickups.length) box.append(h('p', { class: 'review-muted', text: `${pickups.length} pickup${pickups.length === 1 ? '' : 's'} fill${pickups.length === 1 ? 's' : ''} in lines of the take used: ${pickups.map(take => `v${take.version}${take.lines ? ` (${take.lines} line${take.lines === 1 ? '' : 's'})` : ''}`).join(', ')}.` }))
+    return box
+  }
+  // A generated voice, once a production has made it (the choice above
+  // already says that nothing is recorded).
+  const voiceNote = (scene: Scene) => {
+    const made = scene.production?.accepted || scene.production?.ready
+    return made && made.summary.clock === 'generated-voice' ? h('p', { class: 'ws-voice-made', text: `Its generated voice${made.voice ? ` (${made.voice})` : ''} was made for the production of plan r${made.of.revision}: ${Math.round(made.summary.duration * 10) / 10}s.` }) : null
+  }
   const recordOf = (scene: Scene) => {
     const box = h('div', { class: 'ws-record' })
     const choice = h('div', { class: 'ws-delivery', role: 'radiogroup', 'aria-label': 'Who speaks in this scene' })
@@ -1575,15 +1652,19 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const record = shownRecord(scene)
     const plan = record?.content as SceneTreatmentV1 | undefined
     if (!plan || !record) {
+      // A take can come before any plan: it is listed all the same.
+      if (scene.delivery !== 'generated' && scene.delivery !== 'silent' && host.takesOf?.(scene.id).length) box.append(takesOf(scene))
       box.append(h('p', { class: 'review-muted', text: 'What to say, and where, comes with the plan.' }))
       return box
     }
     if (scene.delivery === 'generated' || scene.delivery === 'silent') {
       const guide = recordingGuide({ plan, script: host.script(scene.id), wordingPolicy: host.wordingPolicy(), delivery: scene.delivery })
+      const made = voiceNote(scene)
+      if (made) box.append(made)
       if (scene.delivery === 'generated' && guide.lines.length) box.append(h('h4', { class: 'ws-label', text: `The lines the voice speaks — plan r${record.revision}` }), h('ol', { class: 'review-guide-lines' }, ...guide.lines.map(line => h('li', { text: line.text }))))
       return box
     }
-    box.append(h('h4', { class: 'ws-label', text: `Recording guide — plan r${record.revision}` }), guideOf(scene, plan, record))
+    box.append(takesOf(scene), h('h4', { class: 'ws-label', text: `Recording guide — plan r${record.revision}` }), guideOf(scene, plan, record))
     return box
   }
 
@@ -1724,6 +1805,12 @@ export const createSceneReview = (host: SceneReviewHost) => {
   return {
     load,
     listen,
+    // A take's file would not play: its row says so (U5).
+    takeFailed: (recordingId: string) => {
+      if (failedTakes.has(recordingId)) return
+      failedTakes.add(recordingId)
+      host.refresh()
+    },
     // A planning record as last read, or null when it is not listed yet.
     recordOf: (id: string) => (overview?.records || []).find(record => record.id === id) || null,
     // The scene workspace's parts (U2 of the scene workspace plan): drawn
@@ -1769,7 +1856,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         if (scene && plan) pickMoment(scene, plan, momentId)
       },
       // What the scene's workspace shows, so an unchanged one is not redrawn.
-      signature: (sceneId: string) => JSON.stringify([signature(sceneId, true), progressKey(sceneId), [...stopping], host.stageMode?.(), savingDelivery, busy, overview?.brief.current?.id, overview?.brief.stale, briefStateOf().preparing, overview?.scenes.map(scene => [scene.id, scene.title, railStateOf(scene, host.takeOf(scene.id))])]),
+      signature: (sceneId: string) => JSON.stringify([signature(sceneId, true), progressKey(sceneId), [...stopping], host.takesOf?.(sceneId), [...failedTakes], host.stageMode?.(), savingDelivery, busy, overview?.brief.current?.id, overview?.brief.stale, briefStateOf().preparing, overview?.scenes.map(scene => [scene.id, scene.title, railStateOf(scene, host.takeOf(scene.id))])]),
       // Whether the scene has anything to produce yet (the Output tab).
       approved: (sceneId: string) => Boolean(workspaceScene(sceneId)?.view.reviewed),
       // A run's progress, for lines drawn outside the review.

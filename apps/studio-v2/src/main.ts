@@ -662,6 +662,11 @@ const saveState = $('#save-state')
 const renderButton = $('#render-video') as HTMLButtonElement
 const markdownDialog = $('#markdown-dialog') as HTMLDialogElement
 const cameraDialog = $('#camera-dialog') as HTMLDialogElement
+// Where the camera dialog lives in the page: recording in the scene
+// workspace (U5) opens the same dialog in place of its inspector, and it
+// comes back here when it closes.
+const cameraDialogHome = document.createComment('camera dialog')
+cameraDialog.before(cameraDialogHome)
 const cameraPreview = $('#camera-preview') as HTMLVideoElement
 const cameraPlaceholder = $('#camera-placeholder')
 const guideAudio = $('#guide-audio') as HTMLAudioElement
@@ -8064,7 +8069,7 @@ function refreshCameraAudioControls() {
     : 'Camera-only mode uses a generated guide voice. Only use a voice reference you own or are authorized to use.'
 }
 const openCamera = () => {
-  if (pendingTakeBlob) { cameraDialog.showModal(); void cameraPreview.play().catch(() => {}); return }
+  if (pendingTakeBlob) { showCameraDialog(); void cameraPreview.play().catch(() => {}); return }
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   if (!project.derivedFrom?.notebook) {
@@ -8078,6 +8083,11 @@ const openCamera = () => {
   if (project.explainerDelivery) {
     audioMode.value = project.explainerDelivery === 'human' ? 'microphone' : 'generated'
   }
+  // A video scene's own choice of who speaks comes first (U5): a scene you
+  // present records your microphone; a generated one starts from the guide.
+  const sceneDelivery = sceneReview?.stageOf(scene.id)?.scene.delivery
+  if (sceneDelivery === 'human') audioMode.value = 'microphone'
+  else if (sceneDelivery === 'generated') audioMode.value = 'generated'
   refreshCameraAudioControls()
   presenterScript.value = sceneScript(scene)
   // A pickup records only the lines asked for: the teleprompter shows them alone.
@@ -8089,7 +8099,7 @@ const openCamera = () => {
     audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
   if (pendingTakeBlob) {
-    cameraDialog.showModal()
+    showCameraDialog()
     return
   }
   resetTakeReview()
@@ -8097,7 +8107,19 @@ const openCamera = () => {
   setupRehearsal(scene)
   void renderPickupNotes(scene.id)
   if (pickupFor?.sceneId === scene.id) setCameraStatus(`Pickup: record only ${pickupFor.lines.length === 1 ? 'this line' : `these ${pickupFor.lines.length} lines`} — your take keeps the rest`, 'off')
-  cameraDialog.showModal()
+  showCameraDialog()
+}
+// In the scene workspace the dialog opens beside the stage, in place of the
+// inspector — the teleprompter and capture controls with the scene still in
+// view, nothing modal; elsewhere it is the modal it always was.
+const showCameraDialog = () => {
+  if (sceneWorkspace?.active()) {
+    sceneWorkspace.mountCapture(cameraDialog, recordingNodeId)
+    if (!cameraDialog.open) cameraDialog.show()
+    return
+  }
+  if (cameraDialog.parentNode !== cameraDialogHome.parentNode) cameraDialogHome.after(cameraDialog)
+  if (!cameraDialog.open) cameraDialog.showModal()
 }
 
 // Pickup notes (§3.7): when the last build's take alignment flagged beats,
@@ -8516,6 +8538,7 @@ const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?
   project.recordedBlocks[recording.blockId] = recording
   syncProject()
   void refreshPickupNotes()
+  refreshSceneReview()
 }
 
 const uploadRecording = async (blob: Blob) => {
@@ -8598,7 +8621,7 @@ startRecordingButton.addEventListener('click', async () => {
     // preview with its sound; only Keep uploads and archives it. The take's
     // length is fixed here — review and upload time never inflate it.
     stopCameraStream()
-    if (!cameraDialog.open) cameraDialog.showModal()
+    showCameraDialog()
     enterTakeReview(blob, Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)))
   }
   mediaRecorder.start(250)
@@ -17914,6 +17937,7 @@ function resumeRecordingIntent() {
     project.recordedBlockTakes ||= {}
     project.recordedBlockTakes[nodeId] = [...(project.recordedBlockTakes[nodeId] || []), take]
     selectRecordedTake(nodeId, take)
+    refreshSceneReview()
     return project.recordedBlocks?.[nodeId] || null
   },
   takeOn: (nodeId: string) => project.recordedBlocks?.[nodeId] || null,
@@ -18527,7 +18551,9 @@ const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) 
 const recordScene = (sceneId: string, pickupLines?: string[]) => {
   pickupFor = pickupLines?.length ? { sceneId, lines: pickupLines } : null
   selectNode(sceneId, false)
-  sceneStageAsideFor = sceneId
+  // The notebook steps its stage aside for the camera; the workspace keeps
+  // the scene on its stage while you record beside it.
+  if (!sceneWorkspace?.active()) sceneStageAsideFor = sceneId
   renderSceneStage()
   openCamera()
 }
@@ -18650,6 +18676,8 @@ const refreshSceneReview = () => {
   const focus = sceneReview?.focusKey() || ''
   editor.view.dispatch(editor.state.tr.setMeta(sceneReviewKey, 'refresh'))
   renderNextStep()
+  // The workspace is drawn from the same review.
+  sceneWorkspace?.render()
   window.requestAnimationFrame(() => {
     sceneReview?.restoreFocus(focus)
     positionInlinePreview()
@@ -18700,9 +18728,46 @@ sceneReview = createSceneReview({
   // one is planned; its progress and draft show in the Story tab.
   pinApproved: () => Boolean(sceneWorkspace?.active()),
   stageMode: () => stageShownMode,
-  // Recording and rehearsal work on the notebook's composition: the stage
-  // steps aside while the camera dialog is open.
+  // Recording and rehearsal work on the notebook's composition: the
+  // notebook's stage steps aside while the camera dialog is open; the
+  // workspace keeps the scene on its stage beside it (U5).
   record: sceneId => recordScene(sceneId),
+  // The scene's takes (U5): oldest first, the one the scene uses, whether
+  // each was spoken to the script as it is now.
+  takesOf: sceneId => {
+    const active = project.recordedBlocks?.[sceneId]
+    const script = String(findSlideLikeNode(sceneId)?.attrs.script || '')
+    return (project.recordedBlockTakes?.[sceneId] || []).map((take, index) => ({
+      recordingId: take.recordingId,
+      version: index + 1,
+      durationMs: take.durationMs,
+      recordedAt: take.recordedAt || '',
+      selected: take.recordingId === active?.recordingId,
+      pickup: Boolean(take.pickup),
+      lines: take.script?.lines?.length ?? null,
+      hasMedia: Boolean(take.videoUrl || take.cameraUrl),
+      current: take.script ? takeAgainst(take.script, script).current : null,
+    }))
+  },
+  selectTake: (sceneId, recordingId) => {
+    const take = (project.recordedBlockTakes?.[sceneId] || []).find(entry => entry.recordingId === recordingId && !entry.pickup)
+    if (!take) return
+    selectRecordedTake(sceneId, take)
+    // The review and the workspace list which take the scene uses.
+    refreshSceneReview()
+  },
+  // A take plays on the workspace's stage, over what the stage shows.
+  playTake: (sceneId, recordingId) => {
+    const takes = project.recordedBlockTakes?.[sceneId] || []
+    const index = takes.findIndex(entry => entry.recordingId === recordingId)
+    const take = takes[index]
+    if (!take || !sceneWorkspace) return
+    sceneWorkspace.playTake(sceneId, {
+      url: take.videoUrl || take.cameraUrl || '',
+      label: `Take v${index + 1}${take.pickup ? ' · pickup' : ''} · ${formatTime(take.durationMs / 1000)}`,
+      failed: () => sceneReview?.takeFailed(recordingId),
+    })
+  },
   recordPickup: (sceneId, lines) => recordScene(sceneId, lines),
   openWorkspace: (sceneId, revision, moment) => void planningWorkspace.open({ sceneId, revision, moment, tab: 'plan' }),
   selectMoment: (_sceneId, targets, at, producedAt) => {
@@ -18823,6 +18888,11 @@ onSceneSelected = nodeId => {
   sceneWorkspace?.render()
 }
 cameraDialog.addEventListener('close', () => {
+  // Recorded in the workspace: the dialog goes back, the inspector returns.
+  if (cameraDialog.parentNode !== cameraDialogHome.parentNode) {
+    cameraDialogHome.after(cameraDialog)
+    sceneWorkspace?.captureClosed()
+  }
   // A preview that finished during the recording is offered now.
   window.setTimeout(settlePreviewWaits, 0)
   if (!sceneStageAsideFor) return
@@ -18914,6 +18984,8 @@ sceneWorkspace = createSceneWorkspace({
     if (view === 'notebook' && reviewSelectedScene) window.requestAnimationFrame(() => revealBlock(reviewSelectedScene))
   },
   toast: showToast,
+  // Escape in the workspace closes the recording as its × does.
+  closeCapture: () => requestCameraClose(),
 })
 ;(window as unknown as { __workspace?: unknown }).__workspace = {
   show: (view: 'scenes' | 'notebook') => sceneWorkspace?.show(view),
