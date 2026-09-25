@@ -235,3 +235,7 @@ body.is-scene-workspace .notebook-document { display: none; }
    steps back, and notices clear the moments row. */
 body.is-scene-workspace #next-step.button.primary { border-color: #52525b; background: var(--chrome-3, #383b40); color: #fff; }
 body.is-scene-workspace .toast { bottom: 96px; }
+
+/* A finished preview the creator did not wait on: offered, the view kept. */
+.ws-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 6px 0 0; padding: 7px 8px 7px 12px; border-radius: 8px; background: #f5f3ff; color: #4c1d95; font-size: 12.5px; }
+.ws-offer .button { margin-left: auto; min-height: 30px; font-size: 12px; }

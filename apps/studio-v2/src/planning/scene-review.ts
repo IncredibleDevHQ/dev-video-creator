@@ -74,6 +74,10 @@ export type SceneReviewHost = {
   momentPicked?: (sceneId: string, momentId: string) => void
   // What the stage shows now, so the workspace's one action can follow it.
   stageMode?: () => 'reference' | 'schematic' | 'base' | 'preview' | 'output'
+  // A preview was asked for and is being made (U4): the creator waits for it.
+  previewRequested?: (sceneId: string, planRecordId: string, previewJobId: string, revision: number) => void
+  // The planning records were read again.
+  loaded?: () => void
 }
 
 type SceneUi = { revision: string; compare: string; moment: string; direction: string | null }
@@ -165,6 +169,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       shown = signature
       host.refresh()
     }
+    if (overview) host.loaded?.()
     if (active() || overview?.visualCast?.status === 'extracting') pollTimer = window.setTimeout(() => void load(), 4000)
   }
 
@@ -243,7 +248,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
       if (!projectId) return
       const { reused, record: previewRecord } = await previewScene(host.fetchJson, projectId, scene.id, { recordId: record.id, again })
       if (reused && previewRecord.status === 'ready') host.showPreview(scene.id)
-      else host.toast(`Sketching a rough preview of plan r${record.revision} — the harness builds it; nothing is produced`)
+      else {
+        host.previewRequested?.(scene.id, record.id, previewRecord.id, record.revision)
+        host.toast(`Sketching a rough preview of plan r${record.revision} — the harness builds it; nothing is produced`)
+      }
     })
   const approve = (record: PlanningRecord) =>
     run('approve the plan', async () => {
@@ -1597,6 +1605,8 @@ export const createSceneReview = (host: SceneReviewHost) => {
   return {
     load,
     listen,
+    // A planning record as last read, or null when it is not listed yet.
+    recordOf: (id: string) => (overview?.records || []).find(record => record.id === id) || null,
     // The scene workspace's parts (U2 of the scene workspace plan): drawn
     // from the same records, state and actions as the notebook's review.
     workspace: {

@@ -45,6 +45,10 @@ export type SceneWorkspaceHost = {
   aspect: () => number
   viewChanged: (view: WorkspaceView) => void
   toast: (message: string) => void
+  // A preview that finished while the creator looked elsewhere, chose another
+  // view or recorded (U4); and playing it.
+  notice: (sceneId: string) => { kind: 'offer' | 'elsewhere' | 'held'; revision: number } | null
+  playOffer: (sceneId: string) => void
 }
 
 const VIEW_KEY = 'incredible-studio-v2-video-view'
@@ -254,15 +258,25 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     focusButton.textContent = focusStage ? 'Show panels' : 'Focus stage'
     focusButton.setAttribute('aria-pressed', String(focusStage))
     focusButton.classList.toggle('is-on', focusStage)
-    // A preview or a production being made shows under the stage.
+    // A preview or a production being made shows under the stage; a finished
+    // preview the creator did not wait on is offered there.
     const building = parts?.activity && ['preview', 'production'].includes(parts.actions.activity?.kind || '') ? parts.activity : null
-    activity.replaceChildren(...(building ? [building] : []))
+    const notice = sceneId ? host.notice(sceneId) : null
+    let offer: HTMLElement | null = null
+    if (notice && notice.kind !== 'elsewhere') {
+      const play = h('button', { type: 'button', class: 'button secondary', 'data-focus': 'sw-play-offer', text: `Play the preview of r${notice.revision}` })
+      play.addEventListener('click', () => host.playOffer(sceneId))
+      offer = h('p', { class: 'ws-offer', role: 'status', 'data-offer': notice.kind }, h('strong', { text: `The preview of r${notice.revision} is ready.` }), notice.kind === 'held' ? ' It waits until you finish.' : ' Your view is kept.', ' ', play)
+    }
+    activity.replaceChildren(...[building, offer].filter((part): part is HTMLElement => Boolean(part)))
   }
 
   const renderRail = (sceneId: string) => {
     loadPrefs()
     const list = h('ol', { class: 'sw-scenes' })
-    for (const scene of review()?.scenes() || []) {
+    for (const listed of review()?.scenes() || []) {
+      const notice = host.notice(listed.id)
+      const scene = notice && listed.id !== sceneId ? { ...listed, state: { label: `Preview r${notice.revision} ready`, tone: 'new' as const } } : listed
       const selected = scene.id === sceneId
       const thumb = host.thumbnailOf(scene.id)
       const button = h('button', { type: 'button', class: `sw-scene${selected ? ' is-selected' : ''}`, 'data-focus': `sw-scene:${scene.id}`, 'data-scene': scene.id, 'aria-current': selected ? 'true' : undefined, title: `${scene.index + 1}. ${scene.title} — ${scene.state.label}` },
@@ -406,7 +420,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   })
 
   const signatureOf = (sceneId: string) =>
-    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen])
+    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen, sceneIds().map(id => host.notice(id))])
 
   const render = () => {
     if (root.hidden || !host.video()) return

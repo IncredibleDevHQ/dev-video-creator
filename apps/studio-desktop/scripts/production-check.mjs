@@ -355,8 +355,9 @@ try {
   check(Boolean(chips), `the scene's strip says it is produced and waits for review (${chips})`)
   await evaluate(`() => { document.getElementById('next-step').click(); return true }`)
   const stage = await waitFor(`() => {
-    const player = document.querySelector('#scene-stage-preview hyperframes-player')
-    if (!player || document.getElementById('scene-stage-preview').hidden) return null
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
+    // The produced scene once its player has taken the stage.
+    if (!player || document.getElementById('scene-stage-preview').hidden || player.getAttribute('src') !== ${JSON.stringify(`${produced1.ready.url}?e=0`)}) return null
     const output = document.querySelector('[data-stage-mode="output"]')
     return { src: player.getAttribute('src'), mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, enabled: !output.disabled, note: document.getElementById('scene-stage-note').textContent, moments: [...document.querySelectorAll('.scene-stage-moment')].map(button => button.textContent), clock: document.querySelector('.scene-stage-clock').textContent }
   }`, 30)
@@ -364,15 +365,15 @@ try {
   check(stage?.note === `Produced from plan r${plan1.revision}, on a generated voice · not accepted yet` && stage.moments.join('|') === 'Requests arrive|The limit bites|Load stays safe' && !/est\./.test(stage.clock), `the stage says what it plays, on its real clock, not an estimate (${stage?.note} · ${stage?.clock})`)
   const noSketch = await evaluate(`() => document.querySelector('.scene-review.is-expanded .review-no-preview')?.textContent || ''`)
   check(noSketch === `No preview of r${plan1.revision} yet — it was produced without one.`, `the review does not claim the stage shows the page while it plays the production (${noSketch})`)
-  const loaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return player.duration > 0 ? player.duration : null }`, 40)
+  const loaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return player.duration > 0 ? player.duration : null }`, 40)
   check(Math.abs((loaded || 0) - clock.duration) < 0.25, `the engine loaded it for its clock's length (${loaded}s of ${clock.duration}s)`)
   const transport = await waitFor(`() => { const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Play the produced scene' ? label : null }`, 20)
   check(Boolean(transport), `the transport names what it plays (${transport})`)
   await evaluate(`() => { document.querySelectorAll('.scene-stage-moment')[1].click(); return true }`)
-  const seeked = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return Math.abs(player.currentTime - ${clock.moments[1].start}) < 0.25 ? player.currentTime : null }`, 20)
+  const seeked = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${clock.moments[1].start}) < 0.25 ? player.currentTime : null }`, 20)
   check(seeked !== null, `its timeline seeks to a moment on the clock (${seeked}s)`)
   await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[2].click(); return true }`)
-  const followed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return Math.abs(player.currentTime - ${clock.moments[2].start}) < 0.25 ? player.currentTime : null }`, 20)
+  const followed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${clock.moments[2].start}) < 0.25 ? player.currentTime : null }`, 20)
   check(followed !== null, `selecting a moment in the review seeks the production (${followed}s)`)
   await shot('01-production-on-stage')
 

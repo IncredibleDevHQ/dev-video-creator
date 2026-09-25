@@ -372,7 +372,7 @@ try {
   check(approvedLayout?.outside.length === 0 && approvedLayout.clipped.length === 0 && JSON.stringify(tabs) === '["Story","Moment","Record","Output"]', `approved, the inspector's four tabs and the header fit (${JSON.stringify({ outside: approvedLayout?.outside, clipped: approvedLayout?.clipped, tabs })})`)
   const primaries = await evaluate(`() => { const green = element => getComputedStyle(element).backgroundColor === 'rgb(22, 163, 74)'; return { workspace: [...document.querySelectorAll('#scene-workspace .button.primary')].filter(element => element.getClientRects().length && green(element)).map(element => element.textContent), chrome: [...document.querySelectorAll('.topbar .button, .commandbar .button')].filter(element => element.getClientRects().length && green(element)).map(element => element.textContent.trim()) } }`)
   check(primaries.workspace.length === 1 && primaries.chrome.length === 0, `in the workspace the scene's action is the one primary; the notebook's next step steps back (${JSON.stringify(primaries)})`)
-  const runs = await api(`/api/planning/${encodeURIComponent(videoId)}`).then(response => response.body.records.filter(record => ['sketch', 'production'].includes(record.kind)).length)
+  const runs = await api(`/api/planning/${encodeURIComponent(videoId)}`).then(response => response.body.records.filter(record => ['preview', 'production'].includes(record.kind)).length)
   check(runs === 0, `approving started nothing: no preview, no production (${runs})`)
   // The recording guide, in the same workspace: the plan's lines first.
   await evaluate(`() => { [...document.querySelectorAll('#scene-workspace .sw-actions .button')].find(button => button.textContent === 'Record the scene').click(); return true }`)

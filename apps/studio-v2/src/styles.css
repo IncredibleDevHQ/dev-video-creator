@@ -2691,3 +2691,9 @@ body.canvas-is-open .scene-stage-bar .scene-stage-full { display: none; }
 .scene-stage-group-label { font: 700 9.5px/1.5 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; }
 body.canvas-is-open .scene-stage-reference-group { border-color: rgba(255,255,255,.24); }
 body.canvas-is-open .scene-stage-group-label { color: #d4d4d8; }
+
+/* U4: a composition loads unseen while the stage keeps what it showed. */
+.scene-stage-player.is-loading { opacity: 0; pointer-events: none; }
+.scene-stage-preview.is-only-loading { pointer-events: none; }
+.scene-stage-preview.is-only-loading .scene-stage-transport { display: none; }
+.scene-stage-retry { flex: none; padding: 2px 10px; border: 1px solid #fca5a5; border-radius: 999px; background: #fff; color: #991b1b; font: 600 11px/1.5 'InterBody', Inter, sans-serif; cursor: pointer; }

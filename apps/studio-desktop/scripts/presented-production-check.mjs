@@ -301,7 +301,7 @@ const loudness = (path, start, length) => {
 // An element of the stage's composition, seeked to a time, as its own
 // document reads it — once the composition there is loaded.
 const stageOpacityAt = (seconds, selector) => evaluate(`async () => {
-  const player = document.querySelector('#scene-stage-preview hyperframes-player')
+  const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
   for (let i = 0; i < 60; i++) {
     const doc = player.iframe && player.iframe.contentDocument
     const element = doc && doc.querySelector(${JSON.stringify(selector)})
@@ -394,7 +394,7 @@ try {
   // ——— The stage plays it ———
   await focusApp()
   await click('.scene-review.is-expanded [data-focus^="show-production:"]')
-  const stage = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return player && !document.getElementById('scene-stage-preview').hidden && player.duration > 0 ? { src: player.getAttribute('src'), note: document.getElementById('scene-stage-note').textContent, markers: document.querySelectorAll('.scene-stage-marker').length } : null }`, 40)
+  const stage = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return player && !document.getElementById('scene-stage-preview').hidden && player.duration > 0 ? { src: player.getAttribute('src'), note: document.getElementById('scene-stage-note').textContent, markers: document.querySelectorAll('.scene-stage-marker').length } : null }`, 40)
   check(/\?e=0$/.test(stage?.src || '') && /^Produced from plan r\d+, on your take · not accepted yet$/.test(stage.note) && stage.markers === 1, `the stage plays it on the take, with where the headline's timing can be nudged (${JSON.stringify(stage)})`)
   const m2 = clock.moments[1]
   const before = await stageOpacityAt(m2.start + 0.7, '#m2 .title')
@@ -407,7 +407,7 @@ try {
   await evaluate(`() => { const input = document.querySelector('.scene-review.is-expanded [data-focus$=":m2-title"][data-focus^="control:"]'); input.value = '${nudge}'; input.dispatchEvent(new Event('change')); return true }`)
   const edit1 = await until(async () => { const view = (await overview(videoId)).scenes[0].production.ready; return view.edits.revision === 1 ? view.edits : null }, 30)
   check(edit1?.values['m2-title'] === nudge, `the nudge is saved as edit 1 (${JSON.stringify(edit1?.values)})`)
-  const reloaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return /\\?e=1$/.test(player?.getAttribute('src') || '') && player.duration > 0 ? player.getAttribute('src') : null }`, 30)
+  const reloaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return /\\?e=1$/.test(player?.getAttribute('src') || '') && player.duration > 0 ? player.getAttribute('src') : null }`, 30)
   const after = await stageOpacityAt(m2.start + 0.7, '#m2 .title')
   check(Boolean(reloaded) && after === 0, `the stage plays the edit: the headline has not appeared ${0.7}s into the graphics (opacity ${after})`)
   await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="undo-edit:"]').click(); return true }`)

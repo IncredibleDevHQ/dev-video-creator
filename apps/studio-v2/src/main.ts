@@ -5,6 +5,9 @@ import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
 import { createSceneWorkspace } from './scene-workspace/workspace'
+import { createStageChoices, defaultStageView, handOffFor, type PreviewJob, type PreviewWait, type StageView } from './scene-workspace/preview-intent'
+import { isActiveStatus } from './planning/planning-records'
+import type { SceneProductionView } from './planning/planning-workspace'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
 import { bindingOf, landingFor, pageFingerprint, pageReadinessOf, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
@@ -18097,6 +18100,8 @@ let sceneStageFor = ''
 // to compare (F1 of the Perplexity review), or plays the plan's preview —
 // or the scene produced from its approved plan, on its real clock (P4).
 let sceneStageMode: 'reference' | 'schematic' | 'base' | 'preview' | 'output' = 'reference'
+// What the stage shows of it: a view with nothing to show falls back to the page.
+let stageShownMode: 'reference' | 'schematic' | 'base' | 'preview' | 'output' = 'reference'
 type StagePlayer = HTMLElement & { play(): void; pause(): void; seek(time: number): void; readonly currentTime: number; readonly duration: number }
 let stagePlayer: StagePlayer | null = null
 let stagePlayerUrl = ''
@@ -18107,6 +18112,19 @@ let stageClockEstimated = true
 // Where the stage goes once a newly loaded composition is ready (an edited
 // production reloads at the moment that was nudged).
 let stageSeekOnReady: number | null = null
+// The creator's stage choices per scene, and the previews they wait for
+// (U4 of the scene workspace plan): local preferences — the preview jobs
+// themselves are durable planning records.
+const stageChoices = createStageChoices(() => {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}, () => project.id)
+// Previews that finished while the creator looked elsewhere, recorded, or
+// chose another view: said, and one click away — never forced on the stage.
+const previewNotices = new Map<string, { kind: 'offer' | 'elsewhere' | 'held'; revision: number }>()
 // Whatever follows the stage's playback — the scene workspace's transport.
 const stageListeners = new Set<() => void>()
 const notifyStage = () => stageListeners.forEach(listener => listener())
@@ -18150,55 +18168,174 @@ const updateStageClock = () => {
   stageTrack.querySelectorAll<HTMLElement>('[data-stage-moment]').forEach(element => element.classList.toggle('is-current', element.dataset.stageMoment === current?.id))
   notifyStage()
 }
-const ensureStagePlayer = () => {
-  if (stagePlayer) return stagePlayer
-  stagePlayer = document.createElement('hyperframes-player') as StagePlayer
-  stagePlayer.setAttribute('width', '1920')
-  stagePlayer.setAttribute('height', '1080')
-  stagePlayer.className = 'scene-stage-player'
-  stagePlayer.addEventListener('timeupdate', updateStageClock)
-  // Once the runtime is ready the sketch starts at its first frame, with
-  // every clip in its timed state — not all of them at once.
-  stagePlayer.addEventListener('ready', () => {
-    const player = stagePlayer!
+// ——— The stage's players (U4 of the scene workspace plan) ———
+// A new composition loads in a second player, unseen, while the stage keeps
+// what it showed — the same scene's last composition, or its page. It takes
+// the stage once its runtime says it is ready; the one it replaces is paused
+// and removed, its listeners with it. One that does not load leaves the
+// stage as it was, says why, and can be tried again.
+type StageLoad = { player: StagePlayer; url: string; sceneId: string; adopt: () => void; timer: number }
+let stageLoading: StageLoad | null = null
+let stageLoadFailed: { url: string; message: string } | null = null
+// What the stage shows now, and whose composition its player holds.
+let stageShowing: 'reference' | 'player' = 'reference'
+let stagePlayerScene = ''
+let stageLoadingNote = ''
+const STAGE_LOAD_TIMEOUT = 25_000
+const createStagePlayer = () => {
+  const player = document.createElement('hyperframes-player') as StagePlayer
+  player.setAttribute('width', '1920')
+  player.setAttribute('height', '1080')
+  player.className = 'scene-stage-player'
+  const current = () => player === stagePlayer
+  player.addEventListener('timeupdate', () => {
+    if (current()) updateStageClock()
+  })
+  // Once the runtime is ready the composition starts paused, at its first
+  // frame or the moment asked for, every clip in its timed state.
+  player.addEventListener('ready', () => {
+    player.pause()
+    if (stageLoading?.player === player) takeStage(player)
+    if (!current()) return
     stagePlaying = false
     stageEnded = false
-    player.pause()
     player.seek(stageSeekOnReady ?? 0)
     stageSeekOnReady = null
     updateStageClock()
     syncStagePlay()
   })
-  stagePlayer.addEventListener('play', () => {
+  player.addEventListener('error', event => {
+    if (stageLoading?.player === player) failStageLoad(player, (event as unknown as CustomEvent<{ message?: string }>).detail?.message || 'its runtime did not start')
+  })
+  player.addEventListener('play', () => {
+    if (!current()) {
+      player.pause()
+      return
+    }
     stagePlaying = true
     stageEnded = false
     syncStagePlay()
   })
-  stagePlayer.addEventListener('pause', () => {
+  player.addEventListener('pause', () => {
+    if (!current()) return
     stagePlaying = false
     syncStagePlay()
     updateStageClock()
+    settlePreviewWaits()
   })
   // A clip's interval is half-open, so the exact end is blank: hold the
   // last frame instead, and offer a replay.
-  stagePlayer.addEventListener('ended', () => {
-    const player = stagePlayer!
+  player.addEventListener('ended', () => {
+    if (!current()) return
     stagePlaying = false
     stageEnded = true
     player.seek(Math.max(0, (player.duration || stagePreviewDuration) - 1 / 30))
     syncStagePlay()
     updateStageClock()
+    settlePreviewWaits()
   })
-  sceneStagePreview.prepend(stagePlayer)
-  return stagePlayer
+  return player
 }
+const cancelStageLoad = () => {
+  if (!stageLoading) return
+  window.clearTimeout(stageLoading.timer)
+  stageLoading.player.remove()
+  stageLoading = null
+}
+const startStageLoad = (url: string, sceneId: string, adopt: () => void) => {
+  cancelStageLoad()
+  const player = createStagePlayer()
+  player.classList.add('is-loading')
+  const timer = window.setTimeout(() => failStageLoad(player, `it did not start within ${STAGE_LOAD_TIMEOUT / 1000} seconds`), STAGE_LOAD_TIMEOUT)
+  stageLoading = { player, url, sceneId, adopt, timer }
+  player.setAttribute('src', url)
+  sceneStagePreview.prepend(player)
+}
+const takeStage = (player: StagePlayer) => {
+  const load = stageLoading
+  if (!load || load.player !== player) return
+  window.clearTimeout(load.timer)
+  stageLoading = null
+  stageLoadFailed = null
+  const previous = stagePlayer
+  stagePlayer = player
+  stagePlayerUrl = load.url
+  stagePlayerScene = load.sceneId
+  player.classList.remove('is-loading')
+  if (previous && previous !== player) {
+    previous.pause()
+    previous.remove()
+  }
+  load.adopt()
+  renderSceneStage()
+}
+const failStageLoad = (player: StagePlayer, message: string) => {
+  const load = stageLoading
+  if (!load || load.player !== player) return
+  window.clearTimeout(load.timer)
+  stageLoadFailed = { url: load.url, message }
+  player.remove()
+  stageLoading = null
+  renderSceneStage()
+}
+// What a composition brings to the stage's clock and its track of moments.
+const adoptPlayable = (playable: { summary: { moments: Array<{ id: string; title: string; start: number; end: number }>; duration: number } }, produced: SceneProductionView | null) => {
+  stagePreviewMoments = playable.summary.moments
+  stagePreviewDuration = playable.summary.duration || 1
+  stageClockEstimated = !produced
+  syncStagePlay()
+  stageTrack.replaceChildren(
+    ...playable.summary.moments.map(moment => {
+      const segment = Object.assign(document.createElement('button'), { type: 'button', textContent: moment.title, title: `${moment.title}: ${moment.start}–${moment.end}s${produced ? '' : ' (estimated)'}` })
+      segment.dataset.stageMoment = moment.id
+      segment.className = 'scene-stage-moment'
+      segment.style.left = `${(moment.start / stagePreviewDuration) * 100}%`
+      segment.style.width = `${((moment.end - moment.start) / stagePreviewDuration) * 100}%`
+      segment.addEventListener('click', () => {
+        if (!stagePlayer) return
+        stageEnded = false
+        stagePlayer.seek(moment.start)
+        updateStageClock()
+        syncStagePlay()
+      })
+      return segment
+    }),
+    // Where each nudgeable action starts, with the creator's edits.
+    ...(produced
+      ? produced.summary.controls.map(control => {
+          const moment = produced.summary.moments.find(entry => entry.id === control.moment)
+          const value = produced.edits?.values?.[control.id] ?? control.default
+          const marker = Object.assign(document.createElement('span'), { className: 'scene-stage-marker', title: `${control.label}: ${value}s into “${moment?.title || control.moment}”` })
+          marker.dataset.stageControl = control.id
+          marker.style.left = `${(((moment?.start ?? 0) + value) / stagePreviewDuration) * 100}%`
+          return marker
+        })
+      : []),
+    stageHead,
+  )
+  updateStageClock()
+}
+// A composition that did not load can be tried again, from the stage.
+const stageRetry = Object.assign(document.createElement('button'), { type: 'button', className: 'scene-stage-retry', textContent: 'Try again', hidden: true })
+stageRetry.addEventListener('click', () => {
+  stageLoadFailed = null
+  renderSceneStage()
+})
+sceneStageNote.after(stageRetry)
 sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
   button.addEventListener('click', () => {
     const mode = (['preview', 'base', 'output', 'schematic'] as const).find(value => value === button.dataset.stageMode) || 'reference'
+    // The creator's own choice for this scene — even of the view already
+    // shown: a preview finishing later is offered, not put in its place.
+    if (reviewSelectedScene) {
+      stageChoices.choose(reviewSelectedScene, mode)
+      if (mode === 'preview') previewNotices.delete(reviewSelectedScene)
+    }
     if (mode === sceneStageMode) return
     if (mode === 'reference') stagePlayer?.pause()
     sceneStageMode = mode
     renderSceneStage()
+    sceneWorkspace?.render()
   }),
 )
 // What the selected moment is about, kept across redraws of the stage.
@@ -18228,7 +18365,12 @@ const showSceneStage = (shown: boolean) => {
   else if (!was) (document.getElementById('player') as (HTMLElement & { pause?: () => void }) | null)?.pause?.()
 }
 const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
+  stageLoadingNote = ''
   drawSceneStage(next)
+  if (stageLoadingNote) {
+    sceneStageNote.textContent = stageLoadingNote
+    sceneStageNote.title = ''
+  }
   notifyStage()
 }
 const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
@@ -18256,10 +18398,17 @@ const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) 
   // A designed slide keeps the schematic it was designed from: both are the
   // page's references, the slide first.
   const schematicSvg = (node.attrs.pageOrigin as { kind?: string } | null | undefined)?.kind === 'designed' ? String((node.attrs.schematic as { svg?: string } | null | undefined)?.svg || '') : ''
-  if (sceneStageMode === 'schematic' && !schematicSvg) sceneStageMode = 'reference'
-  if (sceneStageMode === 'preview' && !ready) sceneStageMode = 'reference'
-  if (sceneStageMode === 'output' && !produced) sceneStageMode = 'reference'
-  if (sceneStageMode === 'base' && !newer) sceneStageMode = 'reference'
+  // What the stage can show of what is asked: a view with nothing to show
+  // falls back to the page. In the scene workspace the creator's choice is
+  // kept for when the revision on show has it again (U4); the notebook's
+  // stage takes the page.
+  let shownMode = sceneStageMode
+  if (shownMode === 'schematic' && !schematicSvg) shownMode = 'reference'
+  if (shownMode === 'preview' && !ready) shownMode = 'reference'
+  if (shownMode === 'output' && !produced) shownMode = 'reference'
+  if (shownMode === 'base' && !newer) shownMode = 'reference'
+  if (!sceneWorkspace?.active()) sceneStageMode = shownMode
+  stageShownMode = shownMode
   const pageLabel = reference?.kind === 'schematic' ? 'Schematic' : reference?.kind === 'designed' ? 'Designed slide' : 'Page reference'
   sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
     const mode = button.dataset.stageMode
@@ -18279,58 +18428,39 @@ const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) 
       button.title = schematicSvg ? 'The schematic this scene\'s designed slide was made from: its structure' : ''
     }
     if (mode === 'output') button.title = produced ? `The scene produced from approved plan r${produced.of.revision}, on its real clock` : stage.scene.view.reviewed ? 'Not produced yet: produce the scene from its approved plan in its review' : 'A scene is produced from its approved plan'
-    button.classList.toggle('is-active', mode === sceneStageMode)
-    button.setAttribute('aria-pressed', String(mode === sceneStageMode))
+    button.classList.toggle('is-active', mode === shownMode)
+    button.setAttribute('aria-pressed', String(mode === shownMode))
   })
-  const previewing = sceneStageMode === 'preview' && ready
-  const outputting = sceneStageMode === 'output' && produced
-  const playing = previewing || outputting
-  sceneStage.classList.toggle('is-preview', Boolean(playing))
-  sceneStageBar.classList.toggle('is-preview', Boolean(playing))
-  sceneStageReference.hidden = Boolean(playing)
-  sceneStagePreview.hidden = !playing
+  const previewing = shownMode === 'preview' && ready
+  const outputting = shownMode === 'output' && produced
   const playable = outputting ? produced : previewing ? ready : null
   // A production plays with the creator's edits: a new edit is a new load.
   const playableUrl = outputting && produced ? `${produced.url}?e=${produced.edits?.revision ?? 0}` : playable?.url || ''
-  if (playable) {
-    const player = ensureStagePlayer()
-    if (stagePlayerUrl !== playableUrl) {
-      stagePlayerUrl = playableUrl
-      player.setAttribute('src', playableUrl)
-      stagePreviewMoments = playable.summary.moments
-      stagePreviewDuration = playable.summary.duration || 1
-      stageClockEstimated = !outputting
-      syncStagePlay()
-      stageTrack.replaceChildren(
-        ...playable.summary.moments.map(moment => {
-          const segment = Object.assign(document.createElement('button'), { type: 'button', textContent: moment.title, title: `${moment.title}: ${moment.start}–${moment.end}s${outputting ? '' : ' (estimated)'}` })
-          segment.dataset.stageMoment = moment.id
-          segment.className = 'scene-stage-moment'
-          segment.style.left = `${(moment.start / stagePreviewDuration) * 100}%`
-          segment.style.width = `${((moment.end - moment.start) / stagePreviewDuration) * 100}%`
-          segment.addEventListener('click', () => {
-            stageEnded = false
-            player.seek(moment.start)
-            updateStageClock()
-            syncStagePlay()
-          })
-          return segment
-        }),
-        // Where each nudgeable action starts, with the creator's edits.
-        ...(outputting && produced
-          ? produced.summary.controls.map(control => {
-              const moment = produced.summary.moments.find(entry => entry.id === control.moment)
-              const value = produced.edits?.values?.[control.id] ?? control.default
-              const marker = Object.assign(document.createElement('span'), { className: 'scene-stage-marker', title: `${control.label}: ${value}s into “${moment?.title || control.moment}”` })
-              marker.dataset.stageControl = control.id
-              marker.style.left = `${(((moment?.start ?? 0) + value) / stagePreviewDuration) * 100}%`
-              return marker
-            })
-          : []),
-        stageHead,
-      )
-      updateStageClock()
-    }
+  const loaded = Boolean(playable && stagePlayer && stagePlayerUrl === playableUrl)
+  if (playable && !loaded && stageLoadFailed?.url !== playableUrl && stageLoading?.url !== playableUrl) {
+    const producedView = outputting && produced ? produced : null
+    startStageLoad(playableUrl, reviewSelectedScene, () => adoptPlayable(playable, producedView))
+  }
+  // Until it is ready the stage keeps what it showed: the same scene's last
+  // composition, else its page; the loading player renders unseen above it.
+  const keepPlayer = Boolean(playable && !loaded && stageShowing === 'player' && stagePlayerScene === reviewSelectedScene && stagePlayer)
+  const showPlayer = loaded || keepPlayer
+  sceneStage.classList.toggle('is-preview', showPlayer)
+  sceneStageBar.classList.toggle('is-preview', Boolean(playable))
+  sceneStageReference.hidden = showPlayer
+  sceneStagePreview.hidden = !(showPlayer || stageLoading)
+  sceneStagePreview.classList.toggle('is-only-loading', !showPlayer)
+  stageShowing = showPlayer ? 'player' : 'reference'
+  const failed = Boolean(playable && stageLoadFailed?.url === playableUrl)
+  stageRetry.hidden = !failed
+  if (playable && !loaded) {
+    const what = outputting ? 'the produced scene' : `the preview of r${ready!.of.revision}`
+    stageLoadingNote = failed
+      ? `${what[0].toUpperCase()}${what.slice(1)} did not load: ${stageLoadFailed!.message}. The stage keeps what it showed.`
+      : `Loading ${what}… the stage shows ${keepPlayer ? 'the last composition' : 'the page'} until it is ready.`
+    if (keepPlayer) return
+  }
+  if (playable && loaded) {
     if (outputting && produced) {
       // A production says what it plays on, and what it could not meet.
       const clock = produced.summary.clock === 'generated-voice' ? 'a generated voice' : produced.summary.clock === 'take' ? (produced.voice || 'Your take').replace(/^Your/, 'your') : 'silence, by choice'
@@ -18353,8 +18483,8 @@ const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) 
   }
   stagePlayer?.pause()
   // The page shown: the scene's own, its schematic, or the base's newer one to compare.
-  const comparing = sceneStageMode === 'base' && newer
-  const structure = sceneStageMode === 'schematic' && schematicSvg
+  const comparing = shownMode === 'base' && newer
+  const structure = shownMode === 'schematic' && schematicSvg
   const markup = comparing ? newer.svg : structure ? schematicSvg : String(node.attrs.svg || '')
   const shownKey = `${comparing ? 'base' : structure ? 'schematic' : 'scene'}:${reviewSelectedScene}:${comparing ? newer.revision : pageFingerprint(markup)}`
   if (sceneStageFor !== shownKey) {
@@ -18405,6 +18535,7 @@ const recordScene = (sceneId: string, pickupLines?: string[]) => {
 const showProducedScene = (sceneId: string, at?: number) => {
   if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
   sceneStageAsideFor = ''
+  stageChoices.choose(sceneId, 'output')
   sceneStageMode = 'output'
   const loaded = stagePlayerUrl
   stageSeekOnReady = at ?? null
@@ -18417,6 +18548,89 @@ const showProducedScene = (sceneId: string, at?: number) => {
     updateStageClock()
     syncStagePlay()
   }
+}
+// The stage plays the scene's preview of the revision on show, paused at
+// the chosen moment, else at its start — never with sound on its own.
+const playPreview = (sceneId: string) => {
+  sceneStageAsideFor = ''
+  stageChoices.choose(sceneId, 'preview')
+  previewNotices.delete(sceneId)
+  const stage = sceneReview?.stageOf(sceneId)
+  const at = stage?.preview?.summary.moments.find(moment => moment.id === stage.moment)?.start
+  sceneStageMode = 'preview'
+  stageSeekOnReady = at ?? null
+  renderSceneStage()
+  // Already loaded: it goes to the moment now.
+  if (stagePlayer && stage?.preview && stagePlayerUrl === stage.preview.url && !stageLoading) {
+    stageSeekOnReady = null
+    if (at !== undefined) {
+      stageEnded = false
+      stagePlayer.seek(at)
+      updateStageClock()
+      syncStagePlay()
+    }
+  }
+  sceneWorkspace?.render()
+}
+// What became of a preview job the creator is waiting for.
+const previewJobOf = (wait: PreviewWait): PreviewJob => {
+  const record = sceneReview?.recordOf(wait.previewJobId)
+  // Not listed yet: the planning records have not caught up with the request.
+  if (!record || isActiveStatus(record.status)) return { status: 'building' }
+  if (record.status === 'failed') return { status: 'failed' }
+  const ready = sceneReview?.stageOf(wait.sceneId)?.scene.preview?.byTreatment?.[wait.planRecordId]
+  return ready?.id === wait.previewJobId ? { status: 'ready', current: ready.current } : { status: 'gone' }
+}
+// Each preview the creator waits for, settled against where the creator is
+// now (the completion policy of the scene workspace plan, §6).
+const settlePreviewWaits = () => {
+  if (!sceneReview?.active()) return
+  let changed = false
+  for (const wait of stageChoices.waits()) {
+    const shown = reviewSelectedScene === wait.sceneId ? sceneReview.stageOf(wait.sceneId)?.record?.id || '' : ''
+    const decision = handOffFor(wait, previewJobOf(wait), {
+      projectId: project.id,
+      selectedScene: reviewSelectedScene,
+      shownPlanRecord: shown,
+      generation: stageChoices.generation(wait.sceneId),
+      busy: Boolean(sceneStageAsideFor) || cameraDialog.open || stagePlaying,
+    })
+    if (decision === 'wait') continue
+    changed = true
+    if (decision === 'elsewhere') {
+      previewNotices.set(wait.sceneId, { kind: 'elsewhere', revision: wait.revision })
+      continue
+    }
+    if (decision === 'hold') {
+      stageChoices.update(wait.sceneId, { interrupted: true })
+      previewNotices.set(wait.sceneId, { kind: 'held', revision: wait.revision })
+      continue
+    }
+    stageChoices.clear(wait.sceneId)
+    if (decision === 'drop') {
+      previewNotices.delete(wait.sceneId)
+      continue
+    }
+    if (decision === 'offer') {
+      previewNotices.set(wait.sceneId, { kind: 'offer', revision: wait.revision })
+      sceneWorkspace?.announce(`The preview of r${wait.revision} is ready. It waits under the stage.`)
+      continue
+    }
+    playPreview(wait.sceneId)
+    sceneWorkspace?.announce(`Preview r${wait.revision} ready`)
+  }
+  if (changed) sceneWorkspace?.render()
+}
+// In the scene workspace each scene opens on the view chosen for it, else on
+// what it has to play: its production, then its preview, then its page.
+const resolveStageView = (sceneId: string) => {
+  const stage = sceneReview?.stageOf(sceneId)
+  if (!stage) return
+  const chosen: StageView | null = stageChoices.chosen(sceneId)
+  sceneStageMode = chosen || defaultStageView({
+    produced: Boolean(stage.production && stage.record && stage.production.of.record === stage.record.id && stage.production.current),
+    preview: Boolean(stage.preview?.current),
+  })
 }
 // What the notebook plays for its scenes is saved at once: the notebook's
 // composition, and its export, follow it.
@@ -18481,7 +18695,7 @@ sceneReview = createSceneReview({
     sceneWorkspace?.render()
   },
   momentPicked: (sceneId, momentId) => sceneWorkspace?.momentPicked(sceneId, momentId),
-  stageMode: () => sceneStageMode,
+  stageMode: () => stageShownMode,
   // Recording and rehearsal work on the notebook's composition: the stage
   // steps aside while the camera dialog is open.
   record: sceneId => recordScene(sceneId),
@@ -18489,8 +18703,10 @@ sceneReview = createSceneReview({
   openWorkspace: (sceneId, revision, moment) => void planningWorkspace.open({ sceneId, revision, moment, tab: 'plan' }),
   selectMoment: (_sceneId, targets, at, producedAt) => {
     renderSceneStage(targets)
-    const to = sceneStageMode === 'preview' ? at : sceneStageMode === 'output' ? producedAt : null
-    if (to !== null && stagePlayer) {
+    const to = stageShownMode === 'preview' ? at : stageShownMode === 'output' ? producedAt : null
+    // A composition still loading goes to the moment once it is ready.
+    if (to !== null && stageLoading) stageSeekOnReady = to
+    else if (to !== null && stagePlayer) {
       stageEnded = false
       stagePlayer.seek(to)
       updateStageClock()
@@ -18499,16 +18715,23 @@ sceneReview = createSceneReview({
   },
   showPreview: sceneId => {
     if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
-    sceneStageAsideFor = ''
-    sceneStageMode = 'preview'
-    renderSceneStage()
+    playPreview(sceneId)
   },
   showBaseReference: sceneId => {
     if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
     sceneStageAsideFor = ''
+    stageChoices.choose(sceneId, 'base')
     sceneStageMode = 'base'
     renderSceneStage()
   },
+  // A preview asked for and still being made: the stage takes it when it is
+  // ready only if the creator is still waiting for it (U4).
+  previewRequested: (sceneId, planRecordId, previewJobId, revision) => {
+    previewNotices.delete(sceneId)
+    stageChoices.wait({ projectId: project.id, sceneId, planRecordId, previewJobId, revision, generation: stageChoices.generation(sceneId) })
+    sceneWorkspace?.render()
+  },
+  loaded: () => settlePreviewWaits(),
   showProduction: (sceneId, at) => showProducedScene(sceneId, at),
   // An accepted production is the scene's output: the notebook plays its
   // render in the scene's place, and the export renders it there (P4).
@@ -18589,11 +18812,15 @@ onSceneSelected = nodeId => {
   if (sceneSourceOpen !== next) sceneSourceOpen = ''
   if (sceneStageAsideFor !== next) sceneStageAsideFor = ''
   sceneStageTargets = null
+  if (next && sceneWorkspace?.active()) resolveStageView(next)
   refreshSceneReview()
   renderSceneStage()
+  settlePreviewWaits()
   sceneWorkspace?.render()
 }
 cameraDialog.addEventListener('close', () => {
+  // A preview that finished during the recording is offered now.
+  window.setTimeout(settlePreviewWaits, 0)
   if (!sceneStageAsideFor) return
   sceneStageAsideFor = ''
   renderSceneStage()
@@ -18617,7 +18844,7 @@ const moveNode = (parent: Element, node: Element, before: Node | null) => {
 const railThumbnails = new Map<string, { svg: string; url: string }>()
 const stagePlayback = {
   state: () => ({
-    playable: Boolean(stagePlayer) && !sceneStage.hidden && !sceneStagePreview.hidden,
+    playable: stageShowing === 'player' && Boolean(stagePlayer) && !sceneStage.hidden,
     playing: stagePlaying,
     ended: stageEnded,
     time: stagePlayer?.currentTime || 0,
@@ -18668,9 +18895,17 @@ sceneWorkspace = createSceneWorkspace({
   },
   playback: stagePlayback,
   aspect: () => (project.width || 1920) / (project.height || 1080),
+  notice: sceneId => previewNotices.get(sceneId) || null,
+  playOffer: sceneId => {
+    if (reviewSelectedScene !== sceneId) selectNode(sceneId, true)
+    playPreview(sceneId)
+  },
   viewChanged: view => {
+    if (view === 'scenes' && reviewSelectedScene) resolveStageView(reviewSelectedScene)
     // The notebook's review folds while the workspace shows, and opens again.
     refreshSceneReview()
+    renderSceneStage()
+    settlePreviewWaits()
     syncLayoutBands()
     if (view === 'notebook' && reviewSelectedScene) window.requestAnimationFrame(() => revealBlock(reviewSelectedScene))
   },

@@ -450,7 +450,7 @@ try {
   const shown = await waitFor(`() => { const button = ${inReview(sceneA.id, '[data-focus^="show-preview:"]')}; if (!button) return null; button.click(); return true }`, 60)
   check(Boolean(shown), 'the review offers the preview on the stage')
   const player = await waitFor(`() => {
-    const element = document.querySelector('#scene-stage-preview hyperframes-player')
+    const element = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
     if (!element || document.getElementById('scene-stage-preview').hidden) return null
     return element.duration > 0 ? { src: element.getAttribute('src'), duration: element.duration, mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, moments: [...document.querySelectorAll('.scene-stage-moment')].map(button => button.textContent) } : null
   }`, 60)
@@ -458,15 +458,15 @@ try {
   check(/^Rough sketch of plan r\d+/.test(player?.note || ''), `the stage labels it a rough sketch with its limitations (${player?.note})`)
   const middle = summary?.moments?.[Math.min(1, summary.moments.length - 1)]
   await evaluate(`() => { const buttons = document.querySelectorAll('.scene-stage-moment'); buttons[Math.min(1, buttons.length - 1)].click(); return true }`)
-  const seeked = await waitFor(`() => { const element = document.querySelector('#scene-stage-preview hyperframes-player'); return Math.abs(element.currentTime - ${middle?.start ?? 0}) < 0.3 ? element.currentTime : null }`, 20)
+  const seeked = await waitFor(`() => { const element = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(element.currentTime - ${middle?.start ?? 0}) < 0.3 ? element.currentTime : null }`, 20)
   check(seeked !== null, `the stage's timeline seeks the preview to a moment (${seeked}s)`)
   await sleep(2000)
   await shot('11-preview-on-stage')
   const last = summary?.moments?.[summary.moments.length - 1]
   await evaluate(`() => { const heads = document.querySelectorAll('.scene-review[data-review-scene="${sceneA.id}"] .review-moment-head'); heads[heads.length - 1].click(); return true }`)
-  const followed = await waitFor(`() => { const element = document.querySelector('#scene-stage-preview hyperframes-player'); return Math.abs(element.currentTime - ${last?.start ?? 0}) < 0.3 ? element.currentTime : null }`, 20)
+  const followed = await waitFor(`() => { const element = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(element.currentTime - ${last?.start ?? 0}) < 0.3 ? element.currentTime : null }`, 20)
   check(followed !== null, `selecting a moment in the review seeks the preview (${followed}s)`)
-  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); player.seek(${(last?.start ?? 0) + 1.5}); return true }`)
+  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.seek(${(last?.start ?? 0) + 1.5}); return true }`)
   await sleep(1500)
   await shot('12-preview-late-moment')
   const lanes = await evaluate(`() => [...document.querySelectorAll('.scene-review[data-review-scene="${sceneA.id}"] .review-timeline-row .review-timeline-label')].map(label => label.textContent)`)

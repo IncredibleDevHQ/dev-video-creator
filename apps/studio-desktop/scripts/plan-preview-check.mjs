@@ -336,30 +336,30 @@ try {
   const shown = await waitFor(`() => { const button = document.querySelector('.scene-review.is-expanded [data-focus^="show-preview:"]'); if (!button) return null; button.click(); return true }`, 60)
   check(Boolean(shown), 'the review offers the preview on the stage')
   const stage = await waitFor(`() => {
-    const player = document.querySelector('#scene-stage-preview hyperframes-player')
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
     if (!player || document.getElementById('scene-stage-preview').hidden) return null
     return { src: player.getAttribute('src'), mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, moments: [...document.querySelectorAll('.scene-stage-moment')].map(button => button.textContent) }
   }`, 30)
   check(stage?.src === ready.ready.url && stage.mode === 'Plan preview', `the stage plays the sketch through the Hyperframes player (${JSON.stringify(stage)})`)
   check(/^Rough sketch of plan r\d+ · timing estimated · presenter stand-in$/.test(stage?.note || ''), `the stage labels it a rough sketch and says what is provisional (${stage?.note})`)
-  const played = await waitFor(`async () => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return player.duration > 0 ? player.duration : null }`, 40)
+  const played = await waitFor(`async () => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return player.duration > 0 ? player.duration : null }`, 40)
   check(Math.abs((played || 0) - ready.ready.summary.duration) < 0.5, `the engine loaded the composition (${played}s)`)
   // One composition, one clock (R5): the sketch starts at its first frame,
   // paused, and nothing that works on the notebook's own composition shows.
   const start = await waitFor(`() => {
-    const player = document.querySelector('#scene-stage-preview hyperframes-player')
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
     const hidden = selector => { const element = document.querySelector(selector); return !element || element.hidden || getComputedStyle(element).display === 'none' }
     return player && player.currentTime === 0 ? { time: player.currentTime, button: document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'), shell: document.getElementById('player-shell').classList.contains('has-scene-stage'), legacy: ['#scene-timeline', '#canvas-recording-controls', '#live-camera-toggle', '#canvas-block-timeline'].every(hidden) } : null
   }`, 20)
   check(start?.time === 0 && start.button === 'Play the preview' && start.shell && start.legacy, `the sketch starts at its first frame, paused, with the notebook's own controls stepped back (${JSON.stringify(start)})`)
   await evaluate(`() => { document.querySelectorAll('.scene-stage-moment')[1].click(); return true }`)
-  const seeked = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return Math.abs(player.currentTime - ${ready.ready.summary.moments[1].start}) < 0.25 ? player.currentTime : null }`, 20)
+  const seeked = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${ready.ready.summary.moments[1].start}) < 0.25 ? player.currentTime : null }`, 20)
   check(seeked !== null, `the timeline seeks the preview to a moment (${seeked}s)`)
   await sleep(1500)
   await shot('01-preview-on-stage')
   // Selecting a moment in the review goes there too.
   await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[2].click(); return true }`)
-  const followed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); return Math.abs(player.currentTime - ${ready.ready.summary.moments[2].start}) < 0.25 ? player.currentTime : null }`, 20)
+  const followed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${ready.ready.summary.moments[2].start}) < 0.25 ? player.currentTime : null }`, 20)
   check(followed !== null, `selecting a moment in the review seeks the preview (${followed}s)`)
   // Full screen shows the same sketch, its one transport and its label —
   // not the notebook's dialogue timeline, recording bar or director.
@@ -370,26 +370,26 @@ try {
     const shown = selector => { const element = document.querySelector(selector); return Boolean(element) && !element.hidden && getComputedStyle(element).display !== 'none' }
     const bar = document.getElementById('scene-stage-bar').getBoundingClientRect()
     const stage = document.getElementById('scene-stage').getBoundingClientRect()
-    const player = document.querySelector('#scene-stage-preview hyperframes-player')
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
     const box = player.getBoundingClientRect()
     return { src: player?.getAttribute('src'), transport: shown('.scene-stage-transport'), label: shown('#scene-stage-note') && bar.top >= 0 && bar.top < 80, legacy: ['#scene-timeline', '#canvas-recording-controls', '.canvas-director', '#live-camera-toggle'].filter(shown), fills: Math.abs(box.width - stage.width) < 2 && box.height > stage.height * 0.8 }
   }`, 20)
   check(full?.src === ready.ready.url && full.transport && full.label && full.legacy.length === 0 && full.fills, `full screen keeps the one sketch, filling the stage, its transport and its label (${JSON.stringify(full)})`)
-  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); player.seek(${ready.ready.summary.moments[1].start} + 1.5); return true }`)
+  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.seek(${ready.ready.summary.moments[1].start} + 1.5); return true }`)
   await shot('01b-preview-full-screen')
   await evaluate(`() => { document.getElementById('canvas-fullscreen').click(); return true }`)
   // At its end the sketch holds its last frame and offers a replay.
-  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); player.seek(player.duration - 0.4); player.play(); return true }`)
+  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.seek(player.duration - 0.4); player.play(); return true }`)
   const ended = await waitFor(`() => {
-    const player = document.querySelector('#scene-stage-preview hyperframes-player')
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
     const button = document.querySelector('.scene-stage-transport > button')
     return button.getAttribute('aria-label') === 'Replay the preview from the start' ? { time: player.currentTime, duration: player.duration, text: button.textContent } : null
   }`, 20)
   check(Boolean(ended) && ended.time < ended.duration && ended.time > ended.duration - 0.2 && ended.text === '↻', `the end holds the last frame and offers a replay (${JSON.stringify(ended)})`)
   await evaluate(`() => { document.querySelector('.scene-stage-transport > button').click(); return true }`)
-  const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Pause the preview' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
+  const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Pause the preview' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
   check(replayed !== null, `replay starts again from the beginning (${replayed}s)`)
-  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player'); player.pause(); return true }`)
+  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.pause(); return true }`)
   // The decision first; the sketch in one line; its details and the moment
   // map on demand (R6, G3).
   const order = await evaluate(`() => {
