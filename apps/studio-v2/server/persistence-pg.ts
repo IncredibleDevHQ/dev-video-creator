@@ -576,6 +576,7 @@ const planningRecordFrom = (row: Record<string, unknown>): PlanningRecord => ({
   updatedAt: iso(row.updated_at) || '',
   reviewedAt: iso(row.reviewed_at),
   approval: (row.approval as PlanningRecord['approval']) ?? null,
+  progress: (row.progress as PlanningRecord['progress']) ?? null,
 })
 
 // The next revision for the subject is taken inside the insert; two
@@ -683,6 +684,7 @@ const PLANNING_COLUMNS: Record<keyof PlanningRecordPatch, { column: string; json
   error: { column: 'error', json: true },
   reviewedAt: { column: 'reviewed_at', time: true },
   approval: { column: 'approval', json: true },
+  progress: { column: 'progress', json: true },
 }
 
 export const updatePlanningRecord = async (

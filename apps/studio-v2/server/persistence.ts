@@ -192,7 +192,7 @@ type PersistenceBackend = {
 export type NewPlanningRecord = Pick<PlanningRecord, 'projectId' | 'kind' | 'subject' | 'fingerprint' | 'inputs' | 'direction'> &
   Partial<Pick<PlanningRecord, 'skillBundle' | 'workflow' | 'adapter' | 'model'>>
 export type PlanningRecordPatch = Partial<
-  Pick<PlanningRecord, 'status' | 'content' | 'report' | 'artifacts' | 'runId' | 'adapter' | 'model' | 'reportedModel' | 'workflow' | 'error' | 'reviewedAt' | 'approval'>
+  Pick<PlanningRecord, 'status' | 'content' | 'report' | 'artifacts' | 'runId' | 'adapter' | 'model' | 'reportedModel' | 'workflow' | 'error' | 'reviewedAt' | 'approval' | 'progress'>
 >
 export type PlanningInputRow = { projectId: string; subject: string; direction: string; delivery: string | null; updatedAt: string }
 

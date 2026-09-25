@@ -50,7 +50,7 @@ export const handleMcpMessage = async (
       serverInfo: { name: 'incredible-studio', version: '0.1.0' },
       instructions:
         context.scope === 'planning'
-          ? 'Studio planning tools for a planning-only run: plan_context, plan_assets, plan_submit_brief, plan_submit_sketch, plan_submit_treatment. Nothing here generates artwork, audio, recordings, compositions or exports.'
+          ? 'Studio planning tools for a planning-only run: plan_context, plan_assets, plan_publish_draft, plan_submit_brief, plan_submit_sketch, plan_submit_treatment. Nothing here generates artwork, audio, recordings, compositions or exports.'
           : context.scope === 'production'
             ? 'Studio production tools for one scene: produce_context, produce_assets, produce_submit_scene. Nothing here plans, approves, records, generates audio or artwork, or exports.'
           : 'Studio motion helpers for the motion-master skill: atomize, direct (the director: measured staging options per beat), measure, plan_beats, resolve, validate, receipt, frames. Paths are absolute; outputs are files under motion/ plus a compact JSON summary.',

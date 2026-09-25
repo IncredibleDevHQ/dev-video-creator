@@ -12,6 +12,7 @@
 // compare-and-swap. Reviewing a plan changes its status and nothing else: no
 // artwork, narration, recording, construction or export is started here.
 import type { Readable } from 'node:stream'
+import { validateDraft } from './plan-draft'
 import { sceneRevisionOf, type ProjectDocumentV1, type TiptapNode } from 'markdown-composition'
 import {
   claimPlanningRecord,
@@ -60,7 +61,7 @@ import {
   type BriefInputs,
   type PlanningRecord,
   type SkillBundleRef,
-  type TreatmentInputs, type ScenePlanningView } from '../src/planning/planning-records'
+  type TreatmentInputs, type ScenePlanningView, type ProgressMilestone, type PlanDraft, type PlanningStatus } from '../src/planning/planning-records'
 import type { CapabilityCatalog } from '../src/planning/capability-catalog'
 import { readFile, readdir } from 'node:fs/promises'
 import { join, relative } from 'node:path'
@@ -1090,6 +1091,7 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This preview already finished as ${record.status}`, 409)
   if (record.status === 'verifying') throw new PlanningError('A submission of this sketch is being played to check it; wait for its answer', 409)
   assertOwner(record, runId)
+  void noteProgress(record.id, { milestone: 'submitted' }, { runId })
   const treatment = await loadPlanningRecord(String(record.inputs.treatmentId || ''))
   if (!treatment?.content) throw new PlanningError('The plan this preview is of is gone', 409)
   const files = sketchFilesOf(raw)
@@ -1103,11 +1105,15 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   const lintProblems = (lint?.findings || []).filter(finding => finding.severity === 'error').map(finding => `hyperframes lint ${finding.code}: ${finding.message}${finding.fixHint ? ` — ${finding.fixHint}` : ''}`)
   const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
   const problems = [...report.problems, ...lintProblems]
-  if (problems.length || !report.manifest) return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
+  if (problems.length || !report.manifest) {
+    void noteProgress(record.id, { milestone: 'refused', count: problems.length || 1 }, { runId })
+    return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
+  }
   // Well formed is not working: the bundle plays in the pinned player
   // before it can read ready. While it plays, the record says so.
   const verifying = await updatePlanningRecord(record.id, { status: 'verifying' }, ['queued', 'running'], { runId: record.runId })
   if (!verifying) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
+  void noteProgress(record.id, { milestone: 'checking' }, { runId })
   let runtime: Awaited<ReturnType<typeof verifySketchRuntime>>
   try {
     runtime = await verifySketchRuntime(files, report.manifest, treatment.content as SceneTreatmentV1)
@@ -1122,6 +1128,7 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
     // Back to the run, to fix and submit again.
     const back = await updatePlanningRecord(record.id, { status: 'running' }, ['verifying'], { runId: record.runId })
     if (!back) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
+    void noteProgress(record.id, { milestone: 'refused', count: runtime.problems.length || 1 }, { runId })
     return { accepted: false as const, problems: runtime.problems, warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings] }
   }
   // The bundle is kept whole and immutable; the manifest is the record, and
@@ -1133,6 +1140,7 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...(moved.length ? [`While this sketch was made, ${moved.join('; ')} — it is kept, as out of date`] : [])]
   const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof }, artifacts }, ['verifying'], { runId: record.runId })
   if (!updated) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
+  void noteProgress(record.id, { milestone: 'accepted' }, { statuses: ['ready'] })
   return { accepted: true as const, status: 'ready', record: updated, warnings }
 }
 
@@ -1583,6 +1591,7 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This production already finished as ${record.status}`, 409)
   if (record.status === 'verifying') throw new PlanningError('A submission of this production is being played to check it; wait for its answer', 409)
   assertOwner(record, runId)
+  void noteProgress(record.id, { milestone: 'submitted' }, { runId })
   const approved = await loadPlanningRecord(String(record.inputs.treatmentId || ''))
   if (!approved?.content) throw new PlanningError('The approved plan this production is of is gone', 409)
   const clock = clockOfRecord(record)
@@ -1603,9 +1612,13 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   const lintProblems = (lint?.findings || []).filter(finding => finding.severity === 'error').map(finding => `hyperframes lint ${finding.code}: ${finding.message}${finding.fixHint ? ` — ${finding.fixHint}` : ''}`)
   const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
   const problems = [...report.problems, ...lintProblems]
-  if (problems.length || !report.manifest) return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
+  if (problems.length || !report.manifest) {
+    void noteProgress(record.id, { milestone: 'refused', count: problems.length || 1 }, { runId })
+    return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
+  }
   const verifying = await updatePlanningRecord(record.id, { status: 'verifying' }, ['queued', 'running'], { runId: record.runId })
   if (!verifying) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
+  void noteProgress(record.id, { milestone: 'checking' }, { runId })
   let runtime: Awaited<ReturnType<typeof verifySketchRuntime>>
   try {
     runtime = await verifySketchRuntime(files, asPlayable(report.manifest), approved.content as SceneTreatmentV1)
@@ -1619,6 +1632,7 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   if (runtime.problems.length || !runtime.proof || sound.length) {
     const back = await updatePlanningRecord(record.id, { status: 'running' }, ['verifying'], { runId: record.runId })
     if (!back) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
+    void noteProgress(record.id, { milestone: 'refused', count: runtime.problems.length + sound.length || 1 }, { runId })
     return { accepted: false as const, problems: [...runtime.problems, ...sound], warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings] }
   }
   const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files: own }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-production', extension: '.json' })
@@ -1631,6 +1645,7 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof }, artifacts }, ['verifying'], { runId: record.runId })
   if (!updated) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
   await carryEdits(updated).catch(error => console.warn('carrying edits to a new production failed', updated.id, error))
+  void noteProgress(record.id, { milestone: 'accepted' }, { statuses: ['ready'] })
   return { accepted: true as const, status: 'ready', record: updated, warnings }
 }
 
@@ -1856,12 +1871,60 @@ const productionOf = (records: PlanningRecord[], sceneId: string, freshness: (pr
   }
 }
 
+// ——— A run's progress, as the product confirmed it (U3 of the scene workspace plan) ———
+// Milestones are what the product itself saw — the run claiming its record,
+// reading its packet, publishing a checked draft, handing its result in, the
+// check's answer — never a guess from what the harness says it reads. One
+// update at a time per record, only while it is active (or in the statuses
+// given), and only from the run that owns it; a bounded list on the record.
+const PROGRESS_EVENTS = 40
+const progressQueues = new Map<string, Promise<unknown>>()
+type Milestone = { milestone: ProgressMilestone; section?: 'explanation' | 'moments'; count?: number; note?: string }
+export const noteProgress = (recordId: string, event: Milestone, options: { runId?: string; draft?: Omit<PlanDraft, 'at'>; statuses?: PlanningStatus[] } = {}) => {
+  const next = (progressQueues.get(recordId) || Promise.resolve())
+    .catch(() => null)
+    .then(async () => {
+      const record = await loadPlanningRecord(recordId)
+      const statuses = options.statuses || [...ACTIVE_STATUSES]
+      if (!record || !statuses.includes(record.status)) return null
+      if (options.runId && record.runId && record.runId !== options.runId) return null
+      const at = new Date().toISOString()
+      const progress = record.progress || { events: [], draft: null }
+      const seq = (progress.events[progress.events.length - 1]?.seq ?? 0) + 1
+      const events = [...progress.events, { seq, at, ...event }].slice(-PROGRESS_EVENTS)
+      const draft = options.draft ? { ...(progress.draft || {}), ...options.draft, at } : progress.draft
+      return updatePlanningRecord(record.id, { progress: { events, draft } }, statuses)
+    })
+  progressQueues.set(recordId, next)
+  void next.finally(() => {
+    if (progressQueues.get(recordId) === next) progressQueues.delete(recordId)
+  })
+  return next
+}
+
+// A section of a scene plan, published by its run while it works: checked
+// here, then shown to the creator as a draft still being checked.
+export const publishDraft = async (recordId: string, runId: string, section: unknown, input: Record<string, unknown>) => {
+  const record = await loadPlanningRecord(recordId)
+  if (!record || record.kind !== 'treatment') throw new PlanningError('Scene plan record not found', 404)
+  if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This scene plan already finished as ${record.status}`, 409)
+  assertOwner(record, runId)
+  const checked = validateDraft(section, input)
+  if (!checked.ok) return { accepted: false as const, problems: checked.problems }
+  const count = 'moments' in checked.draft ? checked.draft.moments.length : undefined
+  await noteProgress(record.id, { milestone: 'draft', section: checked.section, ...(count !== undefined ? { count } : {}) }, { runId, draft: checked.draft })
+  return { accepted: true as const }
+}
+
 // The run that serves a record claims it as it starts: queued → running,
 // once. The same run asking again (a retry after a lost response) gets the
 // record; any other run is refused, so a record never changes owner.
 export const attachRun = async (recordId: string, run: { runId: string; adapter?: string; model?: string }) => {
   const claimed = await updatePlanningRecord(recordId, { status: 'running', runId: run.runId, adapter: run.adapter || null, model: run.model || null }, ['queued'], { runId: null })
-  if (claimed) return claimed
+  if (claimed) {
+    void noteProgress(recordId, { milestone: 'started' }, { runId: run.runId })
+    return claimed
+  }
   const record = await loadPlanningRecord(recordId)
   if (!record) throw new PlanningError('Planning record not found', 404)
   if (record.status === 'running' && record.runId === run.runId) return record
@@ -1918,9 +1981,13 @@ export const submitBrief = async (recordId: string, raw: unknown, runId?: string
   if (!record || record.kind !== 'brief') throw new PlanningError('Brief record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This brief already finished as ${record.status}`, 409)
   assertOwner(record, runId)
+  void noteProgress(record.id, { milestone: 'submitted' }, { runId })
   const { planning, context } = await pinnedBriefContext(record)
   const report = validateBrief(raw, context)
-  if (!report.ok) return { accepted: false as const, problems: report.problems, warnings: report.warnings }
+  if (!report.ok) {
+    void noteProgress(record.id, { milestone: 'refused', count: report.problems.length }, { runId })
+    return { accepted: false as const, problems: report.problems, warnings: report.warnings }
+  }
   const records = await listPlanningRecords(record.projectId)
   const landing = landingFor(record, records, briefFreshness(record, briefInputsOf(planning)))
   const artifacts = await storeResult(record, {
@@ -1943,6 +2010,7 @@ export const submitBrief = async (recordId: string, raw: unknown, runId?: string
     { runId: record.runId },
   )
   if (!updated) throw new PlanningError('This brief finished elsewhere while it was being checked', 409)
+  void noteProgress(record.id, { milestone: 'accepted' }, { statuses: [status] })
   return { accepted: true as const, status, record: updated, warnings: report.warnings, ...(landing.lands ? {} : { note: landing.reason }) }
 }
 
@@ -1963,6 +2031,7 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
   if (!record || record.kind !== 'treatment') throw new PlanningError('Scene plan record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This scene plan already finished as ${record.status}`, 409)
   assertOwner(record, runId)
+  void noteProgress(record.id, { milestone: 'submitted' }, { runId })
   const planning = await loadVideoPlanning(record.projectId)
   const briefRecord = await loadPlanningRecord(String(record.inputs.briefId || ''))
   if (!briefRecord?.content) throw new PlanningError('The brief this plan was made from is gone', 409)
@@ -1983,7 +2052,10 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
     ...(await pageObjectsOf(planning, scene.originScenes)),
   }
   const report = validateTreatment(raw, context)
-  if (!report.ok) return { accepted: false as const, problems: report.problems, warnings: report.warnings }
+  if (!report.ok) {
+    void noteProgress(record.id, { milestone: 'refused', count: report.problems.length }, { runId })
+    return { accepted: false as const, problems: report.problems, warnings: report.warnings }
+  }
   const records = await listPlanningRecords(record.projectId)
   const landing = landingFor(record, records, freshnessOf(planning, records).treatment(record))
   const artifacts = await storeResult(record, { 'treatment.json': JSON.stringify(report.treatment, null, 2) })
@@ -2001,6 +2073,7 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
     { runId: record.runId },
   )
   if (!updated) throw new PlanningError('This scene plan finished elsewhere while it was being checked', 409)
+  void noteProgress(record.id, { milestone: 'accepted' }, { statuses: [status] })
   return { accepted: true as const, status, record: updated, warnings: report.warnings, constructionRisks: report.constructionRisks, ...(landing.lands ? {} : { note: landing.reason }) }
 }
 
@@ -2034,6 +2107,7 @@ export const reviewTreatment = async (recordId: string) => {
 export const approveTreatment = reviewTreatment
 
 export const failRecord = async (recordId: string, error: NonNullable<PlanningRecord['error']>) => {
+  await noteProgress(recordId, { milestone: /^Stopped|was cancelled/.test(error.message) ? 'stopped' : 'failed', note: error.message.slice(0, 200) })
   const updated = await updatePlanningRecord(recordId, { status: 'failed', error }, [...ACTIVE_STATUSES])
   return updated
 }

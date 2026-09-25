@@ -18695,6 +18695,10 @@ sceneReview = createSceneReview({
     sceneWorkspace?.render()
   },
   momentPicked: (sceneId, momentId) => sceneWorkspace?.momentPicked(sceneId, momentId),
+  openAiSettings: () => aiSettingsButton.click(),
+  // In the scene workspace the approved plan stays on show while a newer
+  // one is planned; its progress and draft show in the Story tab.
+  pinApproved: () => Boolean(sceneWorkspace?.active()),
   stageMode: () => stageShownMode,
   // Recording and rehearsal work on the notebook's composition: the stage
   // steps aside while the camera dialog is open.

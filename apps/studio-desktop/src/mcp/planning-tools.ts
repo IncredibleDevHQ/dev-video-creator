@@ -59,9 +59,13 @@ const spendSubmission = async (projectDir: string) => {
   return used + 1
 }
 
-const contextTool = async (args: Json) => {
+const contextTool = async (args: Json, context: Context) => {
   const run = await runOf(args)
   const sketch = run.route === 'Sketch Scene'
+  // The product notes that the run read its packet and contract — a
+  // milestone the creator sees (U3 of the scene workspace plan). Its answer
+  // never holds the run up.
+  void call(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/progress`, { runId: run.runId, milestone: 'context' }).catch(() => undefined)
   return {
     route: run.route,
     record: run.recordId,
@@ -72,7 +76,21 @@ const contextTool = async (args: Json) => {
     boundary: sketch
       ? 'A rough preview of one plan only: no paid artwork, no narration, no recording, no approval, no production or export. Stop when the sketch is accepted.'
       : 'Planning only: no artwork, narration, recording, composition, finish or export. Stop when the submission is accepted.',
+    // A scene plan's settled sections, shown to the creator while the run
+    // works — a draft still being checked; the submitted plan is what counts.
+    ...(run.route === 'Plan Scene'
+      ? { drafts: 'While you plan, publish what is settled with plan_publish_draft: first section "explanation" with the question and the takeaway, as soon as they are clear; then section "moments" with the moments planned so far, each {id, title, summary}, again whenever they change. Use the ids your treatment will use. The creator sees them as a draft still being checked; plan_submit_treatment is still what hands the plan in.' }
+      : {}),
   }
+}
+
+// A settled section of a scene plan, published while the run works.
+const publishDraftTool = async (args: Json, context: Context) => {
+  const run = await runOf(args)
+  if (run.route !== 'Plan Scene') throw new Error('Drafts are for a scene plan: this run has none to publish')
+  const { projectDir: _projectDir, ...section } = args
+  const answer = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/draft`, { ...section, runId: run.runId })
+  return answer.body
 }
 
 // The sketch folder as the product receives it: text as text, images and
@@ -115,9 +133,12 @@ const submitSketch = async (args: Json, context: Context) => {
 }
 
 // ——— Production (P4): a scene produced from its approved plan ———
-const productionContextTool = async (args: Json) => {
+const productionContextTool = async (args: Json, context: Context) => {
   const run = await runOf(args)
   if (run.route !== 'Produce Scene') throw new Error(`This run is for route ${run.route}; it is not a production run`)
+  // As for a plan: the product notes that the run read its packet, and the
+  // creator sees the build begin (U3). Its answer never holds the run up.
+  void call(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/progress`, { runId: run.runId, milestone: 'context' }).catch(() => undefined)
   return {
     route: run.route,
     record: run.recordId,
@@ -206,6 +227,22 @@ export const PLANNING_TOOLS: Array<{
 }> = [
   { name: 'plan_context', description: 'Read this planning run\'s route, its packet files, the file to write and the contract the product checks.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: contextTool },
   { name: 'plan_assets', description: 'List the accepted, reusable objects in the asset library — what each represents and its named parts. Read-only.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: assetsTool },
+  {
+    name: 'plan_publish_draft',
+    description: 'Publish a settled section of this scene plan while you work, before handing the plan in: section "explanation" with question and takeaway, or section "moments" with the moments planned so far, each {id, title, summary}. The creator sees it as a draft still being checked. It never replaces plan_submit_treatment.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ...common,
+        section: { type: 'string', enum: ['explanation', 'moments'] },
+        question: { type: 'string' },
+        takeaway: { type: 'string' },
+        moments: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' }, summary: { type: 'string' } }, required: ['id', 'title'] } },
+      },
+      required: ['projectDir', 'section'],
+    },
+    call: publishDraftTool,
+  },
   { name: 'plan_submit_brief', description: 'Hand planning/brief.json to the product. It is checked against the pinned inputs; the answer is accepted, or the problems to fix.', inputSchema: { type: 'object', properties: { ...common, path: { type: 'string' } }, required: ['projectDir'] }, call: submit('brief') },
   { name: 'plan_submit_sketch', description: 'Hand the sketch/ folder (index.html, manifest.json, assets) — a rough, seekable preview of one scene plan — to the product. It is checked against the plan and the pinned runtime; the answer is accepted, or the problems to fix.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: submitSketch },
   { name: 'plan_submit_treatment', description: 'Hand planning/treatment.json (this scene\'s creative plan) to the product. It is checked against the brief and the pinned catalog; the answer is accepted, or the problems to fix.', inputSchema: { type: 'object', properties: { ...common, path: { type: 'string' } }, required: ['projectDir'] }, call: submit('treatment') },

@@ -239,3 +239,56 @@ body.is-scene-workspace .toast { bottom: 96px; }
 /* A finished preview the creator did not wait on: offered, the view kept. */
 .ws-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 6px 0 0; padding: 7px 8px 7px 12px; border-radius: 8px; background: #f5f3ff; color: #4c1d95; font-size: 12.5px; }
 .ws-offer .button { margin-left: auto; min-height: 30px; font-size: 12px; }
+
+/* Useful progress (U3): a run in its named phases — done, now, to come —
+   what is happening, for how long and by whom; the harness's own last word
+   kept small. Under the stage the phases run in one line. */
+.ws-progress { display: grid; gap: 6px; margin: 0 0 14px; }
+.ws-phases { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.ws-phases li { display: grid; grid-template-columns: 14px minmax(0, 1fr); align-items: center; gap: 8px; color: #a1a1aa; font: 600 12.5px/1.35 'InterBody', Inter, sans-serif; }
+.ws-phase-mark { width: 10px; height: 10px; margin: 0 2px; border: 1.5px solid #d4d4d8; border-radius: 50%; background: #fff; }
+.ws-phases li[data-state="done"] { color: #3f3f46; }
+.ws-phases li[data-state="done"] .ws-phase-mark { border-color: var(--sw-accent); background: var(--sw-accent); }
+.ws-phases li[data-state="active"] { color: #1e3a8a; }
+.ws-phases li[data-state="active"] .ws-phase-mark { border-color: #3b82f6; background: #bfdbfe; box-shadow: 0 0 0 3px rgba(59, 130, 246, .18); animation: sw-pulse 1.6s ease-in-out infinite; }
+.ws-phases li[data-state="failed"] { color: #b91c1c; }
+.ws-phases li[data-state="failed"] .ws-phase-mark { border-color: #dc2626; background: #dc2626; }
+.ws-progress-now { margin: 2px 0 0; color: var(--sw-ink); font-size: 13px; }
+.ws-progress-meta { margin: 0; color: var(--sw-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ws-progress-last { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #a1a1aa; font-size: 11.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.ws-progress-last:empty { display: none; }
+.ws-progress.is-compact { gap: 4px; margin: 6px 0 0; padding: 0 12px; }
+.ws-progress.is-compact .ws-phases { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.ws-progress.is-compact .ws-phases li { display: inline-flex; gap: 6px; font-size: 11.5px; }
+.ws-progress.is-compact .ws-phase-mark { width: 8px; height: 8px; margin: 0; }
+.ws-progress.is-compact .ws-progress-now { margin: 0; font-size: 12px; color: #3f3f46; }
+.ws-activity-phase { color: #3b5b8c; }
+@media (prefers-reduced-motion: reduce) { .ws-phases li[data-state="active"] .ws-phase-mark { animation: none; } }
+
+/* Sections a run published before handing its plan in: shown as a draft,
+   never as the plan. */
+.ws-draft { display: grid; gap: 6px; margin: 0 0 14px; padding: 10px 12px; border: 1px dashed #c8c8ce; border-radius: 10px; background: #fafafa; }
+.ws-draft-label { margin: 0; color: #a16207; font: 700 10.5px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.ws-draft-question { margin: 0; color: #3f3f46; font: 650 15px/1.4 'Gilroy', 'InterBody', Inter, sans-serif; text-wrap: balance; }
+.ws-draft-takeaway { margin: 0; color: #52525b; }
+.ws-draft-moments { margin: 0; padding-left: 20px; color: #52525b; font-size: 12.5px; }
+.ws-draft-moments li + li { margin-top: 2px; }
+.sw-moments-draft { flex: none; align-self: center; padding: 0 4px; color: #a16207; font: 700 10px/1.2 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.sw-moment.is-draft { border-style: dashed; background: #fafafa; color: #52525b; cursor: default; }
+.sw-moment.is-draft:hover { border-color: #d4d4d8; }
+
+/* A run that ended without a plan: what happened, the provider's words, the
+   ways on. A stop the creator asked for is not an error. */
+.ws-failure { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px; border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; color: #7f1d1d; font-size: 13px; }
+.ws-failure p { margin: 0; }
+.ws-failure[data-failure="stopped"] { border-color: var(--sw-line); background: var(--sw-soft); color: #3f3f46; }
+.ws-failure-provider { font-size: 12px; overflow-wrap: anywhere; }
+.ws-failure-recovery { margin: 0; padding-left: 18px; font-size: 12.5px; }
+.ws-failure .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* A preview that could not be built, under the stage, with building it again. */
+.ws-build-failure { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 6px 0 0; padding: 8px 8px 8px 12px; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #7f1d1d; font-size: 12.5px; line-height: 1.45; }
+.ws-build-failure p { flex: 1 1 320px; margin: 0; }
+.ws-build-failure .ws-failure-provider { flex-basis: 100%; order: 2; }
+.ws-build-failure .button { flex: none; min-height: 30px; font-size: 12px; }
+.ws-build-failure[data-failure="stopped"] { border-color: var(--sw-line); background: var(--sw-soft); color: #3f3f46; }

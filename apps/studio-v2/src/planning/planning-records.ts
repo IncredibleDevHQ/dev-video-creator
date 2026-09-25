@@ -66,7 +66,22 @@ export type PlanningRecord = {
   reviewedAt: string | null
   // Set when the creator approves the plan (P2): what it was approved with.
   approval: PlanApproval | null
+  // How the run went as the product saw it (U3 of the scene workspace plan).
+  progress?: PlanningProgress | null
 }
+
+// Where a run stands, as the product confirmed it — never guessed from what
+// the harness says it is reading: the run claimed its record (started), read
+// its packet and contract (context), published a section of its plan as a
+// draft (draft), handed its result in (submitted), which the product refused
+// with problems to fix (refused) or accepted; a sketch or production is then
+// played in the pinned player (checking). A stop or a failure ends it.
+export type ProgressMilestone = 'started' | 'context' | 'draft' | 'submitted' | 'refused' | 'checking' | 'accepted' | 'stopped' | 'failed'
+export type ProgressEvent = { seq: number; at: string; milestone: ProgressMilestone; section?: 'explanation' | 'moments'; count?: number; note?: string }
+// A scene plan's sections as its run published them: complete, checked plain
+// text, shown as a draft still being checked until the plan is accepted.
+export type PlanDraft = { question?: string; takeaway?: string; moments?: Array<{ id: string; title: string; summary: string }>; at: string }
+export type PlanningProgress = { events: ProgressEvent[]; draft: PlanDraft | null }
 
 // The pin an approval records: the plan's own inputs and what they came
 // from. Approval is a decision about direction; it starts nothing.

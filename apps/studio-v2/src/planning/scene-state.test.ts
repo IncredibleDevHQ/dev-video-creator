@@ -52,7 +52,8 @@ describe('the one action for the revision on show', () => {
     expect(none.secondary.map(action => action.label)).toEqual(['Approve r2 without a preview', 'Revise the plan'])
     const building = act({ scene: scene(view, { preview: preview('t2', 'verifying') }), shown: r2 })
     expect(building).toMatchObject({ primary: null, activity: { kind: 'preview', label: 'Checking the preview of r2', checking: true } })
-    expect(building.secondary[0]).toMatchObject({ kind: 'approve-unpreviewed' })
+    expect(building.secondary.map(action => action.kind)).toEqual(['stop', 'approve-unpreviewed', 'revise'])
+    expect(building.secondary[0]).toMatchObject({ label: 'Stop the preview', recordId: 'p-t2' })
     const ready = act({ scene: scene(view, { preview: preview('t2', 'ready', { current: true }) }), shown: r2 })
     expect(ready.primary).toMatchObject({ kind: 'approve', label: 'Approve r2' })
     expect(ready.secondary.map(action => action.kind)).toEqual(['show-preview', 'revise'])
@@ -81,7 +82,9 @@ describe('the one action for the revision on show', () => {
   it('produces, then reviews the output and accepts it where it plays', () => {
     const approved = { state: 'reviewed' as const, latest: r1, current: r1, reviewed: r1 }
     expect(act({ scene: scene(approved), shown: r1 }).primary).toMatchObject({ kind: 'produce', label: 'Produce the scene' })
-    expect(act({ scene: scene(approved, { production: production('running') }), shown: r1 })).toMatchObject({ primary: null, activity: { kind: 'production', label: 'Producing the scene from r1' } })
+    const producing = act({ scene: scene(approved, { production: production('running') }), shown: r1 })
+    expect(producing).toMatchObject({ primary: null, activity: { kind: 'production', label: 'Producing the scene from r1' } })
+    expect(producing.secondary[0]).toMatchObject({ kind: 'stop', label: 'Stop producing', recordId: 'x-latest' })
     expect(act({ scene: scene(approved, { production: production('ready', {}) }), shown: r1 }).primary).toMatchObject({ kind: 'review-output', recordId: 'x-ready' })
     expect(act({ scene: scene(approved, { production: production('ready', {}) }), shown: r1, stage: 'output' }).primary).toMatchObject({ kind: 'accept', label: 'Accept as the scene\'s output' })
     const accepted = act({ scene: scene(approved, { production: production('reviewed', undefined, { current: true }) }), shown: r1 })
@@ -89,6 +92,13 @@ describe('the one action for the revision on show', () => {
     expect(accepted.secondary.map(action => action.label)).toEqual(['Play the output', 'Produce again', 'Revise the plan'])
     expect(act({ scene: scene(approved, { production: production('reviewed', undefined, { current: false }) }), shown: r1 }).primary?.label).toBe('Produce it again')
     expect(act({ scene: scene(approved, { production: production('ready', {}) }), shown: r1, desktop: false }).secondary[0]).toMatchObject({ kind: 'produce', disabled: 'Runs in the desktop app' })
+  })
+
+  it('keeps the approved plan on show while a newer candidate lands, and offers the candidate', () => {
+    const approved = { state: 'candidate' as const, latest: r2, current: r2, reviewed: r1 }
+    const kept = act({ scene: scene(approved), shown: r1 })
+    expect(kept.primary).toMatchObject({ kind: 'produce' })
+    expect(kept.secondary[0]).toEqual({ kind: 'show-current', label: 'Review r2', recordId: 't2' })
   })
 
   it('plans again when the plan on show is out of date, and only looks at an earlier revision', () => {

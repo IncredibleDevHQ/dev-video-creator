@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { forkNotebook, type ProjectDocumentV1 } from 'markdown-composition'
 import type { SketchManifest } from '../src/planning/sketch-bundle'
 
@@ -339,6 +339,47 @@ describe('planning integrity', () => {
     await expect(service.queueTreatment(id, scenes[0])).rejects.toThrow(/brief is stale/)
     const plan = { ...treatmentFor(scenes[1], 'b2'), units: ['rejection'], evidenceRefs: ['ev-burst'], coverage: [{ unit: 'rejection', need: 'Tie rejection to the empty bucket', moments: ['m1'] }] }
     expect(await service.submitTreatment(running.id, plan, 'run-ancestry-late')).toMatchObject({ accepted: true, status: 'superseded' })
+  })
+
+  // U3 of the scene workspace plan: what a run confirmed, and the sections it
+  // published, kept on its record — checked, only from its own run, and only
+  // while it runs.
+  it('keeps a run\'s milestones and checked drafts on its record, from that run only', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('progress')
+    await readyBrief(id, 'run-progress-brief')
+    const milestones = async (recordId: string) => ((await persistence.loadPlanningRecord(recordId))?.progress?.events || []).map(event => event.milestone)
+    const { record } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(record.id, { runId: 'run-progress-plan', adapter: 'claude-code' })
+    await service.noteProgress(record.id, { milestone: 'context' }, { runId: 'run-progress-plan' })
+    // Another run's note is ignored; its draft is refused.
+    expect(await service.noteProgress(record.id, { milestone: 'context' }, { runId: 'run-someone-else' })).toBeNull()
+    await expect(service.publishDraft(record.id, 'run-someone-else', 'explanation', { question: 'q', takeaway: 't' })).rejects.toThrow(/does not own/)
+    // A section is checked before it is kept.
+    expect(await service.publishDraft(record.id, 'run-progress-plan', 'explanation', { question: 'Why refuse?' })).toEqual({ accepted: false, problems: ['takeaway is required'] })
+    expect(await service.publishDraft(record.id, 'run-progress-plan', 'explanation', { question: 'Why refuse the excess?', takeaway: 'It keeps the API alive.' })).toEqual({ accepted: true })
+    expect(await service.publishDraft(record.id, 'run-progress-plan', 'moments', { moments: [{ id: 'm1', title: 'Tokens drain' }] })).toEqual({ accepted: true })
+    const drafting = await persistence.loadPlanningRecord(record.id)
+    expect(drafting?.progress?.draft).toMatchObject({ question: 'Why refuse the excess?', takeaway: 'It keeps the API alive.', moments: [{ id: 'm1', title: 'Tokens drain', summary: '' }] })
+    expect(drafting?.progress?.events.map(event => [event.milestone, event.section ?? null, event.count ?? null])).toEqual([['started', null, null], ['context', null, null], ['draft', 'explanation', null], ['draft', 'moments', 1]])
+    // A refused plan is noted with how many problems; the run keeps its record.
+    const refused = await service.submitTreatment(record.id, { ...treatmentFor(scenes[0], 'b1'), moments: [] }, 'run-progress-plan')
+    expect(refused).toMatchObject({ accepted: false })
+    await vi.waitFor(async () => expect((await milestones(record.id)).slice(-2)).toEqual(['submitted', 'refused']))
+    expect((await persistence.loadPlanningRecord(record.id))?.progress?.events.at(-1)?.count).toBeGreaterThan(0)
+    expect(await service.submitTreatment(record.id, treatmentFor(scenes[0], 'b1'), 'run-progress-plan')).toMatchObject({ accepted: true, status: 'candidate' })
+    await vi.waitFor(async () => expect((await milestones(record.id)).at(-1)).toBe('accepted'))
+    // Finished, nothing more is noted or kept.
+    expect(await service.noteProgress(record.id, { milestone: 'context' }, { runId: 'run-progress-plan' })).toBeNull()
+    await expect(service.publishDraft(record.id, 'run-progress-plan', 'explanation', { question: 'Late?', takeaway: 'Late.' })).rejects.toThrow(/already finished as candidate/)
+
+    // A run stopped by the creator ends as stopped, with its last draft kept.
+    const { record: second } = await service.queueTreatment(id, scenes[1])
+    await service.attachRun(second.id, { runId: 'run-progress-stop' })
+    await service.publishDraft(second.id, 'run-progress-stop', 'explanation', { question: 'What is refused?', takeaway: 'The excess.' })
+    expect(await service.failRecord(second.id, { message: 'The run was cancelled before it submitted a result.' })).toMatchObject({ status: 'failed' })
+    const stopped = await persistence.loadPlanningRecord(second.id)
+    expect(stopped?.progress?.events.map(event => event.milestone)).toEqual(['started', 'draft', 'stopped'])
+    expect(stopped?.progress?.draft).toMatchObject({ question: 'What is refused?' })
   })
 
   // The review's R3 probe, corrected: the packet offers the passages kept on

@@ -140,6 +140,7 @@ export const sceneActionsOf = (input: SceneActionInput): SceneActions => {
     if (preview.state === 'building') {
       activity = activity || { kind: 'preview', label: preview.checking ? `Checking the preview of r${n}` : `Building the preview of r${n}`, recordId: preview.recordId || '', checking: preview.checking }
       primary = null
+      if (preview.recordId) secondary.push({ kind: 'stop', label: 'Stop the preview', recordId: preview.recordId })
       secondary.push(unpreviewed)
     } else if (preview.state === 'ready' && !preview.stale) {
       primary = { kind: 'approve', label: `Approve r${n}`, recordId: shown.id }
@@ -152,12 +153,16 @@ export const sceneActionsOf = (input: SceneActionInput): SceneActions => {
     return { primary, secondary, activity }
   }
   if (shown.status === 'reviewed' && shown.id === view.reviewed?.id) {
+    // A newer candidate never replaces the approved plan on show: it is
+    // offered, for the creator to look at (U3 of the scene workspace plan).
+    const newer = view.current && view.current.id !== shown.id && view.current.status === 'candidate' ? view.current : null
+    if (newer) secondary.unshift({ kind: 'show-current', label: `Review r${newer.revision}`, recordId: newer.id })
     const production = productionStateOf(scene)
     const latest = scene.production?.latest
     const producer = blocked ? { disabled: blocked } : {}
     if (production === 'producing' && latest) {
       activity = activity || { kind: 'production', label: latest.status === 'verifying' ? `Checking the scene produced from r${n}` : `Producing the scene from r${n}`, recordId: latest.id, checking: latest.status === 'verifying' }
-      return { primary: null, secondary: [...secondary, revise], activity }
+      return { primary: null, secondary: [...secondary, { kind: 'stop', label: 'Stop producing', recordId: latest.id }, revise], activity }
     }
     if (production === 'ready') {
       const ready = scene.production!.ready!

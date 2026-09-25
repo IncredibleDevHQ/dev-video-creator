@@ -15,6 +15,7 @@
 // preference, never a plan, an approval or a job.
 import './workspace.css'
 import type { createSceneReview } from '../planning/scene-review'
+import { sinceOf } from '../planning/progress'
 
 export type WorkspaceReview = ReturnType<typeof createSceneReview>['workspace']
 export type WorkspaceView = 'scenes' | 'notebook'
@@ -268,7 +269,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       play.addEventListener('click', () => host.playOffer(sceneId))
       offer = h('p', { class: 'ws-offer', role: 'status', 'data-offer': notice.kind }, h('strong', { text: `The preview of r${notice.revision} is ready.` }), notice.kind === 'held' ? ' It waits until you finish.' : ' Your view is kept.', ' ', play)
     }
-    activity.replaceChildren(...[building, offer].filter((part): part is HTMLElement => Boolean(part)))
+    activity.replaceChildren(...[building, building ? parts?.build || null : parts?.buildFailure || null, offer].filter((part): part is HTMLElement => Boolean(part)))
   }
 
   const renderRail = (sceneId: string) => {
@@ -374,6 +375,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     const clock = h('span', { class: 'sw-clock', text: state.playable ? `${seconds(state.time)} / ${seconds(state.duration)}${state.estimated ? ' est.' : ''}` : '—' })
     const moments = h('div', { class: 'sw-moments', role: 'listbox', 'aria-label': 'Moments', 'aria-orientation': 'horizontal' })
     let current = ''
+    if (row?.draft) moments.append(h('span', { class: 'sw-moments-draft', text: 'Draft · still being checked' }))
     if (row) {
       for (const moment of row.moments) {
         const playing = state.playable && moment.start !== null && moment.end !== null && state.time >= moment.start && state.time < moment.end
@@ -381,12 +383,14 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
         const chip = h('button', {
           type: 'button',
           role: 'option',
-          class: `sw-moment${moment.id === row.selected ? ' is-selected' : ''}${playing ? ' is-current' : ''}`,
+          class: `sw-moment${moment.id === row.selected ? ' is-selected' : ''}${playing ? ' is-current' : ''}${row.draft ? ' is-draft' : ''}`,
           'aria-selected': moment.id === row.selected ? 'true' : 'false',
           'data-focus': `sw-moment:${moment.id}`,
           'data-moment': moment.id,
           title: `${moment.index + 1}. ${moment.title}${moment.seconds ? ` — ${moment.seconds}s${row.measured ? '' : ' est.'}` : ''}`,
           style: `flex-grow:${Math.max(0.6, moment.seconds || 1)}`,
+          // A drafted moment is not a plan's moment yet: nothing to open.
+          ...(row.draft ? { disabled: true, 'aria-disabled': 'true' } : {}),
         },
           h('span', { class: 'sw-moment-number', text: String(moment.index + 1) }),
           h('span', { class: 'sw-moment-title', text: moment.title }),
@@ -418,6 +422,29 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   host.playback.subscribe(() => {
     if (!root.hidden) renderTransport()
   })
+  // How long each run has gone ticks by itself; nothing is redrawn for it,
+  // and a screen reader is not told each second (the spans are aria-live off).
+  window.setInterval(() => {
+    if (root.hidden) return
+    root.querySelectorAll<HTMLElement>('[data-since]').forEach(element => {
+      const text = sinceOf(element.dataset.since)
+      if (text) element.textContent = `${element.dataset.prefix || ''}${text}${element.dataset.suffix || ''}`
+    })
+  }, 1000)
+
+  const announce = (message: string) => {
+    announcer.textContent = ''
+    window.requestAnimationFrame(() => (announcer.textContent = message))
+  }
+  // A run reaching a new phase is said once, not each time it is drawn.
+  let announcedPhase = ''
+  const announcePhase = (sceneId: string) => {
+    const active = root.querySelector<HTMLElement>('.ws-phases li[data-state="active"]')
+    const key = active ? `${sceneId}:${active.closest('[data-progress-record]')?.getAttribute('data-progress-record') || ''}:${active.dataset.phase}` : ''
+    if (key === announcedPhase) return
+    announcedPhase = key
+    if (active?.textContent) announce(active.textContent)
+  }
 
   const signatureOf = (sceneId: string) =>
     JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen, sceneIds().map(id => host.notice(id))])
@@ -472,6 +499,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     }
     // The selected scene in the rail stays in view.
     rail.querySelector('.sw-scene.is-selected')?.scrollIntoView({ block: 'nearest' })
+    announcePhase(sceneId)
   }
 
   root.addEventListener('keydown', event => {
@@ -519,10 +547,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       shown = ''
       render()
     },
-    announce: (message: string) => {
-      announcer.textContent = ''
-      window.requestAnimationFrame(() => (announcer.textContent = message))
-    },
+    announce,
     frame: () => frame,
   }
 }

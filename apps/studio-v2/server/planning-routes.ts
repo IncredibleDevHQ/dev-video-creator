@@ -26,6 +26,8 @@ import {
   acceptProduction,
   productionEdits,
   saveProductionEdits,
+  noteProgress,
+  publishDraft,
 } from './planning-service'
 import { loadPlanningRecord } from './persistence'
 
@@ -99,6 +101,25 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
         const input = await body<{ runId?: string; adapter?: string; model?: string }>(request)
         if (!input.runId) throw new PlanningError('A run id is required', 400)
         send(response, 200, { record: await attachRun(id, { runId: input.runId, adapter: input.adapter, model: input.model }) })
+        return true
+      }
+      // The owning run read its packet and contract (U3 of the scene
+      // workspace plan): a milestone the creator sees. Nothing else is
+      // reported from outside; the rest the product confirms itself.
+      if (method === 'POST' && action === 'progress') {
+        const input = await body<{ runId?: string; milestone?: string }>(request)
+        if (!input.runId) throw new PlanningError('A run id is required', 400)
+        if (input.milestone !== 'context') throw new PlanningError('Only reading the run\'s context is reported here', 400)
+        await noteProgress(id, { milestone: 'context' }, { runId: String(input.runId) })
+        send(response, 200, { ok: true })
+        return true
+      }
+      // A section of a scene plan, published by its run as a draft.
+      if (method === 'POST' && action === 'draft') {
+        const input = await body<Record<string, unknown>>(request, 256 * 1024)
+        if (!input.runId) throw new PlanningError('A run id is required', 400)
+        const result = await publishDraft(id, String(input.runId), input.section, input)
+        send(response, result.accepted ? 200 : 422, result)
         return true
       }
       // The owning run's harness reports the model its session runs.

@@ -11,12 +11,13 @@
 // what the creator opened, typed or selected survives the renders that do.
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView } from './planning-records'
+import { PLANNING_STATE_LABELS, isActiveStatus, type PlanDraft, type PlanningRecord, type ScenePlanningView } from './planning-records'
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
 import { acceptProduction, approvePlan, loadPlanning, planScene, prepareBrief, previewScene, produceScene, saveProductionEdits, saveSceneDelivery, saveSceneDirection, stopRun } from './planning-client'
-import { BROWSER_REVIEW_MESSAGE, progressText } from '../harness-choice'
+import { BROWSER_REVIEW_MESSAGE, failureTitle, progressText } from '../harness-choice'
+import { progressOf, sinceOf } from './progress'
 import { videoNextStep, type NextStep } from './next-step'
 import { previewFor, previewStateOf, producedFor, productionShown, productionStateOf, railStateOf, sceneActionsOf, treatmentRecordsOf, type PreviewState, type SceneAction, type SceneActions } from './scene-state'
 
@@ -78,6 +79,11 @@ export type SceneReviewHost = {
   previewRequested?: (sceneId: string, planRecordId: string, previewJobId: string, revision: number) => void
   // The planning records were read again.
   loaded?: () => void
+  // Where the harness and model for each job are chosen (AI settings).
+  openAiSettings?: () => void
+  // Whether an approved plan stays on show while a newer one is planned
+  // (the scene workspace; the notebook shows the newest).
+  pinApproved?: () => boolean
 }
 
 type SceneUi = { revision: string; compare: string; moment: string; direction: string | null }
@@ -169,10 +175,16 @@ export const createSceneReview = (host: SceneReviewHost) => {
       shown = signature
       host.refresh()
     }
-    if (overview) host.loaded?.()
+    if (overview) {
+      // A stop is acknowledged once its record has ended.
+      for (const id of [...stopping]) if (!isActiveStatus((overview.records.find(record => record.id === id) || { status: 'failed' }).status)) stopping.delete(id)
+      host.loaded?.()
+    }
     if (active() || overview?.visualCast?.status === 'extracting') pollTimer = window.setTimeout(() => void load(), 4000)
   }
 
+  // Runs asked to stop: "Cancelling…" until their records end.
+  const stopping = new Set<string>()
   const listen = () => {
     const bridge = window.studioDesktop
     if (listening || !bridge?.isDesktop) return
@@ -238,9 +250,12 @@ export const createSceneReview = (host: SceneReviewHost) => {
       if (!projectId) return
       if (state.direction !== null && state.direction !== scene.direction) await saveSceneDirection(host.fetchJson, projectId, scene.id, state.direction)
       state.direction = null
-      state.revision = ''
+      // The approved plan on show stays there while a newer one is made: the
+      // new candidate is offered, never put in its place (U3).
+      const shown = shownRecord(scene)
+      state.revision = host.pinApproved?.() && shown && shown.status === 'reviewed' && shown.id === scene.view.reviewed?.id ? shown.id : ''
       const { reused } = await planScene(host.fetchJson, projectId, scene.id)
-      host.toast(reused ? 'This plan is already being made from the same inputs' : 'Planning a new candidate — the approved plan stays until you approve another')
+      host.toast(reused ? 'This plan is already being made from the same inputs' : scene.view.reviewed ? 'Planning a new candidate — the approved plan stays until you approve another' : 'Planning the scene: each phase shows as the harness reaches it')
     })
   const preview = (scene: Scene, record: PlanningRecord, again: boolean) =>
     run('preview the plan', async () => {
@@ -1166,13 +1181,6 @@ export const createSceneReview = (host: SceneReviewHost) => {
   const actionsOf = (scene: Scene): SceneActions =>
     sceneActionsOf({ scene, shown: shownRecord(scene), brief: briefStateOf(), take: host.takeOf(scene.id), desktop: onDesktop(), available: Boolean(overview?.available), stage: host.stageMode?.() })
   const recordById = (id?: string) => (id ? (overview?.records || []).find(record => record.id === id) || null : null)
-  // How long a run has been going, from when it was asked for.
-  const elapsedOf = (record: PlanningRecord | null) => {
-    const since = record ? Date.parse(String((record as { createdAt?: string }).createdAt || '')) : NaN
-    if (!Number.isFinite(since)) return ''
-    const seconds = Math.max(0, Math.round((Date.now() - since) / 1000))
-    return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-  }
   type WorkspaceTab = 'story' | 'moment' | 'record' | 'output'
   type Lead = (tab: WorkspaceTab, focus?: string) => void
   // The scene's script against the plan: recording waits until they agree.
@@ -1202,7 +1210,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
         lead('story', `direction:${scene.id}`)
         return
       case 'stop':
-        if (record) void run('stop the run', () => stopRun(host.fetchJson, record))
+        if (!record || stopping.has(record.id)) return
+        stopping.add(record.id)
+        host.refresh()
+        void run('stop the run', () => stopRun(host.fetchJson, record))
         return
       case 'preview':
         if (record) void preview(scene, record, previewStateOf(scene, record).state === 'ready')
@@ -1254,13 +1265,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
     }
   }
   const actionButton = (scene: Scene, action: SceneAction, primary: boolean, lead: Lead) => {
+    const cancelling = action.kind === 'stop' && Boolean(action.recordId && stopping.has(action.recordId))
     const button = h('button', {
       type: 'button',
       class: `button ${primary ? 'primary' : 'ghost'}`,
       'data-focus': `ws-action:${action.kind}:${scene.id}`,
       'data-action': action.kind,
-      text: action.label,
-      ...(action.disabled ? { disabled: true, title: action.disabled } : busy ? { disabled: true } : {}),
+      text: cancelling ? 'Cancelling…' : action.label,
+      ...(cancelling ? { disabled: true } : action.disabled ? { disabled: true, title: action.disabled } : busy ? { disabled: true } : {}),
     })
     button.addEventListener('click', () => perform(scene, action, lead))
     return button
@@ -1287,17 +1299,95 @@ export const createSceneReview = (host: SceneReviewHost) => {
     })
     return select
   }
+  // ——— Useful progress (U3 of the scene workspace plan) ———
+  const HARNESS_NAMES: Record<string, string> = { 'claude-code': 'Claude Code', kimi: 'Kimi', codex: 'Codex' }
+  const madeWith = (record: PlanningRecord) =>
+    record.adapter ? `${HARNESS_NAMES[record.adapter] || record.adapter}${record.reportedModel || record.model ? ` · ${record.reportedModel || record.model}` : ''}` : 'Your local harness'
+  // A run in its named phases: the ones the product confirmed, what is
+  // happening now, how long it has run, and who runs it — with the harness's
+  // own last word, small, apart from the progress.
+  const progressBlock = (record: PlanningRecord, compact = false) => {
+    const state = progressOf(record)
+    const since = String((record as { createdAt?: string }).createdAt || '')
+    return h('div', { class: `ws-progress${compact ? ' is-compact' : ''}`, 'data-progress-record': record.id },
+      h('ol', { class: 'ws-phases', 'aria-label': 'Phases' }, ...state.phases.map(phase => h('li', { 'data-phase': phase.key, 'data-state': phase.state, 'aria-current': phase.state === 'active' ? 'step' : undefined }, h('span', { class: 'ws-phase-mark', 'aria-hidden': 'true' }), h('span', { text: phase.label })))),
+      state.now ? h('p', { class: 'ws-progress-now', role: 'status', text: state.now }) : null,
+      // Under the stage the activity line already says how long.
+      h('p', { class: 'ws-progress-meta' },
+        ...[
+          compact || !since ? null : h('span', { class: 'ws-progress-time', 'data-since': since, 'data-suffix': ' so far', 'aria-live': 'off', text: `${sinceOf(since)} so far` }),
+          h('span', { class: 'ws-progress-who', text: madeWith(record) }),
+          state.repairs ? h('span', { text: `repaired ${state.repairs} time${state.repairs === 1 ? '' : 's'}` }) : null,
+        ].filter((part): part is HTMLSpanElement => Boolean(part)).flatMap((part, index) => (index ? [' · ', part] : [part])),
+      ),
+      compact ? null : h('small', { class: 'ws-progress-last', 'data-review-progress': record.id, title: 'What the harness last said it did', text: progress.get(record.id) || '' }),
+    )
+  }
+  // Sections of a plan its run published, shown for what they are.
+  const draftBlock = (draft: PlanDraft, label: string) =>
+    h('div', { class: 'ws-draft' },
+      h('p', { class: 'ws-draft-label', text: label }),
+      draft.question ? h('p', { class: 'ws-draft-question', text: draft.question }) : null,
+      draft.takeaway ? h('p', { class: 'ws-draft-takeaway' }, h('strong', { text: 'Takeaway. ' }), draft.takeaway) : null,
+      draft.moments?.length ? h('ol', { class: 'ws-draft-moments' }, ...draft.moments.map(moment => h('li', { title: moment.summary, text: moment.title }))) : null,
+    )
+  // A run that ended without a plan: what happened, the provider's own
+  // words, the ways on — and the approved plan, untouched.
+  const failureBlock = (scene: Scene, record: PlanningRecord) => {
+    const stopped = Boolean(record.progress?.events.some(event => event.milestone === 'stopped')) || /^Stopped|was cancelled/.test(record.error?.message || '')
+    const category = stopped ? 'stopped' : record.error?.category || 'other'
+    const provider = record.error?.providerStatus && record.error.providerStatus !== record.error.message ? record.error.providerStatus : ''
+    const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `retry-plan:${scene.id}`, text: 'Plan the scene again', ...(!onDesktop() || !overview?.brief.current || overview.brief.stale ? { disabled: true } : {}) })
+    again.addEventListener('click', () => void revise(scene))
+    const change = h('button', { type: 'button', class: 'button ghost', 'data-focus': 'change-harness', text: 'Change the harness or model' })
+    change.addEventListener('click', () => host.openAiSettings?.())
+    return h('div', { class: 'ws-failure', 'data-failure': category, role: 'alert' },
+      h('p', {}, h('strong', { text: stopped ? `Planning r${record.revision} was stopped.` : `Planning r${record.revision} failed${category !== 'other' ? ` — ${failureTitle(category).toLowerCase()}` : ''}.` }), ' ', stopped ? 'Nothing it made was kept as a plan.' : readable(record.error?.message || 'No reason was given.')),
+      provider ? h('p', { class: 'ws-failure-provider' }, h('span', { class: 'review-muted', text: 'What the provider said: ' }), provider) : null,
+      !stopped && record.error?.recovery?.length ? h('ul', { class: 'ws-failure-recovery' }, ...record.error.recovery.map(line => h('li', { text: line }))) : null,
+      scene.view.reviewed ? h('p', { class: 'review-muted', text: `The approved plan, r${scene.view.reviewed.revision}, is unchanged.` }) : null,
+      h('div', { class: 'review-actions' }, again, stopped ? null : change),
+    )
+  }
+
+  // A preview that could not be built, under the stage: the phase it failed
+  // in, what was said, whether an earlier preview stays — and building it
+  // again. A stop the creator asked for is said as such.
+  const buildFailureOf = (scene: Scene, actions: SceneActions) => {
+    const record = shownRecord(scene)
+    if (!record || (actions.activity && ['preview', 'production'].includes(actions.activity.kind))) return null
+    const state = previewStateOf(scene, record)
+    const failed = state.state === 'failed' ? recordById(state.recordId) : null
+    if (!failed) return null
+    const stopped = Boolean(failed.progress?.events.some(event => event.milestone === 'stopped')) || /^Stopped|was cancelled/.test(failed.error?.message || '')
+    const phase = progressOf(failed).phases.find(entry => entry.state === 'failed')
+    const earlier = previewFor(scene, record)
+    const provider = failed.error?.providerStatus && failed.error.providerStatus !== failed.error.message ? failed.error.providerStatus : ''
+    const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `retry-preview:${scene.id}`, text: `Preview r${record.revision} again`, ...(onDesktop() ? {} : { disabled: true }) })
+    again.addEventListener('click', () => void preview(scene, record, false))
+    return h('div', { class: 'ws-build-failure', 'data-failure': stopped ? 'stopped' : failed.error?.category || 'other', role: stopped ? 'status' : 'alert' },
+      h('p', {},
+        h('strong', { text: stopped ? `The preview of r${record.revision} was stopped.` : `The preview of r${record.revision} failed${phase ? ` while ${phase.label.charAt(0).toLowerCase()}${phase.label.slice(1)}` : ''}.` }),
+        stopped ? '' : ` ${readable(failed.error?.message || 'No reason was given.')}`,
+        earlier ? ' Its earlier preview stays playable.' : ' The stage keeps the reference.',
+      ),
+      provider ? h('p', { class: 'ws-failure-provider' }, h('span', { class: 'review-muted', text: 'What the provider said: ' }), provider) : null,
+      again,
+    )
+  }
+
   // What is running for the scene, said once, with how long it has run.
   const activityLine = (scene: Scene, actions: SceneActions) => {
     const activity = actions.activity
     if (!activity) return null
     const record = recordById(activity.recordId)
-    const elapsed = elapsedOf(record)
+    const since = String((record as { createdAt?: string } | null)?.createdAt || '')
+    const phase = record ? progressOf(record).phases.find(entry => entry.state === 'active')?.label : ''
     return h('p', { class: 'ws-activity', role: 'status', 'data-ws-activity': activity.kind },
       h('span', { class: 'ws-activity-dot', 'aria-hidden': 'true' }),
       h('strong', { text: `${activity.label}…` }),
-      elapsed ? h('span', { class: 'ws-activity-time', text: ` ${elapsed}` }) : null,
-      record && progress.get(record.id) ? h('small', { class: 'ws-activity-last', 'data-review-progress': record.id, text: progress.get(record.id) || '' }) : null,
+      phase ? h('span', { class: 'ws-activity-phase', text: ` ${phase}` }) : null,
+      since ? h('span', { class: 'ws-activity-time', 'data-since': since, 'data-prefix': ' ', 'aria-live': 'off', text: ` ${sinceOf(since)}` }) : null,
     )
   }
   const workspaceHead = (scene: Scene, lead: Lead) => {
@@ -1307,6 +1397,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
       primary: actions.primary ? actionButton(scene, actions.primary, true, lead) : null,
       secondary: actions.secondary.map(action => actionButton(scene, action, false, lead)),
       activity: activityLine(scene, actions),
+      // A preview or production being built: its phases, under the stage.
+      build: actions.activity && ['preview', 'production'].includes(actions.activity.kind) && recordById(actions.activity.recordId) ? progressBlock(recordById(actions.activity.recordId)!, true) : null,
+      buildFailure: buildFailureOf(scene, actions),
       actions,
     }
   }
@@ -1322,15 +1415,26 @@ export const createSceneReview = (host: SceneReviewHost) => {
     if (!onDesktop()) box.append(h('p', { class: 'review-muted review-host-note', text: BROWSER_REVIEW_MESSAGE }))
     const notice = referenceNotice(scene)
     if (notice) box.append(notice)
-    const planning = view.latest && isActiveStatus(view.latest.status) ? view.latest : null
-    if (planning) box.append(h('p', { class: 'review-busy', 'data-review-progress': planning.id, text: progress.get(planning.id) || `Planning revision ${planning.revision} with your local harness…` }))
-    if (view.latest?.status === 'failed') box.append(h('p', { class: 'review-error', text: `Revision ${view.latest.revision} failed: ${view.latest.error?.message || 'no reason given'}${view.reviewed ? ` — the approved plan (r${view.reviewed.revision}) is unchanged` : ''}` }))
+    const planning = view.latest && view.latest.kind === 'treatment' && isActiveStatus(view.latest.status) ? view.latest : null
+    const failed = view.latest && view.latest.kind === 'treatment' && view.latest.status === 'failed' ? view.latest : null
+    // The brief comes first, in its own phases.
+    const brief = overview?.brief.latest
+    if (!planning && brief && isActiveStatus(brief.status)) box.append(h('h4', { class: 'ws-label', text: 'Preparing the explanation brief' }), progressBlock(brief))
+    if (planning) {
+      box.append(h('h4', { class: 'ws-label', text: `Planning r${planning.revision}` }), progressBlock(planning))
+      if (planning.progress?.draft && (planning.progress.draft.question || planning.progress.draft.moments?.length)) box.append(draftBlock(planning.progress.draft, 'Draft · still being checked'))
+      if (record && record.status === 'reviewed') box.append(h('p', { class: 'review-muted', text: `The approved plan, r${record.revision}, stays on show below; r${planning.revision} is offered for review once it is ready.` }))
+    }
+    if (failed) {
+      box.append(failureBlock(scene, failed))
+      if (failed.progress?.draft && (failed.progress.draft.question || failed.progress.draft.moments?.length)) box.append(draftBlock(failed.progress.draft, 'Draft from the run that failed · not checked'))
+    }
     if (record && record.id === view.current?.id && view.staleBecause) box.append(h('p', { class: 'review-warn', text: `Out of date — ${view.staleBecause}. Plan again from the current inputs.` }))
     if (!plan) {
       const objectives = (overview?.basePages || []).filter(page => scene.originScenes.includes(page.scene) && page.objective).map(page => page.objective)
       if (objectives.length) box.append(h('h4', { class: 'ws-label', text: 'What it should teach' }), ...objectives.map(text => h('p', { class: 'ws-question', text })))
       // Never "no plan yet … plan the scene" while it is being planned.
-      if (!planning) box.append(h('p', { class: 'review-muted', text: view.state === 'needs-brief' ? 'The video\'s explanation brief comes first: prepare it, then plan this scene.' : view.state === 'preparing' ? 'The explanation brief is being prepared; this scene can be planned once it is ready.' : 'No plan yet. Add direction below if you want, then plan the scene.' }))
+      if (!planning && !failed) box.append(h('p', { class: 'review-muted', text: view.state === 'needs-brief' ? 'The video\'s explanation brief comes first: prepare it, then plan this scene.' : view.state === 'preparing' ? 'The explanation brief is being prepared; this scene can be planned once it is ready.' : 'No plan yet. Add direction below if you want, then plan the scene.' }))
     } else {
       box.append(
         h('h4', { class: 'ws-label', text: `What it teaches · plan r${record!.revision}` }),
@@ -1564,12 +1668,19 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const scene = sceneOf(sceneId)
     const record = scene ? shownRecord(scene) : null
     const plan = record?.content as SceneTreatmentV1 | undefined
-    if (!scene || !plan) return null
+    if (!scene) return null
+    if (!plan) {
+      // No plan yet: the moments its run published, for what they are.
+      const latest = scene.view.latest
+      const drafted = latest && latest.kind === 'treatment' && isActiveStatus(latest.status) ? latest.progress?.draft?.moments || [] : []
+      return drafted.length ? { draft: true, selected: '', measured: false, duration: null, moments: drafted.map((moment, index) => ({ id: moment.id, index, title: moment.title, start: null, end: null, seconds: null })) } : null
+    }
     const mode = host.stageMode?.()
     const produced = producedFor(scene, record)
     const ready = previewFor(scene, record)
     const playing = mode === 'output' ? produced : mode === 'preview' ? ready : null
     return {
+      draft: false,
       selected: uiOf(sceneId).moment,
       measured: Boolean(playing && playing === produced),
       duration: playing?.summary.duration ?? null,
@@ -1602,6 +1713,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
   }
 
   const workspaceScene = (sceneId: string) => sceneOf(sceneId)
+  // What a scene's progress is drawn from: its latest plan, the brief and
+  // the preview or production being made — each run's milestones and draft.
+  const progressKey = (sceneId: string) => {
+    const scene = sceneOf(sceneId)
+    if (!scene) return null
+    const activity = recordById(actionsOf(scene).activity?.recordId)
+    return [scene.view.latest, overview?.brief.latest, activity].map(record => (record ? [record.id, record.status, record.progress?.events.length ?? 0, record.progress?.draft ?? null, record.error?.message ?? null] : null))
+  }
   return {
     load,
     listen,
@@ -1650,7 +1769,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         if (scene && plan) pickMoment(scene, plan, momentId)
       },
       // What the scene's workspace shows, so an unchanged one is not redrawn.
-      signature: (sceneId: string) => JSON.stringify([signature(sceneId, true), host.stageMode?.(), savingDelivery, busy, overview?.brief.current?.id, overview?.brief.stale, briefStateOf().preparing, overview?.scenes.map(scene => [scene.id, scene.title, railStateOf(scene, host.takeOf(scene.id))])]),
+      signature: (sceneId: string) => JSON.stringify([signature(sceneId, true), progressKey(sceneId), [...stopping], host.stageMode?.(), savingDelivery, busy, overview?.brief.current?.id, overview?.brief.stale, briefStateOf().preparing, overview?.scenes.map(scene => [scene.id, scene.title, railStateOf(scene, host.takeOf(scene.id))])]),
       // Whether the scene has anything to produce yet (the Output tab).
       approved: (sceneId: string) => Boolean(workspaceScene(sceneId)?.view.reviewed),
       // A run's progress, for lines drawn outside the review.
