@@ -8,6 +8,7 @@ import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/rec
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
 import { bindingOf, landingFor, pageFingerprint, pageReadinessOf, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
 import { baseNextStep, type NextStep } from './planning/next-step'
+import { draftHoldsEdits, sameDocument } from './draft-state'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -2045,8 +2046,25 @@ const readPersistedProject = async (
 
 const persistedProject = await readPersistedProject(localProject)
 // An unacknowledged draft outranks the store copy: it holds edits the store
-// never saw, so opening the notebook must start from the draft.
-const draftProject = activeProjectId ? readStoredDraft(activeProjectId) : null
+// never saw, so opening the notebook must start from the draft — but only
+// while it holds some. A draft written again for what the store had already
+// acknowledged would put an older notebook back over an edit made elsewhere:
+// it goes, and the page saves against the store's copy.
+const storedDraft = activeProjectId ? readStoredDraft(activeProjectId) : null
+const storedDraftBase = (() => {
+  try {
+    const raw = activeProjectId ? window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}base:${activeProjectId}`) : null
+    return raw ? (JSON.parse(raw) as ProjectDocumentV1) : null
+  } catch {
+    return null
+  }
+})()
+const draftProject = storedDraft && persistedProject && !draftHoldsEdits(storedDraft, storedDraftBase, persistedProject) ? null : storedDraft
+if (storedDraft && !draftProject && persistedProject) {
+  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${storedDraft.id}`)
+  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${storedDraft.id}`)
+  acknowledgedProjects.set(persistedProject.id, structuredClone(persistedProject))
+}
 // Older recovery drafts have no saved base. Never assume they were based on
 // the newest durable document: require conflict recovery instead of overwriting it.
 if (draftProject && !window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}base:${draftProject.id}`) && persistedProject && JSON.stringify(draftProject) !== JSON.stringify(persistedProject)) {
@@ -3330,6 +3348,20 @@ const scheduleDatabaseSync = () => {
     // Clone at fire time, not schedule time: a stale snapshot must never
     // clobber state that landed meanwhile (e.g. the take hydration).
     const snapshot = structuredClone(project)
+    // Nothing the store has not acknowledged: no save, and no draft to keep —
+    // a redundant save against an older copy would only conflict with an
+    // edit made elsewhere since.
+    const probe = structuredClone(snapshot)
+    sanitizeNotebookMedia(probe.notebook)
+    if (sameDocument(probe, acknowledgedProjects.get(probe.id))) {
+      const draft = readStoredDraft(probe.id)
+      if (!draft || sameDocument(draft, probe)) {
+        window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${probe.id}`)
+        window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${probe.id}`)
+        setSaving(false)
+      }
+      return
+    }
     try {
       await persistProjectNow(snapshot)
       saveState.textContent = readStoredDraft(snapshot.id) ? 'Saving…' : 'Saved'

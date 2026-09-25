@@ -149,12 +149,17 @@ try {
   await evaluate(`() => { document.querySelector('#create-explainer-paths [data-delivery="human"]').click(); return true }`, 'choose human')
   await sleep(200)
   await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="narrative"]').click(); return true }`, 'start from narrative')
-  await sleep(600)
-  const routed = await evaluate(`() => ({
-    chooserOpen: document.getElementById('create-explainer-dialog')?.open === true,
-    sourceOpen: document.getElementById('source-dialog')?.open === true,
-    heading: document.getElementById('source-heading')?.textContent || '',
-  })`, 'routed')
+  // The choice is recorded before the source flow opens: wait for it.
+  let routed = null
+  for (let i = 0; i < 25; i++) {
+    await sleep(200)
+    routed = await evaluate(`() => ({
+      chooserOpen: document.getElementById('create-explainer-dialog')?.open === true,
+      sourceOpen: document.getElementById('source-dialog')?.open === true,
+      heading: document.getElementById('source-heading')?.textContent || '',
+    })`, 'routed')
+    if (!routed.chooserOpen && routed.sourceOpen) break
+  }
   check('Present it myself + narrative routes into the source flow', !routed.chooserOpen && routed.sourceOpen && routed.heading.includes('narrative'), JSON.stringify(routed))
   let recorded = null
   for (let i = 0; i < 20; i += 1) {
@@ -252,18 +257,17 @@ try {
   await closePublish()
 
   // The library shows the Base badge on a root notebook.
-  await evaluate(`async () => {
-    document.getElementById('notebook-menu-toggle').click()
-    await new Promise(r => setTimeout(r, 400))
-    document.querySelector('.notebook-menu-library')?.click()
-    await new Promise(r => setTimeout(r, 400))
-    return true
-  }`, 'open library')
+  // The menu lists the notebooks once it has read them: its library entry
+  // is clicked when it is there, until the library page shows.
+  await evaluate(`() => { document.getElementById('notebook-menu-toggle').click(); return true }`, 'open menu')
   let library = null
-  for (let i = 0; i < 20; i += 1) {
+  for (let i = 0; i < 30; i += 1) {
     library = await evaluate(`() => {
       const page = document.getElementById('notebooks-page')
-      if (!page || page.hidden) return null
+      if (!page || page.hidden) {
+        document.querySelector('.notebook-menu-library')?.click()
+        return null
+      }
       const card = [...document.querySelectorAll('#notebooks-tree .notebook-card')].find(c => c.querySelector('strong')?.textContent.includes('D0 check notebook'))
       if (!card) return null
       return { badges: [...card.querySelectorAll('.notebook-kind-badge')].map(b => b.textContent) }
@@ -326,10 +330,12 @@ try {
   check('a fully reviewed notebook reads as a reviewed export', /Reviewed explainer export/.test(reviewedLabel?.kind || ''), JSON.stringify(reviewedLabel))
   await closePublish()
 
-  // Settle this UI's autosave before simulating an external document edit.
+  // Settle this UI's autosave before simulating an external document edit:
+  // saved, and no unacknowledged local draft left, which would rightly
+  // outrank the external edit when the page opens again.
   const settleSave = async () => {
-    for (let i = 0; i < 40; i++) {
-      if (await evaluate(`() => document.getElementById('save-state')?.textContent === 'Saved'`, 'save settled')) return
+    for (let i = 0; i < 80; i++) {
+      if (await evaluate(`() => document.getElementById('save-state')?.textContent === 'Saved' && !Object.keys(localStorage).some(key => key.startsWith('incredible-studio-v2-draft-'))`, 'save settled')) return
       await sleep(150)
     }
     throw new Error('autosave did not settle')
@@ -345,7 +351,15 @@ try {
     await settleSave()
     const drifted = JSON.parse(JSON.stringify(stamped))
     mutate(drifted)
-    await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: drifted, expectedProject: (await fetch(`${origin}/api/projects/${VIDEO_ID}`).then(r => r.json())).project }) })
+    // The external edit lands on the store's copy as it is now; a save from
+    // the page in between is a conflict, so the edit is made again on top.
+    let landed = false
+    for (let attempt = 0; attempt < 5 && !landed; attempt++) {
+      const current = (await fetch(`${origin}/api/projects/${VIDEO_ID}`).then(r => r.json())).project
+      landed = (await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: drifted, expectedProject: current }) })).ok
+      if (!landed) await sleep(300)
+    }
+    if (!landed) throw new Error(`the external edit of ${label} never landed`)
     await bootInto(VIDEO_ID, 'D0 video notebook')
     const driftLabel = await publishKind()
     check(`changing ${label} after the review reads as a draft again`, /1 of 1 scenes changed since the rich build's review/.test(driftLabel?.kind || ''), JSON.stringify(driftLabel))
