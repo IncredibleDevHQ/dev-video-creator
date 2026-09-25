@@ -51,6 +51,40 @@ describe('director', () => {
     expect(result.brief.layout).toBe('content-pip')
   })
 
+  // F5 of the fresh end-to-end review: coaching said "38.6 px, under the
+  // 18 px gate" — a legibility claim its own number contradicts. The notes
+  // now say the rule that decided, and call a width too narrow only with
+  // the measure that fails there.
+  it('says why the page takes the frame, and claims a legibility failure only when the text fails', () => {
+    const script = `Before 2017, order was everything. [open on me]\n\nThe encoder reads the sentence, the attention block relates every word, the decoder writes.\n\nThe wait was the price.`
+    const planned = planFromScript(script, diagram(), { viewBox })!
+    const traced = direct({ title: 'The machine', units: diagram(), viewBox, beats: planned.beats, plan: planned.plan, position: { index: 2, count: 10 } })
+    expect(traced.requiredArea).toBe('takeover')
+    expect(traced.legibility.minTextPx.beside).toBeGreaterThan(traced.legibility.gatePx)
+    expect(traced.areaReason).toMatchObject({ area: 'takeover', because: 'traces', gatePx: 18 })
+    expect(traced.areaReason.px).toBeGreaterThanOrEqual(18)
+    expect(traced.directorNotes).toMatch(/The diagram traces \d+ connections \(beat \d+\), and a traced flow needs the whole frame — you become a chip\./)
+    expect(traced.directorNotes).not.toMatch(/px gate/)
+
+    // Text too small for anything narrower than the whole frame — and too
+    // small even there: both measures are given, and both fail.
+    const tiny = [unit('input', 'box', 'Input', [100, 300, 200, 12]), unit('model', 'box', 'Model', [500, 300, 200, 12]), unit('output', 'box', 'Output', [900, 300, 200, 12])]
+    const small = planFromScript('The input arrives.\n\nThe model runs.\n\nThe output leaves.', tiny, { viewBox })!
+    const cramped = direct({ title: 'Small print', units: tiny, viewBox, beats: small.beats, plan: small.plan, position: { index: 3, count: 10 } })
+    expect(cramped.requiredArea).toBe('takeover')
+    expect(cramped.areaReason).toMatchObject({ because: 'legibility', narrower: 'frame', narrowerPx: 5.8, px: 7.6, subject: 'Input', gatePx: 18 })
+    expect(cramped.directorNotes).toContain('The page needs the whole frame — most of the frame wide its smallest text would be 5.8 px, under the 18 px gate — so you become a chip.')
+    expect(cramped.directorNotes).toContain('Even so its smallest text (“Input”) is only 7.6 px there, under the 18 px gate — enlarge it on the page.')
+
+    // Legible text on a page the script gives the frame: the direction is the reason.
+    const directed = planFromScript('The encoder reads the sentence. [takeover]', diagram(), { viewBox })!
+    const given = direct({ title: 'x', units: diagram(), viewBox, beats: directed.beats, plan: directed.plan, position: { index: 3, count: 10 } })
+    expect(given.requiredArea).toBe('takeover')
+    expect(given.areaReason).toMatchObject({ because: 'direction', beat: 0 })
+    expect(given.directorNotes).toContain('The script gives the diagram the whole frame (beat 1) — you become a chip.')
+    expect(given.directorNotes).not.toMatch(/px gate/)
+  })
+
   it('keeps a title card behind the person and calls the first scene the hook', () => {
     const planned = planFromScript(`In 2017 a team at Google removed recurrence entirely.\n\nIt is called Attention Is All You Need.`, titleCard(), { viewBox })!
     const result = direct({ title: 'Cover', units: titleCard(), viewBox, beats: planned.beats, plan: planned.plan, position: { index: 0, count: 15 } })
@@ -170,6 +204,10 @@ describe('director', () => {
     const result = direct({ title: 'x', units: diagram(), viewBox, beats: planned.beats, plan: planned.plan, position: { index: 3, count: 10 } })
     expect(result.requiredArea).toBe('beside')
     expect(result.storyboard[0].family).toBe('speaker-panel')
+    // The panel was asked for; its text is not claimed to fail in a slot.
+    expect(result.areaReason).toMatchObject({ area: 'beside', because: 'direction', beat: 0 })
+    expect(result.directorNotes).toContain('The script puts the diagram in a panel beside you (beat 1)')
+    expect(result.directorNotes).not.toMatch(/it would not in a slot/)
   })
 })
 

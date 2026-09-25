@@ -12946,6 +12946,7 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
       kind: result.kind,
       arcRole: result.arcRole,
       requiredArea: result.requiredArea,
+      areaReason: result.areaReason,
       storyboard: result.storyboard,
       shots: result.shots,
       recordingBrief: result.recordingBrief,
