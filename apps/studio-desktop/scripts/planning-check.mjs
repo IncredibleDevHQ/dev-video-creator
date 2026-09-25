@@ -470,6 +470,42 @@ try {
   check(/read-only/.test(readOnlyView.eyebrow) && readOnlyView.actions === 0 && readOnlyView.inputs === 0 && /Hold the camera still/.test(readOnlyView.direction) && readOnlyView.open, 'the base shows the video\'s plans and direction read-only, with a way to the video')
   await shot('07-base-read-only')
 
+  // A base with no video yet (F3): Plan video offers to make its fork — the
+  // library's own operation — and opens it on the scene chosen in the base,
+  // with its brief preparing. No dead end, and the base is unchanged.
+  await setMode({ mode: 'plan' })
+  const lone = { ...base, id: 'planning-check-lone-base', title: 'Planning checks without a video', notebook: { type: 'doc', content: [page('l1', 'First idea'), page('l2', 'Second idea')] }, outline: { ...base.outline, scenes: [] } }
+  check((await put(`/api/projects/${lone.id}`, lone)).status === 200, 'a base with no video is saved')
+  await reloadInto(lone.id, lone.title)
+  const lonePicked = await evaluate(`(() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return node.id })()`)
+  check(lonePicked === 'l2', `the creator is on the second page (${lonePicked})`)
+  check(await click('#open-planning'), 'Plan video opens on a base with no video')
+  const offer = await until('the fork offer', () => evaluate(`(() => {
+    const button = document.querySelector('#planning-workspace .planning-create-fork')
+    return button && { text: button.textContent, disabled: button.disabled, status: document.querySelector('.planning-fork-status')?.textContent || '', library: [...document.querySelectorAll('#planning-workspace button')].some(b => b.textContent === 'Open All notebooks'), closeOnly: [...document.querySelectorAll('#planning-workspace button')].length === 1 }
+  })()`))
+  check(offer.text === 'Create video fork and prepare brief' && !offer.disabled && !offer.closeOnly, `Plan video offers to create the fork and prepare its brief (${offer.text})`)
+  check(offer.status.includes('“Second idea”') && offer.library, `it names the scene the video will open on, with the library as the other way (${offer.status})`)
+  await shot('08-fork-offer')
+  check(await press('Create video fork and prepare brief'), 'Create video fork and prepare brief is pressed')
+  const forked = await until('the new video', async () => {
+    const projects = (await api('/api/projects')).body.projects
+    return projects.find(row => row.derivedFrom?.notebook === lone.id)
+  })
+  await until('the video to open', () => evaluate(`(document.getElementById('project-title') || {}).value === ${JSON.stringify(forked.title)}`).catch(() => false))
+  const opened = await until('its plans to open on the chosen scene', () => evaluate(`(() => {
+    const dialog = document.getElementById('planning-dialog')
+    const scene = document.querySelector('#planning-workspace .planning-scene.is-selected, #planning-workspace .planning-scene[aria-current="true"]')
+    return dialog?.open && scene && { scene: scene.textContent }
+  })()`).catch(() => false))
+  check(/Second idea/.test(opened.scene), `the fork opens its plans on the scene chosen in the base (${opened.scene.slice(0, 60)})`)
+  const loneForkBrief = await until('the fork\'s brief', async () => (await overview(forked.id)).brief.current, 90_000)
+  check(Boolean(loneForkBrief), 'the fork prepares its explanation brief')
+  const loneAfter = (await api(`/api/projects/${lone.id}`)).body.project
+  const loneScenes = loneAfter.notebook.content.filter(node => node.type === 'scene').map(node => `${node.attrs.id}:${node.attrs.title}`)
+  check(!loneAfter.derivedFrom && JSON.stringify(loneScenes) === JSON.stringify(['l1:First idea', 'l2:Second idea']), `the base stays a base with its own pages (${loneScenes}; ${loneAfter.notebook.content.map(node => node.type)})`)
+  await shot('09-fork-planning')
+
   // A run cut off by the app closing is settled on restart: its record fails
   // as interrupted, with a retry, instead of reading "running" forever.
   await setMode({ mode: 'plan', delayMs: 120_000 })

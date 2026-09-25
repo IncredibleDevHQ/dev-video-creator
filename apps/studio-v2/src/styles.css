@@ -2218,6 +2218,8 @@ button.se-state:hover { filter: brightness(.97); }
 .planning-tab.is-active { border-bottom-color: var(--brand); color: var(--ink); }
 .planning-pane { display: grid; gap: 12px; max-width: 980px; }
 .planning-pane p { margin: 0; line-height: 1.5; }
+.planning-fork-offer { padding: 24px 20px; align-content: start; }
+.planning-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .planning-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
 .planning-ledger table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 .planning-ledger th, .planning-ledger td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }

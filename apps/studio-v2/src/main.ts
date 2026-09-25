@@ -6632,7 +6632,9 @@ const openAttentionVideoSample = async () => {
 // The base keeps the narrative, the facts and the wireframes; the video is a
 // notebook of its own, taken from a pinned revision of the base and free to
 // be enriched, restaged and recomposed without touching it.
-const createVideoFromBase = async (baseId: string, baseTitle: string, options?: { resumeBuild?: boolean; recordScene?: string; recordCanvas?: boolean }) => {
+// `plan`: made from Plan video — the fork opens its plans on the base scene
+// chosen there (F3), preparing the brief where a harness can.
+const createVideoFromBase = async (baseId: string, baseTitle: string, options?: { resumeBuild?: boolean; recordScene?: string; recordCanvas?: boolean; plan?: { scene?: string } }) => {
   // One key per attempt: a retry after an interrupted request returns the
   // video that was already made instead of making a second one.
   const forkKey = `fork-${baseId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -6649,7 +6651,9 @@ const createVideoFromBase = async (baseId: string, baseTitle: string, options?: 
     if (options?.resumeBuild) window.localStorage.setItem(BUILD_INTENT_KEY, child.id)
     // The fork is saved; preparing its explanation brief starts as it opens.
     // A provider failure leaves the fork intact with a retry in the workspace.
-    else if (!reused && window.studioDesktop?.isDesktop) window.localStorage.setItem(PREPARE_INTENT_KEY, child.id)
+    else if (options?.plan || (!reused && window.studioDesktop?.isDesktop)) {
+      window.localStorage.setItem(PREPARE_INTENT_KEY, JSON.stringify({ id: child.id, prepare: !reused && Boolean(window.studioDesktop?.isDesktop), ...(options?.plan?.scene ? { scene: options.plan.scene } : {}) }))
+    }
     await openNotebook(child.id)
     return child
   } catch (error) {
@@ -16889,6 +16893,15 @@ const planningWorkspace = createPlanningWorkspace({
     const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
     return projects.filter(row => row.derivedFrom?.notebook === baseId).map(row => ({ id: row.id, title: row.title, createdAt: row.createdAt }))
   },
+  // The library's own fork, from the base as it is now in the editor.
+  createFork: async ({ scene }) => {
+    project.notebook = editor.getJSON() as TiptapDocument
+    await persistProjectNow(structuredClone(project))
+    const child = await createVideoFromBase(project.id, project.title, { plan: scene ? { scene } : {} })
+    if (!child) throw new Error('The video fork could not be made. Try again, or use All notebooks → Create video.')
+  },
+  selectedScene: () => selectedNodeId || null,
+  openLibrary: () => openNotebooksPage(),
   basePages: () =>
     (project.notebook.content || [])
       .filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id)
@@ -16909,10 +16922,27 @@ const planningWorkspace = createPlanningWorkspace({
 })
 ;($('#open-planning') as HTMLButtonElement).addEventListener('click', () => void planningWorkspace.open())
 {
-  const intent = window.localStorage.getItem(PREPARE_INTENT_KEY)
-  if (intent) {
+  const raw = window.localStorage.getItem(PREPARE_INTENT_KEY)
+  if (raw) {
     window.localStorage.removeItem(PREPARE_INTENT_KEY)
-    if (intent === project.id) void planningWorkspace.open({ prepare: true })
+    // An intent is the fork's id (older ones) or { id, prepare, scene }.
+    let intent: { id?: string; prepare?: boolean; scene?: string } = {}
+    try {
+      intent = raw.startsWith('{') ? JSON.parse(raw) : { id: raw, prepare: true }
+    } catch {
+      intent = {}
+    }
+    if (intent.id === project.id) {
+      // The base scene the plan was asked for, as this video's scene.
+      const found = intent.scene
+        ? (project.notebook.content || []).find(node => {
+            const origin = node.attrs?.origin as { scene?: string; scenes?: string[] } | undefined
+            return (node.type === 'scene' || node.type === 'slide') && (origin?.scene === intent.scene || Boolean(origin?.scenes?.includes(intent.scene!)))
+          })
+        : undefined
+      const sceneId = String(found?.attrs?.id || '')
+      void planningWorkspace.open({ prepare: Boolean(intent.prepare), ...(sceneId ? { sceneId, tab: 'plan' as const } : {}) })
+    }
   }
 }
 

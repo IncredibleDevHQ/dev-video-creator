@@ -111,6 +111,13 @@ export type PlanningWorkspaceHost = {
   forksOf: (baseId: string) => Promise<Fork[]>
   // The base's own pages, for the presentation view in a base notebook.
   basePages: () => BasePage[]
+  // A base with no video yet: make its video fork by the library's own
+  // lineage-safe operation, opening it on the base scene chosen here (F3).
+  createFork?: (options: { scene?: string }) => Promise<void>
+  // The scene selected in the notebook now, if any.
+  selectedScene?: () => string | null
+  // Where a video can always be made: the notebook library.
+  openLibrary?: () => void
   // Closing hands the scene, revision and moment shown back to the notebook,
   // in the same click — not on a later event (R8).
   onClose?: (selection: { sceneId: string; revision: string; moment: string }) => void
@@ -1137,6 +1144,63 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     return pane
   }
 
+  // A base with no video yet (F3): its plans live in a video fork, so the
+  // workspace makes one here — the library's own operation — and opens it
+  // on the scene chosen in the base, preparing its brief where a harness
+  // can. Where it cannot be made, it says why and where a video is made.
+  const forkOffer = (current: ReturnType<PlanningWorkspaceHost['current']>) => {
+    const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning', text: '×' })
+    close.addEventListener('click', () => {
+      host.onClose?.({ sceneId: selectedScene, revision, moment })
+      dialog.close()
+    })
+    const pages = host.basePages()
+    const chosen = host.selectedScene?.() || ''
+    const chosenTitle = pages.find(page => page.scene === chosen)?.title || ''
+    const desktop = Boolean(bridge?.isDesktop)
+    const blocked = !host.createFork
+      ? 'A video fork cannot be made from this window.'
+      : !pages.length
+        ? 'This base has no pages yet: design its pages first, then make its video.'
+        : ''
+    const create = h('button', { type: 'button', class: 'button primary planning-create-fork', text: desktop ? 'Create video fork and prepare brief' : 'Create video fork', ...(blocked ? { disabled: true } : {}) })
+    const status = h('p', { class: 'planning-muted planning-fork-status', role: 'status' })
+    create.addEventListener('click', async () => {
+      create.disabled = true
+      create.textContent = 'Creating the video fork…'
+      try {
+        await host.createFork!({ ...(chosen ? { scene: chosen } : {}) })
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : 'The video fork could not be made.'
+      } finally {
+        // The fork opens in its own notebook; if this window is still here,
+        // the offer can be tried again.
+        create.disabled = Boolean(blocked)
+        create.textContent = desktop ? 'Create video fork and prepare brief' : 'Create video fork'
+      }
+    })
+    const library = host.openLibrary
+      ? (() => {
+          const button = h('button', { type: 'button', class: 'button ghost', text: 'Open All notebooks' })
+          button.addEventListener('click', () => { dialog.close(); host.openLibrary!() })
+          return button
+        })()
+      : null
+    status.textContent = blocked
+      || `It opens the new video${chosenTitle ? ` on “${chosenTitle}”` : ''}${desktop ? ' and prepares its explanation brief with your planning harness' : '; preparing its explanation brief runs in the desktop app'}. This base stays as it is.`
+    return [
+      h('header', { class: 'planning-header' },
+        h('div', { class: 'planning-title' }, h('span', { class: 'eyebrow', text: 'Video plans' }), h('h2', { text: current.title }), h('p', { class: 'planning-lineage', text: 'This is a base notebook. Its video plans live in a video fork of it.' })),
+        h('div', { class: 'planning-header-actions' }, close),
+      ),
+      h('section', { class: 'planning-pane planning-fork-offer' },
+        h('div', { class: 'planning-actions' }, create, library),
+        status,
+        blocked && host.openLibrary ? h('p', { class: 'planning-muted', text: 'A video can also be made from All notebooks → Create video.' }) : null,
+      ),
+    ]
+  }
+
   // Opened from a scene, the workspace shows that scene, revision, moment
   // and tab; closing it hands its selection back (R8).
   const open = async (options: { prepare?: boolean; sceneId?: string; revision?: string; moment?: string; tab?: 'presentation' | 'brief' | 'plan' | 'cast' } = {}) => {
@@ -1158,19 +1222,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       forks = await host.forksOf(current.id)
       if (!forks.length) {
         overview = null
-        root.replaceChildren(
-          h('header', { class: 'planning-header' },
-            h('div', { class: 'planning-title' }, h('span', { class: 'eyebrow', text: 'Video plans' }), h('h2', { text: current.title }), h('p', { class: 'planning-lineage', text: 'This is a base notebook. Its video plans live in a video fork: create one first, and it will prepare its explanation brief.' })),
-            h('div', { class: 'planning-header-actions' }, (() => {
-              const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning', text: '×' })
-              close.addEventListener('click', () => {
-      host.onClose?.({ sceneId: selectedScene, revision, moment })
-      dialog.close()
-    })
-              return close
-            })()),
-          ),
-        )
+        root.replaceChildren(...forkOffer(current))
         if (!dialog.open) dialog.showModal()
         return
       }
