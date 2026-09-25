@@ -672,6 +672,27 @@ const textLines = (lines: string[], x: number, y: number, size: number, attrs: s
 
 const fontAttr = (family: string, fallback: string) => `font-family="${escapeXml(family)}, ${fallback}"`
 
+// The figure a stat's label states, when it states one: "99.9% uptime",
+// "40 ms", "3× faster", "10 regions". A number that belongs to a name —
+// p50, v2, GPT-4, H100 — or a bare year is part of the label, never its
+// value: the page shows the label and its detail as written instead of
+// guessing (F1 of the fresh end-to-end review: "p50 TTFT" became "50").
+const STAT_UNIT = '(?:%|×|x|ms|s|k|K|M|B|GB|MB|TB|fps|ns|µs|us)'
+const STANDALONE = new RegExp(`(?<![\\p{L}\\p{N}._\\/-])([-+~≈<>]?[$€£]?\\d[\\d.,]*)(\\s*${STAT_UNIT})?(?![\\p{L}\\p{N}])`, 'gu')
+export const statFigure = (label: string): { figure: string; caption: string } | null => {
+  for (const match of label.matchAll(STANDALONE)) {
+    const [whole, number, unit] = match
+    const leads = !label.slice(0, match.index).trim()
+    const year = !unit && /^\d{4}$/.test(number) && Number(number) >= 1900 && Number(number) <= 2099
+    // A figure with a unit may sit anywhere in the label; a bare number only
+    // leads it ("10 regions"), and a bare year is a date, not a value.
+    if (year || (!unit && !leads)) continue
+    const caption = (label.slice(0, match.index) + ' ' + label.slice((match.index || 0) + whole.length)).replace(/\s+/g, ' ').replace(/^[\s:·—–-]+|[\s:·—–-]+$/g, '').trim()
+    return { figure: whole.trim(), caption }
+  }
+  return null
+}
+
 export const renderPage = (scene: OutlineScene, index: number, total: number, brand: PageBrand, video: { title: string; site: string }): string => {
   const n = index + 1
   const id = (name: string) => `s${n}-${name}`
@@ -733,12 +754,13 @@ export const renderPage = (scene: OutlineScene, index: number, total: number, br
     stats.forEach((stat, i) => {
       const x = 80 + i * columnWidth
       const room = columnWidth - 40
-      // a figure is the number in the label; a label without one is a fact, set smaller
-      const match = stat.label.match(/[-+~≈<>]?\d[\d.,]*\s*(?:%|×|x|ms|s|k|K|M|B|GB|MB|TB|fps|ns|µs|us)?\b/)
+      // a figure is the value the label states; a label without one is a
+      // fact, set smaller, with its detail as written
+      const found = statFigure(stat.label)
       parts.push(`<g id="${id(`stat-${slug(stat.label)}`)}" data-role="stat">`)
-      if (match) {
-        const figure = match[0].trim().slice(0, 12)
-        const caption = stat.label.replace(match[0], '').replace(/^[\s:·—-]+|[\s:·—-]+$/g, '').trim() || stat.detail
+      if (found) {
+        const figure = found.figure.slice(0, 12)
+        const caption = found.caption || stat.detail
         const size = Math.max(34, Math.min(stats.length > 3 ? 56 : 72, Math.floor(room / (figure.length * 0.58))))
         parts.push(`<text x="${x}" y="340" font-size="${size}" font-weight="bold" fill="${brand.text}" ${display}>${escapeXml(figure)}</text>`)
         parts.push(textLines(wrap(caption, 18, room, 2), x + 2, 378, 18, `fill="${brand.muted}" ${body}`))
