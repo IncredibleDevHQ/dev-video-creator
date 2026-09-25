@@ -946,6 +946,12 @@ const buildCompositionHtml = (
       // presenter track, never replaces them. Composed scene recordings
       // replace the scene.
       const recording = project.recordedBlocks?.[scene.id]
+      // A produced scene's render (P4) replaces the scene as a composed take
+      // does: its frames and, when it was voiced, its sound — and no take,
+      // camera or narration of the scene plays over it. The director's
+      // content view shows the live scene instead.
+      const produced = scene.id === contentViewNodeId ? null : project.producedScenes?.[scene.id] || null
+      const producedUrl = safeUrl(produced?.videoUrl)
       // One voice per scene: when the build aligned this scene to its take,
       // the recorded-mic narration track IS the take's audio — the very track
       // the alignment listened to. Every other copy of that voice (the camera
@@ -967,7 +973,7 @@ const buildCompositionHtml = (
         )
           ? [{ kind: 'human-camera' as const, videoUrl: presenterTakeUrl, ...(narrationVoice ? {} : { audioUrl: presenterTakeUrl }), audioKind: 'recorded-mic' as const }]
           : []
-      const presenterTracks = [...scene.presenterTracks, ...presenterTakeTracks, ...takeTracks]
+      const presenterTracks = producedUrl ? [] : [...scene.presenterTracks, ...presenterTakeTracks, ...takeTracks]
       const presenterMarkup = presenterTracks
         .map((track, trackIndex) => {
           if (track.kind === 'narration') {
@@ -997,18 +1003,19 @@ const buildCompositionHtml = (
         .join('')
       // The director's content view swaps the selected block's take out for
       // the live composed scene so the block stays directable.
-      const recordedTakeUrl =
-        scene.id === contentViewNodeId || keepsPlan || presenterTake
+      const recordedTakeUrl = producedUrl
+        ? producedUrl
+        : scene.id === contentViewNodeId || keepsPlan || presenterTake
           ? null
           : safeUrl(recording?.videoUrl)
-      const takeVoiceUrl = keepsPlan && !takeCameraUrl && !narrationVoice ? safeUrl(recording?.videoUrl) : null
+      const takeVoiceUrl = !producedUrl && keepsPlan && !takeCameraUrl && !narrationVoice ? safeUrl(recording?.videoUrl) : null
       // A saved take already contains the directed canvas, camera, and audio,
       // so it replaces the live scene visuals and presenter tracks outright —
       // the composite's own audio is its one voice (a narration track never
       // reaches these scenes). A raw presenter take never reaches here: it
       // rides as a presenter track.
       const recordedTakeMarkup = recordedTakeUrl
-        ? `<video class="recorded-take clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`
+        ? `<video class="recorded-take${producedUrl ? ' produced-scene' : ''} clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video>${producedUrl && !produced?.voiced ? '' : `<audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`}`
         : takeVoiceUrl
           ? `<audio class="take-voice" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(takeVoiceUrl)}"></audio>`
           : ''
@@ -1699,9 +1706,11 @@ const captionCues = (project: ProjectDocumentV1): CaptionCue[] => {
       if (!nodeId) return
       const config = normalizeBlockConfig(nodeId, node, project.blocks[nodeId])
       const recorded = project.recordedBlocks?.[nodeId]
-      const requested = recorded?.videoUrl ? recorded.durationMs : config.durationMs
+      const produced = project.producedScenes?.[nodeId]
+      const requested = produced?.videoUrl ? produced.durationMs : recorded?.videoUrl ? recorded.durationMs : config.durationMs
       const durationMs = Math.min(SCENE_DURATION_CAP_MS, Math.max(1_000, requested))
-      const plan = isSlideLikeNode(node) ? slideNodeMotion(node) : null
+      // A produced scene keeps its own clock: the page's cues are not its.
+      const plan = isSlideLikeNode(node) && !produced?.videoUrl ? slideNodeMotion(node) : null
       const windows = Array.isArray(node.attrs?.windows) ? (node.attrs!.windows as Array<{ say?: string }>) : []
       if (plan && windows.length) {
         const { offsets } = motionPlanOffsetsMs(plan)
@@ -1775,9 +1784,12 @@ export const compileProject = (
       // real length rather than the authored block duration — unless the build
       // aligned the scene to that take: the reviewed plan already runs on the
       // take's measured clock, and the block's reviewed duration stands.
-      const requestedDurationMs = recordedBlock?.videoUrl && !alignedTakeNarration(project, nodeId)
-        ? recordedBlock.durationMs
-        : config.durationMs
+      const produced = project.producedScenes?.[nodeId]
+      const requestedDurationMs = produced?.videoUrl
+        ? produced.durationMs
+        : recordedBlock?.videoUrl && !alignedTakeNarration(project, nodeId)
+          ? recordedBlock.durationMs
+          : config.durationMs
       // A scene runs as long as its plan (or its take) says. The only cap is
       // a sanity bound far above any scene the length brief would budget.
       const durationMs = Math.min(SCENE_DURATION_CAP_MS, Math.max(1_000, requestedDurationMs))
@@ -1794,7 +1806,8 @@ export const compileProject = (
         startSeconds,
         durationSeconds,
         config: { ...config, durationMs },
-        presenterTracks: (project.presenterTracks[nodeId] || []).filter(track => {
+        // A produced scene's render carries its own voice and presenter.
+        presenterTracks: produced?.videoUrl ? [] : (project.presenterTracks[nodeId] || []).filter(track => {
           const selected = project.recordedBlocks?.[nodeId]
           if (track.kind === 'narration') return !track.recordingId || track.recordingId === selected?.recordingId
           if (!selected || (selected.role !== 'presenter' && !selected.keepsPlan)) return true

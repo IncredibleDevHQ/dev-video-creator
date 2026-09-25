@@ -6,10 +6,11 @@
 // to say.
 import type { ProjectDocumentV1 } from './types'
 
-export type BlockAudioState = 'take' | 'recorded-voice' | 'generated-voice' | 'silent-by-choice' | 'missing' | 'no-words'
+export type BlockAudioState = 'produced' | 'take' | 'recorded-voice' | 'generated-voice' | 'silent-by-choice' | 'missing' | 'no-words'
 export type BlockAudio = { block: string; title: string; state: BlockAudioState }
 
 export const AUDIO_STATE_LABELS: Record<BlockAudioState, string> = {
+  produced: 'produced scene, with its voice',
   take: 'recorded take',
   'recorded-voice': 'recorded voice',
   'generated-voice': 'generated voice',
@@ -25,6 +26,9 @@ const wordsOf = (project: ProjectDocumentV1, block: string) => {
 }
 
 export const blockAudioOf = (project: ProjectDocumentV1, block: string, silent: ReadonlySet<string> = new Set()): BlockAudioState => {
+  // A produced scene's render carries its voice — or none, silent by choice.
+  const produced = project.producedScenes?.[block]
+  if (produced?.videoUrl) return produced.voiced ? 'produced' : 'silent-by-choice'
   const tracks = project.presenterTracks?.[block] || []
   const voice = tracks.find(track => track.kind === 'narration' && track.audioUrl)
   if (voice) return voice.audioKind === 'generated' ? 'generated-voice' : 'recorded-voice'
@@ -45,7 +49,7 @@ export const audioReadinessOf = (project: ProjectDocumentV1, options: { include?
       const block = String(node.attrs!.id)
       return { block, title: String(node.attrs?.title || node.type), state: blockAudioOf(project, block, silent) }
     })
-  const voiced = blocks.filter(entry => entry.state === 'take' || entry.state === 'recorded-voice' || entry.state === 'generated-voice').length
+  const voiced = blocks.filter(entry => entry.state === 'produced' || entry.state === 'take' || entry.state === 'recorded-voice' || entry.state === 'generated-voice').length
   const missing = blocks.filter(entry => entry.state === 'missing')
   return { blocks, voiced, missing: missing.length, silentByChoice: blocks.filter(entry => entry.state === 'silent-by-choice').length, silentDraft: voiced === 0 && blocks.length > 0 }
 }

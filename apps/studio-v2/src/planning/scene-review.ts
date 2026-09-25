@@ -12,10 +12,10 @@
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView } from './planning-records'
-import type { PlanningOverviewV1, ScenePreviewView, VisualCastSummary } from './planning-workspace'
+import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
-import { approvePlan, loadPlanning, planScene, previewScene, saveSceneDirection } from './planning-client'
+import { acceptProduction, approvePlan, loadPlanning, planScene, previewScene, produceScene, saveSceneDirection } from './planning-client'
 import { BROWSER_REVIEW_MESSAGE, progressText } from '../harness-choice'
 import { videoNextStep, type NextStep } from './next-step'
 
@@ -49,14 +49,23 @@ export type SceneReviewHost = {
   // The planning workspace, on this scene, revision and moment.
   openWorkspace: (sceneId: string, revision: string, moment: string) => void
   // The stage shows which page objects a moment is about — and, when the
-  // stage plays the plan's preview, goes to the moment.
-  selectMoment: (sceneId: string, targets: { nodes: string[]; objectIds: string[] } | null, at: number | null) => void
+  // stage plays the plan's preview or the scene produced from it, goes to
+  // the moment: `at` on the preview, `producedAt` on the production.
+  selectMoment: (sceneId: string, targets: { nodes: string[]; objectIds: string[] } | null, at: number | null, producedAt: number | null) => void
   // The stage switches to the scene's plan preview.
   showPreview: (sceneId: string) => void
   // The stage shows the base's newer page for this scene, to compare; and
   // the scene takes it as its page (F1 of the Perplexity review).
   showBaseReference: (sceneId: string) => void
   adoptReference: (sceneId: string) => Promise<void>
+  // The stage plays the scene's produced composition (P4); an accepted one
+  // becomes the scene's output in the notebook, which plays and exports it.
+  showProduction: (sceneId: string) => void
+  adoptProduction: (sceneId: string, production: SceneProductionView) => Promise<void>
+  // The production the notebook plays for the scene, if any; and the
+  // notebook's own scene back in its place.
+  producedIn: (sceneId: string) => string | null
+  releaseProduction: (sceneId: string) => Promise<void>
 }
 
 type SceneUi = { revision: string; compare: string; moment: string; direction: string | null }
@@ -119,6 +128,23 @@ export const createSceneReview = (host: SceneReviewHost) => {
   // A plan revision's own sketch: another revision's is never shown for it.
   const previewFor = (scene: Scene, record: PlanningRecord | null | undefined): ScenePreviewView | null =>
     (record && scene.preview?.byTreatment?.[record.id]) || null
+  // What the stage plays as the scene's production: the newest one, else
+  // the one accepted — and, for a moment, only the one of that revision.
+  const productionShown = (scene: Scene) => scene.production?.ready || scene.production?.accepted || null
+  const producedFor = (scene: Scene, record: PlanningRecord | null | undefined) => {
+    const production = productionShown(scene)
+    return production && record && production.of.record === record.id ? production : null
+  }
+  // Where the scene's production stands, for the next step.
+  const productionStateOf = (scene: Scene): 'none' | 'producing' | 'ready' | 'accepted' | 'stale' | 'failed' => {
+    const production = scene.production
+    if (!production) return 'none'
+    if (isActiveStatus(production.latest.status)) return 'producing'
+    if (production.ready && !production.ready.accepted && production.ready.current) return 'ready'
+    if (production.accepted?.current) return 'accepted'
+    if (production.ready || production.accepted) return 'stale'
+    return production.latest.status === 'failed' ? 'failed' : 'none'
+  }
   // Where the sketch of one plan revision stands.
   const previewStateOf = (scene: Scene, record: PlanningRecord | null | undefined): PreviewState => {
     const preview = scene.preview
@@ -154,7 +180,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       loadedFor,
       error,
       (overview?.records || []).map(record => [record.id, record.status, record.updatedAt, record.reportedModel]),
-      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.continuity, scene.reference?.revision, scene.reference?.adopted?.revision, scene.reference?.newer?.revision, scene.reference?.newer?.designing, scene.reference?.baseDesigning]),
+      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.continuity, scene.reference?.revision, scene.reference?.adopted?.revision, scene.reference?.newer?.revision, scene.reference?.newer?.designing, scene.reference?.baseDesigning, scene.production?.latest?.id, scene.production?.latest?.status, scene.production?.ready?.id, scene.production?.ready?.current, scene.production?.accepted?.id]),
       overview?.visualCast?.status,
       overview?.visualCast?.id,
       overview?.brief.stale,
@@ -311,6 +337,17 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return chip(`Preview: ${preview.state === 'ready' ? (preview.stale ? 'out of date' : 'ready') : preview.state === 'building' ? (preview.checking ? 'checking…' : 'building…') : 'failed'}`, preview.state === 'ready' && !preview.stale ? 'good' : preview.state === 'failed' ? 'bad' : preview.state === 'building' ? 'busy' : 'warn')
   }
 
+  // The scene's output (P4): produced from its approved plan, and accepted.
+  const outputState = (scene: Scene) => {
+    const production = scene.production
+    if (!production) return chip('Output: not produced')
+    if (isActiveStatus(production.latest.status)) return chip(production.latest.status === 'verifying' ? 'Output: checking…' : 'Output: producing…', 'busy')
+    if (production.accepted) return chip(production.accepted.current ? 'Output: accepted' : 'Output: accepted, out of date', production.accepted.current ? 'good' : 'warn')
+    if (production.ready) return chip(production.ready.current ? 'Output: produced — review it' : 'Output: produced, out of date', production.ready.current ? 'new' : 'warn')
+    if (production.latest.status === 'failed') return chip('Output: production failed', 'bad')
+    return chip('Output: not produced')
+  }
+
   // The compact strip every other scene block carries; inline, the selected
   // scene's one status line under its title (F7). Inline, the plan's state
   // is the revision control's to say, once (F6 of the Perplexity review).
@@ -332,7 +369,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       inline ? null : planState(scene),
       recordingState(scene),
       previewChip(scene),
-      chip('Output: not produced'),
+      outputState(scene),
       cast.length ? thumbs : null,
       inline ? null : h('span', { class: 'review-strip-open', text: 'Select the scene to review it' }),
     )
@@ -383,7 +420,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
     // On the sketch of this very revision, the stage goes to the moment.
     const ready = previewFor(scene, shownRecord(scene))
     const at = moment && ready ? ready.summary.moments.find(entry => entry.id === moment.id)?.start ?? null : null
-    host.selectMoment(scene.id, moment ? targetsOf(scene, plan, moment) : null, at)
+    // And on the scene produced from this very revision.
+    const produced = producedFor(scene, shownRecord(scene))
+    const producedAt = moment && produced ? produced.summary.moments.find(entry => entry.id === moment.id)?.start ?? null : null
+    host.selectMoment(scene.id, moment ? targetsOf(scene, plan, moment) : null, at, producedAt)
     host.refresh()
     // The review is drawn again as the editor updates, so the keyboard goes
     // back at once — not on a frame a hidden window may not paint. A step at
@@ -534,20 +574,143 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return body
   }
 
-  const productionOf = (scene: Scene, record: PlanningRecord | null) => {
+  // Production (P4): the scene made from its approved plan on its real
+  // clock, by the creator's "Scene production" harness — only when asked —
+  // then watched on the stage and accepted as the scene's output.
+  let accepting = ''
+  const produce = (scene: Scene, again: boolean) =>
+    run('produce the scene', async () => {
+      const projectId = host.projectId()
+      if (!projectId) return
+      const { reused, record } = await produceScene(host.fetchJson, projectId, scene.id, { again })
+      if (reused && (record.status === 'ready' || record.status === 'reviewed')) host.showProduction(scene.id)
+      else host.toast(`Producing ${scene.title || 'the scene'} from its approved plan — its clock is made first, then your harness builds the scene`)
+    })
+  const accept = (scene: Scene, production: SceneProductionView) => {
+    if (accepting) return
+    accepting = production.id
+    host.refresh()
+    void (async () => {
+      try {
+        await acceptProduction(host.fetchJson, production.id)
+        // The accepted view carries the render the notebook plays.
+        await load()
+        const accepted = sceneOf(scene.id)?.production?.accepted
+        if (!accepted || accepted.id !== production.id || !accepted.accepted) throw new Error('The scene was accepted, but its render is not listed yet — reload the video to use it')
+        await host.adoptProduction(scene.id, accepted)
+        host.toast('Accepted: the notebook now plays and exports this scene as produced')
+      } catch (failure) {
+        host.toast(failure instanceof Error ? failure.message : 'Could not accept the produced scene')
+      } finally {
+        accepting = ''
+        await load()
+        host.refresh()
+      }
+    })()
+  }
+  // The notebook's use of an accepted production is the creator's to change.
+  let using = ''
+  const useInNotebook = (scene: Scene, accepted: SceneProductionView | null) => {
+    if (using) return
+    using = scene.id
+    host.refresh()
+    void (async () => {
+      try {
+        if (accepted) {
+          await host.adoptProduction(scene.id, accepted)
+          host.toast('The notebook plays and exports this scene as produced again')
+        } else {
+          await host.releaseProduction(scene.id)
+          host.toast('The notebook plays its own scene again — your takes where you present it. The accepted production is kept.')
+        }
+      } catch (failure) {
+        host.toast(failure instanceof Error ? failure.message : 'Could not change what the notebook plays')
+      } finally {
+        using = ''
+        host.refresh()
+      }
+    })()
+  }
+  const productionOf = (scene: Scene) => {
     const approved = scene.view.reviewed
-    const plan = (approved?.content || record?.content) as SceneTreatmentV1 | undefined
-    const needs = [
-      approved ? `✓ An approved plan (r${approved.revision}).` : '✗ An approved plan — approve one first.',
-      scene.delivery === 'human' ? '✗ Your take for this scene — none is recorded yet.' : scene.delivery ? `✓ Delivery: ${scene.delivery}.` : '✗ A delivery choice for this scene (my voice, generated or silent).',
-      ...(plan?.objects || []).filter(object => ['enrich', 'generate'].includes(object.asset.status)).map(object => `✗ Artwork for ${object.entity} (${object.asset.status}).`),
-    ]
-    return h('div', { class: 'review-production' },
-      h('p', { class: 'review-warn', text: 'Not connected yet: this build stops at approved plans and rough sketches. Approving a plan never starts production.' }),
-      h('p', {}, 'Producing a scene from its approved plan — its code, artwork, voice and timing, on your “Scene production” harness — comes next. It will need:'),
-      h('ul', {}, ...needs.map(line => h('li', { text: line }))),
-      h('p', { class: 'review-muted', text: 'Build whole notebook, in the toolbar, is the older build: it works from the notebook\'s scripts and pages, and does not use approved plans.' }),
-    )
+    const production = scene.production
+    const desktop = Boolean(window.studioDesktop?.isDesktop)
+    const box = h('div', { class: 'review-production', 'data-review-production': scene.id })
+    const planned = approved?.content as SceneTreatmentV1 | undefined
+    if (!approved) {
+      box.append(h('p', { class: 'review-muted', text: 'A scene is produced from its approved plan: approve a plan first. Approving starts nothing.' }))
+      return box
+    }
+    // What production waits for, before it can start.
+    const waits = [
+      scene.view.state === 'stale' && scene.view.current?.id === approved.id ? `The approved plan r${approved.revision} is stale — plan and approve the scene again.` : '',
+      !scene.delivery ? 'Choose how this scene is delivered — you present it, a generated voice, or silent. A plan is made for its delivery, so plan and approve the scene again once it is chosen.' : '',
+      scene.delivery === 'human' ? 'A scene you present is produced from your take once it is aligned; that path is not connected in this build.' : '',
+    ].filter(Boolean)
+    const latest = production?.latest
+    const ready = production?.ready
+    const accepted = production?.accepted
+    if (latest && isActiveStatus(latest.status)) {
+      box.append(h('p', { class: 'review-busy', 'data-review-progress': latest.id, text: progress.get(latest.id) || (latest.status === 'verifying' ? 'Playing the produced scene in the pinned player to check it…' : `Producing the scene from r${approved.revision} with your local harness…`) }))
+    } else if (latest?.status === 'failed') {
+      box.append(h('p', { class: 'review-error', text: `The production failed: ${latest.error?.message || 'no reason given'}${accepted ? ' — the accepted output is unchanged' : ''}.` }))
+    }
+    const shown = ready || accepted
+    if (shown) {
+      const clock = shown.summary.clock === 'generated-voice' ? `a generated voice (${shown.voice || 'system voice'})` : shown.summary.clock === 'take' ? 'your take' : 'silence, by choice'
+      box.append(
+        ...([
+          h('p', {}, h('strong', { text: `Produced from r${shown.of.revision}` }), ` · ${shown.summary.duration}s on ${clock} · ${shown.checked ? 'played and checked' : 'never checked'}${shown.accepted ? ` · accepted ${new Date(shown.accepted.at).toLocaleString()}` : ''}`),
+          !shown.current ? h('p', { class: 'review-warn', text: `Out of date: ${shown.staleBecause}. Produce the scene again to realize the plan as it is now${shown.accepted ? '; the accepted output plays until then' : ''}.` }) : null,
+          shown.summary.unmet.length ? h('div', { class: 'review-warn' }, h('p', { text: 'What the approved plan asked for and this production could not meet:' }), h('ul', {}, ...shown.summary.unmet.map(item => h('li', { text: item })))) : null,
+        ].filter(Boolean) as HTMLElement[]),
+      )
+    }
+    // Whether the notebook plays the accepted production, and the switch.
+    const inNotebook = host.producedIn(scene.id)
+    if (accepted?.accepted) {
+      const plays = inNotebook === accepted.id
+      box.append(h('p', { class: plays ? 'review-muted' : 'review-warn', 'data-review-output': plays ? 'plays' : 'kept' }, plays
+        ? `The notebook plays and exports the accepted production of r${accepted.of.revision} for this scene${accepted.current ? '' : ', until it is produced again'}.`
+        : `The production of r${accepted.of.revision} is accepted, but the notebook plays its own scene here.`))
+    } else if (inNotebook) {
+      box.append(h('p', { class: 'review-warn', 'data-review-output': 'unlisted', text: 'The notebook plays a production that is no longer listed for this scene.' }))
+    }
+    const actions = h('div', { class: 'review-actions' })
+    if (shown) {
+      const play = h('button', { type: 'button', class: 'button ghost', 'data-focus': `show-production:${scene.id}`, text: 'Play it on the stage' })
+      play.addEventListener('click', () => host.showProduction(scene.id))
+      actions.append(play)
+    }
+    if (accepted?.accepted || inNotebook) {
+      const plays = Boolean(accepted && inNotebook === accepted.id)
+      const toggle = h('button', { type: 'button', class: 'button ghost', 'data-focus': `use-production:${scene.id}`, text: using === scene.id ? 'Changing…' : plays || !accepted ? 'Play the notebook\'s own scene' : 'Play the accepted production', ...(using ? { disabled: true } : {}) })
+      toggle.addEventListener('click', () => useInNotebook(scene, plays || !accepted ? null : accepted))
+      actions.append(toggle)
+    }
+    if (ready && ready.current && !ready.accepted) {
+      const acceptButton = h('button', { type: 'button', class: 'button primary', 'data-focus': `accept-production:${scene.id}`, text: accepting === ready.id ? 'Rendering the accepted scene…' : 'Accept as the scene\'s output', ...(accepting ? { disabled: true } : {}) })
+      acceptButton.addEventListener('click', () => accept(scene, ready))
+      actions.append(acceptButton)
+    }
+    const running = Boolean(latest && isActiveStatus(latest.status))
+    const again = Boolean(shown)
+    const produceButton = h('button', {
+      type: 'button',
+      class: again ? 'button ghost' : 'button primary',
+      'data-focus': `produce:${scene.id}`,
+      text: running ? 'Producing…' : again ? 'Produce again' : `Produce scene from r${approved.revision}`,
+      ...(running || waits.length || !desktop ? { disabled: true } : {}),
+      ...(desktop ? {} : { title: 'Production runs in the desktop app' }),
+    })
+    produceButton.addEventListener('click', () => void produce(scene, again))
+    actions.append(produceButton)
+    box.append(actions)
+    if (waits.length) box.append(h('ul', { class: 'review-muted' }, ...waits.map(line => h('li', { text: line }))))
+    const rich = (planned?.objects || []).filter(object => ['enrich', 'generate'].includes(object.asset.status))
+    if (rich.length && !shown) box.append(h('p', { class: 'review-muted', text: `The plan asks for richer artwork of ${rich.map(object => object.entity).join(', ')}: the production draws it from the cast, or names it as unmet — nothing stands in for it.` }))
+    box.append(h('p', { class: 'review-muted', text: 'Build whole notebook, under Advanced, is the older build: it works from the notebook\'s scripts and pages, and does not use approved plans.' }))
+    return box
   }
 
   // The plan preview: what the sketch shows, what is provisional, and its
@@ -562,7 +725,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
     if (!ready) {
       // No sketch of this revision: say so, and never lend it another's.
       const others = Object.values(preview?.byTreatment || {}).filter(view => view.of.record !== record.id).sort((a, b) => b.of.revision - a.of.revision)
-      const note = h('p', { class: 'review-muted review-no-preview', text: `No preview of r${record.revision} yet — the stage shows its page.${others.length ? ` Sketches exist for ${others.map(view => `r${view.of.revision}`).join(', ')}.` : ''}` })
+      // A revision produced without a sketch plays as produced on the stage.
+      const where = producedFor(scene, record) ? 'it was produced without one' : 'the stage shows its page'
+      const note = h('p', { class: 'review-muted review-no-preview', text: `No preview of r${record.revision} yet — ${where}.${others.length ? ` Sketches exist for ${others.map(view => `r${view.of.revision}`).join(', ')}.` : ''}` })
       if (others.length) {
         const other = others[0]
         const go = h('button', { type: 'button', class: 'link-button', 'data-focus': `show-revision:${other.of.record}`, text: `Show r${other.of.revision} and its preview` })
@@ -570,7 +735,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
           const state = uiOf(scene.id)
           state.revision = other.of.record
           state.moment = ''
-          host.selectMoment(scene.id, null, null)
+          host.selectMoment(scene.id, null, null, null)
           host.refresh()
         })
         note.append(' ', go)
@@ -707,7 +872,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       button.addEventListener('click', () => {
         state.revision = entry.id
         state.moment = ''
-        host.selectMoment(scene.id, null, null)
+        host.selectMoment(scene.id, null, null, null)
         host.refresh()
       })
       revisions.append(button)
@@ -777,7 +942,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         disclosure(`guide:${scene.id}`, 'Recording guide', guideOf(scene, plan, record)),
         disclosure(`compare:${scene.id}`, 'Compare with another revision', compareOf(scene, plan, record)),
         previewDetails(scene, record) || '',
-        disclosure(`production:${scene.id}`, 'Production — not connected yet', productionOf(scene, record)),
+        disclosure(`production:${scene.id}`, 'Produced scene', productionOf(scene), true),
         disclosure(`details:${scene.id}`, 'Details: evidence, skills, provenance', h('div', { class: 'review-details' },
           h('p', { class: 'review-muted', text: `Plan r${record.revision} · ${record.status === 'reviewed' ? 'approved' : record.status} · ${record.adapter || 'harness unknown'} ${record.reportedModel || record.model || ''}${record.approval ? ` · approved ${new Date(record.approval.at).toLocaleString()} with brief ${record.approval.briefId.slice(0, 18)}…${record.approval.castId ? ' and the visual cast' : ''}` : ''}` }),
           h('p', {}, h('strong', { text: 'Skills. ' }), plan.skills.map(skill => skill.skill).join(', ') || '—'),
@@ -806,7 +971,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const preview = scene ? previewStateOf(scene, record) : null
     const current = scene ? previewStateOf(scene, scene.view.current) : null
     const reference = scene?.reference
-    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId), reference?.revision, reference?.adopted?.revision, reference?.newer?.revision, reference?.newer?.designing, reference?.baseDesigning, adopting === sceneId])
+    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId), reference?.revision, reference?.adopted?.revision, reference?.newer?.revision, reference?.newer?.designing, reference?.baseDesigning, adopting === sceneId, scene?.production?.latest?.status, scene?.production?.ready?.id, scene?.production?.ready?.current, scene?.production?.accepted?.id, scene?.production?.accepted?.current, accepting, using, host.producedIn(sceneId)])
   }
 
   return {
@@ -841,7 +1006,18 @@ export const createSceneReview = (host: SceneReviewHost) => {
         scenes: overview.scenes.map(scene => {
           const take = host.takeOf(scene.id)
           // A take whose script is not known is not asked for again.
-          return { id: scene.id, index: scene.index, title: scene.title, state: scene.view.state, delivery: scene.delivery, take: !take ? 'none' : take.current || !take.known ? 'current' : 'earlier' }
+          const production = productionStateOf(scene)
+          const accepted = scene.production?.accepted
+          return {
+            id: scene.id,
+            index: scene.index,
+            title: scene.title,
+            state: scene.view.state,
+            delivery: scene.delivery,
+            take: !take ? 'none' : take.current || !take.known ? 'current' : 'earlier',
+            production,
+            produced: Boolean(accepted && host.producedIn(scene.id) === accepted.id),
+          }
         }),
         brief: { ready: Boolean(overview.brief.current), stale: overview.brief.stale, preparing: Boolean(brief && brief.kind === 'brief' && isActiveStatus(brief.status)), failed: brief?.status === 'failed' },
         selected,
@@ -853,12 +1029,17 @@ export const createSceneReview = (host: SceneReviewHost) => {
       const scene = sceneOf(sceneId)
       if (scene) void revise(scene)
     },
+    // Produce the scene from its approved plan, as its review's button does.
+    produce: (sceneId: string) => {
+      const scene = sceneOf(sceneId)
+      if (scene?.view.reviewed) void produce(scene, false)
+    },
     // The plan the stage should show for a scene, and its current moment.
     stageOf: (sceneId: string) => {
       const scene = sceneOf(sceneId)
       if (!scene) return null
       const record = shownRecord(scene)
-      return { scene, record, moment: uiOf(sceneId).moment, preview: previewFor(scene, record) }
+      return { scene, record, moment: uiOf(sceneId).moment, preview: previewFor(scene, record), production: productionShown(scene) }
     },
   }
 }

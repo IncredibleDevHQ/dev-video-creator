@@ -7,9 +7,9 @@
 // beside the stage, which shows the page as a labelled wireframe reference
 // and highlights what a selected moment is about. One scene is approved,
 // another left as a candidate; a revision is compared with the approved
-// one; the recording guide and the production explanation are there; and
+// one; the recording guide and what production waits for are there; and
 // after a restart both scenes read as they were left. Nothing downstream
-// starts: only planning runs, no production.
+// starts: only planning runs — production is the creator's own step.
 //
 // The stub `claude` speaks MCP through the real stdio shim and submits
 // through the planning tools; its scene plans reuse the page's cast by
@@ -493,9 +493,12 @@ try {
     const closed = !details.open
     details.open = true
     details.dispatchEvent(new Event('toggle'))
-    return { closed, summary: details.querySelector('summary').textContent, text: document.querySelector('.scene-review.is-expanded .review-production')?.textContent || '', button: Boolean(document.querySelector('.scene-review.is-expanded [data-focus^="produce:"]')) }
+    const produce = document.querySelector('.scene-review.is-expanded [data-focus^="produce:"]')
+    return { closed, summary: details.querySelector('summary').textContent, text: document.querySelector('.scene-review.is-expanded .review-production')?.textContent || '', button: produce?.textContent || '', disabled: Boolean(produce?.disabled) }
   }`)
-  check(production?.closed && production.summary === 'Production — not connected yet' && !production.button && /^Not connected yet: this build stops at approved plans and rough sketches\. Approving a plan never starts production\./.test(production.text) && /approved plan \(r\d+\)/.test(production.text) && /does not use approved plans/.test(production.text), `production is a stated boundary, not a promising action (${JSON.stringify(production)})`)
+  // P4: production is the creator's own step. Approving started none, and
+  // until the scene's delivery is chosen the step waits, saying why.
+  check(production && !production.closed && production.summary === 'Produced scene' && /^Produce scene from r\d+$/.test(production.button) && production.disabled && /Choose how this scene is delivered/.test(production.text) && /does not use approved plans/.test(production.text) && !(await overview(videoId)).scenes.some(scene => scene.production), `production waits for the creator, and says what it needs; approving started none (${JSON.stringify(production)})`)
   const chrome = await evaluate(`() => ({ rail: [...document.querySelectorAll('.notebook-timeline-chip strong')].map(item => item.textContent), create: getComputedStyle(document.getElementById('create-explainer')).display, build: document.getElementById('build-explainer').querySelector('.menu-label').textContent, buildTitle: document.getElementById('build-explainer').title, underAdvanced: Boolean(document.getElementById('build-explainer').closest('#advanced-menu-list')) })`)
   check(chrome.rail.join('|') === 'Request rate limiter|Concurrent requests limiter', `the scene rail names its scenes (${chrome.rail})`)
   check(chrome.create === 'none' && chrome.build === 'Build whole notebook' && chrome.underAdvanced && /does not use approved scene plans/.test(chrome.buildTitle), `a video notebook shows its own workflow; the older build waits under Advanced and says what it is (${JSON.stringify(chrome)})`)

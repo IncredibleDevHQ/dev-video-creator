@@ -135,6 +135,20 @@ export type NarrationTrackV1 = {
 
 export type PresenterTrackV1 = HumanCameraTrackV1 | NarrationTrackV1
 
+// A scene produced from its approved plan and accepted (P4): the render of
+// the accepted bundle, from the pinned producer, and what it was made of.
+export type ProducedSceneV1 = {
+  productionId: string
+  videoUrl: string
+  durationMs: number
+  // The accepted bundle's hash, and the approved plan it realizes.
+  bundle: string
+  plan: { record: string; revision: number }
+  acceptedAt: string
+  // Whether the render carries the scene's voice; a silent scene's does not.
+  voiced: boolean
+}
+
 export type RecordedBlockV1 = {
   blockId: NodeId
   recordingId: string
@@ -355,6 +369,9 @@ export type ProjectDocumentV1 = {
   presenterTracks: Record<NodeId, PresenterTrackV1[]>
   recordedBlocks?: Record<NodeId, RecordedBlockV1>
   recordedBlockTakes?: Record<NodeId, RecordedBlockV1[]>
+  // Scenes produced from their approved plans and accepted (P4): the render
+  // of each replaces the scene — the frames and sound the creator accepted.
+  producedScenes?: Record<NodeId, ProducedSceneV1>
   // Custom atomic shapes for explainer diagrams, merged over the built-in
   // vocabulary (see explainer.ts) by shape key.
   shapeCollection?: import('./explainer').ShapeDefV1[]

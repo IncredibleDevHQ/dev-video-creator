@@ -273,7 +273,8 @@ const mcpPreHandler = async (
   for await (const chunk of request) chunks.push(chunk as Buffer)
   const origin = `http://${request.headers.host}`
   // The run's capability scope travels in its MCP URL (see the adapters).
-  const scope = url.searchParams.get('scope') === 'planning' ? ('planning' as const) : undefined
+  const scopeParam = url.searchParams.get('scope')
+  const scope = scopeParam === 'planning' || scopeParam === 'production' ? scopeParam : undefined
   const write = (status: number, value: unknown) => {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
     response.end(JSON.stringify(value))

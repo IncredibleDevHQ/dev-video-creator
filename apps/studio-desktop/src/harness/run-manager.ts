@@ -43,8 +43,12 @@ type RunRecord = {
   lastError?: string
 }
 
-// A planning run names the record it works for (M0).
+// A planning run names the record it works for (M0); a production run (P4)
+// names its production record and runs the producer, which reads the
+// planner's pinned Hyperframes subset beside it.
 const PLANNING_SKILL = 'video-planner'
+const PRODUCTION_SKILL = 'scene-producer'
+const RECORD_SKILLS = new Set([PLANNING_SKILL, PRODUCTION_SKILL])
 
 const planningOf = (inputs?: Record<string, unknown>) => {
   const planning = inputs?.planning as { recordId?: unknown } | undefined
@@ -242,8 +246,10 @@ export class RunManager {
   async start(options: StartRunOptions): Promise<RunSummary> {
     const id = `run-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`
     const planningRecord = planningOf(options.inputs)
-    // A planning record is answered by the planning skill, and only by it.
-    if (planningRecord && options.skill !== PLANNING_SKILL) throw new Error(`A planning run uses the ${PLANNING_SKILL} skill, not ${options.skill}`)
+    // A planning record is answered by the planning skill, and a production
+    // record by the producer — and only by them.
+    if (planningRecord && !RECORD_SKILLS.has(options.skill)) throw new Error(`A planning run uses the ${PLANNING_SKILL} skill, and a production run the ${PRODUCTION_SKILL} skill, not ${options.skill}`)
+    const production = options.skill === PRODUCTION_SKILL
     // A creation run — the story, the pages, the explainer — works in a
     // directory of its own, so a run never reads an earlier run's pages or
     // outline as its own result. Motion assist keeps the project directory.
@@ -256,7 +262,7 @@ export class RunManager {
     // Install the vendored skills into the project first (spec §5): the
     // adapter then reads SKILL.md from the project's .claude/skills copy.
     try {
-      const install = await installSkills(this.context.skillsDir, projectDir, planningRecord ? { only: [PLANNING_SKILL] } : {})
+      const install = await installSkills(this.context.skillsDir, projectDir, planningRecord ? { only: production ? [PRODUCTION_SKILL, PLANNING_SKILL] : [PLANNING_SKILL] } : {})
       if (install.installed.length) log(`skills installed: ${install.installed.join(', ')}`)
       if (install.modifiedLocally.length) {
         log(`skills modified locally (kept): ${install.modifiedLocally.join(', ')}`)
@@ -276,8 +282,10 @@ export class RunManager {
     if (planningRecord) {
       try {
         const packet = await this.materialisePacket(planningRecord, projectDir)
+        // The record decides the route; the skill must be the one that answers it.
+        if ((packet.route === 'Produce Scene') !== production) throw new Error(`route ${packet.route} is not run by the ${options.skill} skill`)
         await this.describeRun(projectDir, options.adapter, typeof options.inputs?.model === 'string' ? options.inputs.model : null)
-        inputs.capabilityScope = 'planning'
+        inputs.capabilityScope = production ? 'production' : 'planning'
         inputs.planning = { ...(inputs.planning as Record<string, unknown>), recordId: planningRecord, route: packet.route }
         inputs.packet = { files: packet.files }
       } catch (error) {

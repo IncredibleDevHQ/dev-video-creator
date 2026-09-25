@@ -142,9 +142,11 @@ export const forkNotebook = (
     ) as Record<string, T>
   child.blocks = remap(child.blocks)
   child.presenterTracks = remap(child.presenterTracks)
-  // Takes belong to the notebook that recorded them: a fresh video has none.
+  // Takes belong to the notebook that recorded them, and produced scenes to
+  // the notebook that accepted them: a fresh video has none.
   delete child.recordedBlocks
   delete child.recordedBlockTakes
+  delete child.producedScenes
   const derivation: ProjectDerivationV1 = {
     notebook: base.id,
     kind: options.kind || 'video',

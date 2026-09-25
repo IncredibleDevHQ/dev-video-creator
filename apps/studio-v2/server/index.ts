@@ -2365,6 +2365,10 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
     recording.videoUrl = localAssetPath(recording.videoUrl) || recording.videoUrl
     if (recording.cameraUrl) recording.cameraUrl = localAssetPath(recording.cameraUrl) || recording.cameraUrl
   })
+  // A produced scene's render (P4) is staged like a take: the same bytes.
+  Object.values(renderProject.producedScenes || {}).forEach(produced => {
+    produced.videoUrl = localAssetPath(produced.videoUrl) || produced.videoUrl
+  })
   const stageNotebookMedia = (node: TiptapNode) => {
     if (
       (node.type === 'image' || node.type === 'screenRecording') &&

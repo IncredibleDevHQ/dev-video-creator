@@ -3,13 +3,17 @@
 // by the desktop main (POST /mcp) and reached by harness CLIs through the
 // stdio shim.
 import { TOOLS, type ToolContext } from './tools'
-import { PLANNING_TOOL_NAMES } from './planning-tools'
+import { PLANNING_TOOL_NAMES, PRODUCTION_TOOL_NAMES } from './planning-tools'
 
 // What a run may see and call. A planning run is offered only the planning
 // tools; every other studio tool — artwork, narration, preview, finish,
 // export — is refused by the product whatever the harness asks for.
 const toolsFor = (context: ToolContext) =>
-  context.scope === 'planning' ? TOOLS.filter(tool => PLANNING_TOOL_NAMES.has(tool.name)) : TOOLS
+  context.scope === 'planning'
+    ? TOOLS.filter(tool => PLANNING_TOOL_NAMES.has(tool.name))
+    : context.scope === 'production'
+      ? TOOLS.filter(tool => PRODUCTION_TOOL_NAMES.has(tool.name))
+      : TOOLS
 
 const PROTOCOL_VERSION = '2024-11-05'
 
@@ -46,7 +50,9 @@ export const handleMcpMessage = async (
       serverInfo: { name: 'incredible-studio', version: '0.1.0' },
       instructions:
         context.scope === 'planning'
-          ? 'Studio planning tools for a planning-only run: plan_context, plan_assets, plan_submit_brief, plan_submit_treatment. Nothing here generates artwork, audio, recordings, compositions or exports.'
+          ? 'Studio planning tools for a planning-only run: plan_context, plan_assets, plan_submit_brief, plan_submit_sketch, plan_submit_treatment. Nothing here generates artwork, audio, recordings, compositions or exports.'
+          : context.scope === 'production'
+            ? 'Studio production tools for one scene: produce_context, produce_assets, produce_submit_scene. Nothing here plans, approves, records, generates audio or artwork, or exports.'
           : 'Studio motion helpers for the motion-master skill: atomize, direct (the director: measured staging options per beat), measure, plan_beats, resolve, validate, receipt, frames. Paths are absolute; outputs are files under motion/ plus a compact JSON summary.',
     })
   }
@@ -65,7 +71,7 @@ export const handleMcpMessage = async (
     const tool = toolsFor(context).find(candidate => candidate.name === params.name)
     if (!tool) {
       return TOOLS.some(candidate => candidate.name === params.name)
-        ? replyError(message.id, -32602, `"${params.name}" is not available to a planning run: planning never generates artwork, audio, recordings, compositions or exports`)
+        ? replyError(message.id, -32602, context.scope === 'production' ? `"${params.name}" is not available to a production run: it produces one approved scene and submits it` : `"${params.name}" is not available to a planning run: planning never generates artwork, audio, recordings, compositions or exports`)
         : replyError(message.id, -32602, `unknown tool "${params.name}"`)
     }
     try {

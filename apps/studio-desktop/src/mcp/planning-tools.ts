@@ -78,7 +78,7 @@ const contextTool = async (args: Json) => {
 // The sketch folder as the product receives it: text as text, images and
 // fonts as bytes.
 const TEXT_FILES = /\.(html|css|js|json|svg|txt|md)$/i
-const BINARY_TYPES: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' }
+const BINARY_TYPES: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4', '.m4a': 'audio/mp4', '.wav': 'audio/wav' }
 const readSketch = async (root: string, folder = '', files: Record<string, string | { base64: string; contentType: string }> = {}) => {
   for (const entry of await readdir(join(root, folder), { withFileTypes: true })) {
     const path = folder ? `${folder}/${entry.name}` : entry.name
@@ -112,6 +112,40 @@ const submitSketch = async (args: Json, context: Context) => {
   }
   if (status >= 400) throw new Error(String(body.error || `The studio answered ${status}`))
   return { accepted: true, status: body.status, warnings: body.warnings, next: 'Accepted. Stop the run now; the creator watches the preview in the product.' }
+}
+
+// ——— Production (P4): a scene produced from its approved plan ———
+const productionContextTool = async (args: Json) => {
+  const run = await runOf(args)
+  if (run.route !== 'Produce Scene') throw new Error(`This run is for route ${run.route}; it is not a production run`)
+  return {
+    route: run.route,
+    record: run.recordId,
+    packet: run.files,
+    writes: 'production/index.html, production/manifest.json, production/audio/ (the clock\'s sound, unchanged) and production/assets/',
+    contract: 'references/production-contract.md',
+    submissionBudget: PLANNING_SUBMISSION_BUDGET,
+    boundary: 'Produce the approved plan on the clock in CLOCK.json: no re-planning, no audio made or changed, no recording, no generated artwork, no approval or export. Stop when the production is accepted.',
+  }
+}
+
+const submitProduction = async (args: Json, context: Context) => {
+  const run = await runOf(args)
+  if (run.route !== 'Produce Scene') throw new Error(`This run is for route ${run.route}; it cannot submit a produced scene`)
+  let files: Awaited<ReturnType<typeof readSketch>>
+  try {
+    files = await readSketch(inside(run.projectDir, 'production'))
+  } catch (error) {
+    throw new Error(`production/ is not readable: ${error instanceof Error ? error.message : error}`)
+  }
+  const attempt = await spendSubmission(run.projectDir)
+  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/production`, { files, ...(run.runId ? { runId: run.runId } : {}) })
+  await writeFile(join(run.projectDir, 'planning', `production.report.${attempt}.json`), JSON.stringify({ status, ...body }, null, 2)).catch(() => {})
+  if (status === 422) {
+    return { accepted: false, attempt, remaining: PLANNING_SUBMISSION_BUDGET - attempt, problems: body.problems, warnings: body.warnings, next: 'Fix exactly these problems and submit again.' }
+  }
+  if (status >= 400) throw new Error(String(body.error || `The studio answered ${status}`))
+  return { accepted: true, status: body.status, warnings: body.warnings, next: 'Accepted. Stop the run now; the creator watches the produced scene and accepts it in the product.' }
 }
 
 const assetsTool = async (_args: Json, context: Context) => {
@@ -178,3 +212,12 @@ export const PLANNING_TOOLS: Array<{
 ]
 
 export const PLANNING_TOOL_NAMES = new Set(PLANNING_TOOLS.map(tool => tool.name))
+
+// A production run's tools: its context, the accepted library, and the
+// submission of the produced scene.
+export const PRODUCTION_TOOLS: typeof PLANNING_TOOLS = [
+  { name: 'produce_context', description: 'Read this production run\'s route, its packet files, what to write and the contract the product checks.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: productionContextTool },
+  { name: 'produce_assets', description: 'List the accepted, reusable objects in the asset library — what each represents and its named parts. Read-only.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: assetsTool },
+  { name: 'produce_submit_scene', description: 'Hand the production/ folder (index.html, manifest.json, the clock\'s sound in audio/, assets) — the scene produced from its approved plan — to the product. It is checked against the plan, the clock and the pinned runtime, and played; the answer is accepted, or the problems to fix.', inputSchema: { type: 'object', properties: common, required: ['projectDir'] }, call: submitProduction },
+]
+export const PRODUCTION_TOOL_NAMES = new Set(PRODUCTION_TOOLS.map(tool => tool.name))

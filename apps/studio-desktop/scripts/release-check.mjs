@@ -66,6 +66,7 @@ const CHECKS = [
   'scene-review-check.mjs',       // P2: scene review in the notebook — stage, moments, approvals, guide, restart
   'review-layout-check.mjs',      // Perplexity F6: the review readable at 1280/1440 — own type, no clipping, compact moments
   'plan-preview-check.mjs',       // P3: a plan's rough sketch, checked by the pinned engine, played and seeked on the stage
+  'production-check.mjs',         // P4: an approved scene produced on its real clock, accepted, played and exported
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 

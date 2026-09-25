@@ -43,6 +43,8 @@ type SceneRow = {
   continuity?: ContinuityState[] | null
   // The scene's newest plan preview, and the one ready to play.
   preview?: ScenePreviewSummary | null
+  // The scene produced from its approved plan (P4), and the one accepted.
+  production?: SceneProductionSummary | null
 }
 // One ready sketch of one plan revision. `current` holds only while that
 // revision is the scene's current, fresh plan and its theme, cast and skills
@@ -72,6 +74,38 @@ export type ScenePreviewSummary = {
   ready: ScenePreviewView | null
   // The newest ready sketch of each plan revision, by treatment record id.
   byTreatment: Record<string, ScenePreviewView>
+}
+// A scene produced from its approved plan (P4): the bundle the stage plays,
+// on its real clock, and — once accepted — the render the notebook plays and
+// exports. `current` holds only while it is what the approved plan, its
+// inputs and its clock ask for now.
+export type SceneProductionView = {
+  id: string
+  url: string
+  of: { record: string; revision: number }
+  current: boolean
+  staleBecause: string | null
+  summary: {
+    duration: number
+    clock: 'generated-voice' | 'take' | 'silent'
+    moments: Array<{ id: string; title: string; start: number; end: number }>
+    layers: Array<{ id: string; kind: string; label: string; moments: string[]; reuses: string | null; placeholder: string | null }>
+    unmet: string[]
+    controls: Array<{ id: string; label: string; kind: 'hold' | 'offset'; moment: string; default: number; min: number; max: number }>
+    schedule?: ScenePreviewView['summary']['schedule']
+  }
+  warnings: string[]
+  adapter: string | null
+  model: string | null
+  checked: ScenePreviewView['checked']
+  voice: string | null
+  accepted: { at: string; url: string; durationMs: number; bundle: string } | null
+}
+export type SceneProductionSummary = {
+  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string }
+  // The newest produced scene, and the one accepted as the scene's output.
+  ready: SceneProductionView | null
+  accepted: SceneProductionView | null
 }
 // The cast of the video's pinned base, as the overview reports it.
 export type VisualCastSummary = {

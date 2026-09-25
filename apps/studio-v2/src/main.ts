@@ -8666,12 +8666,12 @@ const syncPublishSummary = () => {
   const readiness = publishAudio()
   const line = $('#publish-audio') as HTMLElement
   const kinds = readiness.blocks.reduce<Record<string, number>>((count, entry) => ({ ...count, [entry.state]: (count[entry.state] || 0) + 1 }), {})
-  const voicedBy = [kinds.take ? `${kinds.take} recorded take${kinds.take === 1 ? '' : 's'}` : '', kinds['recorded-voice'] ? `${kinds['recorded-voice']} recorded voice${kinds['recorded-voice'] === 1 ? '' : 's'}` : '', kinds['generated-voice'] ? `${kinds['generated-voice']} generated voice${kinds['generated-voice'] === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')
+  const voicedBy = [kinds.produced ? `${kinds.produced} produced scene${kinds.produced === 1 ? '' : 's'}` : '', kinds.take ? `${kinds.take} recorded take${kinds.take === 1 ? '' : 's'}` : '', kinds['recorded-voice'] ? `${kinds['recorded-voice']} recorded voice${kinds['recorded-voice'] === 1 ? '' : 's'}` : '', kinds['generated-voice'] ? `${kinds['generated-voice']} generated voice${kinds['generated-voice'] === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')
   line.hidden = included.length === 0
   line.classList.toggle('is-silent', readiness.missing > 0 || readiness.silentDraft)
   line.textContent = readiness.silentDraft
     ? `Audio: no block has a take or a voice — this exports a silent draft.${readiness.missing ? ` ${readiness.missing} block${readiness.missing === 1 ? ' has' : 's have'} words that are not voiced.` : ''}`
-    : `Audio: ${readiness.voiced} of ${included.length} blocks voiced (${voicedBy}).${readiness.missing ? ` ${readiness.missing} ${readiness.missing === 1 ? 'has' : 'have'} words but no voice or take — ${readiness.missing === 1 ? 'it' : 'they'} will be silent.` : ''}${readiness.silentByChoice ? ` ${readiness.silentByChoice} silent by choice.` : ''}`
+    : `Audio: ${readiness.voiced} of ${included.length} blocks voiced${voicedBy ? ` (${voicedBy})` : ''}.${readiness.missing ? ` ${readiness.missing} ${readiness.missing === 1 ? 'has' : 'have'} words but no voice or take — ${readiness.missing === 1 ? 'it' : 'they'} will be silent.` : ''}${readiness.silentByChoice ? ` ${readiness.silentByChoice} silent by choice.` : ''}`
   if (!activePublishJob) startPublishButton.textContent = publishActionLabel(readiness)
 }
 
@@ -8980,7 +8980,14 @@ const openPublishSummary = async () => {
   const exportKind = $('#publish-export-kind') as HTMLElement
   const review = await explainerReviewState()
   exportKind.hidden = false
-  if (review.isReviewed) {
+  // A video notebook's scenes that play the production accepted from their
+  // approved plans (P4); the others are the notebook's own composition.
+  const videoScenes = review.derived ? (project.notebook.content || []).filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id).map(node => String(node.attrs!.id)) : []
+  const producedCount = videoScenes.filter(id => project.producedScenes?.[id]).length
+  const allProduced = videoScenes.length > 0 && producedCount === videoScenes.length
+  if (allProduced) {
+    exportKind.textContent = 'Video export — every scene plays the production you accepted from its approved plan.'
+  } else if (review.isReviewed) {
     exportKind.textContent = 'Reviewed explainer export — every scene passed the rich build’s review.'
   } else if (review.derived && review.changedCount) {
     exportKind.textContent = `Draft export — ${review.changedCount} of ${review.sceneCount} scenes changed since the rich build's review. Build explainer re-reviews them; accepted artwork is reused.`
@@ -8989,12 +8996,18 @@ const openPublishSummary = async () => {
   } else {
     exportKind.textContent = 'Draft export — this notebook has not been through the rich explainer build. Create explainer starts that journey.'
   }
-  // A video notebook's approved scene plans are not produced yet: say what
-  // this export is, and what it is not.
-  if (review.derived) exportKind.textContent += ' It exports the notebook\'s own composition — its pages, words and takes — not the approved scene plans; producing those is not connected yet.'
+  // Until every scene is produced, say what this export is, and what it is not.
+  if (review.derived && !allProduced) {
+    exportKind.textContent += producedCount
+      ? ` ${producedCount} of ${videoScenes.length} scenes play the production you accepted from their approved plans; the others are the notebook's own composition — its pages, words and takes.`
+      : ' It exports the notebook\'s own composition — its pages, words and takes — not the approved scene plans: no scene\'s production is accepted yet.'
+  }
   renderPublishBlockList()
   ;($('#burn-captions') as HTMLInputElement).checked = Boolean(project.captions?.burnIn)
   publishDialog.showModal()
+  // The export is the notebook's own composition: the stage steps aside
+  // behind the summary, as it does while the junctions are walked.
+  renderSceneStage()
 }
 
 renderButton.addEventListener('click', () => {
@@ -17805,13 +17818,16 @@ const sceneStageNote = $('#scene-stage-note') as HTMLElement
 const sceneStagePreview = $('#scene-stage-preview') as HTMLElement
 let sceneStageFor = ''
 // The stage shows the scene's page as a reference, the base's newer page
-// to compare (F1 of the Perplexity review), or plays the plan's preview.
-let sceneStageMode: 'reference' | 'base' | 'preview' = 'reference'
+// to compare (F1 of the Perplexity review), or plays the plan's preview —
+// or the scene produced from its approved plan, on its real clock (P4).
+let sceneStageMode: 'reference' | 'base' | 'preview' | 'output' = 'reference'
 type StagePlayer = HTMLElement & { play(): void; pause(): void; seek(time: number): void; readonly currentTime: number; readonly duration: number }
 let stagePlayer: StagePlayer | null = null
 let stagePlayerUrl = ''
 let stagePreviewMoments: Array<{ id: string; title: string; start: number; end: number }> = []
 let stagePreviewDuration = 1
+// A sketch's timing is estimated; a production keeps its real clock.
+let stageClockEstimated = true
 const stageTransport = document.createElement('div')
 stageTransport.className = 'scene-stage-transport'
 const stagePlay = Object.assign(document.createElement('button'), { type: 'button', textContent: '▶', title: 'Play or pause the preview' })
@@ -17828,7 +17844,8 @@ let stagePlaying = false
 // At the end the last frame holds and the button offers a replay.
 let stageEnded = false
 const syncStagePlay = () => {
-  const label = stagePlaying ? 'Pause the preview' : stageEnded ? 'Replay the preview from the start' : 'Play the preview'
+  const what = stageClockEstimated ? 'the preview' : 'the produced scene'
+  const label = stagePlaying ? `Pause ${what}` : stageEnded ? `Replay ${what} from the start` : `Play ${what}`
   stagePlay.textContent = stagePlaying ? '❚❚' : stageEnded ? '↻' : '▶'
   stagePlay.title = label
   stagePlay.setAttribute('aria-label', label)
@@ -17845,7 +17862,7 @@ stagePlay.addEventListener('click', () => {
 const updateStageClock = () => {
   const time = stagePlayer?.currentTime || 0
   stageHead.style.left = `${Math.min(100, (time / stagePreviewDuration) * 100)}%`
-  stageClock.textContent = `${time.toFixed(1)}s / ${stagePreviewDuration}s est.`
+  stageClock.textContent = `${time.toFixed(1)}s / ${stagePreviewDuration}s${stageClockEstimated ? ' est.' : ''}`
   const current = stagePreviewMoments.find(moment => time >= moment.start && time < moment.end)
   stageTrack.querySelectorAll<HTMLElement>('[data-stage-moment]').forEach(element => element.classList.toggle('is-current', element.dataset.stageMoment === current?.id))
 }
@@ -17892,7 +17909,7 @@ const ensureStagePlayer = () => {
 }
 sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
   button.addEventListener('click', () => {
-    const mode = button.dataset.stageMode === 'preview' ? 'preview' : button.dataset.stageMode === 'base' ? 'base' : 'reference'
+    const mode = button.dataset.stageMode === 'preview' ? 'preview' : button.dataset.stageMode === 'base' ? 'base' : button.dataset.stageMode === 'output' ? 'output' : 'reference'
     if (mode === sceneStageMode) return
     if (mode === 'reference') stagePlayer?.pause()
     sceneStageMode = mode
@@ -17944,14 +17961,16 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   // is; the base's newer page when there is one to compare; the preview of
   // the shown revision once there is one — never another revision's.
   const ready = stage.preview
+  const produced = stage.production
   const reference = stage.scene.reference || null
   const newer = reference?.newer && !reference.newer.designing && reference.newer.svg ? reference.newer : null
   if (sceneStageMode === 'preview' && !ready) sceneStageMode = 'reference'
+  if (sceneStageMode === 'output' && !produced) sceneStageMode = 'reference'
   if (sceneStageMode === 'base' && !newer) sceneStageMode = 'reference'
   const pageLabel = reference?.kind === 'schematic' ? 'Schematic' : reference?.kind === 'designed' ? 'Designed slide' : 'Page reference'
   sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
     const mode = button.dataset.stageMode
-    button.disabled = mode === 'preview' ? !ready : mode === 'output'
+    button.disabled = mode === 'preview' ? !ready : mode === 'output' ? !produced : false
     if (mode === 'reference') {
       button.textContent = pageLabel
       button.title = reference ? `The page this scene is planned from: revision ${reference.revision.slice(0, 8)}${reference.adopted ? ', adopted from the base' : ''}` : 'The page this scene comes from'
@@ -17962,24 +17981,30 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
       button.title = newer ? `The base's page for this scene now: revision ${newer.revision.slice(0, 8)}${newer.by ? `, by ${newer.by}` : ''}` : ''
     }
     if (mode === 'preview') button.title = ready ? `Rough sketch of plan r${ready.of.revision}` : stage.record ? `No preview of r${stage.record.revision} yet` : 'No plan yet'
+    if (mode === 'output') button.title = produced ? `The scene produced from approved plan r${produced.of.revision}, on its real clock` : stage.scene.view.reviewed ? 'Not produced yet: produce the scene from its approved plan in its review' : 'A scene is produced from its approved plan'
     button.classList.toggle('is-active', mode === sceneStageMode)
     button.setAttribute('aria-pressed', String(mode === sceneStageMode))
   })
   const previewing = sceneStageMode === 'preview' && ready
-  sceneStage.classList.toggle('is-preview', Boolean(previewing))
-  sceneStageBar.classList.toggle('is-preview', Boolean(previewing))
-  sceneStageReference.hidden = Boolean(previewing)
-  sceneStagePreview.hidden = !previewing
-  if (previewing && ready) {
+  const outputting = sceneStageMode === 'output' && produced
+  const playing = previewing || outputting
+  sceneStage.classList.toggle('is-preview', Boolean(playing))
+  sceneStageBar.classList.toggle('is-preview', Boolean(playing))
+  sceneStageReference.hidden = Boolean(playing)
+  sceneStagePreview.hidden = !playing
+  const playable = outputting ? produced : previewing ? ready : null
+  if (playable) {
     const player = ensureStagePlayer()
-    if (stagePlayerUrl !== ready.url) {
-      stagePlayerUrl = ready.url
-      player.setAttribute('src', ready.url)
-      stagePreviewMoments = ready.summary.moments
-      stagePreviewDuration = ready.summary.duration || 1
+    if (stagePlayerUrl !== playable.url) {
+      stagePlayerUrl = playable.url
+      player.setAttribute('src', playable.url)
+      stagePreviewMoments = playable.summary.moments
+      stagePreviewDuration = playable.summary.duration || 1
+      stageClockEstimated = !outputting
+      syncStagePlay()
       stageTrack.replaceChildren(
-        ...ready.summary.moments.map(moment => {
-          const segment = Object.assign(document.createElement('button'), { type: 'button', textContent: moment.title, title: `${moment.title}: ${moment.start}–${moment.end}s (estimated)` })
+        ...playable.summary.moments.map(moment => {
+          const segment = Object.assign(document.createElement('button'), { type: 'button', textContent: moment.title, title: `${moment.title}: ${moment.start}–${moment.end}s${outputting ? '' : ' (estimated)'}` })
           segment.dataset.stageMoment = moment.id
           segment.className = 'scene-stage-moment'
           segment.style.left = `${(moment.start / stagePreviewDuration) * 100}%`
@@ -17996,6 +18021,15 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
       )
       updateStageClock()
     }
+    if (outputting && produced) {
+      // A production says what it plays on, and what it could not meet.
+      const clock = produced.summary.clock === 'generated-voice' ? 'a generated voice' : produced.summary.clock === 'take' ? 'your take' : 'silence, by choice'
+      const unmet = produced.summary.unmet.length
+      sceneStageNote.textContent = `Produced from plan r${produced.of.revision}, on ${clock}${produced.accepted ? ' · accepted' : ' · not accepted yet'}${produced.current ? '' : ' — out of date'}${unmet ? ` · ${unmet} unmet` : ''}`
+      sceneStageNote.title = [produced.current ? '' : `Out of date: ${produced.staleBecause || 'its plan changed'}`, ...produced.summary.unmet].filter(Boolean).join('\n')
+      return
+    }
+    if (!ready) return
     // One line on the stage; the full list is in the review and the title.
     const shows = [
       ready.summary.provisional.some(item => /tim/i.test(item)) ? 'timing estimated' : '',
@@ -18049,6 +18083,27 @@ const recordScene = (sceneId: string) => {
   renderSceneStage()
   openCamera()
 }
+// The stage plays the scene's production (P4).
+const showProducedScene = (sceneId: string) => {
+  if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
+  sceneStageAsideFor = ''
+  sceneStageMode = 'output'
+  renderSceneStage()
+}
+// What the notebook plays for its scenes is saved at once: the notebook's
+// composition, and its export, follow it.
+const saveProducedScenes = async (unsaved: string) => {
+  project.notebook = editor.getJSON() as TiptapDocument
+  try {
+    await persistProjectNow(structuredClone(project))
+  } catch (error) {
+    throw new Error(`${unsaved}: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    syncProject()
+    refreshSceneReview()
+    renderSceneStage()
+  }
+}
 const refreshSceneReview = () => {
   const focus = sceneReview?.focusKey() || ''
   editor.view.dispatch(editor.state.tr.setMeta(sceneReviewKey, 'refresh'))
@@ -18095,11 +18150,14 @@ sceneReview = createSceneReview({
   // steps aside while the camera dialog is open.
   record: sceneId => recordScene(sceneId),
   openWorkspace: (sceneId, revision, moment) => void planningWorkspace.open({ sceneId, revision, moment, tab: 'plan' }),
-  selectMoment: (_sceneId, targets, at) => {
+  selectMoment: (_sceneId, targets, at, producedAt) => {
     renderSceneStage(targets)
-    if (at !== null && sceneStageMode === 'preview' && stagePlayer) {
-      stagePlayer.seek(at)
+    const to = sceneStageMode === 'preview' ? at : sceneStageMode === 'output' ? producedAt : null
+    if (to !== null && stagePlayer) {
+      stageEnded = false
+      stagePlayer.seek(to)
       updateStageClock()
+      syncStagePlay()
     }
   },
   showPreview: sceneId => {
@@ -18113,6 +18171,35 @@ sceneReview = createSceneReview({
     sceneStageAsideFor = ''
     sceneStageMode = 'base'
     renderSceneStage()
+  },
+  showProduction: sceneId => showProducedScene(sceneId),
+  // An accepted production is the scene's output: the notebook plays its
+  // render in the scene's place, and the export renders it there (P4).
+  adoptProduction: async (sceneId, production) => {
+    const accepted = production.accepted
+    if (!accepted) throw new Error('Only an accepted production can be the scene\'s output')
+    project.producedScenes = {
+      ...(project.producedScenes || {}),
+      [sceneId]: {
+        productionId: production.id,
+        videoUrl: new URL(accepted.url, window.location.origin).href,
+        durationMs: accepted.durationMs,
+        bundle: accepted.bundle,
+        plan: production.of,
+        acceptedAt: accepted.at,
+        voiced: production.summary.clock !== 'silent',
+      },
+    }
+    await saveProducedScenes('The scene is accepted, but the notebook did not save it')
+  },
+  producedIn: sceneId => project.producedScenes?.[sceneId]?.productionId || null,
+  releaseProduction: async sceneId => {
+    if (!project.producedScenes?.[sceneId]) return
+    const rest = { ...project.producedScenes }
+    delete rest[sceneId]
+    if (Object.keys(rest).length) project.producedScenes = rest
+    else delete project.producedScenes
+    await saveProducedScenes('The notebook plays its own scene, but did not save it')
   },
   // The scene takes its base's newer page (F1 of the Perplexity review): its
   // words, takes and plans stay; the page, and the motion planned on it
@@ -18225,6 +18312,17 @@ nextStepButton.addEventListener('click', () => {
       break
     case 'record':
       if (scene) recordScene(scene)
+      break
+    case 'produce':
+      if (!scene) break
+      if (reviewSelectedScene !== scene) selectNode(scene, true)
+      revealBlock(scene)
+      sceneReview?.produce(scene)
+      break
+    case 'review-output':
+      if (!scene) break
+      revealBlock(scene)
+      showProducedScene(scene)
       break
     case 'export':
       renderButton.click()

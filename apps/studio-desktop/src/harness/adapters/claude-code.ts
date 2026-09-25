@@ -209,9 +209,13 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       '--permission-mode',
       'acceptEdits',
       '--allowedTools',
-      // A planning run gets no shell at all: it reads, writes its plan and
-      // calls the planning tools, nothing else.
-      run.inputs.capabilityScope === 'planning' ? 'Read,Write,Edit,Glob,Grep,mcp__studio__plan_*' : 'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
+      // A planning or production run gets no shell at all: it reads, writes
+      // its plan or its scene and calls its own tools, nothing else.
+      run.inputs.capabilityScope === 'planning'
+        ? 'Read,Write,Edit,Glob,Grep,mcp__studio__plan_*'
+        : run.inputs.capabilityScope === 'production'
+          ? 'Read,Write,Edit,Glob,Grep,mcp__studio__produce_*'
+          : 'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
       '--mcp-config',
       mcpConfig,
     ]
