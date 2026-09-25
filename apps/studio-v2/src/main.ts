@@ -16418,9 +16418,15 @@ const renderPageDesignStatus = () => {
   if (!bound.length) return
   const waiting = bound.filter(entry => !entry.designed).length
   const by = bound[0].binding.by || 'the designer'
-  ;($('#page-design-text') as HTMLElement).textContent = waiting
-    ? `${by} is still designing ${waiting} page${waiting === 1 ? '' : 's'}; each lands on its scene when it is finished.`
-    : `Every page is designed; ${by} is still checking them.`
+  // The run belongs to the desktop app: a browser can only say so.
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  ;($('#page-design-stop') as HTMLButtonElement).hidden = !desktop
+  const count = waiting || bound.length
+  ;($('#page-design-text') as HTMLElement).textContent = !desktop
+    ? `${count === 1 ? 'A page is' : `${count} pages are`} being designed in the desktop app; ${count === 1 ? 'it lands on its scene' : 'they land on their scenes'} while this notebook is open there.`
+    : waiting
+      ? `${by} is still designing ${waiting} page${waiting === 1 ? '' : 's'}; each lands on its scene when it is finished.`
+      : `Every page is designed; ${by} is still checking them.`
 }
 // A bound scene is bound to its page as the notebook keeps it: planning a
 // scene rewrites its page with the parts' ids, so the binding follows that.
