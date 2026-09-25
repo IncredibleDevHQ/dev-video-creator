@@ -2382,7 +2382,7 @@ button.se-state:hover { filter: brightness(.97); }
 .player-shell.has-scene-stage .canvas-block-timeline,
 .player-shell.has-scene-stage .motion-preview-badge,
 .player-shell.has-scene-stage .canvas-take-player,
-.player-shell.has-scene-stage .finalize-bar { display: none !important; }
+.player-shell.has-scene-stage:not(.canvas-finalize-mode) .finalize-bar { display: none !important; }
 .player-shell.canvas-open.has-scene-stage { grid-template-columns: minmax(0, 1fr) 0; }
 .player-shell.canvas-open.has-scene-stage .canvas-director,
 .player-shell.canvas-open.has-scene-stage .director-toggle { display: none; }

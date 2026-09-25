@@ -333,6 +333,38 @@ try {
   check(Boolean(afterAdopt), 'with the plan\'s lines as the script, the scene can be rehearsed and recorded')
   const stillApproved = (await overview(videoId)).scenes[1].view
   check(stillApproved.state === 'reviewed' && stillApproved.reviewed?.id === planned.id && !stillApproved.staleBecause, `taking the approved plan's own lines leaves it approved and fresh (${stillApproved.state}${stillApproved.staleBecause ? ` — ${stillApproved.staleBecause}` : ''})`)
+  // Publish on a video notebook of two scenes (F6 of the fresh E2E review):
+  // the stage used to cover the notebook's composition and hide the finalize
+  // bar. It steps aside for the whole walk; the summary says what the export
+  // is, and a draft MP4 is exported.
+  await selectScene(1)
+  check(Boolean(await waitFor(`() => document.getElementById('player-shell').classList.contains('has-scene-stage') ? true : null`, 20)), 'the selected scene shows its stage before publishing')
+  await evaluate(`() => { document.getElementById('render-video').click(); return true }`)
+  const walk = await waitFor(`() => {
+    const bar = document.getElementById('finalize-bar')
+    const shell = document.getElementById('player-shell')
+    if (!bar || bar.hidden || getComputedStyle(bar).display === 'none') return null
+    return { stage: shell.classList.contains('has-scene-stage'), finalize: shell.classList.contains('canvas-finalize-mode'), step: document.getElementById('finalize-step').textContent, next: document.getElementById('finalize-next').textContent }
+  }`, 20)
+  check(Boolean(walk) && !walk.stage && walk.finalize && walk.step === 'Junction 1 of 1' && walk.next === 'Continue →', `Publish walks the junctions on the notebook's own composition, the stage aside (${JSON.stringify(walk)})`)
+  await shot('02c-publish-walk')
+  await evaluate(`() => { document.getElementById('finalize-next').click(); return true }`)
+  const exportKind = await waitFor(`() => document.getElementById('publish-dialog').open ? document.getElementById('publish-export-kind').textContent : null`, 20)
+  check(/not the approved scene plans/.test(exportKind || ''), `the summary says the export is the notebook's own composition, not the approved plans (${exportKind})`)
+  await evaluate(`() => { document.getElementById('start-publish').click(); return true }`)
+  const exported = await waitFor(`() => { const result = document.getElementById('render-result'); return result && !result.hidden ? document.getElementById('download-render').href : null }`, 300)
+  const mp4 = exported ? await fetch(exported).then(async response => ({ status: response.status, type: response.headers.get('content-type'), bytes: (await response.arrayBuffer()).byteLength })) : null
+  if (!mp4) {
+    const jobId = await evaluate(`() => localStorage.getItem('studio.export:' + ${JSON.stringify(videoId)})`).catch(() => null)
+    const job = jobId ? (await api(`/api/exports/${jobId}`)).body?.job : null
+    const ui = await evaluate(`() => ({ button: document.getElementById('start-publish').textContent, toast: document.querySelector('.toast, #toast')?.textContent || '' })`).catch(() => null)
+    console.log('EXPORT DIAGNOSIS', JSON.stringify({ jobId, status: job?.status, errorTail: String(job?.error || '').slice(-1500), ui }))
+  }
+  check(mp4?.status === 200 && /video\/mp4/.test(mp4.type || '') && mp4.bytes > 10000, `the two-scene video notebook exports a draft MP4 (${JSON.stringify(mp4)})`)
+  await evaluate(`() => { document.getElementById('publish-dialog').close(); if (document.getElementById('player-shell').classList.contains('canvas-open')) document.getElementById('canvas-fullscreen').click(); return true }`)
+  const stageBack = await waitFor(`() => { const shell = document.getElementById('player-shell'); return shell.classList.contains('has-scene-stage') && !shell.classList.contains('canvas-open') ? true : null }`, 20)
+  check(Boolean(stageBack), 'after the export, the scene review\'s stage is back beside the notebook')
+
   // A take spoken against those lines keeps each line's fingerprint. When
   // one line changes, the review names that line alone for a new take (R4).
   const fnv = text => { let hash = 0x811c9dc5; for (const character of text) { hash ^= character.codePointAt(0) || 0; hash = Math.imul(hash, 0x01000193) >>> 0 } return hash.toString(16).padStart(8, '0') }
@@ -395,6 +427,7 @@ try {
   }`)
   check(!fit.sideways && fit.hidden.length === 0 && !fit.railOverDocument && fit.stage >= Math.min(560, fit.width * 0.38), `the notebook fits its window, with a stage large enough to judge (${JSON.stringify(fit)})`)
   await shot('02-approved-guide')
+
 
   // Revise with direction, and compare the new candidate with the approved plan.
   await evaluate(`() => { const box = document.querySelector('.scene-review.is-expanded [data-focus^="direction:"]'); box.value = 'Push in on the limit when it bites'; box.dispatchEvent(new Event('input')); document.querySelector('.scene-review.is-expanded [data-focus^="revise:"]').click(); return true }`)

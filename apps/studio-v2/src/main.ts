@@ -3772,15 +3772,23 @@ const exitFinalizeMode = () => {
   playerShell.classList.remove('canvas-finalize-mode')
   stopMotionPreviewLoop()
   highlightCurrentJunction()
+  // The scene review's stage comes back once the notebook's own
+  // composition is no longer being finalized.
+  renderSceneStage()
 }
 
+// Publishing exports the notebook's own composition. The walk through its
+// junctions happens on that composition, so the scene review's stage steps
+// aside for all of it — every scene the walk selects — or it would cover
+// the composition and hide the finalize bar (F6 of the fresh E2E review).
 const enterFinalizeMode = () => {
   if (scenes.length < 2) {
     void openPublishSummary()
     return
   }
-  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
   finalizeModeActive = true
+  renderSceneStage()
+  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
   finalizeJunctionIndex = 0
   playerShell.classList.add('canvas-finalize-mode')
   finalizeBar.hidden = false
@@ -4817,7 +4825,9 @@ const updateInspector = () => {
   renderButton.disabled = scenes.length === 0
   renderButton.title = renderButton.disabled
     ? 'Add at least one block first'
-    : 'Choose takes and transitions, then publish the MP4'
+    : project.derivedFrom?.notebook
+      ? 'Choose takes and transitions, then export the notebook\'s own composition as a draft MP4 — approved scene plans are not produced yet'
+      : 'Choose takes and transitions, then publish the MP4'
 }
 
 const selectNode = (nodeId: string, focusEditor: boolean) => {
@@ -8656,6 +8666,9 @@ const openPublishSummary = async () => {
   } else {
     exportKind.textContent = 'Draft export — this notebook has not been through the rich explainer build. Create explainer starts that journey.'
   }
+  // A video notebook's approved scene plans are not produced yet: say what
+  // this export is, and what it is not.
+  if (review.derived) exportKind.textContent += ' It exports the notebook\'s own composition — its pages, words and takes — not the approved scene plans; producing those is not connected yet.'
   renderPublishBlockList()
   ;($('#burn-captions') as HTMLInputElement).checked = Boolean(project.captions?.burnIn)
   publishDialog.showModal()
@@ -8675,6 +8688,7 @@ startPublishButton.addEventListener('click', () => void startPublish())
   publishDialog.close(),
 )
 publishDialog.addEventListener('close', closePublishTakePreview)
+publishDialog.addEventListener('close', () => renderSceneStage())
 ;($('#close-publish-take-preview') as HTMLButtonElement).addEventListener(
   'click',
   closePublishTakePreview,
@@ -17029,7 +17043,10 @@ const showSceneStage = (shown: boolean) => {
   else if (!was) (document.getElementById('player') as (HTMLElement & { pause?: () => void }) | null)?.pause?.()
 }
 const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
-  const stage = sceneReview?.active() && reviewSelectedScene && sceneStageAsideFor !== reviewSelectedScene ? sceneReview.stageOf(reviewSelectedScene) : null
+  // Finalizing and exporting work on the notebook's own composition: the
+  // stage steps aside for as long as they do.
+  const notebookComposition = finalizeModeActive || publishDialog.open
+  const stage = sceneReview?.active() && reviewSelectedScene && sceneStageAsideFor !== reviewSelectedScene && !notebookComposition ? sceneReview.stageOf(reviewSelectedScene) : null
   const node = stage ? findSlideLikeNode(reviewSelectedScene) : null
   if (!stage || !node) {
     showSceneStage(false)
