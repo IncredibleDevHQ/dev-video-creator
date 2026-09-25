@@ -385,10 +385,13 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const at = moment && ready ? ready.summary.moments.find(entry => entry.id === moment.id)?.start ?? null : null
     host.selectMoment(scene.id, moment ? targetsOf(scene, plan, moment) : null, at)
     host.refresh()
+    // The review is drawn again as the editor updates, so the keyboard goes
+    // back at once — not on a frame a hidden window may not paint. A step at
+    // either end is disabled there: the moment's own line keeps it then.
+    const keep = () => focused && document.activeElement?.getAttribute('data-focus') !== focused && !refocus(focused) && refocus(`moment:${scene.id}:${id}`)
+    keep()
     window.requestAnimationFrame(() => {
-      // A step at either end is disabled there: the moment's own line then
-      // keeps the keyboard.
-      if (focused && !refocus(focused)) refocus(`moment:${scene.id}:${id}`)
+      keep()
       // The opened moment in view, scrolling only when it is not.
       if (id) document.querySelector(`.scene-review [data-review-moment="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
     })
