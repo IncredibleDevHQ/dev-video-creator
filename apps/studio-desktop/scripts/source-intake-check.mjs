@@ -113,12 +113,23 @@ try {
   await capture('01-refused-link')
   await evaluate(`() => { document.querySelector('#source-recovery [data-recovery="paste"]').click(); return true }`, 'paste instead')
   await fill('source-narrative', ARTICLE)
-  const mode = await evaluate(`() => ({ hidden: document.getElementById('source-mode').hidden, active: document.querySelector('#source-mode [aria-pressed="true"]')?.dataset.readMode, labels: [...document.querySelectorAll('#source-mode button')].map(button => button.textContent) })`, 'mode')
-  check('with a link and text both here, what is read is said and chosen', !mode.hidden && mode.active === 'text' && JSON.stringify(mode.labels) === JSON.stringify(['The link (127.0.0.1)', 'The pasted text, crediting 127.0.0.1']), JSON.stringify(mode))
+  // U1: one input shows at a time; pasted text says it credits the link.
+  const credit = await evaluate(`() => ({ input: window.__source.state().input, tab: document.querySelector('#source-step-read [data-source-input][aria-selected="true"]')?.dataset.sourceInput, credit: document.getElementById('source-credit').hidden ? '' : document.getElementById('source-credit').textContent, link: document.getElementById('source-url').value, linkShown: !document.getElementById('source-input-link').hidden })`, 'credit')
+  check('pasting the article instead shows the text, crediting the refused link, and keeps the link', credit.input === 'text' && credit.tab === 'text' && /^Crediting 127\.0\.0\.1 as where it came from\./.test(credit.credit) && credit.link === `${web}/blocked` && !credit.linkShown, JSON.stringify(credit))
   await capture('02-read-mode')
+  await evaluate(`() => { document.getElementById('source-input-tab-file').click(); document.getElementById('source-input-tab-link').click(); return true }`, 'switch inputs')
+  const onLink = await evaluate(`() => ({ link: document.getElementById('source-url').value, shown: !document.getElementById('source-input-link').hidden, text: document.getElementById('source-narrative').value.length })`, 'on link')
+  await evaluate(`() => { document.getElementById('source-input-tab-link').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); return true }`, 'arrow to text')
+  const onText = await evaluate(`() => ({ input: window.__source.state().input, focused: document.activeElement?.id, text: document.getElementById('source-narrative').value })`, 'on text')
+  check('each input keeps its draft while another is shown, and the arrow keys move between them', onLink.link === `${web}/blocked` && onLink.shown && onLink.text === ARTICLE.length && onText.input === 'text' && onText.focused === 'source-input-tab-text' && onText.text === ARTICLE, JSON.stringify({ onLink, onText: { ...onText, text: onText.text.length } }))
   await read()
   await onBrandStep()
-  const pasted = await evaluate(`() => { const source = window.__source.state().source; return { kind: source.kind, url: source.url, site: source.site, snapshot: window.__source.state().snapshot.id, line: document.querySelector('.source-extraction-line')?.textContent, thin: Boolean(document.querySelector('.source-extraction-thin')), outline: document.getElementById('source-to-outline').disabled } }`, 'pasted')
+  // U1: text without a brand website opens the saved themes; an empty
+  // library offers the built-in starting themes and a theme of your own.
+  const empty = await evaluate(`() => ({ panel: document.querySelector('#source-step-brand [data-brand-panel][aria-selected="true"]')?.dataset.brandPanel, hint: document.querySelector('.source-saved-themes-empty')?.textContent || '', starting: document.getElementById('source-starting').hidden ? 0 : document.querySelectorAll('#source-starting .source-direction').length, bound: document.getElementById('source-brand-bound').textContent, outline: document.getElementById('source-to-outline').textContent })`, 'empty library')
+  check('text without a brand website opens the saved themes; an empty library offers starting themes and a theme of your own', empty.panel === 'saved' && /^No saved themes yet\./.test(empty.hint) && /Create a theme/.test(empty.hint) && empty.starting === 3 && /· a starting theme, default colours$/.test(empty.bound) && /^Outline it with “.+”$/.test(empty.outline), JSON.stringify(empty))
+  await capture('02b-empty-library')
+  const pasted = await evaluate(`() => { const source = window.__source.state().source; return { kind: source.kind, url: source.url, site: source.site, words: source.words, snapshot: window.__source.state().snapshot.id, line: document.querySelector('.source-extraction-line')?.textContent, thin: Boolean(document.querySelector('.source-extraction-thin')), outline: document.getElementById('source-to-outline').disabled } }`, 'pasted')
   check('the pasted text is read, crediting the refused link', pasted.kind === 'narrative' && pasted.url === `${web}/blocked` && pasted.site === '127.0.0.1' && /^\d+ words · 1 heading · pasted, crediting 127\.0\.0\.1$/.test(pasted.line) && !pasted.thin && !pasted.outline, JSON.stringify(pasted))
   const revision = await fetch(`${origin}/api/source/revisions/${pasted.snapshot}`).then(response => response.json())
   check('the stored source keeps the link it came from', revision.revision?.kind === 'narrative' && revision.revision?.url === `${web}/blocked`, JSON.stringify({ kind: revision.revision?.kind, url: revision.revision?.url }))
@@ -140,6 +151,21 @@ try {
   check('a theme saved from default colours keeps its name and says its colours are defaults', saved?.theme?.colours?.provenance === 'fallback' && saved.theme.name === 'Dispatch article', JSON.stringify(saved && { name: saved.name, colours: saved.theme?.colours }))
   const listed = await waitFor(`() => { const card = [...document.querySelectorAll('#source-saved-themes .source-saved-theme')].find(button => button.querySelector('b')?.textContent === 'Dispatch article'); return card ? card.querySelector('small')?.textContent : null }`, 'saved theme card', 20)
   check('reopened, the saved theme still says its colours are defaults', / · default colours$/.test(listed || ''), listed)
+  check('a theme from default colours is saved for no site: the article was only credited', !saved?.site, JSON.stringify(saved && { site: saved.site }))
+
+  // U1: a brand website read at the brand step, as its own step — one that
+  // cannot be read says so and offers ways on; one that can suggests its
+  // colours, and the bound theme says where they came from.
+  await evaluate(`() => { document.getElementById('source-brand-tab-site').click(); const field = document.getElementById('source-brand-site'); field.value = ${JSON.stringify(`${web}/blocked`)}; document.getElementById('source-brand-read').click(); return true }`, 'read blocked brand')
+  const brandFailed = await waitFor(`() => { const status = document.getElementById('source-brand-read-status'); return status.classList.contains('is-error') ? status.textContent : null }`, 'brand read failure', 40)
+  check('a brand website that cannot be read says so, with ways on', /try again, use another website, or pick a saved theme\.$/.test(brandFailed || ''), brandFailed)
+  const triedLine = await evaluate(`() => document.getElementById('source-palette-provenance').textContent`, 'tried line')
+  check('its default colours then say the website was tried', /^defaults, not a brand — 127\.0\.0\.1 could not be read\./.test(triedLine), triedLine)
+  await capture('03b-brand-read-failed')
+  await evaluate(`() => { document.getElementById('source-brand-site').value = ${JSON.stringify(`${web}/brand`)}; document.getElementById('source-brand-read').click(); return true }`, 'read brand')
+  const brandRead = await waitFor(`() => { const state = window.__source.state(); return state.source.palette.provenance === 'extracted' && !state.brandReading ? { panel: document.querySelector('#source-step-brand [data-brand-panel][aria-selected="true"]')?.dataset.brandPanel, directions: document.querySelectorAll('#source-site-directions .source-direction').length, starting: document.getElementById('source-starting').hidden, bound: document.getElementById('source-brand-bound').textContent, line: document.getElementById('source-palette-provenance').textContent, words: state.source.words } : null }`, 'brand read', 40)
+  check('a brand website read at the brand step suggests its colours, and names where they came from', brandRead?.panel === 'site' && brandRead.directions === 3 && brandRead.starting === true && /· colours from 127\.0\.0\.1$/.test(brandRead.bound) && /^read from 127\.0\.0\.1/.test(brandRead.line) && brandRead.words === pasted.words, JSON.stringify(brandRead))
+  await capture('03c-brand-read')
 
   // F3: a page that is only navigation is shown for what it is.
   await backToRead()
@@ -166,6 +192,25 @@ try {
   await onBrandStep()
   const branded = await evaluate(`() => ({ line: document.getElementById('source-palette-provenance').textContent, swatch: document.querySelector('#source-swatches .source-swatch')?.title, provenance: window.__source.state().source.palette.provenance })`, 'branded')
   check('colours read off the brand website say where they were read', branded.provenance === 'extracted' && /^read from 127\.0\.0\.1 — click a swatch$/.test(branded.line) && / on 127\.0\.0\.1$/.test(branded.swatch || ''), JSON.stringify(branded))
+  // U1: a site with a saved theme is offered that theme, bound and named.
+  await fill('source-theme-name', 'Brand site')
+  await evaluate(`() => { document.getElementById('source-save-direction').click(); return true }`, 'save site theme')
+  let siteTheme = null
+  for (let i = 0; i < 40 && !siteTheme; i += 1) {
+    const { themes } = await fetch(`${origin}/api/themes`).then(response => response.json())
+    siteTheme = themes.find(entry => entry.name === 'Brand site') || null
+    if (!siteTheme) await sleep(500)
+  }
+  check('a theme saved from a website\'s colours is saved for that site', siteTheme?.site === '127.0.0.1', JSON.stringify(siteTheme && { site: siteTheme.site, revision: siteTheme.revision }))
+  await backToRead()
+  await read()
+  await onBrandStep()
+  const suggested2 = await evaluate(`() => ({ choice: window.__source.state().brandChoice, panel: document.querySelector('#source-step-brand [data-brand-panel][aria-selected="true"]')?.dataset.brandPanel, picked: document.querySelector('#source-saved-themes .source-saved-theme.is-picked b')?.textContent, bound: document.getElementById('source-brand-bound').textContent, outline: document.getElementById('source-to-outline').textContent })`, 'site association')
+  check('reading that site again offers its saved theme, bound and named, and any other can be chosen', suggested2.choice === 'saved' && suggested2.panel === 'saved' && suggested2.picked === 'Brand site' && /^Theme: “Brand site” · saved theme, rev 1, colours from 127\.0\.0\.1$/.test(suggested2.bound) && suggested2.outline === 'Outline it with “Brand site”', JSON.stringify(suggested2))
+  await capture('05-site-association')
+  await evaluate(`() => { document.querySelector('#source-directions .source-direction')?.click(); return true }`, 'pick a direction instead')
+  const other = await evaluate(`() => ({ choice: window.__source.state().brandChoice, picked: Boolean(document.querySelector('#source-saved-themes .source-saved-theme.is-picked')) })`, 'another choice')
+  check('choosing a direction instead binds it', other.choice === 'direction' && !other.picked, JSON.stringify(other))
   await backToRead()
   await fill('source-brand-url', `${web}/blocked`)
   await read()

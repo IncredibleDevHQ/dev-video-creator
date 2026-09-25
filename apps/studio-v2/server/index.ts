@@ -1368,7 +1368,9 @@ const handleSourceRead = async (request: IncomingMessage, response: ServerRespon
     source.warnings = [...source.warnings, `The article's text was pasted; ${source.site} is kept as where it came from.`]
   }
   let brandEvidence: SourceRead | null = null
-  if (!body.url?.trim() && body.brandUrl?.trim()) {
+  // The brand website is its own source, for a link as for pasted text (U1
+  // of the scene workspace plan): its colours, fonts and logo only.
+  if (body.brandUrl?.trim()) {
     try {
       brandEvidence = await readSourceUrl(body.brandUrl, { projectId })
       // Brand from the website; the words stay the creator's own.
@@ -1378,9 +1380,10 @@ const handleSourceRead = async (request: IncomingMessage, response: ServerRespon
       source.site = source.site || brandEvidence.site
     } catch (error) {
       source.warnings = [...source.warnings, `Brand website could not be read: ${error instanceof Error ? error.message : error}`]
-      // The colours stay defaults, and say so (F5 of the Perplexity review).
+      // Pasted text's colours stay defaults, and say so (F5 of the Perplexity
+      // review); a link keeps what its own page showed.
       const host = (() => { try { return new URL(body.brandUrl!.trim()).hostname.replace(/^www\./, '') } catch { return 'the brand website' } })()
-      source.palette = { ...source.palette, provenance: 'fallback', from: `${host} could not be read` }
+      if (!body.url?.trim()) source.palette = { ...source.palette, provenance: 'fallback', from: `${host} could not be read` }
     }
   }
   const snapshot = await saveSourceRevision({
@@ -1407,7 +1410,21 @@ const handleSourceRead = async (request: IncomingMessage, response: ServerRespon
       takeaway: source.title,
     })
   }
-  json(response, 200, { source, snapshot, narrative })
+  // The site the colours were read from, by the name themes are saved for:
+  // the brand website, else a link's own page — never an article merely credited.
+  const brandSite = brandEvidence && brandEvidence.palette.provenance === 'extracted' ? brandEvidence.site : body.url?.trim() && source.palette.provenance === 'extracted' ? source.site : null
+  json(response, 200, { source, snapshot, narrative, brandSite })
+}
+
+// A brand website read on its own, at the brand step (U1 of the scene
+// workspace plan): its colours, fonts and logo, never its words.
+const handleSourceBrand = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{ url?: string; projectId?: string }>(request, 16 * 1024)
+  const url = String(body.url || '').trim()
+  if (!/^https?:\/\/[^\s]+$/i.test(url)) throw new Error('Give the brand website as a full link, like https://yoursite.com')
+  const projectId = String(body.projectId || request.headers['x-project-id'] || '') || undefined
+  const read = await readSourceUrl(url, { projectId })
+  json(response, 200, { brand: { palette: read.palette, logos: read.logos, fonts: read.fonts, site: read.site } })
 }
 
 const handleSourceOutline = async (request: IncomingMessage, response: ServerResponse) => {
@@ -3066,6 +3083,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/source/read') {
       await handleSourceRead(request, response)
+      return true
+    }
+    if (request.method === 'POST' && url.pathname === '/api/source/brand') {
+      await handleSourceBrand(request, response)
       return true
     }
     if (request.method === 'POST' && url.pathname === '/api/source/outline') {

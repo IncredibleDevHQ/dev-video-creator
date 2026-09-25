@@ -843,10 +843,25 @@
       <div class="modal-heading"><div><span class="eyebrow">Start a video</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
       <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li><li data-step="outline">Outline</li><li data-step="pages">Pages</li></ol>
       <section id="source-step-read" class="source-step">
-        <label class="source-field">Link<input id="source-url" type="url" placeholder="https://blog.example.com/post" spellcheck="false" /></label>
-        <div class="source-or">or</div>
-        <label class="source-field">Narrative<textarea id="source-narrative" rows="7" placeholder="Paste your own words: the story you want to tell, one paragraph per thought."></textarea></label>
-        <label class="source-field">Brand website <small class="source-hint">optional — only its colours, fonts and logo are read; your words stay yours</small><input id="source-brand-url" type="url" placeholder="https://yoursite.com" spellcheck="false" /></label>
+        <!-- U1 of the scene workspace plan: one input at a time, each keeping
+             its draft; the article and the brand are separate sources. -->
+        <div class="source-input-choice explainer-segment" role="tablist" aria-label="What the video starts from">
+          <button type="button" role="tab" id="source-input-tab-link" data-source-input="link" aria-controls="source-input-link" aria-selected="true" class="active">Link</button>
+          <button type="button" role="tab" id="source-input-tab-text" data-source-input="text" aria-controls="source-input-text" aria-selected="false" tabindex="-1">Paste text</button>
+          <button type="button" role="tab" id="source-input-tab-file" data-source-input="file" aria-controls="source-input-file" aria-selected="false" tabindex="-1">Upload</button>
+        </div>
+        <div id="source-input-link" class="source-input-panel" role="tabpanel" aria-labelledby="source-input-tab-link">
+          <label class="source-field">Article link<input id="source-url" type="url" placeholder="https://blog.example.com/post" spellcheck="false" /><small class="source-hint">A blog post, a README or a documentation page. Its words are read here; the brand is chosen in the next step.</small></label>
+          <div id="source-recovery" class="source-recovery" hidden></div>
+        </div>
+        <div id="source-input-text" class="source-input-panel" role="tabpanel" aria-labelledby="source-input-tab-text" hidden>
+          <label class="source-field">Your text<textarea id="source-narrative" rows="7" placeholder="Paste your own words, or an article's text: the story you want to tell, one paragraph per thought."></textarea></label>
+          <p id="source-credit" class="source-credit" hidden></p>
+        </div>
+        <div id="source-input-file" class="source-input-panel" role="tabpanel" aria-labelledby="source-input-tab-file" hidden>
+          <label class="source-field">A PDF or a deck<input id="source-file" type="file" accept=".pdf,.pptx,.md,.markdown,.txt" /><small class="source-hint">Its text is read like pasted text, page by page or slide by slide. Keynote and Google Slides export to .pptx.</small></label>
+          <details id="source-file-read" class="source-file-text" hidden></details>
+        </div>
         <div class="source-field" id="source-wording-row">
           <span>Your words</span>
           <div class="explainer-segment" id="source-wording-segment" role="group" aria-label="How the studio may use your wording">
@@ -855,27 +870,46 @@
             <button type="button" data-wording="draft">Draft from these notes</button>
           </div>
         </div>
-        <div class="source-or">or</div>
-        <label class="source-field">A PDF or a deck<input id="source-file" type="file" accept=".pdf,.pptx,.md,.markdown,.txt" /><small class="source-hint">Its text is read into the narrative above, then read like one. Keynote and Google Slides export to .pptx.</small></label>
-        <div id="source-mode" class="source-mode" role="group" aria-label="What is read" hidden></div>
-        <div id="source-recovery" class="source-recovery" hidden></div>
-        <div class="modal-actions"><span id="source-status" class="source-status"></span><button id="source-read" type="button" class="button primary">Read it</button></div>
+        <label class="source-field source-brand-field">Brand website (optional)<input id="source-brand-url" type="url" placeholder="https://yoursite.com" spellcheck="false" /><small class="source-hint">Leave this blank to choose a saved brand template or create a theme in the next step. Add a website to suggest its colours, fonts and logo.</small></label>
+        <div class="modal-actions"><span id="source-status" class="source-status" role="status"></span><span id="source-next" class="source-next">Next: review your source and choose a brand.</span><button id="source-read" type="button" class="button primary">Read it</button></div>
       </section>
       <section id="source-step-brand" class="source-step" hidden>
         <div class="source-summary"><strong id="source-read-title"></strong><span id="source-read-meta"></span></div>
         <div id="source-extraction" class="source-extraction"></div>
-        <h3>Brand colour <small id="source-palette-provenance">click a swatch</small></h3>
-        <div id="source-swatches" class="source-swatches"></div>
-        <h3>Logo</h3>
-        <div id="source-logos" class="source-logos"></div>
-        <h3>Direction</h3>
-        <div id="source-directions" class="source-directions"></div>
-        <h3>Saved themes</h3>
-        <div id="source-saved-themes" class="source-directions"></div>
-        <h3>Custom palette</h3>
-        <div id="source-custom-palette"></div>
+        <!-- One brand choice: a saved theme, a brand read off a website, or
+             a theme made here. The bound one is named on the next step. -->
+        <div class="source-brand-choice explainer-segment" role="tablist" aria-label="Where the brand comes from">
+          <button type="button" role="tab" id="source-brand-tab-saved" data-brand-panel="saved" aria-controls="source-brand-panel-saved" aria-selected="true" class="active">Saved themes</button>
+          <button type="button" role="tab" id="source-brand-tab-site" data-brand-panel="site" aria-controls="source-brand-panel-site" aria-selected="false" tabindex="-1">From a website</button>
+          <button type="button" role="tab" id="source-brand-tab-custom" data-brand-panel="custom" aria-controls="source-brand-panel-custom" aria-selected="false" tabindex="-1">Create a theme</button>
+        </div>
+        <div id="source-brand-panel-saved" class="source-brand-panel" role="tabpanel" aria-labelledby="source-brand-tab-saved">
+          <div id="source-saved-themes" class="source-directions"></div>
+          <div id="source-starting" class="source-starting" hidden>
+            <h3>Starting themes <small>built in — default colours until you change them</small></h3>
+          </div>
+        </div>
+        <div id="source-brand-panel-site" class="source-brand-panel" role="tabpanel" aria-labelledby="source-brand-tab-site" hidden>
+          <div class="source-brand-read">
+            <label class="source-field">Brand website<input id="source-brand-site" type="url" placeholder="https://yoursite.com" spellcheck="false" /></label>
+            <button id="source-brand-read" type="button" class="button secondary">Read its brand</button>
+            <span id="source-brand-read-status" class="source-status" role="status"></span>
+          </div>
+          <h3>Brand colour <small id="source-palette-provenance">click a swatch</small></h3>
+          <div id="source-swatches" class="source-swatches"></div>
+          <h3>Logo</h3>
+          <div id="source-logos" class="source-logos"></div>
+          <div id="source-site-directions">
+            <h3>Direction</h3>
+            <div id="source-directions" class="source-directions"></div>
+          </div>
+        </div>
+        <div id="source-brand-panel-custom" class="source-brand-panel" role="tabpanel" aria-labelledby="source-brand-tab-custom" hidden>
+          <p class="source-hint">Choose the canvas, text and accent colours yourself; they start from the theme bound now.</p>
+          <div id="source-custom-palette"></div>
+        </div>
         <div id="source-theme-association" class="source-theme-association" hidden></div>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status"></span><button id="source-to-outline" type="button" class="button primary">Outline it</button></div>
+        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status" role="status"></span><span id="source-brand-bound" class="source-next"></span><button id="source-to-outline" type="button" class="button primary">Outline it</button></div>
       </section>
       <section id="source-step-outline" class="source-step" hidden>
         <div class="source-outline-head">

@@ -15322,9 +15322,18 @@ const sourceState: {
   fileTitle?: string
   // The pages made from the outline, and the design run bound to them.
   draft?: SourceDraft | null
-  // With both a link and pasted text, which one is read (F4 of the
-  // Perplexity review): the link, or the text crediting the link.
-  readMode?: 'link' | 'text'
+  // Which input is read (U1 of the scene workspace plan): the link, pasted
+  // text, or an uploaded file's text. Each keeps its own draft; pasted text
+  // credits the link as where it came from unless the creator says not to.
+  input: 'link' | 'text' | 'file'
+  credit: boolean
+  fileText?: string
+  fileNote?: string
+  // Where the brand comes from, shown as one choice: a saved theme, a brand
+  // read off a website, or a theme made here; and the site it was read from.
+  brandPanel: 'saved' | 'site' | 'custom'
+  brandSite?: string
+  brandReading?: boolean
   // A thin read the creator chose to go on with anyway (F3).
   thinAcknowledged?: boolean
   // The name a theme saved from this read will take (F5).
@@ -15332,7 +15341,7 @@ const sourceState: {
   // The harness designing the pages, and how the last run went.
   drawer?: string
   drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
-} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', delivery: null, brandChoice: 'direction', brandThemeId: '', brandCustom: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
+} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', delivery: null, brandChoice: 'direction', brandThemeId: '', brandCustom: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false, input: 'link', credit: true, brandPanel: 'saved' }
 
 // Narratives default to preserve, links to draft: the author's own words are
 // never silently rewritten, and the choice is always visible and changeable.
@@ -15378,7 +15387,8 @@ const openSourceDialog = (kind: 'link' | 'narrative') => {
   syncSourceWording()
   showSourceStep('read')
   ;($('#source-heading') as HTMLElement).textContent = kind === 'link' ? 'From a link' : 'From a narrative'
-  sourceStatus('#source-status', kind === 'link' ? 'The page is read for its words, its colours and its logo.' : 'Your words become the outline; pages are drawn to serve them.')
+  sourceStatus('#source-status', kind === 'link' ? 'The page is read for its words.' : 'Your words become the outline; pages are drawn to serve them.')
+  selectSourceInput(kind === 'link' ? 'link' : 'text')
   window.setTimeout(() => ($(kind === 'link' ? '#source-url' : '#source-narrative') as HTMLElement).focus(), 50)
   if (!sourceDialog.open) sourceDialog.showModal()
 }
@@ -15389,10 +15399,10 @@ const parseTarget = (value: string) => {
 }
 const formatTarget = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`
 
-// ——— What is read (F4 of the Perplexity review) ———
-// A link and pasted text can both be present: which one is read is said,
-// and chosen, instead of the link silently winning. Pasted text keeps the
-// link as where it came from.
+// ——— What is read (U1 of the scene workspace plan; F4 of the Perplexity review) ———
+// One input at a time — a link, pasted text or a file — each keeping its
+// draft while another is shown. Pasted text credits a link that is there as
+// where it came from, and says so, unless the creator says not to.
 const hostOf = (url: string) => {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
@@ -15400,50 +15410,72 @@ const hostOf = (url: string) => {
     return ''
   }
 }
-const sourceReadsText = () => {
-  const url = ($('#source-url') as HTMLInputElement).value.trim()
-  const narrative = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
-  return Boolean(narrative) && (!url || sourceState.readMode === 'text')
+const SOURCE_INPUTS = ['link', 'text', 'file'] as const
+// A roving set of tabs over panels: one selected, arrow keys move between them.
+const syncTabs = (tabs: HTMLButtonElement[], selected: string, key: string, panelOf: (value: string) => HTMLElement) => {
+  for (const tab of tabs) {
+    const on = tab.dataset[key] === selected
+    tab.classList.toggle('active', on)
+    tab.setAttribute('aria-selected', String(on))
+    tab.tabIndex = on ? 0 : -1
+    panelOf(tab.dataset[key] || '').hidden = !on
+  }
 }
-const renderSourceMode = () => {
-  const line = $('#source-mode') as HTMLElement
+const tabKeys = (tabs: HTMLButtonElement[], choose: (tab: HTMLButtonElement) => void) =>
+  tabs.forEach((tab, index) =>
+    tab.addEventListener('keydown', event => {
+      const to = event.key === 'ArrowRight' ? index + 1 : event.key === 'ArrowLeft' ? index - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null
+      if (to === null) return
+      event.preventDefault()
+      const next = tabs[(to + tabs.length) % tabs.length]
+      choose(next)
+      next.focus()
+    }),
+  )
+const sourceInputTabs = [...document.querySelectorAll<HTMLButtonElement>('#source-step-read [data-source-input]')]
+const selectSourceInput = (input: (typeof SOURCE_INPUTS)[number], focus = false) => {
+  sourceState.input = input
+  syncTabs(sourceInputTabs, input, 'sourceInput', value => $(`#source-input-${value}`) as HTMLElement)
+  renderSourceCredit()
+  if (focus) ($(input === 'link' ? '#source-url' : input === 'text' ? '#source-narrative' : '#source-file') as HTMLElement).focus()
+}
+sourceInputTabs.forEach(tab => tab.addEventListener('click', () => selectSourceInput((tab.dataset.sourceInput as (typeof SOURCE_INPUTS)[number]) || 'link')))
+tabKeys(sourceInputTabs, tab => selectSourceInput((tab.dataset.sourceInput as (typeof SOURCE_INPUTS)[number]) || 'link'))
+const sourceReadsText = () => sourceState.input !== 'link'
+// Pasted text and the link it came from: credited, and said, or not.
+const renderSourceCredit = () => {
+  const line = $('#source-credit') as HTMLElement
   const url = ($('#source-url') as HTMLInputElement).value.trim()
-  const narrative = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
-  if (!url || !narrative) {
+  const host = hostOf(url)
+  if (sourceState.input !== 'text' || !host) {
     line.hidden = true
     line.replaceChildren()
     return
   }
-  const host = hostOf(url) || 'the link'
-  const choice = (mode: 'link' | 'text', label: string) => {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.dataset.readMode = mode
-    button.textContent = label
-    const active = (sourceState.readMode || 'link') === mode
-    button.className = active ? 'active' : ''
-    button.setAttribute('aria-pressed', String(active))
-    button.addEventListener('click', () => {
-      sourceState.readMode = mode
-      renderSourceMode()
-    })
-    return button
-  }
-  const lead = document.createElement('span')
-  lead.textContent = 'A link and pasted text are both here — read:'
-  const segment = document.createElement('div')
-  segment.className = 'explainer-segment'
-  segment.append(choice('link', `The link (${host})`), choice('text', `The pasted text, crediting ${host}`))
+  const text = document.createElement('span')
+  text.textContent = sourceState.credit ? `Crediting ${host} as where it came from.` : `Not crediting ${host}: the text is read as your own.`
+  const toggle = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: sourceState.credit ? 'Don\'t credit it' : `Credit ${host}` })
+  toggle.dataset.credit = sourceState.credit ? 'off' : 'on'
+  toggle.addEventListener('click', () => {
+    sourceState.credit = !sourceState.credit
+    renderSourceCredit()
+  })
   line.hidden = false
-  line.replaceChildren(lead, segment)
+  line.replaceChildren(text, ' ', toggle)
 }
-;['#source-url', '#source-narrative'].forEach(selector => ($(selector) as HTMLElement).addEventListener('input', () => {
+// Typing into an input makes it the one read; a link typed anew is credited.
+;($('#source-url') as HTMLInputElement).addEventListener('input', event => {
   ;($('#source-recovery') as HTMLElement).hidden = true
-  renderSourceMode()
-}))
-// A link that could not be read, with the ways on: paste its text (the link
-// stays as where it came from), try again, or change the link. Nothing is
-// fetched past the publisher's refusal.
+  sourceState.credit = true
+  if ((event.target as HTMLInputElement).value.trim()) selectSourceInput('link')
+  else renderSourceCredit()
+})
+;($('#source-narrative') as HTMLTextAreaElement).addEventListener('input', event => {
+  if ((event.target as HTMLTextAreaElement).value.trim() && sourceState.input !== 'text') selectSourceInput('text')
+})
+// A link that could not be read, with the ways on beside it: paste its text
+// (the link stays as where it came from), try again, or change the link.
+// Nothing is fetched past the publisher's refusal.
 const showSourceRecovery = (url: string) => {
   const box = $('#source-recovery') as HTMLElement
   const host = hostOf(url) || 'the site'
@@ -15452,12 +15484,11 @@ const showSourceRecovery = (url: string) => {
   const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste the article instead' })
   paste.dataset.recovery = 'paste'
   paste.addEventListener('click', () => {
-    sourceState.readMode = 'text'
     box.hidden = true
-    renderSourceMode()
+    sourceState.credit = true
+    selectSourceInput('text', true)
     const field = $('#source-narrative') as HTMLTextAreaElement
     field.placeholder = `Paste the article from ${host} here; ${host} is kept as where it came from.`
-    field.focus()
     sourceStatus('#source-status', `Paste the article's text, then Read it — ${host} is kept as its source`)
   })
   const retry = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Try again' })
@@ -15481,25 +15512,29 @@ const showSourceRecovery = (url: string) => {
 const sourceRead = async () => {
   if (sourceState.busy) return
   const url = ($('#source-url') as HTMLInputElement).value.trim()
-  const narrative = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
-  if (!url && !narrative) {
-    sourceStatus('#source-status', 'Paste a link, or a narrative of your own', true)
+  const pasted = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
+  const input = sourceState.input
+  const narrative = input === 'file' ? (sourceState.fileText || '').trim() : pasted
+  if (input === 'link' ? !url : !narrative) {
+    sourceStatus('#source-status', input === 'link' ? 'Paste a link to the article first' : input === 'file' ? 'Choose a PDF or a deck first' : 'Paste the article\'s text first', true)
     return
   }
-  // Only a link is here, or the choice says which: see renderSourceMode.
   const readsText = sourceReadsText()
+  // Pasted text credits the link it came from; a file is its own source.
+  const credited = input === 'text' && sourceState.credit && hostOf(url) ? url : ''
+  const brandUrl = ($('#source-brand-url') as HTMLInputElement).value.trim()
   sourceState.busy = true
   ;($('#source-recovery') as HTMLElement).hidden = true
   const button = $('#source-read') as HTMLButtonElement
   button.disabled = true
-  sourceStatus('#source-status', readsText ? (url ? `Reading your pasted text, crediting ${hostOf(url) || 'the link'}…` : 'Reading your narrative…') : 'Reading the page, its stylesheets and its painted colours…')
+  sourceStatus('#source-status', readsText ? (credited ? `Reading your pasted text, crediting ${hostOf(credited)}…` : input === 'file' ? `Reading ${sourceState.fileTitle || 'the file'}…` : 'Reading your text…') : 'Reading the page…')
   try {
-    const { source, snapshot, narrative: narrativeRevision } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string }; narrative?: { id: string } | null }>('/api/source/read', {
+    const { source, snapshot, narrative: narrativeRevision, brandSite } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string }; narrative?: { id: string } | null; brandSite?: string | null }>('/api/source/read', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(readsText
-        ? { narrative, attribution: url || undefined, brandUrl: ($('#source-brand-url') as HTMLInputElement).value.trim() || undefined, wordingPolicy: sourceState.wording, title: sourceState.fileTitle || undefined, projectId: project.id }
-        : { url, wordingPolicy: sourceState.wording, projectId: project.id }),
+        ? { narrative, attribution: credited || undefined, brandUrl: brandUrl || undefined, wordingPolicy: sourceState.wording, title: input === 'file' ? sourceState.fileTitle || undefined : undefined, projectId: project.id }
+        : { url, brandUrl: brandUrl || undefined, wordingPolicy: sourceState.wording, projectId: project.id }),
     })
     sourceState.thinAcknowledged = false
     sourceState.themeName = undefined
@@ -15508,13 +15543,13 @@ const sourceRead = async () => {
     sourceState.narrative = narrativeRevision || null
     sourceState.brandColor = source.palette.accent
     sourceState.logoUrl = source.logos.find(logo => logo.localUrl)?.localUrl || ''
-    // A new read starts the brand choice fresh: a generated direction is the
-    // default until the author binds a saved theme or a custom palette.
-    sourceState.brandChoice = 'direction'
-    sourceState.brandThemeId = ''
+    // The site the brand was read from: a brand website given, else the page.
+    sourceState.brandSite = brandSite || ''
     sourceState.brandCustom = null
     sourceState.outline = null
     sourceState.pages = null
+    // A new read starts the brand choice fresh (see chooseSourceBrand).
+    chooseSourceBrand()
     // A new source abandons the pages made from the last one: a designer
     // still drawing them is stopped.
     if (sourceState.draft && sourceDesignActive(sourceState.draft)) void stopSourceDesign(sourceState.draft)
@@ -15529,6 +15564,96 @@ const sourceRead = async () => {
     button.disabled = false
   }
 }
+
+// ——— The brand, as one choice (U1 of the scene workspace plan) ———
+// A site with a saved theme is offered that theme; a brand read off a
+// website offers its directions; with no website the saved themes open,
+// over the built-in starting themes. The bound theme is named on the way on.
+const savedThemeForSite = (site: string) => {
+  const key = site.trim().toLowerCase().replace(/^www\./, '')
+  if (!key) return null
+  const matches = savedThemes.filter(theme => (savedThemeMeta.get(theme.id)?.site || '').trim().toLowerCase().replace(/^www\./, '') === key)
+  return matches.sort((a, b) => (savedThemeMeta.get(b.id)?.revision || 0) - (savedThemeMeta.get(a.id)?.revision || 0))[0] || null
+}
+const chooseSourceBrand = () => {
+  const association = savedThemeForSite(sourceState.brandSite || '')
+  sourceState.direction = 0
+  if (association) {
+    sourceState.brandChoice = 'saved'
+    sourceState.brandThemeId = association.id
+    sourceState.brandPanel = 'saved'
+    return
+  }
+  sourceState.brandChoice = 'direction'
+  sourceState.brandThemeId = ''
+  sourceState.brandPanel = sourceState.source?.palette.provenance === 'fallback' ? 'saved' : 'site'
+}
+const brandTabs = [...document.querySelectorAll<HTMLButtonElement>('#source-step-brand [data-brand-panel]')]
+const selectBrandPanel = (panel: 'saved' | 'site' | 'custom') => {
+  sourceState.brandPanel = panel
+  syncTabs(brandTabs, panel, 'brandPanel', value => $(`#source-brand-panel-${value}`) as HTMLElement)
+}
+brandTabs.forEach(tab => tab.addEventListener('click', () => selectBrandPanel((tab.dataset.brandPanel as 'saved' | 'site' | 'custom') || 'saved')))
+tabKeys(brandTabs, tab => selectBrandPanel((tab.dataset.brandPanel as 'saved' | 'site' | 'custom') || 'saved'))
+// Reading a brand website is its own step, with progress and a way on: its
+// colours, fonts and logo only — the article stays what was read.
+const readSourceBrandSite = async () => {
+  const source = sourceState.source
+  const field = $('#source-brand-site') as HTMLInputElement
+  const url = field.value.trim()
+  if (!source || sourceState.brandReading) return
+  if (!hostOf(url)) {
+    sourceStatus('#source-brand-read-status', 'Enter the website to read its brand from, like https://yoursite.com', true)
+    field.focus()
+    return
+  }
+  sourceState.brandReading = true
+  const button = $('#source-brand-read') as HTMLButtonElement
+  button.disabled = true
+  sourceStatus('#source-brand-read-status', `Reading ${hostOf(url)}'s colours, fonts and logo…`)
+  try {
+    const { brand } = await fetchJson<{ brand: Pick<SourceRead, 'palette' | 'logos' | 'fonts' | 'site'> }>('/api/source/brand', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url, projectId: project.id }),
+    })
+    source.palette = brand.palette
+    source.logos = brand.logos
+    if (brand.fonts.seen.length) source.fonts = brand.fonts
+    sourceState.brandSite = brand.palette.provenance === 'extracted' ? brand.site || hostOf(url) : ''
+    sourceState.brandColor = brand.palette.accent
+    sourceState.logoUrl = brand.logos.find(logo => logo.localUrl)?.localUrl || ''
+    const association = savedThemeForSite(sourceState.brandSite || '')
+    if (association) {
+      sourceState.brandChoice = 'saved'
+      sourceState.brandThemeId = association.id
+    } else {
+      sourceState.brandChoice = 'direction'
+      sourceState.direction = 0
+    }
+    sourceStatus('#source-brand-read-status', brand.palette.provenance === 'fallback'
+      ? `${hostOf(url)} showed no brand colours of its own — pick a saved theme, or create one.`
+      : association ? `Read ${hostOf(url)} — its saved theme “${association.name}” is chosen; any direction below can replace it.` : `Read ${hostOf(url)}: its colours, fonts and logo suggest the directions below.`)
+    renderSourceBrand()
+    selectBrandPanel(association ? 'saved' : 'site')
+  } catch (error) {
+    sourceStatus('#source-brand-read-status', `${error instanceof Error ? error.message : `Could not read ${hostOf(url)}`} — try again, use another website, or pick a saved theme.`, true)
+    // Default colours say the website was tried, not that none was given.
+    if (source.palette.provenance === 'fallback') {
+      source.palette = { ...source.palette, from: `${hostOf(url)} could not be read` }
+      renderSourceBrand()
+    }
+  } finally {
+    sourceState.brandReading = false
+    button.disabled = false
+  }
+}
+;($('#source-brand-read') as HTMLButtonElement).addEventListener('click', () => void readSourceBrandSite())
+;($('#source-brand-site') as HTMLInputElement).addEventListener('keydown', event => {
+  if (event.key !== 'Enter') return
+  event.preventDefault()
+  void readSourceBrandSite()
+})
 
 const renderSourceDirections = () => {
   const source = sourceState.source
@@ -15619,7 +15744,7 @@ const renderSourceBrand = () => {
     provenance === 'manual'
       ? 'chosen by hand below'
       : provenance === 'fallback'
-        ? bound ? `the saved theme “${bound.name}” has default colours — ${from}` : `defaults, not a brand — ${from}. Pick a saved theme or a custom palette below.`
+        ? bound ? `the saved theme “${bound.name}” has default colours — ${from}` : `defaults, not a brand — ${from}. Read a website's brand here, pick a saved theme, or create a theme.`
         : bound ? `from the saved theme “${bound.name}” — colours from ${from}` : `read from ${from} — click a swatch`
   const swatches = $('#source-swatches') as HTMLElement
   swatches.classList.toggle('is-fallback', provenance === 'fallback')
@@ -15678,6 +15803,40 @@ const renderSourceBrand = () => {
   renderSourceThemeAssociation()
   renderSourceSavedThemes()
   renderSourceCustomPalette()
+  renderSourceBrandChoice()
+}
+
+// The directions read off a website sit with it; with no website they are
+// the built-in starting themes, under the saved ones. The bound theme is
+// named beside the way on, with where its colours came from.
+const renderSourceBrandChoice = () => {
+  const source = sourceState.source
+  if (!source) return
+  const fromWebsite = source.palette.provenance !== 'fallback'
+  const directions = $('#source-directions') as HTMLElement
+  const starting = $('#source-starting') as HTMLElement
+  ;(fromWebsite ? $('#source-site-directions') : starting).append(directions)
+  starting.hidden = fromWebsite
+  ;($('#source-site-directions') as HTMLElement).hidden = !fromWebsite
+  const site = $('#source-brand-site') as HTMLInputElement
+  if (!site.value) site.value = ($('#source-brand-url') as HTMLInputElement).value.trim() || (sourceState.input === 'link' ? ($('#source-url') as HTMLInputElement).value.trim() : '')
+  selectBrandPanel(sourceState.brandPanel)
+  const theme = sourceBrandTheme()
+  const saved = sourceState.brandChoice === 'saved' ? savedThemes.find(entry => entry.id === sourceState.brandThemeId) : null
+  const meta = saved ? savedThemeMeta.get(saved.id) : null
+  const name = (saved?.name || theme?.name || 'the default theme').trim()
+  const colours = sourceState.brandChoice === 'custom'
+    ? 'your own colours'
+    : saved
+      ? `saved theme${meta ? `, rev ${meta.revision}` : ''}${saved.colours?.provenance === 'fallback' ? ', default colours' : saved.colours?.provenance === 'manual' ? ', colours chosen by hand' : saved.colours?.from ? `, colours from ${saved.colours.from}` : ''}`
+      : fromWebsite
+        ? `colours from ${source.palette.from || sourceState.brandSite || source.site || 'the website'}`
+        : 'a starting theme, default colours'
+  const bound = $('#source-brand-bound') as HTMLElement
+  bound.textContent = `Theme: ${sourceState.brandChoice === 'custom' ? `a custom palette over “${name}”` : `“${name}”`} · ${colours}`
+  bound.dataset.brandChoice = sourceState.brandChoice
+  const short = name.length > 28 ? `${name.slice(0, 27)}…` : name
+  ;($('#source-to-outline') as HTMLButtonElement).textContent = sourceState.brandChoice === 'custom' ? 'Outline it with your palette' : `Outline it with “${short}”`
 }
 
 // What was read (F3 of the Perplexity review): its size, its headings and
@@ -15725,13 +15884,12 @@ const renderSourceExtraction = () => {
       const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste the article\'s text instead' })
       paste.dataset.thinAction = 'paste'
       paste.addEventListener('click', () => {
-        sourceState.readMode = 'text'
         showSourceStep('read')
-        renderSourceMode()
+        sourceState.credit = true
+        selectSourceInput('text', true)
         const field = $('#source-narrative') as HTMLTextAreaElement
         const host = hostOf(($('#source-url') as HTMLInputElement).value) || 'the link'
         field.placeholder = `Paste the article here; ${host} is kept as where it came from.`
-        field.focus()
       })
       const onward = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Go on with what was read' })
       onward.dataset.thinAction = 'continue'
@@ -15762,7 +15920,8 @@ const renderSourceThemeAssociation = () => {
     return
   }
   box.hidden = false
-  const site = (source.site || '').trim().toLowerCase()
+  // The site the colours were read from — never an article merely credited.
+  const site = (sourceState.brandSite || '').trim().toLowerCase()
   const saved = site
     ? savedThemes
         .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
@@ -15817,7 +15976,8 @@ const saveSourceDirectionAsTheme = async () => {
   const chosen = sourceBrandTheme()
   if (!source || !chosen) return
   const named = (document.getElementById('source-theme-name') as HTMLInputElement | null)?.value || shortThemeName(source)
-  const site = (source.site || '').trim()
+  // A theme is saved for the site its colours were read from, if any.
+  const site = sourceState.brandChoice === 'custom' ? '' : (sourceState.brandSite || '').trim()
   // A stable id per site (or title) + choice: re-saving revises one theme
   // instead of stacking duplicates (the store dedups identical content anyway).
   const basis = (site || source.title || 'brand').toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
@@ -15858,7 +16018,7 @@ const saveSourceDirectionAsTheme = async () => {
 const renderSourceSavedThemes = () => {
   const box = $('#source-saved-themes') as HTMLElement
   box.replaceChildren()
-  const site = (sourceState.source?.site || '').trim().toLowerCase()
+  const site = (sourceState.brandSite || '').trim().toLowerCase()
   const entries = savedThemes
     .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
     .sort((a, b) => {
@@ -15867,9 +16027,22 @@ const renderSourceSavedThemes = () => {
       return bSite - aSite
     })
   if (!entries.length) {
+    // An empty library still has ways on: a built-in starting theme, a
+    // website's brand, or a theme made here.
     const hint = document.createElement('p')
     hint.className = 'source-saved-themes-empty'
-    hint.textContent = 'No saved themes yet — save this brand below, or customize one in the theme library.'
+    hint.textContent = 'No saved themes yet. Start from a built-in theme below, read a website\'s brand, or create a theme — any of them can be saved for next time.'
+    const create = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: 'Create a theme' })
+    create.addEventListener('click', () => {
+      selectBrandPanel('custom')
+      ;($('#source-brand-tab-custom') as HTMLButtonElement).focus()
+    })
+    const website = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: 'Read a website\'s brand' })
+    website.addEventListener('click', () => {
+      selectBrandPanel('site')
+      ;($('#source-brand-site') as HTMLInputElement).focus()
+    })
+    hint.append(' ', create, ' · ', website)
     box.append(hint)
     return
   }
@@ -17192,7 +17365,21 @@ function watchPageDesign() {
   }
 })
 
-// A PDF or a deck: its text is read into the narrative, then read like one.
+// A PDF or a deck: its text is read like pasted text, kept as its own input.
+const renderSourceFile = () => {
+  const box = $('#source-file-read') as HTMLElement
+  if (!sourceState.fileText) {
+    box.hidden = true
+    box.replaceChildren()
+    return
+  }
+  const summary = document.createElement('summary')
+  summary.textContent = sourceState.fileNote || 'The file\'s text'
+  const excerpt = document.createElement('blockquote')
+  excerpt.textContent = `${sourceState.fileText.slice(0, 600)}${sourceState.fileText.length > 600 ? '…' : ''}`
+  box.replaceChildren(summary, excerpt)
+  box.hidden = false
+}
 const sourceReadFile = async (file: File) => {
   if (sourceState.busy) return
   sourceStatus('#source-status', `Reading ${file.name}…`)
@@ -17202,10 +17389,13 @@ const sourceReadFile = async (file: File) => {
       headers: { 'content-type': file.type || 'application/octet-stream', 'x-file-name': encodeURIComponent(file.name), 'x-project-id': project.id },
       body: file,
     })
-    ;($('#source-url') as HTMLInputElement).value = ''
-    ;($('#source-narrative') as HTMLTextAreaElement).value = answer.text
+    // The file's text is its own input: the link and pasted text keep theirs.
+    sourceState.fileText = answer.text
     sourceState.fileTitle = answer.title
-    sourceStatus('#source-status', `${answer.kind === 'deck' ? `${answer.pages} slides` : answer.kind === 'pdf' ? `${answer.pages} pages` : 'The text'} read into a narrative (${Math.max(1, Math.round(answer.characters / 1000))}k characters)`)
+    sourceState.fileNote = `${file.name} — ${answer.kind === 'deck' ? `${answer.pages} slides` : answer.kind === 'pdf' ? `${answer.pages} pages` : 'its text'}, ${Math.max(1, Math.round(answer.characters / 1000))}k characters`
+    renderSourceFile()
+    selectSourceInput('file')
+    sourceStatus('#source-status', `Read ${sourceState.fileNote}`)
     await sourceRead()
   } catch (error) {
     sourceStatus('#source-status', error instanceof Error ? error.message : 'Could not read that file', true)
