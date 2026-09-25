@@ -4,8 +4,9 @@ import { controlValue, type ObjectBehavior, type AppearanceControl } from './obj
 import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
+import { scriptFingerprint } from './planning/recording-guide'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
-import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
+import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
@@ -773,6 +774,7 @@ let pendingRecordedBlock: {
   cameraUrl?: string
   cameraAssetId?: string
   beatMarksMs?: number[]
+  script?: { hash: string; treatment?: string; revision?: number }
 } | null = null
 let screenRecordingStream: MediaStream | null = null
 let screenRecordingHasAudio = false
@@ -1472,6 +1474,7 @@ const uploadDirectedCanvasRecording = async (
     mediaUrl: result.url,
     durationMs: result.draft.durationMs,
     ...(keepsPlan ? { keepsPlan: true, beatMarksMs: take.beatMarksMs, ...(camera || {}) } : {}),
+    script: scriptLineageOf(scene.id),
   }
   canvasRecordingPlayback.src = result.url
   downloadCanvasRecording.href = result.url
@@ -2099,7 +2102,7 @@ window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 // its stored selection. Deferred past module evaluation (fetchJson below).
 const hydratePresenterTakes = async () => {
   try {
-    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; role?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
+    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; role?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string; script?: { hash: string; treatment?: string; revision?: number } } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
     if (!takes.length) return
     let merged = 0
     project.recordedBlocks ||= {}
@@ -2119,6 +2122,7 @@ const hydratePresenterTakes = async () => {
       ...(take.detail?.keepsPlan ? { keepsPlan: true } : {}),
       ...(Array.isArray(take.detail?.beatMarksMs) ? { beatMarksMs: take.detail.beatMarksMs.map(Number).filter(Number.isFinite) } : {}),
       ...(take.detail?.cameraUrl ? { cameraUrl: String(take.detail.cameraUrl), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
+      ...(take.detail?.script?.hash ? { script: take.detail.script } : {}),
     })
     for (const take of takes) {
       const mediaUrl = take.detail?.mediaUrl
@@ -8196,6 +8200,14 @@ const supportedRecorderType = () =>
   ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
     .find(type => MediaRecorder.isTypeSupported(type)) || ''
 
+// The words a take is spoken against: their fingerprint, and the plan
+// revision they came from when a plan supplied them (R4).
+const scriptLineageOf = (sceneId: string) => {
+  const node = findSlideLikeNode(sceneId)
+  const source = node?.attrs.scriptSource as { treatment?: string; revision?: number } | null | undefined
+  return { hash: scriptFingerprint(String(node?.attrs.script || '')), ...(source?.treatment ? { treatment: source.treatment, ...(source.revision ? { revision: source.revision } : {}) } : {}) }
+}
+
 // A take saved from the camera dialog joins the durable take archive (D3)
 // like any other: the coach, the take picker, and the human build's take
 // audio all read recordedBlocks — a presenter-track-only write would record
@@ -8208,7 +8220,7 @@ const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?
     headers: { 'content-type': 'application/json' },
     // Raw presenter footage composes with the scene's graphics at compile;
     // only a composed scene recording (the directed canvas) replaces one.
-    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter' }),
+    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter', script: scriptLineageOf(blockId) }),
   })
   acknowledgeTakeMutation(project.id, blockId, accepted)
   project.recordedBlocks ||= {}
@@ -17118,6 +17130,28 @@ sceneReview = createSceneReview({
   projectId: () => (project.derivedFrom?.notebook ? project.id : null),
   wordingPolicy: () => (project.story?.wordingPolicy === 'preserve' || project.story?.wordingPolicy === 'assist' ? project.story.wordingPolicy : 'draft'),
   script: sceneId => String(findSlideLikeNode(sceneId)?.attrs.script || ''),
+  takeOf: sceneId => {
+    const active = project.recordedBlocks?.[sceneId]
+    if (!active) return null
+    const archived = (project.recordedBlockTakes?.[sceneId] || []).find(take => take.recordingId === active.recordingId)
+    const script = active.script || archived?.script
+    if (!script) return { known: false, current: false, revision: null }
+    return { known: true, current: script.hash === scriptFingerprint(String(findSlideLikeNode(sceneId)?.attrs.script || '')), revision: script.revision ?? null }
+  },
+  // The plan's lines become the scene's script; the words they replace are
+  // kept with the lineage, and earlier takes keep what they were spoken to.
+  applyScript: (sceneId, script, lineage) => {
+    const found = topLevelNodeAt(sceneId)
+    const node = found ? editor.state.doc.nodeAt(found.at) : null
+    if (!found || !node) return
+    const previous = String(node.attrs.script || '')
+    // The same transaction keeps the scene selected, so the review stays open on it.
+    const tr = editor.state.tr.setNodeMarkup(found.at, undefined, { ...node.attrs, script, scriptSource: { ...lineage, at: new Date().toISOString(), previous } })
+    if (found.leaf) tr.setSelection(NodeSelection.create(tr.doc, found.at))
+    editor.view.dispatch(tr)
+    selectNode(sceneId, false)
+    showToast(`The scene's script now follows plan r${lineage.revision}. The earlier words are kept with it; earlier takes stay as they were.`)
+  },
   refresh: () => {
     refreshSceneReview()
     renderSceneStage()

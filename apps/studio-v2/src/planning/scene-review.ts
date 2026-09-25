@@ -32,6 +32,11 @@ export type SceneReviewHost = {
   wordingPolicy: () => 'preserve' | 'assist' | 'draft'
   // The scene's words as the notebook holds them now.
   script: (sceneId: string) => string
+  // The scene's current take, and whether it was spoken against the words
+  // the scene has now (null: no take).
+  takeOf: (sceneId: string) => { known: boolean; current: boolean; revision: number | null } | null
+  // Make a plan revision's lines the scene's script, with that lineage.
+  applyScript: (sceneId: string, script: string, lineage: { treatment: string; revision: number }) => void
   // The notebook redraws the review of every scene.
   refresh: () => void
   record: (sceneId: string) => void
@@ -246,12 +251,12 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const label = view.state === 'reviewed' ? `Approved r${view.reviewed?.revision}` : view.state === 'candidate' ? `Candidate r${view.current?.revision}` : PLANNING_STATE_LABELS[view.state]
     return chip(`Plan: ${label}`, PLAN_TONES[view.state])
   }
-  const recordingState = (scene: Scene) =>
-    scene.delivery === 'generated' || scene.delivery === 'silent'
-      ? chip(`Recording: not needed (${scene.delivery})`)
-      : scene.view.current
-        ? chip('Recording: guide ready · no take yet')
-        : chip('Recording: waits for a plan')
+  const recordingState = (scene: Scene) => {
+    if (scene.delivery === 'generated' || scene.delivery === 'silent') return chip(`Recording: not needed (${scene.delivery})`)
+    const take = host.takeOf(scene.id)
+    if (take) return take.current ? chip('Recording: take matches the script', 'good') : take.known ? chip('Recording: take is of an earlier script', 'warn') : chip('Recording: take recorded')
+    return scene.view.current ? chip('Recording: guide ready · no take yet') : chip('Recording: waits for a plan')
+  }
   // The strip speaks for the scene's current plan; an older revision's
   // sketch only ever reads as out of date, and says whose it is.
   const previewChip = (scene: Scene) => {
@@ -357,16 +362,37 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return list
   }
 
-  const guideOf = (scene: Scene, plan: SceneTreatmentV1) => {
+  const guideOf = (scene: Scene, plan: SceneTreatmentV1, planRecord: PlanningRecord) => {
     const guide = recordingGuide({ plan, script: host.script(scene.id), wordingPolicy: host.wordingPolicy(), delivery: scene.delivery })
-    const record = h('button', { type: 'button', class: 'button ghost', text: 'Rehearse or record this scene', 'data-focus': `record:${scene.id}` })
+    // The teleprompter, rehearsal and take read the scene's script: until it
+    // says what this plan says, recording would be against other words.
+    const older = guide.source === 'plan' && !guide.matchesScript
+    const record = h('button', { type: 'button', class: 'button ghost', text: 'Rehearse or record this scene', 'data-focus': `record:${scene.id}`, ...(older ? { disabled: true, title: `Use plan r${planRecord.revision}'s lines first, so the teleprompter shows what the plan says` } : {}) })
     record.addEventListener('click', () => host.record(scene.id))
+    const take = host.takeOf(scene.id)
+    const lineLabel = guide.wording === 'approved' ? 'approved wording — keep it' : 'draft wording — you may say it your way'
+    const change = older
+      ? (() => {
+          const apply = h('button', { type: 'button', class: 'button secondary', 'data-focus': `use-plan-script:${scene.id}`, text: `Use plan r${planRecord.revision}'s lines as the scene's script` })
+          apply.addEventListener('click', () => {
+            host.applyScript(scene.id, guide.planScript, { treatment: planRecord.id, revision: planRecord.revision })
+            host.refresh()
+          })
+          return h('div', { class: 'review-script-change' },
+            h('p', { class: 'review-warn', text: `The notebook's script for this scene is older than plan r${planRecord.revision}: ${guide.scriptLines.length} line${guide.scriptLines.length === 1 ? '' : 's'}, in another order or wording. The teleprompter, rehearsal and your take use the notebook's script.` }),
+            guide.scriptLines.length ? h('details', { class: 'review-script-older' }, h('summary', { text: 'The notebook\'s script now' }), h('ol', {}, ...guide.scriptLines.map(line => h('li', { text: line })))) : null,
+            apply,
+          )
+        })()
+      : null
     return h('div', { class: 'review-guide' },
       h('p', {}, h('strong', { text: 'What it is for. ' }), guide.purpose),
       h('p', { class: 'review-muted', text: guide.note }),
+      take && take.known && !take.current ? h('p', { class: 'review-warn', text: `Your current take was spoken against an earlier script${take.revision ? ` (plan r${take.revision})` : ''}. It is kept; re-record the scene, or align the take, where the words changed.` }) : null,
       guide.lines.length
-        ? h('div', {}, h('h6', { text: `Lines to record (${guide.wording === 'approved' ? 'approved wording — keep it' : 'draft wording — you may say it your way'})` }), h('ol', {}, ...guide.lines.map(line => h('li', { text: line.text }))))
+        ? h('div', {}, h('h6', { text: `Lines to record — ${guide.source === 'plan' ? `plan r${planRecord.revision}'s narration, in its order` : 'the notebook\'s script'} (${lineLabel})` }), h('ol', { class: 'review-guide-lines' }, ...guide.lines.map(line => h('li', { text: line.text }))))
         : h('p', { class: 'review-muted', text: 'The scene has no words yet.' }),
+      change,
       h('h6', { text: 'Where you are, moment by moment' }),
       h('ol', {}, ...guide.steps.map(step => h('li', {}, h('strong', { text: `${step.title}: ` }), step.instruction))),
       guide.sections.length > 1 ? h('p', { class: 'review-muted', text: `Record it whole, or in sections: ${guide.sections.map(section => section.label).join(' · ')}` }) : null,
@@ -587,7 +613,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     if (!plan && record) root.append(...previewSection(scene, record))
     if (plan && record) {
       root.append(
-        disclosure(`guide:${scene.id}`, 'Recording guide', guideOf(scene, plan)),
+        disclosure(`guide:${scene.id}`, 'Recording guide', guideOf(scene, plan, record)),
         disclosure(`compare:${scene.id}`, 'Compare with another revision', compareOf(scene, plan, record)),
         previewDetails(scene, record) || '',
         disclosure(`production:${scene.id}`, 'Production — not connected yet', productionOf(scene, record)),
@@ -618,7 +644,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const record = scene ? shownRecord(scene) : null
     const preview = scene ? previewStateOf(scene, record) : null
     const current = scene ? previewStateOf(scene, scene.view.current) : null
-    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error])
+    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId)])
   }
 
   return {

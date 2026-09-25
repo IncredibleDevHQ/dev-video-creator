@@ -161,6 +161,9 @@ export const SceneBlock = Node.create({
       // { kind: 'designed', by, runId } or { kind: 'schematic' } — an
       // instant template draft stays identified as one.
       pageOrigin: { default: null },
+      // Where the scene's words came from when a plan supplied them:
+      // { treatment, revision, at } — the lineage a recording is bound to.
+      scriptSource: { default: null },
     }
   },
 
@@ -192,6 +195,7 @@ export const SceneBlock = Node.create({
       windows,
       breakdownApproved,
       pageOrigin,
+      scriptSource: _scriptSource,
       ...attributes
     } = HTMLAttributes
     const entries = (Array.isArray(storyboard) ? storyboard : []) as SceneStoryboardEntry[]

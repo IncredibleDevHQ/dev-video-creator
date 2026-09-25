@@ -521,6 +521,28 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     expect(Object.values(preview.byTreatment).some(view => view.current)).toBe(false)
   }, 60_000)
 
+  // R4: taking a plan's own narration as the scene's script does not make
+  // that plan stale; any other change to the words still does.
+  it('keeps a plan fresh when the scene takes its lines, and stale when the words change otherwise', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('adopt-script')
+    await readyBrief(id, 'run-adopt-brief')
+    const { record } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(record.id, { runId: 'run-adopt-plan' })
+    expect(await service.submitTreatment(record.id, treatmentFor(scenes[0], 'b1'), 'run-adopt-plan')).toMatchObject({ accepted: true })
+    const setScript = async (script: string, scriptSource: unknown) => {
+      const video = await persistence.loadProjectArtifact(id)
+      const content = (video!.notebook.content || []).map(node => (node.attrs?.id === scenes[0] ? { ...node, attrs: { ...node.attrs, script, scriptSource } } : node))
+      await persistence.saveProjectArtifact({ ...video!, notebook: { ...video!.notebook, content } })
+    }
+    const lineage = { treatment: record.id, revision: record.revision, at: '2026-09-25T00:00:00.000Z', previous: 'Each request spends one token.' }
+    await setScript('Each request consumes one token.', lineage)
+    expect((await service.planningOverview(id)).scenes[0].view).toMatchObject({ state: 'candidate', staleBecause: null })
+    await setScript('Each request consumes one token.\n\nAnd then some words the plan never said.', lineage)
+    const view = (await service.planningOverview(id)).scenes[0].view
+    expect(view.state).toBe('stale')
+    expect(view.staleBecause).toMatch(/script|words/)
+  }, 60_000)
+
   it('fails the records of a run interrupted by a restart, with a way on', async () => {
     const { videoId: id } = await makeVideo('interrupt')
     const { record } = await service.queueBrief(id)

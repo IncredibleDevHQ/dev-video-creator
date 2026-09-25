@@ -100,6 +100,8 @@ type SaveRecordedBlockInput = {
   cameraUrl?: string
   cameraAssetId?: string
   beatMarksMs?: number[]
+  // The script the take was spoken against (R4).
+  script?: { hash: string; treatment?: string; revision?: number }
 }
 
 type PersistenceBackend = {
@@ -262,10 +264,11 @@ export const saveRecordedBlock = async (
       mediaUrl: recording.mediaUrl,
       ...(recording.role === 'presenter' ? { role: 'presenter' } : {}),
       ...(recording.keepsPlan ? { keepsPlan: true, ...(recording.beatMarksMs ? { beatMarksMs: recording.beatMarksMs } : {}), ...(recording.cameraUrl ? { cameraUrl: recording.cameraUrl, cameraAssetId: recording.cameraAssetId } : {}) } : {}),
+      ...(recording.script ? { script: recording.script } : {}),
     },
   })
   await backend.selectPresenterTake({ projectId: recording.projectId, blockId: recording.blockId, takeId: saved.recordingId })
-  return recording.role === 'presenter' ? { ...saved, role: 'presenter' } : saved
+  return { ...saved, ...(recording.role === 'presenter' ? { role: 'presenter' as const } : {}), ...(recording.script ? { script: recording.script } : {}) }
 }
 
 export const clearPresenterTake = async (input: { projectId: string; blockId: string }) =>

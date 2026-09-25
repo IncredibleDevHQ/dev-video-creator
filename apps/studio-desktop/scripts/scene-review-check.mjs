@@ -303,9 +303,23 @@ try {
     const details = document.querySelector('.scene-review.is-expanded [data-review-open^="guide:"]')
     details.open = true
     details.dispatchEvent(new Event('toggle'))
-    return { lines: [...details.querySelectorAll('.review-guide > div ol li')].map(item => item.textContent), steps: [...details.querySelectorAll('.review-guide > ol li')].map(item => item.textContent), record: Boolean(details.querySelector('[data-focus^="record:"]')) }
+    return { heading: details.querySelector('.review-guide h6')?.textContent || '', lines: [...details.querySelectorAll('.review-guide-lines li')].map(item => item.textContent), steps: [...details.querySelectorAll('.review-guide > ol li')].map(item => item.textContent), older: Boolean(details.querySelector('.review-script-change')), record: details.querySelector('[data-focus^="record:"]')?.disabled }
   }`)
-  check(guide.lines.length === 2 && guide.steps.some(step => /keep speaking; the graphics take the frame/.test(step)) && guide.record, `the recording guide gives the lines, where the speaker is and a way to record (${JSON.stringify(guide)})`)
+  // The lines are the approved plan's narration, in its order (R4) — not
+  // the notebook's older script, which recording would otherwise follow.
+  check(guide.lines.join('|') === 'Set the scene.|The limit bites.|Back to the viewer.' && /plan r\d+'s narration, in its order/.test(guide.heading) && guide.steps.some(step => /keep speaking; the graphics take the frame/.test(step)), `the recording guide follows the approved plan's lines and says where the speaker is (${JSON.stringify(guide)})`)
+  check(guide.older && guide.record === true, `recording waits until the scene's script says what the plan says (${JSON.stringify({ older: guide.older, recordDisabled: guide.record })})`)
+  const scriptBefore = (await api(`/api/projects/${videoId}`)).body.project.notebook.content.filter(node => node.type === 'scene')[1].attrs.script
+  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="use-plan-script:"]').click(); return true }`)
+  const adopted = await until(async () => {
+    const scene = (await api(`/api/projects/${videoId}`)).body.project.notebook.content.filter(node => node.type === 'scene')[1]
+    return scene.attrs.scriptSource?.treatment ? scene.attrs : null
+  }, 20)
+  check(adopted?.script === 'Set the scene.\n\nThe limit bites.\n\nBack to the viewer.' && adopted.scriptSource.treatment === planned.id && adopted.scriptSource.revision === planned.revision && adopted.scriptSource.previous === scriptBefore, `the plan's lines become the scene's script, with where they came from and the words they replaced (${JSON.stringify(adopted?.scriptSource)})`)
+  const afterAdopt = await waitFor(`() => { const details = document.querySelector('.scene-review.is-expanded [data-review-open^="guide:"]'); const record = details?.querySelector('[data-focus^="record:"]'); return record && !record.disabled && !details.querySelector('.review-script-change') ? true : null }`, 20)
+  check(Boolean(afterAdopt), 'with the plan\'s lines as the script, the scene can be rehearsed and recorded')
+  const stillApproved = (await overview(videoId)).scenes[1].view
+  check(stillApproved.state === 'reviewed' && stillApproved.reviewed?.id === planned.id && !stillApproved.staleBecause, `taking the approved plan's own lines leaves it approved and fresh (${stillApproved.state}${stillApproved.staleBecause ? ` — ${stillApproved.staleBecause}` : ''})`)
   const production = await evaluate(`() => {
     const details = document.querySelector('.scene-review.is-expanded [data-review-open^="production:"]')
     if (!details) return null

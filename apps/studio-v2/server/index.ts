@@ -2268,6 +2268,7 @@ const handleCommitDirectedRecording = async (
     cameraUrl?: string
     cameraAssetId?: string
     beatMarksMs?: number[]
+    script?: { hash?: unknown; treatment?: unknown; revision?: unknown }
   }>(request, 64_000)
   if (!body.projectId || !body.blockId || !body.assetId || !body.mediaUrl) {
     throw new Error('The recorded block is incomplete')
@@ -2275,6 +2276,14 @@ const handleCommitDirectedRecording = async (
   const beatMarksMs = Array.isArray(body.beatMarksMs)
     ? body.beatMarksMs.map(Number).filter(ms => Number.isFinite(ms) && ms >= 0).slice(0, 400)
     : []
+  // The script the take was spoken against, kept with the take (R4).
+  const script = body.script && typeof body.script.hash === 'string' && /^[0-9a-f]{1,64}$/.test(body.script.hash)
+    ? {
+        hash: body.script.hash,
+        ...(typeof body.script.treatment === 'string' && body.script.treatment.length <= 200 ? { treatment: body.script.treatment } : {}),
+        ...(Number.isInteger(body.script.revision) && Number(body.script.revision) > 0 ? { revision: Number(body.script.revision) } : {}),
+      }
+    : undefined
   const recording = await saveRecordedBlock({
     projectId: body.projectId,
     blockId: body.blockId,
@@ -2291,6 +2300,7 @@ const handleCommitDirectedRecording = async (
           ...(body.cameraUrl && body.cameraAssetId ? { cameraUrl: String(body.cameraUrl), cameraAssetId: String(body.cameraAssetId) } : {}),
         }
       : {}),
+    ...(script ? { script } : {}),
   })
   json(response, 201, { recording, project: await loadProjectArtifact(body.projectId) })
 }

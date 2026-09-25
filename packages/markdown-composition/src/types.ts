@@ -156,6 +156,10 @@ export type RecordedBlockV1 = {
   cameraUrl?: string
   cameraAssetId?: string
   beatMarksMs?: number[]
+  // The words the take was spoken against: their fingerprint and, when a
+  // scene plan supplied them, that plan's record and revision. A later
+  // script never relabels an earlier take as current.
+  script?: { hash: string; treatment?: string; revision?: number }
 }
 
 export type BrandTemplateV1 = {

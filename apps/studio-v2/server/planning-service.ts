@@ -109,7 +109,8 @@ export type VideoPlanning = {
   basePages: PinnedPage[]
   // A limitation worth telling the planner, when the pinned base is gone.
   baseLimitation: string | null
-  videoScenes: Array<{ id: string; title: string; index: number; originScenes: string[]; script: string }>
+  // scriptSource: the plan record whose lines the scene's script was taken from.
+  videoScenes: Array<{ id: string; title: string; index: number; originScenes: string[]; script: string; scriptSource: string | null }>
   source: { revision: string | null; text: string; kind: string; title: string; site: string; url: string }
   wordingPolicy: 'preserve' | 'assist' | 'draft'
   themeRef: string | null
@@ -165,6 +166,7 @@ export const loadVideoPlanning = async (projectId: string): Promise<VideoPlannin
       index,
       originScenes: (origin?.scenes?.length ? origin.scenes : origin?.scene ? [origin.scene] : []).map(String),
       script: stringAttr(node, 'script'),
+      scriptSource: String((attr(node, 'scriptSource') as { treatment?: string } | null | undefined)?.treatment || '') || null,
     }
   })
 
@@ -248,7 +250,7 @@ const freshnessOf = (planning: VideoPlanning, records: PlanningRecord[]) => {
   const brief = currentBrief(records)
   const briefNow = briefInputsOf(planning)
   const briefFresh = briefFreshness(brief, briefNow)
-  const sceneNow = (sceneId: string) => ({ briefFresh, inputs: brief ? treatmentInputsOf(planning, brief, sceneId) : null })
+  const sceneNow = (sceneId: string) => ({ briefFresh, inputs: brief ? treatmentInputsOf(planning, brief, sceneId) : null, scriptAdoptedFrom: planning.videoScenes.find(scene => scene.id === sceneId)?.scriptSource || null })
   return {
     brief,
     briefNow,

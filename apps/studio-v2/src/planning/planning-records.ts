@@ -192,13 +192,33 @@ export const briefFreshness = (brief: PlanningRecord | null, now: BriefInputs): 
 
 // A scene plan against its brief and its scene as they are now. A plan made
 // from a stale brief is stale too, whatever its own inputs say.
+// The scene's script as a plan narrates it: its narration lines, in order,
+// compared the way the recording guide compares scripts.
+const narrationLinesOf = (content: unknown) =>
+  ((content as SceneTreatmentV1 | null)?.moments || [])
+    .map(moment => (moment.narration?.guide || '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+const scriptLines = (script: string) =>
+  script
+    .split(/\n\s*\n/)
+    .map(paragraph => paragraph.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+
 export const treatmentFreshness = (
   record: PlanningRecord,
-  now: { brief: PlanningRecord | null; briefFresh: Freshness; inputs: TreatmentInputs | null },
+  // scriptAdoptedFrom: the plan whose lines the scene's script was taken
+  // from, if it was (the scene's scriptSource).
+  now: { brief: PlanningRecord | null; briefFresh: Freshness; inputs: TreatmentInputs | null; scriptAdoptedFrom?: string | null },
 ): Freshness => {
   if (!now.brief || !now.inputs) return stale('no explanation brief is ready')
   if (record.inputs.briefId !== now.brief.id) return stale('the explanation brief has changed since this plan was made')
   if (!now.briefFresh.fresh) return stale(`its explanation brief is stale: ${now.briefFresh.reason}`)
+  // A script taken from this very plan, and still exactly its narration, is
+  // the plan's own words — not a change to what it was made from. Any other
+  // change to the words still makes it stale; new plans start from them.
+  const adopted = now.scriptAdoptedFrom === record.id && scriptLines(now.inputs.script).join('\n') === narrationLinesOf(record.content).join('\n')
+  if (adopted) now = { ...now, inputs: { ...now.inputs, script: String(record.inputs.script ?? now.inputs.script) } }
+  if (!now.inputs) return stale('no explanation brief is ready')
   if (record.fingerprint === treatmentFingerprint(now.inputs)) return FRESH
   const moved = changedInputs(treatmentDependencies(record.inputs), treatmentDependencies(now.inputs), TREATMENT_INPUT_LABELS)
   return stale(`${moved.length ? sentence(moved) : 'its inputs'} changed since this plan was made`)
@@ -241,7 +261,7 @@ export const latestBrief = (records: PlanningRecord[]) =>
 export const scenePlanningView = (
   records: PlanningRecord[],
   scene: string,
-  now: { briefFresh: Freshness; inputs: TreatmentInputs | null } | null,
+  now: { briefFresh: Freshness; inputs: TreatmentInputs | null; scriptAdoptedFrom?: string | null } | null,
 ): ScenePlanningView => {
   const brief = currentBrief(records)
   const newestBrief = latestBrief(records)

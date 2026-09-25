@@ -4,7 +4,7 @@ import { buildCapabilityCatalog, parseBlueprintsIndex, parseRulesIndex, parseTec
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './explanation-brief'
 import { continuityStatus, validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
 import { compareTreatments } from './plan-compare'
-import { recordingGuide } from './recording-guide'
+import { recordingGuide, scriptFingerprint } from './recording-guide'
 import { sketchSummary, validateSketch } from './sketch-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from './brief-adapter'
 import { PLANNING_SCHEMA, briefFingerprint, briefFreshness, landingFor, scenePlanningView, treatmentFingerprint, treatmentFreshness, type BriefInputs, type PlanningRecord, type TreatmentInputs } from './planning-records'
@@ -580,13 +580,38 @@ describe('the recording guide', () => {
     plan.moments[0].presenter = { visibility: 'full', reason: 'Introduce the idea' }
     plan.moments[1].presenter = { visibility: 'hidden', reason: 'The spend carries it' }
     const guide = recordingGuide({ plan, script: 'A token bucket holds capacity.\n\nEach admitted request consumes one token. [pause]', wordingPolicy: 'preserve', delivery: null })
-    expect(guide.lines).toEqual([{ text: 'A token bucket holds capacity.', wording: 'approved' }, { text: 'Each admitted request consumes one token.', wording: 'approved' }])
+    expect(guide.lines).toEqual([{ text: 'A token bucket holds capacity.', moment: 'm1', wording: 'approved' }, { text: 'Each admitted request consumes one token.', moment: 'm2', wording: 'approved' }])
+    expect(guide).toMatchObject({ source: 'plan', matchesScript: true })
     expect(guide.steps.map(step => step.framing)).toEqual(['full', 'hidden'])
     expect(guide.steps[1].instruction).toMatch(/keep speaking; the graphics take the frame/)
     expect(guide.offCamera).toBe(true)
     expect(guide.sections.map(section => section.label)).toEqual(['1. Establish capacity — on camera', '2. A request spends a token — voice only'])
     expect(guide.delivery.join(' ')).toMatch(/The take sets the timing/)
     expect(guide.note).toMatch(/No take is needed to plan or to preview/)
+  })
+
+  // R4: the approved revision moved the refill after the refusal and added a
+  // silent hold; the notebook's script still has the older order.
+  it('follows the approved plan\'s order and silences, and says when the notebook\'s script is older', () => {
+    const plan = goodTreatment()
+    const moment = (id: string, title: string, guide: string | null) => ({ ...plan.moments[1], id, title, narration: guide === null ? null : { job: title, guide } })
+    plan.moments = [
+      moment('m1', 'Refused', 'If the bucket is empty, the request is rejected.'),
+      moment('m2', 'Hold on the refill', null),
+      moment('m3', 'Name the rate', 'Fresh tokens drip back in slowly.'),
+    ] as typeof plan.moments
+    const older = 'Fresh tokens drip back in slowly.\n\nIf the bucket is empty, the request is rejected.'
+    const guide = recordingGuide({ plan, script: older, wordingPolicy: 'draft', delivery: 'human' })
+    expect(guide.lines.map(line => line.text)).toEqual(['If the bucket is empty, the request is rejected.', 'Fresh tokens drip back in slowly.'])
+    expect(guide.steps.map(step => step.instruction)[1]).toMatch(/^Silent — say nothing here/)
+    expect(guide).toMatchObject({ source: 'plan', matchesScript: false, planScript: 'If the bucket is empty, the request is rejected.\n\nFresh tokens drip back in slowly.' })
+    // Kept wording counts as kept only where the line is the notebook's own.
+    const kept = recordingGuide({ plan, script: 'If the bucket is empty, the request is rejected.', wordingPolicy: 'preserve', delivery: 'human' })
+    expect(kept.lines.map(line => line.wording)).toEqual(['approved', 'draft'])
+    // A take remembers the words it was spoken against: cues and spacing do
+    // not change them, order does.
+    expect(scriptFingerprint('A line.\n\nB line. [pause]')).toBe(scriptFingerprint('A  line.\n\n\nB line.'))
+    expect(scriptFingerprint(older)).not.toBe(scriptFingerprint(guide.planScript))
   })
 
   it('has nothing to record for a generated or silent scene, and marks draft wording', () => {

@@ -10,7 +10,8 @@
 import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
 
 export type Framing = 'full' | 'shared' | 'hidden' | 'undecided'
-export type GuideLine = { text: string; wording: 'approved' | 'draft' }
+// A line to record, in the plan's order, and the moment it belongs to.
+export type GuideLine = { text: string; wording: 'approved' | 'draft'; moment?: string }
 export type GuideStep = { moment: string; title: string; framing: Framing; say: string; instruction: string; attention: string }
 export type GuideSection = { id: string; moments: string[]; framing: Framing; label: string }
 export type RecordingGuide = {
@@ -26,6 +27,33 @@ export type RecordingGuide = {
   // What decides the delivery: the creator's choice, or not yet.
   voice: 'human' | 'generated' | 'silent' | 'undecided'
   note: string
+  // Where the lines come from: the plan's narration, in its order, or — for
+  // a plan with no narration — the notebook's script.
+  source: 'plan' | 'script'
+  // The scene's script as the plan would have it, and whether the notebook
+  // already says exactly that: recording is bound to one or the other.
+  planScript: string
+  matchesScript: boolean
+  scriptLines: string[]
+}
+
+// The lines of a script, as compared: one per paragraph, cues and extra
+// whitespace dropped.
+export const scriptLinesOf = (script: string) =>
+  script
+    .split(/\n\s*\n/)
+    .map(paragraph => paragraph.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+
+// A short, stable fingerprint of a script's words (FNV-1a over its lines):
+// what a take records it was spoken against.
+export const scriptFingerprint = (script: string) => {
+  let hash = 0x811c9dc5
+  for (const character of scriptLinesOf(script).join('\n')) {
+    hash ^= character.codePointAt(0) || 0
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash.toString(16).padStart(8, '0')
 }
 
 const INSTRUCTIONS: Record<Framing, string> = {
@@ -37,12 +65,6 @@ const INSTRUCTIONS: Record<Framing, string> = {
 
 const framingOf = (moment: TreatmentMoment): Framing => moment.presenter?.visibility || 'undecided'
 
-// The scene's words as the lines to record: one per paragraph.
-const linesOf = (script: string) =>
-  script
-    .split(/\n\s*\n/)
-    .map(paragraph => paragraph.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
 
 export const recordingGuide = (input: {
   plan: SceneTreatmentV1
@@ -52,14 +74,19 @@ export const recordingGuide = (input: {
 }): RecordingGuide => {
   const { plan } = input
   const wording = input.wordingPolicy === 'preserve' ? 'approved' : 'draft'
-  const steps: GuideStep[] = plan.moments.map(moment => ({
-    moment: moment.id,
-    title: moment.title,
-    framing: framingOf(moment),
-    say: moment.narration?.guide || moment.narration?.job || '',
-    instruction: INSTRUCTIONS[framingOf(moment)],
-    attention: moment.attention,
-  }))
+  const steps: GuideStep[] = plan.moments.map(moment => {
+    const framing = framingOf(moment)
+    // A moment with no line is a silent beat: nothing to say while it lands.
+    const silent = !(moment.narration?.guide || '').trim()
+    return {
+      moment: moment.id,
+      title: moment.title,
+      framing,
+      say: moment.narration?.guide || '',
+      instruction: silent ? (framing === 'full' || framing === 'shared' ? 'On camera, silent — hold while it lands.' : 'Silent — say nothing here; the graphics carry this moment.') : INSTRUCTIONS[framing],
+      attention: moment.attention,
+    }
+  })
   // Sections a take can be broken into: runs of moments with one framing.
   const sections: GuideSection[] = []
   for (const step of steps) {
@@ -85,10 +112,27 @@ export const recordingGuide = (input: {
     plan.continuity.exit ? `Handing over: it leaves on ${plan.continuity.exit}.` : '',
     'Speak naturally; pause where the idea needs it. The take sets the timing — the graphics follow you.',
   ].filter(Boolean)
+  // The lines are the plan's narration, in the plan's order: a revision that
+  // moves the refill after the refusal moves the line too (R4). Moments with
+  // nothing to say stay silent. Kept wording counts as kept only where a
+  // line is the notebook's own.
+  const scriptLines = scriptLinesOf(input.script)
+  const planned = plan.moments
+    .map(moment => ({ moment: moment.id, text: (moment.narration?.guide || '').replace(/\s+/g, ' ').trim() }))
+    .filter(line => line.text)
+  const fromPlan = planned.length > 0
+  const lines: GuideLine[] = fromPlan
+    ? planned.map(line => ({ text: line.text, moment: line.moment, wording: wording === 'approved' && scriptLines.includes(line.text) ? 'approved' : 'draft' }))
+    : scriptLines.map(text => ({ text, wording }))
+  const planScript = lines.map(line => line.text).join('\n\n')
   return {
     purpose: plan.takeaway || plan.question,
     wording,
-    lines: linesOf(input.script).map(text => ({ text, wording })),
+    lines,
+    source: fromPlan ? 'plan' : 'script',
+    planScript,
+    matchesScript: scriptLinesOf(planScript).join('\n') === scriptLines.join('\n'),
+    scriptLines,
     steps,
     sections,
     framing,
