@@ -15,17 +15,7 @@
 import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
 import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, type PlanningRecord, type ScenePlanningView } from './planning-records'
-import {
-  failureTitle,
-  progressText,
-  loadHarnessPreferences,
-  loadHarnessStatus,
-  resolveStage,
-  saveHarnessPreferences,
-  type HarnessChoice,
-  type HarnessPreferences,
-  type HarnessStatus,
-} from '../harness-choice'
+import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 
 type BasePage = { scene: string; title: string; idea: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
 type SceneRow = {
@@ -118,6 +108,9 @@ export type PlanningWorkspaceHost = {
   forksOf: (baseId: string) => Promise<Fork[]>
   // The base's own pages, for the presentation view in a base notebook.
   basePages: () => BasePage[]
+  // Closing hands the scene, revision and moment shown back to the notebook,
+  // in the same click — not on a later event (R8).
+  onClose?: (selection: { sceneId: string; revision: string; moment: string }) => void
 }
 
 const HARNESS_LABELS: Record<string, string> = { kimi: 'Kimi', 'claude-code': 'Claude Code', codex: 'Codex' }
@@ -291,7 +284,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   // ——— Actions ———
   const startRun = async (record: PlanningRecord, route: 'Prepare Brief' | 'Plan Scene') => {
     if (!bridge?.isDesktop) {
-      host.toast('Planning runs in the desktop app, with your local harness')
+      await host.fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: BROWSER_REVIEW_MESSAGE, providerStatus: 'browser review' }) }).catch(() => {})
+      host.toast(BROWSER_REVIEW_MESSAGE)
       return
     }
     const adapter = preferredHarness()
@@ -320,6 +314,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
 
   const prepareBrief = async () => {
     if (readOnly || busy) return
+    if (!bridge?.isDesktop) return host.toast(BROWSER_REVIEW_MESSAGE)
     busy = true
     try {
       const { record, reused } = await host.fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/brief`, { method: 'POST' })
@@ -343,6 +338,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
 
   const generatePlan = async () => {
     if (readOnly || busy || !selectedScene) return
+    if (!bridge?.isDesktop) return host.toast(BROWSER_REVIEW_MESSAGE)
     busy = true
     try {
       // Direction typed but not yet saved travels with this request.
@@ -462,7 +458,8 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       if (entry.id === preferred) option.selected = true
       harnessSelect.append(option)
     }
-    if (!harnesses.length) harnessSelect.append(h('option', { text: 'No local harness found' }))
+    if (!harnesses.length) harnessSelect.append(h('option', { text: bridge?.isDesktop ? 'No local harness found' : 'Desktop app only' }))
+    if (!bridge?.isDesktop) harnessSelect.disabled = true
     harnessSelect.addEventListener('change', () => {
       const picked = harnesses.find(entry => entry.id === harnessSelect.value)
       const recommended = RECOMMENDED_MODELS[harnessSelect.value] || picked?.models?.default || null
@@ -492,7 +489,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       const briefRecord = brief?.latest
       const running = briefRecord && (briefRecord.status === 'queued' || briefRecord.status === 'running')
       const label = !brief?.current ? (briefRecord?.status === 'failed' ? 'Retry the brief' : 'Prepare the brief') : brief.stale ? 'Prepare the brief again' : 'Prepare again'
-      const prepare = h('button', { type: 'button', class: `button ${brief?.current && !brief.stale ? 'ghost' : 'primary'}`, text: running ? 'Preparing…' : label, ...(running || !overview.available ? { disabled: true } : {}) })
+      const prepare = h('button', { type: 'button', class: `button ${brief?.current && !brief.stale ? 'ghost' : 'primary'}`, text: running ? 'Preparing…' : label, ...(running || !overview.available || !bridge?.isDesktop ? { disabled: true } : {}), ...(bridge?.isDesktop ? {} : { title: 'Preparing the brief runs in the desktop app' }) })
       prepare.addEventListener('click', () => {
         // A new brief makes every plan drawn from the current one stale.
         const planned = overview!.records.some(record => record.kind === 'treatment' && record.content)
@@ -507,7 +504,10 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       }
     }
     const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning', text: '×' })
-    close.addEventListener('click', () => dialog.close())
+    close.addEventListener('click', () => {
+      host.onClose?.({ sceneId: selectedScene, revision, moment })
+      dialog.close()
+    })
     actions.append(close)
     return h(
       'header',
@@ -574,7 +574,9 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   // Before a run: whether the chosen harness can run, and how its last run went.
   const harnessNotes = () => {
     const choice = planningChoice()
-    if (!choice.available) return [h('p', { class: 'planning-error', text: choice.reason || 'Choose a local harness for planning.' })]
+    const where = planningHostOf(Boolean(bridge?.isDesktop), harnesses, choice)
+    if (where.state === 'browser') return [h('p', { class: 'planning-note planning-host-note', text: where.message || '' })]
+    if (where.state !== 'ready') return [h('p', { class: 'planning-error planning-host-note', text: where.message || 'Choose a local harness for planning.' })]
     const last = choice.harness ? harnessStatus[choice.harness] : undefined
     if (last?.state !== 'error' || !last.failure) return []
     return [h('p', { class: 'planning-warn planning-last-status', text: `Last ${HARNESS_LABELS[choice.harness!] || choice.harness} run failed — ${failureTitle(last.failure.category)}: ${last.failure.message.slice(0, 220)}` })]
@@ -1081,7 +1083,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     const generating = view.state === 'planning'
     // A plan from a stale brief could never become current: prepare it first.
     const briefStale = overview!.brief.stale ? `Prepare the brief again first — ${overview!.brief.staleBecause || 'it is stale'}` : ''
-    const generate = h('button', { type: 'button', class: 'button primary', text: view.latest?.status === 'failed' ? 'Retry creative plan' : view.current ? 'Regenerate with direction' : 'Generate creative plan', ...(briefStale ? { title: briefStale } : {}), ...(generating || !overview!.brief.current || !overview!.available || briefStale ? { disabled: true } : {}) })
+    const generate = h('button', { type: 'button', class: 'button primary', text: view.latest?.status === 'failed' ? 'Retry creative plan' : view.current ? 'Regenerate with direction' : 'Generate creative plan', ...(briefStale ? { title: briefStale } : bridge?.isDesktop ? {} : { title: 'Planning runs in the desktop app' }), ...(generating || !overview!.brief.current || !overview!.available || briefStale || !bridge?.isDesktop ? { disabled: true } : {}) })
     generate.addEventListener('click', () => void generatePlan())
     const shown = shownPlan()
     const canReview = shown?.status === 'candidate' && !(shown.id === view.current?.id && view.staleBecause)
@@ -1127,8 +1129,17 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     return pane
   }
 
-  const open = async (options: { prepare?: boolean } = {}) => {
+  // Opened from a scene, the workspace shows that scene, revision, moment
+  // and tab; closing it hands its selection back (R8).
+  const open = async (options: { prepare?: boolean; sceneId?: string; revision?: string; moment?: string; tab?: 'presentation' | 'brief' | 'plan' | 'cast' } = {}) => {
     const current = host.current()
+    if (options.sceneId) {
+      selectedScene = options.sceneId
+      revision = options.revision || ''
+      moment = options.moment || ''
+      compareWith = ''
+      tab = options.tab || 'plan'
+    }
     readOnly = !current.derivedFrom?.notebook
     progress.clear()
     drafts.clear()
@@ -1144,7 +1155,10 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
             h('div', { class: 'planning-title' }, h('span', { class: 'eyebrow', text: 'Video plans' }), h('h2', { text: current.title }), h('p', { class: 'planning-lineage', text: 'This is a base notebook. Its video plans live in a video fork: create one first, and it will prepare its explanation brief.' })),
             h('div', { class: 'planning-header-actions' }, (() => {
               const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning', text: '×' })
-              close.addEventListener('click', () => dialog.close())
+              close.addEventListener('click', () => {
+      host.onClose?.({ sceneId: selectedScene, revision, moment })
+      dialog.close()
+    })
               return close
             })()),
           ),
@@ -1173,5 +1187,5 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     window.clearTimeout(pollTimer)
   })
 
-  return { open, reload: load }
+  return { open, reload: load, selection: () => ({ sceneId: selectedScene, revision, moment }) }
 }

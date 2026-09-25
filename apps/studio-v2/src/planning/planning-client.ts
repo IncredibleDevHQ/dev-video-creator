@@ -3,7 +3,7 @@
 // "Video planning" harness, approve a plan. Nothing here starts production.
 import type { PlanningRecord } from './planning-records'
 import type { PlanningOverviewV1 } from './planning-workspace'
-import { loadHarnessPreferences, resolveStage, type HarnessAvailability } from '../harness-choice'
+import { BROWSER_REVIEW_MESSAGE, loadHarnessPreferences, resolveStage, type HarnessAvailability } from '../harness-choice'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
 
@@ -23,7 +23,10 @@ export const startPlanningRun = async (fetchJson: FetchJson, input: { record: Pl
   const bridge = window.studioDesktop
   const fail = (message: string, providerStatus?: string) =>
     fetchJson(`/api/planning/records/${encodeURIComponent(input.record.id)}/fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, ...(providerStatus ? { providerStatus } : {}) }) }).catch(() => {})
-  if (!bridge?.isDesktop) throw new Error('Planning runs in the desktop app, with your local harness')
+  if (!bridge?.isDesktop) {
+    await fail(BROWSER_REVIEW_MESSAGE, 'browser review')
+    throw new Error(BROWSER_REVIEW_MESSAGE)
+  }
   const [adapters, preferences] = await Promise.all([bridge.harness.adapters().catch(() => [] as HarnessAvailability[]), loadHarnessPreferences(fetchJson)])
   const choice = resolveStage(preferences, 'planning', adapters)
   if (!choice.available || !choice.harness) {
@@ -48,7 +51,13 @@ export const startPlanningRun = async (fetchJson: FetchJson, input: { record: Pl
 
 // Queue this scene's plan from its current inputs, and start it unless the
 // same inputs are already being planned.
+// Only the desktop app runs the local harness: a browser queues nothing.
+const assertDesktop = () => {
+  if (!window.studioDesktop?.isDesktop) throw new Error(BROWSER_REVIEW_MESSAGE)
+}
+
 export const planScene = async (fetchJson: FetchJson, projectId: string, sceneId: string) => {
+  assertDesktop()
   const { record, reused } = await fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/scenes/${encodeURIComponent(sceneId)}`, { method: 'POST' })
   if (!reused || record.status === 'queued') await startPlanningRun(fetchJson, { record, route: 'Plan Scene', projectId })
   return { record, reused }
@@ -57,6 +66,7 @@ export const planScene = async (fetchJson: FetchJson, projectId: string, sceneId
 // A rough, seekable preview of one plan revision (P3), built on the same
 // harness; the same plan already previewed is shown again unless `again`.
 export const previewScene = async (fetchJson: FetchJson, projectId: string, sceneId: string, options: { recordId?: string; again?: boolean } = {}) => {
+  assertDesktop()
   const { record, reused } = await fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/scenes/${encodeURIComponent(sceneId)}/preview`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

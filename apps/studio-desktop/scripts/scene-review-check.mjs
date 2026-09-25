@@ -340,6 +340,24 @@ try {
   check(compared.some(text => /Changed: The limit bites: camera/.test(text)), `the comparison names the moment whose camera changed (${JSON.stringify(compared)})`)
   await shot('03-compare')
 
+  // The workspace opens on the scene and revision being reviewed, and hands
+  // its selection back when it closes (R8).
+  await evaluate(`() => { [...document.querySelectorAll('.scene-review.is-expanded .review-revision')].find(button => /^r1 /.test(button.textContent)).click(); return true }`)
+  await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-revision.is-selected')?.textContent.startsWith('r1 ') || null`, 10)
+  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="workspace:"]').click(); return true }`)
+  const inWorkspace = await waitFor(`() => {
+    if (!document.getElementById('planning-dialog').open) return null
+    const scene = document.querySelector('#planning-workspace .planning-scene.is-selected strong')?.textContent
+    const version = document.querySelector('#planning-workspace .planning-version.is-selected')?.textContent
+    return scene && version ? { scene, version } : null
+  }`, 30)
+  check(inWorkspace?.scene === 'Concurrent requests limiter' && /^r1 approved/.test(inWorkspace.version || ''), `the workspace opens on the scene and revision being reviewed (${JSON.stringify(inWorkspace)})`)
+  await evaluate(`() => { [...document.querySelectorAll('#planning-workspace .planning-scene')].find(button => button.querySelector('strong')?.textContent === 'Request rate limiter').click(); return true }`)
+  await waitFor(`() => document.querySelector('#planning-workspace .planning-scene.is-selected strong')?.textContent === 'Request rate limiter' || null`, 10)
+  await evaluate(`() => { document.querySelector('#planning-workspace .planning-close').click(); return true }`)
+  const back = await waitFor(`() => { const review = document.querySelector('.scene-review.is-expanded'); return !document.getElementById('planning-dialog').open && review ? review.querySelector('.review-panel h3')?.textContent || null : null }`, 20)
+  check(back === 'Request rate limiter', `closing the workspace brings the notebook to the scene it was showing (${back})`)
+
   // The first scene: planned, left as a candidate.
   await selectScene(0)
   await waitFor(`() => document.querySelector('.scene-review.is-expanded [data-focus^="revise:"]:not([disabled])') ? true : null`)

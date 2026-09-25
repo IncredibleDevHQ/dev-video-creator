@@ -16,7 +16,7 @@ import type { PlanningOverviewV1, ScenePreviewView, VisualCastSummary } from './
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
 import { approvePlan, loadPlanning, planScene, previewScene, saveSceneDirection } from './planning-client'
-import { progressText } from '../harness-choice'
+import { BROWSER_REVIEW_MESSAGE, progressText } from '../harness-choice'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
 type Scene = PlanningOverviewV1['scenes'][number]
@@ -35,7 +35,8 @@ export type SceneReviewHost = {
   // The notebook redraws the review of every scene.
   refresh: () => void
   record: (sceneId: string) => void
-  openWorkspace: () => void
+  // The planning workspace, on this scene, revision and moment.
+  openWorkspace: (sceneId: string, revision: string, moment: string) => void
   // The stage shows which page objects a moment is about — and, when the
   // stage plays the plan's preview, goes to the moment.
   selectMoment: (sceneId: string, targets: { nodes: string[]; objectIds: string[] } | null, at: number | null) => void
@@ -514,10 +515,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
     approveButton.addEventListener('click', () => record && void approve(record))
     const previewState = previewStateOf(scene, record)
     const previewOfShown = Boolean(previewFor(scene, record))
-    const previewButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `preview:${scene.id}`, text: !record ? 'Preview plan' : previewState.state === 'building' ? `Building the preview of r${record.revision}…` : previewOfShown ? `Sketch r${record.revision} again` : `Preview r${record.revision}`, ...(record && previewState.state !== 'building' ? {} : { disabled: true }) })
+    const desktop = Boolean(window.studioDesktop?.isDesktop)
+    const previewButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `preview:${scene.id}`, text: !record ? 'Preview plan' : previewState.state === 'building' ? `Building the preview of r${record.revision}…` : previewOfShown ? `Sketch r${record.revision} again` : `Preview r${record.revision}`, ...(record && previewState.state !== 'building' && desktop ? {} : { disabled: true }), ...(desktop ? {} : { title: 'Sketching runs in the desktop app' }) })
     previewButton.addEventListener('click', () => record && void preview(scene, record, previewOfShown))
     const workspace = h('button', { type: 'button', class: 'button ghost', text: 'Planning workspace', 'data-focus': `workspace:${scene.id}` })
-    workspace.addEventListener('click', () => host.openWorkspace())
+    workspace.addEventListener('click', () => host.openWorkspace(scene.id, record?.id || '', state.moment))
     actions.append(approveButton, previewButton, workspace)
     const revisions = h('div', { class: 'review-revisions' })
     for (const entry of recordsOf(scene.id).filter(item => item.content)) {
@@ -537,6 +539,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       ),
     )
     if (error) root.append(h('p', { class: 'review-error', text: error }))
+    if (!desktop) root.append(h('p', { class: 'review-muted review-host-note', text: BROWSER_REVIEW_MESSAGE }))
     // Where the plan stands.
     if (view.latest && (view.latest.status === 'queued' || view.latest.status === 'running')) {
       root.append(h('p', { class: 'review-busy', 'data-review-progress': view.latest.id, text: progress.get(view.latest.id) || `Planning revision ${view.latest.revision} with your local harness…` }))
@@ -578,7 +581,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const box = h('textarea', { rows: '2', 'data-focus': `direction:${scene.id}`, placeholder: 'Direction for the next candidate — what should change?', 'aria-label': 'Direction for this scene' })
     box.value = state.direction ?? scene.direction
     box.addEventListener('input', () => (state.direction = box.value))
-    const reviseButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Revise the plan' : 'Plan the scene', ...(view.state === 'planning' || !overview?.brief.current || overview.brief.stale || !overview.available ? { disabled: true } : {}) })
+    const reviseButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Revise the plan' : 'Plan the scene', ...(view.state === 'planning' || !overview?.brief.current || overview.brief.stale || !overview.available || !desktop ? { disabled: true } : {}), ...(desktop ? {} : { title: 'Planning runs in the desktop app' }) })
     reviseButton.addEventListener('click', () => void revise(scene))
     root.append(h('div', { class: 'review-direction' }, box, reviseButton))
     if (!plan && record) root.append(...previewSection(scene, record))
@@ -635,6 +638,13 @@ export const createSceneReview = (host: SceneReviewHost) => {
       if (!key) return
       const again = document.querySelector<HTMLElement>(`.scene-review [data-focus="${CSS.escape(key)}"]`)
       again?.focus({ preventScroll: true })
+    },
+    // Show this scene's revision and moment, as another view left them.
+    focus: (sceneId: string, revision: string, moment: string) => {
+      if (!sceneOf(sceneId)) return
+      const state = uiOf(sceneId)
+      if (revision && recordsOf(sceneId).some(record => record.id === revision)) state.revision = revision
+      state.moment = moment
     },
     // The plan the stage should show for a scene, and its current moment.
     stageOf: (sceneId: string) => {

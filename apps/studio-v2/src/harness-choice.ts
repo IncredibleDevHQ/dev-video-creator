@@ -101,6 +101,21 @@ export const resolveStage = (preferences: HarnessPreferences, stage: HarnessStag
   return { harness: online.id as HarnessId, model: usable, source: 'suggested', available: true, reason: null }
 }
 
+// Where planning can run from here, told apart (R9): a browser can review
+// but not run the local harness; the desktop app may have no harness at all,
+// or not the one chosen. A provider's quota, sign-in or run failure is the
+// last status, shown beside this — never mistaken for "not installed".
+export type PlanningHost = { state: 'browser' | 'no-harness' | 'unavailable' | 'ready'; message: string | null }
+export const BROWSER_REVIEW_MESSAGE = 'You are reviewing in a browser: plans, sketches and approvals can be read and compared here, but planning, sketching and recording run in the Incredible Studio desktop app, with your local harness. Open this notebook there to continue.'
+export const planningHostOf = (isDesktop: boolean, adapters: HarnessAvailability[], resolved: ResolvedHarness): PlanningHost =>
+  !isDesktop
+    ? { state: 'browser', message: BROWSER_REVIEW_MESSAGE }
+    : !adapters.some(adapter => adapter.ok)
+      ? { state: 'no-harness', message: 'No local harness was found on this computer — install Claude Code, Kimi or Codex, then choose it in Agent settings.' }
+      : !resolved.available
+        ? { state: 'unavailable', message: resolved.reason }
+        : { state: 'ready', message: null }
+
 // "Claude Code · Claude Opus 5.5", marked when it is only a suggestion.
 export const resolvedLabel = (resolved: ResolvedHarness, adapters: HarnessAvailability[]) =>
   resolved.harness

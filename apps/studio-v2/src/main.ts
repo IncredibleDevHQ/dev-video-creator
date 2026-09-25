@@ -16833,6 +16833,7 @@ sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(b
 const planningWorkspace = createPlanningWorkspace({
   fetchJson,
   toast: showToast,
+  onClose: selection => handBackFromWorkspace(selection),
   openNotebook: id => openNotebook(id),
   current: () => ({ id: project.id, title: project.title, derivedFrom: project.derivedFrom || null }),
   forksOf: async baseId => {
@@ -17109,7 +17110,7 @@ sceneReview = createSceneReview({
     renderSceneStage()
     openCamera()
   },
-  openWorkspace: () => void planningWorkspace.open(),
+  openWorkspace: (sceneId, revision, moment) => void planningWorkspace.open({ sceneId, revision, moment, tab: 'plan' }),
   selectMoment: (_sceneId, targets, at) => {
     renderSceneStage(targets)
     if (at !== null && sceneStageMode === 'preview' && stagePlayer) {
@@ -17152,5 +17153,26 @@ if (project.derivedFrom?.notebook) {
   sceneReview.listen()
   void sceneReview.load().then(() => onSceneSelected(selectedNodeId))
 }
-;($('#planning-dialog') as HTMLDialogElement).addEventListener('close', () => void sceneReview?.load())
+// Closing the workspace brings the notebook to the scene, revision and
+// moment it was showing: one selection across both views (R8). The close
+// button hands it over in its own click; the dialog's close event covers
+// Escape, and finds nothing left to move after a click.
+const handBackFromWorkspace = (selection: { sceneId: string; revision: string; moment: string }) => {
+  if (!sceneReview || !selection.sceneId || !sceneReview.has(selection.sceneId)) return
+  sceneReview.focus(selection.sceneId, selection.revision, selection.moment)
+  if (selection.sceneId !== reviewSelectedScene) {
+    // The editor's text selection goes, and its selection moves to the
+    // scene itself; otherwise its next selection change would put the
+    // notebook back on the block that text was in.
+    window.getSelection()?.removeAllRanges()
+    selectNode(selection.sceneId, true)
+    document.getElementById(selection.sceneId)?.scrollIntoView({ block: 'start' })
+  }
+  refreshSceneReview()
+  renderSceneStage()
+}
+;($('#planning-dialog') as HTMLDialogElement).addEventListener('close', () => {
+  handBackFromWorkspace(planningWorkspace.selection())
+  void sceneReview?.load()
+})
 window.addEventListener('focus', () => void sceneReview?.load())
