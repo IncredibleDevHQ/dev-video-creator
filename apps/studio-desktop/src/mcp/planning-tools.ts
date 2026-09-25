@@ -122,7 +122,7 @@ const productionContextTool = async (args: Json) => {
     route: run.route,
     record: run.recordId,
     packet: run.files,
-    writes: 'production/index.html, production/manifest.json, production/audio/ (the clock\'s sound, unchanged) and production/assets/',
+    writes: 'production/index.html, production/manifest.json, production/audio/ (a generated voice, unchanged) and production/assets/. A take is supplied by the product at media/take.webm: never write under production/media/.',
     contract: 'references/production-contract.md',
     submissionBudget: PLANNING_SUBMISSION_BUDGET,
     boundary: 'Produce the approved plan on the clock in CLOCK.json: no re-planning, no audio made or changed, no recording, no generated artwork, no approval or export. Stop when the production is accepted.',

@@ -17828,6 +17828,9 @@ let stagePreviewMoments: Array<{ id: string; title: string; start: number; end: 
 let stagePreviewDuration = 1
 // A sketch's timing is estimated; a production keeps its real clock.
 let stageClockEstimated = true
+// Where the stage goes once a newly loaded composition is ready (an edited
+// production reloads at the moment that was nudged).
+let stageSeekOnReady: number | null = null
 const stageTransport = document.createElement('div')
 stageTransport.className = 'scene-stage-transport'
 const stagePlay = Object.assign(document.createElement('button'), { type: 'button', textContent: '▶', title: 'Play or pause the preview' })
@@ -17880,7 +17883,8 @@ const ensureStagePlayer = () => {
     stagePlaying = false
     stageEnded = false
     player.pause()
-    player.seek(0)
+    player.seek(stageSeekOnReady ?? 0)
+    stageSeekOnReady = null
     updateStageClock()
     syncStagePlay()
   })
@@ -17993,11 +17997,13 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   sceneStageReference.hidden = Boolean(playing)
   sceneStagePreview.hidden = !playing
   const playable = outputting ? produced : previewing ? ready : null
+  // A production plays with the creator's edits: a new edit is a new load.
+  const playableUrl = outputting && produced ? `${produced.url}?e=${produced.edits?.revision ?? 0}` : playable?.url || ''
   if (playable) {
     const player = ensureStagePlayer()
-    if (stagePlayerUrl !== playable.url) {
-      stagePlayerUrl = playable.url
-      player.setAttribute('src', playable.url)
+    if (stagePlayerUrl !== playableUrl) {
+      stagePlayerUrl = playableUrl
+      player.setAttribute('src', playableUrl)
       stagePreviewMoments = playable.summary.moments
       stagePreviewDuration = playable.summary.duration || 1
       stageClockEstimated = !outputting
@@ -18017,6 +18023,17 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
           })
           return segment
         }),
+        // Where each nudgeable action starts, with the creator's edits.
+        ...(outputting && produced
+          ? produced.summary.controls.map(control => {
+              const moment = produced.summary.moments.find(entry => entry.id === control.moment)
+              const value = produced.edits?.values?.[control.id] ?? control.default
+              const marker = Object.assign(document.createElement('span'), { className: 'scene-stage-marker', title: `${control.label}: ${value}s into “${moment?.title || control.moment}”` })
+              marker.dataset.stageControl = control.id
+              marker.style.left = `${(((moment?.start ?? 0) + value) / stagePreviewDuration) * 100}%`
+              return marker
+            })
+          : []),
         stageHead,
       )
       updateStageClock()
@@ -18025,7 +18042,8 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
       // A production says what it plays on, and what it could not meet.
       const clock = produced.summary.clock === 'generated-voice' ? 'a generated voice' : produced.summary.clock === 'take' ? 'your take' : 'silence, by choice'
       const unmet = produced.summary.unmet.length
-      sceneStageNote.textContent = `Produced from plan r${produced.of.revision}, on ${clock}${produced.accepted ? ' · accepted' : ' · not accepted yet'}${produced.current ? '' : ' — out of date'}${unmet ? ` · ${unmet} unmet` : ''}`
+      const edit = produced.edits?.revision ? ` · edit ${produced.edits.revision}${produced.accepted && produced.accepted.edits !== produced.edits.revision ? ', not in the output yet' : ''}` : ''
+      sceneStageNote.textContent = `Produced from plan r${produced.of.revision}, on ${clock}${produced.accepted ? ' · accepted' : ' · not accepted yet'}${produced.current ? '' : ' — out of date'}${unmet ? ` · ${unmet} unmet` : ''}${edit}`
       sceneStageNote.title = [produced.current ? '' : `Out of date: ${produced.staleBecause || 'its plan changed'}`, ...produced.summary.unmet].filter(Boolean).join('\n')
       return
     }
@@ -18083,12 +18101,22 @@ const recordScene = (sceneId: string) => {
   renderSceneStage()
   openCamera()
 }
-// The stage plays the scene's production (P4).
-const showProducedScene = (sceneId: string) => {
+// The stage plays the scene's production (P4), from `at` when given.
+const showProducedScene = (sceneId: string, at?: number) => {
   if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
   sceneStageAsideFor = ''
   sceneStageMode = 'output'
+  const loaded = stagePlayerUrl
+  stageSeekOnReady = at ?? null
   renderSceneStage()
+  // The same composition, already loaded: go there now.
+  if (at !== undefined && stagePlayer && stagePlayerUrl === loaded) {
+    stageSeekOnReady = null
+    stageEnded = false
+    stagePlayer.seek(at)
+    updateStageClock()
+    syncStagePlay()
+  }
 }
 // What the notebook plays for its scenes is saved at once: the notebook's
 // composition, and its export, follow it.
@@ -18172,7 +18200,7 @@ sceneReview = createSceneReview({
     sceneStageMode = 'base'
     renderSceneStage()
   },
-  showProduction: sceneId => showProducedScene(sceneId),
+  showProduction: (sceneId, at) => showProducedScene(sceneId, at),
   // An accepted production is the scene's output: the notebook plays its
   // render in the scene's place, and the export renders it there (P4).
   adoptProduction: async (sceneId, production) => {
@@ -18188,6 +18216,7 @@ sceneReview = createSceneReview({
         plan: production.of,
         acceptedAt: accepted.at,
         voiced: production.summary.clock !== 'silent',
+        edits: accepted.edits,
       },
     }
     await saveProducedScenes('The scene is accepted, but the notebook did not save it')

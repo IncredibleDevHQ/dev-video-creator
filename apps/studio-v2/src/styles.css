@@ -2468,6 +2468,18 @@ button.se-state:hover { filter: brightness(.97); }
 .review-after { color: #27272a; }
 .review-production { padding: 10px 12px; border: 1px dashed #d4d4d8; border-radius: 9px; background: #fafafa; }
 .review-production ul { margin: 6px 0; padding-left: 18px; }
+.review-production { display: grid; gap: 8px; }
+.review-production > p { margin: 0; }
+/* Timing edits (P6): one row per control the production's code reads. */
+.review-timing { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid #e4e4e7; border-radius: 8px; background: #fff; }
+.review-timing > p { margin: 0; }
+.review-production ul.review-timing-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.review-timing-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.review-timing-label { flex: 1 1 180px; min-width: 0; }
+.review-timing-list input[type="number"] { width: 5.5em; font: inherit; font-variant-numeric: tabular-nums; padding: 3px 6px; border: 1px solid #d4d4d8; border-radius: 6px; background: #fff; }
+.review-timing-list input[type="number"]:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
+.review-ask { display: grid; gap: 6px; }
+.review-ask textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 6px 8px; border: 1px solid #d4d4d8; border-radius: 6px; resize: vertical; }
 /* The stage beside the review: the wireframe, labelled as a reference. */
 .scene-stage { position: absolute; inset: 0; z-index: 6; overflow: hidden; border-radius: 12px; background: #0f0d18; }
 .scene-stage[hidden] { display: none; }
@@ -2555,6 +2567,8 @@ body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-ope
 .scene-stage-moment { position: absolute; top: 0; bottom: 0; border: 0; border-right: 1px solid rgba(15,13,24,.9); background: rgba(99,91,255,.35); color: #e4e4e7; font: 600 10px/24px 'InterBody', Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px; text-align: left; cursor: pointer; }
 .scene-stage-moment.is-current { background: rgba(245,158,11,.55); color: #fff; }
 .scene-stage-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #facc15; pointer-events: none; }
+/* Where a nudgeable action starts in a produced scene (P6). */
+.scene-stage-marker { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px dotted #f0abfc; pointer-events: auto; cursor: help; }
 .scene-stage-clock { color: #d4d4d8; font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .review-preview { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid #c7d2fe; border-radius: 10px; background: #f5f7ff; }
 .review-preview.is-stale { border-color: #fde68a; background: #fffbeb; }

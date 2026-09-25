@@ -78,7 +78,8 @@ export type PlanApproval = {
   castId: string | null
   // A production's acceptance (P4): the render of the accepted bundle the
   // notebook plays and exports, and the bundle it was rendered from.
-  render?: { assetId: string; objectKey: string; durationMs: number; bundle: string }
+  // The creator's edit revision and values it was rendered with (P6).
+  render?: { assetId: string; objectKey: string; durationMs: number; bundle: string; edits?: { revision: number; values: Record<string, number> } }
 }
 
 // Version of the dependency rules below; a record made under older rules

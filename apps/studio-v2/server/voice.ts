@@ -11,7 +11,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const run = (command: string, args: string[], timeoutMs = 120_000) =>
+export const runCommand = (command: string, args: string[], timeoutMs = 120_000) =>
   new Promise<string>((resolve, reject) => {
     const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let output = ''
@@ -39,9 +39,9 @@ export const generateSystemVoice = async (text: string, outputPath: string) => {
     throw new Error('No keyless system voice is available. Configure FISH_AUDIO_API_KEY or use microphone audio.')
   }
   const intermediatePath = outputPath.replace(/\.mp3$/, '.aiff')
-  await run('/usr/bin/say', ['-o', intermediatePath, text])
+  await runCommand('/usr/bin/say', ['-o', intermediatePath, text])
   try {
-    await run('ffmpeg', ['-y', '-i', intermediatePath, '-codec:a', 'libmp3lame', '-q:a', '2', outputPath])
+    await runCommand('ffmpeg', ['-y', '-i', intermediatePath, '-codec:a', 'libmp3lame', '-q:a', '2', outputPath])
   } finally {
     await rm(intermediatePath, { force: true })
   }
@@ -71,7 +71,7 @@ export const generateFishVoice = async (text: string, referenceId: string, outpu
 
 // A media file's length, as ffprobe reads it.
 export const probeSeconds = async (path: string) => {
-  const output = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', path], 30_000)
+  const output = await runCommand('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', path], 30_000)
   const seconds = Number(output.trim())
   if (!Number.isFinite(seconds)) throw new Error(`ffprobe could not read the length of ${path}`)
   return seconds
@@ -99,7 +99,7 @@ export const narrationClock = async (lines: NarrationLine[], options: { referenc
   const dir = await mkdtemp(join(tmpdir(), 'studio-narration-'))
   try {
     const silence = async (path: string, seconds: number) =>
-      run('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', '-t', seconds.toFixed(3), '-c:a', 'pcm_s16le', path])
+      runCommand('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', '-t', seconds.toFixed(3), '-c:a', 'pcm_s16le', path])
     const parts: string[] = []
     const moments: NarrationClock['moments'] = []
     let at = 0
@@ -110,7 +110,7 @@ export const narrationClock = async (lines: NarrationLine[], options: { referenc
         const clip = join(dir, `m${index}.mp3`)
         if (fish) await generateFishVoice(words, options.referenceId!, clip)
         else await generateSystemVoice(words, clip)
-        await run('ffmpeg', ['-y', '-i', clip, '-ar', '44100', '-ac', '1', '-c:a', 'pcm_s16le', spoken])
+        await runCommand('ffmpeg', ['-y', '-i', clip, '-ar', '44100', '-ac', '1', '-c:a', 'pcm_s16le', spoken])
       } else {
         await silence(spoken, Math.max(0.5, line.estimate))
       }
@@ -124,7 +124,7 @@ export const narrationClock = async (lines: NarrationLine[], options: { referenc
     const list = join(dir, 'parts.txt')
     await writeFile(list, parts.map(path => `file '${path.replace(/'/g, "'\\''")}'`).join('\n'))
     const output = join(dir, 'narration.mp3')
-    await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', list, '-c:a', 'libmp3lame', '-q:a', '2', output])
+    await runCommand('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', list, '-c:a', 'libmp3lame', '-q:a', '2', output])
     const audio = await readFile(output)
     // The encoded track may run a frame long; the clock is the measured moments.
     return { audio, duration: round(at), provider, moments }

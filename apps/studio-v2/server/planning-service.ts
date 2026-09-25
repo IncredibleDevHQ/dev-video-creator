@@ -15,12 +15,14 @@ import type { Readable } from 'node:stream'
 import { sceneRevisionOf, type ProjectDocumentV1, type TiptapNode } from 'markdown-composition'
 import {
   claimPlanningRecord,
+  compareAndSwapSetting,
   getObject,
   listPlanningInputs,
   listPlanningRecords,
   listPlanningRecordsForRun,
   loadPlanningRecord,
   loadProjectArtifact,
+  loadSetting,
   loadSourceRevision,
   savePlanningInput,
   storeAsset,
@@ -37,8 +39,12 @@ import { castEntriesForKeys, ensureVisualCast, loadVisualCast, readObject, type 
 import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest, type SketchProof } from '../src/planning/sketch-bundle'
 import { previewFileBody, verifySketchRuntime } from './sketch-runtime'
 import { narrationClock, type NarrationLine } from './voice'
+import { alignTake, normalizeTake, takeClockOf, takeFrame } from './take-clock'
+import { lineFingerprints, scriptFingerprint, scriptLinesOf } from '../src/planning/recording-guide'
+import { mkdtemp, rm, writeFile as writeLocalFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { renderProductionBundle } from './production-render'
-import { productionSummary, validateProduction, type ProductionClock, type ProductionManifest } from '../src/planning/production-bundle'
+import { controlValueProblems, productionSummary, validateProduction, withControlValues, type ControlValues, type ProductionClock, type ProductionManifest } from '../src/planning/production-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
 import {
   ACTIVE_STATUSES,
@@ -578,6 +584,7 @@ export const planningOverview = async (projectId: string) => {
   const previewNow = (view: ScenePlanningView, preview: PlanningRecord) => previewFreshness(planning, cast, records, view, preview)
   const producer = await producerRef(planning)
   const productionNow = (view: ScenePlanningView, production: PlanningRecord) => productionFreshness(planning, cast, records, view, production, producer)
+  const edits = await editsOfShown(records)
   return {
     visualCast: castSummary(cast),
     projectId,
@@ -603,7 +610,9 @@ export const planningOverview = async (projectId: string) => {
         // when the reviewed plan it rests on changes.
         continuity: plan?.continuity ? continuityStatus(plan, agreementBasis(neighborsOf(planning, records, scene.id))) : null,
         preview: previewOf(records, scene.id, preview => previewNow(view, preview)),
-        production: productionOf(records, scene.id, production => productionNow(view, production)),
+        production: productionOf(records, scene.id, production => productionNow(view, production), edits),
+        // What producing the approved plan waits for, in the creator's words.
+        productionWaits: view.reviewed?.content ? clockSourceOf(planning, scene.id, view.reviewed.content as SceneTreatmentV1).missing || null : null,
         reference: referenceOf(planning, scene, live),
       }
     }),
@@ -1186,9 +1195,25 @@ const roundClock = (seconds: number) => Math.round(seconds * 1000) / 1000
 const narrationOf = (plan: SceneTreatmentV1): NarrationLine[] =>
   plan.moments.map(moment => ({ id: moment.id, text: String(moment.narration?.guide || '').trim(), estimate: moment.estimateSeconds || 3 }))
 
+// The lines a scene you present says, by moment: the approved plan's
+// narration, as the recording guide asks for them and a take is recorded
+// against. A moment without words is not a line.
+const spokenLinesOf = (plan: SceneTreatmentV1) =>
+  plan.moments.map(moment => ({ id: moment.id, say: scriptLinesOf(String(moment.narration?.guide || '')).join(' ') }))
+// The stored object a take's URL names, on this Studio.
+const objectKeyOf = (url: string | undefined) => {
+  try {
+    const path = new URL(String(url)).pathname
+    return path.startsWith('/objects/') ? decodeURIComponent(path.slice('/objects/'.length)) : null
+  } catch {
+    return null
+  }
+}
+
 // What the scene's clock will be made from, before it is made. The same
-// approved words in the same voice make the same clock.
-type ClockSource = { kind: ProductionClock['kind']; ref: string; missing?: string }
+// approved words in the same voice make the same clock; the same take
+// makes the same clock.
+type ClockSource = { kind: ProductionClock['kind']; ref: string; missing?: string; take?: { recordingId: string; objectKey: string } }
 const clockSourceOf = (planning: VideoPlanning, sceneId: string, plan: SceneTreatmentV1): ClockSource => {
   const delivery = deliveryFor(planning, sceneId)
   if (delivery === 'generated') return { kind: 'generated-voice', ref: fingerprintOf({ lines: narrationOf(plan), voice: process.env.FISH_AUDIO_API_KEY ? 'fish' : 'system' }) }
@@ -1196,7 +1221,19 @@ const clockSourceOf = (planning: VideoPlanning, sceneId: string, plan: SceneTrea
   if (delivery === 'human') {
     const take = planning.project.recordedBlocks?.[sceneId]
     if (!take) return { kind: 'take', ref: '', missing: 'Record and select a take of this scene first: a scene you present is produced on your take\'s clock.' }
-    return { kind: 'take', ref: take.recordingId, missing: 'A scene you present is produced from your take once it is aligned; that path is not connected in this build.' }
+    // Your picture and voice: the camera of a take, never a recording of the canvas.
+    const camera = take.cameraUrl || (take.role === 'presenter' ? take.videoUrl : '')
+    const objectKey = objectKeyOf(camera)
+    if (!camera) return { kind: 'take', ref: '', missing: 'This take records the whole canvas, not you: production needs your camera take. Record the scene with the camera, then produce it.' }
+    if (!objectKey) return { kind: 'take', ref: '', missing: 'This take\'s file is not stored in this Studio: record the scene again, then produce it.' }
+    // Spoken against the approved plan's lines, which the moments are timed by.
+    const lines = spokenLinesOf(plan).filter(line => line.say)
+    if (!lines.length) return { kind: 'take', ref: '', missing: 'The approved plan gives this scene no words: there is nothing for a take to be aligned to. Plan the scene again with its narration.' }
+    const script = lines.map(line => line.say).join('\n\n')
+    const recorded = take.script
+    const spokenAgainst = recorded?.lines ? lineFingerprints(script).every(hash => recorded.lines!.includes(hash)) : recorded?.hash === scriptFingerprint(script)
+    if (!spokenAgainst) return { kind: 'take', ref: '', missing: 'Your take was not recorded against the approved plan\'s lines. Use the plan\'s lines as the scene\'s script, record them, then produce the scene.' }
+    return { kind: 'take', ref: `${take.recordingId}:${objectKey}`, take: { recordingId: take.recordingId, objectKey } }
   }
   return { kind: 'silent', ref: '', missing: 'Choose how this scene is delivered — you present it, a generated voice, or silent. A plan is made for its delivery, so plan and approve the scene again once it is chosen.' }
 }
@@ -1217,8 +1254,56 @@ const productionIdOf = (approved: PlanningRecord) => `production-${approved.subj
 
 // The clock, made: the voice spoken and measured, or the plan's estimates
 // held as silence when the scene is silent by choice.
-type MadeClock = { clock: ProductionClock; audio: Buffer | null; provider: string | null; words: Array<{ id: string; words: string; spokenEnd: number }> }
-const makeClock = async (source: ClockSource, plan: SceneTreatmentV1): Promise<MadeClock> => {
+// media: the files the product supplies to the production by path (the
+// take, normalized), pinned by their stored objects. review: what the
+// creator may want to look at on the clock.
+type MadeClock = { clock: ProductionClock; audio: Buffer | null; provider: string | null; words: Array<{ id: string; words: string; spokenEnd: number }>; media?: Record<string, string>; review?: string[]; frame?: Buffer | null }
+// The take, normalized, lives at this path in every production of it.
+const TAKE_MEDIA = 'media/take.webm'
+// A take's normalized file and its alignment, once per take and plan lines.
+type TakeMade = { objectKey: string; picture: boolean; duration: number; aligned: Awaited<ReturnType<typeof alignTake>>; frame: string | null }
+const takeClock = async (projectId: string, sceneId: string, source: ClockSource, plan: SceneTreatmentV1): Promise<MadeClock> => {
+  const lines = spokenLinesOf(plan)
+  const key = `take-clock:${fingerprintOf({ take: source.take, lines: lines.filter(line => line.say) })}`
+  let made = (await loadSetting(key)) as TakeMade | null
+  if (!made) {
+    const dir = await mkdtemp(join(tmpdir(), 'studio-take-clock-'))
+    try {
+      const original = join(dir, 'take-original')
+      await writeLocalFile(original, await readStream((await getObject(source.take!.objectKey)).stream))
+      const normalized = join(dir, 'take.webm')
+      const { picture, duration } = await normalizeTake(original, normalized)
+      const aligned = await alignTake(normalized, lines.filter(line => line.say))
+      const stored = await storeAsset({ body: await readFile(normalized), contentType: 'video/webm', projectId, blockId: sceneId, kind: 'production-take', extension: '.webm' })
+      let frame: string | null = null
+      if (picture) {
+        const still = join(dir, 'frame.jpg')
+        await takeFrame(normalized, Math.min(duration / 2, 2), still).catch(() => {})
+        frame = await readFile(still).then(bytes => bytes.toString('base64'), () => null)
+      }
+      made = { objectKey: stored.objectKey, picture, duration, aligned, frame }
+      await compareAndSwapSetting(key, null, made)
+    } catch (error) {
+      throw new PlanningError(`Your take could not set the scene's clock: ${error instanceof Error ? error.message : String(error)}`, 503)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  }
+  const clock = takeClockOf(lines, made.aligned, made.duration)
+  if (clock.problems.length) throw new PlanningError(`Your take cannot set this scene's clock: ${clock.problems.join('; ')}. Record the scene again with every line, or ask for a plan that fits your take.`, 409)
+  return {
+    clock: { kind: 'take', audio: TAKE_MEDIA, video: made.picture ? TAKE_MEDIA : null, duration: made.duration, moments: clock.moments },
+    audio: null,
+    provider: 'Your take',
+    words: clock.spoken,
+    media: { [TAKE_MEDIA]: made.objectKey },
+    review: clock.review,
+    frame: made.frame ? Buffer.from(made.frame, 'base64') : null,
+  }
+}
+
+const makeClock = async (source: ClockSource, plan: SceneTreatmentV1, where: { projectId: string; sceneId: string }): Promise<MadeClock> => {
+  if (source.kind === 'take') return takeClock(where.projectId, where.sceneId, source, plan)
   if (source.kind === 'generated-voice') {
     let voice: Awaited<ReturnType<typeof narrationClock>>
     try {
@@ -1249,15 +1334,17 @@ const sketchFilesFor = async (records: PlanningRecord[], treatmentId: string) =>
   return (JSON.parse((await readStream((await getObject(sketch.artifacts.objectKey)).stream)).toString('utf8')) as { files: SketchFiles }).files
 }
 
-const productionPacket = async (planning: VideoPlanning, approved: PlanningRecord, records: PlanningRecord[], made: MadeClock) => {
+const productionPacket = async (planning: VideoPlanning, approved: PlanningRecord, records: PlanningRecord[], made: MadeClock, note = '') => {
   const briefRecord = records.find(record => record.id === String(approved.inputs.briefId || '')) || currentBrief(records)
   if (!briefRecord?.content) throw new PlanningError('The brief this plan was made from is gone', 409)
   const plan = approved.content as SceneTreatmentV1
   const files = await scenePacket(planning, briefRecord, approved.subject, records, { castKeys: castKeysOf(plan) })
   const compositionId = productionIdOf(approved)
   files['packet/PLAN.json'] = JSON.stringify({ record: approved.id, revision: approved.revision, status: approved.status, approvedAt: approved.approval?.at || null, plan }, null, 2)
-  files['packet/CLOCK.json'] = JSON.stringify({ ...made.clock, provider: made.provider, spoken: made.words }, null, 2)
+  const presenter = plan.moments.map(moment => ({ id: moment.id, visibility: moment.presenter?.visibility || 'hidden' }))
+  files['packet/CLOCK.json'] = JSON.stringify({ ...made.clock, provider: made.provider, spoken: made.words, ...(made.clock.kind === 'take' ? { presenter, review: made.review || [], media: Object.keys(made.media || {}) } : {}) }, null, 2)
   if (made.audio) files['packet/audio/narration.mp3'] = { base64: made.audio.toString('base64'), contentType: 'audio/mpeg' }
+  if (made.frame) files['packet/references/take-frame.jpg'] = { base64: made.frame.toString('base64'), contentType: 'image/jpeg' }
   const sketch = await sketchFilesFor(records, approved.id)
   for (const [name, file] of Object.entries(sketch || {})) files[`packet/references/sketch/${name}`] = file
   files['packet/PRODUCTION.md'] = [
@@ -1269,13 +1356,31 @@ const productionPacket = async (planning: VideoPlanning, approved: PlanningRecor
     `- Canvas: 1920×1080 at 30 fps. Length: the clock's ${made.clock.duration}s (at most 2s more to settle). Every moment keeps its interval on the clock, in the plan's order.`,
     made.clock.kind === 'generated-voice'
       ? `- Sound: copy \`audio/narration.mp3\` into \`production/audio/\` and play it from the start with an \`<audio>\` element (\`src="audio/narration.mp3"\`). The voice says each moment's words inside its interval; time what the viewer sees to what is said.`
-      : '- Sound: the scene is silent by the creator\'s choice. Its moments keep the plan\'s estimates.',
+      : made.clock.kind === 'take'
+        ? [
+            `- Sound and picture: the creator's own take, at \`${TAKE_MEDIA}\`. The product supplies that file to the production; do not copy it and write nothing under \`production/media/\`. Its moments are where the creator says each line (\`CLOCK.json\` \`spoken\`); time what the viewer sees to what they say.`,
+            `- Play its sound from the start, once: \`<audio id="voice" src="${TAKE_MEDIA}" data-start="0" data-duration="${made.clock.duration}" data-track-index="20"></audio>\`. The voice carries on through every moment, whether or not the creator is in view.`,
+            made.clock.video
+              ? `- Play its picture in one presenter layer: a single muted \`<video id="take" src="${TAKE_MEDIA}" muted playsinline data-start="0" data-duration="${made.clock.duration}">\` for the whole scene, inside a wrapper your timeline moves. Each moment's \`presenter\` in \`CLOCK.json\` says where the creator is: \`full\` fills the frame, \`shared\` sits beside the graphics (the side the graphics leave free), \`hidden\` is out of view while the voice continues. Never restart or offset the picture: it stays in step with the voice. \`references/take-frame.jpg\` shows the framing.`
+              : '- The take has no picture: the scene has no presenter layer.',
+          ].join('\n')
+        : '- Sound: the scene is silent by the creator\'s choice. Its moments keep the plan\'s estimates.',
     `- Runtime: load only \`${SKETCH_RUNTIME_SCRIPTS.join('` and `')}\` (Hyperframes ${SKETCH_RUNTIME.hyperframes}, pinned). Nothing from the network, no clock, no randomness.`,
     '- Artwork: the approved plan\'s objects, from the cast (`assets/<id>/asset.svg`, copied into `production/assets/`) or precise native shapes. No placeholders and no stand-ins: what the plan asked for that you cannot draw goes in `manifest.unmet`, by name.',
     sketch ? '- The approved plan\'s own sketch is in `references/sketch/`: build on its code and keep its moment and entity ids where they serve; it is a reference, not the result.' : '- There is no sketch of this plan; build from the plan and the cast.',
     '',
     'Write `production/index.html`, `production/manifest.json`, `production/audio/` and any `production/assets/`, following `references/production-contract.md`, then call `produce_submit_scene`. Fix exactly the problems it names; stop when it is accepted.',
     '',
+    ...(note
+      ? [
+          '## The creator asks for a change',
+          '',
+          'The creator watched the previous production of this scene and asked for this change, which its controls could not make. Make it within the approved plan and the clock; if it needs a different plan, produce what the plan allows and name the rest in `manifest.unmet`.',
+          '',
+          ...note.split('\n').map(line => `> ${line}`),
+          '',
+        ]
+      : []),
   ].join('\n')
   const context = JSON.parse(String(files['packet/CONTEXT.json'])) as Record<string, unknown>
   files['packet/CONTEXT.json'] = JSON.stringify({ ...context, route: 'Produce Scene', plan: { record: approved.id, revision: approved.revision }, clock: { kind: made.clock.kind, duration: made.clock.duration }, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: made.clock.duration }, runtime: { hyperframes: SKETCH_RUNTIME.hyperframes, scripts: SKETCH_RUNTIME_SCRIPTS } }, null, 2)
@@ -1284,7 +1389,7 @@ const productionPacket = async (planning: VideoPlanning, approved: PlanningRecor
 
 // Produce this scene from its approved plan. The same approved plan on the
 // same clock is produced once, unless a new production is asked for.
-export const queueProduction = async (projectId: string, sceneId: string, options: { again?: boolean } = {}) => {
+export const queueProduction = async (projectId: string, sceneId: string, options: { again?: boolean; note?: string } = {}) => {
   const planning = await loadVideoPlanning(projectId)
   const producer = await producerRef(planning)
   if (!planning.bundle || !producer) throw new PlanningError('Production runs in the desktop app, where the pinned skills and your local harness are', 409)
@@ -1299,7 +1404,10 @@ export const queueProduction = async (projectId: string, sceneId: string, option
   const source = clockSourceOf(planning, sceneId, plan)
   if (source.missing) throw new PlanningError(source.missing, 409)
   const cast = await visualCastFor(planning)
-  const inputs = productionInputsOf(planning, approved, cast, producer, source)
+  // A change the creator asked for, which the controls could not make, is
+  // part of what this production is made from.
+  const note = String(options.note || '').trim().slice(0, 2000)
+  const inputs = { ...productionInputsOf(planning, approved, cast, producer, source), ...(note ? { note } : {}) }
   const fingerprint = fingerprintOf(inputs)
   const existing = reuseActive(records, 'production', sceneId, fingerprint)
   if (existing) return { record: existing, reused: true }
@@ -1308,15 +1416,15 @@ export const queueProduction = async (projectId: string, sceneId: string, option
     if (made) return { record: made, reused: true }
   }
   // The clock is made now, once: the voice spoken and measured before the run.
-  const made = await makeClock(source, plan)
-  const files = await productionPacket(planning, approved, records, made)
+  const made = await makeClock(source, plan, { projectId, sceneId })
+  const files = await productionPacket(planning, approved, records, made, note)
   const packet = await storePacket(projectId, files)
   return claimPlanningRecord({
     projectId,
     kind: 'production',
     subject: sceneId,
     fingerprint,
-    inputs: { ...inputs, packetObjectKey: packet.objectKey, clockDetail: made.clock, voiceProvider: made.provider },
+    inputs: { ...inputs, packetObjectKey: packet.objectKey, clockDetail: made.clock, voiceProvider: made.provider, media: made.media || null, clockReview: made.review || [] },
     direction: '',
     skillBundle: producer,
     workflow: 'production',
@@ -1370,7 +1478,10 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   if (!approved?.content) throw new PlanningError('The approved plan this production is of is gone', 409)
   const clock = clockOfRecord(record)
   if (!clock) throw new PlanningError('This production has no clock', 409)
-  const files = sketchFilesOf(raw)
+  // The harness's own files; what the product supplies is added to check
+  // and play it, and is never taken from the submission.
+  const own = Object.fromEntries(Object.entries(sketchFilesOf(raw)).filter(([path]) => !path.startsWith('media/')))
+  const files = { ...own, ...(await productionMedia(record)) }
   const report = validateProduction(files, {
     scene: record.subject,
     plan: { record: approved.id, revision: approved.revision, content: approved.content as SceneTreatmentV1 },
@@ -1401,7 +1512,7 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
     if (!back) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
     return { accepted: false as const, problems: [...runtime.problems, ...sound], warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings] }
   }
-  const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-production', extension: '.json' })
+  const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files: own }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-production', extension: '.json' })
   const planning = await loadVideoPlanning(record.projectId)
   const castNow = await knownCast(planning)
   const records = await listPlanningRecords(record.projectId)
@@ -1410,10 +1521,33 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...(moved.current ? [] : [`While this scene was produced, ${moved.staleBecause} — it is kept, as out of date`])]
   const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof }, artifacts }, ['verifying'], { runId: record.runId })
   if (!updated) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
+  await carryEdits(updated).catch(error => console.warn('carrying edits to a new production failed', updated.id, error))
   return { accepted: true as const, status: 'ready', record: updated, warnings }
 }
 
-const productionFiles = async (record: PlanningRecord) => {
+// The files the product supplies to a production (the creator's take), by
+// path. They are pinned by the record and never stored in its bundle; the
+// stage reads them as bytes, the check and the render as bundle files.
+const mediaBytes = new Map<string, Buffer>()
+const mediaOf = async (record: PlanningRecord) => {
+  const media = (record.inputs.media || {}) as Record<string, string>
+  const found: Record<string, { body: Buffer; contentType: string }> = {}
+  for (const [path, objectKey] of Object.entries(media)) {
+    let body = mediaBytes.get(objectKey)
+    if (!body) {
+      body = await readStream((await getObject(objectKey)).stream)
+      if (mediaBytes.size >= 3) mediaBytes.delete(mediaBytes.keys().next().value as string)
+      mediaBytes.set(objectKey, body)
+    }
+    found[path] = { body, contentType: path.endsWith('.webm') ? 'video/webm' : 'application/octet-stream' }
+  }
+  return found
+}
+const productionMedia = async (record: PlanningRecord): Promise<SketchFiles> =>
+  Object.fromEntries(Object.entries(await mediaOf(record)).map(([path, file]) => [path, { base64: file.body.toString('base64'), contentType: file.contentType }]))
+const productionFiles = async (record: PlanningRecord) => ({ ...(await bundleFilesOf(record)), ...(await productionMedia(record)) })
+// The bundle's own files, without what the product supplies.
+const bundleFilesOf = async (record: PlanningRecord) => {
   if (!record.artifacts) throw new PlanningError('Production not found', 404)
   let files = bundles.get(record.artifacts.objectKey)
   if (!files) {
@@ -1423,13 +1557,105 @@ const productionFiles = async (record: PlanningRecord) => {
   }
   return files
 }
-// A production's files, for the Studio's stage: the bundle as it was accepted.
+// A production's files, for the Studio's stage: the bundle as it was
+// submitted, playing with the creator's current values for its controls.
 export const loadProductionFile = async (recordId: string, path: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'production' || !['ready', 'reviewed'].includes(record.status)) throw new PlanningError('Production not found', 404)
-  const file = (await productionFiles(record))[path]
+  // The take, as bytes: a player asks for it range by range.
+  const media = (await mediaOf(record))[path]
+  if (media) return media
+  const files = await bundleFilesOf(record)
+  const file = path === 'index.html' && typeof files[path] === 'string' ? withControlValues(files[path] as string, (await productionEdits(record.id)).values) : files[path]
   if (file === undefined) throw new PlanningError('No such file in the production', 404)
   return previewFileBody(path, file)
+}
+
+// ——— Edits (P6): the creator's values for a production's controls ———
+// Stored per production, revision by revision; the composition's code reads
+// them through the controls its manifest declares, in the stage, the check
+// and the render alike. The bundle hash and the edit revision name a result.
+export type ProductionEdits = {
+  revision: number
+  values: ControlValues
+  updatedAt: string | null
+  // Edits carried from an earlier production of the scene when this one
+  // landed: what was applied, and what no longer fits, with why.
+  carried: { from: string; applied: string[]; conflicts: Array<{ id: string; value: number; reason: string }> } | null
+}
+const NO_EDITS: ProductionEdits = { revision: 0, values: {}, updatedAt: null, carried: null }
+const editsKey = (recordId: string) => `production-edits:${recordId}`
+export const productionEdits = async (recordId: string) => ((await loadSetting(editsKey(recordId))) as ProductionEdits | null) || NO_EDITS
+const editedFiles = async (record: PlanningRecord, values: ControlValues): Promise<SketchFiles> => {
+  const files = await productionFiles(record)
+  const html = files['index.html']
+  return typeof html === 'string' ? { ...files, 'index.html': withControlValues(html, values) } : files
+}
+
+// Saves the creator's values, against the revision they were made on: an
+// edit made on an older revision is refused, never merged. A value is kept
+// only inside its control's declared range.
+export const saveProductionEdits = async (recordId: string, input: { revision?: unknown; values?: unknown }) => {
+  const record = await loadPlanningRecord(recordId)
+  if (!record || record.kind !== 'production' || !record.content || !['ready', 'reviewed'].includes(record.status)) throw new PlanningError('Only a produced scene can be edited', 409)
+  const controls = (record.content as ProductionManifest).controls || []
+  if (!controls.length) throw new PlanningError('This production exposes no controls: ask for the change, and the scene is produced again with it', 409)
+  const values = (input.values && typeof input.values === 'object' ? input.values : {}) as ControlValues
+  const problems = controlValueProblems(controls, values)
+  if (problems.length) throw new PlanningError(problems.join('; '), 422)
+  const stored = (await loadSetting(editsKey(recordId))) as ProductionEdits | null
+  const current = stored || NO_EDITS
+  if (input.revision !== current.revision) throw new PlanningError(`These edits were made on edit ${String(input.revision)}; the scene is at edit ${current.revision} now. Reload it and make the change again.`, 409)
+  const next: ProductionEdits = { revision: current.revision + 1, values: Object.fromEntries(Object.entries(values).map(([id, value]) => [id, Math.round(value * 1000) / 1000])), updatedAt: new Date().toISOString(), carried: current.carried }
+  if (!(await compareAndSwapSetting(editsKey(recordId), stored, next))) throw new PlanningError('The edits changed while this one was saved. Reload them and make the change again.', 409)
+  return next
+}
+
+// A new production of a scene takes the creator's edits from the one before
+// it where they still fit: the same control, on the same moment, inside its
+// new range. Anything else is kept as a conflict, never applied elsewhere.
+const carryEdits = async (record: PlanningRecord) => {
+  const manifest = record.content as ProductionManifest | null
+  const controls = manifest?.controls || []
+  if (!manifest || (await loadSetting(editsKey(record.id)))) return
+  const earlier = (await listPlanningRecords(record.projectId))
+    .filter(entry => entry.kind === 'production' && entry.subject === record.subject && entry.revision < record.revision && entry.content)
+    .sort((a, b) => b.revision - a.revision)
+  for (const previous of earlier) {
+    // The newest production the creator edited decides, even when they reset it.
+    const edits = await productionEdits(previous.id)
+    if (!edits.revision) continue
+    if (!Object.keys(edits.values).length) return
+    const before = (previous.content as ProductionManifest).controls || []
+    const applied: ControlValues = {}
+    const conflicts: Array<{ id: string; value: number; reason: string }> = []
+    for (const [id, value] of Object.entries(edits.values)) {
+      const was = before.find(control => control.id === id)
+      const now = controls.find(control => control.id === id)
+      if (!now) conflicts.push({ id, value, reason: `the new production has no control “${was?.label || id}”` })
+      else if (was && was.moment !== now.moment) conflicts.push({ id, value, reason: `“${now.label}” is on moment ${now.moment} now, not ${was.moment}` })
+      else if (value < now.min || value > now.max) conflicts.push({ id, value, reason: `${value}s is outside “${now.label}”'s new range, ${now.min}–${now.max}s` })
+      else applied[id] = value
+    }
+    const next: ProductionEdits = { revision: 1, values: applied, updatedAt: new Date().toISOString(), carried: { from: previous.id, applied: Object.keys(applied), conflicts } }
+    await compareAndSwapSetting(editsKey(record.id), null, next)
+    return
+  }
+}
+
+// The edits of the productions an overview shows: each scene's newest
+// produced one and the one accepted.
+const editsOfShown = async (records: PlanningRecord[]) => {
+  const shown = new Set<string>()
+  const productions = records.filter(record => record.kind === 'production').sort((a, b) => b.revision - a.revision)
+  for (const scene of new Set(productions.map(record => record.subject))) {
+    const mine = productions.filter(record => record.subject === scene)
+    const ready = mine.find(record => record.status === 'ready' || record.status === 'reviewed')
+    const accepted = mine.find(record => record.status === 'reviewed' && record.approval?.render)
+    if (ready) shown.add(ready.id)
+    if (accepted) shown.add(accepted.id)
+  }
+  return new Map(await Promise.all([...shown].map(async id => [id, await productionEdits(id)] as const)))
 }
 
 // Accepting a production pins it as the scene's output: the bundle is
@@ -1439,14 +1665,24 @@ export const loadProductionFile = async (recordId: string, path: string) => {
 export const acceptProduction = async (recordId: string) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'production') throw new PlanningError('Production record not found', 404)
-  if (record.status !== 'ready' || !record.content) throw new PlanningError(`Only a produced scene can be accepted (this one is ${record.status})`, 409)
+  const edits = await productionEdits(record.id)
+  // An accepted production is accepted again only to render newer edits.
+  const reaccept = record.status === 'reviewed' && record.approval?.render && (record.approval.render.edits?.revision ?? 0) !== edits.revision
+  if ((record.status !== 'ready' && !reaccept) || !record.content) throw new PlanningError(record.status === 'reviewed' ? 'This produced scene is already accepted, with these edits' : `Only a produced scene can be accepted (this one is ${record.status})`, 409)
   const planning = await loadVideoPlanning(record.projectId)
   const records = await listPlanningRecords(record.projectId)
   const view = scenePlanningView(records, record.subject, freshnessOf(planning, records).sceneNow(record.subject))
   const freshness = productionFreshness(planning, await knownCast(planning), records, view, record, await producerRef(planning))
   if (!freshness.current) throw new PlanningError(`This production is out of date: ${freshness.staleBecause}. Produce the scene again first.`, 409)
   const manifest = record.content as ProductionManifest
-  const files = await productionFiles(record)
+  const files = await editedFiles(record, edits.values)
+  // Edited, it is played again before it is rendered: values inside their
+  // ranges are still code that must play.
+  if (edits.revision) {
+    const approved = records.find(entry => entry.id === String(record.inputs.treatmentId || ''))
+    const runtime = await verifySketchRuntime(files, asPlayable(manifest), approved?.content as SceneTreatmentV1)
+    if (runtime.problems.length || !runtime.proof) throw new PlanningError(`With your edits the scene does not play: ${runtime.problems.join('; ') || 'it could not be checked'}. Undo the edit, or ask for the change.`, 422)
+  }
   let video: Buffer
   try {
     video = await renderProductionBundle(files, { fps: manifest.composition.fps || 30 })
@@ -1462,9 +1698,9 @@ export const acceptProduction = async (recordId: string) => {
     briefId: String(approved?.inputs.briefId || ''),
     briefFingerprint: String(approved?.inputs.briefFingerprint || ''),
     castId: (record.inputs.castId as string | null) ?? null,
-    render: { assetId: stored.assetId, objectKey: stored.objectKey, durationMs: Math.round(manifest.composition.duration * 1000), bundle: record.report?.verification?.bundle || '' },
+    render: { assetId: stored.assetId, objectKey: stored.objectKey, durationMs: Math.round(manifest.composition.duration * 1000), bundle: record.report?.verification?.bundle || '', edits: { revision: edits.revision, values: edits.values } },
   }
-  const updated = await updatePlanningRecord(record.id, { status: 'reviewed', reviewedAt: at, approval }, ['ready'])
+  const updated = await updatePlanningRecord(record.id, { status: 'reviewed', reviewedAt: at, approval }, reaccept ? ['reviewed'] : ['ready'])
   if (!updated) throw new PlanningError('This production changed while it was being accepted', 409)
   return updated
 }
@@ -1472,7 +1708,7 @@ export const acceptProduction = async (recordId: string) => {
 // A scene's productions: the newest of any status, the newest ready one,
 // and the one accepted as its output — each saying whether it is still
 // what the approved plan asks for now, and if not, why.
-const productionOf = (records: PlanningRecord[], sceneId: string, freshness: (production: PlanningRecord) => { current: boolean; staleBecause: string | null }) => {
+const productionOf = (records: PlanningRecord[], sceneId: string, freshness: (production: PlanningRecord) => { current: boolean; staleBecause: string | null }, edits: Map<string, ProductionEdits>) => {
   const mine = records.filter(record => record.kind === 'production' && record.subject === sceneId).sort((a, b) => b.revision - a.revision)
   const newest = mine[0]
   if (!newest) return null
@@ -1492,9 +1728,12 @@ const productionOf = (records: PlanningRecord[], sceneId: string, freshness: (pr
       model: production.reportedModel || production.model,
       checked: checkedOf(production.report?.verification),
       voice: (production.inputs.voiceProvider as string | null) ?? null,
+      clockReview: Array.isArray(production.inputs.clockReview) ? (production.inputs.clockReview as string[]) : [],
       accepted: production.status === 'reviewed' && production.approval?.render
-        ? { at: production.approval.at, url: `/objects/${production.approval.render.objectKey}`, durationMs: production.approval.render.durationMs, bundle: production.approval.render.bundle }
+        ? { at: production.approval.at, url: `/objects/${production.approval.render.objectKey}`, durationMs: production.approval.render.durationMs, bundle: production.approval.render.bundle, edits: production.approval.render.edits?.revision ?? 0 }
         : null,
+      // The creator's values for its controls, as the stage plays them.
+      edits: edits.get(production.id) || NO_EDITS,
     }
   }
   const ready = mine.find(record => record.status === 'ready' || record.status === 'reviewed')

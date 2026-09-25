@@ -4,9 +4,10 @@
 //
 // A base offers its video: to create, or to open. A video offers the next
 // step of the selected scene — plan it, review its candidate, record it,
-// produce it from its approved plan, review what was produced — and, once
-// no scene needs one, the export: the video, when every scene plays its
-// accepted production; otherwise a draft that says which scenes do not.
+// produce it from its approved plan (on a generated voice, in silence, or
+// on the creator's own take), review what was produced — and, once no scene
+// needs one, the export: the video, when every scene plays its accepted
+// production; otherwise a draft that says which scenes do not.
 import type { ScenePlanningView } from './planning-records'
 
 export type NextStepAction = 'create-explainer' | 'create-video' | 'open-video' | 'brief' | 'plan' | 'review' | 'record' | 'produce' | 'review-output' | 'export' | 'wait'
@@ -36,6 +37,8 @@ export type VideoScene = {
   // plays an accepted production for it.
   production?: 'none' | 'producing' | 'ready' | 'accepted' | 'stale' | 'failed'
   produced?: boolean
+  // What producing it waits for, when it cannot be produced yet.
+  productionWaits?: string | null
 }
 export type VideoInput = {
   scenes: VideoScene[]
@@ -52,7 +55,10 @@ const named = (scene: VideoScene) => `scene ${scene.index + 1}`
 // approved plan, then its production is reviewed and accepted.
 const productionStep = (scene: VideoScene, about: string, step: (action: NextStepAction, label: string, title: string, disabled?: boolean) => NextStep, desktop: boolean): NextStep | null => {
   const desktopOnly = desktop ? '' : ' Production runs in the desktop app.'
-  switch (scene.production || 'none') {
+  const state = scene.production || 'none'
+  // What production waits for is said, and the step waits with it.
+  if (scene.productionWaits && (state === 'none' || state === 'failed' || state === 'stale')) return step('produce', `Produce ${named(scene)}`, `${about} cannot be produced yet: ${scene.productionWaits}`, true)
+  switch (state) {
     case 'producing':
       return step('wait', `Producing ${named(scene)}…`, `${about} is being produced from its approved plan.`, true)
     case 'ready':
@@ -85,9 +91,9 @@ const stepOf = (scene: VideoScene, desktop: boolean): NextStep | null => {
         if (scene.take !== 'current') {
           return step('record', `${scene.take === 'earlier' ? 'Re-record' : 'Record'} ${named(scene)}`, `${about} is approved and presented by you: ${scene.take === 'earlier' ? 'its take is of an earlier script — record the lines that changed' : 'record your take'}.`)
         }
-        // A scene you present is produced from your aligned take (P5), which
-        // this build does not connect yet: its take plays in the notebook.
-        return null
+        // A take that cannot set the clock is recorded again, for its reason.
+        const producible = scene.production === 'ready' || scene.production === 'accepted' || scene.production === 'producing'
+        if (scene.productionWaits && !producible) return step('record', `Re-record ${named(scene)}`, `${about} cannot be produced from your take yet: ${scene.productionWaits}`)
       }
       return productionStep(scene, about, step, desktop)
     default:
@@ -113,7 +119,8 @@ export const videoNextStep = ({ scenes, brief, selected, desktop }: VideoInput):
   for (const scene of order) {
     const step = stepOf(scene, desktop)
     if (!step) continue
-    if (step.action === 'wait') {
+    // A step that cannot be taken now waits behind any that can.
+    if (step.action === 'wait' || step.disabled) {
       waiting ||= step
       continue
     }

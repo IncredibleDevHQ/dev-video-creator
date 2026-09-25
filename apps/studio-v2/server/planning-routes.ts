@@ -24,6 +24,8 @@ import {
   submitProduction,
   loadProductionFile,
   acceptProduction,
+  productionEdits,
+  saveProductionEdits,
 } from './planning-service'
 import { loadPlanningRecord } from './persistence'
 
@@ -57,11 +59,26 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
       response.end(file.body)
       return true
     }
-    // /api/planning/productions/:id/<file> — a produced scene's files, for the stage.
+    // /api/planning/productions/:id/<file> — a produced scene's files, for the
+    // stage. A player seeks the take by byte ranges.
     if (parts[0] === 'productions' && parts[1] && method === 'GET') {
       const file = await loadProductionFile(parts[1], parts.slice(2).join('/') || 'index.html')
-      response.writeHead(200, { 'content-type': file.contentType, 'cache-control': 'no-store' })
-      response.end(file.body)
+      const body = Buffer.isBuffer(file.body) ? file.body : Buffer.from(file.body)
+      const range = /^bytes=(\d*)-(\d*)$/.exec(String(request.headers.range || ''))
+      if (range && (range[1] || range[2])) {
+        const start = range[1] ? Number(range[1]) : Math.max(0, body.length - Number(range[2]))
+        const end = range[1] && range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1
+        if (start >= body.length || start > end) {
+          response.writeHead(416, { 'content-range': `bytes */${body.length}` })
+          response.end()
+          return true
+        }
+        response.writeHead(206, { 'content-type': file.contentType, 'cache-control': 'no-store', 'accept-ranges': 'bytes', 'content-range': `bytes ${start}-${end}/${body.length}`, 'content-length': String(end - start + 1) })
+        response.end(body.subarray(start, end + 1))
+        return true
+      }
+      response.writeHead(200, { 'content-type': file.contentType, 'cache-control': 'no-store', 'accept-ranges': 'bytes', 'content-length': String(body.length) })
+      response.end(body)
       return true
     }
     // /api/planning/records/:id[/action]
@@ -111,6 +128,15 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
         send(response, result.accepted ? 200 : 422, result)
         return true
       }
+      // The creator's values for a produced scene's controls (P6).
+      if (action === 'edits' && method === 'GET') {
+        send(response, 200, { edits: await productionEdits(id) })
+        return true
+      }
+      if (action === 'edits' && method === 'PUT') {
+        send(response, 200, { edits: await saveProductionEdits(id, await body<{ revision?: unknown; values?: unknown }>(request)) })
+        return true
+      }
       // The creator accepts a produced scene: it is rendered once, as the scene's output.
       if (method === 'POST' && action === 'accept') {
         send(response, 200, { record: await acceptProduction(id) })
@@ -154,8 +180,8 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
       return true
     }
     if (method === 'POST' && parts[1] === 'scenes' && parts[2] && parts[3] === 'produce') {
-      const input = await body<{ again?: boolean }>(request)
-      send(response, 200, await queueProduction(projectId, parts[2], { again: Boolean(input.again) }))
+      const input = await body<{ again?: boolean; note?: string }>(request)
+      send(response, 200, await queueProduction(projectId, parts[2], { again: Boolean(input.again), ...(typeof input.note === 'string' ? { note: input.note } : {}) }))
       return true
     }
     if (method === 'POST' && parts[1] === 'scenes' && parts[2] && parts[3] === 'preview') {

@@ -147,6 +147,8 @@ export type ProducedSceneV1 = {
   acceptedAt: string
   // Whether the render carries the scene's voice; a silent scene's does not.
   voiced: boolean
+  // The creator's edit revision the render was made with (P6).
+  edits?: number
 }
 
 export type RecordedBlockV1 = {

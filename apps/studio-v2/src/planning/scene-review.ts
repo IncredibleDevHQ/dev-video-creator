@@ -15,7 +15,7 @@ import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type SceneP
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
-import { acceptProduction, approvePlan, loadPlanning, planScene, previewScene, produceScene, saveSceneDirection } from './planning-client'
+import { acceptProduction, approvePlan, loadPlanning, planScene, previewScene, produceScene, saveProductionEdits, saveSceneDirection } from './planning-client'
 import { BROWSER_REVIEW_MESSAGE, progressText } from '../harness-choice'
 import { videoNextStep, type NextStep } from './next-step'
 
@@ -58,9 +58,10 @@ export type SceneReviewHost = {
   // the scene takes it as its page (F1 of the Perplexity review).
   showBaseReference: (sceneId: string) => void
   adoptReference: (sceneId: string) => Promise<void>
-  // The stage plays the scene's produced composition (P4); an accepted one
-  // becomes the scene's output in the notebook, which plays and exports it.
-  showProduction: (sceneId: string) => void
+  // The stage plays the scene's produced composition (P4) — from `at`, when
+  // given; an accepted one becomes the scene's output in the notebook, which
+  // plays and exports it.
+  showProduction: (sceneId: string, at?: number) => void
   adoptProduction: (sceneId: string, production: SceneProductionView) => Promise<void>
   // The production the notebook plays for the scene, if any; and the
   // notebook's own scene back in its place.
@@ -180,7 +181,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       loadedFor,
       error,
       (overview?.records || []).map(record => [record.id, record.status, record.updatedAt, record.reportedModel]),
-      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.continuity, scene.reference?.revision, scene.reference?.adopted?.revision, scene.reference?.newer?.revision, scene.reference?.newer?.designing, scene.reference?.baseDesigning, scene.production?.latest?.id, scene.production?.latest?.status, scene.production?.ready?.id, scene.production?.ready?.current, scene.production?.accepted?.id]),
+      (overview?.scenes || []).map(scene => [scene.id, scene.view.state, scene.continuity, scene.reference?.revision, scene.reference?.adopted?.revision, scene.reference?.newer?.revision, scene.reference?.newer?.designing, scene.reference?.baseDesigning, scene.production?.latest?.id, scene.production?.latest?.status, scene.production?.ready?.id, scene.production?.ready?.current, scene.production?.accepted?.id, scene.production?.ready?.edits?.revision, scene.production?.accepted?.edits?.revision, scene.production?.accepted?.accepted?.edits, scene.productionWaits]),
       overview?.visualCast?.status,
       overview?.visualCast?.id,
       overview?.brief.stale,
@@ -510,6 +511,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
           apply.addEventListener('click', () => {
             host.applyScript(scene.id, guide.planScript, { treatment: planRecord.id, revision: planRecord.revision })
             host.refresh()
+            // The keyboard goes on to what comes next, recording: never to
+            // whatever the redrawn review happens to put first.
+            window.requestAnimationFrame(() => {
+              if (!refocus(`record:${scene.id}`)) (document.activeElement as HTMLElement | null)?.blur?.()
+            })
           })
           return h('div', { class: 'review-script-change' },
             h('p', { class: 'review-warn', text: `The notebook's script for this scene is older than plan r${planRecord.revision}: ${guide.scriptLines.length} line${guide.scriptLines.length === 1 ? '' : 's'}, in another order or wording. The teleprompter, rehearsal and your take use the notebook's script.` }),
@@ -578,11 +584,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
   // clock, by the creator's "Scene production" harness — only when asked —
   // then watched on the stage and accepted as the scene's output.
   let accepting = ''
-  const produce = (scene: Scene, again: boolean) =>
+  const produce = (scene: Scene, again: boolean, note = '') =>
     run('produce the scene', async () => {
       const projectId = host.projectId()
       if (!projectId) return
-      const { reused, record } = await produceScene(host.fetchJson, projectId, scene.id, { again })
+      const { reused, record } = await produceScene(host.fetchJson, projectId, scene.id, { again, ...(note ? { note } : {}) })
       if (reused && (record.status === 'ready' || record.status === 'reviewed')) host.showProduction(scene.id)
       else host.toast(`Producing ${scene.title || 'the scene'} from its approved plan — its clock is made first, then your harness builds the scene`)
     })
@@ -631,6 +637,143 @@ export const createSceneReview = (host: SceneReviewHost) => {
       }
     })()
   }
+  // Timing edits (P6): the creator nudges when an action starts inside its
+  // moment, through the controls the production's code reads. Each change is
+  // saved as an edit revision; undo and redo walk this session's history.
+  const editHistory = new Map<string, { past: Array<Record<string, number>>; future: Array<Record<string, number>> }>()
+  let savingEdit = ''
+  const historyOf = (id: string) => {
+    let history = editHistory.get(id)
+    if (!history) editHistory.set(id, (history = { past: [], future: [] }))
+    return history
+  }
+  const saveEdit = (scene: Scene, production: SceneProductionView, values: Record<string, number>, step: 'edit' | 'undo' | 'redo', at: number | null) => {
+    if (savingEdit) return
+    savingEdit = production.id
+    const before = { ...production.edits.values }
+    void (async () => {
+      try {
+        const { edits } = await saveProductionEdits(host.fetchJson, production.id, production.edits.revision, values)
+        const history = historyOf(production.id)
+        if (step === 'edit') {
+          history.past.push(before)
+          history.future = []
+        } else if (step === 'undo') history.future.push(before)
+        else history.past.push(before)
+        await load()
+        host.showProduction(scene.id, at ?? undefined)
+        host.toast(`${step === 'undo' ? 'Undone' : step === 'redo' ? 'Redone' : 'Saved'} as edit ${edits.revision}: the stage plays it${production.accepted ? '; accept again to put it in the output' : ''}`)
+      } catch (failure) {
+        host.toast(failure instanceof Error ? failure.message : 'The edit could not be saved')
+        await load()
+      } finally {
+        savingEdit = ''
+        host.refresh()
+      }
+    })()
+  }
+  const timingOf = (scene: Scene, production: SceneProductionView) => {
+    const controls = production.summary.controls
+    const plan = scene.view.reviewed?.content as SceneTreatmentV1 | undefined
+    const box = h('div', { class: 'review-timing', 'data-review-timing': production.id })
+    const edited = production.edits.revision
+    box.append(h('p', {}, h('strong', { text: 'Timing' }), controls.length ? ` — nudge when an action starts inside its moment${edited ? ` · edit ${edited}` : ''}` : ' — this production exposes nothing to nudge. Ask for the change below, and the scene is produced again with it.'))
+    if (!controls.length) return box
+    const history = historyOf(production.id)
+    const values = { ...production.edits.values }
+    const valueOf = (id: string, fallback: number) => (typeof values[id] === 'number' ? values[id] : fallback)
+    const momentOf = (id: string) => production.summary.moments.find(moment => moment.id === id)
+    const list = h('ul', { class: 'review-timing-list' })
+    for (const control of controls) {
+      const moment = momentOf(control.moment)
+      const title = moment?.title || plan?.moments.find(entry => entry.id === control.moment)?.title || control.moment
+      const input = h('input', { type: 'number', step: '0.05', min: String(control.min), max: String(control.max), value: String(valueOf(control.id, control.default)), 'aria-label': `${control.label}, seconds after “${title}” starts`, 'data-focus': `control:${production.id}:${control.id}`, ...(savingEdit ? { disabled: true } : {}) })
+      let timer = 0
+      const commit = () => {
+        window.clearTimeout(timer)
+        const next = Math.round(Number(input.value) * 1000) / 1000
+        if (!Number.isFinite(next) || next === valueOf(control.id, control.default)) return
+        if (next < control.min || next > control.max) {
+          host.toast(`${control.label} stays between ${control.min}s and ${control.max}s: outside that it would leave its moment`)
+          input.value = String(valueOf(control.id, control.default))
+          return
+        }
+        saveEdit(scene, production, { ...values, [control.id]: next }, 'edit', moment ? moment.start : null)
+      }
+      input.addEventListener('input', () => {
+        window.clearTimeout(timer)
+        timer = window.setTimeout(commit, 700)
+      })
+      input.addEventListener('change', commit)
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') commit()
+      })
+      const changed = typeof values[control.id] === 'number' && values[control.id] !== control.default
+      const reset = h('button', { type: 'button', class: 'link-button', 'data-focus': `reset-control:${production.id}:${control.id}`, text: `Reset to ${control.default}s`, ...(changed && !savingEdit ? {} : { disabled: true }) })
+      reset.addEventListener('click', () => {
+        const next = { ...values }
+        delete next[control.id]
+        saveEdit(scene, production, next, 'edit', moment ? moment.start : null)
+      })
+      list.append(h('li', { 'data-control': control.id }, h('span', { class: 'review-timing-label' }, h('strong', { text: control.label }), ` in “${title}”`), input, h('span', { class: 'review-muted', text: `s after it starts (${control.min}–${control.max}s)` }), reset))
+    }
+    box.append(list)
+    const tools = h('div', { class: 'review-actions' })
+    const undo = h('button', { type: 'button', class: 'button ghost', 'data-focus': `undo-edit:${scene.id}`, text: 'Undo', title: 'Undo the last timing edit (⌘Z)', ...(history.past.length && !savingEdit ? {} : { disabled: true }) })
+    const redo = h('button', { type: 'button', class: 'button ghost', 'data-focus': `redo-edit:${scene.id}`, text: 'Redo', title: 'Redo (⇧⌘Z)', ...(history.future.length && !savingEdit ? {} : { disabled: true }) })
+    const stepBack = () => {
+      const previous = history.past.pop()
+      if (previous) saveEdit(scene, production, previous, 'undo', null)
+    }
+    const stepForward = () => {
+      const next = history.future.pop()
+      if (next) saveEdit(scene, production, next, 'redo', null)
+    }
+    undo.addEventListener('click', stepBack)
+    redo.addEventListener('click', stepForward)
+    box.addEventListener('keydown', event => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'z' || savingEdit) return
+      event.preventDefault()
+      if (event.shiftKey) stepForward()
+      else stepBack()
+    })
+    tools.append(undo, redo)
+    // An accepted production is rendered again to take newer edits.
+    if (production.accepted && production.accepted.edits !== edited && production.current) {
+      const again = h('button', { type: 'button', class: 'button primary', 'data-focus': `accept-edits:${scene.id}`, text: accepting === production.id ? 'Rendering your edits…' : 'Accept with your edits', ...(accepting ? { disabled: true } : {}) })
+      again.addEventListener('click', () => accept(scene, production))
+      tools.append(again)
+    }
+    box.append(tools)
+    if (production.accepted && production.accepted.edits !== edited) box.append(h('p', { class: 'review-warn', 'data-review-edits': 'unrendered', text: `The stage plays edit ${edited}; the output was rendered with ${production.accepted.edits ? `edit ${production.accepted.edits}` : 'no edits'}. Accept again to render your edits into it.` }))
+    const carried = production.edits.carried
+    if (carried && (carried.applied.length || carried.conflicts.length)) {
+      box.append(h('div', { class: carried.conflicts.length ? 'review-warn' : 'review-muted', 'data-review-carried': production.id },
+        carried.applied.length ? h('p', { text: `Carried from the scene's previous production: ${carried.applied.map(id => controls.find(control => control.id === id)?.label || id).join(', ')}.` }) : null,
+        carried.conflicts.length ? h('p', { text: 'Not carried, because they no longer fit:' }) : null,
+        carried.conflicts.length ? h('ul', {}, ...carried.conflicts.map(conflict => h('li', { text: `${conflict.value}s — ${conflict.reason}` }))) : null,
+      ))
+    }
+    return box
+  }
+  // A change the controls cannot make goes back to the producer, as a note
+  // with a new production of the same approved plan.
+  const askFor = (scene: Scene) => {
+    const box = h('div', { class: 'review-ask' })
+    const field = h('textarea', { rows: '2', placeholder: 'What should change — for example, “hold on the full bucket before the request is refused”', 'aria-label': 'The change to ask for', 'data-focus': `ask-change:${scene.id}` })
+    const send = h('button', { type: 'button', class: 'button ghost', 'data-focus': `ask-produce:${scene.id}`, text: 'Produce again with this change' })
+    send.addEventListener('click', () => {
+      const note = field.value.trim()
+      if (!note) {
+        host.toast('Say what should change first')
+        return
+      }
+      void produce(scene, true, note)
+    })
+    box.append(field, send)
+    return box
+  }
+
   const productionOf = (scene: Scene) => {
     const approved = scene.view.reviewed
     const production = scene.production
@@ -641,11 +784,12 @@ export const createSceneReview = (host: SceneReviewHost) => {
       box.append(h('p', { class: 'review-muted', text: 'A scene is produced from its approved plan: approve a plan first. Approving starts nothing.' }))
       return box
     }
-    // What production waits for, before it can start.
+    // What production waits for, before it can start: a fresh approved plan,
+    // and what the product needs to set its clock (a delivery; for a scene
+    // you present, your take of the plan's lines).
     const waits = [
       scene.view.state === 'stale' && scene.view.current?.id === approved.id ? `The approved plan r${approved.revision} is stale — plan and approve the scene again.` : '',
-      !scene.delivery ? 'Choose how this scene is delivered — you present it, a generated voice, or silent. A plan is made for its delivery, so plan and approve the scene again once it is chosen.' : '',
-      scene.delivery === 'human' ? 'A scene you present is produced from your take once it is aligned; that path is not connected in this build.' : '',
+      scene.productionWaits || '',
     ].filter(Boolean)
     const latest = production?.latest
     const ready = production?.ready
@@ -663,6 +807,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
           h('p', {}, h('strong', { text: `Produced from r${shown.of.revision}` }), ` · ${shown.summary.duration}s on ${clock} · ${shown.checked ? 'played and checked' : 'never checked'}${shown.accepted ? ` · accepted ${new Date(shown.accepted.at).toLocaleString()}` : ''}`),
           !shown.current ? h('p', { class: 'review-warn', text: `Out of date: ${shown.staleBecause}. Produce the scene again to realize the plan as it is now${shown.accepted ? '; the accepted output plays until then' : ''}.` }) : null,
           shown.summary.unmet.length ? h('div', { class: 'review-warn' }, h('p', { text: 'What the approved plan asked for and this production could not meet:' }), h('ul', {}, ...shown.summary.unmet.map(item => h('li', { text: item })))) : null,
+          shown.clockReview.length ? h('div', { class: 'review-muted', 'data-review-clock': shown.id }, h('p', { text: 'On your take:' }), h('ul', {}, ...shown.clockReview.map(item => h('li', { text: item })))) : null,
         ].filter(Boolean) as HTMLElement[]),
       )
     }
@@ -706,6 +851,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     produceButton.addEventListener('click', () => void produce(scene, again))
     actions.append(produceButton)
     box.append(actions)
+    if (shown && shown.current) box.append(timingOf(scene, shown), disclosure(`ask:${scene.id}`, 'Ask for a different change', askFor(scene)))
     if (waits.length) box.append(h('ul', { class: 'review-muted' }, ...waits.map(line => h('li', { text: line }))))
     const rich = (planned?.objects || []).filter(object => ['enrich', 'generate'].includes(object.asset.status))
     if (rich.length && !shown) box.append(h('p', { class: 'review-muted', text: `The plan asks for richer artwork of ${rich.map(object => object.entity).join(', ')}: the production draws it from the cast, or names it as unmet — nothing stands in for it.` }))
@@ -971,7 +1117,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const preview = scene ? previewStateOf(scene, record) : null
     const current = scene ? previewStateOf(scene, scene.view.current) : null
     const reference = scene?.reference
-    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId), reference?.revision, reference?.adopted?.revision, reference?.newer?.revision, reference?.newer?.designing, reference?.baseDesigning, adopting === sceneId, scene?.production?.latest?.status, scene?.production?.ready?.id, scene?.production?.ready?.current, scene?.production?.accepted?.id, scene?.production?.accepted?.current, accepting, using, host.producedIn(sceneId)])
+    return JSON.stringify([shown, expanded, scene?.view.state, scene?.view.current?.id, scene?.view.reviewed?.id, state.revision, state.compare, state.moment, preview?.state, preview?.stale, preview?.recordId, current?.state, current?.stale, error, host.script(sceneId), host.takeOf(sceneId), reference?.revision, reference?.adopted?.revision, reference?.newer?.revision, reference?.newer?.designing, reference?.baseDesigning, adopting === sceneId, scene?.production?.latest?.status, scene?.production?.ready?.id, scene?.production?.ready?.current, scene?.production?.accepted?.id, scene?.production?.accepted?.current, accepting, using, host.producedIn(sceneId), scene?.production?.ready?.edits?.revision, scene?.production?.accepted?.accepted?.edits, scene?.productionWaits, savingEdit, editHistory.get(scene?.production?.ready?.id || '')?.past.length, editHistory.get(scene?.production?.ready?.id || '')?.future.length])
   }
 
   return {
@@ -1017,6 +1163,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
             take: !take ? 'none' : take.current || !take.known ? 'current' : 'earlier',
             production,
             produced: Boolean(accepted && host.producedIn(scene.id) === accepted.id),
+            productionWaits: scene.productionWaits ?? null,
           }
         }),
         brief: { ready: Boolean(overview.brief.current), stale: overview.brief.stale, preparing: Boolean(brief && brief.kind === 'brief' && isActiveStatus(brief.status)), failed: brief?.status === 'failed' },

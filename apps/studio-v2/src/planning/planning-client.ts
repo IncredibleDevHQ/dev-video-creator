@@ -4,7 +4,7 @@
 // explicit step, produce an approved scene on the "Scene production"
 // harness and accept what it produced (P4).
 import type { PlanningRecord } from './planning-records'
-import type { PlanningOverviewV1 } from './planning-workspace'
+import type { PlanningOverviewV1, ProductionEditsView } from './planning-workspace'
 import { BROWSER_REVIEW_MESSAGE, loadHarnessPreferences, resolveStage, type HarnessAvailability } from '../harness-choice'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
@@ -84,7 +84,7 @@ export const previewScene = async (fetchJson: FetchJson, projectId: string, scen
 // scene's clock first (a generated voice is spoken and measured), then the
 // "Scene production" harness builds the scene on it. The same approved plan
 // on the same clock is produced once, unless `again`.
-export const produceScene = async (fetchJson: FetchJson, projectId: string, sceneId: string, options: { again?: boolean } = {}) => {
+export const produceScene = async (fetchJson: FetchJson, projectId: string, sceneId: string, options: { again?: boolean; note?: string } = {}) => {
   assertDesktop()
   const { record, reused } = await fetchJson<{ record: PlanningRecord; reused: boolean }>(`/api/planning/${encodeURIComponent(projectId)}/scenes/${encodeURIComponent(sceneId)}/produce`, {
     method: 'POST',
@@ -95,9 +95,19 @@ export const produceScene = async (fetchJson: FetchJson, projectId: string, scen
   return { record, reused }
 }
 
-// Accepting a produced scene renders it once, as the scene's output.
+// Accepting a produced scene renders it once, as the scene's output — and
+// again when the creator's edits change.
 export const acceptProduction = (fetchJson: FetchJson, recordId: string) =>
   fetchJson<{ record: PlanningRecord }>(`/api/planning/records/${encodeURIComponent(recordId)}/accept`, { method: 'POST' })
+
+// The creator's values for a produced scene's controls (P6), saved against
+// the edit revision they were made on.
+export const saveProductionEdits = (fetchJson: FetchJson, recordId: string, revision: number, values: Record<string, number>) =>
+  fetchJson<{ edits: ProductionEditsView }>(`/api/planning/records/${encodeURIComponent(recordId)}/edits`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ revision, values }),
+  })
 
 // Approval pins the plan with what it was made from. It starts nothing.
 export const approvePlan = (fetchJson: FetchJson, recordId: string) =>

@@ -17,18 +17,20 @@ process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../../studio-desktop/skil
 
 const persistence = await import('./persistence')
 const service = await import('./planning-service')
-const { systemVoiceAvailable } = await import('./voice')
+const { systemVoiceAvailable, runCommand, probeSeconds } = await import('./voice')
 const systemVoice = await systemVoiceAvailable()
+const aligner = systemVoice && (await runCommand('uv', ['--version'], 10_000).then(() => true, () => false))
+const { lineFingerprints, scriptFingerprint } = await import('../src/planning/recording-guide')
 
 // A produced scene's composition (P4): the bucket appears and grows in m1,
 // playing the clock's sound when it has one.
-const productionHtml = (compositionId: string, duration: number, audio: string | null) => `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}.bucket{position:absolute;left:760px;top:340px;width:400px;height:400px;border-radius:40px;background:#635bff}</style></head><body>
+const productionHtml = (compositionId: string, duration: number, audio: string | null, reveal = '0') => `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}.bucket{position:absolute;left:760px;top:340px;width:400px;height:400px;border-radius:40px;background:#635bff}</style></head><body>
 <div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="${duration}">
 <div id="m1" class="clip" data-start="0" data-duration="${duration}" data-track-index="0"><div class="bucket" data-sketch-layer="bucket"></div></div>
 ${audio ? `<audio id="voice" src="${audio}" data-start="0" data-duration="${duration}" data-track-index="20"></audio>` : ''}
 </div><script>window.__timelines = window.__timelines || {}
 const tl = gsap.timeline({ paused: true })
-tl.fromTo('#m1 .bucket', { opacity: 0.2, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2 }, 0)
+tl.fromTo('#m1 .bucket', { opacity: 0.2, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2 }, ${reveal})
 window.__timelines["${compositionId}"] = tl</script></body></html>`
 const library = await import('./appearance-library')
 // A packet's text file (binary files — previews — are base64 objects).
@@ -745,7 +747,7 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     expect(render.subarray(4, 8).toString('latin1')).toBe('ftyp')
     overview = await service.planningOverview(id)
     expect(overview.scenes[0].production?.accepted).toMatchObject({ id: queued.record.id, accepted: { url: expect.stringMatching(/^\/objects\//), durationMs: 6000 } })
-    await expect(service.acceptProduction(queued.record.id)).rejects.toThrow(/Only a produced scene can be accepted/)
+    await expect(service.acceptProduction(queued.record.id)).rejects.toThrow(/already accepted, with these edits/)
     // The same approved plan on the same clock is not produced again, unless asked.
     expect(await service.queueProduction(id, scenes[0])).toMatchObject({ reused: true, record: { id: queued.record.id } })
     // A newly approved plan leaves the production, and its acceptance, as history.
@@ -757,6 +759,158 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     overview = await service.planningOverview(id)
     expect(overview.scenes[0].production?.accepted).toMatchObject({ current: false, staleBecause: expect.stringMatching(/^it produces r1; the scene's approved plan is r2/) })
   }, 240_000)
+
+  // P6: the creator nudges a production through the controls its code
+  // reads. Edits are saved against a revision, stay inside their ranges,
+  // play on the stage and render into the output — and a new production of
+  // the scene takes them where they still fit.
+  it('edits a produced scene through its controls, renders the edits and carries them on', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('production-edits')
+    await service.saveDirection(id, { subject: scenes[0], delivery: 'silent' })
+    await readyBrief(id, 'run-edits-brief')
+    const { record: plan } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(plan.id, { runId: 'run-edits-plan' })
+    await service.submitTreatment(plan.id, { ...treatmentFor(scenes[0], 'b1'), delivery: { voice: 'silent', note: '' } }, 'run-edits-plan')
+    await service.reviewTreatment(plan.id)
+    const produce = async (runId: string, controls: unknown[], again = false) => {
+      const queued = await service.queueProduction(id, scenes[0], { again })
+      const context = JSON.parse(text((await service.loadPacket(queued.record.id)).files['packet/CONTEXT.json']))
+      await service.attachRun(queued.record.id, { runId })
+      const compositionId = context.composition.id
+      const reads = controls.length ? '(window.__controls?.["m1-reveal"] ?? 0)' : '0'
+      const manifest = { version: 1, kind: 'production', scene: scenes[0], plan: context.plan, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, clock: { kind: 'silent', audio: null }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6 }], layers: [{ id: 'bucket', kind: 'object', label: 'Token bucket', moments: ['m1'] }], unmet: [], controls }
+      expect(await service.submitProduction(queued.record.id, { 'index.html': productionHtml(compositionId, 6, null, reads), 'manifest.json': JSON.stringify(manifest) }, runId)).toMatchObject({ accepted: true })
+      return queued.record.id
+    }
+    const reveal = { id: 'm1-reveal', label: 'When the bucket appears', kind: 'offset', moment: 'm1', default: 0, min: 0, max: 5 }
+    const first = await produce('run-edits-1', [reveal])
+    expect(await service.productionEdits(first)).toMatchObject({ revision: 0, values: {} })
+    // Saved against the revision it was made on, inside its range.
+    expect(await service.saveProductionEdits(first, { revision: 0, values: { 'm1-reveal': 2 } })).toMatchObject({ revision: 1, values: { 'm1-reveal': 2 } })
+    await expect(service.saveProductionEdits(first, { revision: 0, values: { 'm1-reveal': 3 } })).rejects.toThrow(/made on edit 0; the scene is at edit 1 now/)
+    await expect(service.saveProductionEdits(first, { revision: 1, values: { 'm1-reveal': 9 } })).rejects.toThrow(/between 0s and 5s — 9s would move it out of its moment/)
+    await expect(service.saveProductionEdits(first, { revision: 1, values: { other: 1 } })).rejects.toThrow(/"other" is not a control/)
+    // The stage plays it with the edit.
+    const served = (await service.loadProductionFile(first, 'index.html')).body.toString('utf8')
+    expect(served).toContain('window.__controls = {"m1-reveal":2}')
+    let overview = await service.planningOverview(id)
+    expect(overview.scenes[0].production?.ready).toMatchObject({ id: first, edits: { revision: 1, values: { 'm1-reveal': 2 } }, summary: { controls: [reveal] } })
+    // Accepting renders the edit; the same edits are not rendered twice.
+    const accepted = await service.acceptProduction(first)
+    expect(accepted.approval?.render?.edits).toEqual({ revision: 1, values: { 'm1-reveal': 2 } })
+    await expect(service.acceptProduction(first)).rejects.toThrow(/already accepted, with these edits/)
+    // A newer edit is accepted again: a new render, with it.
+    await service.saveProductionEdits(first, { revision: 1, values: { 'm1-reveal': 2.5 } })
+    const again = await service.acceptProduction(first)
+    expect(again.approval?.render).toMatchObject({ edits: { revision: 2, values: { 'm1-reveal': 2.5 } } })
+    expect(again.approval?.render?.objectKey).not.toBe(accepted.approval?.render?.objectKey)
+    overview = await service.planningOverview(id)
+    expect(overview.scenes[0].production?.accepted).toMatchObject({ id: first, accepted: { edits: 2 }, edits: { revision: 2 } })
+    // Produced again: the edit is carried where it still fits.
+    const second = await produce('run-edits-2', [reveal], true)
+    expect(await service.productionEdits(second)).toMatchObject({ revision: 1, values: { 'm1-reveal': 2.5 }, carried: { from: first, applied: ['m1-reveal'], conflicts: [] } })
+    // A production without that control keeps the edit as a conflict, applied nowhere.
+    const third = await produce('run-edits-3', [], true)
+    expect(await service.productionEdits(third)).toMatchObject({ values: {}, carried: { from: second, applied: [], conflicts: [{ id: 'm1-reveal', value: 2.5, reason: 'the new production has no control “When the bucket appears”' }] } })
+    await expect(service.saveProductionEdits(third, { revision: 1, values: {} })).rejects.toThrow(/exposes no controls/)
+  }, 240_000)
+
+  // P5: a scene the creator presents is produced on their take. The take is
+  // aligned to the approved plan's lines by the pinned aligner and sets the
+  // clock; the production plays its voice whole and its picture muted and in
+  // step, and a new take makes the production out of date.
+  it.runIf(aligner)('produces a scene you present on your take\'s clock, with your voice and picture', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('production-take')
+    await service.saveDirection(id, { subject: scenes[0], delivery: 'human' })
+    await readyBrief(id, 'run-take-brief')
+    const { record: plan } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(plan.id, { runId: 'run-take-plan' })
+    const base = treatmentFor(scenes[0], 'b1')
+    const presented = {
+      ...base,
+      moments: [
+        { ...base.moments[0], objects: null, recipes: [], presenter: { visibility: 'full', reason: 'Introduce the cost on camera' } },
+        { ...base.moments[0], id: 'm2', title: 'Refill', observation: 'Tokens come back', narration: { job: 'Explain', guide: 'Tokens are added back at a steady refill rate.' }, presenter: { visibility: 'hidden', reason: 'The bucket carries it' } },
+      ],
+      delivery: { voice: 'human', note: '' },
+    }
+    expect(await service.submitTreatment(plan.id, presented, 'run-take-plan')).toMatchObject({ accepted: true })
+    await service.reviewTreatment(plan.id)
+    const waits = async () => (await service.planningOverview(id)).scenes[0].productionWaits
+    expect(await waits()).toMatch(/^Record and select a take of this scene first/)
+    await expect(service.queueProduction(id, scenes[0])).rejects.toThrow(/Record and select a take/)
+    // A spoken take of the plan's lines: the camera's picture and voice.
+    const dir = mkdtempSync(join(tmpdir(), 'take-production-'))
+    await runCommand('/usr/bin/say', ['-o', join(dir, 'voice.aiff'), 'Each request consumes one token. [[slnc 900]] Tokens are added back at a steady refill rate.'])
+    await runCommand('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=24', '-i', join(dir, 'voice.aiff'), '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', join(dir, 'take.mp4')])
+    const seconds = await probeSeconds(join(dir, 'take.mp4'))
+    const stored = await persistence.storeAsset({ body: readFileSync(join(dir, 'take.mp4')), contentType: 'video/mp4', projectId: id, blockId: scenes[0], kind: 'camera-take', extension: '.mp4' })
+    const selectTake = async (recordingId: string, script: string) => {
+      const project = (await persistence.loadProjectArtifact(id))!
+      project.recordedBlocks = { [scenes[0]]: { blockId: scenes[0], recordingId, videoUrl: `http://127.0.0.1:1/objects/${stored.objectKey}`, durationMs: Math.round(seconds * 1000), recordedAt: new Date().toISOString(), storage: 'local', role: 'presenter', script: { hash: scriptFingerprint(script), lines: lineFingerprints(script) } } }
+      await persistence.saveProjectArtifact(project)
+    }
+    const lines = 'Each request consumes one token.\n\nTokens are added back at a steady refill rate.'
+    await selectTake('take-other', 'Something else entirely.')
+    expect(await waits()).toMatch(/^Your take was not recorded against the approved plan's lines/)
+    await selectTake('take-1', lines)
+    expect(await waits()).toBeNull()
+    const queued = await service.queueProduction(id, scenes[0])
+    const packet = await service.loadPacket(queued.record.id)
+    const clock = JSON.parse(text(packet.files['packet/CLOCK.json']))
+    // The take set the clock: m1 from the start, m2 where its words are heard.
+    expect(clock).toMatchObject({ kind: 'take', audio: 'media/take.webm', video: 'media/take.webm', provider: 'Your take', media: ['media/take.webm'], presenter: [{ id: 'm1', visibility: 'full' }, { id: 'm2', visibility: 'hidden' }] })
+    expect(clock.moments[0].start).toBe(0)
+    expect(clock.moments[1].start).toBeGreaterThan(clock.spoken[0].spokenEnd + 0.5)
+    expect(clock.moments[1].end).toBe(clock.duration)
+    expect(Math.abs(clock.duration - seconds)).toBeLessThan(0.15)
+    expect(packet.files['packet/references/take-frame.jpg']).toMatchObject({ contentType: 'image/jpeg' })
+    expect(packet.files['packet/audio/narration.mp3']).toBeUndefined()
+    expect(text(packet.files['packet/PRODUCTION.md'])).toMatch(/the creator's own take, at `media\/take.webm`/)
+    const context = JSON.parse(text(packet.files['packet/CONTEXT.json']))
+    await service.attachRun(queued.record.id, { runId: 'run-take' })
+    const compositionId = context.composition.id
+    const duration = clock.duration
+    const page = (picture: string) => `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}#frame{position:absolute;inset:0}#frame video{width:100%;height:100%;object-fit:cover}.bucket{position:absolute;left:760px;top:340px;width:400px;height:400px;border-radius:40px;background:#635bff}</style></head><body>
+<div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="${duration}">
+<div id="m2" class="clip" data-start="${clock.moments[1].start}" data-duration="${Number((clock.moments[1].end - clock.moments[1].start).toFixed(3))}" data-track-index="0"><div class="bucket" data-sketch-layer="bucket"></div></div>
+<div id="frame" data-sketch-layer="presenter">${picture}</div>
+<audio id="voice" src="media/take.webm" data-start="0" data-duration="${duration}" data-track-index="20"></audio>
+</div><script>window.__timelines = window.__timelines || {}
+const tl = gsap.timeline({ paused: true })
+tl.fromTo('#frame', { opacity: 1 }, { opacity: 0, duration: 0.4 }, ${clock.moments[1].start})
+tl.fromTo('#m2 .bucket', { scale: 0.8 }, { scale: 1, duration: 1 }, ${clock.moments[1].start})
+window.__timelines["${compositionId}"] = tl</script></body></html>`
+    const picture = `<video id="take" src="media/take.webm" muted playsinline data-start="0" data-duration="${duration}" data-track-index="10"></video>`
+    const manifest = { version: 1, kind: 'production', scene: scenes[0], plan: context.plan, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration }, runtime: { hyperframes: '0.7.106' }, clock: { kind: 'take', audio: 'media/take.webm' }, moments: [{ id: 'm1', title: 'Spend', start: clock.moments[0].start, end: clock.moments[0].end }, { id: 'm2', title: 'Refill', start: clock.moments[1].start, end: clock.moments[1].end }], layers: [{ id: 'presenter', kind: 'presenter', label: 'You', moments: ['m1'] }, { id: 'bucket', kind: 'object', label: 'Token bucket', moments: ['m2'] }], unmet: [] }
+    // Refused: the picture carries its own sound — the voice would play twice.
+    const loud = await service.submitProduction(queued.record.id, { 'index.html': page(picture.replace(' muted', '')), 'manifest.json': JSON.stringify(manifest) }, 'run-take')
+    expect(loud).toMatchObject({ accepted: false, problems: expect.arrayContaining([expect.stringMatching(/must be muted/)]) })
+    // A submission's own media/ is never taken: the product supplies the take.
+    const landed = await service.submitProduction(queued.record.id, { 'index.html': page(picture), 'manifest.json': JSON.stringify(manifest), 'media/take.webm': { base64: 'bm90IGEgdGFrZQ==', contentType: 'video/webm' } }, 'run-take')
+    if (!landed.accepted) console.log('TAKE PRODUCTION REFUSED', JSON.stringify(landed, null, 1))
+    expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+    const proof = landed.accepted ? landed.record.report?.verification : undefined
+    expect(proof?.loaded).toEqual(expect.arrayContaining(['media/take.webm']))
+    const served = await service.loadProductionFile(queued.record.id, 'media/take.webm')
+    expect(served.contentType).toBe('video/webm')
+    expect(served.body.subarray(0, 4).toString('hex')).toBe('1a45dfa3')
+    // Accepted: rendered with the take's voice and picture.
+    const accepted = await service.acceptProduction(queued.record.id)
+    const render = join(dir, 'render.mp4')
+    const { stream } = await persistence.getObject(accepted.approval!.render!.objectKey)
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) chunks.push(chunk as Buffer)
+    await (await import('node:fs/promises')).writeFile(render, Buffer.concat(chunks))
+    const streams = await runCommand('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', render])
+    expect(streams).toMatch(/video/)
+    expect(streams).toMatch(/audio/)
+    expect(Math.abs((await probeSeconds(render)) - duration)).toBeLessThan(0.3)
+    // A new take makes the production out of date.
+    await selectTake('take-2', lines)
+    const overview = await service.planningOverview(id)
+    expect(overview.scenes[0].production?.accepted).toMatchObject({ current: false, staleBecause: 'the scene\'s take changed' })
+  }, 300_000)
 
   it.runIf(systemVoice)('produces a generated-voice scene on the voice\'s clock, playing its sound', async () => {
     const { videoId: id, videoScenes: scenes } = await makeVideo('production-voice')

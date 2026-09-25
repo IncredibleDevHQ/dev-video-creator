@@ -350,7 +350,7 @@ try {
     const output = document.querySelector('[data-stage-mode="output"]')
     return { src: player.getAttribute('src'), mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, enabled: !output.disabled, note: document.getElementById('scene-stage-note').textContent, moments: [...document.querySelectorAll('.scene-stage-moment')].map(button => button.textContent), clock: document.querySelector('.scene-stage-clock').textContent }
   }`, 30)
-  check(stage?.src === produced1.ready.url && stage.mode === 'Produced scene' && stage.enabled, `the stage plays the produced scene (${JSON.stringify(stage && { src: stage.src, mode: stage.mode })})`)
+  check(stage?.src === `${produced1.ready.url}?e=0` && stage.mode === 'Produced scene' && stage.enabled, `the stage plays the produced scene, with no edits yet (${JSON.stringify(stage && { src: stage.src, mode: stage.mode })})`)
   check(stage?.note === `Produced from plan r${plan1.revision}, on a generated voice · not accepted yet` && stage.moments.join('|') === 'Requests arrive|The limit bites|Load stays safe' && !/est\./.test(stage.clock), `the stage says what it plays, on its real clock, not an estimate (${stage?.note} · ${stage?.clock})`)
   const noSketch = await evaluate(`() => document.querySelector('.scene-review.is-expanded .review-no-preview')?.textContent || ''`)
   check(noSketch === `No preview of r${plan1.revision} yet — it was produced without one.`, `the review does not claim the stage shows the page while it plays the production (${noSketch})`)

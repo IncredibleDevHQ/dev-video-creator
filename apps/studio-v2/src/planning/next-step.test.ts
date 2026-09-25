@@ -48,15 +48,33 @@ describe('the one next step of a notebook', () => {
     expect(at({ production: 'stale', produced: true })).toMatchObject({ action: 'produce', label: 'Produce scene 1 again' })
     // In a browser the step is named, and waits for the desktop app.
     expect(videoNextStep({ scenes: [scene(0, 'reviewed')], brief: ready, selected: 's1', desktop: false })).toMatchObject({ action: 'produce', disabled: true })
-    // A scene you present plays your take; its production from the take is not connected yet.
-    expect(videoNextStep({ scenes: [scene(0, 'reviewed', { delivery: 'human', take: 'current' })], brief: ready, selected: 's1', desktop: true })).toMatchObject({ action: 'export', label: 'Export draft' })
+  })
+
+  it('produces a scene you present once your take is in, and asks for it again when it cannot set the clock', () => {
+    const presented = (extra: Partial<VideoScene>) => videoNextStep({ scenes: [scene(0, 'reviewed', { delivery: 'human', take: 'current', ...extra })], brief: ready, selected: 's1', desktop: true })
+    expect(presented({})).toMatchObject({ action: 'produce', label: 'Produce scene 1' })
+    expect(presented({ production: 'ready' })).toMatchObject({ action: 'review-output' })
+    const off = presented({ productionWaits: 'Your take was not recorded against the approved plan\'s lines.' })
+    expect(off).toMatchObject({ action: 'record', label: 'Re-record scene 1' })
+    expect(off.title).toMatch(/cannot be produced from your take yet: Your take was not recorded/)
+    // Once produced, the take is not asked for again.
+    expect(presented({ production: 'accepted', produced: true, productionWaits: 'anything' })).toMatchObject({ action: 'export', label: 'Export video' })
+  })
+
+  it('names what production waits for, and moves on to a scene that can go ahead', () => {
+    const waits = scene(0, 'reviewed', { productionWaits: 'Choose how this scene is delivered.' })
+    const alone = videoNextStep({ scenes: [waits], brief: ready, selected: 's1', desktop: true })
+    expect(alone).toMatchObject({ action: 'produce', disabled: true })
+    expect(alone.title).toMatch(/cannot be produced yet: Choose how this scene is delivered/)
+    expect(videoNextStep({ scenes: [waits, scene(1, 'candidate')], brief: ready, selected: 's1', desktop: true })).toMatchObject({ action: 'review', sceneId: 's2' })
   })
 
   it('ends at the export: the video once every scene plays its accepted production, a draft that says so otherwise', () => {
     const done = { production: 'accepted', produced: true } as const
     const all = videoNextStep({ scenes: [scene(0, 'reviewed', done), scene(1, 'reviewed', { ...done, delivery: 'silent' })], brief: ready, selected: 's1', desktop: true })
     expect(all).toMatchObject({ action: 'export', label: 'Export video', disabled: false })
-    const some = videoNextStep({ scenes: [scene(0, 'reviewed', done), scene(1, 'reviewed', { delivery: 'human', take: 'current' })], brief: ready, selected: 's1', desktop: true })
+    // The second scene's production is accepted, but the notebook plays its own scene.
+    const some = videoNextStep({ scenes: [scene(0, 'reviewed', done), scene(1, 'reviewed', { delivery: 'human', take: 'current', production: 'accepted', produced: false })], brief: ready, selected: 's1', desktop: true })
     expect(some).toMatchObject({ action: 'export', label: 'Export draft' })
     expect(some.title).toMatch(/1 of 2 scenes play the production you accepted/)
     // Accepted, but the creator stopped using it: the notebook's own scene plays.

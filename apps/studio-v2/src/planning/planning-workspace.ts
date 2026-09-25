@@ -45,6 +45,9 @@ type SceneRow = {
   preview?: ScenePreviewSummary | null
   // The scene produced from its approved plan (P4), and the one accepted.
   production?: SceneProductionSummary | null
+  // What producing its approved plan waits for (a delivery, a take spoken
+  // against the plan's lines), or null when it can be produced.
+  productionWaits?: string | null
 }
 // One ready sketch of one plan revision. `current` holds only while that
 // revision is the scene's current, fresh plan and its theme, cast and skills
@@ -91,7 +94,7 @@ export type SceneProductionView = {
     moments: Array<{ id: string; title: string; start: number; end: number }>
     layers: Array<{ id: string; kind: string; label: string; moments: string[]; reuses: string | null; placeholder: string | null }>
     unmet: string[]
-    controls: Array<{ id: string; label: string; kind: 'hold' | 'offset'; moment: string; default: number; min: number; max: number }>
+    controls: Array<{ id: string; label: string; kind: 'offset'; moment: string; default: number; min: number; max: number }>
     schedule?: ScenePreviewView['summary']['schedule']
   }
   warnings: string[]
@@ -99,7 +102,20 @@ export type SceneProductionView = {
   model: string | null
   checked: ScenePreviewView['checked']
   voice: string | null
-  accepted: { at: string; url: string; durationMs: number; bundle: string } | null
+  // What the creator may want to look at on a take's clock: a line said
+  // differently, a moment that passes quickly.
+  clockReview: string[]
+  // The render the notebook plays, and the edit revision it was rendered with.
+  accepted: { at: string; url: string; durationMs: number; bundle: string; edits: number } | null
+  // The creator's values for its controls (P6), as the stage plays them; and
+  // what was carried from an earlier production of the scene.
+  edits: ProductionEditsView
+}
+export type ProductionEditsView = {
+  revision: number
+  values: Record<string, number>
+  updatedAt: string | null
+  carried: { from: string; applied: string[]; conflicts: Array<{ id: string; value: number; reason: string }> } | null
 }
 export type SceneProductionSummary = {
   latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string }

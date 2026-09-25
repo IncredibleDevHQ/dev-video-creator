@@ -67,6 +67,21 @@ const CHECK_SCRIPT = String.raw`
   function doc() { try { return player.iframe && player.iframe.contentDocument } catch (error) { return null } }
   function win() { try { return player.iframe && player.iframe.contentWindow } catch (error) { return null } }
   function painted() { return new Promise(function (resolve) { requestAnimationFrame(function () { requestAnimationFrame(resolve) }) }) }
+  // A composition's pictures (a creator's take) finish seeking before the
+  // frame is read: the frame at a time is the one the take shows there.
+  function settled() {
+    var composition = doc()
+    var videos = composition ? Array.prototype.slice.call(composition.querySelectorAll('video')) : []
+    return Promise.all(videos.map(function (video) {
+      if (!video.seeking && video.readyState >= 2) return true
+      return new Promise(function (resolve) {
+        var done = function () { video.removeEventListener('seeked', done); video.removeEventListener('loadeddata', done); resolve(true) }
+        video.addEventListener('seeked', done)
+        video.addEventListener('loadeddata', done)
+        setTimeout(done, 2000)
+      })
+    }))
+  }
   // Shown: laid out, not hidden by it or an ancestor, not transparent, and
   // at least partly inside the composition's frame.
   function shows(element, frame) {
@@ -146,7 +161,7 @@ const CHECK_SCRIPT = String.raw`
     // where the marked layers are.
     seek: function (time, ids) {
       player.seek(time)
-      return painted().then(function () { return layersNow(ids) })
+      return painted().then(settled).then(painted).then(function () { return layersNow(ids) })
     },
     // Where each marked layer shows, at many times, without painting.
     scan: function (times, ids) {
