@@ -3137,6 +3137,9 @@ const buildExplanationDecorations = (state: EditorState) => {
 // they show, so a redraw that changes nothing keeps the same DOM.
 let sceneReview: ReturnType<typeof createSceneReview> | null = null
 let reviewSelectedScene = ''
+// The scene the stage stepped aside for, so its take can be recorded on the
+// composition the recording controls operate on.
+let sceneStageAsideFor = ''
 let onSceneSelected: (nodeId: string) => void = () => {}
 const sceneReviewKey = new PluginKey('scene-review')
 const SceneReviewWidgets = Extension.create({
@@ -5873,6 +5876,10 @@ const openCanvasFullscreen = () => {
   if (canvasRecorder?.state === 'recording') return
   const isOpen = playerShell.classList.toggle('canvas-open')
   if (!isOpen) stopLiveCamera()
+  if (!isOpen && sceneStageAsideFor) {
+    sceneStageAsideFor = ''
+    renderSceneStage()
+  }
   if (!isOpen && finalizeModeActive) exitFinalizeMode()
   // Transition auditioning is a canvas-mode activity: leaving the canvas
   // closes the picker and stops the loop, so the notebook's side-panel
@@ -16885,10 +16892,22 @@ stageClock.className = 'scene-stage-clock'
 stageTransport.append(stagePlay, stageTrack, stageClock)
 sceneStagePreview.append(stageTransport)
 let stagePlaying = false
+// At the end the last frame holds and the button offers a replay.
+let stageEnded = false
+const syncStagePlay = () => {
+  const label = stagePlaying ? 'Pause the preview' : stageEnded ? 'Replay the preview from the start' : 'Play the preview'
+  stagePlay.textContent = stagePlaying ? '❚❚' : stageEnded ? '↻' : '▶'
+  stagePlay.title = label
+  stagePlay.setAttribute('aria-label', label)
+}
 stagePlay.addEventListener('click', () => {
   if (!stagePlayer) return
   if (stagePlaying) stagePlayer.pause()
-  else stagePlayer.play()
+  else if (stageEnded) {
+    stageEnded = false
+    stagePlayer.seek(0)
+    stagePlayer.play()
+  } else stagePlayer.play()
 })
 const updateStageClock = () => {
   const time = stagePlayer?.currentTime || 0
@@ -16904,17 +16923,37 @@ const ensureStagePlayer = () => {
   stagePlayer.setAttribute('height', '1080')
   stagePlayer.className = 'scene-stage-player'
   stagePlayer.addEventListener('timeupdate', updateStageClock)
+  // Once the runtime is ready the sketch starts at its first frame, with
+  // every clip in its timed state — not all of them at once.
+  stagePlayer.addEventListener('ready', () => {
+    const player = stagePlayer!
+    stagePlaying = false
+    stageEnded = false
+    player.pause()
+    player.seek(0)
+    updateStageClock()
+    syncStagePlay()
+  })
   stagePlayer.addEventListener('play', () => {
     stagePlaying = true
-    stagePlay.textContent = '❚❚'
+    stageEnded = false
+    syncStagePlay()
   })
-  const stopped = () => {
+  stagePlayer.addEventListener('pause', () => {
     stagePlaying = false
-    stagePlay.textContent = '▶'
+    syncStagePlay()
     updateStageClock()
-  }
-  stagePlayer.addEventListener('pause', stopped)
-  stagePlayer.addEventListener('ended', stopped)
+  })
+  // A clip's interval is half-open, so the exact end is blank: hold the
+  // last frame instead, and offer a replay.
+  stagePlayer.addEventListener('ended', () => {
+    const player = stagePlayer!
+    stagePlaying = false
+    stageEnded = true
+    player.seek(Math.max(0, (player.duration || stagePreviewDuration) - 1 / 30))
+    syncStagePlay()
+    updateStageClock()
+  })
   sceneStagePreview.prepend(stagePlayer)
   return stagePlayer
 }
@@ -16942,18 +16981,27 @@ const referenceSvg = (markup: string) => {
   parsed.removeAttribute('height')
   return document.importNode(parsed, true) as unknown as SVGSVGElement
 }
+// While the stage shows, it is the only composition on the canvas: the
+// controls that work on the notebook's own composition step back, and that
+// composition pauses underneath.
+const showSceneStage = (shown: boolean) => {
+  const was = !sceneStage.hidden
+  sceneStage.hidden = !shown
+  sceneStageBar.hidden = !shown
+  playerShell.classList.toggle('has-scene-stage', shown)
+  if (!shown) stagePlayer?.pause()
+  else if (!was) (document.getElementById('player') as (HTMLElement & { pause?: () => void }) | null)?.pause?.()
+}
 const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
-  const stage = sceneReview?.active() && reviewSelectedScene ? sceneReview.stageOf(reviewSelectedScene) : null
+  const stage = sceneReview?.active() && reviewSelectedScene && sceneStageAsideFor !== reviewSelectedScene ? sceneReview.stageOf(reviewSelectedScene) : null
   const node = stage ? findSlideLikeNode(reviewSelectedScene) : null
   if (!stage || !node) {
-    sceneStage.hidden = true
-    sceneStageBar.hidden = true
+    showSceneStage(false)
     sceneStageFor = ''
     sceneStageTargets = null
     return
   }
-  sceneStage.hidden = false
-  sceneStageBar.hidden = false
+  showSceneStage(true)
   if (next !== undefined) sceneStageTargets = next
   const targets = stage.moment ? sceneStageTargets : null
   // Which view the stage offers: the page always; the preview of the shown
@@ -16987,8 +17035,10 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
           segment.style.left = `${(moment.start / stagePreviewDuration) * 100}%`
           segment.style.width = `${((moment.end - moment.start) / stagePreviewDuration) * 100}%`
           segment.addEventListener('click', () => {
+            stageEnded = false
             player.seek(moment.start)
             updateStageClock()
+            syncStagePlay()
           })
           return segment
         }),
@@ -17049,8 +17099,12 @@ sceneReview = createSceneReview({
     refreshSceneReview()
     renderSceneStage()
   },
+  // Recording and rehearsal work on the notebook's composition: the stage
+  // steps aside while the camera dialog is open.
   record: sceneId => {
     selectNode(sceneId, false)
+    sceneStageAsideFor = sceneId
+    renderSceneStage()
     openCamera()
   },
   openWorkspace: () => void planningWorkspace.open(),
@@ -17063,6 +17117,7 @@ sceneReview = createSceneReview({
   },
   showPreview: sceneId => {
     if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
+    sceneStageAsideFor = ''
     sceneStageMode = 'preview'
     renderSceneStage()
   },
@@ -17071,10 +17126,16 @@ onSceneSelected = nodeId => {
   const next = sceneReview?.has(nodeId) ? nodeId : ''
   if (next === reviewSelectedScene) return
   reviewSelectedScene = next
+  if (sceneStageAsideFor !== next) sceneStageAsideFor = ''
   sceneStageTargets = null
   refreshSceneReview()
   renderSceneStage()
 }
+cameraDialog.addEventListener('close', () => {
+  if (!sceneStageAsideFor) return
+  sceneStageAsideFor = ''
+  renderSceneStage()
+})
 document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
 if (project.derivedFrom?.notebook) {
   sceneReview.listen()

@@ -2371,6 +2371,34 @@ button.se-state:hover { filter: brightness(.97); }
 .scene-stage-modes button.is-active { background: #18181b; color: #fafafa; border-color: #18181b; }
 .scene-stage-modes button:disabled { opacity: .45; cursor: default; }
 .inline-preview.is-following { transition: none; }
+/* One composition on the canvas: while the scene stage shows, the controls
+   that work on the notebook's own composition step back. */
+.player-shell.has-scene-stage .scene-timeline,
+.player-shell.has-scene-stage .canvas-recording-controls,
+.player-shell.has-scene-stage .live-camera-toggle,
+.player-shell.has-scene-stage .live-camera-frame,
+.player-shell.has-scene-stage .screen-play-toggle,
+.player-shell.has-scene-stage .canvas-view-switch,
+.player-shell.has-scene-stage .canvas-block-timeline,
+.player-shell.has-scene-stage .motion-preview-badge,
+.player-shell.has-scene-stage .canvas-take-player,
+.player-shell.has-scene-stage .finalize-bar { display: none !important; }
+.player-shell.canvas-open.has-scene-stage { grid-template-columns: minmax(0, 1fr) 0; }
+.player-shell.canvas-open.has-scene-stage .canvas-director,
+.player-shell.canvas-open.has-scene-stage .director-toggle { display: none; }
+.player-shell.canvas-open.has-scene-stage .canvas-fullscreen { right: 24px; }
+.player-shell.canvas-open.has-scene-stage .scene-stage { inset: 64px 32px 24px; border-radius: 8px; }
+/* The notebook's full-screen player sizing is not the stage's: the sketch
+   fills the stage above its transport, letterboxed by the player itself. */
+.player-shell.canvas-open .scene-stage .scene-stage-player { position: absolute; inset: 0 0 56px; width: 100%; height: auto; aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; }
+.player-shell.canvas-open .scene-stage .scene-stage-transport { background: rgba(15,13,24,.96); }
+/* Full screen keeps the stage's label: which plan, and what is provisional. */
+body.canvas-is-open .scene-stage-bar:not([hidden]) { position: fixed; top: 14px; left: 32px; right: 88px; z-index: 90; margin: 0; display: flex; align-items: center; gap: 14px; }
+body.canvas-is-open .scene-stage-bar .scene-stage-modes { flex-wrap: nowrap; }
+body.canvas-is-open .scene-stage-bar .scene-stage-modes button { background: rgba(24,24,27,.82); color: #e4e4e7; border-color: rgba(255,255,255,.24); }
+body.canvas-is-open .scene-stage-bar .scene-stage-modes button.is-active { background: #f4f4f5; color: #18181b; border-color: #f4f4f5; }
+body.canvas-is-open .scene-stage-bar .scene-stage-note { color: #d4d4d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.canvas-is-open .scene-stage-bar.is-preview .scene-stage-note { color: #f5d0fe; }
 .scene-stage-preview { position: absolute; inset: 0; }
 .scene-stage-note { margin: 0; color: #52525b; font: 11.5px/1.45 'InterBody', Inter, sans-serif; }
 .scene-stage-bar.is-preview .scene-stage-note { color: #a21caf; }
