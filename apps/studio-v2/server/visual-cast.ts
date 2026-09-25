@@ -20,7 +20,9 @@ import { CAST_PAGE_SCRIPT } from './visual-cast-page'
 import { getObject, loadSetting, saveSetting, storeAsset } from './persistence'
 import { registerExtractedArtwork } from './appearance-library'
 
-export const EXTRACTOR_VERSION = 1
+// 2: a container's level is held inside its shell (R10 of the scene-review
+// review), so every base is extracted again once.
+export const EXTRACTOR_VERSION = 2
 // The share of painted pixels that may differ between the lifted artwork
 // and the original before it is refused as not equivalent.
 const MATCH_TOLERANCE = 0.005
@@ -38,6 +40,21 @@ export type CastPart = {
   bounds: CastBounds
   // What the page already animates on it — an affordance, never a plan.
   animations: string[]
+}
+// A container's inside: the level (its fill) is clipped to the shell's
+// closed outline in the artwork, so any level a scene sets stays in it.
+// extent is the inside's box in the level's own coordinates: a rect level
+// fills a share f of it with y = bottom - f × (bottom - top) and the height
+// to match, x and width at the extent's. Each state was drawn in the
+// renderer: level pixels outside the inside, and the share of it covered.
+export type CastInside = {
+  clipPath: string
+  shell: string
+  level: string
+  extent: { left: number; top: number; right: number; bottom: number }
+  trimmed: number
+  states: Array<{ fill: number | null; scale: number; outside: number; covered: number }>
+  contained: boolean
 }
 export type CastEntry = {
   id: string
@@ -75,7 +92,7 @@ export type CastEntry = {
     fonts: string[]
   }
   parts: CastPart[]
-  rig: { object: string | null; status: 'verified' | 'partial' | 'none'; pieces: Array<{ id: string; found: string | null }> }
+  rig: { object: string | null; status: 'verified' | 'partial' | 'none'; pieces: Array<{ id: string; found: string | null }>; inside?: CastInside }
   reuse: { provenance: 'base-extraction'; license: string | null; variants: string[] }
   confidence: { grouping: 'declared' | 'inferred'; entity: 'declared' | 'inferred' | 'unresolved'; checks: string[] }
   verification: { status: 'verified' | 'mismatch'; differingRatio: number; notes: string[] }
@@ -126,6 +143,7 @@ type PageIngredient = {
   thumbnail: string
   painted: number
   verification: { ratio: number; differing: number }
+  inside: (Omit<CastInside, 'contained'> & { note?: undefined }) | { note: string } | null
   colors: string[]
   fonts: string[]
 }
@@ -166,7 +184,7 @@ export const themeTokens = (theme: StudioThemeV1 | null | undefined): Record<str
 
 // ——— Extraction ———
 // One browser for the whole base; the page script does the drawing work.
-export const extractPages = async (pages: CastSourcePage[], palette: { ground?: string; ink?: string; muted?: string } = {}): Promise<PageResult[]> => {
+export const extractPages = async (pages: CastSourcePage[], palette: { ground?: string; ink?: string; muted?: string } = {}, rigs: RigPieces = {}): Promise<PageResult[]> => {
   const { default: puppeteer } = await import('puppeteer')
   // The host app owns SIGTERM/SIGINT: puppeteer's own handlers would
   // swallow the app's quit while a browser is open.
@@ -181,7 +199,7 @@ export const extractPages = async (pages: CastSourcePage[], palette: { ground?: 
     })
     await page.setViewport({ width: 1400, height: 900 })
     await page.setContent('<!doctype html><html><head><style>html,body{margin:0;padding:0;background:transparent}#host{position:absolute;left:0;top:0}#host svg{display:block}</style></head><body><div id="host"></div></body></html>')
-    const input = { pages: pages.map(({ scene, title, svg }) => ({ scene, title, svg })), ...palette }
+    const input = { pages: pages.map(({ scene, title, svg }) => ({ scene, title, svg })), ...palette, rigs }
     return (await page.evaluate(`(${CAST_PAGE_SCRIPT})(${JSON.stringify(input)})`)) as PageResult[]
   } finally {
     await browser.close()
@@ -205,6 +223,13 @@ const rigOf = (object: string | null, parts: CastPart[], known: RigPieces): Cast
   const found = pieces.filter(piece => piece.found).length
   return { object, status: found === pieces.length ? 'verified' : found ? 'partial' : 'none', pieces }
 }
+
+// A level counts as held when no state paints more than a few edge pixels
+// outside the shell, and a full level covers the inside.
+const insideOf = (found: Omit<CastInside, 'contained'>): CastInside => ({
+  ...found,
+  contained: found.states.length > 0 && found.states.every(state => state.outside >= 0 && state.outside <= 4) && found.states.filter(state => state.fill === 1).every(state => state.covered >= 0.9),
+})
 
 // Turns the page script's findings into cast entries and stores their bytes.
 const entriesFrom = async (
@@ -273,7 +298,7 @@ const entriesFrom = async (
           fonts: [...new Set(fonts)],
         },
         parts: ingredient.parts.map(({ localId: _local, ...part }) => part),
-        rig: rigOf(ingredient.object, ingredient.parts, known),
+        rig: { ...rigOf(ingredient.object, ingredient.parts, known), ...(ingredient.inside && 'clipPath' in ingredient.inside ? { inside: insideOf(ingredient.inside) } : {}) },
         reuse: { provenance: 'base-extraction', license: null, variants: [] },
         confidence: {
           grouping: ingredient.grouping,
@@ -286,6 +311,10 @@ const entriesFrom = async (
           notes: verified ? [] : [ingredient.painted <= 20 ? 'It draws almost nothing on its own.' : `It differs from the original in ${(ingredient.verification.ratio * 100).toFixed(1)}% of its painted pixels — kept as a reference, not offered as equivalent.`],
         },
       }
+      const inside = entry.rig.inside
+      if (ingredient.inside?.note) entry.confidence.checks.push(ingredient.inside.note)
+      if (inside?.trimmed) entry.confidence.checks.push(`On the page its level crossed its shell (${inside.trimmed} pixels); the rig holds the level inside the shell.`)
+      if (inside && !inside.contained) entry.confidence.checks.push('Its level still leaves the shell when filled: do not animate it as a fill.')
       if (entry.rig.status === 'partial') entry.confidence.checks.push(`It asks for the ${entry.rig.object} rig, but ${entry.rig.pieces.filter(piece => !piece.found).map(piece => piece.id).join(', ')} is not a separate part.`)
       entries.push(entry)
       pageEntries.push(id)
@@ -331,7 +360,7 @@ export const ensureVisualCast = (input: {
     let revision: VisualCastRevision
     try {
       const brand = input.theme?.brand
-      const results = await extractPages(drawable, { ground: brand?.background, ink: brand?.text, muted: brand?.mutedText })
+      const results = await extractPages(drawable, { ground: brand?.background, ink: brand?.text, muted: brand?.mutedText }, await rigPieces())
       const { entries, pages } = await entriesFrom(results, drawable, base, input.theme)
       revision = { id: key, version: EXTRACTOR_VERSION, base, createdAt: new Date().toISOString(), status: 'ready', pages, entries }
       // Verified ingredients join the reusable library, immutably.

@@ -361,7 +361,14 @@ const castFiles = async (cast: VisualCastRevision | null, origins: string[], cas
       node: entry.identity.base.node,
       interactions: entry.meaning.interactions,
       parts: entry.parts.map(part => ({ id: part.id, name: part.name, named: part.named, count: part.count, animations: part.animations })),
-      rig: { object: entry.rig.object, status: entry.rig.status, missing: entry.rig.pieces.filter(piece => !piece.found).map(piece => piece.id) },
+      rig: {
+        object: entry.rig.object,
+        status: entry.rig.status,
+        missing: entry.rig.pieces.filter(piece => !piece.found).map(piece => piece.id),
+        // The level, clipped to the shell: set its y and height within the
+        // extent (x and width at the extent's) and it stays inside.
+        ...(entry.rig.inside?.contained ? { inside: { level: entry.rig.inside.level, clipPath: entry.rig.inside.clipPath, extent: entry.rig.inside.extent } } : {}),
+      },
       confidence: entry.confidence,
       verification: { status: entry.verification.status, notes: entry.verification.notes },
       themeBindings: entry.artwork.themeBindings,

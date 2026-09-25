@@ -271,6 +271,155 @@ export const CAST_PAGE_SCRIPT = String.raw`
     return { kind: 'object', basis: 'shape' }
   }
 
+  // ——— A container's inside ———
+  // Where a rig has a shell and a level, the level is the container's fill:
+  // it is clipped to the shell's closed outline, so no level the scene sets
+  // can spill out. That is proved in the renderer against the shell's own
+  // painted inside, at empty, half and full, and drawn larger.
+  function pieceOf(parts, piece) {
+    for (var i = 0; i < parts.length; i++) {
+      var name = parts[i].name
+      if (name === piece || name.slice(-piece.length - 1) === '-' + piece || name.indexOf(piece + '-') === 0) return parts[i]
+    }
+    return null
+  }
+  function outlineOf(element) {
+    var tag = element.tagName.toLowerCase()
+    var number = function (name) { return Number(element.getAttribute(name)) || 0 }
+    if (tag === 'path') {
+      var d = (element.getAttribute('d') || '').trim()
+      return d ? (/z$/i.test(d) ? d : d + ' Z') : null
+    }
+    if (tag === 'polygon' || tag === 'polyline') {
+      var points = (element.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number)
+      if (points.length < 6) return null
+      var out = 'M' + points[0] + ' ' + points[1]
+      for (var i = 2; i + 1 < points.length; i += 2) out += ' L' + points[i] + ' ' + points[i + 1]
+      return out + ' Z'
+    }
+    if (tag === 'rect') {
+      var x = number('x'), y = number('y'), w = number('width'), h = number('height')
+      return w > 0 && h > 0 ? 'M' + x + ' ' + y + ' H' + (x + w) + ' V' + (y + h) + ' H' + x + ' Z' : null
+    }
+    if (tag === 'circle' || tag === 'ellipse') {
+      var cx = number('cx'), cy = number('cy')
+      var rx = tag === 'circle' ? number('r') : number('rx'), ry = tag === 'circle' ? number('r') : number('ry')
+      return rx > 0 && ry > 0 ? 'M' + (cx - rx) + ' ' + cy + ' A' + rx + ' ' + ry + ' 0 1 0 ' + (cx + rx) + ' ' + cy + ' A' + rx + ' ' + ry + ' 0 1 0 ' + (cx - rx) + ' ' + cy + ' Z' : null
+    }
+    return null
+  }
+  function matrixOf(m) { return 'matrix(' + [m.a, m.b, m.c, m.d, m.e, m.f].map(function (v) { return Number(v.toFixed(6)) }).join(' ') + ')' }
+  // Everything but one element and what holds it hidden.
+  function only(root, keep) {
+    var hide = function (element) {
+      Array.from(element.children).forEach(function (child) {
+        if (child === keep) return
+        if (DEFINITIONS.indexOf(child.tagName.toLowerCase()) >= 0) return
+        if (child.contains(keep)) return hide(child)
+        child.setAttribute('display', 'none')
+        child.style.setProperty('display', 'none', 'important')
+      })
+    }
+    hide(root)
+  }
+  function byId(root, id) { return root.querySelector('[id="' + CSS.escape(id) + '"]') }
+  function alphaCounts(level, inside) {
+    var a = level.getContext('2d').getImageData(0, 0, level.width, level.height).data
+    var b = inside.getContext('2d').getImageData(0, 0, inside.width, inside.height).data
+    var outside = 0, covered = 0, room = 0
+    for (var i = 3; i < a.length; i += 4) {
+      if (b[i] > 8) room++
+      if (a[i] > 8) { if (b[i] > 8) covered++; else outside++ }
+    }
+    return { outside: outside, covered: room ? covered / room : 0 }
+  }
+  async function contain(svg, lifted, parts, prefix, bounds) {
+    var shellPart = pieceOf(parts, 'shell'), levelPart = pieceOf(parts, 'level')
+    if (!shellPart || !levelPart) return null
+    var shell = byId(svg, shellPart.localId), level = byId(svg, levelPart.localId)
+    if (!shell || !level || shell === level || shell.contains(level) || level.contains(shell)) return null
+    var outline = outlineOf(shell)
+    if (!outline) return { note: 'Its shell is drawn as a ' + shell.tagName.toLowerCase() + ', so no inside was derived for its level.' }
+    if (level.getAttribute('clip-path') || level.style.clipPath || level.getAttribute('mask')) return { note: 'Its level is already clipped by the page; it was left as drawn.' }
+    // The shell's outline, in the level's own coordinates.
+    var toLevel = level.getCTM().inverse().multiply(shell.getCTM())
+    var transform = matrixOf(toLevel)
+    var box = shell.getBBox()
+    var corners = [[box.x, box.y], [box.x + box.width, box.y], [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]].map(function (corner) {
+      var point = new DOMPoint(corner[0], corner[1]).matrixTransform(toLevel)
+      return [point.x, point.y]
+    })
+    var extent = {
+      left: Math.min.apply(null, corners.map(function (c) { return c[0] })),
+      top: Math.min.apply(null, corners.map(function (c) { return c[1] })),
+      right: Math.max.apply(null, corners.map(function (c) { return c[0] })),
+      bottom: Math.max.apply(null, corners.map(function (c) { return c[1] })),
+    }
+    var clipId = prefix + levelPart.localId + '-inside'
+    var rigged = lifted.cloneNode(true)
+    var defs = rigged.querySelector('defs')
+    if (!defs) { defs = document.createElementNS(NS, 'defs'); rigged.insertBefore(defs, rigged.firstChild) }
+    var clip = document.createElementNS(NS, 'clipPath')
+    clip.setAttribute('id', clipId)
+    clip.setAttribute('clipPathUnits', 'userSpaceOnUse')
+    var edge = document.createElementNS(NS, 'path')
+    edge.setAttribute('d', outline)
+    edge.setAttribute('transform', transform)
+    clip.appendChild(edge)
+    defs.appendChild(clip)
+    var riggedLevel = byId(rigged, prefix + levelPart.localId)
+    if (!riggedLevel) return null
+    riggedLevel.setAttribute('clip-path', 'url(#' + clipId + ')')
+    var serializer = new XMLSerializer()
+    var text = serializer.serializeToString(rigged)
+    var canvas = await load(text, bounds.width, bounds.height)
+    // The level alone, opaque, at a fill; and the inside itself, solid.
+    var states = []
+    var isRect = level.tagName.toLowerCase() === 'rect'
+    var height = extent.bottom - extent.top
+    var probes = isRect ? [{ fill: 0, scale: 1 }, { fill: 0.5, scale: 1 }, { fill: 1, scale: 1 }, { fill: 1, scale: 1.5 }] : [{ fill: null, scale: 1 }, { fill: null, scale: 1.5 }]
+    for (var s = 0; s < probes.length; s++) {
+      var probe = probes[s]
+      var withLevel = rigged.cloneNode(true)
+      var probeLevel = byId(withLevel, prefix + levelPart.localId)
+      only(withLevel, probeLevel)
+      if (isRect) {
+        probeLevel.setAttribute('x', String(extent.left))
+        probeLevel.setAttribute('width', String(extent.right - extent.left))
+        probeLevel.setAttribute('y', String(extent.bottom - probe.fill * height))
+        probeLevel.setAttribute('height', String(probe.fill * height))
+      }
+      probeLevel.setAttribute('fill', '#000000')
+      probeLevel.setAttribute('fill-opacity', '1')
+      probeLevel.setAttribute('opacity', '1')
+      probeLevel.setAttribute('stroke', 'none')
+      // The inside as the shell itself paints it, filled solid where it
+      // stands: independent of the clip, so a wrong clip shows.
+      var withInside = rigged.cloneNode(true)
+      var insideShell = byId(withInside, prefix + shellPart.localId)
+      only(withInside, insideShell)
+      insideShell.setAttribute('fill', '#000000')
+      insideShell.setAttribute('fill-opacity', '1')
+      insideShell.setAttribute('opacity', '1')
+      insideShell.setAttribute('stroke', 'none')
+      var width = Math.round(bounds.width * probe.scale), tall = Math.round(bounds.height * probe.scale)
+      ;[withLevel, withInside].forEach(function (root) { root.setAttribute('width', String(width)); root.setAttribute('height', String(tall)) })
+      var drawnLevel = await load(serializer.serializeToString(withLevel), width, tall)
+      var drawnInside = await load(serializer.serializeToString(withInside), width, tall)
+      var counts = drawnLevel && drawnInside ? alphaCounts(drawnLevel, drawnInside) : { outside: -1, covered: 0 }
+      states.push({ fill: probe.fill, scale: probe.scale, outside: counts.outside, covered: Math.round(counts.covered * 1000) / 1000 })
+    }
+    return {
+      clipPath: clipId,
+      shell: prefix + shellPart.localId,
+      level: prefix + levelPart.localId,
+      extent: { left: Number(extent.left.toFixed(2)), top: Number(extent.top.toFixed(2)), right: Number(extent.right.toFixed(2)), bottom: Number(extent.bottom.toFixed(2)) },
+      states: states,
+      svg: text,
+      canvas: canvas,
+    }
+  }
+
   var results = []
   var host = document.getElementById('host')
   for (var p = 0; p < input.pages.length; p++) {
@@ -348,6 +497,15 @@ export const CAST_PAGE_SCRIPT = String.raw`
         var liftedCanvas = await load(liftedText, bounds.width, bounds.height)
         var reference = await load(serializer.serializeToString(inPlace(svg, list, bounds)), bounds.width, bounds.height)
         var compared = difference(liftedCanvas, reference)
+        // Checked as the page draws it; then a container's level is held
+        // inside its shell, and what that trims off the page is counted.
+        var pieces = (input.rigs || {})[node.getAttribute('data-object')] || []
+        var inside = pieces.indexOf('shell') >= 0 && pieces.indexOf('level') >= 0 ? await contain(svg, lifted, parts, prefix, bounds) : null
+        if (inside && inside.svg) {
+          inside.trimmed = difference(liftedCanvas, inside.canvas).differing
+          liftedText = inside.svg
+          liftedCanvas = inside.canvas
+        }
         page.ingredients.push({
           node: node.id,
           nodeKind: node.getAttribute('data-kind'),
@@ -368,6 +526,7 @@ export const CAST_PAGE_SCRIPT = String.raw`
           thumbnail: png(scaled(liftedCanvas, 256)),
           painted: extent.count,
           verification: { ratio: compared.ratio, differing: compared.differing },
+          inside: inside ? (inside.svg ? { clipPath: inside.clipPath, shell: inside.shell, level: inside.level, extent: inside.extent, trimmed: inside.trimmed, states: inside.states } : { note: inside.note }) : null,
           colors: Array.from(new Set((liftedText.match(/#[0-9a-fA-F]{6}\b/g) || []).map(function (value) { return value.toLowerCase() }))),
           fonts: Array.from(new Set((liftedText.match(/font-family="([^"]+)"/g) || []).map(function (value) { return value.replace(/^font-family="|"$/g, '') }))),
         })

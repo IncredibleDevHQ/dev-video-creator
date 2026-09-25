@@ -363,6 +363,27 @@ describe('planning integrity', () => {
     expect(overview.scenes[1].view.state).toBe('candidate')
   })
 
+  // R10: a packet hands a container's inside with its artwork — the level
+  // clipped to the shell, where to set it, and the states it was drawn in.
+  it('hands over a container\'s inside with its artwork', async () => {
+    const rich = (name: string) => readFileSync(fileURLToPath(new URL(`./fixtures/visual-cast/${name}`, import.meta.url)), 'utf8')
+    const { videoId: id, videoScenes: scenes } = await makeVideo('inside', {
+      pages: [
+        scene('b1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.'], rich('10_the_token_bucket.svg')),
+        scene('b2', 'Rejection', 'Only so many run at once.', ['the next request is rejected'], rich('06_concurrent_requests_limiter.svg')),
+      ],
+    })
+    await readyBrief(id, 'run-inside-brief')
+    const { record } = await service.queueTreatment(id, scenes[0])
+    const files = (await service.loadPacket(record.id)).files
+    const cast = JSON.parse(text(files['packet/VISUAL_CAST.json']))
+    const bucket = cast.entries.find((entry: { object: string | null }) => entry.object === 'token-bucket')
+    expect(bucket.rig.inside).toMatchObject({ level: expect.stringMatching(/bucket-level$/), clipPath: expect.stringMatching(/-inside$/), extent: { left: 510, top: 180, right: 690, bottom: 316 } })
+    expect(text(files[`packet/${bucket.files.svg}`])).toContain(`clip-path="url(#${bucket.rig.inside.clipPath})"`)
+    const parts = JSON.parse(text(files[`packet/${bucket.files.parts}`]))
+    expect(parts.rig.inside).toMatchObject({ contained: true, states: expect.arrayContaining([expect.objectContaining({ fill: 1, scale: 1.5, outside: 0 })]) })
+  }, 60_000)
+
   // P1: the scene's packet carries its page and its cast — the actual
   // artwork, previews, parts and rigs — and a plan can reuse them by key.
   it('ships the rich page, its verified cast and the actual theme in the scene packet', async () => {

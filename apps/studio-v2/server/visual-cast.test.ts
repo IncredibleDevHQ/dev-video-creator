@@ -93,6 +93,42 @@ describe('the visual cast of a rich base', () => {
     expect(['verified', 'partial']).toContain(bucket.rig.status)
   })
 
+  // R10 of the scene-review review: a live sketch's fill spilled out of its
+  // bucket. The rig holds a container's level inside its shell, proved
+  // against the shell's own painted inside at empty, half, full and larger.
+  it('holds the bucket\'s level inside its shell, at every fill', async () => {
+    const [bucket] = entriesOf('s10-node-per-user-bucket')
+    const inside = bucket.rig.inside!
+    expect(inside).toMatchObject({ contained: true, trimmed: 0, extent: { left: 510, top: 180, right: 690, bottom: 316 } })
+    expect(inside.level).toBe(bucket.parts.find(part => part.name === 'level')!.id)
+    expect(inside.shell).toBe(bucket.parts.find(part => part.name === 'bucket-shell')!.id)
+    expect(inside.states.map(state => [state.fill, state.scale])).toEqual([[0, 1], [0.5, 1], [1, 1], [1, 1.5]])
+    expect(inside.states.every(state => state.outside === 0)).toBe(true)
+    expect(inside.states.filter(state => state.fill === 1).every(state => state.covered >= 0.99)).toBe(true)
+    // The stored artwork carries the clip, on the level.
+    const svg = (await cast.readObject(bucket.artwork.svg.objectKey)).toString('utf8')
+    expect(svg).toContain(`<clipPath id="${inside.clipPath}" clipPathUnits="userSpaceOnUse"><path d="M510 180L530 316H670L690 180 Z"`)
+    expect(svg).toMatch(new RegExp(`<rect id="${inside.level}"[^>]*clip-path="url\\(#${inside.clipPath}\\)"`))
+  })
+
+  it('trims a level the page drew over its shell, and maps the inside into a transformed level', async () => {
+    // The live run's page drew its level wider than the bucket's bottom.
+    const spilled = BUCKET.replace('<rect id="s10-bucket-level" data-part="level" x="532" y="236" width="136" height="78"', '<rect id="s10-bucket-level" data-part="level" x="518" y="236" width="164" height="78"')
+    // The same level, drawn in a moved and scaled group.
+    const nested = BUCKET.replace('<rect id="s10-bucket-level" data-part="level" x="532" y="236" width="136" height="78" fill="#ef61ef" fill-opacity="0.18" data-anim="fill"/>', '<g transform="translate(20 10) scale(2)"><rect id="s10-bucket-level" data-part="level" x="256" y="113" width="68" height="39" fill="#ef61ef" fill-opacity="0.18" data-anim="fill"/></g>')
+    const drawn = await cast.ensureVisualCast({ notebook: `base-spilled-${RUN}`, revision: 'r', pages: [{ scene: 'b10', title: 'Spilled', svg: spilled, sourcePassages: [] }, { scene: 'b11', title: 'Nested', svg: nested, sourcePassages: [] }], theme })
+    const bucketOf = (page: string) => drawn.entries.find(entry => entry.identity.base.page === page && entry.identity.object === 'token-bucket')!
+    const over = bucketOf('b10')
+    expect(over.verification.status).toBe('verified')
+    expect(over.rig.inside).toMatchObject({ contained: true, trimmed: expect.any(Number) })
+    expect(over.rig.inside!.trimmed).toBeGreaterThan(500)
+    expect(over.confidence.checks.join(' ')).toMatch(/On the page its level crossed its shell \(\d+ pixels\); the rig holds the level inside the shell/)
+    const moved = bucketOf('b11').rig.inside!
+    // The shell's outline in the level's own coordinates: (x - 20) / 2, (y - 10) / 2.
+    expect(moved).toMatchObject({ contained: true, trimmed: 0, extent: { left: 245, top: 85, right: 335, bottom: 153 } })
+    expect(moved.states.every(state => state.outside === 0)).toBe(true)
+  }, 60_000)
+
   it('puts verified ingredients in the library, where a plan can reuse them by key', async () => {
     const [icon] = entriesOf('s05-node-user-script')
     const [pool] = entriesOf('s06-node-concurrency-cap')

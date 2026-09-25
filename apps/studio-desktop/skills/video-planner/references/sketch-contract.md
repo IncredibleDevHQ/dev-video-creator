@@ -71,6 +71,12 @@ are problems):
   space-separated. Name an object's layer by its entity id in `PLAN.json`
   (the ids a moment's `objects.actors` lists), so the product can find what a
   moment changes. Not `data-layer`: Hyperframes reads that as a track.
+- A container's fill stays inside it. Where `VISUAL_CAST.json` gives an
+  entry's `rig.inside`, its level is already clipped to its shell: to animate
+  it, inline the asset's SVG (an `<img>` cannot move its parts), keep the
+  level's `clip-path`, and set the level's `y` and `height` within
+  `rig.inside.extent`, with `x` and `width` at the extent's. A fill you draw
+  yourself is clipped to its container's closed outline the same way.
 - Artwork is the packet's cast (reuse it by its `libraryKey`) or native shapes
   and text. Never generate or fetch artwork. Where the plan wants something you
   do not have, draw a labelled placeholder.
