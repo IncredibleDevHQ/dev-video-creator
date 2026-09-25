@@ -44,7 +44,12 @@ const quit = async () => {
   if (!app) return
   const exited = new Promise(resolve => app.once('exit', resolve))
   app.kill('SIGTERM')
-  await Promise.race([exited, new Promise(resolve => setTimeout(resolve, 5000))])
+  // An app still up 5s after SIGTERM is killed, so its pipes cannot keep the
+  // check (or release-check) waiting — and that is said, not hidden.
+  if (!(await Promise.race([exited.then(() => true), new Promise(resolve => setTimeout(() => resolve(false), 5000))]))) {
+    console.log('NOTE  the app was still running 5s after SIGTERM; it was killed')
+    child.kill('SIGKILL')
+  }
   app = null
 }
 
