@@ -471,6 +471,56 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     expect(overview.scenes[0].preview?.ready).toMatchObject({ current: false, of: { record: plan.id } })
   }, 60_000)
 
+  // R1/R2 of the scene-review review: a preview belongs to one plan revision
+  // and is current only while nothing it was sketched from has moved.
+  it('keeps each revision\'s own preview, and never lets a late or moved one read as current', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('honest-preview')
+    await readyBrief(id, 'run-honest-brief')
+    const planned = async (runId: string) => {
+      const { record } = await service.queueTreatment(id, scenes[0])
+      await service.attachRun(record.id, { runId })
+      expect(await service.submitTreatment(record.id, treatmentFor(scenes[0], 'b1'), runId)).toMatchObject({ accepted: true })
+      return record
+    }
+    const sketch = async (recordId: string, runId: string) => {
+      await service.attachRun(recordId, { runId })
+      const context = JSON.parse(text((await service.loadPacket(recordId)).files['packet/CONTEXT.json']))
+      const compositionId = context.composition.id
+      const html = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden}.clip{position:absolute;inset:0}</style></head><body>
+<div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="6">
+<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title">Spend</div></div>
+</div><script>window.__timelines = window.__timelines || {}
+const tl = gsap.timeline({ paused: true })
+tl.fromTo('#m1 .title', { opacity: 0 }, { opacity: 1, duration: 1 }, 0)
+window.__timelines["${compositionId}"] = tl</script></body></html>`
+      const manifest = { version: 1, scene: scenes[0], plan: context.plan, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6, estimated: true }], layers: [{ id: 'title', kind: 'text', label: 'Spend', moments: ['m1'] }], provisional: ['Timing is estimated from the plan'] }
+      return service.submitSketch(recordId, { 'index.html': html, 'manifest.json': JSON.stringify(manifest) }, runId)
+    }
+    const r1 = await planned('run-honest-plan-1')
+    const first = await service.queuePreview(id, scenes[0])
+    // A newer plan arrives, and is sketched, before r1's sketch lands.
+    await service.saveDirection(id, { subject: scenes[0], direction: 'Slower' })
+    const r2 = await planned('run-honest-plan-2')
+    const second = await service.queuePreview(id, scenes[0])
+    expect(second.record.inputs.treatmentId).toBe(r2.id)
+    expect(await sketch(second.record.id, 'run-honest-sketch-2')).toMatchObject({ accepted: true })
+    expect(await sketch(first.record.id, 'run-honest-sketch-1')).toMatchObject({ accepted: true })
+    let preview = (await service.planningOverview(id)).scenes[0].preview!
+    // The late sketch of r1 is kept as r1's, and never becomes the current one.
+    expect(preview.ready).toMatchObject({ id: second.record.id, of: { record: r2.id }, current: true, staleBecause: null })
+    expect(preview.byTreatment[r2.id]).toMatchObject({ id: second.record.id, current: true })
+    expect(preview.byTreatment[r1.id]).toMatchObject({ id: first.record.id, current: false, staleBecause: expect.stringMatching(/sketches r1; the scene's current plan is r2/) })
+    // A sketch whose inputs move while it is made lands, as history.
+    const third = await service.queuePreview(id, scenes[0], { again: true })
+    const video = await persistence.loadProjectArtifact(id)
+    await persistence.saveProjectArtifact({ ...video!, theme: { version: 1, id: 'night', name: 'Night', description: '', source: 'custom', brand: { background: '#000000' }, fonts: {} } as unknown as ProjectDocumentV1['theme'] })
+    const late = await sketch(third.record.id, 'run-honest-sketch-3')
+    expect(late).toMatchObject({ accepted: true, warnings: expect.arrayContaining([expect.stringMatching(/While this sketch was made, the theme changed — it is kept, as out of date/)]) })
+    preview = (await service.planningOverview(id)).scenes[0].preview!
+    expect(preview.byTreatment[r2.id]).toMatchObject({ id: third.record.id, current: false, staleBecause: expect.stringMatching(/its plan is stale/) })
+    expect(Object.values(preview.byTreatment).some(view => view.current)).toBe(false)
+  }, 60_000)
+
   it('fails the records of a run interrupted by a restart, with a way on', async () => {
     const { videoId: id } = await makeVideo('interrupt')
     const { record } = await service.queueBrief(id)

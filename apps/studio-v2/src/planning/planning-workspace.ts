@@ -42,23 +42,31 @@ type SceneRow = {
   // The scene's newest plan preview, and the one ready to play.
   preview?: ScenePreviewSummary | null
 }
+// One ready sketch of one plan revision. `current` holds only while that
+// revision is the scene's current, fresh plan and its theme, cast and skills
+// are unchanged; otherwise `staleBecause` says what moved.
+export type ScenePreviewView = {
+  id: string
+  url: string
+  of: { record: string; revision: number }
+  current: boolean
+  staleBecause: string | null
+  summary: {
+    duration: number
+    moments: Array<{ id: string; title: string; start: number; end: number }>
+    layers: Array<{ id: string; kind: string; label: string; moments: string[]; reuses: string | null; placeholder: string | null }>
+    provisional: string[]
+  }
+  warnings: string[]
+  adapter: string | null
+  model: string | null
+}
 export type ScenePreviewSummary = {
-  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null }
-  ready: {
-    id: string
-    url: string
-    of: { record: string; revision: number }
-    current: boolean
-    summary: {
-      duration: number
-      moments: Array<{ id: string; title: string; start: number; end: number }>
-      layers: Array<{ id: string; kind: string; label: string; moments: string[]; reuses: string | null; placeholder: string | null }>
-      provisional: string[]
-    }
-    warnings: string[]
-    adapter: string | null
-    model: string | null
-  } | null
+  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string }
+  // The sketch of the scene's current plan, else the newest one there is.
+  ready: ScenePreviewView | null
+  // The newest ready sketch of each plan revision, by treatment record id.
+  byTreatment: Record<string, ScenePreviewView>
 }
 // The cast of the video's pinned base, as the overview reports it.
 export type VisualCastSummary = {

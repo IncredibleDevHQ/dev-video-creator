@@ -296,7 +296,7 @@ try {
   check(approved?.id === planned.id && approved.approval?.castId && approved.approval.fingerprint === planned.fingerprint, `approval pins the plan with what it was made from (${JSON.stringify(approved?.approval)})`)
   await sleep(1500)
   check((await api('/api/runs')).body.runs.length === runsBefore, 'approving starts no run')
-  check(Boolean(await waitFor(`() => document.querySelector('.scene-review.is-expanded [data-focus^="approve:"]')?.textContent === 'Approved ✓' || null`, 20)), 'the review reads Approved')
+  check(Boolean(await waitFor(`() => /^r\\d+ approved ✓$/.test(document.querySelector('.scene-review.is-expanded [data-focus^="approve:"]')?.textContent || '') || null`, 20)), 'the review reads Approved')
 
   // The recording guide and the production explanation.
   const guide = await evaluate(`() => {

@@ -16956,12 +16956,14 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   sceneStageBar.hidden = false
   if (next !== undefined) sceneStageTargets = next
   const targets = stage.moment ? sceneStageTargets : null
-  // Which view the stage offers: the page always; the preview once there is one.
+  // Which view the stage offers: the page always; the preview of the shown
+  // revision once there is one — never another revision's.
   const ready = stage.preview
   if (sceneStageMode === 'preview' && !ready) sceneStageMode = 'reference'
   sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
     const mode = button.dataset.stageMode
     button.disabled = mode === 'preview' ? !ready : mode === 'output'
+    if (mode === 'preview') button.title = ready ? `Rough sketch of plan r${ready.of.revision}` : stage.record ? `No preview of r${stage.record.revision} yet` : 'No plan yet'
     button.classList.toggle('is-active', mode === sceneStageMode)
     button.setAttribute('aria-pressed', String(mode === sceneStageMode))
   })
@@ -17001,7 +17003,7 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
       ready.summary.layers.some(layer => layer.kind !== 'presenter' && layer.placeholder) ? 'placeholder artwork' : '',
     ].filter(Boolean)
     sceneStageNote.textContent = `Rough sketch of plan r${ready.of.revision}${ready.current ? '' : ' — out of date'}${shows.length ? ` · ${shows.join(' · ')}` : ''}`
-    sceneStageNote.title = ready.summary.provisional.join('\n')
+    sceneStageNote.title = [ready.current ? '' : `Out of date: ${ready.staleBecause || 'its plan changed'}`, ...ready.summary.provisional].filter(Boolean).join('\n')
     return
   }
   stagePlayer?.pause()

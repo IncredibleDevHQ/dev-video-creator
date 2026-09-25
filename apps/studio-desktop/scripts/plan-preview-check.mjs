@@ -350,6 +350,24 @@ try {
   check(stale?.ready?.current === false && stale.ready.of.record === plan.id, 'the preview is kept, and reads as out of date')
   const strip = await waitFor(`() => { const chips = [...document.querySelectorAll('.scene-review .review-strip .review-chip')].map(chip => chip.textContent); return chips.includes('Preview: out of date') ? chips : null }`, 30)
   check(Boolean(strip), `the scene's strip says the preview is out of date (${strip})`)
+
+  // ——— A revision is never shown another revision's sketch (R1) ———
+  const onR2 = await waitFor(`() => {
+    const review = document.querySelector('.scene-review.is-expanded')
+    const note = review?.querySelector('.review-no-preview')?.textContent
+    if (!note) return null
+    return { note, approve: review.querySelector('[data-focus^="approve:"]').textContent, preview: review.querySelector('[data-focus^="preview:"]').textContent, stagePreview: document.querySelector('[data-stage-mode="preview"]').disabled, stageTitle: document.querySelector('[data-stage-mode="preview"]').title, mode: document.querySelector('.scene-stage-modes .is-active')?.textContent }
+  }`, 30)
+  check(/^No preview of r\d+ yet — the stage shows its page\. Sketches exist for r\d+\./.test(onR2?.note || '') && onR2.mode === 'Wireframe reference' && onR2.stagePreview === true, `the new revision shows its page, not the older revision's sketch (${JSON.stringify(onR2)})`)
+  check(onR2?.approve === `Approve r${revised.revision}` && onR2.preview === `Preview r${revised.revision}`, `the actions name the revision they act on (${onR2?.approve} · ${onR2?.preview})`)
+  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="show-revision:"]').click(); return true }`)
+  const onR1 = await waitFor(`() => {
+    const review = document.querySelector('.scene-review.is-expanded')
+    const heading = review?.querySelector('.review-preview-head h4')?.textContent
+    if (!heading) return null
+    return { heading, warn: review.querySelector('.review-preview .review-warn')?.textContent || '', stagePreview: document.querySelector('[data-stage-mode="preview"]').disabled, selected: review.querySelector('.review-revision.is-selected')?.textContent }
+  }`, 30)
+  check(onR1?.heading === `Plan preview — a rough sketch of r${plan.revision}` && /^Out of date: it sketches r\d+; the scene's current plan is r\d+/.test(onR1.warn) && onR1.stagePreview === false, `selecting the older revision shows its own sketch, as out of date, with why (${JSON.stringify(onR1)})`)
 } catch (error) {
   check(false, `run: ${error instanceof Error ? error.stack || error.message : error}`)
 } finally {

@@ -468,6 +468,7 @@ export const planningOverview = async (projectId: string) => {
   // The cast is extracted in the background the first time it is asked for.
   const cast = await knownCast(planning)
   if (!cast) void visualCastFor(planning).catch(() => {})
+  const previewNow = (view: ScenePlanningView, preview: PlanningRecord) => previewFreshness(planning, cast, records, view, preview)
   return {
     visualCast: castSummary(cast),
     projectId,
@@ -492,7 +493,7 @@ export const planningOverview = async (projectId: string) => {
         // How the current plan meets its neighbours now: an agreement breaks
         // when the reviewed plan it rests on changes.
         continuity: plan?.continuity ? continuityStatus(plan, agreementBasis(neighborsOf(planning, records, scene.id))) : null,
-        preview: previewOf(records, scene.id, view),
+        preview: previewOf(records, scene.id, preview => previewNow(view, preview)),
       }
     }),
     videoDirection: directionFor(planning, ''),
@@ -813,6 +814,26 @@ const previewInputsOf = (planning: VideoPlanning, treatment: PlanningRecord, cas
   themeRef: planning.themeRef,
   bundleHash: planning.bundle?.ref.hash || '',
 })
+// A preview shows what its plan would show now only while that plan is the
+// scene's current, fresh plan and the theme, the cast and the pinned skills
+// are the ones it was sketched with. Anything else keeps it, as history.
+const previewFreshness = (planning: VideoPlanning, cast: VisualCastRevision | null, records: PlanningRecord[], view: ScenePlanningView, preview: PlanningRecord) => {
+  const treatment = records.find(record => record.id === String(preview.inputs.treatmentId || '') && record.kind === 'treatment')
+  if (!treatment) return { current: false, staleBecause: 'the plan it sketches is gone' }
+  if (treatment.id !== view.current?.id) return { current: false, staleBecause: `it sketches r${treatment.revision}; the scene's current plan is ${view.current ? `r${view.current.revision}` : 'not settled'}` }
+  if (view.staleBecause) return { current: false, staleBecause: `its plan is stale — ${view.staleBecause}` }
+  const changed = inputsChanged(previewInputsOf(planning, treatment, cast), preview.inputs)
+  return changed.length ? { current: false, staleBecause: changed.join('; ') } : { current: true, staleBecause: null }
+}
+// What moved between the inputs a preview was sketched from and now.
+const inputsChanged = (now: ReturnType<typeof previewInputsOf>, was: Record<string, unknown>) =>
+  [
+    now.treatmentFingerprint !== was.treatmentFingerprint ? 'the plan changed' : '',
+    now.themeRef !== was.themeRef ? 'the theme changed' : '',
+    now.castId !== (was.castId ?? null) ? 'the visual cast changed' : '',
+    now.bundleHash !== was.bundleHash ? 'the planning skills changed' : '',
+    now.schema !== was.schema ? 'the planning records changed format' : '',
+  ].filter(Boolean)
 const compositionIdOf = (treatment: PlanningRecord) => `sketch-${treatment.subject.replace(/[^a-z0-9-]/gi, '-').slice(-40)}-r${treatment.revision}`
 // A first length for the sketch: the plan's estimates, bounded.
 const sketchLengthOf = (plan: SceneTreatmentV1) =>
@@ -854,7 +875,9 @@ export const queuePreview = async (projectId: string, sceneId: string, options: 
   const planning = await loadVideoPlanning(projectId)
   if (!planning.bundle) throw new PlanningError('Previews run in the desktop app, where the pinned skill bundle and your local harness are', 409)
   const records = await listPlanningRecords(projectId)
-  const view = scenePlanningView(records, sceneId, null)
+  // A named revision may be sketched on purpose, stale or not; what it
+  // produces is judged against the current inputs when it is shown.
+  const view = scenePlanningView(records, sceneId, freshnessOf(planning, records).sceneNow(sceneId))
   const treatment = options.recordId ? records.find(record => record.id === options.recordId && record.kind === 'treatment' && record.subject === sceneId) : view.current
   if (!treatment?.content) throw new PlanningError('Plan this scene before previewing it', 409)
   const cast = await visualCastFor(planning)
@@ -923,7 +946,9 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   if (problems.length || !report.manifest) return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
   // The bundle is kept whole and immutable; the manifest is the record.
   const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-preview', extension: '.json' })
-  const warnings = [...report.warnings, ...lintWarnings]
+  const planning = await loadVideoPlanning(record.projectId)
+  const moved = inputsChanged(previewInputsOf(planning, treatment, await knownCast(planning)), record.inputs)
+  const warnings = [...report.warnings, ...lintWarnings, ...(moved.length ? [`While this sketch was made, ${moved.join('; ')} — it is kept, as out of date`] : [])]
   const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings }, artifacts }, ['queued', 'running'], { runId: record.runId })
   if (!updated) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
   return { accepted: true as const, status: 'ready', record: updated, warnings }
@@ -949,26 +974,43 @@ export const loadPreviewFile = async (recordId: string, path: string) => {
     : { body: Buffer.from(file.base64, 'base64'), contentType: file.contentType }
 }
 
-// Each scene's newest preview, and whether it is of the plan shown now.
-const previewOf = (records: PlanningRecord[], sceneId: string, view: ScenePlanningView) => {
-  const newest = records.filter(record => record.kind === 'preview' && record.subject === sceneId).sort((a, b) => b.revision - a.revision)[0]
+// A scene's previews: the newest of any status, the newest ready one of each
+// plan revision, and the one of the scene's current plan. Each says whether
+// it still shows what that plan would show now, and if not, why.
+const previewOf = (records: PlanningRecord[], sceneId: string, freshness: (preview: PlanningRecord) => { current: boolean; staleBecause: string | null }) => {
+  const mine = records.filter(record => record.kind === 'preview' && record.subject === sceneId).sort((a, b) => b.revision - a.revision)
+  const newest = mine[0]
   if (!newest) return null
-  const readyOne = newest.status === 'ready' ? newest : records.filter(record => record.kind === 'preview' && record.subject === sceneId && record.status === 'ready').sort((a, b) => b.revision - a.revision)[0] || null
-  const manifest = readyOne?.content as SketchManifest | null | undefined
+  const viewOf = (preview: PlanningRecord) => {
+    const manifest = preview.content as SketchManifest | null
+    if (!manifest) return null
+    const { current, staleBecause } = freshness(preview)
+    return {
+      id: preview.id,
+      url: `/api/planning/previews/${encodeURIComponent(preview.id)}/index.html`,
+      of: { record: String(preview.inputs.treatmentId || ''), revision: manifest.plan.revision },
+      current,
+      staleBecause,
+      summary: sketchSummary(manifest),
+      warnings: preview.report?.warnings || [],
+      adapter: preview.adapter,
+      model: preview.reportedModel || preview.model,
+    }
+  }
+  // Newest first, so a late result never replaces a newer one of its plan.
+  const byTreatment: Record<string, NonNullable<ReturnType<typeof viewOf>>> = {}
+  for (const preview of mine.filter(record => record.status === 'ready')) {
+    const key = String(preview.inputs.treatmentId || '')
+    if (key && !byTreatment[key]) {
+      const view = viewOf(preview)
+      if (view) byTreatment[key] = view
+    }
+  }
+  const ready = Object.values(byTreatment).find(view => view.current) || Object.values(byTreatment).sort((a, b) => b.of.revision - a.of.revision)[0] || null
   return {
-    latest: { id: newest.id, status: newest.status, revision: newest.revision, error: newest.error, runId: newest.runId },
-    ready: readyOne && manifest
-      ? {
-          id: readyOne.id,
-          url: `/api/planning/previews/${encodeURIComponent(readyOne.id)}/index.html`,
-          of: { record: String(readyOne.inputs.treatmentId || ''), revision: manifest.plan.revision },
-          current: String(readyOne.inputs.treatmentId || '') === view.current?.id,
-          summary: sketchSummary(manifest),
-          warnings: readyOne.report?.warnings || [],
-          adapter: readyOne.adapter,
-          model: readyOne.reportedModel || readyOne.model,
-        }
-      : null,
+    latest: { id: newest.id, status: newest.status, revision: newest.revision, error: newest.error, runId: newest.runId, treatmentId: String(newest.inputs.treatmentId || '') },
+    ready,
+    byTreatment,
   }
 }
 
