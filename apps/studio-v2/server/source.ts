@@ -27,9 +27,39 @@ export type SourceRead = {
     accent: string
     secondary: string
     themeColor: string
+    // Where the colours came from (F5 of the Perplexity review): read off a
+    // website, a default because none could be read, or chosen by hand.
+    provenance: 'extracted' | 'fallback' | 'manual'
+    // The website they were read from, or why they are a default.
+    from: string
   }
   fonts: { display: string; body: string; mono: string; seen: string[] }
   warnings: string[]
+  // How much was read, and how likely it is the article (F3): a thin read
+  // may be a page's navigation, and is not planned from unless the creator
+  // says so. The excerpt and the headings let them see what was read.
+  extraction: { confidence: 'good' | 'thin'; words: number; headings: number; excerpt: string; reason: string }
+  // A document read from its host rather than its page (F3): where, and at
+  // exactly which revision.
+  origin?: { host: 'github'; owner: string; repo: string; ref: string; commit: string | null; path: string; url: string }
+}
+
+// The colours a browser paints links with when a page sets none.
+const BROWSER_COLOURS = new Set(['#0000ee', '#551a8b', '#ee0000', '#ff0000'])
+// Colours for a source whose brand could not be read: said to be defaults.
+const FALLBACK_PALETTE = { candidates: [], ground: '#0b1f3a', text: '#e8f1fa', accent: '#f5a623', secondary: '#9cc3e6', themeColor: '' }
+
+// How much was read, and how sure the read is that it is the article.
+export const extractionOf = (text: string, headings: number, where = ''): SourceRead['extraction'] => {
+  const words = text.split(/\s+/).filter(Boolean).length
+  const thin = words < 150
+  return {
+    confidence: thin ? 'thin' : 'good',
+    words,
+    headings,
+    excerpt: text.replace(/\s+/g, ' ').trim().slice(0, 600),
+    reason: thin ? `Only ${words} word${words === 1 ? '' : 's'} ${words === 1 ? 'was' : 'were'} read${where ? ` from ${where}` : ''} — it may be the page's navigation, not the article.` : '',
+  }
 }
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36 IncredibleStudio/2'
@@ -53,11 +83,11 @@ const assertPublicUrl = (raw: string) => {
   return url
 }
 
-const fetchText = async (url: string, maximumBytes: number, timeoutMs = 15_000) => {
+const fetchText = async (url: string, maximumBytes: number, timeoutMs = 15_000, accept = 'text/html,text/css,*/*;q=0.8') => {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetch(url, { headers: { 'user-agent': UA, accept: 'text/html,text/css,*/*;q=0.8' }, redirect: 'follow', signal: controller.signal })
+    const response = await fetch(url, { headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: controller.signal })
     if (!response.ok) throw new Error(`${response.status} from ${new URL(url).hostname}`)
     const buffer = Buffer.from(await response.arrayBuffer())
     return { text: buffer.subarray(0, maximumBytes).toString('utf8'), contentType: response.headers.get('content-type') || '', finalUrl: response.url || url }
@@ -229,8 +259,124 @@ const absolute = (href: string | null | undefined, base: string) => {
   }
 }
 
+// ——— a document its code host serves (F3 of the Perplexity review) ———
+// A GitHub file page is the host's chrome around the document: its article
+// extractor found 17 words of navigation. The document is read from the
+// host's raw contents instead, at the commit its address names, and the
+// host's own colours and logo are left out of the brand.
+export const githubDocumentOf = (url: URL) => {
+  if (!/^(www\.)?github\.com$/i.test(url.hostname)) return null
+  const parts = url.pathname.split('/').filter(Boolean).map(part => decodeURIComponent(part))
+  if (parts.length === 2) return { owner: parts[0], repo: parts[1], ref: 'HEAD', path: 'README.md' }
+  if (parts.length >= 5 && (parts[2] === 'blob' || parts[2] === 'raw') && /\.(md|markdown|mdx|txt|rst)$/i.test(parts[parts.length - 1])) {
+    return { owner: parts[0], repo: parts[1], ref: parts[3], path: parts.slice(4).join('/') }
+  }
+  return null
+}
+
+// Markdown as the text the outline reads: headings (either style) marked
+// the same way, figures named, link targets dropped; code and tables kept.
+export const markdownDocument = (markdown: string) => {
+  const lines = markdown.replace(/\r\n?/g, '\n').replace(/<!--[\s\S]*?-->/g, '').split('\n')
+  const out: string[] = []
+  const headings: SourceRead['headings'] = []
+  let fenced = false
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (/^\s*(```|~~~)/.test(line)) {
+      fenced = !fenced
+      out.push(line)
+      continue
+    }
+    if (fenced) {
+      out.push(line)
+      continue
+    }
+    const next = lines[i + 1] || ''
+    if (line.trim() && /^\s*(=+|-{3,})\s*$/.test(next) && !/^\s*([-*+]\s|\|)/.test(line)) {
+      const level = next.trim().startsWith('=') ? 1 : 2
+      headings.push({ level, text: line.trim().slice(0, 140) })
+      out.push(`${'#'.repeat(level)} ${line.trim()}`)
+      i += 1
+      continue
+    }
+    const atx = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line)
+    if (atx) {
+      const level = Math.min(4, atx[1].length)
+      headings.push({ level, text: atx[2].slice(0, 140) })
+      out.push(`${'#'.repeat(level)} ${atx[2]}`)
+      continue
+    }
+    out.push(line.replace(/!\[([^\]]*)\]\([^)]*\)/g, (_match, alt: string) => (alt ? `(figure: ${alt})` : '')).replace(/\[([^\]]+)\]\([^)]*\)/g, '$1'))
+  }
+  return { text: out.join('\n').replace(/\n{3,}/g, '\n\n').trim(), headings }
+}
+
+const readGithubDocument = async (doc: NonNullable<ReturnType<typeof githubDocumentOf>>, given: string, options: { projectId?: string }): Promise<SourceRead | null> => {
+  const path = doc.path.split('/').map(encodeURIComponent).join('/')
+  let raw: string
+  try {
+    raw = (await fetchText(`https://raw.githubusercontent.com/${encodeURIComponent(doc.owner)}/${encodeURIComponent(doc.repo)}/${encodeURIComponent(doc.ref)}/${path}`, 2 * 1024 * 1024, 15_000, 'text/plain,*/*;q=0.5')).text
+  } catch {
+    // Not a public document: the page itself is read instead.
+    return null
+  }
+  // The exact commit the ref names, when the host says; unauthenticated
+  // reads are rate limited, and then the ref stands.
+  let commit: string | null = null
+  try {
+    const answer = (await fetchText(`https://api.github.com/repos/${encodeURIComponent(doc.owner)}/${encodeURIComponent(doc.repo)}/commits/${encodeURIComponent(doc.ref)}`, 4096, 8_000, 'application/vnd.github.sha')).text.trim()
+    if (/^[0-9a-f]{40}$/.test(answer)) commit = answer
+  } catch {
+    /* the ref stands */
+  }
+  const read = markdownDocument(raw)
+  const warnings: string[] = []
+  let text = read.text
+  if (text.length > 24_000) {
+    text = text.slice(0, 24_000)
+    warnings.push('The document was long; the first 24,000 characters were read')
+  }
+  const title = (read.headings.find(heading => heading.level === 1)?.text || doc.path.split('/').pop()!.replace(/\.[a-z]+$/i, '')).slice(0, 160)
+  const description = (text.split('\n\n').find(paragraph => paragraph.trim() && !/^(#|\||[-*+]\s|```)/.test(paragraph.trim())) || '').replace(/\s+/g, ' ').trim().slice(0, 400)
+  warnings.push(`Read ${doc.path} from ${doc.owner}/${doc.repo} at ${commit ? commit.slice(0, 7) : doc.ref}. GitHub's own page colours and logo are left out — choose the brand below.`)
+  // The publisher's avatar is its mark on the host.
+  const logos: SourceRead['logos'] = [{ url: `https://github.com/${encodeURIComponent(doc.owner)}.png?size=200`, source: `${doc.owner} on GitHub` }]
+  const avatar = await fetchBinary(logos[0].url, 1024 * 1024)
+  if (avatar && /png|jpe?g|webp/.test(avatar.contentType)) {
+    try {
+      const stored = await storeAsset({ body: avatar.buffer, contentType: avatar.contentType, projectId: options.projectId, kind: 'brand-logo', extension: /png/.test(avatar.contentType) ? '.png' : /webp/.test(avatar.contentType) ? '.webp' : '.jpg' })
+      logos[0].localUrl = `/objects/${stored.objectKey}`
+    } catch {
+      /* the original url still works for preview */
+    }
+  }
+  return {
+    kind: 'url',
+    url: given,
+    site: `github.com/${doc.owner}`,
+    title,
+    description,
+    text,
+    words: text.split(/\s+/).filter(Boolean).length,
+    headings: read.headings.slice(0, 60),
+    images: [],
+    logos,
+    palette: { ...FALLBACK_PALETTE, provenance: 'fallback', from: `${doc.owner}'s colours are not on GitHub's page` },
+    fonts: { display: 'Segoe UI', body: 'Segoe UI', mono: 'Consolas', seen: [] },
+    warnings,
+    extraction: extractionOf(text, read.headings.length, `${doc.owner}/${doc.repo}`),
+    origin: { host: 'github', owner: doc.owner, repo: doc.repo, ref: doc.ref, commit, path: doc.path, url: given },
+  }
+}
+
 export const readSourceUrl = async (raw: string, options: { projectId?: string } = {}): Promise<SourceRead> => {
   const target = assertPublicUrl(raw)
+  const hosted = githubDocumentOf(target)
+  if (hosted) {
+    const document = await readGithubDocument(hosted, target.toString(), options)
+    if (document) return document
+  }
   const warnings: string[] = []
   const html = await fetchText(target.toString(), 3 * 1024 * 1024)
   if (!/html/i.test(html.contentType) && !/<html/i.test(html.text.slice(0, 2000))) throw new Error('That link is not a web page')
@@ -340,13 +486,16 @@ export const readSourceUrl = async (raw: string, options: { projectId?: string }
   const ground = grounds.top(1)[0]?.hex || (colours.top(40).find(c => hsl(c.hex).l > 0.9)?.hex ?? '#ffffff')
   const inkCandidates = inks.top(6).map(c => c.hex)
   const textColour = inkCandidates.find(hex => Math.abs(hsl(hex).l - hsl(ground).l) > 0.4) || (hsl(ground).l > 0.5 ? '#1a1a1a' : '#f2f2f2')
-  const saturated = colours.top(60).filter(c => !isNeutral(c.hex) && c.hex !== ground && c.hex !== textColour)
+  // A browser's own link colours are not a brand's (F5 of the Perplexity
+  // review): a page that paints none of its own has no brand colours.
+  const saturated = colours.top(60).filter(c => !isNeutral(c.hex) && c.hex !== ground && c.hex !== textColour && !BROWSER_COLOURS.has(c.hex))
   // an accent has to carry on a dark video ground: prefer saturated colours of middling lightness over a brand's near-black navy
   const carries = (hex: string) => {
     const { s, l } = hsl(hex)
     return s >= 0.35 && l >= 0.28 && l <= 0.78
   }
-  const accent = themeColor && !isNeutral(themeColor) && carries(themeColor) ? themeColor : saturated.find(c => carries(c.hex))?.hex || saturated[0]?.hex || '#f5a623'
+  const accentRead = Boolean((themeColor && !isNeutral(themeColor) && carries(themeColor)) || saturated.length)
+  const accent = themeColor && !isNeutral(themeColor) && carries(themeColor) ? themeColor : saturated.find(c => carries(c.hex))?.hex || saturated[0]?.hex || FALLBACK_PALETTE.accent
   const secondary = saturated.find(c => c.hex !== accent && Math.abs(hsl(c.hex).h - hsl(accent).h) > 25)?.hex || saturated.find(c => c.hex !== accent)?.hex || accent
   const candidatesOut = [
     { hex: ground, weight: 0, role: 'ground' as const },
@@ -388,9 +537,10 @@ export const readSourceUrl = async (raw: string, options: { projectId?: string }
     headings: headings.slice(0, 60),
     images: images.slice(0, 12),
     logos: logos.slice(0, 6),
-    palette: { candidates: candidatesOut, ground, text: textColour, accent, secondary, themeColor },
+    palette: { candidates: candidatesOut, ground, text: textColour, accent, secondary, themeColor, provenance: accentRead ? 'extracted' : 'fallback', from: accentRead ? target.hostname.replace(/^www\./, '') : `${target.hostname.replace(/^www\./, '')} showed no brand colours` },
     fonts: { display, body, mono, seen: fontsSeen },
     warnings,
+    extraction: extractionOf(text, headings.length, site),
   }
 }
 
@@ -409,9 +559,11 @@ export const readSourceNarrative = (narrative: string, title = ''): SourceRead =
     headings,
     images: [],
     logos: [],
-    palette: { candidates: [], ground: '#0b1f3a', text: '#e8f1fa', accent: '#f5a623', secondary: '#9cc3e6', themeColor: '' },
+    palette: { ...FALLBACK_PALETTE, provenance: 'fallback', from: 'no brand website was given' },
     fonts: { display: 'Segoe UI', body: 'Segoe UI', mono: 'Consolas', seen: [] },
     warnings: [],
+    // The creator's own words are what they are: never thin by length.
+    extraction: { ...extractionOf(text, headings.length), confidence: 'good', reason: '' },
   }
 }
 

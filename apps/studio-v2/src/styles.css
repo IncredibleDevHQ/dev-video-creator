@@ -2124,6 +2124,20 @@ button.se-state:hover { filter: brightness(.97); }
 .source-scene button { border: 0; background: none; color: #a1a1aa; cursor: pointer; font-size: 16px; }
 .source-glossary { display: flex; flex-wrap: wrap; gap: 6px; }
 .source-glossary span { font: 500 11px/1.2 system-ui; padding: 4px 8px; border-radius: 999px; background: #f4f4f5; color: #3f3f46; }
+/* F3–F5 of the Perplexity review: what is read, a way on when a link is
+   refused, and colours that say where they came from. */
+.source-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 0; font: 12.5px/1.4 'InterBody', Inter, system-ui, sans-serif; color: #3f3f46; }
+.source-mode[hidden] { display: none; }
+.source-recovery, .source-extraction-thin { display: grid; gap: 8px; margin: 8px 0 0; padding: 10px 12px; border: 1px solid #fcd34d; border-radius: 9px; background: #fffbeb; color: #78350f; font: 13px/1.45 'InterBody', Inter, system-ui, sans-serif; }
+.source-recovery[hidden] { display: none; }
+.source-recovery p, .source-extraction-thin p { margin: 0; }
+.source-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.source-extraction { display: grid; gap: 6px; margin: 0 0 10px; font: 12.5px/1.45 'InterBody', Inter, system-ui, sans-serif; color: #3f3f46; }
+.source-extraction-line { margin: 0; font-weight: 600; }
+.source-extraction-read summary { cursor: pointer; color: #52525b; }
+.source-extraction-read ul { margin: 6px 0; padding-left: 18px; columns: 2; column-gap: 20px; }
+.source-extraction-read blockquote { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid #d4d4d8; background: #fafafa; color: #3f3f46; max-height: 9em; overflow: auto; }
+.source-swatches.is-fallback .source-swatch { opacity: .75; border-style: dashed; }
 .source-pages-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 52vh; overflow: auto; }
 .source-page { display: grid; gap: 4px; font: 500 12px/1.3 system-ui; color: #3f3f46; }
 .source-page .thumb { aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid #e4e4e7; background: #111; }

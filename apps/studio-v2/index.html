@@ -837,11 +837,14 @@
         </div>
         <div class="source-or">or</div>
         <label class="source-field">A PDF or a deck<input id="source-file" type="file" accept=".pdf,.pptx,.md,.markdown,.txt" /><small class="source-hint">Its text is read into the narrative above, then read like one. Keynote and Google Slides export to .pptx.</small></label>
+        <div id="source-mode" class="source-mode" role="group" aria-label="What is read" hidden></div>
+        <div id="source-recovery" class="source-recovery" hidden></div>
         <div class="modal-actions"><span id="source-status" class="source-status"></span><button id="source-read" type="button" class="button primary">Read it</button></div>
       </section>
       <section id="source-step-brand" class="source-step" hidden>
         <div class="source-summary"><strong id="source-read-title"></strong><span id="source-read-meta"></span></div>
-        <h3>Brand colour <small>click a swatch</small></h3>
+        <div id="source-extraction" class="source-extraction"></div>
+        <h3>Brand colour <small id="source-palette-provenance">click a swatch</small></h3>
         <div id="source-swatches" class="source-swatches"></div>
         <h3>Logo</h3>
         <div id="source-logos" class="source-logos"></div>

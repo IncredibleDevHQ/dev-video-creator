@@ -14932,6 +14932,13 @@ const sourceState: {
   fileTitle?: string
   // The pages made from the outline, and the design run bound to them.
   draft?: SourceDraft | null
+  // With both a link and pasted text, which one is read (F4 of the
+  // Perplexity review): the link, or the text crediting the link.
+  readMode?: 'link' | 'text'
+  // A thin read the creator chose to go on with anyway (F3).
+  thinAcknowledged?: boolean
+  // The name a theme saved from this read will take (F5).
+  themeName?: string
   // The harness designing the pages, and how the last run went.
   drawer?: string
   drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
@@ -14992,6 +14999,95 @@ const parseTarget = (value: string) => {
 }
 const formatTarget = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`
 
+// ——— What is read (F4 of the Perplexity review) ———
+// A link and pasted text can both be present: which one is read is said,
+// and chosen, instead of the link silently winning. Pasted text keeps the
+// link as where it came from.
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return ''
+  }
+}
+const sourceReadsText = () => {
+  const url = ($('#source-url') as HTMLInputElement).value.trim()
+  const narrative = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
+  return Boolean(narrative) && (!url || sourceState.readMode === 'text')
+}
+const renderSourceMode = () => {
+  const line = $('#source-mode') as HTMLElement
+  const url = ($('#source-url') as HTMLInputElement).value.trim()
+  const narrative = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
+  if (!url || !narrative) {
+    line.hidden = true
+    line.replaceChildren()
+    return
+  }
+  const host = hostOf(url) || 'the link'
+  const choice = (mode: 'link' | 'text', label: string) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.dataset.readMode = mode
+    button.textContent = label
+    const active = (sourceState.readMode || 'link') === mode
+    button.className = active ? 'active' : ''
+    button.setAttribute('aria-pressed', String(active))
+    button.addEventListener('click', () => {
+      sourceState.readMode = mode
+      renderSourceMode()
+    })
+    return button
+  }
+  const lead = document.createElement('span')
+  lead.textContent = 'A link and pasted text are both here — read:'
+  const segment = document.createElement('div')
+  segment.className = 'explainer-segment'
+  segment.append(choice('link', `The link (${host})`), choice('text', `The pasted text, crediting ${host}`))
+  line.hidden = false
+  line.replaceChildren(lead, segment)
+}
+;['#source-url', '#source-narrative'].forEach(selector => ($(selector) as HTMLElement).addEventListener('input', () => {
+  ;($('#source-recovery') as HTMLElement).hidden = true
+  renderSourceMode()
+}))
+// A link that could not be read, with the ways on: paste its text (the link
+// stays as where it came from), try again, or change the link. Nothing is
+// fetched past the publisher's refusal.
+const showSourceRecovery = (url: string) => {
+  const box = $('#source-recovery') as HTMLElement
+  const host = hostOf(url) || 'the site'
+  const text = document.createElement('p')
+  text.textContent = `${host} did not let the studio read this page. Paste the article's text below instead — ${host} is kept as where it came from — or try again, or use another link.`
+  const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste the article instead' })
+  paste.dataset.recovery = 'paste'
+  paste.addEventListener('click', () => {
+    sourceState.readMode = 'text'
+    box.hidden = true
+    renderSourceMode()
+    const field = $('#source-narrative') as HTMLTextAreaElement
+    field.placeholder = `Paste the article from ${host} here; ${host} is kept as where it came from.`
+    field.focus()
+    sourceStatus('#source-status', `Paste the article's text, then Read it — ${host} is kept as its source`)
+  })
+  const retry = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Try again' })
+  retry.dataset.recovery = 'retry'
+  retry.addEventListener('click', () => void sourceRead())
+  const change = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Change the link' })
+  change.dataset.recovery = 'change'
+  change.addEventListener('click', () => {
+    box.hidden = true
+    const field = $('#source-url') as HTMLInputElement
+    field.focus()
+    field.select()
+  })
+  const actions = document.createElement('div')
+  actions.className = 'source-recovery-actions'
+  actions.append(paste, retry, change)
+  box.replaceChildren(text, actions)
+  box.hidden = false
+}
+
 const sourceRead = async () => {
   if (sourceState.busy) return
   const url = ($('#source-url') as HTMLInputElement).value.trim()
@@ -15000,16 +15096,23 @@ const sourceRead = async () => {
     sourceStatus('#source-status', 'Paste a link, or a narrative of your own', true)
     return
   }
+  // Only a link is here, or the choice says which: see renderSourceMode.
+  const readsText = sourceReadsText()
   sourceState.busy = true
+  ;($('#source-recovery') as HTMLElement).hidden = true
   const button = $('#source-read') as HTMLButtonElement
   button.disabled = true
-  sourceStatus('#source-status', url ? 'Reading the page, its stylesheets and its painted colours…' : 'Reading your narrative…')
+  sourceStatus('#source-status', readsText ? (url ? `Reading your pasted text, crediting ${hostOf(url) || 'the link'}…` : 'Reading your narrative…') : 'Reading the page, its stylesheets and its painted colours…')
   try {
     const { source, snapshot, narrative: narrativeRevision } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string }; narrative?: { id: string } | null }>('/api/source/read', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, brandUrl: url ? undefined : ($('#source-brand-url') as HTMLInputElement).value.trim() || undefined, wordingPolicy: sourceState.wording, title: url ? undefined : sourceState.fileTitle || undefined, projectId: project.id }),
+      body: JSON.stringify(readsText
+        ? { narrative, attribution: url || undefined, brandUrl: ($('#source-brand-url') as HTMLInputElement).value.trim() || undefined, wordingPolicy: sourceState.wording, title: sourceState.fileTitle || undefined, projectId: project.id }
+        : { url, wordingPolicy: sourceState.wording, projectId: project.id }),
     })
+    sourceState.thinAcknowledged = false
+    sourceState.themeName = undefined
     sourceState.source = source
     sourceState.snapshot = snapshot
     sourceState.narrative = narrativeRevision || null
@@ -15030,6 +15133,7 @@ const sourceRead = async () => {
     showSourceStep('brand')
   } catch (error) {
     sourceStatus('#source-status', error instanceof Error ? error.message : 'Could not read that', true)
+    if (!readsText) showSourceRecovery(url)
   } finally {
     sourceState.busy = false
     button.disabled = false
@@ -15115,14 +15219,29 @@ const renderSourceBrand = () => {
     .filter(Boolean)
     .join(' · ')
   ;($('#source-read-meta') as HTMLElement).textContent = meta + (source.warnings.length ? ` · ${source.warnings[0]}` : '')
+  renderSourceExtraction()
+  // Where the colours came from (F5 of the Perplexity review): a default is
+  // never described as seen on a website.
+  const bound = sourceState.brandChoice === 'saved' ? savedThemes.find(theme => theme.id === sourceState.brandThemeId) : null
+  const provenance = sourceState.brandChoice === 'custom' ? 'manual' : bound ? bound.colours?.provenance || 'extracted' : source.palette.provenance || 'extracted'
+  const from = bound ? bound.colours?.from || bound.name : source.palette.from || source.site || 'the site'
+  ;($('#source-palette-provenance') as HTMLElement).textContent =
+    provenance === 'manual'
+      ? 'chosen by hand below'
+      : provenance === 'fallback'
+        ? bound ? `the saved theme “${bound.name}” has default colours — ${from}` : `defaults, not a brand — ${from}. Pick a saved theme or a custom palette below.`
+        : bound ? `from the saved theme “${bound.name}” — colours from ${from}` : `read from ${from} — click a swatch`
   const swatches = $('#source-swatches') as HTMLElement
+  swatches.classList.toggle('is-fallback', provenance === 'fallback')
   const candidates = source.palette.candidates.length ? source.palette.candidates : [{ hex: source.palette.accent, weight: 0, role: 'accent' as const }]
   swatches.replaceChildren(
     ...candidates.slice(0, 12).map(candidate => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = `source-swatch${candidate.hex === sourceState.brandColor ? ' is-picked' : ''}`
-      button.title = candidate.role ? `${candidate.role} on the site` : 'seen on the site'
+      button.title = source.palette.provenance === 'fallback'
+        ? `default ${candidate.role || 'colour'} — not read from a website`
+        : candidate.role ? `${candidate.role} on ${from}` : `seen on ${from}`
       const chip = document.createElement('i')
       chip.style.background = candidate.hex
       const hex = document.createElement('span')
@@ -15171,6 +15290,76 @@ const renderSourceBrand = () => {
   renderSourceCustomPalette()
 }
 
+// What was read (F3 of the Perplexity review): its size, its headings and
+// an excerpt, where it came from, and how sure the read is that it is the
+// article. A thin read — likely a page's navigation — is not outlined until
+// the creator pastes the text instead or says to go on with it.
+const renderSourceExtraction = () => {
+  const box = $('#source-extraction') as HTMLElement
+  const source = sourceState.source
+  const outline = $('#source-to-outline') as HTMLButtonElement
+  if (!source?.extraction) {
+    box.replaceChildren()
+    outline.disabled = false
+    return
+  }
+  const read = source.extraction
+  const origin = source.origin
+  const where = origin
+    ? `read from ${origin.owner}/${origin.repo} · ${origin.path} at ${origin.commit ? origin.commit.slice(0, 7) : origin.ref}`
+    : source.kind === 'narrative' ? (source.url ? `pasted, crediting ${source.site || source.url}` : 'your own words') : `read from ${source.site || hostOf(source.url)}`
+  const line = document.createElement('p')
+  line.className = 'source-extraction-line'
+  line.textContent = `${read.words} words · ${read.headings} heading${read.headings === 1 ? '' : 's'} · ${where}`
+  const details = document.createElement('details')
+  details.className = 'source-extraction-read'
+  const summary = document.createElement('summary')
+  summary.textContent = 'What was read'
+  const heads = document.createElement('ul')
+  source.headings.slice(0, 10).forEach(heading => heads.append(Object.assign(document.createElement('li'), { textContent: heading.text })))
+  const excerpt = document.createElement('blockquote')
+  excerpt.textContent = read.excerpt ? `${read.excerpt}${read.excerpt.length >= 600 ? '…' : ''}` : 'Nothing readable.'
+  details.append(summary, ...(source.headings.length ? [heads] : []), excerpt)
+  const thin = read.confidence === 'thin' && !sourceState.thinAcknowledged
+  details.open = read.confidence === 'thin'
+  box.replaceChildren(line, details)
+  box.classList.toggle('is-thin', read.confidence === 'thin')
+  if (read.confidence === 'thin') {
+    const warn = document.createElement('div')
+    warn.className = 'source-extraction-thin'
+    warn.dataset.thin = sourceState.thinAcknowledged ? 'acknowledged' : 'open'
+    const text = document.createElement('p')
+    text.textContent = sourceState.thinAcknowledged ? `${read.reason} You chose to go on with it.` : read.reason
+    warn.append(text)
+    if (!sourceState.thinAcknowledged) {
+      const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste the article\'s text instead' })
+      paste.dataset.thinAction = 'paste'
+      paste.addEventListener('click', () => {
+        sourceState.readMode = 'text'
+        showSourceStep('read')
+        renderSourceMode()
+        const field = $('#source-narrative') as HTMLTextAreaElement
+        const host = hostOf(($('#source-url') as HTMLInputElement).value) || 'the link'
+        field.placeholder = `Paste the article here; ${host} is kept as where it came from.`
+        field.focus()
+      })
+      const onward = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Go on with what was read' })
+      onward.dataset.thinAction = 'continue'
+      onward.addEventListener('click', () => {
+        sourceState.thinAcknowledged = true
+        renderSourceExtraction()
+      })
+      const actions = document.createElement('div')
+      actions.className = 'source-recovery-actions'
+      actions.append(paste, onward)
+      warn.append(actions)
+    }
+    box.append(warn)
+  }
+  outline.disabled = thin
+  outline.title = thin ? 'Little was read — paste the article\'s text, or choose to go on with what was read' : ''
+}
+
 // ——— Site association (D1): a direction read off a site can be saved as a
 // durable theme with that site on it; the next read of the same site names
 // what the library already holds, instead of starting from scratch. ———
@@ -15195,19 +15384,49 @@ const renderSourceThemeAssociation = () => {
     note.textContent = `Saved from this site: ${saved.map(entry => `${entry.theme.name} · rev ${entry.meta?.revision}`).join(', ')} — in the theme library.`
     box.append(note)
   }
+  // A short name, asked for where the theme is saved (F5 of the Perplexity
+  // review): a document title makes a long, truncated theme name.
+  const name = document.createElement('input')
+  name.type = 'text'
+  name.id = 'source-theme-name'
+  name.maxLength = 40
+  name.value = sourceState.themeName ?? shortThemeName(source)
+  name.addEventListener('input', () => (sourceState.themeName = name.value))
+  name.setAttribute('aria-label', 'Theme name')
+  name.placeholder = 'Theme name'
   const save = document.createElement('button')
   save.type = 'button'
   save.id = 'source-save-direction'
   save.className = 'button ghost'
   save.textContent = 'Save this brand as a theme'
   save.addEventListener('click', () => void saveSourceDirectionAsTheme())
-  box.append(save)
+  box.append(name, save)
 }
+
+// A theme's name is short enough to read in a list: the site, or the first
+// words of the title (F5 of the Perplexity review).
+const shortThemeName = (source: SourceRead) => {
+  const site = (source.site || '').trim().replace(/^www\./, '')
+  if (site) return site.slice(0, 32)
+  const words = (source.title || 'Brand').split(/\s+/)
+  let name = ''
+  for (const word of words) {
+    if ((name ? `${name} ${word}` : word).length > 24) break
+    name = name ? `${name} ${word}` : word
+  }
+  return (name || words[0] || 'Brand').replace(/[:,;·–—-]+$/, '').slice(0, 32)
+}
+// Where a theme's colours came from, carried on the theme itself.
+const sourceColours = (source: SourceRead) => ({
+  provenance: sourceState.brandChoice === 'custom' ? ('manual' as const) : source.palette.provenance || ('extracted' as const),
+  from: sourceState.brandChoice === 'custom' ? 'a custom palette' : source.palette.from || source.site || '',
+})
 
 const saveSourceDirectionAsTheme = async () => {
   const source = sourceState.source
   const chosen = sourceBrandTheme()
   if (!source || !chosen) return
+  const named = (document.getElementById('source-theme-name') as HTMLInputElement | null)?.value || shortThemeName(source)
   const site = (source.site || '').trim()
   // A stable id per site (or title) + choice: re-saving revises one theme
   // instead of stacking duplicates (the store dedups identical content anyway).
@@ -15221,6 +15440,8 @@ const saveSourceDirectionAsTheme = async () => {
         // A theme saved from a site read carries the site's fonts, so reusing
         // it later restores the typography with the colours.
         ...(source.fonts?.seen?.length ? { fonts: source.fonts } : {}),
+        name: named.trim().slice(0, 40) || shortThemeName(source),
+        colours: sourceColours(source),
       }
   const button = $('#source-save-direction') as HTMLButtonElement | null
   if (button) button.disabled = true
@@ -15283,7 +15504,10 @@ const renderSourceSavedThemes = () => {
       frame.append(title, bar, line)
       const label = document.createElement('small')
       const siteMatch = Boolean(site) && (meta?.site || '').trim().toLowerCase() === site
-      label.textContent = `${meta ? `rev ${meta.revision}` : theme.source}${siteMatch ? ' · from this site' : ''}`
+      // Where its colours came from, as it was saved (F5).
+      const colours = theme.colours?.provenance === 'fallback' ? ' · default colours' : theme.colours?.provenance === 'manual' ? ' · colours chosen by hand' : theme.colours?.provenance === 'extracted' ? ` · colours from ${theme.colours.from}` : ''
+      label.textContent = `${meta ? `rev ${meta.revision}` : theme.source}${siteMatch ? ' · from this site' : ''}${colours}`
+      label.dataset.colours = theme.colours?.provenance || ''
       card.append(frame, label)
       card.addEventListener('click', () => {
         sourceState.brandChoice = 'saved'
@@ -16317,7 +16541,10 @@ const sourceFinish = async () => {
   const direction = sourceBrandTheme()
   if (direction) {
     const theme = cloneTheme(normalizeStudioTheme(direction))
-    if (sourceState.brandChoice !== 'saved') theme.name = `${source.site || outline.title} · ${theme.name}`.slice(0, 60)
+    if (sourceState.brandChoice !== 'saved') {
+      theme.name = `${shortThemeName(source)} · ${theme.name}`.slice(0, 48)
+      theme.colours = sourceColours(source)
+    }
     if (sourceState.logoUrl) theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
     applyThemeToProject(theme)
   }

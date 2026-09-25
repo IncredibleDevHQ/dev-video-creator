@@ -1404,10 +1404,18 @@ Every window also has "stage": "" to leave the frame to the director, or — onl
 // optional brand website for colours/fonts/logo — text alone cannot
 // reveal them.
 const handleSourceRead = async (request: IncomingMessage, response: ServerResponse) => {
-  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string; brandUrl?: string; wordingPolicy?: string }>(request, 400 * 1024)
+  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string; brandUrl?: string; wordingPolicy?: string; attribution?: string }>(request, 400 * 1024)
   const projectId = String(body.projectId || request.headers['x-project-id'] || '') || undefined
   const source = body.url?.trim() ? await readSourceUrl(body.url, { projectId }) : readSourceNarrative(String(body.narrative || ''), String(body.title || ''))
   if (!source.text.trim()) throw new Error('Nothing to read — paste a link to an article or a narrative of your own')
+  // Text pasted in place of a link that could not be read keeps that link as
+  // where it came from (F4 of the Perplexity review). It is not fetched.
+  const attribution = !body.url?.trim() && body.attribution?.trim() ? (() => { try { return new URL(body.attribution!.trim()) } catch { return null } })() : null
+  if (attribution && /^https?:$/.test(attribution.protocol)) {
+    source.url = attribution.toString()
+    source.site = attribution.hostname.replace(/^www\./, '')
+    source.warnings = [...source.warnings, `The article's text was pasted; ${source.site} is kept as where it came from.`]
+  }
   let brandEvidence: SourceRead | null = null
   if (!body.url?.trim() && body.brandUrl?.trim()) {
     try {
@@ -1419,12 +1427,15 @@ const handleSourceRead = async (request: IncomingMessage, response: ServerRespon
       source.site = source.site || brandEvidence.site
     } catch (error) {
       source.warnings = [...source.warnings, `Brand website could not be read: ${error instanceof Error ? error.message : error}`]
+      // The colours stay defaults, and say so (F5 of the Perplexity review).
+      const host = (() => { try { return new URL(body.brandUrl!.trim()).hostname.replace(/^www\./, '') } catch { return 'the brand website' } })()
+      source.palette = { ...source.palette, provenance: 'fallback', from: `${host} could not be read` }
     }
   }
   const snapshot = await saveSourceRevision({
     projectId,
     kind: body.url?.trim() ? 'url' : 'narrative',
-    url: body.url?.trim() || undefined,
+    url: body.url?.trim() || (attribution ? source.url : undefined),
     brandUrl: brandEvidence ? body.brandUrl?.trim() : undefined,
     title: source.title,
     site: source.site,
@@ -1481,7 +1492,7 @@ const handleSourcePages = async (request: IncomingMessage, response: ServerRespo
   }>(request, 1024 * 1024)
   const outline = body.outline
   if (!outline || !Array.isArray(outline.scenes) || !outline.scenes.length) throw new Error('Pages need an outline with scenes')
-  const palette = body.palette || { candidates: [], ground: '#0b1f3a', text: '#e8f1fa', accent: '#f5a623', secondary: '#9cc3e6', themeColor: '' }
+  const palette = body.palette || { candidates: [], ground: '#0b1f3a', text: '#e8f1fa', accent: '#f5a623', secondary: '#9cc3e6', themeColor: '', provenance: 'fallback' as const, from: '' }
   const fonts = body.fonts || { display: 'Segoe UI', body: 'Segoe UI', mono: 'Consolas', seen: [] }
   const brand = pageBrandFrom(palette, fonts, body.mode || 'auto')
   const scenes = outline.scenes as OutlineScene[]

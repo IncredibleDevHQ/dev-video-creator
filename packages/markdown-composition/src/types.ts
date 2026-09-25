@@ -315,6 +315,10 @@ export type StudioThemeV1 = {
   // from a site read: reusing the theme restores its typography too.
   // Optional — hand-authored themes carry none.
   fonts?: { display: string; body: string; mono: string; seen?: string[] }
+  // Where its colours came from, when it was made from a source read: read
+  // off a website, defaults because none could be read, or chosen by hand.
+  // Optional — hand-authored themes carry none.
+  colours?: { provenance: 'extracted' | 'fallback' | 'manual'; from: string }
 }
 
 // Where a derived notebook came from. A video fork pins the revision of the

@@ -30,6 +30,7 @@ const CHECKS = [
   'source-destination-check.mjs', // P1: a fresh source starts its own notebook; append stays a choice
   'source-delivery-check.mjs',    // P2: a new source notebook keeps the journey's delivery choice
   'source-design-check.mjs',      // R4: designed pages by default, bound to their draft, stop/retry, drafts labelled
+  'source-intake-check.mjs',      // Perplexity F3–F5: refused links, thin reads, colour provenance
   'explainer-lineage-check.mjs',  // D3: splits/merges, coverage, forged markers refused
   'explainer-persistence-check.mjs', // D3: finish/export guards
   'finish-atomic-check.mjs',      // #5: a failed finish changes nothing — no project write, no take clears
