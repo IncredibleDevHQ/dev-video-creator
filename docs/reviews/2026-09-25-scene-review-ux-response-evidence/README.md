@@ -6,7 +6,7 @@ These files support the "Live check on the real harness" section of [the respons
   - The first pass prepared the brief again, planned the token-bucket scene (r5) and sketched it. It was accepted on the first submission. Its one failed check is the driver's own selector; the text it looked for is in `review-how-checked.png`.
   - The second pass sketched r5 again after the fix for earlier artwork keys (`c0a9980c`). The pinned lint refused the first submission, for a font with no `@font-face`; the second was accepted.
 - `plan-r5.json` — the new plan, as stored: its moments and its ledger. The ledger declares the refill a steady rate (`drip`) and tags the four changes it makes.
-- `sketch-1/`, `sketch-2/` — the two accepted sketches exactly as the harness wrote them (`index.html` and `manifest.json`). They load only `/runtime/gsap.min.js` and `/runtime/hyperframes.iife.js`, which the Studio serves, so play them through the Studio's preview route.
+- `sketch-1/`, `sketch-2/` — the two accepted sketches as the harness wrote them: `index.html` byte for byte, and `manifest.json` with the same content, re-indented by the repository's JSON formatter. They load only `/runtime/gsap.min.js` and `/runtime/hyperframes.iife.js`, which the Studio serves, so play them through the Studio's preview route.
   - Sketch 1 drew the request rate limiter as a placeholder: its packet lacked the artwork, the bug fixed in `c0a9980c`.
   - Sketch 2 reuses the cast for all seven objects it takes from the base.
   - In both, the layers carry `data-sketch-layer`, the bucket's level keeps the rig's clip, and the manifest's `schedule` keeps the drip's beat: every 4.4 s from 6.8 s in sketch 1, every 4.5 s from 6 s in sketch 2.
