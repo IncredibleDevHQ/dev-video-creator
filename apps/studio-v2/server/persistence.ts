@@ -100,8 +100,8 @@ type SaveRecordedBlockInput = {
   cameraUrl?: string
   cameraAssetId?: string
   beatMarksMs?: number[]
-  // The script the take was spoken against (R4).
-  script?: { hash: string; treatment?: string; revision?: number }
+  // The script the take was spoken against (R4), and each line's fingerprint.
+  script?: { hash: string; lines?: string[]; treatment?: string; revision?: number }
 }
 
 type PersistenceBackend = {

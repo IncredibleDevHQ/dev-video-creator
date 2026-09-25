@@ -320,6 +320,46 @@ try {
   check(Boolean(afterAdopt), 'with the plan\'s lines as the script, the scene can be rehearsed and recorded')
   const stillApproved = (await overview(videoId)).scenes[1].view
   check(stillApproved.state === 'reviewed' && stillApproved.reviewed?.id === planned.id && !stillApproved.staleBecause, `taking the approved plan's own lines leaves it approved and fresh (${stillApproved.state}${stillApproved.staleBecause ? ` — ${stillApproved.staleBecause}` : ''})`)
+  // A take spoken against those lines keeps each line's fingerprint. When
+  // one line changes, the review names that line alone for a new take (R4).
+  const fnv = text => { let hash = 0x811c9dc5; for (const character of text) { hash ^= character.codePointAt(0) || 0; hash = Math.imul(hash, 0x01000193) >>> 0 } return hash.toString(16).padStart(8, '0') }
+  const linesOf = script => script.split(/\n\s*\n/).map(part => part.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim()).filter(Boolean)
+  const takeScene = (await api(`/api/projects/${videoId}`)).body.project.notebook.content.filter(node => node.type === 'scene')[1]
+  const takeAsset = await fetch(`${origin}/api/assets`, { method: 'POST', headers: { 'content-type': 'video/webm', 'x-project-id': videoId, 'x-block-id': takeScene.attrs.id }, body: Buffer.from('a take of the plan lines') }).then(response => response.json())
+  const spokenLines = linesOf(takeScene.attrs.script)
+  const committed = await post('/api/recordings/commit', { projectId: videoId, blockId: takeScene.attrs.id, assetId: takeAsset.assetId, mediaUrl: takeAsset.url, durationMs: 9000, role: 'presenter', script: { hash: fnv(spokenLines.join('\n')), lines: spokenLines.map(fnv), treatment: planned.id, revision: planned.revision } })
+  check(committed.body?.recording?.script?.lines?.length === spokenLines.length, `a take keeps each line's fingerprint (${JSON.stringify(committed.body?.recording?.script)})`)
+  const recordingChip = () => waitFor(`() => [...document.querySelectorAll('.scene-review.is-expanded .review-strip .review-chip')].map(chip => chip.textContent).find(text => text.startsWith('Recording:')) || null`, 30)
+  const withScript = async change => {
+    // Away from the open notebook, so nothing it saves overwrites the edit.
+    await openNotebook(base.id, base.title)
+    const expected = (await api(`/api/projects/${videoId}`)).body.project
+    const doc = JSON.parse(JSON.stringify(expected))
+    const target = doc.notebook.content.filter(node => node.type === 'scene')[1]
+    target.attrs.script = change(target.attrs.script)
+    const saved = (await api(`/api/projects/${videoId}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: doc, expectedProject: expected }) })).status === 200
+    await openNotebook(videoId, 'Rate limiters · video')
+    await selectScene(1)
+    return saved
+  }
+  await withScript(script => script)
+  const matching = await recordingChip()
+  check(matching === 'Recording: take matches the script', `the take matches the script it was spoken against (${matching})`)
+  check(await withScript(script => script.replace('The limit bites.', 'The limit bites, hard.')), 'the creator rewords one line of the scene')
+  const flaggedChip = await recordingChip()
+  const flagged = await waitFor(`() => {
+    const details = document.querySelector('.scene-review.is-expanded [data-review-open^="guide:"]')
+    if (!details) return null
+    details.open = true
+    details.dispatchEvent(new Event('toggle'))
+    const note = details.querySelector('.review-take-lines')
+    return note ? { text: note.querySelector('p').textContent, lines: [...note.querySelectorAll('li')].map(item => item.textContent) } : null
+  }`, 20)
+  check(flaggedChip === 'Recording: 1 line to re-record' && flagged?.lines?.join('|') === 'The limit bites, hard.' && /still covers the other lines/.test(flagged.text), `only the reworded line reads as needing a new take (${flaggedChip} · ${JSON.stringify(flagged)})`)
+  await shot('02b-take-lines')
+  check(await withScript(script => script.replace('The limit bites, hard.', 'The limit bites.')), 'the line is put back')
+  const restored = await recordingChip()
+  check(restored === 'Recording: take matches the script', `with the words put back, the take matches again (${restored})`)
   const production = await evaluate(`() => {
     const details = document.querySelector('.scene-review.is-expanded [data-review-open^="production:"]')
     if (!details) return null

@@ -36,7 +36,10 @@ export type SceneReviewHost = {
   script: (sceneId: string) => string
   // The scene's current take, and whether it was spoken against the words
   // the scene has now (null: no take).
-  takeOf: (sceneId: string) => { known: boolean; current: boolean; revision: number | null } | null
+  // The scene's current take against its script now: changed are the
+  // script's lines the take was not spoken against; null when the take kept
+  // only the whole script's fingerprint.
+  takeOf: (sceneId: string) => { known: boolean; current: boolean; revision: number | null; changed: string[] | null; dropped: number | null } | null
   // Make a plan revision's lines the scene's script, with that lineage.
   applyScript: (sceneId: string, script: string, lineage: { treatment: string; revision: number }) => void
   // The notebook redraws the review of every scene.
@@ -256,7 +259,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
   const recordingState = (scene: Scene) => {
     if (scene.delivery === 'generated' || scene.delivery === 'silent') return chip(`Recording: not needed (${scene.delivery})`)
     const take = host.takeOf(scene.id)
-    if (take) return take.current ? chip('Recording: take matches the script', 'good') : take.known ? chip('Recording: take is of an earlier script', 'warn') : chip('Recording: take recorded')
+    if (take) {
+      if (take.current) return chip('Recording: take matches the script', 'good')
+      if (take.changed?.length) return chip(`Recording: ${take.changed.length} line${take.changed.length === 1 ? '' : 's'} to re-record`, 'warn')
+      return take.known ? chip('Recording: take is of an earlier script', 'warn') : chip('Recording: take recorded')
+    }
     return scene.view.current ? chip('Recording: guide ready · no take yet') : chip('Recording: waits for a plan')
   }
   // The strip speaks for the scene's current plan; an older revision's
@@ -364,6 +371,20 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return list
   }
 
+  // What an earlier take still covers, and what to re-record: by line where
+  // the take kept its lines, otherwise the whole.
+  const takeNote = (take: NonNullable<ReturnType<SceneReviewHost['takeOf']>>) => {
+    const of = `Your current take was spoken against an earlier script${take.revision ? ` (plan r${take.revision})` : ''}. It is kept`
+    if (take.changed?.length) {
+      return h('div', { class: 'review-warn review-take-lines' },
+        h('p', { text: `${of}, and still covers the other lines. Re-record ${take.changed.length === 1 ? 'this line' : `these ${take.changed.length} lines`}, or align the take there:` }),
+        h('ol', {}, ...take.changed.map(line => h('li', { text: line }))),
+      )
+    }
+    if (take.dropped) return h('p', { class: 'review-warn', text: `${of}. The script has since lost ${take.dropped} of its lines: align the take, or re-record the scene.` })
+    return h('p', { class: 'review-warn', text: `${of}; re-record the scene, or align the take, where the words changed.` })
+  }
+
   const guideOf = (scene: Scene, plan: SceneTreatmentV1, planRecord: PlanningRecord) => {
     const guide = recordingGuide({ plan, script: host.script(scene.id), wordingPolicy: host.wordingPolicy(), delivery: scene.delivery })
     // The teleprompter, rehearsal and take read the scene's script: until it
@@ -390,9 +411,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return h('div', { class: 'review-guide' },
       h('p', {}, h('strong', { text: 'What it is for. ' }), guide.purpose),
       h('p', { class: 'review-muted', text: guide.note }),
-      take && take.known && !take.current ? h('p', { class: 'review-warn', text: `Your current take was spoken against an earlier script${take.revision ? ` (plan r${take.revision})` : ''}. It is kept; re-record the scene, or align the take, where the words changed.` }) : null,
+      take && take.known && !take.current ? takeNote(take) : null,
       guide.lines.length
-        ? h('div', {}, h('h6', { text: `Lines to record — ${guide.source === 'plan' ? `plan r${planRecord.revision}'s narration, in its order` : 'the notebook\'s script'} (${lineLabel})` }), h('ol', { class: 'review-guide-lines' }, ...guide.lines.map(line => h('li', { text: line.text }))))
+        ? h('div', {}, h('h6', { text: `Lines to record — ${guide.source === 'plan' ? `plan r${planRecord.revision}'s narration, in its order` : 'the notebook\'s script'} (${lineLabel})` }), h('ol', { class: 'review-guide-lines' }, ...guide.lines.map(line => {
+          // A line the current take was not spoken against: only these need
+          // re-recording (R4).
+          const changed = Boolean(take && !take.current && take.changed?.includes(line.text))
+          return h('li', { class: changed ? 'is-changed' : '', text: line.text }, changed ? h('span', { class: 'review-line-flag', text: 'changed since your take' }) : null)
+        })))
         : h('p', { class: 'review-muted', text: 'The scene has no words yet.' }),
       change,
       h('h6', { text: 'Where you are, moment by moment' }),

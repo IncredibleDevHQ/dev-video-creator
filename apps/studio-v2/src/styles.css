@@ -2440,6 +2440,10 @@ body.is-video-notebook .notebook-scene-block:not(.selected-block) .block-dialogu
 .review-preview-details h6 { margin: 6px 0 0; }
 .review-no-preview { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
 .review-script-change { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid #fde68a; border-radius: 10px; background: #fffbeb; }
+.review-take-lines p { margin: 0; }
+.review-take-lines ol { margin: 6px 0 0; padding-left: 18px; }
+.review-guide-lines li.is-changed { color: #92400e; }
+.review-line-flag { margin-left: 8px; padding: 1px 6px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
 .review-script-change .review-warn { margin: 0; }
 .review-script-older summary { cursor: pointer; font-size: 12px; color: #92400e; }
 .review-script-older ol { margin: 6px 0 0; color: #71717a; font-size: 12px; }

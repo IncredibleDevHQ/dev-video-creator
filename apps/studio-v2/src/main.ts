@@ -4,7 +4,7 @@ import { controlValue, type ObjectBehavior, type AppearanceControl } from './obj
 import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
-import { scriptFingerprint } from './planning/recording-guide'
+import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -8200,12 +8200,13 @@ const supportedRecorderType = () =>
   ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
     .find(type => MediaRecorder.isTypeSupported(type)) || ''
 
-// The words a take is spoken against: their fingerprint, and the plan
-// revision they came from when a plan supplied them (R4).
+// The words a take is spoken against: their fingerprint, each line's, and
+// the plan revision they came from when a plan supplied them (R4).
 const scriptLineageOf = (sceneId: string) => {
   const node = findSlideLikeNode(sceneId)
+  const script = String(node?.attrs.script || '')
   const source = node?.attrs.scriptSource as { treatment?: string; revision?: number } | null | undefined
-  return { hash: scriptFingerprint(String(node?.attrs.script || '')), ...(source?.treatment ? { treatment: source.treatment, ...(source.revision ? { revision: source.revision } : {}) } : {}) }
+  return { hash: scriptFingerprint(script), lines: lineFingerprints(script), ...(source?.treatment ? { treatment: source.treatment, ...(source.revision ? { revision: source.revision } : {}) } : {}) }
 }
 
 // A take saved from the camera dialog joins the durable take archive (D3)
@@ -17135,8 +17136,9 @@ sceneReview = createSceneReview({
     if (!active) return null
     const archived = (project.recordedBlockTakes?.[sceneId] || []).find(take => take.recordingId === active.recordingId)
     const script = active.script || archived?.script
-    if (!script) return { known: false, current: false, revision: null }
-    return { known: true, current: script.hash === scriptFingerprint(String(findSlideLikeNode(sceneId)?.attrs.script || '')), revision: script.revision ?? null }
+    if (!script) return { known: false, current: false, revision: null, changed: null, dropped: null }
+    const against = takeAgainst(script, String(findSlideLikeNode(sceneId)?.attrs.script || ''))
+    return { known: true, current: against.current, revision: script.revision ?? null, changed: against.changed, dropped: against.dropped }
   },
   // The plan's lines become the scene's script; the words they replace are
   // kept with the lineage, and earlier takes keep what they were spoken to.

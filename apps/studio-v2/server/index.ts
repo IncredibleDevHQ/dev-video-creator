@@ -2268,7 +2268,7 @@ const handleCommitDirectedRecording = async (
     cameraUrl?: string
     cameraAssetId?: string
     beatMarksMs?: number[]
-    script?: { hash?: unknown; treatment?: unknown; revision?: unknown }
+    script?: { hash?: unknown; lines?: unknown; treatment?: unknown; revision?: unknown }
   }>(request, 64_000)
   if (!body.projectId || !body.blockId || !body.assetId || !body.mediaUrl) {
     throw new Error('The recorded block is incomplete')
@@ -2280,6 +2280,7 @@ const handleCommitDirectedRecording = async (
   const script = body.script && typeof body.script.hash === 'string' && /^[0-9a-f]{1,64}$/.test(body.script.hash)
     ? {
         hash: body.script.hash,
+        ...(Array.isArray(body.script.lines) && body.script.lines.length <= 400 && body.script.lines.every(line => typeof line === 'string' && /^[0-9a-f]{8}$/.test(line)) ? { lines: body.script.lines as string[] } : {}),
         ...(typeof body.script.treatment === 'string' && body.script.treatment.length <= 200 ? { treatment: body.script.treatment } : {}),
         ...(Number.isInteger(body.script.revision) && Number(body.script.revision) > 0 ? { revision: Number(body.script.revision) } : {}),
       }

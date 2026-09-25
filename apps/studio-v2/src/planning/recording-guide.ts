@@ -45,15 +45,34 @@ export const scriptLinesOf = (script: string) =>
     .map(paragraph => paragraph.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim())
     .filter(Boolean)
 
-// A short, stable fingerprint of a script's words (FNV-1a over its lines):
-// what a take records it was spoken against.
-export const scriptFingerprint = (script: string) => {
+const fnv = (text: string) => {
   let hash = 0x811c9dc5
-  for (const character of scriptLinesOf(script).join('\n')) {
+  for (const character of text) {
     hash ^= character.codePointAt(0) || 0
     hash = Math.imul(hash, 0x01000193) >>> 0
   }
   return hash.toString(16).padStart(8, '0')
+}
+// A short, stable fingerprint of a script's words (FNV-1a over its lines):
+// what a take records it was spoken against.
+export const scriptFingerprint = (script: string) => fnv(scriptLinesOf(script).join('\n'))
+// Each line's own fingerprint, which a take keeps too: a later script can
+// then say which of its lines the take does not cover, without the take
+// keeping the words themselves.
+export const lineFingerprints = (script: string) => scriptLinesOf(script).map(fnv)
+
+// How a take stands against the scene's script now (R4): whether it was
+// spoken against these very words and, where it kept its lines'
+// fingerprints, which lines are new since it and how many of its own are
+// gone. A take made before lines were kept knows only the whole.
+export type TakeScript = { hash: string; lines?: string[] }
+export const takeAgainst = (take: TakeScript, script: string) => {
+  const current = take.hash === scriptFingerprint(script)
+  if (!Array.isArray(take.lines)) return { current, changed: null, dropped: null }
+  const kept = new Set(take.lines)
+  const lines = scriptLinesOf(script)
+  const now = lines.map(fnv)
+  return { current, changed: lines.filter((_, index) => !kept.has(now[index])), dropped: take.lines.filter(hash => !now.includes(hash)).length }
 }
 
 const INSTRUCTIONS: Record<Framing, string> = {

@@ -4,7 +4,7 @@ import { buildCapabilityCatalog, parseBlueprintsIndex, parseRulesIndex, parseTec
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './explanation-brief'
 import { continuityStatus, validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
 import { compareTreatments } from './plan-compare'
-import { recordingGuide, scriptFingerprint } from './recording-guide'
+import { lineFingerprints, recordingGuide, scriptFingerprint, takeAgainst } from './recording-guide'
 import { sketchSummary, validateSketch } from './sketch-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from './brief-adapter'
 import { PLANNING_SCHEMA, briefFingerprint, briefFreshness, landingFor, scenePlanningView, treatmentFingerprint, treatmentFreshness, type BriefInputs, type PlanningRecord, type TreatmentInputs } from './planning-records'
@@ -635,6 +635,24 @@ describe('the recording guide', () => {
     // not change them, order does.
     expect(scriptFingerprint('A line.\n\nB line. [pause]')).toBe(scriptFingerprint('A  line.\n\n\nB line.'))
     expect(scriptFingerprint(older)).not.toBe(scriptFingerprint(guide.planScript))
+    // Unchanged for takes made before lines were kept: the same fingerprint.
+    expect(scriptFingerprint('A line.\n\nB line.')).toBe('fa269a28')
+  })
+
+  // R4: a take made against an earlier script is flagged only where the
+  // words changed — the lines it does not cover — not as a whole.
+  it('says which lines an earlier take does not cover', () => {
+    const spoken = 'Each request takes a token.\n\nWhen the bucket is empty, the request is refused.\n\nTokens drip back in.'
+    const take = { hash: scriptFingerprint(spoken), lines: lineFingerprints(spoken) }
+    expect(take.lines).toHaveLength(3)
+    expect(takeAgainst(take, spoken)).toEqual({ current: true, changed: [], dropped: 0 })
+    // The plan was revised: one line reworded, one added, the order kept.
+    const revised = 'Each request takes a token.\n\nWhen the bucket is empty, the next request is refused with a 429.\n\nTokens drip back in.\n\nOne bucket per user, in Redis.'
+    expect(takeAgainst(take, revised)).toEqual({ current: false, changed: ['When the bucket is empty, the next request is refused with a 429.', 'One bucket per user, in Redis.'], dropped: 1 })
+    // Reordered only: every line is covered, but the take is not current.
+    expect(takeAgainst(take, 'Tokens drip back in.\n\nEach request takes a token.\n\nWhen the bucket is empty, the request is refused.')).toEqual({ current: false, changed: [], dropped: 0 })
+    // A take that kept only the whole fingerprint knows only the whole.
+    expect(takeAgainst({ hash: take.hash }, revised)).toEqual({ current: false, changed: null, dropped: null })
   })
 
   it('has nothing to record for a generated or silent scene, and marks draft wording', () => {
