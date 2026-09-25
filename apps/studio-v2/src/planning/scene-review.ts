@@ -1772,6 +1772,60 @@ export const createSceneReview = (host: SceneReviewHost) => {
     }
   }
 
+  // The scene's timeline (U6): the plan's moments on the clock of what the
+  // stage plays — the produced scene's measured clock, the sketch's, or the
+  // plan's estimates — each with who is heard, whether the presenter is in
+  // the picture, the text, the camera and the sound; and the layers the
+  // composition declared, over the moments they appear in. Read-only: what
+  // can be adjusted is adjusted in Output.
+  const PRESENCE: Record<'full' | 'shared' | 'hidden' | 'undecided', string> = { full: 'On camera', shared: 'Beside the graphics', hidden: 'Voice only', undecided: 'Framing open' }
+  const timelineOf = (sceneId: string) => {
+    const scene = sceneOf(sceneId)
+    const record = scene ? shownRecord(scene) : null
+    const plan = record?.content as SceneTreatmentV1 | undefined
+    if (!scene || !record || !plan) return null
+    const mode = host.stageMode?.()
+    const produced = producedFor(scene, record)
+    const ready = previewFor(scene, record)
+    const measured = mode === 'output' && Boolean(produced)
+    const summary = measured ? produced!.summary : mode === 'preview' && ready ? ready.summary : null
+    let at = 0
+    const moments = plan.moments.map((moment, index) => {
+      const timed = summary?.moments.find(entry => entry.id === moment.id)
+      const start = timed ? timed.start : at
+      const end = timed ? timed.end : start + (moment.estimateSeconds || 4)
+      at = Math.max(at, end)
+      const presence = scene.delivery === 'human' ? moment.presenter?.visibility || 'undecided' : ''
+      return {
+        id: moment.id,
+        index,
+        title: moment.title,
+        start,
+        end,
+        voice: scene.delivery === 'silent' ? '' : moment.narration?.guide || '',
+        presence,
+        presenter: presence ? PRESENCE[presence] : '',
+        text: moment.text?.content || '',
+        camera: moment.camera?.treatment || '',
+        sound: moment.audio?.cue || '',
+      }
+    })
+    const clock = measured
+      ? produced!.summary.clock === 'take' ? 'your take' : produced!.summary.clock === 'generated-voice' ? 'the generated voice' : 'the plan\'s timing, silent'
+      : summary ? `the sketch of plan r${record.revision}` : `plan r${record.revision}'s estimates`
+    return {
+      moments,
+      duration: summary?.duration || at,
+      measured,
+      timed: Boolean(summary),
+      clock,
+      voice: scene.delivery === 'generated' ? 'Generated voice' : scene.delivery === 'silent' ? '' : 'Voice',
+      layers: (summary?.layers || []).map(layer => ({ id: layer.id, label: layer.label, kind: layer.kind, moments: layer.moments, placeholder: Boolean(layer.placeholder) })),
+      adjustable: measured ? produced!.summary.controls.length : 0,
+      selected: uiOf(sceneId).moment,
+    }
+  }
+
   // One widget per scene block: the strip, or the review when selected —
   // which then leads, above the block it reviews (F7).
   const widget = (sceneId: string, expanded: boolean) => {
@@ -1843,6 +1897,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         return scene ? contextOf(scene, section) : null
       },
       moments: momentsRow,
+      timeline: timelineOf,
       // Playback moved into another moment: the inspector follows, the
       // stage is not sought.
       follow: (sceneId: string, momentId: string) => {

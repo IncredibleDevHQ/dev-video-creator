@@ -18432,6 +18432,9 @@ const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) 
   if (shownMode === 'output' && !produced) shownMode = 'reference'
   if (shownMode === 'base' && !newer) shownMode = 'reference'
   if (!sceneWorkspace?.active()) sceneStageMode = shownMode
+  // The workspace's one action follows what the stage shows: reviewing the
+  // output becomes accepting it once the produced scene is on the stage.
+  if (stageShownMode !== shownMode) queueMicrotask(() => sceneWorkspace?.render())
   stageShownMode = shownMode
   const pageLabel = reference?.kind === 'schematic' ? 'Schematic' : reference?.kind === 'designed' ? 'Designed slide' : 'Page reference'
   sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {

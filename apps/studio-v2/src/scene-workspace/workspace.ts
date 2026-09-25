@@ -57,7 +57,7 @@ export type SceneWorkspaceHost = {
 
 const VIEW_KEY = 'incredible-studio-v2-video-view'
 const PREFS_KEY = 'incredible-studio-v2-workspace-'
-type Prefs = { scene?: string; tab?: InspectorTab; rail?: boolean; follow?: boolean; context?: ContextSection | '' }
+type Prefs = { scene?: string; tab?: InspectorTab; rail?: boolean; follow?: boolean; context?: ContextSection | ''; timeline?: boolean }
 
 const readJson = <T>(key: string, fallback: T): T => {
   try {
@@ -396,10 +396,123 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   }
 
   // ——— Playback and the moments row ———
+  // ——— The scene's timeline (U6): the whole scene on its clock ———
+  // It takes the moments row's place when expanded, never a second timeline.
+  type Timeline = NonNullable<ReturnType<WorkspaceReview['timeline']>>
+  let timelineKey = ''
+  let timelineBox: HTMLElement | null = null
+  const buildTimeline = (sceneId: string, data: Timeline) => {
+    const total = data.duration || 1
+    const place = (start: number, end: number) => `left:${((Math.max(0, start) / total) * 100).toFixed(3)}%;width:${((Math.max(0.05, end - start) / total) * 100).toFixed(3)}%`
+    const lane = (label: string, key: string, items: HTMLElement[], title = label) =>
+      h('div', { class: `sw-track is-${key}`, role: 'group', 'aria-label': label }, h('span', { class: 'sw-track-label', title, text: label }), h('div', { class: 'sw-lane' }, ...items))
+    type Field = 'voice' | 'presenter' | 'text' | 'camera' | 'sound'
+    const cells = (key: Field) => data.moments.filter(moment => moment[key]).map(moment =>
+      h('span', { class: `sw-cell${key === 'presenter' ? ` is-${moment.presence}` : ''}`, style: place(moment.start, moment.end), title: `${moment.index + 1}. ${moment.title} — ${moment[key]}`, text: moment[key] }))
+    const has = (key: Field) => data.moments.some(moment => moment[key])
+    const moments = data.moments.map(moment => {
+      const cell = h('button', { type: 'button', class: `sw-cell sw-cell-moment${moment.id === data.selected ? ' is-selected' : ''}`, 'data-moment': moment.id, 'data-focus': `sw-tl-moment:${moment.id}`, 'aria-pressed': moment.id === data.selected ? 'true' : 'false', style: place(moment.start, moment.end), title: `${moment.index + 1}. ${moment.title} — ${seconds(moment.start)} to ${seconds(moment.end)}${data.timed ? '' : ' est.'}` }, h('b', { text: String(moment.index + 1) }), ` ${moment.title}`)
+      cell.addEventListener('click', () => review()?.pick(sceneId, moment.id === data.selected ? '' : moment.id))
+      return cell
+    })
+    // Each layer where it is on: one bar per run of the moments it is in.
+    const shownLayers = data.layers.slice(0, 8)
+    const layers = shownLayers.map(layer => {
+      const runs: Array<[number, number]> = []
+      for (const moment of data.moments) {
+        if (!layer.moments.includes(moment.id)) continue
+        const last = runs[runs.length - 1]
+        if (last && Math.abs(last[1] - moment.start) < 0.01) last[1] = moment.end
+        else runs.push([moment.start, moment.end])
+      }
+      return lane(layer.label, 'layer', runs.map(([start, end]) => h('span', { class: `sw-cell${layer.placeholder ? ' is-placeholder' : ''}`, style: place(start, end), title: `${layer.label} · ${layer.kind}${layer.placeholder ? ' · a placeholder' : ''}` })), `${layer.label} · ${layer.kind}`)
+    })
+    // What the composition itself declared, apart from what the plan says.
+    const group = layers.length ? h('div', { class: 'sw-track-group', role: 'group', 'aria-label': `Layers of ${data.measured ? 'the produced scene' : 'the sketch'}` }, h('span', { class: 'sw-track-caption', text: `Layers · ${data.measured ? 'produced scene' : 'sketch'}` }), ...layers) : null
+    const tracks = [
+      lane('Moments', 'moments', moments),
+      data.voice && has('voice') ? lane(data.voice, 'voice', cells('voice')) : null,
+      has('presenter') ? lane('Presenter', 'presenter', cells('presenter')) : null,
+      group,
+      has('text') ? lane('Text', 'text', cells('text')) : null,
+      has('camera') ? lane('Camera', 'camera', cells('camera')) : null,
+      has('sound') ? lane('Sound', 'sound', cells('sound')) : null,
+    ].filter((track): track is HTMLDivElement => Boolean(track))
+    const notes = [
+      `${data.measured ? 'On the clock of' : 'Timed by'} ${data.clock}`,
+      data.layers.length > shownLayers.length ? `${data.layers.length - shownLayers.length} more layers not shown` : data.layers.length ? '' : 'layers show while a preview or the produced scene plays',
+      `read-only${data.adjustable ? ` — ${data.adjustable} timing${data.adjustable === 1 ? '' : 's'} can be adjusted in Output` : ''}`,
+    ].filter(Boolean)
+    return h('div', { class: 'sw-timeline', role: 'group', 'aria-label': 'Timeline' },
+      h('div', { class: 'sw-timeline-ruler', 'aria-hidden': 'true' }, h('span', { text: seconds(0) }), h('span', { text: seconds(total) })),
+      h('div', { class: 'sw-timeline-tracks' }, ...tracks, h('span', { class: 'sw-playline', 'aria-hidden': 'true' })),
+      h('p', { class: 'sw-timeline-note', text: notes.join(' · ') }),
+    )
+  }
+  // Drawn again only when what it shows changes; each tick moves the line.
+  const timelineView = (sceneId: string, state: ReturnType<StagePlayback['state']>) => {
+    const data = review()?.timeline(sceneId)
+    if (!data) return h('span', { class: 'sw-moments-empty', text: 'The timeline appears once the scene is planned.' })
+    const key = JSON.stringify([sceneId, data])
+    if (key !== timelineKey || !timelineBox) {
+      timelineKey = key
+      timelineBox = buildTimeline(sceneId, data)
+    }
+    const on = state.playable && data.timed && data.duration > 0
+    timelineBox.classList.toggle('has-playhead', on)
+    timelineBox.style.setProperty('--at', String(on ? Math.min(1, Math.max(0, state.time / data.duration)) : 0))
+    timelineBox.querySelectorAll<HTMLElement>('.sw-cell-moment').forEach(cell => {
+      const moment = data.moments.find(entry => entry.id === cell.dataset.moment)
+      cell.classList.toggle('is-current', Boolean(on && moment && state.time >= moment.start && state.time < moment.end))
+    })
+    return timelineBox
+  }
+  const chipsView = (sceneId: string, row: NonNullable<ReturnType<WorkspaceReview['moments']>> | null | undefined, state: ReturnType<StagePlayback['state']>, current: string) => {
+    const moments = h('div', { class: 'sw-moments', role: 'listbox', 'aria-label': 'Moments', 'aria-orientation': 'horizontal' })
+    if (!row) {
+      moments.append(h('span', { class: 'sw-moments-empty', text: 'The plan\'s moments appear here once the scene is planned.' }))
+      return moments
+    }
+    if (row.draft) moments.append(h('span', { class: 'sw-moments-draft', text: 'Draft · still being checked' }))
+    for (const moment of row.moments) {
+      const chip = h('button', {
+        type: 'button',
+        role: 'option',
+        class: `sw-moment${moment.id === row.selected ? ' is-selected' : ''}${moment.id === current ? ' is-current' : ''}${row.draft ? ' is-draft' : ''}`,
+        'aria-selected': moment.id === row.selected ? 'true' : 'false',
+        'data-focus': `sw-moment:${moment.id}`,
+        'data-moment': moment.id,
+        title: `${moment.index + 1}. ${moment.title}${moment.seconds ? ` — ${moment.seconds}s${row.measured ? '' : ' est.'}` : ''}`,
+        style: `flex-grow:${Math.max(0.6, moment.seconds || 1)}`,
+        // A drafted moment is not a plan's moment yet: nothing to open.
+        ...(row.draft ? { disabled: true, 'aria-disabled': 'true' } : {}),
+      },
+        h('span', { class: 'sw-moment-number', text: String(moment.index + 1) }),
+        h('span', { class: 'sw-moment-title', text: moment.title }),
+        moment.seconds ? h('span', { class: 'sw-moment-time', text: `${moment.seconds}s${row.measured ? '' : '≈'}` }) : null,
+      )
+      chip.addEventListener('click', () => {
+        review()?.pick(sceneId, moment.id === row.selected ? '' : moment.id)
+      })
+      moments.append(chip)
+    }
+    if (state.playable && current) {
+      const chip = moments.querySelector<HTMLElement>(`[data-moment="${CSS.escape(current)}"]`)
+      const timed = row.moments.find(moment => moment.id === current)
+      if (chip && timed && timed.start !== null && timed.end !== null) {
+        const head = h('span', { class: 'sw-playhead', 'aria-hidden': 'true' })
+        head.style.setProperty('--at', String(Math.min(1, Math.max(0, (state.time - timed.start) / Math.max(0.01, timed.end - timed.start)))))
+        chip.append(head)
+      }
+    }
+    return moments
+  }
   const renderTransport = () => {
     const sceneId = currentScene()
     const row = sceneId ? review()?.moments(sceneId) : null
     const state = host.playback.state()
+    // Redrawn on every tick: what had the keyboard keeps it.
+    const had = document.activeElement instanceof HTMLElement && transport.contains(document.activeElement) ? document.activeElement.getAttribute('data-focus') : null
     const play = h('button', { type: 'button', class: 'sw-play', 'data-focus': 'sw-play', 'aria-label': state.playing ? 'Pause' : state.ended ? 'Play again from the start' : 'Play', text: state.playing ? '❚❚' : state.ended ? '↻' : '▶', ...(state.playable ? {} : { disabled: true, title: 'Nothing playable on the stage — the reference is a still page' }) })
     play.addEventListener('click', () => {
       // The stage plays again: a take shown over it gives way.
@@ -407,49 +520,21 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       host.playback.toggle()
     })
     const clock = h('span', { class: 'sw-clock', text: state.playable ? `${seconds(state.time)} / ${seconds(state.duration)}${state.estimated ? ' est.' : ''}` : '—' })
-    const moments = h('div', { class: 'sw-moments', role: 'listbox', 'aria-label': 'Moments', 'aria-orientation': 'horizontal' })
     let current = ''
-    if (row?.draft) moments.append(h('span', { class: 'sw-moments-draft', text: 'Draft · still being checked' }))
-    if (row) {
-      for (const moment of row.moments) {
-        const playing = state.playable && moment.start !== null && moment.end !== null && state.time >= moment.start && state.time < moment.end
-        if (playing) current = moment.id
-        const chip = h('button', {
-          type: 'button',
-          role: 'option',
-          class: `sw-moment${moment.id === row.selected ? ' is-selected' : ''}${playing ? ' is-current' : ''}${row.draft ? ' is-draft' : ''}`,
-          'aria-selected': moment.id === row.selected ? 'true' : 'false',
-          'data-focus': `sw-moment:${moment.id}`,
-          'data-moment': moment.id,
-          title: `${moment.index + 1}. ${moment.title}${moment.seconds ? ` — ${moment.seconds}s${row.measured ? '' : ' est.'}` : ''}`,
-          style: `flex-grow:${Math.max(0.6, moment.seconds || 1)}`,
-          // A drafted moment is not a plan's moment yet: nothing to open.
-          ...(row.draft ? { disabled: true, 'aria-disabled': 'true' } : {}),
-        },
-          h('span', { class: 'sw-moment-number', text: String(moment.index + 1) }),
-          h('span', { class: 'sw-moment-title', text: moment.title }),
-          moment.seconds ? h('span', { class: 'sw-moment-time', text: `${moment.seconds}s${row.measured ? '' : '≈'}` }) : null,
-        )
-        chip.addEventListener('click', () => {
-          review()?.pick(sceneId, moment.id === row.selected ? '' : moment.id)
-        })
-        moments.append(chip)
-      }
-      if (state.playable && current) {
-        const chip = moments.querySelector<HTMLElement>(`[data-moment="${CSS.escape(current)}"]`)
-        const timed = row.moments.find(moment => moment.id === current)
-        if (chip && timed && timed.start !== null && timed.end !== null) {
-          const head = h('span', { class: 'sw-playhead', 'aria-hidden': 'true' })
-          head.style.setProperty('--at', String(Math.min(1, Math.max(0, (state.time - timed.start) / Math.max(0.01, timed.end - timed.start)))))
-          chip.append(head)
-        }
-      }
-    } else {
-      moments.append(h('span', { class: 'sw-moments-empty', text: 'The plan\'s moments appear here once the scene is planned.' }))
-    }
-    transport.replaceChildren(play, clock, moments)
-    // Following playback moves the inspector's moment, never the page.
+    if (row && state.playable) current = row.moments.find(moment => moment.start !== null && moment.end !== null && state.time >= moment.start && state.time < moment.end)?.id || ''
     loadPrefs()
+    const canExpand = Boolean(row) && !row?.draft
+    const expanded = canExpand && Boolean(prefs.timeline)
+    const toggle = canExpand ? h('button', { type: 'button', class: `sw-tool sw-timeline-toggle${expanded ? ' is-on' : ''}`, 'data-focus': 'sw-timeline', 'aria-pressed': expanded ? 'true' : 'false', text: 'Timeline', title: 'The whole scene on its clock: voice, presenter, layers, text, camera and sound' }) : null
+    toggle?.addEventListener('click', () => {
+      savePrefs({ timeline: !prefs.timeline })
+      renderTransport()
+    })
+    const body = expanded ? timelineView(sceneId, state) : chipsView(sceneId, row, state, current)
+    transport.classList.toggle('is-timeline', expanded)
+    transport.replaceChildren(play, clock, body, ...(toggle ? [toggle] : []))
+    if (had) transport.querySelector<HTMLElement>(`[data-focus="${CSS.escape(had)}"]`)?.focus({ preventScroll: true })
+    // Following playback moves the inspector's moment, never the page.
     if (prefs.follow && state.playing && current && current !== lastCurrent && row && current !== row.selected) review()?.follow(sceneId, current)
     lastCurrent = current
   }

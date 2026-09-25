@@ -69,6 +69,7 @@ const CHECKS = [
   'preview-handoff-check.mjs',    // U4: a waited-for preview takes the stage; a chosen view, another scene, playback and races keep theirs
   'planning-progress-check.mjs',  // U3: a run in named phases it confirmed, checked drafts, Cancelling…, a quota failure with its draft and the ways on
   'scene-recording-check.mjs',    // U5: recording beside the stage, no device until asked, takes kept, chosen, played; a generated scene beside it
+  'scene-timeline-check.mjs',     // U6: the scene's read-only timeline on the clock of its plan, sketch or production, in the moments row's place
   'plan-preview-check.mjs',       // P3: a plan's rough sketch, checked by the pinned engine, played and seeked on the stage
   'production-check.mjs',         // P4: an approved scene produced on its real clock, accepted, played and exported
   'presented-production-check.mjs', // P5/P6: a scene you present produced on your aligned take, its timing edited, exported (SKIP without uv)
