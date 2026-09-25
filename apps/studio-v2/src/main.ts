@@ -6,6 +6,7 @@ import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
+import { bindingOf, landingFor, pageFingerprint, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -15543,14 +15544,35 @@ const renderSourceOutline = () => {
   sum()
 }
 
+// What each page is now (F2): designed, designed and being checked, still
+// being designed, failed the page check, or a schematic draft. Designed
+// pages and schematic drafts are always told apart: a draft is a starting
+// layout, never passed off as the presentation drawing.
+const sourcePageState = (page: SourcePage, index: number, draft: SourceDraft | null) => {
+  const failed = [...(draft?.rejected.entries() || [])].find(([name]) => Number(/^(\d{2})/.exec(name)?.[1]) === index + 1)
+  if (page.drawnBy) return draft?.phase === 'checking' ? { key: 'checking', text: `designed · ${page.drawnBy} · checking` } : { key: 'designed', text: `designed · ${page.drawnBy}` }
+  if (failed) return { key: 'failed', text: 'schematic draft · failed the page check', why: failed[1] }
+  if (sourceDesignActive(draft)) return { key: 'designing', text: 'schematic draft · being designed' }
+  return { key: 'draft', text: 'schematic draft' }
+}
+
 const renderSourcePagesGrid = (pages: SourcePage[], draft: SourceDraft | null = sourceState.draft || null) => {
   const grid = $('#source-pages-grid') as HTMLElement
-  const designing = sourceDesignActive(draft)
   grid.replaceChildren(
     ...pages.map((page, index) => {
       const card = document.createElement('div')
       card.className = 'source-page'
       card.dataset.origin = page.drawnBy ? 'designed' : 'schematic'
+      // Any page, finished or not, opens large (F2).
+      card.tabIndex = 0
+      card.setAttribute('role', 'button')
+      card.setAttribute('aria-label', `Look at page ${index + 1}, ${page.title}, large`)
+      card.addEventListener('click', () => openSourcePageInspector(index))
+      card.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        openSourcePageInspector(index)
+      })
       const thumb = document.createElement('div')
       thumb.className = 'thumb'
       thumb.innerHTML = page.svg
@@ -15559,22 +15581,75 @@ const renderSourcePagesGrid = (pages: SourcePage[], draft: SourceDraft | null = 
       const meta = document.createElement('small')
       meta.textContent = `${page.kind} · ${page.seconds} s`
       meta.title = `${page.contract.groups} groups · ${page.contract.verbs} verbs — the parts the studio can read, not a measure of how the page looks`
-      // Designed pages and schematic drafts are always told apart: a draft is
-      // a starting layout, never passed off as the presentation drawing.
+      const state = sourcePageState(page, index, draft)
       const badge = document.createElement('span')
       badge.className = 'drawn'
-      if (page.drawnBy) {
-        badge.textContent = `designed · ${page.drawnBy}`
-      } else {
-        badge.classList.add(designing ? 'is-pending' : 'is-draft')
-        badge.textContent = designing ? 'schematic draft · being designed' : 'schematic draft'
-        badge.title = 'An instant schematic layout — plain shapes and text. Design the pages for the presentation drawing.'
+      badge.dataset.state = state.key
+      badge.textContent = state.text
+      if (!page.drawnBy) {
+        badge.classList.add(state.key === 'designing' ? 'is-pending' : state.key === 'failed' ? 'is-failed' : 'is-draft')
+        badge.title = state.why || 'An instant schematic layout — plain shapes and text. Design the pages for the presentation drawing.'
       }
       card.append(thumb, label, meta, badge)
       return card
     }),
   )
+  if (!sourcePageInspector.hidden) renderSourcePageInspector()
 }
+
+// The page inspector (F2): one page at a useful size, its state, and the
+// pages either side — finished pages can be read while the rest design.
+const sourcePageInspector = $('#source-page-inspector') as HTMLElement
+let sourceInspectedPage = 0
+const renderSourcePageInspector = () => {
+  const pages = sourceState.pages || []
+  const page = pages[sourceInspectedPage]
+  if (!page) {
+    sourcePageInspector.hidden = true
+    return
+  }
+  const state = sourcePageState(page, sourceInspectedPage, sourceState.draft || null)
+  ;($('#source-inspector-title') as HTMLElement).textContent = `${sourceInspectedPage + 1} of ${pages.length} · ${page.title}`
+  const stateLine = $('#source-inspector-state') as HTMLElement
+  stateLine.textContent = state.why ? `${state.text} — ${state.why}` : state.text
+  stateLine.dataset.state = state.key
+  ;($('#source-inspector-page') as HTMLElement).innerHTML = page.svg
+  ;($('#source-inspector-prev') as HTMLButtonElement).disabled = sourceInspectedPage === 0
+  ;($('#source-inspector-next') as HTMLButtonElement).disabled = sourceInspectedPage >= pages.length - 1
+}
+const openSourcePageInspector = (index: number) => {
+  sourceInspectedPage = index
+  sourcePageInspector.hidden = false
+  renderSourcePageInspector()
+  ;($('#source-inspector-close') as HTMLButtonElement).focus()
+}
+const closeSourcePageInspector = () => {
+  if (sourcePageInspector.hidden) return
+  sourcePageInspector.hidden = true
+  document.querySelectorAll<HTMLElement>('#source-pages-grid .source-page')[sourceInspectedPage]?.focus()
+}
+;($('#source-inspector-prev') as HTMLButtonElement).addEventListener('click', () => {
+  sourceInspectedPage = Math.max(0, sourceInspectedPage - 1)
+  renderSourcePageInspector()
+})
+;($('#source-inspector-next') as HTMLButtonElement).addEventListener('click', () => {
+  sourceInspectedPage = Math.min((sourceState.pages || []).length - 1, sourceInspectedPage + 1)
+  renderSourcePageInspector()
+})
+;($('#source-inspector-close') as HTMLButtonElement).addEventListener('click', () => closeSourcePageInspector())
+// Escape closes the page, not the wizard.
+sourceDialog.addEventListener('cancel', event => {
+  if (sourcePageInspector.hidden) return
+  event.preventDefault()
+  closeSourcePageInspector()
+})
+sourceDialog.addEventListener('close', () => {
+  sourcePageInspector.hidden = true
+})
+sourcePageInspector.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft') ($('#source-inspector-prev') as HTMLButtonElement).click()
+  if (event.key === 'ArrowRight') ($('#source-inspector-next') as HTMLButtonElement).click()
+})
 
 // ——— The base deck: designed through a local harness, or schematic drafts ———
 // Designing the pages is the normal path whenever a drawing harness is
@@ -15633,7 +15708,7 @@ const sourceFinishLabel = (draft: SourceDraft | null | undefined) => {
   if (!draft) return 'Open the notebook'
   const total = draft.pages.length
   const designed = designedCount(draft)
-  if (sourceDesignActive(draft)) return `Open now — ${designed} designed, ${total - designed} schematic`
+  if (sourceDesignActive(draft)) return designed === total ? 'Open now — all designed, still checking' : `Open now — ${designed} designed, ${total - designed} still designing`
   if (total && designed === total) return draft.phase === 'ready' ? 'Open the designed notebook' : 'Open the designed pages, unchecked'
   if (designed) return `Open with ${designed} designed + ${total - designed} schematic drafts`
   return 'Open the notebook with schematic drafts'
@@ -15684,7 +15759,14 @@ const renderSourceDesign = () => {
   design.hidden = !canDesign
   design.textContent = draft.phase === 'drafts' ? 'Design the pages' : 'Design them again'
   const note = document.getElementById('source-pages-note')
-  if (note && !finish.disabled) note.textContent = active ? 'Opening now stops the designer; the rest open as schematic drafts.' : ''
+  const still = total - designed
+  if (note && !finish.disabled) {
+    note.textContent = active
+      ? still
+        ? `Opening now keeps designing: ${still === 1 ? 'the page still being designed lands on its scene' : `the ${still} pages still being designed land on their scenes`} as ${still === 1 ? 'it is' : 'they are'} finished. Stop remaining work keeps ${still === 1 ? 'it a schematic draft' : 'them schematic drafts'}.`
+        : 'Opening now keeps the check running; a page it redraws lands on its scene.'
+      : ''
+  }
   log.hidden = !draft.log.length
   const list = log.querySelector('ol')
   if (list) {
@@ -16208,9 +16290,10 @@ const sourceFinish = async () => {
   const pages = sourceState.pages
   if (!source || !outline || !pages?.length) return
   // Opening while the designer works takes every page it has finished; the
-  // rest open as schematic drafts, and the designer stops.
+  // rest open as schematic drafts bound to the run, which keeps designing
+  // and lands each page on its scene as it is finished (F2).
   const draft = sourceState.draft?.pages === pages ? sourceState.draft : null
-  if (draft && sourceDesignActive(draft)) await stopSourceDesign(draft)
+  const designRun = draft && sourceDesignActive(draft) && draft.run?.id ? draft.run : null
   const designedPages = pages.filter(page => page.drawnBy).length
   // The choice is offered only when the notebook holds the author's own
   // content; a notebook with none (or only the untouched starter sample) is
@@ -16236,7 +16319,13 @@ const sourceFinish = async () => {
   const bySceneTitle = new Map(outline.scenes.map(scene => [scene.title, scene]))
   // Each scene records how its page was made, so a schematic draft stays
   // identified in the notebook.
-  const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, program: page.program || null, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true, pageOrigin: page.drawnBy ? { kind: 'designed', by: page.drawnBy, ...(page.designRun ? { runId: page.designRun } : {}) } : { kind: 'schematic' } } }))
+  const nodes = pages.map((page, index) => {
+    const origin = page.drawnBy ? { kind: 'designed', by: page.drawnBy, ...(page.designRun ? { runId: page.designRun } : {}) } : { kind: 'schematic' }
+    // While the run works, every scene waits for its page from it — a page
+    // it redraws as it checks lands too — bound to the page shown now.
+    const designing: PageDesignBinding | null = designRun ? { runId: designRun.id, page: index + 1, by: designRun.label, placeholder: pageFingerprint(page.svg), ...(page.drawnBy ? { landed: pageFingerprint(page.svg) } : {}) } : null
+    return { type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, program: page.program || null, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true, pageOrigin: designing ? { ...origin, designing } : origin } }
+  })
   editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
   const inserted = pages.map(page => page.title)
   // Each new scene gets its block, then its first plan from the draft line,
@@ -16290,9 +16379,176 @@ const sourceFinish = async () => {
     }
   }
   sourceState.draft = null
-  const origin = designedPages === pages.length ? '' : designedPages ? ` · ${designedPages} designed, ${pages.length - designedPages} schematic drafts` : ' · schematic drafts'
+  if (designRun && draft) {
+    // The notebook follows the run from here; the wizard lets go of it. Each
+    // scene is bound to its page as the notebook keeps it — once its first
+    // plan has given the page's parts their ids.
+    if (draft.poll) window.clearInterval(draft.poll)
+    draft.poll = null
+    sourceDesignRuns.delete(designRun.id)
+    if (restampPageBindings(fresh.map(node => String(node.attrs!.id)))) syncProject()
+    watchPageDesign()
+  }
+  const still = pages.length - designedPages
+  const origin = designedPages === pages.length ? '' : designRun ? ` · ${designedPages} designed, ${still} still being designed` : designedPages ? ` · ${designedPages} designed, ${still} schematic drafts` : ' · schematic drafts'
   showToast(`${inserted.length} scenes from ${source.site || 'your narrative'}${startedNew ? ' in a new notebook' : ''} · ${formatTarget(outline.targetSeconds)} planned${origin}`)
 }
+
+// ——— Pages still being designed in an open notebook (F2) ———
+// Each bound scene takes its run's finished page while it still shows the
+// page it was opened with, keeps its own change otherwise, and lets its
+// binding go once the run has ended. The binding is on the scene, so this
+// resumes whenever the notebook opens. A video notebook is pinned to its
+// base as it was, so it never takes pages.
+let pageDesignTimer: number | null = null
+let pageDesignBusy = false
+const pageDesignStatus = $('#page-design-status') as HTMLElement
+const pageDesignBindings = () => {
+  const bound: Array<{ nodeId: string; title: string; binding: PageDesignBinding; designed: boolean }> = []
+  editor.state.doc.forEach(node => {
+    if (node.type.name !== 'scene') return
+    const binding = bindingOf(node.attrs as Record<string, unknown>)
+    if (binding) bound.push({ nodeId: String(node.attrs.id || ''), title: String(node.attrs.title || ''), binding, designed: (node.attrs.pageOrigin as { kind?: string } | null)?.kind === 'designed' })
+  })
+  return bound
+}
+const renderPageDesignStatus = () => {
+  const bound = project.derivedFrom?.notebook ? [] : pageDesignBindings()
+  pageDesignStatus.hidden = !bound.length
+  if (!bound.length) return
+  const waiting = bound.filter(entry => !entry.designed).length
+  const by = bound[0].binding.by || 'the designer'
+  ;($('#page-design-text') as HTMLElement).textContent = waiting
+    ? `${by} is still designing ${waiting} page${waiting === 1 ? '' : 's'}; each lands on its scene when it is finished.`
+    : `Every page is designed; ${by} is still checking them.`
+}
+// A bound scene is bound to its page as the notebook keeps it: planning a
+// scene rewrites its page with the parts' ids, so the binding follows that.
+const restampPageBindings = (nodeIds: string[]) => {
+  let tr = editor.state.tr
+  let changed = false
+  editor.state.doc.forEach((node, offset) => {
+    if (node.type.name !== 'scene' || !nodeIds.includes(String(node.attrs.id || ''))) return
+    const binding = bindingOf(node.attrs as Record<string, unknown>)
+    if (!binding) return
+    const placeholder = pageFingerprint(String(node.attrs.svg || ''))
+    if (placeholder === binding.placeholder) return
+    tr = tr.setNodeMarkup(offset, undefined, { ...node.attrs, pageOrigin: { ...(node.attrs.pageOrigin as Record<string, unknown>), designing: { ...binding, placeholder } } })
+    changed = true
+  })
+  if (changed) editor.view.dispatch(tr)
+  return changed
+}
+// A designed page the studio can use: it parses into parts, and its
+// contract is read. Throws with why it cannot.
+const readDesignedPage = (svg: string) => {
+  const atomized = atomizeSlideSvg(svg)
+  if (!atomized.units.length) throw new Error('the page has no parts the studio can read')
+  return atomized
+}
+const writePageOrigin = (nodeId: string, attrs: (current: Record<string, unknown>) => Record<string, unknown>) => {
+  const found = topLevelNodeAt(nodeId)
+  const node = found ? editor.state.doc.nodeAt(found.at) : null
+  if (!found || !node) return false
+  editor.view.dispatch(editor.state.tr.setNodeMarkup(found.at, undefined, { ...node.attrs, ...attrs(node.attrs as Record<string, unknown>) }))
+  return true
+}
+const landDesignedPages = async () => {
+  const bridge = window.studioDesktop
+  if (pageDesignBusy || !bridge?.isDesktop || project.derivedFrom?.notebook) return
+  pageDesignBusy = true
+  const kept: string[] = []
+  const stayed: string[] = []
+  let landed = 0
+  try {
+    const bound = pageDesignBindings()
+    for (const runId of [...new Set(bound.map(entry => entry.binding.runId))]) {
+      // Whether the run has ended first, then its pages: an ended run's
+      // pages are all there is.
+      const summary = await finishedRun(runId).catch(() => undefined)
+      const ended = !summary || ['done', 'error', 'cancelled'].includes(summary.status)
+      const result = await bridge.harness.pages(runId).catch(() => null)
+      for (const entry of bound.filter(item => item.binding.runId === runId)) {
+        const node = findSlideLikeNode(entry.nodeId)
+        const binding = node ? bindingOf(node.attrs as Record<string, unknown>) : null
+        if (!node || !binding || binding.runId !== runId) continue
+        const page = result ? runPageFor(result.pages, binding.page) : undefined
+        const landing = landingFor(String(node.attrs.svg || ''), binding, page, ended)
+        if (landing === 'wait') continue
+        if (landing === 'apply' && page) {
+          try {
+            readDesignedPage(page.svg)
+          } catch (error) {
+            // A page still being written parses on a later pass; once the
+            // run has ended it failed the page check and stays as it is.
+            if (!ended) continue
+            console.warn('designed page rejected', runId, binding.page, error)
+            if (writePageOrigin(entry.nodeId, attrs => ({ pageOrigin: settledOrigin(attrs.pageOrigin) }))) stayed.push(entry.title)
+            continue
+          }
+          const origin = { kind: 'designed', by: binding.by, runId }
+          const applied = writePageOrigin(entry.nodeId, () => ({
+            svg: page.svg,
+            svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`,
+            program: page.program || null,
+            pageOrigin: ended ? origin : { ...origin, designing: { ...binding, placeholder: pageFingerprint(page.svg), landed: pageFingerprint(page.svg) } },
+          }))
+          if (!applied) continue
+          landed += 1
+          // The page changed under the scene's words: its motion is planned
+          // again from them.
+          try {
+            animateSceneLocally(entry.nodeId)
+          } catch (error) {
+            console.warn('re-plan after a designed page failed', entry.nodeId, error)
+          }
+          // Still bound while the run checks: to the page as planned.
+          if (!ended) restampPageBindings([entry.nodeId])
+          continue
+        }
+        // Changed since it was bound, or the run is over: the binding goes.
+        const wasSchematic = !entry.designed
+        if (writePageOrigin(entry.nodeId, attrs => ({ pageOrigin: settledOrigin(attrs.pageOrigin) }))) {
+          if (landing === 'kept') kept.push(entry.title)
+          else if (wasSchematic) stayed.push(entry.title)
+        }
+      }
+    }
+  } finally {
+    pageDesignBusy = false
+  }
+  if (landed || kept.length || stayed.length) syncProject()
+  if (kept.length) showToast(`${kept.map(title => `“${title}”`).join(', ')} changed while ${kept.length === 1 ? 'its page was' : 'their pages were'} designed — ${kept.length === 1 ? 'it keeps' : 'they keep'} your change`)
+  else if (stayed.length) showToast(`${stayed.length} page${stayed.length === 1 ? '' : 's'} stayed schematic draft${stayed.length === 1 ? '' : 's'} — the design run ended before ${stayed.length === 1 ? 'it was' : 'they were'} finished`)
+  else if (landed) showToast(`${landed} designed page${landed === 1 ? '' : 's'} landed on ${landed === 1 ? 'its scene' : 'their scenes'}`)
+  if (!pageDesignBindings().length && pageDesignTimer !== null) {
+    window.clearInterval(pageDesignTimer)
+    pageDesignTimer = null
+  }
+  renderPageDesignStatus()
+}
+function watchPageDesign() {
+  renderPageDesignStatus()
+  if (project.derivedFrom?.notebook || !window.studioDesktop?.isDesktop || !pageDesignBindings().length) return
+  if (pageDesignTimer === null) pageDesignTimer = window.setInterval(() => void landDesignedPages(), SOURCE_DESIGN_POLL_MS)
+  void landDesignedPages()
+}
+// Stop remaining work: the run is stopped, what it finished lands, the rest
+// stay schematic drafts.
+;($('#page-design-stop') as HTMLButtonElement).addEventListener('click', async () => {
+  const button = $('#page-design-stop') as HTMLButtonElement
+  button.disabled = true
+  try {
+    const runs = [...new Set(pageDesignBindings().map(entry => entry.binding.runId))]
+    await Promise.all(runs.map(runId => window.studioDesktop?.harness.cancel(runId).catch(() => false)))
+    for (let attempt = 0; attempt < 10 && pageDesignBindings().length; attempt += 1) {
+      await landDesignedPages()
+      if (pageDesignBindings().length) await new Promise(resolve => window.setTimeout(resolve, 500))
+    }
+  } finally {
+    button.disabled = false
+  }
+})
 
 // A PDF or a deck: its text is read into the narrative, then read like one.
 const sourceReadFile = async (file: File) => {
@@ -16951,6 +17207,8 @@ const planningWorkspace = createPlanningWorkspace({
       }),
 })
 ;($('#open-planning') as HTMLButtonElement).addEventListener('click', () => void planningWorkspace.open())
+// Pages still being designed when this notebook was last open (F2).
+watchPageDesign()
 {
   const raw = window.localStorage.getItem(PREPARE_INTENT_KEY)
   if (raw) {

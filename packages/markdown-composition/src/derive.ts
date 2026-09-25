@@ -80,10 +80,17 @@ export const forkNotebook = (
     counter += 1
     const to = options.blockIds?.[counter - 1] || `${options.id}-s${String(counter).padStart(2, '0')}`
     origins.push({ from, to })
+    // A page the base is still designing keeps landing on the base only: the
+    // video is the base as it was, and hears of later pages as base changes.
+    const pageOrigin = node.attrs?.pageOrigin as Record<string, unknown> | null | undefined
+    const settled = pageOrigin && typeof pageOrigin === 'object' && 'designing' in pageOrigin
+      ? { pageOrigin: Object.fromEntries(Object.entries(pageOrigin).filter(([key]) => key !== 'designing')) }
+      : {}
     return {
       ...node,
       attrs: {
         ...node.attrs,
+        ...settled,
         id: to,
         // Where this scene came from. `scenes` is the array form: a merge
         // later lists several base scenes, a split shares one across two

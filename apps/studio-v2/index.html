@@ -231,6 +231,7 @@
                 </div>
                 <p class="notebook-start-hint">Or just start typing below — press <kbd>/</kbd> for block types.</p>
               </section>
+              <div id="page-design-status" class="page-design-status" role="status" hidden><span id="page-design-text"></span><button id="page-design-stop" type="button" class="button ghost">Stop remaining work</button></div>
               <div id="editor" class="editor-shell"></div>
               <div id="slash-menu" class="slash-menu" role="dialog" aria-label="Insert a block" hidden>
                 <div class="slash-menu-heading"><div><strong>Blocks</strong><span>Every block becomes a scene in your timeline.</span></div><kbd>Esc</kbd></div>
@@ -866,9 +867,13 @@
       <section id="source-step-pages" class="source-step" hidden>
         <div id="source-draw-row" class="source-draw" data-phase="drafts">
           <div class="source-draw-lines"><span id="source-draw-status" class="source-status" role="status" aria-live="polite"></span><span id="source-draw-failure" class="source-status" hidden></span></div>
-          <button id="source-draw" type="button" class="button secondary" hidden>Design the pages</button><button id="source-draw-stop" type="button" class="button ghost" hidden>Stop designing</button>
+          <button id="source-draw" type="button" class="button secondary" hidden>Design the pages</button><button id="source-draw-stop" type="button" class="button ghost" hidden>Stop remaining work</button>
         </div>
         <div id="source-pages-grid" class="source-pages-grid"></div>
+        <div id="source-page-inspector" class="source-page-inspector" role="group" aria-label="Page, large" hidden>
+          <div class="source-inspector-head"><strong id="source-inspector-title"></strong><span id="source-inspector-state" class="source-inspector-state"></span><span class="source-inspector-nav"><button id="source-inspector-prev" type="button" class="button ghost">‹ Previous</button><button id="source-inspector-next" type="button" class="button ghost">Next ›</button><button id="source-inspector-close" type="button" class="button secondary">Back to all pages</button></span></div>
+          <div id="source-inspector-page" class="source-inspector-page"></div>
+        </div>
         <details id="source-design-log" class="source-design-log" hidden><summary>Designer activity</summary><ol></ol></details>
         <div id="source-destination-row" class="source-destination" hidden><span>This notebook already has content.</span><label><input type="radio" name="source-destination" value="new" checked /> Start a new notebook</label><label><input type="radio" name="source-destination" value="append" /> Add them to this notebook</label></div>
         <div class="modal-actions"><button type="button" class="button ghost" data-source-back="outline">Back</button><span id="source-pages-note" class="source-status"></span><button id="source-finish" type="button" class="button primary">Open the notebook</button></div>

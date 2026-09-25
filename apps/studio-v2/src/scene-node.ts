@@ -244,7 +244,9 @@ export const SceneBlock = Node.create({
         ['strong', { class: 'scene-title' }, title ? String(title) : 'Scene'],
         ['span', { class: `scene-arc scene-arc-${role}` }, role],
         ...(area ? [['span', { class: `scene-area scene-area-${area}`, title: auto?.kind ? `${auto.kind} · needs ${area === 'none' ? 'no' : `a ${area}`} area` : '' }, area === 'none' ? 'behind you' : area]] : []),
-        ...(schematic ? [['span', { class: 'scene-page-origin', title: 'An instant schematic layout, not the designed presentation page' }, 'schematic draft']] : []),
+        ...(schematic
+          ? [['span', { class: 'scene-page-origin', title: 'An instant schematic layout, not the designed presentation page' }, (pageOrigin as { designing?: unknown }).designing ? 'schematic draft · being designed' : 'schematic draft']]
+          : []),
         [
           'button',
           { type: 'button', class: 'notebook-image-action', 'data-slide-action': 'edit' },

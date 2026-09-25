@@ -53,6 +53,20 @@ describe('deriving a video from a base', () => {
     expect(stillThere.attrs!.svg).toBe('<svg id="a"/>')
   })
 
+  // F2 of the fresh end-to-end review: a base still being designed binds its
+  // scenes to the design run. The video is the base as it was: it never
+  // takes those pages, and learns of them as base changes.
+  it('leaves a page the base is still designing with the base', () => {
+    const original = base()
+    const designing = { runId: 'run-1', page: 2, by: 'Kimi', placeholder: 'f00d' }
+    original.notebook.content[2].attrs = { ...original.notebook.content[2].attrs, pageOrigin: { kind: 'schematic', designing } }
+    const { project } = forkNotebook(original, { id: 'video-1' })
+    const scenes = project.notebook.content.filter(node => node.type === 'scene')
+    expect(scenes[1].attrs!.pageOrigin).toEqual({ kind: 'schematic' })
+    expect(scenes[0].attrs!.pageOrigin).toBeUndefined()
+    expect((original.notebook.content[2].attrs!.pageOrigin as { designing?: unknown }).designing).toEqual(designing)
+  })
+
   it('reads the same revision for the same content, whatever the fork did', () => {
     const one = base()
     const two = base()

@@ -5,6 +5,9 @@
 // the draft that started it — a newer draft never receives an older run's
 // pages — can be stopped, reports an incomplete or failed run with Retry, and
 // opening early says exactly what opens. The notebook marks schematic drafts.
+// F2 of the fresh end-to-end review: every page can be looked at large and
+// says what it is now, and opening early no longer stops the designer — the
+// rest land on their scenes as they are finished, until Stop remaining work.
 //
 // A stub kimi on PATH plays the harness: a story run plans two scenes, a
 // page-master run draws page by page as the scenario file says. The local
@@ -75,6 +78,7 @@ const page = (index, marker, title) => \`<svg xmlns="http://www.w3.org/2000/svg"
       }
       await sleep(scenario.delayMs)
       if (scenario.mode === 'slow' && index === 1) await sleep(120000)
+      if (scenario.mode === 'paced' && index === 1) await sleep(scenario.pauseAfterFirstMs || 10000)
     }
     emit({ role: 'assistant', content: 'Checking the pages' })
     await sleep(scenario.delayMs)
@@ -207,7 +211,7 @@ try {
   const firstRun = early?.lastRunId
   check('the design run starts bound to the draft', Boolean(early?.draftId && firstRun), JSON.stringify({ draftId: early?.draftId, run: firstRun }))
   check('designing is labelled with the count', /^Designing with Kimi — \d of 2 pages/.test(early?.status || ''), early?.status)
-  check('opening early says what opens', /^Open now — \d designed, \d schematic$/.test(early?.finishLabel || ''), early?.finishLabel)
+  check('opening early says what opens', /^Open now — \d designed, \d still designing$/.test(early?.finishLabel || ''), early?.finishLabel)
   await waitFor(`() => window.__source.drawStatus().drawn === 1`, 'one designed', 30)
   await capture('02-designing-one-of-two')
   const full = await watch(s => s.phase === 'ready' || s.phase === 'failed' || s.phase === 'incomplete', 60)
@@ -256,33 +260,96 @@ try {
   await capture('04-incomplete-with-failure')
   check('the failure is shown with Retry and a way to switch', failureLine.hidden === false && failureLine.buttons.includes('Retry') && failureLine.buttons.includes('Switch harness or model'), JSON.stringify(failureLine))
 
-  // 5. Opening while the designer works: it stops, and each scene records
-  // how its page was made.
-  await setScenario({ mode: 'slow', marker: 'RUN-F', delayMs: 1500 })
+  // 5. Opening while the designer works (F2): every page says what it is and
+  // opens large; opening keeps the designer going, and the page still being
+  // designed lands on its scene when it is finished.
+  await setScenario({ mode: 'paced', marker: 'RUN-F', delayMs: 1500, pauseAfterFirstMs: 14000 })
   await evaluate(`() => { [...document.querySelectorAll('#source-draw-failure button')].find(b => b.textContent === 'Retry').click(); return true }`, 'retry')
   const running = await waitFor(`async () => {
     const s = window.__source.drawStatus()
     const first = document.querySelector('#source-pages-grid .source-page .thumb')?.textContent || ''
-    return s.phase === 'designing' && first.includes('RUN-F') ? { ...s, note: document.getElementById('source-pages-note').textContent } : null
+    return s.phase === 'designing' && s.drawn === 1 && first.includes('RUN-F') ? { ...s, note: document.getElementById('source-pages-note').textContent, stop: document.getElementById('source-draw-stop').textContent } : null
   }`, 'retry designing', 60)
-  check('opening now is offered while the designer works', running?.finishLabel === 'Open now — 1 designed, 1 schematic', running?.finishLabel)
-  check('opening now says it stops the designer', /stops the designer/.test(running?.note || ''), running?.note)
+  const states = await evaluate(`() => [...document.querySelectorAll('#source-pages-grid .source-page .drawn')].map(badge => ({ state: badge.dataset.state, text: badge.textContent }))`, 'page states')
+  check('each page says what it is now: designed, or being designed', states[0]?.state === 'designed' && states[0]?.text === 'designed · Kimi' && states[1]?.state === 'designing' && states[1]?.text === 'schematic draft · being designed', JSON.stringify(states))
+  // A finished page opens large while the rest design; Escape goes back.
+  const firstLook = await evaluate(`async () => {
+    document.querySelectorAll('#source-pages-grid .source-page')[0].click()
+    await new Promise(resolve => setTimeout(resolve, 200))
+    const box = document.getElementById('source-inspector-page').getBoundingClientRect()
+    return { open: !document.getElementById('source-page-inspector').hidden, title: document.getElementById('source-inspector-title').textContent, state: document.getElementById('source-inspector-state').textContent, width: Math.round(box.width), height: Math.round(box.height), marker: document.getElementById('source-inspector-page').textContent.includes('RUN-F') }
+  }`, 'inspect first')
+  await capture('05-inspector')
+  const inspected = await evaluate(`async () => {
+    const first = ${JSON.stringify(firstLook)}
+    document.getElementById('source-inspector-next').click()
+    const second = { title: document.getElementById('source-inspector-title').textContent, state: document.getElementById('source-inspector-state').textContent }
+    document.getElementById('source-page-inspector').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    document.getElementById('source-dialog').dispatchEvent(new Event('cancel', { cancelable: true }))
+    await new Promise(resolve => setTimeout(resolve, 200))
+    return { first, second, closed: document.getElementById('source-page-inspector').hidden, dialogOpen: document.getElementById('source-dialog').open }
+  }`, 'inspect')
+  check('a finished page opens large in the wizard, with its state', inspected.first.open && inspected.first.width > 600 && inspected.first.marker && /^1 of 2 · /.test(inspected.first.title) && inspected.first.state === 'designed · Kimi', JSON.stringify(inspected.first))
+  check('the next page says it is still being designed', /^2 of 2 · /.test(inspected.second.title) && inspected.second.state === 'schematic draft · being designed', JSON.stringify(inspected.second))
+  check('Escape closes the page and keeps the wizard', inspected.closed && inspected.dialogOpen, JSON.stringify({ closed: inspected.closed, dialogOpen: inspected.dialogOpen }))
+  await capture('05b-pages-with-states')
+  check('opening now says what opens, and that the rest keep designing', running?.finishLabel === 'Open now — 1 designed, 1 still designing', running?.finishLabel)
+  check('opening now says the page still being designed lands on its scene', /keeps designing: the page still being designed lands on its scene/.test(running?.note || '') && /Stop remaining work/.test(running?.note || ''), running?.note)
+  check('stopping is its own action', running?.stop === 'Stop remaining work', running?.stop)
   await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish')
   const opened = await waitFor(`async () => {
     if (document.getElementById('source-dialog')?.open) return null
     const id = window.localStorage.getItem('incredible-studio-v2-active-project')
     const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
     const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
-    return scenes.length === 2 ? { id, origins: scenes.map(scene => scene.attrs.pageOrigin), svgs: scenes.map(scene => (String(scene.attrs.svg).match(/RUN-\\w/) || [''])[0]), chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].map(chip => chip.textContent) } : null
+    return scenes.length === 2 ? { id, origins: scenes.map(scene => scene.attrs.pageOrigin), svgs: scenes.map(scene => (String(scene.attrs.svg).match(/RUN-\\w/) || [''])[0]), chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].map(chip => chip.textContent), status: document.getElementById('page-design-status').hidden ? '' : document.getElementById('page-design-text').textContent } : null
   }`, 'finish', 120)
   check('the notebook opens with both scenes', Boolean(opened), JSON.stringify(opened?.origins))
+  const runF = opened?.origins?.[0]?.runId
+  check('the designed scene records its harness and run', opened?.origins?.[0]?.kind === 'designed' && opened?.origins?.[0]?.by === 'Kimi' && Boolean(runF) && opened?.svgs?.[0] === 'RUN-F', JSON.stringify(opened?.origins?.[0]))
+  check('the scene still being designed waits for its page from that run', opened?.origins?.[1]?.kind === 'schematic' && opened?.origins?.[1]?.designing?.runId === runF && opened?.origins?.[1]?.designing?.page === 2 && opened?.svgs?.[1] === '', JSON.stringify(opened?.origins?.[1]))
+  check('the notebook says the page is being designed', opened?.chips?.length === 1 && opened.chips[0] === 'schematic draft · being designed' && /still designing 1 page; each lands on its scene when it is finished/.test(opened?.status || ''), JSON.stringify({ chips: opened?.chips, status: opened?.status }))
+  check('opening did not stop the designer', (await runStatus(runF)) === 'running', String(await runStatus(runF)))
   await evaluate(`() => { document.querySelector('.notebook-scene-block .scene-page-origin')?.scrollIntoView({ block: 'center' }); return true }`, 'scroll to draft').catch(() => {})
   await sleep(600)
-  await capture('05-notebook-schematic-chip')
-  check('the designed scene records its harness and run', opened?.origins?.[0]?.kind === 'designed' && opened?.origins?.[0]?.by === 'Kimi' && Boolean(opened?.origins?.[0]?.runId) && opened?.svgs?.[0] === 'RUN-F', JSON.stringify(opened?.origins?.[0]))
-  check('the undrawn scene is recorded as a schematic draft', opened?.origins?.[1]?.kind === 'schematic' && opened?.svgs?.[1] === '', JSON.stringify(opened?.origins?.[1]))
-  check('the notebook marks the schematic draft', opened?.chips?.length === 1 && opened.chips[0] === 'schematic draft', JSON.stringify(opened?.chips))
-  check('opening stopped the designer', (await runStatus(opened?.origins?.[0]?.runId)) === 'cancelled', String(await runStatus(opened?.origins?.[0]?.runId)))
+  const sticky = await evaluate(`() => { const bar = document.getElementById('page-design-status').getBoundingClientRect(); return bar.height > 0 && bar.top >= 0 && bar.bottom <= innerHeight }`, 'status in view')
+  check('the notebook keeps saying so while it is scrolled', sticky === true, String(sticky))
+  await capture('06-notebook-still-designing')
+  const landed = await waitFor(`async () => {
+    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
+    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
+    const scene = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')[1]
+    const origin = scene?.attrs?.pageOrigin
+    return origin?.kind === 'designed' && !origin.designing && String(scene.attrs.svg).includes('RUN-F') ? { origin, chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].length, statusHidden: document.getElementById('page-design-status').hidden, windows: (scene.attrs.motion?.steps || []).length } : null
+  }`, 'landed', 120)
+  check('the page designed after opening lands on its scene', landed?.origin?.by === 'Kimi' && landed?.origin?.runId === runF && landed?.chips === 0, JSON.stringify(landed))
+  check('once the run is done, the notebook stops waiting', landed?.statusHidden === true && (await runStatus(runF)) === 'done', JSON.stringify({ statusHidden: landed?.statusHidden, run: await runStatus(runF) }))
+  await capture('07-notebook-landed')
+
+  // 6. Stop remaining work, from the notebook: what was finished stays, the
+  // rest stay schematic drafts, and nothing waits any more.
+  await setScenario({ mode: 'paced', marker: 'RUN-G', delayMs: 1000, pauseAfterFirstMs: 90000 })
+  await evaluate(`() => { window.__source.open('narrative'); return true }`, 'open source again')
+  await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, 'read again')
+  await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand step again')
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline again')
+  await waitFor(`() => !document.getElementById('source-step-outline')?.hidden && document.querySelectorAll('#source-scenes li').length === 2 && !document.getElementById('source-design-pages').hidden`, 'outline again', 150)
+  await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, 'design G')
+  const runningG = await waitFor(`() => { const s = window.__source.drawStatus(); const first = document.querySelector('#source-pages-grid .source-page .thumb')?.textContent || ''; return s.phase === 'designing' && s.drawn === 1 && first.includes('RUN-G') ? s : null }`, 'G designing', 60)
+  const runG = runningG?.lastRunId
+  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish G')
+  const openedG = await waitFor(`() => !document.getElementById('source-dialog')?.open && !document.getElementById('page-design-status').hidden ? document.getElementById('page-design-text').textContent : null`, 'G opened', 120)
+  check('a second deck opens while its page is still being designed', Boolean(runG) && /still designing 1 page/.test(openedG || ''), openedG)
+  await evaluate(`() => { document.getElementById('page-design-stop').click(); return true }`, 'stop remaining work')
+  const stoppedG = await waitFor(`async () => {
+    if (!document.getElementById('page-design-status').hidden) return null
+    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
+    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
+    const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
+    return scenes.length === 2 && scenes.every(scene => !scene.attrs.pageOrigin?.designing) ? { origins: scenes.map(scene => scene.attrs.pageOrigin), chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].map(chip => chip.textContent) } : null
+  }`, 'G stopped', 60)
+  check('Stop remaining work stops the designer from the notebook', (await runStatus(runG)) === 'cancelled', String(await runStatus(runG)))
+  check('what it finished stays designed, and the rest stay schematic drafts', stoppedG?.origins?.[0]?.kind === 'designed' && stoppedG?.origins?.[1]?.kind === 'schematic' && JSON.stringify(stoppedG?.chips) === JSON.stringify(['schematic draft']), JSON.stringify(stoppedG))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {
