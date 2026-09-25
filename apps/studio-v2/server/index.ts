@@ -91,7 +91,13 @@ import { buildExplanationModel, wordingPolicyFrom } from './story-model'
 import { listArtwork, makeArtwork, verifyCast } from './appearance-library'
 import { REFERENCE_STYLE, briefKey, briefPrompt, knownObjects } from './appearance'
 import { quiverCapability } from './providers/quiver'
+import { setDefaultAutoSelectFamilyAttemptTimeout } from 'node:net'
 const require = createRequire(import.meta.url)
+// A host a long round trip away: Node gives each of its addresses 250 ms to
+// connect before racing the next (happy eyeballs), so every attempt timed
+// out and reading its article failed ("fetch failed", ETIMEDOUT). Each
+// attempt now has time to connect; an address that refuses still gives way.
+setDefaultAutoSelectFamilyAttemptTimeout(2500)
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
   dirname(require.resolve('@hyperframes/core/package.json')),
