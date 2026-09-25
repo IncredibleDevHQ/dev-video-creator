@@ -486,11 +486,14 @@ describe('the handoff files', () => {
   it('gives a scene packet its presentation input as reference only', () => {
     const packet = renderScenePacket({
       videoTitle: 'Rate limiting', scene: { id: 'video-s01', title: 'Admission', index: 0, originScenes: ['base-1'] },
-      presentation: [{ scene: 'base-1', title: 'Admission', idea: 'A request spends a token', narration: 'Each request spends one.', sourcePassages: ['Each request that is admitted consumes one token.'], wireframe: 'pages/base-1.svg' }],
+      presentation: [{ scene: 'base-1', title: 'Admission', objective: 'A request spends a token', layoutGuidance: 'Open on you. The page needs a card most of the frame wide.', narration: 'Each request spends one.', sourcePassages: ['Each request that is admitted consumes one token.'], wireframe: 'pages/base-1.svg' }],
       script: 'Each request spends one token.', units: ['admission'], adjacent: [{ position: 'after', id: 'video-s02', title: 'Exhaustion', units: ['exhaustion'], takeaway: null }],
       direction: { video: '', scene: 'Keep the camera calm' }, delivery: null, reviewed: null, assets: [],
     })
     expect(packet).toMatch(/not a scene boundary, a layout, a duration/)
+    // What the page teaches, and apart from it the slide's staging notes.
+    expect(packet).toContain('Teaching objective (from the source outline): A request spends a token')
+    expect(packet).toContain('Page notes (slide layout, reference only): Open on you. The page needs a card most of the frame wide.')
     expect(packet).toMatch(/keep delivery\.voice "undecided"/)
     expect(packet).toMatch(/For this scene: Keep the camera calm/)
   })

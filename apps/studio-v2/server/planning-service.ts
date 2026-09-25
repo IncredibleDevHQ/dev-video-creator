@@ -30,6 +30,7 @@ import {
 import { skillVersions } from './skill-versions'
 import { listArtwork } from './appearance-library'
 import { fingerprintOf } from '../src/planning/fingerprint'
+import { outlineSceneOf, pageObjectiveOf } from '../src/planning/page-objective'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
 import { continuityStatus, validateTreatment, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
 import { castEntriesForKeys, ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
@@ -95,7 +96,10 @@ const stringAttr = (node: TiptapNode, key: string) => String(attr(node, key) ?? 
 type PinnedPage = {
   scene: string
   title: string
-  idea: string
+  // What the page teaches, from the source outline; and the director's
+  // staging notes for the slide, kept apart from it (reference only).
+  objective: string
+  layoutGuidance: string
   narration: string
   sourcePassages: string[]
   wireframe: string | null
@@ -123,12 +127,13 @@ export type VideoPlanning = {
 const pagesFrom = (base: ProjectDocumentV1): PinnedPage[] =>
   scenesOf(base).map(node => {
     const id = stringAttr(node, 'id')
-    const outline = base.outline?.scenes.find(scene => scene.nodeId === id)
+    const attrs = (node.attrs || {}) as Record<string, unknown>
+    const outline = outlineSceneOf(base.outline?.scenes, attrs)
     const passages = attr(node, 'sourcePassages')
     return {
       scene: id,
       title: stringAttr(node, 'title') || outline?.title || '',
-      idea: stringAttr(node, 'directorNotes') || outline?.idea || '',
+      ...pageObjectiveOf(attrs, base.outline?.scenes),
       narration: stringAttr(node, 'script'),
       sourcePassages: (Array.isArray(passages) ? passages : outline?.source || []).map(String).filter(Boolean),
       wireframe: stringAttr(node, 'svg') ? `pages/${id}.svg` : null,
@@ -637,7 +642,8 @@ const briefPacket = (planning: VideoPlanning) => {
         [
           `## ${page.scene}: ${page.title}`,
           '',
-          page.idea ? `Page notes (slide layout, reference only): ${page.idea}` : '',
+          page.objective ? `Teaching objective (from the source outline): ${page.objective}` : '',
+          page.layoutGuidance ? `Page notes (slide layout, reference only): ${page.layoutGuidance}` : '',
           page.narration ? `Narration: ${page.narration}` : '',
           ...(page.sourcePassages.length ? ['', 'Source passages:', ...page.sourcePassages.map(passage => `- "${passage}"`)] : []),
           '',
@@ -661,7 +667,7 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
     scene: { id: scene.id, title: scene.title, index: scene.index, originScenes: scene.originScenes },
     presentation: planning.basePages
       .filter(page => scene.originScenes.includes(page.scene))
-      .map(({ scene: id, title, idea, narration, sourcePassages, wireframe }) => ({ scene: id, title, idea, narration, sourcePassages, wireframe })),
+      .map(({ scene: id, title, objective, layoutGuidance, narration, sourcePassages, wireframe }) => ({ scene: id, title, objective, layoutGuidance, narration, sourcePassages, wireframe })),
     script: scene.script,
     units: unitsFor(scene.originScenes),
     adjacent: neighbors.map(entry => {

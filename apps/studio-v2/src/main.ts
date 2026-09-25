@@ -5,6 +5,7 @@ import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
+import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -16225,7 +16226,11 @@ const sourceFinish = async () => {
     ...(sourceState.narrative ? { narrativeId: sourceState.narrative.id } : {}),
     ...(sourceState.model ? { modelId: sourceState.model.id } : {}),
   }
-  project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
+  // Each outline scene keeps the id of the page made from it, so what the
+  // page teaches is found again once the director rewrites its notes.
+  const pageIds = new Map(pages.map((page, index) => [page.title, String(fresh[index]?.attrs?.id || '')]))
+  const pageIdOf = (title: string, index: number) => pageIds.get(title) || (outline.scenes.length === pages.length ? String(fresh[index]?.attrs?.id || '') : '')
+  project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map((scene, index) => ({ ...(pageIdOf(scene.title, index) ? { nodeId: pageIdOf(scene.title, index) } : {}), title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title
   syncProject()
@@ -16602,7 +16607,7 @@ const startExplainerBuild = async () => {
     const targetId = project.id
     const scenes = await Promise.all(project.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(async n => ({
       id: String(n.attrs!.id), title: String(n.attrs!.title || ''), svg: String(n.attrs!.svg),
-      script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: n.attrs!.directorNotes || '',
+      script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: pageIdeaOf(n.attrs!, project.outline?.scenes),
       // The complete scene revision captured as the run starts: the finish
       // refuses to apply over a page whose direction moved meanwhile.
       revision: await sceneRevisionHash(n),
@@ -16890,11 +16895,11 @@ const planningWorkspace = createPlanningWorkspace({
       .map(node => {
         const attrs = node.attrs as Record<string, unknown>
         const id = String(attrs.id)
-        const outline = project.outline?.scenes.find(scene => scene.nodeId === id)
+        const outline = outlineSceneOf(project.outline?.scenes, attrs)
         return {
           scene: id,
           title: String(attrs.title || outline?.title || ''),
-          idea: String(attrs.directorNotes || outline?.idea || ''),
+          ...pageObjectiveOf(attrs, project.outline?.scenes),
           narration: String(attrs.script || ''),
           sourcePassages: (Array.isArray(attrs.sourcePassages) ? attrs.sourcePassages : outline?.source || []).map(String),
           presentationKind: String(outline?.kind || ''),

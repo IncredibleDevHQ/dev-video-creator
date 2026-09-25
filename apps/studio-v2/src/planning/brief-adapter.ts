@@ -173,7 +173,7 @@ export type ScenePacketInput = {
   scene: { id: string; title: string; index: number; originScenes: string[] }
   // What the base's presentation designer was given for these pages —
   // reference only: never a scene boundary, a layout or a duration.
-  presentation: Array<{ scene: string; title: string; idea: string; narration: string; sourcePassages: string[]; wireframe: string | null }>
+  presentation: Array<{ scene: string; title: string; objective: string; layoutGuidance: string; narration: string; sourcePassages: string[]; wireframe: string | null }>
   script: string
   units: string[]
   adjacent: Array<{
@@ -213,7 +213,8 @@ export const renderScenePacket = (input: ScenePacketInput) => {
     lines.push(
       `### Base page \`${page.scene}\`: ${page.title}`,
       '',
-      page.idea ? `Page notes (slide layout, reference only): ${page.idea}` : '',
+      page.objective ? `Teaching objective (from the source outline): ${page.objective}` : '',
+      page.layoutGuidance ? `Page notes (slide layout, reference only): ${page.layoutGuidance}` : '',
       page.narration ? `Narration: ${page.narration}` : '',
       ...(page.sourcePassages.length ? ['', 'Source passages it rests on:', bullet(page.sourcePassages.map(passage => `"${passage}"`))] : []),
       page.wireframe ? `\nWireframe: \`${page.wireframe}\` (a visual reference; its coordinates and cards are not binding).` : '',

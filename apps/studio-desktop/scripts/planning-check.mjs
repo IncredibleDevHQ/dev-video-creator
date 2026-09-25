@@ -231,13 +231,18 @@ try {
   const narrative = 'Planning checks keep a video honest. Every brief quotes what the source really says.\n\nA plan that arrives after its inputs changed is kept, but never shown as current.'
   const read = await post('/api/source/read', { narrative, title: 'Planning checks', wordingPolicy: 'draft' })
   const snapshotId = read.body.snapshot.id
-  const page = (id, title) => ({ type: 'scene', attrs: { id, title, script: `${title}.`, directorNotes: title, sourcePassages: ['Every brief quotes what the source really says.'], svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><rect width="1280" height="720" fill="#fff"/><text x="80" y="120" font-size="40">' + title + '</text></svg>' } })
+  // The first page as a designed, animated page leaves it: the outline's
+  // idea kept as the director's seed, its own staging in the notes (F4).
+  const OBJECTIVE = 'A brief may only quote what the source really says'
+  const STAGING = 'Open on you. The page takes the whole frame — you become a chip.'
+  const animated = { pageOrigin: { kind: 'designed' }, directorNotes: STAGING, directorAuto: { directorNotes: STAGING }, directorSeed: { directorNotes: OBJECTIVE } }
+  const page = (id, title, extra = {}) => ({ type: 'scene', attrs: { id, title, script: `${title}.`, directorNotes: title, ...extra, sourcePassages: ['Every brief quotes what the source really says.'], svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><rect width="1280" height="720" fill="#fff"/><text x="80" y="120" font-size="40">' + title + '</text></svg>' } })
   const base = {
     version: 1, id: 'planning-check-base', title: 'Planning checks', fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
     brand: { name: 'check', background: '#ffffff', surface: '#ffffff', text: '#111111', mutedText: '#555555', accent: '#16a34a', accentText: '#ffffff', fontFamily: 'Inter', headingFontFamily: 'Inter' },
-    notebook: { type: 'doc', content: [page('b1', 'Quote the source'), page('b2', 'Keep late plans out')] },
+    notebook: { type: 'doc', content: [page('b1', 'Quote the source', animated), page('b2', 'Keep late plans out')] },
     source: { kind: 'narrative', url: '', site: '', title: 'Planning checks', readAt: new Date().toISOString(), snapshotId },
-    outline: { title: 'Planning checks', targetSeconds: 45, scenes: [], glossary: [] },
+    outline: { title: 'Planning checks', targetSeconds: 45, scenes: [{ nodeId: 'b1', title: 'Quote the source', kind: 'diagram', seconds: 20, idea: OBJECTIVE }], glossary: [] },
     story: { wordingPolicy: 'draft' },
   }
   check((await put(`/api/projects/${base.id}`, base)).status === 200, 'the base notebook is saved')
@@ -312,6 +317,22 @@ try {
     return result
   })()`)
   check(kept.value === 'Half-typed direction' && kept.focused, 'direction being typed survives a re-render, focus included')
+
+  // The Presentation brief states what the page teaches, from the outline;
+  // the director's staging is apart, collapsed, and never called the idea.
+  const presentation = await evaluate(`(async () => {
+    document.querySelectorAll('.planning-tab')[0].click()
+    await new Promise(r => setTimeout(r, 200))
+    const pane = document.querySelector('#planning-workspace .planning-pane')
+    const guidance = pane?.querySelector('details.planning-layout-guidance')
+    const result = { text: pane?.innerText || '', guidance: guidance ? { open: guidance.open, summary: guidance.querySelector('summary')?.textContent, body: guidance.querySelector('p')?.textContent } : null }
+    document.querySelectorAll('.planning-tab')[2].click()
+    await new Promise(r => setTimeout(r, 200))
+    return result
+  })()`)
+  check(presentation.text.includes(`Teaching objective. ${OBJECTIVE}`), `the Presentation brief states the page's teaching objective (${presentation.text.slice(0, 160).replace(/\s+/g, ' ')})`)
+  check(!/\bIdea\./.test(presentation.text) && !presentation.text.includes(`Teaching objective. ${STAGING}`), 'the director\'s staging is never shown as the idea')
+  check(presentation.guidance?.summary === 'Previous layout guidance' && presentation.guidance.open === false && presentation.guidance.body === STAGING, `the staging is kept apart as previous layout guidance, collapsed (${JSON.stringify(presentation.guidance)})`)
 
   // Direction changed while a plan runs: the late result never becomes current.
   await setMode({ mode: 'plan', delayMs: 6000 })

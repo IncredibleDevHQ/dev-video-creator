@@ -34,7 +34,7 @@ Tokens are added back at a steady refill rate, so a later request can pass again
 
 // A base notebook with two pages and its video fork. `fragmentsOnly`: the
 // full source was never retained, only the passages kept on the pages.
-const makeVideo = async (tag: string, options: { fragmentsOnly?: boolean; pages?: ReturnType<typeof scene>[]; theme?: ProjectDocumentV1['theme'] } = {}) => {
+const makeVideo = async (tag: string, options: { fragmentsOnly?: boolean; pages?: Array<{ type: string; attrs: Record<string, unknown> }>; theme?: ProjectDocumentV1['theme']; outline?: NonNullable<ProjectDocumentV1['outline']>['scenes'] } = {}) => {
   const source = await persistence.saveSourceRevision({ kind: 'url', url: `https://example.com/bucket-${tag}`, title: 'Token bucket', site: 'example.com', content: { text: ARTICLE, title: 'Token bucket' } })
   const base: ProjectDocumentV1 = {
     version: 1,
@@ -45,7 +45,7 @@ const makeVideo = async (tag: string, options: { fragmentsOnly?: boolean; pages?
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
     brand: { name: 'x' } as unknown as ProjectDocumentV1['brand'],
     source: { kind: 'url', url: `https://example.com/bucket-${tag}`, site: 'example.com', title: 'Token bucket', readAt: '2026-09-24T00:00:00Z', ...(options.fragmentsOnly ? {} : { snapshotId: source.id }) },
-    outline: { title: 'Rate limiting', targetSeconds: 60, scenes: [], glossary: [] },
+    outline: { title: 'Rate limiting', targetSeconds: 60, scenes: options.outline || [], glossary: [] },
     story: { wordingPolicy: 'draft' },
   }
   await persistence.saveProjectArtifact(base)
@@ -158,6 +158,29 @@ describe('planning a forked video', () => {
     // A slide's page notes are layout reference, not the creator's words.
     expect(packet.files['packet/PRESENTATION.md']).toMatch(/Page notes \(slide layout, reference only\): Admission idea/)
     expect(packet.files['packet/NARRATIVE.md']).not.toMatch(/Admission idea/)
+  })
+
+  // F4 of the fresh end-to-end review: animating a base page rewrote the
+  // notes its idea had been kept in, and the presentation record showed the
+  // director's staging as the page's idea.
+  it('pins what each base page teaches from its outline, with the director\'s staging apart', async () => {
+    const staging = 'Open on you. The page needs the whole frame — you become a chip.'
+    const objective = 'A request is admitted only by spending a token'
+    const animated = { ...scene('a1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.']), attrs: { ...scene('a1', 'Admission', 'Each request spends one token.', ['Each request that is admitted consumes one token.']).attrs, pageOrigin: { kind: 'designed' }, directorNotes: staging, directorAuto: { directorNotes: staging }, directorSeed: { directorNotes: objective } } }
+    const { videoId: animatedVideo } = await makeVideo('objective', {
+      pages: [animated, scene('a2', 'Rejection', 'When it is empty, the next one is refused.', ['the next request is rejected'])],
+      outline: [{ nodeId: 'a1', title: 'Admission', kind: 'diagram', seconds: 20, idea: objective }, { nodeId: 'a2', title: 'Rejection', kind: 'diagram', seconds: 20, idea: 'An empty bucket refuses the next request' }],
+    })
+    const overview = await service.planningOverview(animatedVideo)
+    expect(overview.basePages.map(page => [page.objective, page.layoutGuidance])).toEqual([
+      [objective, staging],
+      ['An empty bucket refuses the next request', 'Rejection idea'],
+    ])
+    const { record } = await service.queueBrief(animatedVideo)
+    const presentation = text((await service.loadPacket(record.id)).files['packet/PRESENTATION.md'])
+    expect(presentation).toContain(`Teaching objective (from the source outline): ${objective}`)
+    expect(presentation).toContain(`Page notes (slide layout, reference only): ${staging}`)
+    expect(presentation).not.toMatch(/Teaching objective[^\n]*chip/)
   })
 
   it('will not take a slide\'s page notes as the creator\'s words', async () => {

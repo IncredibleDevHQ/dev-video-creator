@@ -17,7 +17,7 @@ import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatme
 import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView } from './planning-records'
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 
-type BasePage = { scene: string; title: string; idea: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
+type BasePage = { scene: string; title: string; objective: string; layoutGuidance: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
 type SceneRow = {
   id: string
   title: string
@@ -722,9 +722,13 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
           h('h4', { text: page.title }),
           figure,
           page.presentationKind ? h('p', { class: 'planning-muted' }, 'Slide kind: ', h('code', { text: page.presentationKind }), ' — presentation-only, never used to plan the video.') : null,
-          page.idea ? h('p', {}, h('strong', { text: 'Idea. ' }), page.idea) : null,
+          page.objective ? h('p', {}, h('strong', { text: 'Teaching objective. ' }), page.objective) : null,
           page.narration ? h('p', {}, h('strong', { text: 'Narration. ' }), page.narration) : null,
           page.sourcePassages.length ? h('div', {}, h('strong', { text: 'Source passages' }), h('ul', {}, ...page.sourcePassages.map(passage => h('li', { class: 'planning-quote', text: passage })))) : null,
+          // The director's staging for the slide: reference, never the idea.
+          page.layoutGuidance
+            ? h('details', { class: 'planning-layout-guidance' }, h('summary', { text: 'Previous layout guidance' }), h('p', { class: 'planning-muted', text: page.layoutGuidance }))
+            : null,
         ),
       )
     }
