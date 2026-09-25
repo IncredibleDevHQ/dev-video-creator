@@ -400,6 +400,11 @@ try {
   await evaluate(`() => { document.getElementById('finalize-next').click(); return true }`)
   const exportKind = await waitFor(`() => document.getElementById('publish-dialog').open ? document.getElementById('publish-export-kind').textContent : null`, 20)
   check(/not the approved scene plans/.test(exportKind || ''), `the summary says the export is the notebook's own composition, not the approved plans (${exportKind})`)
+  // F9 of the Perplexity review: its words are not its voice. Neither scene
+  // has a take or a voice yet: the summary says so, block by block, and the
+  // action is an explicit silent draft.
+  const audio = await evaluate(`() => ({ line: document.getElementById('publish-audio').textContent, button: document.getElementById('start-publish').textContent, chips: [...document.querySelectorAll('#publish-block-list .publish-audio-chip')].map(chip => chip.dataset.audio + ':' + chip.textContent) })`)
+  check(/^Audio: no block has a take or a voice — this exports a silent draft\. 2 blocks have words that are not voiced\./.test(audio.line) && audio.button === 'Export silent draft' && audio.chips.length === 2 && audio.chips.every(chip => chip === 'missing:no audio — its words have no voice or take'), `Publish says which blocks will be silent, and offers a silent draft explicitly (${JSON.stringify(audio)})`)
   await evaluate(`() => { document.getElementById('start-publish').click(); return true }`)
   const exported = await waitFor(`() => { const result = document.getElementById('render-result'); return result && !result.hidden ? document.getElementById('download-render').href : null }`, 300)
   const mp4 = exported ? await fetch(exported).then(async response => ({ status: response.status, type: response.headers.get('content-type'), bytes: (await response.arrayBuffer()).byteLength })) : null
@@ -410,6 +415,9 @@ try {
     console.log('EXPORT DIAGNOSIS', JSON.stringify({ jobId, status: job?.status, errorTail: String(job?.error || '').slice(-1500), ui }))
   }
   check(mp4?.status === 200 && /video\/mp4/.test(mp4.type || '') && mp4.bytes > 10000, `the two-scene video notebook exports a draft MP4 (${JSON.stringify(mp4)})`)
+  const silentLabel = await evaluate(`() => document.getElementById('publish-count').textContent`)
+  const exportedJob = (await api(`/api/exports/${await evaluate(`() => localStorage.getItem('studio.export:' + ${JSON.stringify(videoId)})`)}`)).body?.job
+  check(/silent draft, no audio$/.test(silentLabel) && exportedJob?.audio?.silentDraft === true && exportedJob.audio.missing === 2, `the export says it is a silent draft, and its record carries what each block sounds like (${silentLabel}; ${JSON.stringify(exportedJob?.audio && { voiced: exportedJob.audio.voiced, missing: exportedJob.audio.missing })})`)
   await evaluate(`() => { document.getElementById('publish-dialog').close(); if (document.getElementById('player-shell').classList.contains('canvas-open')) document.getElementById('canvas-fullscreen').click(); return true }`)
   const stageBack = await waitFor(`() => { const shell = document.getElementById('player-shell'); return shell.classList.contains('has-scene-stage') && !shell.classList.contains('canvas-open') ? true : null }`, 20)
   check(Boolean(stageBack), 'after the export, the scene review\'s stage is back beside the notebook')

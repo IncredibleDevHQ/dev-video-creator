@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import type { ProjectDocumentV1 } from 'markdown-composition'
+import { audioReadinessOf, type ProjectDocumentV1 } from 'markdown-composition'
 import { compareAndSwapSetting, loadSetting } from './persistence'
 export type ExportResult = { url: string; durationSeconds: number; exportAsset: { assetId: string; objectKey: string } | null }
 export type ExportJob = { project: ProjectDocumentV1; id: string; manifestHash: string; owner: string; status: 'queued' | 'running' | 'stored' | 'failed' | 'cancelled'; updatedAt: number; result?: ExportResult; error?: string }
@@ -49,4 +49,11 @@ export async function cancelExportJob(id: string) {
   return next
 }
 
-export const exportJobView = (job: ExportJob | null) => { if (!job) return null; const { project: _project, ...view } = job; return view }
+// A job says what its export sounds like (F9 of the Perplexity review):
+// which blocks carry a take or a voice, and which will be silent.
+export const exportJobView = (job: ExportJob | null) => {
+  if (!job) return null
+  const { project, ...view } = job
+  const audio = audioReadinessOf(project)
+  return { ...view, audio: { voiced: audio.voiced, missing: audio.missing, silentDraft: audio.silentDraft, blocks: audio.blocks } }
+}

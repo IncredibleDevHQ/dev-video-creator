@@ -81,7 +81,7 @@ import {
   type StageFamily,
   type StageSegment,
   type MotionDriverInstance,
-  type MotionPlanV2, cameraRectAt } from 'markdown-composition'
+  type MotionPlanV2, cameraRectAt, AUDIO_STATE_LABELS, audioReadinessOf, blockAudioOf } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import { SceneBlock } from './scene-node'
@@ -8468,6 +8468,16 @@ const publishRowSeconds = (scene: Scene) => {
   return (recorded?.durationMs || scene.durationSeconds * 1000) / 1000
 }
 
+// What the export will sound like (F9 of the Perplexity review): which
+// blocks have a take or a voice, which have words and no audio, and which
+// were made silent on purpose — a video scene whose delivery is "silent".
+const silentByChoice = () =>
+  project.derivedFrom?.notebook && sceneReview
+    ? scenes.filter(scene => sceneReview?.stageOf(scene.id)?.scene.delivery === 'silent').map(scene => scene.id)
+    : []
+const publishAudio = () => audioReadinessOf(project, { include: scenes.filter(scene => !publishExcluded.has(scene.id)).map(scene => scene.id), silent: silentByChoice() })
+const publishActionLabel = (readiness: ReturnType<typeof audioReadinessOf>) =>
+  readiness.silentDraft ? 'Export silent draft' : readiness.missing ? `Export with ${readiness.missing} silent block${readiness.missing === 1 ? '' : 's'}` : 'Publish video'
 const syncPublishSummary = () => {
   const included = scenes.filter(scene => !publishExcluded.has(scene.id))
   const total = included.reduce(
@@ -8478,6 +8488,16 @@ const syncPublishSummary = () => {
   ;($('#publish-count') as HTMLElement).textContent =
     `${included.length} of ${scenes.length} blocks`
   startPublishButton.disabled = included.length === 0
+  const readiness = publishAudio()
+  const line = $('#publish-audio') as HTMLElement
+  const kinds = readiness.blocks.reduce<Record<string, number>>((count, entry) => ({ ...count, [entry.state]: (count[entry.state] || 0) + 1 }), {})
+  const voicedBy = [kinds.take ? `${kinds.take} recorded take${kinds.take === 1 ? '' : 's'}` : '', kinds['recorded-voice'] ? `${kinds['recorded-voice']} recorded voice${kinds['recorded-voice'] === 1 ? '' : 's'}` : '', kinds['generated-voice'] ? `${kinds['generated-voice']} generated voice${kinds['generated-voice'] === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')
+  line.hidden = included.length === 0
+  line.classList.toggle('is-silent', readiness.missing > 0 || readiness.silentDraft)
+  line.textContent = readiness.silentDraft
+    ? `Audio: no block has a take or a voice — this exports a silent draft.${readiness.missing ? ` ${readiness.missing} block${readiness.missing === 1 ? ' has' : 's have'} words that are not voiced.` : ''}`
+    : `Audio: ${readiness.voiced} of ${included.length} blocks voiced (${voicedBy}).${readiness.missing ? ` ${readiness.missing} ${readiness.missing === 1 ? 'has' : 'have'} words but no voice or take — ${readiness.missing === 1 ? 'it' : 'they'} will be silent.` : ''}${readiness.silentByChoice ? ` ${readiness.silentByChoice} silent by choice.` : ''}`
+  if (!activePublishJob) startPublishButton.textContent = publishActionLabel(readiness)
 }
 
 const renderPublishBlockList = () => {
@@ -8508,7 +8528,13 @@ const renderPublishBlockList = () => {
       kindLabel.textContent = meta.label
       const title = document.createElement('small')
       title.textContent = scene.title
-      copy.append(kindLabel, title)
+      // Its audio in this export, said per block (F9).
+      const audioState = blockAudioOf(project, scene.id, new Set(silentByChoice()))
+      const audio = document.createElement('span')
+      audio.className = 'publish-audio-chip'
+      audio.dataset.audio = audioState
+      audio.textContent = AUDIO_STATE_LABELS[audioState]
+      copy.append(kindLabel, title, audio)
       identity.append(number, copy)
 
       const controls = document.createElement('div')
@@ -8592,7 +8618,7 @@ const startPublish = async () => {
       const nodeId = node.attrs?.id
       return typeof nodeId !== 'string' || !publishExcluded.has(nodeId)
     })
-    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number } }
+    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number }; audio?: { voiced: number; missing: number; silentDraft: boolean } }
     let { job } = await fetchJson<{ job: Job }>('/api/exports?retry=true', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
     activePublishJob = job.id
     window.localStorage.setItem(`studio.export:${payload.id}`, job.id)
@@ -8610,16 +8636,19 @@ const startPublish = async () => {
     const review = await explainerReviewState()
     ;($('#publish-count') as HTMLElement).textContent =
       `${review.isReviewed ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
+    const silence = job.audio?.silentDraft ? ' · silent draft, no audio' : job.audio?.missing ? ` · ${job.audio.missing} silent block${job.audio.missing === 1 ? '' : 's'}` : ''
+    ;($('#publish-count') as HTMLElement).textContent += silence
     showToast(review.isReviewed
-      ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`
-      : `Draft export rendered (${result.durationSeconds.toFixed(1)}s) — not a reviewed explainer`)
+      ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes${silence}`
+      : `Draft export rendered (${result.durationSeconds.toFixed(1)}s) — not a reviewed explainer${silence}`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Publish failed')
   } finally {
     startPublishButton.disabled = false
-    startPublishButton.textContent = 'Publish video'
     cancelPublishJob.hidden = true
     activePublishJob = ''
+    // The action says again what it would export; the result line stays.
+    startPublishButton.textContent = publishActionLabel(publishAudio())
   }
 }
 

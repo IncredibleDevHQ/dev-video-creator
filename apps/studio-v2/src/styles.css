@@ -2124,6 +2124,11 @@ button.se-state:hover { filter: brightness(.97); }
 .source-scene button { border: 0; background: none; color: #a1a1aa; cursor: pointer; font-size: 16px; }
 .source-glossary { display: flex; flex-wrap: wrap; gap: 6px; }
 .source-glossary span { font: 500 11px/1.2 system-ui; padding: 4px 8px; border-radius: 999px; background: #f4f4f5; color: #3f3f46; }
+/* F9: what each block sounds like in the export. */
+.publish-audio.is-silent { color: #92400e; font-weight: 600; }
+.publish-audio-chip { display: inline-block; margin-top: 2px; font-size: 11px; color: #166534; }
+.publish-audio-chip[data-audio="missing"] { color: #b45309; font-weight: 600; }
+.publish-audio-chip[data-audio="no-words"], .publish-audio-chip[data-audio="silent-by-choice"] { color: #71717a; }
 /* F3–F5 of the Perplexity review: what is read, a way on when a link is
    refused, and colours that say where they came from. */
 .source-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 0; font: 12.5px/1.4 'InterBody', Inter, system-ui, sans-serif; color: #3f3f46; }
