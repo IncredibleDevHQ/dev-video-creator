@@ -622,6 +622,18 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     expect(newer.revision).not.toBe(overview.scenes[0].reference!.revision)
     expect(overview.scenes[1].reference!.newer).toBeNull()
     expect(overview.scenes[0].view.state).toBe('candidate')
+    // BoltDB review B06: a page landed while its run goes on checking the
+    // rest of the batch is offered at once; a scene still waiting for its
+    // first designed page says the base is designing it.
+    const binding = { runId: 'run-design', page: 1, by: 'Kimi', placeholder: 'placeholder', landed: 'landed' }
+    const unbound = structuredClone(base)
+    base.notebook.content[0].attrs = { ...base.notebook.content[0].attrs, pageOrigin: { kind: 'designed', by: 'Kimi', runId: 'run-design', designing: binding } }
+    base.notebook.content[1].attrs = { ...base.notebook.content[1].attrs, pageOrigin: { kind: 'schematic', designing: { ...binding, page: 2 } } }
+    await persistence.saveProjectArtifact(base)
+    const bound = await service.planningOverview(id)
+    expect(bound.scenes[0].reference).toMatchObject({ baseDesigning: false, newer: { kind: 'designed', designing: false, svg: designedPage } })
+    expect(bound.scenes[1].reference).toMatchObject({ baseDesigning: true, newer: null })
+    await persistence.saveProjectArtifact(unbound)
 
     // The creator adopts it for the first scene: the scene takes the page and
     // says which revision of the base's page it took.

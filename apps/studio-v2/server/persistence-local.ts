@@ -133,6 +133,17 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
   )
 }
 
+// The base notebooks with a scene still bound to a design run's page.
+export const listProjectIdsAwaitingPages = async (): Promise<string[]> => {
+  const ids: string[] = []
+  for (const summary of await listProjectArtifacts()) {
+    if (summary.derivedFrom) continue
+    const project = await loadProjectArtifact(summary.id)
+    if (project?.notebook.content.some(node => (node.attrs?.pageOrigin as { designing?: unknown } | null | undefined)?.designing)) ids.push(summary.id)
+  }
+  return ids
+}
+
 // Removing a notebook drops its document, takes and index row; the objects
 // stay in the store (cheap, and recoverable).
 export const deleteProjectArtifact = async (projectId: string) => {

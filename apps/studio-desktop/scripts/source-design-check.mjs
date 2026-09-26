@@ -93,29 +93,42 @@ const page = (index, marker, title) => \`<svg xmlns="http://www.w3.org/2000/svg"
 )
 await chmod(join(binDir, 'kimi'), 0o755)
 
-const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
-  cwd: appDir,
-  env: {
-    ...process.env,
-    STUDIO_ALLOW_MULTI_INSTANCE: '1',
-    PATH: `${binDir}:${process.env.PATH}`,
-    STUDIO_DATA_DIR: join(root, 'data'),
-    STUDIO_OUTPUTS_DIR: join(root, 'outputs'),
-    STUDIO_PERSISTENCE: 'local',
-    STUDIO_ENABLE_TEST_HOOKS: '1',
-  },
-  stdio: ['ignore', 'pipe', 'inherit'],
-})
-const origin = await new Promise((resolve, reject) => {
-  let buffer = ''
-  const timeout = setTimeout(() => reject(new Error('app start timed out')), 90_000)
-  app.stdout.on('data', chunk => {
-    buffer += chunk
-    const match = /STUDIO_ORIGIN (http:\/\/\S+)/.exec(buffer)
-    if (match && buffer.includes('SMOKE PASS')) { clearTimeout(timeout); resolve(match[1]) }
+// The app, started again on the same store for the restart flow (B06).
+const startApp = async () => {
+  const child = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
+    cwd: appDir,
+    env: {
+      ...process.env,
+      STUDIO_ALLOW_MULTI_INSTANCE: '1',
+      PATH: `${binDir}:${process.env.PATH}`,
+      STUDIO_DATA_DIR: join(root, 'data'),
+      STUDIO_OUTPUTS_DIR: join(root, 'outputs'),
+      STUDIO_PERSISTENCE: 'local',
+      STUDIO_ENABLE_TEST_HOOKS: '1',
+    },
+    stdio: ['ignore', 'pipe', 'inherit'],
   })
-  app.once('exit', code => reject(new Error(`app exited (${code})`)))
-})
+  const found = await new Promise((resolve, reject) => {
+    let buffer = ''
+    const timeout = setTimeout(() => reject(new Error('app start timed out')), 90_000)
+    child.stdout.on('data', chunk => {
+      buffer += chunk
+      const match = /STUDIO_ORIGIN (http:\/\/\S+)/.exec(buffer)
+      if (match && buffer.includes('SMOKE PASS')) { clearTimeout(timeout); resolve(match[1]) }
+    })
+    child.once('exit', code => reject(new Error(`app exited (${code})`)))
+  })
+  return { child, found }
+}
+const stopApp = async child => {
+  if (child.exitCode !== null || child.signalCode !== null) return
+  const exited = new Promise(resolve => child.once('exit', resolve))
+  child.kill('SIGTERM')
+  const timer = setTimeout(() => child.kill('SIGKILL'), 5000)
+  await exited
+  clearTimeout(timer)
+}
+let { child: app, found: origin } = await startApp()
 
 let failures = 0
 const check = (label, ok, detail = '') => {
@@ -364,11 +377,111 @@ try {
   }`, 'G stopped', 60)
   check('Stop remaining work stops the designer from the notebook', (await runStatus(runG)) === 'cancelled', String(await runStatus(runG)))
   check('what it finished stays designed, and the rest stay schematic drafts', stoppedG?.origins?.[0]?.kind === 'designed' && stoppedG?.origins?.[1]?.kind === 'schematic' && JSON.stringify(stoppedG?.chips) === JSON.stringify(['schematic draft']), JSON.stringify(stoppedG))
+
+  // 7. A video made while a page is still being designed (BoltDB review
+  // B06). Only the video is open: the page the run finishes lands on the
+  // saved base in the app's worker, and the video is offered it as it lands,
+  // without the base being opened. The video keeps the page it was made
+  // from until the creator adopts the new one, and asking again lands
+  // nothing twice.
+  const projectOf = id => fetch(`${origin}/api/projects/${encodeURIComponent(id)}`).then(r => r.json()).then(body => body.project || null).catch(() => null)
+  const scenesIn = project => (project?.notebook?.content || []).filter(node => node.type === 'scene')
+  const overviewOf = id => fetch(`${origin}/api/planning/${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null)
+  const until = async (test, seconds = 90) => {
+    for (let i = 0; i < seconds * 2; i += 1) {
+      const value = await test().catch(() => null)
+      if (value) return value
+      await sleep(500)
+    }
+    return null
+  }
+  const landNow = notebook => fetch(`${origin}/api/pages/land`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notebook }) }).then(r => r.json()).catch(() => null)
+  const openEarly = async marker => {
+    await evaluate(`() => { window.__source.open('narrative'); return true }`, `open source ${marker}`)
+    await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, `read ${marker}`)
+    await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, `brand ${marker}`)
+    await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, `outline ${marker}`)
+    await waitFor(`() => !document.getElementById('source-step-outline')?.hidden && document.querySelectorAll('#source-scenes li').length === 2 && !document.getElementById('source-design-pages').hidden`, `outline ${marker}`, 150)
+    await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, `design ${marker}`)
+    const drawing = await waitFor(`() => { const s = window.__source.drawStatus(); const first = document.querySelector('#source-pages-grid .source-page .thumb')?.textContent || ''; return s.phase === 'designing' && s.drawn === 1 && first.includes(${JSON.stringify(marker)}) ? s : null }`, `${marker} designing`, 60)
+    await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, `finish ${marker}`)
+    const base = await waitFor(`() => !document.getElementById('source-dialog')?.open && !document.getElementById('page-design-status').hidden ? window.localStorage.getItem('incredible-studio-v2-active-project') : null`, `${marker} opened`, 120)
+    return { run: drawing?.lastRunId, base }
+  }
+  await setScenario({ mode: 'paced', marker: 'RUN-H', delayMs: 1000, pauseAfterFirstMs: 25000 })
+  const deckH = await openEarly('RUN-H')
+  check('a third deck opens while its second page is still being designed', Boolean(deckH.run && deckH.base), JSON.stringify(deckH))
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-video-view', 'notebook'); document.getElementById('open-planning').click(); return true }`, 'plan video H')
+  await waitFor(`() => document.querySelector('#planning-workspace .planning-create-fork') ? true : null`, 'fork offer H', 40)
+  await evaluate(`() => { document.querySelector('#planning-workspace .planning-create-fork').click(); return true }`, 'continue with schematics')
+  const videoH = await waitFor(`async () => {
+    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
+    const body = id ? await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null) : null
+    return body?.project?.derivedFrom?.notebook === ${JSON.stringify(deckH.base)} && document.body.classList.contains('is-video-notebook') ? id : null
+  }`, 'video H open', 90)
+  check('the video is made from the base while its page is designed, and opens in its place', Boolean(videoH), String(videoH))
+  const waitingScene = String(scenesIn(await projectOf(videoH))[1]?.attrs?.id || '')
+  const before = (await overviewOf(videoH))?.scenes?.find(scene => scene.id === waitingScene)?.reference
+  check('its second scene says its base is still designing its page', before?.baseDesigning === true && !before.newer, JSON.stringify(before))
+  await evaluate(`() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return true }`, 'select the waiting scene')
+  check('the scene\'s review says so', Boolean(await waitFor(`() => document.querySelector('[data-review-reference="designing"]') ? true : null`, 'designing notice', 40)))
+  const landedH = await until(async () => {
+    const scene = scenesIn(await projectOf(deckH.base))[1]
+    return scene?.attrs?.pageOrigin?.kind === 'designed' && String(scene.attrs.svg).includes('RUN-H') ? scene.attrs : null
+  }, 120)
+  check('the page lands on the saved base while only the video is open', Boolean(landedH) && landedH.pageOrigin.runId === deckH.run, JSON.stringify(landedH?.pageOrigin))
+  check('it waits to be planned from its words until the base is next opened', landedH?.pageOrigin?.replan === true, JSON.stringify(landedH?.pageOrigin))
+  const offered = await waitFor(`() => { const offer = document.querySelector('[data-review-reference="newer"]'); return offer ? { text: offer.textContent, adopt: offer.querySelector('[data-focus^="adopt-reference:"]')?.textContent } : null }`, 'newer offered', 60)
+  check('the video is offered the designed page as it lands, without the base being opened', offered?.adopt === 'Use this designed reference' && /The base has a newer .+ for this scene, by Kimi/.test(offered.text), JSON.stringify(offered))
+  await capture('08-video-offered-landed-page')
+  const pinned = (await overviewOf(videoH))?.scenes?.find(scene => scene.id === waitingScene)?.reference
+  check('the video keeps the page it was made from until it adopts the new one', pinned?.revision === before?.revision && !pinned.adopted && pinned.newer?.kind === 'designed' && pinned.newer.designing === false, JSON.stringify(pinned && { revision: pinned.revision, adopted: pinned.adopted, newer: pinned.newer && { kind: pinned.newer.kind, designing: pinned.newer.designing } }))
+  const settled = await until(async () => (await runStatus(deckH.run)) === 'done' && !scenesIn(await projectOf(deckH.base))[1]?.attrs?.pageOrigin?.designing, 90)
+  const again = [await landNow(deckH.base), await landNow(deckH.base)]
+  check('once the run is done its binding goes, and landing again changes nothing', Boolean(settled) && again.every(result => result?.landed && !result.landed.saved && result.landed.landed.length === 0), JSON.stringify(again.map(result => result?.landed)))
+  await evaluate(`() => { document.querySelector('[data-focus^="adopt-reference:"]').click(); return true }`, 'adopt')
+  const adopted = await until(async () => {
+    const scene = scenesIn(await projectOf(videoH))[1]
+    return String(scene?.attrs?.svg || '').includes('RUN-H') ? scene.attrs : null
+  }, 30)
+  check('adopting takes the designed page into the video\'s scene', adopted?.pageOrigin?.kind === 'designed' && !adopted.pageOrigin.replan, JSON.stringify(adopted?.pageOrigin))
+  // Opened again, the base plans the landed page from its words, and saves
+  // over the worker's landing without a conflict.
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(deckH.base)}); location.assign('/studio'); return true }`, 'open base H').catch(() => {})
+  const replanned = await until(async () => {
+    const scene = scenesIn(await projectOf(deckH.base))[1]
+    return scene?.attrs?.pageOrigin?.kind === 'designed' && !scene.attrs.pageOrigin.replan ? scene.attrs : null
+  }, 60)
+  const saved = await waitFor(`() => document.getElementById('project-title')?.value ? { conflict: /Newer saved version/.test(document.body.innerText) } : null`, 'base H open', 30)
+  check('opened again, the base plans the landed page, and saves without a conflict', Boolean(replanned) && (replanned.motion?.steps || []).length > 0 && saved?.conflict === false, JSON.stringify({ origin: replanned?.pageOrigin, steps: (replanned?.motion?.steps || []).length, saved }))
+
+  // 8. After a restart (B06): the app closes while a run draws, and the
+  // page the run left lands when it opens again — with the video open, not
+  // the base.
+  await setScenario({ mode: 'paced', marker: 'RUN-I', delayMs: 1000, pauseAfterFirstMs: 90000 })
+  const deckI = await openEarly('RUN-I')
+  check('a fourth deck opens while its second page is still being designed', Boolean(deckI.run && deckI.base), JSON.stringify(deckI))
+  const runI = (await fetch(`${origin}/api/runs`).then(r => r.json())).runs.find(run => run.id === deckI.run)
+  await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(videoH)}); return true }`, 'leave the video open')
+  await stopApp(app)
+  await writeFile(join(runI.projectDir, 'pages', '02_page.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="Inter, sans-serif" font-size="22" data-page-role="diagram" data-page-index="02">
+<g data-role="background"><rect width="1280" height="720" fill="#0b1020"/></g>
+<g data-role="header"><text id="s2-title" x="80" y="96" font-size="40" fill="#f5f7fb">Scene 2</text></g>
+<g id="s2-node-clients" data-role="node" data-kind="box" data-entity="client"><rect x="120" y="300" width="320" height="110" rx="14" fill="#635bff" fill-opacity="0.12" stroke="#635bff"/><text x="190" y="362" fill="#f5f7fb">Clients RUN-I</text></g>
+<g id="s2-node-service" data-role="node" data-kind="box" data-entity="service"><rect x="780" y="300" width="320" height="110" rx="14" fill="#22c55e" fill-opacity="0.12" stroke="#22c55e"/><text x="850" y="362" fill="#f5f7fb">Service</text></g>
+<line id="s2-edge-1" data-role="connector" data-verb="sends to" x1="440" y1="355" x2="780" y2="355" stroke="#635bff" stroke-width="2"/>
+</svg>`)
+  ;({ child: app, found: origin } = await startApp())
+  const recovered = await until(async () => {
+    const scene = scenesIn(await projectOf(deckI.base))[1]
+    return scene?.attrs?.pageOrigin?.kind === 'designed' && !scene.attrs.pageOrigin.designing && String(scene.attrs.svg).includes('RUN-I') ? scene.attrs : null
+  }, 90)
+  check('after a restart, the page the run left lands on its base, and the binding goes with the run', Boolean(recovered), JSON.stringify(recovered?.pageOrigin))
+  check('the run the app was working when it closed reads as ended', ['error', 'interrupted', 'cancelled'].includes(await runStatus(deckI.run)), String(await runStatus(deckI.run)))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {
-  app.kill('SIGTERM')
-  await sleep(500)
+  await stopApp(app)
   await rm(root, { recursive: true, force: true })
 }
 console.log(failures ? `SOURCE DESIGN CHECK FAIL (${failures})` : 'SOURCE DESIGN CHECK PASS')

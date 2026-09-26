@@ -141,6 +141,17 @@ export type ProjectArtifactSummary = {
   derivedFrom?: { notebook: string; kind?: string }
 }
 
+// The base notebooks with a scene still bound to a design run's page.
+export const listProjectIdsAwaitingPages = async (): Promise<string[]> => {
+  await initializePersistence()
+  const result = await database.query<{ id: string }>(
+    `select id from studio_notebooks
+     where artifact->'derivedFrom' is null
+       and jsonb_path_exists(artifact, '$.notebook.content[*].attrs.pageOrigin.designing')`,
+  )
+  return result.rows.map(row => row.id)
+}
+
 // Every saved notebook, newest first — the switcher's list.
 export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> => {
   await initializePersistence()

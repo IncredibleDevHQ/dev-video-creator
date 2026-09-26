@@ -110,6 +110,7 @@ type PersistenceBackend = {
   saveProjectArtifact: (project: ProjectDocumentV1, options?: ProjectSaveOptions) => Promise<void>
   loadProjectArtifact: (projectId: string) => Promise<ProjectDocumentV1 | null>
   listProjectArtifacts: () => Promise<ProjectArtifactSummary[]>
+  listProjectIdsAwaitingPages: () => Promise<string[]>
   deleteProjectArtifact: (projectId: string) => Promise<boolean>
   loadSetting: (key: string) => Promise<unknown>
   compareAndSwapSetting: (key: string, expected: unknown, value: unknown) => Promise<boolean>
@@ -230,6 +231,11 @@ export const loadProjectArtifact = async (projectId: string) =>
 
 export const listProjectArtifacts = async () =>
   (await loadBackend()).listProjectArtifacts()
+
+// The base notebooks with a scene still bound to a design run's page
+// (pageOrigin.designing): the ones whose pages the worker lands (B06).
+export const listProjectIdsAwaitingPages = async () =>
+  (await loadBackend()).listProjectIdsAwaitingPages()
 
 export const deleteProjectArtifact = async (projectId: string) =>
   (await loadBackend()).deleteProjectArtifact(projectId)

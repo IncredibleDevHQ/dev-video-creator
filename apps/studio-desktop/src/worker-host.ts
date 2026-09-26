@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { app } from 'electron'
+import { runAtomizer } from './mcp/hidden-window'
 
 export type WorkerHandle = {
   origin: string
@@ -22,7 +23,15 @@ type StudioWorkerModule = {
     serveDist?: boolean
     distDir?: string
     outputsDir?: string
+    pageCheck?: (svg: string) => Promise<{ ok: true; svg: string } | { ok: false; reason: string }>
   }) => (request: IncomingMessage, response: ServerResponse) => Promise<void>
+}
+
+// A designed page, read as the studio reads it — the notebook window's own
+// atomizer, in the hidden window — before the worker lands it (B06).
+const pageCheck = async (svg: string) => {
+  const atomized = await runAtomizer<{ svg: string; units: unknown[] }>('atomize', svg)
+  return atomized.units.length ? { ok: true as const, svg: atomized.svg } : { ok: false as const, reason: 'the page has no parts the studio can read' }
 }
 
 // Tried before the studio handler; return true when the request was handled
@@ -94,6 +103,7 @@ export const startWorker = async (
     serveDist: true,
     distDir,
     outputsDir,
+    pageCheck,
   })
   const server = createServer(async (request, response) => {
     if (options.preHandler && (await options.preHandler(request, response))) return

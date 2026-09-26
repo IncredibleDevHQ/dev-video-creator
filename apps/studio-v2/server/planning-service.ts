@@ -572,6 +572,11 @@ const referenceOf = (planning: VideoPlanning, scene: VideoPlanning['videoScenes'
   const node = live.get(origin)
   const revision = node ? sceneRevisionOf(node).inputs.page : null
   const pageOrigin = node ? (attr(node, 'pageOrigin') as { kind?: string; by?: string; designing?: unknown } | null | undefined) : null
+  // Still being designed: a scene waiting for its first designed page. A
+  // page the run has landed is offered at once, while the run goes on
+  // checking the rest of its batch — its binding stays until the run ends,
+  // and a page the run redraws is a newer revision again (BoltDB B06).
+  const designing = Boolean(pageOrigin?.designing) && pageOrigin?.kind !== 'designed'
   const newer = node && revision && revision !== pinned.pageRevision
     ? {
         baseScene: origin,
@@ -579,15 +584,15 @@ const referenceOf = (planning: VideoPlanning, scene: VideoPlanning['videoScenes'
         kind: pageKindOf(node),
         by: String(pageOrigin?.by || ''),
         // Still being designed: said, not offered.
-        designing: Boolean(pageOrigin?.designing),
-        svg: pageOrigin?.designing ? '' : stringAttr(node, 'svg'),
-        program: pageOrigin?.designing ? null : attr(node, 'program') ?? null,
+        designing,
+        svg: designing ? '' : stringAttr(node, 'svg'),
+        program: designing ? null : attr(node, 'program') ?? null,
         // The schematic the base's slide was designed from, kept beside it.
-        schematic: pageOrigin?.designing ? null : String((attr(node, 'schematic') as { svg?: string } | null | undefined)?.svg || '') || null,
+        schematic: designing ? null : String((attr(node, 'schematic') as { svg?: string } | null | undefined)?.svg || '') || null,
       }
     : null
   // The base still designing this scene's page, as yet unchanged.
-  const baseDesigning = Boolean(pageOrigin?.designing) && !newer
+  const baseDesigning = designing && !newer
   return { baseScene: origin, kind: pinned.pageKind, revision: pinned.pageRevision, adopted: pinned.adopted, newer, baseDesigning }
 }
 

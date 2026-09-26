@@ -1,5 +1,6 @@
 import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, type ExportReport } from './export-jobs'
 import { generateFishVoice, generateSystemVoice, probeSeconds } from './voice'
+import { landPagesOnce, runPagesIn, type LandingDeps, type PageCheck } from './page-landing'
 import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
@@ -46,6 +47,7 @@ import {
   deleteProjectArtifact,
   getObjectMetadata,
   listProjectArtifacts,
+  listProjectIdsAwaitingPages,
   listThemeLibrary,
   loadLatestProjectArtifact,
   loadProjectArtifact,
@@ -150,6 +152,9 @@ export type StudioHandlerOptions = {
   distDir?: string
   // Where published MP4s land; STUDIO_OUTPUTS_DIR overrides for dev/tests.
   outputsDir?: string
+  // Reads a designed page as the studio does: given by the desktop app,
+  // whose worker then lands design runs' pages on their notebooks (B06).
+  pageCheck?: PageCheck
 }
 
 // Option-dependent state the request handlers close over.
@@ -2611,6 +2616,39 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     mkdir(context.previewsDirectory, { recursive: true }),
   ])
 
+  // Design runs' pages land on their notebooks here, whether or not any
+  // notebook window is open (BoltDB review B06): swept every few seconds
+  // while a notebook waits for one, and on request.
+  const pageLanding: LandingDeps | null = options.pageCheck
+    ? {
+        load: loadProjectArtifact,
+        save: (project, expected) => saveProjectArtifact(project, { expectedProject: expected }),
+        run: async runId => (await listBuildRuns()).find(row => row.id === runId) || null,
+        pages: runPagesIn,
+        check: options.pageCheck,
+      }
+    : null
+  if (pageLanding) {
+    let sweeping = false
+    const sweep = async () => {
+      if (sweeping) return
+      sweeping = true
+      try {
+        for (const notebookId of await listProjectIdsAwaitingPages()) {
+          const landed = await landPagesOnce(notebookId, pageLanding)
+          if (landed.saved) console.log(`[pages] ${notebookId}: ${landed.landed.length} landed, ${landed.kept.length} kept their change, ${landed.stayed.length} stayed schematic, ${landed.waiting} waiting`)
+        }
+      } catch (error) {
+        console.warn('[pages] a landing pass failed', error instanceof Error ? error.message : error)
+      } finally {
+        sweeping = false
+      }
+    }
+    const timer = setInterval(() => void sweep(), 4000)
+    timer.unref?.()
+    void directoriesReady.then(() => sweep())
+  }
+
   return async (request: IncomingMessage, response: ServerResponse) => {
   await directoriesReady
   setCors(request, response)
@@ -2795,6 +2833,22 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         model,
       })
       json(response, 200, { model: { id: saved.id, hash: saved.hash, ...model }, outline })
+      return
+    }
+    // A notebook's designed pages, landed now (B06): the notebook window asks
+    // while its pages are designed, and gets the notebook as stored.
+    if (request.method === 'POST' && url.pathname === '/api/pages/land') {
+      const body = await readJson<{ notebook?: string }>(request, 16 * 1024)
+      if (!pageLanding) {
+        json(response, 501, { error: 'Designed pages land in the desktop app' })
+        return
+      }
+      if (!body?.notebook) {
+        json(response, 400, { error: 'Which notebook?' })
+        return
+      }
+      const landed = await landPagesOnce(body.notebook, pageLanding)
+      json(response, 200, { landed, project: await loadProjectArtifact(body.notebook) })
       return
     }
     // Durable build-run history and per-stage checkpoints (D3).

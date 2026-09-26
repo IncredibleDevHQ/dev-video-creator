@@ -201,7 +201,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
       for (const id of [...stopping]) if (!isActiveStatus((overview.records.find(record => record.id === id) || { status: 'failed' }).status)) stopping.delete(id)
       host.loaded?.()
     }
-    if (active() || overview?.visualCast?.status === 'extracting') pollTimer = window.setTimeout(() => void load(), 4000)
+    // A scene waiting for its base's page is watched too: the worker lands
+    // the page whatever is open, and it is offered here as it lands (B06).
+    const awaitingPages = (overview?.scenes || []).some(scene => scene.reference?.baseDesigning || scene.reference?.newer?.designing)
+    if (active() || overview?.visualCast?.status === 'extracting' || awaitingPages) pollTimer = window.setTimeout(() => void load(), 4000)
   }
 
   // Runs asked to stop: "Cancelling…" until their records end.

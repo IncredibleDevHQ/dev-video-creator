@@ -10,7 +10,7 @@ import { isActiveStatus } from './planning/planning-records'
 import type { SceneProductionView } from './planning/planning-workspace'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
-import { bindingOf, landingFor, pageFingerprint, pageReadinessOf, runPageFor, settledOrigin, type PageDesignBinding } from './page-design'
+import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePage, type PageDesignBinding } from './page-design'
 import { baseNextStep, type NextStep } from './planning/next-step'
 import { draftHoldsEdits, sameDocument } from './draft-state'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
@@ -3354,6 +3354,8 @@ saveConflictButton.onclick = async () => {
   } catch (error) { saveConflictButton.disabled = false; showToast(String(error)) }
 }
 
+// Saves retried on a designed page the worker landed meanwhile (B06).
+let pageRebases = 0
 const scheduleDatabaseSync = () => {
   window.clearTimeout(databaseSyncTimer)
   databaseSyncTimer = window.setTimeout(async () => {
@@ -3376,9 +3378,13 @@ const scheduleDatabaseSync = () => {
     }
     try {
       await persistProjectNow(snapshot)
+      pageRebases = 0
       saveState.textContent = readStoredDraft(snapshot.id) ? 'Saving…' : 'Saved'
     } catch (error) {
       const conflict = (error as { statusCode?: number }).statusCode === 409
+      // A designed page the worker landed meanwhile (B06) is taken, and the
+      // save goes again on the notebook as stored.
+      if (conflict && (await rebaseOnLandedPages())) return
       saveState.textContent = conflict ? 'Newer saved version · draft kept' : 'Saved offline'
       saveConflictButton.hidden = !conflict
     }
@@ -17505,11 +17511,6 @@ const restampPageBindings = (nodeIds: string[]) => {
 }
 // A designed page the studio can use: it parses into parts, and its
 // contract is read. Throws with why it cannot.
-const readDesignedPage = (svg: string) => {
-  const atomized = atomizeSlideSvg(svg)
-  if (!atomized.units.length) throw new Error('the page has no parts the studio can read')
-  return atomized
-}
 // A scene's page as its schematic, when it is one: what a designed slide
 // keeps beside it once the slide replaces it.
 const schematicOf = (attrs: Record<string, unknown>) =>
@@ -17521,87 +17522,105 @@ const writePageOrigin = (nodeId: string, attrs: (current: Record<string, unknown
   editor.view.dispatch(editor.state.tr.setNodeMarkup(found.at, undefined, { ...node.attrs, ...attrs(node.attrs as Record<string, unknown>) }))
   return true
 }
+// Pages land on their scenes in the app's worker, whichever notebook is
+// open (BoltDB review B06). While this base waits for some, the window asks
+// the worker to land what is ready now and takes what it landed — a scene
+// whose page was changed here meanwhile keeps that change — then plans
+// each landed page's motion from its words, as a landed page always was.
+type PagesLanded = { landed: string[]; kept: string[]; stayed: string[]; waiting: number; saved: boolean; conflict: boolean }
+// The notebook as the worker left it, taken into this window: the pages it
+// landed and the bindings it let go. Anything else changed since this
+// window's last save was an edit made elsewhere — not taken here, and the
+// next save says so.
+const takeLandedPages = (stored: ProjectDocumentV1 | null) => {
+  const known = stored ? acknowledgedProjects.get(stored.id) : undefined
+  if (!stored || !known || stored.id !== project.id) return false
+  const changes = landedPageChanges(known, stored)
+  if (!changes) return false
+  const knownById = new Map(known.notebook.content.map(node => [String(node.attrs?.id || ''), node]))
+  for (const [nodeId, page] of changes) {
+    const found = findSlideLikeNode(nodeId)
+    if (found && samePage(found.attrs as Record<string, unknown>, knownById.get(nodeId)?.attrs)) writePageOrigin(nodeId, () => page)
+  }
+  acknowledgedProjects.set(stored.id, structuredClone(stored))
+  return true
+}
+// A page the worker landed is planned here, from the scene's words; the
+// mark goes once it is.
+const replanLandedPages = () => {
+  const marked: string[] = []
+  editor.state.doc.forEach(node => {
+    if (node.type.name === 'scene' && (node.attrs.pageOrigin as { replan?: boolean } | null | undefined)?.replan) marked.push(String(node.attrs.id || ''))
+  })
+  for (const nodeId of marked) {
+    try {
+      animateSceneLocally(nodeId)
+    } catch (error) {
+      console.warn('re-plan after a designed page failed', nodeId, error)
+    }
+    writePageOrigin(nodeId, attrs => {
+      const { replan: _replan, ...origin } = (attrs.pageOrigin || {}) as Record<string, unknown>
+      return { pageOrigin: origin }
+    })
+  }
+  if (!marked.length) return 0
+  // Still bound while the run checks: to the page as planned.
+  restampPageBindings(marked)
+  syncProject()
+  return marked.length
+}
+// A save refused because the worker landed a page meanwhile: the landing is
+// taken and the save goes again — a few times at most (pageRebases), then
+// the refusal stands and says so.
+const rebaseOnLandedPages = async () => {
+  if (project.derivedFrom?.notebook || pageRebases >= 3) return false
+  const stored = await fetchJson<{ project?: ProjectDocumentV1 | null }>(`/api/projects/${encodeURIComponent(project.id)}`)
+    .then(body => body.project || null)
+    .catch(() => null)
+  if (!takeLandedPages(stored)) return false
+  pageRebases += 1
+  replanLandedPages()
+  syncProject()
+  return true
+}
 const landDesignedPages = async () => {
   const bridge = window.studioDesktop
   if (pageDesignBusy || !bridge?.isDesktop || project.derivedFrom?.notebook) return
   pageDesignBusy = true
-  const kept: string[] = []
-  const stayed: string[] = []
-  let landed = 0
+  let landed: PagesLanded | null = null
   let awaited = false
   try {
-    const bound = pageDesignBindings()
-    awaited = bound.some(entry => !entry.designed)
-    for (const runId of [...new Set(bound.map(entry => entry.binding.runId))]) {
-      // Whether the run has ended first, then its pages: an ended run's
-      // pages are all there is.
-      const summary = await finishedRun(runId).catch(() => undefined)
-      const ended = !summary || ['done', 'error', 'cancelled'].includes(summary.status)
-      const result = await bridge.harness.pages(runId).catch(() => null)
-      for (const entry of bound.filter(item => item.binding.runId === runId)) {
-        const node = findSlideLikeNode(entry.nodeId)
-        const binding = node ? bindingOf(node.attrs as Record<string, unknown>) : null
-        if (!node || !binding || binding.runId !== runId) continue
-        const page = result ? runPageFor(result.pages, binding.page) : undefined
-        const landing = landingFor(String(node.attrs.svg || ''), binding, page, ended)
-        if (landing === 'wait') continue
-        if (landing === 'apply' && page) {
-          try {
-            readDesignedPage(page.svg)
-          } catch (error) {
-            // A page still being written parses on a later pass; once the
-            // run has ended it failed the page check and stays as it is.
-            if (!ended) continue
-            console.warn('designed page rejected', runId, binding.page, error)
-            if (writePageOrigin(entry.nodeId, attrs => ({ pageOrigin: settledOrigin(attrs.pageOrigin) }))) stayed.push(entry.title)
-            continue
-          }
-          const origin = { kind: 'designed', by: binding.by, runId }
-          const applied = writePageOrigin(entry.nodeId, current => ({
-            svg: page.svg,
-            svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`,
-            program: page.program || null,
-            pageOrigin: ended ? origin : { ...origin, designing: { ...binding, placeholder: pageFingerprint(page.svg), landed: pageFingerprint(page.svg) } },
-            // The schematic it was designed from stays beside the slide.
-            schematic: current.schematic ?? schematicOf(current),
-          }))
-          if (!applied) continue
-          landed += 1
-          // The page changed under the scene's words: its motion is planned
-          // again from them.
-          try {
-            animateSceneLocally(entry.nodeId)
-          } catch (error) {
-            console.warn('re-plan after a designed page failed', entry.nodeId, error)
-          }
-          // Still bound while the run checks: to the page as planned.
-          if (!ended) restampPageBindings([entry.nodeId])
-          continue
-        }
-        // Changed since it was bound, or the run is over: the binding goes.
-        const wasSchematic = !entry.designed
-        if (writePageOrigin(entry.nodeId, attrs => ({ pageOrigin: settledOrigin(attrs.pageOrigin) }))) {
-          if (landing === 'kept') kept.push(entry.title)
-          else if (wasSchematic) stayed.push(entry.title)
-        }
-      }
-    }
+    awaited = pageDesignBindings().some(entry => !entry.designed)
+    const response = await fetchJson<{ landed: PagesLanded; project: ProjectDocumentV1 | null }>('/api/pages/land', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ notebook: project.id }),
+    })
+    landed = response.landed
+    takeLandedPages(response.project)
+  } catch (error) {
+    console.warn('designed pages could not be landed now', error)
   } finally {
     pageDesignBusy = false
   }
-  if (landed || kept.length || stayed.length) syncProject()
+  replanLandedPages()
   const done = pageDesignBindings().length === 0
+  const kept = landed?.kept || []
+  const stayed = landed?.stayed || []
+  const count = landed?.landed.length || 0
   if (kept.length) showToast(`${kept.map(title => `“${title}”`).join(', ')} changed while ${kept.length === 1 ? 'its page was' : 'their pages were'} designed — ${kept.length === 1 ? 'it keeps' : 'they keep'} your change`)
   else if (stayed.length) showToast(`${stayed.length} page${stayed.length === 1 ? '' : 's'} stayed schematic draft${stayed.length === 1 ? '' : 's'} — the design run ended before ${stayed.length === 1 ? 'it was' : 'they were'} finished`)
-  else if (done && (landed || awaited)) showToast('Every page this notebook was waiting for is designed. Plan video makes a video from the designed pages; a video made earlier can adopt them scene by scene.')
-  else if (landed) showToast(`${landed} designed page${landed === 1 ? '' : 's'} landed on ${landed === 1 ? 'its scene' : 'their scenes'}`)
-  if (!pageDesignBindings().length && pageDesignTimer !== null) {
+  else if (done && (count || awaited)) showToast('Every page this notebook was waiting for is designed. Plan video makes a video from the designed pages; a video made earlier can adopt them scene by scene.')
+  else if (count) showToast(`${count} designed page${count === 1 ? '' : 's'} landed on ${count === 1 ? 'its scene' : 'their scenes'}`)
+  if (done && pageDesignTimer !== null) {
     window.clearInterval(pageDesignTimer)
     pageDesignTimer = null
   }
   renderPageDesignStatus()
 }
 function watchPageDesign() {
+  // Pages landed while this notebook was closed are planned now.
+  if (!project.derivedFrom?.notebook) replanLandedPages()
   renderPageDesignStatus()
   if (project.derivedFrom?.notebook || !window.studioDesktop?.isDesktop || !pageDesignBindings().length) return
   if (pageDesignTimer === null) pageDesignTimer = window.setInterval(() => void landDesignedPages(), SOURCE_DESIGN_POLL_MS)
