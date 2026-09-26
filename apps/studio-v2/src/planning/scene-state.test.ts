@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanningRecord } from './planning-records'
-import { railStateOf, sceneActionsOf, shownRecordOf, type Scene, type SceneActionInput } from './scene-state'
+import { deliveryChangeOf, railStateOf, sceneActionsOf, shownRecordOf, type Scene, type SceneActionInput } from './scene-state'
 
 const record = (id: string, revision: number, status: PlanningRecord['status'], kind: PlanningRecord['kind'] = 'treatment') =>
   ({ id, kind, subject: 's1', revision, status, content: kind === 'treatment' ? { moments: [] } : null, error: null }) as unknown as PlanningRecord
@@ -127,5 +127,44 @@ describe('a scene in the list of scenes', () => {
     expect(shownRecordOf(row, records, 't1')?.id).toBe('t1')
     expect(shownRecordOf(row, records, '')?.id).toBe('t2')
     expect(shownRecordOf(row, records, 'gone')?.id).toBe('t2')
+  })
+})
+
+// F02 of the project-flow fix verification: changing who speaks plans the
+// scene again whenever it has a plan — once the choice is saved — and the
+// question says exactly what the scene is left with.
+describe('who speaks, changed', () => {
+  const ask = (view: Partial<Scene['view']>, extra: Partial<Scene> = {}) => deliveryChangeOf(scene(view, extra), 'silent', 'Silent')
+  it('stops a plan being made, once saved, and plans again', () => {
+    const planning = record('t3', 3, 'running')
+    const change = ask({ state: 'planning', latest: planning, reviewed: r1, current: r1 })
+    expect(change).toMatchObject({ stop: planning, replan: true })
+    expect(change.confirm).toBe('Plan r3 is being made for a generated voice. Change who speaks to no voice? r3 is stopped and kept, and the scene is planned again as r4 with no voice. The approved plan r1, made for a generated voice, stays approved, out of date, until you approve r4. Other scenes are unchanged.')
+    expect(change.saved).toBe('Silent: saved. r3 is stopped and kept; r4 is being planned with no voice.')
+    expect(change.failed('the studio did not answer')).toBe('Who speaks did not change — the studio did not answer. The scene keeps a generated voice, and r3 goes on being made.')
+  })
+  it('plans a candidate again, keeping it out of date', () => {
+    const change = ask({ state: 'candidate', latest: r2, current: r2 })
+    expect(change).toMatchObject({ stop: null, replan: true })
+    expect(change.confirm).toBe('Change who speaks in this scene to no voice? The scene is planned again as r3 with no voice. Plan r2, made for a generated voice, is kept, out of date. Other scenes are unchanged.')
+    expect(change.saved).toBe('Silent: saved. r3 is being planned with no voice; r2 is kept, out of date.')
+    expect(change.failed('HTTP 500')).toBe('Who speaks did not change — HTTP 500. The scene keeps a generated voice; its plans are as they were.')
+  })
+  it('plans an approved plan again, and says the approval stays until the new one is approved', () => {
+    expect(ask({ state: 'reviewed', latest: r1, current: r1, reviewed: r1 }).confirm).toBe('Change who speaks in this scene to no voice? The scene is planned again as r2 with no voice. The approved plan r1, made for a generated voice, stays approved, out of date, until you approve r2. Other scenes are unchanged.')
+    expect(ask({ state: 'candidate', latest: r2, current: r2, reviewed: r1 }).confirm).toBe('Change who speaks in this scene to no voice? The scene is planned again as r3 with no voice. Plan r2, made for a generated voice, is kept, out of date. The approved plan r1 stays approved, out of date, until you approve r3. Other scenes are unchanged.')
+  })
+  it('says what becomes of a production, made or accepted', () => {
+    const view = { state: 'reviewed' as const, latest: r1, current: r1, reviewed: r1 }
+    expect(ask(view, { production: production('ready', { current: true }) }).confirm).toMatch(/until you approve r2\. Its production of r1 is kept, out of date\. Other scenes are unchanged\.$/)
+    expect(ask(view, { production: production('ready', { accepted: true, current: true }, { current: true }) }).confirm).toMatch(/until you approve r2\. Its accepted production still plays in the video until you accept one made again\. Other scenes are unchanged\.$/)
+  })
+  it('only saves a scene with no plan, and a failed save changes nothing', () => {
+    const change = ask({ state: 'ready-to-plan' }, { delivery: null })
+    expect(change).toMatchObject({ confirm: null, stop: null, replan: false, saved: 'Silent: saved for this scene. Its plan is made for it.' })
+    expect(change.failed('HTTP 500')).toBe('Who speaks did not change — HTTP 500.')
+    const failedPlan = ask({ state: 'failed', latest: record('t1', 1, 'failed') }, { delivery: null })
+    expect(failedPlan).toMatchObject({ confirm: null, replan: false })
+    expect(ask({ state: 'candidate', latest: r2, current: r2 }, { delivery: null }).failed('HTTP 409')).toBe('Who speaks did not change — HTTP 409. Who speaks stays undecided; its plans are as they were.')
   })
 })

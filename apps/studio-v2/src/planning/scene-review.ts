@@ -20,7 +20,7 @@ import { acceptProduction, approvePlan, loadPlanning, planScene, prepareBrief, p
 import { BROWSER_REVIEW_MESSAGE, failureTitle, progressText } from '../harness-choice'
 import { progressOf, sinceOf } from './progress'
 import { videoNextStep, type NextStep } from './next-step'
-import { previewFor, previewStateOf, producedFor, productionShown, productionStateOf, railStateOf, sceneActionsOf, treatmentRecordsOf, type PreviewState, type SceneAction, type SceneActions } from './scene-state'
+import { deliveryChangeOf, previewFor, previewStateOf, producedFor, productionShown, productionStateOf, railStateOf, sceneActionsOf, treatmentRecordsOf, type Delivery, type PreviewState, type SceneAction, type SceneActions } from './scene-state'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
 type Scene = PlanningOverviewV1['scenes'][number]
@@ -283,7 +283,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
       await load()
     }
   }
-  const revise = (scene: Scene) =>
+  // `said` is what the creator reads once it starts, when a change of
+  // theirs started it.
+  const revise = (scene: Scene, said?: string) =>
     run('plan the scene', async () => {
       const state = uiOf(scene.id)
       const projectId = host.projectId()
@@ -295,7 +297,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       const shown = shownRecord(scene)
       state.revision = host.pinApproved?.() && shown && shown.status === 'reviewed' && shown.id === scene.view.reviewed?.id ? shown.id : ''
       const { reused } = await planScene(host.fetchJson, projectId, scene.id)
-      host.toast(reused ? 'This plan is already being made from the same inputs' : scene.view.reviewed ? 'Planning a new candidate — the approved plan stays until you approve another' : 'Planning the scene: each phase shows as the harness reaches it')
+      host.toast(reused ? 'This plan is already being made from the same inputs' : said || (scene.view.reviewed ? 'Planning a new candidate — the approved plan stays until you approve another' : 'Planning the scene: each phase shows as the harness reaches it'))
     })
   const preview = (scene: Scene, record: PlanningRecord, again: boolean) =>
     run('preview the plan', async () => {
@@ -1785,7 +1787,10 @@ export const createSceneReview = (host: SceneReviewHost) => {
   // are kept. A plan still being made would finish out of date — that is
   // said before anything changes, with stopping it and planning again as
   // the way on.
-  const chooseDelivery = async (drawn: Scene, value: 'human' | 'generated' | 'silent', label: string) => {
+  // Who speaks, changed (F02 of the fix verification): the question says
+  // what the scene will be left with; the choice is saved first, and only a
+  // saved choice stops a plan being made and plans the scene again.
+  const chooseDelivery = async (drawn: Scene, value: Delivery, label: string) => {
     if (savingDelivery || drawn.delivery === value) return
     const projectId = host.projectId()
     if (!projectId) return
@@ -1793,31 +1798,29 @@ export const createSceneReview = (host: SceneReviewHost) => {
     await load().catch(() => undefined)
     const scene = sceneOf(drawn.id) || drawn
     if (scene.delivery === value) return
-    const planning = scene.view.latest && scene.view.latest.kind === 'treatment' && isActiveStatus(scene.view.latest.status) ? scene.view.latest : null
-    const replan = Boolean(planning)
-    if (planning) {
-      if (!window.confirm(`Plan r${planning.revision} is being made for ${scene.delivery ? DELIVERY_CHOICES.find(([choice]) => choice === scene.delivery)?.[1].toLowerCase() : 'who speaks still undecided'}: changing it now would leave that plan out of date the moment it finishes.\n\nStop r${planning.revision}, and plan the scene again with ${label.toLowerCase()}? Other scenes are unchanged.`)) return
-    } else if (scene.view.current && !window.confirm(`Change who speaks in this scene? Its plans made before read as out of date — they are kept — and it is planned again with ${label.toLowerCase()}.`)) return
+    const change = deliveryChangeOf(scene, value, label)
+    if (change.confirm && !window.confirm(change.confirm)) return
     savingDelivery = scene.id
     host.refresh()
     void (async () => {
+      let saved = false
       try {
-        if (planning) {
-          stopping.add(planning.id)
-          await stopRun(host.fetchJson, planning).catch(() => undefined)
-        }
         await saveSceneDelivery(host.fetchJson, projectId, scene.id, value)
-        host.toast(replan ? `${label}: saved for this scene, and it is planned again with it. The stopped plan is kept.` : `${label}: saved for this scene. Its earlier plans are kept, marked out of date; other scenes are unchanged.`)
+        saved = true
+        if (change.stop) {
+          stopping.add(change.stop.id)
+          await stopRun(host.fetchJson, change.stop).catch(() => undefined)
+        }
       } catch (failure) {
-        host.toast(failure instanceof Error ? failure.message : 'Could not save who speaks')
+        host.toast(change.failed(failure instanceof Error ? failure.message : 'the studio did not answer'))
       } finally {
         savingDelivery = ''
-        await load()
+        await load().catch(() => undefined)
       }
-      if (replan) {
-        const now = sceneOf(scene.id)
-        if (now) void revise(now)
-      }
+      if (!saved) return
+      const now = change.replan ? sceneOf(scene.id) : null
+      if (now) void revise(now, change.saved)
+      else host.toast(change.saved)
     })()
   }
   // Beside the scene's title: who speaks, and what deciding later costs.

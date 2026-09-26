@@ -239,3 +239,66 @@ export const railStateOf = (scene: Scene, take: TakeState): { label: string; ton
   }
   return { label: '', tone: 'idle' }
 }
+
+// ——— Who speaks, changed (F02 of the project-flow fix verification) ———
+// Who speaks is an input to a scene's plans, so a scene that has a plan is
+// always planned again once the new choice is saved — whether its plan is
+// being made, a candidate, approved or produced — and never before: a save
+// that fails changes nothing, and stops nothing. The question asked first
+// says exactly what the scene will be left with; a scene with no plan yet is
+// only saved, and planned with the choice when it is planned.
+export type Delivery = 'human' | 'generated' | 'silent'
+const SPOKEN: Record<Delivery, string> = { human: 'you presenting it', generated: 'a generated voice', silent: 'no voice' }
+export type DeliveryChange = {
+  // The question to ask first, or none.
+  confirm: string | null
+  // A plan being made, to stop once the choice is saved.
+  stop: PlanningRecord | null
+  // Plan the scene again once the choice is saved.
+  replan: boolean
+  // What the creator reads once it is saved, and when it could not be.
+  saved: string
+  failed: (reason: string) => string
+}
+export const deliveryChangeOf = (scene: Scene, to: Delivery, label: string): DeliveryChange => {
+  const was = scene.delivery ? SPOKEN[scene.delivery as Delivery] : 'who speaks still undecided'
+  const now = SPOKEN[to]
+  const latest = scene.view.latest
+  const running = latest && latest.kind === 'treatment' && isActiveStatus(latest.status) ? latest : null
+  const current = scene.view.current
+  const reviewed = scene.view.reviewed
+  const next = Math.max(latest?.revision ?? 0, current?.revision ?? 0, reviewed?.revision ?? 0) + 1
+  const production = scene.production?.accepted
+    ? ` Its accepted production still plays in the video until you accept one made again.`
+    : scene.production?.ready
+      ? ` Its production of r${scene.production.ready.of.revision} is kept, out of date.`
+      : ''
+  const approval = reviewed ? ` The approved plan r${reviewed.revision}${reviewed.id === current?.id ? `, made for ${was},` : ''} stays approved, out of date, until you approve r${next}.` : ''
+  const unchanged = scene.delivery ? `The scene keeps ${was}` : 'Who speaks stays undecided'
+  if (running) {
+    return {
+      confirm: `Plan r${running.revision} is being made for ${was}. Change who speaks to ${now}? r${running.revision} is stopped and kept, and the scene is planned again as r${next} with ${now}.${approval}${production} Other scenes are unchanged.`,
+      stop: running,
+      replan: true,
+      saved: `${label}: saved. r${running.revision} is stopped and kept; r${next} is being planned with ${now}.`,
+      failed: reason => `Who speaks did not change — ${reason}. ${unchanged}, and r${running.revision} goes on being made.`,
+    }
+  }
+  if (current) {
+    const kept = reviewed?.id === current.id ? '' : ` Plan r${current.revision}, made for ${was}, is kept, out of date.`
+    return {
+      confirm: `Change who speaks in this scene to ${now}? The scene is planned again as r${next} with ${now}.${kept}${approval}${production} Other scenes are unchanged.`,
+      stop: null,
+      replan: true,
+      saved: `${label}: saved. r${next} is being planned with ${now}; r${current.revision} is kept, out of date.`,
+      failed: reason => `Who speaks did not change — ${reason}. ${unchanged}; its plans are as they were.`,
+    }
+  }
+  return {
+    confirm: null,
+    stop: null,
+    replan: false,
+    saved: `${label}: saved for this scene. Its plan is made for it.`,
+    failed: reason => `Who speaks did not change — ${reason}.`,
+  }
+}
