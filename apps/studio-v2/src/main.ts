@@ -18680,6 +18680,16 @@ const renderSwitch = () => {
   renderNotebookSwitch(notebookSwitch, switchTabsOf(notebooks, project.id), chooseNotebookTab)
   notebookSwitch.hidden = false
 }
+// This notebook's own tab follows its pages as they change: a slide
+// landing, a page added.
+let switchFrame = 0
+editor.on('update', () => {
+  if (!project.container || switchFrame) return
+  switchFrame = window.requestAnimationFrame(() => {
+    switchFrame = 0
+    renderSwitch()
+  })
+})
 const refreshNotebookSwitch = async () => {
   if (!project.container) return
   if (notebookSwitchTimer) window.clearTimeout(notebookSwitchTimer)
