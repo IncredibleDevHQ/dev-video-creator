@@ -566,8 +566,21 @@ try {
   // B07 of the BoltDB review: what the new candidate claims more strongly
   // than its evidence, and a phrase the direction asked to drop that it
   // still says, before it is approved.
-  const claims = await waitFor(`() => { const box = document.querySelector('.scene-review.is-expanded [data-review-claims="${revised.id}"]'); return box ? { head: box.querySelector('strong').textContent, items: [...box.querySelectorAll('li')].map(item => item.textContent) } : null }`, 20)
-  check(claims?.head === 'Claims to check before approving (2)' && /^The takeaway claims “never”: “Excess load never gets through\.” — its evidence does not say it; check what the source supports$/.test(claims.items[0]) && claims.items[1] === 'Your direction asked to drop “back to the viewer”, and moment m3\'s line still says it: “Back to the viewer.”', `the candidate's claims its evidence does not make, and a phrase the direction dropped, are named before it is approved (${JSON.stringify(claims)})`)
+  // One item a claim (F04 of the project-flow fix verification): the claim
+  // and why it is flagged, the clause it is said in and where, and a way to
+  // narrow its wording, in view; the rest on demand.
+  const claims = await waitFor(`() => { const box = document.querySelector('.scene-review.is-expanded [data-review-claims="${revised.id}"]'); return box ? { head: box.querySelector('.review-claims-summary').textContent, items: [...box.querySelectorAll('.review-claim')].map(item => ({ basis: item.dataset.claimBasis, head: item.querySelector('.review-claim-head').textContent, clause: item.querySelector('.review-claim-clause').textContent, narrow: item.querySelector('.review-claim-narrow')?.textContent || '', more: item.querySelector('details')?.open === false })) } : null }`, 20)
+  check(claims?.head === 'Claims to check before approving (2) · 1 not in its evidence · 1 your direction asked to drop'
+    && claims.items[0]?.basis === 'unsupported' && claims.items[0].head === 'never — not in this scene’s evidence' && claims.items[0].clause === '“Excess load never gets through.” · the takeaway'
+    && claims.items[1]?.basis === 'direction' && claims.items[1].head === 'back to the viewer — your direction asked to drop it' && claims.items[1].clause === "“Back to the viewer.” · moment m3's line"
+    && claims.items.every(item => item.narrow === 'Revise wording' && item.more), `the candidate's claims its evidence does not make, and a phrase the direction dropped, are named before it is approved, one item each (${JSON.stringify(claims)})`)
+  // Revise wording narrows the claim in the direction for the next plan;
+  // nothing is planned by itself.
+  const latestBefore = (await overview(videoId)).scenes[1].view.latest?.id
+  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-review-claims="${revised.id}"] .review-claim-narrow').click(); return true }`)
+  const narrowed = await waitFor(`() => { const field = document.querySelector('.scene-review.is-expanded [data-focus^="direction:"]'); return field && /Do not say “never”: say only what this scene shows\.$/.test(field.value) ? { value: field.value, focused: document.activeElement === field } : null }`, 10)
+  await sleep(1500)
+  check(Boolean(narrowed?.focused) && (await overview(videoId)).scenes[1].view.latest?.id === latestBefore, `Revise wording puts the narrowed claim in the direction, ready to plan again with — and plans nothing by itself (${JSON.stringify(narrowed)})`)
   const plannedClaims = (await api(`/api/planning/records/${planned.id}`)).body?.record?.report?.claims
   check(Array.isArray(plannedClaims) && plannedClaims.length === 0, `the approved plan, which claims only what it shows, has none (${JSON.stringify(plannedClaims)})`)
   await shot('03-compare')

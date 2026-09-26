@@ -2519,6 +2519,23 @@ body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
 .review-claims { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #fffbeb; }
 .review-claims ul { margin: 4px 0 0; padding-left: 18px; }
 .review-claims li { margin: 2px 0; line-height: 1.45; }
+/* One item a claim (F04 of the fix verification): the claim and why, its
+   clause, and its actions — the rest on demand. */
+.review-claims-summary { margin: 0; }
+.review-claims > ul { padding-left: 0; list-style: none; }
+.review-claim { margin: 6px 0 0; padding-top: 6px; border-top: 1px solid rgba(180,83,9,.16); }
+.review-claim:first-child { padding-top: 0; border-top: 0; }
+.review-claim p { margin: 0; }
+.review-claim-head { font-weight: 600; }
+.review-claim-head q { font-weight: 750; }
+.review-claim.is-quoted .review-claim-head { font-weight: 500; }
+.review-claim-clause { margin-top: 2px; color: #52525b; }
+.review-claim-clause small { color: #71717a; }
+.review-claim-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-top: 2px; }
+.review-claim-narrow { padding: 0; border: 0; background: none; color: #b45309; font: 650 12px/1.6 'InterBody', Inter, sans-serif; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.review-claim-narrow:focus-visible { outline: 2px solid #b45309; outline-offset: 2px; border-radius: 2px; }
+.review-claim-actions .review-disclosure { padding-top: 0; border-top: 0; }
+.review-claim-details { padding: 2px 0 4px; color: #52525b; }
 .review-error { color: #b91c1c; margin: 0; }
 .review-busy { color: #5b21b6; margin: 0; }
 .review-cast { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

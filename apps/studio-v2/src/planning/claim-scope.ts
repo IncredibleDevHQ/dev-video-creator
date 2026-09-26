@@ -79,3 +79,90 @@ export const claimFlagText = (flag: ClaimFlag) =>
   flag.kind === 'direction'
     ? `Your direction asked to drop “${flag.phrase}”, and ${flag.where} still says it: “${flag.text}”`
     : `${flag.where.charAt(0).toUpperCase()}${flag.where.slice(1)} claims “${flag.phrase}”: “${flag.text}” — ${flag.evidence ? `the source says it too (“${flag.evidence.slice(0, 140)}”), but check what it holds for` : 'its evidence does not say it; check what the source supports'}`
+
+// ——— Claims, read as a creator reads them (F04 of the fix verification) ———
+// One claim said in the question, the takeaway and two lines is one thing
+// to check, not four warnings that each repeat a long sentence. Flags are
+// grouped by what they claim — "no locks" and "without locking" are one
+// claim — and by their basis: not in the plan's evidence, quoted from the
+// source (its scope still to check), or said after the direction asked to
+// drop it. Each group keeps the exact clause and where it is said; the full
+// sentences and the source's words are there on demand.
+export type ClaimBasis = 'unsupported' | 'direction' | 'quoted'
+export type ClaimGroup = {
+  basis: ClaimBasis
+  // The words that make the claim, as the plan says them (each wording once).
+  phrases: string[]
+  // The clause it is said in, where it is first said.
+  clause: string
+  occurrences: Array<{ where: string; text: string }>
+  evidence: string | null
+}
+const conceptOf = (phrase: string) => {
+  const said = normal(phrase)
+  if (/\b(?:no locks?|lock free|locking|locks?)\b/.test(said)) return 'locks'
+  if (/\bblock/.test(said)) return 'blocking'
+  if (/\bwait/.test(said)) return 'waiting'
+  if (/\bcontend|contention/.test(said)) return 'contention'
+  if (/^(?:nobody|no one)$/.test(said)) return 'nobody'
+  if (/^guarantee/.test(said)) return 'guarantee'
+  return said
+}
+// The clause a phrase is said in: a short sentence whole; a long one cut
+// to the words around the phrase, up to the nearest break — a comma, a
+// dash, a semicolon, "and", "but", "while", "so" — with an ellipsis where
+// it was cut.
+export const claimClauseOf = (text: string, phrase: string, most = 110) => {
+  if (text.length <= most) return text.trim()
+  const at = text.toLowerCase().indexOf(phrase.toLowerCase())
+  if (at < 0) return `${text.slice(0, most - 1).trimEnd()}…`
+  const breaks = /[,;:—–()]|\s(?:and|but|while|so|because|which)\s/gi
+  let start = 0
+  let end = text.length
+  for (const match of text.matchAll(breaks)) {
+    const index = match.index ?? 0
+    if (index + match[0].length <= at) start = index + match[0].length
+    else if (index >= at + phrase.length) {
+      end = index
+      break
+    }
+  }
+  let clause = text.slice(start, end).trim()
+  if (clause.length > most) {
+    const inside = clause.toLowerCase().indexOf(phrase.toLowerCase())
+    const from = Math.max(0, inside - Math.floor((most - phrase.length) / 2))
+    clause = `${from > 0 ? '…' : ''}${clause.slice(from, from + most).trim()}${from + most < clause.length ? '…' : ''}`
+  }
+  return `${start > 0 ? '…' : ''}${clause.replace(/^…/, '')}${end < text.length && !clause.endsWith('…') ? '…' : ''}`
+}
+const BASIS_ORDER: Record<ClaimBasis, number> = { unsupported: 0, direction: 1, quoted: 2 }
+export const claimGroupsOf = (flags: ClaimFlag[]): ClaimGroup[] => {
+  const groups = new Map<string, ClaimGroup>()
+  for (const flag of flags) {
+    const basis: ClaimBasis = flag.kind === 'direction' ? 'direction' : flag.evidence ? 'quoted' : 'unsupported'
+    const key = `${basis}|${flag.kind === 'direction' ? normal(flag.phrase) : conceptOf(flag.phrase)}`
+    const group = groups.get(key) || { basis, phrases: [], clause: claimClauseOf(flag.text, flag.phrase), occurrences: [], evidence: flag.evidence }
+    if (!group.phrases.some(phrase => normal(phrase) === normal(flag.phrase))) group.phrases.push(flag.phrase)
+    if (!group.occurrences.some(entry => entry.where === flag.where)) group.occurrences.push({ where: flag.where, text: flag.text })
+    groups.set(key, group)
+  }
+  return [...groups.values()].sort((a, b) => BASIS_ORDER[a.basis] - BASIS_ORDER[b.basis])
+}
+export const CLAIM_BASIS_TEXT: Record<ClaimBasis, string> = {
+  unsupported: 'not in this scene’s evidence',
+  direction: 'your direction asked to drop it',
+  quoted: 'quoted from the source — check what it holds for',
+}
+// "2 claims to check · 1 not in its evidence · 1 quoted from the source".
+export const claimSummaryOf = (groups: ClaimGroup[]) => {
+  const count = (basis: ClaimBasis) => groups.filter(group => group.basis === basis).length
+  return [
+    count('unsupported') ? `${count('unsupported')} not in its evidence` : '',
+    count('direction') ? `${count('direction')} your direction asked to drop` : '',
+    count('quoted') ? `${count('quoted')} quoted from the source` : '',
+  ].filter(Boolean).join(' · ')
+}
+// The direction that narrows a claim, in the words the next plan's check
+// reads (avoidedPhrasesOf): a plan that still says it is flagged again.
+export const narrowingDirectionOf = (group: ClaimGroup) =>
+  `Do not say “${group.phrases[0]}”: say only what this scene shows.`

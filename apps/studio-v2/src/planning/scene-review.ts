@@ -14,7 +14,7 @@ import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, isActiveStatus, validationOf, type FrameRegion, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
-import { claimFlagText } from './claim-scope'
+import { CLAIM_BASIS_TEXT, claimGroupsOf, claimSummaryOf, narrowingDirectionOf, type ClaimGroup } from './claim-scope'
 import { recordingGuide } from './recording-guide'
 import { acceptProduction, approvePlan, loadPlanning, planScene, prepareBrief, previewScene, produceScene, saveProductionEdits, saveSceneDelivery, saveSceneDirection, stopRun } from './planning-client'
 import { BROWSER_REVIEW_MESSAGE, failureTitle, progressText } from '../harness-choice'
@@ -1144,14 +1144,51 @@ export const createSceneReview = (host: SceneReviewHost) => {
 
   // What the plan claims more strongly than its sources, or still says
   // after the direction asked to drop it (B07 of the BoltDB review): shown
-  // with the plan, before it is approved.
-  const claimsOf = (record: PlanningRecord | null | undefined) => {
+  // with the plan, before it is approved. One item a claim, however often
+  // it is said (F04 of the fix verification): the claim, why it is flagged
+  // and the clause it is said in stay in view with a way to narrow it;
+  // where else it is said, and the source's own words, open on demand.
+  const claimsOf = (scene: Scene, record: PlanningRecord | null | undefined) => {
     const claims = record?.report?.claims || []
     if (!record || !claims.length) return null
+    const groups = claimGroupsOf(claims)
     return h('div', { class: 'review-warn review-claims', 'data-review-claims': record.id },
-      h('p', {}, h('strong', { text: record.status === 'candidate' ? `Claims to check before approving (${claims.length})` : `Claims to check (${claims.length})` })),
-      h('ul', {}, ...claims.map(flag => h('li', { text: readable(claimFlagText(flag)) }))),
+      h('p', { class: 'review-claims-summary' },
+        h('strong', { text: `${record.status === 'candidate' ? 'Claims to check before approving' : 'Claims to check'} (${groups.length})` }),
+        ` · ${claimSummaryOf(groups)}`),
+      h('ul', {}, ...groups.map((group, index) => {
+        const key = `claim:${record.id}:${index}`
+        const narrow = h('button', { type: 'button', class: 'review-claim-narrow', 'data-focus': `narrow:${key}`, text: 'Revise wording', title: 'Add to the direction that the next plan should not say it' })
+        narrow.addEventListener('click', () => narrowClaim(scene, group))
+        const details = h('div', { class: 'review-claim-details' },
+          h('ul', {}, ...group.occurrences.map(entry => h('li', {}, h('small', { text: `${entry.where.charAt(0).toUpperCase()}${entry.where.slice(1)}: ` }), readable(entry.text)))),
+          group.evidence ? h('p', {}, h('small', { text: 'The source says: ' }), h('q', { text: group.evidence })) : null,
+        )
+        return h('li', { class: `review-claim is-${group.basis}`, 'data-claim-basis': group.basis },
+          h('p', { class: 'review-claim-head' }, h('q', { text: group.phrases.join(' / ') }), ` — ${CLAIM_BASIS_TEXT[group.basis]}`),
+          h('p', { class: 'review-claim-clause' }, `“${readable(group.clause)}”`, h('small', { text: ` · ${group.occurrences.map(entry => entry.where).join(', ')}` })),
+          h('div', { class: 'review-claim-actions' }, narrow, disclosure(key, group.evidence ? 'Where it is said, and the source' : `Where it is said (${group.occurrences.length})`, details)),
+        )
+      })),
     )
+  }
+  // Narrowing a claim is direction for the next plan, in words its check
+  // reads — the creator plans again when ready; nothing starts by itself.
+  const narrowClaim = (scene: Scene, group: ClaimGroup) => {
+    const state = uiOf(scene.id)
+    const line = narrowingDirectionOf(group)
+    const now = (state.direction ?? scene.direction ?? '').trim()
+    if (!now.includes(line)) state.direction = now ? `${now}\n${line}` : line
+    // The field on screen shows it at once: a review drawn before keeps
+    // its own field until the scene changes.
+    const field = findFocus(`direction:${scene.id}`) as HTMLTextAreaElement | null
+    if (field) {
+      field.value = state.direction ?? field.value
+      field.scrollIntoView({ block: 'nearest' })
+      field.focus({ preventScroll: true })
+      field.setSelectionRange(field.value.length, field.value.length)
+    }
+    host.toast('Added to the direction — plan again with it to narrow the wording.')
   }
 
   // The selected scene's review.
@@ -1224,7 +1261,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
             h('h4', { text: 'What it explains' }),
             h('p', { class: 'review-question', text: plan.question }),
             h('p', {}, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
-            claimsOf(record),
+            claimsOf(scene, record),
             risksOf(record),
             plan.demonstration ? h('p', {}, h('strong', { text: 'Example. ' }), plan.demonstration.text) : null,
             ledger ? h('p', { class: 'review-muted', text: `The count: ${ledger.quantity} from ${ledger.initial} to ${ledger.final} over ${ledger.events.length} changes — checked.` }) : null,
@@ -1617,7 +1654,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         h('h4', { class: 'ws-label', text: `What it teaches · plan r${record!.revision}` }),
         h('p', { class: 'ws-question', text: plan.question }),
         h('p', { class: 'ws-takeaway' }, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
-        ...[claimsOf(record), risksOf(record)].filter((part): part is HTMLDivElement => Boolean(part)),
+        ...[claimsOf(scene, record), risksOf(record)].filter((part): part is HTMLDivElement => Boolean(part)),
       )
       const brief = overview?.brief.current?.content as ExplanationBriefV1 | undefined
       const evidence = brief ? [...new Set(plan.moments.flatMap(moment => moment.evidenceRefs || []))].map(ref => brief.evidence.find(entry => entry.id === ref)).filter(Boolean) as ExplanationBriefV1['evidence'] : []
