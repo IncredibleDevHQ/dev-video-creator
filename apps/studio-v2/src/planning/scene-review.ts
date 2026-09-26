@@ -14,6 +14,7 @@ import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, isActiveStatus, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces } from './planning-records'
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
+import { claimFlagText } from './claim-scope'
 import { recordingGuide } from './recording-guide'
 import { acceptProduction, approvePlan, loadPlanning, planScene, prepareBrief, previewScene, produceScene, saveProductionEdits, saveSceneDelivery, saveSceneDirection, stopRun } from './planning-client'
 import { BROWSER_REVIEW_MESSAGE, failureTitle, progressText } from '../harness-choice'
@@ -1079,6 +1080,18 @@ export const createSceneReview = (host: SceneReviewHost) => {
     )
   }
 
+  // What the plan claims more strongly than its sources, or still says
+  // after the direction asked to drop it (B07 of the BoltDB review): shown
+  // with the plan, before it is approved.
+  const claimsOf = (record: PlanningRecord | null | undefined) => {
+    const claims = record?.report?.claims || []
+    if (!record || !claims.length) return null
+    return h('div', { class: 'review-warn review-claims', 'data-review-claims': record.id },
+      h('p', {}, h('strong', { text: record.status === 'candidate' ? `Claims to check before approving (${claims.length})` : `Claims to check (${claims.length})` })),
+      h('ul', {}, ...claims.map(flag => h('li', { text: readable(claimFlagText(flag)) }))),
+    )
+  }
+
   // The selected scene's review.
   const panel = (scene: Scene) => {
     const state = uiOf(scene.id)
@@ -1149,6 +1162,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
             h('h4', { text: 'What it explains' }),
             h('p', { class: 'review-question', text: plan.question }),
             h('p', {}, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
+            claimsOf(record),
             plan.demonstration ? h('p', {}, h('strong', { text: 'Example. ' }), plan.demonstration.text) : null,
             ledger ? h('p', { class: 'review-muted', text: `The count: ${ledger.quantity} from ${ledger.initial} to ${ledger.final} over ${ledger.events.length} changes — checked.` }) : null,
           ),
@@ -1473,6 +1487,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         h('h4', { class: 'ws-label', text: `What it teaches · plan r${record!.revision}` }),
         h('p', { class: 'ws-question', text: plan.question }),
         h('p', { class: 'ws-takeaway' }, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
+        ...[claimsOf(record)].filter((part): part is HTMLDivElement => Boolean(part)),
       )
       const brief = overview?.brief.current?.content as ExplanationBriefV1 | undefined
       const evidence = brief ? [...new Set(plan.moments.flatMap(moment => moment.evidenceRefs || []))].map(ref => brief.evidence.find(entry => entry.id === ref)).filter(Boolean) as ExplanationBriefV1['evidence'] : []

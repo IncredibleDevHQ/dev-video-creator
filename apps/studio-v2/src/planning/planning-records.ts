@@ -12,6 +12,7 @@
 // A stale result stays readable but never becomes current or reviewed. A
 // newer run supersedes an older one for the same subject; the last reviewed
 // plan stays in place while a new candidate runs or fails.
+import type { ClaimFlag } from './claim-scope'
 import { fingerprintOf, stableJson } from './fingerprint'
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
@@ -52,7 +53,7 @@ export type PlanningRecord = {
   inputs: Record<string, unknown>
   content: ExplanationBriefV1 | SceneTreatmentV1 | SketchManifest | ProductionManifest | null
   // What the checks said: warnings, construction risks.
-  report: { warnings: string[]; constructionRisks?: string[]; verification?: SketchProof; type?: TypeFaces } | null
+  report: { warnings: string[]; constructionRisks?: string[]; verification?: SketchProof; type?: TypeFaces; claims?: ClaimFlag[] } | null
   artifacts: { objectKey: string; assetId: string } | null
   // The run that owns the record once it starts; nothing else may claim it.
   runId: string | null

@@ -51,6 +51,7 @@ import { renderProductionBundle } from './production-render'
 import { controlValueProblems, productionSummary, validateProduction, withControlValues, type ControlValues, type ProductionClock, type ProductionManifest } from '../src/planning/production-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
 import { typeFacesOf } from './type-faces'
+import { claimFlagsOf } from '../src/planning/claim-scope'
 import {
   ACTIVE_STATUSES,
   PLANNING_SCHEMA,
@@ -2087,7 +2088,9 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
     {
       status,
       content: report.treatment,
-      report: { warnings: report.warnings, constructionRisks: report.constructionRisks },
+      // What it claims more strongly than its evidence, or keeps saying
+      // after a direction asked to drop it (B07): shown before approval.
+      report: { warnings: report.warnings, constructionRisks: report.constructionRisks, claims: claimFlagsOf(report.treatment, context.brief, String(record.inputs.direction || '')) },
       artifacts,
       ...(landing.lands ? {} : { error: { message: landing.reason } }),
     },

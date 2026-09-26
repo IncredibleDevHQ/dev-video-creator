@@ -2434,6 +2434,11 @@ button.se-state:hover { filter: brightness(.97); }
 .review-question { font: 650 15px/1.35 'InterBody', Inter, sans-serif; color: #18181b; }
 .review-muted { color: #71717a; }
 .review-warn { color: #92400e; margin: 0; }
+/* Claims a plan makes more strongly than its sources (B07): read before it
+   is approved. */
+.review-claims { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #fffbeb; }
+.review-claims ul { margin: 4px 0 0; padding-left: 18px; }
+.review-claims li { margin: 2px 0; line-height: 1.45; }
 .review-error { color: #b91c1c; margin: 0; }
 .review-busy { color: #5b21b6; margin: 0; }
 .review-cast { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

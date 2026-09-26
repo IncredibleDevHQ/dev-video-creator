@@ -114,7 +114,8 @@ const tool = async (name, args2) => {
     ]
     fs.writeFileSync('planning/treatment.json', JSON.stringify({
       schemaVersion: 1, scene: context.scene.id, originScenes: context.scene.originScenes, units: [...new Set(units)],
-      question: 'What does this limiter do?', takeaway: 'It turns excess load away before it hurts.', evidenceRefs: ['ev-1'], development: 'Show the thing, then the limit biting.', demonstration: null, ledger: null,
+      // Revised, it claims more than its evidence says (B07 of the BoltDB review).
+      question: 'What does this limiter do?', takeaway: pushIn ? 'Excess load never gets through.' : 'It turns excess load away before it hurts.', evidenceRefs: ['ev-1'], development: 'Show the thing, then the limit biting.', demonstration: null, ledger: null,
       moments, objects, treatments: { presenter: 'Opens and closes on camera', text: 'None', camera: pushIn ? 'Pushes in on the limit' : 'Holds' },
       skills: [{ skill: 'hyperframes-creative', references: ['skills/hyperframes-creative/references/beat-direction.md'], why: 'Rhythm' }],
       requirements: { assets: [], takes: [], decisions: [] },
@@ -542,7 +543,7 @@ try {
 
 
   // Revise with direction, and compare the new candidate with the approved plan.
-  await evaluate(`() => { const box = document.querySelector('.scene-review.is-expanded [data-focus^="direction:"]'); box.value = 'Push in on the limit when it bites'; box.dispatchEvent(new Event('input')); document.querySelector('.scene-review.is-expanded [data-focus^="revise:"]').click(); return true }`)
+  await evaluate(`() => { const box = document.querySelector('.scene-review.is-expanded [data-focus^="direction:"]'); box.value = 'Push in on the limit when it bites, and do not say "back to the viewer"'; box.dispatchEvent(new Event('input')); document.querySelector('.scene-review.is-expanded [data-focus^="revise:"]').click(); return true }`)
   const revised = await until(async () => { const view = (await overview(videoId)).scenes[1].view; return view.current?.id !== planned.id && view.current?.status === 'candidate' && view.current }, 90)
   check(Boolean(revised), 'revising with direction makes a new candidate; the approved plan stays')
   check((await overview(videoId)).scenes[1].view.reviewed?.id === planned.id, 'the approved plan is still the approved one')
@@ -559,6 +560,13 @@ try {
     return [...again.querySelectorAll('.review-diff li strong')].map(item => item.textContent)
   }`)
   check(compared.some(text => /Changed: The limit bites: camera/.test(text)), `the comparison names the moment whose camera changed (${JSON.stringify(compared)})`)
+  // B07 of the BoltDB review: what the new candidate claims more strongly
+  // than its evidence, and a phrase the direction asked to drop that it
+  // still says, before it is approved.
+  const claims = await waitFor(`() => { const box = document.querySelector('.scene-review.is-expanded [data-review-claims="${revised.id}"]'); return box ? { head: box.querySelector('strong').textContent, items: [...box.querySelectorAll('li')].map(item => item.textContent) } : null }`, 20)
+  check(claims?.head === 'Claims to check before approving (2)' && /^The takeaway claims “never”: “Excess load never gets through\.” — its evidence does not say it; check what the source supports$/.test(claims.items[0]) && claims.items[1] === 'Your direction asked to drop “back to the viewer”, and moment m3\'s line still says it: “Back to the viewer.”', `the candidate's claims its evidence does not make, and a phrase the direction dropped, are named before it is approved (${JSON.stringify(claims)})`)
+  const plannedClaims = (await api(`/api/planning/records/${planned.id}`)).body?.record?.report?.claims
+  check(Array.isArray(plannedClaims) && plannedClaims.length === 0, `the approved plan, which claims only what it shows, has none (${JSON.stringify(plannedClaims)})`)
   await shot('03-compare')
 
   // The workspace opens on the scene and revision being reviewed, and hands
