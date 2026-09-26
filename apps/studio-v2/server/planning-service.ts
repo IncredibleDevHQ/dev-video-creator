@@ -1151,8 +1151,11 @@ type LintReport = Awaited<ReturnType<typeof lintSketch>>
 // face could not be had, is not the run's to fix: its fallback is the same
 // on the stage and in the video, and it is said — never charged as a
 // refusal, and never answered with a local() declaration.
-const lintFindingsOf = (lint: LintReport | null, unresolved: string[] = []) => {
-  const missing = new Set(unresolved.map(face => face.toLowerCase()))
+// A font the lint finds with no face of its own is answerable only when it
+// is drawn: a face that cannot be had is said, never refused; and a family
+// named after a face the bundle carries is never drawn at all.
+const lintFindingsOf = (lint: LintReport | null, type?: Pick<TypeFaces, 'unresolved' | 'fallbacks'> | null) => {
+  const missing = new Set([...(type?.unresolved || []), ...(type?.fallbacks || [])].map(face => face.toLowerCase()))
   const findings = lint?.findings || []
   const unanswerable = (finding: LintReport['findings'][number]) => {
     if (finding.code !== 'font_family_without_font_face') return false
@@ -1200,7 +1203,7 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   })
   const html = typeof files['index.html'] === 'string' ? files['index.html'] : ''
   const lint = html ? await lintSketch(html) : null
-  const { problems: lintProblems, warnings: lintWarnings } = lintFindingsOf(lint, typed?.report.unresolved)
+  const { problems: lintProblems, warnings: lintWarnings } = lintFindingsOf(lint, typed?.report)
   const typeNotes = typeNotesOf(typed?.report)
   const problems = [...report.problems, ...lintProblems]
   if (problems.length || !report.manifest) {
@@ -1730,7 +1733,7 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   })
   const html = typeof files['index.html'] === 'string' ? files['index.html'] : ''
   const lint = html ? await lintSketch(html) : null
-  const { problems: lintProblems, warnings: lintWarnings } = lintFindingsOf(lint, typed?.report.unresolved)
+  const { problems: lintProblems, warnings: lintWarnings } = lintFindingsOf(lint, typed?.report)
   const problems = [...report.problems, ...lintProblems]
   if (problems.length || !report.manifest) {
     const refused = await refuse(record, { runId, submission, bundle: sketchBundleHash(own), problems })

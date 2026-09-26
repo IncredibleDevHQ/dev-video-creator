@@ -848,7 +848,7 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
       // The labels the theme sets: a face the renderer has, declared as the
       // lint's hint once taught — src: local() alone — and one no one has.
       const typed = (html: string) => html
-        .replace('</style>', `@font-face { font-family: 'JetBrains Mono'; src: local('JetBrains Mono'); } .code { position: absolute; left: 120px; top: 600px; color: #fff; font-size: 40px; font-family: 'JetBrains Mono', monospace; } .display { position: absolute; left: 120px; top: 760px; color: #fff; font-size: 48px; font-family: 'Studio Test Serif', serif; }</style>`)
+        .replace('</style>', `@font-face { font-family: 'JetBrains Mono'; src: local('JetBrains Mono'); } .code { position: absolute; left: 120px; top: 600px; color: #fff; font-size: 40px; font-family: 'JetBrains Mono', SFMono-Regular, monospace; } .display { position: absolute; left: 120px; top: 760px; color: #fff; font-size: 48px; font-family: 'Studio Test Serif', serif; }</style>`)
         .replace('</div><script>', '<div class="code" data-sketch-layer="bucket">page 3 · leaf</div><div class="display" data-sketch-layer="bucket">One file</div></div><script>')
 
       // The preview: accepted on its first submission.
@@ -859,7 +859,9 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
       const previewed = await service.submitSketch(sketch.record.id, { 'index.html': typed(productionHtml(sketchId, 6, null)), 'manifest.json': JSON.stringify(sketchManifest) }, 'run-type-sketch', { attempt: 1, budget: 6 })
       expect(previewed).toMatchObject({ accepted: true, status: 'ready' })
       const sketchType = previewed.accepted ? previewed.record.report?.type : undefined
-      expect(sketchType).toMatchObject({ unresolved: ['Studio Test Serif'], localOnly: ['JetBrains Mono'] })
+      // SFMono-Regular, named after the embedded JetBrains Mono, is never
+      // drawn: the lint's finding for it is no refusal (the R10 residual).
+      expect(sketchType).toMatchObject({ unresolved: ['Studio Test Serif'], localOnly: ['JetBrains Mono'], fallbacks: ['SFMono-Regular'] })
       expect(previewed.accepted ? previewed.warnings : []).toEqual(expect.arrayContaining([expect.stringMatching(/^The type face “Studio Test Serif” could not be had/)]))
       const sketchIndex = (await service.loadPreviewFile(sketch.record.id, 'index.html')).body.toString('utf8')
       expect(sketchIndex).toMatch(/@font-face\s*\{\s*font-family:\s*"JetBrains Mono";\s*src:\s*url\("data:font\/woff2;base64,/)

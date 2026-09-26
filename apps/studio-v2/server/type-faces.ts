@@ -41,6 +41,9 @@ export type TypeReport = {
   // Faces the composition declared with src: local() alone — a face on this
   // machine, not in the bundle: set aside, for the face to be embedded.
   localOnly?: string[]
+  // Families named after a face the bundle carries: never drawn, since the
+  // face they fall back from is always there.
+  fallbacks?: string[]
 }
 
 const typedValue = (value: string, substituted: Record<string, string>) => {
@@ -65,9 +68,9 @@ const typedCss = (css: string, substituted: Record<string, string>) => {
   return typed.replace(/\u0000(\d+)\u0000/g, (_whole, index: string) => faces[Number(index)])
 }
 
-// The first family of each declaration a document sets its type in.
-export const declaredFacesOf = (html: string) => declaredFaces(html)
-const declaredFaces = (html: string) => {
+// Every family list a document sets its type in: style sheets, style
+// attributes, data-font-family and an SVG's font-family attributes.
+const declarationsOf = (html: string) => {
   const { document } = parseHTML(html)
   const values: string[] = []
   const fromCss = (css: string) => {
@@ -78,7 +81,25 @@ const declaredFaces = (html: string) => {
   for (const element of Array.from(document.querySelectorAll('[style]'))) fromCss(element.getAttribute('style') || '')
   for (const element of Array.from(document.querySelectorAll('[data-font-family]'))) values.push(element.getAttribute('data-font-family') || '')
   for (const element of Array.from(document.querySelectorAll('[font-family]'))) values.push(element.getAttribute('font-family') || '')
-  return [...new Set(values.map(value => familiesOf(value)[0]).filter((family): family is string => Boolean(family) && !family.startsWith('var(') && !GENERIC.has(family.toLowerCase())))]
+  return values
+}
+// The first family of each declaration a document sets its type in.
+export const declaredFacesOf = (html: string) => declaredFaces(html)
+const declaredFaces = (html: string) =>
+  [...new Set(declarationsOf(html).map(value => familiesOf(value)[0]).filter((family): family is string => Boolean(family) && !family.startsWith('var(') && !GENERIC.has(family.toLowerCase())))]
+// The families named after a face the bundle carries. The face is always
+// there, so they are never drawn — and a check that finds one without a
+// face of its own finds nothing to answer (the R10 residual of the fix
+// verification: "sfmono-regular", behind an embedded JetBrains Mono,
+// refused both live scenes once).
+const fallbackFaces = (html: string, embedded: Set<string>) => {
+  const fallbacks = new Set<string>()
+  for (const value of declarationsOf(html)) {
+    const [first, ...rest] = familiesOf(value)
+    if (!first || !embedded.has(first.toLowerCase())) continue
+    for (const family of rest) if (!family.startsWith('var(') && !GENERIC.has(family.toLowerCase()) && !embedded.has(family.toLowerCase())) fallbacks.add(family)
+  }
+  return [...fallbacks]
 }
 // A face the bundle carries: an @font-face whose source is in it — a data
 // URI, or a file beside the composition — not only local() or the network.
@@ -151,7 +172,8 @@ export const typeFacesOf = async (html: string, options: InjectDeterministicFont
   const embedded = embeddedFaces(faced)
   const faces = declaredFaces(faced)
   const unresolved = faces.filter(face => !embedded.has(face.toLowerCase()))
-  return { html: faced, report: { faces, substituted, unresolved, ...(localOnly.size ? { localOnly: [...localOnly] } : {}) } }
+  const fallbacks = fallbackFaces(faced, embedded)
+  return { html: faced, report: { faces, substituted, unresolved, ...(localOnly.size ? { localOnly: [...localOnly] } : {}), ...(fallbacks.length ? { fallbacks } : {}) } }
 }
 
 // The faces a theme names, as a scene's type will be set in them (Q01 of the

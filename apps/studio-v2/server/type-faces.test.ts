@@ -137,3 +137,18 @@ describe('the faces a theme names', () => {
     ])
   })
 })
+
+// The R10 residual of the project-flow fix verification: both live scenes
+// were refused once for "sfmono-regular" — a family named after an embedded
+// JetBrains Mono, so never drawn.
+describe('families named after a face the bundle carries', () => {
+  it('are fallbacks, never drawn; a stack whose first face is missing has none', async () => {
+    const { report } = await typeFacesOf(`<!doctype html><html><head><style>.code { font-family: 'JetBrains Mono', SFMono-Regular, Menlo, monospace; } .title { font-family: 'Studio Test Serif', 'Iowan Old Style', serif; }</style></head><body><p class="code">page 3</p><p class="title">One file</p></body></html>`, offline)
+    expect(report.unresolved).toEqual(['Studio Test Serif'])
+    // Menlo is carried, as the renderer's own face for it; SFMono-Regular is
+    // named after JetBrains Mono and never drawn. Behind the missing serif,
+    // Iowan Old Style may well be drawn: it is no fallback of a carried face.
+    expect(report.fallbacks).toEqual(['SFMono-Regular'])
+  })
+})
+

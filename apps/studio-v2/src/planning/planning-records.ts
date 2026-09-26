@@ -40,7 +40,7 @@ export type SkillBundleRef = { name: string; version: string; hash: string; upst
 // face put ahead of it; faces that could not be had.
 // A face declared with src: local() alone is set aside for the face
 // itself (R10 of the project-flow rereview), and named.
-export type TypeFaces = { faces: string[]; substituted: Record<string, string>; unresolved: string[]; localOnly?: string[] }
+export type TypeFaces = { faces: string[]; substituted: Record<string, string>; unresolved: string[]; localOnly?: string[]; fallbacks?: string[] }
 
 export type PlanningRecord = {
   id: string
