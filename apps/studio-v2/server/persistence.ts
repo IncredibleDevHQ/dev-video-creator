@@ -3,7 +3,7 @@
 // imported statically, so the local path never loads pg or minio.
 import { randomUUID } from 'node:crypto'
 import type { Readable } from 'node:stream'
-import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
+import type { ProjectContainerV1, ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
 import type { ProjectArtifactSummary } from './persistence-local'
 import type { PlanningRecord, PlanningStatus } from '../src/planning/planning-records'
 
@@ -112,6 +112,10 @@ type PersistenceBackend = {
   listProjectArtifacts: () => Promise<ProjectArtifactSummary[]>
   listProjectIdsAwaitingPages: () => Promise<string[]>
   deleteProjectArtifact: (projectId: string) => Promise<boolean>
+  saveProjectContainer: (container: ProjectContainerV1) => Promise<void>
+  loadProjectContainer: (id: string) => Promise<ProjectContainerV1 | null>
+  listProjectContainers: () => Promise<ProjectContainerV1[]>
+  deleteProjectContainer: (id: string) => Promise<boolean>
   loadSetting: (key: string) => Promise<unknown>
   compareAndSwapSetting: (key: string, expected: unknown, value: unknown) => Promise<boolean>
   saveSetting: (key: string, value: unknown) => Promise<void>
@@ -239,6 +243,20 @@ export const listProjectIdsAwaitingPages = async () =>
 
 export const deleteProjectArtifact = async (projectId: string) =>
   (await loadBackend()).deleteProjectArtifact(projectId)
+
+// Projects: the container a notebook names in its `container` (the
+// four-notebook model).
+export const saveProjectContainer = async (container: ProjectContainerV1) =>
+  (await loadBackend()).saveProjectContainer(container)
+
+export const loadProjectContainer = async (id: string) =>
+  (await loadBackend()).loadProjectContainer(id)
+
+export const listProjectContainers = async () =>
+  (await loadBackend()).listProjectContainers()
+
+export const deleteProjectContainer = async (id: string) =>
+  (await loadBackend()).deleteProjectContainer(id)
 
 export const loadSetting = async (key: string): Promise<unknown> =>
   (await loadBackend()).loadSetting(key)

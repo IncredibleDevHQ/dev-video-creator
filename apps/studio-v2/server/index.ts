@@ -1,6 +1,7 @@
 import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, type ExportReport } from './export-jobs'
 import { generateFishVoice, generateSystemVoice, probeSeconds } from './voice'
 import { landPagesOnce, runPagesIn, type LandingDeps, type PageCheck } from './page-landing'
+import { containerView, holdNotebook, nameContainer, type ContainerDeps } from './containers'
 import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
@@ -45,8 +46,12 @@ import {
 import {
   getObject,
   deleteProjectArtifact,
+  deleteProjectContainer,
   getObjectMetadata,
   listProjectArtifacts,
+  listProjectContainers,
+  loadProjectContainer,
+  saveProjectContainer,
   listProjectIdsAwaitingPages,
   listThemeLibrary,
   loadLatestProjectArtifact,
@@ -100,6 +105,14 @@ const require = createRequire(import.meta.url)
 // out and reading its article failed ("fetch failed", ETIMEDOUT). Each
 // attempt now has time to connect; an address that refuses still gives way.
 setDefaultAutoSelectFamilyAttemptTimeout(2500)
+// Projects read and write their notebooks through the store (the
+// four-notebook model).
+const containerDeps: ContainerDeps = {
+  loadContainer: loadProjectContainer,
+  saveContainer: saveProjectContainer,
+  listNotebooks: listProjectArtifacts,
+  loadNotebook: loadProjectArtifact,
+}
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
   dirname(require.resolve('@hyperframes/core/package.json')),
@@ -2969,6 +2982,33 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       json(response, 200, { derived: true, base: base ? { id: base.id, title: base.title } : null, lineage, status: baseStatusOf(child, base, snapshot) })
       return
     }
+    // Projects (the four-notebook model): a project and its notebooks, each
+    // counted in what its kind holds; every project, for the library; a
+    // project named; a project removed with the notebooks it holds.
+    if (request.method === 'GET' && url.pathname === '/api/containers') {
+      const views = await Promise.all((await listProjectContainers()).map(container => containerView(container.id, containerDeps)))
+      json(response, 200, { containers: views.filter(Boolean) })
+      return
+    }
+    if (/^\/api\/containers\/[^/]+$/.test(url.pathname)) {
+      const containerId = decodeURIComponent(url.pathname.split('/')[3])
+      if (request.method === 'GET') {
+        const view = await containerView(containerId, containerDeps)
+        json(response, view ? 200 : 404, view || { error: 'No such project' })
+        return
+      }
+      if (request.method === 'PUT') {
+        const body = await readJson<{ title?: string }>(request, 64 * 1024)
+        json(response, 200, { container: await nameContainer(containerId, String(body.title || '').trim(), containerDeps) })
+        return
+      }
+      if (request.method === 'DELETE') {
+        const held = (await listProjectArtifacts()).filter(row => row.container?.id === containerId)
+        for (const row of held) await deleteProjectArtifact(row.id)
+        json(response, 200, { deleted: await deleteProjectContainer(containerId), notebooks: held.map(row => row.id) })
+        return
+      }
+    }
     // Fork a base notebook into its own video notebook. The snapshot and the
     // child are written before the caller is told about either, and a repeat
     // with the same fork key returns the child that already exists rather
@@ -3005,7 +3045,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         forkKey,
         snapshot,
       })
+      // A video made from a project's presentation is that project's video.
+      if (base.container) child.container = { id: base.container.id, kind: 'video', from: base.id }
       await saveProjectArtifact(child)
+      await holdNotebook(child, containerDeps)
       json(response, 201, { project: child, reused: false })
       return
     }
@@ -3031,6 +3074,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         if ((error as { statusCode?: number }).statusCode === 409) { json(response, 409, { error: (error as Error).message }); return }
         throw error
       }
+      await holdNotebook(project, containerDeps)
       json(response, 200, { projectId, saved: true, project })
       return
     }

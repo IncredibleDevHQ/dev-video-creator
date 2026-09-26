@@ -5,7 +5,7 @@ import { createReadStream } from 'node:fs'
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
+import type { NotebookPlaceV1, ProjectContainerV1, ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
 import type { BuildRunInput, BuildRunRow, BuildStageInput, NewPlanningRecord, PlanningInputRow, PlanningRecordPatch } from './persistence'
 import { ACTIVE_STATUSES, type PlanningRecord, type PlanningStatus } from '../src/planning/planning-records'
 
@@ -16,6 +16,7 @@ const notebooksDirectory = () => join(dataDirectory(), 'notebooks')
 const objectsDirectory = () => join(dataDirectory(), 'objects')
 const indexPath = () => join(dataDirectory(), 'index.json')
 const settingsPath = () => join(dataDirectory(), 'settings.json')
+const containersPath = () => join(dataDirectory(), 'containers.json')
 
 let ready: Promise<void> | null = null
 
@@ -53,6 +54,7 @@ type ProjectIndexRow = {
   createdAt: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  container?: NotebookPlaceV1
 }
 
 type ProjectIndex = { projects: Record<string, ProjectIndexRow> }
@@ -100,6 +102,7 @@ const saveProjectLocked = async (project: ProjectDocumentV1, options?: ProjectSa
     createdAt: existing?.createdAt || now,
     updatedAt: now,
     ...(project.derivedFrom ? { derivedFrom: project.derivedFrom } : {}),
+    ...(project.container ? { container: project.container } : {}),
   }
   await writeFileAtomic(
     join(notebooksDirectory(), `${project.id}.json`),
@@ -122,6 +125,8 @@ export type ProjectArtifactSummary = {
   createdAt: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  // The project the notebook belongs to, and what it is there.
+  container?: NotebookPlaceV1
 }
 
 // Every saved notebook, newest first — the switcher's list.
@@ -170,6 +175,42 @@ export const saveSetting = async (key: string, value: unknown) => {
   settings[key] = value
   await writeFileAtomic(settingsPath(), JSON.stringify(settings, null, 2))
 }
+
+// Projects: what belongs to a whole project, not one notebook. Which
+// notebooks a project holds is read off the notebooks, which name it.
+type ContainerFile = { containers: Record<string, ProjectContainerV1> }
+let containerWrites: Promise<unknown> = Promise.resolve()
+const readContainers = async (): Promise<ContainerFile> =>
+  (await readJsonFile<ContainerFile>(containersPath())) || { containers: {} }
+const changeContainers = <T>(change: (file: ContainerFile) => T): Promise<T> => {
+  const pending = containerWrites.catch(() => {}).then(async () => {
+    await initializePersistence()
+    const file = await readContainers()
+    const result = change(file)
+    await writeFileAtomic(containersPath(), JSON.stringify(file, null, 2))
+    return result
+  })
+  containerWrites = pending
+  return pending
+}
+export const saveProjectContainer = (container: ProjectContainerV1) =>
+  changeContainers(file => {
+    file.containers[container.id] = container
+  })
+export const loadProjectContainer = async (id: string) => {
+  await initializePersistence()
+  return (await readContainers()).containers[id] || null
+}
+export const listProjectContainers = async () => {
+  await initializePersistence()
+  return Object.values((await readContainers()).containers).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+export const deleteProjectContainer = (id: string) =>
+  changeContainers(file => {
+    const existed = Boolean(file.containers[id])
+    delete file.containers[id]
+    return existed
+  })
 
 export const loadLatestProjectArtifact = async () => {
   await initializePersistence()

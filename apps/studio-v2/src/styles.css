@@ -1719,6 +1719,34 @@ body.is-base-pages :is(#render-video, #open-fullscreen-tab, #live-camera-toggle,
 body.is-base-pages:not(.canvas-is-open) .inline-canvas-rail { display: none; }
 body.is-base-pages:not(.canvas-is-open) .editor-layout { width: min(980px, 100%); grid-template-columns: minmax(0, 1fr); }
 
+/* ——— A project's notebooks (the four-notebook model) ———
+   One tab per kind, in the order they are made from one another; each says
+   where its notebook stands. A notebook not made yet reads as an outline. */
+.notebook-switch { display: flex; align-items: stretch; gap: 2px; height: 38px; padding: 3px; border-radius: 9px; background: var(--chrome); box-shadow: inset 0 0 0 1px #34343a; }
+.notebook-switch[hidden] { display: none; }
+.notebook-switch-tab { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 12px 0 10px; border: 0; border-radius: 7px; background: transparent; color: #a1a1aa; font: inherit; text-align: left; cursor: pointer; }
+.notebook-switch-tab svg { flex: none; width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.notebook-switch-copy { display: grid; line-height: 1.2; }
+.notebook-switch-copy strong { color: inherit; font-family: 'Gilroy'; font-size: 12px; font-weight: 700; }
+.notebook-switch-copy small { color: #71717a; font-size: 10px; white-space: nowrap; }
+.notebook-switch-tab:hover { background: rgba(255,255,255,.05); color: #e4e4e7; }
+.notebook-switch-tab:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 1px; }
+.notebook-switch-tab[aria-current="page"] { background: var(--chrome-3); color: white; }
+.notebook-switch-tab[aria-current="page"] small { color: #c4c4cc; }
+.notebook-switch-tab.is-building small { color: #fbbf24; }
+.notebook-switch-tab.is-missing { color: #6b6b73; }
+.notebook-switch-tab.is-missing svg { stroke-dasharray: 2.5 2.5; }
+.notebook-switch-tab.is-missing small { color: #5c5c64; font-style: italic; }
+body.in-project .format-control, body.in-project #notebook-lineage, body.in-project #reset-sample { display: none; }
+body.in-project:not(.is-video-notebook) #workspace-tab-notebook { display: none; }
+/* Each notebook of a project shows its own kind's tools: the text is a
+   document — no theme, spoken explanations or scene timeline; the wireframe
+   and presentation are pages — no text formatting or Markdown import. */
+body[data-notebook-kind="text"] :is(.studio-theme-picker, .notebook-explanation, #notebook-timeline, #video-length, #open-assets, #import-svg-pages) { display: none; }
+body:is([data-notebook-kind="wireframe"], [data-notebook-kind="presentation"]) :is(#editor-toolbar, #video-length, #import-file, #paste-markdown) { display: none; }
+/* Every page of a wireframe is a schematic: it needs no saying. */
+body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
+
 /* ——— Notebook derivation hierarchy ——— */
 .notebook-lineage { display: flex; align-items: center; gap: 4px; max-width: 380px; overflow: hidden; font-size: 11px; }
 .notebook-lineage-segment { border: 0; background: none; color: #a1a1aa; font-size: 11px; padding: 2px 4px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }

@@ -6,7 +6,7 @@ import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client as MinioClient } from 'minio'
 import { Pool } from 'pg'
-import type { ProjectDocumentV1, RecordedBlockV1, TiptapNode } from 'markdown-composition'
+import type { NotebookPlaceV1, ProjectContainerV1, ProjectDocumentV1, RecordedBlockV1, TiptapNode } from 'markdown-composition'
 import { runMigrations } from './migrations'
 import type { NewPlanningRecord, PlanningInputRow, PlanningRecordPatch } from './persistence'
 import { ACTIVE_STATUSES, type PlanningRecord, type PlanningStatus } from '../src/planning/planning-records'
@@ -139,6 +139,7 @@ export type ProjectArtifactSummary = {
   createdAt: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  container?: NotebookPlaceV1
 }
 
 // The base notebooks with a scene still bound to a design run's page.
@@ -162,11 +163,13 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
     created_at: string | Date
     updated_at: string | Date
     derived_from: { notebook: string; kind?: string } | null
+    container: NotebookPlaceV1 | null
   }>(
-    // derivedFrom rides inside the artifact JSONB — no schema change needed.
+    // derivedFrom and the notebook's project ride inside the artifact JSONB.
     `select n.id, n.title,
        (select count(*) from studio_blocks b where b.notebook_id = n.id) as block_count,
-       n.created_at, n.updated_at, n.artifact->'derivedFrom' as derived_from
+       n.created_at, n.updated_at, n.artifact->'derivedFrom' as derived_from,
+       n.artifact->'container' as container
      from studio_notebooks n
      order by n.updated_at desc`,
   )
@@ -177,6 +180,7 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
     ...(row.derived_from ? { derivedFrom: row.derived_from } : {}),
+    ...(row.container ? { container: row.container } : {}),
   }))
 }
 
@@ -213,6 +217,33 @@ export const saveSetting = async (key: string, value: unknown) => {
      on conflict (key) do update set value = excluded.value, updated_at = now()`,
     [key, JSON.stringify(value)],
   )
+}
+
+// Projects: what belongs to a whole project, not one notebook. Which
+// notebooks a project holds is read off the notebooks, which name it.
+export const saveProjectContainer = async (container: ProjectContainerV1) => {
+  await initializePersistence()
+  await database.query(
+    `insert into studio_containers (id, title, artifact, created_at, updated_at)
+     values ($1, $2, $3::jsonb, $4, $5)
+     on conflict (id) do update set title = excluded.title, artifact = excluded.artifact, updated_at = excluded.updated_at`,
+    [container.id, container.title, JSON.stringify(container), container.createdAt, container.updatedAt],
+  )
+}
+export const loadProjectContainer = async (id: string) => {
+  await initializePersistence()
+  const result = await database.query<{ artifact: ProjectContainerV1 }>('select artifact from studio_containers where id = $1', [id])
+  return result.rows[0]?.artifact || null
+}
+export const listProjectContainers = async () => {
+  await initializePersistence()
+  const result = await database.query<{ artifact: ProjectContainerV1 }>('select artifact from studio_containers order by updated_at desc')
+  return result.rows.map(row => row.artifact)
+}
+export const deleteProjectContainer = async (id: string) => {
+  await initializePersistence()
+  const result = await database.query('delete from studio_containers where id = $1', [id])
+  return (result.rowCount || 0) > 0
 }
 
 export const loadLatestProjectArtifact = async () => {

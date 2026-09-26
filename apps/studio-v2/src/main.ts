@@ -13,6 +13,7 @@ import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-obj
 import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePage, type PageDesignBinding } from './page-design'
 import { sinceOf } from './planning/progress'
 import { baseNextStep, type NextStep } from './planning/next-step'
+import { renderNotebookSwitch, switchTabsOf, type SwitchTab } from './notebook-switch'
 import { draftHoldsEdits, sameDocument } from './draft-state'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
@@ -37,6 +38,9 @@ import {
   normalizedRectStyle,
   presenterLayoutGeometry,
   sanitizeNotebookMedia,
+  formatOf,
+  notebookSummaryOf,
+  type NotebookSummary,
   prepareSlideSvg,
   holdObjectClip,
   holdObjectClips,
@@ -2268,8 +2272,13 @@ const stagingShownOn = new Set<string>((() => {
     return []
   }
 })())
-const isSourceBase = () => Boolean(project.source) && !project.derivedFrom?.notebook
-const baseShowsPagesOnly = () => isSourceBase() && !stagingShownOn.has(project.id)
+// A notebook of a project that is not its video — its text, wireframe or
+// presentation — never shows the video's staging: the video notebook has
+// its own. A standalone base made from a source hides it unless its creator
+// shows it there, the older way.
+const notebookKind = () => project.container?.kind || null
+const isSourceBase = () => !project.container && Boolean(project.source) && !project.derivedFrom?.notebook
+const baseShowsPagesOnly = () => (notebookKind() !== null && notebookKind() !== 'video') || (isSourceBase() && !stagingShownOn.has(project.id))
 // Set once the notebook's chrome is built; an import that makes the open
 // notebook a base calls it again.
 let syncBasePages = () => {}
@@ -19386,6 +19395,63 @@ sceneWorkspace = createSceneWorkspace({
 }
 sceneWorkspace.start()
 document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
+// ——— The switch between a project's notebooks (the four-notebook model) ———
+// A notebook of a project shows the project's notebooks, one tab per kind:
+// each opens its notebook, or — not made yet — the one it is made from.
+document.body.classList.toggle('in-project', Boolean(project.container))
+document.body.dataset.notebookKind = project.container?.kind || ''
+// Its heading says which notebook of the project this is, and what it holds.
+{
+  const format = formatOf(project.container?.kind)
+  if (format) {
+    ;(document.querySelector('.notebook-document .panel-heading .eyebrow') as HTMLElement).textContent = format.label
+    ;($('#notebook-title') as HTMLElement).textContent = `${format.holds.charAt(0).toUpperCase()}${format.holds.slice(1)}`
+  }
+}
+const notebookSwitch = $('#notebook-switch') as HTMLElement
+let projectNotebooks: NotebookSummary[] = []
+let notebookSwitchTimer: number | null = null
+const chooseNotebookTab = (tab: SwitchTab) => {
+  if (tab.current) return
+  if (tab.notebook) {
+    void openNotebook(tab.notebook.id)
+    return
+  }
+  const upstream = tab.madeFrom?.notebook
+  if (!upstream) {
+    showToast(tab.title)
+    return
+  }
+  if (upstream.id !== project.id) {
+    void openNotebook(upstream.id)
+    return
+  }
+  // Here, in the notebook it is made from: make it.
+  if (tab.kind === 'video') void planningWorkspace.open()
+  else showToast(tab.title)
+}
+const renderSwitch = () => {
+  if (!project.container) return
+  // This notebook as it is now, not as it was last saved.
+  const own = notebookSummaryOf({ ...project, notebook: editor.getJSON() as TiptapDocument })
+  const notebooks = [...projectNotebooks.filter(entry => entry.id !== project.id), ...(own ? [own] : [])]
+  renderNotebookSwitch(notebookSwitch, switchTabsOf(notebooks, project.id), chooseNotebookTab)
+  notebookSwitch.hidden = false
+}
+const refreshNotebookSwitch = async () => {
+  if (!project.container) return
+  if (notebookSwitchTimer) window.clearTimeout(notebookSwitchTimer)
+  try {
+    projectNotebooks = (await fetchJson<{ notebooks: NotebookSummary[] }>(`/api/containers/${encodeURIComponent(project.container.id)}`)).notebooks
+  } catch {
+    // A project not saved yet shows this notebook alone until it is.
+  }
+  renderSwitch()
+  // While a notebook of the project is still being made, its tab follows it.
+  const own = notebookSummaryOf({ ...project, notebook: editor.getJSON() as TiptapDocument })
+  if (own?.state === 'building' || projectNotebooks.some(entry => entry.state === 'building')) notebookSwitchTimer = window.setTimeout(() => void refreshNotebookSwitch(), 8000)
+}
+void refreshNotebookSwitch()
 // A base made from a source shows its pages, not the video's staging (B04).
 const videoStagingToggle = $('#toggle-video-staging') as HTMLButtonElement
 syncBasePages = () => {
@@ -19426,9 +19492,14 @@ const openPlanningButton = $('#open-planning') as HTMLButtonElement
 let nextStepShown: NextStep | null = null
 renderNextStep = () => {
   const video = Boolean(project.derivedFrom?.notebook)
+  // A project's text and wireframe are made into the next notebook from the
+  // switch; the presentation leads to its video.
+  const kind = notebookKind()
   const step = video
     ? sceneReview?.nextStep(selectedNodeId || reviewSelectedScene) || null
-    : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
+    : kind === 'text' || kind === 'wireframe'
+      ? null
+      : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
   nextStepShown = step
   nextStepButton.hidden = !step
   // A base with no video yet has no plans to show: Create video is its way in.

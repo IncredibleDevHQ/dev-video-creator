@@ -340,6 +340,35 @@ export type StudioThemeV1 = {
   colours?: { provenance: 'extracted' | 'fallback' | 'manual'; from: string }
 }
 
+// ——— A project and its notebooks ———
+// The project the creator sees is a container. It holds notebooks, each a
+// document of its own with the model its kind needs — a video keeps takes,
+// produced scenes and export settings a presentation never has — and each
+// made from another notebook of the project. The kinds and what each is made
+// from are listed in formats.ts: a new kind, a live stream or a newsletter,
+// is a new entry there, and nothing about how projects are stored changes.
+export type NotebookKind = 'text' | 'wireframe' | 'presentation' | 'video'
+
+// The project itself: what belongs to the whole, not to one notebook. Which
+// notebooks it holds is said by the notebooks — each names its project — so
+// there is one record of it.
+export type ProjectContainerV1 = {
+  version: 1
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+// A notebook's place in its project: which project, what kind of notebook
+// it is there, and the notebook of the project it was made from. A video
+// keeps its pinned base in derivedFrom as well.
+export type NotebookPlaceV1 = {
+  id: string
+  kind: NotebookKind
+  from?: string
+}
+
 // Where a derived notebook came from. A video fork pins the revision of the
 // base it was taken from and keeps a snapshot of it, so the video stays
 // intelligible and renderable even when the base moves on or goes away.
@@ -366,6 +395,9 @@ export type ProjectDocumentV1 = {
   // Derivation lineage: this notebook was derived from another one (e.g. a
   // video fork of a presentation notebook). Optional and additive.
   derivedFrom?: ProjectDerivationV1
+  // The project this notebook belongs to and what it is there. A notebook
+  // with none stands alone, as every notebook did before projects.
+  container?: NotebookPlaceV1
   notebook: TiptapDocument
   fps: 30
   width: 1920
