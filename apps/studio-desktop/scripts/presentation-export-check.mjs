@@ -151,6 +151,7 @@ try {
   const draft = await exportWith('presentation-export-draft', 'draft')
   const draftPdf = draft.download ? await readPdf(draft.download.href, 'draft.pdf') : null
   check('every slide as a draft makes two pages, the file named a draft', draft.download?.name === `${TITLE} — draft.pdf` && (draftPdf?.pages === 2 || !poppler) && /^Exported all 2 slides as a draft — 1 marked as not designed yet\./.test(draft.toast || ''), JSON.stringify({ name: draft.download?.name, pages: draftPdf?.pages, toast: draft.toast }))
+  if (poppler && process.env.PRESENTATION_EXPORT_CAPTURE_DIR) await writeFile(join(process.env.PRESENTATION_EXPORT_CAPTURE_DIR, 'pdf-fonts.txt'), `The draft PDF's fonts, read by pdffonts:\n\n${draftPdf.fonts}`)
   if (poppler) {
     const pages = draftPdf.text.split('\f')
     check('the schematic is marked a draft on its own page, in the file; the designed slide is not', /DRAFT · SCHEMATIC, NOT DESIGNED/.test(pages[1] || '') && !/DRAFT/.test(pages[0] || '') && /draft \(1 of 2 designed\)/.test(draftPdf.title), JSON.stringify({ title: draftPdf.title, first: (pages[0] || '').trim().slice(0, 60), second: (pages[1] || '').trim().slice(0, 80) }))

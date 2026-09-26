@@ -1,0 +1,7 @@
+The draft PDF's fonts, read by pdffonts:
+
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+AAAAAA+EBGaramond-Regular            CID TrueType      Identity-H       yes yes yes      4  0
+BAAAAA+JetBrainsMono-Regular         CID TrueType      Identity-H       yes yes yes      5  0
+CAAAAA+Inter-Bold                    CID TrueType      Identity-H       yes yes yes      9  0
