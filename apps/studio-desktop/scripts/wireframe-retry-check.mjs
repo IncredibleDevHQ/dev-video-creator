@@ -146,10 +146,27 @@ try {
     return { rows, notebook: rows[0] ? (await api(`/api/projects/${encodeURIComponent(rows[0].id)}`)).project : null }
   }
 
-  // Stopped while it is outlined.
-  await evaluate(`() => { setTimeout(() => document.querySelector('#notebook-switch [data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe')
-  const running = await bannerSays('/is outlining the article/', 'running banner')
+  // R02 of the project-flow rereview: the text says what the project is
+  // made from and what is being made, after its notice has gone — and opens
+  // it from there.
+  const strip = await waitFor(`() => { const strip = document.getElementById('project-strip'); const job = strip?.querySelector('.project-strip-job[data-kind="wireframe"]'); return strip && !strip.hidden && job ? { source: document.getElementById('project-strip-source').textContent, brand: document.getElementById('project-strip-brand').hidden ? '' : document.getElementById('project-strip-brand').textContent, job: job.textContent } : null }`, 'project strip', 40)
+  check('the text shows the project\'s source and brand, and the wireframe being made', /^Source How dispatch reaches the experts/.test(strip?.source || '') && strip.job === 'Wireframe: being made', JSON.stringify(strip))
+
+  // Stopped while it is outlined — opened from the strip.
+  await evaluate(`() => { setTimeout(() => document.querySelector('#project-strip .project-strip-job[data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe from the strip')
+  const running = await bannerSays('/is outlining/', 'running banner')
   check('the wireframe says Kimi is outlining it, and can be stopped', running?.kind === 'wireframe' && /^Kimi\b/.test(running.text) && running.action === 'Stop' && !running.settings, JSON.stringify(running))
+  // R02: a wireframe being made is the job, where its pages will be — never
+  // an empty notebook's starter — and nothing is offered that would refuse
+  // for lack of pages.
+  const building = await evaluate(`() => {
+    const visible = element => Boolean(element) && element.getClientRects().length > 0
+    const panel = document.getElementById('notebook-build-status')
+    const next = document.getElementById('next-step')
+    return { starter: visible(document.getElementById('notebook-start')), heading: document.getElementById('notebook-build-heading').textContent, meta: document.getElementById('notebook-build-meta').textContent, placeholders: visible(document.getElementById('notebook-build-pages')), panelFirst: panel.getBoundingClientRect().top < document.getElementById('editor').getBoundingClientRect().top, next: visible(next) ? { label: next.textContent, disabled: next.disabled, title: next.title } : null }
+  }`, 'building state')
+  check('a wireframe being made shows its job and its pages to come, never an empty notebook\'s starter', !building.starter && building.heading === 'Making the wireframe' && /^Kimi\b.* · \d+s|:\d\d/.test(building.meta) && building.placeholders && building.panelFirst, JSON.stringify(building))
+  check('Design presentation waits for the pages, and says why', building.next?.label === 'Design presentation' && building.next.disabled && /still being made/.test(building.next.title), JSON.stringify(building.next))
   await capture('01-outlining')
   const first = await wireframeOf()
   check('its build is the first attempt, on Kimi, at the stored article', first.notebook?.build?.attempts === 1 && Boolean(first.notebook.build.attempt) && first.notebook.build.harness === 'kimi' && first.notebook.build.sourceRevision === snapshot, JSON.stringify(first.notebook?.build && { attempts: first.notebook.build.attempts, attempt: first.notebook.build.attempt, harness: first.notebook.build.harness, sourceRevision: first.notebook.build.sourceRevision }))

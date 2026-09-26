@@ -223,6 +223,11 @@
             </div>
             <button id="reset-sample" class="icon-button" title="Reset sample">↺</button>
           </div>
+          <div id="project-strip" class="project-strip" hidden>
+            <span id="project-strip-source" class="project-strip-item" hidden></span>
+            <span id="project-strip-brand" class="project-strip-item" hidden></span>
+            <span id="project-strip-jobs" class="project-strip-jobs" hidden></span>
+          </div>
           <div id="editor-layout" class="editor-layout">
             <div class="editor-column">
               <div id="editor-toolbar" class="editor-toolbar" aria-label="Formatting toolbar">
@@ -248,7 +253,16 @@
                 <p class="notebook-start-hint">Or just start typing below — press <kbd>/</kbd> for block types.</p>
               </section>
               <div id="page-design-status" class="page-design-status" role="status" hidden><span id="page-design-text"></span><button id="page-design-stop" type="button" class="button ghost">Stop remaining work</button></div>
-              <div id="notebook-build-status" class="page-design-status notebook-build-status" role="status" hidden><span id="notebook-build-text"></span><button id="notebook-build-settings" type="button" class="button ghost" hidden>AI settings</button><button id="notebook-build-action" type="button" class="button ghost">Stop</button></div>
+              <section id="notebook-build-status" class="notebook-job" role="status" aria-live="polite" hidden>
+                <div class="notebook-job-head">
+                  <span class="notebook-job-mark" aria-hidden="true"></span>
+                  <div class="notebook-job-title"><strong id="notebook-build-heading">Making the wireframe</strong><span id="notebook-build-meta"></span></div>
+                  <div class="notebook-job-actions"><button id="notebook-build-settings" type="button" class="button ghost" hidden>AI settings</button><button id="notebook-build-action" type="button" class="button ghost">Stop</button></div>
+                </div>
+                <p id="notebook-build-text"></p>
+                <p id="notebook-build-activity" class="notebook-job-activity" hidden></p>
+                <div id="notebook-build-pages" class="notebook-job-pages" aria-hidden="true"><span></span><span></span><span></span></div>
+              </section>
               <div id="editor" class="editor-shell"></div>
               <div id="slash-menu" class="slash-menu" role="dialog" aria-label="Insert a block" hidden>
                 <div class="slash-menu-heading"><div><strong>Blocks</strong><span>Every block becomes a scene in your timeline.</span></div><kbd>Esc</kbd></div>

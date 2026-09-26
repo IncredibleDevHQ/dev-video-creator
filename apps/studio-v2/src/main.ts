@@ -5136,7 +5136,10 @@ const syncNotebookStart = () => {
   } else {
     empty = (project.notebook?.content || []).every(node => node.type === 'paragraph' && !(node.content || []).length)
   }
-  notebookStart.hidden = !empty
+  // A notebook of a project is made by the project — its text read, its
+  // wireframe outlined, its slides designed — never started over from here
+  // (R02 of the project-flow rereview).
+  notebookStart.hidden = !empty || Boolean(project.container)
 }
 notebookStart.addEventListener('click', event => {
   const card = (event.target as HTMLElement).closest<HTMLElement>('[data-start]')
@@ -18744,6 +18747,43 @@ const renderSwitch = () => {
   const notebooks = [...projectNotebooks.filter(entry => entry.id !== project.id), ...(own ? [own] : [])]
   renderNotebookSwitch(notebookSwitch, switchTabsOf(notebooks, project.id), chooseNotebookTab)
   notebookSwitch.hidden = false
+  renderProjectStrip()
+}
+// The project on each of its notebooks (R02 of the project-flow rereview):
+// the source it was read from, its brand, and the work still running on any
+// of its notebooks, each opened from here — so the text says what is being
+// made after its notice has gone. The source is named, not linked: the app
+// opens nothing from the web.
+const projectStrip = $('#project-strip') as HTMLElement
+const renderProjectStrip = () => {
+  const kind = notebookKind()
+  if (!project.container || !kind || kind === 'video') {
+    projectStrip.hidden = true
+    return
+  }
+  const source = $('#project-strip-source') as HTMLElement
+  const brand = $('#project-strip-brand') as HTMLElement
+  const jobs = $('#project-strip-jobs') as HTMLElement
+  const site = project.source?.site || ''
+  source.hidden = !site && !project.source?.title
+  source.replaceChildren('Source ', Object.assign(document.createElement('b'), { textContent: project.source?.title || site }), site && project.source?.title ? ` · ${site}` : '')
+  source.title = project.source?.url || ''
+  const colours = project.theme?.brand ? [project.theme.brand.background, project.theme.brand.primary, project.theme.brand.accent].filter(Boolean) : []
+  brand.hidden = !project.theme?.name
+  brand.replaceChildren('Brand ', Object.assign(document.createElement('b'), { textContent: project.theme?.name || '' }), ...colours.map(colour => Object.assign(document.createElement('span'), { className: 'project-strip-swatch', title: colour, style: `background:${colour}` })))
+  const running = projectNotebooks.filter(entry => entry.state === 'building' && entry.id !== project.id)
+  jobs.hidden = !running.length
+  jobs.replaceChildren(...running.map(entry => {
+    const chip = document.createElement('button')
+    chip.type = 'button'
+    chip.className = `project-strip-job${/could not/.test(entry.detail) ? ' is-error' : ''}`
+    chip.dataset.kind = entry.kind
+    chip.textContent = `${formatOf(entry.kind)?.label || entry.kind}: ${entry.detail}`
+    chip.title = `Open the ${formatOf(entry.kind)?.label.toLowerCase() || 'notebook'}`
+    chip.addEventListener('click', () => void openNotebook(entry.id))
+    return chip
+  }))
+  projectStrip.hidden = source.hidden && brand.hidden && jobs.hidden
 }
 // This notebook's own tab follows its pages as they change: a slide
 // landing, a page added.
@@ -18783,29 +18823,48 @@ void refreshNotebookSwitch()
 // its pages. The server makes it (server/wireframe-build.ts), so it goes on
 // whichever notebook is open, and after a restart.
 if (project.build?.kind === 'wireframe') {
+  // The job, where the notebook's pages will be (R02 of the project-flow
+  // rereview): who makes it and for how long, what it is made from and in
+  // which brand, their last word, and the pages to come — or why it could
+  // not be made, and the ways on.
   const banner = $('#notebook-build-status') as HTMLElement
+  const heading = $('#notebook-build-heading') as HTMLElement
+  const meta = $('#notebook-build-meta') as HTMLElement
   const said = $('#notebook-build-text') as HTMLElement
+  const activity = $('#notebook-build-activity') as HTMLElement
+  const placeholders = $('#notebook-build-pages') as HTMLElement
   const action = $('#notebook-build-action') as HTMLButtonElement
   const settings = $('#notebook-build-settings') as HTMLButtonElement
   // A provider that failed can be switched before it is made again.
   settings.addEventListener('click', () => void openAiSettings('harness'))
   let lastWord = ''
+  const article = project.source?.title || project.title
   const renderBuild = () => {
     const build = project.build
     banner.hidden = !build
     if (!build) return
-    banner.classList.toggle('is-error', Boolean(build.failure))
-    settings.hidden = !build.failure
-    if (build.failure) {
-      said.textContent = wireframeFailureText(build.failure)
+    const failure = build.failure
+    banner.classList.toggle('is-error', Boolean(failure))
+    settings.hidden = !failure
+    placeholders.hidden = Boolean(failure)
+    heading.textContent = failure ? 'The wireframe could not be made' : 'Making the wireframe'
+    meta.textContent = [build.by, failure ? `attempt ${build.attempts || 1}` : sinceOf(build.startedAt), project.theme?.name ? `in “${project.theme.name}”` : ''].filter(Boolean).join(' · ')
+    activity.hidden = Boolean(failure) || !lastWord
+    activity.textContent = lastWord ? `Last: ${lastWord}` : ''
+    if (failure) {
+      said.textContent = wireframeFailureText(failure)
       action.textContent = 'Make it again'
       action.hidden = false
       return
     }
-    said.textContent = `${build.by} is outlining the article into its pages, for ${sinceOf(build.startedAt)}${lastWord ? ` — ${lastWord}` : ''}. They land here as soon as they are drawn.`
+    said.textContent = `${build.by} is outlining “${article}” into its pages. Each lands here as it is drawn; the presentation is designed from them once they are here.`
     action.textContent = 'Stop'
     action.hidden = !(build.via === 'harness' && build.runId && window.studioDesktop?.isDesktop)
   }
+  // The time it has run, by the second.
+  window.setInterval(() => {
+    if (project.build && !project.build.failure) meta.textContent = [project.build.by, sinceOf(project.build.startedAt), project.theme?.name ? `in “${project.theme.name}”` : ''].filter(Boolean).join(' · ')
+  }, 1000)
   renderBuild()
   const bridge = window.studioDesktop
   if (bridge?.isDesktop) {
@@ -19009,10 +19068,14 @@ renderNextStep = () => {
   const kind = notebookKind()
   // A wireframe with no presentation yet offers to design one.
   const designable = kind === 'wireframe' && projectNotebooksLoaded && !projectNotebooks.some(entry => entry.kind === 'presentation')
+  // Never offered before there are pages to design from (R02 of the
+  // project-flow rereview): it says why it waits.
+  const wireframePages = designable ? pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total : 0
+  const waitsFor = !designable ? '' : project.build ? (project.build.failure ? 'The wireframe could not be made: make it again, and design the presentation from its pages' : 'The wireframe is still being made: the presentation is designed from its pages once they are here') : !wireframePages ? 'The wireframe has no pages to design from yet' : ''
   const step: NextStep | null = video
     ? sceneReview?.nextStep(selectedNodeId || reviewSelectedScene) || null
     : designable
-      ? { action: 'design-presentation', label: designingPresentation ? 'Starting the design…' : 'Design presentation', title: 'Design the presentation from these pages: each slide is drawn on your drawing harness and lands in the presentation as it is finished.', sceneId: null, disabled: designingPresentation || !window.studioDesktop?.isDesktop }
+      ? { action: 'design-presentation', label: designingPresentation ? 'Starting the design…' : 'Design presentation', title: waitsFor || 'Design the presentation from these pages: each slide is drawn on your drawing harness and lands in the presentation as it is finished.', sceneId: null, disabled: designingPresentation || !window.studioDesktop?.isDesktop || Boolean(waitsFor) }
       : kind === 'text' || kind === 'wireframe'
         ? null
         : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })

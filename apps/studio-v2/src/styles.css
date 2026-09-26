@@ -106,7 +106,38 @@ h1, h2, h3, h4, strong { font-family: 'Gilroy', sans-serif; }
 .page-design-status { position: sticky; top: 8px; z-index: 6; display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 9px 12px; border: 1px solid #bfdbfe; border-radius: 9px; background: #eff6ff; color: #1e3a8a; font: 12.5px/1.45 'InterBody', Inter, system-ui, sans-serif; }
 .page-design-status[hidden] { display: none; }
 .page-design-status span { flex: 1 1 auto; min-width: 0; }
-.notebook-build-status.is-error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+/* R02: a notebook still being made shows the job, not an empty starter. */
+.notebook-job { display: grid; gap: 10px; margin: 0 0 16px; padding: 14px 16px; border: 1px solid #bfdbfe; border-radius: 10px; background: #f8fbff; color: #1e3a8a; font: 13px/1.5 'InterBody', Inter, system-ui, sans-serif; }
+.notebook-job[hidden] { display: none; }
+.notebook-job p { margin: 0; }
+.notebook-job-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.notebook-job-mark { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, .18); animation: notebook-job-pulse 1.6s ease-in-out infinite; }
+.notebook-job-title { display: grid; flex: 1 1 auto; min-width: 0; }
+.notebook-job-title strong { color: #172554; font-size: 14px; }
+.notebook-job-title span { color: #3b5b9a; font-size: 12px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notebook-job-actions { display: flex; flex: none; gap: 6px; }
+.notebook-job-actions .button { white-space: nowrap; }
+.notebook-job-activity { color: #3b5b9a; font-size: 12px; }
+.notebook-job-pages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.notebook-job-pages[hidden] { display: none; }
+.notebook-job-pages span { aspect-ratio: 16 / 9; border-radius: 8px; background: linear-gradient(90deg, #e0ecfb 0%, #eef4fd 50%, #e0ecfb 100%); background-size: 200% 100%; animation: notebook-job-shimmer 1.8s linear infinite; }
+.notebook-job.is-error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.notebook-job.is-error .notebook-job-title strong { color: #7f1d1d; }
+.notebook-job.is-error .notebook-job-title span { color: #b45353; }
+.notebook-job.is-error .notebook-job-mark { background: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, .15); animation: none; }
+@keyframes notebook-job-pulse { 50% { box-shadow: 0 0 0 7px rgba(59, 130, 246, .08); } }
+@keyframes notebook-job-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .notebook-job-mark, .notebook-job-pages span { animation: none; } }
+/* The project's source, brand and running jobs, on each of its notebooks. */
+.project-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; width: min(1180px, 100%); margin: -8px auto 16px; color: #52525b; font: 12.5px/1.5 'InterBody', Inter, system-ui, sans-serif; }
+.project-strip[hidden], .project-strip [hidden] { display: none; }
+.project-strip-item { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.project-strip-item b { color: #27272a; font-weight: 650; }
+.project-strip-swatch { width: 12px; height: 12px; border: 1px solid rgba(0, 0, 0, .12); border-radius: 3px; }
+.project-strip-jobs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.project-strip-job { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border: 1px solid #bfdbfe; border-radius: 999px; background: #eff6ff; color: #1e40af; font: 600 12px/1.6 'InterBody', Inter, system-ui, sans-serif; cursor: pointer; }
+.project-strip-job.is-error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.project-strip-job:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; }
 .notebook-media-block { min-height: 260px; padding: 0 !important; overflow: hidden; border: 1px solid #e4e4e7; background: #f4f4f5; }
 .notebook-media-block img, .notebook-media-block video { width: 100%; max-height: 440px; display: block; object-fit: contain; background: #18181b; }
 .notebook-media-block figcaption { padding: 11px 14px; border-top: 1px solid #e4e4e7; background: white; color: #52525b; font-size: 11px; font-weight: 700; }
