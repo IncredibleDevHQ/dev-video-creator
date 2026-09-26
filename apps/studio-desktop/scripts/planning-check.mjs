@@ -268,7 +268,7 @@ try {
   const briefReady = await until('the brief', async () => (await overview(videoId)).brief.current, 90_000)
   const briefRun = (await api('/api/runs')).body.runs.find(run => run.route === 'Prepare Brief')
   const briefReport = await reportOf(briefRun)
-  check(JSON.stringify(briefReport.tools) === JSON.stringify(['plan_assets', 'plan_context', 'plan_submit_brief', 'plan_submit_sketch', 'plan_submit_treatment']), `a planning run is offered only the planning tools (${briefReport.tools})`)
+  check(JSON.stringify(briefReport.tools) === JSON.stringify(['plan_assets', 'plan_context', 'plan_publish_draft', 'plan_submit_brief', 'plan_submit_sketch', 'plan_submit_treatment']), `a planning run is offered only the planning tools (${briefReport.tools})`)
   check(/not available to a planning run/.test(briefReport.refused?.error || ''), 'a build tool is refused to a planning run')
   check(!/Bash/.test(briefReport.allowedTools) && /mcp__studio__plan_\*/.test(briefReport.allowedTools), `Claude Code plans without a shell (${briefReport.allowedTools})`)
   check(/scope=planning/.test(briefReport.mcpUrl), 'the run\'s tool URL carries its planning scope')
