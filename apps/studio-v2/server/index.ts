@@ -2380,18 +2380,18 @@ const handleRender = async (context: StudioWorkerContext, request: IncomingMessa
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
   json(response, 200, await renderProjectArtifact(context, project))
 }
-// Whether the store holds an object — a missing one is an answer, not an
-// error; anything else (the store down) still throws.
-const objectExists = async (objectKey: string) => {
+// An object the store does not hold is an answer, not an error; anything
+// else (the store down) still throws.
+const missingObject = (error: unknown) => ['NotFound', 'NoSuchKey', 'ENOENT'].includes(String((error as { code?: string }).code))
+const objectMetadataOrNull = async (objectKey: string) => {
   try {
-    await getObjectMetadata(objectKey)
-    return true
+    return await getObjectMetadata(objectKey)
   } catch (error) {
-    const code = (error as { code?: string }).code
-    if (code === 'NotFound' || code === 'NoSuchKey' || code === 'ENOENT') return false
+    if (missingObject(error)) return null
     throw error
   }
 }
+const objectExists = async (objectKey: string) => Boolean(await objectMetadataOrNull(objectKey))
 
 const renderProjectArtifact = async (context: StudioWorkerContext, project: ProjectDocumentV1, signal?: AbortSignal, report?: ExportReport): Promise<ExportResult> => {
   report?.({ stage: 'preparing', percent: 0 })
@@ -3401,11 +3401,11 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       if (!objectKey || objectKey.split('/').some(part => !part || part === '..')) {
         throw new Error('Invalid object key')
       }
-      if (!(await objectExists(objectKey))) {
+      const metadata = await objectMetadataOrNull(objectKey)
+      if (!metadata) {
         json(response, 404, { error: 'This file is no longer in the studio\'s store' })
         return
       }
-      const metadata = await getObjectMetadata(objectKey)
       if (request.method === 'HEAD') {
         response.writeHead(200, {
           'content-type': metadata.metaData?.['content-type'] || 'application/octet-stream',
