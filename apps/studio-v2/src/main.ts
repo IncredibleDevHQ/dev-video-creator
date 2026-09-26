@@ -5,6 +5,7 @@ import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
 import { createSceneWorkspace } from './scene-workspace/workspace'
+import { atStageEnd, lastFrameOf } from './scene-workspace/stage-clock'
 import { createStageChoices, defaultStageView, handOffFor, type PreviewJob, type PreviewWait, type StageView } from './scene-workspace/preview-intent'
 import { isActiveStatus } from './planning/planning-records'
 import type { SceneProductionView } from './planning/planning-workspace'
@@ -17883,7 +17884,11 @@ const createStagePlayer = () => {
   player.className = 'scene-stage-player'
   const current = () => player === stagePlayer
   player.addEventListener('timeupdate', () => {
-    if (current()) updateStageClock()
+    if (!current()) return
+    updateStageClock()
+    // The player can stop a fraction of a frame short of the scene's clock
+    // and never say it ended (F07): the last frame is the end.
+    if (stagePlaying && atStageEnd(player.currentTime, player.duration || stagePreviewDuration)) finishStagePlayback(player)
   })
   // Once the runtime is ready the composition starts paused, at its first
   // frame or the moment asked for, every clip in its timed state.
@@ -17917,18 +17922,24 @@ const createStagePlayer = () => {
     updateStageClock()
     settlePreviewWaits()
   })
-  // A clip's interval is half-open, so the exact end is blank: hold the
-  // last frame instead, and offer a replay.
   player.addEventListener('ended', () => {
-    if (!current()) return
-    stagePlaying = false
-    stageEnded = true
-    player.seek(Math.max(0, (player.duration || stagePreviewDuration) - 1 / 30))
-    syncStagePlay()
-    updateStageClock()
-    settlePreviewWaits()
+    if (current()) finishStagePlayback(player)
   })
   return player
+}
+// A scene played to its end, however its clock and its frames meet (F07 of
+// the fix verification): paused on the last frame anything is drawn on —
+// a clip's interval is half-open, so the clock's exact end is blank — with
+// a replay from the start on offer.
+const finishStagePlayback = (player: StagePlayer) => {
+  if (stageEnded && !stagePlaying) return
+  stagePlaying = false
+  stageEnded = true
+  player.pause()
+  player.seek(lastFrameOf(player.duration || stagePreviewDuration))
+  syncStagePlay()
+  updateStageClock()
+  settlePreviewWaits()
 }
 const cancelStageLoad = () => {
   if (!stageLoading) return
