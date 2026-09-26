@@ -2199,6 +2199,10 @@ button.se-state:hover { filter: brightness(.97); }
 .source-extraction-read summary { cursor: pointer; color: #52525b; }
 .source-extraction-read ul { margin: 6px 0; padding-left: 18px; columns: 2; column-gap: 20px; }
 .source-extraction-read blockquote { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid #d4d4d8; background: #fafafa; color: #3f3f46; max-height: 9em; overflow: auto; }
+.source-extraction-text { margin-top: 8px; }
+.source-extraction-text summary { cursor: pointer; color: #52525b; font-size: 12px; }
+.source-extraction-text pre { margin: 6px 0 0; padding: 10px 12px; max-height: 22em; overflow: auto; border: 1px solid #e4e4e7; border-radius: 6px; background: #fafafa; color: #27272a; font: 11.5px/1.5 'Roboto Mono', ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.source-extraction-cuts { margin: 6px 0; padding: 8px 10px 8px 26px; border-radius: 6px; background: #fffbeb; color: #92400e; font-size: 12px; line-height: 1.45; }
 .source-swatches.is-fallback .source-swatch { opacity: .75; border-style: dashed; }
 .source-pages-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 52vh; overflow: auto; }
 .source-page { display: grid; gap: 4px; font: 500 12px/1.3 system-ui; color: #3f3f46; }

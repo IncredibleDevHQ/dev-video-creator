@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { extractionOf, githubDocumentOf, markdownDocument, readSourceNarrative, readSourceUrl, renderPage, statFigure, type OutlineScene, type PageBrand } from './source'
+import { parseHTML } from 'linkedom'
+import { articleText, extractionOf, githubDocumentOf, markdownDocument, readSourceNarrative, readSourceUrl, renderPage, statFigure, type OutlineScene, type PageBrand } from './source'
 
 // F1 of the fresh end-to-end review: the schematic page for Anthropic's
 // latency results printed "50" and "95" captioned "pTTFT" — the percentile
@@ -121,5 +122,61 @@ describe('what a read is sure of', () => {
     const navigation = readSourceNarrative('Sign in · Pricing · Docs · Blog')
     expect(navigation.extraction.confidence).toBe('good')
     expect(navigation.palette).toMatchObject({ provenance: 'fallback', from: 'no brand website was given' })
+  })
+})
+
+// B02 of the BoltDB review: the article's table of page types kept its
+// labels (set in code) and lost what each one holds, and every diagram was
+// cut at 600 characters without a word. Read here as the BoltDB article
+// sets them.
+const HEADER_DIAGRAM = ['┌──────────────────────────────────────────┐', '│ Page header:  id │ flags │ count │ overflow │', '├──────────────────────────────────────────┤', ...Array.from({ length: 14 }, () => '│                                          │'), '│              page contents…              │', '└──────────────────────────────────────────┘'].join('\n')
+const ARTICLE = `<html><body><article>
+<h2>Layer 1: Pages</h2>
+<p>That file is divided into equal-sized blocks called <em>pages</em>, typically 4KB each. Every page has a small header saying what it is:</p>
+<pre><code>${HEADER_DIAGRAM}</code></pre>
+<p>There are four kinds of page, distinguished by the <code>flags</code> field:</p>
+<table><thead><tr><th>Page type</th><th>What it holds</th></tr></thead><tbody>
+<tr><td><code>meta</code></td><td>The database’s root pointer and bookkeeping (see Layer 5)</td></tr>
+<tr><td><code>freelist</code></td><td>A list of pages that are free to be reused</td></tr>
+<tr><td><code>branch</code></td><td>Interior B+tree nodes — keys that route you to children</td></tr>
+<tr><td><code>leaf</code></td><td>The actual key-value pairs (and pointers to sub-buckets)</td></tr>
+</tbody></table>
+<p>A brand-new BoltDB file is tiny: just four pages.</p>
+<pre>Page 0: meta      ┐  two copies, for safety
+Page 1: meta      ┘  (see Layer 5)
+Page 2: freelist     "no free pages yet"
+Page 3: leaf         the empty root bucket</pre>
+<div class="callout">The page is the basic unit of <strong>BoltDB</strong>. <p>Everything above this layer is pages linked together.</p></div>
+<dl><dt>mmap</dt><dd>The file mapped into memory, read in place.</dd></dl>
+<h2>Layer 2: A very long listing</h2>
+<pre>${'x'.repeat(9_000)}</pre>
+</article></body></html>`
+
+describe('an article read as its blocks', () => {
+  it('keeps a table whole — every label with what it holds — and its diagrams whole', () => {
+    const read = articleText(parseHTML(ARTICLE).document.querySelector('article')!)
+    expect(read.text).toContain('| Page type | What it holds |\n| --- | --- |')
+    for (const row of ['| meta | The database’s root pointer and bookkeeping (see Layer 5) |', '| freelist | A list of pages that are free to be reused |', '| branch | Interior B+tree nodes — keys that route you to children |', '| leaf | The actual key-value pairs (and pointers to sub-buckets) |']) expect(read.text).toContain(row)
+    // The labels are cells of the table, not code blocks of their own.
+    expect(read.text).not.toMatch(/```\nmeta\n```/)
+    // A diagram longer than 600 characters is read to its end, lines intact.
+    expect(HEADER_DIAGRAM.length).toBeGreaterThan(600)
+    expect(read.text).toContain('```\n' + HEADER_DIAGRAM + '\n```')
+    expect(read.text).toContain('Page 2: freelist     "no free pages yet"\nPage 3: leaf         the empty root bucket')
+    expect(read).toMatchObject({ tables: 1, codeBlocks: 3 })
+  })
+
+  it('reads text set loose in a container, and a definition list', () => {
+    const read = articleText(parseHTML(ARTICLE).document.querySelector('article')!)
+    expect(read.text).toContain('The page is the basic unit of BoltDB.')
+    expect(read.text).toContain('Everything above this layer is pages linked together.')
+    expect(read.text).toContain('- mmap\n\n  The file mapped into memory, read in place.')
+    expect(read.headings.map(heading => heading.text)).toEqual(['Layer 1: Pages', 'Layer 2: A very long listing'])
+  })
+
+  it('says where a block too long to keep was cut, in the text and in a warning', () => {
+    const read = articleText(parseHTML(ARTICLE).document.querySelector('article')!)
+    expect(read.text).toContain(`${'x'.repeat(8_000)} … [cut: 1,000 more characters]`)
+    expect(read.notes).toEqual(['A code block in “Layer 2: A very long listing” was 9,000 characters; its first 8,000 were read'])
   })
 })

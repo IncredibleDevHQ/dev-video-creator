@@ -16107,7 +16107,9 @@ const renderSourceExtraction = () => {
     : source.kind === 'narrative' ? (source.url ? `pasted, crediting ${source.site || source.url}` : 'your own words') : `read from ${source.site || hostOf(source.url)}`
   const line = document.createElement('p')
   line.className = 'source-extraction-line'
-  line.textContent = `${read.words} words · ${read.headings} heading${read.headings === 1 ? '' : 's'} · ${where}`
+  // Its tables and code, counted: they are read whole (B02 of the BoltDB review).
+  const counted = [`${read.words} words`, `${read.headings} heading${read.headings === 1 ? '' : 's'}`, read.tables ? `${read.tables} table${read.tables === 1 ? '' : 's'}` : '', read.codeBlocks ? `${read.codeBlocks} code block${read.codeBlocks === 1 ? '' : 's'}` : '']
+  line.textContent = `${counted.filter(Boolean).join(' · ')} · ${where}`
   const details = document.createElement('details')
   details.className = 'source-extraction-read'
   const summary = document.createElement('summary')
@@ -16116,10 +16118,19 @@ const renderSourceExtraction = () => {
   source.headings.slice(0, 10).forEach(heading => heads.append(Object.assign(document.createElement('li'), { textContent: heading.text })))
   const excerpt = document.createElement('blockquote')
   excerpt.textContent = read.excerpt ? `${read.excerpt}${read.excerpt.length >= 600 ? '…' : ''}` : 'Nothing readable.'
-  details.append(summary, ...(source.headings.length ? [heads] : []), excerpt)
+  // All of it, as the outline will read it: its tables and code as read.
+  const whole = document.createElement('details')
+  whole.className = 'source-extraction-text'
+  whole.append(Object.assign(document.createElement('summary'), { textContent: `The whole text read · ${source.text.length.toLocaleString('en')} characters` }), Object.assign(document.createElement('pre'), { textContent: source.text }))
+  details.append(summary, ...(source.headings.length ? [heads] : []), excerpt, ...(source.text ? [whole] : []))
   const thin = read.confidence === 'thin' && !sourceState.thinAcknowledged
   details.open = read.confidence === 'thin'
-  box.replaceChildren(line, details)
+  // What the read had to cut is said before anything is planned from it.
+  const cuts = (read.notes || []).length
+    ? Object.assign(document.createElement('ul'), { className: 'source-extraction-cuts' })
+    : null
+  for (const note of read.notes || []) cuts?.append(Object.assign(document.createElement('li'), { textContent: note }))
+  box.replaceChildren(line, ...(cuts ? [cuts] : []), details)
   box.classList.toggle('is-thin', read.confidence === 'thin')
   if (read.confidence === 'thin') {
     const warn = document.createElement('div')

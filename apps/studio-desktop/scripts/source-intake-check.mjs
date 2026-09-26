@@ -10,7 +10,7 @@
 // local file store in a temp directory keeps every database out of it.
 import { spawn } from 'node:child_process'
 import http from 'node:http'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,6 +21,53 @@ const appDir = fileURLToPath(new URL('..', import.meta.url))
 const electronBinary = require('electron')
 const root = await mkdtemp(join(tmpdir(), 'studio-source-intake-'))
 
+// B02 of the BoltDB review: the article's table of page types and its
+// diagrams, set as the BoltDB article sets them — the table's labels in
+// code, what each holds in plain cells, and a diagram longer than 600
+// characters.
+const HEADER_DIAGRAM = ['┌──────────────────────────────────────────┐', '│ Page header:  id │ flags │ count │ overflow │', '├──────────────────────────────────────────┤', ...Array.from({ length: 14 }, () => '│                                          │'), '│              page contents…              │', '└──────────────────────────────────────────┘'].join('\n')
+const PAGE_ROWS = [['meta', 'The database’s root pointer and bookkeeping (see Layer 5)'], ['freelist', 'A list of pages that are free to be reused'], ['branch', 'Interior B+tree nodes — keys that route you to children'], ['leaf', 'The actual key-value pairs (and pointers to sub-buckets)']]
+const BOLTDB = `<html><head><title>How BoltDB Works</title></head><body><article>
+<h1>How BoltDB Works: A High-Level Tour</h1>
+<p>BoltDB keeps a whole database in one file, and reads it through memory mapping. ${'Every read and write eventually comes down to which page, at which offset. '.repeat(6)}</p>
+<h2>Layer 1: Pages</h2>
+<p>That file is divided into equal-sized blocks called pages, typically 4KB each. Every page has a small header saying what it is:</p>
+<pre><code>${HEADER_DIAGRAM}</code></pre>
+<p>There are four kinds of page, distinguished by the <code>flags</code> field:</p>
+<table><thead><tr><th>Page type</th><th>What it holds</th></tr></thead><tbody>
+${PAGE_ROWS.map(([type, holds]) => `<tr><td><code>${type}</code></td><td>${holds}</td></tr>`).join('\n')}
+</tbody></table>
+<p>A brand-new BoltDB file is tiny: just four pages.</p>
+<pre>Page 0: meta      ┐  two copies, for safety
+Page 1: meta      ┘  (see Layer 5)
+Page 2: freelist     "no free pages yet"
+Page 3: leaf         the empty root bucket</pre>
+<h2>Layer 2: The B+tree</h2>
+<p>${'Branch pages route a search to the leaf that holds a key, and leaves hold the keys and values in order. '.repeat(8)}</p>
+</article></body></html>`
+
+// A stub kimi on PATH plans the outline from the run's own inputs, so the
+// check can read the inputs the harness was given.
+const binDir = join(root, 'bin')
+await mkdir(binDir, { recursive: true })
+await writeFile(join(binDir, 'kimi'), `#!/usr/bin/env node
+const fs = require('node:fs')
+const path = require('node:path')
+if (process.argv.includes('--version')) { console.log('kimi stub 1.0'); process.exit(0) }
+const emit = value => process.stdout.write(JSON.stringify(value) + '\\n')
+let inputs = null
+try { inputs = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'motion', 'inputs.json'), 'utf8')) } catch {}
+if (inputs && inputs.source && typeof inputs.source.text === 'string') {
+  const scenes = [1, 2].map(index => ({ title: 'Scene ' + index, idea: 'The pages of BoltDB, part ' + index + '.', kind: 'diagram', seconds: 12, parts: [{ label: 'Page', kind: 'box', detail: 'a block of the file' }], relations: [], narration: 'The pages of BoltDB.', source: [] }))
+  fs.mkdirSync(path.join(process.cwd(), 'story'), { recursive: true })
+  fs.writeFileSync(path.join(process.cwd(), 'story', 'outline.json'), JSON.stringify({ title: 'How BoltDB works', targetSeconds: 24, scenes, glossary: [] }))
+  fs.writeFileSync(path.join(process.cwd(), 'story', 'receipt.json'), JSON.stringify({ scenes: 2 }))
+  emit({ role: 'assistant', content: 'Planned 2 scenes.' })
+} else emit({ role: 'assistant', content: 'stub run' })
+process.exit(0)
+`)
+await chmod(join(binDir, 'kimi'), 0o755)
+
 const site = http.createServer((request, response) => {
   if (request.url === '/blocked') {
     response.writeHead(403, { 'content-type': 'text/html' })
@@ -30,6 +77,11 @@ const site = http.createServer((request, response) => {
   if (request.url === '/nav') {
     response.writeHead(200, { 'content-type': 'text/html' })
     response.end('<html><head><title>Docs</title></head><body><nav><a href="/">Home</a> <a href="/docs">Docs</a> <a href="/pricing">Pricing</a></nav><main><p>Sign in to keep reading.</p></main><footer>© Example</footer></body></html>')
+    return
+  }
+  if (request.url === '/boltdb') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+    response.end(BOLTDB)
     return
   }
   if (request.url === '/brand') {
@@ -55,7 +107,7 @@ The same engine serves decode and prefill: decode moves many small batches with 
 
 const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   cwd: appDir,
-  env: { ...process.env, STUDIO_ALLOW_MULTI_INSTANCE: '1', STUDIO_DATA_DIR: join(root, 'data'), STUDIO_OUTPUTS_DIR: join(root, 'outputs'), STUDIO_PERSISTENCE: 'local', STUDIO_ENABLE_TEST_HOOKS: '1' },
+  env: { ...process.env, PATH: `${binDir}:${process.env.PATH}`, STUDIO_ALLOW_MULTI_INSTANCE: '1', STUDIO_DATA_DIR: join(root, 'data'), STUDIO_OUTPUTS_DIR: join(root, 'outputs'), STUDIO_PERSISTENCE: 'local', STUDIO_ENABLE_TEST_HOOKS: '1' },
   stdio: ['ignore', 'pipe', 'inherit'],
 })
 const origin = await new Promise((resolve, reject) => {
@@ -217,6 +269,29 @@ try {
   await onBrandStep()
   const unbranded = await evaluate(`() => ({ line: document.getElementById('source-palette-provenance').textContent, warnings: window.__source.state().source.warnings })`, 'unbranded')
   check('a brand website that cannot be read leaves defaults, and says why', /^defaults, not a brand — 127\.0\.0\.1 could not be read\./.test(unbranded.line) && unbranded.warnings.some(warning => /Brand website could not be read/.test(warning)), JSON.stringify(unbranded))
+
+  // B02 of the BoltDB review: an article's table keeps every cell — each
+  // page type with what it holds — and its diagrams are read whole, shown
+  // before anything is planned and given to the harness as read.
+  await fetch(`${origin}/api/settings/harness`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ default: { harness: 'kimi', model: null } }) })
+  await backToRead()
+  await fill('source-brand-url', '')
+  await evaluate(`() => { document.querySelector('#source-step-read [data-source-input="link"]')?.click(); return true }`, 'link input')
+  await fill('source-url', `${web}/boltdb`)
+  await read()
+  await onBrandStep()
+  const table = PAGE_ROWS.map(([type, holds]) => `| ${type} | ${holds} |`)
+  const shown = await evaluate(`() => ({ text: window.__source.state().source.text, line: document.querySelector('.source-extraction-line')?.textContent, whole: document.querySelector('.source-extraction-text pre')?.textContent || '', cuts: document.querySelector('.source-extraction-cuts')?.textContent || '' })`, 'boltdb read')
+  check('every page type is read with what it holds, as a table', shown.text.includes('| Page type | What it holds |') && table.every(row => shown.text.includes(row)), JSON.stringify(table.filter(row => !shown.text.includes(row))))
+  check('its diagrams are read whole, lines intact', shown.text.includes('```\n' + HEADER_DIAGRAM + '\n```') && shown.text.includes('Page 3: leaf         the empty root bucket'), `${HEADER_DIAGRAM.length} characters`)
+  check('the source step counts its table and code, shows the whole text read, and nothing was cut', /· 1 table · 2 code blocks · read from 127\.0\.0\.1$/.test(shown.line || '') && table.every(row => shown.whole.includes(row)) && shown.whole.includes(HEADER_DIAGRAM) && !shown.cuts, JSON.stringify({ line: shown.line, cuts: shown.cuts }))
+  await capture('07-boltdb-read')
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline boltdb')
+  const outlined = await waitFor(`() => !document.getElementById('source-step-outline')?.hidden ? true : null`, 'outline', 150)
+  const storyRun = (await fetch(`${origin}/api/runs`).then(r => r.json())).runs.find(run => run.skill === 'story-master' || /story/i.test(run.route))
+  const given = storyRun ? JSON.parse(await readFile(join(storyRun.projectDir, 'motion', 'inputs.json'), 'utf8').catch(() => '{}')) : {}
+  const packet = String(given.source?.text || '')
+  check('the harness is given the table and the diagrams as read', Boolean(outlined) && table.every(row => packet.includes(row)) && packet.includes(HEADER_DIAGRAM), JSON.stringify({ outlined: Boolean(outlined), run: storyRun?.route, characters: packet.length }))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {
