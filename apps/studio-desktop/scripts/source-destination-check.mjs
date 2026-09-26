@@ -27,6 +27,7 @@ const FLOW_A_TWO = 'A worker pool pulls from the queue in parallel, so one slow 
 const FLOW_B_ONE = 'Retries multiply the load exactly when the service can least afford it.'
 const FLOW_B_TWO = 'A backoff schedule spaces the retries out, so the load arrives at a survivable rate.'
 const FLOW_C_ONE = 'The cache stamps every entry with the time it was written, so a stale read is always visible.'
+const FLOW_D_ONE = 'A page split moves half the keys into a new page and points the parent at both.'
 const SAMPLE_MARK = 'Make technical ideas feel human'
 const narrativeOf = (...sentences) => `# Flow\n\n${sentences.join('\n\n')}`
 
@@ -283,6 +284,50 @@ try {
     'the markdown notebook keeps its own content, no scenes appended',
     Boolean(mdAfter) && sceneNodes(mdAfter).length === 0 && meaningful(mdAfter).some(node => nodeText(node).includes('Notes that are mine')),
   )
+
+  // ——— Flow D (BoltDB review B01): a source finished while a video
+  // notebook's Scenes view is open. The new notebook used to be swapped in
+  // under the studio, which kept the video's views — its scenes, its
+  // stage, its lineage. The studio now opens on the new notebook, as it
+  // opens any: nothing of the video is left in view. ———
+  const BASE_ID = `fabric-base-${Date.now().toString(36)}`
+  const VIDEO_ID = `video-${BASE_ID}`
+  const page = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><rect x="80" y="80" width="400" height="200"/><text x="100" y="200">Fabric</text></svg>'
+  const fabricScene = (id, title) => ({ type: 'scene', attrs: { id, title, svg: page, script: 'The fabric keeps its threads apart.' } })
+  const fabricNotebook = (id, title, sceneTitle, extra = {}) => ({ version: 1, id, title, notebook: { type: 'doc', content: [fabricScene(`${id}-s01`, sceneTitle)] }, fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {}, ...extra })
+  await fetch(`${origin}/api/projects/${BASE_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fabricNotebook(BASE_ID, 'Fabric base', 'Fabric threads')) })
+  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fabricNotebook(VIDEO_ID, 'Fabric video', 'Fabric threads on stage', { derivedFrom: { notebook: BASE_ID, baseTitle: 'Fabric base', forkedAt: new Date().toISOString() } })) })
+  await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'scenes'); localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(VIDEO_ID)}); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, 'open the video notebook')
+  const videoOpen = await waitFor(`() => document.getElementById('project-title')?.value === 'Fabric video' && document.body.classList.contains('is-scene-workspace') ? { video: document.body.classList.contains('is-video-notebook'), text: document.body.innerText.includes('Fabric threads on stage') } : null`, 'video notebook boot')
+  check('the video notebook opens on its Scenes view', Boolean(videoOpen?.video && videoOpen.text), JSON.stringify(videoOpen))
+  // A mark on this page: the notebook the studio opens next is a page of its own.
+  await evaluate(`() => { window.__videoPage = true; return true }`, 'mark the page')
+  const flowD = await runWizard(narrativeOf(FLOW_D_ONE), 'new')
+  check('from the video notebook, the source finishes into a new notebook', flowD.ok && flowD.offered === true, `offered=${flowD.offered}`)
+  const opened = await waitFor(`() => {
+    // Until the studio has opened afresh, the video's page is still this one.
+    if (window.__videoPage) return null
+    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
+    const editor = document.querySelector('#editor .ProseMirror')
+    if (!editor || !id || id === ${JSON.stringify(VIDEO_ID)} || document.getElementById('project-title')?.value !== 'Flow') return null
+    return {
+      id,
+      video: document.body.classList.contains('is-video-notebook'),
+      scenesView: document.body.classList.contains('is-scene-workspace'),
+      workspace: !document.getElementById('scene-workspace').hidden,
+      scenesTab: !document.getElementById('workspace-tab-scenes').hidden,
+      fabric: /Fabric/.test(document.body.innerText),
+      scenes: editor.querySelectorAll(':scope > [data-block-type="scene"]').length,
+      said: editor.textContent.includes('page split'),
+    }
+  }`, 'new notebook open', 120)
+  check('the studio opens on the new notebook, as it opens any: no video view, no Scenes, no lineage', Boolean(opened) && !opened.video && !opened.scenesView && !opened.workspace && !opened.scenesTab, JSON.stringify(opened))
+  check('nothing of the video notebook is left in view; the new scene is', Boolean(opened) && !opened.fabric && opened.scenes === 1 && opened.said, JSON.stringify(opened && { fabric: opened.fabric, scenes: opened.scenes, said: opened.said }))
+  const newNotebook = opened ? await projectBody(opened.id) : null
+  const videoAfter = await projectBody(VIDEO_ID)
+  check('the new notebook is a base of its own, and the video notebook is untouched', Boolean(newNotebook) && !newNotebook.derivedFrom && sceneNodes(newNotebook).length === 1 && sceneNodes(videoAfter).length === 1 && videoAfter.derivedFrom?.notebook === BASE_ID, JSON.stringify({ derived: newNotebook?.derivedFrom || null, video: sceneNodes(videoAfter).map(node => node.attrs?.title) }))
+  const notice = await waitFor(`() => { const toast = document.querySelector('#toast, .toast'); return toast && /in a new notebook/.test(toast.textContent) ? toast.textContent : null }`, 'notice', 20)
+  check('once it is open, the new notebook says what it holds', Boolean(notice), notice || '')
 
   // Cleanup: every notebook this run touched goes; the temp store removes the
   // rest.

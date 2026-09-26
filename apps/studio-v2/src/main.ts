@@ -6729,6 +6729,23 @@ const closeNotebookMenu = () => {
   notebookMenuToggle.setAttribute('aria-expanded', 'false')
 }
 
+// The one way a notebook becomes the open one (BoltDB review B01): named
+// the active notebook, the studio opens on it afresh, so nothing of the
+// notebook before it — its view, scene review, stage, selection, lineage
+// or video controls — survives. Its jobs run on in the app, each with the
+// notebook it belongs to. A notice to show once it has opened rides along.
+const OPENED_NOTICE_KEY = 'studio.opened-notice'
+const activateNotebook = (notebookId: string, notice = '') => {
+  window.localStorage.setItem(ACTIVE_PROJECT_KEY, notebookId)
+  window.localStorage.removeItem(STORAGE_KEY)
+  try {
+    if (notice) window.sessionStorage.setItem(OPENED_NOTICE_KEY, notice)
+  } catch {
+    // the notice is only a courtesy
+  }
+  window.location.reload()
+}
+
 const openNotebook = async (notebookId: string) => {
   if (notebookId !== project.id) {
     // Flush the current notebook before leaving it.
@@ -6741,9 +6758,7 @@ const openNotebook = async (notebookId: string) => {
       rememberDraft(project)
     }
   }
-  window.localStorage.setItem(ACTIVE_PROJECT_KEY, notebookId)
-  window.localStorage.removeItem(STORAGE_KEY)
-  window.location.reload()
+  activateNotebook(notebookId)
 }
 
 const createNotebook = async () => {
@@ -17279,9 +17294,11 @@ const notebookHasOwnContent = () => {
   if (!content.some(node => node.type !== 'paragraph' || (node.content || []).length)) return false
   return !starterContentJson || JSON.stringify(content) !== starterContentJson
 }
-// A source can begin a new notebook without a reload: the current one is
-// kept, a fresh document takes the theme and the journey's delivery choice,
-// and the studio continues in it.
+// A source can begin a new notebook: the current one is kept, a fresh
+// document takes the theme and the journey's delivery choice, and is built
+// here, behind the source dialog. Once it is saved, the studio opens on it
+// as it opens any notebook (BoltDB review B01) — a notebook swapped in under
+// the studio kept the previous one's views.
 const startFreshNotebook = async (title: string) => {
   project.notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(project.notebook)
@@ -17392,17 +17409,19 @@ const sourceFinish = async () => {
   const note = (text: string) => sourceStatus('#source-pages-note', text)
   note(preserving ? `Timing ${fresh.length} scenes around your words…` : `Writing ${fresh.length} scenes to their briefs…`)
   const written = await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(preserving ? `Timing scenes around your words · ${done} of ${total}` : `Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
-  finishButton.disabled = false
   syncProject()
-  sourceDialog.close()
-  if (written.stopped) showToast('No AI provider is configured — the scenes keep their outline lines; add a provider under Direct API in AI settings to write them to their briefs')
-  else if (written.failed) showToast(`${written.failed} scene${written.failed === 1 ? '' : 's'} kept the outline line — open ${written.failed === 1 ? 'it' : 'them'} and press Write`)
-  if (startedNew) {
-    try {
-      await persistProjectNow(structuredClone(project))
-    } catch (error) {
-      console.warn('new notebook not persisted yet', error)
-    }
+  const writing = written.stopped
+    ? 'No AI provider is configured — the scenes keep their outline lines; add a provider under Direct API in AI settings to write them to their briefs'
+    : written.failed
+      ? `${written.failed} scene${written.failed === 1 ? '' : 's'} kept the outline line — open ${written.failed === 1 ? 'it' : 'them'} and press Write`
+      : ''
+  // A new notebook opens from here: the dialog stays up until it has, so the
+  // studio is never seen holding one notebook under another's name.
+  if (startedNew) note('Opening the new notebook…')
+  else {
+    finishButton.disabled = false
+    sourceDialog.close()
+    if (writing) showToast(writing)
   }
   sourceState.draft = null
   if (designRun && draft) {
@@ -17413,11 +17432,24 @@ const sourceFinish = async () => {
     draft.poll = null
     sourceDesignRuns.delete(designRun.id)
     if (restampPageBindings(fresh.map(node => String(node.attrs!.id)))) syncProject()
-    watchPageDesign()
+    if (!startedNew) watchPageDesign()
   }
   const still = pages.length - designedPages
   const origin = designedPages === pages.length ? '' : designRun ? ` · ${designedPages} designed, ${still} still being designed` : designedPages ? ` · ${designedPages} designed, ${still} schematic drafts` : ' · schematic drafts'
-  showToast(`${inserted.length} scenes from ${source.site || 'your narrative'}${startedNew ? ' in a new notebook' : ''} · ${formatTarget(outline.targetSeconds)} planned${origin}`)
+  const done = `${inserted.length} scenes from ${source.site || 'your narrative'}${startedNew ? ' in a new notebook' : ''} · ${formatTarget(outline.targetSeconds)} planned${origin}`
+  if (!startedNew) {
+    showToast(done)
+    return
+  }
+  // The new notebook, bindings and all, is saved — or kept as the draft it
+  // opens from — and the studio opens on it; its pages go on landing there.
+  try {
+    await persistProjectNow(structuredClone(project))
+  } catch (error) {
+    console.warn('new notebook not persisted yet', error)
+    rememberDraft(project)
+  }
+  activateNotebook(project.id, writing ? `${done}. ${writing}` : done)
 }
 
 // ——— Pages still being designed in an open notebook (F2) ———
@@ -18275,6 +18307,17 @@ const planningWorkspace = createPlanningWorkspace({
 // exports still running or finished since (F8).
 watchPageDesign()
 void refreshExportStatus()
+// What the notebook was opened with — a new notebook from a source says
+// what it holds — once it is open.
+try {
+  const notice = window.sessionStorage.getItem(OPENED_NOTICE_KEY)
+  if (notice) {
+    window.sessionStorage.removeItem(OPENED_NOTICE_KEY)
+    window.setTimeout(() => showToast(notice), 400)
+  }
+} catch {
+  // the notice is only a courtesy
+}
 {
   const raw = window.localStorage.getItem(PREPARE_INTENT_KEY)
   if (raw) {
