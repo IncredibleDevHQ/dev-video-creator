@@ -160,6 +160,9 @@ const launch = async () => {
       text += chunk.toString()
       const match = /STUDIO_ORIGIN (\S+)/.exec(text)
       if (match && /SMOKE PASS/.test(text)) { clearTimeout(timer); resolve(match[1]) }
+      // The app says why it did not start: say it too, rather than waiting.
+      const failed = /SMOKE FAIL[^\n]*/.exec(text) || /probe (\{[^\n]*)/.exec(text)
+      if (failed && /SMOKE FAIL/.test(text)) { clearTimeout(timer); reject(new Error(`the app did not start: ${failed[0]}`)) }
     })
   })
 }

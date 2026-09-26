@@ -84,7 +84,9 @@ const SMOKE_PROBE = `(async () => {
   for (let i = 0; i < 40 && !document.querySelector('.ProseMirror, [contenteditable="true"]'); i++) {
     await new Promise(r => setTimeout(r, 250))
   }
-  for (let i = 0; i < 20; i++) {
+  // Detection asks each harness CLI for its version: on a loaded machine
+  // that takes longer than the editor does to mount.
+  for (let i = 0; i < 80; i++) {
     if ((document.getElementById('open-ai-settings') || { dataset: {} }).dataset.harness === 'detected') break
     await new Promise(r => setTimeout(r, 250))
   }
