@@ -1,0 +1,939 @@
+{
+	"harness": "claude-code",
+	"model": "claude-opus-5-5",
+	"sourceUrl": "https://sqlite.org/wal.html",
+	"target": "1:30",
+	"persistence": "postgres",
+	"startedAt": "2026-09-25T22:20:51.922Z",
+	"stages": [
+		{
+			"name": "Launch and choose the harness",
+			"startedAt": "2026-09-25T22:20:51.924Z",
+			"seconds": 7,
+			"ok": true
+		},
+		{
+			"name": "A theme saved earlier",
+			"startedAt": "2026-09-25T22:20:59.361Z",
+			"seconds": 3,
+			"ok": true
+		},
+		{
+			"name": "Read the article and bind the saved theme",
+			"startedAt": "2026-09-25T22:21:01.938Z",
+			"seconds": 145,
+			"ok": true,
+			"scenes": [
+				"Write-Ahead Logging",
+				"The Inversion",
+				"Readers Keep Reading",
+				"Checkpointing",
+				"The Trade-offs",
+				"One Line to Switch"
+			]
+		},
+		{
+			"name": "Design every page with the harness",
+			"startedAt": "2026-09-25T22:23:27.287Z",
+			"seconds": 924,
+			"ok": true
+		},
+		{
+			"name": "Make the video",
+			"startedAt": "2026-09-25T22:38:51.117Z",
+			"seconds": 7,
+			"ok": true
+		},
+		{
+			"name": "Choose who speaks, per scene",
+			"startedAt": "2026-09-25T22:39:01.172Z",
+			"seconds": 9,
+			"ok": true
+		},
+		{
+			"name": "Prepare the brief",
+			"startedAt": "2026-09-25T22:39:09.825Z",
+			"seconds": 176,
+			"ok": true
+		},
+		{
+			"name": "Plan r1",
+			"startedAt": "2026-09-25T22:42:05.394Z",
+			"seconds": 303,
+			"ok": true
+		},
+		{
+			"name": "A provider failure, then the retry",
+			"startedAt": "2026-09-25T22:47:08.334Z",
+			"seconds": 280,
+			"ok": true
+		},
+		{
+			"name": "Direction, and r2",
+			"startedAt": "2026-09-25T22:51:47.907Z",
+			"seconds": 306,
+			"ok": true
+		},
+		{
+			"name": "Preview r2, reopened midway, handed to the stage",
+			"startedAt": "2026-09-25T22:56:54.024Z",
+			"seconds": 622,
+			"ok": false
+		},
+		{
+			"name": "A chosen reference is kept; the preview is offered",
+			"startedAt": "2026-09-25T23:07:15.918Z",
+			"seconds": 442,
+			"ok": true
+		},
+		{
+			"name": "An older revision finishing after the newer one",
+			"startedAt": "2026-09-25T23:14:38.311Z",
+			"seconds": 466,
+			"ok": true
+		},
+		{
+			"name": "Review a moment on the timeline",
+			"startedAt": "2026-09-25T23:22:24.256Z",
+			"seconds": 3,
+			"ok": true
+		},
+		{
+			"name": "Approve, starting nothing",
+			"startedAt": "2026-09-25T23:22:26.974Z",
+			"seconds": 23,
+			"ok": true
+		},
+		{
+			"name": "Record the presented scene",
+			"startedAt": "2026-09-25T23:22:49.830Z",
+			"seconds": 17,
+			"ok": true
+		},
+		{
+			"name": "Preview r2, reopened midway, handed to the stage",
+			"startedAt": "2026-09-26T00:05:46.457Z",
+			"seconds": 0,
+			"ok": true
+		},
+		{
+			"name": "Reopen midway on another scene, and the preview is handed over",
+			"startedAt": "2026-09-26T00:05:46.666Z",
+			"seconds": 819,
+			"ok": true
+		},
+		{
+			"name": "Produce the presented scene on its take",
+			"startedAt": "2026-09-26T00:41:40.826Z",
+			"seconds": null,
+			"ok": false
+		},
+		{
+			"name": "Produce the presented scene on its take",
+			"startedAt": "2026-09-26T01:14:17.132Z",
+			"seconds": 520,
+			"ok": true
+		},
+		{
+			"name": "Produce the voiced scene on its generated voice",
+			"startedAt": "2026-09-26T01:22:57.172Z",
+			"seconds": 333,
+			"ok": true
+		},
+		{
+			"name": "Export the two scenes",
+			"startedAt": "2026-09-26T01:28:30.198Z",
+			"seconds": 99,
+			"ok": true
+		}
+	],
+	"checks": [
+		{
+			"ok": true,
+			"label": "every stage runs on claude-code \u00b7 claude-opus-5-5, with no stage of its own ({})",
+			"at": "2026-09-25T22:20:56.245Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness is available (claude-code 2.1.280 (Claude Code) \u00b7 ~/Library/Application Support/Claude/claude-code/2.1.280/claude.app/Contents/MacOS/claude)",
+			"at": "2026-09-25T22:20:59.361Z"
+		},
+		{
+			"ok": true,
+			"label": "the article is read ({\"title\":\"Write-Ahead Logging\",\"meta\":\"sqlite.org \u00b7 3923 words \u00b7 19 headings \u00b7 type: Verdana \u00b7 source revision src-748704d440a20250 \u00b7 The article was long; the first 24,000 characters were read\"})",
+			"at": "2026-09-25T22:21:22.068Z"
+		},
+		{
+			"ok": true,
+			"label": "the saved themes are one choice away, and list the theme saved earlier",
+			"at": "2026-09-25T22:21:22.073Z"
+		},
+		{
+			"ok": true,
+			"label": "the saved theme is bound and named ({\"bound\":\"Theme: \u201cLedger\u201d \u00b7 saved theme, rev 1\",\"outline\":\"Outline it with \u201cLedger\u201d\"})",
+			"at": "2026-09-25T22:21:22.077Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness plans the story ({\"titles\":[\"Write-Ahead Logging\",\"The Inversion\",\"Readers Keep Reading\",\"Checkpointing\",\"The Trade-offs\",\"One Line to Switch\"]})",
+			"at": "2026-09-25T22:23:25.983Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness designs every page (ready 6/6)",
+			"at": "2026-09-25T22:38:48.517Z"
+		},
+		{
+			"ok": true,
+			"label": "the base opens on designed pages, themed \"Ledger\" ([\"designed\",\"designed\",\"designed\",\"designed\",\"designed\",\"designed\"])",
+			"at": "2026-09-25T22:38:51.116Z"
+		},
+		{
+			"ok": true,
+			"label": "the base's next step makes its video (Create video)",
+			"at": "2026-09-25T22:38:54.133Z"
+		},
+		{
+			"ok": true,
+			"label": "a video notebook is made from the base (Write-Ahead Logging \u00b7 video)",
+			"at": "2026-09-25T22:38:58.164Z"
+		},
+		{
+			"ok": true,
+			"label": "Checkpointing: you present it",
+			"at": "2026-09-25T22:39:04.980Z"
+		},
+		{
+			"ok": true,
+			"label": "Readers Keep Reading: generated voice",
+			"at": "2026-09-25T22:39:08.555Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness prepares the brief (ready)",
+			"at": "2026-09-25T22:42:05.393Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness plans Checkpointing (r1 candidate)",
+			"at": "2026-09-25T22:47:06.990Z"
+		},
+		{
+			"ok": true,
+			"label": "a model the provider refuses fails with its own words and the ways on (other: There's an issue with the selected model (claude-opus-0-0). It may not exist or you may not have access to it. Run --model to pick a different model.)",
+			"at": "2026-09-25T22:47:15.515Z"
+		},
+		{
+			"ok": true,
+			"label": "retried with claude-opus-5-5, Readers Keep Reading is planned (r2 candidate)",
+			"at": "2026-09-25T22:51:47.905Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness plans r2 from the direction (r2 candidate)",
+			"at": "2026-09-25T22:56:54.018Z"
+		},
+		{
+			"ok": true,
+			"label": "the preview shows its phases under the stage while it builds",
+			"at": "2026-09-25T22:56:56.297Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness builds the preview of r2",
+			"at": "2026-09-25T23:05:44.226Z"
+		},
+		{
+			"ok": false,
+			"label": "waited for, it takes the stage by itself after the reopen (null)",
+			"at": "2026-09-25T23:07:14.598Z"
+		},
+		{
+			"ok": true,
+			"label": "with the page chosen, the ready preview is offered, not forced ({\"mode\":\"reference\",\"offer\":\"offer\"})",
+			"at": "2026-09-25T23:14:37.002Z"
+		},
+		{
+			"ok": true,
+			"label": "r1's preview finishing later is kept as history; the stage keeps r2's ({\"stillR2\":true,\"revision\":\"Plan r2 \u00b7 candidate\"})",
+			"at": "2026-09-25T23:22:24.254Z"
+		},
+		{
+			"ok": true,
+			"label": "a moment opens with what is on screen and what is said ({\"title\":\"The checkpoint wakes 5.5s est.\",\"fields\":[\"On screen\",\"Spoken line\",\"Viewer focus\",\"Why it is there\",\"Presenter\",\"Text\",\"Camera\",\"Objects\",\"Recipes\"]})",
+			"at": "2026-09-25T23:22:24.289Z"
+		},
+		{
+			"ok": true,
+			"label": "the timeline reads the scene on the sketch's clock ({\"tracks\":[\"Moments\",\"Voice\",\"Presenter\",\"Text\",\"Camera\"],\"layers\":[\"Light ground with a faint grid\",\"WAL strip panel with the page's WAL icon, recoloured to the secondary family\",\"WAL frames A (p1 p4 p2), B (p4 p3), C (p4 p2 p6), D (p5 p1) with commit bars; their copies in flight; C's blocked p6 copy\",\"Writer caret at the WAL's tail\",\"Fill bar under the WAL with the '1000 pages \u00b7 default' tick\",\"Database file shelf with the page's database icon, recoloured to primary\",\"Page slots p1\u2013p6 and the copies that land in them\",\"Checkpoint glyph (its spin part turns while copying) and its copy head on the strip\"],\"note\":\"Timed by the sketch of plan r2 \u00b7 11 more layers not shown \u00b7 read-only\",\"ruler\":\"0.0s\u201322.5s\"})",
+			"at": "2026-09-25T23:22:25.601Z"
+		},
+		{
+			"ok": true,
+			"label": "Checkpointing: approving r2 starts nothing",
+			"at": "2026-09-25T23:22:36.047Z"
+		},
+		{
+			"ok": true,
+			"label": "Readers Keep Reading: approving r2 starts nothing",
+			"at": "2026-09-25T23:22:48.525Z"
+		},
+		{
+			"ok": true,
+			"label": "recording opens beside the stage, with the teleprompter",
+			"at": "2026-09-25T23:22:51.446Z"
+		},
+		{
+			"ok": true,
+			"label": "the take is kept as the scene's (14.8s)",
+			"at": "2026-09-25T23:23:05.889Z"
+		},
+		{
+			"ok": true,
+			"label": "the Record tab lists it as the take used (v10:15 \u00b7 Sep 26, 04:53 AMSpoken to the script as it is now.PlayUsed for this scene)",
+			"at": "2026-09-25T23:23:05.906Z"
+		},
+		{
+			"ok": true,
+			"label": "the harness plans The Inversion (r1)",
+			"at": "2026-09-26T00:11:11.826Z"
+		},
+		{
+			"ok": true,
+			"label": "reopened while its preview is built, the workspace comes back to The Inversion, not the first scene",
+			"at": "2026-09-26T00:11:37.858Z"
+		},
+		{
+			"ok": true,
+			"label": "waited for, the preview takes the stage by itself after the reopen ({\"mode\":\"preview\",\"announced\":\"Preview r1 ready\"})",
+			"at": "2026-09-26T00:19:24.561Z"
+		},
+		{
+			"ok": true,
+			"label": "a take that does not say every line of the approved plan is refused, naming the line (Your take cannot set this scene's clock: moment m5: the take does not say \u201cWhen that read ends, the checkpoint picks up where it stopped.\u201d. Record the scene again with every line, )",
+			"at": "2026-09-26T00:41:41.634Z"
+		},
+		{
+			"ok": true,
+			"label": "recording opens beside the stage, with the teleprompter",
+			"at": "2026-09-26T00:41:46.702Z"
+		},
+		{
+			"ok": true,
+			"label": "the take is kept as the scene's (19.8s: 5 lines)",
+			"at": "2026-09-26T00:42:00.750Z"
+		},
+		{
+			"ok": true,
+			"label": "the Record tab lists it as the take used (v20:20 \u00b7 Sep 26, 06:12 AMSpoken to the script as it is now.PlayUsed for this scene)",
+			"at": "2026-09-26T00:42:00.791Z"
+		},
+		{
+			"ok": true,
+			"label": "a take that cannot set the approved plan's clock is refused, saying why (Your take cannot set this scene's clock: moment m6 has no words, and the take leaves 0.343s for it \u2014 leave a pause for it in your take, or give it words in the plan. Record the scene again with every )",
+			"at": "2026-09-26T01:14:17.641Z"
+		},
+		{
+			"ok": true,
+			"label": "recording opens beside the stage, with the teleprompter",
+			"at": "2026-09-26T01:14:22.717Z"
+		},
+		{
+			"ok": true,
+			"label": "the take is kept as the scene's (22.6s: 5 lines)",
+			"at": "2026-09-26T01:14:42.620Z"
+		},
+		{
+			"ok": true,
+			"label": "the Record tab lists it as the take used (v30:23 \u00b7 Sep 26, 06:44 AMSpoken to the script as it is now.PlayUsed for this scene)",
+			"at": "2026-09-26T01:14:42.637Z"
+		},
+		{
+			"ok": true,
+			"label": "Checkpointing: the harness produces it on your take",
+			"at": "2026-09-26T01:22:15.551Z"
+		},
+		{
+			"ok": true,
+			"label": "Checkpointing: the timeline is on the clock of your take (On the clock of your take \u00b7 9 more layers not shown \u00b7 read-only \u2014 5 timings can be adjusted in Output)",
+			"at": "2026-09-26T01:22:15.603Z"
+		},
+		{
+			"ok": true,
+			"label": "Checkpointing: accepted and rendered (22643 ms)",
+			"at": "2026-09-26T01:22:57.170Z"
+		},
+		{
+			"ok": true,
+			"label": "Readers Keep Reading: the harness produces it on the generated voice",
+			"at": "2026-09-26T01:28:03.682Z"
+		},
+		{
+			"ok": true,
+			"label": "Readers Keep Reading: the timeline is on the clock of the generated voice (On the clock of the generated voice \u00b7 9 more layers not shown \u00b7 read-only \u2014 6 timings can be adjusted in Output)",
+			"at": "2026-09-26T01:28:03.704Z"
+		},
+		{
+			"ok": true,
+			"label": "Readers Keep Reading: accepted and rendered (23292 ms)",
+			"at": "2026-09-26T01:28:30.198Z"
+		},
+		{
+			"ok": true,
+			"label": "the export renders",
+			"at": "2026-09-26T01:30:05.969Z"
+		},
+		{
+			"ok": true,
+			"label": "the MP4 has picture and sound through it (46.0s \u00b7 h264,video,1920,1080 | aac,audio \u00b7 4 quiet seconds of 46)",
+			"at": "2026-09-26T01:30:07.603Z"
+		},
+		{
+			"ok": true,
+			"label": "every harness run was claude-code (16 runs)",
+			"at": "2026-09-26T01:30:08.717Z"
+		}
+	],
+	"notes": [
+		{
+			"text": "the library already holds \"Ledger\"",
+			"at": "2026-09-25T22:20:59.428Z"
+		},
+		{
+			"text": "with no brand website given, the brand step opened on \"site\"",
+			"at": "2026-09-25T22:21:22.070Z"
+		},
+		{
+			"text": "fork offer: Create video fork and prepare brief",
+			"at": "2026-09-25T22:38:55.142Z"
+		},
+		{
+			"text": "r1's milestones: started \u2192 context \u2192 draft:explanation \u2192 draft:moments(5) \u2192 submitted \u2192 accepted",
+			"at": "2026-09-25T22:47:06.991Z"
+		},
+		{
+			"text": "the workspace was reopened while the preview was being built",
+			"at": "2026-09-25T22:58:51.986Z"
+		},
+		{
+			"text": "r1's preview asked for (200, queued)",
+			"at": "2026-09-25T23:14:40.333Z"
+		},
+		{
+			"text": "r2's preview was built in an earlier session; the reopen is proved again on another scene below",
+			"at": "2026-09-26T00:05:46.663Z"
+		},
+		{
+			"text": "The first take was synthesized from a teleprompter that still showed the scene's older words just after the plan's lines became its script \u2014 a product bug this run found and fixed; the take is recorded again from the teleprompter.",
+			"at": "2026-09-26T00:41:41.635Z"
+		},
+		{
+			"text": "Publish: {\"kind\":\"Draft export \u2014 0 of 6 scenes reviewed by the rich build. Build explainer produces the reviewed explainer export. 2 of 6 scenes play the production you accepted from their approved plans; the others are the notebook's own composition \u2014 its pages, words and takes.\",\"audio\":\"Audio: 2 of 2 blocks voiced (2 produced scenes).\",\"count\":\"2 of 6 blocks\"}",
+			"at": "2026-09-26T01:28:37.871Z"
+		}
+	],
+	"provisional": [
+		"The presented scene's take is synthesized speech over a painted picture, committed through the product's take archive as a kept camera take is after upload; the camera and microphone capture were not exercised.",
+		"Watching the export is summarized from its frames and per-second loudness: this run did not have a person watch it."
+	],
+	"resumedAt": [
+		"2026-09-26T00:05:40.600Z",
+		"2026-09-26T00:41:34.740Z",
+		"2026-09-26T01:14:11.527Z"
+	],
+	"harnessVersion": "2.1.280 (Claude Code) \u00b7 ~/Library/Application Support/Claude/claude-code/2.1.280/claude.app/Contents/MacOS/claude",
+	"baseId": "4f1705f8-5747-41f4-a6b8-4bfd6ed89667",
+	"base": {
+		"id": "4f1705f8-5747-41f4-a6b8-4bfd6ed89667",
+		"title": "Write-Ahead Logging",
+		"theme": "Ledger",
+		"scenes": [
+			{
+				"id": "2b416fb7-efd5-472f-b6dd-4de26f9df425",
+				"title": "Write-Ahead Logging",
+				"origin": "designed"
+			},
+			{
+				"id": "6567168b-5a85-4bab-83ff-ccffaa33d089",
+				"title": "The Inversion",
+				"origin": "designed"
+			},
+			{
+				"id": "99e7192c-5efd-4a36-a0c9-0a2cda3e388e",
+				"title": "Readers Keep Reading",
+				"origin": "designed"
+			},
+			{
+				"id": "6f3fa07f-c3d6-493c-99de-f9fadb9ed7a8",
+				"title": "Checkpointing",
+				"origin": "designed"
+			},
+			{
+				"id": "800d358b-9a03-4a81-9322-2a762f16926f",
+				"title": "The Trade-offs",
+				"origin": "designed"
+			},
+			{
+				"id": "c63bbc68-ac34-4d4c-99d0-0bc4a3d1e0e7",
+				"title": "One Line to Switch",
+				"origin": "designed"
+			}
+		]
+	},
+	"videoId": "video-28e53c3a-ac2a-4b3c-a3e5-98e455f37f69",
+	"scenes": {
+		"a": {
+			"id": "video-28e53c3a-ac2a-4b3c-a3e5-98e455f37f69-s04",
+			"title": "Checkpointing",
+			"delivery": "human"
+		},
+		"b": {
+			"id": "video-28e53c3a-ac2a-4b3c-a3e5-98e455f37f69-s03",
+			"title": "Readers Keep Reading",
+			"delivery": "generated"
+		},
+		"c": {
+			"id": "video-28e53c3a-ac2a-4b3c-a3e5-98e455f37f69-s02",
+			"title": "The Inversion"
+		}
+	},
+	"briefProgress": [],
+	"planProgress": [
+		{
+			"key": "reviewing:active explanation:todo moments:todo checking:todo ready:todo | The local harness started | ",
+			"at": "2026-09-25T22:42:10.925Z",
+			"phases": "reviewing:active explanation:todo moments:todo checking:todo ready:todo",
+			"now": "The local harness started",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": null
+		},
+		{
+			"key": "reviewing:active explanation:todo moments:todo checking:todo ready:todo | The harness read its packet. The next phase shows when it publishes part of the plan, or hands the plan in | ",
+			"at": "2026-09-25T22:43:54.036Z",
+			"phases": "reviewing:active explanation:todo moments:todo checking:todo ready:todo",
+			"now": "The harness read its packet. The next phase shows when it publishes part of the plan, or hands the plan in",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": null
+		},
+		{
+			"key": "reviewing:done explanation:done moments:active checking:todo ready:todo | The explanation is drafted; the harness is planning the moments | How do WAL changes get back into the database file, and why can a long read hold that up? \u00b7 0",
+			"at": "2026-09-25T22:44:06.874Z",
+			"phases": "reviewing:done explanation:done moments:active checking:todo ready:todo",
+			"now": "The explanation is drafted; the harness is planning the moments",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": {
+				"label": "Draft \u00b7 still being checked",
+				"question": "How do WAL changes get back into the database file, and why can a long read hold that up?",
+				"moments": []
+			}
+		},
+		{
+			"key": "reviewing:done explanation:done moments:active checking:todo ready:todo | 5 moments drafted so far | How do WAL changes get back into the database file, and why can a long read hold that up? \u00b7 5",
+			"at": "2026-09-25T22:45:39.385Z",
+			"phases": "reviewing:done explanation:done moments:active checking:todo ready:todo",
+			"now": "5 moments drafted so far",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": {
+				"label": "Draft \u00b7 still being checked",
+				"question": "How do WAL changes get back into the database file, and why can a long read hold that up?",
+				"moments": [
+					"The log has grown",
+					"A checkpoint starts copying",
+					"1000 pages, automatically",
+					"Stopped at the end mark",
+					"A long read holds it up"
+				]
+			}
+		}
+	],
+	"planMilestones": [
+		"started",
+		"context",
+		"draft:explanation",
+		"draft:moments(5)",
+		"submitted",
+		"accepted"
+	],
+	"providerFailure": {
+		"error": {
+			"message": "The run ended (error, exit 1) without submitting a result.",
+			"category": "other",
+			"recovery": ["Retry", "Switch harness or model"],
+			"providerStatus": "There's an issue with the selected model (claude-opus-0-0). It may not exist or you may not have access to it. Run --model to pick a different model."
+		},
+		"shown": {
+			"kind": "other",
+			"text": "Planning r1 failed. The run ended (error, exit 1) without submitting a result.What the provider said: There's an issue with the selected model (claude-opus-0-0). It may not exist or you may not have access to it. Run --model to pick a different model.RetrySwitch harness or modelPlan the scene againChange the harness or model",
+			"buttons": ["Plan the scene again", "Change the harness or model"]
+		}
+	},
+	"revisionProgress": [
+		{
+			"key": "reviewing:active explanation:todo moments:todo checking:todo ready:todo | The local harness started | ",
+			"at": "2026-09-25T22:51:52.448Z",
+			"phases": "reviewing:active explanation:todo moments:todo checking:todo ready:todo",
+			"now": "The local harness started",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": null
+		},
+		{
+			"key": "reviewing:active explanation:todo moments:todo checking:todo ready:todo | The harness read its packet. The next phase shows when it publishes part of the plan, or hands the plan in | ",
+			"at": "2026-09-25T22:53:14.442Z",
+			"phases": "reviewing:active explanation:todo moments:todo checking:todo ready:todo",
+			"now": "The harness read its packet. The next phase shows when it publishes part of the plan, or hands the plan in",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": null
+		},
+		{
+			"key": "reviewing:done explanation:done moments:active checking:todo ready:todo | The explanation is drafted; the harness is planning the moments | How do the WAL's changes get back into the database file, and why can a long read hold that up? \u00b7 0",
+			"at": "2026-09-25T22:54:35.866Z",
+			"phases": "reviewing:done explanation:done moments:active checking:todo ready:todo",
+			"now": "The explanation is drafted; the harness is planning the moments",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": {
+				"label": "Draft \u00b7 still being checked",
+				"question": "How do the WAL's changes get back into the database file, and why can a long read hold that up?",
+				"moments": []
+			}
+		},
+		{
+			"key": "reviewing:done explanation:done moments:active checking:todo ready:todo | 6 moments drafted so far | How do the WAL's changes get back into the database file, and why can a long read hold that up? \u00b7 6",
+			"at": "2026-09-25T22:54:41.402Z",
+			"phases": "reviewing:done explanation:done moments:active checking:todo ready:todo",
+			"now": "6 moments drafted so far",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": {
+				"label": "Draft \u00b7 still being checked",
+				"question": "How do the WAL's changes get back into the database file, and why can a long read hold that up?",
+				"moments": [
+					"The log fills up",
+					"The checkpoint wakes",
+					"It stops at the end mark",
+					"Why it has to wait",
+					"The read ends, the checkpoint resumes",
+					"Caught up"
+				]
+			}
+		},
+		{
+			"key": "reviewing:done explanation:done moments:active checking:todo ready:todo | The check found 1 problem; the harness is fixing it | How do the WAL's changes get back into the database file, and why can a long read hold that up? \u00b7 6",
+			"at": "2026-09-25T22:56:45.314Z",
+			"phases": "reviewing:done explanation:done moments:active checking:todo ready:todo",
+			"now": "The check found 1 problem; the harness is fixing it",
+			"who": "Claude Code \u00b7 claude-opus-5-5",
+			"draft": {
+				"label": "Draft \u00b7 still being checked",
+				"question": "How do the WAL's changes get back into the database file, and why can a long read hold that up?",
+				"moments": [
+					"The log fills up",
+					"The checkpoint wakes",
+					"It stops at the end mark",
+					"Why it has to wait",
+					"The read ends, the checkpoint resumes",
+					"Caught up"
+				]
+			}
+		}
+	],
+	"timelineOnSketch": {
+		"tracks": ["Moments", "Voice", "Presenter", "Text", "Camera"],
+		"layers": [
+			"Light ground with a faint grid",
+			"WAL strip panel with the page's WAL icon, recoloured to the secondary family",
+			"WAL frames A (p1 p4 p2), B (p4 p3), C (p4 p2 p6), D (p5 p1) with commit bars; their copies in flight; C's blocked p6 copy",
+			"Writer caret at the WAL's tail",
+			"Fill bar under the WAL with the '1000 pages \u00b7 default' tick",
+			"Database file shelf with the page's database icon, recoloured to primary",
+			"Page slots p1\u2013p6 and the copies that land in them",
+			"Checkpoint glyph (its spin part turns while copying) and its copy head on the strip"
+		],
+		"note": "Timed by the sketch of plan r2 \u00b7 11 more layers not shown \u00b7 read-only",
+		"ruler": "0.0s\u201322.5s"
+	},
+	"take": {
+		"lines": [
+			"Eventually the WAL has to flow back into the database. That's a checkpoint, and by default SQLite runs one automatically once the WAL reaches 1000 pages. But a checkpoint can't copy past any active reader's end mark, so a long-running read can hold it up."
+		],
+		"seconds": 14.801,
+		"synthesized": true
+	},
+	"takeRefused": "Your take cannot set this scene's clock: moment m5: the take does not say \u201cWhen that read ends, the checkpoint picks up where it stopped.\u201d. Record the scene again with every line, or ask for a plan that fits your take.",
+	"take-again": {
+		"lines": [
+			"Eventually the WAL has to flow back into the database.",
+			"That's a checkpoint, and by default SQLite runs one automatically once the WAL reaches 1000 pages.",
+			"But a checkpoint can't copy past any active reader's end mark,",
+			"so a long-running read can hold it up.",
+			"When that read ends, the checkpoint picks up where it stopped."
+		],
+		"seconds": 19.843,
+		"synthesized": true
+	},
+	"takeRefusals": [
+		"Your take cannot set this scene's clock: moment m6 has no words, and the take leaves 0.343s for it \u2014 leave a pause for it in your take, or give it words in the plan. Record the scene again with every line, or ask for a plan that fits your take."
+	],
+	"take-2": {
+		"parts": [
+			"Eventually the WAL has to flow back into the database.",
+			"That's a checkpoint, and by default SQLite runs one automatically once the WAL reaches 1000 pages.",
+			"But a checkpoint can't copy past any active reader's end mark,",
+			"so a long-running read can hold it up.",
+			"When that read ends, the checkpoint picks up where it stopped.",
+			2.5
+		],
+		"seconds": 22.643,
+		"synthesized": true
+	},
+	"production-human": {
+		"status": "ready",
+		"error": null,
+		"clock": "take",
+		"duration": 22.643,
+		"voice": "Your take",
+		"layers": [
+			"background:Light ground with a faint grid",
+			"object:WAL strip panel with the page's WAL icon, recoloured to the secondary family",
+			"object:WAL frames A (p1 p4 p2), B (p4 p3), C (p4 p2 p6), D (p5 p1) with commit bars; their copies in flight; C's blocked p6 copy",
+			"object:Writer caret in ink at the WAL's tail, appending D",
+			"object:Fill bar under the WAL with the '1000 pages \u00b7 default' tick",
+			"object:Database file shelf with the page's database icon, recoloured to primary",
+			"object:Database pages p1\u2013p6 and the copies that land in them",
+			"object:Checkpoint glyph recoloured to ink (its spin part turns while copying) and its copy head on the strip",
+			"object:Long-running reader eye recoloured to ink, its tie to the end mark and its sightline to p6",
+			"object:The reader's end mark on commit B; takes the accent glow when the checkpoint stops on it, lifts away when the read ends",
+			"text:WAL \u00b7 database file",
+			"text:checkpoint \u00b7 1000 pages (default)",
+			"text:end mark",
+			"text:still reading p6",
+			"text:all copied back",
+			"camera:Hold wide m1\u2013m5; one push-in on the fully copied WAL strip in m6, then hold",
+			"presenter:The creator's take sharing the frame's right edge, then voice only"
+		],
+		"progress": [
+			"preparing:active building:todo checking:todo ready:todo | The local harness started | ",
+			"preparing:done building:active checking:todo ready:todo | The harness read its packet and is working | ",
+			"preparing:done building:active checking:todo ready:todo | The check found 1 problem; the harness is fixing it | ",
+			"preparing:done building:done checking:active ready:todo | Playing the scene in the pinned player, on its clock | "
+		]
+	},
+	"timeline-human": {
+		"tracks": ["Moments", "Voice", "Presenter", "Text", "Camera"],
+		"layers": [
+			"Light ground with a faint grid",
+			"WAL strip panel with the page's WAL icon, recoloured to the secondary family",
+			"WAL frames A (p1 p4 p2), B (p4 p3), C (p4 p2 p6), D (p5 p1) with commit bars; their copies in flight; C's blocked p6 copy",
+			"Writer caret in ink at the WAL's tail, appending D",
+			"Fill bar under the WAL with the '1000 pages \u00b7 default' tick",
+			"Database file shelf with the page's database icon, recoloured to primary",
+			"Database pages p1\u2013p6 and the copies that land in them",
+			"Checkpoint glyph recoloured to ink (its spin part turns while copying) and its copy head on the strip"
+		],
+		"note": "On the clock of your take \u00b7 9 more layers not shown \u00b7 read-only \u2014 5 timings can be adjusted in Output",
+		"ruler": "0.0s\u201322.6s"
+	},
+	"production-generated": {
+		"status": "ready",
+		"error": null,
+		"clock": "generated-voice",
+		"duration": 23.292,
+		"voice": "Local system voice",
+		"layers": [
+			"background:Light ground with a faint grid",
+			"camera:One held wide frame for the whole scene \u2014 no push-in or move",
+			"object:Database file glyph (cast cylinder, recoloured teal) and shelf panel",
+			"object:Database shelf pages p1\u2013p6 (content never changes; p5, then p6 light when a lookup falls through)",
+			"object:WAL glyph (cast log icon, recoloured amber) and strip panel",
+			"object:WAL page frames: A (p1 p4 p2), B (p4 p3), then C (p4 p2 p6) appended; B's p4 lights when found",
+			"object:Commit bars A, B (from m1) and C (appended last in m4)",
+			"object:Reader: the cast's eye recoloured to ink, pupil pulse on arrival, request tag (wants p4 / p5 / p6)",
+			"object:Writer: the cast's pen recoloured to the WAL family; its stroke draws with each append",
+			"object:End-mark pin: solid ink stem drawn down onto commit B; never moves",
+			"object:End-mark flag: the cast's bookmark recoloured to ink; travels from the reader and seats atop the pin",
+			"object:Hatched veil over the WAL to the right of the pin; new frames land under it",
+			"object:Backward scan stepping from the pin toward the WAL start, drop lines to the shelf, and the tether to the received page",
+			"text:database file \u00b7 WAL",
+			"text:end mark",
+			"text:p4 \u2192 WAL \u00b7 p5 \u2192 database file",
+			"text:one writer at a time"
+		],
+		"progress": [
+			"preparing:active building:todo checking:todo ready:todo | The local harness started | ",
+			"preparing:done building:active checking:todo ready:todo | The check found 1 problem; the harness is fixing it | ",
+			"preparing:done building:done checking:active ready:todo | Playing the scene in the pinned player, on its clock | "
+		]
+	},
+	"timeline-generated": {
+		"tracks": ["Moments", "Generated voice", "Text", "Camera", "Sound"],
+		"layers": [
+			"Light ground with a faint grid",
+			"One held wide frame for the whole scene \u2014 no push-in or move",
+			"Database file glyph (cast cylinder, recoloured teal) and shelf panel",
+			"Database shelf pages p1\u2013p6 (content never changes; p5, then p6 light when a lookup falls through)",
+			"WAL glyph (cast log icon, recoloured amber) and strip panel",
+			"WAL page frames: A (p1 p4 p2), B (p4 p3), then C (p4 p2 p6) appended; B's p4 lights when found",
+			"Commit bars A, B (from m1) and C (appended last in m4)",
+			"Reader: the cast's eye recoloured to ink, pupil pulse on arrival, request tag (wants p4 / p5 / p6)"
+		],
+		"note": "On the clock of the generated voice \u00b7 9 more layers not shown \u00b7 read-only \u2014 6 timings can be adjusted in Output",
+		"ruler": "0.0s\u201323.3s"
+	},
+	"export": {
+		"streams": "h264,video,1920,1080\naac,audio",
+		"length": 45.966667,
+		"levels": [
+			-3.8, -4.3, -5.9, -7.6, -9.6, -7, -3.5, -4, -2.5, -4.3, -4.1, -4.1, -8.6,
+			-4.3, -3.4, -4, -6, -4, -8.1, -4.6, -5.5, -91, -91, -3.8, -2.8, -6.5,
+			-3.6, -5, -2.8, -2.4, -3.6, -4.6, -3.2, -3.9, -3.9, -4.1, -5.3, -4, -4.3,
+			-3.6, -2.7, -6.1, -3.2, -20.7, -91, -91
+		],
+		"silentSeconds": 4
+	},
+	"allRuns": [
+		{
+			"id": "run-muhpgybn-24e68d84",
+			"skill": "scene-producer",
+			"route": "Produce Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-26T01:23:06.661Z",
+			"finishedAt": "2026-09-26T01:28:10.946Z"
+		},
+		{
+			"id": "run-muhp6u6f-9f983284",
+			"skill": "scene-producer",
+			"route": "Produce Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-26T01:15:14.764Z",
+			"finishedAt": "2026-09-26T01:22:25.335Z"
+		},
+		{
+			"id": "run-muhotnke-da8224a0",
+			"skill": "video-planner",
+			"route": "Sketch Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-26T01:04:59.766Z",
+			"finishedAt": "2026-09-26T01:09:54.068Z"
+		},
+		{
+			"id": "run-muhoj4jl-5365903d",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-26T00:56:48.955Z",
+			"finishedAt": "2026-09-26T01:02:35.444Z"
+		},
+		{
+			"id": "run-muhmwhuh-15c9db84",
+			"skill": "video-planner",
+			"route": "Sketch Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-26T00:11:12.930Z",
+			"finishedAt": "2026-09-26T00:19:31.660Z"
+		},
+		{
+			"id": "run-muhmpizy-a66989a3",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-26T00:05:47.817Z",
+			"finishedAt": "2026-09-26T00:11:18.503Z"
+		},
+		{
+			"id": "run-muhkvs5o-8d911eda",
+			"skill": "video-planner",
+			"route": "Sketch Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T23:14:40.432Z",
+			"finishedAt": "2026-09-25T23:22:32.859Z"
+		},
+		{
+			"id": "run-muhkma6x-1ca7a6af",
+			"skill": "video-planner",
+			"route": "Sketch Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T23:07:17.247Z",
+			"finishedAt": "2026-09-25T23:14:47.296Z"
+		},
+		{
+			"id": "run-muhk8yec-a203c09e",
+			"skill": "video-planner",
+			"route": "Sketch Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T22:56:55.399Z",
+			"finishedAt": "2026-09-25T23:05:53.294Z"
+		},
+		{
+			"id": "run-muhk2ej9-9c3f1340",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T22:51:49.739Z",
+			"finishedAt": "2026-09-25T22:57:04.389Z"
+		},
+		{
+			"id": "run-muhjwkz7-def3f9fd",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T22:47:18.133Z",
+			"finishedAt": "2026-09-25T22:51:59.615Z"
+		},
+		{
+			"id": "run-muhjwekx-e3a9b9b0",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "error",
+			"startedAt": "2026-09-25T22:47:09.837Z",
+			"finishedAt": "2026-09-25T22:47:14.029Z"
+		},
+		{
+			"id": "run-muhjpxnr-774871f6",
+			"skill": "video-planner",
+			"route": "Plan Scene",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T22:42:07.976Z",
+			"finishedAt": "2026-09-25T22:47:16.165Z"
+		},
+		{
+			"id": "run-muhjltyk-91fcd85a",
+			"skill": "video-planner",
+			"route": "Prepare Brief",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T22:38:56.567Z",
+			"finishedAt": "2026-09-25T22:42:13.063Z"
+		},
+		{
+			"id": "run-muhj1zhw-08432990",
+			"skill": "page-master",
+			"route": "Draw Pages",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T22:23:30.953Z",
+			"finishedAt": "2026-09-25T22:38:43.825Z"
+		},
+		{
+			"id": "run-muhiza2e-86b53faa",
+			"skill": "story-master",
+			"route": "Plan Story",
+			"adapter": "claude-code",
+			"status": "done",
+			"startedAt": "2026-09-25T22:21:24.686Z",
+			"finishedAt": "2026-09-25T22:23:22.775Z"
+		}
+	],
+	"finishedAt": "2026-09-26T01:30:08.718Z",
+	"failures": 0
+}
