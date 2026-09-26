@@ -13,6 +13,13 @@
 // with it. The plan's caveats read as one line. A production that finishes
 // comes onto the stage — or, when the creator chose another view, is
 // offered, one click away.
+//
+// The fix verification (F02, F06, F07): who speaks, changed while a plan is
+// made, after a failed save, after approval and an accepted production, and
+// after a candidate, says exactly what the scene is left with — and once
+// saved, and only then, plans it again. Played to its end, the produced
+// scene holds its last drawn frame with a replay. Accepted and released,
+// the project's Video tab and Publish count it without a reload.
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
@@ -127,7 +134,10 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
   } else if (inputs.planning.route === 'Plan Scene') {
     // Held when asked: a plan still being made, for the creator to change
     // who speaks while it runs.
-    if (fs.readFileSync(${JSON.stringify(controlPath)}, 'utf8').trim() === 'hold') await sleep(90_000)
+    if (fs.readFileSync(${JSON.stringify(controlPath)}, 'utf8').trim() === 'hold') {
+      fs.writeFileSync(${JSON.stringify(controlPath)} + '.held', String(process.pid))
+      await sleep(90_000)
+    }
     const brief = (await (await fetch(origin + '/api/planning/records/' + context.briefRecord)).json()).record.content
     const units = brief.coverage.filter(entry => context.scene.originScenes.includes(entry.scene)).flatMap(entry => entry.units)
     const recipes = [
@@ -248,6 +258,8 @@ try {
   const brand = { background: '#0e0c17', surface: '#15121f', text: '#ffffff', mutedText: '#a9b3cc', primary: '#635bff', secondary: '#ff7d6b', accent: '#ef61ef', codeBackground: '#0a0912' }
   const base = {
     version: 1, id: `flow-base-${Date.now().toString(36)}`, title: 'Scaling your API with rate limiters', fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
+    // A project's presentation: the video made from it is the project's, its tab counting what is produced (F06).
+    container: { id: `flow-project-${Date.now().toString(36)}`, kind: 'presentation' },
     brand: { ...brand, name: 'Stripe' },
     theme: { version: 1, id: 'stripe-flow', name: 'Stripe', description: '', source: 'custom', brand, fonts: { display: 'Inter', body: 'Inter', mono: 'Consolas' } },
     notebook: { type: 'doc', content: [{ type: 'paragraph', attrs: { id: 'p-intro' }, content: [{ type: 'text', text: 'Rate limiters keep an API alive under load.' }] }, { type: 'scene', attrs: { id: 'b06', title: 'Concurrent requests limiter', script: 'The concurrency limiter lets only twenty requests run at once.', directorNotes: 'Concurrent requests limiter', sourcePassages: [], svg: await readFile(join(fixtures, '06_concurrent_requests_limiter.svg'), 'utf8'), pageOrigin: { kind: 'designed', by: 'Claude Code · Claude Opus 5.5' } } }] },
@@ -294,12 +306,14 @@ try {
   await clickText('#scene-workspace .sw-actions .button', 'Plan the scene')
   const planning = await until(async () => { const latest = (await overview(video)).scenes[0].view.latest; return latest?.status === 'running' ? latest : null }, 60)
   check(Boolean(planning), `the scene is being planned (r${planning?.revision})`)
+  // Released only once the stub holds: the next plan runs as normal.
+  await until(async () => (await readFile(`${controlPath}.held`, 'utf8').catch(() => '')) || null, 60)
   await setPlan('normal')
   await evaluate(`() => { window.__confirms = []; window.confirm = message => { window.__confirms.push(message); return true }; return true }`)
   await waitFor(`() => document.querySelector('#scene-workspace .sw-head .ws-voice:not([disabled])') ? true : null`, 20)
   await evaluate(`() => { const select = document.querySelector('#scene-workspace .sw-head .ws-voice'); select.value = 'silent'; select.dispatchEvent(new Event('change', { bubbles: true })); return true }`)
   const asked = await waitFor(`() => window.__confirms?.[0] || null`, 10)
-  check(new RegExp(`^Plan r${planning?.revision} is being made for who speaks still undecided: changing it now would leave that plan out of date the moment it finishes\\.`).test(asked || '') && new RegExp(`Stop r${planning?.revision}, and plan the scene again with silent\\?`).test(asked || ''), `changing who speaks while a plan is made says so first, with the way on (${JSON.stringify(asked)})`)
+  check(asked === `Plan r${planning?.revision} is being made for who speaks still undecided. Change who speaks to no voice? r${planning?.revision} is stopped and kept, and the scene is planned again as r${planning?.revision + 1} with no voice. Other scenes are unchanged.`, `changing who speaks while a plan is made says so first, and what the scene is left with (${JSON.stringify(asked)})`)
   const replanned = await until(async () => {
     const scene = (await overview(video)).scenes[0]
     const stopped = (await api(`/api/planning/records/${planning.id}`)).body?.record
@@ -310,14 +324,36 @@ try {
   const silent = await waitFor(`() => { const select = document.querySelector('#scene-workspace .sw-head .ws-voice'); return select?.value === 'silent' ? { text: select.selectedOptions[0].textContent, undecided: select.closest('.ws-voice-field').classList.contains('is-undecided') } : null }`, 30)
   check(silent?.text === 'Voice: silent' && !silent.undecided, `the scene says who speaks now (${JSON.stringify(silent)})`)
 
+  // ——— F02: a change that cannot be saved changes nothing ———
+  await evaluate(`() => {
+    window.__toasts = []
+    const toast = document.getElementById('toast')
+    window.__toastWatch?.disconnect()
+    window.__toastWatch = new MutationObserver(() => { if (!toast.hidden && toast.textContent) window.__toasts.push(toast.textContent) })
+    window.__toastWatch.observe(toast, { childList: true, characterData: true, subtree: true, attributes: true })
+    window.__confirms = []
+    const real = window.fetch
+    window.fetch = (input, init) => String(input).endsWith('/inputs') && init?.method === 'PUT' ? (window.fetch = real, Promise.resolve(new Response(JSON.stringify({ error: 'the store refused it' }), { status: 500, headers: { 'content-type': 'application/json' } }))) : real(input, init)
+    return true
+  }`)
+  const beforeFailure = (await overview(video)).scenes[0]
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-head .ws-voice:not([disabled])') ? true : null`, 20)
+  await evaluate(`() => { const select = document.querySelector('#scene-workspace .sw-head .ws-voice'); select.value = 'generated'; select.dispatchEvent(new Event('change', { bubbles: true })); return true }`)
+  const refused = await waitFor(`() => window.__toasts.find(text => /^Who speaks did not change/.test(text)) || null`, 20)
+  await sleep(3000)
+  const afterFailure = (await overview(video)).scenes[0]
+  const shownAfter = await evaluate(`() => document.querySelector('#scene-workspace .sw-head .ws-voice')?.value || ''`)
+  check(refused === 'Who speaks did not change — the store refused it. The scene keeps no voice; its plans are as they were.' && afterFailure.delivery === 'silent' && afterFailure.view.latest?.id === beforeFailure.view.latest?.id && shownAfter === 'silent', `a change that could not be saved says so, and nothing is stopped or planned (${JSON.stringify({ refused, delivery: afterFailure.delivery, latest: afterFailure.view.latest?.revision, shown: shownAfter })})`)
+
   // ——— R06: the plan's runtime caveats read as one line ———
   const risks = await waitFor(`() => { const box = document.querySelector('#scene-workspace [data-review-risks]'); if (!box) return null; const details = box.querySelector('details'); return { line: box.querySelector('p')?.textContent || '', open: details?.open ?? null, summary: details?.querySelector('summary')?.textContent || '', items: box.querySelectorAll('li').length } }`, 30)
   check(/^2 recipes not yet proven in the pinned runtime — the production may build them another way, and will say so\.$/.test(risks?.line || '') && risks.open === false && risks.summary === 'Which 2' && risks.items === 2, `the plan's runtime caveats are one status, the list on demand (${JSON.stringify(risks)})`)
   await shot('02-voice-and-caveats')
 
   // ——— R06: a finished production comes onto the stage ———
-  await clickText('#scene-workspace .sw-actions .button', `Approve r${replanned.scene.view.current.revision} without a preview`)
-  await until(async () => (await overview(video)).scenes[0].view.reviewed?.id === replanned.scene.view.current.id, 30)
+  const toApprove = (await overview(video)).scenes[0].view.current
+  await clickText('#scene-workspace .sw-actions .button', `Approve r${toApprove.revision} without a preview`)
+  await until(async () => (await overview(video)).scenes[0].view.reviewed?.id === toApprove.id, 30)
   await focusApp()
   await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Produce the scene' || null`, 30)
   check((await stageMode()) === 'reference', 'the stage shows the scene\'s page while it is produced')
@@ -340,12 +376,80 @@ try {
   const watched = await waitFor(`() => document.querySelector('.scene-stage-modes .is-active')?.dataset.stageMode === 'output' && !document.querySelector('#scene-workspace [data-offer="output"]') ? true : null`, 20)
   check(Boolean(watched), 'Watch the output plays it on the stage, and the offer goes')
 
+  // ——— F07: played to its natural end, from the workspace's own transport ———
+  await evaluate(`() => { document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)').seek(0); return true }`)
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-play:not([disabled])') ? true : null`, 20)
+  await evaluate(`() => { document.querySelector('#scene-workspace .sw-play').click(); return true }`)
+  const naturalEnd = await waitFor(`() => {
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
+    const play = document.querySelector('#scene-workspace .sw-play')
+    if (play?.getAttribute('aria-label') !== 'Play again from the start') return null
+    const drawn = [...(player.iframe?.contentDocument?.querySelectorAll('.clip') || [])].filter(clip => getComputedStyle(clip).visibility !== 'hidden').map(clip => clip.id)
+    return { time: player.currentTime, duration: player.duration, text: play.textContent, drawn, stage: document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') }
+  }`, 60)
+  check(Boolean(naturalEnd) && naturalEnd.text === '↻' && naturalEnd.stage === 'Replay the produced scene from the start' && Math.abs(naturalEnd.time - (Math.ceil(naturalEnd.duration * 30 - 1e-6) - 1) / 30) < 0.02 && naturalEnd.drawn.length > 0, `played to its end, the produced scene holds its last drawn frame, paused, with a replay (${JSON.stringify(naturalEnd)})`)
+  await shot('04b-natural-end')
+  await evaluate(`() => { document.querySelector('#scene-workspace .sw-play').click(); return true }`)
+  const fromZero = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return document.querySelector('#scene-workspace .sw-play')?.getAttribute('aria-label') === 'Pause' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
+  check(fromZero !== null, `Play again starts from the beginning (${fromZero}s)`)
+  await evaluate(`() => { document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)').pause(); return true }`)
+
   // Publish names the scene as Scenes does: the first scene, though a text
   // block comes before it.
   await evaluate(`() => { document.getElementById('render-video').click(); return true }`)
   const named = await waitFor(`() => document.getElementById('publish-dialog').open ? document.querySelector('#publish-scope-options [data-scope="scene"] small')?.textContent || '' : null`, 20)
   check(/^Scene 1 · Concurrent requests limiter/.test(named || ''), `Publish names the scene as Scenes does, not by its block (${JSON.stringify(named)})`)
   await evaluate(`() => { document.getElementById('publish-dialog').close(); return true }`)
+
+  // ——— F06: what the project says it has produced follows an acceptance ———
+  const counts = async () => evaluate(`async () => {
+    const tab = document.querySelector('#notebook-switch .notebook-switch-tab[data-kind="video"]')
+    document.getElementById('publish-export-kind').textContent = ''
+    document.getElementById('render-video').click()
+    const deadline = Date.now() + 10000
+    let kind = ''
+    while (Date.now() < deadline && !(kind = document.getElementById('publish-export-kind')?.textContent || '')) await new Promise(resolve => setTimeout(resolve, 100))
+    document.getElementById('publish-dialog').close()
+    return { tab: tab ? tab.textContent.replace(/\\s+/g, ' ').trim() : null, rail: document.querySelector('#scene-workspace .sw-scene .sw-scene-state')?.textContent || '', publish: kind }
+  }`)
+  await evaluate(`() => { document.getElementById('sw-tab-output')?.click(); return true }`)
+  await waitFor(`() => document.querySelector('#scene-workspace [data-focus^="accept-production:"]:not([disabled])') ? true : null`, 20)
+  await evaluate(`() => { document.querySelector('#scene-workspace [data-focus^="accept-production:"]').click(); return true }`)
+  const acceptedScene = await until(async () => { const { body } = await api(`/api/projects/${encodeURIComponent(video)}`); return body?.project?.producedScenes?.[(await overview(video)).scenes[0].id] || null }, 180)
+  await focusApp()
+  const afterAccept = await until(async () => { const seen = await counts(); return /1 of 1 scenes produced/.test(seen?.tab || '') ? seen : null }, 20)
+  check(Boolean(acceptedScene) && Boolean(afterAccept) && /^Video export — every scene plays the production you accepted/.test(afterAccept.publish), `accepted, the Video tab, the rail and Publish say it is produced, without a reload (${JSON.stringify(afterAccept || await counts())})`)
+  await shot('05-accepted-counted')
+
+  // ——— F02: who speaks, changed after approval and production ———
+  const approved = (await overview(video)).scenes[0]
+  await evaluate(`() => { window.__confirms = []; return true }`)
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-head .ws-voice:not([disabled])') ? true : null`, 20)
+  await evaluate(`() => { const select = document.querySelector('#scene-workspace .sw-head .ws-voice'); select.value = 'generated'; select.dispatchEvent(new Event('change', { bubbles: true })); return true }`)
+  const askedApproved = await waitFor(`() => window.__confirms?.[0] || null`, 10)
+  const next = approved.view.latest.revision + 1
+  check(askedApproved === `Change who speaks in this scene to a generated voice? The scene is planned again as r${next} with a generated voice. The approved plan r${approved.view.reviewed.revision}, made for no voice, stays approved, out of date, until you approve r${next}. Its accepted production still plays in the video until you accept one made again. Other scenes are unchanged.`, `changed after approval and an accepted production, it says what the scene is left with (${JSON.stringify(askedApproved)})`)
+  const replannedApproved = await until(async () => { const scene = (await overview(video)).scenes[0]; return scene.delivery === 'generated' && scene.view.current?.revision === next && scene.view.current.status === 'candidate' ? scene : null }, 120)
+  check(Boolean(replannedApproved) && replannedApproved.view.reviewed?.id === approved.view.reviewed.id, `the choice is saved and r${next} is planned by itself; r${approved.view.reviewed.revision} stays approved (${JSON.stringify(replannedApproved && { delivery: replannedApproved.delivery, current: replannedApproved.view.current.revision, reviewed: replannedApproved.view.reviewed?.revision })})`)
+
+  // ——— F02: and again after a candidate ———
+  await focusApp()
+  await evaluate(`() => { window.__confirms = []; return true }`)
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-head .ws-voice:not([disabled])') ? true : null`, 20)
+  await evaluate(`() => { const select = document.querySelector('#scene-workspace .sw-head .ws-voice'); select.value = 'silent'; select.dispatchEvent(new Event('change', { bubbles: true })); return true }`)
+  const askedCandidate = await waitFor(`() => window.__confirms?.[0] || null`, 10)
+  check(askedCandidate === `Change who speaks in this scene to no voice? The scene is planned again as r${next + 1} with no voice. Plan r${next}, made for a generated voice, is kept, out of date. The approved plan r${approved.view.reviewed.revision} stays approved, out of date, until you approve r${next + 1}. Its accepted production still plays in the video until you accept one made again. Other scenes are unchanged.`, `changed after a candidate, it says what the scene is left with (${JSON.stringify(askedCandidate)})`)
+  const replannedCandidate = await until(async () => { const scene = (await overview(video)).scenes[0]; return scene.delivery === 'silent' && scene.view.current?.revision === next + 1 && scene.view.current.status === 'candidate' ? scene : null }, 120)
+  check(Boolean(replannedCandidate), `the choice is saved and r${next + 1} is planned by itself (${JSON.stringify(replannedCandidate && { delivery: replannedCandidate.delivery, current: replannedCandidate.view.current.revision })})`)
+
+  // ——— F06: released, every count goes back ———
+  await focusApp()
+  await evaluate(`() => { document.getElementById('sw-tab-output')?.click(); return true }`)
+  await waitFor(`() => document.querySelector('#scene-workspace [data-focus^="use-production:"]:not([disabled])')?.textContent === "Play the notebook's own scene" ? true : null`, 20)
+  await evaluate(`() => { document.querySelector('#scene-workspace [data-focus^="use-production:"]').click(); return true }`)
+  const released = await until(async () => { const { body } = await api(`/api/projects/${encodeURIComponent(video)}`); return body?.project && !body.project.producedScenes?.[(await overview(video)).scenes[0].id] ? true : null }, 60)
+  const afterRelease = await until(async () => { const seen = await counts(); return seen?.tab && !/produced/.test(seen.tab) ? seen : null }, 20)
+  check(Boolean(released) && Boolean(afterRelease) && /^Draft export/.test(afterRelease.publish), `released, the Video tab and Publish no longer count it, without a reload (${JSON.stringify(afterRelease || await counts())})`)
 } catch (error) {
   check(false, `run: ${error instanceof Error ? error.stack || error.message : error}`)
 } finally {

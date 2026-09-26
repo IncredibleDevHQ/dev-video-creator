@@ -402,6 +402,26 @@ try {
   const followed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${clock.moments[2].start}) < 0.25 ? player.currentTime : null }`, 20)
   check(followed !== null, `selecting a moment in the review seeks the production (${followed}s)`)
   await shot('01-production-on-stage')
+  // F07 of the project-flow fix verification: played to its natural end —
+  // a generated voice's clock need not be a whole number of frames — the
+  // scene holds the last frame anything is drawn on, says Replay, and
+  // replays from the start.
+  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.seek(Math.max(0, player.duration - 0.8)); document.querySelector('.scene-stage-transport > button').click(); return true }`)
+  const held = await waitFor(`() => {
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
+    const button = document.querySelector('.scene-stage-transport > button')
+    if (button.getAttribute('aria-label') !== 'Replay the produced scene from the start') return null
+    const doc = player.iframe?.contentDocument
+    const drawn = doc ? [...doc.querySelectorAll('.clip')].filter(clip => getComputedStyle(clip).visibility !== 'hidden').map(clip => clip.id) : null
+    return { time: player.currentTime, duration: player.duration, text: button.textContent, drawn }
+  }`, 20)
+  const wholeFrames = Math.abs(clock.duration * 30 - Math.round(clock.duration * 30)) < 1e-6
+  check(Boolean(held) && held.text === '↻' && Math.abs(held.time - (Math.ceil(held.duration * 30 - 1e-6) - 1) / 30) < 0.02 && held.drawn?.length > 0, `played to its natural end — a clock of ${clock.duration}s, ${wholeFrames ? 'a whole number of frames' : 'not a whole number of frames'} — it holds its last drawn frame and offers a replay (${JSON.stringify(held)})`)
+  await shot('01b-production-natural-end')
+  await evaluate(`() => { document.querySelector('.scene-stage-transport > button').click(); return true }`)
+  const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') === 'Pause the produced scene' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
+  check(replayed !== null, `Replay plays the produced scene again from the start (${replayed}s)`)
+  await evaluate(`() => { document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)').pause(); return true }`)
 
   // ——— Accepting renders it once; the notebook plays that render ———
   await click('.scene-review.is-expanded [data-focus^="accept-production:"]')
