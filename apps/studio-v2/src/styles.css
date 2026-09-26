@@ -1747,6 +1747,37 @@ body:is([data-notebook-kind="wireframe"], [data-notebook-kind="presentation"]) :
 /* Every page of a wireframe is a schematic: it needs no saying. */
 body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
 
+/* ——— Projects in the menu and the library ———
+   A project once, with a chip per notebook kind: a chip opens its notebook;
+   one being built reads amber, one not made yet is an outline. */
+.project-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
+.project-kind { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px 0 5px; border: 1px solid #3f3f46; border-radius: 6px; background: #202024; color: #d4d4d8; font-size: 10px; font-weight: 600; cursor: pointer; }
+.project-kind svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.project-kind:hover:not(:disabled) { border-color: #71717a; color: white; }
+.project-kind:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 1px; }
+.project-kind.is-building { border-color: #a16207; color: #fbbf24; }
+.project-kind.is-missing { border-style: dashed; background: transparent; color: #5c5c64; cursor: default; }
+.project-kind.is-missing svg { stroke-dasharray: 2.5 2.5; }
+.project-kind[aria-current="page"] { border-color: var(--brand-light); color: white; }
+.project-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "open delete" "kinds kinds"; align-items: center; gap: 2px 4px; padding: 2px 0 8px; border-radius: 7px; }
+.project-row:hover { background: #2a2a30; }
+.project-row.is-current { background: rgba(255,255,255,.05); box-shadow: inset 2px 0 0 var(--brand-light, #84efad); }
+.project-row-open { grid-area: open; display: grid; gap: 2px; min-width: 0; padding: 6px 10px 2px; border: 0; background: transparent; color: #e4e4e7; text-align: left; cursor: pointer; }
+.project-row-open strong { font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-row-open small { font-size: 10px; color: #a1a1aa; }
+.project-row .project-kinds { grid-area: kinds; padding: 0 10px; }
+.project-row-delete { grid-area: delete; width: 26px; height: 26px; margin-right: 6px; border: 0; border-radius: 6px; background: transparent; color: #71717a; font-size: 14px; line-height: 1; cursor: pointer; }
+.project-row-delete:hover { background: rgba(255,120,100,.14); color: #ff9b8a; }
+.notebooks-projects { display: grid; gap: 8px; margin-bottom: 16px; }
+.project-card { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #3f3f46; border-radius: 10px; background: #202024; }
+.project-card.is-current { border-color: color-mix(in srgb, var(--brand-light) 60%, #3f3f46); }
+.project-card-open { display: grid; gap: 3px; min-width: 0; padding: 0; border: 0; background: transparent; color: #f4f4f5; text-align: left; cursor: pointer; }
+.project-card-open strong { font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-card-open small { color: #71717a; font-size: 10.5px; }
+.project-card-delete { height: 28px; padding: 0 10px; border: 1px solid #3f3f46; border-radius: 7px; background: transparent; color: #a1a1aa; font-size: 11px; font-weight: 600; cursor: pointer; }
+.project-card-delete:hover { border-color: #f87171; color: #fca5a5; }
+.notebooks-tree-heading { margin: 4px 0 8px; color: #71717a; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+
 /* ——— Notebook derivation hierarchy ——— */
 .notebook-lineage { display: flex; align-items: center; gap: 4px; max-width: 380px; overflow: hidden; font-size: 11px; }
 .notebook-lineage-segment { border: 0; background: none; color: #a1a1aa; font-size: 11px; padding: 2px 4px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }

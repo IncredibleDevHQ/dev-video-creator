@@ -134,7 +134,7 @@
           </a>
           <div class="project-title">
             <div class="notebook-menu">
-              <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Switch notebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Notebooks <span aria-hidden="true">⌄</span></button>
+              <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Your projects, and a new one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Projects <span aria-hidden="true">⌄</span></button>
               <div id="notebook-menu-list" class="notebook-menu-list" role="menu" hidden></div>
             </div>
             <nav id="notebook-lineage" class="notebook-lineage" aria-label="Notebook lineage" hidden></nav>
@@ -1031,9 +1031,13 @@
     <div id="notebooks-page" class="notebooks-page" role="dialog" aria-modal="true" aria-label="All notebooks" hidden>
       <div class="notebooks-page-shell">
         <header class="notebooks-page-head">
-          <div><span class="eyebrow">Library</span><h2>Notebooks <span id="notebooks-page-count" class="notebooks-page-count"></span></h2></div>
+          <div><span class="eyebrow">Library</span><h2>Projects <span id="notebooks-page-count" class="notebooks-page-count"></span></h2></div>
           <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close">×</button>
         </header>
+        <!-- Each project with its notebooks (the four-notebook model); the
+             notebooks that belong to none are listed below as they were. -->
+        <div id="notebooks-projects" class="notebooks-projects"></div>
+        <h3 id="notebooks-tree-heading" class="notebooks-tree-heading" hidden>Notebooks outside a project</h3>
         <div id="notebooks-tree" class="notebooks-tree"></div>
         <section class="notebooks-samples">
           <h3>Start from a sample</h3>

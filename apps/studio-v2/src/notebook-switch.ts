@@ -74,3 +74,32 @@ export const renderNotebookSwitch = (host: HTMLElement, tabs: SwitchTab[], choos
     }),
   )
 }
+
+// A project's notebooks as small chips, for the library and the menu: each
+// kind's icon and name, its state in its tooltip; a chip opens its
+// notebook, and a kind not made yet is shown dimmed.
+export const renderProjectKinds = (host: HTMLElement, tabs: SwitchTab[], choose: (tab: SwitchTab) => void) => {
+  host.replaceChildren(
+    ...tabs.map(tab => {
+      const chip = document.createElement('button')
+      chip.type = 'button'
+      chip.className = `project-kind is-${tab.notebook ? tab.notebook.state : 'missing'}`
+      chip.dataset.kind = tab.kind
+      chip.disabled = !tab.notebook
+      chip.title = tab.notebook ? `${tab.label} · ${tab.status}` : `${tab.label} · not made yet`
+      if (tab.current) chip.setAttribute('aria-current', 'page')
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      icon.setAttribute('viewBox', '0 0 24 24')
+      icon.setAttribute('aria-hidden', 'true')
+      icon.innerHTML = ICONS[tab.kind]
+      const label = document.createElement('span')
+      label.textContent = tab.label
+      chip.append(icon, label)
+      chip.addEventListener('click', event => {
+        event.stopPropagation()
+        choose(tab)
+      })
+      return chip
+    }),
+  )
+}

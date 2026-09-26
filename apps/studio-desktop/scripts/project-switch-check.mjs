@@ -147,6 +147,20 @@ try {
   check('the switch has a tab per kind in the order they are made, each saying where it stands; the video is not made yet', summary(text.tabs) === 'Text*: 3 blocks · Wireframe: 2 pages · Presentation: 2 slides · Video: not made yet' && text.tabs[3].missing && /made from the presentation — open it to make the video/.test(text.tabs[3].title), summary(text.tabs))
   check('the text reads as text: no canvas, preview, Publish or next step, and no lineage or format in the chrome', text.kind === 'text' && /BoltDB keeps a whole database in one file/.test(text.text) && !text.canvas && !text.preview && !text.publish && text.next === null && !text.lineage && !text.format && !text.notebookTab, JSON.stringify({ ...text, tabs: undefined }))
 
+  // The menu and the library list the project once, with its notebooks by
+  // kind; a kind not made yet is there, dimmed.
+  await evaluate(`() => { document.getElementById('notebook-menu-toggle').click(); return true }`, 'open menu')
+  const menu = await waitFor(`() => {
+    const rows = [...document.querySelectorAll('#notebook-menu-list .project-row')]
+    return rows.length ? { rows: rows.map(row => ({ title: row.querySelector('strong').textContent, kinds: [...row.querySelectorAll('.project-kind')].map(chip => chip.dataset.kind + (chip.disabled ? ':missing' : '')), current: row.classList.contains('is-current') })), create: document.querySelector('#notebook-menu-list .notebook-menu-new-project strong')?.textContent } : null
+  }`, 'menu projects')
+  check('the menu lists the project once, with its notebooks by kind, and starts a new project', menu?.rows.length === 1 && menu.rows[0].title === TITLE && JSON.stringify(menu.rows[0].kinds) === '["text","wireframe","presentation","video:missing"]' && menu.rows[0].current && menu.create === '+ New project', JSON.stringify(menu))
+  await evaluate(`() => { document.querySelector('#notebook-menu-list .notebook-menu-library').click(); return true }`, 'open library')
+  const library = await waitFor(`() => { const cards = [...document.querySelectorAll('#notebooks-projects .project-card')]; return !document.getElementById('notebooks-page').hidden && cards.length ? cards.map(card => card.querySelector('strong').textContent + ': ' + card.querySelectorAll('.project-kind:not(:disabled)').length) : null }`, 'library projects')
+  await capture('01b-library')
+  check('the library lists the project, with the notebooks it holds', JSON.stringify(library) === JSON.stringify([`${TITLE}: 3`]), JSON.stringify(library))
+  await evaluate(`() => { document.getElementById('close-notebooks-page').click(); return true }`, 'close library')
+
   // The wireframe: its pages, and nothing of the video.
   await click('wireframe')
   const wireframe = await waitFor(`() => document.body.dataset.notebookKind === 'wireframe' && document.querySelectorAll('#editor .notebook-scene-block').length === 2 ? true : null`, 'wireframe')

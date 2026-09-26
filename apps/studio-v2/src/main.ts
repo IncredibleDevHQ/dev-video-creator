@@ -13,7 +13,7 @@ import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-obj
 import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePage, type PageDesignBinding } from './page-design'
 import { sinceOf } from './planning/progress'
 import { baseNextStep, type NextStep } from './planning/next-step'
-import { renderNotebookSwitch, switchTabsOf, type SwitchTab } from './notebook-switch'
+import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab } from './notebook-switch'
 import { draftHoldsEdits, sameDocument } from './draft-state'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
@@ -41,6 +41,7 @@ import {
   formatOf,
   notebookSummaryOf,
   type NotebookSummary,
+  type ProjectContainerV1,
   prepareSlideSvg,
   holdObjectClip,
   holdObjectClips,
@@ -7037,6 +7038,62 @@ type NotebookRow = {
   createdAt?: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  container?: { id: string; kind: string }
+}
+
+// ——— Projects in the library and the menu (the four-notebook model) ———
+// A project is listed once, with its notebooks by kind; a notebook of no
+// project is listed on its own, below, as notebooks were before projects.
+type ProjectView = { container: ProjectContainerV1; notebooks: NotebookSummary[] }
+const listProjectViews = async () => (await fetchJson<{ containers: ProjectView[] }>('/api/containers')).containers
+// A project opens on the notebook worked on last.
+const openProjectNotebook = (view: ProjectView) => {
+  const latest = view.notebooks[0]
+  if (latest) void openNotebook(latest.id)
+}
+const deleteProject = async (view: ProjectView) => {
+  const count = view.notebooks.length
+  if (!window.confirm(`Delete the project "${view.container.title}" and its ${count} notebook${count === 1 ? '' : 's'}? Their recordings and assets go with them.`)) return
+  await fetchJson<{ deleted: boolean }>(`/api/containers/${encodeURIComponent(view.container.id)}`, { method: 'DELETE' })
+  view.notebooks.forEach(entry => window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${entry.id}`))
+  if (project.container?.id === view.container.id) {
+    window.localStorage.removeItem(ACTIVE_PROJECT_KEY)
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.location.reload()
+    return
+  }
+  await renderNotebookMenu().catch(() => {})
+  if (!notebooksPage.hidden) await renderNotebooksPage().catch(() => {})
+}
+const projectEntry = (view: ProjectView, className: string) => {
+  const entry = document.createElement('div')
+  entry.className = `${className}${view.container.id === project.container?.id ? ' is-current' : ''}`
+  entry.dataset.project = view.container.id
+  const open = document.createElement('button')
+  open.type = 'button'
+  open.className = `${className}-open`
+  const title = document.createElement('strong')
+  title.textContent = view.container.title || 'Untitled project'
+  const meta = document.createElement('small')
+  meta.textContent = `${view.notebooks.length} notebook${view.notebooks.length === 1 ? '' : 's'} · ${notebookDate(view.container.updatedAt)}${view.container.id === project.container?.id ? ' · open now' : ''}`
+  open.append(title, meta)
+  open.addEventListener('click', () => openProjectNotebook(view))
+  const kinds = document.createElement('div')
+  kinds.className = 'project-kinds'
+  renderProjectKinds(kinds, switchTabsOf(view.notebooks, project.id), tab => {
+    if (tab.notebook) void openNotebook(tab.notebook.id)
+  })
+  const remove = document.createElement('button')
+  remove.type = 'button'
+  remove.className = `${className}-delete`
+  remove.setAttribute('aria-label', `Delete the project ${view.container.title}`)
+  remove.textContent = className === 'project-card' ? 'Delete' : '×'
+  remove.addEventListener('click', event => {
+    event.stopPropagation()
+    void deleteProject(view)
+  })
+  entry.append(open, kinds, remove)
+  return entry
 }
 
 const buildNotebookTree = (rows: NotebookRow[]) => {
@@ -7243,8 +7300,11 @@ const notebookCard = (
 }
 
 const renderNotebooksPage = async () => {
-  const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
-  ;($('#notebooks-page-count') as HTMLElement).textContent = `· ${projects.length}`
+  const [{ projects: notebooks }, views] = await Promise.all([fetchJson<{ projects: NotebookRow[] }>('/api/projects'), listProjectViews().catch(() => [] as ProjectView[])])
+  const projects = notebooks.filter(row => !row.container)
+  ;($('#notebooks-page-count') as HTMLElement).textContent = `· ${views.length}`
+  ;($('#notebooks-projects') as HTMLElement).replaceChildren(...views.map(view => projectEntry(view, 'project-card')))
+  ;($('#notebooks-tree-heading') as HTMLElement).hidden = !projects.length
   const { roots, childrenOf } = buildNotebookTree(projects)
   const known = new Set(projects.map(row => row.id))
   notebooksTree.replaceChildren()
@@ -7280,18 +7340,22 @@ const renderNotebooksPage = async () => {
 const scheduleNotebookLineage = () => void renderNotebookLineage()
 
 const renderNotebookMenu = async () => {
-  const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
+  const [{ projects: notebooks }, views] = await Promise.all([fetchJson<{ projects: NotebookRow[] }>('/api/projects'), listProjectViews().catch(() => [] as ProjectView[])])
+  const projects = notebooks.filter(row => !row.container)
   notebookMenuList.replaceChildren()
   const create = document.createElement('button')
   create.type = 'button'
-  create.className = 'notebook-menu-create'
-  create.innerHTML = '<strong>+ New notebook</strong><small>Start a blank story with the current theme</small>'
-  create.addEventListener('click', () => void createNotebook())
+  create.className = 'notebook-menu-create notebook-menu-new-project'
+  create.innerHTML = '<strong>+ New project</strong><small>From a link, a PDF or deck, or your own text: its text, wireframe and presentation</small>'
+  create.addEventListener('click', () => {
+    closeNotebookMenu()
+    ;($('#start-from-source') as HTMLButtonElement).click()
+  })
   notebookMenuList.append(create)
   const library = document.createElement('button')
   library.type = 'button'
   library.className = 'notebook-menu-create notebook-menu-library'
-  library.innerHTML = '<strong>All notebooks →</strong><small>The library: saved notebooks and their derivatives as a tree</small>'
+  library.innerHTML = '<strong>All projects →</strong><small>The library: every project with its notebooks</small>'
   library.addEventListener('click', () => {
     closeNotebookMenu()
     openNotebooksPage()
@@ -7325,9 +7389,16 @@ const renderNotebookMenu = async () => {
     '<strong>Sample · Attention — Video (derived)</strong><small>15 scenes forked from the presentation notebook — director notes, storyboard and beats</small>'
   videoSample.addEventListener('click', () => void openAttentionVideoSample())
   notebookMenuList.append(videoSample)
+  if (views.length) {
+    const projectsHeading = document.createElement('div')
+    projectsHeading.className = 'notebook-menu-heading'
+    projectsHeading.textContent = `Projects · ${views.length}`
+    notebookMenuList.append(projectsHeading, ...views.map(view => projectEntry(view, 'project-row')))
+  }
+  if (!projects.length) return
   const heading = document.createElement('div')
   heading.className = 'notebook-menu-heading'
-  heading.textContent = `Saved notebooks · ${projects.length}`
+  heading.textContent = `Notebooks outside a project · ${projects.length}`
   notebookMenuList.append(heading)
   // Saved notebooks render as a tree: roots, with derivatives indented
   // beneath their mother (↳ prefix + kind badge).
