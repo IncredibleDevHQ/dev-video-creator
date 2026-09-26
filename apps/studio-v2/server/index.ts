@@ -2,6 +2,7 @@ import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProje
 import { generateFishVoice, generateSystemVoice, probeSeconds } from './voice'
 import { landPagesOnce, runPagesIn, type LandingDeps, type PageCheck } from './page-landing'
 import { containerView, holdNotebook, nameContainer, type ContainerDeps } from './containers'
+import { presentationPdf, slidesOf } from './presentation-export'
 import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
@@ -3008,6 +3009,23 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         json(response, 200, { deleted: await deleteProjectContainer(containerId), notebooks: held.map(row => row.id) })
         return
       }
+    }
+    // A presentation's slides as a PDF (the four-notebook model): printed
+    // from the notebook as saved, and kept in the object store as an
+    // artifact of that notebook.
+    if (request.method === 'POST' && /^\/api\/projects\/[^/]+\/presentation-pdf$/.test(url.pathname)) {
+      const notebookId = decodeURIComponent(url.pathname.split('/')[3])
+      const notebook = await loadProjectArtifact(notebookId)
+      if (!notebook) throw new Error('Notebook not found')
+      const slides = slidesOf(notebook)
+      if (!slides.length) {
+        json(response, 400, { error: 'This notebook has no slides to export yet' })
+        return
+      }
+      const pdf = await presentationPdf(slides, { width: notebook.width || 1920, height: notebook.height || 1080, title: notebook.title })
+      const stored = await storeAsset({ body: pdf, contentType: 'application/pdf', projectId: notebook.id, kind: 'presentation-export', extension: '.pdf' })
+      json(response, 200, { url: `/objects/${stored.objectKey}`, slides: slides.length, bytes: pdf.length })
+      return
     }
     // Fork a base notebook into its own video notebook. The snapshot and the
     // child are written before the caller is told about either, and a repeat

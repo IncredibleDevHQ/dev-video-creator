@@ -19648,6 +19648,35 @@ const refreshNotebookSwitch = async () => {
   if (own?.state === 'building' || projectNotebooks.some(entry => entry.state === 'building')) notebookSwitchTimer = window.setTimeout(() => void refreshNotebookSwitch(), 8000)
 }
 void refreshNotebookSwitch()
+// A presentation exports its slides as a PDF, one page a slide (the
+// four-notebook model): its own export, not the video's.
+{
+  const exportButton = $('#export-presentation') as HTMLButtonElement
+  exportButton.hidden = notebookKind() !== 'presentation'
+  exportButton.addEventListener('click', async () => {
+    exportButton.disabled = true
+    exportButton.textContent = 'Exporting…'
+    try {
+      project.notebook = editor.getJSON() as TiptapDocument
+      await persistProjectNow(structuredClone(project))
+      const exported = await fetchJson<{ url: string; slides: number }>(`/api/projects/${encodeURIComponent(project.id)}/presentation-pdf`, { method: 'POST' })
+      const link = document.createElement('a')
+      link.href = exported.url
+      link.download = `${project.title || 'Presentation'}.pdf`
+      link.dataset.exported = String(exported.slides)
+      document.body.append(link)
+      link.click()
+      link.remove()
+      exportButton.dataset.exportedUrl = exported.url
+      showToast(`Exported ${exported.slides} slide${exported.slides === 1 ? '' : 's'} as a PDF`)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'The PDF could not be made')
+    } finally {
+      exportButton.disabled = false
+      exportButton.textContent = 'Export PDF'
+    }
+  })
+}
 // A base made from a source shows its pages, not the video's staging (B04).
 const videoStagingToggle = $('#toggle-video-staging') as HTMLButtonElement
 syncBasePages = () => {

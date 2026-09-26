@@ -114,6 +114,7 @@ const seen = () => evaluate(`() => {
     publish: visible(document.getElementById('render-video')),
     preview: visible(document.getElementById('open-fullscreen-tab')),
     notebookTab: visible(document.getElementById('workspace-tab-notebook')),
+    exportPdf: visible(document.getElementById('export-presentation')),
     next: visible(document.getElementById('next-step')) ? document.getElementById('next-step').textContent : null,
     text: document.querySelector('#editor .ProseMirror')?.innerText.slice(0, 200) || '',
     pages: document.querySelectorAll('#editor .notebook-scene-block').length,
@@ -160,6 +161,19 @@ try {
   const pres = presentation ? await seen() : null
   await capture('03-presentation')
   check('the presentation shows its slides with no staging, and Create video as its next step', Boolean(pres) && pres.tabs[2].current && pres.staging.length === 0 && !pres.canvas && !pres.publish && pres.next === 'Create video', JSON.stringify(pres && { ...pres, tabs: summary(pres.tabs), text: undefined }))
+  check('only the presentation offers the presentation\'s export', pres?.exportPdf === true && text.exportPdf === false && wire?.exportPdf === false, JSON.stringify({ presentation: pres?.exportPdf, text: text.exportPdf, wireframe: wire?.exportPdf }))
+
+  // The presentation's own export: its slides as a PDF, one page a slide at
+  // the notebook's frame size (1920 × 1080 px is 1440 × 810 pt). The
+  // download is recorded rather than saved.
+  await evaluate(`() => { window.__downloads = []; HTMLAnchorElement.prototype.click = function () { window.__downloads.push({ href: this.href, name: this.download }) }; document.getElementById('export-presentation').click(); return true }`, 'export pdf')
+  const download = await waitFor(`() => window.__downloads?.[0] || null`, 'pdf download', 120)
+  const pdf = download ? Buffer.from(await fetch(download.href).then(response => response.arrayBuffer())) : Buffer.alloc(0)
+  const pdfText = pdf.toString('latin1')
+  const pdfPages = (pdfText.match(/\/Type\s*\/Page(?!s)/g) || []).length
+  const pdfBox = /\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/.exec(pdfText)
+  await capture('03b-presentation-exported')
+  check('the presentation exports its slides as a PDF, one page a slide at its frame size', pdf.subarray(0, 5).toString() === '%PDF-' && pdfPages === 2 && Boolean(pdfBox) && Math.round(Number(pdfBox[1])) === 1440 && Math.round(Number(pdfBox[2])) === 810 && download.name === `${TITLE}.pdf`, JSON.stringify({ bytes: pdf.length, pages: pdfPages, box: pdfBox?.slice(1), name: download?.name }))
 
   // A video made from the presentation joins the project as its video.
   const forked = await api(`/api/projects/nb-pres/fork`, { method: 'POST', body: JSON.stringify({ forkKey: 'switch-check-video', title: `${TITLE} · video` }) })
