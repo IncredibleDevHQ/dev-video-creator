@@ -95,3 +95,59 @@ const bridge = {
 export type StudioDesktopBridge = typeof bridge
 
 contextBridge.exposeInMainWorld('studioDesktop', bridge)
+
+// The studio's web storage outlives the port (F03 of the fix verification).
+// The worker takes a new port at every start and web storage belongs to an
+// origin, so the open notebook, its scene and inspector, and any unsaved
+// draft would read as gone after a restart. The desktop keeps the app's own
+// copy in its data folder: handed back before the page's first script runs
+// (once per app start — a reload keeps what the page wrote since), and
+// kept again whenever it changes and as the page goes.
+const STORAGE_SESSION = 'studio.desktop.storage-session'
+const mirrorWebStorage = () => {
+  // The gate dialog's data: page has no storage of its own.
+  if (location.protocol !== 'http:') return
+  let seed: { session: string; entries: Record<string, string> | null } | null = null
+  try {
+    seed = ipcRenderer.sendSync('studio:web-storage:load')
+  } catch {
+    return
+  }
+  if (!seed) return
+  try {
+    if (localStorage.getItem(STORAGE_SESSION) !== seed.session) {
+      if (seed.entries) {
+        localStorage.clear()
+        for (const [key, value] of Object.entries(seed.entries)) localStorage.setItem(key, value)
+      }
+      localStorage.setItem(STORAGE_SESSION, seed.session)
+    }
+  } catch {
+    return
+  }
+  let kept = ''
+  const snapshot = () => {
+    const entries: Record<string, string> = {}
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index)
+      if (key === null || key === STORAGE_SESSION) continue
+      entries[key] = localStorage.getItem(key) ?? ''
+    }
+    return JSON.stringify({ entries, path: location.pathname })
+  }
+  const keep = (now: boolean) => {
+    let payload = ''
+    try {
+      payload = snapshot()
+    } catch {
+      return
+    }
+    if (payload === kept) return
+    kept = payload
+    if (now) ipcRenderer.sendSync('studio:web-storage:flush', payload)
+    else ipcRenderer.send('studio:web-storage:save', payload)
+  }
+  setInterval(() => keep(false), 1500)
+  addEventListener('pagehide', () => keep(true))
+}
+mirrorWebStorage()

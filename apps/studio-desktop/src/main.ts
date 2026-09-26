@@ -8,6 +8,8 @@ import { app, BrowserWindow, desktopCapturer, ipcMain, shell, type DownloadItem,
 import { fileURLToPath } from 'node:url'
 import { basename, join } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { startWorker, type WorkerHandle } from './worker-host'
 import { handleMcpMessage } from './mcp/server'
 import { closeHiddenWindow } from './mcp/hidden-window'
@@ -279,6 +281,14 @@ const mcpPreHandler = async (
     response.end(JSON.stringify({ ok: true, size: mainWindow.getSize(), content: mainWindow.getContentSize() }))
     return true
   }
+  // POST /__quit — the same TEST HOOK gate: quits as the creator does, so
+  // a check can restart the app on a new port and read what survived.
+  if (url.pathname === '/__quit' && request.method === 'POST' && process.env.STUDIO_ENABLE_TEST_HOOKS === '1') {
+    response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    response.end(JSON.stringify({ ok: true }))
+    setTimeout(() => app.quit(), 50)
+    return true
+  }
   // GET /__capture — the same TEST HOOK gate: a PNG of the main window, for
   // check scripts that record what the creator saw.
   if (url.pathname === '/__capture' && request.method === 'GET' && process.env.STUDIO_ENABLE_TEST_HOOKS === '1') {
@@ -364,6 +374,47 @@ ipcMain.handle('studio:download', (event, url: unknown, filename: unknown) => {
   })
 })
 
+// The studio's web storage outlives the port (F03 of the fix verification;
+// see preload.ts): the app's own copy, in the worker's data folder, with
+// the page it was on. Only the studio window reads or writes it.
+const storageSession = randomUUID()
+type StorageSnapshot = { entries: Record<string, string>; path?: string }
+// Known from the worker's start, and kept past its stop: the page's last
+// copy arrives as its window closes, after a quit has stopped the worker.
+let storagePath = ''
+const storageFile = () => storagePath
+const readStorageSnapshot = (): StorageSnapshot | null => {
+  try {
+    const parsed = JSON.parse(readFileSync(storageFile(), 'utf8')) as StorageSnapshot
+    return parsed && parsed.entries && typeof parsed.entries === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+const keepStorageSnapshot = (payload: unknown) => {
+  const file = storageFile()
+  if (!file || typeof payload !== 'string') return
+  try {
+    const parsed = JSON.parse(payload) as StorageSnapshot
+    if (!parsed || typeof parsed.entries !== 'object') return
+    const temporary = `${file}.${process.pid}.tmp`
+    writeFileSync(temporary, payload)
+    renameSync(temporary, file)
+  } catch (error) {
+    log('web storage not kept:', error instanceof Error ? error.message : error)
+  }
+}
+ipcMain.on('studio:web-storage:load', event => {
+  event.returnValue = fromStudioWindow(event.sender) ? { session: storageSession, entries: readStorageSnapshot()?.entries ?? null } : null
+})
+ipcMain.on('studio:web-storage:save', (event, payload) => {
+  if (fromStudioWindow(event.sender)) keepStorageSnapshot(payload)
+})
+ipcMain.on('studio:web-storage:flush', (event, payload) => {
+  if (fromStudioWindow(event.sender)) keepStorageSnapshot(payload)
+  event.returnValue = true
+})
+
 // The check scripts set STUDIO_ALLOW_MULTI_INSTANCE so a test app can run
 // (on its own port and temp data dir) while the user's app stays open.
 if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()) {
@@ -389,6 +440,7 @@ if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()
       // records skill versions per proof). The worker runs in-process.
       process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../skills', import.meta.url))
       worker = await startWorker({ preHandler: mcpPreHandler })
+      storagePath = join(worker.dataDir, 'web-storage.json')
     } catch (error) {
       log('worker failed to start:', error instanceof Error ? error.message : error)
       return quit(2)
@@ -428,7 +480,9 @@ if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()
 
     const win = createWindow(origin)
     try {
-      await win.loadURL(`${origin}/`)
+      // The studio opens where the creator left it: the studio itself, or
+      // the themes page it starts on (F03 of the fix verification).
+      await win.loadURL(`${origin}${readStorageSnapshot()?.path === '/studio' ? '/studio' : '/'}`)
     } catch (error) {
       log('load failed:', error instanceof Error ? error.message : error)
       if (SMOKE) {
