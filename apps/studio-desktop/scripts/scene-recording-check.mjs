@@ -290,8 +290,9 @@ try {
   // ——— Before any take: guidance, and no media claimed ———
   const before = await waitFor(`() => { const none = document.querySelector('#scene-workspace .sw-panel .ws-take-none'); return none ? { none: none.textContent, guide: Boolean(document.querySelector('#scene-workspace .sw-panel .review-guide')) } : null }`, 30)
   check(/^No take yet\./.test(before?.none || '') && before.guide, `before a take, the scene says it has none; the guide is guidance (${JSON.stringify(before?.none)})`)
-  // The teleprompter reads the plan's lines once they are the scene's script.
-  if (await click('#scene-workspace [data-focus^="use-plan-script:"]')) await sleep(800)
+  // The teleprompter reads the plan's lines once they are the scene's script
+  // — at once, with no pause for the notebook to catch up.
+  await click('#scene-workspace [data-focus^="use-plan-script:"]')
   await waitFor(`() => { const button = document.querySelector('#scene-workspace [data-focus^="record:"]'); return button && !button.disabled ? true : null }`, 20)
   await shot('01-before-a-take')
   // Approved first, so that keeping a take is what producing waits for.
@@ -303,7 +304,7 @@ try {
   await click('#scene-workspace [data-focus^="record:"]')
   const opened = await waitFor(`() => { const now = (${capturing})(); return now.open ? now : null }`, 20)
   check(opened?.inWorkspace === true && opened.modal === false && opened.tabs === 'none' && /^Recording scene 1 · Request rate limiter/.test(opened.head), `recording opens in place of the inspector, not as a modal (${JSON.stringify({ inWorkspace: opened?.inWorkspace, modal: opened?.modal, tabs: opened?.tabs, head: opened?.head })})`)
-  check(opened?.stage === true && /Requests arrive/.test(opened.teleprompter), `the scene stays on the stage, and the teleprompter reads its lines (${JSON.stringify({ stage: opened?.stage, teleprompter: opened?.teleprompter.slice(0, 60) })})`)
+  check(opened?.stage === true && opened.teleprompter === 'Requests arrive.\n\nThe limit bites.', `the scene stays on the stage, and the teleprompter reads the plan's lines, just made its script (${JSON.stringify({ stage: opened?.stage, teleprompter: opened?.teleprompter.slice(0, 80) })})`)
   check(opened?.calls === 0, `opening it asks for no camera or microphone (${opened?.calls} requests)`)
   check(opened?.audio === 'microphone', `a scene you present records your microphone by default (${opened?.audio})`)
   await click('#enable-camera')

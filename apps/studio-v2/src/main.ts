@@ -8010,6 +8010,12 @@ window.addEventListener('popstate', () => {
 })
 
 const sceneScript = (scene: Scene) => {
+  // The teleprompter reads the scene's script as the notebook holds it now —
+  // the words a take is recorded as spoken against, and aligned to. The
+  // compiled scene list can lag an edit: just after a plan's lines became
+  // the script, it still held the older words.
+  const saved = String(findSlideLikeNode(scene.id)?.attrs.script ?? ((scene.node.attrs || {}) as Record<string, unknown>).script ?? '').trim()
+  if (saved) return saved
   const collect = (node: TiptapNode): string =>
     node.type === 'text'
       ? node.text || ''
