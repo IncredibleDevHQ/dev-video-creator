@@ -50,6 +50,34 @@ describe('a produced scene in the notebook', () => {
     }
   })
 
+  // BoltDB review B10: the page's older dialogue ran past the render — its
+  // last caption at 30.9 s of a 28.7 s production — and the export grew a
+  // blank tail. Nothing of the page is scheduled under its production.
+  it('never schedules the page beneath its render, however long its old dialogue', () => {
+    const long = project(true)
+    const scene = long.notebook.content![1]
+    const said = 'An older line of this scene that takes a long while to say out loud, far longer than its production runs.'
+    scene.attrs = {
+      ...scene.attrs,
+      script: Array.from({ length: 6 }, () => said).join(' '),
+      windows: Array.from({ length: 6 }, () => ({ say: said, parts: [] })),
+      // A camera-led shot's headline, on a stage the presenter holds.
+      directorAuto: { shots: [{ beats: [0, 1], view: 'camera-full', emphasis: 'An older headline' }] },
+      stageTrack: [{ atMs: 0, family: 'speaker-full' }],
+    }
+    long.blocks.bucket = createDefaultBlockConfig('bucket', scene)
+    const result = compileProject(long)
+    const index = result.scenes.find(entry => entry.id === 'bucket')!.index
+    expect(result.scenes.find(entry => entry.id === 'bucket')!.durationSeconds).toBe(21.4)
+    expect(result.html).not.toContain(`#scene-${index} .ex-caption`)
+    expect(result.html).not.toContain(`__slideDrawScene${index}(`)
+    expect(result.html).not.toContain('An older headline')
+    // Without its production, the same page does draw and caption itself.
+    const { producedScenes: _producedScenes, ...page } = long
+    const drawn = compileProject(page).html
+    expect(drawn).toContain(`__slideDrawScene${index}(`)
+  })
+
   it('adds no sound for a scene silent by choice', () => {
     const result = compileProject(project(false))
     expect(result.html).toMatch(/produced-scene/)

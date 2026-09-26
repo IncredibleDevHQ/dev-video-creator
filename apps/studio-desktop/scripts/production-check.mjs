@@ -289,14 +289,18 @@ try {
   // ——— A base of two pages, its video, a brief, and two approved plans ———
   const narrative = 'Rate limiters keep an API alive under load. The concurrency limiter lets only twenty requests run at once.\n\nA token bucket refills at a steady rate.'
   const read = await post('/api/source/read', { narrative, title: 'Scaling your API with rate limiters', wordingPolicy: 'draft' })
-  const page = async (id, title, file, script) => ({ type: 'scene', attrs: { id, title, script, directorNotes: title, sourcePassages: [], svg: await readFile(join(fixtures, file), 'utf8'), pageOrigin: { kind: 'designed', by: 'Claude Code · Claude Opus 5.5' } } })
+  const page = async (id, title, file, script, extra = {}) => ({ type: 'scene', attrs: { id, title, script, directorNotes: title, sourcePassages: [], svg: await readFile(join(fixtures, file), 'utf8'), pageOrigin: { kind: 'designed', by: 'Claude Code · Claude Opus 5.5' }, ...extra } })
+  // The first page's own dialogue runs far longer than its production will
+  // (BoltDB review B10): none of it may outlast the render in the export.
+  const olderLine = 'This page once said far more than its production will, in lines that take a long while to say out loud.'
+  const olderDialogue = { windows: Array.from({ length: 6 }, () => ({ say: olderLine, parts: [] })) }
   const brand = { background: '#0e0c17', surface: '#15121f', text: '#ffffff', mutedText: '#a9b3cc', primary: '#635bff', secondary: '#ff7d6b', accent: '#ef61ef', codeBackground: '#0a0912' }
   const base = {
     version: 1, id: `production-base-${Date.now().toString(36)}`, title: 'Scaling your API with rate limiters', fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {},
     brand: { ...brand, name: 'Stripe' },
     theme: { version: 1, id: 'stripe-production', name: 'Stripe', description: '', source: 'custom', brand, fonts: { display: 'sohne-var', body: 'sohne-var', mono: 'Consolas' } },
     notebook: { type: 'doc', content: [
-      await page('b06', 'Concurrent requests limiter', '06_concurrent_requests_limiter.svg', 'The concurrency limiter lets only twenty requests run at once.'),
+      await page('b06', 'Concurrent requests limiter', '06_concurrent_requests_limiter.svg', 'The concurrency limiter lets only twenty requests run at once.', olderDialogue),
       await page('b10', 'The token bucket', '10_the_token_bucket.svg', 'A token bucket refills at a steady rate.'),
     ] },
     source: { kind: 'narrative', url: '', site: '', title: 'Scaling your API with rate limiters', readAt: new Date().toISOString(), snapshotId: read.body.snapshot.id },
@@ -442,7 +446,8 @@ try {
   await writeFile(exported, Buffer.from(await (await fetch(download)).arrayBuffer()))
   const length = Number(ffprobe(['-show_entries', 'format=duration', '-of', 'csv=p=0', exported]))
   const expected = clock.duration + clock2.duration
-  check(Math.abs(length - expected) < 0.6, `the video is the two produced scenes, back to back (${length.toFixed(2)}s, expected ${expected.toFixed(2)}s)`)
+  check(Math.abs(length - expected) < 1 / 30 + 0.05, `the video is the two produced scenes, back to back, within a frame — no tail from the page's older dialogue (${length.toFixed(3)}s, expected ${expected.toFixed(3)}s)`)
+  check(typeof job?.result?.durationSeconds === 'number' && Math.abs(job.result.durationSeconds - length) < 0.01, `the export reports the length the file measures (${job?.result?.durationSeconds}s)`)
   const voiced = colourAt(exported, clock.duration / 2)
   const silent = colourAt(exported, clock.duration + clock2.duration / 2)
   check(near(voiced, '#12a150') && near(silent, '#1d4ed8'), `each scene plays its accepted production's frames (${voiced} · ${silent})`)

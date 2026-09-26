@@ -1040,14 +1040,14 @@ const buildCompositionHtml = (
       // where the stage itself is the presenter's, read from the same track.
       // With nobody in frame the page owns the frame: a camera headline over
       // it was clipped at the edge and doubled the narration (F12 of the
-      // Perplexity review).
+      // Perplexity review). A produced scene is its render alone.
       const directorShots = (scene.node.attrs?.directorAuto as { shots?: Array<{ beats?: number[]; view?: string; emphasis?: string }> } | undefined)?.shots
       const sceneTimeline = slideNodeTimeline(scene.node)
       const presenterStageAt = (ms: number) => {
         const segment = stageTrack.filter(entry => entry.atMs <= ms).pop() || stageTrack[0]
         return segment?.family === 'speaker-full'
       }
-      const emphasisMarkup = nobodyInFrame
+      const emphasisMarkup = nobodyInFrame || producedUrl
         ? ''
         : (directorShots || [])
             .filter(shot => shot.emphasis && (shot.view === 'camera-full' || shot.view === 'camera-text') && shot.beats?.length)
@@ -1203,9 +1203,15 @@ const buildCompositionHtml = (
         // in as a block — a paused canvas at the scene start must show it,
         // and the stage track decides what is on screen.
         entrance = `tl.set(${selector}, { opacity: 1, y: 0, clipPath: "none", scale: 1, rotation: 0 }, ${start});`
+        // A scene played by its accepted production (P4) is that render, on
+        // its own clock: the page's motion and captions — timed by its older
+        // dialogue — never run beneath it, where they could outlast it.
+        if (scene.id !== contentViewNodeId && safeUrl(project.producedScenes?.[scene.id]?.videoUrl)) return `${frameTween}${entrance}`
         const { steps, offsets } = slideNodeTimeline(scene.node)
         const captionMotion = steps
-          .map((_, stepIndex) => {
+          // A caption timed past the scene's end would lengthen the video.
+          .flatMap((_, stepIndex) => (offsets[stepIndex] < scene.durationSeconds ? [stepIndex] : []))
+          .map(stepIndex => {
             const at = start + offsets[stepIndex]
             const caption = scriptString(
               `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex}"]`,

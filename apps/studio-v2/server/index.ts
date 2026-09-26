@@ -1,5 +1,5 @@
 import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, type ExportReport } from './export-jobs'
-import { generateFishVoice, generateSystemVoice } from './voice'
+import { generateFishVoice, generateSystemVoice, probeSeconds } from './voice'
 import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
@@ -2526,6 +2526,13 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
     await rm(jobDirectory, { recursive: true, force: true })
   }
 
+  // The file is what the creator gets: its length is measured, and a video
+  // longer or shorter than its scenes by more than a frame is not called
+  // ready — longer is a blank tail (BoltDB review B10), shorter a cut end.
+  const renderedSeconds = await probeSeconds(outputPath).catch(() => null)
+  if (renderedSeconds !== null && Math.abs(renderedSeconds - composition.durationSeconds) > 1 / (renderProject.fps || 30) + 0.05) {
+    throw new Error(`The rendered video lasts ${renderedSeconds.toFixed(2)} s but its scenes last ${composition.durationSeconds.toFixed(2)} s, so it was not kept: it would ${renderedSeconds > composition.durationSeconds ? 'end on a blank tail' : 'cut its ending'}. Export again; if it recurs, it is a bug.`)
+  }
   report?.({ stage: 'storing', percent: 100 })
   // An export is a durable artifact, not just a file in an outputs folder:
   // register the MP4 in the object store with its own asset row (D0a).
@@ -2544,7 +2551,8 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
 
   return {
     url: exportAsset ? `${baseUrl}/objects/${exportAsset.objectKey}` : `${baseUrl}/outputs/${id}.mp4`,
-    durationSeconds: composition.durationSeconds,
+    // What the file measures, not what the composition declared.
+    durationSeconds: renderedSeconds ?? composition.durationSeconds,
     fonts: { shipped: fonts.shipped, substituted: fonts.substituted },
     exportAsset,
   }
