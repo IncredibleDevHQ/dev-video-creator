@@ -23,6 +23,19 @@ describe('the clock a take sets', () => {
     expect(clock.spoken).toEqual([{ id: 'm1', words: 'Requests arrive.', spokenEnd: 1.8 }, { id: 'm2', words: '', spokenEnd: 1.8 }, { id: 'm3', words: 'Load stays safe.', spokenEnd: 5.3 }])
   })
 
+  // Q02 of the BoltDB review: a take is the creator's clock — a moment it
+  // passes faster than what changes in it needs is said, not stretched.
+  it('says when a moment passes faster than what changes in it needs', () => {
+    const clock = takeClockOf(
+      [{ id: 'm1', say: 'Requests arrive.' }, { id: 'm2', say: 'The root is copied.', minimum: 3.75 }, { id: 'm3', say: 'Load stays safe.' }],
+      [line('m1', 'Requests arrive.', [['Requests', 0, 400], ['arrive.', 450, 900]]), line('m2', 'The root is copied.', [['The', 1000, 1100], ['root', 1150, 1400], ['is', 1450, 1500], ['copied.', 1550, 2100]]), line('m3', 'Load stays safe.', [['Load', 2800, 3000], ['stays', 3050, 3300], ['safe.', 3350, 3800]])],
+      4.5,
+    )
+    expect(clock.problems).toEqual([])
+    expect(clock.moments[1]).toEqual({ id: 'm2', start: 1, end: 2.8 })
+    expect(clock.review).toEqual(['moment m2 passes in 1.8s on the take, and what changes in it needs about 3.75s to be seen — leave a pause after its line, or record a pickup'])
+  })
+
   it('names a line the take does not say, and never invents it', () => {
     const clock = takeClockOf(
       [{ id: 'm1', say: 'Requests arrive.' }, { id: 'm2', say: 'The limit bites.' }],

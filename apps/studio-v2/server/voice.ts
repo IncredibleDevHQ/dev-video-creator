@@ -79,14 +79,17 @@ export const probeSeconds = async (path: string) => {
 
 const round = (seconds: number) => Math.round(seconds * 1000) / 1000
 
-export type NarrationLine = { id: string; text: string; estimate: number }
+// A line, the time its plan estimated for it, and the least time its moment
+// needs on screen for what changes in it (0 when nothing does).
+export type NarrationLine = { id: string; text: string; estimate: number; minimum?: number }
 export type NarrationClock = {
   audio: Buffer
   duration: number
   provider: string
   // Each moment on the voice's clock: where it starts, where its words end,
-  // and where it ends after its settle.
-  moments: Array<{ id: string; start: number; spokenEnd: number; end: number; words: string }>
+  // and where it ends after its settle — or after the pause held so what
+  // changes in it can be seen (held: the time beyond the settle).
+  moments: Array<{ id: string; start: number; spokenEnd: number; end: number; words: string; held: number }>
 }
 
 // Speaks each moment's words, measures them, and joins them into one track.
@@ -115,11 +118,14 @@ export const narrationClock = async (lines: NarrationLine[], options: { referenc
         await silence(spoken, Math.max(0.5, line.estimate))
       }
       const length = await probeSeconds(spoken)
+      // A short line never cuts short the change its moment shows: the
+      // voice pauses after its words instead (Q02 of the BoltDB review).
+      const pause = Math.max(settle, (line.minimum || 0) - length)
       const gap = join(dir, `g${index}.wav`)
-      await silence(gap, settle)
+      await silence(gap, pause)
       parts.push(spoken, gap)
-      moments.push({ id: line.id, start: round(at), spokenEnd: round(at + length), end: round(at + length + settle), words })
-      at = round(at + length + settle)
+      moments.push({ id: line.id, start: round(at), spokenEnd: round(at + length), end: round(at + length + pause), words, held: round(pause - settle) })
+      at = round(at + length + pause)
     }
     const list = join(dir, 'parts.txt')
     await writeFile(list, parts.map(path => `file '${path.replace(/'/g, "'\\''")}'`).join('\n'))

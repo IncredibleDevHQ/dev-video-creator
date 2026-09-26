@@ -26,4 +26,19 @@ describe.runIf(await systemVoiceAvailable())('a generated narration clock', () =
     writeFileSync(join(dir, 'narration.mp3'), clock.audio)
     expect(Math.abs((await probeSeconds(join(dir, 'narration.mp3'))) - clock.duration)).toBeLessThan(0.12)
   }, 60_000)
+
+  // Q02 of the BoltDB review: a short line never cuts short what changes in
+  // its moment — the voice pauses after its words for the rest.
+  it('holds a moment for what changes in it, however short its line', async () => {
+    const clock = await narrationClock([
+      { id: 'm1', text: 'The root is copied.', estimate: 5, minimum: 3.75 },
+      { id: 'm2', text: 'Readers keep reading.', estimate: 3, minimum: 0 },
+    ])
+    const [held, plain] = clock.moments
+    expect(held.end - held.start).toBeCloseTo(3.75, 2)
+    expect(held.held).toBeGreaterThan(0.5)
+    expect(held.end - held.spokenEnd).toBeCloseTo(0.4 + held.held, 2)
+    expect(plain.held).toBe(0)
+    expect(plain.end - plain.spokenEnd).toBeCloseTo(0.4, 2)
+  }, 60_000)
 })

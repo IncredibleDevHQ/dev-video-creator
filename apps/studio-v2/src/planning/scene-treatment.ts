@@ -51,6 +51,16 @@ export type TreatmentMoment = {
   estimateSeconds: number | null
 }
 
+// The least time a moment in which something visibly changes needs on
+// screen (Q02 of the BoltDB review): its objects change, or the camera
+// moves. It keeps three quarters of the time its plan estimated for it —
+// the change prepared, made and taken in — however quickly its line is
+// said; a moment where nothing changes needs no more than its words.
+export const visualMinimumOf = (moment: Pick<TreatmentMoment, 'objects' | 'camera' | 'estimateSeconds'>) => {
+  const changes = Boolean(moment.objects?.change?.trim()) || Boolean(moment.camera && !/^(hold|still|static|stay|none)\b/i.test(moment.camera.treatment.trim()))
+  return changes && moment.estimateSeconds ? Math.round(moment.estimateSeconds * 0.75 * 10) / 10 : 0
+}
+
 // A countable demonstration's running count (R7): what is counted, what it
 // starts at, and every change moment by moment. The product replays it, so
 // an illustrative example still obeys its own mechanism — a refused request

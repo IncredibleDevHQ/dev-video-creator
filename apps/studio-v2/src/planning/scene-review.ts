@@ -902,7 +902,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
           !shown.current ? h('p', { class: 'review-warn', text: `Out of date: ${shown.staleBecause}. Produce the scene again to realize the plan as it is now${shown.accepted ? '; the accepted output plays until then' : ''}.` }) : null,
           shown.type && shown.type.faces.length ? h('p', { class: shown.type.unresolved.length ? 'review-warn' : 'review-muted', 'data-review-type': shown.id, text: typeLine(shown.type) }) : null,
           shown.summary.unmet.length ? h('div', { class: 'review-warn' }, h('p', { text: 'What the approved plan asked for and this production could not meet:' }), h('ul', {}, ...shown.summary.unmet.map(item => h('li', { text: item })))) : null,
-          shown.clockReview.length ? h('div', { class: 'review-muted', 'data-review-clock': shown.id }, h('p', { text: 'On your take:' }), h('ul', {}, ...shown.clockReview.map(item => h('li', { text: item })))) : null,
+          shown.clockReview.length ? h('div', { class: 'review-muted', 'data-review-clock': shown.id }, h('p', { text: shown.summary.clock === 'take' ? 'On your take:' : 'On the voice\'s clock:' }), h('ul', {}, ...shown.clockReview.map(item => h('li', { text: item })))) : null,
         ].filter(Boolean) as HTMLElement[]),
       )
     }

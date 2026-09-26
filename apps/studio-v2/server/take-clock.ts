@@ -126,7 +126,7 @@ export type TakeClock = {
 // a spoken moment where its first word is heard, and a moment without words
 // in the pause the take leaves for it. Every moment ends where the next one
 // starts, and the last ends with the take.
-export const takeClockOf = (moments: Array<{ id: string; say: string }>, aligned: AlignedLine[], duration: number): TakeClock => {
+export const takeClockOf = (moments: Array<{ id: string; say: string; minimum?: number }>, aligned: AlignedLine[], duration: number): TakeClock => {
   const problems: string[] = []
   const review: string[] = []
   const found = new Map(aligned.map(line => [line.id, line]))
@@ -161,7 +161,12 @@ export const takeClockOf = (moments: Array<{ id: string; say: string }>, aligned
   }
   const timed = moments.map((moment, at) => ({ id: moment.id, start: round(starts[at]), end: round(at + 1 < moments.length ? starts[at + 1] : duration) }))
   timed.forEach((moment, at) => {
-    if (heard[at] && moment.end - moment.start < TIGHT) review.push(`moment ${moment.id} passes in ${round(moment.end - moment.start)}s on the take — quick for what it shows`)
+    const length = moment.end - moment.start
+    const minimum = moments[at].minimum || 0
+    if (heard[at] && length < TIGHT) review.push(`moment ${moment.id} passes in ${round(length)}s on the take — quick for what it shows`)
+    // What changes in it needs time to be seen (Q02 of the BoltDB review):
+    // a take is the creator's clock, so it is said, not stretched.
+    else if (minimum && length < minimum) review.push(`moment ${moment.id} passes in ${round(length)}s on the take, and what changes in it needs about ${minimum}s to be seen — leave a pause after its line, or record a pickup`)
   })
   for (let at = 1; at < timed.length; at += 1) if (timed[at].start < timed[at - 1].start) problems.push(`moment ${timed[at].id} is said before moment ${timed[at - 1].id} on the take`)
   return {

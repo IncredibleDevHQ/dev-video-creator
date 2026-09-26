@@ -36,7 +36,9 @@ import { listArtwork } from './appearance-library'
 import { fingerprintOf } from '../src/planning/fingerprint'
 import { outlineSceneOf, pageObjectiveOf } from '../src/planning/page-objective'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
-import { continuityStatus, validateTreatment, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
+import { continuityStatus, validateTreatment, visualMinimumOf, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
+// A length as the review says it: to a tenth of a second.
+const round1 = (seconds: number) => Math.round(seconds * 10) / 10
 import { castEntriesForKeys, ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
 import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest, type SketchProof } from '../src/planning/sketch-bundle'
 import { previewFileBody, verifySketchRuntime } from './sketch-runtime'
@@ -1231,13 +1233,13 @@ const roundClock = (seconds: number) => Math.round(seconds * 1000) / 1000
 
 // The narration a scene speaks, moment by moment, from its approved plan.
 const narrationOf = (plan: SceneTreatmentV1): NarrationLine[] =>
-  plan.moments.map(moment => ({ id: moment.id, text: String(moment.narration?.guide || '').trim(), estimate: moment.estimateSeconds || 3 }))
+  plan.moments.map(moment => ({ id: moment.id, text: String(moment.narration?.guide || '').trim(), estimate: moment.estimateSeconds || 3, minimum: visualMinimumOf(moment) }))
 
 // The lines a scene you present says, by moment: the approved plan's
 // narration, as the recording guide asks for them and a take is recorded
 // against. A moment without words is not a line.
 const spokenLinesOf = (plan: SceneTreatmentV1) =>
-  plan.moments.map(moment => ({ id: moment.id, say: scriptLinesOf(String(moment.narration?.guide || '')).join(' ') }))
+  plan.moments.map(moment => ({ id: moment.id, say: scriptLinesOf(String(moment.narration?.guide || '')).join(' '), minimum: visualMinimumOf(moment) }))
 // The stored object a take's URL names, on this Studio.
 const objectKeyOf = (url: string | undefined) => {
   try {
@@ -1439,6 +1441,8 @@ const makeClock = async (source: ClockSource, plan: SceneTreatmentV1, where: { p
       audio: voice.audio,
       provider: voice.provider,
       words: voice.moments.map(({ id, words, spokenEnd }) => ({ id, words, spokenEnd })),
+      // The moments held after their words, said.
+      review: voice.moments.filter(moment => moment.held > 0).map(moment => `moment ${moment.id} is held ${moment.held}s after its words, so what changes in it can be seen — ${round1(moment.end - moment.start)}s in all`),
     }
   }
   let at = 0

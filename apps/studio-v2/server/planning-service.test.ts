@@ -1070,6 +1070,12 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     // The approved words were spoken and measured before the run.
     expect(clock).toMatchObject({ kind: 'generated-voice', audio: 'audio/narration.mp3', provider: 'Local system voice', spoken: [{ id: 'm1', words: 'Each request consumes one token.' }] })
     expect(clock.moments[0].end).toBeGreaterThan(1)
+    // A token leaving the bucket needs three quarters of the moment's 6s
+    // estimate to be seen (Q02 of the BoltDB review): the voice pauses after
+    // its words to give it that, and the output says so.
+    expect(clock.moments[0].end - clock.moments[0].start).toBeCloseTo(4.5, 1)
+    expect(clock.spoken[0].spokenEnd).toBeLessThan(clock.moments[0].end - 0.5)
+    expect((await service.planningOverview(id)).records.find(record => record.id === queued.record.id)?.inputs.clockReview).toEqual([expect.stringMatching(/^moment m1 is held [\d.]+s after its words, so what changes in it can be seen — 4\.5s in all$/)])
     const sound = packet.files['packet/audio/narration.mp3'] as { base64: string; contentType: string }
     expect(sound).toMatchObject({ contentType: 'audio/mpeg', base64: expect.any(String) })
     await service.attachRun(queued.record.id, { runId: 'run-voice' })
