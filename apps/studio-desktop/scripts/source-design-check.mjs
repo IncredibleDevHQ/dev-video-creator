@@ -313,15 +313,20 @@ try {
     return body?.project?.derivedFrom?.notebook === ${JSON.stringify(deckH.base)} && document.body.classList.contains('is-video-notebook') ? id : null
   }`, 'video H open', 90)
   check('the video is made from the base while its page is designed, and opens in its place', Boolean(videoH), String(videoH))
+  // R06 of the project-flow rereview: it opens in Scenes, preparing its brief
+  // there, with no planning window over it. The notebook view is where the
+  // rest of this flow works.
+  const inScenes = await waitFor(`() => { const workspace = document.getElementById('scene-workspace'); return workspace && !workspace.hidden ? { dialog: document.getElementById('planning-dialog')?.open === true } : null }`, 'video H in scenes', 40)
+  await sleep(2000)
+  check(Boolean(inScenes) && !inScenes.dialog && !(await evaluate(`() => document.getElementById('planning-dialog')?.open === true`, 'no planning window')), 'the new video opens in Scenes, with no planning window over it', JSON.stringify(inScenes))
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`, 'the notebook view')
+  await waitFor(`() => document.getElementById('scene-workspace').hidden ? true : null`, 'notebook view', 20)
   const waitingScene = String(scenesIn(await projectOf(videoH))[1]?.attrs?.id || '')
   const before = (await overviewOf(videoH))?.scenes?.find(scene => scene.id === waitingScene)?.reference
   check('its second scene says its base is still designing its page', before?.baseDesigning === true && !before.newer, JSON.stringify(before))
   await evaluate(`() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return true }`, 'select the waiting scene')
   const waitingNotice = await waitFor(`() => { const notice = document.querySelector('[data-review-reference="designing"]'); return notice ? { text: notice.textContent, progress: Boolean(notice.querySelector('[data-review-design]')) } : null }`, 'designing notice', 40)
   check('the scene\'s review says its page is being designed, with the run\'s progress, and that it takes the page by itself — it is not planned yet', Boolean(waitingNotice?.progress) && /When it lands, this scene takes it by itself/.test(waitingNotice.text), JSON.stringify(waitingNotice))
-  // The video opened its planning workspace to prepare the brief: closed, as
-  // the creator does to work on a scene.
-  await waitFor(`() => document.getElementById('planning-dialog')?.open ? (document.querySelector('#planning-workspace .planning-close').click(), true) : null`, 'planning closed', 20)
   // The creator goes on with the other scene: selection and keyboard there.
   await evaluate(`() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[0]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return true }`, 'select the first scene')
   await sleep(1000)

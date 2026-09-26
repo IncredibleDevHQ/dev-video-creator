@@ -507,12 +507,14 @@ try {
     return projects.find(row => row.derivedFrom?.notebook === lone.id)
   })
   await until('the video to open', () => evaluate(`(document.getElementById('project-title') || {}).value === ${JSON.stringify(forked.title)}`).catch(() => false))
-  const opened = await until('its plans to open on the chosen scene', () => evaluate(`(() => {
-    const dialog = document.getElementById('planning-dialog')
-    const scene = document.querySelector('#planning-workspace .planning-scene.is-selected, #planning-workspace .planning-scene[aria-current="true"]')
-    return dialog?.open && scene && { scene: scene.textContent }
+  // R06 of the project-flow rereview: the fork opens in Scenes on the scene
+  // chosen in the base, preparing its brief there — no planning window over it.
+  const opened = await until('the fork to open in Scenes on the chosen scene', () => evaluate(`(() => {
+    const workspace = document.getElementById('scene-workspace')
+    const scene = document.querySelector('#scene-workspace .sw-scene.is-selected strong')?.textContent
+    return workspace && !workspace.hidden && scene && { scene, dialog: document.getElementById('planning-dialog').open }
   })()`).catch(() => false))
-  check(/Second idea/.test(opened.scene), `the fork opens its plans on the scene chosen in the base (${opened.scene.slice(0, 60)})`)
+  check(/Second idea/.test(opened.scene) && !opened.dialog, `the fork opens in Scenes on the scene chosen in the base, no planning window over it (${JSON.stringify(opened)})`)
   const loneForkBrief = await until('the fork\'s brief', async () => (await overview(forked.id)).brief.current, 90_000)
   check(Boolean(loneForkBrief), 'the fork prepares its explanation brief')
   const loneAfter = (await api(`/api/projects/${lone.id}`)).body.project

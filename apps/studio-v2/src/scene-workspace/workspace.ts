@@ -50,6 +50,10 @@ export type SceneWorkspaceHost = {
   // view or recorded (U4); and playing it.
   notice: (sceneId: string) => { kind: 'offer' | 'elsewhere' | 'held'; revision: number } | null
   playOffer: (sceneId: string) => void
+  // A production that finished while the creator chose another view or was
+  // busy with the stage (R06 of the project-flow rereview); watching it.
+  outputNotice?: (sceneId: string) => boolean
+  watchOutput?: (sceneId: string) => void
   // Closing the recording, as its × does: devices released, a take still
   // under review kept (U5).
   closeCapture: () => void
@@ -288,7 +292,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     contextButton.addEventListener('click', () => (context.hidden ? openContext((prefs.context as ContextSection) || 'brief') : closeContext()))
     const actions = h('div', { class: 'sw-actions' }, ...(parts?.secondary || []), parts?.primary || null, contextButton, inspectorButton)
     const planning = parts?.activity && ['planning', 'brief'].includes(parts.actions.activity?.kind || '') ? parts.activity : null
-    head.replaceChildren(back, title, h('div', { class: 'sw-revision-slot' }, parts?.revision || null), h('div', { class: 'sw-status' }, planning), actions)
+    head.replaceChildren(...([back, title, parts?.voice || null, h('div', { class: 'sw-revision-slot' }, parts?.revision || null), h('div', { class: 'sw-status' }, planning), actions] as Array<HTMLElement | null>).filter((part): part is HTMLElement => Boolean(part)))
     // Focus stage sits with the stage's own controls.
     focusButton.textContent = focusStage ? 'Show panels' : 'Focus stage'
     focusButton.setAttribute('aria-pressed', String(focusStage))
@@ -303,7 +307,13 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       play.addEventListener('click', () => host.playOffer(sceneId))
       offer = h('p', { class: 'ws-offer', role: 'status', 'data-offer': notice.kind }, h('strong', { text: `The preview of r${notice.revision} is ready.` }), notice.kind === 'held' ? ' It waits until you finish.' : ' Your view is kept.', ' ', play)
     }
-    activity.replaceChildren(...[building, building ? parts?.build || null : parts?.buildFailure || null, offer].filter((part): part is HTMLElement => Boolean(part)))
+    let output: HTMLElement | null = null
+    if (sceneId && host.outputNotice?.(sceneId)) {
+      const watch = h('button', { type: 'button', class: 'button primary', 'data-focus': 'sw-watch-output', text: 'Watch the output' })
+      watch.addEventListener('click', () => host.watchOutput?.(sceneId))
+      output = h('p', { class: 'ws-offer is-output', role: 'status', 'data-offer': 'output' }, h('strong', { text: 'Output ready.' }), ' The scene is produced; your view is kept. ', watch)
+    }
+    activity.replaceChildren(...[building, building ? parts?.build || null : parts?.buildFailure || null, output, offer].filter((part): part is HTMLElement => Boolean(part)))
   }
 
   const renderRail = (sceneId: string) => {
@@ -609,7 +619,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   }
 
   const signatureOf = (sceneId: string) =>
-    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen, capturing, sceneIds().map(id => host.notice(id))])
+    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen, capturing, sceneIds().map(id => [host.notice(id), host.outputNotice?.(id) || false])])
 
   const render = () => {
     if (root.hidden || !host.video()) return

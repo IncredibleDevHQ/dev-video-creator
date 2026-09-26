@@ -897,12 +897,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
       ? `Type: ${listed}. ${families.map(family => `“${family}”`).join(', ')} cannot be had here: ${families.length === 1 ? 'it is' : 'they are'} set in the system's ${unique(missing.map(face => face.fallback)).join(' and ')}, alike on the stage and in the video — choose another theme to change it.`
       : `Type: ${listed} — each set in its own face, the same on the stage and in the video.`
   }
+  // One status, the list on demand (R06 of the project-flow rereview): a
+  // long column of runtime caveats buried what needed a decision.
   const risksOf = (record: PlanningRecord | null | undefined) => {
     const risks = record?.report?.constructionRisks || []
     if (!record || !risks.length) return null
-    return h('div', { class: 'review-warn review-claims', 'data-review-risks': record.id },
-      h('p', {}, h('strong', { text: `Not yet proven in the pinned runtime (${risks.length})` }), ` — the production may build ${risks.length === 1 ? 'it' : 'them'} another way, and will say so.`),
-      h('ul', {}, ...risks.map(risk => h('li', { text: readable(risk) }))),
+    return h('div', { class: 'review-warn review-claims review-risks', 'data-review-risks': record.id },
+      h('p', {}, h('strong', { text: `${risks.length} recipe${risks.length === 1 ? '' : 's'} not yet proven in the pinned runtime` }), ` — the production may build ${risks.length === 1 ? 'it' : 'them'} another way, and will say so.`),
+      disclosure(`risks:${record.id}`, risks.length === 1 ? 'Which one' : `Which ${risks.length}`, h('ul', {}, ...risks.map(risk => h('li', { text: readable(risk) })))),
     )
   }
   const productionOf = (scene: Scene) => {
@@ -1566,6 +1568,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const actions = actionsOf(scene)
     return {
       revision: revisionPicker(scene),
+      voice: voiceControl(scene),
       primary: actions.primary ? actionButton(scene, actions.primary, true, lead) : null,
       secondary: actions.secondary.map(action => actionButton(scene, action, false, lead)),
       activity: activityLine(scene, actions),
@@ -1776,31 +1779,75 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const made = scene.production?.accepted || scene.production?.ready
     return made && made.summary.clock === 'generated-voice' ? h('p', { class: 'ws-voice-made', text: `Its generated voice${made.voice ? ` (${made.voice})` : ''} was made for the production of plan r${made.of.revision}: ${Math.round(made.summary.duration * 10) / 10}s.` }) : null
   }
+  // Who speaks, chosen for one scene from wherever it is asked — beside the
+  // scene's title as well as in Record (R08 of the project-flow rereview). A
+  // plan is made for who speaks: plans made before read as out of date, and
+  // are kept. A plan still being made would finish out of date — that is
+  // said before anything changes, with stopping it and planning again as
+  // the way on.
+  const chooseDelivery = async (drawn: Scene, value: 'human' | 'generated' | 'silent', label: string) => {
+    if (savingDelivery || drawn.delivery === value) return
+    const projectId = host.projectId()
+    if (!projectId) return
+    // Where the scene stands now: a plan may have started since this was drawn.
+    await load().catch(() => undefined)
+    const scene = sceneOf(drawn.id) || drawn
+    if (scene.delivery === value) return
+    const planning = scene.view.latest && scene.view.latest.kind === 'treatment' && isActiveStatus(scene.view.latest.status) ? scene.view.latest : null
+    const replan = Boolean(planning)
+    if (planning) {
+      if (!window.confirm(`Plan r${planning.revision} is being made for ${scene.delivery ? DELIVERY_CHOICES.find(([choice]) => choice === scene.delivery)?.[1].toLowerCase() : 'who speaks still undecided'}: changing it now would leave that plan out of date the moment it finishes.\n\nStop r${planning.revision}, and plan the scene again with ${label.toLowerCase()}? Other scenes are unchanged.`)) return
+    } else if (scene.view.current && !window.confirm(`Change who speaks in this scene? Its plans made before read as out of date — they are kept — and it is planned again with ${label.toLowerCase()}.`)) return
+    savingDelivery = scene.id
+    host.refresh()
+    void (async () => {
+      try {
+        if (planning) {
+          stopping.add(planning.id)
+          await stopRun(host.fetchJson, planning).catch(() => undefined)
+        }
+        await saveSceneDelivery(host.fetchJson, projectId, scene.id, value)
+        host.toast(replan ? `${label}: saved for this scene, and it is planned again with it. The stopped plan is kept.` : `${label}: saved for this scene. Its earlier plans are kept, marked out of date; other scenes are unchanged.`)
+      } catch (failure) {
+        host.toast(failure instanceof Error ? failure.message : 'Could not save who speaks')
+      } finally {
+        savingDelivery = ''
+        await load()
+      }
+      if (replan) {
+        const now = sceneOf(scene.id)
+        if (now) void revise(now)
+      }
+    })()
+  }
+  // Beside the scene's title: who speaks, and what deciding later costs.
+  const voiceControl = (scene: Scene) => {
+    const select = h('select', { class: 'ws-voice', 'aria-label': 'Who speaks in this scene', 'data-focus': `voice:${scene.id}`, title: scene.delivery ? 'Who speaks in this scene: the plan is made for it' : 'Decide later: the scene can be planned now, but it is planned again once you choose — and produced only then', ...(savingDelivery ? { disabled: true } : {}) })
+    const options: Array<[string, string]> = [['', 'Voice: decide later'], ...DELIVERY_CHOICES.map(([value, label]) => [value, `Voice: ${value === 'human' ? 'you present it' : label.toLowerCase()}`] as [string, string])]
+    for (const [value, text] of options) {
+      const option = h('option', { value, text, ...(value === '' && scene.delivery ? { disabled: true } : {}) })
+      if ((scene.delivery || '') === value) option.selected = true
+      select.append(option)
+    }
+    select.addEventListener('change', () => {
+      const chosen = DELIVERY_CHOICES.find(([value]) => value === select.value)
+      if (!chosen) return
+      select.value = scene.delivery || ''
+      void chooseDelivery(scene, chosen[0], chosen[1])
+    })
+    return h('label', { class: `ws-voice-field${scene.delivery ? '' : ' is-undecided'}` }, select)
+  }
   const recordOf = (scene: Scene) => {
     const box = h('div', { class: 'ws-record' })
     const choice = h('div', { class: 'ws-delivery', role: 'radiogroup', 'aria-label': 'Who speaks in this scene' })
     for (const [value, label] of DELIVERY_CHOICES) {
       const selected = scene.delivery === value
       const button = h('button', { type: 'button', role: 'radio', 'aria-checked': selected ? 'true' : 'false', class: selected ? 'is-selected' : '', 'data-focus': value === (scene.delivery || 'human') ? `delivery:${scene.id}` : `delivery-${value}:${scene.id}`, text: label, ...(savingDelivery ? { disabled: true } : {}) })
-      button.addEventListener('click', () => {
-        if (selected || savingDelivery) return
-        const projectId = host.projectId()
-        if (!projectId) return
-        if (scene.view.current && !window.confirm(`Change who speaks in this scene? Its plans made before read as out of date — they are kept — and it is planned again with ${label.toLowerCase()}.`)) return
-        savingDelivery = scene.id
-        host.refresh()
-        void saveSceneDelivery(host.fetchJson, projectId, scene.id, value)
-          .then(() => host.toast(`${label}: saved for this scene. Its earlier plans are kept, marked out of date; other scenes are unchanged.`))
-          .catch(failure => host.toast(failure instanceof Error ? failure.message : 'Could not save who speaks'))
-          .finally(() => {
-            savingDelivery = ''
-            void load()
-          })
-      })
+      button.addEventListener('click', () => void chooseDelivery(scene, value, label))
       choice.append(button)
     }
     const said = DELIVERY_CHOICES.find(([value]) => value === scene.delivery)
-    box.append(h('h4', { class: 'ws-label', text: 'Who speaks' }), choice, h('p', { class: 'review-muted', text: said ? said[2] : 'Not chosen yet: choose who speaks before the scene is produced. Planning can start without it.' }))
+    box.append(h('h4', { class: 'ws-label', text: 'Who speaks' }), choice, h('p', { class: 'review-muted', text: said ? said[2] : 'Not chosen yet: the scene can be planned without it, but it is planned again once you choose — and produced only then.' }))
     const record = shownRecord(scene)
     const plan = record?.content as SceneTreatmentV1 | undefined
     if (!plan || !record) {
@@ -2116,6 +2163,15 @@ export const createSceneReview = (host: SceneReviewHost) => {
         selected,
         desktop: Boolean(window.studioDesktop?.isDesktop),
       })
+    },
+    // Prepare the video's brief, as the scene workspace's own button does:
+    // a new video prepares it there, not in a planning window over it (R06
+    // of the project-flow rereview).
+    prepareBrief: () => {
+      const scene = overview?.scenes[0]
+      if (!scene || !overview?.available || briefStateOf().preparing || (overview.brief.current && !overview.brief.stale)) return false
+      perform(scene, { kind: 'prepare-brief', label: 'Prepare the brief' }, () => undefined)
+      return true
     },
     // Plan the scene, as its review's own button does.
     plan: (sceneId: string) => {

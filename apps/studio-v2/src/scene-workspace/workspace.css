@@ -100,7 +100,8 @@ body.is-scene-workspace .notebook-document { display: none; }
 
 /* ——— The stage ——— */
 .sw-centre { grid-area: centre; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--sw-surround); }
-.sw-stage-area { flex: 1 1 auto; min-height: 220px; display: grid; place-items: center; padding: 16px 20px 8px; container-type: size; }
+/* R06: the stage keeps a useful size with the timeline and inspector open. */
+.sw-stage-area { flex: 1 1 auto; min-height: clamp(260px, 44vh, 560px); display: grid; place-items: center; padding: 16px 20px 8px; container-type: size; }
 .sw-stage-frame { position: relative; width: min(100cqw, calc(100cqh * var(--sw-aspect, 1.7778))); aspect-ratio: var(--sw-aspect, 16 / 9); overflow: hidden; border-radius: 10px; background: #0f0d18; box-shadow: 0 1px 2px rgba(24, 24, 27, .1), 0 14px 34px rgba(24, 24, 27, .16); }
 .sw-stage-frame:fullscreen { width: 100%; border-radius: 0; }
 .sw-stage-frame > .scene-stage { inset: 0; border-radius: 0; }
@@ -239,6 +240,11 @@ body.is-scene-workspace .toast { bottom: 96px; }
 /* A finished preview the creator did not wait on: offered, the view kept. */
 .ws-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 6px 0 0; padding: 7px 8px 7px 12px; border-radius: 8px; background: #f5f3ff; color: #4c1d95; font-size: 12.5px; }
 .ws-offer .button { margin-left: auto; min-height: 30px; font-size: 12px; }
+.ws-offer.is-output { background: #f0fdf4; color: #14532d; }
+/* R08: who speaks, beside the scene's title. */
+.ws-voice-field { display: inline-flex; flex: none; }
+.ws-voice { max-width: 220px; padding: 6px 28px 6px 10px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; color: var(--sw-ink); font: 600 12.5px/1.2 'InterBody', Inter, sans-serif; }
+.ws-voice-field.is-undecided .ws-voice { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
 
 /* Useful progress (U3): a run in its named phases — done, now, to come —
    what is happening, for how long and by whom; the harness's own last word
@@ -365,7 +371,7 @@ body.is-scene-workspace .toast { bottom: 96px; }
 .sw-transport.is-timeline .sw-timeline { grid-column: 1 / -1; grid-row: 2; }
 .sw-timeline { --sw-track-label: 96px; display: grid; gap: 4px; min-width: 0; }
 .sw-timeline-ruler { display: flex; justify-content: space-between; margin-left: var(--sw-track-label); color: var(--sw-muted); font: 500 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
-.sw-timeline-tracks { position: relative; display: grid; gap: 3px; max-height: 34vh; overflow-y: auto; }
+.sw-timeline-tracks { position: relative; display: grid; gap: 3px; max-height: 24vh; overflow-y: auto; }
 .sw-track { display: grid; grid-template-columns: var(--sw-track-label) minmax(0, 1fr); align-items: center; min-height: 24px; }
 .sw-track-label { overflow: hidden; padding-right: 8px; color: #52525b; font: 650 11px/1.2 'InterBody', Inter, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
 .sw-lane { position: relative; height: 24px; border-radius: 5px; background: rgba(255, 255, 255, .55); }

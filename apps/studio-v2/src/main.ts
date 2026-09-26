@@ -457,6 +457,8 @@ const BUILD_INTENT_KEY = 'incredible-studio-v2-build-intent'
 // A video fork just made, whose explanation brief should be prepared as soon
 // as it opens (M0 planning).
 const PREPARE_INTENT_KEY = 'incredible-studio-v2-prepare-intent'
+// A new video's first moves, taken once its scenes are read (R06).
+let pendingVideoIntent: { sceneId: string; prepare: boolean } | null = null
 // Edits durable storage never acknowledged (their save failed) are kept per
 // notebook under this prefix until a save of that notebook lands.
 const DRAFT_STORAGE_PREFIX = 'incredible-studio-v2-draft-'
@@ -8940,7 +8942,11 @@ const renderPublishScope = () => {
   const current = scenes.find(scene => scene.id === publishSceneId)
   if (current) {
     const produced = Boolean(project.derivedFrom?.notebook && project.producedScenes?.[current.id])
-    options.push(['scene', findSlideLikeNode(current.id) ? 'This scene' : 'This block', `${String(current.index + 1).padStart(2, '0')} · ${current.title}${produced ? ' · its accepted production' : ''}`])
+    // A scene is named as Scenes names it — its number among the scenes,
+    // not among every block (the project-flow rereview).
+    const scene = Boolean(findSlideLikeNode(current.id))
+    const number = scene ? `Scene ${scenes.filter(entry => findSlideLikeNode(entry.id)).findIndex(entry => entry.id === current.id) + 1}` : String(current.index + 1).padStart(2, '0')
+    options.push(['scene', scene ? 'This scene' : 'This block', `${number} · ${current.title}${produced ? ' · its accepted production' : ''}`])
   }
   const accepted = acceptedSceneIds().length
   if (accepted) options.push(['accepted', 'Accepted productions', `${accepted} scene${accepted === 1 ? '' : 's'}`])
@@ -17676,7 +17682,11 @@ try {
           })
         : undefined
       const sceneId = String(found?.attrs?.id || '')
-      void planningWorkspace.open({ prepare: Boolean(intent.prepare), ...(sceneId ? { sceneId, tab: 'plan' as const } : {}) })
+      // A new video opens in Scenes — the scene asked for selected, its
+      // reference on the stage — and prepares its brief there (R06 of the
+      // project-flow rereview). The planning workspace stays a tool the
+      // creator opens, never the way in.
+      pendingVideoIntent = { sceneId, prepare: Boolean(intent.prepare) }
     }
   }
 }
@@ -17932,6 +17942,7 @@ sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(b
     if (reviewSelectedScene) {
       stageChoices.choose(reviewSelectedScene, mode)
       if (mode === 'preview') previewNotices.delete(reviewSelectedScene)
+      if (mode === 'output') outputNotices.delete(reviewSelectedScene)
     }
     if (mode === sceneStageMode) return
     if (mode === 'reference') stagePlayer?.pause()
@@ -18234,6 +18245,32 @@ const settlePreviewWaits = () => {
     sceneWorkspace?.announce(`Preview r${wait.revision} ready`)
   }
   if (changed) sceneWorkspace?.render()
+  settleOutputs()
+}
+// A production that finishes for the scene on show (R06 of the project-flow
+// rereview): the stage takes it, unless the creator chose another view for
+// the scene or is busy with the stage — then it is offered, one click away.
+// A production already there when the scene was opened is not new.
+const outputsSeen = new Map<string, string>()
+const outputNotices = new Set<string>()
+const settleOutputs = () => {
+  const sceneId = reviewSelectedScene
+  if (!sceneReview?.active() || !sceneId) return
+  const now = sceneReview.stageOf(sceneId)?.scene.production?.ready?.id || ''
+  const was = outputsSeen.get(sceneId)
+  outputsSeen.set(sceneId, now)
+  if (was === undefined || !now || was === now || sceneStageMode === 'output') return
+  const chosen = stageChoices.chosen(sceneId)
+  if ((chosen && chosen !== 'output') || sceneStageAsideFor || cameraDialog.open || stagePlaying) {
+    outputNotices.add(sceneId)
+    sceneWorkspace?.announce('The scene’s output is ready. It waits under the stage.')
+    sceneWorkspace?.render()
+    return
+  }
+  outputNotices.delete(sceneId)
+  showProducedScene(sceneId)
+  sceneWorkspace?.announce('Output ready: playing on the stage')
+  sceneWorkspace?.render()
 }
 // In the scene workspace each scene opens on the view chosen for it, else on
 // what it has to play: its production, then its preview, then its page.
@@ -18609,6 +18646,12 @@ sceneWorkspace = createSceneWorkspace({
     if (reviewSelectedScene !== sceneId) selectNode(sceneId, true)
     playPreview(sceneId)
   },
+  outputNotice: sceneId => outputNotices.has(sceneId),
+  watchOutput: sceneId => {
+    outputNotices.delete(sceneId)
+    showProducedScene(sceneId)
+    sceneWorkspace?.render()
+  },
   viewChanged: view => {
     if (view === 'scenes' && reviewSelectedScene) resolveStageView(reviewSelectedScene)
     // The notebook's review folds while the workspace shows, and opens again.
@@ -18628,6 +18671,23 @@ sceneWorkspace = createSceneWorkspace({
   active: () => Boolean(sceneWorkspace?.active()),
 }
 sceneWorkspace.start()
+// A new video's intent, once its scenes are read: Scenes shown, the scene
+// asked for selected, and its brief prepared there (R06).
+if (pendingVideoIntent) {
+  const intent = pendingVideoIntent
+  pendingVideoIntent = null
+  let tries = 0
+  const take = () => {
+    if (!sceneReview?.active()) {
+      if ((tries += 1) < 120) window.setTimeout(take, 250)
+      return
+    }
+    sceneWorkspace?.show('scenes')
+    if (intent.sceneId) selectNode(intent.sceneId, true)
+    if (intent.prepare) sceneReview.prepareBrief()
+  }
+  take()
+}
 document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
 // ——— The switch between a project's notebooks (the four-notebook model) ———
 // A notebook of a project shows the project's notebooks, one tab per kind:
@@ -19108,7 +19168,9 @@ nextStepButton.addEventListener('click', () => {
       if (baseVideos[0]) void openNotebook(baseVideos[0].id)
       break
     case 'brief':
-      void planningWorkspace.open({ prepare: true })
+      // Prepared in Scenes, where the video is reviewed (R06).
+      sceneWorkspace?.show('scenes')
+      if (!sceneReview?.prepareBrief()) void planningWorkspace.open({ prepare: true })
       break
     case 'plan':
     case 'review':
