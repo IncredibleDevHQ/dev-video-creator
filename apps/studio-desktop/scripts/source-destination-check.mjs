@@ -1,12 +1,13 @@
-// Source-destination check (review finding #3): the new-or-append decision
-// turns on the author's own content, not only on scenes, and the untouched
-// starter sample is not content. A fresh launch finishing a two-scene source
-// flow gets a new notebook holding exactly that story (compiled duration is
-// the two scenes, no starter blocks ride along); a notebook with real content
-// is asked, and a deliberate "add to this notebook" appends. Pattern per
-// take-workflow-check.mjs (smoke app + /__eval) and build-fork-check.mjs
-// (stub kimi on PATH); the local file store keeps the shared database out of
-// the fixture, per local-store-check.mjs.
+// Where an import lands (the four-notebook model, and review finding #3):
+// always in a project of its own. Choosing the brand opens the studio on
+// the new project's text at once, whatever was open — the untouched starter
+// sample, a notebook of the author's own writing, or a video on its Scenes
+// view — and leaves that notebook as it was. The project's wireframe is made
+// in the background and holds exactly the story's scenes, nothing of the
+// starter. Coming from a video (BoltDB review B01), nothing of the video
+// stays in view. Pattern per take-workflow-check.mjs (smoke app + /__eval)
+// and build-fork-check.mjs (stub kimi on PATH); the local file store keeps
+// the shared database out of the fixture.
 import { spawn } from 'node:child_process'
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -24,8 +25,6 @@ const dataDir = join(root, 'data')
 // sentence, so every flow below knows exactly which scenes to expect.
 const FLOW_A_ONE = 'Every request waits in one queue, and a single slow job blocks all the others behind it.'
 const FLOW_A_TWO = 'A worker pool pulls from the queue in parallel, so one slow job never holds the rest hostage.'
-const FLOW_B_ONE = 'Retries multiply the load exactly when the service can least afford it.'
-const FLOW_B_TWO = 'A backoff schedule spaces the retries out, so the load arrives at a survivable rate.'
 const FLOW_C_ONE = 'The cache stamps every entry with the time it was written, so a stale read is always visible.'
 const FLOW_D_ONE = 'A page split moves half the keys into a new page and points the parent at both.'
 const SAMPLE_MARK = 'Make technical ideas feel human'
@@ -127,42 +126,30 @@ const activeId = () => evaluate(`() => window.localStorage.getItem('incredible-s
 const nodeText = node => `${(node.content || []).map(nodeText).join(' ')} ${node.text || ''}`.trim()
 const meaningful = project => (project?.notebook?.content || []).filter(node => node.type !== 'paragraph' || nodeText(node).length > 0)
 const sceneNodes = project => (project?.notebook?.content || []).filter(node => node.type === 'scene')
-const compiledSeconds = async project => {
-  const response = await fetch(`${origin}/api/preview`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ project }),
-  }).then(r => r.json())
-  return response.durationSeconds
-}
-const expectedSeconds = project =>
-  sceneNodes(project).reduce((sum, node) => sum + Math.max(1000, Number(project.blocks?.[node.attrs?.id]?.durationMs) || 0) / 1000, 0)
 
-// One wizard run: paste the narrative, read, outline (stub kimi), pages. When
-// the destination row shows, pick the requested destination; the caller learns
-// whether the row was offered at all.
-const runWizard = async (narrative, destination) => {
+// One import: paste the narrative, read it, keep the brand; the studio opens
+// on the new project's text, and its wireframe is made in the background.
+const importNarrative = async narrative => {
+  const before = await activeId().catch(() => null)
   await evaluate(`() => { window.__source.open('narrative'); return true }`, 'open source')
   await waitFor(`() => document.getElementById('source-dialog')?.open === true`, 'source dialog')
   await evaluate(`() => { const box = document.getElementById('source-narrative'); box.value = ${JSON.stringify(narrative)}; document.getElementById('source-read').click(); return true }`, 'read')
-  const brand = await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand step')
-  if (!brand) return { ok: false, offered: null }
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline')
-  const outlined = await waitFor(`() => !document.getElementById('source-step-outline')?.hidden`, 'outline step', 150)
-  if (!outlined) return { ok: false, offered: null }
-  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'pages')
-  const paged = await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages step')
-  if (!paged) return { ok: false, offered: null }
-  const offered = await evaluate(`() => !document.getElementById('source-destination-row')?.hidden`, 'destination row')
-  if (destination) {
-    await evaluate(`() => { const radio = document.querySelector('input[name="source-destination"][value="${destination}"]'); if (radio) radio.click(); return true }`, 'destination')
-  }
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish')
-  const done = await waitFor(`async () => {
-    if (document.getElementById('source-dialog')?.open) return null
-    return window.localStorage.getItem('incredible-studio-v2-active-project')
-  }`, 'finish', 120)
-  return { ok: Boolean(done), offered }
+  const brand = await waitFor(`() => !document.getElementById('source-step-brand')?.hidden && !document.getElementById('source-to-outline').disabled`, 'brand step')
+  if (!brand) return { ok: false }
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'create the project')
+  return importLanded(before)
+}
+// The studio open on a new project's text, with its wireframe made.
+const importLanded = async before => {
+  const text = await waitFor(`() => {
+    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
+    return document.getElementById('source-dialog')?.open === false && document.body.dataset.notebookKind === 'text' && id && id !== ${JSON.stringify(before || '')} ? id : null
+  }`, 'the text opens', 120)
+  const made = await waitFor(`() => /^\\d+ pages?$/.test(document.querySelector('#notebook-switch [data-kind="wireframe"] small')?.textContent || '') ? true : null`, 'the wireframe is made', 120)
+  const textNotebook = text ? await projectBody(text) : null
+  const view = textNotebook?.container?.id ? await fetch(`${origin}/api/containers/${encodeURIComponent(textNotebook.container.id)}`).then(r => r.json()).catch(() => null) : null
+  const wireframeId = (view?.notebooks || []).find(entry => entry.kind === 'wireframe')?.id || null
+  return { ok: Boolean(text && made), text, wireframe: wireframeId ? await projectBody(wireframeId) : null, textNotebook }
 }
 
 try {
@@ -176,9 +163,8 @@ try {
   }`, 'boot')
   check('fresh launch boots on the starter sample', Boolean(boot && boot.text.includes(SAMPLE_MARK)), (boot?.text || '').slice(0, 60))
   const bootNotebookId = boot?.id || ''
-
-  // Present it myself is irrelevant to the destination; the generated path is
-  // exercised here so the delivery chooser runs the real entry.
+  // Present it myself is irrelevant to where the import lands; the generated
+  // path is exercised here so the delivery chooser runs the real entry.
   await evaluate(`() => { window.localStorage.setItem('studio.codingAgent', 'kimi'); document.getElementById('create-explainer').click(); return true }`, 'open chooser')
   await sleep(300)
   await evaluate(`() => { document.querySelector('#create-explainer-paths [data-delivery="generated"]').click(); return true }`, 'choose generated')
@@ -187,69 +173,20 @@ try {
   const dialogOpen = await waitFor(`() => document.getElementById('source-dialog')?.open === true`, 'source dialog')
   check('the source flow opens for the narrative', Boolean(dialogOpen))
   await evaluate(`() => { const box = document.getElementById('source-narrative'); box.value = ${JSON.stringify(narrativeOf(FLOW_A_ONE, FLOW_A_TWO))}; document.getElementById('source-read').click(); return true }`, 'read')
-  check('the narrative is read', Boolean(await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand step')))
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline')
-  check('the story run plans the outline', Boolean(await waitFor(`() => !document.getElementById('source-step-outline')?.hidden`, 'outline step', 150)))
-  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'pages')
-  check('the pages are made', Boolean(await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages step')))
-  const offeredA = await evaluate(`() => !document.getElementById('source-destination-row')?.hidden`, 'destination row')
-  check('the untouched starter sample is not treated as content (no destination prompt)', offeredA === false, `offered=${offeredA}`)
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish')
-  const finishedA = await waitFor(`async () => {
-    if (document.getElementById('source-dialog')?.open) return null
-    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
-    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
-    const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
-    return scenes.length >= 2 ? id : null
-  }`, 'finish', 120)
-  check('finishing a fresh launch starts a new notebook', Boolean(finishedA) && finishedA !== bootNotebookId, `${finishedA} vs ${bootNotebookId}`)
-
-  const freshNotebook = finishedA ? await projectBody(finishedA) : null
-  const freshScenes = sceneNodes(freshNotebook)
-  const freshBlocks = meaningful(freshNotebook)
-  check(
-    'the new notebook holds exactly the two scenes — no starter blocks ride along',
-    freshScenes.length === 2 && freshBlocks.length === 2 && !freshBlocks.some(node => nodeText(node).includes(SAMPLE_MARK)),
-    JSON.stringify((freshNotebook?.notebook?.content || []).map(node => node.type)),
-  )
-  const previewSeconds = freshNotebook ? await compiledSeconds(freshNotebook) : 0
-  const sceneSeconds = freshNotebook ? expectedSeconds(freshNotebook) : -1
-  check(
-    'the compiled duration is exactly the two scenes',
-    Math.abs(previewSeconds - sceneSeconds) < 0.05 && sceneSeconds > 0,
-    `compiled=${previewSeconds}s scenes=${sceneSeconds}s`,
-  )
+  check('the narrative is read', Boolean(await waitFor(`() => !document.getElementById('source-step-brand')?.hidden && !document.getElementById('source-to-outline').disabled`, 'brand step')))
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'create the project')
+  const flowA = await importLanded(bootNotebookId)
+  check('the import opens a new project on its text, and makes its wireframe', flowA.ok && flowA.text !== bootNotebookId, `${flowA.text} vs ${bootNotebookId}`)
+  const textBlocks = meaningful(flowA.textNotebook)
+  check('its text is the narrative, and only the narrative', textBlocks.some(node => nodeText(node).includes(FLOW_A_ONE)) && textBlocks.some(node => nodeText(node).includes(FLOW_A_TWO)) && !textBlocks.some(node => nodeText(node).includes(SAMPLE_MARK)), JSON.stringify(textBlocks.map(node => nodeText(node).slice(0, 40))))
+  const pages = sceneNodes(flowA.wireframe)
+  check('its wireframe holds exactly the two scenes — no starter blocks ride along', pages.length === 2 && meaningful(flowA.wireframe).length === 2 && pages.map(node => String(node.attrs?.script || '')).join('|') === `${FLOW_A_ONE}|${FLOW_A_TWO}`, JSON.stringify((flowA.wireframe?.notebook?.content || []).map(node => node.type)))
+  check('the delivery the journey chose rides with the project', flowA.textNotebook?.explainerDelivery === 'generated' && flowA.wireframe?.explainerDelivery === 'generated', JSON.stringify({ text: flowA.textNotebook?.explainerDelivery, wireframe: flowA.wireframe?.explainerDelivery }))
   const bootNotebook = bootNotebookId ? await projectBody(bootNotebookId) : null
-  check(
-    'the starter notebook is kept, untouched',
-    Boolean(bootNotebook) && sceneNodes(bootNotebook).length === 0 && meaningful(bootNotebook).some(node => nodeText(node).includes(SAMPLE_MARK)),
-  )
+  check('the starter notebook is kept, untouched', Boolean(bootNotebook) && sceneNodes(bootNotebook).length === 0 && meaningful(bootNotebook).some(node => nodeText(node).includes(SAMPLE_MARK)))
 
-  // ——— Flow B: the notebook now has the author's scenes, so the destination
-  // is asked — and a deliberate append adds to this notebook. ———
-  const flowB = await runWizard(narrativeOf(FLOW_B_ONE, FLOW_B_TWO), 'append')
-  check('a notebook with content is offered the destination choice', flowB.ok && flowB.offered === true, `offered=${flowB.offered}`)
-  // The debounced save lands shortly after the dialog closes; poll for it.
-  let afterB = null
-  for (let i = 0; i < 30; i += 1) {
-    afterB = finishedA ? await projectBody(finishedA) : null
-    if (sceneNodes(afterB).length === 4) break
-    await sleep(400)
-  }
-  const afterBScripts = sceneNodes(afterB).map(node => String(node.attrs?.script || ''))
-  check(
-    'a deliberate append adds the scenes to the same notebook',
-    Boolean(afterB) && (await activeId()) === finishedA && sceneNodes(afterB).length === 4,
-    `${sceneNodes(afterB).length} scenes`,
-  )
-  check(
-    'the append keeps the first story and the starter sample stays out',
-    afterBScripts.includes(FLOW_A_ONE) && afterBScripts.includes(FLOW_B_ONE) && !meaningful(afterB).some(node => nodeText(node).includes(SAMPLE_MARK)),
-    JSON.stringify(afterBScripts).slice(0, 160),
-  )
-
-  // ——— Flow C: a markdown-only notebook (no scenes) is content too: the
-  // choice is offered, and the default starts a new notebook. ———
+  // ——— Flow C: a notebook of the author's own writing: the import is a
+  // project of its own, and the notebook keeps its content. ———
   const MD_ID = `markdown-${Date.now().toString(36)}`
   const mdProject = {
     version: 1, id: MD_ID, title: 'Markdown notes',
@@ -263,33 +200,14 @@ try {
   await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(MD_ID)}); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, 'open markdown notebook')
   const mdBoot = await waitFor(`() => document.getElementById('project-title')?.value === 'Markdown notes'`, 'markdown notebook boot')
   check('the markdown notebook opens', Boolean(mdBoot))
-  const flowC = await runWizard(narrativeOf(FLOW_C_ONE), 'new')
-  check('written markdown triggers the destination choice even without scenes', flowC.ok && flowC.offered === true, `offered=${flowC.offered}`)
-  // The debounced save of the new notebook lands shortly after the close.
-  let afterC = null
-  let cNotebook = null
-  for (let i = 0; i < 30; i += 1) {
-    afterC = await activeId().catch(() => null)
-    cNotebook = afterC ? await projectBody(afterC) : null
-    if (afterC && afterC !== MD_ID && sceneNodes(cNotebook).length === 1) break
-    await sleep(400)
-  }
-  check(
-    'starting a new notebook from written content leaves the markdown notebook alone',
-    flowC.ok && afterC !== MD_ID && sceneNodes(cNotebook).length === 1 && meaningful(cNotebook).length === 1,
-    `active=${afterC}`,
-  )
+  const flowC = await importNarrative(narrativeOf(FLOW_C_ONE))
+  check('from the author\'s own notebook, the import is a project of its own', flowC.ok && flowC.text !== MD_ID && sceneNodes(flowC.wireframe).length === 1, JSON.stringify({ text: flowC.text, pages: sceneNodes(flowC.wireframe).length }))
   const mdAfter = await projectBody(MD_ID)
-  check(
-    'the markdown notebook keeps its own content, no scenes appended',
-    Boolean(mdAfter) && sceneNodes(mdAfter).length === 0 && meaningful(mdAfter).some(node => nodeText(node).includes('Notes that are mine')),
-  )
+  check('the markdown notebook keeps its own content, nothing added', Boolean(mdAfter) && sceneNodes(mdAfter).length === 0 && meaningful(mdAfter).length === 2 && meaningful(mdAfter).some(node => nodeText(node).includes('Notes that are mine')))
 
-  // ——— Flow D (BoltDB review B01): a source finished while a video
-  // notebook's Scenes view is open. The new notebook used to be swapped in
-  // under the studio, which kept the video's views — its scenes, its
-  // stage, its lineage. The studio now opens on the new notebook, as it
-  // opens any: nothing of the video is left in view. ———
+  // ——— Flow D (BoltDB review B01): an import made while a video notebook's
+  // Scenes view is open. The studio opens on the new project's text, as it
+  // opens any notebook: nothing of the video is left in view. ———
   const BASE_ID = `fabric-base-${Date.now().toString(36)}`
   const VIDEO_ID = `video-${BASE_ID}`
   const page = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><rect x="80" y="80" width="400" height="200"/><text x="100" y="200">Fabric</text></svg>'
@@ -302,32 +220,27 @@ try {
   check('the video notebook opens on its Scenes view', Boolean(videoOpen?.video && videoOpen.text), JSON.stringify(videoOpen))
   // A mark on this page: the notebook the studio opens next is a page of its own.
   await evaluate(`() => { window.__videoPage = true; return true }`, 'mark the page')
-  const flowD = await runWizard(narrativeOf(FLOW_D_ONE), 'new')
-  check('from the video notebook, the source finishes into a new notebook', flowD.ok && flowD.offered === true, `offered=${flowD.offered}`)
+  const flowD = await importNarrative(narrativeOf(FLOW_D_ONE))
   const opened = await waitFor(`() => {
     // Until the studio has opened afresh, the video's page is still this one.
     if (window.__videoPage) return null
-    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
     const editor = document.querySelector('#editor .ProseMirror')
-    if (!editor || !id || id === ${JSON.stringify(VIDEO_ID)} || document.getElementById('project-title')?.value !== 'Flow') return null
+    if (!editor || document.body.dataset.notebookKind !== 'text') return null
     return {
-      id,
       video: document.body.classList.contains('is-video-notebook'),
       scenesView: document.body.classList.contains('is-scene-workspace'),
       workspace: !document.getElementById('scene-workspace').hidden,
       scenesTab: !document.getElementById('workspace-tab-scenes').hidden,
       fabric: /Fabric/.test(document.body.innerText),
-      scenes: editor.querySelectorAll(':scope > [data-block-type="scene"]').length,
       said: editor.textContent.includes('page split'),
     }
-  }`, 'new notebook open', 120)
-  check('the studio opens on the new notebook, as it opens any: no video view, no Scenes, no lineage', Boolean(opened) && !opened.video && !opened.scenesView && !opened.workspace && !opened.scenesTab, JSON.stringify(opened))
-  check('nothing of the video notebook is left in view; the new scene is', Boolean(opened) && !opened.fabric && opened.scenes === 1 && opened.said, JSON.stringify(opened && { fabric: opened.fabric, scenes: opened.scenes, said: opened.said }))
-  const newNotebook = opened ? await projectBody(opened.id) : null
+  }`, 'new project open', 120)
+  check('from the video notebook, the import opens the new project as the studio opens any: no video view, no Scenes, no lineage', flowD.ok && Boolean(opened) && !opened.video && !opened.scenesView && !opened.workspace && !opened.scenesTab, JSON.stringify(opened))
+  check('nothing of the video notebook is left in view; the new text is', Boolean(opened) && !opened.fabric && opened.said, JSON.stringify(opened && { fabric: opened.fabric, said: opened.said }))
   const videoAfter = await projectBody(VIDEO_ID)
-  check('the new notebook is a base of its own, and the video notebook is untouched', Boolean(newNotebook) && !newNotebook.derivedFrom && sceneNodes(newNotebook).length === 1 && sceneNodes(videoAfter).length === 1 && videoAfter.derivedFrom?.notebook === BASE_ID, JSON.stringify({ derived: newNotebook?.derivedFrom || null, video: sceneNodes(videoAfter).map(node => node.attrs?.title) }))
-  const notice = await waitFor(`() => { const toast = document.querySelector('#toast, .toast'); return toast && /in a new project/.test(toast.textContent) ? toast.textContent : null }`, 'notice', 20)
-  check('once it is open, the new notebook says what it holds', Boolean(notice), notice || '')
+  check('the video notebook is untouched', sceneNodes(videoAfter).length === 1 && videoAfter.derivedFrom?.notebook === BASE_ID && !videoAfter.container, JSON.stringify({ video: sceneNodes(videoAfter).map(node => node.attrs?.title) }))
+  const notice = await waitFor(`() => { const toast = document.querySelector('#toast, .toast'); return toast && /is a project/.test(toast.textContent) ? toast.textContent : null }`, 'notice', 20)
+  check('once it is open, the new project says what it holds', Boolean(notice), notice || '')
 
   // Cleanup: every notebook this run touched goes; the temp store removes the
   // rest.

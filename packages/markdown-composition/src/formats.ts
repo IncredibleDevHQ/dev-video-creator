@@ -50,7 +50,11 @@ const SUMMARIES: Record<NotebookKind, (notebook: ProjectDocumentV1, pages: Tipta
     const blocks = (notebook.notebook?.content || []).filter(hasWords).length
     return { state: blocks ? 'ready' : 'empty', detail: count(blocks, 'block') }
   },
-  wireframe: (_notebook, pages) => ({ state: pages.length ? 'ready' : 'empty', detail: count(pages.length, 'page') }),
+  // Still being made in the background, it says so — or that it could not be.
+  wireframe: (notebook, pages) =>
+    notebook.build
+      ? { state: 'building', detail: notebook.build.failure ? 'could not be made' : 'being made' }
+      : { state: pages.length ? 'ready' : 'empty', detail: count(pages.length, 'page') },
   presentation: (_notebook, pages) => {
     const origins = pages.map(page => (page.attrs?.pageOrigin || null) as { kind?: string; designing?: unknown } | null)
     const designing = origins.filter(origin => origin?.designing && origin.kind !== 'designed').length

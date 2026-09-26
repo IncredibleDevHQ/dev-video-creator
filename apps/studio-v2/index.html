@@ -248,6 +248,7 @@
                 <p class="notebook-start-hint">Or just start typing below — press <kbd>/</kbd> for block types.</p>
               </section>
               <div id="page-design-status" class="page-design-status" role="status" hidden><span id="page-design-text"></span><button id="page-design-stop" type="button" class="button ghost">Stop remaining work</button></div>
+              <div id="notebook-build-status" class="page-design-status notebook-build-status" role="status" hidden><span id="notebook-build-text"></span><button id="notebook-build-action" type="button" class="button ghost">Stop</button></div>
               <div id="editor" class="editor-shell"></div>
               <div id="slash-menu" class="slash-menu" role="dialog" aria-label="Insert a block" hidden>
                 <div class="slash-menu-heading"><div><strong>Blocks</strong><span>Every block becomes a scene in your timeline.</span></div><kbd>Esc</kbd></div>
@@ -853,8 +854,10 @@
       <div class="modal-actions"><span id="assets-status" class="source-status"></span><button id="assets-done" type="button" class="button">Done</button></div>
     </dialog>
     <dialog id="source-dialog" class="modal source-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Start a video</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
-      <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li><li data-step="outline">Outline</li><li data-step="pages">Pages</li></ol>
+      <div class="modal-heading"><div><span class="eyebrow">Start a project</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
+      <!-- Read, then the brand: the project opens on its text at once, and
+           its wireframe is made in the background (the four-notebook model). -->
+      <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li></ol>
       <section id="source-step-read" class="source-step">
         <!-- U1 of the scene workspace plan: one input at a time, each keeping
              its draft; the article and the brand are separate sources. -->
@@ -922,32 +925,7 @@
           <div id="source-custom-palette"></div>
         </div>
         <div id="source-theme-association" class="source-theme-association" hidden></div>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status" role="status"></span><span id="source-brand-bound" class="source-next"></span><button id="source-to-outline" type="button" class="button primary">Outline it</button></div>
-      </section>
-      <section id="source-step-outline" class="source-step" hidden>
-        <div class="source-outline-head">
-          <label class="source-field grow">Video title<input id="source-outline-title" type="text" /></label>
-          <label class="source-field narrow">Target<input id="source-target" type="text" placeholder="6:00" /></label>
-          <span id="source-outline-sum" class="source-status"></span>
-        </div>
-        <ol id="source-scenes" class="source-scenes"></ol>
-        <div id="source-glossary" class="source-glossary"></div>
-        <p id="source-design-hint" class="source-hint"></p>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="brand">Back</button><span id="source-outline-status" class="source-status"></span><button id="source-make-pages" type="button" class="button ghost">Instant schematic drafts</button><button id="source-design-pages" type="button" class="button primary" hidden>Design the pages</button></div>
-      </section>
-      <section id="source-step-pages" class="source-step" hidden>
-        <div id="source-draw-row" class="source-draw" data-phase="drafts">
-          <div class="source-draw-lines"><span id="source-draw-status" class="source-status" role="status" aria-live="polite"></span><span id="source-draw-failure" class="source-status" hidden></span></div>
-          <button id="source-draw" type="button" class="button secondary" hidden>Design the pages</button><button id="source-draw-stop" type="button" class="button ghost" hidden>Stop remaining work</button>
-        </div>
-        <div id="source-pages-grid" class="source-pages-grid"></div>
-        <div id="source-page-inspector" class="source-page-inspector" role="group" aria-label="Page, large" hidden>
-          <div class="source-inspector-head"><strong id="source-inspector-title"></strong><span id="source-inspector-state" class="source-inspector-state"></span><span class="source-inspector-nav"><button id="source-inspector-prev" type="button" class="button ghost">‹ Previous</button><button id="source-inspector-next" type="button" class="button ghost">Next ›</button><button id="source-inspector-close" type="button" class="button secondary">Back to all pages</button></span></div>
-          <div id="source-inspector-page" class="source-inspector-page"></div>
-        </div>
-        <details id="source-design-log" class="source-design-log" hidden><summary>Designer activity</summary><ol></ol></details>
-        <div id="source-destination-row" class="source-destination" hidden><span>This notebook already has content.</span><label><input type="radio" name="source-destination" value="new" checked /> Start a new notebook</label><label><input type="radio" name="source-destination" value="append" /> Add them to this notebook</label></div>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="outline">Back</button><span id="source-pages-note" class="source-status"></span><button id="source-finish" type="button" class="button primary">Open the notebook</button></div>
+        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status" role="status"></span><span id="source-brand-bound" class="source-next"></span><button id="source-to-outline" type="button" class="button primary">Create the project</button></div>
       </section>
     </dialog>
 

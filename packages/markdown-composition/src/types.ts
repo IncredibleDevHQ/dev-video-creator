@@ -369,6 +369,31 @@ export type NotebookPlaceV1 = {
   from?: string
 }
 
+// A notebook still being made in the background (the four-notebook
+// model). The import opens on the project's text as soon as the brand is
+// chosen; its wireframe is saved at once, waiting for the outline — from
+// the story run named here, or the direct model — and is then drawn from
+// it. Whoever opens the project, or restarts the app, finds it waiting and
+// sees it through.
+export type NotebookBuildV1 = {
+  kind: 'wireframe'
+  via: 'harness' | 'api'
+  runId?: string
+  // Who makes it, as the creator reads it: "Claude Code · Claude Opus 5.5".
+  by: string
+  startedAt: string
+  // What the outline is made from: the article's stored read, the authored
+  // narrative, the wording policy and the length asked for.
+  sourceRevision?: string
+  narrativeRevision?: string
+  wording: 'preserve' | 'assist' | 'draft'
+  targetSeconds?: number | null
+  // The palette and fonts the pages are drawn in, and the site they name.
+  brand: { palette: Record<string, unknown>; fonts: Record<string, unknown> | null; mode: string; site: string }
+  // Why it could not be made, when it could not.
+  failure?: { message: string; at: string }
+}
+
 // Where a derived notebook came from. A video fork pins the revision of the
 // base it was taken from and keeps a snapshot of it, so the video stays
 // intelligible and renderable even when the base moves on or goes away.
@@ -398,6 +423,8 @@ export type ProjectDocumentV1 = {
   // The project this notebook belongs to and what it is there. A notebook
   // with none stands alone, as every notebook did before projects.
   container?: NotebookPlaceV1
+  // Set while the notebook is still being made in the background.
+  build?: NotebookBuildV1
   notebook: TiptapDocument
   fps: 30
   width: 1920

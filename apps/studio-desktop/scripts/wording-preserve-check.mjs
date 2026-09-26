@@ -2,7 +2,7 @@
 // the whole source journey. A stub kimi on PATH plans the outline through the
 // real story-master harness run with the author's sentences verbatim, while a
 // deterministic local model provider answers the scene dialogue writer with an
-// unmistakably different rewrite. After the full wizard flow the saved scenes
+// unmistakably different rewrite. After the import the wireframe's pages
 // must still hold the authored sentences, the policy must survive a reopen,
 // and the explainer build inputs must carry the policy and the narrative
 // revision — no automatic replacement of approved words. Pattern per
@@ -181,25 +181,18 @@ try {
   check('the source flow opens for the narrative', Boolean(dialogOpen))
   await evaluate(`() => { document.querySelector('#source-wording-segment [data-wording="preserve"]').click(); return true }`, 'keep my wording')
 
-  // Read → outline (stub kimi through the harness) → pages → finish.
+  // Read, then the brand: the project opens on its text, and its wireframe
+  // is outlined by the stub kimi through the harness, in the background.
   await evaluate(`() => { const box = document.getElementById('source-narrative'); box.value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, 'read')
-  const brandStep = await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand step')
+  const brandStep = await waitFor(`() => !document.getElementById('source-step-brand')?.hidden && !document.getElementById('source-to-outline').disabled`, 'brand step')
   check('the narrative is read', Boolean(brandStep))
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline')
-  const outlineStep = await waitFor(`() => !document.getElementById('source-step-outline')?.hidden`, 'outline step', 150)
-  check('the story run plans the outline', Boolean(outlineStep))
-  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'pages')
-  const pagesStep = await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages step')
-  check('the pages are made', Boolean(pagesStep))
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish')
-  const finished = await waitFor(`async () => {
-    if (document.getElementById('source-dialog')?.open) return null
-    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
-    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
-    const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
-    return scenes.length >= 2 ? id : null
-  }`, 'finish', 120)
-  check('the wizard finishes into a notebook with both scenes', Boolean(finished), String(finished))
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'create the project')
+  const textOpen = await waitFor(`() => document.getElementById('source-dialog')?.open === false && document.body.dataset.notebookKind === 'text' ? true : null`, 'text open', 120)
+  check('the project opens on its text', Boolean(textOpen))
+  await waitFor(`() => document.querySelector('#notebook-switch [data-kind="wireframe"] small')?.textContent === '2 pages' ? true : null`, 'wireframe made', 120)
+  await evaluate(`() => { setTimeout(() => document.querySelector('#notebook-switch [data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe')
+  const finished = await waitFor(`() => document.body.dataset.notebookKind === 'wireframe' && document.querySelectorAll('#editor .notebook-scene-block').length === 2 ? window.localStorage.getItem('incredible-studio-v2-active-project') : null`, 'wireframe open', 120)
+  check('its wireframe is made with both scenes', Boolean(finished), String(finished))
 
   const saved = finished ? await projectBody(finished) : null
   const scenes = sceneScripts(saved)
@@ -209,14 +202,9 @@ try {
     JSON.stringify(scenes.map(scene => scene.script)).slice(0, 200),
   )
   check(
-    'no saved scene carries the fixture rewrite',
-    scenes.every(scene => !scene.script.includes('FIXTURE PROVIDER')),
+    'no saved scene carries the fixture rewrite, and nothing asked the writer for one',
+    scenes.every(scene => !scene.script.includes('FIXTURE PROVIDER')) && dialogueCalls === 0,
     `dialogue writer consulted ${dialogueCalls}x`,
-  )
-  check(
-    'the windows segment the authored words, not a replacement',
-    scenes.length === 2 && scenes.every((scene, index) => scene.says.join(' ').replace(/\\s+/g, ' ').includes((index === 0 ? SENTENCE_ONE : SENTENCE_TWO).slice(0, 40))),
-    JSON.stringify(scenes.map(scene => scene.says)).slice(0, 200),
   )
   check(
     'the story record keeps the policy and the narrative revision',
@@ -225,7 +213,7 @@ try {
   )
   const narrativeId = saved?.story?.narrativeId || ''
 
-  // Reopen: the saved notebook reloads with the authored words untouched.
+  // Reopen: the wireframe reloads with the authored words untouched.
   await evaluate(`() => { location.reload(); return true }`, 'reopen')
   await waitFor(`() => Boolean(document.getElementById('app') && !document.getElementById('app').hidden && document.querySelector('#editor .ProseMirror'))`, 'reboot')
   const reopenedId = await activeId()

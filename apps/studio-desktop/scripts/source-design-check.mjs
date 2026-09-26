@@ -1,13 +1,14 @@
-// The base deck's designed path (review finding R4): with a drawing harness
-// available, "Design the pages" is the primary action and instant schematic
-// drafts the clearly named alternative. A design run shows its pages as each
-// one is finished (designing → checking → ready, with a count), belongs to
-// the draft that started it — a newer draft never receives an older run's
-// pages — can be stopped, reports an incomplete or failed run with Retry, and
-// opening early says exactly what opens. The notebook marks schematic drafts.
-// F2 of the fresh end-to-end review: every page can be looked at large and
-// says what it is now, and opening early no longer stops the designer — the
-// rest land on their scenes as they are finished, until Stop remaining work.
+// A project's presentation, designed from its wireframe (the four-notebook
+// model). The import opens on the project's text as soon as the brand is
+// chosen, and its wireframe is made in the background. The wireframe offers
+// to design the presentation: a drawing run draws each page, and the
+// presentation — a notebook of its own, the same pages with the same ids —
+// takes each slide as it is finished. While it is designed the presentation
+// says so, with the run's progress; a video offered meanwhile says so and
+// offers to wait; Stop remaining work keeps what is finished; a video made
+// while a slide is designed takes it by itself as it lands (B06 and the
+// per-scene chaining of the BoltDB review); and a slide the run left when
+// the app closed lands when it opens again.
 //
 // A stub kimi on PATH plays the harness: a story run plans two scenes, a
 // page-master run draws page by page as the scenario file says. The local
@@ -154,39 +155,56 @@ const waitFor = async (js, label, tries = 90) => {
   }
   return null
 }
-const status = () => evaluate(`() => window.__source.drawStatus()`, 'draw status')
 // SOURCE_DESIGN_CAPTURE_DIR keeps a PNG of each state the creator sees.
 const capture = async name => {
   if (!process.env.SOURCE_DESIGN_CAPTURE_DIR) return
   const response = await fetch(`${origin}/__capture`).catch(() => null)
   if (response?.ok) await writeFile(join(process.env.SOURCE_DESIGN_CAPTURE_DIR, `${name}.png`), Buffer.from(await response.arrayBuffer()))
 }
-const cards = () =>
-  evaluate(`() => [...document.querySelectorAll('#source-pages-grid .source-page')].map(card => ({ origin: card.dataset.origin, text: card.querySelector('.thumb')?.textContent || '', badge: card.querySelector('.drawn')?.textContent || '' }))`, 'cards')
 const runStatus = async id => (await fetch(`${origin}/api/runs`).then(r => r.json()).then(body => body.runs || []).catch(() => [])).find(run => run.id === id)?.status
-// Every phase the draw status passes through until `until` holds.
-const watch = async (until, seconds = 60) => {
-  const seen = []
-  let last = null
-  for (let i = 0; i < seconds * 2; i++) {
-    last = await status().catch(() => null)
-    if (last) {
-      const key = `${last.phase}:${last.drawn}/${last.total}`
-      if (seen[seen.length - 1] !== key) seen.push(key)
-      if (until(last)) break
-    }
+const projectOf = id => fetch(`${origin}/api/projects/${encodeURIComponent(id)}`).then(r => r.json()).then(body => body.project || null).catch(() => null)
+const scenesIn = project => (project?.notebook?.content || []).filter(node => node.type === 'scene')
+const overviewOf = id => fetch(`${origin}/api/planning/${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null)
+const until = async (test, seconds = 90) => {
+  for (let i = 0; i < seconds * 2; i += 1) {
+    const value = await test().catch(() => null)
+    if (value) return value
     await sleep(500)
   }
-  return { seen, last }
+  return null
 }
-const backToOutline = async title =>
-  evaluate(`() => {
-    document.querySelector('#source-step-pages [data-source-back="outline"]').click()
-    const input = document.querySelector('#source-scenes li input')
-    input.value = ${JSON.stringify(title)}
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-    return !document.getElementById('source-step-outline').hidden
-  }`, 'back to outline')
+const landNow = notebook => fetch(`${origin}/api/pages/land`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notebook }) }).then(r => r.json()).catch(() => null)
+// A new project from the narrative: read, the brand, and the studio opens
+// on its text while its wireframe is made in the background.
+const importProject = async label => {
+  await evaluate(`() => { window.__source.open('narrative'); return true }`, `open source ${label}`)
+  await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, `read ${label}`)
+  await waitFor(`() => !document.getElementById('source-step-brand')?.hidden && !document.getElementById('source-to-outline').disabled`, `brand ${label}`)
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, `create ${label}`)
+  const text = await waitFor(`() => document.getElementById('source-dialog')?.open === false && document.body.dataset.notebookKind === 'text' ? localStorage.getItem('incredible-studio-v2-active-project') : null`, `text ${label}`, 120)
+  const wireframe = await waitFor(`() => document.querySelector('#notebook-switch [data-kind="wireframe"] small')?.textContent === '2 pages' ? true : null`, `wireframe ${label}`, 120)
+  return { text, wireframe: Boolean(wireframe) }
+}
+// From the project's text: its wireframe, then its presentation designed
+// from it — the studio opens on the presentation.
+const designFromWireframe = async label => {
+  await evaluate(`() => { setTimeout(() => document.querySelector('#notebook-switch [data-kind="wireframe"]').click(), 0); return true }`, `open wireframe ${label}`)
+  const wireframe = await waitFor(`() => document.body.dataset.notebookKind === 'wireframe' && !document.getElementById('next-step').hidden && document.getElementById('next-step').textContent === 'Design presentation' ? localStorage.getItem('incredible-studio-v2-active-project') : null`, `wireframe ${label}`, 60)
+  await evaluate(`() => { setTimeout(() => document.getElementById('next-step').click(), 0); return true }`, `design ${label}`)
+  const presentation = await waitFor(`() => document.body.dataset.notebookKind === 'presentation' ? localStorage.getItem('incredible-studio-v2-active-project') : null`, `presentation ${label}`, 120)
+  return { wireframe, presentation }
+}
+// A project whose presentation opens with its first slide landed and its
+// second still being designed.
+const designedDeck = async marker => {
+  await importProject(marker)
+  const { presentation } = await designFromWireframe(marker)
+  const deck = await until(async () => {
+    const scenes = scenesIn(await projectOf(presentation))
+    return scenes.length === 2 && scenes[0].attrs.pageOrigin?.kind === 'designed' && String(scenes[0].attrs.svg).includes(marker) && scenes[1].attrs.pageOrigin?.designing ? scenes : null
+  }, 90)
+  return { run: deck?.[1]?.attrs?.pageOrigin?.designing?.runId, base: presentation }
+}
 
 try {
   const prefs = await fetch(`${origin}/api/settings/harness`, {
@@ -195,228 +213,97 @@ try {
     body: JSON.stringify({ default: { harness: 'kimi', model: null } }),
   }).then(r => r.json())
   check('Kimi is the chosen harness', prefs.preferences?.default?.harness === 'kimi', JSON.stringify(prefs.preferences?.default))
-
   await evaluate(`() => { window.location.assign('/studio'); return true }`, 'open studio')
   check('studio booted', Boolean(await waitFor(`() => Boolean(document.querySelector('#editor .ProseMirror'))`, 'boot')))
-  await evaluate(`() => { window.__source.open('narrative'); return true }`, 'open source')
-  await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, 'read')
-  check('the narrative is read', Boolean(await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand step')))
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline')
-  check('the story run plans the outline', Boolean(await waitFor(`() => !document.getElementById('source-step-outline')?.hidden && document.querySelectorAll('#source-scenes li').length === 2`, 'outline step', 150)))
 
-  // The designed path leads; drafts are the named alternative.
-  const actions = await waitFor(`() => {
-    const design = document.getElementById('source-design-pages')
-    const drafts = document.getElementById('source-make-pages')
-    if (design.hidden) return null
-    return { design: design.textContent, designPrimary: design.classList.contains('primary'), drafts: drafts.textContent, draftsGhost: drafts.classList.contains('ghost'), hint: document.getElementById('source-design-hint').textContent }
-  }`, 'outline actions', 40)
-  check('"Design the pages" is the primary action', actions?.designPrimary === true && actions?.design === 'Design the pages', JSON.stringify(actions))
-  check('instant schematic drafts are the named alternative', actions?.draftsGhost === true && actions?.drafts === 'Instant schematic drafts', JSON.stringify(actions))
-  check('the hint names the harness and model that design the pages', /Kimi/.test(actions?.hint || ''), actions?.hint)
-  await capture('01-outline-actions')
+  // 1. The import: choosing the brand opens the project on its text at
+  // once; the wireframe is made in the background, and its tab says when.
+  await setScenario({ mode: 'paced', marker: 'RUN-F', delayMs: 1000, pauseAfterFirstMs: 25000 })
+  const first = await importProject('F')
+  await capture('01-text-while-the-wireframe-is-made')
+  check('choosing the brand opens the project on its text at once', Boolean(first.text), String(first.text))
+  check('the wireframe is made in the background, and its tab says when it is', first.wireframe === true, String(first.wireframe))
 
-  // 1. A full design run: pages arrive one at a time, then checking, then ready.
-  await setScenario({ mode: 'full', marker: 'RUN-A', delayMs: 6000 })
-  await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, 'design')
-  check('the pages step opens on the schematic drafts', Boolean(await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages step')))
-  const early = await waitFor(`() => { const s = window.__source.drawStatus(); return s.phase === 'designing' && s.lastRunId ? s : null }`, 'designing', 20)
-  const firstRun = early?.lastRunId
-  check('the design run starts bound to the draft', Boolean(early?.draftId && firstRun), JSON.stringify({ draftId: early?.draftId, run: firstRun }))
-  check('designing is labelled with the count', /^Designing with Kimi — \d of 2 pages/.test(early?.status || ''), early?.status)
-  check('opening early says what opens', /^Open now — \d designed, \d still designing$/.test(early?.finishLabel || ''), early?.finishLabel)
-  await waitFor(`() => window.__source.drawStatus().drawn === 1`, 'one designed', 30)
-  await capture('02-designing-one-of-two')
-  const full = await watch(s => s.phase === 'ready' || s.phase === 'failed' || s.phase === 'incomplete', 60)
-  await capture('03-ready')
-  check('pages arrive one at a time, then checking, then ready', ['designing:1/2', 'checking:2/2', 'ready:2/2'].every(key => full.seen.includes(key)), full.seen.join(' → '))
-  check('ready is labelled with the harness and the check', /^Ready — 2 of 2 pages designed by Kimi, checked/.test(full.last?.status || ''), full.last?.status)
-  check('the finish opens the designed notebook', full.last?.finishLabel === 'Open the designed notebook', full.last?.finishLabel)
-  const readyCards = await cards()
-  check('every card is a designed page from this run', readyCards.every(card => card.origin === 'designed' && card.text.includes('RUN-A') && card.badge === 'designed · Kimi'), JSON.stringify(readyCards))
-
-  // 2. A new draft stops the old run, and the old run's pages never land on it.
-  await backToOutline('Scene one, retitled')
-  await setScenario({ mode: 'slow', marker: 'RUN-B', delayMs: 3000 })
-  await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, 'design B')
-  const draftB = await waitFor(`() => { const s = window.__source.drawStatus(); return s.lastRunId && s.lastRunId !== ${JSON.stringify(firstRun)} && s.drawn >= 1 ? s : null }`, 'draft B designing', 60)
-  check('a changed outline makes a new draft with its own run', Boolean(draftB && draftB.draftId !== early?.draftId), JSON.stringify({ a: early?.draftId, b: draftB?.draftId }))
-  const runB = draftB?.lastRunId
-  await backToOutline('Scene one, retitled again')
-  await setScenario({ mode: 'full', marker: 'RUN-C', delayMs: 1500 })
-  await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, 'design C')
-  const draftC = await watch(s => s.lastRunId && s.lastRunId !== runB && (s.phase === 'ready' || s.phase === 'failed' || s.phase === 'incomplete'), 60)
-  check('the new draft is designed by its own run', draftC.last?.phase === 'ready' && draftC.last?.draftId !== draftB?.draftId, draftC.seen.join(' → '))
-  const cCards = await cards()
-  check('no page from the replaced run landed on the new draft', cCards.every(card => card.text.includes('RUN-C') && !card.text.includes('RUN-B')), JSON.stringify(cCards.map(card => card.text.match(/RUN-\w/)?.[0])))
-  check('the replaced run was stopped', (await runStatus(runB)) === 'cancelled', String(await runStatus(runB)))
-
-  // 3. Stop: what the designer finished stays; the rest stay drafts.
-  await backToOutline('Scene one, third title')
-  await setScenario({ mode: 'slow', marker: 'RUN-D', delayMs: 2000 })
-  await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, 'design D')
-  const draftD = await waitFor(`() => { const s = window.__source.drawStatus(); return s.phase === 'designing' && s.drawn === 1 && !document.getElementById('source-draw-stop').hidden ? s : null }`, 'draft D one page', 60)
-  check('a run can be stopped while it designs', Boolean(draftD), JSON.stringify(draftD?.status))
-  await evaluate(`() => { document.getElementById('source-draw-stop').click(); return true }`, 'stop')
-  const stopped = await waitFor(`() => { const s = window.__source.drawStatus(); return s.phase === 'incomplete' ? { ...s, again: document.getElementById('source-draw').textContent, againHidden: document.getElementById('source-draw').hidden } : null }`, 'stopped', 30)
-  check('stopping keeps the finished page and names the rest as drafts', /^Incomplete — 1 of 2 pages designed by Kimi; 1 stay schematic drafts/.test(stopped?.status || ''), stopped?.status)
-  check('the incomplete deck opens as designed + drafts', stopped?.finishLabel === 'Open with 1 designed + 1 schematic drafts', stopped?.finishLabel)
-  check('the pages can be designed again', stopped?.againHidden === false && stopped?.again === 'Design them again', JSON.stringify({ again: stopped?.again, hidden: stopped?.againHidden }))
-  check('the stopped run is cancelled', (await runStatus(draftD?.lastRunId)) === 'cancelled', String(await runStatus(draftD?.lastRunId)))
-
-  // 4. A run that fails part-way: the failure is shown with Retry.
-  await setScenario({ mode: 'partial', marker: 'RUN-E', delayMs: 1000 })
-  await evaluate(`() => { document.getElementById('source-draw').click(); return true }`, 'design again')
-  const partial = await watch(s => s.lastRunId && s.lastRunId !== draftD?.lastRunId && (s.phase === 'incomplete' || s.phase === 'failed' || s.phase === 'ready'), 40)
-  const failureLine = await evaluate(`() => ({ hidden: document.getElementById('source-draw-failure').hidden, text: document.getElementById('source-draw-failure').textContent, buttons: [...document.querySelectorAll('#source-draw-failure button')].map(b => b.textContent) })`, 'failure line')
-  check('a failed run leaves an incomplete deck', partial.last?.phase === 'incomplete', partial.seen.join(' → '))
-  await capture('04-incomplete-with-failure')
-  check('the failure is shown with Retry and a way to switch', failureLine.hidden === false && failureLine.buttons.includes('Retry') && failureLine.buttons.includes('Switch harness or model'), JSON.stringify(failureLine))
-
-  // 5. Opening while the designer works (F2): every page says what it is and
-  // opens large; opening keeps the designer going, and the page still being
-  // designed lands on its scene when it is finished.
-  await setScenario({ mode: 'paced', marker: 'RUN-F', delayMs: 1500, pauseAfterFirstMs: 14000 })
-  await evaluate(`() => { [...document.querySelectorAll('#source-draw-failure button')].find(b => b.textContent === 'Retry').click(); return true }`, 'retry')
-  const running = await waitFor(`async () => {
-    const s = window.__source.drawStatus()
-    const first = document.querySelector('#source-pages-grid .source-page .thumb')?.textContent || ''
-    return s.phase === 'designing' && s.drawn === 1 && first.includes('RUN-F') ? { ...s, note: document.getElementById('source-pages-note').textContent, stop: document.getElementById('source-draw-stop').textContent } : null
-  }`, 'retry designing', 60)
-  const states = await evaluate(`() => [...document.querySelectorAll('#source-pages-grid .source-page .drawn')].map(badge => ({ state: badge.dataset.state, text: badge.textContent }))`, 'page states')
-  check('each page says what it is now: designed, or being designed', states[0]?.state === 'designed' && states[0]?.text === 'designed · Kimi' && states[1]?.state === 'designing' && states[1]?.text === 'schematic draft · being designed', JSON.stringify(states))
-  // A finished page opens large while the rest design; Escape goes back.
-  const firstLook = await evaluate(`async () => {
-    document.querySelectorAll('#source-pages-grid .source-page')[0].click()
-    await new Promise(resolve => setTimeout(resolve, 200))
-    const box = document.getElementById('source-inspector-page').getBoundingClientRect()
-    return { open: !document.getElementById('source-page-inspector').hidden, title: document.getElementById('source-inspector-title').textContent, state: document.getElementById('source-inspector-state').textContent, width: Math.round(box.width), height: Math.round(box.height), marker: document.getElementById('source-inspector-page').textContent.includes('RUN-F') }
-  }`, 'inspect first')
-  await capture('05-inspector')
-  const inspected = await evaluate(`async () => {
-    const first = ${JSON.stringify(firstLook)}
-    document.getElementById('source-inspector-next').click()
-    const second = { title: document.getElementById('source-inspector-title').textContent, state: document.getElementById('source-inspector-state').textContent }
-    document.getElementById('source-page-inspector').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-    document.getElementById('source-dialog').dispatchEvent(new Event('cancel', { cancelable: true }))
-    await new Promise(resolve => setTimeout(resolve, 200))
-    return { first, second, closed: document.getElementById('source-page-inspector').hidden, dialogOpen: document.getElementById('source-dialog').open }
-  }`, 'inspect')
-  check('a finished page opens large in the wizard, with its state', inspected.first.open && inspected.first.width > 600 && inspected.first.marker && /^1 of 2 · /.test(inspected.first.title) && inspected.first.state === 'designed · Kimi', JSON.stringify(inspected.first))
-  check('the next page says it is still being designed', /^2 of 2 · /.test(inspected.second.title) && inspected.second.state === 'schematic draft · being designed', JSON.stringify(inspected.second))
-  check('Escape closes the page and keeps the wizard', inspected.closed && inspected.dialogOpen, JSON.stringify({ closed: inspected.closed, dialogOpen: inspected.dialogOpen }))
-  await capture('05b-pages-with-states')
-  check('opening now says what opens, and that the rest keep designing', running?.finishLabel === 'Open now — 1 designed, 1 still designing', running?.finishLabel)
-  check('opening now says the page still being designed lands on its scene', /keeps designing: the page still being designed lands on its scene/.test(running?.note || '') && /Stop remaining work/.test(running?.note || ''), running?.note)
-  check('stopping is its own action', running?.stop === 'Stop remaining work', running?.stop)
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish')
+  // 2. The presentation, designed from the wireframe: a notebook of its
+  // own, its pages bound to the run's; each slide lands as it is finished.
+  const designedF = await designFromWireframe('F')
+  const wireF = designedF.wireframe ? await projectOf(designedF.wireframe) : null
+  const madeF = designedF.presentation ? await projectOf(designedF.presentation) : null
+  check('the wireframe offers to design the presentation, and designing it opens the presentation', Boolean(designedF.wireframe && designedF.presentation), JSON.stringify(designedF))
+  check('the presentation is a notebook of the project, made from the wireframe: the same pages, each bound to the run', madeF?.container?.kind === 'presentation' && madeF.container.from === designedF.wireframe && madeF.container.id === wireF?.container?.id && scenesIn(madeF).length === 2 && scenesIn(madeF).every((scene, index) => scene.attrs.id === scenesIn(wireF)[index]?.attrs?.id && scene.attrs.pageOrigin?.designing?.page === index + 1), JSON.stringify({ container: madeF?.container, origins: scenesIn(madeF).map(scene => scene.attrs.pageOrigin) }))
   const opened = await waitFor(`async () => {
-    if (document.getElementById('source-dialog')?.open) return null
-    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
-    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
+    const body = await fetch('/api/projects/' + encodeURIComponent(${JSON.stringify(designedF.presentation)})).then(r => r.json()).catch(() => null)
     const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
-    return scenes.length === 2 ? { id, origins: scenes.map(scene => scene.attrs.pageOrigin), svgs: scenes.map(scene => (String(scene.attrs.svg).match(/RUN-\\w/) || [''])[0]), chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].map(chip => chip.textContent), status: document.getElementById('page-design-status').hidden ? '' : document.getElementById('page-design-text').textContent } : null
-  }`, 'finish', 120)
-  check('the notebook opens with both scenes', Boolean(opened), JSON.stringify(opened?.origins))
-  const runF = opened?.origins?.[0]?.runId
-  check('the designed scene records its harness and run', opened?.origins?.[0]?.kind === 'designed' && opened?.origins?.[0]?.by === 'Kimi' && Boolean(runF) && opened?.svgs?.[0] === 'RUN-F', JSON.stringify(opened?.origins?.[0]))
-  check('the scene still being designed waits for its page from that run', opened?.origins?.[1]?.kind === 'schematic' && opened?.origins?.[1]?.designing?.runId === runF && opened?.origins?.[1]?.designing?.page === 2 && opened?.svgs?.[1] === '', JSON.stringify(opened?.origins?.[1]))
-  check('the notebook says the page is being designed', opened?.chips?.length === 1 && opened.chips[0] === 'schematic draft · being designed' && /still designing 1 page; each lands on its scene when it is finished/.test(opened?.status || ''), JSON.stringify({ chips: opened?.chips, status: opened?.status }))
-  // B05 of the BoltDB review: not only what remains — how many are
-  // designed, how long the run has worked, and the last thing it did.
+    const chips = [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].map(chip => chip.textContent)
+    return scenes.length === 2 && scenes[0].attrs.pageOrigin?.kind === 'designed' && scenes[1].attrs.pageOrigin?.designing && chips.length === 1 && !document.getElementById('page-design-status').hidden ? { origins: scenes.map(scene => scene.attrs.pageOrigin), svgs: scenes.map(scene => (String(scene.attrs.svg).match(/RUN-\\w/) || [''])[0]), chips, status: document.getElementById('page-design-text').textContent } : null
+  }`, 'first slide landed', 120)
+  const runF = opened?.origins?.[1]?.designing?.runId
+  check('the first slide lands as it is finished, recording its harness and run', opened?.origins?.[0]?.kind === 'designed' && /^Kimi/.test(opened.origins[0].by || '') && Boolean(runF) && opened.origins[0].runId === runF && opened.svgs[0] === 'RUN-F', JSON.stringify(opened?.origins?.[0]))
+  check('the slide still being designed waits for its page from that run', opened?.origins?.[1]?.kind === 'schematic' && opened.origins[1].designing?.page === 2 && opened.svgs[1] === '', JSON.stringify(opened?.origins?.[1]))
+  check('the presentation says the slide is being designed', opened?.chips?.[0] === 'schematic draft · being designed' && /still designing 1 page; each lands on its scene when it is finished/.test(opened?.status || ''), JSON.stringify({ chips: opened?.chips, status: opened?.status }))
+  // B05 of the BoltDB review: how many are designed, how long the run has
+  // worked, and the last thing it did.
   const detail = await waitFor(`() => { const text = document.getElementById('page-design-text').textContent; return /1 of 2 designed · working \\d/.test(text) ? text : null }`, 'status detail', 30)
-  check('the notebook says how far the design run is, and for how long it has worked', Boolean(detail), String(detail))
-  check('opening did not stop the designer', (await runStatus(runF)) === 'running', String(await runStatus(runF)))
+  check('the presentation says how far the design run is, and for how long it has worked', Boolean(detail), String(detail))
+  check('the designer goes on', (await runStatus(runF)) === 'running', String(await runStatus(runF)))
   // F1 of the Perplexity review: a video made now would start from the
   // schematic still being designed. The offer says so, and waiting comes first.
   await evaluate(`() => { document.getElementById('open-planning').click(); return true }`, 'plan video')
   const waitOffer = await waitFor(`() => { const wait = document.querySelector('#planning-workspace .planning-wait-pages'); const create = document.querySelector('#planning-workspace .planning-create-fork'); return wait && create ? { wait: wait.textContent, create: create.textContent, status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer', 40)
-  check('a video offered while a page is still being designed says so, and offers to wait', waitOffer?.wait === 'Wait for the designed pages' && waitOffer.create === 'Make the video now' && /^1 of 2 pages are designed; 1 is still being designed\. A video made now starts from that page's schematic draft; a scene not yet planned takes its designed slide by itself as it lands, and one you have planned is offered it\./.test(waitOffer.status), JSON.stringify(waitOffer))
-  await capture('06a-fork-offer-while-designing')
+  check('a video offered while a slide is still being designed says so, and offers to wait', waitOffer?.wait === 'Wait for the designed pages' && waitOffer.create === 'Make the video now' && /^1 of 2 pages are designed; 1 is still being designed\. A video made now starts from that page's schematic draft; a scene not yet planned takes its designed slide by itself as it lands, and one you have planned is offered it\./.test(waitOffer.status), JSON.stringify(waitOffer))
+  await capture('02-video-offered-while-designing')
   await evaluate(`() => { document.querySelector('#planning-workspace .planning-wait-pages').click(); return true }`, 'wait')
   const waited = await waitFor(`async () => document.getElementById('planning-dialog').open ? null : (await fetch('/api/projects').then(r => r.json())).projects.filter(row => row.derivedFrom).length + 1`, 'offer closed', 20)
   check('waiting closes the offer and makes no video', waited === 1, String(waited))
   await evaluate(`() => { document.querySelector('.notebook-scene-block .scene-page-origin')?.scrollIntoView({ block: 'center' }); return true }`, 'scroll to draft').catch(() => {})
   await sleep(600)
   const sticky = await evaluate(`() => { const bar = document.getElementById('page-design-status').getBoundingClientRect(); return bar.height > 0 && bar.top >= 0 && bar.bottom <= innerHeight }`, 'status in view')
-  check('the notebook keeps saying so while it is scrolled', sticky === true, String(sticky))
-  await capture('06-notebook-still-designing')
+  check('the presentation keeps saying so while it is scrolled', sticky === true, String(sticky))
+  await capture('03-presentation-still-designing')
   const landed = await waitFor(`async () => {
-    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
-    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
+    const body = await fetch('/api/projects/' + encodeURIComponent(${JSON.stringify(designedF.presentation)})).then(r => r.json()).catch(() => null)
     const scene = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')[1]
     const origin = scene?.attrs?.pageOrigin
-    // The worker settles the page; the window takes it on its next pass.
-    return origin?.kind === 'designed' && !origin.designing && String(scene.attrs.svg).includes('RUN-F') && document.getElementById('page-design-status').hidden ? { origin, chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].length, statusHidden: document.getElementById('page-design-status').hidden, windows: (scene.attrs.motion?.steps || []).length } : null
+    // The worker settles the slide; the window takes it on its next pass.
+    return origin?.kind === 'designed' && !origin.designing && String(scene.attrs.svg).includes('RUN-F') && document.getElementById('page-design-status').hidden ? { origin, chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].length, statusHidden: document.getElementById('page-design-status').hidden } : null
   }`, 'landed', 120)
-  check('the page designed after opening lands on its scene', landed?.origin?.by === 'Kimi' && landed?.origin?.runId === runF && landed?.chips === 0, JSON.stringify(landed))
-  check('once the run is done, the notebook stops waiting', landed?.statusHidden === true && (await runStatus(runF)) === 'done', JSON.stringify({ statusHidden: landed?.statusHidden, run: await runStatus(runF) }))
-  // Every page designed: the offer makes the video from them.
+  check('the slide designed after opening lands on its page', /^Kimi/.test(landed?.origin?.by || '') && landed?.origin?.runId === runF && landed?.chips === 0, JSON.stringify(landed))
+  check('once the run is done, the presentation stops waiting', landed?.statusHidden === true && (await runStatus(runF)) === 'done', JSON.stringify({ statusHidden: landed?.statusHidden, run: await runStatus(runF) }))
+  const wireAfter = designedF.wireframe ? await projectOf(designedF.wireframe) : null
+  check('the wireframe keeps its schematics', scenesIn(wireAfter).length === 2 && scenesIn(wireAfter).every(scene => scene.attrs.pageOrigin?.kind === 'schematic' && !String(scene.attrs.svg).includes('RUN-F')), JSON.stringify(scenesIn(wireAfter).map(scene => scene.attrs.pageOrigin)))
+  // Every slide designed: the offer makes the video from them.
   await evaluate(`() => { document.getElementById('open-planning').click(); return true }`, 'plan video again')
-  // The offer drawn for the pages as they are now, not as it was last opened.
-  const readyOffer = await waitFor(`() => { const create = document.querySelector('#planning-workspace .planning-create-fork'); return create && !document.querySelector('#planning-workspace .planning-wait-pages') ? { create: create.textContent, wait: false, status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer ready', 40)
-  check('once every page is designed, the offer makes the video from them', readyOffer?.create === 'Create video fork and prepare brief' && readyOffer.wait === false && !/schematic|still being designed/.test(readyOffer.status), JSON.stringify(readyOffer))
+  const readyOffer = await waitFor(`() => { const create = document.querySelector('#planning-workspace .planning-create-fork'); return create && !document.querySelector('#planning-workspace .planning-wait-pages') ? { create: create.textContent, status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer ready', 40)
+  check('once every slide is designed, the offer makes the video from them', readyOffer?.create === 'Create video fork and prepare brief' && !/schematic|still being designed/.test(readyOffer.status), JSON.stringify(readyOffer))
   await evaluate(`() => { document.querySelector('#planning-workspace .planning-close').click(); return true }`, 'close offer')
-  await capture('07-notebook-landed')
+  const shownF = await waitFor(`() => { const tabs = [...document.querySelectorAll('#notebook-switch .notebook-switch-tab')].map(tab => tab.querySelector('strong').textContent + (tab.getAttribute('aria-current') === 'page' ? '*' : '') + ': ' + tab.querySelector('small').textContent).join(' · '); return /Wireframe: 2 pages · Presentation\\*: 2 slides · Video: not made yet$/.test(tabs) && document.getElementById('next-step').textContent === 'Create video' ? tabs : null }`, 'presentation ready', 60)
+  await capture('04-presentation-landed')
+  check('the presentation, its slides landed, reads as ready in the switch and leads to its video', Boolean(shownF), String(shownF))
 
-  // 6. Stop remaining work, from the notebook: what was finished stays, the
-  // rest stay schematic drafts, and nothing waits any more.
+  // 3. Stop remaining work, from the presentation: what was finished stays,
+  // the rest stay schematic drafts, and nothing waits any more.
   await setScenario({ mode: 'paced', marker: 'RUN-G', delayMs: 1000, pauseAfterFirstMs: 90000 })
-  await evaluate(`() => { window.__source.open('narrative'); return true }`, 'open source again')
-  await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, 'read again')
-  await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand step again')
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline again')
-  await waitFor(`() => !document.getElementById('source-step-outline')?.hidden && document.querySelectorAll('#source-scenes li').length === 2 && !document.getElementById('source-design-pages').hidden`, 'outline again', 150)
-  await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, 'design G')
-  const runningG = await waitFor(`() => { const s = window.__source.drawStatus(); const first = document.querySelector('#source-pages-grid .source-page .thumb')?.textContent || ''; return s.phase === 'designing' && s.drawn === 1 && first.includes('RUN-G') ? s : null }`, 'G designing', 60)
-  const runG = runningG?.lastRunId
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish G')
-  const openedG = await waitFor(`() => !document.getElementById('source-dialog')?.open && !document.getElementById('page-design-status').hidden ? document.getElementById('page-design-text').textContent : null`, 'G opened', 120)
-  check('a second deck opens while its page is still being designed', Boolean(runG) && /still designing 1 page/.test(openedG || ''), openedG)
+  const deckG = await designedDeck('RUN-G')
+  const statusG = await waitFor(`() => document.getElementById('page-design-status').hidden ? null : document.getElementById('page-design-text').textContent`, 'G designing', 30)
+  check('a second presentation opens while its second slide is still being designed', Boolean(deckG.run) && /still designing 1 page/.test(statusG || ''), statusG)
   await evaluate(`() => { document.getElementById('page-design-stop').click(); return true }`, 'stop remaining work')
   const stoppedG = await waitFor(`async () => {
     if (!document.getElementById('page-design-status').hidden) return null
-    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
-    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
+    const body = await fetch('/api/projects/' + encodeURIComponent(${JSON.stringify(deckG.base)})).then(r => r.json()).catch(() => null)
     const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
     return scenes.length === 2 && scenes.every(scene => !scene.attrs.pageOrigin?.designing) ? { origins: scenes.map(scene => scene.attrs.pageOrigin), chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].map(chip => chip.textContent) } : null
   }`, 'G stopped', 60)
-  check('Stop remaining work stops the designer from the notebook', (await runStatus(runG)) === 'cancelled', String(await runStatus(runG)))
+  check('Stop remaining work stops the designer from the presentation', (await runStatus(deckG.run)) === 'cancelled', String(await runStatus(deckG.run)))
   check('what it finished stays designed, and the rest stay schematic drafts', stoppedG?.origins?.[0]?.kind === 'designed' && stoppedG?.origins?.[1]?.kind === 'schematic' && JSON.stringify(stoppedG?.chips) === JSON.stringify(['schematic draft']), JSON.stringify(stoppedG))
 
-  // 7. A video made while a page is still being designed (BoltDB review
-  // B06). Only the video is open: the page the run finishes lands on the
-  // saved base in the app's worker, and the video is offered it as it lands,
-  // without the base being opened. The video keeps the page it was made
-  // from until the creator adopts the new one, and asking again lands
-  // nothing twice.
-  const projectOf = id => fetch(`${origin}/api/projects/${encodeURIComponent(id)}`).then(r => r.json()).then(body => body.project || null).catch(() => null)
-  const scenesIn = project => (project?.notebook?.content || []).filter(node => node.type === 'scene')
-  const overviewOf = id => fetch(`${origin}/api/planning/${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null)
-  const until = async (test, seconds = 90) => {
-    for (let i = 0; i < seconds * 2; i += 1) {
-      const value = await test().catch(() => null)
-      if (value) return value
-      await sleep(500)
-    }
-    return null
-  }
-  const landNow = notebook => fetch(`${origin}/api/pages/land`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notebook }) }).then(r => r.json()).catch(() => null)
-  const openEarly = async marker => {
-    await evaluate(`() => { window.__source.open('narrative'); return true }`, `open source ${marker}`)
-    await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, `read ${marker}`)
-    await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, `brand ${marker}`)
-    await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, `outline ${marker}`)
-    await waitFor(`() => !document.getElementById('source-step-outline')?.hidden && document.querySelectorAll('#source-scenes li').length === 2 && !document.getElementById('source-design-pages').hidden`, `outline ${marker}`, 150)
-    await evaluate(`() => { document.getElementById('source-design-pages').click(); return true }`, `design ${marker}`)
-    const drawing = await waitFor(`() => { const s = window.__source.drawStatus(); const first = document.querySelector('#source-pages-grid .source-page .thumb')?.textContent || ''; return s.phase === 'designing' && s.drawn === 1 && first.includes(${JSON.stringify(marker)}) ? s : null }`, `${marker} designing`, 60)
-    await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, `finish ${marker}`)
-    const base = await waitFor(`() => !document.getElementById('source-dialog')?.open && !document.getElementById('page-design-status').hidden ? window.localStorage.getItem('incredible-studio-v2-active-project') : null`, `${marker} opened`, 120)
-    return { run: drawing?.lastRunId, base }
-  }
+  // 4. A video made while a slide is still being designed (B06). Only the
+  // video is open: the slide the run finishes lands on the saved
+  // presentation in the app's worker, and the video's waiting scene takes
+  // it by itself as it lands, the scene on show left as it was. Asking
+  // again lands nothing twice.
   await setScenario({ mode: 'paced', marker: 'RUN-H', delayMs: 1000, pauseAfterFirstMs: 25000 })
-  const deckH = await openEarly('RUN-H')
-  check('a third deck opens while its second page is still being designed', Boolean(deckH.run && deckH.base), JSON.stringify(deckH))
+  const deckH = await designedDeck('RUN-H')
+  check('a third presentation opens while its second slide is still being designed', Boolean(deckH.run && deckH.base), JSON.stringify(deckH))
   await evaluate(`() => { localStorage.setItem('incredible-studio-v2-video-view', 'notebook'); document.getElementById('open-planning').click(); return true }`, 'plan video H')
   await waitFor(`() => document.querySelector('#planning-workspace .planning-create-fork') ? true : null`, 'fork offer H', 40)
   await evaluate(`() => { document.querySelector('#planning-workspace .planning-create-fork').click(); return true }`, 'continue with schematics')
@@ -476,12 +363,12 @@ try {
   const saved = await waitFor(`() => document.getElementById('project-title')?.value ? { conflict: /Newer saved version/.test(document.body.innerText) } : null`, 'base H open', 30)
   check('opened again, the base plans the landed page, and saves without a conflict', Boolean(replanned) && (replanned.motion?.steps || []).length > 0 && saved?.conflict === false, JSON.stringify({ origin: replanned?.pageOrigin, steps: (replanned?.motion?.steps || []).length, saved }))
 
-  // 8. After a restart (B06): the app closes while a run draws, and the
+  // 5. After a restart (B06): the app closes while a run draws, and the
   // page the run left lands when it opens again — with the video open, not
   // the base.
   await setScenario({ mode: 'paced', marker: 'RUN-I', delayMs: 1000, pauseAfterFirstMs: 90000 })
-  const deckI = await openEarly('RUN-I')
-  check('a fourth deck opens while its second page is still being designed', Boolean(deckI.run && deckI.base), JSON.stringify(deckI))
+  const deckI = await designedDeck('RUN-I')
+  check('a fourth presentation opens while its second slide is still being designed', Boolean(deckI.run && deckI.base), JSON.stringify(deckI))
   const runI = (await fetch(`${origin}/api/runs`).then(r => r.json())).runs.find(run => run.id === deckI.run)
   await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(videoH)}); return true }`, 'leave the video open')
   await stopApp(app)
@@ -499,46 +386,6 @@ try {
   }, 90)
   check('after a restart, the page the run left lands on its base, and the binding goes with the run', Boolean(recovered), JSON.stringify(recovered?.pageOrigin))
   check('the run the app was working when it closed reads as ended', ['error', 'interrupted', 'cancelled'].includes(await runStatus(deckI.run)), String(await runStatus(deckI.run)))
-
-  // 9. The four-notebook model: an import made as schematic drafts is a
-  // project, and it opens on its wireframe, which offers to design the
-  // presentation. Designing it makes the presentation a notebook of its own
-  // — the same pages, with the same ids, each bound to the run's page — and
-  // each slide lands there as it is finished, while the wireframe keeps its
-  // schematics.
-  await setScenario({ mode: 'normal', marker: 'RUN-W', delayMs: 1500 })
-  // The restart above opened the app on its landing page: back to the studio.
-  await evaluate(`() => { window.location.assign('/studio'); return true }`, 'studio W').catch(() => {})
-  await waitFor(`() => Boolean(document.querySelector('#editor .ProseMirror')) && !document.getElementById('app').hidden && window.__source`, 'studio W boot')
-  await evaluate(`() => { window.__source.open('narrative'); return true }`, 'open source W')
-  await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, 'read W')
-  await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand W')
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline W')
-  await waitFor(`() => !document.getElementById('source-step-outline')?.hidden && document.querySelectorAll('#source-scenes li').length === 2`, 'outline W', 150)
-  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'schematic W')
-  await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages W', 60)
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish W')
-  const wireframeW = await waitFor(`() => !document.getElementById('source-dialog')?.open && document.body.dataset.notebookKind === 'wireframe' && !document.getElementById('next-step').hidden && document.getElementById('next-step').textContent === 'Design presentation' ? localStorage.getItem('incredible-studio-v2-active-project') : null`, 'wireframe W', 120)
-  await capture('09-wireframe')
-  check('an import made as schematic drafts opens on the project\'s wireframe, which offers to design the presentation', Boolean(wireframeW), String(wireframeW))
-  await evaluate(`() => { setTimeout(() => document.getElementById('next-step').click(), 0); return true }`, 'design presentation')
-  const presentationW = await waitFor(`() => document.body.dataset.notebookKind === 'presentation' ? localStorage.getItem('incredible-studio-v2-active-project') : null`, 'presentation W', 120)
-  const wireW = wireframeW ? await projectOf(wireframeW) : null
-  const madeW = presentationW ? await projectOf(presentationW) : null
-  check('designing it makes the presentation a notebook of the project, made from the wireframe, its pages bound to the run', madeW?.container?.kind === 'presentation' && madeW.container.from === wireframeW && madeW.container.id === wireW?.container?.id && scenesIn(madeW).length === 2 && scenesIn(madeW).every((scene, index) => scene.attrs.id === scenesIn(wireW)[index]?.attrs?.id && scene.attrs.pageOrigin?.designing?.page === index + 1), JSON.stringify({ container: madeW?.container, origins: scenesIn(madeW).map(scene => scene.attrs.pageOrigin) }))
-  const landedW = await until(async () => {
-    const scenes = scenesIn(await projectOf(presentationW))
-    return scenes.length === 2 && scenes.every(scene => scene.attrs.pageOrigin?.kind === 'designed' && !scene.attrs.pageOrigin.designing && String(scene.attrs.svg).includes('RUN-W')) ? scenes : null
-  }, 120)
-  check('each slide lands in the presentation as it is finished', Boolean(landedW), JSON.stringify(scenesIn(await projectOf(presentationW)).map(scene => scene.attrs.pageOrigin)))
-  const wireAfter = wireframeW ? await projectOf(wireframeW) : null
-  check('the wireframe keeps its schematics', scenesIn(wireAfter).length === 2 && scenesIn(wireAfter).every(scene => scene.attrs.pageOrigin?.kind === 'schematic' && !String(scene.attrs.svg).includes('RUN-W')), JSON.stringify(scenesIn(wireAfter).map(scene => scene.attrs.pageOrigin)))
-  const shownW = await waitFor(`() => {
-    const tabs = [...document.querySelectorAll('#notebook-switch .notebook-switch-tab')].map(tab => tab.querySelector('strong').textContent + (tab.getAttribute('aria-current') === 'page' ? '*' : '') + ': ' + tab.querySelector('small').textContent).join(' · ')
-    return /Wireframe: 2 pages · Presentation\\*: 2 slides · Video: not made yet$/.test(tabs) && document.getElementById('next-step').textContent === 'Create video' ? tabs : null
-  }`, 'presentation W ready', 60)
-  await capture('10-presentation')
-  check('the presentation, its slides landed, reads as ready in the switch and leads to its video', Boolean(shownW), String(shownW))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

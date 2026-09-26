@@ -126,7 +126,7 @@ import { artworkDetailFor, artworkDetailLine } from './artwork-detail'
 import { takeAudioUrlFor } from './take-audio'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
-import type { Outline, OutlineScene, SourceRead } from '../server/source'
+import type { SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
 import { compileSceneProgram, programWithEdits, sanitizeSceneProgram, type SceneProgram } from './scene-program'
@@ -159,7 +159,6 @@ import {
   progressText,
   loadHarnessPreferences,
   loadHarnessStatus,
-  modelLabel,
   resolveStage,
   resolvedLabel,
   saveHarnessPreferences,
@@ -168,7 +167,6 @@ import {
   type HarnessPreferences,
   type HarnessStage,
   type HarnessStatus,
-  type RunFailureView,
 } from './harness-choice'
 import './styles.css'
 
@@ -3341,17 +3339,6 @@ editor.on('update', () => {
   renderNextStep()
 })
 
-// The starter sample as first loaded: a notebook still holding exactly it has
-// no content of its own yet. Only captured on a fresh launch — a stored
-// notebook's content is always the author's. NodeIdentifier stamps the ids in
-// a microtask after the view exists, so the fingerprint waits for that tick.
-let starterContentJson: string | null = null
-if (!storedProject) {
-  queueMicrotask(() => {
-    starterContentJson = JSON.stringify((editor.getJSON() as TiptapDocument).content)
-  })
-}
-
 const showToast = (message: string) => {
   const toast = $('#toast')
   toast.textContent = message
@@ -6431,31 +6418,6 @@ const resolveCreationAgent = async (stage: HarnessStage) => {
   return { id: resolved.harness, model: resolved.model || undefined, label: resolvedLabel(resolved, available), source: resolved.source }
 }
 
-// Where a run failed, the creator sees what went wrong, the provider's own
-// words and the ways on — never only "the run ended error". A known quota or
-// sign-in failure is not retried by itself.
-const showRunFailure = (element: HTMLElement | null, failure: RunFailureView | undefined, fallback: string, retry?: () => void) => {
-  if (!element) return
-  element.replaceChildren()
-  element.classList.add('is-error')
-  const text = document.createElement('span')
-  text.textContent = failure ? `${failureTitle(failure.category)}: ${failure.message}` : fallback
-  element.append(text)
-  const actions = document.createElement('span')
-  actions.className = 'run-failure-actions'
-  const action = (label: string, run: () => void) => {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.className = 'button ghost'
-    button.textContent = label
-    button.addEventListener('click', run)
-    actions.append(button)
-  }
-  if (retry && failure?.category !== 'unavailable') action('Retry', retry)
-  action('Switch harness or model', () => void openAiSettings('harness'))
-  element.append(actions)
-}
-
 // The durable summary of a finished run, with its failure when it failed.
 const finishedRun = async (runId: string) => (await window.studioDesktop?.harness.list())?.find(run => run.id === runId)
 
@@ -6795,16 +6757,6 @@ const openNotebook = async (notebookId: string) => {
     }
   }
   activateNotebook(notebookId)
-}
-
-const createNotebook = async () => {
-  const fresh = blankProjectDocument('Untitled notebook')
-  if (project.theme) {
-    fresh.theme = structuredClone(project.theme)
-    fresh.brand = { ...project.theme.brand }
-  }
-  await persistProjectNow(structuredClone(fresh))
-  await openNotebook(fresh.id)
 }
 
 // ——— Bundled sample: the ppt-master "Attention Is All You Need" blueprint ———
@@ -15635,25 +15587,15 @@ queueMicrotask(() => {
 // Phase 0 of the plan. Whatever comes in, three things come out and the rest
 // of the pipeline reads only those: a brand read off the source, an outline
 // with a runtime target, and pages that carry the contract.
-// A page of the base deck; a designed page keeps the schematic it was
-// designed from, for the project's wireframe.
-type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; program?: unknown; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean }; drawnBy?: string; designRun?: string; drawnContract?: number; schematic?: { svg: string; program?: unknown } }
 const sourceState: {
   kind: 'link' | 'narrative'
   source: SourceRead | null
   // The immutable source revision captured by the read (D1).
   snapshot?: { id: string; hash: string } | null
-  // The authored narrative revision and the outline's explanation model (D2).
+  // The authored narrative revision (D2).
   narrative?: { id: string } | null
-  model?: { id: string } | null
-  // The model's objects, passed to the drawing run so pages can declare
-  // stable data-object-id identity.
-  modelData?: { objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } | null
   // How much the studio may rewrite the creator's words (D2).
   wording: 'preserve' | 'assist' | 'draft'
-  // Who wrote the outline: the local harness the creator chose, or the
-  // direct model path (the browser's fallback).
-  outlinedBy?: 'harness' | 'api'
   // The delivery path the journey chose in Create explainer, captured when the
   // dialog opens so a notebook created for this source keeps the choice (D0).
   delivery: 'human' | 'generated' | null
@@ -15668,13 +15610,9 @@ const sourceState: {
   logoUrl: string
   directions: StudioThemeV1[]
   direction: number
-  outline: Outline | null
-  pages: SourcePage[] | null
   busy: boolean
   // The name of a PDF or deck read through the file door, as the title.
   fileTitle?: string
-  // The pages made from the outline, and the design run bound to them.
-  draft?: SourceDraft | null
   // Which input is read (U1 of the scene workspace plan): the link, pasted
   // text, or an uploaded file's text. Each keeps its own draft; pasted text
   // credits the link as where it came from unless the creator says not to.
@@ -15691,10 +15629,7 @@ const sourceState: {
   thinAcknowledged?: boolean
   // The name a theme saved from this read will take (F5).
   themeName?: string
-  // The harness designing the pages, and how the last run went.
-  drawer?: string
-  drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
-} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', delivery: null, brandChoice: 'direction', brandThemeId: '', brandCustom: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false, input: 'link', credit: true, brandPanel: 'saved' }
+} = { kind: 'link', source: null, snapshot: null, narrative: null, wording: 'draft', delivery: null, brandChoice: 'direction', brandThemeId: '', brandCustom: null, brandColor: '', logoUrl: '', directions: [], direction: 0, busy: false, input: 'link', credit: true, brandPanel: 'saved' }
 
 // Narratives default to preserve, links to draft: the author's own words are
 // never silently rewritten, and the choice is always visible and changeable.
@@ -15715,13 +15650,8 @@ const sourceStatus = (id: string, text: string, error = false) => {
   element.textContent = text
   element.classList.toggle('is-error', error)
 }
-const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
-  if (step === 'pages') {
-    const row = document.getElementById('source-destination-row')
-    if (row) row.hidden = !notebookHasOwnContent()
-  }
-  if (step === 'outline' || step === 'pages') void syncSourceDesignAgent()
-  const order = ['read', 'brand', 'outline', 'pages']
+const showSourceStep = (step: 'read' | 'brand') => {
+  const order = ['read', 'brand']
   order.forEach(name => {
     ;($(`#source-step-${name}`) as HTMLElement).hidden = name !== step
     const pill = sourceDialog.querySelector<HTMLElement>(`.source-steps [data-step="${name}"]`)
@@ -15899,14 +15829,8 @@ const sourceRead = async () => {
     // The site the brand was read from: a brand website given, else the page.
     sourceState.brandSite = brandSite || ''
     sourceState.brandCustom = null
-    sourceState.outline = null
-    sourceState.pages = null
     // A new read starts the brand choice fresh (see chooseSourceBrand).
     chooseSourceBrand()
-    // A new source abandons the pages made from the last one: a designer
-    // still drawing them is stopped.
-    if (sourceState.draft && sourceDesignActive(sourceState.draft)) void stopSourceDesign(sourceState.draft)
-    sourceState.draft = null
     renderSourceBrand()
     showSourceStep('brand')
   } catch (error) {
@@ -16189,7 +16113,7 @@ const renderSourceBrandChoice = () => {
   bound.textContent = `Theme: ${sourceState.brandChoice === 'custom' ? `a custom palette over “${name}”` : `“${name}”`} · ${colours}`
   bound.dataset.brandChoice = sourceState.brandChoice
   const short = name.length > 28 ? `${name.slice(0, 27)}…` : name
-  ;($('#source-to-outline') as HTMLButtonElement).textContent = sourceState.brandChoice === 'custom' ? 'Outline it with your palette' : `Outline it with “${short}”`
+  ;($('#source-to-outline') as HTMLButtonElement).textContent = sourceState.brandChoice === 'custom' ? 'Create the project with your palette' : `Create the project with “${short}”`
 }
 
 // What was read (F3 of the Perplexity review): its size, its headings and
@@ -16506,658 +16430,82 @@ const renderSourceCustomPalette = () => {
   box.append(pick, grid)
 }
 
-// The story planned by the local harness (D2): the primary journey's outline
-// comes from the installed story-master skill, never the direct model path,
-// when the desktop harness is present. The server route remains the
-// browser-only fallback.
-const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDesktop']>, source: SourceRead) => {
-  sourceState.busy = true
-  const button = $('#source-to-outline') as HTMLButtonElement
-  button.disabled = true
-  sourceStatus('#source-brand-status', 'The local harness is planning the story…')
-  let stopListening: (() => void) | undefined
-  let storyFailure: RunFailureView | undefined
-  try {
-    const creationAgent = await resolveCreationAgent('story')
-    sourceStatus('#source-brand-status', `Planning the story with ${creationAgent.label}…`)
-    const target = parseTarget(($('#source-target') as HTMLInputElement).value)
-    const run = await bridge.harness.run({
-      adapter: creationAgent.id, skill: 'story-master', route: 'Plan Story', projectId: project.id,
-      inputs: {
-        source: { title: source.title, site: source.site, text: source.text, words: source.words },
-        wordingPolicy: sourceState.wording,
-        ...(target ? { targetSeconds: target } : {}),
-        model: creationAgent.model, effort: 'high', autonomous: true,
-      },
-    })
-    // This run's progress only: a planning run elsewhere never talks over it.
-    stopListening = bridge.harness.onEvent(({ runId, event }) => {
-      if (runId !== run.id) return
-      const message = progressText(event)
-      if (message && event.type !== 'error') sourceStatus('#source-brand-status', `${creationAgent.label}: ${message.slice(0, 110)}`)
-    })
-    const deadline = Date.now() + 20 * 60 * 1000
-    let status = 'running'
-    while (['running', 'gate'].includes(status) && Date.now() < deadline) {
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      status = (await bridge.harness.list()).find(r => r.id === run.id)?.status || 'error'
-    }
-    if (status === 'running') throw new Error('The story run is still going in the background — its outline will be there when it finishes')
-    if (status !== 'done') {
-      const failed = await finishedRun(run.id)
-      storyFailure = failed?.failure
-      throw new Error(`The story run ended ${status}`)
-    }
-    const artefacts = await bridge.harness.artefacts(run.id)
-    const outline = (artefacts.story?.outline || null) as Outline | null
-    if (!outline?.scenes?.length) throw new Error('The story run wrote no outline')
-    // The server validates the outline and persists the explanation model.
-    const { model, outline: sanitized } = await fetchJson<{ model: { id: string; objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> }; outline: Outline }>('/api/story/model', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
-    })
-    sourceState.outline = sanitized
-    sourceState.outlinedBy = 'harness'
-    sourceState.pages = null
-    sourceState.model = { id: model.id }
-    sourceState.modelData = model
-    renderSourceOutline()
-    showSourceStep('outline')
-    sourceStatus('#source-brand-status', '')
-  } catch (error) {
-    // The source and theme draft stay; the provider's reason and the ways on show.
-    showRunFailure(document.getElementById('source-brand-status'), storyFailure, error instanceof Error ? error.message : 'The story run failed', () => void sourceOutline())
-  } finally {
-    stopListening?.()
-    sourceState.busy = false
-    button.disabled = false
+// ——— The import opens on its project (the four-notebook model) ———
+// Once the brand is chosen, the import is a project and the studio opens on
+// it at once: its text — the article as read — is there, and its wireframe
+// is made in the background, the story run outlining the article into
+// pages that land in the wireframe notebook (server/wireframe-build.ts).
+// Nothing waits in this dialog.
+const sourceThemeFor = (source: SourceRead) => {
+  const direction = sourceBrandTheme()
+  if (!direction) return cloneTheme(project.theme || defaultStudioTheme)
+  const theme = cloneTheme(normalizeStudioTheme(direction))
+  if (sourceState.brandChoice !== 'saved') {
+    theme.name = `${shortThemeName(source)} · ${theme.name}`.slice(0, 48)
+    theme.colours = sourceColours(source)
   }
+  if (sourceState.logoUrl) theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
+  return theme
 }
-
-const sourceOutline = async () => {
+const sourceCreateProject = async () => {
   const source = sourceState.source
   if (!source || sourceState.busy) return
-  const bridge = window.studioDesktop
-  if (bridge?.isDesktop) return sourceOutlineWithHarness(bridge, source)
   sourceState.busy = true
   const button = $('#source-to-outline') as HTMLButtonElement
   button.disabled = true
-  sourceStatus('#source-brand-status', 'Planning the scenes, their length and what each must show…')
   try {
-    const { outline } = await fetchJson<{ outline: Outline }>('/api/source/outline', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ source: { title: source.title, site: source.site, text: source.text, words: source.words }, wordingPolicy: sourceState.wording }),
-    })
-    sourceState.outline = outline
-    sourceState.outlinedBy = 'api'
-    sourceState.pages = null
-    // The outline becomes the explanation model: claims, objects and
-    // relations with stable ids, stored as their own durable record (D2).
-    // The model is derived again after any manual outline edits at the
-    // pages step, so this record is the planning-time version.
-    try {
-      const { model } = await fetchJson<{ model: { id: string; objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } }>('/api/story/model', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
+    const bridge = window.studioDesktop
+    const title = (source.title || 'Untitled project').trim()
+    const place = { container: `project-${crypto.randomUUID()}`, text: crypto.randomUUID(), wireframe: crypto.randomUUID() }
+    // The wireframe's outline: the story run on the creator's harness, else
+    // the direct model, on the server.
+    let outlining: Pick<NonNullable<ProjectDocumentV1['build']>, 'via' | 'runId' | 'by'> = { via: 'api', by: 'the direct model' }
+    if (bridge?.isDesktop) {
+      const agent = await resolveCreationAgent('story')
+      sourceStatus('#source-brand-status', `Starting ${agent.label}…`)
+      const run = await bridge.harness.run({
+        adapter: agent.id, skill: 'story-master', route: 'Plan Story', projectId: place.wireframe,
+        inputs: { source: { title: source.title, site: source.site, text: source.text, words: source.words }, wordingPolicy: sourceState.wording, model: agent.model, effort: 'high', autonomous: true },
       })
-      sourceState.model = { id: model.id }
-      sourceState.modelData = model
-    } catch {
-      sourceState.model = null
-      sourceState.modelData = null
+      outlining = { via: 'harness', runId: run.id, by: agent.label }
     }
-    renderSourceOutline()
-    showSourceStep('outline')
-    sourceStatus('#source-brand-status', '')
+    const theme = sourceThemeFor(source)
+    const pageBrand = sourcePageBrand(source)
+    const common = {
+      title,
+      theme: structuredClone(theme),
+      brand: { ...theme.brand },
+      source: { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.snapshot ? { snapshotId: sourceState.snapshot.id } : {}), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) },
+      story: { wordingPolicy: sourceState.wording, ...(sourceState.narrative ? { narrativeId: sourceState.narrative.id } : {}) },
+      ...(sourceState.delivery ? { explainerDelivery: sourceState.delivery } : {}),
+    }
+    const text: ProjectDocumentV1 = { ...blankProjectDocument(title), ...common, id: place.text, container: { id: place.container, kind: 'text' }, notebook: textNotebookOf(source.text || '') }
+    const wireframe: ProjectDocumentV1 = {
+      ...blankProjectDocument(title),
+      ...common,
+      id: place.wireframe,
+      container: { id: place.container, kind: 'wireframe', from: place.text },
+      build: {
+        kind: 'wireframe',
+        ...outlining,
+        startedAt: new Date().toISOString(),
+        ...(sourceState.snapshot ? { sourceRevision: sourceState.snapshot.id } : {}),
+        ...(sourceState.narrative ? { narrativeRevision: sourceState.narrative.id } : {}),
+        wording: sourceState.wording,
+        brand: { palette: pageBrand.palette as Record<string, unknown>, fonts: (sourceBrandFonts(source) as Record<string, unknown> | undefined) || null, mode: pageBrand.mode, site: source.site },
+      },
+    }
+    sourceStatus('#source-brand-status', 'Opening the project…')
+    await persistProjectNow(structuredClone(text))
+    await persistProjectNow(structuredClone(wireframe))
+    // The dialog stays up until the studio has opened on the project.
+    activateNotebook(text.id, `“${title}” is a project: its text is here, and ${outlining.by} is making its wireframe — its tab says when it is ready.`)
   } catch (error) {
-    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The outliner failed', true)
-  } finally {
+    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The project could not be made', true)
     sourceState.busy = false
     button.disabled = false
   }
 }
-
-const readOutlineFromForm = (): Outline | null => {
-  const outline = sourceState.outline
-  if (!outline) return null
-  const rows = Array.from(($('#source-scenes') as HTMLElement).querySelectorAll<HTMLElement>('.source-scene'))
-  const scenes: OutlineScene[] = rows
-    .map(row => {
-      const index = Number(row.dataset.index)
-      const base = outline.scenes[index]
-      if (!base) return null
-      const title = (row.querySelector<HTMLInputElement>('input.title')?.value || base.title).trim() || base.title
-      const seconds = Math.max(6, Math.min(120, Number(row.querySelector<HTMLInputElement>('input.seconds')?.value) || base.seconds))
-      const kind = (row.querySelector<HTMLSelectElement>('select.kind')?.value || base.kind) as OutlineScene['kind']
-      return { ...base, title, seconds, kind }
-    })
-    .filter((scene): scene is OutlineScene => Boolean(scene))
-  const title = ($('#source-outline-title') as HTMLInputElement).value.trim() || outline.title
-  const targetSeconds = parseTarget(($('#source-target') as HTMLInputElement).value) || outline.targetSeconds
-  return { ...outline, title, targetSeconds, scenes }
-}
-
-const renderSourceOutline = () => {
-  const outline = sourceState.outline
-  if (!outline) return
-  ;($('#source-outline-title') as HTMLInputElement).value = outline.title
-  ;($('#source-target') as HTMLInputElement).value = formatTarget(outline.targetSeconds)
-  const list = $('#source-scenes') as HTMLElement
-  const sum = () => {
-    const current = readOutlineFromForm()
-    const total = current ? current.scenes.reduce((acc, scene) => acc + scene.seconds, 0) : 0
-    sourceStatus('#source-outline-sum', `${current?.scenes.length || 0} scenes · ${formatTarget(total)} planned`)
-  }
-  list.replaceChildren(
-    ...outline.scenes.map((scene, index) => {
-      const row = document.createElement('li')
-      row.className = 'source-scene'
-      row.dataset.index = String(index)
-      const n = document.createElement('span')
-      n.className = 'n'
-      n.textContent = String(index + 1)
-      const title = document.createElement('input')
-      title.className = 'title'
-      title.value = scene.title
-      const kind = document.createElement('select')
-      kind.className = 'kind'
-      ;['title', 'list', 'diagram', 'numbers', 'quote', 'close'].forEach(value => {
-        const option = document.createElement('option')
-        option.value = value
-        option.textContent = value
-        option.selected = value === scene.kind
-        kind.append(option)
-      })
-      const seconds = document.createElement('input')
-      seconds.className = 'seconds'
-      seconds.type = 'number'
-      seconds.min = '6'
-      seconds.max = '120'
-      seconds.value = String(scene.seconds)
-      seconds.title = 'seconds'
-      const remove = document.createElement('button')
-      remove.type = 'button'
-      remove.textContent = '×'
-      remove.title = 'Drop this scene'
-      remove.addEventListener('click', () => {
-        row.remove()
-        sum()
-      })
-      const idea = document.createElement('div')
-      idea.className = 'idea'
-      idea.textContent = `${scene.idea}${scene.parts.length ? ` · ${scene.parts.length} parts` : ''}${scene.relations.length ? ` · ${scene.relations.length} relations` : ''}`
-      row.append(n, title, kind, seconds, remove, idea)
-      ;[title, kind, seconds].forEach(control => control.addEventListener('input', sum))
-      return row
-    }),
-  )
-  const glossary = $('#source-glossary') as HTMLElement
-  glossary.replaceChildren(
-    ...outline.glossary.map(entry => {
-      const chip = document.createElement('span')
-      chip.textContent = entry.term
-      chip.title = entry.meaning
-      return chip
-    }),
-  )
-  sum()
-}
-
-// What each page is now (F2): designed, designed and being checked, still
-// being designed, failed the page check, or a schematic draft. Designed
-// pages and schematic drafts are always told apart: a draft is a starting
-// layout, never passed off as the presentation drawing.
-const sourcePageState = (page: SourcePage, index: number, draft: SourceDraft | null) => {
-  const failed = [...(draft?.rejected.entries() || [])].find(([name]) => Number(/^(\d{2})/.exec(name)?.[1]) === index + 1)
-  if (page.drawnBy) return draft?.phase === 'checking' ? { key: 'checking', text: `designed · ${page.drawnBy} · checking` } : { key: 'designed', text: `designed · ${page.drawnBy}` }
-  if (failed) return { key: 'failed', text: 'schematic draft · failed the page check', why: failed[1] }
-  if (sourceDesignActive(draft)) return { key: 'designing', text: 'schematic draft · being designed' }
-  return { key: 'draft', text: 'schematic draft' }
-}
-
-const renderSourcePagesGrid = (pages: SourcePage[], draft: SourceDraft | null = sourceState.draft || null) => {
-  const grid = $('#source-pages-grid') as HTMLElement
-  grid.replaceChildren(
-    ...pages.map((page, index) => {
-      const card = document.createElement('div')
-      card.className = 'source-page'
-      card.dataset.origin = page.drawnBy ? 'designed' : 'schematic'
-      // Any page, finished or not, opens large (F2).
-      card.tabIndex = 0
-      card.setAttribute('role', 'button')
-      card.setAttribute('aria-label', `Look at page ${index + 1}, ${page.title}, large`)
-      card.addEventListener('click', () => openSourcePageInspector(index))
-      card.addEventListener('keydown', event => {
-        if (event.key !== 'Enter' && event.key !== ' ') return
-        event.preventDefault()
-        openSourcePageInspector(index)
-      })
-      const thumb = document.createElement('div')
-      thumb.className = 'thumb'
-      thumb.innerHTML = page.svg
-      const label = document.createElement('div')
-      label.textContent = `${index + 1}. ${page.title}`
-      const meta = document.createElement('small')
-      meta.textContent = `${page.kind} · ${page.seconds} s`
-      meta.title = `${page.contract.groups} groups · ${page.contract.verbs} verbs — the parts the studio can read, not a measure of how the page looks`
-      const state = sourcePageState(page, index, draft)
-      const badge = document.createElement('span')
-      badge.className = 'drawn'
-      badge.dataset.state = state.key
-      badge.textContent = state.text
-      if (!page.drawnBy) {
-        badge.classList.add(state.key === 'designing' ? 'is-pending' : state.key === 'failed' ? 'is-failed' : 'is-draft')
-        badge.title = state.why || 'An instant schematic layout — plain shapes and text. Design the pages for the presentation drawing.'
-      }
-      card.append(thumb, label, meta, badge)
-      return card
-    }),
-  )
-  if (!sourcePageInspector.hidden) renderSourcePageInspector()
-}
-
-// The page inspector (F2): one page at a useful size, its state, and the
-// pages either side — finished pages can be read while the rest design.
-const sourcePageInspector = $('#source-page-inspector') as HTMLElement
-let sourceInspectedPage = 0
-const renderSourcePageInspector = () => {
-  const pages = sourceState.pages || []
-  const page = pages[sourceInspectedPage]
-  if (!page) {
-    sourcePageInspector.hidden = true
-    return
-  }
-  const state = sourcePageState(page, sourceInspectedPage, sourceState.draft || null)
-  ;($('#source-inspector-title') as HTMLElement).textContent = `${sourceInspectedPage + 1} of ${pages.length} · ${page.title}`
-  const stateLine = $('#source-inspector-state') as HTMLElement
-  stateLine.textContent = state.why ? `${state.text} — ${state.why}` : state.text
-  stateLine.dataset.state = state.key
-  ;($('#source-inspector-page') as HTMLElement).innerHTML = page.svg
-  ;($('#source-inspector-prev') as HTMLButtonElement).disabled = sourceInspectedPage === 0
-  ;($('#source-inspector-next') as HTMLButtonElement).disabled = sourceInspectedPage >= pages.length - 1
-}
-const openSourcePageInspector = (index: number) => {
-  sourceInspectedPage = index
-  sourcePageInspector.hidden = false
-  renderSourcePageInspector()
-  ;($('#source-inspector-close') as HTMLButtonElement).focus()
-}
-const closeSourcePageInspector = () => {
-  if (sourcePageInspector.hidden) return
-  sourcePageInspector.hidden = true
-  document.querySelectorAll<HTMLElement>('#source-pages-grid .source-page')[sourceInspectedPage]?.focus()
-}
-;($('#source-inspector-prev') as HTMLButtonElement).addEventListener('click', () => {
-  sourceInspectedPage = Math.max(0, sourceInspectedPage - 1)
-  renderSourcePageInspector()
-})
-;($('#source-inspector-next') as HTMLButtonElement).addEventListener('click', () => {
-  sourceInspectedPage = Math.min((sourceState.pages || []).length - 1, sourceInspectedPage + 1)
-  renderSourcePageInspector()
-})
-;($('#source-inspector-close') as HTMLButtonElement).addEventListener('click', () => closeSourcePageInspector())
-// Escape closes the page, not the wizard.
-sourceDialog.addEventListener('cancel', event => {
-  if (sourcePageInspector.hidden) return
-  event.preventDefault()
-  closeSourcePageInspector()
-})
-sourceDialog.addEventListener('close', () => {
-  sourcePageInspector.hidden = true
-})
-sourcePageInspector.addEventListener('keydown', event => {
-  if (event.key === 'ArrowLeft') ($('#source-inspector-prev') as HTMLButtonElement).click()
-  if (event.key === 'ArrowRight') ($('#source-inspector-next') as HTMLButtonElement).click()
-})
-
-// ——— The base deck: designed through a local harness, or schematic drafts ———
-// Designing the pages is the normal path whenever a drawing harness is
-// available: the page-master skill composes every page from the outline, the
-// bound brand and its fonts. Schematic drafts are the instant alternative —
-// the studio's plain template layouts, always labelled as drafts.
-//
-// A design run belongs to the draft that started it. Its pages land on that
-// draft alone, as each one is finished and passes the studio's page check —
-// never on whatever the dialog happens to show later.
-type SourceDraft = {
-  id: string
-  // The outline and brand the pages were made from; the same key reuses the
-  // draft, a changed one makes a new draft.
-  key: string
-  outline: Outline
-  pages: SourcePage[]
-  // label: the harness and the model asked for, or the model the harness
-  // reported when it ran on its CLI default.
-  run: { id: string; harness: string; model: string | null; reported?: string; label: string; startedAt: number; finishedAt?: number; status?: string } | null
-  // drafts: schematic only · designing: the run is drawing · checking: every
-  // page is drawn, the run is reviewing and checking them · ready: all pages
-  // designed and the run finished · incomplete: some pages designed ·
-  // failed: the run ended with none.
-  phase: 'drafts' | 'designing' | 'checking' | 'ready' | 'incomplete' | 'failed'
-  // File name → what was applied, so a page the run redraws lands again.
-  applied: Map<string, string>
-  // Pages the last pass could not use, with why.
-  rejected: Map<string, string>
-  receipt: unknown
-  failure: RunFailureView | null
-  log: string[]
-  poll: number | null
-  chain: Promise<void>
-}
-const SOURCE_DESIGN_POLL_MS = 4000
-const sourceDesignRuns = new Map<string, SourceDraft>()
-let sourceDesignListening = false
-let sourceDesignAgent: { id: string; model: string | null; label: string } | null = null
-let sourceDesignUnavailable = ''
-const sourceDesignActive = (draft: SourceDraft | null | undefined) => Boolean(draft && (draft.phase === 'designing' || draft.phase === 'checking'))
-const designedCount = (draft: SourceDraft) => draft.pages.filter(page => page.drawnBy).length
-const designElapsed = (draft: SourceDraft) => {
-  if (!draft.run) return ''
-  const seconds = Math.max(0, Math.round(((draft.run.finishedAt || Date.now()) - draft.run.startedAt) / 1000))
-  return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, '0')} s`
-}
-const sourceDraftKey = (outline: Outline, source: SourceRead) => {
-  const { palette, mode } = sourcePageBrand(source)
-  return JSON.stringify({ outline, palette, mode, fonts: sourceBrandFonts(source), site: source.site })
-}
-
-// The finish action says exactly what opens: designed pages, schematic
-// drafts, or both.
-const sourceFinishLabel = (draft: SourceDraft | null | undefined) => {
-  if (!draft) return 'Open the notebook'
-  const total = draft.pages.length
-  const designed = designedCount(draft)
-  if (sourceDesignActive(draft)) return designed === total ? 'Open now — all designed, still checking' : `Open now — ${designed} designed, ${total - designed} still designing`
-  if (total && designed === total) return draft.phase === 'ready' ? 'Open the designed notebook' : 'Open the designed pages, unchecked'
-  if (designed) return `Open with ${designed} designed + ${total - designed} schematic drafts`
-  return 'Open the notebook with schematic drafts'
-}
-
-const renderSourceDesign = () => {
-  const draft = sourceState.draft || null
-  const row = document.getElementById('source-draw-row')
-  const status = document.getElementById('source-draw-status')
-  const failureLine = document.getElementById('source-draw-failure')
-  const design = document.getElementById('source-draw') as HTMLButtonElement | null
-  const stop = document.getElementById('source-draw-stop') as HTMLButtonElement | null
-  const finish = document.getElementById('source-finish') as HTMLButtonElement | null
-  const log = document.getElementById('source-design-log') as HTMLDetailsElement | null
-  if (!row || !status || !failureLine || !design || !stop || !finish || !log) return
-  finish.textContent = sourceFinishLabel(draft)
-  if (!draft) return
-  const total = draft.pages.length
-  const designed = designedCount(draft)
-  const by = draft.run?.label || sourceDesignAgent?.label || 'the harness'
-  row.dataset.phase = draft.phase
-  const rejected = draft.rejected.size
-  const lines: Record<SourceDraft['phase'], string> = {
-    drafts: sourceDesignAgent
-      ? `Schematic drafts — plain layouts made instantly. Design them with ${sourceDesignAgent.label} for the presentation drawing.`
-      : `Schematic drafts — plain layouts made instantly.${sourceDesignUnavailable ? ` ${sourceDesignUnavailable}` : ''}`,
-    designing: `Designing with ${by} — ${designed} of ${total} pages · ${designElapsed(draft)}`,
-    checking: `Checking — all ${total} pages are drawn; ${by} is reviewing and checking them · ${designElapsed(draft)}`,
-    ready: `Ready — ${total} of ${total} pages designed by ${by}${draft.receipt ? ', checked' : ''} · ${designElapsed(draft)}`,
-    incomplete:
-      designed === total
-        ? `Incomplete — all ${total} pages are drawn, but ${by} stopped before checking them.`
-        : `Incomplete — ${designed} of ${total} pages designed by ${by}; ${total - designed} stay schematic drafts${rejected ? ` (${rejected} failed the page check)` : ''}.`,
-    failed: `The design run ended without a usable page — the ${total} schematic drafts stay${rejected ? ` (${rejected} drawn pages failed the page check)` : ''}.`,
-  }
-  status.textContent = lines[draft.phase]
-  status.classList.toggle('is-error', draft.phase === 'failed')
-  // What went wrong, in the provider's words, with the ways on.
-  const failed = draft.phase === 'failed' || (draft.phase === 'incomplete' && draft.failure)
-  failureLine.hidden = !failed
-  if (failed) showRunFailure(failureLine, draft.failure || undefined, draft.run?.status === 'cancelled' ? 'The design run was stopped.' : 'The design run ended early.', () => void sourceDrawPages())
-  else failureLine.replaceChildren()
-  const active = sourceDesignActive(draft)
-  stop.hidden = !active
-  // A shown failure carries its own Retry; the button would say it twice.
-  const retrying = Boolean(failed) && draft.failure?.category !== 'unavailable'
-  const canDesign = Boolean(sourceDesignAgent) && !active && draft.phase !== 'ready' && !retrying
-  design.hidden = !canDesign
-  design.textContent = draft.phase === 'drafts' ? 'Design the pages' : 'Design them again'
-  const note = document.getElementById('source-pages-note')
-  const still = total - designed
-  if (note && !finish.disabled) {
-    note.textContent = active
-      ? still
-        ? `Opening now keeps designing: ${still === 1 ? 'the page still being designed lands on its scene' : `the ${still} pages still being designed land on their scenes`} as ${still === 1 ? 'it is' : 'they are'} finished. Stop remaining work keeps ${still === 1 ? 'it a schematic draft' : 'them schematic drafts'}.`
-        : 'Opening now keeps the check running; a page it redraws lands on its scene.'
-      : ''
-  }
-  log.hidden = !draft.log.length
-  const list = log.querySelector('ol')
-  if (list) {
-    list.replaceChildren(
-      ...draft.log.map(line => {
-        const item = document.createElement('li')
-        item.textContent = line
-        return item
-      }),
-    )
-  }
-}
-
-// The drawing harness from the creator's "Page drawing" choice (Agent
-// settings). Without one, schematic drafts are the only way on, and the
-// reason is shown.
-const syncSourceDesignAgent = async () => {
-  if (!window.studioDesktop?.isDesktop) {
-    sourceDesignAgent = null
-    sourceDesignUnavailable = 'Designing the pages runs in the desktop app with a local harness.'
-  } else {
-    try {
-      const agent = await resolveCreationAgent('drawing')
-      sourceDesignAgent = { id: agent.id, model: agent.model || null, label: agent.label }
-      sourceDesignUnavailable = ''
-    } catch (error) {
-      sourceDesignAgent = null
-      sourceDesignUnavailable = error instanceof Error ? error.message : String(error)
-    }
-  }
-  const designButton = document.getElementById('source-design-pages') as HTMLButtonElement | null
-  const draftsButton = document.getElementById('source-make-pages') as HTMLButtonElement | null
-  if (designButton) {
-    designButton.hidden = !sourceDesignAgent
-    designButton.title = sourceDesignAgent ? `Designed with ${sourceDesignAgent.label} — change it in AI settings` : ''
-  }
-  if (draftsButton) {
-    draftsButton.classList.toggle('primary', !sourceDesignAgent)
-    draftsButton.classList.toggle('ghost', Boolean(sourceDesignAgent))
-  }
-  const hint = document.getElementById('source-design-hint')
-  if (hint) {
-    hint.textContent = sourceDesignAgent
-      ? `The pages are designed with ${sourceDesignAgent.label} and the presentation skill; each appears when it is finished, and a full deck takes a while. Schematic drafts are instant plain layouts, labelled as drafts.`
-      : `Schematic drafts are instant plain layouts, labelled as drafts. ${sourceDesignUnavailable}`
-  }
-  renderSourceDesign()
-}
-
-// Read the run's pages and take each one that passes the page check. While
-// the run works, a page that does not parse yet is read again next time;
-// the last pass, after the run ends, counts it as failed.
-const applyDesignedPages = (draft: SourceDraft, final: boolean) => {
-  draft.chain = draft.chain.then(async () => {
-    const bridge = window.studioDesktop
-    const run = draft.run
-    if (!bridge?.isDesktop || !run?.id) return
-    const result = await bridge.harness.pages(run.id).catch(() => null)
-    if (!result) return
-    let changed = false
-    result.pages.forEach(entry => {
-      const match = /^(\d{2})/.exec(entry.name)
-      const page = match ? draft.pages[Number(match[1]) - 1] : undefined
-      if (!page) return
-      const key = `${entry.svg}\u0000${entry.program ? JSON.stringify(entry.program) : ''}`
-      if (draft.applied.get(entry.name) === key) return
-      try {
-        const atomized = atomizeSlideSvg(entry.svg)
-        if (!atomized.units.length) throw new Error('the page has no parts the studio can read')
-        const report = contractReport(atomized.units, atomized.pageRole)
-        const leaves = leafUnits(atomized.units)
-        page.schematic ||= { svg: page.svg, program: page.program }
-        page.svg = entry.svg
-        page.program = entry.program || undefined
-        page.drawnBy = run.label
-        page.designRun = run.id
-        page.drawnContract = report.declared
-        page.contract = { groups: report.groups, roles: report.roles, connectors: report.connectors, verbs: report.verbs, labels: leaves.filter(unit => unit.kind === 'label').length, declared: report.declared >= 0.9 }
-        draft.applied.set(entry.name, key)
-        draft.rejected.delete(entry.name)
-        changed = true
-      } catch (error) {
-        if (!final) return
-        draft.rejected.set(entry.name, error instanceof Error ? error.message : String(error))
-        console.warn('designed page rejected', entry.name, error)
-      }
-    })
-    draft.receipt = result.receipt
-    if (!final && sourceDesignActive(draft)) draft.phase = designedCount(draft) === draft.pages.length ? 'checking' : 'designing'
-    if (draft === sourceState.draft) {
-      if (changed) renderSourcePagesGrid(draft.pages, draft)
-      renderSourceDesign()
-    }
-  })
-  return draft.chain
-}
-
-const settleDesignRun = async (draft: SourceDraft, runId: string, status?: string) => {
-  if (draft.run?.id !== runId || !sourceDesignRuns.has(runId)) return
-  sourceDesignRuns.delete(runId)
-  if (draft.poll) window.clearInterval(draft.poll)
-  draft.poll = null
-  await applyDesignedPages(draft, true)
-  const summary = await finishedRun(runId).catch(() => undefined)
-  draft.run.finishedAt = Date.now()
-  draft.run.status = status || summary?.status || 'error'
-  draft.failure = draft.run.status === 'done' ? null : summary?.failure || null
-  const designed = designedCount(draft)
-  // Stopped before a page was designed: the drafts simply stay drafts.
-  draft.phase = designed === draft.pages.length && draft.run.status === 'done' ? 'ready' : designed ? 'incomplete' : draft.run.status === 'cancelled' ? 'drafts' : 'failed'
-  if (draft === sourceState.draft) {
-    sourceState.drawOutcome = { drawn: designed, of: draft.pages.length, failed: [...draft.rejected.keys()], receipt: draft.receipt }
-    renderSourcePagesGrid(draft.pages, draft)
-    renderSourceDesign()
-  }
-}
-
-const listenForDesignRuns = () => {
-  const bridge = window.studioDesktop
-  if (sourceDesignListening || !bridge?.isDesktop) return
-  sourceDesignListening = true
-  bridge.harness.onEvent(({ runId, event }) => {
-    const draft = sourceDesignRuns.get(runId)
-    if (!draft) return
-    // On its CLI default the harness says which model it runs; the pages
-    // name it.
-    if (event.type === 'session' && event.model && draft.run && !draft.run.model) {
-      draft.run.reported = event.model
-      draft.run.label = `${agentLabel(draft.run.harness)} · ${event.model}`
-    }
-    const line = progressText(event)
-    if (line && draft.log[draft.log.length - 1] !== line) {
-      draft.log.push(line)
-      if (draft.log.length > 80) draft.log.splice(0, draft.log.length - 80)
-    }
-    if (event.type === 'done') void settleDesignRun(draft, runId, event.status)
-    else if (draft === sourceState.draft) renderSourceDesign()
-  })
-}
-
-// Stop the designer; what it finished stays on the draft.
-const stopSourceDesign = async (draft: SourceDraft) => {
-  const runId = draft.run?.id
-  if (!runId || !sourceDesignActive(draft)) return
-  const cancelling = window.studioDesktop?.harness.cancel(runId).catch(() => false)
-  await settleDesignRun(draft, runId, 'cancelled')
-  await cancelling
-}
-
-// Design the current draft's pages through the page-master skill. `choice`
-// ('adapter|model') names a harness directly; otherwise the Page drawing
-// choice from AI settings runs it.
-const sourceDrawPages = async (choice?: string) => {
-  const bridge = window.studioDesktop
-  const source = sourceState.source
-  const draft = sourceState.draft
-  const status = document.getElementById('source-draw-status')
-  if (!bridge?.isDesktop || !source || !draft) return null
-  if (sourceDesignActive(draft)) return draft.run?.id || null
-  let adapter = ''
-  let model: string | null = null
-  if (choice && choice !== 'template') {
-    const [id, chosen] = choice.split('|')
-    adapter = id
-    model = chosen || null
-  } else {
-    try {
-      const agent = await resolveCreationAgent('drawing')
-      adapter = agent.id
-      model = agent.model || null
-    } catch (error) {
-      if (status) {
-        status.textContent = error instanceof Error ? error.message : String(error)
-        status.classList.add('is-error')
-      }
-      return null
-    }
-  }
-  const available = await bridge.harness.adapters().catch(() => agentAvailability)
-  const label = `${agentLabel(adapter)}${model ? ` · ${modelLabel(available, adapter, model)}` : ''}`
-  const outline = draft.outline
-  const brand = sourcePageBrand(source)
-  const inputs = {
-    video: { title: outline.title, site: source.site },
-    brand: { palette: brand.palette, fonts: sourceBrandFonts(source), mode: brand.mode },
-    // The article's own sentences travel with the scene: whoever decides what
-    // happens on the page needs the example and the causation, not a summary.
-    scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, source: scene.source || [], parts: scene.parts, relations: scene.relations })),
-    // The explanation model's objects travel with the run so drawn pages can
-    // declare data-object-id — the same thing keeps one id on every page.
-    ...(sourceState.modelData?.objects?.length ? { objects: sourceState.modelData.objects, modelId: sourceState.model?.id || '' } : {}),
-    pageCount: outline.scenes.length,
-    contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
-    ...(model ? { model } : {}),
-    // K3 always thinks; a drawing run asks it to think hard.
-    effort: 'high',
-    autonomous: true,
-  }
-  listenForDesignRuns()
-  draft.run = { id: '', harness: adapter, model, label, startedAt: Date.now() }
-  draft.phase = 'designing'
-  draft.failure = null
-  draft.rejected.clear()
-  draft.log = [`Starting ${label} on ${draft.pages.length} pages`]
-  sourceState.drawer = label
-  sourceState.drawOutcome = null
-  renderSourcePagesGrid(draft.pages, draft)
-  renderSourceDesign()
-  try {
-    const run = await bridge.harness.run({ adapter, skill: 'page-master', route: 'Draw Pages', projectId: project.id, inputs })
-    draft.run.id = run.id
-    sourceDesignRuns.set(run.id, draft)
-    draft.poll = window.setInterval(() => void applyDesignedPages(draft, false), SOURCE_DESIGN_POLL_MS)
-    // A run that failed at once may have ended before its id came back.
-    const early = await finishedRun(run.id).catch(() => undefined)
-    if (early && ['done', 'error', 'cancelled'].includes(early.status)) void settleDesignRun(draft, run.id, early.status)
-    return run.id
-  } catch (error) {
-    draft.phase = designedCount(draft) ? 'incomplete' : 'failed'
-    draft.failure = { category: 'other', message: error instanceof Error ? error.message : 'Could not start the design run', recovery: [] }
-    renderSourcePagesGrid(draft.pages, draft)
-    renderSourceDesign()
-    return null
-  }
-}
-;($('#source-draw') as HTMLButtonElement).addEventListener('click', () => void sourceDrawPages())
-;($('#source-draw-stop') as HTMLButtonElement).addEventListener('click', () => {
-  if (sourceState.draft) void stopSourceDesign(sourceState.draft)
-})
 
 // The page palette and mode come from the chosen theme direction, not a
 // forced dark default (D1): a selected light theme stays light.
@@ -17185,62 +16533,6 @@ const sourcePageBrand = (source: SourceRead) => {
       secondary: chosen.brand.secondary,
     },
     mode: isLightColor(chosen.brand.background) ? ('light' as const) : ('dark' as const),
-  }
-}
-
-// Make the base deck's pages. 'design' lays the pages out as schematic
-// drafts first — the fallback and the placeholders — then starts the design
-// run on them; 'schematic' stops at the drafts. Designing again from the same
-// outline and brand returns to the draft already being designed.
-const sourceMakePages = async (mode: 'schematic' | 'design' = 'schematic') => {
-  const source = sourceState.source
-  const outline = readOutlineFromForm()
-  if (!source || !outline || sourceState.busy) return
-  if (!outline.scenes.length) {
-    sourceStatus('#source-outline-status', 'Keep at least one scene', true)
-    return
-  }
-  const key = sourceDraftKey(outline, source)
-  const current = sourceState.draft
-  if (mode === 'design' && current && current.key === key) {
-    sourceState.outline = outline
-    sourceState.pages = current.pages
-    renderSourcePagesGrid(current.pages, current)
-    showSourceStep('pages')
-    sourceStatus('#source-outline-status', '')
-    if (!sourceDesignActive(current) && current.phase !== 'ready') await sourceDrawPages()
-    else renderSourceDesign()
-    return
-  }
-  sourceState.busy = true
-  const buttons = ['#source-make-pages', '#source-design-pages'].map(id => $(id) as HTMLButtonElement)
-  buttons.forEach(button => (button.disabled = true))
-  sourceStatus('#source-outline-status', mode === 'design' ? 'Laying out the pages for the designer…' : 'Making the schematic drafts…')
-  try {
-    const { palette, mode: brandMode } = sourcePageBrand(source)
-    const { pages } = await fetchJson<{ pages: SourcePage[] }>('/api/source/pages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ outline, palette, fonts: sourceBrandFonts(source), site: source.site, mode: brandMode }),
-    })
-    // A new draft replaces the old one; a designer still working on the old
-    // one is stopped, so nothing it draws can land here.
-    if (current && sourceDesignActive(current)) void stopSourceDesign(current)
-    const draft: SourceDraft = { id: crypto.randomUUID(), key, outline, pages, run: null, phase: 'drafts', applied: new Map(), rejected: new Map(), receipt: null, failure: null, log: [], poll: null, chain: Promise.resolve() }
-    sourceState.outline = outline
-    sourceState.pages = pages
-    sourceState.draft = draft
-    sourceState.drawOutcome = null
-    renderSourcePagesGrid(pages, draft)
-    showSourceStep('pages')
-    renderSourceDesign()
-    sourceStatus('#source-outline-status', '')
-    if (mode === 'design') await sourceDrawPages()
-  } catch (error) {
-    sourceStatus('#source-outline-status', error instanceof Error ? error.message : 'The pages could not be made', true)
-  } finally {
-    sourceState.busy = false
-    buttons.forEach(button => (button.disabled = false))
   }
 }
 
@@ -17384,253 +16676,7 @@ const writeSceneToBrief = async (nodeId: string) => {
   })
   return animateSceneLocally(nodeId)
 }
-// A few at a time; a failure leaves that scene on its outline line.
-const writeScenesToBrief = async (nodeIds: string[], onProgress: (done: number, total: number, failed: number) => void) => {
-  let done = 0
-  let failed = 0
-  let stop = false
-  const queue = [...nodeIds]
-  const worker = async () => {
-    while (queue.length && !stop) {
-      const nodeId = queue.shift()!
-      try {
-        if (!(await writeSceneToBrief(nodeId))) failed += 1
-      } catch (error) {
-        failed += 1
-        const message = error instanceof Error ? error.message : String(error)
-        // No provider: nothing else will succeed either.
-        if (/AI provider|Models/i.test(message)) stop = true
-        console.warn('scene not written to its brief', nodeId, message)
-      }
-      done += 1
-      onProgress(done, nodeIds.length, failed)
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(3, nodeIds.length) }, worker))
-  return { done, failed, stopped: stop }
-}
 const notebookHasScenes = () => (editor.getJSON() as TiptapDocument).content.some(node => node.type === 'scene' || node.type === 'slide')
-// The new-or-append destination turns on the author's own content: scenes or
-// any written block count, blank paragraphs never do, and a notebook still
-// holding only the untouched starter sample counts as empty (a fresh launch's
-// story begins in a new notebook, not appended to the sample).
-const notebookHasOwnContent = () => {
-  const content = (editor.getJSON() as TiptapDocument).content || []
-  if (!content.some(node => node.type !== 'paragraph' || (node.content || []).length)) return false
-  return !starterContentJson || JSON.stringify(content) !== starterContentJson
-}
-// A source can begin a new notebook: the current one is kept, a fresh
-// document takes the theme and the journey's delivery choice, and is built
-// here, behind the source dialog. Once it is saved, the studio opens on it
-// as it opens any notebook (BoltDB review B01) — a notebook swapped in under
-// the studio kept the previous one's views.
-const startFreshNotebook = async (title: string) => {
-  project.notebook = editor.getJSON() as TiptapDocument
-  ensureBlockConfiguration(project.notebook)
-  try {
-    await persistProjectNow(structuredClone(project))
-  } catch {
-    // the draft keeps the edits; the new notebook still begins
-    rememberDraft(project)
-  }
-  const fresh = blankProjectDocument(title)
-  if (project.theme) {
-    fresh.theme = structuredClone(project.theme)
-    fresh.brand = { ...project.theme.brand }
-  }
-  if (sourceState.delivery) fresh.explainerDelivery = sourceState.delivery
-  project = fresh
-  slideEditor = null
-  lastVideoPlan = null
-  editor.commands.setContent(fresh.notebook)
-  window.localStorage.setItem(ACTIVE_PROJECT_KEY, fresh.id)
-  window.localStorage.removeItem(STORAGE_KEY)
-  const titleInput = document.querySelector<HTMLInputElement>('#project-title')
-  if (titleInput) titleInput.value = title
-  syncProject()
-}
-const sourceFinish = async () => {
-  const source = sourceState.source
-  const outline = sourceState.outline
-  const pages = sourceState.pages
-  if (!source || !outline || !pages?.length) return
-  // Opening while the designer works takes every page it has finished; the
-  // rest open as schematic drafts bound to the run, which keeps designing
-  // and lands each page on its scene as it is finished (F2).
-  const draft = sourceState.draft?.pages === pages ? sourceState.draft : null
-  const designRun = draft && sourceDesignActive(draft) && draft.run?.id ? draft.run : null
-  const designedPages = pages.filter(page => page.drawnBy).length
-  // The choice is offered only when the notebook holds the author's own
-  // content; a notebook with none (or only the untouched starter sample) is
-  // not a destination — the story starts a notebook of its own.
-  const hasOwnContent = notebookHasOwnContent()
-  const destination = hasOwnContent
-    ? document.querySelector<HTMLInputElement>('input[name="source-destination"]:checked')?.value || 'new'
-    : 'new'
-  const startedNew = destination === 'new'
-  if (startedNew) await startFreshNotebook(outline.title)
-  // A new import is a project (the four-notebook model): the article as a
-  // text notebook, its pages as a wireframe and — once they are being
-  // designed — a presentation, each a notebook of its own. The notebook
-  // built here is the presentation when there is one, else the wireframe;
-  // the others are made beside it from the same pages.
-  const designs = Boolean(designRun) || designedPages > 0
-  const place = startedNew ? { container: `project-${crypto.randomUUID()}`, text: crypto.randomUUID(), wireframe: designs ? crypto.randomUUID() : project.id } : null
-  if (place) project.container = { id: place.container, kind: designs ? 'presentation' : 'wireframe', from: designs ? place.wireframe : place.text }
-  // the brand, with the logo the author picked
-  const direction = sourceBrandTheme()
-  if (direction) {
-    const theme = cloneTheme(normalizeStudioTheme(direction))
-    if (sourceState.brandChoice !== 'saved') {
-      theme.name = `${shortThemeName(source)} · ${theme.name}`.slice(0, 48)
-      theme.colours = sourceColours(source)
-    }
-    if (sourceState.logoUrl) theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
-    applyThemeToProject(theme)
-  }
-  // the pages as scenes, each with its idea for the director and its first-draft line as the script
-  // One transaction at the end of the document: inserting one at a time
-  // leaves a node selection behind, and the next insert replaces it.
-  // the card's poster is the page itself, as a data url, so a generated scene previews like an imported one
-  const bySceneTitle = new Map(outline.scenes.map(scene => [scene.title, scene]))
-  // Each scene records how its page was made, so a schematic draft stays
-  // identified in the notebook.
-  const nodes = pages.map((page, index) => {
-    const origin = page.drawnBy ? { kind: 'designed', by: page.drawnBy, ...(page.designRun ? { runId: page.designRun } : {}) } : { kind: 'schematic' }
-    // While the run works, every scene waits for its page from it — a page
-    // it redraws as it checks lands too — bound to the page shown now.
-    const designing: PageDesignBinding | null = designRun ? { runId: designRun.id, page: index + 1, by: designRun.label, placeholder: pageFingerprint(page.svg), ...(page.drawnBy ? { landed: pageFingerprint(page.svg) } : {}) } : null
-    return { type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, program: page.program || null, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true, pageOrigin: designing ? { ...origin, designing } : origin } }
-  })
-  editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
-  // A new project's page notebook holds pages only: the blank line a fresh
-  // notebook opens with goes.
-  if (place) {
-    const first = editor.state.doc.firstChild
-    if (first?.type.name === 'paragraph' && !first.textContent.trim() && editor.state.doc.childCount > 1) {
-      editor.commands.command(({ tr }) => {
-        tr.delete(0, first.nodeSize)
-        return true
-      })
-    }
-  }
-  const inserted = pages.map(page => page.title)
-  // Each new scene gets its block, then its first plan from the draft line,
-  // so the notebook opens with windows, motion and captions already there.
-  // A wireframe holds pages only: the video's staging is not its own.
-  const notebookDoc = editor.getJSON() as TiptapDocument
-  ensureBlockConfiguration(notebookDoc)
-  const fresh = notebookDoc.content.filter(node => node.type === 'scene' && typeof node.attrs?.id === 'string').slice(-pages.length)
-  if (project.container?.kind !== 'wireframe') {
-    fresh.forEach(node => {
-      try {
-        animateSceneLocally(String(node.attrs!.id))
-      } catch (error) {
-        console.warn('first plan failed', node.attrs?.title, error)
-      }
-    })
-  }
-  project.title = outline.title
-  project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.snapshot ? { snapshotId: sourceState.snapshot.id } : {}), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
-  // The story records this base was built from (D2): wording policy, the
-  // authored narrative revision and the outline's explanation model.
-  project.story = {
-    wordingPolicy: sourceState.wording,
-    ...(sourceState.narrative ? { narrativeId: sourceState.narrative.id } : {}),
-    ...(sourceState.model ? { modelId: sourceState.model.id } : {}),
-  }
-  // Each outline scene keeps the id of the page made from it, so what the
-  // page teaches is found again once the director rewrites its notes.
-  const pageIds = new Map(pages.map((page, index) => [page.title, String(fresh[index]?.attrs?.id || '')]))
-  const pageIdOf = (title: string, index: number) => pageIds.get(title) || (outline.scenes.length === pages.length ? String(fresh[index]?.attrs?.id || '') : '')
-  // Each page keeps its plan, and the notebook the brand it is drawn in, so
-  // a presentation can be designed from the pages later (the four-notebook
-  // model).
-  const pageBrand = sourcePageBrand(source)
-  project.outline = {
-    title: outline.title,
-    targetSeconds: outline.targetSeconds,
-    scenes: outline.scenes.map((scene, index) => ({ ...(pageIdOf(scene.title, index) ? { nodeId: pageIdOf(scene.title, index) } : {}), title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}), narration: scene.narration, parts: scene.parts, relations: scene.relations })),
-    glossary: outline.glossary,
-    ...(sourceState.modelData?.objects?.length ? { objects: sourceState.modelData.objects } : {}),
-    pageBrand: { palette: pageBrand.palette as Record<string, unknown>, fonts: (sourceBrandFonts(source) as Record<string, unknown> | undefined) || null, mode: pageBrand.mode },
-  }
-  const titleInput = document.querySelector<HTMLInputElement>('#project-title')
-  if (titleInput) titleInput.value = project.title
-  // Made from a source, the notebook is a base: it shows its pages (B04).
-  syncBasePages()
-  syncProject()
-  // Kept wording is segmented around the author's own sentences, here. An
-  // outline from the direct model path has each scene written to its brief
-  // by that path. An outline the local harness wrote keeps the harness's
-  // lines as the scenes' notes: the base is made with the harness the
-  // creator chose, and nothing else (BoltDB review B03) — the video's plans
-  // write each scene's narration, with that harness, when a video is made.
-  const preserving = sourceState.wording === 'preserve'
-  const writes = preserving || sourceState.outlinedBy !== 'harness'
-  const finishButton = $('#source-finish') as HTMLButtonElement
-  finishButton.disabled = true
-  const note = (text: string) => sourceStatus('#source-pages-note', text)
-  if (writes) note(preserving ? `Timing ${fresh.length} scenes around your words…` : `Writing ${fresh.length} scenes to their briefs…`)
-  const written = writes
-    ? await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(preserving ? `Timing scenes around your words · ${done} of ${total}` : `Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
-    : { done: 0, failed: 0, stopped: false }
-  syncProject()
-  const writing = written.stopped
-    ? 'No AI provider is configured — the scenes keep their outline lines; add a provider under Direct API in AI settings to write them to their briefs'
-    : written.failed
-      ? `${written.failed} scene${written.failed === 1 ? '' : 's'} kept the outline line — open ${written.failed === 1 ? 'it' : 'them'} and press Write`
-      : ''
-  // A new notebook opens from here: the dialog stays up until it has, so the
-  // studio is never seen holding one notebook under another's name.
-  if (startedNew) note('Opening the new notebook…')
-  else {
-    finishButton.disabled = false
-    sourceDialog.close()
-    if (writing) showToast(writing)
-  }
-  sourceState.draft = null
-  if (designRun && draft) {
-    // The notebook follows the run from here; the wizard lets go of it. Each
-    // scene is bound to its page as the notebook keeps it — once its first
-    // plan has given the page's parts their ids.
-    if (draft.poll) window.clearInterval(draft.poll)
-    draft.poll = null
-    sourceDesignRuns.delete(designRun.id)
-    if (restampPageBindings(fresh.map(node => String(node.attrs!.id)))) syncProject()
-    if (!startedNew) watchPageDesign()
-  }
-  const still = pages.length - designedPages
-  const origin = designedPages === pages.length ? '' : designRun ? ` · ${designedPages} designed, ${still} still being designed` : designedPages ? ` · ${designedPages} designed, ${still} schematic drafts` : ' · schematic drafts'
-  const done = `${inserted.length} pages from ${source.site || 'your narrative'}${startedNew ? ` in a new project — its text, wireframe${designs ? ' and presentation' : ''}` : ''} · ${formatTarget(outline.targetSeconds)} planned${origin}`
-  if (!startedNew) {
-    showToast(done)
-    return
-  }
-  // The project's other notebooks are saved first, each naming the one it
-  // was made from; then the notebook built here — bindings and all — or it
-  // is kept as the draft it opens from. The studio opens on it; its pages go
-  // on landing there.
-  if (place) {
-    project.notebook = editor.getJSON() as TiptapDocument
-    for (const made of projectNotebooksOf(project, place, source, pages)) {
-      try {
-        await persistProjectNow(structuredClone(made))
-      } catch (error) {
-        console.warn(`the project's ${made.container?.kind} notebook not persisted yet`, error)
-        rememberDraft(made)
-      }
-    }
-  }
-  try {
-    await persistProjectNow(structuredClone(project))
-  } catch (error) {
-    console.warn('new notebook not persisted yet', error)
-    rememberDraft(project)
-  }
-  activateNotebook(project.id, writing ? `${done}. ${writing}` : done)
-}
-
 // The article as a text notebook: what was read, as Markdown. A table is
 // kept whole as a fenced block — the notebook has no table of its own — and
 // a fenced block is left as it is.
@@ -17656,48 +16702,6 @@ const textNotebookOf = (text: string): TiptapDocument => {
   flush()
   const parsed = editor.markdown?.parse(lines.join('\n')) as TiptapDocument | undefined
   return parsed?.content?.length ? parsed : { type: 'doc', content: text.trim() ? [{ type: 'paragraph', content: [{ type: 'text', text }] }] : [] }
-}
-
-// The notebooks a new project holds beside the one built in the editor:
-// its text, and — when the built one is its presentation — its wireframe,
-// the schematics the slides are designed from, with the same page ids and
-// none of the presentation's bindings or staging.
-const projectNotebooksOf = (built: ProjectDocumentV1, place: { container: string; text: string; wireframe: string }, source: SourceRead, pages: SourcePage[]): ProjectDocumentV1[] => {
-  const common = { title: built.title, source: structuredClone(built.source), story: structuredClone(built.story), theme: structuredClone(built.theme), brand: structuredClone(built.brand) }
-  const text: ProjectDocumentV1 = { ...blankProjectDocument(built.title), ...common, id: place.text, container: { id: place.container, kind: 'text' }, notebook: textNotebookOf(source.text || '') }
-  if (built.container?.kind !== 'presentation') return [text]
-  const scenes = (built.notebook.content || []).filter(node => node.type === 'scene' && node.attrs?.id).slice(-pages.length)
-  const wireframe: ProjectDocumentV1 = {
-    ...blankProjectDocument(built.title),
-    ...common,
-    id: place.wireframe,
-    container: { id: place.container, kind: 'wireframe', from: place.text },
-    outline: structuredClone(built.outline),
-    notebook: {
-      type: 'doc',
-      content: scenes.map((node, index) => {
-        const page = pages[index]
-        const schematic = page?.schematic || (page && !page.drawnBy ? { svg: page.svg, program: page.program } : null)
-        const attrs = node.attrs || {}
-        return {
-          type: 'scene',
-          attrs: {
-            id: attrs.id,
-            title: attrs.title,
-            svg: schematic?.svg || '',
-            svgSrc: schematic ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(schematic.svg)}` : '',
-            program: schematic?.program || null,
-            directorNotes: page?.idea || '',
-            script: attrs.script || '',
-            sourcePassages: attrs.sourcePassages || [],
-            structureApproved: true,
-            pageOrigin: { kind: 'schematic' },
-          },
-        }
-      }),
-    },
-  }
-  return [text, wireframe]
 }
 
 // ——— Pages still being designed in an open notebook (F2) ———
@@ -17903,7 +16907,7 @@ function watchPageDesign() {
   if (!project.derivedFrom?.notebook) replanLandedPages()
   renderPageDesignStatus()
   if (project.derivedFrom?.notebook || !window.studioDesktop?.isDesktop || !pageDesignBindings().length) return
-  if (pageDesignTimer === null) pageDesignTimer = window.setInterval(() => void landDesignedPages(), SOURCE_DESIGN_POLL_MS)
+  if (pageDesignTimer === null) pageDesignTimer = window.setInterval(() => void landDesignedPages(), 4000)
   void landDesignedPages()
 }
 // Stop remaining work: the run is stopped, what it finished lands, the rest
@@ -17970,10 +16974,7 @@ const sourceReadFile = async (file: File) => {
     void sourceRead()
   }
 })
-;($('#source-to-outline') as HTMLButtonElement).addEventListener('click', () => void sourceOutline())
-;($('#source-make-pages') as HTMLButtonElement).addEventListener('click', () => void sourceMakePages('schematic'))
-;($('#source-design-pages') as HTMLButtonElement).addEventListener('click', () => void sourceMakePages('design'))
-;($('#source-finish') as HTMLButtonElement).addEventListener('click', () => void sourceFinish())
+;($('#source-to-outline') as HTMLButtonElement).addEventListener('click', () => void sourceCreateProject())
 ;($('#source-close') as HTMLButtonElement).addEventListener('click', () => sourceDialog.close())
 ;($('#start-from-source') as HTMLButtonElement).addEventListener('click', () => openSourceDialog('link'))
 ;($('#open-assets') as HTMLButtonElement).addEventListener('click', () => openAssetLibrary())
@@ -18516,38 +17517,14 @@ function resumeRecordingIntent() {
   },
 }
 sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(button => {
-  button.addEventListener('click', () => showSourceStep(button.dataset.sourceBack as 'read' | 'brand' | 'outline'))
+  button.addEventListener('click', () => showSourceStep(button.dataset.sourceBack as 'read' | 'brand'))
 })
 // A dev hook so the flow can be driven end to end in a hooked instance.
 ;(window as unknown as { __source?: unknown }).__source = {
   state: () => sourceState,
   open: openSourceDialog,
   read: sourceRead,
-  outline: sourceOutline,
-  // Schematic drafts; design() is the designed path.
-  pages: () => sourceMakePages('schematic'),
-  design: () => sourceMakePages('design'),
-  finish: sourceFinish,
-  drawers: syncSourceDesignAgent,
-  draw: (choice?: string) => sourceDrawPages(choice),
-  stop: () => (sourceState.draft ? stopSourceDesign(sourceState.draft) : Promise.resolve()),
-  drawStatus: () => {
-    const draft = sourceState.draft || null
-    return {
-      runId: sourceDesignActive(draft) ? draft?.run?.id || null : null,
-      lastRunId: draft?.run?.id || null,
-      draftId: draft?.id || null,
-      phase: draft?.phase || null,
-      status: document.getElementById('source-draw-status')?.textContent || '',
-      failure: document.getElementById('source-draw-failure')?.textContent || '',
-      finishLabel: document.getElementById('source-finish')?.textContent || '',
-      outcome: sourceState.drawOutcome || null,
-      drawn: (sourceState.pages || []).filter(page => page.drawnBy).length,
-      total: sourceState.pages?.length || 0,
-      rejected: draft ? [...draft.rejected.keys()] : [],
-      log: draft?.log.slice(-12) || [],
-    }
-  },
+  create: sourceCreateProject,
 }
 
 // ——— Captions: the dialogue as a subtitle file, timed to the motion ———
@@ -19719,6 +18696,88 @@ const refreshNotebookSwitch = async () => {
   if (own?.state === 'building' || projectNotebooks.some(entry => entry.state === 'building')) notebookSwitchTimer = window.setTimeout(() => void refreshNotebookSwitch(), 8000)
 }
 void refreshNotebookSwitch()
+// ——— A wireframe still being made (the four-notebook model) ———
+// It says who makes it, for how long and their last word; it can be
+// stopped, or made again when it could not be; made, the studio opens on
+// its pages. The server makes it (server/wireframe-build.ts), so it goes on
+// whichever notebook is open, and after a restart.
+if (project.build?.kind === 'wireframe') {
+  const banner = $('#notebook-build-status') as HTMLElement
+  const said = $('#notebook-build-text') as HTMLElement
+  const action = $('#notebook-build-action') as HTMLButtonElement
+  let lastWord = ''
+  const renderBuild = () => {
+    const build = project.build
+    banner.hidden = !build
+    if (!build) return
+    banner.classList.toggle('is-error', Boolean(build.failure))
+    if (build.failure) {
+      said.textContent = `The wireframe could not be made: ${build.failure.message}.`
+      action.textContent = 'Make it again'
+      action.hidden = false
+      return
+    }
+    said.textContent = `${build.by} is outlining the article into its pages, for ${sinceOf(build.startedAt)}${lastWord ? ` — ${lastWord}` : ''}. They land here as soon as they are drawn.`
+    action.textContent = 'Stop'
+    action.hidden = !(build.via === 'harness' && build.runId && window.studioDesktop?.isDesktop)
+  }
+  renderBuild()
+  const bridge = window.studioDesktop
+  if (bridge?.isDesktop) {
+    bridge.harness.onEvent(({ runId, event }) => {
+      if (runId !== project.build?.runId || event.type === 'error') return
+      const message = progressText(event)
+      if (message) {
+        lastWord = message.slice(0, 90)
+        renderBuild()
+      }
+    })
+  }
+  // Made, or failed, on the server: the studio opens the notebook as it
+  // now is.
+  const poll = window.setInterval(async () => {
+    const stored = (await fetchJson<{ project: ProjectDocumentV1 | null }>(`/api/projects/${encodeURIComponent(project.id)}`).catch(() => null))?.project
+    if (!stored) return
+    if (JSON.stringify(stored.build || null) !== JSON.stringify(project.build || null)) {
+      window.clearInterval(poll)
+      const pages = (stored.notebook?.content || []).filter(node => node.type === 'scene').length
+      activateNotebook(project.id, stored.build ? '' : `The wireframe is made: ${pages} page${pages === 1 ? '' : 's'} in basic shapes`)
+      return
+    }
+    renderBuild()
+  }, 3000)
+  action.addEventListener('click', async () => {
+    const build = project.build
+    if (!build) return
+    action.disabled = true
+    try {
+      if (!build.failure) {
+        if (build.runId) await bridge?.harness.cancel(build.runId)
+        showToast('Stopping — the wireframe says so when it has stopped')
+        return
+      }
+      // Made again: a new story run on the article as it was read, or the
+      // direct model once more.
+      let outlining: Pick<NonNullable<ProjectDocumentV1['build']>, 'via' | 'runId' | 'by'> = { via: 'api', by: 'the direct model' }
+      if (bridge?.isDesktop && build.via === 'harness') {
+        const read = build.sourceRevision ? (await fetchJson<{ source: { title: string; site: string; text: string; words: number } }>(`/api/source/revisions/${encodeURIComponent(build.sourceRevision)}`)).source : null
+        if (!read) throw new Error('The article it was made from could not be found')
+        const agent = await resolveCreationAgent('story')
+        const run = await bridge.harness.run({ adapter: agent.id, skill: 'story-master', route: 'Plan Story', projectId: project.id, inputs: { source: read, wordingPolicy: build.wording, model: agent.model, effort: 'high', autonomous: true } })
+        outlining = { via: 'harness', runId: run.id, by: agent.label }
+      }
+      const { failure: _failure, ...kept } = build
+      project.build = { ...kept, ...outlining, startedAt: new Date().toISOString() }
+      project.notebook = editor.getJSON() as TiptapDocument
+      await persistProjectNow(structuredClone(project))
+      renderBuild()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'The wireframe could not be made again')
+    } finally {
+      action.disabled = false
+    }
+  })
+}
 // A presentation exports its slides as a PDF, one page a slide (the
 // four-notebook model): its own export, not the video's.
 {

@@ -4,8 +4,9 @@
 // and colours) is what pages, the page-drawing brief and the explainer build
 // consume, never a regenerated default. A narrative without a site still gets
 // the saved-theme choice. A deliberately customized saved site theme (rev 2
-// carries the custom palette and fonts) is picked, then verified through
-// pages → draw inputs → finish → build inputs. Pattern per
+// carries the custom palette and fonts) is picked, then verified through the
+// project's notebooks → its wireframe's pages → the presentation's drawing
+// brief → build inputs. Pattern per
 // wording-preserve-check.mjs (stub kimi on PATH + /__eval); the local file
 // store keeps the shared database out of the fixture.
 import { spawn } from 'node:child_process'
@@ -205,16 +206,39 @@ try {
   })`, 'picked state')
   check('picking the saved theme binds it (no direction stays picked)', picked?.picked === true && picked?.directionsPicked === false, JSON.stringify(picked))
 
-  // Outline (stub kimi through the harness) → pages in the bound brand.
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline')
-  const outlineStep = await waitFor(`() => !document.getElementById('source-step-outline')?.hidden`, 'outline step', 150)
-  check('the story run plans the outline', Boolean(outlineStep))
-  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'pages')
-  const pagesStep = await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages step')
-  check('the pages are made', Boolean(pagesStep))
+  // The project opens on its text; its wireframe is drawn in the bound
+  // brand, in the background.
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'create the project')
+  const textOpen = await waitFor(`() => document.getElementById('source-dialog')?.open === false && document.body.dataset.notebookKind === 'text' ? window.localStorage.getItem('incredible-studio-v2-active-project') : null`, 'text open', 120)
+  check('the project opens on its text', Boolean(textOpen), String(textOpen))
+  await waitFor(`() => document.querySelector('#notebook-switch [data-kind="wireframe"] small')?.textContent === '2 pages' ? true : null`, 'wireframe made', 120)
+  await evaluate(`() => { setTimeout(() => document.querySelector('#notebook-switch [data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe')
+  const finished = await waitFor(`() => document.body.dataset.notebookKind === 'wireframe' && document.querySelectorAll('#editor .notebook-scene-block').length === 2 ? window.localStorage.getItem('incredible-studio-v2-active-project') : null`, 'wireframe open', 120)
+  check('its wireframe is made with both scenes', Boolean(finished), String(finished))
 
-  // The page-drawing run's brand brief carries the bound theme, fonts too.
-  await evaluate(`() => { window.__source.draw('kimi|kimi-code/k3'); return true }`, 'draw')
+  const saved = finished ? await projectBody(finished) : null
+  const sceneSvgs = (saved?.notebook?.content || []).filter(node => node.type === 'scene').map(node => String(node.attrs?.svg || ''))
+  const text = textOpen ? await projectBody(textOpen) : null
+  check(
+    'the saved theme revision is bound to the project, not a regenerated direction',
+    saved?.theme?.id === THEME_ID && text?.theme?.id === THEME_ID && !String(saved?.theme?.id || '').startsWith('generated-'),
+    String(saved?.theme?.id || ''),
+  )
+  check(
+    'the project brand is the customized palette',
+    saved?.brand?.accent === CUSTOM.accent && saved?.brand?.background === CUSTOM.background && saved?.brand?.primary === CUSTOM.primary,
+    JSON.stringify({ accent: saved?.brand?.accent, background: saved?.brand?.background, primary: saved?.brand?.primary }),
+  )
+  check(
+    'every wireframe page carries the custom colours and fonts',
+    sceneSvgs.length === 2 && sceneSvgs.every(svg => svg.includes(CUSTOM.accent) && svg.includes(CUSTOM.background) && svg.includes(FONTS.display)),
+    sceneSvgs.map(svg => `${svg.includes(FONTS.display) ? 'font ok' : 'FONT MISSING'} ${svg.includes(CUSTOM.accent) ? 'accent ok' : 'ACCENT MISSING'}`).join(' | '),
+  )
+
+  // Designing the presentation: the drawing run's brand brief carries the
+  // bound theme, fonts too.
+  await waitFor(`() => document.getElementById('next-step').textContent === 'Design presentation' && !document.getElementById('next-step').hidden ? true : null`, 'design offered', 60)
+  await evaluate(`() => { setTimeout(() => document.getElementById('next-step').click(), 0); return true }`, 'design presentation')
   const drawInputs = await runInputs('Draw Pages')
   check(
     'the drawing brief carries the saved theme palette',
@@ -222,34 +246,7 @@ try {
     JSON.stringify(drawInputs?.brand?.palette || null),
   )
   check('the drawing brief carries the saved theme fonts', drawInputs?.brand?.fonts?.display === FONTS.display, JSON.stringify(drawInputs?.brand?.fonts || null))
-
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish')
-  const finished = await waitFor(`async () => {
-    if (document.getElementById('source-dialog')?.open) return null
-    const id = window.localStorage.getItem('incredible-studio-v2-active-project')
-    const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
-    const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
-    return scenes.length >= 2 ? id : null
-  }`, 'finish', 120)
-  check('the wizard finishes into a notebook with both scenes', Boolean(finished), String(finished))
-
-  const saved = finished ? await projectBody(finished) : null
-  const sceneSvgs = (saved?.notebook?.content || []).filter(node => node.type === 'scene').map(node => String(node.attrs?.svg || ''))
-  check(
-    'the saved theme revision is bound to the notebook, not a regenerated direction',
-    saved?.theme?.id === THEME_ID && !String(saved?.theme?.id || '').startsWith('generated-'),
-    String(saved?.theme?.id || ''),
-  )
-  check(
-    'the notebook brand is the customized palette',
-    saved?.brand?.accent === CUSTOM.accent && saved?.brand?.background === CUSTOM.background && saved?.brand?.primary === CUSTOM.primary,
-    JSON.stringify({ accent: saved?.brand?.accent, background: saved?.brand?.background, primary: saved?.brand?.primary }),
-  )
-  check(
-    'every drawn page carries the custom colours and fonts',
-    sceneSvgs.length === 2 && sceneSvgs.every(svg => svg.includes(CUSTOM.accent) && svg.includes(CUSTOM.background) && svg.includes(FONTS.display)),
-    sceneSvgs.map(svg => `${svg.includes(FONTS.display) ? 'font ok' : 'FONT MISSING'} ${svg.includes(CUSTOM.accent) ? 'accent ok' : 'ACCENT MISSING'}`).join(' | '),
-  )
+  await waitFor(`() => document.body.dataset.notebookKind === 'presentation' ? true : null`, 'presentation open', 120)
 
   // Build: the fork navigates into the video notebook and resumes there; the
   // run's inputs (what object briefs are built from) carry the bound brand.

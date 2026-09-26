@@ -149,6 +149,18 @@ export const listProjectIdsAwaitingPages = async (): Promise<string[]> => {
   return ids
 }
 
+// The wireframes still being made in the background (the four-notebook
+// model): the ones a build pass sees through.
+export const listProjectIdsAwaitingWireframes = async (): Promise<string[]> => {
+  const ids: string[] = []
+  for (const summary of await listProjectArtifacts()) {
+    if (summary.container?.kind !== 'wireframe') continue
+    const project = await loadProjectArtifact(summary.id)
+    if (project?.build && !project.build.failure) ids.push(summary.id)
+  }
+  return ids
+}
+
 // Removing a notebook drops its document, takes and index row; the objects
 // stay in the store (cheap, and recoverable).
 export const deleteProjectArtifact = async (projectId: string) => {

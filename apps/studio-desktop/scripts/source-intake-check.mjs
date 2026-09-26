@@ -179,7 +179,7 @@ try {
   // U1: text without a brand website opens the saved themes; an empty
   // library offers the built-in starting themes and a theme of your own.
   const empty = await evaluate(`() => ({ panel: document.querySelector('#source-step-brand [data-brand-panel][aria-selected="true"]')?.dataset.brandPanel, hint: document.querySelector('.source-saved-themes-empty')?.textContent || '', starting: document.getElementById('source-starting').hidden ? 0 : document.querySelectorAll('#source-starting .source-direction').length, bound: document.getElementById('source-brand-bound').textContent, outline: document.getElementById('source-to-outline').textContent })`, 'empty library')
-  check('text without a brand website opens the saved themes; an empty library offers starting themes and a theme of your own', empty.panel === 'saved' && /^No saved themes yet\./.test(empty.hint) && /Create a theme/.test(empty.hint) && empty.starting === 3 && /· a starting theme, default colours$/.test(empty.bound) && /^Outline it with “.+”$/.test(empty.outline), JSON.stringify(empty))
+  check('text without a brand website opens the saved themes; an empty library offers starting themes and a theme of your own', empty.panel === 'saved' && /^No saved themes yet\./.test(empty.hint) && /Create a theme/.test(empty.hint) && empty.starting === 3 && /· a starting theme, default colours$/.test(empty.bound) && /^Create the project with “.+”$/.test(empty.outline), JSON.stringify(empty))
   await capture('02b-empty-library')
   const pasted = await evaluate(`() => { const source = window.__source.state().source; return { kind: source.kind, url: source.url, site: source.site, words: source.words, snapshot: window.__source.state().snapshot.id, line: document.querySelector('.source-extraction-line')?.textContent, thin: Boolean(document.querySelector('.source-extraction-thin')), outline: document.getElementById('source-to-outline').disabled } }`, 'pasted')
   check('the pasted text is read, crediting the refused link', pasted.kind === 'narrative' && pasted.url === `${web}/blocked` && pasted.site === '127.0.0.1' && /^\d+ words · 1 heading · pasted, crediting 127\.0\.0\.1$/.test(pasted.line) && !pasted.thin && !pasted.outline, JSON.stringify(pasted))
@@ -258,7 +258,7 @@ try {
   await read()
   await onBrandStep()
   const suggested2 = await evaluate(`() => ({ choice: window.__source.state().brandChoice, panel: document.querySelector('#source-step-brand [data-brand-panel][aria-selected="true"]')?.dataset.brandPanel, picked: document.querySelector('#source-saved-themes .source-saved-theme.is-picked b')?.textContent, bound: document.getElementById('source-brand-bound').textContent, outline: document.getElementById('source-to-outline').textContent })`, 'site association')
-  check('reading that site again offers its saved theme, bound and named, and any other can be chosen', suggested2.choice === 'saved' && suggested2.panel === 'saved' && suggested2.picked === 'Brand site' && /^Theme: “Brand site” · saved theme, rev 1, colours from 127\.0\.0\.1$/.test(suggested2.bound) && suggested2.outline === 'Outline it with “Brand site”', JSON.stringify(suggested2))
+  check('reading that site again offers its saved theme, bound and named, and any other can be chosen', suggested2.choice === 'saved' && suggested2.panel === 'saved' && suggested2.picked === 'Brand site' && /^Theme: “Brand site” · saved theme, rev 1, colours from 127\.0\.0\.1$/.test(suggested2.bound) && suggested2.outline === 'Create the project with “Brand site”', JSON.stringify(suggested2))
   await capture('05-site-association')
   await evaluate(`() => { document.querySelector('#source-directions .source-direction')?.click(); return true }`, 'pick a direction instead')
   const other = await evaluate(`() => ({ choice: window.__source.state().brandChoice, picked: Boolean(document.querySelector('#source-saved-themes .source-saved-theme.is-picked')) })`, 'another choice')
@@ -286,83 +286,69 @@ try {
   check('its diagrams are read whole, lines intact', shown.text.includes('```\n' + HEADER_DIAGRAM + '\n```') && shown.text.includes('Page 3: leaf         the empty root bucket'), `${HEADER_DIAGRAM.length} characters`)
   check('the source step counts its table and code, shows the whole text read, and nothing was cut', /· 1 table · 2 code blocks · read from 127\.0\.0\.1$/.test(shown.line || '') && table.every(row => shown.whole.includes(row)) && shown.whole.includes(HEADER_DIAGRAM) && !shown.cuts, JSON.stringify({ line: shown.line, cuts: shown.cuts }))
   await capture('07-boltdb-read')
-  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline boltdb')
-  const outlined = await waitFor(`() => !document.getElementById('source-step-outline')?.hidden ? true : null`, 'outline', 150)
+  // The four-notebook model: once the brand is chosen the import is a
+  // project, and the studio opens on its text at once — nothing waits in
+  // the dialog. The story run starts on the creator's harness with the
+  // article as read, tables and diagrams whole (B02); the wireframe is made
+  // from its outline in the background, in its own notebook.
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'create the boltdb project')
+  const opened = await waitFor(`() => document.getElementById('source-dialog')?.open === false && document.body.dataset.notebookKind === 'text' && document.querySelectorAll('#notebook-switch .notebook-switch-tab').length === 4 ? { id: localStorage.getItem('incredible-studio-v2-active-project'), heading: document.getElementById('notebook-title').textContent, text: document.querySelector('#editor .ProseMirror')?.innerText.slice(0, 400) || '', toast: document.getElementById('toast')?.textContent || '' } : null`, 'the text opens', 120)
+  await capture('08-boltdb-text')
+  check('choosing the brand opens the project on its text at once, the article as read', Boolean(opened) && opened.heading === 'The article, as text' && /How BoltDB Works: A High-Level Tour/.test(opened.text), JSON.stringify(opened && { heading: opened.heading, text: opened.text.slice(0, 60) }))
+  const notice = await waitFor(`() => { const toast = document.getElementById('toast'); return toast && /is making its wireframe/.test(toast.textContent) ? toast.textContent : null }`, 'notice', 20)
+  check('it says its wireframe is being made, and asks for no provider', Boolean(notice) && !/AI provider|Direct API/.test(notice), String(notice))
   const storyRun = (await fetch(`${origin}/api/runs`).then(r => r.json())).runs.find(run => run.skill === 'story-master' || /story/i.test(run.route))
   const given = storyRun ? JSON.parse(await readFile(join(storyRun.projectDir, 'motion', 'inputs.json'), 'utf8').catch(() => '{}')) : {}
   const packet = String(given.source?.text || '')
-  check('the harness is given the table and the diagrams as read', Boolean(outlined) && table.every(row => packet.includes(row)) && packet.includes(HEADER_DIAGRAM), JSON.stringify({ outlined: Boolean(outlined), run: storyRun?.route, characters: packet.length }))
+  check('the harness is given the table and the diagrams as read', table.every(row => packet.includes(row)) && packet.includes(HEADER_DIAGRAM), JSON.stringify({ run: storyRun?.route, characters: packet.length }))
+  const textNotebook = opened?.id ? await fetch(`${origin}/api/projects/${encodeURIComponent(opened.id)}`).then(r => r.json()).then(body => body.project) : null
+  const textOf = node => (node.content || []).map(child => child.text || textOf(child)).join('')
+  const blocks = (textNotebook?.notebook?.content || []).map(node => ({ type: node.type, text: textOf(node) }))
+  const fenced = blocks.filter(block => block.type === 'codeBlock').map(block => block.text)
+  check('the text notebook is the article as read: its headings, its prose, its table and its diagrams whole', blocks.some(block => block.type === 'heading' && block.text === 'How BoltDB Works: A High-Level Tour') && blocks.some(block => block.type === 'paragraph' && /reads it through memory mapping/.test(block.text)) && fenced.some(text => text.includes('| Page type | What it holds |') && table.every(row => text.includes(row))) && fenced.some(text => text.includes(HEADER_DIAGRAM)), JSON.stringify(blocks.map(block => `${block.type}: ${block.text.slice(0, 40)}`)))
 
-  // B03 of the BoltDB review: a base the local harness outlined is finished
-  // with that harness alone — no call to a direct model it was not given,
-  // and no word of a provider to add. Its scenes keep the harness's lines.
-  await evaluate(`() => {
-    sessionStorage.setItem('dialogue-calls', '0')
-    const fetched = window.fetch
-    window.fetch = (input, init) => {
-      if (String(input?.url || input).includes('/api/scene/dialogue')) sessionStorage.setItem('dialogue-calls', String(Number(sessionStorage.getItem('dialogue-calls')) + 1))
-      return fetched(input, init)
-    }
-    window.__beforeFinish = true
-    return true
-  }`, 'watch dialogue calls')
-  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'schematic pages')
-  await waitFor(`() => !document.getElementById('source-step-pages')?.hidden ? true : null`, 'pages step', 60)
-  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish boltdb')
-  const finished = await waitFor(`() => {
-    if (window.__beforeFinish || document.getElementById('source-dialog')?.open || document.getElementById('project-title')?.value !== 'How BoltDB works') return null
-    return { calls: Number(sessionStorage.getItem('dialogue-calls')), toast: document.getElementById('toast')?.textContent || '', id: localStorage.getItem('incredible-studio-v2-active-project') }
-  }`, 'boltdb notebook', 120)
-  const made = finished ? await fetch(`${origin}/api/projects/${encodeURIComponent(finished.id)}`).then(r => r.json()).then(body => body.project) : null
-  const lines = (made?.notebook?.content || []).filter(node => node.type === 'scene').map(node => node.attrs?.script)
-  check('the harness\'s base is finished with no call to a direct model, and no provider to add', finished?.calls === 0 && !/AI provider|Direct API/.test(finished.toast), JSON.stringify(finished))
-  check('its scenes keep the harness\'s lines as their notes', lines.length === 2 && lines.every(line => line === 'The pages of BoltDB.'), JSON.stringify(lines))
+  // Its wireframe is made in the background; its tab says so, then that it
+  // is made. B03 of the BoltDB review: made with the harness alone, its
+  // pages keeping the harness's lines as their notes.
+  const made = await waitFor(`() => { const status = document.querySelector('#notebook-switch [data-kind="wireframe"] small')?.textContent || ''; return status === '2 pages' ? status : null }`, 'wireframe made', 120)
+  check('the wireframe is made in the background, and its tab says when', made === '2 pages', String(made))
+  const view = textNotebook?.container?.id ? await fetch(`${origin}/api/containers/${encodeURIComponent(textNotebook.container.id)}`).then(r => r.json()) : null
+  const wireframeRow = (view?.notebooks || []).find(entry => entry.kind === 'wireframe')
+  const wireframe = wireframeRow ? await fetch(`${origin}/api/projects/${encodeURIComponent(wireframeRow.id)}`).then(r => r.json()).then(body => body.project) : null
+  const lines = (wireframe?.notebook?.content || []).filter(node => node.type === 'scene').map(node => node.attrs?.script)
+  check('the project is named after the article as read and holds its text and its wireframe, made from the text', view?.container?.title === 'How BoltDB Works' && JSON.stringify(view.notebooks.map(entry => entry.kind).sort()) === '["text","wireframe"]' && wireframe?.container?.from === textNotebook.id && !wireframe.build, JSON.stringify(view && { title: view.container?.title, kinds: view.notebooks.map(entry => entry.kind), place: wireframe?.container, build: wireframe?.build || null }))
+  check('the wireframe is made with the harness alone, its pages keeping the harness\'s lines as their notes', lines.length === 2 && lines.every(line => line === 'The pages of BoltDB.') && wireframe.story?.wordingPolicy === 'draft' && wireframe.outline?.scenes?.length === 2, JSON.stringify({ lines, story: wireframe?.story }))
 
-  // B04 of the BoltDB review, and the four-notebook model: the import is a
-  // project. It opens on its wireframe — the pages were made as schematics —
-  // with each page's idea, notes and source, and none of the video's
-  // staging: no dialogue windows or motion, no director or coach, no
-  // presenter, no live canvas or its clock, no Publish. Beside it the
-  // project holds the article as a text notebook, tables and diagrams whole;
-  // the presentation and the video are not made yet.
+  // B04: the wireframe, opened from the switch, shows its pages — each
+  // with what it explains, its notes and its source — and none of the
+  // video's staging. Designing the presentation is its one way on.
+  await evaluate(`() => { setTimeout(() => document.querySelector('#notebook-switch [data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe')
   const visibleJs = `const visible = element => Boolean(element) && element.getClientRects().length > 0`
   const pages = await waitFor(`() => {
     ${visibleJs}
     const blocks = [...document.querySelectorAll('#editor .notebook-scene-block')]
     const src = document.getElementById('player')?.getAttribute('src')
     const tabs = [...document.querySelectorAll('#notebook-switch .notebook-switch-tab')]
-    if (blocks.length !== 2 || !src || tabs.length !== 4) return null
+    if (document.body.dataset.notebookKind !== 'wireframe' || blocks.length !== 2 || !src || tabs.length !== 4) return null
     return {
-      kind: document.body.dataset.notebookKind,
       base: document.body.classList.contains('is-base-pages'),
       badges: blocks.map(block => block.querySelector('.scene-badge').innerText.trim()),
       posters: blocks.filter(block => visible(block.querySelector('.scene-poster'))).length,
       ideas: blocks.map(block => block.querySelector('.scene-notes-idea p')?.innerText || ''),
       notes: blocks.map(block => block.querySelector('.scene-notes-script p')?.innerText || ''),
       staging: [...new Set(blocks.flatMap(block => ['.scene-arc', '.scene-area', '[data-slide-action]', '.scene-director', '.scene-storyboard', '.scene-cues', '.block-dialogue', 'figcaption'].filter(selector => [...block.querySelectorAll(selector)].some(visible))))],
-      chrome: ['#inline-preview', '#live-camera-toggle', '#render-video', '#open-fullscreen-tab', '#toggle-video-staging'].filter(selector => visible(document.querySelector(selector))),
+      chrome: ['#inline-preview', '#live-camera-toggle', '#render-video', '#open-fullscreen-tab', '#toggle-video-staging', '#notebook-build-status'].filter(selector => visible(document.querySelector(selector))),
       primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(visible).map(element => element.textContent.trim()),
       tabs: tabs.map(tab => tab.querySelector('strong').textContent + (tab.getAttribute('aria-current') === 'page' ? '*' : '') + ': ' + tab.querySelector('small').textContent).join(' · '),
-      staged: document.querySelectorAll('#editor .notebook-scene-block .block-dialogue.is-synced').length,
       src,
     }
-  }`, 'project wireframe', 60)
-  const canvasOf = async src => (src ? fetch(new URL(src, origin)).then(response => response.text()).catch(() => '') : '')
-  const pagesCanvas = await canvasOf(pages?.src)
-  await capture('08-boltdb-wireframe')
-  check('the import opens on the project\'s wireframe: its pages, each with what it explains and its notes', pages?.kind === 'wireframe' && pages.base === true && pages.posters === 2 && pages.badges.every(badge => badge === 'PAGE') && pages.ideas.join('|') === 'The pages of BoltDB, part 1.|The pages of BoltDB, part 2.' && pages.notes.every(note => note === 'The pages of BoltDB.'), JSON.stringify(pages && { kind: pages.kind, base: pages.base, posters: pages.posters, badges: pages.badges, ideas: pages.ideas, notes: pages.notes }))
-  check('none of the video\'s staging is in the wireframe, nor made for it: no dialogue, motion, director, coach, live canvas, camera or Publish; designing the presentation is its one way on', pages?.staging.length === 0 && pages.chrome.length === 0 && JSON.stringify(pages.primaries) === '["Design presentation"]' && pages.staged === 0, JSON.stringify(pages && { staging: pages.staging, chrome: pages.chrome, primaries: pages.primaries, staged: pages.staged }))
+  }`, 'the wireframe', 60)
+  const pagesCanvas = pages?.src ? await fetch(new URL(pages.src, origin)).then(response => response.text()).catch(() => '') : ''
+  await capture('09-boltdb-wireframe')
+  check('the wireframe shows its pages, each with what it explains and its notes', pages?.base === true && pages.posters === 2 && pages.badges.every(badge => badge === 'PAGE') && pages.ideas.join('|') === 'The pages of BoltDB, part 1.|The pages of BoltDB, part 2.' && pages.notes.every(note => note === 'The pages of BoltDB.'), JSON.stringify(pages && { base: pages.base, posters: pages.posters, badges: pages.badges, ideas: pages.ideas, notes: pages.notes }))
+  check('none of the video\'s staging is in the wireframe: no dialogue, motion, director, coach, live canvas, camera or Publish; designing the presentation is its one way on', pages?.staging.length === 0 && pages.chrome.length === 0 && JSON.stringify(pages.primaries) === '["Design presentation"]', JSON.stringify(pages && { staging: pages.staging, chrome: pages.chrome, primaries: pages.primaries }))
   check('its page composition has no presenter in it', pagesCanvas.length > 0 && !pagesCanvas.includes('data-preview-presenter'), `${pagesCanvas.length} characters`)
   check('the switch shows the project: its text and wireframe made, its presentation and video not yet', /^Text: \d+ blocks · Wireframe\*: 2 pages · Presentation: not made yet · Video: not made yet$/.test(pages?.tabs || ''), pages?.tabs)
-  const wireframe = finished?.id ? await fetch(`${origin}/api/projects/${encodeURIComponent(finished.id)}`).then(r => r.json()).then(body => body.project) : null
-  const project = wireframe?.container?.id ? await fetch(`${origin}/api/containers/${encodeURIComponent(wireframe.container.id)}`).then(r => r.json()) : null
-  const textRow = (project?.notebooks || []).find(entry => entry.kind === 'text')
-  const textNotebook = textRow ? await fetch(`${origin}/api/projects/${encodeURIComponent(textRow.id)}`).then(r => r.json()).then(body => body.project) : null
-  const textOf = node => (node.content || []).map(child => child.text || textOf(child)).join('')
-  const blocks = (textNotebook?.notebook?.content || []).map(node => ({ type: node.type, text: textOf(node) }))
-  const fenced = blocks.filter(block => block.type === 'codeBlock').map(block => block.text)
-  check('the project is named after the article and holds its text and its wireframe, made from the text', project?.container?.title === 'How BoltDB works' && JSON.stringify(project.notebooks.map(entry => entry.kind).sort()) === '["text","wireframe"]' && wireframe.container.kind === 'wireframe' && wireframe.container.from === textRow?.id, JSON.stringify(project && { title: project.container?.title, kinds: project.notebooks.map(entry => entry.kind), place: wireframe?.container }))
-  check('the text notebook is the article as read: its headings, its prose, its table and its diagrams whole', blocks.some(block => block.type === 'heading' && block.text === 'How BoltDB Works: A High-Level Tour') && blocks.some(block => block.type === 'paragraph' && /reads it through memory mapping/.test(block.text)) && fenced.some(text => text.includes('| Page type | What it holds |') && table.every(row => text.includes(row))) && fenced.some(text => text.includes(HEADER_DIAGRAM)), JSON.stringify(blocks.map(block => `${block.type}: ${block.text.slice(0, 40)}`)))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

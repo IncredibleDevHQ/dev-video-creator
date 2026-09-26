@@ -111,6 +111,7 @@ type PersistenceBackend = {
   loadProjectArtifact: (projectId: string) => Promise<ProjectDocumentV1 | null>
   listProjectArtifacts: () => Promise<ProjectArtifactSummary[]>
   listProjectIdsAwaitingPages: () => Promise<string[]>
+  listProjectIdsAwaitingWireframes: () => Promise<string[]>
   deleteProjectArtifact: (projectId: string) => Promise<boolean>
   saveProjectContainer: (container: ProjectContainerV1) => Promise<void>
   loadProjectContainer: (id: string) => Promise<ProjectContainerV1 | null>
@@ -240,6 +241,11 @@ export const listProjectArtifacts = async () =>
 // (pageOrigin.designing): the ones whose pages the worker lands (B06).
 export const listProjectIdsAwaitingPages = async () =>
   (await loadBackend()).listProjectIdsAwaitingPages()
+
+// The wireframes still being made in the background (the four-notebook
+// model).
+export const listProjectIdsAwaitingWireframes = async () =>
+  (await loadBackend()).listProjectIdsAwaitingWireframes()
 
 export const deleteProjectArtifact = async (projectId: string) =>
   (await loadBackend()).deleteProjectArtifact(projectId)

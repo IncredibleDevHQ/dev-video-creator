@@ -153,6 +153,18 @@ export const listProjectIdsAwaitingPages = async (): Promise<string[]> => {
   return result.rows.map(row => row.id)
 }
 
+// The wireframes still being made in the background (the four-notebook
+// model): the ones a build pass sees through.
+export const listProjectIdsAwaitingWireframes = async (): Promise<string[]> => {
+  await initializePersistence()
+  const result = await database.query<{ id: string }>(
+    `select id from studio_notebooks
+     where artifact->'build'->>'kind' = 'wireframe'
+       and artifact->'build'->'failure' is null`,
+  )
+  return result.rows.map(row => row.id)
+}
+
 // Every saved notebook, newest first — the switcher's list.
 export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> => {
   await initializePersistence()
