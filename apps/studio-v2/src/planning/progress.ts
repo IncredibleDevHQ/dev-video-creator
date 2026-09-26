@@ -12,8 +12,13 @@ export type PhaseState = 'done' | 'active' | 'todo' | 'failed'
 export type Phase = { key: string; label: string; state: PhaseState }
 export type RunProgress = {
   phases: Phase[]
-  // What is happening now, in a sentence; empty when the run is over.
+  // What is happening now, in a sentence, as progress the creator can use;
+  // empty when the run is over, or when its phase already says it.
   now: string
+  // What the harness itself did last, as the product noted it — the run's
+  // mechanics, for its details rather than its status (step 3 of the
+  // project-flow fix verification).
+  detail: string
   // How many times the result was refused and repaired.
   repairs: number
   // Sections of a scene plan published as a draft, still being checked.
@@ -48,6 +53,7 @@ export const progressOf = (record: Pick<PlanningRecord, 'kind' | 'status' | 'pro
   // The phase the run is in, as far as the product can tell.
   let at: string
   let now: string
+  let detail = ''
   if (!finished) {
     const lastSubmission = [...events].reverse().find(event => ['submitted', 'refused', 'checking'].includes(event.milestone))
     if (record.status === 'verifying' || lastSubmission?.milestone === 'checking') {
@@ -69,10 +75,12 @@ export const progressOf = (record: Pick<PlanningRecord, 'kind' | 'status' | 'pro
       at = keys[record.kind === 'preview' || record.kind === 'production' ? 1 : 0]
       // What the product cannot see, it says: a harness that publishes no
       // drafts moves the phases only when it hands the plan in.
-      now = record.kind === 'treatment' ? 'The harness read its packet. The next phase shows when it publishes part of the plan, or hands the plan in' : 'The harness read its packet and is working'
+      now = record.kind === 'treatment' ? 'The next phase shows when part of the plan is published, or the plan is handed in' : ''
+      detail = record.kind === 'treatment' ? 'The harness read its packet' : 'The harness read its packet and is working'
     } else if (record.status === 'running' || has('started')) {
       at = keys[0]
-      now = 'The local harness started'
+      now = ''
+      detail = 'The local harness started'
     } else {
       at = keys[0]
       now = 'Waiting for the local harness to start'
@@ -87,7 +95,7 @@ export const progressOf = (record: Pick<PlanningRecord, 'kind' | 'status' | 'pro
     label,
     state: failed && index === position ? 'failed' : finished && !failed ? 'done' : index < position ? 'done' : index === position ? 'active' : 'todo',
   }))
-  return { phases, now, repairs, draft, last, finished, failed }
+  return { phases, now, detail, repairs, draft, last, finished, failed }
 }
 
 // Where a run that ended stood when it ended: the phase its last milestone

@@ -251,6 +251,9 @@ const progressNow = `() => {
     now: box.querySelector('.ws-progress-now')?.textContent || '',
     time: box.querySelector('.ws-progress-time')?.textContent || '',
     who: box.querySelector('.ws-progress-who')?.textContent || '',
+    // The harness's mechanics and who runs it: in the run's details, closed.
+    detail: box.querySelector('.ws-progress-detail')?.textContent || '',
+    details: box.querySelector('details.review-disclosure')?.open === false ? 'closed' : 'open',
     draft: (() => { const draft = document.querySelector('#scene-workspace .sw-panel .ws-draft'); return draft ? { label: draft.querySelector('.ws-draft-label')?.textContent || '', question: draft.querySelector('.ws-draft-question')?.textContent || '', moments: [...draft.querySelectorAll('.ws-draft-moments li')].map(li => li.textContent) } : null })(),
     header: document.querySelector('#scene-workspace .sw-status')?.textContent || '',
   }
@@ -296,8 +299,8 @@ try {
   check(Boolean(r1), 'the run read its packet, and the product noted it')
   // The workspace reads the plans every few seconds: the packet read shows
   // on the next read, not before.
-  const reading = await waitFor(`() => { const now = (${progressNow})(); return now && /reviewing:active/.test(now.phases) && /read its packet/.test(now.now) ? now : null }`, 30)
-  check(reading?.phases === 'reviewing:active explanation:todo moments:todo checking:todo ready:todo' && /read its packet/.test(reading.now) && /Claude Code/.test(reading.who) && /^Planning r1/.test(reading.header), `planning shows its phase, what is happening, who runs it and in the header — and nothing it has not seen (${JSON.stringify(reading)})`)
+  const reading = await waitFor(`() => { const now = (${progressNow})(); return now && /reviewing:active/.test(now.phases) && /read its packet/.test(now.detail) ? now : null }`, 30)
+  check(reading?.phases === 'reviewing:active explanation:todo moments:todo checking:todo ready:todo' && /^The next phase shows when part of the plan is published/.test(reading.now) && /read its packet/.test(reading.detail) && /Claude Code/.test(reading.who) && reading.details === 'closed' && /^Planning r1/.test(reading.header), `planning shows its phase and what comes next, in the header too, with the harness's own steps and who runs it in its details — and nothing it has not seen (${JSON.stringify(reading)})`)
   check(!reading || !/No plan yet/.test(await evaluate(`() => document.querySelector('#scene-workspace .sw-panel').textContent`)), 'no "no plan yet" while it plans')
   await shot('01-reviewing')
   await open(`${r1.id}-explain`)

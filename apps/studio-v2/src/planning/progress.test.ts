@@ -11,11 +11,12 @@ const states = (progress: ReturnType<typeof progressOf>) => progress.phases.map(
 describe('a scene plan in named phases', () => {
   it('waits, then starts, then reviews its references once it read its packet', () => {
     expect(progressOf(record('treatment', 'queued')).now).toBe('Waiting for the local harness to start')
-    expect(progressOf(record('treatment', 'running', [event('started')])).now).toBe('The local harness started')
+    // The harness's own mechanics are details; its phase is the status.
+    expect(progressOf(record('treatment', 'running', [event('started')]))).toMatchObject({ now: '', detail: 'The local harness started' })
     const reading = progressOf(record('treatment', 'running', [event('started'), event('context')]))
     expect(states(reading)).toBe('reviewing:active explanation:todo moments:todo checking:todo ready:todo')
     // Nothing is invented while the harness works unseen: it says so.
-    expect(reading.now).toBe('The harness read its packet. The next phase shows when it publishes part of the plan, or hands the plan in')
+    expect(reading).toMatchObject({ now: 'The next phase shows when part of the plan is published, or the plan is handed in', detail: 'The harness read its packet' })
   })
 
   it('moves on the drafts it publishes, and shows them', () => {
@@ -49,7 +50,9 @@ describe('a scene plan in named phases', () => {
 describe('a preview and a production in named phases', () => {
   it('builds once the harness read its packet, then is checked in the player', () => {
     expect(states(progressOf(record('preview', 'queued')))).toBe('preparing:active building:todo checking:todo ready:todo')
-    expect(states(progressOf(record('preview', 'running', [event('started'), event('context')])))).toBe('preparing:done building:active checking:todo ready:todo')
+    const building = progressOf(record('preview', 'running', [event('started'), event('context')]))
+    expect(states(building)).toBe('preparing:done building:active checking:todo ready:todo')
+    expect(building).toMatchObject({ now: '', detail: 'The harness read its packet and is working' })
     const checking = progressOf(record('preview', 'verifying', [event('context'), event('submitted'), event('checking')]))
     expect(states(checking)).toBe('preparing:done building:done checking:active ready:todo')
     expect(checking.now).toBe('Playing the sketch in the pinned player to check it')

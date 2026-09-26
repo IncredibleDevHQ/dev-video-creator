@@ -34,8 +34,19 @@ describe('the one next step of a notebook', () => {
   it('moves on from a scene that needs nothing, round to the start, and waits only when nothing else can be done', () => {
     const done = { production: 'accepted', produced: true } as const
     const scenes = [scene(0, 'candidate'), scene(1, 'reviewed', done), scene(2, 'planning')]
-    expect(videoNextStep({ scenes, brief: ready, selected: 's2', desktop: true })).toMatchObject({ action: 'review', label: 'Review scene 1', sceneId: 's1' })
+    expect(videoNextStep({ scenes, brief: ready, selected: 's2', desktop: true })).toMatchObject({ action: 'review', label: 'Next: review scene 1', sceneId: 's1' })
     expect(videoNextStep({ scenes: [scene(0, 'reviewed', done), scene(1, 'planning')], brief: ready, selected: 's1', desktop: true })).toMatchObject({ action: 'wait', label: 'Planning scene 2…', disabled: true })
+  })
+
+  // Step 3 of the project-flow fix verification: "Plan scene 10" beside scene
+  // 9 read as scene 9's own action.
+  it('says "Next" when the step is for another scene than the one open', () => {
+    const done = { production: 'accepted', produced: true } as const
+    const scenes = [scene(0, 'reviewed', done), scene(1, 'ready-to-plan')]
+    expect(videoNextStep({ scenes, brief: ready, selected: 's1', desktop: true })).toMatchObject({ action: 'plan', label: 'Next: plan scene 2', sceneId: 's2' })
+    expect(videoNextStep({ scenes, brief: ready, selected: 's2', desktop: true })).toMatchObject({ action: 'plan', label: 'Plan scene 2', sceneId: 's2' })
+    expect(videoNextStep({ scenes, brief: ready, selected: null, desktop: true })).toMatchObject({ label: 'Plan scene 2' })
+    expect(videoNextStep({ scenes: [scene(0, 'reviewed', done), scene(1, 'reviewed', { delivery: 'silent', production: 'ready' })], brief: ready, selected: 's1', desktop: true })).toMatchObject({ action: 'review-output', label: 'Next: review scene 2 output' })
   })
 
   it('produces an approved scene with a generated voice or silence, then asks for its output to be reviewed', () => {

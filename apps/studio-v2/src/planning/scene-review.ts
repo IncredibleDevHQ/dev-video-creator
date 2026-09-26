@@ -1456,23 +1456,29 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return refused ? `${refused.last.attempt} of ${refused.budget} submissions refused` : `repaired ${repairs} time${repairs === 1 ? '' : 's'}`
   }
   // A run in its named phases: the ones the product confirmed, what is
-  // happening now, how long it has run, and who runs it — with the harness's
-  // own last word, small, apart from the progress.
+  // happening now and how long it has run. Who runs it, how often its
+  // result was refused, and the harness's own last word are its details,
+  // on demand (step 3 of the project-flow fix verification): the status
+  // says what the creator can use.
   const progressBlock = (record: PlanningRecord, compact = false) => {
     const state = progressOf(record)
     const since = String((record as { createdAt?: string }).createdAt || '')
-    return h('div', { class: `ws-progress${compact ? ' is-compact' : ''}`, 'data-progress-record': record.id },
-      h('ol', { class: 'ws-phases', 'aria-label': 'Phases' }, ...state.phases.map(phase => h('li', { 'data-phase': phase.key, 'data-state': phase.state, 'aria-current': phase.state === 'active' ? 'step' : undefined }, h('span', { class: 'ws-phase-mark', 'aria-hidden': 'true' }), h('span', { text: phase.label })))),
-      state.now ? h('p', { class: 'ws-progress-now', role: 'status', text: state.now }) : null,
-      // Under the stage the activity line already says how long.
+    const details = h('div', { class: 'ws-progress-details' },
+      state.detail ? h('p', { class: 'ws-progress-detail', text: state.detail }) : null,
       h('p', { class: 'ws-progress-meta' },
         ...[
-          compact || !since ? null : h('span', { class: 'ws-progress-time', 'data-since': since, 'data-suffix': ' so far', 'aria-live': 'off', text: `${sinceOf(since)} so far` }),
           h('span', { class: 'ws-progress-who', text: madeWith(record) }),
           state.repairs ? h('span', { text: refusedText(record, state.repairs) }) : null,
         ].filter((part): part is HTMLSpanElement => Boolean(part)).flatMap((part, index) => (index ? [' · ', part] : [part])),
       ),
-      compact ? null : h('small', { class: 'ws-progress-last', 'data-review-progress': record.id, title: 'What the harness last said it did', text: progress.get(record.id) || '' }),
+      h('small', { class: 'ws-progress-last', 'data-review-progress': record.id, title: 'What the harness last said it did', text: progress.get(record.id) || '' }),
+    )
+    return h('div', { class: `ws-progress${compact ? ' is-compact' : ''}`, 'data-progress-record': record.id },
+      h('ol', { class: 'ws-phases', 'aria-label': 'Phases' }, ...state.phases.map(phase => h('li', { 'data-phase': phase.key, 'data-state': phase.state, 'aria-current': phase.state === 'active' ? 'step' : undefined }, h('span', { class: 'ws-phase-mark', 'aria-hidden': 'true' }), h('span', { text: phase.label })))),
+      state.now ? h('p', { class: 'ws-progress-now', role: 'status', text: state.now }) : null,
+      // Under the stage the activity line already says how long.
+      compact || !since ? null : h('p', { class: 'ws-progress-time-line' }, h('span', { class: 'ws-progress-time', 'data-since': since, 'data-suffix': ' so far', 'aria-live': 'off', text: `${sinceOf(since)} so far` })),
+      disclosure(`run-details:${record.id}`, 'Run details', details),
     )
   }
   // Sections of a plan its run published, shown for what they are.

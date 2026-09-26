@@ -115,16 +115,23 @@ export const videoNextStep = ({ scenes, brief, selected, desktop }: VideoInput):
   // The selected scene first, then the ones after it, round to the start.
   const at = Math.max(0, scenes.findIndex(scene => scene.id === selected))
   const order = [...scenes.slice(at), ...scenes.slice(0, at)]
+  // A step for another scene than the one open says so — "Next: plan scene
+  // 10" — so it is never read as the open scene's own action (step 3 of the
+  // project-flow fix verification).
+  const elsewhere = (step: NextStep): NextStep =>
+    selected && step.sceneId && step.sceneId !== selected && step.action !== 'wait'
+      ? { ...step, label: `Next: ${step.label.charAt(0).toLowerCase()}${step.label.slice(1)}` }
+      : step
   let waiting: NextStep | null = null
   for (const scene of order) {
     const step = stepOf(scene, desktop)
     if (!step) continue
     // A step that cannot be taken now waits behind any that can.
     if (step.action === 'wait' || step.disabled) {
-      waiting ||= step
+      waiting ||= elsewhere(step)
       continue
     }
-    return step
+    return elsewhere(step)
   }
   if (waiting) return waiting
   // The video, once every scene plays its accepted production; until then
