@@ -1697,6 +1697,28 @@ button.se-state:hover { filter: brightness(.97); }
 .scene-cues ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; }
 .scene-cues li { color: #52525b; font-size: 12px; line-height: 1.5; }
 
+/* ——— A base's pages, without the video's staging (BoltDB review B04) ———
+   A base made from a source holds its pages: each shown large, with what it
+   explains, its notes and the source it rests on. The video's staging —
+   dialogue windows, motion, director and coach, the presenter, the live
+   canvas and its clock, Publish — is the video notebook's, made by Create
+   video; Advanced › Show video staging shows it here, the older way. */
+.scene-notes, .scene-badge-page { display: none; }
+body.is-base-pages .scene-badge-scene { display: none; }
+body.is-base-pages .scene-badge-page { display: inline; }
+body.is-base-pages .notebook-scene-block .scene-notes { display: grid; gap: 14px; padding: 14px 16px; border: 1px solid #e4e4e7; border-radius: 10px; background: white; }
+.scene-notes-label { display: block; margin-bottom: 4px; color: #71717a; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.scene-notes p { margin: 0; max-width: 68ch; color: #18181b; font-size: 13.5px; line-height: 1.6; }
+.scene-notes p + p { margin-top: 6px; }
+.scene-notes-idea p { font-weight: 600; }
+.scene-notes p.scene-notes-empty { color: #71717a; font-style: italic; }
+.scene-notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.scene-notes li { max-width: 68ch; color: #3f3f46; font-size: 12.5px; line-height: 1.55; font-style: italic; }
+body.is-base-pages .notebook-scene-block :is(.scene-arc, .scene-area, [data-slide-action], .scene-director, .scene-storyboard, .scene-cues, .block-dialogue, figcaption) { display: none; }
+body.is-base-pages :is(#render-video, #open-fullscreen-tab, #live-camera-toggle, .notebook-timeline-copy time) { display: none; }
+body.is-base-pages:not(.canvas-is-open) .inline-canvas-rail { display: none; }
+body.is-base-pages:not(.canvas-is-open) .editor-layout { width: min(980px, 100%); grid-template-columns: minmax(0, 1fr); }
+
 /* ——— Notebook derivation hierarchy ——— */
 .notebook-lineage { display: flex; align-items: center; gap: 4px; max-width: 380px; overflow: hidden; font-size: 11px; }
 .notebook-lineage-segment { border: 0; background: none; color: #a1a1aa; font-size: 11px; padding: 2px 4px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }

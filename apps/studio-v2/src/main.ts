@@ -2255,6 +2255,25 @@ const selectedPreviewPresenter = () =>
   PREVIEW_PRESENTERS.find(presenter => presenter.id === previewPresenterId) ||
   PREVIEW_PRESENTERS[0]
 
+// A base made from a source holds its pages; the video's staging — dialogue
+// windows, motion, a presenter, the live canvas, Publish — is its video
+// notebook's (BoltDB review B04). The older way, staging on the base itself,
+// is a choice under Advanced, kept per notebook on this machine.
+const VIDEO_STAGING_KEY = 'studio.video-staging-shown'
+const stagingShownOn = new Set<string>((() => {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(VIDEO_STAGING_KEY) || '[]')
+    return Array.isArray(stored) ? stored.map(String) : []
+  } catch {
+    return []
+  }
+})())
+const isSourceBase = () => Boolean(project.source) && !project.derivedFrom?.notebook
+const baseShowsPagesOnly = () => isSourceBase() && !stagingShownOn.has(project.id)
+// Set once the notebook's chrome is built; an import that makes the open
+// notebook a base calls it again.
+let syncBasePages = () => {}
+
 const themeCanvasCss = (theme: StudioThemeV1) => {
   if (theme.canvas.treatment === 'gradient') {
     return `linear-gradient(135deg, ${theme.canvas.gradient[0]}, ${theme.canvas.gradient[1]})`
@@ -5044,7 +5063,7 @@ const updatePreview = () => {
     const contentViewNodeId =
       recordedTakeCanvasView === 'content' ? selectedNodeId : undefined
     const compiled = compileProject(project, {
-      previewPresenter: project.explainerDelivery === 'generated' ? undefined : {
+      previewPresenter: project.explainerDelivery === 'generated' || baseShowsPagesOnly() ? undefined : {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
@@ -5082,7 +5101,7 @@ const updatePreview = () => {
     playerLoading.textContent = 'Compiling live canvas…'
     pendingPreviewRequest = {
       requestNumber,
-      previewPresenter: project.explainerDelivery === 'generated' ? undefined : {
+      previewPresenter: project.explainerDelivery === 'generated' || baseShowsPagesOnly() ? undefined : {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
@@ -17422,6 +17441,8 @@ const sourceFinish = async () => {
   project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map((scene, index) => ({ ...(pageIdOf(scene.title, index) ? { nodeId: pageIdOf(scene.title, index) } : {}), title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title
+  // Made from a source, the notebook is a base: it shows its pages (B04).
+  syncBasePages()
   syncProject()
   // Kept wording is segmented around the author's own sentences, here. An
   // outline from the direct model path has each scene written to its brief
@@ -19365,6 +19386,28 @@ sceneWorkspace = createSceneWorkspace({
 }
 sceneWorkspace.start()
 document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
+// A base made from a source shows its pages, not the video's staging (B04).
+const videoStagingToggle = $('#toggle-video-staging') as HTMLButtonElement
+syncBasePages = () => {
+  const pagesOnly = baseShowsPagesOnly()
+  document.body.classList.toggle('is-base-pages', pagesOnly)
+  videoStagingToggle.hidden = !isSourceBase()
+  videoStagingToggle.querySelector('.menu-label')!.textContent = pagesOnly ? 'Show video staging' : 'Hide video staging'
+}
+videoStagingToggle.addEventListener('click', () => {
+  if (baseShowsPagesOnly()) stagingShownOn.add(project.id)
+  else stagingShownOn.delete(project.id)
+  try {
+    window.localStorage.setItem(VIDEO_STAGING_KEY, JSON.stringify([...stagingShownOn].slice(-50)))
+  } catch {
+    // Unsaved, the choice lasts until the notebook is next opened.
+  }
+  syncBasePages()
+  updatePreview()
+  window.requestAnimationFrame(positionInlinePreview)
+  showToast(baseShowsPagesOnly() ? 'The base shows its pages — Create video stages them in a video' : 'Video staging shown on this base, the older way')
+})
+syncBasePages()
 // A video notebook's work is its scene plans; the older whole-notebook build
 // says what it is, and that it does not use them.
 {

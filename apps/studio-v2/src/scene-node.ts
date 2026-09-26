@@ -6,6 +6,7 @@
 // (same svg + steps + structureApproved attrs).
 import { mergeAttributes, Node } from '@tiptap/core'
 import { dialogueCaption, dialogueSection } from './dialogue-card'
+import { pageIdeaOf } from './planning/page-objective'
 
 export type SceneStoryboardEntry = {
   label?: string
@@ -231,6 +232,13 @@ export const SceneBlock = Node.create({
     const area = String(requiredArea || '')
     const schematic = Boolean(pageOrigin && typeof pageOrigin === 'object' && (pageOrigin as { kind?: string }).kind === 'schematic')
     const auto = (directorAuto && typeof directorAuto === 'object' ? directorAuto : null) as { kind?: string; legibility?: { minTextPx?: Record<string, number> } } | null
+    // The page as a presentation reads it (BoltDB review B04): what it
+    // explains, the notes spoken over it — without the video's [directions]
+    // — and the article's sentences it rests on. A base made from a source
+    // shows only these until a video is made from it.
+    const idea = pageIdeaOf(HTMLAttributes as Record<string, unknown>, undefined)
+    const notes = scriptText.replace(/\[[^\]]*\]/g, ' ').split(/\n\s*\n/).map(paragraph => paragraph.replace(/\s+/g, ' ').trim()).filter(Boolean)
+    const passages = (Array.isArray(HTMLAttributes.sourcePassages) ? HTMLAttributes.sourcePassages : []).map(String).filter(passage => passage.trim())
     return [
       'figure',
       mergeAttributes(attributes, {
@@ -249,7 +257,7 @@ export const SceneBlock = Node.create({
           ['span', { class: 'scene-source-when-folded' }, 'Edit source dialogue'],
           ['span', { class: 'scene-source-when-open' }, 'Fold source dialogue'],
         ],
-        ['span', { class: 'scene-badge' }, 'SCENE'],
+        ['span', { class: 'scene-badge' }, ['span', { class: 'scene-badge-scene' }, 'SCENE'], ['span', { class: 'scene-badge-page' }, 'PAGE']],
         ['strong', { class: 'scene-title' }, title ? String(title) : 'Scene'],
         ['span', { class: `scene-arc scene-arc-${role}` }, role],
         ...(area ? [['span', { class: `scene-area scene-area-${area}`, title: auto?.kind ? `${auto.kind} · needs ${area === 'none' ? 'no' : `a ${area}`} area` : '' }, area === 'none' ? 'behind you' : area]] : []),
@@ -280,6 +288,20 @@ export const SceneBlock = Node.create({
       ...(svgSrc || svg
         ? [['img', { class: 'scene-poster', src: String(svgSrc || `data:image/svg+xml;charset=utf-8,${encodeURIComponent(String(svg))}`), alt: String(title || 'Scene') }]]
         : [['div', { class: 'notebook-media-placeholder' }, ['span', {}, '▦'], ['strong', {}, 'Scene without a preview']]]),
+      [
+        'section',
+        { class: 'scene-notes' },
+        ...(idea ? [['div', { class: 'scene-notes-idea' }, ['span', { class: 'scene-notes-label' }, 'What this page explains'], ['p', {}, idea]]] : []),
+        [
+          'div',
+          { class: 'scene-notes-script' },
+          ['span', { class: 'scene-notes-label' }, 'Notes'],
+          ...(notes.length ? notes.map(paragraph => ['p', {}, paragraph]) : [['p', { class: 'scene-notes-empty' }, 'No notes for this page yet.']]),
+        ],
+        ...(passages.length
+          ? [['div', { class: 'scene-notes-source' }, ['span', { class: 'scene-notes-label' }, 'From the source'], ['ul', {}, ...passages.map(passage => ['li', {}, passage])]]]
+          : []),
+      ],
       ...(directorNotes
         ? [
             [
