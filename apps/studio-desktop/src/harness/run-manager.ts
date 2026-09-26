@@ -38,6 +38,8 @@ type RunRecord = {
   options: StartRunOptions
   // A planning run's record, reported to when the run ends.
   planningRecord?: string
+  // The run was seen reading its packet (B05 of the BoltDB review).
+  packetRead?: boolean
   // The harness's last reported error: the provider status a failed
   // planning record keeps.
   lastError?: string
@@ -357,6 +359,16 @@ export class RunManager {
     }
   }
 
+  // What a planning run is seen doing moves its phases too (B05 of the BoltDB
+  // review): reading its packet is reading its context, whether or not it
+  // asks the context tool — the sketch skill reads the files themselves.
+  private observed(record: RunRecord, event: HarnessEvent) {
+    if (!record.planningRecord || record.packetRead || event.type !== 'file' || event.operation !== 'read' || !/(^|[\\/])packet[\\/]/.test(event.file || '')) return
+    record.packetRead = true
+    void this.worker(`/api/planning/records/${encodeURIComponent(record.planningRecord)}/progress`, { runId: record.summary.id, milestone: 'context' })
+      .catch(error => log('the packet read was not noted:', error instanceof Error ? error.message : error))
+  }
+
   private async worker(path: string, body?: unknown) {
     const response = await fetch(`${this.context.origin}${path}`, {
       method: body === undefined ? 'GET' : 'POST',
@@ -424,6 +436,7 @@ export class RunManager {
         event => {
           if (event.type === 'error' && event.error) record.lastError = event.error
           if (event.type === 'session' && event.model) void this.sessionModel(record, event.model)
+          if (event.type === 'file') this.observed(record, event)
           this.emit(runId, event)
         },
         record.controller.signal,

@@ -11,6 +11,7 @@ import type { SceneProductionView } from './planning/planning-workspace'
 import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
 import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePage, type PageDesignBinding } from './page-design'
+import { sinceOf } from './planning/progress'
 import { baseNextStep, type NextStep } from './planning/next-step'
 import { draftHoldsEdits, sameDocument } from './draft-state'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
@@ -17498,21 +17499,59 @@ const pageDesignBindings = () => {
   })
   return bound
 }
+// The design run the notebook waits on, as it works (B05 of the BoltDB
+// review): how many pages are designed, how long it has worked, and the
+// last thing it did — not only a count of what remains.
+const pageDesignRun = { id: '', startedAt: '', last: '', lastAt: '' }
+let pageDesignTicker = 0
+let pageDesignListening = false
+const followPageDesignRun = async (runId: string) => {
+  const bridge = window.studioDesktop
+  if (!bridge?.isDesktop) return
+  if (!pageDesignListening) {
+    pageDesignListening = true
+    bridge.harness.onEvent(({ runId: from, event }) => {
+      if (from !== pageDesignRun.id || event.type === 'error') return
+      const text = progressText(event)
+      if (!text) return
+      pageDesignRun.last = text.slice(0, 90)
+      pageDesignRun.lastAt = new Date().toISOString()
+    })
+  }
+  if (pageDesignRun.id === runId && pageDesignRun.startedAt) return
+  pageDesignRun.id = runId
+  pageDesignRun.last = ''
+  pageDesignRun.lastAt = ''
+  pageDesignRun.startedAt = (await finishedRun(runId).catch(() => undefined))?.startedAt || ''
+}
 const renderPageDesignStatus = () => {
   const bound = project.derivedFrom?.notebook ? [] : pageDesignBindings()
   pageDesignStatus.hidden = !bound.length
-  if (!bound.length) return
+  if (!bound.length) {
+    window.clearInterval(pageDesignTicker)
+    pageDesignTicker = 0
+    return
+  }
   const waiting = bound.filter(entry => !entry.designed).length
   const by = bound[0].binding.by || 'the designer'
   // The run belongs to the desktop app: a browser can only say so.
   const desktop = Boolean(window.studioDesktop?.isDesktop)
   ;($('#page-design-stop') as HTMLButtonElement).hidden = !desktop
   const count = waiting || bound.length
+  if (desktop) {
+    void followPageDesignRun(bound[0].binding.runId)
+    if (!pageDesignTicker) pageDesignTicker = window.setInterval(renderPageDesignStatus, 1000)
+  }
+  const details = [
+    `${bound.length - waiting} of ${bound.length} designed`,
+    pageDesignRun.startedAt ? `working ${sinceOf(pageDesignRun.startedAt)}` : '',
+    pageDesignRun.last ? `last: ${pageDesignRun.last} (${sinceOf(pageDesignRun.lastAt)} ago)` : '',
+  ].filter(Boolean).join(' · ')
   ;($('#page-design-text') as HTMLElement).textContent = !desktop
     ? `${count === 1 ? 'A page is' : `${count} pages are`} being designed in the desktop app; ${count === 1 ? 'it lands on its scene' : 'they land on their scenes'} while this notebook is open there.`
     : waiting
-      ? `${by} is still designing ${waiting} page${waiting === 1 ? '' : 's'}; each lands on its scene when it is finished.`
-      : `Every page is designed; ${by} is still checking them.`
+      ? `${by} is still designing ${waiting} page${waiting === 1 ? '' : 's'}; each lands on its scene when it is finished. ${details}`
+      : `Every page is designed; ${by} is still checking them. ${details}`
 }
 // A bound scene is bound to its page as the notebook keeps it: planning a
 // scene rewrites its page with the parts' ids, so the binding follows that.

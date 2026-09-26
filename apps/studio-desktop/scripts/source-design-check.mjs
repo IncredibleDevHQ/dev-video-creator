@@ -322,6 +322,10 @@ try {
   check('the designed scene records its harness and run', opened?.origins?.[0]?.kind === 'designed' && opened?.origins?.[0]?.by === 'Kimi' && Boolean(runF) && opened?.svgs?.[0] === 'RUN-F', JSON.stringify(opened?.origins?.[0]))
   check('the scene still being designed waits for its page from that run', opened?.origins?.[1]?.kind === 'schematic' && opened?.origins?.[1]?.designing?.runId === runF && opened?.origins?.[1]?.designing?.page === 2 && opened?.svgs?.[1] === '', JSON.stringify(opened?.origins?.[1]))
   check('the notebook says the page is being designed', opened?.chips?.length === 1 && opened.chips[0] === 'schematic draft · being designed' && /still designing 1 page; each lands on its scene when it is finished/.test(opened?.status || ''), JSON.stringify({ chips: opened?.chips, status: opened?.status }))
+  // B05 of the BoltDB review: not only what remains — how many are
+  // designed, how long the run has worked, and the last thing it did.
+  const detail = await waitFor(`() => { const text = document.getElementById('page-design-text').textContent; return /1 of 2 designed · working \\d/.test(text) ? text : null }`, 'status detail', 30)
+  check('the notebook says how far the design run is, and for how long it has worked', Boolean(detail), String(detail))
   check('opening did not stop the designer', (await runStatus(runF)) === 'running', String(await runStatus(runF)))
   // F1 of the Perplexity review: a video made now would start from the
   // schematic still being designed. The offer says so, and waiting comes first.

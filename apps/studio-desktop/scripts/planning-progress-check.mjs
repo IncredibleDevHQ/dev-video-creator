@@ -105,8 +105,11 @@ const gate = async name => { const file = path.join(GATES, name); const until = 
     return finish(0)
   }
   if (inputs.planning.route === 'Sketch Scene') {
-    // A preview whose provider is overloaded: it read its packet, then fails.
-    await tool('plan_context', { projectDir })
+    // A preview whose provider is overloaded: it read its packet — as the
+    // sketch skill does, file by file, never asking for its context (BoltDB
+    // review B05) — then fails.
+    emit({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: path.join(projectDir, 'packet', 'PLAN.json') } }] } })
+    await sleep(1500)
     emit({ type: 'result', subtype: 'error_during_execution', is_error: true, session_id: 'stub-progress', result: 'API Error: 529 Overloaded. Please try again later.' })
     shim.kill()
     process.exit(1)
@@ -291,7 +294,9 @@ try {
   await click('#scene-workspace .sw-actions .button.primary')
   const r1 = await until(async () => { const latest = await latestOf(videoId, s1); return latest && latest.progress?.events?.some(event => event.milestone === 'context') ? latest : null }, 60)
   check(Boolean(r1), 'the run read its packet, and the product noted it')
-  const reading = await waitFor(`() => { const now = (${progressNow})(); return now && /reviewing:active/.test(now.phases) ? now : null }`, 30)
+  // The workspace reads the plans every few seconds: the packet read shows
+  // on the next read, not before.
+  const reading = await waitFor(`() => { const now = (${progressNow})(); return now && /reviewing:active/.test(now.phases) && /read its packet/.test(now.now) ? now : null }`, 30)
   check(reading?.phases === 'reviewing:active explanation:todo moments:todo checking:todo ready:todo' && /read its packet/.test(reading.now) && /Claude Code/.test(reading.who) && /^Planning r1/.test(reading.header), `planning shows its phase, what is happening, who runs it and in the header — and nothing it has not seen (${JSON.stringify(reading)})`)
   check(!reading || !/No plan yet/.test(await evaluate(`() => document.querySelector('#scene-workspace .sw-panel').textContent`)), 'no "no plan yet" while it plans')
   await shot('01-reviewing')
@@ -380,6 +385,8 @@ try {
   const buildFailed = await waitFor(`() => { const failure = document.querySelector('#scene-workspace .sw-stage-activity .ws-build-failure'); return failure ? { kind: failure.dataset.failure, text: failure.querySelector('p')?.textContent || '', provider: failure.querySelector('.ws-failure-provider')?.textContent || '', button: failure.querySelector('button')?.textContent || '', stage: document.querySelector('#scene-stage-bar .scene-stage-modes button[aria-pressed="true"]')?.textContent || '' } : null }`, 90)
   check(buildFailed?.kind === 'rate-limit' && /^The preview of r2 failed while building the animated preview\./.test(buildFailed.text) && /The stage keeps the reference\.$/.test(buildFailed.text), `a failed preview says the phase it failed in, and what the stage keeps (${JSON.stringify(buildFailed)})`)
   check(/529 Overloaded/.test(buildFailed?.provider || '') && buildFailed?.button === 'Preview r2 again', `with the provider's words and a concrete retry (${JSON.stringify({ provider: buildFailed?.provider, button: buildFailed?.button })})`)
+  const previewRecord = (await api(`/api/planning/${encodeURIComponent(videoId)}`)).body.records.filter(record => record.kind === 'preview' && record.subject === s1).sort((a, b) => b.revision - a.revision)[0]
+  check(previewRecord?.progress?.events?.some(event => event.milestone === 'context'), `the preview's reading of its packet was seen, though its harness never asked for its context (${(previewRecord?.progress?.events || []).map(event => event.milestone).join(', ')})`)
   await shot('06-preview-failed')
 } catch (error) {
   check(false, `run: ${error instanceof Error ? error.stack || error.message : error}`)
