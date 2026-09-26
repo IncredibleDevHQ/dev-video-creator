@@ -107,7 +107,9 @@ try {
     return onDisk
   })
   await step('MP4 exists with a video stream', async () => {
-    const response = await fetch(render.url)
+    // The result names its file by path on the app's origin (F01).
+    if (!/^\/(objects|outputs)\//.test(render.url)) throw new Error(`the export is not named by its path: ${render.url}`)
+    const response = await fetch(new URL(render.url, origin))
     if (!response.ok) throw new Error(`download ${response.status}`)
     mp4Path = join(root, 'export.mp4')
     await writeFile(mp4Path, Buffer.from(await response.arrayBuffer()))

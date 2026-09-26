@@ -1,4 +1,5 @@
-import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, type ExportReport } from './export-jobs'
+import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, renderWarningsOf, type ExportReport, type ExportResult, type ExportWarning } from './export-jobs'
+import { mapMarkupUrls, objectUrl, portableUrl, studioRefOf } from '../src/studio-refs'
 import { generateFishVoice, generateSystemVoice, probeSeconds } from './voice'
 import { landPagesOnce, runPagesIn, type LandingDeps, type PageCheck } from './page-landing'
 import { containerView, holdNotebook, nameContainer, type ContainerDeps } from './containers'
@@ -408,7 +409,7 @@ const handleVoice = async (
   })
   await rm(outputPath, { force: true })
   json(response, 200, {
-    url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`,
+    url: objectUrl(stored.objectKey),
     assetId: stored.assetId,
     provider: useFish ? 'Fish Audio authorized voice' : 'Local system voice',
   })
@@ -2018,7 +2019,7 @@ const handleIllustrate = async (request: IncomingMessage, response: ServerRespon
       const generated = await imageGenerate({ prompt })
       if (generated) {
         const stored = await storeAsset({ body: generated.buffer, contentType: generated.contentType, projectId: body.projectId, blockId: body.nodeId, kind: 'illustration', extension: '.png' })
-        json(response, 200, { kind: 'image', url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`, assetId: stored.assetId, model: generated.model, prompt, width: 1024, height: 1024, palette: { accent, background } })
+        json(response, 200, { kind: 'image', url: objectUrl(stored.objectKey), assetId: stored.assetId, model: generated.model, prompt, width: 1024, height: 1024, palette: { accent, background } })
         return
       }
     } catch (error) {
@@ -2194,7 +2195,7 @@ const handleAssetUpload = async (
     extension,
   })
   json(response, 201, {
-    url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`,
+    url: objectUrl(stored.objectKey),
     assetId: stored.assetId,
   })
 }
@@ -2267,7 +2268,7 @@ const handleDirectedRecording = async (
       extension: '.mp4',
     })
     assetId = stored.assetId
-    mediaUrl = `${publicBaseUrl(request)}/objects/${stored.objectKey}`
+    mediaUrl = objectUrl(stored.objectKey)
   } finally {
     await rm(outputPath, { force: true })
   }
@@ -2377,15 +2378,31 @@ const handlePreview = async (
 
 const handleRender = async (context: StudioWorkerContext, request: IncomingMessage, response: ServerResponse) => {
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
-  json(response, 200, await renderProjectArtifact(context, project, publicBaseUrl(request)))
+  json(response, 200, await renderProjectArtifact(context, project))
 }
-const renderProjectArtifact = async (context: StudioWorkerContext, project: ProjectDocumentV1, baseUrl: string, signal?: AbortSignal, report?: ExportReport) => {
+// Whether the store holds an object — a missing one is an answer, not an
+// error; anything else (the store down) still throws.
+const objectExists = async (objectKey: string) => {
+  try {
+    await getObjectMetadata(objectKey)
+    return true
+  } catch (error) {
+    const code = (error as { code?: string }).code
+    if (code === 'NotFound' || code === 'NoSuchKey' || code === 'ENOENT') return false
+    throw error
+  }
+}
+
+const renderProjectArtifact = async (context: StudioWorkerContext, project: ProjectDocumentV1, signal?: AbortSignal, report?: ExportReport): Promise<ExportResult> => {
   report?.({ stage: 'preparing', percent: 0 })
   const renderProject = structuredClone(project)
+  const warnings: ExportWarning[] = []
   type StagedRenderAsset = {
     localPath?: string
     objectKey?: string
     transcode: boolean
+    // What the composition named it: the reason a missing one gives.
+    source: string
   }
   const stagedRenderAssets = new Map<string, StagedRenderAsset>()
   // The producer only localizes HTTPS media and cannot extract frames from
@@ -2401,71 +2418,42 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
     }`
     return { name, transcode }
   }
-  const localAssetPath = (value: string | undefined) => {
-    if (!value) return value
-    try {
-      const url = new URL(value)
-      if (!['127.0.0.1', 'localhost'].includes(url.hostname)) return value
-      if (url.pathname.startsWith('/objects/')) {
-        const objectKey = decodeURIComponent(
-          url.pathname.slice('/objects/'.length),
-        )
-        if (!objectKey) return value
-        const { name, transcode } = stagedAssetName(objectKey, objectKey)
-        stagedRenderAssets.set(name, { objectKey, transcode })
-        return `media/${name}`
-      }
-      if (!url.pathname.startsWith('/assets/')) return value
-      const assetName = url.pathname.slice('/assets/'.length)
-      if (!assetName || assetName !== basename(assetName)) return value
-      const { name, transcode } = stagedAssetName(assetName, assetName)
-      stagedRenderAssets.set(name, {
-        localPath: join(context.assetsDirectory, assetName),
-        transcode,
-      })
+  // One reading of a reference for every file the composition names (F05
+  // of the fix verification): root-relative or on any loopback port, an
+  // object in the store or a file in the assets folder is staged into the
+  // job, whichever block, track, take, logo or page artwork named it.
+  const localAssetPath = (value: string) => {
+    const ref = studioRefOf(value)
+    if (!ref) return null
+    if (ref.root === 'objects') {
+      const { name, transcode } = stagedAssetName(ref.path, ref.path)
+      stagedRenderAssets.set(name, { objectKey: ref.path, transcode, source: portableUrl(value) })
       return `media/${name}`
-    } catch {
-      return value
+    }
+    if (ref.root !== 'assets' || ref.path !== basename(ref.path)) return null
+    const { name, transcode } = stagedAssetName(ref.path, ref.path)
+    stagedRenderAssets.set(name, { localPath: join(context.assetsDirectory, ref.path), transcode, source: portableUrl(value) })
+    return `media/${name}`
+  }
+  // The theme's logo is the one decorative file: missing from the store,
+  // the video goes without it and says so, rather than asking the renderer
+  // for bytes that are not there.
+  const logoRef = studioRefOf(renderProject.theme?.logo?.url)
+  if (renderProject.theme && logoRef) {
+    const present = logoRef.root === 'objects'
+      ? await objectExists(logoRef.path)
+      : await access(join(context.assetsDirectory, logoRef.path)).then(() => true, () => false)
+    if (!present) {
+      warnings.push({ code: 'logo_missing', message: 'The theme logo is no longer in the studio\'s store, so the video has no logo. Choose the logo again in the theme.', sources: [portableUrl(renderProject.theme.logo.url)] })
+      renderProject.theme.logo.url = ''
     }
   }
-  Object.values(renderProject.presenterTracks).forEach(tracks => {
-    tracks.forEach(track => {
-      if (track.kind === 'human-camera') {
-        track.videoUrl = localAssetPath(track.videoUrl) || track.videoUrl
-      }
-      track.audioUrl = localAssetPath(track.audioUrl) || track.audioUrl
-    })
-  })
-  Object.values(renderProject.recordedBlocks || {}).forEach(recording => {
-    recording.videoUrl = localAssetPath(recording.videoUrl) || recording.videoUrl
-    if (recording.cameraUrl) recording.cameraUrl = localAssetPath(recording.cameraUrl) || recording.cameraUrl
-  })
-  // A produced scene's render (P4) is staged like a take: the same bytes.
-  Object.values(renderProject.producedScenes || {}).forEach(produced => {
-    produced.videoUrl = localAssetPath(produced.videoUrl) || produced.videoUrl
-  })
-  const stageNotebookMedia = (node: TiptapNode) => {
-    if (
-      (node.type === 'image' || node.type === 'screenRecording') &&
-      typeof node.attrs?.src === 'string'
-    ) {
-      node.attrs.src = localAssetPath(node.attrs.src) || node.attrs.src
-    }
-    // Appearance images inside a page's SVG (the asset library's
-    // illustrations) are staged like any other local media.
-    if ((node.type === 'scene' || node.type === 'slide') && typeof node.attrs?.svg === 'string' && node.attrs.svg.includes('/objects/')) {
-      node.attrs.svg = node.attrs.svg.replace(/(<image\b[^>]*\bhref=")([^"]+)(")/g, (whole: string, open: string, href: string, close: string) => {
-        const staged = localAssetPath(href)
-        return staged && staged !== href ? `${open}${staged}${close}` : whole
-      })
-    }
-    node.content?.forEach(stageNotebookMedia)
-  }
-  renderProject.notebook.content.forEach(stageNotebookMedia)
-  const composition = compileProject(renderProject, {
+  const compiled = compileProject(renderProject, {
     gsapUrl: './runtime/gsap.min.js',
     hyperframesRuntimeUrl: './runtime/hyperframes.iife.js',
   })
+  const composition = { ...compiled, html: mapMarkupUrls(compiled.html, localAssetPath) }
+  const logoSource = renderProject.theme?.logo?.url ? localAssetPath(renderProject.theme.logo.url) || renderProject.theme.logo.url : ''
   if (composition.durationSeconds > 30 * 60) {
     throw new Error('Local renders are limited to thirty minutes')
   }
@@ -2477,6 +2465,9 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
   const outputPath = join(context.outputsDirectory, `${id}.mp4`)
   await mkdir(jobDirectory, { recursive: true })
   await mkdir(runtimeDirectory, { recursive: true })
+  // A file the video shows that the store no longer holds stops the export
+  // before anything renders, named — never a clean success without it.
+  const missing: string[] = []
   if (stagedRenderAssets.size) {
     const mediaDirectory = join(jobDirectory, 'media')
     await mkdir(mediaDirectory, { recursive: true })
@@ -2484,7 +2475,15 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
       [...stagedRenderAssets].map(async ([assetName, staged]) => {
         const targetPath = join(mediaDirectory, assetName)
         let sourcePath = staged.localPath
+        if (sourcePath && !(await access(sourcePath).then(() => true, () => false))) {
+          missing.push(staged.source)
+          return
+        }
         if (!sourcePath && staged.objectKey) {
+          if (!(await objectExists(staged.objectKey))) {
+            missing.push(staged.source)
+            return
+          }
           sourcePath = staged.transcode ? `${targetPath}.download` : targetPath
           const { stream } = await getObject(staged.objectKey)
           const chunks: Buffer[] = []
@@ -2529,7 +2528,14 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
           }
         }
       }),
-    )
+    ).catch(async error => {
+      await rm(jobDirectory, { recursive: true, force: true })
+      throw error
+    })
+  }
+  if (missing.length) {
+    await rm(jobDirectory, { recursive: true, force: true })
+    throw new Error(`The export stopped before rendering: ${missing.length === 1 ? 'a file the video shows is' : `${missing.length} files the video shows are`} no longer in the studio's store (${missing.sort().join(', ')}). Record, produce or choose ${missing.length === 1 ? 'it' : 'them'} again, then export.`)
   }
   // The faces the pages name travel with the job (or a substitute of the
   // same class that answers to the same name).
@@ -2565,6 +2571,21 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
       if (warningDetails) throw new Error(warningDetails)
       throw error
     }
+    // A render that finished with warnings says so with its result (F05):
+    // a file the video shows that did not load is no success at all; the
+    // decorative logo, or media slow to load, is a warning the creator reads.
+    const readings = renderWarningsOf(job.warnings, {
+      logo: logoSource,
+      describe: source => {
+        const staged = /\/media\/([^/?#]+)$/.exec(source)
+        return (staged && stagedRenderAssets.get(staged[1])?.source) || source
+      },
+    })
+    if (readings.blocking.length) {
+      await rm(outputPath, { force: true })
+      throw new Error(`The render could not load ${readings.blocking.length === 1 ? 'a file the video shows' : `${readings.blocking.length} files the video shows`} (${readings.blocking.join(', ')}), so it was not kept. Export again; if it recurs, record or choose ${readings.blocking.length === 1 ? 'it' : 'them'} again.`)
+    }
+    warnings.push(...readings.warnings)
   } finally {
     await rm(jobDirectory, { recursive: true, force: true })
   }
@@ -2593,11 +2614,14 @@ const renderProjectArtifact = async (context: StudioWorkerContext, project: Proj
   }
 
   return {
-    url: exportAsset ? `${baseUrl}/objects/${exportAsset.objectKey}` : `${baseUrl}/outputs/${id}.mp4`,
+    // Named by its path on the app's own origin — the desktop's port
+    // changes at every start (F01 of the fix verification).
+    url: exportAsset ? objectUrl(exportAsset.objectKey) : `/outputs/${id}.mp4`,
     // What the file measures, not what the composition declared.
     durationSeconds: renderedSeconds ?? composition.durationSeconds,
     fonts: { shipped: fonts.shipped, substituted: fonts.substituted },
     exportAsset,
+    ...(warnings.length ? { warnings } : {}),
   }
 }
 
@@ -3330,8 +3354,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/exports') {
       const project = await readJson<ProjectDocumentV1>(request, 10 * 1024 * 1024)
-      const baseUrl = publicBaseUrl(request)
-      json(response, 202, { job: exportJobView(await startExportJob(project, (signal, report) => renderProjectArtifact(context, project, baseUrl, signal, report), url.searchParams.get('retry') === 'true')) })
+      json(response, 202, { job: exportJobView(await startExportJob(project, (signal, report) => renderProjectArtifact(context, project, signal, report), url.searchParams.get('retry') === 'true')) })
       return
     }
     // A failed or cancelled export, again, from the manifest it was made of.
@@ -3343,7 +3366,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         return
       }
       const manifest = previous.project
-      json(response, 202, { job: exportJobView(await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, publicBaseUrl(request), signal, report), true)) })
+      json(response, 202, { job: exportJobView(await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, signal, report), true)) })
       return
     }
     if (/^\/api\/exports\/[a-f0-9]{64}$/.test(url.pathname) && ['GET', 'DELETE'].includes(request.method || '')) {
@@ -3351,7 +3374,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       let job = request.method === 'DELETE' ? await cancelExportJob(id) : await getExportJob(id)
       if (request.method === 'GET' && job?.project && ['queued', 'running'].includes(job.status) && Date.now() - job.updatedAt >= 90000) {
         const manifest = job.project
-        job = await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, publicBaseUrl(request), signal, report))
+        job = await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, signal, report))
       }
       json(response, job ? 200 : 404, { job: exportJobView(job) })
       return
@@ -3369,13 +3392,29 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       await serveFile(response, filePath)
       return
     }
-    if (request.method === 'GET' && url.pathname.startsWith('/objects/')) {
+    // HEAD answers whether a file is there before a download asks for it
+    // (F01 of the fix verification); a missing object is a 404, not an
+    // error, and never the app's own page.
+    if ((request.method === 'GET' || request.method === 'HEAD') && url.pathname.startsWith('/objects/')) {
       response.setHeader('access-control-allow-origin', '*')
       const objectKey = decodeURIComponent(url.pathname.slice('/objects/'.length))
       if (!objectKey || objectKey.split('/').some(part => !part || part === '..')) {
         throw new Error('Invalid object key')
       }
+      if (!(await objectExists(objectKey))) {
+        json(response, 404, { error: 'This file is no longer in the studio\'s store' })
+        return
+      }
       const metadata = await getObjectMetadata(objectKey)
+      if (request.method === 'HEAD') {
+        response.writeHead(200, {
+          'content-type': metadata.metaData?.['content-type'] || 'application/octet-stream',
+          'content-length': metadata.size,
+          'accept-ranges': 'bytes',
+        })
+        response.end()
+        return
+      }
       const rangeMatch = /^bytes=(\d+)-(\d*)$/.exec(String(request.headers.range || ''))
       const rangeStart = rangeMatch ? Number(rangeMatch[1]) : 0
       const rangeEnd = rangeMatch

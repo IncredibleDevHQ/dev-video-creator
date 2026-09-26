@@ -14,6 +14,7 @@ import { stageTrackFromShots, type DirectedShot } from '../../../studio-v2/src/s
 import type { SceneProgram } from '../../../studio-v2/src/scene-program'
 import { splitCue } from '../../../studio-v2/src/scene-program'
 import { sceneRevisionPayload, sceneRenderedExtras } from '../../../studio-v2/src/scene-revision'
+import { portableUrl } from '../../../studio-v2/src/studio-refs'
 import type { LibraryArtwork } from '../../../studio-v2/server/appearance-library'
 
 type Args = Record<string, unknown>
@@ -297,7 +298,8 @@ const narrateTool = async (args: Args, context: Context) => {
     const path = join(audioDir, `${name}.mp3`)
     try { await readFile(path) } catch {
       const voice = await call<{ url: string }>(context, '/api/voice', { text: beat.say, projectId: inputs.projectId, referenceId: inputs.voiceReferenceId })
-      const audio = await fetch(voice.url)
+      // Named by its path on the app's own origin (F01 of the fix verification).
+      const audio = await fetch(new URL(portableUrl(voice.url), context.origin))
       if (!audio.ok) throw new Error('Could not read the generated voice')
       await writeFile(path, Buffer.from(await audio.arrayBuffer()))
     }
@@ -694,7 +696,7 @@ const exportTool = async (args: Args, context: Context) => {
   }
   const result = await renderOrAttach(project, context, scenes.some(scene => scene.program.scheduling === 2))
   if ('pending' in result) return result
-  const response = await fetch(result.url)
+  const response = await fetch(new URL(portableUrl(result.url), context.origin))
   if (!response.ok) throw new Error('Export completed but its video could not be inspected')
   const videoPath = join(projectDir, 'explainer', 'export.mp4')
   const videoBuffer = Buffer.from(await response.arrayBuffer())
@@ -764,7 +766,7 @@ const referenceExportTool = async (args: Args, context: Context) => {
   if (!project.presenterTracks[id]?.some(track => track.kind === 'narration' && track.audioUrl === narration.audioUrl)) throw new Error('Preview again to bind the current narration to the immutable render manifest')
   const result = await renderOrAttach(project, context, true)
   if ('pending' in result) return result
-  const response = await fetch(result.url)
+  const response = await fetch(new URL(portableUrl(result.url), context.origin))
   if (!response.ok) throw new Error('Reference export could not be downloaded')
   const bytes = Buffer.from(await response.arrayBuffer())
   const path = join(p.folder, `${p.scene}.reference.mp4`)
@@ -816,7 +818,8 @@ const alignTakeTool = async (args: Args, context: Context) => {
   if (!audioPath) {
     const audioUrl = String(args.audioUrl || '')
     if (!audioUrl) throw new Error('Give the take audio as a run file (audioPath) or a stored object URL (audioUrl)')
-    const response = await fetch(/^https?:/.test(audioUrl) ? audioUrl : `${context.origin}${audioUrl}`)
+    // A stored object is read on the app's origin now, whatever port wrote it.
+    const response = await fetch(new URL(portableUrl(audioUrl), context.origin))
     if (!response.ok) throw new Error('Could not read the take audio')
     audioPath = join(audioDir, 'take-source.mp3')
     await writeFile(audioPath, Buffer.from(await response.arrayBuffer()))

@@ -17,6 +17,8 @@ import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab 
 import { nextWireframeAttempt, storedArticleOf, wireframeFailureText, type WireframeOutliner } from './wireframe-attempt'
 import { readableList } from './font-families'
 import { draftHoldsEdits, sameDocument } from './draft-state'
+import { portableProjectMedia, portableUrl } from './studio-refs'
+import { downloadName, downloadStudioFile } from './studio-download'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -2141,6 +2143,10 @@ Object.entries(project.recordedBlocks).forEach(([blockId, recording]) => {
 })
 // Heal documents saved before blob: sources were kept out of persistence.
 sanitizeNotebookMedia(project.notebook)
+// Media named while the app had another address — the desktop's port
+// changes at every start — play on this one: by their paths (F01 of the
+// fix verification). The next save keeps the healed names.
+portableProjectMedia(project)
 window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 
 // Hydrate the take archive from the durable store (D3): takes recorded in
@@ -2160,14 +2166,14 @@ const hydratePresenterTakes = async () => {
     const hydrateTake = (take: (typeof takes)[number]): RecordedBlockV1 => ({
       blockId: take.blockId,
       recordingId: take.id,
-      videoUrl: take.detail!.mediaUrl!,
+      videoUrl: portableUrl(take.detail!.mediaUrl!),
       durationMs: take.durationMs,
       recordedAt: take.createdAt,
       storage: 'minio',
       ...(take.detail?.role === 'presenter' ? { role: 'presenter' as const } : {}),
       ...(take.detail?.keepsPlan ? { keepsPlan: true } : {}),
       ...(Array.isArray(take.detail?.beatMarksMs) ? { beatMarksMs: take.detail.beatMarksMs.map(Number).filter(Number.isFinite) } : {}),
-      ...(take.detail?.cameraUrl ? { cameraUrl: String(take.detail.cameraUrl), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
+      ...(take.detail?.cameraUrl ? { cameraUrl: portableUrl(String(take.detail.cameraUrl)), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
       ...(take.detail?.script?.hash ? { script: take.detail.script } : {}),
       ...(take.detail?.pickup ? { pickup: true } : {}),
     })
@@ -9131,6 +9137,12 @@ const renderPublishBlockList = () => {
   syncPublishSummary()
 }
 
+// A render's own warnings, kept with its result (F05 of the fix
+// verification): the creator reads them where the export is.
+type ExportWarningView = { code: string; message: string; sources?: string[] }
+const exportWarningLine = (warnings: ExportWarningView[] | undefined) =>
+  warnings?.length ? (warnings.length === 1 ? warnings[0].message : `${warnings.length} warnings: ${warnings.map(warning => warning.message).join(' ')}`) : ''
+
 let activePublishJob = ''
 const cancelPublishJob = document.createElement('button')
 cancelPublishJob.textContent = 'Cancel export'
@@ -9154,7 +9166,7 @@ const startPublish = async () => {
       const nodeId = node.attrs?.id
       return typeof nodeId !== 'string' || !publishExcluded.has(nodeId)
     })
-    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number }; audio?: { voiced: number; missing: number; silentDraft: boolean }; progress?: { percent: number } }
+    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number; warnings?: ExportWarningView[] }; audio?: { voiced: number; missing: number; silentDraft: boolean }; progress?: { percent: number } }
     let { job } = await fetchJson<{ job: Job }>('/api/exports?retry=true', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
     activePublishJob = job.id
     window.localStorage.setItem(`studio.export:${payload.id}`, job.id)
@@ -9169,18 +9181,21 @@ const startPublish = async () => {
     if (job.status !== 'stored' || !job.result) throw new Error(job.error || `Export ${job.status}`)
     const result = job.result
     const link = $('#download-render') as HTMLAnchorElement
-    link.href = result.url
+    link.href = portableUrl(result.url)
+    link.dataset.name = downloadName(displayName() || project.title || 'Incredible Studio', 'mp4')
     resultPanel.hidden = false
     const exported = await publishKindOf(payload.notebook.content)
     ;($('#publish-count') as HTMLElement).textContent =
       `${exported.kind === 'video' ? 'video export' : exported.kind === 'reviewed' ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
     const silence = job.audio?.silentDraft ? ' · silent draft, no audio' : job.audio?.missing ? ` · ${job.audio.missing} silent block${job.audio.missing === 1 ? '' : 's'}` : ''
-    ;($('#publish-count') as HTMLElement).textContent += silence
+    // What the render said about itself is part of its result (F05).
+    const warned = exportWarningLine(result.warnings)
+    ;($('#publish-count') as HTMLElement).textContent += `${silence}${warned ? ` · ${warned}` : ''}`
     showToast(exported.kind === 'video'
-      ? `Exported ${result.durationSeconds.toFixed(1)} seconds — every scene plays the production you accepted${silence}`
+      ? `Exported ${result.durationSeconds.toFixed(1)} seconds — every scene plays the production you accepted${silence}${warned ? `. ${warned}` : ''}`
       : exported.kind === 'reviewed'
-        ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes${silence}`
-        : `Draft export rendered (${result.durationSeconds.toFixed(1)}s)${exported.explainer ? ' — not a reviewed explainer' : ''}${silence}`)
+        ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes${silence}${warned ? `. ${warned}` : ''}`
+        : `Draft export rendered (${result.durationSeconds.toFixed(1)}s)${exported.explainer ? ' — not a reviewed explainer' : ''}${silence}${warned ? `. ${warned}` : ''}`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Publish failed')
   } finally {
@@ -9198,9 +9213,11 @@ const startPublish = async () => {
 // reloading, switching notebooks or restarting the window finds the same
 // job again — running, with the renderer's progress; ready, with its
 // download; or failed, with a retry from the manifest it was made of.
-type ExportView = { id: string; status: string; updatedAt: number; startedAt?: number; error?: string; result?: { url: string; durationSeconds: number }; progress?: { stage: string; percent: number; frame?: number; frames?: number }; audio?: { silentDraft: boolean; missing: number } }
+type ExportView = { id: string; status: string; updatedAt: number; startedAt?: number; error?: string; result?: { url: string; durationSeconds: number; warnings?: ExportWarningView[] }; progress?: { stage: string; percent: number; frame?: number; frames?: number }; audio?: { silentDraft: boolean; missing: number } }
 let exportStatusTimer = 0
 let exportStatusJob: ExportView | null = null
+// Downloads that failed, by export: the notice says why until one works.
+const downloadFailures = new Map<string, string>()
 const exportDismissedKey = () => `studio.export-dismissed:${project.id}`
 const renderExportStatus = (job: ExportView | null) => {
   exportStatusJob = job
@@ -9210,6 +9227,7 @@ const renderExportStatus = (job: ExportView | null) => {
   const retry = $('#export-status-retry') as HTMLButtonElement
   const cancel = $('#export-status-cancel') as HTMLButtonElement
   const dismiss = $('#export-status-dismiss') as HTMLButtonElement
+  const details = $('#export-status-details') as HTMLButtonElement
   let dismissed = ''
   try {
     dismissed = window.localStorage.getItem(exportDismissedKey()) || ''
@@ -9235,12 +9253,26 @@ const renderExportStatus = (job: ExportView | null) => {
       : job.status === 'running'
         ? `Exporting · ${progress?.stage || 'starting'} ${progress ? `${progress.percent}%` : ''}${progress?.frames ? ` · frame ${progress.frame || 0} of ${progress.frames}` : ''}`
         : job.status === 'stored'
-          ? `Export ready · ${formatTime(job.result?.durationSeconds || 0)}${silent}`
+          ? `Export ready${job.result?.warnings?.length ? ` with ${job.result.warnings.length === 1 ? 'a warning' : `${job.result.warnings.length} warnings`}` : ''} · ${formatTime(job.result?.durationSeconds || 0)}${silent}`
           : job.status === 'failed'
             ? `Export failed — ${String(job.error || 'no reason given').split('\n')[0].slice(0, 120)}`
             : 'Export cancelled'
   download.hidden = job.status !== 'stored' || !job.result
-  if (job.result) download.href = job.result.url
+  if (job.result) {
+    download.href = portableUrl(job.result.url)
+    download.dataset.name = downloadName(displayName() || project.title || 'Incredible Studio', 'mp4')
+  }
+  // A download that failed keeps the notice — and the studio — with its
+  // reason and a retry (F01); a fresh job starts clean.
+  const failedDownload = downloadFailures.get(job.id)
+  if (job.status === 'stored' && failedDownload) text.textContent = `Download failed — ${failedDownload}`
+  download.textContent = failedDownload ? 'Retry download' : 'Download'
+  const warnings = job.status === 'stored' ? job.result?.warnings || [] : []
+  box.dataset.warnings = String(warnings.length)
+  box.dataset.download = failedDownload ? 'failed' : ''
+  // The whole line and every warning on hover: the notice is narrow.
+  box.title = [text.textContent || '', ...warnings.map(warning => warning.message)].filter(Boolean).join('\n')
+  details.hidden = !warnings.length
   retry.hidden = !(stalled || job.status === 'failed' || job.status === 'cancelled')
   cancel.hidden = !active || stalled
   dismiss.hidden = Boolean(active) && !stalled
@@ -9263,6 +9295,50 @@ const refreshExportStatus = async () => {
   if (!exportStatusJob) return
   await fetchJson(`/api/exports/${exportStatusJob.id}/retry`, { method: 'POST' }).catch(error => showToast(error instanceof Error ? error.message : 'Could not retry the export'))
   void refreshExportStatus()
+})
+;($('#export-status-details') as HTMLButtonElement).addEventListener('click', () => {
+  const warnings = exportStatusJob?.result?.warnings || []
+  if (warnings.length) showToast(warnings.map(warning => warning.message).join(' '))
+})
+// Download through the studio's own download (F01 of the fix verification):
+// the file is checked on this origin first, and a failure keeps the studio
+// and the notice, with its reason and a retry — never an error page.
+const startStudioDownload = async (link: HTMLAnchorElement, onFailure: (reason: string) => void, onSuccess: () => void) => {
+  if (link.dataset.downloading === 'true') return
+  link.dataset.downloading = 'true'
+  try {
+    const outcome = await downloadStudioFile(link.getAttribute('href') || '', link.dataset.name || downloadName(project.title || 'Incredible Studio', 'mp4'))
+    onSuccess()
+    if (outcome.state === 'completed') showToast(`Downloaded ${outcome.path ? outcome.path.split(/[\\/]/).pop() : 'the video'}`)
+  } catch (error) {
+    onFailure(error instanceof Error ? error.message : 'The download failed')
+  } finally {
+    delete link.dataset.downloading
+  }
+}
+;($('#export-status-download') as HTMLAnchorElement).addEventListener('click', event => {
+  event.preventDefault()
+  const job = exportStatusJob
+  if (!job) return
+  void startStudioDownload(event.currentTarget as HTMLAnchorElement, reason => {
+    downloadFailures.set(job.id, reason)
+    if (exportStatusJob?.id === job.id) renderExportStatus(exportStatusJob)
+  }, () => {
+    if (!downloadFailures.delete(job.id)) return
+    if (exportStatusJob?.id === job.id) renderExportStatus(exportStatusJob)
+  })
+})
+;($('#download-render') as HTMLAnchorElement).addEventListener('click', event => {
+  event.preventDefault()
+  const link = event.currentTarget as HTMLAnchorElement
+  // The label is the link's last text; its icon stays.
+  const label = (text: string) => {
+    if (link.lastChild) link.lastChild.textContent = text
+  }
+  void startStudioDownload(link, reason => {
+    label('Retry download')
+    showToast(`Download failed — ${reason}`)
+  }, () => label('Download MP4'))
 })
 ;($('#export-status-dismiss') as HTMLButtonElement).addEventListener('click', () => {
   if (!exportStatusJob) return
@@ -18440,7 +18516,8 @@ sceneReview = createSceneReview({
       ...(project.producedScenes || {}),
       [sceneId]: {
         productionId: production.id,
-        videoUrl: new URL(accepted.url, window.location.origin).href,
+        // By its path: the app's address changes at every desktop start.
+        videoUrl: portableUrl(accepted.url),
         durationMs: accepted.durationMs,
         bundle: accepted.bundle,
         plan: production.of,

@@ -1,7 +1,46 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { audioReadinessOf, type ProjectDocumentV1 } from 'markdown-composition'
 import { compareAndSwapSetting, loadSetting } from './persistence'
-export type ExportResult = { url: string; durationSeconds: number; exportAsset: { assetId: string; objectKey: string } | null }
+import { objectUrl, portableUrl } from '../src/studio-refs'
+// What a finished render said about itself, kept with its result: the
+// notice reads "Export ready with a warning", never a bare "ready" (F05 of
+// the fix verification).
+export type ExportWarning = { code: string; message: string; sources?: string[] }
+export type ExportResult = { url: string; durationSeconds: number; exportAsset: { assetId: string; objectKey: string } | null; fonts?: { shipped: string[]; substituted: Record<string, string> }; warnings?: ExportWarning[] }
+
+type RendererWarning = { code: string; message: string; details?: { mediaType?: string; sources?: string[] } }
+/** What a render's warnings mean for the creator. A file the video shows
+ * that did not load blocks the export (by what the composition named it);
+ * the theme's logo is decorative, and media slow to be ready or sound that
+ * could not be mixed are warnings kept with the result. `logo` is where the
+ * composition asked for the logo; `describe` names a renderer source. */
+export const renderWarningsOf = (warnings: readonly RendererWarning[], options: { logo: string; describe: (source: string) => string }) => {
+  const isLogo = (source: string) => Boolean(options.logo) && (source === options.logo || source.endsWith(`/${options.logo}`))
+  const blocking: string[] = []
+  const kept: ExportWarning[] = []
+  for (const warning of warnings) {
+    const sources = warning.details?.sources || []
+    const media = warning.details?.mediaType || 'media'
+    if (warning.code === 'media_load_failed') {
+      const logos = sources.filter(isLogo)
+      const shown = sources.filter(source => !isLogo(source))
+      if (logos.length) kept.push({ code: 'logo_not_loaded', message: 'The theme logo did not load, so the video has no logo.', sources: logos.map(options.describe) })
+      blocking.push(...shown.map(options.describe))
+      if (!sources.length) blocking.push(`${media} media`)
+      continue
+    }
+    if (warning.code === 'media_readiness_timeout') {
+      kept.push({ code: warning.code, message: `Some ${media} took too long to load; it may appear late in its first frames.`, ...(sources.length ? { sources: sources.map(options.describe) } : {}) })
+      continue
+    }
+    if (warning.code === 'audio_processing_failed') {
+      kept.push({ code: warning.code, message: 'Some of the sound could not be mixed, so part of the video may be silent.', ...(sources.length ? { sources: sources.map(options.describe) } : {}) })
+      continue
+    }
+    kept.push({ code: warning.code, message: warning.message, ...(sources.length ? { sources: sources.map(options.describe) } : {}) })
+  }
+  return { blocking: [...new Set(blocking)], warnings: kept }
+}
 // Where a render is, as the renderer says (F8 of the Perplexity review):
 // its stage, how far, and its frames when it counts them. No time estimate
 // is promised.
@@ -91,5 +130,9 @@ export const exportJobView = (job: ExportJob | null) => {
   if (!job) return null
   const { project, ...view } = job
   const audio = audioReadinessOf(project)
-  return { ...view, audio: { voiced: audio.voiced, missing: audio.missing, silentDraft: audio.silentDraft, blocks: audio.blocks } }
+  // A result stored while the app had another address names its file by
+  // its path again: the stored object, on whatever origin the app has now
+  // (F01 of the fix verification).
+  const result = view.result ? { ...view.result, url: view.result.exportAsset ? objectUrl(view.result.exportAsset.objectKey) : portableUrl(view.result.url) } : undefined
+  return { ...view, ...(result ? { result } : {}), audio: { voiced: audio.voiced, missing: audio.missing, silentDraft: audio.silentDraft, blocks: audio.blocks } }
 }

@@ -43,6 +43,10 @@ export type AdapterAvailability = {
 const bridge = {
   isDesktop: true as const,
   platform: process.platform,
+  // The studio's own download (F01 of the fix verification): the desktop
+  // saves the file; the window is never navigated to it.
+  download: (url: string, filename: string): Promise<{ state: 'completed' | 'cancelled' | 'interrupted'; path?: string }> =>
+    ipcRenderer.invoke('studio:download', url, filename),
   versions: {
     electron: process.versions.electron || '',
     chrome: process.versions.chrome || '',

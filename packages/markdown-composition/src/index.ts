@@ -1063,6 +1063,10 @@ const buildCompositionHtml = (
               return `<p class="scene-emphasis" data-from="${from.toFixed(2)}" data-to="${to.toFixed(2)}">${escapeHtml(shot.emphasis!)}</p>`
             })
             .join('')
+      // A take or a produced render covers the whole frame, the scene's
+      // chrome hidden under it: its logo is not asked for at all, rather
+      // than loaded for nothing (F05 of the fix verification).
+      const sceneLogoMarkup = recordedTakeUrl ? '' : userLogoMarkup
       const stageAttributes = stageTrack.length
         ? ` data-stage="${stageTrack[0].family}"${stageTrack[0].treatment ? ` data-stage-treatment="${stageTrack[0].treatment}"` : ''}${stageTrack[0].variant ? ` data-stage-variant="${stageTrack[0].variant}"` : ''} data-stage-track="${escapeHtml(JSON.stringify(stageTrack))}"`
         : ''
@@ -1089,8 +1093,8 @@ const buildCompositionHtml = (
         )}"
       >
         ${
-          userLogoMarkup && theme.logo.placement.startsWith('top-')
-            ? `<div class="composition-corner-logo logo-${theme.logo.placement}">${userLogoMarkup}</div>`
+          sceneLogoMarkup && theme.logo.placement.startsWith('top-')
+            ? `<div class="composition-corner-logo logo-${theme.logo.placement}">${sceneLogoMarkup}</div>`
             : ''
         }
         <div class="scene-index">${String(scene.index + 1).padStart(2, '0')}</div>
@@ -1100,8 +1104,8 @@ const buildCompositionHtml = (
             : ''
         }>${renderSceneNode(scene, mergedShapeCollection(project.shapeCollection), project.brand.accent, stageTrack.length ? stageTrack : undefined)}</main>
         <footer class="logo-${theme.logo.placement}">${
-          theme.logo.placement.startsWith('footer-')
-            ? userLogoMarkup || renderIncredibleBrand(scene.index)
+          theme.logo.placement.startsWith('footer-') && !recordedTakeUrl
+            ? sceneLogoMarkup || renderIncredibleBrand(scene.index)
             : ''
         }<span>${escapeHtml(project.title)}</span></footer>
         ${previewPresenterMarkup}${recordedTakeMarkup}${emphasisMarkup}
@@ -1303,7 +1307,7 @@ const buildCompositionHtml = (
        across a sibling scene — frame switchovers rely on later scenes
        painting above earlier ones. */
     .scene { --content-layout-width: 1500px; --presenter-safe-width: 100%; position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); isolation: isolate; }
-    .scene > .scene-index, .scene > .content, .scene > footer, .scene > .composition-corner-logo { position: relative; z-index: 22; }
+    .scene > .scene-index, .scene > .content, .scene > footer { position: relative; z-index: 22; }
     .scene > * { position: relative; z-index: 25; }
     .scene::before { content: ""; position: absolute; z-index: 21; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
     #composition[data-surface-style="none"] .scene::before { display: none; }
@@ -1533,7 +1537,10 @@ const buildCompositionHtml = (
     .composition-brand svg { width: 28px; height: 28px; flex: none; }
     .composition-brand img { display: block; width: auto; max-width: 240px; height: ${logoSize}px; object-fit: contain; }
     .composition-brand strong { color: var(--text); font-size: 23px; font-weight: 760; }
-    .composition-corner-logo { position: absolute; top: 58px; z-index: 30; }
+    /* Out of the scene's grid and above its page, however full the page
+       (F05 of the fix verification: grouped with the scene's chrome, it
+       fell into the grid, under the page). */
+    .scene > .composition-corner-logo { position: absolute; top: 58px; z-index: 30; }
     .composition-corner-logo.logo-top-left { left: 72px; }
     .composition-corner-logo.logo-top-right { right: 72px; }
     footer.logo-footer-right { flex-direction: row-reverse; }

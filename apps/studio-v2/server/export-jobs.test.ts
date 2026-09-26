@@ -8,7 +8,7 @@ vi.mock('./persistence', () => ({
     records.set(key, structuredClone(value)); return true
   },
 }))
-import { startExportJob, getExportJob, cancelExportJob } from './export-jobs'
+import { startExportJob, getExportJob, cancelExportJob, exportJobView, renderWarningsOf, type ExportJob } from './export-jobs'
 const project = { version: 1, id: 'test', title: 'Reference' } as ProjectDocumentV1
 const result = { url: '/objects/video', durationSeconds: 4, exportAsset: { assetId: 'video', objectKey: 'video' } }
 const settle = () => new Promise(resolve => setTimeout(resolve, 10))
@@ -45,5 +45,51 @@ describe('durable export jobs', () => {
     const second = await startExportJob({ ...project,title:'Changed' },async()=>result)
     expect(first.id).not.toBe(second.id); await settle()
     expect((await getExportJob(second.id))?.status).toBe('stored')
+  })
+})
+
+// F01 and F05 of the fix verification: a stored export is named by its path
+// on whatever origin the app has now, and a render's warnings are read.
+describe('export results across restarts', () => {
+  const job = (url: string, exportAsset: { assetId: string; objectKey: string } | null): ExportJob => ({ project: { ...project, notebook: { type: 'doc', content: [] }, presenterTracks: {}, blocks: {} } as ProjectDocumentV1, id: 'a'.repeat(64), manifestHash: 'a'.repeat(64), owner: 'o', status: 'stored', updatedAt: 1, result: { url, durationSeconds: 4, exportAsset } })
+  it('names a result written on an earlier port by its stored object', () => {
+    const view = exportJobView(job('http://127.0.0.1:58827/objects/projects/p/export/v.mp4', { assetId: 'v', objectKey: 'projects/p/export/v.mp4' }))
+    expect(view?.result?.url).toBe('/objects/projects/p/export/v.mp4')
+  })
+  it('keeps the path of an older result without an asset row, and a portable one as it is', () => {
+    expect(exportJobView(job('http://localhost:4319/outputs/x.mp4', null))?.result?.url).toBe('/outputs/x.mp4')
+    expect(exportJobView(job('/objects/video', { assetId: 'video', objectKey: 'video' }))?.result?.url).toBe('/objects/video')
+  })
+})
+
+describe('what a render says about itself', () => {
+  const describeSource = (source: string) => source.replace(/^http:\/\/localhost:\d+\//, '/')
+  it('keeps a logo that did not load as a warning, and blocks on anything the video shows', () => {
+    const readings = renderWarningsOf([
+      { code: 'media_load_failed', message: 'image media failed to load before capture', details: { mediaType: 'image', sources: ['http://localhost:49303/media/logo.svg'] } },
+    ], { logo: 'media/logo.svg', describe: describeSource })
+    expect(readings.blocking).toEqual([])
+    expect(readings.warnings).toEqual([{ code: 'logo_not_loaded', message: 'The theme logo did not load, so the video has no logo.', sources: ['/media/logo.svg'] }])
+    const blocked = renderWarningsOf([
+      { code: 'media_load_failed', message: 'image media failed to load before capture', details: { mediaType: 'image', sources: ['http://localhost:49303/media/logo.svg', 'http://localhost:49303/media/figure.png'] } },
+    ], { logo: 'media/logo.svg', describe: source => (source.endsWith('figure.png') ? '/objects/figure.png' : describeSource(source)) })
+    expect(blocked.blocking).toEqual(['/objects/figure.png'])
+    expect(blocked.warnings.map(warning => warning.code)).toEqual(['logo_not_loaded'])
+  })
+  it('reads slow media and unmixed sound as warnings in the creator\'s words, and passes others on', () => {
+    const readings = renderWarningsOf([
+      { code: 'media_readiness_timeout', message: 'video media did not become capture-ready within 45000ms', details: { mediaType: 'video', sources: ['http://localhost:1/media/take.mp4'] } },
+      { code: 'audio_processing_failed', message: 'audio failed' },
+      { code: 'live_map_detected', message: 'A live map was detected' },
+    ], { logo: '', describe: describeSource })
+    expect(readings.blocking).toEqual([])
+    expect(readings.warnings).toEqual([
+      { code: 'media_readiness_timeout', message: 'Some video took too long to load; it may appear late in its first frames.', sources: ['/media/take.mp4'] },
+      { code: 'audio_processing_failed', message: 'Some of the sound could not be mixed, so part of the video may be silent.' },
+      { code: 'live_map_detected', message: 'A live map was detected' },
+    ])
+  })
+  it('blocks a failed load that names no source', () => {
+    expect(renderWarningsOf([{ code: 'media_load_failed', message: 'x', details: { mediaType: 'video', sources: [] } }], { logo: '', describe: describeSource }).blocking).toEqual(['video media'])
   })
 })

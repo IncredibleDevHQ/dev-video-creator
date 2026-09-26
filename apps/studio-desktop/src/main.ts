@@ -4,9 +4,9 @@
 // verifies the app end to end and quits with exit code 0/1. The same origin
 // hosts the MCP endpoint (spec §4) and the harness port runs from here
 // (spec §3).
-import { app, BrowserWindow, desktopCapturer } from 'electron'
+import { app, BrowserWindow, desktopCapturer, ipcMain, shell, type DownloadItem, type WebContents } from 'electron'
 import { fileURLToPath } from 'node:url'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { startWorker, type WorkerHandle } from './worker-host'
 import { handleMcpMessage } from './mcp/server'
@@ -185,10 +185,41 @@ const createWindow = (origin: string) => {
     )
   })
 
+  // The studio's window stays the studio (F01 of the fix verification): a
+  // link anywhere else opens in the creator's browser, and an address of
+  // the app from an earlier start — its port long gone — is refused rather
+  // than replacing the app with an error page.
+  const outside = (url: string) => {
+    let target: URL
+    try {
+      target = new URL(url)
+    } catch {
+      return 'refuse' as const
+    }
+    if (target.origin === origin) return 'inside' as const
+    const loopback = ['127.0.0.1', 'localhost', '[::1]'].includes(target.hostname)
+    if (!loopback && (target.protocol === 'https:' || target.protocol === 'http:')) {
+      void shell.openExternal(target.href)
+      return 'external' as const
+    }
+    return 'refuse' as const
+  }
+  win.webContents.on('will-navigate', (event, url) => {
+    const where = outside(url)
+    if (where === 'inside') return
+    event.preventDefault()
+    if (where === 'refuse') log('navigation refused', url)
+  })
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (outside(url) === 'refuse') log('new window refused', url)
+    return { action: 'deny' }
+  })
   // The default console hook only surfaces warnings (spec §8); log everything
-  // plus failed loads so a 404'd bundle is visible immediately.
-  win.webContents.on('did-fail-load', (_event, code, description, url) => {
+  // plus failed loads so a 404'd bundle is visible immediately. A page that
+  // failed to load anything but the app goes back to the app.
+  win.webContents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
     log('did-fail-load', code, description, url)
+    if (isMainFrame && code !== -3 && !url.startsWith(`${origin}/`) && url !== origin) void win.loadURL(`${origin}/studio`)
   })
   win.webContents.on('console-message', event => {
     log(`console.${event.level}`, event.message, `(${event.sourceId}:${event.lineNumber})`)
@@ -301,6 +332,37 @@ const mcpPreHandler = async (
   write(200, result || {})
   return true
 }
+
+// Only the studio's own window asks the desktop for these.
+const fromStudioWindow = (sender: WebContents) => Boolean(mainWindow && !mainWindow.isDestroyed() && sender === mainWindow.webContents)
+
+// The studio's own download (F01 of the fix verification): a file of the
+// app's own origin, saved where the creator chooses — never a navigation
+// of the window. STUDIO_DOWNLOADS_DIR saves without asking (the checks).
+ipcMain.handle('studio:download', (event, url: unknown, filename: unknown) => {
+  if (!worker || !fromStudioWindow(event.sender)) throw new Error('Downloads come from the studio window')
+  const target = new URL(String(url), worker.origin)
+  if (target.origin !== worker.origin) throw new Error('Only the studio’s own files download here')
+  const name = basename(String(filename || '')) || 'Incredible Studio.mp4'
+  const contents = event.sender
+  return new Promise<{ state: 'completed' | 'cancelled' | 'interrupted'; path?: string }>(resolve => {
+    const timer = setTimeout(() => {
+      contents.session.removeListener('will-download', onDownload)
+      resolve({ state: 'interrupted' })
+    }, 20_000)
+    const onDownload = (_event: Electron.Event, item: DownloadItem, source: WebContents) => {
+      if (source !== contents || item.getURL() !== target.href) return
+      clearTimeout(timer)
+      contents.session.removeListener('will-download', onDownload)
+      const folder = process.env.STUDIO_DOWNLOADS_DIR
+      if (folder) item.setSavePath(join(folder, name))
+      else item.setSaveDialogOptions({ defaultPath: join(app.getPath('downloads'), name) })
+      item.once('done', (_done, state) => resolve(state === 'completed' ? { state, path: item.getSavePath() } : { state: state === 'cancelled' ? 'cancelled' : 'interrupted' }))
+    }
+    contents.session.on('will-download', onDownload)
+    contents.downloadURL(target.href)
+  })
+})
 
 // The check scripts set STUDIO_ALLOW_MULTI_INSTANCE so a test app can run
 // (on its own port and temp data dir) while the user's app stays open.

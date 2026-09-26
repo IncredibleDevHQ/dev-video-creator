@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { audioReadinessOf, compileProject, createDefaultBlockConfig, defaultBrand, forkNotebook, type ProjectDocumentV1 } from './index'
+import { audioReadinessOf, compileProject, createDefaultBlockConfig, defaultBrand, defaultStudioTheme, forkNotebook, type ProjectDocumentV1 } from './index'
 
 // An accepted production (P4) replaces its scene in the notebook's
 // composition: its render plays for its own length, with its voice when it
@@ -33,6 +33,21 @@ describe('a produced scene in the notebook', () => {
     expect(result.html).toMatch(/<audio [^>]*src="https:\/\/example.com\/produced.mp4"/)
     // The old narration track never plays over the produced voice.
     expect(result.html).not.toContain('old-voice.mp3')
+  })
+
+  // F05 of the fix verification: a produced render covers the frame, the
+  // scene's chrome hidden under it, so its logo is not asked for at all —
+  // while the scenes it does not cover still show it.
+  it('asks for the theme logo only where it can be seen', () => {
+    for (const placement of ['top-left', 'footer-right'] as const) {
+      const branded = { ...project(true), theme: { ...defaultStudioTheme, logo: { url: '/objects/projects/p/brand-logo/logo.svg', placement, size: 28 } } }
+      const html = compileProject(branded).html
+      const sections = html.split('<section').slice(1)
+      const covered = sections.find(section => section.includes('data-node-id="bucket"'))!
+      const open = sections.find(section => section.includes('data-node-id="intro"'))!
+      expect(covered).not.toContain('logo.svg')
+      expect(open).toContain('src="/objects/projects/p/brand-logo/logo.svg"')
+    }
   })
 
   it('plays no take, camera or its voice over the produced scene', () => {

@@ -406,8 +406,9 @@ try {
   // ——— Accepting renders it once; the notebook plays that render ———
   await click('.scene-review.is-expanded [data-focus^="accept-production:"]')
   const accepted1 = await until(async () => { const project = await saved(videoId); return project?.producedScenes?.[sceneIds[0]] ? project.producedScenes[sceneIds[0]] : null }, 180)
-  check(accepted1?.productionId === produced1.ready.id && /^http:\/\/(127\.0\.0\.1|localhost):\d+\/objects\/.+\.mp4$/.test(accepted1.videoUrl) && accepted1.voiced === true && accepted1.plan.record === plan1.id && Math.abs(accepted1.durationMs - clock.duration * 1000) < 5, `accepting renders it and makes it the scene's output in the notebook (${JSON.stringify(accepted1 && { ...accepted1, videoUrl: accepted1.videoUrl.replace(/^.*\/objects\//, '/objects/') })})`)
-  const render1 = await fetch(accepted1.videoUrl).then(async response => Buffer.from(await response.arrayBuffer()))
+  check(accepted1?.productionId === produced1.ready.id && /^\/objects\/.+\.mp4$/.test(accepted1.videoUrl) && accepted1.voiced === true && accepted1.plan.record === plan1.id && Math.abs(accepted1.durationMs - clock.duration * 1000) < 5, `accepting renders it and makes it the scene's output in the notebook (${JSON.stringify(accepted1 && { ...accepted1, videoUrl: accepted1.videoUrl.replace(/^.*\/objects\//, '/objects/') })})`)
+  // Named by its path on the app's origin, whatever port wrote it (F01).
+  const render1 = await fetch(new URL(accepted1.videoUrl, origin)).then(async response => Buffer.from(await response.arrayBuffer()))
   await writeFile(join(root, 'scene-1.mp4'), render1)
   check(render1.subarray(4, 8).toString('latin1') === 'ftyp' && Boolean(ffprobe(['-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', join(root, 'scene-1.mp4')])), 'the render is an MP4 with the scene\'s sound')
   // The serif label, as the stage sets it and as the render drew it: the
