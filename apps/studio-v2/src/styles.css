@@ -640,6 +640,12 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .modal-heading { padding: 20px 22px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .modal-heading h2 { margin: 4px 0 0; font-size: 19px; }
 .markdown-modal { width: min(720px, 80vw); }
+/* R04: an unfinished deck is exported by choice, its type said first. */
+.presentation-export-modal { width: min(560px, calc(100vw - 32px)); }
+.presentation-export-body { display: grid; gap: 10px; padding: 18px 22px; color: #3f3f46; font-size: 13.5px; line-height: 1.55; }
+.presentation-export-body p { margin: 0; }
+.presentation-export-type { color: #52525b; font-size: 12.5px; }
+.presentation-export-type.is-warning { padding: 8px 10px; border: 1px solid #fde68a; border-radius: 6px; background: #fffbeb; color: #92400e; }
 .publish-modal { width: min(680px, 84vw); }
 .publish-note { margin: 14px 22px 0; color: #71717a; font-size: 11px; line-height: 1.55; }
 /* What to export, chosen first (BoltDB review B09). */

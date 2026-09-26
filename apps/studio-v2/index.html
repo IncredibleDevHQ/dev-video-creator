@@ -945,6 +945,17 @@
       <div class="modal-actions"><span id="create-explainer-status" class="source-status"></span><button id="create-explainer-cancel" type="button" class="button ghost">Cancel</button></div>
     </dialog>
 
+    <dialog id="presentation-export-dialog" class="modal presentation-export-modal" aria-labelledby="presentation-export-heading">
+      <form method="dialog">
+        <div class="modal-heading"><div><span class="eyebrow">Presentation</span><h2 id="presentation-export-heading">Export as a PDF</h2></div><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
+        <div class="presentation-export-body">
+          <p id="presentation-export-slides"></p>
+          <p id="presentation-export-type" class="presentation-export-type"></p>
+        </div>
+        <div class="modal-actions"><button value="cancel" class="button ghost">Cancel</button><button id="presentation-export-draft" type="button" class="button secondary">Export all as a draft</button><button id="presentation-export-ready" type="button" class="button primary">Export ready slides</button></div>
+      </form>
+    </dialog>
+
     <dialog id="markdown-dialog" class="modal markdown-modal">
       <form method="dialog">
         <div class="modal-heading"><div><span class="eyebrow">Markdown import</span><h2>Paste a document</h2></div><button value="cancel" class="icon-button">×</button></div>

@@ -665,6 +665,11 @@ const recordingCoachThumbnail = $('#recording-coach-thumbnail')
 const inspectorPanel = $('#inspector-panel')
 const sceneRail = $('#scene-rail')
 const saveState = $('#save-state')
+// The name the creator reads (R03 of the project-flow rereview): a
+// notebook in a project is named by its project, known once its project is
+// read; one outside a project by its own title.
+let projectName: string | null = null
+const displayName = () => (project.container && projectName) || project.title
 const renderButton = $('#render-video') as HTMLButtonElement
 const markdownDialog = $('#markdown-dialog') as HTMLDialogElement
 const cameraDialog = $('#camera-dialog') as HTMLDialogElement
@@ -1315,7 +1320,7 @@ const configureCanvasRecordingCoach = (scene: Scene) => {
           ? 'Narrate the slide step by step'
           : 'Talk over this block'
   recordingCoachNumber.textContent = `Block ${String(scene.index + 1).padStart(2, '0')}`
-  canvasRecordingProjectTitle.textContent = project.title
+  canvasRecordingProjectTitle.textContent = displayName()
   canvasRecordingProjectBlock.textContent = `Block ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
   syncLiveCameraToggle()
   syncMicrophoneToggle()
@@ -1671,7 +1676,7 @@ const startCanvasRecording = async () => {
   if (project.explainerDelivery === 'human' && !project.derivedFrom?.notebook) {
     try {
       await persistProjectNow(structuredClone(project))
-      await createVideoFromBase(project.id, project.title, { recordScene: scene.id, recordCanvas: true })
+      await createVideoFromBase(project.id, displayName(), { recordScene: scene.id, recordCanvas: true })
     } catch (error) { showToast(String(error)) }
     return
   }
@@ -6178,10 +6183,47 @@ advancedMenuList.addEventListener('keydown', event => {
   advancedMenuToggle.focus()
 })
 
-;($('#project-title') as HTMLInputElement).value = project.title
-;($('#project-title') as HTMLInputElement).addEventListener('input', event => {
-  project.title = (event.currentTarget as HTMLInputElement).value
-  scheduleSync()
+// The header names the project (R03 of the project-flow rereview). A
+// notebook in a project is named by its project — the name every notebook
+// of it, the library and a reopened app show — and renaming it here renames
+// the project. Each notebook keeps a title of its own, as a detail of the
+// artifact; one outside a project is named by that title.
+const projectTitleInput = $('#project-title') as HTMLInputElement
+projectTitleInput.value = project.title
+let projectRenameTimer = 0
+const renameProject = async (title: string) => {
+  const place = project.container
+  const name = title.trim()
+  if (!place || !name) return
+  saveState.textContent = 'Saving…'
+  try {
+    const { container } = await fetchJson<{ container: { title: string } }>(`/api/containers/${encodeURIComponent(place.id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: name }) })
+    projectName = container.title
+    saveState.textContent = 'Saved'
+  } catch (error) {
+    saveState.textContent = 'Not saved'
+    showToast(`The project could not be renamed: ${error instanceof Error ? error.message : 'try again'}`)
+  }
+}
+projectTitleInput.addEventListener('input', () => {
+  const value = projectTitleInput.value
+  if (!project.container) {
+    project.title = value
+    scheduleSync()
+    return
+  }
+  projectName = value
+  window.clearTimeout(projectRenameTimer)
+  projectRenameTimer = window.setTimeout(() => {
+    projectRenameTimer = 0
+    void renameProject(value)
+  }, 450)
+})
+projectTitleInput.addEventListener('blur', () => {
+  if (!project.container || !projectRenameTimer) return
+  window.clearTimeout(projectRenameTimer)
+  projectRenameTimer = 0
+  void renameProject(projectTitleInput.value)
 })
 
 // ——— Model settings ———
@@ -8189,7 +8231,7 @@ const openCamera = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   if (!project.derivedFrom?.notebook) {
-    void persistProjectNow(structuredClone(project)).then(() => createVideoFromBase(project.id, project.title, { recordScene: scene.id })).catch(error => showToast(String(error)))
+    void persistProjectNow(structuredClone(project)).then(() => createVideoFromBase(project.id, displayName(), { recordScene: scene.id })).catch(error => showToast(String(error)))
     return
   }
   recordingNodeId = scene.id
@@ -17295,7 +17337,7 @@ const startExplainerBuild = async () => {
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
     if (!project.derivedFrom?.notebook) {
-      const child = await createVideoFromBase(project.id, project.title, { resumeBuild: true })
+      const child = await createVideoFromBase(project.id, displayName(), { resumeBuild: true })
       if (!child) throw new Error('Could not create the video derivative')
       // The fork navigated into the child; the intent resumes the build
       // there, against the child's own id and its remapped scenes.
@@ -17378,7 +17420,7 @@ const startExplainerBuild = async () => {
     const run = await bridge.harness.run({ adapter: creationAgent.id, skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
       // The story record travels into the build: the wording policy in force
       // and the authored narrative revision the scenes' words came from (D2).
-      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), ...(resume ? { resume } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: creationAgent.model, effort: 'high', autonomous: true } })
+      inputs: { projectId: targetId, video: { title: displayName() }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), ...(resume ? { resume } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: creationAgent.model, effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
     ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
     objectsTimer = window.setInterval(() => {
@@ -17570,7 +17612,7 @@ const planningWorkspace = createPlanningWorkspace({
   createFork: async ({ scene }) => {
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
-    const child = await createVideoFromBase(project.id, project.title, { plan: scene ? { scene } : {} })
+    const child = await createVideoFromBase(project.id, displayName(), { plan: scene ? { scene } : {} })
     if (!child) throw new Error('The video fork could not be made. Try again, or use All notebooks → Create video.')
   },
   selectedScene: () => selectedNodeId || null,
@@ -18627,7 +18669,7 @@ const designPresentation = async () => {
     const brand = outline?.pageBrand || { palette: { ground: project.brand.background, text: project.brand.text, accent: project.brand.accent, secondary: project.brand.secondary }, fonts: project.theme?.fonts || null, mode: 'dark' }
     const presentationId = crypto.randomUUID()
     const inputs = {
-      video: { title: project.title, site: project.source?.site || '' },
+      video: { title: displayName(), site: project.source?.site || '' },
       brand: { palette: brand.palette, fonts: brand.fonts, mode: brand.mode },
       // Each page as the wireframe holds it now — its order, its words —
       // with the plan it was drawn from.
@@ -18716,8 +18758,14 @@ const refreshNotebookSwitch = async () => {
   if (!project.container) return
   if (notebookSwitchTimer) window.clearTimeout(notebookSwitchTimer)
   try {
-    projectNotebooks = (await fetchJson<{ notebooks: NotebookSummary[] }>(`/api/containers/${encodeURIComponent(project.container.id)}`)).notebooks
+    const view = await fetchJson<{ container?: { title?: string }; notebooks: NotebookSummary[] }>(`/api/containers/${encodeURIComponent(project.container.id)}`)
+    projectNotebooks = view.notebooks
     projectNotebooksLoaded = true
+    // The project's name, unless the creator is renaming it just now.
+    if (view.container?.title && document.activeElement !== projectTitleInput && !projectRenameTimer) {
+      projectName = view.container.title
+      projectTitleInput.value = view.container.title
+    }
   } catch {
     // A project not saved yet shows this notebook alone until it is.
   }
@@ -18817,32 +18865,102 @@ if (project.build?.kind === 'wireframe') {
   })
 }
 // A presentation exports its slides as a PDF, one page a slide (the
-// four-notebook model): its own export, not the video's.
+// four-notebook model): its own export, not the video's. What it would
+// hold is said first — which slides are designed, and the faces its type
+// is set in — and a deck not yet finished is exported by choice: its
+// designed slides, or every slide as a draft, each page not yet designed
+// marked in the file (R04, R05 of the project-flow rereview).
 {
+  type ExportType = { faces: string[]; unresolved: string[] }
+  type ExportPlan = { slides: Array<{ id: string; title: string; state: 'designed' | 'designing' | 'schematic' }>; designed: number; total: number; type: ExportType }
   const exportButton = $('#export-presentation') as HTMLButtonElement
+  const dialog = $('#presentation-export-dialog') as HTMLDialogElement
+  const slidesLine = $('#presentation-export-slides') as HTMLElement
+  const typeLine = $('#presentation-export-type') as HTMLElement
+  const readyButton = $('#presentation-export-ready') as HTMLButtonElement
+  const draftButton = $('#presentation-export-draft') as HTMLButtonElement
   exportButton.hidden = notebookKind() !== 'presentation'
-  exportButton.addEventListener('click', async () => {
-    exportButton.disabled = true
-    exportButton.textContent = 'Exporting…'
+  const typeText = (type: ExportType) => {
+    const embedded = type.faces.filter(face => !type.unresolved.includes(face))
+    const missing = type.unresolved.map(face => `“${face}”`).join(', ')
+    return [
+      embedded.length ? `Type: ${embedded.join(', ')}, embedded in the file.` : '',
+      type.unresolved.length ? `${missing} cannot be had here: the PDF sets ${type.unresolved.length === 1 ? 'it in the fallback its drawing names' : 'them in the fallbacks their drawings name'}.` : '',
+    ].filter(Boolean).join(' ')
+  }
+  const busy = (label: string | null) => {
+    exportButton.disabled = label !== null
+    exportButton.textContent = label ?? 'Export PDF'
+  }
+  const exportAs = async (scope: 'ready' | 'draft') => {
+    busy('Exporting…')
     try {
-      project.notebook = editor.getJSON() as TiptapDocument
-      await persistProjectNow(structuredClone(project))
-      const exported = await fetchJson<{ url: string; slides: number }>(`/api/projects/${encodeURIComponent(project.id)}/presentation-pdf`, { method: 'POST' })
+      const exported = await fetchJson<{ url: string; slides: number; drafts: number; excluded: number; total: number; type: ExportType }>(`/api/projects/${encodeURIComponent(project.id)}/presentation-pdf`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ scope }) })
       const link = document.createElement('a')
       link.href = exported.url
-      link.download = `${project.title || 'Presentation'}.pdf`
+      link.download = `${displayName() || 'Presentation'}${exported.drafts ? ' — draft' : ''}.pdf`
       link.dataset.exported = String(exported.slides)
       document.body.append(link)
       link.click()
       link.remove()
       exportButton.dataset.exportedUrl = exported.url
-      showToast(`Exported ${exported.slides} slide${exported.slides === 1 ? '' : 's'} as a PDF`)
+      exportButton.dataset.exportedScope = scope
+      const missing = exported.type.unresolved.length ? ` ${exported.type.unresolved.map(face => `“${face}”`).join(', ')} set in ${exported.type.unresolved.length === 1 ? 'its' : 'their'} fallback.` : ''
+      showToast(exported.drafts
+        ? `Exported all ${exported.slides} slides as a draft — ${exported.drafts} marked as not designed yet.${missing}`
+        : exported.excluded
+          ? `Exported the ${exported.slides} designed slide${exported.slides === 1 ? '' : 's'} — ${exported.excluded} not designed yet ${exported.excluded === 1 ? 'was' : 'were'} left out.${missing}`
+          : `Exported ${exported.slides} slide${exported.slides === 1 ? '' : 's'} as a PDF.${missing}`)
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'The PDF could not be made')
     } finally {
-      exportButton.disabled = false
-      exportButton.textContent = 'Export PDF'
+      busy(null)
     }
+  }
+  exportButton.addEventListener('click', async () => {
+    busy('Preparing…')
+    let plan: ExportPlan
+    try {
+      project.notebook = editor.getJSON() as TiptapDocument
+      await persistProjectNow(structuredClone(project))
+      plan = (await fetchJson<{ plan: ExportPlan }>(`/api/projects/${encodeURIComponent(project.id)}/presentation-pdf`)).plan
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'The PDF could not be made')
+      busy(null)
+      return
+    }
+    busy(null)
+    if (!plan.total) {
+      showToast('This presentation has no slides to export yet')
+      return
+    }
+    // Finished, in faces it has: exported as it is.
+    if (plan.designed === plan.total && !plan.type.unresolved.length) {
+      await exportAs('ready')
+      return
+    }
+    const pending = plan.total - plan.designed
+    const designing = plan.slides.filter(slide => slide.state === 'designing').length
+    slidesLine.textContent = !pending
+      ? `All ${plan.total} slides are designed.`
+      : `${plan.designed} of ${plan.total} slides ${plan.designed === 1 ? 'is' : 'are'} designed; ${pending === designing ? `${pending} ${pending === 1 ? 'is' : 'are'} still being designed` : designing ? `${pending} ${pending === 1 ? 'is' : 'are'} not — ${designing} still being designed` : `${pending} ${pending === 1 ? 'is a schematic' : 'are schematics'}, not designed`}. A draft marks ${pending === 1 ? 'that page' : 'those pages'} as such in the file.`
+    typeLine.textContent = typeText(plan.type)
+    typeLine.classList.toggle('is-warning', plan.type.unresolved.length > 0)
+    typeLine.hidden = !typeLine.textContent
+    readyButton.textContent = pending ? `Export ready slides (${plan.designed})` : `Export ${plan.total} slides`
+    readyButton.disabled = plan.designed === 0
+    readyButton.title = plan.designed === 0 ? 'No slide is designed yet' : ''
+    draftButton.hidden = !pending
+    draftButton.textContent = `Export all ${plan.total} as a draft`
+    dialog.showModal()
+  })
+  readyButton.addEventListener('click', () => {
+    dialog.close()
+    void exportAs('ready')
+  })
+  draftButton.addEventListener('click', () => {
+    dialog.close()
+    void exportAs('draft')
   })
 }
 // A base made from a source shows its pages, not the video's staging (B04).

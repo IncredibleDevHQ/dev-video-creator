@@ -204,6 +204,37 @@ try {
   const back = await waitFor(`() => document.body.dataset.notebookKind === 'text' ? true : null`, 'back to text')
   check('from the video, the text tab opens the text', Boolean(back))
 
+  // R03 of the project-flow rereview: the header names the project. Renamed
+  // in one notebook, the same name shows in every tab, the menu, the
+  // library and a reopened app — and each notebook keeps its own title.
+  const RENAMED = 'BoltDB · Project flow review'
+  await evaluate(`() => { const input = document.getElementById('project-title'); input.focus(); input.value = ${JSON.stringify(RENAMED)}; input.dispatchEvent(new Event('input', { bubbles: true })); input.blur(); return true }`, 'rename')
+  let renamed = null
+  for (let i = 0; i < 40 && !renamed; i += 1) {
+    const view = await api(`/api/containers/${PROJECT}`)
+    if (view.body?.container?.title === RENAMED) renamed = view.body.container
+    else await sleep(250)
+  }
+  const savedState = await waitFor(`() => document.getElementById('save-state').textContent === 'Saved' ? true : null`, 'saved', 20)
+  check('renaming in the header renames the project', Boolean(renamed) && Boolean(savedState), JSON.stringify(renamed))
+  const headers = []
+  for (const kind of ['wireframe', 'presentation', 'video', 'text']) {
+    await click(kind)
+    headers.push(`${kind}: ${await waitFor(`() => document.body.dataset.notebookKind === '${kind}' && document.getElementById('project-title').value === ${JSON.stringify(RENAMED)} ? document.getElementById('project-title').value : null`, `${kind} header`, 60)}`)
+  }
+  await capture('05-renamed')
+  check('every notebook of the project shows its new name', headers.every(line => line.endsWith(RENAMED)), JSON.stringify(headers))
+  await evaluate(`() => { document.getElementById('notebook-menu-toggle').click(); return true }`, 'open menu again')
+  const menuName = await waitFor(`() => document.querySelector('#notebook-menu-list .project-row strong')?.textContent || null`, 'menu name')
+  await evaluate(`() => { document.querySelector('#notebook-menu-list .notebook-menu-library').click(); return true }`, 'open library again')
+  const libraryName = await waitFor(`() => !document.getElementById('notebooks-page').hidden ? document.querySelector('#notebooks-projects .project-card strong')?.textContent || null : null`, 'library name')
+  await evaluate(`() => { document.getElementById('close-notebooks-page').click(); return true }`, 'close library again')
+  check('the menu and the library show the new name', menuName === RENAMED && libraryName === RENAMED, JSON.stringify({ menuName, libraryName }))
+  await evaluate(`() => { location.reload(); return true }`, 'reopen').catch(() => {})
+  const reopened = await waitFor(`() => document.getElementById('project-title')?.value === ${JSON.stringify(RENAMED)} && document.querySelectorAll('#notebook-switch .notebook-switch-tab').length === 4 ? true : null`, 'reopened', 60)
+  const ownTitles = await Promise.all(['nb-text', 'nb-wire', 'nb-pres'].map(id => api(`/api/projects/${id}`).then(response => response.body?.project?.title)))
+  check('reopened, the project keeps its new name; each notebook keeps its own title', Boolean(reopened) && ownTitles.every(title => title === TITLE), JSON.stringify({ reopened, ownTitles }))
+
   // A project removed takes its notebooks with it.
   const removed = await api(`/api/containers/${PROJECT}`, { method: 'DELETE' })
   const gone = await api(`/api/containers/${PROJECT}`)

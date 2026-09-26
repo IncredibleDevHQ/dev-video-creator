@@ -2,7 +2,7 @@ import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProje
 import { generateFishVoice, generateSystemVoice, probeSeconds } from './voice'
 import { landPagesOnce, runPagesIn, type LandingDeps, type PageCheck } from './page-landing'
 import { containerView, holdNotebook, nameContainer, type ContainerDeps } from './containers'
-import { presentationPdf, slidesOf } from './presentation-export'
+import { exportPlanOf, exportSlidesOf, presentationPdf, slidesOf } from './presentation-export'
 import { buildWireframeOnce, type WireframeDeps, type WireframeSource } from './wireframe-build'
 import { storedArticleOf } from '../src/wireframe-attempt'
 import { registerLocalArtwork } from './appearance-library'
@@ -3059,9 +3059,20 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     // A presentation's slides as a PDF (the four-notebook model): printed
     // from the notebook as saved, and kept in the object store as an
-    // artifact of that notebook.
+    // artifact of that notebook. What it would hold is asked first — each
+    // slide's state and the type — and the export is chosen: the designed
+    // slides, or every slide as a draft, marked in the file (R04, R05 of
+    // the project-flow rereview). The file is of the slides as they were
+    // when it was asked for, named by revision in the answer.
+    if (request.method === 'GET' && /^\/api\/projects\/[^/]+\/presentation-pdf$/.test(url.pathname)) {
+      const notebook = await loadProjectArtifact(decodeURIComponent(url.pathname.split('/')[3]))
+      if (!notebook) throw new Error('Notebook not found')
+      json(response, 200, { plan: await exportPlanOf(notebook) })
+      return
+    }
     if (request.method === 'POST' && /^\/api\/projects\/[^/]+\/presentation-pdf$/.test(url.pathname)) {
       const notebookId = decodeURIComponent(url.pathname.split('/')[3])
+      const body = await readJson<{ scope?: string }>(request, 4 * 1024)
       const notebook = await loadProjectArtifact(notebookId)
       if (!notebook) throw new Error('Notebook not found')
       const slides = slidesOf(notebook)
@@ -3069,9 +3080,23 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         json(response, 400, { error: 'This notebook has no slides to export yet' })
         return
       }
-      const pdf = await presentationPdf(slides, { width: notebook.width || 1920, height: notebook.height || 1080, title: notebook.title })
+      const pending = slides.filter(slide => slide.state !== 'designed')
+      const scope = body.scope === 'draft' || body.scope === 'ready' ? body.scope : pending.length ? null : 'ready'
+      if (!scope) {
+        json(response, 409, { error: `${pending.length} of ${slides.length} slides are not designed yet: export the designed slides, or every slide as a draft` })
+        return
+      }
+      const taken = exportSlidesOf(slides, scope)
+      if (!taken.length) {
+        json(response, 409, { error: 'No slide is designed yet: export every slide as a draft, or wait for the designs' })
+        return
+      }
+      const drafts = taken.filter(slide => slide.state !== 'designed').length
+      // Named by its project, as the creator names it (R03).
+      const name = (notebook.container?.id ? (await loadProjectContainer(notebook.container.id))?.title : null) || notebook.title
+      const { pdf, type } = await presentationPdf(taken, { width: notebook.width || 1920, height: notebook.height || 1080, title: drafts ? `${name} — draft (${taken.length - drafts} of ${taken.length} designed)` : name })
       const stored = await storeAsset({ body: pdf, contentType: 'application/pdf', projectId: notebook.id, kind: 'presentation-export', extension: '.pdf' })
-      json(response, 200, { url: `/objects/${stored.objectKey}`, slides: slides.length, bytes: pdf.length })
+      json(response, 200, { url: `/objects/${stored.objectKey}`, scope, slides: taken.length, drafts, excluded: slides.length - taken.length, total: slides.length, bytes: pdf.length, type, revisions: taken.map(slide => ({ id: slide.id, state: slide.state, revision: slide.revision })) })
       return
     }
     // Fork a base notebook into its own video notebook. The snapshot and the
