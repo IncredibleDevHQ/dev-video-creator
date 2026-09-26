@@ -5159,9 +5159,15 @@ notebookStart.addEventListener('click', event => {
   else void openAttentionSample()
 })
 
+// The notebook switch follows this notebook's own state, not only its
+// words (F06 of the fix verification): accepting or releasing a production
+// changes the Video tab's count as surely as a page added does. Set once
+// the switch is drawn, below.
+let followSwitch: () => void = () => {}
 const syncProject = () => {
   syncNotebookStart()
   setSaving(true)
+  followSwitch()
   const notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(notebook)
   project.notebook = notebook
@@ -18922,16 +18928,18 @@ const renderProjectStrip = () => {
   }))
   projectStrip.hidden = source.hidden && brand.hidden && jobs.hidden
 }
-// This notebook's own tab follows its pages as they change: a slide
-// landing, a page added.
+// This notebook's own tab follows its pages as they change — a slide
+// landing, a page added — and its state as it is saved: a production
+// accepted or released.
 let switchFrame = 0
-editor.on('update', () => {
+followSwitch = () => {
   if (!project.container || switchFrame) return
   switchFrame = window.requestAnimationFrame(() => {
     switchFrame = 0
     renderSwitch()
   })
-})
+}
+editor.on('update', () => followSwitch())
 const refreshNotebookSwitch = async () => {
   if (!project.container) return
   if (notebookSwitchTimer) window.clearTimeout(notebookSwitchTimer)
