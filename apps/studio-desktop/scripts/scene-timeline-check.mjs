@@ -136,11 +136,15 @@ const tool = async (name, args2) => {
     const id = context.composition.id
     const titles = Object.fromEntries(plan.plan.moments.map(moment => [moment.id, moment.title]))
     const moments = clock.moments.map(moment => ({ id: moment.id, title: titles[moment.id], start: moment.start, end: moment.end }))
-    const clip = moment => '<div id="' + moment.id + '" class="clip" data-start="' + moment.start + '" data-duration="' + Number((moment.end - moment.start).toFixed(3)) + '" data-track-index="0"><div class="title" data-sketch-layer="titles">' + moment.title + '</div></div>'
+    // Eight objects beside the titles (B08 of the BoltDB review): more
+    // layers than the timeline once drew, the copies among the last.
+    const objects = [['old-root', 'Old root', [0, 1, 2]], ['old-branch', 'Old branch', [0, 1, 2]], ['old-leaf', 'Old leaf', [0, 1, 2]], ['reader', 'Reader', [0]], ['writer', 'Writer', [1, 2]], ['new-leaf', 'New leaf', [1]], ['copied-branch', 'Copied branch', [1, 2]], ['new-root', 'New root', [2]]]
+    const clip = (moment, index) => '<div id="' + moment.id + '" class="clip" data-start="' + moment.start + '" data-duration="' + Number((moment.end - moment.start).toFixed(3)) + '" data-track-index="0"><div class="title" data-sketch-layer="titles">' + moment.title + '</div>' +
+      objects.filter(([, , at]) => at.includes(index)).map(([layer, label], row) => '<div class="obj" data-sketch-layer="' + layer + '" style="top:' + (260 + row * 70) + 'px">' + label + '</div>').join('') + '</div>'
     fs.mkdirSync('production/audio', { recursive: true })
     if (clock.audio) fs.copyFileSync('packet/' + clock.audio, 'production/' + clock.audio)
     fs.writeFileSync('production/index.html', '<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>' +
-      'html,body{margin:0;background:#1d4ed8}#root{position:relative;width:100%;height:100%;overflow:hidden;background:#1d4ed8;font-family:system-ui,sans-serif}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font-size:72px;font-weight:700}</style></head><body>' +
+      'html,body{margin:0;background:#1d4ed8}#root{position:relative;width:100%;height:100%;overflow:hidden;background:#1d4ed8;font-family:system-ui,sans-serif}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font-size:72px;font-weight:700}.obj{position:absolute;left:160px;color:#fff;font-size:36px}</style></head><body>' +
       '<div id="root" data-composition-id="' + id + '" data-start="0" data-width="1920" data-height="1080" data-duration="' + clock.duration + '">' + moments.map(clip).join('') +
       (clock.audio ? '<audio id="voice" src="' + clock.audio + '" data-start="0" data-duration="' + clock.duration + '" data-track-index="20"></audio>' : '') +
       '</div><script>window.__timelines = window.__timelines || {}\nconst tl = gsap.timeline({ paused: true })\n' +
@@ -150,7 +154,7 @@ const tool = async (name, args2) => {
       version: 1, kind: 'production', scene: context.scene.id, plan: { record: plan.record, revision: plan.revision },
       composition: { id, width: 1920, height: 1080, fps: 30, duration: clock.duration }, runtime: { hyperframes: '0.7.106' },
       clock: { kind: clock.kind, audio: clock.audio }, moments,
-      layers: [{ id: 'titles', kind: 'text', label: 'Moment titles', moments: moments.map(moment => moment.id) }],
+      layers: [{ id: 'titles', kind: 'text', label: 'Moment titles', moments: moments.map(moment => moment.id) }, ...objects.map(([id, label, at]) => ({ id, kind: 'object', label, moments: at.map(index => moments[index].id) }))],
       unmet: [],
     }, null, 2))
     const answer = await tool('produce_submit_scene', { projectDir })
@@ -399,7 +403,23 @@ try {
   await click('#scene-workspace .sw-actions .button.primary')
   await click('#scene-workspace [data-focus="sw-timeline"]')
   const producedNow = await waitFor(`() => { const now = (${timelineNow})(); return now && /^On the clock of/.test(now.note) ? now : null }`, 30)
-  check(Boolean(made) && producedNow?.note === "On the clock of the plan's timing, silent · read-only" && JSON.stringify(producedNow.tracks) === '["Moments","Text","Camera","Sound"]' && JSON.stringify(producedNow.layers) === '["Moment titles"]' && producedNow.layerCaption === 'Layers · produced scene', `the produced scene's timeline is on its measured clock, with its own layers, and no voice or presenter in a silent scene (${JSON.stringify(producedNow && { note: producedNow.note, tracks: producedNow.tracks, layers: producedNow.layers })})`)
+  check(Boolean(made) && producedNow?.note === "On the clock of the plan's timing, silent · read-only" && JSON.stringify(producedNow.tracks) === '["Moments","Text","Camera","Sound"]' && JSON.stringify(producedNow.layers) === '["Text · 1","Objects · 8"]' && producedNow.layerCaption === 'Layers · produced sceneShow all 9 layers', `the produced scene's timeline is on its measured clock, with its own layers — nine, grouped by kind, none dropped — and no voice or presenter in a silent scene (${JSON.stringify(producedNow && { note: producedNow.note, tracks: producedNow.tracks, layers: producedNow.layers, caption: producedNow.layerCaption })})`)
+  // B08 of the BoltDB review: every layer one click away, each a bar that
+  // seeks the stage, and the layers of the moment chosen standing out.
+  await click('#scene-workspace [data-focus="sw-layers"]')
+  const allLayers = await waitFor(`() => { const now = (${timelineNow})(); return now && now.layers.length === 9 ? now.layers : null }`, 10)
+  check(JSON.stringify(allLayers) === '["Moment titles","Old root","Old branch","Old leaf","Reader","Writer","New leaf","Copied branch","New root"]', `every layer is shown on asking, the copies too (${JSON.stringify(allLayers)})`)
+  const newLeafAt = made.summary.moments[1].start
+  await evaluate(`() => { const track = [...document.querySelectorAll('#scene-workspace .sw-track-group .sw-track')].find(entry => entry.querySelector('.sw-track-label').textContent === 'New leaf'); track.querySelector('.sw-cell-layer').click(); return true }`)
+  const leafSought = await waitFor(`() => { const now = (${timelineNow})(); return now && Math.abs(now.time - ${newLeafAt}) < 0.3 ? now.time : null }`, 10)
+  check(leafSought !== null, `a layer's bar seeks the stage to where it starts (New leaf at ${newLeafAt}s: ${leafSought}s)`)
+  await evaluate(`() => { document.querySelector('#scene-workspace .sw-cell-moment[data-moment="${made.summary.moments[2].id}"]').click(); return true }`)
+  const lit = await waitFor(`() => { const lit = [...document.querySelectorAll('#scene-workspace .sw-track-group .sw-track.is-in-moment .sw-track-label')].map(label => label.textContent); return lit.length ? lit : null }`, 10)
+  check(JSON.stringify(lit) === '["Moment titles","Old root","Old branch","Old leaf","Writer","Copied branch","New root"]', `choosing a moment marks the layers in it (${JSON.stringify(lit)})`)
+  await shot('04b-every-layer')
+  await click('#scene-workspace [data-focus="sw-layers"]')
+  const regrouped = await waitFor(`() => { const now = (${timelineNow})(); return now && now.layers.length === 2 ? now.layers : null }`, 10)
+  check(JSON.stringify(regrouped) === '["Text · 1","Objects · 8"]', `and grouped again by kind (${JSON.stringify(regrouped)})`)
   await playable()
   await click('#scene-workspace .sw-play')
   const producedPlaying = await waitFor(`() => { const now = (${timelineNow})(); return now?.playhead && now.at > 0.02 ? now : null }`, 20)

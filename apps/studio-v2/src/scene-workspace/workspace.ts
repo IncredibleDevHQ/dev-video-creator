@@ -57,7 +57,7 @@ export type SceneWorkspaceHost = {
 
 const VIEW_KEY = 'incredible-studio-v2-video-view'
 const PREFS_KEY = 'incredible-studio-v2-workspace-'
-type Prefs = { scene?: string; tab?: InspectorTab; rail?: boolean; follow?: boolean; context?: ContextSection | ''; timeline?: boolean }
+type Prefs = { scene?: string; tab?: InspectorTab; rail?: boolean; follow?: boolean; context?: ContextSection | ''; timeline?: boolean; layers?: 'kinds' | 'all' }
 
 const readJson = <T>(key: string, fallback: T): T => {
   try {
@@ -420,19 +420,58 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       return cell
     })
     // Each layer where it is on: one bar per run of the moments it is in.
-    const shownLayers = data.layers.slice(0, 8)
-    const layers = shownLayers.map(layer => {
+    // Every layer the composition declared is there (B08 of the BoltDB
+    // review: eight were drawn, and the leaf, branch and root copies were
+    // among the rest). Past six, the layers are grouped by kind — each kind
+    // one lane, its layers counted — and all of them are one click away. A
+    // bar is where a layer is present, not something to drag: it seeks the
+    // stage there. Grouping never touches the composition.
+    const runsOf = (ids: string[]) => {
       const runs: Array<[number, number]> = []
       for (const moment of data.moments) {
-        if (!layer.moments.includes(moment.id)) continue
+        if (!ids.includes(moment.id)) continue
         const last = runs[runs.length - 1]
         if (last && Math.abs(last[1] - moment.start) < 0.01) last[1] = moment.end
         else runs.push([moment.start, moment.end])
       }
-      return lane(layer.label, 'layer', runs.map(([start, end]) => h('span', { class: `sw-cell${layer.placeholder ? ' is-placeholder' : ''}`, style: place(start, end), title: `${layer.label} · ${layer.kind}${layer.placeholder ? ' · a placeholder' : ''}` })), `${layer.label} · ${layer.kind}`)
+      return runs
+    }
+    const bars = (ids: string[], title: string, placeholder = false) => runsOf(ids).map(([start, end]) => {
+      const bar = h('button', { type: 'button', class: `sw-cell sw-cell-layer${placeholder ? ' is-placeholder' : ''}`, style: place(start, end), title: `${title} — from ${seconds(start)}`, 'aria-label': `${title}, from ${seconds(start)}: play from there` })
+      bar.addEventListener('click', () => host.playback.seek(start))
+      return bar
     })
+    const inMoment = (ids: string[]) => Boolean(data.selected) && ids.includes(data.selected)
+    const layerLane = (layer: Timeline['layers'][number]) => {
+      const track = lane(layer.label, 'layer', bars(layer.moments, `${layer.label} · ${layer.kind}${layer.placeholder ? ' · a placeholder' : ''}`, Boolean(layer.placeholder)), `${layer.label} · ${layer.kind}`)
+      track.classList.toggle('is-in-moment', inMoment(layer.moments))
+      return track
+    }
+    const kinds = [...new Set(data.layers.map(layer => layer.kind))]
+    const kindName = (kind: string) => ({ object: 'Objects', text: 'Text', presenter: 'Presenter', camera: 'Camera', shape: 'Shapes', image: 'Images', connector: 'Connectors', audio: 'Sound' } as Record<string, string>)[kind] || `${kind.charAt(0).toUpperCase()}${kind.slice(1)}`
+    const many = data.layers.length > 6
+    const grouped = many && prefs.layers !== 'all'
+    const toggle = many ? h('button', { type: 'button', class: 'sw-layers-toggle', 'data-focus': 'sw-layers', 'aria-expanded': grouped ? 'false' : 'true', text: grouped ? `Show all ${data.layers.length} layers` : 'Group by kind' }) : null
+    toggle?.addEventListener('click', () => {
+      savePrefs({ layers: grouped ? 'all' : 'kinds' })
+      timelineKey = ''
+      renderTransport()
+      focusKey('sw-layers')
+    })
+    const layers = grouped
+      ? kinds.map(kind => {
+        const members = data.layers.filter(layer => layer.kind === kind)
+        const ids = [...new Set(members.flatMap(layer => layer.moments))]
+        const track = lane(`${kindName(kind)} · ${members.length}`, 'layer', bars(ids, `${kindName(kind)}: ${members.map(layer => layer.label).join(', ')}`), members.map(layer => layer.label).join(', '))
+        track.classList.add('is-kind')
+        track.classList.toggle('is-in-moment', inMoment(ids))
+        return track
+      })
+      : many
+        ? kinds.flatMap(kind => [h('span', { class: 'sw-track-kind', text: kindName(kind) }), ...data.layers.filter(layer => layer.kind === kind).map(layerLane)])
+        : data.layers.map(layerLane)
     // What the composition itself declared, apart from what the plan says.
-    const group = layers.length ? h('div', { class: 'sw-track-group', role: 'group', 'aria-label': `Layers of ${data.measured ? 'the produced scene' : 'the sketch'}` }, h('span', { class: 'sw-track-caption', text: `Layers · ${data.measured ? 'produced scene' : 'sketch'}` }), ...layers) : null
+    const group = layers.length ? h('div', { class: `sw-track-group${many && !grouped ? ' is-open' : ''}`, role: 'group', 'aria-label': `Layers of ${data.measured ? 'the produced scene' : 'the sketch'}` }, h('span', { class: 'sw-track-caption' }, `Layers · ${data.measured ? 'produced scene' : 'sketch'}`, toggle), ...layers) : null
     const tracks = [
       lane('Moments', 'moments', moments),
       data.voice && has('voice') ? lane(data.voice, 'voice', cells('voice')) : null,
@@ -444,7 +483,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     ].filter((track): track is HTMLDivElement => Boolean(track))
     const notes = [
       `${data.measured ? 'On the clock of' : 'Timed by'} ${data.clock}`,
-      data.layers.length > shownLayers.length ? `${data.layers.length - shownLayers.length} more layers not shown` : data.layers.length ? '' : 'layers show while a preview or the produced scene plays',
+      data.layers.length ? '' : 'layers show while a preview or the produced scene plays',
       `read-only${data.adjustable ? ` — ${data.adjustable} timing${data.adjustable === 1 ? '' : 's'} can be adjusted in Output` : ''}`,
     ].filter(Boolean)
     return h('div', { class: 'sw-timeline', role: 'group', 'aria-label': 'Timeline' },
@@ -457,7 +496,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const timelineView = (sceneId: string, state: ReturnType<StagePlayback['state']>) => {
     const data = review()?.timeline(sceneId)
     if (!data) return h('span', { class: 'sw-moments-empty', text: 'The timeline appears once the scene is planned.' })
-    const key = JSON.stringify([sceneId, data])
+    const key = JSON.stringify([sceneId, data, prefs.layers || ''])
     if (key !== timelineKey || !timelineBox) {
       timelineKey = key
       timelineBox = buildTimeline(sceneId, data)

@@ -366,6 +366,17 @@ body.is-scene-workspace .toast { bottom: 96px; }
 .sw-track.is-layer .sw-track-label { padding-left: 8px; font-weight: 500; }
 .sw-track.is-layer .sw-cell { background: #ede9fe; }
 .sw-track.is-layer .sw-cell.is-placeholder { background: repeating-linear-gradient(135deg, #fce7f3 0 6px, #fbcfe8 6px 12px); }
+/* A layer's bar says where it is present (B08): a thin band that seeks the
+   stage, not a handle to drag. The layers of the selected moment stand out. */
+.sw-cell-layer { top: 7px; bottom: 7px; padding: 0; border: 0; border-right: 2px solid var(--sw-surround); cursor: pointer; }
+.sw-cell-layer:hover { background: #ddd6fe; }
+.sw-track.is-layer.is-in-moment .sw-track-label { color: var(--sw-ink); font-weight: 650; }
+.sw-track.is-layer.is-in-moment .sw-cell-layer { background: #c4b5fd; }
+.sw-track.is-kind .sw-track-label { font-weight: 650; }
+.sw-track-caption { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.sw-layers-toggle { padding: 1px 6px; border: 1px solid #d4d4d8; border-radius: 999px; background: #fff; color: #3f3f46; font: 600 10.5px/1.4 'InterBody', Inter, sans-serif; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.sw-layers-toggle:hover { background: var(--sw-soft); }
+.sw-track-kind { margin-top: 4px; padding-left: 8px; color: var(--sw-muted); font: 650 10px/1.3 'InterBody', Inter, sans-serif; }
 .sw-track.is-text .sw-cell { background: #fef9c3; color: #713f12; }
 .sw-track.is-camera .sw-cell { background: #e0f2fe; color: #0c4a6e; }
 .sw-track.is-sound .sw-cell { background: #ffedd5; color: #7c2d12; }
