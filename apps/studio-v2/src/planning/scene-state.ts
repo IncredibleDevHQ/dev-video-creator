@@ -198,6 +198,13 @@ export type RailTone = 'idle' | 'busy' | 'new' | 'good' | 'warn' | 'bad'
 export const railStateOf = (scene: Scene, take: TakeState): { label: string; tone: RailTone } => {
   const view = scene.view
   const revision = view.current?.revision ?? view.latest?.revision ?? 0
+  // A scene not yet planned waits first on its base's designed page (the
+  // chaining of the BoltDB review): being designed, or landed for it.
+  const reference = scene.reference
+  if (!view.latest && !view.current && !view.reviewed) {
+    if (reference?.baseDesigning) return { label: 'Designing its page…', tone: 'busy' }
+    if (reference?.newer && !reference.newer.designing && reference.newer.svg) return { label: 'Designed page ready', tone: 'new' }
+  }
   switch (view.state) {
     case 'needs-brief':
       return { label: 'Waits for the brief', tone: 'idle' }

@@ -28,6 +28,9 @@ export type SceneReference = {
   // schematic: the schematic the base's newer slide was designed from.
   newer: { baseScene: string; revision: string; kind: string; by: string; designing: boolean; svg: string; program: unknown; schematic?: string | null } | null
   baseDesigning: boolean
+  // The run designing the base's page, while it does: whose progress a
+  // waiting scene shows (the chaining of the BoltDB review).
+  designRun?: { runId: string; page: number; by: string } | null
 }
 
 type SceneRow = {
@@ -1239,7 +1242,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     // creator wait for the designed pages or go on with the schematics.
     const readiness = host.pageReadiness?.() || null
     const waiting = Boolean(readiness?.pending)
-    const createLabel = waiting ? 'Continue with schematics' : desktop ? 'Create video fork and prepare brief' : 'Create video fork'
+    const createLabel = waiting ? 'Make the video now' : desktop ? 'Create video fork and prepare brief' : 'Create video fork'
     const create = h('button', { type: 'button', class: `button ${waiting ? 'ghost' : 'primary'} planning-create-fork`, text: createLabel, ...(blocked ? { disabled: true } : {}) })
     const status = h('p', { class: 'planning-muted planning-fork-status', role: 'status' })
     create.addEventListener('click', async () => {
@@ -1275,7 +1278,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       : null
     const pageLine = readiness
       ? readiness.pending
-        ? `${readiness.designed} of ${readiness.total} pages are designed; ${readiness.pending} ${readiness.pending === 1 ? 'is' : 'are'} still being designed. A video made now starts from ${readiness.pending === 1 ? 'that page\'s schematic draft' : 'their schematic drafts'}; each scene can adopt its designed slide once it lands. `
+        ? `${readiness.designed} of ${readiness.total} pages are designed; ${readiness.pending} ${readiness.pending === 1 ? 'is' : 'are'} still being designed. A video made now starts from ${readiness.pending === 1 ? 'that page\'s schematic draft' : 'their schematic drafts'}; a scene not yet planned takes its designed slide by itself as it lands, and one you have planned is offered it. `
         : readiness.schematic
           ? `${readiness.schematic} of ${readiness.total} pages ${readiness.schematic === 1 ? 'is a schematic draft' : 'are schematic drafts'}. `
           : ''

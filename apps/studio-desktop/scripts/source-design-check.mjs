@@ -331,7 +331,7 @@ try {
   // schematic still being designed. The offer says so, and waiting comes first.
   await evaluate(`() => { document.getElementById('open-planning').click(); return true }`, 'plan video')
   const waitOffer = await waitFor(`() => { const wait = document.querySelector('#planning-workspace .planning-wait-pages'); const create = document.querySelector('#planning-workspace .planning-create-fork'); return wait && create ? { wait: wait.textContent, create: create.textContent, status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer', 40)
-  check('a video offered while a page is still being designed says so, and offers to wait', waitOffer?.wait === 'Wait for the designed pages' && waitOffer.create === 'Continue with schematics' && /^1 of 2 pages are designed; 1 is still being designed\. A video made now starts from that page's schematic draft; each scene can adopt its designed slide once it lands\./.test(waitOffer.status), JSON.stringify(waitOffer))
+  check('a video offered while a page is still being designed says so, and offers to wait', waitOffer?.wait === 'Wait for the designed pages' && waitOffer.create === 'Make the video now' && /^1 of 2 pages are designed; 1 is still being designed\. A video made now starts from that page's schematic draft; a scene not yet planned takes its designed slide by itself as it lands, and one you have planned is offered it\./.test(waitOffer.status), JSON.stringify(waitOffer))
   await capture('06a-fork-offer-while-designing')
   await evaluate(`() => { document.querySelector('#planning-workspace .planning-wait-pages').click(); return true }`, 'wait')
   const waited = await waitFor(`async () => document.getElementById('planning-dialog').open ? null : (await fetch('/api/projects').then(r => r.json())).projects.filter(row => row.derivedFrom).length + 1`, 'offer closed', 20)
@@ -346,13 +346,15 @@ try {
     const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
     const scene = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')[1]
     const origin = scene?.attrs?.pageOrigin
-    return origin?.kind === 'designed' && !origin.designing && String(scene.attrs.svg).includes('RUN-F') ? { origin, chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].length, statusHidden: document.getElementById('page-design-status').hidden, windows: (scene.attrs.motion?.steps || []).length } : null
+    // The worker settles the page; the window takes it on its next pass.
+    return origin?.kind === 'designed' && !origin.designing && String(scene.attrs.svg).includes('RUN-F') && document.getElementById('page-design-status').hidden ? { origin, chips: [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].length, statusHidden: document.getElementById('page-design-status').hidden, windows: (scene.attrs.motion?.steps || []).length } : null
   }`, 'landed', 120)
   check('the page designed after opening lands on its scene', landed?.origin?.by === 'Kimi' && landed?.origin?.runId === runF && landed?.chips === 0, JSON.stringify(landed))
   check('once the run is done, the notebook stops waiting', landed?.statusHidden === true && (await runStatus(runF)) === 'done', JSON.stringify({ statusHidden: landed?.statusHidden, run: await runStatus(runF) }))
   // Every page designed: the offer makes the video from them.
   await evaluate(`() => { document.getElementById('open-planning').click(); return true }`, 'plan video again')
-  const readyOffer = await waitFor(`() => { const create = document.querySelector('#planning-workspace .planning-create-fork'); return create ? { create: create.textContent, wait: Boolean(document.querySelector('#planning-workspace .planning-wait-pages')), status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer ready', 40)
+  // The offer drawn for the pages as they are now, not as it was last opened.
+  const readyOffer = await waitFor(`() => { const create = document.querySelector('#planning-workspace .planning-create-fork'); return create && !document.querySelector('#planning-workspace .planning-wait-pages') ? { create: create.textContent, wait: false, status: document.querySelector('#planning-workspace .planning-fork-status')?.textContent || '' } : null }`, 'fork offer ready', 40)
   check('once every page is designed, the offer makes the video from them', readyOffer?.create === 'Create video fork and prepare brief' && readyOffer.wait === false && !/schematic|still being designed/.test(readyOffer.status), JSON.stringify(readyOffer))
   await evaluate(`() => { document.querySelector('#planning-workspace .planning-close').click(); return true }`, 'close offer')
   await capture('07-notebook-landed')
@@ -428,27 +430,42 @@ try {
   const before = (await overviewOf(videoH))?.scenes?.find(scene => scene.id === waitingScene)?.reference
   check('its second scene says its base is still designing its page', before?.baseDesigning === true && !before.newer, JSON.stringify(before))
   await evaluate(`() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return true }`, 'select the waiting scene')
-  check('the scene\'s review says so', Boolean(await waitFor(`() => document.querySelector('[data-review-reference="designing"]') ? true : null`, 'designing notice', 40)))
+  const waitingNotice = await waitFor(`() => { const notice = document.querySelector('[data-review-reference="designing"]'); return notice ? { text: notice.textContent, progress: Boolean(notice.querySelector('[data-review-design]')) } : null }`, 'designing notice', 40)
+  check('the scene\'s review says its page is being designed, with the run\'s progress, and that it takes the page by itself — it is not planned yet', Boolean(waitingNotice?.progress) && /When it lands, this scene takes it by itself/.test(waitingNotice.text), JSON.stringify(waitingNotice))
+  // The video opened its planning workspace to prepare the brief: closed, as
+  // the creator does to work on a scene.
+  await waitFor(`() => document.getElementById('planning-dialog')?.open ? (document.querySelector('#planning-workspace .planning-close').click(), true) : null`, 'planning closed', 20)
+  // The creator goes on with the other scene: selection and keyboard there.
+  await evaluate(`() => { const node = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[0]; node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return true }`, 'select the first scene')
+  await sleep(1000)
+  // The scene on show is the one whose review is open (the test window has
+  // no keyboard focus to keep, so focus is not read here).
+  const inHand = await waitFor(`() => { const first = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[0]; const control = document.querySelector('.scene-review.is-expanded [data-focus^="workspace:"]'); return first && control?.dataset.focus === 'workspace:' + first.id ? { first: first.id } : null }`, 'first scene in hand', 30)
+  check('the creator goes on with the first scene', Boolean(inHand), JSON.stringify(inHand))
+  const firstScene = inHand?.first
   const landedH = await until(async () => {
     const scene = scenesIn(await projectOf(deckH.base))[1]
     return scene?.attrs?.pageOrigin?.kind === 'designed' && String(scene.attrs.svg).includes('RUN-H') ? scene.attrs : null
   }, 120)
   check('the page lands on the saved base while only the video is open', Boolean(landedH) && landedH.pageOrigin.runId === deckH.run, JSON.stringify(landedH?.pageOrigin))
   check('it waits to be planned from its words until the base is next opened', landedH?.pageOrigin?.replan === true, JSON.stringify(landedH?.pageOrigin))
-  const offered = await waitFor(`() => { const offer = document.querySelector('[data-review-reference="newer"]'); return offer ? { text: offer.textContent, adopt: offer.querySelector('[data-focus^="adopt-reference:"]')?.textContent } : null }`, 'newer offered', 60)
-  check('the video is offered the designed page as it lands, without the base being opened', offered?.adopt === 'Use this designed reference' && /The base has a newer .+ for this scene, by Kimi/.test(offered.text), JSON.stringify(offered))
-  await capture('08-video-offered-landed-page')
+  // The chaining: the scene not yet planned takes its designed slide as it
+  // lands, by itself — the base never opened, the creator's scene and
+  // keyboard left where they were.
+  const taken = await until(async () => {
+    const scene = scenesIn(await projectOf(videoH))[1]
+    return String(scene?.attrs?.svg || '').includes('RUN-H') && scene.attrs.reference ? scene.attrs : null
+  }, 60)
+  check('the waiting scene takes its designed slide by itself as it lands', taken?.pageOrigin?.kind === 'designed' && !taken.pageOrigin.replan && Boolean(taken.reference?.revision), JSON.stringify(taken && { origin: taken.pageOrigin, reference: taken.reference }))
+  const stayed = await waitFor(`() => { const control = document.querySelector('.scene-review.is-expanded [data-focus^="workspace:"]'); return control ? { shown: control.dataset.focus.slice('workspace:'.length) } : null }`, 'first scene kept', 20)
+  check('the scene on show stays the one the creator chose', Boolean(firstScene) && stayed?.shown === firstScene, JSON.stringify({ firstScene, stayed }))
+  if (!stayed || stayed.shown !== firstScene) console.log('DIAGNOSIS', JSON.stringify(await evaluate(`() => ({ reviews: [...document.querySelectorAll('.scene-review')].map(review => ({ expanded: review.classList.contains('is-expanded'), controls: [...review.querySelectorAll('[data-focus]')].map(element => element.dataset.focus).slice(0, 4) })), selected: document.querySelector('.selected-block')?.id || '', active: localStorage.getItem('incredible-studio-v2-active-project'), view: localStorage.getItem('incredible-studio-v2-video-view'), dialogs: [...document.querySelectorAll('dialog[open]')].map(dialog => dialog.id), title: document.getElementById('project-title')?.value })`, 'diagnosis after')))
+  await capture('08-video-took-landed-page')
   const pinned = (await overviewOf(videoH))?.scenes?.find(scene => scene.id === waitingScene)?.reference
-  check('the video keeps the page it was made from until it adopts the new one', pinned?.revision === before?.revision && !pinned.adopted && pinned.newer?.kind === 'designed' && pinned.newer.designing === false, JSON.stringify(pinned && { revision: pinned.revision, adopted: pinned.adopted, newer: pinned.newer && { kind: pinned.newer.kind, designing: pinned.newer.designing } }))
+  check('the video records which page it took, and has nothing more to offer', Boolean(pinned?.adopted) && pinned.newer === null && pinned.kind === 'designed', JSON.stringify(pinned && { revision: pinned.revision, adopted: pinned.adopted, newer: pinned.newer }))
   const settled = await until(async () => (await runStatus(deckH.run)) === 'done' && !scenesIn(await projectOf(deckH.base))[1]?.attrs?.pageOrigin?.designing, 90)
   const again = [await landNow(deckH.base), await landNow(deckH.base)]
   check('once the run is done its binding goes, and landing again changes nothing', Boolean(settled) && again.every(result => result?.landed && !result.landed.saved && result.landed.landed.length === 0), JSON.stringify(again.map(result => result?.landed)))
-  await evaluate(`() => { document.querySelector('[data-focus^="adopt-reference:"]').click(); return true }`, 'adopt')
-  const adopted = await until(async () => {
-    const scene = scenesIn(await projectOf(videoH))[1]
-    return String(scene?.attrs?.svg || '').includes('RUN-H') ? scene.attrs : null
-  }, 30)
-  check('adopting takes the designed page into the video\'s scene', adopted?.pageOrigin?.kind === 'designed' && !adopted.pageOrigin.replan, JSON.stringify(adopted?.pageOrigin))
   // Opened again, the base plans the landed page from its words, and saves
   // over the worker's landing without a conflict.
   await evaluate(`() => { localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(deckH.base)}); location.assign('/studio'); return true }`, 'open base H').catch(() => {})

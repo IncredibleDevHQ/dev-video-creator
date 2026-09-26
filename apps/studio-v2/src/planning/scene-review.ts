@@ -210,6 +210,13 @@ export const createSceneReview = (host: SceneReviewHost) => {
 
   // Runs asked to stop: "Cancelling…" until their records end.
   const stopping = new Set<string>()
+  // What the base's design run last did, for the scenes waiting on its pages
+  // (the chaining of the BoltDB review).
+  const designProgress = new Map<string, { text: string; at: number }>()
+  const designLine = (runId: string) => {
+    const progress = designProgress.get(runId)
+    return progress ? `${progress.text} · ${Math.max(0, Math.round((Date.now() - progress.at) / 1000))}s ago` : 'Waiting for the designer\'s next step'
+  }
   const listen = () => {
     const bridge = window.studioDesktop
     if (listening || !bridge?.isDesktop) return
@@ -218,6 +225,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
       if (!overview) return
       if (event.type === 'done') {
         void load()
+        return
+      }
+      if (event.type !== 'error' && (overview.scenes || []).some(scene => scene.reference?.designRun?.runId === runId)) {
+        const said = progressText(event)
+        if (said) {
+          designProgress.set(runId, { text: said.slice(0, 120), at: Date.now() })
+          document.querySelectorAll<HTMLElement>(`[data-review-design="${CSS.escape(runId)}"]`).forEach(element => (element.textContent = designLine(runId)))
+        }
         return
       }
       const owner = overview.records.find(record => record.runId === runId)
@@ -1081,7 +1096,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const newer = reference?.newer
     if (!reference || (!newer && !reference.baseDesigning)) return null
     if (!newer || newer.designing || !newer.svg) {
-      return h('p', { class: 'review-muted review-reference', 'data-review-reference': 'designing', text: `The base is still designing this scene's slide. When it lands you can compare it here and adopt it; this scene keeps its ${PAGE_KIND[reference.kind] || 'page'} until you do.` })
+      // A scene not yet planned takes its slide by itself when it lands; a
+      // planned one is offered it (the chaining of the BoltDB review).
+      const run = reference.designRun
+      const untouched = !scene.view.latest && !scene.view.current && !scene.view.reviewed && !scene.production?.latest
+      return h('div', { class: 'review-muted review-reference', 'data-review-reference': 'designing' },
+        h('p', { text: `The base is still designing this scene's slide${run?.by ? `, with ${run.by}` : ''}. ${untouched ? 'When it lands, this scene takes it by itself — it is not planned yet.' : `When it lands you can compare it here and adopt it; this scene keeps its ${PAGE_KIND[reference.kind] || 'page'} until you do.`}` }),
+        run ? h('p', { class: 'review-design-progress', 'data-review-design': run.runId, text: designLine(run.runId) }) : null,
+      )
     }
     const kind = PAGE_KIND[newer.kind] || 'page'
     const compare = h('button', { type: 'button', class: 'button ghost', 'data-focus': `compare-reference:${scene.id}`, text: 'Compare on the stage' })

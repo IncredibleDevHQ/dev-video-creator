@@ -602,9 +602,12 @@ const referenceOf = (planning: VideoPlanning, scene: VideoPlanning['videoScenes'
         schematic: designing ? null : String((attr(node, 'schematic') as { svg?: string } | null | undefined)?.svg || '') || null,
       }
     : null
-  // The base still designing this scene's page, as yet unchanged.
+  // The base still designing this scene's page, as yet unchanged — and the
+  // run designing it, whose progress the waiting scene shows.
   const baseDesigning = designing && !newer
-  return { baseScene: origin, kind: pinned.pageKind, revision: pinned.pageRevision, adopted: pinned.adopted, newer, baseDesigning }
+  const binding = pageOrigin?.designing as { runId?: string; page?: number; by?: string } | undefined
+  const designRun = designing && binding?.runId ? { runId: String(binding.runId), page: Number(binding.page) || 0, by: String(binding.by || pageOrigin?.by || '') } : null
+  return { baseScene: origin, kind: pinned.pageKind, revision: pinned.pageRevision, adopted: pinned.adopted, newer, baseDesigning, designRun }
 }
 
 export const planningOverview = async (projectId: string) => {

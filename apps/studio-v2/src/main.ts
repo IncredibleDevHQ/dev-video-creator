@@ -88,7 +88,7 @@ import {
   type StageFamily,
   type StageSegment,
   type MotionDriverInstance,
-  type MotionPlanV2, cameraRectAt, AUDIO_STATE_LABELS, audioReadinessOf, blockAudioOf } from 'markdown-composition'
+  type MotionPlanV2, cameraRectAt, AUDIO_STATE_LABELS, audioReadinessOf, blockAudioOf, sceneRevisionOf } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import { SceneBlock } from './scene-node'
@@ -7182,7 +7182,7 @@ const notebookCard = (
         ? (editor.getJSON() as TiptapDocument)
         : (await fetchJson<{ project: ProjectDocumentV1 }>(`/api/projects/${encodeURIComponent(entry.id)}`).catch(() => null))?.project.notebook
       const readiness = pageReadinessOf(doc?.content || [])
-      if (readiness.pending && !window.confirm(`${readiness.pending} of ${readiness.total} pages of this base are still being designed. A video made now starts from their schematic drafts; each scene can adopt its designed slide once it lands.\n\nCreate the video now? Cancel to wait for the designed pages.`)) return
+      if (readiness.pending && !window.confirm(`${readiness.pending} of ${readiness.total} pages of this base are still being designed. A video made now starts from their schematic drafts; a scene not yet planned takes its designed slide by itself as it lands, and one you have planned is offered it.\n\nCreate the video now? Cancel to wait for the designed pages.`)) return
       await createVideoFromBase(entry.id, entry.title || 'Untitled notebook')
     })
     actions.append(video)
@@ -19125,7 +19125,10 @@ sceneReview = createSceneReview({
     stageChoices.wait({ projectId: project.id, sceneId, planRecordId, previewJobId, revision, generation: stageChoices.generation(sceneId) })
     sceneWorkspace?.render()
   },
-  loaded: () => settlePreviewWaits(),
+  loaded: () => {
+    settlePreviewWaits()
+    void adoptLandedPages()
+  },
   showProduction: (sceneId, at) => showProducedScene(sceneId, at),
   // An accepted production is the scene's output: the notebook plays its
   // render in the scene's place, and the export renders it there (P4).
@@ -19161,40 +19164,83 @@ sceneReview = createSceneReview({
   // from its words, are the new ones. Planning reads the adopted page, so
   // this scene's plans made from the old one read as out of date.
   adoptReference: async sceneId => {
+    if (!(await adoptBasePage(sceneId))) return
     const newer = sceneReview?.stageOf(sceneId)?.scene.reference?.newer
-    const found = topLevelNodeAt(sceneId)
-    const node = found ? editor.state.doc.nodeAt(found.at) : null
-    if (!newer || newer.designing || !newer.svg || !found || !node) return
-    const kind = newer.kind === 'designed' || newer.kind === 'schematic' ? newer.kind : null
-    editor.view.dispatch(editor.state.tr.setNodeMarkup(found.at, undefined, {
-      ...node.attrs,
-      svg: newer.svg,
-      svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(newer.svg)}`,
-      program: newer.program ?? null,
-      pageOrigin: kind ? { kind, ...(newer.by ? { by: newer.by } : {}) } : null,
-      reference: { baseScene: newer.baseScene, revision: newer.revision, kind: newer.kind, adoptedAt: new Date().toISOString() },
-      // A designed slide keeps the schematic it replaces (the base's own,
-      // else the one this scene had), side by side.
-      schematic: kind === 'designed' ? (newer.schematic ? { svg: newer.schematic, program: null } : node.attrs.schematic ?? schematicOf(node.attrs as Record<string, unknown>)) : null,
-    }))
-    try {
-      animateSceneLocally(sceneId)
-    } catch (error) {
-      console.warn('re-plan after adopting a page failed', sceneId, error)
-    }
     if (sceneStageMode === 'base') sceneStageMode = 'reference'
-    project.notebook = editor.getJSON() as TiptapDocument
-    try {
-      await persistProjectNow(structuredClone(project))
-    } catch (error) {
-      showToast(error instanceof Error ? `The scene took the page, but it is not saved yet: ${error.message}` : 'The scene took the page, but it is not saved yet')
-    }
     await sceneReview?.load()
     refreshSceneReview()
     renderSceneStage()
-    showToast(`This scene now uses the base's ${newer.kind === 'designed' ? 'designed slide' : 'page'}. Plan it again to use its artwork — its earlier plans and your recordings are kept.`)
+    showToast(`This scene now uses the base's ${newer?.kind === 'designed' ? 'designed slide' : 'page'}. Plan it again to use its artwork — its earlier plans and your recordings are kept.`)
   },
 })
+// A scene takes its base's newer page (F1): the page, its program and how
+// it was made, the schematic it replaces kept beside a designed slide; then
+// its motion is planned from its words, and the notebook is saved.
+async function adoptBasePage(sceneId: string) {
+  const newer = sceneReview?.stageOf(sceneId)?.scene.reference?.newer
+  const found = topLevelNodeAt(sceneId)
+  const node = found ? editor.state.doc.nodeAt(found.at) : null
+  if (!newer || newer.designing || !newer.svg || !found || !node) return false
+  const kind = newer.kind === 'designed' || newer.kind === 'schematic' ? newer.kind : null
+  editor.view.dispatch(editor.state.tr.setNodeMarkup(found.at, undefined, {
+    ...node.attrs,
+    svg: newer.svg,
+    svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(newer.svg)}`,
+    program: newer.program ?? null,
+    pageOrigin: kind ? { kind, ...(newer.by ? { by: newer.by } : {}) } : null,
+    reference: { baseScene: newer.baseScene, revision: newer.revision, kind: newer.kind, adoptedAt: new Date().toISOString() },
+    // A designed slide keeps the schematic it replaces (the base's own,
+    // else the one this scene had), side by side.
+    schematic: kind === 'designed' ? (newer.schematic ? { svg: newer.schematic, program: null } : node.attrs.schematic ?? schematicOf(node.attrs as Record<string, unknown>)) : null,
+  }))
+  try {
+    animateSceneLocally(sceneId)
+  } catch (error) {
+    console.warn('re-plan after adopting a page failed', sceneId, error)
+  }
+  project.notebook = editor.getJSON() as TiptapDocument
+  try {
+    await persistProjectNow(structuredClone(project))
+  } catch (error) {
+    showToast(error instanceof Error ? `The scene took the page, but it is not saved yet: ${error.message}` : 'The scene took the page, but it is not saved yet')
+  }
+  return true
+}
+// A ready slide unlocks its scene (the chaining of the BoltDB review): a
+// scene not yet touched — no plan, no take, no production, its page as the
+// video was made with it — takes its designed page as it lands, by itself.
+// It happens where the creator is not looking: the scene on show, the
+// selection and the keyboard stay where they are. A scene already planned,
+// recorded, produced or edited is offered the page instead.
+let adoptingLanded = false
+const adoptLandedPages = async () => {
+  if (adoptingLanded || !sceneReview?.active() || !project.derivedFrom?.notebook) return
+  adoptingLanded = true
+  const taken: string[] = []
+  try {
+    const nodes = (editor.getJSON() as TiptapDocument).content || []
+    for (const node of nodes) {
+      const sceneId = String(node.attrs?.id || '')
+      const stage = sceneId ? sceneReview.stageOf(sceneId) : null
+      const reference = stage?.scene.reference
+      const newer = reference?.newer
+      if (!stage || !reference || !newer || newer.designing || !newer.svg) continue
+      if (stage.scene.view.latest || stage.scene.view.current || stage.scene.view.reviewed || stage.scene.production?.latest) continue
+      if (project.recordedBlocks?.[sceneId] || project.recordedBlockTakes?.[sceneId]?.length) continue
+      if (sceneRevisionOf(node).inputs.page !== reference.revision) continue
+      if (await adoptBasePage(sceneId)) taken.push(String(node.attrs?.title || 'A scene'))
+    }
+  } finally {
+    adoptingLanded = false
+  }
+  if (!taken.length) return
+  await sceneReview?.load()
+  refreshSceneReview()
+  renderSceneStage()
+  const said = taken.length === 1 ? `“${taken[0]}” took its designed slide as it landed` : `${taken.length} scenes took their designed slides as they landed`
+  sceneWorkspace?.announce(said)
+  showToast(said)
+}
 onSceneSelected = nodeId => {
   renderNextStep()
   const next = sceneReview?.has(nodeId) ? nodeId : ''
