@@ -1046,7 +1046,8 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     const stored = await persistence.storeAsset({ body: readFileSync(join(dir, 'take.mp4')), contentType: 'video/mp4', projectId: id, blockId: scenes[0], kind: 'camera-take', extension: '.mp4' })
     const selectTake = async (recordingId: string, script: string) => {
       const project = (await persistence.loadProjectArtifact(id))!
-      project.recordedBlocks = { [scenes[0]]: { blockId: scenes[0], recordingId, videoUrl: `http://127.0.0.1:1/objects/${stored.objectKey}`, durationMs: Math.round(seconds * 1000), recordedAt: new Date().toISOString(), storage: 'local', role: 'presenter', script: { hash: scriptFingerprint(script), lines: lineFingerprints(script) } } }
+      // Named by its path, as the studio names a take (F01 of the fix verification).
+      project.recordedBlocks = { [scenes[0]]: { blockId: scenes[0], recordingId, videoUrl: `/objects/${stored.objectKey}`, durationMs: Math.round(seconds * 1000), recordedAt: new Date().toISOString(), storage: 'local', role: 'presenter', script: { hash: scriptFingerprint(script), lines: lineFingerprints(script) } } }
       await persistence.saveProjectArtifact(project)
     }
     const lines = 'Each request consumes one token.\n\nTokens are added back at a steady refill rate.'

@@ -34,6 +34,7 @@ import {
 import { skillVersions } from './skill-versions'
 import { listArtwork } from './appearance-library'
 import { fingerprintOf } from '../src/planning/fingerprint'
+import { studioRefOf } from '../src/studio-refs'
 import { outlineSceneOf, pageObjectiveOf } from '../src/planning/page-objective'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from '../src/planning/explanation-brief'
 import { continuityStatus, validateTreatment, visualMinimumOf, type NeighborPlan, type SceneTreatmentV1, type TreatmentContext } from '../src/planning/scene-treatment'
@@ -1348,14 +1349,11 @@ const narrationOf = (plan: SceneTreatmentV1): NarrationLine[] =>
 // against. A moment without words is not a line.
 const spokenLinesOf = (plan: SceneTreatmentV1) =>
   plan.moments.map(moment => ({ id: moment.id, say: scriptLinesOf(String(moment.narration?.guide || '')).join(' '), minimum: visualMinimumOf(moment) }))
-// The stored object a take's URL names, on this Studio.
+// The stored object a take's URL names, on this Studio — by its path, or
+// an address from any start of the app (F01 of the fix verification).
 const objectKeyOf = (url: string | undefined) => {
-  try {
-    const path = new URL(String(url)).pathname
-    return path.startsWith('/objects/') ? decodeURIComponent(path.slice('/objects/'.length)) : null
-  } catch {
-    return null
-  }
+  const ref = studioRefOf(url)
+  return ref?.root === 'objects' ? ref.path : null
 }
 
 // What the scene's clock will be made from, before it is made. The same
