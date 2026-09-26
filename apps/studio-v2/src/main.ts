@@ -16587,7 +16587,8 @@ const sourcePageBrand = (source: SourceRead) => {
 const linkedFontFamilies = new Set<string>()
 const pageFontFamilies = (doc: TiptapDocument) => {
   const families = new Set<string>()
-  doc.content.forEach(node => {
+  // An empty notebook has no content at all.
+  ;(doc.content || []).forEach(node => {
     const svg = typeof node.attrs?.svg === 'string' ? node.attrs.svg : ''
     for (const match of svg.matchAll(/font-family="([^"]+)"/g)) {
       const first = match[1].split(',')[0].replace(/["']/g, '').trim()
