@@ -10,7 +10,7 @@
 // production; otherwise a draft that says which scenes do not.
 import type { ScenePlanningView } from './planning-records'
 
-export type NextStepAction = 'create-explainer' | 'create-video' | 'open-video' | 'brief' | 'plan' | 'review' | 'record' | 'produce' | 'review-output' | 'export' | 'wait'
+export type NextStepAction = 'create-explainer' | 'create-video' | 'open-video' | 'design-presentation' | 'brief' | 'plan' | 'review' | 'record' | 'produce' | 'review-output' | 'export' | 'wait'
 export type NextStep = { action: NextStepAction; label: string; title: string; sceneId: string | null; disabled: boolean }
 
 export type BaseInput = { pages: number; videos: Array<{ id: string; title: string }> }

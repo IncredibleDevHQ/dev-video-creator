@@ -420,8 +420,14 @@ export type ProjectDocumentV1 = {
   outline?: {
     title: string
     targetSeconds: number
-    scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string; source?: string[] }>
+    // A page's plan: its idea, its first line, and the parts it is drawn
+    // from and how they relate — what a design run draws the page from.
+    scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string; source?: string[]; narration?: string; parts?: unknown[]; relations?: unknown[] }>
     glossary: Array<{ term: string; meaning: string }>
+    // The explanation model's objects — one thing keeps one id on every
+    // page — and the palette and fonts the pages are drawn in.
+    objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }>
+    pageBrand?: { palette: Record<string, unknown>; fonts: Record<string, unknown> | null; mode: string }
   }
   // The explainer delivery journey chosen in Create explainer: a recorded
   // human presenter or generated narration. Recorded per notebook; an

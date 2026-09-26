@@ -15564,7 +15564,9 @@ queueMicrotask(() => {
 // Phase 0 of the plan. Whatever comes in, three things come out and the rest
 // of the pipeline reads only those: a brand read off the source, an outline
 // with a runtime target, and pages that carry the contract.
-type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; program?: unknown; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean }; drawnBy?: string; designRun?: string; drawnContract?: number }
+// A page of the base deck; a designed page keeps the schematic it was
+// designed from, for the project's wireframe.
+type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; program?: unknown; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean }; drawnBy?: string; designRun?: string; drawnContract?: number; schematic?: { svg: string; program?: unknown } }
 const sourceState: {
   kind: 'link' | 'narrative'
   source: SourceRead | null
@@ -16927,6 +16929,7 @@ const applyDesignedPages = (draft: SourceDraft, final: boolean) => {
         if (!atomized.units.length) throw new Error('the page has no parts the studio can read')
         const report = contractReport(atomized.units, atomized.pageRole)
         const leaves = leafUnits(atomized.units)
+        page.schematic ||= { svg: page.svg, program: page.program }
         page.svg = entry.svg
         page.program = entry.program || undefined
         page.drawnBy = run.label
@@ -17395,6 +17398,14 @@ const sourceFinish = async () => {
     : 'new'
   const startedNew = destination === 'new'
   if (startedNew) await startFreshNotebook(outline.title)
+  // A new import is a project (the four-notebook model): the article as a
+  // text notebook, its pages as a wireframe and — once they are being
+  // designed — a presentation, each a notebook of its own. The notebook
+  // built here is the presentation when there is one, else the wireframe;
+  // the others are made beside it from the same pages.
+  const designs = Boolean(designRun) || designedPages > 0
+  const place = startedNew ? { container: `project-${crypto.randomUUID()}`, text: crypto.randomUUID(), wireframe: designs ? crypto.randomUUID() : project.id } : null
+  if (place) project.container = { id: place.container, kind: designs ? 'presentation' : 'wireframe', from: designs ? place.wireframe : place.text }
   // the brand, with the logo the author picked
   const direction = sourceBrandTheme()
   if (direction) {
@@ -17421,19 +17432,33 @@ const sourceFinish = async () => {
     return { type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, program: page.program || null, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true, pageOrigin: designing ? { ...origin, designing } : origin } }
   })
   editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
+  // A new project's page notebook holds pages only: the blank line a fresh
+  // notebook opens with goes.
+  if (place) {
+    const first = editor.state.doc.firstChild
+    if (first?.type.name === 'paragraph' && !first.textContent.trim() && editor.state.doc.childCount > 1) {
+      editor.commands.command(({ tr }) => {
+        tr.delete(0, first.nodeSize)
+        return true
+      })
+    }
+  }
   const inserted = pages.map(page => page.title)
   // Each new scene gets its block, then its first plan from the draft line,
   // so the notebook opens with windows, motion and captions already there.
+  // A wireframe holds pages only: the video's staging is not its own.
   const notebookDoc = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(notebookDoc)
   const fresh = notebookDoc.content.filter(node => node.type === 'scene' && typeof node.attrs?.id === 'string').slice(-pages.length)
-  fresh.forEach(node => {
-    try {
-      animateSceneLocally(String(node.attrs!.id))
-    } catch (error) {
-      console.warn('first plan failed', node.attrs?.title, error)
-    }
-  })
+  if (project.container?.kind !== 'wireframe') {
+    fresh.forEach(node => {
+      try {
+        animateSceneLocally(String(node.attrs!.id))
+      } catch (error) {
+        console.warn('first plan failed', node.attrs?.title, error)
+      }
+    })
+  }
   project.title = outline.title
   project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.snapshot ? { snapshotId: sourceState.snapshot.id } : {}), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
   // The story records this base was built from (D2): wording policy, the
@@ -17447,7 +17472,18 @@ const sourceFinish = async () => {
   // page teaches is found again once the director rewrites its notes.
   const pageIds = new Map(pages.map((page, index) => [page.title, String(fresh[index]?.attrs?.id || '')]))
   const pageIdOf = (title: string, index: number) => pageIds.get(title) || (outline.scenes.length === pages.length ? String(fresh[index]?.attrs?.id || '') : '')
-  project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map((scene, index) => ({ ...(pageIdOf(scene.title, index) ? { nodeId: pageIdOf(scene.title, index) } : {}), title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
+  // Each page keeps its plan, and the notebook the brand it is drawn in, so
+  // a presentation can be designed from the pages later (the four-notebook
+  // model).
+  const pageBrand = sourcePageBrand(source)
+  project.outline = {
+    title: outline.title,
+    targetSeconds: outline.targetSeconds,
+    scenes: outline.scenes.map((scene, index) => ({ ...(pageIdOf(scene.title, index) ? { nodeId: pageIdOf(scene.title, index) } : {}), title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}), narration: scene.narration, parts: scene.parts, relations: scene.relations })),
+    glossary: outline.glossary,
+    ...(sourceState.modelData?.objects?.length ? { objects: sourceState.modelData.objects } : {}),
+    pageBrand: { palette: pageBrand.palette as Record<string, unknown>, fonts: (sourceBrandFonts(source) as Record<string, unknown> | undefined) || null, mode: pageBrand.mode },
+  }
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title
   // Made from a source, the notebook is a base: it shows its pages (B04).
@@ -17495,13 +17531,26 @@ const sourceFinish = async () => {
   }
   const still = pages.length - designedPages
   const origin = designedPages === pages.length ? '' : designRun ? ` · ${designedPages} designed, ${still} still being designed` : designedPages ? ` · ${designedPages} designed, ${still} schematic drafts` : ' · schematic drafts'
-  const done = `${inserted.length} scenes from ${source.site || 'your narrative'}${startedNew ? ' in a new notebook' : ''} · ${formatTarget(outline.targetSeconds)} planned${origin}`
+  const done = `${inserted.length} pages from ${source.site || 'your narrative'}${startedNew ? ` in a new project — its text, wireframe${designs ? ' and presentation' : ''}` : ''} · ${formatTarget(outline.targetSeconds)} planned${origin}`
   if (!startedNew) {
     showToast(done)
     return
   }
-  // The new notebook, bindings and all, is saved — or kept as the draft it
-  // opens from — and the studio opens on it; its pages go on landing there.
+  // The project's other notebooks are saved first, each naming the one it
+  // was made from; then the notebook built here — bindings and all — or it
+  // is kept as the draft it opens from. The studio opens on it; its pages go
+  // on landing there.
+  if (place) {
+    project.notebook = editor.getJSON() as TiptapDocument
+    for (const made of projectNotebooksOf(project, place, source, pages)) {
+      try {
+        await persistProjectNow(structuredClone(made))
+      } catch (error) {
+        console.warn(`the project's ${made.container?.kind} notebook not persisted yet`, error)
+        rememberDraft(made)
+      }
+    }
+  }
   try {
     await persistProjectNow(structuredClone(project))
   } catch (error) {
@@ -17509,6 +17558,75 @@ const sourceFinish = async () => {
     rememberDraft(project)
   }
   activateNotebook(project.id, writing ? `${done}. ${writing}` : done)
+}
+
+// The article as a text notebook: what was read, as Markdown. A table is
+// kept whole as a fenced block — the notebook has no table of its own — and
+// a fenced block is left as it is.
+const textNotebookOf = (text: string): TiptapDocument => {
+  const lines: string[] = []
+  let table: string[] = []
+  let fenced = false
+  const flush = () => {
+    if (table.length) lines.push('```', ...table, '```')
+    table = []
+  }
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) {
+      flush()
+      fenced = !fenced
+      lines.push(line)
+    } else if (!fenced && /^\s*\|.*\|\s*$/.test(line)) table.push(line)
+    else {
+      flush()
+      lines.push(line)
+    }
+  }
+  flush()
+  const parsed = editor.markdown?.parse(lines.join('\n')) as TiptapDocument | undefined
+  return parsed?.content?.length ? parsed : { type: 'doc', content: text.trim() ? [{ type: 'paragraph', content: [{ type: 'text', text }] }] : [] }
+}
+
+// The notebooks a new project holds beside the one built in the editor:
+// its text, and — when the built one is its presentation — its wireframe,
+// the schematics the slides are designed from, with the same page ids and
+// none of the presentation's bindings or staging.
+const projectNotebooksOf = (built: ProjectDocumentV1, place: { container: string; text: string; wireframe: string }, source: SourceRead, pages: SourcePage[]): ProjectDocumentV1[] => {
+  const common = { title: built.title, source: structuredClone(built.source), story: structuredClone(built.story), theme: structuredClone(built.theme), brand: structuredClone(built.brand) }
+  const text: ProjectDocumentV1 = { ...blankProjectDocument(built.title), ...common, id: place.text, container: { id: place.container, kind: 'text' }, notebook: textNotebookOf(source.text || '') }
+  if (built.container?.kind !== 'presentation') return [text]
+  const scenes = (built.notebook.content || []).filter(node => node.type === 'scene' && node.attrs?.id).slice(-pages.length)
+  const wireframe: ProjectDocumentV1 = {
+    ...blankProjectDocument(built.title),
+    ...common,
+    id: place.wireframe,
+    container: { id: place.container, kind: 'wireframe', from: place.text },
+    outline: structuredClone(built.outline),
+    notebook: {
+      type: 'doc',
+      content: scenes.map((node, index) => {
+        const page = pages[index]
+        const schematic = page?.schematic || (page && !page.drawnBy ? { svg: page.svg, program: page.program } : null)
+        const attrs = node.attrs || {}
+        return {
+          type: 'scene',
+          attrs: {
+            id: attrs.id,
+            title: attrs.title,
+            svg: schematic?.svg || '',
+            svgSrc: schematic ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(schematic.svg)}` : '',
+            program: schematic?.program || null,
+            directorNotes: page?.idea || '',
+            script: attrs.script || '',
+            sourcePassages: attrs.sourcePassages || [],
+            structureApproved: true,
+            pageOrigin: { kind: 'schematic' },
+          },
+        }
+      }),
+    },
+  }
+  return [text, wireframe]
 }
 
 // ——— Pages still being designed in an open notebook (F2) ———
@@ -19410,7 +19528,82 @@ document.body.dataset.notebookKind = project.container?.kind || ''
 }
 const notebookSwitch = $('#notebook-switch') as HTMLElement
 let projectNotebooks: NotebookSummary[] = []
+let projectNotebooksLoaded = false
 let notebookSwitchTimer: number | null = null
+// A presentation designed from the wireframe: the drawing harness draws
+// each of its pages, and a new presentation notebook of the project holds
+// the same pages, with the same ids, each bound to the run's page — landing
+// there as it is finished, as pages of an import do.
+let designingPresentation = false
+const designPresentation = async () => {
+  const bridge = window.studioDesktop
+  const place = project.container
+  if (place?.kind !== 'wireframe' || designingPresentation) return
+  if (!bridge?.isDesktop) {
+    showToast('The presentation is designed on a local harness — open the desktop studio')
+    return
+  }
+  const doc = editor.getJSON() as TiptapDocument
+  const pages = doc.content.filter(node => node.type === 'scene' && node.attrs?.id)
+  if (!pages.length) {
+    showToast('The wireframe has no pages to design')
+    return
+  }
+  designingPresentation = true
+  renderNextStep()
+  try {
+    const agent = await resolveCreationAgent('drawing')
+    const outline = project.outline
+    const brand = outline?.pageBrand || { palette: { ground: project.brand.background, text: project.brand.text, accent: project.brand.accent, secondary: project.brand.secondary }, fonts: project.theme?.fonts || null, mode: 'dark' }
+    const presentationId = crypto.randomUUID()
+    const inputs = {
+      video: { title: project.title, site: project.source?.site || '' },
+      brand: { palette: brand.palette, fonts: brand.fonts, mode: brand.mode },
+      // Each page as the wireframe holds it now — its order, its words —
+      // with the plan it was drawn from.
+      scenes: pages.map((node, index) => {
+        const attrs = (node.attrs || {}) as Record<string, unknown>
+        const planned = outlineSceneOf(outline?.scenes, attrs)
+        return { index: index + 1, title: String(attrs.title || ''), kind: planned?.kind || 'diagram', seconds: planned?.seconds || 12, idea: planned?.idea || pageIdeaOf(attrs, outline?.scenes), narration: String(attrs.script || planned?.narration || ''), source: Array.isArray(attrs.sourcePassages) && attrs.sourcePassages.length ? attrs.sourcePassages : planned?.source || [], parts: planned?.parts || [], relations: planned?.relations || [] }
+      }),
+      ...(outline?.objects?.length ? { objects: outline.objects, modelId: project.story?.modelId || '' } : {}),
+      pageCount: pages.length,
+      contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
+      ...(agent.model ? { model: agent.model } : {}),
+      effort: 'high',
+      autonomous: true,
+    }
+    const run = await bridge.harness.run({ adapter: agent.id, skill: 'page-master', route: 'Draw Pages', projectId: presentationId, inputs })
+    let index = 0
+    const presentation: ProjectDocumentV1 = {
+      ...structuredClone(project),
+      id: presentationId,
+      container: { id: place.id, kind: 'presentation', from: project.id },
+      notebook: {
+        ...doc,
+        // Its pages, and any words written between them; not blank lines.
+        content: doc.content.filter(node => node.type !== 'paragraph' || (node.content || []).length).map(node => {
+          if (node.type !== 'scene' || !node.attrs?.id) return node
+          index += 1
+          const binding: PageDesignBinding = { runId: run.id, page: index, by: agent.label, placeholder: pageFingerprint(String(node.attrs.svg || '')) }
+          return { ...node, attrs: { ...node.attrs, pageOrigin: { kind: 'schematic', designing: binding } } }
+        }),
+      },
+    }
+    try {
+      await persistProjectNow(structuredClone(presentation))
+    } catch (error) {
+      console.warn('the presentation notebook not persisted yet', error)
+      rememberDraft(presentation)
+    }
+    await persistProjectNow(structuredClone({ ...project, notebook: doc })).catch(() => rememberDraft(project))
+    activateNotebook(presentationId, `Designing ${pages.length} slide${pages.length === 1 ? '' : 's'} with ${agent.label} — each lands in the presentation as it is finished`)
+  } catch (error) {
+    designingPresentation = false
+    renderNextStep()
+    showToast(error instanceof Error ? error.message : 'The presentation could not be started')
+  }
+}
 const chooseNotebookTab = (tab: SwitchTab) => {
   if (tab.current) return
   if (tab.notebook) {
@@ -19428,6 +19621,7 @@ const chooseNotebookTab = (tab: SwitchTab) => {
   }
   // Here, in the notebook it is made from: make it.
   if (tab.kind === 'video') void planningWorkspace.open()
+  else if (tab.kind === 'presentation') void designPresentation()
   else showToast(tab.title)
 }
 const renderSwitch = () => {
@@ -19443,10 +19637,12 @@ const refreshNotebookSwitch = async () => {
   if (notebookSwitchTimer) window.clearTimeout(notebookSwitchTimer)
   try {
     projectNotebooks = (await fetchJson<{ notebooks: NotebookSummary[] }>(`/api/containers/${encodeURIComponent(project.container.id)}`)).notebooks
+    projectNotebooksLoaded = true
   } catch {
     // A project not saved yet shows this notebook alone until it is.
   }
   renderSwitch()
+  renderNextStep()
   // While a notebook of the project is still being made, its tab follows it.
   const own = notebookSummaryOf({ ...project, notebook: editor.getJSON() as TiptapDocument })
   if (own?.state === 'building' || projectNotebooks.some(entry => entry.state === 'building')) notebookSwitchTimer = window.setTimeout(() => void refreshNotebookSwitch(), 8000)
@@ -19495,11 +19691,15 @@ renderNextStep = () => {
   // A project's text and wireframe are made into the next notebook from the
   // switch; the presentation leads to its video.
   const kind = notebookKind()
-  const step = video
+  // A wireframe with no presentation yet offers to design one.
+  const designable = kind === 'wireframe' && projectNotebooksLoaded && !projectNotebooks.some(entry => entry.kind === 'presentation')
+  const step: NextStep | null = video
     ? sceneReview?.nextStep(selectedNodeId || reviewSelectedScene) || null
-    : kind === 'text' || kind === 'wireframe'
-      ? null
-      : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
+    : designable
+      ? { action: 'design-presentation', label: designingPresentation ? 'Starting the design…' : 'Design presentation', title: 'Design the presentation from these pages: each slide is drawn on your drawing harness and lands in the presentation as it is finished.', sceneId: null, disabled: designingPresentation || !window.studioDesktop?.isDesktop }
+      : kind === 'text' || kind === 'wireframe'
+        ? null
+        : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
   nextStepShown = step
   nextStepButton.hidden = !step
   // A base with no video yet has no plans to show: Create video is its way in.
@@ -19521,6 +19721,9 @@ nextStepButton.addEventListener('click', () => {
       break
     case 'create-video':
       void planningWorkspace.open()
+      break
+    case 'design-presentation':
+      void designPresentation()
       break
     case 'open-video':
       if (baseVideos[0]) void openNotebook(baseVideos[0].id)

@@ -318,49 +318,51 @@ try {
   check('the harness\'s base is finished with no call to a direct model, and no provider to add', finished?.calls === 0 && !/AI provider|Direct API/.test(finished.toast), JSON.stringify(finished))
   check('its scenes keep the harness\'s lines as their notes', lines.length === 2 && lines.every(line => line === 'The pages of BoltDB.'), JSON.stringify(lines))
 
-  // B04 of the BoltDB review: the base shows its pages — each with what it
-  // explains, its notes and the source it rests on — and none of the
-  // video's staging: no dialogue windows or motion, no director or coach,
-  // no presenter, no live canvas or its clock, no Publish. Create video is
-  // the one way on. Advanced › Show video staging shows it here, the older
-  // way, and hides it again.
+  // B04 of the BoltDB review, and the four-notebook model: the import is a
+  // project. It opens on its wireframe — the pages were made as schematics —
+  // with each page's idea, notes and source, and none of the video's
+  // staging: no dialogue windows or motion, no director or coach, no
+  // presenter, no live canvas or its clock, no Publish. Beside it the
+  // project holds the article as a text notebook, tables and diagrams whole;
+  // the presentation and the video are not made yet.
   const visibleJs = `const visible = element => Boolean(element) && element.getClientRects().length > 0`
   const pages = await waitFor(`() => {
     ${visibleJs}
     const blocks = [...document.querySelectorAll('#editor .notebook-scene-block')]
     const src = document.getElementById('player')?.getAttribute('src')
-    if (blocks.length !== 2 || !src) return null
+    const tabs = [...document.querySelectorAll('#notebook-switch .notebook-switch-tab')]
+    if (blocks.length !== 2 || !src || tabs.length !== 4) return null
     return {
+      kind: document.body.dataset.notebookKind,
       base: document.body.classList.contains('is-base-pages'),
       badges: blocks.map(block => block.querySelector('.scene-badge').innerText.trim()),
       posters: blocks.filter(block => visible(block.querySelector('.scene-poster'))).length,
       ideas: blocks.map(block => block.querySelector('.scene-notes-idea p')?.innerText || ''),
       notes: blocks.map(block => block.querySelector('.scene-notes-script p')?.innerText || ''),
       staging: [...new Set(blocks.flatMap(block => ['.scene-arc', '.scene-area', '[data-slide-action]', '.scene-director', '.scene-storyboard', '.scene-cues', '.block-dialogue', 'figcaption'].filter(selector => [...block.querySelectorAll(selector)].some(visible))))],
-      chrome: ['#inline-preview', '#live-camera-toggle', '#render-video', '#open-fullscreen-tab'].filter(selector => visible(document.querySelector(selector))),
+      chrome: ['#inline-preview', '#live-camera-toggle', '#render-video', '#open-fullscreen-tab', '#toggle-video-staging'].filter(selector => visible(document.querySelector(selector))),
       primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(visible).map(element => element.textContent.trim()),
+      tabs: tabs.map(tab => tab.querySelector('strong').textContent + (tab.getAttribute('aria-current') === 'page' ? '*' : '') + ': ' + tab.querySelector('small').textContent).join(' · '),
+      staged: document.querySelectorAll('#editor .notebook-scene-block .block-dialogue.is-synced').length,
       src,
     }
-  }`, 'base pages', 60)
+  }`, 'project wireframe', 60)
   const canvasOf = async src => (src ? fetch(new URL(src, origin)).then(response => response.text()).catch(() => '') : '')
   const pagesCanvas = await canvasOf(pages?.src)
-  await capture('08-boltdb-base-pages')
-  check('the base shows its pages, each with what it explains and its notes', pages?.base === true && pages.posters === 2 && pages.badges.every(badge => badge === 'PAGE') && pages.ideas.join('|') === 'The pages of BoltDB, part 1.|The pages of BoltDB, part 2.' && pages.notes.every(note => note === 'The pages of BoltDB.'), JSON.stringify(pages && { base: pages.base, posters: pages.posters, badges: pages.badges, ideas: pages.ideas, notes: pages.notes }))
-  check('none of the video\'s staging shows on the base: no dialogue, motion, director, coach, live canvas, camera or Publish; Create video is the one way on', pages?.staging.length === 0 && pages.chrome.length === 0 && JSON.stringify(pages.primaries) === '["Create video"]', JSON.stringify(pages && { staging: pages.staging, chrome: pages.chrome, primaries: pages.primaries }))
+  await capture('08-boltdb-wireframe')
+  check('the import opens on the project\'s wireframe: its pages, each with what it explains and its notes', pages?.kind === 'wireframe' && pages.base === true && pages.posters === 2 && pages.badges.every(badge => badge === 'PAGE') && pages.ideas.join('|') === 'The pages of BoltDB, part 1.|The pages of BoltDB, part 2.' && pages.notes.every(note => note === 'The pages of BoltDB.'), JSON.stringify(pages && { kind: pages.kind, base: pages.base, posters: pages.posters, badges: pages.badges, ideas: pages.ideas, notes: pages.notes }))
+  check('none of the video\'s staging is in the wireframe, nor made for it: no dialogue, motion, director, coach, live canvas, camera or Publish; designing the presentation is its one way on', pages?.staging.length === 0 && pages.chrome.length === 0 && JSON.stringify(pages.primaries) === '["Design presentation"]' && pages.staged === 0, JSON.stringify(pages && { staging: pages.staging, chrome: pages.chrome, primaries: pages.primaries, staged: pages.staged }))
   check('its page composition has no presenter in it', pagesCanvas.length > 0 && !pagesCanvas.includes('data-preview-presenter'), `${pagesCanvas.length} characters`)
-  await evaluate(`() => { document.getElementById('toggle-video-staging').click(); return true }`, 'show staging')
-  const staged = await waitFor(`() => {
-    ${visibleJs}
-    const block = document.querySelector('#editor .notebook-scene-block')
-    const src = document.getElementById('player')?.getAttribute('src')
-    if (document.body.classList.contains('is-base-pages') || src === ${JSON.stringify(pages?.src || '')}) return null
-    return { label: document.querySelector('#toggle-video-staging .menu-label').textContent, dialogue: visible(block.querySelector('.block-dialogue')), edit: visible(block.querySelector('[data-slide-action="edit"]')), canvas: visible(document.getElementById('inline-preview')), publish: visible(document.getElementById('render-video')), notes: visible(block.querySelector('.scene-notes')), kept: JSON.parse(localStorage.getItem('studio.video-staging-shown') || '[]'), src }
-  }`, 'staging shown', 40)
-  const stagedCanvas = await canvasOf(staged?.src)
-  check('Show video staging brings the older staging back to this base, presenter and all, and is kept for it', staged?.label === 'Hide video staging' && staged.dialogue && staged.edit && staged.canvas && staged.publish && !staged.notes && staged.kept.length === 1 && staged.kept[0] === finished?.id && stagedCanvas.includes('data-preview-presenter'), JSON.stringify(staged && { ...staged, src: undefined, presenter: stagedCanvas.includes('data-preview-presenter') }))
-  await evaluate(`() => { document.getElementById('toggle-video-staging').click(); return true }`, 'hide staging')
-  const hidden = await waitFor(`() => document.body.classList.contains('is-base-pages') ? { label: document.querySelector('#toggle-video-staging .menu-label').textContent, kept: JSON.parse(localStorage.getItem('studio.video-staging-shown') || '[]') } : null`, 'staging hidden', 20)
-  check('Hide video staging returns the base to its pages', hidden?.label === 'Show video staging' && hidden.kept.length === 0, JSON.stringify(hidden))
+  check('the switch shows the project: its text and wireframe made, its presentation and video not yet', /^Text: \d+ blocks · Wireframe\*: 2 pages · Presentation: not made yet · Video: not made yet$/.test(pages?.tabs || ''), pages?.tabs)
+  const wireframe = finished?.id ? await fetch(`${origin}/api/projects/${encodeURIComponent(finished.id)}`).then(r => r.json()).then(body => body.project) : null
+  const project = wireframe?.container?.id ? await fetch(`${origin}/api/containers/${encodeURIComponent(wireframe.container.id)}`).then(r => r.json()) : null
+  const textRow = (project?.notebooks || []).find(entry => entry.kind === 'text')
+  const textNotebook = textRow ? await fetch(`${origin}/api/projects/${encodeURIComponent(textRow.id)}`).then(r => r.json()).then(body => body.project) : null
+  const textOf = node => (node.content || []).map(child => child.text || textOf(child)).join('')
+  const blocks = (textNotebook?.notebook?.content || []).map(node => ({ type: node.type, text: textOf(node) }))
+  const fenced = blocks.filter(block => block.type === 'codeBlock').map(block => block.text)
+  check('the project is named after the article and holds its text and its wireframe, made from the text', project?.container?.title === 'How BoltDB works' && JSON.stringify(project.notebooks.map(entry => entry.kind).sort()) === '["text","wireframe"]' && wireframe.container.kind === 'wireframe' && wireframe.container.from === textRow?.id, JSON.stringify(project && { title: project.container?.title, kinds: project.notebooks.map(entry => entry.kind), place: wireframe?.container }))
+  check('the text notebook is the article as read: its headings, its prose, its table and its diagrams whole', blocks.some(block => block.type === 'heading' && block.text === 'How BoltDB Works: A High-Level Tour') && blocks.some(block => block.type === 'paragraph' && /reads it through memory mapping/.test(block.text)) && fenced.some(text => text.includes('| Page type | What it holds |') && table.every(row => text.includes(row))) && fenced.some(text => text.includes(HEADER_DIAGRAM)), JSON.stringify(blocks.map(block => `${block.type}: ${block.text.slice(0, 40)}`)))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

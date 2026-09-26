@@ -499,6 +499,46 @@ try {
   }, 90)
   check('after a restart, the page the run left lands on its base, and the binding goes with the run', Boolean(recovered), JSON.stringify(recovered?.pageOrigin))
   check('the run the app was working when it closed reads as ended', ['error', 'interrupted', 'cancelled'].includes(await runStatus(deckI.run)), String(await runStatus(deckI.run)))
+
+  // 9. The four-notebook model: an import made as schematic drafts is a
+  // project, and it opens on its wireframe, which offers to design the
+  // presentation. Designing it makes the presentation a notebook of its own
+  // — the same pages, with the same ids, each bound to the run's page — and
+  // each slide lands there as it is finished, while the wireframe keeps its
+  // schematics.
+  await setScenario({ mode: 'normal', marker: 'RUN-W', delayMs: 1500 })
+  // The restart above opened the app on its landing page: back to the studio.
+  await evaluate(`() => { window.location.assign('/studio'); return true }`, 'studio W').catch(() => {})
+  await waitFor(`() => Boolean(document.querySelector('#editor .ProseMirror')) && !document.getElementById('app').hidden && window.__source`, 'studio W boot')
+  await evaluate(`() => { window.__source.open('narrative'); return true }`, 'open source W')
+  await evaluate(`() => { document.getElementById('source-narrative').value = ${JSON.stringify(NARRATIVE)}; document.getElementById('source-read').click(); return true }`, 'read W')
+  await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand W')
+  await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline W')
+  await waitFor(`() => !document.getElementById('source-step-outline')?.hidden && document.querySelectorAll('#source-scenes li').length === 2`, 'outline W', 150)
+  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'schematic W')
+  await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages W', 60)
+  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish W')
+  const wireframeW = await waitFor(`() => !document.getElementById('source-dialog')?.open && document.body.dataset.notebookKind === 'wireframe' && !document.getElementById('next-step').hidden && document.getElementById('next-step').textContent === 'Design presentation' ? localStorage.getItem('incredible-studio-v2-active-project') : null`, 'wireframe W', 120)
+  await capture('09-wireframe')
+  check('an import made as schematic drafts opens on the project\'s wireframe, which offers to design the presentation', Boolean(wireframeW), String(wireframeW))
+  await evaluate(`() => { setTimeout(() => document.getElementById('next-step').click(), 0); return true }`, 'design presentation')
+  const presentationW = await waitFor(`() => document.body.dataset.notebookKind === 'presentation' ? localStorage.getItem('incredible-studio-v2-active-project') : null`, 'presentation W', 120)
+  const wireW = wireframeW ? await projectOf(wireframeW) : null
+  const madeW = presentationW ? await projectOf(presentationW) : null
+  check('designing it makes the presentation a notebook of the project, made from the wireframe, its pages bound to the run', madeW?.container?.kind === 'presentation' && madeW.container.from === wireframeW && madeW.container.id === wireW?.container?.id && scenesIn(madeW).length === 2 && scenesIn(madeW).every((scene, index) => scene.attrs.id === scenesIn(wireW)[index]?.attrs?.id && scene.attrs.pageOrigin?.designing?.page === index + 1), JSON.stringify({ container: madeW?.container, origins: scenesIn(madeW).map(scene => scene.attrs.pageOrigin) }))
+  const landedW = await until(async () => {
+    const scenes = scenesIn(await projectOf(presentationW))
+    return scenes.length === 2 && scenes.every(scene => scene.attrs.pageOrigin?.kind === 'designed' && !scene.attrs.pageOrigin.designing && String(scene.attrs.svg).includes('RUN-W')) ? scenes : null
+  }, 120)
+  check('each slide lands in the presentation as it is finished', Boolean(landedW), JSON.stringify(scenesIn(await projectOf(presentationW)).map(scene => scene.attrs.pageOrigin)))
+  const wireAfter = wireframeW ? await projectOf(wireframeW) : null
+  check('the wireframe keeps its schematics', scenesIn(wireAfter).length === 2 && scenesIn(wireAfter).every(scene => scene.attrs.pageOrigin?.kind === 'schematic' && !String(scene.attrs.svg).includes('RUN-W')), JSON.stringify(scenesIn(wireAfter).map(scene => scene.attrs.pageOrigin)))
+  const shownW = await waitFor(`() => {
+    const tabs = [...document.querySelectorAll('#notebook-switch .notebook-switch-tab')].map(tab => tab.querySelector('strong').textContent + (tab.getAttribute('aria-current') === 'page' ? '*' : '') + ': ' + tab.querySelector('small').textContent).join(' · ')
+    return /Wireframe: 2 pages · Presentation\\*: 2 slides · Video: not made yet$/.test(tabs) && document.getElementById('next-step').textContent === 'Create video' ? tabs : null
+  }`, 'presentation W ready', 60)
+  await capture('10-presentation')
+  check('the presentation, its slides landed, reads as ready in the switch and leads to its video', Boolean(shownW), String(shownW))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

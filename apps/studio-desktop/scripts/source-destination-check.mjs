@@ -326,7 +326,7 @@ try {
   const newNotebook = opened ? await projectBody(opened.id) : null
   const videoAfter = await projectBody(VIDEO_ID)
   check('the new notebook is a base of its own, and the video notebook is untouched', Boolean(newNotebook) && !newNotebook.derivedFrom && sceneNodes(newNotebook).length === 1 && sceneNodes(videoAfter).length === 1 && videoAfter.derivedFrom?.notebook === BASE_ID, JSON.stringify({ derived: newNotebook?.derivedFrom || null, video: sceneNodes(videoAfter).map(node => node.attrs?.title) }))
-  const notice = await waitFor(`() => { const toast = document.querySelector('#toast, .toast'); return toast && /in a new notebook/.test(toast.textContent) ? toast.textContent : null }`, 'notice', 20)
+  const notice = await waitFor(`() => { const toast = document.querySelector('#toast, .toast'); return toast && /in a new project/.test(toast.textContent) ? toast.textContent : null }`, 'notice', 20)
   check('once it is open, the new notebook says what it holds', Boolean(notice), notice || '')
 
   // Cleanup: every notebook this run touched goes; the temp store removes the

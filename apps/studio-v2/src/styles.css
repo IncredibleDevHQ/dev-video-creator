@@ -1743,7 +1743,7 @@ body.in-project:not(.is-video-notebook) #workspace-tab-notebook { display: none;
    document — no theme, spoken explanations or scene timeline; the wireframe
    and presentation are pages — no text formatting or Markdown import. */
 body[data-notebook-kind="text"] :is(.studio-theme-picker, .notebook-explanation, #notebook-timeline, #video-length, #open-assets, #import-svg-pages) { display: none; }
-body:is([data-notebook-kind="wireframe"], [data-notebook-kind="presentation"]) :is(#editor-toolbar, #video-length, #import-file, #paste-markdown) { display: none; }
+body:is([data-notebook-kind="wireframe"], [data-notebook-kind="presentation"]) :is(#editor-toolbar, #video-length, #import-file, #paste-markdown, .notebook-explanation) { display: none; }
 /* Every page of a wireframe is a schematic: it needs no saying. */
 body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
 
