@@ -127,12 +127,29 @@ export type HumanCameraTrackV1 = {
 }
 
 export type NarrationTrackV1 = {
+  recordingId?: string
   kind: 'narration'
   audioUrl: string
   audioKind: 'generated' | 'recorded-mic'
 }
 
 export type PresenterTrackV1 = HumanCameraTrackV1 | NarrationTrackV1
+
+// A scene produced from its approved plan and accepted (P4): the render of
+// the accepted bundle, from the pinned producer, and what it was made of.
+export type ProducedSceneV1 = {
+  productionId: string
+  videoUrl: string
+  durationMs: number
+  // The accepted bundle's hash, and the approved plan it realizes.
+  bundle: string
+  plan: { record: string; revision: number }
+  acceptedAt: string
+  // Whether the render carries the scene's voice; a silent scene's does not.
+  voiced: boolean
+  // The creator's edit revision the render was made with (P6).
+  edits?: number
+}
 
 export type RecordedBlockV1 = {
   blockId: NodeId
@@ -155,6 +172,13 @@ export type RecordedBlockV1 = {
   cameraUrl?: string
   cameraAssetId?: string
   beatMarksMs?: number[]
+  // The words the take was spoken against: their fingerprint, each line's
+  // fingerprint and, when a scene plan supplied them, that plan's record and
+  // revision. A later script never relabels an earlier take as current.
+  script?: { hash: string; lines?: string[]; treatment?: string; revision?: number }
+  // A pickup: a take of only some of the scene's lines, recorded to replace
+  // those lines of the selected take. It is never the scene's selected take.
+  pickup?: boolean
 }
 
 export type BrandTemplateV1 = {
@@ -306,6 +330,78 @@ export type StudioThemeV1 = {
     code: RevealStyle
     quote: RevealStyle
   }
+  // The type families read off the brand's site, when the theme was saved
+  // from a site read: reusing the theme restores its typography too.
+  // Optional — hand-authored themes carry none.
+  fonts?: { display: string; body: string; mono: string; seen?: string[] }
+  // Where its colours came from, when it was made from a source read: read
+  // off a website, defaults because none could be read, or chosen by hand.
+  // Optional — hand-authored themes carry none.
+  colours?: { provenance: 'extracted' | 'fallback' | 'manual'; from: string }
+}
+
+// ——— A project and its notebooks ———
+// The project the creator sees is a container. It holds notebooks, each a
+// document of its own with the model its kind needs — a video keeps takes,
+// produced scenes and export settings a presentation never has — and each
+// made from another notebook of the project. The kinds and what each is made
+// from are listed in formats.ts: a new kind, a live stream or a newsletter,
+// is a new entry there, and nothing about how projects are stored changes.
+export type NotebookKind = 'text' | 'wireframe' | 'presentation' | 'video'
+
+// The project itself: what belongs to the whole, not to one notebook. Which
+// notebooks it holds is said by the notebooks — each names its project — so
+// there is one record of it.
+export type ProjectContainerV1 = {
+  version: 1
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+// A notebook's place in its project: which project, what kind of notebook
+// it is there, and the notebook of the project it was made from. A video
+// keeps its pinned base in derivedFrom as well.
+export type NotebookPlaceV1 = {
+  id: string
+  kind: NotebookKind
+  from?: string
+}
+
+// A notebook still being made in the background (the four-notebook
+// model). The import opens on the project's text as soon as the brand is
+// chosen; its wireframe is saved at once, waiting for the outline — from
+// the story run named here, or the direct model — and is then drawn from
+// it. Whoever opens the project, or restarts the app, finds it waiting and
+// sees it through.
+export type NotebookBuildV1 = {
+  kind: 'wireframe'
+  via: 'harness' | 'api'
+  runId?: string
+  // Who makes it, as the creator reads it: "Claude Code · Claude Opus 5.5",
+  // and the harness and model a story run was started on (none for the
+  // direct model).
+  by: string
+  harness?: string
+  model?: string
+  // Each start, and each time it is made again, is an attempt of its own:
+  // its identity and how many there have been. What an attempt was given
+  // is never taken by another.
+  attempt?: string
+  attempts?: number
+  startedAt: string
+  // What the outline is made from: the article's stored read, the authored
+  // narrative, the wording policy and the length asked for.
+  sourceRevision?: string
+  narrativeRevision?: string
+  wording: 'preserve' | 'assist' | 'draft'
+  targetSeconds?: number | null
+  // The palette and fonts the pages are drawn in, and the site they name.
+  brand: { palette: Record<string, unknown>; fonts: Record<string, unknown> | null; mode: string; site: string }
+  // Why it could not be made, when it could not, and what the creator can
+  // do about it — a provider's own recovery, like switching harness.
+  failure?: { message: string; at: string; recovery?: string[] }
 }
 
 // Where a derived notebook came from. A video fork pins the revision of the
@@ -334,6 +430,11 @@ export type ProjectDocumentV1 = {
   // Derivation lineage: this notebook was derived from another one (e.g. a
   // video fork of a presentation notebook). Optional and additive.
   derivedFrom?: ProjectDerivationV1
+  // The project this notebook belongs to and what it is there. A notebook
+  // with none stands alone, as every notebook did before projects.
+  container?: NotebookPlaceV1
+  // Set while the notebook is still being made in the background.
+  build?: NotebookBuildV1
   notebook: TiptapDocument
   fps: 30
   width: 1920
@@ -342,6 +443,9 @@ export type ProjectDocumentV1 = {
   presenterTracks: Record<NodeId, PresenterTrackV1[]>
   recordedBlocks?: Record<NodeId, RecordedBlockV1>
   recordedBlockTakes?: Record<NodeId, RecordedBlockV1[]>
+  // Scenes produced from their approved plans and accepted (P4): the render
+  // of each replaces the scene — the frames and sound the creator accepted.
+  producedScenes?: Record<NodeId, ProducedSceneV1>
   // Custom atomic shapes for explainer diagrams, merged over the built-in
   // vocabulary (see explainer.ts) by shape key.
   shapeCollection?: import('./explainer').ShapeDefV1[]
@@ -353,8 +457,14 @@ export type ProjectDocumentV1 = {
   outline?: {
     title: string
     targetSeconds: number
-    scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string; source?: string[] }>
+    // A page's plan: its idea, its first line, and the parts it is drawn
+    // from and how they relate — what a design run draws the page from.
+    scenes: Array<{ nodeId?: string; title: string; kind: string; seconds: number; idea: string; source?: string[]; narration?: string; parts?: unknown[]; relations?: unknown[] }>
     glossary: Array<{ term: string; meaning: string }>
+    // The explanation model's objects — one thing keeps one id on every
+    // page — and the palette and fonts the pages are drawn in.
+    objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }>
+    pageBrand?: { palette: Record<string, unknown>; fonts: Record<string, unknown> | null; mode: string }
   }
   // The explainer delivery journey chosen in Create explainer: a recorded
   // human presenter or generated narration. Recorded per notebook; an

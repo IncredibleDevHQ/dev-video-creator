@@ -1,0 +1,280 @@
+{
+	"version": 1,
+	"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+	"plan": {
+		"record": "plan-treatment-0ec488ad-7098-4e7a-bce1-7c3e6a5cbba6",
+		"revision": 5
+	},
+	"composition": {
+		"id": "sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r5",
+		"width": 1920,
+		"height": 1080,
+		"fps": 30,
+		"duration": 26.5
+	},
+	"runtime": { "hyperframes": "0.7.106" },
+	"moments": [
+		{
+			"id": "m1",
+			"title": "Open the limiter",
+			"start": 0,
+			"end": 5.5,
+			"estimated": true
+		},
+		{
+			"id": "m2",
+			"title": "One request, one token",
+			"start": 5.5,
+			"end": 7.6,
+			"estimated": true
+		},
+		{
+			"id": "m3",
+			"title": "A burst outruns the drip",
+			"start": 7.6,
+			"end": 11.8,
+			"estimated": true
+		},
+		{
+			"id": "m4",
+			"title": "Refused",
+			"start": 11.8,
+			"end": 15.4,
+			"estimated": true
+		},
+		{
+			"id": "m5",
+			"title": "Hold on the refill",
+			"start": 15.4,
+			"end": 20.3,
+			"estimated": true
+		},
+		{
+			"id": "m6",
+			"title": "Name the rate",
+			"start": 20.3,
+			"end": 23,
+			"estimated": true
+		},
+		{
+			"id": "m7",
+			"title": "Every bucket, in Redis",
+			"start": 23,
+			"end": 26.5,
+			"estimated": true
+		}
+	],
+	"layers": [
+		{
+			"id": "background",
+			"kind": "background",
+			"label": "Theme ground (#0e0c17) with its faint grid",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "headline",
+			"kind": "text",
+			"label": "token bucket · one per user",
+			"moments": ["m1"]
+		},
+		{
+			"id": "request-rate-limiter",
+			"kind": "object",
+			"label": "Request rate limiter's small bucket glyph, growing into the token bucket (card-morph-anchor)",
+			"moments": ["m1"],
+			"placeholder": "Native stand-in glyph, labelled: the planned library artwork cast-be8d129feaa5af3270de is not in this packet"
+		},
+		{
+			"id": "token-bucket",
+			"kind": "object",
+			"label": "One user's token bucket: shell, clipped level and three tokens that detach (white hand-off) and return",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": { "libraryKey": "cast-04749a557fba75d71c2a" }
+		},
+		{
+			"id": "drip",
+			"kind": "object",
+			"label": "Inlet drop: hangs still while full, swells over each beat, falls and lands as a token",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": { "libraryKey": "cast-e402bea443366ccd2f0d" }
+		},
+		{
+			"id": "user",
+			"kind": "object",
+			"label": "User chip docked at the bucket's left rim",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6"],
+			"asset": { "libraryKey": "cast-4e8f7fd4476d20bcfb21" }
+		},
+		{
+			"id": "api",
+			"kind": "object",
+			"label": "API endpoint (native)",
+			"moments": ["m2", "m3", "m4", "m5", "m6"]
+		},
+		{
+			"id": "request",
+			"kind": "object",
+			"label": "Requests A–F on one route: user → rim → API; E stops at the rim, turns accent and recoils",
+			"moments": ["m2", "m3", "m4", "m6"],
+			"asset": { "libraryKey": "cast-7e5a78d981cbff2953de" }
+		},
+		{
+			"id": "token-count",
+			"kind": "text",
+			"label": "tokens: n (vertical ticker, always equal to the ledger)",
+			"moments": ["m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "http-429",
+			"kind": "object",
+			"label": "429 Too Many Requests badge in accent, riding with request E",
+			"moments": ["m4"],
+			"asset": { "libraryKey": "cast-c637a420e8125820e51c" }
+		},
+		{
+			"id": "refill-label",
+			"kind": "text",
+			"label": "refill: N tokens / second",
+			"moments": ["m6", "m7"]
+		},
+		{
+			"id": "redis",
+			"kind": "object",
+			"label": "Redis store panel (native, secondary) headed by the page's Redis icon, which pulses once",
+			"moments": ["m7"],
+			"asset": { "libraryKey": "cast-a1847d19888736efd5ec" }
+		},
+		{
+			"id": "redis-label",
+			"kind": "text",
+			"label": "Redis · every user's bucket",
+			"moments": ["m7"]
+		},
+		{
+			"id": "other-buckets",
+			"kind": "object",
+			"label": "Other users' buckets, dimmed, at illustrative levels, settling into the row",
+			"moments": ["m7"]
+		},
+		{
+			"id": "camera",
+			"kind": "camera",
+			"label": "Hold on the bucket and its route (m1–m6); one decelerating pull-back to the Redis store (m7), no zoom-in",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "narration-guide",
+			"kind": "caption",
+			"label": "Moment title and draft narration line",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"placeholder": "Sketch-only caption standing in for the voice: no narration exists yet, and the plan puts no narration on screen"
+		}
+	],
+	"provisional": [
+		"Timing is estimated from the plan: no voice or take exists yet. Moment lengths follow the plan's estimates (5.5 / 2 / 4 / 3.5 / 4.5 / 3 / 4 s), shifted by up to 0.4 s (m2 2.1, m3 4.2, m4 3.6, m5 4.9, m6 2.7, m7 3.5) so that each drip beat lands in the moment the ledger gives it.",
+		"The drip beat of 4.4 s screen time is illustrative, as the plan's 'about 4 s' is. Its clock runs from 6.8 s. That first beat adds nothing because the bucket is still full, and later beats land at 11.2, 15.6, 20.0 and 24.4 s.",
+		"Presenter: visibility is undecided in the plan (m1 and m7), so the sketch draws no presenter stand-in.",
+		"The request rate limiter glyph is a labelled native placeholder, because its library artwork (cast-be8d129feaa5af3270de) is not in this packet.",
+		"The narration captions are for the sketch only: they show the draft lines from the plan's narration guide against the estimated timing.",
+		"Cast artwork is inlined and roughly recoloured: bucket, drop, requests and Redis icon use primary tints instead of accent; the 429 mark is redrawn as an accent badge. Tokens are separate native circles (re-rig), and the level stays inside the bucket's clip at the rig's extent.",
+		"token-hand-off and refusal-recoil are adapted recipes, roughed in here. The request route is straight keyframed x/y rather than the MotionPath technique, because the pinned runtime loads only gsap.min.js.",
+		"Other users' bucket levels are illustrative. So is the 'N' in the refill label: the creator has still to confirm that the drip rate equals the limiter's N.",
+		"Type uses the system sans and mono generics in place of the theme's Inter fallback, since the sketch ships no font files."
+	],
+	"schedule": {
+		"quantity": "tokens in this user's bucket",
+		"capacity": 3,
+		"initial": 3,
+		"rules": [
+			{ "id": "drip", "change": "add", "amount": 1, "every": 4.4, "from": 6.8 }
+		],
+		"pauses": [],
+		"events": [
+			{
+				"at": 7.1,
+				"moment": "m2",
+				"change": "consume",
+				"amount": 1,
+				"after": 2,
+				"layers": ["token-bucket", "token-count"]
+			},
+			{
+				"at": 8.4,
+				"moment": "m3",
+				"change": "consume",
+				"amount": 1,
+				"after": 1,
+				"layers": ["token-bucket", "token-count"]
+			},
+			{
+				"at": 9.3,
+				"moment": "m3",
+				"change": "consume",
+				"amount": 1,
+				"after": 0,
+				"layers": ["token-bucket", "token-count"]
+			},
+			{
+				"at": 11.2,
+				"moment": "m3",
+				"change": "add",
+				"amount": 1,
+				"after": 1,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			},
+			{
+				"at": 11.6,
+				"moment": "m3",
+				"change": "consume",
+				"amount": 1,
+				"after": 0,
+				"layers": ["token-bucket", "token-count"]
+			},
+			{
+				"at": 12.9,
+				"moment": "m4",
+				"change": "refuse",
+				"amount": 0,
+				"after": 0,
+				"needs": 1,
+				"layers": ["request", "http-429"]
+			},
+			{
+				"at": 15.6,
+				"moment": "m5",
+				"change": "add",
+				"amount": 1,
+				"after": 1,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			},
+			{
+				"at": 20,
+				"moment": "m5",
+				"change": "add",
+				"amount": 1,
+				"after": 2,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			},
+			{
+				"at": 22.1,
+				"moment": "m6",
+				"change": "consume",
+				"amount": 1,
+				"after": 1,
+				"layers": ["token-bucket", "token-count"]
+			},
+			{
+				"at": 24.4,
+				"moment": "m7",
+				"change": "add",
+				"amount": 1,
+				"after": 2,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			}
+		]
+	}
+}

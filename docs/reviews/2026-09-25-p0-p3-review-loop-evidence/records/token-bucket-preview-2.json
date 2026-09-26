@@ -1,0 +1,287 @@
+{
+	"id": "plan-preview-8b29b183-393c-41f4-be98-25fa3ec2a26c",
+	"kind": "preview",
+	"error": null,
+	"model": "claude-opus-5-5",
+	"inputs": {
+		"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+		"castId": "visual-cast:9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652:a3fde129894498da:v1",
+		"schema": 2,
+		"themeRef": "generated-1790281981587-0:bd8b60cb2ac65aae",
+		"bundleHash": "9e430540653ef12c",
+		"treatmentId": "plan-treatment-50664953-a9e3-4b93-b289-7a37f3871be5",
+		"packetObjectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-packet/6115d209-344b-4b9b-8e41-5adc8f2ba093.json",
+		"treatmentFingerprint": "3a310a4977a3f877"
+	},
+	"report": {
+		"warnings": [
+			"layer token-bucket has a placeholder that manifest.provisional does not mention",
+			"layer drip has a placeholder that manifest.provisional does not mention",
+			"layer route-guide has a placeholder that manifest.provisional does not mention",
+			"layer api has a placeholder that manifest.provisional does not mention",
+			"layer http-429 has a placeholder that manifest.provisional does not mention",
+			"layer other-buckets has a placeholder that manifest.provisional does not mention",
+			"layer presenter has a placeholder that manifest.provisional does not mention",
+			"layer sketch-annotations has a placeholder that manifest.provisional does not mention",
+			"hyperframes lint timeline_track_too_dense: Track 2 has 7 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff."
+		]
+	},
+	"run_id": "run-mug1cjqp-5ef5352b",
+	"status": "ready",
+	"adapter": "claude-code",
+	"content": {
+		"plan": {
+			"record": "plan-treatment-50664953-a9e3-4b93-b289-7a37f3871be5",
+			"revision": 2
+		},
+		"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+		"layers": [
+			{
+				"id": "background",
+				"kind": "background",
+				"label": "Solid theme background (#0e0c17)",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+			},
+			{
+				"id": "camera",
+				"kind": "camera",
+				"label": "World camera: holds on the bucket, centre-left, from m1 to m6; one decelerating pull-back (scale 1 → 0.45) in m7 reveals the Redis store. No zoom-in anywhere",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+			},
+			{
+				"id": "request-rate-limiter",
+				"kind": "object",
+				"asset": {
+					"path": "assets/request-rate-limiter.svg",
+					"libraryKey": "cast-be8d129feaa5af3270de"
+				},
+				"label": "Request rate limiter glyph that grows in place into the token bucket (card-morph-anchor), then hands over to it",
+				"moments": ["m1"]
+			},
+			{
+				"id": "token-bucket",
+				"kind": "object",
+				"asset": {
+					"path": "assets/token-bucket.svg",
+					"libraryKey": "cast-9fa5e36e9ae63d7d1885"
+				},
+				"label": "One user's token bucket: the page's trapezoid and level, recoloured to primary; three tokens rigged as separate objects that leave with requests (accent while taken) and return as drops land; the level follows the count",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+				"placeholder": "Sketch redraw of the page bucket's geometry in primary, with native circle tokens. The planned adapted, re-rigged bucket asset does not exist yet"
+			},
+			{
+				"id": "drip",
+				"kind": "object",
+				"asset": {
+					"path": "assets/drip.svg",
+					"libraryKey": "cast-e402bea443366ccd2f0d"
+				},
+				"label": "Inlet drop: swells slowly during the burst without falling, then falls and becomes a token twice in m5 and once in m7",
+				"moments": ["m1", "m3", "m5", "m6", "m7"],
+				"placeholder": "Sketch recolour of the page's drop to primary. The planned swell-and-fall rig does not exist yet"
+			},
+			{
+				"id": "user",
+				"kind": "object",
+				"asset": {
+					"path": "assets/user.svg",
+					"libraryKey": "cast-4e8f7fd4476d20bcfb21"
+				},
+				"label": "User chip that pops in and docks at the bucket's left rim; the source of every request",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+			},
+			{
+				"id": "request",
+				"kind": "object",
+				"asset": {
+					"path": "assets/request.svg",
+					"libraryKey": "cast-7e5a78d981cbff2953de"
+				},
+				"label": "Requests A–E on one fixed route (user → over the bucket → API); B and C closer together; D stops at the empty rim, turns accent and recoils",
+				"moments": ["m2", "m3", "m4", "m6"]
+			},
+			{
+				"id": "route-guide",
+				"kind": "object",
+				"label": "Faint dashed line along the requests' route (a sketch reading aid)",
+				"moments": ["m2", "m3", "m4", "m5", "m6"],
+				"placeholder": "Sketch aid only; the plan does not ask for a drawn route"
+			},
+			{
+				"id": "api",
+				"kind": "object",
+				"label": "API endpoint on the right edge that receives A, B, C and E",
+				"moments": ["m2", "m3", "m4", "m5", "m6", "m7"],
+				"placeholder": "Native rounded box labelled 'API', as the plan specifies"
+			},
+			{
+				"id": "http-429",
+				"kind": "object",
+				"asset": {
+					"path": "assets/http-429.svg",
+					"libraryKey": "cast-c637a420e8125820e51c"
+				},
+				"label": "429 badge that pops onto request D at the moment of refusal and travels back with it",
+				"moments": ["m4"],
+				"placeholder": "Sketch recolour of the page's 429 mark to accent, set in a pill badge. The planned adapted badge asset does not exist yet"
+			},
+			{
+				"id": "token-count",
+				"kind": "text",
+				"label": "Mono 'tokens: n' vertical ticker beside the bucket, always equal to the ledger: 3 → 2 → 1 → 0 → 1 → 2 → 1 → 2",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+			},
+			{
+				"id": "term",
+				"kind": "text",
+				"label": "token bucket · one per user",
+				"moments": ["m1"]
+			},
+			{
+				"id": "http-429-label",
+				"kind": "text",
+				"label": "429 Too Many Requests",
+				"moments": ["m4"]
+			},
+			{
+				"id": "refill-label",
+				"kind": "text",
+				"label": "refill: N tokens / second (N in accent, the symbol shared with the request rate limiter)",
+				"moments": ["m6", "m7"]
+			},
+			{
+				"id": "redis",
+				"kind": "object",
+				"asset": {
+					"path": "assets/redis.svg",
+					"libraryKey": "cast-a1847d19888736efd5ec"
+				},
+				"label": "Redis store panel in the secondary colour, headed by the page's Redis icon, which pulses once",
+				"moments": ["m7"]
+			},
+			{
+				"id": "redis-label",
+				"kind": "text",
+				"label": "Redis · every user's bucket",
+				"moments": ["m7"]
+			},
+			{
+				"id": "other-buckets",
+				"kind": "object",
+				"label": "Four dimmed copies of the bucket settling into the row, each with its own count (3, 1, 0, 2, illustrative)",
+				"moments": ["m7"],
+				"placeholder": "Native simplified buckets; their counts are illustrative"
+			},
+			{
+				"id": "presenter",
+				"kind": "presenter",
+				"label": "Presenter slot at the right edge, shown only where the plan leaves it undecided (the open and the wide Redis view)",
+				"moments": ["m1", "m7"],
+				"placeholder": "Stand-in: a framed silhouette. Presenter visibility is undecided and no take is recorded"
+			},
+			{
+				"id": "sketch-annotations",
+				"kind": "caption",
+				"label": "Sketch-only strips: the moment tag at top left and the draft narration guide at the bottom, as a timing aid",
+				"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+				"placeholder": "Not planned on-screen text: the plan says narration does not appear on screen"
+			}
+		],
+		"moments": [
+			{
+				"id": "m1",
+				"end": 4,
+				"start": 0,
+				"title": "Open the limiter",
+				"estimated": true
+			},
+			{
+				"id": "m2",
+				"end": 7,
+				"start": 4,
+				"title": "One request, one token",
+				"estimated": true
+			},
+			{
+				"id": "m3",
+				"end": 10.5,
+				"start": 7,
+				"title": "A burst drains it",
+				"estimated": true
+			},
+			{
+				"id": "m4",
+				"end": 13.5,
+				"start": 10.5,
+				"title": "Refused",
+				"estimated": true
+			},
+			{
+				"id": "m5",
+				"end": 16.5,
+				"start": 13.5,
+				"title": "Hold on the refill",
+				"estimated": true
+			},
+			{
+				"id": "m6",
+				"end": 20,
+				"start": 16.5,
+				"title": "Name the rate",
+				"estimated": true
+			},
+			{
+				"id": "m7",
+				"end": 24,
+				"start": 20,
+				"title": "Every bucket, in Redis",
+				"estimated": true
+			}
+		],
+		"runtime": {
+			"hyperframes": "0.7.106"
+		},
+		"version": 1,
+		"composition": {
+			"id": "sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r2",
+			"fps": 30,
+			"width": 1920,
+			"height": 1080,
+			"duration": 24
+		},
+		"provisional": [
+			"Timing is estimated from the plan (about 24 s) — no voice or take exists yet",
+			"Presenter is a stand-in: visibility is undecided and no take is recorded",
+			"The bucket, drop and 429 badge are sketch recolours and re-rigs of the page artwork; the planned adapted assets do not exist yet",
+			"The API endpoint and the other users' buckets are native placeholders; the other buckets' counts are illustrative",
+			"The route is approximated with eased straight segments because only GSAP core is loaded; the plan's MotionPath technique is left for construction to verify",
+			"token-hand-off and refusal-recoil are rough stand-ins for adapted recipes that no catalogue entry covers",
+			"Capacity 3, requests A–E and the drop count are illustrative values from the plan; N stays symbolic",
+			"The bottom strip shows the draft narration only as a timing aid; the plan puts no narration on screen",
+			"Type uses generic system-ui and ui-monospace faces, since the theme names no families and the sketch ships no font files",
+			"The dashed route line is a sketch reading aid, not part of the plan",
+			"No audio is included; the plan defers any refill tick until delivery is decided"
+		]
+	},
+	"subject": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+	"approval": null,
+	"revision": 2,
+	"workflow": "sketch",
+	"artifacts": {
+		"assetId": "d74d2a42-0de8-4a68-b22c-d63c142359ba",
+		"objectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-preview/d74d2a42-0de8-4a68-b22c-d63c142359ba.json"
+	},
+	"direction": "",
+	"created_at": "2026-09-24T21:20:03.565877+00:00",
+	"project_id": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+	"updated_at": "2026-09-24T21:26:32.736181+00:00",
+	"fingerprint": "dbe221461c059e1e",
+	"reviewed_at": null,
+	"skill_bundle": {
+		"hash": "9e430540653ef12c",
+		"name": "video-planner",
+		"version": "0.1.1",
+		"upstreamCommit": "99221c50a5e5927ca243454b4e4f02f9adf7cfc6"
+	},
+	"reported_model": "claude-opus-5-5"
+}

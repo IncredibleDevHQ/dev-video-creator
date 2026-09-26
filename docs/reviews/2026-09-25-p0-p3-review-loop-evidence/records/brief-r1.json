@@ -1,0 +1,1358 @@
+{
+	"id": "plan-brief-9f16a47b-74c9-4116-a77b-1f824df18a53",
+	"kind": "brief",
+	"error": null,
+	"model": "claude-opus-5-5",
+	"inputs": {
+		"schema": 2,
+		"scripts": [
+			{
+				"text": "A sudden spike in traffic\n\ncan take an API down for every one of its users.\n\nLet's look at how Stripe keeps its API available with four kinds of limiters.",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s01"
+			},
+			{
+				"text": "Adding capacity works the first few times,\n\nbut it won't stop one bad actor.\n\nRate limiting helps when one user spikes, when a runaway or hostile script floods us,\n\nwhen low-priority requests crowd out critical ones,\n\nand when something breaks inside our own system.",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s02"
+			},
+			{
+				"text": "A rate limiter works per user, and fits whenever clients can spread their requests out.\n\nThe first and most important caps each user at N requests per second,\n\nwith brief bursts for spikes like a flash sale.\n\nPast the limit, the next request is answered with a 429.\n\nThe second caps how many requests a user has in progress at once, say twenty,\n\nso retries can't pile onto expensive endpoints.",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s03"
+			},
+			{
+				"text": "During incidents we need a load shedder,\n\nwhich decides on the state of the whole system rather than on who is asking.\n\nThe fleet usage shedder reserves a slice of capacity, say 20%, for critical requests\n\nand answers extra non-critical traffic with a 503.\n\nThe worker shedder is the last line of defense:\n\nwhen workers back up,\n\nit slowly sheds test mode traffic first.",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s04"
+			},
+			{
+				"text": "Under the hood, Stripe uses the token bucket algorithm.\n\nEvery user gets a bucket; each request takes a token,\n\nand fresh tokens drip back in slowly.\n\nIf requests come faster than the drip, the bucket runs empty.\n\nIf the bucket is empty, the request is rejected.\n\nThe buckets live centrally, in Redis.",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05"
+			},
+			{
+				"text": "A limiter must never become the outage. Hook it in so it fails open if its own code or Redis breaks, and return clear, actionable 429 or 503 errors. Keep kill switches and metrics at hand, and dark launch each limiter to see what it would block before it blocks anything.",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s06"
+			},
+			{
+				"text": "So start with a request rate limiter, add the other three as you grow, and launch each one carefully.",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s07"
+			}
+		],
+		"themeRef": "generated-1790281981587-0:bd8b60cb2ac65aae",
+		"bundleHash": "9e430540653ef12c",
+		"baseNotebook": "9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652",
+		"baseRevision": "a3fde129894498da",
+		"modelRevision": "model-9527580f880dffb1",
+		"wordingPolicy": "draft",
+		"sceneDecisions": [],
+		"sourceRevision": "src-e261ebcb35a05969",
+		"videoDirection": "",
+		"packetObjectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-packet/274c1993-d6ba-4dd1-bee6-86bcedc82bbe.json",
+		"requestedSeconds": 120,
+		"narrativeRevision": null
+	},
+	"report": {
+		"warnings": []
+	},
+	"run_id": "run-mug0cpjk-066919e5",
+	"status": "ready",
+	"adapter": "claude-code",
+	"content": {
+		"route": {
+			"reason": "The deliverable is a narrated, multi-scene technical explainer of an article, about two minutes long, with delivery (voice, presenter) decided per scene inside the product. It is not a deck, footage overlay, music piece or short motion unit, and per-scene delivery puts it outside faceless-explainer, so the owning workflow is general-video, which the product wraps.",
+			"workflow": "general-video"
+		},
+		"units": [
+			{
+				"id": "stakes",
+				"explain": "A sudden traffic spike can degrade or take down an API for every user. Adding capacity works at first, but it cannot stop one bad actor, accidental or deliberate, from hurting availability.",
+				"entities": ["api", "user"],
+				"preserve": [
+					"Keep the outage for all users as the stakes, as the source states it"
+				],
+				"question": "Why does an API need protecting from traffic at all?",
+				"dependsOn": [],
+				"conditions": [
+					{
+						"text": "The outage affects all users, not only the one causing the spike.",
+						"basis": "source"
+					},
+					{
+						"text": "Stripe operates four kinds of limiters in production.",
+						"basis": "source"
+					}
+				],
+				"evidenceRefs": [
+					"ev-outage",
+					"ev-capacity",
+					"ev-bad-actor",
+					"ev-four",
+					"cr-hook",
+					"cr-bad-actor",
+					"cr-four"
+				],
+				"observations": [],
+				"originScenes": [
+					"0d1843e1-2251-4753-8aa9-c1d960f7a030",
+					"dc32f90c-1ecc-438f-9b80-c4eda2b38f49"
+				],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "The whole video answers this threat; without it the limiters have no purpose",
+						"need": "Let the viewer feel that one user's surge reaches every other user",
+						"basis": "suggestion"
+					},
+					{
+						"why": "It sets up limiting as a different kind of fix, not a bigger server",
+						"need": "Make clear why more capacity alone is not the answer",
+						"basis": "suggestion"
+					},
+					{
+						"why": "The creator's opening frames the video around them",
+						"need": "Promise four kinds of limiters so the viewer can track the tour",
+						"basis": "creator"
+					}
+				]
+			},
+			{
+				"id": "scenarios",
+				"explain": "Four situations: one user spikes; a runaway or hostile script floods the API; low-priority requests crowd out critical ones; something breaks internally and low-priority traffic must be dropped.",
+				"entities": ["user", "request", "api"],
+				"preserve": [],
+				"question": "When does rate limiting help?",
+				"dependsOn": ["stakes"],
+				"conditions": [
+					{
+						"text": "The four scenarios are one user's spike, a misbehaving or malicious script, low-priority traffic crowding critical traffic, and an internal failure.",
+						"basis": "source"
+					}
+				],
+				"evidenceRefs": [
+					"ev-spike",
+					"ev-script",
+					"ev-hostile",
+					"ev-low-priority",
+					"ev-internal",
+					"cr-scenarios"
+				],
+				"observations": [],
+				"originScenes": ["dc32f90c-1ecc-438f-9b80-c4eda2b38f49"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "They are the map the limiters later answer; the viewer needs to hold them",
+						"need": "Present the four situations as distinct, recognisable cases",
+						"basis": "suggestion"
+					},
+					{
+						"why": "It foreshadows the split between per-user limiters and system-wide load shedders",
+						"need": "Separate the three caused by users from the one caused inside the system",
+						"basis": "suggestion"
+					}
+				]
+			},
+			{
+				"id": "limiter-vs-shedder",
+				"explain": "A rate limiter works per user and fits whenever clients can spread their requests out. A load shedder is for incidents: it decides on the state of the whole system, not on who is asking, and drops low-priority requests so critical ones get through.",
+				"entities": ["request-rate-limiter", "fleet-shedder", "user", "api"],
+				"preserve": [],
+				"question": "What is the difference between a rate limiter and a load shedder?",
+				"dependsOn": ["scenarios"],
+				"conditions": [
+					{
+						"text": "A rate limiter is appropriate only when clients can change their pace without affecting the outcome.",
+						"basis": "source"
+					},
+					{
+						"text": "A load shedder's decision depends on the system's state, not on the requesting user.",
+						"basis": "source"
+					}
+				],
+				"evidenceRefs": [
+					"ev-when-limiter",
+					"ev-realtime",
+					"ev-load-shedding",
+					"ev-whole-state",
+					"cr-per-user",
+					"cr-whole-system"
+				],
+				"observations": [],
+				"originScenes": [
+					"eae420f9-4bb7-467e-8e1e-30a124b21f0d",
+					"450efb4e-52d4-4613-a6be-402e922825cf"
+				],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "This is the axis that sorts all four limiters into two families",
+						"need": "Show what each kind of limiter looks at when it decides: the user versus the whole system",
+						"basis": "suggestion"
+					},
+					{
+						"why": "It explains why both families exist",
+						"need": "Say that rate limiters are day-to-day tools and load shedders are for emergencies",
+						"basis": "suggestion"
+					}
+				]
+			},
+			{
+				"id": "request-rate",
+				"explain": "It caps each user at N requests per second, allowing brief bursts above the cap for spikes like a flash sale. Past the limit, the next request is rejected with a 429. It is by far the most important of the four.",
+				"entities": ["request-rate-limiter", "user", "request"],
+				"preserve": [
+					"Mark any concrete N as illustrative",
+					"Keep 429 as the status for this limiter, as the creator states"
+				],
+				"question": "How does the request rate limiter protect the API?",
+				"dependsOn": ["limiter-vs-shedder"],
+				"conditions": [
+					{
+						"text": "The cap is per user, N requests per second; the source does not give N.",
+						"basis": "source"
+					},
+					{
+						"text": "Brief bursts above the cap are allowed for sudden spikes.",
+						"basis": "source"
+					},
+					{
+						"text": "A request past the limit is answered with HTTP 429.",
+						"basis": "creator"
+					},
+					{
+						"text": "Any concrete value shown for N is invented.",
+						"basis": "illustrative"
+					}
+				],
+				"evidenceRefs": [
+					"ev-n-per-second",
+					"ev-burst",
+					"ev-most-important",
+					"ev-429",
+					"cr-burst",
+					"cr-429"
+				],
+				"observations": [],
+				"originScenes": ["eae420f9-4bb7-467e-8e1e-30a124b21f0d"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "The viewer should see why that particular request gets a 429",
+						"need": "Make the cap perceptible as a per-user rate, and the request that crosses it",
+						"basis": "suggestion"
+					},
+					{
+						"why": "Otherwise the burst allowance reads as the limiter failing",
+						"need": "Distinguish a brief allowed burst from sustained excess",
+						"basis": "suggestion"
+					},
+					{
+						"why": "The closing recommendation depends on it",
+						"need": "Say that this limiter is the most important one",
+						"basis": "source"
+					}
+				]
+			},
+			{
+				"id": "concurrent",
+				"explain": "Some endpoints are expensive. Users who wait, give up and retry add more demand to an already overloaded resource. Capping the requests a user has in progress at once (the source's example is 20) stops retries from piling on.",
+				"entities": ["concurrent-limiter", "user", "request"],
+				"preserve": ["Keep 20 as the source's example, not a recommendation"],
+				"question": "Why limit requests in progress rather than requests per second?",
+				"dependsOn": ["limiter-vs-shedder"],
+				"conditions": [
+					{
+						"text": "The source's example cap is 20 requests in progress at the same time.",
+						"basis": "source"
+					},
+					{
+						"text": "Retries against a slow endpoint increase load on it.",
+						"basis": "source"
+					}
+				],
+				"evidenceRefs": [
+					"ev-concurrent",
+					"ev-retries",
+					"cr-twenty",
+					"cr-retries"
+				],
+				"observations": [],
+				"originScenes": ["eae420f9-4bb7-467e-8e1e-30a124b21f0d"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "The two per-user limiters differ only on this axis",
+						"need": "Show the contrast between a rate over time and a count of requests in flight at once",
+						"basis": "suggestion"
+					},
+					{
+						"why": "That loop is the reason this limiter exists",
+						"need": "Make the retry feedback loop understandable: slower endpoint, more retries, even slower",
+						"basis": "suggestion"
+					}
+				]
+			},
+			{
+				"id": "fleet-shedder",
+				"explain": "Traffic is split into critical requests (for example, creating charges) and non-critical ones (for example, listing charges). A fraction of the fleet, 20% in the source's example, is reserved for critical requests; non-critical requests beyond their 80% allocation are rejected with 503.",
+				"entities": ["fleet-shedder", "request", "api"],
+				"preserve": ["Keep 20% as the source's example reservation"],
+				"question": "How does the fleet usage shedder keep critical requests flowing?",
+				"dependsOn": ["limiter-vs-shedder"],
+				"conditions": [
+					{
+						"text": "The reservation in the source's example is 20%, so non-critical traffic may use 80%.",
+						"basis": "source"
+					},
+					{
+						"text": "Excess non-critical requests are rejected with status 503.",
+						"basis": "source"
+					}
+				],
+				"evidenceRefs": [
+					"ev-fleet-reserve",
+					"ev-critical-split",
+					"ev-503",
+					"cr-slice"
+				],
+				"observations": [],
+				"originScenes": ["450efb4e-52d4-4613-a6be-402e922825cf"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "The viewer should see that the rejection happens at the allocation boundary, not at full capacity",
+						"need": "Make the reserved share and the non-critical allocation visible as parts of one whole",
+						"basis": "suggestion"
+					},
+					{
+						"why": "Creating versus listing charges makes the priority split concrete",
+						"need": "Name concrete critical and non-critical examples",
+						"basis": "suggestion"
+					}
+				]
+			},
+			{
+				"id": "worker-shedder",
+				"explain": "The worker utilization shedder is the last line of defense. When workers back up, it slowly sheds lower-priority traffic in order, starting with test mode traffic, and brings it back slowly to avoid flapping. Unlike the first three, it limits damage from incidents already happening.",
+				"entities": ["worker-shedder", "workers", "request"],
+				"preserve": [],
+				"question": "What happens when workers themselves back up?",
+				"dependsOn": ["limiter-vs-shedder"],
+				"conditions": [
+					{
+						"text": "Traffic is ranked in four categories: critical methods, POSTs, GETs, test mode traffic.",
+						"basis": "source"
+					},
+					{
+						"text": "Shedding starts with test mode traffic and escalates only if needed.",
+						"basis": "source"
+					},
+					{
+						"text": "Shedding and restoring happen slowly, or the system flaps.",
+						"basis": "source"
+					}
+				],
+				"evidenceRefs": [
+					"ev-last-line",
+					"ev-backed-up",
+					"ev-categories",
+					"ev-test-first",
+					"ev-flapping",
+					"ev-preventative",
+					"cr-last-line"
+				],
+				"observations": [],
+				"originScenes": ["450efb4e-52d4-4613-a6be-402e922825cf"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "The order is what protects critical work",
+						"need": "Convey the shedding order from least to most critical, with test mode first",
+						"basis": "suggestion"
+					},
+					{
+						"why": "The source stresses that fast shedding causes flapping",
+						"need": "Convey that shedding is gradual, not a switch",
+						"basis": "suggestion"
+					},
+					{
+						"why": "It completes the layered picture of four defenses",
+						"need": "Place this shedder as damage control after the three preventative limiters",
+						"basis": "suggestion"
+					}
+				]
+			},
+			{
+				"id": "token-bucket",
+				"explain": "With a token bucket. Every user has a bucket; each request takes a token and fresh tokens drip back in slowly. If requests arrive faster than the drip, the bucket empties, and a request to an empty bucket is rejected. The buckets live centrally, in Redis.",
+				"entities": ["token-bucket", "redis", "user", "request"],
+				"preserve": ["Mark invented bucket sizes and rates as illustrative"],
+				"question": "How is a per-user limit actually enforced?",
+				"dependsOn": ["request-rate"],
+				"conditions": [
+					{
+						"text": "Each request removes one token from that user's bucket.",
+						"basis": "source"
+					},
+					{
+						"text": "Tokens are dripped back in slowly.",
+						"basis": "source"
+					},
+					{
+						"text": "A request against an empty bucket is rejected.",
+						"basis": "source"
+					},
+					{
+						"text": "Any bucket size, drip rate or request count shown is invented.",
+						"basis": "illustrative"
+					}
+				],
+				"evidenceRefs": [
+					"ev-bucket",
+					"ev-per-user-bucket",
+					"ev-redis",
+					"cr-drip",
+					"cr-empty",
+					"cr-redis"
+				],
+				"observations": [],
+				"originScenes": ["c4ac823b-132e-439c-9d27-7d9dcd9e1f42"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "The mechanism is the point: admission is spending a token",
+						"need": "Make the link between one request and one token perceptible",
+						"basis": "suggestion"
+					},
+					{
+						"why": "The viewer should understand why rejection follows, not just see it happen",
+						"need": "Show the before, the draining and the after: arrivals faster than the drip empty the bucket, then a request is rejected",
+						"basis": "suggestion"
+					},
+					{
+						"why": "The bucket is how the request rate limiter is enforced",
+						"need": "Connect the empty bucket to the per-user cap from earlier",
+						"basis": "suggestion"
+					},
+					{
+						"why": "It grounds the algorithm in Stripe's implementation",
+						"need": "Say that the buckets live centrally, in Redis",
+						"basis": "creator"
+					}
+				]
+			},
+			{
+				"id": "safe-launch",
+				"explain": "Hook it in so it fails open if its own code or Redis breaks; return clear, actionable 429 or 503 errors; keep kill switches, feature flags and metrics at hand; and dark launch each limiter to see what it would block before it blocks anything.",
+				"entities": ["request-rate-limiter", "redis", "api"],
+				"preserve": [],
+				"question": "How do you add a limiter without it becoming the outage?",
+				"dependsOn": ["token-bucket"],
+				"conditions": [
+					{
+						"text": "Errors in the limiter or Redis must let requests through (fail open).",
+						"basis": "source"
+					},
+					{
+						"text": "The status is 429 or 503, whichever is most accurate, with an actionable message.",
+						"basis": "source"
+					}
+				],
+				"evidenceRefs": [
+					"ev-fail-open",
+					"ev-clear-errors",
+					"ev-kill-switch",
+					"ev-metrics",
+					"ev-dark-launch",
+					"cr-never-outage",
+					"cr-dark"
+				],
+				"observations": [],
+				"originScenes": ["98184316-e76b-4747-b0a9-265f2d7fbf9f"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "It is the least intuitive of the four practices and the one that prevents a self-inflicted outage",
+						"need": "Make \"fail open\" concrete: when the limiter breaks, traffic still flows",
+						"basis": "suggestion"
+					},
+					{
+						"why": "They are actionable advice the viewer takes away",
+						"need": "Let the four practices read as a short, memorable checklist",
+						"basis": "suggestion"
+					},
+					{
+						"why": "It is how thresholds are tuned without hurting existing users",
+						"need": "Explain dark launch as observing what would be blocked before enforcing",
+						"basis": "suggestion"
+					}
+				]
+			},
+			{
+				"id": "start-with-one",
+				"explain": "Not all four are needed on day one. Start with a request rate limiter, add the other three as you grow, and launch each one carefully.",
+				"entities": ["request-rate-limiter"],
+				"preserve": [],
+				"question": "Where should I begin?",
+				"dependsOn": ["request-rate", "safe-launch"],
+				"conditions": [],
+				"evidenceRefs": [
+					"ev-not-day-one",
+					"ev-start",
+					"ev-over-time",
+					"ev-launch-practices",
+					"cr-close"
+				],
+				"observations": [],
+				"originScenes": ["83831333-bf0a-4a4d-826c-839bbb45aafd"],
+				"demonstration": null,
+				"communicationNeeds": [
+					{
+						"why": "It turns the tour into a plan the viewer can follow",
+						"need": "Land one clear first action and the order of the rest",
+						"basis": "suggestion"
+					},
+					{
+						"why": "It closes the promise made at the opening",
+						"need": "Recall the four limiters as the whole set, with the first singled out",
+						"basis": "suggestion"
+					}
+				]
+			}
+		],
+		"source": {
+			"coverage": "full",
+			"limitations": [],
+			"revisionRef": "src-e261ebcb35a05969",
+			"narrativeRef": null,
+			"wordingPolicy": "draft"
+		},
+		"purpose": {
+			"message": "Stripe keeps its API available by combining per-user rate limiters with system-wide load shedders, enforcing limits with a token bucket in Redis and launching each limiter safely — and you should start with a request rate limiter.",
+			"audience": "Developers and engineers who run a production API and need to keep it available under heavy or abusive traffic",
+			"language": "en",
+			"deliverable": "Narrated technical explainer",
+			"requestedSeconds": 120,
+			"styleConstraints": []
+		},
+		"coverage": [
+			{
+				"scene": "0d1843e1-2251-4753-8aa9-c1d960f7a030",
+				"units": ["stakes"]
+			},
+			{
+				"scene": "dc32f90c-1ecc-438f-9b80-c4eda2b38f49",
+				"units": ["stakes", "scenarios"]
+			},
+			{
+				"scene": "eae420f9-4bb7-467e-8e1e-30a124b21f0d",
+				"units": ["limiter-vs-shedder", "request-rate", "concurrent"]
+			},
+			{
+				"scene": "450efb4e-52d4-4613-a6be-402e922825cf",
+				"units": ["limiter-vs-shedder", "fleet-shedder", "worker-shedder"]
+			},
+			{
+				"scene": "c4ac823b-132e-439c-9d27-7d9dcd9e1f42",
+				"units": ["token-bucket"]
+			},
+			{
+				"scene": "98184316-e76b-4747-b0a9-265f2d7fbf9f",
+				"units": ["safe-launch"]
+			},
+			{
+				"scene": "83831333-bf0a-4a4d-826c-839bbb45aafd",
+				"units": ["start-with-one"]
+			}
+		],
+		"delivery": {
+			"unresolved": "No delivery choices have been made. Voice source, presenter visibility and framing are open for every video scene. The base pages' presenter-chip and panel notes are slide reference only.",
+			"sceneDecisions": []
+		},
+		"entities": [
+			{
+				"id": "api",
+				"name": "Your API",
+				"role": "Serves every user's requests; its availability is what the limiters protect",
+				"evidenceRefs": ["ev-outage", "ev-spike"],
+				"interactions": [
+					"can be taken down for all users by a traffic spike",
+					"stays up for everyone else when one user is limited"
+				],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "user",
+				"name": "API user (client)",
+				"role": "Sends requests; may spike, run a runaway script, or deliberately flood the API",
+				"evidenceRefs": ["ev-script", "ev-hostile", "ev-when-limiter"],
+				"interactions": [
+					"is capped by the per-user limiters",
+					"can usually spread requests out without harm"
+				],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "request",
+				"name": "API request",
+				"role": "The unit of traffic, either critical or non-critical, live or test mode",
+				"evidenceRefs": ["ev-critical-split", "ev-categories"],
+				"interactions": ["is admitted, answered with 429, or shed with 503"],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "request-rate-limiter",
+				"name": "Request rate limiter",
+				"role": "Caps each user at N requests per second, with brief bursts allowed",
+				"evidenceRefs": ["ev-n-per-second", "ev-burst", "ev-most-important"],
+				"interactions": ["rejects a user's request past the cap"],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "concurrent-limiter",
+				"name": "Concurrent requests limiter",
+				"role": "Caps how many requests a user has in progress at the same time",
+				"evidenceRefs": ["ev-concurrent", "ev-retries"],
+				"interactions": ["stops retries piling onto expensive endpoints"],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "fleet-shedder",
+				"name": "Fleet usage load shedder",
+				"role": "Reserves a fraction of the fleet for critical requests",
+				"evidenceRefs": ["ev-fleet-reserve", "ev-503"],
+				"interactions": [
+					"rejects non-critical requests over their allocation with 503"
+				],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "worker-shedder",
+				"name": "Worker utilization load shedder",
+				"role": "Final line of defense that sheds lower-priority traffic when workers back up",
+				"evidenceRefs": ["ev-last-line", "ev-backed-up", "ev-test-first"],
+				"interactions": [
+					"sheds test mode traffic first, then escalates slowly"
+				],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "workers",
+				"name": "Workers",
+				"role": "Respond to incoming requests in parallel; their spare capacity is tracked",
+				"evidenceRefs": ["ev-backed-up"],
+				"interactions": ["back up under load, triggering the worker shedder"],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "token-bucket",
+				"name": "Token bucket",
+				"role": "Per-user store of request allowance: each request takes a token, tokens drip back slowly",
+				"evidenceRefs": ["ev-bucket", "ev-per-user-bucket"],
+				"interactions": [
+					"admits a request while it holds a token",
+					"rejects the request when empty"
+				],
+				"legacyObjectIds": []
+			},
+			{
+				"id": "redis",
+				"name": "Redis",
+				"role": "The central store where the buckets and counters live",
+				"evidenceRefs": ["ev-redis", "ev-fail-open"],
+				"interactions": [
+					"hosts every user's bucket",
+					"if it goes down, the limiter must fail open"
+				],
+				"legacyObjectIds": []
+			}
+		],
+		"evidence": [
+			{
+				"id": "ev-outage",
+				"kind": "source",
+				"text": "sudden increases in traffic that affect the quality …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶1"
+			},
+			{
+				"id": "ev-capacity",
+				"kind": "source",
+				"text": "The first few times this happens, it’s reasonable …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶2"
+			},
+			{
+				"id": "ev-bad-actor",
+				"kind": "source",
+				"text": "ensure that one bad actor can’t accidentally or …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶2"
+			},
+			{
+				"id": "ev-spike",
+				"kind": "source",
+				"text": "One of your users is responsible for a …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶4"
+			},
+			{
+				"id": "ev-script",
+				"kind": "source",
+				"text": "One of your users has a misbehaving script …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶5"
+			},
+			{
+				"id": "ev-hostile",
+				"kind": "source",
+				"text": "one of your users is intentionally trying to …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶5"
+			},
+			{
+				"id": "ev-low-priority",
+				"kind": "source",
+				"text": "users sending a high volume of requests for …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶6"
+			},
+			{
+				"id": "ev-internal",
+				"kind": "source",
+				"text": "Something in your system has gone wrong internally, …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶7"
+			},
+			{
+				"id": "ev-when-limiter",
+				"kind": "source",
+				"text": "If your users can afford to change the …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶10"
+			},
+			{
+				"id": "ev-realtime",
+				"kind": "source",
+				"text": "If spacing out their requests is not an …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶10"
+			},
+			{
+				"id": "ev-load-shedding",
+				"kind": "source",
+				"text": "during incidents (for example, if a service is …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶12"
+			},
+			{
+				"id": "ev-whole-state",
+				"kind": "source",
+				"text": "A load shedder makes its decisions based on …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶13"
+			},
+			{
+				"id": "ev-four",
+				"kind": "source",
+				"text": "At Stripe, we operate 4 different types of …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶16"
+			},
+			{
+				"id": "ev-most-important",
+				"kind": "source",
+				"text": "The first one, the Request Rate Limiter, is …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶16"
+			},
+			{
+				"id": "ev-n-per-second",
+				"kind": "source",
+				"text": "This rate limiter restricts each user to N …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶18"
+			},
+			{
+				"id": "ev-burst",
+				"kind": "source",
+				"text": "we added the ability to briefly burst above …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶21"
+			},
+			{
+				"id": "ev-concurrent",
+				"kind": "source",
+				"text": "You can only have 20 API requests in …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶24"
+			},
+			{
+				"id": "ev-retries",
+				"kind": "source",
+				"text": "users often get frustrated waiting for the endpoint …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶24"
+			},
+			{
+				"id": "ev-429",
+				"kind": "source",
+				"text": "Hammer the API and back off when I …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶26"
+			},
+			{
+				"id": "ev-fleet-reserve",
+				"kind": "source",
+				"text": "a certain percentage of your fleet will always …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶29"
+			},
+			{
+				"id": "ev-critical-split",
+				"kind": "source",
+				"text": "critical API methods (e.g. creating charges) and non-critical …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶30"
+			},
+			{
+				"id": "ev-503",
+				"kind": "source",
+				"text": "If our reservation number is 20%, then any …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶31"
+			},
+			{
+				"id": "ev-last-line",
+				"kind": "source",
+				"text": "This load shedder is the final line of …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶35"
+			},
+			{
+				"id": "ev-backed-up",
+				"kind": "source",
+				"text": "If your workers start getting backed up with …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶35"
+			},
+			{
+				"id": "ev-categories",
+				"kind": "source",
+				"text": "Critical methods … POSTs … GETs … Test …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶38–¶41"
+			},
+			{
+				"id": "ev-test-first",
+				"kind": "source",
+				"text": "it will slowly start shedding less-critical requests, starting …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶42"
+			},
+			{
+				"id": "ev-flapping",
+				"kind": "source",
+				"text": "It’s very important that shedding and bringing load …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶43"
+			},
+			{
+				"id": "ev-preventative",
+				"kind": "source",
+				"text": "This load shedder limits the impact of incidents …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶44"
+			},
+			{
+				"id": "ev-bucket",
+				"kind": "source",
+				"text": "This algorithm has a centralized bucket host where …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶48"
+			},
+			{
+				"id": "ev-per-user-bucket",
+				"kind": "source",
+				"text": "every Stripe user has a bucket, and every …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶48"
+			},
+			{
+				"id": "ev-redis",
+				"kind": "source",
+				"text": "We implement our rate limiters using Redis.",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶49"
+			},
+			{
+				"id": "ev-fail-open",
+				"kind": "source",
+				"text": "any coding or operational errors would fail open …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶51"
+			},
+			{
+				"id": "ev-clear-errors",
+				"kind": "source",
+				"text": "you should decide if you want HTTP 429 …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶52"
+			},
+			{
+				"id": "ev-kill-switch",
+				"kind": "source",
+				"text": "Make sure you have kill switches to disable …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶53"
+			},
+			{
+				"id": "ev-metrics",
+				"kind": "source",
+				"text": "Set up alerts and metrics to understand how …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶53"
+			},
+			{
+				"id": "ev-dark-launch",
+				"kind": "source",
+				"text": "Dark launch each rate limiter to watch the …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶54"
+			},
+			{
+				"id": "ev-not-day-one",
+				"kind": "source",
+				"text": "not all necessary on day one",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶56"
+			},
+			{
+				"id": "ev-start",
+				"kind": "source",
+				"text": "Start by building a Request Rate Limiter. It …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶58"
+			},
+			{
+				"id": "ev-over-time",
+				"kind": "source",
+				"text": "Introduce the next three types of rate limiters …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶59"
+			},
+			{
+				"id": "ev-launch-practices",
+				"kind": "source",
+				"text": "Follow good launch practices as you're adding new …",
+				"lineage": {
+					"pool": "full"
+				},
+				"locator": "¶60"
+			},
+			{
+				"id": "cr-hook",
+				"kind": "creator",
+				"text": "A sudden spike in traffic … can take an API down for every one of its users.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-four",
+				"kind": "creator",
+				"text": "Let's look at how Stripe keeps its API available with four kinds of limiters.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-bad-actor",
+				"kind": "creator",
+				"text": "Adding capacity works the first few times, … but it won't stop one bad actor.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-scenarios",
+				"kind": "creator",
+				"text": "Rate limiting helps when one user spikes, when a runaway or hostile script floods us, … when low-priority requests crowd out critical ones, … and when something breaks inside our own system.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-per-user",
+				"kind": "creator",
+				"text": "A rate limiter works per user, and fits whenever clients can spread their requests out.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-burst",
+				"kind": "creator",
+				"text": "with brief bursts for spikes like a flash sale.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-429",
+				"kind": "creator",
+				"text": "Past the limit, the next request is answered with a 429.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-twenty",
+				"kind": "creator",
+				"text": "The second caps how many requests a user has in progress at once, say twenty,",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-retries",
+				"kind": "creator",
+				"text": "so retries can't pile onto expensive endpoints.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-whole-system",
+				"kind": "creator",
+				"text": "which decides on the state of the whole system rather than on who is asking.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-slice",
+				"kind": "creator",
+				"text": "The fleet usage shedder reserves a slice of capacity, say 20%, for critical requests … and answers extra non-critical traffic with a 503.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-last-line",
+				"kind": "creator",
+				"text": "The worker shedder is the last line of defense: … when workers back up, … it slowly sheds test mode traffic first.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-drip",
+				"kind": "creator",
+				"text": "Every user gets a bucket; each request takes a token, … and fresh tokens drip back in slowly.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-empty",
+				"kind": "creator",
+				"text": "If requests come faster than the drip, the bucket runs empty. … If the bucket is empty, the request is rejected.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-redis",
+				"kind": "creator",
+				"text": "The buckets live centrally, in Redis.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-never-outage",
+				"kind": "creator",
+				"text": "A limiter must never become the outage.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-dark",
+				"kind": "creator",
+				"text": "dark launch each limiter to see what it would block before it blocks anything.",
+				"lineage": {
+					"pool": "creator"
+				}
+			},
+			{
+				"id": "cr-close",
+				"kind": "creator",
+				"text": "So start with a request rate limiter, add the other three as you grow, and launch each one carefully.",
+				"lineage": {
+					"pool": "creator"
+				}
+			}
+		],
+		"material": {
+			"takeRefs": [],
+			"themeRef": "generated-1790281981587-0:bd8b60cb2ac65aae",
+			"assetRefs": [],
+			"baseRevision": "a3fde129894498da",
+			"baseNotebookRef": "9d4f9b4e-a96c-497c-8ff8-0f3b6ec3a652"
+		},
+		"narrative": {
+			"omissions": [
+				"Test and live modes share the same rate limiting behaviour (¶20) — not in the creator's scripts",
+				"Monthly trigger counts for each limiter (¶19, ¶25, ¶32, ¶44) — not in the creator's scripts",
+				"Real-time traffic that cannot be spaced out needs another strategy, usually more capacity (¶10) — not in the creator's scripts",
+				"The programming-model contrast between forking off jobs and backing off on 429 (¶26) — not in the creator's scripts",
+				"The Redis cluster that counts critical and non-critical requests (¶30), and ElastiCache as a managed option (¶49) — not in the creator's scripts",
+				"The flapping example and the tuning of the shedding rate (¶43) — the creator keeps only \"slowly\"",
+				"The GitHub gist of implementation details (¶61) — not in the creator's scripts"
+			],
+			"terminology": [
+				{
+					"term": "rate limiter",
+					"meaning": "a per-user control on the pace or amount of a user's requests"
+				},
+				{
+					"term": "load shedder",
+					"meaning": "a control that drops lower-priority requests based on the whole system's state, used during incidents"
+				},
+				{
+					"term": "request rate limiter",
+					"meaning": "caps each user at N requests per second, with brief bursts allowed"
+				},
+				{
+					"term": "concurrent requests limiter",
+					"meaning": "caps how many requests a user has in progress at the same time"
+				},
+				{
+					"term": "fleet usage load shedder",
+					"meaning": "reserves a fraction of the fleet for critical requests"
+				},
+				{
+					"term": "worker utilization load shedder",
+					"meaning": "sheds lower-priority traffic when workers back up; the final line of defense"
+				},
+				{
+					"term": "token bucket",
+					"meaning": "a per-user store of tokens; each request takes one, tokens drip back slowly, an empty bucket rejects"
+				},
+				{
+					"term": "HTTP 429",
+					"meaning": "Too Many Requests"
+				},
+				{
+					"term": "HTTP 503",
+					"meaning": "Service Unavailable"
+				},
+				{
+					"term": "fail open",
+					"meaning": "if the limiter itself errors, requests are let through"
+				},
+				{
+					"term": "dark launch",
+					"meaning": "run a limiter to observe what it would block, without blocking"
+				},
+				{
+					"term": "test mode traffic",
+					"meaning": "requests made in Stripe's test mode rather than live mode; shed first"
+				}
+			],
+			"approvedLines": []
+		},
+		"progression": [
+			{
+				"note": "Open on the threat: a spike can take the API down for everyone",
+				"unit": "stakes",
+				"ordering": "causal"
+			},
+			{
+				"note": "Map the situations where limiting helps",
+				"unit": "scenarios",
+				"ordering": "causal"
+			},
+			{
+				"note": "Split the tools into per-user limiters and system-wide shedders",
+				"unit": "limiter-vs-shedder",
+				"ordering": "causal"
+			},
+			{
+				"note": "The first and most important per-user limiter",
+				"unit": "request-rate",
+				"ordering": "causal"
+			},
+			{
+				"note": "The second per-user limiter, on a different axis",
+				"unit": "concurrent",
+				"ordering": "editorial"
+			},
+			{
+				"note": "The first system-wide shedder: reserve capacity for critical traffic",
+				"unit": "fleet-shedder",
+				"ordering": "editorial"
+			},
+			{
+				"note": "The last line of defense, shedding in priority order",
+				"unit": "worker-shedder",
+				"ordering": "editorial"
+			},
+			{
+				"note": "Under the hood: how a per-user limit is enforced; follows the creator's script order after the shedders",
+				"unit": "token-bucket",
+				"ordering": "editorial"
+			},
+			{
+				"note": "How to add limiters without causing an outage",
+				"unit": "safe-launch",
+				"ordering": "editorial"
+			},
+			{
+				"note": "Close on the recommendation",
+				"unit": "start-with-one",
+				"ordering": "causal"
+			}
+		],
+		"uncertainty": [
+			{
+				"kind": "gap",
+				"text": "The source calls all four \"rate limiters\" (¶47) while also separating load shedders from rate limiters (¶12–¶13). The creator's scripts use \"limiters\" for all four and \"rate limiter\" / \"load shedder\" for the two families; the video should keep one usage."
+			},
+			{
+				"kind": "gap",
+				"text": "The source does not state outright that the request rate limiter answers with 429; it implies 429 for rate limiting (¶26) and asks implementers to choose between 429 and 503 (¶52). The creator's script states 429."
+			},
+			{
+				"kind": "gap",
+				"text": "The source does not give a value for N or for the bucket's size or drip rate; any value shown must be marked illustrative."
+			}
+		],
+		"openDecisions": [
+			"Demonstrations for each mechanism, such as a worked token bucket run or a fleet allocation example, with any invented values marked illustrative",
+			"Whether the token bucket should come right after the request rate limiter or keep the creator's draft position after the load shedders",
+			"Scene boundaries and pacing within the 120-second target",
+			"Visual treatment and the selected capabilities",
+			"Voice source and presenter visibility per scene",
+			"Whether any omitted source detail, such as test and live mode parity or trigger counts, earns a place"
+		],
+		"schemaVersion": 1,
+		"creativeGuidance": [
+			{
+				"text": "The creator gave no direction for the video; the scene scripts are drafts under the draft wording policy and may be revised.",
+				"basis": "suggestion"
+			},
+			{
+				"text": "Keep one visual identity for each limiter and for the request across the whole video, so the four limiters read as layers of one system rather than four separate topics.",
+				"basis": "suggestion"
+			},
+			{
+				"text": "Use the theme's accent only for what the viewer must look at now, such as the request being rejected or the token being taken.",
+				"basis": "suggestion"
+			},
+			{
+				"text": "Treat the two per-user limiters and the two load shedders as two families, so the difference in what each one looks at stays visible.",
+				"basis": "suggestion"
+			}
+		],
+		"evidenceNote": "Source quotations are shortened to their first words here; the full quotations and their locators are in the local acceptance store."
+	},
+	"subject": "",
+	"approval": null,
+	"revision": 1,
+	"workflow": "general-video",
+	"artifacts": {
+		"assetId": "e2b7bf63-654f-4aa3-9b12-7c60f9b50ba3",
+		"objectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-brief/e2b7bf63-654f-4aa3-9b12-7c60f9b50ba3.json"
+	},
+	"direction": "",
+	"created_at": "2026-09-24T20:52:12.068186+00:00",
+	"project_id": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+	"updated_at": "2026-09-24T20:55:25.38443+00:00",
+	"fingerprint": "db08f0eb2d112151",
+	"reviewed_at": null,
+	"skill_bundle": {
+		"hash": "9e430540653ef12c",
+		"name": "video-planner",
+		"version": "0.1.1",
+		"upstreamCommit": "99221c50a5e5927ca243454b4e4f02f9adf7cfc6"
+	},
+	"reported_model": "claude-opus-5-5"
+}

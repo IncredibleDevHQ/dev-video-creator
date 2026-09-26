@@ -15,8 +15,10 @@ import type {
   HarnessRun,
 } from '../types'
 import { homedir } from 'node:os'
-import { probeVersion, spawnJsonLines } from './util'
+import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
+import { kimiModels } from '../models'
+import { operationOf } from '../operations'
 
 // Kimi reads its settings from KIMI_CODE_HOME. A drawing run wants the
 // model thinking hard, but the effort lives in the user's own config and
@@ -53,7 +55,7 @@ const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
           studio: {
             command: 'node',
             args: [context.mcpShimPath],
-            env: { STUDIO_MCP_URL: `${context.origin}/mcp` },
+            env: { STUDIO_MCP_URL: studioMcpUrl(context.origin, run.inputs) },
             toolTimeoutMs: 900_000,
           },
         },
@@ -92,11 +94,13 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
     const toolCalls = (message.tool_calls || []) as Array<Record<string, unknown>>
     for (const call of toolCalls) {
       const fn = (call.function || {}) as { name?: string; arguments?: string }
-      onEvent({ type: 'tool', ts, tool: String(fn.name || 'tool') })
+      const tool = String(fn.name || 'tool')
+      const operation = operationOf(tool)
+      onEvent({ type: 'tool', ts, tool, operation })
       try {
         const args = JSON.parse(fn.arguments || '{}') as Record<string, unknown>
         const file = args.path || args.file_path
-        if (file) onEvent({ type: 'file', ts, file: String(file) })
+        if (file) onEvent({ type: 'file', ts, file: String(file), operation })
       } catch {
         // Arguments stream in chunks in some modes; the tool event is enough.
       }
@@ -108,7 +112,10 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
 
 export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
   id: 'kimi',
+  // Not yet shown to read image files in a run.
+  images: 'unverified',
   available: () => probeVersion('kimi'),
+  models: kimiModels,
   async run(run, onEvent, signal) {
     const mcpConfig = await writeMcpConfig(run, context)
     // Skills discovery reads the project's installed copy when present
@@ -154,7 +161,7 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
       signal,
     })
     // A CLI that refuses to start says why on stderr; the run shows it.
-    if (exitCode !== 0 && stderrTail.trim()) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400) })
+    if (exitCode !== 0 && stderrTail.trim()) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.split('\n').map(line => line.trim()).filter(Boolean).slice(-3).join(' · ').slice(0, 400) })
     return { resumeId: state.resumeId, exitCode }
   },
 })

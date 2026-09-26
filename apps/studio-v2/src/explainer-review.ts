@@ -1,14 +1,13 @@
+import { mountComposedReview, seekComposedReview, settleComposedMedia, composedActorCenter, RENDER_REVIEW_VERSION } from './composed-review'
 // Used by the local harness's review window and the editor import. The same
 // compiler and driver render the candidate, editor preview and export.
-import { instantiateMotionDriver, type MotionDriverInstance } from 'markdown-composition'
+import { createDefaultBlockConfig, defaultBrand, type ProjectDocumentV1, instantiateMotionDriver, type MotionDriverInstance } from 'markdown-composition'
 import { atomizeSlideSvg, flattenUnits } from './slide-atoms'
 import { compileSceneProgram, sanitizeSceneProgram, type SceneProgram } from './scene-program'
 
 let driver: MotionDriverInstance | null = null
-let caption: HTMLElement | null = null
-let lines: string[] = []
 
-export const reviewExplainer = async (svg: string, raw: SceneProgram) => {
+export const reviewExplainer = async (svg: string, raw: SceneProgram, options: { project?: ProjectDocumentV1; sceneId?: string; fonts?: { css: string; shipped: string[]; substituted: Record<string, string> }; gsapSource?: string } = {}) => {
   const errors: string[] = []
   const warnings: string[] = []
   const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml')
@@ -37,17 +36,19 @@ export const reviewExplainer = async (svg: string, raw: SceneProgram) => {
     if (!actor.quantity.shownOn && !actor.quantity.counted) errors.push(`Quantity on ${actor.id} has no visible binding`)
   }
   if (program.beats.some(b => /\b(?:row\s*#?\s*["“]?\d|the title is|its circle follows)\b/i.test(b.say))) errors.push('Narration describes the presentation; explain the mechanism instead')
-  if (root.getAttribute('data-explainer-kind') !== 'summary' && !events.some(e => ['travel', 'pass', 'reject', 'spend', 'refill', 'perform', 'become'].includes(e.action))) errors.push('A mechanism scene needs observable actions, not only reveals and highlights')
+  if (root.getAttribute('data-explainer-kind') !== 'summary' && !events.some(e => ['travel', 'pass', 'reject', 'spend', 'refill', 'perform', 'become', 'behavior'].includes(e.action))) errors.push('A mechanism scene needs observable actions, not only reveals and highlights')
   for (const beat of program.beats) {
     const seen = new Set<string>()
     for (const e of beat.events || []) {
-      if (e.after && !seen.has(e.after)) errors.push(`Unknown or forward dependency ${e.after}`)
+      if (program.scheduling !== 2 && e.after && !seen.has(e.after)) errors.push(`Unknown or forward dependency ${e.after}`)
       if (e.id) seen.add(e.id)
       if (e.action === 'perform' && (!e.clip || e.clip.toMs <= e.clip.fromMs)) errors.push('A performance needs a positive local clip range')
     }
   }
   const compiled = compileSceneProgram(program, atomized.units, { viewBox: atomized.viewBox })
   if (!compiled) return { errors: [...errors, 'Could not compile the story'], warnings, frames: [] }
+  errors.push(...compiled.diagnostics.filter(d => d.severity === 'error').map(d => `${d.event}: ${d.message}`))
+  warnings.push(...compiled.diagnostics.filter(d => d.severity === 'warning').map(d => `${d.event}: ${d.message}`))
   document.body.replaceChildren()
   document.body.style.cssText = 'margin:0;background:#101827;overflow:hidden;'
   const host = document.createElement('div')
@@ -84,25 +85,49 @@ export const reviewExplainer = async (svg: string, raw: SceneProgram) => {
     })
   })
   driver = instantiateMotionDriver(live, compiled.plan)
-  caption = document.createElement('div')
-  caption.style.cssText = 'position:absolute;bottom:18px;left:120px;right:120px;text-align:center;color:white;background:#101827ee;padding:8px 18px;font:24px system-ui;border-radius:8px;'
-  host.append(caption)
-  lines = program.beats.map(b => b.say)
   const frames = compiled.plan.steps.flatMap((beat, i) => {
     const offset = driver!.offsets[i]
     const span = beat.motionWindowMs + beat.holdMs
-    return [...new Set([offset, offset + span / 2, offset + span - 1, ...beat.actions.filter(a => ['move', 'level', 'clip', 'morph'].includes(a.op)).map(a => offset + a.startMs + a.durationMs / 2)])].map(ms => Math.round(ms))
+    return [...new Set([offset, offset + span / 2, offset + span - 1, ...beat.actions.filter(a => ['move', 'level', 'clip', 'morph'].includes(a.op)).flatMap(a => [Math.max(offset, offset + a.startMs - 1), offset + a.startMs + a.durationMs / 2, offset + a.startMs + a.durationMs])])].map(ms => Math.round(ms))
   }).sort((a, b) => a - b)
-  return { errors: [...new Set(errors)], warnings: [...new Set(warnings)], frames, durationMs: driver.durationMs, program, plan: compiled.plan, windows: compiled.windows, units: flattenUnits(atomized.units).length }
+  const base = options.project
+  const source = base?.notebook.content.find(n => n.attrs?.id === options.sceneId)
+  const node = { type: 'slide', attrs: { ...source?.attrs, id: 'review-scene', svg, program, motion: compiled.plan, windows: compiled.windows } }
+  const durationMs = driver.durationMs
+  const reviewProject: ProjectDocumentV1 = {
+    ...(base || {}), version: 1, id: 'composition-review', title: 'Composition review',
+    width: base?.width || 1920, height: base?.height || 1080, fps: base?.fps || 30,
+    brand: base?.brand || defaultBrand,
+    notebook: { type: 'doc', content: [node] },
+    blocks: { 'review-scene': { ...createDefaultBlockConfig('review-scene', node), ...(options.sceneId ? base?.blocks[options.sceneId] : {}), nodeId: 'review-scene', durationMs } },
+    presenterTracks: options.sceneId && base?.presenterTracks[options.sceneId] ? { 'review-scene': base.presenterTracks[options.sceneId] } : {}, recordedBlocks: {},
+  }
+  host.remove()
+  await mountComposedReview(reviewProject, options.gsapSource, options.fonts?.css)
+  const arrivalEvidence = compiled.arrivals.map(expected => {
+    const timing = compiled.schedule.find(event => event.id === expected.event && event.beat === expected.beat)
+    const atMs = (driver!.offsets[expected.beat] || 0) + (timing?.arrival || 0)
+    seekComposedReview(atMs)
+    const actual = composedActorCenter(expected.actor)
+    const deviation = actual ? Math.hypot(actual.x - expected.x, actual.y - expected.y) : Infinity
+    if (program.scheduling === 2 && deviation > 4) errors.push(`${expected.event}: composed arrival missed its destination by ${Math.round(deviation)}px`)
+    return { ...expected, atMs, actual: actual ? { x: actual.x, y: actual.y } : null, deviation }
+  })
+  for (const atMs of frames) {
+    const frame = seekComposedReview(atMs)
+    for (const issue of frame.readability) (program.scheduling === 2 ? errors : warnings).push(`${Math.round(atMs)}ms: ${issue}`)
+  }
+  seekComposedReview(0)
+  return { errors: [...new Set(errors)], warnings: [...new Set(warnings)], frames, durationMs: driver.durationMs, program, plan: compiled.plan, windows: compiled.windows, units: flattenUnits(atomized.units).length, arrivalEvidence, boundaryState: compiled.boundaryState, schedule: compiled.schedule, diagnostics: compiled.diagnostics, renderManifest: { renderer: RENDER_REVIEW_VERSION, fonts: options.fonts || null, project: reviewProject } }
 }
 
-export const explainerFrame = (ms: number) => {
+export const explainerFrame = async (ms: number) => {
   if (!driver) throw new Error('Review a scene first')
-  driver.draw(ms)
+  const result = seekComposedReview(ms)
+  await settleComposedMedia()
   let beat = 0
   driver.offsets.forEach((at, i) => { if (at <= ms) beat = i })
-  if (caption) caption.textContent = lines[beat] || ''
-  return { ms, beat }
+  return { ...result, beat }
 }
 
 // ——— Isolated object-performance review (§5.4a) ———

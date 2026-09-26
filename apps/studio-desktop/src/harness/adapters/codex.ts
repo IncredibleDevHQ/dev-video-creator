@@ -13,8 +13,9 @@ import type {
   HarnessEvent,
   HarnessRun,
 } from '../types'
-import { probeVersion, spawnJsonLines } from './util'
+import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
+import { codexModels } from '../models'
 
 const writeCodexHome = async (run: HarnessRun, context: HarnessContext) => {
   const home = join(run.projectDir, '.codex')
@@ -26,7 +27,7 @@ const writeCodexHome = async (run: HarnessRun, context: HarnessContext) => {
       '[mcp_servers.studio]',
       'command = "node"',
       `args = [${JSON.stringify(context.mcpShimPath)}]`,
-      `env = { STUDIO_MCP_URL = ${JSON.stringify(`${context.origin}/mcp`)} }`,
+      `env = { STUDIO_MCP_URL = ${JSON.stringify(studioMcpUrl(context.origin, run.inputs))} }`,
       '',
     ].join('\n'),
   )
@@ -56,23 +57,28 @@ const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { res
     return
   }
   if (kind === 'command_execution' || kind === 'local_shell_call' || kind === 'mcp_tool_call') {
-    onEvent({ type: 'tool', ts, tool: String(item.name || item.command || kind).slice(0, 120) })
+    onEvent({ type: 'tool', ts, tool: String(item.name || item.command || kind).slice(0, 120), operation: kind === 'mcp_tool_call' ? 'tool' : 'run' })
     return
   }
   if (kind === 'file_change' && item.path) {
-    onEvent({ type: 'file', ts, file: String(item.path) })
+    onEvent({ type: 'file', ts, file: String(item.path), operation: 'write' })
     return
   }
 }
 
 export const createCodexAdapter = (context: HarnessContext): HarnessAdapter => ({
   id: 'codex',
+  // Not yet shown to read image files in a run.
+  images: 'unverified',
   available: () => probeVersion('codex'),
+  models: codexModels,
   async run(run, onEvent, signal) {
     const codexHome = await writeCodexHome(run, context)
+    // A resumed thread keeps the model it started with.
+    const model = typeof run.inputs.model === 'string' && run.inputs.model ? ['--model', run.inputs.model] : []
     const args = run.resumeId
       ? ['exec', 'resume', run.resumeId, '--json', '--sandbox', 'workspace-write', String(run.inputs.task || '')]
-      : ['exec', '--json', '--sandbox', 'workspace-write', String(run.inputs.task || '')]
+      : ['exec', '--json', '--sandbox', 'workspace-write', ...model, String(run.inputs.task || '')]
     const state: { resumeId?: string } = {}
     const { exitCode } = await spawnJsonLines({
       command: 'codex',

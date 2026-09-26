@@ -67,14 +67,14 @@ const waitFor = async (js, timeoutMs = 30_000) => {
 }
 const putProject = async script => {
   const project = {
-    version: 1, id: PROJECT_ID, title: 'Teleprompter fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: PROJECT_ID, title: 'Teleprompter fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Teleprompter' }] },
       { type: 'scene', attrs: { id: SCENE_ID, title: 'Tele scene', script } },
     ] },
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
   }
-  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project) })
+  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project, expectedProject: (await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json())).project }) })
 }
 const openCameraFor = async title => {
   await evalInWindow(`(() => {
@@ -93,7 +93,7 @@ const teleprompterState = () => evalInWindow(`(() => ({
 
 try {
   await putProject(ORIGINAL)
-  await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
+  await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
   await waitFor(`!!document.getElementById('${SCENE_ID}')`)
 
   await openCameraFor('Tele scene')
@@ -125,8 +125,19 @@ try {
   }))()`)
   check('the edit path selects the scene in the notebook', landed.selected === SCENE_ID && !landed.dialogOpen, JSON.stringify(landed))
 
+  // A pending take survives the editing handoff and returns in review.
+  await openCameraFor('Tele scene')
+  await evalInWindow(`window.__timing.stageReview()`)
+  const pendingUrl = await evalInWindow(`document.getElementById('camera-preview').getAttribute('src')`)
+  await evalInWindow(`document.getElementById('teleprompter-edit').click()`)
+  await openCameraFor('Tele scene')
+  const retained = await evalInWindow(`({url: document.getElementById('camera-preview').getAttribute('src'), review: !document.getElementById('take-review').hidden})`)
+  check('editing preserves the exact unkept take for review', retained.review && retained.url === pendingUrl)
+  await evalInWindow(`document.getElementById('discard-take').click(); document.getElementById('close-camera').click()`)
+
   // The script changes at the source; the teleprompter and the guide voice
   // both follow the saved words.
+  await waitFor(`document.getElementById('save-state')?.textContent === 'Saved'`)
   await putProject(IMPROVED)
   await evalInWindow(`location.reload()`)
   await waitFor(`!!document.getElementById('${SCENE_ID}')`)

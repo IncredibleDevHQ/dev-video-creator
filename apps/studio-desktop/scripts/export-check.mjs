@@ -6,7 +6,7 @@
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -97,14 +97,19 @@ try {
   })
   let mp4Path
   await step('MP4 written into the outputs dir', async () => {
-    const fileName = new URL(render.url).pathname.split('/').pop()
-    const onDisk = join(root, 'outputs', fileName)
+    // The URL names the stored copy when the object store keeps it, so the
+    // render's own file is found in the outputs folder, the one MP4 there.
+    const files = (await readdir(join(root, 'outputs'))).filter(name => name.endsWith('.mp4'))
+    if (files.length !== 1) throw new Error(`expected the one MP4, found ${files.join(', ') || 'none'}`)
+    const onDisk = join(root, 'outputs', files[0])
     const size = (await stat(onDisk)).size
     if (size < 10_000) throw new Error(`suspiciously small (${size} bytes)`)
     return onDisk
   })
   await step('MP4 exists with a video stream', async () => {
-    const response = await fetch(render.url)
+    // The result names its file by path on the app's origin (F01).
+    if (!/^\/(objects|outputs)\//.test(render.url)) throw new Error(`the export is not named by its path: ${render.url}`)
+    const response = await fetch(new URL(render.url, origin))
     if (!response.ok) throw new Error(`download ${response.status}`)
     mp4Path = join(root, 'export.mp4')
     await writeFile(mp4Path, Buffer.from(await response.arrayBuffer()))

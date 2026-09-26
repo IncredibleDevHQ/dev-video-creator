@@ -179,7 +179,7 @@ describe('a level fills the way the drawing says', () => {
   it('drops a container’s contents rather than sliding them sideways', () => {
     // The shape is wider than it is tall, so the old guess said "sideways".
     expect(withFill('up').style.transform).toContain('scaleY(')
-    expect(withFill('up').style.transformOrigin).toBe('center bottom')
+    expect(withFill('up').style.transformOrigin).toBe('40px 20px')
   })
   it('still shortens a bar from its own end', () => {
     expect(withFill('right').style.transform).toContain('scaleX(')

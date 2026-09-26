@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="sohne-var, Inter, sans-serif" font-size="22" data-page-role="diagram" data-page-index="05">
+  <defs>
+    <marker id="s05-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ef61ef"/></marker>
+  </defs>
+  <g id="s05-background" data-role="background">
+    <rect x="0" y="0" width="1280" height="720" fill="#0e0c17"/>
+  </g>
+  <g id="s05-decoration" data-role="decoration">
+    <path d="M80 0V720M160 0V720M240 0V720M320 0V720M400 0V720M480 0V720M560 0V720M640 0V720M720 0V720M800 0V720M880 0V720M960 0V720M1040 0V720M1120 0V720M1200 0V720M0 120H1280M0 180H1280M0 240H1280M0 300H1280M0 360H1280M0 420H1280M0 480H1280M0 540H1280M0 600H1280M0 660H1280" stroke="#ffffff" stroke-width="1" opacity="0.03"/>
+  </g>
+  <g id="s05-header" data-role="header">
+    <text id="s05-eyebrow" x="80" y="56" font-family="Consolas, Menlo, monospace" font-size="20" fill="#ef61ef" letter-spacing="1">§ 05 · SCALING YOUR API WITH RATE LIMITERS</text>
+    <text id="s05-title" x="80" y="104" font-size="40" font-weight="600" fill="#ffffff">Request rate limiter</text>
+  </g>
+  <g id="s05-footer" data-role="footer">
+    <text x="80" y="696" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99">stripe.com</text>
+    <text x="1200" y="696" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99" text-anchor="end">SHEET 05 / 12</text>
+  </g>
+
+  <g id="s05-node-user-script" data-role="node" data-kind="box" data-entity="client" data-object-id="obj-user-script-15">
+    <rect id="s05-node-user-script-box" x="80" y="170" width="280" height="200" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g id="s05-node-user-script-art" data-appearance-for="s05-node-user-script">
+      <g transform="translate(198,186) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></g>
+      <circle cx="220" cy="199" r="16" fill="none" stroke="#ef61ef" stroke-width="1.5" data-anim="wave" data-anim-order="0"/>
+      <circle cx="220" cy="199" r="24" fill="none" stroke="#ef61ef" stroke-width="1" data-anim="wave" data-anim-order="1"/>
+      <rect x="246" y="184" width="10" height="4" rx="1" fill="#ef61ef" data-anim="blink" data-anim-order="0"/>
+      <rect x="246" y="192" width="10" height="4" rx="1" fill="#ef61ef" data-anim="blink" data-anim-order="1"/>
+      <rect x="246" y="200" width="10" height="4" rx="1" fill="#ef61ef" data-anim="blink" data-anim-order="2"/>
+    </g>
+    <text x="220" y="282" font-size="24" fill="#ffffff" text-anchor="middle">User script</text>
+    <text x="220" y="312" font-size="20" fill="#a9b3cc" text-anchor="middle">sends a stream</text>
+    <text x="220" y="340" font-size="20" fill="#a9b3cc" text-anchor="middle">of API requests</text>
+  </g>
+
+  <g id="s05-node-per-user-cap" data-role="node" data-kind="box" data-entity="service" data-object-id="obj-per-user-cap-16">
+    <rect id="s05-node-per-user-cap-box" x="420" y="150" width="440" height="280" rx="12" fill="#ef61ef" fill-opacity="0.10" stroke="#ef61ef" stroke-opacity="0.7" stroke-width="2"/>
+    <g id="s05-node-per-user-cap-art" data-appearance-for="s05-node-per-user-cap">
+      <g transform="translate(436,166) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M7 12a5 5 0 0 1 5 -5"/></g>
+      <line x1="458" y1="188" x2="470" y2="176" stroke="#ef61ef" stroke-width="2.5" stroke-linecap="round" data-anim="spin" data-anim-rate="slow"/>
+      <circle cx="458" cy="188" r="3" fill="#ef61ef" data-anim="pulse"/>
+      <line x1="440" y1="400" x2="840" y2="400" stroke="#a9b3cc" stroke-opacity="0.5" stroke-width="1.5"/>
+      <rect x="448" y="340" width="28" height="60" fill="#635bff" fill-opacity="0.6" data-anim="fill" data-anim-order="0"/>
+      <rect x="488" y="320" width="28" height="80" fill="#635bff" fill-opacity="0.6" data-anim="fill" data-anim-order="1"/>
+      <rect x="528" y="300" width="28" height="100" fill="#635bff" fill-opacity="0.6" data-anim="fill" data-anim-order="2"/>
+      <rect x="568" y="280" width="28" height="120" fill="#635bff" fill-opacity="0.6"/>
+      <rect x="608" y="280" width="28" height="120" fill="#635bff" fill-opacity="0.6"/>
+      <rect x="608" y="250" width="28" height="30" fill="#ff7d6b" fill-opacity="0.85" data-anim="blink" data-anim-order="0"/>
+      <rect x="648" y="280" width="28" height="120" fill="#635bff" fill-opacity="0.6"/>
+      <rect x="648" y="230" width="28" height="50" fill="#ff7d6b" fill-opacity="0.85" data-anim="blink" data-anim-order="1"/>
+      <rect x="688" y="280" width="28" height="120" fill="#635bff" fill-opacity="0.6"/>
+      <rect x="728" y="310" width="28" height="90" fill="#635bff" fill-opacity="0.6"/>
+      <rect x="768" y="290" width="28" height="110" fill="#635bff" fill-opacity="0.6"/>
+      <rect x="808" y="330" width="28" height="70" fill="#635bff" fill-opacity="0.6"/>
+      <line id="s05-cap-line" x1="440" y1="280" x2="840" y2="280" stroke="#ef61ef" stroke-width="2"/>
+      <line id="s05-burst-line" x1="440" y1="250" x2="840" y2="250" stroke="#ef61ef" stroke-width="1.5" stroke-dasharray="6,5" stroke-opacity="0.7"/>
+    </g>
+    <text x="500" y="190" font-size="24" fill="#ffffff">Per-user cap</text>
+    <text x="500" y="218" font-size="20" fill="#a9b3cc">N requests per second</text>
+    <text x="836" y="274" font-family="Consolas, Menlo, monospace" font-size="20" fill="#ef61ef" text-anchor="end">N req/s</text>
+    <text x="836" y="244" font-family="Consolas, Menlo, monospace" font-size="20" fill="#ef61ef" fill-opacity="0.7" text-anchor="end">burst</text>
+  </g>
+
+  <g id="s05-node-rejected-overflow" data-role="node" data-kind="box" data-object-id="obj-rejected-overflow-17">
+    <rect id="s05-node-rejected-overflow-box" x="920" y="170" width="280" height="200" rx="12" fill="#ff7d6b" fill-opacity="0.10" stroke="#ff7d6b" stroke-opacity="0.6" stroke-width="1.5"/>
+    <g transform="translate(1038,186) scale(1.8333)" fill="none" stroke="#ff7d6b" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M10 10l4 4m0 -4l-4 4"/></g>
+    <text x="1060" y="282" font-size="24" fill="#ffffff" text-anchor="middle">Rejected overflow</text>
+    <text x="1060" y="312" font-size="20" fill="#a9b3cc" text-anchor="middle">above the cap, refused</text>
+    <text x="1060" y="340" font-family="Consolas, Menlo, monospace" font-size="20" fill="#ff7d6b" text-anchor="middle">HTTP 429</text>
+  </g>
+
+  <g id="s05-node-burst-allowance" data-role="node" data-kind="label" data-object-id="obj-burst-allowance-18">
+    <rect id="s05-node-burst-allowance-box" x="420" y="470" width="440" height="70" rx="12" fill="#ef61ef" fill-opacity="0.06" stroke="#ef61ef" stroke-opacity="0.5" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="440" y="498" font-size="22" fill="#ffffff">Burst allowance</text>
+    <text x="440" y="526" font-size="20" fill="#a9b3cc">spike above the cap, e.g. a flash sale</text>
+  </g>
+
+  <g id="s05-node-test-mode" data-role="node" data-kind="box" data-object-id="obj-test-mode-19">
+    <rect id="s05-node-test-mode-box" x="240" y="570" width="300" height="76" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g transform="translate(256,586) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3l6 0"/><path d="M10 9l4 0"/><path d="M10 3v6l-4 11a.7 .7 0 0 0 .5 1h11a.7 .7 0 0 0 .5 -1l-4 -11v-6"/></g>
+    <text x="316" y="602" font-size="24" fill="#ffffff">Test mode</text>
+    <text x="316" y="630" font-size="20" fill="#a9b3cc">same limiting as live</text>
+  </g>
+  <g id="s05-node-live-mode" data-role="node" data-kind="box" data-object-id="obj-live-mode-20">
+    <rect id="s05-node-live-mode-box" x="740" y="570" width="300" height="76" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g transform="translate(756,586) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11"/></g>
+    <text x="816" y="602" font-size="24" fill="#ffffff">Live mode</text>
+    <text x="816" y="630" font-size="20" fill="#a9b3cc">same limiting as test</text>
+  </g>
+
+  <line id="s05-edge-1" data-role="connector" data-verb="sends to" data-from="s05-node-user-script" data-to="s05-node-per-user-cap" x1="360" y1="270" x2="418" y2="270" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s05-arrow)"/>
+  <line id="s05-edge-2" data-role="connector" data-verb="returns" data-from="s05-node-per-user-cap" data-to="s05-node-rejected-overflow" x1="860" y1="270" x2="918" y2="270" stroke="#ff7d6b" stroke-opacity="0.7" stroke-width="2" marker-end="url(#s05-arrow)"/>
+  <line id="s05-edge-3" data-role="connector" data-verb="contains" data-from="s05-node-per-user-cap" data-to="s05-node-burst-allowance" x1="640" y1="430" x2="640" y2="468" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s05-arrow)"/>
+  <line id="s05-edge-4" data-role="connector" data-verb="compares with" data-from="s05-node-test-mode" data-to="s05-node-live-mode" x1="542" y1="608" x2="738" y2="608" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-start="url(#s05-arrow)" marker-end="url(#s05-arrow)"/>
+  <text x="640" y="598" font-family="Consolas, Menlo, monospace" font-size="20" fill="#a9b3cc" text-anchor="middle">identical</text>
+
+  <g id="s05-actor-request" data-actor="request" opacity="0">
+    <circle cx="360" cy="270" r="18" fill="#ef61ef"/>
+    <text x="360" y="277" font-size="20" font-weight="600" text-anchor="middle" fill="#0e0c17">req</text>
+  </g>
+</svg>

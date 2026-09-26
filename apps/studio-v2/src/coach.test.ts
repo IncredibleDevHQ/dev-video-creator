@@ -44,7 +44,7 @@ describe('coachStateFor', () => {
 
   it('carries the scene’s recording brief when the director planned one', () => {
     const coach = coachStateFor(project({}))
-    expect(coach.scenes[0].brief?.objective).toBe('hook: title')
+    expect(coach.scenes[0].brief?.objective).toBe('Opening')
     expect(coach.scenes[0].brief?.shots?.[0].record).toContain('lens')
     expect(coach.scenes[1].brief).toBeUndefined()
   })

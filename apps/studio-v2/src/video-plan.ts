@@ -6,6 +6,7 @@
 // the idea grows and the table of contents does not.
 import type { ProjectDocumentV1, TiptapNode } from 'markdown-composition'
 import { arcRoleFor, declaredSceneKind, type ArcRole, type SceneKind } from './director'
+import { pageIdeaOf } from './planning/page-objective'
 
 export type VideoPlanScene = {
   nodeId: string
@@ -71,7 +72,8 @@ export const videoPlanFor = (project: ProjectDocumentV1): VideoPlan => {
     const arcRole = authored || arcRoleFor(kind, { index, count }, [], pageRole)
     const title = String(attrs.title || `Scene ${index + 1}`)
     const fromOutline = outlineScenes.find(scene => scene.nodeId === nodeId) || outlineScenes.find(scene => scene.title === title)
-    const idea = String(attrs.directorNotes || fromOutline?.idea || '').trim().slice(0, 240)
+    // What the page teaches — never the director's generated staging notes.
+    const idea = (fromOutline?.idea || pageIdeaOf(attrs, outlineScenes)).trim().slice(0, 240)
     const naturalSeconds = round1(clamp(Number(brief?.seconds) || (Number(project.blocks[nodeId]?.durationMs) || 0) / 1000 || 30, MIN_SECONDS, MAX_SECONDS))
     const motion = attrs.motion && typeof attrs.motion === 'object' ? (attrs.motion as { entities?: Array<{ id: string; label: string; type: string }> }) : null
     const entities = Array.isArray(motion?.entities) ? motion!.entities!.map(entity => ({ id: entity.id, label: entity.label, type: entity.type })) : []

@@ -1,6 +1,27 @@
+import { fitLabel } from './text-fit'
+import { applyAppearanceControl } from './appearance-controls'
+import { controlValue, type ObjectBehavior, type AppearanceControl } from './object-behavior'
 import '@hyperframes/player'
+import { createPlanningWorkspace } from './planning/planning-workspace'
+import { createSceneReview } from './planning/scene-review'
+import { createSceneWorkspace } from './scene-workspace/workspace'
+import { atStageEnd, lastFrameOf } from './scene-workspace/stage-clock'
+import { createStageChoices, defaultStageView, handOffFor, type PreviewJob, type PreviewWait, type StageView } from './scene-workspace/preview-intent'
+import { isActiveStatus } from './planning/planning-records'
+import type { SceneProductionView } from './planning/planning-workspace'
+import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/recording-guide'
+import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
+import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePage, type PageDesignBinding } from './page-design'
+import { sinceOf } from './planning/progress'
+import { baseNextStep, type NextStep } from './planning/next-step'
+import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab } from './notebook-switch'
+import { nextWireframeAttempt, storedArticleOf, wireframeFailureText, type WireframeOutliner } from './wireframe-attempt'
+import { readableList } from './font-families'
+import { draftHoldsEdits, sameDocument } from './draft-state'
+import { portableProjectMedia, portableUrl } from './studio-refs'
+import { downloadName, downloadStudioFile } from './studio-download'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
-import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
+import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
@@ -22,6 +43,10 @@ import {
   normalizedRectStyle,
   presenterLayoutGeometry,
   sanitizeNotebookMedia,
+  formatOf,
+  notebookSummaryOf,
+  type NotebookSummary,
+  type ProjectContainerV1,
   prepareSlideSvg,
   holdObjectClip,
   holdObjectClips,
@@ -73,7 +98,7 @@ import {
   type StageFamily,
   type StageSegment,
   type MotionDriverInstance,
-  type MotionPlanV2, cameraRectAt } from 'markdown-composition'
+  type MotionPlanV2, cameraRectAt, AUDIO_STATE_LABELS, audioReadinessOf, blockAudioOf, sceneRevisionOf } from 'markdown-composition'
 import NodeIdentifier from 'node-identifier'
 import { ExplainerBlock, ImageBlock, ScreenRecordingBlock, SlideBlock } from './media-nodes'
 import { SceneBlock } from './scene-node'
@@ -85,6 +110,7 @@ import {
   planFromScript,
   planFromWindows,
   relationsOf,
+  repairStationMorphs,
   scriptFromSteps,
   scriptFromWindows,
   splitWindows,
@@ -105,7 +131,7 @@ import { artworkDetailFor, artworkDetailLine } from './artwork-detail'
 import { takeAudioUrlFor } from './take-audio'
 import { briefForWriter, briefVerdict, DEPTH_LABELS, LENGTH_DEPTHS, lengthBriefFor, type LengthBrief, type LengthDepth } from './length-brief'
 import { placementAt, placementsFor, unitsOnScreenPerBeat, unitsOnStageAt } from './placements'
-import type { Outline, OutlineScene, SourceRead } from '../server/source'
+import type { SourceRead } from '../server/source'
 import { declaredSceneKind } from './director'
 import { describePageModel, pageModelFor, type PageModel } from './page-model'
 import { compileSceneProgram, programWithEdits, sanitizeSceneProgram, type SceneProgram } from './scene-program'
@@ -129,6 +155,24 @@ import {
   type OrderedStepDraft,
   type SlideUnit,
 } from './slide-atoms'
+import {
+  HARNESS_LABELS,
+  HARNESS_STAGES,
+  STAGE_LABELS as HARNESS_STAGE_LABELS,
+  adoptLegacyChoices,
+  failureTitle,
+  progressText,
+  loadHarnessPreferences,
+  loadHarnessStatus,
+  resolveStage,
+  resolvedLabel,
+  saveHarnessPreferences,
+  type HarnessAvailability,
+  type HarnessChoice,
+  type HarnessPreferences,
+  type HarnessStage,
+  type HarnessStatus,
+} from './harness-choice'
 import './styles.css'
 
 const studioLogoUrl = new URL(
@@ -413,6 +457,11 @@ const THEME_STORAGE_KEY = 'incredible-studio-v2-themes'
 // A Build explainer click that first has to fork its base survives the
 // navigation into the child as this intent: the child id the build resumes on.
 const BUILD_INTENT_KEY = 'incredible-studio-v2-build-intent'
+// A video fork just made, whose explanation brief should be prepared as soon
+// as it opens (M0 planning).
+const PREPARE_INTENT_KEY = 'incredible-studio-v2-prepare-intent'
+// A new video's first moves, taken once its scenes are read (R06).
+let pendingVideoIntent: { sceneId: string; prepare: boolean } | null = null
 // Edits durable storage never acknowledged (their save failed) are kept per
 // notebook under this prefix until a save of that notebook lands.
 const DRAFT_STORAGE_PREFIX = 'incredible-studio-v2-draft-'
@@ -621,9 +670,19 @@ const recordingCoachThumbnail = $('#recording-coach-thumbnail')
 const inspectorPanel = $('#inspector-panel')
 const sceneRail = $('#scene-rail')
 const saveState = $('#save-state')
+// The name the creator reads (R03 of the project-flow rereview): a
+// notebook in a project is named by its project, known once its project is
+// read; one outside a project by its own title.
+let projectName: string | null = null
+const displayName = () => (project.container && projectName) || project.title
 const renderButton = $('#render-video') as HTMLButtonElement
 const markdownDialog = $('#markdown-dialog') as HTMLDialogElement
 const cameraDialog = $('#camera-dialog') as HTMLDialogElement
+// Where the camera dialog lives in the page: recording in the scene
+// workspace (U5) opens the same dialog in place of its inspector, and it
+// comes back here when it closes.
+const cameraDialogHome = document.createComment('camera dialog')
+cameraDialog.before(cameraDialogHome)
 const cameraPreview = $('#camera-preview') as HTMLVideoElement
 const cameraPlaceholder = $('#camera-placeholder')
 const guideAudio = $('#guide-audio') as HTMLAudioElement
@@ -644,7 +703,7 @@ let previewFetchTimer: number | undefined
 let previewFetchInFlight = false
 let pendingPreviewRequest: {
   requestNumber: number
-  previewPresenter: { imageUrl: string; name: string }
+  previewPresenter?: { imageUrl: string; name: string }
   includeEmptyNodeId?: string
   contentViewNodeId?: string
 } | null = null
@@ -659,6 +718,8 @@ let injectedLiveCameraPreview: HTMLVideoElement | null = null
 let mediaRecorder: MediaRecorder | null = null
 let recordingChunks: Blob[] = []
 let recordingNodeId = ''
+// While the camera records a pickup: the scene, and only the lines asked for.
+let pickupFor: { sceneId: string; lines: string[] } | null = null
 let canvasRecorder: MediaRecorder | null = null
 let canvasCaptureStream: MediaStream | null = null
 let canvasMicrophoneStream: MediaStream | null = null
@@ -745,6 +806,7 @@ let pendingRecordedBlock: {
   cameraUrl?: string
   cameraAssetId?: string
   beatMarksMs?: number[]
+  script?: { hash: string; treatment?: string; revision?: number }
 } | null = null
 let screenRecordingStream: MediaStream | null = null
 let screenRecordingHasAudio = false
@@ -1263,7 +1325,7 @@ const configureCanvasRecordingCoach = (scene: Scene) => {
           ? 'Narrate the slide step by step'
           : 'Talk over this block'
   recordingCoachNumber.textContent = `Block ${String(scene.index + 1).padStart(2, '0')}`
-  canvasRecordingProjectTitle.textContent = project.title
+  canvasRecordingProjectTitle.textContent = displayName()
   canvasRecordingProjectBlock.textContent = `Block ${String(scene.index + 1).padStart(2, '0')} · ${meta.label}`
   syncLiveCameraToggle()
   syncMicrophoneToggle()
@@ -1444,6 +1506,7 @@ const uploadDirectedCanvasRecording = async (
     mediaUrl: result.url,
     durationMs: result.draft.durationMs,
     ...(keepsPlan ? { keepsPlan: true, beatMarksMs: take.beatMarksMs, ...(camera || {}) } : {}),
+    script: scriptLineageOf(scene.id),
   }
   canvasRecordingPlayback.src = result.url
   downloadCanvasRecording.href = result.url
@@ -1615,6 +1678,13 @@ const startExplainerBufferCapture = (scene: Scene): MediaStream => {
 const startCanvasRecording = async () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
+  if (project.explainerDelivery === 'human' && !project.derivedFrom?.notebook) {
+    try {
+      await persistProjectNow(structuredClone(project))
+      await createVideoFromBase(project.id, displayName(), { recordScene: scene.id, recordCanvas: true })
+    } catch (error) { showToast(String(error)) }
+    return
+  }
   // Canvas-program explainers record from our own buffer (no tab-capture
   // permission); every other block kind still films the live composed DOM.
   const bufferCapture =
@@ -1809,7 +1879,7 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
   replaceCanvasRecordingButton.disabled = true
   activeButton.textContent = 'Saving…'
   try {
-    const result = await fetchJson<{ recording: RecordedBlockV1 }>(
+    const result = await fetchJson<{ recording: RecordedBlockV1; project?: ProjectDocumentV1 }>(
       '/api/recordings/commit',
       {
         method: 'POST',
@@ -1818,6 +1888,7 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
       },
     )
     const recording = result.recording
+    acknowledgeTakeMutation(project.id, recording.blockId, result.project)
     project.recordedBlocks ||= {}
     project.recordedBlockTakes ||= {}
     const takes = (project.recordedBlockTakes[recording.blockId] ||= [])
@@ -1935,7 +2006,7 @@ const readStoredProject = (): ProjectDocumentV1 | null => {
 
 // The single cache slot holds one notebook, so it cannot keep a dirty
 // notebook's edits while another one opens. Drafts can: one entry per
-// notebook, written when a durable save fails, cleared when one succeeds.
+// notebook, written as edits become dirty and cleared only by a matching acknowledgement.
 const readStoredDraft = (notebookId: string): ProjectDocumentV1 | null => {
   try {
     const stored = window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${notebookId}`)
@@ -1951,12 +2022,17 @@ const rememberDraft = (notebook: ProjectDocumentV1) => {
   try {
     const stored = structuredClone(notebook)
     sanitizeNotebookMedia(stored.notebook)
+    if (!window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${stored.id}`)) {
+      const baseline = acknowledgedProjects.get(stored.id)
+      if (baseline) window.localStorage.setItem(`${DRAFT_STORAGE_PREFIX}base:${stored.id}`, JSON.stringify(baseline))
+    }
     window.localStorage.setItem(`${DRAFT_STORAGE_PREFIX}${stored.id}`, JSON.stringify(stored))
   } catch {
     // localStorage full: the open page still holds the notebook.
   }
 }
 
+const acknowledgedProjects = new Map<string, ProjectDocumentV1>()
 const localProject = readStoredProject()
 // The notebook to open: an explicit pick from the switcher wins, then the
 // locally cached notebook, then whatever was saved most recently.
@@ -1977,6 +2053,12 @@ const readPersistedProject = async (
       const response = await fetch(`${WORKER_URL}${path}`)
       if (response.ok) {
         const body = (await response.json()) as { project?: ProjectDocumentV1 | null }
+        if (body.project?.version === 1) {
+          const base = window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}base:${body.project.id}`)
+          let expected = body.project
+          if (base) { try { expected = JSON.parse(base) } catch { /* retain the durable snapshot */ } }
+          acknowledgedProjects.set(body.project.id, structuredClone(expected))
+        }
         return body.project?.version === 1 ? body.project : null
       }
     } catch {
@@ -1989,8 +2071,31 @@ const readPersistedProject = async (
 
 const persistedProject = await readPersistedProject(localProject)
 // An unacknowledged draft outranks the store copy: it holds edits the store
-// never saw, so opening the notebook must start from the draft.
-const draftProject = activeProjectId ? readStoredDraft(activeProjectId) : null
+// never saw, so opening the notebook must start from the draft — but only
+// while it holds some. A draft written again for what the store had already
+// acknowledged would put an older notebook back over an edit made elsewhere:
+// it goes, and the page saves against the store's copy.
+const storedDraft = activeProjectId ? readStoredDraft(activeProjectId) : null
+const storedDraftBase = (() => {
+  try {
+    const raw = activeProjectId ? window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}base:${activeProjectId}`) : null
+    return raw ? (JSON.parse(raw) as ProjectDocumentV1) : null
+  } catch {
+    return null
+  }
+})()
+const draftProject = storedDraft && persistedProject && !draftHoldsEdits(storedDraft, storedDraftBase, persistedProject) ? null : storedDraft
+if (storedDraft && !draftProject && persistedProject) {
+  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${storedDraft.id}`)
+  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${storedDraft.id}`)
+  acknowledgedProjects.set(persistedProject.id, structuredClone(persistedProject))
+}
+// Older recovery drafts have no saved base. Never assume they were based on
+// the newest durable document: require conflict recovery instead of overwriting it.
+if (draftProject && !window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}base:${draftProject.id}`) && persistedProject && JSON.stringify(draftProject) !== JSON.stringify(persistedProject)) {
+  acknowledgedProjects.set(draftProject.id, structuredClone(draftProject))
+  window.localStorage.setItem(`${DRAFT_STORAGE_PREFIX}base:${draftProject.id}`, JSON.stringify(draftProject))
+}
 const storedProject =
   draftProject ||
   persistedProject ||
@@ -2039,6 +2144,10 @@ Object.entries(project.recordedBlocks).forEach(([blockId, recording]) => {
 })
 // Heal documents saved before blob: sources were kept out of persistence.
 sanitizeNotebookMedia(project.notebook)
+// Media named while the app had another address — the desktop's port
+// changes at every start — play on this one: by their paths (F01 of the
+// fix verification). The next save keeps the healed names.
+portableProjectMedia(project)
 window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 
 // Hydrate the take archive from the durable store (D3): takes recorded in
@@ -2046,7 +2155,7 @@ window.localStorage.setItem(ACTIVE_PROJECT_KEY, project.id)
 // its stored selection. Deferred past module evaluation (fetchJson below).
 const hydratePresenterTakes = async () => {
   try {
-    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; role?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
+    const { takes, selections } = await fetchJson<{ takes: Array<{ id: string; blockId: string; durationMs: number; createdAt: string; detail?: { mediaUrl?: string; role?: string; keepsPlan?: boolean; beatMarksMs?: number[]; cameraUrl?: string; cameraAssetId?: string; script?: { hash: string; lines?: string[]; treatment?: string; revision?: number }; pickup?: boolean } }>; selections: Array<{ blockId: string; takeId: string }> }>(`/api/takes?projectId=${encodeURIComponent(project.id)}`)
     if (!takes.length) return
     let merged = 0
     project.recordedBlocks ||= {}
@@ -2058,14 +2167,16 @@ const hydratePresenterTakes = async () => {
     const hydrateTake = (take: (typeof takes)[number]): RecordedBlockV1 => ({
       blockId: take.blockId,
       recordingId: take.id,
-      videoUrl: take.detail!.mediaUrl!,
+      videoUrl: portableUrl(take.detail!.mediaUrl!),
       durationMs: take.durationMs,
       recordedAt: take.createdAt,
       storage: 'minio',
       ...(take.detail?.role === 'presenter' ? { role: 'presenter' as const } : {}),
       ...(take.detail?.keepsPlan ? { keepsPlan: true } : {}),
       ...(Array.isArray(take.detail?.beatMarksMs) ? { beatMarksMs: take.detail.beatMarksMs.map(Number).filter(Number.isFinite) } : {}),
-      ...(take.detail?.cameraUrl ? { cameraUrl: String(take.detail.cameraUrl), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
+      ...(take.detail?.cameraUrl ? { cameraUrl: portableUrl(String(take.detail.cameraUrl)), ...(take.detail.cameraAssetId ? { cameraAssetId: String(take.detail.cameraAssetId) } : {}) } : {}),
+      ...(take.detail?.script?.hash ? { script: take.detail.script } : {}),
+      ...(take.detail?.pickup ? { pickup: true } : {}),
     })
     for (const take of takes) {
       const mediaUrl = take.detail?.mediaUrl
@@ -2163,6 +2274,30 @@ const selectedPreviewPresenter = () =>
   PREVIEW_PRESENTERS.find(presenter => presenter.id === previewPresenterId) ||
   PREVIEW_PRESENTERS[0]
 
+// A base made from a source holds its pages; the video's staging — dialogue
+// windows, motion, a presenter, the live canvas, Publish — is its video
+// notebook's (BoltDB review B04). The older way, staging on the base itself,
+// is a choice under Advanced, kept per notebook on this machine.
+const VIDEO_STAGING_KEY = 'studio.video-staging-shown'
+const stagingShownOn = new Set<string>((() => {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(VIDEO_STAGING_KEY) || '[]')
+    return Array.isArray(stored) ? stored.map(String) : []
+  } catch {
+    return []
+  }
+})())
+// A notebook of a project that is not its video — its text, wireframe or
+// presentation — never shows the video's staging: the video notebook has
+// its own. A standalone base made from a source hides it unless its creator
+// shows it there, the older way.
+const notebookKind = () => project.container?.kind || null
+const isSourceBase = () => !project.container && Boolean(project.source) && !project.derivedFrom?.notebook
+const baseShowsPagesOnly = () => (notebookKind() !== null && notebookKind() !== 'video') || (isSourceBase() && !stagingShownOn.has(project.id))
+// Set once the notebook's chrome is built; an import that makes the open
+// notebook a base calls it again.
+let syncBasePages = () => {}
+
 const themeCanvasCss = (theme: StudioThemeV1) => {
   if (theme.canvas.treatment === 'gradient') {
     return `linear-gradient(135deg, ${theme.canvas.gradient[0]}, ${theme.canvas.gradient[1]})`
@@ -2189,6 +2324,7 @@ const appearanceFromTheme = (kind: ThemeBlockKind, theme: StudioThemeV1) => ({
 const applyThemeToProject = (theme: StudioThemeV1, updateCamera = true) => {
   project.theme = cloneTheme(normalizeStudioTheme(theme))
   project.brand = { ...project.theme.brand }
+  refreshBrandColors()
   const nodesById = new Map(
     project.notebook.content
       .filter(node => typeof node.attrs?.id === 'string')
@@ -3077,6 +3213,62 @@ const buildExplanationDecorations = (state: EditorState) => {
   return DecorationSet.create(state.doc, decorations)
 }
 
+// ——— Scene review in a video notebook (P2) ———
+// Every scene block carries its review strip; the selected scene's review
+// leads, above its block and beside the stage, and the block's inherited
+// dialogue folds into one line until asked for (F7). The widgets are keyed
+// by what they show, so a redraw that changes nothing keeps the same DOM.
+let sceneReview: ReturnType<typeof createSceneReview> | null = null
+// The video scene workspace (U2 of the scene workspace plan): the scenes
+// around one stage. While it shows, the notebook's own review stays folded.
+let sceneWorkspace: ReturnType<typeof createSceneWorkspace> | null = null
+let reviewSelectedScene = ''
+// The selected scene whose inherited dialogue is unfolded, if any.
+let sceneSourceOpen = ''
+// The scene the stage stepped aside for, so its take can be recorded on the
+// composition the recording controls operate on.
+let sceneStageAsideFor = ''
+let onSceneSelected: (nodeId: string) => void = () => {}
+// The notebook's one next step (F10 of the Perplexity review), drawn once
+// the parts it reads are there.
+let renderNextStep: () => void = () => {}
+const sceneReviewKey = new PluginKey('scene-review')
+const SceneReviewWidgets = Extension.create({
+  name: 'sceneReviewWidgets',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: sceneReviewKey,
+        props: {
+          decorations: state => {
+            const review = sceneReview
+            if (!review?.active()) return null
+            const decorations: Decoration[] = []
+            state.doc.forEach((node, offset) => {
+              if (node.type.name !== 'scene') return
+              const id = String(node.attrs.id || '')
+              if (!id || !review.has(id)) return
+              const expanded = id === reviewSelectedScene && !sceneWorkspace?.active()
+              // The selected scene's review sits before its block, after
+              // anything the block above left at that position.
+              decorations.push(
+                Decoration.widget(expanded ? offset : offset + node.nodeSize, () => review.widget(id, expanded), {
+                  key: `scene-review:${id}:${review.signature(id, expanded)}`,
+                  side: expanded ? 2 : -1,
+                  stopEvent: () => true,
+                  ignoreSelection: true,
+                }),
+              )
+              if (expanded) decorations.push(Decoration.node(offset, offset + node.nodeSize, { class: `is-review-source${sceneSourceOpen === id ? ' is-source-open' : ''}` }))
+            })
+            return DecorationSet.create(state.doc, decorations)
+          },
+        },
+      }),
+    ]
+  },
+})
+
 const BlockExplanations = Extension.create({
   name: 'blockExplanations',
   addProseMirrorPlugins() {
@@ -3101,6 +3293,7 @@ editor = new Editor({
     ExplainerBlock,
     SlideBlock,
     SceneBlock,
+    SceneReviewWidgets,
     Markdown.configure({
       markedOptions: { gfm: true, breaks: false },
     }),
@@ -3159,18 +3352,8 @@ editor = new Editor({
 editor.on('update', () => {
   syncNotebookStart()
   scheduleArcPass()
+  renderNextStep()
 })
-
-// The starter sample as first loaded: a notebook still holding exactly it has
-// no content of its own yet. Only captured on a fresh launch — a stored
-// notebook's content is always the author's. NodeIdentifier stamps the ids in
-// a microtask after the view exists, so the fingerprint waits for that tick.
-let starterContentJson: string | null = null
-if (!storedProject) {
-  queueMicrotask(() => {
-    starterContentJson = JSON.stringify((editor.getJSON() as TiptapDocument).content)
-  })
-}
 
 const showToast = (message: string) => {
   const toast = $('#toast')
@@ -3187,18 +3370,56 @@ const setSaving = (saving: boolean) => {
   saveState.parentElement?.classList.toggle('saving', saving)
 }
 
+const saveConflictButton = document.createElement('button')
+saveConflictButton.textContent = 'Keep draft copy and reload saved'
+saveConflictButton.hidden = true
+saveState.parentElement?.append(saveConflictButton)
+saveConflictButton.onclick = async () => {
+  saveConflictButton.disabled = true
+  try {
+    const original = project.id
+    const copy = structuredClone(project); copy.id = crypto.randomUUID(); copy.title += ' (recovered draft)'
+    await persistProjectNow(copy)
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${original}`)
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${original}`)
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.location.reload()
+  } catch (error) { saveConflictButton.disabled = false; showToast(String(error)) }
+}
+
+// Saves retried on a designed page the worker landed meanwhile (B06).
+let pageRebases = 0
 const scheduleDatabaseSync = () => {
   window.clearTimeout(databaseSyncTimer)
   databaseSyncTimer = window.setTimeout(async () => {
     // Clone at fire time, not schedule time: a stale snapshot must never
     // clobber state that landed meanwhile (e.g. the take hydration).
     const snapshot = structuredClone(project)
+    // Nothing the store has not acknowledged: no save, and no draft to keep —
+    // a redundant save against an older copy would only conflict with an
+    // edit made elsewhere since.
+    const probe = structuredClone(snapshot)
+    sanitizeNotebookMedia(probe.notebook)
+    if (sameDocument(probe, acknowledgedProjects.get(probe.id))) {
+      const draft = readStoredDraft(probe.id)
+      if (!draft || sameDocument(draft, probe)) {
+        window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${probe.id}`)
+        window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${probe.id}`)
+        setSaving(false)
+      }
+      return
+    }
     try {
       await persistProjectNow(snapshot)
-      saveState.textContent = 'Saved'
-    } catch {
-      rememberDraft(snapshot)
-      saveState.textContent = 'Saved offline'
+      pageRebases = 0
+      saveState.textContent = readStoredDraft(snapshot.id) ? 'Saving…' : 'Saved'
+    } catch (error) {
+      const conflict = (error as { statusCode?: number }).statusCode === 409
+      // A designed page the worker landed meanwhile (B06) is taken, and the
+      // save goes again on the notebook as stored.
+      if (conflict && (await rebaseOnLandedPages())) return
+      saveState.textContent = conflict ? 'Newer saved version · draft kept' : 'Saved offline'
+      saveConflictButton.hidden = !conflict
     }
   }, 450)
 }
@@ -3535,15 +3756,23 @@ const hydrateJunctionFrames = (root: HTMLElement) => {
     })
 }
 
-// ——— Guided finalize flow: walk every junction on the real video ———
+// ——— Guided finalize flow: walk the export's junctions on the real video ———
 const finalizeBar = $('#finalize-bar')
 const finalizeTiles = $('#finalize-tiles')
 let finalizeModeActive = false
 let finalizeJunctionIndex = 0
+// The blocks being exported, in order: the walk visits the switchovers
+// between them, never the notebook's every junction (BoltDB review B09).
+let finalizeScenes: Scene[] = []
+// Publishing, from its first click to its close: where the creator was, so
+// that closing it — exported or not — returns them there. The walk happens
+// on the notebook's composition; from the Scenes view it leaves Scenes
+// explicitly for the walk, and comes back.
+let publishFlow: { selection: string; scenes: boolean; canvas: boolean } | null = null
 
 const highlightCurrentJunction = () => {
   const finalizeTarget = finalizeModeActive
-    ? scenes[finalizeJunctionIndex + 1]
+    ? finalizeScenes[finalizeJunctionIndex + 1]
     : undefined
   const targetIndex = finalizeTarget
     ? finalizeTarget.index
@@ -3558,8 +3787,9 @@ const highlightCurrentJunction = () => {
     })
   // Spotlight the pair the switchover connects: the outgoing and incoming
   // chips get From/To tags while everything else on the rail dims.
-  const fromId = targetIndex > 0 ? scenes[targetIndex - 1]?.id : undefined
-  const toId = targetIndex > 0 ? scenes[targetIndex]?.id : undefined
+  // The walk's pair is the export's, which the blocks left out can part.
+  const fromId = finalizeTarget ? finalizeScenes[finalizeJunctionIndex]?.id : targetIndex > 0 ? scenes[targetIndex - 1]?.id : undefined
+  const toId = finalizeTarget ? finalizeTarget.id : targetIndex > 0 ? scenes[targetIndex]?.id : undefined
   canvasBlockTimeline.classList.toggle('junction-focus', Boolean(toId))
   canvasBlockTimeline
     .querySelectorAll<HTMLElement>('.canvas-timeline-block')
@@ -3576,20 +3806,20 @@ const highlightCurrentJunction = () => {
 }
 
 const renderFinalizeJunction = (playPreview: boolean) => {
-  const junctionCount = scenes.length - 1
-  const from = scenes[finalizeJunctionIndex]
-  const to = scenes[finalizeJunctionIndex + 1]
+  const junctionCount = finalizeScenes.length - 1
+  const from = finalizeScenes[finalizeJunctionIndex]
+  const to = finalizeScenes[finalizeJunctionIndex + 1]
   if (!from || !to) return
   const fromMeta = TIMELINE_BLOCK_META[sceneVisualKind(from)]
   const toMeta = TIMELINE_BLOCK_META[sceneVisualKind(to)]
   ;($('#finalize-step') as HTMLElement).textContent =
-    `Junction ${finalizeJunctionIndex + 1} of ${junctionCount}`
+    `Switchover ${finalizeJunctionIndex + 1} of ${junctionCount}`
   ;($('#finalize-pair') as HTMLElement).textContent =
     `${fromMeta.label} → ${toMeta.label}`
   const hasTake = Boolean(project.recordedBlocks?.[to.id]?.videoUrl)
   ;($('#finalize-note') as HTMLElement).hidden = !hasTake
   ;($('#finalize-next') as HTMLButtonElement).textContent =
-    finalizeJunctionIndex >= junctionCount - 1 ? 'Continue →' : 'Next →'
+    finalizeJunctionIndex >= junctionCount - 1 ? 'Back to Publish →' : 'Next →'
   ;($('#finalize-back') as HTMLButtonElement).disabled =
     finalizeJunctionIndex === 0
   finalizeTiles.replaceChildren(
@@ -3651,23 +3881,54 @@ const exitFinalizeMode = () => {
   playerShell.classList.remove('canvas-finalize-mode')
   stopMotionPreviewLoop()
   highlightCurrentJunction()
+  // The scene review's stage comes back once the notebook's own
+  // composition is no longer being finalized.
+  renderSceneStage()
 }
 
-const enterFinalizeMode = () => {
-  if (scenes.length < 2) {
-    void openPublishSummary()
-    return
+// Closing Publish, exported or not, returns the creator to where they were:
+// the canvas as it was, the scene they had selected, the view they chose.
+const endPublishFlow = () => {
+  const flow = publishFlow
+  publishFlow = null
+  if (!flow) return
+  if (flow.canvas && playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+  if (flow.selection && flow.selection !== selectedNodeId && scenes.some(scene => scene.id === flow.selection)) selectNode(flow.selection, false)
+  if (flow.scenes && !sceneWorkspace?.active()) sceneWorkspace?.show('scenes')
+}
+
+// Publishing exports the notebook's own composition. The walk through the
+// export's switchovers happens on that composition, so the scene review's
+// stage steps aside for all of it — every scene the walk selects — or it
+// would cover the composition and hide the finalize bar (F6 of the fresh
+// E2E review). The Scenes view does not hold that composition: the walk
+// leaves it, said so, and Publish's close comes back (BoltDB review B09).
+const enterFinalizeMode = (included: Scene[]) => {
+  if (included.length < 2) return true
+  if (sceneWorkspace?.active()) {
+    sceneWorkspace.show('notebook')
+    // A recording holds the view; the walk waits for it.
+    if (sceneWorkspace.active()) return false
+    if (publishFlow) publishFlow.scenes = true
+    showToast('The switchovers play on the notebook\'s composition — Scenes comes back when Publish closes')
   }
-  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+  finalizeScenes = included
   finalizeModeActive = true
+  renderSceneStage()
+  if (!playerShell.classList.contains('canvas-open')) {
+    openCanvasFullscreen()
+    if (publishFlow) publishFlow.canvas = true
+  }
   finalizeJunctionIndex = 0
   playerShell.classList.add('canvas-finalize-mode')
   finalizeBar.hidden = false
   renderFinalizeJunction(true)
+  return true
 }
 
 ;($('#finalize-next') as HTMLButtonElement).addEventListener('click', () => {
-  if (finalizeJunctionIndex >= scenes.length - 2) {
+  if (finalizeJunctionIndex >= finalizeScenes.length - 2) {
+    publishWalked.add(publishWalkKey(finalizeScenes))
     exitFinalizeMode()
     void openPublishSummary()
     return
@@ -3683,10 +3944,10 @@ const enterFinalizeMode = () => {
 ;($('#finalize-replay') as HTMLButtonElement).addEventListener('click', () =>
   void replaySelectedAnimation(),
 )
-;($('#finalize-cancel') as HTMLButtonElement).addEventListener(
-  'click',
-  exitFinalizeMode,
-)
+;($('#finalize-cancel') as HTMLButtonElement).addEventListener('click', () => {
+  exitFinalizeMode()
+  endPublishFlow()
+})
 
 let draggedBlockId = ''
 
@@ -3757,6 +4018,18 @@ const makeChipReorderable = (chip: HTMLElement, sceneId: string) => {
   })
 }
 
+// The workspace fills what the header, any notice above it and the scene
+// rail leave of the window: the document ends above the rail, whatever
+// height its chips and scrollbar give it.
+const syncLayoutBands = () =>
+  window.requestAnimationFrame(() => {
+    const rail = document.getElementById('notebook-timeline')
+    const shown = rail && !rail.hidden && getComputedStyle(rail).display !== 'none'
+    document.body.style.setProperty('--rail-band', shown ? `${Math.ceil(rail!.getBoundingClientRect().height)}px` : '0px')
+    const workspace = document.querySelector<HTMLElement>('.studio-workspace')
+    if (workspace) document.body.style.setProperty('--workspace-top', `${Math.ceil(workspace.getBoundingClientRect().top + window.scrollY)}px`)
+  })
+
 const renderNotebookTimeline = () => {
   const notebookTimeline = $('#notebook-timeline')
   const track = document.createElement('div')
@@ -3807,8 +4080,10 @@ const renderNotebookTimeline = () => {
     }
     const copy = document.createElement('span')
     copy.className = 'notebook-timeline-copy'
+    // The scene's own title, so the rail tells blocks apart; the kind is in
+    // its label and tooltip.
     const kind = document.createElement('strong')
-    kind.textContent = meta.label
+    kind.textContent = scene.title || meta.label
     copy.append(kind)
     if (showTime) {
       const duration = document.createElement('time')
@@ -3829,13 +4104,14 @@ const renderNotebookTimeline = () => {
       // Focusing the editor would drop the caret after atom nodes and
       // re-select the following block, so only select and scroll.
       selectNode(scene.id, false)
-      document.getElementById(scene.id)?.scrollIntoView({ block: 'center' })
+      revealBlock(scene.id)
     })
     makeChipReorderable(chip, scene.id)
     track.append(chip)
   })
   notebookTimeline.replaceChildren(track)
   notebookTimeline.hidden = scenes.length === 0
+  syncLayoutBands()
   const activeChip = track.querySelector<HTMLElement>(
     '.notebook-timeline-chip.active',
   )
@@ -4051,12 +4327,22 @@ const renderSceneRail = () => {
 const positionInlinePreview = () => {
   const selectedNode = document.getElementById(selectedNodeId)
   if (!selectedNode) return
+  // The selected scene's review leads its block (F7): the stage lines up
+  // with the review, where the plan it shows begins.
+  const review = document.querySelector<HTMLElement>(`.scene-review.is-expanded[data-review-scene="${CSS.escape(selectedNodeId)}"]`)
   const layoutTop = editorLayout.getBoundingClientRect().top
-  const selectedTop = selectedNode.getBoundingClientRect().top
-  inlinePreview.style.setProperty(
-    '--preview-offset',
-    `${Math.max(0, selectedTop - layoutTop)}px`,
-  )
+  const selectedTop = (review || selectedNode).getBoundingClientRect().top
+  let offset = Math.max(0, selectedTop - layoutTop)
+  // While the review is open, the stage stays in view beside it — the
+  // moments being reviewed point at it — and never runs past its end.
+  const following = Boolean(review && !document.getElementById('scene-stage')?.hidden)
+  if (review && following) {
+    const viewportTop = (editorLayout.closest('.studio-workspace') || document.documentElement).getBoundingClientRect().top
+    const reviewBottom = review.getBoundingClientRect().bottom - layoutTop
+    offset = Math.max(offset, Math.min(viewportTop + 16 - layoutTop, reviewBottom - inlinePreview.offsetHeight))
+  }
+  inlinePreview.classList.toggle('is-following', following)
+  inlinePreview.style.setProperty('--preview-offset', `${Math.max(0, offset)}px`)
 }
 
 const createContentLayoutButton = (
@@ -4672,9 +4958,20 @@ const updateInspector = () => {
   renderButton.disabled = scenes.length === 0
   renderButton.title = renderButton.disabled
     ? 'Add at least one block first'
-    : 'Choose takes and transitions, then publish the MP4'
+    : project.derivedFrom?.notebook
+      ? 'Choose takes and transitions, then export the notebook\'s own composition as a draft MP4 — approved scene plans are not produced yet'
+      : 'Choose takes and transitions, then publish the MP4'
 }
 
+// Brings a selected block into view. A scene under review shows its review
+// from the top, since the plan leads (F7); any other block is centred.
+const revealBlock = (nodeId: string) => {
+  window.requestAnimationFrame(() => {
+    const review = nodeId === reviewSelectedScene ? document.querySelector<HTMLElement>(`.scene-review.is-expanded[data-review-scene="${CSS.escape(nodeId)}"]`) : null
+    if (review) review.scrollIntoView({ block: 'start' })
+    else document.getElementById(nodeId)?.scrollIntoView({ block: 'center' })
+  })
+}
 const selectNode = (nodeId: string, focusEditor: boolean) => {
   if (selectedNodeId !== nodeId) {
     stopScreenPlayback()
@@ -4705,6 +5002,7 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
   }
   renderSceneRail()
   updateInspector()
+  onSceneSelected(nodeId)
   window.requestAnimationFrame(positionInlinePreview)
   const scene = scenes.find(item => item.id === nodeId)
   // While a switchover audition owns the canvas it also owns the parked
@@ -4778,7 +5076,7 @@ const updatePreview = () => {
     const contentViewNodeId =
       recordedTakeCanvasView === 'content' ? selectedNodeId : undefined
     const compiled = compileProject(project, {
-      previewPresenter: {
+      previewPresenter: project.explainerDelivery === 'generated' || baseShowsPagesOnly() ? undefined : {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
@@ -4786,6 +5084,7 @@ const updatePreview = () => {
       contentViewNodeId,
     })
     scenes = compiled.scenes
+    window.setTimeout(resumeRecordingIntent, 0)
 
     if (!selectedNodeId || !scenes.some(scene => scene.id === selectedNodeId)) {
       selectedNodeId = scenes[0]?.id || ''
@@ -4815,7 +5114,7 @@ const updatePreview = () => {
     playerLoading.textContent = 'Compiling live canvas…'
     pendingPreviewRequest = {
       requestNumber,
-      previewPresenter: {
+      previewPresenter: project.explainerDelivery === 'generated' || baseShowsPagesOnly() ? undefined : {
         imageUrl: previewPresenter.url,
         name: previewPresenter.name,
       },
@@ -4846,7 +5145,10 @@ const syncNotebookStart = () => {
   } else {
     empty = (project.notebook?.content || []).every(node => node.type === 'paragraph' && !(node.content || []).length)
   }
-  notebookStart.hidden = !empty
+  // A notebook of a project is made by the project — its text read, its
+  // wireframe outlined, its slides designed — never started over from here
+  // (R02 of the project-flow rereview).
+  notebookStart.hidden = !empty || Boolean(project.container)
 }
 notebookStart.addEventListener('click', event => {
   const card = (event.target as HTMLElement).closest<HTMLElement>('[data-start]')
@@ -4858,21 +5160,29 @@ notebookStart.addEventListener('click', event => {
   else void openAttentionSample()
 })
 
+// The notebook switch follows this notebook's own state, not only its
+// words (F06 of the fix verification): accepting or releasing a production
+// changes the Video tab's count as surely as a page added does. Set once
+// the switch is drawn, below.
+let followSwitch: () => void = () => {}
 const syncProject = () => {
   syncNotebookStart()
   setSaving(true)
+  followSwitch()
   const notebook = editor.getJSON() as TiptapDocument
   ensureBlockConfiguration(notebook)
   project.notebook = notebook
   const stored = structuredClone(project)
   sanitizeNotebookMedia(stored.notebook)
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  rememberDraft(stored)
   scheduleDatabaseSync()
+  refreshBrandColors()
   updatePreview()
-  setSaving(false)
 }
 
 function scheduleSync() {
+  rememberDraft({ ...project, notebook: editor.getJSON() as TiptapDocument })
   setSaving(true)
   window.clearTimeout(syncTimer)
   syncTimer = window.setTimeout(syncProject, 120)
@@ -4897,17 +5207,39 @@ const selectedPlayableRecordingScene = () => {
     : undefined
 }
 
+const acknowledgeTakeMutation = (notebookId: string, blockId: string, stored?: ProjectDocumentV1) => {
+  const baseline = acknowledgedProjects.get(notebookId)
+  if (!baseline || !stored) return
+  for (const field of ['recordedBlocks', 'presenterTracks'] as const) {
+    baseline[field] ||= {}
+    if (stored[field]?.[blockId]) (baseline[field] as Record<string, unknown>)[blockId] = structuredClone(stored[field][blockId])
+    else delete baseline[field][blockId]
+  }
+  const selected = stored.recordedBlocks?.[blockId]?.recordingId
+  if (selected) {
+    const retired = (baseline as unknown as { retiredTakeIds?: Record<string, boolean> }).retiredTakeIds
+    if (retired) delete retired[selected]
+  }
+}
+
 const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
   project.recordedBlocks ||= {}
   if (project.recordedBlocks[blockId]?.recordingId === take.recordingId) return
   project.recordedBlocks[blockId] = take
+  // Picture and aligned voice belong to the previously selected take.
+  project.presenterTracks[blockId] = []
   // The selection is a durable record too (D3): the archive, not just the
   // document, remembers which take the edit uses.
-  void fetchJson('/api/takes/select', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ projectId: project.id, blockId, takeId: take.recordingId }),
-  }).catch(error => console.warn('take selection not recorded durably', error))
+  const notebookId = project.id
+  const selection = (projectSaveQueues.get(notebookId) || Promise.resolve()).catch(() => {}).then(async () => {
+    const result = await fetchJson<{ project?: ProjectDocumentV1 }>('/api/takes/select', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ projectId: notebookId, blockId, takeId: take.recordingId }),
+    })
+    acknowledgeTakeMutation(notebookId, blockId, result.project)
+  })
+  projectSaveQueues.set(notebookId, selection)
+  void selection.catch(error => showToast(`Take selection could not be saved: ${String(error)}`))
   renderCanvasBlockTimeline()
   syncProject()
   syncCanvasViewSwitch()
@@ -4916,7 +5248,7 @@ const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
   const takes = project.recordedBlockTakes?.[blockId] || []
   const versionNumber =
     takes.findIndex(item => item.recordingId === take.recordingId) + 1
-  showToast(`Take v${versionNumber} is now used for the final video`)
+  showToast(`Take v${versionNumber} selected — build again to align its narration and review the timing`)
 }
 
 const renderTakeVersionPicker = (blockId: string) => {
@@ -5724,7 +6056,14 @@ const openCanvasFullscreen = () => {
   if (canvasRecorder?.state === 'recording') return
   const isOpen = playerShell.classList.toggle('canvas-open')
   if (!isOpen) stopLiveCamera()
-  if (!isOpen && finalizeModeActive) exitFinalizeMode()
+  if (!isOpen && sceneStageAsideFor) {
+    sceneStageAsideFor = ''
+    renderSceneStage()
+  }
+  if (!isOpen && finalizeModeActive) {
+    exitFinalizeMode()
+    endPublishFlow()
+  }
   // Transition auditioning is a canvas-mode activity: leaving the canvas
   // closes the picker and stops the loop, so the notebook's side-panel
   // preview never plays a switchover audition.
@@ -5791,7 +6130,12 @@ document.addEventListener('keydown', event => {
 window.addEventListener('resize', () => {
   positionInlinePreview()
   attachLiveCameraToPlayer()
+  syncLayoutBands()
 })
+// The stage follows an open scene review as the notebook scrolls.
+document.querySelector('.studio-workspace')?.addEventListener('scroll', () => {
+  if (inlinePreview.classList.contains('is-following')) window.requestAnimationFrame(positionInlinePreview)
+}, { passive: true })
 
 const importMenuToggle = $('#import-menu-toggle') as HTMLButtonElement
 const importMenuList = $('#import-menu-list')
@@ -5800,10 +6144,18 @@ const closeImportMenu = () => {
   importMenuList.hidden = true
   importMenuToggle.setAttribute('aria-expanded', 'false')
 }
+// A command-bar menu opens on the viewport under its toggle: the bar
+// scrolls sideways in a narrow window, and would clip a list inside it.
+const placeMenu = (toggle: HTMLElement, list: HTMLElement) => {
+  const box = toggle.getBoundingClientRect()
+  list.style.top = `${Math.round(box.bottom + 6)}px`
+  list.style.right = `${Math.max(8, Math.round(window.innerWidth - box.right))}px`
+}
 
 importMenuToggle.addEventListener('click', event => {
   event.stopPropagation()
   const open = importMenuList.hidden
+  if (open) placeMenu(importMenuToggle, importMenuList)
   importMenuList.hidden = !open
   importMenuToggle.setAttribute('aria-expanded', String(open))
 })
@@ -5818,10 +6170,78 @@ document.addEventListener('click', event => {
   }
 })
 
-;($('#project-title') as HTMLInputElement).value = project.title
-;($('#project-title') as HTMLInputElement).addEventListener('input', event => {
-  project.title = (event.currentTarget as HTMLInputElement).value
-  scheduleSync()
+// The older and other paths, each saying what it is (F10 of the Perplexity
+// review): out of the way of the one next step.
+const advancedMenuToggle = $('#advanced-menu-toggle') as HTMLButtonElement
+const advancedMenuList = $('#advanced-menu-list')
+const closeAdvancedMenu = () => {
+  advancedMenuList.hidden = true
+  advancedMenuToggle.setAttribute('aria-expanded', 'false')
+}
+advancedMenuToggle.addEventListener('click', event => {
+  event.stopPropagation()
+  const open = advancedMenuList.hidden
+  if (open) placeMenu(advancedMenuToggle, advancedMenuList)
+  advancedMenuList.hidden = !open
+  advancedMenuToggle.setAttribute('aria-expanded', String(open))
+  if (open) [...advancedMenuList.querySelectorAll<HTMLButtonElement>('button')].find(button => button.getClientRects().length)?.focus({ preventScroll: true })
+})
+window.addEventListener('resize', () => {
+  closeImportMenu()
+  closeAdvancedMenu()
+})
+advancedMenuList.addEventListener('click', () => closeAdvancedMenu())
+document.addEventListener('click', event => {
+  if (advancedMenuList.hidden) return
+  if (!(event.target instanceof Node) || !advancedMenuToggle.parentElement?.contains(event.target)) closeAdvancedMenu()
+})
+advancedMenuList.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return
+  closeAdvancedMenu()
+  advancedMenuToggle.focus()
+})
+
+// The header names the project (R03 of the project-flow rereview). A
+// notebook in a project is named by its project — the name every notebook
+// of it, the library and a reopened app show — and renaming it here renames
+// the project. Each notebook keeps a title of its own, as a detail of the
+// artifact; one outside a project is named by that title.
+const projectTitleInput = $('#project-title') as HTMLInputElement
+projectTitleInput.value = project.title
+let projectRenameTimer = 0
+const renameProject = async (title: string) => {
+  const place = project.container
+  const name = title.trim()
+  if (!place || !name) return
+  saveState.textContent = 'Saving…'
+  try {
+    const { container } = await fetchJson<{ container: { title: string } }>(`/api/containers/${encodeURIComponent(place.id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: name }) })
+    projectName = container.title
+    saveState.textContent = 'Saved'
+  } catch (error) {
+    saveState.textContent = 'Not saved'
+    showToast(`The project could not be renamed: ${error instanceof Error ? error.message : 'try again'}`)
+  }
+}
+projectTitleInput.addEventListener('input', () => {
+  const value = projectTitleInput.value
+  if (!project.container) {
+    project.title = value
+    scheduleSync()
+    return
+  }
+  projectName = value
+  window.clearTimeout(projectRenameTimer)
+  projectRenameTimer = window.setTimeout(() => {
+    projectRenameTimer = 0
+    void renameProject(value)
+  }, 450)
+})
+projectTitleInput.addEventListener('blur', () => {
+  if (!project.container || !projectRenameTimer) return
+  window.clearTimeout(projectRenameTimer)
+  projectRenameTimer = 0
+  void renameProject(projectTitleInput.value)
 })
 
 // ——— Model settings ———
@@ -5836,6 +6256,8 @@ type ModelSettingsPublic = {
   hasKey: boolean
   keyHint: string
   source: 'saved' | 'environment' | 'none'
+  // Each task's last request since the worker started.
+  results?: Partial<Record<ModelTask | 'image', { ok: boolean; status: number; model: string; reportedModel?: string; at: string }>>
 }
 type ModelPreset = {
   label: string
@@ -5844,8 +6266,15 @@ type ModelPreset = {
   models: Record<ModelTask, string>
   note: string
 }
-const modelSettingsDialog = $('#model-settings-dialog') as HTMLDialogElement
-const modelSettingsSummary = $('#model-settings-summary') as HTMLElement
+// One AI settings entry (F7 of the Perplexity review): what each job runs
+// on, the local harness's stages and the direct API, in one dialog.
+const aiSettingsDialog = $('#ai-settings-dialog') as HTMLDialogElement
+const aiSettingsButton = $('#open-ai-settings') as HTMLButtonElement
+const aiSettingsSummary = $('#ai-settings-summary') as HTMLElement
+const aiStatusDot = $('#ai-status-dot') as HTMLElement
+const aiRoutesBody = $('#ai-routes tbody') as HTMLElement
+const aiApiUses = $('#ai-api-uses') as HTMLElement
+const aiHarnessSection = $('#ai-harness-section') as HTMLElement
 const msProvider = $('#ms-provider') as HTMLSelectElement
 const msBaseUrl = $('#ms-base-url') as HTMLInputElement
 const msApiKey = $('#ms-api-key') as HTMLInputElement
@@ -5861,6 +6290,10 @@ const msStatus = $('#ms-status') as HTMLElement
 const msModelList = $('#ms-model-list') as HTMLDataListElement
 let modelPresets: Record<string, ModelPreset> = {}
 let modelSettings: ModelSettingsPublic | null = null
+// The AI settings render lives with the harness section below; the direct
+// API's settings, which can load before the rest of this module has run,
+// reach it through this once it is there.
+let renderAiSettingsHook = () => {}
 
 const setModelStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   msStatus.textContent = text
@@ -5868,16 +6301,20 @@ const setModelStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   msStatus.classList.toggle('is-error', tone === 'error')
 }
 
-const renderModelSummary = () => {
-  if (!modelSettings) {
-    modelSettingsSummary.textContent = 'Models'
-    return
-  }
-  const label = modelPresets[modelSettings.provider]?.label || modelSettings.provider
-  const configured = modelSettings.hasKey || !modelPresets[modelSettings.provider]?.keyRequired
-  modelSettingsSummary.textContent = configured
-    ? `${label.split(' (')[0]} · ${modelSettings.models.writing || 'choose a model'}`
-    : 'Models · add a key'
+// The direct API as the jobs it serves see it: its provider, the model a
+// task uses (the worker's own fallback), and whether requests can go out.
+const apiProviderLabel = () => (modelSettings ? (modelPresets[modelSettings.provider]?.label || modelSettings.provider).split(' (')[0] : 'Direct API')
+const apiModelFor = (task: ModelTask | 'image') => {
+  if (!modelSettings) return ''
+  if (task === 'image') return modelSettings.provider === 'openai' || modelSettings.provider === 'litellm' ? (modelSettings.models as Record<string, string | undefined>).image || 'gpt-image-1' : ''
+  return modelSettings.models[task] || modelSettings.models.writing || modelPresets[modelSettings.provider]?.models[task] || ''
+}
+const apiState = (): { text: string; ok: boolean } => {
+  if (!modelSettings) return { text: 'Settings could not be read from the worker', ok: false }
+  if (modelSettings.source === 'environment') return { text: 'Key from the environment', ok: true }
+  if (modelSettings.hasKey) return { text: `Key saved (ending ${modelSettings.keyHint})`, ok: true }
+  if (!modelPresets[modelSettings.provider]?.keyRequired) return { text: 'No key needed', ok: true }
+  return { text: 'No key — these fail until one is added below', ok: false }
 }
 
 const loadModelSettingsUi = async () => {
@@ -5895,9 +6332,9 @@ const loadModelSettingsUi = async () => {
         return option
       }),
     )
-    renderModelSummary()
+    renderAiSettingsHook()
   } catch {
-    modelSettingsSummary.textContent = 'Models'
+    renderAiSettingsHook()
   }
 }
 
@@ -5913,10 +6350,12 @@ const applyPresetToForm = (providerId: string, { keepModels }: { keepModels: boo
   msApiKey.placeholder = preset.keyRequired ? 'Paste a key' : 'Optional for this provider'
 }
 
-const openModelSettings = async () => {
+// The form, from what is saved; only when the dialog opens, so nothing the
+// creator is typing is replaced by a later refresh.
+const fillModelForm = async () => {
   await loadModelSettingsUi()
   if (!modelSettings) {
-    showToast('Could not reach the worker to read model settings')
+    setModelStatus('Could not reach the worker to read the direct API settings', 'error')
     return
   }
   msProvider.value = modelSettings.provider
@@ -5929,13 +6368,12 @@ const openModelSettings = async () => {
   msApiKey.value = ''
   msKeyHint.textContent =
     modelSettings.source === 'environment'
-      ? 'Using the OPENAI_API_KEY from the environment until you save a key here.'
+      ? 'Using the OPENAI_API_KEY from the environment — used, never saved — until you save a key of your own here.'
       : modelSettings.hasKey
         ? `A key ending ${modelSettings.keyHint} is saved. Leave blank to keep it.`
         : 'No key saved yet.'
   msModelList.replaceChildren()
   setModelStatus('')
-  modelSettingsDialog.showModal()
 }
 
 const modelFormPatch = () => {
@@ -5953,8 +6391,6 @@ const modelFormPatch = () => {
 }
 
 msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, { keepModels: false }))
-;($('#open-model-settings') as HTMLButtonElement).addEventListener('click', () => void openModelSettings())
-;($('#close-model-settings') as HTMLButtonElement).addEventListener('click', () => modelSettingsDialog.close())
 ;($('#ms-test') as HTMLButtonElement).addEventListener('click', async () => {
   setModelStatus('Contacting the provider…')
   try {
@@ -5990,61 +6426,62 @@ msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, 
       body: JSON.stringify(modelFormPatch()),
     })
     modelSettings = body.settings
-    renderModelSummary()
-    setModelStatus('Saved', 'ok')
-    showToast('Model settings saved — new AI requests use them immediately')
-    modelSettingsDialog.close()
+    renderAiSettingsHook()
+    setModelStatus('Saved — new requests use it now', 'ok')
+    showToast('Direct API settings saved — new requests use them immediately')
   } catch (error) {
     setModelStatus(error instanceof Error ? error.message : 'Could not save', 'error')
   }
 })
 void loadModelSettingsUi()
 
-// ——— Coding agent status (desktop shell only) ———
-// Detects the coding-agent CLIs through the desktop bridge, shows the active
-// one in the top bar, and lets the user pick which agent Plan motion (assist)
-// runs on. Web builds never see any of this (the button stays hidden).
-type AgentAvailability = { id: string; ok: boolean; version?: string; reason?: string }
-const AGENT_LABELS: Record<string, string> = {
-  kimi: 'Kimi CLI',
-  'claude-code': 'Claude Code',
-  codex: 'Codex CLI',
-}
-const agentLabel = (id: string) => AGENT_LABELS[id] || id
-const agentButton = $('#open-agent-settings') as HTMLButtonElement
-const agentDialog = $('#agent-settings-dialog') as HTMLDialogElement
-const agentSummary = $('#agent-settings-summary') as HTMLElement
-const agentDot = $('#agent-status-dot') as HTMLElement
+// ——— Local harness and model, per stage (desktop shell only) ———
+// Detects the coding-agent CLIs through the desktop bridge and keeps the
+// creator's choice of harness and model — one default, with overrides for
+// the story, page drawing, planning and scene production — in the durable
+// settings store. Each harness shows its last provider status. Web builds
+// never see any of this (the button stays hidden).
+type AgentAvailability = HarnessAvailability
+const agentLabel = (id: string) => HARNESS_LABELS[id] || id
 const agentList = $('#agent-list') as HTMLElement
 const agentStatusLine = $('#agent-status') as HTMLElement
 let agentAvailability: AgentAvailability[] = []
+let harnessPreferences: HarnessPreferences = { default: null, stages: {}, updatedAt: null }
+let harnessStatus: HarnessStatus = {}
+// The harness's recent runs, for each stage's last result.
+let aiRuns: StudioDesktopRunSummary[] = []
 
-const getPreferredAgent = () => {
-  try {
-    return localStorage.getItem('studio.codingAgent') || ''
-  } catch {
-    return ''
-  }
-}
-const setPreferredAgent = (id: string) => {
-  try {
-    if (id) localStorage.setItem('studio.codingAgent', id)
-    else localStorage.removeItem('studio.codingAgent')
-  } catch {
-    // Private browsing and friends — the picker just won't persist.
-  }
-}
+// The harness the default choice names, for the motion assist.
+const getPreferredAgent = () => harnessPreferences.default?.harness || ''
 
-// The agent an assist run should use: the preferred one when it is online,
-// else the first online one (remembered, so the top bar stays honest).
+// The agent an assist run should use: the default when it is online, else
+// the first online one.
 const resolveAssistAgent = () => {
   const online = agentAvailability.filter(agent => agent.ok)
   if (!online.length) return ''
-  const preferred = getPreferredAgent()
-  const chosen = online.find(agent => agent.id === preferred) || online[0]
-  if (chosen.id !== preferred) setPreferredAgent(chosen.id)
-  return chosen.id
+  return (online.find(agent => agent.id === getPreferredAgent()) || online[0]).id
 }
+
+// The harness and model a creation stage runs on, from the durable choice.
+// An unavailable choice stops with how to fix it; it is never swapped.
+const resolveCreationAgent = async (stage: HarnessStage) => {
+  const bridge = window.studioDesktop
+  if (!bridge?.isDesktop) throw new Error('Creation with a local harness runs in the desktop app')
+  // Legacy browser choices are adopted here too, so no start-up timing can
+  // send a stage to a harness the creator did not pick.
+  const [available, preferences] = await Promise.all([
+    bridge.harness.adapters(),
+    loadHarnessPreferences(fetchJson).then(loaded => adoptLegacyChoices(fetchJson, loaded)).catch(() => harnessPreferences),
+  ])
+  agentAvailability = available
+  harnessPreferences = preferences
+  const resolved = resolveStage(preferences, stage, available)
+  if (!resolved.available || !resolved.harness) throw new Error(resolved.reason || 'Choose a local harness in AI settings')
+  return { id: resolved.harness, model: resolved.model || undefined, label: resolvedLabel(resolved, available), source: resolved.source }
+}
+
+// The durable summary of a finished run, with its failure when it failed.
+const finishedRun = async (runId: string) => (await window.studioDesktop?.harness.list())?.find(run => run.id === runId)
 
 const setAgentStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   agentStatusLine.textContent = text
@@ -6052,51 +6489,263 @@ const setAgentStatus = (text: string, tone: '' | 'ok' | 'error' = '') => {
   agentStatusLine.classList.toggle('is-error', tone === 'error')
 }
 
-const renderAgentSummary = () => {
-  const online = agentAvailability.filter(agent => agent.ok)
-  const active = resolveAssistAgent()
-  agentDot.className = `agent-status-dot ${active ? 'is-online' : 'is-offline'}`
-  agentSummary.textContent = active
-    ? `Agent · ${agentLabel(active)}${online.length > 1 ? ` · ${online.length} online` : ''}`
-    : 'Agent · none found'
-  const hint = $('#se-assist-agent') as HTMLElement | null
-  if (hint) hint.textContent = active ? `via ${agentLabel(active)}` : 'no agent CLI found'
+// ——— What each job runs on (F7 of the Perplexity review) ———
+// One table for every AI job: the local harness's stages with the harness
+// and model each resolves to now and its last run; the jobs the direct API
+// serves with its provider, model and whether requests can go out.
+const STAGE_SKILLS: Record<HarnessStage, string[]> = { story: ['story-master'], drawing: ['page-master'], planning: ['video-planner'], composition: ['explainer-master'] }
+const STAGE_JOBS: Record<HarnessStage, string> = {
+  story: 'the scenes and their words, from a source',
+  drawing: 'each designed page',
+  planning: 'the brief, each scene’s plan and its rough sketch',
+  composition: 'Build explainer’s scenes',
 }
-
-const renderAgentList = () => {
-  const preferred = getPreferredAgent()
-  agentList.replaceChildren(
-    ...agentAvailability.map(agent => {
-      const row = document.createElement('label')
-      row.className = `agent-row${agent.id === preferred ? ' is-selected' : ''}${agent.ok ? '' : ' is-offline'}`
-      const radio = document.createElement('input')
-      radio.type = 'radio'
-      radio.name = 'coding-agent'
-      radio.checked = agent.id === preferred
-      radio.disabled = !agent.ok
-      radio.addEventListener('change', () => {
-        setPreferredAgent(agent.id)
-        renderAgentList()
-        renderAgentSummary()
-        setAgentStatus(`${agentLabel(agent.id)} will run Plan motion (assist)`, 'ok')
-      })
-      const name = document.createElement('span')
-      name.className = 'agent-row-name'
-      name.textContent = agentLabel(agent.id)
-      const dot = document.createElement('span')
-      dot.className = `agent-status-dot ${agent.ok ? 'is-online' : 'is-offline'}`
-      const detail = document.createElement('span')
-      detail.className = 'agent-row-detail'
-      const reason = (agent.reason || '').replace(/\s+/g, ' ').slice(0, 90)
-      detail.textContent = agent.ok
-        ? `online · ${agent.version || 'version unknown'}`
-        : reason
-          ? `not found — ${reason}`
-          : 'not found — install the CLI to enable it'
-      row.append(radio, name, dot, detail)
+const API_JOBS: Array<{ id: string; job: string; detail: string; task: ModelTask | 'image' }> = [
+  { id: 'writing', job: 'Writing help', detail: 'scene dialogue drafts and edits, recording notes, theme ideas, slide steps', task: 'writing' },
+  { id: 'vision', job: 'Frame checks', detail: 'basic diagrams, scene edits with a picture', task: 'vision' },
+  { id: 'coding', job: 'Canvas programs', detail: 'basic diagrams', task: 'coding' },
+  { id: 'image', job: 'Illustrations', detail: 'artwork for a page’s things, when asked', task: 'image' },
+]
+type AiRoute = { id: string; job: string; detail: string; runsOn: string; status: string; ok: boolean | null; title?: string }
+const lastRunOf = (skills: string[]) =>
+  aiRuns.filter(run => skills.includes(run.skill)).sort((a, b) => (b.finishedAt || b.startedAt).localeCompare(a.finishedAt || a.startedAt))[0]
+const runStatus = (run: StudioDesktopRunSummary | undefined): { text: string; ok: boolean | null; title?: string } => {
+  if (!run) return { text: 'No run yet', ok: null }
+  const model = run.reportedModel || run.model
+  const when = timeAgo(run.finishedAt || run.startedAt)
+  if (run.status === 'error') return { text: `Last run failed — ${failureTitle(run.failure?.category).toLowerCase()} · ${when}`, ok: false, title: run.failure?.message }
+  if (run.status === 'cancelled') return { text: `Last run stopped · ${when}`, ok: null }
+  if (run.status !== 'done') return { text: 'Running now', ok: null }
+  return { text: `Last run ok${model ? ` on ${model}` : ''} · ${when}`, ok: true }
+}
+const aiRoutes = (): AiRoute[] => {
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  const api = apiState()
+  const apiRow = (entry: (typeof API_JOBS)[number], extra = ''): AiRoute => {
+    const model = apiModelFor(entry.task)
+    if (entry.task === 'image' && !model) return { id: entry.id, job: entry.job, detail: entry.detail, runsOn: `Direct API · ${apiProviderLabel()}`, status: 'This provider has no image model: things get palette glyphs', ok: null }
+    // The key's state leads until a request has gone out; then how the
+    // last one went, and on which model.
+    const last = modelSettings?.results?.[entry.task]
+    const status = !api.ok || !last
+      ? { text: api.text, ok: api.ok && Boolean(model) }
+      : last.ok
+        ? { text: `${api.text} · last request ok on ${last.reportedModel || last.model} · ${timeAgo(last.at)}`, ok: true }
+        : { text: `${api.text} · last request failed (${last.status || 'no answer'}) on ${last.model} · ${timeAgo(last.at)}`, ok: false }
+    return { id: entry.id, job: entry.job, detail: `${entry.detail}${extra}`, runsOn: `Direct API · ${apiProviderLabel()} · ${model || 'no model chosen'}`, status: status.text, ok: status.ok }
+  }
+  const stages: AiRoute[] = HARNESS_STAGES.map(stage => {
+    if (!desktop) {
+      return stage === 'story'
+        ? { ...apiRow(API_JOBS[0]), id: stage, job: HARNESS_STAGE_LABELS[stage], detail: `${STAGE_JOBS[stage]} — in a browser, on the direct API` }
+        : { id: stage, job: HARNESS_STAGE_LABELS[stage], detail: STAGE_JOBS[stage], runsOn: 'The desktop app’s local harness', status: 'Not in a browser', ok: null }
+    }
+    const effective = resolveStage(harnessPreferences, stage, agentAvailability)
+    const last = runStatus(lastRunOf(STAGE_SKILLS[stage]))
+    return {
+      id: stage,
+      job: HARNESS_STAGE_LABELS[stage],
+      detail: STAGE_JOBS[stage],
+      runsOn: effective.harness ? `Local harness · ${resolvedLabel(effective, agentAvailability)}${effective.source === 'stage' ? ' — this stage’s own choice' : ''}` : 'Local harness · none available',
+      status: effective.available ? last.text : effective.reason || 'Not available',
+      ok: effective.available ? last.ok : false,
+      title: last.title,
+    }
+  })
+  const assist = desktop ? resolveAssistAgent() : ''
+  const motion: AiRoute[] = desktop
+    ? [{ id: 'motion', job: 'Motion assist', detail: 'Plan motion, in the slide editor', runsOn: assist ? `Local harness · ${agentLabel(assist)} · its default model` : 'Local harness · none available', ...(() => { const last = runStatus(lastRunOf(['motion-master'])); return { status: assist ? last.text : 'No harness is online', ok: assist ? last.ok : false, title: last.title } })() }]
+    : []
+  return [...stages, ...motion, ...API_JOBS.map(entry => apiRow(entry))]
+}
+const renderAiRoutes = () => {
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  aiRoutesBody.replaceChildren(
+    ...aiRoutes().map(route => {
+      const row = document.createElement('tr')
+      row.dataset.aiJob = route.id
+      const job = document.createElement('th')
+      job.scope = 'row'
+      const name = document.createElement('strong')
+      name.textContent = route.job
+      const detail = document.createElement('small')
+      detail.textContent = route.detail
+      job.append(name, detail)
+      const runsOn = document.createElement('td')
+      runsOn.className = 'ai-route-runs-on'
+      runsOn.textContent = route.runsOn
+      const status = document.createElement('td')
+      status.className = `ai-route-status${route.ok === true ? ' is-ok' : route.ok === false ? ' is-error' : ''}`
+      status.textContent = route.status
+      if (route.title) status.title = route.title
+      row.append(job, runsOn, status)
       return row
     }),
   )
+  aiApiUses.textContent = desktop
+    ? 'Used by writing help (scene dialogue drafts and edits, recording notes, theme ideas, slide steps), frame checks and canvas programs for basic diagrams, and illustrations. The local harness’s stages never use it.'
+    : 'In a browser, everything that asks AI — the story outline, writing help, frame checks, basic diagrams and illustrations — uses this provider. Page designing, video planning and scene production run in the desktop app.'
+}
+// The top bar's one entry: what creation runs on, and whether it can.
+const renderAiSummary = () => {
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  const routes = aiRoutes()
+  aiSettingsButton.title = `AI settings — what each job runs on:\n${routes.map(route => `${route.job}: ${route.runsOn}`).join('\n')}`
+  if (desktop) {
+    // Until the harnesses are detected, nothing is claimed about them.
+    const detected = aiSettingsButton.dataset.harness === 'detected'
+    const story = resolveStage(harnessPreferences, 'story', agentAvailability)
+    aiStatusDot.hidden = false
+    aiStatusDot.className = `agent-status-dot ${!detected ? '' : story.available ? 'is-online' : 'is-offline'}`
+    aiSettingsSummary.textContent = !detected ? 'AI · detecting harnesses…' : story.harness && story.available ? `AI · ${resolvedLabel(story, agentAvailability)}` : 'AI · choose a harness'
+  } else {
+    const api = apiState()
+    aiStatusDot.hidden = true
+    aiSettingsSummary.textContent = modelSettings && api.ok ? `AI · ${apiProviderLabel()} · ${apiModelFor('writing') || 'choose a model'}` : 'AI · add a provider'
+  }
+  const active = resolveAssistAgent()
+  const hint = $('#se-assist-agent') as HTMLElement | null
+  if (hint) hint.textContent = active ? `via ${agentLabel(active)}` : 'no agent CLI found'
+}
+const renderAiSettings = () => {
+  renderAiSummary()
+  if (aiSettingsDialog.open) renderAiRoutes()
+}
+const openAiSettings = async (focus?: 'harness' | 'api') => {
+  setAgentStatus('')
+  setModelStatus('')
+  renderAiRoutes()
+  if (!aiSettingsDialog.open) aiSettingsDialog.showModal()
+  renderAgentList()
+  if (focus) (focus === 'harness' ? aiHarnessSection : aiApiUses.closest('section'))?.scrollIntoView({ block: 'start' })
+  await Promise.all([fillModelForm(), refreshAgents()])
+  renderAiRoutes()
+}
+aiSettingsButton.addEventListener('click', () => void openAiSettings())
+;($('#close-ai-settings') as HTMLButtonElement).addEventListener('click', () => aiSettingsDialog.close())
+
+const saveHarnessChoice = async (patch: Parameters<typeof saveHarnessPreferences>[1], message: string) => {
+  try {
+    harnessPreferences = await saveHarnessPreferences(fetchJson, patch)
+    setAgentStatus(message, 'ok')
+  } catch (error) {
+    setAgentStatus(error instanceof Error ? error.message : 'Could not save the choice', 'error')
+  }
+  renderAgentList()
+  renderAiSettings()
+}
+
+// A harness select and a model select for one choice; `inherit` offers
+// "Use the default" for a stage.
+const harnessChoiceFields = (current: HarnessChoice | null, onChange: (choice: HarnessChoice | null) => void, inherit: boolean) => {
+  const wrap = document.createElement('div')
+  wrap.className = 'agent-choice-fields'
+  const harness = document.createElement('select')
+  harness.setAttribute('aria-label', 'Harness')
+  if (inherit) harness.append(new Option('Use the default', ''))
+  else if (!current) harness.append(new Option('Not chosen', ''))
+  for (const agent of agentAvailability) {
+    const option = new Option(`${agentLabel(agent.id)}${agent.ok ? '' : ' (not found)'}`, agent.id)
+    option.disabled = !agent.ok && agent.id !== current?.harness
+    harness.append(option)
+  }
+  harness.value = current?.harness || ''
+  const model = document.createElement('select')
+  model.setAttribute('aria-label', 'Model')
+  const models = agentAvailability.find(agent => agent.id === current?.harness)?.models
+  // A stage using the default has no model of its own to pick.
+  model.hidden = !current
+  if (current) {
+    model.append(new Option(`CLI default${models?.default ? ` (${models.default})` : ''}`, ''))
+    for (const option of models?.options || []) {
+      const element = new Option(option.unavailable ? `${option.label} — ${option.unavailable}` : option.label, option.id)
+      element.disabled = Boolean(option.unavailable)
+      model.append(element)
+    }
+    if (current.model && !(models?.options || []).some(option => option.id === current.model)) model.append(new Option(current.model, current.model))
+    model.value = current.model || ''
+  } else {
+    model.disabled = true
+  }
+  harness.addEventListener('change', () => {
+    if (!harness.value) return onChange(null)
+    const picked = agentAvailability.find(agent => agent.id === harness.value)
+    const recommended = harness.value === 'claude-code' ? 'claude-opus-5-5' : picked?.models?.default || null
+    const usable = recommended && !picked?.models?.options.find(option => option.id === recommended)?.unavailable ? recommended : null
+    onChange({ harness: harness.value as HarnessChoice['harness'], model: usable })
+  })
+  model.addEventListener('change', () => current && onChange({ harness: current.harness, model: model.value || null }))
+  wrap.append(harness, model)
+  return wrap
+}
+
+const renderAgentList = () => {
+  const rows: HTMLElement[] = []
+  // Each harness: whether it is here, and how its last run went.
+  for (const agent of agentAvailability) {
+    const row = document.createElement('div')
+    row.className = `agent-row${agent.ok ? '' : ' is-offline'}`
+    const name = document.createElement('span')
+    name.className = 'agent-row-name'
+    name.textContent = agentLabel(agent.id)
+    const dot = document.createElement('span')
+    dot.className = `agent-status-dot ${agent.ok ? 'is-online' : 'is-offline'}`
+    const detail = document.createElement('span')
+    detail.className = 'agent-row-detail'
+    const reason = (agent.reason || '').replace(/\s+/g, ' ').slice(0, 90)
+    const last = harnessStatus[agent.id]
+    // The version and where it came from; the full path is in the tooltip.
+    const [fullVersion, path] = (agent.version || '').split(' · ')
+    const version = fullVersion?.replace(/\s*\(Claude Code\)$/, '')
+    const origin = path ? (/Application Support\/Claude\//.test(path) ? ' (Claude desktop app)' : '') : ''
+    detail.textContent = agent.ok
+      ? `online · ${version || 'version unknown'}${origin}${last ? ` · last run ${last.state === 'error' ? `failed — ${failureTitle(last.failure?.category).toLowerCase()}` : 'ok'}${last.model ? ` on ${last.model}` : ''}` : ''}`
+      : reason
+        ? `not found — ${reason}`
+        : 'not found — install the CLI to enable it'
+    detail.title = [path, last?.state === 'error' ? last.failure?.message : ''].filter(Boolean).join('\n')
+    row.append(name, dot, detail)
+    rows.push(row)
+  }
+  const choices = document.createElement('div')
+  choices.className = 'agent-choices'
+  const heading = document.createElement('h3')
+  heading.textContent = 'Harness and model'
+  choices.append(heading)
+  const line = (label: string, fields: HTMLElement, note = '') => {
+    const row = document.createElement('div')
+    row.className = 'agent-choice'
+    const name = document.createElement('span')
+    name.className = 'agent-choice-label'
+    name.textContent = label
+    row.append(name, fields)
+    if (note) {
+      const small = document.createElement('small')
+      small.textContent = note
+      row.append(small)
+    }
+    return row
+  }
+  const suggested = resolveStage({ default: null, stages: {}, updatedAt: null }, 'story', agentAvailability)
+  choices.append(
+    line(
+      'Default',
+      harnessChoiceFields(harnessPreferences.default, choice => void saveHarnessChoice({ default: choice }, choice ? `Default: ${agentLabel(choice.harness)}` : 'Default cleared'), false),
+      harnessPreferences.default ? '' : suggested.harness ? `Nothing chosen: stages suggest ${resolvedLabel(suggested, agentAvailability)}.` : '',
+    ),
+  )
+  for (const stage of HARNESS_STAGES) {
+    const override = harnessPreferences.stages[stage] || null
+    const effective = resolveStage(harnessPreferences, stage, agentAvailability)
+    choices.append(
+      line(
+        HARNESS_STAGE_LABELS[stage],
+        harnessChoiceFields(override, choice => void saveHarnessChoice({ stages: { [stage]: choice } }, `${HARNESS_STAGE_LABELS[stage]}: ${choice ? agentLabel(choice.harness) : 'uses the default'}`), true),
+        override ? '' : `Runs on ${resolvedLabel(effective, agentAvailability)}${effective.reason ? ` — ${effective.reason}` : ''}`,
+      ),
+    )
+  }
+  agentList.replaceChildren(...rows, choices)
 }
 
 const refreshAgents = async () => {
@@ -6106,26 +6755,27 @@ const refreshAgents = async () => {
   } catch {
     agentAvailability = []
   }
-  renderAgentSummary()
-  if (agentDialog.open) renderAgentList()
+  harnessPreferences = await loadHarnessPreferences(fetchJson)
+    .then(preferences => adoptLegacyChoices(fetchJson, preferences))
+    .catch(() => harnessPreferences)
+  harnessStatus = await loadHarnessStatus(fetchJson)
+  aiRuns = await window.studioDesktop.harness.list().catch(() => aiRuns)
+  aiSettingsButton.dataset.harness = 'detected'
+  renderAiSettings()
+  if (aiSettingsDialog.open) renderAgentList()
 }
 
-agentButton.addEventListener('click', () => {
-  setAgentStatus('')
-  agentDialog.showModal()
-  renderAgentList()
-  void refreshAgents()
-})
-;($('#close-agent-settings') as HTMLButtonElement).addEventListener('click', () => agentDialog.close())
 ;($('#agent-refresh') as HTMLButtonElement).addEventListener('click', () => {
   setAgentStatus('Detecting…')
   void refreshAgents().then(() => setAgentStatus(''))
 })
 
 if (window.studioDesktop?.isDesktop) {
-  agentButton.hidden = false
+  aiHarnessSection.hidden = false
   void refreshAgents()
 }
+renderAiSettingsHook = renderAiSettings
+renderAiSettings()
 
 // ——— Notebook switcher ———
 // Every saved notebook lives in the worker's database; the switcher lists
@@ -6137,6 +6787,23 @@ const notebookMenuList = $('#notebook-menu-list') as HTMLElement
 const closeNotebookMenu = () => {
   notebookMenuList.hidden = true
   notebookMenuToggle.setAttribute('aria-expanded', 'false')
+}
+
+// The one way a notebook becomes the open one (BoltDB review B01): named
+// the active notebook, the studio opens on it afresh, so nothing of the
+// notebook before it — its view, scene review, stage, selection, lineage
+// or video controls — survives. Its jobs run on in the app, each with the
+// notebook it belongs to. A notice to show once it has opened rides along.
+const OPENED_NOTICE_KEY = 'studio.opened-notice'
+const activateNotebook = (notebookId: string, notice = '') => {
+  window.localStorage.setItem(ACTIVE_PROJECT_KEY, notebookId)
+  window.localStorage.removeItem(STORAGE_KEY)
+  try {
+    if (notice) window.sessionStorage.setItem(OPENED_NOTICE_KEY, notice)
+  } catch {
+    // the notice is only a courtesy
+  }
+  window.location.reload()
 }
 
 const openNotebook = async (notebookId: string) => {
@@ -6151,19 +6818,7 @@ const openNotebook = async (notebookId: string) => {
       rememberDraft(project)
     }
   }
-  window.localStorage.setItem(ACTIVE_PROJECT_KEY, notebookId)
-  window.localStorage.removeItem(STORAGE_KEY)
-  window.location.reload()
-}
-
-const createNotebook = async () => {
-  const fresh = blankProjectDocument('Untitled notebook')
-  if (project.theme) {
-    fresh.theme = structuredClone(project.theme)
-    fresh.brand = { ...project.theme.brand }
-  }
-  await persistProjectNow(structuredClone(fresh))
-  await openNotebook(fresh.id)
+  activateNotebook(notebookId)
 }
 
 // ——— Bundled sample: the ppt-master "Attention Is All You Need" blueprint ———
@@ -6315,7 +6970,9 @@ const openAttentionVideoSample = async () => {
 // The base keeps the narrative, the facts and the wireframes; the video is a
 // notebook of its own, taken from a pinned revision of the base and free to
 // be enriched, restaged and recomposed without touching it.
-const createVideoFromBase = async (baseId: string, baseTitle: string, options?: { resumeBuild?: boolean }) => {
+// `plan`: made from Plan video — the fork opens its plans on the base scene
+// chosen there (F3), preparing the brief where a harness can.
+const createVideoFromBase = async (baseId: string, baseTitle: string, options?: { resumeBuild?: boolean; recordScene?: string; recordCanvas?: boolean; plan?: { scene?: string } }) => {
   // One key per attempt: a retry after an interrupted request returns the
   // video that was already made instead of making a second one.
   const forkKey = `fork-${baseId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -6328,7 +6985,13 @@ const createVideoFromBase = async (baseId: string, baseTitle: string, options?: 
     showToast(reused ? 'That video already existed — opening it' : `Video notebook ready · ${child.derivedFrom?.receipt?.scenes || 0} scenes from ${baseTitle}`)
     // The open below reloads the page, so a build that needed the fork cannot
     // be dispatched from here: it resumes in the child from this intent.
+    if (options?.recordScene) window.localStorage.setItem('studio.recordIntent', JSON.stringify({ projectId: child.id, sourceScene: options.recordScene, canvas: options.recordCanvas }))
     if (options?.resumeBuild) window.localStorage.setItem(BUILD_INTENT_KEY, child.id)
+    // The fork is saved; preparing its explanation brief starts as it opens.
+    // A provider failure leaves the fork intact with a retry in the workspace.
+    else if (options?.plan || (!reused && window.studioDesktop?.isDesktop)) {
+      window.localStorage.setItem(PREPARE_INTENT_KEY, JSON.stringify({ id: child.id, prepare: !reused && Boolean(window.studioDesktop?.isDesktop), ...(options?.plan?.scene ? { scene: options.plan.scene } : {}) }))
+    }
     await openNotebook(child.id)
     return child
   } catch (error) {
@@ -6341,7 +7004,7 @@ type BaseStatus = {
   derived: boolean
   base?: { id: string; title: string } | null
   lineage?: { notebook: string; kind?: string; baseTitle?: string; forkedAt?: string }
-  status?: { stale: boolean; missing: boolean; pinned: string; revision: string; scenes: Array<{ scene: string; title: string; state: string }> }
+  status?: { stale: boolean; moved?: boolean; missing: boolean; pinned: string; revision: string; scenes: Array<{ scene: string; title: string; state: string; changed?: string[] }> }
 }
 const baseStatusFor = async (notebookId: string) => {
   try {
@@ -6386,8 +7049,65 @@ type NotebookRow = {
   id: string
   title: string
   blockCount: number
+  createdAt?: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  container?: { id: string; kind: string }
+}
+
+// ——— Projects in the library and the menu (the four-notebook model) ———
+// A project is listed once, with its notebooks by kind; a notebook of no
+// project is listed on its own, below, as notebooks were before projects.
+type ProjectView = { container: ProjectContainerV1; notebooks: NotebookSummary[] }
+const listProjectViews = async () => (await fetchJson<{ containers: ProjectView[] }>('/api/containers')).containers
+// A project opens on the notebook worked on last.
+const openProjectNotebook = (view: ProjectView) => {
+  const latest = view.notebooks[0]
+  if (latest) void openNotebook(latest.id)
+}
+const deleteProject = async (view: ProjectView) => {
+  const count = view.notebooks.length
+  if (!window.confirm(`Delete the project "${view.container.title}" and its ${count} notebook${count === 1 ? '' : 's'}? Their recordings and assets go with them.`)) return
+  await fetchJson<{ deleted: boolean }>(`/api/containers/${encodeURIComponent(view.container.id)}`, { method: 'DELETE' })
+  view.notebooks.forEach(entry => window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${entry.id}`))
+  if (project.container?.id === view.container.id) {
+    window.localStorage.removeItem(ACTIVE_PROJECT_KEY)
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.location.reload()
+    return
+  }
+  await renderNotebookMenu().catch(() => {})
+  if (!notebooksPage.hidden) await renderNotebooksPage().catch(() => {})
+}
+const projectEntry = (view: ProjectView, className: string) => {
+  const entry = document.createElement('div')
+  entry.className = `${className}${view.container.id === project.container?.id ? ' is-current' : ''}`
+  entry.dataset.project = view.container.id
+  const open = document.createElement('button')
+  open.type = 'button'
+  open.className = `${className}-open`
+  const title = document.createElement('strong')
+  title.textContent = view.container.title || 'Untitled project'
+  const meta = document.createElement('small')
+  meta.textContent = `${view.notebooks.length} notebook${view.notebooks.length === 1 ? '' : 's'} · ${notebookDate(view.container.updatedAt)}${view.container.id === project.container?.id ? ' · open now' : ''}`
+  open.append(title, meta)
+  open.addEventListener('click', () => openProjectNotebook(view))
+  const kinds = document.createElement('div')
+  kinds.className = 'project-kinds'
+  renderProjectKinds(kinds, switchTabsOf(view.notebooks, project.id), tab => {
+    if (tab.notebook) void openNotebook(tab.notebook.id)
+  })
+  const remove = document.createElement('button')
+  remove.type = 'button'
+  remove.className = `${className}-delete`
+  remove.setAttribute('aria-label', `Delete the project ${view.container.title}`)
+  remove.textContent = className === 'project-card' ? 'Delete' : '×'
+  remove.addEventListener('click', event => {
+    event.stopPropagation()
+    void deleteProject(view)
+  })
+  entry.append(open, kinds, remove)
+  return entry
 }
 
 const buildNotebookTree = (rows: NotebookRow[]) => {
@@ -6427,6 +7147,7 @@ const notebookDate = (updatedAt: string) => {
 }
 
 // ——— Lineage breadcrumb (top bar, next to the Notebooks toggle) ———
+let baseVideos: Array<{ id: string; title: string }> = []
 const renderNotebookLineage = async () => {
   const lineage = $('#notebook-lineage') as HTMLElement
   try {
@@ -6434,29 +7155,29 @@ const renderNotebookLineage = async () => {
     const chain = ancestorChain(projects, project.id)
     const derivatives = projects.filter(row => row.derivedFrom?.notebook === project.id)
     if (!chain.length && !derivatives.length) {
+      baseVideos = []
+      renderNextStep()
       lineage.hidden = true
       lineage.replaceChildren()
       return
     }
+    // A base's videos, newest first: its next step opens the newest.
+    baseVideos = [...derivatives].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).map(row => ({ id: row.id, title: row.title || 'Untitled video' }))
+    renderNextStep()
     lineage.hidden = false
     lineage.replaceChildren()
-    chain.forEach(ancestor => {
+    // One compact link to where this notebook comes from (F10 of the
+    // Perplexity review): the notebook's own title is the editable one.
+    const parent = chain[chain.length - 1]
+    if (parent) {
       const segment = document.createElement('button')
       segment.type = 'button'
       segment.className = 'notebook-lineage-segment'
-      segment.textContent = ancestor.title || 'Untitled notebook'
-      segment.title = `Open ${ancestor.title || 'Untitled notebook'}`
-      segment.addEventListener('click', () => void openNotebook(ancestor.id))
+      segment.textContent = parent.title || 'Untitled notebook'
+      segment.title = `Made from ${chain.map(ancestor => `“${ancestor.title || 'Untitled notebook'}”`).join(' › ')} — open it`
+      segment.addEventListener('click', () => void openNotebook(parent.id))
       lineage.append(segment)
-      const separator = document.createElement('span')
-      separator.className = 'notebook-lineage-separator'
-      separator.textContent = '›'
-      lineage.append(separator)
-    })
-    const current = document.createElement('span')
-    current.className = 'notebook-lineage-current'
-    current.textContent = project.title || 'Untitled notebook'
-    lineage.append(current)
+    }
     if (derivatives.length) {
       const chip = document.createElement('button')
       chip.type = 'button'
@@ -6554,6 +7275,13 @@ const notebookCard = (
     video.textContent = 'Create video'
     video.title = 'Make a separate video notebook from this base — the base stays as it is'
     video.addEventListener('click', async () => {
+      // Pages still being designed would start the video from their
+      // schematic drafts (F1 of the Perplexity review): ask first.
+      const doc = entry.id === project.id
+        ? (editor.getJSON() as TiptapDocument)
+        : (await fetchJson<{ project: ProjectDocumentV1 }>(`/api/projects/${encodeURIComponent(entry.id)}`).catch(() => null))?.project.notebook
+      const readiness = pageReadinessOf(doc?.content || [])
+      if (readiness.pending && !window.confirm(`${readiness.pending} of ${readiness.total} pages of this base are still being designed. A video made now starts from their schematic drafts; a scene not yet planned takes its designed slide by itself as it lands, and one you have planned is offered it.\n\nCreate the video now? Cancel to wait for the designed pages.`)) return
       await createVideoFromBase(entry.id, entry.title || 'Untitled notebook')
     })
     actions.append(video)
@@ -6572,8 +7300,10 @@ const notebookCard = (
       const note = document.createElement('span')
       note.className = 'notebook-kind-badge is-orphan'
       note.textContent = 'base has changed'
+      // What changed in each scene the video was made from (F2).
+      const what: Record<string, string> = { page: 'its page', script: 'its words', source: 'its source', title: 'its title' }
       note.title = changed.length
-        ? `Since this video was made: ${changed.map(scene => `${scene.title} (${scene.state})`).join(', ')}`
+        ? `Since this video was made: ${changed.map(scene => `${scene.title} (${scene.state === 'removed' ? 'removed' : (scene.changed || []).map(field => what[field] || field).join(', ') || 'changed'})`).join('; ')}`
         : 'The base notebook has changed since this video was made'
       badges.append(note)
     })
@@ -6584,8 +7314,11 @@ const notebookCard = (
 }
 
 const renderNotebooksPage = async () => {
-  const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
-  ;($('#notebooks-page-count') as HTMLElement).textContent = `· ${projects.length}`
+  const [{ projects: notebooks }, views] = await Promise.all([fetchJson<{ projects: NotebookRow[] }>('/api/projects'), listProjectViews().catch(() => [] as ProjectView[])])
+  const projects = notebooks.filter(row => !row.container)
+  ;($('#notebooks-page-count') as HTMLElement).textContent = `· ${views.length}`
+  ;($('#notebooks-projects') as HTMLElement).replaceChildren(...views.map(view => projectEntry(view, 'project-card')))
+  ;($('#notebooks-tree-heading') as HTMLElement).hidden = !projects.length
   const { roots, childrenOf } = buildNotebookTree(projects)
   const known = new Set(projects.map(row => row.id))
   notebooksTree.replaceChildren()
@@ -6621,18 +7354,22 @@ const renderNotebooksPage = async () => {
 const scheduleNotebookLineage = () => void renderNotebookLineage()
 
 const renderNotebookMenu = async () => {
-  const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
+  const [{ projects: notebooks }, views] = await Promise.all([fetchJson<{ projects: NotebookRow[] }>('/api/projects'), listProjectViews().catch(() => [] as ProjectView[])])
+  const projects = notebooks.filter(row => !row.container)
   notebookMenuList.replaceChildren()
   const create = document.createElement('button')
   create.type = 'button'
-  create.className = 'notebook-menu-create'
-  create.innerHTML = '<strong>+ New notebook</strong><small>Start a blank story with the current theme</small>'
-  create.addEventListener('click', () => void createNotebook())
+  create.className = 'notebook-menu-create notebook-menu-new-project'
+  create.innerHTML = '<strong>+ New project</strong><small>From a link, a PDF or deck, or your own text: its text, wireframe and presentation</small>'
+  create.addEventListener('click', () => {
+    closeNotebookMenu()
+    ;($('#start-from-source') as HTMLButtonElement).click()
+  })
   notebookMenuList.append(create)
   const library = document.createElement('button')
   library.type = 'button'
   library.className = 'notebook-menu-create notebook-menu-library'
-  library.innerHTML = '<strong>All notebooks →</strong><small>The library: saved notebooks and their derivatives as a tree</small>'
+  library.innerHTML = '<strong>All projects →</strong><small>The library: every project with its notebooks</small>'
   library.addEventListener('click', () => {
     closeNotebookMenu()
     openNotebooksPage()
@@ -6666,9 +7403,16 @@ const renderNotebookMenu = async () => {
     '<strong>Sample · Attention — Video (derived)</strong><small>15 scenes forked from the presentation notebook — director notes, storyboard and beats</small>'
   videoSample.addEventListener('click', () => void openAttentionVideoSample())
   notebookMenuList.append(videoSample)
+  if (views.length) {
+    const projectsHeading = document.createElement('div')
+    projectsHeading.className = 'notebook-menu-heading'
+    projectsHeading.textContent = `Projects · ${views.length}`
+    notebookMenuList.append(projectsHeading, ...views.map(view => projectEntry(view, 'project-row')))
+  }
+  if (!projects.length) return
   const heading = document.createElement('div')
   heading.className = 'notebook-menu-heading'
-  heading.textContent = `Saved notebooks · ${projects.length}`
+  heading.textContent = `Notebooks outside a project · ${projects.length}`
   notebookMenuList.append(heading)
   // Saved notebooks render as a tree: roots, with derivatives indented
   // beneath their mother (↳ prefix + kind badge).
@@ -6784,6 +7528,12 @@ document.addEventListener('click', event => {
   })
 })
 
+function refreshBrandColors() {
+  for (const key of ['primary', 'secondary', 'accent', 'background', 'text'] as const) {
+    const input = document.querySelector<HTMLInputElement>(`#brand-${key}`)
+    if (input) input.value = project.brand[key]
+  }
+}
 const bindBrandColor = (selector: string, key: keyof ProjectDocumentV1['brand']) => {
   const input = $(selector) as HTMLInputElement
   input.value = project.brand[key]
@@ -6899,24 +7649,35 @@ const importSvgPages = async (
 const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`${WORKER_URL}${path}`, init)
   const body = (await response.json().catch(() => ({}))) as T & { error?: string }
-  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`)
+  if (!response.ok) throw Object.assign(new Error(body.error || `Request failed (${response.status})`), { statusCode: response.status })
   return body
 }
 
-const persistProjectNow = async (snapshot: ProjectDocumentV1) => {
+const projectSaveQueues = new Map<string, Promise<unknown>>()
+const persistProjectNow = (snapshot: ProjectDocumentV1, clearTakeBlocks?: string[]) => {
+  rememberDraft(snapshot)
+  const pending = (projectSaveQueues.get(snapshot.id) || Promise.resolve()).catch(() => {}).then(() => persistProjectSnapshot(snapshot, clearTakeBlocks))
+  projectSaveQueues.set(snapshot.id, pending)
+  return pending
+}
+const persistProjectSnapshot = async (snapshot: ProjectDocumentV1, clearTakeBlocks?: string[]) => {
   // Callers always pass a detached clone; the live editor keeps its blob
   // preview while the persisted copy stays retryable.
   sanitizeNotebookMedia(snapshot.notebook)
-  const result = await fetchJson<{ projectId: string; saved: boolean }>(
+  const result = await fetchJson<{ projectId: string; saved: boolean; project?: ProjectDocumentV1 }>(
     `/api/projects/${encodeURIComponent(snapshot.id)}`,
     {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(snapshot),
+      body: JSON.stringify(acknowledgedProjects.has(snapshot.id) ? { project: snapshot, expectedProject: acknowledgedProjects.get(snapshot.id), ...(clearTakeBlocks?.length ? { clearTakeBlocks } : {}) } : snapshot),
     },
   )
+  acknowledgedProjects.set(snapshot.id, structuredClone(result.project || snapshot))
   // Durable storage acknowledged this notebook: its draft has done its job.
-  window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${snapshot.id}`)
+  if (window.localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${snapshot.id}`) === JSON.stringify(snapshot)) {
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${snapshot.id}`)
+    window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${snapshot.id}`)
+  }
   return result
 }
 
@@ -7419,6 +8180,12 @@ window.addEventListener('popstate', () => {
 })
 
 const sceneScript = (scene: Scene) => {
+  // The teleprompter reads the scene's script as the notebook holds it now —
+  // the words a take is recorded as spoken against, and aligned to. The
+  // compiled scene list can lag an edit: just after a plan's lines became
+  // the script, it still held the older words.
+  const saved = String(findSlideLikeNode(scene.id)?.attrs.script ?? ((scene.node.attrs || {}) as Record<string, unknown>).script ?? '').trim()
+  if (saved) return saved
   const collect = (node: TiptapNode): string =>
     node.type === 'text'
       ? node.text || ''
@@ -7455,9 +8222,8 @@ const stopCameraStream = () => {
 }
 
 const enableCamera = async () => {
+  if (pendingTakeBlob) { showToast('Keep or discard this take before recording again'); return }
   stopCameraStream()
-  // Re-enabling the camera is a new capture context; a pending review ends.
-  if (pendingTakeBlob) exitTakeReview()
   const microphone = audioMode.value === 'microphone'
   cameraStream = await navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -7469,9 +8235,23 @@ const enableCamera = async () => {
   setCameraStatus(microphone ? 'Camera + microphone ready' : 'Camera-only ready', 'live')
 }
 
+function refreshCameraAudioControls() {
+  const microphone = audioMode.value === 'microphone'
+  guideAudio.hidden = microphone
+  voiceCapability.hidden = microphone
+  ;($('#generate-guide') as HTMLElement).hidden = microphone
+  ;($('#camera-privacy-note') as HTMLElement).textContent = microphone
+    ? 'Your camera and microphone capture your delivery. Stop to review it, then Keep or Discard. Closing releases your devices and keeps a pending take available.'
+    : 'Camera-only mode uses a generated guide voice. Only use a voice reference you own or are authorized to use.'
+}
 const openCamera = () => {
+  if (pendingTakeBlob) { showCameraDialog(); void cameraPreview.play().catch(() => {}); return }
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
+  if (!project.derivedFrom?.notebook) {
+    void persistProjectNow(structuredClone(project)).then(() => createVideoFromBase(project.id, displayName(), { recordScene: scene.id })).catch(error => showToast(String(error)))
+    return
+  }
   recordingNodeId = scene.id
   // The journey's delivery choice sets the audio default: Present it myself
   // records the presenter's own microphone, Generate automatically starts
@@ -7479,18 +8259,43 @@ const openCamera = () => {
   if (project.explainerDelivery) {
     audioMode.value = project.explainerDelivery === 'human' ? 'microphone' : 'generated'
   }
+  // A video scene's own choice of who speaks comes first (U5): a scene you
+  // present records your microphone; a generated one starts from the guide.
+  const sceneDelivery = sceneReview?.stageOf(scene.id)?.scene.delivery
+  if (sceneDelivery === 'human') audioMode.value = 'microphone'
+  else if (sceneDelivery === 'generated') audioMode.value = 'generated'
+  refreshCameraAudioControls()
   presenterScript.value = sceneScript(scene)
+  // A pickup records only the lines asked for: the teleprompter shows them alone.
+  if (pickupFor?.sceneId === scene.id) presenterScript.value = pickupFor.lines.join('\n\n')
   generatedVoiceUrl = ''
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
   ;($('#voice-reference-label') as HTMLElement).hidden =
     audioMode.value === 'microphone'
   guideAudio.removeAttribute('src')
+  if (pendingTakeBlob) {
+    showCameraDialog()
+    return
+  }
   resetTakeReview()
   renderCameraBrief(scene.id)
   setupRehearsal(scene)
   void renderPickupNotes(scene.id)
-  cameraDialog.showModal()
+  if (pickupFor?.sceneId === scene.id) setCameraStatus(`Pickup: record only ${pickupFor.lines.length === 1 ? 'this line' : `these ${pickupFor.lines.length} lines`} — your take keeps the rest`, 'off')
+  showCameraDialog()
+}
+// In the scene workspace the dialog opens beside the stage, in place of the
+// inspector — the teleprompter and capture controls with the scene still in
+// view, nothing modal; elsewhere it is the modal it always was.
+const showCameraDialog = () => {
+  if (sceneWorkspace?.active()) {
+    sceneWorkspace.mountCapture(cameraDialog, recordingNodeId)
+    if (!cameraDialog.open) cameraDialog.show()
+    return
+  }
+  if (cameraDialog.parentNode !== cameraDialogHome.parentNode) cameraDialogHome.after(cameraDialog)
+  if (!cameraDialog.open) cameraDialog.showModal()
 }
 
 // Pickup notes (§3.7): when the last build's take alignment flagged beats,
@@ -7670,8 +8475,29 @@ rehearseToggle.addEventListener('click', () => {
   if (rehearsal) drawRehearsalBeat(rehearsal.beat + 1)
 })
 // Every close path — the × button, a committed take, Escape — ends rehearsal.
-cameraDialog.addEventListener('close', teardownRehearsal)
-cameraDialog.addEventListener('cancel', () => teardownRehearsal())
+const requestCameraClose = () => {
+  teardownRehearsal()
+  guideAudio.pause()
+  cameraPreview.pause()
+  if (mediaRecorder?.state === 'recording') {
+    mediaRecorder.stop()
+    stopCameraStream()
+    return
+  }
+  stopCameraStream()
+  cameraDialog.close()
+}
+cameraDialog.addEventListener('close', () => {
+  teardownRehearsal()
+  guideAudio.pause()
+  cameraPreview.pause()
+  if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
+  stopCameraStream()
+})
+cameraDialog.addEventListener('cancel', event => {
+  event.preventDefault()
+  requestCameraClose()
+})
 
 // ——— The coach card (D6): this scene's recording brief, its place in the
 // journey, and what happens next. ———
@@ -7712,18 +8538,7 @@ const renderCameraBrief = (sceneId: string) => {
 }
 
 ;($('#record-this-block') as HTMLButtonElement).addEventListener('click', openCamera)
-;($('#close-camera') as HTMLButtonElement).addEventListener('click', () => {
-  if (mediaRecorder?.state === 'recording') {
-    // A take in progress stops into the review step — never silently
-    // committed, never silently dropped.
-    mediaRecorder.stop()
-    return
-  }
-  // Closing while reviewing is a Discard.
-  if (pendingTakeBlob) exitTakeReview()
-  stopCameraStream()
-  cameraDialog.close()
-})
+;($('#close-camera') as HTMLButtonElement).addEventListener('click', requestCameraClose)
 ;($('#enable-camera') as HTMLButtonElement).addEventListener('click', async () => {
   try {
     await enableCamera()
@@ -7732,10 +8547,10 @@ const renderCameraBrief = (sceneId: string) => {
   }
 })
 audioMode.addEventListener('change', () => {
+  if (pendingTakeBlob) { audioMode.value = pendingTakeAudioMode; showToast('Keep or discard this take before changing audio'); return }
+  refreshCameraAudioControls()
   generatedVoiceUrl = ''
   guideAudio.removeAttribute('src')
-  // The audio approach the take was captured under changed — its review ends.
-  if (pendingTakeBlob) exitTakeReview()
   stopCameraStream()
   engineRecordingButton.disabled = true
   engineRecordingButton.hidden = audioMode.value === 'microphone'
@@ -7748,11 +8563,20 @@ audioMode.addEventListener('change', () => {
 // change in the notebook, and this button takes the author there.
 ;($('#teleprompter-edit') as HTMLButtonElement).addEventListener('click', () => {
   const nodeId = recordingNodeId || selectedNodeId
-  if (pendingTakeBlob) exitTakeReview()
+  if (mediaRecorder?.state === 'recording') {
+    requestCameraClose()
+    showToast('Review your take before editing the script')
+    return
+  }
   stopCameraStream()
   cameraDialog.close()
   if (nodeId) {
     selectNode(nodeId, true)
+    // Under review, the words are in the folded source dialogue: open it.
+    if (nodeId === reviewSelectedScene) {
+      sceneSourceOpen = nodeId
+      refreshSceneReview()
+    }
     document.getElementById(nodeId)?.scrollIntoView({ block: 'center' })
   }
 })
@@ -7840,20 +8664,58 @@ const supportedRecorderType = () =>
   ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
     .find(type => MediaRecorder.isTypeSupported(type)) || ''
 
+// The words a take is spoken against: their fingerprint, each line's, and
+// the plan revision they came from when a plan supplied them (R4).
+const scriptLineageOf = (sceneId: string) => {
+  const node = findSlideLikeNode(sceneId)
+  const script = String(node?.attrs.script || '')
+  const source = node?.attrs.scriptSource as { treatment?: string; revision?: number } | null | undefined
+  return { hash: scriptFingerprint(script), lines: lineFingerprints(script), ...(source?.treatment ? { treatment: source.treatment, ...(source.revision ? { revision: source.revision } : {}) } : {}) }
+}
+
 // A take saved from the camera dialog joins the durable take archive (D3)
 // like any other: the coach, the take picker, and the human build's take
 // audio all read recordedBlocks — a presenter-track-only write would record
 // nothing they can see.
 let recordingStartedAt = 0
+// A pickup of some of a scene's lines: archived with the lines it was
+// spoken against, beside the selected take, which stays selected.
+const archivePickupTake = async (blockId: string, asset: { url: string; assetId?: string }, durationMs: number, lines: string[]) => {
+  if (!asset.assetId) throw new Error('The uploaded pickup has no asset id to archive')
+  const node = findSlideLikeNode(blockId)
+  const source = node?.attrs.scriptSource as { treatment?: string; revision?: number } | null | undefined
+  const script = lines.join('\n\n')
+  const lineage = { hash: scriptFingerprint(script), lines: lineFingerprints(script), ...(source?.treatment ? { treatment: source.treatment, ...(source.revision ? { revision: source.revision } : {}) } : {}) }
+  const { recording } = await fetchJson<{ recording: RecordedBlockV1 }>('/api/recordings/commit', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter', pickup: true, script: lineage }),
+  })
+  project.recordedBlockTakes ||= {}
+  const takes = (project.recordedBlockTakes[blockId] ||= [])
+  if (!takes.some(take => take.recordingId === recording.recordingId)) takes.push(recording)
+  syncProject()
+  // What producing the scene waits for is read again: the pickup may be it.
+  void sceneReview?.load()
+  return recording
+}
+// A take kept or chosen changes what producing its scene waits for: once
+// the notebook holding the take is saved (the file store keeps it only
+// there), the plans are read again, so the workspace offers producing at
+// once rather than after the window next takes focus.
+const rereadAfterTake = () => {
+  void persistProjectNow(structuredClone(project)).catch(() => undefined).then(() => sceneReview?.load())
+}
 const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?: string }, durationMs: number) => {
   if (!asset.assetId) throw new Error('The uploaded take has no asset id to archive')
-  const { recording } = await fetchJson<{ recording: RecordedBlockV1 }>('/api/recordings/commit', {
+  const { recording, project: accepted } = await fetchJson<{ recording: RecordedBlockV1; project?: ProjectDocumentV1 }>('/api/recordings/commit', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     // Raw presenter footage composes with the scene's graphics at compile;
     // only a composed scene recording (the directed canvas) replaces one.
-    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter' }),
+    body: JSON.stringify({ projectId: project.id, blockId, assetId: asset.assetId, mediaUrl: asset.url, durationMs, role: 'presenter', script: scriptLineageOf(blockId) }),
   })
+  acknowledgeTakeMutation(project.id, blockId, accepted)
   project.recordedBlocks ||= {}
   project.recordedBlockTakes ||= {}
   const takes = (project.recordedBlockTakes[recording.blockId] ||= [])
@@ -7861,6 +8723,8 @@ const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?
   project.recordedBlocks[recording.blockId] = recording
   syncProject()
   void refreshPickupNotes()
+  refreshSceneReview()
+  rereadAfterTake()
 }
 
 const uploadRecording = async (blob: Blob) => {
@@ -7877,6 +8741,16 @@ const uploadRecording = async (blob: Blob) => {
     },
     body: blob,
   })
+  if (pickupFor?.sceneId === recordingNodeId) {
+    const lines = pickupFor.lines
+    await archivePickupTake(recordingNodeId, { url: response.url, assetId: response.assetId }, pendingTakeDurationMs || Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)), lines)
+    pickupFor = null
+    showToast(`Pickup kept: ${lines.length === 1 ? 'the line' : `${lines.length} lines`} fill in for your take, which stays`)
+    cameraDialog.close()
+    stopCameraStream()
+    refreshSceneReview()
+    return
+  }
   const hasGeneratedVoice = audioMode.value === 'generated' && generatedVoiceUrl
   const audioUrl = hasGeneratedVoice
     ? generatedVoiceUrl
@@ -7916,6 +8790,7 @@ startRecordingButton.addEventListener('click', async () => {
   // the speaker never chases the plan's estimated clock.
   stopRehearsalPlayback()
   await runCountdown()
+  if (!cameraDialog.open || !cameraStream) return
   recordingChunks = []
   const recorderType = supportedRecorderType()
   mediaRecorder = new MediaRecorder(
@@ -7931,6 +8806,8 @@ startRecordingButton.addEventListener('click', async () => {
     // Review before the take counts (§3.7): stopping shows the take in the
     // preview with its sound; only Keep uploads and archives it. The take's
     // length is fixed here — review and upload time never inflate it.
+    stopCameraStream()
+    showCameraDialog()
     enterTakeReview(blob, Math.min(3_600_000, Math.max(1, Date.now() - recordingStartedAt)))
   }
   mediaRecorder.start(250)
@@ -7954,6 +8831,7 @@ stopRecordingButton.addEventListener('click', () => {
 // Closing mid-take stops into this review — never a silent commit, never a
 // silent loss. ———
 const takeReviewBox = $('#take-review') as HTMLElement
+let pendingTakeAudioMode = ''
 let pendingTakeBlob: Blob | null = null
 // The pending take's length, fixed when recording stopped. It rides with the
 // blob through review and upload, so the archived duration is the take's own.
@@ -7970,6 +8848,7 @@ const resetTakeReview = () => {
 
 const enterTakeReview = (blob: Blob, durationMs: number) => {
   resetTakeReview()
+  pendingTakeAudioMode = audioMode.value
   pendingTakeBlob = blob
   pendingTakeDurationMs = durationMs
   takeReviewUrl = URL.createObjectURL(blob)
@@ -8020,21 +8899,21 @@ const exitTakeReview = () => {
   showToast('Take discarded — nothing was uploaded')
 })
 
-;($('#remove-presenter') as HTMLButtonElement).addEventListener('click', () => {
-  if (!selectedNodeId) return
-  delete project.presenterTracks[selectedNodeId]
-  // The active take leaves the document and the durable selection; the take
-  // itself stays in the archive (the picker can bring it back).
-  delete project.recordedBlocks?.[selectedNodeId]
-  void fetchJson('/api/takes/clear', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ projectId: project.id, blockId: selectedNodeId }),
-  }).catch(error => console.warn('take selection clear not recorded durably', error))
-  syncProject()
-  syncCanvasViewSwitch()
-  void refreshPickupNotes()
-  showToast('Presenter track removed — the take stays in the archive')
+;($('#remove-presenter') as HTMLButtonElement).addEventListener('click', async () => {
+  const blockId = selectedNodeId
+  if (!blockId) return
+  const candidate = structuredClone(project)
+  delete candidate.presenterTracks[blockId]
+  delete candidate.recordedBlocks?.[blockId]
+  try {
+    await persistProjectNow(candidate, [blockId])
+    delete project.presenterTracks[blockId]
+    delete project.recordedBlocks?.[blockId]
+    syncProject()
+    syncCanvasViewSwitch()
+    void refreshPickupNotes()
+    showToast('Presenter track removed — the take stays in the archive')
+  } catch (error) { showToast(`Presenter removal was not saved: ${String(error)}`) }
 })
 
 const publishDialog = $('#publish-dialog') as HTMLDialogElement
@@ -8042,11 +8921,92 @@ const publishBlockList = $('#publish-block-list')
 const startPublishButton = $('#start-publish') as HTMLButtonElement
 const publishExcluded = new Set<string>()
 
+// What to export is chosen first (BoltDB review B09): the scene on show,
+// the scenes whose productions are accepted, the whole notebook, or the
+// blocks ticked in the list. The walk visits only the switchovers between
+// the blocks chosen, and what the export is is said from their records.
+type PublishScope = 'scene' | 'accepted' | 'all' | 'chosen'
+let publishScope: PublishScope = 'all'
+let publishSceneId = ''
+// The switchovers walked in this session, per set of blocks: exporting the
+// same blocks again does not walk them again.
+const publishWalked = new Set<string>()
+const publishWalkKey = (included: Scene[]) => `${project.id}:${included.map(scene => scene.id).join(',')}`
+const publishIncluded = () => scenes.filter(scene => !publishExcluded.has(scene.id))
+const acceptedSceneIds = () => (project.derivedFrom?.notebook ? scenes.filter(scene => project.producedScenes?.[scene.id]).map(scene => scene.id) : [])
+const publishSwitchoversDue = () => {
+  const included = publishIncluded()
+  return included.length > 1 && !publishWalked.has(publishWalkKey(included)) ? included.length - 1 : 0
+}
+const setPublishScope = (scope: PublishScope) => {
+  publishScope = scope
+  const ids = scope === 'scene' ? [publishSceneId] : scope === 'accepted' ? acceptedSceneIds() : scope === 'all' ? scenes.map(scene => scene.id) : null
+  if (!ids) return
+  publishExcluded.clear()
+  for (const scene of scenes) if (!ids.includes(scene.id)) publishExcluded.add(scene.id)
+}
+// The captions file is the export's: the blocks left out are left out.
+const publishCaptionsHref = () => {
+  const base = `/api/projects/${encodeURIComponent(project.id)}/captions.vtt`
+  return publishDialog.open && publishExcluded.size ? `${base}?blocks=${publishIncluded().map(scene => encodeURIComponent(scene.id)).join(',')}` : base
+}
+const renderPublishScope = () => {
+  const options: Array<[PublishScope, string, string]> = []
+  const current = scenes.find(scene => scene.id === publishSceneId)
+  if (current) {
+    const produced = Boolean(project.derivedFrom?.notebook && project.producedScenes?.[current.id])
+    // A scene is named as Scenes names it — its number among the scenes,
+    // not among every block (the project-flow rereview).
+    const scene = Boolean(findSlideLikeNode(current.id))
+    const number = scene ? `Scene ${scenes.filter(entry => findSlideLikeNode(entry.id)).findIndex(entry => entry.id === current.id) + 1}` : String(current.index + 1).padStart(2, '0')
+    options.push(['scene', scene ? 'This scene' : 'This block', `${number} · ${current.title}${produced ? ' · its accepted production' : ''}`])
+  }
+  const accepted = acceptedSceneIds().length
+  if (accepted) options.push(['accepted', 'Accepted productions', `${accepted} scene${accepted === 1 ? '' : 's'}`])
+  options.push(['all', 'The whole notebook', `${scenes.length} block${scenes.length === 1 ? '' : 's'}`])
+  options.push(['chosen', 'Chosen blocks', 'tick them in the list'])
+  $('#publish-scope-options').replaceChildren(
+    ...options.map(([scope, label, detail]) => {
+      const input = document.createElement('input')
+      input.type = 'radio'
+      input.name = 'publish-scope'
+      input.value = scope
+      input.checked = scope === publishScope
+      input.disabled = Boolean(activePublishJob)
+      input.addEventListener('change', () => {
+        if (!input.checked) return
+        setPublishScope(scope)
+        renderPublishBlockList()
+        void describePublishExport()
+      })
+      const name = document.createElement('strong')
+      name.textContent = label
+      const about = document.createElement('small')
+      about.textContent = detail
+      const option = document.createElement('label')
+      option.className = 'publish-scope-option'
+      option.dataset.scope = scope
+      option.append(input, name, about)
+      return option
+    }),
+  )
+}
+
 const publishRowSeconds = (scene: Scene) => {
   const recorded = project.recordedBlocks?.[scene.id]
   return (recorded?.durationMs || scene.durationSeconds * 1000) / 1000
 }
 
+// What the export will sound like (F9 of the Perplexity review): which
+// blocks have a take or a voice, which have words and no audio, and which
+// were made silent on purpose — a video scene whose delivery is "silent".
+const silentByChoice = () =>
+  project.derivedFrom?.notebook && sceneReview
+    ? scenes.filter(scene => sceneReview?.stageOf(scene.id)?.scene.delivery === 'silent').map(scene => scene.id)
+    : []
+const publishAudio = () => audioReadinessOf(project, { include: scenes.filter(scene => !publishExcluded.has(scene.id)).map(scene => scene.id), silent: silentByChoice() })
+const publishActionLabel = (readiness: ReturnType<typeof audioReadinessOf>) =>
+  readiness.silentDraft ? 'Export silent draft' : readiness.missing ? `Export with ${readiness.missing} silent block${readiness.missing === 1 ? '' : 's'}` : 'Publish video'
 const syncPublishSummary = () => {
   const included = scenes.filter(scene => !publishExcluded.has(scene.id))
   const total = included.reduce(
@@ -8057,6 +9017,27 @@ const syncPublishSummary = () => {
   ;($('#publish-count') as HTMLElement).textContent =
     `${included.length} of ${scenes.length} blocks`
   startPublishButton.disabled = included.length === 0
+  const readiness = publishAudio()
+  const line = $('#publish-audio') as HTMLElement
+  const kinds = readiness.blocks.reduce<Record<string, number>>((count, entry) => ({ ...count, [entry.state]: (count[entry.state] || 0) + 1 }), {})
+  const voicedBy = [kinds.produced ? `${kinds.produced} produced scene${kinds.produced === 1 ? '' : 's'}` : '', kinds.take ? `${kinds.take} recorded take${kinds.take === 1 ? '' : 's'}` : '', kinds['recorded-voice'] ? `${kinds['recorded-voice']} recorded voice${kinds['recorded-voice'] === 1 ? '' : 's'}` : '', kinds['generated-voice'] ? `${kinds['generated-voice']} generated voice${kinds['generated-voice'] === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')
+  line.hidden = included.length === 0
+  line.classList.toggle('is-silent', readiness.missing > 0 || readiness.silentDraft)
+  line.textContent = readiness.silentDraft
+    ? `Audio: no block has a take or a voice — this exports a silent draft.${readiness.missing ? ` ${readiness.missing} block${readiness.missing === 1 ? ' has' : 's have'} words that are not voiced.` : ''}`
+    : `Audio: ${readiness.voiced} of ${included.length} blocks voiced${voicedBy ? ` (${voicedBy})` : ''}.${readiness.missing ? ` ${readiness.missing} ${readiness.missing === 1 ? 'has' : 'have'} words but no voice or take — ${readiness.missing === 1 ? 'it' : 'they'} will be silent.` : ''}${readiness.silentByChoice ? ` ${readiness.silentByChoice} silent by choice.` : ''}`
+  // The switchovers between the blocks exported come next, when they have
+  // not been walked; one block has none.
+  const due = publishSwitchoversDue()
+  const pairs = Math.max(0, included.length - 1)
+  const switchovers = $('#publish-switchovers') as HTMLElement
+  switchovers.hidden = pairs === 0
+  switchovers.textContent = due
+    ? `${due} switchover${due === 1 ? '' : 's'} between the blocks you export. Next, ${due === 1 ? 'it plays' : 'they play'} on the video, to set how each block enters.`
+    : `${pairs} switchover${pairs === 1 ? '' : 's'} between the blocks you export, reviewed.`
+  if (!activePublishJob) startPublishButton.textContent = due ? `Review ${due} switchover${due === 1 ? '' : 's'} →` : publishActionLabel(readiness)
+  const captions = document.getElementById('download-captions') as HTMLAnchorElement | null
+  if (captions) captions.href = publishCaptionsHref()
 }
 
 const renderPublishBlockList = () => {
@@ -8064,17 +9045,25 @@ const renderPublishBlockList = () => {
     ...scenes.map(scene => {
       const row = document.createElement('div')
       row.className = 'publish-block-row'
+      row.dataset.nodeId = scene.id
       row.classList.toggle('excluded', publishExcluded.has(scene.id))
 
       const include = document.createElement('input')
       include.type = 'checkbox'
       include.checked = !publishExcluded.has(scene.id)
       include.title = 'Ship this block in the final video'
+      include.disabled = Boolean(activePublishJob)
       include.addEventListener('change', () => {
         if (include.checked) publishExcluded.delete(scene.id)
         else publishExcluded.add(scene.id)
         row.classList.toggle('excluded', !include.checked)
+        // Ticking a block makes the choice the creator's own.
+        if (publishScope !== 'chosen') {
+          publishScope = 'chosen'
+          renderPublishScope()
+        }
         syncPublishSummary()
+        void describePublishExport()
       })
 
       const meta = TIMELINE_BLOCK_META[sceneVisualKind(scene)]
@@ -8087,7 +9076,13 @@ const renderPublishBlockList = () => {
       kindLabel.textContent = meta.label
       const title = document.createElement('small')
       title.textContent = scene.title
-      copy.append(kindLabel, title)
+      // Its audio in this export, said per block (F9).
+      const audioState = blockAudioOf(project, scene.id, new Set(silentByChoice()))
+      const audio = document.createElement('span')
+      audio.className = 'publish-audio-chip'
+      audio.dataset.audio = audioState
+      audio.textContent = AUDIO_STATE_LABELS[audioState]
+      copy.append(kindLabel, title, audio)
       identity.append(number, copy)
 
       const controls = document.createElement('div')
@@ -8149,9 +9144,23 @@ const renderPublishBlockList = () => {
   syncPublishSummary()
 }
 
+// A render's own warnings, kept with its result (F05 of the fix
+// verification): the creator reads them where the export is.
+type ExportWarningView = { code: string; message: string; sources?: string[] }
+const exportWarningLine = (warnings: ExportWarningView[] | undefined) =>
+  warnings?.length ? (warnings.length === 1 ? warnings[0].message : `${warnings.length} warnings: ${warnings.map(warning => warning.message).join(' ')}`) : ''
+
+let activePublishJob = ''
+const cancelPublishJob = document.createElement('button')
+cancelPublishJob.textContent = 'Cancel export'
+cancelPublishJob.hidden = true
+startPublishButton.parentElement?.append(cancelPublishJob)
+cancelPublishJob.onclick = () => { if (activePublishJob) void fetchJson(`/api/exports/${activePublishJob}`, { method: 'DELETE' }).catch(error => showToast(String(error))) }
+
 const startPublish = async () => {
   startPublishButton.disabled = true
   startPublishButton.textContent = 'Rendering…'
+  publishDialog.querySelectorAll<HTMLInputElement>('#publish-scope-options input, #publish-block-list input').forEach(input => (input.disabled = true))
   const resultPanel = $('#render-result')
   resultPanel.hidden = true
   try {
@@ -8164,30 +9173,189 @@ const startPublish = async () => {
       const nodeId = node.attrs?.id
       return typeof nodeId !== 'string' || !publishExcluded.has(nodeId)
     })
-    const result = await fetchJson<{ url: string; durationSeconds: number }>(
-      '/api/render',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      },
-    )
+    type Job = { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number; warnings?: ExportWarningView[] }; audio?: { voiced: number; missing: number; silentDraft: boolean }; progress?: { percent: number } }
+    let { job } = await fetchJson<{ job: Job }>('/api/exports?retry=true', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+    activePublishJob = job.id
+    window.localStorage.setItem(`studio.export:${payload.id}`, job.id)
+    cancelPublishJob.hidden = false
+    void refreshExportStatus()
+    while (job.status === 'queued' || job.status === 'running') {
+      startPublishButton.textContent = job.status === 'running' && job.progress ? `Exporting · ${job.progress.percent}%` : `Export ${job.status}…`
+      await new Promise(resolve => window.setTimeout(resolve, 1000))
+      job = (await fetchJson<{ job: Job }>(`/api/exports/${job.id}`)).job
+    }
+    void refreshExportStatus()
+    if (job.status !== 'stored' || !job.result) throw new Error(job.error || `Export ${job.status}`)
+    const result = job.result
     const link = $('#download-render') as HTMLAnchorElement
-    link.href = result.url
+    link.href = portableUrl(result.url)
+    link.dataset.name = downloadName(displayName() || project.title || 'Incredible Studio', 'mp4')
     resultPanel.hidden = false
-    const review = await explainerReviewState()
+    const exported = await publishKindOf(payload.notebook.content)
     ;($('#publish-count') as HTMLElement).textContent =
-      `${review.isReviewed ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
-    showToast(review.isReviewed
-      ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes`
-      : `Draft export rendered (${result.durationSeconds.toFixed(1)}s) — not a reviewed explainer`)
+      `${exported.kind === 'video' ? 'video export' : exported.kind === 'reviewed' ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
+    const silence = job.audio?.silentDraft ? ' · silent draft, no audio' : job.audio?.missing ? ` · ${job.audio.missing} silent block${job.audio.missing === 1 ? '' : 's'}` : ''
+    // What the render said about itself is part of its result (F05).
+    const warned = exportWarningLine(result.warnings)
+    ;($('#publish-count') as HTMLElement).textContent += `${silence}${warned ? ` · ${warned}` : ''}`
+    showToast(exported.kind === 'video'
+      ? `Exported ${result.durationSeconds.toFixed(1)} seconds — every scene plays the production you accepted${silence}${warned ? `. ${warned}` : ''}`
+      : exported.kind === 'reviewed'
+        ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes${silence}${warned ? `. ${warned}` : ''}`
+        : `Draft export rendered (${result.durationSeconds.toFixed(1)}s)${exported.explainer ? ' — not a reviewed explainer' : ''}${silence}${warned ? `. ${warned}` : ''}`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Publish failed')
   } finally {
     startPublishButton.disabled = false
-    startPublishButton.textContent = 'Publish video'
+    cancelPublishJob.hidden = true
+    activePublishJob = ''
+    publishDialog.querySelectorAll<HTMLInputElement>('#publish-scope-options input, #publish-block-list input').forEach(input => (input.disabled = false))
+    // The action says again what it would export; the result line stays.
+    startPublishButton.textContent = publishActionLabel(publishAudio())
   }
 }
+
+// ——— A notebook's exports, found again (F8 of the Perplexity review) ———
+// An export runs in the app, not in the Publish window: closing it,
+// reloading, switching notebooks or restarting the window finds the same
+// job again — running, with the renderer's progress; ready, with its
+// download; or failed, with a retry from the manifest it was made of.
+type ExportView = { id: string; status: string; updatedAt: number; startedAt?: number; error?: string; result?: { url: string; durationSeconds: number; warnings?: ExportWarningView[] }; progress?: { stage: string; percent: number; frame?: number; frames?: number }; audio?: { silentDraft: boolean; missing: number } }
+let exportStatusTimer = 0
+let exportStatusJob: ExportView | null = null
+// Downloads that failed, by export: the notice says why until one works.
+const downloadFailures = new Map<string, string>()
+const exportDismissedKey = () => `studio.export-dismissed:${project.id}`
+const renderExportStatus = (job: ExportView | null) => {
+  exportStatusJob = job
+  const box = $('#export-status') as HTMLElement
+  const text = $('#export-status-text') as HTMLElement
+  const download = $('#export-status-download') as HTMLAnchorElement
+  const retry = $('#export-status-retry') as HTMLButtonElement
+  const cancel = $('#export-status-cancel') as HTMLButtonElement
+  const dismiss = $('#export-status-dismiss') as HTMLButtonElement
+  const details = $('#export-status-details') as HTMLButtonElement
+  let dismissed = ''
+  try {
+    dismissed = window.localStorage.getItem(exportDismissedKey()) || ''
+  } catch {
+    dismissed = ''
+  }
+  const active = job && (job.status === 'queued' || job.status === 'running')
+  // A job whose app stopped beating for long reads as stalled, with a retry.
+  const stalled = Boolean(active && Date.now() - job!.updatedAt > 90_000)
+  if (!job || (!active && dismissed === job.id)) {
+    box.hidden = true
+    return
+  }
+  box.hidden = false
+  box.dataset.status = stalled ? 'stalled' : job.status
+  box.dataset.job = job.id
+  const progress = job.progress
+  const silent = job.audio?.silentDraft ? ' · silent draft' : job.audio?.missing ? ` · ${job.audio.missing} silent` : ''
+  text.textContent = stalled
+    ? 'Export stalled — the app rendering it stopped'
+    : job.status === 'queued'
+      ? 'Export queued'
+      : job.status === 'running'
+        ? `Exporting · ${progress?.stage || 'starting'} ${progress ? `${progress.percent}%` : ''}${progress?.frames ? ` · frame ${progress.frame || 0} of ${progress.frames}` : ''}`
+        : job.status === 'stored'
+          ? `Export ready${job.result?.warnings?.length ? ` with ${job.result.warnings.length === 1 ? 'a warning' : `${job.result.warnings.length} warnings`}` : ''} · ${formatTime(job.result?.durationSeconds || 0)}${silent}`
+          : job.status === 'failed'
+            ? `Export failed — ${String(job.error || 'no reason given').split('\n')[0].slice(0, 120)}`
+            : 'Export cancelled'
+  download.hidden = job.status !== 'stored' || !job.result
+  if (job.result) {
+    download.href = portableUrl(job.result.url)
+    download.dataset.name = downloadName(displayName() || project.title || 'Incredible Studio', 'mp4')
+  }
+  // A download that failed keeps the notice — and the studio — with its
+  // reason and a retry (F01); a fresh job starts clean.
+  const failedDownload = downloadFailures.get(job.id)
+  if (job.status === 'stored' && failedDownload) text.textContent = `Download failed — ${failedDownload}`
+  download.textContent = failedDownload ? 'Retry download' : 'Download'
+  const warnings = job.status === 'stored' ? job.result?.warnings || [] : []
+  box.dataset.warnings = String(warnings.length)
+  box.dataset.download = failedDownload ? 'failed' : ''
+  // The whole line and every warning on hover: the notice is narrow.
+  box.title = [text.textContent || '', ...warnings.map(warning => warning.message)].filter(Boolean).join('\n')
+  details.hidden = !warnings.length
+  retry.hidden = !(stalled || job.status === 'failed' || job.status === 'cancelled')
+  cancel.hidden = !active || stalled
+  dismiss.hidden = Boolean(active) && !stalled
+}
+const refreshExportStatus = async () => {
+  window.clearTimeout(exportStatusTimer)
+  const projectId = project.id
+  const { exports } = await fetchJson<{ exports: ExportView[] }>(`/api/projects/${encodeURIComponent(projectId)}/exports`).catch(() => ({ exports: [] as ExportView[] }))
+  if (projectId !== project.id) return
+  const latest = exports[0] || null
+  renderExportStatus(latest)
+  if (latest && (latest.status === 'queued' || latest.status === 'running')) exportStatusTimer = window.setTimeout(() => void refreshExportStatus(), 2000)
+}
+;($('#export-status-cancel') as HTMLButtonElement).addEventListener('click', async () => {
+  if (!exportStatusJob) return
+  await fetchJson(`/api/exports/${exportStatusJob.id}`, { method: 'DELETE' }).catch(() => undefined)
+  void refreshExportStatus()
+})
+;($('#export-status-retry') as HTMLButtonElement).addEventListener('click', async () => {
+  if (!exportStatusJob) return
+  await fetchJson(`/api/exports/${exportStatusJob.id}/retry`, { method: 'POST' }).catch(error => showToast(error instanceof Error ? error.message : 'Could not retry the export'))
+  void refreshExportStatus()
+})
+;($('#export-status-details') as HTMLButtonElement).addEventListener('click', () => {
+  const warnings = exportStatusJob?.result?.warnings || []
+  if (warnings.length) showToast(warnings.map(warning => warning.message).join(' '))
+})
+// Download through the studio's own download (F01 of the fix verification):
+// the file is checked on this origin first, and a failure keeps the studio
+// and the notice, with its reason and a retry — never an error page.
+const startStudioDownload = async (link: HTMLAnchorElement, onFailure: (reason: string) => void, onSuccess: () => void) => {
+  if (link.dataset.downloading === 'true') return
+  link.dataset.downloading = 'true'
+  try {
+    const outcome = await downloadStudioFile(link.getAttribute('href') || '', link.dataset.name || downloadName(project.title || 'Incredible Studio', 'mp4'))
+    onSuccess()
+    if (outcome.state === 'completed') showToast(`Downloaded ${outcome.path ? outcome.path.split(/[\\/]/).pop() : 'the video'}`)
+  } catch (error) {
+    onFailure(error instanceof Error ? error.message : 'The download failed')
+  } finally {
+    delete link.dataset.downloading
+  }
+}
+;($('#export-status-download') as HTMLAnchorElement).addEventListener('click', event => {
+  event.preventDefault()
+  const job = exportStatusJob
+  if (!job) return
+  void startStudioDownload(event.currentTarget as HTMLAnchorElement, reason => {
+    downloadFailures.set(job.id, reason)
+    if (exportStatusJob?.id === job.id) renderExportStatus(exportStatusJob)
+  }, () => {
+    if (!downloadFailures.delete(job.id)) return
+    if (exportStatusJob?.id === job.id) renderExportStatus(exportStatusJob)
+  })
+})
+;($('#download-render') as HTMLAnchorElement).addEventListener('click', event => {
+  event.preventDefault()
+  const link = event.currentTarget as HTMLAnchorElement
+  // The label is the link's last text; its icon stays.
+  const label = (text: string) => {
+    if (link.lastChild) link.lastChild.textContent = text
+  }
+  void startStudioDownload(link, reason => {
+    label('Retry download')
+    showToast(`Download failed — ${reason}`)
+  }, () => label('Download MP4'))
+})
+;($('#export-status-dismiss') as HTMLButtonElement).addEventListener('click', () => {
+  if (!exportStatusJob) return
+  try {
+    window.localStorage.setItem(exportDismissedKey(), exportStatusJob.id)
+  } catch {
+    /* the notice simply stays */
+  }
+  renderExportStatus(exportStatusJob)
+})
 
 const closePublishTakePreview = () => {
   const video = $('#publish-take-preview-video') as HTMLVideoElement
@@ -8215,7 +9383,7 @@ const stableStringify = (value: unknown): string =>
 const sceneContentHash = async (node: TiptapNode) => {
   const attrs = (node.attrs || {}) as Record<string, unknown>
   const id = String(attrs.id || '')
-  const payload = sceneRevisionPayload(attrs, sceneRenderedExtras(project.blocks?.[id], project.presenterTracks?.[id], project.recordedBlocks?.[id]))
+  const payload = sceneRevisionPayload(attrs, sceneRenderedExtras(project.blocks?.[id], project.presenterTracks?.[id], project.recordedBlocks?.[id], project))
   const bytes = new TextEncoder().encode(String(attrs.svg || '') + stableStringify(payload))
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
 }
@@ -8246,40 +9414,106 @@ const sceneReviewFor = async (content: TiptapNode[]) => {
   return { sceneCount: videoScenes.length, reviewedCount, changedCount }
 }
 
-const explainerReviewState = async () => {
+const explainerReviewState = async (content: TiptapNode[] = project.notebook.content) => {
   const derived = Boolean(project.derivedFrom?.notebook)
-  const review = await sceneReviewFor(project.notebook.content)
+  const review = await sceneReviewFor(content)
   return { derived, ...review, isReviewed: derived && review.sceneCount > 0 && review.changedCount === 0 && review.reviewedCount === review.sceneCount }
 }
 
-const openPublishSummary = async () => {
-  publishExcluded.clear()
-  ;($('#render-result') as HTMLElement).hidden = true
-  closePublishTakePreview()
-  const exportKind = $('#publish-export-kind') as HTMLElement
-  const review = await explainerReviewState()
-  exportKind.hidden = false
-  if (review.isReviewed) {
-    exportKind.textContent = 'Reviewed explainer export — every scene passed the rich build’s review.'
-  } else if (review.derived && review.changedCount) {
-    exportKind.textContent = `Draft export — ${review.changedCount} of ${review.sceneCount} scenes changed since the rich build's review. Build explainer re-reviews them; accepted artwork is reused.`
-  } else if (review.derived) {
-    exportKind.textContent = `Draft export — ${review.reviewedCount} of ${review.sceneCount} scenes reviewed by the rich build. Build explainer produces the reviewed explainer export.`
-  } else {
-    exportKind.textContent = 'Draft export — this notebook has not been through the rich explainer build. Create explainer starts that journey.'
+// What an export of these blocks is, said from their own records: the
+// productions accepted for a video notebook's scenes (P4), or, where the
+// rich build reviewed them, its review. A video notebook that never went
+// through the rich build is not told about it (BoltDB review B09).
+const publishKindOf = async (content: TiptapNode[]) => {
+  const review = await explainerReviewState(content)
+  const slideIds = (nodes: TiptapNode[]) => nodes.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id).map(node => String(node.attrs!.id))
+  const videoScenes = review.derived ? slideIds(content) : []
+  const producedCount = videoScenes.filter(id => project.producedScenes?.[id]).length
+  const whole = videoScenes.length === slideIds(project.notebook.content || []).length
+  const explainer = !review.derived || review.reviewedCount + review.changedCount > 0
+  if (videoScenes.length > 0 && producedCount === videoScenes.length) {
+    const text = whole
+      ? 'Video export — every scene plays the production you accepted from its approved plan.'
+      : videoScenes.length === 1
+        ? 'Video export — the scene you chose plays the production you accepted from its approved plan.'
+        : `Video export — the ${videoScenes.length} scenes you chose play the productions you accepted from their approved plans.`
+    return { kind: 'video' as const, text, explainer }
   }
-  renderPublishBlockList()
-  ;($('#burn-captions') as HTMLInputElement).checked = Boolean(project.captions?.burnIn)
-  publishDialog.showModal()
+  if (review.isReviewed) return { kind: 'reviewed' as const, text: 'Reviewed explainer export — every scene passed the rich build’s review.', explainer }
+  if (!review.derived) return { kind: 'draft' as const, text: 'Draft export — this notebook has not been through the rich explainer build. Create explainer starts that journey.', explainer }
+  // Until every scene it includes is produced, say what it is, and what it is not.
+  const productions = producedCount
+    ? `${producedCount} of ${videoScenes.length} scenes play the production you accepted from their approved plans; the others are the notebook's own composition — its pages, words and takes.`
+    : ''
+  if (!explainer) {
+    return {
+      kind: 'draft' as const,
+      text: productions ? `Draft export — ${productions}` : 'Draft export — the notebook\'s own composition, its pages, words and takes, not the approved scene plans: no scene it includes has an accepted production.',
+      explainer,
+    }
+  }
+  const build = review.changedCount
+    ? `Draft export — ${review.changedCount} of ${review.sceneCount} scenes changed since the rich build's review. Build explainer re-reviews them; accepted artwork is reused.`
+    : `Draft export — ${review.reviewedCount} of ${review.sceneCount} scenes reviewed by the rich build. Build explainer produces the reviewed explainer export.`
+  return {
+    kind: 'draft' as const,
+    text: `${build} ${productions || 'It exports the notebook\'s own composition — its pages, words and takes — not the approved scene plans: no scene it includes has an accepted production.'}`,
+    explainer,
+  }
 }
 
-renderButton.addEventListener('click', () => {
+let publishDescribed = 0
+const describePublishExport = async () => {
+  const run = ++publishDescribed
+  const included = new Set(publishIncluded().map(scene => scene.id))
+  const content = (project.notebook.content || []).filter(node => typeof node.attrs?.id !== 'string' || included.has(node.attrs.id))
+  const { text } = await publishKindOf(content)
+  if (run !== publishDescribed) return
+  const exportKind = $('#publish-export-kind') as HTMLElement
+  exportKind.hidden = included.size === 0
+  exportKind.textContent = text
+}
+
+// The summary, on the blocks chosen: opened by Publish, and again when
+// the walk through their switchovers comes back.
+const openPublishSummary = async () => {
+  ;($('#render-result') as HTMLElement).hidden = true
+  closePublishTakePreview()
+  renderPublishScope()
+  renderPublishBlockList()
+  ;($('#burn-captions') as HTMLInputElement).checked = Boolean(project.captions?.burnIn)
+  await describePublishExport()
+  if (!publishDialog.open) publishDialog.showModal()
+  syncPublishSummary()
+  // The export is the notebook's own composition: in the notebook the stage
+  // steps aside behind the summary, as it does while the switchovers are
+  // walked. The Scenes view keeps its stage (BoltDB review B09).
+  renderSceneStage()
+}
+
+// Publish starts with what to export: by default the scenes whose
+// productions are accepted, when there are any, else the whole notebook.
+const openPublish = () => {
+  if (publishDialog.open || finalizeModeActive) return
   syncProject()
-  // Publishing starts with the guided junction walkthrough on the real
-  // video, then lands on the summary (takes, included blocks, duration).
-  enterFinalizeMode()
+  publishFlow = { selection: selectedNodeId, scenes: false, canvas: false }
+  const shown = sceneWorkspace?.active() ? reviewSelectedScene || selectedNodeId : selectedNodeId
+  publishSceneId = scenes.some(scene => scene.id === shown) ? shown : ''
+  setPublishScope(acceptedSceneIds().length ? 'accepted' : 'all')
+  void openPublishSummary()
+}
+
+renderButton.addEventListener('click', openPublish)
+startPublishButton.addEventListener('click', () => {
+  // The switchovers between the blocks chosen come first, played on the
+  // notebook's composition behind this dialog.
+  if (publishSwitchoversDue()) {
+    if (enterFinalizeMode(publishIncluded())) publishDialog.close()
+    else ($('#publish-switchovers') as HTMLElement).textContent = 'Finish or close the recording first — the switchovers play on the notebook\'s composition, outside Scenes.'
+    return
+  }
+  void startPublish()
 })
-startPublishButton.addEventListener('click', () => void startPublish())
 ;($('#cancel-publish') as HTMLButtonElement).addEventListener('click', () =>
   publishDialog.close(),
 )
@@ -8287,6 +9521,14 @@ startPublishButton.addEventListener('click', () => void startPublish())
   publishDialog.close(),
 )
 publishDialog.addEventListener('close', closePublishTakePreview)
+publishDialog.addEventListener('close', () => renderSceneStage())
+// Closed for the walk, Publish goes on; closed otherwise, it is over. The
+// dialog's close event waits for a frame, which a window in the background
+// can hold past the next Publish — and end that one — so the dialog's open
+// state is watched instead, as it changes.
+new MutationObserver(() => {
+  if (!publishDialog.open && !finalizeModeActive) endPublishFlow()
+}).observe(publishDialog, { attributes: true, attributeFilter: ['open'] })
 ;($('#close-publish-take-preview') as HTMLButtonElement).addEventListener(
   'click',
   closePublishTakePreview,
@@ -9221,6 +10463,7 @@ const scheduleStageSync = () => {
   const stored = structuredClone(project)
   sanitizeNotebookMedia(stored.notebook)
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  rememberDraft(stored)
   scheduleDatabaseSync()
   window.clearTimeout(stageSyncTimer)
   stageSyncTimer = window.setTimeout(() => {
@@ -10192,6 +11435,7 @@ const lineStageText = $('#se-line-stage-text') as HTMLElement
 // The scene's frame plan as the studio knows it right now: the director's
 // storyboard for the current plan, or the block's fixed frame.
 const studioStageTrack = (state: SlideEditorState): StageSegment[] => {
+  if (project.explainerDelivery === 'generated') return [{ atMs: 0, family: 'content-full' }]
   const plan = state.previewPlan || state.motion
   if (!plan) return []
   const block = project.blocks[state.nodeId]?.stage
@@ -10221,9 +11465,11 @@ const applyStudioStage = (timeMs: number) => {
   const state = slideEditor
   if (!state) return
   const segment = stageAt(studioStageTrack(state), timeMs)
-  const family: StageFamily = segment?.family || 'content-pip'
+  const family: StageFamily = project.explainerDelivery === 'generated' ? 'content-full' : segment?.family || 'content-pip'
   const geometry = stageGeometryFor(family, segment?.variant)
   const content = family === 'speaker-full' ? (segment?.treatment === 'board' ? STAGE_BOARD_CONTENT : segment?.treatment === 'overlay' ? STAGE_OVERLAY_CONTENT : null) : geometry.content
+  const hint = document.getElementById('se-frame-hint')
+  if (hint) hint.textContent = project.explainerDelivery === 'generated' ? 'Click a part of the page to change it' : 'Click a part of the page — or yourself — to change it'
   studioFrame.dataset.stage = family
   if (segment?.treatment) studioFrame.dataset.stageTreatment = segment.treatment
   else delete studioFrame.dataset.stageTreatment
@@ -10237,6 +11483,7 @@ const applyStudioStage = (timeMs: number) => {
   rect(studioFrameContent, content || geometry.content || { left: 4.7, top: 5, width: 90.6, height: 90 })
   rect(studioFrameCamera, geometry.camera || { left: 80, top: 64.5, width: 16, height: 28.4 })
   studioFrameCamera.className = `se-frame-camera shape-${geometry.cameraShape}`
+  studioFrameCamera.style.display = project.explainerDelivery === 'generated' ? 'none' : ''
   studioFrameContent.classList.toggle('is-board', segment?.treatment === 'board')
   studioFrameContent.classList.toggle('is-card', family === 'speaker-lead')
   const presenter = studioFrameCamera.querySelector('img')
@@ -10315,7 +11562,7 @@ const renderLineStage = () => {
     return
   }
   lineStageBox.hidden = false
-  lineStageBox.querySelector<HTMLElement>('.se-line-stage-buttons')!.hidden = Boolean(state.previewPlan)
+  lineStageBox.querySelector<HTMLElement>('.se-line-stage-buttons')!.hidden = Boolean(state.previewPlan) || project.explainerDelivery === 'generated'
   const model = studioBeatModel(state)
   const segment = model ? stageAt(model.frames, model.beats[state.current]?.atMs || 0) : null
   const family = segment?.family || 'content-pip'
@@ -11186,7 +12433,7 @@ const renderLengthBrief = () => {
     nextNote.textContent = 'Saving keeps a version — you can always go back.'
     more.hidden = false
   } else {
-    nextTitle.textContent = 'Review it, then record'
+    nextTitle.textContent = project.explainerDelivery === 'generated' ? 'Review the animation and narration' : 'Review it, then record'
     ;($('#se-length-why') as HTMLElement).textContent = `${state.windows.length} windows · ${Math.round(spoken)} s — the motion follows these lines. Play it on the left; click a line to change its words; ask the writer below for a change.`
     writeButton.hidden = true
     nextSave.hidden = true
@@ -11700,6 +12947,63 @@ const wornKey = (state: SlideEditorState, unit: SlideUnit) =>
 // Draw the thing, then wear it. A drawing that came back without its
 // pieces is reported and not worn: a scene that moves a piece by name
 // would silently do nothing.
+const refineObjectAppearance = async (unit: SlideUnit) => {
+  const state = slideEditor
+  if (!state) return
+  const { assets } = await fetchJson<{ assets: Array<{ key: string; behaviors?: ObjectBehavior[] }> }>('/api/appearance/library')
+  const asset = assets.find(item => item.key === wornKey(state, unit))
+  const controls = [...new Map((asset?.behaviors || []).flatMap(behavior => behavior.controls || []).map(control => [control.id, control])).values()]
+  if (!controls.length) { showToast('This version has no declared refinement controls. Register controls with its accepted behavior first.'); return }
+  const dialog = document.createElement('dialog')
+  dialog.style.cssText = 'max-width:440px;width:90%;padding:24px;border:1px solid #ccc;border-radius:16px;'
+  const form = document.createElement('form')
+  form.style.cssText = 'display:grid;gap:16px'
+  const owner = new DOMParser().parseFromString(state.svg, 'image/svg+xml').getElementById(unit.id)
+  const heading = document.createElement('h2'); heading.textContent = `Refine ${unit.label}`; form.append(heading)
+  const inputs: Array<{ control: AppearanceControl; input: HTMLInputElement; initial: string }> = []
+  for (const control of controls) {
+    const label = document.createElement('label'); label.textContent = control.label
+    const input = document.createElement('input'); input.type = control.type === 'color' ? 'color' : 'number'; input.value = owner?.getAttribute(`data-control-${control.id}`) || String(control.default)
+    if (control.type === 'number') { input.min = String(control.min); input.max = String(control.max); input.step = 'any' }
+    label.append(input); form.append(label); inputs.push({ control, input, initial: input.value })
+  }
+  const status = document.createElement('p'); status.setAttribute('role', 'status'); form.append(status)
+  const apply = document.createElement('button'); apply.type = 'submit'; apply.textContent = 'Apply refinement'; form.append(apply)
+  const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Cancel'; close.onclick = () => dialog.close(); form.append(close)
+  form.onsubmit = event => {
+    event.preventDefault()
+    try {
+      let svg = state.svg
+      const program = state.program ? structuredClone(state.program) : null
+      for (const { control, input, initial } of inputs) if (input.value !== initial) {
+        if (control.property === 'durationMs') {
+          const value = Number(controlValue(control, input.value))
+          const events = program?.beats.flatMap(beat => [beat, ...(beat.then || [])]).flatMap(beat => beat.events || []).filter(event => event.actor === unit.id && event.behavior?.definition.artworkKey === asset?.key) || []
+          if (!events.length) throw new Error('This control needs a bound behavior event')
+          events.forEach(event => { event.durationMs = value })
+          const document = new DOMParser().parseFromString(svg, 'image/svg+xml')
+          document.getElementById(unit.id)?.setAttribute(`data-control-${control.id}`, String(value))
+          svg = new XMLSerializer().serializeToString(document.documentElement)
+        } else svg = applyAppearanceControl(svg, unit.id, unit.appearance?.parts || {}, control, input.value)
+      }
+      const reread = atomizeSlideSvg(svg)
+      const compiled = program ? compileSceneProgram(program, reread.units, { viewBox: reread.viewBox }) : null
+      if (program) {
+        const errors = compiled?.diagnostics.filter(d => d.severity === 'error') || []
+        if (errors.length) throw new Error(errors.map(d => d.message).join('; '))
+      }
+      if (program) state.program = program
+      if (compiled) state.motion = compiled.plan
+      state.svg = reread.svg; state.units = reread.units
+      state.lastChange = 'Refined object appearance'
+      markDirty(true); writeSlideLikeNode(state.nodeId, { svg: state.svg, ...(program ? { program } : {}), ...(compiled ? { motion: compiled.plan } : {}) })
+      renderSlideEditorPreview()
+      dialog.close(); showToast('Appearance updated. Review the new geometry before export.')
+    } catch (error) { status.textContent = String(error) }
+  }
+  dialog.append(form); document.body.append(dialog); dialog.addEventListener('close', () => dialog.remove(), { once: true }); dialog.showModal()
+}
+
 const drawObjectOn = async (unit: SlideUnit, options: { entity?: string; force?: boolean } = {}) => {
   const state = slideEditor
   if (!state) return null
@@ -12482,6 +13786,7 @@ const directorAttrs = (attrs: Record<string, unknown>, result: DirectorResult, p
       kind: result.kind,
       arcRole: result.arcRole,
       requiredArea: result.requiredArea,
+      areaReason: result.areaReason,
       storyboard: result.storyboard,
       shots: result.shots,
       recordingBrief: result.recordingBrief,
@@ -12697,8 +14002,13 @@ const writeUnitText = (unit: SlideUnit, text: string) => {
   const parsed = new DOMParser().parseFromString(state.svg, 'image/svg+xml')
   const saved = (live.id && parsed.getElementById(live.id)) || Array.from(parsed.querySelectorAll('text'))[order] || null
   if (!saved) return false
-  setTextOf(live, words)
-  setTextOf(saved, words)
+  try {
+    const matrix = live.getCTM()
+    const scale = matrix ? Math.hypot(matrix.a, matrix.b) : 1
+    const fit = fitLabel(live, words, Math.max(live.getBBox().width, unit.bbox.width / Math.max(.01, scale)))
+    setTextOf(saved, words)
+    ;(saved as unknown as SVGElement).style.fontSize = `${fit.fontSize}px`
+  } catch (error) { setSlideEditorStatus(String(error), 'error'); return false }
   state.svg = new XMLSerializer().serializeToString(parsed.documentElement)
   unit.label = words.slice(0, 40)
   state.lastChange = 'Edited the words on the page'
@@ -12737,8 +14047,8 @@ const commitTextEdit = () => {
   const editing = textEditing
   if (!editing) return
   const value = textEditInput.value
+  if (!writeUnitText(editing.unit, value)) return
   closeTextEdit()
-  writeUnitText(editing.unit, value)
   renderFrameBubble()
 }
 textEditInput.addEventListener('keydown', event => {
@@ -12901,6 +14211,7 @@ const renderFrameBubble = () => {
         }, { active: cameraOn })
         if (unitHasText(unit)) quick('Edit the words', 'Change what the page says here', () => openTextEdit(unit))
         if (unit.kind === 'box' || unit.kind === 'shape' || unit.kind === 'group') {
+          if (wornKey(state, unit)) quick('Refine appearance', 'Change declared visual controls without regenerating artwork or narration', () => void refineObjectAppearance(unit))
           if (hasAppearance(state, unit)) quick('Remove the illustration', 'Back to the wireframe for this part', () => removeAppearance(unit))
           else quick('Illustrate this', 'An illustration of this thing in the video’s palette, kept in the asset library and reused wherever it appears', () => void illustrateUnit(unit), { ai: true })
           // The drawn object: a real picture of this thing, rigged into
@@ -13725,7 +15036,7 @@ if (desktopBridge?.isDesktop) {
     if (runId !== assistRunId) return
     if (event.type === 'text' && event.text) assistLog(event.text.replace(/\s+/g, ' ').slice(0, 140))
     if (event.type === 'tool') assistLog(`tool: ${event.tool}`)
-    if (event.type === 'file' && event.file) assistLog(`file: ${event.file.split('/').pop()}`)
+    if (event.type === 'file' && event.file) assistLog(progressText(event))
     if (event.type === 'gate') assistLog(`gate: ${event.gate?.stage || 'confirmation'} — answer in the dialog`, 'is-gate')
     if (event.type === 'error') assistLog(`error: ${event.error}`, 'is-error')
     if (event.type === 'done') {
@@ -13915,7 +15226,7 @@ const startAssistRun = async (state: SlideEditorState): Promise<boolean> => {
   }
   // Fresh detection on every run, then the preferred-online agent wins.
   agentAvailability = await desktopBridge.harness.adapters()
-  renderAgentSummary()
+  renderAiSettings()
   const adapter = resolveAssistAgent()
   if (!adapter) {
     setSlideEditorStatus('No coding-agent CLI found (install kimi, claude or codex)', 'error')
@@ -14209,6 +15520,15 @@ assistCancel.addEventListener('click', () => {
     syncCanvasExplainerStepper()
   }
 })
+// A scene under review folds its inherited dialogue; this unfolds it (F7).
+document.addEventListener('click', event => {
+  const toggle = (event.target as HTMLElement).closest<HTMLElement>('[data-scene-source]')
+  const block = toggle?.closest<HTMLElement>('.notebook-scene-block')
+  if (!toggle || !block?.id) return
+  event.preventDefault()
+  sceneSourceOpen = sceneSourceOpen === block.id ? '' : block.id
+  refreshSceneReview()
+})
 document.addEventListener('click', event => {
   const action = (event.target as HTMLElement).closest<HTMLElement>('[data-slide-action]')
   if (!action) return
@@ -14362,7 +15682,29 @@ window.addEventListener('beforeunload', () => {
   editor.destroy()
 })
 
+// Motion planned before F11 of the Perplexity review can still move a
+// station into the thing it makes. It is repaired once, when its notebook
+// opens — the station stays and the product emerges from it — and saved
+// like any edit; the rest of each plan is kept.
+const repairStoredMotion = () => {
+  const tr = editor.state.tr
+  let scenes = 0
+  editor.state.doc.forEach((node, offset) => {
+    const plan = sanitizeMotionPlan(node.attrs?.motion)
+    // Only a plan with a morph can need it; atomizing a page needs layout.
+    if (!plan || !node.attrs?.svg || !plan.steps.some(step => step.actions.some(action => action.op === 'morph'))) return
+    const { plan: repaired, repaired: count } = repairStationMorphs(plan, atomizeSlideSvg(String(node.attrs.svg)).units)
+    if (!count) return
+    tr.setNodeMarkup(offset, undefined, { ...node.attrs, motion: repaired })
+    scenes += 1
+  })
+  if (!scenes) return
+  editor.view.dispatch(tr)
+  showToast(`${scenes === 1 ? 'One scene' : `${scenes} scenes`} planned before a fix moved a processing step into its output; ${scenes === 1 ? 'its' : 'their'} stored motion now keeps the step in place.`)
+}
+
 queueMicrotask(() => {
+  repairStoredMotion()
   renderThemeLibrary()
   renderStudioThemeSelector()
   renderPreviewPresenterPicker()
@@ -14381,36 +15723,49 @@ queueMicrotask(() => {
 // Phase 0 of the plan. Whatever comes in, three things come out and the rest
 // of the pipeline reads only those: a brand read off the source, an outline
 // with a runtime target, and pages that carry the contract.
-type SourcePage = { title: string; kind: string; seconds: number; idea: string; narration: string; svg: string; program?: unknown; contract: { groups: number; roles: number; connectors: number; verbs: number; labels: number; declared: boolean }; drawnBy?: string; drawnContract?: number }
 const sourceState: {
   kind: 'link' | 'narrative'
   source: SourceRead | null
   // The immutable source revision captured by the read (D1).
   snapshot?: { id: string; hash: string } | null
-  // The authored narrative revision and the outline's explanation model (D2).
+  // The authored narrative revision (D2).
   narrative?: { id: string } | null
-  model?: { id: string } | null
-  // The model's objects, passed to the drawing run so pages can declare
-  // stable data-object-id identity.
-  modelData?: { objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } | null
   // How much the studio may rewrite the creator's words (D2).
   wording: 'preserve' | 'assist' | 'draft'
   // The delivery path the journey chose in Create explainer, captured when the
   // dialog opens so a notebook created for this source keeps the choice (D0).
   delivery: 'human' | 'generated' | null
+  // The brand bound before pages are drawn: a fresh direction generated from
+  // this read (default), a saved theme revision from the library, or a custom
+  // palette entered at the brand step. Pages, the drawing brief and the
+  // notebook all consume this binding — never a regenerated default.
+  brandChoice: 'direction' | 'saved' | 'custom'
+  brandThemeId: string
+  brandCustom: { background: string; text: string; primary: string; accent: string; secondary: string } | null
   brandColor: string
   logoUrl: string
   directions: StudioThemeV1[]
   direction: number
-  outline: Outline | null
-  pages: SourcePage[] | null
   busy: boolean
   // The name of a PDF or deck read through the file door, as the title.
   fileTitle?: string
-  // The agent drawing the pages through the harness, and how it went.
-  drawer?: string
-  drawOutcome?: { drawn: number; of: number; failed: string[]; receipt?: unknown } | null
-} = { kind: 'link', source: null, snapshot: null, narrative: null, model: null, wording: 'draft', delivery: null, brandColor: '', logoUrl: '', directions: [], direction: 0, outline: null, pages: null, busy: false }
+  // Which input is read (U1 of the scene workspace plan): the link, pasted
+  // text, or an uploaded file's text. Each keeps its own draft; pasted text
+  // credits the link as where it came from unless the creator says not to.
+  input: 'link' | 'text' | 'file'
+  credit: boolean
+  fileText?: string
+  fileNote?: string
+  // Where the brand comes from, shown as one choice: a saved theme, a brand
+  // read off a website, or a theme made here; and the site it was read from.
+  brandPanel: 'saved' | 'site' | 'custom'
+  brandSite?: string
+  brandReading?: boolean
+  // A thin read the creator chose to go on with anyway (F3).
+  thinAcknowledged?: boolean
+  // The name a theme saved from this read will take (F5).
+  themeName?: string
+} = { kind: 'link', source: null, snapshot: null, narrative: null, wording: 'draft', delivery: null, brandChoice: 'direction', brandThemeId: '', brandCustom: null, brandColor: '', logoUrl: '', directions: [], direction: 0, busy: false, input: 'link', credit: true, brandPanel: 'saved' }
 
 // Narratives default to preserve, links to draft: the author's own words are
 // never silently rewritten, and the choice is always visible and changeable.
@@ -14431,13 +15786,8 @@ const sourceStatus = (id: string, text: string, error = false) => {
   element.textContent = text
   element.classList.toggle('is-error', error)
 }
-const showSourceStep = (step: 'read' | 'brand' | 'outline' | 'pages') => {
-  if (step === 'pages') {
-    const row = document.getElementById('source-destination-row')
-    if (row) row.hidden = !notebookHasOwnContent()
-    void populateSourceDrawers()
-  }
-  const order = ['read', 'brand', 'outline', 'pages']
+const showSourceStep = (step: 'read' | 'brand') => {
+  const order = ['read', 'brand']
   order.forEach(name => {
     ;($(`#source-step-${name}`) as HTMLElement).hidden = name !== step
     const pill = sourceDialog.querySelector<HTMLElement>(`.source-steps [data-step="${name}"]`)
@@ -14456,7 +15806,8 @@ const openSourceDialog = (kind: 'link' | 'narrative') => {
   syncSourceWording()
   showSourceStep('read')
   ;($('#source-heading') as HTMLElement).textContent = kind === 'link' ? 'From a link' : 'From a narrative'
-  sourceStatus('#source-status', kind === 'link' ? 'The page is read for its words, its colours and its logo.' : 'Your words become the outline; pages are drawn to serve them.')
+  sourceStatus('#source-status', kind === 'link' ? 'The page is read for its words.' : 'Your words become the outline; pages are drawn to serve them.')
+  selectSourceInput(kind === 'link' ? 'link' : 'text')
   window.setTimeout(() => ($(kind === 'link' ? '#source-url' : '#source-narrative') as HTMLElement).focus(), 50)
   if (!sourceDialog.open) sourceDialog.showModal()
 }
@@ -14467,40 +15818,255 @@ const parseTarget = (value: string) => {
 }
 const formatTarget = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`
 
+// ——— What is read (U1 of the scene workspace plan; F4 of the Perplexity review) ———
+// One input at a time — a link, pasted text or a file — each keeping its
+// draft while another is shown. Pasted text credits a link that is there as
+// where it came from, and says so, unless the creator says not to.
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return ''
+  }
+}
+const SOURCE_INPUTS = ['link', 'text', 'file'] as const
+// A roving set of tabs over panels: one selected, arrow keys move between them.
+const syncTabs = (tabs: HTMLButtonElement[], selected: string, key: string, panelOf: (value: string) => HTMLElement) => {
+  for (const tab of tabs) {
+    const on = tab.dataset[key] === selected
+    tab.classList.toggle('active', on)
+    tab.setAttribute('aria-selected', String(on))
+    tab.tabIndex = on ? 0 : -1
+    panelOf(tab.dataset[key] || '').hidden = !on
+  }
+}
+const tabKeys = (tabs: HTMLButtonElement[], choose: (tab: HTMLButtonElement) => void) =>
+  tabs.forEach((tab, index) =>
+    tab.addEventListener('keydown', event => {
+      const to = event.key === 'ArrowRight' ? index + 1 : event.key === 'ArrowLeft' ? index - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null
+      if (to === null) return
+      event.preventDefault()
+      const next = tabs[(to + tabs.length) % tabs.length]
+      choose(next)
+      next.focus()
+    }),
+  )
+const sourceInputTabs = [...document.querySelectorAll<HTMLButtonElement>('#source-step-read [data-source-input]')]
+const selectSourceInput = (input: (typeof SOURCE_INPUTS)[number], focus = false) => {
+  sourceState.input = input
+  syncTabs(sourceInputTabs, input, 'sourceInput', value => $(`#source-input-${value}`) as HTMLElement)
+  renderSourceCredit()
+  if (focus) ($(input === 'link' ? '#source-url' : input === 'text' ? '#source-narrative' : '#source-file') as HTMLElement).focus()
+}
+sourceInputTabs.forEach(tab => tab.addEventListener('click', () => selectSourceInput((tab.dataset.sourceInput as (typeof SOURCE_INPUTS)[number]) || 'link')))
+tabKeys(sourceInputTabs, tab => selectSourceInput((tab.dataset.sourceInput as (typeof SOURCE_INPUTS)[number]) || 'link'))
+const sourceReadsText = () => sourceState.input !== 'link'
+// Pasted text and the link it came from: credited, and said, or not.
+const renderSourceCredit = () => {
+  const line = $('#source-credit') as HTMLElement
+  const url = ($('#source-url') as HTMLInputElement).value.trim()
+  const host = hostOf(url)
+  if (sourceState.input !== 'text' || !host) {
+    line.hidden = true
+    line.replaceChildren()
+    return
+  }
+  const text = document.createElement('span')
+  text.textContent = sourceState.credit ? `Crediting ${host} as where it came from.` : `Not crediting ${host}: the text is read as your own.`
+  const toggle = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: sourceState.credit ? 'Don\'t credit it' : `Credit ${host}` })
+  toggle.dataset.credit = sourceState.credit ? 'off' : 'on'
+  toggle.addEventListener('click', () => {
+    sourceState.credit = !sourceState.credit
+    renderSourceCredit()
+  })
+  line.hidden = false
+  line.replaceChildren(text, ' ', toggle)
+}
+// Typing into an input makes it the one read; a link typed anew is credited.
+;($('#source-url') as HTMLInputElement).addEventListener('input', event => {
+  ;($('#source-recovery') as HTMLElement).hidden = true
+  sourceState.credit = true
+  if ((event.target as HTMLInputElement).value.trim()) selectSourceInput('link')
+  else renderSourceCredit()
+})
+;($('#source-narrative') as HTMLTextAreaElement).addEventListener('input', event => {
+  if ((event.target as HTMLTextAreaElement).value.trim() && sourceState.input !== 'text') selectSourceInput('text')
+})
+// A link that could not be read, with the ways on beside it: paste its text
+// (the link stays as where it came from), try again, or change the link.
+// Nothing is fetched past the publisher's refusal.
+const showSourceRecovery = (url: string) => {
+  const box = $('#source-recovery') as HTMLElement
+  const host = hostOf(url) || 'the site'
+  const text = document.createElement('p')
+  text.textContent = `${host} did not let the studio read this page. Paste the article's text below instead — ${host} is kept as where it came from — or try again, or use another link.`
+  const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste the article instead' })
+  paste.dataset.recovery = 'paste'
+  paste.addEventListener('click', () => {
+    box.hidden = true
+    sourceState.credit = true
+    selectSourceInput('text', true)
+    const field = $('#source-narrative') as HTMLTextAreaElement
+    field.placeholder = `Paste the article from ${host} here; ${host} is kept as where it came from.`
+    sourceStatus('#source-status', `Paste the article's text, then Read it — ${host} is kept as its source`)
+  })
+  const retry = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Try again' })
+  retry.dataset.recovery = 'retry'
+  retry.addEventListener('click', () => void sourceRead())
+  const change = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Change the link' })
+  change.dataset.recovery = 'change'
+  change.addEventListener('click', () => {
+    box.hidden = true
+    const field = $('#source-url') as HTMLInputElement
+    field.focus()
+    field.select()
+  })
+  const actions = document.createElement('div')
+  actions.className = 'source-recovery-actions'
+  actions.append(paste, retry, change)
+  box.replaceChildren(text, actions)
+  box.hidden = false
+}
+
 const sourceRead = async () => {
   if (sourceState.busy) return
   const url = ($('#source-url') as HTMLInputElement).value.trim()
-  const narrative = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
-  if (!url && !narrative) {
-    sourceStatus('#source-status', 'Paste a link, or a narrative of your own', true)
+  const pasted = ($('#source-narrative') as HTMLTextAreaElement).value.trim()
+  const input = sourceState.input
+  const narrative = input === 'file' ? (sourceState.fileText || '').trim() : pasted
+  if (input === 'link' ? !url : !narrative) {
+    sourceStatus('#source-status', input === 'link' ? 'Paste a link to the article first' : input === 'file' ? 'Choose a PDF or a deck first' : 'Paste the article\'s text first', true)
     return
   }
+  const readsText = sourceReadsText()
+  // Pasted text credits the link it came from; a file is its own source.
+  const credited = input === 'text' && sourceState.credit && hostOf(url) ? url : ''
+  const brandUrl = ($('#source-brand-url') as HTMLInputElement).value.trim()
   sourceState.busy = true
+  ;($('#source-recovery') as HTMLElement).hidden = true
   const button = $('#source-read') as HTMLButtonElement
   button.disabled = true
-  sourceStatus('#source-status', url ? 'Reading the page, its stylesheets and its painted colours…' : 'Reading your narrative…')
+  sourceStatus('#source-status', readsText ? (credited ? `Reading your pasted text, crediting ${hostOf(credited)}…` : input === 'file' ? `Reading ${sourceState.fileTitle || 'the file'}…` : 'Reading your text…') : 'Reading the page…')
   try {
-    const { source, snapshot, narrative: narrativeRevision } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string }; narrative?: { id: string } | null }>('/api/source/read', {
+    const { source, snapshot, narrative: narrativeRevision, brandSite } = await fetchJson<{ source: SourceRead; snapshot: { id: string; hash: string }; narrative?: { id: string } | null; brandSite?: string | null }>('/api/source/read', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ url: url || undefined, narrative: url ? undefined : narrative, brandUrl: url ? undefined : ($('#source-brand-url') as HTMLInputElement).value.trim() || undefined, wordingPolicy: sourceState.wording, title: url ? undefined : sourceState.fileTitle || undefined, projectId: project.id }),
+      body: JSON.stringify(readsText
+        ? { narrative, attribution: credited || undefined, brandUrl: brandUrl || undefined, wordingPolicy: sourceState.wording, title: input === 'file' ? sourceState.fileTitle || undefined : undefined, projectId: project.id }
+        : { url, brandUrl: brandUrl || undefined, wordingPolicy: sourceState.wording, projectId: project.id }),
     })
+    sourceState.thinAcknowledged = false
+    sourceState.themeName = undefined
     sourceState.source = source
     sourceState.snapshot = snapshot
     sourceState.narrative = narrativeRevision || null
     sourceState.brandColor = source.palette.accent
     sourceState.logoUrl = source.logos.find(logo => logo.localUrl)?.localUrl || ''
-    sourceState.outline = null
-    sourceState.pages = null
+    // The site the brand was read from: a brand website given, else the page.
+    sourceState.brandSite = brandSite || ''
+    sourceState.brandCustom = null
+    // A new read starts the brand choice fresh (see chooseSourceBrand).
+    chooseSourceBrand()
     renderSourceBrand()
     showSourceStep('brand')
   } catch (error) {
     sourceStatus('#source-status', error instanceof Error ? error.message : 'Could not read that', true)
+    if (!readsText) showSourceRecovery(url)
   } finally {
     sourceState.busy = false
     button.disabled = false
   }
 }
+
+// ——— The brand, as one choice (U1 of the scene workspace plan) ———
+// A site with a saved theme is offered that theme; a brand read off a
+// website offers its directions; with no website the saved themes open,
+// over the built-in starting themes. The bound theme is named on the way on.
+const savedThemeForSite = (site: string) => {
+  const key = site.trim().toLowerCase().replace(/^www\./, '')
+  if (!key) return null
+  const matches = savedThemes.filter(theme => (savedThemeMeta.get(theme.id)?.site || '').trim().toLowerCase().replace(/^www\./, '') === key)
+  return matches.sort((a, b) => (savedThemeMeta.get(b.id)?.revision || 0) - (savedThemeMeta.get(a.id)?.revision || 0))[0] || null
+}
+const chooseSourceBrand = () => {
+  const association = savedThemeForSite(sourceState.brandSite || '')
+  sourceState.direction = 0
+  if (association) {
+    sourceState.brandChoice = 'saved'
+    sourceState.brandThemeId = association.id
+    sourceState.brandPanel = 'saved'
+    return
+  }
+  sourceState.brandChoice = 'direction'
+  sourceState.brandThemeId = ''
+  sourceState.brandPanel = sourceState.source?.palette.provenance === 'fallback' ? 'saved' : 'site'
+}
+const brandTabs = [...document.querySelectorAll<HTMLButtonElement>('#source-step-brand [data-brand-panel]')]
+const selectBrandPanel = (panel: 'saved' | 'site' | 'custom') => {
+  sourceState.brandPanel = panel
+  syncTabs(brandTabs, panel, 'brandPanel', value => $(`#source-brand-panel-${value}`) as HTMLElement)
+}
+brandTabs.forEach(tab => tab.addEventListener('click', () => selectBrandPanel((tab.dataset.brandPanel as 'saved' | 'site' | 'custom') || 'saved')))
+tabKeys(brandTabs, tab => selectBrandPanel((tab.dataset.brandPanel as 'saved' | 'site' | 'custom') || 'saved'))
+// Reading a brand website is its own step, with progress and a way on: its
+// colours, fonts and logo only — the article stays what was read.
+const readSourceBrandSite = async () => {
+  const source = sourceState.source
+  const field = $('#source-brand-site') as HTMLInputElement
+  const url = field.value.trim()
+  if (!source || sourceState.brandReading) return
+  if (!hostOf(url)) {
+    sourceStatus('#source-brand-read-status', 'Enter the website to read its brand from, like https://yoursite.com', true)
+    field.focus()
+    return
+  }
+  sourceState.brandReading = true
+  const button = $('#source-brand-read') as HTMLButtonElement
+  button.disabled = true
+  sourceStatus('#source-brand-read-status', `Reading ${hostOf(url)}'s colours, fonts and logo…`)
+  try {
+    const { brand } = await fetchJson<{ brand: Pick<SourceRead, 'palette' | 'logos' | 'fonts' | 'site'> }>('/api/source/brand', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url, projectId: project.id }),
+    })
+    source.palette = brand.palette
+    source.logos = brand.logos
+    if (brand.fonts.seen.length) source.fonts = brand.fonts
+    sourceState.brandSite = brand.palette.provenance === 'extracted' ? brand.site || hostOf(url) : ''
+    sourceState.brandColor = brand.palette.accent
+    sourceState.logoUrl = brand.logos.find(logo => logo.localUrl)?.localUrl || ''
+    const association = savedThemeForSite(sourceState.brandSite || '')
+    if (association) {
+      sourceState.brandChoice = 'saved'
+      sourceState.brandThemeId = association.id
+    } else {
+      sourceState.brandChoice = 'direction'
+      sourceState.direction = 0
+    }
+    sourceStatus('#source-brand-read-status', brand.palette.provenance === 'fallback'
+      ? `${hostOf(url)} showed no brand colours of its own — pick a saved theme, or create one.`
+      : association ? `Read ${hostOf(url)} — its saved theme “${association.name}” is chosen; any direction below can replace it.` : `Read ${hostOf(url)}: its colours, fonts and logo suggest the directions below.`)
+    renderSourceBrand()
+    selectBrandPanel(association ? 'saved' : 'site')
+  } catch (error) {
+    sourceStatus('#source-brand-read-status', `${error instanceof Error ? error.message : `Could not read ${hostOf(url)}`} — try again, use another website, or pick a saved theme.`, true)
+    // Default colours say the website was tried, not that none was given.
+    if (source.palette.provenance === 'fallback') {
+      source.palette = { ...source.palette, from: `${hostOf(url)} could not be read` }
+      renderSourceBrand()
+    }
+  } finally {
+    sourceState.brandReading = false
+    button.disabled = false
+  }
+}
+;($('#source-brand-read') as HTMLButtonElement).addEventListener('click', () => void readSourceBrandSite())
+;($('#source-brand-site') as HTMLInputElement).addEventListener('keydown', event => {
+  if (event.key !== 'Enter') return
+  event.preventDefault()
+  void readSourceBrandSite()
+})
 
 const renderSourceDirections = () => {
   const source = sourceState.source
@@ -14513,7 +16079,7 @@ const renderSourceDirections = () => {
     ...sourceState.directions.map((theme, index) => {
       const card = document.createElement('button')
       card.type = 'button'
-      card.className = `source-direction${index === sourceState.direction ? ' is-picked' : ''}`
+      card.className = `source-direction${sourceState.brandChoice === 'direction' && index === sourceState.direction ? ' is-picked' : ''}`
       const frame = document.createElement('div')
       frame.className = 'frame'
       frame.style.background = theme.canvas.treatment === 'gradient' ? `linear-gradient(135deg, ${theme.canvas.gradient[0]}, ${theme.canvas.gradient[1]})` : theme.brand.background
@@ -14530,11 +16096,47 @@ const renderSourceDirections = () => {
       card.append(frame, label)
       card.addEventListener('click', () => {
         sourceState.direction = index
-        renderSourceDirections()
+        sourceState.brandChoice = 'direction'
+        renderSourceBrand()
       })
       return card
     }),
   )
+}
+
+// The brand the wizard binds before pages are drawn: a saved theme revision
+// from the library, a custom palette over the picked direction, or — the
+// default — a freshly generated direction. Pages, the drawing brief and the
+// notebook all consume this binding, never a regenerated default.
+const sourceBrandTheme = (): StudioThemeV1 | null => {
+  if (sourceState.brandChoice === 'saved') {
+    const saved = savedThemes.find(theme => theme.id === sourceState.brandThemeId)
+    if (saved) return cloneTheme(normalizeStudioTheme(saved))
+  }
+  const direction = sourceState.directions[sourceState.direction] || sourceState.directions[0]
+  if (!direction) return null
+  const theme = cloneTheme(normalizeStudioTheme(direction))
+  if (sourceState.brandChoice === 'custom' && sourceState.brandCustom) {
+    theme.id = `${theme.id}-custom`
+    theme.name = `${theme.name} · custom palette`
+    theme.source = 'custom'
+    theme.brand = { ...theme.brand, ...sourceState.brandCustom }
+    // A custom canvas colour reads as itself, not under a direction gradient.
+    theme.canvas = { ...theme.canvas, treatment: 'solid' }
+  }
+  return theme
+}
+
+// The bound theme's fonts when it carries them (a theme saved from a site
+// read), else the fonts this read saw.
+const sourceBrandFonts = (source: SourceRead): SourceRead['fonts'] => {
+  const bound = sourceState.brandChoice === 'saved'
+    ? savedThemes.find(theme => theme.id === sourceState.brandThemeId)
+    : null
+  const carried = bound?.fonts
+  return carried?.display
+    ? { display: carried.display, body: carried.body, mono: carried.mono, seen: carried.seen || [] }
+    : source.fonts
 }
 
 const renderSourceBrand = () => {
@@ -14545,14 +16147,29 @@ const renderSourceBrand = () => {
     .filter(Boolean)
     .join(' · ')
   ;($('#source-read-meta') as HTMLElement).textContent = meta + (source.warnings.length ? ` · ${source.warnings[0]}` : '')
+  renderSourceExtraction()
+  // Where the colours came from (F5 of the Perplexity review): a default is
+  // never described as seen on a website.
+  const bound = sourceState.brandChoice === 'saved' ? savedThemes.find(theme => theme.id === sourceState.brandThemeId) : null
+  const provenance = sourceState.brandChoice === 'custom' ? 'manual' : bound ? bound.colours?.provenance || 'extracted' : source.palette.provenance || 'extracted'
+  const from = bound ? bound.colours?.from || bound.name : source.palette.from || source.site || 'the site'
+  ;($('#source-palette-provenance') as HTMLElement).textContent =
+    provenance === 'manual'
+      ? 'chosen by hand below'
+      : provenance === 'fallback'
+        ? bound ? `the saved theme “${bound.name}” has default colours — ${from}` : `defaults, not a brand — ${from}. Read a website's brand here, pick a saved theme, or create a theme.`
+        : bound ? `from the saved theme “${bound.name}” — colours from ${from}` : `read from ${from} — click a swatch`
   const swatches = $('#source-swatches') as HTMLElement
+  swatches.classList.toggle('is-fallback', provenance === 'fallback')
   const candidates = source.palette.candidates.length ? source.palette.candidates : [{ hex: source.palette.accent, weight: 0, role: 'accent' as const }]
   swatches.replaceChildren(
     ...candidates.slice(0, 12).map(candidate => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = `source-swatch${candidate.hex === sourceState.brandColor ? ' is-picked' : ''}`
-      button.title = candidate.role ? `${candidate.role} on the site` : 'seen on the site'
+      button.title = source.palette.provenance === 'fallback'
+        ? `default ${candidate.role || 'colour'} — not read from a website`
+        : candidate.role ? `${candidate.role} on ${from}` : `seen on ${from}`
       const chip = document.createElement('i')
       chip.style.background = candidate.hex
       const hex = document.createElement('span')
@@ -14597,6 +16214,122 @@ const renderSourceBrand = () => {
   )
   renderSourceDirections()
   renderSourceThemeAssociation()
+  renderSourceSavedThemes()
+  renderSourceCustomPalette()
+  renderSourceBrandChoice()
+}
+
+// The directions read off a website sit with it; with no website they are
+// the built-in starting themes, under the saved ones. The bound theme is
+// named beside the way on, with where its colours came from.
+const renderSourceBrandChoice = () => {
+  const source = sourceState.source
+  if (!source) return
+  const fromWebsite = source.palette.provenance !== 'fallback'
+  const directions = $('#source-directions') as HTMLElement
+  const starting = $('#source-starting') as HTMLElement
+  ;(fromWebsite ? $('#source-site-directions') : starting).append(directions)
+  starting.hidden = fromWebsite
+  ;($('#source-site-directions') as HTMLElement).hidden = !fromWebsite
+  const site = $('#source-brand-site') as HTMLInputElement
+  if (!site.value) site.value = ($('#source-brand-url') as HTMLInputElement).value.trim() || (sourceState.input === 'link' ? ($('#source-url') as HTMLInputElement).value.trim() : '')
+  selectBrandPanel(sourceState.brandPanel)
+  const theme = sourceBrandTheme()
+  const saved = sourceState.brandChoice === 'saved' ? savedThemes.find(entry => entry.id === sourceState.brandThemeId) : null
+  const meta = saved ? savedThemeMeta.get(saved.id) : null
+  const name = (saved?.name || theme?.name || 'the default theme').trim()
+  const colours = sourceState.brandChoice === 'custom'
+    ? 'your own colours'
+    : saved
+      ? `saved theme${meta ? `, rev ${meta.revision}` : ''}${saved.colours?.provenance === 'fallback' ? ', default colours' : saved.colours?.provenance === 'manual' ? ', colours chosen by hand' : saved.colours?.from ? `, colours from ${saved.colours.from}` : ''}`
+      : fromWebsite
+        ? `colours from ${source.palette.from || sourceState.brandSite || source.site || 'the website'}`
+        : 'a starting theme, default colours'
+  const bound = $('#source-brand-bound') as HTMLElement
+  bound.textContent = `Theme: ${sourceState.brandChoice === 'custom' ? `a custom palette over “${name}”` : `“${name}”`} · ${colours}`
+  bound.dataset.brandChoice = sourceState.brandChoice
+  const short = name.length > 28 ? `${name.slice(0, 27)}…` : name
+  ;($('#source-to-outline') as HTMLButtonElement).textContent = sourceState.brandChoice === 'custom' ? 'Create the project with your palette' : `Create the project with “${short}”`
+}
+
+// What was read (F3 of the Perplexity review): its size, its headings and
+// an excerpt, where it came from, and how sure the read is that it is the
+// article. A thin read — likely a page's navigation — is not outlined until
+// the creator pastes the text instead or says to go on with it.
+const renderSourceExtraction = () => {
+  const box = $('#source-extraction') as HTMLElement
+  const source = sourceState.source
+  const outline = $('#source-to-outline') as HTMLButtonElement
+  if (!source?.extraction) {
+    box.replaceChildren()
+    outline.disabled = false
+    return
+  }
+  const read = source.extraction
+  const origin = source.origin
+  const where = origin
+    ? `read from ${origin.owner}/${origin.repo} · ${origin.path} at ${origin.commit ? origin.commit.slice(0, 7) : origin.ref}`
+    : source.kind === 'narrative' ? (source.url ? `pasted, crediting ${source.site || source.url}` : 'your own words') : `read from ${source.site || hostOf(source.url)}`
+  const line = document.createElement('p')
+  line.className = 'source-extraction-line'
+  // Its tables and code, counted: they are read whole (B02 of the BoltDB review).
+  const counted = [`${read.words} words`, `${read.headings} heading${read.headings === 1 ? '' : 's'}`, read.tables ? `${read.tables} table${read.tables === 1 ? '' : 's'}` : '', read.codeBlocks ? `${read.codeBlocks} code block${read.codeBlocks === 1 ? '' : 's'}` : '']
+  line.textContent = `${counted.filter(Boolean).join(' · ')} · ${where}`
+  const details = document.createElement('details')
+  details.className = 'source-extraction-read'
+  const summary = document.createElement('summary')
+  summary.textContent = 'What was read'
+  const heads = document.createElement('ul')
+  source.headings.slice(0, 10).forEach(heading => heads.append(Object.assign(document.createElement('li'), { textContent: heading.text })))
+  const excerpt = document.createElement('blockquote')
+  excerpt.textContent = read.excerpt ? `${read.excerpt}${read.excerpt.length >= 600 ? '…' : ''}` : 'Nothing readable.'
+  // All of it, as the outline will read it: its tables and code as read.
+  const whole = document.createElement('details')
+  whole.className = 'source-extraction-text'
+  whole.append(Object.assign(document.createElement('summary'), { textContent: `The whole text read · ${source.text.length.toLocaleString('en')} characters` }), Object.assign(document.createElement('pre'), { textContent: source.text }))
+  details.append(summary, ...(source.headings.length ? [heads] : []), excerpt, ...(source.text ? [whole] : []))
+  const thin = read.confidence === 'thin' && !sourceState.thinAcknowledged
+  details.open = read.confidence === 'thin'
+  // What the read had to cut is said before anything is planned from it.
+  const cuts = (read.notes || []).length
+    ? Object.assign(document.createElement('ul'), { className: 'source-extraction-cuts' })
+    : null
+  for (const note of read.notes || []) cuts?.append(Object.assign(document.createElement('li'), { textContent: note }))
+  box.replaceChildren(line, ...(cuts ? [cuts] : []), details)
+  box.classList.toggle('is-thin', read.confidence === 'thin')
+  if (read.confidence === 'thin') {
+    const warn = document.createElement('div')
+    warn.className = 'source-extraction-thin'
+    warn.dataset.thin = sourceState.thinAcknowledged ? 'acknowledged' : 'open'
+    const text = document.createElement('p')
+    text.textContent = sourceState.thinAcknowledged ? `${read.reason} You chose to go on with it.` : read.reason
+    warn.append(text)
+    if (!sourceState.thinAcknowledged) {
+      const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste the article\'s text instead' })
+      paste.dataset.thinAction = 'paste'
+      paste.addEventListener('click', () => {
+        showSourceStep('read')
+        sourceState.credit = true
+        selectSourceInput('text', true)
+        const field = $('#source-narrative') as HTMLTextAreaElement
+        const host = hostOf(($('#source-url') as HTMLInputElement).value) || 'the link'
+        field.placeholder = `Paste the article here; ${host} is kept as where it came from.`
+      })
+      const onward = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Go on with what was read' })
+      onward.dataset.thinAction = 'continue'
+      onward.addEventListener('click', () => {
+        sourceState.thinAcknowledged = true
+        renderSourceExtraction()
+      })
+      const actions = document.createElement('div')
+      actions.className = 'source-recovery-actions'
+      actions.append(paste, onward)
+      warn.append(actions)
+    }
+    box.append(warn)
+  }
+  outline.disabled = thin
+  outline.title = thin ? 'Little was read — paste the article\'s text, or choose to go on with what was read' : ''
 }
 
 // ——— Site association (D1): a direction read off a site can be saved as a
@@ -14606,425 +16339,311 @@ const renderSourceThemeAssociation = () => {
   const box = $('#source-theme-association') as HTMLElement
   box.replaceChildren()
   const source = sourceState.source
-  const site = (source?.site || '').trim().toLowerCase()
-  if (!source || !site) {
+  if (!source) {
     box.hidden = true
     return
   }
   box.hidden = false
-  const saved = savedThemes
-    .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
-    .filter(entry => (entry.meta?.site || '').trim().toLowerCase() === site)
+  // The site the colours were read from — never an article merely credited.
+  const site = (sourceState.brandSite || '').trim().toLowerCase()
+  const saved = site
+    ? savedThemes
+        .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
+        .filter(entry => (entry.meta?.site || '').trim().toLowerCase() === site)
+    : []
   if (saved.length) {
     const note = document.createElement('span')
     note.id = 'source-theme-association-note'
     note.textContent = `Saved from this site: ${saved.map(entry => `${entry.theme.name} · rev ${entry.meta?.revision}`).join(', ')} — in the theme library.`
     box.append(note)
   }
+  // A short name, asked for where the theme is saved (F5 of the Perplexity
+  // review): a document title makes a long, truncated theme name.
+  const name = document.createElement('input')
+  name.type = 'text'
+  name.id = 'source-theme-name'
+  name.maxLength = 40
+  name.value = sourceState.themeName ?? shortThemeName(source)
+  name.addEventListener('input', () => (sourceState.themeName = name.value))
+  name.setAttribute('aria-label', 'Theme name')
+  name.placeholder = 'Theme name'
   const save = document.createElement('button')
   save.type = 'button'
   save.id = 'source-save-direction'
   save.className = 'button ghost'
-  save.textContent = 'Save this direction as a theme'
+  save.textContent = 'Save this brand as a theme'
   save.addEventListener('click', () => void saveSourceDirectionAsTheme())
-  box.append(save)
+  box.append(name, save)
 }
+
+// A theme's name is short enough to read in a list: the site, or the first
+// words of the title (F5 of the Perplexity review).
+const shortThemeName = (source: SourceRead) => {
+  const site = (source.site || '').trim().replace(/^www\./, '')
+  if (site) return site.slice(0, 32)
+  const words = (source.title || 'Brand').split(/\s+/)
+  let name = ''
+  for (const word of words) {
+    if ((name ? `${name} ${word}` : word).length > 24) break
+    name = name ? `${name} ${word}` : word
+  }
+  return (name || words[0] || 'Brand').replace(/[:,;·–—-]+$/, '').slice(0, 32)
+}
+// Where a theme's colours came from, carried on the theme itself.
+const sourceColours = (source: SourceRead) => ({
+  provenance: sourceState.brandChoice === 'custom' ? ('manual' as const) : source.palette.provenance || ('extracted' as const),
+  from: sourceState.brandChoice === 'custom' ? 'a custom palette' : source.palette.from || source.site || '',
+})
 
 const saveSourceDirectionAsTheme = async () => {
   const source = sourceState.source
-  const direction = sourceState.directions[sourceState.direction]
-  const site = (source?.site || '').trim()
-  if (!source || !direction || !site) return
-  // A stable id per site + direction: re-saving revises one theme instead of
-  // stacking duplicates (the store dedups identical content anyway).
-  const slug = site.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
-  const theme = { ...direction, id: `site-${slug}-${sourceState.direction}`, source: 'custom' as const }
+  const chosen = sourceBrandTheme()
+  if (!source || !chosen) return
+  const named = (document.getElementById('source-theme-name') as HTMLInputElement | null)?.value || shortThemeName(source)
+  // A theme is saved for the site its colours were read from, if any.
+  const site = sourceState.brandChoice === 'custom' ? '' : (sourceState.brandSite || '').trim()
+  // A stable id per site (or title) + choice: re-saving revises one theme
+  // instead of stacking duplicates (the store dedups identical content anyway).
+  const basis = (site || source.title || 'brand').toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+  const theme = sourceState.brandChoice === 'saved'
+    ? { ...chosen }
+    : {
+        ...chosen,
+        id: `site-${basis}-${sourceState.brandChoice === 'custom' ? 'custom' : sourceState.direction}`,
+        source: 'custom' as const,
+        // A theme saved from a site read carries the site's fonts, so reusing
+        // it later restores the typography with the colours.
+        ...(source.fonts?.seen?.length ? { fonts: source.fonts } : {}),
+        name: named.trim().slice(0, 40) || shortThemeName(source),
+        colours: sourceColours(source),
+      }
   const button = $('#source-save-direction') as HTMLButtonElement | null
   if (button) button.disabled = true
   try {
     const { saved } = await fetchJson<{ saved: { revision: number; hash: string; unchanged: boolean } }>('/api/themes', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ theme, site }),
+      body: JSON.stringify({ theme, ...(site ? { site } : {}) }),
     })
     await loadThemeLibrary()
     renderSourceBrand()
-    showToast(saved.unchanged ? 'This direction is already the stored theme for the site' : `Saved as a theme for ${site} (revision ${saved.revision}) — pick it any time from the theme library`)
+    showToast(saved.unchanged ? 'This brand is already the stored theme' : `Saved as a theme${site ? ` for ${site}` : ''} (revision ${saved.revision}) — pick it any time from the theme library`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Could not save the theme')
     if (button) button.disabled = false
   }
 }
 
-// The story planned by the local harness (D2): the primary journey's outline
-// comes from the installed story-master skill, never the direct model path,
-// when the desktop harness is present. The server route remains the
-// browser-only fallback.
-const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDesktop']>, source: SourceRead) => {
-  sourceState.busy = true
-  const button = $('#source-to-outline') as HTMLButtonElement
-  button.disabled = true
-  sourceStatus('#source-brand-status', 'The local harness is planning the story…')
-  let stopListening: (() => void) | undefined
-  try {
-    stopListening = bridge.harness.onEvent(({ event }) => {
-      const message = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
-      if (message) sourceStatus('#source-brand-status', message.replace(/\s+/g, ' ').slice(0, 110))
+// ——— Brand choice: reuse before drawing (issue #10) ———
+// The brand step offers three explicit choices on equal footing: a saved
+// theme revision from the library (site matches first), a direction freshly
+// generated from this read, or a custom palette. The bound choice is what
+// pages, the drawing brief and the finished notebook consume.
+const renderSourceSavedThemes = () => {
+  const box = $('#source-saved-themes') as HTMLElement
+  box.replaceChildren()
+  const site = (sourceState.brandSite || '').trim().toLowerCase()
+  const entries = savedThemes
+    .map(theme => ({ theme, meta: savedThemeMeta.get(theme.id) }))
+    .sort((a, b) => {
+      const aSite = site && (a.meta?.site || '').trim().toLowerCase() === site ? 1 : 0
+      const bSite = site && (b.meta?.site || '').trim().toLowerCase() === site ? 1 : 0
+      return bSite - aSite
     })
-    const target = parseTarget(($('#source-target') as HTMLInputElement).value)
-    const run = await bridge.harness.run({
-      adapter: 'kimi', skill: 'story-master', route: 'Plan Story', projectId: project.id,
-      inputs: {
-        source: { title: source.title, site: source.site, text: source.text, words: source.words },
-        wordingPolicy: sourceState.wording,
-        ...(target ? { targetSeconds: target } : {}),
-        model: 'kimi-code/k3', effort: 'high', autonomous: true,
-      },
+  if (!entries.length) {
+    // An empty library still has ways on: a built-in starting theme, a
+    // website's brand, or a theme made here.
+    const hint = document.createElement('p')
+    hint.className = 'source-saved-themes-empty'
+    hint.textContent = 'No saved themes yet. Start from a built-in theme below, read a website\'s brand, or create a theme — any of them can be saved for next time.'
+    const create = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: 'Create a theme' })
+    create.addEventListener('click', () => {
+      selectBrandPanel('custom')
+      ;($('#source-brand-tab-custom') as HTMLButtonElement).focus()
     })
-    const deadline = Date.now() + 20 * 60 * 1000
-    let status = 'running'
-    while (['running', 'gate'].includes(status) && Date.now() < deadline) {
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      status = (await bridge.harness.list()).find(r => r.id === run.id)?.status || 'error'
-    }
-    if (status !== 'done') throw new Error(status === 'running' ? 'The story run is still going in the background — its outline will be there when it finishes' : `The story run ended ${status}`)
-    const artefacts = await bridge.harness.artefacts(run.id)
-    const outline = (artefacts.story?.outline || null) as Outline | null
-    if (!outline?.scenes?.length) throw new Error('The story run wrote no outline')
-    // The server validates the outline and persists the explanation model.
-    const { model, outline: sanitized } = await fetchJson<{ model: { id: string; objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> }; outline: Outline }>('/api/story/model', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
+    const website = Object.assign(document.createElement('button'), { type: 'button', className: 'link-button', textContent: 'Read a website\'s brand' })
+    website.addEventListener('click', () => {
+      selectBrandPanel('site')
+      ;($('#source-brand-site') as HTMLInputElement).focus()
     })
-    sourceState.outline = sanitized
-    sourceState.pages = null
-    sourceState.model = { id: model.id }
-    sourceState.modelData = model
-    renderSourceOutline()
-    showSourceStep('outline')
-    sourceStatus('#source-brand-status', '')
-  } catch (error) {
-    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The story run failed', true)
-  } finally {
-    stopListening?.()
-    sourceState.busy = false
-    button.disabled = false
+    hint.append(' ', create, ' · ', website)
+    box.append(hint)
+    return
   }
-}
-
-const sourceOutline = async () => {
-  const source = sourceState.source
-  if (!source || sourceState.busy) return
-  const bridge = window.studioDesktop
-  if (bridge?.isDesktop) {
-    const kimi = (await bridge.harness.adapters()).find(a => a.id === 'kimi' && a.ok)
-    if (kimi) return sourceOutlineWithHarness(bridge, source)
-  }
-  sourceState.busy = true
-  const button = $('#source-to-outline') as HTMLButtonElement
-  button.disabled = true
-  sourceStatus('#source-brand-status', 'Planning the scenes, their length and what each must show…')
-  try {
-    const { outline } = await fetchJson<{ outline: Outline }>('/api/source/outline', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ source: { title: source.title, site: source.site, text: source.text, words: source.words }, wordingPolicy: sourceState.wording }),
-    })
-    sourceState.outline = outline
-    sourceState.pages = null
-    // The outline becomes the explanation model: claims, objects and
-    // relations with stable ids, stored as their own durable record (D2).
-    // The model is derived again after any manual outline edits at the
-    // pages step, so this record is the planning-time version.
-    try {
-      const { model } = await fetchJson<{ model: { id: string; objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } }>('/api/story/model', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
+  box.append(
+    ...entries.map(({ theme, meta }) => {
+      const card = document.createElement('button')
+      card.type = 'button'
+      card.dataset.themeId = theme.id
+      const picked = sourceState.brandChoice === 'saved' && sourceState.brandThemeId === theme.id
+      card.className = `source-direction source-saved-theme${picked ? ' is-picked' : ''}`
+      card.title = 'Bind this saved theme — its fonts and colours lead the pages'
+      const frame = document.createElement('div')
+      frame.className = 'frame'
+      frame.style.background = themeCanvasCss(theme)
+      frame.style.color = theme.brand.text
+      const title = document.createElement('b')
+      title.textContent = theme.name.slice(0, 40)
+      const bar = document.createElement('i')
+      bar.style.background = theme.brand.primary
+      const line = document.createElement('span')
+      line.textContent = theme.fonts?.display ? `type: ${theme.fonts.display}` : `${theme.canvas.treatment} · ${theme.video.layout}`
+      frame.append(title, bar, line)
+      const label = document.createElement('small')
+      const siteMatch = Boolean(site) && (meta?.site || '').trim().toLowerCase() === site
+      // Where its colours came from, as it was saved (F5).
+      const colours = theme.colours?.provenance === 'fallback' ? ' · default colours' : theme.colours?.provenance === 'manual' ? ' · colours chosen by hand' : theme.colours?.provenance === 'extracted' ? ` · colours from ${theme.colours.from}` : ''
+      label.textContent = `${meta ? `rev ${meta.revision}` : theme.source}${siteMatch ? ' · from this site' : ''}${colours}`
+      label.dataset.colours = theme.colours?.provenance || ''
+      card.append(frame, label)
+      card.addEventListener('click', () => {
+        sourceState.brandChoice = 'saved'
+        sourceState.brandThemeId = theme.id
+        renderSourceBrand()
       })
-      sourceState.model = { id: model.id }
-      sourceState.modelData = model
-    } catch {
-      sourceState.model = null
-      sourceState.modelData = null
-    }
-    renderSourceOutline()
-    showSourceStep('outline')
-    sourceStatus('#source-brand-status', '')
-  } catch (error) {
-    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The outliner failed', true)
-  } finally {
-    sourceState.busy = false
-    button.disabled = false
-  }
-}
-
-const readOutlineFromForm = (): Outline | null => {
-  const outline = sourceState.outline
-  if (!outline) return null
-  const rows = Array.from(($('#source-scenes') as HTMLElement).querySelectorAll<HTMLElement>('.source-scene'))
-  const scenes: OutlineScene[] = rows
-    .map(row => {
-      const index = Number(row.dataset.index)
-      const base = outline.scenes[index]
-      if (!base) return null
-      const title = (row.querySelector<HTMLInputElement>('input.title')?.value || base.title).trim() || base.title
-      const seconds = Math.max(6, Math.min(120, Number(row.querySelector<HTMLInputElement>('input.seconds')?.value) || base.seconds))
-      const kind = (row.querySelector<HTMLSelectElement>('select.kind')?.value || base.kind) as OutlineScene['kind']
-      return { ...base, title, seconds, kind }
-    })
-    .filter((scene): scene is OutlineScene => Boolean(scene))
-  const title = ($('#source-outline-title') as HTMLInputElement).value.trim() || outline.title
-  const targetSeconds = parseTarget(($('#source-target') as HTMLInputElement).value) || outline.targetSeconds
-  return { ...outline, title, targetSeconds, scenes }
-}
-
-const renderSourceOutline = () => {
-  const outline = sourceState.outline
-  if (!outline) return
-  ;($('#source-outline-title') as HTMLInputElement).value = outline.title
-  ;($('#source-target') as HTMLInputElement).value = formatTarget(outline.targetSeconds)
-  const list = $('#source-scenes') as HTMLElement
-  const sum = () => {
-    const current = readOutlineFromForm()
-    const total = current ? current.scenes.reduce((acc, scene) => acc + scene.seconds, 0) : 0
-    sourceStatus('#source-outline-sum', `${current?.scenes.length || 0} scenes · ${formatTarget(total)} planned`)
-  }
-  list.replaceChildren(
-    ...outline.scenes.map((scene, index) => {
-      const row = document.createElement('li')
-      row.className = 'source-scene'
-      row.dataset.index = String(index)
-      const n = document.createElement('span')
-      n.className = 'n'
-      n.textContent = String(index + 1)
-      const title = document.createElement('input')
-      title.className = 'title'
-      title.value = scene.title
-      const kind = document.createElement('select')
-      kind.className = 'kind'
-      ;['title', 'list', 'diagram', 'numbers', 'quote', 'close'].forEach(value => {
-        const option = document.createElement('option')
-        option.value = value
-        option.textContent = value
-        option.selected = value === scene.kind
-        kind.append(option)
-      })
-      const seconds = document.createElement('input')
-      seconds.className = 'seconds'
-      seconds.type = 'number'
-      seconds.min = '6'
-      seconds.max = '120'
-      seconds.value = String(scene.seconds)
-      seconds.title = 'seconds'
-      const remove = document.createElement('button')
-      remove.type = 'button'
-      remove.textContent = '×'
-      remove.title = 'Drop this scene'
-      remove.addEventListener('click', () => {
-        row.remove()
-        sum()
-      })
-      const idea = document.createElement('div')
-      idea.className = 'idea'
-      idea.textContent = `${scene.idea}${scene.parts.length ? ` · ${scene.parts.length} parts` : ''}${scene.relations.length ? ` · ${scene.relations.length} relations` : ''}`
-      row.append(n, title, kind, seconds, remove, idea)
-      ;[title, kind, seconds].forEach(control => control.addEventListener('input', sum))
-      return row
-    }),
-  )
-  const glossary = $('#source-glossary') as HTMLElement
-  glossary.replaceChildren(
-    ...outline.glossary.map(entry => {
-      const chip = document.createElement('span')
-      chip.textContent = entry.term
-      chip.title = entry.meaning
-      return chip
-    }),
-  )
-  sum()
-}
-
-const renderSourcePagesGrid = (pages: SourcePage[]) => {
-  const grid = $('#source-pages-grid') as HTMLElement
-  grid.replaceChildren(
-    ...pages.map((page, index) => {
-      const card = document.createElement('div')
-      card.className = 'source-page'
-      const thumb = document.createElement('div')
-      thumb.className = 'thumb'
-      thumb.innerHTML = page.svg
-      const label = document.createElement('div')
-      label.textContent = `${index + 1}. ${page.title}`
-      const meta = document.createElement('small')
-      meta.textContent = `${page.kind} · ${page.seconds} s · ${page.contract.groups} groups · ${page.contract.verbs} verbs`
-      card.append(thumb, label, meta)
-      if (page.drawnBy) {
-        const badge = document.createElement('span')
-        badge.className = 'drawn'
-        badge.textContent = `drawn by ${page.drawnBy}${typeof page.drawnContract === 'number' ? ` · ${Math.round(page.drawnContract * 100)}% declared` : ''}`
-        card.append(badge)
-      } else {
-        // The deterministic template is an explicit draft fallback, never
-        // mistaken for agent-drawn pages.
-        const badge = document.createElement('span')
-        badge.className = 'drawn'
-        badge.textContent = 'template draft'
-        badge.title = 'Drawn by the deterministic template — a starting point the drawing agent can redraw'
-        card.append(badge)
-      }
       return card
     }),
   )
 }
 
-// ——— Pages drawn by a coding agent through the harness ———
-// The template pages are instant; a detected CLI (Kimi, Claude Code, Codex)
-// can redraw them through the page-master skill: the outline, the palette
-// and the fonts go in as inputs, the harness composes pages/NN_slug.svg to
-// the page contract, and the drawn pages replace the template ones here.
-// Pages are drawn by Kimi and only by Kimi: one harness, one look across a
-// video. Other CLIs stay detected for the motion assist; they are not
-// offered here.
-const SOURCE_DRAWERS: Array<{ id: string; model: string; label: string }> = [
-  { id: 'kimi', model: 'kimi-code/k3', label: 'Kimi K3 · thinking high' },
+const SOURCE_CUSTOM_PALETTE_FIELDS: Array<{ key: keyof NonNullable<(typeof sourceState)['brandCustom']>; label: string }> = [
+  { key: 'background', label: 'Canvas' },
+  { key: 'text', label: 'Text' },
+  { key: 'primary', label: 'Primary' },
+  { key: 'accent', label: 'Accent' },
+  { key: 'secondary', label: 'Secondary' },
 ]
-let sourceDrawRunId: string | null = null
-let sourceDrawListening = false
-const sourceDrawStatus = (text: string, error = false) => sourceStatus('#source-draw-status', text, error)
-const populateSourceDrawers = async () => {
-  const row = document.getElementById('source-draw-row')
-  const select = document.getElementById('source-drawer') as HTMLSelectElement | null
-  if (!row || !select) return
-  if (!window.studioDesktop?.isDesktop) {
-    row.hidden = true
-    return
-  }
-  let adapters: Array<{ id: string; ok: boolean; version?: string }> = []
-  try {
-    adapters = await window.studioDesktop.harness.adapters()
-  } catch {
-    adapters = []
-  }
-  const online = SOURCE_DRAWERS.filter(drawer => adapters.some(adapter => adapter.id === drawer.id && adapter.ok))
-  const others = adapters.filter(adapter => adapter.ok && !SOURCE_DRAWERS.some(drawer => drawer.id === adapter.id)).length
-  const keep = select.value
-  select.replaceChildren(
-    ...[{ value: 'template', label: "the studio's template (instant)" }, ...online.map(drawer => ({ value: `${drawer.id}|${drawer.model}`, label: `${drawer.label}${drawer.model ? ` · ${drawer.model}` : ''} · through the harness` }))].map(option => {
-      const element = document.createElement('option')
-      element.value = option.value
-      element.textContent = option.label
-      return element
-    }),
-  )
-  if ([...select.options].some(option => option.value === keep)) select.value = keep
-  if (online.length) select.value = [...select.options].map(option => option.value).find(value => value.startsWith('kimi|')) || select.value
-  sourceDrawStatus(online.length ? `Kimi draws the pages${others ? ` · ${others} other ${others === 1 ? 'CLI is' : 'CLIs are'} installed and left for motion` : ''}` : 'Install the Kimi CLI to have an agent draw the pages')
-  row.hidden = false
+const seedSourceCustomPalette = () => {
+  if (sourceState.brandCustom) return
+  const base = sourceBrandTheme()
+  sourceState.brandCustom = base
+    ? { background: base.brand.background, text: base.brand.text, primary: base.brand.primary, accent: base.brand.accent, secondary: base.brand.secondary }
+    : { background: '#111827', text: '#f9fafb', primary: sourceState.brandColor || '#16a34a', accent: '#4ade80', secondary: '#15803d' }
 }
-const applyDrawnPages = async (runId: string) => {
-  const bridge = window.studioDesktop
-  const pages = sourceState.pages
-  if (!bridge?.isDesktop || !pages) return { drawn: 0, of: 0, failed: [] as string[] }
-  const result = await bridge.harness.pages(runId)
-  const drawerLabel = sourceState.drawer || 'the agent'
-  let drawn = 0
-  const failed: string[] = []
-  result.pages.forEach(entry => {
-    const match = /^(\d{2})/.exec(entry.name)
-    const index = match ? Number(match[1]) - 1 : -1
-    const page = pages[index]
-    if (!page) return
-    try {
-      const atomized = atomizeSlideSvg(entry.svg)
-      if (!atomized.units.length) throw new Error('no units')
-      const report = contractReport(atomized.units, atomized.pageRole)
-      const leaves = leafUnits(atomized.units)
-      page.svg = entry.svg
-      page.program = entry.program || undefined
-      page.drawnBy = drawerLabel
-      page.drawnContract = report.declared
-      page.contract = { groups: report.groups, roles: report.roles, connectors: report.connectors, verbs: report.verbs, labels: leaves.filter(unit => unit.kind === 'label').length, declared: report.declared >= 0.9 }
-      drawn += 1
-    } catch (error) {
-      failed.push(entry.name)
-      console.warn('drawn page rejected', entry.name, error)
-    }
+const renderSourceCustomPalette = () => {
+  const box = $('#source-custom-palette') as HTMLElement
+  box.replaceChildren()
+  const active = sourceState.brandChoice === 'custom'
+  const pick = document.createElement('button')
+  pick.type = 'button'
+  pick.id = 'source-custom-pick'
+  pick.className = `button ghost${active ? ' is-picked' : ''}`
+  pick.textContent = active ? 'Custom palette — in use' : 'Use a custom palette'
+  pick.addEventListener('click', () => {
+    seedSourceCustomPalette()
+    sourceState.brandChoice = 'custom'
+    renderSourceBrand()
   })
-  renderSourcePagesGrid(pages)
-  return { drawn, of: pages.length, failed, receipt: result.receipt }
-}
-const sourceDrawPages = async (choice?: string) => {
-  const bridge = window.studioDesktop
-  const source = sourceState.source
-  const outline = sourceState.outline
-  const pages = sourceState.pages
-  const select = document.getElementById('source-drawer') as HTMLSelectElement | null
-  const value = choice || select?.value || 'template'
-  if (!bridge?.isDesktop || !source || !outline || !pages) return null
-  if (value === 'template') {
-    sourceDrawStatus('These are the template pages — pick an agent to redraw them')
-    return null
-  }
-  if (sourceDrawRunId) {
-    sourceDrawStatus('A drawing run is already going')
-    return null
-  }
-  const [adapter, model] = value.split('|')
-  const drawer = SOURCE_DRAWERS.find(entry => entry.id === adapter)
-  sourceState.drawer = drawer ? drawer.label : adapter
-  const inputs = {
-    video: { title: outline.title, site: source.site },
-    brand: { palette: sourcePageBrand(source).palette, fonts: source.fonts, mode: sourcePageBrand(source).mode },
-    // The article's own sentences travel with the scene: whoever decides what
-    // happens on the page needs the example and the causation, not a summary.
-    scenes: outline.scenes.map((scene, index) => ({ index: index + 1, title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, narration: scene.narration, source: scene.source || [], parts: scene.parts, relations: scene.relations })),
-    // The explanation model's objects travel with the run so drawn pages can
-    // declare data-object-id — the same thing keeps one id on every page.
-    ...(sourceState.modelData?.objects?.length ? { objects: sourceState.modelData.objects, modelId: sourceState.model?.id || '' } : {}),
-    pageCount: outline.scenes.length,
-    contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
-    ...(model ? { model } : {}),
-    // K3 always thinks; a drawing run asks it to think hard.
-    effort: 'high',
-    autonomous: true,
-  }
-  if (!sourceDrawListening) {
-    sourceDrawListening = true
-    bridge.harness.onEvent(({ runId, event }) => {
-      if (runId !== sourceDrawRunId) return
-      if (event.type === 'text' && event.text) sourceDrawStatus(`${sourceState.drawer}: ${event.text.replace(/\s+/g, ' ').slice(0, 110)}`)
-      if (event.type === 'file' && event.file) sourceDrawStatus(`${sourceState.drawer} wrote ${event.file.split('/').pop()}`)
-      if (event.type === 'error') sourceDrawStatus(`${sourceState.drawer}: ${event.error}`, true)
-      if (event.type === 'done') {
-        const finished = sourceDrawRunId
-        sourceDrawRunId = null
-        ;(document.getElementById('source-draw') as HTMLButtonElement).disabled = false
-        void (async () => {
-          const outcome = await applyDrawnPages(String(finished))
-          sourceState.drawOutcome = outcome
-          const receiptPages = Array.isArray((outcome.receipt as { pages?: unknown[] } | null)?.pages) ? (outcome.receipt as { pages: unknown[] }).pages.length : 0
-          if (outcome.drawn) sourceDrawStatus(`${outcome.drawn} of ${outcome.of} pages drawn by ${sourceState.drawer}${outcome.failed.length ? ` · ${outcome.failed.length} rejected` : ''}${receiptPages ? ` · receipt: ${receiptPages} pages checked` : ''} — open the notebook to use them`)
-          else sourceDrawStatus(`${sourceState.drawer} drew nothing usable (exit ${event.exitCode ?? '?'}) — the template pages stay`, true)
-        })()
+  const grid = document.createElement('div')
+  grid.className = 'color-grid source-custom-colors'
+  const shown = sourceState.brandCustom || (() => {
+    const base = sourceBrandTheme()
+    return base ? base.brand : null
+  })()
+  SOURCE_CUSTOM_PALETTE_FIELDS.forEach(({ key, label }) => {
+    const wrap = document.createElement('label')
+    const input = document.createElement('input')
+    input.type = 'color'
+    input.dataset.customColor = key
+    input.value = /^#[0-9a-f]{6}$/i.test(shown?.[key] || '') ? shown![key] : '#111827'
+    // Live edits bind the custom palette without a re-render (a re-render
+    // would close the colour well mid-drag); the drop re-renders the step.
+    input.addEventListener('input', () => {
+      seedSourceCustomPalette()
+      sourceState.brandCustom![key] = input.value
+      if (sourceState.brandChoice !== 'custom') {
+        sourceState.brandChoice = 'custom'
+        pick.classList.add('is-picked')
+        pick.textContent = 'Custom palette — in use'
       }
     })
+    input.addEventListener('change', () => renderSourceBrand())
+    const name = document.createElement('span')
+    name.textContent = label
+    wrap.append(input, name)
+    grid.append(wrap)
+  })
+  box.append(pick, grid)
+}
+
+// ——— The import opens on its project (the four-notebook model) ———
+// Once the brand is chosen, the import is a project and the studio opens on
+// it at once: its text — the article as read — is there, and its wireframe
+// is made in the background, the story run outlining the article into
+// pages that land in the wireframe notebook (server/wireframe-build.ts).
+// Nothing waits in this dialog.
+const sourceThemeFor = (source: SourceRead) => {
+  const direction = sourceBrandTheme()
+  if (!direction) return cloneTheme(project.theme || defaultStudioTheme)
+  const theme = cloneTheme(normalizeStudioTheme(direction))
+  if (sourceState.brandChoice !== 'saved') {
+    theme.name = `${shortThemeName(source)} · ${theme.name}`.slice(0, 48)
+    theme.colours = sourceColours(source)
   }
+  if (sourceState.logoUrl) theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
+  return theme
+}
+const sourceCreateProject = async () => {
+  const source = sourceState.source
+  if (!source || sourceState.busy) return
+  sourceState.busy = true
+  const button = $('#source-to-outline') as HTMLButtonElement
+  button.disabled = true
   try {
-    ;(document.getElementById('source-draw') as HTMLButtonElement).disabled = true
-    sourceDrawStatus(`Starting ${sourceState.drawer} on ${pages.length} pages — a first round takes a few minutes…`)
-    const run = await bridge.harness.run({ adapter, skill: 'page-master', route: 'Draw Pages', projectId: project.id, inputs })
-    sourceDrawRunId = run.id
-    sourceState.drawOutcome = null
-    return run.id
+    const bridge = window.studioDesktop
+    const title = (source.title || 'Untitled project').trim()
+    const place = { container: `project-${crypto.randomUUID()}`, text: crypto.randomUUID(), wireframe: crypto.randomUUID() }
+    // The wireframe's outline: the story run on the creator's harness, else
+    // the direct model, on the server.
+    let outlining: WireframeOutliner = { via: 'api', by: 'the direct model' }
+    if (bridge?.isDesktop) {
+      const agent = await resolveCreationAgent('story')
+      sourceStatus('#source-brand-status', `Starting ${agent.label}…`)
+      const run = await bridge.harness.run({
+        adapter: agent.id, skill: 'story-master', route: 'Plan Story', projectId: place.wireframe,
+        inputs: { source: { title: source.title, site: source.site, text: source.text, words: source.words }, wordingPolicy: sourceState.wording, model: agent.model, effort: 'high', autonomous: true },
+      })
+      outlining = { via: 'harness', runId: run.id, by: agent.label, harness: agent.id, ...(agent.model ? { model: agent.model } : {}) }
+    }
+    const theme = sourceThemeFor(source)
+    const pageBrand = sourcePageBrand(source)
+    const common = {
+      title,
+      theme: structuredClone(theme),
+      brand: { ...theme.brand },
+      source: { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.snapshot ? { snapshotId: sourceState.snapshot.id } : {}), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) },
+      story: { wordingPolicy: sourceState.wording, ...(sourceState.narrative ? { narrativeId: sourceState.narrative.id } : {}) },
+      ...(sourceState.delivery ? { explainerDelivery: sourceState.delivery } : {}),
+    }
+    const text: ProjectDocumentV1 = { ...blankProjectDocument(title), ...common, id: place.text, container: { id: place.container, kind: 'text' }, notebook: textNotebookOf(source.text || '') }
+    const wireframe: ProjectDocumentV1 = {
+      ...blankProjectDocument(title),
+      ...common,
+      id: place.wireframe,
+      container: { id: place.container, kind: 'wireframe', from: place.text },
+      build: {
+        kind: 'wireframe',
+        ...outlining,
+        attempt: crypto.randomUUID(),
+        attempts: 1,
+        startedAt: new Date().toISOString(),
+        ...(sourceState.snapshot ? { sourceRevision: sourceState.snapshot.id } : {}),
+        ...(sourceState.narrative ? { narrativeRevision: sourceState.narrative.id } : {}),
+        wording: sourceState.wording,
+        brand: { palette: pageBrand.palette as Record<string, unknown>, fonts: (sourceBrandFonts(source) as Record<string, unknown> | undefined) || null, mode: pageBrand.mode, site: source.site },
+      },
+    }
+    sourceStatus('#source-brand-status', 'Opening the project…')
+    await persistProjectNow(structuredClone(text))
+    await persistProjectNow(structuredClone(wireframe))
+    // The dialog stays up until the studio has opened on the project.
+    activateNotebook(text.id, `“${title}” is a project: its text is here, and ${outlining.by} is making its wireframe — its tab says when it is ready.`)
   } catch (error) {
-    ;(document.getElementById('source-draw') as HTMLButtonElement).disabled = false
-    sourceDrawStatus(error instanceof Error ? error.message : 'Could not start the drawing run', true)
-    return null
+    sourceStatus('#source-brand-status', error instanceof Error ? error.message : 'The project could not be made', true)
+    sourceState.busy = false
+    button.disabled = false
   }
 }
-;($('#source-draw') as HTMLButtonElement).addEventListener('click', () => void sourceDrawPages())
 
 // The page palette and mode come from the chosen theme direction, not a
 // forced dark default (D1): a selected light theme stays light.
@@ -15036,7 +16655,7 @@ const isLightColor = (value: string) => {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.6
 }
 const sourcePageBrand = (source: SourceRead) => {
-  const chosen = sourceState.directions[sourceState.direction]
+  const chosen = sourceBrandTheme()
   if (!chosen) {
     return {
       palette: { ...source.palette, accent: sourceState.brandColor || source.palette.accent },
@@ -15055,46 +16674,13 @@ const sourcePageBrand = (source: SourceRead) => {
   }
 }
 
-const sourceMakePages = async () => {
-  const source = sourceState.source
-  const outline = readOutlineFromForm()
-  if (!source || !outline || sourceState.busy) return
-  if (!outline.scenes.length) {
-    sourceStatus('#source-outline-status', 'Keep at least one scene', true)
-    return
-  }
-  sourceState.busy = true
-  const button = $('#source-make-pages') as HTMLButtonElement
-  button.disabled = true
-  sourceStatus('#source-outline-status', 'Drawing the pages in your brand…')
-  try {
-    const { palette, mode } = sourcePageBrand(source)
-    const { pages } = await fetchJson<{ pages: SourcePage[] }>('/api/source/pages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ outline, palette, fonts: source.fonts, site: source.site, mode }),
-    })
-    sourceState.outline = outline
-    sourceState.pages = pages
-    renderSourcePagesGrid(pages)
-    const declared = pages.filter(page => page.contract.declared).length
-    sourceStatus('#source-pages-note', `${pages.length} pages, ${declared} fully declared. Opening the notebook adds them as scenes with their first-draft lines.`)
-    showSourceStep('pages')
-    sourceStatus('#source-outline-status', '')
-  } catch (error) {
-    sourceStatus('#source-outline-status', error instanceof Error ? error.message : 'The pages could not be drawn', true)
-  } finally {
-    sourceState.busy = false
-    button.disabled = false
-  }
-}
-
 // Fonts the pages name are loaded from Google Fonts when it has them, so
 // the studio measures and previews with the same faces the render ships.
 const linkedFontFamilies = new Set<string>()
 const pageFontFamilies = (doc: TiptapDocument) => {
   const families = new Set<string>()
-  doc.content.forEach(node => {
+  // An empty notebook has no content at all.
+  ;(doc.content || []).forEach(node => {
     const svg = typeof node.attrs?.svg === 'string' ? node.attrs.svg : ''
     for (const match of svg.matchAll(/font-family="([^"]+)"/g)) {
       const first = match[1].split(',')[0].replace(/["']/g, '').trim()
@@ -15114,6 +16700,18 @@ const ensurePageFonts = (doc: TiptapDocument) => {
     document.head.append(link)
   })
 }
+// Loaded as the notebook opens and as its pages change, so the stage draws a
+// page in the faces it names, as its PDF and its video do (R05 of the
+// project-flow rereview).
+let pageFontsFrame = 0
+editor.on('update', () => {
+  if (pageFontsFrame) return
+  pageFontsFrame = window.requestAnimationFrame(() => {
+    pageFontsFrame = 0
+    ensurePageFonts(editor.getJSON() as TiptapDocument)
+  })
+})
+ensurePageFonts(editor.getJSON() as TiptapDocument)
 // ——— Scenes arrive written to their brief ———
 // The director's judgement (how long the page deserves, what to walk) is
 // known the moment a page exists, so the writer runs then — the same
@@ -15229,149 +16827,272 @@ const writeSceneToBrief = async (nodeId: string) => {
   })
   return animateSceneLocally(nodeId)
 }
-// A few at a time; a failure leaves that scene on its outline line.
-const writeScenesToBrief = async (nodeIds: string[], onProgress: (done: number, total: number, failed: number) => void) => {
-  let done = 0
-  let failed = 0
-  let stop = false
-  const queue = [...nodeIds]
-  const worker = async () => {
-    while (queue.length && !stop) {
-      const nodeId = queue.shift()!
-      try {
-        if (!(await writeSceneToBrief(nodeId))) failed += 1
-      } catch (error) {
-        failed += 1
-        const message = error instanceof Error ? error.message : String(error)
-        // No provider: nothing else will succeed either.
-        if (/AI provider|Models/i.test(message)) stop = true
-        console.warn('scene not written to its brief', nodeId, message)
-      }
-      done += 1
-      onProgress(done, nodeIds.length, failed)
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(3, nodeIds.length) }, worker))
-  return { done, failed, stopped: stop }
-}
 const notebookHasScenes = () => (editor.getJSON() as TiptapDocument).content.some(node => node.type === 'scene' || node.type === 'slide')
-// The new-or-append destination turns on the author's own content: scenes or
-// any written block count, blank paragraphs never do, and a notebook still
-// holding only the untouched starter sample counts as empty (a fresh launch's
-// story begins in a new notebook, not appended to the sample).
-const notebookHasOwnContent = () => {
-  const content = (editor.getJSON() as TiptapDocument).content || []
-  if (!content.some(node => node.type !== 'paragraph' || (node.content || []).length)) return false
-  return !starterContentJson || JSON.stringify(content) !== starterContentJson
-}
-// A source can begin a new notebook without a reload: the current one is
-// kept, a fresh document takes the theme and the journey's delivery choice,
-// and the studio continues in it.
-const startFreshNotebook = async (title: string) => {
-  project.notebook = editor.getJSON() as TiptapDocument
-  ensureBlockConfiguration(project.notebook)
-  try {
-    await persistProjectNow(structuredClone(project))
-  } catch {
-    // the draft keeps the edits; the new notebook still begins
-    rememberDraft(project)
+// The article as a text notebook: what was read, as Markdown. A table is
+// kept whole as a fenced block — the notebook has no table of its own — and
+// a fenced block is left as it is.
+const textNotebookOf = (text: string): TiptapDocument => {
+  const lines: string[] = []
+  let table: string[] = []
+  let fenced = false
+  const flush = () => {
+    if (table.length) lines.push('```', ...table, '```')
+    table = []
   }
-  const fresh = blankProjectDocument(title)
-  if (project.theme) {
-    fresh.theme = structuredClone(project.theme)
-    fresh.brand = { ...project.theme.brand }
-  }
-  if (sourceState.delivery) fresh.explainerDelivery = sourceState.delivery
-  project = fresh
-  slideEditor = null
-  lastVideoPlan = null
-  editor.commands.setContent(fresh.notebook)
-  window.localStorage.setItem(ACTIVE_PROJECT_KEY, fresh.id)
-  window.localStorage.removeItem(STORAGE_KEY)
-  const titleInput = document.querySelector<HTMLInputElement>('#project-title')
-  if (titleInput) titleInput.value = title
-  syncProject()
-}
-const sourceFinish = async () => {
-  const source = sourceState.source
-  const outline = sourceState.outline
-  const pages = sourceState.pages
-  if (!source || !outline || !pages?.length) return
-  // The choice is offered only when the notebook holds the author's own
-  // content; a notebook with none (or only the untouched starter sample) is
-  // not a destination — the story starts a notebook of its own.
-  const hasOwnContent = notebookHasOwnContent()
-  const destination = hasOwnContent
-    ? document.querySelector<HTMLInputElement>('input[name="source-destination"]:checked')?.value || 'new'
-    : 'new'
-  const startedNew = destination === 'new'
-  if (startedNew) await startFreshNotebook(outline.title)
-  // the brand, with the logo the author picked
-  const direction = sourceState.directions[sourceState.direction] || sourceState.directions[0]
-  if (direction) {
-    const theme = cloneTheme(normalizeStudioTheme(direction))
-    theme.name = `${source.site || outline.title} · ${theme.name}`.slice(0, 60)
-    theme.logo = { url: sourceState.logoUrl, placement: 'top-right', size: 28 }
-    applyThemeToProject(theme)
-  }
-  // the pages as scenes, each with its idea for the director and its first-draft line as the script
-  // One transaction at the end of the document: inserting one at a time
-  // leaves a node selection behind, and the next insert replaces it.
-  // the card's poster is the page itself, as a data url, so a generated scene previews like an imported one
-  const bySceneTitle = new Map(outline.scenes.map(scene => [scene.title, scene]))
-  const nodes = pages.map(page => ({ type: 'scene', attrs: { title: page.title, svg: page.svg, svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page.svg)}`, program: page.program || null, directorNotes: page.idea, script: page.narration, sourcePassages: bySceneTitle.get(page.title)?.source || [], structureApproved: true } }))
-  editor.commands.insertContentAt(editor.state.doc.content.size, nodes)
-  const inserted = pages.map(page => page.title)
-  // Each new scene gets its block, then its first plan from the draft line,
-  // so the notebook opens with windows, motion and captions already there.
-  const notebookDoc = editor.getJSON() as TiptapDocument
-  ensureBlockConfiguration(notebookDoc)
-  const fresh = notebookDoc.content.filter(node => node.type === 'scene' && typeof node.attrs?.id === 'string').slice(-pages.length)
-  fresh.forEach(node => {
-    try {
-      animateSceneLocally(String(node.attrs!.id))
-    } catch (error) {
-      console.warn('first plan failed', node.attrs?.title, error)
-    }
-  })
-  project.title = outline.title
-  project.source = { kind: source.kind, url: source.url, site: source.site, title: source.title, readAt: new Date().toISOString(), ...(sourceState.snapshot ? { snapshotId: sourceState.snapshot.id } : {}), ...(sourceState.logoUrl ? { logoUrl: sourceState.logoUrl } : {}) }
-  // The story records this base was built from (D2): wording policy, the
-  // authored narrative revision and the outline's explanation model.
-  project.story = {
-    wordingPolicy: sourceState.wording,
-    ...(sourceState.narrative ? { narrativeId: sourceState.narrative.id } : {}),
-    ...(sourceState.model ? { modelId: sourceState.model.id } : {}),
-  }
-  project.outline = { title: outline.title, targetSeconds: outline.targetSeconds, scenes: outline.scenes.map(scene => ({ title: scene.title, kind: scene.kind, seconds: scene.seconds, idea: scene.idea, ...(scene.source?.length ? { source: scene.source } : {}) })), glossary: outline.glossary }
-  const titleInput = document.querySelector<HTMLInputElement>('#project-title')
-  if (titleInput) titleInput.value = project.title
-  syncProject()
-  // Every scene is written to its brief now — the budget is known, so the
-  // notebook opens on the fullest draft rather than a line to grow. Kept
-  // wording is only segmented around the author's own sentences instead.
-  const preserving = sourceState.wording === 'preserve'
-  const finishButton = $('#source-finish') as HTMLButtonElement
-  finishButton.disabled = true
-  const note = (text: string) => sourceStatus('#source-pages-note', text)
-  note(preserving ? `Timing ${fresh.length} scenes around your words…` : `Writing ${fresh.length} scenes to their briefs…`)
-  const written = await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(preserving ? `Timing scenes around your words · ${done} of ${total}` : `Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
-  finishButton.disabled = false
-  syncProject()
-  sourceDialog.close()
-  if (written.stopped) showToast('No AI provider is configured — the scenes keep their outline lines; open Models in the top bar to write them to their briefs')
-  else if (written.failed) showToast(`${written.failed} scene${written.failed === 1 ? '' : 's'} kept the outline line — open ${written.failed === 1 ? 'it' : 'them'} and press Write`)
-  if (startedNew) {
-    try {
-      await persistProjectNow(structuredClone(project))
-    } catch (error) {
-      console.warn('new notebook not persisted yet', error)
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) {
+      flush()
+      fenced = !fenced
+      lines.push(line)
+    } else if (!fenced && /^\s*\|.*\|\s*$/.test(line)) table.push(line)
+    else {
+      flush()
+      lines.push(line)
     }
   }
-  showToast(`${inserted.length} scenes from ${source.site || 'your narrative'}${startedNew ? ' in a new notebook' : ''} · ${formatTarget(outline.targetSeconds)} planned`)
+  flush()
+  const parsed = editor.markdown?.parse(lines.join('\n')) as TiptapDocument | undefined
+  return parsed?.content?.length ? parsed : { type: 'doc', content: text.trim() ? [{ type: 'paragraph', content: [{ type: 'text', text }] }] : [] }
 }
 
-// A PDF or a deck: its text is read into the narrative, then read like one.
+// ——— Pages still being designed in an open notebook (F2) ———
+// Each bound scene takes its run's finished page while it still shows the
+// page it was opened with, keeps its own change otherwise, and lets its
+// binding go once the run has ended. The binding is on the scene, so this
+// resumes whenever the notebook opens. A video notebook is pinned to its
+// base as it was, so it never takes pages.
+let pageDesignTimer: number | null = null
+let pageDesignBusy = false
+const pageDesignStatus = $('#page-design-status') as HTMLElement
+const pageDesignBindings = () => {
+  const bound: Array<{ nodeId: string; title: string; binding: PageDesignBinding; designed: boolean }> = []
+  editor.state.doc.forEach(node => {
+    if (node.type.name !== 'scene') return
+    const binding = bindingOf(node.attrs as Record<string, unknown>)
+    if (binding) bound.push({ nodeId: String(node.attrs.id || ''), title: String(node.attrs.title || ''), binding, designed: (node.attrs.pageOrigin as { kind?: string } | null)?.kind === 'designed' })
+  })
+  return bound
+}
+// The design run the notebook waits on, as it works (B05 of the BoltDB
+// review): how many pages are designed, how long it has worked, and the
+// last thing it did — not only a count of what remains.
+const pageDesignRun = { id: '', startedAt: '', last: '', lastAt: '' }
+let pageDesignTicker = 0
+let pageDesignListening = false
+const followPageDesignRun = async (runId: string) => {
+  const bridge = window.studioDesktop
+  if (!bridge?.isDesktop) return
+  if (!pageDesignListening) {
+    pageDesignListening = true
+    bridge.harness.onEvent(({ runId: from, event }) => {
+      if (from !== pageDesignRun.id || event.type === 'error') return
+      const text = progressText(event)
+      if (!text) return
+      pageDesignRun.last = text.slice(0, 90)
+      pageDesignRun.lastAt = new Date().toISOString()
+    })
+  }
+  if (pageDesignRun.id === runId && pageDesignRun.startedAt) return
+  pageDesignRun.id = runId
+  pageDesignRun.last = ''
+  pageDesignRun.lastAt = ''
+  pageDesignRun.startedAt = (await finishedRun(runId).catch(() => undefined))?.startedAt || ''
+}
+const renderPageDesignStatus = () => {
+  const bound = project.derivedFrom?.notebook ? [] : pageDesignBindings()
+  pageDesignStatus.hidden = !bound.length
+  if (!bound.length) {
+    window.clearInterval(pageDesignTicker)
+    pageDesignTicker = 0
+    return
+  }
+  const waiting = bound.filter(entry => !entry.designed).length
+  const by = bound[0].binding.by || 'the designer'
+  // The run belongs to the desktop app: a browser can only say so.
+  const desktop = Boolean(window.studioDesktop?.isDesktop)
+  ;($('#page-design-stop') as HTMLButtonElement).hidden = !desktop
+  const count = waiting || bound.length
+  if (desktop) {
+    void followPageDesignRun(bound[0].binding.runId)
+    if (!pageDesignTicker) pageDesignTicker = window.setInterval(renderPageDesignStatus, 1000)
+  }
+  const details = [
+    `${bound.length - waiting} of ${bound.length} designed`,
+    pageDesignRun.startedAt ? `working ${sinceOf(pageDesignRun.startedAt)}` : '',
+    pageDesignRun.last ? `last: ${pageDesignRun.last} (${sinceOf(pageDesignRun.lastAt)} ago)` : '',
+  ].filter(Boolean).join(' · ')
+  ;($('#page-design-text') as HTMLElement).textContent = !desktop
+    ? `${count === 1 ? 'A page is' : `${count} pages are`} being designed in the desktop app; ${count === 1 ? 'it lands on its scene' : 'they land on their scenes'} while this notebook is open there.`
+    : waiting
+      ? `${by} is still designing ${waiting} page${waiting === 1 ? '' : 's'}; each lands on its scene when it is finished. ${details}`
+      : `Every page is designed; ${by} is still checking them. ${details}`
+}
+// A bound scene is bound to its page as the notebook keeps it: planning a
+// scene rewrites its page with the parts' ids, so the binding follows that.
+const restampPageBindings = (nodeIds: string[]) => {
+  let tr = editor.state.tr
+  let changed = false
+  editor.state.doc.forEach((node, offset) => {
+    if (node.type.name !== 'scene' || !nodeIds.includes(String(node.attrs.id || ''))) return
+    const binding = bindingOf(node.attrs as Record<string, unknown>)
+    if (!binding) return
+    const placeholder = pageFingerprint(String(node.attrs.svg || ''))
+    if (placeholder === binding.placeholder) return
+    tr = tr.setNodeMarkup(offset, undefined, { ...node.attrs, pageOrigin: { ...(node.attrs.pageOrigin as Record<string, unknown>), designing: { ...binding, placeholder } } })
+    changed = true
+  })
+  if (changed) editor.view.dispatch(tr)
+  return changed
+}
+// A designed page the studio can use: it parses into parts, and its
+// contract is read. Throws with why it cannot.
+// A scene's page as its schematic, when it is one: what a designed slide
+// keeps beside it once the slide replaces it.
+const schematicOf = (attrs: Record<string, unknown>) =>
+  (attrs.pageOrigin as { kind?: string } | null | undefined)?.kind !== 'designed' && typeof attrs.svg === 'string' && attrs.svg ? { svg: attrs.svg, program: attrs.program ?? null } : null
+const writePageOrigin = (nodeId: string, attrs: (current: Record<string, unknown>) => Record<string, unknown>) => {
+  const found = topLevelNodeAt(nodeId)
+  const node = found ? editor.state.doc.nodeAt(found.at) : null
+  if (!found || !node) return false
+  editor.view.dispatch(editor.state.tr.setNodeMarkup(found.at, undefined, { ...node.attrs, ...attrs(node.attrs as Record<string, unknown>) }))
+  return true
+}
+// Pages land on their scenes in the app's worker, whichever notebook is
+// open (BoltDB review B06). While this base waits for some, the window asks
+// the worker to land what is ready now and takes what it landed — a scene
+// whose page was changed here meanwhile keeps that change — then plans
+// each landed page's motion from its words, as a landed page always was.
+type PagesLanded = { landed: string[]; kept: string[]; stayed: string[]; waiting: number; saved: boolean; conflict: boolean }
+// The notebook as the worker left it, taken into this window: the pages it
+// landed and the bindings it let go. Anything else changed since this
+// window's last save was an edit made elsewhere — not taken here, and the
+// next save says so.
+const takeLandedPages = (stored: ProjectDocumentV1 | null) => {
+  const known = stored ? acknowledgedProjects.get(stored.id) : undefined
+  if (!stored || !known || stored.id !== project.id) return false
+  const changes = landedPageChanges(known, stored)
+  if (!changes) return false
+  const knownById = new Map(known.notebook.content.map(node => [String(node.attrs?.id || ''), node]))
+  for (const [nodeId, page] of changes) {
+    const found = findSlideLikeNode(nodeId)
+    if (found && samePage(found.attrs as Record<string, unknown>, knownById.get(nodeId)?.attrs)) writePageOrigin(nodeId, () => page)
+  }
+  acknowledgedProjects.set(stored.id, structuredClone(stored))
+  return true
+}
+// A page the worker landed is planned here, from the scene's words; the
+// mark goes once it is.
+const replanLandedPages = () => {
+  const marked: string[] = []
+  editor.state.doc.forEach(node => {
+    if (node.type.name === 'scene' && (node.attrs.pageOrigin as { replan?: boolean } | null | undefined)?.replan) marked.push(String(node.attrs.id || ''))
+  })
+  for (const nodeId of marked) {
+    try {
+      animateSceneLocally(nodeId)
+    } catch (error) {
+      console.warn('re-plan after a designed page failed', nodeId, error)
+    }
+    writePageOrigin(nodeId, attrs => {
+      const { replan: _replan, ...origin } = (attrs.pageOrigin || {}) as Record<string, unknown>
+      return { pageOrigin: origin }
+    })
+  }
+  if (!marked.length) return 0
+  // Still bound while the run checks: to the page as planned.
+  restampPageBindings(marked)
+  syncProject()
+  return marked.length
+}
+// A save refused because the worker landed a page meanwhile: the landing is
+// taken and the save goes again — a few times at most (pageRebases), then
+// the refusal stands and says so.
+const rebaseOnLandedPages = async () => {
+  if (project.derivedFrom?.notebook || pageRebases >= 3) return false
+  const stored = await fetchJson<{ project?: ProjectDocumentV1 | null }>(`/api/projects/${encodeURIComponent(project.id)}`)
+    .then(body => body.project || null)
+    .catch(() => null)
+  if (!takeLandedPages(stored)) return false
+  pageRebases += 1
+  replanLandedPages()
+  syncProject()
+  return true
+}
+const landDesignedPages = async () => {
+  const bridge = window.studioDesktop
+  if (pageDesignBusy || !bridge?.isDesktop || project.derivedFrom?.notebook) return
+  pageDesignBusy = true
+  let landed: PagesLanded | null = null
+  let awaited = false
+  try {
+    awaited = pageDesignBindings().some(entry => !entry.designed)
+    const response = await fetchJson<{ landed: PagesLanded; project: ProjectDocumentV1 | null }>('/api/pages/land', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ notebook: project.id }),
+    })
+    landed = response.landed
+    takeLandedPages(response.project)
+  } catch (error) {
+    console.warn('designed pages could not be landed now', error)
+  } finally {
+    pageDesignBusy = false
+  }
+  replanLandedPages()
+  const done = pageDesignBindings().length === 0
+  const kept = landed?.kept || []
+  const stayed = landed?.stayed || []
+  const count = landed?.landed.length || 0
+  if (kept.length) showToast(`${kept.map(title => `“${title}”`).join(', ')} changed while ${kept.length === 1 ? 'its page was' : 'their pages were'} designed — ${kept.length === 1 ? 'it keeps' : 'they keep'} your change`)
+  else if (stayed.length) showToast(`${stayed.length} page${stayed.length === 1 ? '' : 's'} stayed schematic draft${stayed.length === 1 ? '' : 's'} — the design run ended before ${stayed.length === 1 ? 'it was' : 'they were'} finished`)
+  else if (done && (count || awaited)) showToast('Every page this notebook was waiting for is designed. Plan video makes a video from the designed pages; a video made earlier can adopt them scene by scene.')
+  else if (count) showToast(`${count} designed page${count === 1 ? '' : 's'} landed on ${count === 1 ? 'its scene' : 'their scenes'}`)
+  if (done && pageDesignTimer !== null) {
+    window.clearInterval(pageDesignTimer)
+    pageDesignTimer = null
+  }
+  renderPageDesignStatus()
+}
+function watchPageDesign() {
+  // Pages landed while this notebook was closed are planned now.
+  if (!project.derivedFrom?.notebook) replanLandedPages()
+  renderPageDesignStatus()
+  if (project.derivedFrom?.notebook || !window.studioDesktop?.isDesktop || !pageDesignBindings().length) return
+  if (pageDesignTimer === null) pageDesignTimer = window.setInterval(() => void landDesignedPages(), 4000)
+  void landDesignedPages()
+}
+// Stop remaining work: the run is stopped, what it finished lands, the rest
+// stay schematic drafts.
+;($('#page-design-stop') as HTMLButtonElement).addEventListener('click', async () => {
+  const button = $('#page-design-stop') as HTMLButtonElement
+  button.disabled = true
+  try {
+    const runs = [...new Set(pageDesignBindings().map(entry => entry.binding.runId))]
+    await Promise.all(runs.map(runId => window.studioDesktop?.harness.cancel(runId).catch(() => false)))
+    for (let attempt = 0; attempt < 10 && pageDesignBindings().length; attempt += 1) {
+      await landDesignedPages()
+      if (pageDesignBindings().length) await new Promise(resolve => window.setTimeout(resolve, 500))
+    }
+  } finally {
+    button.disabled = false
+  }
+})
+
+// A PDF or a deck: its text is read like pasted text, kept as its own input.
+const renderSourceFile = () => {
+  const box = $('#source-file-read') as HTMLElement
+  if (!sourceState.fileText) {
+    box.hidden = true
+    box.replaceChildren()
+    return
+  }
+  const summary = document.createElement('summary')
+  summary.textContent = sourceState.fileNote || 'The file\'s text'
+  const excerpt = document.createElement('blockquote')
+  excerpt.textContent = `${sourceState.fileText.slice(0, 600)}${sourceState.fileText.length > 600 ? '…' : ''}`
+  box.replaceChildren(summary, excerpt)
+  box.hidden = false
+}
 const sourceReadFile = async (file: File) => {
   if (sourceState.busy) return
   sourceStatus('#source-status', `Reading ${file.name}…`)
@@ -15381,10 +17102,13 @@ const sourceReadFile = async (file: File) => {
       headers: { 'content-type': file.type || 'application/octet-stream', 'x-file-name': encodeURIComponent(file.name), 'x-project-id': project.id },
       body: file,
     })
-    ;($('#source-url') as HTMLInputElement).value = ''
-    ;($('#source-narrative') as HTMLTextAreaElement).value = answer.text
+    // The file's text is its own input: the link and pasted text keep theirs.
+    sourceState.fileText = answer.text
     sourceState.fileTitle = answer.title
-    sourceStatus('#source-status', `${answer.kind === 'deck' ? `${answer.pages} slides` : answer.kind === 'pdf' ? `${answer.pages} pages` : 'The text'} read into a narrative (${Math.max(1, Math.round(answer.characters / 1000))}k characters)`)
+    sourceState.fileNote = `${file.name} — ${answer.kind === 'deck' ? `${answer.pages} slides` : answer.kind === 'pdf' ? `${answer.pages} pages` : 'its text'}, ${Math.max(1, Math.round(answer.characters / 1000))}k characters`
+    renderSourceFile()
+    selectSourceInput('file')
+    sourceStatus('#source-status', `Read ${sourceState.fileNote}`)
     await sourceRead()
   } catch (error) {
     sourceStatus('#source-status', error instanceof Error ? error.message : 'Could not read that file', true)
@@ -15401,9 +17125,7 @@ const sourceReadFile = async (file: File) => {
     void sourceRead()
   }
 })
-;($('#source-to-outline') as HTMLButtonElement).addEventListener('click', () => void sourceOutline())
-;($('#source-make-pages') as HTMLButtonElement).addEventListener('click', () => void sourceMakePages())
-;($('#source-finish') as HTMLButtonElement).addEventListener('click', () => void sourceFinish())
+;($('#source-to-outline') as HTMLButtonElement).addEventListener('click', () => void sourceCreateProject())
 ;($('#source-close') as HTMLButtonElement).addEventListener('click', () => sourceDialog.close())
 ;($('#start-from-source') as HTMLButtonElement).addEventListener('click', () => openSourceDialog('link'))
 ;($('#open-assets') as HTMLButtonElement).addEventListener('click', () => openAssetLibrary())
@@ -15429,7 +17151,7 @@ const syncCreateExplainer = () => {
   const status = $('#create-explainer-status') as HTMLElement
   status.textContent = project.explainerDelivery
     ? `This notebook's choice so far: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery]} — you can change it.`
-    : 'No delivery path chosen for this notebook yet.'
+    : 'Delivery is decided scene by scene; choose one here only to set a default for the whole notebook.'
   status.classList.remove('is-error')
   ;($('#create-explainer-use-base') as HTMLButtonElement).disabled = !notebookHasScenes()
 }
@@ -15446,18 +17168,23 @@ const recordExplainerDelivery = async (delivery: ExplainerDelivery) => {
   await persistProjectNow(structuredClone(project))
 }
 
+// A source and its base notebook need no delivery: each video scene decides
+// its own. Only building this whole notebook at once — the older path —
+// needs one delivery for all of it.
 const startCreateExplainer = async (material: 'link' | 'narrative' | 'base') => {
-  if (!createExplainerChoice) {
+  if (material === 'base' && !createExplainerChoice) {
     const status = $('#create-explainer-status') as HTMLElement
-    status.textContent = 'Choose Present it myself or Generate automatically first'
+    status.textContent = 'Building this whole notebook at once needs one delivery for it: choose Present it myself or Generate automatically. A link or your own narrative needs none — delivery is decided per scene.'
     status.classList.add('is-error')
     return
   }
-  try {
-    await recordExplainerDelivery(createExplainerChoice)
-  } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Could not save the delivery choice')
-    return
+  if (createExplainerChoice) {
+    try {
+      await recordExplainerDelivery(createExplainerChoice)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not save the delivery choice')
+      return
+    }
   }
   createExplainerDialog.close()
   if (material === 'base') void startExplainerBuild()
@@ -15529,6 +17256,7 @@ const reportStorageHealth = async () => {
     const persistence = health.persistence
     if (persistence && persistence.database === 'postgres' && persistence.objectStorage === 'minio') {
       storageWarning.hidden = true
+      syncLayoutBands()
       return
     }
     text.textContent = persistence
@@ -15539,6 +17267,7 @@ const reportStorageHealth = async () => {
     text.textContent = 'Cannot reach the local studio server — work is not being saved.'
     storageWarning.hidden = false
   }
+  syncLayoutBands()
 }
 void reportStorageHealth()
 ;($('#storage-warning-retry') as HTMLButtonElement).addEventListener('click', () => void reportStorageHealth())
@@ -15669,7 +17398,7 @@ void refreshPickupNotes()
 
 const startExplainerBuild = async () => {
   const bridge = window.studioDesktop
-  if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your local Kimi harness'); return }
+  if (!bridge?.isDesktop) { showToast('Build explainer runs in the desktop app with your selected local harness'); return }
   if (explainerRun) { showToast('The explainer is still being built'); return }
   // The delivery path is an explicit journey choice made in Create
   // explainer; a notebook that has not chosen is asked, not defaulted.
@@ -15697,12 +17426,11 @@ const startExplainerBuild = async () => {
   cancel.hidden = false
   let objectsTimer: number | undefined
   try {
-    const kimi = (await bridge.harness.adapters()).find(a => a.id === 'kimi' && a.ok)
-    if (!kimi) throw new Error('Install Kimi CLI to build an explainer with the local harness')
+    const creationAgent = await resolveCreationAgent('composition')
     project.notebook = editor.getJSON() as TiptapDocument
     await persistProjectNow(structuredClone(project))
     if (!project.derivedFrom?.notebook) {
-      const child = await createVideoFromBase(project.id, project.title, { resumeBuild: true })
+      const child = await createVideoFromBase(project.id, displayName(), { resumeBuild: true })
       if (!child) throw new Error('Could not create the video derivative')
       // The fork navigated into the child; the intent resumes the build
       // there, against the child's own id and its remapped scenes.
@@ -15711,14 +17439,14 @@ const startExplainerBuild = async () => {
     const targetId = project.id
     const scenes = await Promise.all(project.notebook.content.filter(n => (n.type === 'scene' || n.type === 'slide') && n.attrs?.svg).map(async n => ({
       id: String(n.attrs!.id), title: String(n.attrs!.title || ''), svg: String(n.attrs!.svg),
-      script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: n.attrs!.directorNotes || '',
+      script: String(n.attrs!.script || ''), source: n.attrs!.sourcePassages || [], idea: pageIdeaOf(n.attrs!, project.outline?.scenes),
       // The complete scene revision captured as the run starts: the finish
       // refuses to apply over a page whose direction moved meanwhile.
       revision: await sceneRevisionHash(n),
       // The human path carries the selected take's audio so the harness can
       // align to the actual delivery, never a synthesized substitute. A
       // kept-plan take's voice lives on its camera track, not the composite.
-      ...(project.explainerDelivery === 'human' ? { takeAudioUrl: takeAudioUrlFor(project.recordedBlocks?.[String(n.attrs!.id)]) } : {}),
+      ...(project.explainerDelivery === 'human' ? { takeAudioUrl: takeAudioUrlFor(project.recordedBlocks?.[String(n.attrs!.id)]), recordingId: project.recordedBlocks?.[String(n.attrs!.id)]?.recordingId } : {}),
     })))
     if (!scenes.length) throw new Error('Create the base wireframes before building an explainer')
     // Continue from accepted work (issue #8): when the last build for this
@@ -15747,7 +17475,7 @@ const startExplainerBuild = async () => {
     const unsubscribe = bridge.harness.onEvent(({ runId, event }) => {
       if (runId !== explainerRun?.id) return
       if (event.type === 'text' && event.text) button.title = event.text.slice(-400)
-      const message = event.text || event.error || (event.tool ? `Working: ${event.tool}` : '')
+      const message = progressText(event)
       if (message) { status.textContent = message.slice(0, 180); log.textContent = `${log.textContent}\n${message}`.slice(-12000); log.scrollTop = log.scrollHeight }
       if (event.type === 'error') showToast(event.error || 'The local harness needs attention')
       if (event.type === 'done') {
@@ -15771,15 +17499,21 @@ const startExplainerBuild = async () => {
             void bridge.harness.artefacts(runId).then(artefacts => renderExplainerReceipts(artefacts.explainer as ExplainerRunReceipts | null)).catch(() => {})
             if (project.id === targetId) void openNotebook(targetId)
             showToast('Explainer built, reviewed and exported. Its editable video notebook is ready.')
-          } else showToast('The explainer run stopped before completion. Its candidate files and review remain available.')
+          } else {
+            void finishedRun(runId).then(failed => {
+              if (failed?.failure) status.textContent = `Build stopped — ${failureTitle(failed.failure.category)}: ${failed.failure.message} (${failed.failure.recovery.join(' · ')}). Candidate artwork and review files are retained.`
+            })
+            if (project.id === targetId) void openNotebook(targetId)
+            showToast('The run stopped. Accepted scenes are reloaded; candidate files and reviews remain available.')
+          }
         }
       }
     })
     off = unsubscribe
-    const run = await bridge.harness.run({ adapter: 'kimi', skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
+    const run = await bridge.harness.run({ adapter: creationAgent.id, skill: 'explainer-master', route: 'Build Explainer', projectId: targetId,
       // The story record travels into the build: the wording policy in force
       // and the authored narrative revision the scenes' words came from (D2).
-      inputs: { projectId: targetId, video: { title: project.title }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), ...(resume ? { resume } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: 'kimi-code/k3', effort: 'high', autonomous: true } })
+      inputs: { projectId: targetId, video: { title: displayName() }, brand: project.brand, delivery: { mode: project.explainerDelivery }, ...(project.story ? { story: project.story } : {}), ...(resume ? { resume } : {}), scenes, voiceReferenceId: voiceReference.value.trim() || undefined, model: creationAgent.model, effort: 'high', autonomous: true } })
     explainerRun = { id: run.id, projectId: targetId, unsubscribe }
     ;($('#explainer-run-location') as HTMLElement).textContent = `Delivery: ${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]} · Build files: ${run.projectDir}`
     objectsTimer = window.setInterval(() => {
@@ -15788,7 +17522,7 @@ const startExplainerBuild = async () => {
     }, 5000)
     void renderExplainerObjects(bridge, run.id)
     void renderExplainerStages(run.id)
-    showToast(`Kimi is building the explainer (${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]}): story, reusable objects, performances, narration and rendered review.`)
+    showToast(`${creationAgent.label} is building the explainer (${EXPLAINER_DELIVERY_LABELS[project.explainerDelivery!]}): story, reusable objects, performances, narration and rendered review.`)
   } catch (error) {
     window.clearInterval(objectsTimer)
     off?.()
@@ -15809,6 +17543,20 @@ const startExplainerBuild = async () => {
     window.localStorage.removeItem(BUILD_INTENT_KEY)
     if (intent === project.id) void startExplainerBuild()
   }
+}
+function resumeRecordingIntent() {
+  const raw = window.localStorage.getItem('studio.recordIntent')
+  if (!raw) return
+  try {
+    const intent = JSON.parse(raw)
+    if (intent.projectId !== project.id) return
+    const scene = scenes.find(item => (item.node.attrs?.origin as { scene?: string })?.scene === intent.sourceScene)
+    if (!scene) return
+    window.localStorage.removeItem('studio.recordIntent')
+    selectNode(scene.id, true)
+    if (intent.canvas) void startCanvasRecording()
+    else openCamera()
+  } catch { window.localStorage.removeItem('studio.recordIntent') }
 }
 // Dev hook: the asset library.
 ;(window as unknown as { __assets?: unknown }).__assets = {
@@ -15869,6 +17617,7 @@ const startExplainerBuild = async () => {
     project.recordedBlockTakes ||= {}
     project.recordedBlockTakes[nodeId] = [...(project.recordedBlockTakes[nodeId] || []), take]
     selectRecordedTake(nodeId, take)
+    refreshSceneReview()
     return project.recordedBlocks?.[nodeId] || null
   },
   takeOn: (nodeId: string) => project.recordedBlocks?.[nodeId] || null,
@@ -15877,6 +17626,9 @@ const startExplainerBuild = async () => {
   // take through the durable path.
   archive: (nodeId: string, asset: { url: string; assetId?: string }, durationMs = 8000) =>
     archiveCameraTake(nodeId, asset, durationMs).then(() => project.recordedBlocks?.[nodeId] || null),
+  // A pickup of these lines, through the camera dialog's archive step.
+  archivePickup: (nodeId: string, asset: { url: string; assetId?: string }, durationMs: number, lines: string[]) =>
+    archivePickupTake(nodeId, asset, durationMs, lines).then(recording => { refreshSceneReview(); return recording }),
   // The review step without a camera: stage a stand-in blob into the same
   // review the recorder's onstop enters, as if three seconds were recorded —
   // the duration is fixed at staging, just as onstop fixes it at stop.
@@ -15916,19 +17668,14 @@ const startExplainerBuild = async () => {
   },
 }
 sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(button => {
-  button.addEventListener('click', () => showSourceStep(button.dataset.sourceBack as 'read' | 'brand' | 'outline'))
+  button.addEventListener('click', () => showSourceStep(button.dataset.sourceBack as 'read' | 'brand'))
 })
 // A dev hook so the flow can be driven end to end in a hooked instance.
 ;(window as unknown as { __source?: unknown }).__source = {
   state: () => sourceState,
   open: openSourceDialog,
   read: sourceRead,
-  outline: sourceOutline,
-  pages: sourceMakePages,
-  finish: sourceFinish,
-  drawers: populateSourceDrawers,
-  draw: (choice: string) => sourceDrawPages(choice),
-  drawStatus: () => ({ runId: sourceDrawRunId, status: document.getElementById('source-draw-status')?.textContent || '', outcome: sourceState.drawOutcome || null, drawn: (sourceState.pages || []).filter(page => page.drawnBy).length }),
+  create: sourceCreateProject,
 }
 
 // ——— Captions: the dialogue as a subtitle file, timed to the motion ———
@@ -15936,9 +17683,1646 @@ sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(b
   const link = document.getElementById('download-captions') as HTMLAnchorElement | null
   const sync = () => {
     if (!link) return
-    link.href = `/api/projects/${encodeURIComponent(project.id)}/captions.vtt`
+    link.href = publishCaptionsHref()
   }
   sync()
   ;($('#publish-dialog') as HTMLDialogElement).addEventListener('toggle', sync)
   document.addEventListener('studio:project-opened', sync)
 }
+
+// ——— Planning (M0): the explanation brief and the scenes' creative plans ———
+const planningWorkspace = createPlanningWorkspace({
+  fetchJson,
+  toast: showToast,
+  onClose: selection => handBackFromWorkspace(selection),
+  openNotebook: id => openNotebook(id),
+  current: () => ({ id: project.id, title: project.title, derivedFrom: project.derivedFrom || null }),
+  forksOf: async baseId => {
+    const { projects } = await fetchJson<{ projects: NotebookRow[] }>('/api/projects')
+    return projects.filter(row => row.derivedFrom?.notebook === baseId).map(row => ({ id: row.id, title: row.title, createdAt: row.createdAt }))
+  },
+  // The library's own fork, from the base as it is now in the editor.
+  createFork: async ({ scene }) => {
+    project.notebook = editor.getJSON() as TiptapDocument
+    await persistProjectNow(structuredClone(project))
+    const child = await createVideoFromBase(project.id, displayName(), { plan: scene ? { scene } : {} })
+    if (!child) throw new Error('The video fork could not be made. Try again, or use All notebooks → Create video.')
+  },
+  selectedScene: () => selectedNodeId || null,
+  openLibrary: () => openNotebooksPage(),
+  pageReadiness: () => pageReadinessOf((editor.getJSON() as TiptapDocument).content || []),
+  basePages: () =>
+    (project.notebook.content || [])
+      .filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id)
+      .map(node => {
+        const attrs = node.attrs as Record<string, unknown>
+        const id = String(attrs.id)
+        const outline = outlineSceneOf(project.outline?.scenes, attrs)
+        return {
+          scene: id,
+          title: String(attrs.title || outline?.title || ''),
+          ...pageObjectiveOf(attrs, project.outline?.scenes),
+          narration: String(attrs.script || ''),
+          sourcePassages: (Array.isArray(attrs.sourcePassages) ? attrs.sourcePassages : outline?.source || []).map(String),
+          presentationKind: String(outline?.kind || ''),
+          svg: String(attrs.svg || ''),
+        }
+      }),
+})
+;($('#open-planning') as HTMLButtonElement).addEventListener('click', () => void planningWorkspace.open())
+// Pages still being designed when this notebook was last open (F2), and
+// exports still running or finished since (F8).
+watchPageDesign()
+void refreshExportStatus()
+// What the notebook was opened with — a new notebook from a source says
+// what it holds — once it is open.
+try {
+  const notice = window.sessionStorage.getItem(OPENED_NOTICE_KEY)
+  if (notice) {
+    window.sessionStorage.removeItem(OPENED_NOTICE_KEY)
+    window.setTimeout(() => showToast(notice), 400)
+  }
+} catch {
+  // the notice is only a courtesy
+}
+{
+  const raw = window.localStorage.getItem(PREPARE_INTENT_KEY)
+  if (raw) {
+    window.localStorage.removeItem(PREPARE_INTENT_KEY)
+    // An intent is the fork's id (older ones) or { id, prepare, scene }.
+    let intent: { id?: string; prepare?: boolean; scene?: string } = {}
+    try {
+      intent = raw.startsWith('{') ? JSON.parse(raw) : { id: raw, prepare: true }
+    } catch {
+      intent = {}
+    }
+    if (intent.id === project.id) {
+      // The base scene the plan was asked for, as this video's scene.
+      const found = intent.scene
+        ? (project.notebook.content || []).find(node => {
+            const origin = node.attrs?.origin as { scene?: string; scenes?: string[] } | undefined
+            return (node.type === 'scene' || node.type === 'slide') && (origin?.scene === intent.scene || Boolean(origin?.scenes?.includes(intent.scene!)))
+          })
+        : undefined
+      const sceneId = String(found?.attrs?.id || '')
+      // A new video opens in Scenes — the scene asked for selected, its
+      // reference on the stage — and prepares its brief there (R06 of the
+      // project-flow rereview). The planning workspace stays a tool the
+      // creator opens, never the way in.
+      pendingVideoIntent = { sceneId, prepare: Boolean(intent.prepare) }
+    }
+  }
+}
+
+// ——— Scene review in the notebook, and the stage beside it (P2) ———
+const sceneStage = $('#scene-stage') as HTMLElement
+// What the stage shows, and why, sits under the frame so nothing covers the page.
+const sceneStageBar = $('#scene-stage-bar') as HTMLElement
+// The stage enlarged: the same composition, full screen.
+;($('#scene-stage-full') as HTMLButtonElement).addEventListener('click', () => {
+  // In the scene workspace the stage itself goes full screen — the same player.
+  if (sceneWorkspace?.active()) {
+    void sceneWorkspace.frame().requestFullscreen?.().catch(() => showToast('Full screen is not available here'))
+    return
+  }
+  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+})
+const sceneStageReference = $('#scene-stage-reference') as HTMLElement
+const sceneStageNote = $('#scene-stage-note') as HTMLElement
+const sceneStagePreview = $('#scene-stage-preview') as HTMLElement
+let sceneStageFor = ''
+// The stage shows the scene's page as a reference, the base's newer page
+// to compare (F1 of the Perplexity review), or plays the plan's preview —
+// or the scene produced from its approved plan, on its real clock (P4).
+let sceneStageMode: 'reference' | 'schematic' | 'base' | 'preview' | 'output' = 'reference'
+// What the stage shows of it: a view with nothing to show falls back to the page.
+let stageShownMode: 'reference' | 'schematic' | 'base' | 'preview' | 'output' = 'reference'
+type StagePlayer = HTMLElement & { play(): void; pause(): void; seek(time: number): void; readonly currentTime: number; readonly duration: number }
+let stagePlayer: StagePlayer | null = null
+let stagePlayerUrl = ''
+let stagePreviewMoments: Array<{ id: string; title: string; start: number; end: number }> = []
+let stagePreviewDuration = 1
+// A sketch's timing is estimated; a production keeps its real clock.
+let stageClockEstimated = true
+// Where the stage goes once a newly loaded composition is ready (an edited
+// production reloads at the moment that was nudged).
+let stageSeekOnReady: number | null = null
+// The creator's stage choices per scene, and the previews they wait for
+// (U4 of the scene workspace plan): local preferences — the preview jobs
+// themselves are durable planning records.
+const stageChoices = createStageChoices(() => {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}, () => project.id)
+// Previews that finished while the creator looked elsewhere, recorded, or
+// chose another view: said, and one click away — never forced on the stage.
+const previewNotices = new Map<string, { kind: 'offer' | 'elsewhere' | 'held'; revision: number }>()
+// Whatever follows the stage's playback — the scene workspace's transport.
+const stageListeners = new Set<() => void>()
+const notifyStage = () => stageListeners.forEach(listener => listener())
+const stageTransport = document.createElement('div')
+stageTransport.className = 'scene-stage-transport'
+const stagePlay = Object.assign(document.createElement('button'), { type: 'button', textContent: '▶', title: 'Play or pause the preview' })
+stagePlay.setAttribute('aria-label', 'Play or pause the preview')
+const stageTrack = document.createElement('div')
+stageTrack.className = 'scene-stage-track'
+const stageHead = document.createElement('span')
+stageHead.className = 'scene-stage-playhead'
+const stageClock = document.createElement('span')
+stageClock.className = 'scene-stage-clock'
+stageTransport.append(stagePlay, stageTrack, stageClock)
+sceneStagePreview.append(stageTransport)
+let stagePlaying = false
+// At the end the last frame holds and the button offers a replay.
+let stageEnded = false
+const syncStagePlay = () => {
+  const what = stageClockEstimated ? 'the preview' : 'the produced scene'
+  const label = stagePlaying ? `Pause ${what}` : stageEnded ? `Replay ${what} from the start` : `Play ${what}`
+  stagePlay.textContent = stagePlaying ? '❚❚' : stageEnded ? '↻' : '▶'
+  stagePlay.title = label
+  stagePlay.setAttribute('aria-label', label)
+  notifyStage()
+}
+stagePlay.addEventListener('click', () => {
+  if (!stagePlayer) return
+  if (stagePlaying) stagePlayer.pause()
+  else if (stageEnded) {
+    stageEnded = false
+    stagePlayer.seek(0)
+    stagePlayer.play()
+  } else stagePlayer.play()
+})
+const updateStageClock = () => {
+  const time = stagePlayer?.currentTime || 0
+  stageHead.style.left = `${Math.min(100, (time / stagePreviewDuration) * 100)}%`
+  stageClock.textContent = `${time.toFixed(1)}s / ${stagePreviewDuration}s${stageClockEstimated ? ' est.' : ''}`
+  const current = stagePreviewMoments.find(moment => time >= moment.start && time < moment.end)
+  stageTrack.querySelectorAll<HTMLElement>('[data-stage-moment]').forEach(element => element.classList.toggle('is-current', element.dataset.stageMoment === current?.id))
+  notifyStage()
+}
+// ——— The stage's players (U4 of the scene workspace plan) ———
+// A new composition loads in a second player, unseen, while the stage keeps
+// what it showed — the same scene's last composition, or its page. It takes
+// the stage once its runtime says it is ready; the one it replaces is paused
+// and removed, its listeners with it. One that does not load leaves the
+// stage as it was, says why, and can be tried again.
+type StageLoad = { player: StagePlayer; url: string; sceneId: string; adopt: () => void; timer: number }
+let stageLoading: StageLoad | null = null
+let stageLoadFailed: { url: string; message: string } | null = null
+// What the stage shows now, and whose composition its player holds.
+let stageShowing: 'reference' | 'player' = 'reference'
+let stagePlayerScene = ''
+let stageLoadingNote = ''
+const STAGE_LOAD_TIMEOUT = 25_000
+const createStagePlayer = () => {
+  const player = document.createElement('hyperframes-player') as StagePlayer
+  player.setAttribute('width', '1920')
+  player.setAttribute('height', '1080')
+  player.className = 'scene-stage-player'
+  const current = () => player === stagePlayer
+  player.addEventListener('timeupdate', () => {
+    if (!current()) return
+    updateStageClock()
+    // The player can stop a fraction of a frame short of the scene's clock
+    // and never say it ended (F07): the last frame is the end.
+    if (stagePlaying && atStageEnd(player.currentTime, player.duration || stagePreviewDuration)) finishStagePlayback(player)
+  })
+  // Once the runtime is ready the composition starts paused, at its first
+  // frame or the moment asked for, every clip in its timed state.
+  player.addEventListener('ready', () => {
+    player.pause()
+    if (stageLoading?.player === player) takeStage(player)
+    if (!current()) return
+    stagePlaying = false
+    stageEnded = false
+    player.seek(stageSeekOnReady ?? 0)
+    stageSeekOnReady = null
+    updateStageClock()
+    syncStagePlay()
+  })
+  player.addEventListener('error', event => {
+    if (stageLoading?.player === player) failStageLoad(player, (event as unknown as CustomEvent<{ message?: string }>).detail?.message || 'its runtime did not start')
+  })
+  player.addEventListener('play', () => {
+    if (!current()) {
+      player.pause()
+      return
+    }
+    stagePlaying = true
+    stageEnded = false
+    syncStagePlay()
+  })
+  player.addEventListener('pause', () => {
+    if (!current()) return
+    stagePlaying = false
+    syncStagePlay()
+    updateStageClock()
+    settlePreviewWaits()
+  })
+  player.addEventListener('ended', () => {
+    if (current()) finishStagePlayback(player)
+  })
+  return player
+}
+// A scene played to its end, however its clock and its frames meet (F07 of
+// the fix verification): paused on the last frame anything is drawn on —
+// a clip's interval is half-open, so the clock's exact end is blank — with
+// a replay from the start on offer.
+const finishStagePlayback = (player: StagePlayer) => {
+  if (stageEnded && !stagePlaying) return
+  stagePlaying = false
+  stageEnded = true
+  player.pause()
+  player.seek(lastFrameOf(player.duration || stagePreviewDuration))
+  syncStagePlay()
+  updateStageClock()
+  settlePreviewWaits()
+}
+const cancelStageLoad = () => {
+  if (!stageLoading) return
+  window.clearTimeout(stageLoading.timer)
+  stageLoading.player.remove()
+  stageLoading = null
+}
+const startStageLoad = (url: string, sceneId: string, adopt: () => void) => {
+  cancelStageLoad()
+  const player = createStagePlayer()
+  player.classList.add('is-loading')
+  const timer = window.setTimeout(() => failStageLoad(player, `it did not start within ${STAGE_LOAD_TIMEOUT / 1000} seconds`), STAGE_LOAD_TIMEOUT)
+  stageLoading = { player, url, sceneId, adopt, timer }
+  player.setAttribute('src', url)
+  sceneStagePreview.prepend(player)
+}
+const takeStage = (player: StagePlayer) => {
+  const load = stageLoading
+  if (!load || load.player !== player) return
+  window.clearTimeout(load.timer)
+  stageLoading = null
+  stageLoadFailed = null
+  const previous = stagePlayer
+  stagePlayer = player
+  stagePlayerUrl = load.url
+  stagePlayerScene = load.sceneId
+  player.classList.remove('is-loading')
+  if (previous && previous !== player) {
+    previous.pause()
+    previous.remove()
+  }
+  load.adopt()
+  renderSceneStage()
+}
+const failStageLoad = (player: StagePlayer, message: string) => {
+  const load = stageLoading
+  if (!load || load.player !== player) return
+  window.clearTimeout(load.timer)
+  stageLoadFailed = { url: load.url, message }
+  player.remove()
+  stageLoading = null
+  renderSceneStage()
+}
+// What a composition brings to the stage's clock and its track of moments.
+const adoptPlayable = (playable: { summary: { moments: Array<{ id: string; title: string; start: number; end: number }>; duration: number } }, produced: SceneProductionView | null) => {
+  stagePreviewMoments = playable.summary.moments
+  stagePreviewDuration = playable.summary.duration || 1
+  stageClockEstimated = !produced
+  syncStagePlay()
+  stageTrack.replaceChildren(
+    ...playable.summary.moments.map(moment => {
+      const segment = Object.assign(document.createElement('button'), { type: 'button', textContent: moment.title, title: `${moment.title}: ${moment.start}–${moment.end}s${produced ? '' : ' (estimated)'}` })
+      segment.dataset.stageMoment = moment.id
+      segment.className = 'scene-stage-moment'
+      segment.style.left = `${(moment.start / stagePreviewDuration) * 100}%`
+      segment.style.width = `${((moment.end - moment.start) / stagePreviewDuration) * 100}%`
+      segment.addEventListener('click', () => {
+        if (!stagePlayer) return
+        stageEnded = false
+        stagePlayer.seek(moment.start)
+        updateStageClock()
+        syncStagePlay()
+      })
+      return segment
+    }),
+    // Where each nudgeable action starts, with the creator's edits.
+    ...(produced
+      ? produced.summary.controls.map(control => {
+          const moment = produced.summary.moments.find(entry => entry.id === control.moment)
+          const value = produced.edits?.values?.[control.id] ?? control.default
+          const marker = Object.assign(document.createElement('span'), { className: 'scene-stage-marker', title: `${control.label}: ${value}s into “${moment?.title || control.moment}”` })
+          marker.dataset.stageControl = control.id
+          marker.style.left = `${(((moment?.start ?? 0) + value) / stagePreviewDuration) * 100}%`
+          return marker
+        })
+      : []),
+    stageHead,
+  )
+  updateStageClock()
+}
+// A composition that did not load can be tried again, from the stage.
+const stageRetry = Object.assign(document.createElement('button'), { type: 'button', className: 'scene-stage-retry', textContent: 'Try again', hidden: true })
+stageRetry.addEventListener('click', () => {
+  stageLoadFailed = null
+  renderSceneStage()
+})
+sceneStageNote.after(stageRetry)
+sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
+  button.addEventListener('click', () => {
+    const mode = (['preview', 'base', 'output', 'schematic'] as const).find(value => value === button.dataset.stageMode) || 'reference'
+    // The creator's own choice for this scene — even of the view already
+    // shown: a preview finishing later is offered, not put in its place.
+    if (reviewSelectedScene) {
+      stageChoices.choose(reviewSelectedScene, mode)
+      if (mode === 'preview') previewNotices.delete(reviewSelectedScene)
+      if (mode === 'output') outputNotices.delete(reviewSelectedScene)
+    }
+    if (mode === sceneStageMode) return
+    if (mode === 'reference') stagePlayer?.pause()
+    sceneStageMode = mode
+    renderSceneStage()
+    sceneWorkspace?.render()
+  }),
+)
+// What the selected moment is about, kept across redraws of the stage.
+let sceneStageTargets: { nodes: string[]; objectIds: string[] } | null = null
+// The wireframe as live SVG, so a moment can point at what it is about.
+// It is the notebook's own page; anything executable is dropped anyway.
+const referenceSvg = (markup: string) => {
+  const parsed = new DOMParser().parseFromString(markup, 'image/svg+xml').documentElement
+  if (!parsed || parsed.nodeName.toLowerCase() !== 'svg') return null
+  parsed.querySelectorAll('script, foreignObject').forEach(element => element.remove())
+  parsed.querySelectorAll('*').forEach(element => {
+    for (const attribute of [...element.attributes]) if (/^on/i.test(attribute.name)) element.removeAttribute(attribute.name)
+  })
+  // A face named bare, which CSS cannot read, is quoted: drawn live on the
+  // stage, the page is set in the faces it names, as in its PDF (R05).
+  ;[parsed, ...parsed.querySelectorAll('[font-family]')].forEach(element => {
+    const readable = element.hasAttribute('font-family') ? readableList(element.getAttribute('font-family') || '') : null
+    if (readable) element.setAttribute('font-family', readable)
+  })
+  parsed.removeAttribute('width')
+  parsed.removeAttribute('height')
+  return document.importNode(parsed, true) as unknown as SVGSVGElement
+}
+// While the stage shows, it is the only composition on the canvas: the
+// controls that work on the notebook's own composition step back, and that
+// composition pauses underneath.
+const showSceneStage = (shown: boolean) => {
+  const was = !sceneStage.hidden
+  sceneStage.hidden = !shown
+  sceneStageBar.hidden = !shown
+  playerShell.classList.toggle('has-scene-stage', shown)
+  if (!shown) stagePlayer?.pause()
+  else if (!was) (document.getElementById('player') as (HTMLElement & { pause?: () => void }) | null)?.pause?.()
+}
+const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
+  stageLoadingNote = ''
+  drawSceneStage(next)
+  if (stageLoadingNote) {
+    sceneStageNote.textContent = stageLoadingNote
+    sceneStageNote.title = ''
+  }
+  notifyStage()
+}
+const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
+  // Finalizing and exporting work on the notebook's own composition: in the
+  // notebook the stage steps aside for as long as they do. The Scenes view
+  // keeps it behind Publish: it holds no other picture (BoltDB review B09).
+  const notebookComposition = finalizeModeActive || (publishDialog.open && !sceneWorkspace?.active())
+  const stage = sceneReview?.active() && reviewSelectedScene && sceneStageAsideFor !== reviewSelectedScene && !notebookComposition ? sceneReview.stageOf(reviewSelectedScene) : null
+  const node = stage ? findSlideLikeNode(reviewSelectedScene) : null
+  if (!stage || !node) {
+    showSceneStage(false)
+    sceneStageFor = ''
+    sceneStageTargets = null
+    return
+  }
+  showSceneStage(true)
+  if (next !== undefined) sceneStageTargets = next
+  const targets = stage.moment ? sceneStageTargets : null
+  // Which view the stage offers: the scene's page always, named for what it
+  // is; the base's newer page when there is one to compare; the preview of
+  // the shown revision once there is one — never another revision's.
+  const ready = stage.preview
+  const produced = stage.production
+  const reference = stage.scene.reference || null
+  const newer = reference?.newer && !reference.newer.designing && reference.newer.svg ? reference.newer : null
+  // A designed slide keeps the schematic it was designed from: both are the
+  // page's references, the slide first.
+  const schematicSvg = (node.attrs.pageOrigin as { kind?: string } | null | undefined)?.kind === 'designed' ? String((node.attrs.schematic as { svg?: string } | null | undefined)?.svg || '') : ''
+  // What the stage can show of what is asked: a view with nothing to show
+  // falls back to the page. In the scene workspace the creator's choice is
+  // kept for when the revision on show has it again (U4); the notebook's
+  // stage takes the page.
+  let shownMode = sceneStageMode
+  if (shownMode === 'schematic' && !schematicSvg) shownMode = 'reference'
+  if (shownMode === 'preview' && !ready) shownMode = 'reference'
+  if (shownMode === 'output' && !produced) shownMode = 'reference'
+  if (shownMode === 'base' && !newer) shownMode = 'reference'
+  if (!sceneWorkspace?.active()) sceneStageMode = shownMode
+  // The workspace's one action follows what the stage shows: reviewing the
+  // output becomes accepting it once the produced scene is on the stage.
+  if (stageShownMode !== shownMode) queueMicrotask(() => sceneWorkspace?.render())
+  stageShownMode = shownMode
+  const pageLabel = reference?.kind === 'schematic' ? 'Schematic' : reference?.kind === 'designed' ? 'Designed slide' : 'Page reference'
+  sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
+    const mode = button.dataset.stageMode
+    button.disabled = mode === 'preview' ? !ready : mode === 'output' ? !produced : false
+    if (mode === 'reference') {
+      button.textContent = pageLabel
+      button.title = reference ? `The page this scene is planned from: revision ${reference.revision.slice(0, 8)}${reference.adopted ? ', adopted from the base' : ''}` : 'The page this scene comes from'
+    }
+    if (mode === 'base') {
+      button.hidden = !newer
+      button.textContent = newer?.kind === 'designed' ? 'Base\'s designed slide' : 'Base\'s newer page'
+      button.title = newer ? `The base's page for this scene now: revision ${newer.revision.slice(0, 8)}${newer.by ? `, by ${newer.by}` : ''}` : ''
+    }
+    if (mode === 'preview') button.title = ready ? `Rough sketch of plan r${ready.of.revision}` : stage.record ? `No preview of r${stage.record.revision} yet` : 'No plan yet'
+    if (mode === 'schematic') {
+      button.hidden = !schematicSvg
+      button.title = schematicSvg ? 'The schematic this scene\'s designed slide was made from: its structure' : ''
+    }
+    if (mode === 'output') button.title = produced ? `The scene produced from approved plan r${produced.of.revision}, on its real clock` : stage.scene.view.reviewed ? 'Not produced yet: produce the scene from its approved plan in its review' : 'A scene is produced from its approved plan'
+    button.classList.toggle('is-active', mode === shownMode)
+    button.setAttribute('aria-pressed', String(mode === shownMode))
+  })
+  const previewing = shownMode === 'preview' && ready
+  const outputting = shownMode === 'output' && produced
+  const playable = outputting ? produced : previewing ? ready : null
+  // A production plays with the creator's edits: a new edit is a new load.
+  const playableUrl = outputting && produced ? `${produced.url}?e=${produced.edits?.revision ?? 0}` : playable?.url || ''
+  const loaded = Boolean(playable && stagePlayer && stagePlayerUrl === playableUrl)
+  if (playable && !loaded && stageLoadFailed?.url !== playableUrl && stageLoading?.url !== playableUrl) {
+    const producedView = outputting && produced ? produced : null
+    startStageLoad(playableUrl, reviewSelectedScene, () => adoptPlayable(playable, producedView))
+  }
+  // Until it is ready the stage keeps what it showed: the same scene's last
+  // composition, else its page; the loading player renders unseen above it.
+  const keepPlayer = Boolean(playable && !loaded && stageShowing === 'player' && stagePlayerScene === reviewSelectedScene && stagePlayer)
+  const showPlayer = loaded || keepPlayer
+  sceneStage.classList.toggle('is-preview', showPlayer)
+  sceneStageBar.classList.toggle('is-preview', Boolean(playable))
+  sceneStageReference.hidden = showPlayer
+  sceneStagePreview.hidden = !(showPlayer || stageLoading)
+  sceneStagePreview.classList.toggle('is-only-loading', !showPlayer)
+  stageShowing = showPlayer ? 'player' : 'reference'
+  const failed = Boolean(playable && stageLoadFailed?.url === playableUrl)
+  stageRetry.hidden = !failed
+  if (playable && !loaded) {
+    const what = outputting ? 'the produced scene' : `the preview of r${ready!.of.revision}`
+    stageLoadingNote = failed
+      ? `${what[0].toUpperCase()}${what.slice(1)} did not load: ${stageLoadFailed!.message}. The stage keeps what it showed.`
+      : `Loading ${what}… the stage shows ${keepPlayer ? 'the last composition' : 'the page'} until it is ready.`
+    if (keepPlayer) return
+  }
+  if (playable && loaded) {
+    if (outputting && produced) {
+      // A production says what it plays on, and what it could not meet.
+      const clock = produced.summary.clock === 'generated-voice' ? 'a generated voice' : produced.summary.clock === 'take' ? (produced.voice || 'Your take').replace(/^Your/, 'your') : 'silence, by choice'
+      const unmet = produced.summary.unmet.length
+      const edit = produced.edits?.revision ? ` · edit ${produced.edits.revision}${produced.accepted && produced.accepted.edits !== produced.edits.revision ? ', not in the output yet' : ''}` : ''
+      sceneStageNote.textContent = `Produced from plan r${produced.of.revision}, on ${clock}${produced.accepted ? ' · accepted' : ' · not accepted yet'}${produced.current ? '' : ' — out of date'}${unmet ? ` · ${unmet} unmet` : ''}${edit}`
+      sceneStageNote.title = [produced.current ? '' : `Out of date: ${produced.staleBecause || 'its plan changed'}`, ...produced.summary.unmet].filter(Boolean).join('\n')
+      return
+    }
+    if (!ready) return
+    // One line on the stage; the full list is in the review and the title.
+    const shows = [
+      ready.summary.provisional.some(item => /tim/i.test(item)) ? 'timing estimated' : '',
+      ready.summary.layers.some(layer => layer.kind === 'presenter' && layer.placeholder) ? 'presenter stand-in' : '',
+      ready.summary.layers.some(layer => layer.kind !== 'presenter' && layer.placeholder) ? 'placeholder artwork' : '',
+    ].filter(Boolean)
+    sceneStageNote.textContent = `Rough sketch of plan r${ready.of.revision}${ready.current ? '' : ' — out of date'}${shows.length ? ` · ${shows.join(' · ')}` : ''}`
+    sceneStageNote.title = [ready.current ? '' : `Out of date: ${ready.staleBecause || 'its plan changed'}`, ...ready.summary.provisional].filter(Boolean).join('\n')
+    return
+  }
+  stagePlayer?.pause()
+  // The page shown: the scene's own, its schematic, or the base's newer one to compare.
+  const comparing = shownMode === 'base' && newer
+  const structure = shownMode === 'schematic' && schematicSvg
+  const markup = comparing ? newer.svg : structure ? schematicSvg : String(node.attrs.svg || '')
+  const shownKey = `${comparing ? 'base' : structure ? 'schematic' : 'scene'}:${reviewSelectedScene}:${comparing ? newer.revision : pageFingerprint(markup)}`
+  if (sceneStageFor !== shownKey) {
+    sceneStageFor = shownKey
+    const svg = referenceSvg(markup)
+    sceneStageReference.replaceChildren(...(svg ? [svg] : []))
+    if (!svg) sceneStageReference.append(Object.assign(document.createElement('p'), { textContent: 'This scene has no wireframe.' }))
+  }
+  const svg = sceneStageReference.querySelector('svg')
+  svg?.querySelectorAll('.stage-hit').forEach(element => element.classList.remove('stage-hit'))
+  svg?.classList.toggle('has-hits', false)
+  if (comparing) {
+    sceneStageNote.title = ''
+    sceneStageNote.textContent = `The base's ${newer.kind === 'designed' ? 'designed slide' : 'page'} for this scene${newer.by ? `, by ${newer.by}` : ''} — newer than the ${reference?.kind === 'schematic' ? 'schematic' : 'page'} this video is planned from. The review offers to use it.`
+    return
+  }
+  if (structure && !targets) {
+    sceneStageNote.title = ''
+    sceneStageNote.textContent = 'The schematic this scene\'s designed slide was made from — its structure. The video is planned from the designed slide.'
+    return
+  }
+  if (!targets) {
+    sceneStageNote.title = ''
+    sceneStageNote.textContent = `The ${pageLabel === 'Page reference' ? 'page' : pageLabel.toLowerCase()} this scene is planned from${reference?.adopted ? ', adopted from the base' : ''} — a reference for what the video explains, not a preview of its motion.`
+    return
+  }
+  const hits = [
+    ...targets.nodes.map(id => svg?.querySelector(`[id="${CSS.escape(id)}"]`)),
+    ...targets.objectIds.map(id => svg?.querySelector(`[data-object-id="${CSS.escape(id)}"]`)),
+  ].filter((element): element is Element => Boolean(element))
+  hits.forEach(element => element.classList.add('stage-hit'))
+  svg?.classList.toggle('has-hits', hits.length > 0)
+  sceneStageNote.title = ''
+  sceneStageNote.textContent = hits.length
+    ? `Highlighted: what this moment is about, where the page draws it (${hits.length} ${hits.length === 1 ? 'thing' : 'things'}). The video may restage it.`
+    : 'This moment names nothing the page draws — there is no mapping to show on the reference.'
+}
+// Recording and rehearsal work on the notebook's composition: the stage
+// steps aside while the camera dialog is open.
+const recordScene = (sceneId: string, pickupLines?: string[]) => {
+  pickupFor = pickupLines?.length ? { sceneId, lines: pickupLines } : null
+  selectNode(sceneId, false)
+  // The notebook steps its stage aside for the camera; the workspace keeps
+  // the scene on its stage while you record beside it.
+  if (!sceneWorkspace?.active()) sceneStageAsideFor = sceneId
+  renderSceneStage()
+  openCamera()
+}
+// The stage plays the scene's production (P4), from `at` when given.
+const showProducedScene = (sceneId: string, at?: number) => {
+  if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
+  sceneStageAsideFor = ''
+  stageChoices.choose(sceneId, 'output')
+  sceneStageMode = 'output'
+  const loaded = stagePlayerUrl
+  stageSeekOnReady = at ?? null
+  renderSceneStage()
+  // The same composition, already loaded: go there now.
+  if (at !== undefined && stagePlayer && stagePlayerUrl === loaded) {
+    stageSeekOnReady = null
+    stageEnded = false
+    stagePlayer.seek(at)
+    updateStageClock()
+    syncStagePlay()
+  }
+}
+// The stage plays the scene's preview of the revision on show, paused at
+// the chosen moment, else at its start — never with sound on its own.
+const playPreview = (sceneId: string) => {
+  sceneStageAsideFor = ''
+  stageChoices.choose(sceneId, 'preview')
+  previewNotices.delete(sceneId)
+  const stage = sceneReview?.stageOf(sceneId)
+  const at = stage?.preview?.summary.moments.find(moment => moment.id === stage.moment)?.start
+  sceneStageMode = 'preview'
+  stageSeekOnReady = at ?? null
+  renderSceneStage()
+  // Already loaded: it goes to the moment now.
+  if (stagePlayer && stage?.preview && stagePlayerUrl === stage.preview.url && !stageLoading) {
+    stageSeekOnReady = null
+    if (at !== undefined) {
+      stageEnded = false
+      stagePlayer.seek(at)
+      updateStageClock()
+      syncStagePlay()
+    }
+  }
+  sceneWorkspace?.render()
+}
+// What became of a preview job the creator is waiting for.
+const previewJobOf = (wait: PreviewWait): PreviewJob => {
+  const record = sceneReview?.recordOf(wait.previewJobId)
+  // Not listed yet: the planning records have not caught up with the request.
+  if (!record || isActiveStatus(record.status)) return { status: 'building' }
+  if (record.status === 'failed') return { status: 'failed' }
+  const ready = sceneReview?.stageOf(wait.sceneId)?.scene.preview?.byTreatment?.[wait.planRecordId]
+  return ready?.id === wait.previewJobId ? { status: 'ready', current: ready.current } : { status: 'gone' }
+}
+// Each preview the creator waits for, settled against where the creator is
+// now (the completion policy of the scene workspace plan, §6).
+const settlePreviewWaits = () => {
+  if (!sceneReview?.active()) return
+  let changed = false
+  for (const wait of stageChoices.waits()) {
+    const shown = reviewSelectedScene === wait.sceneId ? sceneReview.stageOf(wait.sceneId)?.record?.id || '' : ''
+    const decision = handOffFor(wait, previewJobOf(wait), {
+      projectId: project.id,
+      selectedScene: reviewSelectedScene,
+      shownPlanRecord: shown,
+      generation: stageChoices.generation(wait.sceneId),
+      busy: Boolean(sceneStageAsideFor) || cameraDialog.open || stagePlaying,
+    })
+    if (decision === 'wait') continue
+    changed = true
+    if (decision === 'elsewhere') {
+      previewNotices.set(wait.sceneId, { kind: 'elsewhere', revision: wait.revision })
+      continue
+    }
+    if (decision === 'hold') {
+      stageChoices.update(wait.sceneId, { interrupted: true })
+      previewNotices.set(wait.sceneId, { kind: 'held', revision: wait.revision })
+      continue
+    }
+    stageChoices.clear(wait.sceneId)
+    if (decision === 'drop') {
+      previewNotices.delete(wait.sceneId)
+      continue
+    }
+    if (decision === 'offer') {
+      previewNotices.set(wait.sceneId, { kind: 'offer', revision: wait.revision })
+      sceneWorkspace?.announce(`The preview of r${wait.revision} is ready. It waits under the stage.`)
+      continue
+    }
+    playPreview(wait.sceneId)
+    sceneWorkspace?.announce(`Preview r${wait.revision} ready`)
+  }
+  if (changed) sceneWorkspace?.render()
+  settleOutputs()
+}
+// A production that finishes for the scene on show (R06 of the project-flow
+// rereview): the stage takes it, unless the creator chose another view for
+// the scene or is busy with the stage — then it is offered, one click away.
+// A production already there when the scene was opened is not new.
+const outputsSeen = new Map<string, string>()
+const outputNotices = new Set<string>()
+const settleOutputs = () => {
+  const sceneId = reviewSelectedScene
+  if (!sceneReview?.active() || !sceneId) return
+  const now = sceneReview.stageOf(sceneId)?.scene.production?.ready?.id || ''
+  const was = outputsSeen.get(sceneId)
+  outputsSeen.set(sceneId, now)
+  if (was === undefined || !now || was === now || sceneStageMode === 'output') return
+  const chosen = stageChoices.chosen(sceneId)
+  if ((chosen && chosen !== 'output') || sceneStageAsideFor || cameraDialog.open || stagePlaying) {
+    outputNotices.add(sceneId)
+    sceneWorkspace?.announce('The scene’s output is ready. It waits under the stage.')
+    sceneWorkspace?.render()
+    return
+  }
+  outputNotices.delete(sceneId)
+  showProducedScene(sceneId)
+  sceneWorkspace?.announce('Output ready: playing on the stage')
+  sceneWorkspace?.render()
+}
+// In the scene workspace each scene opens on the view chosen for it, else on
+// what it has to play: its production, then its preview, then its page.
+const resolveStageView = (sceneId: string) => {
+  const stage = sceneReview?.stageOf(sceneId)
+  if (!stage) return
+  const chosen: StageView | null = stageChoices.chosen(sceneId)
+  sceneStageMode = chosen || defaultStageView({
+    produced: Boolean(stage.production && stage.record && stage.production.of.record === stage.record.id && stage.production.current),
+    preview: Boolean(stage.preview?.current),
+  })
+}
+// What the notebook plays for its scenes is saved at once: the notebook's
+// composition, and its export, follow it.
+const saveProducedScenes = async (unsaved: string) => {
+  project.notebook = editor.getJSON() as TiptapDocument
+  try {
+    await persistProjectNow(structuredClone(project))
+  } catch (error) {
+    throw new Error(`${unsaved}: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    syncProject()
+    refreshSceneReview()
+    renderSceneStage()
+  }
+}
+const refreshSceneReview = () => {
+  const focus = sceneReview?.focusKey() || ''
+  editor.view.dispatch(editor.state.tr.setMeta(sceneReviewKey, 'refresh'))
+  renderNextStep()
+  // The workspace is drawn from the same review.
+  sceneWorkspace?.render()
+  window.requestAnimationFrame(() => {
+    sceneReview?.restoreFocus(focus)
+    positionInlinePreview()
+  })
+}
+sceneReview = createSceneReview({
+  fetchJson,
+  toast: showToast,
+  projectId: () => (project.derivedFrom?.notebook ? project.id : null),
+  wordingPolicy: () => (project.story?.wordingPolicy === 'preserve' || project.story?.wordingPolicy === 'assist' ? project.story.wordingPolicy : 'draft'),
+  script: sceneId => String(findSlideLikeNode(sceneId)?.attrs.script || ''),
+  takeOf: sceneId => {
+    const active = project.recordedBlocks?.[sceneId]
+    if (!active) return null
+    const archived = (project.recordedBlockTakes?.[sceneId] || []).find(take => take.recordingId === active.recordingId)
+    const script = active.script || archived?.script
+    if (!script) return { known: false, current: false, revision: null, changed: null, dropped: null }
+    const against = takeAgainst(script, String(findSlideLikeNode(sceneId)?.attrs.script || ''))
+    // Lines the take does not say are covered by a pickup that says them.
+    const pickups = (project.recordedBlockTakes?.[sceneId] || []).filter(take => take.pickup && take.script?.lines?.length)
+    const covered = new Set(pickups.flatMap(take => take.script!.lines!))
+    const changed = against.changed ? against.changed.filter(line => !covered.has(lineFingerprints(line)[0])) : null
+    const filled = Boolean(changed && against.changed && changed.length < against.changed.length)
+    return { known: true, current: against.current || (filled && changed!.length === 0), revision: script.revision ?? null, changed, dropped: against.dropped, pickups: filled ? pickups.length : 0 }
+  },
+  // The plan's lines become the scene's script; the words they replace are
+  // kept with the lineage, and earlier takes keep what they were spoken to.
+  applyScript: (sceneId, script, lineage) => {
+    const found = topLevelNodeAt(sceneId)
+    const node = found ? editor.state.doc.nodeAt(found.at) : null
+    if (!found || !node) return
+    const previous = String(node.attrs.script || '')
+    // The same transaction keeps the scene selected, so the review stays open on it.
+    const tr = editor.state.tr.setNodeMarkup(found.at, undefined, { ...node.attrs, script, scriptSource: { ...lineage, at: new Date().toISOString(), previous } })
+    if (found.leaf) tr.setSelection(NodeSelection.create(tr.doc, found.at))
+    editor.view.dispatch(tr)
+    selectNode(sceneId, false)
+    showToast(`The scene's script now follows plan r${lineage.revision}. The earlier words are kept with it; earlier takes stay as they were.`)
+  },
+  refresh: () => {
+    refreshSceneReview()
+    renderSceneStage()
+    sceneWorkspace?.render()
+  },
+  momentPicked: (sceneId, momentId) => sceneWorkspace?.momentPicked(sceneId, momentId),
+  openAiSettings: () => aiSettingsButton.click(),
+  // In the scene workspace the approved plan stays on show while a newer
+  // one is planned; its progress and draft show in the Story tab.
+  pinApproved: () => Boolean(sceneWorkspace?.active()),
+  stageMode: () => stageShownMode,
+  // Recording and rehearsal work on the notebook's composition: the
+  // notebook's stage steps aside while the camera dialog is open; the
+  // workspace keeps the scene on its stage beside it (U5).
+  record: sceneId => recordScene(sceneId),
+  // The scene's takes (U5): oldest first, the one the scene uses, whether
+  // each was spoken to the script as it is now.
+  takesOf: sceneId => {
+    const active = project.recordedBlocks?.[sceneId]
+    const script = String(findSlideLikeNode(sceneId)?.attrs.script || '')
+    return (project.recordedBlockTakes?.[sceneId] || []).map((take, index) => ({
+      recordingId: take.recordingId,
+      version: index + 1,
+      durationMs: take.durationMs,
+      recordedAt: take.recordedAt || '',
+      selected: take.recordingId === active?.recordingId,
+      pickup: Boolean(take.pickup),
+      lines: take.script?.lines?.length ?? null,
+      hasMedia: Boolean(take.videoUrl || take.cameraUrl),
+      current: take.script ? takeAgainst(take.script, script).current : null,
+    }))
+  },
+  selectTake: (sceneId, recordingId) => {
+    const take = (project.recordedBlockTakes?.[sceneId] || []).find(entry => entry.recordingId === recordingId && !entry.pickup)
+    if (!take) return
+    selectRecordedTake(sceneId, take)
+    // The review and the workspace list which take the scene uses.
+    refreshSceneReview()
+    rereadAfterTake()
+  },
+  // A take plays on the workspace's stage, over what the stage shows.
+  playTake: (sceneId, recordingId) => {
+    const takes = project.recordedBlockTakes?.[sceneId] || []
+    const index = takes.findIndex(entry => entry.recordingId === recordingId)
+    const take = takes[index]
+    if (!take || !sceneWorkspace) return
+    sceneWorkspace.playTake(sceneId, {
+      url: take.videoUrl || take.cameraUrl || '',
+      label: `Take v${index + 1}${take.pickup ? ' · pickup' : ''} · ${formatTime(take.durationMs / 1000)}`,
+      failed: () => sceneReview?.takeFailed(recordingId),
+    })
+  },
+  recordPickup: (sceneId, lines) => recordScene(sceneId, lines),
+  openWorkspace: (sceneId, revision, moment) => void planningWorkspace.open({ sceneId, revision, moment, tab: 'plan' }),
+  selectMoment: (_sceneId, targets, at, producedAt) => {
+    renderSceneStage(targets)
+    const to = stageShownMode === 'preview' ? at : stageShownMode === 'output' ? producedAt : null
+    // A composition still loading goes to the moment once it is ready.
+    if (to !== null && stageLoading) stageSeekOnReady = to
+    else if (to !== null && stagePlayer) {
+      stageEnded = false
+      stagePlayer.seek(to)
+      updateStageClock()
+      syncStagePlay()
+    }
+  },
+  showPreview: sceneId => {
+    if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
+    playPreview(sceneId)
+  },
+  showBaseReference: sceneId => {
+    if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
+    sceneStageAsideFor = ''
+    stageChoices.choose(sceneId, 'base')
+    sceneStageMode = 'base'
+    renderSceneStage()
+  },
+  // A preview asked for and still being made: the stage takes it when it is
+  // ready only if the creator is still waiting for it (U4).
+  previewRequested: (sceneId, planRecordId, previewJobId, revision) => {
+    previewNotices.delete(sceneId)
+    stageChoices.wait({ projectId: project.id, sceneId, planRecordId, previewJobId, revision, generation: stageChoices.generation(sceneId) })
+    sceneWorkspace?.render()
+  },
+  loaded: () => {
+    settlePreviewWaits()
+    void adoptLandedPages()
+  },
+  showProduction: (sceneId, at) => showProducedScene(sceneId, at),
+  // An accepted production is the scene's output: the notebook plays its
+  // render in the scene's place, and the export renders it there (P4).
+  adoptProduction: async (sceneId, production) => {
+    const accepted = production.accepted
+    if (!accepted) throw new Error('Only an accepted production can be the scene\'s output')
+    project.producedScenes = {
+      ...(project.producedScenes || {}),
+      [sceneId]: {
+        productionId: production.id,
+        // By its path: the app's address changes at every desktop start.
+        videoUrl: portableUrl(accepted.url),
+        durationMs: accepted.durationMs,
+        bundle: accepted.bundle,
+        plan: production.of,
+        acceptedAt: accepted.at,
+        voiced: production.summary.clock !== 'silent',
+        edits: accepted.edits,
+      },
+    }
+    await saveProducedScenes('The scene is accepted, but the notebook did not save it')
+  },
+  producedIn: sceneId => project.producedScenes?.[sceneId]?.productionId || null,
+  releaseProduction: async sceneId => {
+    if (!project.producedScenes?.[sceneId]) return
+    const rest = { ...project.producedScenes }
+    delete rest[sceneId]
+    if (Object.keys(rest).length) project.producedScenes = rest
+    else delete project.producedScenes
+    await saveProducedScenes('The notebook plays its own scene, but did not save it')
+  },
+  // The scene takes its base's newer page (F1 of the Perplexity review): its
+  // words, takes and plans stay; the page, and the motion planned on it
+  // from its words, are the new ones. Planning reads the adopted page, so
+  // this scene's plans made from the old one read as out of date.
+  adoptReference: async sceneId => {
+    if (!(await adoptBasePage(sceneId))) return
+    const newer = sceneReview?.stageOf(sceneId)?.scene.reference?.newer
+    if (sceneStageMode === 'base') sceneStageMode = 'reference'
+    await sceneReview?.load()
+    refreshSceneReview()
+    renderSceneStage()
+    showToast(`This scene now uses the base's ${newer?.kind === 'designed' ? 'designed slide' : 'page'}. Plan it again to use its artwork — its earlier plans and your recordings are kept.`)
+  },
+})
+// A scene takes its base's newer page (F1): the page, its program and how
+// it was made, the schematic it replaces kept beside a designed slide; then
+// its motion is planned from its words, and the notebook is saved.
+async function adoptBasePage(sceneId: string) {
+  const newer = sceneReview?.stageOf(sceneId)?.scene.reference?.newer
+  const found = topLevelNodeAt(sceneId)
+  const node = found ? editor.state.doc.nodeAt(found.at) : null
+  if (!newer || newer.designing || !newer.svg || !found || !node) return false
+  const kind = newer.kind === 'designed' || newer.kind === 'schematic' ? newer.kind : null
+  editor.view.dispatch(editor.state.tr.setNodeMarkup(found.at, undefined, {
+    ...node.attrs,
+    svg: newer.svg,
+    svgSrc: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(newer.svg)}`,
+    program: newer.program ?? null,
+    pageOrigin: kind ? { kind, ...(newer.by ? { by: newer.by } : {}) } : null,
+    reference: { baseScene: newer.baseScene, revision: newer.revision, kind: newer.kind, adoptedAt: new Date().toISOString() },
+    // A designed slide keeps the schematic it replaces (the base's own,
+    // else the one this scene had), side by side.
+    schematic: kind === 'designed' ? (newer.schematic ? { svg: newer.schematic, program: null } : node.attrs.schematic ?? schematicOf(node.attrs as Record<string, unknown>)) : null,
+  }))
+  try {
+    animateSceneLocally(sceneId)
+  } catch (error) {
+    console.warn('re-plan after adopting a page failed', sceneId, error)
+  }
+  project.notebook = editor.getJSON() as TiptapDocument
+  try {
+    await persistProjectNow(structuredClone(project))
+  } catch (error) {
+    showToast(error instanceof Error ? `The scene took the page, but it is not saved yet: ${error.message}` : 'The scene took the page, but it is not saved yet')
+  }
+  return true
+}
+// A ready slide unlocks its scene (the chaining of the BoltDB review): a
+// scene not yet touched — no plan, no take, no production, its page as the
+// video was made with it — takes its designed page as it lands, by itself.
+// It happens where the creator is not looking: the scene on show, the
+// selection and the keyboard stay where they are. A scene already planned,
+// recorded, produced or edited is offered the page instead.
+let adoptingLanded = false
+const adoptLandedPages = async () => {
+  if (adoptingLanded || !sceneReview?.active() || !project.derivedFrom?.notebook) return
+  adoptingLanded = true
+  const taken: string[] = []
+  try {
+    const nodes = (editor.getJSON() as TiptapDocument).content || []
+    for (const node of nodes) {
+      const sceneId = String(node.attrs?.id || '')
+      const stage = sceneId ? sceneReview.stageOf(sceneId) : null
+      const reference = stage?.scene.reference
+      const newer = reference?.newer
+      if (!stage || !reference || !newer || newer.designing || !newer.svg) continue
+      if (stage.scene.view.latest || stage.scene.view.current || stage.scene.view.reviewed || stage.scene.production?.latest) continue
+      if (project.recordedBlocks?.[sceneId] || project.recordedBlockTakes?.[sceneId]?.length) continue
+      if (sceneRevisionOf(node).inputs.page !== reference.revision) continue
+      if (await adoptBasePage(sceneId)) taken.push(String(node.attrs?.title || 'A scene'))
+    }
+  } finally {
+    adoptingLanded = false
+  }
+  if (!taken.length) return
+  await sceneReview?.load()
+  refreshSceneReview()
+  renderSceneStage()
+  const said = taken.length === 1 ? `“${taken[0]}” took its designed slide as it landed` : `${taken.length} scenes took their designed slides as they landed`
+  sceneWorkspace?.announce(said)
+  showToast(said)
+}
+onSceneSelected = nodeId => {
+  renderNextStep()
+  const next = sceneReview?.has(nodeId) ? nodeId : ''
+  if (next === reviewSelectedScene) {
+    sceneWorkspace?.render()
+    return
+  }
+  reviewSelectedScene = next
+  if (sceneSourceOpen !== next) sceneSourceOpen = ''
+  if (sceneStageAsideFor !== next) sceneStageAsideFor = ''
+  sceneStageTargets = null
+  if (next && sceneWorkspace?.active()) resolveStageView(next)
+  refreshSceneReview()
+  renderSceneStage()
+  settlePreviewWaits()
+  sceneWorkspace?.render()
+}
+cameraDialog.addEventListener('close', () => {
+  // Recorded in the workspace: the dialog goes back, the inspector returns.
+  if (cameraDialog.parentNode !== cameraDialogHome.parentNode) {
+    cameraDialogHome.after(cameraDialog)
+    sceneWorkspace?.captureClosed()
+  }
+  // A preview that finished during the recording is offered now.
+  window.setTimeout(settlePreviewWaits, 0)
+  if (!sceneStageAsideFor) return
+  sceneStageAsideFor = ''
+  renderSceneStage()
+})
+// ——— The video scene workspace (U2 of the scene workspace plan) ———
+// The stage and its bar move between the notebook's canvas and the
+// workspace; moveBefore keeps the player and its loaded composition alive.
+const stageHome = { stage: { parent: sceneStage.parentElement!, next: sceneStage.nextSibling }, bar: { parent: sceneStageBar.parentElement!, next: sceneStageBar.nextSibling } }
+const moveNode = (parent: Element, node: Element, before: Node | null) => {
+  const move = (parent as Element & { moveBefore?: (node: Node, child: Node | null) => void }).moveBefore
+  if (typeof move === 'function' && node.isConnected && parent.isConnected) {
+    try {
+      move.call(parent, node, before)
+      return
+    } catch {
+      // Fall back: a composition playing inside reloads.
+    }
+  }
+  parent.insertBefore(node, before)
+}
+const railThumbnails = new Map<string, { svg: string; url: string }>()
+const stagePlayback = {
+  state: () => ({
+    playable: stageShowing === 'player' && Boolean(stagePlayer) && !sceneStage.hidden,
+    playing: stagePlaying,
+    ended: stageEnded,
+    time: stagePlayer?.currentTime || 0,
+    duration: stagePreviewDuration,
+    estimated: stageClockEstimated,
+  }),
+  toggle: () => stagePlay.click(),
+  seek: (time: number) => {
+    if (!stagePlayer) return
+    stageEnded = false
+    stagePlayer.seek(time)
+    updateStageClock()
+    syncStagePlay()
+  },
+  subscribe: (listener: () => void) => {
+    stageListeners.add(listener)
+    return () => stageListeners.delete(listener)
+  },
+}
+sceneWorkspace = createSceneWorkspace({
+  review: () => (sceneReview?.active() ? sceneReview.workspace : null),
+  projectId: () => project.id,
+  video: () => Boolean(project.derivedFrom?.notebook),
+  selectedScene: () => reviewSelectedScene || selectedNodeId,
+  selectScene: sceneId => selectNode(sceneId, true),
+  thumbnailOf: sceneId => {
+    const attrs = findSlideLikeNode(sceneId)?.attrs as Record<string, unknown> | undefined
+    const stored = String(attrs?.svgSrc || '')
+    if (stored) return stored
+    const svg = String(attrs?.svg || '')
+    if (!svg) return ''
+    // The page as a picture, made once per version of the page.
+    const cached = railThumbnails.get(sceneId)
+    if (cached?.svg === svg) return cached.url
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+    railThumbnails.set(sceneId, { svg, url })
+    return url
+  },
+  mountStage: (frame, bar) => {
+    moveNode(frame, sceneStage, null)
+    moveNode(bar, sceneStageBar, null)
+    renderSceneStage()
+  },
+  unmountStage: () => {
+    moveNode(stageHome.stage.parent, sceneStage, stageHome.stage.next?.parentNode === stageHome.stage.parent ? stageHome.stage.next : null)
+    moveNode(stageHome.bar.parent, sceneStageBar, stageHome.bar.next?.parentNode === stageHome.bar.parent ? stageHome.bar.next : null)
+    renderSceneStage()
+  },
+  playback: stagePlayback,
+  aspect: () => (project.width || 1920) / (project.height || 1080),
+  notice: sceneId => previewNotices.get(sceneId) || null,
+  playOffer: sceneId => {
+    if (reviewSelectedScene !== sceneId) selectNode(sceneId, true)
+    playPreview(sceneId)
+  },
+  outputNotice: sceneId => outputNotices.has(sceneId),
+  watchOutput: sceneId => {
+    outputNotices.delete(sceneId)
+    showProducedScene(sceneId)
+    sceneWorkspace?.render()
+  },
+  viewChanged: view => {
+    if (view === 'scenes' && reviewSelectedScene) resolveStageView(reviewSelectedScene)
+    // The notebook's review folds while the workspace shows, and opens again.
+    refreshSceneReview()
+    renderSceneStage()
+    settlePreviewWaits()
+    syncLayoutBands()
+    if (view === 'notebook' && reviewSelectedScene) window.requestAnimationFrame(() => revealBlock(reviewSelectedScene))
+  },
+  toast: showToast,
+  // Escape in the workspace closes the recording as its × does.
+  closeCapture: () => requestCameraClose(),
+})
+;(window as unknown as { __workspace?: unknown }).__workspace = {
+  show: (view: 'scenes' | 'notebook') => sceneWorkspace?.show(view),
+  view: () => sceneWorkspace?.view(),
+  active: () => Boolean(sceneWorkspace?.active()),
+}
+sceneWorkspace.start()
+// A new video's intent, once its scenes are read: Scenes shown, the scene
+// asked for selected, and its brief prepared there (R06).
+if (pendingVideoIntent) {
+  const intent = pendingVideoIntent
+  pendingVideoIntent = null
+  let tries = 0
+  const take = () => {
+    if (!sceneReview?.active()) {
+      if ((tries += 1) < 120) window.setTimeout(take, 250)
+      return
+    }
+    sceneWorkspace?.show('scenes')
+    if (intent.sceneId) selectNode(intent.sceneId, true)
+    if (intent.prepare) sceneReview.prepareBrief()
+  }
+  take()
+}
+document.body.classList.toggle('is-video-notebook', Boolean(project.derivedFrom?.notebook))
+// ——— The switch between a project's notebooks (the four-notebook model) ———
+// A notebook of a project shows the project's notebooks, one tab per kind:
+// each opens its notebook, or — not made yet — the one it is made from.
+document.body.classList.toggle('in-project', Boolean(project.container))
+document.body.dataset.notebookKind = project.container?.kind || ''
+// Its heading says which notebook of the project this is, and what it holds.
+{
+  const format = formatOf(project.container?.kind)
+  if (format) {
+    ;(document.querySelector('.notebook-document .panel-heading .eyebrow') as HTMLElement).textContent = format.label
+    ;($('#notebook-title') as HTMLElement).textContent = `${format.holds.charAt(0).toUpperCase()}${format.holds.slice(1)}`
+  }
+}
+const notebookSwitch = $('#notebook-switch') as HTMLElement
+let projectNotebooks: NotebookSummary[] = []
+let projectNotebooksLoaded = false
+let notebookSwitchTimer: number | null = null
+// A presentation designed from the wireframe: the drawing harness draws
+// each of its pages, and a new presentation notebook of the project holds
+// the same pages, with the same ids, each bound to the run's page — landing
+// there as it is finished, as pages of an import do.
+let designingPresentation = false
+const designPresentation = async () => {
+  const bridge = window.studioDesktop
+  const place = project.container
+  if (place?.kind !== 'wireframe' || designingPresentation) return
+  if (!bridge?.isDesktop) {
+    showToast('The presentation is designed on a local harness — open the desktop studio')
+    return
+  }
+  const doc = editor.getJSON() as TiptapDocument
+  const pages = doc.content.filter(node => node.type === 'scene' && node.attrs?.id)
+  if (!pages.length) {
+    showToast('The wireframe has no pages to design')
+    return
+  }
+  designingPresentation = true
+  renderNextStep()
+  try {
+    const agent = await resolveCreationAgent('drawing')
+    const outline = project.outline
+    const brand = outline?.pageBrand || { palette: { ground: project.brand.background, text: project.brand.text, accent: project.brand.accent, secondary: project.brand.secondary }, fonts: project.theme?.fonts || null, mode: 'dark' }
+    const presentationId = crypto.randomUUID()
+    const inputs = {
+      video: { title: displayName(), site: project.source?.site || '' },
+      brand: { palette: brand.palette, fonts: brand.fonts, mode: brand.mode },
+      // Each page as the wireframe holds it now — its order, its words —
+      // with the plan it was drawn from.
+      scenes: pages.map((node, index) => {
+        const attrs = (node.attrs || {}) as Record<string, unknown>
+        const planned = outlineSceneOf(outline?.scenes, attrs)
+        return { index: index + 1, title: String(attrs.title || ''), kind: planned?.kind || 'diagram', seconds: planned?.seconds || 12, idea: planned?.idea || pageIdeaOf(attrs, outline?.scenes), narration: String(attrs.script || planned?.narration || ''), source: Array.isArray(attrs.sourcePassages) && attrs.sourcePassages.length ? attrs.sourcePassages : planned?.source || [], parts: planned?.parts || [], relations: planned?.relations || [] }
+      }),
+      ...(outline?.objects?.length ? { objects: outline.objects, modelId: project.story?.modelId || '' } : {}),
+      pageCount: pages.length,
+      contract: 'references/page-contract.md in the skill — every page must pass scripts/check_pages.py',
+      ...(agent.model ? { model: agent.model } : {}),
+      effort: 'high',
+      autonomous: true,
+    }
+    const run = await bridge.harness.run({ adapter: agent.id, skill: 'page-master', route: 'Draw Pages', projectId: presentationId, inputs })
+    let index = 0
+    const presentation: ProjectDocumentV1 = {
+      ...structuredClone(project),
+      id: presentationId,
+      container: { id: place.id, kind: 'presentation', from: project.id },
+      notebook: {
+        ...doc,
+        // Its pages, and any words written between them; not blank lines.
+        content: doc.content.filter(node => node.type !== 'paragraph' || (node.content || []).length).map(node => {
+          if (node.type !== 'scene' || !node.attrs?.id) return node
+          index += 1
+          const binding: PageDesignBinding = { runId: run.id, page: index, by: agent.label, placeholder: pageFingerprint(String(node.attrs.svg || '')) }
+          return { ...node, attrs: { ...node.attrs, pageOrigin: { kind: 'schematic', designing: binding } } }
+        }),
+      },
+    }
+    try {
+      await persistProjectNow(structuredClone(presentation))
+    } catch (error) {
+      console.warn('the presentation notebook not persisted yet', error)
+      rememberDraft(presentation)
+    }
+    await persistProjectNow(structuredClone({ ...project, notebook: doc })).catch(() => rememberDraft(project))
+    activateNotebook(presentationId, `Designing ${pages.length} slide${pages.length === 1 ? '' : 's'} with ${agent.label} — each lands in the presentation as it is finished`)
+  } catch (error) {
+    designingPresentation = false
+    renderNextStep()
+    showToast(error instanceof Error ? error.message : 'The presentation could not be started')
+  }
+}
+const chooseNotebookTab = (tab: SwitchTab) => {
+  if (tab.current) return
+  if (tab.notebook) {
+    void openNotebook(tab.notebook.id)
+    return
+  }
+  const upstream = tab.madeFrom?.notebook
+  if (!upstream) {
+    showToast(tab.title)
+    return
+  }
+  if (upstream.id !== project.id) {
+    void openNotebook(upstream.id)
+    return
+  }
+  // Here, in the notebook it is made from: make it.
+  if (tab.kind === 'video') void planningWorkspace.open()
+  else if (tab.kind === 'presentation') void designPresentation()
+  else showToast(tab.title)
+}
+const renderSwitch = () => {
+  if (!project.container) return
+  // This notebook as it is now, not as it was last saved.
+  const own = notebookSummaryOf({ ...project, notebook: editor.getJSON() as TiptapDocument })
+  const notebooks = [...projectNotebooks.filter(entry => entry.id !== project.id), ...(own ? [own] : [])]
+  renderNotebookSwitch(notebookSwitch, switchTabsOf(notebooks, project.id), chooseNotebookTab)
+  notebookSwitch.hidden = false
+  renderProjectStrip()
+}
+// The project on each of its notebooks (R02 of the project-flow rereview):
+// the source it was read from, its brand, and the work still running on any
+// of its notebooks, each opened from here — so the text says what is being
+// made after its notice has gone. The source is named, not linked: the app
+// opens nothing from the web.
+const projectStrip = $('#project-strip') as HTMLElement
+const renderProjectStrip = () => {
+  const kind = notebookKind()
+  if (!project.container || !kind || kind === 'video') {
+    projectStrip.hidden = true
+    return
+  }
+  const source = $('#project-strip-source') as HTMLElement
+  const brand = $('#project-strip-brand') as HTMLElement
+  const jobs = $('#project-strip-jobs') as HTMLElement
+  const site = project.source?.site || ''
+  source.hidden = !site && !project.source?.title
+  source.replaceChildren('Source ', Object.assign(document.createElement('b'), { textContent: project.source?.title || site }), site && project.source?.title ? ` · ${site}` : '')
+  source.title = project.source?.url || ''
+  const colours = project.theme?.brand ? [project.theme.brand.background, project.theme.brand.primary, project.theme.brand.accent].filter(Boolean) : []
+  brand.hidden = !project.theme?.name
+  brand.replaceChildren('Brand ', Object.assign(document.createElement('b'), { textContent: project.theme?.name || '' }), ...colours.map(colour => Object.assign(document.createElement('span'), { className: 'project-strip-swatch', title: colour, style: `background:${colour}` })))
+  const running = projectNotebooks.filter(entry => entry.state === 'building' && entry.id !== project.id)
+  jobs.hidden = !running.length
+  jobs.replaceChildren(...running.map(entry => {
+    const chip = document.createElement('button')
+    chip.type = 'button'
+    chip.className = `project-strip-job${/could not/.test(entry.detail) ? ' is-error' : ''}`
+    chip.dataset.kind = entry.kind
+    chip.textContent = `${formatOf(entry.kind)?.label || entry.kind}: ${entry.detail}`
+    chip.title = `Open the ${formatOf(entry.kind)?.label.toLowerCase() || 'notebook'}`
+    chip.addEventListener('click', () => void openNotebook(entry.id))
+    return chip
+  }))
+  projectStrip.hidden = source.hidden && brand.hidden && jobs.hidden
+}
+// This notebook's own tab follows its pages as they change — a slide
+// landing, a page added — and its state as it is saved: a production
+// accepted or released.
+let switchFrame = 0
+followSwitch = () => {
+  if (!project.container || switchFrame) return
+  switchFrame = window.requestAnimationFrame(() => {
+    switchFrame = 0
+    renderSwitch()
+  })
+}
+editor.on('update', () => followSwitch())
+const refreshNotebookSwitch = async () => {
+  if (!project.container) return
+  if (notebookSwitchTimer) window.clearTimeout(notebookSwitchTimer)
+  try {
+    const view = await fetchJson<{ container?: { title?: string }; notebooks: NotebookSummary[] }>(`/api/containers/${encodeURIComponent(project.container.id)}`)
+    projectNotebooks = view.notebooks
+    projectNotebooksLoaded = true
+    // The project's name, unless the creator is renaming it just now.
+    if (view.container?.title && document.activeElement !== projectTitleInput && !projectRenameTimer) {
+      projectName = view.container.title
+      projectTitleInput.value = view.container.title
+    }
+  } catch {
+    // A project not saved yet shows this notebook alone until it is.
+  }
+  renderSwitch()
+  renderNextStep()
+  // While a notebook of the project is still being made, its tab follows it.
+  const own = notebookSummaryOf({ ...project, notebook: editor.getJSON() as TiptapDocument })
+  if (own?.state === 'building' || projectNotebooks.some(entry => entry.state === 'building')) notebookSwitchTimer = window.setTimeout(() => void refreshNotebookSwitch(), 8000)
+}
+void refreshNotebookSwitch()
+// ——— A wireframe still being made (the four-notebook model) ———
+// It says who makes it, for how long and their last word; it can be
+// stopped, or made again when it could not be; made, the studio opens on
+// its pages. The server makes it (server/wireframe-build.ts), so it goes on
+// whichever notebook is open, and after a restart.
+if (project.build?.kind === 'wireframe') {
+  // The job, where the notebook's pages will be (R02 of the project-flow
+  // rereview): who makes it and for how long, what it is made from and in
+  // which brand, their last word, and the pages to come — or why it could
+  // not be made, and the ways on.
+  const banner = $('#notebook-build-status') as HTMLElement
+  const heading = $('#notebook-build-heading') as HTMLElement
+  const meta = $('#notebook-build-meta') as HTMLElement
+  const said = $('#notebook-build-text') as HTMLElement
+  const activity = $('#notebook-build-activity') as HTMLElement
+  const placeholders = $('#notebook-build-pages') as HTMLElement
+  const action = $('#notebook-build-action') as HTMLButtonElement
+  const settings = $('#notebook-build-settings') as HTMLButtonElement
+  // A provider that failed can be switched before it is made again.
+  settings.addEventListener('click', () => void openAiSettings('harness'))
+  let lastWord = ''
+  const article = project.source?.title || project.title
+  const renderBuild = () => {
+    const build = project.build
+    banner.hidden = !build
+    if (!build) return
+    const failure = build.failure
+    banner.classList.toggle('is-error', Boolean(failure))
+    settings.hidden = !failure
+    placeholders.hidden = Boolean(failure)
+    heading.textContent = failure ? 'The wireframe could not be made' : 'Making the wireframe'
+    meta.textContent = [build.by, failure ? `attempt ${build.attempts || 1}` : sinceOf(build.startedAt), project.theme?.name ? `in “${project.theme.name}”` : ''].filter(Boolean).join(' · ')
+    activity.hidden = Boolean(failure) || !lastWord
+    activity.textContent = lastWord ? `Last: ${lastWord}` : ''
+    if (failure) {
+      said.textContent = wireframeFailureText(failure)
+      action.textContent = 'Make it again'
+      action.hidden = false
+      return
+    }
+    said.textContent = `${build.by} is outlining “${article}” into its pages. Each lands here as it is drawn; the presentation is designed from them once they are here.`
+    action.textContent = 'Stop'
+    action.hidden = !(build.via === 'harness' && build.runId && window.studioDesktop?.isDesktop)
+  }
+  // The time it has run, by the second.
+  window.setInterval(() => {
+    if (project.build && !project.build.failure) meta.textContent = [project.build.by, sinceOf(project.build.startedAt), project.theme?.name ? `in “${project.theme.name}”` : ''].filter(Boolean).join(' · ')
+  }, 1000)
+  renderBuild()
+  const bridge = window.studioDesktop
+  if (bridge?.isDesktop) {
+    bridge.harness.onEvent(({ runId, event }) => {
+      if (runId !== project.build?.runId || event.type === 'error') return
+      const message = progressText(event)
+      if (message) {
+        lastWord = message.slice(0, 90)
+        renderBuild()
+      }
+    })
+  }
+  // Made, or failed, on the server: the studio opens the notebook as it
+  // now is.
+  const poll = window.setInterval(async () => {
+    const stored = (await fetchJson<{ project: ProjectDocumentV1 | null }>(`/api/projects/${encodeURIComponent(project.id)}`).catch(() => null))?.project
+    if (!stored) return
+    if (JSON.stringify(stored.build || null) !== JSON.stringify(project.build || null)) {
+      window.clearInterval(poll)
+      const pages = (stored.notebook?.content || []).filter(node => node.type === 'scene').length
+      activateNotebook(project.id, stored.build ? '' : `The wireframe is made: ${pages} page${pages === 1 ? '' : 's'} in basic shapes`)
+      return
+    }
+    renderBuild()
+  }, 3000)
+  action.addEventListener('click', async () => {
+    const build = project.build
+    if (!build) return
+    action.disabled = true
+    try {
+      if (!build.failure) {
+        if (build.runId) await bridge?.harness.cancel(build.runId)
+        showToast('Stopping — the wireframe says so when it has stopped')
+        return
+      }
+      // Made again (R01 of the project-flow rereview): a new story run on the
+      // article as it was stored — read from its source revision, as the
+      // server reads it — on whichever harness the creator chooses now, or
+      // the direct model once more; an attempt of its own.
+      let outlining: WireframeOutliner = { via: 'api', by: 'the direct model' }
+      if (bridge?.isDesktop) {
+        const stored = build.sourceRevision ? await fetchJson<{ revision?: unknown }>(`/api/source/revisions/${encodeURIComponent(build.sourceRevision)}`).catch(() => null) : null
+        const article = storedArticleOf(stored?.revision)
+        if (!article) throw new Error('The article it was made from is no longer stored — import it again')
+        const agent = await resolveCreationAgent('story')
+        const run = await bridge.harness.run({ adapter: agent.id, skill: 'story-master', route: 'Plan Story', projectId: project.id, inputs: { source: article, wordingPolicy: build.wording, model: agent.model, effort: 'high', autonomous: true } })
+        outlining = { via: 'harness', runId: run.id, by: agent.label, harness: agent.id, ...(agent.model ? { model: agent.model } : {}) }
+      }
+      project.build = nextWireframeAttempt(build, outlining, { attempt: crypto.randomUUID(), now: new Date().toISOString() })
+      project.notebook = editor.getJSON() as TiptapDocument
+      await persistProjectNow(structuredClone(project))
+      renderBuild()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'The wireframe could not be made again')
+    } finally {
+      action.disabled = false
+    }
+  })
+}
+// A presentation exports its slides as a PDF, one page a slide (the
+// four-notebook model): its own export, not the video's. What it would
+// hold is said first — which slides are designed, and the faces its type
+// is set in — and a deck not yet finished is exported by choice: its
+// designed slides, or every slide as a draft, each page not yet designed
+// marked in the file (R04, R05 of the project-flow rereview).
+{
+  type ExportType = { faces: string[]; unresolved: string[] }
+  type ExportPlan = { slides: Array<{ id: string; title: string; state: 'designed' | 'designing' | 'schematic' }>; designed: number; total: number; type: ExportType }
+  const exportButton = $('#export-presentation') as HTMLButtonElement
+  const dialog = $('#presentation-export-dialog') as HTMLDialogElement
+  const slidesLine = $('#presentation-export-slides') as HTMLElement
+  const typeLine = $('#presentation-export-type') as HTMLElement
+  const readyButton = $('#presentation-export-ready') as HTMLButtonElement
+  const draftButton = $('#presentation-export-draft') as HTMLButtonElement
+  exportButton.hidden = notebookKind() !== 'presentation'
+  const typeText = (type: ExportType) => {
+    const embedded = type.faces.filter(face => !type.unresolved.includes(face))
+    const missing = type.unresolved.map(face => `“${face}”`).join(', ')
+    return [
+      embedded.length ? `Type: ${embedded.join(', ')}, embedded in the file.` : '',
+      type.unresolved.length ? `${missing} cannot be had here: the PDF sets ${type.unresolved.length === 1 ? 'it in the fallback its drawing names' : 'them in the fallbacks their drawings name'}.` : '',
+    ].filter(Boolean).join(' ')
+  }
+  const busy = (label: string | null) => {
+    exportButton.disabled = label !== null
+    exportButton.textContent = label ?? 'Export PDF'
+  }
+  const exportAs = async (scope: 'ready' | 'draft') => {
+    busy('Exporting…')
+    try {
+      const exported = await fetchJson<{ url: string; slides: number; drafts: number; excluded: number; total: number; type: ExportType }>(`/api/projects/${encodeURIComponent(project.id)}/presentation-pdf`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ scope }) })
+      const link = document.createElement('a')
+      link.href = exported.url
+      link.download = `${displayName() || 'Presentation'}${exported.drafts ? ' — draft' : ''}.pdf`
+      link.dataset.exported = String(exported.slides)
+      document.body.append(link)
+      link.click()
+      link.remove()
+      exportButton.dataset.exportedUrl = exported.url
+      exportButton.dataset.exportedScope = scope
+      const missing = exported.type.unresolved.length ? ` ${exported.type.unresolved.map(face => `“${face}”`).join(', ')} set in ${exported.type.unresolved.length === 1 ? 'its' : 'their'} fallback.` : ''
+      showToast(exported.drafts
+        ? `Exported all ${exported.slides} slides as a draft — ${exported.drafts} marked as not designed yet.${missing}`
+        : exported.excluded
+          ? `Exported the ${exported.slides} designed slide${exported.slides === 1 ? '' : 's'} — ${exported.excluded} not designed yet ${exported.excluded === 1 ? 'was' : 'were'} left out.${missing}`
+          : `Exported ${exported.slides} slide${exported.slides === 1 ? '' : 's'} as a PDF.${missing}`)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'The PDF could not be made')
+    } finally {
+      busy(null)
+    }
+  }
+  exportButton.addEventListener('click', async () => {
+    busy('Preparing…')
+    let plan: ExportPlan
+    try {
+      project.notebook = editor.getJSON() as TiptapDocument
+      await persistProjectNow(structuredClone(project))
+      plan = (await fetchJson<{ plan: ExportPlan }>(`/api/projects/${encodeURIComponent(project.id)}/presentation-pdf`)).plan
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'The PDF could not be made')
+      busy(null)
+      return
+    }
+    busy(null)
+    if (!plan.total) {
+      showToast('This presentation has no slides to export yet')
+      return
+    }
+    // Finished, in faces it has: exported as it is.
+    if (plan.designed === plan.total && !plan.type.unresolved.length) {
+      await exportAs('ready')
+      return
+    }
+    const pending = plan.total - plan.designed
+    const designing = plan.slides.filter(slide => slide.state === 'designing').length
+    slidesLine.textContent = !pending
+      ? `All ${plan.total} slides are designed.`
+      : `${plan.designed} of ${plan.total} slides ${plan.designed === 1 ? 'is' : 'are'} designed; ${pending === designing ? `${pending} ${pending === 1 ? 'is' : 'are'} still being designed` : designing ? `${pending} ${pending === 1 ? 'is' : 'are'} not — ${designing} still being designed` : `${pending} ${pending === 1 ? 'is a schematic' : 'are schematics'}, not designed`}. A draft marks ${pending === 1 ? 'that page' : 'those pages'} as such in the file.`
+    typeLine.textContent = typeText(plan.type)
+    typeLine.classList.toggle('is-warning', plan.type.unresolved.length > 0)
+    typeLine.hidden = !typeLine.textContent
+    readyButton.textContent = pending ? `Export ready slides (${plan.designed})` : `Export ${plan.total} slides`
+    readyButton.disabled = plan.designed === 0
+    readyButton.title = plan.designed === 0 ? 'No slide is designed yet' : ''
+    draftButton.hidden = !pending
+    draftButton.textContent = `Export all ${plan.total} as a draft`
+    dialog.showModal()
+  })
+  readyButton.addEventListener('click', () => {
+    dialog.close()
+    void exportAs('ready')
+  })
+  draftButton.addEventListener('click', () => {
+    dialog.close()
+    void exportAs('draft')
+  })
+}
+// A base made from a source shows its pages, not the video's staging (B04).
+const videoStagingToggle = $('#toggle-video-staging') as HTMLButtonElement
+syncBasePages = () => {
+  const pagesOnly = baseShowsPagesOnly()
+  document.body.classList.toggle('is-base-pages', pagesOnly)
+  videoStagingToggle.hidden = !isSourceBase()
+  videoStagingToggle.querySelector('.menu-label')!.textContent = pagesOnly ? 'Show video staging' : 'Hide video staging'
+}
+videoStagingToggle.addEventListener('click', () => {
+  if (baseShowsPagesOnly()) stagingShownOn.add(project.id)
+  else stagingShownOn.delete(project.id)
+  try {
+    window.localStorage.setItem(VIDEO_STAGING_KEY, JSON.stringify([...stagingShownOn].slice(-50)))
+  } catch {
+    // Unsaved, the choice lasts until the notebook is next opened.
+  }
+  syncBasePages()
+  updatePreview()
+  window.requestAnimationFrame(positionInlinePreview)
+  showToast(baseShowsPagesOnly() ? 'The base shows its pages — Create video stages them in a video' : 'Video staging shown on this base, the older way')
+})
+syncBasePages()
+// A video notebook's work is its scene plans; the older whole-notebook build
+// says what it is, and that it does not use them.
+{
+  const build = $('#build-explainer') as HTMLButtonElement
+  if (project.derivedFrom?.notebook) {
+    build.querySelector('.menu-label')!.textContent = 'Build whole notebook'
+    build.title = 'The older build: it works from the notebook\'s scripts and pages and does not use approved scene plans. Producing scenes from approved plans comes next.'
+    // The scene's next step leads; the draft export is its last one.
+    renderButton.classList.remove('primary')
+    renderButton.classList.add('chrome-secondary')
+  }
+}
+// ——— The one next step (F10 of the Perplexity review) ———
+const nextStepButton = $('#next-step') as HTMLButtonElement
+const openPlanningButton = $('#open-planning') as HTMLButtonElement
+let nextStepShown: NextStep | null = null
+renderNextStep = () => {
+  const video = Boolean(project.derivedFrom?.notebook)
+  // A project's text and wireframe are made into the next notebook from the
+  // switch; the presentation leads to its video.
+  const kind = notebookKind()
+  // A wireframe with no presentation yet offers to design one.
+  const designable = kind === 'wireframe' && projectNotebooksLoaded && !projectNotebooks.some(entry => entry.kind === 'presentation')
+  // Never offered before there are pages to design from (R02 of the
+  // project-flow rereview): it says why it waits.
+  const wireframePages = designable ? pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total : 0
+  const waitsFor = !designable ? '' : project.build ? (project.build.failure ? 'The wireframe could not be made: make it again, and design the presentation from its pages' : 'The wireframe is still being made: the presentation is designed from its pages once they are here') : !wireframePages ? 'The wireframe has no pages to design from yet' : ''
+  const step: NextStep | null = video
+    ? sceneReview?.nextStep(selectedNodeId || reviewSelectedScene) || null
+    : designable
+      ? { action: 'design-presentation', label: designingPresentation ? 'Starting the design…' : 'Design presentation', title: waitsFor || 'Design the presentation from these pages: each slide is drawn on your drawing harness and lands in the presentation as it is finished.', sceneId: null, disabled: designingPresentation || !window.studioDesktop?.isDesktop || Boolean(waitsFor) }
+      : kind === 'text' || kind === 'wireframe'
+        ? null
+        : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
+  nextStepShown = step
+  nextStepButton.hidden = !step
+  // A base with no video yet has no plans to show: Create video is its way in.
+  openPlanningButton.hidden = !video && !baseVideos.length
+  if (!step) return
+  nextStepButton.textContent = step.label
+  nextStepButton.title = step.title
+  nextStepButton.disabled = step.disabled
+  nextStepButton.dataset.action = step.action
+  nextStepButton.dataset.scene = step.sceneId || ''
+}
+nextStepButton.addEventListener('click', () => {
+  const step = nextStepShown
+  if (!step || step.disabled) return
+  const scene = step.sceneId
+  switch (step.action) {
+    case 'create-explainer':
+      openCreateExplainer()
+      break
+    case 'create-video':
+      void planningWorkspace.open()
+      break
+    case 'design-presentation':
+      void designPresentation()
+      break
+    case 'open-video':
+      if (baseVideos[0]) void openNotebook(baseVideos[0].id)
+      break
+    case 'brief':
+      // Prepared in Scenes, where the video is reviewed (R06).
+      sceneWorkspace?.show('scenes')
+      if (!sceneReview?.prepareBrief()) void planningWorkspace.open({ prepare: true })
+      break
+    case 'plan':
+    case 'review':
+      if (!scene) break
+      if (reviewSelectedScene !== scene) selectNode(scene, true)
+      revealBlock(scene)
+      if (step.action === 'plan') sceneReview?.plan(scene)
+      break
+    case 'record':
+      if (scene) recordScene(scene)
+      break
+    case 'produce':
+      if (!scene) break
+      if (reviewSelectedScene !== scene) selectNode(scene, true)
+      revealBlock(scene)
+      sceneReview?.produce(scene)
+      break
+    case 'review-output':
+      if (!scene) break
+      revealBlock(scene)
+      showProducedScene(scene)
+      break
+    case 'export':
+      renderButton.click()
+      break
+  }
+})
+renderNextStep()
+if (project.derivedFrom?.notebook) {
+  sceneReview.listen()
+  void sceneReview.load().then(() => {
+    onSceneSelected(selectedNodeId)
+    // The workspace reopens on the scene it last showed.
+    sceneWorkspace?.restore()
+  })
+}
+// Closing the workspace brings the notebook to the scene, revision and
+// moment it was showing: one selection across both views (R8). The close
+// button hands it over in its own click; the dialog's close event covers
+// Escape, and finds nothing left to move after a click.
+const handBackFromWorkspace = (selection: { sceneId: string; revision: string; moment: string }) => {
+  if (!sceneReview || !selection.sceneId || !sceneReview.has(selection.sceneId)) return
+  sceneReview.focus(selection.sceneId, selection.revision, selection.moment)
+  if (selection.sceneId !== reviewSelectedScene) {
+    // The editor's text selection goes, and its selection moves to the
+    // scene itself; otherwise its next selection change would put the
+    // notebook back on the block that text was in.
+    window.getSelection()?.removeAllRanges()
+    selectNode(selection.sceneId, true)
+  }
+  refreshSceneReview()
+  renderSceneStage()
+  revealBlock(selection.sceneId)
+}
+;($('#planning-dialog') as HTMLDialogElement).addEventListener('close', () => {
+  handBackFromWorkspace(planningWorkspace.selection())
+  void sceneReview?.load()
+})
+window.addEventListener('focus', () => void sceneReview?.load())

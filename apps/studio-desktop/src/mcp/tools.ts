@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { captureHiddenPage, runAtomizer } from './hidden-window'
 import { EXPLAINER_TOOLS } from './explainer-tools'
+import { PLANNING_TOOLS, PRODUCTION_TOOLS } from './planning-tools'
 import { validateArtefact } from 'markdown-composition/src/schemas'
 import {
   MotionRules,
@@ -20,6 +21,10 @@ import {
 export type ToolContext = {
   // http origin of the in-process studio worker.
   origin: string
+  // The capability scope of the run calling: a planning run is offered only
+  // the planning tools, a production run only the production tools. Absent
+  // for the build and motion routes.
+  scope?: 'planning' | 'production'
 }
 
 type Json = Record<string, unknown>
@@ -418,6 +423,8 @@ export const TOOLS: Array<{
   call: (args: Json, context: ToolContext) => Promise<unknown>
 }> = [
   ...EXPLAINER_TOOLS,
+  ...PLANNING_TOOLS,
+  ...PRODUCTION_TOOLS,
   {
     name: 'atomize',
     description:

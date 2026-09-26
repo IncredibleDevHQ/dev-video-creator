@@ -1,7 +1,7 @@
 // Minimal typed bridge. Exposes the desktop flag/version info and the
 // harness port (runs, events, gate answers) to the studio renderer, plus the
 // gate dialog's submit/cancel (used by the dialog window only).
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 
 export type RunSummary = {
   id: string
@@ -36,11 +36,17 @@ export type AdapterAvailability = {
   ok: boolean
   version?: string
   reason?: string
+  // The models the harness can run; `default` is what the CLI runs unnamed.
+  models?: { default: string | null; options: Array<{ id: string; label: string; unavailable?: string }>; source: string }
 }
 
 const bridge = {
   isDesktop: true as const,
   platform: process.platform,
+  // The studio's own download (F01 of the fix verification): the desktop
+  // saves the file; the window is never navigated to it.
+  download: (url: string, filename: string): Promise<{ state: 'completed' | 'cancelled' | 'interrupted'; path?: string }> =>
+    ipcRenderer.invoke('studio:download', url, filename),
   versions: {
     electron: process.versions.electron || '',
     chrome: process.versions.chrome || '',
@@ -89,3 +95,89 @@ const bridge = {
 export type StudioDesktopBridge = typeof bridge
 
 contextBridge.exposeInMainWorld('studioDesktop', bridge)
+
+// The studio's web storage outlives the port (F03 of the fix verification).
+// The worker takes a new port at every start and web storage belongs to an
+// origin, so the open notebook, its scene and inspector, and any unsaved
+// draft would read as gone after a restart. The desktop keeps the app's own
+// copy in its data folder: handed back before the page's first script runs
+// (once per app start — a reload keeps what the page wrote since), and
+// kept again shortly after the page writes to it and as the page goes. It
+// is read only when written: a notebook's drafts can be megabytes, not to
+// be copied on the page's thread for nothing.
+const STORAGE_SESSION = 'studio.desktop.storage-session'
+const STORAGE_CHANGED = 'studio-desktop-storage-changed'
+const mirrorWebStorage = () => {
+  // The gate dialog's data: page has no storage of its own.
+  if (location.protocol !== 'http:') return
+  let seed: { session: string; entries: Record<string, string> | null } | null = null
+  try {
+    seed = ipcRenderer.sendSync('studio:web-storage:load')
+  } catch {
+    return
+  }
+  if (!seed) return
+  try {
+    if (localStorage.getItem(STORAGE_SESSION) !== seed.session) {
+      if (seed.entries) {
+        localStorage.clear()
+        for (const [key, value] of Object.entries(seed.entries)) localStorage.setItem(key, value)
+      }
+      localStorage.setItem(STORAGE_SESSION, seed.session)
+    }
+  } catch {
+    return
+  }
+  let kept = ''
+  const snapshot = () => {
+    const entries: Record<string, string> = {}
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index)
+      if (key === null || key === STORAGE_SESSION) continue
+      entries[key] = localStorage.getItem(key) ?? ''
+    }
+    return JSON.stringify({ entries, path: location.pathname })
+  }
+  const keep = (now: boolean) => {
+    let payload = ''
+    try {
+      payload = snapshot()
+    } catch {
+      return
+    }
+    if (payload === kept) return
+    kept = payload
+    if (now) ipcRenderer.sendSync('studio:web-storage:flush', payload)
+    else ipcRenderer.send('studio:web-storage:save', payload)
+  }
+  // The page's own writes say so: its storage is wrapped in the page's
+  // world, where the page writes, and the event crosses to this one.
+  void webFrame.executeJavaScript(`(() => {
+    const changed = () => document.dispatchEvent(new Event(${JSON.stringify(STORAGE_CHANGED)}))
+    for (const name of ['setItem', 'removeItem', 'clear']) {
+      const original = Storage.prototype[name]
+      Storage.prototype[name] = function (...args) {
+        const result = original.apply(this, args)
+        if (this === window.localStorage) changed()
+        return result
+      }
+    }
+  })()`).catch(() => {})
+  // A second after the writes stop, and at least every five seconds while
+  // they go on — typing writes the notebook with every pause.
+  let timer = 0
+  let since = 0
+  document.addEventListener(STORAGE_CHANGED, () => {
+    const now = Date.now()
+    if (!timer) since = now
+    window.clearTimeout(timer)
+    timer = window.setTimeout(() => {
+      timer = 0
+      keep(false)
+    }, Math.max(0, Math.min(1000, since + 5000 - now)))
+  })
+  // A slow safety net for a write made before the wrap was in place.
+  setInterval(() => keep(false), 30_000)
+  addEventListener('pagehide', () => keep(true))
+}
+mirrorWebStorage()

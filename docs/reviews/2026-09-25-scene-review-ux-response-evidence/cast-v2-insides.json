@@ -1,0 +1,154 @@
+[
+	{
+		"rig": {
+			"inside": {
+				"level": "cast-eae420f9-4bb-1-2-s03-rrl-level",
+				"shell": "cast-eae420f9-4bb-1-2-s03-rrl-shell",
+				"extent": {
+					"top": 300,
+					"left": 388,
+					"right": 532,
+					"bottom": 420
+				},
+				"states": [
+					{
+						"fill": 0,
+						"scale": 1,
+						"covered": 0,
+						"outside": 0
+					},
+					{
+						"fill": 0.5,
+						"scale": 1,
+						"covered": 0.46,
+						"outside": 0
+					},
+					{
+						"fill": 1,
+						"scale": 1,
+						"covered": 1,
+						"outside": 0
+					},
+					{
+						"fill": 1,
+						"scale": 1.5,
+						"covered": 1,
+						"outside": 0
+					}
+				],
+				"trimmed": 186,
+				"clipPath": "cast-eae420f9-4bb-1-2-s03-rrl-level-inside",
+				"contained": true
+			},
+			"object": "token-bucket",
+			"pieces": [
+				{
+					"id": "shell",
+					"found": "cast-eae420f9-4bb-1-2-s03-rrl-shell"
+				},
+				{
+					"id": "tokens",
+					"found": null
+				},
+				{
+					"id": "level",
+					"found": "cast-eae420f9-4bb-1-2-s03-rrl-level"
+				},
+				{
+					"id": "inlet",
+					"found": null
+				}
+			],
+			"status": "partial"
+		},
+		"page": "Limit each user",
+		"checks": [
+			"The page drew this as part 2 of 2 in one artwork group; the split is proposed \u2014 confirm it is one thing.",
+			"On the page its level crossed its shell (186 pixels); the rig holds the level inside the shell.",
+			"It asks for the token-bucket rig, but tokens, inlet is not a separate part."
+		],
+		"object": "token-bucket",
+		"libraryKey": "cast-71c55cf8f6dc5405fbe8",
+		"verification": {
+			"notes": [],
+			"status": "verified",
+			"differingRatio": 0
+		}
+	},
+	{
+		"rig": {
+			"inside": {
+				"level": "cast-c4ac823b-132-1-2-s05-bucket-level",
+				"shell": "cast-c4ac823b-132-1-2-s05-bucket-shell",
+				"extent": {
+					"top": 230,
+					"left": 526,
+					"right": 714,
+					"bottom": 392
+				},
+				"states": [
+					{
+						"fill": 0,
+						"scale": 1,
+						"covered": 0,
+						"outside": 0
+					},
+					{
+						"fill": 0.5,
+						"scale": 1,
+						"covered": 0.456,
+						"outside": 0
+					},
+					{
+						"fill": 1,
+						"scale": 1,
+						"covered": 1,
+						"outside": 0
+					},
+					{
+						"fill": 1,
+						"scale": 1.5,
+						"covered": 1,
+						"outside": 0
+					}
+				],
+				"trimmed": 496,
+				"clipPath": "cast-c4ac823b-132-1-2-s05-bucket-level-inside",
+				"contained": true
+			},
+			"object": "token-bucket",
+			"pieces": [
+				{
+					"id": "shell",
+					"found": "cast-c4ac823b-132-1-2-s05-bucket-shell"
+				},
+				{
+					"id": "tokens",
+					"found": null
+				},
+				{
+					"id": "level",
+					"found": "cast-c4ac823b-132-1-2-s05-bucket-level"
+				},
+				{
+					"id": "inlet",
+					"found": null
+				}
+			],
+			"status": "partial"
+		},
+		"page": "The token bucket",
+		"checks": [
+			"The page drew this as part 2 of 2 in one artwork group; the split is proposed \u2014 confirm it is one thing.",
+			"On the page its level crossed its shell (496 pixels); the rig holds the level inside the shell.",
+			"It asks for the token-bucket rig, but tokens, inlet is not a separate part."
+		],
+		"object": "token-bucket",
+		"libraryKey": "cast-04749a557fba75d71c2a",
+		"verification": {
+			"notes": [],
+			"status": "verified",
+			"differingRatio": 0
+		}
+	}
+]

@@ -1,0 +1,275 @@
+{
+	"version": 1,
+	"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+	"plan": {
+		"record": "plan-treatment-0ec488ad-7098-4e7a-bce1-7c3e6a5cbba6",
+		"revision": 5
+	},
+	"composition": {
+		"id": "sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r5",
+		"width": 1920,
+		"height": 1080,
+		"fps": 30,
+		"duration": 26.5
+	},
+	"runtime": { "hyperframes": "0.7.106" },
+	"moments": [
+		{
+			"id": "m1",
+			"title": "Open the limiter",
+			"start": 0,
+			"end": 5.5,
+			"estimated": true
+		},
+		{
+			"id": "m2",
+			"title": "One request, one token",
+			"start": 5.5,
+			"end": 7.5,
+			"estimated": true
+		},
+		{
+			"id": "m3",
+			"title": "A burst outruns the drip",
+			"start": 7.5,
+			"end": 11.5,
+			"estimated": true
+		},
+		{
+			"id": "m4",
+			"title": "Refused",
+			"start": 11.5,
+			"end": 14.8,
+			"estimated": true
+		},
+		{
+			"id": "m5",
+			"title": "Hold on the refill",
+			"start": 14.8,
+			"end": 19.8,
+			"estimated": true
+		},
+		{
+			"id": "m6",
+			"title": "Name the rate",
+			"start": 19.8,
+			"end": 22.6,
+			"estimated": true
+		},
+		{
+			"id": "m7",
+			"title": "Every bucket, in Redis",
+			"start": 22.6,
+			"end": 26.5,
+			"estimated": true
+		}
+	],
+	"layers": [
+		{
+			"id": "background",
+			"kind": "background",
+			"label": "Dark ground with the theme grid (moves with the world, so the m7 pull-back reads)",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "request-rate-limiter",
+			"kind": "object",
+			"label": "Request rate limiter glyph that grows into the bucket (card-morph-anchor)",
+			"moments": ["m1"],
+			"asset": { "libraryKey": "cast-71c55cf8f6dc5405fbe8" }
+		},
+		{
+			"id": "token-bucket",
+			"kind": "object",
+			"label": "Token bucket: cast shell and clipped level recoloured to primary; three tokens that detach and return",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": { "libraryKey": "cast-04749a557fba75d71c2a" }
+		},
+		{
+			"id": "user",
+			"kind": "object",
+			"label": "User chip docked at the bucket's left rim",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": { "libraryKey": "cast-4e8f7fd4476d20bcfb21" }
+		},
+		{
+			"id": "drip",
+			"kind": "object",
+			"label": "Inlet drop: hangs still while full, swells over each beat, falls and lands as a token",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": { "libraryKey": "cast-e402bea443366ccd2f0d" }
+		},
+		{
+			"id": "api",
+			"kind": "object",
+			"label": "Native API endpoint and the dashed route from the user to it",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6"]
+		},
+		{
+			"id": "request",
+			"kind": "object",
+			"label": "Requests A–F on one route; E stops at the rim, turns accent and recoils",
+			"moments": ["m2", "m3", "m4", "m6"],
+			"asset": { "libraryKey": "cast-7e5a78d981cbff2953de" }
+		},
+		{
+			"id": "http-429",
+			"kind": "object",
+			"label": "Accent 429 badge: '429 Too Many Requests'",
+			"moments": ["m4"],
+			"asset": { "libraryKey": "cast-c637a420e8125820e51c" }
+		},
+		{
+			"id": "token-count",
+			"kind": "text",
+			"label": "Mono 'tokens: n' counter rolling on every change",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "term",
+			"kind": "text",
+			"label": "token bucket · one per user",
+			"moments": ["m1"]
+		},
+		{
+			"id": "refill-label",
+			"kind": "text",
+			"label": "refill: N tokens / second",
+			"moments": ["m6", "m7"]
+		},
+		{
+			"id": "redis",
+			"kind": "object",
+			"label": "Redis store panel (native) headed by the cast Redis icon recoloured to primary, labelled 'Redis · every user's bucket'",
+			"moments": ["m7"],
+			"asset": { "libraryKey": "cast-a1847d19888736efd5ec" }
+		},
+		{
+			"id": "other-buckets",
+			"kind": "object",
+			"label": "Four dimmed native buckets at illustrative levels, no counts",
+			"moments": ["m7"]
+		},
+		{
+			"id": "camera",
+			"kind": "camera",
+			"label": "Holds m1–m6; one decelerating pull-back (world scale 1 → 0.5) in m7, no zoom-in",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "sketch-notes",
+			"kind": "caption",
+			"label": "Sketch annotation strip: moment title and the plan's narration guide",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"placeholder": "Annotation only: the plan puts no narration on screen, and no voice exists yet"
+		}
+	],
+	"provisional": [
+		"Timing is estimated from the plan: no voice or take exists yet.",
+		"The drip beat is 4.5 s of screen time (the plan says about 4 s, illustrative), with its clock running from 6.0 s so the ledger's refills land in m3, m5 (twice) and m7. The moment boundaries were adjusted to that beat: m4 3.3 s, m5 5.0 s, m6 2.8 s (estimates 3.5, 4.5, 3).",
+		"No presenter is drawn: voice and presenter visibility are undecided (the plan suggests m1 or m7 only if one is used).",
+		"The sketch-notes strip at the bottom is an annotation for the creator, not scene text.",
+		"The request route is straight tweens along one lane. The plan's MotionPath route is not modelled.",
+		"token-hand-off and refusal-recoil are rough stand-ins for the adapted recipes that construction must build.",
+		"Tokens are native circles placed over the cast bucket, because the cast's token circles are not rigged separately. The shell and clipped level are the cast artwork, recoloured to primary with a lighter primary tint for strokes and tokens.",
+		"The request-rate-limiter glyph (cast-71c55cf8f6dc5405fbe8, formerly cast-be8d129feaa5af3270de, as the plan names it) is recoloured from accent to primary. This keeps the accent for the refusal only; the plan had marked it 'reuse'.",
+		"The API endpoint, token counter, refill label, Redis panel and other users' buckets are native shapes. The other buckets' levels are illustrative.",
+		"The 'refill: N tokens / second' label, which equates the drip with the limiter's N, awaits the creator's confirmation."
+	],
+	"schedule": {
+		"quantity": "tokens in this user's bucket",
+		"capacity": 3,
+		"initial": 3,
+		"rules": [
+			{ "id": "drip", "change": "add", "amount": 1, "every": 4.5, "from": 6.0 }
+		],
+		"pauses": [],
+		"events": [
+			{
+				"at": 6.6,
+				"moment": "m2",
+				"change": "consume",
+				"amount": 1,
+				"after": 2,
+				"layers": ["token-bucket", "token-count", "request"]
+			},
+			{
+				"at": 8.2,
+				"moment": "m3",
+				"change": "consume",
+				"amount": 1,
+				"after": 1,
+				"layers": ["token-bucket", "token-count", "request"]
+			},
+			{
+				"at": 8.75,
+				"moment": "m3",
+				"change": "consume",
+				"amount": 1,
+				"after": 0,
+				"layers": ["token-bucket", "token-count", "request"]
+			},
+			{
+				"at": 10.5,
+				"moment": "m3",
+				"change": "add",
+				"amount": 1,
+				"after": 1,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			},
+			{
+				"at": 11.0,
+				"moment": "m3",
+				"change": "consume",
+				"amount": 1,
+				"after": 0,
+				"layers": ["token-bucket", "token-count", "request"]
+			},
+			{
+				"at": 13.0,
+				"moment": "m4",
+				"change": "refuse",
+				"amount": 0,
+				"after": 0,
+				"needs": 1,
+				"layers": ["request", "http-429"]
+			},
+			{
+				"at": 15.0,
+				"moment": "m5",
+				"change": "add",
+				"amount": 1,
+				"after": 1,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			},
+			{
+				"at": 19.5,
+				"moment": "m5",
+				"change": "add",
+				"amount": 1,
+				"after": 2,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			},
+			{
+				"at": 21.5,
+				"moment": "m6",
+				"change": "consume",
+				"amount": 1,
+				"after": 1,
+				"layers": ["token-bucket", "token-count", "request"]
+			},
+			{
+				"at": 24.0,
+				"moment": "m7",
+				"change": "add",
+				"amount": 1,
+				"after": 2,
+				"rule": "drip",
+				"layers": ["drip", "token-bucket", "token-count"]
+			}
+		]
+	}
+}

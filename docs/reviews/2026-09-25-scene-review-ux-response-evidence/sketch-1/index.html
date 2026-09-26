@@ -1,0 +1,380 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/runtime/gsap.min.js"></script>
+<script src="/runtime/hyperframes.iife.js"></script>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0e0c17; }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0e0c17; font-family: system-ui, sans-serif; color: #ffffff; }
+  .clip { position: absolute; inset: 0; }
+  .abs { position: absolute; display: block; }
+
+  /* background: the theme ground with its faint grid */
+  #bg { position: absolute; inset: 0; background-color: #0e0c17;
+        background-image: linear-gradient(#ffffff0d 1px, transparent 1px), linear-gradient(90deg, #ffffff0d 1px, transparent 1px);
+        background-size: 64px 64px; }
+
+  /* the world: everything the camera sees; only GSAP moves it */
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+
+  /* Redis store panel (revealed by the pull-back) */
+  #redis-panel { left: -1000px; top: 40px; width: 3630px; height: 1040px; border-radius: 54px; box-sizing: border-box;
+                 background: rgba(10, 37, 64, 0.92); border: 5px solid rgba(123, 104, 255, 0.55); opacity: 0; }
+  #redis-icon { left: 70px; top: 50px; width: 174px; height: 144px; }
+  #redis-label { left: 280px; top: 76px; font-size: 84px; font-weight: 650; white-space: nowrap; color: #ffffff; }
+  #redis-label .muted { color: #b1afc0; font-weight: 500; }
+
+  /* other users' buckets */
+  .ob { top: 330px; width: 510px; height: 440px; opacity: 0; }
+  .ob svg { display: block; width: 100%; height: 100%; }
+  .ob-tag { left: 0; top: 452px; width: 510px; text-align: center; font-size: 40px; color: #b1afc0; opacity: 0.8; }
+
+  /* request rate limiter stand-in glyph */
+  #limiter { left: 665px; top: 470px; width: 300px; height: 190px; }
+  #limiter svg { display: block; margin: 0 auto; width: 130px; height: 110px; }
+  #limiter .cap1 { text-align: center; font-size: 24px; color: #b1afc0; margin-top: 10px; }
+  #limiter .cap2 { text-align: center; font-size: 18px; color: #b1afc0; opacity: 0.7; font-family: ui-monospace, monospace; }
+
+  /* our token bucket */
+  #bucket { left: 560px; top: 330px; width: 510px; height: 440px; opacity: 0; }
+  #bucket svg { display: block; width: 100%; height: 100%; }
+  .tok { top: 603px; width: 94px; height: 94px; border-radius: 50%; background: #8f7dff; }
+  #t1, #t4, #t5 { left: 663.8px; }
+  #t2, #t6, #t7 { left: 767.8px; }
+  #t3 { left: 871.8px; }
+
+  /* inlet drop */
+  #drop { left: 794px; top: 170px; width: 42px; height: 65px; opacity: 0; }
+  #drop svg { display: block; width: 100%; height: 100%; }
+
+  /* user chip */
+  #user { left: 385px; top: 275px; width: 110px; height: 110px; border-radius: 26px; box-sizing: border-box;
+          background: #1e1b32; border: 2px solid rgba(99, 91, 255, 0.6); opacity: 0; }
+  #user svg { position: absolute; left: 20px; top: 16px; width: 70px; height: 70px; }
+  #user .tag { position: absolute; left: 0; top: 118px; width: 110px; text-align: center; font-size: 24px; color: #b1afc0; }
+
+  /* API endpoint */
+  #api { left: 1560px; top: 400px; width: 220px; height: 150px; border-radius: 26px; box-sizing: border-box;
+         background: #1e1b32; border: 2px solid rgba(177, 175, 192, 0.4); opacity: 0;
+         font-size: 48px; font-weight: 600; color: #b1afc0; text-align: center; line-height: 146px; }
+
+  /* requests */
+  .req { left: 456px; top: 286px; width: 88px; height: 88px; opacity: 0; }
+  .req .chip, .req .alert { position: absolute; inset: 0; border-radius: 22px; box-sizing: border-box; background: #1e1b32; }
+  .req .chip { border: 3px solid #533afd; }
+  .req .alert { border: 3px solid #ef61ef; opacity: 0; }
+  .req svg { position: absolute; left: 18px; top: 18px; width: 52px; height: 52px; }
+  .req .id { position: absolute; left: 0; top: 94px; width: 88px; text-align: center; font-family: ui-monospace, monospace; font-size: 24px; color: #b1afc0; }
+  #b429 { position: absolute; left: 20px; top: -80px; height: 60px; padding: 0 22px 0 14px; border-radius: 30px;
+          background: #ef61ef; color: #0e0c17; display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+  #b429 svg { position: static; width: 34px; height: 34px; }
+  #b429 .code { font-size: 34px; font-weight: 800; }
+  #b429 .msg { font-size: 26px; font-weight: 600; }
+
+  /* token counter (vertical ticker) */
+  #count { left: 600px; top: 800px; width: 430px; height: 80px; opacity: 0; display: flex; justify-content: center; align-items: center;
+           font-family: ui-monospace, monospace; font-size: 56px; color: #ffffff; }
+  #count .win { position: relative; display: block; width: 40px; height: 68px; overflow: hidden; margin-left: 18px; }
+  #count-col { position: absolute; left: 0; top: 0; width: 40px; display: block; }
+  #count-col div { height: 68px; line-height: 68px; text-align: center; }
+
+  /* refill label */
+  #refill { left: 880px; top: 176px; opacity: 0; white-space: nowrap; }
+  #refill .rate { font-family: ui-monospace, monospace; font-size: 44px; color: #ffffff; }
+  #refill .n { display: inline-block; padding: 0 12px; border-radius: 10px; background: rgba(83, 58, 253, 0.45); }
+  #refill .echo { font-size: 26px; color: #b1afc0; margin-top: 8px; }
+
+  /* headline (screen space) */
+  #headline { left: 120px; top: 90px; font-size: 72px; font-weight: 700; opacity: 0; white-space: nowrap; }
+  #headline .muted { color: #b1afc0; font-weight: 500; }
+
+  /* sketch-only narration guide (screen space) */
+  .cap { position: absolute; left: 120px; right: 120px; bottom: 40px; padding: 16px 28px; border-radius: 18px;
+         background: rgba(10, 9, 16, 0.82); border: 1px dashed rgba(177, 175, 192, 0.45); font-size: 28px; color: #ffffff; }
+  .cap .mid { font-family: ui-monospace, monospace; font-size: 22px; color: #b1afc0; display: block; margin-bottom: 6px; }
+  .cap .quiet { color: #b1afc0; font-style: italic; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r5" data-start="0" data-width="1920" data-height="1080" data-duration="26.5">
+
+  <div id="bg-clip" class="clip" data-start="0" data-duration="26.5" data-track-index="0">
+    <div id="bg" data-sketch-layer="background"></div>
+  </div>
+
+  <div id="stage" class="clip" data-start="0" data-duration="26.5" data-track-index="1">
+    <div id="world">
+
+      <!-- Redis store panel: native layout around the page's Redis icon (accent strokes moved to a primary tint) -->
+      <div id="redis-panel" class="abs" data-sketch-layer="redis">
+        <div id="redis-icon" class="abs" data-sketch-layer="redis">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 48" width="174" height="144" style="display:block;width:100%;height:100%">
+            <g transform="translate(-311 -571)">
+              <rect x="320" y="575" width="40" height="40" rx="6" fill="#7b68ff" fill-opacity="0.16" stroke="#7b68ff" stroke-width="2.2"/>
+              <path d="M314 587 h6 M314 603 h6 M360 587 h6 M360 603 h6" fill="none" stroke="#7b68ff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M343 580 l-10 16 h8 l-4 14 l12 -18 h-8 z" fill="#7b68ff" fill-opacity="0.5" stroke="#7b68ff" stroke-width="1.8" stroke-linejoin="round"/>
+              <circle cx="354" cy="581" r="2.5" fill="#533afd"/>
+            </g>
+          </svg>
+        </div>
+        <div id="redis-label" class="abs" data-sketch-layer="redis-label">Redis <span class="muted">· every user's bucket</span></div>
+      </div>
+
+      <!-- other users' buckets: native, dimmed, illustrative levels, no counts -->
+      <div id="ob1" class="abs ob" style="left:-840px" data-sketch-layer="other-buckets">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169"><defs><clipPath id="ob-clip-1" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs>
+          <g transform="translate(-522 -227)"><path d="M526 230 L554 392 H686 L714 230" fill="#b1afc0" fill-opacity="0.05" stroke="#b1afc0" stroke-opacity="0.45" stroke-width="3" stroke-linejoin="round"/>
+          <rect x="526" y="361.33" width="188" height="30.67" fill="#533afd" fill-opacity="0.28" clip-path="url(#ob-clip-1)"/></g></svg>
+        <div class="abs ob-tag">another user</div>
+      </div>
+      <div id="ob2" class="abs ob" style="left:-140px" data-sketch-layer="other-buckets">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169"><defs><clipPath id="ob-clip-2" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs>
+          <g transform="translate(-522 -227)"><path d="M526 230 L554 392 H686 L714 230" fill="#b1afc0" fill-opacity="0.05" stroke="#b1afc0" stroke-opacity="0.45" stroke-width="3" stroke-linejoin="round"/>
+          <rect x="526" y="300" width="188" height="92" fill="#533afd" fill-opacity="0.28" clip-path="url(#ob-clip-2)"/></g></svg>
+        <div class="abs ob-tag">another user</div>
+      </div>
+      <div id="ob3" class="abs ob" style="left:1260px" data-sketch-layer="other-buckets">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169"><defs><clipPath id="ob-clip-3" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs>
+          <g transform="translate(-522 -227)"><path d="M526 230 L554 392 H686 L714 230" fill="#b1afc0" fill-opacity="0.05" stroke="#b1afc0" stroke-opacity="0.45" stroke-width="3" stroke-linejoin="round"/>
+          <rect x="526" y="386" width="188" height="6" fill="#533afd" fill-opacity="0.28" clip-path="url(#ob-clip-3)"/></g></svg>
+        <div class="abs ob-tag">another user</div>
+      </div>
+      <div id="ob4" class="abs ob" style="left:1960px" data-sketch-layer="other-buckets">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169"><defs><clipPath id="ob-clip-4" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs>
+          <g transform="translate(-522 -227)"><path d="M526 230 L554 392 H686 L714 230" fill="#b1afc0" fill-opacity="0.05" stroke="#b1afc0" stroke-opacity="0.45" stroke-width="3" stroke-linejoin="round"/>
+          <rect x="526" y="330.67" width="188" height="61.33" fill="#533afd" fill-opacity="0.28" clip-path="url(#ob-clip-4)"/></g></svg>
+        <div class="abs ob-tag">another user</div>
+      </div>
+
+      <!-- request rate limiter: labelled native stand-in (its library artwork is not in this packet) -->
+      <div id="limiter" class="abs" data-sketch-layer="request-rate-limiter">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 110">
+          <path d="M12 14 L32 98 H98 L118 14" fill="#b1afc0" fill-opacity="0.08" stroke="#b1afc0" stroke-width="4" stroke-linejoin="round"/>
+          <rect x="3" y="3" width="124" height="104" rx="10" fill="none" stroke="#b1afc0" stroke-opacity="0.4" stroke-width="2" stroke-dasharray="6 6"/>
+        </svg>
+        <div class="cap1">request rate limiter</div>
+        <div class="cap2">stand-in glyph</div>
+      </div>
+
+      <!-- our token bucket: page artwork cast-04749a557fba, recoloured to primary; level kept in its clip -->
+      <div id="bucket" class="abs" data-sketch-layer="token-bucket">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169">
+          <defs><clipPath id="cast-c4ac823b-132-1-2-s05-bucket-level-inside" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs>
+          <g transform="translate(-522 -227)">
+            <path id="cast-c4ac823b-132-1-2-s05-bucket-shell" d="M526 230 L554 392 H686 L714 230" fill="#533afd" fill-opacity="0.1" stroke="#6a55ff" stroke-width="3" stroke-linejoin="round"/>
+            <rect id="cast-c4ac823b-132-1-2-s05-bucket-level" x="526" y="300" width="188" height="92" fill="#533afd" fill-opacity="0.38" clip-path="url(#cast-c4ac823b-132-1-2-s05-bucket-level-inside)"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- tokens: re-rigged as separate circles so each can detach and return -->
+      <div id="t1" class="abs tok" data-sketch-layer="token-bucket"></div>
+      <div id="t2" class="abs tok" data-sketch-layer="token-bucket"></div>
+      <div id="t3" class="abs tok" data-sketch-layer="token-bucket"></div>
+      <div id="t4" class="abs tok" data-sketch-layer="token-bucket"></div>
+      <div id="t5" class="abs tok" data-sketch-layer="token-bucket"></div>
+      <div id="t6" class="abs tok" data-sketch-layer="token-bucket"></div>
+      <div id="t7" class="abs tok" data-sketch-layer="token-bucket"></div>
+
+      <!-- inlet drop: page artwork cast-e402bea44336, recoloured to a primary tint -->
+      <div id="drop" class="abs" data-sketch-layer="drip">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 25">
+          <g transform="translate(-612 -188)"><path d="M620 192 q-9 13 0 18 q9 -5 0 -18 z" fill="#7b68ff" fill-opacity="0.45" stroke="#7b68ff" stroke-width="2"/></g>
+        </svg>
+      </div>
+
+      <!-- user chip: cast-4e8f7fd4476d, unchanged artwork -->
+      <div id="user" class="abs" data-sketch-layer="user">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
+          <g transform="translate(-93 -355)">
+            <circle cx="118" cy="372" r="9" fill="#635bff" fill-opacity="0.16" stroke="#635bff" stroke-width="2.2"/>
+            <path d="M100 400 v-4 a10 10 0 0 1 10 -10 h16 a10 10 0 0 1 10 10 v4" fill="none" stroke="#635bff" stroke-width="2.2" stroke-linecap="round"/>
+          </g>
+        </svg>
+        <div class="tag">user</div>
+      </div>
+
+      <!-- API endpoint: native -->
+      <div id="api" class="abs" data-sketch-layer="api">API</div>
+
+      <!-- requests A–F: page icon cast-7e5a78d981cb, set to the theme primary -->
+      <div id="rA" class="abs req" data-sketch-layer="request"><div class="chip"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#7b68ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></svg>
+        <div class="id">A</div></div>
+      <div id="rB" class="abs req" data-sketch-layer="request"><div class="chip"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#7b68ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></svg>
+        <div class="id">B</div></div>
+      <div id="rC" class="abs req" data-sketch-layer="request"><div class="chip"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#7b68ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></svg>
+        <div class="id">C</div></div>
+      <div id="rD" class="abs req" data-sketch-layer="request"><div class="chip"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#7b68ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></svg>
+        <div class="id">D</div></div>
+      <div id="rE" class="abs req" data-sketch-layer="request"><div class="chip"></div><div class="alert"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#7b68ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></svg>
+        <svg id="rE-accent" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="opacity:0"><g fill="none" stroke="#ef61ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></svg>
+        <div class="id">E</div>
+        <!-- 429 badge: cast-c637a420e812's mark, reduced to a badge in accent -->
+        <div id="b429" data-sketch-layer="http-429">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#0e0c17" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M10 10l4 4m0 -4l-4 4"/></g></svg>
+          <span class="code">429</span><span class="msg">Too Many Requests</span>
+        </div>
+      </div>
+      <div id="rF" class="abs req" data-sketch-layer="request"><div class="chip"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#7b68ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></svg>
+        <div class="id">F</div></div>
+
+      <!-- token counter: native mono readout, always equal to the ledger -->
+      <div id="count" class="abs" data-sketch-layer="token-count">
+        <div>tokens:</div>
+        <div class="win"><div id="count-col"><div>0</div><div>1</div><div>2</div><div>3</div></div></div>
+      </div>
+
+      <!-- refill label: native mono text at the inlet -->
+      <div id="refill" class="abs" data-sketch-layer="refill-label">
+        <div class="rate">refill: <span class="n">N</span> tokens / second</div>
+        <div class="echo">the same N as the request rate limiter's N requests / second</div>
+      </div>
+    </div>
+
+    <div id="headline" class="abs" data-sketch-layer="headline">token bucket <span class="muted">· one per user</span></div>
+  </div>
+
+  <!-- sketch-only narration guide, one clip per moment -->
+  <div id="cap-m1" class="clip" data-start="0" data-duration="5.5" data-track-index="2">
+    <div class="cap" data-sketch-layer="narration-guide"><span class="mid">m1 · Open the limiter · VO draft (no voice yet)</span>“Under the hood, Stripe uses the token bucket algorithm. Every user gets a bucket;”</div>
+  </div>
+  <div id="cap-m2" class="clip" data-start="5.5" data-duration="2.1" data-track-index="2">
+    <div class="cap" data-sketch-layer="narration-guide"><span class="mid">m2 · One request, one token · VO draft</span>“each request takes a token,”</div>
+  </div>
+  <div id="cap-m3" class="clip" data-start="7.6" data-duration="4.2" data-track-index="2">
+    <div class="cap" data-sketch-layer="narration-guide"><span class="mid">m3 · A burst outruns the drip · VO draft</span>“If requests come faster than the drip, the bucket runs empty.”</div>
+  </div>
+  <div id="cap-m4" class="clip" data-start="11.8" data-duration="3.6" data-track-index="2">
+    <div class="cap" data-sketch-layer="narration-guide"><span class="mid">m4 · Refused · VO draft</span>“If the bucket is empty, the request is rejected.”</div>
+  </div>
+  <div id="cap-m5" class="clip" data-start="15.4" data-duration="4.9" data-track-index="2">
+    <div class="cap" data-sketch-layer="narration-guide"><span class="mid">m5 · Hold on the refill</span><span class="quiet">No narration: a held, wordless beat while two drops land</span></div>
+  </div>
+  <div id="cap-m6" class="clip" data-start="20.3" data-duration="2.7" data-track-index="2">
+    <div class="cap" data-sketch-layer="narration-guide"><span class="mid">m6 · Name the rate · VO draft</span>“Fresh tokens drip back in slowly.”</div>
+  </div>
+  <div id="cap-m7" class="clip" data-start="23" data-duration="3.5" data-track-index="2">
+    <div class="cap" data-sketch-layer="narration-guide"><span class="mid">m7 · Every bucket, in Redis · VO draft</span>“The buckets live centrally, in Redis.”</div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {}
+  const tl = gsap.timeline({ paused: true })
+
+  // World geometry (px, world space at camera scale 1)
+  const S = { x: 500, y: 330 }          // request start, at the user chip
+  const M = { x: 960, y: 300 }          // meeting point above the rim
+  const P = { x: 1670, y: 475 }         // API centre
+  const SLOT = { t1: 710.8, t2: 814.8, t3: 918.8, t4: 710.8, t5: 710.8, t6: 814.8, t7: 814.8 }
+  const DROP_X = 815, DROP_FALL = 448
+  const LEVEL = '#cast-c4ac823b-132-1-2-s05-bucket-level'
+  const STEP = 92 / 3                   // level height per token (rig.inside extent 230–392)
+
+  // Initial state (transforms are owned by GSAP, never by CSS)
+  gsap.set('#world', { transformOrigin: '0 0', x: 0, y: 0, scale: 1 })
+  gsap.set('#bucket', { transformOrigin: '50% 50%', scale: 0.28 })
+  gsap.set('#limiter', { transformOrigin: '50% 30%', scale: 1 })
+  gsap.set(['#t1', '#t2', '#t3'], { scale: 0 })
+  gsap.set(['#t4', '#t5', '#t6', '#t7'], { scale: 0.4, opacity: 0 })
+  gsap.set('#user', { x: -160, scale: 0.4 })
+  gsap.set('#drop', { transformOrigin: '50% 30%', x: 0, y: 0, scale: 1 })
+  gsap.set('.req', { x: 0, y: 0 })
+  gsap.set('#b429', { transformOrigin: '0% 100%', scale: 0, opacity: 0 })
+  gsap.set('#count-col', { y: -3 * 68 })
+  gsap.set('#refill', { y: 16 })
+  gsap.set('.ob', { transformOrigin: '50% 100%', scale: 0.6 })
+  gsap.set('#redis-icon', { transformOrigin: '50% 50%', scale: 1 })
+
+  // The ledger's count: level (inside its clip) and the ticker change together
+  function setCount(n, t) {
+    tl.to(LEVEL, { attr: { y: 392 - n * STEP, height: n * STEP }, duration: 0.3, ease: 'power2.out' }, t)
+    tl.to('#count-col', { y: -n * 68, duration: 0.32, ease: 'back.out(2)' }, t)
+  }
+
+  // A request arrives, takes the top token (it brightens to white) and carries it to the API
+  function admit(req, tok, T) {
+    const sx = SLOT[tok.slice(1)]
+    tl.to(req, { opacity: 1, duration: 0.15 }, T - 1.15)
+    tl.to(req, { x: M.x - S.x, y: M.y - S.y, duration: 1.0, ease: 'power2.out' }, T - 1.0)
+    tl.set(tok, { backgroundColor: '#ffffff', boxShadow: '0 0 28px rgba(255,255,255,0.7)' }, T)
+    tl.to(tok, { x: M.x - sx, y: (M.y + 50) - 650, scale: 0.55, duration: 0.25, ease: 'power2.out' }, T)
+    tl.to(req, { x: P.x - S.x, y: P.y - S.y, duration: 0.55, ease: 'power2.in' }, T + 0.25)
+    tl.to(tok, { x: P.x - sx, y: (P.y + 50) - 650, duration: 0.55, ease: 'power2.in' }, T + 0.25)
+    tl.to([req, tok], { opacity: 0, duration: 0.15 }, T + 0.8)
+  }
+
+  // A drop swells over its beat, falls, and lands as a token at L
+  function dripCycle(swellFrom, L, tok) {
+    const sx = SLOT[tok.slice(1)]
+    tl.to('#drop', { scale: 1.35, duration: (L - 0.35) - swellFrom, ease: 'sine.inOut' }, swellFrom)
+    tl.to('#drop', { x: sx - DROP_X, y: DROP_FALL, scale: 0.9, duration: 0.35, ease: 'power2.in' }, L - 0.35)
+    tl.set('#drop', { opacity: 0, x: 0, y: 0, scale: 0.3 }, L)
+    tl.to(tok, { opacity: 1, scale: 1, duration: 0.28, ease: 'back.out(2.5)' }, L)
+    tl.to('#drop', { opacity: 1, duration: 0.25 }, L + 0.05)
+  }
+
+  // m1 · Open the limiter (0–5.5): glyph grows into the bucket; tokens settle; user docks; drop hangs still
+  tl.to('#headline', { opacity: 1, duration: 0.6 }, 0.4)
+  tl.to('#limiter', { scale: 3.2, duration: 1.2, ease: 'power2.inOut' }, 0.9)
+  tl.to('#limiter', { opacity: 0, duration: 0.5 }, 1.5)
+  tl.to('#bucket', { scale: 1, opacity: 1, duration: 1.2, ease: 'power2.inOut' }, 0.9)
+  tl.to(['#t1', '#t2', '#t3'], { scale: 1, duration: 0.45, ease: 'back.out(2.2)', stagger: 0.12 }, 2.1)
+  tl.to('#user', { opacity: 1, x: 0, scale: 1, duration: 0.7, ease: 'back.out(1.6)' }, 2.9)
+  tl.to('#drop', { opacity: 1, duration: 0.4 }, 3.8)
+  tl.to('#headline', { opacity: 0, duration: 0.4 }, 5.3)
+
+  // m2 · One request, one token (5.5–7.6)
+  tl.to('#api', { opacity: 1, duration: 0.4 }, 5.5)
+  tl.to('#count', { opacity: 1, duration: 0.4 }, 5.6)
+  admit('#rA', '#t3', 7.1); setCount(2, 7.1)
+
+  // The drip: steady 4.4 s beat from 6.8 (a no-op while full); lands at 11.2, 15.6, 20.0, 24.4
+  dripCycle(7.1, 11.2, '#t4')
+  dripCycle(11.25, 15.6, '#t5')
+  dripCycle(15.65, 20.0, '#t6')
+  dripCycle(20.05, 24.4, '#t7')
+  tl.to('#drop', { scale: 0.84, duration: 26.5 - 24.45, ease: 'none' }, 24.45)
+
+  // m3 · A burst outruns the drip (7.6–11.8)
+  admit('#rB', '#t2', 8.4); setCount(1, 8.4)
+  admit('#rC', '#t1', 9.3); setCount(0, 9.3)
+  setCount(1, 11.2)                                   // drop lands mid-burst
+  admit('#rD', '#t4', 11.6); setCount(0, 11.6)        // D takes it at once
+
+  // m4 · Refused (11.8–15.4): E stops at the empty rim, turns accent, 429 pops, recoils
+  tl.to('#rE', { opacity: 1, duration: 0.15 }, 11.75)
+  tl.to('#rE', { x: 880 - S.x, y: 308 - S.y, duration: 1.0, ease: 'power3.out' }, 11.9)
+  tl.set('#rE .alert', { opacity: 1 }, 12.9)
+  tl.set('#rE-accent', { opacity: 1 }, 12.9)
+  tl.to('#b429', { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.2)' }, 12.9)
+  tl.to('#rE', { x: 880 - S.x + 14, duration: 0.08, ease: 'sine.inOut', yoyo: true, repeat: 3 }, 13.0)
+  tl.to('#rE', { x: 470 - S.x, y: 200 - S.y, duration: 0.9, ease: 'power2.out' }, 13.45)
+  tl.to('#rE', { opacity: 0, duration: 0.35 }, 15.0)
+
+  // m5 · Hold on the refill (15.4–20.3): two landings one beat apart
+  setCount(1, 15.6)
+  setCount(2, 20.0)
+
+  // m6 · Name the rate (20.3–23.0)
+  tl.to('#refill', { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 20.4)
+  admit('#rF', '#t6', 22.1); setCount(1, 22.1)
+
+  // m7 · Every bucket, in Redis (23.0–26.5): the scene's only camera move
+  tl.to(['#api', '#user'], { opacity: 0, duration: 0.4 }, 23.0)
+  tl.to('#redis-panel', { opacity: 1, duration: 0.7 }, 23.2)
+  tl.to('#world', { x: 569, y: 271, scale: 0.48, duration: 2.6, ease: 'power3.out' }, 23.1)
+  tl.to('.ob', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.7)', stagger: 0.15 }, 23.7)
+  setCount(2, 24.4)                                   // one more drop lands in ours
+  tl.to('#redis-icon', { scale: 1.15, duration: 0.3, ease: 'sine.inOut', yoyo: true, repeat: 1 }, 25.2)
+
+  window.__timelines["sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r5"] = tl
+</script>
+</body>
+</html>

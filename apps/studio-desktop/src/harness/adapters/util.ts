@@ -82,3 +82,9 @@ export const probeVersion = (
       else resolve({ ok: false, reason: `exited with ${code}` })
     })
   })
+
+// The studio tool endpoint for a run. A planning or production run's scope
+// travels in the URL, so the product offers it only its own tools whatever
+// the CLI.
+export const studioMcpUrl = (origin: string, inputs: Record<string, unknown>) =>
+  inputs.capabilityScope === 'planning' || inputs.capabilityScope === 'production' ? `${origin}/mcp?scope=${inputs.capabilityScope}` : `${origin}/mcp`

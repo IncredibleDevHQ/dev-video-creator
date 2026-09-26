@@ -24,7 +24,13 @@ export const coachStateFor = (project: ProjectDocumentV1): { scenes: CoachScene[
     .filter(node => (node.type === 'scene' || node.type === 'slide') && typeof node.attrs?.id === 'string' && node.attrs.id)
     .map((node, index) => {
       const id = String(node.attrs!.id)
-      const brief = (node.attrs?.directorAuto as { recordingBrief?: CoachBrief } | undefined)?.recordingBrief
+      const savedBrief = (node.attrs?.directorAuto as { recordingBrief?: CoachBrief } | undefined)?.recordingBrief
+      const brief = savedBrief ? { ...savedBrief,
+        ...(savedBrief.shots?.some(shot => shot.view === 'animation-full')
+          ? { next: 'Your voice continues while the animation holds the frame.' } : {}),
+        ...(/^(hook|build|close|evidence):/.test(savedBrief.objective || '')
+          ? { objective: String(node.attrs?.title || 'Explain this scene in your own voice.') } : {}),
+      } : undefined
       return {
         id,
         index,

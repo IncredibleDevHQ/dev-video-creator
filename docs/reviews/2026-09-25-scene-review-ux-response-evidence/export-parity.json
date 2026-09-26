@@ -1,0 +1,177 @@
+{
+	"size": "480x270 box-downscaled from 1920x1080",
+	"threshold": 24,
+	"rows": [
+		{
+			"frame": 33,
+			"at": 1.1,
+			"samePixelsOver24": 2662,
+			"sameMean": 3.99,
+			"nearestOther": 159,
+			"otherPixelsOver24": 14489,
+			"otherMean": 11.6
+		},
+		{
+			"frame": 159,
+			"at": 5.3,
+			"samePixelsOver24": 2819,
+			"sameMean": 3.75,
+			"nearestOther": 219,
+			"otherPixelsOver24": 4827,
+			"otherMean": 5.36
+		},
+		{
+			"frame": 219,
+			"at": 7.3,
+			"samePixelsOver24": 1149,
+			"sameMean": 2.72,
+			"nearestOther": 272,
+			"otherPixelsOver24": 5665,
+			"otherMean": 6.88
+		},
+		{
+			"frame": 272,
+			"at": 9.07,
+			"samePixelsOver24": 1434,
+			"sameMean": 2.86,
+			"nearestOther": 219,
+			"otherPixelsOver24": 5676,
+			"otherMean": 7.02
+		},
+		{
+			"frame": 339,
+			"at": 11.3,
+			"samePixelsOver24": 1429,
+			"sameMean": 2.86,
+			"nearestOther": 272,
+			"otherPixelsOver24": 1779,
+			"otherMean": 3.25
+		},
+		{
+			"frame": 438,
+			"at": 14.6,
+			"samePixelsOver24": 1392,
+			"sameMean": 2.81,
+			"nearestOther": 487,
+			"otherPixelsOver24": 4189,
+			"otherMean": 5.08
+		},
+		{
+			"frame": 487,
+			"at": 16.23,
+			"samePixelsOver24": 1149,
+			"sameMean": 2.72,
+			"nearestOther": 438,
+			"otherPixelsOver24": 4182,
+			"otherMean": 5.01
+		},
+		{
+			"frame": 588,
+			"at": 19.6,
+			"samePixelsOver24": 1162,
+			"sameMean": 2.74,
+			"nearestOther": 672,
+			"otherPixelsOver24": 2943,
+			"otherMean": 4.49
+		},
+		{
+			"frame": 672,
+			"at": 22.4,
+			"samePixelsOver24": 1783,
+			"sameMean": 3.28,
+			"nearestOther": 727,
+			"otherPixelsOver24": 47376,
+			"otherMean": 20.05
+		},
+		{
+			"frame": 727,
+			"at": 24.23,
+			"samePixelsOver24": 1689,
+			"sameMean": 3.09,
+			"nearestOther": 672,
+			"otherPixelsOver24": 21456,
+			"otherMean": 18.77
+		},
+		{
+			"frame": 789,
+			"at": 26.3,
+			"samePixelsOver24": 1636,
+			"sameMean": 3.08,
+			"nearestOther": 727,
+			"otherPixelsOver24": 6420,
+			"otherMean": 5.6
+		}
+	],
+	"bucketRegion": {
+		"box": [560, 330, 1050, 750],
+		"rows": [
+			{
+				"frame": 219,
+				"at": 7.3,
+				"bucketPixelsOver24": 1422,
+				"of": 205800,
+				"meanDelta": 3.01
+			},
+			{
+				"frame": 272,
+				"at": 9.07,
+				"bucketPixelsOver24": 2296,
+				"of": 205800,
+				"meanDelta": 2.74
+			},
+			{
+				"frame": 339,
+				"at": 11.3,
+				"bucketPixelsOver24": 2295,
+				"of": 205800,
+				"meanDelta": 2.75
+			},
+			{
+				"frame": 438,
+				"at": 14.6,
+				"bucketPixelsOver24": 2292,
+				"of": 205800,
+				"meanDelta": 2.74
+			},
+			{
+				"frame": 487,
+				"at": 16.23,
+				"bucketPixelsOver24": 1634,
+				"of": 205800,
+				"meanDelta": 2.91
+			},
+			{
+				"frame": 588,
+				"at": 19.6,
+				"bucketPixelsOver24": 1866,
+				"of": 205800,
+				"meanDelta": 2.99
+			},
+			{
+				"frame": 672,
+				"at": 22.4,
+				"bucketPixelsOver24": 1627,
+				"of": 205800,
+				"meanDelta": 2.91
+			},
+			{
+				"frame": 727,
+				"at": 24.23,
+				"bucketPixelsOver24": 3377,
+				"of": 205800,
+				"meanDelta": 4.26
+			}
+		]
+	},
+	"what": "The live sketch 2 exported through the pinned @hyperframes/producer 0.7.106 (the Studio export path), compared with the pinned player at the same instants: whole frames box-downscaled to 480x270, and the bucket region (x 560-1050, y 330-750) at full size. Threshold: a channel differing by more than 24 of 255.",
+	"video": {
+		"width": 1920,
+		"height": 1080,
+		"fps": 30,
+		"frames": 795,
+		"duration": 26.5,
+		"exportSeconds": 26,
+		"warnings": []
+	},
+	"reading": "Same-instant differences sit on text, where the exporter substituted a font for the sketch's ui-monospace family (no @font-face), and on the thin walls from the video's colour subsampling. The bucket's walls, level and tokens coincide: see export-vs-player-bucket.png and export-diff-map.png."
+}

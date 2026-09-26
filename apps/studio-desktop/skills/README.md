@@ -9,6 +9,7 @@ Routed skills in the ppt-master sense: an entry file, a routing table, runtime a
 | `speaker-crew/` | profile for 2–4 speakers, collaboration patterns, the gallery rules (Part III, §26, §29) |
 | `video-producer/` | frame-exact publish, captions, alpha overlays, review sheets |
 | `page-master/` | how to vendor and adapt ppt-master for page creation |
+| `video-planner/` | planning only: the video's Explanation Brief and each scene's creative plan, from a pinned Hyperframes skill bundle (`hyperframes/`, with provenance); never builds |
 
 ## Install
 

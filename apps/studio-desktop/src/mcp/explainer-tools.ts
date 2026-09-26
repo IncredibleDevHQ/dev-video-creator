@@ -1,3 +1,6 @@
+import { validateBoundary, type ActorBoundary } from '../../../studio-v2/src/continuity'
+import { validateQualityReview, type QualityReview } from './quality-checkpoint'
+import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { basename, join, resolve, relative, isAbsolute } from 'node:path'
@@ -11,11 +14,12 @@ import { stageTrackFromShots, type DirectedShot } from '../../../studio-v2/src/s
 import type { SceneProgram } from '../../../studio-v2/src/scene-program'
 import { splitCue } from '../../../studio-v2/src/scene-program'
 import { sceneRevisionPayload, sceneRenderedExtras } from '../../../studio-v2/src/scene-revision'
+import { portableUrl } from '../../../studio-v2/src/studio-refs'
 import type { LibraryArtwork } from '../../../studio-v2/server/appearance-library'
 
 type Args = Record<string, unknown>
 type Context = { origin: string }
-type Proof = { hash: string; errors: string[]; warnings: string[]; frames: Array<{ atMs: number; path: string }>; program: SceneProgram; plan: MotionPlanV2; windows: unknown[]; durationMs: number }
+type Proof = { boundaryState?: ActorBoundary[]; renderHash?: string; renderManifest?: { renderer: string; fonts?: unknown; project: ProjectDocumentV1 }; directorAuto?: unknown; stageTrack?: unknown[]; hash: string; errors: string[]; warnings: string[]; frames: Array<{ atMs: number; path: string }>; program: SceneProgram; plan: MotionPlanV2; windows: unknown[]; durationMs: number }
 // Canonical key order everywhere: the notebook store (PG jsonb) reorders
 // object keys, and run-dir files cross it at finish/export time. Hashing or
 // comparing raw JSON text would report false mismatches after a round-trip.
@@ -164,11 +168,42 @@ const previewTool = (args: Args, context?: Context, chargeBudget = true) => {
     }
     const svg = await readFile(p.svgPath, 'utf8')
     const program = await jsonFile(p.programPath)
-    const result = await runAtomizer<Omit<Proof, 'hash' | 'frames'> & { frames: number[] }>('reviewExplainer', svg, program)
+    if (program.scheduling === 2) {
+      const reference = await jsonFile(join(p.folder, 'reference-scene.json')).catch(() => null)
+      if (!reference) await save(join(p.folder, 'reference-scene.json'), { scene: p.scene })
+      else if (reference.scene !== p.scene) {
+        const accepted = await jsonFile(join(p.folder, 'reference-accepted.json')).catch(() => null)
+        const referenceProof = await jsonFile(join(p.folder, `${reference.scene}.proof.json`)).catch(() => null)
+        if (!accepted || accepted.scene !== reference.scene || accepted.hash !== (referenceProof?.renderHash || referenceProof?.hash)) throw new Error('Accept the representative mechanism and its short export before expanding other scenes')
+      }
+    }
+    const runInputs = await jsonFile(join(p.projectDir, 'motion', 'inputs.json')).catch(() => null)
+    const sourceProject = context && runInputs?.projectId ? (await call<{ project: ProjectDocumentV1 }>(context, `/api/projects/${encodeURIComponent(runInputs.projectId)}`)).project : undefined
+    const story = await jsonFile(join(p.folder, 'story.json')).catch(() => null)
+    const sceneId = story?.scenes?.find((scene: { file: string }) => scene.file === p.scene)?.id
+    const fonts = context && sourceProject ? await call(context, '/api/review-fonts', sourceProject) : undefined
+    const gsapSource = await readFile(createRequire(resolve('package.json')).resolve('gsap/dist/gsap.min.js'), 'utf8')
+    let result = await runAtomizer<Omit<Proof, 'hash' | 'frames'> & { frames: number[] }>('reviewExplainer', svg, program, { gsapSource, fonts, project: sourceProject, sceneId })
+    if (result.renderManifest?.project) {
+      const candidate = result.renderManifest.project
+      const narration = await jsonFile(join(p.folder, `${p.scene}.narration.json`)).catch(() => null)
+      if (narration?.hash === digest(svg, program) && narration.audioUrl) {
+        candidate.presenterTracks['review-scene'] = [{ kind: 'narration', audioUrl: narration.audioUrl, audioKind: narration.alignment === 'selected-take' ? 'recorded-mic' : 'generated', ...(narration.recordingId ? { recordingId: narration.recordingId } : {}) }]
+      }
+      const sceneIndex = Math.max(0, story?.scenes?.findIndex((scene: { file: string }) => scene.file === p.scene) ?? 0)
+      const directed = await runAtomizer<{ storyboard?: unknown; shots?: DirectedShot[]; recordingBrief?: unknown }>('direct', svg, { windows: result.windows, title: story?.scenes?.[sceneIndex]?.title || p.scene, position: { index: sceneIndex, count: story?.scenes?.length || 1 } })
+      const stageTrack = directed?.shots?.length ? stageTrackFromShots(directed.shots, motionPlanOffsetsMs(result.plan).offsets, result.plan.steps.map(step => step.motionWindowMs + step.holdMs)) : []
+      const directorAuto = { storyboard: directed?.storyboard, shots: directed?.shots, recordingBrief: directed?.recordingBrief }
+      candidate.notebook.content[0].attrs = { ...candidate.notebook.content[0].attrs, stageTrack, directorAuto, stagePlacements: null }
+      result = await runAtomizer<Omit<Proof, 'hash' | 'frames'> & { frames: number[] }>('reviewExplainer', svg, program, { gsapSource, fonts, project: candidate, sceneId: 'review-scene' })
+      result.stageTrack = stageTrack
+      result.directorAuto = directorAuto
+    }
     const hash = digest(svg, program)
     // Each revision's frames live under their own content address (issue #16):
     // a later failed revision can never overwrite the retained best's frames.
-    const revision = hash.slice(0, 12)
+    const renderHash = result.renderManifest ? digest(svg, { program, manifest: result.renderManifest }) : hash
+    const revision = renderHash.slice(0, 12)
     const folder = join(p.folder, 'review', p.scene, revision)
     await mkdir(folder, { recursive: true })
     const frames: Proof['frames'] = []
@@ -180,13 +215,16 @@ const previewTool = (args: Args, context?: Context, chargeBudget = true) => {
         frames.push({ atMs, path })
       }
     }
-    const proof = { ...result, frames, hash }
+    const proof = { ...result, frames, hash, renderHash }
     await save(join(p.folder, `${p.scene}.proof.json`), proof)
     // The best retained candidate survives later failed revisions (§5.5): an
     // immutable snapshot of artwork, program and proof that explainer_restore
     // can put back exactly (issue #16).
     if (context && !result.errors.length) {
-      await save(join(p.folder, `${p.scene}.best-proof.json`), proof)
+      // Structural validity retains a candidate; only an explicit quality
+      // decision may replace an existing best candidate.
+      const existingBest = await jsonFile(join(p.folder, `${p.scene}.best-proof.json`)).catch(() => null)
+      if (!existingBest) await save(join(p.folder, `${p.scene}.best-proof.json`), proof)
       const candidate = join(p.folder, 'candidates', p.scene, revision)
       await mkdir(candidate, { recursive: true })
       await writeFile(join(candidate, `${p.scene}.svg`), svg)
@@ -196,7 +234,7 @@ const previewTool = (args: Args, context?: Context, chargeBudget = true) => {
     if (context) {
       await recordStage(context, p.projectDir, 'preview', result.errors.length ? 'failed' : 'succeeded', { scene: p.scene, errors: result.errors, warnings: result.warnings, durationMs: result.durationMs }, p.scene)
     }
-    return { errors: result.errors, warnings: result.warnings, durationMs: result.durationMs, frames, proofPath: join(p.folder, `${p.scene}.proof.json`), instruction: 'Open the frame files and inspect the actual artwork, state changes, readability and motion. A schema pass is not visual approval.' }
+    return { errors: result.errors, warnings: result.warnings, durationMs: result.durationMs, frames, hash: proof.renderHash || proof.hash, proofPath: join(p.folder, `${p.scene}.proof.json`), instruction: 'Open the frame files and inspect the actual artwork, state changes, readability and motion. A schema pass is not visual approval.' }
   })
   reviewQueue = work
   return work
@@ -211,11 +249,11 @@ const restoreTool = async (args: Args, context: Context) => {
   const p = paths(args)
   const requested = String(args.hash || '').trim()
   const best = await jsonFile(join(p.folder, `${p.scene}.best-proof.json`)).catch(() => null) as Proof | null
-  const hash = requested || String(best?.hash || '')
+  const hash = requested || String(best?.renderHash || best?.hash || '')
   if (!hash) throw new Error(`No retained passing candidate for ${p.scene} — preview a passing revision first`)
   const candidate = join(p.folder, 'candidates', p.scene, hash.slice(0, 12))
   const proof = await jsonFile(join(candidate, 'proof.json')).catch(() => null) as Proof | null
-  if (!proof || proof.hash !== hash) throw new Error(`No retained candidate ${hash.slice(0, 12)} for ${p.scene}`)
+  if (!proof || (proof.renderHash || proof.hash) !== hash) throw new Error(`No retained candidate ${hash.slice(0, 12)} for ${p.scene}`)
   if (proof.errors?.length) throw new Error(`The retained candidate for ${p.scene} has review errors; it was never a passing revision`)
   const svg = await readFile(join(candidate, `${p.scene}.svg`), 'utf8')
   const program = await jsonFile(join(candidate, `${p.scene}.program.json`))
@@ -260,7 +298,8 @@ const narrateTool = async (args: Args, context: Context) => {
     const path = join(audioDir, `${name}.mp3`)
     try { await readFile(path) } catch {
       const voice = await call<{ url: string }>(context, '/api/voice', { text: beat.say, projectId: inputs.projectId, referenceId: inputs.voiceReferenceId })
-      const audio = await fetch(voice.url)
+      // Named by its path on the app's own origin (F01 of the fix verification).
+      const audio = await fetch(new URL(portableUrl(voice.url), context.origin))
       if (!audio.ok) throw new Error('Could not read the generated voice')
       await writeFile(path, Buffer.from(await audio.arrayBuffer()))
     }
@@ -293,6 +332,7 @@ const narrateTool = async (args: Args, context: Context) => {
     beat.durationMs = alignment.durationMs
     beat.words = alignment.words
   })
+  if (program.scheduling === 2) program.clock = 'take'
   await save(p.programPath, program)
   // The recompile does not spend the scene's review budget, but a passing
   // narrated revision is still snapshotted as the retained candidate.
@@ -319,15 +359,32 @@ export const readExplainer = async (projectDir: string, origin?: string) => {
   const manifest = await jsonFile(join(projectDir, 'explainer', 'story.json')) as { scenes: Array<{ id: string; file: string; title: string; question: string; answer: string; review: string; assets: string[]; covers?: string[]; cast?: Array<{ key: string; status: string }> }> }
   const inputs = await jsonFile(join(projectDir, 'motion', 'inputs.json'))
   if (!Array.isArray(manifest.scenes) || !manifest.scenes.length) throw new Error('No scenes in explainer/story.json')
-  const scenes: Array<(typeof manifest.scenes)[number] & { svg: string; program: SceneProgram; motion: MotionPlanV2; windows: unknown[]; durationMs: number }> = []
+  const scenes: Array<(typeof manifest.scenes)[number] & { svg: string; program: SceneProgram; motion: MotionPlanV2; windows: unknown[]; durationMs: number; stageTrack?: unknown[]; directorAuto?: unknown; boundaryState?: ActorBoundary[] }> = []
   for (const scene of manifest.scenes) {
     const p = paths({ projectDir, scene: scene.file })
     const svg = await readFile(p.svgPath, 'utf8')
     const program = await jsonFile(p.programPath)
     const proof = await jsonFile(join(p.folder, `${p.scene}.proof.json`)) as Proof
     if (proof.hash !== digest(svg, program) || proof.errors.length || !proof.frames.length) throw new Error(`${scene.file}: render the current revision and fix its errors before finishing`)
+    if (program.scheduling === 2) {
+      const quality = await jsonFile(join(p.folder, `${p.scene}.quality.json`)).catch(() => null)
+      if (!quality || quality.hash !== (proof.renderHash || proof.hash)) throw new Error(`${scene.file}: accept the current composed export with separate quality evidence before finishing`)
+      const reference = await jsonFile(join(p.folder, `${p.scene}.reference.json`))
+      const actual = createHash('sha256').update(await readFile(reference.path)).digest('hex')
+      const errors = validateQualityReview(quality, proof.renderHash || proof.hash, proof.durationMs, reference.hash === (proof.renderHash || proof.hash) && actual === reference.videoHash ? actual : '')
+      if (errors.length) throw new Error(`${scene.file}: ${errors.join('; ')}`)
+    }
     if (!scene.question?.trim() || !scene.answer?.trim() || !scene.review?.trim()) throw new Error(`${scene.file}: explain the causal question, answer, and what the frame review established`)
-    scenes.push({ ...scene, svg, program: proof.program, motion: proof.plan, windows: proof.windows, durationMs: proof.durationMs })
+    scenes.push({ ...scene, svg, program: proof.program, motion: proof.plan, windows: proof.windows, durationMs: proof.durationMs, stageTrack: proof.stageTrack, directorAuto: proof.directorAuto, boundaryState: proof.boundaryState })
+  }
+  for (let index = 1; index < scenes.length; index++) {
+    const incoming = scenes[index].program.initialState
+    if (!incoming?.length) continue
+    const outgoing = scenes[index - 1].boundaryState || []
+    const carried = outgoing.filter(actor => incoming.some(next => next.id === actor.id))
+    if (carried.length !== incoming.length) throw new Error('A carried actor is absent from the previous boundary')
+    const problems = validateBoundary({ kind: 'carry', reason: 'Explicit carried state', outgoingSubject: scenes[index - 1].id, incomingSubject: scenes[index].id, readableMs: 200, actors: carried }, incoming)
+    if (problems.length) throw new Error(problems.join('; '))
   }
   // Lineage, not counting (D3): a reviewed scene declares the input scenes
   // it covers — a split shares one input across several scenes, a merge
@@ -344,6 +401,17 @@ export const readExplainer = async (projectDir: string, origin?: string) => {
   }
   const missing = inputs.scenes.filter((s: { id: string }) => !covered.has(s.id))
   if (missing.length) throw new Error(`Every input scene must be covered by a reviewed derivative; nothing covers: ${missing.map((s: { id: string }) => s.id).join(', ')}`)
+  if (origin && scenes.some(scene => scene.program.beats.some(beat => beat.events?.some(event => event.behavior)))) {
+    const response = await fetch(`${origin}/api/appearance/library`)
+    if (!response.ok) throw new Error('Could not verify reusable behavior versions')
+    const { assets } = await response.json() as { assets: LibraryArtwork[] }
+    for (const scene of scenes) for (const event of scene.program.beats.flatMap(beat => [beat, ...(beat.then || [])]).flatMap(beat => beat.events || [])) {
+      if (!event.behavior) continue
+      const definition = event.behavior.definition
+      const registered = assets.find(asset => asset.key === definition.artworkKey)?.behaviors?.find(behavior => behavior.key === definition.key)
+      if (!registered || stableStringify(registered) !== stableStringify(definition)) throw new Error(`${scene.file}: behavior ${definition.key} is not the exact accepted library version`)
+    }
+  }
   // Cast receipts (D4): when the server is reachable, every artwork marker
   // must resolve to the accepted library asset with its real geometry — a
   // forged or empty marker cannot pass rich completion.
@@ -405,6 +473,7 @@ const finishTool = async (args: Args, context: Context) => {
   const projectDir = String(args.projectDir || '')
   const { scenes, inputs } = await readExplainer(projectDir, context.origin)
   const { project } = await call<{ project: ProjectDocumentV1 }>(context, `/api/projects/${encodeURIComponent(inputs.projectId)}`)
+  const expectedProject = structuredClone(project)
   if (!project?.derivedFrom?.notebook) throw new Error('Build an explainer in a derived video notebook; the base is preserved')
   const previous = await jsonFile(join(projectDir, 'explainer', 'receipt.json')).catch(() => null)
   // The applied snapshot is the complete scene revision: a page that still
@@ -452,7 +521,7 @@ const finishTool = async (args: Args, context: Context) => {
   // changes: a missing or stale record anywhere fails the whole finish here,
   // with the notebook and every take selection exactly as they were. (The
   // durable take clears collected below fire only after the project PUT.)
-  type NarrationRecord = { hash?: string; audioUrl?: string; alignment?: string; review?: Array<{ beat: number; note: string }> }
+  type NarrationRecord = { recordingId?: string; sourceTakeAudioUrl?: string; hash?: string; audioUrl?: string; alignment?: string; review?: Array<{ beat: number; note: string }> }
   const narrations = new Map<string, { audioUrl: string; recorded: boolean; narration: NarrationRecord }>()
   for (const scene of scenes) {
     const narration = await jsonFile(join(projectDir, 'explainer', `${scene.file}.narration.json`)).catch(() => null) as NarrationRecord | null
@@ -462,6 +531,15 @@ const finishTool = async (args: Args, context: Context) => {
     // The human path's narration record is the selected take: the export must
     // carry the person's voice, not a guide-voice substitute.
     const recorded = narration.alignment === 'selected-take'
+    const selectedTake = project.recordedBlocks?.[scene.id]
+    const alignedTakeId = narration.recordingId || inputNamed(coversOf(scene)[0])?.recordingId
+    const alignedTakeUrl = narration.sourceTakeAudioUrl || inputNamed(coversOf(scene)[0])?.takeAudioUrl
+    if (recorded && alignedTakeId && selectedTake?.recordingId !== alignedTakeId) {
+      throw new Error(`${scene.file}: the selected take changed; align and review the selected take again`)
+    }
+    if (recorded && alignedTakeUrl && alignedTakeUrl !== (selectedTake?.keepsPlan && selectedTake.cameraUrl ? selectedTake.cameraUrl : selectedTake?.videoUrl)) {
+      throw new Error(`${scene.file}: the selected take media changed; align and review it again`)
+    }
     // An aligned take whose latest alignment still reports needs-input (an
     // unresolved pickup) blocks the finish — the run waits for the person;
     // it never completes over a beat the take did not say as written.
@@ -493,6 +571,7 @@ const finishTool = async (args: Args, context: Context) => {
       project.blocks[scene.id] = structuredClone(project.blocks[String(parentNode.attrs?.id)] || createDefaultBlockConfig(scene.id, cloned))
       node = cloned
     }
+    if (scene.program.initialState?.length) project.blocks[scene.id].frameTransition = { style: 'cut', durationSeconds: 0 }
     const earlier = node.attrs?.explainer as { previousPresenterTracks?: unknown; previousRecording?: unknown } | undefined
     const previousTracks = project.presenterTracks?.[scene.id]
     const previousRecording = project.recordedBlocks?.[scene.id]
@@ -501,9 +580,10 @@ const finishTool = async (args: Args, context: Context) => {
     // reviewed content (D6): the pre-build directorAuto is stale by index, so
     // it is replaced, not carried. Without a working renderer the scene keeps
     // no staging claims rather than stale ones.
-    let stageTrack: unknown[] = []
-    let directorAuto: unknown = null
+    let stageTrack: unknown[] = scene.stageTrack || []
+    let directorAuto: unknown = scene.directorAuto || null
     try {
+      if (!scene.stageTrack) {
       const directed = await runAtomizer<{ storyboard?: unknown; shots?: DirectedShot[]; recordingBrief?: unknown }>(
         'direct',
         scene.svg,
@@ -513,6 +593,7 @@ const finishTool = async (args: Args, context: Context) => {
         const { offsets } = motionPlanOffsetsMs(scene.motion)
         stageTrack = stageTrackFromShots(directed.shots, offsets, scene.motion.steps.map(step => step.motionWindowMs + step.holdMs))
         directorAuto = { storyboard: directed.storyboard, shots: directed.shots, recordingBrief: directed.recordingBrief }
+      }
       }
     } catch {
       // No renderer on this host: the scene applies without staging claims.
@@ -542,13 +623,13 @@ const finishTool = async (args: Args, context: Context) => {
       takeClears.push(scene.id)
     }
     project.presenterTracks ||= {}
-    project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl, audioKind: recorded ? 'recorded-mic' : 'generated' }]
+    project.presenterTracks[scene.id] = [{ kind: 'narration', audioUrl, audioKind: recorded ? 'recorded-mic' : 'generated', ...(recorded && previousRecording ? { recordingId: previousRecording.recordingId } : {}) }]
     // The pin of exactly what was reviewed AND is now applied (issue #17):
     // the complete scene revision plus everything else the export draws or
     // plays — camera, duration, the narration track and the take identity. A
     // later edit keeps the reviewed boolean but breaks the pin, and staleness
     // becomes visible (§3.9) and blocking at export.
-    rendered[scene.id] = revisionDigest(node.attrs, sceneRenderedExtras(project.blocks[scene.id], project.presenterTracks[scene.id], project.recordedBlocks?.[scene.id]))
+    rendered[scene.id] = revisionDigest(node.attrs, sceneRenderedExtras(project.blocks[scene.id], project.presenterTracks[scene.id], project.recordedBlocks?.[scene.id], project))
     ;(node.attrs.explainer as Record<string, unknown>).hash = rendered[scene.id]
     applied[scene.id] = snapshot(node.attrs)
     // Merged-away pages leave the notebook; their origin lives on in the survivor.
@@ -578,17 +659,20 @@ const finishTool = async (args: Args, context: Context) => {
     if (project.recordedBlocks) delete project.recordedBlocks[input.id]
     takeClears.push(input.id)
   }
-  await call(context, `/api/projects/${encodeURIComponent(project.id)}`, project, 'PUT')
-  // Selections retire only now that the notebook is durably applied: a finish
-  // that failed above left every project page and take selection untouched.
-  for (const blockId of takeClears) {
-    await call(context, '/api/takes/clear', { projectId: project.id, blockId }).catch(() => {})
-  }
+  await call(context, `/api/projects/${encodeURIComponent(project.id)}`, { project, expectedProject, clearTakeBlocks: takeClears }, 'PUT')
   const preview = await call(context, '/api/preview', { project })
   const cast = Object.fromEntries(scenes.map(scene => [scene.id, (scene.cast || []).map(entry => `${entry.key}:${entry.status}`)]))
   await save(join(projectDir, 'explainer', 'receipt.json'), { projectId: project.id, scenes: scenes.length, applied, rendered, cast, preview, at: new Date().toISOString() })
   await recordStage(context, projectDir, 'finish', 'succeeded', { scenes: scenes.length, projectId: project.id })
   return { projectId: project.id, scenes: scenes.length, preview, next: 'The reviewed editable scenes are saved. Use explainer_export to render the video after narration is attached.' }
+}
+
+const renderOrAttach = async (project: ProjectDocumentV1, context: Context, durable: boolean): Promise<{ url: string; durationSeconds: number } | { pending: true; jobId: string; instruction: string }> => {
+  if (!durable) return call(context, '/api/render', project)
+  const { job } = await call<{ job: { id: string; status: string; error?: string; result?: { url: string; durationSeconds: number } } }>(context, '/api/exports', project)
+  if (job.status === 'stored' && job.result) return job.result
+  if (job.status === 'failed' || job.status === 'cancelled') throw new Error(job.error || `Export ${job.status}`)
+  return { pending: true, jobId: job.id, instruction: 'The durable export continues independently. Call this tool again to reattach to the same manifest; do not start another build.' }
 }
 
 const exportTool = async (args: Args, context: Context) => {
@@ -606,12 +690,13 @@ const exportTool = async (args: Args, context: Context) => {
     // anything the render would draw or play. Receipts from before the pin
     // fall back to the svg/program/duration compare.
     if (receipt.rendered?.[scene.id]) {
-      const current = revisionDigest(node?.attrs as Record<string, unknown> | undefined, sceneRenderedExtras(project.blocks?.[scene.id], project.presenterTracks?.[scene.id], project.recordedBlocks?.[scene.id]))
+      const current = revisionDigest(node?.attrs as Record<string, unknown> | undefined, sceneRenderedExtras(project.blocks?.[scene.id], project.presenterTracks?.[scene.id], project.recordedBlocks?.[scene.id], project))
       if (!node || current !== receipt.rendered[scene.id]) throw new Error('The saved scene differs from its reviewed performance — motion, staging, camera or audio changed after the finish. Re-apply with explainer_finish (an unchanged review re-pins the presentation) or build again.')
     } else if (node?.attrs?.svg !== scene.svg || stableStringify(node.attrs.program) !== stableStringify(scene.program) || project.blocks[scene.id]?.durationMs !== scene.durationMs) throw new Error('The saved scene differs from its reviewed performance. Apply it with explainer_finish before exporting.')
   }
-  const result = await call<{ url: string; durationSeconds: number }>(context, '/api/render', project)
-  const response = await fetch(result.url)
+  const result = await renderOrAttach(project, context, scenes.some(scene => scene.program.scheduling === 2))
+  if ('pending' in result) return result
+  const response = await fetch(new URL(portableUrl(result.url), context.origin))
   if (!response.ok) throw new Error('Export completed but its video could not be inspected')
   const videoPath = join(projectDir, 'explainer', 'export.mp4')
   const videoBuffer = Buffer.from(await response.arrayBuffer())
@@ -642,6 +727,87 @@ const exportTool = async (args: Args, context: Context) => {
   return exported
 }
 
+const composedFrameTool = (args: Args) => {
+  const work = reviewQueue.catch(() => {}).then(async () => {
+    const p = paths(args)
+    const proof = await jsonFile(join(p.folder, `${p.scene}.proof.json`)) as Proof
+    const svg = await readFile(p.svgPath, 'utf8'), program = await jsonFile(p.programPath)
+    if (!proof.renderManifest || proof.hash !== digest(svg, program) || args.revision !== proof.renderHash) throw new Error('Request the current immutable render revision')
+    const gsapSource = await readFile(createRequire(resolve('package.json')).resolve('gsap/dist/gsap.min.js'), 'utf8')
+    const result = await runAtomizer<{ schedule: unknown; errors: string[] }>('reviewExplainer', svg, program, { project: proof.renderManifest.project, sceneId: 'review-scene', fonts: proof.renderManifest.fonts, gsapSource })
+    const atMs = Math.round(Math.max(0, Math.min(proof.durationMs, Number(args.atMs) || 0)) * proof.renderManifest.project.fps / 1000) * 1000 / proof.renderManifest.project.fps
+    const frame = await runAtomizer('explainerFrame', atMs)
+    const folder = join(p.folder, 'review', p.scene, proof.renderHash!.slice(0, 12)); await mkdir(folder, { recursive: true })
+    const path = join(folder, `inspect-${Math.round(atMs)}.png`); await writeFile(path, await captureHiddenPage())
+    return { revision: proof.renderHash, path, frame, schedule: result.schedule, errors: result.errors }
+  })
+  reviewQueue = work; return work
+}
+const importObjectTool = async (args: Args, context: Context) => {
+  const p = paths(args)
+  const { assets } = await call<{ assets: LibraryArtwork[] }>(context, '/api/appearance/library')
+  const artwork = assets.find(asset => asset.key === args.key && asset.accepted)
+  if (!artwork) throw new Error('Choose an accepted library version')
+  const svg = await readFile(p.svgPath, 'utf8')
+  const imported = await runAtomizer<string>('wearAppearance', svg, String(args.unit), artwork)
+  if (imported === svg) throw new Error('The scene does not contain a placeable object with that ID')
+  await writeFile(p.svgPath, imported)
+  return { svgPath: p.svgPath, key: artwork.key, behaviors: artwork.behaviors || [], next: 'Bind the required parts and preview this changed render revision.' }
+}
+
+const referenceExportTool = async (args: Args, context: Context) => {
+  const p = paths(args)
+  const proof = await jsonFile(join(p.folder, `${p.scene}.proof.json`))
+  if (proof.errors?.length || !proof.renderManifest?.project) throw new Error('Preview a passing composed candidate first')
+  const narration = await jsonFile(join(p.folder, `${p.scene}.narration.json`))
+  if (narration.hash !== proof.hash || !narration.audioUrl) throw new Error('Narration must match the reference candidate')
+  const project = proof.renderManifest.project as ProjectDocumentV1
+  const id = String(project.notebook.content[0].attrs!.id)
+  if (!project.presenterTracks[id]?.some(track => track.kind === 'narration' && track.audioUrl === narration.audioUrl)) throw new Error('Preview again to bind the current narration to the immutable render manifest')
+  const result = await renderOrAttach(project, context, true)
+  if ('pending' in result) return result
+  const response = await fetch(new URL(portableUrl(result.url), context.origin))
+  if (!response.ok) throw new Error('Reference export could not be downloaded')
+  const bytes = Buffer.from(await response.arrayBuffer())
+  const path = join(p.folder, `${p.scene}.reference.mp4`)
+  await writeFile(path, bytes)
+  const exported = { hash: proof.renderHash || proof.hash, sourceHash: proof.hash, videoHash: createHash('sha256').update(bytes).digest('hex'), path, url: result.url, durationMs: result.durationSeconds * 1000 }
+  if (Math.abs(exported.durationMs - proof.durationMs) > 100) throw new Error('Reference export duration differs from the reviewed clock')
+  await save(join(p.folder, `${p.scene}.reference.json`), exported)
+  return { ...exported, next: 'View the actual video and listen. Record separate render/design/causal/viewing evidence with explainer_accept before expanding the story.' }
+}
+const acceptQualityTool = async (args: Args, context: Context) => {
+  const p = paths(args)
+  const proof = await jsonFile(join(p.folder, `${p.scene}.proof.json`)) as Proof
+  const exported = await jsonFile(join(p.folder, `${p.scene}.reference.json`))
+  const review = args.review as QualityReview
+  if (!review || proof.errors.length) throw new Error('A passing candidate and concrete quality review are required')
+  const errors = validateQualityReview(review, proof.renderHash || proof.hash, proof.durationMs, exported.hash === (proof.renderHash || proof.hash) ? exported.videoHash : '')
+  if (errors.length) throw new Error(errors.join('; '))
+  const actual = createHash('sha256').update(await readFile(exported.path)).digest('hex')
+  if (actual !== exported.videoHash) throw new Error('The reviewed export has changed')
+  await save(join(p.folder, `${p.scene}.quality.json`), review)
+  const previous = await jsonFile(join(p.folder, `${p.scene}.best-quality.json`)).catch(() => null)
+  if (!previous || review.score > previous.score || (review.score === previous.score && review.limitations.length < previous.limitations.length)) {
+    await save(join(p.folder, `${p.scene}.best-quality.json`), review)
+    await save(join(p.folder, `${p.scene}.best-proof.json`), proof)
+  }
+  await save(join(p.folder, 'reference-accepted.json'), { scene: p.scene, hash: proof.renderHash || proof.hash, exportHash: exported.videoHash })
+  await recordStage(context, p.projectDir, 'quality', 'succeeded', { scene: p.scene, review }, p.scene)
+  return { accepted: true, hash: proof.renderHash || proof.hash, limitations: review.limitations }
+}
+const registerRepairTool = async (args: Args, context: Context) => {
+  const projectDir = String(args.projectDir)
+  const svg = await readFile(local(projectDir, String(args.svgPath)), 'utf8')
+  const review = await jsonFile(local(projectDir, String(args.reviewPath)))
+  if (!Array.isArray(review.frames) || !review.frames.length) throw new Error('A repair needs captured frame evidence')
+  for (const frame of review.frames) {
+    const bytes = await readFile(local(projectDir, String(frame)))
+    if (bytes.length < 100) throw new Error('Repair frame evidence is empty')
+  }
+  return call(context, '/api/appearance/register', { parentKey: args.parentKey, svg, behaviors: args.behaviors, review })
+}
+
 const alignTakeTool = async (args: Args, context: Context) => {
   const p = paths(args)
   const program = await jsonFile(p.programPath) as SceneProgram
@@ -652,7 +818,8 @@ const alignTakeTool = async (args: Args, context: Context) => {
   if (!audioPath) {
     const audioUrl = String(args.audioUrl || '')
     if (!audioUrl) throw new Error('Give the take audio as a run file (audioPath) or a stored object URL (audioUrl)')
-    const response = await fetch(/^https?:/.test(audioUrl) ? audioUrl : `${context.origin}${audioUrl}`)
+    // A stored object is read on the app's origin now, whatever port wrote it.
+    const response = await fetch(new URL(portableUrl(audioUrl), context.origin))
     if (!response.ok) throw new Error('Could not read the take audio')
     audioPath = join(audioDir, 'take-source.mp3')
     await writeFile(audioPath, Buffer.from(await response.arrayBuffer()))
@@ -697,7 +864,7 @@ const alignTakeTool = async (args: Args, context: Context) => {
   program.beats.forEach((beat, index) => {
     const next = aligned.beats[index + 1]
     const endMs = next ? next.startMs : takeEndMs || beatStartMs[index] + (beat.durationMs || 2000)
-    beat.durationMs = Math.max(400, Math.round(endMs - beatStartMs[index]))
+    beat.durationMs = Math.max(1, Math.round(endMs - beatStartMs[index]))
   })
   // Measured times are the whole beat: the compiler must not pad its own
   // holds between them, or the scene would drift off the take's clock.
@@ -715,7 +882,11 @@ const alignTakeTool = async (args: Args, context: Context) => {
   // The receipt is also the alignment verdict (§3.8): unresolved pickups ride
   // it as `review`, and the finish refuses a scene whose latest take still
   // needs input — a needs-input beat is a wait, never a completable review.
-  await save(join(p.folder, `${p.scene}.narration.json`), { hash: digest(sceneSvg, program), audioUrl: track.url, alignment: 'selected-take', durationMs: program.beats.reduce((sum, beat) => sum + (beat.durationMs || 0), 0), ...(review.length ? { review } : {}) })
+  const story = await jsonFile(join(p.folder, 'story.json')).catch(() => null)
+  const sceneId = story?.scenes?.find((scene: { file?: string }) => scene.file === p.scene)?.id || p.scene
+  const takeInput = inputs.scenes?.find((scene: { id?: string }) => scene.id === sceneId)
+  if (args.audioUrl && takeInput?.takeAudioUrl && args.audioUrl !== takeInput.takeAudioUrl) throw new Error('The alignment audio is not the selected input take')
+  await save(join(p.folder, `${p.scene}.narration.json`), { hash: digest(sceneSvg, program), audioUrl: track.url, alignment: 'selected-take', ...(takeInput?.recordingId ? { recordingId: takeInput.recordingId } : {}), ...(takeInput?.takeAudioUrl ? { sourceTakeAudioUrl: takeInput.takeAudioUrl } : {}), durationMs: program.beats.reduce((sum, beat) => sum + (beat.durationMs || 0), 0), ...(review.length ? { review } : {}) })
   // Same recompile rule as narration: no budget spent, but a passing
   // take-aligned revision is snapshotted as the retained candidate.
   const preview = await previewTool(args, context, false)
@@ -838,7 +1009,7 @@ const statusTool = async (args: Args, context: Context) => {
     // camera, narration and the take identity are what the export draws.
     const project = projectResponse?.project
     if (receipt?.rendered?.[scene.id] && node?.attrs && project) {
-      const current = revisionDigest(node.attrs as Record<string, unknown>, sceneRenderedExtras(project.blocks?.[scene.id], project.presenterTracks?.[scene.id], project.recordedBlocks?.[scene.id]))
+      const current = revisionDigest(node.attrs as Record<string, unknown>, sceneRenderedExtras(project.blocks?.[scene.id], project.presenterTracks?.[scene.id], project.recordedBlocks?.[scene.id], project))
       if (current !== receipt.rendered[scene.id]) stale.push('the rendered performance diverged from the finish (motion, staging, camera or audio) — re-apply or rebuild before exporting')
     }
     rows.push({ scene: scene.id, file: scene.file, hash, fresh: !stale.length, stale })
@@ -848,6 +1019,11 @@ const statusTool = async (args: Args, context: Context) => {
 
 const common = { projectDir: { type: 'string', description: 'Absolute run project directory' } }
 export const EXPLAINER_TOOLS = [
+  { name: 'explainer_frame', description: 'Seek an immutable composed review revision on the project frame clock. Returns the exact frame, resolved schedule and visible part bounds.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, revision: { type: 'string' }, atMs: { type: 'number' } }, required: ['projectDir', 'scene', 'revision', 'atMs'] }, call: composedFrameTool },
+  { name: 'explainer_import', description: 'Place an accepted library SVG with the same import helper as the editor. Preserves paint, source viewport, named parts and per-instance references.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, unit: { type: 'string' }, key: { type: 'string' } }, required: ['projectDir', 'scene', 'unit', 'key'] }, call: importObjectTool },
+  { name: 'explainer_reference_export', description: 'Render the current narrated reference scene as a real short MP4 before expanding the story.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: referenceExportTool },
+  { name: 'explainer_accept', description: 'Persist separate render, design, causal and viewing/listening evidence bound to the current candidate and reference MP4. Only explicit acceptance ranks a candidate as best.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, review: { type: 'object' } }, required: ['projectDir', 'scene', 'review'] }, call: acceptQualityTool },
+  { name: 'explainer_register_repair', description: 'Register a reviewed local SVG repair and named behaviors as an immutable reusable library version of an accepted parent.', inputSchema: { type: 'object', properties: { ...common, parentKey: { type: 'string' }, svgPath: { type: 'string' }, reviewPath: { type: 'string' }, behaviors: { type: 'array', items: { type: 'object' } } }, required: ['projectDir', 'parentKey', 'svgPath', 'reviewPath'] }, call: registerRepairTool },
   { name: 'explainer_asset', description: 'Reuse, generate, edit or animate a rich Quiver SVG. Uses the server credential and permanent asset library. Returns local SVG and metadata paths, never credentials.', inputSchema: { type: 'object', properties: { ...common, operation: { enum: ['list', 'generate', 'edit', 'animate'] }, briefPath: { type: 'string' }, brief: { type: 'object' }, key: { type: 'string' }, prompt: { type: 'string' } }, required: ['projectDir', 'operation'] }, call: assetTool },
   { name: 'explainer_preview', description: 'Compile explainer/<scene>.svg and .program.json using the production player; validate and capture before/action/settled frames. Re-run after every edit.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' } }, required: ['projectDir', 'scene'] }, call: previewTool },
   { name: 'explainer_restore', description: 'Restore a retained passing candidate (the best by default, or a given proof hash) as the scene\'s working revision — its artwork, program, timing and original frames. Use when the review budget is spent or a later revision regressed.', inputSchema: { type: 'object', properties: { ...common, scene: { type: 'string' }, hash: { type: 'string', description: 'Full hash of the candidate to restore; defaults to the retained best' } }, required: ['projectDir', 'scene'] }, call: restoreTool },

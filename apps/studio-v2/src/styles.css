@@ -95,11 +95,49 @@ h1, h2, h3, h4, strong { font-family: 'Gilroy', sans-serif; }
 .tiptap h1 { font-size: 36px; line-height: 1.12; letter-spacing: -.035em; }
 .tiptap h2 { margin-top: 32px; font-size: 24px; letter-spacing: -.025em; }
 .tiptap h3 { font-size: 17px; }
-.tiptap p, .tiptap li, .tiptap blockquote { font-size: 15px; line-height: 1.75; }
-.tiptap ul, .tiptap ol { padding-left: 30px; }
+/* The document's type stops at a scene review, which the editor hosts but
+   sets its own (F6 of the Perplexity review); same specificity as before. */
+:where(.tiptap) :is(p, li, blockquote):not(.scene-review *) { font-size: 15px; line-height: 1.75; }
+:where(.tiptap) :is(ul, ol):not(.scene-review *) { padding-left: 30px; }
 .tiptap blockquote { border-left: 3px solid var(--brand); color: var(--muted); }
 .tiptap pre { padding: 16px; background: #111827 !important; color: #f9fafb; font: 11px/1.65 'Roboto Mono', monospace; }
 .tiptap code { font-family: 'Roboto Mono', monospace; }
+/* F2: pages still being designed after the notebook opened. */
+.page-design-status { position: sticky; top: 8px; z-index: 6; display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 9px 12px; border: 1px solid #bfdbfe; border-radius: 9px; background: #eff6ff; color: #1e3a8a; font: 12.5px/1.45 'InterBody', Inter, system-ui, sans-serif; }
+.page-design-status[hidden] { display: none; }
+.page-design-status span { flex: 1 1 auto; min-width: 0; }
+/* R02: a notebook still being made shows the job, not an empty starter. */
+.notebook-job { display: grid; gap: 10px; margin: 0 0 16px; padding: 14px 16px; border: 1px solid #bfdbfe; border-radius: 10px; background: #f8fbff; color: #1e3a8a; font: 13px/1.5 'InterBody', Inter, system-ui, sans-serif; }
+.notebook-job[hidden] { display: none; }
+.notebook-job p { margin: 0; }
+.notebook-job-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.notebook-job-mark { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, .18); animation: notebook-job-pulse 1.6s ease-in-out infinite; }
+.notebook-job-title { display: grid; flex: 1 1 auto; min-width: 0; }
+.notebook-job-title strong { color: #172554; font-size: 14px; }
+.notebook-job-title span { color: #3b5b9a; font-size: 12px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notebook-job-actions { display: flex; flex: none; gap: 6px; }
+.notebook-job-actions .button { white-space: nowrap; }
+.notebook-job-activity { color: #3b5b9a; font-size: 12px; }
+.notebook-job-pages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.notebook-job-pages[hidden] { display: none; }
+.notebook-job-pages span { aspect-ratio: 16 / 9; border-radius: 8px; background: linear-gradient(90deg, #e0ecfb 0%, #eef4fd 50%, #e0ecfb 100%); background-size: 200% 100%; animation: notebook-job-shimmer 1.8s linear infinite; }
+.notebook-job.is-error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.notebook-job.is-error .notebook-job-title strong { color: #7f1d1d; }
+.notebook-job.is-error .notebook-job-title span { color: #b45353; }
+.notebook-job.is-error .notebook-job-mark { background: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, .15); animation: none; }
+@keyframes notebook-job-pulse { 50% { box-shadow: 0 0 0 7px rgba(59, 130, 246, .08); } }
+@keyframes notebook-job-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .notebook-job-mark, .notebook-job-pages span { animation: none; } }
+/* The project's source, brand and running jobs, on each of its notebooks. */
+.project-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; width: min(1180px, 100%); margin: -8px auto 16px; color: #52525b; font: 12.5px/1.5 'InterBody', Inter, system-ui, sans-serif; }
+.project-strip[hidden], .project-strip [hidden] { display: none; }
+.project-strip-item { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.project-strip-item b { color: #27272a; font-weight: 650; }
+.project-strip-swatch { width: 12px; height: 12px; border: 1px solid rgba(0, 0, 0, .12); border-radius: 3px; }
+.project-strip-jobs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.project-strip-job { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border: 1px solid #bfdbfe; border-radius: 999px; background: #eff6ff; color: #1e40af; font: 600 12px/1.6 'InterBody', Inter, system-ui, sans-serif; cursor: pointer; }
+.project-strip-job.is-error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.project-strip-job:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; }
 .notebook-media-block { min-height: 260px; padding: 0 !important; overflow: hidden; border: 1px solid #e4e4e7; background: #f4f4f5; }
 .notebook-media-block img, .notebook-media-block video { width: 100%; max-height: 440px; display: block; object-fit: contain; background: #18181b; }
 .notebook-media-block figcaption { padding: 11px 14px; border-top: 1px solid #e4e4e7; background: white; color: #52525b; font-size: 11px; font-weight: 700; }
@@ -409,7 +447,7 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .notebook-timeline-chip.active { border-color: var(--timeline-accent); background: color-mix(in srgb, var(--timeline-accent) 18%, #18181b); color: white; box-shadow: 0 0 0 1px color-mix(in srgb, var(--timeline-accent) 40%, transparent); }
 .notebook-timeline-icon { position: relative; width: 26px; height: 26px; display: grid; flex: none; place-items: center; border: 1px solid color-mix(in srgb, var(--timeline-accent) 50%, transparent); border-radius: 7px; background: color-mix(in srgb, var(--timeline-accent) 16%, #18181b); color: var(--timeline-accent); font-size: 10px; font-weight: 900; font-style: normal; }
 .notebook-timeline-copy { display: block; line-height: 1; }
-.notebook-timeline-copy strong { display: block; font-size: 8px; font-weight: 800; letter-spacing: .02em; }
+.notebook-timeline-copy strong { display: block; max-width: 112px; overflow: hidden; font-size: 8px; font-weight: 800; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
 .notebook-timeline-copy time { margin-top: 3px; display: block; color: #8b8b93; font-size: 7px; font-variant-numeric: tabular-nums; }
 .notebook-timeline-copy time.recorded-length, .canvas-timeline-block-top time.recorded-length { color: var(--brand-light); font-weight: 800; }
 .notebook-timeline-chip.active .notebook-timeline-copy time { color: #d4d4d8; }
@@ -633,8 +671,26 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .modal-heading { padding: 20px 22px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .modal-heading h2 { margin: 4px 0 0; font-size: 19px; }
 .markdown-modal { width: min(720px, 80vw); }
+/* R04: an unfinished deck is exported by choice, its type said first. */
+.presentation-export-modal { width: min(560px, calc(100vw - 32px)); }
+.presentation-export-body { display: grid; gap: 10px; padding: 18px 22px; color: #3f3f46; font-size: 13.5px; line-height: 1.55; }
+.presentation-export-body p { margin: 0; }
+.presentation-export-type { color: #52525b; font-size: 12.5px; }
+.presentation-export-type.is-warning { padding: 8px 10px; border: 1px solid #fde68a; border-radius: 6px; background: #fffbeb; color: #92400e; }
 .publish-modal { width: min(680px, 84vw); }
 .publish-note { margin: 14px 22px 0; color: #71717a; font-size: 11px; line-height: 1.55; }
+/* What to export, chosen first (BoltDB review B09). */
+.publish-scope { min-width: 0; margin: 16px 22px 0; padding: 0; border: 0; }
+.publish-scope legend { margin-bottom: 8px; padding: 0; color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.publish-scope-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); gap: 6px; }
+.publish-scope-option { min-width: 0; padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: baseline; border: 1px solid #d4d4d8; border-radius: 7px; background: white; cursor: pointer; }
+.publish-scope-option:hover { border-color: #a1a1aa; }
+.publish-scope-option:has(input:checked) { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 7%, white); }
+.publish-scope-option:has(input:disabled) { cursor: default; opacity: .6; }
+.publish-scope-option:focus-within { outline: 2px solid color-mix(in srgb, var(--brand) 45%, transparent); outline-offset: 1px; }
+.publish-scope-option input { margin: 0; accent-color: var(--brand); }
+.publish-scope-option strong { color: var(--ink); font-size: 11.5px; }
+.publish-scope-option small { grid-column: 2; min-width: 0; overflow: hidden; color: #71717a; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .publish-block-list { max-height: min(430px, 52vh); margin: 14px 22px; padding: 4px; display: grid; gap: 4px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 .publish-block-row { padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center; border-radius: 6px; }
 .publish-block-row:hover { background: #f7f7f8; }
@@ -1032,10 +1088,20 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .studio-theme-picker > button { padding: 2px 5px; border: 0; border-radius: 3px; background: transparent; color: #a1a1aa; font-size: 11px; line-height: 1; cursor: pointer; }
 .studio-theme-picker > button:hover { background: rgba(255,255,255,.1); color: white; }
 .import-menu { position: relative; }
-.import-menu-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 130; min-width: 172px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
+.import-menu-list { position: fixed; z-index: 130; min-width: 172px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
 .import-menu-list[hidden] { display: none; }
 .import-menu-list button { padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: #d4d4d8; font-size: 10px; font-weight: 600; text-align: left; }
 .import-menu-list button:hover { background: #33333a; color: white; }
+/* F10 of the Perplexity review: the older and other paths, each saying what
+   it is, out of the way of the one next step. */
+.advanced-menu { position: relative; }
+.advanced-menu-list { position: fixed; z-index: 130; width: 300px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
+.advanced-menu-list[hidden] { display: none; }
+.advanced-menu-list button { display: grid; gap: 3px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; text-align: left; cursor: pointer; }
+.advanced-menu-list button:hover, .advanced-menu-list button:focus-visible { background: #33333a; color: white; outline: none; }
+.advanced-menu-list button:disabled { opacity: .5; cursor: default; }
+.advanced-menu-list .menu-label { font-size: 11px; font-weight: 700; }
+.advanced-menu-list .menu-note { font-size: 10px; line-height: 1.4; font-weight: 500; color: #a1a1aa; }
 .commandbar-divider { width: 1px; height: 22px; margin: 0 4px; background: #3f3f46; }
 .button.record-cta { border: 1px solid rgba(239,68,68,.6); background: transparent; color: #fca5a5; }
 .button.record-cta:hover { border-color: #ef4444; background: rgba(239,68,68,.14); color: white; }
@@ -1287,6 +1353,28 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .agent-row .agent-status-dot { margin-left: auto; }
 .agent-row .agent-status-dot + .agent-row-detail { margin-left: 6px; }
 .slide-editor-assist-agent { font-size: 11px; color: #71717a; align-self: center; }
+
+/* ——— One AI settings entry (F7 of the Perplexity review) ——— */
+.ai-settings-modal { width: min(800px, 94vw); max-height: 90vh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.ai-settings-modal:not([open]) { display: none; }
+.ai-settings-body { overflow-y: auto; gap: 18px; padding-bottom: 8px; }
+.ai-section { display: grid; gap: 10px; min-width: 0; }
+.ai-section + .ai-section { padding-top: 16px; border-top: 1px solid #e4e4e7; }
+.ai-section h3 { margin: 0; font-size: 14px; color: #18181b; }
+.ai-section .settings-note { margin: 0; }
+.ai-routes-scroll { overflow-x: auto; border: 1px solid #e4e4e7; border-radius: 10px; }
+.ai-routes { width: 100%; min-width: 560px; border-collapse: collapse; font: 500 12px/1.4 system-ui, sans-serif; color: #27272a; }
+.ai-routes th, .ai-routes td { padding: 8px 10px; border-bottom: 1px solid #f0f0f2; text-align: left; vertical-align: top; }
+.ai-routes tbody tr:last-child > * { border-bottom: 0; }
+.ai-routes thead th { background: #fafafa; font: 700 10px/1.2 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #71717a; }
+.ai-routes tbody th { width: 34%; font-weight: 500; }
+.ai-routes tbody th strong { display: block; font-size: 12.5px; color: #18181b; }
+.ai-routes tbody th small { display: block; margin-top: 2px; color: #71717a; }
+.ai-route-runs-on { width: 36%; overflow-wrap: anywhere; }
+.ai-route-status { color: #52525b; overflow-wrap: anywhere; }
+.ai-route-status.is-ok { color: #15803d; }
+.ai-route-status.is-error { color: #b91c1c; }
+.ai-api-form { display: grid; gap: 14px; }
 
 /* ——— Slide build-order editor ——— */
 .slide-editor-modal { width: min(1280px, 96vw); max-height: 92vh; border-radius: 16px; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); }
@@ -1647,9 +1735,92 @@ button.se-state:hover { filter: brightness(.97); }
 .scene-cues ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; }
 .scene-cues li { color: #52525b; font-size: 12px; line-height: 1.5; }
 
+/* ——— A base's pages, without the video's staging (BoltDB review B04) ———
+   A base made from a source holds its pages: each shown large, with what it
+   explains, its notes and the source it rests on. The video's staging —
+   dialogue windows, motion, director and coach, the presenter, the live
+   canvas and its clock, Publish — is the video notebook's, made by Create
+   video; Advanced › Show video staging shows it here, the older way. */
+.scene-notes, .scene-badge-page { display: none; }
+body.is-base-pages .scene-badge-scene { display: none; }
+body.is-base-pages .scene-badge-page { display: inline; }
+body.is-base-pages .notebook-scene-block .scene-notes { display: grid; gap: 14px; padding: 14px 16px; border: 1px solid #e4e4e7; border-radius: 10px; background: white; }
+.scene-notes-label { display: block; margin-bottom: 4px; color: #71717a; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.scene-notes p { margin: 0; max-width: 68ch; color: #18181b; font-size: 13.5px; line-height: 1.6; }
+.scene-notes p + p { margin-top: 6px; }
+.scene-notes-idea p { font-weight: 600; }
+.scene-notes p.scene-notes-empty { color: #71717a; font-style: italic; }
+.scene-notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.scene-notes li { max-width: 68ch; color: #3f3f46; font-size: 12.5px; line-height: 1.55; font-style: italic; }
+body.is-base-pages .notebook-scene-block :is(.scene-arc, .scene-area, [data-slide-action], .scene-director, .scene-storyboard, .scene-cues, .block-dialogue, figcaption) { display: none; }
+body.is-base-pages :is(#render-video, #open-fullscreen-tab, #live-camera-toggle, .notebook-timeline-copy time) { display: none; }
+body.is-base-pages:not(.canvas-is-open) .inline-canvas-rail { display: none; }
+body.is-base-pages:not(.canvas-is-open) .editor-layout { width: min(980px, 100%); grid-template-columns: minmax(0, 1fr); }
+
+/* ——— A project's notebooks (the four-notebook model) ———
+   One tab per kind, in the order they are made from one another; each says
+   where its notebook stands. A notebook not made yet reads as an outline. */
+.notebook-switch { display: flex; align-items: stretch; gap: 2px; height: 38px; padding: 3px; border-radius: 9px; background: var(--chrome); box-shadow: inset 0 0 0 1px #34343a; }
+.notebook-switch[hidden] { display: none; }
+.notebook-switch-tab { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 12px 0 10px; border: 0; border-radius: 7px; background: transparent; color: #a1a1aa; font: inherit; text-align: left; cursor: pointer; }
+.notebook-switch-tab svg { flex: none; width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.notebook-switch-copy { display: grid; line-height: 1.2; }
+.notebook-switch-copy strong { color: inherit; font-family: 'Gilroy'; font-size: 12px; font-weight: 700; }
+.notebook-switch-copy small { color: #71717a; font-size: 10px; white-space: nowrap; }
+.notebook-switch-tab:hover { background: rgba(255,255,255,.05); color: #e4e4e7; }
+.notebook-switch-tab:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 1px; }
+.notebook-switch-tab[aria-current="page"] { background: var(--chrome-3); color: white; }
+.notebook-switch-tab[aria-current="page"] small { color: #c4c4cc; }
+.notebook-switch-tab.is-building small { color: #fbbf24; }
+.notebook-switch-tab.is-missing { color: #6b6b73; }
+.notebook-switch-tab.is-missing svg { stroke-dasharray: 2.5 2.5; }
+.notebook-switch-tab.is-missing small { color: #5c5c64; font-style: italic; }
+body.in-project .format-control, body.in-project #notebook-lineage, body.in-project #reset-sample { display: none; }
+body.in-project:not(.is-video-notebook) #workspace-tab-notebook { display: none; }
+/* Each notebook of a project shows its own kind's tools: the text is a
+   document — no theme, spoken explanations or scene timeline; the wireframe
+   and presentation are pages — no text formatting or Markdown import. */
+body[data-notebook-kind="text"] :is(.studio-theme-picker, .notebook-explanation, #notebook-timeline, #video-length, #open-assets, #import-svg-pages) { display: none; }
+body:is([data-notebook-kind="wireframe"], [data-notebook-kind="presentation"]) :is(#editor-toolbar, #video-length, #import-file, #paste-markdown, .notebook-explanation) { display: none; }
+/* Every page of a wireframe is a schematic: it needs no saying. */
+body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
+
+/* ——— Projects in the menu and the library ———
+   A project once, with a chip per notebook kind: a chip opens its notebook;
+   one being built reads amber, one not made yet is an outline. */
+.project-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
+.project-kind { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px 0 5px; border: 1px solid #3f3f46; border-radius: 6px; background: #202024; color: #d4d4d8; font-size: 10px; font-weight: 600; cursor: pointer; }
+.project-kind svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.project-kind:hover:not(:disabled) { border-color: #71717a; color: white; }
+.project-kind:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 1px; }
+.project-kind.is-building { border-color: #a16207; color: #fbbf24; }
+.project-kind.is-missing { border-style: dashed; background: transparent; color: #5c5c64; cursor: default; }
+.project-kind.is-missing svg { stroke-dasharray: 2.5 2.5; }
+.project-kind[aria-current="page"] { border-color: var(--brand-light); color: white; }
+.project-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "open delete" "kinds kinds"; align-items: center; gap: 2px 4px; padding: 2px 0 8px; border-radius: 7px; }
+.project-row:hover { background: #2a2a30; }
+.project-row.is-current { background: rgba(255,255,255,.05); box-shadow: inset 2px 0 0 var(--brand-light, #84efad); }
+.project-row-open { grid-area: open; display: grid; gap: 2px; min-width: 0; padding: 6px 10px 2px; border: 0; background: transparent; color: #e4e4e7; text-align: left; cursor: pointer; }
+.project-row-open strong { font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-row-open small { font-size: 10px; color: #a1a1aa; }
+.project-row .project-kinds { grid-area: kinds; padding: 0 10px; }
+.project-row-delete { grid-area: delete; width: 26px; height: 26px; margin-right: 6px; border: 0; border-radius: 6px; background: transparent; color: #71717a; font-size: 14px; line-height: 1; cursor: pointer; }
+.project-row-delete:hover { background: rgba(255,120,100,.14); color: #ff9b8a; }
+.notebooks-projects { display: grid; gap: 8px; margin-bottom: 16px; }
+.project-card { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #3f3f46; border-radius: 10px; background: #202024; }
+.project-card.is-current { border-color: color-mix(in srgb, var(--brand-light) 60%, #3f3f46); }
+.project-card-open { display: grid; gap: 3px; min-width: 0; padding: 0; border: 0; background: transparent; color: #f4f4f5; text-align: left; cursor: pointer; }
+.project-card-open strong { font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-card-open small { color: #71717a; font-size: 10.5px; }
+.project-card-delete { height: 28px; padding: 0 10px; border: 1px solid #3f3f46; border-radius: 7px; background: transparent; color: #a1a1aa; font-size: 11px; font-weight: 600; cursor: pointer; }
+.project-card-delete:hover { border-color: #f87171; color: #fca5a5; }
+.notebooks-tree-heading { margin: 4px 0 8px; color: #71717a; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+
 /* ——— Notebook derivation hierarchy ——— */
 .notebook-lineage { display: flex; align-items: center; gap: 4px; max-width: 380px; overflow: hidden; font-size: 11px; }
-.notebook-lineage-segment { border: 0; background: none; color: #a1a1aa; font-size: 11px; padding: 2px 4px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.notebook-lineage-segment { border: 0; background: none; color: #a1a1aa; font-size: 11px; padding: 2px 4px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+/* F10: one compact link to where the notebook comes from. */
+.notebook-lineage-segment::before { content: "from "; color: #71717a; }
 .notebook-lineage-segment:hover { color: #e4e4e7; background: #2a2a30; }
 .notebook-lineage-separator { color: #52525b; }
 .notebook-lineage-current { color: #e4e4e7; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
@@ -2109,22 +2280,43 @@ button.se-state:hover { filter: brightness(.97); }
 .source-direction .frame i { display: block; height: 3px; width: 46px; border-radius: 2px; }
 .source-direction .frame span { font: 11px/1.2 system-ui; opacity: .8; }
 .source-direction small { font: 500 12px/1.2 system-ui; color: #52525b; }
-.source-outline-head { display: flex; gap: 10px; align-items: end; }
 .source-field.grow { flex: 1; }
 .source-field.narrow { width: 90px; }
-.source-scenes { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; max-height: 40vh; overflow: auto; }
-.source-scene { display: grid; grid-template-columns: 28px 1fr 96px 70px 28px; gap: 8px; align-items: center; }
-.source-scene .n { font: 500 12px/1 ui-monospace, monospace; color: #a1a1aa; text-align: right; }
-.source-scene input, .source-scene select { font: 13px/1.3 system-ui; padding: 6px 8px; border: 1px solid #e4e4e7; border-radius: 6px; width: 100%; box-sizing: border-box; }
-.source-scene .idea { grid-column: 2 / -1; font: 12px/1.4 system-ui; color: #71717a; margin: -2px 0 4px; }
-.source-scene button { border: 0; background: none; color: #a1a1aa; cursor: pointer; font-size: 16px; }
-.source-glossary { display: flex; flex-wrap: wrap; gap: 6px; }
-.source-glossary span { font: 500 11px/1.2 system-ui; padding: 4px 8px; border-radius: 999px; background: #f4f4f5; color: #3f3f46; }
-.source-pages-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 52vh; overflow: auto; }
-.source-page { display: grid; gap: 4px; font: 500 12px/1.3 system-ui; color: #3f3f46; }
-.source-page .thumb { aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid #e4e4e7; background: #111; }
-.source-page .thumb svg { width: 100%; height: 100%; display: block; }
-.source-page small { color: #a1a1aa; font-weight: 400; }
+/* F8: the notebook's export, found again whatever became of Publish. */
+.export-status { display: inline-flex; align-items: center; gap: 6px; max-width: 360px; min-height: 30px; padding: 0 6px 0 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #e4e4e7; font: 600 11px/1.2 'InterBody', Inter, system-ui, sans-serif; }
+.export-status[hidden] { display: none; }
+.export-status > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.export-status[data-status="stored"] { border-color: rgba(74,222,128,.55); color: #bbf7d0; }
+.export-status[data-status="failed"], .export-status[data-status="stalled"] { border-color: rgba(248,113,113,.6); color: #fecaca; }
+/* Ready, but the render said something (F05), or its download failed (F01). */
+.export-status[data-status="stored"]:not([data-warnings="0"]) { border-color: rgba(251,191,36,.6); color: #fde68a; }
+.export-status[data-status="stored"][data-download="failed"] { border-color: rgba(248,113,113,.6); color: #fecaca; }
+.export-status-action { padding: 3px 8px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: transparent; color: inherit; font: inherit; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.export-status-action[hidden], .export-status-dismiss[hidden] { display: none; }
+.export-status-dismiss { border: 0; background: transparent; color: inherit; font-size: 14px; cursor: pointer; }
+/* F9: what each block sounds like in the export. */
+.publish-audio.is-silent { color: #92400e; font-weight: 600; }
+.publish-audio-chip { display: inline-block; margin-top: 2px; font-size: 11px; color: #166534; }
+.publish-audio-chip[data-audio="missing"] { color: #b45309; font-weight: 600; }
+.publish-audio-chip[data-audio="no-words"], .publish-audio-chip[data-audio="silent-by-choice"] { color: #71717a; }
+/* F3–F5 of the Perplexity review: what is read, a way on when a link is
+   refused, and colours that say where they came from. */
+.source-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 0; font: 12.5px/1.4 'InterBody', Inter, system-ui, sans-serif; color: #3f3f46; }
+.source-mode[hidden] { display: none; }
+.source-recovery, .source-extraction-thin { display: grid; gap: 8px; margin: 8px 0 0; padding: 10px 12px; border: 1px solid #fcd34d; border-radius: 9px; background: #fffbeb; color: #78350f; font: 13px/1.45 'InterBody', Inter, system-ui, sans-serif; }
+.source-recovery[hidden] { display: none; }
+.source-recovery p, .source-extraction-thin p { margin: 0; }
+.source-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.source-extraction { display: grid; gap: 6px; margin: 0 0 10px; font: 12.5px/1.45 'InterBody', Inter, system-ui, sans-serif; color: #3f3f46; }
+.source-extraction-line { margin: 0; font-weight: 600; }
+.source-extraction-read summary { cursor: pointer; color: #52525b; }
+.source-extraction-read ul { margin: 6px 0; padding-left: 18px; columns: 2; column-gap: 20px; }
+.source-extraction-read blockquote { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid #d4d4d8; background: #fafafa; color: #3f3f46; max-height: 9em; overflow: auto; }
+.source-extraction-text { margin-top: 8px; }
+.source-extraction-text summary { cursor: pointer; color: #52525b; font-size: 12px; }
+.source-extraction-text pre { margin: 6px 0 0; padding: 10px 12px; max-height: 22em; overflow: auto; border: 1px solid #e4e4e7; border-radius: 6px; background: #fafafa; color: #27272a; font: 11.5px/1.5 'Roboto Mono', ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.source-extraction-cuts { margin: 6px 0; padding: 8px 10px 8px 26px; border-radius: 6px; background: #fffbeb; color: #92400e; font-size: 12px; line-height: 1.45; }
+.source-swatches.is-fallback .source-swatch { opacity: .75; border-style: dashed; }
 
 /* ——— The asset library ——— */
 .assets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin:12px 0 4px}
@@ -2140,10 +2332,493 @@ button.se-state:hover { filter: brightness(.97); }
 .publish-option{display:flex;align-items:center;gap:8px;font-size:13px;opacity:.85;margin:6px 0 2px}
 .publish-option input{accent-color:var(--brand,#4ade80)}
 
-.source-destination{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px;margin:10px 0 2px;opacity:.9}
-.source-destination label{display:flex;align-items:center;gap:6px}
 .source-hint{display:block;font-size:11.5px;opacity:.7;margin-top:4px}
 
-.source-draw{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px;margin:10px 0 2px}
-.source-draw select{max-width:340px}
-.source-page .drawn{display:inline-block;margin-top:3px;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--brand,#16a34a)}
+/* F2: any page opens large, and says what it is now. */
+.scene-page-origin{font:600 9.5px/1 system-ui;letter-spacing:.05em;text-transform:uppercase;color:#92400e;background:#fef3c7;border-radius:4px;padding:3px 6px}
+
+/* ——— Planning workspace (M0): brief and creative plans, nothing plays ——— */
+.planning-modal { width: min(1680px, 98vw); height: 94vh; max-height: 94vh; border-radius: 14px; overflow: hidden; }
+.planning-modal[open] { display: flex; }
+.planning-workspace { flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; background: var(--soft); color: var(--ink); }
+.planning-header { padding: 14px 20px; display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--paper); }
+.planning-title h2 { margin: 2px 0 4px; display: flex; gap: 10px; align-items: center; font-size: 18px; }
+.planning-lineage { margin: 0; color: var(--muted); font-size: 12px; }
+.planning-header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.planning-field { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 11px; font-weight: 600; }
+.planning-harness { min-height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font-size: 12px; }
+.planning-model { max-width: 230px; }
+.planning-failure-actions { display: flex; gap: 8px; margin-top: 4px; }
+.planning-last-status { margin-top: 6px; font-size: 12px; }
+.run-failure-actions { display: inline-flex; gap: 6px; margin-left: 8px; vertical-align: middle; }
+.run-failure-actions .button { min-height: 26px; padding-inline: 9px; font-size: 10px; }
+.agent-choices { display: grid; gap: 8px; margin-top: 14px; }
+.agent-choices h3 { margin: 4px 0 2px; font-size: 13px; }
+.agent-choice { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; align-items: center; }
+.agent-choice small { grid-column: 2; color: #71717a; font-size: 11px; }
+.agent-choice-label { font-size: 12px; font-weight: 700; color: #18181b; }
+.agent-choice-fields { display: flex; gap: 6px; min-width: 0; }
+.agent-choice-fields select { min-width: 0; min-height: 30px; padding: 0 8px; border: 1px solid #e4e4e7; border-radius: 6px; background: white; font-size: 12px; }
+.agent-choice-fields select:first-child { flex: 0 0 150px; }
+.agent-choice-fields select + select { flex: 1 1 auto; max-width: 240px; }
+.agent-row .agent-row-detail { min-width: 0; overflow-wrap: anywhere; }
+.planning-model-custom { min-height: 30px; width: 190px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.planning-model-custom:focus { outline: 2px solid var(--brand); outline-offset: 0; }
+.planning-close { font-size: 20px; }
+.planning-body { min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 330px; }
+.planning-column { min-height: 0; overflow: auto; padding: 14px 16px; }
+.planning-column > h3 { margin: 0 0 10px; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.planning-nav { border-right: 1px solid var(--line); background: var(--paper); }
+.planning-scenes { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.planning-scene { width: 100%; padding: 10px 11px; display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; align-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--ink); text-align: left; }
+.planning-scene:hover { border-color: #a1a1aa; }
+.planning-scene:focus-visible, .planning-moment:focus-visible, .planning-tab:focus-visible, .planning-version:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.planning-scene.is-selected { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; }
+.planning-scene strong { font-size: 13px; line-height: 1.25; }
+.planning-scene .planning-chip, .planning-scene small { grid-column: 2; justify-self: start; }
+.planning-scene small { color: var(--muted); font-size: 11px; }
+.planning-kept { color: #15803d !important; }
+.planning-scene-number { color: var(--muted); font: 700 11px/1 'Gilroy', sans-serif; font-variant-numeric: tabular-nums; }
+.planning-chip { display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border-radius: 999px; background: var(--soft); color: #3f3f46; font: 600 11px/1 'InterBody', Inter, sans-serif; white-space: nowrap; }
+.planning-chip.is-good { background: var(--brand-soft); color: #166534; }
+.planning-chip.is-new { background: #dbeafe; color: #1e40af; }
+.planning-chip.is-busy { background: #ede9fe; color: #5b21b6; }
+.planning-chip.is-warn { background: #fef3c7; color: #92400e; }
+.planning-chip.is-bad { background: #fee2e2; color: #991b1b; }
+.planning-basis { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; vertical-align: 1px; }
+.planning-basis.is-source { background: #dcfce7; color: #166534; }
+.planning-basis.is-creator { background: #e0e7ff; color: #3730a3; }
+.planning-basis.is-suggestion { background: #f4f4f5; color: #52525b; }
+.planning-basis.is-illustrative { background: #fef3c7; color: #92400e; }
+.planning-stage { display: flex; flex-direction: column; gap: 12px; }
+.planning-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.planning-tab { padding: 8px 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font: 700 12px 'Gilroy', sans-serif; }
+.planning-tab.is-active { border-bottom-color: var(--brand); color: var(--ink); }
+.planning-pane { display: grid; gap: 12px; max-width: 980px; }
+.planning-pane p { margin: 0; line-height: 1.5; }
+.planning-fork-offer { padding: 24px 20px; align-content: start; }
+.planning-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.planning-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.planning-ledger table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.planning-ledger th, .planning-ledger td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.planning-ledger th { color: var(--muted); font-weight: 600; font-size: 11px; }
+.planning-ledger td:last-child, .planning-ledger th:last-child { text-align: right; }
+.planning-ledger tr.is-refused td { color: #b45309; }
+.planning-seams small { display: block; margin-top: 2px; }
+.planning-cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin: 6px 0 12px; }
+.planning-cast-card { display: grid; gap: 5px; align-content: start; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.planning-cast-card.is-reference { border-style: dashed; opacity: .85; }
+.planning-cast-art { display: grid; place-items: center; height: 110px; border-radius: 6px; background: #0f0d18; overflow: hidden; }
+.planning-cast-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.planning-cast-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.planning-cast-card small { display: block; font-size: 11px; line-height: 1.35; }
+.planning-cast-checks summary { cursor: pointer; font-size: 11px; color: #b45309; }
+.planning-cast-checks ul { margin: 4px 0 0; padding-left: 16px; font-size: 11px; line-height: 1.35; color: var(--muted); }
+.planning-card h4 { margin: 0 0 8px; font-size: 15px; }
+.planning-card h5 { margin: 12px 0 6px; color: var(--muted); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
+.planning-card p + p { margin-top: 6px; }
+.planning-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.planning-list { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13px; line-height: 1.45; }
+.planning-quote { color: #3f3f46; font-style: italic; }
+.planning-muted { color: var(--muted); font-size: 12px; }
+.planning-note { color: var(--muted); font-size: 12px; }
+.planning-message { font-size: 15px; }
+.planning-warn { padding: 8px 12px; border: 1px solid #fcd34d; border-radius: 6px; background: #fffbeb; color: #78350f; font-size: 13px; }
+.planning-error { color: var(--danger); font-size: 13px; }
+.planning-busy { padding: 10px 12px; border-radius: 6px; background: #f5f3ff; color: #4c1d95; font-size: 13px; }
+.planning-provenance { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.planning-value { margin-left: 6px; display: inline-flex; gap: 4px; align-items: center; }
+.planning-wireframe { margin: 0 0 10px; }
+.planning-wireframe img { display: block; width: 100%; max-width: 640px; border: 1px solid var(--line); border-radius: 6px; background: white; }
+.planning-wireframe figcaption { margin-top: 4px; color: var(--muted); font-size: 11px; }
+.planning-versions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.planning-version { min-height: 26px; padding: 0 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: #3f3f46; font-size: 11px; font-variant-numeric: tabular-nums; }
+.planning-version.is-selected { border-color: var(--brand); color: #166534; font-weight: 700; }
+.planning-version.is-compared { border-style: dashed; border-color: #1d4ed8; }
+.planning-version:disabled { opacity: .5; cursor: default; }
+.planning-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.planning-compare-column { padding: 12px 14px; border: 1px dashed #93c5fd; border-radius: 8px; background: #f8fbff; }
+.planning-compare-column h5 { margin: 0 0 6px; }
+.planning-compare .is-different { background: #fef9c3; }
+.planning-inspector { border-left: 1px solid var(--line); background: var(--paper); }
+.planning-inspector h4 { margin: 0 0 10px; font-size: 15px; }
+.planning-inspector h5 { margin: 14px 0 6px; color: var(--muted); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
+.planning-rows { margin: 0; display: grid; gap: 8px; }
+.planning-row dt { color: var(--muted); font-size: 11px; font-weight: 600; }
+.planning-row dd { margin: 2px 0 0; font-size: 13px; line-height: 1.45; }
+.planning-sequence { max-height: 230px; overflow: auto; padding: 10px 16px 8px; border-top: 1px solid var(--line); background: var(--paper); }
+.planning-lanes { display: grid; gap: 4px; align-items: stretch; }
+.planning-lane-head { padding: 6px 8px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.planning-moment { padding: 6px 8px; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); color: var(--ink); text-align: left; font-size: 12px; }
+.planning-moment small { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.planning-moment.is-selected { border-color: var(--brand); background: var(--brand-soft); }
+.planning-cell { min-height: 30px; padding: 5px 8px; border-radius: 5px; background: transparent; color: #3f3f46; font-size: 11px; line-height: 1.35; }
+.planning-cell.is-used { background: #f4f4f5; }
+.planning-footer { padding: 10px 16px; display: flex; gap: 14px; align-items: flex-end; border-top: 1px solid var(--line); background: var(--paper); }
+.planning-direction { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.planning-direction textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; resize: vertical; font-size: 12px; line-height: 1.4; }
+.planning-direction textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; }
+.planning-footer-actions { display: flex; gap: 8px; align-items: center; }
+.planning-direction.is-read-only { grid-template-columns: repeat(3, minmax(0, 1fr)); font-size: 12px; line-height: 1.4; }
+.planning-direction.is-read-only p { margin: 0; overflow-wrap: anywhere; }
+.planning-footer-actions > .planning-muted { max-width: 260px; font-size: 12px; }
+.planning-footer-actions select { min-height: 34px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); font-size: 12px; }
+.planning-raw pre { max-height: 360px; overflow: auto; padding: 10px; border-radius: 6px; background: #18181b; color: #e4e4e7; font-size: 11px; white-space: pre-wrap; }
+.planning-raw summary { cursor: pointer; font: 600 12px 'InterBody', Inter, sans-serif; }
+@media (prefers-reduced-motion: reduce) { .planning-scene, .planning-version { transition: none; } }
+
+/* ——— Scene review in the video notebook (P2) ——— */
+.scene-review { margin: 6px 0 18px; display: grid; gap: 10px; min-width: 0; font: 13px/1.45 'InterBody', Inter, system-ui, sans-serif; color: #27272a; user-select: text; white-space: normal; overflow-wrap: anywhere; container: scene-review / inline-size; }
+/* The review is laid out by the room its own column gives it, not by the
+   window (F6 of the Perplexity review); the editor's hover wash is not its. */
+.tiptap > .scene-review:hover { background: none; }
+.review-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fbfbfa; }
+.review-strip-label { font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; margin-right: 2px; }
+.review-strip-open { margin-left: auto; font-size: 11px; color: #a1a1aa; }
+/* The selected scene's status: one line under its title (F7). */
+.review-strip.is-inline { padding: 0; border: 0; background: transparent; margin: 0 0 6px; }
+.scene-review.is-expanded { scroll-margin-top: 12px; }
+.review-strip-cast { display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px; border-radius: 6px; background: #0f0d18; }
+.review-strip-cast img { width: 26px; height: 22px; object-fit: contain; }
+.review-strip-cast small { color: #d4d4d8; font-size: 10px; padding: 0 3px; }
+.review-chip { display: inline-flex; align-items: center; min-height: 20px; max-width: 100%; box-sizing: border-box; padding: 3px 8px; border-radius: 10px; background: #f4f4f5; color: #3f3f46; font: 600 11px/1.25 'InterBody', Inter, sans-serif; overflow-wrap: anywhere; }
+.review-chip.is-good { background: #dcfce7; color: #166534; }
+.review-chip.is-new { background: #dbeafe; color: #1e40af; }
+.review-chip.is-busy { background: #ede9fe; color: #5b21b6; }
+.review-chip.is-warn { background: #fef3c7; color: #92400e; }
+.review-chip.is-bad { background: #fee2e2; color: #991b1b; }
+/* F1: the base's newer page, offered to the scene. */
+.review-reference { display: grid; gap: 6px; margin: 0; padding: 10px 12px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; color: #1e3a8a; }
+.review-reference p { margin: 0; }
+.review-reference .review-muted { color: #3b5b8c; }
+.review-panel { display: grid; gap: 12px; padding: 14px 16px 16px; border: 1px solid #d4d4d8; border-radius: 12px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.review-head { display: grid; gap: 8px; min-width: 0; }
+.review-head-main { min-width: 0; }
+.review-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; min-width: 0; }
+.review-head h3 { margin: 2px 0 6px; font: 650 17px/1.25 'InterBody', Inter, sans-serif; }
+.review-eyebrow { font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #16a34a; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.review-actions .button { min-height: 32px; font-size: 12px; }
+.review-revisions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.review-revisions-label { margin-right: 2px; font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; }
+.review-revision { border: 1px solid #e4e4e7; background: #fafafa; border-radius: 999px; padding: 2px 9px; font: 600 11px/1.6 'InterBody', Inter, sans-serif; color: #52525b; cursor: pointer; }
+.review-revision.is-approved { color: #166534; }
+.review-revision.is-selected { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+.review-revision:focus-visible, .review-moment-head:focus-visible, .review-moment-step:focus-visible { outline: 2px solid #16a34a; outline-offset: 1px; }
+/* One column in a notebook beside the stage; two where the column is wide. */
+.review-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@container scene-review (min-width: 780px) { .review-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; } }
+.review-column { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.review-column h4, .review-open h4 { margin: 4px 0 0; font: 700 11px/1.2 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #71717a; }
+.review-column p, .review-open p { margin: 0; }
+.review-question { font: 650 15px/1.35 'InterBody', Inter, sans-serif; color: #18181b; }
+/* The scene's concrete example, one line under its takeaway (Q01 of the
+   project-flow fix verification); its parts on demand. */
+.review-example-line { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #f0fdf4; color: #14532d; line-height: 1.45; }
+.review-example-line.is-missing { background: #fffbeb; color: #78350f; }
+.review-example-parts { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 6px 0; font-size: 13px; line-height: 1.45; }
+.review-example-parts dt { color: #71717a; font-weight: 650; }
+.review-example-parts dd { margin: 0; color: #27272a; }
+.review-muted { color: #71717a; }
+.review-warn { color: #92400e; margin: 0; }
+/* Claims a plan makes more strongly than its sources (B07): read before it
+   is approved. */
+.review-claims { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #fffbeb; }
+.review-claims ul { margin: 4px 0 0; padding-left: 18px; }
+.review-claims li { margin: 2px 0; line-height: 1.45; }
+/* One item a claim (F04 of the fix verification): the claim and why, its
+   clause, and its actions — the rest on demand. */
+.review-claims-summary { margin: 0; }
+.review-claims > ul { padding-left: 0; list-style: none; }
+.review-claim { margin: 6px 0 0; padding-top: 6px; border-top: 1px solid rgba(180,83,9,.16); }
+.review-claim:first-child { padding-top: 0; border-top: 0; }
+.review-claim p { margin: 0; }
+.review-claim-head { font-weight: 600; }
+.review-claim-head q { font-weight: 750; }
+.review-claim.is-quoted .review-claim-head { font-weight: 500; }
+.review-claim-clause { margin-top: 2px; color: #52525b; }
+.review-claim-clause small { color: #71717a; }
+.review-claim-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-top: 2px; }
+.review-claim-narrow { padding: 0; border: 0; background: none; color: #b45309; font: 650 12px/1.6 'InterBody', Inter, sans-serif; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.review-claim-narrow:focus-visible { outline: 2px solid #b45309; outline-offset: 2px; border-radius: 2px; }
+.review-claim-actions .review-disclosure { padding-top: 0; border-top: 0; }
+.review-claim-details { padding: 2px 0 4px; color: #52525b; }
+.review-error { color: #b91c1c; margin: 0; }
+.review-busy { color: #5b21b6; margin: 0; }
+.review-cast { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.review-cast-item { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: start; }
+.review-cast-tally { margin: 0 0 6px; font-weight: 600; }
+.review-cast-art { display: grid; place-items: center; width: 54px; height: 42px; border-radius: 6px; background: #0f0d18; overflow: hidden; }
+.review-cast-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.review-cast-none { color: #a1a1aa; font-size: 10px; }
+.review-cast-item small { font-size: 12px; }
+/* F6: the moments as a compact list, a line each, and the selected one in
+   detail — the sequence scans at a glance. */
+.review-moments { list-style: none; margin: 0; padding: 3px; display: grid; gap: 2px; border: 1px solid #e4e4e7; border-radius: 9px; background: #fafafa; }
+.review-moment { margin: 0; min-width: 0; border: 1px solid transparent; border-radius: 6px; }
+.review-moment.is-selected { border-color: #fcd34d; background: #fffbeb; }
+.review-moment-head { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: start; gap: 8px; width: 100%; padding: 5px 7px; border: 0; border-radius: 6px; background: none; text-align: left; cursor: pointer; font: 600 13px/1.35 'InterBody', Inter, sans-serif; color: #18181b; }
+.review-moment:not(.is-selected) .review-moment-head:hover { background: #f1f1f3; }
+.review-moment-head strong { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.review-moment-head small { color: #a1a1aa; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.review-moment-number { display: inline-grid; place-items: center; width: 20px; height: 18px; border-radius: 999px; background: #e4e4e7; font-size: 11px; font-variant-numeric: tabular-nums; }
+.review-moment.is-selected .review-moment-number { background: #f59e0b; color: #fff; }
+.review-moment-hint { margin: 0; font-size: 12px; }
+/* The opened moment, under its own line, aligned with its title. */
+.review-moment-detail { display: grid; gap: 8px; min-width: 0; padding: 2px 10px 10px 35px; scroll-margin: 12px; }
+.review-moment-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+.review-moment-steps { display: inline-flex; gap: 4px; margin-left: auto; }
+.review-moment-step { padding: 2px 8px; border: 1px solid #fcd34d; border-radius: 999px; background: #ffffff; color: #92400e; font: 600 11px/1.5 'InterBody', Inter, sans-serif; cursor: pointer; }
+.review-moment-step:disabled { opacity: .45; cursor: default; }
+.review-moment-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 12px; margin: 0; }
+.review-moment-fields dt { padding-top: 2px; font: 700 10px/1.45 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #a16207; }
+.review-moment-fields dd { margin: 0; min-width: 0; }
+@container scene-review (max-width: 420px) { .review-moment-fields { grid-template-columns: minmax(0, 1fr); } .review-moment-fields dd { margin-bottom: 4px; } .review-moment-detail { padding-left: 10px; } }
+.review-label { font: 700 10px/1 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #a1a1aa; }
+.review-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.review-open ul { margin: 4px 0 0; padding-left: 18px; }
+.review-direction { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.review-direction textarea { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #d4d4d8; border-radius: 8px; font: 13px/1.4 'InterBody', Inter, sans-serif; resize: vertical; box-sizing: border-box; }
+.review-disclosure { border-top: 1px solid #f4f4f5; padding-top: 6px; }
+.review-disclosure > summary { cursor: pointer; font: 650 12px/1.6 'InterBody', Inter, sans-serif; color: #3f3f46; }
+.review-guide, .review-details { display: grid; gap: 6px; padding: 6px 0 2px; }
+.review-guide h6 { margin: 6px 0 0; font: 700 11px/1.2 'InterBody', Inter, sans-serif; color: #52525b; }
+.review-guide ol, .review-guide ul { margin: 0; padding-left: 20px; }
+.review-guide .button { justify-self: start; }
+.review-field { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; }
+.review-diff { margin: 2px 0 6px; padding-left: 18px; display: grid; gap: 3px; }
+.review-diff .is-added strong { color: #166534; }
+.review-diff .is-removed strong { color: #991b1b; }
+.review-diff span { display: block; font-size: 12px; }
+.review-before { color: #a1a1aa; text-decoration: line-through; }
+.review-after { color: #27272a; }
+.review-production { padding: 10px 12px; border: 1px dashed #d4d4d8; border-radius: 9px; background: #fafafa; }
+.review-production ul { margin: 6px 0; padding-left: 18px; }
+.review-production { display: grid; gap: 8px; }
+.review-production > p { margin: 0; }
+/* Timing edits (P6): one row per control the production's code reads. */
+.review-timing { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid #e4e4e7; border-radius: 8px; background: #fff; }
+.review-timing > p { margin: 0; }
+.review-production ul.review-timing-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.review-timing-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.review-timing-label { flex: 1 1 180px; min-width: 0; }
+.review-timing-list input[type="number"] { width: 5.5em; font: inherit; font-variant-numeric: tabular-nums; padding: 3px 6px; border: 1px solid #d4d4d8; border-radius: 6px; background: #fff; }
+.review-timing-list input[type="number"]:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
+.review-ask { display: grid; gap: 6px; }
+.review-ask textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 6px 8px; border: 1px solid #d4d4d8; border-radius: 6px; resize: vertical; }
+/* The stage beside the review: the wireframe, labelled as a reference. */
+.scene-stage { position: absolute; inset: 0; z-index: 6; overflow: hidden; border-radius: 12px; background: #0f0d18; }
+.scene-stage[hidden] { display: none; }
+.scene-stage-reference { position: absolute; inset: 0; display: grid; place-items: center; }
+.scene-stage-reference svg { width: 100%; height: 100%; }
+.scene-stage-reference svg.has-hits [data-role="node"]:not(.stage-hit), .scene-stage-reference svg.has-hits [data-role="connector"] { opacity: .28; transition: opacity .2s ease; }
+.scene-stage-reference .stage-hit { filter: drop-shadow(0 0 10px rgba(250, 204, 21, .9)); }
+/* What the stage shows, and why: a bar under the frame, never over the page. */
+.scene-stage-bar { margin-top: 8px; display: grid; gap: 6px; }
+.scene-stage-bar[hidden] { display: none; }
+.scene-stage-modes { display: flex; flex-wrap: wrap; gap: 4px; }
+.scene-stage-modes button { border: 1px solid #d4d4d8; background: white; color: #3f3f46; border-radius: 999px; padding: 2px 9px; font: 600 10.5px/1.5 'InterBody', Inter, sans-serif; white-space: nowrap; cursor: pointer; }
+.scene-stage-modes button.is-active { background: #18181b; color: #fafafa; border-color: #18181b; }
+.scene-stage-modes button:disabled { opacity: .45; cursor: default; }
+.inline-preview.is-following { transition: none; }
+/* One composition on the canvas: while the scene stage shows, the controls
+   that work on the notebook's own composition step back. */
+.player-shell.has-scene-stage .scene-timeline,
+.player-shell.has-scene-stage .canvas-recording-controls,
+.player-shell.has-scene-stage .live-camera-toggle,
+.player-shell.has-scene-stage .live-camera-frame,
+.player-shell.has-scene-stage .screen-play-toggle,
+.player-shell.has-scene-stage .canvas-view-switch,
+.player-shell.has-scene-stage .canvas-block-timeline,
+.player-shell.has-scene-stage .motion-preview-badge,
+.player-shell.has-scene-stage .canvas-take-player,
+.player-shell.has-scene-stage:not(.canvas-finalize-mode) .finalize-bar { display: none !important; }
+.player-shell.canvas-open.has-scene-stage { grid-template-columns: minmax(0, 1fr) 0; }
+.player-shell.canvas-open.has-scene-stage .canvas-director,
+.player-shell.canvas-open.has-scene-stage .director-toggle { display: none; }
+.player-shell.canvas-open.has-scene-stage .canvas-fullscreen { right: 24px; }
+.player-shell.canvas-open.has-scene-stage .scene-stage { inset: 64px 32px 24px; border-radius: 8px; }
+/* The notebook's full-screen player sizing is not the stage's: the sketch
+   fills the stage above its transport, letterboxed by the player itself. */
+.player-shell.canvas-open .scene-stage .scene-stage-player { position: absolute; inset: 0 0 56px; width: 100%; height: auto; aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; }
+.player-shell.canvas-open .scene-stage .scene-stage-transport { background: rgba(15,13,24,.96); }
+/* Full screen keeps the stage's label: which plan, and what is provisional. */
+body.canvas-is-open .scene-stage-bar:not([hidden]) { position: fixed; top: 14px; left: 32px; right: 88px; z-index: 90; margin: 0; display: flex; align-items: center; gap: 14px; }
+body.canvas-is-open .scene-stage-bar .scene-stage-modes { flex-wrap: nowrap; }
+body.canvas-is-open .scene-stage-bar .scene-stage-modes button { background: rgba(24,24,27,.82); color: #e4e4e7; border-color: rgba(255,255,255,.24); }
+body.canvas-is-open .scene-stage-bar .scene-stage-modes button.is-active { background: #f4f4f5; color: #18181b; border-color: #f4f4f5; }
+body.canvas-is-open .scene-stage-bar .scene-stage-note { color: #d4d4d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.canvas-is-open .scene-stage-bar.is-preview .scene-stage-note { color: #f5d0fe; }
+.scene-stage-preview { position: absolute; inset: 0; }
+.scene-stage-note { margin: 0; color: #52525b; font: 11.5px/1.45 'InterBody', Inter, sans-serif; }
+.scene-stage-bar.is-preview .scene-stage-note { color: #a21caf; }
+/* A video notebook's scene cards are compact: the page as a thumbnail beside
+   its words, the review below. */
+body.is-video-notebook .notebook-scene-block { grid-template-columns: 220px minmax(0, 1fr); column-gap: 14px; row-gap: 8px; align-items: start; }
+body.is-video-notebook .notebook-scene-block > * { grid-column: 1 / -1; }
+body.is-video-notebook .notebook-scene-block > .scene-poster, body.is-video-notebook .notebook-scene-block > .notebook-media-placeholder { grid-column: 1; width: 220px; min-height: 0; }
+body.is-video-notebook .notebook-scene-block > .block-dialogue { grid-column: 2; grid-row: 2; margin: 0; }
+body.is-video-notebook .notebook-scene-block > .scene-director, body.is-video-notebook .notebook-scene-block > .scene-storyboard, body.is-video-notebook .notebook-scene-block > .scene-cues, body.is-video-notebook .notebook-scene-block > figcaption, body.is-video-notebook .notebook-scene-block > .scene-provenance { display: none; }
+/* A video notebook's work is the scene review: the older dialogue-and-motion
+   tools stay reachable but quiet, and the new-explainer journey steps back. */
+body.is-video-notebook #create-explainer, body.is-video-notebook .scene-animate-action { display: none; }
+body.is-video-notebook .block-dialogue { padding: 10px 12px; }
+body.is-video-notebook .block-dialogue-meta { display: none; }
+body.is-video-notebook .block-dialogue-edit { border-color: #d4d4d8; background: white; color: #18181b; }
+/* The notebook's own lines stay a glance even while the scene is under
+   review (R6): the review below carries the plan and its recording guide,
+   and it opens in the first screen. Edit dialogue & motion shows them all. */
+body.is-video-notebook .notebook-scene-block .block-dialogue-windows, body.is-video-notebook .notebook-scene-block .block-dialogue-draft { max-height: 6.6em; overflow: hidden; mask-image: linear-gradient(#000 60%, transparent); }
+/* Under review, the plan leads (F7): the scene's block folds to one line
+   below it — its inherited dialogue and a way to edit it — until unfolded. */
+.scene-source-summary, .scene-source-toggle, .scene-source-when-open { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source .scene-source-toggle { display: inline-flex; align-items: center; min-height: 28px; padding: 0 11px; border: 1px solid #d4d4d8; border-radius: 6px; background: white; color: #18181b; font-size: 11px; font-weight: 700; cursor: pointer; }
+body.is-video-notebook .notebook-scene-block.is-review-source .scene-source-toggle:hover { background: #f4f4f5; }
+body.is-video-notebook .notebook-scene-block.is-source-open .scene-source-when-open { display: inline; }
+body.is-video-notebook .notebook-scene-block.is-source-open .scene-source-when-folded { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) > :not(.scene-head) { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) { min-height: 0; border: 0; background: transparent; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) .scene-head > :not(.scene-source-summary):not(.scene-source-toggle) { display: none; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) .scene-head { border-style: dashed; background: #fafafa; }
+body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-open) .scene-source-summary { display: block; flex: 1 1 auto; min-width: 0; color: #52525b; font-size: 12px; }
+.scene-source-label { font-weight: 700; color: #3f3f46; }
+/* The plan preview on the stage (P3): the sketch, a transport, and the
+   moments it declared — estimated, and labelled as a sketch. */
+.scene-stage-preview { position: absolute; inset: 0; }
+.scene-stage-preview[hidden] { display: none; }
+.scene-stage-player { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scene-stage-transport { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 18px 10px 8px; background: linear-gradient(transparent, rgba(15,13,24,.94) 45%); }
+.scene-stage-transport > button { width: 30px; height: 26px; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; background: rgba(15,13,24,.7); color: #f4f4f5; font-size: 11px; cursor: pointer; }
+.scene-stage-track { position: relative; height: 24px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden; }
+.scene-stage-moment { position: absolute; top: 0; bottom: 0; border: 0; border-right: 1px solid rgba(15,13,24,.9); background: rgba(99,91,255,.35); color: #e4e4e7; font: 600 10px/24px 'InterBody', Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px; text-align: left; cursor: pointer; }
+.scene-stage-moment.is-current { background: rgba(245,158,11,.55); color: #fff; }
+.scene-stage-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #facc15; pointer-events: none; }
+/* Where a nudgeable action starts in a produced scene (P6). */
+.scene-stage-marker { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px dotted #f0abfc; pointer-events: auto; cursor: help; }
+.scene-stage-clock { color: #d4d4d8; font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.review-preview { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid #c7d2fe; border-radius: 10px; background: #f5f7ff; }
+.review-preview.is-stale { border-color: #fde68a; background: #fffbeb; }
+.review-preview-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.review-preview-head h4 { margin: 0; font: 700 12px/1.3 'InterBody', Inter, sans-serif; color: #3730a3; }
+.review-provisional { margin: 0; padding-left: 18px; color: #6d28d9; font-size: 12px; }
+.review-preview-summary { margin: 0; }
+.review-objects { display: grid; gap: 6px; }
+.review-objects h4 { margin: 0; }
+.review-preview-details { display: grid; gap: 8px; }
+.review-preview-details h6 { margin: 6px 0 0; }
+.review-no-preview { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.review-script-change { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid #fde68a; border-radius: 10px; background: #fffbeb; }
+.review-take-lines p { margin: 0; }
+.review-take-lines ol { margin: 6px 0 0; padding-left: 18px; }
+.review-guide-lines li.is-changed { color: #92400e; }
+.review-line-flag { margin-left: 8px; padding: 1px 6px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.review-script-change .review-warn { margin: 0; }
+.review-script-older summary { cursor: pointer; font-size: 12px; color: #92400e; }
+.review-script-older ol { margin: 6px 0 0; color: #71717a; font-size: 12px; }
+.link-button { padding: 0; border: 0; background: none; color: #4338ca; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.link-button:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; border-radius: 2px; }
+.review-timeline { display: grid; gap: 3px; padding: 6px 0 2px; }
+.review-timeline-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; align-items: center; }
+.review-timeline-label { font-size: 11px; color: #52525b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.review-timeline-track { position: relative; height: 16px; border-radius: 4px; background: #eef0f7; }
+.review-timeline-clip { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; background: #818cf8; overflow: hidden; }
+.review-timeline-row.is-moments .review-timeline-track { height: 20px; }
+.review-timeline-clip.is-moment { top: 0; bottom: 0; background: #e0e7ff; border: 1px solid #a5b4fc; font: 600 10px/18px 'InterBody', Inter, sans-serif; color: #3730a3; padding: 0 5px; white-space: nowrap; text-overflow: ellipsis; }
+.review-timeline-clip.is-text, .review-timeline-clip.is-caption { background: #34d399; }
+.review-timeline-clip.is-camera { background: #f59e0b; }
+.review-timeline-clip.is-presenter { background: #f472b6; }
+.review-timeline-clip.is-background { background: #a1a1aa; }
+.review-timeline-clip.is-placeholder { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 4px, transparent 4px 8px); }
+
+/* ——— The notebook fits its window (R7) ———
+   No page-wide minimum: the header and toolbar give way, the document and the
+   canvas share the width — the stage taking the larger share in a video
+   notebook, where it is what is reviewed — and the scene rail has its own
+   band at the bottom instead of lying over the document. */
+body { min-width: 0; }
+.topbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; }
+.project-title { min-width: 0; }
+.notebook-lineage { min-width: 0; }
+.topbar-actions { min-width: 0; gap: 10px; }
+.commandbar { gap: 12px; }
+.commandbar .workspace-nav { flex: none; }
+/* At a large text zoom the actions scroll within their own bar, never the page. */
+.commandbar .actions { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.commandbar .actions::-webkit-scrollbar { display: none; }
+.commandbar .actions > * { flex: none; }
+.editor-layout { width: min(1320px, 100%); grid-template-columns: minmax(0, 1fr) clamp(300px, 30vw, 420px); gap: clamp(20px, 3vw, 48px); }
+body.is-video-notebook .editor-layout { grid-template-columns: minmax(400px, 1fr) clamp(340px, 40vw, 640px); }
+@media (max-width: 1200px) {
+  .format-control { min-width: 0; }
+  .format-control > span:first-child { display: none; }
+  .studio-theme-picker { max-width: 190px; overflow: hidden; }
+  .topbar .notebook-lineage { max-width: 220px; }
+  .notebook-document { padding-inline: 20px; }
+}
+@media (max-width: 1080px) {
+  .topbar .notebook-lineage { display: none; }
+  .topbar-status strong, .topbar-status-button strong { display: none; }
+  .save-state strong { display: none; }
+}
+/* Narrow windows: the canvas sits above the document instead of beside it. */
+@media (max-width: 900px) {
+  .editor-layout, body.is-video-notebook .editor-layout { grid-template-columns: minmax(0, 1fr); }
+  .inline-canvas-rail { position: sticky; top: 0; z-index: 6; order: -1; min-height: 0; padding: 8px 0; background: white; box-shadow: 0 1px 0 var(--line); }
+  .inline-preview { position: relative; top: 0 !important; max-width: 440px; margin: 0 auto; }
+  .inline-preview > p, .inline-preview-meta { display: none; }
+}
+/* The scene rail: a band of its own; the document ends above it. */
+.notebook-timeline { left: 0; right: 0; bottom: 0; width: auto; translate: none; padding: 8px 16px; border-width: 1px 0 0; border-radius: 0; box-shadow: none; }
+body:has(.notebook-timeline:not([hidden])) { --rail-band: 58px; }
+.studio-workspace { height: calc(100vh - var(--workspace-top, 96px) - var(--rail-band, 0px)); }
+body.theme-surface-open, body:has(.player-shell.canvas-open) { --rail-band: 0px; }
+/* The stage, enlarged: the same composition, full screen. */
+.scene-stage-bar .scene-stage-full { justify-self: start; border: 1px solid #d4d4d8; background: white; color: #3f3f46; border-radius: 999px; padding: 2px 9px; font: 600 10.5px/1.5 'InterBody', Inter, sans-serif; cursor: pointer; }
+.scene-stage-bar .scene-stage-full:focus-visible, .scene-stage-modes button:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; }
+body.canvas-is-open .scene-stage-bar .scene-stage-full { display: none; }
+
+/* ——— U1 of the scene workspace plan: one input at a time, one brand
+   choice, and the stepper and the way on always in view. ——— */
+.source-modal[open] { display: flex; flex-direction: column; max-height: min(92vh, 1000px); overflow: hidden; }
+.source-modal .modal-heading { flex: none; }
+.source-modal .source-steps { flex: none; margin: 0; padding: 12px 22px 10px; border-bottom: 1px solid var(--line); }
+.source-modal .source-step { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px 22px 0; align-content: start; }
+.source-modal .source-step > .modal-actions { position: sticky; bottom: 0; z-index: 2; margin: 4px -22px 0; padding: 12px 22px 16px; align-items: center; background: linear-gradient(to bottom, rgba(255,255,255,.92), #fff 30%); border-top: 1px solid var(--line); }
+.source-next { font: 500 12.5px/1.35 'InterBody', Inter, system-ui, sans-serif; color: #52525b; text-align: right; }
+.source-status + .source-next { margin-left: 0; }
+.source-input-choice, .source-brand-choice { justify-self: start; }
+.source-input-choice button, .source-brand-choice button { font-size: 12.5px; padding: 7px 16px; }
+.source-input-choice button:focus-visible, .source-brand-choice button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.source-input-panel, .source-brand-panel { display: grid; gap: 10px; }
+.source-credit { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin: 0; padding: 8px 10px; border-radius: 8px; background: #f4f4f5; font: 12.5px/1.45 'InterBody', Inter, system-ui, sans-serif; color: #3f3f46; }
+.source-brand-field { padding-top: 12px; border-top: 1px dashed var(--line); }
+.source-brand-read { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: end; }
+.source-brand-read .source-status { grid-column: 1 / -1; margin: 0; }
+.source-starting { display: grid; gap: 10px; }
+.source-saved-themes-empty { grid-column: 1 / -1; margin: 0; font: 13px/1.5 'InterBody', Inter, system-ui, sans-serif; color: #52525b; }
+#source-brand-bound { max-width: 46ch; overflow-wrap: anywhere; }
+#source-file-read summary { cursor: pointer; font: 500 12.5px/1.4 'InterBody', Inter, system-ui, sans-serif; color: #52525b; }
+#source-file-read blockquote { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid #d4d4d8; background: #fafafa; color: #3f3f46; max-height: 9em; overflow: auto; font: 12.5px/1.45 'InterBody', Inter, system-ui, sans-serif; }
+/* A step never grows past the dialog: its one column, and the theme cards'
+   16:9 frames (whose automatic minimum width follows their height), shrink. */
+.source-modal .source-step { grid-template-columns: minmax(0, 1fr); }
+.source-modal .source-directions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.source-modal .source-direction, .source-modal .source-direction .frame { min-width: 0; }
+.source-modal .source-direction .frame { overflow: hidden; }
+.source-modal .source-direction .frame b { overflow-wrap: anywhere; }
+.source-modal #source-wording-segment { justify-self: start; }
+.source-theme-association input { min-width: 0; padding: 7px 9px; border: 1px solid #d4d4d8; border-radius: 7px; font: 13px/1.3 'InterBody', Inter, system-ui, sans-serif; color: #27272a; }
+.source-modal .source-step > .modal-actions .button { flex: none; }
+
+/* The stage's three views: the Reference (the designed slide, its schematic,
+   or the base's newer slide to compare), the plan preview, the produced scene. */
+.scene-stage-reference-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border: 1px solid #e4e4e7; border-radius: 999px; }
+.scene-stage-group-label { font: 700 9.5px/1.5 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; }
+body.canvas-is-open .scene-stage-reference-group { border-color: rgba(255,255,255,.24); }
+body.canvas-is-open .scene-stage-group-label { color: #d4d4d8; }
+
+/* U4: a composition loads unseen while the stage keeps what it showed. */
+.scene-stage-player.is-loading { opacity: 0; pointer-events: none; }
+.scene-stage-preview.is-only-loading { pointer-events: none; }
+.scene-stage-preview.is-only-loading .scene-stage-transport { display: none; }
+.scene-stage-retry { flex: none; padding: 2px 10px; border: 1px solid #fca5a5; border-radius: 999px; background: #fff; color: #991b1b; font: 600 11px/1.5 'InterBody', Inter, sans-serif; cursor: pointer; }

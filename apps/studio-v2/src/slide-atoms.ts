@@ -41,6 +41,7 @@ export type SlideUnit = {
   appearance?: {
     key?: string
     parts: Record<string, string>
+    bounds?: Record<string, { x: number; y: number; width: number; height: number }>
     kinds?: Record<string, string>
     envelope?: { x: number; y: number; width: number; height: number }
   }
@@ -525,6 +526,7 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
     owner.appearance = {
       ...(element.getAttribute('data-appearance-key') ? { key: element.getAttribute('data-appearance-key') || '' } : {}),
       parts,
+      bounds: Object.fromEntries(Object.entries(parts).map(([name, id]) => [name, bboxOf(element.querySelector(`#${CSS.escape(id)}`) as SVGGraphicsElement || element as SVGGraphicsElement)])),
       // What it covers while it plays, not only at rest: a drawing whose
       // parts move needs the room they move through.
       ...(envelope.width && envelope.height ? { envelope } : {}),
@@ -545,10 +547,12 @@ const attachAppearance = (root: Element, units: SlideUnit[]) => {
     if (!pieces.length) return
     owner.appearance ||= { parts: {} }
     owner.appearance.kinds ||= {}
+    owner.appearance.bounds ||= {}
     pieces.forEach(piece => {
       const name = piece.getAttribute('data-part')!
       if (!piece.id) return
       owner.appearance!.parts[name] = piece.id
+      owner.appearance!.bounds![name] = bboxOf(piece as SVGGraphicsElement)
       owner.appearance!.kinds![name] = piece.tagName.toLowerCase()
       if (!owner.ids.includes(piece.id)) owner.ids.push(piece.id)
     })
@@ -633,15 +637,22 @@ export const wearAppearance = (
   // Each placement gets its own ids, even when it reuses the same library
   // drawing twice in one scene. Gradient and clip references follow them.
   const placementIds = new Map<string, string>()
-  drawing.querySelectorAll('[id]').forEach(element => {
+  ;[drawing, ...Array.from(drawing.querySelectorAll('[id]'))].filter(element => element.id).forEach(element => {
     placementIds.set(element.id, `${unitId}-art-${element.id}`)
     element.id = placementIds.get(element.id)!
   })
-  drawing.querySelectorAll('*').forEach(element => {
+  ;[drawing, ...Array.from(drawing.querySelectorAll('*'))].forEach(element => {
     Array.from(element.attributes).forEach(attribute => {
       let value = attribute.value.replace(/url\(\s*["']?#([^)'"\s]+)["']?\s*\)/g, (all, id: string) => placementIds.has(id) ? `url(#${placementIds.get(id)})` : all)
       if ((attribute.name === 'href' || attribute.name === 'xlink:href') && value.startsWith('#')) value = `#${placementIds.get(value.slice(1)) || value.slice(1)}`
       if (value !== attribute.value) element.setAttribute(attribute.name, value)
+    })
+  })
+  drawing.querySelectorAll('style').forEach(style => {
+    style.textContent = (style.textContent || '').replace(/([^{}]+)\{([^{}]*)\}/g, (_rule, selector: string, declarations: string) => {
+      const scoped = selector.replace(/#([a-zA-Z_][\w.-]*)/g, (all, id: string) => placementIds.has(id) ? `#${placementIds.get(id)}` : all)
+      const paint = declarations.replace(/url\(\s*["']?#([^)'"\s]+)["']?\s*\)/g, (all, id: string) => placementIds.has(id) ? `url(#${placementIds.get(id)})` : all)
+      return `${scoped}{${paint}}`
     })
   })
   const group = parsed.createElementNS('http://www.w3.org/2000/svg', 'g')
@@ -677,7 +688,13 @@ export const wearAppearance = (
     drawing.setAttribute('width', String(artwork.viewBox.width))
     drawing.setAttribute('height', String(artwork.viewBox.height))
     group.appendChild(parsed.importNode(drawing, true))
-  } else Array.from(drawing.childNodes).forEach(node => group.appendChild(parsed.importNode(node, true)))
+  } else {
+    // Keep the source viewport: root paint, CSS, clips and nonzero viewBox
+    // origins are inherited semantics, not disposable packaging.
+    drawing.setAttribute('width', String(artwork.viewBox.width))
+    drawing.setAttribute('height', String(artwork.viewBox.height))
+    group.appendChild(parsed.importNode(drawing, true))
+  }
   // Name the pieces the scene will move, by the brief's own names.
   artwork.parts.forEach(part => {
     const piece = group.querySelector(`#${CSS.escape(placementIds.get(part.id) || part.id)}`)

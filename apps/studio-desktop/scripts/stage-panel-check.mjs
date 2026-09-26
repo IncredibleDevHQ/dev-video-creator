@@ -114,7 +114,7 @@ try {
     scenes: [{ id: 'blk-s2', file: 's2', title: 'Pickup scene', question: 'q', answer: 'a', review: 'r' }],
   }))
   const fixture = {
-    version: 1, id: REOPEN_PROJECT, title: 'Stage panel fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: REOPEN_PROJECT, title: 'Stage panel fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Stages' }] },
       { type: 'scene', attrs: { id: 'blk-s2', title: 'Pickup scene' } },
@@ -130,7 +130,7 @@ try {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ stage: 'align-take', status: 'needs-input', detail: { scene: 's2', review: [{ beat: 2, note: 'The take skips the second sentence.' }] } }),
   })
-  await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${REOPEN_PROJECT}'); location.assign('/studio')`)
+  await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${REOPEN_PROJECT}'); location.assign('/studio')`)
   await waitFor(`document.getElementById('project-title')?.value === 'Stage panel fixture'`)
   await waitFor(`document.getElementById('explainer-progress')?.hidden === false`)
   const reopened = await evalInWindow(`(() => ({

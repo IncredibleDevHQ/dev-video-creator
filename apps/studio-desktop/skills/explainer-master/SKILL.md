@@ -2,7 +2,7 @@
 name: explainer-master
 description: Build a narrated technical explainer from a preserved wireframe notebook using the local coding harness, reusable Quiver objects, editable SVG performances, measured narration cues, and production-rendered visual review. Use for the Build Explainer route, not for drawing the base presentation.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Build Explainer
@@ -43,6 +43,10 @@ The wireframe carries facts and relationships, not binding coordinates, page
 chrome, node containers, text density, scene lengths, or narration. Recompose
 it freely. Do not merely substitute a richer icon inside its existing cards.
 Retain its object identities when useful and its source scene id always.
+
+Read [behavior, scheduling and executable quality checkpoints](references/behavior-and-quality.md)
+before authoring new programs. New work uses `scheduling:2` and must pass the
+short reference export checkpoint before expanding the remaining scenes.
 
 ## Workflow
 

@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="sohne-var, Inter, sans-serif" font-size="22" data-page-role="diagram" data-page-index="10">
+  <defs>
+    <marker id="s10-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ef61ef"/></marker>
+  </defs>
+  <g id="s10-background" data-role="background">
+    <rect x="0" y="0" width="1280" height="720" fill="#0e0c17"/>
+  </g>
+  <g id="s10-decoration" data-role="decoration">
+    <path d="M80 0V720M160 0V720M240 0V720M320 0V720M400 0V720M480 0V720M560 0V720M640 0V720M720 0V720M800 0V720M880 0V720M960 0V720M1040 0V720M1120 0V720M1200 0V720M0 120H1280M0 180H1280M0 240H1280M0 300H1280M0 360H1280M0 420H1280M0 480H1280M0 540H1280M0 600H1280M0 660H1280" stroke="#ffffff" stroke-width="1" opacity="0.03"/>
+    <text x="80" y="600" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99" letter-spacing="1">WHERE THE BUCKETS LIVE</text>
+    <text x="820" y="600" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99" letter-spacing="1">WHAT HAPPENS TO THE TOKENS</text>
+  </g>
+  <g id="s10-header" data-role="header">
+    <text id="s10-eyebrow" x="80" y="56" font-family="Consolas, Menlo, monospace" font-size="20" fill="#ef61ef" letter-spacing="1">§ 10 · SCALING YOUR API WITH RATE LIMITERS</text>
+    <text id="s10-title" x="80" y="104" font-size="40" font-weight="600" fill="#ffffff">The token bucket</text>
+  </g>
+  <g id="s10-footer" data-role="footer">
+    <text x="80" y="696" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99">stripe.com</text>
+    <text x="1200" y="696" font-family="Consolas, Menlo, monospace" font-size="20" fill="#6f7a99" text-anchor="end">SHEET 10 / 12</text>
+  </g>
+
+  <g id="s10-node-token-drip" data-role="node" data-kind="box" data-object-id="obj-token-drip-48">
+    <rect id="s10-node-token-drip-box" x="80" y="150" width="300" height="100" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <path d="M118 166v40m-8 -10l8 10l8 -10" fill="none" stroke="#635bff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="118" cy="222" r="4" fill="#ef61ef" data-anim="blink" data-anim-order="0"/>
+    <circle cx="118" cy="234" r="3" fill="#ef61ef" data-anim="blink" data-anim-order="1"/>
+    <text x="156" y="193" font-size="24" fill="#ffffff">Token drip</text>
+    <text x="156" y="223" font-size="20" fill="#a9b3cc">slow, steady refill</text>
+  </g>
+
+  <g id="s10-node-incoming-request" data-role="node" data-kind="box" data-entity="client" data-object-id="obj-incoming-request-49">
+    <rect id="s10-node-incoming-request-box" x="80" y="300" width="300" height="120" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g id="s10-node-incoming-request-art" data-appearance-for="s10-node-incoming-request">
+      <g transform="translate(96,338) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></g>
+      <circle cx="118" cy="351" r="16" fill="none" stroke="#ef61ef" stroke-width="1.5" data-anim="wave" data-anim-order="0"/>
+      <circle cx="118" cy="351" r="24" fill="none" stroke="#ef61ef" stroke-width="1" data-anim="wave" data-anim-order="1"/>
+      <rect x="130" y="330" width="8" height="8" rx="2" fill="#ef61ef" data-anim="blink"/>
+    </g>
+    <text x="156" y="353" font-size="24" fill="#ffffff">Incoming request</text>
+    <text x="156" y="383" font-size="20" fill="#a9b3cc">takes one token</text>
+  </g>
+
+  <g id="s10-node-per-user-bucket" data-role="node" data-kind="box" data-entity="database" data-object="token-bucket" data-object-id="obj-per-user-bucket-46">
+    <rect id="s10-node-per-user-bucket-box" x="440" y="150" width="320" height="260" rx="12" fill="#ef61ef" fill-opacity="0.10" stroke="#ef61ef" stroke-opacity="0.7" stroke-width="2"/>
+    <g id="s10-node-per-user-bucket-art" data-appearance-for="s10-node-per-user-bucket">
+      <path id="s10-bucket-shell" d="M510 180L530 316H670L690 180" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.8" stroke-width="2" stroke-linejoin="round"/>
+      <ellipse cx="600" cy="180" rx="90" ry="10" fill="none" stroke="#635bff" stroke-opacity="0.8" stroke-width="2"/>
+      <rect id="s10-bucket-level" data-part="level" x="532" y="236" width="136" height="78" fill="#ef61ef" fill-opacity="0.18" data-anim="fill"/>
+      <g id="s10-bucket-tokens" data-part="tokens">
+        <circle cx="600" cy="292" r="16" fill="#ef61ef" fill-opacity="0.85" stroke="#0e0c17" stroke-width="1.5" data-anim="pulse" data-anim-order="0"/>
+        <circle cx="600" cy="264" r="16" fill="#ef61ef" fill-opacity="0.85" stroke="#0e0c17" stroke-width="1.5" data-anim="pulse" data-anim-order="1"/>
+        <circle cx="600" cy="236" r="16" fill="#ef61ef" fill-opacity="0.85" stroke="#0e0c17" stroke-width="1.5" data-anim="pulse" data-anim-order="2"/>
+      </g>
+      <circle id="s10-bucket-inlet" data-part="inlet" cx="530" cy="164" r="5" fill="#ef61ef" data-anim="blink"/>
+    </g>
+    <text x="600" y="355" font-size="24" fill="#ffffff" text-anchor="middle">Per-user bucket</text>
+    <text x="600" y="385" font-size="20" fill="#a9b3cc" text-anchor="middle">every Stripe user has one</text>
+  </g>
+
+  <g id="s10-node-token-supply" data-role="node" data-kind="box" data-object-id="obj-token-supply-47">
+    <rect id="s10-node-token-supply-box" x="820" y="150" width="300" height="100" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <circle cx="846" cy="200" r="10" fill="#ef61ef" fill-opacity="0.85" stroke="#0e0c17" stroke-width="1.5"/>
+    <circle cx="858" cy="200" r="10" fill="#ef61ef" fill-opacity="0.85" stroke="#0e0c17" stroke-width="1.5"/>
+    <circle cx="870" cy="200" r="10" fill="#ef61ef" fill-opacity="0.85" stroke="#0e0c17" stroke-width="1.5" data-anim="blink"/>
+    <text x="896" y="193" font-size="24" fill="#ffffff">Token supply</text>
+    <text x="896" y="223" font-size="20" fill="#a9b3cc">one token per request</text>
+  </g>
+
+  <g id="s10-node-empty-bucket" data-role="node" data-kind="box" data-object-id="obj-empty-bucket-50">
+    <rect id="s10-node-empty-bucket-box" x="820" y="290" width="300" height="100" rx="12" fill="#ff7d6b" fill-opacity="0.10" stroke="#ff7d6b" stroke-opacity="0.6" stroke-width="1.5"/>
+    <path d="M840 318L846 366H870L876 318" fill="none" stroke="#ff7d6b" stroke-width="2" stroke-linejoin="round"/>
+    <ellipse cx="858" cy="318" rx="18" ry="4" fill="none" stroke="#ff7d6b" stroke-width="2"/>
+    <text x="896" y="333" font-size="24" fill="#ffffff">Empty bucket</text>
+    <text x="896" y="363" font-size="20" fill="#a9b3cc">no tokens left</text>
+  </g>
+
+  <g id="s10-node-reject-request" data-role="node" data-kind="box" data-object-id="obj-reject-request-51">
+    <rect id="s10-node-reject-request-box" x="820" y="440" width="300" height="100" rx="12" fill="#ff7d6b" fill-opacity="0.10" stroke="#ff7d6b" stroke-opacity="0.6" stroke-width="1.5"/>
+    <g transform="translate(836,468) scale(1.8333)" fill="none" stroke="#ff7d6b" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M10 10l4 4m0 -4l-4 4"/></g>
+    <text x="896" y="483" font-size="24" fill="#ffffff">Reject request</text>
+    <text x="896" y="513" font-size="20" fill="#a9b3cc">request refused</text>
+  </g>
+
+  <g id="s10-node-bucket-host" data-role="node" data-kind="box" data-entity="server" data-object-id="obj-bucket-host-45">
+    <rect id="s10-node-bucket-host-box" x="440" y="460" width="320" height="90" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g id="s10-node-bucket-host-art" data-appearance-for="s10-node-bucket-host">
+      <g transform="translate(456,483) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-2"/><path d="M3 15a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3l0 -2"/></g>
+      <circle cx="469" cy="498" r="2.5" fill="#ef61ef" data-anim="blink" data-anim-order="0"/>
+      <circle cx="469" cy="512" r="2.5" fill="#ef61ef" data-anim="blink" data-anim-order="1"/>
+      <rect x="478" y="495" width="14" height="5" rx="1" fill="#ef61ef" opacity="0.8" data-anim="fill"/>
+    </g>
+    <text x="516" y="498" font-size="24" fill="#ffffff">Bucket host</text>
+    <text x="516" y="528" font-size="20" fill="#a9b3cc">centralised, one place</text>
+  </g>
+
+  <g id="s10-node-redis-store" data-role="node" data-kind="box" data-entity="cache" data-object-id="obj-redis-store-52">
+    <rect id="s10-node-redis-store-box" x="80" y="460" width="300" height="90" rx="12" fill="#635bff" fill-opacity="0.10" stroke="#635bff" stroke-opacity="0.55" stroke-width="1.5"/>
+    <g id="s10-node-redis-store-art" data-appearance-for="s10-node-redis-store">
+      <g transform="translate(96,483) scale(1.8333)" fill="none" stroke="#635bff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a8 3 0 1 0 16 0a8 3 0 1 0 -16 0"/><path d="M4 6v6a8 3 0 0 0 16 0v-6"/><path d="M4 12v6a8 3 0 0 0 16 0v-6"/></g>
+      <path d="M126 487l-4 8h6l-4 8" fill="none" stroke="#ef61ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-anim="blink" data-anim-rate="fast"/>
+      <ellipse cx="118" cy="494" rx="14" ry="5" fill="#ef61ef" fill-opacity="0.5" data-anim="pulse"/>
+    </g>
+    <text x="156" y="498" font-size="24" fill="#ffffff">Redis store</text>
+    <text x="156" y="528" font-size="20" fill="#a9b3cc">yours, or ElastiCache</text>
+  </g>
+
+  <line id="s10-edge-1" data-role="connector" data-verb="contains" data-from="s10-node-bucket-host" data-to="s10-node-per-user-bucket" x1="600" y1="460" x2="600" y2="412" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s10-arrow)"/>
+  <text x="612" y="442" font-family="Consolas, Menlo, monospace" font-size="20" fill="#a9b3cc">holds</text>
+  <line id="s10-edge-2" data-role="connector" data-verb="contains" data-from="s10-node-per-user-bucket" data-to="s10-node-token-supply" x1="760" y1="200" x2="818" y2="200" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s10-arrow)"/>
+  <line id="s10-edge-3" data-role="connector" data-verb="feeds" data-from="s10-node-token-drip" data-to="s10-node-per-user-bucket" x1="380" y1="200" x2="438" y2="200" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s10-arrow)"/>
+  <text x="409" y="190" font-family="Consolas, Menlo, monospace" font-size="20" fill="#a9b3cc" text-anchor="middle">feeds</text>
+  <line id="s10-edge-4" data-role="connector" data-verb="sends to" data-from="s10-node-incoming-request" data-to="s10-node-per-user-bucket" x1="380" y1="360" x2="438" y2="360" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s10-arrow)"/>
+  <line id="s10-edge-5" data-role="connector" data-verb="triggers" data-from="s10-node-empty-bucket" data-to="s10-node-reject-request" x1="970" y1="390" x2="970" y2="438" stroke="#ff7d6b" stroke-opacity="0.7" stroke-width="2" marker-end="url(#s10-arrow)"/>
+  <text x="982" y="420" font-family="Consolas, Menlo, monospace" font-size="20" fill="#a9b3cc">triggers</text>
+  <line id="s10-edge-6" data-role="connector" data-verb="depends on" data-from="s10-node-bucket-host" data-to="s10-node-redis-store" x1="440" y1="505" x2="382" y2="505" stroke="#ef61ef" stroke-opacity="0.6" stroke-width="2" marker-end="url(#s10-arrow)"/>
+
+  <g id="s10-actor-request" data-actor="request" opacity="0">
+    <circle cx="380" cy="360" r="18" fill="#ef61ef"/>
+    <text x="380" y="367" font-size="20" font-weight="600" text-anchor="middle" fill="#0e0c17">req</text>
+  </g>
+  <g id="s10-actor-token" data-actor="token" opacity="0">
+    <circle cx="380" cy="200" r="14" fill="#ef61ef" stroke="#0e0c17" stroke-width="1.5"/>
+    <circle cx="380" cy="200" r="6" fill="none" stroke="#0e0c17" stroke-width="1.5"/>
+  </g>
+</svg>

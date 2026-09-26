@@ -6,6 +6,36 @@ import { join } from 'node:path'
 import type { RunManager } from './run-manager'
 import type { HarnessAdapter } from './types'
 
+// A planning run's raw files (M0): the packet it read and what it wrote,
+// including the product's answer to every submission, for the creator's
+// raw-artifact view.
+const planningArtefacts = async (projectDir: string) => {
+  // Text files as text, a few folders deep (the packet's references and
+  // assets); an image is named with its size rather than dumped as bytes.
+  const read = async (folder: string, depth = 0): Promise<Record<string, string>> => {
+    const entries = await readdir(join(projectDir, folder), { withFileTypes: true }).catch(() => [])
+    const files: Record<string, string> = {}
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      const path = `${folder}/${entry.name}`
+      if (entry.isDirectory()) {
+        if (depth < 3) Object.assign(files, await read(path, depth + 1))
+        continue
+      }
+      if (/\.(json|md|svg|txt)$/.test(entry.name)) {
+        const text = await readFile(join(projectDir, path), 'utf8').catch(() => null)
+        if (text !== null) files[path] = text.slice(0, 200_000)
+      } else if (/\.(png|jpe?g|webp)$/.test(entry.name)) {
+        const bytes = await readFile(join(projectDir, path)).catch(() => null)
+        if (bytes) files[path] = `[image · ${Math.max(1, Math.round(bytes.length / 1024))} KB — open the run directory to view it]`
+      }
+    }
+    return files
+  }
+  const packet = await read('packet')
+  const planning = await read('planning')
+  return Object.keys(packet).length || Object.keys(planning).length ? { packet, planning } : null
+}
+
 export const registerHarnessIpc = (
   manager: RunManager,
   adapters: HarnessAdapter[],
@@ -26,6 +56,7 @@ export const registerHarnessIpc = (
           ok: false,
           reason: String(error),
         }))),
+        ...(adapter.models ? { models: await adapter.models().catch(() => undefined) } : {}),
       })),
     ),
   )
@@ -131,6 +162,7 @@ export const registerHarnessIpc = (
         ? { receipt: explainerReceipt, export: explainerExport, story: explainerStory, assets: castAssets, briefs }
         : null,
       story: storyOutline || storyReceipt ? { outline: storyOutline, receipt: storyReceipt } : null,
+      planning: await planningArtefacts(run.projectDir),
     }
   })
 }

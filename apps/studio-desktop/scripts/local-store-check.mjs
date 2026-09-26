@@ -98,7 +98,7 @@ try {
       body,
     })
     if (!asset.assetId || !asset.url) throw new Error('no assetId/url')
-    const fetched = Buffer.from(await (await fetch(asset.url)).arrayBuffer())
+    const fetched = Buffer.from(await (await fetch(new URL(asset.url, origin))).arrayBuffer())
     if (!fetched.equals(body)) throw new Error('object bytes differ')
     return `${asset.assetId} (${fetched.length} bytes round-trip)`
   })
@@ -156,6 +156,7 @@ try {
     // single-user flow where the studio itself drives the commit).
     const writeMapping = async () => {
       const current = (await j(origin, '/api/projects/' + id)).project
+      const expectedProject = structuredClone(current)
       current.recordedBlocks = {
         [blockId]: {
           recordingId: draft.draft.assetId,
@@ -165,7 +166,7 @@ try {
           storage: 'local',
         },
       }
-      await j(origin, '/api/projects/' + id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(current) })
+      await j(origin, '/api/projects/' + id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: current, expectedProject }) })
     }
     await writeMapping()
     await new Promise(resolve => setTimeout(resolve, 2_500))
@@ -199,10 +200,11 @@ try {
     if (!reloaded || reloaded.title !== 'Local store check') throw new Error('notebook lost')
     const mapping = reloaded.recordedBlocks?.[blockId]
     if (!mapping?.assetId) throw new Error('recordedBlocks mapping lost')
-    const fetched = Buffer.from(await (await fetch(asset.url.replace(origin, restarted))).arrayBuffer())
+    // Named by path, the same file answers on the new port (F01).
+    const fetched = Buffer.from(await (await fetch(new URL(asset.url, restarted))).arrayBuffer())
     if (!fetched.equals(Buffer.from(PNG_B64, 'base64'))) throw new Error('asset object lost')
     const mediaUrl = mapping.videoUrl || mapping.mediaUrl
-    const video = await fetch(String(mediaUrl).replace(origin, restarted))
+    const video = await fetch(new URL(String(mediaUrl), restarted))
     if (!video.ok) throw new Error(`recording media ${video.status}`)
     const takesBody = JSON.parse(await readFile(join(dataDir, 'notebooks', `${id}.takes.json`), 'utf8'))
     if (!takesBody[blockId]) throw new Error('takes file lost')

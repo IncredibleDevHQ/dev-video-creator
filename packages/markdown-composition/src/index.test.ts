@@ -204,6 +204,7 @@ describe('shot-plan emphasis overlays', () => {
         title: 'The mechanism',
         svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><g id="encoder"><rect x="10" y="10" width="80" height="40"/></g></svg>',
         steps: [{ title: 'Encoder', explanation: 'Inputs enter the stack.', reveals: ['encoder'], verb: 'reveal' }],
+        stageTrack: [{ atMs: 0, family: 'speaker-full' }],
         directorAuto: {
           shots: [
             { beats: [0], view: 'camera-full', emphasis: 'Retries fail together', stage: { family: 'speaker-full' }, transitionOut: { kind: 'hold', durationMs: 0 }, reason: 'test' },
@@ -223,12 +224,25 @@ describe('shot-plan emphasis overlays', () => {
       presenterTracks: {},
       brand: defaultBrand,
     }
-    const result = compileProject(doc)
+    // Someone in frame, on the presenter's stage: the headline rides its beats.
+    const result = compileProject(doc, { previewPresenter: { imageUrl: 'https://example.com/presenter.png', name: 'Presenter' } })
     expect(result.html).toContain('class="scene-emphasis"')
     expect(result.html).toContain('Retries fail together')
     expect(result.html).toMatch(/data-from="[\d.]+" data-to="[\d.]+"/)
     expect(result.html).toContain('applyEmphasis')
     expect(result.html).toContain('.scene-emphasis')
+    // Faded by the scene's own time, never by a CSS transition.
+    expect(result.html).not.toMatch(/\.scene-emphasis \{[^}]*transition/)
+    // F12 of the Perplexity review: with nobody in frame — a generated
+    // scene, no camera, no take — the page owns the frame, and there is no
+    // camera headline over it.
+    const nobody = compileProject(doc)
+    expect(nobody.html).not.toContain('class="scene-emphasis"')
+    expect(nobody.html).not.toContain('Retries fail together')
+    expect(nobody.html).toMatch(/data-stage="content-full"/)
+    // Nor on a stage that is not the presenter's at that moment.
+    const pageStage = compileProject({ ...doc, notebook: { type: 'doc', content: [{ ...scene, attrs: { ...scene.attrs, stageTrack: [{ atMs: 0, family: 'content-pip' }] } }] } }, { previewPresenter: { imageUrl: 'https://example.com/presenter.png', name: 'Presenter' } })
+    expect(pageStage.html).not.toContain('class="scene-emphasis"')
   })
 
   it('emits nothing for shots without emphasis or with animation-led views', () => {

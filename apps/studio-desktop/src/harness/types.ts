@@ -16,9 +16,15 @@ export type GateRequest = {
   recommendation?: unknown
 }
 
+// What a tool or file event did: reading a manual is not writing a page.
+export type HarnessOperation = 'read' | 'search' | 'write' | 'edit' | 'run' | 'tool'
+
 export interface HarnessEvent {
-  type: 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done'
+  // 'session': the harness started its session and says which model it runs.
+  type: 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done' | 'session'
   ts: number
+  model?: string
+  operation?: HarnessOperation
   text?: string
   tool?: string
   file?: string
@@ -30,9 +36,19 @@ export interface HarnessEvent {
   status?: RunStatus
 }
 
+// The models a harness can run, for the creator to choose from. `default`
+// is what the CLI runs when no model is named (null when it cannot be known).
+export type HarnessModelOption = { id: string; label: string; unavailable?: string }
+export type HarnessModels = { default: string | null; options: HarnessModelOption[]; source: string }
+
 export interface HarnessAdapter {
   id: 'claude-code' | 'codex' | 'kimi'
+  // Whether the harness's own tools let the model look at an image file in
+  // its project (P1): 'native' when known to, 'unverified' otherwise — the
+  // run says so, and the planner falls back to the SVG sources.
+  images?: 'native' | 'unverified'
   available(): Promise<{ ok: boolean; version?: string; reason?: string }>
+  models?(): Promise<HarnessModels>
   run(
     run: HarnessRun,
     onEvent: (e: HarnessEvent) => void,
@@ -61,6 +77,19 @@ export type RunStatus =
   | 'error'
   | 'cancelled'
 
+// Why a run failed, kept with the run so every stage can show it and offer
+// the right way on. `message` is the provider's own public text.
+export type FailureCategory = 'quota' | 'auth' | 'model' | 'rate-limit' | 'network' | 'unavailable' | 'interrupted' | 'other'
+export type RunFailure = {
+  category: FailureCategory
+  message: string
+  harness: string
+  requestedModel?: string
+  reportedModel?: string
+  at: string
+  recovery: string[]
+}
+
 export type RunSummary = {
   id: string
   skill: string
@@ -69,6 +98,11 @@ export type RunSummary = {
   projectDir: string
   status: RunStatus
   resumeId?: string
+  // The model the run asked for, and the one its harness session reported.
+  model?: string
+  reportedModel?: string
+  // Set when the run ended in error.
+  failure?: RunFailure
   startedAt: string
   finishedAt?: string
 }

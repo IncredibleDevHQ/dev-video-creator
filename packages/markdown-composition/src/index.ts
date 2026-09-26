@@ -52,6 +52,7 @@ export * from './explainer'
 export * from './slide'
 export * from './motion-plan'
 export * from './derive'
+export * from './formats'
 export * from './object-clip'
 export * from './motion-driver'
 export * from './stage'
@@ -59,6 +60,7 @@ export * from './themes'
 export * from './presenter-layouts'
 export * from './notebook-media'
 export * from './speaker-notes'
+export * from './audio-readiness'
 
 const incredibleMarkPath =
   'M8.96168 0.740305C7.9746 -0.246768 6.37424 -0.246768 5.38717 0.740304L0.740312 5.38716C-0.24676 6.37423 -0.246761 7.9746 0.740312 8.96167L1.99139 10.2127C2.97846 11.1998 2.97846 12.8002 1.99139 13.7872L0.740304 15.0383C-0.246768 16.0254 -0.246768 17.6258 0.740304 18.6128L5.38716 23.2597C6.37423 24.2468 7.9746 24.2468 8.96167 23.2597L10.2127 22.0086C11.1998 21.0215 12.8002 21.0215 13.7873 22.0086L15.0383 23.2597C16.0254 24.2468 17.6258 24.2468 18.6128 23.2597L23.2597 18.6128C24.2468 17.6258 24.2468 16.0254 23.2597 15.0383L22.0086 13.7873C21.0215 12.8002 21.0215 11.1998 22.0086 10.2127L23.2597 8.96167C24.2468 7.9746 24.2468 6.37424 23.2597 5.38716L18.6128 0.740305C17.6258 -0.246767 16.0254 -0.246766 15.0383 0.740307L13.7873 1.99138C12.8002 2.97845 11.1998 2.97845 10.2127 1.99138L8.96168 0.740305Z'
@@ -126,7 +128,7 @@ export const retimePlanToMarks = (plan: MotionPlanV2, marks: number[], totalMs: 
 // and its own audio stays out of the mix: the narration is the one voice.
 const alignedTakeNarration = (project: ProjectDocumentV1, nodeId: string): boolean =>
   (project.presenterTracks?.[nodeId] || []).some(
-    track => track.kind === 'narration' && track.audioKind === 'recorded-mic' && Boolean(safeUrl(track.audioUrl)),
+    track => track.kind === 'narration' && track.audioKind === 'recorded-mic' && (!track.recordingId || track.recordingId === project.recordedBlocks?.[nodeId]?.recordingId) && Boolean(safeUrl(track.audioUrl)),
   )
 
 // The project as the takes shaped it: every page scene whose take keeps
@@ -760,22 +762,23 @@ const explainerCanvasScript = (
 // A slide scene inlines the authored SVG (ids prefixed per scene), stacks
 // the step captions beneath it, and registers the step driver.
 const renderSlideScene = (scene: Scene, stageTrack?: ReturnType<typeof sceneStageTrack>) => {
-  const attrs = (scene.node.attrs || {}) as { svg?: unknown; title?: unknown }
+  const attrs = (scene.node.attrs || {}) as { svg?: unknown; title?: unknown; captionPolicy?: 'none' | 'heading' | 'narration' }
   const { plan, steps } = slideNodeTimeline(scene.node)
   const svg = prepareSlideSvg(String(attrs.svg || ''), slidePrefix(scene.index))
   if (!svg) {
     return `<div class="media-block media-placeholder"><span>▤</span><strong>${escapeHtml(String(attrs.title || 'Slide'))}</strong></div>`
   }
-  const captions = steps
+  const captionPolicy = attrs.captionPolicy || (/data-scene-mode="explainer"/.test(svg) ? 'none' : 'heading')
+  const captions = (captionPolicy === 'none' ? [] : steps)
     .map(
       (step, index) =>
-        `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(step.title)}</strong><span>${escapeHtml(step.explanation)}</span></div>`,
+        `<div class="ex-caption" data-ex-step="${index}"><strong>${escapeHtml(captionPolicy === 'narration' ? step.explanation : step.title)}</strong></div>`,
     )
     .join('')
   const driver = plan
     ? motionDriverScript(scene.index, scene.id, plan, slidePrefix(scene.index), { stageTrack: stageTrack || sceneStageTrack(scene) })
     : ''
-  return `<div class="slide-stage">${svg}${steps.length ? `<div class="ex-captions">${captions}</div>` : ''}${driver}</div>`
+  return `<div class="slide-stage">${svg}${captions ? `<div class="ex-captions">${captions}</div>` : ''}${driver}</div>`
 }
 
 const renderExplainerScene = (
@@ -944,6 +947,12 @@ const buildCompositionHtml = (
       // presenter track, never replaces them. Composed scene recordings
       // replace the scene.
       const recording = project.recordedBlocks?.[scene.id]
+      // A produced scene's render (P4) replaces the scene as a composed take
+      // does: its frames and, when it was voiced, its sound — and no take,
+      // camera or narration of the scene plays over it. The director's
+      // content view shows the live scene instead.
+      const produced = scene.id === contentViewNodeId ? null : project.producedScenes?.[scene.id] || null
+      const producedUrl = safeUrl(produced?.videoUrl)
       // One voice per scene: when the build aligned this scene to its take,
       // the recorded-mic narration track IS the take's audio — the very track
       // the alignment listened to. Every other copy of that voice (the camera
@@ -965,7 +974,7 @@ const buildCompositionHtml = (
         )
           ? [{ kind: 'human-camera' as const, videoUrl: presenterTakeUrl, ...(narrationVoice ? {} : { audioUrl: presenterTakeUrl }), audioKind: 'recorded-mic' as const }]
           : []
-      const presenterTracks = [...scene.presenterTracks, ...presenterTakeTracks, ...takeTracks]
+      const presenterTracks = producedUrl ? [] : [...scene.presenterTracks, ...presenterTakeTracks, ...takeTracks]
       const presenterMarkup = presenterTracks
         .map((track, trackIndex) => {
           if (track.kind === 'narration') {
@@ -995,18 +1004,19 @@ const buildCompositionHtml = (
         .join('')
       // The director's content view swaps the selected block's take out for
       // the live composed scene so the block stays directable.
-      const recordedTakeUrl =
-        scene.id === contentViewNodeId || keepsPlan || presenterTake
+      const recordedTakeUrl = producedUrl
+        ? producedUrl
+        : scene.id === contentViewNodeId || keepsPlan || presenterTake
           ? null
           : safeUrl(recording?.videoUrl)
-      const takeVoiceUrl = keepsPlan && !takeCameraUrl && !narrationVoice ? safeUrl(recording?.videoUrl) : null
+      const takeVoiceUrl = !producedUrl && keepsPlan && !takeCameraUrl && !narrationVoice ? safeUrl(recording?.videoUrl) : null
       // A saved take already contains the directed canvas, camera, and audio,
       // so it replaces the live scene visuals and presenter tracks outright —
       // the composite's own audio is its one voice (a narration track never
       // reaches these scenes). A raw presenter take never reaches here: it
       // rides as a presenter track.
       const recordedTakeMarkup = recordedTakeUrl
-        ? `<video class="recorded-take clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video><audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`
+        ? `<video class="recorded-take${producedUrl ? ' produced-scene' : ''} clip" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${50 + scene.index}" src="${escapeHtml(recordedTakeUrl)}" muted playsinline></video>${producedUrl && !produced?.voiced ? '' : `<audio data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(recordedTakeUrl)}"></audio>`}`
         : takeVoiceUrl
           ? `<audio class="take-voice" data-start="${scene.startSeconds}" data-duration="${scene.durationSeconds}" data-track-index="${70 + scene.index}" src="${escapeHtml(takeVoiceUrl)}"></audio>`
           : ''
@@ -1027,21 +1037,36 @@ const buildCompositionHtml = (
       const nobodyInFrame = !(hasRecordedCamera || recordedTakeUrl || previewPresenterUrl)
       const stageTrack = isSlideLikeNode(scene.node) ? (nobodyInFrame ? [{ atMs: 0, family: 'content-full' as const }] : sceneStageTrack(scene)) : []
       // Shot-plan emphasis (D6): a camera-led shot's sparse headline, shown
-      // only while its beats play, in the frame's safe corner.
+      // only while its beats play, in the frame's safe corner — and only
+      // where the stage itself is the presenter's, read from the same track.
+      // With nobody in frame the page owns the frame: a camera headline over
+      // it was clipped at the edge and doubled the narration (F12 of the
+      // Perplexity review). A produced scene is its render alone.
       const directorShots = (scene.node.attrs?.directorAuto as { shots?: Array<{ beats?: number[]; view?: string; emphasis?: string }> } | undefined)?.shots
       const sceneTimeline = slideNodeTimeline(scene.node)
-      const emphasisMarkup = (directorShots || [])
-        .filter(shot => shot.emphasis && (shot.view === 'camera-full' || shot.view === 'camera-text') && shot.beats?.length)
-        .map(shot => {
-          const first = Math.min(...shot.beats!)
-          const last = Math.max(...shot.beats!)
-          const step = sceneTimeline.plan?.steps[last]
-          const lastSeconds = step ? (step.motionWindowMs + step.holdMs) / 1000 : 2
-          const from = sceneTimeline.offsets[first] ?? 0
-          const to = (sceneTimeline.offsets[last] ?? 0) + (lastSeconds || 2)
-          return `<p class="scene-emphasis" data-from="${from.toFixed(2)}" data-to="${to.toFixed(2)}">${escapeHtml(shot.emphasis!)}</p>`
-        })
-        .join('')
+      const presenterStageAt = (ms: number) => {
+        const segment = stageTrack.filter(entry => entry.atMs <= ms).pop() || stageTrack[0]
+        return segment?.family === 'speaker-full'
+      }
+      const emphasisMarkup = nobodyInFrame || producedUrl
+        ? ''
+        : (directorShots || [])
+            .filter(shot => shot.emphasis && (shot.view === 'camera-full' || shot.view === 'camera-text') && shot.beats?.length)
+            .map(shot => {
+              const first = Math.min(...shot.beats!)
+              const last = Math.max(...shot.beats!)
+              const step = sceneTimeline.plan?.steps[last]
+              const lastSeconds = step ? (step.motionWindowMs + step.holdMs) / 1000 : 2
+              const from = sceneTimeline.offsets[first] ?? 0
+              const to = (sceneTimeline.offsets[last] ?? 0) + (lastSeconds || 2)
+              if (!presenterStageAt(from * 1000)) return ''
+              return `<p class="scene-emphasis" data-from="${from.toFixed(2)}" data-to="${to.toFixed(2)}">${escapeHtml(shot.emphasis!)}</p>`
+            })
+            .join('')
+      // A take or a produced render covers the whole frame, the scene's
+      // chrome hidden under it: its logo is not asked for at all, rather
+      // than loaded for nothing (F05 of the fix verification).
+      const sceneLogoMarkup = recordedTakeUrl ? '' : userLogoMarkup
       const stageAttributes = stageTrack.length
         ? ` data-stage="${stageTrack[0].family}"${stageTrack[0].treatment ? ` data-stage-treatment="${stageTrack[0].treatment}"` : ''}${stageTrack[0].variant ? ` data-stage-variant="${stageTrack[0].variant}"` : ''} data-stage-track="${escapeHtml(JSON.stringify(stageTrack))}"`
         : ''
@@ -1068,8 +1093,8 @@ const buildCompositionHtml = (
         )}"
       >
         ${
-          userLogoMarkup && theme.logo.placement.startsWith('top-')
-            ? `<div class="composition-corner-logo logo-${theme.logo.placement}">${userLogoMarkup}</div>`
+          sceneLogoMarkup && theme.logo.placement.startsWith('top-')
+            ? `<div class="composition-corner-logo logo-${theme.logo.placement}">${sceneLogoMarkup}</div>`
             : ''
         }
         <div class="scene-index">${String(scene.index + 1).padStart(2, '0')}</div>
@@ -1079,8 +1104,8 @@ const buildCompositionHtml = (
             : ''
         }>${renderSceneNode(scene, mergedShapeCollection(project.shapeCollection), project.brand.accent, stageTrack.length ? stageTrack : undefined)}</main>
         <footer class="logo-${theme.logo.placement}">${
-          theme.logo.placement.startsWith('footer-')
-            ? userLogoMarkup || renderIncredibleBrand(scene.index)
+          theme.logo.placement.startsWith('footer-') && !recordedTakeUrl
+            ? sceneLogoMarkup || renderIncredibleBrand(scene.index)
             : ''
         }<span>${escapeHtml(project.title)}</span></footer>
         ${previewPresenterMarkup}${recordedTakeMarkup}${emphasisMarkup}
@@ -1183,9 +1208,15 @@ const buildCompositionHtml = (
         // in as a block — a paused canvas at the scene start must show it,
         // and the stage track decides what is on screen.
         entrance = `tl.set(${selector}, { opacity: 1, y: 0, clipPath: "none", scale: 1, rotation: 0 }, ${start});`
+        // A scene played by its accepted production (P4) is that render, on
+        // its own clock: the page's motion and captions — timed by its older
+        // dialogue — never run beneath it, where they could outlast it.
+        if (scene.id !== contentViewNodeId && safeUrl(project.producedScenes?.[scene.id]?.videoUrl)) return `${frameTween}${entrance}`
         const { steps, offsets } = slideNodeTimeline(scene.node)
         const captionMotion = steps
-          .map((_, stepIndex) => {
+          // A caption timed past the scene's end would lengthen the video.
+          .flatMap((_, stepIndex) => (offsets[stepIndex] < scene.durationSeconds ? [stepIndex] : []))
+          .map(stepIndex => {
             const at = start + offsets[stepIndex]
             const caption = scriptString(
               `#scene-${scene.index} .ex-caption[data-ex-step="${stepIndex}"]`,
@@ -1267,14 +1298,16 @@ const buildCompositionHtml = (
     .burned-caption { opacity: 0; visibility: hidden; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 10px 20px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 84%, transparent); color: var(--text); font: 600 34px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 55%, transparent); box-sizing: border-box; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; }
     /* Shot-plan emphasis (D6): the camera-led shot's sparse headline in the
        frame's safe corner, live only while its beats play. */
-    .scene-emphasis { position: absolute; top: 7%; right: 5%; max-width: 36%; z-index: 45; margin: 0; padding: 14px 22px; border-radius: 14px; background: color-mix(in srgb, var(--surface) 72%, transparent); color: var(--text); font: 700 40px/1.25 Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; text-align: right; opacity: 0; transform: translateY(8px); transition: opacity .3s ease, transform .3s ease; pointer-events: none; text-wrap: balance; }
-    .scene-emphasis.is-live { opacity: 1; transform: none; }
+    /* Placed inside the frame's safe area, and faded by the timeline (the
+       driver sets opacity from the scene's own time), never by a CSS
+       transition: a seek and a play show the same frame. */
+    .scene-emphasis { position: absolute; top: 7%; right: 5%; left: auto; bottom: auto; max-width: 36%; max-height: 30%; overflow: hidden; z-index: 45; margin: 0; padding: 14px 22px; border-radius: 14px; background: color-mix(in srgb, var(--surface) 72%, transparent); color: var(--text); font: 700 40px/1.25 Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; text-align: right; opacity: 0; transform: translateY(8px); pointer-events: none; text-wrap: balance; }
     /* isolation: each scene is its own stacking context, so z-indexed
        overlays (camera tiles, person-background gradients) can never paint
        across a sibling scene — frame switchovers rely on later scenes
        painting above earlier ones. */
     .scene { --content-layout-width: 1500px; --presenter-safe-width: 100%; position: absolute; inset: 0; padding: 112px 132px 84px; display: grid; grid-template-rows: auto 1fr auto; gap: 42px; background: var(--scene-background, var(--theme-canvas)); isolation: isolate; }
-    .scene > .scene-index, .scene > .content, .scene > footer, .scene > .composition-corner-logo { position: relative; z-index: 22; }
+    .scene > .scene-index, .scene > .content, .scene > footer { position: relative; z-index: 22; }
     .scene > * { position: relative; z-index: 25; }
     .scene::before { content: ""; position: absolute; z-index: 21; inset: 42px; border: 2px solid color-mix(in srgb, var(--text) 12%, transparent); border-radius: var(--block-radius); pointer-events: none; }
     #composition[data-surface-style="none"] .scene::before { display: none; }
@@ -1504,7 +1537,10 @@ const buildCompositionHtml = (
     .composition-brand svg { width: 28px; height: 28px; flex: none; }
     .composition-brand img { display: block; width: auto; max-width: 240px; height: ${logoSize}px; object-fit: contain; }
     .composition-brand strong { color: var(--text); font-size: 23px; font-weight: 760; }
-    .composition-corner-logo { position: absolute; top: 58px; z-index: 30; }
+    /* Out of the scene's grid and above its page, however full the page
+       (F05 of the fix verification: grouped with the scene's chrome, it
+       fell into the grid, under the page). */
+    .scene > .composition-corner-logo { position: absolute; top: 58px; z-index: 30; }
     .composition-corner-logo.logo-top-left { left: 72px; }
     .composition-corner-logo.logo-top-right { right: 72px; }
     footer.logo-footer-right { flex-direction: row-reverse; }
@@ -1561,7 +1597,6 @@ const buildCompositionHtml = (
     .scene.camera-absent::after { display: none; }
     .slide-stage { position: relative; width: 100%; display: grid; gap: 10px; }
     .slide-stage svg.slide-svg { display: block; width: min(100%, calc(700px * var(--slide-aspect, 1.7778))); aspect-ratio: var(--slide-aspect, 16 / 9); height: auto; margin-inline: auto; border-radius: 12px; overflow: visible; }
-    .slide-stage .slide-svg text, .slide-stage .slide-svg rect, .slide-stage .slide-svg circle, .slide-stage .slide-svg ellipse, .slide-stage .slide-svg polygon, .slide-stage .slide-svg image, .slide-stage .slide-svg path, .slide-stage .slide-svg line, .slide-stage .slide-svg polyline { transform-box: fill-box; }
     .scene.camera-absent:has(svg[data-scene-mode="explainer"]) { padding: 0 !important; }
     .scene:has(svg[data-scene-mode="explainer"])::before { display: none; }
     .scene:has(svg[data-scene-mode="explainer"]) > .scene-index, .scene:has(svg[data-scene-mode="explainer"]) > footer { display: none; }
@@ -1685,9 +1720,11 @@ const captionCues = (project: ProjectDocumentV1): CaptionCue[] => {
       if (!nodeId) return
       const config = normalizeBlockConfig(nodeId, node, project.blocks[nodeId])
       const recorded = project.recordedBlocks?.[nodeId]
-      const requested = recorded?.videoUrl ? recorded.durationMs : config.durationMs
+      const produced = project.producedScenes?.[nodeId]
+      const requested = produced?.videoUrl ? produced.durationMs : recorded?.videoUrl ? recorded.durationMs : config.durationMs
       const durationMs = Math.min(SCENE_DURATION_CAP_MS, Math.max(1_000, requested))
-      const plan = isSlideLikeNode(node) ? slideNodeMotion(node) : null
+      // A produced scene keeps its own clock: the page's cues are not its.
+      const plan = isSlideLikeNode(node) && !produced?.videoUrl ? slideNodeMotion(node) : null
       const windows = Array.isArray(node.attrs?.windows) ? (node.attrs!.windows as Array<{ say?: string }>) : []
       if (plan && windows.length) {
         const { offsets } = motionPlanOffsetsMs(plan)
@@ -1761,9 +1798,12 @@ export const compileProject = (
       // real length rather than the authored block duration — unless the build
       // aligned the scene to that take: the reviewed plan already runs on the
       // take's measured clock, and the block's reviewed duration stands.
-      const requestedDurationMs = recordedBlock?.videoUrl && !alignedTakeNarration(project, nodeId)
-        ? recordedBlock.durationMs
-        : config.durationMs
+      const produced = project.producedScenes?.[nodeId]
+      const requestedDurationMs = produced?.videoUrl
+        ? produced.durationMs
+        : recordedBlock?.videoUrl && !alignedTakeNarration(project, nodeId)
+          ? recordedBlock.durationMs
+          : config.durationMs
       // A scene runs as long as its plan (or its take) says. The only cap is
       // a sanity bound far above any scene the length brief would budget.
       const durationMs = Math.min(SCENE_DURATION_CAP_MS, Math.max(1_000, requestedDurationMs))
@@ -1780,7 +1820,13 @@ export const compileProject = (
         startSeconds,
         durationSeconds,
         config: { ...config, durationMs },
-        presenterTracks: project.presenterTracks[nodeId] || [],
+        // A produced scene's render carries its own voice and presenter.
+        presenterTracks: produced?.videoUrl ? [] : (project.presenterTracks[nodeId] || []).filter(track => {
+          const selected = project.recordedBlocks?.[nodeId]
+          if (track.kind === 'narration') return !track.recordingId || track.recordingId === selected?.recordingId
+          if (!selected || (selected.role !== 'presenter' && !selected.keepsPlan)) return true
+          return track.videoUrl === (selected.keepsPlan ? selected.cameraUrl : selected.videoUrl)
+        }),
       }
       startSeconds += durationSeconds
       return scene

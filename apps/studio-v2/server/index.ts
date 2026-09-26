@@ -1,3 +1,12 @@
+import { startExportJob, getExportJob, cancelExportJob, exportJobView, listProjectExports, renderWarningsOf, type ExportReport, type ExportResult, type ExportWarning } from './export-jobs'
+import { mapMarkupUrls, objectUrl, portableUrl, studioRefOf } from '../src/studio-refs'
+import { generateFishVoice, generateSystemVoice, probeSeconds } from './voice'
+import { landPagesOnce, runPagesIn, type LandingDeps, type PageCheck } from './page-landing'
+import { containerView, holdNotebook, nameContainer, type ContainerDeps } from './containers'
+import { exportPlanOf, exportSlidesOf, presentationPdf, slidesOf } from './presentation-export'
+import { buildWireframeOnce, type WireframeDeps, type WireframeSource } from './wireframe-build'
+import { storedArticleOf } from '../src/wireframe-attempt'
+import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
 import { createHash, randomUUID } from 'node:crypto'
@@ -15,6 +24,8 @@ import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { skillVersions } from './skill-versions'
+import { handlePlanningRoute } from './planning-routes'
+import { HARNESS_STAGES, HarnessPreferenceError, loadHarnessPreferences, saveHarnessPreferences } from './harness-preferences'
 import { createRenderJob, executeRenderJob } from '@hyperframes/producer'
 import {
   baseStatusOf,
@@ -39,8 +50,14 @@ import {
 import {
   getObject,
   deleteProjectArtifact,
+  deleteProjectContainer,
   getObjectMetadata,
   listProjectArtifacts,
+  listProjectContainers,
+  loadProjectContainer,
+  saveProjectContainer,
+  listProjectIdsAwaitingPages,
+  listProjectIdsAwaitingWireframes,
   listThemeLibrary,
   loadLatestProjectArtifact,
   loadProjectArtifact,
@@ -58,6 +75,7 @@ import {
   saveProjectArtifact,
   saveSetting,
   saveRecordedBlock,
+  savePickupTake,
   saveSourceRevision,
   saveNarrativeRevision,
   saveExplanationModel,
@@ -85,7 +103,21 @@ import { buildExplanationModel, wordingPolicyFrom } from './story-model'
 import { listArtwork, makeArtwork, verifyCast } from './appearance-library'
 import { REFERENCE_STYLE, briefKey, briefPrompt, knownObjects } from './appearance'
 import { quiverCapability } from './providers/quiver'
+import { setDefaultAutoSelectFamilyAttemptTimeout } from 'node:net'
 const require = createRequire(import.meta.url)
+// A host a long round trip away: Node gives each of its addresses 250 ms to
+// connect before racing the next (happy eyeballs), so every attempt timed
+// out and reading its article failed ("fetch failed", ETIMEDOUT). Each
+// attempt now has time to connect; an address that refuses still gives way.
+setDefaultAutoSelectFamilyAttemptTimeout(2500)
+// Projects read and write their notebooks through the store (the
+// four-notebook model).
+const containerDeps: ContainerDeps = {
+  loadContainer: loadProjectContainer,
+  saveContainer: saveProjectContainer,
+  listNotebooks: listProjectArtifacts,
+  loadNotebook: loadProjectArtifact,
+}
 const gsapRuntimePath = join(dirname(require.resolve('gsap')), 'gsap.min.js')
 const hyperframesRuntimePath = join(
   dirname(require.resolve('@hyperframes/core/package.json')),
@@ -119,7 +151,8 @@ const readEnvFileValue = async (name: string) => {
 
 const openAIKey =
   process.env.OPENAI_API_KEY || (await readEnvFileValue('OPENAI_API_KEY'))
-// The env key seeds the gateway until the user saves a provider in Models.
+// The env key serves the direct API until the creator saves a key of their
+// own in AI settings; it is used, never saved.
 configureModelGateway({ envKey: openAIKey })
 // The artwork provider reads its key from the environment. A value the
 // deployment already supplied wins; otherwise the repository's .env fills it
@@ -137,6 +170,9 @@ export type StudioHandlerOptions = {
   distDir?: string
   // Where published MP4s land; STUDIO_OUTPUTS_DIR overrides for dev/tests.
   outputsDir?: string
+  // Reads a designed page as the studio does: given by the desktop app,
+  // whose worker then lands design runs' pages on their notebooks (B06).
+  pageCheck?: PageCheck
 }
 
 // Option-dependent state the request handlers close over.
@@ -337,58 +373,6 @@ const commandExists = async (path: string) => {
   }
 }
 
-const generateSystemVoice = async (text: string, outputPath: string) => {
-  if (process.platform !== 'darwin' || !(await commandExists('/usr/bin/say'))) {
-    throw new Error(
-      'No keyless system voice is available. Configure FISH_AUDIO_API_KEY or use microphone audio.',
-    )
-  }
-  const intermediatePath = outputPath.replace(/\.mp3$/, '.aiff')
-  await runProcess('/usr/bin/say', ['-o', intermediatePath, text])
-  try {
-    await runProcess('ffmpeg', [
-      '-y',
-      '-i',
-      intermediatePath,
-      '-codec:a',
-      'libmp3lame',
-      '-q:a',
-      '2',
-      outputPath,
-    ])
-  } finally {
-    await rm(intermediatePath, { force: true })
-  }
-}
-
-const generateFishVoice = async (
-  text: string,
-  referenceId: string,
-  outputPath: string,
-) => {
-  const apiKey = process.env.FISH_AUDIO_API_KEY
-  if (!apiKey) throw new Error('FISH_AUDIO_API_KEY is not configured')
-  const response = await fetch('https://api.fish.audio/v1/tts', {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      'content-type': 'application/json',
-      model: process.env.FISH_AUDIO_MODEL || 's2.1-pro',
-    },
-    body: JSON.stringify({
-      text,
-      reference_id: referenceId,
-      format: 'mp3',
-      normalize: true,
-      prosody: { speed: 1, volume: 0, normalize_loudness: true },
-    }),
-  })
-  if (!response.ok) {
-    throw new Error(`Fish Audio failed (${response.status})`)
-  }
-  await writeFile(outputPath, Buffer.from(await response.arrayBuffer()))
-}
-
 const handleVoice = async (
   context: StudioWorkerContext,
   request: IncomingMessage,
@@ -425,7 +409,7 @@ const handleVoice = async (
   })
   await rm(outputPath, { force: true })
   json(response, 200, {
-    url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`,
+    url: objectUrl(stored.objectKey),
     assetId: stored.assetId,
     provider: useFish ? 'Fish Audio authorized voice' : 'Local system voice',
   })
@@ -691,7 +675,7 @@ const screenshotExplainerPlan = async (
   shapes: ShapeDefV1[],
 ) => {
   const { default: puppeteer } = await import('puppeteer')
-  const browser = await puppeteer.launch()
+  const browser = await puppeteer.launch({ handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false })
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1600, height: 860 })
@@ -748,7 +732,7 @@ const runCanvasCodeSandbox = async (
   steps: CanvasAgentStep[],
 ) => {
   const { default: puppeteer } = await import('puppeteer')
-  const browser = await puppeteer.launch()
+  const browser = await puppeteer.launch({ handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false })
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1600, height: 860 })
@@ -1079,7 +1063,7 @@ const handleSlidePlan = async (
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   if (!units.length) throw new Error('The slide has no parts to plan')
   if (!(await hasModelAccess())) {
-    throw new Error('Planning from narration needs an AI provider — open Models in the top bar')
+    throw new Error('Planning from narration needs an AI provider — add one under Direct API in AI settings')
   }
   const narration = String(body.narration || '').trim().slice(0, 6_000)
   const instruction = String(body.instruction || '').trim().slice(0, 1_500)
@@ -1242,7 +1226,7 @@ const handleSceneDialogue = async (request: IncomingMessage, response: ServerRes
   }>(request, 2 * 1024 * 1024)
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   if (!units.length) throw new Error('The page has no parts to write about')
-  if (!(await hasModelAccess())) throw new Error('Writing with the page needs an AI provider — open Models in the top bar')
+  if (!(await hasModelAccess())) throw new Error('Writing with the page needs an AI provider — add one under Direct API in AI settings')
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
   const diagrams = Array.isArray(body.diagrams) ? body.diagrams.slice(0, 12) : []
   const entities = Array.isArray(body.entities) ? body.entities.slice(0, 40) : []
@@ -1329,7 +1313,7 @@ const handleSceneEdit = async (request: IncomingMessage, response: ServerRespons
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   const windows = Array.isArray(body.windows) ? body.windows.slice(0, 48) : []
   if (!units.length || !windows.length) throw new Error('An edit needs the page and the dialogue')
-  if (!(await hasModelAccess())) throw new Error('Editing with the page needs an AI provider — open Models in the top bar')
+  if (!(await hasModelAccess())) throw new Error('Editing with the page needs an AI provider — add one under Direct API in AI settings')
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
   const focus = body.focus || { line: 0, scope: 'line' as const }
   const scope = focus.scope === 'scene' || focus.scope === 'part' ? focus.scope : 'line'
@@ -1400,12 +1384,22 @@ Every window also has "stage": "" to leave the frame to the director, or — onl
 // optional brand website for colours/fonts/logo — text alone cannot
 // reveal them.
 const handleSourceRead = async (request: IncomingMessage, response: ServerResponse) => {
-  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string; brandUrl?: string; wordingPolicy?: string }>(request, 400 * 1024)
+  const body = await readJson<{ url?: string; narrative?: string; title?: string; projectId?: string; brandUrl?: string; wordingPolicy?: string; attribution?: string }>(request, 400 * 1024)
   const projectId = String(body.projectId || request.headers['x-project-id'] || '') || undefined
   const source = body.url?.trim() ? await readSourceUrl(body.url, { projectId }) : readSourceNarrative(String(body.narrative || ''), String(body.title || ''))
   if (!source.text.trim()) throw new Error('Nothing to read — paste a link to an article or a narrative of your own')
+  // Text pasted in place of a link that could not be read keeps that link as
+  // where it came from (F4 of the Perplexity review). It is not fetched.
+  const attribution = !body.url?.trim() && body.attribution?.trim() ? (() => { try { return new URL(body.attribution!.trim()) } catch { return null } })() : null
+  if (attribution && /^https?:$/.test(attribution.protocol)) {
+    source.url = attribution.toString()
+    source.site = attribution.hostname.replace(/^www\./, '')
+    source.warnings = [...source.warnings, `The article's text was pasted; ${source.site} is kept as where it came from.`]
+  }
   let brandEvidence: SourceRead | null = null
-  if (!body.url?.trim() && body.brandUrl?.trim()) {
+  // The brand website is its own source, for a link as for pasted text (U1
+  // of the scene workspace plan): its colours, fonts and logo only.
+  if (body.brandUrl?.trim()) {
     try {
       brandEvidence = await readSourceUrl(body.brandUrl, { projectId })
       // Brand from the website; the words stay the creator's own.
@@ -1415,12 +1409,16 @@ const handleSourceRead = async (request: IncomingMessage, response: ServerRespon
       source.site = source.site || brandEvidence.site
     } catch (error) {
       source.warnings = [...source.warnings, `Brand website could not be read: ${error instanceof Error ? error.message : error}`]
+      // Pasted text's colours stay defaults, and say so (F5 of the Perplexity
+      // review); a link keeps what its own page showed.
+      const host = (() => { try { return new URL(body.brandUrl!.trim()).hostname.replace(/^www\./, '') } catch { return 'the brand website' } })()
+      if (!body.url?.trim()) source.palette = { ...source.palette, provenance: 'fallback', from: `${host} could not be read` }
     }
   }
   const snapshot = await saveSourceRevision({
     projectId,
     kind: body.url?.trim() ? 'url' : 'narrative',
-    url: body.url?.trim() || undefined,
+    url: body.url?.trim() || (attribution ? source.url : undefined),
     brandUrl: brandEvidence ? body.brandUrl?.trim() : undefined,
     title: source.title,
     site: source.site,
@@ -1441,16 +1439,28 @@ const handleSourceRead = async (request: IncomingMessage, response: ServerRespon
       takeaway: source.title,
     })
   }
-  json(response, 200, { source, snapshot, narrative })
+  // The site the colours were read from, by the name themes are saved for:
+  // the brand website, else a link's own page — never an article merely credited.
+  const brandSite = brandEvidence && brandEvidence.palette.provenance === 'extracted' ? brandEvidence.site : body.url?.trim() && source.palette.provenance === 'extracted' ? source.site : null
+  json(response, 200, { source, snapshot, narrative, brandSite })
 }
 
-const handleSourceOutline = async (request: IncomingMessage, response: ServerResponse) => {
-  const body = await readJson<{ source?: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>; targetSeconds?: number; wordingPolicy?: string }>(request, 400 * 1024)
-  const source = body.source
-  if (!source || !String(source.text || '').trim()) throw new Error('The outline needs the source text')
-  if (!(await hasModelAccess())) throw new Error('Outlining a source needs an AI provider — open Models in the top bar')
-  const targetSeconds = Number.isFinite(Number(body.targetSeconds)) && Number(body.targetSeconds) > 0 ? Math.round(Number(body.targetSeconds)) : null
-  const wordingPolicy = wordingPolicyFrom(body.wordingPolicy, 'draft')
+// A brand website read on its own, at the brand step (U1 of the scene
+// workspace plan): its colours, fonts and logo, never its words.
+const handleSourceBrand = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{ url?: string; projectId?: string }>(request, 16 * 1024)
+  const url = String(body.url || '').trim()
+  if (!/^https?:\/\/[^\s]+$/i.test(url)) throw new Error('Give the brand website as a full link, like https://yoursite.com')
+  const projectId = String(body.projectId || request.headers['x-project-id'] || '') || undefined
+  const read = await readSourceUrl(url, { projectId })
+  json(response, 200, { brand: { palette: read.palette, logos: read.logos, fonts: read.fonts, site: read.site } })
+}
+
+// An outline from the direct model: the import's fallback when no local
+// harness makes it, and a wireframe's in the background (the four-notebook
+// model).
+const outlineViaApi = async (source: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>, targetSeconds: number | null, wordingPolicy: ReturnType<typeof wordingPolicyFrom>) => {
+  if (!(await hasModelAccess())) throw new Error('Outlining a source needs an AI provider — add one under Direct API in AI settings')
   const apiResponse = await modelFetch('writing', {
     method: 'POST',
     body: JSON.stringify({
@@ -1464,7 +1474,30 @@ const handleSourceOutline = async (request: IncomingMessage, response: ServerRes
   const apiBody = (await apiResponse.json()) as Parameters<typeof extractResponseText>[0]
   const outline = sanitizeOutline(JSON.parse(extractResponseText(apiBody)), String(source.title || ''), String(source.text || ''))
   if (!outline.scenes.length) throw new Error('The outliner returned no scenes')
+  return outline
+}
+
+const handleSourceOutline = async (request: IncomingMessage, response: ServerResponse) => {
+  const body = await readJson<{ source?: Pick<SourceRead, 'title' | 'site' | 'text' | 'words'>; targetSeconds?: number; wordingPolicy?: string }>(request, 400 * 1024)
+  const source = body.source
+  if (!source || !String(source.text || '').trim()) throw new Error('The outline needs the source text')
+  const targetSeconds = Number.isFinite(Number(body.targetSeconds)) && Number(body.targetSeconds) > 0 ? Math.round(Number(body.targetSeconds)) : null
+  const outline = await outlineViaApi(source, targetSeconds, wordingPolicyFrom(body.wordingPolicy, 'draft'))
   json(response, 200, { outline, provider: 'openai' })
+}
+
+// A project's wireframe, made in the background from its outline (the
+// four-notebook model).
+const wireframeDeps: WireframeDeps = {
+  load: loadProjectArtifact,
+  save: (notebook, expected) => saveProjectArtifact(notebook, { expectedProject: expected }),
+  run: async runId => (await listBuildRuns()).find(row => row.id === runId) || null,
+  readOutline: async projectDir => JSON.parse(await readFile(join(projectDir, 'story', 'outline.json'), 'utf8')),
+  // The article as stored, read through the one shape the studio's "Make
+  // it again" reads it with (R01 of the project-flow rereview).
+  source: async (revisionId): Promise<WireframeSource | null> => storedArticleOf(await loadSourceRevision(revisionId)),
+  outlineViaApi: (source, targetSeconds, wording) => outlineViaApi(source, targetSeconds, wording),
+  saveModel: saveExplanationModel,
 }
 
 const handleSourcePages = async (request: IncomingMessage, response: ServerResponse) => {
@@ -1477,7 +1510,7 @@ const handleSourcePages = async (request: IncomingMessage, response: ServerRespo
   }>(request, 1024 * 1024)
   const outline = body.outline
   if (!outline || !Array.isArray(outline.scenes) || !outline.scenes.length) throw new Error('Pages need an outline with scenes')
-  const palette = body.palette || { candidates: [], ground: '#0b1f3a', text: '#e8f1fa', accent: '#f5a623', secondary: '#9cc3e6', themeColor: '' }
+  const palette = body.palette || { candidates: [], ground: '#0b1f3a', text: '#e8f1fa', accent: '#f5a623', secondary: '#9cc3e6', themeColor: '', provenance: 'fallback' as const, from: '' }
   const fonts = body.fonts || { display: 'Segoe UI', body: 'Segoe UI', mono: 'Consolas', seen: [] }
   const brand = pageBrandFrom(palette, fonts, body.mode || 'auto')
   const scenes = outline.scenes as OutlineScene[]
@@ -1498,7 +1531,7 @@ const handleSceneBreakdown = async (request: IncomingMessage, response: ServerRe
   const units = Array.isArray(body.units) ? body.units.slice(0, 400) : []
   const windows = Array.isArray(body.windows) ? body.windows.slice(0, 48) : []
   if (!units.length || !windows.length) throw new Error('The breakdown needs the page and the approved dialogue')
-  if (!(await hasModelAccess())) throw new Error('The breakdown needs an AI provider — open Models in the top bar')
+  if (!(await hasModelAccess())) throw new Error('The breakdown needs an AI provider — add one under Direct API in AI settings')
   const relations = Array.isArray(body.relations) ? body.relations.slice(0, 200) : []
   const prompt = `You break an approved dialogue down for the motion engine. The words are final and must not change; you decide, per window, which parts of the page the window is about.
 
@@ -1986,7 +2019,7 @@ const handleIllustrate = async (request: IncomingMessage, response: ServerRespon
       const generated = await imageGenerate({ prompt })
       if (generated) {
         const stored = await storeAsset({ body: generated.buffer, contentType: generated.contentType, projectId: body.projectId, blockId: body.nodeId, kind: 'illustration', extension: '.png' })
-        json(response, 200, { kind: 'image', url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`, assetId: stored.assetId, model: generated.model, prompt, width: 1024, height: 1024, palette: { accent, background } })
+        json(response, 200, { kind: 'image', url: objectUrl(stored.objectKey), assetId: stored.assetId, model: generated.model, prompt, width: 1024, height: 1024, palette: { accent, background } })
         return
       }
     } catch (error) {
@@ -2162,7 +2195,7 @@ const handleAssetUpload = async (
     extension,
   })
   json(response, 201, {
-    url: `${publicBaseUrl(request)}/objects/${stored.objectKey}`,
+    url: objectUrl(stored.objectKey),
     assetId: stored.assetId,
   })
 }
@@ -2235,7 +2268,7 @@ const handleDirectedRecording = async (
       extension: '.mp4',
     })
     assetId = stored.assetId
-    mediaUrl = `${publicBaseUrl(request)}/objects/${stored.objectKey}`
+    mediaUrl = objectUrl(stored.objectKey)
   } finally {
     await rm(outputPath, { force: true })
   }
@@ -2264,6 +2297,8 @@ const handleCommitDirectedRecording = async (
     cameraUrl?: string
     cameraAssetId?: string
     beatMarksMs?: number[]
+    script?: { hash?: unknown; lines?: unknown; treatment?: unknown; revision?: unknown }
+    pickup?: boolean
   }>(request, 64_000)
   if (!body.projectId || !body.blockId || !body.assetId || !body.mediaUrl) {
     throw new Error('The recorded block is incomplete')
@@ -2271,6 +2306,22 @@ const handleCommitDirectedRecording = async (
   const beatMarksMs = Array.isArray(body.beatMarksMs)
     ? body.beatMarksMs.map(Number).filter(ms => Number.isFinite(ms) && ms >= 0).slice(0, 400)
     : []
+  // The script the take was spoken against, kept with the take (R4).
+  const script = body.script && typeof body.script.hash === 'string' && /^[0-9a-f]{1,64}$/.test(body.script.hash)
+    ? {
+        hash: body.script.hash,
+        ...(Array.isArray(body.script.lines) && body.script.lines.length <= 400 && body.script.lines.every(line => typeof line === 'string' && /^[0-9a-f]{8}$/.test(line)) ? { lines: body.script.lines as string[] } : {}),
+        ...(typeof body.script.treatment === 'string' && body.script.treatment.length <= 200 ? { treatment: body.script.treatment } : {}),
+        ...(Number.isInteger(body.script.revision) && Number(body.script.revision) > 0 ? { revision: Number(body.script.revision) } : {}),
+      }
+    : undefined
+  // A pickup of some lines joins the archive; the selected take stays.
+  if (body.pickup === true) {
+    if (!script?.lines?.length) throw new Error('A pickup names the lines it was spoken against')
+    const recording = await savePickupTake({ projectId: body.projectId, blockId: body.blockId, assetId: body.assetId, mediaUrl: body.mediaUrl, durationMs: Math.min(3_600_000, Math.max(1, Number(body.durationMs) || 1)), script })
+    json(response, 201, { recording, project: await loadProjectArtifact(body.projectId) })
+    return
+  }
   const recording = await saveRecordedBlock({
     projectId: body.projectId,
     blockId: body.blockId,
@@ -2287,8 +2338,9 @@ const handleCommitDirectedRecording = async (
           ...(body.cameraUrl && body.cameraAssetId ? { cameraUrl: String(body.cameraUrl), cameraAssetId: String(body.cameraAssetId) } : {}),
         }
       : {}),
+    ...(script ? { script } : {}),
   })
-  json(response, 201, { recording })
+  json(response, 201, { recording, project: await loadProjectArtifact(body.projectId) })
 }
 
 const handlePreview = async (
@@ -2324,17 +2376,33 @@ const handlePreview = async (
   })
 }
 
-const handleRender = async (
-  context: StudioWorkerContext,
-  request: IncomingMessage,
-  response: ServerResponse,
-) => {
+const handleRender = async (context: StudioWorkerContext, request: IncomingMessage, response: ServerResponse) => {
   const project = await readJson<ProjectDocumentV1>(request, 3 * 1024 * 1024)
+  json(response, 200, await renderProjectArtifact(context, project))
+}
+// An object the store does not hold is an answer, not an error; anything
+// else (the store down) still throws.
+const missingObject = (error: unknown) => ['NotFound', 'NoSuchKey', 'ENOENT'].includes(String((error as { code?: string }).code))
+const objectMetadataOrNull = async (objectKey: string) => {
+  try {
+    return await getObjectMetadata(objectKey)
+  } catch (error) {
+    if (missingObject(error)) return null
+    throw error
+  }
+}
+const objectExists = async (objectKey: string) => Boolean(await objectMetadataOrNull(objectKey))
+
+const renderProjectArtifact = async (context: StudioWorkerContext, project: ProjectDocumentV1, signal?: AbortSignal, report?: ExportReport): Promise<ExportResult> => {
+  report?.({ stage: 'preparing', percent: 0 })
   const renderProject = structuredClone(project)
+  const warnings: ExportWarning[] = []
   type StagedRenderAsset = {
     localPath?: string
     objectKey?: string
     transcode: boolean
+    // What the composition named it: the reason a missing one gives.
+    source: string
   }
   const stagedRenderAssets = new Map<string, StagedRenderAsset>()
   // The producer only localizes HTTPS media and cannot extract frames from
@@ -2350,67 +2418,42 @@ const handleRender = async (
     }`
     return { name, transcode }
   }
-  const localAssetPath = (value: string | undefined) => {
-    if (!value) return value
-    try {
-      const url = new URL(value)
-      if (!['127.0.0.1', 'localhost'].includes(url.hostname)) return value
-      if (url.pathname.startsWith('/objects/')) {
-        const objectKey = decodeURIComponent(
-          url.pathname.slice('/objects/'.length),
-        )
-        if (!objectKey) return value
-        const { name, transcode } = stagedAssetName(objectKey, objectKey)
-        stagedRenderAssets.set(name, { objectKey, transcode })
-        return `media/${name}`
-      }
-      if (!url.pathname.startsWith('/assets/')) return value
-      const assetName = url.pathname.slice('/assets/'.length)
-      if (!assetName || assetName !== basename(assetName)) return value
-      const { name, transcode } = stagedAssetName(assetName, assetName)
-      stagedRenderAssets.set(name, {
-        localPath: join(context.assetsDirectory, assetName),
-        transcode,
-      })
+  // One reading of a reference for every file the composition names (F05
+  // of the fix verification): root-relative or on any loopback port, an
+  // object in the store or a file in the assets folder is staged into the
+  // job, whichever block, track, take, logo or page artwork named it.
+  const localAssetPath = (value: string) => {
+    const ref = studioRefOf(value)
+    if (!ref) return null
+    if (ref.root === 'objects') {
+      const { name, transcode } = stagedAssetName(ref.path, ref.path)
+      stagedRenderAssets.set(name, { objectKey: ref.path, transcode, source: portableUrl(value) })
       return `media/${name}`
-    } catch {
-      return value
+    }
+    if (ref.root !== 'assets' || ref.path !== basename(ref.path)) return null
+    const { name, transcode } = stagedAssetName(ref.path, ref.path)
+    stagedRenderAssets.set(name, { localPath: join(context.assetsDirectory, ref.path), transcode, source: portableUrl(value) })
+    return `media/${name}`
+  }
+  // The theme's logo is the one decorative file: missing from the store,
+  // the video goes without it and says so, rather than asking the renderer
+  // for bytes that are not there.
+  const logoRef = studioRefOf(renderProject.theme?.logo?.url)
+  if (renderProject.theme && logoRef) {
+    const present = logoRef.root === 'objects'
+      ? await objectExists(logoRef.path)
+      : await access(join(context.assetsDirectory, logoRef.path)).then(() => true, () => false)
+    if (!present) {
+      warnings.push({ code: 'logo_missing', message: 'The theme logo is no longer in the studio\'s store, so the video has no logo. Choose the logo again in the theme.', sources: [portableUrl(renderProject.theme.logo.url)] })
+      renderProject.theme.logo.url = ''
     }
   }
-  Object.values(renderProject.presenterTracks).forEach(tracks => {
-    tracks.forEach(track => {
-      if (track.kind === 'human-camera') {
-        track.videoUrl = localAssetPath(track.videoUrl) || track.videoUrl
-      }
-      track.audioUrl = localAssetPath(track.audioUrl) || track.audioUrl
-    })
-  })
-  Object.values(renderProject.recordedBlocks || {}).forEach(recording => {
-    recording.videoUrl = localAssetPath(recording.videoUrl) || recording.videoUrl
-    if (recording.cameraUrl) recording.cameraUrl = localAssetPath(recording.cameraUrl) || recording.cameraUrl
-  })
-  const stageNotebookMedia = (node: TiptapNode) => {
-    if (
-      (node.type === 'image' || node.type === 'screenRecording') &&
-      typeof node.attrs?.src === 'string'
-    ) {
-      node.attrs.src = localAssetPath(node.attrs.src) || node.attrs.src
-    }
-    // Appearance images inside a page's SVG (the asset library's
-    // illustrations) are staged like any other local media.
-    if ((node.type === 'scene' || node.type === 'slide') && typeof node.attrs?.svg === 'string' && node.attrs.svg.includes('/objects/')) {
-      node.attrs.svg = node.attrs.svg.replace(/(<image\b[^>]*\bhref=")([^"]+)(")/g, (whole: string, open: string, href: string, close: string) => {
-        const staged = localAssetPath(href)
-        return staged && staged !== href ? `${open}${staged}${close}` : whole
-      })
-    }
-    node.content?.forEach(stageNotebookMedia)
-  }
-  renderProject.notebook.content.forEach(stageNotebookMedia)
-  const composition = compileProject(renderProject, {
+  const compiled = compileProject(renderProject, {
     gsapUrl: './runtime/gsap.min.js',
     hyperframesRuntimeUrl: './runtime/hyperframes.iife.js',
   })
+  const composition = { ...compiled, html: mapMarkupUrls(compiled.html, localAssetPath) }
+  const logoSource = renderProject.theme?.logo?.url ? localAssetPath(renderProject.theme.logo.url) || renderProject.theme.logo.url : ''
   if (composition.durationSeconds > 30 * 60) {
     throw new Error('Local renders are limited to thirty minutes')
   }
@@ -2422,6 +2465,9 @@ const handleRender = async (
   const outputPath = join(context.outputsDirectory, `${id}.mp4`)
   await mkdir(jobDirectory, { recursive: true })
   await mkdir(runtimeDirectory, { recursive: true })
+  // A file the video shows that the store no longer holds stops the export
+  // before anything renders, named — never a clean success without it.
+  const missing: string[] = []
   if (stagedRenderAssets.size) {
     const mediaDirectory = join(jobDirectory, 'media')
     await mkdir(mediaDirectory, { recursive: true })
@@ -2429,7 +2475,15 @@ const handleRender = async (
       [...stagedRenderAssets].map(async ([assetName, staged]) => {
         const targetPath = join(mediaDirectory, assetName)
         let sourcePath = staged.localPath
+        if (sourcePath && !(await access(sourcePath).then(() => true, () => false))) {
+          missing.push(staged.source)
+          return
+        }
         if (!sourcePath && staged.objectKey) {
+          if (!(await objectExists(staged.objectKey))) {
+            missing.push(staged.source)
+            return
+          }
           sourcePath = staged.transcode ? `${targetPath}.download` : targetPath
           const { stream } = await getObject(staged.objectKey)
           const chunks: Buffer[] = []
@@ -2474,7 +2528,14 @@ const handleRender = async (
           }
         }
       }),
-    )
+    ).catch(async error => {
+      await rm(jobDirectory, { recursive: true, force: true })
+      throw error
+    })
+  }
+  if (missing.length) {
+    await rm(jobDirectory, { recursive: true, force: true })
+    throw new Error(`The export stopped before rendering: ${missing.length === 1 ? 'a file the video shows is' : `${missing.length} files the video shows are`} no longer in the studio's store (${missing.sort().join(', ')}). Record, produce or choose ${missing.length === 1 ? 'it' : 'them'} again, then export.`)
   }
   // The faces the pages name travel with the job (or a substitute of the
   // same class that answers to the same name).
@@ -2499,7 +2560,9 @@ const handleRender = async (
       outputResolution: 'landscape',
     })
     try {
-      await executeRenderJob(job, jobDirectory, outputPath)
+      report?.({ stage: 'rendering', percent: 0 })
+      // The renderer's own progress, kept with the export job (F8).
+      await executeRenderJob(job, jobDirectory, outputPath, progress => report?.({ stage: progress.currentStage || 'rendering', percent: progress.progress || 0, ...(progress.totalFrames ? { frame: progress.framesRendered || 0, frames: progress.totalFrames } : {}) }), signal)
     } catch (error) {
       const warningDetails = job.warnings
         .map(warning => warning.message)
@@ -2508,10 +2571,33 @@ const handleRender = async (
       if (warningDetails) throw new Error(warningDetails)
       throw error
     }
+    // A render that finished with warnings says so with its result (F05):
+    // a file the video shows that did not load is no success at all; the
+    // decorative logo, or media slow to load, is a warning the creator reads.
+    const readings = renderWarningsOf(job.warnings, {
+      logo: logoSource,
+      describe: source => {
+        const staged = /\/media\/([^/?#]+)$/.exec(source)
+        return (staged && stagedRenderAssets.get(staged[1])?.source) || source
+      },
+    })
+    if (readings.blocking.length) {
+      await rm(outputPath, { force: true })
+      throw new Error(`The render could not load ${readings.blocking.length === 1 ? 'a file the video shows' : `${readings.blocking.length} files the video shows`} (${readings.blocking.join(', ')}), so it was not kept. Export again; if it recurs, record or choose ${readings.blocking.length === 1 ? 'it' : 'them'} again.`)
+    }
+    warnings.push(...readings.warnings)
   } finally {
     await rm(jobDirectory, { recursive: true, force: true })
   }
 
+  // The file is what the creator gets: its length is measured, and a video
+  // longer or shorter than its scenes by more than a frame is not called
+  // ready — longer is a blank tail (BoltDB review B10), shorter a cut end.
+  const renderedSeconds = await probeSeconds(outputPath).catch(() => null)
+  if (renderedSeconds !== null && Math.abs(renderedSeconds - composition.durationSeconds) > 1 / (renderProject.fps || 30) + 0.05) {
+    throw new Error(`The rendered video lasts ${renderedSeconds.toFixed(2)} s but its scenes last ${composition.durationSeconds.toFixed(2)} s, so it was not kept: it would ${renderedSeconds > composition.durationSeconds ? 'end on a blank tail' : 'cut its ending'}. Export again; if it recurs, it is a bug.`)
+  }
+  report?.({ stage: 'storing', percent: 100 })
   // An export is a durable artifact, not just a file in an outputs folder:
   // register the MP4 in the object store with its own asset row (D0a).
   let exportAsset: { assetId: string; objectKey: string } | null = null
@@ -2527,12 +2613,16 @@ const handleRender = async (
     console.warn('[render] export could not be stored durably', error instanceof Error ? error.message : error)
   }
 
-  json(response, 200, {
-    url: `${publicBaseUrl(request)}/outputs/${id}.mp4`,
-    durationSeconds: composition.durationSeconds,
+  return {
+    // Named by its path on the app's own origin — the desktop's port
+    // changes at every start (F01 of the fix verification).
+    url: exportAsset ? objectUrl(exportAsset.objectKey) : `/outputs/${id}.mp4`,
+    // What the file measures, not what the composition declared.
+    durationSeconds: renderedSeconds ?? composition.durationSeconds,
     fonts: { shipped: fonts.shipped, substituted: fonts.substituted },
     exportAsset,
-  })
+    ...(warnings.length ? { warnings } : {}),
+  }
 }
 
 const safeStaticPath = (root: string, pathname: string) => {
@@ -2588,6 +2678,61 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     mkdir(context.previewsDirectory, { recursive: true }),
   ])
 
+  // Design runs' pages land on their notebooks here, whether or not any
+  // notebook window is open (BoltDB review B06): swept every few seconds
+  // while a notebook waits for one, and on request.
+  const pageLanding: LandingDeps | null = options.pageCheck
+    ? {
+        load: loadProjectArtifact,
+        save: (project, expected) => saveProjectArtifact(project, { expectedProject: expected }),
+        run: async runId => (await listBuildRuns()).find(row => row.id === runId) || null,
+        pages: runPagesIn,
+        check: options.pageCheck,
+      }
+    : null
+  if (pageLanding) {
+    let sweeping = false
+    const sweep = async () => {
+      if (sweeping) return
+      sweeping = true
+      try {
+        for (const notebookId of await listProjectIdsAwaitingPages()) {
+          const landed = await landPagesOnce(notebookId, pageLanding)
+          if (landed.saved) console.log(`[pages] ${notebookId}: ${landed.landed.length} landed, ${landed.kept.length} kept their change, ${landed.stayed.length} stayed schematic, ${landed.waiting} waiting`)
+        }
+      } catch (error) {
+        console.warn('[pages] a landing pass failed', error instanceof Error ? error.message : error)
+      } finally {
+        sweeping = false
+      }
+    }
+    const timer = setInterval(() => void sweep(), 4000)
+    timer.unref?.()
+    void directoriesReady.then(() => sweep())
+  }
+  // Wireframes still being made in the background are seen through, a pass
+  // every few seconds, whichever notebook is open (the four-notebook model).
+  {
+    let building = false
+    const buildPass = async () => {
+      if (building) return
+      building = true
+      try {
+        for (const notebookId of await listProjectIdsAwaitingWireframes()) {
+          const built = await buildWireframeOnce(notebookId, wireframeDeps)
+          if (built.state === 'built' || built.state === 'failed') console.log(`[wireframe] ${notebookId}: ${built.state}${built.pages ? `, ${built.pages} pages` : ''}${built.reason ? ` — ${built.reason}` : ''}`)
+        }
+      } catch (error) {
+        console.warn('[wireframe] a build pass failed', error instanceof Error ? error.message : error)
+      } finally {
+        building = false
+      }
+    }
+    const buildTimer = setInterval(() => void buildPass(), 3000)
+    buildTimer.unref?.()
+    void directoriesReady.then(() => buildPass())
+  }
+
   return async (request: IncomingMessage, response: ServerResponse) => {
   await directoriesReady
   setCors(request, response)
@@ -2618,6 +2763,39 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/settings/models') {
       json(response, 200, { settings: await publicModelSettings(), presets: MODEL_PRESETS })
+      return
+    }
+    // The creator's local harness and model, per stage, durably.
+    if (request.method === 'GET' && url.pathname === '/api/settings/harness') {
+      json(response, 200, { preferences: await loadHarnessPreferences(), stages: HARNESS_STAGES })
+      return
+    }
+    if (request.method === 'PUT' && url.pathname === '/api/settings/harness') {
+      const patch = await readJson<{ default?: unknown; stages?: Record<string, unknown> }>(request, 16 * 1024)
+      try {
+        json(response, 200, { preferences: await saveHarnessPreferences(patch || {}) })
+      } catch (error) {
+        if (!(error instanceof HarnessPreferenceError)) throw error
+        json(response, 400, { error: error.message })
+      }
+      return
+    }
+    // Each harness's last provider status: its newest finished run, with the
+    // failure (category, message, recovery) when that run failed.
+    if (request.method === 'GET' && url.pathname === '/api/harness/status') {
+      const status: Record<string, unknown> = {}
+      for (const run of await listBuildRuns()) {
+        if (!run.finishedAt || status[run.adapter]) continue
+        status[run.adapter] = {
+          state: run.status === 'error' ? 'error' : 'ok',
+          runId: run.id,
+          skill: run.skill,
+          model: run.reportedModel || run.model,
+          at: run.finishedAt,
+          ...(run.failure ? { failure: run.failure } : {}),
+        }
+      }
+      json(response, 200, { status })
       return
     }
     if (request.method === 'PUT' && url.pathname === '/api/settings/models') {
@@ -2714,7 +2892,8 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       json(response, 200, { deleted: await deleteTheme(id) })
       return
     }
-    // Immutable source revisions (D1): read back exactly what a run consumed.
+    // Immutable source revisions (D1): read back exactly what a run consumed
+    // — { revision }, its article under content (storedArticleOf reads it).
     if (request.method === 'GET' && /^\/api\/source\/revisions\/[^/]+$/.test(url.pathname)) {
       const id = decodeURIComponent(url.pathname.split('/')[4])
       const revision = await loadSourceRevision(id)
@@ -2741,7 +2920,25 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       json(response, 200, { model: { id: saved.id, hash: saved.hash, ...model }, outline })
       return
     }
+    // A notebook's designed pages, landed now (B06): the notebook window asks
+    // while its pages are designed, and gets the notebook as stored.
+    if (request.method === 'POST' && url.pathname === '/api/pages/land') {
+      const body = await readJson<{ notebook?: string }>(request, 16 * 1024)
+      if (!pageLanding) {
+        json(response, 501, { error: 'Designed pages land in the desktop app' })
+        return
+      }
+      if (!body?.notebook) {
+        json(response, 400, { error: 'Which notebook?' })
+        return
+      }
+      const landed = await landPagesOnce(body.notebook, pageLanding)
+      json(response, 200, { landed, project: await loadProjectArtifact(body.notebook) })
+      return
+    }
     // Durable build-run history and per-stage checkpoints (D3).
+    // Planning (M0): the video's Explanation Brief and scene plans.
+    if (await handlePlanningRoute(request, response, url)) return
     if (request.method === 'POST' && url.pathname === '/api/runs') {
       const run = await readJson<BuildRunInput>(request, 256 * 1024)
       if (!run?.id || !run.skill) {
@@ -2780,7 +2977,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       const [, projectId, format] = url.pathname.match(/^\/api\/projects\/([^/]+)\/captions\.(vtt|srt)$/) as RegExpMatchArray
       const stored = await loadProjectArtifact(decodeURIComponent(projectId))
       if (!stored) throw new Error('Notebook not found')
-      const cues = captionCuesForProject(stored)
+      // An export of some of its blocks has the captions of those blocks.
+      const blocks = url.searchParams.get('blocks')
+      const chosen = blocks ? new Set(blocks.split(',')) : null
+      const cues = captionCuesForProject(chosen ? { ...stored, notebook: { ...stored.notebook, content: stored.notebook.content.filter(node => typeof node.attrs?.id !== 'string' || chosen.has(node.attrs.id)) } } : stored)
       const body = format === 'vtt' ? formatWebVtt(cues) : formatSrt(cues)
       response.writeHead(200, { 'content-type': format === 'vtt' ? 'text/vtt; charset=utf-8' : 'application/x-subrip; charset=utf-8', 'content-disposition': `attachment; filename="${String(stored.title || 'captions').replace(/[^\w.-]+/g, '-').slice(0, 60)}.${format}"`, 'x-caption-count': String(cues.length) })
       response.end(body)
@@ -2804,6 +3004,11 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     // Draw one object. The same brief is never drawn twice: the accepted
     // artwork is kept by what it draws, so rewording a scene reuses it.
+    if (request.method === 'POST' && url.pathname === '/api/appearance/register') {
+      const body = await readJson<Parameters<typeof registerLocalArtwork>[0]>(request, 4 * 1024 * 1024)
+      json(response, 201, await registerLocalArtwork(body))
+      return
+    }
     if (request.method === 'GET' && url.pathname === '/api/appearance/library') {
       const assets = await listArtwork()
       // "Used in": notebooks whose stored scenes carry the artwork's key.
@@ -2849,6 +3054,75 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       json(response, 200, { derived: true, base: base ? { id: base.id, title: base.title } : null, lineage, status: baseStatusOf(child, base, snapshot) })
       return
     }
+    // Projects (the four-notebook model): a project and its notebooks, each
+    // counted in what its kind holds; every project, for the library; a
+    // project named; a project removed with the notebooks it holds.
+    if (request.method === 'GET' && url.pathname === '/api/containers') {
+      const views = await Promise.all((await listProjectContainers()).map(container => containerView(container.id, containerDeps)))
+      json(response, 200, { containers: views.filter(Boolean) })
+      return
+    }
+    if (/^\/api\/containers\/[^/]+$/.test(url.pathname)) {
+      const containerId = decodeURIComponent(url.pathname.split('/')[3])
+      if (request.method === 'GET') {
+        const view = await containerView(containerId, containerDeps)
+        json(response, view ? 200 : 404, view || { error: 'No such project' })
+        return
+      }
+      if (request.method === 'PUT') {
+        const body = await readJson<{ title?: string }>(request, 64 * 1024)
+        json(response, 200, { container: await nameContainer(containerId, String(body.title || '').trim(), containerDeps) })
+        return
+      }
+      if (request.method === 'DELETE') {
+        const held = (await listProjectArtifacts()).filter(row => row.container?.id === containerId)
+        for (const row of held) await deleteProjectArtifact(row.id)
+        json(response, 200, { deleted: await deleteProjectContainer(containerId), notebooks: held.map(row => row.id) })
+        return
+      }
+    }
+    // A presentation's slides as a PDF (the four-notebook model): printed
+    // from the notebook as saved, and kept in the object store as an
+    // artifact of that notebook. What it would hold is asked first — each
+    // slide's state and the type — and the export is chosen: the designed
+    // slides, or every slide as a draft, marked in the file (R04, R05 of
+    // the project-flow rereview). The file is of the slides as they were
+    // when it was asked for, named by revision in the answer.
+    if (request.method === 'GET' && /^\/api\/projects\/[^/]+\/presentation-pdf$/.test(url.pathname)) {
+      const notebook = await loadProjectArtifact(decodeURIComponent(url.pathname.split('/')[3]))
+      if (!notebook) throw new Error('Notebook not found')
+      json(response, 200, { plan: await exportPlanOf(notebook) })
+      return
+    }
+    if (request.method === 'POST' && /^\/api\/projects\/[^/]+\/presentation-pdf$/.test(url.pathname)) {
+      const notebookId = decodeURIComponent(url.pathname.split('/')[3])
+      const body = await readJson<{ scope?: string }>(request, 4 * 1024)
+      const notebook = await loadProjectArtifact(notebookId)
+      if (!notebook) throw new Error('Notebook not found')
+      const slides = slidesOf(notebook)
+      if (!slides.length) {
+        json(response, 400, { error: 'This notebook has no slides to export yet' })
+        return
+      }
+      const pending = slides.filter(slide => slide.state !== 'designed')
+      const scope = body.scope === 'draft' || body.scope === 'ready' ? body.scope : pending.length ? null : 'ready'
+      if (!scope) {
+        json(response, 409, { error: `${pending.length} of ${slides.length} slides are not designed yet: export the designed slides, or every slide as a draft` })
+        return
+      }
+      const taken = exportSlidesOf(slides, scope)
+      if (!taken.length) {
+        json(response, 409, { error: 'No slide is designed yet: export every slide as a draft, or wait for the designs' })
+        return
+      }
+      const drafts = taken.filter(slide => slide.state !== 'designed').length
+      // Named by its project, as the creator names it (R03).
+      const name = (notebook.container?.id ? (await loadProjectContainer(notebook.container.id))?.title : null) || notebook.title
+      const { pdf, type } = await presentationPdf(taken, { width: notebook.width || 1920, height: notebook.height || 1080, title: drafts ? `${name} — draft (${taken.length - drafts} of ${taken.length} designed)` : name })
+      const stored = await storeAsset({ body: pdf, contentType: 'application/pdf', projectId: notebook.id, kind: 'presentation-export', extension: '.pdf' })
+      json(response, 200, { url: `/objects/${stored.objectKey}`, scope, slides: taken.length, drafts, excluded: slides.length - taken.length, total: slides.length, bytes: pdf.length, type, revisions: taken.map(slide => ({ id: slide.id, state: slide.state, revision: slide.revision })) })
+      return
+    }
     // Fork a base notebook into its own video notebook. The snapshot and the
     // child are written before the caller is told about either, and a repeat
     // with the same fork key returns the child that already exists rather
@@ -2885,8 +3159,16 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         forkKey,
         snapshot,
       })
+      // A video made from a project's presentation is that project's video.
+      if (base.container) child.container = { id: base.container.id, kind: 'video', from: base.id }
       await saveProjectArtifact(child)
+      await holdNotebook(child, containerDeps)
       json(response, 201, { project: child, reused: false })
+      return
+    }
+    // A notebook's exports, newest first (F8): found again on every open.
+    if (request.method === 'GET' && /^\/api\/projects\/[^/]+\/exports$/.test(url.pathname)) {
+      json(response, 200, { exports: await listProjectExports(decodeURIComponent(url.pathname.split('/')[3])) })
       return
     }
     if (request.method === 'GET' && url.pathname.startsWith('/api/projects/')) {
@@ -2896,10 +3178,18 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
     }
     if (request.method === 'PUT' && url.pathname.startsWith('/api/projects/')) {
       const projectId = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
-      const project = await readJson<ProjectDocumentV1>(request, 5 * 1024 * 1024)
+      const body = await readJson<ProjectDocumentV1 | { project: ProjectDocumentV1; expectedProject: ProjectDocumentV1; clearTakeBlocks?: string[] }>(request, 10 * 1024 * 1024)
+      const project = 'project' in body ? body.project : body
+      const options = 'project' in body && body.expectedProject ? { expectedProject: body.expectedProject, clearTakeBlocks: body.clearTakeBlocks } : { createOnly: true }
       if (!projectId || project.id !== projectId) throw new Error('Project ID mismatch')
-      await saveProjectArtifact(project)
-      json(response, 200, { projectId, saved: true })
+      try {
+        await saveProjectArtifact(project, options)
+      } catch (error) {
+        if ((error as { statusCode?: number }).statusCode === 409) { json(response, 409, { error: (error as Error).message }); return }
+        throw error
+      }
+      await holdNotebook(project, containerDeps)
+      json(response, 200, { projectId, saved: true, project })
       return
     }
     if (request.method === 'DELETE' && url.pathname.startsWith('/api/projects/')) {
@@ -2967,7 +3257,7 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
         return
       }
       await selectPresenterTake({ projectId: body.projectId, blockId: body.blockId, takeId: body.takeId })
-      json(response, 200, { selected: true })
+      json(response, 200, { selected: true, project: await loadProjectArtifact(body.projectId) })
       return
     }
     // Clearing a selection (remove presenter): the active take and its
@@ -3024,6 +3314,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       await handleSourceRead(request, response)
       return true
     }
+    if (request.method === 'POST' && url.pathname === '/api/source/brand') {
+      await handleSourceBrand(request, response)
+      return true
+    }
     if (request.method === 'POST' && url.pathname === '/api/source/outline') {
       await handleSourceOutline(request, response)
       return true
@@ -3052,6 +3346,39 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       await handleThemeGeneration(request, response)
       return
     }
+    if (request.method === 'POST' && url.pathname === '/api/review-fonts') {
+      const project = await readJson<ProjectDocumentV1>(request, 10 * 1024 * 1024)
+      const fonts = await shipFonts(context, fontFamiliesIn(project), join(context.previewsDirectory, 'media'))
+      json(response, 200, { ...fonts, css: fonts.css.replaceAll('./media/fonts/', `${publicBaseUrl(request)}/assets/fonts/`) })
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/exports') {
+      const project = await readJson<ProjectDocumentV1>(request, 10 * 1024 * 1024)
+      json(response, 202, { job: exportJobView(await startExportJob(project, (signal, report) => renderProjectArtifact(context, project, signal, report), url.searchParams.get('retry') === 'true')) })
+      return
+    }
+    // A failed or cancelled export, again, from the manifest it was made of.
+    if (request.method === 'POST' && /^\/api\/exports\/[a-f0-9]{64}\/retry$/.test(url.pathname)) {
+      const id = url.pathname.split('/')[3]
+      const previous = await getExportJob(id)
+      if (!previous?.project) {
+        json(response, 404, { error: 'Export not found' })
+        return
+      }
+      const manifest = previous.project
+      json(response, 202, { job: exportJobView(await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, signal, report), true)) })
+      return
+    }
+    if (/^\/api\/exports\/[a-f0-9]{64}$/.test(url.pathname) && ['GET', 'DELETE'].includes(request.method || '')) {
+      const id = url.pathname.split('/').pop()!
+      let job = request.method === 'DELETE' ? await cancelExportJob(id) : await getExportJob(id)
+      if (request.method === 'GET' && job?.project && ['queued', 'running'].includes(job.status) && Date.now() - job.updatedAt >= 90000) {
+        const manifest = job.project
+        job = await startExportJob(manifest, (signal, report) => renderProjectArtifact(context, manifest, signal, report))
+      }
+      json(response, job ? 200 : 404, { job: exportJobView(job) })
+      return
+    }
     if (request.method === 'POST' && url.pathname === '/api/render') {
       await handleRender(context, request, response)
       return
@@ -3065,13 +3392,29 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       await serveFile(response, filePath)
       return
     }
-    if (request.method === 'GET' && url.pathname.startsWith('/objects/')) {
+    // HEAD answers whether a file is there before a download asks for it
+    // (F01 of the fix verification); a missing object is a 404, not an
+    // error, and never the app's own page.
+    if ((request.method === 'GET' || request.method === 'HEAD') && url.pathname.startsWith('/objects/')) {
       response.setHeader('access-control-allow-origin', '*')
       const objectKey = decodeURIComponent(url.pathname.slice('/objects/'.length))
       if (!objectKey || objectKey.split('/').some(part => !part || part === '..')) {
         throw new Error('Invalid object key')
       }
-      const metadata = await getObjectMetadata(objectKey)
+      const metadata = await objectMetadataOrNull(objectKey)
+      if (!metadata) {
+        json(response, 404, { error: 'This file is no longer in the studio\'s store' })
+        return
+      }
+      if (request.method === 'HEAD') {
+        response.writeHead(200, {
+          'content-type': metadata.metaData?.['content-type'] || 'application/octet-stream',
+          'content-length': metadata.size,
+          'accept-ranges': 'bytes',
+        })
+        response.end()
+        return
+      }
       const rangeMatch = /^bytes=(\d+)-(\d*)$/.exec(String(request.headers.range || ''))
       const rangeStart = rangeMatch ? Number(rangeMatch[1]) : 0
       const rangeEnd = rangeMatch

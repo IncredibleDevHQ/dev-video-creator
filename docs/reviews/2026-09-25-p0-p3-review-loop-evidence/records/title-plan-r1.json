@@ -1,0 +1,431 @@
+{
+	"id": "plan-treatment-b51ea45e-1276-41b8-a7f3-dcbe5652765e",
+	"kind": "treatment",
+	"error": null,
+	"model": "claude-opus-5-5",
+	"inputs": {
+		"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s01",
+		"schema": 2,
+		"script": "A sudden spike in traffic\n\ncan take an API down for every one of its users.\n\nLet's look at how Stripe keeps its API available with four kinds of limiters.",
+		"briefId": "plan-brief-9f16a47b-74c9-4116-a77b-1f824df18a53",
+		"delivery": null,
+		"themeRef": "generated-1790281981587-0:bd8b60cb2ac65aae",
+		"direction": "",
+		"bundleHash": "9e430540653ef12c",
+		"originScenes": ["0d1843e1-2251-4753-8aa9-c1d960f7a030"],
+		"videoDirection": "",
+		"packetObjectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-packet/7143c8fa-c5ae-4afc-b2be-b2eab5351a43.json",
+		"briefFingerprint": "db08f0eb2d112151"
+	},
+	"report": {
+		"warnings": [
+			"continuity.outgoing proposes a seam with video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s02 that its plan has not promised — it stays provisional until both sides agree"
+		],
+		"constructionRisks": [
+			"rule \"svg-path-draw\" is catalogued but not yet proven in the installed runtime",
+			"blueprint \"zoom-out-workspace-reveal\" is catalogued but not yet proven in the installed runtime",
+			"rule \"viewport-change\" is catalogued but not yet proven in the installed runtime",
+			"rule \"svg-icon-enrichment\" is catalogued but not yet proven in the installed runtime",
+			"adapted recipe \"outage-propagation\" (The API status light goes out; then, in a short, even sequence moving outward from the surging user, each stream's dash-flow stops and an error mark appears at its user. This is built from stopped dash-flows and staggered marks; no index covers the propagation itself) must be built and verified at construction",
+			"rule \"spring-pop-entrance\" is catalogued but not yet proven in the installed runtime"
+		]
+	},
+	"run_id": "run-mug0h3sg-9c944873",
+	"status": "candidate",
+	"adapter": "claude-code",
+	"content": {
+		"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s01",
+		"units": ["stakes"],
+		"ledger": null,
+		"skills": [
+			{
+				"why": "The owning workflow; its Plan stage (arc, structure, rhythm, duration driver) is the whole of this run",
+				"skill": "general-video",
+				"references": ["skills/general-video/SKILL.md"]
+			},
+			{
+				"why": "A hook in outcome language with the value promise landing by the second beat, one moment per spoken cue, pacing the words, and the depth and colour treatment of the frame",
+				"skill": "hyperframes-creative",
+				"references": [
+					"skills/hyperframes-creative/references/story-spine.md",
+					"skills/hyperframes-creative/references/beat-direction.md",
+					"skills/hyperframes-creative/references/narration.md",
+					"skills/hyperframes-creative/references/video-composition.md",
+					"skills/hyperframes-creative/references/house-style.md"
+				]
+			},
+			{
+				"why": "Its method of developing one frame through spoken-cue windows without front-loading, borrowed without its faceless assumption",
+				"skill": "faceless-explainer",
+				"references": ["skills/faceless-explainer/references/visual-design.md"]
+			},
+			{
+				"why": "One dominant motion idea (the pull-back) and directing attention one target at a time",
+				"skill": "motion-graphics",
+				"references": [
+					"skills/motion-graphics/agents/director.md",
+					"skills/motion-graphics/references/motion-vocabulary.md"
+				]
+			},
+			{
+				"why": "The recipes: the zoom-out-workspace-reveal hook shape, viewport-change for the camera, svg-path-draw for the line, svg-icon-enrichment for the streams, spring-pop-entrance for the limiter positions",
+				"skill": "hyperframes-animation",
+				"references": [
+					"skills/hyperframes-animation/rules-index.md",
+					"skills/hyperframes-animation/blueprints-index.md"
+				]
+			}
+		],
+		"moments": [
+			{
+				"id": "m1",
+				"text": {
+					"role": "label",
+					"content": "requests / s · time · capacity"
+				},
+				"audio": null,
+				"title": "The spike",
+				"camera": {
+					"reason": "The tight frame is the starting state for the pull-back in m2; holding still keeps the eye on the line crossing capacity",
+					"subject": "the traffic chart, framed tight so it fills most of the frame",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["traffic-chart"],
+					"change": "Before: empty axes with the dashed capacity line in place. After: the traffic line has drawn itself from left to right, climbing steadily and then leaping past capacity, and the over-capacity stretch and its peak dot now carry the accent"
+				},
+				"purpose": "The narration opens on a sudden spike in traffic, and the viewer needs to see that the spike goes past a limit before learning who it hurts",
+				"recipes": [
+					{
+						"id": "svg-path-draw",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The traffic line draws itself from left to right, so the spike reads as something that happens over time rather than a static shape",
+						"controls": [
+							"traffic-chart line",
+							"traffic-chart over-capacity segment"
+						]
+					}
+				],
+				"attention": "the stretch of the line above capacity",
+				"narration": {
+					"job": "Name the threat in the viewer's own terms, a sudden traffic spike, without subject vocabulary",
+					"guide": "A sudden spike in traffic"
+				},
+				"presenter": {
+					"reason": "A suggestion only: the opening frame is the chart and nothing else, and a presenter would compete with the line crossing capacity",
+					"visibility": "hidden"
+				},
+				"observation": "A calm request-rate line, drawn across time, suddenly leaps above the dashed capacity line, and the part above capacity turns to the accent colour",
+				"evidenceRefs": ["ev-outage", "cr-hook"],
+				"estimateSeconds": 3
+			},
+			{
+				"id": "m2",
+				"text": {
+					"role": "label",
+					"content": "API"
+				},
+				"audio": null,
+				"title": "Where the spike comes from",
+				"camera": {
+					"reason": "The reveal answers 'a spike of what, hitting whom': the widening frame turns an abstract line into one user's traffic reaching a shared API",
+					"subject": "the API with all six users",
+					"treatment": "pull back in one continuous, slowing move from the chart to the whole system: users, streams and API"
+				},
+				"objects": {
+					"actors": ["traffic-chart", "api-node", "user", "request-streams"],
+					"change": "Before: only the chart is visible. After: the chart sits as a small monitor beside the API node, six users stand on the far side, each with a request stream flowing into the API; five streams are thin and steady, one has swollen"
+				},
+				"purpose": "The viewer needs to see that the spike is one user's traffic flowing into an API that everyone else also depends on, before the API goes down",
+				"recipes": [
+					{
+						"id": "zoom-out-workspace-reveal",
+						"catalog": "blueprint",
+						"channel": "camera",
+						"purpose": "Shot shape: open tight on one detail (the spike), then a single slowing zoom-out reveals the whole it belongs to; the pull-back is the signature move",
+						"controls": ["world camera"]
+					},
+					{
+						"id": "viewport-change",
+						"catalog": "rule",
+						"channel": "camera",
+						"purpose": "Implements the pull-back as one transform on the world wrapper, so the chart, API and users keep their places in one continuous space",
+						"controls": ["world wrapper transform"]
+					},
+					{
+						"id": "svg-icon-enrichment",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "Dash-flow on each request stream shows traffic moving into the API; the surging user's stream flows thicker and faster",
+						"controls": ["request-streams dash flow"]
+					}
+				],
+				"attention": "the one swollen request stream",
+				"narration": {
+					"job": "Carry the viewer from the spike to the API it lands on",
+					"guide": "can take an API down"
+				},
+				"presenter": {
+					"reason": "A suggestion only: the pull-back needs the whole frame so every user is in view",
+					"visibility": "hidden"
+				},
+				"observation": "The chart turns out to be the API's own traffic monitor; six users feed the API, and one user's stream is much thicker than the others and is what drives the line over capacity",
+				"evidenceRefs": ["ev-spike", "ev-bad-actor"],
+				"estimateSeconds": 3.5
+			},
+			{
+				"id": "m3",
+				"text": null,
+				"audio": {
+					"cue": "The traffic hum that ran under m1 and m2 cuts out as the API goes down, and a moment of silence follows",
+					"reason": "Silence makes the outage felt; a suggestion, pending the video's audio identity"
+				},
+				"title": "Down for everyone",
+				"camera": {
+					"reason": "A push-in would crop the quiet users, and seeing them fail is the point of this moment",
+					"subject": "the whole system",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["api-node", "user", "request-streams"],
+					"change": "Before: the API is up and all six streams are flowing. After: the API is down, every stream has stopped, and all six users carry an error mark; the failure spreads outward from the surging user to the quiet ones"
+				},
+				"purpose": "This is the stakes: the viewer must feel that the users who did nothing lose the API too, not only the user who caused the surge",
+				"recipes": [
+					{
+						"id": "outage-propagation",
+						"catalog": "adapted",
+						"channel": "objects",
+						"purpose": "The API status light goes out; then, in a short, even sequence moving outward from the surging user, each stream's dash-flow stops and an error mark appears at its user. This is built from stopped dash-flows and staggered marks; no index covers the propagation itself",
+						"controls": [
+							"api-node status light",
+							"request-streams dash flow",
+							"user error marks"
+						]
+					}
+				],
+				"attention": "the quiet users receiving error marks",
+				"narration": {
+					"job": "Land the consequence: the outage reaches every user",
+					"guide": "for every one of its users."
+				},
+				"presenter": {
+					"reason": "A suggestion only: every user must stay visible while the failure reaches them",
+					"visibility": "hidden"
+				},
+				"observation": "The API's status light goes out and every stream stops; the five quiet users get an error mark just like the surging one",
+				"evidenceRefs": ["ev-outage", "cr-hook"],
+				"estimateSeconds": 3
+			},
+			{
+				"id": "m4",
+				"text": {
+					"role": "term",
+					"content": "four kinds of limiters"
+				},
+				"audio": null,
+				"title": "Four kinds of limiters",
+				"camera": {
+					"reason": "The system is already framed from m2 and m3; the change is in the objects, so the camera stays still",
+					"subject": "the system with the four positions",
+					"treatment": "hold"
+				},
+				"objects": {
+					"actors": ["limiter-slots", "api-node", "request-streams"],
+					"change": "Before: the API is down and the path is empty. After: four outlined positions numbered 01 to 04 stand between the users and the API, the API's status light is steady again, and thin streams resume. The positions stay unnamed and unexplained"
+				},
+				"purpose": "The viewer needs the promise that frames the video: there are four kinds of limiters, and they sit between the users and the API",
+				"recipes": [
+					{
+						"id": "spring-pop-entrance",
+						"catalog": "rule",
+						"channel": "objects",
+						"purpose": "The four positions arrive as one staggered group with a light overshoot, so they read as one set of four, not four separate events",
+						"controls": ["limiter-slots"]
+					},
+					{
+						"id": "skills/hyperframes-creative/references/typography.md",
+						"catalog": "reference",
+						"channel": "text",
+						"purpose": "Set the term 'four kinds of limiters' as the one readable text on screen: display weight, sized for video, clear of the caption band",
+						"controls": ["term label"]
+					}
+				],
+				"attention": "the four numbered limiter positions",
+				"narration": {
+					"job": "Promise the tour and name its subject: four kinds of limiters that keep Stripe's API available",
+					"guide": "Let's look at how Stripe keeps its API available with four kinds of limiters."
+				},
+				"presenter": {
+					"reason": "The 'Let's look at' line could suit a presenter sharing the frame if a take is recorded, but the delivery is the creator's choice",
+					"visibility": "undecided"
+				},
+				"observation": "Four numbered, empty limiter positions lock into place along the path from the users to the API, and the API comes back up as the promise lands",
+				"evidenceRefs": ["ev-four", "cr-four"],
+				"estimateSeconds": 4.5
+			}
+		],
+		"objects": [
+			{
+				"role": "Shows the traffic spike as requests per second over time, crossing the API's capacity",
+				"asset": {
+					"ref": "cast-6d3958517c9f461785f1",
+					"reason": "The page's chart already shows exactly the stakes image, a spike crossing capacity, with separate parts for the line, the over-capacity segment, the peak and the capacity line. It needs recolouring so the accent means only 'look here now': give the over-capacity segment and the peak the accent instead of the off-theme #ff6b6b, and make the capacity line muted text instead of accent. The line also needs re-rigging so it can draw over time, and the labels need Inter in place of sohne-var",
+					"status": "adapt"
+				},
+				"entity": "traffic-chart",
+				"appearance": "The page's spike chart: a panel with axes, a dashed capacity line, a traffic line with an over-capacity stretch and a peak dot",
+				"performance": "The line draws across time and leaps past capacity (m1); the chart then shrinks into a small monitor beside the API in the pull-back (m2) and stays there"
+			},
+			{
+				"role": "The API every user depends on; its availability is what's at stake",
+				"asset": {
+					"reason": "The library has no API object; a labelled native node keeps the label exact and gives a clean status light to switch off and on",
+					"status": "native"
+				},
+				"entity": "api-node",
+				"appearance": "A clear node on the theme's surface colour, labelled 'API', with a status light",
+				"performance": "Receives the streams (m2), goes dark (m3) and comes back up (m4)"
+			},
+			{
+				"role": "The API's users: one sends the surge, five do nothing unusual",
+				"asset": {
+					"ref": "cast-4e8f7fd4476d20bcfb21",
+					"reason": "The page's user icon keeps one identity for a user across the whole video. It needs its caption text removed and has to be instanced six times, so that 'every one of its users' can be seen",
+					"status": "adapt"
+				},
+				"entity": "user",
+				"appearance": "Six instances of the library's user icon, without its caption, in one row or arc facing the API",
+				"performance": "Each user gets an error mark as the outage reaches it (m3); the surging user looks the same as the rest, with only its stream setting it apart"
+			},
+			{
+				"role": "Each user's traffic into the API; one swollen stream is the surge",
+				"asset": {
+					"reason": "Exact stroke widths and flow rates carry the meaning (one stream much heavier than the others), which native paths control precisely",
+					"status": "native"
+				},
+				"entity": "request-streams",
+				"appearance": "Thin dashed paths from each user to the API, in the primary colour; the surging stream is visibly thicker",
+				"performance": "They flow (m2), stop (m3) and resume thinly (m4)"
+			},
+			{
+				"role": "The promise of the four kinds of limiters, set out where they will act",
+				"asset": {
+					"reason": "The limiters aren't introduced yet, so exact numbered outlines promise the set without naming or explaining any of them",
+					"status": "native"
+				},
+				"entity": "limiter-slots",
+				"appearance": "Four outlined, empty positions numbered 01 to 04, in the primary colour, placed along the path between the users and the API",
+				"performance": "They lock in as a group (m4); later scenes can fill each position with its limiter"
+			}
+		],
+		"coverage": [
+			{
+				"need": "Let the viewer feel that one user's surge reaches every other user",
+				"unit": "stakes",
+				"moments": ["m2", "m3"]
+			},
+			{
+				"need": "Make clear why more capacity alone is not the answer",
+				"unit": "stakes",
+				"moments": [],
+				"deferred": "This scene's words don't mention capacity. The creator's line 'Adding capacity works the first few times, but it won't stop one bad actor' and the 'More capacity' objects belong to the next scene, s02, which also carries the stakes unit"
+			},
+			{
+				"need": "Promise four kinds of limiters so the viewer can track the tour",
+				"unit": "stakes",
+				"moments": ["m4"]
+			}
+		],
+		"delivery": {
+			"note": "The hook works as voice-over over a full-frame diagram; if a presenter take is recorded, m4's promise is the natural point for them to share the frame",
+			"voice": "undecided"
+		},
+		"question": "Why does an API need protecting from traffic at all?",
+		"takeaway": "One user's sudden surge can push an API past its capacity and take it down for every user, and Stripe keeps its API available with four kinds of limiters.",
+		"continuity": {
+			"exit": "The API is up; six users with thin streams; four empty numbered limiter positions between them and the API; the traffic chart as a small monitor beside the API",
+			"entry": "Nothing on screen before the chart; the video opens on this scene",
+			"incoming": {
+				"kind": "self-contained"
+			},
+			"outgoing": {
+				"kind": "proposed",
+				"note": "Scene s02 (Why limit at all) has no plan yet. It could open on this same system, the users, the API and the four empty positions, and first try adding more capacity to the API before showing that it won't stop one bad actor",
+				"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s02"
+			}
+		},
+		"treatments": {
+			"text": "Almost no text on screen: the narration carries the sentences. Short axis labels on the chart, 'API' on the node, and the single term 'four kinds of limiters' at the promise. Inter is the fallback family throughout; the accent is used only on the over-capacity segment in m1 and the error marks in m3.",
+			"camera": "One camera move in the whole scene: the pull-back in m2, from the spike to the system it belongs to. The camera holds everywhere else, so the outage and the promise are carried by the objects.",
+			"presenter": "Undecided, and the creator's choice. As a suggestion, m1 to m3 need the whole frame: the chart, then every user losing the API. m4's 'Let's look at…' line is the natural point for a presenter to share the frame if a take is recorded."
+		},
+		"unresolved": [
+			"Presenter visibility and voice source are undecided; the per-moment suggestions are notes only",
+			"The user icon (cast-4e8f7fd4476d20bcfb21) is known here only from its library entry; its artwork was not in this packet, so construction must confirm that it works without its caption",
+			"The narration lines are drafts under the draft wording policy; moment boundaries follow them and move if the words change",
+			"The communication need about more capacity is left to s02, where the creator's capacity line is spoken",
+			"Durations are estimates until audio or a take exists"
+		],
+		"development": "Open tight on the spike itself: a request-rate line drawing across time that suddenly leaps past the capacity line. Then pull back in one continuous move to show where that line comes from, an API fed by several users, one of whom is sending the surge. The API goes down and the failure reaches every user, including the quiet ones who did nothing, so the viewer feels the stakes rather than reading them. The scene closes on the promise: four empty, numbered limiter positions lock in between the users and the API, and the API comes back up. Each limiter is left unnamed, to be filled in by the later scenes.",
+		"evidenceRefs": [
+			"ev-outage",
+			"ev-spike",
+			"ev-bad-actor",
+			"ev-four",
+			"cr-hook",
+			"cr-four"
+		],
+		"originScenes": ["0d1843e1-2251-4753-8aa9-c1d960f7a030"],
+		"requirements": {
+			"takes": [],
+			"assets": [
+				"The spike chart (cast-6d3958517c9f461785f1) recoloured to the theme's accent meaning and re-rigged to draw over time",
+				"The user icon (cast-4e8f7fd4476d20bcfb21) without its caption, instanced six times",
+				"Native API node, request streams and four numbered limiter positions"
+			],
+			"decisions": [
+				"Voice source and presenter visibility for this scene",
+				"Whether the video's title appears in this scene",
+				"Whether the four limiter positions become the fixed places of the limiters in later scenes"
+			]
+		},
+		"demonstration": {
+			"text": "Six users send steady traffic to one API. One of them suddenly surges; total requests per second cross the API's capacity and the API goes down for all six. Four numbered limiter positions then appear between the users and the API.",
+			"values": [
+				{
+					"basis": "illustrative",
+					"value": "six users"
+				},
+				{
+					"basis": "source",
+					"value": "four kinds of limiters"
+				}
+			]
+		},
+		"schemaVersion": 1,
+		"rosterProposal": null
+	},
+	"subject": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s01",
+	"approval": null,
+	"revision": 1,
+	"workflow": "general-video",
+	"artifacts": {
+		"assetId": "5114c3ea-0840-4330-96a8-5cf360394e0b",
+		"objectKey": "projects/video-6ac46d89-16e6-4de1-9d1e-744f52c89237/planning-treatment/5114c3ea-0840-4330-96a8-5cf360394e0b.json"
+	},
+	"direction": "",
+	"created_at": "2026-09-24T20:55:36.640642+00:00",
+	"project_id": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237",
+	"updated_at": "2026-09-24T20:59:38.285458+00:00",
+	"fingerprint": "e39e5884c8677c54",
+	"reviewed_at": null,
+	"skill_bundle": {
+		"hash": "9e430540653ef12c",
+		"name": "video-planner",
+		"version": "0.1.1",
+		"upstreamCommit": "99221c50a5e5927ca243454b4e4f02f9adf7cfc6"
+	},
+	"reported_model": "claude-opus-5-5"
+}

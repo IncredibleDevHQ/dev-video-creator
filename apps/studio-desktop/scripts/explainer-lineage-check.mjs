@@ -75,7 +75,7 @@ try {
   const previousFetch = globalThis.fetch
   globalThis.fetch = async (url, options) => {
     if (String(url).endsWith('/api/projects/video')) {
-      if (options?.method === 'PUT') project = JSON.parse(options.body)
+      if (options?.method === 'PUT') project = JSON.parse(options.body).project || JSON.parse(options.body)
       return Response.json({ project })
     }
     if (String(url).endsWith('/api/preview')) return Response.json({})

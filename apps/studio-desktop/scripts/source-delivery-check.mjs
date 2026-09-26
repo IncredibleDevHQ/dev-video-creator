@@ -1,10 +1,9 @@
 // Source-delivery check (review finding #9): the delivery path chosen in
-// Create explainer belongs to the journey, so a source flow that finishes
-// into a new notebook carries the choice with it — reopening and building
-// never ask again. Both paths are walked: the chooser records the mode on the
-// current notebook, the wizard finishes into a fresh one (a notebook with a
-// scene is offered the destination, "Start a new notebook" kept), and the new
-// notebook builds without another prompt. Pattern per
+// Create explainer belongs to the journey, so the project an import makes
+// carries the choice with it — reopening and building never ask again. Both
+// paths are walked: the chooser records the mode on the current notebook,
+// the import opens a new project on its text, its wireframe carries the
+// choice, and the wireframe builds without another prompt. Pattern per
 // take-workflow-check.mjs (smoke app + /__eval) and build-fork-check.mjs
 // (stub kimi on PATH); the local file store keeps the shared database out of
 // the fixture, per local-store-check.mjs.
@@ -137,7 +136,7 @@ try {
       fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
     }
     await fetch(`${origin}/api/projects/${BASE_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fixture) })
-    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(BASE_ID)}); window.location.assign('/studio'); return true }`, `open ${delivery} base`)
+    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', ${JSON.stringify(BASE_ID)}); window.localStorage.setItem('studio.codingAgent', 'kimi'); window.location.assign('/studio'); return true }`, `open ${delivery} base`)
     check(`${delivery}: the base notebook opens`, Boolean(await waitFor(`() => document.getElementById('project-title')?.value === ${JSON.stringify(BASE_TITLE)}`, 'base boot')))
 
     // The journey chooses the delivery path, then walks the source flow.
@@ -149,25 +148,23 @@ try {
     check(`${delivery}: the source flow opens`, Boolean(await waitFor(`() => document.getElementById('source-dialog')?.open === true`, 'source dialog')))
     await evaluate(`() => { const box = document.getElementById('source-narrative'); box.value = ${JSON.stringify(NARRATIVES[delivery])}; document.getElementById('source-read').click(); return true }`, 'read')
     check(`${delivery}: the narrative is read`, Boolean(await waitFor(`() => !document.getElementById('source-step-brand')?.hidden`, 'brand step')))
-    await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'outline')
-    check(`${delivery}: the story run plans the outline`, Boolean(await waitFor(`() => !document.getElementById('source-step-outline')?.hidden`, 'outline step', 150)))
-    await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'pages')
-    check(`${delivery}: the pages are made`, Boolean(await waitFor(`() => !document.getElementById('source-step-pages')?.hidden`, 'pages step')))
-    // Keep the default: Start a new notebook.
-    await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish')
-    const freshId = await waitFor(`async () => {
-      if (document.getElementById('source-dialog')?.open) return null
+    await evaluate(`() => { document.getElementById('source-to-outline').click(); return true }`, 'create the project')
+    // The project opens on its text; its wireframe is made in the background.
+    const textId = await waitFor(`() => {
       const id = window.localStorage.getItem('incredible-studio-v2-active-project')
-      if (!id || id === ${JSON.stringify(BASE_ID)}) return null
-      const body = await fetch('/api/projects/' + encodeURIComponent(id)).then(r => r.json()).catch(() => null)
-      const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
-      return scenes.length >= 2 ? id : null
-    }`, 'finish', 120)
-    check(`${delivery}: the source finishes into a new notebook`, Boolean(freshId), String(freshId))
+      return document.getElementById('source-dialog')?.open === false && document.body.dataset.notebookKind === 'text' && id && id !== ${JSON.stringify(BASE_ID)} ? id : null
+    }`, 'text open', 120)
+    check(`${delivery}: the source opens a new project on its text`, Boolean(textId), String(textId))
+    await waitFor(`() => /^\\d+ pages?$/.test(document.querySelector('#notebook-switch [data-kind="wireframe"] small')?.textContent || '') ? true : null`, 'wireframe made', 120)
+    await evaluate(`() => { setTimeout(() => document.querySelector('#notebook-switch [data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe')
+    const freshId = await waitFor(`() => document.body.dataset.notebookKind === 'wireframe' && document.querySelectorAll('#editor .notebook-scene-block').length >= 2 ? window.localStorage.getItem('incredible-studio-v2-active-project') : null`, 'wireframe open', 120)
+    check(`${delivery}: its wireframe is made with the story's scenes`, Boolean(freshId), String(freshId))
+    const textNotebook = textId ? await projectBody(textId) : null
+    check(`${delivery}: the project's text carries the journey's delivery choice`, textNotebook?.explainerDelivery === delivery, JSON.stringify(textNotebook?.explainerDelivery || null))
 
     const fresh = freshId ? await projectBody(freshId) : null
     check(
-      `${delivery}: the new notebook carries the journey's delivery choice`,
+      `${delivery}: the project's wireframe carries the journey's delivery choice`,
       fresh?.explainerDelivery === delivery,
       JSON.stringify(fresh?.explainerDelivery || null),
     )

@@ -1,3 +1,4 @@
+import type { ProjectSaveOptions } from './persistence'
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
@@ -5,8 +6,10 @@ import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client as MinioClient } from 'minio'
 import { Pool } from 'pg'
-import type { ProjectDocumentV1, RecordedBlockV1, TiptapNode } from 'markdown-composition'
+import type { NotebookPlaceV1, ProjectContainerV1, ProjectDocumentV1, RecordedBlockV1, TiptapNode } from 'markdown-composition'
 import { runMigrations } from './migrations'
+import type { NewPlanningRecord, PlanningInputRow, PlanningRecordPatch } from './persistence'
+import { ACTIVE_STATUSES, type PlanningRecord, type PlanningStatus } from '../src/planning/planning-records'
 
 const databaseUrl =
   process.env.STUDIO_DATABASE_URL ||
@@ -71,11 +74,22 @@ const blockKind = (node: TiptapNode) =>
               ? 'screen'
               : 'content'
 
-export const saveProjectArtifact = async (project: ProjectDocumentV1) => {
+export const saveProjectArtifact = async (project: ProjectDocumentV1, options?: ProjectSaveOptions) => {
   await initializePersistence()
   const client = await database.connect()
   try {
     await client.query('begin')
+    // All document writers take the same lock, including ordinary autosaves.
+    await client.query('select pg_advisory_xact_lock(hashtext($1))', [project.id])
+    if (options?.createOnly && (await client.query('select 1 from studio_notebooks where id = $1', [project.id])).rowCount) throw Object.assign(new Error('This notebook already exists. Load its current revision before saving.'), { statusCode: 409 })
+    if (options?.expectedProject) {
+      const match = await client.query('select 1 from studio_notebooks where id = $1 and artifact = $2::jsonb for update', [project.id, JSON.stringify(options.expectedProject)])
+      if (!match.rowCount) throw Object.assign(new Error('The notebook changed during generation. Refresh before applying the saved candidate.'), { statusCode: 409 })
+    }
+    for (const blockId of options?.clearTakeBlocks || []) {
+      await client.query('delete from studio_take_selections where notebook_id = $1 and block_id = $2', [project.id, blockId])
+      await client.query('delete from studio_recorded_blocks where notebook_id = $1 and block_id = $2', [project.id, blockId])
+    }
     await client.query(
       `insert into studio_notebooks (id, title, artifact)
        values ($1, $2, $3::jsonb)
@@ -125,6 +139,30 @@ export type ProjectArtifactSummary = {
   createdAt: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  container?: NotebookPlaceV1
+}
+
+// The base notebooks with a scene still bound to a design run's page.
+export const listProjectIdsAwaitingPages = async (): Promise<string[]> => {
+  await initializePersistence()
+  const result = await database.query<{ id: string }>(
+    `select id from studio_notebooks
+     where artifact->'derivedFrom' is null
+       and jsonb_path_exists(artifact, '$.notebook.content[*].attrs.pageOrigin.designing')`,
+  )
+  return result.rows.map(row => row.id)
+}
+
+// The wireframes still being made in the background (the four-notebook
+// model): the ones a build pass sees through.
+export const listProjectIdsAwaitingWireframes = async (): Promise<string[]> => {
+  await initializePersistence()
+  const result = await database.query<{ id: string }>(
+    `select id from studio_notebooks
+     where artifact->'build'->>'kind' = 'wireframe'
+       and artifact->'build'->'failure' is null`,
+  )
+  return result.rows.map(row => row.id)
 }
 
 // Every saved notebook, newest first — the switcher's list.
@@ -137,11 +175,13 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
     created_at: string | Date
     updated_at: string | Date
     derived_from: { notebook: string; kind?: string } | null
+    container: NotebookPlaceV1 | null
   }>(
-    // derivedFrom rides inside the artifact JSONB — no schema change needed.
+    // derivedFrom and the notebook's project ride inside the artifact JSONB.
     `select n.id, n.title,
        (select count(*) from studio_blocks b where b.notebook_id = n.id) as block_count,
-       n.created_at, n.updated_at, n.artifact->'derivedFrom' as derived_from
+       n.created_at, n.updated_at, n.artifact->'derivedFrom' as derived_from,
+       n.artifact->'container' as container
      from studio_notebooks n
      order by n.updated_at desc`,
   )
@@ -152,6 +192,7 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
     ...(row.derived_from ? { derivedFrom: row.derived_from } : {}),
+    ...(row.container ? { container: row.container } : {}),
   }))
 }
 
@@ -188,6 +229,33 @@ export const saveSetting = async (key: string, value: unknown) => {
      on conflict (key) do update set value = excluded.value, updated_at = now()`,
     [key, JSON.stringify(value)],
   )
+}
+
+// Projects: what belongs to a whole project, not one notebook. Which
+// notebooks a project holds is read off the notebooks, which name it.
+export const saveProjectContainer = async (container: ProjectContainerV1) => {
+  await initializePersistence()
+  await database.query(
+    `insert into studio_containers (id, title, artifact, created_at, updated_at)
+     values ($1, $2, $3::jsonb, $4, $5)
+     on conflict (id) do update set title = excluded.title, artifact = excluded.artifact, updated_at = excluded.updated_at`,
+    [container.id, container.title, JSON.stringify(container), container.createdAt, container.updatedAt],
+  )
+}
+export const loadProjectContainer = async (id: string) => {
+  await initializePersistence()
+  const result = await database.query<{ artifact: ProjectContainerV1 }>('select artifact from studio_containers where id = $1', [id])
+  return result.rows[0]?.artifact || null
+}
+export const listProjectContainers = async () => {
+  await initializePersistence()
+  const result = await database.query<{ artifact: ProjectContainerV1 }>('select artifact from studio_containers order by updated_at desc')
+  return result.rows.map(row => row.artifact)
+}
+export const deleteProjectContainer = async (id: string) => {
+  await initializePersistence()
+  const result = await database.query('delete from studio_containers where id = $1', [id])
+  return (result.rowCount || 0) > 0
 }
 
 export const loadLatestProjectArtifact = async () => {
@@ -536,15 +604,223 @@ export const saveExplanationModel = async (input: {
 import type { BuildRunInput, BuildRunRow, BuildStageInput } from './persistence'
 
 // ——— Durable build runs and stage checkpoints (D3) ———
+// ——— Planning records (M0) ———
+const iso = (value: unknown) => (value ? new Date(value as string).toISOString() : null)
+const planningRecordFrom = (row: Record<string, unknown>): PlanningRecord => ({
+  id: String(row.id),
+  kind: row.kind as PlanningRecord['kind'],
+  projectId: String(row.project_id),
+  subject: String(row.subject || ''),
+  revision: Number(row.revision),
+  status: row.status as PlanningStatus,
+  fingerprint: String(row.fingerprint),
+  inputs: (row.inputs as Record<string, unknown>) || {},
+  content: (row.content as PlanningRecord['content']) ?? null,
+  report: (row.report as PlanningRecord['report']) ?? null,
+  artifacts: (row.artifacts as PlanningRecord['artifacts']) ?? null,
+  runId: (row.run_id as string | null) ?? null,
+  adapter: (row.adapter as string | null) ?? null,
+  model: (row.model as string | null) ?? null,
+  reportedModel: (row.reported_model as string | null) ?? null,
+  skillBundle: (row.skill_bundle as PlanningRecord['skillBundle']) ?? null,
+  workflow: (row.workflow as string | null) ?? null,
+  direction: String(row.direction || ''),
+  error: (row.error as PlanningRecord['error']) ?? null,
+  createdAt: iso(row.created_at) || '',
+  updatedAt: iso(row.updated_at) || '',
+  reviewedAt: iso(row.reviewed_at),
+  approval: (row.approval as PlanningRecord['approval']) ?? null,
+  progress: (row.progress as PlanningRecord['progress']) ?? null,
+  validation: (row.validation as PlanningRecord['validation']) ?? null,
+})
+
+// The next revision for the subject is taken inside the insert; two
+// concurrent queues for the same subject meet the unique key and the loser
+// retries with the revision after.
+export const createPlanningRecord = async (record: NewPlanningRecord): Promise<PlanningRecord> => {
+  await initializePersistence()
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const id = `plan-${record.kind}-${randomUUID()}`
+    try {
+      const result = await database.query(
+        `insert into studio_planning_records
+          (id, project_id, kind, subject, revision, status, fingerprint, inputs, direction, skill_bundle, workflow, adapter, model)
+         select $1, $2, $3, $4, coalesce(max(revision), 0) + 1, 'queued', $5, $6::jsonb, $7, $8::jsonb, $9, $10, $11
+           from studio_planning_records where project_id = $2 and kind = $3 and subject = $4
+         returning *`,
+        [
+          id,
+          record.projectId,
+          record.kind,
+          record.subject || '',
+          record.fingerprint,
+          JSON.stringify(record.inputs || {}),
+          record.direction || '',
+          record.skillBundle ? JSON.stringify(record.skillBundle) : null,
+          record.workflow || null,
+          record.adapter || null,
+          record.model || null,
+        ],
+      )
+      return planningRecordFrom(result.rows[0])
+    } catch (error) {
+      if ((error as { code?: string }).code !== '23505') throw error
+    }
+  }
+  throw new Error('Could not allocate a planning revision; try again')
+}
+
+// Claims a request once: an identical active (queued, running or verifying)
+// record answers the claim. The partial unique index on active (project, kind, subject,
+// fingerprint) makes a concurrent insert lose; the loser then finds and
+// returns the winner. A clash on the revision number retries.
+export const claimPlanningRecord = async (record: NewPlanningRecord): Promise<{ record: PlanningRecord; reused: boolean }> => {
+  await initializePersistence()
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const active = await database.query(
+      `select * from studio_planning_records
+        where project_id = $1 and kind = $2 and subject = $3 and fingerprint = $4 and status = any($5::text[])
+        order by revision desc limit 1`,
+      [record.projectId, record.kind, record.subject || '', record.fingerprint, [...ACTIVE_STATUSES]],
+    )
+    if (active.rows[0]) return { record: planningRecordFrom(active.rows[0]), reused: true }
+    const id = `plan-${record.kind}-${randomUUID()}`
+    const result = await database.query(
+      `insert into studio_planning_records
+        (id, project_id, kind, subject, revision, status, fingerprint, inputs, direction, skill_bundle, workflow, adapter, model)
+       select $1, $2, $3, $4, coalesce(max(revision), 0) + 1, 'queued', $5, $6::jsonb, $7, $8::jsonb, $9, $10, $11
+         from studio_planning_records where project_id = $2 and kind = $3 and subject = $4
+       on conflict do nothing
+       returning *`,
+      [
+        id,
+        record.projectId,
+        record.kind,
+        record.subject || '',
+        record.fingerprint,
+        JSON.stringify(record.inputs || {}),
+        record.direction || '',
+        record.skillBundle ? JSON.stringify(record.skillBundle) : null,
+        record.workflow || null,
+        record.adapter || null,
+        record.model || null,
+      ],
+    )
+    if (result.rows[0]) return { record: planningRecordFrom(result.rows[0]), reused: false }
+  }
+  throw new Error('Could not claim this planning request; try again')
+}
+
+export const listPlanningRecords = async (projectId: string): Promise<PlanningRecord[]> => {
+  await initializePersistence()
+  const result = await database.query(
+    'select * from studio_planning_records where project_id = $1 order by kind, subject, revision desc',
+    [projectId],
+  )
+  return result.rows.map(planningRecordFrom)
+}
+
+export const loadPlanningRecord = async (id: string): Promise<PlanningRecord | null> => {
+  await initializePersistence()
+  const result = await database.query('select * from studio_planning_records where id = $1', [id])
+  return result.rows[0] ? planningRecordFrom(result.rows[0]) : null
+}
+
+const PLANNING_COLUMNS: Record<keyof PlanningRecordPatch, { column: string; json?: boolean; time?: boolean }> = {
+  status: { column: 'status' },
+  content: { column: 'content', json: true },
+  report: { column: 'report', json: true },
+  artifacts: { column: 'artifacts', json: true },
+  runId: { column: 'run_id' },
+  adapter: { column: 'adapter' },
+  model: { column: 'model' },
+  reportedModel: { column: 'reported_model' },
+  workflow: { column: 'workflow' },
+  error: { column: 'error', json: true },
+  reviewedAt: { column: 'reviewed_at', time: true },
+  approval: { column: 'approval', json: true },
+  progress: { column: 'progress', json: true },
+  validation: { column: 'validation', json: true },
+}
+
+export const updatePlanningRecord = async (
+  id: string,
+  patch: PlanningRecordPatch,
+  expected?: PlanningStatus[],
+  owner?: { runId: string | null },
+): Promise<PlanningRecord | null> => {
+  await initializePersistence()
+  const sets: string[] = []
+  const values: unknown[] = [id]
+  for (const [key, value] of Object.entries(patch) as Array<[keyof PlanningRecordPatch, unknown]>) {
+    const spec = PLANNING_COLUMNS[key]
+    if (!spec || value === undefined) continue
+    values.push(spec.json ? (value === null ? null : JSON.stringify(value)) : value)
+    sets.push(`${spec.column} = $${values.length}${spec.json ? '::jsonb' : spec.time ? '::timestamptz' : ''}`)
+  }
+  let guard = ''
+  if (expected?.length) {
+    values.push(expected)
+    guard = ` and status = any($${values.length}::text[])`
+  }
+  if (owner) {
+    values.push(owner.runId)
+    guard += ` and run_id is not distinct from $${values.length}::text`
+  }
+  const result = await database.query(
+    `update studio_planning_records set ${[...sets, 'updated_at = now()'].join(', ')} where id = $1${guard} returning *`,
+    values,
+  )
+  return result.rows[0] ? planningRecordFrom(result.rows[0]) : null
+}
+
+export const listPlanningRecordsForRun = async (runId: string): Promise<PlanningRecord[]> => {
+  await initializePersistence()
+  const result = await database.query('select * from studio_planning_records where run_id = $1', [runId])
+  return result.rows.map(planningRecordFrom)
+}
+
+const planningInputFrom = (row: Record<string, unknown>): PlanningInputRow => ({
+  projectId: String(row.project_id),
+  subject: String(row.subject || ''),
+  direction: String(row.direction || ''),
+  delivery: (row.delivery as string | null) ?? null,
+  updatedAt: iso(row.updated_at) || '',
+})
+
+export const listPlanningInputs = async (projectId: string): Promise<PlanningInputRow[]> => {
+  await initializePersistence()
+  const result = await database.query('select * from studio_planning_inputs where project_id = $1', [projectId])
+  return result.rows.map(planningInputFrom)
+}
+
+export const savePlanningInput = async (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) => {
+  await initializePersistence()
+  const result = await database.query(
+    `insert into studio_planning_inputs (project_id, subject, direction, delivery)
+     values ($1, $2, coalesce($3, ''), $4)
+     on conflict (project_id, subject) do update set
+       direction = coalesce($3, studio_planning_inputs.direction),
+       delivery = case when $5 then $4 else studio_planning_inputs.delivery end,
+       updated_at = now()
+     returning *`,
+    [input.projectId, input.subject || '', input.direction ?? null, input.delivery ?? null, input.delivery !== undefined],
+  )
+  return planningInputFrom(result.rows[0])
+}
+
 export const saveBuildRun = async (run: BuildRunInput) => {
   await initializePersistence()
   await database.query(
     `insert into studio_build_runs
-      (id, project_id, skill, route, adapter, project_dir, status, inputs_hash, resume_id, exit_code, started_at, finished_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, coalesce($11::timestamptz, now()), $12::timestamptz)
+      (id, project_id, skill, route, adapter, project_dir, status, inputs_hash, resume_id, exit_code, started_at, finished_at, model, reported_model, failure)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, coalesce($11::timestamptz, now()), $12::timestamptz, $13, $14, $15::jsonb)
      on conflict (id) do update set
        status = excluded.status, resume_id = excluded.resume_id,
-       exit_code = excluded.exit_code, finished_at = excluded.finished_at`,
+       exit_code = excluded.exit_code, finished_at = excluded.finished_at,
+       model = coalesce(excluded.model, studio_build_runs.model),
+       reported_model = coalesce(excluded.reported_model, studio_build_runs.reported_model),
+       failure = excluded.failure`,
     [
       run.id,
       run.projectId || null,
@@ -558,6 +834,9 @@ export const saveBuildRun = async (run: BuildRunInput) => {
       run.exitCode ?? null,
       run.startedAt || null,
       run.finishedAt || null,
+      run.model || null,
+      run.reportedModel || null,
+      run.failure ? JSON.stringify(run.failure) : null,
     ],
   )
 }
@@ -577,6 +856,9 @@ export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> 
     status: row.status,
     inputsHash: row.inputs_hash,
     resumeId: row.resume_id,
+    model: row.model ?? null,
+    reportedModel: row.reported_model ?? null,
+    failure: row.failure ?? null,
     exitCode: row.exit_code,
     startedAt: new Date(row.started_at).toISOString(),
     finishedAt: row.finished_at ? new Date(row.finished_at).toISOString() : null,
@@ -649,17 +931,33 @@ export const listPresenterTakes = async (projectId: string, blockId?: string) =>
 
 export const selectPresenterTake = async (input: { projectId: string; blockId: string; takeId: string }) => {
   await initializePersistence()
-  const take = await database.query(
-    'select 1 from studio_presenter_takes where id = $1 and notebook_id = $2 and block_id = $3',
-    [input.takeId, input.projectId, input.blockId],
-  )
-  if (!take.rows.length) throw new Error('That take does not belong to this block')
-  await database.query(
-    `insert into studio_take_selections (notebook_id, block_id, take_id)
-     values ($1, $2, $3)
-     on conflict (notebook_id, block_id) do update set take_id = excluded.take_id, selected_at = now()`,
-    [input.projectId, input.blockId, input.takeId],
-  )
+  const client = await database.connect()
+  try {
+    await client.query('begin')
+    await client.query('select pg_advisory_xact_lock(hashtext($1))', [input.projectId])
+    const take = (await client.query('select * from studio_presenter_takes where id = $1 and notebook_id = $2 and block_id = $3', [input.takeId, input.projectId, input.blockId])).rows[0]
+    if (!take) throw new Error('That take does not belong to this block')
+    const project = (await client.query('select artifact from studio_notebooks where id = $1 for update', [input.projectId])).rows[0]?.artifact as ProjectDocumentV1 | undefined
+    if (!project) throw new Error('Notebook not found')
+    if (take.detail?.mediaUrl) {
+      project.recordedBlocks ||= {}
+      project.recordedBlocks[input.blockId] = {
+        ...take.detail, blockId: input.blockId, recordingId: input.takeId,
+        videoUrl: take.detail.mediaUrl, durationMs: take.duration_ms,
+        recordedAt: new Date(take.created_at).toISOString(), storage: 'minio',
+      }
+      project.presenterTracks ||= {}
+      project.presenterTracks[input.blockId] = take.detail.role === 'presenter'
+        ? [{ kind: 'human-camera', videoUrl: take.detail.mediaUrl, audioUrl: take.detail.mediaUrl, audioKind: 'recorded-mic' }]
+        : []
+      await client.query('update studio_notebooks set artifact = $2::jsonb, updated_at = now() where id = $1', [input.projectId, JSON.stringify(project)])
+    }
+    await client.query(`insert into studio_take_selections (notebook_id, block_id, take_id)
+      values ($1, $2, $3) on conflict (notebook_id, block_id) do update
+      set take_id = excluded.take_id, selected_at = now()`, [input.projectId, input.blockId, input.takeId])
+    await client.query('commit')
+  } catch (error) { await client.query('rollback'); throw error }
+  finally { client.release() }
 }
 
 export const listTakeSelections = async (projectId: string) => {
@@ -900,4 +1198,10 @@ export const importLocalStore = async (): Promise<LocalStoreImportReport> => {
     else report.settings.skipped += 1
   }
   return report
+}
+
+export const compareAndSwapSetting = async (key: string, expected: unknown, value: unknown): Promise<boolean> => {
+  await initializePersistence()
+  if (expected === null) return Boolean((await database.query('insert into studio_settings (key,value) values ($1,$2::jsonb) on conflict do nothing returning key', [key, JSON.stringify(value)])).rowCount)
+  return Boolean((await database.query('update studio_settings set value=$3::jsonb,updated_at=now() where key=$1 and value=$2::jsonb returning key', [key, JSON.stringify(expected), JSON.stringify(value)])).rowCount)
 }

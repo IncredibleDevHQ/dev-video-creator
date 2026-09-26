@@ -91,7 +91,7 @@ try {
 
   // Open it in the UI and wait for the editor.
   await evaluate(`async () => {
-    window.localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}')
+    window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}')
     window.location.assign('/studio')
     return true
   }`, 'open fixture notebook')
@@ -118,30 +118,48 @@ try {
   })`, 'gate state')
   check('Build explainer on an unchosen notebook opens the chooser, no build starts', gate.chooserOpen && gate.progressHidden, JSON.stringify(gate))
 
-  // No default: neither path is preselected; proceeding without one is refused.
+  // No default: neither path is preselected.
   const noDefault = await evaluate(`() => ({
     selected: [...document.querySelectorAll('#create-explainer-paths [data-delivery]')].filter(c => c.classList.contains('is-primary')).length,
   })`, 'no default')
   check('no delivery path is preselected', noDefault.selected === 0, JSON.stringify(noDefault))
-  await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="narrative"]').click(); return true }`, 'material without path')
+  // Delivery is decided per scene: a narrative starts without a notebook-wide choice.
+  await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="narrative"]').click(); return true }`, 'narrative without path')
+  await sleep(600)
+  const free = await evaluate(`() => ({
+    chooserOpen: document.getElementById('create-explainer-dialog')?.open === true,
+    sourceOpen: document.getElementById('source-dialog')?.open === true,
+  })`, 'free start')
+  check('a narrative starts without a notebook-wide delivery choice', !free.chooserOpen && free.sourceOpen, JSON.stringify(free))
+  const unrecorded = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).then(body => body?.project?.explainerDelivery ?? null).catch(() => 'unreadable')
+  check('no delivery is recorded for it', unrecorded === null, String(unrecorded))
+  // Building this whole notebook at once still needs its one delivery.
+  await evaluate(`() => { document.getElementById('source-dialog').close(); document.getElementById('create-explainer').click(); return true }`, 'reopen chooser')
+  await sleep(300)
+  await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="base"]').click(); return true }`, 'whole build without path')
   await sleep(300)
   const refused = await evaluate(`() => ({
     open: document.getElementById('create-explainer-dialog')?.open === true,
     status: document.getElementById('create-explainer-status')?.textContent || '',
     sourceOpen: document.getElementById('source-dialog')?.open === true,
   })`, 'refused')
-  check('material without a path is refused with guidance', refused.open && /Choose Present it myself or Generate automatically/.test(refused.status) && !refused.sourceOpen, JSON.stringify(refused))
+  check('building the whole notebook without a delivery asks for one', refused.open && /needs one delivery for it/.test(refused.status) && !refused.sourceOpen, JSON.stringify(refused))
 
   // Choose Present it myself + own narrative → recorded, source flow opens.
   await evaluate(`() => { document.querySelector('#create-explainer-paths [data-delivery="human"]').click(); return true }`, 'choose human')
   await sleep(200)
   await evaluate(`() => { document.querySelector('#create-explainer-materials [data-material="narrative"]').click(); return true }`, 'start from narrative')
-  await sleep(600)
-  const routed = await evaluate(`() => ({
-    chooserOpen: document.getElementById('create-explainer-dialog')?.open === true,
-    sourceOpen: document.getElementById('source-dialog')?.open === true,
-    heading: document.getElementById('source-heading')?.textContent || '',
-  })`, 'routed')
+  // The choice is recorded before the source flow opens: wait for it.
+  let routed = null
+  for (let i = 0; i < 25; i++) {
+    await sleep(200)
+    routed = await evaluate(`() => ({
+      chooserOpen: document.getElementById('create-explainer-dialog')?.open === true,
+      sourceOpen: document.getElementById('source-dialog')?.open === true,
+      heading: document.getElementById('source-heading')?.textContent || '',
+    })`, 'routed')
+    if (!routed.chooserOpen && routed.sourceOpen) break
+  }
   check('Present it myself + narrative routes into the source flow', !routed.chooserOpen && routed.sourceOpen && routed.heading.includes('narrative'), JSON.stringify(routed))
   let recorded = null
   for (let i = 0; i < 20; i += 1) {
@@ -221,7 +239,7 @@ try {
   }
   const closePublish = () => evaluate(`() => { document.getElementById('publish-dialog')?.close(); return true }`, 'close publish')
   const bootInto = async (id, title) => {
-    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.reload(); return true }`, `open ${id}`)
+    await evaluate(`() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${id}'); location.reload(); return true }`, `open ${id}`)
     for (let i = 0; i < 60; i += 1) {
       const state = await evaluate(`() => document.getElementById('project-title')?.value || ''`, 'boot').catch(() => '')
       if (state === title) return
@@ -239,18 +257,17 @@ try {
   await closePublish()
 
   // The library shows the Base badge on a root notebook.
-  await evaluate(`async () => {
-    document.getElementById('notebook-menu-toggle').click()
-    await new Promise(r => setTimeout(r, 400))
-    document.querySelector('.notebook-menu-library')?.click()
-    await new Promise(r => setTimeout(r, 400))
-    return true
-  }`, 'open library')
+  // The menu lists the notebooks once it has read them: its library entry
+  // is clicked when it is there, until the library page shows.
+  await evaluate(`() => { document.getElementById('notebook-menu-toggle').click(); return true }`, 'open menu')
   let library = null
-  for (let i = 0; i < 20; i += 1) {
+  for (let i = 0; i < 30; i += 1) {
     library = await evaluate(`() => {
       const page = document.getElementById('notebooks-page')
-      if (!page || page.hidden) return null
+      if (!page || page.hidden) {
+        document.querySelector('.notebook-menu-library')?.click()
+        return null
+      }
       const card = [...document.querySelectorAll('#notebooks-tree .notebook-card')].find(c => c.querySelector('strong')?.textContent.includes('D0 check notebook'))
       if (!card) return null
       return { badges: [...card.querySelectorAll('.notebook-kind-badge')].map(b => b.textContent) }
@@ -280,7 +297,7 @@ try {
   const stampFor = doc => {
     const node = doc.notebook.content.find(n => n.attrs?.id === 'blk-v1')
     const attrs = node?.attrs || {}
-    return createHash('sha256').update(String(attrs.svg || '')).update(stableStringify(sceneRevisionPayload(attrs, sceneRenderedExtras(doc.blocks?.['blk-v1'], doc.presenterTracks?.['blk-v1'], doc.recordedBlocks?.['blk-v1'])))).digest('hex')
+    return createHash('sha256').update(String(attrs.svg || '')).update(stableStringify(sceneRevisionPayload(attrs, sceneRenderedExtras(doc.blocks?.['blk-v1'], doc.presenterTracks?.['blk-v1'], doc.recordedBlocks?.['blk-v1'], doc)))).digest('hex')
   }
   const videoProject = (svg, hash) => ({
     version: 1, id: VIDEO_ID, title: 'D0 video notebook',
@@ -307,11 +324,22 @@ try {
   check('the page normalized and persisted the scene', Boolean(normalized))
   const stamped = JSON.parse(JSON.stringify(normalized))
   stamped.notebook.content.find(n => n.attrs?.id === 'blk-v1').attrs.explainer = { reviewed: true, hash: stampFor(stamped) }
-  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(stamped) })
+  await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: stamped, expectedProject: normalized }) })
   await bootInto(VIDEO_ID, 'D0 video notebook')
   const reviewedLabel = await publishKind()
   check('a fully reviewed notebook reads as a reviewed export', /Reviewed explainer export/.test(reviewedLabel?.kind || ''), JSON.stringify(reviewedLabel))
   await closePublish()
+
+  // Settle this UI's autosave before simulating an external document edit:
+  // saved, and no unacknowledged local draft left, which would rightly
+  // outrank the external edit when the page opens again.
+  const settleSave = async () => {
+    for (let i = 0; i < 80; i++) {
+      if (await evaluate(`() => document.getElementById('save-state')?.textContent === 'Saved' && !Object.keys(localStorage).some(key => key.startsWith('incredible-studio-v2-draft-'))`, 'save settled')) return
+      await sleep(150)
+    }
+    throw new Error('autosave did not settle')
+  }
 
   // Every rendered input the stamp covers flips the label back to draft.
   const driftCases = [
@@ -320,9 +348,18 @@ try {
     ['the narration track', doc => { doc.presenterTracks = { 'blk-v1': [{ kind: 'narration', audioUrl: '/objects/swapped.mp3', audioKind: 'generated' }] } }],
   ]
   for (const [label, mutate] of driftCases) {
+    await settleSave()
     const drifted = JSON.parse(JSON.stringify(stamped))
     mutate(drifted)
-    await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(drifted) })
+    // The external edit lands on the store's copy as it is now; a save from
+    // the page in between is a conflict, so the edit is made again on top.
+    let landed = false
+    for (let attempt = 0; attempt < 5 && !landed; attempt++) {
+      const current = (await fetch(`${origin}/api/projects/${VIDEO_ID}`).then(r => r.json())).project
+      landed = (await fetch(`${origin}/api/projects/${VIDEO_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: drifted, expectedProject: current }) })).ok
+      if (!landed) await sleep(300)
+    }
+    if (!landed) throw new Error(`the external edit of ${label} never landed`)
     await bootInto(VIDEO_ID, 'D0 video notebook')
     const driftLabel = await publishKind()
     check(`changing ${label} after the review reads as a draft again`, /1 of 1 scenes changed since the rich build's review/.test(driftLabel?.kind || ''), JSON.stringify(driftLabel))

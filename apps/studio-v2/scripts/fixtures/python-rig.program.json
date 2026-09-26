@@ -1,0 +1,771 @@
+{
+	"version": 1,
+	"cast": [
+		{
+			"id": "user",
+			"role": "request"
+		},
+		{
+			"id": "user-sub",
+			"role": "label"
+		},
+		{
+			"id": "worker",
+			"role": "process"
+		},
+		{
+			"id": "cpu-work",
+			"role": "label"
+		},
+		{
+			"id": "db",
+			"role": "store"
+		},
+		{
+			"id": "jitter",
+			"role": "figure"
+		},
+		{
+			"id": "fleet",
+			"role": "service"
+		},
+		{
+			"id": "req",
+			"role": "request"
+		},
+		{
+			"id": "resp",
+			"role": "response"
+		},
+		{
+			"id": "call1",
+			"role": "request"
+		},
+		{
+			"id": "call2",
+			"role": "request"
+		},
+		{
+			"id": "call3",
+			"role": "request"
+		},
+		{
+			"id": "call4",
+			"role": "request"
+		}
+	],
+	"beats": [
+		{
+			"id": "b1",
+			"moment": "establish",
+			"speaker": "page",
+			"say": "When one user request means hundreds of database calls, the slowest call is the one the user feels.",
+			"events": [
+				{
+					"id": "show-user",
+					"actor": "user",
+					"action": "appear",
+					"cue": "one"
+				},
+				{
+					"id": "show-worker",
+					"actor": "worker",
+					"action": "appear",
+					"cue": "user"
+				},
+				{
+					"id": "in",
+					"actor": "req",
+					"action": "travel",
+					"to": "worker",
+					"cue": "means"
+				},
+				{
+					"id": "show-db",
+					"actor": "db",
+					"action": "appear",
+					"cue": "hundreds"
+				},
+				{
+					"id": "show-sub",
+					"actor": "user-sub",
+					"action": "appear",
+					"cue": "hundreds"
+				},
+				{
+					"id": "fan-1",
+					"actor": "call1",
+					"action": "travel",
+					"to": "db",
+					"cue": "calls",
+					"nudgeMs": 0,
+					"after": "show-db"
+				},
+				{
+					"id": "fan-2",
+					"actor": "call2",
+					"action": "travel",
+					"to": "db",
+					"cue": "calls",
+					"nudgeMs": 140,
+					"after": "show-db"
+				},
+				{
+					"id": "fan-3",
+					"actor": "call3",
+					"action": "travel",
+					"to": "db",
+					"cue": "calls",
+					"nudgeMs": 280,
+					"after": "show-db"
+				},
+				{
+					"id": "fan-4",
+					"actor": "call4",
+					"action": "travel",
+					"to": "db",
+					"cue": "calls",
+					"nudgeMs": 420,
+					"after": "show-db"
+				},
+				{
+					"id": "fan-gone-1",
+					"actor": "call1",
+					"action": "leave",
+					"cue": "feels",
+					"after": "fan-4"
+				},
+				{
+					"id": "fan-gone-2",
+					"actor": "call2",
+					"action": "leave",
+					"cue": "feels",
+					"after": "fan-4"
+				},
+				{
+					"id": "fan-gone-3",
+					"actor": "call3",
+					"action": "leave",
+					"cue": "feels",
+					"after": "fan-4"
+				},
+				{
+					"id": "fan-gone-4",
+					"actor": "call4",
+					"action": "leave",
+					"cue": "feels",
+					"after": "fan-4"
+				}
+			],
+			"durationMs": 5030,
+			"words": [
+				{
+					"word": "When",
+					"startMs": 0,
+					"endMs": 100
+				},
+				{
+					"word": "one",
+					"startMs": 100,
+					"endMs": 240
+				},
+				{
+					"word": "user",
+					"startMs": 240,
+					"endMs": 540
+				},
+				{
+					"word": "means",
+					"startMs": 800,
+					"endMs": 1200
+				},
+				{
+					"word": "hundreds",
+					"startMs": 1200,
+					"endMs": 1500
+				},
+				{
+					"word": "of",
+					"startMs": 1500,
+					"endMs": 1780
+				},
+				{
+					"word": "database",
+					"startMs": 1780,
+					"endMs": 1980
+				},
+				{
+					"word": "calls,",
+					"startMs": 1980,
+					"endMs": 2440
+				},
+				{
+					"word": "the",
+					"startMs": 2980,
+					"endMs": 3080
+				},
+				{
+					"word": "slowest",
+					"startMs": 3080,
+					"endMs": 3520
+				},
+				{
+					"word": "call",
+					"startMs": 3520,
+					"endMs": 3740
+				},
+				{
+					"word": "is",
+					"startMs": 3740,
+					"endMs": 3920
+				},
+				{
+					"word": "the",
+					"startMs": 3920,
+					"endMs": 4020
+				},
+				{
+					"word": "one",
+					"startMs": 4020,
+					"endMs": 4140
+				},
+				{
+					"word": "the",
+					"startMs": 4140,
+					"endMs": 4280
+				},
+				{
+					"word": "user",
+					"startMs": 4280,
+					"endMs": 4420
+				},
+				{
+					"word": "feels.",
+					"startMs": 4420,
+					"endMs": 4760
+				}
+			]
+		},
+		{
+			"id": "b2",
+			"moment": "explain",
+			"speaker": "page",
+			"say": "Asyncio lets Python overlap I/O, but the GIL means only one coroutine runs on the CPU at a time, and Habitat does a lot of CPU work: routing, compression, encryption, checksums, hedging.",
+			"events": [
+				{
+					"id": "tick",
+					"actor": "worker.performance",
+					"action": "perform",
+					"cue": "lets",
+					"clip": {
+						"fromMs": 0,
+						"toMs": 1400,
+						"durationMs": 1400
+					}
+				},
+				{
+					"id": "show-cpu",
+					"actor": "cpu-work",
+					"action": "appear",
+					"cue": "routing"
+				}
+			],
+			"durationMs": 11752,
+			"words": [
+				{
+					"word": "Asyncio",
+					"startMs": 0,
+					"endMs": 540
+				},
+				{
+					"word": "lets",
+					"startMs": 540,
+					"endMs": 760
+				},
+				{
+					"word": "Python",
+					"startMs": 760,
+					"endMs": 1000
+				},
+				{
+					"word": "overlap",
+					"startMs": 1000,
+					"endMs": 1580
+				},
+				{
+					"word": "but",
+					"startMs": 2460,
+					"endMs": 2600
+				},
+				{
+					"word": "the",
+					"startMs": 2600,
+					"endMs": 2680
+				},
+				{
+					"word": "GIL",
+					"startMs": 2680,
+					"endMs": 2880
+				},
+				{
+					"word": "means",
+					"startMs": 2880,
+					"endMs": 3180
+				},
+				{
+					"word": "only",
+					"startMs": 3180,
+					"endMs": 3560
+				},
+				{
+					"word": "one",
+					"startMs": 3560,
+					"endMs": 3800
+				},
+				{
+					"word": "coroutine",
+					"startMs": 3800,
+					"endMs": 4280
+				},
+				{
+					"word": "runs",
+					"startMs": 4280,
+					"endMs": 4580
+				},
+				{
+					"word": "on",
+					"startMs": 4580,
+					"endMs": 4820
+				},
+				{
+					"word": "the",
+					"startMs": 4820,
+					"endMs": 4900
+				},
+				{
+					"word": "CPU",
+					"startMs": 4900,
+					"endMs": 5100
+				},
+				{
+					"word": "at",
+					"startMs": 5100,
+					"endMs": 5460
+				},
+				{
+					"word": "a",
+					"startMs": 5460,
+					"endMs": 5520
+				},
+				{
+					"word": "time,",
+					"startMs": 5520,
+					"endMs": 5860
+				},
+				{
+					"word": "and",
+					"startMs": 6320,
+					"endMs": 6400
+				},
+				{
+					"word": "Habitat",
+					"startMs": 6400,
+					"endMs": 6880
+				},
+				{
+					"word": "does",
+					"startMs": 6880,
+					"endMs": 7100
+				},
+				{
+					"word": "a",
+					"startMs": 7100,
+					"endMs": 7240
+				},
+				{
+					"word": "lot",
+					"startMs": 7240,
+					"endMs": 7400
+				},
+				{
+					"word": "of",
+					"startMs": 7400,
+					"endMs": 7520
+				},
+				{
+					"word": "CPU",
+					"startMs": 7520,
+					"endMs": 7740
+				},
+				{
+					"word": "work:",
+					"startMs": 7740,
+					"endMs": 8080
+				},
+				{
+					"word": "routing,",
+					"startMs": 8740,
+					"endMs": 8740
+				},
+				{
+					"word": "compression,",
+					"startMs": 9080,
+					"endMs": 9360
+				},
+				{
+					"word": "encryption,",
+					"startMs": 9820,
+					"endMs": 10020
+				},
+				{
+					"word": "checksums,",
+					"startMs": 10580,
+					"endMs": 10960
+				},
+				{
+					"word": "hedging.",
+					"startMs": 11320,
+					"endMs": 11560
+				}
+			]
+		},
+		{
+			"id": "b3",
+			"moment": "tension",
+			"speaker": "page",
+			"say": "In traces, storage answered fast, but the response sat waiting for its coroutine to be rescheduled,",
+			"events": [
+				{
+					"id": "answer",
+					"actor": "db.performance",
+					"action": "perform",
+					"cue": "storage",
+					"clip": {
+						"fromMs": 0,
+						"toMs": 1200,
+						"durationMs": 1200
+					}
+				},
+				{
+					"id": "back",
+					"actor": "resp",
+					"action": "travel",
+					"to": "worker",
+					"cue": "response"
+				},
+				{
+					"id": "stall",
+					"actor": "worker.performance",
+					"action": "perform",
+					"cue": "waiting",
+					"after": "back",
+					"clip": {
+						"fromMs": 1600,
+						"toMs": 3000,
+						"durationMs": 1400
+					}
+				}
+			],
+			"durationMs": 5471,
+			"words": [
+				{
+					"word": "In",
+					"startMs": 0,
+					"endMs": 80
+				},
+				{
+					"word": "traces,",
+					"startMs": 80,
+					"endMs": 380
+				},
+				{
+					"word": "storage",
+					"startMs": 860,
+					"endMs": 1140
+				},
+				{
+					"word": "answered",
+					"startMs": 1140,
+					"endMs": 1400
+				},
+				{
+					"word": "fast,",
+					"startMs": 1400,
+					"endMs": 1840
+				},
+				{
+					"word": "but",
+					"startMs": 2320,
+					"endMs": 2480
+				},
+				{
+					"word": "the",
+					"startMs": 2480,
+					"endMs": 2580
+				},
+				{
+					"word": "response",
+					"startMs": 2580,
+					"endMs": 2800
+				},
+				{
+					"word": "sat",
+					"startMs": 2800,
+					"endMs": 3260
+				},
+				{
+					"word": "waiting",
+					"startMs": 3260,
+					"endMs": 3480
+				},
+				{
+					"word": "for",
+					"startMs": 3480,
+					"endMs": 3800
+				},
+				{
+					"word": "its",
+					"startMs": 3800,
+					"endMs": 3900
+				},
+				{
+					"word": "coroutine",
+					"startMs": 3900,
+					"endMs": 4340
+				},
+				{
+					"word": "to",
+					"startMs": 4340,
+					"endMs": 4580
+				},
+				{
+					"word": "be",
+					"startMs": 4580,
+					"endMs": 4680
+				},
+				{
+					"word": "rescheduled,",
+					"startMs": 4680,
+					"endMs": 5240
+				}
+			]
+		},
+		{
+			"id": "b4",
+			"moment": "consequence",
+			"speaker": "page",
+			"say": "a delay the team now measures by timing background tasks. Since that jitter can reach hundreds of milliseconds,",
+			"events": [
+				{
+					"id": "show-jitter",
+					"actor": "jitter",
+					"action": "appear",
+					"cue": "hundreds"
+				},
+				{
+					"id": "resume",
+					"actor": "worker.performance",
+					"action": "perform",
+					"after": "show-jitter",
+					"clip": {
+						"fromMs": 3000,
+						"toMs": 4200,
+						"durationMs": 1200
+					}
+				},
+				{
+					"id": "resp-gone",
+					"actor": "resp",
+					"action": "leave",
+					"after": "resume"
+				}
+			],
+			"durationMs": 5920,
+			"words": [
+				{
+					"word": "a",
+					"startMs": 0,
+					"endMs": 60
+				},
+				{
+					"word": "delay",
+					"startMs": 60,
+					"endMs": 260
+				},
+				{
+					"word": "the",
+					"startMs": 260,
+					"endMs": 500
+				},
+				{
+					"word": "team",
+					"startMs": 500,
+					"endMs": 760
+				},
+				{
+					"word": "now",
+					"startMs": 760,
+					"endMs": 940
+				},
+				{
+					"word": "measures",
+					"startMs": 940,
+					"endMs": 1280
+				},
+				{
+					"word": "by",
+					"startMs": 1280,
+					"endMs": 1620
+				},
+				{
+					"word": "timing",
+					"startMs": 1620,
+					"endMs": 1900
+				},
+				{
+					"word": "background",
+					"startMs": 1900,
+					"endMs": 2260
+				},
+				{
+					"word": "tasks.",
+					"startMs": 2260,
+					"endMs": 2900
+				},
+				{
+					"word": "Since",
+					"startMs": 3340,
+					"endMs": 3580
+				},
+				{
+					"word": "that",
+					"startMs": 3580,
+					"endMs": 3780
+				},
+				{
+					"word": "jitter",
+					"startMs": 3780,
+					"endMs": 4080
+				},
+				{
+					"word": "can",
+					"startMs": 4080,
+					"endMs": 4320
+				},
+				{
+					"word": "reach",
+					"startMs": 4320,
+					"endMs": 4540
+				},
+				{
+					"word": "hundreds",
+					"startMs": 4540,
+					"endMs": 4920
+				},
+				{
+					"word": "of",
+					"startMs": 4920,
+					"endMs": 5120
+				},
+				{
+					"word": "milliseconds,",
+					"startMs": 5120,
+					"endMs": 5300
+				}
+			]
+		},
+		{
+			"id": "b5",
+			"moment": "resolve",
+			"speaker": "page",
+			"say": "each process serves only a few requests, and the fleet scales out wide.",
+			"events": [
+				{
+					"id": "show-fleet",
+					"actor": "fleet",
+					"action": "appear",
+					"cue": "fleet"
+				},
+				{
+					"id": "wide",
+					"actor": "fleet.performance",
+					"action": "perform",
+					"after": "show-fleet",
+					"clip": {
+						"fromMs": 0,
+						"toMs": 1800,
+						"durationMs": 1800
+					}
+				}
+			],
+			"durationMs": 3896,
+			"words": [
+				{
+					"word": "each",
+					"startMs": 0,
+					"endMs": 180
+				},
+				{
+					"word": "process",
+					"startMs": 180,
+					"endMs": 540
+				},
+				{
+					"word": "serves",
+					"startMs": 540,
+					"endMs": 860
+				},
+				{
+					"word": "only",
+					"startMs": 860,
+					"endMs": 1180
+				},
+				{
+					"word": "a",
+					"startMs": 1180,
+					"endMs": 1320
+				},
+				{
+					"word": "few",
+					"startMs": 1320,
+					"endMs": 1460
+				},
+				{
+					"word": "requests,",
+					"startMs": 1460,
+					"endMs": 1900
+				},
+				{
+					"word": "and",
+					"startMs": 2360,
+					"endMs": 2500
+				},
+				{
+					"word": "the",
+					"startMs": 2500,
+					"endMs": 2580
+				},
+				{
+					"word": "fleet",
+					"startMs": 2580,
+					"endMs": 2760
+				},
+				{
+					"word": "scales",
+					"startMs": 2760,
+					"endMs": 3080
+				},
+				{
+					"word": "out",
+					"startMs": 3080,
+					"endMs": 3380
+				},
+				{
+					"word": "wide.",
+					"startMs": 3380,
+					"endMs": 3680
+				}
+			]
+		}
+	]
+}

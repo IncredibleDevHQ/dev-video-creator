@@ -1,9 +1,11 @@
 // Backend switch: STUDIO_PERSISTENCE=local selects the plain-file store,
 // anything else keeps the Postgres + MinIO stack. Neither backend is
 // imported statically, so the local path never loads pg or minio.
+import { randomUUID } from 'node:crypto'
 import type { Readable } from 'node:stream'
-import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
+import type { ProjectContainerV1, ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
 import type { ProjectArtifactSummary } from './persistence-local'
+import type { PlanningRecord, PlanningStatus } from '../src/planning/planning-records'
 
 export type { ProjectArtifactSummary }
 
@@ -27,6 +29,9 @@ export type BuildRunInput = {
   status: string
   inputsHash?: string
   resumeId?: string
+  model?: string | null
+  reportedModel?: string | null
+  failure?: Record<string, unknown> | null
   exitCode?: number | null
   startedAt?: string
   finishedAt?: string | null
@@ -42,6 +47,9 @@ export type BuildRunRow = {
   status: string
   inputsHash: string | null
   resumeId: string | null
+  model: string | null
+  reportedModel: string | null
+  failure: Record<string, unknown> | null
   exitCode: number | null
   startedAt: string
   finishedAt: string | null
@@ -93,15 +101,24 @@ type SaveRecordedBlockInput = {
   cameraUrl?: string
   cameraAssetId?: string
   beatMarksMs?: number[]
+  // The script the take was spoken against (R4), and each line's fingerprint.
+  script?: { hash: string; lines?: string[]; treatment?: string; revision?: number }
 }
 
 type PersistenceBackend = {
   initializePersistence: () => Promise<void>
-  saveProjectArtifact: (project: ProjectDocumentV1) => Promise<void>
+  saveProjectArtifact: (project: ProjectDocumentV1, options?: ProjectSaveOptions) => Promise<void>
   loadProjectArtifact: (projectId: string) => Promise<ProjectDocumentV1 | null>
   listProjectArtifacts: () => Promise<ProjectArtifactSummary[]>
+  listProjectIdsAwaitingPages: () => Promise<string[]>
+  listProjectIdsAwaitingWireframes: () => Promise<string[]>
   deleteProjectArtifact: (projectId: string) => Promise<boolean>
+  saveProjectContainer: (container: ProjectContainerV1) => Promise<void>
+  loadProjectContainer: (id: string) => Promise<ProjectContainerV1 | null>
+  listProjectContainers: () => Promise<ProjectContainerV1[]>
+  deleteProjectContainer: (id: string) => Promise<boolean>
   loadSetting: (key: string) => Promise<unknown>
+  compareAndSwapSetting: (key: string, expected: unknown, value: unknown) => Promise<boolean>
   saveSetting: (key: string, value: unknown) => Promise<void>
   loadLatestProjectArtifact: () => Promise<ProjectDocumentV1 | null>
   storeAsset: (asset: StoreAssetInput) => Promise<{ assetId: string; objectKey: string }>
@@ -157,12 +174,33 @@ type PersistenceBackend = {
   listTakeSelections: (projectId: string) => Promise<Array<{ projectId: string; blockId: string; takeId: string; selectedAt: string }>>
   findNotebooksReferencing: (marker: string) => Promise<Array<{ id: string; title: string }>>
   settingsWithPrefix: (prefix: string) => Promise<Record<string, unknown>>
+  createPlanningRecord: (record: NewPlanningRecord) => Promise<PlanningRecord>
+  // Atomically: the queued or running record for the same project, kind,
+  // subject and fingerprint if there is one, else a new queued record.
+  claimPlanningRecord: (record: NewPlanningRecord) => Promise<{ record: PlanningRecord; reused: boolean }>
+  listPlanningRecords: (projectId: string) => Promise<PlanningRecord[]>
+  loadPlanningRecord: (id: string) => Promise<PlanningRecord | null>
+  // Applies the patch only while the record's status is one of `expected`
+  // and, when `owner` is given, while its run is that owner (null: unowned);
+  // answers null when another writer got there first.
+  updatePlanningRecord: (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[], owner?: { runId: string | null }) => Promise<PlanningRecord | null>
+  listPlanningRecordsForRun: (runId: string) => Promise<PlanningRecord[]>
+  listPlanningInputs: (projectId: string) => Promise<PlanningInputRow[]>
+  savePlanningInput: (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) => Promise<PlanningInputRow>
   persistenceHealth: () => Promise<{
     database: string
     objectStorage: string
     bucket: string
   }>
 }
+
+// Planning records (M0): the Explanation Brief and scene plans, versioned.
+export type NewPlanningRecord = Pick<PlanningRecord, 'projectId' | 'kind' | 'subject' | 'fingerprint' | 'inputs' | 'direction'> &
+  Partial<Pick<PlanningRecord, 'skillBundle' | 'workflow' | 'adapter' | 'model'>>
+export type PlanningRecordPatch = Partial<
+  Pick<PlanningRecord, 'status' | 'content' | 'report' | 'artifacts' | 'runId' | 'adapter' | 'model' | 'reportedModel' | 'workflow' | 'error' | 'reviewedAt' | 'approval' | 'progress' | 'validation'>
+>
+export type PlanningInputRow = { projectId: string; subject: string; direction: string; delivery: string | null; updatedAt: string }
 
 export type ThemeLibraryRecord = {
   id: string
@@ -189,8 +227,9 @@ const loadBackend = () => {
 export const initializePersistence = async () =>
   (await loadBackend()).initializePersistence()
 
-export const saveProjectArtifact = async (project: ProjectDocumentV1) =>
-  (await loadBackend()).saveProjectArtifact(project)
+export type ProjectSaveOptions = { createOnly?: boolean; expectedProject?: ProjectDocumentV1; clearTakeBlocks?: string[] }
+export const saveProjectArtifact = async (project: ProjectDocumentV1, options?: ProjectSaveOptions) =>
+  (await loadBackend()).saveProjectArtifact(project, options)
 
 export const loadProjectArtifact = async (projectId: string) =>
   (await loadBackend()).loadProjectArtifact(projectId)
@@ -198,8 +237,32 @@ export const loadProjectArtifact = async (projectId: string) =>
 export const listProjectArtifacts = async () =>
   (await loadBackend()).listProjectArtifacts()
 
+// The base notebooks with a scene still bound to a design run's page
+// (pageOrigin.designing): the ones whose pages the worker lands (B06).
+export const listProjectIdsAwaitingPages = async () =>
+  (await loadBackend()).listProjectIdsAwaitingPages()
+
+// The wireframes still being made in the background (the four-notebook
+// model).
+export const listProjectIdsAwaitingWireframes = async () =>
+  (await loadBackend()).listProjectIdsAwaitingWireframes()
+
 export const deleteProjectArtifact = async (projectId: string) =>
   (await loadBackend()).deleteProjectArtifact(projectId)
+
+// Projects: the container a notebook names in its `container` (the
+// four-notebook model).
+export const saveProjectContainer = async (container: ProjectContainerV1) =>
+  (await loadBackend()).saveProjectContainer(container)
+
+export const loadProjectContainer = async (id: string) =>
+  (await loadBackend()).loadProjectContainer(id)
+
+export const listProjectContainers = async () =>
+  (await loadBackend()).listProjectContainers()
+
+export const deleteProjectContainer = async (id: string) =>
+  (await loadBackend()).deleteProjectContainer(id)
 
 export const loadSetting = async (key: string): Promise<unknown> =>
   (await loadBackend()).loadSetting(key)
@@ -232,10 +295,29 @@ export const saveRecordedBlock = async (
       mediaUrl: recording.mediaUrl,
       ...(recording.role === 'presenter' ? { role: 'presenter' } : {}),
       ...(recording.keepsPlan ? { keepsPlan: true, ...(recording.beatMarksMs ? { beatMarksMs: recording.beatMarksMs } : {}), ...(recording.cameraUrl ? { cameraUrl: recording.cameraUrl, cameraAssetId: recording.cameraAssetId } : {}) } : {}),
+      ...(recording.script ? { script: recording.script } : {}),
     },
   })
   await backend.selectPresenterTake({ projectId: recording.projectId, blockId: recording.blockId, takeId: saved.recordingId })
-  return recording.role === 'presenter' ? { ...saved, role: 'presenter' } : saved
+  return { ...saved, ...(recording.role === 'presenter' ? { role: 'presenter' as const } : {}), ...(recording.script ? { script: recording.script } : {}) }
+}
+
+// A pickup: a take of only some of a scene's lines. It joins the take
+// archive with the lines it was spoken against, and the scene's selected
+// take stays selected: the pickup fills in for its changed lines.
+export const savePickupTake = async (input: { projectId: string; blockId: string; assetId: string; mediaUrl: string; durationMs: number; script: NonNullable<RecordedBlockV1['script']> }): Promise<RecordedBlockV1> => {
+  const backend = await loadBackend()
+  const recordingId = randomUUID()
+  const recordedAt = new Date().toISOString()
+  await backend.savePresenterTake({
+    id: recordingId,
+    projectId: input.projectId,
+    blockId: input.blockId,
+    assetId: input.assetId,
+    durationMs: input.durationMs,
+    detail: { mediaUrl: input.mediaUrl, role: 'presenter', pickup: true, script: input.script },
+  })
+  return { blockId: input.blockId, recordingId, videoUrl: input.mediaUrl, durationMs: input.durationMs, recordedAt, storage: process.env.STUDIO_PERSISTENCE === 'local' ? 'local' : 'minio', role: 'presenter', pickup: true, script: input.script }
 }
 
 export const clearPresenterTake = async (input: { projectId: string; blockId: string }) =>
@@ -306,6 +388,30 @@ export const recordBuildStage = async (stage: BuildStageInput) =>
 export const listBuildStages = async (runId: string) =>
   (await loadBackend()).listBuildStages(runId)
 
+export const createPlanningRecord = async (record: NewPlanningRecord) =>
+  (await loadBackend()).createPlanningRecord(record)
+
+export const claimPlanningRecord = async (record: NewPlanningRecord) =>
+  (await loadBackend()).claimPlanningRecord(record)
+
+export const listPlanningRecords = async (projectId: string) =>
+  (await loadBackend()).listPlanningRecords(projectId)
+
+export const loadPlanningRecord = async (id: string) =>
+  (await loadBackend()).loadPlanningRecord(id)
+
+export const updatePlanningRecord = async (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[], owner?: { runId: string | null }) =>
+  (await loadBackend()).updatePlanningRecord(id, patch, expected, owner)
+
+export const listPlanningRecordsForRun = async (runId: string) =>
+  (await loadBackend()).listPlanningRecordsForRun(runId)
+
+export const listPlanningInputs = async (projectId: string) =>
+  (await loadBackend()).listPlanningInputs(projectId)
+
+export const savePlanningInput = async (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }) =>
+  (await loadBackend()).savePlanningInput(input)
+
 export const savePresenterTake = async (take: PresenterTakeInput) =>
   (await loadBackend()).savePresenterTake(take)
 
@@ -323,3 +429,6 @@ export const findNotebooksReferencing = async (marker: string) =>
 
 export const settingsWithPrefix = async (prefix: string) =>
   (await loadBackend()).settingsWithPrefix(prefix)
+
+export const compareAndSwapSetting = async (key: string, expected: unknown, value: unknown) =>
+  (await loadBackend()).compareAndSwapSetting(key, expected, value)

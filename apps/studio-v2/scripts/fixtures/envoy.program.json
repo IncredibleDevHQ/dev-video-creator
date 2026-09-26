@@ -1,0 +1,846 @@
+{
+	"version": 1,
+	"cast": [
+		{
+			"id": "pod",
+			"role": "service"
+		},
+		{
+			"id": "envoy",
+			"role": "proxy"
+		},
+		{
+			"id": "db",
+			"role": "store"
+		},
+		{
+			"id": "herd",
+			"role": "label"
+		},
+		{
+			"id": "churn",
+			"role": "label"
+		},
+		{
+			"id": "limits",
+			"role": "label"
+		},
+		{
+			"id": "mux-out",
+			"role": "connection"
+		},
+		{
+			"id": "h1",
+			"role": "connection"
+		},
+		{
+			"id": "h2",
+			"role": "connection"
+		},
+		{
+			"id": "h3",
+			"role": "connection"
+		},
+		{
+			"id": "h4",
+			"role": "connection"
+		},
+		{
+			"id": "h5",
+			"role": "connection"
+		},
+		{
+			"id": "h6",
+			"role": "connection"
+		},
+		{
+			"id": "h7",
+			"role": "connection"
+		},
+		{
+			"id": "h8",
+			"role": "connection"
+		}
+	],
+	"beats": [
+		{
+			"id": "b1",
+			"moment": "establish",
+			"speaker": "page",
+			"say": "Running so many small Python processes has a side effect:",
+			"events": [
+				{
+					"id": "show-pod",
+					"actor": "pod",
+					"action": "appear",
+					"cue": "Running"
+				},
+				{
+					"id": "show-db",
+					"actor": "db",
+					"action": "appear",
+					"cue": "side"
+				}
+			],
+			"durationMs": 3333,
+			"words": [
+				{
+					"word": "Running",
+					"startMs": 0,
+					"endMs": 160
+				},
+				{
+					"word": "so",
+					"startMs": 160,
+					"endMs": 480
+				},
+				{
+					"word": "many",
+					"startMs": 480,
+					"endMs": 680
+				},
+				{
+					"word": "small",
+					"startMs": 680,
+					"endMs": 1020
+				},
+				{
+					"word": "Python",
+					"startMs": 1020,
+					"endMs": 1260
+				},
+				{
+					"word": "processes",
+					"startMs": 1260,
+					"endMs": 1920
+				},
+				{
+					"word": "has",
+					"startMs": 1920,
+					"endMs": 2440
+				},
+				{
+					"word": "a",
+					"startMs": 2440,
+					"endMs": 2580
+				},
+				{
+					"word": "side",
+					"startMs": 2580,
+					"endMs": 2780
+				},
+				{
+					"word": "effect:",
+					"startMs": 2780,
+					"endMs": 3040
+				}
+			]
+		},
+		{
+			"id": "b2",
+			"moment": "tension",
+			"speaker": "page",
+			"say": "it is easy to overwhelm a downstream with sheer connection count, the thundering herd.",
+			"events": [
+				{
+					"id": "herd-1",
+					"actor": "h1",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 0
+				},
+				{
+					"id": "herd-2",
+					"actor": "h2",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 90
+				},
+				{
+					"id": "herd-3",
+					"actor": "h3",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 180
+				},
+				{
+					"id": "herd-4",
+					"actor": "h4",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 270
+				},
+				{
+					"id": "herd-5",
+					"actor": "h5",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 360
+				},
+				{
+					"id": "herd-6",
+					"actor": "h6",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 450
+				},
+				{
+					"id": "herd-7",
+					"actor": "h7",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 540
+				},
+				{
+					"id": "herd-8",
+					"actor": "h8",
+					"action": "travel",
+					"to": "db",
+					"cue": "overwhelm",
+					"nudgeMs": 630
+				},
+				{
+					"id": "show-herd",
+					"actor": "herd",
+					"action": "appear",
+					"cue": "thundering"
+				},
+				{
+					"id": "overload",
+					"actor": "db.performance",
+					"action": "perform",
+					"after": "herd-8",
+					"clip": {
+						"fromMs": 1300,
+						"toMs": 2500,
+						"durationMs": 1200
+					}
+				}
+			],
+			"durationMs": 4380,
+			"words": [
+				{
+					"word": "it",
+					"startMs": 0,
+					"endMs": 60
+				},
+				{
+					"word": "is",
+					"startMs": 60,
+					"endMs": 160
+				},
+				{
+					"word": "easy",
+					"startMs": 160,
+					"endMs": 360
+				},
+				{
+					"word": "to",
+					"startMs": 360,
+					"endMs": 600
+				},
+				{
+					"word": "overwhelm",
+					"startMs": 600,
+					"endMs": 900
+				},
+				{
+					"word": "a",
+					"startMs": 900,
+					"endMs": 1180
+				},
+				{
+					"word": "downstream",
+					"startMs": 1180,
+					"endMs": 1600
+				},
+				{
+					"word": "with",
+					"startMs": 1600,
+					"endMs": 2000
+				},
+				{
+					"word": "sheer",
+					"startMs": 2000,
+					"endMs": 2180
+				},
+				{
+					"word": "connection",
+					"startMs": 2180,
+					"endMs": 2500
+				},
+				{
+					"word": "count,",
+					"startMs": 2500,
+					"endMs": 2960
+				},
+				{
+					"word": "the",
+					"startMs": 3320,
+					"endMs": 3480
+				},
+				{
+					"word": "thundering",
+					"startMs": 3480,
+					"endMs": 3920
+				},
+				{
+					"word": "herd.",
+					"startMs": 3920,
+					"endMs": 4140
+				}
+			]
+		},
+		{
+			"id": "b3",
+			"moment": "explain",
+			"speaker": "page",
+			"say": "A routine deploy can churn CPU through connection cycling, and a leak can saturate a NAT gateway.",
+			"events": [
+				{
+					"id": "show-churn",
+					"actor": "churn",
+					"action": "appear",
+					"cue": "deploy"
+				},
+				{
+					"id": "herd-gone-1",
+					"actor": "h1",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				},
+				{
+					"id": "herd-gone-2",
+					"actor": "h2",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				},
+				{
+					"id": "herd-gone-3",
+					"actor": "h3",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				},
+				{
+					"id": "herd-gone-4",
+					"actor": "h4",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				},
+				{
+					"id": "herd-gone-5",
+					"actor": "h5",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				},
+				{
+					"id": "herd-gone-6",
+					"actor": "h6",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				},
+				{
+					"id": "herd-gone-7",
+					"actor": "h7",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				},
+				{
+					"id": "herd-gone-8",
+					"actor": "h8",
+					"action": "leave",
+					"cue": "leak",
+					"after": "show-churn"
+				}
+			],
+			"durationMs": 5072,
+			"words": [
+				{
+					"word": "A",
+					"startMs": 0,
+					"endMs": 60
+				},
+				{
+					"word": "routine",
+					"startMs": 60,
+					"endMs": 240
+				},
+				{
+					"word": "deploy",
+					"startMs": 240,
+					"endMs": 700
+				},
+				{
+					"word": "can",
+					"startMs": 700,
+					"endMs": 1060
+				},
+				{
+					"word": "churn",
+					"startMs": 1060,
+					"endMs": 1300
+				},
+				{
+					"word": "CPU",
+					"startMs": 1300,
+					"endMs": 1600
+				},
+				{
+					"word": "through",
+					"startMs": 1600,
+					"endMs": 1980
+				},
+				{
+					"word": "connection",
+					"startMs": 1980,
+					"endMs": 2240
+				},
+				{
+					"word": "cycling,",
+					"startMs": 2240,
+					"endMs": 2780
+				},
+				{
+					"word": "and",
+					"startMs": 3180,
+					"endMs": 3240
+				},
+				{
+					"word": "a",
+					"startMs": 3240,
+					"endMs": 3320
+				},
+				{
+					"word": "leak",
+					"startMs": 3320,
+					"endMs": 3480
+				},
+				{
+					"word": "can",
+					"startMs": 3480,
+					"endMs": 3700
+				},
+				{
+					"word": "saturate",
+					"startMs": 3700,
+					"endMs": 4220
+				},
+				{
+					"word": "a",
+					"startMs": 4220,
+					"endMs": 4320
+				},
+				{
+					"word": "NAT",
+					"startMs": 4320,
+					"endMs": 4460
+				},
+				{
+					"word": "gateway.",
+					"startMs": 4460,
+					"endMs": 4700
+				}
+			]
+		},
+		{
+			"id": "b4",
+			"moment": "resolve",
+			"speaker": "page",
+			"say": "Envoy absorbs this by upgrading Python's HTTP/1 connections to HTTP/2, multiplexing and pooling them, and extending their lifetimes.",
+			"events": [
+				{
+					"id": "show-envoy",
+					"actor": "envoy",
+					"action": "appear",
+					"cue": "Envoy"
+				},
+				{
+					"id": "in-1",
+					"actor": "h1",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 0,
+					"after": "show-envoy"
+				},
+				{
+					"id": "in-2",
+					"actor": "h2",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 80,
+					"after": "show-envoy"
+				},
+				{
+					"id": "in-3",
+					"actor": "h3",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 160,
+					"after": "show-envoy"
+				},
+				{
+					"id": "in-4",
+					"actor": "h4",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 240,
+					"after": "show-envoy"
+				},
+				{
+					"id": "in-5",
+					"actor": "h5",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 320,
+					"after": "show-envoy"
+				},
+				{
+					"id": "in-6",
+					"actor": "h6",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 400,
+					"after": "show-envoy"
+				},
+				{
+					"id": "in-7",
+					"actor": "h7",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 480,
+					"after": "show-envoy"
+				},
+				{
+					"id": "in-8",
+					"actor": "h8",
+					"action": "travel",
+					"to": "envoy",
+					"cue": "upgrading",
+					"nudgeMs": 560,
+					"after": "show-envoy"
+				},
+				{
+					"id": "mux",
+					"actor": "envoy.performance",
+					"action": "perform",
+					"after": "in-8",
+					"clip": {
+						"fromMs": 0,
+						"toMs": 1600,
+						"durationMs": 1600
+					}
+				},
+				{
+					"id": "out",
+					"actor": "mux-out",
+					"action": "travel",
+					"to": "db",
+					"cue": "pooling",
+					"after": "mux"
+				},
+				{
+					"id": "serve",
+					"actor": "db.performance",
+					"action": "perform",
+					"after": "out",
+					"clip": {
+						"fromMs": 0,
+						"toMs": 1200,
+						"durationMs": 1200
+					}
+				},
+				{
+					"id": "in-gone-1",
+					"actor": "h1",
+					"action": "leave",
+					"after": "mux"
+				},
+				{
+					"id": "in-gone-2",
+					"actor": "h2",
+					"action": "leave",
+					"after": "mux"
+				},
+				{
+					"id": "in-gone-3",
+					"actor": "h3",
+					"action": "leave",
+					"after": "mux"
+				},
+				{
+					"id": "in-gone-4",
+					"actor": "h4",
+					"action": "leave",
+					"after": "mux"
+				},
+				{
+					"id": "in-gone-5",
+					"actor": "h5",
+					"action": "leave",
+					"after": "mux"
+				},
+				{
+					"id": "in-gone-6",
+					"actor": "h6",
+					"action": "leave",
+					"after": "mux"
+				},
+				{
+					"id": "in-gone-7",
+					"actor": "h7",
+					"action": "leave",
+					"after": "mux"
+				},
+				{
+					"id": "in-gone-8",
+					"actor": "h8",
+					"action": "leave",
+					"after": "mux"
+				}
+			],
+			"durationMs": 9419,
+			"words": [
+				{
+					"word": "Envoy",
+					"startMs": 0,
+					"endMs": 280
+				},
+				{
+					"word": "absorbs",
+					"startMs": 280,
+					"endMs": 580
+				},
+				{
+					"word": "this",
+					"startMs": 580,
+					"endMs": 1060
+				},
+				{
+					"word": "by",
+					"startMs": 1060,
+					"endMs": 1240
+				},
+				{
+					"word": "upgrading",
+					"startMs": 1240,
+					"endMs": 1660
+				},
+				{
+					"word": "Python's",
+					"startMs": 1660,
+					"endMs": 2400
+				},
+				{
+					"word": "connections",
+					"startMs": 3720,
+					"endMs": 4040
+				},
+				{
+					"word": "to",
+					"startMs": 4040,
+					"endMs": 4500
+				},
+				{
+					"word": "multiplexing",
+					"startMs": 6140,
+					"endMs": 6940
+				},
+				{
+					"word": "and",
+					"startMs": 6940,
+					"endMs": 7180
+				},
+				{
+					"word": "pooling",
+					"startMs": 7180,
+					"endMs": 7540
+				},
+				{
+					"word": "them,",
+					"startMs": 7540,
+					"endMs": 7720
+				},
+				{
+					"word": "and",
+					"startMs": 7940,
+					"endMs": 8020
+				},
+				{
+					"word": "extending",
+					"startMs": 8020,
+					"endMs": 8300
+				},
+				{
+					"word": "their",
+					"startMs": 8300,
+					"endMs": 8660
+				},
+				{
+					"word": "lifetimes.",
+					"startMs": 8660,
+					"endMs": 9080
+				}
+			]
+		},
+		{
+			"id": "b5",
+			"moment": "explain",
+			"speaker": "page",
+			"say": "It is also the one place to put rate limits and circuit breakers that would be weak inside each individual process.",
+			"events": [
+				{
+					"id": "show-limits",
+					"actor": "limits",
+					"action": "appear",
+					"cue": "rate"
+				},
+				{
+					"id": "trip",
+					"actor": "envoy.performance",
+					"action": "perform",
+					"cue": "circuit",
+					"clip": {
+						"fromMs": 1800,
+						"toMs": 2600,
+						"durationMs": 800
+					}
+				},
+				{
+					"id": "h2-gone",
+					"actor": "mux-out",
+					"action": "leave",
+					"after": "trip"
+				}
+			],
+			"durationMs": 5963,
+			"words": [
+				{
+					"word": "It",
+					"startMs": 0,
+					"endMs": 60
+				},
+				{
+					"word": "is",
+					"startMs": 60,
+					"endMs": 160
+				},
+				{
+					"word": "also",
+					"startMs": 160,
+					"endMs": 480
+				},
+				{
+					"word": "the",
+					"startMs": 480,
+					"endMs": 700
+				},
+				{
+					"word": "one",
+					"startMs": 700,
+					"endMs": 880
+				},
+				{
+					"word": "place",
+					"startMs": 880,
+					"endMs": 1180
+				},
+				{
+					"word": "to",
+					"startMs": 1180,
+					"endMs": 1400
+				},
+				{
+					"word": "put",
+					"startMs": 1400,
+					"endMs": 1560
+				},
+				{
+					"word": "rate",
+					"startMs": 1560,
+					"endMs": 1780
+				},
+				{
+					"word": "limits",
+					"startMs": 1780,
+					"endMs": 2140
+				},
+				{
+					"word": "and",
+					"startMs": 2140,
+					"endMs": 2580
+				},
+				{
+					"word": "circuit",
+					"startMs": 2580,
+					"endMs": 2840
+				},
+				{
+					"word": "breakers",
+					"startMs": 2840,
+					"endMs": 3460
+				},
+				{
+					"word": "that",
+					"startMs": 3460,
+					"endMs": 3640
+				},
+				{
+					"word": "would",
+					"startMs": 3640,
+					"endMs": 3760
+				},
+				{
+					"word": "be",
+					"startMs": 3760,
+					"endMs": 3900
+				},
+				{
+					"word": "weak",
+					"startMs": 3900,
+					"endMs": 4120
+				},
+				{
+					"word": "inside",
+					"startMs": 4120,
+					"endMs": 4440
+				},
+				{
+					"word": "each",
+					"startMs": 4440,
+					"endMs": 4700
+				},
+				{
+					"word": "individual",
+					"startMs": 4700,
+					"endMs": 5080
+				},
+				{
+					"word": "process.",
+					"startMs": 5080,
+					"endMs": 5520
+				}
+			]
+		}
+	]
+}

@@ -14,6 +14,9 @@ const UNIT_GATES = [
   ['yarn', ['workspace', 'studio-v2', 'test'], 'unit: studio-v2 suite'],
 ]
 const CHECKS = [
+  '../../studio-v2/scripts/composed-review-check.mjs',
+  'reliability-regressions-check.mjs',
+  'source-theme-reuse-check.mjs',
   'create-explainer-check.mjs',   // D0: delivery paths, no default, draft labels, badges, rename
   'build-fork-check.mjs',         // P1: first Build on a base forks once, then builds the derivative
   'notebook-draft-check.mjs',     // P1: failed-save drafts survive notebook switches until a save lands
@@ -26,6 +29,10 @@ const CHECKS = [
   'wording-preserve-check.mjs',   // P1: Keep my wording survives finish, reopen and the build inputs
   'source-destination-check.mjs', // P1: a fresh source starts its own notebook; append stays a choice
   'source-delivery-check.mjs',    // P2: a new source notebook keeps the journey's delivery choice
+  'source-design-check.mjs',      // R4: designed pages by default, bound to their draft, stop/retry, drafts labelled
+  'source-intake-check.mjs',      // Perplexity F3–F5: refused links, thin reads, colour provenance
+  'export-recovery-check.mjs',    // Perplexity F8: an export found again after reload and notebook switches
+  'motion-repair-check.mjs',      // Perplexity F11: motion stored before the fix is repaired when its notebook opens
   'explainer-lineage-check.mjs',  // D3: splits/merges, coverage, forged markers refused
   'explainer-persistence-check.mjs', // D3: finish/export guards
   'finish-atomic-check.mjs',      // #5: a failed finish changes nothing — no project write, no take clears
@@ -53,6 +60,19 @@ const CHECKS = [
   'export-pin-check.mjs',         // #17: export pins the whole rendered performance — motion, staging, audio
   'object-review-check.mjs',      // §5.4a: review receipts carry source hash + skill version
   'object-review-binding-check.mjs', // #15: receipts bind the exact embedded performance + clip ids
+  'harness-models-check.mjs',     // M0: each harness's model list — Claude gated by CLI version, Kimi/Codex from config
+  'planning-check.mjs',           // M0: brief + scene plans — planning-only tools, stale-safe, reload, no downstream
+  'visual-cast-check.mjs',        // P1: the base's icons and objects lifted, verified and shown while planning
+  'scene-review-check.mjs',       // P2: scene review in the notebook — stage, moments, approvals, guide, restart
+  'review-layout-check.mjs',      // Perplexity F6: the review readable at 1280/1440 — own type, no clipping, compact moments
+  'scene-workspace-check.mjs',    // U2: a video's scenes around one stage — plan, inspect, approve and record in one workspace
+  'preview-handoff-check.mjs',    // U4: a waited-for preview takes the stage; a chosen view, another scene, playback and races keep theirs
+  'planning-progress-check.mjs',  // U3: a run in named phases it confirmed, checked drafts, Cancelling…, a quota failure with its draft and the ways on
+  'scene-recording-check.mjs',    // U5: recording beside the stage, no device until asked, takes kept, chosen, played; a generated scene beside it
+  'scene-timeline-check.mjs',     // U6: the scene's read-only timeline on the clock of its plan, sketch or production, in the moments row's place
+  'plan-preview-check.mjs',       // P3: a plan's rough sketch, checked by the pinned engine, played and seeked on the stage
+  'production-check.mjs',         // P4: an approved scene produced on its real clock, accepted, played and exported
+  'presented-production-check.mjs', // P5/P6: a scene you present produced on your aligned take, its timing edited, exported (SKIP without uv)
   'diagnostics-check.mjs',        // D7: secrets-free diagnostic bundle
 ]
 

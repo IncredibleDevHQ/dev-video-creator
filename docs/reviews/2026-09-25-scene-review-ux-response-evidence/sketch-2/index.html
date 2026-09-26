@@ -1,0 +1,266 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/runtime/gsap.min.js"></script>
+<script src="/runtime/hyperframes.iife.js"></script>
+<style>
+  html, body { margin: 0; background: #0e0c17; }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0e0c17;
+    font-family: Inter, system-ui, sans-serif; color: #ffffff; }
+  .clip { position: absolute; inset: 0; }
+  .abs { position: absolute; }
+  .mono { font-family: ui-monospace, Menlo, monospace; }
+
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #grid { left: -2200px; top: -1300px; width: 6400px; height: 3700px; opacity: 0.5;
+    background-image: linear-gradient(#ffffff20 1px, transparent 1px), linear-gradient(90deg, #ffffff20 1px, transparent 1px);
+    background-size: 80px 80px; }
+
+  #redis-panel { left: -960px; top: 60px; width: 3530px; height: 940px; border-radius: 52px;
+    background: rgba(10, 37, 64, 0.6); border: 3px solid rgba(83, 58, 253, 0.45); box-sizing: border-box; }
+  #redis-head { left: -900px; top: 96px; display: flex; align-items: center; gap: 36px; }
+  #redis-head .lbl { font-size: 72px; font-weight: 600; color: #ffffff; white-space: nowrap; }
+  #redis-head .lbl span { color: #b1afc0; font-weight: 400; }
+
+  #lane { left: 520px; top: 299px; width: 1040px; height: 0; border-top: 2px dashed #ffffff26; }
+  .ob { top: 330px; width: 490px; height: 422.5px; }
+  #bucket { left: 560px; top: 330px; width: 490px; height: 422.5px; }
+  #bucket svg, .ob svg { overflow: visible; display: block; }
+  .tok { top: 592.5px; width: 90px; height: 90px; border-radius: 50%; background: #8a78ff; }
+  #drip { left: 785px; top: 90px; width: 40px; height: 62.5px; }
+  #drip svg { display: block; }
+  #rrl { left: 729px; top: 478px; width: 152px; height: 126px; }
+  #user { left: 420px; top: 270px; width: 80px; height: 80px; border-radius: 20px; background: #1e1b32;
+    border: 2px solid rgba(83, 58, 253, 0.55); box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+  #api { left: 1560px; top: 245px; width: 200px; height: 110px; border-radius: 26px; background: #1e1b32;
+    border: 2px solid #b1afc055; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+    font-size: 40px; font-weight: 600; color: #b1afc0; letter-spacing: 0.04em; }
+  .req { left: 438px; top: 268px; width: 64px; height: 64px; }
+  .req svg { display: block; }
+  #badge429 { left: -148px; top: -92px; width: 360px; height: 58px; border-radius: 29px; background: #0e0c17;
+    border: 3px solid #ef61ef; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px;
+    white-space: nowrap; font-size: 24px; color: #ffffff; }
+  #badge429 b { color: #ef61ef; font-size: 28px; }
+  #counter { left: 605px; top: 782px; width: 400px; display: flex; justify-content: center; align-items: center;
+    font-size: 44px; color: #ffffff; height: 56px; }
+  #counter .k { color: #b1afc0; margin-right: 18px; }
+  .roller { display: inline-block; height: 56px; overflow: hidden; line-height: 56px; }
+  .roller div { height: 56px; }
+  #refill { left: 850px; top: 100px; font-size: 38px; color: #b1afc0; white-space: nowrap; line-height: 50px; }
+  #refill b { color: #ffffff; font-size: 46px; }
+  #refill .v { color: #ffffff; }
+  #term { left: 120px; top: 80px; font-size: 64px; font-weight: 600; white-space: nowrap; }
+  #term span { color: #b1afc0; font-weight: 400; }
+
+  .note { position: absolute; left: 80px; right: 80px; bottom: 36px; font-size: 24px; color: #b1afc0;
+    border-top: 1px solid #ffffff1f; padding-top: 14px; }
+  .note .mid { color: #ffffff; font-weight: 600; margin-right: 14px; }
+  .note .say { font-style: italic; margin-left: 14px; }
+  #tag { right: 60px; top: 36px; font-size: 20px; color: #b1afc0; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r5" data-start="0" data-width="1920" data-height="1080" data-duration="26.5">
+
+  <div id="stage" class="clip" data-start="0" data-duration="26.5" data-track-index="0">
+    <div id="world">
+      <div id="grid" class="abs" data-sketch-layer="background"></div>
+
+      <!-- m7: the Redis store panel (native) with the cast's Redis icon, recoloured from accent to primary -->
+      <div id="redis-panel" class="abs" data-sketch-layer="redis"></div>
+      <div id="redis-head" class="abs" data-sketch-layer="redis">
+        <svg id="redis-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 48" width="174" height="144"><g transform="translate(-311 -571)"><rect x="320" y="575" width="40" height="40" rx="6" fill="#533afd" fill-opacity="0.3" stroke="#8a78ff" stroke-width="2.2"/><path d="M314 587 h6 M314 603 h6 M360 587 h6 M360 603 h6" fill="none" stroke="#8a78ff" stroke-width="2" stroke-linecap="round"/><path d="M343 580 l-10 16 h8 l-4 14 l12 -18 h-8 z" fill="#8a78ff" fill-opacity="0.6" stroke="#8a78ff" stroke-width="1.8" stroke-linejoin="round"/><circle cx="354" cy="581" r="2.5" fill="#ffffff"/></g></svg>
+        <div class="lbl">Redis <span>· every user's bucket</span></div>
+      </div>
+
+      <!-- other users' buckets (native, dimmed, illustrative levels, no counts) -->
+      <div class="abs ob" style="left:-840px" data-sketch-layer="other-buckets"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169" width="490" height="422.5"><defs><clipPath id="ob-clip-1" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs><g transform="translate(-522 -227)"><rect x="526" y="351.5" width="188" height="40.5" fill="#533afd" fill-opacity="0.3" clip-path="url(#ob-clip-1)"/><path d="M526 230 L554 392 H686 L714 230" fill="#533afd" fill-opacity="0.06" stroke="#b1afc0" stroke-opacity="0.5" stroke-width="3" stroke-linejoin="round"/></g></svg></div>
+      <div class="abs ob" style="left:-140px" data-sketch-layer="other-buckets"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169" width="490" height="422.5"><defs><clipPath id="ob-clip-2" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs><g transform="translate(-522 -227)"><rect x="526" y="254.3" width="188" height="137.7" fill="#533afd" fill-opacity="0.3" clip-path="url(#ob-clip-2)"/><path d="M526 230 L554 392 H686 L714 230" fill="#533afd" fill-opacity="0.06" stroke="#b1afc0" stroke-opacity="0.5" stroke-width="3" stroke-linejoin="round"/></g></svg></div>
+      <div class="abs ob" style="left:1260px" data-sketch-layer="other-buckets"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169" width="490" height="422.5"><defs><clipPath id="ob-clip-3" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs><g transform="translate(-522 -227)"><rect x="526" y="302.9" width="188" height="89.1" fill="#533afd" fill-opacity="0.3" clip-path="url(#ob-clip-3)"/><path d="M526 230 L554 392 H686 L714 230" fill="#533afd" fill-opacity="0.06" stroke="#b1afc0" stroke-opacity="0.5" stroke-width="3" stroke-linejoin="round"/></g></svg></div>
+      <div class="abs ob" style="left:1960px" data-sketch-layer="other-buckets"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169" width="490" height="422.5"><defs><clipPath id="ob-clip-4" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs><g transform="translate(-522 -227)"><rect x="526" y="375.8" width="188" height="16.2" fill="#533afd" fill-opacity="0.3" clip-path="url(#ob-clip-4)"/><path d="M526 230 L554 392 H686 L714 230" fill="#533afd" fill-opacity="0.06" stroke="#b1afc0" stroke-opacity="0.5" stroke-width="3" stroke-linejoin="round"/></g></svg></div>
+
+      <!-- the route from the user to the API -->
+      <div id="lane" class="abs" data-sketch-layer="api"></div>
+
+      <!-- the token bucket: cast shell + clipped level, recoloured to primary; level y/height kept inside rig.inside.extent -->
+      <div id="bucket" class="abs" data-sketch-layer="token-bucket">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 169" width="490" height="422.5"><defs><clipPath id="cast-c4ac823b-132-1-2-s05-bucket-level-inside" clipPathUnits="userSpaceOnUse"><path d="M526 230 L554 392 H686 L714 230 Z"/></clipPath></defs><g transform="translate(-522 -227)"><rect id="cast-c4ac823b-132-1-2-s05-bucket-level" x="526" y="300" width="188" height="92" fill="#533afd" fill-opacity="0.45" clip-path="url(#cast-c4ac823b-132-1-2-s05-bucket-level-inside)"/><path id="cast-c4ac823b-132-1-2-s05-bucket-shell" d="M526 230 L554 392 H686 L714 230" fill="#533afd" fill-opacity="0.1" stroke="#8a78ff" stroke-width="3" stroke-linejoin="round"/></g></svg>
+      </div>
+
+      <!-- tokens: the cast's three token circles, re-rigged as separate native circles so each can detach -->
+      <div id="t1" class="abs tok" style="left:660px" data-sketch-layer="token-bucket"></div>
+      <div id="t2" class="abs tok" style="left:760px" data-sketch-layer="token-bucket"></div>
+      <div id="t3" class="abs tok" style="left:860px" data-sketch-layer="token-bucket"></div>
+      <div id="n1" class="abs tok" style="left:760px" data-sketch-layer="token-bucket"></div>
+      <div id="n2" class="abs tok" style="left:660px" data-sketch-layer="token-bucket"></div>
+      <div id="n3" class="abs tok" style="left:860px" data-sketch-layer="token-bucket"></div>
+      <div id="n4" class="abs tok" style="left:760px" data-sketch-layer="token-bucket"></div>
+
+      <!-- the inlet drop (cast), recoloured to primary; swells, falls, lands as a token -->
+      <div id="drip" class="abs" data-sketch-layer="drip">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 25" width="40" height="62.5"><g transform="translate(-612 -188)"><path d="M620 192 q-9 13 0 18 q9 -5 0 -18 z" fill="#8a78ff" fill-opacity="0.55" stroke="#8a78ff" stroke-width="2"/></g></svg>
+      </div>
+
+      <!-- m1: the request rate limiter glyph (cast), which grows into the bucket -->
+      <div id="rrl" class="abs" data-sketch-layer="request-rate-limiter">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 126" width="152" height="126"><defs><clipPath id="cast-eae420f9-4bb-1-2-s03-rrl-level-inside" clipPathUnits="userSpaceOnUse"><path d="M388 300 L408 420 H512 L532 300 Z"/></clipPath></defs><g transform="translate(-384 -298)"><rect x="388" y="360" width="144" height="58" fill="#533afd" fill-opacity="0.45" clip-path="url(#cast-eae420f9-4bb-1-2-s03-rrl-level-inside)"/><path d="M388 300 L408 420 H512 L532 300" fill="#533afd" fill-opacity="0.1" stroke="#8a78ff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="430" cy="392" r="13" fill="#8a78ff"/><circle cx="460" cy="392" r="13" fill="#8a78ff"/><circle cx="490" cy="392" r="13" fill="#8a78ff"/></g></svg>
+      </div>
+
+      <!-- the user chip (cast user icon), docked at the bucket's left rim -->
+      <div id="user" class="abs" data-sketch-layer="user">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="62" height="62"><g transform="translate(-93 -355)"><circle cx="118" cy="372" r="9" fill="#533afd" fill-opacity="0.3" stroke="#8a78ff" stroke-width="2.2"/><path d="M100 400 v-4 a10 10 0 0 1 10 -10 h16 a10 10 0 0 1 10 10 v4" fill="none" stroke="#8a78ff" stroke-width="2.2" stroke-linecap="round"/></g></svg>
+      </div>
+
+      <!-- API endpoint (native) -->
+      <div id="api" class="abs" data-sketch-layer="api">API</div>
+
+      <!-- requests A–F: the cast's paper-plane icon, recoloured to primary; E turns accent when refused -->
+      <div id="reqA" class="abs req" data-sketch-layer="request"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" width="64" height="64"><g transform="rotate(45 21 21)"><g transform="translate(-97 -334)"><g transform="translate(96 333) scale(1.8333)" fill="none" stroke="#8a78ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></g></g></svg></div>
+      <div id="reqB" class="abs req" data-sketch-layer="request"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" width="64" height="64"><g transform="rotate(45 21 21)"><g transform="translate(-97 -334)"><g transform="translate(96 333) scale(1.8333)" fill="none" stroke="#8a78ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></g></g></svg></div>
+      <div id="reqC" class="abs req" data-sketch-layer="request"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" width="64" height="64"><g transform="rotate(45 21 21)"><g transform="translate(-97 -334)"><g transform="translate(96 333) scale(1.8333)" fill="none" stroke="#8a78ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></g></g></svg></div>
+      <div id="reqD" class="abs req" data-sketch-layer="request"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" width="64" height="64"><g transform="rotate(45 21 21)"><g transform="translate(-97 -334)"><g transform="translate(96 333) scale(1.8333)" fill="none" stroke="#8a78ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></g></g></svg></div>
+      <div id="reqE" class="abs req" data-sketch-layer="request"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" width="64" height="64"><g transform="rotate(45 21 21)"><g transform="translate(-97 -334)"><g id="planeE" transform="translate(96 333) scale(1.8333)" fill="none" stroke="#8a78ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></g></g></svg>
+        <!-- the cast's HTTP 429 mark, reduced to an accent badge -->
+        <div id="badge429" class="abs" data-sketch-layer="http-429">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" width="34" height="34"><g transform="translate(-327 -587)"><g transform="translate(326 586) scale(1.8333)" fill="none" stroke="#ef61ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M10 10l4 4m0 -4l-4 4"/></g></g></svg>
+          <b class="mono">429</b><span>Too Many Requests</span>
+        </div>
+      </div>
+      <div id="reqF" class="abs req" data-sketch-layer="request"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" width="64" height="64"><g transform="rotate(45 21 21)"><g transform="translate(-97 -334)"><g transform="translate(96 333) scale(1.8333)" fill="none" stroke="#8a78ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></g></g></g></svg></div>
+
+      <!-- exact readout of the ledger (native, mono) -->
+      <div id="counter" class="abs mono" data-sketch-layer="token-count">
+        <span class="k">tokens:</span><span class="roller"><div id="digits"><div>0</div><div>1</div><div>2</div><div>3</div></div></span>
+      </div>
+
+      <div id="refill" class="abs mono" data-sketch-layer="refill-label">refill: <b>N</b> <span class="v">tokens / second</span></div>
+      <div id="term" class="abs" data-sketch-layer="term">token bucket <span>· one per user</span></div>
+    </div>
+    <div id="tag" class="abs mono" data-sketch-layer="sketch-notes">SKETCH · PLAN r5 · TIMING ESTIMATED</div>
+  </div>
+
+  <!-- sketch notes: moment title and narration guide (annotation only, not scene text) -->
+  <div id="m1" class="clip" data-start="0" data-duration="5.5" data-track-index="1"><div class="note" data-sketch-layer="sketch-notes"><span class="mid">m1 · Open the limiter</span><span class="say">“Under the hood, Stripe uses the token bucket algorithm. Every user gets a bucket;”</span></div></div>
+  <div id="m2" class="clip" data-start="5.5" data-duration="2" data-track-index="1"><div class="note" data-sketch-layer="sketch-notes"><span class="mid">m2 · One request, one token</span><span class="say">“each request takes a token,”</span></div></div>
+  <div id="m3" class="clip" data-start="7.5" data-duration="4" data-track-index="1"><div class="note" data-sketch-layer="sketch-notes"><span class="mid">m3 · A burst outruns the drip</span><span class="say">“If requests come faster than the drip, the bucket runs empty.”</span></div></div>
+  <div id="m4" class="clip" data-start="11.5" data-duration="3.3" data-track-index="1"><div class="note" data-sketch-layer="sketch-notes"><span class="mid">m4 · Refused</span><span class="say">“If the bucket is empty, the request is rejected.”</span></div></div>
+  <div id="m5" class="clip" data-start="14.8" data-duration="5" data-track-index="1"><div class="note" data-sketch-layer="sketch-notes"><span class="mid">m5 · Hold on the refill</span><span class="say">(no narration: a held, wordless beat)</span></div></div>
+  <div id="m6" class="clip" data-start="19.8" data-duration="2.8" data-track-index="1"><div class="note" data-sketch-layer="sketch-notes"><span class="mid">m6 · Name the rate</span><span class="say">“Fresh tokens drip back in slowly.”</span></div></div>
+  <div id="m7" class="clip" data-start="22.6" data-duration="3.9" data-track-index="1"><div class="note" data-sketch-layer="sketch-notes"><span class="mid">m7 · Every bucket, in Redis</span><span class="say">“The buckets live centrally, in Redis.”</span></div></div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {}
+  const T = gsap.timeline({ paused: true })
+
+  // Token-bucket level per count, inside rig.inside.extent (top 230, bottom 392, x 526, width 188)
+  const LV = { 3: { y: 300, height: 92 }, 2: { y: 326, height: 66 }, 1: { y: 352, height: 40 }, 0: { y: 392, height: 0 } }
+  const LEVEL = '#cast-c4ac823b-132-1-2-s05-bucket-level'
+  const ROW = 56
+  const MEET_X = 1000   // where a token meets its request on the lane
+  const API_X = 1600    // where requests are absorbed
+  const REQ_HOME = 470  // request start (centre x)
+
+  // Initial state (set once, never in CSS, so no tween fights a CSS transform)
+  gsap.set('#world', { transformOrigin: '0 0', x: 0, y: 0, scale: 1 })
+  gsap.set('#rrl', { opacity: 0, scale: 1 })
+  gsap.set('#bucket', { opacity: 0, scale: 0.31 })
+  gsap.set(['#t1', '#t2', '#t3', '#n1', '#n2', '#n3', '#n4'], { scale: 0, x: 0, y: 0 })
+  gsap.set('#n2', { x: 100 })
+  gsap.set('#n3', { x: -100 })
+  gsap.set('#drip', { transformOrigin: '50% 0%', scale: 0.45, y: 0, opacity: 0 })
+  gsap.set('#user', { x: -120, opacity: 0 })
+  gsap.set(['#api', '#lane'], { opacity: 0 })
+  gsap.set('.req', { x: 0, opacity: 0 })
+  gsap.set('#badge429', { scale: 0.4, opacity: 0 })
+  gsap.set('#counter', { opacity: 0 })
+  gsap.set('#digits', { y: -3 * ROW })
+  gsap.set('#refill', { opacity: 0, y: 12 })
+  gsap.set('#term', { opacity: 0 })
+  gsap.set(['#redis-panel', '#redis-head'], { opacity: 0 })
+  gsap.set('#redis-icon', { scale: 1, transformOrigin: '50% 50%' })
+  gsap.set('.ob', { opacity: 0, scale: 0.6 })
+
+  function count(n, at) {
+    T.to('#digits', { y: -n * ROW, duration: 0.35, ease: 'back.out(2)' }, at)
+    T.to(LEVEL, { attr: LV[n], duration: 0.35, ease: 'power2.out' }, at)
+  }
+
+  // token-hand-off (adapted): the request flies in, the token rises to meet it and rides with it to the API
+  function admit(req, tok, slotX, tc, after) {
+    T.to(req, { opacity: 1, duration: 0.15 }, tc - 0.6)
+    T.to(req, { x: MEET_X - REQ_HOME, duration: 0.95, ease: 'power1.inOut' }, tc - 0.6)
+    T.to(tok, { x: MEET_X - 40 - slotX, y: -325.5, scale: 0.5, backgroundColor: '#ffffff', duration: 0.35, ease: 'power2.out' }, tc)
+    count(after, tc)
+    T.to(req, { x: API_X - REQ_HOME, duration: 0.65, ease: 'power1.in' }, tc + 0.35)
+    T.to(tok, { x: API_X - 40 - slotX, duration: 0.65, ease: 'power1.in' }, tc + 0.35)
+    T.to([req, tok], { opacity: 0, duration: 0.15 }, tc + 0.9)
+    T.to('#api', { scale: 1.06, duration: 0.12, yoyo: true, repeat: 1, ease: 'power1.out' }, tc + 0.95)
+  }
+
+  // the drip (svg-icon-enrichment): swell over the beat, fall, land as a token on the beat
+  function land(tok, beat, slide, after, nextSwellEnd, nextScale) {
+    T.to('#drip', { y: 480, duration: 0.35, ease: 'power2.in' }, beat - 0.35)
+    T.to('#drip', { opacity: 0, duration: 0.08 }, beat - 0.03)
+    T.to(tok, { scale: 1, duration: 0.3, ease: 'back.out(2)' }, beat - 0.03)
+    if (slide) T.to(tok, { x: 0, duration: 0.3, ease: 'power2.out' }, beat + 0.3)
+    count(after, beat)
+    T.set('#drip', { y: 0, scale: 0.2 }, beat + 0.1)
+    T.to('#drip', { opacity: 1, duration: 0.15 }, beat + 0.1)
+    T.to('#drip', { scale: nextScale, duration: nextSwellEnd - (beat + 0.1), ease: 'sine.inOut' }, beat + 0.1)
+  }
+
+  // ── m1 · Open the limiter (0–5.5): card-morph-anchor, spring-pop-entrance
+  T.to('#term', { opacity: 1, duration: 0.5 }, 0.4)
+  T.to('#rrl', { opacity: 1, duration: 0.4 }, 0.1)
+  T.to('#rrl', { scale: 3.22, duration: 1.2, ease: 'power3.inOut' }, 0.9)
+  T.to('#bucket', { scale: 1, duration: 1.2, ease: 'power3.inOut' }, 0.9)
+  T.to('#bucket', { opacity: 1, duration: 0.4 }, 1.6)
+  T.to('#rrl', { opacity: 0, duration: 0.4 }, 1.8)
+  T.to(['#t1', '#t2', '#t3'], { scale: 1, duration: 0.35, ease: 'back.out(2)', stagger: 0.1 }, 2.0)
+  T.to('#counter', { opacity: 1, duration: 0.4 }, 2.4)
+  T.to('#user', { x: 0, opacity: 1, duration: 0.6, ease: 'back.out(1.7)' }, 2.6)
+  T.to('#drip', { opacity: 1, duration: 0.4 }, 3.0)
+  T.to(['#api', '#lane'], { opacity: 1, duration: 0.5 }, 3.4)
+  T.to('#term', { opacity: 0, duration: 0.5 }, 5.2)
+
+  // ── m2 · One request, one token (5.5–7.5): A takes t3 at 6.6 → 2; the drop starts to swell
+  admit('#reqA', '#t3', 905, 6.6, 2)
+  T.to('#drip', { scale: 1, duration: 10.15 - 6.6, ease: 'sine.inOut' }, 6.6)
+
+  // ── m3 · A burst outruns the drip (7.5–11.5): B → 1, C → 0, drop lands → 1, D → 0
+  admit('#reqB', '#t2', 805, 8.2, 1)
+  admit('#reqC', '#t1', 705, 8.75, 0)
+  land('#n1', 10.5, false, 1, 14.65, 1)
+  admit('#reqD', '#n1', 805, 11.0, 0)
+
+  // ── m4 · Refused (11.5–14.8): E stops at the empty rim, turns accent, 429, recoils
+  T.to('#reqE', { opacity: 1, duration: 0.15 }, 11.9)
+  T.to('#reqE', { x: 720 - REQ_HOME, duration: 1.1, ease: 'power3.out' }, 11.9)
+  T.to('#planeE', { attr: { stroke: '#ef61ef' }, duration: 0.2 }, 13.0)
+  T.to('#badge429', { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(2.2)' }, 13.0)
+  T.to('#reqE', { x: -20, duration: 0.9, ease: 'power2.out' }, 13.5)
+  T.to('#reqE', { opacity: 0, duration: 0.4 }, 14.5)
+
+  // ── m5 · Hold on the refill (14.8–19.8): two drops land one beat apart → 1, 2
+  land('#n2', 15.0, true, 1, 19.15, 1)
+  land('#n3', 19.5, true, 2, 23.65, 1)
+
+  // ── m6 · Name the rate (19.8–22.6): label, then F takes a refilled token → 1
+  T.to('#refill', { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 20.0)
+  admit('#reqF', '#n3', 905, 21.5, 1)
+
+  // ── m7 · Every bucket, in Redis (22.6–26.5): one decelerating pull-back; one more drop lands → 2
+  T.to(['#api', '#lane'], { opacity: 0, duration: 0.8 }, 22.8)
+  T.to('#world', { x: 557.5, y: 275, scale: 0.5, duration: 2.4, ease: 'expo.out' }, 22.8)
+  T.to('#redis-panel', { opacity: 1, duration: 1.0 }, 22.9)
+  T.to('.ob', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.8)', stagger: 0.12 }, 23.4)
+  T.to('#redis-head', { opacity: 1, duration: 0.5 }, 23.8)
+  land('#n4', 24.0, false, 2, 26.5, 0.6)
+  T.to('#redis-icon', { scale: 1.15, duration: 0.2, yoyo: true, repeat: 1, ease: 'power1.inOut' }, 25.3)
+  T.set('#counter', { opacity: 1 }, 26.5)
+
+  window.__timelines["sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r5"] = T
+</script>
+</body>
+</html>

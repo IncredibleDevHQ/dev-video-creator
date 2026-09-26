@@ -40,6 +40,7 @@ try {
   const previousFetch = globalThis.fetch
   globalThis.fetch = async (url, options) => {
     const u = String(url)
+    if (u.endsWith('/api/review-fonts')) return Response.json({ css: '', shipped: [], substituted: {} })
     if (u.includes('/api/runs/') && u.endsWith('/stages')) {
       stageCalls.push(JSON.parse(options?.body || '{}'))
       return Response.json({ saved: true })

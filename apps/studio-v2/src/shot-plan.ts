@@ -1,3 +1,4 @@
+import type { BoundaryTransition } from './continuity'
 // The shot layer (D6): a scene is a sequence of shots, each with a focal
 // subject, a view, an explicit boundary transition, and a reason — chosen
 // from the director's scored storyboard, not a fixed template. The recording
@@ -24,6 +25,7 @@ export type DirectedShot = {
   emphasis?: string
   transitionOut: { kind: ShotTransitionKind; durationMs: number }
   reason: string
+  boundary?: BoundaryTransition
 }
 
 // The stage family becomes the view: the person leads (camera), shares the
@@ -160,13 +162,13 @@ export const recordingBriefFor = (shots: DirectedShot[], beats: ScriptBeat[], co
     look: SHOT_GUIDANCE[shot.view].look + (shot.emphasis ? ` “${shot.emphasis}”` : ''),
     record: SHOT_GUIDANCE[shot.view].record,
   }))
-  const endsOnAnimation = shots.length > 1 && shots.some(shot => shot.view === 'animation-full')
+  const endsOnAnimation = shots.some(shot => shot.view === 'animation-full')
   return {
-    objective: `${context.arcRole}: ${context.kind}`,
+    objective: context.arcRole === 'hook' ? 'Introduce the idea clearly.' : context.arcRole === 'close' ? 'Land the final thought, then pause.' : 'Explain the next step in your own voice.',
     say: beats.map(beat => beat.text),
     shots: sceneShots,
     next: endsOnAnimation
-      ? 'Your voice continues while the animation holds the frame; you return when it settles.'
+      ? 'Your voice continues while the animation holds the frame.'
       : 'You hold the frame throughout.',
   }
 }

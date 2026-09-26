@@ -134,7 +134,7 @@
           </a>
           <div class="project-title">
             <div class="notebook-menu">
-              <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Switch notebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Notebooks <span aria-hidden="true">⌄</span></button>
+              <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Your projects, and a new one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Projects <span aria-hidden="true">⌄</span></button>
               <div id="notebook-menu-list" class="notebook-menu-list" role="menu" hidden></div>
             </div>
             <nav id="notebook-lineage" class="notebook-lineage" aria-label="Notebook lineage" hidden></nav>
@@ -146,14 +146,18 @@
           <div class="topbar-actions">
             <div class="save-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><strong id="save-state">Saved</strong></div>
             <button id="render-video" type="button" class="button primary" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Publish</button>
-            <button id="open-model-settings" class="topbar-status topbar-status-button" type="button" title="Choose the AI provider and models"><span class="brand-orbit"><span>AI</span></span><strong id="model-settings-summary">Models</strong></button>
-            <button id="open-agent-settings" class="topbar-status topbar-status-button" type="button" title="Choose the coding agent for Plan motion (assist)" hidden><span id="agent-status-dot" class="agent-status-dot"></span><strong id="agent-settings-summary">Agent</strong></button>
+            <div id="export-status" class="export-status" role="status" hidden><span id="export-status-text"></span><button id="export-status-details" type="button" class="export-status-action" hidden>Details</button><a id="export-status-download" class="export-status-action" href="#" download hidden>Download</a><button id="export-status-retry" type="button" class="export-status-action" hidden>Retry</button><button id="export-status-cancel" type="button" class="export-status-action" hidden>Cancel</button><button id="export-status-dismiss" type="button" class="export-status-dismiss" aria-label="Dismiss the export notice" hidden>×</button></div>
+            <button id="open-ai-settings" class="topbar-status topbar-status-button" type="button" title="AI settings: what each job runs on — the local harness, or the direct API"><span class="brand-orbit"><span>AI</span></span><span id="ai-status-dot" class="agent-status-dot" hidden></span><strong id="ai-settings-summary">AI settings</strong></button>
           </div>
         </div>
         <div class="commandbar">
           <div class="workspace-nav">
+            <!-- A project's notebooks, one tab per kind (the four-notebook
+                 model): shown in a notebook that belongs to a project. -->
+            <nav id="notebook-switch" class="notebook-switch" aria-label="This project's notebooks" hidden></nav>
             <div class="format-control"><span>Format:</span><strong>▷ Landscape</strong><span>⌄</span></div>
-            <button type="button" class="workspace-tab active">Notebook</button>
+            <button id="workspace-tab-scenes" type="button" class="workspace-tab" aria-pressed="false" title="The video's scenes around one stage" hidden>Scenes</button>
+            <button id="workspace-tab-notebook" type="button" class="workspace-tab active" aria-pressed="true" title="The notebook: the outline and the words">Notebook</button>
             <button id="open-fullscreen-tab" type="button" class="workspace-tab">Preview</button>
           </div>
           <nav class="actions" aria-label="Project actions">
@@ -172,9 +176,21 @@
               </div>
             </div>
             <span class="commandbar-divider" aria-hidden="true"></span>
-            <button id="open-fullscreen" class="button chrome-secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/></svg>Open canvas</button>
-            <button id="create-explainer" class="button primary" type="button">Create explainer</button>
-            <button id="build-explainer" class="button chrome-secondary" type="button">Build explainer</button>
+            <!-- One next step (F10 of the Perplexity review): a base's video,
+                 or the selected scene's next step; the older and other paths
+                 wait under Advanced, saying what they are. -->
+            <button id="export-presentation" class="button chrome-secondary" type="button" title="The slides as a PDF, one page a slide, as they read here" hidden>Export PDF</button>
+            <button id="next-step" class="button primary" type="button" hidden>Next step</button>
+            <button id="open-planning" class="button chrome-secondary" type="button" title="The explanation brief, every scene's plans and their evidence">Planning workspace</button>
+            <div class="advanced-menu">
+              <button id="advanced-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="advanced-menu-list">Advanced <span aria-hidden="true">⌄</span></button>
+              <div id="advanced-menu-list" class="advanced-menu-list" role="menu" hidden>
+                <button id="open-fullscreen" type="button" role="menuitem"><span class="menu-label">Open canvas</span><small class="menu-note">The notebook's composition, full screen — as Preview shows it.</small></button>
+                <button id="create-explainer" type="button" role="menuitem"><span class="menu-label">Create explainer…</span><small class="menu-note">A new base from a link or your own narrative, or this one built whole.</small></button>
+                <button id="build-explainer" type="button" role="menuitem"><span class="menu-label">Build explainer</span><small class="menu-note">The older build: the whole notebook at once, from its scripts and pages, with one delivery. It does not use approved scene plans.</small></button>
+                <button id="toggle-video-staging" type="button" role="menuitem" hidden><span class="menu-label">Show video staging</span><small class="menu-note">The older way: each page's dialogue, motion, live canvas and Publish, here on the base. Create video gives a video its own.</small></button>
+              </div>
+            </div>
           </nav>
         </div>
       </header>
@@ -198,6 +214,7 @@
       </div>
 
       <main class="studio-workspace">
+        <section id="scene-workspace" class="scene-workspace" aria-label="Scene workspace" hidden></section>
         <section class="notebook-document" aria-labelledby="notebook-title">
           <div class="panel-heading">
             <div>
@@ -205,6 +222,11 @@
               <h1 id="notebook-title">Write the story</h1>
             </div>
             <button id="reset-sample" class="icon-button" title="Reset sample">↺</button>
+          </div>
+          <div id="project-strip" class="project-strip" hidden>
+            <span id="project-strip-source" class="project-strip-item" hidden></span>
+            <span id="project-strip-brand" class="project-strip-item" hidden></span>
+            <span id="project-strip-jobs" class="project-strip-jobs" hidden></span>
           </div>
           <div id="editor-layout" class="editor-layout">
             <div class="editor-column">
@@ -230,6 +252,17 @@
                 </div>
                 <p class="notebook-start-hint">Or just start typing below — press <kbd>/</kbd> for block types.</p>
               </section>
+              <div id="page-design-status" class="page-design-status" role="status" hidden><span id="page-design-text"></span><button id="page-design-stop" type="button" class="button ghost">Stop remaining work</button></div>
+              <section id="notebook-build-status" class="notebook-job" role="status" aria-live="polite" hidden>
+                <div class="notebook-job-head">
+                  <span class="notebook-job-mark" aria-hidden="true"></span>
+                  <div class="notebook-job-title"><strong id="notebook-build-heading">Making the wireframe</strong><span id="notebook-build-meta"></span></div>
+                  <div class="notebook-job-actions"><button id="notebook-build-settings" type="button" class="button ghost" hidden>AI settings</button><button id="notebook-build-action" type="button" class="button ghost">Stop</button></div>
+                </div>
+                <p id="notebook-build-text"></p>
+                <p id="notebook-build-activity" class="notebook-job-activity" hidden></p>
+                <div id="notebook-build-pages" class="notebook-job-pages" aria-hidden="true"><span></span><span></span><span></span></div>
+              </section>
               <div id="editor" class="editor-shell"></div>
               <div id="slash-menu" class="slash-menu" role="dialog" aria-label="Insert a block" hidden>
                 <div class="slash-menu-heading"><div><strong>Blocks</strong><span>Every block becomes a scene in your timeline.</span></div><kbd>Esc</kbd></div>
@@ -253,6 +286,10 @@
                   <div class="canvas-stage">
                     <div id="player-loading" class="player-loading">Compiling canvas…</div>
                     <hyperframes-player id="player" width="1920" height="1080"></hyperframes-player>
+                    <div id="scene-stage" class="scene-stage" hidden>
+                      <div id="scene-stage-reference" class="scene-stage-reference" aria-label="The page this scene comes from"></div>
+                      <div id="scene-stage-preview" class="scene-stage-preview" hidden></div>
+                    </div>
                     <div id="scene-timeline" class="scene-timeline" aria-label="Scene timeline" hidden>
                       <div class="scene-timeline-head"><strong id="scene-timeline-title">Scene</strong><button id="scene-timeline-edit" class="scene-timeline-edit" type="button" title="Open the dialogue and its motion for this scene">Dialogue</button><span id="scene-timeline-clock" class="scene-timeline-clock">00:00 / 00:00</span></div>
                       <div id="scene-timeline-empty" class="scene-timeline-empty" hidden><span>No dialogue yet — plan the scene to see its beats here.</span><button id="scene-timeline-plan" class="button chrome-secondary" type="button">Plan the scene</button></div>
@@ -282,13 +319,13 @@
                     <div id="canvas-block-timeline" class="canvas-block-timeline" aria-label="Story block timeline"></div>
                     <div id="motion-preview-badge" class="motion-preview-badge" hidden><span aria-hidden="true"></span><strong id="motion-preview-label">Soft fade</strong></div>
                     <div id="finalize-bar" class="finalize-bar" hidden>
-                      <div class="finalize-meta"><span id="finalize-step">Junction 1 of 9</span><strong id="finalize-pair">Title → Text</strong><small id="finalize-note" hidden>Plays its recorded take — enters as a hard cut</small><div id="finalize-duration-slot"></div></div>
+                      <div class="finalize-meta"><span id="finalize-step">Switchover 1 of 9</span><strong id="finalize-pair">Title → Text</strong><small id="finalize-note" hidden>Plays its recorded take — enters as a hard cut</small><div id="finalize-duration-slot"></div></div>
                       <div id="finalize-tiles" class="finalize-tiles" aria-label="Transition options"></div>
                       <div class="finalize-actions">
-                        <button id="finalize-replay" class="button chrome-secondary" type="button" title="Replay this junction">↻</button>
-                        <button id="finalize-back" class="button chrome-secondary" type="button" aria-label="Previous junction">←</button>
+                        <button id="finalize-replay" class="button chrome-secondary" type="button" title="Replay this switchover">↻</button>
+                        <button id="finalize-back" class="button chrome-secondary" type="button" aria-label="Previous switchover">←</button>
                         <button id="finalize-next" class="button primary" type="button">Next →</button>
-                        <button id="finalize-cancel" type="button" aria-label="Exit finalize">×</button>
+                        <button id="finalize-cancel" type="button" aria-label="Close Publish">×</button>
                       </div>
                     </div>
                     <div id="transition-popover" class="transition-drawer" role="dialog" aria-label="Frame switch between blocks" hidden>
@@ -442,6 +479,19 @@
                     </div>
                   </aside>
                 </div>
+                <div id="scene-stage-bar" class="scene-stage-bar" hidden>
+                  <div class="scene-stage-modes" role="group" aria-label="What the stage shows">
+                    <span class="scene-stage-reference-group" role="group" aria-label="Reference"><span class="scene-stage-group-label" aria-hidden="true">Reference</span>
+                      <button type="button" data-stage-mode="reference" class="is-active" aria-pressed="true">Page reference</button>
+                      <button type="button" data-stage-mode="schematic" aria-pressed="false" hidden>Schematic</button>
+                      <button type="button" data-stage-mode="base" aria-pressed="false" hidden>Base's designed slide</button>
+                    </span>
+                    <button type="button" data-stage-mode="preview" aria-pressed="false" disabled>Plan preview</button>
+                    <button type="button" data-stage-mode="output" aria-pressed="false" disabled title="The scene produced from its approved plan">Produced scene</button>
+                  </div>
+                  <p id="scene-stage-note" class="scene-stage-note"></p>
+                  <button id="scene-stage-full" type="button" class="scene-stage-full" title="Show this stage full screen — the same composition">Full screen</button>
+                </div>
                 <div class="inline-preview-meta">
                   <div><span>Selected block</span><strong id="selected-label">Block 01</strong></div>
                   <button id="inline-settings" type="button">Customize</button>
@@ -506,6 +556,9 @@
       </main>
     </div>
 
+    <dialog id="planning-dialog" class="modal planning-modal" aria-label="Plan the video">
+      <div id="planning-workspace" class="planning-workspace"></div>
+    </dialog>
     <dialog id="slide-editor-dialog" class="modal slide-editor-modal">
       <div class="modal-heading">
         <div><span class="eyebrow">Scene studio</span><h2 id="slide-editor-title">Scene</h2><div class="se-meta"><span id="se-saved-state">Saved</span><span class="se-meta-dot">·</span><button type="button" id="se-versions-toggle" class="se-link-quiet" title="Every save of this scene — preview one, or go back to it" aria-haspopup="dialog" aria-expanded="false">Versions</button><span class="se-meta-dot">·</span><button type="button" id="se-canvas" class="se-link-quiet" title="See this scene on the live canvas — closes the studio">Open on the canvas</button></div></div>
@@ -674,48 +727,62 @@
         </div>
       </div>
     </dialog>
-    <dialog id="model-settings-dialog" class="modal settings-modal">
+    <!-- One AI settings entry (F7 of the Perplexity review): what each job
+         runs on, the local harness's stages, and the direct API's provider
+         with the features it serves. -->
+    <dialog id="ai-settings-dialog" class="modal settings-modal ai-settings-modal">
       <div class="modal-heading">
-        <div><span class="eyebrow">Models</span><h2>Where AI requests go</h2></div>
-        <button id="close-model-settings" class="icon-button" type="button" aria-label="Close">×</button>
+        <div><span class="eyebrow">AI settings</span><h2>What each job runs on</h2></div>
+        <button id="close-ai-settings" class="icon-button" type="button" aria-label="Close">×</button>
       </div>
-      <form id="model-settings-form" class="settings-body">
-        <label class="settings-field"><span>Provider</span><select id="ms-provider"></select></label>
-        <p id="ms-provider-note" class="settings-note"></p>
-        <label class="settings-field"><span>Base URL</span><input id="ms-base-url" type="url" placeholder="https://api.openai.com/v1" spellcheck="false" /></label>
-        <label class="settings-field"><span>API key</span><input id="ms-api-key" type="password" autocomplete="off" placeholder="Paste a key" /><small id="ms-key-hint"></small></label>
-        <div class="settings-models">
-          <label class="settings-field"><span>Writing model</span><input id="ms-model-writing" list="ms-model-list" placeholder="notes, plans, themes" spellcheck="false" /></label>
-          <label class="settings-field"><span>Vision model</span><input id="ms-model-vision" list="ms-model-list" placeholder="reviews rendered frames" spellcheck="false" /></label>
-          <label class="settings-field"><span>Coding model</span><input id="ms-model-coding" list="ms-model-list" placeholder="writes canvas programs" spellcheck="false" /></label>
-          <datalist id="ms-model-list"></datalist>
-        </div>
-        <label class="settings-field"><span>Reasoning effort</span><select id="ms-reasoning"><option value="medium">Medium</option><option value="low">Low</option><option value="high">High</option><option value="none">Not sent</option></select></label>
-        <div class="modal-actions settings-actions">
-          <button type="button" id="ms-test" class="button">Test &amp; list models</button>
-          <span id="ms-status" class="settings-status" aria-live="polite"></span>
-          <button type="submit" class="button primary">Save</button>
-        </div>
-      </form>
-    </dialog>
-    <dialog id="agent-settings-dialog" class="modal settings-modal">
-      <div class="modal-heading">
-        <div><span class="eyebrow">Coding agent</span><h2>Who plans the motion</h2></div>
-        <button id="close-agent-settings" class="icon-button" type="button" aria-label="Close">×</button>
-      </div>
-      <div class="settings-body">
-        <p class="settings-note">Plan motion (assist) runs the motion-master skill on a coding-agent CLI installed on this machine. Detected agents:</p>
-        <div id="agent-list" class="agent-list" role="radiogroup" aria-label="Coding agent"></div>
-        <div class="modal-actions settings-actions">
-          <button type="button" id="agent-refresh" class="button">Re-detect</button>
-          <span id="agent-status" class="settings-status" aria-live="polite"></span>
-        </div>
+      <div class="settings-body ai-settings-body">
+        <section class="ai-section" aria-labelledby="ai-routes-title">
+          <h3 id="ai-routes-title">What runs where</h3>
+          <p class="settings-note">Every job the studio asks AI to do, what it runs on now, and how it stands.</p>
+          <div class="ai-routes-scroll"><table id="ai-routes" class="ai-routes"><thead><tr><th scope="col">Job</th><th scope="col">Runs on</th><th scope="col">Status</th></tr></thead><tbody></tbody></table></div>
+        </section>
+        <section id="ai-harness-section" class="ai-section" aria-labelledby="ai-harness-title" hidden>
+          <h3 id="ai-harness-title">Local harness</h3>
+          <p class="settings-note">The story outline, page drawing, video planning and scene production run on a coding-agent CLI on this machine — never on the direct API below. Choose one harness and model for all of them, and override a stage when it should differ. The choice is kept across restarts.</p>
+          <div id="agent-list" class="agent-list" aria-label="Local harnesses and models"></div>
+          <div class="modal-actions settings-actions">
+            <button type="button" id="agent-refresh" class="button">Re-detect</button>
+            <span id="agent-status" class="settings-status" aria-live="polite"></span>
+          </div>
+        </section>
+        <section class="ai-section" aria-labelledby="ai-api-title">
+          <h3 id="ai-api-title">Direct API</h3>
+          <p id="ai-api-uses" class="settings-note"></p>
+          <form id="model-settings-form" class="ai-api-form">
+            <label class="settings-field"><span>Provider</span><select id="ms-provider"></select></label>
+            <p id="ms-provider-note" class="settings-note"></p>
+            <label class="settings-field"><span>Base URL</span><input id="ms-base-url" type="url" placeholder="https://api.openai.com/v1" spellcheck="false" /></label>
+            <label class="settings-field"><span>API key</span><input id="ms-api-key" type="password" autocomplete="off" placeholder="Paste a key" /><small id="ms-key-hint"></small></label>
+            <div class="settings-models">
+              <label class="settings-field"><span>Writing model</span><input id="ms-model-writing" list="ms-model-list" placeholder="notes, plans, themes" spellcheck="false" /></label>
+              <label class="settings-field"><span>Vision model</span><input id="ms-model-vision" list="ms-model-list" placeholder="reviews rendered frames" spellcheck="false" /></label>
+              <label class="settings-field"><span>Coding model</span><input id="ms-model-coding" list="ms-model-list" placeholder="writes canvas programs" spellcheck="false" /></label>
+              <datalist id="ms-model-list"></datalist>
+            </div>
+            <label class="settings-field"><span>Reasoning effort</span><select id="ms-reasoning"><option value="medium">Medium</option><option value="low">Low</option><option value="high">High</option><option value="none">Not sent</option></select></label>
+            <div class="modal-actions settings-actions">
+              <button type="button" id="ms-test" class="button">Test &amp; list models</button>
+              <span id="ms-status" class="settings-status" aria-live="polite"></span>
+              <button type="submit" class="button primary">Save</button>
+            </div>
+          </form>
+        </section>
       </div>
     </dialog>
     <dialog id="publish-dialog" class="modal publish-modal">
       <div class="modal-heading"><div><span class="eyebrow">Publish</span><h2>Finalize your story</h2></div><button id="close-publish" class="icon-button" type="button" aria-label="Close publish">×</button></div>
-      <p class="publish-note">Transitions are set — now choose the take for each recorded block and which blocks ship in the final video.</p>
+      <fieldset class="publish-scope">
+        <legend>What to export</legend>
+        <div id="publish-scope-options" class="publish-scope-options"></div>
+      </fieldset>
       <p id="publish-export-kind" class="publish-note" hidden></p>
+      <p id="publish-audio" class="publish-note publish-audio" role="status" hidden></p>
+      <p id="publish-switchovers" class="publish-note" hidden></p>
       <div id="publish-block-list" class="publish-block-list"></div>
       <div id="publish-take-preview-wrap" class="publish-take-preview" hidden>
         <div class="publish-take-preview-heading"><strong id="publish-take-preview-label">Take preview</strong><button id="close-publish-take-preview" type="button" aria-label="Close take preview">×</button></div>
@@ -801,13 +868,30 @@
       <div class="modal-actions"><span id="assets-status" class="source-status"></span><button id="assets-done" type="button" class="button">Done</button></div>
     </dialog>
     <dialog id="source-dialog" class="modal source-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Start a video</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
-      <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li><li data-step="outline">Outline</li><li data-step="pages">Pages</li></ol>
+      <div class="modal-heading"><div><span class="eyebrow">Start a project</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
+      <!-- Read, then the brand: the project opens on its text at once, and
+           its wireframe is made in the background (the four-notebook model). -->
+      <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li></ol>
       <section id="source-step-read" class="source-step">
-        <label class="source-field">Link<input id="source-url" type="url" placeholder="https://blog.example.com/post" spellcheck="false" /></label>
-        <div class="source-or">or</div>
-        <label class="source-field">Narrative<textarea id="source-narrative" rows="7" placeholder="Paste your own words: the story you want to tell, one paragraph per thought."></textarea></label>
-        <label class="source-field">Brand website <small class="source-hint">optional — only its colours, fonts and logo are read; your words stay yours</small><input id="source-brand-url" type="url" placeholder="https://yoursite.com" spellcheck="false" /></label>
+        <!-- U1 of the scene workspace plan: one input at a time, each keeping
+             its draft; the article and the brand are separate sources. -->
+        <div class="source-input-choice explainer-segment" role="tablist" aria-label="What the video starts from">
+          <button type="button" role="tab" id="source-input-tab-link" data-source-input="link" aria-controls="source-input-link" aria-selected="true" class="active">Link</button>
+          <button type="button" role="tab" id="source-input-tab-text" data-source-input="text" aria-controls="source-input-text" aria-selected="false" tabindex="-1">Paste text</button>
+          <button type="button" role="tab" id="source-input-tab-file" data-source-input="file" aria-controls="source-input-file" aria-selected="false" tabindex="-1">Upload</button>
+        </div>
+        <div id="source-input-link" class="source-input-panel" role="tabpanel" aria-labelledby="source-input-tab-link">
+          <label class="source-field">Article link<input id="source-url" type="url" placeholder="https://blog.example.com/post" spellcheck="false" /><small class="source-hint">A blog post, a README or a documentation page. Its words are read here; the brand is chosen in the next step.</small></label>
+          <div id="source-recovery" class="source-recovery" hidden></div>
+        </div>
+        <div id="source-input-text" class="source-input-panel" role="tabpanel" aria-labelledby="source-input-tab-text" hidden>
+          <label class="source-field">Your text<textarea id="source-narrative" rows="7" placeholder="Paste your own words, or an article's text: the story you want to tell, one paragraph per thought."></textarea></label>
+          <p id="source-credit" class="source-credit" hidden></p>
+        </div>
+        <div id="source-input-file" class="source-input-panel" role="tabpanel" aria-labelledby="source-input-tab-file" hidden>
+          <label class="source-field">A PDF or a deck<input id="source-file" type="file" accept=".pdf,.pptx,.md,.markdown,.txt" /><small class="source-hint">Its text is read like pasted text, page by page or slide by slide. Keynote and Google Slides export to .pptx.</small></label>
+          <details id="source-file-read" class="source-file-text" hidden></details>
+        </div>
         <div class="source-field" id="source-wording-row">
           <span>Your words</span>
           <div class="explainer-segment" id="source-wording-segment" role="group" aria-label="How the studio may use your wording">
@@ -816,53 +900,74 @@
             <button type="button" data-wording="draft">Draft from these notes</button>
           </div>
         </div>
-        <div class="source-or">or</div>
-        <label class="source-field">A PDF or a deck<input id="source-file" type="file" accept=".pdf,.pptx,.md,.markdown,.txt" /><small class="source-hint">Its text is read into the narrative above, then read like one. Keynote and Google Slides export to .pptx.</small></label>
-        <div class="modal-actions"><span id="source-status" class="source-status"></span><button id="source-read" type="button" class="button primary">Read it</button></div>
+        <label class="source-field source-brand-field">Brand website (optional)<input id="source-brand-url" type="url" placeholder="https://yoursite.com" spellcheck="false" /><small class="source-hint">Leave this blank to choose a saved brand template or create a theme in the next step. Add a website to suggest its colours, fonts and logo.</small></label>
+        <div class="modal-actions"><span id="source-status" class="source-status" role="status"></span><span id="source-next" class="source-next">Next: review your source and choose a brand.</span><button id="source-read" type="button" class="button primary">Read it</button></div>
       </section>
       <section id="source-step-brand" class="source-step" hidden>
         <div class="source-summary"><strong id="source-read-title"></strong><span id="source-read-meta"></span></div>
-        <h3>Brand colour <small>click a swatch</small></h3>
-        <div id="source-swatches" class="source-swatches"></div>
-        <h3>Logo</h3>
-        <div id="source-logos" class="source-logos"></div>
-        <h3>Direction</h3>
-        <div id="source-directions" class="source-directions"></div>
-        <div id="source-theme-association" class="source-theme-association" hidden></div>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status"></span><button id="source-to-outline" type="button" class="button primary">Outline it</button></div>
-      </section>
-      <section id="source-step-outline" class="source-step" hidden>
-        <div class="source-outline-head">
-          <label class="source-field grow">Video title<input id="source-outline-title" type="text" /></label>
-          <label class="source-field narrow">Target<input id="source-target" type="text" placeholder="6:00" /></label>
-          <span id="source-outline-sum" class="source-status"></span>
+        <div id="source-extraction" class="source-extraction"></div>
+        <!-- One brand choice: a saved theme, a brand read off a website, or
+             a theme made here. The bound one is named on the next step. -->
+        <div class="source-brand-choice explainer-segment" role="tablist" aria-label="Where the brand comes from">
+          <button type="button" role="tab" id="source-brand-tab-saved" data-brand-panel="saved" aria-controls="source-brand-panel-saved" aria-selected="true" class="active">Saved themes</button>
+          <button type="button" role="tab" id="source-brand-tab-site" data-brand-panel="site" aria-controls="source-brand-panel-site" aria-selected="false" tabindex="-1">From a website</button>
+          <button type="button" role="tab" id="source-brand-tab-custom" data-brand-panel="custom" aria-controls="source-brand-panel-custom" aria-selected="false" tabindex="-1">Create a theme</button>
         </div>
-        <ol id="source-scenes" class="source-scenes"></ol>
-        <div id="source-glossary" class="source-glossary"></div>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="brand">Back</button><span id="source-outline-status" class="source-status"></span><button id="source-make-pages" type="button" class="button primary">Make the pages</button></div>
-      </section>
-      <section id="source-step-pages" class="source-step" hidden>
-        <div id="source-pages-grid" class="source-pages-grid"></div>
-        <div id="source-draw-row" class="source-draw" hidden><span>Draw the pages with</span><select id="source-drawer"><option value="template">the studio's template (instant)</option></select><button id="source-draw" type="button" class="button ghost">Draw</button><span id="source-draw-status" class="source-status"></span></div>
-        <div id="source-destination-row" class="source-destination" hidden><span>This notebook already has content.</span><label><input type="radio" name="source-destination" value="new" checked /> Start a new notebook</label><label><input type="radio" name="source-destination" value="append" /> Add them to this notebook</label></div>
-        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="outline">Back</button><span id="source-pages-note" class="source-status"></span><button id="source-finish" type="button" class="button primary">Open the notebook</button></div>
+        <div id="source-brand-panel-saved" class="source-brand-panel" role="tabpanel" aria-labelledby="source-brand-tab-saved">
+          <div id="source-saved-themes" class="source-directions"></div>
+          <div id="source-starting" class="source-starting" hidden>
+            <h3>Starting themes <small>built in — default colours until you change them</small></h3>
+          </div>
+        </div>
+        <div id="source-brand-panel-site" class="source-brand-panel" role="tabpanel" aria-labelledby="source-brand-tab-site" hidden>
+          <div class="source-brand-read">
+            <label class="source-field">Brand website<input id="source-brand-site" type="url" placeholder="https://yoursite.com" spellcheck="false" /></label>
+            <button id="source-brand-read" type="button" class="button secondary">Read its brand</button>
+            <span id="source-brand-read-status" class="source-status" role="status"></span>
+          </div>
+          <h3>Brand colour <small id="source-palette-provenance">click a swatch</small></h3>
+          <div id="source-swatches" class="source-swatches"></div>
+          <h3>Logo</h3>
+          <div id="source-logos" class="source-logos"></div>
+          <div id="source-site-directions">
+            <h3>Direction</h3>
+            <div id="source-directions" class="source-directions"></div>
+          </div>
+        </div>
+        <div id="source-brand-panel-custom" class="source-brand-panel" role="tabpanel" aria-labelledby="source-brand-tab-custom" hidden>
+          <p class="source-hint">Choose the canvas, text and accent colours yourself; they start from the theme bound now.</p>
+          <div id="source-custom-palette"></div>
+        </div>
+        <div id="source-theme-association" class="source-theme-association" hidden></div>
+        <div class="modal-actions"><button type="button" class="button ghost" data-source-back="read">Back</button><span id="source-brand-status" class="source-status" role="status"></span><span id="source-brand-bound" class="source-next"></span><button id="source-to-outline" type="button" class="button primary">Create the project</button></div>
       </section>
     </dialog>
 
     <dialog id="create-explainer-dialog" class="modal source-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Create explainer</span><h2>How do you want to tell this story?</h2></div><button id="close-create-explainer" class="icon-button" type="button" aria-label="Close create explainer">×</button></div>
-      <p class="source-hint">Both paths share the same material, theme, base wireframes, reusable objects and export. Neither is a default — the choice stays with the notebook and can be changed later.</p>
+      <div class="modal-heading"><div><span class="eyebrow">Create explainer</span><h2>What do you want to start from?</h2></div><button id="close-create-explainer" class="icon-button" type="button" aria-label="Close create explainer">×</button></div>
+      <p class="source-hint">Your material becomes a base notebook first. Whether each video scene is presented by you or narrated by the studio is decided scene by scene, later.</p>
+      <div class="notebook-start-grid" id="create-explainer-materials">
+        <button type="button" class="notebook-start-card" data-material="link"><strong>A link or article</strong><span>A blog post, docs page or README is read for its words, brand and figures.</span></button>
+        <button type="button" class="notebook-start-card" data-material="narrative"><strong>My own narrative</strong><span>Write or paste your words — the story leads, no article required.</span></button>
+        <button type="button" class="notebook-start-card" data-material="base" id="create-explainer-use-base"><strong>This notebook's base</strong><span>Build the whole video from the wireframes already in this notebook, with one delivery for all of it.</span></button>
+      </div>
+      <h3>Delivery for the whole notebook <small>(optional)</small></h3>
       <div class="notebook-start-grid" id="create-explainer-paths" role="radiogroup" aria-label="Delivery path">
         <button type="button" class="notebook-start-card" data-delivery="human" role="radio" aria-checked="false"><strong>Present it myself</strong><span>Shape and record your own narrative — the rich graphics are timed to your actual delivery.</span></button>
         <button type="button" class="notebook-start-card" data-delivery="generated" role="radio" aria-checked="false"><strong>Generate automatically</strong><span>The studio drafts the script and generates the narration from your material — you can edit everything.</span></button>
       </div>
-      <h3>Start from</h3>
-      <div class="notebook-start-grid" id="create-explainer-materials">
-        <button type="button" class="notebook-start-card" data-material="link"><strong>A link or article</strong><span>A blog post, docs page or README is read for its words, brand and figures.</span></button>
-        <button type="button" class="notebook-start-card" data-material="narrative"><strong>My own narrative</strong><span>Write or paste your words — the story leads, no article required.</span></button>
-        <button type="button" class="notebook-start-card" data-material="base" id="create-explainer-use-base"><strong>This notebook's base</strong><span>Build the video from the wireframes already in this notebook.</span></button>
-      </div>
       <div class="modal-actions"><span id="create-explainer-status" class="source-status"></span><button id="create-explainer-cancel" type="button" class="button ghost">Cancel</button></div>
+    </dialog>
+
+    <dialog id="presentation-export-dialog" class="modal presentation-export-modal" aria-labelledby="presentation-export-heading">
+      <form method="dialog">
+        <div class="modal-heading"><div><span class="eyebrow">Presentation</span><h2 id="presentation-export-heading">Export as a PDF</h2></div><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
+        <div class="presentation-export-body">
+          <p id="presentation-export-slides"></p>
+          <p id="presentation-export-type" class="presentation-export-type"></p>
+        </div>
+        <div class="modal-actions"><button value="cancel" class="button ghost">Cancel</button><button id="presentation-export-draft" type="button" class="button secondary">Export all as a draft</button><button id="presentation-export-ready" type="button" class="button primary">Export ready slides</button></div>
+      </form>
     </dialog>
 
     <dialog id="markdown-dialog" class="modal markdown-modal">
@@ -874,7 +979,7 @@
     </dialog>
 
     <dialog id="camera-dialog" class="modal camera-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Camera first. Microphone optional.</h2></div><button id="close-camera" class="icon-button">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Record your delivery.</h2></div><button id="close-camera" class="icon-button">×</button></div>
       <div class="camera-grid">
         <div class="camera-left">
           <div class="camera-preview-shell">
@@ -915,7 +1020,7 @@
             <button id="stop-recording" class="button danger" hidden>Stop take</button>
             <button id="engine-recording" class="button chrome-secondary wide" disabled>Use voice + live canvas</button>
           </div>
-          <p class="privacy-note">Camera-only mode never requests microphone access. Generated voice and real footage remain separate tracks. Only use a voice reference you own or are authorized to use.</p>
+          <p id="camera-privacy-note" class="privacy-note">Camera-only mode never requests microphone access. Generated voice and real footage remain separate tracks. Only use a voice reference you own or are authorized to use.</p>
         </div>
       </div>
     </dialog>
@@ -929,9 +1034,13 @@
     <div id="notebooks-page" class="notebooks-page" role="dialog" aria-modal="true" aria-label="All notebooks" hidden>
       <div class="notebooks-page-shell">
         <header class="notebooks-page-head">
-          <div><span class="eyebrow">Library</span><h2>Notebooks <span id="notebooks-page-count" class="notebooks-page-count"></span></h2></div>
+          <div><span class="eyebrow">Library</span><h2>Projects <span id="notebooks-page-count" class="notebooks-page-count"></span></h2></div>
           <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close">×</button>
         </header>
+        <!-- Each project with its notebooks (the four-notebook model); the
+             notebooks that belong to none are listed below as they were. -->
+        <div id="notebooks-projects" class="notebooks-projects"></div>
+        <h3 id="notebooks-tree-heading" class="notebooks-tree-heading" hidden>Notebooks outside a project</h3>
         <div id="notebooks-tree" class="notebooks-tree"></div>
         <section class="notebooks-samples">
           <h3>Start from a sample</h3>

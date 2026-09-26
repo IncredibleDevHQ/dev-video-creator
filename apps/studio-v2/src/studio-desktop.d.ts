@@ -8,15 +8,31 @@ type StudioDesktopRunSummary = {
   projectDir: string
   status: 'running' | 'gate' | 'waiting' | 'done' | 'error' | 'cancelled'
   resumeId?: string
+  // The model asked for, and the one the harness session reported.
+  model?: string
+  reportedModel?: string
+  // Why it failed: category, the provider's own words, the ways on.
+  failure?: { category: string; message: string; harness: string; requestedModel?: string; reportedModel?: string; at: string; recovery: string[] }
   startedAt: string
   finishedAt?: string
+}
+
+// The models a harness can run; `default` is what its CLI runs unnamed.
+type StudioDesktopHarnessModels = {
+  default: string | null
+  options: Array<{ id: string; label: string; unavailable?: string }>
+  source: string
 }
 
 type StudioDesktopHarnessEvent = {
   runId: string
   event: {
-    type: 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done'
+    type: 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done' | 'session'
     ts: number
+    // On a session event: the model the harness says it runs.
+    model?: string
+    // On tool and file events: what the harness does (read, write, edit, …).
+    operation?: 'read' | 'search' | 'write' | 'edit' | 'run' | 'tool'
     text?: string
     tool?: string
     file?: string
@@ -34,7 +50,7 @@ type StudioDesktopBridge = {
   versions: { electron: string; chrome: string; node: string }
   harness: {
     list: () => Promise<StudioDesktopRunSummary[]>
-    adapters: () => Promise<Array<{ id: string; ok: boolean; version?: string; reason?: string }>>
+    adapters: () => Promise<Array<{ id: string; ok: boolean; version?: string; reason?: string; models?: StudioDesktopHarnessModels }>>
     run: (options: {
       adapter?: string
       skill: string
@@ -54,6 +70,8 @@ type StudioDesktopBridge = {
       brief: string | null
       explainer: { receipt: unknown | null; export: unknown | null; story?: { scenes?: Array<{ id?: string; file?: string }> } | null; assets?: unknown[]; briefs?: Array<{ file: string; entity: string }> } | null
       story: { outline: unknown | null; receipt: unknown | null } | null
+      // A planning run's packet and what it wrote (M0).
+      planning?: { packet: Record<string, string>; planning: Record<string, string> } | null
     }>
     onEvent: (listener: (payload: StudioDesktopHarnessEvent) => void) => () => void
   }

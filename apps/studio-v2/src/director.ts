@@ -52,11 +52,36 @@ export type DirectorBrief = {
   cues: Array<{ step: number; title: string; text: string }>
 }
 
+// Why a scene needs the area it does: the rule that decided it and what it
+// measured. Coaching is written from this record alone, so it never claims
+// a legibility failure its numbers do not show (F5 of the fresh E2E review).
+export type AreaReason = {
+  area: RequiredArea
+  // A script direction, the page's kind, a table, a traced flow, a camera
+  // move, a beat that brings many parts at once, text under the gate at a
+  // narrower width, or the narrowest width that is legible.
+  because: 'direction' | 'kind' | 'table' | 'traces' | 'camera' | 'dense' | 'legibility' | 'fits'
+  // The beat that decided it, where one did (0-based).
+  beat?: number
+  // Traced connections, for a traced flow; parts brought at once, when dense.
+  traces?: number
+  parts?: number
+  // Smallest text (px at 1080p) at the chosen width, whose text it is, and
+  // the gate it is held to.
+  px?: number
+  subject?: string
+  gatePx: number
+  // For legibility: the narrower width that failed, and its smallest text.
+  narrower?: RequiredArea
+  narrowerPx?: number
+}
+
 export type DirectorResult = {
   kind: SceneKind
   arcRole: ArcRole
   requiredArea: RequiredArea
-  legibility: { minTextPx: Record<RequiredArea, number>; gatePx: number }
+  areaReason: AreaReason
+  legibility: { minTextPx: Record<RequiredArea, number>; gatePx: number; smallest?: string }
   storyboard: StoryboardEntry[]
   cues: string[]
   directorNotes: string
@@ -169,14 +194,35 @@ export const legibilityFor = (units: SlideUnit[], viewBox: { width: number; heig
   const leaves = leafUnits(units)
   const texts = leaves.filter(unit => unit.kind === 'label' || unit.kind === 'box')
   // A box's text is roughly 0.45 of its height; a label's bbox is its text.
-  const heights = texts.map(unit => (unit.kind === 'box' ? unit.bbox.height * 0.45 : unit.bbox.height)).filter(h => h > 0)
-  const minText = heights.length ? Math.min(...heights) : viewBox.height * 0.03
+  const measured = texts
+    .map(unit => ({ unit, height: unit.kind === 'box' ? unit.bbox.height * 0.45 : unit.bbox.height }))
+    .filter(entry => entry.height > 0)
+  const smallest = measured.reduce<(typeof measured)[number] | null>((low, entry) => (!low || entry.height < low.height ? entry : low), null)
+  const minText = smallest ? smallest.height : viewBox.height * 0.03
   const minTextPx = {} as Record<RequiredArea, number>
   ;(Object.keys(AREA_WIDTH_SHARE) as RequiredArea[]).forEach(area => {
     const scale = (FRAME_WIDTH_PX * AREA_WIDTH_SHARE[area]) / viewBox.width
     minTextPx[area] = Math.round(minText * scale * 10) / 10
   })
-  return { minTextPx, gatePx: LEGIBILITY_GATE_PX }
+  return { minTextPx, gatePx: LEGIBILITY_GATE_PX, ...(smallest?.unit.label ? { smallest: smallest.unit.label } : {}) }
+}
+
+// The narrowest width from the floor up whose smallest text clears the
+// gate, and why: the floor's own rule where the floor is legible, else the
+// narrower width that failed. When not even the whole frame clears it, the
+// page takes the frame anyway and the reason carries the short measure.
+const widthWhy = (floor: RequiredArea, floorWhy: Pick<AreaReason, 'because' | 'beat' | 'traces' | 'parts'>, legibility: ReturnType<typeof legibilityFor>): AreaReason => {
+  const orderList: RequiredArea[] = ['slot', 'beside', 'frame', 'takeover']
+  const start = Math.max(0, orderList.indexOf(floor))
+  const measure = (area: RequiredArea) => ({ area, px: legibility.minTextPx[area], gatePx: legibility.gatePx, ...(legibility.smallest ? { subject: legibility.smallest } : {}) })
+  for (let i = start; i < orderList.length; i += 1) {
+    if (legibility.minTextPx[orderList[i]] < legibility.gatePx) continue
+    if (i === start) return { ...floorWhy, ...measure(orderList[i]) }
+    return { because: 'legibility', ...measure(orderList[i]), narrower: orderList[i - 1], narrowerPx: legibility.minTextPx[orderList[i - 1]] }
+  }
+  return start === orderList.length - 1
+    ? { ...floorWhy, ...measure('takeover') }
+    : { because: 'legibility', ...measure('takeover'), narrower: 'frame', narrowerPx: legibility.minTextPx.frame }
 }
 
 /** Units a beat brings on screen or highlights (by element id → unit). */
@@ -185,57 +231,61 @@ const beatUnits = (units: SlideUnit[], beat: MotionPlanV2['steps'][number]) => {
   return leafUnits(units).filter(unit => unit.ids.some(id => ids.has(id)))
 }
 
-/** The area one beat needs: measured on the parts that beat is about. */
-export const requiredAreaForBeat = (
+/** The area one beat needs, and why: measured on the parts that beat is about. */
+export const beatAreaWhy = (
   units: SlideUnit[],
   viewBox: { width: number; height: number },
   beat: MotionPlanV2['steps'][number],
   kind: SceneKind,
-): RequiredArea => {
+): AreaReason => {
   const subject = beatUnits(units, beat)
-  if (!subject.length) return 'none'
+  if (!subject.length) return { area: 'none', because: 'fits', gatePx: LEGIBILITY_GATE_PX }
   const legibility = legibilityFor(subject, viewBox)
   const traces = beat.actions
     .filter(action => action.op === 'trace' || action.op === 'connect')
     .reduce((sum, action) => sum + Math.max(1, action.targets.length), 0)
   const camera = beat.actions.some(action => action.op === 'camera' && !action.implicit)
-  const floor: RequiredArea = kind === 'table' || traces >= 3 || camera ? 'takeover' : subject.length >= 6 ? 'frame' : 'slot'
-  const orderList: RequiredArea[] = ['slot', 'beside', 'frame', 'takeover']
-  for (let i = Math.max(0, orderList.indexOf(floor)); i < orderList.length; i += 1) {
-    if (legibility.minTextPx[orderList[i]] >= legibility.gatePx) return orderList[i]
-  }
-  return 'takeover'
+  if (kind === 'table') return widthWhy('takeover', { because: 'table' }, legibility)
+  if (traces >= 3) return widthWhy('takeover', { because: 'traces', traces }, legibility)
+  if (camera) return widthWhy('takeover', { because: 'camera' }, legibility)
+  return subject.length >= 6 ? widthWhy('frame', { because: 'dense', parts: subject.length }, legibility) : widthWhy('slot', { because: 'fits' }, legibility)
 }
+export const requiredAreaForBeat = (
+  units: SlideUnit[],
+  viewBox: { width: number; height: number },
+  beat: MotionPlanV2['steps'][number],
+  kind: SceneKind,
+): RequiredArea => beatAreaWhy(units, viewBox, beat, kind).area
 
+export const requiredAreaWhy = (
+  kind: SceneKind,
+  plan: MotionPlanV2,
+  legibility: ReturnType<typeof legibilityFor>,
+  beats: ScriptBeat[],
+): AreaReason => {
+  const directed = (want: string) => beats.findIndex(beat => beat.directions.some(direction => direction.kind === want))
+  const measured = (area: RequiredArea) => ({ px: legibility.minTextPx[area], gatePx: legibility.gatePx, ...(legibility.smallest ? { subject: legibility.smallest } : {}) })
+  if (directed('takeover') >= 0) return { area: 'takeover', because: 'direction', beat: directed('takeover'), ...measured('takeover') }
+  if (directed('panel') >= 0) return { area: 'beside', because: 'direction', beat: directed('panel'), ...measured('beside') }
+  if (kind === 'title') return { area: 'none', because: 'kind', gatePx: legibility.gatePx }
+  // Traced connectors, counted by target: a flow of three arrows needs the
+  // frame whether they draw in one beat or three.
+  const tracesIn = (beat: MotionPlanV2['steps'][number]) =>
+    beat.actions.filter(action => action.op === 'trace' || action.op === 'connect').reduce((inner, action) => inner + Math.max(1, action.targets.length), 0)
+  const traces = plan.steps.reduce((sum, beat) => sum + tracesIn(beat), 0)
+  const cameraBeat = plan.steps.findIndex(beat => beat.actions.some(action => action.op === 'camera' && !action.implicit))
+  // Traced flows and camera work need the frame; tables need every pixel.
+  if (kind === 'table') return widthWhy('takeover', { because: 'table' }, legibility)
+  if (traces >= 3) return widthWhy('takeover', { because: 'traces', traces, beat: plan.steps.findIndex(beat => tracesIn(beat) > 0) }, legibility)
+  if (cameraBeat >= 0) return widthWhy('takeover', { because: 'camera', beat: cameraBeat }, legibility)
+  return kind === 'diagram' ? widthWhy('frame', { because: 'kind' }, legibility) : widthWhy('slot', { because: 'fits' }, legibility)
+}
 export const requiredAreaFor = (
   kind: SceneKind,
   plan: MotionPlanV2,
   legibility: ReturnType<typeof legibilityFor>,
   beats: ScriptBeat[],
-): RequiredArea => {
-  if (beats.some(beat => beat.directions.some(direction => direction.kind === 'takeover'))) return 'takeover'
-  if (beats.some(beat => beat.directions.some(direction => direction.kind === 'panel'))) return 'beside'
-  if (kind === 'title') return 'none'
-  // Traced connectors, counted by target: a flow of three arrows needs the
-  // frame whether they draw in one beat or three.
-  const traces = plan.steps.reduce(
-    (sum, beat) =>
-      sum +
-      beat.actions
-        .filter(action => action.op === 'trace' || action.op === 'connect')
-        .reduce((inner, action) => inner + Math.max(1, action.targets.length), 0),
-    0,
-  )
-  const cameras = plan.steps.reduce((sum, beat) => sum + beat.actions.filter(action => action.op === 'camera' && !action.implicit).length, 0)
-  // Traced flows and camera work need the frame; tables need every pixel.
-  const floor: RequiredArea = kind === 'table' || traces >= 3 || cameras >= 1 ? 'takeover' : kind === 'diagram' ? 'frame' : kind === 'figure' ? 'slot' : 'slot'
-  const orderList: RequiredArea[] = ['slot', 'beside', 'frame', 'takeover']
-  const floorIndex = orderList.indexOf(floor)
-  for (let i = Math.max(0, floorIndex); i < orderList.length; i += 1) {
-    if (legibility.minTextPx[orderList[i]] >= legibility.gatePx) return orderList[i]
-  }
-  return 'takeover'
-}
+): RequiredArea => requiredAreaWhy(kind, plan, legibility, beats).area
 
 // ——— Layout scoring: every family, every beat ———
 // The director weighs each way of staging a beat on four things: whether
@@ -729,22 +779,57 @@ export const cuesFor = (storyboard: StoryboardEntry[], beats: ScriptBeat[], plan
   return [...new Set(cues)].slice(0, 6)
 }
 
-const notesFor = (kind: SceneKind, arcRole: ArcRole, requiredArea: RequiredArea, storyboard: StoryboardEntry[], legibility: ReturnType<typeof legibilityFor>) => {
+// What the page needs and why, written only from the reason's record: a
+// width is called too narrow only with the measure that fails there, and
+// text still under the gate at the chosen width is said to be.
+export const areaLineFor = (kind: SceneKind, why: AreaReason) => {
+  const thing = kind === 'diagram' ? 'diagram' : kind === 'table' ? 'table' : 'page'
+  const at = why.beat !== undefined && why.beat >= 0 ? ` (beat ${why.beat + 1})` : ''
+  const failed = why.because === 'legibility' && why.narrowerPx !== undefined ? `${why.narrowerPx} px, under the ${why.gatePx} px gate` : ''
+  const short = why.px !== undefined && why.px < why.gatePx
+    ? ` Even so its smallest text${why.subject ? ` (“${why.subject.slice(0, 40)}”)` : ''} is only ${why.px} px there, under the ${why.gatePx} px gate — enlarge it on the page.`
+    : ''
+  switch (why.area) {
+    case 'none':
+      return why.because === 'kind' ? 'The page has almost nothing on it, so it stays a card behind you.' : 'No beat brings a part of the page forward, so it stays a card behind you.'
+    case 'slot':
+      return `The information fits a slot beside you (smallest text ${why.px} px at 1080p).${short}`
+    case 'beside':
+      return (why.because === 'direction'
+        ? `The script puts the ${thing} in a panel beside you${at} (smallest text ${why.px} px there).`
+        : failed
+          ? `Sit in a panel with the ${thing} beside you — it stays legible at that width (${why.px} px); in a slot it would be ${failed}.`
+          : `Sit in a panel with the ${thing} beside you (smallest text ${why.px} px).`) + short
+    case 'frame':
+      return (failed
+        ? `The ${thing} needs a card most of the frame wide; you ride in the margin (smallest text ${why.px} px; in a panel it would be ${failed}).`
+        : why.because === 'dense'
+          ? `Beat ${(why.beat ?? 0) + 1} brings ${why.parts} parts in at once, so the ${thing} takes a card most of the frame wide; you ride in the margin (smallest text ${why.px} px).`
+          : why.because === 'kind'
+            ? `A diagram takes a card most of the frame wide; you ride in the margin (smallest text ${why.px} px).`
+            : `The ${thing} takes a card most of the frame wide; you ride in the margin (smallest text ${why.px} px).`) + short
+    default:
+      return (why.because === 'direction'
+        ? `The script gives the ${thing} the whole frame${at} — you become a chip.`
+        : why.because === 'table'
+          ? 'A table needs every pixel — you become a chip.'
+          : why.because === 'traces'
+            ? `The ${thing} traces ${why.traces} connections${at}, and a traced flow needs the whole frame — you become a chip.`
+            : why.because === 'camera'
+              ? `The camera moves in on the ${thing}${at}, which needs the whole frame — you become a chip.`
+              : failed
+                ? `The ${thing} needs the whole frame — most of the frame wide its smallest text would be ${failed} — so you become a chip.`
+                : `The ${thing} takes the whole frame — you become a chip.`) + short
+  }
+}
+
+const notesFor = (kind: SceneKind, arcRole: ArcRole, requiredArea: RequiredArea, storyboard: StoryboardEntry[], why: AreaReason) => {
   const open = storyboard[0]
   const opening =
     open?.family === 'speaker-full'
       ? 'Open on you.'
       : `Open straight on the page — the first line already brings something in.`
-  const areaLine =
-    requiredArea === 'none'
-      ? 'The page has almost nothing on it, so it stays a card behind you.'
-      : requiredArea === 'slot'
-        ? `The information fits a slot beside you (smallest text ${legibility.minTextPx.slot} px at 1080p).`
-        : requiredArea === 'beside'
-          ? `Sit in a panel with the page beside you — it stays legible at that width (${legibility.minTextPx.beside} px), it would not in a slot (${legibility.minTextPx.slot} px).`
-          : requiredArea === 'frame'
-            ? `The page needs a card most of the frame wide; you ride in the margin (smallest text ${legibility.minTextPx.frame} px).`
-            : `The ${kind === 'diagram' ? 'diagram' : 'page'} needs the whole frame — you become a chip (in a panel the smallest text would be ${legibility.minTextPx.beside} px, under the 18 px gate).`
+  const areaLine = areaLineFor(kind, why)
   const close = storyboard[storyboard.length - 1]
   const closing = storyboard.some(entry => entry.label === 'Outro')
     ? 'Close beside the page with the last thought, then alone in frame to lead into the next scene.'
@@ -765,7 +850,8 @@ export const direct = (input: DirectorInput): DirectorResult => {
     const here = legibilityFor(staged, input.viewBox)
     return here.minTextPx.takeover < worst.minTextPx.takeover ? here : worst
   }, legibilityFor(input.units, input.viewBox))
-  const sceneArea = requiredAreaFor(kind, input.plan, legibility, input.beats)
+  const sceneWhy = requiredAreaWhy(kind, input.plan, legibility, input.beats)
+  const sceneArea = sceneWhy.area
   // Per beat: the area the beat's own parts need; the scene's area is the
   // largest any beat needs (what the pill shows), never more than the
   // whole-page measure.
@@ -773,10 +859,15 @@ export const direct = (input: DirectorInput): DirectorResult => {
   // What a beat needs is measured against what the camera is showing at that
   // beat: a close-up makes its subject bigger, and the staging must know.
   const framePerBeat = input.plan.steps.map((_, index) => cameraRectAt(input.plan, index, input.viewBox) || input.viewBox)
-  const areas = input.plan.steps.map((step, index) => requiredAreaForBeat(stagedPerBeat[index], framePerBeat[index], step, kind))
+  const beatWhys = input.plan.steps.map((step, index) => beatAreaWhy(stagedPerBeat[index], framePerBeat[index], step, kind))
+  const areas = beatWhys.map(why => why.area)
   const requiredArea = areas.length
     ? order[Math.min(order.indexOf(sceneArea), Math.max(...areas.map(area => order.indexOf(area))))]
     : sceneArea
+  // The scene's rule decided the area, unless no beat needs that much: then
+  // the beat that needs the most decided it.
+  const deciding = areas.indexOf(requiredArea)
+  const areaReason: AreaReason = requiredArea === sceneArea || deciding < 0 ? sceneWhy : { ...beatWhys[deciding], beat: deciding }
   const outro = outroFor(input.beats, input.plan, input.position, input.layouts, requiredArea, input.layoutsByAuthor)
   const placements = placementsFor(input.plan, input.units, input.viewBox)
   // Crowded: on most beats even the best chip placement covers ink.
@@ -846,7 +937,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
     return groups
   })
   const cues = cuesFor(storyboard, input.beats, input.plan, outro)
-  const directorNotes = notesFor(kind, arcRole, requiredArea, storyboard, legibility)
+  const directorNotes = notesFor(kind, arcRole, requiredArea, storyboard, areaReason)
   const totalSeconds = Math.round(input.plan.steps.reduce((sum, step) => sum + step.motionWindowMs + step.holdMs, 0) / 100) / 10
   const shots = planShots(storyboard, input.beats)
   const dominant = storyboard.reduce<StoryboardEntry | null>((best, entry) => {
@@ -858,6 +949,7 @@ export const direct = (input: DirectorInput): DirectorResult => {
     kind,
     arcRole,
     requiredArea,
+    areaReason,
     legibility,
     storyboard,
     cues,

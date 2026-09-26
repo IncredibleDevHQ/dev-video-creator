@@ -105,7 +105,7 @@ const rehearsalState = () => evalInWindow(`(() => ({
 
 try {
   const project = {
-    version: 1, id: PROJECT_ID, title: 'Rehearsal fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: PROJECT_ID, title: 'Rehearsal fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Rehearsal' }] },
       sceneNode(SCENE_ID, 'Rehearse scene', { windows: WINDOWS, motion: MOTION }),
@@ -114,7 +114,7 @@ try {
     fps: 30, width: 1920, height: 1080, blocks: {}, presenterTracks: {}, recordedBlocks: {}, brand: {}, theme: {},
   }
   await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project) })
-  await evalInWindow(`localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
+  await evalInWindow(`localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); location.assign('/studio')`)
   await waitFor(`!!document.getElementById('${SCENE_ID}')`)
 
   await openCameraFor('Rehearse scene')

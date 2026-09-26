@@ -64,7 +64,7 @@ try {
   first = await startApp()
   const { origin } = first
   const project = {
-    version: 1, id: PROJECT_ID, title: 'Takes fixture',
+    version: 1, derivedFrom: { notebook: 'fixture-base', kind: 'video' }, id: PROJECT_ID, title: 'Takes fixture',
     notebook: { type: 'doc', content: [
       { type: 'heading', attrs: { id: 'blk-h1', level: 1 }, content: [{ type: 'text', text: 'Takes' }] },
       { type: 'scene', attrs: { id: 'blk-p1', title: 'Take scene' } },
@@ -119,7 +119,7 @@ try {
 
   await fetch(`${origin}/__eval`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ js: `(() => { window.localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); window.location.assign('/studio'); })()` }),
+    body: JSON.stringify({ js: `(() => { window.localStorage.setItem('incredible-studio-v2-video-view', 'notebook'), localStorage.setItem('incredible-studio-v2-active-project', '${PROJECT_ID}'); window.location.assign('/studio'); })()` }),
   })
   let doc = null
   for (let i = 0; i < 40; i += 1) {
@@ -208,7 +208,7 @@ try {
   const stripped = await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json()).then(b => b.project)
   stripped.recordedBlocks = {}
   stripped.recordedBlockTakes = {}
-  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(stripped) })
+  await fetch(`${origin}/api/projects/${PROJECT_ID}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: stripped, expectedProject: (await fetch(`${origin}/api/projects/${PROJECT_ID}`).then(r => r.json())).project }) })
   await evalInWindow(origin, `location.reload()`)
   await evalInWindow(origin, `(() => new Promise(r => { const t = setInterval(() => { if (document.getElementById('project-title')?.value === 'Takes fixture') { clearInterval(t); r(true) } }, 400) }))()`)
   let rehydrated = null

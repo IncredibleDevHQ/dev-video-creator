@@ -1,0 +1,419 @@
+/* The video scene workspace (U2 of the scene workspace plan): the stage in
+   the middle, the scenes on the left, one inspector on the right. Its type is
+   its own, not the notebook's document styles; its breakpoints follow the
+   workspace's width, not the window's. */
+.scene-workspace {
+  --sw-line: #e4e4e7;
+  --sw-ink: #18181b;
+  --sw-text: #27272a;
+  --sw-muted: #71717a;
+  --sw-soft: #f4f4f5;
+  --sw-surround: #eeeef0;
+  --sw-rail-bg: #fafafa;
+  --sw-accent: #16a34a;
+  --sw-focus: #4338ca;
+  container: sw / inline-size;
+  position: relative;
+  height: 100%;
+  background: #fff;
+  color: var(--sw-text);
+  font: 13.5px/1.5 'InterBody', Inter, system-ui, sans-serif;
+}
+.scene-workspace[hidden] { display: none; }
+.sw-layout {
+  --sw-rail: 176px;
+  --sw-inspector: 340px;
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--sw-rail) minmax(0, 1fr) var(--sw-inspector);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "head head head" "rail centre inspector";
+}
+body.is-scene-workspace { --rail-band: 0px; min-width: 0; }
+body.is-scene-workspace .notebook-document { display: none; }
+.scene-workspace :focus-visible { outline: 2px solid var(--sw-focus); outline-offset: 2px; }
+.scene-workspace h2, .scene-workspace h3, .scene-workspace h4 { font-family: 'Gilroy', 'InterBody', Inter, sans-serif; }
+
+/* ——— The header: back, the scene, its revision, its one action ——— */
+.sw-head { grid-area: head; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; padding: 10px 16px; border-bottom: 1px solid var(--sw-line); background: #fff; }
+.sw-back { flex: none; padding: 6px 10px; border: 1px solid var(--sw-line); border-radius: 8px; background: #fff; color: var(--sw-text); font: 600 12.5px/1.2 'InterBody', Inter, sans-serif; cursor: pointer; }
+.sw-back:hover { background: var(--sw-soft); }
+.sw-title { flex: 0 1 auto; display: grid; min-width: 0; }
+.sw-eyebrow { font: 700 10.5px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--sw-muted); }
+.sw-title h2 { margin: 0; max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 1.25; color: var(--sw-ink); }
+.sw-revision-slot { flex: none; }
+.ws-revision { max-width: 260px; padding: 6px 28px 6px 10px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; color: var(--sw-ink); font: 600 12.5px/1.2 'InterBody', Inter, sans-serif; }
+.sw-status { flex: 1 1 180px; min-width: 0; }
+.sw-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin-left: auto; }
+.sw-actions .button { min-height: 34px; font-size: 12.5px; white-space: nowrap; }
+.sw-actions .button.ghost { min-height: 30px; padding: 0 10px; border-color: #d4d4d8; font-size: 12px; }
+.sw-tool { padding: 6px 10px; border: 1px solid var(--sw-line); border-radius: 999px; background: #fff; color: #3f3f46; font: 600 11.5px/1.2 'InterBody', Inter, sans-serif; cursor: pointer; white-space: nowrap; }
+.sw-tool:hover { background: var(--sw-soft); }
+.sw-tool.is-on { background: var(--sw-ink); border-color: var(--sw-ink); color: #fafafa; }
+.sw-inspector-toggle { display: none; }
+
+/* What is running, with how long; the last thing the harness did, small. */
+.ws-activity { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 0; padding: 7px 12px; border-radius: 8px; background: #eff6ff; color: #1e3a8a; font-size: 12.5px; line-height: 1.4; }
+.ws-activity strong { font-weight: 650; }
+.ws-activity-dot { align-self: center; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; animation: sw-pulse 1.6s ease-in-out infinite; }
+.ws-activity-time { font-variant-numeric: tabular-nums; color: #3b5b8c; }
+.ws-activity-last { flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; }
+@keyframes sw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .ws-activity-dot { animation: none; } }
+
+/* ——— The scenes ——— */
+.sw-rail { grid-area: rail; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--sw-line); background: var(--sw-rail-bg); }
+.sw-rail-toggle { flex: none; align-self: flex-end; margin: 6px 8px 2px; width: 26px; height: 24px; border: 1px solid var(--sw-line); border-radius: 6px; background: #fff; color: var(--sw-muted); cursor: pointer; }
+.sw-scenes { list-style: none; margin: 0; padding: 4px 8px 16px; display: grid; gap: 4px; align-content: start; overflow-y: auto; min-height: 0; }
+.sw-scene { width: 100%; display: grid; gap: 6px; padding: 6px; border: 1px solid transparent; border-radius: 10px; background: none; color: inherit; text-align: left; cursor: pointer; }
+.sw-scene:hover { background: #fff; border-color: var(--sw-line); }
+.sw-scene.is-selected { background: #fff; border-color: var(--sw-ink); box-shadow: 0 1px 2px rgba(24, 24, 27, .08); }
+.sw-scene-thumb { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; background: #e4e4e7; }
+.sw-scene-thumb img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.sw-scene-number { position: absolute; left: 4px; top: 4px; min-width: 18px; padding: 1px 5px; border-radius: 5px; background: rgba(24, 24, 27, .82); color: #fff; font: 700 10.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
+.sw-scene-text { display: grid; gap: 2px; min-width: 0; }
+/* The compact rail keeps each scene's state as a dot on its picture. */
+.sw-scene-dot { display: none; position: absolute; right: 4px; bottom: 4px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #a1a1aa; }
+.sw-scene-dot.is-busy { background: #7c3aed; }
+.sw-scene-dot.is-new { background: #2563eb; }
+.sw-scene-dot.is-good { background: var(--sw-accent); }
+.sw-scene-dot.is-warn { background: #d97706; }
+.sw-scene-dot.is-bad { background: #dc2626; }
+.scene-workspace.is-rail-collapsed .sw-scene-dot { display: block; }
+.sw-scene-text strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 600 12px/1.3 'InterBody', Inter, sans-serif; color: var(--sw-ink); overflow-wrap: anywhere; }
+.sw-scene-state { display: inline-flex; align-items: center; gap: 5px; font: 600 10.5px/1.3 'InterBody', Inter, sans-serif; color: var(--sw-muted); }
+.sw-scene-state::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: #a1a1aa; }
+.sw-scene-state.is-busy { color: #5b21b6; }
+.sw-scene-state.is-busy::before { background: #7c3aed; animation: sw-pulse 1.6s ease-in-out infinite; }
+.sw-scene-state.is-new { color: #1e40af; }
+.sw-scene-state.is-new::before { background: #2563eb; }
+.sw-scene-state.is-good { color: #166534; }
+.sw-scene-state.is-good::before { background: var(--sw-accent); }
+.sw-scene-state.is-warn { color: #92400e; }
+.sw-scene-state.is-warn::before { background: #d97706; }
+.sw-scene-state.is-bad { color: #991b1b; }
+.sw-scene-state.is-bad::before { background: #dc2626; }
+@media (prefers-reduced-motion: reduce) { .sw-scene-state.is-busy::before { animation: none; } }
+.scene-workspace.is-rail-collapsed .sw-layout { --sw-rail: 84px; }
+.scene-workspace.is-rail-collapsed .sw-scene-text { display: none; }
+
+/* ——— The stage ——— */
+.sw-centre { grid-area: centre; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--sw-surround); }
+/* R06: the stage keeps a useful size with the timeline and inspector open. */
+.sw-stage-area { flex: 1 1 auto; min-height: clamp(260px, 44vh, 560px); display: grid; place-items: center; padding: 16px 20px 8px; container-type: size; }
+.sw-stage-frame { position: relative; width: min(100cqw, calc(100cqh * var(--sw-aspect, 1.7778))); aspect-ratio: var(--sw-aspect, 16 / 9); overflow: hidden; border-radius: 10px; background: #0f0d18; box-shadow: 0 1px 2px rgba(24, 24, 27, .1), 0 14px 34px rgba(24, 24, 27, .16); }
+.sw-stage-frame:fullscreen { width: 100%; border-radius: 0; }
+/* A phone's width, portrait: the same stage, as small as it may be watched. */
+.scene-workspace.is-phone-size .sw-stage-frame:not(:fullscreen) { width: min(100cqw, 390px); border-radius: 6px; }
+.sw-stage-frame > .scene-stage { inset: 0; border-radius: 0; }
+.sw-stage-frame .scene-stage-transport { display: none; }
+.sw-stage-row { display: flex; align-items: center; gap: 8px 12px; padding: 0 20px; }
+.sw-stage-bar { flex: 1 1 auto; min-width: 0; }
+.sw-stage-tools { flex: none; display: flex; gap: 6px; }
+.sw-stage-bar .scene-stage-full { flex: none; white-space: nowrap; }
+.sw-stage-bar .scene-stage-bar { margin: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px 12px; }
+.sw-stage-bar .scene-stage-modes { flex: none; flex-wrap: nowrap; }
+.sw-stage-bar .scene-stage-modes button { padding: 4px 10px; font-size: 11.5px; }
+/* Once, beside the player: what the stage shows; the rest in its title. */
+.sw-stage-bar .scene-stage-note { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #52525b; }
+.sw-stage-bar .scene-stage-bar.is-preview .scene-stage-note { color: #86198f; }
+.sw-stage-activity { padding: 6px 20px 0; }
+.sw-stage-activity:empty { display: none; }
+
+/* Playback, and the scene's moments: one row, sized by their length. */
+.sw-transport { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 20px 14px; }
+.sw-play { width: 36px; height: 32px; border: 0; border-radius: 8px; background: var(--sw-ink); color: #fafafa; font-size: 12px; cursor: pointer; }
+.sw-play:disabled { background: #d4d4d8; cursor: default; }
+.sw-clock { min-width: 92px; color: #52525b; font: 500 11.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sw-moments { display: flex; gap: 3px; min-width: 0; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: thin; }
+.sw-moments-empty { color: var(--sw-muted); font-size: 12px; }
+.sw-moment { position: relative; flex: 1 1 0; min-width: 76px; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; align-items: baseline; padding: 6px 8px; overflow: hidden; border: 1px solid #d4d4d8; border-radius: 7px; background: #fff; color: var(--sw-text); text-align: left; cursor: pointer; }
+.sw-moment:hover { border-color: #a1a1aa; }
+.sw-moment.is-selected { border-color: var(--sw-ink); box-shadow: inset 0 0 0 1px var(--sw-ink); }
+.sw-moment.is-current { background: #fef3c7; }
+.sw-moment-number { grid-row: span 2; font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--sw-muted); }
+.sw-moment-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 11.5px/1.3 'InterBody', Inter, sans-serif; }
+.sw-moment-time { font: 500 10.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--sw-muted); font-variant-numeric: tabular-nums; }
+.sw-playhead { position: absolute; top: 0; bottom: 0; left: calc(var(--at, 0) * 100%); width: 2px; background: #f59e0b; pointer-events: none; }
+
+/* ——— The inspector ——— */
+.sw-inspector { grid-area: inspector; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--sw-line); background: #fff; }
+.sw-tabs { flex: none; display: flex; align-items: center; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--sw-line); }
+.sw-context-open { margin-left: 4px; }
+.sw-tabs button { padding: 9px 11px 8px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--sw-muted); font: 650 12.5px/1.2 'InterBody', Inter, sans-serif; cursor: pointer; }
+.sw-tabs button:hover { color: var(--sw-ink); }
+.sw-tabs button.is-on { border-bottom-color: var(--sw-ink); color: var(--sw-ink); }
+.sw-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 16px 28px; overflow-wrap: anywhere; }
+.sw-panel p { margin: 0 0 10px; }
+.sw-panel .review-disclosure { margin: 12px 0 0; }
+.sw-panel .review-actions { margin: 8px 0; }
+.sw-follow { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; color: #52525b; font-size: 12px; }
+.ws-label { margin: 0 0 6px; font: 700 11px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--sw-muted); }
+.ws-question { margin: 0 0 10px; color: var(--sw-ink); font: 650 16px/1.4 'Gilroy', 'InterBody', Inter, sans-serif; text-wrap: balance; }
+.ws-takeaway { color: #3f3f46; }
+.ws-example p { margin: 6px 0; }
+.ws-evidence { margin: 6px 0 0; padding-left: 18px; color: #52525b; }
+.ws-evidence q { quotes: '“' '”'; }
+.ws-open { margin: 6px 0 0; padding-left: 18px; }
+.ws-cast-line { font-size: 12.5px; }
+.ws-direction { display: grid; gap: 8px; margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--sw-line); }
+.ws-direction textarea { width: 100%; min-height: 64px; padding: 8px 10px; border: 1px solid #d4d4d8; border-radius: 8px; resize: vertical; font: 13px/1.45 'InterBody', Inter, sans-serif; }
+.ws-direction .button { justify-self: start; }
+.ws-moment-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin: 0 0 8px; }
+.ws-moment-count { color: var(--sw-muted); font: 600 11.5px/1.2 'InterBody', Inter, sans-serif; }
+.ws-moment-steps { display: flex; gap: 4px; }
+.ws-step { min-height: 28px; padding: 3px 9px; font-size: 11.5px; }
+.ws-moment-title { margin: 0 0 10px; color: var(--sw-ink); font-size: 16px; line-height: 1.35; text-wrap: balance; }
+.ws-moment-title small { color: var(--sw-muted); font: 500 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.ws-moment-fields { display: grid; gap: 2px 0; margin: 0 0 10px; }
+.ws-moment-fields dt { margin-top: 8px; font: 700 10.5px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--sw-muted); }
+.ws-moment-fields dd { margin: 0; color: var(--sw-text); }
+.ws-spoken { padding: 6px 10px; border-left: 3px solid var(--sw-accent); background: #f7fdf9; font-style: italic; }
+.ws-mapping { font-size: 12px; }
+.ws-moment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ws-moment-list button { width: 100%; display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border: 1px solid var(--sw-line); border-radius: 8px; background: #fff; text-align: left; cursor: pointer; font: 600 12.5px/1.35 'InterBody', Inter, sans-serif; }
+.ws-moment-list button:hover { border-color: #a1a1aa; }
+.ws-delivery { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; padding: 3px; border: 1px solid var(--sw-line); border-radius: 9px; background: var(--sw-soft); }
+.ws-delivery button { flex: 1 1 auto; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: #52525b; font: 650 12px/1.2 'InterBody', Inter, sans-serif; cursor: pointer; }
+.ws-delivery button.is-selected { background: #fff; color: var(--sw-ink); box-shadow: 0 1px 3px rgba(24, 24, 27, .12); }
+.ws-record .review-guide { padding-top: 0; }
+
+/* ——— The context drawer ——— */
+.sw-context { position: absolute; top: 0; right: 0; bottom: 0; z-index: 20; width: min(460px, 94%); display: flex; flex-direction: column; border-left: 1px solid var(--sw-line); background: #fff; box-shadow: -18px 0 42px rgba(24, 24, 27, .16); }
+.sw-context[hidden] { display: none; }
+.sw-context-head { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px 0; border-bottom: 1px solid var(--sw-line); }
+.sw-context-head > strong { font: 700 14px/1.3 'Gilroy', 'InterBody', Inter, sans-serif; color: var(--sw-ink); }
+.sw-context-tabs { display: flex; flex-wrap: wrap; gap: 2px; order: 3; flex: 1 1 100%; }
+.sw-context-tabs button { padding: 8px 10px 7px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--sw-muted); font: 650 12px/1.2 'InterBody', Inter, sans-serif; cursor: pointer; }
+.sw-context-tabs button.is-on { border-bottom-color: var(--sw-ink); color: var(--sw-ink); }
+.sw-context-close { margin-left: auto; width: 30px; height: 30px; border: 1px solid var(--sw-line); border-radius: 8px; background: #fff; font-size: 16px; cursor: pointer; }
+.sw-context-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px 16px 28px; overflow-wrap: anywhere; }
+.ws-context-body { display: grid; gap: 12px; }
+.ws-context-body p { margin: 0; }
+.ws-context-card { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--sw-line); border-radius: 10px; }
+.ws-context-card h4 { margin: 0; font-size: 14px; color: var(--sw-ink); }
+.ws-context-card ul { margin: 0; padding-left: 18px; }
+.ws-quote { color: #52525b; }
+.ws-plan-text { display: grid; gap: 8px; }
+.ws-plan-text .button { justify-self: start; }
+.ws-plan-text pre { max-height: 360px; margin: 0; padding: 10px; overflow: auto; border-radius: 8px; background: #18181b; color: #e4e4e7; font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+
+/* Focus stage: the same stage, the panels set aside. */
+.scene-workspace.is-focus-stage .sw-layout { grid-template-columns: 0 minmax(0, 1fr) 0; }
+.scene-workspace.is-focus-stage .sw-rail, .scene-workspace.is-focus-stage .sw-inspector { display: none; }
+
+/* ——— By the workspace's width ——— */
+/* Near 1280: the scenes show as numbers and pictures. */
+@container sw (max-width: 1320px) {
+  .sw-layout { --sw-rail: 84px; --sw-inspector: 320px; }
+  .sw-scene-text, .sw-rail-toggle { display: none; }
+  .sw-scene-dot { display: block; }
+  .sw-scene { padding: 4px; }
+}
+/* Near 1024: the inspector is a drawer over the stage, opened from the header. */
+@container sw (max-width: 1100px) {
+  .sw-layout { grid-template-columns: var(--sw-rail) minmax(0, 1fr); grid-template-areas: "head head" "rail centre"; }
+  .sw-inspector-toggle { display: inline-flex; }
+  .sw-inspector { position: absolute; top: 0; right: 0; bottom: 0; z-index: 15; width: min(380px, 92%); box-shadow: -18px 0 42px rgba(24, 24, 27, .16); }
+  .scene-workspace:not(.is-inspector-open) .sw-inspector { display: none; }
+}
+/* Narrow: one column — the stage, then the detail under it. */
+@container sw (max-width: 820px) {
+  .sw-layout { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "head" "rail" "centre" "inspector"; }
+  .sw-rail { border-right: 0; border-bottom: 1px solid var(--sw-line); }
+  .sw-scenes { display: flex; overflow-x: auto; overflow-y: hidden; padding: 6px 8px; }
+  .sw-scenes li { flex: none; width: 92px; }
+  .sw-stage-area { min-height: 0; container-type: normal; padding: 12px 12px 6px; }
+  .sw-stage-frame { width: 100%; }
+  .sw-inspector, .scene-workspace:not(.is-inspector-open) .sw-inspector { position: static; display: flex; width: auto; box-shadow: none; border-left: 0; border-top: 1px solid var(--sw-line); }
+  .sw-inspector-toggle { display: none; }
+  .sw-panel { overflow: visible; }
+  .sw-transport { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .sw-clock { display: none; }
+  .sw-title h2 { white-space: normal; }
+}
+
+/* The scene's own action leads in the workspace: the notebook's next step
+   steps back, and notices clear the moments row. */
+body.is-scene-workspace #next-step.button.primary { border-color: #52525b; background: var(--chrome-3, #383b40); color: #fff; }
+body.is-scene-workspace .toast { bottom: 96px; }
+
+/* A finished preview the creator did not wait on: offered, the view kept. */
+.ws-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 6px 0 0; padding: 7px 8px 7px 12px; border-radius: 8px; background: #f5f3ff; color: #4c1d95; font-size: 12.5px; }
+.ws-offer .button { margin-left: auto; min-height: 30px; font-size: 12px; }
+.ws-offer.is-output { background: #f0fdf4; color: #14532d; }
+/* R08: who speaks, beside the scene's title. */
+.ws-voice-field { display: inline-flex; flex: none; }
+.ws-voice { max-width: 220px; padding: 6px 28px 6px 10px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; color: var(--sw-ink); font: 600 12.5px/1.2 'InterBody', Inter, sans-serif; }
+.ws-voice-field.is-undecided .ws-voice { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+
+/* Useful progress (U3): a run in its named phases — done, now, to come —
+   what is happening, for how long and by whom; the harness's own last word
+   kept small. Under the stage the phases run in one line. */
+.ws-progress { display: grid; gap: 6px; margin: 0 0 14px; }
+.ws-phases { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.ws-phases li { display: grid; grid-template-columns: 14px minmax(0, 1fr); align-items: center; gap: 8px; color: #a1a1aa; font: 600 12.5px/1.35 'InterBody', Inter, sans-serif; }
+.ws-phase-mark { width: 10px; height: 10px; margin: 0 2px; border: 1.5px solid #d4d4d8; border-radius: 50%; background: #fff; }
+.ws-phases li[data-state="done"] { color: #3f3f46; }
+.ws-phases li[data-state="done"] .ws-phase-mark { border-color: var(--sw-accent); background: var(--sw-accent); }
+.ws-phases li[data-state="active"] { color: #1e3a8a; }
+.ws-phases li[data-state="active"] .ws-phase-mark { border-color: #3b82f6; background: #bfdbfe; box-shadow: 0 0 0 3px rgba(59, 130, 246, .18); animation: sw-pulse 1.6s ease-in-out infinite; }
+.ws-phases li[data-state="failed"] { color: #b91c1c; }
+.ws-phases li[data-state="failed"] .ws-phase-mark { border-color: #dc2626; background: #dc2626; }
+.ws-progress-now { margin: 2px 0 0; color: var(--sw-ink); font-size: 13px; }
+.ws-progress-meta { margin: 0; color: var(--sw-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ws-progress-last { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #a1a1aa; font-size: 11.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.ws-progress-last:empty { display: none; }
+/* Who runs it and what the harness last did: on demand (step 3 of the
+   project-flow fix verification). */
+.ws-progress-time-line { margin: 0; color: var(--sw-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ws-progress > .review-disclosure { padding-top: 0; border-top: 0; }
+.ws-progress > .review-disclosure > summary { color: var(--sw-muted); font-size: 11.5px; }
+.ws-progress-details { display: grid; gap: 2px; padding: 2px 0 0; }
+.ws-progress-detail { margin: 0; color: var(--sw-muted); font-size: 12px; }
+.ws-progress.is-compact { gap: 4px; margin: 6px 0 0; padding: 0 12px; }
+.ws-progress.is-compact .ws-phases { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.ws-progress.is-compact .ws-phases li { display: inline-flex; gap: 6px; font-size: 11.5px; }
+.ws-progress.is-compact .ws-phase-mark { width: 8px; height: 8px; margin: 0; }
+.ws-progress.is-compact .ws-progress-now { margin: 0; font-size: 12px; color: #3f3f46; }
+.ws-activity-phase { color: #3b5b8c; }
+@media (prefers-reduced-motion: reduce) { .ws-phases li[data-state="active"] .ws-phase-mark { animation: none; } }
+
+/* Sections a run published before handing its plan in: shown as a draft,
+   never as the plan. */
+.ws-draft { display: grid; gap: 6px; margin: 0 0 14px; padding: 10px 12px; border: 1px dashed #c8c8ce; border-radius: 10px; background: #fafafa; }
+.ws-draft-label { margin: 0; color: #a16207; font: 700 10.5px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.ws-draft-question { margin: 0; color: #3f3f46; font: 650 15px/1.4 'Gilroy', 'InterBody', Inter, sans-serif; text-wrap: balance; }
+.ws-draft-takeaway { margin: 0; color: #52525b; }
+.ws-draft-moments { margin: 0; padding-left: 20px; color: #52525b; font-size: 12.5px; }
+.ws-draft-moments li + li { margin-top: 2px; }
+.sw-moments-draft { flex: none; align-self: center; padding: 0 4px; color: #a16207; font: 700 10px/1.2 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.sw-moment.is-draft { border-style: dashed; background: #fafafa; color: #52525b; cursor: default; }
+.sw-moment.is-draft:hover { border-color: #d4d4d8; }
+
+/* A run that ended without a plan: what happened, the provider's words, the
+   ways on. A stop the creator asked for is not an error. */
+.ws-failure { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px; border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; color: #7f1d1d; font-size: 13px; }
+.ws-failure p { margin: 0; }
+.ws-failure[data-failure="stopped"] { border-color: var(--sw-line); background: var(--sw-soft); color: #3f3f46; }
+.ws-failure-provider { font-size: 12px; overflow-wrap: anywhere; }
+.ws-failure-recovery { margin: 0; padding-left: 18px; font-size: 12.5px; }
+.ws-failure .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* A preview that could not be built, under the stage, with building it again. */
+.ws-build-failure { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 6px 0 0; padding: 8px 8px 8px 12px; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #7f1d1d; font-size: 12.5px; line-height: 1.45; }
+.ws-build-failure p { flex: 1 1 320px; margin: 0; }
+.ws-build-failure .ws-failure-provider { flex-basis: 100%; order: 2; }
+.ws-build-failure .button { flex: none; min-height: 30px; font-size: 12px; }
+.ws-build-failure[data-failure="stopped"] { border-color: var(--sw-line); background: var(--sw-soft); color: #3f3f46; }
+/* R09: a failed preview that is only history once the scene is produced. */
+.ws-build-failure.is-history { border-color: var(--sw-line); background: var(--sw-soft); color: #3f3f46; }
+.ws-build-failure > .review-muted { flex-basis: 100%; margin: 0; }
+.ws-build-failure > .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ws-build-failure > .review-disclosure { flex-basis: 100%; margin: 2px 0 0; border-top-color: #fecaca; }
+.ws-build-failure.is-history > .review-disclosure { border-top-color: var(--sw-line); }
+/* Each check the preview failed: its problems, then both frames the player
+   compared, where they differ outlined. */
+.ws-checks { display: grid; gap: 12px; max-height: 420px; margin: 8px 0 2px; overflow: auto; color: var(--sw-text); }
+.ws-check { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--sw-line); border-radius: 8px; background: #fff; }
+.ws-check h4 { margin: 0; font: 700 12px/1.3 'InterBody', Inter, sans-serif; color: var(--sw-ink); font-variant-numeric: tabular-nums; }
+.ws-check-problems { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.ws-evidence { display: grid; gap: 6px; margin: 0; }
+.ws-evidence-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ws-evidence-frame { position: relative; overflow: hidden; border: 1px solid var(--sw-line); border-radius: 6px; background: #000; }
+.ws-evidence-frame img { display: block; width: 100%; height: auto; }
+.ws-evidence-region { position: absolute; box-sizing: border-box; border: 2px solid #f43f5e; border-radius: 2px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .28); pointer-events: none; }
+.ws-evidence-label { position: absolute; left: 6px; bottom: 6px; padding: 2px 6px; border-radius: 4px; background: rgba(24, 24, 27, .78); color: #fff; font: 650 10.5px/1.4 'InterBody', Inter, sans-serif; }
+.ws-evidence figcaption { font-size: 11.5px; line-height: 1.45; color: var(--sw-muted); overflow-wrap: anywhere; }
+
+/* Recording in place (U5): the page's own camera dialog opens in the
+   inspector's place beside the stage — its two columns stacked, nothing
+   modal, the scene still on the stage. */
+.sw-capture { display: none; }
+.scene-workspace.is-capturing .sw-tabs,
+.scene-workspace.is-capturing .sw-panel { display: none; }
+.scene-workspace.is-capturing .sw-capture { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; overflow-y: auto; }
+.sw-capture-head { flex: none; display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--sw-line); color: #b91c1c; font: 700 11px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.sw-capture-head::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #dc2626; }
+.sw-capture #camera-dialog { position: static; inset: auto; width: auto; max-width: none; max-height: none; margin: 0; padding: 0; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--sw-text); }
+.sw-capture #camera-dialog .modal-heading { padding: 10px 14px; }
+.sw-capture #camera-dialog .modal-heading h2 { font-size: 15px; }
+.sw-capture #camera-dialog .camera-grid { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px 16px; }
+.sw-capture #camera-dialog .camera-preview-shell { min-height: 0; aspect-ratio: 16 / 9; }
+.sw-capture #camera-dialog .take-review { right: 8px; bottom: 8px; }
+.sw-capture #camera-dialog .script-box textarea { min-height: 160px; font-size: 14px; }
+.sw-capture #camera-dialog .presenter-actions { grid-template-columns: 1fr; }
+
+/* A take on the stage (U5): over what the stage shows, with the way back. */
+.sw-stage-area { position: relative; }
+/* The stage's own layers stay inside its frame, under a take shown over it. */
+.sw-stage-frame { isolation: isolate; }
+.sw-take-layer { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; gap: 8px; padding: 12px 20px; background: var(--sw-surround); }
+.sw-take-layer[hidden] { display: none; }
+.sw-take-layer video { flex: 1 1 auto; min-height: 0; width: 100%; border-radius: 10px; background: #0f0d18; object-fit: contain; }
+.sw-take-bar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sw-take-note { margin: 0; color: #3f3f46; font: 600 12.5px/1.4 'InterBody', Inter, sans-serif; }
+.sw-take-layer.is-failed .sw-take-note { color: #b91c1c; }
+
+/* The scene's takes in the Record tab (U5). */
+.ws-takes { display: grid; gap: 6px; margin: 0 0 16px; }
+.ws-take-none { margin: 0; padding: 8px 10px; border: 1px dashed #d4d4d8; border-radius: 8px; color: #52525b; font-size: 12.5px; }
+.ws-take-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ws-take { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--sw-line); border-radius: 8px; background: #fff; }
+.ws-take.is-selected { border-color: var(--sw-accent); box-shadow: inset 3px 0 0 var(--sw-accent); }
+.ws-take.is-missing { background: #fafafa; }
+.ws-take-head { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 12.5px; }
+.ws-take-head span { color: var(--sw-muted); font-variant-numeric: tabular-nums; }
+.ws-take-state { margin: 0; color: #52525b; font-size: 12px; }
+.ws-take-state.is-older { color: #a16207; }
+.ws-take-state.is-missing { color: #b91c1c; }
+.ws-take-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ws-take-actions .button { min-height: 28px; padding: 0 10px; font-size: 12px; }
+.ws-take-used { color: #15803d; font: 650 12px/1.3 'InterBody', Inter, sans-serif; }
+.ws-voice-made { margin: 0 0 10px; color: #3f3f46; }
+
+/* The scene's timeline (U6): in the moments row's place when expanded —
+   the whole scene on its clock, one lane per kind of thing, read-only. */
+.sw-timeline-toggle { grid-column: -2 / -1; grid-row: 1; align-self: center; justify-self: end; }
+.sw-transport.is-timeline { row-gap: 8px; }
+.sw-transport.is-timeline .sw-timeline { grid-column: 1 / -1; grid-row: 2; }
+.sw-timeline { --sw-track-label: 96px; display: grid; gap: 4px; min-width: 0; }
+.sw-timeline-ruler { display: flex; justify-content: space-between; margin-left: var(--sw-track-label); color: var(--sw-muted); font: 500 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.sw-timeline-tracks { position: relative; display: grid; gap: 3px; max-height: 24vh; overflow-y: auto; }
+.sw-track { display: grid; grid-template-columns: var(--sw-track-label) minmax(0, 1fr); align-items: center; min-height: 24px; }
+.sw-track-label { overflow: hidden; padding-right: 8px; color: #52525b; font: 650 11px/1.2 'InterBody', Inter, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.sw-lane { position: relative; height: 24px; border-radius: 5px; background: rgba(255, 255, 255, .55); }
+.sw-cell { position: absolute; top: 2px; bottom: 2px; overflow: hidden; padding: 3px 6px; border-right: 2px solid var(--sw-surround); border-radius: 4px; background: #e4e4e7; color: #27272a; font: 500 11px/1.4 'InterBody', Inter, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.sw-cell-moment { border-top: 0; border-bottom: 0; border-left: 0; background: #fff; box-shadow: inset 0 0 0 1px #d4d4d8; text-align: left; cursor: pointer; }
+.sw-cell-moment b { color: var(--sw-muted); font: 700 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.sw-cell-moment:hover { box-shadow: inset 0 0 0 1px #a1a1aa; }
+.sw-cell-moment.is-selected { box-shadow: inset 0 0 0 2px var(--sw-ink); }
+.sw-cell-moment.is-current { background: #fef3c7; }
+.sw-track.is-voice .sw-cell { background: #dcfce7; color: #14532d; }
+.sw-track.is-presenter .sw-cell.is-full { background: #dbeafe; color: #1e3a8a; }
+.sw-track.is-presenter .sw-cell.is-shared { background: #e0e7ff; color: #312e81; }
+.sw-track.is-presenter .sw-cell.is-hidden { background: #f4f4f5; color: #52525b; }
+.sw-track.is-presenter .sw-cell.is-undecided { background: repeating-linear-gradient(135deg, #f4f4f5 0 6px, #e4e4e7 6px 12px); color: #52525b; }
+.sw-track-group { display: grid; gap: 3px; padding-top: 3px; border-top: 1px dashed #d4d4d8; }
+.sw-track-caption { color: var(--sw-muted); font: 700 10px/1.3 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.sw-track.is-layer .sw-track-label { padding-left: 8px; font-weight: 500; }
+.sw-track.is-layer .sw-cell { background: #ede9fe; }
+.sw-track.is-layer .sw-cell.is-placeholder { background: repeating-linear-gradient(135deg, #fce7f3 0 6px, #fbcfe8 6px 12px); }
+/* A layer's bar says where it is present (B08): a thin band that seeks the
+   stage, not a handle to drag. The layers of the selected moment stand out. */
+.sw-cell-layer { top: 7px; bottom: 7px; padding: 0; border: 0; border-right: 2px solid var(--sw-surround); cursor: pointer; }
+.sw-cell-layer:hover { background: #ddd6fe; }
+.sw-track.is-layer.is-in-moment .sw-track-label { color: var(--sw-ink); font-weight: 650; }
+.sw-track.is-layer.is-in-moment .sw-cell-layer { background: #c4b5fd; }
+.sw-track.is-kind .sw-track-label { font-weight: 650; }
+.sw-track-caption { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.sw-layers-toggle { padding: 1px 6px; border: 1px solid #d4d4d8; border-radius: 999px; background: #fff; color: #3f3f46; font: 600 10.5px/1.4 'InterBody', Inter, sans-serif; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.sw-layers-toggle:hover { background: var(--sw-soft); }
+.sw-track-kind { margin-top: 4px; padding-left: 8px; color: var(--sw-muted); font: 650 10px/1.3 'InterBody', Inter, sans-serif; }
+.sw-track.is-text .sw-cell { background: #fef9c3; color: #713f12; }
+.sw-track.is-camera .sw-cell { background: #e0f2fe; color: #0c4a6e; }
+.sw-track.is-sound .sw-cell { background: #ffedd5; color: #7c2d12; }
+.sw-playline { position: absolute; top: 0; bottom: 0; left: calc(var(--sw-track-label) + (100% - var(--sw-track-label)) * var(--at, 0)); display: none; width: 2px; background: #f59e0b; pointer-events: none; }
+.sw-timeline.has-playhead .sw-playline { display: block; }
+.sw-timeline-note { margin: 0 0 0 var(--sw-track-label); color: var(--sw-muted); font-size: 11.5px; }

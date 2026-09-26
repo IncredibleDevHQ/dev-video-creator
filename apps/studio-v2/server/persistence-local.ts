@@ -1,10 +1,13 @@
+import { isDeepStrictEqual } from 'node:util'
+import type { ProjectSaveOptions } from './persistence'
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
-import type { BuildRunInput, BuildRunRow, BuildStageInput } from './persistence'
+import type { NotebookPlaceV1, ProjectContainerV1, ProjectDocumentV1, RecordedBlockV1 } from 'markdown-composition'
+import type { BuildRunInput, BuildRunRow, BuildStageInput, NewPlanningRecord, PlanningInputRow, PlanningRecordPatch } from './persistence'
+import { ACTIVE_STATUSES, type PlanningRecord, type PlanningStatus } from '../src/planning/planning-records'
 
 const dataDirectory = () =>
   process.env.STUDIO_DATA_DIR ||
@@ -13,6 +16,7 @@ const notebooksDirectory = () => join(dataDirectory(), 'notebooks')
 const objectsDirectory = () => join(dataDirectory(), 'objects')
 const indexPath = () => join(dataDirectory(), 'index.json')
 const settingsPath = () => join(dataDirectory(), 'settings.json')
+const containersPath = () => join(dataDirectory(), 'containers.json')
 
 let ready: Promise<void> | null = null
 
@@ -50,6 +54,7 @@ type ProjectIndexRow = {
   createdAt: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  container?: NotebookPlaceV1
 }
 
 type ProjectIndex = { projects: Record<string, ProjectIndexRow> }
@@ -60,8 +65,30 @@ const readIndex = async (): Promise<ProjectIndex> =>
 const writeIndex = async (index: ProjectIndex) =>
   writeFileAtomic(indexPath(), JSON.stringify(index, null, 2))
 
-export const saveProjectArtifact = async (project: ProjectDocumentV1) => {
+type LocalProject = ProjectDocumentV1 & { retiredTakeIds?: Record<string, boolean> }
+let documentWrites: Promise<unknown> = Promise.resolve()
+export const saveProjectArtifact = (project: ProjectDocumentV1, options?: ProjectSaveOptions): Promise<void> => {
+  const pending = documentWrites.catch(() => {}).then(() => saveProjectLocked(project, options))
+  documentWrites = pending
+  return pending
+}
+const saveProjectLocked = async (project: ProjectDocumentV1, options?: ProjectSaveOptions) => {
   await initializePersistence()
+  if (options?.createOnly && await loadProjectArtifact(project.id)) throw Object.assign(new Error('This notebook already exists. Load its current revision before saving.'), { statusCode: 409 })
+  if (options?.expectedProject && !isDeepStrictEqual(await loadProjectArtifact(project.id), options.expectedProject)) {
+    throw Object.assign(new Error('The notebook changed during generation. Refresh before applying the saved candidate.'), { statusCode: 409 })
+  }
+  // Retire selection identities in the same atomically renamed artifact.
+  // Legacy archive/settings files remain readable, but cannot resurrect them.
+  const retired = { ...((await loadProjectArtifact(project.id)) as LocalProject | null)?.retiredTakeIds }
+  if (options?.clearTakeBlocks?.length) {
+    const selections = ((await loadSetting(`take-selections:${project.id}`)) as Record<string, string> | null) || {}
+    for (const blockId of options.clearTakeBlocks) {
+      const id = selections[blockId]
+      if (id) retired[id] = true
+    }
+  }
+  ;(project as LocalProject).retiredTakeIds = retired
   const blockCount = project.notebook.content.filter(
     node => typeof node.attrs?.id === 'string' && node.attrs.id,
   ).length
@@ -75,6 +102,7 @@ export const saveProjectArtifact = async (project: ProjectDocumentV1) => {
     createdAt: existing?.createdAt || now,
     updatedAt: now,
     ...(project.derivedFrom ? { derivedFrom: project.derivedFrom } : {}),
+    ...(project.container ? { container: project.container } : {}),
   }
   await writeFileAtomic(
     join(notebooksDirectory(), `${project.id}.json`),
@@ -97,6 +125,8 @@ export type ProjectArtifactSummary = {
   createdAt: string
   updatedAt: string
   derivedFrom?: { notebook: string; kind?: string }
+  // The project the notebook belongs to, and what it is there.
+  container?: NotebookPlaceV1
 }
 
 // Every saved notebook, newest first — the switcher's list.
@@ -106,6 +136,29 @@ export const listProjectArtifacts = async (): Promise<ProjectArtifactSummary[]> 
   return Object.values(index.projects).sort((a, b) =>
     b.updatedAt.localeCompare(a.updatedAt),
   )
+}
+
+// The base notebooks with a scene still bound to a design run's page.
+export const listProjectIdsAwaitingPages = async (): Promise<string[]> => {
+  const ids: string[] = []
+  for (const summary of await listProjectArtifacts()) {
+    if (summary.derivedFrom) continue
+    const project = await loadProjectArtifact(summary.id)
+    if (project?.notebook.content.some(node => (node.attrs?.pageOrigin as { designing?: unknown } | null | undefined)?.designing)) ids.push(summary.id)
+  }
+  return ids
+}
+
+// The wireframes still being made in the background (the four-notebook
+// model): the ones a build pass sees through.
+export const listProjectIdsAwaitingWireframes = async (): Promise<string[]> => {
+  const ids: string[] = []
+  for (const summary of await listProjectArtifacts()) {
+    if (summary.container?.kind !== 'wireframe') continue
+    const project = await loadProjectArtifact(summary.id)
+    if (project?.build && !project.build.failure) ids.push(summary.id)
+  }
+  return ids
 }
 
 // Removing a notebook drops its document, takes and index row; the objects
@@ -134,6 +187,42 @@ export const saveSetting = async (key: string, value: unknown) => {
   settings[key] = value
   await writeFileAtomic(settingsPath(), JSON.stringify(settings, null, 2))
 }
+
+// Projects: what belongs to a whole project, not one notebook. Which
+// notebooks a project holds is read off the notebooks, which name it.
+type ContainerFile = { containers: Record<string, ProjectContainerV1> }
+let containerWrites: Promise<unknown> = Promise.resolve()
+const readContainers = async (): Promise<ContainerFile> =>
+  (await readJsonFile<ContainerFile>(containersPath())) || { containers: {} }
+const changeContainers = <T>(change: (file: ContainerFile) => T): Promise<T> => {
+  const pending = containerWrites.catch(() => {}).then(async () => {
+    await initializePersistence()
+    const file = await readContainers()
+    const result = change(file)
+    await writeFileAtomic(containersPath(), JSON.stringify(file, null, 2))
+    return result
+  })
+  containerWrites = pending
+  return pending
+}
+export const saveProjectContainer = (container: ProjectContainerV1) =>
+  changeContainers(file => {
+    file.containers[container.id] = container
+  })
+export const loadProjectContainer = async (id: string) => {
+  await initializePersistence()
+  return (await readContainers()).containers[id] || null
+}
+export const listProjectContainers = async () => {
+  await initializePersistence()
+  return Object.values((await readContainers()).containers).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+export const deleteProjectContainer = (id: string) =>
+  changeContainers(file => {
+    const existed = Boolean(file.containers[id])
+    delete file.containers[id]
+    return existed
+  })
 
 export const loadLatestProjectArtifact = async () => {
   await initializePersistence()
@@ -440,14 +529,133 @@ export const saveExplanationModel = async (input: {
   return { id, hash }
 }
 
+// ——— Planning records (M0), file-backend variant ———
+// One file for the records and the creator's planning inputs. Every change
+// is read-modify-write under one lock, so a compare-and-swap here means the
+// same as in Postgres: a late result cannot overwrite newer work.
+type PlanningFile = { records: PlanningRecord[]; inputs: PlanningInputRow[] }
+const planningPath = () => join(dataDirectory(), 'planning.json')
+let planningLock: Promise<unknown> = Promise.resolve()
+const withPlanning = <T>(change: (file: PlanningFile) => T | Promise<T>, write = true): Promise<T> => {
+  const next = planningLock.then(async () => {
+    await initializePersistence()
+    const file = (await readJsonFile<PlanningFile>(planningPath())) || { records: [], inputs: [] }
+    const result = await change(file)
+    if (write) await writeFileAtomic(planningPath(), JSON.stringify(file))
+    return result
+  })
+  planningLock = next.catch(() => undefined)
+  return next
+}
+const copy = <T>(value: T): T => structuredClone(value)
+
+const newRecord = (file: PlanningFile, record: NewPlanningRecord): PlanningRecord => {
+    const revision =
+      Math.max(0, ...file.records.filter(entry => entry.projectId === record.projectId && entry.kind === record.kind && entry.subject === (record.subject || '')).map(entry => entry.revision)) + 1
+    const at = new Date().toISOString()
+    const created: PlanningRecord = {
+      id: `plan-${record.kind}-${randomUUID()}`,
+      kind: record.kind,
+      projectId: record.projectId,
+      subject: record.subject || '',
+      revision,
+      status: 'queued',
+      fingerprint: record.fingerprint,
+      inputs: record.inputs || {},
+      content: null,
+      report: null,
+      artifacts: null,
+      runId: null,
+      adapter: record.adapter || null,
+      model: record.model || null,
+      reportedModel: null,
+      skillBundle: record.skillBundle || null,
+      workflow: record.workflow || null,
+      direction: record.direction || '',
+      error: null,
+      createdAt: at,
+      updatedAt: at,
+      reviewedAt: null,
+      approval: null,
+    }
+    file.records.push(created)
+    return created
+}
+
+export const createPlanningRecord = (record: NewPlanningRecord): Promise<PlanningRecord> =>
+  withPlanning(file => copy(newRecord(file, record)))
+
+// The check and the create happen under the one planning lock: two identical
+// requests can never both start.
+export const claimPlanningRecord = (record: NewPlanningRecord): Promise<{ record: PlanningRecord; reused: boolean }> =>
+  withPlanning(file => {
+    const active = file.records
+      .filter(entry => entry.projectId === record.projectId && entry.kind === record.kind && entry.subject === (record.subject || '') && entry.fingerprint === record.fingerprint && ACTIVE_STATUSES.includes(entry.status))
+      .sort((a, b) => b.revision - a.revision)[0]
+    if (active) return { record: copy(active), reused: true }
+    return { record: copy(newRecord(file, record)), reused: false }
+  })
+
+export const listPlanningRecords = (projectId: string): Promise<PlanningRecord[]> =>
+  withPlanning(
+    file =>
+      copy(
+        file.records
+          .filter(entry => entry.projectId === projectId)
+          .sort((a, b) => a.kind.localeCompare(b.kind) || a.subject.localeCompare(b.subject) || b.revision - a.revision),
+      ),
+    false,
+  )
+
+export const loadPlanningRecord = (id: string): Promise<PlanningRecord | null> =>
+  withPlanning(file => copy(file.records.find(entry => entry.id === id) || null), false)
+
+export const updatePlanningRecord = (id: string, patch: PlanningRecordPatch, expected?: PlanningStatus[], owner?: { runId: string | null }): Promise<PlanningRecord | null> =>
+  withPlanning(file => {
+    const record = file.records.find(entry => entry.id === id)
+    if (!record || (expected?.length && !expected.includes(record.status))) return null
+    if (owner && (record.runId ?? null) !== owner.runId) return null
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) (record as Record<string, unknown>)[key] = value
+    }
+    record.updatedAt = new Date().toISOString()
+    return copy(record)
+  })
+
+export const listPlanningRecordsForRun = (runId: string): Promise<PlanningRecord[]> =>
+  withPlanning(file => copy(file.records.filter(entry => entry.runId === runId)), false)
+
+export const listPlanningInputs = (projectId: string): Promise<PlanningInputRow[]> =>
+  withPlanning(file => copy(file.inputs.filter(entry => entry.projectId === projectId)), false)
+
+export const savePlanningInput = (input: { projectId: string; subject: string; direction?: string; delivery?: string | null }): Promise<PlanningInputRow> =>
+  withPlanning(file => {
+    let row = file.inputs.find(entry => entry.projectId === input.projectId && entry.subject === (input.subject || ''))
+    if (!row) {
+      row = { projectId: input.projectId, subject: input.subject || '', direction: '', delivery: null, updatedAt: '' }
+      file.inputs.push(row)
+    }
+    if (input.direction !== undefined) row.direction = input.direction
+    if (input.delivery !== undefined) row.delivery = input.delivery
+    row.updatedAt = new Date().toISOString()
+    return copy(row)
+  })
+
 // ——— Durable build runs and stage checkpoints (D3), file-backend variant ——
-export const saveBuildRun = async (run: BuildRunInput) => {
-  const list = ((await loadSetting('build-runs')) as Array<Record<string, unknown>> | null) || []
-  const index = list.findIndex(entry => entry.id === run.id)
-  const merged = { ...list[index], ...run }
-  if (index >= 0) list[index] = merged
-  else list.unshift(merged)
-  await saveSetting('build-runs', list.slice(0, 100))
+// Runs finish concurrently; their read-modify-write is serialised so one
+// run's update never erases another's.
+let buildRunsLock: Promise<unknown> = Promise.resolve()
+export const saveBuildRun = (run: BuildRunInput) => {
+  const next = buildRunsLock.then(async () => {
+    const list = ((await loadSetting('build-runs')) as Array<Record<string, unknown>> | null) || []
+    const index = list.findIndex(entry => entry.id === run.id)
+    const merged = { ...list[index], ...Object.fromEntries(Object.entries(run).filter(([key, value]) => value !== null || (key !== 'model' && key !== 'reportedModel'))) }
+    if (index >= 0) list[index] = merged
+    else list.unshift(merged)
+    await saveSetting('build-runs', list.slice(0, 100))
+  })
+  buildRunsLock = next.catch(() => undefined)
+  return next
 }
 
 export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> => {
@@ -464,6 +672,9 @@ export const listBuildRuns = async (projectId?: string): Promise<BuildRunRow[]> 
       status: String(run.status || ''),
       inputsHash: (run.inputsHash as string | null) ?? null,
       resumeId: (run.resumeId as string | null) ?? null,
+      model: (run.model as string | null) ?? null,
+      reportedModel: (run.reportedModel as string | null) ?? null,
+      failure: (run.failure as Record<string, unknown> | null) ?? null,
       exitCode: (run.exitCode as number | null) ?? null,
       startedAt: String(run.startedAt || ''),
       finishedAt: (run.finishedAt as string | null) ?? null,
@@ -509,11 +720,21 @@ export const selectPresenterTake = async (input: { projectId: string; blockId: s
   const selections = ((await loadSetting(`take-selections:${input.projectId}`)) as Record<string, string> | null) || {}
   selections[input.blockId] = input.takeId
   await saveSetting(`take-selections:${input.projectId}`, selections)
+  const restored = documentWrites.catch(() => {}).then(async () => {
+    const project = await loadProjectArtifact(input.projectId) as LocalProject | null
+    if (project?.retiredTakeIds?.[input.takeId]) {
+      delete project.retiredTakeIds[input.takeId]
+      await writeFileAtomic(join(notebooksDirectory(), `${project.id}.json`), JSON.stringify(project))
+    }
+  })
+  documentWrites = restored
+  await restored
 }
 
 export const listTakeSelections = async (projectId: string) => {
   const selections = ((await loadSetting(`take-selections:${projectId}`)) as Record<string, string> | null) || {}
-  return Object.entries(selections).map(([blockId, takeId]) => ({ projectId, blockId, takeId, selectedAt: '' }))
+  const retired = ((await loadProjectArtifact(projectId)) as LocalProject | null)?.retiredTakeIds || {}
+  return Object.entries(selections).filter(([, takeId]) => !retired[takeId]).map(([blockId, takeId]) => ({ projectId, blockId, takeId, selectedAt: '' }))
 }
 
 // Removing the presenter clears the active take and its selection; the take
@@ -545,4 +766,15 @@ export const findNotebooksReferencing = async (marker: string): Promise<Array<{ 
 export const settingsWithPrefix = async (prefix: string): Promise<Record<string, unknown>> => {
   const settings = (await readJsonFile<Record<string, unknown>>(settingsPath())) || {}
   return Object.fromEntries(Object.entries(settings).filter(([key]) => key.startsWith(prefix)))
+}
+
+let settingComparisons: Promise<unknown> = Promise.resolve()
+export const compareAndSwapSetting = (key: string, expected: unknown, value: unknown): Promise<boolean> => {
+  const operation = settingComparisons.catch(() => {}).then(async () => {
+    if (!isDeepStrictEqual(await loadSetting(key), expected)) return false
+    await saveSetting(key, value)
+    return true
+  })
+  settingComparisons = operation
+  return operation
 }
