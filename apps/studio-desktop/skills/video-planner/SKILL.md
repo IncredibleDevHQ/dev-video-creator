@@ -77,7 +77,8 @@ Develop one scene's creative plan — the scene treatment.
    decisions already made and the creator's direction), `packet/NEIGHBORS.json`
    (what each neighbour's plan promises at the seam — only a reviewed plan
    can be agreed with), `packet/PREVIOUS_PLAN.json` (the scene's reviewed
-   plan, if any) and `packet/CONTEXT.json`.
+   plan, if any, and the concrete example its newest plan used) and
+   `packet/CONTEXT.json`.
    Then the visual material: `packet/THEME.json` (the actual colours with
    what each means, the type families and their fallbacks) and
    `packet/VISUAL_CAST.json` (the icons and objects lifted from the base
@@ -149,6 +150,13 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   things appear. A mechanism shows its before, action and after. A
   definition, comparison, code walkthrough or summary uses its natural form;
   do not invent a state machine or a crisis for it.
+- A mechanism that changes state is shown on one small concrete example
+  with real values — what was there, the operation, what changed, what
+  stayed as it was, and what someone then sees (`demonstration.example` in
+  the contract): "a reader sees 10; a writer writes 20 in a copy; the reader
+  still sees 10", not only "leaf" becoming "leaf′". Show its values where
+  they change. Keep the example `PREVIOUS_PLAN.json` names unless the
+  direction changes it, so revisions can be compared.
 - Every moment says why the viewer needs to see it and what they should
   notice. Holding still is a choice; do not add a camera move or effect to
   prove a capability was loaded.

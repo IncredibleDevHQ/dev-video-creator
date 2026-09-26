@@ -10,6 +10,9 @@
 // The scene is planned, inspected, approved and its recording guide opened
 // without leaving the workspace; a reload comes back to the same scene; the
 // notebook is still there as the other view, and a presentation is as it was.
+// The plan's concrete example reads in one line under its takeaway, and the
+// stage can be looked at as small as a phone shows it (Q01 of the
+// project-flow fix verification).
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
@@ -117,7 +120,7 @@ const tool = async (name, args2) => {
       question: 'What does the MoE kernel do, and which link does it use for each hop?',
       takeaway: 'Dispatch sends each token out to the GPUs holding its experts and combine brings the results home; the kernel carries a hop over NVLink when the expert is in the same node and over RDMA when it is on another node.',
       evidenceRefs: ['ev-1'], development: 'Show the tokens leave, work, and return, then why the routes differ.',
-      demonstration: { text: 'Two nodes of eight GPUs. A source GPU in Node A holds tokens t1–t3, and each token has two expert GPUs: one in Node A and one in Node B. Dispatch sends out six token copies (three stay in the node, three cross to Node B); combine brings six results back and merges them into three finished tokens on the source GPU.', basis: 'source' },
+      demonstration: { text: 'Two nodes of eight GPUs. A source GPU in Node A holds tokens t1–t3, and each token has two expert GPUs: one in Node A and one in Node B. Dispatch sends out six token copies (three stay in the node, three cross to Node B); combine brings six results back and merges them into three finished tokens on the source GPU.', basis: 'source', example: { before: 'Token t1 waits on the source GPU in Node A', action: 'Dispatch sends its two copies to experts e3 and e7', after: 'e3 in Node A and e7 in Node B each hold a copy of t1', unchanged: null, observed: 'Combine brings both results back to t1 on the source GPU', later: null } },
       ledger: null,
       moments, objects, treatments: { presenter: 'Opens and closes beside the map', text: 'Labels only', camera: 'Holds, then pulls back once' },
       skills: [{ skill: 'hyperframes-creative', references: ['skills/hyperframes-creative/references/beat-direction.md'], why: 'Rhythm' }],
@@ -322,6 +325,19 @@ try {
   check(planned?.status === 'candidate' && planned.content?.moments?.length === 8, `the scene is planned with eight moments (${planned?.content?.moments?.length})`)
   if (planningSeen) check(/^Planning r1…/.test(planningSeen.text) && planningSeen.primary === null && !/No plan yet/.test(planningSeen.story), `while it plans, the workspace shows it as activity, with no action to take and no "no plan yet" (${JSON.stringify(planningSeen)})`)
   await waitFor(`() => document.querySelectorAll('#scene-workspace .sw-moment').length === 8 ? true : null`, 30)
+  // Q01 of the project-flow fix verification: the plan's concrete example
+  // reads in one line under its takeaway; and the stage can be looked at
+  // as small as a phone shows it.
+  await click('#sw-tab-story')
+  const exampleLine = await waitFor(`() => document.querySelector('#scene-workspace [data-review-example]')?.textContent || null`, 20)
+  check(exampleLine === 'Concrete example. Token t1 waits on the source GPU in Node A → Dispatch sends its two copies to experts e3 and e7 → Combine brings both results back to t1 on the source GPU', `the plan's concrete example reads in one line under its takeaway (${JSON.stringify(exampleLine)})`)
+  await shot('01c-concrete-example')
+  await click('#scene-workspace .sw-phone')
+  const phone = await waitFor(`() => { const frame = document.querySelector('#scene-workspace .sw-stage-frame'); const button = document.querySelector('#scene-workspace .sw-phone'); return button?.getAttribute('aria-pressed') === 'true' ? { width: Math.round(frame.getBoundingClientRect().width), label: button.textContent } : null }`, 10)
+  await shot('01d-phone-size')
+  await click('#scene-workspace .sw-phone')
+  const fullSize = await waitFor(`() => { const frame = document.querySelector('#scene-workspace .sw-stage-frame'); return document.querySelector('#scene-workspace .sw-phone')?.getAttribute('aria-pressed') === 'false' ? Math.round(frame.getBoundingClientRect().width) : null }`, 10)
+  check(Boolean(phone) && phone.width <= 390 && phone.label === 'Full size' && fullSize > 600, `Phone size draws the stage at a phone's width, and Full size brings it back (${JSON.stringify({ phone, fullSize })})`)
 
   for (const [width, height] of [[1440, 900], [1280, 800]]) {
     await size(width, height)

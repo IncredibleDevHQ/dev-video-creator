@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { quotedIn, fingerprintOf } from './fingerprint'
 import { buildCapabilityCatalog, parseBlueprintsIndex, parseRulesIndex, parseTechniques } from './capability-catalog'
 import { validateBrief, type BriefContext, type ExplanationBriefV1 } from './explanation-brief'
-import { continuityStatus, validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
+import { continuityStatus, exampleLineOf, normalizeTreatment, validateTreatment, type SceneTreatmentV1, type TreatmentContext } from './scene-treatment'
 import { compareTreatments } from './plan-compare'
 import { lineFingerprints, recordingGuide, scriptFingerprint, takeAgainst } from './recording-guide'
 import { sketchSummary, validateSketch } from './sketch-bundle'
@@ -282,6 +282,22 @@ const goodTreatment = (): SceneTreatmentV1 => ({
 })
 
 describe('the scene treatment', () => {
+  // Q01 of the project-flow fix verification: the copy-on-write scene showed
+  // "leaf" becoming "leaf′" and left the viewer to infer why the old
+  // snapshot matters. A state change is shown on one concrete case.
+  it('keeps a concrete example whole, and reads it in one line', () => {
+    const example = { before: 'A reader sees balance 10', action: 'A writer writes 20 in a copy', after: 'The new tree says 20', unchanged: 'The reader’s tree still says 10', observed: 'The reader still sees 10', later: 'New readers see 20 once the root is published — the next scene' }
+    const planned = normalizeTreatment({ ...goodTreatment(), demonstration: { text: 'One balance, two versions', values: [{ value: '10', basis: 'illustrative' }], example } })
+    expect(planned.demonstration?.example).toEqual(example)
+    expect(exampleLineOf(example)).toBe('A reader sees balance 10 → A writer writes 20 in a copy → The reader still sees 10')
+    expect(validateTreatment(planned, treatmentContext()).problems).toEqual([])
+    const half = normalizeTreatment({ ...goodTreatment(), demonstration: { text: 'One balance', values: [], example: { before: 'A reader sees 10', action: '', after: '', observed: 'still 10' } } })
+    expect(half.demonstration?.example).toMatchObject({ unchanged: null, later: null })
+    expect(validateTreatment(half, treatmentContext()).problems).toContain('demonstration.example has no action, after: a concrete example gives the value before, the operation, the value after, and what someone then sees')
+    // A plan without one is valid: the review shows that it has none.
+    expect(normalizeTreatment(goodTreatment()).demonstration?.example).toBeUndefined()
+  })
+
   it('accepts a plan that combines several skills within one continuous scene', () => {
     const report = validateTreatment(goodTreatment(), treatmentContext())
     expect(report.problems).toEqual([])

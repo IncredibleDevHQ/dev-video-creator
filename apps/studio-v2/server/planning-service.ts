@@ -807,6 +807,10 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
   const unitsFor = (origins: string[]) =>
     [...new Set(brief.coverage.filter(entry => origins.includes(entry.scene)).flatMap(entry => entry.units))]
   const reviewed = scenePlanningView(records, scene.id, null).reviewed
+  const latestExample = records
+    .filter(record => record.kind === 'treatment' && record.subject === scene.id && (record.content as SceneTreatmentV1 | null)?.demonstration?.example)
+    .sort((a, b) => b.revision - a.revision)
+    .map(record => ({ revision: record.revision, example: (record.content as SceneTreatmentV1).demonstration!.example! }))[0] || null
   const neighbors = neighborsOf(planning, records, scene.id)
   const assets = await libraryAssets()
   const packet = renderScenePacket({
@@ -845,8 +849,14 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
     // was designed from, for its structure.
     ...(scene.schematic ? { 'packet/references/schematic.svg': scene.schematic } : {}),
     'packet/THEME.json': await themeFile(planning),
-    // The plan this scene already has, kept unless the direction changes it.
-    'packet/PREVIOUS_PLAN.json': JSON.stringify(reviewed ? { record: reviewed.id, revision: reviewed.revision, status: reviewed.status, plan: reviewed.content, retainedEdits: [] } : { record: null, note: 'This scene has no reviewed plan yet.' }, null, 2),
+    // The plan this scene already has, kept unless the direction changes it
+    // — and the concrete example its newest plan used, reviewed or not, so
+    // revisions show the same case and can be compared (Q01 of the
+    // project-flow fix verification).
+    'packet/PREVIOUS_PLAN.json': JSON.stringify({
+      ...(reviewed ? { record: reviewed.id, revision: reviewed.revision, status: reviewed.status, plan: reviewed.content, retainedEdits: [] } : { record: null, note: 'This scene has no reviewed plan yet.' }),
+      ...(latestExample ? { example: { revision: latestExample.revision, example: latestExample.example, rule: 'Keep this concrete example — its values, operation and what is seen — unless the direction changes it, so the revisions can be compared.' } } : {}),
+    }, null, 2),
     'packet/BRIEF.md': renderNativeBrief(brief),
     'packet/EXPLANATION.md': renderExplanation(brief),
     'packet/SCENE.md': packet,

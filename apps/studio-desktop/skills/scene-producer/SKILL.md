@@ -59,6 +59,12 @@ recipe is proven only by the product's checks on your submission.
    where the plan puts them, and the scene holds long enough to read. Where
    the approved plan has a sketch, build on its code and keep its ids where
    they serve; the sketch's placeholders become the real artwork.
+   The plan's concrete example (`demonstration.example`) is on screen: its
+   values appear where they change, and the result the viewer should see
+   is the frame's focus — the strongest contrast, the fewest competing
+   strokes. The scene may be watched small: keep its labels at least the
+   in-feed sizes of the pinned `typography.md` (body 32 px, data labels
+   24 px on the 1920 × 1080 frame), the same size for the same role.
 4. Write `production/manifest.json`, copy a generated voice into
    `production/audio/` and the artwork you use into `production/assets/`.
    Offer `controls` for the times a creator may want to nudge.

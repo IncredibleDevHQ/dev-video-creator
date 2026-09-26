@@ -83,6 +83,20 @@ export type LedgerEvent = {
 export type LedgerRate = { id: string; what: string; change: 'add' | 'consume'; amount: number }
 export type TreatmentLedger = { quantity: string; capacity: number | null; initial: number; rates?: LedgerRate[]; events: LedgerEvent[]; final: number }
 
+// One small concrete example (Q01 of the project-flow fix verification): a
+// scene that explains how state changes shows a case with real values —
+// what was there, the operation, what changed, what stayed as it was, and
+// what someone then sees — so the viewer need not infer why the mechanism
+// matters. What it leads to that belongs to another scene is named so.
+export type TreatmentExample = { before: string; action: string; after: string; unchanged: string | null; observed: string; later: string | null }
+const exampleOf = (value: unknown): TreatmentExample | null => {
+  if (!isRecord(value)) return null
+  const example = { before: text(value.before, 240), action: text(value.action, 240), after: text(value.after, 240), unchanged: text(value.unchanged, 240) || null, observed: text(value.observed, 240), later: text(value.later, 240) || null }
+  return Object.values(example).some(Boolean) ? example : null
+}
+/** The example in one line, as the review reads it: before → action → what someone sees. */
+export const exampleLineOf = (example: TreatmentExample) => [example.before, example.action, example.observed].filter(Boolean).join(' → ')
+
 // How one side of the scene meets its neighbour (R8). self-contained: needs
 // nothing from it. agreed: rests on the neighbour's reviewed plan — the
 // product records which revision, and the agreement breaks when that plan
@@ -104,7 +118,7 @@ export type SceneTreatmentV1 = {
   evidenceRefs: string[]
   // How the idea develops — not a recital of the slide.
   development: string
-  demonstration: { text: string; values: Array<{ value: string; basis: 'source' | 'creator' | 'illustrative' }> } | null
+  demonstration: { text: string; values: Array<{ value: string; basis: 'source' | 'creator' | 'illustrative' }>; example?: TreatmentExample } | null
   ledger: TreatmentLedger | null
   moments: TreatmentMoment[]
   objects: Array<{
@@ -238,6 +252,7 @@ export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
             value: text(entry.value, 200),
             basis: entry.basis as 'source' | 'creator' | 'illustrative',
           })),
+          ...(exampleOf(demonstration.example) ? { example: exampleOf(demonstration.example)! } : {}),
         }
       : null,
     ledger: ledgerOf(value.ledger),
@@ -430,6 +445,10 @@ export const validateTreatment = (raw: unknown, context: TreatmentContext): Trea
         problems.push(`demonstration value "${value.value}" must say whether it is from the source, from the creator, or illustrative`)
       }
     }
+    // A concrete example is whole or it is not one (Q01).
+    const example = treatment.demonstration.example
+    const missing = example ? (['before', 'action', 'after', 'observed'] as const).filter(key => !example[key]) : []
+    if (missing.length) problems.push(`demonstration.example has no ${missing.join(', ')}: a concrete example gives the value before, the operation, the value after, and what someone then sees`)
   }
 
   // Moments: each one earns its place.

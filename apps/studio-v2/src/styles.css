@@ -2512,6 +2512,13 @@ body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
 .review-column h4, .review-open h4 { margin: 4px 0 0; font: 700 11px/1.2 'InterBody', Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #71717a; }
 .review-column p, .review-open p { margin: 0; }
 .review-question { font: 650 15px/1.35 'InterBody', Inter, sans-serif; color: #18181b; }
+/* The scene's concrete example, one line under its takeaway (Q01 of the
+   project-flow fix verification); its parts on demand. */
+.review-example-line { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #f0fdf4; color: #14532d; line-height: 1.45; }
+.review-example-line.is-missing { background: #fffbeb; color: #78350f; }
+.review-example-parts { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 6px 0; font-size: 13px; line-height: 1.45; }
+.review-example-parts dt { color: #71717a; font-weight: 650; }
+.review-example-parts dd { margin: 0; color: #27272a; }
 .review-muted { color: #71717a; }
 .review-warn { color: #92400e; margin: 0; }
 /* Claims a plan makes more strongly than its sources (B07): read before it

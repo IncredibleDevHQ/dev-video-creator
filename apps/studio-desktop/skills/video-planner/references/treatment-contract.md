@@ -22,7 +22,15 @@ Use only the channels a moment needs; `null` means the channel is unused.
   "takeaway": "An admitted request spends one token.",
   "evidenceRefs": ["ev-consume"],
   "development": "Establish the bucket as stored capacity, then follow one request as it spends a token and passes.",
-  "demonstration": { "text": "Three tokens; request A arrives", "values": [ { "value": "3 tokens", "basis": "illustrative" } ] },
+  "demonstration": {
+    "text": "Three tokens; request A arrives",
+    "values": [ { "value": "3 tokens", "basis": "illustrative" } ],
+    "example": {
+      "before": "The bucket holds 3 tokens", "action": "Request A spends one",
+      "after": "2 tokens remain", "unchanged": null, "observed": "Request A passes",
+      "later": "With the bucket empty, the next request is refused — the next scene"
+    }
+  },
   "ledger": {
     "quantity": "tokens in the bucket", "capacity": 3, "initial": 3,
     "events": [ { "moment": "m1", "what": "request A is admitted", "change": "consume", "amount": 1, "after": 2 } ],
@@ -120,6 +128,18 @@ Use only the channels a moment needs; `null` means the channel is unused.
 - `rosterProposal` — `null`, or a proposal to `split`, `merge` or
   `resequence` scenes, naming video scene ids and the reason. Proposals are
   reviewed; they never change the roster by themselves.
+- `demonstration.example` — required when the scene explains how state
+  changes (a write, a copy, a commit, an update, a queue, a cache, a count):
+  one small concrete case with real values. `before` — what is there, with
+  its value; `action` — the operation; `after` — the changed state;
+  `unchanged` — what stays as it was, when something does (a snapshot, an
+  old version, another reader), else `null`; `observed` — what someone then
+  sees or gets; `later` — what the case leads to that belongs to another
+  scene, named as such, else `null`. The moments show it: its values appear
+  on screen where they change, so the result is understood without the
+  plan. Keep the example `PREVIOUS_PLAN.json` gives unless the direction
+  changes it, so revisions can be compared. The review shows it in one line
+  — before → action → observed — under the takeaway.
 - `ledger` — required when the demonstration counts something (tokens,
   slots, requests, retries): what is counted, its `capacity` (or `null`),
   the `initial` count, every change in the order it happens — `add`,
@@ -155,7 +175,8 @@ are unique; every moment has a purpose, an observation, an attention target
 and at least one channel; catalogued recipe ids exist in the pinned catalog;
 skills and references are files of the pinned bundle; reused assets exist in
 the library; roster proposals name real scenes and give a reason; a ledger
-adds up, moment by moment; an agreed seam rests on a reviewed neighbour. A
+adds up, moment by moment; an agreed seam rests on a reviewed neighbour; a
+concrete example gives before, action, after and observed. A
 demonstration that counts without a ledger is reported. It also
 reports, as construction risks, every adapted recipe and every catalogued one
 not yet proven in the installed runtime.

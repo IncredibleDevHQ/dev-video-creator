@@ -10,7 +10,7 @@
 // same approvals. A poll that brings nothing new changes nothing on screen;
 // what the creator opened, typed or selected survives the renders that do.
 import type { ExplanationBriefV1 } from './explanation-brief'
-import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
+import { exampleLineOf, type SceneTreatmentV1, type TreatmentExample, type TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, isActiveStatus, validationOf, type FrameRegion, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
@@ -1142,6 +1142,22 @@ export const createSceneReview = (host: SceneReviewHost) => {
     )
   }
 
+  // The scene's concrete example, one line under its takeaway (Q01 of the
+  // project-flow fix verification) — or that it has none, for the creator
+  // to judge: a mechanism shown only as structure leaves the viewer to
+  // infer why it matters.
+  const exampleLine = (record: PlanningRecord, plan: SceneTreatmentV1) => {
+    const example = plan.demonstration?.example
+    return h('p', { class: `review-example-line${example ? '' : ' is-missing'}`, 'data-review-example': record.id },
+      h('strong', { text: 'Concrete example. ' }),
+      example ? exampleLineOf(example) : 'None — no value is shown changing, nor what someone then sees.')
+  }
+  const exampleParts = (example: TreatmentExample) =>
+    h('dl', { class: 'review-example-parts' },
+      ...([['Before', example.before], ['Action', example.action], ['After', example.after], ['Unchanged', example.unchanged], ['Seen', example.observed], ['Later', example.later]] as Array<[string, string | null]>)
+        .filter(([, value]) => Boolean(value))
+        .flatMap(([label, value]) => [h('dt', { text: label }), h('dd', { text: value! })]))
+
   // What the plan claims more strongly than its sources, or still says
   // after the direction asked to drop it (B07 of the BoltDB review): shown
   // with the plan, before it is approved. One item a claim, however often
@@ -1261,9 +1277,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
             h('h4', { text: 'What it explains' }),
             h('p', { class: 'review-question', text: plan.question }),
             h('p', {}, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
+            record ? exampleLine(record, plan) : null,
             claimsOf(scene, record),
             risksOf(record),
             plan.demonstration ? h('p', {}, h('strong', { text: 'Example. ' }), plan.demonstration.text) : null,
+            plan.demonstration?.example ? exampleParts(plan.demonstration.example) : null,
             ledger ? h('p', { class: 'review-muted', text: `The count: ${ledger.quantity} from ${ledger.initial} to ${ledger.final} over ${ledger.events.length} changes — checked.` }) : null,
           ),
           h('div', { class: 'review-column' },
@@ -1660,6 +1678,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         h('h4', { class: 'ws-label', text: `What it teaches · plan r${record!.revision}` }),
         h('p', { class: 'ws-question', text: plan.question }),
         h('p', { class: 'ws-takeaway' }, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
+        exampleLine(record!, plan),
         ...[claimsOf(scene, record), risksOf(record)].filter((part): part is HTMLDivElement => Boolean(part)),
       )
       const brief = overview?.brief.current?.content as ExplanationBriefV1 | undefined
@@ -1667,6 +1686,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       if (plan.demonstration || plan.ledger || evidence.length) {
         box.append(disclosure(`ws-example:${scene.id}`, 'Example and evidence', h('div', { class: 'ws-example' },
           plan.demonstration ? h('p', {}, h('strong', { text: 'Example. ' }), plan.demonstration.text) : null,
+          plan.demonstration?.example ? exampleParts(plan.demonstration.example) : null,
           plan.ledger ? h('p', { class: 'review-muted', text: `The count: ${plan.ledger.quantity} from ${plan.ledger.initial} to ${plan.ledger.final} over ${plan.ledger.events.length} changes — checked.` }) : null,
           evidence.length ? h('ul', { class: 'ws-evidence' }, ...evidence.slice(0, 8).map(entry => h('li', {}, h('q', { text: entry.text }), entry.locator ? h('small', { text: ` ${entry.locator}` }) : null))) : null,
         )))

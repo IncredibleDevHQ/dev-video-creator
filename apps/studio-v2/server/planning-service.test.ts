@@ -291,6 +291,23 @@ describe('planning a forked video', () => {
 // The independent M0 review's probes (R1, R2), with the defect expectations
 // inverted: each now describes the repaired behaviour.
 describe('planning integrity', () => {
+  // Q01 of the project-flow fix verification: revisions of a scene show the
+  // same concrete case, so each can be compared with the last — reviewed or
+  // not.
+  it('carries the newest plan\'s concrete example into the next revision\'s packet', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('example-carry')
+    await readyBrief(id, 'run-example-brief')
+    const example = { before: 'The bucket holds 3 tokens', action: 'Request A spends one', after: '2 tokens remain', unchanged: null, observed: 'Request A passes', later: null }
+    const { record: first } = await service.queueTreatment(id, scenes[0])
+    expect(JSON.parse(text((await service.loadPacket(first.id)).files['packet/PREVIOUS_PLAN.json']))).toEqual({ record: null, note: 'This scene has no reviewed plan yet.' })
+    await service.attachRun(first.id, { runId: 'run-example-1' })
+    const planned = treatmentFor(scenes[0], 'b1')
+    expect(await service.submitTreatment(first.id, { ...planned, demonstration: { text: 'Three tokens; request A arrives', values: [{ value: '3 tokens', basis: 'illustrative' }], example } }, 'run-example-1')).toMatchObject({ accepted: true, status: 'candidate' })
+    const { record: second } = await service.queueTreatment(id, scenes[0])
+    const previous = JSON.parse(text((await service.loadPacket(second.id)).files['packet/PREVIOUS_PLAN.json']))
+    expect(previous).toMatchObject({ record: null, example: { revision: first.revision, example, rule: expect.stringMatching(/^Keep this concrete example/) } })
+  })
+
   it('starts one record for simultaneous identical requests', async () => {
     const { videoId: id, videoScenes: scenes } = await makeVideo('claim')
     const briefs = await Promise.all(Array.from({ length: 4 }, () => service.queueBrief(id)))

@@ -143,7 +143,17 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     shown = ''
     render()
   })
-  const barTools = h('div', { class: 'sw-stage-tools' }, focusButton)
+  // The stage as small as a phone shows it (Q01 of the project-flow fix
+  // verification): the same composition, to read its key moments' labels
+  // and results at the size they may be watched.
+  let phoneSize = false
+  const phoneButton = h('button', { type: 'button', class: 'sw-tool sw-phone', 'data-focus': 'sw-phone', 'aria-pressed': 'false', text: 'Phone size', title: 'The stage as small as a phone shows it — to check its labels and results still read' })
+  phoneButton.addEventListener('click', () => {
+    phoneSize = !phoneSize
+    shown = ''
+    render()
+  })
+  const barTools = h('div', { class: 'sw-stage-tools' }, phoneButton, focusButton)
   const activity = h('div', { class: 'sw-stage-activity', 'aria-live': 'polite' })
   const transport = h('div', { class: 'sw-transport' })
   const barRow = h('div', { class: 'sw-stage-row' }, bar, barTools)
@@ -297,6 +307,9 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     focusButton.textContent = focusStage ? 'Show panels' : 'Focus stage'
     focusButton.setAttribute('aria-pressed', String(focusStage))
     focusButton.classList.toggle('is-on', focusStage)
+    phoneButton.textContent = phoneSize ? 'Full size' : 'Phone size'
+    phoneButton.setAttribute('aria-pressed', String(phoneSize))
+    phoneButton.classList.toggle('is-on', phoneSize)
     // A preview or a production being made shows under the stage; a finished
     // preview the creator did not wait on is offered there.
     const building = parts?.activity && ['preview', 'production'].includes(parts.actions.activity?.kind || '') ? parts.activity : null
@@ -619,7 +632,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   }
 
   const signatureOf = (sceneId: string) =>
-    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, inspectorOpen, capturing, sceneIds().map(id => [host.notice(id), host.outputNotice?.(id) || false])])
+    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, phoneSize, inspectorOpen, capturing, sceneIds().map(id => [host.notice(id), host.outputNotice?.(id) || false])])
 
   const render = () => {
     if (root.hidden || !host.video()) return
@@ -627,6 +640,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     const sceneId = currentScene()
     root.classList.toggle('is-rail-collapsed', Boolean(prefs.rail))
     root.classList.toggle('is-focus-stage', focusStage)
+    root.classList.toggle('is-phone-size', phoneSize)
     root.classList.toggle('is-inspector-open', inspectorOpen)
     root.classList.toggle('is-capturing', Boolean(capturing))
     // A take played for another scene closes with it.
