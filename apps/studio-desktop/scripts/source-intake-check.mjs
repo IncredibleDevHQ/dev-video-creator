@@ -292,6 +292,31 @@ try {
   const given = storyRun ? JSON.parse(await readFile(join(storyRun.projectDir, 'motion', 'inputs.json'), 'utf8').catch(() => '{}')) : {}
   const packet = String(given.source?.text || '')
   check('the harness is given the table and the diagrams as read', Boolean(outlined) && table.every(row => packet.includes(row)) && packet.includes(HEADER_DIAGRAM), JSON.stringify({ outlined: Boolean(outlined), run: storyRun?.route, characters: packet.length }))
+
+  // B03 of the BoltDB review: a base the local harness outlined is finished
+  // with that harness alone — no call to a direct model it was not given,
+  // and no word of a provider to add. Its scenes keep the harness's lines.
+  await evaluate(`() => {
+    sessionStorage.setItem('dialogue-calls', '0')
+    const fetched = window.fetch
+    window.fetch = (input, init) => {
+      if (String(input?.url || input).includes('/api/scene/dialogue')) sessionStorage.setItem('dialogue-calls', String(Number(sessionStorage.getItem('dialogue-calls')) + 1))
+      return fetched(input, init)
+    }
+    window.__beforeFinish = true
+    return true
+  }`, 'watch dialogue calls')
+  await evaluate(`() => { document.getElementById('source-make-pages').click(); return true }`, 'schematic pages')
+  await waitFor(`() => !document.getElementById('source-step-pages')?.hidden ? true : null`, 'pages step', 60)
+  await evaluate(`() => { document.getElementById('source-finish').click(); return true }`, 'finish boltdb')
+  const finished = await waitFor(`() => {
+    if (window.__beforeFinish || document.getElementById('source-dialog')?.open || document.getElementById('project-title')?.value !== 'How BoltDB works') return null
+    return { calls: Number(sessionStorage.getItem('dialogue-calls')), toast: document.getElementById('toast')?.textContent || '', id: localStorage.getItem('incredible-studio-v2-active-project') }
+  }`, 'boltdb notebook', 120)
+  const made = finished ? await fetch(`${origin}/api/projects/${encodeURIComponent(finished.id)}`).then(r => r.json()).then(body => body.project) : null
+  const lines = (made?.notebook?.content || []).filter(node => node.type === 'scene').map(node => node.attrs?.script)
+  check('the harness\'s base is finished with no call to a direct model, and no provider to add', finished?.calls === 0 && !/AI provider|Direct API/.test(finished.toast), JSON.stringify(finished))
+  check('its scenes keep the harness\'s lines as their notes', lines.length === 2 && lines.every(line => line === 'The pages of BoltDB.'), JSON.stringify(lines))
 } catch (error) {
   check(`run: ${error.message}`, false)
 } finally {

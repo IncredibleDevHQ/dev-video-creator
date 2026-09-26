@@ -15549,6 +15549,9 @@ const sourceState: {
   modelData?: { objects?: Array<{ id: string; label: string; kind: string; scenes: string[] }> } | null
   // How much the studio may rewrite the creator's words (D2).
   wording: 'preserve' | 'assist' | 'draft'
+  // Who wrote the outline: the local harness the creator chose, or the
+  // direct model path (the browser's fallback).
+  outlinedBy?: 'harness' | 'api'
   // The delivery path the journey chose in Create explainer, captured when the
   // dialog opens so a notebook created for this source keeps the choice (D0).
   delivery: 'human' | 'generated' | null
@@ -16453,6 +16456,7 @@ const sourceOutlineWithHarness = async (bridge: NonNullable<Window['studioDeskto
       body: JSON.stringify({ outline, projectId: project.id, sourceRevisionId: sourceState.snapshot?.id, narrativeRevisionId: sourceState.narrative?.id }),
     })
     sourceState.outline = sanitized
+    sourceState.outlinedBy = 'harness'
     sourceState.pages = null
     sourceState.model = { id: model.id }
     sourceState.modelData = model
@@ -16485,6 +16489,7 @@ const sourceOutline = async () => {
       body: JSON.stringify({ source: { title: source.title, site: source.site, text: source.text, words: source.words }, wordingPolicy: sourceState.wording }),
     })
     sourceState.outline = outline
+    sourceState.outlinedBy = 'api'
     sourceState.pages = null
     // The outline becomes the explanation model: claims, objects and
     // relations with stable ids, stored as their own durable record (D2).
@@ -17417,15 +17422,21 @@ const sourceFinish = async () => {
   const titleInput = document.querySelector<HTMLInputElement>('#project-title')
   if (titleInput) titleInput.value = project.title
   syncProject()
-  // Every scene is written to its brief now — the budget is known, so the
-  // notebook opens on the fullest draft rather than a line to grow. Kept
-  // wording is only segmented around the author's own sentences instead.
+  // Kept wording is segmented around the author's own sentences, here. An
+  // outline from the direct model path has each scene written to its brief
+  // by that path. An outline the local harness wrote keeps the harness's
+  // lines as the scenes' notes: the base is made with the harness the
+  // creator chose, and nothing else (BoltDB review B03) — the video's plans
+  // write each scene's narration, with that harness, when a video is made.
   const preserving = sourceState.wording === 'preserve'
+  const writes = preserving || sourceState.outlinedBy !== 'harness'
   const finishButton = $('#source-finish') as HTMLButtonElement
   finishButton.disabled = true
   const note = (text: string) => sourceStatus('#source-pages-note', text)
-  note(preserving ? `Timing ${fresh.length} scenes around your words…` : `Writing ${fresh.length} scenes to their briefs…`)
-  const written = await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(preserving ? `Timing scenes around your words · ${done} of ${total}` : `Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
+  if (writes) note(preserving ? `Timing ${fresh.length} scenes around your words…` : `Writing ${fresh.length} scenes to their briefs…`)
+  const written = writes
+    ? await writeScenesToBrief(fresh.map(node => String(node.attrs!.id)), (done, total, failed) => note(preserving ? `Timing scenes around your words · ${done} of ${total}` : `Writing scenes to their briefs · ${done} of ${total}${failed ? ` · ${failed} kept their outline line` : ''}`))
+    : { done: 0, failed: 0, stopped: false }
   syncProject()
   const writing = written.stopped
     ? 'No AI provider is configured — the scenes keep their outline lines; add a provider under Direct API in AI settings to write them to their briefs'
