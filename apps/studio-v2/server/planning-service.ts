@@ -58,6 +58,7 @@ import {
   PLANNING_SUBMISSION_BUDGET,
   validationOf,
   type RefusedAttempt,
+  type TypeFaces,
   type ValidationEvidence,
   type ValidationView,
   briefFingerprint,
@@ -1133,6 +1134,40 @@ const lintSketch = async (html: string) => {
   }
 }
 
+// A bundle's type, prepared before anything checks it (R10 of the
+// project-flow rereview): the faces the packet promised are supplied, a face
+// declared with src: local() alone is replaced by the face itself, and the
+// lint, the checks, the player and the render all read the prepared bundle.
+const preparedType = async (html: unknown, recordId: string) =>
+  typeof html === 'string' && html
+    ? typeFacesOf(html).catch(error => {
+      console.warn('type faces', recordId, error instanceof Error ? error.message : error)
+      return null
+    })
+    : null
+type LintReport = Awaited<ReturnType<typeof lintSketch>>
+// The lint's findings on a prepared bundle. A family with no face, when the
+// face could not be had, is not the run's to fix: its fallback is the same
+// on the stage and in the video, and it is said — never charged as a
+// refusal, and never answered with a local() declaration.
+const lintFindingsOf = (lint: LintReport | null, unresolved: string[] = []) => {
+  const missing = new Set(unresolved.map(face => face.toLowerCase()))
+  const findings = lint?.findings || []
+  const unanswerable = (finding: LintReport['findings'][number]) => {
+    if (finding.code !== 'font_family_without_font_face') return false
+    const named = (/declaration:\s*([^.]+)\./.exec(finding.message)?.[1] || '').split(',').map(name => name.trim().toLowerCase()).filter(Boolean)
+    return named.length > 0 && named.every(name => missing.has(name))
+  }
+  const hint = (finding: LintReport['findings'][number]) =>
+    finding.code === 'font_family_without_font_face' ? ' — Name the families the packet\'s theme names: Studio supplies every face it can have before checking, and says which it cannot. Never declare a face with src: local().' : finding.fixHint ? ` — ${finding.fixHint}` : ''
+  return {
+    problems: findings.filter(finding => finding.severity === 'error' && !unanswerable(finding)).map(finding => `hyperframes lint ${finding.code}: ${finding.message}${hint(finding)}`),
+    warnings: findings.filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`),
+  }
+}
+const typeNotesOf = (type: TypeFaces | null | undefined) =>
+  (type?.unresolved || []).map(face => `The type face “${face}” could not be had: the stage and the video both set it in the fallback its declaration names`)
+
 const sketchFilesOf = (raw: unknown): SketchFiles => {
   const files: SketchFiles = {}
   if (!raw || typeof raw !== 'object') return files
@@ -1155,6 +1190,8 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   const treatment = await loadPlanningRecord(String(record.inputs.treatmentId || ''))
   if (!treatment?.content) throw new PlanningError('The plan this preview is of is gone', 409)
   const files = sketchFilesOf(raw)
+  const typed = await preparedType(files['index.html'], record.id)
+  if (typed) files['index.html'] = typed.html
   const report = validateSketch(files, {
     scene: record.subject,
     plan: { record: treatment.id, revision: treatment.revision, content: treatment.content as SceneTreatmentV1 },
@@ -1162,8 +1199,8 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   })
   const html = typeof files['index.html'] === 'string' ? files['index.html'] : ''
   const lint = html ? await lintSketch(html) : null
-  const lintProblems = (lint?.findings || []).filter(finding => finding.severity === 'error').map(finding => `hyperframes lint ${finding.code}: ${finding.message}${finding.fixHint ? ` — ${finding.fixHint}` : ''}`)
-  const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
+  const { problems: lintProblems, warnings: lintWarnings } = lintFindingsOf(lint, typed?.report.unresolved)
+  const typeNotes = typeNotesOf(typed?.report)
   const problems = [...report.problems, ...lintProblems]
   if (problems.length || !report.manifest) {
     const refused = await refuse(record, { runId, submission, bundle: sketchBundleHash(files), problems })
@@ -1197,8 +1234,8 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   const planning = await loadVideoPlanning(record.projectId)
   const castNow = await knownCast(planning)
   const moved = inputsChanged(previewInputsOf(planning, treatment, castNow), record.inputs, castKeysKept(treatment, castNow))
-  const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...(moved.length ? [`While this sketch was made, ${moved.join('; ')} — it is kept, as out of date`] : [])]
-  const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof }, artifacts }, ['verifying'], { runId: record.runId })
+  const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...typeNotes, ...(moved.length ? [`While this sketch was made, ${moved.join('; ')} — it is kept, as out of date`] : [])]
+  const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof, ...(typed ? { type: typed.report } : {}) }, artifacts }, ['verifying'], { runId: record.runId })
   if (!updated) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
   void noteProgress(record.id, { milestone: 'accepted' }, { statuses: ['ready'] })
   return { accepted: true as const, status: 'ready', record: updated, warnings }
@@ -1680,6 +1717,11 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   // The harness's own files; what the product supplies is added to check
   // and play it, and is never taken from the submission.
   const own = Object.fromEntries(Object.entries(sketchFilesOf(raw)).filter(([path]) => !path.startsWith('media/')))
+  // Its type, set in faces the stage and the render share (B11), prepared
+  // before anything checks it (R10): the bundle checked, played and
+  // rendered is this one.
+  const typed = await preparedType(own['index.html'], record.id)
+  if (typed) own['index.html'] = typed.html
   const files = { ...own, ...(await productionMedia(record)) }
   const report = validateProduction(files, {
     scene: record.subject,
@@ -1690,8 +1732,7 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   })
   const html = typeof files['index.html'] === 'string' ? files['index.html'] : ''
   const lint = html ? await lintSketch(html) : null
-  const lintProblems = (lint?.findings || []).filter(finding => finding.severity === 'error').map(finding => `hyperframes lint ${finding.code}: ${finding.message}${finding.fixHint ? ` — ${finding.fixHint}` : ''}`)
-  const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
+  const { problems: lintProblems, warnings: lintWarnings } = lintFindingsOf(lint, typed?.report.unresolved)
   const problems = [...report.problems, ...lintProblems]
   if (problems.length || !report.manifest) {
     const refused = await refuse(record, { runId, submission, bundle: sketchBundleHash(own), problems })
@@ -1700,17 +1741,7 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   const verifying = await updatePlanningRecord(record.id, { status: 'verifying' }, ['queued', 'running'], { runId: record.runId })
   if (!verifying) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
   void noteProgress(record.id, { milestone: 'checking' }, { runId })
-  // Its type, set in faces the stage and the render share (B11): the
-  // bundle checked, played and rendered is this one.
-  const typed = html ? await typeFacesOf(html).catch(error => {
-    console.warn('production type faces', record.id, error instanceof Error ? error.message : error)
-    return null
-  }) : null
-  if (typed) {
-    own['index.html'] = typed.html
-    files['index.html'] = typed.html
-  }
-  const typeNotes = (typed?.report.unresolved || []).map(face => `The type face “${face}” could not be had: the stage and the video both set it in the fallback its declaration names`)
+  const typeNotes = typeNotesOf(typed?.report)
   let runtime: Awaited<ReturnType<typeof verifySketchRuntime>>
   try {
     runtime = await verifySketchRuntime(files, asPlayable(report.manifest), approved.content as SceneTreatmentV1)

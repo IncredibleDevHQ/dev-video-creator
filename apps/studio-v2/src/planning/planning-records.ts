@@ -38,7 +38,9 @@ export type SkillBundleRef = { name: string; version: string; hash: string; upst
 // The faces a production's type is set in, the same on the stage and in its
 // render (B11 of the BoltDB review): a generic family set first, and the
 // face put ahead of it; faces that could not be had.
-export type TypeFaces = { faces: string[]; substituted: Record<string, string>; unresolved: string[] }
+// A face declared with src: local() alone is set aside for the face
+// itself (R10 of the project-flow rereview), and named.
+export type TypeFaces = { faces: string[]; substituted: Record<string, string>; unresolved: string[]; localOnly?: string[] }
 
 export type PlanningRecord = {
   id: string

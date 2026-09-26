@@ -160,7 +160,7 @@ describe('planning a forked video', () => {
     expect(first.reused).toBe(false)
     expect(again.reused).toBe(true)
     expect(again.record.id).toBe(first.record.id)
-  })
+  }, 30_000)
 
   it('gives the harness the retained source, numbered, and the base pages as reference', async () => {
     const { record } = await service.queueBrief(videoId)
@@ -819,6 +819,65 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     expect(await service.submitSketch(again.record.id, { 'manifest.json': JSON.stringify(manifest) }, 'run-refused-again')).toMatchObject({ accepted: false, attempt: 2, remaining: 4 })
     expect(await service.runFinished('run-refused-again', { status: 'done', exitCode: 0 })).toMatchObject([{ id: again.record.id, status: 'failed', error: { message: 'The run ended (done, exit 0) after 2 submissions, none of which passed its checks.' }, validation: { attempts: [{ attempt: 1 }, { attempt: 2 }] } }])
   }, 90_000)
+
+  // R10 of the project-flow rereview: the packet promised the theme's faces
+  // were supplied before checking, but the lint read the bundle as handed
+  // in — so the first preview and production were refused for a face the
+  // producer had named as told, and it answered with src: local(). The type
+  // is now prepared first; the lint, the player and the render read the
+  // prepared bundle. A face that can be had is embedded; one that cannot is
+  // said, never refused.
+  it('sets a bundle\'s type before it is checked: a face that can be had is embedded, one that cannot is said, never refused', async () => {
+    const realFetch = globalThis.fetch
+    // No font service: only the renderer's own faces can be had.
+    vi.stubGlobal('fetch', (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (/fonts\.(googleapis|gstatic)\.com/.test(String(input instanceof Request ? input.url : input))) throw new Error('offline')
+      return realFetch(input, init)
+    }) as typeof fetch)
+    try {
+      const { videoId: id, videoScenes: scenes } = await makeVideo('type-first')
+      await service.saveDirection(id, { subject: scenes[0], delivery: 'silent' })
+      await readyBrief(id, 'run-type-brief')
+      const { record: plan } = await service.queueTreatment(id, scenes[0])
+      await service.attachRun(plan.id, { runId: 'run-type-plan' })
+      expect(await service.submitTreatment(plan.id, { ...treatmentFor(scenes[0], 'b1'), delivery: { voice: 'silent', note: '' } }, 'run-type-plan')).toMatchObject({ accepted: true })
+      // The labels the theme sets: a face the renderer has, declared as the
+      // lint's hint once taught — src: local() alone — and one no one has.
+      const typed = (html: string) => html
+        .replace('</style>', `@font-face { font-family: 'JetBrains Mono'; src: local('JetBrains Mono'); } .code { position: absolute; left: 120px; top: 600px; color: #fff; font-size: 40px; font-family: 'JetBrains Mono', monospace; } .display { position: absolute; left: 120px; top: 760px; color: #fff; font-size: 48px; font-family: 'Studio Test Serif', serif; }</style>`)
+        .replace('</div><script>', '<div class="code" data-sketch-layer="bucket">page 3 · leaf</div><div class="display" data-sketch-layer="bucket">One file</div></div><script>')
+
+      // The preview: accepted on its first submission.
+      const sketch = await service.queuePreview(id, scenes[0])
+      await service.attachRun(sketch.record.id, { runId: 'run-type-sketch' })
+      const sketchId = JSON.parse(text((await service.loadPacket(sketch.record.id)).files['packet/CONTEXT.json'])).composition.id
+      const sketchManifest = { version: 1, scene: scenes[0], plan: { record: plan.id, revision: plan.revision }, composition: { id: sketchId, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6, estimated: true }], layers: [{ id: 'bucket', kind: 'object', label: 'Token bucket', moments: ['m1'] }], provisional: ['Timing is estimated from the plan'] }
+      const previewed = await service.submitSketch(sketch.record.id, { 'index.html': typed(productionHtml(sketchId, 6, null)), 'manifest.json': JSON.stringify(sketchManifest) }, 'run-type-sketch', { attempt: 1, budget: 6 })
+      expect(previewed).toMatchObject({ accepted: true, status: 'ready' })
+      const sketchType = previewed.accepted ? previewed.record.report?.type : undefined
+      expect(sketchType).toMatchObject({ unresolved: ['Studio Test Serif'], localOnly: ['JetBrains Mono'] })
+      expect(previewed.accepted ? previewed.warnings : []).toEqual(expect.arrayContaining([expect.stringMatching(/^The type face “Studio Test Serif” could not be had/)]))
+      const sketchIndex = (await service.loadPreviewFile(sketch.record.id, 'index.html')).body.toString('utf8')
+      expect(sketchIndex).toMatch(/@font-face\s*\{\s*font-family:\s*"JetBrains Mono";\s*src:\s*url\("data:font\/woff2;base64,/)
+      expect(sketchIndex).not.toContain("local('JetBrains Mono')")
+
+      // The production: the same order, and accepted first time too.
+      await service.reviewTreatment(plan.id)
+      const queued = await service.queueProduction(id, scenes[0])
+      await service.attachRun(queued.record.id, { runId: 'run-type-production' })
+      const context = JSON.parse(text((await service.loadPacket(queued.record.id)).files['packet/CONTEXT.json']))
+      const manifest = { version: 1, kind: 'production', scene: scenes[0], plan: context.plan, composition: { id: context.composition.id, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, clock: { kind: 'silent', audio: null }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6 }], layers: [{ id: 'bucket', kind: 'object', label: 'Token bucket', moments: ['m1'] }], unmet: [] }
+      const landed = await service.submitProduction(queued.record.id, { 'index.html': typed(productionHtml(context.composition.id, 6, null)), 'manifest.json': JSON.stringify(manifest) }, 'run-type-production', { attempt: 1, budget: 6 })
+      expect(landed).toMatchObject({ accepted: true, status: 'ready' })
+      expect(landed.accepted ? landed.record.report?.type : undefined).toMatchObject({ unresolved: ['Studio Test Serif'], localOnly: ['JetBrains Mono'] })
+      expect((await persistence.loadPlanningRecord(queued.record.id))!.validation ?? null).toBeNull()
+      const index = (await service.loadProductionFile(queued.record.id, 'index.html')).body.toString('utf8')
+      expect(index).toMatch(/@font-face\s*\{\s*font-family:\s*"JetBrains Mono";\s*src:\s*url\("data:font\/woff2;base64,/)
+      expect(index).not.toContain("local('JetBrains Mono')")
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  }, 120_000)
 
   // P4: a scene produced from its approved plan on its real clock — checked
   // against the plan and the clock, played in the pinned engine, served to

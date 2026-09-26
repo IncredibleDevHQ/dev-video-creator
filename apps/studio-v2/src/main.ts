@@ -15,6 +15,7 @@ import { sinceOf } from './planning/progress'
 import { baseNextStep, type NextStep } from './planning/next-step'
 import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab } from './notebook-switch'
 import { nextWireframeAttempt, storedArticleOf, wireframeFailureText, type WireframeOutliner } from './wireframe-attempt'
+import { readableList } from './font-families'
 import { draftHoldsEdits, sameDocument } from './draft-state'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
@@ -16564,6 +16565,18 @@ const ensurePageFonts = (doc: TiptapDocument) => {
     document.head.append(link)
   })
 }
+// Loaded as the notebook opens and as its pages change, so the stage draws a
+// page in the faces it names, as its PDF and its video do (R05 of the
+// project-flow rereview).
+let pageFontsFrame = 0
+editor.on('update', () => {
+  if (pageFontsFrame) return
+  pageFontsFrame = window.requestAnimationFrame(() => {
+    pageFontsFrame = 0
+    ensurePageFonts(editor.getJSON() as TiptapDocument)
+  })
+})
+ensurePageFonts(editor.getJSON() as TiptapDocument)
 // ——— Scenes arrive written to their brief ———
 // The director's judgement (how long the page deserves, what to walk) is
 // known the moment a page exists, so the writer runs then — the same
@@ -17891,6 +17904,12 @@ const referenceSvg = (markup: string) => {
   parsed.querySelectorAll('script, foreignObject').forEach(element => element.remove())
   parsed.querySelectorAll('*').forEach(element => {
     for (const attribute of [...element.attributes]) if (/^on/i.test(attribute.name)) element.removeAttribute(attribute.name)
+  })
+  // A face named bare, which CSS cannot read, is quoted: drawn live on the
+  // stage, the page is set in the faces it names, as in its PDF (R05).
+  ;[parsed, ...parsed.querySelectorAll('[font-family]')].forEach(element => {
+    const readable = element.hasAttribute('font-family') ? readableList(element.getAttribute('font-family') || '') : null
+    if (readable) element.setAttribute('font-family', readable)
   })
   parsed.removeAttribute('width')
   parsed.removeAttribute('height')
