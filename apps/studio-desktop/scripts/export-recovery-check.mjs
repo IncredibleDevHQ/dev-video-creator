@@ -86,12 +86,17 @@ try {
   check('the notebook opens', Boolean(await openNotebook('recovery-a', 'Export recovery')))
   check('with no export yet, nothing is shown', await evaluate(`() => document.getElementById('export-status').hidden`, 'no status'))
 
-  // Publish: the junction walk, then the summary, then the export starts.
+  // Publish: what to export, its switchovers walked, then the export starts.
   await waitFor(`() => !document.getElementById('render-video').disabled ? true : null`, 'publish ready', 60)
   await evaluate(`() => { document.getElementById('render-video').click(); return true }`, 'publish')
-  const walked = await waitFor(`() => { const bar = document.getElementById('finalize-bar'); return bar && !bar.hidden ? true : null }`, 'walk', 30)
-  if (walked) await evaluate(`() => { document.getElementById('finalize-next').click(); return true }`, 'continue')
-  await waitFor(`() => document.getElementById('publish-dialog').open ? true : null`, 'summary', 30)
+  const walked = await waitFor(`() => {
+    const bar = document.getElementById('finalize-bar')
+    if (bar && !bar.hidden) { document.getElementById('finalize-next').click(); return null }
+    const start = document.getElementById('start-publish')
+    if (!document.getElementById('publish-dialog').open) return null
+    if (/^Review /.test(start.textContent)) { start.click(); return null }
+    return start.textContent
+  }`, 'summary', 30)
   await evaluate(`() => { document.getElementById('start-publish').click(); return true }`, 'start')
   const running = await until(async () => (await exportsOf('recovery-a')).find(job => job.status === 'running' && job.progress) || null, 60)
   if (!running) console.log('DIAGNOSIS', JSON.stringify({ exports: (await exportsOf('recovery-a')).map(job => ({ status: job.status, progress: job.progress, error: String(job.error || '').slice(-600) })), ui: await evaluate(`() => ({ walked: ${Boolean(walked)}, dialog: document.getElementById('publish-dialog').open, button: document.getElementById('start-publish').textContent, disabled: document.getElementById('render-video').disabled, scenes: document.getElementById('publish-count').textContent })`, 'diagnosis').catch(error => String(error)) }))

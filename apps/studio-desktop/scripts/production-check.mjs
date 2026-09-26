@@ -426,11 +426,58 @@ try {
   const exportStep = await waitStep('Export video')
   check(exportStep?.action === 'export' && /Every scene plays the production you accepted/.test(exportStep.title), `the next step is the video's export (${exportStep?.title})`)
   await shot('02-both-produced')
-  // Publish, as the creator does: the junction walk, the summary, the export.
+
+  // ——— Publish from Scenes (BoltDB review B09) ———
+  // It used to walk every junction on a composition the Scenes view does
+  // not hold: a black stage, no controls. What to export comes first; one
+  // produced scene exports alone, with no walk and its stage kept.
+  await evaluate(`() => { document.getElementById('workspace-tab-scenes').click(); return true }`)
+  check(Boolean(await waitFor(`() => document.body.classList.contains('is-scene-workspace') ? true : null`, 20)), 'the Scenes view opens')
+  await click(`.sw-scene[data-scene="${sceneIds[0]}"]`)
+  await waitFor(`() => document.querySelector('.sw-scene.is-selected')?.dataset.scene === ${JSON.stringify(sceneIds[0])} ? true : null`, 20)
+  await evaluate(`() => { document.getElementById('render-video').click(); return true }`)
+  const fromScenes = await waitFor(`() => document.getElementById('publish-dialog').open ? { options: [...document.querySelectorAll('#publish-scope-options .publish-scope-option')].map(option => option.dataset.scope + (option.querySelector('input').checked ? '*' : '')), scenes: document.body.classList.contains('is-scene-workspace'), stage: !document.getElementById('scene-stage').hidden && document.getElementById('scene-stage').getBoundingClientRect().width > 0, walking: !document.getElementById('finalize-bar').hidden } : null`, 20)
+  check(fromScenes?.options.join('|') === 'scene|accepted*|all|chosen' && fromScenes.scenes && fromScenes.stage && !fromScenes.walking, `from Scenes, Publish opens on what to export, the accepted productions first, over the scene's own stage (${JSON.stringify(fromScenes)})`)
+  await shot('02a-publish-from-scenes')
+  await evaluate(`() => { document.querySelector('#publish-scope-options input[value="scene"]').click(); return true }`)
+  const alone = await waitFor(`() => { const kind = document.getElementById('publish-export-kind').textContent; return /the scene you chose/.test(kind) ? { kind, audio: document.getElementById('publish-audio').textContent, count: document.getElementById('publish-count').textContent, switchovers: document.getElementById('publish-switchovers').hidden, start: document.getElementById('start-publish').textContent, captions: document.getElementById('download-captions').getAttribute('href') } : null }`, 20)
+  check(alone?.kind === 'Video export — the scene you chose plays the production you accepted from its approved plan.' && alone.audio === 'Audio: 1 of 1 blocks voiced (1 produced scene).' && alone.count === '1 of 2 blocks' && alone.switchovers && alone.start === 'Publish video' && alone.captions.endsWith(`?blocks=${encodeURIComponent(sceneIds[0])}`), `this scene alone: its production, its voice, no switchover to walk, its own captions (${JSON.stringify(alone)})`)
+  await evaluate(`() => { document.getElementById('start-publish').click(); return true }`)
+  const aloneUrl = await waitFor(`() => { const result = document.getElementById('render-result'); return result && !result.hidden ? document.getElementById('download-render').href : null }`, 300)
+  const aloneFile = join(root, 'export-scene-1.mp4')
+  if (aloneUrl) await writeFile(aloneFile, Buffer.from(await (await fetch(aloneUrl)).arrayBuffer()))
+  const aloneLength = aloneUrl ? Number(ffprobe(['-show_entries', 'format=duration', '-of', 'csv=p=0', aloneFile])) : NaN
+  check(Math.abs(aloneLength - clock.duration) < 1 / 30 + 0.05 && Boolean(ffprobe(['-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', aloneFile])), `the export is that scene's production alone, with its voice (${aloneLength.toFixed(3)}s, its clock ${clock.duration}s)`)
+  await evaluate(`() => { document.getElementById('publish-dialog').close(); return true }`)
+  const stayed = await waitFor(`() => !document.getElementById('publish-dialog').open ? { scenes: document.body.classList.contains('is-scene-workspace'), selected: document.querySelector('.sw-scene.is-selected')?.dataset.scene, stage: !document.getElementById('scene-stage').hidden } : null`, 20)
+  check(stayed?.scenes && stayed.selected === sceneIds[0] && stayed.stage, `closing Publish leaves the creator in Scenes, on the same scene (${JSON.stringify(stayed)})`)
+  // Two scenes have a switchover: walking it leaves Scenes, said so, for
+  // the notebook's composition; cancelling the walk comes back, on the
+  // scene the creator had chosen, not the one the walk showed.
+  await evaluate(`() => { document.getElementById('render-video').click(); return true }`)
+  const both = await waitFor(`() => document.getElementById('publish-dialog').open ? { scope: document.querySelector('#publish-scope-options input:checked')?.value, start: document.getElementById('start-publish').textContent } : null`, 20)
+  check(both?.scope === 'accepted' && both.start === 'Review 1 switchover →', `the accepted productions have one switchover, walked next (${JSON.stringify(both)})`)
+  await evaluate(`() => { window.__walkErrors = []; window.addEventListener('error', event => window.__walkErrors.push(String(event.error?.stack || event.message))); window.addEventListener('unhandledrejection', event => window.__walkErrors.push(String(event.reason?.stack || event.reason))); return true }`)
+  await evaluate(`() => { document.getElementById('start-publish').click(); return true }`)
+  const walking = await waitFor(`() => { const bar = document.getElementById('finalize-bar'); return bar && !bar.hidden && getComputedStyle(bar).display !== 'none' ? { scenes: document.body.classList.contains('is-scene-workspace'), step: document.getElementById('finalize-step').textContent, dialog: document.getElementById('publish-dialog').open } : null }`, 20)
+  check(walking && !walking.scenes && walking.step === 'Switchover 1 of 1' && !walking.dialog, `the walk leaves Scenes for the notebook's composition, its controls in view (${JSON.stringify(walking)})`)
+  await shot('02b-walk-from-scenes')
+  await evaluate(`() => { document.getElementById('finalize-cancel').click(); return true }`)
+  const cancelled = await waitFor(`() => document.body.classList.contains('is-scene-workspace') ? { selected: document.querySelector('.sw-scene.is-selected')?.dataset.scene, dialog: document.getElementById('publish-dialog').open, canvas: document.getElementById('player-shell').classList.contains('canvas-open') } : null`, 20)
+  check(cancelled?.selected === sceneIds[0] && !cancelled.dialog && !cancelled.canvas, `cancelling the walk returns to Scenes, on the scene chosen before Publish (${JSON.stringify(cancelled)})`)
+  if (!cancelled) console.log('DIAGNOSIS', JSON.stringify(await evaluate(`() => ({ view: window.__workspace?.view(), active: window.__workspace?.active(), bar: document.getElementById('finalize-bar').hidden, canvas: document.getElementById('player-shell').classList.contains('canvas-open'), dialog: document.getElementById('publish-dialog').open, errors: window.__walkErrors })`)))
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`)
+  await waitFor(`() => !document.body.classList.contains('is-scene-workspace') ? true : null`, 20)
+
+  // Publish from the notebook, as the creator does: what to export, the
+  // switchover walked, the summary, the export.
   await evaluate(`() => { document.getElementById('next-step').click(); return true }`)
-  check(Boolean(await waitFor(`() => { const bar = document.getElementById('finalize-bar'); return bar && !bar.hidden && getComputedStyle(bar).display !== 'none' ? true : null }`, 20)), 'the export step starts Publish')
+  const opened = await waitFor(`() => document.getElementById('publish-dialog').open ? document.getElementById('start-publish').textContent : null`, 20)
+  check(opened === 'Review 1 switchover →', `the export step starts Publish, on the switchover still to walk (${opened})`)
+  await evaluate(`() => { document.getElementById('start-publish').click(); return true }`)
+  check(Boolean(await waitFor(`() => { const bar = document.getElementById('finalize-bar'); return bar && !bar.hidden && getComputedStyle(bar).display !== 'none' ? true : null }`, 20)), 'the switchover plays on the notebook\'s composition')
   await evaluate(`() => { document.getElementById('finalize-next').click(); return true }`)
-  const summary = await waitFor(`() => document.getElementById('publish-dialog').open ? { kind: document.getElementById('publish-export-kind').textContent, audio: document.getElementById('publish-audio').textContent, button: document.getElementById('start-publish').textContent, chips: [...document.querySelectorAll('#publish-block-list .publish-audio-chip')].map(chip => chip.dataset.audio + ':' + chip.textContent), stageAside: document.getElementById('scene-stage').hidden } : null`, 20)
+  const summary = await waitFor(`() => document.getElementById('publish-dialog').open && !/^Review/.test(document.getElementById('start-publish').textContent) ? { kind: document.getElementById('publish-export-kind').textContent, audio: document.getElementById('publish-audio').textContent, button: document.getElementById('start-publish').textContent, chips: [...document.querySelectorAll('#publish-block-list .publish-audio-chip')].map(chip => chip.dataset.audio + ':' + chip.textContent), stageAside: document.getElementById('scene-stage').hidden } : null`, 20)
   check(summary?.kind === 'Video export — every scene plays the production you accepted from its approved plan.' && summary.audio === 'Audio: 1 of 2 blocks voiced (1 produced scene). 1 silent by choice.' && summary.button === 'Publish video' && summary.chips.join('|') === 'produced:produced scene, with its voice|silent-by-choice:silent by choice', `Publish says the export is the video, and what each scene sounds like (${JSON.stringify(summary)})`)
   check(summary?.stageAside === true, 'behind the summary is the notebook\'s own composition, the review stage aside')
   await shot('02b-publish-summary')

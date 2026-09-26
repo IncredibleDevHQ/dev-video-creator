@@ -429,22 +429,29 @@ try {
   check(stillApproved.state === 'reviewed' && stillApproved.reviewed?.id === planned.id && !stillApproved.staleBecause, `taking the approved plan's own lines leaves it approved and fresh (${stillApproved.state}${stillApproved.staleBecause ? ` — ${stillApproved.staleBecause}` : ''})`)
   // Publish on a video notebook of two scenes (F6 of the fresh E2E review):
   // the stage used to cover the notebook's composition and hide the finalize
-  // bar. It steps aside for the whole walk; the summary says what the export
-  // is, and a draft MP4 is exported.
+  // bar. Publish asks what to export first (BoltDB review B09); the walk
+  // visits the switchovers between the blocks chosen, the stage aside for
+  // all of it; the summary says what the export is, and a draft MP4 is
+  // exported.
   await selectScene(1)
   check(Boolean(await waitFor(`() => document.getElementById('player-shell').classList.contains('has-scene-stage') ? true : null`, 20)), 'the selected scene shows its stage before publishing')
   await evaluate(`() => { document.getElementById('render-video').click(); return true }`)
+  const scope = await waitFor(`() => document.getElementById('publish-dialog').open ? { options: [...document.querySelectorAll('#publish-scope-options .publish-scope-option')].map(option => option.dataset.scope + (option.querySelector('input').checked ? '*' : '')), kind: document.getElementById('publish-export-kind').textContent, switchovers: document.getElementById('publish-switchovers').textContent, start: document.getElementById('start-publish').textContent, walking: !document.getElementById('finalize-bar').hidden } : null`, 20)
+  check(scope?.options.join('|') === 'scene|all*|chosen' && !scope.walking, `Publish opens on what to export — this scene, the whole notebook (no production is accepted) or chosen blocks — before any walk (${JSON.stringify(scope)})`)
+  check(/not the approved scene plans/.test(scope?.kind || '') && !/rich build|Build explainer/.test(scope?.kind || ''), `the summary says the export is the notebook's own composition, not the approved plans, and nothing of the older rich build (${scope?.kind})`)
+  check(scope?.switchovers === '1 switchover between the blocks you export. Next, it plays on the video, to set how each block enters.' && scope.start === 'Review 1 switchover →', `the switchover between the two scenes comes next (${scope?.start})`)
+  await evaluate(`() => { document.getElementById('start-publish').click(); return true }`)
   const walk = await waitFor(`() => {
     const bar = document.getElementById('finalize-bar')
     const shell = document.getElementById('player-shell')
     if (!bar || bar.hidden || getComputedStyle(bar).display === 'none') return null
-    return { stage: shell.classList.contains('has-scene-stage'), finalize: shell.classList.contains('canvas-finalize-mode'), step: document.getElementById('finalize-step').textContent, next: document.getElementById('finalize-next').textContent }
+    return { dialog: document.getElementById('publish-dialog').open, stage: shell.classList.contains('has-scene-stage'), finalize: shell.classList.contains('canvas-finalize-mode'), step: document.getElementById('finalize-step').textContent, next: document.getElementById('finalize-next').textContent }
   }`, 20)
-  check(Boolean(walk) && !walk.stage && walk.finalize && walk.step === 'Junction 1 of 1' && walk.next === 'Continue →', `Publish walks the junctions on the notebook's own composition, the stage aside (${JSON.stringify(walk)})`)
+  check(Boolean(walk) && !walk.dialog && !walk.stage && walk.finalize && walk.step === 'Switchover 1 of 1' && walk.next === 'Back to Publish →', `the walk plays the switchover on the notebook's own composition, the stage aside (${JSON.stringify(walk)})`)
   await shot('02c-publish-walk')
   await evaluate(`() => { document.getElementById('finalize-next').click(); return true }`)
-  const exportKind = await waitFor(`() => document.getElementById('publish-dialog').open ? document.getElementById('publish-export-kind').textContent : null`, 20)
-  check(/not the approved scene plans/.test(exportKind || ''), `the summary says the export is the notebook's own composition, not the approved plans (${exportKind})`)
+  const walkedBack = await waitFor(`() => document.getElementById('publish-dialog').open ? { switchovers: document.getElementById('publish-switchovers').textContent, start: document.getElementById('start-publish').textContent, scope: document.querySelector('#publish-scope-options input:checked')?.value } : null`, 20)
+  check(walkedBack?.switchovers === '1 switchover between the blocks you export, reviewed.' && walkedBack.scope === 'all', `back in Publish, the switchover is reviewed and the choice kept (${JSON.stringify(walkedBack)})`)
   // F9 of the Perplexity review: its words are not its voice. Neither scene
   // has a take or a voice yet: the summary says so, block by block, and the
   // action is an explicit silent draft.

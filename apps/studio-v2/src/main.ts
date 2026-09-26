@@ -3717,15 +3717,23 @@ const hydrateJunctionFrames = (root: HTMLElement) => {
     })
 }
 
-// ——— Guided finalize flow: walk every junction on the real video ———
+// ——— Guided finalize flow: walk the export's junctions on the real video ———
 const finalizeBar = $('#finalize-bar')
 const finalizeTiles = $('#finalize-tiles')
 let finalizeModeActive = false
 let finalizeJunctionIndex = 0
+// The blocks being exported, in order: the walk visits the switchovers
+// between them, never the notebook's every junction (BoltDB review B09).
+let finalizeScenes: Scene[] = []
+// Publishing, from its first click to its close: where the creator was, so
+// that closing it — exported or not — returns them there. The walk happens
+// on the notebook's composition; from the Scenes view it leaves Scenes
+// explicitly for the walk, and comes back.
+let publishFlow: { selection: string; scenes: boolean; canvas: boolean } | null = null
 
 const highlightCurrentJunction = () => {
   const finalizeTarget = finalizeModeActive
-    ? scenes[finalizeJunctionIndex + 1]
+    ? finalizeScenes[finalizeJunctionIndex + 1]
     : undefined
   const targetIndex = finalizeTarget
     ? finalizeTarget.index
@@ -3740,8 +3748,9 @@ const highlightCurrentJunction = () => {
     })
   // Spotlight the pair the switchover connects: the outgoing and incoming
   // chips get From/To tags while everything else on the rail dims.
-  const fromId = targetIndex > 0 ? scenes[targetIndex - 1]?.id : undefined
-  const toId = targetIndex > 0 ? scenes[targetIndex]?.id : undefined
+  // The walk's pair is the export's, which the blocks left out can part.
+  const fromId = finalizeTarget ? finalizeScenes[finalizeJunctionIndex]?.id : targetIndex > 0 ? scenes[targetIndex - 1]?.id : undefined
+  const toId = finalizeTarget ? finalizeTarget.id : targetIndex > 0 ? scenes[targetIndex]?.id : undefined
   canvasBlockTimeline.classList.toggle('junction-focus', Boolean(toId))
   canvasBlockTimeline
     .querySelectorAll<HTMLElement>('.canvas-timeline-block')
@@ -3758,20 +3767,20 @@ const highlightCurrentJunction = () => {
 }
 
 const renderFinalizeJunction = (playPreview: boolean) => {
-  const junctionCount = scenes.length - 1
-  const from = scenes[finalizeJunctionIndex]
-  const to = scenes[finalizeJunctionIndex + 1]
+  const junctionCount = finalizeScenes.length - 1
+  const from = finalizeScenes[finalizeJunctionIndex]
+  const to = finalizeScenes[finalizeJunctionIndex + 1]
   if (!from || !to) return
   const fromMeta = TIMELINE_BLOCK_META[sceneVisualKind(from)]
   const toMeta = TIMELINE_BLOCK_META[sceneVisualKind(to)]
   ;($('#finalize-step') as HTMLElement).textContent =
-    `Junction ${finalizeJunctionIndex + 1} of ${junctionCount}`
+    `Switchover ${finalizeJunctionIndex + 1} of ${junctionCount}`
   ;($('#finalize-pair') as HTMLElement).textContent =
     `${fromMeta.label} → ${toMeta.label}`
   const hasTake = Boolean(project.recordedBlocks?.[to.id]?.videoUrl)
   ;($('#finalize-note') as HTMLElement).hidden = !hasTake
   ;($('#finalize-next') as HTMLButtonElement).textContent =
-    finalizeJunctionIndex >= junctionCount - 1 ? 'Continue →' : 'Next →'
+    finalizeJunctionIndex >= junctionCount - 1 ? 'Back to Publish →' : 'Next →'
   ;($('#finalize-back') as HTMLButtonElement).disabled =
     finalizeJunctionIndex === 0
   finalizeTiles.replaceChildren(
@@ -3838,26 +3847,49 @@ const exitFinalizeMode = () => {
   renderSceneStage()
 }
 
-// Publishing exports the notebook's own composition. The walk through its
-// junctions happens on that composition, so the scene review's stage steps
-// aside for all of it — every scene the walk selects — or it would cover
-// the composition and hide the finalize bar (F6 of the fresh E2E review).
-const enterFinalizeMode = () => {
-  if (scenes.length < 2) {
-    void openPublishSummary()
-    return
+// Closing Publish, exported or not, returns the creator to where they were:
+// the canvas as it was, the scene they had selected, the view they chose.
+const endPublishFlow = () => {
+  const flow = publishFlow
+  publishFlow = null
+  if (!flow) return
+  if (flow.canvas && playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+  if (flow.selection && flow.selection !== selectedNodeId && scenes.some(scene => scene.id === flow.selection)) selectNode(flow.selection, false)
+  if (flow.scenes && !sceneWorkspace?.active()) sceneWorkspace?.show('scenes')
+}
+
+// Publishing exports the notebook's own composition. The walk through the
+// export's switchovers happens on that composition, so the scene review's
+// stage steps aside for all of it — every scene the walk selects — or it
+// would cover the composition and hide the finalize bar (F6 of the fresh
+// E2E review). The Scenes view does not hold that composition: the walk
+// leaves it, said so, and Publish's close comes back (BoltDB review B09).
+const enterFinalizeMode = (included: Scene[]) => {
+  if (included.length < 2) return true
+  if (sceneWorkspace?.active()) {
+    sceneWorkspace.show('notebook')
+    // A recording holds the view; the walk waits for it.
+    if (sceneWorkspace.active()) return false
+    if (publishFlow) publishFlow.scenes = true
+    showToast('The switchovers play on the notebook\'s composition — Scenes comes back when Publish closes')
   }
+  finalizeScenes = included
   finalizeModeActive = true
   renderSceneStage()
-  if (!playerShell.classList.contains('canvas-open')) openCanvasFullscreen()
+  if (!playerShell.classList.contains('canvas-open')) {
+    openCanvasFullscreen()
+    if (publishFlow) publishFlow.canvas = true
+  }
   finalizeJunctionIndex = 0
   playerShell.classList.add('canvas-finalize-mode')
   finalizeBar.hidden = false
   renderFinalizeJunction(true)
+  return true
 }
 
 ;($('#finalize-next') as HTMLButtonElement).addEventListener('click', () => {
-  if (finalizeJunctionIndex >= scenes.length - 2) {
+  if (finalizeJunctionIndex >= finalizeScenes.length - 2) {
+    publishWalked.add(publishWalkKey(finalizeScenes))
     exitFinalizeMode()
     void openPublishSummary()
     return
@@ -3873,10 +3905,10 @@ const enterFinalizeMode = () => {
 ;($('#finalize-replay') as HTMLButtonElement).addEventListener('click', () =>
   void replaySelectedAnimation(),
 )
-;($('#finalize-cancel') as HTMLButtonElement).addEventListener(
-  'click',
-  exitFinalizeMode,
-)
+;($('#finalize-cancel') as HTMLButtonElement).addEventListener('click', () => {
+  exitFinalizeMode()
+  endPublishFlow()
+})
 
 let draggedBlockId = ''
 
@@ -5980,7 +6012,10 @@ const openCanvasFullscreen = () => {
     sceneStageAsideFor = ''
     renderSceneStage()
   }
-  if (!isOpen && finalizeModeActive) exitFinalizeMode()
+  if (!isOpen && finalizeModeActive) {
+    exitFinalizeMode()
+    endPublishFlow()
+  }
   // Transition auditioning is a canvas-mode activity: leaving the canvas
   // closes the picker and stops the loop, so the notebook's side-panel
   // preview never plays a switchover audition.
@@ -8751,6 +8786,73 @@ const publishBlockList = $('#publish-block-list')
 const startPublishButton = $('#start-publish') as HTMLButtonElement
 const publishExcluded = new Set<string>()
 
+// What to export is chosen first (BoltDB review B09): the scene on show,
+// the scenes whose productions are accepted, the whole notebook, or the
+// blocks ticked in the list. The walk visits only the switchovers between
+// the blocks chosen, and what the export is is said from their records.
+type PublishScope = 'scene' | 'accepted' | 'all' | 'chosen'
+let publishScope: PublishScope = 'all'
+let publishSceneId = ''
+// The switchovers walked in this session, per set of blocks: exporting the
+// same blocks again does not walk them again.
+const publishWalked = new Set<string>()
+const publishWalkKey = (included: Scene[]) => `${project.id}:${included.map(scene => scene.id).join(',')}`
+const publishIncluded = () => scenes.filter(scene => !publishExcluded.has(scene.id))
+const acceptedSceneIds = () => (project.derivedFrom?.notebook ? scenes.filter(scene => project.producedScenes?.[scene.id]).map(scene => scene.id) : [])
+const publishSwitchoversDue = () => {
+  const included = publishIncluded()
+  return included.length > 1 && !publishWalked.has(publishWalkKey(included)) ? included.length - 1 : 0
+}
+const setPublishScope = (scope: PublishScope) => {
+  publishScope = scope
+  const ids = scope === 'scene' ? [publishSceneId] : scope === 'accepted' ? acceptedSceneIds() : scope === 'all' ? scenes.map(scene => scene.id) : null
+  if (!ids) return
+  publishExcluded.clear()
+  for (const scene of scenes) if (!ids.includes(scene.id)) publishExcluded.add(scene.id)
+}
+// The captions file is the export's: the blocks left out are left out.
+const publishCaptionsHref = () => {
+  const base = `/api/projects/${encodeURIComponent(project.id)}/captions.vtt`
+  return publishDialog.open && publishExcluded.size ? `${base}?blocks=${publishIncluded().map(scene => encodeURIComponent(scene.id)).join(',')}` : base
+}
+const renderPublishScope = () => {
+  const options: Array<[PublishScope, string, string]> = []
+  const current = scenes.find(scene => scene.id === publishSceneId)
+  if (current) {
+    const produced = Boolean(project.derivedFrom?.notebook && project.producedScenes?.[current.id])
+    options.push(['scene', findSlideLikeNode(current.id) ? 'This scene' : 'This block', `${String(current.index + 1).padStart(2, '0')} · ${current.title}${produced ? ' · its accepted production' : ''}`])
+  }
+  const accepted = acceptedSceneIds().length
+  if (accepted) options.push(['accepted', 'Accepted productions', `${accepted} scene${accepted === 1 ? '' : 's'}`])
+  options.push(['all', 'The whole notebook', `${scenes.length} block${scenes.length === 1 ? '' : 's'}`])
+  options.push(['chosen', 'Chosen blocks', 'tick them in the list'])
+  $('#publish-scope-options').replaceChildren(
+    ...options.map(([scope, label, detail]) => {
+      const input = document.createElement('input')
+      input.type = 'radio'
+      input.name = 'publish-scope'
+      input.value = scope
+      input.checked = scope === publishScope
+      input.disabled = Boolean(activePublishJob)
+      input.addEventListener('change', () => {
+        if (!input.checked) return
+        setPublishScope(scope)
+        renderPublishBlockList()
+        void describePublishExport()
+      })
+      const name = document.createElement('strong')
+      name.textContent = label
+      const about = document.createElement('small')
+      about.textContent = detail
+      const option = document.createElement('label')
+      option.className = 'publish-scope-option'
+      option.dataset.scope = scope
+      option.append(input, name, about)
+      return option
+    }),
+  )
+}
+
 const publishRowSeconds = (scene: Scene) => {
   const recorded = project.recordedBlocks?.[scene.id]
   return (recorded?.durationMs || scene.durationSeconds * 1000) / 1000
@@ -8785,7 +8887,18 @@ const syncPublishSummary = () => {
   line.textContent = readiness.silentDraft
     ? `Audio: no block has a take or a voice — this exports a silent draft.${readiness.missing ? ` ${readiness.missing} block${readiness.missing === 1 ? ' has' : 's have'} words that are not voiced.` : ''}`
     : `Audio: ${readiness.voiced} of ${included.length} blocks voiced${voicedBy ? ` (${voicedBy})` : ''}.${readiness.missing ? ` ${readiness.missing} ${readiness.missing === 1 ? 'has' : 'have'} words but no voice or take — ${readiness.missing === 1 ? 'it' : 'they'} will be silent.` : ''}${readiness.silentByChoice ? ` ${readiness.silentByChoice} silent by choice.` : ''}`
-  if (!activePublishJob) startPublishButton.textContent = publishActionLabel(readiness)
+  // The switchovers between the blocks exported come next, when they have
+  // not been walked; one block has none.
+  const due = publishSwitchoversDue()
+  const pairs = Math.max(0, included.length - 1)
+  const switchovers = $('#publish-switchovers') as HTMLElement
+  switchovers.hidden = pairs === 0
+  switchovers.textContent = due
+    ? `${due} switchover${due === 1 ? '' : 's'} between the blocks you export. Next, ${due === 1 ? 'it plays' : 'they play'} on the video, to set how each block enters.`
+    : `${pairs} switchover${pairs === 1 ? '' : 's'} between the blocks you export, reviewed.`
+  if (!activePublishJob) startPublishButton.textContent = due ? `Review ${due} switchover${due === 1 ? '' : 's'} →` : publishActionLabel(readiness)
+  const captions = document.getElementById('download-captions') as HTMLAnchorElement | null
+  if (captions) captions.href = publishCaptionsHref()
 }
 
 const renderPublishBlockList = () => {
@@ -8800,11 +8913,18 @@ const renderPublishBlockList = () => {
       include.type = 'checkbox'
       include.checked = !publishExcluded.has(scene.id)
       include.title = 'Ship this block in the final video'
+      include.disabled = Boolean(activePublishJob)
       include.addEventListener('change', () => {
         if (include.checked) publishExcluded.delete(scene.id)
         else publishExcluded.add(scene.id)
         row.classList.toggle('excluded', !include.checked)
+        // Ticking a block makes the choice the creator's own.
+        if (publishScope !== 'chosen') {
+          publishScope = 'chosen'
+          renderPublishScope()
+        }
         syncPublishSummary()
+        void describePublishExport()
       })
 
       const meta = TIMELINE_BLOCK_META[sceneVisualKind(scene)]
@@ -8895,6 +9015,7 @@ cancelPublishJob.onclick = () => { if (activePublishJob) void fetchJson(`/api/ex
 const startPublish = async () => {
   startPublishButton.disabled = true
   startPublishButton.textContent = 'Rendering…'
+  publishDialog.querySelectorAll<HTMLInputElement>('#publish-scope-options input, #publish-block-list input').forEach(input => (input.disabled = true))
   const resultPanel = $('#render-result')
   resultPanel.hidden = true
   try {
@@ -8924,20 +9045,23 @@ const startPublish = async () => {
     const link = $('#download-render') as HTMLAnchorElement
     link.href = result.url
     resultPanel.hidden = false
-    const review = await explainerReviewState()
+    const exported = await publishKindOf(payload.notebook.content)
     ;($('#publish-count') as HTMLElement).textContent =
-      `${review.isReviewed ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
+      `${exported.kind === 'video' ? 'video export' : exported.kind === 'reviewed' ? 'published · reviewed explainer' : 'draft export'} · ${result.durationSeconds.toFixed(1)}s`
     const silence = job.audio?.silentDraft ? ' · silent draft, no audio' : job.audio?.missing ? ` · ${job.audio.missing} silent block${job.audio.missing === 1 ? '' : 's'}` : ''
     ;($('#publish-count') as HTMLElement).textContent += silence
-    showToast(review.isReviewed
-      ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes${silence}`
-      : `Draft export rendered (${result.durationSeconds.toFixed(1)}s) — not a reviewed explainer${silence}`)
+    showToast(exported.kind === 'video'
+      ? `Exported ${result.durationSeconds.toFixed(1)} seconds — every scene plays the production you accepted${silence}`
+      : exported.kind === 'reviewed'
+        ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes${silence}`
+        : `Draft export rendered (${result.durationSeconds.toFixed(1)}s)${exported.explainer ? ' — not a reviewed explainer' : ''}${silence}`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Publish failed')
   } finally {
     startPublishButton.disabled = false
     cancelPublishJob.hidden = true
     activePublishJob = ''
+    publishDialog.querySelectorAll<HTMLInputElement>('#publish-scope-options input, #publish-block-list input').forEach(input => (input.disabled = false))
     // The action says again what it would export; the result line stays.
     startPublishButton.textContent = publishActionLabel(publishAudio())
   }
@@ -9081,56 +9205,106 @@ const sceneReviewFor = async (content: TiptapNode[]) => {
   return { sceneCount: videoScenes.length, reviewedCount, changedCount }
 }
 
-const explainerReviewState = async () => {
+const explainerReviewState = async (content: TiptapNode[] = project.notebook.content) => {
   const derived = Boolean(project.derivedFrom?.notebook)
-  const review = await sceneReviewFor(project.notebook.content)
+  const review = await sceneReviewFor(content)
   return { derived, ...review, isReviewed: derived && review.sceneCount > 0 && review.changedCount === 0 && review.reviewedCount === review.sceneCount }
 }
 
+// What an export of these blocks is, said from their own records: the
+// productions accepted for a video notebook's scenes (P4), or, where the
+// rich build reviewed them, its review. A video notebook that never went
+// through the rich build is not told about it (BoltDB review B09).
+const publishKindOf = async (content: TiptapNode[]) => {
+  const review = await explainerReviewState(content)
+  const slideIds = (nodes: TiptapNode[]) => nodes.filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id).map(node => String(node.attrs!.id))
+  const videoScenes = review.derived ? slideIds(content) : []
+  const producedCount = videoScenes.filter(id => project.producedScenes?.[id]).length
+  const whole = videoScenes.length === slideIds(project.notebook.content || []).length
+  const explainer = !review.derived || review.reviewedCount + review.changedCount > 0
+  if (videoScenes.length > 0 && producedCount === videoScenes.length) {
+    const text = whole
+      ? 'Video export — every scene plays the production you accepted from its approved plan.'
+      : videoScenes.length === 1
+        ? 'Video export — the scene you chose plays the production you accepted from its approved plan.'
+        : `Video export — the ${videoScenes.length} scenes you chose play the productions you accepted from their approved plans.`
+    return { kind: 'video' as const, text, explainer }
+  }
+  if (review.isReviewed) return { kind: 'reviewed' as const, text: 'Reviewed explainer export — every scene passed the rich build’s review.', explainer }
+  if (!review.derived) return { kind: 'draft' as const, text: 'Draft export — this notebook has not been through the rich explainer build. Create explainer starts that journey.', explainer }
+  // Until every scene it includes is produced, say what it is, and what it is not.
+  const productions = producedCount
+    ? `${producedCount} of ${videoScenes.length} scenes play the production you accepted from their approved plans; the others are the notebook's own composition — its pages, words and takes.`
+    : ''
+  if (!explainer) {
+    return {
+      kind: 'draft' as const,
+      text: productions ? `Draft export — ${productions}` : 'Draft export — the notebook\'s own composition, its pages, words and takes, not the approved scene plans: no scene it includes has an accepted production.',
+      explainer,
+    }
+  }
+  const build = review.changedCount
+    ? `Draft export — ${review.changedCount} of ${review.sceneCount} scenes changed since the rich build's review. Build explainer re-reviews them; accepted artwork is reused.`
+    : `Draft export — ${review.reviewedCount} of ${review.sceneCount} scenes reviewed by the rich build. Build explainer produces the reviewed explainer export.`
+  return {
+    kind: 'draft' as const,
+    text: `${build} ${productions || 'It exports the notebook\'s own composition — its pages, words and takes — not the approved scene plans: no scene it includes has an accepted production.'}`,
+    explainer,
+  }
+}
+
+let publishDescribed = 0
+const describePublishExport = async () => {
+  const run = ++publishDescribed
+  const included = new Set(publishIncluded().map(scene => scene.id))
+  const content = (project.notebook.content || []).filter(node => typeof node.attrs?.id !== 'string' || included.has(node.attrs.id))
+  const { text } = await publishKindOf(content)
+  if (run !== publishDescribed) return
+  const exportKind = $('#publish-export-kind') as HTMLElement
+  exportKind.hidden = included.size === 0
+  exportKind.textContent = text
+}
+
+// The summary, on the blocks chosen: opened by Publish, and again when
+// the walk through their switchovers comes back.
 const openPublishSummary = async () => {
-  publishExcluded.clear()
   ;($('#render-result') as HTMLElement).hidden = true
   closePublishTakePreview()
-  const exportKind = $('#publish-export-kind') as HTMLElement
-  const review = await explainerReviewState()
-  exportKind.hidden = false
-  // A video notebook's scenes that play the production accepted from their
-  // approved plans (P4); the others are the notebook's own composition.
-  const videoScenes = review.derived ? (project.notebook.content || []).filter(node => (node.type === 'scene' || node.type === 'slide') && node.attrs?.id).map(node => String(node.attrs!.id)) : []
-  const producedCount = videoScenes.filter(id => project.producedScenes?.[id]).length
-  const allProduced = videoScenes.length > 0 && producedCount === videoScenes.length
-  if (allProduced) {
-    exportKind.textContent = 'Video export — every scene plays the production you accepted from its approved plan.'
-  } else if (review.isReviewed) {
-    exportKind.textContent = 'Reviewed explainer export — every scene passed the rich build’s review.'
-  } else if (review.derived && review.changedCount) {
-    exportKind.textContent = `Draft export — ${review.changedCount} of ${review.sceneCount} scenes changed since the rich build's review. Build explainer re-reviews them; accepted artwork is reused.`
-  } else if (review.derived) {
-    exportKind.textContent = `Draft export — ${review.reviewedCount} of ${review.sceneCount} scenes reviewed by the rich build. Build explainer produces the reviewed explainer export.`
-  } else {
-    exportKind.textContent = 'Draft export — this notebook has not been through the rich explainer build. Create explainer starts that journey.'
-  }
-  // Until every scene is produced, say what this export is, and what it is not.
-  if (review.derived && !allProduced) {
-    exportKind.textContent += producedCount
-      ? ` ${producedCount} of ${videoScenes.length} scenes play the production you accepted from their approved plans; the others are the notebook's own composition — its pages, words and takes.`
-      : ' It exports the notebook\'s own composition — its pages, words and takes — not the approved scene plans: no scene\'s production is accepted yet.'
-  }
+  renderPublishScope()
   renderPublishBlockList()
   ;($('#burn-captions') as HTMLInputElement).checked = Boolean(project.captions?.burnIn)
-  publishDialog.showModal()
-  // The export is the notebook's own composition: the stage steps aside
-  // behind the summary, as it does while the junctions are walked.
+  await describePublishExport()
+  if (!publishDialog.open) publishDialog.showModal()
+  syncPublishSummary()
+  // The export is the notebook's own composition: in the notebook the stage
+  // steps aside behind the summary, as it does while the switchovers are
+  // walked. The Scenes view keeps its stage (BoltDB review B09).
   renderSceneStage()
 }
 
-renderButton.addEventListener('click', () => {
+// Publish starts with what to export: by default the scenes whose
+// productions are accepted, when there are any, else the whole notebook.
+const openPublish = () => {
+  if (publishDialog.open || finalizeModeActive) return
   syncProject()
-  // Publishing starts with the guided junction walkthrough on the real
-  // video, then lands on the summary (takes, included blocks, duration).
-  enterFinalizeMode()
+  publishFlow = { selection: selectedNodeId, scenes: false, canvas: false }
+  const shown = sceneWorkspace?.active() ? reviewSelectedScene || selectedNodeId : selectedNodeId
+  publishSceneId = scenes.some(scene => scene.id === shown) ? shown : ''
+  setPublishScope(acceptedSceneIds().length ? 'accepted' : 'all')
+  void openPublishSummary()
+}
+
+renderButton.addEventListener('click', openPublish)
+startPublishButton.addEventListener('click', () => {
+  // The switchovers between the blocks chosen come first, played on the
+  // notebook's composition behind this dialog.
+  if (publishSwitchoversDue()) {
+    if (enterFinalizeMode(publishIncluded())) publishDialog.close()
+    else ($('#publish-switchovers') as HTMLElement).textContent = 'Finish or close the recording first — the switchovers play on the notebook\'s composition, outside Scenes.'
+    return
+  }
+  void startPublish()
 })
-startPublishButton.addEventListener('click', () => void startPublish())
 ;($('#cancel-publish') as HTMLButtonElement).addEventListener('click', () =>
   publishDialog.close(),
 )
@@ -9139,6 +9313,13 @@ startPublishButton.addEventListener('click', () => void startPublish())
 )
 publishDialog.addEventListener('close', closePublishTakePreview)
 publishDialog.addEventListener('close', () => renderSceneStage())
+// Closed for the walk, Publish goes on; closed otherwise, it is over. The
+// dialog's close event waits for a frame, which a window in the background
+// can hold past the next Publish — and end that one — so the dialog's open
+// state is watched instead, as it changes.
+new MutationObserver(() => {
+  if (!publishDialog.open && !finalizeModeActive) endPublishFlow()
+}).observe(publishDialog, { attributes: true, attributeFilter: ['open'] })
 ;($('#close-publish-take-preview') as HTMLButtonElement).addEventListener(
   'click',
   closePublishTakePreview,
@@ -18043,7 +18224,7 @@ sourceDialog.querySelectorAll<HTMLButtonElement>('[data-source-back]').forEach(b
   const link = document.getElementById('download-captions') as HTMLAnchorElement | null
   const sync = () => {
     if (!link) return
-    link.href = `/api/projects/${encodeURIComponent(project.id)}/captions.vtt`
+    link.href = publishCaptionsHref()
   }
   sync()
   ;($('#publish-dialog') as HTMLDialogElement).addEventListener('toggle', sync)
@@ -18414,9 +18595,10 @@ const renderSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null
   notifyStage()
 }
 const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) => {
-  // Finalizing and exporting work on the notebook's own composition: the
-  // stage steps aside for as long as they do.
-  const notebookComposition = finalizeModeActive || publishDialog.open
+  // Finalizing and exporting work on the notebook's own composition: in the
+  // notebook the stage steps aside for as long as they do. The Scenes view
+  // keeps it behind Publish: it holds no other picture (BoltDB review B09).
+  const notebookComposition = finalizeModeActive || (publishDialog.open && !sceneWorkspace?.active())
   const stage = sceneReview?.active() && reviewSelectedScene && sceneStageAsideFor !== reviewSelectedScene && !notebookComposition ? sceneReview.stageOf(reviewSelectedScene) : null
   const node = stage ? findSlideLikeNode(reviewSelectedScene) : null
   if (!stage || !node) {

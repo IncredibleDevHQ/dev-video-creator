@@ -723,13 +723,23 @@ try {
     const accepted = Object.keys((await project(videoId))?.producedScenes || {}).filter(id => [A.id, B.id].includes(id))
     if (accepted.length < 2) note(`only ${accepted.length} of the two scenes is accepted`)
     await focusApp()
+    // What to export comes first — the accepted productions, by default —
+    // then the switchovers between them, walked; then the summary.
     await evaluate(`() => { document.getElementById('render-video').click(); return true }`)
-    for (let i = 0; i < 20; i++) {
-      if (await evaluate(`() => document.getElementById('publish-dialog').open`)) break
-      await evaluate(`() => { const next = document.getElementById('finalize-next'); if (next && !document.getElementById('finalize-bar').hidden) next.click(); return true }`)
+    await waitFor(`() => document.getElementById('publish-dialog').open ? true : null`, 20)
+    await evaluate(`() => { const ids = ${JSON.stringify(accepted)}; document.querySelectorAll('#publish-block-list .publish-block-row').forEach(row => { const box = row.querySelector('input[type="checkbox"]'); const id = row.dataset.nodeId || row.dataset.blockId || ''; if (box && id && box.checked !== ids.includes(id)) box.click() }); return true }`)
+    for (let i = 0; i < 40; i++) {
+      const state = await evaluate(`() => {
+        const bar = document.getElementById('finalize-bar')
+        if (bar && !bar.hidden) { document.getElementById('finalize-next').click(); return 'walking' }
+        const start = document.getElementById('start-publish')
+        if (!document.getElementById('publish-dialog').open) return 'waiting'
+        if (/^Review /.test(start.textContent)) { start.click(); return 'walk' }
+        return 'ready'
+      }`)
+      if (state === 'ready') break
       await sleep(1500)
     }
-    await evaluate(`() => { const ids = ${JSON.stringify(accepted)}; document.querySelectorAll('#publish-block-list .publish-block-row').forEach(row => { const box = row.querySelector('input[type="checkbox"]'); const id = row.dataset.nodeId || row.dataset.blockId || ''; if (box && id && box.checked !== ids.includes(id)) box.click() }); return true }`)
     const summary = await waitFor(`() => document.getElementById('publish-dialog').open ? { kind: document.getElementById('publish-export-kind').textContent, audio: document.getElementById('publish-audio').textContent, count: document.getElementById('publish-count').textContent } : null`, 20)
     note(`Publish: ${JSON.stringify(summary)}`)
     await shot('20-publish')

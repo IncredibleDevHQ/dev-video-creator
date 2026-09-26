@@ -641,6 +641,18 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .markdown-modal { width: min(720px, 80vw); }
 .publish-modal { width: min(680px, 84vw); }
 .publish-note { margin: 14px 22px 0; color: #71717a; font-size: 11px; line-height: 1.55; }
+/* What to export, chosen first (BoltDB review B09). */
+.publish-scope { min-width: 0; margin: 16px 22px 0; padding: 0; border: 0; }
+.publish-scope legend { margin-bottom: 8px; padding: 0; color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.publish-scope-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); gap: 6px; }
+.publish-scope-option { min-width: 0; padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: baseline; border: 1px solid #d4d4d8; border-radius: 7px; background: white; cursor: pointer; }
+.publish-scope-option:hover { border-color: #a1a1aa; }
+.publish-scope-option:has(input:checked) { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 7%, white); }
+.publish-scope-option:has(input:disabled) { cursor: default; opacity: .6; }
+.publish-scope-option:focus-within { outline: 2px solid color-mix(in srgb, var(--brand) 45%, transparent); outline-offset: 1px; }
+.publish-scope-option input { margin: 0; accent-color: var(--brand); }
+.publish-scope-option strong { color: var(--ink); font-size: 11.5px; }
+.publish-scope-option small { grid-column: 2; min-width: 0; overflow: hidden; color: #71717a; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .publish-block-list { max-height: min(430px, 52vh); margin: 14px 22px; padding: 4px; display: grid; gap: 4px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 .publish-block-row { padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center; border-radius: 6px; }
 .publish-block-row:hover { background: #f7f7f8; }

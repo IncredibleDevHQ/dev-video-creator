@@ -2838,7 +2838,10 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       const [, projectId, format] = url.pathname.match(/^\/api\/projects\/([^/]+)\/captions\.(vtt|srt)$/) as RegExpMatchArray
       const stored = await loadProjectArtifact(decodeURIComponent(projectId))
       if (!stored) throw new Error('Notebook not found')
-      const cues = captionCuesForProject(stored)
+      // An export of some of its blocks has the captions of those blocks.
+      const blocks = url.searchParams.get('blocks')
+      const chosen = blocks ? new Set(blocks.split(',')) : null
+      const cues = captionCuesForProject(chosen ? { ...stored, notebook: { ...stored.notebook, content: stored.notebook.content.filter(node => typeof node.attrs?.id !== 'string' || chosen.has(node.attrs.id)) } } : stored)
       const body = format === 'vtt' ? formatWebVtt(cues) : formatSrt(cues)
       response.writeHead(200, { 'content-type': format === 'vtt' ? 'text/vtt; charset=utf-8' : 'application/x-subrip; charset=utf-8', 'content-disposition': `attachment; filename="${String(stored.title || 'captions').replace(/[^\w.-]+/g, '-').slice(0, 60)}.${format}"`, 'x-caption-count': String(cues.length) })
       response.end(body)
