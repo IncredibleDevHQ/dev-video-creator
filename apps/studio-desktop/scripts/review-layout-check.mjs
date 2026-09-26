@@ -391,7 +391,9 @@ try {
   // ——— The base: its one next step is its video; the rest under Advanced ———
   check(Boolean(await openNotebook(base.id, base.title)), 'the base notebook opens')
   const baseStep = await waitFor(`() => { const button = document.getElementById('next-step'); return button.textContent === 'Open video' ? { label: button.textContent, title: button.title, primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(element => element.getClientRects().length).map(element => element.textContent.trim()) } : null }`, 30)
-  check(baseStep?.label === 'Open video' && JSON.stringify([...baseStep.primaries].sort()) === '["Open video","Publish"]' && /fabric-lib · video/.test(baseStep.title), `the base leads with its video (${JSON.stringify(baseStep)})`)
+  // A base made from a source shows its pages; publishing is the video's
+  // (BoltDB review B04).
+  check(baseStep?.label === 'Open video' && JSON.stringify(baseStep.primaries) === '["Open video"]' && /fabric-lib · video/.test(baseStep.title), `the base leads with its video, and publishing is the video's (${JSON.stringify(baseStep)})`)
   // Import's menu shows whole too: the command bar no longer clips it.
   const imports = await evaluate(`async () => {
     document.getElementById('import-menu-toggle').click()
@@ -411,7 +413,7 @@ try {
     const shown = buttons.filter(element => { const box = element.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return box.top >= 0 && box.bottom <= innerHeight && box.right <= innerWidth && Boolean(hit && element.contains(hit)) }).length
     return { open: !list.hidden, expanded: document.getElementById('advanced-menu-toggle').getAttribute('aria-expanded'), shown, barScrolled: document.querySelector('.commandbar .actions').scrollTop + document.querySelector('.commandbar .actions').scrollLeft, next: document.getElementById('next-step').getClientRects().length > 0, items: buttons.map(element => ({ label: element.querySelector('.menu-label').textContent, note: element.querySelector('.menu-note').textContent })) }
   }`)
-  check(advanced.open && advanced.expanded === 'true' && advanced.shown === 3 && advanced.barScrolled === 0 && advanced.next && advanced.items.map(item => item.label).join('|') === 'Open canvas|Create explainer…|Build explainer' && /does not use approved scene plans/.test(advanced.items[2]?.note || ''), `Advanced holds the older and other paths, each saying what it is (${JSON.stringify(advanced)})`)
+  check(advanced.open && advanced.expanded === 'true' && advanced.shown === 4 && advanced.barScrolled === 0 && advanced.next && advanced.items.map(item => item.label).join('|') === 'Open canvas|Create explainer…|Build explainer|Show video staging' && /does not use approved scene plans/.test(advanced.items[2]?.note || '') && /The older way/.test(advanced.items[3]?.note || ''), `Advanced holds the older and other paths, each saying what it is (${JSON.stringify(advanced)})`)
   await shot('base-advanced')
   await evaluate(`() => { document.getElementById('advanced-menu-toggle').click(); return true }`)
   const documentType = await waitFor(`() => { const paragraph = document.querySelector('#editor .tiptap > p'); const list = document.querySelector('#editor .tiptap > ul'); if (!paragraph || !list) return null; const style = getComputedStyle(paragraph); return { paragraph: style.fontSize + '/' + style.lineHeight, item: getComputedStyle(list.querySelector('li')).fontSize + '/' + getComputedStyle(list.querySelector('li')).lineHeight, list: getComputedStyle(list).paddingLeft } }`, 30)
