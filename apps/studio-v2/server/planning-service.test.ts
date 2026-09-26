@@ -16,6 +16,10 @@ process.env.STUDIO_DATA_DIR = mkdtempSync(join(tmpdir(), 'planning-'))
 const RUN = Date.now().toString(36)
 process.env.STUDIO_SKILLS_DIR = fileURLToPath(new URL('../../studio-desktop/skills/', import.meta.url))
 
+// Each test reads and writes a real store, and some play bundles in Chrome:
+// under a loaded machine five seconds is not enough, so the file allows 30.
+vi.setConfig({ testTimeout: 30_000 })
+
 const persistence = await import('./persistence')
 const service = await import('./planning-service')
 const { systemVoiceAvailable, runCommand, probeSeconds } = await import('./voice')
