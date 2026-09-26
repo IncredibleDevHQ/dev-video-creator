@@ -174,12 +174,16 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const review = () => host.review()
   const sceneIds = () => review()?.scenes().map(scene => scene.id) || []
   // The scene on show: the notebook's selection when it is a scene, else the
-  // one this workspace last showed, else the first.
+  // one this workspace last showed, else the first. Until the scene last
+  // shown is restored (after the plans are read), it is the one on show: the
+  // notebook's first selection as it opens never takes its place.
+  let restoredFor = ''
   const currentScene = () => {
     const ids = sceneIds()
+    loadPrefs()
+    if (restoredFor !== host.projectId() && prefs.scene && ids.includes(prefs.scene)) return prefs.scene
     const selected = host.selectedScene()
     if (ids.includes(selected)) return selected
-    loadPrefs()
     if (prefs.scene && ids.includes(prefs.scene)) return prefs.scene
     return ids[0] || ''
   }
@@ -678,6 +682,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     // After the plans are read: back on the scene this workspace last showed.
     restore: () => {
       loadPrefs()
+      restoredFor = host.projectId()
       const ids = sceneIds()
       if (!root.hidden && prefs.scene && ids.includes(prefs.scene) && prefs.scene !== host.selectedScene()) host.selectScene(prefs.scene)
       shown = ''
