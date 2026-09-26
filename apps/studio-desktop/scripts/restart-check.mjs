@@ -239,6 +239,10 @@ try {
     const file = join(root, 'after.mp4')
     await writeFile(file, Buffer.from(await (await fetch(`${origin}${after.result.url}`)).arrayBuffer()))
     const frame = frameAt(file, 1.5)
+    if (process.env.RESTART_SHOTS) {
+      await mkdir(process.env.RESTART_SHOTS, { recursive: true })
+      spawnSync('ffmpeg', ['-v', 'error', '-y', '-ss', '1.5', '-i', file, '-frames:v', '1', join(process.env.RESTART_SHOTS, '05-export-frame.png')])
+    }
     const logoColour = frame?.length ? colourAt(frame, 72 + 30, 58 + 30) : []
     const artColour = frame?.length ? colourAt(frame, 960, 540) : []
     check(near(logoColour, [255, 0, 255]), `the logo named by its path is in the frame (${logoColour.join(',')} at 102,88)`)

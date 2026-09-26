@@ -415,6 +415,9 @@ try {
   const reloaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return /\\?e=1$/.test(player?.getAttribute('src') || '') && player.duration > 0 ? player.getAttribute('src') : null }`, 30)
   const after = await stageOpacityAt(m2.start + 0.7, '#m2 .title')
   check(Boolean(reloaded) && after === 0, `the stage plays the edit: the headline has not appeared ${0.7}s into the graphics (opacity ${after})`)
+  // Undo is there once the edit's save has come back — the stage can play
+  // the edit sooner, from the review's own poll.
+  await waitFor(`() => { const button = document.querySelector('.scene-review.is-expanded [data-focus^="undo-edit:"]'); return button && !button.disabled ? true : null }`, 20)
   await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="undo-edit:"]').click(); return true }`)
   const undone = await until(async () => { const view = (await overview(videoId)).scenes[0].production.ready; return view.edits.revision === 2 ? view.edits : null }, 30)
   check(undone && !('m2-title' in undone.values), `undo is saved as edit 2, the headline back at its default (${JSON.stringify(undone?.values)})`)
