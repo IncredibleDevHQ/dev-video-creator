@@ -48,7 +48,10 @@ const drawingOf = (svg: string) =>
     .replace(/javascript:/gi, '')
 
 // The slides as one printable document: a page each, the drawing filling it.
-// A page not yet designed carries its mark, over the drawing, in the file.
+// A page not yet designed carries its mark, over the drawing, in the file;
+// the mark's own type is there only when a page carries it.
+const draftMarkCss = (width: number, height: number) =>
+  `.draft-mark { position: absolute; top: ${Math.round(height * 0.03)}px; right: ${Math.round(width * 0.02)}px; padding: ${Math.round(height * 0.009)}px ${Math.round(width * 0.009)}px; border: 3px solid #b45309; border-radius: 10px; background: #fffbeb; color: #92400e; font-family: 'Inter', sans-serif; font-size: ${Math.round(height * 0.024)}px; font-weight: 700; line-height: 1.2; letter-spacing: .06em; text-transform: uppercase; }\n`
 export const presentationHtml = (slides: Array<Pick<PresentationSlide, 'title' | 'svg'> & { state?: SlideState }>, width: number, height: number, title = '') => `<!doctype html>
 <html><head><meta charset="utf-8"><title>${escapeText(title)}</title><style>
 @page { size: ${width}px ${height}px; margin: 0; }
@@ -56,8 +59,7 @@ html, body { margin: 0; padding: 0; background: #ffffff; }
 .slide { position: relative; width: ${width}px; height: ${height}px; overflow: hidden; break-after: page; }
 .slide:last-child { break-after: auto; }
 .slide > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.draft-mark { position: absolute; top: ${Math.round(height * 0.03)}px; right: ${Math.round(width * 0.02)}px; padding: ${Math.round(height * 0.009)}px ${Math.round(width * 0.009)}px; border: 3px solid #b45309; border-radius: 10px; background: #fffbeb; color: #92400e; font: 700 ${Math.round(height * 0.024)}px/1.2 'Inter', sans-serif; letter-spacing: .06em; text-transform: uppercase; }
-</style></head><body>
+${slides.some(slide => slide.state && slide.state !== 'designed') ? draftMarkCss(width, height) : ''}</style></head><body>
 ${slides.map((slide, index) => `<section class="slide${slide.state && slide.state !== 'designed' ? ' is-draft' : ''}" aria-label="${escapeText(`${index + 1}. ${slide.title}`)}">${drawingOf(slide.svg)}${slide.state && slide.state !== 'designed' ? `<div class="draft-mark">${escapeText(DRAFT_NOTES[slide.state])}</div>` : ''}</section>`).join('\n')}
 </body></html>`
 

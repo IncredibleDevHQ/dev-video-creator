@@ -29,6 +29,11 @@ describe('a presentation as a PDF', () => {
     expect(html).toContain('<div class="draft-mark">Draft · still being designed</div>')
     expect(html).toContain('<div class="draft-mark">Draft · schematic, not designed</div>')
     expect(html).toContain('<title>How BoltDB works — draft (1 of 3 designed)</title>')
+    // The mark's own type, in longhand so its face is embedded, is there only
+    // when a page carries the mark.
+    expect(html).toContain(`.draft-mark { position: absolute;`)
+    expect(html).toContain(`font-family: 'Inter', sans-serif; font-size: 26px; font-weight: 700;`)
+    expect(presentationHtml(exportSlidesOf(slides, 'ready'), 1920, 1080)).not.toContain('.draft-mark')
   })
 
   // R05 of the project-flow rereview: a slide sets its type in SVG
