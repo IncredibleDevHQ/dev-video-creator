@@ -125,3 +125,39 @@ export const typeFacesOf = async (html: string, options: InjectDeterministicFont
   const faces = declaredFaces(faced)
   return { html: faced, report: { faces, substituted, unresolved: faces.filter(face => !embedded.has(face.toLowerCase())) } }
 }
+
+// The faces a theme names, as a scene's type will be set in them (Q01 of the
+// BoltDB review): each family the renderer can have — its own faces, the
+// family's published files, a face on this machine — or not. Said before a
+// scene is produced, and told to the producer, so no family is swapped for
+// a generic one by hand and reported missing after the creator waited.
+export type ThemeRole = 'display' | 'body' | 'mono'
+export type ThemeFace = { role: ThemeRole; family: string; available: boolean; fallback: string }
+const FALLBACK: Record<ThemeRole, string> = { display: 'sans-serif', body: 'sans-serif', mono: 'monospace' }
+const themeFaces = new Map<string, Promise<ThemeFace[]>>()
+const themeFacesSettled = new Map<string, ThemeFace[]>()
+const namedFaces = (fonts: Partial<Record<ThemeRole, string | null>> | null | undefined) =>
+  (['display', 'body', 'mono'] as ThemeRole[]).flatMap(role => (fonts?.[role] ? [{ role, family: String(fonts[role]).split(',')[0].replace(/["']/g, '').trim() }] : [])).filter(entry => entry.family)
+export const themeFacesOf = (fonts: Partial<Record<ThemeRole, string | null>> | null | undefined, options: InjectDeterministicFontFacesOptions = {}) => {
+  const named = namedFaces(fonts)
+  const key = JSON.stringify(named)
+  let resolved = themeFaces.get(key)
+  if (!resolved) {
+    const css = named.map(entry => `.${entry.role}{font-family:"${entry.family.replace(/"/g, '')}", ${FALLBACK[entry.role]}}`).join('')
+    resolved = typeFacesOf(`<!doctype html><html><head><style>${css}</style></head><body></body></html>`, options)
+      .then(({ report }) => named.map(entry => ({ ...entry, available: !report.unresolved.some(face => face.toLowerCase() === entry.family.toLowerCase()), fallback: FALLBACK[entry.role] })))
+      .catch(() => named.map(entry => ({ ...entry, available: false, fallback: FALLBACK[entry.role] })))
+      .then(faces => {
+        themeFacesSettled.set(key, faces)
+        return faces
+      })
+    themeFaces.set(key, resolved)
+  }
+  return resolved
+}
+// The same, when it is already known: what the overview says without
+// waiting for the renderer's font sources.
+export const themeFacesNow = (fonts: Partial<Record<ThemeRole, string | null>> | null | undefined) => {
+  void themeFacesOf(fonts)
+  return themeFacesSettled.get(JSON.stringify(namedFaces(fonts))) || null
+}

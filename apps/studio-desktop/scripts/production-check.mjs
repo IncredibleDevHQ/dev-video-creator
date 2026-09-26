@@ -343,6 +343,10 @@ try {
   check(produceStep?.action === 'produce' && produceStep.scene === sceneIds[0] && !produceStep.disabled, `the next step is to produce scene 1 from its approved plan (${JSON.stringify(produceStep)})`)
   const before = await evaluate(`() => { const review = document.querySelector('.scene-review.is-expanded [data-review-production]'); return review ? { text: review.textContent, button: review.querySelector('[data-focus^="produce:"]')?.textContent } : null }`)
   check(before?.button === `Produce scene from r${plan1.revision}` && /Output: not produced/.test(await evaluate(`() => document.querySelector('.scene-review.is-expanded .review-strip')?.textContent || ''`)), `the review offers production of the approved plan, and says nothing is produced (${before?.button})`)
+  // Q01 of the BoltDB review: the faces the theme's type will be set in, and
+  // one that cannot be had, are said before anything is produced.
+  const typeBefore = await waitFor(`() => document.querySelector('.scene-review.is-expanded [data-review-type-before]')?.textContent || null`, 30)
+  check(typeBefore === "Type: sohne-var (display), sohne-var (body), Consolas (mono). “sohne-var” cannot be had here: it is set in the system's sans-serif, alike on the stage and in the video — choose another theme to change it.", `before producing, the review says what the scene's type will be set in (${typeBefore})`)
   await evaluate(`() => { document.getElementById('next-step').click(); return true }`)
   const produced1 = await until(async () => { const production = (await overview(videoId)).scenes[0].production; return production?.ready ? production : null }, 180)
   check(Boolean(produced1?.ready?.current) && produced1.ready.of.record === plan1.id, `the scene is produced from its approved plan (${JSON.stringify(produced1?.ready?.of)})`)
@@ -353,6 +357,8 @@ try {
   const refused = JSON.parse(await readFile(join(productionRun.projectDir, 'planning', 'refused.json'), 'utf8'))
   check(/not available to a production run/.test(refused.error || ''), `a planning tool is refused to it (${refused.error})`)
   const clock = JSON.parse(await readFile(join(productionRun.projectDir, 'packet', 'CLOCK.json'), 'utf8'))
+  const themeGiven = JSON.parse(await readFile(join(productionRun.projectDir, 'packet', 'THEME.json'), 'utf8')).typography
+  check(JSON.stringify(themeGiven.faces) === JSON.stringify({ display: { family: 'sohne-var', available: false }, body: { family: 'sohne-var', available: false }, mono: { family: 'Consolas', available: true } }) && /Never replace a theme family with a generic one/.test(themeGiven.note), `the producer is told which of the theme's faces can be had, and not to swap them for generic ones (${JSON.stringify(themeGiven.faces)})`)
   check(clock.kind === 'generated-voice' && clock.audio === 'audio/narration.mp3' && clock.provider === 'Local system voice' && clock.spoken.map(entry => entry.words).join(' ') === 'Requests arrive. The limit bites. Load stays safe.' && clock.moments.every((moment, index) => index === 0 || moment.start === clock.moments[index - 1].end), `the product spoke the approved narration and measured its clock before the run (${clock.duration}s: ${clock.moments.map(moment => `${moment.id} ${moment.start}–${moment.end}`).join(', ')})`)
   const first = JSON.parse(await readFile(join(productionRun.projectDir, 'planning', 'production-first.json'), 'utf8'))
   check(first.accepted === false && first.problems.some(problem => /^moment m1 must keep the clock/.test(problem)) && first.problems.some(problem => /^layer limiter is a placeholder/.test(problem)), `a production on the plan's estimates, with a stand-in, is refused with why (${first.problems?.slice(0, 2).join(' | ')})`)

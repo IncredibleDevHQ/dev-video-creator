@@ -162,6 +162,9 @@ export type PlanningOverviewV1 = {
   videoDirection: string
   basePages: BasePage[]
   records: PlanningRecord[]
+  // The theme's type faces, as a produced scene will be set in them: each
+  // family, and whether the Studio can have its own face (Q01).
+  themeType?: Array<{ role: 'display' | 'body' | 'mono'; family: string; available: boolean; fallback: string }> | null
 }
 
 type Harness = { id: string; ok: boolean; version?: string; reason?: string; models?: StudioDesktopHarnessModels }

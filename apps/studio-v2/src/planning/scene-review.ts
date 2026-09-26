@@ -869,6 +869,27 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const missing = type.unresolved.map(face => `“${face}”`).join(', ')
     return `Type: ${shown} — the same on the stage and in the video.${missing ? ` ${missing} could not be had; ${type.unresolved.length === 1 ? 'it falls' : 'they fall'} back alike in both.` : ''}`
   }
+  // Before anything is produced (Q01 of the BoltDB review): the faces the
+  // theme's type will be set in, and what the plan asks that the pinned
+  // runtime has not proven — said while the creator can still change them,
+  // not after production has waited on them.
+  const themeTypeLine = (faces: NonNullable<PlanningOverviewV1['themeType']>) => {
+    const missing = faces.filter(face => !face.available)
+    const listed = faces.map(face => `${face.family} (${face.role})`).join(', ')
+    const unique = (values: string[]) => values.filter((value, index, all) => all.indexOf(value) === index)
+    const families = unique(missing.map(face => face.family))
+    return missing.length
+      ? `Type: ${listed}. ${families.map(family => `“${family}”`).join(', ')} cannot be had here: ${families.length === 1 ? 'it is' : 'they are'} set in the system's ${unique(missing.map(face => face.fallback)).join(' and ')}, alike on the stage and in the video — choose another theme to change it.`
+      : `Type: ${listed} — each set in its own face, the same on the stage and in the video.`
+  }
+  const risksOf = (record: PlanningRecord | null | undefined) => {
+    const risks = record?.report?.constructionRisks || []
+    if (!record || !risks.length) return null
+    return h('div', { class: 'review-warn review-claims', 'data-review-risks': record.id },
+      h('p', {}, h('strong', { text: `Not yet proven in the pinned runtime (${risks.length})` }), ` — the production may build ${risks.length === 1 ? 'it' : 'them'} another way, and will say so.`),
+      h('ul', {}, ...risks.map(risk => h('li', { text: readable(risk) }))),
+    )
+  }
   const productionOf = (scene: Scene) => {
     const approved = scene.view.reviewed
     const production = scene.production
@@ -936,6 +957,12 @@ export const createSceneReview = (host: SceneReviewHost) => {
     }
     const running = Boolean(latest && isActiveStatus(latest.status))
     const again = Boolean(shown)
+    if (!shown) {
+      const faces = overview?.themeType
+      if (faces?.length) box.append(h('p', { class: faces.some(face => !face.available) ? 'review-warn' : 'review-muted', 'data-review-type-before': scene.id, text: themeTypeLine(faces) }))
+      const risks = risksOf(approved)
+      if (risks) box.append(risks)
+    }
     const produceButton = h('button', {
       type: 'button',
       class: again ? 'button ghost' : 'button primary',
@@ -1163,6 +1190,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
             h('p', { class: 'review-question', text: plan.question }),
             h('p', {}, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
             claimsOf(record),
+            risksOf(record),
             plan.demonstration ? h('p', {}, h('strong', { text: 'Example. ' }), plan.demonstration.text) : null,
             ledger ? h('p', { class: 'review-muted', text: `The count: ${ledger.quantity} from ${ledger.initial} to ${ledger.final} over ${ledger.events.length} changes — checked.` }) : null,
           ),
@@ -1487,7 +1515,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         h('h4', { class: 'ws-label', text: `What it teaches · plan r${record!.revision}` }),
         h('p', { class: 'ws-question', text: plan.question }),
         h('p', { class: 'ws-takeaway' }, h('strong', { text: 'Takeaway. ' }), plan.takeaway),
-        ...[claimsOf(record)].filter((part): part is HTMLDivElement => Boolean(part)),
+        ...[claimsOf(record), risksOf(record)].filter((part): part is HTMLDivElement => Boolean(part)),
       )
       const brief = overview?.brief.current?.content as ExplanationBriefV1 | undefined
       const evidence = brief ? [...new Set(plan.moments.flatMap(moment => moment.evidenceRefs || []))].map(ref => brief.evidence.find(entry => entry.id === ref)).filter(Boolean) as ExplanationBriefV1['evidence'] : []

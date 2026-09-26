@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { familiesOf, typeFacesOf } from './type-faces'
+import { familiesOf, themeFacesOf, typeFacesOf } from './type-faces'
 
 // BoltDB review B11: a produced scene's labels set in a generic serif read
 // serif on the stage and sans-serif in its MP4 — the producer puts its own
@@ -59,5 +59,19 @@ describe('the type a produced scene is set in', () => {
     const first = await typeFacesOf(FIXTURE, offline)
     const again = await typeFacesOf(first.html, offline)
     expect(again.html).toBe(first.html)
+  })
+})
+
+// Q01 of the BoltDB review: which of a theme's families can be had, said
+// before a scene is produced. Offline, the renderer's own faces can; a
+// family only published elsewhere cannot.
+describe('the faces a theme names', () => {
+  it('says which the renderer can have, and what the rest fall back to', async () => {
+    const faces = await themeFacesOf({ display: 'Source Serif 4', body: 'Inter', mono: 'Consolas, monospace' }, offline)
+    expect(faces).toEqual([
+      { role: 'display', family: 'Source Serif 4', available: false, fallback: 'sans-serif' },
+      { role: 'body', family: 'Inter', available: true, fallback: 'sans-serif' },
+      { role: 'mono', family: 'Consolas', available: true, fallback: 'monospace' },
+    ])
   })
 })

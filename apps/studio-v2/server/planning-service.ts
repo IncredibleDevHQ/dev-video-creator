@@ -50,7 +50,7 @@ import { tmpdir } from 'node:os'
 import { renderProductionBundle } from './production-render'
 import { controlValueProblems, productionSummary, validateProduction, withControlValues, type ControlValues, type ProductionClock, type ProductionManifest } from '../src/planning/production-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
-import { typeFacesOf } from './type-faces'
+import { themeFacesNow, themeFacesOf, typeFacesOf } from './type-faces'
 import { claimFlagsOf } from '../src/planning/claim-scope'
 import {
   ACTIVE_STATUSES,
@@ -379,10 +379,14 @@ const COLOUR_MEANINGS: Record<string, string> = {
   codeBackground: 'code and data blocks',
 }
 const COLOUR = /^(#[0-9a-f]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\))$/i
-const themeFile = (planning: VideoPlanning) => {
+const themeFile = async (planning: VideoPlanning) => {
   const theme = planning.project.theme
   const brand = (theme?.brand || planning.project.brand || {}) as Record<string, string>
   const fonts = theme?.fonts
+  // Which of the theme's families the Studio can set in their own faces
+  // (Q01 of the BoltDB review): said to the harness, so none is swapped for
+  // a generic family and reported missing after the creator approved.
+  const faces = fonts ? await themeFacesOf(fonts) : []
   return JSON.stringify(
     {
       ref: planning.themeRef,
@@ -394,7 +398,10 @@ const themeFile = (planning: VideoPlanning) => {
         body: fonts?.body || null,
         mono: fonts?.mono || null,
         fallbacks: { display: 'Inter, system-ui, sans-serif', body: 'Inter, system-ui, sans-serif', mono: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
-        note: fonts ? 'The families the theme names; where one is not installed, its fallback renders.' : 'The theme names no type families: use the fallbacks.',
+        faces: Object.fromEntries(faces.map(face => [face.role, { family: face.family, available: face.available }])),
+        note: fonts
+          ? 'Name these families first in font-family declarations, each with its fallback after it — font-family: "Source Serif 4", serif. The Studio sets each available one in its own face before the scene is checked, played or rendered, the same on the stage and in the video; one that is not available falls back to its declared generic family alike in both. Never replace a theme family with a generic one, and never report one as missing: `faces` says which can be had.'
+          : 'The theme names no type families: use the fallbacks.',
       },
       shape: { cornerRadius: theme?.blocks?.borderRadius ?? null, canvas: theme?.canvas || null },
     },
@@ -648,6 +655,9 @@ export const planningOverview = async (projectId: string) => {
     videoDirection: directionFor(planning, ''),
     basePages: planning.basePages,
     records,
+    // The theme's type, as a produced scene will be set in it (Q01): known
+    // once the renderer's font sources have answered, null until then.
+    themeType: themeFacesNow(planning.project.theme?.fonts),
   }
 }
 
@@ -691,7 +701,7 @@ const briefContextOf = (planning: VideoPlanning): BriefContext & { videoScenes: 
   videoScenes: planning.videoScenes,
 })
 
-const briefPacket = (planning: VideoPlanning) => {
+const briefPacket = async (planning: VideoPlanning) => {
   const context = briefContextOf(planning)
   const fragments = context.sourceFragments || []
   const keptOn = planning.basePages.filter(page => page.sourcePassages.length)
@@ -730,7 +740,7 @@ const briefPacket = (planning: VideoPlanning) => {
       null,
       2,
     ),
-    'packet/THEME.json': themeFile(planning),
+    'packet/THEME.json': await themeFile(planning),
     'packet/SOURCE.md': planning.source.text
       ? `# ${planning.source.title}\n\n${planning.source.site ? `From ${planning.source.site}${planning.source.url ? ` — ${planning.source.url}` : ''}. ` : ''}Retained source revision \`${planning.source.revision}\`, paragraph-numbered.\n\n${numberedSource(planning.source.text)}\n`
       : fragments.length
@@ -824,7 +834,7 @@ const scenePacket = async (planning: VideoPlanning, briefRecord: PlanningRecord,
     // Both references: the designed slide (the page), and the schematic it
     // was designed from, for its structure.
     ...(scene.schematic ? { 'packet/references/schematic.svg': scene.schematic } : {}),
-    'packet/THEME.json': themeFile(planning),
+    'packet/THEME.json': await themeFile(planning),
     // The plan this scene already has, kept unless the direction changes it.
     'packet/PREVIOUS_PLAN.json': JSON.stringify(reviewed ? { record: reviewed.id, revision: reviewed.revision, status: reviewed.status, plan: reviewed.content, retainedEdits: [] } : { record: null, note: 'This scene has no reviewed plan yet.' }, null, 2),
     'packet/BRIEF.md': renderNativeBrief(brief),
@@ -916,7 +926,7 @@ export const queueBrief = async (projectId: string) => {
   const fingerprint = briefFingerprint(inputs)
   const existing = reuseActive(records, 'brief', '', fingerprint)
   if (existing) return { record: existing, reused: true }
-  const { files } = briefPacket(planning)
+  const { files } = await briefPacket(planning)
   const packet = await storePacket(projectId, files)
   return claimPlanningRecord({
     projectId,
