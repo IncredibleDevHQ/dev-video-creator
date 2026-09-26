@@ -34,6 +34,11 @@ export const isActiveStatus = (status: PlanningStatus | string | null | undefine
 
 export type SkillBundleRef = { name: string; version: string; hash: string; upstreamCommit: string }
 
+// The faces a production's type is set in, the same on the stage and in its
+// render (B11 of the BoltDB review): a generic family set first, and the
+// face put ahead of it; faces that could not be had.
+export type TypeFaces = { faces: string[]; substituted: Record<string, string>; unresolved: string[] }
+
 export type PlanningRecord = {
   id: string
   kind: PlanningKind
@@ -47,7 +52,7 @@ export type PlanningRecord = {
   inputs: Record<string, unknown>
   content: ExplanationBriefV1 | SceneTreatmentV1 | SketchManifest | ProductionManifest | null
   // What the checks said: warnings, construction risks.
-  report: { warnings: string[]; constructionRisks?: string[]; verification?: SketchProof } | null
+  report: { warnings: string[]; constructionRisks?: string[]; verification?: SketchProof; type?: TypeFaces } | null
   artifacts: { objectKey: string; assetId: string } | null
   // The run that owns the record once it starts; nothing else may claim it.
   runId: string | null

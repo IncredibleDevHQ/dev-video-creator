@@ -14,7 +14,7 @@
 // and nothing else.
 import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
 import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView } from './planning-records'
+import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView, type TypeFaces } from './planning-records'
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 
 type BasePage = { scene: string; title: string; objective: string; layoutGuidance: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
@@ -106,6 +106,8 @@ export type SceneProductionView = {
   // What the creator may want to look at on a take's clock: a line said
   // differently, a moment that passes quickly.
   clockReview: string[]
+  // The faces its type is set in, on the stage and in its render alike.
+  type: TypeFaces | null
   // The render the notebook plays, and the edit revision it was rendered with.
   accepted: { at: string; url: string; durationMs: number; bundle: string; edits: number } | null
   // The creator's values for its controls (P6), as the stage plays them; and

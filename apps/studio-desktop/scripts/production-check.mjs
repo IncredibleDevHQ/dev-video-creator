@@ -113,8 +113,12 @@ const tool = async (name, args2) => {
     const duration = clock.duration
     const clip = moment => '<div id="' + moment.id + '" class="clip" data-start="' + moment.start + '" data-duration="' + Number((moment.end - moment.start).toFixed(3)) + '" data-track-index="0"><div class="title" data-sketch-layer="titles">' + moment.title + '</div></div>'
     const html = (list, length) => '<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>' +
-      'html,body{margin:0;background:' + colour + '}#root{position:relative;width:100%;height:100%;overflow:hidden;background:' + colour + ';font-family:system-ui,sans-serif}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font-size:72px;font-weight:700}</style></head><body>' +
+      'html,body{margin:0;background:' + colour + '}#root{position:relative;width:100%;height:100%;overflow:hidden;background:' + colour + ';font-family:system-ui,sans-serif}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font-size:72px;font-weight:700}' +
+      // Labels set in generic families (BoltDB review B11): the producer put
+      // its Inter ahead of them as it rendered, and the stage did not.
+      '.serif-label{position:absolute;left:120px;top:420px;color:#fff;font-family:serif;font-size:64px;font-weight:400;white-space:nowrap}.mono-label{position:absolute;left:120px;top:560px;color:#fff;font-family:monospace;font-size:48px;white-space:nowrap}</style></head><body>' +
       '<div id="root" data-composition-id="' + id + '" data-start="0" data-width="1920" data-height="1080" data-duration="' + length + '">' +
+      '<div class="serif-label">Old root copied to a new page</div><div class="mono-label">page 3 · txid 42</div>' +
       list.map(clip).join('') +
       (clock.audio ? '<audio id="voice" src="' + clock.audio + '" data-start="0" data-duration="' + length + '" data-track-index="20"></audio>' : '') +
       '</div><script>window.__timelines = window.__timelines || {}\nconst tl = gsap.timeline({ paused: true })\n' +
@@ -356,6 +360,11 @@ try {
   const proof1 = record1?.report?.verification
   check(record1?.status === 'ready' && /^[0-9a-f]{64}$/.test(proof1?.bundle || '') && proof1.loaded.some(path => path.endsWith('audio/narration.mp3')), `the accepted submission was played in the pinned engine, which loaded its sound (${proof1?.bundle?.slice(0, 12)})`)
   check(produced1.ready.summary.clock === 'generated-voice' && produced1.ready.summary.duration === clock.duration && produced1.ready.summary.moments.every((moment, index) => moment.start === clock.moments[index].start), `the production keeps the voice's clock (${produced1.ready.summary.duration}s)`)
+  // BoltDB review B11: its type is set in faces it carries, the same on the
+  // stage and in its render — none left generic for the producer to change.
+  const bundle1 = await fetch(`${origin}${produced1.ready.url}`).then(response => response.text())
+  check(bundle1.includes("font-family:'EB Garamond', serif") && bundle1.includes("font-family:'JetBrains Mono', monospace") && bundle1.includes("font-family:'Inter', system-ui,sans-serif") && /data-hyperframes-deterministic-fonts/.test(bundle1) && ['EB Garamond', 'JetBrains Mono', 'Inter'].every(face => new RegExp(`@font-face\\s*\\{[^}]*font-family:\\s*["']?${face}`).test(bundle1)), 'a generic family set first is given its face, and the bundle carries that face')
+  check(JSON.stringify(produced1.ready.type?.substituted) === JSON.stringify({ 'system-ui': 'Inter', serif: 'EB Garamond', monospace: 'JetBrains Mono' }) && produced1.ready.type.unresolved.length === 0, `the production says which face stands in for which family (${JSON.stringify(produced1.ready.type)})`)
 
   // ——— The stage plays it on its real clock ———
   const reviewStep = await waitStep('Review scene 1 output')
@@ -374,6 +383,8 @@ try {
   check(stage?.note === `Produced from plan r${plan1.revision}, on a generated voice · not accepted yet` && stage.moments.join('|') === 'Requests arrive|The limit bites|Load stays safe' && !/est\./.test(stage.clock), `the stage says what it plays, on its real clock, not an estimate (${stage?.note} · ${stage?.clock})`)
   const noSketch = await evaluate(`() => document.querySelector('.scene-review.is-expanded .review-no-preview')?.textContent || ''`)
   check(noSketch === `No preview of r${plan1.revision} yet — it was produced without one.`, `the review does not claim the stage shows the page while it plays the production (${noSketch})`)
+  const typeLine = await evaluate(`() => document.querySelector('.scene-review.is-expanded [data-review-type]')?.textContent || ''`)
+  check(typeLine === 'Type: Inter for system-ui, EB Garamond for serif, JetBrains Mono for monospace — the same on the stage and in the video.', `the review says which face the scene's type is set in (${typeLine})`)
   const loaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return player.duration > 0 ? player.duration : null }`, 40)
   check(Math.abs((loaded || 0) - clock.duration) < 0.25, `the engine loaded it for its clock's length (${loaded}s of ${clock.duration}s)`)
   const transport = await waitFor(`() => { const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Play the produced scene' ? label : null }`, 20)
@@ -393,6 +404,38 @@ try {
   const render1 = await fetch(accepted1.videoUrl).then(async response => Buffer.from(await response.arrayBuffer()))
   await writeFile(join(root, 'scene-1.mp4'), render1)
   check(render1.subarray(4, 8).toString('latin1') === 'ftyp' && Boolean(ffprobe(['-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', join(root, 'scene-1.mp4')])), 'the render is an MP4 with the scene\'s sound')
+  // The serif label, as the stage sets it and as the render drew it: the
+  // same face, so the same width (B11). Its width in Inter is not.
+  const typeset = await evaluate(`async () => {
+    const frame = document.createElement('iframe')
+    frame.style.cssText = 'position:fixed;left:-4000px;top:0;width:1920px;height:1080px;border:0'
+    frame.src = ${JSON.stringify(produced1.ready.url)}
+    document.body.append(frame)
+    await new Promise(resolve => frame.addEventListener('load', resolve, { once: true }))
+    const doc = frame.contentDocument
+    await doc.fonts.ready
+    const label = doc.querySelector('.serif-label')
+    const width = () => { const range = doc.createRange(); range.selectNodeContents(label); return range.getBoundingClientRect().width }
+    const set = width()
+    const loaded = doc.fonts.check("64px 'EB Garamond'") && [...doc.fonts].some(face => face.family.replace(/["']/g, '') === 'EB Garamond' && face.status === 'loaded')
+    label.style.fontFamily = 'Inter'
+    await doc.fonts.ready
+    const inter = width()
+    frame.remove()
+    return { set, inter, loaded }
+  }`)
+  const band = spawnSync('ffmpeg', ['-v', 'error', '-ss', '1', '-i', join(root, 'scene-1.mp4'), '-frames:v', '1', '-vf', 'crop=1920:90:0:415', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'])
+  let inkLeft = Infinity
+  let inkRight = -Infinity
+  for (let at = 0; at + 2 < band.stdout.length; at += 3) {
+    if (band.stdout[at] > 180 && band.stdout[at + 1] > 180 && band.stdout[at + 2] > 180) {
+      const x = (at / 3) % 1920
+      inkLeft = Math.min(inkLeft, x)
+      inkRight = Math.max(inkRight, x)
+    }
+  }
+  const ink = inkRight - inkLeft + 1
+  check(typeset?.loaded && Math.abs(ink - typeset.set) <= typeset.set * 0.03 && Math.abs(typeset.inter - typeset.set) > typeset.set * 0.05, `the stage and the render set the serif label in the same face: ${ink}px drawn, ${Math.round(typeset?.set)}px on the stage, ${Math.round(typeset?.inter)}px were it Inter`)
   const reviewed = await waitFor(`() => {
     const review = document.querySelector('.scene-review.is-expanded')
     const chips = [...review.querySelectorAll('.review-strip .review-chip')].map(chip => chip.textContent)

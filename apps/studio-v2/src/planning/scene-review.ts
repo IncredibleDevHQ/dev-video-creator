@@ -11,7 +11,7 @@
 // what the creator opened, typed or selected survives the renders that do.
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, isActiveStatus, type PlanDraft, type PlanningRecord, type ScenePlanningView } from './planning-records'
+import { PLANNING_STATE_LABELS, isActiveStatus, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces } from './planning-records'
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { recordingGuide } from './recording-guide'
@@ -860,6 +860,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
     return box
   }
 
+  // The faces a production's type is set in, as its render sets them (B11):
+  // what stands in for a generic family, and a face that could not be had.
+  const typeLine = (type: TypeFaces) => {
+    const put = Object.entries(type.substituted).map(([generic, face]) => `${face} for ${generic}`)
+    const shown = put.length ? put.join(', ') : type.faces.join(', ')
+    const missing = type.unresolved.map(face => `“${face}”`).join(', ')
+    return `Type: ${shown} — the same on the stage and in the video.${missing ? ` ${missing} could not be had; ${type.unresolved.length === 1 ? 'it falls' : 'they fall'} back alike in both.` : ''}`
+  }
   const productionOf = (scene: Scene) => {
     const approved = scene.view.reviewed
     const production = scene.production
@@ -892,6 +900,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         ...([
           h('p', {}, h('strong', { text: `Produced from r${shown.of.revision}` }), ` · ${shown.summary.duration}s on ${clock} · ${shown.checked ? 'played and checked' : 'never checked'}${shown.accepted ? ` · accepted ${new Date(shown.accepted.at).toLocaleString()}` : ''}`),
           !shown.current ? h('p', { class: 'review-warn', text: `Out of date: ${shown.staleBecause}. Produce the scene again to realize the plan as it is now${shown.accepted ? '; the accepted output plays until then' : ''}.` }) : null,
+          shown.type && shown.type.faces.length ? h('p', { class: shown.type.unresolved.length ? 'review-warn' : 'review-muted', 'data-review-type': shown.id, text: typeLine(shown.type) }) : null,
           shown.summary.unmet.length ? h('div', { class: 'review-warn' }, h('p', { text: 'What the approved plan asked for and this production could not meet:' }), h('ul', {}, ...shown.summary.unmet.map(item => h('li', { text: item })))) : null,
           shown.clockReview.length ? h('div', { class: 'review-muted', 'data-review-clock': shown.id }, h('p', { text: 'On your take:' }), h('ul', {}, ...shown.clockReview.map(item => h('li', { text: item })))) : null,
         ].filter(Boolean) as HTMLElement[]),

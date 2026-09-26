@@ -48,6 +48,7 @@ import { tmpdir } from 'node:os'
 import { renderProductionBundle } from './production-render'
 import { controlValueProblems, productionSummary, validateProduction, withControlValues, type ControlValues, type ProductionClock, type ProductionManifest } from '../src/planning/production-bundle'
 import { renderExplanation, renderNativeBrief, renderScenePacket } from '../src/planning/brief-adapter'
+import { typeFacesOf } from './type-faces'
 import {
   ACTIVE_STATUSES,
   PLANNING_SCHEMA,
@@ -1624,6 +1625,17 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   const verifying = await updatePlanningRecord(record.id, { status: 'verifying' }, ['queued', 'running'], { runId: record.runId })
   if (!verifying) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
   void noteProgress(record.id, { milestone: 'checking' }, { runId })
+  // Its type, set in faces the stage and the render share (B11): the
+  // bundle checked, played and rendered is this one.
+  const typed = html ? await typeFacesOf(html).catch(error => {
+    console.warn('production type faces', record.id, error instanceof Error ? error.message : error)
+    return null
+  }) : null
+  if (typed) {
+    own['index.html'] = typed.html
+    files['index.html'] = typed.html
+  }
+  const typeNotes = (typed?.report.unresolved || []).map(face => `The type face “${face}” could not be had: the stage and the video both set it in the fallback its declaration names`)
   let runtime: Awaited<ReturnType<typeof verifySketchRuntime>>
   try {
     runtime = await verifySketchRuntime(files, asPlayable(report.manifest), approved.content as SceneTreatmentV1)
@@ -1646,8 +1658,8 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   const records = await listPlanningRecords(record.projectId)
   const view = scenePlanningView(records, record.subject, freshnessOf(planning, records).sceneNow(record.subject))
   const moved = productionFreshness(planning, castNow, records, view, record, await producerRef(planning))
-  const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...(moved.current ? [] : [`While this scene was produced, ${moved.staleBecause} — it is kept, as out of date`])]
-  const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof }, artifacts }, ['verifying'], { runId: record.runId })
+  const warnings = [...report.warnings, ...lintWarnings, ...runtime.warnings, ...typeNotes, ...(moved.current ? [] : [`While this scene was produced, ${moved.staleBecause} — it is kept, as out of date`])]
+  const updated = await updatePlanningRecord(record.id, { status: 'ready', content: report.manifest, report: { warnings, verification: runtime.proof, ...(typed ? { type: typed.report } : {}) }, artifacts }, ['verifying'], { runId: record.runId })
   if (!updated) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
   await carryEdits(updated).catch(error => console.warn('carrying edits to a new production failed', updated.id, error))
   void noteProgress(record.id, { milestone: 'accepted' }, { statuses: ['ready'] })
@@ -1860,6 +1872,7 @@ const productionOf = (records: PlanningRecord[], sceneId: string, freshness: (pr
       checked: checkedOf(production.report?.verification),
       voice: (production.inputs.voiceProvider as string | null) ?? null,
       clockReview: Array.isArray(production.inputs.clockReview) ? (production.inputs.clockReview as string[]) : [],
+      type: production.report?.type || null,
       accepted: production.status === 'reviewed' && production.approval?.render
         ? { at: production.approval.at, url: `/objects/${production.approval.render.objectKey}`, durationMs: production.approval.render.durationMs, bundle: production.approval.render.bundle, edits: production.approval.render.edits?.revision ?? 0 }
         : null,
