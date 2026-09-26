@@ -294,6 +294,9 @@ try {
   if (await click('#scene-workspace [data-focus^="use-plan-script:"]')) await sleep(800)
   await waitFor(`() => { const button = document.querySelector('#scene-workspace [data-focus^="record:"]'); return button && !button.disabled ? true : null }`, 20)
   await shot('01-before-a-take')
+  // Approved first, so that keeping a take is what producing waits for.
+  await clickText('#scene-workspace .sw-actions .button', 'Approve r1 without a preview')
+  await until(async () => (await overview(videoId)).scenes.find(scene => scene.id === s1)?.view.reviewed, 30)
 
   // ——— Recording opens beside the stage, asking for nothing yet ———
   await installDevices()
@@ -321,6 +324,9 @@ try {
   await click('#keep-take')
   const kept = await waitFor(`() => { const now = (${capturing})(); const takes = (${takesShown})(); return !now.open && takes.length === 1 ? { takes, tabs: now.tabs } : null }`, 60)
   check(Boolean(kept) && kept.tabs !== 'none' && kept.takes[0].used && /^v1/.test(kept.takes[0].head), `kept, the recording closes and the take is the scene's — v1, used (${JSON.stringify(kept?.takes)})`)
+  // No refocus needed: what producing waits for is read again at once.
+  const produceNow = await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button?.textContent === 'Produce the scene' && !button.disabled ? true : null }`, 20)
+  check(produceNow === true, `with its plan approved, a kept take makes producing the one action at once (${JSON.stringify({ header: await evaluate(`() => [...document.querySelectorAll('#scene-workspace .sw-actions .button')].map(button => button.textContent + (button.disabled ? ' [' + button.title + ']' : ''))`), waits: (await overview(videoId)).scenes.find(scene => scene.id === s1)?.productionWaits ?? null })})`)
 
   // ——— Another take; the choice between them is the creator's, and kept ———
   let v2 = null

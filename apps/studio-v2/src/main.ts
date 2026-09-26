@@ -8519,7 +8519,16 @@ const archivePickupTake = async (blockId: string, asset: { url: string; assetId?
   const takes = (project.recordedBlockTakes[blockId] ||= [])
   if (!takes.some(take => take.recordingId === recording.recordingId)) takes.push(recording)
   syncProject()
+  // What producing the scene waits for is read again: the pickup may be it.
+  void sceneReview?.load()
   return recording
+}
+// A take kept or chosen changes what producing its scene waits for: once
+// the notebook holding the take is saved (the file store keeps it only
+// there), the plans are read again, so the workspace offers producing at
+// once rather than after the window next takes focus.
+const rereadAfterTake = () => {
+  void persistProjectNow(structuredClone(project)).catch(() => undefined).then(() => sceneReview?.load())
 }
 const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?: string }, durationMs: number) => {
   if (!asset.assetId) throw new Error('The uploaded take has no asset id to archive')
@@ -8539,6 +8548,7 @@ const archiveCameraTake = async (blockId: string, asset: { url: string; assetId?
   syncProject()
   void refreshPickupNotes()
   refreshSceneReview()
+  rereadAfterTake()
 }
 
 const uploadRecording = async (blob: Blob) => {
@@ -18758,6 +18768,7 @@ sceneReview = createSceneReview({
     selectRecordedTake(sceneId, take)
     // The review and the workspace list which take the scene uses.
     refreshSceneReview()
+    rereadAfterTake()
   },
   // A take plays on the workspace's stage, over what the stage shows.
   playTake: (sceneId, recordingId) => {
