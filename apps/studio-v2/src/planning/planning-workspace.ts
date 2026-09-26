@@ -14,7 +14,7 @@
 // and nothing else.
 import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
 import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView, type TypeFaces } from './planning-records'
+import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 
 type BasePage = { scene: string; title: string; objective: string; layoutGuidance: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
@@ -76,7 +76,7 @@ export type ScenePreviewView = {
   checked: { at: string; runtime: string; bundle: string; duration: number; tweens: number; files: number; reseeks: number; layers: number; changes: number } | null
 }
 export type ScenePreviewSummary = {
-  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string }
+  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string; validation?: ValidationView | null }
   // The sketch of the scene's current plan, else the newest one there is.
   ready: ScenePreviewView | null
   // The newest ready sketch of each plan revision, by treatment record id.
@@ -124,7 +124,7 @@ export type ProductionEditsView = {
   carried: { from: string; applied: string[]; conflicts: Array<{ id: string; value: number; reason: string }> } | null
 }
 export type SceneProductionSummary = {
-  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string }
+  latest: { id: string; status: PlanningRecord['status']; revision: number; error: PlanningRecord['error']; runId: string | null; treatmentId: string; validation?: ValidationView | null }
   // The newest produced scene, and the one accepted as the scene's output.
   ready: SceneProductionView | null
   accepted: SceneProductionView | null

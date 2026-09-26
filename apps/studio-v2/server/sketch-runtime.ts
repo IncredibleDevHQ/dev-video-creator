@@ -11,7 +11,10 @@
 // - a moment whose plan changes objects shows a change in those objects
 //   (or, if they are not marked, anywhere on screen). A still beat stays
 //   legal: nothing is asked of a moment the plan does not change.
-// The proof is kept with the preview, against the bundle's hash.
+// The proof is kept with the preview, against the bundle's hash. A moment
+// that shows two different frames keeps both, where they differ and the
+// marked layers drawn at another place (R09 of the project-flow rereview):
+// the run's next attempt and the creator look at the same evidence.
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -44,7 +47,21 @@ export const sketchBundleHash = (files: SketchFiles) =>
     .update(JSON.stringify(Object.keys(files).sort().map(name => [name, files[name]])))
     .digest('hex')
 
-export type SketchRuntimeReport = { problems: string[]; warnings: string[]; proof: SketchProof | null }
+type Region = { left: number; top: number; right: number; bottom: number }
+// A moment seeked twice that showed two different frames: both frames, as
+// PNG (base64), where they differ and the marked layers drawn at another
+// place, in composition pixels.
+export type RuntimeEvidence = {
+  kind: 'reseek'
+  at: number
+  pixels: number
+  region: Region | null
+  layers: Array<{ id: string; first: Region | null; again: Region | null }>
+  // The composition's size, the frame the regions are in.
+  size: { width: number; height: number }
+  frames: { first: string; again: string }
+}
+export type SketchRuntimeReport = { problems: string[]; warnings: string[]; proof: SketchProof | null; evidence?: RuntimeEvidence[] }
 
 const ORIGIN = 'http://sketch.check'
 const HOST_PATH = '/__host.html'
@@ -199,6 +216,27 @@ const CHECK_SCRIPT = String.raw`
       })
       return count
     },
+    // Where two kept frames differ, in composition pixels, and by how many
+    // pixels: the evidence of a frame that changed between two seeks.
+    where: function (a, b, width) {
+      var one = frames[a], two = frames[b]
+      if (!one || !two || one.width !== two.width || one.height !== two.height) return null
+      var scale = one.width / width
+      var count = 0, left = one.width, top = one.height, right = -1, bottom = -1
+      for (var y = 0; y < one.height; y += 1) {
+        for (var x = 0; x < one.width; x += 1) {
+          var i = (y * one.width + x) * 4
+          var delta = Math.max(Math.abs(one.data[i] - two.data[i]), Math.abs(one.data[i + 1] - two.data[i + 1]), Math.abs(one.data[i + 2] - two.data[i + 2]))
+          if (delta <= 24) continue
+          count += 1
+          if (x < left) left = x
+          if (y < top) top = y
+          if (x > right) right = x
+          if (y > bottom) bottom = y
+        }
+      }
+      return { pixels: count, region: count ? { left: Math.floor(left / scale), top: Math.floor(top / scale), right: Math.ceil((right + 1) / scale), bottom: Math.ceil((bottom + 1) / scale) } : null }
+    },
   }
   player.addEventListener('ready', function () { window.__sketch.ready = true })
 })()
@@ -237,6 +275,10 @@ const samplesOf = (moment: SketchManifest['moments'][number], last: number) => {
 }
 
 type Box = { left: number; top: number; right: number; bottom: number }
+// A layer drawn at the same place, give or take a pixel.
+const sameBox = (a: Box | null, b: Box | null) =>
+  a === b || Boolean(a && b && Math.abs(a.left - b.left) <= 1 && Math.abs(a.top - b.top) <= 1 && Math.abs(a.right - b.right) <= 1 && Math.abs(a.bottom - b.bottom) <= 1)
+const boxText = (box: Box) => `x ${Math.round(box.left)}–${Math.round(box.right)}, y ${Math.round(box.top)}–${Math.round(box.bottom)}`
 
 // Plays the bundle and reports what it does. Throws only when the check
 // itself cannot run (no browser); a sketch that misbehaves gets problems.
@@ -347,28 +389,45 @@ export const verifySketchRuntime = async (files: SketchFiles, manifest: SketchMa
       const boxes = (await within(page.evaluate(`window.__sketch.seek(${at}, ${JSON.stringify(marked)})`), STEP_WAIT, `the frame at ${seconds(at)}`)) as Record<string, Box | null>
       const shot = (await within(page.screenshot({ type: 'png', encoding: 'base64', optimizeForSpeed: true }), STEP_WAIT, `the frame at ${seconds(at)}`)) as string
       await within(page.evaluate(`window.__sketch.keep(${JSON.stringify(key)}, ${JSON.stringify(shot)})`), STEP_WAIT, 'the frame to decode')
-      return { boxes, hash: createHash('sha256').update(shot).digest('hex').slice(0, 16) }
+      return { boxes, shot, hash: createHash('sha256').update(shot).digest('hex').slice(0, 16) }
     }
+    // The moments seeked again, forwards, once every frame is taken; their
+    // first frames are kept, as evidence should the second differ.
+    const again = [...new Set([samples[1], samples[Math.floor(samples.length / 2)], samples[samples.length - 2]].filter(Boolean).map(sample => sample.at))].sort((a, b) => a - b)
+    const shotsAt = new Map<number, string>()
     const hashes = new Map<number, string>()
     for (const sample of [...samples].sort((a, b) => b.at - a.at)) {
       if (hashes.has(sample.at)) continue
-      const { boxes, hash } = await capture(sample.at, keyOf(sample.at))
+      const { boxes, hash, shot } = await capture(sample.at, keyOf(sample.at))
       boxesAt.set(sample.at, boxes)
       hashes.set(sample.at, hash)
+      if (again.includes(sample.at)) shotsAt.set(sample.at, shot)
     }
     for (const sample of samples) frames.push({ at: sample.at, moment: sample.moment, frame: hashes.get(sample.at) || '' })
     const diff = async (a: string, b: string, boxes: Box[] = []) =>
       Number(await within(page.evaluate(`window.__sketch.diff(${JSON.stringify(a)}, ${JSON.stringify(b)}, ${JSON.stringify(boxes)}, ${composition.width})`), STEP_WAIT, 'two frames to compare'))
 
-    // The same moment again, reached from elsewhere, forwards this time.
+    // The same moment again, reached from elsewhere, forwards this time. Two
+    // different frames are kept with where they differ and the marked
+    // layers drawn at another place.
     const reseeks: SketchProof['reseeks'] = []
-    const again = [...new Set([samples[1], samples[Math.floor(samples.length / 2)], samples[samples.length - 2]].filter(Boolean).map(sample => sample.at))].sort((a, b) => a - b)
+    const evidence: RuntimeEvidence[] = []
     for (const at of again) {
-      const { hash } = await capture(at, `again-${at}`)
-      const pixels = hash === hashes.get(at) ? 0 : await diff(keyOf(at), `again-${at}`)
+      const second = await capture(at, `again-${at}`)
+      const pixels = second.hash === hashes.get(at) ? 0 : await diff(keyOf(at), `again-${at}`)
       const same = pixels >= 0 && pixels <= NOISE
       reseeks.push({ at, same })
-      if (!same) problems.push(`Seeking to ${seconds(at)} twice shows two different frames (${pixels} pixels differ). Something depends on the order of seeks or on playback — every seek must show the same frame.`)
+      if (same) continue
+      const found = (await within(page.evaluate(`window.__sketch.where(${JSON.stringify(keyOf(at))}, ${JSON.stringify(`again-${at}`)}, ${composition.width})`), STEP_WAIT, 'where two frames differ')) as { pixels: number; region: Region | null } | null
+      const firstBoxes = boxesAt.get(at) || {}
+      const moved = marked
+        .map(id => ({ id, first: firstBoxes[id] || null, again: second.boxes[id] || null }))
+        .filter(layer => !sameBox(layer.first, layer.again))
+      const region = found?.region || null
+      evidence.push({ kind: 'reseek', at, pixels, region, layers: moved, size: { width: composition.width, height: composition.height }, frames: { first: shotsAt.get(at) || '', again: second.shot } })
+      const where = region ? `, within ${boxText(region)}` : ''
+      const layers = moved.length ? ` ${moved.slice(0, 3).map(layer => `Layer "${layer.id}" is ${layer.first ? `at ${boxText(layer.first)}` : 'not shown'} the first time and ${layer.again ? `at ${boxText(layer.again)}` : 'not shown'} the second.`).join(' ')}` : ''
+      problems.push(`Seeking to ${seconds(at)} twice shows two different frames (${pixels} pixels differ${where}).${layers} Something depends on the order of seeks or on playback — every seek must show the same frame. Both frames are kept with this check.`)
     }
 
     // Every layer shows during the moments it takes part in.
@@ -452,7 +511,7 @@ export const verifySketchRuntime = async (files: SketchFiles, manifest: SketchMa
       changes,
       ...(schedule ? { schedule: scheduled } : {}),
     }
-    return { problems: [...new Set(problems)], warnings, proof: problems.length ? null : proof }
+    return { problems: [...new Set(problems)], warnings, proof: problems.length ? null : proof, ...(evidence.length ? { evidence } : {}) }
   } catch (error) {
     if (error instanceof SketchTimeout) return { problems: [...new Set([...problems, `The sketch did not answer in the pinned player while waiting for ${error.message}: a script may never finish. Keep the composition's scripts short and free of loops that wait.`])], warnings, proof: null }
     throw error

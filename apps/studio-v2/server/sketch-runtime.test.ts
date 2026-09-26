@@ -124,6 +124,20 @@ describe('playing a sketch before it reads ready', () => {
     // Animated by a timer, not the timeline: each seek finds it elsewhere.
     const drifting = await verifySketchRuntime(small(`${ENTER}\n${SLIDE}\nlet n = 0\nsetInterval(() => { n += 1; document.getElementById('title').style.transform = 'translateX(' + n * 3 + 'px)' }, 16)`), smallManifest, smallPlan)
     expect(drifting.problems).toEqual(expect.arrayContaining([expect.stringMatching(/^Seeking to [\d.]+s twice shows two different frames/)]))
+    // R09 of the project-flow rereview: what the player saw is kept — both
+    // frames, where they differ (the title's row, not the box's) and the
+    // layer drawn at another place.
+    const seen = drifting.evidence?.[0]
+    expect(seen).toMatchObject({ kind: 'reseek', size: { width: 1920, height: 1080 }, layers: [{ id: 'title' }] })
+    expect(seen!.region!.top).toBeGreaterThanOrEqual(80)
+    expect(seen!.region!.bottom).toBeLessThan(400)
+    expect(seen!.layers[0].first!.left).not.toBe(seen!.layers[0].again!.left)
+    for (const frame of [seen!.frames.first, seen!.frames.again]) expect(Buffer.from(frame, 'base64').subarray(1, 4).toString()).toBe('PNG')
+    expect(drifting.problems.find(problem => problem.startsWith('Seeking'))).toMatch(/pixels differ, within x \d+–\d+, y \d+–\d+\)\. Layer "title" is at x /)
+    // Repaired on the timeline, the same check passes: nothing loosened.
+    const repaired = await verifySketchRuntime(small(`${ENTER}\n${SLIDE}\ntl.to('#title', { x: 180, duration: 6, ease: 'none' }, 0)`), smallManifest, smallPlan)
+    expect(repaired.problems).toEqual([])
+    expect(repaired.evidence).toBeUndefined()
     const outside = await verifySketchRuntime(small(`${ENTER}\n${SLIDE}`, '<img src="//example.com/logo.png" alt="">'), smallManifest, smallPlan)
     expect(outside.problems).toEqual([expect.stringMatching(/reaches outside the sketch for http:\/\/example\.com\/logo\.png/)])
   }, 60_000)

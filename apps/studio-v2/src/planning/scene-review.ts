@@ -11,7 +11,7 @@
 // what the creator opened, typed or selected survives the renders that do.
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1, TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, isActiveStatus, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces } from './planning-records'
+import { PLANNING_STATE_LABELS, isActiveStatus, validationOf, type FrameRegion, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { claimFlagText } from './claim-scope'
@@ -1005,7 +1005,16 @@ export const createSceneReview = (host: SceneReviewHost) => {
     if (state.state === 'building') return [h('p', { class: 'review-busy', 'data-review-progress': preview!.latest.id, text: state.checking ? `Playing the sketch of r${record.revision} in the pinned player to check it…` : progress.get(preview!.latest.id) || `Sketching a rough preview of r${record.revision} with your local harness…` })]
     const items: HTMLElement[] = []
     const ready = previewFor(scene, record)
-    if (state.state === 'failed') items.push(h('p', { class: 'review-error', text: `The preview of r${record.revision} could not be built: ${preview!.latest.error?.message || 'no reason given'}${ready ? ' — its earlier preview stays' : ''}.` }))
+    if (state.state === 'failed') {
+      // One whose checks refused every submission says so, with the last
+      // check and every attempt to inspect (R09 of the project-flow rereview).
+      const checks = preview!.latest.validation || null
+      const lastCheck = checks?.attempts[checks.attempts.length - 1] || null
+      items.push(h('p', { class: 'review-error', text: lastCheck
+        ? `The preview of r${record.revision} ${lastCheck.attempt >= checks!.budget ? `could not be verified after ${lastCheck.attempt} attempts` : `failed after ${lastCheck.attempt} refused submission${lastCheck.attempt === 1 ? '' : 's'}`}${ready ? ' — its earlier preview stays' : ''}. ${lastCheckText(lastCheck)}`
+        : `The preview of r${record.revision} could not be built: ${preview!.latest.error?.message || 'no reason given'}${ready ? ' — its earlier preview stays' : ''}.` }))
+      if (checks) items.push(disclosure(`checks:${preview!.latest.id}`, `Inspect the ${checks.attempts.length === 1 ? 'check' : `${checks.attempts.length} checks`}`, checksPanel(checks)))
+    }
     if (!ready) {
       // No sketch of this revision: say so, and never lend it another's.
       const others = Object.values(preview?.byTreatment || {}).filter(view => view.of.record !== record.id).sort((a, b) => b.of.revision - a.of.revision)
@@ -1400,6 +1409,11 @@ export const createSceneReview = (host: SceneReviewHost) => {
   const HARNESS_NAMES: Record<string, string> = { 'claude-code': 'Claude Code', kimi: 'Kimi', codex: 'Codex' }
   const madeWith = (record: PlanningRecord) =>
     record.adapter ? `${HARNESS_NAMES[record.adapter] || record.adapter}${record.reportedModel || record.model ? ` · ${record.reportedModel || record.model}` : ''}` : 'Your local harness'
+  // How many of the run's submissions were refused, of how many it may make.
+  const refusedText = (record: PlanningRecord, repairs: number) => {
+    const refused = validationOf(record)
+    return refused ? `${refused.last.attempt} of ${refused.budget} submissions refused` : `repaired ${repairs} time${repairs === 1 ? '' : 's'}`
+  }
   // A run in its named phases: the ones the product confirmed, what is
   // happening now, how long it has run, and who runs it — with the harness's
   // own last word, small, apart from the progress.
@@ -1414,7 +1428,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         ...[
           compact || !since ? null : h('span', { class: 'ws-progress-time', 'data-since': since, 'data-suffix': ' so far', 'aria-live': 'off', text: `${sinceOf(since)} so far` }),
           h('span', { class: 'ws-progress-who', text: madeWith(record) }),
-          state.repairs ? h('span', { text: `repaired ${state.repairs} time${state.repairs === 1 ? '' : 's'}` }) : null,
+          state.repairs ? h('span', { text: refusedText(record, state.repairs) }) : null,
         ].filter((part): part is HTMLSpanElement => Boolean(part)).flatMap((part, index) => (index ? [' · ', part] : [part])),
       ),
       compact ? null : h('small', { class: 'ws-progress-last', 'data-review-progress': record.id, title: 'What the harness last said it did', text: progress.get(record.id) || '' }),
@@ -1447,9 +1461,47 @@ export const createSceneReview = (host: SceneReviewHost) => {
     )
   }
 
+  // What the player's check saw of a refused submission (R09 of the
+  // project-flow rereview): each attempt, newest first, with its problems —
+  // and for a moment seeked twice, both frames side by side, where they
+  // differ outlined, and the layers drawn at another place.
+  // The last check in a line: its first problem's first sentence, and how
+  // many more there were — the whole of it is in the checks.
+  const lastCheckText = (check: ValidationView['attempts'][number]) => {
+    const first = check.problems[0] || 'no reason was given'
+    const sentence = (/^(.+?)[.!?](?=\s+[A-Z“"]|$)/.exec(first)?.[1] || first).trim()
+    const more = check.problems.length - 1
+    return `The last check found: ${readable(sentence)}${more ? ` — and ${more} more problem${more === 1 ? '' : 's'}` : ''}.`
+  }
+  const regionText = (box: FrameRegion) => `x ${Math.round(box.left)}–${Math.round(box.right)}, y ${Math.round(box.top)}–${Math.round(box.bottom)}`
+  const evidenceFrame = (src: string, label: string, item: ValidationView['attempts'][number]['evidence'][number]) => {
+    const image = Object.assign(h('img', { alt: `${label}: the frame at ${Number(item.at.toFixed(2))}s`, loading: 'lazy' }), { src })
+    const box = item.region
+    const outline = box ? h('span', { class: 'ws-evidence-region', 'aria-hidden': 'true' }) : null
+    if (outline && box) Object.assign(outline.style, { left: `${(box.left / item.size.width) * 100}%`, top: `${(box.top / item.size.height) * 100}%`, width: `${((box.right - box.left) / item.size.width) * 100}%`, height: `${((box.bottom - box.top) / item.size.height) * 100}%` })
+    return h('div', { class: 'ws-evidence-frame' }, image, outline, h('span', { class: 'ws-evidence-label', text: label }))
+  }
+  const checksPanel = (checks: ValidationView) =>
+    h('div', { class: 'ws-checks' },
+      ...[...checks.attempts].reverse().map(entry => h('section', { class: 'ws-check', 'data-check-attempt': String(entry.attempt) },
+        h('h4', { text: `Attempt ${entry.attempt} of ${checks.budget}${entry.at ? ` · ${new Date(entry.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : ''}` }),
+        h('ul', { class: 'ws-check-problems' }, ...entry.problems.map(problem => h('li', { text: problem }))),
+        ...entry.evidence.map(item => h('figure', { class: 'ws-evidence' },
+          h('div', { class: 'ws-evidence-pair' }, evidenceFrame(item.frames.first, 'First seek', item), evidenceFrame(item.frames.again, 'Second seek', item)),
+          h('figcaption', { text: `${Number(item.at.toFixed(2))}s, seeked twice: ${item.pixels} pixels differ${item.region ? `, within ${regionText(item.region)}` : ''}.${item.layers.map(layer => ` Layer “${layer.id}” is ${layer.first ? `at ${regionText(layer.first)}` : 'not shown'} the first time, ${layer.again ? `at ${regionText(layer.again)}` : 'not shown'} the second.`).join('')}` }),
+        )),
+      )),
+    )
+
   // A preview that could not be built, under the stage: the phase it failed
   // in, what was said, whether an earlier preview stays — and building it
-  // again. A stop the creator asked for is said as such.
+  // again. A stop the creator asked for is said as such. One whose checks
+  // refused every submission says so, with the last check, every attempt to
+  // inspect, and the ways on: again (with a direction, or on another
+  // harness), or approval without a preview (R09 of the project-flow
+  // rereview). Once the scene has a production, the failure is the
+  // preview's history, not the stage's state: it never misdescribes what
+  // plays.
   const buildFailureOf = (scene: Scene, actions: SceneActions) => {
     const record = shownRecord(scene)
     if (!record || (actions.activity && ['preview', 'production'].includes(actions.activity.kind))) return null
@@ -1460,16 +1512,39 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const phase = progressOf(failed).phases.find(entry => entry.state === 'failed')
     const earlier = previewFor(scene, record)
     const provider = failed.error?.providerStatus && failed.error.providerStatus !== failed.error.message ? failed.error.providerStatus : ''
+    const checks = scene.preview?.latest.id === failed.id ? scene.preview.latest.validation || null : null
+    const lastCheck = checks?.attempts[checks.attempts.length - 1] || null
+    const spent = Boolean(checks && lastCheck && lastCheck.attempt >= checks.budget)
     const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `retry-preview:${scene.id}`, text: `Preview r${record.revision} again`, ...(onDesktop() ? {} : { disabled: true }) })
     again.addEventListener('click', () => void preview(scene, record, false))
-    return h('div', { class: 'ws-build-failure', 'data-failure': stopped ? 'stopped' : failed.error?.category || 'other', role: stopped ? 'status' : 'alert' },
+    const inspect = checks ? disclosure(`checks:${failed.id}`, `Inspect the ${checks.attempts.length === 1 ? 'check' : `${checks.attempts.length} checks`}`, checksPanel(checks)) : null
+    // Produced from this revision, or its production on the stage: the
+    // failed preview is history, said as such.
+    const playing = host.stageMode?.() === 'output' && Boolean(productionShown(scene))
+    if (playing || producedFor(scene, record)) {
+      return h('div', { class: 'ws-build-failure is-history', 'data-failure': 'history', role: 'status' },
+        h('p', {}, stopped ? `The preview of r${record.revision} was stopped.` : spent ? `The preview of r${record.revision} could not be verified after ${lastCheck!.attempt} attempts.` : `The preview of r${record.revision} failed.`, ' It is kept in the preview’s history', playing ? '; the stage plays the scene’s production.' : '.'),
+        inspect,
+      )
+    }
+    const change = h('button', { type: 'button', class: 'button ghost', 'data-focus': `preview-harness:${scene.id}`, text: 'Change the harness or model' })
+    change.addEventListener('click', () => host.openAiSettings?.())
+    const headline = stopped
+      ? `The preview of r${record.revision} was stopped.`
+      : spent
+        ? `The preview of r${record.revision} could not be verified after ${lastCheck!.attempt} attempts.`
+        : `The preview of r${record.revision} failed${phase ? ` while ${phase.label.charAt(0).toLowerCase()}${phase.label.slice(1)}` : ''}.`
+    const said = stopped ? '' : lastCheck ? ` ${lastCheckText(lastCheck)}` : ` ${readable(failed.error?.message || 'No reason was given.')}`
+    return h('div', { class: 'ws-build-failure', 'data-failure': stopped ? 'stopped' : spent ? 'unverified' : failed.error?.category || 'other', role: stopped ? 'status' : 'alert' },
       h('p', {},
-        h('strong', { text: stopped ? `The preview of r${record.revision} was stopped.` : `The preview of r${record.revision} failed${phase ? ` while ${phase.label.charAt(0).toLowerCase()}${phase.label.slice(1)}` : ''}.` }),
-        stopped ? '' : ` ${readable(failed.error?.message || 'No reason was given.')}`,
+        h('strong', { text: headline }),
+        said,
         earlier ? ' Its earlier preview stays playable.' : ' The stage keeps the reference.',
       ),
       provider ? h('p', { class: 'ws-failure-provider' }, h('span', { class: 'review-muted', text: 'What the provider said: ' }), provider) : null,
-      again,
+      checks && !stopped ? h('p', { class: 'review-muted', text: record.status === 'candidate' ? 'Preview it again with a direction for what to change, or on another harness — or approve the plan without a preview.' : 'Preview it again with a direction for what to change, or on another harness.' }) : null,
+      h('div', { class: 'review-actions' }, again, checks && !stopped ? change : null),
+      inspect,
     )
   }
 

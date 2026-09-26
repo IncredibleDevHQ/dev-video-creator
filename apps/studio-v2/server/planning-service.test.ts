@@ -748,6 +748,78 @@ window.__timelines["${compositionId}"] = tl</script></body></html>`
     expect(overview.scenes[0].preview?.ready).toMatchObject({ current: false, of: { record: plan.id } })
   }, 60_000)
 
+  // R09 of the project-flow rereview: six refused sketches ended as "The run
+  // ended … without submitting a result", their checks lost. Each refusal is
+  // kept on the record, with what the player saw; the sixth ends it, saying
+  // so; and a sketch asked for again is given that check.
+  it('keeps each refused sketch with its evidence; the sixth ends it, saying so, and a retry is given its last check', async () => {
+    const { videoId: id, videoScenes: scenes } = await makeVideo('refused')
+    await readyBrief(id, 'run-refused-brief')
+    const { record: plan } = await service.queueTreatment(id, scenes[0])
+    await service.attachRun(plan.id, { runId: 'run-refused-plan' })
+    expect(await service.submitTreatment(plan.id, treatmentFor(scenes[0], 'b1'), 'run-refused-plan')).toMatchObject({ accepted: true })
+    const queued = await service.queuePreview(id, scenes[0])
+    await service.attachRun(queued.record.id, { runId: 'run-refused-sketch' })
+    const compositionId = JSON.parse(text((await service.loadPacket(queued.record.id)).files['packet/CONTEXT.json'])).composition.id
+    const manifest = { version: 1, scene: scenes[0], plan: { record: plan.id, revision: plan.revision }, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: 6 }, runtime: { hyperframes: '0.7.106' }, moments: [{ id: 'm1', title: 'Spend', start: 0, end: 6, estimated: true }], layers: [{ id: 'title', kind: 'text', label: 'Spend', moments: ['m1'] }], provisional: ['Timing is estimated from the plan'] }
+    // A title moved by a timer, not the timeline: each seek finds it elsewhere.
+    const drifting = `<!doctype html><html><head><meta charset="utf-8"><script src="/runtime/gsap.min.js"></script><script src="/runtime/hyperframes.iife.js"></script><style>#root{position:relative;width:100%;height:100%;overflow:hidden;background:#101018}.clip{position:absolute;inset:0}.title{position:absolute;left:120px;top:90px;color:#fff;font:600 64px system-ui}</style></head><body>
+<div id="root" data-composition-id="${compositionId}" data-start="0" data-width="1920" data-height="1080" data-duration="6">
+<div id="m1" class="clip" data-start="0" data-duration="6" data-track-index="0"><div class="title" data-sketch-layer="title">Spend</div></div>
+</div><script>window.__timelines = window.__timelines || {}
+const tl = gsap.timeline({ paused: true })
+tl.fromTo('#m1 .title', { opacity: 0 }, { opacity: 1, duration: 1 }, 0)
+let n = 0
+setInterval(() => { n += 1; document.querySelector('#m1 .title').style.transform = 'translateX(' + n * 3 + 'px)' }, 16)
+window.__timelines["${compositionId}"] = tl</script></body></html>`
+    // Five refusals, each kept with its attempt, bundle and problems.
+    for (const attempt of [1, 2, 3, 4, 5]) {
+      const refused = await service.submitSketch(queued.record.id, { 'manifest.json': JSON.stringify(manifest) }, 'run-refused-sketch', { attempt, budget: 6 })
+      expect(refused).toMatchObject({ accepted: false, attempt, remaining: 6 - attempt })
+    }
+    let record = (await persistence.loadPlanningRecord(queued.record.id))!
+    expect(record.status).toBe('running')
+    expect(record.validation?.attempts.map(entry => entry.attempt)).toEqual([1, 2, 3, 4, 5])
+    expect(record.validation?.attempts[0]).toMatchObject({ bundle: expect.stringMatching(/^[0-9a-f]{64}$/), problems: expect.arrayContaining(['index.html is missing']) })
+    // The sixth: played, refused with what the player saw, and the last.
+    const last = await service.submitSketch(queued.record.id, { 'index.html': drifting, 'manifest.json': JSON.stringify(manifest) }, 'run-refused-sketch', { attempt: 6, budget: 6 })
+    expect(last).toMatchObject({ accepted: false, attempt: 6, remaining: 0, problems: expect.arrayContaining([expect.stringMatching(/^Seeking to [\d.]+s twice shows two different frames \(\d+ pixels differ, within x \d+–\d+, y \d+–\d+\)\. Layer "title" is at x /)]) })
+    const evidence = last.accepted ? [] : last.evidence || []
+    expect(evidence.length).toBeGreaterThan(0)
+    expect(evidence[0]).toMatchObject({ kind: 'reseek', size: { width: 1920, height: 1080 }, layers: [{ id: 'title' }] })
+    expect(Buffer.from(evidence[0].frames.first, 'base64').subarray(1, 4).toString()).toBe('PNG')
+    expect(evidence[0].frames.first).not.toBe(evidence[0].frames.again)
+    record = (await persistence.loadPlanningRecord(queued.record.id))!
+    expect(record).toMatchObject({ status: 'failed', error: { message: 'The preview could not be verified after 6 attempts', category: 'verification', recovery: expect.arrayContaining(['Approve the plan without a preview']) } })
+    const kept = record.validation!.attempts[5]
+    expect(kept.evidence?.length).toBe(evidence.length)
+    expect(kept).toMatchObject({ attempt: 6, evidence: expect.arrayContaining([expect.objectContaining({ kind: 'reseek', frames: { first: { assetId: expect.any(String), objectKey: expect.any(String) }, again: { assetId: expect.any(String), objectKey: expect.any(String) } } })]) })
+    const stored = await persistence.getObject(kept.evidence![0].frames.again.objectKey)
+    expect(stored).toBeTruthy()
+    // The run's end says nothing over it: the check stays.
+    expect(await service.runFinished('run-refused-sketch', { status: 'done', exitCode: 0 })).toEqual([])
+    expect((await persistence.loadPlanningRecord(queued.record.id))!.error?.message).toBe('The preview could not be verified after 6 attempts')
+    // The creator reads the same checks: each attempt, its frames by URL.
+    const latest = (await service.planningOverview(id)).scenes[0].preview?.latest
+    expect(latest).toMatchObject({ id: queued.record.id, status: 'failed', validation: { budget: 6 } })
+    expect(latest?.validation?.attempts).toHaveLength(6)
+    expect(latest?.validation?.attempts[5].evidence[0].frames.first).toMatch(/^\/objects\//)
+    // Asked for again, the new sketch is given that check and its frames.
+    const again = await service.queuePreview(id, scenes[0], { again: true })
+    expect(again.reused).toBe(false)
+    const packet = await service.loadPacket(again.record.id)
+    expect(text(packet.files['packet/LAST-CHECK.md'])).toMatch(/refused 6 times: The preview could not be verified after 6 attempts/)
+    expect(text(packet.files['packet/LAST-CHECK.md'])).toMatch(/`last-check\/seek-1-first\.png`, then `last-check\/seek-1-again\.png`/)
+    expect(packet.files['packet/last-check/seek-1-first.png']).toMatchObject({ contentType: 'image/png' })
+    expect(text(packet.files['packet/SKETCH.md'])).toMatch(/Read `LAST-CHECK\.md`/)
+    // A run that gives up before its budget says how many it made, not
+    // that it made none; the count comes from the record when not given.
+    await service.attachRun(again.record.id, { runId: 'run-refused-again' })
+    expect(await service.submitSketch(again.record.id, { 'manifest.json': JSON.stringify(manifest) }, 'run-refused-again')).toMatchObject({ accepted: false, attempt: 1, remaining: 5 })
+    expect(await service.submitSketch(again.record.id, { 'manifest.json': JSON.stringify(manifest) }, 'run-refused-again')).toMatchObject({ accepted: false, attempt: 2, remaining: 4 })
+    expect(await service.runFinished('run-refused-again', { status: 'done', exitCode: 0 })).toMatchObject([{ id: again.record.id, status: 'failed', error: { message: 'The run ended (done, exit 0) after 2 submissions, none of which passed its checks.' }, validation: { attempts: [{ attempt: 1 }, { attempt: 2 }] } }])
+  }, 90_000)
+
   // P4: a scene produced from its approved plan on its real clock — checked
   // against the plan and the clock, played in the pinned engine, served to
   // the stage, and accepted into the render the notebook plays and exports.

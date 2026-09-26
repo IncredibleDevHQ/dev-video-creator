@@ -41,7 +41,7 @@ import { continuityStatus, validateTreatment, visualMinimumOf, type NeighborPlan
 const round1 = (seconds: number) => Math.round(seconds * 10) / 10
 import { castEntriesForKeys, ensureVisualCast, loadVisualCast, readObject, type CastEntry, type VisualCastRevision } from './visual-cast'
 import { SKETCH_RUNTIME, SKETCH_RUNTIME_SCRIPTS, sketchSummary, validateSketch, type SketchFiles, type SketchManifest, type SketchProof } from '../src/planning/sketch-bundle'
-import { previewFileBody, verifySketchRuntime } from './sketch-runtime'
+import { previewFileBody, sketchBundleHash, verifySketchRuntime, type RuntimeEvidence } from './sketch-runtime'
 import { narrationClock, type NarrationLine } from './voice'
 import { alignTake, composeTakes, normalizeTake, pictureSize, takeClockOf, takeFrame, type AlignedLine } from './take-clock'
 import { lineFingerprints, scriptFingerprint, scriptLinesOf } from '../src/planning/recording-guide'
@@ -55,6 +55,11 @@ import { claimFlagsOf } from '../src/planning/claim-scope'
 import {
   ACTIVE_STATUSES,
   PLANNING_SCHEMA,
+  PLANNING_SUBMISSION_BUDGET,
+  validationOf,
+  type RefusedAttempt,
+  type ValidationEvidence,
+  type ValidationView,
   briefFingerprint,
   briefFreshness,
   currentBrief,
@@ -1021,6 +1026,34 @@ const compositionIdOf = (treatment: PlanningRecord) => `sketch-${treatment.subje
 const sketchLengthOf = (plan: SceneTreatmentV1) =>
   Math.min(120, Math.max(6, Math.round(plan.moments.reduce((sum, moment) => sum + (moment.estimateSeconds || 4), 0) * 10) / 10))
 
+// A sketch asked for again after one that could not be verified is given
+// that check (R09 of the project-flow rereview): its problems and the frames
+// the player kept, so the retry starts from what failed.
+const lastCheckFiles = async (failed: PlanningRecord | null): Promise<PacketFiles> => {
+  const refused = failed ? validationOf(failed) : null
+  if (!failed || !refused) return {}
+  const files: PacketFiles = {}
+  const lines = [
+    '# The last check of an earlier sketch of this plan',
+    '',
+    `An earlier sketch of this plan was refused ${refused.last.attempt} time${refused.last.attempt === 1 ? '' : 's'}: ${failed.error?.message || 'its run ended without a sketch that passed'}. Its last check found:`,
+    '',
+    ...refused.last.problems.map(problem => `- ${problem}`),
+  ]
+  for (const [index, item] of (refused.last.evidence || []).entries()) {
+    const first = `last-check/seek-${index + 1}-first.png`
+    const again = `last-check/seek-${index + 1}-again.png`
+    files[`packet/${first}`] = { base64: (await readObject(item.frames.first.objectKey)).toString('base64'), contentType: 'image/png' }
+    files[`packet/${again}`] = { base64: (await readObject(item.frames.again.objectKey)).toString('base64'), contentType: 'image/png' }
+    const region = item.region ? ` within x ${item.region.left}–${item.region.right}, y ${item.region.top}–${item.region.bottom} of the ${item.size.width}×${item.size.height} frame` : ''
+    lines.push('', `The frame at ${Number(item.at.toFixed(2))}s, seeked twice: \`${first}\`, then \`${again}\` — ${item.pixels} pixels differ${region}.`)
+    for (const layer of item.layers) lines.push(`- Layer "${layer.id}": ${layer.first ? `x ${Math.round(layer.first.left)}–${Math.round(layer.first.right)}, y ${Math.round(layer.first.top)}–${Math.round(layer.first.bottom)}` : 'not shown'} the first time, ${layer.again ? `x ${Math.round(layer.again.left)}–${Math.round(layer.again.right)}, y ${Math.round(layer.again.top)}–${Math.round(layer.again.bottom)}` : 'not shown'} the second.`)
+  }
+  lines.push('', 'Find what made it fail, and build this sketch so it passes the same check. The check is not changed or worked around.', '')
+  files['packet/LAST-CHECK.md'] = lines.join('\n')
+  return files
+}
+
 const sketchPacket = async (planning: VideoPlanning, treatment: PlanningRecord, records: PlanningRecord[]) => {
   const briefRecord = records.find(record => record.id === String(treatment.inputs.briefId || '')) || currentBrief(records)
   if (!briefRecord?.content) throw new PlanningError('The brief this plan was made from is gone', 409)
@@ -1030,6 +1063,9 @@ const sketchPacket = async (planning: VideoPlanning, treatment: PlanningRecord, 
   const files = await scenePacket(planning, briefRecord, treatment.subject, records, { castKeys })
   const compositionId = compositionIdOf(treatment)
   const length = sketchLengthOf(plan)
+  // The newest sketch of this plan, when it could not be verified.
+  const failed = records.filter(record => record.kind === 'preview' && record.subject === treatment.subject && String(record.inputs.treatmentId || '') === treatment.id).sort((a, b) => b.revision - a.revision)[0]
+  const checked = await lastCheckFiles(failed?.status === 'failed' ? failed : null)
   files['packet/PLAN.json'] = JSON.stringify({ record: treatment.id, revision: treatment.revision, status: treatment.status, plan }, null, 2)
   files['packet/SKETCH.md'] = [
     `# Sketch: a rough preview of plan r${treatment.revision}`,
@@ -1044,8 +1080,10 @@ const sketchPacket = async (planning: VideoPlanning, treatment: PlanningRecord, 
     '- Timing is an estimate: no voice or take exists yet. Say so in the manifest.',
     '',
     'Write `sketch/index.html`, `sketch/manifest.json` and any `sketch/assets/`, following `references/sketch-contract.md`, then call `plan_submit_sketch`. Fix exactly the problems it names; stop when it is accepted.',
+    ...(checked['packet/LAST-CHECK.md'] ? ['', 'An earlier sketch of this plan could not be verified. Read `LAST-CHECK.md` and look at its frames before you build: do not repeat what it found.'] : []),
     '',
   ].join('\n')
+  Object.assign(files, checked)
   const context = JSON.parse(String(files['packet/CONTEXT.json'])) as Record<string, unknown>
   files['packet/CONTEXT.json'] = JSON.stringify({ ...context, route: 'Sketch Scene', plan: { record: treatment.id, revision: treatment.revision }, composition: { id: compositionId, width: 1920, height: 1080, fps: 30, duration: length }, runtime: { hyperframes: SKETCH_RUNTIME.hyperframes, scripts: SKETCH_RUNTIME_SCRIPTS } }, null, 2)
   return files
@@ -1107,7 +1145,7 @@ const sketchFilesOf = (raw: unknown): SketchFiles => {
   return files
 }
 
-export const submitSketch = async (recordId: string, raw: unknown, runId?: string) => {
+export const submitSketch = async (recordId: string, raw: unknown, runId?: string, submission?: Submission) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'preview') throw new PlanningError('Preview record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This preview already finished as ${record.status}`, 409)
@@ -1128,8 +1166,8 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
   const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
   const problems = [...report.problems, ...lintProblems]
   if (problems.length || !report.manifest) {
-    void noteProgress(record.id, { milestone: 'refused', count: problems.length || 1 }, { runId })
-    return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
+    const refused = await refuse(record, { runId, submission, bundle: sketchBundleHash(files), problems })
+    return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings], ...refusalOf(refused) }
   }
   // Well formed is not working: the bundle plays in the pinned player
   // before it can read ready. While it plays, the record says so.
@@ -1147,11 +1185,11 @@ export const submitSketch = async (recordId: string, raw: unknown, runId?: strin
     throw new PlanningError(`${message}. Stop the run; the creator can retry the preview.`, 503)
   }
   if (runtime.problems.length || !runtime.proof) {
-    // Back to the run, to fix and submit again.
+    // Back to the run, to fix and submit again — with what the player saw.
     const back = await updatePlanningRecord(record.id, { status: 'running' }, ['verifying'], { runId: record.runId })
     if (!back) throw new PlanningError('This preview finished elsewhere while it was being checked', 409)
-    void noteProgress(record.id, { milestone: 'refused', count: runtime.problems.length || 1 }, { runId })
-    return { accepted: false as const, problems: runtime.problems, warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings] }
+    const refused = await refuse(back, { runId, submission, bundle: sketchBundleHash(files), problems: runtime.problems, evidence: runtime.evidence })
+    return { accepted: false as const, problems: runtime.problems, warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings], ...refusalOf(refused) }
   }
   // The bundle is kept whole and immutable; the manifest is the record, and
   // the proof names the bundle it was taken from.
@@ -1180,6 +1218,25 @@ export const loadPreviewFile = async (recordId: string, path: string) => {
   const file = files[path]
   if (file === undefined) throw new PlanningError('No such file in the preview', 404)
   return previewFileBody(path, file)
+}
+
+// A record's refused submissions, for the creator: each attempt's problems
+// and the player's evidence, its frames by URL (R09 of the project-flow
+// rereview). Null for a record never refused.
+const validationView = (record: PlanningRecord): ValidationView | null => {
+  const validation = record.validation
+  if (!validation?.attempts.length) return null
+  const url = (frame: { objectKey: string }) => `/objects/${encodeURIComponent(frame.objectKey)}`
+  return {
+    budget: validation.budget,
+    attempts: validation.attempts.map(attempt => ({
+      attempt: attempt.attempt,
+      at: attempt.at,
+      bundle: attempt.bundle,
+      problems: attempt.problems,
+      evidence: (attempt.evidence || []).map(item => ({ kind: item.kind, at: item.at, pixels: item.pixels, region: item.region, layers: item.layers, size: item.size, frames: { first: url(item.frames.first), again: url(item.frames.again) } })),
+    })),
+  }
 }
 
 // What playing a sketch proved, in brief; null for one never played (made
@@ -1224,7 +1281,7 @@ const previewOf = (records: PlanningRecord[], sceneId: string, freshness: (previ
   }
   const ready = Object.values(byTreatment).find(view => view.current) || Object.values(byTreatment).sort((a, b) => b.of.revision - a.of.revision)[0] || null
   return {
-    latest: { id: newest.id, status: newest.status, revision: newest.revision, error: newest.error, runId: newest.runId, treatmentId: String(newest.inputs.treatmentId || '') },
+    latest: { id: newest.id, status: newest.status, revision: newest.revision, error: newest.error, runId: newest.runId, treatmentId: String(newest.inputs.treatmentId || ''), validation: validationView(newest) },
     ready,
     byTreatment,
   }
@@ -1609,7 +1666,7 @@ const asPlayable = (manifest: ProductionManifest): SketchManifest => ({
   schedule: manifest.schedule || null,
 })
 
-export const submitProduction = async (recordId: string, raw: unknown, runId?: string) => {
+export const submitProduction = async (recordId: string, raw: unknown, runId?: string, submission?: Submission) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'production') throw new PlanningError('Production record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This production already finished as ${record.status}`, 409)
@@ -1637,8 +1694,8 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   const lintWarnings = (lint?.findings || []).filter(finding => finding.severity === 'warning').map(finding => `hyperframes lint ${finding.code}: ${finding.message}`)
   const problems = [...report.problems, ...lintProblems]
   if (problems.length || !report.manifest) {
-    void noteProgress(record.id, { milestone: 'refused', count: problems.length || 1 }, { runId })
-    return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings] }
+    const refused = await refuse(record, { runId, submission, bundle: sketchBundleHash(own), problems })
+    return { accepted: false as const, problems, warnings: [...report.warnings, ...lintWarnings], ...refusalOf(refused) }
   }
   const verifying = await updatePlanningRecord(record.id, { status: 'verifying' }, ['queued', 'running'], { runId: record.runId })
   if (!verifying) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
@@ -1667,8 +1724,8 @@ export const submitProduction = async (recordId: string, raw: unknown, runId?: s
   if (runtime.problems.length || !runtime.proof || sound.length) {
     const back = await updatePlanningRecord(record.id, { status: 'running' }, ['verifying'], { runId: record.runId })
     if (!back) throw new PlanningError('This production finished elsewhere while it was being checked', 409)
-    void noteProgress(record.id, { milestone: 'refused', count: runtime.problems.length + sound.length || 1 }, { runId })
-    return { accepted: false as const, problems: [...runtime.problems, ...sound], warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings] }
+    const refused = await refuse(back, { runId, submission, bundle: sketchBundleHash(own), problems: [...runtime.problems, ...sound], evidence: runtime.evidence })
+    return { accepted: false as const, problems: [...runtime.problems, ...sound], warnings: [...report.warnings, ...lintWarnings, ...runtime.warnings], ...refusalOf(refused) }
   }
   const artifacts = await storeAsset({ body: Buffer.from(JSON.stringify({ record: record.id, files: own }), 'utf8'), contentType: 'application/json; charset=utf-8', projectId: record.projectId, kind: 'planning-production', extension: '.json' })
   const planning = await loadVideoPlanning(record.projectId)
@@ -1901,7 +1958,7 @@ const productionOf = (records: PlanningRecord[], sceneId: string, freshness: (pr
   const ready = mine.find(record => record.status === 'ready' || record.status === 'reviewed')
   const accepted = mine.find(record => record.status === 'reviewed' && record.approval?.render)
   return {
-    latest: { id: newest.id, status: newest.status, revision: newest.revision, error: newest.error, runId: newest.runId, treatmentId: String(newest.inputs.treatmentId || '') },
+    latest: { id: newest.id, status: newest.status, revision: newest.revision, error: newest.error, runId: newest.runId, treatmentId: String(newest.inputs.treatmentId || ''), validation: validationView(newest) },
     ready: ready ? viewOf(ready) : null,
     accepted: accepted ? viewOf(accepted) : null,
   }
@@ -2012,7 +2069,7 @@ const pinnedBriefContext = async (record: PlanningRecord) => {
   return { planning, context }
 }
 
-export const submitBrief = async (recordId: string, raw: unknown, runId?: string) => {
+export const submitBrief = async (recordId: string, raw: unknown, runId?: string, submission?: Submission) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'brief') throw new PlanningError('Brief record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This brief already finished as ${record.status}`, 409)
@@ -2021,8 +2078,8 @@ export const submitBrief = async (recordId: string, raw: unknown, runId?: string
   const { planning, context } = await pinnedBriefContext(record)
   const report = validateBrief(raw, context)
   if (!report.ok) {
-    void noteProgress(record.id, { milestone: 'refused', count: report.problems.length }, { runId })
-    return { accepted: false as const, problems: report.problems, warnings: report.warnings }
+    const refused = await refuse(record, { runId, submission, bundle: null, problems: report.problems })
+    return { accepted: false as const, problems: report.problems, warnings: report.warnings, attempt: refused.attempt, remaining: refused.remaining }
   }
   const records = await listPlanningRecords(record.projectId)
   const landing = landingFor(record, records, briefFreshness(record, briefInputsOf(planning)))
@@ -2062,7 +2119,7 @@ const pageObjectsOf = async (planning: VideoPlanning, origins: string[]) => {
   return { pageKind, pageObjects }
 }
 
-export const submitTreatment = async (recordId: string, raw: unknown, runId?: string) => {
+export const submitTreatment = async (recordId: string, raw: unknown, runId?: string, submission?: Submission) => {
   const record = await loadPlanningRecord(recordId)
   if (!record || record.kind !== 'treatment') throw new PlanningError('Scene plan record not found', 404)
   if (!ACTIVE_STATUSES.includes(record.status)) throw new PlanningError(`This scene plan already finished as ${record.status}`, 409)
@@ -2089,8 +2146,8 @@ export const submitTreatment = async (recordId: string, raw: unknown, runId?: st
   }
   const report = validateTreatment(raw, context)
   if (!report.ok) {
-    void noteProgress(record.id, { milestone: 'refused', count: report.problems.length }, { runId })
-    return { accepted: false as const, problems: report.problems, warnings: report.warnings }
+    const refused = await refuse(record, { runId, submission, bundle: null, problems: report.problems })
+    return { accepted: false as const, problems: report.problems, warnings: report.warnings, attempt: refused.attempt, remaining: refused.remaining }
   }
   const records = await listPlanningRecords(record.projectId)
   const landing = landingFor(record, records, freshnessOf(planning, records).treatment(record))
@@ -2144,6 +2201,55 @@ export const reviewTreatment = async (recordId: string) => {
 }
 export const approveTreatment = reviewTreatment
 
+// ——— Refusals, kept (R09 of the project-flow rereview) ———
+// A submission the product refused is kept on its record: the attempt it
+// was, the bundle, the problems and what the player saw — both frames of a
+// moment seeked twice, stored — so the run's next attempt, a retry, a
+// refresh and the creator all read the same check. The last submission a
+// run may make ends the record, saying so, its checks kept: never
+// "without submitting a result".
+export type Submission = { attempt?: unknown; budget?: unknown }
+const counted = (value: unknown) => {
+  const number = Math.floor(Number(value))
+  return Number.isFinite(number) && number > 0 ? number : 0
+}
+const UNVERIFIED: Record<PlanningRecord['kind'], { what: string; recovery: string[] }> = {
+  preview: { what: 'The preview could not be verified', recovery: ['Inspect the failed checks', 'Preview it again, with a direction or on another harness', 'Approve the plan without a preview'] },
+  production: { what: 'The production could not be verified', recovery: ['Inspect the failed checks', 'Produce it again, with a direction or on another harness'] },
+  treatment: { what: 'The plan did not pass its checks', recovery: ['Plan the scene again, with a direction or on another harness'] },
+  brief: { what: 'The brief did not pass its checks', recovery: ['Prepare the brief again, with a direction or on another harness'] },
+}
+const storeFrame = (record: PlanningRecord, base64: string) =>
+  storeAsset({ body: Buffer.from(base64, 'base64'), contentType: 'image/png', projectId: record.projectId, kind: 'planning-evidence', extension: '.png' })
+
+const refuse = async (record: PlanningRecord, input: { runId?: string; submission?: Submission; bundle: string | null; problems: string[]; evidence?: RuntimeEvidence[] }) => {
+  const kept = (await loadPlanningRecord(record.id))?.validation || record.validation || null
+  const budget = counted(input.submission?.budget) || kept?.budget || PLANNING_SUBMISSION_BUDGET
+  const attempt = counted(input.submission?.attempt) || (kept?.attempts[kept.attempts.length - 1]?.attempt ?? 0) + 1
+  const shown = (input.evidence || []).filter(item => item.frames.first && item.frames.again)
+  const evidence: ValidationEvidence[] = []
+  for (const item of shown) {
+    evidence.push({ kind: item.kind, at: item.at, pixels: item.pixels, region: item.region, layers: item.layers, size: item.size, frames: { first: await storeFrame(record, item.frames.first), again: await storeFrame(record, item.frames.again) } })
+  }
+  const entry: RefusedAttempt = { attempt, at: new Date().toISOString(), bundle: input.bundle, problems: input.problems, ...(evidence.length ? { evidence } : {}) }
+  const attempts = [...(kept?.attempts || []).filter(item => item.attempt !== attempt), entry].sort((a, b) => a.attempt - b.attempt).slice(-budget)
+  await updatePlanningRecord(record.id, { validation: { budget, attempts } }, [...ACTIVE_STATUSES])
+  await noteProgress(record.id, { milestone: 'refused', count: input.problems.length || 1 }, { runId: input.runId })
+  const remaining = Math.max(0, budget - attempt)
+  if (!remaining) {
+    const words = UNVERIFIED[record.kind]
+    await failRecord(record.id, { message: `${words.what} after ${attempt} attempt${attempt === 1 ? '' : 's'}`, category: 'verification', recovery: words.recovery })
+  }
+  return { attempt, remaining, evidence: shown }
+}
+// What a refusal tells the run: its attempt, what is left, and the player's
+// evidence, both frames as PNG, to look at before it repairs.
+const refusalOf = (refused: Awaited<ReturnType<typeof refuse>>) => ({
+  attempt: refused.attempt,
+  remaining: refused.remaining,
+  ...(refused.evidence.length ? { evidence: refused.evidence } : {}),
+})
+
 export const failRecord = async (recordId: string, error: NonNullable<PlanningRecord['error']>) => {
   await noteProgress(recordId, { milestone: /^Stopped|was cancelled/.test(error.message) ? 'stopped' : 'failed', note: error.message.slice(0, 200) })
   const updated = await updatePlanningRecord(recordId, { status: 'failed', error }, [...ACTIVE_STATUSES])
@@ -2158,12 +2264,16 @@ export const runFinished = async (runId: string, outcome: { status: string; exit
   for (const record of records) {
     if (!ACTIVE_STATUSES.includes(record.status)) continue
     // What happened to the run; the provider's own last word travels apart.
+    // A run whose submissions were all refused says so, its checks kept
+    // (R09 of the project-flow rereview).
+    const refused = validationOf(record)
+    const submissions = refused ? `${refused.last.attempt} submission${refused.last.attempt === 1 ? '' : 's'}, none of which passed its checks` : ''
     const message =
       outcome.status === 'cancelled'
-        ? 'The run was cancelled before it submitted a result.'
+        ? refused ? `Stopped after ${submissions}.` : 'The run was cancelled before it submitted a result.'
         : outcome.status === 'interrupted'
           ? 'Interrupted: the app closed while this run was working. Retry it; any earlier result is unchanged.'
-          : `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) without submitting a result.`
+          : `The run ended (${outcome.status}${outcome.exitCode !== undefined && outcome.exitCode !== null ? `, exit ${outcome.exitCode}` : ''}) ${refused ? `after ${submissions}.` : 'without submitting a result.'}`
     const providerStatus = (outcome.failure?.message || outcome.error || '').replace(/^[\s·:-]+/, '').trim()
     const category = outcome.status === 'interrupted' ? 'interrupted' : outcome.failure?.category
     const recovery = outcome.status === 'interrupted' ? ['Retry'] : outcome.failure?.recovery

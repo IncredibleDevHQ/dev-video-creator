@@ -74,6 +74,58 @@ export type PlanningRecord = {
   approval: PlanApproval | null
   // How the run went as the product saw it (U3 of the scene workspace plan).
   progress?: PlanningProgress | null
+  // Each submission the product refused, as it checked it (R09 of the
+  // project-flow rereview): kept on the record, so the run's next attempt,
+  // a retry, a refresh and the creator all see the same check.
+  validation?: PlanningValidation | null
+}
+
+// A run hands its result in at most this many times; the sixth refusal
+// ends the attempt.
+export const PLANNING_SUBMISSION_BUDGET = 6
+
+// Where two frames differ, in composition pixels.
+export type FrameRegion = { left: number; top: number; right: number; bottom: number }
+export type StoredFrame = { assetId: string; objectKey: string }
+// What the player saw when it refused a bundle: the same time, seeked twice,
+// showing two different frames — both frames, where they differ, and the
+// marked layers drawn at a different place.
+export type ValidationEvidence = {
+  kind: 'reseek'
+  at: number
+  pixels: number
+  region: FrameRegion | null
+  layers: Array<{ id: string; first: FrameRegion | null; again: FrameRegion | null }>
+  // The composition's size: the frame the regions are in.
+  size: { width: number; height: number }
+  frames: { first: StoredFrame; again: StoredFrame }
+}
+export type RefusedAttempt = {
+  attempt: number
+  at: string
+  // The bundle refused, by its hash; none for a submission that never
+  // became one (a plan, a brief).
+  bundle: string | null
+  problems: string[]
+  evidence?: ValidationEvidence[]
+}
+export type PlanningValidation = { budget: number; attempts: RefusedAttempt[] }
+
+// A record's refusals as the creator reads them: each attempt's problems
+// and the player's evidence, its frames by URL.
+export type ValidationView = {
+  budget: number
+  attempts: Array<Omit<RefusedAttempt, 'evidence'> & { evidence: Array<Omit<ValidationEvidence, 'frames'> & { frames: { first: string; again: string } }> }>
+}
+
+// A record's refusals, in brief: how many, how many more it may make, the
+// last check, and whether its budget is spent.
+export const validationOf = (record: Pick<PlanningRecord, 'validation'>) => {
+  const validation = record.validation
+  if (!validation?.attempts.length) return null
+  const last = validation.attempts[validation.attempts.length - 1]
+  const remaining = Math.max(0, validation.budget - last.attempt)
+  return { attempts: validation.attempts, budget: validation.budget, last, remaining, spent: remaining === 0 }
 }
 
 // Where a run stands, as the product confirmed it — never guessed from what

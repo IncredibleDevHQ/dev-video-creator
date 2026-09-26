@@ -47,6 +47,11 @@ const call = async <T>(context: Context, path: string, body?: unknown): Promise<
   return { status: response.status, body: (await response.json()) as T }
 }
 
+// A report kept beside the run: the evidence's frames are saved as PNGs of
+// their own, not as text in it.
+const withoutFrames = (body: Json) =>
+  Array.isArray(body.evidence) ? { ...body, evidence: (body.evidence as Array<Json>).map(({ frames: _frames, ...item }) => item) } : body
+
 // Counts the run's submissions in the run directory itself.
 const spendSubmission = async (projectDir: string) => {
   const ledger = join(projectDir, 'planning', 'submissions.json')
@@ -57,6 +62,44 @@ const spendSubmission = async (projectDir: string) => {
   }
   await writeFile(ledger, JSON.stringify({ used: used + 1 }))
   return used + 1
+}
+
+// What a refusal tells the harness (R09 of the project-flow rereview): the
+// problems, the player's evidence — both frames of a moment seeked twice,
+// written beside the run to look at — and whether it may submit again. With
+// its budget spent it stops: the product keeps the check, and the creator
+// decides how to go on.
+type Evidence = { at: number; pixels: number; region: unknown; layers: unknown; size: unknown; frames: { first: string; again: string } }
+const writeEvidence = async (projectDir: string, attempt: number, evidence: unknown) => {
+  const items = Array.isArray(evidence) ? (evidence as Evidence[]) : []
+  const written: Array<Omit<Evidence, 'frames'> & { frames: { first: string; again: string } }> = []
+  for (const [index, item] of items.entries()) {
+    if (typeof item?.frames?.first !== 'string' || typeof item.frames.again !== 'string') continue
+    const folder = join('planning', 'evidence', `attempt-${attempt}`)
+    await mkdir(join(projectDir, folder), { recursive: true })
+    const stem = `seek-${index + 1}-at-${Number(item.at).toFixed(2)}s`
+    const first = join(folder, `${stem}-first.png`)
+    const again = join(folder, `${stem}-again.png`)
+    await writeFile(join(projectDir, first), Buffer.from(item.frames.first, 'base64'))
+    await writeFile(join(projectDir, again), Buffer.from(item.frames.again, 'base64'))
+    written.push({ at: item.at, pixels: item.pixels, region: item.region, layers: item.layers, size: item.size, frames: { first, again } })
+  }
+  return written
+}
+const refused = async (projectDir: string, attempt: number, body: Json) => {
+  const remaining = Math.max(0, PLANNING_SUBMISSION_BUDGET - attempt)
+  const evidence = await writeEvidence(projectDir, attempt, body.evidence)
+  return {
+    accepted: false,
+    attempt,
+    remaining,
+    problems: body.problems,
+    warnings: body.warnings,
+    ...(evidence.length ? { evidence } : {}),
+    next: remaining
+      ? `${evidence.length ? 'Look at the evidence first: each frame, seeked twice, is saved as two PNGs in this run directory, with where they differ. Then fix' : 'Fix'} exactly these problems and submit again — ${remaining} submission${remaining === 1 ? '' : 's'} left.`
+      : 'The submission budget is spent: stop the run now. The product keeps this check with its evidence, and the creator decides how to go on.',
+  }
 }
 
 const contextTool = async (args: Json, context: Context) => {
@@ -123,11 +166,9 @@ const submitSketch = async (args: Json, context: Context) => {
     throw new Error(`sketch/ is not readable: ${error instanceof Error ? error.message : error}`)
   }
   const attempt = await spendSubmission(run.projectDir)
-  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/sketch`, { files, ...(run.runId ? { runId: run.runId } : {}) })
-  await writeFile(join(run.projectDir, 'planning', `sketch.report.${attempt}.json`), JSON.stringify({ status, ...body }, null, 2)).catch(() => {})
-  if (status === 422) {
-    return { accepted: false, attempt, remaining: PLANNING_SUBMISSION_BUDGET - attempt, problems: body.problems, warnings: body.warnings, next: 'Fix exactly these problems and submit again.' }
-  }
+  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/sketch`, { files, attempt, budget: PLANNING_SUBMISSION_BUDGET, ...(run.runId ? { runId: run.runId } : {}) })
+  await writeFile(join(run.projectDir, 'planning', `sketch.report.${attempt}.json`), JSON.stringify({ status, ...withoutFrames(body) }, null, 2)).catch(() => {})
+  if (status === 422) return refused(run.projectDir, attempt, body)
   if (status >= 400) throw new Error(String(body.error || `The studio answered ${status}`))
   return { accepted: true, status: body.status, warnings: body.warnings, next: 'Accepted. Stop the run now; the creator watches the preview in the product.' }
 }
@@ -160,11 +201,9 @@ const submitProduction = async (args: Json, context: Context) => {
     throw new Error(`production/ is not readable: ${error instanceof Error ? error.message : error}`)
   }
   const attempt = await spendSubmission(run.projectDir)
-  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/production`, { files, ...(run.runId ? { runId: run.runId } : {}) })
-  await writeFile(join(run.projectDir, 'planning', `production.report.${attempt}.json`), JSON.stringify({ status, ...body }, null, 2)).catch(() => {})
-  if (status === 422) {
-    return { accepted: false, attempt, remaining: PLANNING_SUBMISSION_BUDGET - attempt, problems: body.problems, warnings: body.warnings, next: 'Fix exactly these problems and submit again.' }
-  }
+  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/production`, { files, attempt, budget: PLANNING_SUBMISSION_BUDGET, ...(run.runId ? { runId: run.runId } : {}) })
+  await writeFile(join(run.projectDir, 'planning', `production.report.${attempt}.json`), JSON.stringify({ status, ...withoutFrames(body) }, null, 2)).catch(() => {})
+  if (status === 422) return refused(run.projectDir, attempt, body)
   if (status >= 400) throw new Error(String(body.error || `The studio answered ${status}`))
   return { accepted: true, status: body.status, warnings: body.warnings, next: 'Accepted. Stop the run now; the creator watches the produced scene and accepts it in the product.' }
 }
@@ -200,12 +239,10 @@ const submit = (kind: 'brief' | 'treatment') => async (args: Json, context: Cont
     throw new Error(`${file} is not readable JSON: ${error instanceof Error ? error.message : error}`)
   }
   const attempt = await spendSubmission(run.projectDir)
-  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/${kind}`, { [kind]: content, ...(run.runId ? { runId: run.runId } : {}) })
+  const { status, body } = await call<Json>(context, `/api/planning/records/${encodeURIComponent(run.recordId)}/${kind}`, { [kind]: content, attempt, budget: PLANNING_SUBMISSION_BUDGET, ...(run.runId ? { runId: run.runId } : {}) })
   // Keep the product's answer beside the work, for the creator's raw view.
   await writeFile(join(run.projectDir, 'planning', `${kind}.report.${attempt}.json`), JSON.stringify({ status, ...body }, null, 2)).catch(() => {})
-  if (status === 422) {
-    return { accepted: false, attempt, remaining: PLANNING_SUBMISSION_BUDGET - attempt, problems: body.problems, warnings: body.warnings, next: 'Fix exactly these problems and submit again.' }
-  }
+  if (status === 422) return refused(run.projectDir, attempt, body)
   if (status >= 400) throw new Error(String(body.error || `The studio answered ${status}`))
   return {
     accepted: true,

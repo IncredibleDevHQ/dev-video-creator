@@ -129,23 +129,26 @@ export const handlePlanningRoute = async (request: IncomingMessage, response: Se
         send(response, 200, { record: await recordReportedModel(id, { runId: input.runId, model: String(input.model || '') }) })
         return true
       }
+      // A submission says which of its run's attempts it is, and the run's
+      // budget: a refusal is kept with it (R09 of the project-flow rereview).
       if (method === 'POST' && (action === 'brief' || action === 'treatment')) {
-        const input = await body<{ brief?: unknown; treatment?: unknown; runId?: string }>(request, 4 * 1024 * 1024)
+        const input = await body<{ brief?: unknown; treatment?: unknown; runId?: string; attempt?: unknown; budget?: unknown }>(request, 4 * 1024 * 1024)
         const runId = input.runId ? String(input.runId) : undefined
-        const result = action === 'brief' ? await submitBrief(id, input.brief, runId) : await submitTreatment(id, input.treatment, runId)
+        const submission = { attempt: input.attempt, budget: input.budget }
+        const result = action === 'brief' ? await submitBrief(id, input.brief, runId, submission) : await submitTreatment(id, input.treatment, runId, submission)
         // Problems are an answer, not a failure: the harness fixes and resubmits.
         send(response, result.accepted ? 200 : 422, result)
         return true
       }
       if (method === 'POST' && action === 'sketch') {
-        const input = await body<{ files?: unknown; runId?: string }>(request, 12 * 1024 * 1024)
-        const result = await submitSketch(id, input.files, input.runId ? String(input.runId) : undefined)
+        const input = await body<{ files?: unknown; runId?: string; attempt?: unknown; budget?: unknown }>(request, 12 * 1024 * 1024)
+        const result = await submitSketch(id, input.files, input.runId ? String(input.runId) : undefined, { attempt: input.attempt, budget: input.budget })
         send(response, result.accepted ? 200 : 422, result)
         return true
       }
       if (method === 'POST' && action === 'production') {
-        const input = await body<{ files?: unknown; runId?: string }>(request, 60 * 1024 * 1024)
-        const result = await submitProduction(id, input.files, input.runId ? String(input.runId) : undefined)
+        const input = await body<{ files?: unknown; runId?: string; attempt?: unknown; budget?: unknown }>(request, 60 * 1024 * 1024)
+        const result = await submitProduction(id, input.files, input.runId ? String(input.runId) : undefined, { attempt: input.attempt, budget: input.budget })
         send(response, result.accepted ? 200 : 422, result)
         return true
       }
