@@ -1,7 +1,7 @@
 // Minimal typed bridge. Exposes the desktop flag/version info and the
 // harness port (runs, events, gate answers) to the studio renderer, plus the
 // gate dialog's submit/cancel (used by the dialog window only).
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 
 export type RunSummary = {
   id: string
@@ -102,8 +102,11 @@ contextBridge.exposeInMainWorld('studioDesktop', bridge)
 // draft would read as gone after a restart. The desktop keeps the app's own
 // copy in its data folder: handed back before the page's first script runs
 // (once per app start — a reload keeps what the page wrote since), and
-// kept again whenever it changes and as the page goes.
+// kept again shortly after the page writes to it and as the page goes. It
+// is read only when written: a notebook's drafts can be megabytes, not to
+// be copied on the page's thread for nothing.
 const STORAGE_SESSION = 'studio.desktop.storage-session'
+const STORAGE_CHANGED = 'studio-desktop-storage-changed'
 const mirrorWebStorage = () => {
   // The gate dialog's data: page has no storage of its own.
   if (location.protocol !== 'http:') return
@@ -147,7 +150,34 @@ const mirrorWebStorage = () => {
     if (now) ipcRenderer.sendSync('studio:web-storage:flush', payload)
     else ipcRenderer.send('studio:web-storage:save', payload)
   }
-  setInterval(() => keep(false), 1500)
+  // The page's own writes say so: its storage is wrapped in the page's
+  // world, where the page writes, and the event crosses to this one.
+  void webFrame.executeJavaScript(`(() => {
+    const changed = () => document.dispatchEvent(new Event(${JSON.stringify(STORAGE_CHANGED)}))
+    for (const name of ['setItem', 'removeItem', 'clear']) {
+      const original = Storage.prototype[name]
+      Storage.prototype[name] = function (...args) {
+        const result = original.apply(this, args)
+        if (this === window.localStorage) changed()
+        return result
+      }
+    }
+  })()`).catch(() => {})
+  // A second after the writes stop, and at least every five seconds while
+  // they go on — typing writes the notebook with every pause.
+  let timer = 0
+  let since = 0
+  document.addEventListener(STORAGE_CHANGED, () => {
+    const now = Date.now()
+    if (!timer) since = now
+    window.clearTimeout(timer)
+    timer = window.setTimeout(() => {
+      timer = 0
+      keep(false)
+    }, Math.max(0, Math.min(1000, since + 5000 - now)))
+  })
+  // A slow safety net for a write made before the wrap was in place.
+  setInterval(() => keep(false), 30_000)
   addEventListener('pagehide', () => keep(true))
 }
 mirrorWebStorage()
