@@ -11,7 +11,7 @@ All thirteen findings are addressed on `claude/scene-review-loop`, one verified 
 
 After B04, the creator set the direction for the four-artifact proposal. A project is a container of notebooks — text, wireframe, presentation and video — each with its own tools and its own model, and an icon switch moves between them. That model is built and described below.
 
-B05 is fixed only in part, and the model has open work; both are listed under "Limits". Every proof below is a unit test or a scripted check in the desktop app, run on a throwaway store with stub harnesses. No page, plan, sketch or video was written by hand in a harness's place.
+B05's last piece and the model's open work are listed under "Limits". Every proof below is a unit test or a scripted check in the desktop app, run on a throwaway store with stub harnesses. No page, plan, sketch or video was written by hand in a harness's place.
 
 ## Findings
 
@@ -20,18 +20,18 @@ B05 is fixed only in part, and the model has open work; both are listed under "L
 | B10 | Export keeps the old slide clock and adds a blank tail | `d33d95fb` | `produced-scene.test.ts`; `production-check` (a produced scene exports at 10.400 s against its 10.394 s render) |
 | B09 | Publish from Scenes leaves a black stage and inaccessible controls | `b64a8c24` | `production-check`, `scene-review-check`, `export-check` (one scene exported from Scenes: 4.400 s against 4.394 s) |
 | B01 | Importing a new base leaves the previous video's workspace active | `38eb1486` | `source-destination-check`, flow D |
-| B06 | Finished rich slides do not reach the saved base while Video is open | `64fbe07e` | `page-landing.test.ts`; `source-design-check`, flows 7 and 8 (landing with only the video open, and after a restart) |
+| B06 | Finished rich slides do not reach the saved base while Video is open | `64fbe07e` | `page-landing.test.ts`; `source-design-check`, flows 4 and 5 (landing with only the video open, and after a restart) |
 | B02 | Source extraction loses tables and clips text diagrams | `a98d769b` | `server/source.test.ts`; `source-intake-check` (the BoltDB table and an 857-character diagram, whole, in the harness's inputs) |
 | B11 | The live stage and the MP4 use different typography | `c33b9e38` | `type-faces.test.ts`; `production-check` (a label drawn 725 px wide, 730 px on the stage, 912 px in the producer's Inter) |
 | B03 | Finishing a harness-made notebook requires a direct API | `98f3b551` | `source-intake-check` (no call to the direct writer, no provider prompt) |
-| B05 | Long processing stays in the wizard, then loses its progress detail | `5b7f8819` (part) | `planning-progress-check`, `source-design-check` |
+| B05 | Long processing stays in the wizard, then loses its progress detail | `5b7f8819`, `aef16caa` | `planning-progress-check`, `wireframe-build.test.ts`; `source-intake-check`, `source-design-check` |
 | B08 | The timeline hides the causal objects | `dbf090a6` | `scene-timeline-check` (nine layers, grouped by kind past six) |
 | Q02 | Spoken duration squeezes the teaching time | `f8f48646` | `voice.test.ts`, `take-clock.test.ts` |
 | B07 | A simplified source claim becomes an absolute claim | `a1356da6` | `claim-scope.test.ts`; `scene-review-check` |
 | Q01 | Capability decisions need settling before production | `e57280ab` | `type-faces.test.ts`; `production-check` |
-| — | Per-scene chaining | `00f0a22b` | `source-design-check`, flow 7 |
+| — | Per-scene chaining | `00f0a22b` | `source-design-check`, flow 4 |
 | B04 | The base shows the video workflow before a video exists | `c3087b42` | `source-intake-check` |
-| — | Four notebooks in one project | `d38e188a`, `8f3953cc`, `363d7fd6`, `c03bee58` | `containers.test.ts`, `presentation-export.test.ts`; `project-switch-check` (local store and Postgres); `source-intake-check`; `source-design-check`, flow 9 |
+| — | Four notebooks in one project | `d38e188a`, `8f3953cc`, `363d7fd6`, `c03bee58`, `aef16caa`, `9adc3a91` | `containers.test.ts`, `presentation-export.test.ts`, `wireframe-build.test.ts`; `project-switch-check` (local store and Postgres); `source-intake-check`; `source-design-check` |
 
 Two supporting commits: `f0bffb1f` brings `planning-check`'s expected tool list up to date, and `e8cee459` gives the app's own start-up check twenty seconds for harness detection. On a loaded machine, five seconds made `scene-review-check`'s restart fail with no reason given.
 
@@ -51,7 +51,7 @@ Two supporting commits: `f0bffb1f` brings `planning-check`'s expected tool list 
 
 **B03. A harness-made base is finished with that harness alone.** An outline the local harness wrote keeps its lines as the scenes' notes. Nothing is sent to a direct model, and no toast asks for a provider the creator did not need.
 
-**B05, in part. Long work says where it is.** A planning run reports reading its packet as a milestone. A page design run shows, in the notebook, how far it is and for how long it has worked. The review's larger fix is still open (see "Limits"): save the project when the brand is confirmed, and show the phases in the destination workspace.
+**B05. Long work says where it is, and nothing waits in the dialog.** A planning run reports reading its packet as a milestone. A page design run shows, in the notebook, how far it is and for how long it has worked. The review's larger fix is built too: the import now opens the project at the brand, and its wireframe is made in the background (below).
 
 **B08. Every layer of a scene is in its timeline.** Past six layers they are grouped by kind, each group expandable. The choice is kept, and each bar seeks to its moment.
 
@@ -106,16 +106,28 @@ No notebook but the video shows staging or Publish.
 ![Presentation, just exported](2026-09-26-boltdb-e2e-response-evidence/projects-3-presentation-export.png)
 ![Video](2026-09-26-boltdb-e2e-response-evidence/projects-4-video.png)
 
-**An import makes a project** (`8f3953cc`):
+**The import opens the project at the brand** (the short import, the review's step 3). You no longer wait in the dialog while the article is outlined:
+
+- The dialog is two steps, Read and Brand. Confirming the brand creates the project and opens the studio on its **Text** notebook at once, with the article as read.
+- The **Wireframe** is made in the background:
+  - The story run starts on your harness when the brand is confirmed. The server draws a schematic page for each scene of its outline and saves the pages into the Wireframe notebook (`server/wireframe-build.ts`, one pass every few seconds).
+  - It goes on whichever notebook is open, and after a restart.
+  - Its tab reads "being made", then "N pages".
+  - Opened while it is being made, the Wireframe says who is making it, for how long, and the harness's latest word, and it can be stopped.
+  - If it cannot be made, it says why and offers to make it again.
+- The dialog's Outline and Pages steps are gone, with their code. The outline becomes the Wireframe's pages, and designing is the Wireframe's own action.
+
+![The BoltDB import: its text open at once, its wireframe being made](2026-09-26-boltdb-e2e-response-evidence/import-1-text-while-the-wireframe-is-made.png)
+
+**How the notebooks are made from each other** (`8f3953cc`):
 
 - **Text.** The article as read becomes a text notebook: headings, prose, lists and code, with each table kept whole as a fenced block.
-- **Wireframe.** The pages keep their schematics, each with its idea, notes and sources.
-- **Presentation.** When the pages are being designed, the presentation holds the same pages with the same ids, each bound to the run's page, and the designed slides land there.
-- **Opening.** The import opens on the presentation, or on the wireframe if nothing is being designed.
-- **Design presentation.** A wireframe with no presentation offers Design presentation. The drawing harness draws its pages, in their current order and words, into a new presentation notebook. The wireframe keeps its schematics.
+- **Wireframe.** Its pages are schematics, each with its idea, notes and verbatim source passages. It keeps the outline as its plan: each page's line, parts and relations, the model's objects, and the brand it is drawn in.
+- **Design presentation.** A wireframe with no presentation offers Design presentation. The drawing harness draws its pages, in their current order and words, into a new presentation notebook with the same page ids, each bound to the run's page. The designed slides land there as they are finished, and the wireframe keeps its schematics.
 
 ![A wireframe offers to design its presentation](2026-09-26-boltdb-e2e-response-evidence/design-1-wireframe-offers-design.png)
-![The designed slides landed in the presentation](2026-09-26-boltdb-e2e-response-evidence/design-2-presentation-landed.png)
+![The presentation while its second slide is being designed](2026-09-26-boltdb-e2e-response-evidence/design-2-presentation-designing.png)
+![The designed slides landed in the presentation](2026-09-26-boltdb-e2e-response-evidence/design-3-presentation-landed.png)
 
 **The presentation's own export** (`363d7fd6`). Export PDF prints the slides in order, one page per slide at the notebook's frame size. It uses the renderer's Chrome, with the renderer's type faces embedded. The PDF is kept in the object store and downloaded.
 
@@ -136,12 +148,27 @@ No notebook but the video shows staging or Publish.
 5. It reads the project in the menu and the library.
 6. It removes the project with its notebooks.
 
-`source-intake-check` checks what the BoltDB import makes. `source-design-check`, flow 9, designs a presentation from a wireframe.
+`source-intake-check` runs the BoltDB import:
+
+1. The project opens on its text, the article whole.
+2. The story run is given the table and the diagrams.
+3. The wireframe's tab says it is being made, then "2 pages".
+4. Opened from the switch, its pages show no video controls.
+
+`source-design-check` runs the import through to the video:
+
+1. It designs a presentation from the wireframe; the slides land, and a video offered meanwhile offers to wait.
+2. It stops remaining work.
+3. A video takes its slide by itself as the slide lands.
+4. After a restart, the slide the run left lands.
+
+`wireframe-build.test.ts` covers the background build: waiting, drawing, failing, the direct model, and an edit made while it builds.
 
 ## Limits
 
-- **B05 is fixed in part.** Import is still a wizard: read, brand, outline, pages, then the project opens. The review's short import (link → brand → saved project, with the outline streaming into the wireframe) is the next step for the model.
+- **B05.** The short import is now built: nothing waits in the dialog after the brand. What is still open from B05 is streaming the wireframe's pages one by one as the outline is written; they land together, when the story run is done.
 - **No update prompts yet.** A notebook records what it was made from, but an edit upstream does not yet offer an update to the notebooks made from it (the review's step 6). Remaking the wireframe from an edited text, approving pages one by one before designing, PPTX export and library thumbnails are not built.
+- **The live proof scripts.** `live-workspace-run.mjs` and `live-review-loop.mjs` still drive the dialog's old Outline and Pages steps. They spend model budget and are not in the suite; they will follow the new import at the next live run.
 - **No migration.** Notebooks made before projects are not moved into projects; the creator asked to start over. They still open, listed as notebooks outside a project.
 - **Pages without the video's staging, in older notebooks.** A standalone base made from a source still hides the staging. Advanced › Show video staging brings it back there, the older way.
 
