@@ -7,13 +7,21 @@
 // the wireframe — or says why it could not be made. It is resumable: a pass
 // finds a wireframe still waiting however the app was closed, and a direct
 // model outline lost to a restart is asked for again.
+//
+// Each start, and each time it is made again, is an attempt of its own
+// (R07 of the project-flow rereview). The direct model's outline is kept
+// under its attempt until the pages made from it are saved: a save that
+// loses to the creator's edit is made again on the edit with the same
+// outline — the provider is asked once — and an attempt made again never
+// takes an older attempt's outline.
 import { randomUUID } from 'node:crypto'
 import type { NotebookBuildV1, ProjectDocumentV1, TiptapNode } from 'markdown-composition'
 import { pageBrandFrom, renderPage, sanitizeOutline, type Outline, type OutlineScene, type SourceRead } from './source'
 import { buildExplanationModel } from './story-model'
+import type { StoredArticle } from '../src/wireframe-attempt'
 
 export type WireframeRun = { status: string; projectDir: string; failure?: Record<string, unknown> | null }
-export type WireframeSource = { title: string; site: string; text: string; words: number }
+export type WireframeSource = StoredArticle
 
 export type WireframeDeps = {
   load: (id: string) => Promise<ProjectDocumentV1 | null>
@@ -34,12 +42,21 @@ export type WireframeResult = { notebook: string; state: 'none' | 'waiting' | 'b
 const ENDED = new Set(['done', 'error', 'cancelled', 'interrupted'])
 const nowOf = (deps: WireframeDeps) => deps.now?.() || new Date().toISOString()
 
-// Outlines the direct model is making, by notebook: one at a time, and
-// asked for again when a restart lost it.
+// Outlines the direct model is making, and has made, by attempt: asked for
+// once, kept until the pages made from them are saved, and asked for again
+// only when a restart lost them.
 const asked = new Map<string, Promise<Outline>>()
 const settledOutlines = new Map<string, { outline?: Outline; error?: string }>()
+const attemptKey = (notebookId: string, build: NotebookBuildV1) => `${notebookId}#${build.attempt || build.startedAt}`
+// An attempt's outline is let go once what was made from it is saved — and
+// an older attempt's, once the notebook has moved on to another.
+const forgetOutlines = (notebookId: string, keep?: string) => {
+  for (const key of [...settledOutlines.keys()]) if (key.startsWith(`${notebookId}#`) && key !== keep) settledOutlines.delete(key)
+}
 
-const outlineOf = async (build: NotebookBuildV1, notebookId: string, deps: WireframeDeps): Promise<{ outline?: unknown; waiting?: boolean; failure?: string }> => {
+type Outlined = { outline?: unknown; waiting?: boolean; failure?: string; recovery?: string[] }
+
+const outlineOf = async (build: NotebookBuildV1, notebookId: string, deps: WireframeDeps): Promise<Outlined> => {
   if (build.via === 'harness') {
     if (!build.runId) return { failure: 'No story run was started for it' }
     const run = await deps.run(build.runId)
@@ -49,25 +66,25 @@ const outlineOf = async (build: NotebookBuildV1, notebookId: string, deps: Wiref
     if (run.status === 'interrupted') return { failure: 'The app closed while the article was being outlined' }
     if (run.status !== 'done') {
       const said = run.failure && typeof run.failure.message === 'string' ? `: ${run.failure.message}` : ''
-      return { failure: `The story run failed${said}` }
+      const recovery = Array.isArray(run.failure?.recovery) ? (run.failure.recovery as unknown[]).filter((step): step is string => typeof step === 'string' && Boolean(step.trim())) : []
+      return { failure: `The story run failed${said}`, ...(recovery.length ? { recovery } : {}) }
     }
     const outline = await deps.readOutline(run.projectDir).catch(() => null)
     return outline ? { outline } : { failure: 'The story run wrote no outline' }
   }
-  const settled = settledOutlines.get(notebookId)
-  if (settled) {
-    settledOutlines.delete(notebookId)
-    return settled.error ? { failure: settled.error } : { outline: settled.outline }
-  }
-  if (!asked.has(notebookId)) {
+  const key = attemptKey(notebookId, build)
+  forgetOutlines(notebookId, key)
+  const settled = settledOutlines.get(key)
+  if (settled) return settled.error ? { failure: settled.error } : { outline: settled.outline }
+  if (!asked.has(key)) {
     const source = build.sourceRevision ? await deps.source(build.sourceRevision) : null
     if (!source?.text?.trim()) return { failure: 'The article it is made from could not be found' }
     const pending = deps.outlineViaApi(source, build.targetSeconds ?? null, build.wording)
-    asked.set(notebookId, pending)
+    asked.set(key, pending)
     pending
-      .then(outline => settledOutlines.set(notebookId, { outline }))
-      .catch(error => settledOutlines.set(notebookId, { error: error instanceof Error ? error.message : String(error) }))
-      .finally(() => asked.delete(notebookId))
+      .then(outline => settledOutlines.set(key, { outline }))
+      .catch(error => settledOutlines.set(key, { error: error instanceof Error ? error.message : String(error) }))
+      .finally(() => asked.delete(key))
   }
   return { waiting: true }
 }
@@ -103,18 +120,19 @@ export const buildWireframe = async (notebookId: string, deps: WireframeDeps): P
   if (!stored || !build || build.kind !== 'wireframe' || build.failure) return { notebook: notebookId, state: 'none' }
   const got = await outlineOf(build, notebookId, deps)
   if (got.waiting) return { notebook: notebookId, state: 'waiting' }
-  const fail = async (reason: string): Promise<WireframeResult> => {
+  const fail = async (reason: string, recovery?: string[]): Promise<WireframeResult> => {
     const next = structuredClone(stored)
-    next.build = { ...build, failure: { message: reason, at: nowOf(deps) } }
+    next.build = { ...build, failure: { message: reason, at: nowOf(deps), ...(recovery?.length ? { recovery } : {}) } }
     try {
       await deps.save(next, stored)
     } catch (error) {
       if ((error as { statusCode?: number }).statusCode === 409) return { notebook: notebookId, state: 'conflict' }
       throw error
     }
+    forgetOutlines(notebookId)
     return { notebook: notebookId, state: 'failed', reason }
   }
-  if (got.failure) return fail(got.failure)
+  if (got.failure) return fail(got.failure, got.recovery)
   // Its passages verbatim, or not at all: checked against the article.
   const read = build.sourceRevision ? await deps.source(build.sourceRevision).catch(() => null) : null
   const outline = sanitizeOutline(got.outline, stored.title || 'Untitled', read?.text || '')
@@ -140,10 +158,12 @@ export const buildWireframe = async (notebookId: string, deps: WireframeDeps): P
   try {
     await deps.save(next, stored)
   } catch (error) {
-    // Edited while it was built: the next pass builds on the edit.
+    // Edited while it was built: the next pass builds on the edit, from the
+    // same outline.
     if ((error as { statusCode?: number }).statusCode === 409) return { notebook: notebookId, state: 'conflict' }
     throw error
   }
+  forgetOutlines(notebookId)
   return { notebook: notebookId, state: 'built', pages: pages.length }
 }
 

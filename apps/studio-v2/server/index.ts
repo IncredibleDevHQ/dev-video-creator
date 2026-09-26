@@ -4,6 +4,7 @@ import { landPagesOnce, runPagesIn, type LandingDeps, type PageCheck } from './p
 import { containerView, holdNotebook, nameContainer, type ContainerDeps } from './containers'
 import { presentationPdf, slidesOf } from './presentation-export'
 import { buildWireframeOnce, type WireframeDeps, type WireframeSource } from './wireframe-build'
+import { storedArticleOf } from '../src/wireframe-attempt'
 import { registerLocalArtwork } from './appearance-library'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import JSZip from 'jszip'
@@ -1491,10 +1492,9 @@ const wireframeDeps: WireframeDeps = {
   save: (notebook, expected) => saveProjectArtifact(notebook, { expectedProject: expected }),
   run: async runId => (await listBuildRuns()).find(row => row.id === runId) || null,
   readOutline: async projectDir => JSON.parse(await readFile(join(projectDir, 'story', 'outline.json'), 'utf8')),
-  source: async (revisionId): Promise<WireframeSource | null> => {
-    const read = ((await loadSourceRevision(revisionId)) as { content?: Partial<SourceRead> } | null)?.content
-    return read?.text ? { title: String(read.title || ''), site: String(read.site || ''), text: String(read.text), words: Number(read.words) || String(read.text).split(/\s+/).length } : null
-  },
+  // The article as stored, read through the one shape the studio's "Make
+  // it again" reads it with (R01 of the project-flow rereview).
+  source: async (revisionId): Promise<WireframeSource | null> => storedArticleOf(await loadSourceRevision(revisionId)),
   outlineViaApi: (source, targetSeconds, wording) => outlineViaApi(source, targetSeconds, wording),
   saveModel: saveExplanationModel,
 }
@@ -2868,7 +2868,8 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       json(response, 200, { deleted: await deleteTheme(id) })
       return
     }
-    // Immutable source revisions (D1): read back exactly what a run consumed.
+    // Immutable source revisions (D1): read back exactly what a run consumed
+    // — { revision }, its article under content (storedArticleOf reads it).
     if (request.method === 'GET' && /^\/api\/source\/revisions\/[^/]+$/.test(url.pathname)) {
       const id = decodeURIComponent(url.pathname.split('/')[4])
       const revision = await loadSourceRevision(id)
@@ -3027,13 +3028,6 @@ export const createStudioHandler = (options: StudioHandlerOptions = {}) => {
       const base = await loadProjectArtifact(lineage.notebook)
       const snapshot = await readSnapshot(lineage.snapshot?.objectKey)
       json(response, 200, { derived: true, base: base ? { id: base.id, title: base.title } : null, lineage, status: baseStatusOf(child, base, snapshot) })
-      return
-    }
-    // An article as it was read, for a wireframe made again from it (the
-    // four-notebook model): its words, never its brand evidence.
-    if (request.method === 'GET' && /^\/api\/source\/revisions\/[^/]+$/.test(url.pathname)) {
-      const source = await wireframeDeps.source(decodeURIComponent(url.pathname.split('/')[4]))
-      json(response, source ? 200 : 404, source ? { source } : { error: 'No such read' })
       return
     }
     // Projects (the four-notebook model): a project and its notebooks, each

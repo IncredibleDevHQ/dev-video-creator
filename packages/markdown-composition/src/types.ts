@@ -379,8 +379,17 @@ export type NotebookBuildV1 = {
   kind: 'wireframe'
   via: 'harness' | 'api'
   runId?: string
-  // Who makes it, as the creator reads it: "Claude Code · Claude Opus 5.5".
+  // Who makes it, as the creator reads it: "Claude Code · Claude Opus 5.5",
+  // and the harness and model a story run was started on (none for the
+  // direct model).
   by: string
+  harness?: string
+  model?: string
+  // Each start, and each time it is made again, is an attempt of its own:
+  // its identity and how many there have been. What an attempt was given
+  // is never taken by another.
+  attempt?: string
+  attempts?: number
   startedAt: string
   // What the outline is made from: the article's stored read, the authored
   // narrative, the wording policy and the length asked for.
@@ -390,8 +399,9 @@ export type NotebookBuildV1 = {
   targetSeconds?: number | null
   // The palette and fonts the pages are drawn in, and the site they name.
   brand: { palette: Record<string, unknown>; fonts: Record<string, unknown> | null; mode: string; site: string }
-  // Why it could not be made, when it could not.
-  failure?: { message: string; at: string }
+  // Why it could not be made, when it could not, and what the creator can
+  // do about it — a provider's own recovery, like switching harness.
+  failure?: { message: string; at: string; recovery?: string[] }
 }
 
 // Where a derived notebook came from. A video fork pins the revision of the

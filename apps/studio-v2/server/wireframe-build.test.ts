@@ -98,6 +98,60 @@ describe('a wireframe made in the background', () => {
     expect(stored().build).toBeUndefined()
   })
 
+  it('says what the creator can do when the provider failed: its own recovery, like switching harness', async () => {
+    const quota = harness(wireframe(), { status: 'error', projectDir: '/runs/1', failure: { message: 'weekly usage limit reached', recovery: ['Retry after restoring Kimi credits', 'Switch harness or model'] } })
+    expect(await buildWireframe('w1', quota.deps)).toMatchObject({ state: 'failed', reason: 'The story run failed: weekly usage limit reached' })
+    expect(quota.stored().build?.failure).toEqual({ message: 'The story run failed: weekly usage limit reached', at: '2026-09-26T12:05:00.000Z', recovery: ['Retry after restoring Kimi credits', 'Switch harness or model'] })
+  })
+
+  // R07 of the project-flow rereview: the direct model is asked once an
+  // attempt. Its outline is kept until the pages made from it are saved, so
+  // a save that loses to the creator's edit is made again from it.
+  it('an edit made while the direct model\'s outline is saved: the save is made again from the same outline, the model asked once', async () => {
+    const { deps, stored } = harness(wireframe({ via: 'api', runId: undefined, by: 'the direct model', attempt: 'attempt-edit' }), null)
+    let calls = 0
+    deps.outlineViaApi = async () => {
+      calls += 1
+      return { ...OUTLINE, scenes: OUTLINE.scenes.map(scene => ({ ...scene, title: `${scene.title}, answer ${calls}` })) } as never
+    }
+    expect((await buildWireframe('w1', deps)).state).toBe('waiting')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const load = deps.load
+    let edited = false
+    deps.load = async id => {
+      const notebook = await load(id)
+      if (!edited && notebook) {
+        edited = true
+        await deps.save({ ...notebook, notebook: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A note' }] }] } }, notebook)
+      }
+      return notebook
+    }
+    expect((await buildWireframe('w1', deps)).state).toBe('conflict')
+    expect(await buildWireframe('w1', deps)).toMatchObject({ state: 'built', pages: 2 })
+    expect(calls).toBe(1)
+    const made = stored()
+    expect(made.notebook.content.map(node => node.type)).toEqual(['paragraph', 'scene', 'scene'])
+    expect(made.notebook.content.slice(1).map(node => node.attrs?.title)).toEqual(['Scene 1, answer 1', 'Scene 2, answer 1'])
+  })
+
+  it('an attempt made again never takes an older attempt\'s outline', async () => {
+    const { deps, stored } = harness(wireframe({ via: 'api', runId: undefined, by: 'the direct model', attempt: 'attempt-old' }), null)
+    const answers: Array<(outline: never) => void> = []
+    deps.outlineViaApi = () => new Promise(resolve => answers.push(resolve))
+    expect((await buildWireframe('w1', deps)).state).toBe('waiting')
+    // The creator makes it again before the first answer comes.
+    const now = stored()
+    await deps.save({ ...now, build: { ...now.build!, attempt: 'attempt-new', attempts: 2 } }, now)
+    answers[0]({ ...OUTLINE, title: 'The old attempt' } as never)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect((await buildWireframe('w1', deps)).state).toBe('waiting')
+    expect(answers).toHaveLength(2)
+    answers[1]({ ...OUTLINE, scenes: OUTLINE.scenes.map(scene => ({ ...scene, title: `${scene.title}, made again` })) } as never)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(await buildWireframe('w1', deps)).toMatchObject({ state: 'built', pages: 2 })
+    expect(stored().notebook.content.map(node => node.attrs?.title)).toEqual(['Scene 1, made again', 'Scene 2, made again'])
+  })
+
   it('an edit made while it was built is kept: it is built on the edit', async () => {
     const { deps, stored } = harness(wireframe(), { status: 'done', projectDir: '/runs/1' })
     const load = deps.load

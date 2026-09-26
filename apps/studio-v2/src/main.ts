@@ -14,6 +14,7 @@ import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePag
 import { sinceOf } from './planning/progress'
 import { baseNextStep, type NextStep } from './planning/next-step'
 import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab } from './notebook-switch'
+import { nextWireframeAttempt, storedArticleOf, wireframeFailureText, type WireframeOutliner } from './wireframe-attempt'
 import { draftHoldsEdits, sameDocument } from './draft-state'
 import { Editor, Extension, type JSONContent } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
@@ -16459,7 +16460,7 @@ const sourceCreateProject = async () => {
     const place = { container: `project-${crypto.randomUUID()}`, text: crypto.randomUUID(), wireframe: crypto.randomUUID() }
     // The wireframe's outline: the story run on the creator's harness, else
     // the direct model, on the server.
-    let outlining: Pick<NonNullable<ProjectDocumentV1['build']>, 'via' | 'runId' | 'by'> = { via: 'api', by: 'the direct model' }
+    let outlining: WireframeOutliner = { via: 'api', by: 'the direct model' }
     if (bridge?.isDesktop) {
       const agent = await resolveCreationAgent('story')
       sourceStatus('#source-brand-status', `Starting ${agent.label}…`)
@@ -16467,7 +16468,7 @@ const sourceCreateProject = async () => {
         adapter: agent.id, skill: 'story-master', route: 'Plan Story', projectId: place.wireframe,
         inputs: { source: { title: source.title, site: source.site, text: source.text, words: source.words }, wordingPolicy: sourceState.wording, model: agent.model, effort: 'high', autonomous: true },
       })
-      outlining = { via: 'harness', runId: run.id, by: agent.label }
+      outlining = { via: 'harness', runId: run.id, by: agent.label, harness: agent.id, ...(agent.model ? { model: agent.model } : {}) }
     }
     const theme = sourceThemeFor(source)
     const pageBrand = sourcePageBrand(source)
@@ -16488,6 +16489,8 @@ const sourceCreateProject = async () => {
       build: {
         kind: 'wireframe',
         ...outlining,
+        attempt: crypto.randomUUID(),
+        attempts: 1,
         startedAt: new Date().toISOString(),
         ...(sourceState.snapshot ? { sourceRevision: sourceState.snapshot.id } : {}),
         ...(sourceState.narrative ? { narrativeRevision: sourceState.narrative.id } : {}),
@@ -18715,14 +18718,18 @@ if (project.build?.kind === 'wireframe') {
   const banner = $('#notebook-build-status') as HTMLElement
   const said = $('#notebook-build-text') as HTMLElement
   const action = $('#notebook-build-action') as HTMLButtonElement
+  const settings = $('#notebook-build-settings') as HTMLButtonElement
+  // A provider that failed can be switched before it is made again.
+  settings.addEventListener('click', () => void openAiSettings('harness'))
   let lastWord = ''
   const renderBuild = () => {
     const build = project.build
     banner.hidden = !build
     if (!build) return
     banner.classList.toggle('is-error', Boolean(build.failure))
+    settings.hidden = !build.failure
     if (build.failure) {
-      said.textContent = `The wireframe could not be made: ${build.failure.message}.`
+      said.textContent = wireframeFailureText(build.failure)
       action.textContent = 'Make it again'
       action.hidden = false
       return
@@ -18766,18 +18773,20 @@ if (project.build?.kind === 'wireframe') {
         showToast('Stopping — the wireframe says so when it has stopped')
         return
       }
-      // Made again: a new story run on the article as it was read, or the
-      // direct model once more.
-      let outlining: Pick<NonNullable<ProjectDocumentV1['build']>, 'via' | 'runId' | 'by'> = { via: 'api', by: 'the direct model' }
-      if (bridge?.isDesktop && build.via === 'harness') {
-        const read = build.sourceRevision ? (await fetchJson<{ source: { title: string; site: string; text: string; words: number } }>(`/api/source/revisions/${encodeURIComponent(build.sourceRevision)}`)).source : null
-        if (!read) throw new Error('The article it was made from could not be found')
+      // Made again (R01 of the project-flow rereview): a new story run on the
+      // article as it was stored — read from its source revision, as the
+      // server reads it — on whichever harness the creator chooses now, or
+      // the direct model once more; an attempt of its own.
+      let outlining: WireframeOutliner = { via: 'api', by: 'the direct model' }
+      if (bridge?.isDesktop) {
+        const stored = build.sourceRevision ? await fetchJson<{ revision?: unknown }>(`/api/source/revisions/${encodeURIComponent(build.sourceRevision)}`).catch(() => null) : null
+        const article = storedArticleOf(stored?.revision)
+        if (!article) throw new Error('The article it was made from is no longer stored — import it again')
         const agent = await resolveCreationAgent('story')
-        const run = await bridge.harness.run({ adapter: agent.id, skill: 'story-master', route: 'Plan Story', projectId: project.id, inputs: { source: read, wordingPolicy: build.wording, model: agent.model, effort: 'high', autonomous: true } })
-        outlining = { via: 'harness', runId: run.id, by: agent.label }
+        const run = await bridge.harness.run({ adapter: agent.id, skill: 'story-master', route: 'Plan Story', projectId: project.id, inputs: { source: article, wordingPolicy: build.wording, model: agent.model, effort: 'high', autonomous: true } })
+        outlining = { via: 'harness', runId: run.id, by: agent.label, harness: agent.id, ...(agent.model ? { model: agent.model } : {}) }
       }
-      const { failure: _failure, ...kept } = build
-      project.build = { ...kept, ...outlining, startedAt: new Date().toISOString() }
+      project.build = nextWireframeAttempt(build, outlining, { attempt: crypto.randomUUID(), now: new Date().toISOString() })
       project.notebook = editor.getJSON() as TiptapDocument
       await persistProjectNow(structuredClone(project))
       renderBuild()
