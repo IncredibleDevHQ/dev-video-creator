@@ -369,6 +369,29 @@ try {
     check(chrome?.rows <= 112 && JSON.stringify(chrome.primaries) === '["Build preview of r1"]' && chrome.more === 'More actions for this scene' && JSON.stringify(chrome.others) === '["Approve plan r1 without a preview","Revise the plan"]' && chrome.stage === 'Reference: designed slide', `${at} two rows of chrome, one primary action with the scene's others beside it, and the stage says what it shows (${JSON.stringify(chrome)})`)
     check(seen?.scenes.length === 2 && seen.scenes.every(scene => scene.thumb) && seen.scenes[0].selected && seen.scenes[0].state === 'Review r1' && seen.scenes[1].state === 'Plan it', `${at} the rail lists each scene with its page and the one thing it needs (${JSON.stringify(seen?.scenes)})`)
     await shot(`${width}-02-candidate`)
+    // The scene's other actions open on the menu's surface (the component
+    // passes): rows of 28px, in view, and Escape gives the keyboard back to
+    // More.
+    await evaluate(`() => { document.querySelector('#scene-workspace .sw-more').click(); return true }`)
+    const menu = await waitFor(`() => {
+      const list = document.querySelector('#scene-workspace .sw-more-list')
+      if (!list || list.hidden || !list.getClientRects().length) return null
+      const probe = document.createElement('i')
+      probe.style.color = 'var(--studio-ui-popover)'
+      list.append(probe)
+      const surface = getComputedStyle(probe).color
+      probe.remove()
+      const box = list.getBoundingClientRect()
+      return {
+        surface: getComputedStyle(list).backgroundColor === surface,
+        rows: [...list.querySelectorAll('.button')].map(button => Math.round(button.getBoundingClientRect().height)),
+        inView: box.top >= 0 && box.left >= 0 && box.bottom <= innerHeight && box.right <= innerWidth,
+      }
+    }`, 10)
+    await shot(`${width}-02b-scene-more`)
+    await evaluate(`() => { document.querySelector('#scene-workspace .sw-more-list .button').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true }`)
+    const closed = await waitFor(`() => { const list = document.querySelector('#scene-workspace .sw-more-list'); return (!list || list.hidden) && document.activeElement?.classList.contains('sw-more') ? true : null }`, 5)
+    check(menu?.surface && menu.rows.length === 2 && menu.rows.every(height => height === 28) && menu.inView && closed, `${at} the scene's other actions open on the menu's surface, in view, and Escape hands the keyboard back to More (${JSON.stringify({ menu, closed })})`)
     // The last moment — the long identifier and the long paragraph — opens in the inspector.
     await evaluate(`() => { const chips = document.querySelectorAll('#scene-workspace .sw-moment'); chips[chips.length - 1].click(); return true }`)
     const last = await waitFor(`() => { const title = document.querySelector('#scene-workspace .ws-moment-title'); return title && /^fabric_lib::/.test(title.textContent) ? { tab: document.querySelector('#scene-workspace .sw-tabs [aria-selected="true"]')?.textContent, count: document.querySelector('#scene-workspace .ws-moment-count')?.textContent, fields: [...document.querySelectorAll('#scene-workspace .ws-moment > .ws-moment-fields dt')].map(entry => entry.textContent), selected: document.querySelector('#scene-workspace .sw-moment.is-selected .sw-moment-number')?.textContent } : null }`, 10)
