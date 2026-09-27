@@ -385,6 +385,20 @@ export const PLANNING_STATE_LABELS: Record<ScenePlanningState, string> = {
   failed: 'Failed',
 }
 
+// Each state's tone, wherever it shows as a badge: the review strip, the
+// Scenes view's header and the planning dialog read this one list.
+export const PLANNING_STATE_TONES: Record<ScenePlanningState, '' | 'busy' | 'new' | 'good' | 'warn' | 'bad'> = {
+  'needs-brief': '',
+  preparing: 'busy',
+  'brief-failed': 'bad',
+  'ready-to-plan': '',
+  planning: 'busy',
+  candidate: 'new',
+  reviewed: 'good',
+  stale: 'warn',
+  failed: 'bad',
+}
+
 // Can this result still land? A run's result is applied only when the record
 // is the newest for its subject, still running, and fresh by the same check
 // the workspace and review use. Otherwise it is kept as a superseded

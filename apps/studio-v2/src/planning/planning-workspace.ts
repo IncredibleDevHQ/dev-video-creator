@@ -14,7 +14,7 @@
 // and nothing else.
 import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
 import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
+import { PLANNING_STATE_LABELS, PLANNING_STATE_TONES, isActiveStatus, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 import { icon } from '../ui/icons'
 import type { ToastOptions } from '../ui/toast'
@@ -234,17 +234,7 @@ const chip = (text: string, tone = '') => h('span', { class: `planning-chip${ton
 const basisTag = (basis: string) => h('span', { class: `planning-basis is-${basis}`, text: basis })
 const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString() : '')
 
-const STATE_TONES: Record<ScenePlanningView['state'], string> = {
-  'needs-brief': '',
-  preparing: 'busy',
-  'brief-failed': 'bad',
-  'ready-to-plan': '',
-  planning: 'busy',
-  candidate: 'new',
-  reviewed: 'good',
-  stale: 'warn',
-  failed: 'bad',
-}
+const STATE_TONES = PLANNING_STATE_TONES
 
 export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   const dialog = document.getElementById('planning-dialog') as HTMLDialogElement

@@ -191,6 +191,7 @@ import './ui/labels.css'
 // The shared components' looks, after the styles they replace.
 import './ui/tabs.css'
 import './ui/dialog.css'
+import './ui/badge.css'
 import { hydrateIcons, icon } from './ui/icons'
 import { installTooltips } from './ui/tooltip'
 import { createToaster, type ToastOptions } from './ui/toast'

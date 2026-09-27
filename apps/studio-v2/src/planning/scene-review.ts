@@ -11,7 +11,7 @@
 // what the creator opened, typed or selected survives the renders that do.
 import type { ExplanationBriefV1 } from './explanation-brief'
 import { exampleLineOf, type SceneTreatmentV1, type TreatmentExample, type TreatmentMoment } from './scene-treatment'
-import { PLANNING_STATE_LABELS, isActiveStatus, validationOf, type FrameRegion, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
+import { PLANNING_STATE_LABELS, PLANNING_STATE_TONES, isActiveStatus, validationOf, type FrameRegion, type PlanDraft, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import type { PlanningOverviewV1, ScenePreviewView, SceneProductionView, VisualCastSummary } from './planning-workspace'
 import { compareTreatments, DIFFERENCE_LABELS } from './plan-compare'
 import { CLAIM_BASIS_TEXT, claimGroupsOf, claimSummaryOf, narrowingDirectionOf, type ClaimGroup } from './claim-scope'
@@ -132,17 +132,7 @@ const h = <K extends keyof HTMLElementTagNameMap>(
 }
 const chip = (text: string, tone = '') => h('span', { class: `review-chip${tone ? ` is-${tone}` : ''}`, text })
 
-const PLAN_TONES: Record<ScenePlanningView['state'], string> = {
-  'needs-brief': '',
-  preparing: 'busy',
-  'brief-failed': 'bad',
-  'ready-to-plan': '',
-  planning: 'busy',
-  candidate: 'new',
-  reviewed: 'good',
-  stale: 'warn',
-  failed: 'bad',
-}
+const PLAN_TONES = PLANNING_STATE_TONES
 
 export const createSceneReview = (host: SceneReviewHost) => {
   let overview: PlanningOverviewV1 | null = null
