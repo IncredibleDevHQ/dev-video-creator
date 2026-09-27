@@ -89,13 +89,21 @@ body.is-scene-workspace .notebook-document { display: none; }
 .sw-rail-toggle { flex: none; margin-left: auto; width: 26px; height: 24px; border: 0; border-radius: var(--studio-ui-radius-control); background: transparent; color: var(--sw-muted); cursor: pointer; }
 .sw-rail-toggle:hover { background: var(--studio-ui-hover); color: var(--sw-ink); }
 .sw-scenes { list-style: none; margin: 0; padding: 2px 8px 16px; display: grid; gap: 6px; align-content: start; overflow-y: auto; min-height: 0; }
-.sw-scene { width: 100%; display: grid; gap: 6px; padding: 6px; border: 1px solid transparent; border-radius: var(--studio-ui-radius-menu); background: none; color: inherit; text-align: left; cursor: pointer; transition: background-color var(--studio-ui-fast) var(--studio-ui-ease); }
+.sw-scene { position: relative; width: 100%; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; align-items: start; padding: 6px; border: 0; border-radius: var(--studio-ui-radius-menu); background: none; color: inherit; text-align: left; cursor: pointer; transition: background-color 100ms var(--studio-ui-ease), transform 100ms var(--studio-ui-ease); }
+.sw-scene:active { transform: scale(.985); }
+.sw-scene-body { display: grid; gap: 6px; min-width: 0; }
 .sw-scene:hover { background: var(--studio-ui-hover); }
-.sw-scene.is-selected { background: var(--studio-ui-surface); border-color: var(--sw-line); }
+.sw-scene.is-selected { background: var(--studio-ui-pressed); }
+.sw-scene:hover:not(.is-selected) .sw-scene-thumb { box-shadow: 0 0 0 1px var(--studio-ui-line-hover); }
 .sw-scene.is-selected .sw-scene-thumb { box-shadow: 0 0 0 2px var(--studio-ui-brand); }
-.sw-scene-thumb { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--studio-ui-radius-control); background: var(--studio-ui-fill-3); box-shadow: 0 0 0 1px var(--sw-line); }
+.sw-scene-thumb { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px; background: var(--studio-ui-fill-3); box-shadow: 0 0 0 1px var(--sw-line); transition: box-shadow 100ms var(--studio-ui-ease); }
 .sw-scene-thumb img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; }
-.sw-scene-number { position: absolute; left: 4px; top: 4px; min-width: 18px; padding: 1px 5px; border-radius: 5px; background: rgba(24, 24, 27, .82); color: #fff; font: 700 10.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
+.sw-scene-number { padding-top: 2px; color: var(--sw-muted); font: 500 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; font-variant-numeric: tabular-nums; text-align: right; }
+.sw-scene.is-selected .sw-scene-number { color: var(--studio-ui-good-strong); }
+/* Numbers and pictures only: the number sits on the picture. */
+.scene-workspace.is-rail-collapsed .sw-scene { grid-template-columns: minmax(0, 1fr); }
+.scene-workspace.is-rail-collapsed .sw-scene-number { position: absolute; left: 10px; top: 10px; z-index: 1; min-width: 18px; padding: 2px 5px; border-radius: 5px; background: rgba(24, 24, 27, .82); color: #fff; font-weight: 700; text-align: center; }
+.scene-workspace.is-rail-collapsed .sw-scene.is-selected .sw-scene-number { background: var(--studio-ui-brand-strong); color: #fff; }
 .sw-scene-text { display: grid; gap: 2px; min-width: 0; }
 /* The compact rail keeps each scene's state as a dot on its picture. */
 .sw-scene-dot { display: none; position: absolute; right: 4px; bottom: 4px; width: 9px; height: 9px; border: 2px solid var(--studio-ui-line-surface); border-radius: 50%; background: var(--studio-ui-fill-5); }
@@ -230,7 +238,9 @@ body.is-scene-workspace .notebook-document { display: none; }
   .sw-layout { --sw-rail: 96px; --sw-inspector: 304px; }
   .sw-scene-text, .sw-rail-toggle, .sw-rail-head { display: none; }
   .sw-scene-dot { display: block; }
-  .sw-scene { padding: 4px; }
+  .sw-scene { padding: 4px; grid-template-columns: minmax(0, 1fr); }
+  .sw-scene-number { position: absolute; left: 8px; top: 8px; z-index: 1; min-width: 18px; padding: 2px 5px; border-radius: 5px; background: rgba(24, 24, 27, .82); color: #fff; font-weight: 700; text-align: center; }
+  .sw-scene.is-selected .sw-scene-number { color: #fff; background: var(--studio-ui-brand-strong); }
   .sw-scenes { padding-top: 8px; }
   .sw-title h2 { max-width: 24ch; }
 }

@@ -62,7 +62,8 @@
   --studio-ui-control: 32px;
   --studio-ui-header: 56px;
   --studio-ui-context: 48px;
-  --studio-ui-rail: 168px;
+  /* One rail for pages and scenes: a number column, then the picture. */
+  --studio-ui-rail: 188px;
   --studio-ui-inspector: 304px;
 
   /* Depth and motion */

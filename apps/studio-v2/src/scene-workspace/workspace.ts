@@ -374,9 +374,14 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       const scene = notice && listed.id !== sceneId ? { ...listed, state: { label: `Preview r${notice.revision} ready`, tone: 'new' as const } } : listed
       const selected = scene.id === sceneId
       const thumb = host.thumbnailOf(scene.id)
+      // As a page view's rail is (the one stage layout): the number in its
+      // own column, then the picture, the title and what the scene needs.
       const button = h('button', { type: 'button', class: `sw-scene${selected ? ' is-selected' : ''}`, 'data-focus': `sw-scene:${scene.id}`, 'data-scene': scene.id, 'aria-current': selected ? 'true' : undefined, title: `${scene.index + 1}. ${scene.title} — ${scene.state.label}` },
-        h('span', { class: 'sw-scene-thumb' }, thumb ? Object.assign(h('img', { alt: '', loading: 'lazy' }), { src: thumb }) : null, h('span', { class: 'sw-scene-number', text: String(scene.index + 1) }), h('span', { class: `sw-scene-dot is-${scene.state.tone}`, 'aria-hidden': 'true' })),
-        h('span', { class: 'sw-scene-text' }, h('strong', { text: scene.title }), h('span', { class: `sw-scene-state is-${scene.state.tone}`, text: scene.state.label })),
+        h('span', { class: 'sw-scene-number', text: String(scene.index + 1).padStart(2, '0') }),
+        h('span', { class: 'sw-scene-body' },
+          h('span', { class: 'sw-scene-thumb' }, thumb ? Object.assign(h('img', { alt: '', loading: 'lazy' }), { src: thumb }) : null, h('span', { class: `sw-scene-dot is-${scene.state.tone}`, 'aria-hidden': 'true' })),
+          h('span', { class: 'sw-scene-text' }, h('strong', { text: scene.title }), h('span', { class: `sw-scene-state is-${scene.state.tone}`, text: scene.state.label })),
+        ),
       )
       button.addEventListener('click', () => {
         if (scene.id === currentScene() || locked()) return
