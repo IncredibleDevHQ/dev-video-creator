@@ -190,11 +190,13 @@ import './ui/library.css'
 import './ui/labels.css'
 // The shared components' looks, after the styles they replace.
 import './ui/tabs.css'
+import './ui/dialog.css'
 import { hydrateIcons, icon } from './ui/icons'
 import { installTooltips } from './ui/tooltip'
 import { createToaster, type ToastOptions } from './ui/toast'
 import { enhanceSelect } from './ui/select'
 import { tabList } from './ui/tabs'
+import { watchDialogs } from './ui/dialog'
 
 // The page's own controls draw their icons (Lucide), in place of the
 // characters they carry as a fallback.
@@ -203,6 +205,8 @@ hydrateIcons()
 // component audit).
 installTooltips()
 enhanceSelect(document.getElementById('studio-theme-selector') as HTMLSelectElement)
+// A modal dialog opens with the keyboard on its first field.
+watchDialogs()
 // The tab lists in the page from the start take the keys of a tab list.
 document.querySelectorAll<HTMLElement>('.theme-lab-tabs, .theme-preview-tabs, .background-mode-tabs').forEach(list => tabList(list))
 document.querySelectorAll<HTMLElement>('.director-rail').forEach(list => tabList(list, { vertical: true }))
@@ -11279,10 +11283,14 @@ const setExplainerFullscreen = (on: boolean) => {
   () => setExplainerFullscreen(!explainerPreviewShell.classList.contains('fullscreen')),
 )
 explainerDialog.addEventListener('cancel', event => {
+  event.preventDefault()
   if (explainerPreviewShell.classList.contains('fullscreen')) {
-    event.preventDefault()
     setExplainerFullscreen(false)
+    return
   }
+  // Escape closes as the close button does: a new explainer never set up is
+  // removed, not left behind as an empty block.
+  ;($('#close-explainer') as HTMLButtonElement).click()
 })
 explainerDialog.addEventListener('close', () => setExplainerFullscreen(false))
 document.addEventListener('keydown', event => {
@@ -13104,22 +13112,33 @@ const refineObjectAppearance = async (unit: SlideUnit) => {
   const asset = assets.find(item => item.key === wornKey(state, unit))
   const controls = [...new Map((asset?.behaviors || []).flatMap(behavior => behavior.controls || []).map(control => [control.id, control])).values()]
   if (!controls.length) { showToast('This version has no declared refinement controls. Register controls with its accepted behavior first.'); return }
+  // The dialog's shell: a title and a close, the controls, then Cancel and
+  // the one action.
   const dialog = document.createElement('dialog')
-  dialog.style.cssText = 'max-width:440px;width:90%;padding:24px;border:1px solid #ccc;border-radius:16px;'
+  dialog.className = 'modal refine-modal'
   const form = document.createElement('form')
-  form.style.cssText = 'display:grid;gap:16px'
   const owner = new DOMParser().parseFromString(state.svg, 'image/svg+xml').getElementById(unit.id)
-  const heading = document.createElement('h2'); heading.textContent = `Refine ${unit.label}`; form.append(heading)
+  const heading = document.createElement('div'); heading.className = 'modal-heading'
+  const titled = document.createElement('div')
+  const eyebrow = document.createElement('span'); eyebrow.className = 'eyebrow'; eyebrow.textContent = 'Appearance'
+  const title = document.createElement('h2'); title.textContent = `Refine ${unit.label}`
+  titled.append(eyebrow, title)
+  const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.className = 'icon-button'; dismiss.setAttribute('aria-label', 'Close'); dismiss.append(icon('x')); dismiss.onclick = () => dialog.close()
+  heading.append(titled, dismiss)
+  const body = document.createElement('div'); body.className = 'refine-body'
   const inputs: Array<{ control: AppearanceControl; input: HTMLInputElement; initial: string }> = []
   for (const control of controls) {
     const label = document.createElement('label'); label.textContent = control.label
     const input = document.createElement('input'); input.type = control.type === 'color' ? 'color' : 'number'; input.value = owner?.getAttribute(`data-control-${control.id}`) || String(control.default)
     if (control.type === 'number') { input.min = String(control.min); input.max = String(control.max); input.step = 'any' }
-    label.append(input); form.append(label); inputs.push({ control, input, initial: input.value })
+    label.append(input); body.append(label); inputs.push({ control, input, initial: input.value })
   }
-  const status = document.createElement('p'); status.setAttribute('role', 'status'); form.append(status)
-  const apply = document.createElement('button'); apply.type = 'submit'; apply.textContent = 'Apply refinement'; form.append(apply)
-  const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Cancel'; close.onclick = () => dialog.close(); form.append(close)
+  const status = document.createElement('p'); status.className = 'refine-status'; status.setAttribute('role', 'status'); body.append(status)
+  const actions = document.createElement('div'); actions.className = 'modal-actions'
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'button ghost'; close.textContent = 'Cancel'; close.onclick = () => dialog.close()
+  const apply = document.createElement('button'); apply.type = 'submit'; apply.className = 'button primary'; apply.textContent = 'Apply refinement'
+  actions.append(close, apply)
+  form.append(heading, body, actions)
   form.onsubmit = event => {
     event.preventDefault()
     try {

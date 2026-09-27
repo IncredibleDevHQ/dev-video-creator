@@ -2,8 +2,10 @@
 // what happened, a line of detail when there is one, one action when it
 // helps, and a way to dismiss it — up to three stacked, the newest nearest
 // the corner. They sit in the top layer, so a toast raised from a dialog
-// shows over it. #toast stays the newest card: what reads it — its words,
-// whether it is hidden — reads it as before.
+// shows over it; and while a modal dialog is open they sit inside it, since
+// the page around a modal dialog takes no clicks. #toast stays the newest
+// card: what reads it — its words, whether it is hidden — reads it as
+// before.
 import './feedback.css'
 import { icon, type IconName } from './icons'
 
@@ -34,7 +36,31 @@ export const createToaster = (newest: HTMLElement) => {
   const actions = new Map<string, () => void>()
   const timers = new WeakMap<HTMLElement, number>()
 
+  // The open modal dialog, else the page: the page around a modal dialog is
+  // inert, so a toast's buttons there could not be pressed.
+  const modal = (dialog: HTMLDialogElement) => {
+    try {
+      return dialog.matches(':modal')
+    } catch {
+      return false
+    }
+  }
+  const home = () => [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')].filter(modal).pop() || document.body
+  const place = () => {
+    const host = home()
+    if (region.parentElement === host) return
+    host.append(region)
+    // Back to the page when the dialog closes, with what still shows.
+    if (host instanceof HTMLDialogElement) {
+      host.addEventListener('close', () => {
+        if (region.parentElement !== host) return
+        document.body.append(region)
+        if (region.querySelector('.ui-toast:not([hidden])')) raise()
+      }, { once: true })
+    }
+  }
   const raise = () => {
+    place()
     // Shown again on each toast, so it is above whatever opened since.
     if (!region.hasAttribute('popover')) return
     try {

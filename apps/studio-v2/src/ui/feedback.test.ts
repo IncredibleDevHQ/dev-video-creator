@@ -46,6 +46,22 @@ describe('the studio\'s toasts', () => {
     expect(document.querySelectorAll('.ui-toast:not([hidden])').length).toBe(2)
   })
 
+  it('sits inside an open modal dialog, whose page takes no clicks, and comes back when it closes', () => {
+    const show = createToaster(document.getElementById('toast')!)
+    const dialog = document.createElement('dialog')
+    document.body.append(dialog)
+    dialog.setAttribute('open', '')
+    dialog.matches = ((selector: string) => selector === ':modal' || Element.prototype.matches.call(dialog, selector)) as typeof dialog.matches
+    show('Exported', { action: { label: 'Show', run: () => undefined } })
+    const region = document.querySelector('.ui-toasts')!
+    expect(region.parentElement).toBe(dialog)
+    expect(dialog.contains(document.getElementById('toast'))).toBe(true)
+    dialog.removeAttribute('open')
+    dialog.dispatchEvent(new Event('close'))
+    expect(region.parentElement).toBe(document.body)
+    expect(document.getElementById('toast')!.hidden).toBe(false)
+  })
+
   it('runs its one action, and is dismissed or times out', () => {
     const show = createToaster(document.getElementById('toast')!)
     const run = vi.fn()

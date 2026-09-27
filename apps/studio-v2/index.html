@@ -926,7 +926,7 @@
         <label class="field"><span>SVG markup — a 160×110 shape centred on 0,0 using var(--ex-fill) and var(--ex-stroke)</span><textarea id="shape-editor-svg" rows="4" spellcheck="false"></textarea></label>
         <div class="explainer-row"><div id="shape-editor-preview" class="shape-editor-preview"></div><button id="shape-editor-save" class="button primary" type="button">Save shape</button></div>
       </div>
-      <div class="modal-actions"><button id="shape-new" class="button chrome-secondary" type="button">New shape</button><button id="shape-duplicate" class="button chrome-secondary" type="button" disabled>Duplicate</button><button id="shape-edit" class="button chrome-secondary" type="button" disabled>Edit</button><button id="shape-delete" class="button chrome-secondary" type="button" disabled>Delete selected</button><button id="shape-collection-done" class="button primary" type="button">Done</button></div>
+      <div class="modal-actions"><button id="shape-new" class="button" type="button">New shape</button><button id="shape-duplicate" class="button" type="button" disabled>Duplicate</button><button id="shape-edit" class="button" type="button" disabled>Edit</button><button id="shape-delete" class="button" type="button" disabled>Delete selected</button><button id="shape-collection-done" class="button primary" type="button">Done</button></div>
     </dialog>
 
 
@@ -1041,14 +1041,14 @@
 
     <dialog id="markdown-dialog" class="modal markdown-modal">
       <form method="dialog">
-        <div class="modal-heading"><div><span class="eyebrow">Markdown import</span><h2>Paste a document</h2></div><button value="cancel" class="icon-button" data-icon="x">×</button></div>
+        <div class="modal-heading"><div><span class="eyebrow">Markdown import</span><h2>Paste a document</h2></div><button value="cancel" class="icon-button" aria-label="Close" data-icon="x">×</button></div>
         <textarea id="markdown-input" spellcheck="false" placeholder="# Your title\n\nWrite the story…"></textarea>
         <div class="modal-actions"><button value="cancel" class="button ghost">Cancel</button><button id="apply-markdown" value="default" class="button primary">Replace notebook</button></div>
       </form>
     </dialog>
 
     <dialog id="camera-dialog" class="modal camera-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Record your delivery.</h2></div><button id="close-camera" class="icon-button" data-icon="x">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Record your delivery.</h2></div><button id="close-camera" class="icon-button" type="button" aria-label="Close" data-icon="x">×</button></div>
       <div class="camera-grid">
         <div class="camera-left">
           <div class="camera-preview-shell">
