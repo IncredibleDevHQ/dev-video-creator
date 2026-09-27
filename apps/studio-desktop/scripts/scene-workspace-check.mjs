@@ -307,8 +307,8 @@ try {
   check(briefReady?.status === 'ready', 'the brief is prepared from the workspace')
   await until(async () => (await overview(videoId)).visualCast.status === 'ready', 90)
   await evaluate(`() => { window.dispatchEvent(new Event('focus')); return true }`)
-  const planAction = await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button && button.textContent === 'Plan the scene' && !button.disabled ? button.textContent : null }`, 30)
-  check(planAction === 'Plan the scene', `with the brief ready, the one action is to plan the scene (${planAction})`)
+  const planAction = await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button && button.textContent === 'Plan scene' && !button.disabled ? button.textContent : null }`, 30)
+  check(planAction === 'Plan scene', `with the brief ready, the one action is to plan the scene (${planAction})`)
   // Who speaks is chosen in the scene's Record tab, before or after planning.
   await click('#sw-tab-record')
   const undecided = await waitFor(`() => { const choice = document.querySelector('#scene-workspace .ws-delivery'); return choice ? { buttons: [...choice.querySelectorAll('button')].map(button => button.textContent + (button.getAttribute('aria-checked') === 'true' ? ' *' : '')), note: choice.nextElementSibling?.textContent || '' } : null }`, 10)
@@ -349,7 +349,24 @@ try {
     check(seen?.horizontal.workspace <= 0 && seen.horizontal.page <= 0 && seen.horizontal.panel <= 0, `${at} nothing scrolls sideways (${JSON.stringify(seen?.horizontal)})`)
     check(seen?.outside.length === 0 && seen.clipped.length === 0, `${at} nothing in the header or inspector is clipped or sticks out (${JSON.stringify({ outside: seen?.outside, clipped: seen?.clipped })})`)
     check(seen?.moments.length === 8 && seen.lastMomentReachable, `${at} all eight moments sit in one row under the stage, the last one reachable (${JSON.stringify(seen?.moments.map(title => title.slice(0, 24)))})`)
-    check(seen?.primary?.label === 'Preview r1' && seen.primary.inView && /^Plan r1 · candidate/.test(seen.revision), `${at} one revision control and one action for it, in view (${JSON.stringify({ primary: seen?.primary, revision: seen?.revision })})`)
+    check(seen?.primary?.label === 'Build preview of r1' && seen.primary.inView && /^Plan r1 · candidate/.test(seen.revision), `${at} one revision control and one action for it, in view (${JSON.stringify({ primary: seen?.primary, revision: seen?.revision })})`)
+    // The Open Slide pass: the header and the scene's context row are the
+    // chrome — two rows, about 100–112px — the scene's action the only
+    // primary on screen, its other actions beside it, and the stage says
+    // what it shows.
+    const chrome = await evaluate(`() => {
+      const visible = element => element.getClientRects().length > 0
+      const header = document.querySelector('.app-chrome').getBoundingClientRect().height
+      const row = document.querySelector('#scene-workspace .sw-head').getBoundingClientRect().height
+      return {
+        rows: Math.round(header + row),
+        primaries: [...document.querySelectorAll('.button.primary')].filter(visible).map(element => element.textContent.trim()),
+        more: document.querySelector('#scene-workspace .sw-more')?.getAttribute('aria-label') || '',
+        others: [...document.querySelectorAll('#scene-workspace .sw-more-list .button')].map(button => button.textContent),
+        stage: document.getElementById('scene-stage-choice-value')?.textContent || '',
+      }
+    }`)
+    check(chrome?.rows <= 112 && JSON.stringify(chrome.primaries) === '["Build preview of r1"]' && chrome.more === 'More actions for this scene' && JSON.stringify(chrome.others) === '["Approve plan r1 without a preview","Revise the plan"]' && chrome.stage === 'Reference: designed slide', `${at} two rows of chrome, one primary action with the scene's others beside it, and the stage says what it shows (${JSON.stringify(chrome)})`)
     check(seen?.scenes.length === 2 && seen.scenes.every(scene => scene.thumb) && seen.scenes[0].selected && seen.scenes[0].state === 'Review r1' && seen.scenes[1].state === 'Plan it', `${at} the rail lists each scene with its page and the one thing it needs (${JSON.stringify(seen?.scenes)})`)
     await shot(`${width}-02-candidate`)
     // The last moment — the long identifier and the long paragraph — opens in the inspector.
@@ -368,7 +385,7 @@ try {
   await sleep(800)
   await click('#scene-workspace .sw-context-open')
   const drawer = await waitFor(`() => { const context = document.querySelector('#scene-workspace .sw-context'); return context && !context.hidden && document.activeElement?.closest('.sw-context') ? { tabs: [...context.querySelectorAll('.sw-context-tabs button')].map(button => button.textContent), focus: document.activeElement?.getAttribute('data-focus') || '' } : null }`, 10)
-  check(JSON.stringify(drawer?.tabs) === '["Brief","Explanation","Cast","Run details"]' && drawer.focus === 'sw-context:brief', `Context opens a drawer with the briefs, the cast and the run details, the keyboard on it (${JSON.stringify(drawer)})`)
+  check(JSON.stringify(drawer?.tabs) === '["Brief","Explanation","Cast","Run details"]' && drawer.focus === 'sw-context:brief', `Details opens a drawer with the briefs, the cast and the run details, the keyboard on it (${JSON.stringify(drawer)})`)
   await click('#scene-workspace [data-focus="sw-context:cast"]')
   const cast = await waitFor(`() => document.querySelector('#scene-workspace .sw-context .review-cast-tally')?.textContent || null`, 10)
   check(/^The designed slide's \d+ objects: /.test(cast || ''), `its Cast lists the designed slide's objects, each with the plan's decision (${cast})`)
@@ -378,27 +395,27 @@ try {
   await shot('1440-04-context')
   await evaluate(`() => { document.querySelector('#scene-workspace .sw-context').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true }`)
   const closed = await waitFor(`() => document.querySelector('#scene-workspace .sw-context').hidden ? document.activeElement?.getAttribute('data-focus') || 'none' : null`, 10)
-  check(closed === 'sw-context', `Escape closes the drawer and gives the keyboard back to Context (${closed})`)
+  check(closed === 'sw-context', `Escape closes the drawer and gives the keyboard back to Details (${closed})`)
 
   // ——— Approve, without a preview: an explicit choice that starts nothing ———
-  await evaluate(`() => { [...document.querySelectorAll('#scene-workspace .sw-actions .button')].find(button => button.textContent === 'Approve r1 without a preview').click(); return true }`)
+  await evaluate(`() => { [...document.querySelectorAll('#scene-workspace .sw-actions .button')].find(button => button.textContent === 'Approve plan r1 without a preview').click(); return true }`)
   const approved = await until(async () => (await overview(videoId)).scenes[0].view.reviewed, 30)
   check(approved?.id === planned.id, 'the plan is approved from the workspace')
   const afterApproval = await waitFor(`() => { const primary = document.querySelector('#scene-workspace .sw-actions .button.primary'); const revision = document.querySelector('#scene-workspace .ws-revision')?.selectedOptions[0]?.textContent || ''; return primary && /approved/.test(revision) ? { primary: primary.textContent, revision, produce: [...document.querySelectorAll('#scene-workspace .sw-actions .button')].filter(button => /Produce/.test(button.textContent)).map(button => ({ label: button.textContent, disabled: button.disabled, title: button.title })), state: document.querySelector('#scene-workspace .sw-scene.is-selected .sw-scene-state')?.textContent } : null }`, 20)
-  check(afterApproval?.primary === 'Record the scene' && afterApproval.revision === 'Plan r1 · approved' && afterApproval.produce.length === 1 && afterApproval.produce[0].disabled && /take/.test(afterApproval.produce[0].title) && afterApproval.state === 'Record it', `approved, a scene you present asks for your take first; producing waits for it, and says so (${JSON.stringify(afterApproval)})`)
+  check(afterApproval?.primary === 'Record my lines' && afterApproval.revision === 'Plan r1 · approved' && afterApproval.produce.length === 1 && afterApproval.produce[0].disabled && /take/.test(afterApproval.produce[0].title) && afterApproval.state === 'Record it', `approved, a scene you present asks for your take first; producing waits for it, and says so (${JSON.stringify(afterApproval)})`)
   // Approved, the Output tab joins the inspector: still nothing clipped, and
   // the workspace's action is the one primary — the notebook's steps back.
   const approvedLayout = await evaluate(measure)
   const tabs = await evaluate(`() => [...document.querySelectorAll('#scene-workspace .sw-tabs [role="tab"]')].map(tab => tab.textContent)`)
   check(approvedLayout?.outside.length === 0 && approvedLayout.clipped.length === 0 && JSON.stringify(tabs) === '["Story","Moment","Record","Output"]', `approved, the inspector's four tabs and the header fit (${JSON.stringify({ outside: approvedLayout?.outside, clipped: approvedLayout?.clipped, tabs })})`)
-  const primaries = await evaluate(`() => { const green = element => getComputedStyle(element).backgroundColor === 'rgb(22, 163, 74)'; return { workspace: [...document.querySelectorAll('#scene-workspace .button.primary')].filter(element => element.getClientRects().length && green(element)).map(element => element.textContent), chrome: [...document.querySelectorAll('.topbar .button, .commandbar .button')].filter(element => element.getClientRects().length && green(element)).map(element => element.textContent.trim()) } }`)
+  const primaries = await evaluate(`() => { const green = element => getComputedStyle(element).backgroundColor === 'rgb(22, 163, 74)'; return { workspace: [...document.querySelectorAll('#scene-workspace .button.primary')].filter(element => element.getClientRects().length && green(element)).map(element => element.textContent), chrome: [...document.querySelectorAll('.app-chrome .button')].filter(element => element.getClientRects().length && green(element)).map(element => element.textContent.trim()) } }`)
   check(primaries.workspace.length === 1 && primaries.chrome.length === 0, `in the workspace the scene's action is the one primary; the notebook's next step steps back (${JSON.stringify(primaries)})`)
   const runs = await api(`/api/planning/${encodeURIComponent(videoId)}`).then(response => response.body.records.filter(record => ['preview', 'production'].includes(record.kind)).length)
   check(runs === 0, `approving started nothing: no preview, no production (${runs})`)
   // The recording guide, in the same workspace: the plan's lines first.
-  await evaluate(`() => { [...document.querySelectorAll('#scene-workspace .sw-actions .button')].find(button => button.textContent === 'Record the scene').click(); return true }`)
+  await evaluate(`() => { [...document.querySelectorAll('#scene-workspace .sw-actions .button')].find(button => button.textContent === 'Record my lines').click(); return true }`)
   const guide = await waitFor(`() => { const record = document.querySelector('#scene-workspace .ws-record'); return record && document.querySelector('#sw-tab-record')?.getAttribute('aria-selected') === 'true' ? { lines: record.querySelectorAll('.review-guide-lines li').length, usePlan: Boolean(record.querySelector('[data-focus^="use-plan-script:"]')), focus: document.activeElement?.getAttribute('data-focus') || '', camera: document.getElementById('camera-dialog')?.open === true } : null }`, 10)
-  check(guide?.lines === 8 && guide.usePlan && /^use-plan-script:/.test(guide.focus) && !guide.camera, `Record the scene opens its recording guide in the workspace: the plan's eight lines, and — since the notebook's script is older — using them first, with no camera started (${JSON.stringify(guide)})`)
+  check(guide?.lines === 8 && guide.usePlan && /^use-plan-script:/.test(guide.focus) && !guide.camera, `Record my lines opens its recording guide in the workspace: the plan's eight lines, and — since the notebook's script is older — using them first, with no camera started (${JSON.stringify(guide)})`)
   await click('#scene-workspace [data-focus^="use-plan-script:"]')
   const ready = await waitFor(`() => { const button = document.querySelector('#scene-workspace .ws-record [data-focus^="record:"]'); return button && !button.disabled ? button.textContent : null }`, 10)
   check(ready === 'Rehearse or record this scene', `with the plan's lines as the script, rehearsing or recording is one click away (${ready})`)
@@ -417,7 +434,7 @@ try {
   // ——— The notebook is the other view, on the same scene ———
   await click('#scene-workspace .sw-back')
   const notebook = await waitFor(`() => { const root = document.getElementById('scene-workspace'); return root.hidden ? { document: getComputedStyle(document.querySelector('.notebook-document')).display, review: document.querySelector('.scene-review.is-expanded')?.dataset.reviewScene || '', stageHome: Boolean(document.querySelector('#player-shell #scene-stage')), notebookTab: document.getElementById('workspace-tab-notebook').getAttribute('aria-pressed') } : null }`, 10)
-  check(notebook?.document !== 'none' && notebook.review === second && notebook.stageHome && notebook.notebookTab === 'true', `‹ Notebook shows the notebook on the same scene, its review open and the stage back beside it (${JSON.stringify(notebook)})`)
+  check(notebook?.document !== 'none' && notebook.review === second && notebook.stageHome && notebook.notebookTab === 'true', `Notebook shows the notebook on the same scene, its review open and the stage back beside it (${JSON.stringify(notebook)})`)
   await shot('1440-06-notebook')
   await click('#workspace-tab-scenes')
   const back = await waitFor(`() => { const root = document.getElementById('scene-workspace'); return !root.hidden && root.querySelector('.sw-scene.is-selected')?.dataset.scene === ${JSON.stringify(second)} && Boolean(root.querySelector('.sw-stage-frame #scene-stage')) }`, 10)

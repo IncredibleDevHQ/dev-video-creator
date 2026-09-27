@@ -345,7 +345,7 @@ try {
     if (!player || document.getElementById('scene-stage-preview').hidden) return null
     return { src: player.getAttribute('src'), mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, moments: [...document.querySelectorAll('.scene-stage-moment')].map(button => button.textContent) }
   }`, 30)
-  check(stage?.src === ready.ready.url && stage.mode === 'Plan preview', `the stage plays the sketch through the Hyperframes player (${JSON.stringify(stage)})`)
+  check(stage?.src === ready.ready.url && stage.mode === `Preview r${ready.ready.of.revision}`, `the stage plays the sketch through the Hyperframes player (${JSON.stringify(stage)})`)
   check(/^Rough sketch of plan r\d+ · timing estimated · presenter stand-in$/.test(stage?.note || ''), `the stage labels it a rough sketch and says what is provisional (${stage?.note})`)
   const played = await waitFor(`async () => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return player.duration > 0 ? player.duration : null }`, 40)
   check(Math.abs((played || 0) - ready.ready.summary.duration) < 0.5, `the engine loaded the composition (${played}s)`)
@@ -432,8 +432,8 @@ try {
     if (!note) return null
     return { note, approve: review.querySelector('[data-focus^="approve:"]').textContent, preview: review.querySelector('[data-focus^="preview:"]').textContent, stagePreview: document.querySelector('[data-stage-mode="preview"]').disabled, stageTitle: document.querySelector('[data-stage-mode="preview"]').title, mode: document.querySelector('.scene-stage-modes .is-active')?.textContent }
   }`, 30)
-  check(/^No preview of r\d+ yet — the stage shows its page\. Sketches exist for r\d+\./.test(onR2?.note || '') && onR2.mode === 'Designed slide' && onR2.stagePreview === true, `the new revision shows its page, not the older revision's sketch (${JSON.stringify(onR2)})`)
-  check(onR2?.approve === `Approve r${revised.revision}` && onR2.preview === `Preview r${revised.revision}`, `the actions name the revision they act on (${onR2?.approve} · ${onR2?.preview})`)
+  check(/^No preview of r\d+ yet — the stage shows its page\. Sketches exist for r\d+\./.test(onR2?.note || '') && onR2.mode === 'Reference: designed slide' && onR2.stagePreview === true, `the new revision shows its page, not the older revision's sketch (${JSON.stringify(onR2)})`)
+  check(onR2?.approve === `Approve plan r${revised.revision}` && onR2.preview === `Build preview of r${revised.revision}`, `the actions name the revision they act on (${onR2?.approve} · ${onR2?.preview})`)
   await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="show-revision:"]').click(); return true }`)
   const onR1 = await waitFor(`() => {
     const review = document.querySelector('.scene-review.is-expanded')

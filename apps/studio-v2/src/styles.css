@@ -2531,12 +2531,28 @@ body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
 .scene-stage-reference svg.has-hits [data-role="node"]:not(.stage-hit), .scene-stage-reference svg.has-hits [data-role="connector"] { opacity: .28; transition: opacity .2s ease; }
 .scene-stage-reference .stage-hit { filter: drop-shadow(0 0 10px rgba(250, 204, 21, .9)); }
 /* What the stage shows, and why: a bar under the frame, never over the page. */
-.scene-stage-bar { margin-top: 8px; display: grid; gap: 6px; }
+.scene-stage-bar { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .scene-stage-bar[hidden] { display: none; }
-.scene-stage-modes { display: flex; flex-wrap: wrap; gap: 4px; }
-.scene-stage-modes button { border: 1px solid #d4d4d8; background: white; color: #3f3f46; border-radius: 999px; padding: 2px 9px; font: 600 10.5px/1.5 'InterBody', Inter, sans-serif; white-space: nowrap; cursor: pointer; }
-.scene-stage-modes button.is-active { background: #18181b; color: #fafafa; border-color: #18181b; }
-.scene-stage-modes button:disabled { opacity: .45; cursor: default; }
+/* One stage selector (the Open Slide pass): it says what the stage shows,
+   and opens on the rest — each saying whether it can be shown yet. */
+.scene-stage-choice { position: relative; flex: none; }
+.scene-stage-choice-toggle { min-height: 30px; padding: 0 10px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--studio-ui-line-strong); border-radius: var(--studio-ui-radius-control); background: var(--studio-ui-surface); color: var(--studio-ui-ink); font: 500 var(--studio-ui-text-label)/1 var(--studio-ui-font-ui); white-space: nowrap; cursor: pointer; }
+.scene-stage-choice-toggle:hover, .scene-stage-choice-toggle[aria-expanded="true"] { background: var(--studio-ui-hover); }
+.scene-stage-choice-toggle:focus-visible { outline: 2px solid var(--studio-ui-focus); outline-offset: 2px; }
+.scene-stage-choice-toggle::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #a1a1aa; }
+.scene-stage-choice-toggle[data-mode="preview"]::before { background: #a855f7; }
+.scene-stage-choice-toggle[data-mode="output"]::before { background: var(--studio-ui-brand); }
+.scene-stage-choice-label { color: var(--studio-ui-muted); }
+.scene-stage-choice-toggle strong { font: 600 var(--studio-ui-text-control)/1 var(--studio-ui-font-brand); }
+.scene-stage-choice-caret { width: 6px; height: 6px; margin: -3px 0 0 2px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); color: var(--studio-ui-muted); }
+.scene-stage-modes { position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 40; min-width: 260px; padding: 6px; display: grid; gap: 1px; border: 1px solid var(--studio-ui-line); border-radius: var(--studio-ui-radius-float); background: var(--studio-ui-surface-raised); box-shadow: var(--studio-ui-shadow-menu); }
+.scene-stage-modes[hidden] { display: none; }
+.scene-stage-modes button { width: 100%; min-height: 32px; padding: 0 10px; display: flex; align-items: center; gap: 8px; border: 0; border-radius: var(--studio-ui-radius-control); background: transparent; color: var(--studio-ui-ink); font: 500 var(--studio-ui-text-control)/1.2 var(--studio-ui-font-ui); text-align: left; white-space: nowrap; cursor: pointer; }
+.scene-stage-modes button::before { content: ''; flex: none; width: 12px; color: var(--studio-ui-brand); font-weight: 700; }
+.scene-stage-modes button.is-active::before { content: '✓'; }
+.scene-stage-modes button:hover:not(:disabled) { background: var(--studio-ui-hover); }
+.scene-stage-modes button:disabled { color: var(--studio-ui-faint); cursor: default; }
+.scene-stage-modes button[hidden] { display: none; }
 .inline-preview.is-following { transition: none; }
 /* One composition on the canvas: while the scene stage shows, the controls
    that work on the notebook's own composition step back. */
@@ -2561,9 +2577,9 @@ body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
 .player-shell.canvas-open .scene-stage .scene-stage-transport { background: rgba(15,13,24,.96); }
 /* Full screen keeps the stage's label: which plan, and what is provisional. */
 body.canvas-is-open .scene-stage-bar:not([hidden]) { position: fixed; top: 14px; left: 32px; right: 88px; z-index: 90; margin: 0; display: flex; align-items: center; gap: 14px; }
-body.canvas-is-open .scene-stage-bar .scene-stage-modes { flex-wrap: nowrap; }
-body.canvas-is-open .scene-stage-bar .scene-stage-modes button { background: rgba(24,24,27,.82); color: #e4e4e7; border-color: rgba(255,255,255,.24); }
-body.canvas-is-open .scene-stage-bar .scene-stage-modes button.is-active { background: #f4f4f5; color: #18181b; border-color: #f4f4f5; }
+body.canvas-is-open .scene-stage-bar .scene-stage-choice-toggle { border-color: rgba(255,255,255,.24); background: rgba(24,24,27,.82); color: #e4e4e7; }
+body.canvas-is-open .scene-stage-bar .scene-stage-choice-label { color: #a1a1aa; }
+body.canvas-is-open .scene-stage-bar .scene-stage-modes { top: calc(100% + 6px); bottom: auto; }
 body.canvas-is-open .scene-stage-bar .scene-stage-note { color: #d4d4d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body.canvas-is-open .scene-stage-bar.is-preview .scene-stage-note { color: #f5d0fe; }
 .scene-stage-preview { position: absolute; inset: 0; }
@@ -2671,8 +2687,9 @@ body:has(.notebook-timeline:not([hidden])) { --rail-band: 58px; }
 .studio-workspace { height: calc(100vh - var(--workspace-top, 96px) - var(--rail-band, 0px)); }
 body.theme-surface-open, body:has(.player-shell.canvas-open) { --rail-band: 0px; }
 /* The stage, enlarged: the same composition, full screen. */
-.scene-stage-bar .scene-stage-full { justify-self: start; border: 1px solid #d4d4d8; background: white; color: #3f3f46; border-radius: 999px; padding: 2px 9px; font: 600 10.5px/1.5 'InterBody', Inter, sans-serif; cursor: pointer; }
-.scene-stage-bar .scene-stage-full:focus-visible, .scene-stage-modes button:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; }
+.scene-stage-bar .scene-stage-full { min-height: 30px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--studio-ui-radius-control); background: transparent; color: var(--studio-ui-text); font: 600 var(--studio-ui-text-label)/1 var(--studio-ui-font-brand); white-space: nowrap; cursor: pointer; }
+.scene-stage-bar .scene-stage-full:hover { background: var(--studio-ui-hover); }
+.scene-stage-bar .scene-stage-full:focus-visible, .scene-stage-modes button:focus-visible { outline: 2px solid var(--studio-ui-focus); outline-offset: 2px; }
 body.canvas-is-open .scene-stage-bar .scene-stage-full { display: none; }
 
 /* ——— U1 of the scene workspace plan: one input at a time, one brand
@@ -2710,10 +2727,6 @@ body.canvas-is-open .scene-stage-bar .scene-stage-full { display: none; }
 
 /* The stage's three views: the Reference (the designed slide, its schematic,
    or the base's newer slide to compare), the plan preview, the produced scene. */
-.scene-stage-reference-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border: 1px solid #e4e4e7; border-radius: 999px; }
-.scene-stage-group-label { font: 700 9.5px/1.5 'InterBody', Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #71717a; }
-body.canvas-is-open .scene-stage-reference-group { border-color: rgba(255,255,255,.24); }
-body.canvas-is-open .scene-stage-group-label { color: #d4d4d8; }
 
 /* U4: a composition loads unseen while the stage keeps what it showed. */
 .scene-stage-player.is-loading { opacity: 0; pointer-events: none; }

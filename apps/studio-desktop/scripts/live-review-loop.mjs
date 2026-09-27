@@ -344,7 +344,7 @@ try {
   for (const scene of [sceneA, sceneB]) {
     await selectScene(scene.id)
     const ready = await waitFor(`() => ${inReview(scene.id, '[data-focus^="revise:"]:not([disabled])')} ? true : null`, 60)
-    check(Boolean(ready), `${scene.title}: Plan the scene is offered in its notebook block`)
+    check(Boolean(ready), `${scene.title}: Plan scene is offered in its notebook block`)
     if (scene.id === sceneA.id) {
       const before = await reviewState(scene.id)
       check(before?.thumbs >= 1, `${scene.title}: the block shows the cast its page offers (${before?.thumbs} thumbnails)`)
@@ -380,7 +380,7 @@ try {
   check(state?.cast?.length >= 1 && state.cast.some(item => item.image), `${sceneA.title}: the review shows the cast the plan uses, with images (${JSON.stringify(state?.cast)})`)
   check(/Claude Code|claude-code|Kimi|kimi|Codex|codex/.test(state?.provenance || ''), `the review names the harness and model that made the plan (${state?.provenance})`)
   const stageShown = await evaluate(`() => ({ mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, page: Boolean(document.querySelector('#scene-stage-reference svg')) })`)
-  check(['Designed slide', 'Schematic', 'Page reference'].includes(stageShown.mode) && stageShown.page, `the stage shows the rich page as the reference (${JSON.stringify(stageShown)})`)
+  check(['Reference: designed slide', 'Reference: wireframe', 'Reference: page'].includes(stageShown.mode) && stageShown.page, `the stage shows the rich page as the reference (${JSON.stringify(stageShown)})`)
   await evaluate(`() => { const heads = document.querySelectorAll('.scene-review[data-review-scene="${sceneA.id}"] .review-moment-head'); heads[Math.min(1, heads.length - 1)].click(); return true }`)
   const highlight = await waitFor(`() => { const hits = [...document.querySelectorAll('#scene-stage-reference .stage-hit')].map(element => element.id); return hits.length ? hits : null }`, 10)
   note(`moment highlight on the page: ${JSON.stringify(highlight)}`)
@@ -454,7 +454,7 @@ try {
     if (!element || document.getElementById('scene-stage-preview').hidden) return null
     return element.duration > 0 ? { src: element.getAttribute('src'), duration: element.duration, mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, moments: [...document.querySelectorAll('.scene-stage-moment')].map(button => button.textContent) } : null
   }`, 60)
-  check(player?.mode === 'Plan preview' && Math.abs(player.duration - (summary?.duration || 0)) < 0.5, `the Studio stage plays the sketch through the Hyperframes player (${JSON.stringify(player)})`)
+  check(/^Preview r\d+$/.test(player?.mode || '') && Math.abs(player.duration - (summary?.duration || 0)) < 0.5, `the Studio stage plays the sketch through the Hyperframes player (${JSON.stringify(player)})`)
   check(/^Rough sketch of plan r\d+/.test(player?.note || ''), `the stage labels it a rough sketch with its limitations (${player?.note})`)
   const middle = summary?.moments?.[Math.min(1, summary.moments.length - 1)]
   await evaluate(`() => { const buttons = document.querySelectorAll('.scene-stage-moment'); buttons[Math.min(1, buttons.length - 1)].click(); return true }`)

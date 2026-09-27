@@ -125,7 +125,7 @@ export const sceneActionsOf = (input: SceneActionInput): SceneActions => {
   if (!shown) {
     if (planning) return { primary: null, secondary, activity }
     const failed = view.latest?.status === 'failed'
-    return { primary: { kind: 'plan', label: failed ? 'Plan the scene again' : 'Plan the scene', ...(planBlocked ? { disabled: planBlocked } : {}) }, secondary, activity }
+    return { primary: { kind: 'plan', label: failed ? 'Plan scene again' : 'Plan scene', ...(planBlocked ? { disabled: planBlocked } : {}) }, secondary, activity }
   }
   const n = shown.revision
   const stale = shown.id === view.current?.id && Boolean(view.staleBecause)
@@ -135,7 +135,7 @@ export const sceneActionsOf = (input: SceneActionInput): SceneActions => {
   }
   if (shown.status === 'candidate') {
     const preview = previewStateOf(scene, shown)
-    const unpreviewed: SceneAction = { kind: 'approve-unpreviewed', label: `Approve r${n} without a preview`, recordId: shown.id }
+    const unpreviewed: SceneAction = { kind: 'approve-unpreviewed', label: `Approve plan r${n} without a preview`, recordId: shown.id }
     let primary: SceneAction | null
     if (preview.state === 'building') {
       activity = activity || { kind: 'preview', label: preview.checking ? `Checking the preview of r${n}` : `Building the preview of r${n}`, recordId: preview.recordId || '', checking: preview.checking }
@@ -143,10 +143,10 @@ export const sceneActionsOf = (input: SceneActionInput): SceneActions => {
       if (preview.recordId) secondary.push({ kind: 'stop', label: 'Stop the preview', recordId: preview.recordId })
       secondary.push(unpreviewed)
     } else if (preview.state === 'ready' && !preview.stale) {
-      primary = { kind: 'approve', label: `Approve r${n}`, recordId: shown.id }
+      primary = { kind: 'approve', label: `Approve plan r${n}`, recordId: shown.id }
       if (input.stage !== 'preview') secondary.push({ kind: 'show-preview', label: `Play the preview of r${n}`, recordId: shown.id })
     } else {
-      primary = { kind: 'preview', label: preview.state === 'failed' || preview.stale ? `Preview r${n} again` : `Preview r${n}`, recordId: shown.id, ...(blocked ? { disabled: blocked } : {}) }
+      primary = { kind: 'preview', label: preview.state === 'failed' || preview.stale ? `Rebuild preview of r${n}` : `Build preview of r${n}`, recordId: shown.id, ...(blocked ? { disabled: blocked } : {}) }
       secondary.push(unpreviewed)
     }
     secondary.push(revise)
@@ -167,15 +167,15 @@ export const sceneActionsOf = (input: SceneActionInput): SceneActions => {
     if (production === 'ready') {
       const ready = scene.production!.ready!
       const primary: SceneAction = input.stage === 'output'
-        ? { kind: 'accept', label: 'Accept as the scene\'s output', recordId: ready.id }
-        : { kind: 'review-output', label: 'Review the output', recordId: ready.id }
+        ? { kind: 'accept', label: 'Accept output', recordId: ready.id }
+        : { kind: 'review-output', label: 'Review output', recordId: ready.id }
       return { primary, secondary: [...secondary, { kind: 'produce', label: 'Produce again', ...producer }, revise], activity }
     }
     if (production === 'accepted') {
       return { primary: null, secondary: [...secondary, ...(input.stage === 'output' ? [] : [{ kind: 'review-output', label: 'Play the output' } as SceneAction]), { kind: 'produce', label: 'Produce again', ...producer }, revise], activity }
     }
     // Not produced, out of date, or failed: what producing waits for first.
-    const again = production === 'stale' ? 'Produce it again' : production === 'failed' ? 'Produce it again' : 'Produce the scene'
+    const again = production === 'stale' || production === 'failed' ? 'Produce scene again' : 'Produce scene'
     if (!scene.delivery) return { primary: { kind: 'choose-delivery', label: 'Choose how it is voiced' }, secondary: [...secondary, revise], activity }
     // A scene you present waits only on your take: none yet, one of an earlier
     // script, or one that cannot set the clock (productionWaits says why).
@@ -183,10 +183,10 @@ export const sceneActionsOf = (input: SceneActionInput): SceneActions => {
       // No take yet; a take of an earlier script (only its changed lines,
       // when it kept them); or a take that cannot set the clock.
       const earlier = Boolean(take && take.known && !take.current)
-      const label = !take ? 'Record the scene' : earlier && take.changed?.length ? `Record the ${take.changed.length === 1 ? 'changed line' : `${take.changed.length} changed lines`}` : 'Record the scene again'
+      const label = !take ? 'Record my lines' : earlier && take.changed?.length ? `Record the ${take.changed.length === 1 ? 'changed line' : `${take.changed.length} changed lines`}` : 'Record my lines again'
       return { primary: { kind: 'record', label }, secondary: [...secondary, { kind: 'produce', label: again, disabled: scene.productionWaits || 'Your take of the plan\'s lines sets the clock first' }, revise], activity }
     }
-    return { primary: { kind: 'produce', label: again, ...(scene.productionWaits ? { disabled: scene.productionWaits } : producer) }, secondary: [...secondary, ...(scene.delivery === 'human' ? [{ kind: 'record', label: 'Record it again' } as SceneAction] : []), revise], activity }
+    return { primary: { kind: 'produce', label: again, ...(scene.productionWaits ? { disabled: scene.productionWaits } : producer) }, secondary: [...secondary, ...(scene.delivery === 'human' ? [{ kind: 'record', label: 'Record my lines again' } as SceneAction] : []), revise], activity }
   }
   // An earlier revision: looked at, never acted on here.
   const current = view.current

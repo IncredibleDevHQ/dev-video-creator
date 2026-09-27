@@ -330,9 +330,10 @@ try {
     check(seen?.outside.length === 0 && seen.clipped.length === 0, `${at} nothing in the review is clipped or sticks out of it (${JSON.stringify({ outside: seen?.outside, clipped: seen?.clipped })})`)
     check(seen?.horizontal.panel <= 0 && seen.horizontal.workspace <= 0 && seen.horizontal.page <= 0, `${at} nothing scrolls sideways (${JSON.stringify(seen?.horizontal)})`)
     check(seen?.rows === 7 && seen.details === 0 && /^Select a moment/.test(seen.hint) && seen.listHeight <= seen.viewport * 0.5, `${at} the seven moments are one compact list that fits in half the view (${seen?.listHeight}px of ${seen?.viewport}px), with no detail until one is chosen (${JSON.stringify({ rows: seen?.rows, details: seen?.details, columns: seen?.columns, panel: seen?.panelWidth })})`)
-    check(seen?.approve.length === 1 && seen.approve[0] === `Approve r${planned.revision}` && seen.revisions.length === 1 && seen.revisions[0] === `r${planned.revision} candidate *` && seen.planChips.length === 0, `${at} one revision control and one approval action (${JSON.stringify({ approve: seen?.approve, revisions: seen?.revisions, planChips: seen?.planChips })})`)
-    // The chrome (F10): one primary action — the scene's next step — the
-    // title once, one AI entry, and nothing crowded out of either bar.
+    check(seen?.approve.length === 1 && seen.approve[0] === `Approve plan r${planned.revision}` && seen.revisions.length === 1 && seen.revisions[0] === `r${planned.revision} candidate *` && seen.planChips.length === 0, `${at} one revision control and one approval action (${JSON.stringify({ approve: seen?.approve, revisions: seen?.revisions, planChips: seen?.planChips })})`)
+    // The chrome (F10, and the Open Slide pass): one header and one context
+    // row; one primary action — the scene's next step — the title once, one
+    // AI entry, and nothing crowded out of either row.
     const chrome = await evaluate(`() => {
       const visible = element => element && element.getClientRects().length > 0
       const title = document.getElementById('project-title').value
@@ -349,7 +350,10 @@ try {
         clipped,
       }
     }`)
-    check(JSON.stringify(chrome.primaries) === '["Review scene 1"]' && chrome.titles === 0 && chrome.lineage.length === 1 && chrome.ai === 1 && chrome.older.length === 0 && chrome.bars.every(extra => extra <= 0) && chrome.clipped.length === 0, `${at} one primary action, the scene's next step; the title once; one AI entry; the older paths under Advanced; nothing clipped (${JSON.stringify(chrome)})`)
+      // One owner for the scene's action: the context row's next step; the
+    // review's own actions beside the stage are secondary to it.
+    const onScreen = await evaluate(`() => [...document.querySelectorAll('.button.primary')].filter(element => element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden').map(element => element.textContent.trim())`)
+    check(JSON.stringify(chrome.primaries) === '["Review scene 1"]' && JSON.stringify(onScreen) === '["Review scene 1"]' && chrome.titles === 0 && chrome.lineage.length === 1 && chrome.ai === 1 && chrome.older.length === 0 && chrome.bars.every(extra => extra <= 0) && chrome.clipped.length === 0, `${at} one primary action on screen, the scene's next step; the title once; one AI entry; the older paths under More; nothing clipped (${JSON.stringify({ ...chrome, onScreen })})`)
     await shot(`${width}-01-review`)
 
     // One moment in detail: why, what changes on screen, what is said.

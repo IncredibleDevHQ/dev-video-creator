@@ -293,7 +293,7 @@ try {
   const [s1, s2] = (await overview(videoId)).scenes.map(scene => scene.id)
 
   // ——— A plan develops in phases the product confirmed ———
-  await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button?.textContent === 'Plan the scene' && !button.disabled ? true : null }`, 30)
+  await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button?.textContent === 'Plan scene' && !button.disabled ? true : null }`, 30)
   await click('#scene-workspace .sw-actions .button.primary')
   const r1 = await until(async () => { const latest = await latestOf(videoId, s1); return latest && latest.progress?.events?.some(event => event.milestone === 'context') ? latest : null }, 60)
   check(Boolean(r1), 'the run read its packet, and the product noted it')
@@ -341,7 +341,7 @@ try {
 
   // ——— Stopping reads "Cancelling…" until the run has stopped ———
   await pickScene(s2)
-  await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button?.textContent === 'Plan the scene' && !button.disabled ? true : null }`, 30)
+  await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button?.textContent === 'Plan scene' && !button.disabled ? true : null }`, 30)
   await click('#scene-workspace .sw-actions .button.primary')
   const r2 = await until(async () => { const latest = await latestOf(videoId, s2); return latest?.status === 'running' && latest.progress?.events?.some(event => event.milestone === 'context') ? latest : null }, 60)
   await waitFor(`() => document.querySelector('#scene-workspace [data-focus^="ws-action:stop:"]') ? true : null`, 20)
@@ -364,7 +364,7 @@ try {
   const quota = await until(async () => { const latest = await latestOf(videoId, s2); return latest?.id === r3.id && latest.status === 'failed' ? latest : null }, 60)
   const quotaShown = await waitFor(`() => { const failure = document.querySelector('#scene-workspace .sw-panel .ws-failure'); const draft = document.querySelector('#scene-workspace .sw-panel .ws-draft'); return failure && failure.dataset.failure === 'quota' ? { text: failure.textContent, recovery: [...failure.querySelectorAll('.ws-failure-recovery li')].map(li => li.textContent), buttons: [...failure.querySelectorAll('button')].map(button => button.textContent), draft: draft ? { label: draft.querySelector('.ws-draft-label')?.textContent, question: draft.querySelector('.ws-draft-question')?.textContent } : null } : null }`, 30)
   check(quota?.error?.category === 'quota' && /credit balance is too low/i.test(quotaShown?.text || ''), `out of credits: the provider's own words are shown (${JSON.stringify(quotaShown?.text?.slice(0, 160))})`)
-  check(quotaShown?.recovery.some(line => /credits/.test(line)) && quotaShown.buttons.includes('Plan the scene again') && quotaShown.buttons.includes('Change the harness or model'), `with the ways on: a retry, and another harness or model (${JSON.stringify({ recovery: quotaShown?.recovery, buttons: quotaShown?.buttons })})`)
+  check(quotaShown?.recovery.some(line => /credits/.test(line)) && quotaShown.buttons.includes('Plan scene again') && quotaShown.buttons.includes('Change the harness or model'), `with the ways on: a retry, and another harness or model (${JSON.stringify({ recovery: quotaShown?.recovery, buttons: quotaShown?.buttons })})`)
   check(quotaShown?.draft?.label === 'Draft from the run that failed · not checked' && quotaShown.draft.question === 'What does this limiter do?', `the last draft is kept, read-only, and said to be unchecked (${JSON.stringify(quotaShown?.draft)})`)
   await shot('04-quota')
   // Out of credits, the run needs the creator: the Jobs control says so and
@@ -380,7 +380,7 @@ try {
   await click('#jobs-toggle')
   // Retry without the fault: a new attempt, planned in full.
   await evaluate(`() => { const box = document.querySelector('#scene-workspace [data-focus^="direction:"]'); box.value = 'Show the cap'; box.dispatchEvent(new Event('input', { bubbles: true })); return true }`)
-  await clickText('#scene-workspace .sw-panel .ws-failure button', 'Plan the scene again')
+  await clickText('#scene-workspace .sw-panel .ws-failure button', 'Plan scene again')
   const r4 = await until(async () => { const latest = await latestOf(videoId, s2); return latest && latest.id !== r3.id && latest.progress?.events?.some(event => event.milestone === 'context') ? latest : null }, 60)
   for (const step of ['explain', 'moments', 'submit', 'repair']) await open(`${r4.id}-${step}`)
   const retried = await until(async () => { const latest = await latestOf(videoId, s2); return latest?.id === r4.id && latest.status === 'candidate' ? latest : null }, 90)
@@ -389,7 +389,7 @@ try {
   // ——— An approved plan stays on show while a newer one develops ———
   await pickScene(s1)
   await waitFor(`() => document.querySelector('#scene-workspace .sw-title h2')?.textContent === 'Request rate limiter' ? true : null`, 20)
-  await clickText('#scene-workspace .sw-actions .button', 'Approve r1 without a preview')
+  await clickText('#scene-workspace .sw-actions .button', 'Approve plan r1 without a preview')
   await until(async () => (await overview(videoId)).scenes.find(scene => scene.id === s1)?.view.reviewed, 30)
   await waitFor(`() => /^Plan r1 · approved/.test(document.querySelector('#scene-workspace .ws-revision')?.selectedOptions[0]?.textContent || '') ? true : null`, 20)
   await click('#scene-workspace [data-focus^="revise:"]')
@@ -410,7 +410,7 @@ try {
   await click(`#scene-workspace [data-focus="ws-action:preview:${s1}"]`)
   const buildFailed = await waitFor(`() => { const failure = document.querySelector('#scene-workspace .sw-stage-activity .ws-build-failure'); return failure ? { kind: failure.dataset.failure, text: failure.querySelector('p')?.textContent || '', provider: failure.querySelector('.ws-failure-provider')?.textContent || '', button: failure.querySelector('button')?.textContent || '', stage: document.querySelector('#scene-stage-bar .scene-stage-modes button[aria-pressed="true"]')?.textContent || '' } : null }`, 90)
   check(buildFailed?.kind === 'rate-limit' && /^The preview of r2 failed while building the animated preview\./.test(buildFailed.text) && /The stage keeps the reference\.$/.test(buildFailed.text), `a failed preview says the phase it failed in, and what the stage keeps (${JSON.stringify(buildFailed)})`)
-  check(/529 Overloaded/.test(buildFailed?.provider || '') && buildFailed?.button === 'Preview r2 again', `with the provider's words and a concrete retry (${JSON.stringify({ provider: buildFailed?.provider, button: buildFailed?.button })})`)
+  check(/529 Overloaded/.test(buildFailed?.provider || '') && buildFailed?.button === 'Rebuild preview of r2', `with the provider's words and a concrete retry (${JSON.stringify({ provider: buildFailed?.provider, button: buildFailed?.button })})`)
   const previewRecord = (await api(`/api/planning/${encodeURIComponent(videoId)}`)).body.records.filter(record => record.kind === 'preview' && record.subject === s1).sort((a, b) => b.revision - a.revision)[0]
   check(previewRecord?.progress?.events?.some(event => event.milestone === 'context'), `the preview's reading of its packet was seen, though its harness never asked for its context (${(previewRecord?.progress?.events || []).map(event => event.milestone).join(', ')})`)
   await shot('06-preview-failed')

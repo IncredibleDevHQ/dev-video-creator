@@ -513,14 +513,18 @@
                   </aside>
                 </div>
                 <div id="scene-stage-bar" class="scene-stage-bar" hidden>
-                  <div class="scene-stage-modes" role="group" aria-label="What the stage shows">
-                    <span class="scene-stage-reference-group" role="group" aria-label="Reference"><span class="scene-stage-group-label" aria-hidden="true">Reference</span>
-                      <button type="button" data-stage-mode="reference" class="is-active" aria-pressed="true">Page reference</button>
-                      <button type="button" data-stage-mode="schematic" aria-pressed="false" hidden>Schematic</button>
-                      <button type="button" data-stage-mode="base" aria-pressed="false" hidden>Base's designed slide</button>
-                    </span>
-                    <button type="button" data-stage-mode="preview" aria-pressed="false" disabled>Plan preview</button>
-                    <button type="button" data-stage-mode="output" aria-pressed="false" disabled title="The scene produced from its approved plan">Produced scene</button>
+                  <!-- One stage selector (the Open Slide pass): it always
+                       says what the stage shows — a reference, a plan's
+                       preview, or the produced scene — and lists the rest. -->
+                  <div class="scene-stage-choice">
+                    <button id="scene-stage-choice" type="button" class="scene-stage-choice-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="scene-stage-modes" title="What the stage shows"><span class="scene-stage-choice-label">Stage</span><strong id="scene-stage-choice-value">Reference</strong><span class="scene-stage-choice-caret" aria-hidden="true"></span></button>
+                    <div id="scene-stage-modes" class="scene-stage-modes" role="group" aria-label="What the stage shows" hidden>
+                      <button type="button" data-stage-mode="reference" class="is-active" aria-pressed="true">Reference: page</button>
+                      <button type="button" data-stage-mode="schematic" aria-pressed="false" hidden>Reference: wireframe</button>
+                      <button type="button" data-stage-mode="base" aria-pressed="false" hidden>Reference: base's newer slide</button>
+                      <button type="button" data-stage-mode="preview" aria-pressed="false" disabled>Preview</button>
+                      <button type="button" data-stage-mode="output" aria-pressed="false" disabled title="The scene produced from its approved plan">Produced scene</button>
+                    </div>
                   </div>
                   <p id="scene-stage-note" class="scene-stage-note"></p>
                   <button id="scene-stage-full" type="button" class="scene-stage-full" title="Show this stage full screen — the same composition">Full screen</button>

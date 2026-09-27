@@ -445,7 +445,7 @@ try {
     if ((await sceneOf(videoId, A.id))?.view?.current) return
     await pickScene(A.id)
     await tab('story')
-    await act('Plan the scene', 60)
+    await act('Plan scene', 60)
     const { result, seen } = await watchProgress('06-plan-r1', async () => {
       const view = (await sceneOf(videoId, A.id))?.view
       return view?.current || (view?.latest?.status === 'failed' ? view.latest : null)
@@ -466,7 +466,7 @@ try {
     await setModel(badModel)
     await pickScene(B.id)
     await tab('story')
-    await act('Plan the scene', 60)
+    await act('Plan scene', 60)
     const failed = await until(async () => {
       const latest = (await sceneOf(videoId, B.id))?.view?.latest
       return latest?.status === 'failed' ? latest : null
@@ -474,7 +474,7 @@ try {
     await focusApp()
     const shown = await waitFor(`() => { const box = document.querySelector('${W} .sw-panel .ws-failure'); return box ? { kind: box.dataset.failure, text: box.textContent, buttons: [...box.querySelectorAll('button')].map(button => button.textContent) } : null }`, 60)
     evidence.providerFailure = { error: failed?.error || null, shown }
-    check(Boolean(failed) && Boolean(shown) && shown.buttons.includes('Plan the scene again') && shown.buttons.includes('Change the harness or model'), `a model the provider refuses fails with its own words and the ways on (${failed?.error?.category || 'no category'}: ${String(failed?.error?.providerStatus || failed?.error?.message || '').slice(0, 160)})`)
+    check(Boolean(failed) && Boolean(shown) && shown.buttons.includes('Plan scene again') && shown.buttons.includes('Change the harness or model'), `a model the provider refuses fails with its own words and the ways on (${failed?.error?.category || 'no category'}: ${String(failed?.error?.providerStatus || failed?.error?.message || '').slice(0, 160)})`)
     await shot('08-provider-failure')
     await setModel(model)
     await clickIn(`${W} .sw-panel .ws-failure [data-focus^="retry-plan:"]`, 30)
@@ -505,7 +505,7 @@ try {
   })
 
   // ——— The preview: built while the workspace is reopened, then handed over ———
-  await stage('Preview r2, reopened midway, handed to the stage', async () => {
+  await stage('The preview of r2, reopened midway, handed to the stage', async () => {
     const scene = await sceneOf(videoId, A.id)
     const r2 = scene?.view?.current
     if (scene?.preview?.byTreatment?.[r2?.id]) {
@@ -513,7 +513,7 @@ try {
       return
     }
     await pickScene(A.id)
-    await act('Preview r2', 60)
+    await act('Build preview of r2', 60)
     const building = await waitFor(`() => { const box = document.querySelector('${W} .sw-stage-activity .ws-progress'); return box ? box.textContent : null }`, 120)
     check(Boolean(building), 'the preview shows its phases under the stage while it builds')
     await shot('10-preview-building')
@@ -539,7 +539,7 @@ try {
     const r1 = scene?.view?.current
     if (scene?.preview?.byTreatment?.[r1?.id]) return
     await pickScene(B.id)
-    await act(`Preview r${r1.revision}`, 60)
+    await act(`Build preview of r${r1.revision}`, 60)
     await sleep(3000)
     // The creator chooses the page while it builds.
     await clickIn('#scene-stage-bar [data-stage-mode="reference"]', 20)
@@ -583,7 +583,7 @@ try {
     await tab('story')
     let view = (await sceneOf(videoId, C.id))?.view
     if (!view?.current) {
-      await act('Plan the scene', 60)
+      await act('Plan scene', 60)
       view = (await until(async () => {
         const next = (await sceneOf(videoId, C.id))?.view
         return next?.current || (next?.latest?.status === 'failed' ? next.latest : null)
@@ -593,7 +593,7 @@ try {
     const plan = view?.current
     if (!plan) return
     await focusApp()
-    await act(`Preview r${plan.revision}`, 60)
+    await act(`Build preview of r${plan.revision}`, 60)
     await waitFor(`() => document.querySelector('${W} .sw-stage-activity .ws-progress') ? true : null`, 120)
     await sleep(20_000)
     await evaluate(`() => { location.reload(); return true }`).catch(() => {})
@@ -628,8 +628,8 @@ try {
       await pickScene(scene.id)
       const runsBefore = (await runs()).length
       const label = (await primary())?.text || ''
-      if (/^Approve r\d+$/.test(label)) await act(label, 30)
-      else await act(`Approve r${view.current.revision} without a preview`, 30)
+      if (/^Approve plan r\d+$/.test(label)) await act(label, 30)
+      else await act(`Approve plan r${view.current.revision} without a preview`, 30)
       const approved = await until(async () => (await sceneOf(videoId, scene.id))?.view?.reviewed, 60)
       await sleep(8000)
       check(Boolean(approved) && (await runs()).length === runsBefore, `${scene.title}: approving r${approved?.revision} starts nothing`)
@@ -646,7 +646,7 @@ try {
     await tab('record')
     if (await clickIn(`${W} [data-focus^="use-plan-script:"]`, 5)) await sleep(500)
     const label = await waitFor(`() => { const button = [...document.querySelectorAll('${W} .sw-actions .button')].find(entry => /^Record (the scene|the scene again|it again)$/.test(entry.textContent) && !entry.disabled); return button ? button.textContent : null }`, 60)
-    await act(label || 'Record the scene', 30)
+    await act(label || 'Record my lines', 30)
     const capture = await waitFor(`() => { const dialog = document.getElementById('camera-dialog'); return dialog.open ? { inWorkspace: Boolean(dialog.closest('${W} .sw-capture')), modal: dialog.matches(':modal'), teleprompter: document.getElementById('presenter-script').value } : null }`, 30)
     check(capture?.inWorkspace === true && capture.modal === false && capture.teleprompter.length > 0, 'recording opens beside the stage, with the teleprompter')
     await shot(`16-recording-beside-the-stage-${name}`)
@@ -680,7 +680,7 @@ try {
     if (production?.accepted?.current) return
     await pickScene(scene.id)
     if (!production?.ready?.current) {
-      await act('Produce the scene', 120)
+      await act('Produce scene', 120)
       // A take that cannot set the clock is refused, naming the line it lacks;
       // the creator records again from the teleprompter, then produces.
       const started = await until(async () => {
@@ -692,7 +692,7 @@ try {
         evidence.takeRefusals = [...(evidence.takeRefusals || []), started.refused]
         check(true, `a take that cannot set the approved plan's clock is refused, saying why (${started.refused.slice(0, 200)})`)
         await recordTake(scene, `take-${evidence.takeRefusals.length + 1}`)
-        await act('Produce the scene', 120)
+        await act('Produce scene', 120)
       }
       const { result, seen } = await watchProgress(`18-produce-${scene.delivery}`, async () => {
         const now = (await sceneOf(videoId, scene.id))?.production
@@ -704,14 +704,14 @@ try {
       if (!result?.ready) return
     }
     await focusApp()
-    await act('Review the output', 60)
+    await act('Review output', 60)
     await waitFor(`() => { const now = (${stageNow})(); return now.mode === 'output' && now.player ? true : null }`, 90)
     await expandTimeline()
     const timeline = await waitFor(`() => { const now = (${timelineNow})(); return now && /^On the clock of/.test(now.note) ? now : null }`, 30)
     evidence[`timeline-${scene.delivery}`] = timeline
     check(Boolean(timeline) && timeline.note.includes(clock), `${scene.title}: the timeline is on the clock of ${clock} (${timeline?.note})`)
     await shot(`19-produced-${scene.delivery}`)
-    await act('Accept as the scene\'s output', 60)
+    await act('Accept output', 60)
     const accepted = await until(async () => (await project(videoId))?.producedScenes?.[scene.id], 15 * 60, 5000)
     check(Boolean(accepted), `${scene.title}: accepted and rendered (${accepted?.durationMs} ms)`)
   }

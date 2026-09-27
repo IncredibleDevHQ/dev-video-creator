@@ -18060,8 +18060,44 @@ stageRetry.addEventListener('click', () => {
   renderSceneStage()
 })
 sceneStageNote.after(stageRetry)
+// The stage selector: a list under one button that says what the stage
+// shows; choosing closes it, as do a click elsewhere and Escape.
+const sceneStageChoice = $('#scene-stage-choice') as HTMLButtonElement
+const sceneStageChoiceValue = $('#scene-stage-choice-value')
+const sceneStageModes = $('#scene-stage-modes')
+const closeStageChoice = (focus = false) => {
+  if (sceneStageModes.hidden) return
+  sceneStageModes.hidden = true
+  sceneStageChoice.setAttribute('aria-expanded', 'false')
+  if (focus) sceneStageChoice.focus()
+}
+sceneStageChoice.addEventListener('click', event => {
+  event.stopPropagation()
+  const open = sceneStageModes.hidden
+  sceneStageModes.hidden = !open
+  sceneStageChoice.setAttribute('aria-expanded', String(open))
+  if (open) (sceneStageModes.querySelector<HTMLButtonElement>('.is-active') || sceneStageModes.querySelector<HTMLButtonElement>('button:not([disabled]):not([hidden])'))?.focus()
+})
+sceneStageModes.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    event.stopPropagation()
+    closeStageChoice(true)
+    return
+  }
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+  const choices = [...sceneStageModes.querySelectorAll<HTMLButtonElement>('button:not([disabled]):not([hidden])')]
+  if (!choices.length) return
+  event.preventDefault()
+  const at = choices.indexOf(document.activeElement as HTMLButtonElement)
+  choices[(at + (event.key === 'ArrowDown' ? 1 : -1) + choices.length) % choices.length].focus()
+})
+document.addEventListener('click', event => {
+  if (event.target instanceof Node && (sceneStageChoice.contains(event.target) || sceneStageModes.contains(event.target))) return
+  closeStageChoice()
+})
 sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button =>
   button.addEventListener('click', () => {
+    closeStageChoice(sceneStageModes.contains(document.activeElement))
     const mode = (['preview', 'base', 'output', 'schematic'] as const).find(value => value === button.dataset.stageMode) || 'reference'
     // The creator's own choice for this scene — even of the view already
     // shown: a preview finishing later is offered, not put in its place.
@@ -18159,27 +18195,40 @@ const drawSceneStage = (next?: { nodes: string[]; objectIds: string[] } | null) 
   if (stageShownMode !== shownMode) queueMicrotask(() => sceneWorkspace?.render())
   stageShownMode = shownMode
   const pageLabel = reference?.kind === 'schematic' ? 'Schematic' : reference?.kind === 'designed' ? 'Designed slide' : 'Page reference'
+  // Each choice says what it is (the Open Slide pass): a reference is never
+  // named as a motion preview, and what cannot be shown yet says why.
   sceneStageBar.querySelectorAll<HTMLButtonElement>('[data-stage-mode]').forEach(button => {
     const mode = button.dataset.stageMode
     button.disabled = mode === 'preview' ? !ready : mode === 'output' ? !produced : false
     if (mode === 'reference') {
-      button.textContent = pageLabel
+      button.textContent = reference?.kind === 'schematic' ? 'Reference: wireframe' : reference?.kind === 'designed' ? 'Reference: designed slide' : 'Reference: page'
       button.title = reference ? `The page this scene is planned from: revision ${reference.revision.slice(0, 8)}${reference.adopted ? ', adopted from the base' : ''}` : 'The page this scene comes from'
     }
     if (mode === 'base') {
       button.hidden = !newer
-      button.textContent = newer?.kind === 'designed' ? 'Base\'s designed slide' : 'Base\'s newer page'
+      button.textContent = newer?.kind === 'designed' ? 'Reference: the base\'s newer slide' : 'Reference: the base\'s newer page'
       button.title = newer ? `The base's page for this scene now: revision ${newer.revision.slice(0, 8)}${newer.by ? `, by ${newer.by}` : ''}` : ''
     }
-    if (mode === 'preview') button.title = ready ? `Rough sketch of plan r${ready.of.revision}` : stage.record ? `No preview of r${stage.record.revision} yet` : 'No plan yet'
+    if (mode === 'preview') {
+      button.textContent = ready ? `Preview r${ready.of.revision}` : stage.record ? `Preview r${stage.record.revision} · not built yet` : 'Preview · no plan yet'
+      button.title = ready ? `Rough sketch of plan r${ready.of.revision}` : stage.record ? `No preview of r${stage.record.revision} yet` : 'No plan yet'
+    }
     if (mode === 'schematic') {
       button.hidden = !schematicSvg
+      button.textContent = 'Reference: wireframe'
       button.title = schematicSvg ? 'The schematic this scene\'s designed slide was made from: its structure' : ''
     }
-    if (mode === 'output') button.title = produced ? `The scene produced from approved plan r${produced.of.revision}, on its real clock` : stage.scene.view.reviewed ? 'Not produced yet: produce the scene from its approved plan in its review' : 'A scene is produced from its approved plan'
+    if (mode === 'output') {
+      button.textContent = produced ? `Produced scene${produced.accepted ? '' : ' · not accepted yet'}` : 'Produced scene · not produced yet'
+      button.title = produced ? `The scene produced from approved plan r${produced.of.revision}, on its real clock` : stage.scene.view.reviewed ? 'Not produced yet: produce the scene from its approved plan in its review' : 'A scene is produced from its approved plan'
+    }
     button.classList.toggle('is-active', mode === shownMode)
     button.setAttribute('aria-pressed', String(mode === shownMode))
   })
+  // The selector says what the stage shows now.
+  const shownChoice = sceneStageBar.querySelector<HTMLButtonElement>(`[data-stage-mode="${shownMode}"]`)
+  sceneStageChoiceValue.textContent = (shownChoice?.textContent || '').replace(/ · not accepted yet$/, '')
+  sceneStageChoice.dataset.mode = shownMode
   const previewing = shownMode === 'preview' && ready
   const outputting = shownMode === 'output' && produced
   const playable = outputting ? produced : previewing ? ready : null

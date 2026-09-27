@@ -298,12 +298,12 @@ try {
 
   // ——— R08: who speaks, beside the scene's title ———
   await focusApp()
-  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Plan the scene' || null`, 60)
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Plan scene' || null`, 60)
   const voice = await evaluate(`() => { const select = document.querySelector('#scene-workspace .sw-head .ws-voice'); return select ? { value: select.value, text: select.selectedOptions[0]?.textContent, undecided: select.closest('.ws-voice-field').classList.contains('is-undecided'), title: select.title } : null }`)
   check(voice?.value === '' && voice.text === 'Voice: decide later' && voice.undecided && /planned again once you choose/.test(voice.title), `the scene's voice is beside its title, undecided, with what deciding later costs (${JSON.stringify(voice)})`)
   // A plan is being made, for who speaks still undecided.
   await setPlan('hold')
-  await clickText('#scene-workspace .sw-actions .button', 'Plan the scene')
+  await clickText('#scene-workspace .sw-actions .button', 'Plan scene')
   const planning = await until(async () => { const latest = (await overview(video)).scenes[0].view.latest; return latest?.status === 'running' ? latest : null }, 60)
   check(Boolean(planning), `the scene is being planned (r${planning?.revision})`)
   // Released only once the stub holds: the next plan runs as normal.
@@ -352,12 +352,12 @@ try {
 
   // ——— R06: a finished production comes onto the stage ———
   const toApprove = (await overview(video)).scenes[0].view.current
-  await clickText('#scene-workspace .sw-actions .button', `Approve r${toApprove.revision} without a preview`)
+  await clickText('#scene-workspace .sw-actions .button', `Approve plan r${toApprove.revision} without a preview`)
   await until(async () => (await overview(video)).scenes[0].view.reviewed?.id === toApprove.id, 30)
   await focusApp()
-  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Produce the scene' || null`, 30)
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Produce scene' || null`, 30)
   check((await stageMode()) === 'reference', 'the stage shows the scene\'s page while it is produced')
-  await clickText('#scene-workspace .sw-actions .button', 'Produce the scene')
+  await clickText('#scene-workspace .sw-actions .button', 'Produce scene')
   const first = await until(async () => (await overview(video)).scenes[0].production?.ready || null, 180)
   const onStage = await waitFor(`() => document.querySelector('.scene-stage-modes .is-active')?.dataset.stageMode === 'output' ? true : null`, 30)
   check(Boolean(first) && Boolean(onStage), 'the finished production comes onto the stage by itself, the creator having chosen no other view')

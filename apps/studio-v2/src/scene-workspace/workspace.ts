@@ -115,6 +115,8 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   let pending = false
   let focusStage = false
   let inspectorOpen = false
+  // The scene's other actions, in a menu beside its one primary action.
+  let moreOpen = false
   let mounted = false
   let lastCurrent = ''
 
@@ -179,7 +181,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const captureHead = h('p', { class: 'sw-capture-head' })
   const capture = h('section', { class: 'sw-capture', 'aria-label': 'Recording' }, captureHead)
   const inspector = h('aside', { class: 'sw-inspector', 'aria-label': 'Inspector' }, tabs, panel, capture)
-  const context = h('aside', { class: 'sw-context', role: 'dialog', 'aria-label': 'Context', hidden: true })
+  const context = h('aside', { class: 'sw-context', role: 'dialog', 'aria-label': 'Details', hidden: true })
   const announcer = h('p', { class: 'sr-only', 'aria-live': 'polite', role: 'status' })
   // The grid sits inside the workspace, so the workspace's width can reshape it.
   const layout = h('div', { class: 'sw-layout' }, head, rail, centre, inspector, context)
@@ -284,8 +286,12 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const renderHead = (sceneId: string) => {
     const parts = review()?.head(sceneId, lead)
     const scene = review()?.scenes().find(entry => entry.id === sceneId)
-    const back = h('button', { type: 'button', class: 'sw-back', 'data-focus': 'sw-notebook', text: '‹ Notebook', title: 'The notebook: the outline and the words, on the same scenes' })
+    // The video's two views, where the header's context row would be: this
+    // row is the scene's context row (the Open Slide pass).
+    const scenesView = h('button', { type: 'button', class: 'workspace-tab active sw-view-scenes', 'aria-pressed': 'true', 'data-focus': 'sw-scenes', text: 'Scenes', title: 'The video\'s scenes around one stage' })
+    const back = h('button', { type: 'button', class: 'workspace-tab sw-back', 'aria-pressed': 'false', 'data-focus': 'sw-notebook', text: 'Notebook', title: 'The notebook: the outline and the words, on the same scenes' })
     back.addEventListener('click', () => show('notebook'))
+    const views = h('div', { class: 'view-switch sw-views', role: 'group', 'aria-label': 'View' }, scenesView, back)
     const title = h('div', { class: 'sw-title' },
       h('span', { class: 'sw-eyebrow', text: scene ? `Scene ${scene.index + 1} of ${sceneIds().length}` : 'Scenes' }),
       h('h2', { text: scene?.title || 'No scene yet' }),
@@ -297,12 +303,41 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       shown = ''
       render()
     })
-    // The context — briefs, evidence, the cast, how each part was made — in a drawer.
-    const contextButton = h('button', { type: 'button', class: `sw-tool sw-context-open${context.hidden ? '' : ' is-on'}`, 'data-focus': 'sw-context', 'aria-expanded': context.hidden ? 'false' : 'true', text: 'Context', title: 'The briefs, the evidence, the cast\'s decisions and how each part was made' })
+    // The details — briefs, evidence, the cast, how each part was made — in a drawer.
+    const contextButton = h('button', { type: 'button', class: `sw-tool sw-context-open${context.hidden ? '' : ' is-on'}`, 'data-focus': 'sw-context', 'aria-expanded': context.hidden ? 'false' : 'true', text: 'Details', title: 'The briefs, the evidence, the cast\'s decisions and how each part was made' })
     contextButton.addEventListener('click', () => (context.hidden ? openContext((prefs.context as ContextSection) || 'brief') : closeContext()))
-    const actions = h('div', { class: 'sw-actions' }, ...(parts?.secondary || []), parts?.primary || null, contextButton, inspectorButton)
+    // One primary action; the scene's other actions in a menu beside it —
+    // or, with nothing to lead, the first of them on its own.
+    const primary = parts?.primary || null
+    const secondary = parts?.secondary || []
+    const inline = primary ? [] : secondary.slice(0, 1)
+    const listed = primary ? secondary : secondary.slice(1)
+    if (!listed.length) moreOpen = false
+    let moreToggle: HTMLButtonElement | null = null
+    let moreList: HTMLElement | null = null
+    if (listed.length) {
+      moreList = h('div', { class: 'sw-more-list', id: 'sw-more-list', role: 'group', 'aria-label': 'More actions for this scene', hidden: !moreOpen }, ...listed)
+      moreList.addEventListener('click', event => {
+        if (!(event.target instanceof Element) || !event.target.closest('button')) return
+        moreOpen = false
+        queueMicrotask(() => {
+          shown = ''
+          render()
+        })
+      })
+      moreToggle = h('button', { type: 'button', class: `sw-more${primary ? ' is-split' : ''}`, 'data-focus': 'sw-more', 'aria-expanded': moreOpen ? 'true' : 'false', 'aria-controls': 'sw-more-list', 'aria-label': 'More actions for this scene', title: listed.map(button => button.textContent).join(' · ') }, primary ? '' : 'More', h('span', { class: 'sw-more-caret', 'aria-hidden': 'true' }))
+      moreToggle.addEventListener('click', event => {
+        event.stopPropagation()
+        moreOpen = !moreOpen
+        shown = ''
+        render()
+        if (moreOpen) root.querySelector<HTMLElement>('#sw-more-list button:not([disabled])')?.focus({ preventScroll: true })
+      })
+    }
+    const group = h('div', { class: `sw-primary-group${primary && moreToggle ? ' is-split' : ''}` }, ...inline, primary, moreToggle)
+    const actions = h('div', { class: 'sw-actions' }, contextButton, inspectorButton, group, moreList)
     const planning = parts?.activity && ['planning', 'brief'].includes(parts.actions.activity?.kind || '') ? parts.activity : null
-    head.replaceChildren(...([back, title, parts?.voice || null, h('div', { class: 'sw-revision-slot' }, parts?.revision || null), h('div', { class: 'sw-status' }, planning), actions] as Array<HTMLElement | null>).filter((part): part is HTMLElement => Boolean(part)))
+    head.replaceChildren(...([views, title, parts?.voice || null, h('div', { class: 'sw-revision-slot' }, parts?.revision || null), h('div', { class: 'sw-status' }, planning), actions] as Array<HTMLElement | null>).filter((part): part is HTMLElement => Boolean(part)))
     // Focus stage sits with the stage's own controls.
     focusButton.textContent = focusStage ? 'Show panels' : 'Focus stage'
     focusButton.setAttribute('aria-pressed', String(focusStage))
@@ -348,13 +383,14 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       })
       list.append(h('li', {}, button))
     }
-    const toggle = h('button', { type: 'button', class: 'sw-rail-toggle', 'data-focus': 'sw-rail', 'aria-expanded': prefs.rail ? 'false' : 'true', title: prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', text: prefs.rail ? '›' : '‹' })
+    const toggle = h('button', { type: 'button', class: 'sw-rail-toggle', 'data-focus': 'sw-rail', 'aria-expanded': prefs.rail ? 'false' : 'true', title: prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', 'aria-label': prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', text: prefs.rail ? '›' : '‹' })
     toggle.addEventListener('click', () => {
       savePrefs({ rail: !prefs.rail })
       shown = ''
       render()
     })
-    rail.replaceChildren(toggle, list)
+    const count = review()?.scenes().length || 0
+    rail.replaceChildren(h('div', { class: 'sw-rail-head' }, h('span', { class: 'sw-rail-title', text: 'Scenes' }), h('span', { class: 'sw-rail-count', text: String(count) }), toggle), list)
   }
 
   const renderInspector = (sceneId: string) => {
@@ -394,17 +430,17 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const renderContext = (sceneId: string) => {
     if (context.hidden) return
     const section = (prefs.context as ContextSection) || 'brief'
-    const nav = h('div', { class: 'sw-context-tabs', role: 'tablist', 'aria-label': 'Context' })
+    const nav = h('div', { class: 'sw-context-tabs', role: 'tablist', 'aria-label': 'Details' })
     for (const [id, label] of SECTIONS) {
       const on = id === section
       const button = h('button', { type: 'button', role: 'tab', 'aria-selected': on ? 'true' : 'false', tabindex: on ? '0' : '-1', class: on ? 'is-on' : '', 'data-focus': `sw-context:${id}`, text: label })
       button.addEventListener('click', () => openContext(id))
       nav.append(button)
     }
-    const close = h('button', { type: 'button', class: 'sw-context-close', 'data-focus': 'sw-context-close', 'aria-label': 'Close the context', text: '×' })
+    const close = h('button', { type: 'button', class: 'sw-context-close', 'data-focus': 'sw-context-close', 'aria-label': 'Close the details', text: '×' })
     close.addEventListener('click', () => closeContext())
     const body = review()?.context(sceneId, section) || h('p', { class: 'review-muted', text: 'Loading…' })
-    context.replaceChildren(h('div', { class: 'sw-context-head' }, h('strong', { text: 'Context' }), nav, close), h('div', { class: 'sw-context-scroll' }, body))
+    context.replaceChildren(h('div', { class: 'sw-context-head' }, h('strong', { text: 'Details' }), nav, close), h('div', { class: 'sw-context-scroll' }, body))
   }
   const openContext = (section: ContextSection) => {
     savePrefs({ context: section })
@@ -632,7 +668,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   }
 
   const signatureOf = (sceneId: string) =>
-    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, phoneSize, inspectorOpen, capturing, sceneIds().map(id => [host.notice(id), host.outputNotice?.(id) || false])])
+    JSON.stringify([sceneId, review()?.signature(sceneId) || '', prefs.tab, prefs.rail, prefs.context, context.hidden, focusStage, phoneSize, inspectorOpen, moreOpen, capturing, sceneIds().map(id => [host.notice(id), host.outputNotice?.(id) || false])])
 
   const render = () => {
     if (root.hidden || !host.video()) return
@@ -693,6 +729,14 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
 
   root.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return
+    if (moreOpen) {
+      event.preventDefault()
+      moreOpen = false
+      shown = ''
+      render()
+      focusKey('sw-more')
+      return
+    }
     if (!takeLayer.hidden) {
       event.preventDefault()
       closeTake()
@@ -718,6 +762,12 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       shown = ''
       render()
     }
+  })
+  document.addEventListener('click', event => {
+    if (!moreOpen || (event.target instanceof Node && head.querySelector('.sw-actions')?.contains(event.target))) return
+    moreOpen = false
+    shown = ''
+    render()
   })
   document.getElementById('workspace-tab-scenes')?.addEventListener('click', () => show('scenes'))
   document.getElementById('workspace-tab-notebook')?.addEventListener('click', () => {

@@ -310,12 +310,12 @@ try {
   // Both scenes planned: r1 each.
   for (const sceneId of [s1, s2]) {
     await pickScene(sceneId)
-    await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button?.textContent === 'Plan the scene' && !button.disabled ? true : null }`, 30)
+    await waitFor(`() => { const button = document.querySelector('#scene-workspace .sw-actions .button.primary'); return button?.textContent === 'Plan scene' && !button.disabled ? true : null }`, 30)
     await click('#scene-workspace .sw-actions .button.primary')
     await until(async () => (await overview(videoId)).scenes.find(scene => scene.id === sceneId)?.view.current?.status === 'candidate', 90)
   }
   await pickScene(s1)
-  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Preview r1' ? true : null`, 30)
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Build preview of r1' ? true : null`, 30)
   const t1 = (await overview(videoId)).scenes.find(scene => scene.id === s1).view.current.id
 
   // ——— 1. Waiting on the scene: the preview takes the stage, paused, and is announced ———
@@ -336,7 +336,7 @@ try {
   await pickScene(s2)
   await waitFor(`() => document.querySelector('#scene-workspace .sw-title h2')?.textContent === 'Concurrent requests limiter' ? true : null`, 20)
   const t2 = (await overview(videoId)).scenes.find(scene => scene.id === s2).view.current.id
-  await clickText('#scene-workspace .sw-actions .button', 'Preview r1')
+  await clickText('#scene-workspace .sw-actions .button', 'Build preview of r1')
   await waitFor(`() => document.querySelector('#scene-workspace .sw-stage-activity .ws-activity') ? true : null`, 30)
   await click('#scene-stage-bar [data-stage-mode="schematic"]:not([hidden])') || await click('#scene-stage-bar [data-stage-mode="reference"]')
   const chosen = await evaluate(stageNow)
@@ -356,7 +356,7 @@ try {
   await click('#scene-workspace [data-focus^="revise:"]')
   const r2 = await until(async () => { const scene = (await overview(videoId)).scenes.find(entry => entry.id === s1); return scene.view.current?.revision === 2 && scene.view.current.status === 'candidate' ? scene.view.current : null }, 90)
   check(Boolean(r2), 'scene 1 is planned again: r2')
-  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Preview r2' ? true : null`, 30)
+  await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Build preview of r2' ? true : null`, 30)
   await click('#scene-workspace .sw-actions .button.primary')
   await waitFor(`() => document.querySelector('#scene-workspace .sw-stage-activity .ws-activity') ? true : null`, 30)
   await pickScene(s2)
@@ -379,7 +379,7 @@ try {
   }
   const planned = (sceneId, revision) => until(async () => { const scene = (await overview(videoId)).scenes.find(entry => entry.id === sceneId); return scene.view.current?.revision === revision && scene.view.current.status === 'candidate' ? scene.view.current : null }, 90)
   const previewIt = async revision => {
-    await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Preview r${revision}' ? true : null`, 30)
+    await waitFor(`() => document.querySelector('#scene-workspace .sw-actions .button.primary')?.textContent === 'Build preview of r${revision}' ? true : null`, 30)
     await click('#scene-workspace .sw-actions .button.primary')
     return waitFor(`() => document.querySelector('#scene-workspace .sw-stage-activity .ws-activity') ? true : null`, 30)
   }

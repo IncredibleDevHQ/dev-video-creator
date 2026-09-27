@@ -845,7 +845,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     tools.append(undo, redo)
     // An accepted production is rendered again to take newer edits.
     if (production.accepted && production.accepted.edits !== edited && production.current) {
-      const again = h('button', { type: 'button', class: 'button primary', 'data-focus': `accept-edits:${scene.id}`, text: accepting === production.id ? 'Rendering your edits…' : 'Accept with your edits', ...(accepting ? { disabled: true } : {}) })
+      const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `accept-edits:${scene.id}`, text: accepting === production.id ? 'Rendering your edits…' : 'Accept with your edits', ...(accepting ? { disabled: true } : {}) })
       again.addEventListener('click', () => accept(scene, production))
       tools.append(again)
     }
@@ -971,7 +971,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       actions.append(toggle)
     }
     if (ready && ready.current && !ready.accepted) {
-      const acceptButton = h('button', { type: 'button', class: 'button primary', 'data-focus': `accept-production:${scene.id}`, text: accepting === ready.id ? 'Rendering the accepted scene…' : 'Accept as the scene\'s output', ...(accepting ? { disabled: true } : {}) })
+      const acceptButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `accept-production:${scene.id}`, text: accepting === ready.id ? 'Rendering the accepted scene…' : 'Accept output', ...(accepting ? { disabled: true } : {}) })
       acceptButton.addEventListener('click', () => accept(scene, ready))
       actions.append(acceptButton)
     }
@@ -985,7 +985,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     }
     const produceButton = h('button', {
       type: 'button',
-      class: again ? 'button ghost' : 'button primary',
+      class: again ? 'button ghost' : 'button secondary',
       'data-focus': `produce:${scene.id}`,
       text: running ? 'Producing…' : again ? 'Produce again' : `Produce scene from r${approved.revision}`,
       ...(running || waits.length || !desktop ? { disabled: true } : {}),
@@ -1122,7 +1122,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const kind = PAGE_KIND[newer.kind] || 'page'
     const compare = h('button', { type: 'button', class: 'button ghost', 'data-focus': `compare-reference:${scene.id}`, text: 'Compare on the stage' })
     compare.addEventListener('click', () => host.showBaseReference(scene.id))
-    const adopt = h('button', { type: 'button', class: 'button primary', 'data-focus': `adopt-reference:${scene.id}`, text: `Use this ${newer.kind === 'designed' ? 'designed reference' : 'page'}`, ...(adopting === scene.id ? { disabled: true } : {}) })
+    const adopt = h('button', { type: 'button', class: 'button secondary', 'data-focus': `adopt-reference:${scene.id}`, text: `Use this ${newer.kind === 'designed' ? 'designed reference' : 'page'}`, ...(adopting === scene.id ? { disabled: true } : {}) })
     adopt.addEventListener('click', async () => {
       adopting = scene.id
       host.refresh()
@@ -1218,12 +1218,14 @@ export const createSceneReview = (host: SceneReviewHost) => {
     // Header: the plan shown, its state, and the scene's actions.
     const actions = h('div', { class: 'review-actions' })
     const canApprove = record?.status === 'candidate' && !(record.id === view.current?.id && view.staleBecause)
-    const approveButton = h('button', { type: 'button', class: 'button primary', 'data-focus': `approve:${scene.id}`, text: !record ? 'Approve plan' : record.status === 'reviewed' ? (record.id === view.reviewed?.id ? `r${record.revision} approved ✓` : `r${record.revision} approved earlier`) : `Approve r${record.revision}`, ...(canApprove ? {} : { disabled: true }) })
+    // The header's next step leads in the notebook: the review's own
+    // actions are secondary beside it (the Open Slide pass).
+    const approveButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `approve:${scene.id}`, text: !record ? 'Approve plan' : record.status === 'reviewed' ? (record.id === view.reviewed?.id ? `r${record.revision} approved ✓` : `r${record.revision} approved earlier`) : `Approve plan r${record.revision}`, ...(canApprove ? {} : { disabled: true }) })
     approveButton.addEventListener('click', () => record && void approve(record))
     const previewState = previewStateOf(scene, record)
     const previewOfShown = Boolean(previewFor(scene, record))
     const desktop = Boolean(window.studioDesktop?.isDesktop)
-    const previewButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `preview:${scene.id}`, text: !record ? 'Preview plan' : previewState.state === 'building' ? `${previewState.checking ? 'Checking' : 'Building'} the preview of r${record.revision}…` : previewOfShown ? `Sketch r${record.revision} again` : `Preview r${record.revision}`, ...(record && previewState.state !== 'building' && desktop ? {} : { disabled: true }), ...(desktop ? {} : { title: 'Sketching runs in the desktop app' }) })
+    const previewButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `preview:${scene.id}`, text: !record ? 'Build preview' : previewState.state === 'building' ? `${previewState.checking ? 'Checking' : 'Building'} the preview of r${record.revision}…` : previewOfShown ? `Rebuild preview of r${record.revision}` : `Build preview of r${record.revision}`, ...(record && previewState.state !== 'building' && desktop ? {} : { disabled: true }), ...(desktop ? {} : { title: 'Sketching runs in the desktop app' }) })
     previewButton.addEventListener('click', () => record && void preview(scene, record, previewOfShown))
     const workspace = h('button', { type: 'button', class: 'button ghost', text: 'Planning workspace', 'data-focus': `workspace:${scene.id}` })
     workspace.addEventListener('click', () => host.openWorkspace(scene.id, record?.id || '', state.moment))
@@ -1307,7 +1309,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const box = h('textarea', { rows: '2', 'data-focus': `direction:${scene.id}`, placeholder: 'Direction for the next candidate — what should change?', 'aria-label': 'Direction for this scene' })
     box.value = state.direction ?? scene.direction
     box.addEventListener('input', () => (state.direction = box.value))
-    const reviseButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Revise the plan' : 'Plan the scene', ...(view.state === 'planning' || !overview?.brief.current || overview.brief.stale || !overview.available || !desktop ? { disabled: true } : {}), ...(desktop ? {} : { title: 'Planning runs in the desktop app' }) })
+    const reviseButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Revise the plan' : 'Plan scene', ...(view.state === 'planning' || !overview?.brief.current || overview.brief.stale || !overview.available || !desktop ? { disabled: true } : {}), ...(desktop ? {} : { title: 'Planning runs in the desktop app' }) })
     reviseButton.addEventListener('click', () => void revise(scene))
     root.append(h('div', { class: 'review-direction' }, box, reviseButton))
     if (!plan && record) root.append(...previewSection(scene, record))
@@ -1514,7 +1516,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const stopped = Boolean(record.progress?.events.some(event => event.milestone === 'stopped')) || /^Stopped|was cancelled/.test(record.error?.message || '')
     const category = stopped ? 'stopped' : record.error?.category || 'other'
     const provider = record.error?.providerStatus && record.error.providerStatus !== record.error.message ? record.error.providerStatus : ''
-    const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `retry-plan:${scene.id}`, text: 'Plan the scene again', ...(!onDesktop() || !overview?.brief.current || overview.brief.stale ? { disabled: true } : {}) })
+    const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `retry-plan:${scene.id}`, text: 'Plan scene again', ...(!onDesktop() || !overview?.brief.current || overview.brief.stale ? { disabled: true } : {}) })
     again.addEventListener('click', () => void revise(scene))
     const change = h('button', { type: 'button', class: 'button ghost', 'data-focus': 'change-harness', text: 'Change the harness or model' })
     change.addEventListener('click', () => host.openAiSettings?.())
@@ -1581,7 +1583,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     const checks = scene.preview?.latest.id === failed.id ? scene.preview.latest.validation || null : null
     const lastCheck = checks?.attempts[checks.attempts.length - 1] || null
     const spent = Boolean(checks && lastCheck && lastCheck.attempt >= checks.budget)
-    const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `retry-preview:${scene.id}`, text: `Preview r${record.revision} again`, ...(onDesktop() ? {} : { disabled: true }) })
+    const again = h('button', { type: 'button', class: 'button secondary', 'data-focus': `retry-preview:${scene.id}`, text: `Rebuild preview of r${record.revision}`, ...(onDesktop() ? {} : { disabled: true }) })
     again.addEventListener('click', () => void preview(scene, record, false))
     const inspect = checks ? disclosure(`checks:${failed.id}`, `Inspect the ${checks.attempts.length === 1 ? 'check' : `${checks.attempts.length} checks`}`, checksPanel(checks)) : null
     // Produced from this revision, or its production on the stage: the
@@ -1713,7 +1715,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     field.value = state.direction ?? scene.direction
     field.addEventListener('input', () => (state.direction = field.value))
     const planBlocked = view.state === 'planning' || !overview?.brief.current || overview.brief.stale || !overview.available || !onDesktop()
-    const planButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Plan again with this direction' : 'Plan the scene', ...(planBlocked ? { disabled: true } : {}), ...(onDesktop() ? {} : { title: 'Planning runs in the desktop app' }) })
+    const planButton = h('button', { type: 'button', class: 'button secondary', 'data-focus': `revise:${scene.id}`, text: view.current ? 'Plan again with this direction' : 'Plan scene', ...(planBlocked ? { disabled: true } : {}), ...(onDesktop() ? {} : { title: 'Planning runs in the desktop app' }) })
     planButton.addEventListener('click', () => void revise(scene))
     box.append(h('div', { class: 'ws-direction' }, h('label', { class: 'ws-label', text: 'Direction' }), field, planButton))
     if (plan && record) box.append(disclosure(`ws-compare:${scene.id}`, 'Compare with another revision', compareOf(scene, plan, record)))
