@@ -178,6 +178,7 @@ import {
 } from './harness-choice'
 import './styles.css'
 import './ui/tokens.css'
+import './ui/palette.css'
 import './ui/shell.css'
 import './ui/library.css'
 import './ui/labels.css'

@@ -38,17 +38,8 @@
   --studio-ui-pressed: #ececef;
   --studio-ui-focus: #4f46e5;
 
-  /* What a state means, apart from the accent */
-  --studio-ui-busy: #2563eb;
-  --studio-ui-busy-soft: #eff6ff;
-  --studio-ui-busy-ink: #1e3a8a;
-  --studio-ui-warning: #b45309;
-  --studio-ui-warning-soft: #fffbeb;
-  --studio-ui-warning-ink: #78350f;
-  --studio-ui-danger: #dc2626;
-  --studio-ui-danger-soft: #fef2f2;
-  --studio-ui-danger-ink: #991b1b;
-  --studio-ui-good: #16a34a;
+  /* What a state means — busy, good, warning, bad — is in palette.css,
+     with every other colour of the studio's own UI. */
 
   /* Type: Gilroy names things and labels controls; InterBody reads */
   --studio-ui-font-brand: 'Gilroy', 'InterBody', Inter, system-ui, sans-serif;
@@ -80,6 +71,46 @@
   --studio-ui-fast: 140ms;
   --studio-ui-ease: cubic-bezier(.2, .7, .2, 1);
 }
+/* The dark appearance (chosen in More, or the system's): the work's surfaces
+   go dark around the stage, the header stays as it is, and the brand keeps
+   its green. What the studio makes — a slide, a generated SVG, the player,
+   an exported video — keeps its own colours in both. */
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+  color: #e4e4e7;
+  --studio-ui-brand-soft: rgba(34, 197, 94, .18);
+  --studio-ui-brand-tint: rgba(34, 197, 94, .1);
+  --studio-ui-brand-ink: #86efac;
+  --studio-ui-chrome-line: #26262b;
+  --studio-ui-surface: #1b1b1e;
+  --studio-ui-surface-muted: #19191c;
+  --studio-ui-surface-sunken: #111113;
+  --studio-ui-surface-raised: #232327;
+  --studio-ui-ink: #f4f4f5;
+  --studio-ui-text: #e4e4e7;
+  --studio-ui-muted: #a1a1aa;
+  --studio-ui-faint: #71717a;
+  --studio-ui-line: #2e2e33;
+  --studio-ui-line-strong: #3f3f46;
+  --studio-ui-hover: #26262a;
+  --studio-ui-pressed: #2f2f34;
+  --studio-ui-focus: #818cf8;
+  --studio-ui-shadow-menu: 0 12px 32px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
+  --studio-ui-shadow-float: 0 24px 64px rgba(0, 0, 0, .6), 0 4px 12px rgba(0, 0, 0, .35);
+  /* The stylesheet's older names, for the same roles. */
+  --ink: #e4e4e7;
+  --muted: #a1a1aa;
+  --line: #2e2e33;
+  --paper: #1b1b1e;
+  --soft: #26262a;
+  --brand-soft: rgba(34, 197, 94, .18);
+  --danger: #f87171;
+  --shadow: 0 18px 50px rgba(0, 0, 0, .5);
+}
+/* An embedded composition renders as it does in the light appearance: its
+   frame keeps the page's default colour scheme, so the browser does not give
+   it the dark scheme's opaque canvas. */
+:root[data-appearance="dark"] :is(iframe, hyperframes-player) { color-scheme: normal; }
 /* A coarse pointer gets targets a finger can hit. */
 @media (pointer: coarse) {
   :root { --studio-ui-control: 44px; }

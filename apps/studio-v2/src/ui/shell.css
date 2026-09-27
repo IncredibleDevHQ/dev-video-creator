@@ -7,7 +7,7 @@
 /* ——— Controls ——— */
 .button { min-height: var(--studio-ui-control); padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--studio-ui-line-strong); border-radius: var(--studio-ui-radius-control); background: var(--studio-ui-surface); color: var(--studio-ui-ink); font: 600 var(--studio-ui-text-control)/1.2 var(--studio-ui-font-brand); letter-spacing: 0; white-space: nowrap; transition: background-color var(--studio-ui-fast) var(--studio-ui-ease), border-color var(--studio-ui-fast) var(--studio-ui-ease), color var(--studio-ui-fast) var(--studio-ui-ease); }
 .button svg { width: 14px; height: 14px; flex: none; }
-.button:hover { transform: none; border-color: #a1a1aa; background: var(--studio-ui-hover); }
+.button:hover { transform: none; border-color: var(--studio-ui-line-hover); background: var(--studio-ui-hover); }
 .button:active { background: var(--studio-ui-pressed); }
 .button:focus-visible { outline: 2px solid var(--studio-ui-focus); outline-offset: 2px; }
 .button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
@@ -15,9 +15,9 @@
 .button.primary { border-color: var(--studio-ui-brand); background: var(--studio-ui-brand); color: #fff; }
 .button.primary:hover { border-color: var(--studio-ui-brand-strong); background: var(--studio-ui-brand-strong); }
 .button.primary:disabled:hover { border-color: var(--studio-ui-brand); background: var(--studio-ui-brand); }
-.button.secondary { border-color: #86efac; background: var(--studio-ui-brand-tint); color: var(--studio-ui-brand-ink); }
-.button.secondary:hover { border-color: #4ade80; background: var(--studio-ui-brand-soft); }
-.button.danger { border-color: #fecaca; background: var(--studio-ui-danger-soft); color: #b91c1c; }
+.button.secondary { border-color: var(--studio-ui-good-line-strong); background: var(--studio-ui-brand-tint); color: var(--studio-ui-brand-ink); }
+.button.secondary:hover { border-color: var(--studio-ui-brand-on-dark); background: var(--studio-ui-brand-soft); }
+.button.danger { border-color: var(--studio-ui-bad-line); background: var(--studio-ui-bad-tint); color: var(--studio-ui-bad-strong); }
 .button.ghost { border-color: transparent; background: transparent; }
 .button.ghost:hover { border-color: transparent; background: var(--studio-ui-hover); }
 .button.chrome-ghost { border-color: transparent; background: transparent; color: var(--studio-ui-chrome-text); }
@@ -25,7 +25,7 @@
 .button.chrome-secondary { border-color: #52525b; background: var(--studio-ui-chrome-active); color: #fff; }
 .button.chrome-secondary:hover { border-color: #71717a; background: #3a3a40; }
 .icon-button { width: var(--studio-ui-control); height: var(--studio-ui-control); border: 1px solid var(--studio-ui-line); border-radius: var(--studio-ui-radius-control); background: transparent; color: var(--studio-ui-muted); font-size: 16px; }
-.icon-button:hover { color: var(--studio-ui-ink); border-color: #a1a1aa; }
+.icon-button:hover { color: var(--studio-ui-ink); border-color: var(--studio-ui-line-hover); }
 .eyebrow { color: var(--studio-ui-muted); font: 500 var(--studio-ui-text-label)/1.3 var(--studio-ui-font-ui); letter-spacing: 0; text-transform: none; }
 .toast { max-width: min(560px, calc(100vw - 32px)); padding: 10px 14px; border-radius: var(--studio-ui-radius-menu); background: var(--studio-ui-chrome); color: var(--studio-ui-chrome-ink); font: 13px/1.45 var(--studio-ui-font-ui); box-shadow: var(--studio-ui-shadow-float); }
 
@@ -219,8 +219,8 @@ body:not(.is-video-notebook) .view-switch { display: none; }
 .app-notice[hidden] { display: none; }
 .app-notice-text { flex: 1 1 auto; min-width: 0; }
 .app-notice .button { min-height: 28px; }
-.app-notice.is-warning { border-color: #fde68a; background: var(--studio-ui-warning-soft); color: var(--studio-ui-warning-ink); }
-.app-notice.is-info { border-color: #bfdbfe; background: var(--studio-ui-busy-soft); color: var(--studio-ui-busy-ink); }
+.app-notice.is-warning { border-color: var(--studio-ui-warn-line); background: var(--studio-ui-warn-tint); color: var(--studio-ui-warn-ink-2); }
+.app-notice.is-info { border-color: var(--studio-ui-busy-line); background: var(--studio-ui-busy-tint); color: var(--studio-ui-busy-ink); }
 
 /* ——— The work: whatever room the header leaves ——— */
 /* Its height is measured from its top and the notebook's scene band; it
