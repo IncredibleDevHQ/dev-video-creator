@@ -91,6 +91,18 @@ Each control keeps its id, so the scripted checks and the code that drives it st
 
 These kept their structure and took the new visual language: capture beside the stage, takes in the Record tab, and the single expanded timeline. A preview or production failure keeps its details under the stage, and they can now be scrolled to (`preview-exhausted-check`). Every error also stays reachable from the Jobs panel.
 
+## The dark appearance
+
+Added after D1–D5, under the same rule: Incredible's brand does not change, and nothing the studio makes changes.
+
+- **The choice.** More has a Studio section with Appearance: System, Light or Dark. System follows the operating system, including when it changes while the studio is open. The choice is kept in the studio's web storage, which the desktop app keeps between runs. `index.html` applies it before the first paint, so the studio never opens in the wrong appearance. Arrow keys move between the three choices (`src/project-shell/appearance.ts`).
+- **What goes dark.** The studio's own surfaces, panels, dialogs, menus and controls. The header was already dark and stays as it is. The green keeps its place: `#16a34a` for the primary action, `#4ade80` where green sits on dark. What a state means keeps its colour, as a tint on the dark surface: blue for busy, green for done, amber for a warning, red for a failure. The focus ring is a lighter indigo.
+- **What never changes.** Slides and pages, generated SVG, the stage and the player, recorded takes, exported video and PDF, theme previews, code themes, thumbnails, and the small illustrations inside the pickers. An embedded composition keeps the page's default colour scheme, so the browser does not paint a dark scheme's opaque canvas behind it.
+- **How.** Every colour the studio's stylesheets used for their light UI is now a token in `apps/studio-v2/src/ui/palette.css`. That covers about 1,160 declarations in `styles.css` and `workspace.css`, plus the controls and notices in `shell.css`. Each token's light value is the colour it replaced, so the light appearance is as it was. Its dark value keeps the same role on a dark surface. A small dark control on a light surface — a badge, a pressed segment, the play button — turns light on the dark surface.
+- **How it was converted.** A script converted the colours and left out artwork, previews and parts that were already dark. Every rule it left out was then checked by hand, which put back 94 declarations it had left out too broadly: the Publish canvas's side panel, the presenter and layout pickers, the theme lab, the slide editor's strip and stage buttons, the teleprompter and the scene poster's frame.
+- **More.** On a wide window More now shows in two columns, so every item shows at once. It also opens above a notebook's scene band.
+- **The window.** Before the page paints, the desktop window shows the dark header's colour, as the page's own background does in both appearances, instead of a white flash.
+
 ## Commits
 
 | Commit | Package |
@@ -100,8 +112,10 @@ These kept their structure and took the new visual language: capture beside the 
 | `676c9344` | D3 · the scene's context row, the stage selector, the plan's action names |
 | `60a2aef5` | D4 · the library of project cards, the Text notebook as an article |
 | `4b32bf8d` | Labels read as words |
+| `6054065d` | The dark appearance · the studio's UI colours as a palette with dark values (light unchanged) |
+| `78ae2373` | The dark appearance · the choice in More, applied before the first paint |
 
-Each commit was typechecked and its unit tests run on its own (`verify-staged`: the index's content checked out, then the working tree put back). The desktop checks ran on the final code, which is what `4b32bf8d` holds.
+Each commit was typechecked and its unit tests run on its own (`verify-staged`: the index's content checked out, then the working tree put back). The desktop checks ran on the final code, which is what `4b32bf8d` holds. The dark appearance's palette commit was also typechecked and built on its own; its page has no appearance script yet, so nothing turns dark.
 
 ## Evidence
 
@@ -142,11 +156,19 @@ The checks run: planning, source design, scene workspace, scene review, producti
 
 **Real content.** The new UI was opened over the §10 live run's "Write-Ahead Logging" video: real Claude Code and Opus 5.5 pages, plans and export, in the isolated PostgreSQL and MinIO store. No harness ran and nothing was made (`real-wal-*.png`). Its plans now read as out of date, because products changed since they were made, so the context row leads with "Update the brief" and the scene with "Plan scene". Its 46-second export shows in the Jobs panel as ready to download. The tour did not put a produced scene on the stage: it chose scenes by their state in the rail, and every scene there reads as out of date or not yet planned.
 
+**The dark appearance.**
+
+- *Light is unchanged.* Six checks' screenshots (scene workspace, project switch, review layout, planning progress, scene review, source intake) were compared pixel by pixel before and after the palette. Every difference is timing, or content that changes between runs: a tooltip, a timer, a source revision id, a page captured before it painted. The one intended change is More's new grouping.
+- *Dark.* The desktop app reads `STUDIO_APPEARANCE=light|dark` so that checks and captures can force an appearance. With the studio forced dark, 22 checks ran and passed, and their screenshots were read screen by screen. A tour over the §10 video covered what no check photographs: the theme builder and theme library, the scene studio (the slide editor), Paste Markdown, the asset library, and the dialogs that start from a source or create an explainer. That reading found four faults, all fixed: the Publish canvas's side panel, whose headings had turned light on a panel that stayed white; a light frame around each page's picture in the video notebook; the play button, whose icon had turned white on white; and the scene studio's dialogue lines, whose dark grey the conversion had missed. Error text also has a lighter red in dark. After the fixes, the checks they touch ran again in both appearances and passed. `review-layout-check` now also chooses Dark, Light and System in More. It checks that each applies at once, that Dark and Light are kept, and that System follows the system again.
+- *Unit tests.* studio-v2: 441 tests in 56 files pass. The new `appearance.test.ts` covers how a kept choice is read, and which appearance a choice shows.
+
+**Screenshots of the dark appearance**, in the same folder: `dark-video-1440.png`, `dark-video-details-1440.png`, `dark-video-notebook.png`, `dark-timeline.png`, `dark-recording.png`, `dark-text.png`, `dark-presentation.png`, `dark-more-menu.png`, `dark-planning.png`, `dark-publish.png`, `dark-ai-settings.png`, `dark-theme-builder.png`, `dark-scene-studio.png`.
+
 ## Limits
 
 - **No fresh live run.** The plan's D6 asks for a fresh technical blog through the real local harness, every artifact transition, a revised scene, production, export and restart, all on the new UI. That was not done in this pass. The real-content tour above re-used earlier live output and spent no model budget.
 - **No task-based observation.** Watching someone new to the UI find the source, plan a scene and recover a failed job needs a person.
-- **No dark shell appearance.** The tokens are laid out for one, but it is not offered. The scene review's inspector content is still styled for the light shell only.
+- **The dark appearance was judged by eye.** It was read from screenshots; no contrast ratios were measured. The older explainer wizard was not opened in dark. The canvas and the scene studio were looked at less closely than the scene workspace, the notebooks and the dialogs. The library, the Jobs panel and the header's menus were already dark and are the same in both appearances.
 - **Intake and pending slides.** The Source → Brand intake and a presentation's pending slides take the new tokens but no structural change.
 - **Recording and the timeline.** These are restyled only, with no new behaviour.
 - **Not measured.** 200% text zoom was not checked separately; narrow widths were, at 1024 and 800px.
