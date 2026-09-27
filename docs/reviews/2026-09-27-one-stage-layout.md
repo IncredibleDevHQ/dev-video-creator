@@ -1,6 +1,6 @@
-# One stage layout: the page view
+# One stage layout: pages and scenes
 
-The request: like Open Slide, put the frame at the centre and give Wireframe, Presentation and Video the same minimal layout. Only the Text notebook stays different, since it is an article. This slice does it for Wireframe and Presentation, and brings the video's Scenes rail into the same form. It builds on the Open Slide pass (`2026-09-27-open-slide-studio-ui.md`) and keeps Incredible's brand as that pass did.
+The request: like Open Slide, put the frame at the centre and give Wireframe, Presentation and Video the same minimal layout. Only the Text notebook stays different, since it is an article. The first slice does it for Wireframe and Presentation, and brings the video's Scenes rail into the same form. The second folds the video's Notebook view into one column, like the pages' Notebook views, and gives the Scenes view the page keys and an overview. It builds on the Open Slide pass (`2026-09-27-open-slide-studio-ui.md`) and keeps Incredible's brand as that pass did.
 
 ## What Open Slide does, from using it
 
@@ -87,10 +87,65 @@ Incredible Studio is plain TypeScript without React, so none of these libraries 
 - `wireframe-pages.png`: a wireframe's page view.
 - `scenes-rail.png` and `scenes-rail-compact-dark.png`: the Scenes rail in its new form, wide and compact.
 
-## Not in this slice
+## Second slice: the video in the same layout
 
-- **The video's Notebook view** is still its two-column document. Folding it into a Script view on the same pages is the next step.
-- **The Scenes view's keys.** It does not yet take the page keys (arrows between scenes, O for all scenes).
+The video's Notebook view had two columns: the words on the left, and on the right the notebook's live canvas, which the scene review's stage covered. The pages' Notebook views are one column. Now the video's is too, and its stage is only in the Scenes view.
+
+**What changed.**
+- **One column of words.** A video's Notebook view shows its scenes' words, their reviews and the next step. It is at most 980px wide and centred, like the pages' Notebook views. No stage sits beside it.
+- **The stage is the Scenes view's.** An action that shows something on the stage opens the Scenes view, where the stage shows it: Play it on the stage, Review output, and Compare on the stage. Picking a moment in the notebook's review still moves the stage there, ready for when the Scenes view opens.
+- **Nothing takes the stage unseen.** A preview or production that finishes while the notebook shows does not start playing. It waits under the stage as an offer ("Output ready… Watch the output"), as it already did while the creator was busy with the stage. Asking for it removes the offer.
+- **Nothing plays unseen.** Closing the canvas over the notebook pauses what was playing on it, where it was. Going back to the Notebook view stops the stage's scene too.
+- **The canvas stays.** Open canvas, in the ⋯ menu, still shows the notebook's own composition full screen, with the stage on it. Publish still walks the switchovers there.
+- **Only videos made from pages.** This applies to a video notebook made from a project's pages, which always has a Scenes view. A video project of its own keeps its canvas beside the words.
+
+**The Scenes view takes the page keys.** The keys are shared with the page view (`src/ui/keys.ts`):
+- In the rail, ↑ ↓ PageUp PageDown move between the scenes, with the keyboard focus following. Home and End go to the first and the last.
+- ← → walk the scene's moments, as the row under the stage does. In the page view they turn pages, but a scene has moments of its own.
+- With nothing focused, the same keys work anywhere in the view. Space is left to the buttons.
+- **O** shows every scene at once, with its page and what it needs. The rail's grid button opens it too. The arrows move through it, choosing a scene opens it, and Escape or O closes it with the keyboard back on the scene. The page view's All pages is now this same overview (`src/ui/overview.ts`).
+- **F** asks for the stage alone, full screen.
+- No key is taken while typing in a field, from a menu, list, tab or dialog, or while recording, since the take belongs to the scene being recorded.
+
+**Evidence.**
+- **Unit tests.** studio-v2: 450 tests in 58 files pass. `keys.test.ts` is new. It covers the keys for pages and for scenes, Space, and the two-digit numbers. `pages.test.ts` lost the tests that moved there.
+- **`scene-workspace-check`** now also asserts:
+  - the Notebook view in one column, with the stage back home and not beside it;
+  - in the rail, ↑, End and Home, the focus with the scene;
+  - → and ← through the moments, the scene kept;
+  - a field keeping its keys, and ↓ with nothing focused;
+  - O: every scene with its picture and state, opened on the one on show;
+  - the overview: a choice opening its scene, the rail's button, and Escape;
+  - F asking for the stage frame alone.
+- **Checks changed for the new flow:**
+  - `scene-review-check`: the plan first, in one column, with nothing over it or beside it; the notebook fits its window as one column. Compare on the stage opens the Scenes view, and the newer slide is taken from the scene's Story beside it.
+  - `plan-preview-check`: Play it on the stage opens the Scenes view, and a moment under the stage seeks the sketch. Full screen is checked through Open canvas in the Notebook view, and closing the canvas while the sketch plays pauses it where it was.
+  - `production-check`: Review output opens the Scenes view, and its Output tab names the type faces. Going back to the Notebook view stops the scene that was playing. The notebook's own review lines are read there.
+  - `presented-production-check`: the timing nudge, undo and redo are made in the Output tab beside the stage.
+  - Both production checks assert that an output on the stage is not also offered under it. The first run showed that offer left behind; it is fixed.
+  - `page-view-check`: the overview's items are now `data-item`.
+- **The battery.**
+  - **In dark, on the final code, all 31 desktop checks pass**, `production-check` after the change below:
+    - scene workspace, production, presented production, plan preview, scene review, page view, review layout, project switch;
+    - scene flow, preview hand-off, preview exhausted, export recovery, scene recording, scene timeline, restart;
+    - planning, planning progress, agent picker, visual cast, presentation export, wireframe retry;
+    - source intake, source design, source destination, source theme reuse, source delivery;
+    - wording preserve, create explainer, notebooks hierarchy, sample, stage panel.
+  - **One assertion changed along the way.** `production-check` first failed in dark on an assertion that a scene pauses where it was when the notebook opens. It restarts instead (see Not done yet). The assertion now checks that the scene stops, and it passes in both appearances.
+  - **In light, on the final code,** the 15 video and view checks in the first two lines above pass.
+  - **An earlier light run of all 31** passed 30, before the last fixes (the pause, and Compare opening the Scenes view).
+- **A negative test.** With the pause turned off, `plan-preview-check` fails: the sketch plays on after the canvas closes.
+- **A flaky check, not new.** `create-explainer-check` sometimes fails on a read that waits a fixed time: whether a dialog is open, or whether the autosave has settled. It failed 1 run in 18 on the code before this slice, and 3 in 22 on this slice's builds. Twelve runs in a row then passed on each.
+
+**Screenshots** in `2026-09-27-one-stage-layout-evidence/`:
+- `video-notebook-before-dark.png` and `video-notebook-dark.png`: a video's Notebook view before and after, from the same check.
+- `all-scenes.png` and `all-scenes-dark.png`: All scenes (O).
+- `output-beside-stage.png`: a produced scene on the stage, its timing nudged in the Output tab beside it.
+- `compare-in-scenes.png`: Compare on the stage, opened in the Scenes view, with the offer to use the newer slide beside it.
+
+## Not done yet
+
+- **A scene restarts after a trip to the notebook.** The stage moves between the Scenes view and the notebook without a reload (`moveBefore`), but the Hyperframes player has no hook for being moved (`connectedMoveCallback`), so it starts again. A scene played in the Scenes view begins again from the start after the Notebook view. This predates this slice: the stage moved, and restarted, between the two views before it too.
 - **Page actions.** The rail has no right-click actions, because pages have no duplicate, delete or reorder yet. Its width is fixed rather than resizable.
 - **Notes** are read-only in the page view, as they were in the notebook. Open Slide's notes drawer is not borrowed yet.
 - **Full screen** could only be checked as requested. The test hook cannot grant the gesture that a real full screen needs.
