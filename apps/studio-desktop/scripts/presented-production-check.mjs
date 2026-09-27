@@ -399,6 +399,13 @@ try {
   // ——— The stage plays it ———
   await focusApp()
   await click('.scene-review.is-expanded [data-focus^="show-production:"]')
+  // The stage is the Scenes view's (the one stage layout): playing the
+  // production from the notebook opens it there, its Output beside it.
+  check(Boolean(await waitFor(`() => document.body.classList.contains('is-scene-workspace') && document.getElementById('scene-workspace').contains(document.getElementById('scene-stage')) ? true : null`, 20)), 'playing the production opens the Scenes view, the production on its stage')
+  // It finished while the notebook showed, so it was offered, not played
+  // unseen; asked for, it is no longer offered under the stage it plays on.
+  const offered = await evaluate(`() => document.querySelector('#scene-workspace .ws-offer[data-offer="output"]')?.textContent || ''`)
+  check(offered === '', `the output it plays is not also offered under the stage (${offered})`)
   const stage = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return player && !document.getElementById('scene-stage-preview').hidden && player.duration > 0 ? { src: player.getAttribute('src'), note: document.getElementById('scene-stage-note').textContent, markers: document.querySelectorAll('.scene-stage-marker').length } : null }`, 40)
   check(/\?e=0$/.test(stage?.src || '') && /^Produced from plan r\d+, on your take · not accepted yet$/.test(stage.note) && stage.markers === 1, `the stage plays it on the take, with where the headline's timing can be nudged (${JSON.stringify(stage)})`)
   const m2 = clock.moments[1]
@@ -407,9 +414,12 @@ try {
   await shot('01-presented-on-stage')
 
   // ——— P6: a nudge, saved and played at once; undo and redo ———
+  // The timing controls are the Output's, beside the stage that plays them.
+  await click('#sw-tab-output')
+  await waitFor(`() => document.querySelector('#scene-workspace [data-review-timing]') ? true : null`, 20)
   // Late enough that the headline is not there 0.7s in, early enough to show before m2 ends.
   const nudge = Math.min(Math.floor((m2.end - m2.start - 0.7) * 100) / 100, 1.2)
-  await evaluate(`() => { const input = document.querySelector('.scene-review.is-expanded [data-focus$=":m2-title"][data-focus^="control:"]'); input.value = '${nudge}'; input.dispatchEvent(new Event('change')); return true }`)
+  await evaluate(`() => { const input = document.querySelector('#scene-workspace [data-focus$=":m2-title"][data-focus^="control:"]'); input.value = '${nudge}'; input.dispatchEvent(new Event('change')); return true }`)
   const edit1 = await until(async () => { const view = (await overview(videoId)).scenes[0].production.ready; return view.edits.revision === 1 ? view.edits : null }, 30)
   check(edit1?.values['m2-title'] === nudge, `the nudge is saved as edit 1 (${JSON.stringify(edit1?.values)})`)
   const reloaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return /\\?e=1$/.test(player?.getAttribute('src') || '') && player.duration > 0 ? player.getAttribute('src') : null }`, 30)
@@ -417,18 +427,20 @@ try {
   check(Boolean(reloaded) && after === 0, `the stage plays the edit: the headline has not appeared ${0.7}s into the graphics (opacity ${after})`)
   // Undo is there once the edit's save has come back — the stage can play
   // the edit sooner, from the review's own poll.
-  await waitFor(`() => { const button = document.querySelector('.scene-review.is-expanded [data-focus^="undo-edit:"]'); return button && !button.disabled ? true : null }`, 20)
-  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="undo-edit:"]').click(); return true }`)
+  await waitFor(`() => { const button = document.querySelector('#scene-workspace [data-focus^="undo-edit:"]'); return button && !button.disabled ? true : null }`, 20)
+  await evaluate(`() => { document.querySelector('#scene-workspace [data-focus^="undo-edit:"]').click(); return true }`)
   const undone = await until(async () => { const view = (await overview(videoId)).scenes[0].production.ready; return view.edits.revision === 2 ? view.edits : null }, 30)
   check(undone && !('m2-title' in undone.values), `undo is saved as edit 2, the headline back at its default (${JSON.stringify(undone?.values)})`)
-  await waitFor(`() => { const button = document.querySelector('.scene-review.is-expanded [data-focus^="redo-edit:"]'); return button && !button.disabled ? true : null }`, 20)
-  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="redo-edit:"]').click(); return true }`)
+  await waitFor(`() => { const button = document.querySelector('#scene-workspace [data-focus^="redo-edit:"]'); return button && !button.disabled ? true : null }`, 20)
+  await evaluate(`() => { document.querySelector('#scene-workspace [data-focus^="redo-edit:"]').click(); return true }`)
   const redone = await until(async () => { const view = (await overview(videoId)).scenes[0].production.ready; return view.edits.revision === 3 ? view.edits : null }, 30)
   check(redone?.values['m2-title'] === nudge, `redo is saved as edit 3 (${JSON.stringify(redone?.values)})`)
   await shot('02-timing-edited')
-  await shot('02b-timing-panel', '.scene-review.is-expanded [data-review-timing]')
+  await shot('02b-timing-panel', '#scene-workspace [data-review-timing]')
 
   // ——— Accepted with the edit; the export is the video ———
+  // Back in the notebook, whose review accepts it as well.
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`)
   await click('.scene-review.is-expanded [data-focus^="accept-production:"]')
   const producedScene = await until(async () => (await saved(videoId))?.producedScenes?.[sceneId] || null, 240)
   check(producedScene?.productionId === produced.id && producedScene.edits === 3 && producedScene.voiced === true, `accepting renders it with edit 3, and the notebook plays that render (${JSON.stringify(producedScene && { edits: producedScene.edits, voiced: producedScene.voiced })})`)

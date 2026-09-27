@@ -433,8 +433,10 @@ try {
 
   // ——— The notebook is the other view, on the same scene ———
   await click('#scene-workspace .sw-back')
-  const notebook = await waitFor(`() => { const root = document.getElementById('scene-workspace'); return root.hidden ? { document: getComputedStyle(document.querySelector('.notebook-document')).display, review: document.querySelector('.scene-review.is-expanded')?.dataset.reviewScene || '', stageHome: Boolean(document.querySelector('#player-shell #scene-stage')), notebookTab: document.getElementById('workspace-tab-notebook').getAttribute('aria-pressed') } : null }`, 10)
-  check(notebook?.document !== 'none' && notebook.review === second && notebook.stageHome && notebook.notebookTab === 'true', `Notebook shows the notebook on the same scene, its review open and the stage back beside it (${JSON.stringify(notebook)})`)
+  // One column of words (the one stage layout): the stage goes home, set
+  // aside with the canvas until the Scenes view or the canvas asks for it.
+  const notebook = await waitFor(`() => { const root = document.getElementById('scene-workspace'); return root.hidden ? { document: getComputedStyle(document.querySelector('.notebook-document')).display, review: document.querySelector('.scene-review.is-expanded')?.dataset.reviewScene || '', stageHome: Boolean(document.querySelector('#player-shell #scene-stage')), oneColumn: getComputedStyle(document.querySelector('.inline-canvas-rail')).display === 'none', notebookTab: document.getElementById('workspace-tab-notebook').getAttribute('aria-pressed') } : null }`, 10)
+  check(notebook?.document !== 'none' && notebook.review === second && notebook.stageHome && notebook.oneColumn && notebook.notebookTab === 'true', `Notebook shows the notebook on the same scene, its review open, in one column — the stage waits in Scenes (${JSON.stringify(notebook)})`)
   await shot('1440-06-notebook')
   await click('#workspace-tab-scenes')
   const back = await waitFor(`() => { const root = document.getElementById('scene-workspace'); return !root.hidden && root.querySelector('.sw-scene.is-selected')?.dataset.scene === ${JSON.stringify(second)} && Boolean(root.querySelector('.sw-stage-frame #scene-stage')) }`, 10)

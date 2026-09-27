@@ -340,6 +340,10 @@ try {
   await evaluate(`() => { window.dispatchEvent(new Event('focus')); return true }`)
   const shown = await waitFor(`() => { const button = document.querySelector('.scene-review.is-expanded [data-focus^="show-preview:"]'); if (!button) return null; button.click(); return true }`, 60)
   check(Boolean(shown), 'the review offers the preview on the stage')
+  // The stage is the Scenes view's (the one stage layout): the notebook
+  // shows the words, and playing the preview opens the Scenes view.
+  const inScenes = await waitFor(`() => document.body.classList.contains('is-scene-workspace') && document.getElementById('scene-workspace').contains(document.getElementById('scene-stage')) ? true : null`, 20)
+  check(Boolean(inScenes), 'playing the preview opens the Scenes view, the sketch on its stage')
   const stage = await waitFor(`() => {
     const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
     if (!player || document.getElementById('scene-stage-preview').hidden) return null
@@ -362,13 +366,28 @@ try {
   check(seeked !== null, `the timeline seeks the preview to a moment (${seeked}s)`)
   await sleep(1500)
   await shot('01-preview-on-stage')
-  // Selecting a moment in the review goes there too.
-  await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[2].click(); return true }`)
+  // Selecting a moment under the stage goes there too.
+  await evaluate(`() => { document.querySelectorAll('#scene-workspace .sw-moment')[2].click(); return true }`)
   const followed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${ready.ready.summary.moments[2].start}) < 0.25 ? player.currentTime : null }`, 20)
-  check(followed !== null, `selecting a moment in the review seeks the preview (${followed}s)`)
-  // Full screen shows the same sketch, its one transport and its label —
-  // not the notebook's dialogue timeline, recording bar or director.
-  await evaluate(`() => { document.getElementById('canvas-fullscreen').click(); return true }`)
+  check(followed !== null, `selecting a moment under the stage seeks the preview (${followed}s)`)
+  // At its end the sketch holds its last frame and offers a replay.
+  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.seek(player.duration - 0.4); player.play(); return true }`)
+  const ended = await waitFor(`() => {
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
+    const button = document.querySelector('.scene-stage-transport > button')
+    return button.getAttribute('aria-label') === 'Replay the preview from the start' ? { time: player.currentTime, duration: player.duration, text: button.textContent } : null
+  }`, 20)
+  check(Boolean(ended) && ended.time < ended.duration && ended.time > ended.duration - 0.2 && ended.text === '↻', `the end holds the last frame and offers a replay (${JSON.stringify(ended)})`)
+  await evaluate(`() => { document.querySelector('.scene-stage-transport > button').click(); return true }`)
+  const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Pause the preview' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
+  check(replayed !== null, `replay starts again from the beginning (${replayed}s)`)
+  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.pause(); return true }`)
+  // Back in the notebook, its canvas opened full screen (Open canvas)
+  // shows the same sketch, its one transport and its label — not the
+  // notebook's dialogue timeline, recording bar or director.
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`)
+  check(Boolean(await waitFor(`() => !document.body.classList.contains('is-scene-workspace') && document.querySelector('.scene-review.is-expanded') ? true : null`, 20)), 'the Notebook view comes back, on the review')
+  await evaluate(`() => { document.getElementById('open-fullscreen').click(); return true }`)
   const full = await waitFor(`() => {
     const shell = document.getElementById('player-shell')
     if (!shell.classList.contains('canvas-open')) return null
@@ -382,19 +401,25 @@ try {
   check(full?.src === ready.ready.url && full.transport && full.label && full.legacy.length === 0 && full.fills, `full screen keeps the one sketch, filling the stage, its transport and its label (${JSON.stringify(full)})`)
   await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.seek(${ready.ready.summary.moments[1].start} + 1.5); return true }`)
   await shot('01b-preview-full-screen')
-  await evaluate(`() => { document.getElementById('canvas-fullscreen').click(); return true }`)
-  // At its end the sketch holds its last frame and offers a replay.
-  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.seek(player.duration - 0.4); player.play(); return true }`)
-  const ended = await waitFor(`() => {
-    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
-    const button = document.querySelector('.scene-stage-transport > button')
-    return button.getAttribute('aria-label') === 'Replay the preview from the start' ? { time: player.currentTime, duration: player.duration, text: button.textContent } : null
-  }`, 20)
-  check(Boolean(ended) && ended.time < ended.duration && ended.time > ended.duration - 0.2 && ended.text === '↻', `the end holds the last frame and offers a replay (${JSON.stringify(ended)})`)
+  // Closed over the one-column notebook, the canvas takes the sketch out of
+  // sight: playing, it pauses where it was rather than play on unseen.
   await evaluate(`() => { document.querySelector('.scene-stage-transport > button').click(); return true }`)
-  const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Pause the preview' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
-  check(replayed !== null, `replay starts again from the beginning (${replayed}s)`)
-  await evaluate(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); player.pause(); return true }`)
+  const playingFull = await waitFor(`async () => {
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
+    if (document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') !== 'Pause the preview') return null
+    const at = player.currentTime
+    await new Promise(resolve => setTimeout(resolve, 300))
+    return player.currentTime > at ? player.currentTime : null
+  }`, 10)
+  await evaluate(`() => { document.getElementById('canvas-fullscreen').click(); return true }`)
+  const closedPaused = await waitFor(`async () => {
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
+    const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label')
+    const at = player.currentTime
+    await new Promise(resolve => setTimeout(resolve, 400))
+    return !document.getElementById('player-shell').classList.contains('canvas-open') && label === 'Play the preview' && player.currentTime === at ? { label, at } : null
+  }`, 10)
+  check(Boolean(playingFull) && Boolean(closedPaused) && closedPaused.at >= playingFull - 0.05, `closing the canvas over the notebook pauses the sketch where it was (${JSON.stringify({ playing: playingFull, closed: closedPaused })})`)
   // The decision first; the sketch in one line; its details and the moment
   // map on demand (R6, G3).
   const order = await evaluate(`() => {

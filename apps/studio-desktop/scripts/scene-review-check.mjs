@@ -359,12 +359,14 @@ try {
       revision: seen(review.querySelector('.review-revision')),
       preview: seen(review.querySelector('[data-focus^="preview:"]')),
       action: seen(review.querySelector('[data-focus^="approve:"]')),
-      stage: seen(document.getElementById('scene-stage')),
+      // The notebook is the words (the one stage layout): one column, the
+      // stage the Scenes view's.
+      oneColumn: getComputedStyle(document.querySelector('.inline-canvas-rail')).display === 'none',
       nothingBefore: review.getBoundingClientRect().top >= top - 1 && review.getBoundingClientRect().top - top < 40 && !(block.getBoundingClientRect().bottom <= review.getBoundingClientRect().top),
       at: { top: Math.round(top), review: Math.round(review.getBoundingClientRect().top), block: [Math.round(block.getBoundingClientRect().top), Math.round(block.getBoundingClientRect().bottom)] },
     }
   }`)
-  check(firstScreen.window === '1440×900' && Object.entries(firstScreen).every(([key, value]) => key === 'height' || key === 'window' || key === 'at' || value), `picked from the rail, the scene's first screen shows its title, status, what it explains, a moment, its revision, preview and approve, and the stage — the plan first (${JSON.stringify(firstScreen)})`)
+  check(firstScreen.window === '1440×900' && Object.entries(firstScreen).every(([key, value]) => key === 'height' || key === 'window' || key === 'at' || value), `picked from the rail, the scene's first screen shows its title, status, what it explains, a moment, its revision, preview and approve — the plan first, in one column (${JSON.stringify(firstScreen)})`)
   await shot('00-first-screen')
   // The inherited dialogue is one click away, and folds again.
   const unfolded = await evaluate(`async () => {
@@ -383,18 +385,14 @@ try {
   await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[1].click(); return true }`)
   const highlight = await waitFor(`() => { const hits = [...document.querySelectorAll('#scene-stage-reference .stage-hit')].map(element => element.id); return hits.length ? { hits, note: document.getElementById('scene-stage-note').textContent } : null }`, 10)
   check(Boolean(highlight) && /Highlighted: what this moment is about/.test(highlight.note), `selecting a moment highlights what it is about on the page (${JSON.stringify(highlight)})`)
-  // Reading down the review, the stage stays in view beside it, and what it
-  // shows is said under the frame — nothing is drawn over the page.
-  const follows = await evaluate(`async () => {
-    document.querySelector('.scene-review.is-expanded .review-panel').scrollIntoView({ block: 'end' })
-    await new Promise(resolve => setTimeout(resolve, 600))
-    const viewport = document.querySelector('.studio-workspace').getBoundingClientRect()
-    const stage = document.getElementById('scene-stage').getBoundingClientRect()
-    const block = document.querySelectorAll('#editor .tiptap > [data-block-type="scene"]')[1].getBoundingClientRect()
+  // The notebook reads as one column (the one stage layout): the stage is the
+  // Scenes view's, and what it shows is said under its frame — nothing is
+  // drawn over the page.
+  const follows = await evaluate(`() => {
     const frame = document.getElementById('scene-stage')
-    return { blockAbove: block.bottom < viewport.top, stageInView: stage.top >= viewport.top - 1 && stage.bottom <= viewport.bottom + 1, clear: !frame.contains(document.querySelector('.scene-stage-modes')) && !frame.contains(document.getElementById('scene-stage-note')) }
+    return { rail: getComputedStyle(document.querySelector('.inline-canvas-rail')).display, width: Math.round(document.getElementById('editor-layout').getBoundingClientRect().width), clear: !frame.contains(document.querySelector('.scene-stage-modes')) && !frame.contains(document.getElementById('scene-stage-note')) }
   }`)
-  check(follows.stageInView && follows.clear, `the stage stays in view beside the review, with nothing over the page (${JSON.stringify(follows)})`)
+  check(follows.rail === 'none' && follows.width <= 980 && follows.clear, `the notebook reads as one column, its stage the Scenes view's, with nothing over the page (${JSON.stringify(follows)})`)
   await shot('01-scene-review')
   await shot('01b-object-decisions', '.scene-review.is-expanded [data-review-cast]')
 
@@ -533,15 +531,15 @@ try {
   const chrome = await evaluate(`() => ({ rail: [...document.querySelectorAll('.notebook-timeline-chip strong')].map(item => item.textContent), create: getComputedStyle(document.getElementById('create-explainer')).display, build: document.getElementById('build-explainer').querySelector('.menu-label').textContent, buildTitle: document.getElementById('build-explainer').title, underAdvanced: Boolean(document.getElementById('build-explainer').closest('#advanced-menu-list')) })`)
   check(chrome.rail.join('|') === 'Request rate limiter|Concurrent requests limiter', `the scene rail names its scenes (${chrome.rail})`)
   check(chrome.create === 'none' && chrome.build === 'Build whole notebook' && chrome.underAdvanced && /does not use approved scene plans/.test(chrome.buildTitle), `a video notebook shows its own workflow; the older build waits under Advanced and says what it is (${JSON.stringify(chrome)})`)
-  // The notebook fits its window, the stage large enough to judge, the rail
-  // in its own band (R7).
+  // The notebook fits its window as one column, the rail in its own band
+  // (R7); the stage, large enough to judge, is the Scenes view's.
   const fit = await evaluate(`() => {
     const rail = document.getElementById('notebook-timeline').getBoundingClientRect()
     const workspace = document.querySelector('.studio-workspace').getBoundingClientRect()
     const hidden = [...document.querySelectorAll('.contextbar .context-actions > *, .topbar-actions > *')].filter(element => element.offsetParent && element.getBoundingClientRect().right > innerWidth + 1).map(element => element.textContent.trim().slice(0, 24))
-    return { width: innerWidth, sideways: document.documentElement.scrollWidth > innerWidth, hidden, stage: Math.round(document.getElementById('player-shell').getBoundingClientRect().width), railOverDocument: rail.top < workspace.bottom - 1 }
+    return { width: innerWidth, sideways: document.documentElement.scrollWidth > innerWidth, hidden, stage: Math.round(document.getElementById('player-shell').getBoundingClientRect().width), column: Math.round(document.getElementById('editor-layout').getBoundingClientRect().width), railOverDocument: rail.top < workspace.bottom - 1 }
   }`)
-  check(!fit.sideways && fit.hidden.length === 0 && !fit.railOverDocument && fit.stage >= Math.min(560, fit.width * 0.38), `the notebook fits its window, with a stage large enough to judge (${JSON.stringify(fit)})`)
+  check(!fit.sideways && fit.hidden.length === 0 && !fit.railOverDocument && fit.stage === 0 && fit.column <= 980, `the notebook fits its window as one column, with no stage beside it (${JSON.stringify(fit)})`)
   await shot('02-approved-guide')
 
 
@@ -653,14 +651,18 @@ try {
   const offered = await waitFor(`() => { const notice = document.querySelector('.scene-review.is-expanded [data-review-reference="newer"]'); return notice ? { text: notice.textContent, chips: [...document.querySelectorAll('.scene-review.is-expanded .review-strip .review-chip')].map(chip => chip.textContent) } : null }`, 60)
   check(/The base has a newer designed slide for this scene, by Claude Code/.test(offered?.text || '') && offered.chips.includes('Page: designed slide') && offered.chips.includes('Base has a newer designed slide'), `the scene is offered the base's newer designed slide (${JSON.stringify(offered)})`)
   await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="compare-reference:"]').click(); return true }`)
+  // The stage is the Scenes view's (the one stage layout): comparing opens
+  // it, the offer beside the stage in the scene's Story.
+  check(Boolean(await waitFor(`() => document.body.classList.contains('is-scene-workspace') && document.getElementById('scene-workspace').contains(document.getElementById('scene-stage')) ? true : null`, 20)), 'comparing opens the Scenes view, the base\'s newer slide on its stage')
   const comparedStage = await waitFor(`() => { const active = document.querySelector('.scene-stage-modes .is-active'); const svg = document.querySelector('#scene-stage-reference svg'); return active?.dataset.stageMode === 'base' ? { mode: active.textContent, gpu: Boolean(svg?.querySelector('[data-object-id="obj-gpu-17"]')), note: document.getElementById('scene-stage-note').textContent } : null }`, 20)
   check(comparedStage?.mode === "Reference: the base's newer slide" && comparedStage.gpu && /^The base's designed slide for this scene, by Claude Code/.test(comparedStage.note), `the stage compares the base's designed slide (${JSON.stringify(comparedStage)})`)
   await shot('05-compare-base-slide')
   check(!(await api(`/api/projects/${videoId}`)).body.project.notebook.content.filter(node => node.type === 'scene')[0].attrs.reference, 'comparing takes nothing')
-  await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="adopt-reference:"]').click(); return true }`)
+  await evaluate(`() => { document.getElementById('sw-tab-story').click(); return true }`)
+  check(Boolean(await waitFor(`() => { const button = document.querySelector('#scene-workspace [data-focus^="adopt-reference:"]'); if (!button || button.disabled) return null; button.click(); return true }`, 20)), 'the scene\'s Story offers the newer slide beside the stage that shows it, and takes it when asked')
   const adoptedScene = await until(async () => { const scene = (await overview(videoId)).scenes[0]; return scene.reference?.adopted ? scene : null }, 60)
   check(adoptedScene?.reference?.kind === 'designed' && adoptedScene.reference.newer === null && adoptedScene.view.state === 'stale' && /the scene's page reference changed/.test(adoptedScene.view.staleBecause || ''), `the scene takes the designed slide, and its plan made from the old page reads as out of date (${JSON.stringify({ kind: adoptedScene?.reference?.kind, adopted: adoptedScene?.reference?.adopted, state: adoptedScene?.view.state, why: adoptedScene?.view.staleBecause })})`)
-  const stageNow = await waitFor(`() => { const svg = document.querySelector('#scene-stage-reference svg'); const active = document.querySelector('.scene-stage-modes .is-active'); return svg?.querySelector('[data-object-id="obj-gpu-17"]') && active?.dataset.stageMode === 'reference' ? { mode: active.textContent, offersBase: !document.querySelector('[data-stage-mode="base"]').hidden, note: document.getElementById('scene-stage-note').textContent, notice: Boolean(document.querySelector('.scene-review.is-expanded [data-review-reference]')) } : null }`, 30)
+  const stageNow = await waitFor(`() => { const svg = document.querySelector('#scene-stage-reference svg'); const active = document.querySelector('.scene-stage-modes .is-active'); return svg?.querySelector('[data-object-id="obj-gpu-17"]') && active?.dataset.stageMode === 'reference' ? { mode: active.textContent, offersBase: !document.querySelector('[data-stage-mode="base"]').hidden, note: document.getElementById('scene-stage-note').textContent, notice: Boolean(document.querySelector('#scene-workspace [data-review-reference]')) } : null }`, 30)
   check(stageNow?.mode === 'Reference: designed slide' && stageNow.offersBase === false && /adopted from the base/.test(stageNow.note) && !stageNow.notice, `the stage shows the scene's adopted designed slide, and nothing more is offered (${JSON.stringify(stageNow)})`)
   await shot('06-adopted-designed-slide')
   // Both references are kept: the stage offers the schematic beside the slide.

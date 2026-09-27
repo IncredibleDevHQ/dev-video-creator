@@ -387,10 +387,13 @@ try {
   }`, 30)
   check(stage?.src === `${produced1.ready.url}?e=0` && /^Produced scene/.test(stage.mode) && stage.enabled, `the stage plays the produced scene, with no edits yet (${JSON.stringify(stage && { src: stage.src, mode: stage.mode })})`)
   check(stage?.note === `Produced from plan r${plan1.revision}, on a generated voice · not accepted yet` && stage.moments.join('|') === 'Requests arrive|The limit bites|Load stays safe' && !/est\./.test(stage.clock), `the stage says what it plays, on its real clock, not an estimate (${stage?.note} · ${stage?.clock})`)
-  const noSketch = await evaluate(`() => document.querySelector('.scene-review.is-expanded .review-no-preview')?.textContent || ''`)
-  check(noSketch === `No preview of r${plan1.revision} yet — it was produced without one.`, `the review does not claim the stage shows the page while it plays the production (${noSketch})`)
-  const typeLine = await evaluate(`() => document.querySelector('.scene-review.is-expanded [data-review-type]')?.textContent || ''`)
-  check(typeLine === 'Type: Inter for system-ui, EB Garamond for serif, JetBrains Mono for monospace — the same on the stage and in the video.', `the review says which face the scene's type is set in (${typeLine})`)
+  // The stage is the Scenes view's (the one stage layout): reviewing the
+  // output from the notebook opens it there.
+  check(await evaluate(`() => !document.getElementById('scene-workspace').hidden && document.getElementById('scene-workspace').contains(document.getElementById('scene-stage'))`), 'reviewing the output opens the Scenes view, the produced scene on its stage')
+  const offered = await evaluate(`() => document.querySelector('#scene-workspace .ws-offer[data-offer="output"]')?.textContent || ''`)
+  check(offered === '', `the output it plays is not also offered under the stage (${offered})`)
+  const outputType = await evaluate(`async () => { document.getElementById('sw-tab-output')?.click(); await new Promise(resolve => setTimeout(resolve, 300)); return document.querySelector('#scene-workspace [data-review-type]')?.textContent || '' }`)
+  check(outputType === 'Type: Inter for system-ui, EB Garamond for serif, JetBrains Mono for monospace — the same on the stage and in the video.', `its Output says which face the scene's type is set in (${outputType})`)
   const loaded = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return player.duration > 0 ? player.duration : null }`, 40)
   check(Math.abs((loaded || 0) - clock.duration) < 0.25, `the engine loaded it for its clock's length (${loaded}s of ${clock.duration}s)`)
   const transport = await waitFor(`() => { const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Play the produced scene' ? label : null }`, 20)
@@ -398,9 +401,9 @@ try {
   await evaluate(`() => { document.querySelectorAll('.scene-stage-moment')[1].click(); return true }`)
   const seeked = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${clock.moments[1].start}) < 0.25 ? player.currentTime : null }`, 20)
   check(seeked !== null, `its timeline seeks to a moment on the clock (${seeked}s)`)
-  await evaluate(`() => { document.querySelectorAll('.scene-review.is-expanded .review-moment-head')[2].click(); return true }`)
+  await evaluate(`() => { document.querySelectorAll('#scene-workspace .sw-moment')[2].click(); return true }`)
   const followed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return Math.abs(player.currentTime - ${clock.moments[2].start}) < 0.25 ? player.currentTime : null }`, 20)
-  check(followed !== null, `selecting a moment in the review seeks the production (${followed}s)`)
+  check(followed !== null, `selecting a moment under the stage seeks the production (${followed}s)`)
   await shot('01-production-on-stage')
   // F07 of the project-flow fix verification: played to its natural end —
   // a generated voice's clock need not be a whole number of frames — the
@@ -421,7 +424,25 @@ try {
   await evaluate(`() => { document.querySelector('.scene-stage-transport > button').click(); return true }`)
   const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') === 'Pause the produced scene' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
   check(replayed !== null, `Replay plays the produced scene again from the start (${replayed}s)`)
-  await evaluate(`() => { document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)').pause(); return true }`)
+
+  // Back in the notebook, which shows no stage: the scene playing there
+  // stops rather than play on unseen. (Moved home, the player starts again:
+  // it has no hook to keep its place when moved.) The review says what the
+  // stage played — and never that the stage shows the page.
+  const playing = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') === 'Pause the produced scene' && player.currentTime > 0.5 ? player.currentTime : null }`, 10)
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`)
+  const unseen = await waitFor(`async () => {
+    const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
+    const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label')
+    const at = player.currentTime
+    await new Promise(resolve => setTimeout(resolve, 400))
+    return label === 'Play the produced scene' && player.currentTime === at ? { label, at } : null
+  }`, 10)
+  check(Boolean(playing) && Boolean(unseen), `leaving the Scenes view stops the scene that was playing on its stage (${JSON.stringify({ playing, unseen })})`)
+  const noSketch = await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-no-preview')?.textContent || null`, 20)
+  check(noSketch === `No preview of r${plan1.revision} yet — it was produced without one.`, `the review does not claim the stage shows the page while it plays the production (${noSketch})`)
+  const typeLine = await evaluate(`() => document.querySelector('.scene-review.is-expanded [data-review-type]')?.textContent || ''`)
+  check(typeLine === 'Type: Inter for system-ui, EB Garamond for serif, JetBrains Mono for monospace — the same on the stage and in the video.', `the review says which face the scene's type is set in (${typeLine})`)
 
   // ——— Accepting renders it once; the notebook plays that render ———
   await click('.scene-review.is-expanded [data-focus^="accept-production:"]')

@@ -6085,6 +6085,7 @@ const openCanvasFullscreen = () => {
   // preview never plays a switchover audition.
   if (!isOpen) closeTransitionPopover()
   document.body.classList.toggle('canvas-is-open', isOpen)
+  if (!isOpen) pauseUnseen()
   const fullscreenButton = $('#canvas-fullscreen') as HTMLButtonElement
   fullscreenButton.textContent = isOpen ? '×' : '↗'
   fullscreenButton.setAttribute(
@@ -18426,9 +18427,13 @@ const recordScene = (sceneId: string, pickupLines?: string[]) => {
 }
 // The stage plays the scene's production (P4), from `at` when given.
 const showProducedScene = (sceneId: string, at?: number) => {
+  bringStage()
   if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
   sceneStageAsideFor = ''
   stageChoices.choose(sceneId, 'output')
+  // Asked for, the output is no longer only offered (it was held while the
+  // notebook showed).
+  outputNotices.delete(sceneId)
   sceneStageMode = 'output'
   const loaded = stagePlayerUrl
   stageSeekOnReady = at ?? null
@@ -18442,9 +18447,29 @@ const showProducedScene = (sceneId: string, at?: number) => {
     syncStagePlay()
   }
 }
+// The stage is the Scenes view's (the one stage layout): a video's notebook
+// shows its words, so what the stage is asked to show opens the Scenes view,
+// and nothing takes the stage unseen while the notebook shows — it waits
+// under the stage, as it does for a creator busy with the stage.
+const stageOffScreen = () => Boolean(project.derivedFrom?.notebook) && sceneWorkspace?.view() === 'notebook' && !document.body.classList.contains('canvas-is-open')
+const bringStage = () => {
+  if (stageOffScreen()) sceneWorkspace?.show('scenes')
+}
+// A notebook of one column (a video's, or a base's pages) sets its canvas
+// aside: what was playing there — the stage or the notebook's own
+// composition — pauses rather than play unseen when the canvas closes over
+// it, or when the Scenes view hands the stage back (where the stage's
+// player, moved, starts again anyway: it has no hook to keep its place).
+const pauseUnseen = () => {
+  const rail = playerShell.closest<HTMLElement>('.inline-canvas-rail')
+  if (!rail || getComputedStyle(rail).display !== 'none') return
+  stagePlayer?.pause()
+  ;(document.getElementById('player') as (HTMLElement & { pause?: () => void }) | null)?.pause?.()
+}
 // The stage plays the scene's preview of the revision on show, paused at
 // the chosen moment, else at its start — never with sound on its own.
 const playPreview = (sceneId: string) => {
+  bringStage()
   sceneStageAsideFor = ''
   stageChoices.choose(sceneId, 'preview')
   previewNotices.delete(sceneId)
@@ -18486,7 +18511,7 @@ const settlePreviewWaits = () => {
       selectedScene: reviewSelectedScene,
       shownPlanRecord: shown,
       generation: stageChoices.generation(wait.sceneId),
-      busy: Boolean(sceneStageAsideFor) || cameraDialog.open || stagePlaying,
+      busy: Boolean(sceneStageAsideFor) || cameraDialog.open || stagePlaying || stageOffScreen(),
     })
     if (decision === 'wait') continue
     changed = true
@@ -18529,7 +18554,7 @@ const settleOutputs = () => {
   outputsSeen.set(sceneId, now)
   if (was === undefined || !now || was === now || sceneStageMode === 'output') return
   const chosen = stageChoices.chosen(sceneId)
-  if ((chosen && chosen !== 'output') || sceneStageAsideFor || cameraDialog.open || stagePlaying) {
+  if ((chosen && chosen !== 'output') || sceneStageAsideFor || cameraDialog.open || stagePlaying || stageOffScreen()) {
     outputNotices.add(sceneId)
     sceneWorkspace?.announce('The scene’s output is ready. It waits under the stage.')
     sceneWorkspace?.render()
@@ -18689,6 +18714,7 @@ sceneReview = createSceneReview({
     playPreview(sceneId)
   },
   showBaseReference: sceneId => {
+    bringStage()
     if (reviewSelectedScene !== sceneId) selectNode(sceneId, false)
     sceneStageAsideFor = ''
     stageChoices.choose(sceneId, 'base')
@@ -18940,6 +18966,7 @@ sceneWorkspace = createSceneWorkspace({
     // The notebook's review folds while the workspace shows, and opens again.
     refreshSceneReview()
     renderSceneStage()
+    if (view === 'notebook') pauseUnseen()
     settlePreviewWaits()
     syncLayoutBands()
     if (view === 'notebook' && reviewSelectedScene) window.requestAnimationFrame(() => revealBlock(reviewSelectedScene))

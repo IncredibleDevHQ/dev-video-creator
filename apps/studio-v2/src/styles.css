@@ -1700,6 +1700,11 @@ body.is-base-pages .notebook-scene-block :is(.scene-arc, .scene-area, [data-slid
 body.is-base-pages :is(#live-camera-toggle, .notebook-timeline-copy time) { display: none; }
 body.is-base-pages:not(.canvas-is-open) .inline-canvas-rail { display: none; }
 body.is-base-pages:not(.canvas-is-open) .editor-layout { width: min(980px, 100%); grid-template-columns: minmax(0, 1fr); }
+/* A video's notebook is its words (the one stage layout): the stage is the
+   Scenes view's, so its notebook reads as one column, as a wireframe's and a
+   presentation's do. The canvas still opens full screen from it. */
+body.is-video-notebook:not(.canvas-is-open) .inline-canvas-rail { display: none; }
+body.is-video-notebook:not(.canvas-is-open) .editor-layout { width: min(980px, 100%); grid-template-columns: minmax(0, 1fr); }
 
 /* ——— A project's notebooks (the four-notebook model) ———
    One tab per kind, in the order they are made from one another; each says
