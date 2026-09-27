@@ -1,4 +1,4 @@
-# Component passes: buttons, focus, icons, and the menu's surface
+# Component passes: the studio's controls, one of each
 
 The request: component quality and a neat UI, without a new brand or a rewrite. A component audit compared the studio with Open Slide, control by control, in both appearances. Its top problems:
 - buttons in 15 heights, 6 weights and 3 typefaces, with a disabled state that looked like a choice;
@@ -9,7 +9,7 @@ The request: component quality and a neat UI, without a new brand or a rewrite. 
 - header menus that stayed dark in the light appearance;
 - the operating system's select menus.
 
-The audit proposed a build order, and these three passes follow it. They build on the one stage layout (`2026-09-27-one-stage-layout.md`) and keep Incredible's brand: its green, its logo, Gilroy for controls and InterBody for reading.
+The audit proposed a build order, and these four passes follow it, the fourth finishing what the first three left. They build on the one stage layout (`2026-09-27-one-stage-layout.md`) and keep Incredible's brand: its green, its logo, Gilroy for controls and InterBody for reading.
 
 ## Why not React and Base UI
 
@@ -119,12 +119,95 @@ The audit proposed a small React spike with Base UI for the parts with behaviour
 - **Pass 3, selects:** `theme-list.png` and `theme-list-dark.png` show the theme's list opened inside More. `voice-list.png` and `revision-list-dark.png` show the voice and revision lists.
 - **Pass 3, tooltips and toasts:** `tooltip.png` and `tooltip-dark.png` show the tooltip. `toast-error.png` and `toast-error-dark.png` show an error toast, the same message raised three times and shown once.
 
+## Pass 4: the audit's remaining items
+
+The first three passes left tabs, dialogs, badges and the older surfaces. This pass finishes them, and fixes two things found on the way.
+
+**Tabs** (`src/ui/tabs.css`, `src/ui/tabs.ts`). There are now two kinds, where there were seven:
+- **Segmented.** A 28px track with a 2px inset, 24px items at 12px, and the chosen item raised on the card's surface. It is used for:
+  - the view switch (Scenes · Notebook, Pages · Notebook);
+  - the source dialog's input and wording;
+  - the theme lab's axes and preview types;
+  - the appearance choice.
+  
+  The header's notebook switch is the same kind on the dark chrome. It loses the underline it also had.
+- **Line tabs.** A 2px green underline at 13px, used in the Scenes inspector, the Details drawer, the planning dialog and the director's background type. The focus ring sits inside the tab, above its underline.
+- **Keys.**
+  - The Details drawer's and the planning dialog's tabs had no keys. They now take ← → Home End and keep the keyboard as they redraw.
+  - The theme lab's tabs, the preview types, the background type and the director's rail (↑ ↓) take the keys through `tabList()`. Only the chosen tab is in the Tab order.
+  - Who speaks moves with the arrows but chooses only on Enter or Space, because a choice saves and may plan the scene again.
+- **Roles.** Tabs that had no role are now tabs, and the Details drawer's panel is a tab panel.
+
+**Dialogs** (`src/ui/dialog.css`, `src/ui/dialog.ts`):
+- **One shell for all thirteen.**
+  - 10px corners, a hairline border and 24px inside.
+  - A backdrop at 35% ink with a 2px blur.
+  - A 28px ghost close button, and a 15px title under its muted line.
+  - The footer's buttons on the right.
+- **Where the keyboard opens.** Before, six of the eight dialogs captured opened on × and one on a link in its heading. Now:
+  - Each opens on its first field: the markdown's text, the explainer's topic, the chosen publish scope, the scene studio's note.
+  - With no field, it opens on its first control past the heading: the first card to start from, or Done.
+  - A long dialog whose first field is below the fold (AI settings) puts the keyboard on the dialog itself, so its top stays in view.
+  - A dialog that draws part of itself after opening gets the keyboard back if the redraw takes it.
+- **Smaller fixes.**
+  - The markdown and camera dialogs' close buttons had no name; now they do.
+  - The shape collection's buttons were dark chrome buttons; they are now the light outline.
+  - The Refine appearance dialog was built in code with inline styles; it now uses the shell.
+  - Escape in the explainer wizard left a new, empty explainer behind. It now removes it, as the close button does.
+- **Toasts over a modal dialog.** The page around a modal dialog is inert, so a toast's buttons there could not be pressed. Toasts raised while one is open now sit inside it, and return to the page when it closes.
+
+**Badges** (`src/ui/badge.css`):
+- **One pill** (20px, 12px at 500) for the review strip's chips, the Scenes header's plan chip and the planning dialog's chips.
+- **Status dots.** The rail's dots use the same tone tokens.
+- **Notebook kinds.** They were light-on-dark colours; they are now a small outline badge, readable on the menu's light surface.
+- **Project chips.** A project's notebook chips sit on the menu's surface.
+- **One tone list.** The plan states' tones are one list, `PLANNING_STATE_TONES`, where the scene review and the planning dialog each had a copy.
+- **Words by place.** The words still differ by design. The rail says what a scene needs next ("Plan it"); the strip says where its plan stands ("Plan: Ready to plan").
+
+**Fields and the older surfaces** (`src/ui/field.css`, `src/ui/surfaces.css`, `styles.css`):
+- **Fields.** 32px tall, a 1px line, 6px corners, 13px in the reading face; a textarea starts at 64px. This covers the theme builder, the explainer, the settings, the shape editor and the scene studio's selects. Colour swatches are 44×32.
+- **Type.** 339 rules were moved onto the studio's type floor in place. They cover the canvas and its director, the theme builder, the explainer wizard, the scene studio and the dialogs.
+  - Nothing is under 10px, and a control's words are 12px.
+  - Weights 700–800 are now 600.
+  - Labels are in sentence case.
+  - 110 of these rules moved from `system-ui` to the reading face.
+  - The theme preview's sample art keeps its own type.
+- **The director's rail.**
+  - It is on the studio's dark; it was slate.
+  - It is 84px wide, so each label sits on one line.
+  - Lower third and Transition were characters; they now have icons.
+- **Small buttons.** Buttons under 24px are now 24px: the transition popover's close, the timeline edit, and the scene studio's row tools and timing chips.
+
+**Found on the way:**
+- **A scene no longer restarts after a trip to the notebook.**
+  - The stage's player moves between the views by `moveBefore`. That keeps an element alive only if it has a `connectedMoveCallback`, and the Hyperframes player had none, so it was disconnected and reloaded.
+  - `src/ui/player-move.ts` gives it one before its module defines it.
+  - `production-check` asserts again that the scene pauses where it was, and that the Scenes view gets it back there (1.03s both times). With the hook turned off, it fails: the scene is back at 0s.
+- **Open canvas showed nothing in the page view.** The canvas lives in the notebook's document, which the page view hid. The document is now hidden only while the canvas is closed.
+
+**Evidence:**
+- **Unit tests.** studio-v2: 475 tests in 64 files pass. The new files are `tabs.test.ts` (4), `dialog.test.ts` (4) and `player-move.test.ts` (2); `feedback.test.ts` adds the toast over a modal dialog.
+- **Checks changed:**
+  - `production-check` (above).
+  - `scene-workspace-check` now opens the scene's More menu. It asserts the menu's surface, its 28px rows, that it sits in view, and that Escape hands the keyboard back to More. It passes in both appearances, and its screenshots are below.
+- **The desktop battery on the final build:** all 32 checks pass in light (the 31, plus `rehearsal-check`), each on its first run. That includes the two checks changed above, the dialog, tab and badge changes, and the older surfaces' type.
+- **Captured before and after from the live video in the isolated store, in both appearances.** The capture shows:
+  - Where each dialog puts the keyboard.
+  - The toast over a modal dialog. Before, it was in the page and its × could not be hit. After, it is in the dialog and its × is reachable.
+  - The director's rail with its labels on one line.
+  - The Details drawer's tabs moving from the keyboard.
+
+**Screenshots** in `2026-09-27-component-passes-evidence/`:
+- `view-switch.png`, `details-tabs.png` and `review-badges.png`: tabs and badges.
+- `dialog-publish.png`, `dialog-create.png`, `dialog-markdown.png` and `dialog-settings.png`: the shell, and the keyboard off ×.
+- `toast-over-dialog.png`: a toast inside the open AI settings dialog.
+- `director.png` and `director-transition.png`: the director, before and after.
+- `theme-builder.png`, `canvas-bar.png` and `scene-studio.png`: the other older surfaces.
+- `scene-more-menu.png` and `scene-more-menu-dark.png`: the scene's More menu, from `scene-workspace-check`.
+
 ## Not done yet
 
-- **Tabs** have no one style yet: the Scenes inspector's, the director's and the planning dialog's are each their own.
-- **Dialogs.** They still have their own headers and close buttons, and they do not all put the keyboard on their first field.
-- **Badges and chips** are still styled one by one.
-- **The older surfaces** keep their small controls: the full-screen canvas's director, the theme lab and the explainer wizard.
-- **The scene's More menu** has the menu surface, and `scene-workspace-check` reads its items. It was not captured on screen: the live video offers no scene with that menu, and the check does not open it.
-- **A toast raised while a modal dialog is open** shows above the dialog. Under the HTML rules for modal dialogs, its dismiss and action buttons cannot be reached until the dialog closes. This was not tried.
-- **A scene restarts after a trip to the notebook**, as noted in the one stage layout record.
+- **Unchecked on screen.**
+  - The canvas's dense block timeline has its words on the floor but was not reviewed on screen.
+  - Only the explainer wizard's first step was captured.
+- **Toasts** are not moved into a dialog opened with `show()` instead of `showModal()`, since the page around one is not inert.
