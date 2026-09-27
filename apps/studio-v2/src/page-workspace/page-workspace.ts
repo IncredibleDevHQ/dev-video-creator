@@ -116,8 +116,8 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
   const next = iconButton('chevron-right', 'Next page', '→')
   const counter = h('span', { class: 'pw-folio', 'aria-live': 'polite' })
   const caption = h('span', { class: 'pw-stage-title' })
-  const overviewTool = h('button', { type: 'button', class: 'pw-tool', title: 'All pages at once (O)', 'aria-keyshortcuts': 'O', 'data-stage-keys': '' }, icon('grid-2x2'), h('span', { text: 'All pages' }))
-  const fullscreenTool = h('button', { type: 'button', class: 'pw-tool', title: 'The page on the whole screen (F)', 'aria-keyshortcuts': 'F', 'data-stage-keys': '' }, icon('maximize-2'), h('span', { text: 'Full screen' }))
+  const overviewTool = h('button', { type: 'button', class: 'pw-tool ui-tool', title: 'All pages at once (O)', 'aria-keyshortcuts': 'O', 'data-stage-keys': '' }, icon('grid-2x2'), h('span', { text: 'All pages' }))
+  const fullscreenTool = h('button', { type: 'button', class: 'pw-tool ui-tool', title: 'The page on the whole screen (F)', 'aria-keyshortcuts': 'F', 'data-stage-keys': '' }, icon('maximize-2'), h('span', { text: 'Full screen' }))
   const stageRow = h('div', { class: 'pw-stage-row' }, h('div', { class: 'pw-pager' }, previous, counter, next), caption, h('div', { class: 'pw-stage-tools' }, overviewTool, fullscreenTool))
   const centre = h('section', { class: 'pw-centre', 'aria-label': 'Page on show' }, notices, stageArea, stageRow)
 

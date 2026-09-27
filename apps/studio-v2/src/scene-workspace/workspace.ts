@@ -142,7 +142,8 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const frame = h('div', { class: 'sw-stage-frame' })
   stageArea.append(frame)
   const bar = h('div', { class: 'sw-stage-bar' })
-  const focusButton = h('button', { type: 'button', class: 'sw-tool sw-focus', 'data-focus': 'sw-focus', 'aria-pressed': 'false', text: 'Focus stage', title: 'Hide the scenes and the inspector — the same stage, larger' })
+  const focusLabel = h('span', { text: 'Focus stage' })
+  const focusButton = h('button', { type: 'button', class: 'ui-tool sw-focus', 'data-focus': 'sw-focus', 'aria-pressed': 'false', title: 'Hide the scenes and the inspector — the same stage, larger' }, icon('scan'), focusLabel)
   focusButton.addEventListener('click', () => {
     focusStage = !focusStage
     shown = ''
@@ -152,7 +153,8 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   // verification): the same composition, to read its key moments' labels
   // and results at the size they may be watched.
   let phoneSize = false
-  const phoneButton = h('button', { type: 'button', class: 'sw-tool sw-phone', 'data-focus': 'sw-phone', 'aria-pressed': 'false', text: 'Phone size', title: 'The stage as small as a phone shows it — to check its labels and results still read' })
+  const phoneLabel = h('span', { text: 'Phone size' })
+  const phoneButton = h('button', { type: 'button', class: 'ui-tool sw-phone', 'data-focus': 'sw-phone', 'aria-pressed': 'false', title: 'The stage as small as a phone shows it — to check its labels and results still read' }, icon('smartphone'), phoneLabel)
   phoneButton.addEventListener('click', () => {
     phoneSize = !phoneSize
     shown = ''
@@ -357,10 +359,10 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     const planning = parts?.activity && ['planning', 'brief'].includes(parts.actions.activity?.kind || '') ? parts.activity : null
     head.replaceChildren(...([views, title, parts?.voice || null, h('div', { class: 'sw-revision-slot' }, parts?.revision || null), h('div', { class: 'sw-status' }, planning), actions] as Array<HTMLElement | null>).filter((part): part is HTMLElement => Boolean(part)))
     // Focus stage sits with the stage's own controls.
-    focusButton.textContent = focusStage ? 'Show panels' : 'Focus stage'
+    focusLabel.textContent = focusStage ? 'Show panels' : 'Focus stage'
     focusButton.setAttribute('aria-pressed', String(focusStage))
     focusButton.classList.toggle('is-on', focusStage)
-    phoneButton.textContent = phoneSize ? 'Full size' : 'Phone size'
+    phoneLabel.textContent = phoneSize ? 'Full size' : 'Phone size'
     phoneButton.setAttribute('aria-pressed', String(phoneSize))
     phoneButton.classList.toggle('is-on', phoneSize)
     // A preview or a production being made shows under the stage; a finished

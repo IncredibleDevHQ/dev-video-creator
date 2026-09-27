@@ -204,8 +204,8 @@ body.is-scene-workspace .notebook-document { display: none; }
 .ws-moment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .ws-moment-list button { width: 100%; display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border: 1px solid var(--sw-line); border-radius: 8px; background: var(--studio-ui-surface); text-align: left; cursor: pointer; font: 600 12.5px/1.35 'InterBody', Inter, sans-serif; }
 .ws-moment-list button:hover { border-color: var(--studio-ui-line-hover); }
-.ws-delivery { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; padding: 3px; border: 1px solid var(--sw-line); border-radius: 9px; background: var(--sw-soft); }
-.ws-delivery button { flex: 1 1 auto; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--studio-ui-text-3); font: 650 12px/1.2 'InterBody', Inter, sans-serif; cursor: pointer; }
+.ws-delivery { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; margin: 0 0 6px; padding: 3px; border: 1px solid var(--sw-line); border-radius: 8px; background: var(--sw-soft); }
+.ws-delivery button { flex: 1 1 auto; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--studio-ui-text-3); font: 600 12px/1.2 var(--studio-ui-font-brand); text-align: left; cursor: pointer; }
 .ws-delivery button.is-selected { background: var(--studio-ui-surface); color: var(--sw-ink); box-shadow: 0 1px 3px rgba(24, 24, 27, .12); }
 .ws-record .review-guide { padding-top: 0; }
 

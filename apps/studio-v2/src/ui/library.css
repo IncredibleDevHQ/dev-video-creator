@@ -11,7 +11,7 @@
 .library-places { display: flex; gap: 2px; }
 .library-place { min-height: var(--studio-ui-control); padding: 0 12px; display: inline-flex; align-items: center; border: 0; border-radius: var(--studio-ui-radius-control); background: transparent; color: #d4d4d8; font: 600 var(--studio-ui-text-control)/1 var(--studio-ui-font-brand); text-decoration: none; cursor: pointer; }
 .library-place:hover { background: rgba(255, 255, 255, .07); color: #fff; }
-.library-place:focus-visible { outline: 2px solid var(--studio-ui-brand-on-dark); outline-offset: 1px; }
+.library-place:focus-visible { outline: 2px solid var(--studio-ui-focus); outline-offset: 1px; }
 #close-notebooks-page { border-color: #3a3a40; color: #a1a1aa; }
 #close-notebooks-page:hover { border-color: #71717a; color: #fff; }
 
@@ -26,12 +26,12 @@
 .project-card-open:hover .project-card-cover { box-shadow: 0 0 0 1px #5c5c64; }
 .project-card.is-current .project-card-cover { box-shadow: 0 0 0 2px var(--studio-ui-brand-on-dark); }
 .project-card-open:focus-visible { outline: none; }
-.project-card-open:focus-visible .project-card-cover { box-shadow: 0 0 0 2px var(--studio-ui-brand-on-dark), 0 0 0 5px rgba(74, 222, 128, .25); }
+.project-card-open:focus-visible .project-card-cover { box-shadow: 0 0 0 2px var(--studio-ui-focus), 0 0 0 5px var(--studio-ui-focus-soft); }
 .project-card-text { display: grid; gap: 2px; min-width: 0; }
 .project-card-open strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 14px/1.3 var(--studio-ui-font-brand); }
 .project-card-open small { color: #8a8a94; font: 400 var(--studio-ui-text-label)/1.4 var(--studio-ui-font-ui); }
 .project-card .project-kinds { flex-wrap: nowrap; gap: 4px; min-width: 0; }
-.project-card .project-kind { flex: 0 1 auto; min-width: 0; height: 26px; padding: 0 7px 0 5px; overflow: hidden; font: 500 var(--studio-ui-text-label)/1 var(--studio-ui-font-ui); white-space: nowrap; }
+.project-card .project-kind { flex: 0 1 auto; min-width: 0; height: var(--studio-ui-control-xs); padding: 0 7px 0 5px; overflow: hidden; font: 600 11.5px/1 var(--studio-ui-font-brand); white-space: nowrap; }
 .project-card-delete { position: absolute; top: 8px; right: 8px; min-height: 28px; padding: 0 10px; border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--studio-ui-radius-control); background: rgba(17, 17, 19, .84); color: #d4d4d8; font: 600 var(--studio-ui-text-label)/1 var(--studio-ui-font-brand); opacity: 0; transition: opacity var(--studio-ui-fast) var(--studio-ui-ease); cursor: pointer; }
 .project-card:hover .project-card-delete, .project-card-delete:focus-visible { opacity: 1; }
 .project-card-delete:hover { border-color: #f87171; color: #fecaca; }

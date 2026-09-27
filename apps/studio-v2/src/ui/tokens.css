@@ -37,6 +37,16 @@
   --studio-ui-hover: #f4f4f5;
   --studio-ui-pressed: #ececef;
   --studio-ui-focus: #4f46e5;
+  /* One focus ring for every control (the component audit): this indigo,
+     a lighter tone of it on the dark header, its menus and the library, and
+     a soft ring around a field. */
+  --studio-ui-focus-on-chrome: #a5b4fc;
+  --studio-ui-focus-soft: rgba(79, 70, 229, .28);
+  /* Disabled, in every variant: neutral and flat, so nothing disabled reads
+     as a live button. */
+  --studio-ui-disabled-fill: #f1f1f3;
+  --studio-ui-disabled-line: #e4e4e7;
+  --studio-ui-disabled-ink: #a1a1aa;
 
   /* What a state means — busy, good, warning, bad — is in palette.css,
      with every other colour of the studio's own UI. */
@@ -60,6 +70,12 @@
   --studio-ui-radius-menu: 8px;
   --studio-ui-radius-float: 10px;
   --studio-ui-control: 32px;
+  /* A control's four sizes (the component audit): 24, 28, 32 and 36px, the
+     two smaller with a tighter corner. */
+  --studio-ui-control-xs: 24px;
+  --studio-ui-control-sm: 28px;
+  --studio-ui-control-lg: 36px;
+  --studio-ui-radius-control-sm: 5px;
   --studio-ui-header: 56px;
   --studio-ui-context: 48px;
   /* One rail for pages and scenes: a number column, then the picture. */
@@ -96,6 +112,10 @@
   --studio-ui-hover: #26262a;
   --studio-ui-pressed: #2f2f34;
   --studio-ui-focus: #818cf8;
+  --studio-ui-focus-soft: rgba(129, 140, 248, .32);
+  --studio-ui-disabled-fill: #232327;
+  --studio-ui-disabled-line: #2e2e33;
+  --studio-ui-disabled-ink: #6b6b74;
   --studio-ui-shadow-menu: 0 12px 32px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
   --studio-ui-shadow-float: 0 24px 64px rgba(0, 0, 0, .6), 0 4px 12px rgba(0, 0, 0, .35);
   /* The stylesheet's older names, for the same roles. */
@@ -108,13 +128,20 @@
   --danger: #f87171;
   --shadow: 0 18px 50px rgba(0, 0, 0, .5);
 }
+/* One focus ring (the component audit): whatever the keyboard reaches shows
+   the studio's indigo, never the browser's own ring, whose colour is the
+   system's accent. A rule of its own may move the ring, never recolour it.
+   A field gets a soft ring and an indigo edge instead. */
+:where(a, button, summary, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"], [role="option"], [role="radio"], [role="checkbox"], [tabindex]:not([tabindex="-1"]), input[type="checkbox"], input[type="radio"], input[type="range"]):focus-visible { outline: 2px solid var(--studio-ui-focus); outline-offset: 2px; }
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea):focus-visible { outline: 2px solid var(--studio-ui-focus-soft); outline-offset: 0; border-color: var(--studio-ui-focus); }
+:where(.app-chrome, .chrome-menu, .notebooks-page) { --studio-ui-focus: var(--studio-ui-focus-on-chrome); --studio-ui-focus-soft: rgba(165, 180, 252, .32); }
 /* An embedded composition renders as it does in the light appearance: its
    frame keeps the page's default colour scheme, so the browser does not give
    it the dark scheme's opaque canvas. */
 :root[data-appearance="dark"] :is(iframe, hyperframes-player) { color-scheme: normal; }
 /* A coarse pointer gets targets a finger can hit. */
 @media (pointer: coarse) {
-  :root { --studio-ui-control: 44px; }
+  :root { --studio-ui-control: 44px; --studio-ui-control-sm: 40px; --studio-ui-control-lg: 48px; }
 }
 @media (prefers-reduced-motion: reduce) {
   :root { --studio-ui-fast: 0ms; }

@@ -70,11 +70,6 @@ body.is-page-workspace .notebook-document { display: none; }
 .pw-icon-button:hover:not(:disabled) { background: var(--studio-ui-hover); color: var(--sw-ink); }
 .pw-icon-button:active:not(:disabled) { transform: translateY(1px); }
 .pw-icon-button:disabled { opacity: .4; cursor: default; }
-.pw-tool { min-height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 9px; border: 0; border-radius: 5px; background: transparent; color: var(--studio-ui-text-3); font: 600 12px/1 var(--studio-ui-font-brand); cursor: pointer; transition: background-color 100ms var(--studio-ui-ease), color 100ms var(--studio-ui-ease), transform 100ms var(--studio-ui-ease); }
-.pw-tool .ui-icon { width: 14px; height: 14px; }
-.pw-tool:hover:not(:disabled) { background: var(--studio-ui-hover); color: var(--sw-ink); }
-.pw-tool:active:not(:disabled) { transform: translateY(1px); }
-.pw-tool:disabled { opacity: .4; cursor: default; }
 
 /* ——— The inspector: about the page on show ——— */
 .pw-inspector { grid-area: inspector; }
