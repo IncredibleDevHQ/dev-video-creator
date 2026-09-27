@@ -317,7 +317,12 @@ try {
   check(order.reviewFirst && order.folded && order.toggle === 'Edit source dialogue' && order.blockHeight < 80 && order.strips === 1 && order.inline, `the review leads, above its block folded to one line with its one status line in the header (${JSON.stringify(order)})`)
   const stage = await evaluate(`() => ({ mode: document.querySelector('.scene-stage-modes .is-active')?.textContent, note: document.getElementById('scene-stage-note').textContent, pool: Boolean(document.querySelector('#scene-stage-reference svg [id="s06-node-concurrency-cap"]')) })`)
   check(stage.mode === 'Reference: designed slide' && /not a preview of its motion/.test(stage.note) && stage.pool, `the stage starts on the page, labelled as a reference, not a preview (${JSON.stringify(stage)})`)
-  const beforePlan = await reviewOf(1)
+  // The cast's pictures come in after the review draws.
+  let beforePlan = await reviewOf(1)
+  for (let i = 0; i < 40 && beforePlan && beforePlan.thumbs < 3; i += 1) {
+    await sleep(500)
+    beforePlan = await reviewOf(1)
+  }
   check(beforePlan.expanded && beforePlan.thumbs >= 3, `the strip shows the cast the page offers (${beforePlan.thumbs} thumbnails)`)
   await evaluate(`() => { document.querySelector('.scene-review.is-expanded [data-focus^="revise:"]').click(); return true }`)
   const planned = await until(async () => (await overview(videoId)).scenes[1].view.current, 90)

@@ -54,8 +54,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 try {
   await evaluate(`async () => {
     document.getElementById('notebook-menu-toggle').click()
-    await new Promise(r => setTimeout(r, 400))
-    const sample = document.querySelector('.notebook-menu-sample')
+    // The switcher draws its entries once the projects are fetched.
+    let sample = null
+    for (let i = 0; i < 25 && !sample; i += 1) {
+      await new Promise(r => setTimeout(r, 200))
+      sample = document.querySelector('.notebook-menu-sample')
+    }
     if (!sample) throw new Error('no sample entry in the switcher')
     sample.click()
     return true
