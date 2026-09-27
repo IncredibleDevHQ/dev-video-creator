@@ -14,7 +14,8 @@ body.is-page-workspace .notebook-document { display: none; }
   grid-template-columns: var(--sw-rail) minmax(0, 1fr) var(--sw-inspector);
   grid-template-areas: "rail centre inspector";
 }
-.page-workspace .ui-icon { width: 16px; height: 16px; flex: none; }
+/* The studio's icons (src/ui/icons.ts), at the size of their controls. */
+.ui-icon { width: 16px; height: 16px; flex: none; }
 
 /* ——— The rail: a number, how the page was made, and its picture ——— */
 .pw-rail { grid-area: rail; }
@@ -109,6 +110,13 @@ body.is-page-workspace .notebook-document { display: none; }
 .pw-overview-label { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .pw-overview-page.is-current .pw-page-number { color: var(--studio-ui-good-strong); }
 .pw-overview-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sw-text); font: 500 12.5px/1.3 var(--studio-ui-font-ui); }
+/* What a scene needs, or how a page was made, under its title. */
+.pw-overview-note { margin-top: -4px; padding-left: 26px; color: var(--sw-muted); font: 500 var(--studio-ui-text-label)/1.3 var(--studio-ui-font-ui); }
+.pw-overview-note.is-good { color: var(--studio-ui-good-ink); }
+.pw-overview-note.is-busy { color: var(--studio-ui-violet-ink); }
+.pw-overview-note.is-new { color: var(--studio-ui-busy-ink-3); }
+.pw-overview-note.is-warn { color: var(--studio-ui-warn-ink); }
+.pw-overview-note.is-bad { color: var(--studio-ui-bad-ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .pw-page, .pw-icon-button, .pw-tool, .pw-page-thumb { transition: none; }

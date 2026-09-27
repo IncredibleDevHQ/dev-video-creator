@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createWheelPager, folio, notesOf, pageKeyOf, pageStateOf, pagesOf } from './pages'
+import { createWheelPager, notesOf, pageStateOf, pagesOf } from './pages'
 
 describe('the page view\'s pages', () => {
   it('reads only the page blocks, in order, with their words', () => {
@@ -29,27 +29,9 @@ describe('the page view\'s pages', () => {
     expect(notesOf('[wide] Hello  there.\n\n\n[cut]')).toEqual(['Hello there.'])
     expect(notesOf(undefined)).toEqual([])
   })
-  it('writes page numbers as two figures', () => {
-    expect(folio(3)).toBe('03')
-    expect(folio(12)).toBe('12')
-  })
 })
 
 describe('moving through the pages', () => {
-  it('takes bare keys only', () => {
-    expect(pageKeyOf({ key: 'ArrowRight' })).toBe('next')
-    expect(pageKeyOf({ key: 'PageUp' })).toBe('previous')
-    expect(pageKeyOf({ key: 'End' })).toBe('last')
-    expect(pageKeyOf({ key: 'o' })).toBe('overview')
-    expect(pageKeyOf({ key: 'F' })).toBe('fullscreen')
-    expect(pageKeyOf({ key: 'f', metaKey: true })).toBeNull()
-    expect(pageKeyOf({ key: 'ArrowLeft', altKey: true })).toBeNull()
-    expect(pageKeyOf({ key: 'x' })).toBeNull()
-  })
-  it('moves on with Space only where Space does not press a button', () => {
-    expect(pageKeyOf({ key: ' ' })).toBe('next')
-    expect(pageKeyOf({ key: ' ' }, { space: false })).toBeNull()
-  })
   it('turns one page per wheel gesture, past a small threshold', () => {
     const pager = createWheelPager({ threshold: 12, restMs: 90 })
     expect(pager(5, 0, 0)).toBe(0)

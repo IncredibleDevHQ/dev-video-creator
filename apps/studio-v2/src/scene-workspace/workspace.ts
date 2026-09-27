@@ -16,6 +16,9 @@
 import './workspace.css'
 import type { createSceneReview } from '../planning/scene-review'
 import { sinceOf } from '../planning/progress'
+import { icon } from '../ui/icons'
+import { stageKeyOf, stageKeysFree, type StageKey } from '../ui/keys'
+import { createOverview } from '../ui/overview'
 
 export type WorkspaceReview = ReturnType<typeof createSceneReview>['workspace']
 export type WorkspaceView = 'scenes' | 'notebook'
@@ -185,7 +188,20 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
   const announcer = h('p', { class: 'sr-only', 'aria-live': 'polite', role: 'status' })
   // The grid sits inside the workspace, so the workspace's width can reshape it.
   const layout = h('div', { class: 'sw-layout' }, head, rail, centre, inspector, context)
-  root.replaceChildren(layout, announcer)
+  // All scenes at once (O), as a page view shows all its pages.
+  const overview = createOverview({
+    heading: 'All scenes',
+    noun: 'Scene',
+    onPick: id => {
+      if (id !== currentScene() && !locked()) {
+        savePrefs({ scene: id })
+        host.selectScene(id)
+      }
+      focusScene()
+    },
+    onClose: () => focusScene(),
+  })
+  root.replaceChildren(layout, overview.element, announcer)
 
   const review = () => host.review()
   const sceneIds = () => review()?.scenes().map(scene => scene.id) || []
@@ -388,6 +404,17 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
         savePrefs({ scene: scene.id })
         host.selectScene(scene.id)
       })
+      // The rail is a list the arrows walk: up and down the scenes, the
+      // keyboard with the scene; sideways along its moments.
+      button.setAttribute('data-stage-keys', '')
+      button.addEventListener('keydown', event => {
+        const key = stageKeyOf(event, { space: false, sideways: 'moments' })
+        if (!key || key === 'overview' || key === 'fullscreen') return
+        event.preventDefault()
+        event.stopPropagation()
+        stageKey(key)
+        if (key !== 'forward' && key !== 'back') focusScene()
+      })
       list.append(h('li', {}, button))
     }
     const toggle = h('button', { type: 'button', class: 'sw-rail-toggle', 'data-focus': 'sw-rail', 'aria-expanded': prefs.rail ? 'false' : 'true', title: prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', 'aria-label': prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', text: prefs.rail ? '›' : '‹' })
@@ -397,7 +424,9 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       render()
     })
     const count = review()?.scenes().length || 0
-    rail.replaceChildren(h('div', { class: 'sw-rail-head' }, h('span', { class: 'sw-rail-title', text: 'Scenes' }), h('span', { class: 'sw-rail-count', text: String(count) }), toggle), list)
+    const all = h('button', { type: 'button', class: 'pw-icon-button sw-rail-overview', 'data-focus': 'sw-overview', 'data-stage-keys': '', 'aria-label': 'All scenes', title: 'All scenes at once (O)', 'aria-keyshortcuts': 'O' }, icon('grid-2x2'))
+    all.addEventListener('click', () => openOverview())
+    rail.replaceChildren(h('div', { class: 'sw-rail-head' }, h('span', { class: 'sw-rail-title', text: 'Scenes' }), h('span', { class: 'sw-rail-count', text: String(count) }), all, toggle), list)
   }
 
   const renderInspector = (sceneId: string) => {
@@ -719,6 +748,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     renderInspector(sceneId)
     renderContext(sceneId)
     renderTransport()
+    overview.render(overviewItems(), sceneId)
     ;[panel, rail, context.querySelector('.sw-context-scroll')].forEach((element, index) => {
       if (element && scrolled[index]) element.scrollTop = scrolled[index]
     })
@@ -733,6 +763,54 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     rail.querySelector('.sw-scene.is-selected')?.scrollIntoView({ block: 'nearest' })
     announcePhase(sceneId)
   }
+
+  // ——— The keys of the one stage layout ———
+  // Up and down the scenes, as a page view turns its pages; sideways along
+  // the scene's moments; O for all of them; F for the stage alone. Never
+  // while recording: the take belongs to the scene being recorded.
+  const focusScene = () => {
+    const focus = () => rail.querySelector<HTMLElement>(`[data-scene="${CSS.escape(currentScene())}"]`)?.focus({ preventScroll: true })
+    focus()
+    // The rail drawn again as the selection settles: the keyboard stays
+    // with the scene, unless it has gone somewhere else meanwhile.
+    window.requestAnimationFrame(() => {
+      const at = document.activeElement
+      if (!at || at === document.body || rail.contains(at) || overview.element.contains(at)) focus()
+    })
+  }
+  const stageKey = (key: StageKey) => {
+    const sceneId = currentScene()
+    if (key === 'forward' || key === 'back') {
+      const row = sceneId ? review()?.moments(sceneId) : null
+      if (!row || row.draft || !row.moments.length) return
+      const at = row.moments.findIndex(moment => moment.id === row.selected)
+      const to = at < 0 ? (key === 'forward' ? 0 : row.moments.length - 1) : Math.min(row.moments.length - 1, Math.max(0, at + (key === 'forward' ? 1 : -1)))
+      if (row.moments[to].id !== row.selected) review()?.pick(sceneId, row.moments[to].id)
+      return
+    }
+    const ids = sceneIds()
+    if (!ids.length || locked()) return
+    const at = Math.max(0, ids.indexOf(sceneId))
+    const to = key === 'next' ? at + 1 : key === 'previous' ? at - 1 : key === 'first' ? 0 : key === 'last' ? ids.length - 1 : at
+    const target = ids[Math.min(ids.length - 1, Math.max(0, to))]
+    if (!target || target === sceneId) return
+    savePrefs({ scene: target })
+    host.selectScene(target)
+  }
+  const overviewItems = () => (review()?.scenes() || []).map(scene => ({ id: scene.id, title: scene.title, picture: host.thumbnailOf(scene.id), note: scene.state.label, tone: scene.state.tone }))
+  const openOverview = () => {
+    if (capturing) return
+    overview.show(overviewItems(), currentScene())
+  }
+  document.addEventListener('keydown', event => {
+    if (root.hidden || capturing || overview.isOpen() || !stageKeysFree(event)) return
+    const key = stageKeyOf(event, { space: false, sideways: 'moments' })
+    if (!key) return
+    event.preventDefault()
+    if (key === 'overview') openOverview()
+    else if (key === 'fullscreen') document.getElementById('scene-stage-full')?.click()
+    else stageKey(key)
+  })
 
   root.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return

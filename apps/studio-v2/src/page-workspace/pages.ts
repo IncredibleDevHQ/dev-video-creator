@@ -64,43 +64,6 @@ export const pagesOf = (blocks: Block[], { wireframe = false } = {}): PageEntry[
       }
     })
 
-// "03", as a page's number is written in the rail and the counter.
-export const folio = (value: number) => String(value).padStart(2, '0')
-
-export type PageKey = 'next' | 'previous' | 'first' | 'last' | 'overview' | 'fullscreen'
-type KeyLike = { key: string; altKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }
-
-// A key that moves through the pages, bare only, so the browser's own
-// combinations (⌘F, Ctrl+P…) are never taken. Space moves on only where it
-// does not press a button.
-export const pageKeyOf = (event: KeyLike, { space = true } = {}): PageKey | null => {
-  if (event.altKey || event.ctrlKey || event.metaKey) return null
-  switch (event.key) {
-    case 'ArrowRight':
-    case 'ArrowDown':
-    case 'PageDown':
-      return 'next'
-    case ' ':
-      return space ? 'next' : null
-    case 'ArrowLeft':
-    case 'ArrowUp':
-    case 'PageUp':
-      return 'previous'
-    case 'Home':
-      return 'first'
-    case 'End':
-      return 'last'
-    case 'o':
-    case 'O':
-      return 'overview'
-    case 'f':
-    case 'F':
-      return 'fullscreen'
-    default:
-      return null
-  }
-}
-
 // The wheel or a trackpad over the stage turns one page per gesture: past a
 // small threshold it turns, and not again until the gesture has rested — so
 // a flick's momentum never runs through the deck.

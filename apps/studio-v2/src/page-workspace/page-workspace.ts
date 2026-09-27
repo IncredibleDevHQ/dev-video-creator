@@ -11,7 +11,9 @@
 // page on show — is a local preference.
 import './page-workspace.css'
 import { icon, type IconName } from '../ui/icons'
-import { createWheelPager, folio, pageKeyOf, type PageEntry, type PageKey } from './pages'
+import { stageKeyOf, stageKeysFree, type StageKey } from '../ui/keys'
+import { createOverview, folio } from '../ui/overview'
+import { createWheelPager, type PageEntry } from './pages'
 
 export type PagesView = 'pages' | 'notebook'
 
@@ -61,7 +63,7 @@ const h = <K extends keyof HTMLElementTagNameMap>(
 // An icon-only control: its name is its label and its tooltip, with the key
 // that does the same.
 const iconButton = (name: IconName, label: string, key = '') => {
-  const button = h('button', { type: 'button', class: 'pw-icon-button', 'aria-label': label, title: key ? `${label} (${key})` : label, 'data-pw-keys': '' })
+  const button = h('button', { type: 'button', class: 'pw-icon-button', 'aria-label': label, title: key ? `${label} (${key})` : label, 'data-stage-keys': '' })
   button.append(icon(name))
   if (key) button.setAttribute('aria-keyshortcuts', key)
   return button
@@ -69,19 +71,9 @@ const iconButton = (name: IconName, label: string, key = '') => {
 
 const STATE_ICONS: Record<NonNullable<PageEntry['state']>['tone'], IconName> = { good: 'palette', busy: 'loader-circle', warn: 'square-dashed' }
 
-// A key typed into a field, or meant for a control that uses the arrows
-// itself — a menu, a list, tabs, a radio group, a dialog — is never a page
-// turn. The page view's own buttons pass the page keys on.
-const typingTarget = (target: EventTarget | null) =>
-  target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'))
-const controlTarget = (target: EventTarget | null) =>
-  target instanceof Element && !target.closest('[data-pw-keys]') && Boolean(target.closest('button, a, summary, [role="dialog"], [role="menu"], [role="listbox"], [role="tablist"], [role="radiogroup"], dialog'))
-const modalOpen = () => Boolean(document.querySelector('dialog[open]:modal'))
-
 export const createPageWorkspace = (host: PageWorkspaceHost) => {
   const root = document.getElementById('page-workspace') as HTMLElement
   let view: PagesView = savedPagesView()
-  let overviewOpen = false
   let shownPage = ''
   let shownPicture = ''
   let shownInspector = ''
@@ -124,8 +116,8 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
   const next = iconButton('chevron-right', 'Next page', '→')
   const counter = h('span', { class: 'pw-folio', 'aria-live': 'polite' })
   const caption = h('span', { class: 'pw-stage-title' })
-  const overviewTool = h('button', { type: 'button', class: 'pw-tool', title: 'All pages at once (O)', 'aria-keyshortcuts': 'O', 'data-pw-keys': '' }, icon('grid-2x2'), h('span', { text: 'All pages' }))
-  const fullscreenTool = h('button', { type: 'button', class: 'pw-tool', title: 'The page on the whole screen (F)', 'aria-keyshortcuts': 'F', 'data-pw-keys': '' }, icon('maximize-2'), h('span', { text: 'Full screen' }))
+  const overviewTool = h('button', { type: 'button', class: 'pw-tool', title: 'All pages at once (O)', 'aria-keyshortcuts': 'O', 'data-stage-keys': '' }, icon('grid-2x2'), h('span', { text: 'All pages' }))
+  const fullscreenTool = h('button', { type: 'button', class: 'pw-tool', title: 'The page on the whole screen (F)', 'aria-keyshortcuts': 'F', 'data-stage-keys': '' }, icon('maximize-2'), h('span', { text: 'Full screen' }))
   const stageRow = h('div', { class: 'pw-stage-row' }, h('div', { class: 'pw-pager' }, previous, counter, next), caption, h('div', { class: 'pw-stage-tools' }, overviewTool, fullscreenTool))
   const centre = h('section', { class: 'pw-centre', 'aria-label': 'Page on show' }, notices, stageArea, stageRow)
 
@@ -133,13 +125,19 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
   const panel = h('div', { class: 'sw-panel pw-panel' })
   const inspector = h('aside', { class: 'sw-inspector pw-inspector', 'aria-label': 'About this page' }, inspectorHead, panel)
 
-  const overviewGrid = h('ol', { class: 'pw-overview-grid' })
-  const overviewClose = iconButton('x', 'Close all pages', 'Esc')
-  const overviewCount = h('span', { class: 'pw-folio' })
-  const overview = h('div', { class: 'pw-overview', role: 'dialog', 'aria-label': 'All pages', hidden: true }, h('header', { class: 'pw-overview-head' }, h('strong', { text: 'All pages' }), overviewCount, overviewClose), overviewGrid)
+  const overview = createOverview({
+    heading: 'All pages',
+    noun: 'Page',
+    onPick: id => {
+      const index = pages().findIndex(page => page.id === id)
+      if (index >= 0) go(index)
+      railItems.get(currentId())?.button.focus({ preventScroll: true })
+    },
+    onClose: () => railItems.get(currentId())?.button.focus({ preventScroll: true }),
+  })
 
   const layout = h('div', { class: 'pw-layout' }, rail, centre, inspector)
-  root.replaceChildren(layout, overview)
+  root.replaceChildren(layout, overview.element)
 
   // ——— Which page is on show ———
   const pages = () => host.pages()
@@ -150,7 +148,7 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
     if (list.some(page => page.id === saved)) return saved
     return list[0]?.id || ''
   }
-  const go = (key: PageKey | number) => {
+  const go = (key: StageKey | number) => {
     const all = pages()
     if (!all.length) return
     const at = Math.max(0, all.findIndex(page => page.id === currentId(all)))
@@ -169,7 +167,7 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
     const number = h('span', { class: 'pw-page-number' })
     const flag = h('span', { class: 'pw-page-flag' })
     const image = h('img', { alt: '', loading: 'lazy', draggable: 'false' })
-    const button = h('button', { type: 'button', class: 'pw-page', 'data-page': id, 'data-pw-keys': '' }, h('span', { class: 'pw-page-meta' }, number, flag), h('span', { class: 'pw-page-thumb' }, image))
+    const button = h('button', { type: 'button', class: 'pw-page', 'data-page': id, 'data-stage-keys': '' }, h('span', { class: 'pw-page-meta' }, number, flag), h('span', { class: 'pw-page-thumb' }, image))
     button.addEventListener('click', () => {
       const all = pages()
       const index = all.findIndex(page => page.id === id)
@@ -177,7 +175,7 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
     })
     // The rail is a list the arrows walk: the page follows the keyboard.
     button.addEventListener('keydown', event => {
-      const key = pageKeyOf(event, { space: false })
+      const key = stageKeyOf(event, { space: false })
       if (!key || key === 'overview' || key === 'fullscreen') return
       event.preventDefault()
       event.stopPropagation()
@@ -306,73 +304,11 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
   }
 
   // ——— All pages at once ———
-  const columns = () => {
-    const first = overviewGrid.children[0] as HTMLElement | undefined
-    if (!first) return 1
-    const top = first.offsetTop
-    let count = 0
-    for (const child of Array.from(overviewGrid.children) as HTMLElement[]) {
-      if (child.offsetTop !== top) break
-      count += 1
-    }
-    return Math.max(1, count)
-  }
-  // Drawn again only when its pages change; the page that had the keyboard keeps it.
-  let overviewKey = ''
-  const renderOverview = (all: PageEntry[], current: string) => {
-    overviewCount.textContent = `${folio(Math.max(1, all.findIndex(page => page.id === current) + 1))} / ${folio(all.length)}`
-    const key = JSON.stringify([current, all.map(page => [page.id, page.title, host.pictureOf(page.id).length])])
-    if (key === overviewKey) return
-    overviewKey = key
-    const focused = document.activeElement instanceof HTMLElement ? document.activeElement.closest('.pw-overview-page')?.getAttribute('data-page') || '' : ''
-    overviewGrid.replaceChildren(
-      ...all.map((page, index) => {
-        const src = host.pictureOf(page.id)
-        const button = h('button', { type: 'button', class: `pw-overview-page${page.id === current ? ' is-current' : ''}`, 'data-page': page.id, 'aria-label': `Page ${index + 1}: ${page.title}`, 'aria-current': page.id === current ? 'page' : undefined },
-          h('span', { class: 'pw-page-thumb' }, src ? Object.assign(h('img', { alt: '', loading: 'lazy', draggable: 'false' }), { src }) : null),
-          h('span', { class: 'pw-overview-label' }, h('span', { class: 'pw-page-number', text: folio(index + 1) }), h('span', { class: 'pw-overview-title', text: page.title })),
-        )
-        button.addEventListener('click', () => {
-          closeOverview(false)
-          go(index)
-        })
-        return h('li', {}, button)
-      }),
-    )
-    if (focused) overviewGrid.querySelector<HTMLElement>(`[data-page="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true })
-  }
+  const overviewItems = (all: PageEntry[]) => all.map(page => ({ id: page.id, title: page.title, picture: host.pictureOf(page.id), note: page.state?.label, tone: page.state?.tone }))
   const openOverview = () => {
     const all = pages()
-    if (!all.length || overviewOpen) return
-    overviewOpen = true
-    overviewKey = ''
-    renderOverview(all, currentId(all))
-    overview.hidden = false
-    overviewGrid.querySelector<HTMLElement>('.is-current')?.focus({ preventScroll: false })
+    overview.show(overviewItems(all), currentId(all))
   }
-  const closeOverview = (restore = true) => {
-    if (!overviewOpen) return
-    overviewOpen = false
-    overview.hidden = true
-    if (restore) railItems.get(currentId())?.button.focus({ preventScroll: true })
-  }
-  overview.addEventListener('keydown', event => {
-    if (event.key === 'Escape' || ((event.key === 'o' || event.key === 'O') && !event.metaKey && !event.ctrlKey && !event.altKey)) {
-      event.preventDefault()
-      event.stopPropagation()
-      closeOverview()
-      return
-    }
-    const moves: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: columns(), ArrowUp: -columns() }
-    if (!(event.key in moves)) return
-    const buttons = Array.from(overviewGrid.querySelectorAll<HTMLButtonElement>('button'))
-    const at = buttons.indexOf(document.activeElement as HTMLButtonElement)
-    const to = Math.min(buttons.length - 1, Math.max(0, (at < 0 ? 0 : at) + moves[event.key]))
-    event.preventDefault()
-    event.stopPropagation()
-    buttons[to]?.focus()
-  })
-  overviewClose.addEventListener('click', () => closeOverview())
   overviewTool.addEventListener('click', openOverview)
   railOverview.addEventListener('click', openOverview)
 
@@ -392,10 +328,9 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
 
   // ——— The keys and the wheel ———
   document.addEventListener('keydown', event => {
-    if (root.hidden || overviewOpen || event.defaultPrevented || event.isComposing) return
-    if (typingTarget(event.target) || controlTarget(event.target) || modalOpen()) return
-    const onOwnButton = event.target instanceof Element && Boolean(event.target.closest('[data-pw-keys]'))
-    const key = pageKeyOf(event, { space: !onOwnButton })
+    if (root.hidden || overview.isOpen() || !stageKeysFree(event)) return
+    const onOwnButton = event.target instanceof Element && Boolean(event.target.closest('[data-stage-keys]'))
+    const key = stageKeyOf(event, { space: !onOwnButton })
     if (!key) return
     event.preventDefault()
     if (key === 'overview') openOverview()
@@ -451,7 +386,7 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
     if (on) mountNotices()
     else {
       unmountNotices()
-      closeOverview(false)
+      overview.hide(false)
       if (document.fullscreenElement === stage) void document.exitFullscreen?.()
     }
     if (changed) host.viewChanged(on ? 'pages' : 'notebook')
@@ -489,10 +424,7 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
     syncRail(all, current)
     syncStage(all, current)
     syncInspector(all, current)
-    if (overviewOpen) {
-      if (all.length) renderOverview(all, current)
-      else closeOverview(false)
-    }
+    overview.render(overviewItems(all), current)
     // The page on show stays in view in the rail when it changes, not on every redraw.
     if (current !== scrolledTo) {
       scrolledTo = current

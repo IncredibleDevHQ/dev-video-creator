@@ -86,6 +86,8 @@ body.is-scene-workspace .notebook-document { display: none; }
 .sw-rail-head { flex: none; display: flex; align-items: center; gap: 6px; padding: 10px 8px 6px 14px; }
 .sw-rail-title { color: var(--sw-muted); font: 500 var(--studio-ui-text-label)/1 var(--studio-ui-font-ui); }
 .sw-rail-count { color: var(--studio-ui-faint); font: 500 var(--studio-ui-text-label)/1 var(--studio-ui-font-ui); font-variant-numeric: tabular-nums; }
+.sw-rail-head .sw-rail-overview { width: 26px; height: 24px; margin-left: auto; }
+.sw-rail-head .sw-rail-overview + .sw-rail-toggle { margin-left: 0; }
 .sw-rail-toggle { flex: none; margin-left: auto; width: 26px; height: 24px; border: 0; border-radius: var(--studio-ui-radius-control); background: transparent; color: var(--sw-muted); cursor: pointer; }
 .sw-rail-toggle:hover { background: var(--studio-ui-hover); color: var(--sw-ink); }
 .sw-scenes { list-style: none; margin: 0; padding: 2px 8px 16px; display: grid; gap: 6px; align-content: start; overflow-y: auto; min-height: 0; }

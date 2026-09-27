@@ -442,6 +442,61 @@ try {
   const back = await waitFor(`() => { const root = document.getElementById('scene-workspace'); return !root.hidden && root.querySelector('.sw-scene.is-selected')?.dataset.scene === ${JSON.stringify(second)} && Boolean(root.querySelector('.sw-stage-frame #scene-stage')) }`, 10)
   check(back === true, 'Scenes brings the workspace back on the same scene, with the stage')
 
+  // ——— The keys of the one stage layout, as the page view's ———
+  // In the rail ↑ and ↓ move between the scenes, the keyboard with the
+  // scene, and Home and End go to either end; ← and → walk the scene's
+  // moments; O shows every scene at once; F asks for the stage alone. A key
+  // meant for a field is never taken.
+  const key = (value, target = 'document.activeElement || document.body') => evaluate(`() => { (${target}).dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(value)}, bubbles: true, cancelable: true })); return true }`)
+  const railState = `(() => { const root = document.getElementById('scene-workspace'); const overview = root.querySelector('.pw-overview'); return { selected: root.querySelector('.sw-scene.is-selected')?.dataset.scene || '', focused: document.activeElement?.closest?.('.sw-scene')?.dataset.scene || '', moment: root.querySelector('.sw-moment.is-selected .sw-moment-number')?.textContent || '', overview: Boolean(overview && !overview.hidden) } })()`
+  const firstScene = await evaluate(`() => document.querySelectorAll('#scene-workspace .sw-scene')[0].dataset.scene`)
+  const onScene = (id, extra = 'true') => waitFor(`() => { const state = ${railState}; return state.selected === ${JSON.stringify(id)} && state.focused === state.selected && (${extra}) ? state : null }`, 10)
+  await evaluate(`() => { document.querySelector('#scene-workspace .sw-scene.is-selected').focus(); return true }`)
+  await key('ArrowUp')
+  const up = await onScene(firstScene)
+  await key('End')
+  const end = await onScene(second)
+  await key('Home')
+  const home = await onScene(firstScene)
+  check(Boolean(up && end && home), `in the rail ↑ selects the scene above, End and Home the last and the first, the keyboard with the scene (${JSON.stringify({ up, end, home })})`)
+  await evaluate(`() => { document.querySelectorAll('#scene-workspace .sw-moment')[0].click(); document.querySelector('#scene-workspace .sw-scene.is-selected').focus(); return true }`)
+  await waitFor(`() => ${railState}.moment === '1' ? true : null`, 10)
+  await key('ArrowRight')
+  const forward = await waitFor(`() => { const state = ${railState}; return state.moment === '2' && state.focused === ${JSON.stringify(firstScene)} ? state : null }`, 10)
+  await key('ArrowLeft')
+  const back2 = await waitFor(`() => { const state = ${railState}; return state.moment === '1' && state.selected === ${JSON.stringify(firstScene)} ? state : null }`, 10)
+  check(Boolean(forward && back2), `→ and ← walk the scene's moments, the scene kept (${JSON.stringify({ forward, back: back2 })})`)
+  // The plan's revision picker keeps its keys; with nothing focused, ↓
+  // moves to the next scene.
+  const field = await evaluate(`() => { const select = document.querySelector('#scene-workspace .ws-revision'); if (!select) return false; select.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })); return true }`)
+  await sleep(400)
+  const kept = await evaluate(`() => ${railState}`)
+  await evaluate(`() => { document.activeElement?.blur(); return true }`)
+  await key('ArrowDown', 'document.body')
+  const down = await waitFor(`() => ${railState}.selected === ${JSON.stringify(second)} ? ${railState} : null`, 10)
+  check(field && kept.selected === firstScene && Boolean(down), `a field keeps its keys; with nothing focused, ↓ moves to the next scene (${JSON.stringify({ field, kept: kept.selected, down: down?.selected })})`)
+  await key('o', 'document.body')
+  const all = await waitFor(`() => { const overview = document.querySelector('#scene-workspace .pw-overview'); return overview && !overview.hidden ? { heading: overview.querySelector('.pw-overview-head strong')?.textContent, count: overview.querySelector('.pw-folio')?.textContent, items: [...overview.querySelectorAll('.pw-overview-page')].map(item => item.dataset.item), current: overview.querySelector('.is-current')?.dataset.item, focused: document.activeElement?.dataset?.item || '', pictures: overview.querySelectorAll('.pw-page-thumb img').length, notes: [...overview.querySelectorAll('.pw-overview-note')].map(note => note.textContent) } : null }`, 10)
+  check(all?.heading === 'All scenes' && all.count === '02 / 02' && all.items.join('|') === `${firstScene}|${second}` && all.current === second && all.focused === second && all.pictures === 2 && all.notes.length === 2, `O shows every scene at once, with its page and what it needs, the keyboard on the scene on show (${JSON.stringify(all)})`)
+  await shot('1440-06b-all-scenes')
+  await evaluate(`() => { document.querySelector('#scene-workspace .pw-overview-page[data-item="${firstScene}"]').click(); return true }`)
+  const picked = await onScene(firstScene, '!state.overview')
+  await click('#scene-workspace .sw-rail-overview')
+  await waitFor(`() => ${railState}.overview ? true : null`, 10)
+  await key('Escape')
+  const escaped = await onScene(firstScene, '!state.overview')
+  check(Boolean(picked && escaped), `a scene chosen there opens; the rail's All scenes opens it too, and Escape closes it, the keyboard back on the scene (${JSON.stringify({ picked, escaped })})`)
+  const full = await evaluate(`() => {
+    const asked = []
+    const original = Element.prototype.requestFullscreen
+    Element.prototype.requestFullscreen = function () { asked.push(this.className); return Promise.resolve() }
+    document.activeElement?.blur()
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', bubbles: true, cancelable: true }))
+    Element.prototype.requestFullscreen = original
+    return asked
+  }`)
+  check(full.length === 1 && /sw-stage-frame/.test(full[0]), `F asks for the whole screen for the stage alone (${JSON.stringify(full)})`)
+
   // ——— Narrower: the inspector becomes a drawer, then the detail goes under the stage ———
   await size(1024, 768)
   await sleep(1000)
