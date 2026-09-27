@@ -1,0 +1,28 @@
+/* The older surfaces (the component audit) — the full-screen canvas and its
+   director, the theme builder, the scene studio and the explainer wizard —
+   on the shared parts. Their type came onto the studio's floor in place (no
+   word under 10px, a control's at 12px, labels in sentence case); what else
+   they needed is here. */
+
+/* The director's rail: the studio's own dark, its words legible, each tab
+   with an icon. */
+.director-workspace { grid-template-columns: 84px minmax(0, 1fr); }
+.director-rail { background: var(--studio-ui-chrome); }
+.director-rail button { min-width: 0; border-radius: 6px; color: #a1a1aa; font-weight: 600; text-align: center; white-space: nowrap; }
+.director-rail button span { color: #d4d4d8; }
+.director-rail button .ui-icon { width: 18px; height: 18px; }
+.director-rail button.active span, .director-rail button.active .ui-icon { color: var(--studio-ui-brand); }
+
+/* Small buttons that were under 24px. */
+.transition-popover-heading button { width: 24px; height: 24px; border-radius: 5px; }
+.scene-timeline-edit { height: 24px; }
+.slide-editor-step .se-row-tools button { width: 24px; height: 24px; }
+.se-window-timing .se-chip button { min-height: 24px; }
+.text-button { font: 500 var(--studio-ui-text-label)/1.3 var(--studio-ui-font-ui); cursor: pointer; }
+
+/* The theme builder's header: the dark chrome's nav, a 2px underline. */
+.theme-nav { font: 600 var(--studio-ui-text-control)/1 var(--studio-ui-font-brand); }
+.theme-nav.active::after { height: 2px; }
+
+/* The scene studio: a label keeps its line beside a long one. */
+.se-length-outline li b { flex: none; white-space: nowrap; }

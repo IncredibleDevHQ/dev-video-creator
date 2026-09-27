@@ -1,0 +1,34 @@
+/* Fields (the component audit): one field where there were fourteen —
+   32px (a textarea from 64px), a 1px line, 6px corners, 13px words in the
+   reading face — and focus as every field has it (tokens.css). The older
+   surfaces' and the dialogs' fields take it by their own names. */
+:is(.builder-controls input[type="text"], .builder-controls select, .explainer-panel .field input, .explainer-panel .field select, .explainer-instructions, .ex-plan-row input, .ex-plan-row select, .ex-plan-step input, .shape-editor input, .settings-field input, .settings-field select, .se-window-controls select, .refine-body input[type="number"]) {
+  box-sizing: border-box;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--studio-ui-line-strong);
+  border-radius: 6px;
+  background: var(--studio-ui-surface);
+  color: var(--studio-ui-ink);
+  font: 400 var(--studio-ui-text-control)/1.3 var(--studio-ui-font-ui);
+}
+:is(.explainer-panel .field textarea, .ex-plan-step textarea, .shape-editor textarea) {
+  box-sizing: border-box;
+  min-height: 64px;
+  padding: 8px 10px;
+  border: 1px solid var(--studio-ui-line-strong);
+  border-radius: 6px;
+  background: var(--studio-ui-surface);
+  color: var(--studio-ui-ink);
+  font: 400 var(--studio-ui-text-control)/1.5 var(--studio-ui-font-ui);
+}
+/* Longer writing keeps its height, on the same line, corners and words. */
+#se-script, .recording-coach-script textarea { border-radius: 6px; font: 400 var(--studio-ui-text-control)/1.55 var(--studio-ui-font-ui); }
+.markdown-modal textarea { border-radius: 6px; }
+/* A colour: a 32px swatch in the field's frame. */
+:is(.builder-controls, .custom-background-color, .refine-body) input[type="color"] { box-sizing: border-box; width: 44px; height: 32px; padding: 3px; border: 1px solid var(--studio-ui-line-strong); border-radius: 6px; background: var(--studio-ui-surface); cursor: pointer; }
+/* The settings' fields ring as every field does, not a ring of their own. */
+.settings-field input:focus, .settings-field select:focus { box-shadow: none; }
+/* A field's name above it: 12px, the reading face at 500. */
+:is(.builder-controls label, .settings-field, .explainer-panel .field > span, .shape-editor .field > span) { color: var(--studio-ui-text-2); font-family: var(--studio-ui-font-ui); font-size: var(--studio-ui-text-label); font-weight: 500; }
