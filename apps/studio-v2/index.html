@@ -126,108 +126,141 @@
     </section>
 
     <div id="app" hidden>
+      <!-- One header (the Open Slide pass): the project, its four notebooks
+           and the studio's own controls in one dark row; under it one
+           context row belonging to the open notebook, with its one primary
+           action. Every control keeps its id; the map of where each one went
+           is docs/reviews/2026-09-27-open-slide-studio-ui.md. -->
       <header class="app-chrome">
         <div class="topbar">
-          <a class="brand" href="/themes" data-app-route="themes" aria-label="Incredible Studio themes">
-            <span class="back-mark" aria-hidden="true">‹</span>
-            <img id="studio-logo" alt="Incredible Studio" />
-          </a>
-          <div class="project-title">
-            <div class="notebook-menu">
-              <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Your projects, and a new one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Projects <span aria-hidden="true">⌄</span></button>
-              <div id="notebook-menu-list" class="notebook-menu-list" role="menu" hidden></div>
+          <div class="topbar-start">
+            <a class="brand" href="/themes" data-app-route="themes" aria-label="Incredible Studio themes">
+              <span class="back-mark" aria-hidden="true">‹</span>
+              <img id="studio-logo" alt="Incredible Studio" />
+            </a>
+            <div class="project-title">
+              <div class="notebook-menu">
+                <button id="notebook-menu-toggle" class="notebook-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Your projects, and a new one">Projects</button>
+                <div id="notebook-menu-list" class="notebook-menu-list" role="menu" hidden></div>
+              </div>
+              <span class="crumb-separator" aria-hidden="true">/</span>
+              <label class="project-title-field">
+                <span class="sr-only">Project title</span>
+                <input id="project-title" value="Human-first developer story" />
+              </label>
+              <nav id="notebook-lineage" class="notebook-lineage" aria-label="Notebook lineage" hidden></nav>
             </div>
-            <nav id="notebook-lineage" class="notebook-lineage" aria-label="Notebook lineage" hidden></nav>
-            <label class="project-title-field">
-              <span class="sr-only">Project title</span>
-              <input id="project-title" value="Human-first developer story" />
-            </label>
           </div>
+          <!-- A project's notebooks, one tab per kind (the four-notebook
+               model): shown in a notebook that belongs to a project. -->
+          <nav id="notebook-switch" class="notebook-switch" aria-label="This project's notebooks" hidden></nav>
           <div class="topbar-actions">
             <div class="save-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><strong id="save-state">Saved</strong></div>
-            <button id="render-video" type="button" class="button primary" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Publish</button>
-            <div id="export-status" class="export-status" role="status" hidden><span id="export-status-text"></span><button id="export-status-details" type="button" class="export-status-action" hidden>Details</button><a id="export-status-download" class="export-status-action" href="#" download hidden>Download</a><button id="export-status-retry" type="button" class="export-status-action" hidden>Retry</button><button id="export-status-cancel" type="button" class="export-status-action" hidden>Cancel</button><button id="export-status-dismiss" type="button" class="export-status-dismiss" aria-label="Dismiss the export notice" hidden>×</button></div>
-            <button id="open-ai-settings" class="topbar-status topbar-status-button" type="button" title="AI settings: what each job runs on — the local harness, or the direct API"><span class="brand-orbit"><span>AI</span></span><span id="ai-status-dot" class="agent-status-dot" hidden></span><strong id="ai-settings-summary">AI settings</strong></button>
-          </div>
-        </div>
-        <div class="commandbar">
-          <div class="workspace-nav">
-            <!-- A project's notebooks, one tab per kind (the four-notebook
-                 model): shown in a notebook that belongs to a project. -->
-            <nav id="notebook-switch" class="notebook-switch" aria-label="This project's notebooks" hidden></nav>
-            <div class="format-control"><span>Format:</span><strong>▷ Landscape</strong><span>⌄</span></div>
-            <button id="workspace-tab-scenes" type="button" class="workspace-tab" aria-pressed="false" title="The video's scenes around one stage" hidden>Scenes</button>
-            <button id="workspace-tab-notebook" type="button" class="workspace-tab active" aria-pressed="true" title="The notebook: the outline and the words">Notebook</button>
-            <button id="open-fullscreen-tab" type="button" class="workspace-tab">Preview</button>
-          </div>
-          <nav class="actions" aria-label="Project actions">
-            <label class="studio-theme-picker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13.5 9 5 9-5"/></svg><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">✎</button></label>
-            <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
-            <input id="svg-file-input" type="file" accept=".svg,image/svg+xml" multiple hidden />
-            <div class="import-menu">
-              <button id="import-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>Import <span aria-hidden="true">⌄</span></button>
-              <div id="import-menu-list" class="import-menu-list" role="menu" hidden>
-                <button id="import-file" type="button" role="menuitem">Import .md file</button>
-                <button id="start-from-source" type="button" role="menuitem">Start from a link or narrative…</button>
-                <button id="video-length" type="button" role="menuitem">Video length…</button>
-                <button id="open-assets" type="button" role="menuitem">Asset library…</button>
-                <button id="import-svg-pages" type="button" role="menuitem">Import SVG pages…</button>
-                <button id="paste-markdown" type="button" role="menuitem">Paste Markdown…</button>
-              </div>
-            </div>
-            <span class="commandbar-divider" aria-hidden="true"></span>
-            <!-- One next step (F10 of the Perplexity review): a base's video,
-                 or the selected scene's next step; the older and other paths
-                 wait under Advanced, saying what they are. -->
-            <button id="export-presentation" class="button chrome-secondary" type="button" title="The slides as a PDF, one page a slide, as they read here" hidden>Export PDF</button>
-            <button id="next-step" class="button primary" type="button" hidden>Next step</button>
-            <button id="open-planning" class="button chrome-secondary" type="button" title="The explanation brief, every scene's plans and their evidence">Planning workspace</button>
-            <div class="advanced-menu">
-              <button id="advanced-menu-toggle" class="button chrome-ghost" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="advanced-menu-list">Advanced <span aria-hidden="true">⌄</span></button>
-              <div id="advanced-menu-list" class="advanced-menu-list" role="menu" hidden>
-                <button id="open-fullscreen" type="button" role="menuitem"><span class="menu-label">Open canvas</span><small class="menu-note">The notebook's composition, full screen — as Preview shows it.</small></button>
-                <button id="create-explainer" type="button" role="menuitem"><span class="menu-label">Create explainer…</span><small class="menu-note">A new base from a link or your own narrative, or this one built whole.</small></button>
-                <button id="build-explainer" type="button" role="menuitem"><span class="menu-label">Build explainer</span><small class="menu-note">The older build: the whole notebook at once, from its scripts and pages, with one delivery. It does not use approved scene plans.</small></button>
-                <button id="toggle-video-staging" type="button" role="menuitem" hidden><span class="menu-label">Show video staging</span><small class="menu-note">The older way: each page's dialogue, motion, live canvas and Publish, here on the base. Create video gives a video its own.</small></button>
-              </div>
-            </div>
-          </nav>
-        </div>
-      </header>
-      <details id="explainer-progress" hidden style="margin:12px 24px;padding:12px 16px;border:1px solid #64748b55;border-radius:12px">
+            <!-- Every running job in one place: its stage, how long it has
+                 run, who runs it, and a way to stop or retry it. What needs
+                 you stays here until you have seen to it. -->
+            <div class="jobs-menu">
+              <button id="jobs-toggle" class="chrome-control jobs-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="jobs-panel" title="What is running, and what needs you"><span class="jobs-mark" aria-hidden="true"></span><span class="chrome-control-label">Jobs</span><span id="jobs-count" class="jobs-count" hidden>0</span></button>
+              <span id="jobs-announcer" class="sr-only" role="status" aria-live="polite"></span>
+              <section id="jobs-panel" class="chrome-menu jobs-panel" role="dialog" aria-label="Jobs" hidden>
+                <header class="jobs-panel-head"><strong>Jobs</strong><span id="jobs-summary" class="jobs-summary" aria-live="polite"></span></header>
+                <p id="jobs-empty" class="jobs-empty">Nothing is running. Jobs you start — a wireframe, slides, plans, previews, productions and exports — show here, with how long they have run.</p>
+                <ol id="jobs-list" class="jobs-list"></ol>
+                <div id="export-status" class="export-status" role="status" hidden><span id="export-status-text"></span><span class="export-status-actions"><button id="export-status-details" type="button" class="export-status-action" hidden>Details</button><a id="export-status-download" class="export-status-action" href="#" download hidden>Download</a><button id="export-status-retry" type="button" class="export-status-action" hidden>Retry</button><button id="export-status-cancel" type="button" class="export-status-action" hidden>Cancel</button><button id="export-status-dismiss" type="button" class="export-status-dismiss" aria-label="Dismiss the export notice" hidden>×</button></span></div>
+                <details id="explainer-progress" class="jobs-explainer" hidden>
         <summary id="explainer-status" aria-live="polite">Preparing explainer…</summary>
         <p id="explainer-run-location"></p>
         <div id="explainer-objects" hidden></div>
         <div id="explainer-stages" hidden></div>
         <div id="explainer-receipts" hidden></div>
         <button id="explainer-cancel" class="button chrome-secondary" type="button">Stop build</button>
-        <pre id="explainer-log" style="max-height:180px;overflow:auto;white-space:pre-wrap;font-size:12px"></pre>
+        <pre id="explainer-log" class="jobs-log"></pre>
       </details>
-      <div id="storage-warning" hidden style="margin:12px 24px;padding:10px 16px;border:1px solid #b45309;border-radius:12px;background:#451a0322;display:flex;gap:12px;align-items:center">
-        <span id="storage-warning-text" style="flex:1"></span>
-        <button id="storage-warning-retry" class="button chrome-secondary" type="button">Retry</button>
-      </div>
-      <div id="migration-banner" hidden style="margin:12px 24px;padding:10px 16px;border:1px solid #3b82f655;border-radius:12px;background:#1e3a8a22;display:flex;gap:12px;align-items:center">
-        <span id="migration-banner-text" style="flex:1"></span>
-        <button id="migration-import" class="button primary" type="button">Import</button>
-        <button id="migration-dismiss" class="button ghost" type="button">Not now</button>
+              </section>
+            </div>
+            <div class="export-menu">
+              <button id="export-menu-toggle" class="chrome-control" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="export-menu-list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span class="chrome-control-label">Export</span></button>
+              <div id="export-menu-list" class="chrome-menu export-menu-list" role="menu" hidden>
+                <button id="render-video" type="button" role="menuitem" disabled><span class="menu-label">Export video…</span><small class="menu-note">Render this notebook's video as an MP4.</small></button>
+                <button id="export-presentation" type="button" role="menuitem" title="The slides as a PDF, one page a slide, as they read here" hidden><span class="menu-label">Export PDF</span><small class="menu-note">The slides as a PDF, one page a slide.</small></button>
+                <p id="export-menu-empty" class="menu-note menu-empty" hidden>Nothing to export from this notebook: its presentation exports a PDF, its video an MP4.</p>
+              </div>
+            </div>
+            <button id="open-ai-settings" class="topbar-status topbar-status-button" type="button" title="AI settings: what each job runs on — the local harness, or the direct API"><span class="brand-orbit"><span>AI</span></span><span id="ai-status-dot" class="agent-status-dot" hidden></span><strong id="ai-settings-summary">AI settings</strong></button>
+            <!-- Everything else, out of the way of the one next step: the
+                 project's theme, what can be added to the notebook, the
+                 planning workspace, and the older paths, each saying what
+                 it is (F10 of the Perplexity review). -->
+            <div class="advanced-menu">
+              <button id="advanced-menu-toggle" class="chrome-control chrome-icon" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="advanced-menu-list" aria-label="More" title="More: theme, import, the planning workspace and the older paths"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+              <div id="advanced-menu-list" class="chrome-menu advanced-menu-list" role="menu" hidden>
+                <p class="menu-heading">This notebook</p>
+                <label class="studio-theme-picker"><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">Edit</button></label>
+                <p class="format-control"><span>Format</span><strong>Landscape · 16:9</strong></p>
+                <p class="menu-heading">Add to it</p>
+                <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
+                <input id="svg-file-input" type="file" accept=".svg,image/svg+xml" multiple hidden />
+                <button id="start-from-source" type="button" role="menuitem"><span class="menu-label">Start from a link or narrative…</span></button>
+                <button id="import-file" type="button" role="menuitem"><span class="menu-label">Import a Markdown file…</span></button>
+                <button id="paste-markdown" type="button" role="menuitem"><span class="menu-label">Paste Markdown…</span></button>
+                <button id="import-svg-pages" type="button" role="menuitem"><span class="menu-label">Import SVG pages…</span></button>
+                <button id="open-assets" type="button" role="menuitem"><span class="menu-label">Asset library…</span></button>
+                <button id="video-length" type="button" role="menuitem"><span class="menu-label">Video length…</span></button>
+                <p class="menu-heading">Open</p>
+                <button id="open-planning" type="button" role="menuitem" title="The explanation brief, every scene's plans and their evidence"><span class="menu-label">Planning workspace</span><small class="menu-note">The brief, every scene's plans and their evidence.</small></button>
+                <button id="open-fullscreen" type="button" role="menuitem"><span class="menu-label">Open canvas</span><small class="menu-note">The notebook's composition, full screen.</small></button>
+                <p class="menu-heading">Older paths</p>
+                <button id="create-explainer" type="button" role="menuitem"><span class="menu-label">Create explainer…</span><small class="menu-note">A new base from a link or your own narrative, or this one built whole.</small></button>
+                <button id="build-explainer" type="button" role="menuitem"><span class="menu-label">Build explainer</span><small class="menu-note">The older build: the whole notebook at once, from its scripts and pages, with one delivery. It does not use approved scene plans.</small></button>
+                <button id="toggle-video-staging" type="button" role="menuitem" hidden><span class="menu-label">Show video staging</span><small class="menu-note">The older way: each page's dialogue, motion, live canvas and Publish, here on the base. Create video gives a video its own.</small></button>
+                <button id="reset-sample" type="button" role="menuitem"><span class="menu-label">Replace with the sample…</span><small class="menu-note">Replaces this notebook's text with the sample story; it asks first.</small></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- The open notebook's context: which notebook it is, what it is
+             made from, and its one next step. In a video's Scenes view the
+             scene workspace's own row takes this place. -->
+        <div id="contextbar" class="contextbar">
+          <div class="context-start">
+            <div class="view-switch" role="group" aria-label="View">
+              <button id="workspace-tab-scenes" type="button" class="workspace-tab" aria-pressed="false" title="The video's scenes around one stage" hidden>Scenes</button>
+              <button id="workspace-tab-notebook" type="button" class="workspace-tab active" aria-pressed="true" title="The notebook: the outline and the words">Notebook</button>
+            </div>
+            <div class="context-title">
+              <span id="context-eyebrow" class="eyebrow">Notebook</span>
+              <h1 id="notebook-title">Write the story</h1>
+            </div>
+            <div id="project-strip" class="project-strip" hidden>
+              <span id="project-strip-source" class="project-strip-item" hidden></span>
+              <span id="project-strip-brand" class="project-strip-item" hidden></span>
+              <span id="project-strip-jobs" class="project-strip-jobs" hidden></span>
+            </div>
+          </div>
+          <div class="context-actions">
+            <!-- One next step (F10 of the Perplexity review): the notebook's
+                 own — a base's video, a wireframe's presentation, a video's
+                 selected scene. -->
+            <button id="next-step" class="button primary" type="button" hidden>Next step</button>
+          </div>
+        </div>
+      </header>
+      <!-- What stays until it is resolved: compact, under the header. -->
+      <div class="app-notices">
+        <div id="storage-warning" class="app-notice is-warning" role="status" hidden>
+          <span id="storage-warning-text" class="app-notice-text"></span>
+          <button id="storage-warning-retry" class="button" type="button">Retry</button>
+        </div>
+        <div id="migration-banner" class="app-notice is-info" hidden>
+          <span id="migration-banner-text" class="app-notice-text"></span>
+          <button id="migration-import" class="button primary" type="button">Import</button>
+          <button id="migration-dismiss" class="button ghost" type="button">Not now</button>
+        </div>
       </div>
 
       <main class="studio-workspace">
         <section id="scene-workspace" class="scene-workspace" aria-label="Scene workspace" hidden></section>
         <section class="notebook-document" aria-labelledby="notebook-title">
-          <div class="panel-heading">
-            <div>
-              <span class="eyebrow">Notebook</span>
-              <h1 id="notebook-title">Write the story</h1>
-            </div>
-            <button id="reset-sample" class="icon-button" title="Reset sample">↺</button>
-          </div>
-          <div id="project-strip" class="project-strip" hidden>
-            <span id="project-strip-source" class="project-strip-item" hidden></span>
-            <span id="project-strip-brand" class="project-strip-item" hidden></span>
-            <span id="project-strip-jobs" class="project-strip-jobs" hidden></span>
-          </div>
           <div id="editor-layout" class="editor-layout">
             <div class="editor-column">
               <div id="editor-toolbar" class="editor-toolbar" aria-label="Formatting toolbar">

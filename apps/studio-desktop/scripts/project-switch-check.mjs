@@ -111,10 +111,10 @@ const seen = () => evaluate(`() => {
     format: visible(document.querySelector('.format-control')),
     lineage: visible(document.getElementById('notebook-lineage')),
     canvas: visible(document.getElementById('inline-preview')),
-    publish: visible(document.getElementById('render-video')),
-    preview: visible(document.getElementById('open-fullscreen-tab')),
+    // What the header's Export menu offers for this notebook.
+    publish: !document.getElementById('render-video').hidden,
     notebookTab: visible(document.getElementById('workspace-tab-notebook')),
-    exportPdf: visible(document.getElementById('export-presentation')),
+    exportPdf: !document.getElementById('export-presentation').hidden,
     next: visible(document.getElementById('next-step')) ? document.getElementById('next-step').textContent : null,
     text: document.querySelector('#editor .ProseMirror')?.innerText.slice(0, 200) || '',
     pages: document.querySelectorAll('#editor .notebook-scene-block').length,
@@ -167,7 +167,7 @@ try {
   const wire = wireframe ? await seen() : null
   await capture('02-wireframe')
   check('the wireframe tab opens the wireframe notebook, current in the switch', Boolean(wire) && summary(wire.tabs) === 'Text: 3 blocks · Wireframe*: 2 pages · Presentation: 2 slides · Video: not made yet', summary(wire?.tabs))
-  check('the wireframe shows its pages with their notes, and none of the video\'s staging', wire?.pages === 2 && wire.badge === 'PAGE' && wire.notes === 'BoltDB keeps one file.' && wire.staging.length === 0 && !wire.canvas && !wire.publish && !wire.preview && wire.next === null, JSON.stringify(wire && { ...wire, tabs: undefined, text: undefined }))
+  check('the wireframe shows its pages with their notes, and none of the video\'s staging', wire?.pages === 2 && wire.badge === 'PAGE' && wire.notes === 'BoltDB keeps one file.' && wire.staging.length === 0 && !wire.canvas && !wire.publish && wire.next === null, JSON.stringify(wire && { ...wire, tabs: undefined, text: undefined }))
 
   // The presentation: its slides, and Create video its one way on.
   await click('presentation')

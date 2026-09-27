@@ -336,10 +336,10 @@ try {
     const chrome = await evaluate(`() => {
       const visible = element => element && element.getClientRects().length > 0
       const title = document.getElementById('project-title').value
-      const bars = ['.topbar', '.commandbar'].map(selector => { const bar = document.querySelector(selector); return bar.scrollWidth - bar.clientWidth })
-      const clipped = [...document.querySelectorAll('.topbar button, .topbar a, .commandbar button')].filter(visible).filter(element => { const box = element.getBoundingClientRect(); return box.right > innerWidth + 1 || box.left < -1 }).map(element => element.id || element.textContent.trim().slice(0, 20))
+      const bars = ['.topbar', '.contextbar'].map(selector => { const bar = document.querySelector(selector); return bar.scrollWidth - bar.clientWidth })
+      const clipped = [...document.querySelectorAll('.topbar button, .topbar a, .contextbar button')].filter(visible).filter(element => { const box = element.getBoundingClientRect(); return box.right > innerWidth + 1 || box.left < -1 }).map(element => element.id || element.textContent.trim().slice(0, 20))
       return {
-        primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(visible).map(element => element.textContent.trim()),
+        primaries: [...document.querySelectorAll('.app-chrome .button.primary')].filter(visible).map(element => element.textContent.trim()),
         next: document.getElementById('next-step').textContent,
         titles: [...document.querySelectorAll('.topbar *')].filter(visible).filter(element => !element.children.length && element.id !== 'project-title' && element.textContent.includes(title)).length,
         lineage: [...document.querySelectorAll('#notebook-lineage .notebook-lineage-segment')].map(element => element.textContent),
@@ -390,30 +390,31 @@ try {
   check(other.some(text => text.startsWith('Plan:')), `an unselected scene's strip still says where its plan stands (${JSON.stringify(other)})`)
   // ——— The base: its one next step is its video; the rest under Advanced ———
   check(Boolean(await openNotebook(base.id, base.title)), 'the base notebook opens')
-  const baseStep = await waitFor(`() => { const button = document.getElementById('next-step'); return button.textContent === 'Open video' ? { label: button.textContent, title: button.title, primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(element => element.getClientRects().length).map(element => element.textContent.trim()) } : null }`, 30)
+  const baseStep = await waitFor(`() => { const button = document.getElementById('next-step'); return button.textContent === 'Open video' ? { label: button.textContent, title: button.title, primaries: [...document.querySelectorAll('.app-chrome .button.primary')].filter(element => element.getClientRects().length).map(element => element.textContent.trim()) } : null }`, 30)
   // A base made from a source shows its pages; publishing is the video's
   // (BoltDB review B04).
   check(baseStep?.label === 'Open video' && JSON.stringify(baseStep.primaries) === '["Open video"]' && /fabric-lib · video/.test(baseStep.title), `the base leads with its video, and publishing is the video's (${JSON.stringify(baseStep)})`)
-  // Import's menu shows whole too: the command bar no longer clips it.
-  const imports = await evaluate(`async () => {
-    document.getElementById('import-menu-toggle').click()
-    await new Promise(resolve => setTimeout(resolve, 300))
-    const buttons = [...document.querySelectorAll('#import-menu-list button')].filter(element => element.getClientRects().length)
-    const shown = buttons.filter(element => { const box = element.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return box.bottom <= innerHeight && Boolean(hit && element.contains(hit)) }).length
-    document.getElementById('import-menu-toggle').click()
-    return { items: buttons.length, shown }
-  }`)
-  check(imports.items > 0 && imports.shown === imports.items, `Import's menu shows every item whole (${JSON.stringify(imports)})`)
-  const advanced = await evaluate(`async () => {
+  // The More menu holds everything else, whole: the theme, what can be
+  // added, the planning workspace and the canvas, and the older paths, each
+  // saying what it is (F10 of the Perplexity review).
+  const more = await evaluate(`async () => {
     document.getElementById('advanced-menu-toggle').click()
     await new Promise(resolve => setTimeout(resolve, 300))
     const list = document.getElementById('advanced-menu-list')
-    const buttons = [...list.querySelectorAll('button')].filter(element => element.getClientRects().length)
+    const items = [...list.querySelectorAll('button[role="menuitem"]')].filter(element => element.getClientRects().length)
     // Each item really shows: inside the window, and on top where it is.
-    const shown = buttons.filter(element => { const box = element.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return box.top >= 0 && box.bottom <= innerHeight && box.right <= innerWidth && Boolean(hit && element.contains(hit)) }).length
-    return { open: !list.hidden, expanded: document.getElementById('advanced-menu-toggle').getAttribute('aria-expanded'), shown, barScrolled: document.querySelector('.commandbar .actions').scrollTop + document.querySelector('.commandbar .actions').scrollLeft, next: document.getElementById('next-step').getClientRects().length > 0, items: buttons.map(element => ({ label: element.querySelector('.menu-label').textContent, note: element.querySelector('.menu-note').textContent })) }
+    const shown = items.filter(element => { const box = element.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return box.top >= 0 && box.bottom <= innerHeight && box.right <= innerWidth && Boolean(hit && element.contains(hit)) }).length
+    // Items under each heading, in order.
+    const groups = {}
+    let heading = ''
+    for (const element of list.children) {
+      if (element.classList.contains('menu-heading')) heading = element.textContent
+      else if (element.matches('button[role="menuitem"]') && element.getClientRects().length) (groups[heading] ||= []).push({ label: element.querySelector('.menu-label').textContent, note: element.querySelector('.menu-note')?.textContent || '' })
+    }
+    return { open: !list.hidden, expanded: document.getElementById('advanced-menu-toggle').getAttribute('aria-expanded'), items: items.length, shown, theme: Boolean(list.querySelector('#studio-theme-selector')), next: document.getElementById('next-step').getClientRects().length > 0, groups }
   }`)
-  check(advanced.open && advanced.expanded === 'true' && advanced.shown === 4 && advanced.barScrolled === 0 && advanced.next && advanced.items.map(item => item.label).join('|') === 'Open canvas|Create explainer…|Build explainer|Show video staging' && /does not use approved scene plans/.test(advanced.items[2]?.note || '') && /The older way/.test(advanced.items[3]?.note || ''), `Advanced holds the older and other paths, each saying what it is (${JSON.stringify(advanced)})`)
+  const older = more.groups?.['Older paths'] || []
+  check(more.open && more.expanded === 'true' && more.items > 0 && more.shown === more.items && more.theme && more.next && JSON.stringify((more.groups?.['Add to it'] || []).map(item => item.label)) === JSON.stringify(['Start from a link or narrative…', 'Import a Markdown file…', 'Paste Markdown…', 'Import SVG pages…', 'Asset library…', 'Video length…']) && JSON.stringify((more.groups?.Open || []).map(item => item.label)) === JSON.stringify(['Planning workspace', 'Open canvas']) && older.map(item => item.label).join('|') === 'Create explainer…|Build explainer|Show video staging|Replace with the sample…' && /does not use approved scene plans/.test(older[1]?.note || '') && /The older way/.test(older[2]?.note || ''), `More holds the theme, what can be added, the planning workspace and the older paths, each saying what it is, every item whole (${JSON.stringify(more)})`)
   await shot('base-advanced')
   await evaluate(`() => { document.getElementById('advanced-menu-toggle').click(); return true }`)
   const documentType = await waitFor(`() => { const paragraph = document.querySelector('#editor .tiptap > p'); const list = document.querySelector('#editor .tiptap > ul'); if (!paragraph || !list) return null; const style = getComputedStyle(paragraph); return { paragraph: style.fontSize + '/' + style.lineHeight, item: getComputedStyle(list.querySelector('li')).fontSize + '/' + getComputedStyle(list.querySelector('li')).lineHeight, list: getComputedStyle(list).paddingLeft } }`, 30)

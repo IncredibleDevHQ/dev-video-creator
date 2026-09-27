@@ -53,7 +53,7 @@ export const renderNotebookSwitch = (host: HTMLElement, tabs: SwitchTab[], choos
     ...tabs.map(tab => {
       const button = document.createElement('button')
       button.type = 'button'
-      button.className = `notebook-switch-tab is-${tab.notebook ? tab.notebook.state : 'missing'}`
+      button.className = `notebook-switch-tab is-${tab.notebook ? tab.notebook.state : 'missing'}${tab.notebook && /could not/.test(tab.notebook.detail) ? ' is-error' : ''}`
       button.dataset.kind = tab.kind
       button.title = tab.title
       if (tab.current) button.setAttribute('aria-current', 'page')

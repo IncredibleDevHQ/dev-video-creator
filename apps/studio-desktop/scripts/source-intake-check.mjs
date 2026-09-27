@@ -337,8 +337,9 @@ try {
       ideas: blocks.map(block => block.querySelector('.scene-notes-idea p')?.innerText || ''),
       notes: blocks.map(block => block.querySelector('.scene-notes-script p')?.innerText || ''),
       staging: [...new Set(blocks.flatMap(block => ['.scene-arc', '.scene-area', '[data-slide-action]', '.scene-director', '.scene-storyboard', '.scene-cues', '.block-dialogue', 'figcaption'].filter(selector => [...block.querySelectorAll(selector)].some(visible))))],
-      chrome: ['#inline-preview', '#live-camera-toggle', '#render-video', '#open-fullscreen-tab', '#toggle-video-staging', '#notebook-build-status'].filter(selector => visible(document.querySelector(selector))),
-      primaries: [...document.querySelectorAll('.topbar .button.primary, .commandbar .button.primary')].filter(visible).map(element => element.textContent.trim()),
+      // Publish is offered in the header's Export menu, or not at all.
+      chrome: [...['#inline-preview', '#live-camera-toggle', '#toggle-video-staging', '#notebook-build-status'].filter(selector => visible(document.querySelector(selector))), ...(document.getElementById('render-video').hidden ? [] : ['#render-video'])],
+      primaries: [...document.querySelectorAll('.app-chrome .button.primary')].filter(visible).map(element => element.textContent.trim()),
       tabs: tabs.map(tab => tab.querySelector('strong').textContent + (tab.getAttribute('aria-current') === 'page' ? '*' : '') + ': ' + tab.querySelector('small').textContent).join(' · '),
       src,
     }

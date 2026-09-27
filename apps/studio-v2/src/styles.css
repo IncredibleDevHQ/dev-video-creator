@@ -32,54 +32,14 @@ h1, h2, h3, h4, strong { font-family: 'Gilroy', sans-serif; }
 ::selection { color: white; background: var(--brand); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 
-.app-chrome { position: sticky; top: 0; z-index: 30; color: rgba(255,255,255,.9); box-shadow: 0 1px 0 rgba(255,255,255,.04); }
-.topbar { height: 48px; padding: 0 20px; display: grid; grid-template-columns: 230px minmax(240px, 1fr) auto; align-items: center; background: var(--chrome); }
-.topbar-actions { justify-self: end; display: flex; align-items: center; gap: 12px; }
-.topbar-actions .button { min-height: 30px; padding-inline: 12px; font-size: 9px; }
-.brand { display: flex; align-items: center; gap: 10px; color: white; text-decoration: none; }
-.brand img { display: block; width: 82px; height: 24px; }
-.back-mark { color: #a1a1aa; font: 30px/1 Inter, sans-serif; transform: translateY(-1px); }
-.project-title { justify-self: center; width: min(560px, 100%); display: flex; align-items: center; gap: 6px; }
-.project-title-field { flex: 1; min-width: 0; }
-.project-title input { width: 100%; padding: 4px 12px; border: 0; border-radius: 4px; outline: 0; background: transparent; color: rgba(255,255,255,.92); text-align: center; font-family: 'Gilroy'; font-size: 14px; font-weight: 700; }
-.project-title input:focus { background: rgba(255,255,255,.06); }
-.topbar-status { justify-self: end; display: flex; align-items: center; gap: 10px; color: #a1a1aa; font-size: 11px; }
-.brand-orbit { width: 32px; height: 32px; display: grid; place-items: center; border: 3px solid rgba(74,222,128,.22); border-radius: 50%; }
-.brand-orbit span { width: 22px; height: 22px; display: grid; place-items: center; border: 2px solid var(--brand); border-radius: 50%; color: var(--brand-light); font-size: 7px; font-weight: 800; }
-.commandbar { height: 48px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #303036; background: var(--chrome-2); }
-.workspace-nav, .actions { display: flex; align-items: center; height: 100%; }
-.workspace-nav { gap: 18px; }
-.actions { gap: 8px; }
-.format-control { height: 34px; min-width: 225px; padding: 0 13px; display: flex; align-items: center; gap: 10px; border-radius: 4px; background: var(--chrome-3); color: #d4d4d8; font-size: 12px; }
-.format-control strong { margin-right: auto; color: #f4f4f5; font-size: 12px; }
-.workspace-tab { height: 48px; padding: 0; border: 0; background: transparent; color: #929397; font-family: 'Gilroy'; font-size: 13px; font-weight: 600; }
-.workspace-tab.active { color: rgba(255,255,255,.9); }
-.save-state { margin-right: 8px; display: flex; align-items: center; gap: 6px; color: #a1a1aa; font-size: 10px; }
-.save-state svg { width: 12px; height: 12px; color: var(--brand-light); }
 
-.button { min-height: 34px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #d4d4d8; border-radius: 4px; background: white; color: var(--ink); font-family: 'Gilroy'; font-size: 11px; font-weight: 700; transition: transform .14s, background .14s, border-color .14s; }
-.button svg { width: 13px; height: 13px; flex: none; }
-.button:hover { transform: translateY(-1px); border-color: #a1a1aa; }
-.button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
-.button.primary { border-color: var(--brand); background: var(--brand); color: white; }
-.button.primary:hover { border-color: #15803d; background: #15803d; }
-.button.secondary { border-color: #86efac; background: var(--brand-soft); color: #166534; }
-.button.danger { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
-.button.ghost { background: transparent; }
-.button.chrome-ghost { border-color: transparent; background: transparent; color: #d4d4d8; }
-.button.chrome-ghost:hover { border-color: transparent; background: rgba(255,255,255,.08); }
-.button.chrome-secondary { border-color: #52525b; background: var(--chrome-3); color: white; }
 .button.wide { width: 100%; display: flex; align-items: center; justify-content: center; text-decoration: none; }
 .record-dot { width: 7px; height: 7px; display: inline-block; margin-right: 5px; border-radius: 50%; background: var(--brand-light); }
-.icon-button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--muted); font-size: 17px; }
-.icon-button:hover { color: var(--ink); border-color: #a1a1aa; }
 
 .studio-workspace { position: relative; height: calc(100vh - 96px); overflow-y: auto; background: white; }
 .notebook-document { min-height: 100%; padding: 0 32px 120px; background: white; }
 .panel-heading, .timeline-heading { display: flex; align-items: flex-start; justify-content: space-between; }
-.notebook-document > .panel-heading { width: min(1180px, 100%); margin: 0 auto; padding: 32px 0 18px; }
 .panel-heading h1, .panel-heading h2, .timeline-heading h2 { margin: 3px 0 0; color: var(--ink); font-size: 17px; letter-spacing: -.02em; }
-.eyebrow { color: #929397; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
 
 .editor-layout { position: relative; width: min(1180px, 100%); min-height: 760px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 760px) 360px; gap: 60px; align-items: stretch; }
 .editor-column { min-width: 0; }
@@ -1087,22 +1047,8 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .studio-theme-picker > svg { width: 13px; height: 13px; flex: none; }
 .studio-theme-picker > button { padding: 2px 5px; border: 0; border-radius: 3px; background: transparent; color: #a1a1aa; font-size: 11px; line-height: 1; cursor: pointer; }
 .studio-theme-picker > button:hover { background: rgba(255,255,255,.1); color: white; }
-.import-menu { position: relative; }
-.import-menu-list { position: fixed; z-index: 130; min-width: 172px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
-.import-menu-list[hidden] { display: none; }
-.import-menu-list button { padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: #d4d4d8; font-size: 10px; font-weight: 600; text-align: left; }
-.import-menu-list button:hover { background: #33333a; color: white; }
 /* F10 of the Perplexity review: the older and other paths, each saying what
    it is, out of the way of the one next step. */
-.advanced-menu { position: relative; }
-.advanced-menu-list { position: fixed; z-index: 130; width: 300px; padding: 5px; display: grid; gap: 2px; border: 1px solid #3f3f46; border-radius: 8px; background: #202024; box-shadow: 0 16px 44px rgba(0,0,0,.42); }
-.advanced-menu-list[hidden] { display: none; }
-.advanced-menu-list button { display: grid; gap: 3px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; text-align: left; cursor: pointer; }
-.advanced-menu-list button:hover, .advanced-menu-list button:focus-visible { background: #33333a; color: white; outline: none; }
-.advanced-menu-list button:disabled { opacity: .5; cursor: default; }
-.advanced-menu-list .menu-label { font-size: 11px; font-weight: 700; }
-.advanced-menu-list .menu-note { font-size: 10px; line-height: 1.4; font-weight: 500; color: #a1a1aa; }
-.commandbar-divider { width: 1px; height: 22px; margin: 0 4px; background: #3f3f46; }
 .button.record-cta { border: 1px solid rgba(239,68,68,.6); background: transparent; color: #fca5a5; }
 .button.record-cta:hover { border-color: #ef4444; background: rgba(239,68,68,.14); color: white; }
 .button.record-cta .record-dot { background: #ef4444; }
@@ -1321,8 +1267,6 @@ body.theme-surface-open .notebook-timeline, body:has(.player-shell.canvas-open) 
 .explainer-step-bar .ex-canvas-play.is-playing, .explainer-step-bar .ex-canvas-loop.is-on { background: rgba(132,239,173,.16); color: var(--brand-light, #84efad); }
 
 /* ——— Model settings ——— */
-.topbar-status-button { appearance: none; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; background: transparent; cursor: pointer; }
-.topbar-status-button:hover { border-color: #3f3f46; background: rgba(255,255,255,.05); }
 .settings-modal { width: min(560px, 94vw); border-radius: 14px; overflow: hidden; }
 .settings-body { padding: 18px 22px 4px; display: grid; gap: 14px; }
 .settings-field { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: #3f3f46; }
@@ -1753,30 +1697,13 @@ body.is-base-pages .notebook-scene-block .scene-notes { display: grid; gap: 14px
 .scene-notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .scene-notes li { max-width: 68ch; color: #3f3f46; font-size: 12.5px; line-height: 1.55; font-style: italic; }
 body.is-base-pages .notebook-scene-block :is(.scene-arc, .scene-area, [data-slide-action], .scene-director, .scene-storyboard, .scene-cues, .block-dialogue, figcaption) { display: none; }
-body.is-base-pages :is(#render-video, #open-fullscreen-tab, #live-camera-toggle, .notebook-timeline-copy time) { display: none; }
+body.is-base-pages :is(#live-camera-toggle, .notebook-timeline-copy time) { display: none; }
 body.is-base-pages:not(.canvas-is-open) .inline-canvas-rail { display: none; }
 body.is-base-pages:not(.canvas-is-open) .editor-layout { width: min(980px, 100%); grid-template-columns: minmax(0, 1fr); }
 
 /* ——— A project's notebooks (the four-notebook model) ———
    One tab per kind, in the order they are made from one another; each says
    where its notebook stands. A notebook not made yet reads as an outline. */
-.notebook-switch { display: flex; align-items: stretch; gap: 2px; height: 38px; padding: 3px; border-radius: 9px; background: var(--chrome); box-shadow: inset 0 0 0 1px #34343a; }
-.notebook-switch[hidden] { display: none; }
-.notebook-switch-tab { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 12px 0 10px; border: 0; border-radius: 7px; background: transparent; color: #a1a1aa; font: inherit; text-align: left; cursor: pointer; }
-.notebook-switch-tab svg { flex: none; width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.notebook-switch-copy { display: grid; line-height: 1.2; }
-.notebook-switch-copy strong { color: inherit; font-family: 'Gilroy'; font-size: 12px; font-weight: 700; }
-.notebook-switch-copy small { color: #71717a; font-size: 10px; white-space: nowrap; }
-.notebook-switch-tab:hover { background: rgba(255,255,255,.05); color: #e4e4e7; }
-.notebook-switch-tab:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 1px; }
-.notebook-switch-tab[aria-current="page"] { background: var(--chrome-3); color: white; }
-.notebook-switch-tab[aria-current="page"] small { color: #c4c4cc; }
-.notebook-switch-tab.is-building small { color: #fbbf24; }
-.notebook-switch-tab.is-missing { color: #6b6b73; }
-.notebook-switch-tab.is-missing svg { stroke-dasharray: 2.5 2.5; }
-.notebook-switch-tab.is-missing small { color: #5c5c64; font-style: italic; }
-body.in-project .format-control, body.in-project #notebook-lineage, body.in-project #reset-sample { display: none; }
-body.in-project:not(.is-video-notebook) #workspace-tab-notebook { display: none; }
 /* Each notebook of a project shows its own kind's tools: the text is a
    document — no theme, spoken explanations or scene timeline; the wireframe
    and presentation are pages — no text formatting or Markdown import. */
@@ -2283,17 +2210,7 @@ body[data-notebook-kind="wireframe"] .scene-page-origin { display: none; }
 .source-field.grow { flex: 1; }
 .source-field.narrow { width: 90px; }
 /* F8: the notebook's export, found again whatever became of Publish. */
-.export-status { display: inline-flex; align-items: center; gap: 6px; max-width: 360px; min-height: 30px; padding: 0 6px 0 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #e4e4e7; font: 600 11px/1.2 'InterBody', Inter, system-ui, sans-serif; }
-.export-status[hidden] { display: none; }
-.export-status > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.export-status[data-status="stored"] { border-color: rgba(74,222,128,.55); color: #bbf7d0; }
-.export-status[data-status="failed"], .export-status[data-status="stalled"] { border-color: rgba(248,113,113,.6); color: #fecaca; }
 /* Ready, but the render said something (F05), or its download failed (F01). */
-.export-status[data-status="stored"]:not([data-warnings="0"]) { border-color: rgba(251,191,36,.6); color: #fde68a; }
-.export-status[data-status="stored"][data-download="failed"] { border-color: rgba(248,113,113,.6); color: #fecaca; }
-.export-status-action { padding: 3px 8px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: transparent; color: inherit; font: inherit; text-decoration: none; white-space: nowrap; cursor: pointer; }
-.export-status-action[hidden], .export-status-dismiss[hidden] { display: none; }
-.export-status-dismiss { border: 0; background: transparent; color: inherit; font-size: 14px; cursor: pointer; }
 /* F9: what each block sounds like in the export. */
 .publish-audio.is-silent { color: #92400e; font-weight: 600; }
 .publish-audio-chip { display: inline-block; margin-top: 2px; font-size: 11px; color: #166534; }
@@ -2736,29 +2653,10 @@ body.is-video-notebook .notebook-scene-block.is-review-source:not(.is-source-ope
    notebook, where it is what is reviewed — and the scene rail has its own
    band at the bottom instead of lying over the document. */
 body { min-width: 0; }
-.topbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; }
-.project-title { min-width: 0; }
-.notebook-lineage { min-width: 0; }
-.topbar-actions { min-width: 0; gap: 10px; }
-.commandbar { gap: 12px; }
-.commandbar .workspace-nav { flex: none; }
-/* At a large text zoom the actions scroll within their own bar, never the page. */
-.commandbar .actions { min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.commandbar .actions::-webkit-scrollbar { display: none; }
-.commandbar .actions > * { flex: none; }
 .editor-layout { width: min(1320px, 100%); grid-template-columns: minmax(0, 1fr) clamp(300px, 30vw, 420px); gap: clamp(20px, 3vw, 48px); }
 body.is-video-notebook .editor-layout { grid-template-columns: minmax(400px, 1fr) clamp(340px, 40vw, 640px); }
 @media (max-width: 1200px) {
-  .format-control { min-width: 0; }
-  .format-control > span:first-child { display: none; }
-  .studio-theme-picker { max-width: 190px; overflow: hidden; }
-  .topbar .notebook-lineage { max-width: 220px; }
   .notebook-document { padding-inline: 20px; }
-}
-@media (max-width: 1080px) {
-  .topbar .notebook-lineage { display: none; }
-  .topbar-status strong, .topbar-status-button strong { display: none; }
-  .save-state strong { display: none; }
 }
 /* Narrow windows: the canvas sits above the document instead of beside it. */
 @media (max-width: 900px) {

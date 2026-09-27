@@ -223,7 +223,7 @@ const openNotebook = async (id, title) => {
 }
 const overview = id => api(`/api/planning/${encodeURIComponent(id)}`).then(r => r.body)
 // The notebook's one next step (F10 of the Perplexity review).
-const nextStep = () => evaluate(`() => { const button = document.getElementById('next-step'); return { label: button.textContent, action: button.dataset.action, scene: button.dataset.scene, disabled: button.disabled, hidden: button.hidden, primaries: [...document.querySelectorAll('.commandbar .button.primary, .topbar .button.primary')].filter(element => !element.hidden).map(element => element.id) } }`)
+const nextStep = () => evaluate(`() => { const button = document.getElementById('next-step'); return { label: button.textContent, action: button.dataset.action, scene: button.dataset.scene, disabled: button.disabled, hidden: button.hidden, primaries: [...document.querySelectorAll('.app-chrome .button.primary')].filter(element => !element.hidden).map(element => element.id) } }`)
 const nextStepIs = async (label, seconds = 20) => {
   let step = null
   for (let i = 0; i < seconds * 2; i++) {
@@ -538,7 +538,7 @@ try {
   const fit = await evaluate(`() => {
     const rail = document.getElementById('notebook-timeline').getBoundingClientRect()
     const workspace = document.querySelector('.studio-workspace').getBoundingClientRect()
-    const hidden = [...document.querySelectorAll('.commandbar .actions > *, .topbar-actions > *')].filter(element => element.offsetParent && element.getBoundingClientRect().right > innerWidth + 1).map(element => element.textContent.trim().slice(0, 24))
+    const hidden = [...document.querySelectorAll('.contextbar .context-actions > *, .topbar-actions > *')].filter(element => element.offsetParent && element.getBoundingClientRect().right > innerWidth + 1).map(element => element.textContent.trim().slice(0, 24))
     return { width: innerWidth, sideways: document.documentElement.scrollWidth > innerWidth, hidden, stage: Math.round(document.getElementById('player-shell').getBoundingClientRect().width), railOverDocument: rail.top < workspace.bottom - 1 }
   }`)
   check(!fit.sideways && fit.hidden.length === 0 && !fit.railOverDocument && fit.stage >= Math.min(560, fit.width * 0.38), `the notebook fits its window, with a stage large enough to judge (${JSON.stringify(fit)})`)

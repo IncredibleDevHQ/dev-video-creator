@@ -319,6 +319,17 @@ try {
   check(Boolean(drafted) && /3 moments drafted/.test(drafted.now) && JSON.stringify(typed.chips) === '["Set the scene","The limit bites","Back to the viewer"]', `the moments arrive as drafts, in the inspector and under the stage (${JSON.stringify({ now: drafted?.now, chips: typed.chips })})`)
   check(typed.value === 'Hold on the refusal' && /^direction:/.test(typed.focused), `direction typed meanwhile is kept, and keeps the keyboard (${JSON.stringify(typed)})`)
   await shot('02-drafted')
+  // The Open Slide pass: the run is in the header's one Jobs panel too —
+  // its scene, its stage, how long it has run, who runs it, and Stop.
+  await click('#jobs-toggle')
+  const job = await waitFor(`() => {
+    const toggle = document.getElementById('jobs-toggle')
+    const row = [...document.querySelectorAll('#jobs-list .job')].find(item => /^Planning r1/.test(item.querySelector('.job-stage')?.textContent || ''))
+    return !document.getElementById('jobs-panel').hidden && row ? { label: toggle.getAttribute('aria-label'), state: toggle.dataset.state, title: row.querySelector('.job-title strong').textContent, stage: row.querySelector('.job-stage').textContent, clock: Boolean(row.querySelector('.job-time')?.textContent), by: row.querySelector('.job-by')?.textContent || '', actions: [...row.querySelectorAll('.job-action')].map(button => button.textContent) } : null
+  }`, 20)
+  check(job?.label === 'Jobs: 1 running' && job.state === 'running' && /^Scene 1 · /.test(job.title) && /^Planning r1 · /.test(job.stage) && job.clock && /Claude Code/.test(job.by) && JSON.stringify(job.actions) === '["Open","Stop"]', `the header's Jobs panel lists the run: its scene, its phase, how long, who runs it, and Stop (${JSON.stringify(job)})`)
+  await shot('02b-jobs')
+  await click('#jobs-toggle')
   await open(`${r1.id}-submit`)
   const refused = await waitFor(`() => { const now = (${progressNow})(); return now && /problem/.test(now.now) ? now : null }`, 30)
   check(refused?.phases === 'reviewing:done explanation:done moments:active checking:todo ready:todo' && /^The check found \d+ problems?; the harness is fixing/.test(refused.now), `a refused plan shows the moments phase again, saying why (${JSON.stringify(refused)})`)
@@ -356,6 +367,17 @@ try {
   check(quotaShown?.recovery.some(line => /credits/.test(line)) && quotaShown.buttons.includes('Plan the scene again') && quotaShown.buttons.includes('Change the harness or model'), `with the ways on: a retry, and another harness or model (${JSON.stringify({ recovery: quotaShown?.recovery, buttons: quotaShown?.buttons })})`)
   check(quotaShown?.draft?.label === 'Draft from the run that failed · not checked' && quotaShown.draft.question === 'What does this limiter do?', `the last draft is kept, read-only, and said to be unchecked (${JSON.stringify(quotaShown?.draft)})`)
   await shot('04-quota')
+  // Out of credits, the run needs the creator: the Jobs control says so and
+  // keeps it, with a retry, until another run replaces it.
+  await click('#jobs-toggle')
+  const needs = await waitFor(`() => {
+    const toggle = document.getElementById('jobs-toggle')
+    const row = [...document.querySelectorAll('#jobs-list .job.is-failed')].find(item => /^Planning r\\d+ failed — /.test(item.querySelector('.job-stage')?.textContent || ''))
+    return row ? { label: toggle.getAttribute('aria-label'), state: toggle.dataset.state, stage: row.querySelector('.job-stage').textContent, tone: row.querySelector('.job-tone').textContent, actions: [...row.querySelectorAll('.job-action')].map(button => button.textContent), said: document.getElementById('jobs-announcer').textContent } : null
+  }`, 20)
+  check(needs?.state === 'attention' && /1 needs you/.test(needs.label) && needs.tone === 'Needs you' && JSON.stringify(needs.actions) === '["Open","Try again"]' && /^Needs you — Scene 2 · /.test(needs.said), `a failed run stays in the Jobs panel as needing you, said once, with a retry (${JSON.stringify(needs)})`)
+  await shot('04b-jobs-failed')
+  await click('#jobs-toggle')
   // Retry without the fault: a new attempt, planned in full.
   await evaluate(`() => { const box = document.querySelector('#scene-workspace [data-focus^="direction:"]'); box.value = 'Show the cap'; box.dispatchEvent(new Event('input', { bubbles: true })); return true }`)
   await clickText('#scene-workspace .sw-panel .ws-failure button', 'Plan the scene again')
@@ -372,7 +394,8 @@ try {
   await waitFor(`() => /^Plan r1 · approved/.test(document.querySelector('#scene-workspace .ws-revision')?.selectedOptions[0]?.textContent || '') ? true : null`, 20)
   await click('#scene-workspace [data-focus^="revise:"]')
   const next = await until(async () => { const latest = await latestOf(videoId, s1); return latest && latest.revision === 2 && latest.progress?.events?.some(event => event.milestone === 'context') ? latest : null }, 60)
-  const developing = await waitFor(`() => ({ revision: document.querySelector('#scene-workspace .ws-revision')?.selectedOptions[0]?.textContent || '', header: document.querySelector('#scene-workspace .sw-status')?.textContent || '', question: document.querySelector('#scene-workspace .sw-panel .ws-question')?.textContent || '' })`, 10)
+  // The run shows once the review has read it again: wait for it, not for the first look.
+  const developing = await waitFor(`() => { const seen = { revision: document.querySelector('#scene-workspace .ws-revision')?.selectedOptions[0]?.textContent || '', header: document.querySelector('#scene-workspace .sw-status')?.textContent || '', question: document.querySelector('#scene-workspace .sw-panel .ws-question')?.textContent || '' }; return /^Planning r2/.test(seen.header) ? seen : null }`, 20)
   check(/^Plan r1 · approved/.test(developing?.revision || '') && /^Planning r2/.test(developing.header) && developing.question === 'What does this limiter do?', `while r2 develops the approved r1 stays on show (${JSON.stringify(developing)})`)
   for (const step of ['explain', 'moments', 'submit', 'repair']) await open(`${next.id}-${step}`)
   await until(async () => { const latest = await latestOf(videoId, s1); return latest?.id === next.id && latest.status === 'candidate' ? latest : null }, 90)

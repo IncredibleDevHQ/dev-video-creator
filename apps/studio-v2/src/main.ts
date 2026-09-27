@@ -15,6 +15,8 @@ import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePag
 import { sinceOf } from './planning/progress'
 import { baseNextStep, type NextStep } from './planning/next-step'
 import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab } from './notebook-switch'
+import { createJobs, type JobView } from './project-shell/jobs'
+import { nextStepOwner } from './project-shell/action-owner'
 import { nextWireframeAttempt, storedArticleOf, wireframeFailureText, type WireframeOutliner } from './wireframe-attempt'
 import { readableList } from './font-families'
 import { draftHoldsEdits, sameDocument } from './draft-state'
@@ -174,6 +176,8 @@ import {
   type HarnessStatus,
 } from './harness-choice'
 import './styles.css'
+import './ui/tokens.css'
+import './ui/shell.css'
 
 const studioLogoUrl = new URL(
   '../../webfront/svg/StudioLogo.svg',
@@ -6115,7 +6119,7 @@ liveCameraToggle.addEventListener('click', async () => {
   'click',
   closeInspector,
 )
-;['#open-fullscreen', '#open-fullscreen-tab', '#canvas-fullscreen'].forEach(
+;['#open-fullscreen', '#canvas-fullscreen'].forEach(
   selector =>
     ($(selector) as HTMLButtonElement).addEventListener(
       'click',
@@ -6137,69 +6141,91 @@ document.querySelector('.studio-workspace')?.addEventListener('scroll', () => {
   if (inlinePreview.classList.contains('is-following')) window.requestAnimationFrame(positionInlinePreview)
 }, { passive: true })
 
-const importMenuToggle = $('#import-menu-toggle') as HTMLButtonElement
-const importMenuList = $('#import-menu-list')
-
-const closeImportMenu = () => {
-  importMenuList.hidden = true
-  importMenuToggle.setAttribute('aria-expanded', 'false')
-}
-// A command-bar menu opens on the viewport under its toggle: the bar
-// scrolls sideways in a narrow window, and would clip a list inside it.
+// The header's menus (the Open Slide pass): Export and More. Each opens
+// under its toggle, on the viewport, so a narrow header never clips it; one
+// open menu closes another, a click outside or Escape closes it, and the
+// keyboard goes into it and back to its toggle.
+type HeaderMenu = { toggle: HTMLButtonElement; list: HTMLElement; close: () => void }
+const headerMenus: HeaderMenu[] = []
 const placeMenu = (toggle: HTMLElement, list: HTMLElement) => {
   const box = toggle.getBoundingClientRect()
   list.style.top = `${Math.round(box.bottom + 6)}px`
   list.style.right = `${Math.max(8, Math.round(window.innerWidth - box.right))}px`
 }
-
-importMenuToggle.addEventListener('click', event => {
-  event.stopPropagation()
-  const open = importMenuList.hidden
-  if (open) placeMenu(importMenuToggle, importMenuList)
-  importMenuList.hidden = !open
-  importMenuToggle.setAttribute('aria-expanded', String(open))
-})
-importMenuList.addEventListener('click', () => closeImportMenu())
-document.addEventListener('click', event => {
-  if (importMenuList.hidden) return
-  if (
-    !(event.target instanceof Node) ||
-    !importMenuToggle.parentElement?.contains(event.target)
-  ) {
-    closeImportMenu()
+const headerMenu = (toggle: HTMLButtonElement, list: HTMLElement, onOpen?: () => void): HeaderMenu => {
+  const close = () => {
+    if (list.hidden) return
+    list.hidden = true
+    toggle.setAttribute('aria-expanded', 'false')
   }
+  const menu = { toggle, list, close }
+  headerMenus.push(menu)
+  toggle.addEventListener('click', event => {
+    event.stopPropagation()
+    const open = list.hidden
+    headerMenus.forEach(other => other !== menu && other.close())
+    if (open) {
+      onOpen?.()
+      placeMenu(toggle, list)
+    }
+    list.hidden = !open
+    toggle.setAttribute('aria-expanded', String(open))
+    // The keyboard goes to the first item; a field (the theme) is reached with Tab.
+    const items = [...list.querySelectorAll<HTMLElement>('button[role="menuitem"]:not([disabled]), button:not([disabled]), a[href]')].filter(item => item.getClientRects().length)
+    if (open) (items.find(item => item.getAttribute('role') === 'menuitem') || items[0])?.focus({ preventScroll: true })
+  })
+  // An item chosen closes the menu; a field in it (the theme) does not.
+  list.addEventListener('click', event => {
+    if (event.target instanceof Element && event.target.closest('button[role="menuitem"], a[role="menuitem"], #open-theme-builder')) close()
+  })
+  list.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      close()
+      toggle.focus()
+      return
+    }
+    // Arrows move between the menu's items; a field keeps its own arrows.
+    if ((event.key !== 'ArrowDown' && event.key !== 'ArrowUp') || document.activeElement instanceof HTMLSelectElement) return
+    const items = [...list.querySelectorAll<HTMLElement>('button[role="menuitem"]:not([disabled]), a[role="menuitem"]')].filter(item => item.getClientRects().length)
+    if (!items.length) return
+    event.preventDefault()
+    const at = items.indexOf(document.activeElement as HTMLElement)
+    items[(at + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus()
+  })
+  document.addEventListener('click', event => {
+    if (list.hidden) return
+    if (!(event.target instanceof Node) || !(toggle.contains(event.target) || list.contains(event.target))) close()
+  })
+  return menu
+}
+window.addEventListener('resize', () => headerMenus.forEach(menu => menu.close()))
+// Export: what this notebook can be exported as — its video, its slides.
+const exportMenuToggle = $('#export-menu-toggle') as HTMLButtonElement
+const exportMenuList = $('#export-menu-list')
+headerMenu(exportMenuToggle, exportMenuList, () => {
+  const offered = [...exportMenuList.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]')].filter(item => !item.hidden)
+  ;($('#export-menu-empty') as HTMLElement).hidden = offered.length > 0
 })
-
-// The older and other paths, each saying what it is (F10 of the Perplexity
-// review): out of the way of the one next step.
+// More: the older and other paths, each saying what it is (F10 of the
+// Perplexity review), out of the way of the one next step.
 const advancedMenuToggle = $('#advanced-menu-toggle') as HTMLButtonElement
 const advancedMenuList = $('#advanced-menu-list')
-const closeAdvancedMenu = () => {
-  advancedMenuList.hidden = true
-  advancedMenuToggle.setAttribute('aria-expanded', 'false')
+headerMenu(advancedMenuToggle, advancedMenuList)
+// Jobs: everything running, and what needs the creator, in one panel
+// (the Open Slide pass). Its sources — the export, this project's notebooks,
+// the video's runs, the older explainer build — each say what they have.
+const jobsToggle = $('#jobs-toggle') as HTMLButtonElement
+const jobsPanel = $('#jobs-panel')
+const jobsMenu = headerMenu(jobsToggle, jobsPanel)
+const jobs = createJobs({ toggle: jobsToggle, count: $('#jobs-count'), panel: jobsPanel, list: $('#jobs-list'), empty: $('#jobs-empty'), summary: $('#jobs-summary'), announcer: $('#jobs-announcer') })
+// The older explainer build keeps its own notice, which now sits in the panel.
+{
+  const explainerProgress = $('#explainer-progress')
+  const noteExplainer = () => jobs.note('explainer', { running: explainerProgress.hidden ? 0 : 1, attention: 0 })
+  new MutationObserver(noteExplainer).observe(explainerProgress, { attributes: true, attributeFilter: ['hidden'] })
+  noteExplainer()
 }
-advancedMenuToggle.addEventListener('click', event => {
-  event.stopPropagation()
-  const open = advancedMenuList.hidden
-  if (open) placeMenu(advancedMenuToggle, advancedMenuList)
-  advancedMenuList.hidden = !open
-  advancedMenuToggle.setAttribute('aria-expanded', String(open))
-  if (open) [...advancedMenuList.querySelectorAll<HTMLButtonElement>('button')].find(button => button.getClientRects().length)?.focus({ preventScroll: true })
-})
-window.addEventListener('resize', () => {
-  closeImportMenu()
-  closeAdvancedMenu()
-})
-advancedMenuList.addEventListener('click', () => closeAdvancedMenu())
-document.addEventListener('click', event => {
-  if (advancedMenuList.hidden) return
-  if (!(event.target instanceof Node) || !advancedMenuToggle.parentElement?.contains(event.target)) closeAdvancedMenu()
-})
-advancedMenuList.addEventListener('keydown', event => {
-  if (event.key !== 'Escape') return
-  closeAdvancedMenu()
-  advancedMenuToggle.focus()
-})
 
 // The header names the project (R03 of the project-flow rereview). A
 // notebook in a project is named by its project — the name every notebook
@@ -7448,6 +7474,7 @@ notebookMenuToggle.addEventListener('click', async () => {
     closeNotebookMenu()
     return
   }
+  headerMenus.forEach(menu => menu.close())
   notebookMenuList.hidden = false
   notebookMenuToggle.setAttribute('aria-expanded', 'true')
   notebookMenuList.innerHTML = '<div class="notebook-menu-heading">Loading notebooks…</div>'
@@ -7639,6 +7666,8 @@ const importSvgPages = async (
 })
 // Test hook (scripts/import-check.mjs drives this through /__eval).
 ;(window as unknown as { importSvgPages?: unknown }).importSvgPages = importSvgPages
+// A project's notebooks are made from its source: none is replaced by the sample.
+;($('#reset-sample') as HTMLButtonElement).hidden = Boolean(project.container)
 ;($('#reset-sample') as HTMLButtonElement).addEventListener('click', () => {
   if (!window.confirm('Replace the current notebook with the sample project?')) return
   project.blocks = {}
@@ -9246,9 +9275,13 @@ const renderExportStatus = (job: ExportView | null) => {
   const stalled = Boolean(active && Date.now() - job!.updatedAt > 90_000)
   if (!job || (!active && dismissed === job.id)) {
     box.hidden = true
+    jobs.note('export', { running: 0, attention: 0 })
     return
   }
   box.hidden = false
+  // Running, it counts; ready, failed, stalled or cancelled, it needs you
+  // until it is downloaded or dismissed.
+  jobs.note('export', { running: active && !stalled ? 1 : 0, attention: active && !stalled ? 0 : 1 })
   box.dataset.status = stalled ? 'stalled' : job.status
   box.dataset.job = job.id
   const progress = job.progress
@@ -18390,10 +18423,18 @@ const saveProducedScenes = async (unsaved: string) => {
     renderSceneStage()
   }
 }
+// A job's Open goes to its scene, in the Scenes view.
+const openJobScene = (sceneId: string) => {
+  jobsMenu.close()
+  if (sceneWorkspace && !sceneWorkspace.active()) sceneWorkspace.show('scenes')
+  if (reviewSelectedScene !== sceneId) selectNode(sceneId, true)
+  revealBlock(sceneId)
+}
 const refreshSceneReview = () => {
   const focus = sceneReview?.focusKey() || ''
   editor.view.dispatch(editor.state.tr.setMeta(sceneReviewKey, 'refresh'))
   renderNextStep()
+  jobs.set('video', sceneReview?.jobs(openJobScene) || [])
   // The workspace is drawn from the same review.
   sceneWorkspace?.render()
   window.requestAnimationFrame(() => {
@@ -18747,6 +18788,10 @@ sceneWorkspace = createSceneWorkspace({
     sceneWorkspace?.render()
   },
   viewChanged: view => {
+    // The header's context row is the notebook's; in the Scenes view the
+    // workspace's own row, with the scene's one action, takes its place.
+    ;($('#contextbar') as HTMLElement).hidden = view === 'scenes'
+    renderNextStep()
     if (view === 'scenes' && reviewSelectedScene) resolveStageView(reviewSelectedScene)
     // The notebook's review folds while the workspace shows, and opens again.
     refreshSceneReview()
@@ -18792,7 +18837,7 @@ document.body.dataset.notebookKind = project.container?.kind || ''
 {
   const format = formatOf(project.container?.kind)
   if (format) {
-    ;(document.querySelector('.notebook-document .panel-heading .eyebrow') as HTMLElement).textContent = format.label
+    ;($('#context-eyebrow') as HTMLElement).textContent = format.label
     ;($('#notebook-title') as HTMLElement).textContent = `${format.holds.charAt(0).toUpperCase()}${format.holds.slice(1)}`
   }
 }
@@ -18909,7 +18954,24 @@ const renderSwitch = () => {
 // made after its notice has gone. The source is named, not linked: the app
 // opens nothing from the web.
 const projectStrip = $('#project-strip') as HTMLElement
+// This project's notebooks being made, for the Jobs panel: the wireframe
+// and the slides, each opened from there; one that could not be made needs you.
+const renderNotebookJobs = () => {
+  const own = notebookSummaryOf({ ...project, notebook: editor.getJSON() as TiptapDocument })
+  const notebooks = [...projectNotebooks.filter(entry => entry.id !== project.id), ...(own ? [own] : [])]
+  jobs.set('notebooks', notebooks.filter(entry => entry.state === 'building').map((entry): JobView => {
+    const label = formatOf(entry.kind)?.label || 'Notebook'
+    return {
+      id: `notebook:${entry.id}`,
+      title: label,
+      stage: entry.detail,
+      tone: /could not/.test(entry.detail) ? 'failed' : 'running',
+      actions: entry.id === project.id ? [] : [{ label: 'Open', run: () => void openNotebook(entry.id) }],
+    }
+  }))
+}
 const renderProjectStrip = () => {
+  renderNotebookJobs()
   const kind = notebookKind()
   if (!project.container || !kind || kind === 'video') {
     projectStrip.hidden = true
@@ -19184,6 +19246,9 @@ const videoStagingToggle = $('#toggle-video-staging') as HTMLButtonElement
 syncBasePages = () => {
   const pagesOnly = baseShowsPagesOnly()
   document.body.classList.toggle('is-base-pages', pagesOnly)
+  // Publishing is the video's: a notebook that shows its pages offers no
+  // video export (B04 of the BoltDB review).
+  renderButton.hidden = pagesOnly
   videoStagingToggle.hidden = !isSourceBase()
   videoStagingToggle.querySelector('.menu-label')!.textContent = pagesOnly ? 'Show video staging' : 'Hide video staging'
 }
@@ -19208,9 +19273,6 @@ syncBasePages()
   if (project.derivedFrom?.notebook) {
     build.querySelector('.menu-label')!.textContent = 'Build whole notebook'
     build.title = 'The older build: it works from the notebook\'s scripts and pages and does not use approved scene plans. Producing scenes from approved plans comes next.'
-    // The scene's next step leads; the draft export is its last one.
-    renderButton.classList.remove('primary')
-    renderButton.classList.add('chrome-secondary')
   }
 }
 // ——— The one next step (F10 of the Perplexity review) ———
@@ -19235,16 +19297,20 @@ renderNextStep = () => {
       : kind === 'text' || kind === 'wireframe'
         ? null
         : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
-  nextStepShown = step
-  nextStepButton.hidden = !step
+  // One owner for a scene's action (the Open Slide pass): in the Scenes view
+  // the workspace's own row; in the notebook, this one.
+  const owner = nextStepOwner({ video, stepScene: step?.sceneId || null, workspace: Boolean(sceneWorkspace?.active()) })
+  const shown = owner === 'context' ? step : null
+  nextStepShown = shown
+  nextStepButton.hidden = !shown
   // A base with no video yet has no plans to show: Create video is its way in.
   openPlanningButton.hidden = !video && !baseVideos.length
-  if (!step) return
-  nextStepButton.textContent = step.label
-  nextStepButton.title = step.title
-  nextStepButton.disabled = step.disabled
-  nextStepButton.dataset.action = step.action
-  nextStepButton.dataset.scene = step.sceneId || ''
+  if (!shown) return
+  nextStepButton.textContent = shown.label
+  nextStepButton.title = shown.title
+  nextStepButton.disabled = shown.disabled
+  nextStepButton.dataset.action = shown.action
+  nextStepButton.dataset.scene = shown.sceneId || ''
 }
 nextStepButton.addEventListener('click', () => {
   const step = nextStepShown

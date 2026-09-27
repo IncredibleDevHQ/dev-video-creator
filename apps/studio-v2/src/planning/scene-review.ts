@@ -19,6 +19,7 @@ import { recordingGuide } from './recording-guide'
 import { acceptProduction, approvePlan, loadPlanning, planScene, prepareBrief, previewScene, produceScene, saveProductionEdits, saveSceneDelivery, saveSceneDirection, stopRun } from './planning-client'
 import { BROWSER_REVIEW_MESSAGE, failureTitle, progressText } from '../harness-choice'
 import { progressOf, sinceOf } from './progress'
+import type { JobView } from '../project-shell/jobs'
 import { videoNextStep, type NextStep } from './next-step'
 import { deliveryChangeOf, previewFor, previewStateOf, producedFor, productionShown, productionStateOf, railStateOf, sceneActionsOf, treatmentRecordsOf, type Delivery, type PreviewState, type SceneAction, type SceneActions } from './scene-state'
 
@@ -2229,6 +2230,87 @@ export const createSceneReview = (host: SceneReviewHost) => {
         selected,
         desktop: Boolean(window.studioDesktop?.isDesktop),
       })
+    },
+    // Every run of the video worth following, for the studio's one Jobs
+    // control (the Open Slide pass): the brief and each scene's plan,
+    // preview or production being made — and one that ended without a
+    // result, until another run replaces it. Its actions are the review's
+    // own: open the scene, stop the run, or run it again.
+    jobs: (open: (sceneId: string) => void): JobView[] => {
+      if (!overview) return []
+      const view = overview
+      const byId = new Map(view.records.map(record => [record.id, record]))
+      const sceneName = (sceneId: string) => {
+        const scene = view.scenes.find(entry => entry.id === sceneId)
+        return scene ? `Scene ${scene.index + 1} · ${scene.title || 'Untitled scene'}` : 'A scene'
+      }
+      const planRevision = (record: PlanningRecord) => byId.get(String(record.inputs?.treatmentId || ''))?.revision ?? null
+      const doing = (record: PlanningRecord) => {
+        const plan = planRevision(record)
+        if (record.kind === 'brief') return 'Preparing the explanation brief'
+        if (record.kind === 'treatment') return `Planning r${record.revision}`
+        if (record.kind === 'preview') return `Building the preview${plan ? ` of plan r${plan}` : ''}`
+        return `Producing the scene${plan ? ` from plan r${plan}` : ''}`
+      }
+      const title = (record: PlanningRecord) => (record.kind === 'brief' ? 'Explanation brief' : sceneName(record.subject))
+      const jobs: JobView[] = []
+      const running = view.records.filter(record => isActiveStatus(record.status)).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
+      for (const record of running) {
+        const progress = progressOf(record)
+        const phase = progress.phases.find(entry => entry.state === 'active')?.label || ''
+        const cancelling = stopping.has(record.id)
+        jobs.push({
+          id: record.id,
+          title: title(record),
+          stage: `${doing(record)}${phase ? ` · ${phase}` : ''}`,
+          tone: record.status === 'queued' ? 'waiting' : 'running',
+          since: record.createdAt || null,
+          by: record.adapter ? madeWith(record) : null,
+          actions: [
+            ...(record.subject ? [{ label: 'Open', run: () => open(record.subject) }] : []),
+            { label: cancelling ? 'Stopping…' : 'Stop', run: () => {
+              if (stopping.has(record.id)) return
+              stopping.add(record.id)
+              host.refresh()
+              void run('stop the run', () => stopRun(host.fetchJson, record))
+            } },
+          ],
+        })
+      }
+      // What ended without a result and is still the newest of its kind. A
+      // run the creator stopped is not a failure: it needs nothing more.
+      const failed = (id: string | undefined, retry: (() => void) | null) => {
+        const record = id ? byId.get(id) : null
+        if (!record || record.status !== 'failed') return
+        if (record.progress?.events.some(event => event.milestone === 'stopped') || /^Stopped|was cancelled/.test(record.error?.message || '')) return
+        jobs.push({
+          id: record.id,
+          title: title(record),
+          stage: `${doing(record)} failed — ${failureTitle(record.error?.category)}`,
+          tone: 'failed',
+          since: null,
+          by: record.adapter ? madeWith(record) : null,
+          actions: [
+            ...(record.subject ? [{ label: 'Open', run: () => open(record.subject) }] : []),
+            ...(retry && onDesktop() && view.available ? [{ label: 'Try again', primary: true, run: retry }] : []),
+          ],
+        })
+      }
+      const brief = view.brief.latest
+      if (brief?.status === 'failed') failed(brief.id, () => {
+        const scene = view.scenes[0]
+        if (scene) perform(scene, { kind: 'prepare-brief', label: 'Prepare the brief' }, () => undefined)
+      })
+      for (const scene of view.scenes) {
+        const latest = scene.view.latest
+        if (latest?.kind === 'treatment' && latest.status === 'failed') failed(latest.id, () => void revise(scene))
+        const sketch = scene.preview?.latest
+        const plan = sketch ? byId.get(sketch.treatmentId) : null
+        if (sketch?.status === 'failed' && plan && plan.id === scene.view.current?.id) failed(sketch.id, () => void preview(scene, plan, true))
+        const production = scene.production?.latest
+        if (production?.status === 'failed' && scene.view.reviewed) failed(production.id, () => void produce(scene, false))
+      }
+      return jobs
     },
     // Prepare the video's brief, as the scene workspace's own button does:
     // a new video prepares it there, not in a planning window over it (R06
