@@ -5,6 +5,8 @@ import '@hyperframes/player'
 import { createPlanningWorkspace } from './planning/planning-workspace'
 import { createSceneReview } from './planning/scene-review'
 import { createSceneWorkspace } from './scene-workspace/workspace'
+import { createPageWorkspace } from './page-workspace/page-workspace'
+import { pagesOf } from './page-workspace/pages'
 import { atStageEnd, lastFrameOf } from './scene-workspace/stage-clock'
 import { createStageChoices, defaultStageView, handOffFor, type PreviewJob, type PreviewWait, type StageView } from './scene-workspace/preview-intent'
 import { isActiveStatus } from './planning/planning-records'
@@ -3231,6 +3233,9 @@ let sceneReview: ReturnType<typeof createSceneReview> | null = null
 // The video scene workspace (U2 of the scene workspace plan): the scenes
 // around one stage. While it shows, the notebook's own review stays folded.
 let sceneWorkspace: ReturnType<typeof createSceneWorkspace> | null = null
+// A wireframe's or a presentation's page view (the one stage layout): its
+// pages around one stage, as a video's scenes are.
+let pageWorkspace: ReturnType<typeof createPageWorkspace> | null = null
 let reviewSelectedScene = ''
 // The selected scene whose inherited dialogue is unfolded, if any.
 let sceneSourceOpen = ''
@@ -4994,6 +4999,7 @@ const selectNode = (nodeId: string, focusEditor: boolean) => {
   }
   selectedNodeId = nodeId
   refreshExplanations()
+  pageWorkspace?.render()
   document
     .querySelectorAll('.tiptap > .selected-block')
     .forEach(element => element.classList.remove('selected-block'))
@@ -5109,6 +5115,7 @@ const updatePreview = () => {
     )} seconds`
     renderSceneRail()
     updateInspector()
+    pageWorkspace?.render()
     window.requestAnimationFrame(positionInlinePreview)
 
     if (motionPreviewLoopSceneId) {
@@ -18858,6 +18865,20 @@ const moveNode = (parent: Element, node: Element, before: Node | null) => {
   parent.insertBefore(node, before)
 }
 const railThumbnails = new Map<string, { svg: string; url: string }>()
+// A page or a scene as a picture: its stored poster, else its page, made
+// into a picture once per version of the page.
+const pagePictureOf = (nodeId: string) => {
+  const attrs = findSlideLikeNode(nodeId)?.attrs as Record<string, unknown> | undefined
+  const stored = String(attrs?.svgSrc || '')
+  if (stored) return stored
+  const svg = String(attrs?.svg || '')
+  if (!svg) return ''
+  const cached = railThumbnails.get(nodeId)
+  if (cached?.svg === svg) return cached.url
+  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  railThumbnails.set(nodeId, { svg, url })
+  return url
+}
 const stagePlayback = {
   state: () => ({
     playable: stageShowing === 'player' && Boolean(stagePlayer) && !sceneStage.hidden,
@@ -18886,19 +18907,7 @@ sceneWorkspace = createSceneWorkspace({
   video: () => Boolean(project.derivedFrom?.notebook),
   selectedScene: () => reviewSelectedScene || selectedNodeId,
   selectScene: sceneId => selectNode(sceneId, true),
-  thumbnailOf: sceneId => {
-    const attrs = findSlideLikeNode(sceneId)?.attrs as Record<string, unknown> | undefined
-    const stored = String(attrs?.svgSrc || '')
-    if (stored) return stored
-    const svg = String(attrs?.svg || '')
-    if (!svg) return ''
-    // The page as a picture, made once per version of the page.
-    const cached = railThumbnails.get(sceneId)
-    if (cached?.svg === svg) return cached.url
-    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-    railThumbnails.set(sceneId, { svg, url })
-    return url
-  },
+  thumbnailOf: pagePictureOf,
   mountStage: (frame, bar) => {
     moveNode(frame, sceneStage, null)
     moveNode(bar, sceneStageBar, null)
@@ -18945,6 +18954,32 @@ sceneWorkspace = createSceneWorkspace({
   active: () => Boolean(sceneWorkspace?.active()),
 }
 sceneWorkspace.start()
+// A wireframe's or a presentation's pages around one stage; the notebook
+// stays one click away (Pages · Notebook).
+pageWorkspace = createPageWorkspace({
+  projectId: () => project.id,
+  // A text notebook is an article, not pages: it keeps its own view.
+  on: () => baseShowsPagesOnly() && notebookKind() !== 'text',
+  pages: () => pagesOf(scenes, { wireframe: notebookKind() === 'wireframe' }),
+  pictureOf: pagePictureOf,
+  selectedPage: () => selectedNodeId,
+  // The notebook's own selection moves with the page (without taking the
+  // keyboard), so nothing done to the notebook meanwhile moves it back.
+  selectPage: pageId => selectNode(pageId, true),
+  notices: () => [$('#page-design-status') as HTMLElement, $('#notebook-build-status') as HTMLElement],
+  viewChanged: () => {
+    syncLayoutBands()
+    window.requestAnimationFrame(positionInlinePreview)
+  },
+})
+;(window as unknown as { __pages?: unknown }).__pages = {
+  show: (view: 'pages' | 'notebook') => pageWorkspace?.show(view),
+  view: () => pageWorkspace?.view(),
+  active: () => Boolean(pageWorkspace?.active()),
+  current: () => selectedNodeId,
+  go: (to: number) => pageWorkspace?.go(to),
+}
+pageWorkspace.start()
 // A new video's intent, once its scenes are read: Scenes shown, the scene
 // asked for selected, and its brief prepared there (R06).
 if (pendingVideoIntent) {
@@ -19401,6 +19436,7 @@ syncBasePages = () => {
   renderButton.hidden = pagesOnly
   videoStagingToggle.hidden = !isSourceBase()
   videoStagingToggle.querySelector('.menu-label')!.textContent = pagesOnly ? 'Show video staging' : 'Hide video staging'
+  pageWorkspace?.start()
 }
 videoStagingToggle.addEventListener('click', () => {
   if (baseShowsPagesOnly()) stagingShownOn.add(project.id)

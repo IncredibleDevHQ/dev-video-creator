@@ -158,12 +158,12 @@ try {
   check('the wireframe says Kimi is outlining it, and can be stopped', running?.kind === 'wireframe' && /^Kimi\b/.test(running.text) && running.action === 'Stop' && !running.settings, JSON.stringify(running))
   // R02: a wireframe being made is the job, where its pages will be — never
   // an empty notebook's starter — and nothing is offered that would refuse
-  // for lack of pages.
+  // for lack of pages. In the page view the job sits above the stage.
   const building = await evaluate(`() => {
     const visible = element => Boolean(element) && element.getClientRects().length > 0
     const panel = document.getElementById('notebook-build-status')
     const next = document.getElementById('next-step')
-    return { starter: visible(document.getElementById('notebook-start')), heading: document.getElementById('notebook-build-heading').textContent, meta: document.getElementById('notebook-build-meta').textContent, placeholders: visible(document.getElementById('notebook-build-pages')), panelFirst: panel.getBoundingClientRect().top < document.getElementById('editor').getBoundingClientRect().top, next: visible(next) ? { label: next.textContent, disabled: next.disabled, title: next.title } : null }
+    return { starter: visible(document.getElementById('notebook-start')), heading: document.getElementById('notebook-build-heading').textContent, meta: document.getElementById('notebook-build-meta').textContent, placeholders: visible(document.getElementById('notebook-build-pages')), panelFirst: (() => { const pageView = document.getElementById('page-workspace'); return visible(pageView) ? Boolean(panel.closest('#page-workspace .pw-notices')) && panel.getBoundingClientRect().top < pageView.querySelector('.pw-stage-area').getBoundingClientRect().top : panel.getBoundingClientRect().top < document.getElementById('editor').getBoundingClientRect().top })(), next: visible(next) ? { label: next.textContent, disabled: next.disabled, title: next.title } : null }
   }`, 'building state')
   check('a wireframe being made shows its job and its pages to come, never an empty notebook\'s starter', !building.starter && building.heading === 'Making the wireframe' && /^Kimi\b.* · \d+s|:\d\d/.test(building.meta) && building.placeholders && building.panelFirst, JSON.stringify(building))
   check('Design presentation waits for the pages, and says why', building.next?.label === 'Design presentation' && building.next.disabled && /still being made/.test(building.next.title), JSON.stringify(building.next))

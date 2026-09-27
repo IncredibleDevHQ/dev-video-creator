@@ -459,10 +459,14 @@ try {
   await shot('800-08-narrow')
   await size(1440, 900)
 
-  // ——— A presentation is as it was: its document, no scenes view ———
+  // ——— A base of pages has no scenes view: its pages around one stage (the
+  // one stage layout), its notebook one click away, the video's stage at home ———
   check(Boolean(await openNotebook(base.id, base.title)), 'the base notebook opens')
-  const presentation = await waitFor(`() => ({ workspace: document.getElementById('scene-workspace').hidden, scenesTab: document.getElementById('workspace-tab-scenes').hidden, document: getComputedStyle(document.querySelector('.notebook-document')).display, stage: Boolean(document.querySelector('#player-shell #scene-stage')) })`, 20)
-  check(presentation?.workspace && presentation.scenesTab && presentation.document !== 'none' && presentation.stage, `a presentation keeps its document view, with no scenes view (${JSON.stringify(presentation)})`)
+  const presentation = await waitFor(`() => ({ workspace: document.getElementById('scene-workspace').hidden, scenesTab: document.getElementById('workspace-tab-scenes').hidden, pages: !document.getElementById('page-workspace').hidden, stage: Boolean(document.querySelector('#player-shell #scene-stage')) })`, 20)
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`)
+  const baseDocument = await waitFor(`() => getComputedStyle(document.querySelector('.notebook-document')).display !== 'none' && document.getElementById('page-workspace').hidden ? true : null`, 10)
+  await evaluate(`() => { document.getElementById('workspace-tab-pages').click(); return true }`)
+  check(presentation?.workspace && presentation.scenesTab && presentation.pages && presentation.stage && baseDocument === true, `a base of pages shows its pages, no scenes view, and its notebook one click away (${JSON.stringify({ ...presentation, document: baseDocument })})`)
 } catch (error) {
   check(false, `run: ${error instanceof Error ? error.stack || error.message : error}`)
 } finally {

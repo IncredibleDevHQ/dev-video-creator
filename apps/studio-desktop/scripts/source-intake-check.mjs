@@ -324,6 +324,18 @@ try {
   // video's staging. Designing the presentation is its one way on.
   await evaluate(`() => { setTimeout(() => document.querySelector('#notebook-switch [data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe')
   const visibleJs = `const visible = element => Boolean(element) && element.getClientRects().length > 0`
+  // The wireframe opens on its pages around one stage (the one stage
+  // layout): both pages in the rail, pictured. The notebook, one click away,
+  // shows each page with what it explains and its notes.
+  const pageView = await waitFor(`() => {
+    ${visibleJs}
+    if (document.body.dataset.notebookKind !== 'wireframe' || !visible(document.getElementById('page-workspace'))) return null
+    const pictured = [...document.querySelectorAll('#page-workspace .pw-page img')].filter(image => image.getAttribute('src')).length
+    return pictured === 2 ? { pictured, idea: document.querySelector('#page-workspace .pw-idea')?.textContent || '' } : null
+  }`, 'the wireframe\'s pages', 60)
+  check('the wireframe opens on its two pages around one stage', pageView?.pictured === 2 && pageView.idea === 'The pages of BoltDB, part 1.', JSON.stringify(pageView))
+  await capture('09a-boltdb-wireframe-pages')
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`, 'the wireframe\'s notebook')
   const pages = await waitFor(`() => {
     ${visibleJs}
     const blocks = [...document.querySelectorAll('#editor .notebook-scene-block')]
@@ -346,6 +358,7 @@ try {
   }`, 'the wireframe', 60)
   const pagesCanvas = pages?.src ? await fetch(new URL(pages.src, origin)).then(response => response.text()).catch(() => '') : ''
   await capture('09-boltdb-wireframe')
+  await evaluate(`() => { document.getElementById('workspace-tab-pages').click(); return true }`, 'back to the wireframe\'s pages')
   check('the wireframe shows its pages, each with what it explains and its notes', pages?.base === true && pages.posters === 2 && pages.badges.every(badge => badge === 'PAGE') && pages.ideas.join('|') === 'The pages of BoltDB, part 1.|The pages of BoltDB, part 2.' && pages.notes.every(note => note === 'The pages of BoltDB.'), JSON.stringify(pages && { base: pages.base, posters: pages.posters, badges: pages.badges, ideas: pages.ideas, notes: pages.notes }))
   check('none of the video\'s staging is in the wireframe: no dialogue, motion, director, coach, live canvas, camera or Publish; designing the presentation is its one way on', pages?.staging.length === 0 && pages.chrome.length === 0 && JSON.stringify(pages.primaries) === '["Design presentation"]', JSON.stringify(pages && { staging: pages.staging, chrome: pages.chrome, primaries: pages.primaries }))
   check('its page composition has no presenter in it', pagesCanvas.length > 0 && !pagesCanvas.includes('data-preview-presenter'), `${pagesCanvas.length} characters`)

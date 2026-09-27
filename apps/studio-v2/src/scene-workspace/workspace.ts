@@ -214,9 +214,11 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       scenesTab.classList.toggle('active', video && view === 'scenes')
       scenesTab.setAttribute('aria-pressed', String(video && view === 'scenes'))
     }
-    if (notebookTab) {
-      notebookTab.classList.toggle('active', !video || view === 'notebook')
-      notebookTab.setAttribute('aria-pressed', String(!video || view === 'notebook'))
+    // Only a video's: a wireframe's or a presentation's page view keeps its
+    // own (the one stage layout).
+    if (notebookTab && video) {
+      notebookTab.classList.toggle('active', view === 'notebook')
+      notebookTab.setAttribute('aria-pressed', String(view === 'notebook'))
     }
   }
   const apply = () => {
