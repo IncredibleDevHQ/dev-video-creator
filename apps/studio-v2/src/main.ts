@@ -1,3 +1,6 @@
+// Before the player's module defines it: the stage's player keeps its place
+// when it moves between the views.
+import './ui/player-move'
 import { fitLabel } from './text-fit'
 import { applyAppearanceControl } from './appearance-controls'
 import { controlValue, type ObjectBehavior, type AppearanceControl } from './object-behavior'
@@ -18474,9 +18477,8 @@ const bringStage = () => {
 }
 // A notebook of one column (a video's, or a base's pages) sets its canvas
 // aside: what was playing there — the stage or the notebook's own
-// composition — pauses rather than play unseen when the canvas closes over
-// it, or when the Scenes view hands the stage back (where the stage's
-// player, moved, starts again anyway: it has no hook to keep its place).
+// composition — pauses where it was rather than play unseen when the canvas
+// closes over it, or when the Scenes view hands the stage back.
 const pauseUnseen = () => {
   const rail = playerShell.closest<HTMLElement>('.inline-canvas-rail')
   if (!rail || getComputedStyle(rail).display !== 'none') return

@@ -426,9 +426,10 @@ try {
   check(replayed !== null, `Replay plays the produced scene again from the start (${replayed}s)`)
 
   // Back in the notebook, which shows no stage: the scene playing there
-  // stops rather than play on unseen. (Moved home, the player starts again:
-  // it has no hook to keep its place when moved.) The review says what the
-  // stage played — and never that the stage shows the page.
+  // pauses where it was rather than play on unseen, and the Scenes view gets
+  // it back there, not started over — the player keeps its place when it
+  // moves between the views. The review says what the stage played — and
+  // never that the stage shows the page.
   const playing = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') === 'Pause the produced scene' && player.currentTime > 0.5 ? player.currentTime : null }`, 10)
   await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`)
   const unseen = await waitFor(`async () => {
@@ -438,7 +439,16 @@ try {
     await new Promise(resolve => setTimeout(resolve, 400))
     return label === 'Play the produced scene' && player.currentTime === at ? { label, at } : null
   }`, 10)
-  check(Boolean(playing) && Boolean(unseen), `leaving the Scenes view stops the scene that was playing on its stage (${JSON.stringify({ playing, unseen })})`)
+  check(Boolean(playing) && Boolean(unseen) && unseen.at >= playing, `leaving the Scenes view pauses the scene that was playing on its stage, where it was (${JSON.stringify({ playing, unseen })})`)
+  await evaluate(`() => { document.getElementById('workspace-tab-scenes').click(); return true }`)
+  const returned = await waitFor(`async () => {
+    const player = document.querySelector('#scene-stage-preview hyperframes-player')
+    if (!player || player.classList.contains('is-loading') || !player.getClientRects().length) return null
+    await new Promise(resolve => setTimeout(resolve, 600))
+    return { at: player.currentTime, label: document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') }
+  }`, 10)
+  check(Boolean(unseen) && returned?.label === 'Play the produced scene' && Math.abs(returned.at - unseen.at) < 0.3, `back in the Scenes view, the scene is where it paused, not started over (${JSON.stringify({ paused: unseen?.at, returned })})`)
+  await evaluate(`() => { document.getElementById('workspace-tab-notebook').click(); return true }`)
   const noSketch = await waitFor(`() => document.querySelector('.scene-review.is-expanded .review-no-preview')?.textContent || null`, 20)
   check(noSketch === `No preview of r${plan1.revision} yet — it was produced without one.`, `the review does not claim the stage shows the page while it plays the production (${noSketch})`)
   const typeLine = await evaluate(`() => document.querySelector('.scene-review.is-expanded [data-review-type]')?.textContent || ''`)
