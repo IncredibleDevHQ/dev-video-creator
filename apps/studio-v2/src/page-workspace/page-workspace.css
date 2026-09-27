@@ -4,7 +4,9 @@
    appearance; the pages keep their own. */
 .page-workspace[hidden] { display: none; }
 body.is-page-workspace { --rail-band: 0px; min-width: 0; }
-body.is-page-workspace .notebook-document { display: none; }
+/* The notebook's canvas lives in its document: Open canvas shows it over the
+   pages, so the document is set aside only while the canvas is closed. */
+body.is-page-workspace:not(.canvas-is-open) .notebook-document { display: none; }
 .pw-layout {
   --sw-rail: var(--studio-ui-rail);
   --sw-inspector: var(--studio-ui-inspector);
