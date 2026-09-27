@@ -180,6 +180,7 @@ import './styles.css'
 import './ui/tokens.css'
 import './ui/shell.css'
 import './ui/library.css'
+import './ui/labels.css'
 
 const studioLogoUrl = new URL(
   '../../webfront/svg/StudioLogo.svg',
