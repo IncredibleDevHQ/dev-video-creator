@@ -419,7 +419,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       })
       list.append(h('li', {}, button))
     }
-    const toggle = h('button', { type: 'button', class: 'sw-rail-toggle', 'data-focus': 'sw-rail', 'aria-expanded': prefs.rail ? 'false' : 'true', title: prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', 'aria-label': prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', text: prefs.rail ? '›' : '‹' })
+    const toggle = h('button', { type: 'button', class: 'sw-rail-toggle', 'data-focus': 'sw-rail', 'aria-expanded': prefs.rail ? 'false' : 'true', title: prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', 'aria-label': prefs.rail ? 'Show the scene titles' : 'Show only the scene numbers', }, icon(prefs.rail ? 'chevron-right' : 'chevron-left'))
     toggle.addEventListener('click', () => {
       savePrefs({ rail: !prefs.rail })
       shown = ''
@@ -475,7 +475,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
       button.addEventListener('click', () => openContext(id))
       nav.append(button)
     }
-    const close = h('button', { type: 'button', class: 'sw-context-close', 'data-focus': 'sw-context-close', 'aria-label': 'Close the details', text: '×' })
+    const close = h('button', { type: 'button', class: 'sw-context-close', 'data-focus': 'sw-context-close', 'aria-label': 'Close the details' }, icon('x'))
     close.addEventListener('click', () => closeContext())
     const body = review()?.context(sceneId, section) || h('p', { class: 'review-muted', text: 'Loading…' })
     context.replaceChildren(h('div', { class: 'sw-context-head' }, h('strong', { text: 'Details' }), nav, close), h('div', { class: 'sw-context-scroll' }, body))
@@ -653,7 +653,7 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     const state = host.playback.state()
     // Redrawn on every tick: what had the keyboard keeps it.
     const had = document.activeElement instanceof HTMLElement && transport.contains(document.activeElement) ? document.activeElement.getAttribute('data-focus') : null
-    const play = h('button', { type: 'button', class: 'sw-play', 'data-focus': 'sw-play', 'aria-label': state.playing ? 'Pause' : state.ended ? 'Play again from the start' : 'Play', text: state.playing ? '❚❚' : state.ended ? '↻' : '▶', ...(state.playable ? {} : { disabled: true, title: 'Nothing playable on the stage — the reference is a still page' }) })
+    const play = h('button', { type: 'button', class: 'sw-play', 'data-focus': 'sw-play', 'aria-label': state.playing ? 'Pause' : state.ended ? 'Play again from the start' : 'Play', 'data-icon': state.playing ? 'pause' : state.ended ? 'rotate-ccw' : 'play', ...(state.playable ? {} : { disabled: true, title: 'Nothing playable on the stage — the reference is a still page' }) }, icon(state.playing ? 'pause' : state.ended ? 'rotate-ccw' : 'play'))
     play.addEventListener('click', () => {
       // The stage plays again: a take shown over it gives way.
       if (!takeLayer.hidden) closeTake()

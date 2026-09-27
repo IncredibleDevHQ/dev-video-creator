@@ -375,9 +375,9 @@ try {
   const ended = await waitFor(`() => {
     const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)')
     const button = document.querySelector('.scene-stage-transport > button')
-    return button.getAttribute('aria-label') === 'Replay the preview from the start' ? { time: player.currentTime, duration: player.duration, text: button.textContent } : null
+    return button.getAttribute('aria-label') === 'Replay the preview from the start' ? { time: player.currentTime, duration: player.duration, icon: button.dataset.icon } : null
   }`, 20)
-  check(Boolean(ended) && ended.time < ended.duration && ended.time > ended.duration - 0.2 && ended.text === '↻', `the end holds the last frame and offers a replay (${JSON.stringify(ended)})`)
+  check(Boolean(ended) && ended.time < ended.duration && ended.time > ended.duration - 0.2 && ended.icon === 'rotate-ccw', `the end holds the last frame and offers a replay (${JSON.stringify(ended)})`)
   await evaluate(`() => { document.querySelector('.scene-stage-transport > button').click(); return true }`)
   const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); const label = document.querySelector('.scene-stage-transport > button').getAttribute('aria-label'); return label === 'Pause the preview' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
   check(replayed !== null, `replay starts again from the beginning (${replayed}s)`)

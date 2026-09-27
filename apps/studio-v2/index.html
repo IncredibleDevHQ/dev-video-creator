@@ -145,7 +145,7 @@
         <div class="topbar">
           <div class="topbar-start">
             <a class="brand" href="/themes" data-app-route="themes" aria-label="Incredible Studio themes">
-              <span class="back-mark" aria-hidden="true">‹</span>
+              <span class="back-mark" aria-hidden="true" data-icon="chevron-left">‹</span>
               <img id="studio-logo" alt="Incredible Studio" />
             </a>
             <div class="project-title">
@@ -176,7 +176,7 @@
                 <header class="jobs-panel-head"><strong>Jobs</strong><span id="jobs-summary" class="jobs-summary" aria-live="polite"></span></header>
                 <p id="jobs-empty" class="jobs-empty">Nothing is running. Jobs you start — a wireframe, slides, plans, previews, productions and exports — show here, with how long they have run.</p>
                 <ol id="jobs-list" class="jobs-list"></ol>
-                <div id="export-status" class="export-status" role="status" hidden><span id="export-status-text"></span><span class="export-status-actions"><button id="export-status-details" type="button" class="export-status-action" hidden>Details</button><a id="export-status-download" class="export-status-action" href="#" download hidden>Download</a><button id="export-status-retry" type="button" class="export-status-action" hidden>Retry</button><button id="export-status-cancel" type="button" class="export-status-action" hidden>Cancel</button><button id="export-status-dismiss" type="button" class="export-status-dismiss" aria-label="Dismiss the export notice" hidden>×</button></span></div>
+                <div id="export-status" class="export-status" role="status" hidden><span id="export-status-text"></span><span class="export-status-actions"><button id="export-status-details" type="button" class="export-status-action" hidden>Details</button><a id="export-status-download" class="export-status-action" href="#" download hidden>Download</a><button id="export-status-retry" type="button" class="export-status-action" hidden>Retry</button><button id="export-status-cancel" type="button" class="export-status-action" hidden>Cancel</button><button id="export-status-dismiss" type="button" class="export-status-dismiss" aria-label="Dismiss the export notice" hidden data-icon="x">×</button></span></div>
                 <details id="explainer-progress" class="jobs-explainer" hidden>
         <summary id="explainer-status" aria-live="polite">Preparing explainer…</summary>
         <p id="explainer-run-location"></p>
@@ -374,9 +374,9 @@
                       <video id="live-camera-preview" class="live-camera-preview" autoplay muted playsinline></video>
                     </div>
                     <video id="canvas-take-player" class="canvas-take-player" controls playsinline preload="metadata" aria-label="Recorded take" hidden></video>
-                    <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen">↗</button>
+                    <button id="canvas-fullscreen" class="canvas-fullscreen" type="button" aria-label="Open canvas full screen" title="Open full screen" data-icon="maximize-2">↗</button>
                     <div id="canvas-view-switch" class="canvas-view-switch" role="group" aria-label="Recorded block view" hidden>
-                      <button id="canvas-view-video" type="button" class="active" title="Show the recorded take" aria-label="Show the recorded take">▶ Video</button>
+                      <button id="canvas-view-video" type="button" class="active" title="Show the recorded take" aria-label="Show the recorded take" data-icon="play">▶ Video</button>
                       <button id="canvas-view-content" type="button" title="Show the directed content" aria-label="Show the directed content">▦ Content</button>
                       <span id="canvas-take-versions" class="canvas-take-versions" role="group" aria-label="Take versions"></span>
                       <a id="canvas-view-download" href="#" download title="Download the recorded take" aria-label="Download the recorded take">⬇</a>
@@ -387,23 +387,23 @@
                       <div class="finalize-meta"><span id="finalize-step">Switchover 1 of 9</span><strong id="finalize-pair">Title → Text</strong><small id="finalize-note" hidden>Plays its recorded take — enters as a hard cut</small><div id="finalize-duration-slot"></div></div>
                       <div id="finalize-tiles" class="finalize-tiles" aria-label="Transition options"></div>
                       <div class="finalize-actions">
-                        <button id="finalize-replay" class="button chrome-secondary" type="button" title="Replay this switchover">↻</button>
-                        <button id="finalize-back" class="button chrome-secondary" type="button" aria-label="Previous switchover">←</button>
+                        <button id="finalize-replay" class="button chrome-secondary" type="button" title="Replay this switchover" data-icon="rotate-ccw">↻</button>
+                        <button id="finalize-back" class="button chrome-secondary" type="button" aria-label="Previous switchover" data-icon="chevron-left">←</button>
                         <button id="finalize-next" class="button primary" type="button">Next →</button>
-                        <button id="finalize-cancel" type="button" aria-label="Close Publish">×</button>
+                        <button id="finalize-cancel" type="button" aria-label="Close Publish" data-icon="x">×</button>
                       </div>
                     </div>
                     <div id="transition-popover" class="transition-drawer" role="dialog" aria-label="Frame switch between blocks" hidden>
-                      <div class="transition-popover-heading"><strong id="transition-popover-title">Frame switch</strong><span id="transition-popover-pair" class="transition-drawer-pair"></span><span class="transition-popover-hint">Pick a style — it loops on the canvas</span><button id="close-transition-popover" type="button" aria-label="Close frame switch options">×</button></div>
+                      <div class="transition-popover-heading"><strong id="transition-popover-title">Frame switch</strong><span id="transition-popover-pair" class="transition-drawer-pair"></span><span class="transition-popover-hint">Pick a style — it loops on the canvas</span><button id="close-transition-popover" type="button" aria-label="Close frame switch options" data-icon="x">×</button></div>
                       <div id="transition-popover-grid" class="transition-popover-grid"></div>
                       <div id="popover-duration-slot"></div>
                     </div>
                     <div id="canvas-recording-controls" class="canvas-recording-controls" aria-label="Canvas recording controls">
                       <div id="explainer-step-bar" class="explainer-step-bar" role="group" aria-label="Diagram animation steps" hidden>
                         <button id="ex-canvas-restart" type="button" title="Restart the flow from the beginning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v5h5"/><path d="M3.3 9A9 9 0 1 1 3 12"/></svg></button>
-                        <button id="ex-canvas-prev" type="button" title="Previous animation step">←</button>
+                        <button id="ex-canvas-prev" type="button" title="Previous animation step" data-icon="chevron-left">←</button>
                         <span id="ex-canvas-step-label">Steps</span>
-                        <button id="ex-canvas-next" type="button" title="Next animation step">→</button>
+                        <button id="ex-canvas-next" type="button" title="Next animation step" data-icon="chevron-right">→</button>
                         <button id="ex-canvas-play" type="button" class="ex-canvas-play" title="Play the steps in order" aria-pressed="false"><svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
                         <button id="ex-canvas-loop" type="button" class="ex-canvas-loop" title="Loop the steps continuously" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
                       </div>
@@ -418,7 +418,7 @@
                       <div class="canvas-recording-state" hidden><span id="canvas-recording-dot"></span><div><strong id="canvas-recording-label">Record this block</strong><small id="canvas-recording-meta">Camera visible · microphone optional</small></div></div>
                       <button id="start-canvas-recording" class="record-pill" type="button" title="Start recording this block · camera visible, microphone optional"><span class="record-glyph" aria-hidden="true"></span>Record</button>
                       <button id="stop-canvas-recording" class="record-pill is-recording" type="button" title="Stop and make the MP4" hidden><span class="record-glyph stop" aria-hidden="true"></span><time id="canvas-recording-clock">00:00</time></button>
-                      <button id="previous-animation-step" class="button chrome-secondary canvas-step-button" type="button" aria-label="Previous animation step" hidden>←</button>
+                      <button id="previous-animation-step" class="button chrome-secondary canvas-step-button" type="button" aria-label="Previous animation step" hidden data-icon="chevron-left">←</button>
                       <button id="next-animation-step" class="button chrome-secondary" type="button" hidden>Next step <kbd>→</kbd></button>
                       <span class="recording-divider" aria-hidden="true"></span>
                       <div class="canvas-recording-devices">
@@ -428,12 +428,12 @@
                       </div>
                     </div>
                     <div id="stage-picker" class="stage-picker" role="dialog" aria-label="How you share the frame" hidden>
-                      <div class="stage-picker-head"><strong>How you share the frame</strong><span id="stage-picker-beat"></span><button type="button" id="stage-picker-close" aria-label="Close">×</button></div>
+                      <div class="stage-picker-head"><strong>How you share the frame</strong><span id="stage-picker-beat"></span><button type="button" id="stage-picker-close" aria-label="Close" data-icon="x">×</button></div>
                       <div id="stage-picker-grid" class="stage-picker-grid"></div>
                       <div class="stage-picker-foot"><span id="stage-picker-why"></span><button type="button" id="stage-picker-follow">Follow the director</button><button type="button" id="stage-picker-presenter">All presenter options →</button></div>
                     </div>
                     <div id="canvas-recording-review" class="canvas-recording-review" role="dialog" aria-label="Recorded canvas take" hidden>
-                      <div class="canvas-recording-review-heading"><div><span id="canvas-recording-review-status">Review take</span><strong id="canvas-recording-review-title">Save this recording to the selected block</strong></div><button id="close-canvas-recording-review" type="button" aria-label="Close recorded take">×</button></div>
+                      <div class="canvas-recording-review-heading"><div><span id="canvas-recording-review-status">Review take</span><strong id="canvas-recording-review-title">Save this recording to the selected block</strong></div><button id="close-canvas-recording-review" type="button" aria-label="Close recorded take" data-icon="x">×</button></div>
                       <video id="canvas-recording-playback" controls playsinline></video>
                       <div class="canvas-recording-review-actions"><button id="save-canvas-recording" class="button primary" type="button">Save block</button><button id="replace-canvas-recording" class="button chrome-secondary" type="button" hidden>Replace current take</button><a id="download-canvas-recording" class="button chrome-secondary" href="#" download="incredible-directed-take.mp4">Download MP4</a><button id="record-canvas-again" class="button chrome-secondary" type="button">Record again</button></div>
                     </div>
@@ -446,11 +446,11 @@
                     </div>
                     <div class="director-workspace">
                       <nav class="director-rail" role="tablist" aria-label="Canvas controls">
-                        <button type="button" class="active" data-director-tab="layout" role="tab" aria-selected="true"><span>▦</span>Layout</button>
-                        <button type="button" data-director-tab="style" role="tab" aria-selected="false"><span>◇</span>Style</button>
-                        <button type="button" data-director-tab="background" role="tab" aria-selected="false"><span>■</span>Background</button>
-                        <button type="button" data-director-tab="presenter" role="tab" aria-selected="false"><span>♙</span>Presenter</button>
-                        <button type="button" disabled title="Logo placement is coming next"><span>✦</span>Logo</button>
+                        <button type="button" class="active" data-director-tab="layout" role="tab" aria-selected="true"><span data-icon="layout-grid">▦</span>Layout</button>
+                        <button type="button" data-director-tab="style" role="tab" aria-selected="false"><span data-icon="palette">◇</span>Style</button>
+                        <button type="button" data-director-tab="background" role="tab" aria-selected="false"><span data-icon="image">■</span>Background</button>
+                        <button type="button" data-director-tab="presenter" role="tab" aria-selected="false"><span data-icon="user">♙</span>Presenter</button>
+                        <button type="button" disabled title="Logo placement is coming next"><span data-icon="sparkles">✦</span>Logo</button>
                         <button type="button" disabled title="Lower thirds are coming next"><span>▤</span>Lower third</button>
                         <button type="button" data-director-tab="animation" role="tab" aria-selected="false"><span>↝</span>Transition</button>
                       </nav>
@@ -574,7 +574,7 @@
         <aside id="inspector-panel" class="inspector-panel" aria-labelledby="inspector-title" aria-hidden="true">
           <div class="panel-heading inspector-heading">
             <div><span class="eyebrow">Block settings</span><h2 id="inspector-title">Shape the block</h2></div>
-            <button id="close-settings" class="icon-button" type="button" aria-label="Close block settings">×</button>
+            <button id="close-settings" class="icon-button" type="button" aria-label="Close block settings" data-icon="x">×</button>
           </div>
           <div class="selected-card">
             <span id="selected-number">Block 01</span>
@@ -641,7 +641,7 @@
           <button type="button" id="se-approve" class="button" title="Mark the page structure as approved — the assisted motion planner needs it">Approve page</button>
           <button type="button" id="se-save" class="button primary" title="Keeps a version — you can always go back">Save scene</button>
         </div>
-        <button id="close-slide-editor" class="icon-button" type="button" aria-label="Close">×</button>
+        <button id="close-slide-editor" class="icon-button" type="button" aria-label="Close" data-icon="x">×</button>
       </div>
       <div id="se-versions" class="se-versions" role="dialog" aria-label="Saved versions of this scene" hidden>
         <div class="se-versions-head"><strong>Versions</strong><span>Every save of this scene. Preview plays it here; Restore brings it back — as a new version, so nothing is lost.</span></div>
@@ -657,7 +657,7 @@
             <div id="se-frame-hint" class="se-frame-hint" hidden>Click a part of the page — or yourself — to change it</div>
             <!-- The ask, right where the selection is -->
             <div id="se-bubble" class="se-bubble" hidden>
-              <div class="se-bubble-head"><span id="se-bubble-what"></span><button type="button" id="se-bubble-close" aria-label="Clear the selection" title="Clear the selection (Esc)">×</button></div>
+              <div class="se-bubble-head"><span id="se-bubble-what"></span><button type="button" id="se-bubble-close" aria-label="Clear the selection" title="Clear the selection (Esc)" data-icon="x">×</button></div>
               <div id="se-bubble-quick" class="se-bubble-quick"></div>
               <div id="se-bubble-scope" class="se-bubble-scope" role="group" aria-label="How far the change may reach"></div>
               <div class="se-bubble-row"><input id="se-bubble-input" type="text" placeholder="Ask for a change…" /><button type="button" id="se-bubble-ask" class="button primary">Ask</button></div>
@@ -668,12 +668,12 @@
           </div>
           <!-- Where you are in the scene: the beats, coloured by who owns the frame -->
           <div class="se-transport">
-            <button type="button" id="se-play" class="button primary" title="Play the scene from here">▶ Play</button>
+            <button type="button" id="se-play" class="button primary" title="Play the scene from here" data-icon="play">▶ Play</button>
             <div id="se-strip" class="se-strip" title="The scene's lines, coloured by who owns the frame — click a line, or drag to scrub"><div id="se-strip-beats" class="se-strip-beats" role="list"></div><div id="se-strip-playhead" class="se-strip-playhead" aria-hidden="true"></div></div>
             <span id="se-time" class="slide-editor-time"></span>
-            <button type="button" id="se-prev" class="se-step-button" title="Previous line" aria-label="Previous line">←</button>
+            <button type="button" id="se-prev" class="se-step-button" title="Previous line" aria-label="Previous line" data-icon="chevron-left">←</button>
             <span id="se-step-label" class="se-step-label" hidden>1/1</span>
-            <button type="button" id="se-next" class="se-step-button" title="Next line" aria-label="Next line">→</button>
+            <button type="button" id="se-next" class="se-step-button" title="Next line" aria-label="Next line" data-icon="chevron-right">→</button>
             <input id="se-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub the motion" hidden />
           </div>
           <div id="se-line-stage" class="se-line-stage" hidden>
@@ -802,7 +802,7 @@
     <dialog id="ai-settings-dialog" class="modal settings-modal ai-settings-modal">
       <div class="modal-heading">
         <div><span class="eyebrow">AI settings</span><h2>What each job runs on</h2></div>
-        <button id="close-ai-settings" class="icon-button" type="button" aria-label="Close">×</button>
+        <button id="close-ai-settings" class="icon-button" type="button" aria-label="Close" data-icon="x">×</button>
       </div>
       <div class="settings-body ai-settings-body">
         <section class="ai-section" aria-labelledby="ai-routes-title">
@@ -844,7 +844,7 @@
       </div>
     </dialog>
     <dialog id="publish-dialog" class="modal publish-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Publish</span><h2>Finalize your story</h2></div><button id="close-publish" class="icon-button" type="button" aria-label="Close publish">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Publish</span><h2>Finalize your story</h2></div><button id="close-publish" class="icon-button" type="button" aria-label="Close publish" data-icon="x">×</button></div>
       <fieldset class="publish-scope">
         <legend>What to export</legend>
         <div id="publish-scope-options" class="publish-scope-options"></div>
@@ -854,7 +854,7 @@
       <p id="publish-switchovers" class="publish-note" hidden></p>
       <div id="publish-block-list" class="publish-block-list"></div>
       <div id="publish-take-preview-wrap" class="publish-take-preview" hidden>
-        <div class="publish-take-preview-heading"><strong id="publish-take-preview-label">Take preview</strong><button id="close-publish-take-preview" type="button" aria-label="Close take preview">×</button></div>
+        <div class="publish-take-preview-heading"><strong id="publish-take-preview-label">Take preview</strong><button id="close-publish-take-preview" type="button" aria-label="Close take preview" data-icon="x">×</button></div>
         <video id="publish-take-preview-video" controls playsinline></video>
       </div>
       <div class="publish-footer">
@@ -872,7 +872,7 @@
           <span data-ex-wizard-step="1"><i>2</i><em>Diagram</em></span>
           <span data-ex-wizard-step="2"><i>3</i><em>Preview</em></span>
         </div>
-        <button id="close-explainer" class="icon-button" type="button" aria-label="Close basic diagram">×</button>
+        <button id="close-explainer" class="icon-button" type="button" aria-label="Close basic diagram" data-icon="x">×</button>
       </div>
       <section id="explainer-step-explain" class="explainer-panel">
         <div class="explainer-promptbar">
@@ -911,15 +911,15 @@
             <div id="explainer-preview-stage" class="explainer-preview-stage"></div>
             <button id="explainer-fullscreen" class="explainer-fullscreen-toggle" type="button" title="Full-screen preview (Esc to exit, ←/→ to step)" aria-label="Toggle full-screen preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
           </div>
-          <div class="explainer-preview-controls"><button id="explainer-prev-step" class="button chrome-secondary" type="button">← Back</button><button id="explainer-play-step" class="button chrome-secondary" type="button">▶ Play</button><div id="explainer-step-caption" class="explainer-step-caption"></div><button id="explainer-next-step" class="button chrome-secondary" type="button">Next →</button></div>
+          <div class="explainer-preview-controls"><button id="explainer-prev-step" class="button chrome-secondary" type="button" data-icon="chevron-left">← Back</button><button id="explainer-play-step" class="button chrome-secondary" type="button" data-icon="play">▶ Play</button><div id="explainer-step-caption" class="explainer-step-caption"></div><button id="explainer-next-step" class="button chrome-secondary" type="button">Next →</button></div>
           <div class="explainer-promptbar explainer-promptbar-compact"><span class="explainer-prompt-glyph">✎</span><input id="explainer-preview-instructions" placeholder="Modify the diagram — add a cache level, order the workers left to right…" /><button id="explainer-preview-regenerate" class="button chrome-secondary" type="button">Regenerate</button></div>
         </div>
       </section>
-      <div class="modal-actions explainer-actions"><button id="explainer-back" class="button ghost" type="button" disabled>← Back</button><span id="explainer-status" class="explainer-status"></span><button id="explainer-next" class="button primary" type="button" disabled>Next →</button></div>
+      <div class="modal-actions explainer-actions"><button id="explainer-back" class="button ghost" type="button" disabled data-icon="chevron-left">← Back</button><span id="explainer-status" class="explainer-status"></span><button id="explainer-next" class="button primary" type="button" disabled>Next →</button></div>
     </dialog>
 
     <dialog id="shape-collection-dialog" class="modal shapes-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Basic diagram</span><h2>Shape collection</h2></div><button id="close-shape-collection" class="icon-button" type="button" aria-label="Close shapes">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Basic diagram</span><h2>Shape collection</h2></div><button id="close-shape-collection" class="icon-button" type="button" aria-label="Close shapes" data-icon="x">×</button></div>
       <div id="shape-collection-grid" class="shape-collection-grid"></div>
       <div id="shape-editor" class="shape-editor" hidden>
         <label class="field"><span>Shape name</span><input id="shape-editor-label" placeholder="e.g. Neuron" /></label>
@@ -931,13 +931,13 @@
 
 
     <dialog id="assets-dialog" class="modal source-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Asset library</span><h2>The things this video illustrates</h2></div><button id="assets-close" type="button" class="icon-button" aria-label="Close">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Asset library</span><h2>The things this video illustrates</h2></div><button id="assets-close" type="button" class="icon-button" aria-label="Close" data-icon="x">×</button></div>
       <p class="source-hint">One asset per thing, in the video's palette. Illustrate a part from the frame bubble; a thing illustrated once is reused on every page that names it. Remove one and its pages fall back to the wireframe.</p>
       <div id="assets-grid" class="assets-grid"></div>
       <div class="modal-actions"><span id="assets-status" class="source-status"></span><button id="assets-done" type="button" class="button">Done</button></div>
     </dialog>
     <dialog id="source-dialog" class="modal source-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Start a project</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Start a project</span><h2 id="source-heading">From a link or a narrative</h2></div><button id="source-close" type="button" class="icon-button" aria-label="Close" data-icon="x">×</button></div>
       <!-- Read, then the brand: the project opens on its text at once, and
            its wireframe is made in the background (the four-notebook model). -->
       <ol class="source-steps" aria-label="Steps"><li data-step="read" class="is-active">Read</li><li data-step="brand">Brand</li></ol>
@@ -1013,7 +1013,7 @@
     </dialog>
 
     <dialog id="create-explainer-dialog" class="modal source-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Create explainer</span><h2>What do you want to start from?</h2></div><button id="close-create-explainer" class="icon-button" type="button" aria-label="Close create explainer">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Create explainer</span><h2>What do you want to start from?</h2></div><button id="close-create-explainer" class="icon-button" type="button" aria-label="Close create explainer" data-icon="x">×</button></div>
       <p class="source-hint">Your material becomes a base notebook first. Whether each video scene is presented by you or narrated by the studio is decided scene by scene, later.</p>
       <div class="notebook-start-grid" id="create-explainer-materials">
         <button type="button" class="notebook-start-card" data-material="link"><strong>A link or article</strong><span>A blog post, docs page or README is read for its words, brand and figures.</span></button>
@@ -1030,7 +1030,7 @@
 
     <dialog id="presentation-export-dialog" class="modal presentation-export-modal" aria-labelledby="presentation-export-heading">
       <form method="dialog">
-        <div class="modal-heading"><div><span class="eyebrow">Presentation</span><h2 id="presentation-export-heading">Export as a PDF</h2></div><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
+        <div class="modal-heading"><div><span class="eyebrow">Presentation</span><h2 id="presentation-export-heading">Export as a PDF</h2></div><button value="cancel" class="icon-button" aria-label="Close" data-icon="x">×</button></div>
         <div class="presentation-export-body">
           <p id="presentation-export-slides"></p>
           <p id="presentation-export-type" class="presentation-export-type"></p>
@@ -1041,14 +1041,14 @@
 
     <dialog id="markdown-dialog" class="modal markdown-modal">
       <form method="dialog">
-        <div class="modal-heading"><div><span class="eyebrow">Markdown import</span><h2>Paste a document</h2></div><button value="cancel" class="icon-button">×</button></div>
+        <div class="modal-heading"><div><span class="eyebrow">Markdown import</span><h2>Paste a document</h2></div><button value="cancel" class="icon-button" data-icon="x">×</button></div>
         <textarea id="markdown-input" spellcheck="false" placeholder="# Your title\n\nWrite the story…"></textarea>
         <div class="modal-actions"><button value="cancel" class="button ghost">Cancel</button><button id="apply-markdown" value="default" class="button primary">Replace notebook</button></div>
       </form>
     </dialog>
 
     <dialog id="camera-dialog" class="modal camera-modal">
-      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Record your delivery.</h2></div><button id="close-camera" class="icon-button">×</button></div>
+      <div class="modal-heading"><div><span class="eyebrow">Human presenter</span><h2>Record your delivery.</h2></div><button id="close-camera" class="icon-button" data-icon="x">×</button></div>
       <div class="camera-grid">
         <div class="camera-left">
           <div class="camera-preview-shell">
@@ -1067,10 +1067,10 @@
             <small id="rehearsal-shot" class="rehearsal-shot"></small>
             <p id="rehearsal-line" class="rehearsal-line"></p>
             <div class="rehearsal-controls">
-              <button id="rehearse-toggle" class="button secondary" type="button">▶ Rehearse</button>
-              <button id="rehearse-prev" class="button ghost" type="button">← Beat</button>
+              <button id="rehearse-toggle" class="button secondary" type="button" data-icon="play">▶ Rehearse</button>
+              <button id="rehearse-prev" class="button ghost" type="button" data-icon="chevron-left">← Beat</button>
               <button id="rehearse-replay" class="button ghost" type="button">Replay</button>
-              <button id="rehearse-next" class="button ghost" type="button">Beat →</button>
+              <button id="rehearse-next" class="button ghost" type="button" data-icon="chevron-right" data-icon-end>Beat →</button>
             </div>
             <small class="rehearsal-note">Estimated timing from the plan — your take sets the real pace. None of this is recorded.</small>
           </div>
@@ -1112,7 +1112,7 @@
             <button id="library-assets" class="library-place" type="button">Assets</button>
           </nav>
           <button id="library-new-project" class="button primary" type="button">New project</button>
-          <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close the library">×</button>
+          <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close the library" data-icon="x">×</button>
         </header>
         <!-- Each project with its notebooks (the four-notebook model); the
              notebooks that belong to none are listed below as they were. -->

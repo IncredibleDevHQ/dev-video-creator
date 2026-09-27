@@ -185,6 +185,11 @@ import './ui/palette.css'
 import './ui/shell.css'
 import './ui/library.css'
 import './ui/labels.css'
+import { hydrateIcons, icon } from './ui/icons'
+
+// The page's own controls draw their icons (Lucide), in place of the
+// characters they carry as a fallback.
+hydrateIcons()
 
 const studioLogoUrl = new URL(
   '../../webfront/svg/StudioLogo.svg',
@@ -6087,7 +6092,7 @@ const openCanvasFullscreen = () => {
   document.body.classList.toggle('canvas-is-open', isOpen)
   if (!isOpen) pauseUnseen()
   const fullscreenButton = $('#canvas-fullscreen') as HTMLButtonElement
-  fullscreenButton.textContent = isOpen ? '×' : '↗'
+  fullscreenButton.replaceChildren(icon(isOpen ? 'x' : 'maximize-2'))
   fullscreenButton.setAttribute(
     'aria-label',
     isOpen ? 'Close full-screen canvas' : 'Open canvas full screen',
@@ -7205,7 +7210,8 @@ const projectEntry = (view: ProjectView, className: string) => {
   remove.type = 'button'
   remove.className = `${className}-delete`
   remove.setAttribute('aria-label', `Delete the project ${view.container.title}`)
-  remove.textContent = className === 'project-card' ? 'Delete' : '×'
+  if (className === 'project-card') remove.textContent = 'Delete'
+  else remove.replaceChildren(icon('trash-2'))
   remove.addEventListener('click', event => {
     event.stopPropagation()
     void deleteProject(view)
@@ -7286,7 +7292,7 @@ const renderNotebookLineage = async () => {
       const chip = document.createElement('button')
       chip.type = 'button'
       chip.className = 'notebook-lineage-derivatives'
-      chip.textContent = `▸ ${derivatives.length} derivative${derivatives.length === 1 ? '' : 's'}`
+      chip.replaceChildren(icon('chevron-right'), `${derivatives.length} derivative${derivatives.length === 1 ? '' : 's'}`)
       chip.title = 'Show the derivation tree in the library'
       chip.addEventListener('click', () => openNotebooksPage())
       lineage.append(chip)
@@ -7551,7 +7557,7 @@ const renderNotebookMenu = async () => {
     remove.type = 'button'
     remove.className = 'notebook-menu-delete'
     remove.setAttribute('aria-label', `Delete ${entry.title}`)
-    remove.textContent = '×'
+    remove.replaceChildren(icon('trash-2'))
     remove.addEventListener('click', event => {
       event.stopPropagation()
       void deleteNotebook(entry.id, entry.title || 'Untitled notebook')
@@ -8494,7 +8500,7 @@ const rehearseToggle = $('#rehearse-toggle') as HTMLButtonElement
 const stopRehearsalPlayback = () => {
   if (rehearsal?.playing) cancelAnimationFrame(rehearsal.playing.frame)
   if (rehearsal) rehearsal.playing = null
-  rehearseToggle.textContent = '▶ Rehearse'
+  rehearseToggle.replaceChildren(icon('play'), 'Rehearse')
 }
 
 const renderRehearsalBeat = () => {
@@ -8540,7 +8546,7 @@ const playRehearsal = (fromMs = 0) => {
     current.playing.frame = requestAnimationFrame(tick)
   }
   rehearsal.playing = { frame: requestAnimationFrame(tick) }
-  rehearseToggle.textContent = '■ Stop'
+  rehearseToggle.replaceChildren(icon('square'), 'Stop')
 }
 
 const teardownRehearsal = () => {
@@ -10190,7 +10196,7 @@ let explainerPlayTimer: number | undefined
 const stopExplainerPlayback = () => {
   window.clearInterval(explainerPlayTimer)
   explainerPlayTimer = undefined
-  ;($('#explainer-play-step') as HTMLButtonElement).textContent = '▶ Play'
+  ;($('#explainer-play-step') as HTMLButtonElement).replaceChildren(icon('play'), 'Play')
 }
 
 const startExplainerPlayback = () => {
@@ -10199,7 +10205,7 @@ const startExplainerPlayback = () => {
     exWizard.previewStep = 0
     applyExplainerPreviewStep()
   }
-  ;($('#explainer-play-step') as HTMLButtonElement).textContent = '⏸ Pause'
+  ;($('#explainer-play-step') as HTMLButtonElement).replaceChildren(icon('pause'), 'Pause')
   explainerPlayTimer = window.setInterval(() => {
     if (!exWizard?.plan || !explainerDialog.open) {
       stopExplainerPlayback()
@@ -11979,7 +11985,7 @@ const stopSlidePlayback = () => {
   const state = slideEditor
   if (state?.playing) cancelAnimationFrame(state.playing.frame)
   if (state) state.playing = null
-  playButton.textContent = '▶ Play'
+  playButton.replaceChildren(icon('play'), 'Play')
 }
 
 const beatAtTime = (state: SlideEditorState, timeMs: number) => {
@@ -12042,7 +12048,7 @@ const playSlide = (fromMs = 0) => {
     current.playing.frame = requestAnimationFrame(tick)
   }
   state.playing = { startedAt, from: fromMs, frame: requestAnimationFrame(tick) }
-  playButton.textContent = '■ Stop'
+  playButton.replaceChildren(icon('square'), 'Stop')
 }
 
 playButton.addEventListener('click', () => {
@@ -12264,7 +12270,7 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
       })
       const remove = document.createElement('button')
       remove.type = 'button'
-      remove.textContent = '×'
+      remove.replaceChildren(icon('x'))
       remove.title = 'Remove from this window'
       remove.addEventListener('click', event => {
         event.stopPropagation()
@@ -12303,7 +12309,7 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
         const earlier = document.createElement('button')
         earlier.type = 'button'
         earlier.className = 'button chrome-secondary'
-        earlier.textContent = '←'
+        earlier.replaceChildren(icon('chevron-left'))
         earlier.title = 'Land this a quarter second earlier'
         earlier.addEventListener('click', clickEvent => {
           clickEvent.stopPropagation()
@@ -12312,7 +12318,7 @@ const windowCard = (state: SlideEditorState, window: SceneWindow, index: number,
         const later = document.createElement('button')
         later.type = 'button'
         later.className = 'button chrome-secondary'
-        later.textContent = '→'
+        later.replaceChildren(icon('chevron-right'))
         later.title = 'Land this a quarter second later'
         later.addEventListener('click', clickEvent => {
           clickEvent.stopPropagation()
@@ -13967,7 +13973,7 @@ const renderSlideEditorSteps = () => {
     up.addEventListener('click', event => { event.stopPropagation(); if (index > 0) { [state.steps[index - 1], state.steps[index]] = [state.steps[index], state.steps[index - 1]]; state.current = index - 1; renderSlideEditorSteps(); renderSlideEditorPreview() } })
     const down = document.createElement('button'); down.type = 'button'; down.textContent = '↓'; down.title = 'Move down'
     down.addEventListener('click', event => { event.stopPropagation(); if (index < state.steps.length - 1) { [state.steps[index + 1], state.steps[index]] = [state.steps[index], state.steps[index + 1]]; state.current = index + 1; renderSlideEditorSteps(); renderSlideEditorPreview() } })
-    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.title = 'Delete step'
+    const remove = document.createElement('button'); remove.type = 'button'; remove.replaceChildren(icon('x')); remove.title = 'Delete step'
     remove.addEventListener('click', event => { event.stopPropagation(); state.steps.splice(index, 1); state.current = Math.max(0, Math.min(state.current, state.steps.length - 1)); renderSlideEditorSteps(); renderSlideEditorPreview() })
     tools.append(verb, up, down, remove)
     const chips = document.createElement('div')
@@ -13982,7 +13988,7 @@ const renderSlideEditorSteps = () => {
       chip.textContent = unit.label
       const x = document.createElement('button')
       x.type = 'button'
-      x.textContent = '×'
+      x.replaceChildren(icon('x'))
       x.title = 'Remove from this step'
       x.addEventListener('click', event => {
         event.stopPropagation()
@@ -17952,7 +17958,9 @@ const stageListeners = new Set<() => void>()
 const notifyStage = () => stageListeners.forEach(listener => listener())
 const stageTransport = document.createElement('div')
 stageTransport.className = 'scene-stage-transport'
-const stagePlay = Object.assign(document.createElement('button'), { type: 'button', textContent: '▶', title: 'Play or pause the preview' })
+const stagePlay = Object.assign(document.createElement('button'), { type: 'button', title: 'Play or pause the preview' })
+stagePlay.replaceChildren(icon('play'))
+stagePlay.dataset.icon = 'play'
 stagePlay.setAttribute('aria-label', 'Play or pause the preview')
 const stageTrack = document.createElement('div')
 stageTrack.className = 'scene-stage-track'
@@ -17968,7 +17976,11 @@ let stageEnded = false
 const syncStagePlay = () => {
   const what = stageClockEstimated ? 'the preview' : 'the produced scene'
   const label = stagePlaying ? `Pause ${what}` : stageEnded ? `Replay ${what} from the start` : `Play ${what}`
-  stagePlay.textContent = stagePlaying ? '❚❚' : stageEnded ? '↻' : '▶'
+  const stageIcon = stagePlaying ? 'pause' : stageEnded ? 'rotate-ccw' : 'play'
+  if (stagePlay.dataset.icon !== stageIcon) {
+    stagePlay.dataset.icon = stageIcon
+    stagePlay.replaceChildren(icon(stageIcon))
+  }
   stagePlay.title = label
   stagePlay.setAttribute('aria-label', label)
   notifyStage()

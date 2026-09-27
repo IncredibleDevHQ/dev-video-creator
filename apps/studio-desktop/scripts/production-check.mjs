@@ -416,10 +416,10 @@ try {
     if (button.getAttribute('aria-label') !== 'Replay the produced scene from the start') return null
     const doc = player.iframe?.contentDocument
     const drawn = doc ? [...doc.querySelectorAll('.clip')].filter(clip => getComputedStyle(clip).visibility !== 'hidden').map(clip => clip.id) : null
-    return { time: player.currentTime, duration: player.duration, text: button.textContent, drawn }
+    return { time: player.currentTime, duration: player.duration, icon: button.dataset.icon, drawn }
   }`, 20)
   const wholeFrames = Math.abs(clock.duration * 30 - Math.round(clock.duration * 30)) < 1e-6
-  check(Boolean(held) && held.text === '↻' && Math.abs(held.time - (Math.ceil(held.duration * 30 - 1e-6) - 1) / 30) < 0.02 && held.drawn?.length > 0, `played to its natural end — a clock of ${clock.duration}s, ${wholeFrames ? 'a whole number of frames' : 'not a whole number of frames'} — it holds its last drawn frame and offers a replay (${JSON.stringify(held)})`)
+  check(Boolean(held) && held.icon === 'rotate-ccw' && Math.abs(held.time - (Math.ceil(held.duration * 30 - 1e-6) - 1) / 30) < 0.02 && held.drawn?.length > 0, `played to its natural end — a clock of ${clock.duration}s, ${wholeFrames ? 'a whole number of frames' : 'not a whole number of frames'} — it holds its last drawn frame and offers a replay (${JSON.stringify(held)})`)
   await shot('01b-production-natural-end')
   await evaluate(`() => { document.querySelector('.scene-stage-transport > button').click(); return true }`)
   const replayed = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') === 'Pause the produced scene' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)

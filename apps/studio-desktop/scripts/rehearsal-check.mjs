@@ -132,18 +132,18 @@ try {
 
   await evalInWindow(`document.getElementById('rehearse-toggle').click()`)
   const playing = await rehearsalState()
-  check('rehearse starts playback', playing.toggle === '■ Stop', playing.toggle)
+  check('rehearse starts playback', playing.toggle === 'Stop', playing.toggle)
   const advanced = await waitFor(`document.getElementById('rehearsal-line')?.textContent === ${JSON.stringify(WINDOWS[1].say)}`, 6_000).catch(() => null)
   check('playback advances the cue line with the plan', Boolean(advanced))
   await evalInWindow(`document.getElementById('rehearse-toggle').click()`)
   const stopped = await rehearsalState()
-  check('stopping holds the rehearsal', stopped.toggle === '▶ Rehearse', stopped.toggle)
+  check('stopping holds the rehearsal', stopped.toggle === 'Rehearse', stopped.toggle)
 
   await evalInWindow(`document.getElementById('close-camera').click()`)
   await waitFor(`document.getElementById('camera-dialog')?.open === false`)
   await openCameraFor('Rehearse scene')
   const reopened = await rehearsalState()
-  check('reopening resets the rehearsal to beat 1', reopened.beat === '1 / 2' && reopened.line === WINDOWS[0].say && reopened.toggle === '▶ Rehearse')
+  check('reopening resets the rehearsal to beat 1', reopened.beat === '1 / 2' && reopened.line === WINDOWS[0].say && reopened.toggle === 'Rehearse')
   await evalInWindow(`document.getElementById('close-camera').click()`)
   await waitFor(`document.getElementById('camera-dialog')?.open === false`)
 

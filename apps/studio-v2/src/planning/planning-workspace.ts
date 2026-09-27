@@ -16,6 +16,7 @@ import type { ExplanationBriefV1, BriefUnit } from './explanation-brief'
 import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatmentV1, type TreatmentChannel, type TreatmentMoment } from './scene-treatment'
 import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
+import { icon } from '../ui/icons'
 
 type BasePage = { scene: string; title: string; objective: string; layoutGuidance: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
 // Which page a video scene is planned from, and a newer one its base offers
@@ -587,7 +588,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         actions.append(stopButton)
       }
     }
-    const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning', text: '×' })
+    const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning' }, icon('x'))
     close.addEventListener('click', () => {
       host.onClose?.({ sceneId: selectedScene, revision, moment })
       dialog.close()
@@ -1223,7 +1224,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   // on the scene chosen in the base, preparing its brief where a harness
   // can. Where it cannot be made, it says why and where a video is made.
   const forkOffer = (current: ReturnType<PlanningWorkspaceHost['current']>) => {
-    const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning', text: '×' })
+    const close = h('button', { type: 'button', class: 'icon-button planning-close', 'aria-label': 'Close planning' }, icon('x'))
     close.addEventListener('click', () => {
       host.onClose?.({ sceneId: selectedScene, revision, moment })
       dialog.close()

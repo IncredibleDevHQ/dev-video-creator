@@ -385,9 +385,9 @@ try {
     const play = document.querySelector('#scene-workspace .sw-play')
     if (play?.getAttribute('aria-label') !== 'Play again from the start') return null
     const drawn = [...(player.iframe?.contentDocument?.querySelectorAll('.clip') || [])].filter(clip => getComputedStyle(clip).visibility !== 'hidden').map(clip => clip.id)
-    return { time: player.currentTime, duration: player.duration, text: play.textContent, drawn, stage: document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') }
+    return { time: player.currentTime, duration: player.duration, icon: play.dataset.icon, drawn, stage: document.querySelector('.scene-stage-transport > button').getAttribute('aria-label') }
   }`, 60)
-  check(Boolean(naturalEnd) && naturalEnd.text === '↻' && naturalEnd.stage === 'Replay the produced scene from the start' && Math.abs(naturalEnd.time - (Math.ceil(naturalEnd.duration * 30 - 1e-6) - 1) / 30) < 0.02 && naturalEnd.drawn.length > 0, `played to its end, the produced scene holds its last drawn frame, paused, with a replay (${JSON.stringify(naturalEnd)})`)
+  check(Boolean(naturalEnd) && naturalEnd.icon === 'rotate-ccw' && naturalEnd.stage === 'Replay the produced scene from the start' && Math.abs(naturalEnd.time - (Math.ceil(naturalEnd.duration * 30 - 1e-6) - 1) / 30) < 0.02 && naturalEnd.drawn.length > 0, `played to its end, the produced scene holds its last drawn frame, paused, with a replay (${JSON.stringify(naturalEnd)})`)
   await shot('04b-natural-end')
   await evaluate(`() => { document.querySelector('#scene-workspace .sw-play').click(); return true }`)
   const fromZero = await waitFor(`() => { const player = document.querySelector('#scene-stage-preview hyperframes-player:not(.is-loading)'); return document.querySelector('#scene-workspace .sw-play')?.getAttribute('aria-label') === 'Pause' && player.currentTime < 1.5 ? player.currentTime : null }`, 10)
