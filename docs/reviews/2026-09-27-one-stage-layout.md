@@ -77,6 +77,7 @@ Incredible Studio is plain TypeScript without React, so none of these libraries 
   - review layout, create explainer, notebooks hierarchy, sample, stage panel;
   - scene flow, scene review, scene timeline, scene recording, planning progress, preview exhausted, project switch.
 - **One flaky assertion.** `scene-review-check` failed once, on the cast thumbnails in the notebook's scene strip. Those load asynchronously and the check reads them once. It passed when run on its own, and in the run before.
+- **One stuck teardown.** `source-delivery-check` passed, but its app did not quit on SIGTERM once: the worker's stop never finished. It was stopped by hand. The same check exited cleanly in the run before.
 
 **Screenshots** in `2026-09-27-one-stage-layout-evidence/`:
 - `presentation-pages.png` and `presentation-pages-dark.png`: a presentation's page view.
