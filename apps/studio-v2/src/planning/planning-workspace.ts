@@ -709,15 +709,27 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
   }
 
   const renderStage = () => {
-    const tabs = h('div', { class: 'planning-tabs', role: 'tablist' })
-    for (const [id, label] of [['presentation', 'Presentation brief'], ['brief', 'Video explanation brief'], ['plan', 'Creative plan'], ['cast', 'Visual cast']] as const) {
-      const button = h('button', { type: 'button', role: 'tab', class: `planning-tab${tab === id ? ' is-active' : ''}`, 'aria-selected': tab === id ? 'true' : 'false', text: label })
-      button.addEventListener('click', () => {
-        tab = id
-        showRaw = false
-        const stage = root.querySelector<HTMLElement>('.planning-stage')
-        if (stage) stage.scrollTop = 0
-        render()
+    const tabs = h('div', { class: 'planning-tabs', role: 'tablist', 'aria-label': 'What the plan rests on' })
+    const choices = [['presentation', 'Presentation brief'], ['brief', 'Video explanation brief'], ['plan', 'Creative plan'], ['cast', 'Visual cast']] as const
+    const choose = (id: typeof choices[number][0]) => {
+      tab = id
+      showRaw = false
+      const stage = root.querySelector<HTMLElement>('.planning-stage')
+      if (stage) stage.scrollTop = 0
+      render()
+    }
+    for (const [id, label] of choices) {
+      const button = h('button', { type: 'button', role: 'tab', class: `planning-tab${tab === id ? ' is-active' : ''}`, 'aria-selected': tab === id ? 'true' : 'false', tabindex: tab === id ? '0' : '-1', 'data-focus': `planning-tab:${id}`, text: label })
+      button.addEventListener('click', () => choose(id))
+      // ← → Home End, as a tab list: the tab reached is chosen, and keeps the keyboard.
+      button.addEventListener('keydown', event => {
+        const index = choices.findIndex(([value]) => value === id)
+        const to = event.key === 'ArrowRight' ? index + 1 : event.key === 'ArrowLeft' ? index - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? choices.length - 1 : null
+        if (to === null) return
+        event.preventDefault()
+        const next = choices[(to + choices.length) % choices.length][0]
+        choose(next)
+        root.querySelector<HTMLElement>(`[data-focus="planning-tab:${next}"]`)?.focus()
       })
       tabs.append(button)
     }

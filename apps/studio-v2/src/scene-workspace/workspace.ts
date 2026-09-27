@@ -472,14 +472,21 @@ export const createSceneWorkspace = (host: SceneWorkspaceHost) => {
     const nav = h('div', { class: 'sw-context-tabs', role: 'tablist', 'aria-label': 'Details' })
     for (const [id, label] of SECTIONS) {
       const on = id === section
-      const button = h('button', { type: 'button', role: 'tab', 'aria-selected': on ? 'true' : 'false', tabindex: on ? '0' : '-1', class: on ? 'is-on' : '', 'data-focus': `sw-context:${id}`, text: label })
+      const button = h('button', { type: 'button', role: 'tab', id: `sw-context-tab-${id}`, 'aria-selected': on ? 'true' : 'false', 'aria-controls': 'sw-context-panel', tabindex: on ? '0' : '-1', class: on ? 'is-on' : '', 'data-focus': `sw-context:${id}`, text: label })
       button.addEventListener('click', () => openContext(id))
+      button.addEventListener('keydown', event => {
+        const index = SECTIONS.findIndex(([value]) => value === id)
+        const to = event.key === 'ArrowRight' ? index + 1 : event.key === 'ArrowLeft' ? index - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? SECTIONS.length - 1 : null
+        if (to === null) return
+        event.preventDefault()
+        openContext(SECTIONS[(to + SECTIONS.length) % SECTIONS.length][0])
+      })
       nav.append(button)
     }
     const close = h('button', { type: 'button', class: 'sw-context-close', 'data-focus': 'sw-context-close', 'aria-label': 'Close the details' }, icon('x'))
     close.addEventListener('click', () => closeContext())
     const body = review()?.context(sceneId, section) || h('p', { class: 'review-muted', text: 'Loading…' })
-    context.replaceChildren(h('div', { class: 'sw-context-head' }, h('strong', { text: 'Details' }), nav, close), h('div', { class: 'sw-context-scroll' }, body))
+    context.replaceChildren(h('div', { class: 'sw-context-head' }, h('strong', { text: 'Details' }), nav, close), h('div', { class: 'sw-context-scroll', id: 'sw-context-panel', role: 'tabpanel', 'aria-labelledby': `sw-context-tab-${section}` }, body))
   }
   const openContext = (section: ContextSection) => {
     savePrefs({ context: section })

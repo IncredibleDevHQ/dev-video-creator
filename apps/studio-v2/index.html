@@ -102,11 +102,11 @@
                 <span class="builder-step">04 · Block design lab</span>
                 <div class="theme-lab-heading"><div><strong id="theme-lab-title">Title system</strong><small id="theme-lab-description">Compose layout, rendering and motion</small></div><span id="theme-lab-count">29 choices</span></div>
                 <div class="theme-lab-tabs" role="tablist" aria-label="Block design axis">
-                  <button type="button" data-theme-lab-axis="layout">Layout</button>
-                  <button class="active" type="button" data-theme-lab-axis="render">Rendering</button>
-                  <button type="button" data-theme-lab-axis="syntax" hidden>VS Code theme</button>
-                  <button type="button" data-theme-lab-axis="motion">Entrance</button>
-                  <button type="button" data-theme-lab-axis="code-motion" hidden>Code motion</button>
+                  <button type="button" role="tab" aria-selected="false" data-theme-lab-axis="layout">Layout</button>
+                  <button class="active" type="button" role="tab" aria-selected="true" data-theme-lab-axis="render">Rendering</button>
+                  <button type="button" role="tab" aria-selected="false" data-theme-lab-axis="syntax" hidden>VS Code theme</button>
+                  <button type="button" role="tab" aria-selected="false" data-theme-lab-axis="motion">Entrance</button>
+                  <button type="button" role="tab" aria-selected="false" data-theme-lab-axis="code-motion" hidden>Code motion</button>
                 </div>
                 <div id="theme-lab-options" class="theme-lab-options" role="group" aria-label="Block design choices"></div>
                 <button id="replay-theme-motion" type="button" class="button secondary wide" hidden>Replay animation</button>
@@ -125,7 +125,7 @@
                 <footer><span class="theme-preview-mark"><img id="theme-preview-logo" alt="" hidden /><span id="theme-preview-fallback-mark">✦ incredible</span></span><span id="theme-preview-name">My brand</span></footer>
               </div>
               <div id="theme-preview-tabs" class="theme-preview-tabs" role="tablist" aria-label="Preview Markdown block type">
-                <button class="active" type="button" data-theme-preview="title">Title</button><button type="button" data-theme-preview="content">Text</button><button type="button" data-theme-preview="list">Points</button><button type="button" data-theme-preview="code">Code</button><button type="button" data-theme-preview="quote">Quote</button><button type="button" data-theme-preview="video">Video</button>
+                <button class="active" type="button" role="tab" aria-selected="true" data-theme-preview="title">Title</button><button type="button" role="tab" aria-selected="false" data-theme-preview="content">Text</button><button type="button" role="tab" aria-selected="false" data-theme-preview="list">Points</button><button type="button" role="tab" aria-selected="false" data-theme-preview="code">Code</button><button type="button" role="tab" aria-selected="false" data-theme-preview="quote">Quote</button><button type="button" role="tab" aria-selected="false" data-theme-preview="video">Video</button>
               </div>
               <div class="builder-direction-heading"><div><span class="eyebrow">Generated directions</span><h2>Pick a direction, then make it yours</h2></div><small id="generated-provider">Start from your brand color</small></div>
               <div id="generated-theme-grid" class="generated-theme-grid"></div>
@@ -497,8 +497,8 @@
                         <section id="director-background" class="director-section" aria-labelledby="director-background-title" hidden>
                           <div class="director-section-heading"><div><span>Block canvas</span><h3 id="director-background-title">Background</h3></div><small>Per block</small></div>
                           <div class="background-mode-tabs" role="tablist" aria-label="Background type">
-                            <button type="button" class="active" data-background-mode="gradient">Gradient</button>
-                            <button type="button" data-background-mode="color">Color</button>
+                            <button type="button" class="active" role="tab" aria-selected="true" data-background-mode="gradient">Gradient</button>
+                            <button type="button" role="tab" aria-selected="false" data-background-mode="color">Color</button>
                           </div>
                           <div id="background-preset-grid" class="background-preset-grid"></div>
                           <label class="custom-background-color">Custom color<input id="block-background-color" type="color" value="#111827" /></label>

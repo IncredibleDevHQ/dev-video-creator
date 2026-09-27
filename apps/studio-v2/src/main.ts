@@ -188,10 +188,13 @@ import './ui/palette.css'
 import './ui/shell.css'
 import './ui/library.css'
 import './ui/labels.css'
+// The shared components' looks, after the styles they replace.
+import './ui/tabs.css'
 import { hydrateIcons, icon } from './ui/icons'
 import { installTooltips } from './ui/tooltip'
 import { createToaster, type ToastOptions } from './ui/toast'
 import { enhanceSelect } from './ui/select'
+import { tabList } from './ui/tabs'
 
 // The page's own controls draw their icons (Lucide), in place of the
 // characters they carry as a fallback.
@@ -200,6 +203,9 @@ hydrateIcons()
 // component audit).
 installTooltips()
 enhanceSelect(document.getElementById('studio-theme-selector') as HTMLSelectElement)
+// The tab lists in the page from the start take the keys of a tab list.
+document.querySelectorAll<HTMLElement>('.theme-lab-tabs, .theme-preview-tabs, .background-mode-tabs').forEach(list => tabList(list))
+document.querySelectorAll<HTMLElement>('.director-rail').forEach(list => tabList(list, { vertical: true }))
 
 const studioLogoUrl = new URL(
   '../../webfront/svg/StudioLogo.svg',
@@ -8254,7 +8260,10 @@ document
       themePreviewKind = button.dataset.themePreview as typeof themePreviewKind
       document
         .querySelectorAll<HTMLButtonElement>('[data-theme-preview]')
-        .forEach(tab => tab.classList.toggle('active', tab === button))
+        .forEach(tab => {
+          tab.classList.toggle('active', tab === button)
+          tab.setAttribute('aria-selected', String(tab === button))
+        })
       renderThemeBuilderPreview()
     })
   })

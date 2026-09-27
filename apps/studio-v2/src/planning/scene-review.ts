@@ -23,6 +23,7 @@ import type { JobView } from '../project-shell/jobs'
 import { videoNextStep, type NextStep } from './next-step'
 import { icon, type IconName } from '../ui/icons'
 import { enhanceSelect } from '../ui/select'
+import { radioKeys } from '../ui/tabs'
 import { deliveryChangeOf, previewFor, previewStateOf, producedFor, productionShown, productionStateOf, railStateOf, sceneActionsOf, treatmentRecordsOf, type Delivery, type PreviewState, type SceneAction, type SceneActions } from './scene-state'
 import type { ToastOptions } from '../ui/toast'
 
@@ -1929,6 +1930,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
       button.addEventListener('click', () => void chooseDelivery(scene, value, label))
       choice.append(button)
     }
+    // The arrows move along the choices; a choice is made with Enter or Space,
+    // since it saves and may plan the scene again.
+    radioKeys(choice, { vertical: true })
     const said = DELIVERY_CHOICES.find(([value]) => value === scene.delivery)
     box.append(h('h4', { class: 'ws-label', text: 'Who speaks' }), choice, h('p', { class: 'review-muted', text: said ? said[2] : 'Not chosen yet: the scene can be planned without it, but it is planned again once you choose — and produced only then.' }))
     const record = shownRecord(scene)
