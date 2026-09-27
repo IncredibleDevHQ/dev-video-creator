@@ -1,0 +1,50 @@
+/* The studio's tooltip and toasts (the component audit), on the studio's
+   own tokens: a tooltip is the page's inverse — ink on the light page, light
+   on the dark — and a toast is a card on the menu's surface. */
+:root {
+  --studio-ui-tooltip: #18181b;
+  --studio-ui-tooltip-ink: #fafafa;
+  --studio-ui-tooltip-key: rgba(255, 255, 255, .16);
+}
+:root[data-appearance="dark"] {
+  --studio-ui-tooltip: #f4f4f5;
+  --studio-ui-tooltip-ink: #18181b;
+  --studio-ui-tooltip-key: rgba(0, 0, 0, .08);
+}
+
+/* ——— Tooltip (ui/tooltip.ts) ——— */
+.ui-tooltip { position: fixed; inset: auto; z-index: 2147483000; left: 0; top: 0; width: max-content; max-width: 280px; margin: 0; padding: 6px 10px; display: flex; align-items: baseline; gap: 8px; border: 0; border-radius: 6px; background: var(--studio-ui-tooltip); color: var(--studio-ui-tooltip-ink); font: 500 12px/1.4 var(--studio-ui-font-ui); text-wrap: pretty; overflow: visible; pointer-events: none; box-shadow: 0 6px 16px rgba(0, 0, 0, .18); animation: ui-tooltip-in 120ms var(--studio-ui-ease) both; }
+.ui-tooltip[hidden] { display: none; }
+.ui-tooltip kbd { flex: none; padding: 2px 5px; border-radius: 4px; background: var(--studio-ui-tooltip-key); color: inherit; font: 500 11px/1 ui-monospace, 'SF Mono', Menlo, monospace; }
+.ui-tooltip kbd[hidden] { display: none; }
+.ui-tooltip-arrow { position: absolute; width: 8px; height: 8px; border-radius: 1px; background: inherit; transform: translateX(-50%) rotate(45deg); }
+.ui-tooltip[data-side="top"] .ui-tooltip-arrow { bottom: -4px; }
+.ui-tooltip[data-side="bottom"] .ui-tooltip-arrow { top: -4px; }
+@keyframes ui-tooltip-in { from { opacity: 0; transform: scale(.96); } }
+
+/* ——— Toasts (ui/toast.ts) ——— */
+.ui-toasts { position: fixed; inset: auto 16px 16px auto; z-index: 300; width: min(400px, calc(100vw - 32px)); margin: 0; padding: 0; display: grid; gap: 8px; justify-items: end; border: 0; background: none; overflow: visible; pointer-events: none; }
+.ui-toasts:not(:has(.ui-toast:not([hidden]))) { display: none; }
+.ui-toast { box-sizing: border-box; width: 100%; max-width: none; margin: 0; padding: 10px 8px 10px 14px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: start; gap: 10px; border: 1px solid var(--studio-ui-popover-line, var(--studio-ui-line)); border-radius: var(--studio-ui-radius-menu); background: var(--studio-ui-popover, var(--studio-ui-surface)); color: var(--studio-ui-popover-ink, var(--studio-ui-ink)); box-shadow: var(--studio-ui-shadow-menu); font: 12.5px/1.45 var(--studio-ui-font-ui); pointer-events: auto; animation: ui-toast-in 180ms var(--studio-ui-ease) both; }
+.ui-toast[hidden] { display: none; }
+.ui-toast:not(:has(.ui-toast-mark)) { grid-template-columns: minmax(0, 1fr) auto auto; }
+.ui-toast-mark { width: 16px; height: 16px; margin-top: 1px; }
+.ui-toast[data-tone="good"] .ui-toast-mark { color: var(--studio-ui-brand); }
+.ui-toast[data-tone="bad"] .ui-toast-mark { color: var(--studio-ui-bad-strong, #b91c1c); }
+.ui-toast[data-tone="busy"] .ui-toast-mark { color: var(--studio-ui-muted); animation: ui-toast-spin 1s linear infinite; }
+.ui-toast-words { min-width: 0; display: grid; gap: 2px; }
+.ui-toast-title { font-weight: 500; overflow-wrap: anywhere; }
+.ui-toast-detail { color: var(--studio-ui-popover-muted, var(--studio-ui-muted)); font-size: 12px; }
+.ui-toast-action { align-self: center; }
+.ui-toast-dismiss { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--studio-ui-radius-control-sm, 5px); background: transparent; color: var(--studio-ui-popover-muted, var(--studio-ui-muted)); cursor: pointer; }
+.ui-toast-dismiss:hover { background: var(--studio-ui-popover-hover, var(--studio-ui-hover)); color: var(--studio-ui-popover-ink, var(--studio-ui-ink)); }
+.ui-toast-dismiss .ui-icon { width: 14px; height: 14px; }
+.ui-toast.is-leaving { opacity: 0; transform: translateY(4px); transition: opacity 160ms var(--studio-ui-ease), transform 160ms var(--studio-ui-ease); }
+@keyframes ui-toast-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes ui-toast-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-tooltip, .ui-toast { animation: none; }
+  .ui-toast.is-leaving { transition: none; }
+  .ui-toast[data-tone="busy"] .ui-toast-mark { animation: none; }
+}

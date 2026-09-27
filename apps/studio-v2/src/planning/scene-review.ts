@@ -22,7 +22,9 @@ import { progressOf, sinceOf } from './progress'
 import type { JobView } from '../project-shell/jobs'
 import { videoNextStep, type NextStep } from './next-step'
 import { icon, type IconName } from '../ui/icons'
+import { enhanceSelect } from '../ui/select'
 import { deliveryChangeOf, previewFor, previewStateOf, producedFor, productionShown, productionStateOf, railStateOf, sceneActionsOf, treatmentRecordsOf, type Delivery, type PreviewState, type SceneAction, type SceneActions } from './scene-state'
+import type { ToastOptions } from '../ui/toast'
 
 type FetchJson = <T>(path: string, init?: RequestInit) => Promise<T>
 type Scene = PlanningOverviewV1['scenes'][number]
@@ -49,7 +51,7 @@ export type SceneTakeView = {
 
 export type SceneReviewHost = {
   fetchJson: FetchJson
-  toast: (message: string) => void
+  toast: (message: string, options?: ToastOptions) => void
   // The open video notebook, or null for a base or an ordinary notebook.
   projectId: () => string | null
   wordingPolicy: () => 'preserve' | 'assist' | 'draft'
@@ -279,7 +281,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
     try {
       await action()
     } catch (failure) {
-      host.toast(failure instanceof Error ? failure.message : `Could not ${what}`)
+      host.toast(failure instanceof Error ? failure.message : `Could not ${what}`, { tone: 'bad' })
     } finally {
       busy = false
       await load()
@@ -668,7 +670,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       host.refresh()
     })
     const other = others.find(entry => entry.id === state.compare)
-    const body = h('div', {}, h('label', { class: 'review-field' }, `Compare r${record.revision} with `, picker))
+    const body = h('div', {}, h('div', { class: 'review-field' }, `Compare r${record.revision} with `, enhanceSelect(picker)))
     if (other) {
       const differences = compareTreatments(other.content as SceneTreatmentV1, plan)
       if (!differences.length) body.append(h('p', { class: 'review-muted', text: 'The two revisions plan the same thing.' }))
@@ -712,7 +714,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         await host.adoptProduction(scene.id, accepted)
         host.toast('Accepted: the notebook now plays and exports this scene as produced')
       } catch (failure) {
-        host.toast(failure instanceof Error ? failure.message : 'Could not accept the produced scene')
+        host.toast(failure instanceof Error ? failure.message : 'Could not accept the produced scene', { tone: 'bad' })
       } finally {
         accepting = ''
         await load()
@@ -736,7 +738,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
           host.toast('The notebook plays its own scene again — your takes where you present it. The accepted production is kept.')
         }
       } catch (failure) {
-        host.toast(failure instanceof Error ? failure.message : 'Could not change what the notebook plays')
+        host.toast(failure instanceof Error ? failure.message : 'Could not change what the notebook plays', { tone: 'bad' })
       } finally {
         using = ''
         host.refresh()
@@ -770,7 +772,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
         host.showProduction(scene.id, at ?? undefined)
         host.toast(`${step === 'undo' ? 'Undone' : step === 'redo' ? 'Redone' : 'Saved'} as edit ${edits.revision}: the stage plays it${production.accepted ? '; accept again to put it in the output' : ''}`)
       } catch (failure) {
-        host.toast(failure instanceof Error ? failure.message : 'The edit could not be saved')
+        host.toast(failure instanceof Error ? failure.message : 'The edit could not be saved', { tone: 'bad' })
         await load()
       } finally {
         savingEdit = ''
@@ -1475,7 +1477,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       host.selectMoment(scene.id, null, null, null)
       host.refresh()
     })
-    return select
+    return enhanceSelect(select)
   }
   // ——— Useful progress (U3 of the scene workspace plan) ———
   const HARNESS_NAMES: Record<string, string> = { 'claude-code': 'Claude Code', kimi: 'Kimi', codex: 'Codex' }
@@ -1888,7 +1890,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
           await stopRun(host.fetchJson, change.stop).catch(() => undefined)
         }
       } catch (failure) {
-        host.toast(change.failed(failure instanceof Error ? failure.message : 'the studio did not answer'))
+        host.toast(change.failed(failure instanceof Error ? failure.message : 'the studio did not answer'), { tone: 'bad' })
       } finally {
         savingDelivery = ''
         await load().catch(() => undefined)
@@ -1914,7 +1916,9 @@ export const createSceneReview = (host: SceneReviewHost) => {
       select.value = scene.delivery || ''
       void chooseDelivery(scene, chosen[0], chosen[1])
     })
-    return h('label', { class: `ws-voice-field${scene.delivery ? '' : ' is-undecided'}` }, select)
+    // A span, not a label: a label would hand a click on the trigger to the
+    // native select underneath.
+    return h('span', { class: `ws-voice-field${scene.delivery ? '' : ' is-undecided'}` }, enhanceSelect(select))
   }
   const recordOf = (scene: Scene) => {
     const box = h('div', { class: 'ws-record' })
@@ -2011,7 +2015,7 @@ export const createSceneReview = (host: SceneReviewHost) => {
       const text = JSON.stringify(plan, null, 2)
       const copy = h('button', { type: 'button', class: 'button', 'data-focus': `ws-copy-plan:${scene.id}`, text: 'Copy the plan' })
       copy.addEventListener('click', () => {
-        void navigator.clipboard?.writeText(text).then(() => host.toast('The plan\'s full text is on the clipboard'), () => host.toast('Could not copy: select the text instead'))
+        void navigator.clipboard?.writeText(text).then(() => host.toast('The plan\'s full text is on the clipboard'), () => host.toast('Could not copy: select the text instead', { tone: 'bad' }))
       })
       box.append(disclosure(`ws-plan-text:${scene.id}`, `The plan's full text (r${record.revision})`, h('div', { class: 'ws-plan-text' }, copy, h('pre', { text }))))
     }

@@ -186,10 +186,17 @@ import './ui/shell.css'
 import './ui/library.css'
 import './ui/labels.css'
 import { hydrateIcons, icon } from './ui/icons'
+import { installTooltips } from './ui/tooltip'
+import { createToaster, type ToastOptions } from './ui/toast'
+import { enhanceSelect } from './ui/select'
 
 // The page's own controls draw their icons (Lucide), in place of the
 // characters they carry as a fallback.
 hydrateIcons()
+// The studio's own tooltips in place of the operating system's (the
+// component audit).
+installTooltips()
+enhanceSelect(document.getElementById('studio-theme-selector') as HTMLSelectElement)
 
 const studioLogoUrl = new URL(
   '../../webfront/svg/StudioLogo.svg',
@@ -727,7 +734,6 @@ let recordedTakeCanvasView: 'video' | 'content' = 'video'
 let scenes: Scene[] = []
 let syncTimer: number | undefined
 let databaseSyncTimer: number | undefined
-let toastTimer: number | undefined
 let cameraStream: MediaStream | null = null
 let liveCameraStream: MediaStream | null = null
 let injectedLiveCameraPreview: HTMLVideoElement | null = null
@@ -1281,7 +1287,7 @@ generateNotesButton.addEventListener('click', async () => {
     syncRecordingNotesMeter()
     scheduleSync()
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Could not generate notes')
+    showToast(error instanceof Error ? error.message : 'Could not generate notes', { tone: 'bad' })
   } finally {
     generateNotesButton.disabled = false
     generateNotesButton.textContent = '✦ Generate notes'
@@ -1698,7 +1704,7 @@ const startCanvasRecording = async () => {
     try {
       await persistProjectNow(structuredClone(project))
       await createVideoFromBase(project.id, displayName(), { recordScene: scene.id, recordCanvas: true })
-    } catch (error) { showToast(String(error)) }
+    } catch (error) { showToast(String(error), { tone: 'bad' }) }
     return
   }
   // Canvas-program explainers record from our own buffer (no tab-capture
@@ -1836,7 +1842,7 @@ const startCanvasRecording = async () => {
           { cameraBlob, beatMarksMs },
         )
       } catch (error) {
-        showToast(error instanceof Error ? error.message : 'Could not make MP4')
+        showToast(error instanceof Error ? error.message : 'Could not make MP4', { tone: 'bad' })
       } finally {
         resetCanvasRecordingControls()
         canvasRecordingChunks = []
@@ -1875,7 +1881,7 @@ const startCanvasRecording = async () => {
     canvasMicrophoneStream = null
     restoreCanvasRecordingSteps()
     resetCanvasRecordingControls()
-    showToast(error instanceof Error ? error.message : 'Canvas recording was cancelled')
+    showToast(error instanceof Error ? error.message : 'Canvas recording was cancelled', { tone: 'bad' })
   }
 }
 
@@ -1953,7 +1959,7 @@ const commitPendingRecordedBlock = async (mode: 'version' | 'replace') => {
     replaceCanvasRecordingButton.disabled = false
     activeButton.textContent =
       mode === 'replace' ? 'Replace current take' : 'Save block'
-    showToast(error instanceof Error ? error.message : 'Could not save the block')
+    showToast(error instanceof Error ? error.message : 'Could not save the block', { tone: 'bad' })
   }
 }
 
@@ -3374,14 +3380,11 @@ editor.on('update', () => {
   renderNextStep()
 })
 
-const showToast = (message: string) => {
-  const toast = $('#toast')
-  toast.textContent = message
-  toast.hidden = false
-  window.clearTimeout(toastTimer)
-  toastTimer = window.setTimeout(() => {
-    toast.hidden = true
-  }, 3600)
+// A toast (ui/toast.ts): what happened, at the bottom right; a tone, a
+// line of detail and one action when a caller has them.
+const toaster = createToaster($('#toast') as HTMLElement)
+const showToast = (message: string, options?: ToastOptions) => {
+  toaster(message, options)
 }
 
 const setSaving = (saving: boolean) => {
@@ -3403,7 +3406,7 @@ saveConflictButton.onclick = async () => {
     window.localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}base:${original}`)
     window.localStorage.removeItem(STORAGE_KEY)
     window.location.reload()
-  } catch (error) { saveConflictButton.disabled = false; showToast(String(error)) }
+  } catch (error) { saveConflictButton.disabled = false; showToast(String(error), { tone: 'bad' }) }
 }
 
 // Saves retried on a designed page the worker landed meanwhile (B06).
@@ -5260,7 +5263,7 @@ const selectRecordedTake = (blockId: string, take: RecordedBlockV1) => {
     acknowledgeTakeMutation(notebookId, blockId, result.project)
   })
   projectSaveQueues.set(notebookId, selection)
-  void selection.catch(error => showToast(`Take selection could not be saved: ${String(error)}`))
+  void selection.catch(error => showToast(`Take selection could not be saved: ${String(error)}`, { tone: 'bad' }))
   renderCanvasBlockTimeline()
   syncProject()
   syncCanvasViewSwitch()
@@ -6125,7 +6128,7 @@ liveCameraToggle.addEventListener('click', async () => {
     showToast('Live camera is visible in the selected layout')
   } catch (error) {
     stopLiveCamera()
-    showToast(error instanceof Error ? error.message : 'Camera permission failed')
+    showToast(error instanceof Error ? error.message : 'Camera permission failed', { tone: 'bad' })
   }
 })
 
@@ -6287,7 +6290,7 @@ const renameProject = async (title: string) => {
     saveState.textContent = 'Saved'
   } catch (error) {
     saveState.textContent = 'Not saved'
-    showToast(`The project could not be renamed: ${error instanceof Error ? error.message : 'try again'}`)
+    showToast(`The project could not be renamed: ${error instanceof Error ? error.message : 'try again'}`, { tone: 'bad' })
   }
 }
 projectTitleInput.addEventListener('input', () => {
@@ -6937,7 +6940,7 @@ const openAttentionSample = async () => {
     await persistProjectNow(structuredClone(fresh))
     await openNotebook(fresh.id)
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Could not load the sample')
+    showToast(error instanceof Error ? error.message : 'Could not load the sample', { tone: 'bad' })
   }
 }
 
@@ -7029,7 +7032,7 @@ const openAttentionVideoSample = async () => {
     await persistProjectNow(structuredClone(fresh))
     await openNotebook(fresh.id)
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Could not load the video sample')
+    showToast(error instanceof Error ? error.message : 'Could not load the video sample', { tone: 'bad' })
   }
 }
 
@@ -7062,7 +7065,7 @@ const createVideoFromBase = async (baseId: string, baseTitle: string, options?: 
     await openNotebook(child.id)
     return child
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Could not create the video notebook')
+    showToast(error instanceof Error ? error.message : 'Could not create the video notebook', { tone: 'bad' })
   }
 }
 
@@ -7926,7 +7929,7 @@ $('#editor').addEventListener('click', event => {
         src: localPreviewUrl,
         status: 'error',
       })
-      showToast(error instanceof Error ? error.message : 'Could not upload image')
+      showToast(error instanceof Error ? error.message : 'Could not upload image', { tone: 'bad' })
     }
   },
 )
@@ -7998,6 +8001,7 @@ async function beginScreenRecording(uploadKey: string) {
           error instanceof Error
             ? error.message
             : 'Could not upload screen recording',
+          { tone: 'bad' },
         )
       } finally {
         screenRecordingUploadKey = ''
@@ -8017,6 +8021,7 @@ async function beginScreenRecording(uploadKey: string) {
     updateMediaNode(uploadKey, { status: 'cancelled' })
     showToast(
       error instanceof Error ? error.message : 'Screen recording was cancelled',
+      { tone: 'bad' },
     )
   }
 }
@@ -8234,7 +8239,7 @@ const updateThemeDraftFromControls = () => {
     } catch (error) {
       ;($('#theme-ai-status') as HTMLElement).textContent =
         'The durable store is unavailable — the theme was NOT saved. Start the local services (yarn studio:infra) and retry.'
-      showToast(error instanceof Error ? error.message : 'Theme save failed')
+      showToast(error instanceof Error ? error.message : 'Theme save failed', { tone: 'bad' })
     }
   })()
 })
@@ -8378,7 +8383,7 @@ const openCamera = () => {
   const scene = scenes.find(item => item.id === selectedNodeId)
   if (!scene) return
   if (!project.derivedFrom?.notebook) {
-    void persistProjectNow(structuredClone(project)).then(() => createVideoFromBase(project.id, displayName(), { recordScene: scene.id })).catch(error => showToast(String(error)))
+    void persistProjectNow(structuredClone(project)).then(() => createVideoFromBase(project.id, displayName(), { recordScene: scene.id })).catch(error => showToast(String(error), { tone: 'bad' }))
     return
   }
   recordingNodeId = scene.id
@@ -8672,7 +8677,7 @@ const renderCameraBrief = (sceneId: string) => {
   try {
     await enableCamera()
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Camera permission failed')
+    showToast(error instanceof Error ? error.message : 'Camera permission failed', { tone: 'bad' })
   }
 })
 audioMode.addEventListener('change', () => {
@@ -8752,7 +8757,7 @@ const refreshCapabilities = async () => {
     engineRecordingButton.disabled = false
     voiceCapability.textContent = `${result.provider} guide ready. Rehearse once, then record your real camera take.`
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Voice generation failed')
+    showToast(error instanceof Error ? error.message : 'Voice generation failed', { tone: 'bad' })
   } finally {
     button.disabled = false
     button.textContent = 'Generate guide'
@@ -9019,7 +9024,7 @@ const exitTakeReview = () => {
     // A failed upload must not eat the take: the review stays, Keep retries.
     button.disabled = false
     setCameraStatus('Upload failed — the take is still here; Keep retries, Discard drops it', 'live')
-    showToast(error instanceof Error ? error.message : 'Could not upload take')
+    showToast(error instanceof Error ? error.message : 'Could not upload take', { tone: 'bad' })
   }
 })
 ;($('#discard-take') as HTMLButtonElement).addEventListener('click', () => {
@@ -9042,7 +9047,7 @@ const exitTakeReview = () => {
     syncCanvasViewSwitch()
     void refreshPickupNotes()
     showToast('Presenter track removed — the take stays in the archive')
-  } catch (error) { showToast(`Presenter removal was not saved: ${String(error)}`) }
+  } catch (error) { showToast(`Presenter removal was not saved: ${String(error)}`, { tone: 'bad' }) }
 })
 
 const publishDialog = $('#publish-dialog') as HTMLDialogElement
@@ -9261,7 +9266,7 @@ const renderPublishBlockList = () => {
         view.innerHTML =
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none"/></svg>'
         view.addEventListener('click', showTakePreview)
-        controls.append(takeSelect, view)
+        controls.append(enhanceSelect(takeSelect), view)
       }
       const time = document.createElement('time')
       time.textContent = formatTime(publishRowSeconds(scene))
@@ -9284,7 +9289,7 @@ const cancelPublishJob = document.createElement('button')
 cancelPublishJob.textContent = 'Cancel export'
 cancelPublishJob.hidden = true
 startPublishButton.parentElement?.append(cancelPublishJob)
-cancelPublishJob.onclick = () => { if (activePublishJob) void fetchJson(`/api/exports/${activePublishJob}`, { method: 'DELETE' }).catch(error => showToast(String(error))) }
+cancelPublishJob.onclick = () => { if (activePublishJob) void fetchJson(`/api/exports/${activePublishJob}`, { method: 'DELETE' }).catch(error => showToast(String(error), { tone: 'bad' })) }
 
 const startPublish = async () => {
   startPublishButton.disabled = true
@@ -9333,7 +9338,7 @@ const startPublish = async () => {
         ? `Published ${result.durationSeconds.toFixed(1)} seconds with Hyperframes${silence}${warned ? `. ${warned}` : ''}`
         : `Draft export rendered (${result.durationSeconds.toFixed(1)}s)${exported.explainer ? ' — not a reviewed explainer' : ''}${silence}${warned ? `. ${warned}` : ''}`)
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Publish failed')
+    showToast(error instanceof Error ? error.message : 'Publish failed', { tone: 'bad' })
   } finally {
     startPublishButton.disabled = false
     cancelPublishJob.hidden = true
@@ -9433,7 +9438,7 @@ const refreshExportStatus = async () => {
 })
 ;($('#export-status-retry') as HTMLButtonElement).addEventListener('click', async () => {
   if (!exportStatusJob) return
-  await fetchJson(`/api/exports/${exportStatusJob.id}/retry`, { method: 'POST' }).catch(error => showToast(error instanceof Error ? error.message : 'Could not retry the export'))
+  await fetchJson(`/api/exports/${exportStatusJob.id}/retry`, { method: 'POST' }).catch(error => showToast(error instanceof Error ? error.message : 'Could not retry the export', { tone: 'bad' }))
   void refreshExportStatus()
 })
 ;($('#export-status-details') as HTMLButtonElement).addEventListener('click', () => {
@@ -9477,7 +9482,7 @@ const startStudioDownload = async (link: HTMLAnchorElement, onFailure: (reason: 
   }
   void startStudioDownload(link, reason => {
     label('Retry download')
-    showToast(`Download failed — ${reason}`)
+    showToast(`Download failed — ${reason}`, { tone: 'bad' })
   }, () => label('Download MP4'))
 })
 ;($('#export-status-dismiss') as HTMLButtonElement).addEventListener('click', () => {
@@ -13358,7 +13363,7 @@ const renderReusableArtwork = async () => {
           assetsDialog.close()
           void openSlideEditor(nodeId)
           showToast(`Reused ${asset.entity} from the asset library`)
-        } catch (error) { showToast(error instanceof Error ? error.message : 'Could not place this artwork') }
+        } catch (error) { showToast(error instanceof Error ? error.message : 'Could not place this artwork', { tone: 'bad' }) }
       })
       card.append(picture, label, meta, detail, use, download)
       collection.append(card)
@@ -16562,7 +16567,7 @@ const saveSourceDirectionAsTheme = async () => {
     renderSourceBrand()
     showToast(saved.unchanged ? 'This brand is already the stored theme' : `Saved as a theme${site ? ` for ${site}` : ''} (revision ${saved.revision}) — pick it any time from the theme library`)
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Could not save the theme')
+    showToast(error instanceof Error ? error.message : 'Could not save the theme', { tone: 'bad' })
     if (button) button.disabled = false
   }
 }
@@ -17315,7 +17320,7 @@ const startCreateExplainer = async (material: 'link' | 'narrative' | 'base') => 
     try {
       await recordExplainerDelivery(createExplainerChoice)
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not save the delivery choice')
+      showToast(error instanceof Error ? error.message : 'Could not save the delivery choice', { tone: 'bad' })
       return
     }
   }
@@ -17436,7 +17441,7 @@ void checkMigrationOffer()
     showToast(`Imported ${report.notebooks.imported} notebooks, ${report.assets.imported} objects, ${report.takes.imported} takes, ${report.settings.imported} settings${report.unresolved.length ? ` · ${report.unresolved.length} unresolved (kept as-is)` : ''}`)
     if (report.notebooks.imported) await renderNotebookMenu()
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Import failed')
+    showToast(error instanceof Error ? error.message : 'Import failed', { tone: 'bad' })
   } finally {
     button.disabled = false
     button.textContent = 'Import'
@@ -17610,7 +17615,7 @@ const startExplainerBuild = async () => {
       if (event.type === 'text' && event.text) button.title = event.text.slice(-400)
       const message = progressText(event)
       if (message) { status.textContent = message.slice(0, 180); log.textContent = `${log.textContent}\n${message}`.slice(-12000); log.scrollTop = log.scrollHeight }
-      if (event.type === 'error') showToast(event.error || 'The local harness needs attention')
+      if (event.type === 'error') showToast(event.error || 'The local harness needs attention', { tone: 'bad' })
       if (event.type === 'done') {
         window.clearInterval(objectsTimer)
         void renderExplainerObjects(bridge, runId)
@@ -17663,7 +17668,7 @@ const startExplainerBuild = async () => {
     status.textContent = error instanceof Error ? error.message : 'Could not start the explainer'
     button.disabled = false
     button.textContent = 'Build explainer'
-    showToast(error instanceof Error ? error.message : 'Could not start the explainer')
+    showToast(error instanceof Error ? error.message : 'Could not start the explainer', { tone: 'bad' })
   }
 }
 ;($('#build-explainer') as HTMLButtonElement).addEventListener('click', () => void startExplainerBuild())
@@ -18818,7 +18823,7 @@ async function adoptBasePage(sceneId: string) {
   try {
     await persistProjectNow(structuredClone(project))
   } catch (error) {
-    showToast(error instanceof Error ? `The scene took the page, but it is not saved yet: ${error.message}` : 'The scene took the page, but it is not saved yet')
+    showToast(error instanceof Error ? `The scene took the page, but it is not saved yet: ${error.message}` : 'The scene took the page, but it is not saved yet', { tone: 'bad' })
   }
   return true
 }
@@ -19126,7 +19131,7 @@ const designPresentation = async () => {
   } catch (error) {
     designingPresentation = false
     renderNextStep()
-    showToast(error instanceof Error ? error.message : 'The presentation could not be started')
+    showToast(error instanceof Error ? error.message : 'The presentation could not be started', { tone: 'bad' })
   }
 }
 const chooseNotebookTab = (tab: SwitchTab) => {
@@ -19360,7 +19365,7 @@ if (project.build?.kind === 'wireframe') {
       await persistProjectNow(structuredClone(project))
       renderBuild()
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'The wireframe could not be made again')
+      showToast(error instanceof Error ? error.message : 'The wireframe could not be made again', { tone: 'bad' })
     } finally {
       action.disabled = false
     }
@@ -19414,7 +19419,7 @@ if (project.build?.kind === 'wireframe') {
           ? `Exported the ${exported.slides} designed slide${exported.slides === 1 ? '' : 's'} — ${exported.excluded} not designed yet ${exported.excluded === 1 ? 'was' : 'were'} left out.${missing}`
           : `Exported ${exported.slides} slide${exported.slides === 1 ? '' : 's'} as a PDF.${missing}`)
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'The PDF could not be made')
+      showToast(error instanceof Error ? error.message : 'The PDF could not be made', { tone: 'bad' })
     } finally {
       busy(null)
     }
@@ -19427,7 +19432,7 @@ if (project.build?.kind === 'wireframe') {
       await persistProjectNow(structuredClone(project))
       plan = (await fetchJson<{ plan: ExportPlan }>(`/api/projects/${encodeURIComponent(project.id)}/presentation-pdf`)).plan
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'The PDF could not be made')
+      showToast(error instanceof Error ? error.message : 'The PDF could not be made', { tone: 'bad' })
       busy(null)
       return
     }

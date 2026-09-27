@@ -17,6 +17,7 @@ import { channelsOf, TREATMENT_CHANNELS, type ContinuityState, type SceneTreatme
 import { PLANNING_STATE_LABELS, isActiveStatus, type PlanningRecord, type ScenePlanningView, type TypeFaces, type ValidationView } from './planning-records'
 import { failureTitle, progressText, loadHarnessPreferences, loadHarnessStatus, resolveStage, saveHarnessPreferences, type HarnessChoice, type HarnessPreferences, type HarnessStatus, BROWSER_REVIEW_MESSAGE, planningHostOf } from '../harness-choice'
 import { icon } from '../ui/icons'
+import type { ToastOptions } from '../ui/toast'
 
 type BasePage = { scene: string; title: string; objective: string; layoutGuidance: string; narration: string; sourcePassages: string[]; presentationKind: string; svg: string }
 // Which page a video scene is planned from, and a newer one its base offers
@@ -176,7 +177,7 @@ type Fork = { id: string; title: string; createdAt?: string }
 
 export type PlanningWorkspaceHost = {
   fetchJson: <T>(path: string, init?: RequestInit) => Promise<T>
-  toast: (message: string) => void
+  toast: (message: string, options?: ToastOptions) => void
   openNotebook: (id: string) => Promise<void> | void
   // The notebook open in the editor now, and its forks when it is a base.
   current: () => { id: string; title: string; derivedFrom?: { notebook: string; baseTitle?: string; baseRevision?: string } | null }
@@ -301,7 +302,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
     try {
       preferences = await saveHarnessPreferences(host.fetchJson, { stages: { planning: choice } })
     } catch (error) {
-      host.toast(error instanceof Error ? error.message : 'Could not save the planning harness')
+      host.toast(error instanceof Error ? error.message : 'Could not save the planning harness', { tone: 'bad' })
     }
     render()
   }
@@ -406,7 +407,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       if (!reused || record.status === 'queued') await startRun(record, 'Prepare Brief')
       else host.toast('The brief is already being prepared')
     } catch (error) {
-      host.toast(error instanceof Error ? error.message : 'The brief could not be queued')
+      host.toast(error instanceof Error ? error.message : 'The brief could not be queued', { tone: 'bad' })
     } finally {
       busy = false
       await load()
@@ -440,7 +441,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       revision = ''
       tab = 'plan'
     } catch (error) {
-      host.toast(error instanceof Error ? error.message : 'The plan could not be queued')
+      host.toast(error instanceof Error ? error.message : 'The plan could not be queued', { tone: 'bad' })
     } finally {
       busy = false
       await load()
@@ -452,7 +453,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       await host.fetchJson(`/api/planning/records/${encodeURIComponent(record.id)}/review`, { method: 'POST' })
       host.toast(`Revision ${record.revision} is this scene's approved plan. Nothing else was started.`)
     } catch (error) {
-      host.toast(error instanceof Error ? error.message : 'Could not mark the plan reviewed')
+      host.toast(error instanceof Error ? error.message : 'Could not mark the plan reviewed', { tone: 'bad' })
     }
     await load()
   }
@@ -739,7 +740,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
         const retry = h('button', { type: 'button', class: 'button ghost', text: 'Extract again' })
         retry.addEventListener('click', async () => {
           retry.setAttribute('disabled', '')
-          await host.fetchJson(`/api/planning/${encodeURIComponent(projectId)}/cast`, { method: 'POST' }).catch(error => host.toast(error instanceof Error ? error.message : 'Could not extract the cast'))
+          await host.fetchJson(`/api/planning/${encodeURIComponent(projectId)}/cast`, { method: 'POST' }).catch(error => host.toast(error instanceof Error ? error.message : 'Could not extract the cast', { tone: 'bad' }))
           await load()
         })
         pane.append(retry)
@@ -1153,7 +1154,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
       delivery.append(option)
     }
     delivery.addEventListener('change', async () => {
-      await saveInputs(scene.id, { delivery: delivery.value || null }).catch(error => host.toast(error instanceof Error ? error.message : 'Could not save the delivery'))
+      await saveInputs(scene.id, { delivery: delivery.value || null }).catch(error => host.toast(error instanceof Error ? error.message : 'Could not save the delivery', { tone: 'bad' }))
       host.toast('Delivery saved. This scene\'s plans made before it are now stale; other scenes are unchanged.')
       await load()
     })
@@ -1164,7 +1165,7 @@ export const createPlanningWorkspace = (host: PlanningWorkspaceHost) => {
           await saveInputs(subject, { direction: box.value })
           drafts.delete(subject)
         } catch (error) {
-          host.toast(error instanceof Error ? error.message : 'Could not save the direction')
+          host.toast(error instanceof Error ? error.message : 'Could not save the direction', { tone: 'bad' })
         }
         await load()
       })

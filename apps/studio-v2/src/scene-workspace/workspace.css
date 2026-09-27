@@ -44,7 +44,7 @@ body.is-scene-workspace .notebook-document { display: none; }
 .sw-eyebrow { color: var(--sw-muted); font: 500 var(--studio-ui-text-label)/1.2 var(--studio-ui-font-ui); letter-spacing: 0; text-transform: none; white-space: nowrap; }
 .sw-title h2 { margin: 0; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sw-ink); font: 600 15px/1.3 var(--studio-ui-font-brand); letter-spacing: -.01em; }
 .sw-revision-slot { flex: none; }
-.ws-revision { max-width: 240px; height: var(--studio-ui-control); padding: 0 28px 0 10px; border: 1px solid var(--studio-ui-line-strong); border-radius: var(--studio-ui-radius-control); background: var(--studio-ui-surface); color: var(--sw-ink); font: 500 var(--studio-ui-text-control)/1 var(--studio-ui-font-ui); }
+.sw-revision-slot .ui-select-trigger { max-width: 240px; }
 .sw-status { flex: 1 1 120px; min-width: 0; }
 .sw-status .ws-activity { flex-wrap: nowrap; overflow: hidden; }
 .sw-status .ws-activity > * { white-space: nowrap; }
@@ -60,11 +60,13 @@ body.is-scene-workspace .notebook-document { display: none; }
 .sw-more.is-split:hover { background: var(--studio-ui-brand-strong); }
 .sw-more[aria-expanded="true"] { box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .08); }
 .sw-more-caret { width: 7px; height: 7px; margin-top: -3px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: rotate(45deg); }
-.sw-more-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; min-width: 250px; max-width: min(360px, 90vw); padding: 6px; display: grid; gap: 2px; border: 1px solid var(--sw-line); border-radius: var(--studio-ui-radius-float); background: var(--studio-ui-surface-raised); box-shadow: var(--studio-ui-shadow-menu); }
+.sw-more-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; min-width: 250px; max-width: min(360px, 90vw); padding: 4px; display: grid; gap: 1px; border: 1px solid var(--studio-ui-popover-line); border-radius: var(--studio-ui-radius-menu); background: var(--studio-ui-popover); color: var(--studio-ui-popover-ink); box-shadow: var(--studio-ui-shadow-menu); }
 .sw-more-list[hidden] { display: none; }
-.sw-more-list .button { width: 100%; justify-content: flex-start; min-height: 34px; padding: 0 10px; border-color: transparent; background: transparent; color: var(--sw-ink); font: 600 var(--studio-ui-text-control)/1.2 var(--studio-ui-font-brand); text-align: left; white-space: normal; }
-.sw-more-list .button:hover:not(:disabled) { background: var(--studio-ui-hover); }
-.sw-more-list .button:disabled { opacity: .55; }
+/* The menu's rows (the component audit): 28px, the one under the pointer or
+   the keyboard filled rather than ringed. */
+.sw-more-list .button { width: 100%; justify-content: flex-start; min-height: 28px; padding: 4px 10px; border: 0; border-radius: var(--studio-ui-radius-control-sm); background: transparent; color: var(--studio-ui-popover-ink); font: 500 12.5px/1.3 var(--studio-ui-font-brand); text-align: left; white-space: normal; }
+.sw-more-list .button:hover:not(:disabled), .sw-more-list .button:focus-visible { outline: none; background: var(--studio-ui-popover-hover); }
+.sw-more-list .button:disabled, .sw-more-list .button:disabled:hover { border: 0; background: transparent; color: var(--studio-ui-disabled-ink); }
 .sw-tool { min-height: var(--studio-ui-control); padding: 0 10px; display: inline-flex; align-items: center; border: 1px solid transparent; border-radius: var(--studio-ui-radius-control); background: transparent; color: var(--sw-text); font: 600 var(--studio-ui-text-control)/1 var(--studio-ui-font-brand); cursor: pointer; white-space: nowrap; }
 .sw-tool:hover { background: var(--studio-ui-hover); }
 .sw-tool.is-on { background: var(--studio-ui-pressed); color: var(--sw-ink); }
@@ -276,7 +278,7 @@ body.is-scene-workspace .notebook-document { display: none; }
 }
 
 /* Notices clear the moments row. */
-body.is-scene-workspace .toast { bottom: 96px; }
+body.is-scene-workspace .ui-toasts { bottom: 96px; }
 /* The workspace keeps its own scrolling parts (the rail, the inspector, the
    drawer): bringing one of them into view never moves the whole view. Narrow,
    it is one column that scrolls. */
@@ -290,8 +292,9 @@ body.is-scene-workspace .toast { bottom: 96px; }
 .ws-offer.is-output { background: var(--studio-ui-good-tint); color: var(--studio-ui-good-ink-2); }
 /* R08: who speaks, beside the scene's title. */
 .ws-voice-field { display: inline-flex; flex: none; }
-.ws-voice { max-width: 220px; height: var(--studio-ui-control); padding: 0 28px 0 10px; border: 1px solid var(--studio-ui-line-strong); border-radius: var(--studio-ui-radius-control); background: var(--studio-ui-surface); color: var(--sw-ink); font: 500 var(--studio-ui-text-control)/1 var(--studio-ui-font-ui); }
-.ws-voice-field.is-undecided .ws-voice { border-color: var(--studio-ui-warn-line-strong); background: var(--studio-ui-warn-tint); color: var(--studio-ui-warn-ink); }
+.ws-voice-field .ui-select-trigger { max-width: 220px; }
+.ws-voice-field.is-undecided .ui-select-trigger, .ws-voice-field.is-undecided .ui-select-trigger:hover:not(:disabled) { border-color: var(--studio-ui-warn-line-strong); background: var(--studio-ui-warn-tint); color: var(--studio-ui-warn-ink); }
+.ws-voice-field.is-undecided .ui-select-caret { color: currentColor; }
 
 /* Useful progress (U3): a run in its named phases — done, now, to come —
    what is happening, for how long and by whom; the harness's own last word

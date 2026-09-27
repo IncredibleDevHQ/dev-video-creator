@@ -19,6 +19,7 @@ import { sinceOf } from '../planning/progress'
 import { icon } from '../ui/icons'
 import { stageKeyOf, stageKeysFree, type StageKey } from '../ui/keys'
 import { createOverview } from '../ui/overview'
+import type { ToastOptions } from '../ui/toast'
 
 export type WorkspaceReview = ReturnType<typeof createSceneReview>['workspace']
 export type WorkspaceView = 'scenes' | 'notebook'
@@ -48,7 +49,7 @@ export type SceneWorkspaceHost = {
   // Width over height of the video.
   aspect: () => number
   viewChanged: (view: WorkspaceView) => void
-  toast: (message: string) => void
+  toast: (message: string, options?: ToastOptions) => void
   // A preview that finished while the creator looked elsewhere, chose another
   // view or recorded (U4); and playing it.
   notice: (sceneId: string) => { kind: 'offer' | 'elsewhere' | 'held'; revision: number } | null

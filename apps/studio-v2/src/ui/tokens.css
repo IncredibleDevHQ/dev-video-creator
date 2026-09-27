@@ -40,6 +40,7 @@
   /* One focus ring for every control (the component audit): this indigo,
      a lighter tone of it on the dark header, its menus and the library, and
      a soft ring around a field. */
+  --studio-ui-focus-page: #4f46e5;
   --studio-ui-focus-on-chrome: #a5b4fc;
   --studio-ui-focus-soft: rgba(79, 70, 229, .28);
   /* Disabled, in every variant: neutral and flat, so nothing disabled reads
@@ -82,6 +83,18 @@
   --studio-ui-rail: 188px;
   --studio-ui-inspector: 304px;
 
+  /* The menu's surface (the component audit): every menu, the header's
+     too, a select's list and a toast, following the appearance. */
+  --studio-ui-popover: #ffffff;
+  --studio-ui-popover-line: #e4e4e7;
+  --studio-ui-popover-ink: #18181b;
+  --studio-ui-popover-text: #27272a;
+  --studio-ui-popover-muted: #5c5c66;
+  --studio-ui-popover-faint: #8a8a94;
+  --studio-ui-popover-hover: #f4f4f5;
+  --studio-ui-popover-sunken: #f1f1f3;
+  --studio-ui-popover-control-line: #d4d4d8;
+
   /* Depth and motion */
   --studio-ui-shadow-menu: 0 12px 32px rgba(24, 24, 27, .16), 0 2px 6px rgba(24, 24, 27, .08);
   --studio-ui-shadow-float: 0 24px 64px rgba(24, 24, 27, .22), 0 4px 12px rgba(24, 24, 27, .1);
@@ -112,6 +125,16 @@
   --studio-ui-hover: #26262a;
   --studio-ui-pressed: #2f2f34;
   --studio-ui-focus: #818cf8;
+  --studio-ui-focus-page: #818cf8;
+  --studio-ui-popover: #1f1f23;
+  --studio-ui-popover-line: #3a3a40;
+  --studio-ui-popover-ink: #f4f4f5;
+  --studio-ui-popover-text: #d4d4d8;
+  --studio-ui-popover-muted: #a1a1aa;
+  --studio-ui-popover-faint: #8a8a94;
+  --studio-ui-popover-hover: #303036;
+  --studio-ui-popover-sunken: #141416;
+  --studio-ui-popover-control-line: #3f3f46;
   --studio-ui-focus-soft: rgba(129, 140, 248, .32);
   --studio-ui-disabled-fill: #232327;
   --studio-ui-disabled-line: #2e2e33;
@@ -134,7 +157,10 @@
    A field gets a soft ring and an indigo edge instead. */
 :where(a, button, summary, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"], [role="option"], [role="radio"], [role="checkbox"], [tabindex]:not([tabindex="-1"]), input[type="checkbox"], input[type="radio"], input[type="range"]):focus-visible { outline: 2px solid var(--studio-ui-focus); outline-offset: 2px; }
 :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea):focus-visible { outline: 2px solid var(--studio-ui-focus-soft); outline-offset: 0; border-color: var(--studio-ui-focus); }
-:where(.app-chrome, .chrome-menu, .notebooks-page) { --studio-ui-focus: var(--studio-ui-focus-on-chrome); --studio-ui-focus-soft: rgba(165, 180, 252, .32); }
+:where(.app-chrome, .notebooks-page) { --studio-ui-focus: var(--studio-ui-focus-on-chrome); --studio-ui-focus-soft: rgba(165, 180, 252, .32); }
+/* A menu from the dark header is on the menu's surface, so it takes the
+   page's ring back. */
+.chrome-menu { --studio-ui-focus: var(--studio-ui-focus-page); --studio-ui-focus-soft: color-mix(in srgb, var(--studio-ui-focus-page) 30%, transparent); }
 /* An embedded composition renders as it does in the light appearance: its
    frame keeps the page's default colour scheme, so the browser does not give
    it the dark scheme's opaque canvas. */
