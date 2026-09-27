@@ -145,7 +145,7 @@ try {
   const text = await seen()
   await capture('01-text')
   check('the switch has a tab per kind in the order they are made, each saying where it stands; the video is not made yet', summary(text.tabs) === 'Text*: 3 blocks · Wireframe: 2 pages · Presentation: 2 slides · Video: not made yet' && text.tabs[3].missing && /made from the presentation — open it to make the video/.test(text.tabs[3].title), summary(text.tabs))
-  check('the text reads as text: no canvas, preview, Publish or next step, and no lineage or format in the chrome', text.kind === 'text' && /BoltDB keeps a whole database in one file/.test(text.text) && !text.canvas && !text.preview && !text.publish && text.next === null && !text.lineage && !text.format && !text.notebookTab, JSON.stringify({ ...text, tabs: undefined }))
+  check('the text reads as text: no canvas or video export, its next step the wireframe made from it, and no lineage or format in the chrome', text.kind === 'text' && /BoltDB keeps a whole database in one file/.test(text.text) && !text.canvas && !text.publish && text.next === 'View wireframe' && !text.lineage && !text.format && !text.notebookTab, JSON.stringify({ ...text, tabs: undefined }))
 
   // The menu and the library list the project once, with its notebooks by
   // kind; a kind not made yet is there, dimmed.

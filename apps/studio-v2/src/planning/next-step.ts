@@ -10,7 +10,7 @@
 // production; otherwise a draft that says which scenes do not.
 import type { ScenePlanningView } from './planning-records'
 
-export type NextStepAction = 'create-explainer' | 'create-video' | 'open-video' | 'design-presentation' | 'brief' | 'plan' | 'review' | 'record' | 'produce' | 'review-output' | 'export' | 'wait'
+export type NextStepAction = 'create-explainer' | 'create-video' | 'open-video' | 'open-wireframe' | 'design-presentation' | 'brief' | 'plan' | 'review' | 'record' | 'produce' | 'review-output' | 'export' | 'wait'
 export type NextStep = { action: NextStepAction; label: string; title: string; sceneId: string | null; disabled: boolean }
 
 export type BaseInput = { pages: number; videos: Array<{ id: string; title: string }> }
@@ -22,6 +22,17 @@ export const baseNextStep = ({ pages, videos }: BaseInput): NextStep => {
   }
   if (!pages) return { action: 'create-explainer', label: 'Create explainer', title: 'Start from a link, an article or your own narrative: it becomes this notebook’s designed pages, and then its video.', sceneId: null, disabled: false }
   return { action: 'create-video', label: 'Create video', title: 'Make this notebook’s video: a video notebook made from these pages, where each scene is planned, reviewed and recorded — by you or with a generated voice, scene by scene.', sceneId: null, disabled: false }
+}
+
+// A project's text leads to its wireframe (the Open Slide pass): to look at,
+// once there is one — or, while it is being made, it says so and waits.
+export const textNextStep = (wireframe: { id: string; state: 'ready' | 'building' | 'empty'; detail: string } | null): NextStep | null => {
+  if (!wireframe) return null
+  if (wireframe.state === 'building') {
+    const failed = /could not/.test(wireframe.detail)
+    return { action: 'open-wireframe', label: failed ? 'View wireframe' : 'Wireframe being made…', title: failed ? 'The wireframe could not be made: open it to make it again' : 'The wireframe is being made from this text: it opens here once it has its pages', sceneId: null, disabled: !failed }
+  }
+  return { action: 'open-wireframe', label: 'View wireframe', title: `The wireframe made from this text: ${wireframe.detail}`, sceneId: null, disabled: false }
 }
 
 export type VideoScene = {

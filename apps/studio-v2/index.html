@@ -262,6 +262,7 @@
         <section id="scene-workspace" class="scene-workspace" aria-label="Scene workspace" hidden></section>
         <section class="notebook-document" aria-labelledby="notebook-title">
           <div id="editor-layout" class="editor-layout">
+            <nav id="text-contents" class="text-contents" aria-label="Contents" hidden></nav>
             <div class="editor-column">
               <div id="editor-toolbar" class="editor-toolbar" aria-label="Formatting toolbar">
                 <button data-command="bold" title="Bold"><strong>B</strong></button>
@@ -1068,11 +1069,19 @@
       <button id="stop-screen-recording" class="button danger" type="button">Stop and add block</button>
     </div>
 
-    <div id="notebooks-page" class="notebooks-page" role="dialog" aria-modal="true" aria-label="All notebooks" hidden>
+    <!-- The library (the Open Slide pass): one card per project, with a
+         picture of it and its four notebooks; themes and assets are the
+         library's other places. -->
+    <div id="notebooks-page" class="notebooks-page" role="dialog" aria-modal="true" aria-label="Library" hidden>
       <div class="notebooks-page-shell">
         <header class="notebooks-page-head">
-          <div><span class="eyebrow">Library</span><h2>Projects <span id="notebooks-page-count" class="notebooks-page-count"></span></h2></div>
-          <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close">×</button>
+          <div class="notebooks-page-title"><span class="eyebrow">Library</span><h2>Projects <span id="notebooks-page-count" class="notebooks-page-count"></span></h2></div>
+          <nav class="library-places" aria-label="The library's other places">
+            <a class="library-place" href="/themes" data-app-route="themes">Themes</a>
+            <button id="library-assets" class="library-place" type="button">Assets</button>
+          </nav>
+          <button id="library-new-project" class="button primary" type="button">New project</button>
+          <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close the library">×</button>
         </header>
         <!-- Each project with its notebooks (the four-notebook model); the
              notebooks that belong to none are listed below as they were. -->

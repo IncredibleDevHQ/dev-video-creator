@@ -13,9 +13,10 @@ import { lineFingerprints, scriptFingerprint, takeAgainst } from './planning/rec
 import { outlineSceneOf, pageIdeaOf, pageObjectiveOf } from './planning/page-objective'
 import { bindingOf, landedPageChanges, pageFingerprint, pageReadinessOf, samePage, type PageDesignBinding } from './page-design'
 import { sinceOf } from './planning/progress'
-import { baseNextStep, type NextStep } from './planning/next-step'
+import { baseNextStep, textNextStep, type NextStep } from './planning/next-step'
 import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab } from './notebook-switch'
 import { createJobs, type JobView } from './project-shell/jobs'
+import { createTextContents } from './project-shell/text-contents'
 import { nextStepOwner } from './project-shell/action-owner'
 import { nextWireframeAttempt, storedArticleOf, wireframeFailureText, type WireframeOutliner } from './wireframe-attempt'
 import { readableList } from './font-families'
@@ -178,6 +179,7 @@ import {
 import './styles.css'
 import './ui/tokens.css'
 import './ui/shell.css'
+import './ui/library.css'
 
 const studioLogoUrl = new URL(
   '../../webfront/svg/StudioLogo.svg',
@@ -7105,6 +7107,29 @@ const deleteProject = async (view: ProjectView) => {
   await renderNotebookMenu().catch(() => {})
   if (!notebooksPage.hidden) await renderNotebooksPage().catch(() => {})
 }
+// A project's picture in the library (the Open Slide pass): the first page
+// of its presentation, else of its wireframe, else of its video — drawn as
+// a picture, which runs nothing. Read once per version of that notebook.
+const projectCovers = new Map<string, Promise<string>>()
+const projectCoverOf = (view: ProjectView) => {
+  const pick = (['presentation', 'wireframe', 'video'] as const).map(kind => view.notebooks.find(entry => entry.kind === kind && entry.state !== 'empty')).find(Boolean)
+  if (!pick) return Promise.resolve('')
+  const key = `${pick.id}:${pick.updatedAt || ''}`
+  let cover = projectCovers.get(key)
+  if (!cover) {
+    cover = fetchJson<{ project: ProjectDocumentV1 }>(`/api/projects/${encodeURIComponent(pick.id)}`)
+      .then(({ project: doc }) => {
+        const page = (doc.notebook?.content || []).find(node => node.type === 'scene' && (node.attrs?.svgSrc || node.attrs?.svg))
+        const stored = String(page?.attrs?.svgSrc || '')
+        if (stored) return stored
+        const svg = String(page?.attrs?.svg || '')
+        return svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : ''
+      })
+      .catch(() => '')
+    projectCovers.set(key, cover)
+  }
+  return cover
+}
 const projectEntry = (view: ProjectView, className: string) => {
   const entry = document.createElement('div')
   entry.className = `${className}${view.container.id === project.container?.id ? ' is-current' : ''}`
@@ -7112,11 +7137,30 @@ const projectEntry = (view: ProjectView, className: string) => {
   const open = document.createElement('button')
   open.type = 'button'
   open.className = `${className}-open`
+  open.setAttribute('aria-label', `Open ${view.container.title || 'Untitled project'}, where you left it`)
   const title = document.createElement('strong')
   title.textContent = view.container.title || 'Untitled project'
   const meta = document.createElement('small')
   meta.textContent = `${view.notebooks.length} notebook${view.notebooks.length === 1 ? '' : 's'} · ${notebookDate(view.container.updatedAt)}${view.container.id === project.container?.id ? ' · open now' : ''}`
-  open.append(title, meta)
+  if (className === 'project-card') {
+    // The card: its picture, then its name.
+    const cover = document.createElement('span')
+    cover.className = 'project-card-cover'
+    cover.setAttribute('aria-hidden', 'true')
+    void projectCoverOf(view).then(src => {
+      if (!src || !cover.isConnected) return
+      const image = document.createElement('img')
+      image.alt = ''
+      image.decoding = 'async'
+      image.src = src
+      cover.replaceChildren(image)
+      cover.classList.add('has-picture')
+    })
+    const text = document.createElement('span')
+    text.className = 'project-card-text'
+    text.append(title, meta)
+    open.append(cover, text)
+  } else open.append(title, meta)
   open.addEventListener('click', () => openProjectNotebook(view))
   const kinds = document.createElement('div')
   kinds.className = 'project-kinds'
@@ -7223,7 +7267,7 @@ const notebooksPage = $('#notebooks-page') as HTMLElement
 const notebooksTree = $('#notebooks-tree') as HTMLElement
 
 const openNotebooksPage = () => {
-  void renderNotebooksPage()
+  void renderNotebooksPage().then(() => (notebooksPage.querySelector<HTMLElement>('.project-card-open') || notebooksPage.querySelector<HTMLElement>('#close-notebooks-page'))?.focus({ preventScroll: true }))
   notebooksPage.hidden = false
 }
 
@@ -7372,6 +7416,22 @@ const renderNotebooksPage = async () => {
 
 ;($('#close-notebooks-page') as HTMLButtonElement).addEventListener('click', () => {
   notebooksPage.hidden = true
+})
+// The library's other places, and a new project, from its header.
+;($('#library-new-project') as HTMLButtonElement).addEventListener('click', () => {
+  notebooksPage.hidden = true
+  ;($('#start-from-source') as HTMLButtonElement).click()
+})
+;($('#library-assets') as HTMLButtonElement).addEventListener('click', () => {
+  notebooksPage.hidden = true
+  ;($('#open-assets') as HTMLButtonElement).click()
+})
+notebooksPage.querySelector('[data-app-route]')?.addEventListener('click', () => (notebooksPage.hidden = true))
+notebooksPage.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return
+  event.preventDefault()
+  notebooksPage.hidden = true
+  notebookMenuToggle.focus()
 })
 
 // The lineage breadcrumb renders once per load (openNotebook reloads) — the
@@ -18884,7 +18944,8 @@ document.body.classList.toggle('in-project', Boolean(project.container))
 document.body.dataset.notebookKind = project.container?.kind || ''
 // Its heading says which notebook of the project this is, and what it holds.
 {
-  const format = formatOf(project.container?.kind)
+  // A video made from a base outside a project is named as a video too.
+  const format = formatOf(project.container?.kind || (project.derivedFrom?.notebook ? 'video' : undefined))
   if (format) {
     ;($('#context-eyebrow') as HTMLElement).textContent = format.label
     ;($('#notebook-title') as HTMLElement).textContent = `${format.holds.charAt(0).toUpperCase()}${format.holds.slice(1)}`
@@ -19062,6 +19123,20 @@ followSwitch = () => {
   })
 }
 editor.on('update', () => followSwitch())
+// The Text notebook's contents beside the article (the Open Slide pass).
+{
+  const textContents = createTextContents($('#text-contents'), () => document.querySelector<HTMLElement>('#editor .tiptap'), $('.studio-workspace'))
+  let contentsFrame = 0
+  const followContents = () => {
+    if (contentsFrame) return
+    contentsFrame = window.requestAnimationFrame(() => {
+      contentsFrame = 0
+      textContents.render(notebookKind() === 'text')
+    })
+  }
+  editor.on('update', followContents)
+  followContents()
+}
 const refreshNotebookSwitch = async () => {
   if (!project.container) return
   if (notebookSwitchTimer) window.clearTimeout(notebookSwitchTimer)
@@ -19330,8 +19405,8 @@ const openPlanningButton = $('#open-planning') as HTMLButtonElement
 let nextStepShown: NextStep | null = null
 renderNextStep = () => {
   const video = Boolean(project.derivedFrom?.notebook)
-  // A project's text and wireframe are made into the next notebook from the
-  // switch; the presentation leads to its video.
+  // A project's text leads to its wireframe, the wireframe to its
+  // presentation, the presentation to its video (the Open Slide pass).
   const kind = notebookKind()
   // A wireframe with no presentation yet offers to design one.
   const designable = kind === 'wireframe' && projectNotebooksLoaded && !projectNotebooks.some(entry => entry.kind === 'presentation')
@@ -19343,9 +19418,11 @@ renderNextStep = () => {
     ? sceneReview?.nextStep(selectedNodeId || reviewSelectedScene) || null
     : designable
       ? { action: 'design-presentation', label: designingPresentation ? 'Starting the design…' : 'Design presentation', title: waitsFor || 'Design the presentation from these pages: each slide is drawn on your drawing harness and lands in the presentation as it is finished.', sceneId: null, disabled: designingPresentation || !window.studioDesktop?.isDesktop || Boolean(waitsFor) }
-      : kind === 'text' || kind === 'wireframe'
-        ? null
-        : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
+      : kind === 'text'
+        ? textNextStep(projectNotebooks.find(entry => entry.kind === 'wireframe') || null)
+        : kind === 'wireframe'
+          ? null
+          : baseNextStep({ pages: pageReadinessOf((editor.getJSON() as TiptapDocument).content || []).total, videos: baseVideos })
   // One owner for a scene's action (the Open Slide pass): in the Scenes view
   // the workspace's own row; in the notebook, this one.
   const owner = nextStepOwner({ video, stepScene: step?.sceneId || null, workspace: Boolean(sceneWorkspace?.active()) })
@@ -19378,6 +19455,11 @@ nextStepButton.addEventListener('click', () => {
     case 'open-video':
       if (baseVideos[0]) void openNotebook(baseVideos[0].id)
       break
+    case 'open-wireframe': {
+      const wireframe = projectNotebooks.find(entry => entry.kind === 'wireframe')
+      if (wireframe) void openNotebook(wireframe.id)
+      break
+    }
     case 'brief':
       // Prepared in Scenes, where the video is reviewed (R06).
       sceneWorkspace?.show('scenes')

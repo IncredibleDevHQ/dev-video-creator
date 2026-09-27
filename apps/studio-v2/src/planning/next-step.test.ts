@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { baseNextStep, videoNextStep, type VideoScene } from './next-step'
+import { baseNextStep, textNextStep, videoNextStep, type VideoScene } from './next-step'
 
 const scene = (index: number, state: VideoScene['state'], extra: Partial<VideoScene> = {}): VideoScene => ({ id: `s${index + 1}`, index, title: `Scene ${index + 1}`, state, delivery: 'generated', take: 'none', ...extra })
 const ready = { ready: true, stale: false, preparing: false, failed: false }
 
 describe('the one next step of a notebook', () => {
+  it('leads a project\'s text to its wireframe, once there is one', () => {
+    expect(textNextStep(null)).toBeNull()
+    expect(textNextStep({ id: 'w1', state: 'ready', detail: '6 pages' })).toMatchObject({ action: 'open-wireframe', label: 'View wireframe', disabled: false })
+    expect(textNextStep({ id: 'w1', state: 'building', detail: 'being made' })).toMatchObject({ label: 'Wireframe being made…', disabled: true })
+    // One that could not be made is opened, to be made again there.
+    expect(textNextStep({ id: 'w1', state: 'building', detail: 'could not be made' })).toMatchObject({ label: 'View wireframe', disabled: false })
+  })
   it('offers a base its video: to start one, to create it, or to open it', () => {
     expect(baseNextStep({ pages: 0, videos: [] }).action).toBe('create-explainer')
     expect(baseNextStep({ pages: 3, videos: [] })).toMatchObject({ action: 'create-video', label: 'Create video' })
