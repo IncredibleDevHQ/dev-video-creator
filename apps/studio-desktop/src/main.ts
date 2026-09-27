@@ -4,7 +4,7 @@
 // verifies the app end to end and quits with exit code 0/1. The same origin
 // hosts the MCP endpoint (spec §4) and the harness port runs from here
 // (spec §3).
-import { app, BrowserWindow, desktopCapturer, ipcMain, shell, type DownloadItem, type WebContents } from 'electron'
+import { app, BrowserWindow, desktopCapturer, ipcMain, nativeTheme, shell, type DownloadItem, type WebContents } from 'electron'
 import { fileURLToPath } from 'node:url'
 import { basename, join } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -152,6 +152,12 @@ const runSmoke = async (win: BrowserWindow): Promise<string> => {
   return smokeFailure(probe)
 }
 
+// The studio's appearance follows the system's unless the creator chooses one
+// in the studio; STUDIO_APPEARANCE (light or dark) sets the system's side for
+// this run — for checks and captures that need one or the other.
+const appearanceOverride = process.env.STUDIO_APPEARANCE
+if (appearanceOverride === 'light' || appearanceOverride === 'dark') nativeTheme.themeSource = appearanceOverride
+
 const createWindow = (origin: string) => {
   // Shown even in smoke mode: hidden windows suspend requestAnimationFrame
   // (spec §8), which can stall the editor mount the probe waits for.
@@ -159,6 +165,9 @@ const createWindow = (origin: string) => {
     width: 1440,
     height: 900,
     show: true,
+    // What shows before the page paints is the page's own ground — the dark
+    // header's colour in either appearance — not a white flash.
+    backgroundColor: '#18181b',
     webPreferences: {
       contextIsolation: true,
       sandbox: true,

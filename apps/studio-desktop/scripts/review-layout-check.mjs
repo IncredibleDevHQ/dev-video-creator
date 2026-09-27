@@ -411,15 +411,30 @@ try {
     // Items under each heading, in order.
     const groups = {}
     let heading = ''
-    for (const element of list.children) {
+    for (const element of list.querySelectorAll('.menu-heading, button[role="menuitem"]')) {
       if (element.classList.contains('menu-heading')) heading = element.textContent
-      else if (element.matches('button[role="menuitem"]') && element.getClientRects().length) (groups[heading] ||= []).push({ label: element.querySelector('.menu-label').textContent, note: element.querySelector('.menu-note')?.textContent || '' })
+      else if (element.getClientRects().length) (groups[heading] ||= []).push({ label: element.querySelector('.menu-label').textContent, note: element.querySelector('.menu-note')?.textContent || '' })
     }
     return { open: !list.hidden, expanded: document.getElementById('advanced-menu-toggle').getAttribute('aria-expanded'), items: items.length, shown, theme: Boolean(list.querySelector('#studio-theme-selector')), next: document.getElementById('next-step').getClientRects().length > 0, groups }
   }`)
   const older = more.groups?.['Older paths'] || []
   check(more.open && more.expanded === 'true' && more.items > 0 && more.shown === more.items && more.theme && more.next && JSON.stringify((more.groups?.['Add to it'] || []).map(item => item.label)) === JSON.stringify(['Start from a link or narrative…', 'Import a Markdown file…', 'Paste Markdown…', 'Import SVG pages…', 'Asset library…', 'Video length…']) && JSON.stringify((more.groups?.Open || []).map(item => item.label)) === JSON.stringify(['Planning workspace', 'Open canvas']) && older.map(item => item.label).join('|') === 'Create explainer…|Build explainer|Show video staging|Replace with the sample…' && /does not use approved scene plans/.test(older[1]?.note || '') && /The older way/.test(older[2]?.note || ''), `More holds the theme, what can be added, the planning workspace and the older paths, each saying what it is, every item whole (${JSON.stringify(more)})`)
   await shot('base-advanced')
+  // The studio's appearance, chosen in More: dark and light apply at once
+  // and are kept for the next start; System follows the system again (the
+  // dark appearance).
+  const appearance = await evaluate(`async () => {
+    const picker = document.querySelector('#advanced-menu-list .appearance-choices')
+    const state = () => ({ shown: document.documentElement.dataset.appearance, kept: localStorage.getItem('incredible-studio-v2-appearance'), checked: [...picker.querySelectorAll('[role="radio"]')].filter(button => button.getAttribute('aria-checked') === 'true').map(button => button.dataset.appearanceChoice).join(), surface: getComputedStyle(document.documentElement).getPropertyValue('--studio-ui-surface').trim() })
+    const choose = async value => { picker.querySelector('[data-appearance-choice="' + value + '"]').click(); await new Promise(resolve => setTimeout(resolve, 150)); return state() }
+    const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    const start = state()
+    const dark = await choose('dark')
+    const light = await choose('light')
+    const back = await choose('system')
+    return { system, start, dark, light, back, open: !document.getElementById('advanced-menu-list').hidden }
+  }`)
+  check(appearance.start.checked === 'system' && appearance.start.shown === appearance.system && appearance.dark.shown === 'dark' && appearance.dark.kept === 'dark' && appearance.dark.checked === 'dark' && appearance.light.shown === 'light' && appearance.light.kept === 'light' && appearance.dark.surface !== appearance.light.surface && appearance.back.shown === appearance.system && appearance.back.kept === null && appearance.back.checked === 'system' && appearance.open, `More chooses the studio's appearance: dark and light apply at once and are kept, and System follows the system again (${JSON.stringify(appearance)})`)
   await evaluate(`() => { document.getElementById('advanced-menu-toggle').click(); return true }`)
   const documentType = await waitFor(`() => { const paragraph = document.querySelector('#editor .tiptap > p'); const list = document.querySelector('#editor .tiptap > ul'); if (!paragraph || !list) return null; const style = getComputedStyle(paragraph); return { paragraph: style.fontSize + '/' + style.lineHeight, item: getComputedStyle(list.querySelector('li')).fontSize + '/' + getComputedStyle(list.querySelector('li')).lineHeight, list: getComputedStyle(list).paddingLeft } }`, 30)
   check(documentType?.paragraph === '15px/26.25px' && documentType.item === '15px/26.25px' && documentType.list === '30px', `the notebook's paragraphs and lists keep the document's type (${JSON.stringify(documentType)})`)

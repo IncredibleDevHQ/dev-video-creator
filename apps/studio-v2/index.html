@@ -6,6 +6,16 @@
     <meta name="theme-color" content="#18181b" />
     <link id="app-icon" rel="icon" />
     <title>Incredible Studio</title>
+    <script>
+      // The studio's appearance before its first paint: the choice kept in
+      // More, else the system's (src/project-shell/appearance.ts keeps it).
+      ;(function () {
+        var choice = null
+        try { choice = localStorage.getItem('incredible-studio-v2-appearance') } catch (error) {}
+        var dark = choice === 'dark' || (choice !== 'light' && Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches))
+        document.documentElement.setAttribute('data-appearance', dark ? 'dark' : 'light')
+      })()
+    </script>
   </head>
   <body>
     <section id="theme-app" class="theme-app" aria-labelledby="theme-page-title" hidden>
@@ -194,26 +204,45 @@
             <div class="advanced-menu">
               <button id="advanced-menu-toggle" class="chrome-control chrome-icon" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="advanced-menu-list" aria-label="More" title="More: theme, import, the planning workspace and the older paths"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
               <div id="advanced-menu-list" class="chrome-menu advanced-menu-list" role="menu" hidden>
-                <p class="menu-heading">This notebook</p>
-                <label class="studio-theme-picker"><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">Edit</button></label>
-                <p class="format-control"><span>Format</span><strong>Landscape · 16:9</strong></p>
-                <p class="menu-heading">Add to it</p>
-                <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
-                <input id="svg-file-input" type="file" accept=".svg,image/svg+xml" multiple hidden />
-                <button id="start-from-source" type="button" role="menuitem"><span class="menu-label">Start from a link or narrative…</span></button>
-                <button id="import-file" type="button" role="menuitem"><span class="menu-label">Import a Markdown file…</span></button>
-                <button id="paste-markdown" type="button" role="menuitem"><span class="menu-label">Paste Markdown…</span></button>
-                <button id="import-svg-pages" type="button" role="menuitem"><span class="menu-label">Import SVG pages…</span></button>
-                <button id="open-assets" type="button" role="menuitem"><span class="menu-label">Asset library…</span></button>
-                <button id="video-length" type="button" role="menuitem"><span class="menu-label">Video length…</span></button>
-                <p class="menu-heading">Open</p>
-                <button id="open-planning" type="button" role="menuitem" title="The explanation brief, every scene's plans and their evidence"><span class="menu-label">Planning workspace</span><small class="menu-note">The brief, every scene's plans and their evidence.</small></button>
-                <button id="open-fullscreen" type="button" role="menuitem"><span class="menu-label">Open canvas</span><small class="menu-note">The notebook's composition, full screen.</small></button>
-                <p class="menu-heading">Older paths</p>
-                <button id="create-explainer" type="button" role="menuitem"><span class="menu-label">Create explainer…</span><small class="menu-note">A new base from a link or your own narrative, or this one built whole.</small></button>
-                <button id="build-explainer" type="button" role="menuitem"><span class="menu-label">Build explainer</span><small class="menu-note">The older build: the whole notebook at once, from its scripts and pages, with one delivery. It does not use approved scene plans.</small></button>
-                <button id="toggle-video-staging" type="button" role="menuitem" hidden><span class="menu-label">Show video staging</span><small class="menu-note">The older way: each page's dialogue, motion, live canvas and Publish, here on the base. Create video gives a video its own.</small></button>
-                <button id="reset-sample" type="button" role="menuitem"><span class="menu-label">Replace with the sample…</span><small class="menu-note">Replaces this notebook's text with the sample story; it asks first.</small></button>
+                <div class="menu-section">
+                  <p class="menu-heading">This notebook</p>
+                  <label class="studio-theme-picker"><span>Theme</span><select id="studio-theme-selector" aria-label="Notebook theme"></select><button id="open-theme-builder" type="button" title="Edit themes" aria-label="Edit themes">Edit</button></label>
+                  <p class="format-control"><span>Format</span><strong>Landscape · 16:9</strong></p>
+                </div>
+                <div class="menu-section">
+                  <p class="menu-heading">Studio</p>
+                  <div class="appearance-picker">
+                    <span id="appearance-label">Appearance</span>
+                    <div class="appearance-choices" role="radiogroup" aria-labelledby="appearance-label">
+                      <button type="button" role="radio" data-appearance-choice="system" aria-checked="true" title="The system's appearance">System</button>
+                      <button type="button" role="radio" data-appearance-choice="light" aria-checked="false">Light</button>
+                      <button type="button" role="radio" data-appearance-choice="dark" aria-checked="false">Dark</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="menu-section">
+                  <p class="menu-heading">Add to it</p>
+                  <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden />
+                  <input id="svg-file-input" type="file" accept=".svg,image/svg+xml" multiple hidden />
+                  <button id="start-from-source" type="button" role="menuitem"><span class="menu-label">Start from a link or narrative…</span></button>
+                  <button id="import-file" type="button" role="menuitem"><span class="menu-label">Import a Markdown file…</span></button>
+                  <button id="paste-markdown" type="button" role="menuitem"><span class="menu-label">Paste Markdown…</span></button>
+                  <button id="import-svg-pages" type="button" role="menuitem"><span class="menu-label">Import SVG pages…</span></button>
+                  <button id="open-assets" type="button" role="menuitem"><span class="menu-label">Asset library…</span></button>
+                  <button id="video-length" type="button" role="menuitem"><span class="menu-label">Video length…</span></button>
+                </div>
+                <div class="menu-section">
+                  <p class="menu-heading">Open</p>
+                  <button id="open-planning" type="button" role="menuitem" title="The explanation brief, every scene's plans and their evidence"><span class="menu-label">Planning workspace</span><small class="menu-note">The brief, every scene's plans and their evidence.</small></button>
+                  <button id="open-fullscreen" type="button" role="menuitem"><span class="menu-label">Open canvas</span><small class="menu-note">The notebook's composition, full screen.</small></button>
+                </div>
+                <div class="menu-section">
+                  <p class="menu-heading">Older paths</p>
+                  <button id="create-explainer" type="button" role="menuitem"><span class="menu-label">Create explainer…</span><small class="menu-note">A new base from a link or your own narrative, or this one built whole.</small></button>
+                  <button id="build-explainer" type="button" role="menuitem"><span class="menu-label">Build explainer</span><small class="menu-note">The older build: the whole notebook at once, from its scripts and pages, with one delivery. It does not use approved scene plans.</small></button>
+                  <button id="toggle-video-staging" type="button" role="menuitem" hidden><span class="menu-label">Show video staging</span><small class="menu-note">The older way: each page's dialogue, motion, live canvas and Publish, here on the base. Create video gives a video its own.</small></button>
+                  <button id="reset-sample" type="button" role="menuitem"><span class="menu-label">Replace with the sample…</span><small class="menu-note">Replaces this notebook's text with the sample story; it asks first.</small></button>
+                </div>
               </div>
             </div>
           </div>

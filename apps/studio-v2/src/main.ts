@@ -18,6 +18,7 @@ import { renderNotebookSwitch, renderProjectKinds, switchTabsOf, type SwitchTab 
 import { createJobs, type JobView } from './project-shell/jobs'
 import { createTextContents } from './project-shell/text-contents'
 import { nextStepOwner } from './project-shell/action-owner'
+import { createAppearance, type Appearance } from './project-shell/appearance'
 import { nextWireframeAttempt, storedArticleOf, wireframeFailureText, type WireframeOutliner } from './wireframe-attempt'
 import { readableList } from './font-families'
 import { draftHoldsEdits, sameDocument } from './draft-state'
@@ -6216,6 +6217,29 @@ headerMenu(exportMenuToggle, exportMenuList, () => {
 const advancedMenuToggle = $('#advanced-menu-toggle') as HTMLButtonElement
 const advancedMenuList = $('#advanced-menu-list')
 headerMenu(advancedMenuToggle, advancedMenuList)
+// The studio's appearance: System, Light or Dark, in More (the Open Slide
+// pass). A radio group: arrows move the choice, and it applies as chosen.
+{
+  const choices = [...advancedMenuList.querySelectorAll<HTMLButtonElement>('[data-appearance-choice]')]
+  const appearance = createAppearance(choice => {
+    choices.forEach(button => {
+      const on = button.dataset.appearanceChoice === choice
+      button.setAttribute('aria-checked', String(on))
+      button.tabIndex = on ? 0 : -1
+    })
+  })
+  choices.forEach((button, index) => {
+    button.addEventListener('click', () => appearance.set(button.dataset.appearanceChoice as Appearance))
+    button.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+      event.preventDefault()
+      event.stopPropagation()
+      const next = choices[(index + (event.key === 'ArrowRight' ? 1 : -1) + choices.length) % choices.length]
+      appearance.set(next.dataset.appearanceChoice as Appearance)
+      next.focus()
+    })
+  })
+}
 // Jobs: everything running, and what needs the creator, in one panel
 // (the Open Slide pass). Its sources — the export, this project's notebooks,
 // the video's runs, the older explainer build — each say what they have.
