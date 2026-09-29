@@ -28,7 +28,9 @@ export const notesOf = (script: unknown) =>
     .filter(Boolean)
 
 // How a page was made, when it says: a designed slide, a schematic draft, or
-// a schematic draft whose design is still being drawn.
+// a schematic draft waiting for its design. A design run designs a deck's
+// pages, not necessarily this one at this moment, so a page waits rather
+// than claims to be drawn (F03 of the component review).
 export const pageStateOf = (attrs: Record<string, unknown>): PageState | null => {
   const origin = attrs.pageOrigin as { kind?: string; by?: unknown; designing?: { by?: unknown } | null } | null | undefined
   if (!origin || typeof origin !== 'object') return null
@@ -39,7 +41,7 @@ export const pageStateOf = (attrs: Record<string, unknown>): PageState | null =>
   if (origin.kind === 'schematic') {
     if (origin.designing) {
       const by = String(origin.designing.by || '').trim()
-      return { label: 'Being designed', tone: 'busy', detail: `A schematic draft for now: ${by || 'the designer'} is drawing this page, and the designed slide takes its place here when it is finished.` }
+      return { label: 'Waiting for its design', tone: 'busy', detail: `${by || 'The designer'} is designing this presentation's pages. This one shows here when its design lands; its wireframe stands in until then.` }
     }
     return { label: 'Schematic draft', tone: 'warn', detail: 'An instant schematic layout, not the designed presentation page.' }
   }

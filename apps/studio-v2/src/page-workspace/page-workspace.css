@@ -135,3 +135,19 @@ body.is-page-workspace:not(.canvas-is-open) .notebook-document { display: none; 
   .pw-panel { overflow: visible; }
   .pw-stage-row .pw-tool span { display: none; }
 }
+
+/* A page waiting for its design (F03 of the component review): a stage of its
+   own — hatched, with what it waits for — rather than its wireframe at full
+   size looking like the slide. Its wireframe is one click away, named as a
+   reference, with a way to put it away again. */
+.pw-waiting { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 24px; text-align: center; color: var(--sw-muted); background: repeating-linear-gradient(135deg, transparent 0 12px, color-mix(in srgb, var(--sw-line) 55%, transparent) 12px 13px), var(--studio-ui-fill-3); }
+.pw-waiting[hidden] { display: none; }
+.pw-waiting-mark { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 4px; border-radius: 50%; background: var(--studio-ui-violet-soft); color: var(--studio-ui-violet-ink); }
+.pw-waiting-mark .ui-icon { width: 20px; height: 20px; animation: pw-spin 1.4s linear infinite; }
+.pw-waiting-title { max-width: 36ch; color: var(--sw-ink); font: 600 17px/1.3 var(--studio-ui-font-brand); text-wrap: balance; }
+.pw-waiting-state { margin: 0; color: var(--studio-ui-violet-ink); font: 600 12px/1.3 var(--studio-ui-font-ui); }
+.pw-waiting-detail { margin: 0; max-width: 48ch; font-size: 13px; line-height: 1.45; text-wrap: pretty; }
+.pw-waiting .button { margin-top: 8px; }
+.pw-reference-hide { position: absolute; right: 12px; top: 12px; }
+.pw-reference-hide[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .pw-waiting-mark .ui-icon { animation: none; } }

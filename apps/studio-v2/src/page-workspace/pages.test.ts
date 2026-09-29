@@ -17,8 +17,11 @@ describe('the page view\'s pages', () => {
     expect(pageStateOf({})).toBeNull()
     expect(pageStateOf({ pageOrigin: { kind: 'designed', by: 'Claude Code' } })).toMatchObject({ label: 'Designed', tone: 'good', detail: 'A designed slide, drawn by Claude Code.' })
     expect(pageStateOf({ pageOrigin: { kind: 'schematic' } })).toMatchObject({ label: 'Schematic draft', tone: 'warn' })
-    expect(pageStateOf({ pageOrigin: { kind: 'schematic', designing: { by: 'Kimi' } } })).toMatchObject({ label: 'Being designed', tone: 'busy' })
-    expect(pageStateOf({ pageOrigin: { kind: 'schematic', designing: { by: 'Kimi' } } })?.detail).toContain('Kimi is drawing this page')
+    // A run designs the deck's pages, not this one at this moment: the page
+    // waits for its design rather than claims to be drawn (F03).
+    expect(pageStateOf({ pageOrigin: { kind: 'schematic', designing: { by: 'Kimi' } } })).toMatchObject({ label: 'Waiting for its design', tone: 'busy' })
+    expect(pageStateOf({ pageOrigin: { kind: 'schematic', designing: { by: 'Kimi' } } })?.detail).toBe("Kimi is designing this presentation's pages. This one shows here when its design lands; its wireframe stands in until then.")
+    expect(pageStateOf({ pageOrigin: { kind: 'schematic', designing: {} } })?.detail).toMatch(/^The designer is designing/)
   })
   it('does not call a wireframe\'s pages schematic drafts, as its notebook does not', () => {
     const blocks = [{ id: 'w1', node: { type: 'scene', attrs: { title: 'One file', pageOrigin: { kind: 'schematic' } } } }]

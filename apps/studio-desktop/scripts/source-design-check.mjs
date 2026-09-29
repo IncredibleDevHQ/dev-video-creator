@@ -235,16 +235,19 @@ try {
     const body = await fetch('/api/projects/' + encodeURIComponent(${JSON.stringify(designedF.presentation)})).then(r => r.json()).catch(() => null)
     const scenes = (body?.project?.notebook?.content || []).filter(node => node.type === 'scene')
     const chips = [...document.querySelectorAll('.notebook-scene-block .scene-page-origin')].map(chip => chip.textContent)
-    return scenes.length === 2 && scenes[0].attrs.pageOrigin?.kind === 'designed' && scenes[1].attrs.pageOrigin?.designing && chips.length === 1 && !document.getElementById('page-design-status').hidden ? { origins: scenes.map(scene => scene.attrs.pageOrigin), svgs: scenes.map(scene => (String(scene.attrs.svg).match(/RUN-\\w/) || [''])[0]), chips, status: document.getElementById('page-design-text').textContent } : null
+    return scenes.length === 2 && scenes[0].attrs.pageOrigin?.kind === 'designed' && scenes[1].attrs.pageOrigin?.designing && chips.length === 1 && !document.getElementById('page-design-status').hidden ? { origins: scenes.map(scene => scene.attrs.pageOrigin), svgs: scenes.map(scene => (String(scene.attrs.svg).match(/RUN-\\w/) || [''])[0]), chips, status: document.getElementById('page-design-text').textContent, about: document.getElementById('page-design-about').textContent } : null
   }`, 'first slide landed', 120)
   const runF = opened?.origins?.[1]?.designing?.runId
   check('the first slide lands as it is finished, recording its harness and run', opened?.origins?.[0]?.kind === 'designed' && /^Kimi/.test(opened.origins[0].by || '') && Boolean(runF) && opened.origins[0].runId === runF && opened.svgs[0] === 'RUN-F', JSON.stringify(opened?.origins?.[0]))
   check('the slide still being designed waits for its page from that run', opened?.origins?.[1]?.kind === 'schematic' && opened.origins[1].designing?.page === 2 && opened.svgs[1] === '', JSON.stringify(opened?.origins?.[1]))
-  check('the presentation says the slide is being designed', opened?.chips?.[0] === 'schematic draft · being designed' && /still designing 1 page; each lands on its scene when it is finished/.test(opened?.status || ''), JSON.stringify({ chips: opened?.chips, status: opened?.status }))
-  // B05 of the BoltDB review: how many are designed, how long the run has
-  // worked, and the last thing it did.
-  const detail = await waitFor(`() => { const text = document.getElementById('page-design-text').textContent; return /1 of 2 designed · working \\d/.test(text) ? text : null }`, 'status detail', 30)
+  check('the presentation says the slide is being designed', opened?.chips?.[0] === 'schematic draft · waiting for its design' && opened?.status === 'Designing the slides · 1 of 2 designed' && /^Kimi\b.* is designing 1 slide of this notebook; each takes its place when it is finished\./.test(opened?.about || ''), JSON.stringify({ chips: opened?.chips, status: opened?.status, about: opened?.about }))
+  // B05 of the BoltDB review, in one steady row (F05 of the component
+  // review): how many are designed and how long the run has worked; the
+  // last thing it did is under Details.
+  const detail = await waitFor(`() => { const text = document.getElementById('page-design-text').textContent; const elapsed = document.getElementById('page-design-elapsed'); return text === 'Designing the slides · 1 of 2 designed' && !elapsed.hidden && /^\\d+(s|:\\d\\d) elapsed$/.test(elapsed.textContent) && document.getElementById('page-design-details').hidden ? text + ' · ' + elapsed.textContent : null }`, 'status detail', 30)
   check('the presentation says how far the design run is, and for how long it has worked', Boolean(detail), String(detail))
+  const details = await evaluate(`() => { const toggle = document.getElementById('page-design-details-toggle'); toggle.click(); const panel = document.getElementById('page-design-details'); const seen = { open: !panel.hidden, expanded: toggle.getAttribute('aria-expanded'), activity: document.getElementById('page-design-activity').textContent }; toggle.click(); return { ...seen, closed: panel.hidden } }`, 'details')
+  check('Details holds the run\'s own last step, and closes again', details.open && details.expanded === 'true' && /^(The run's last step, (\d+s|\d+:\d\d) ago: .+|The run has not reported a step yet\.)$/.test(details.activity) && details.closed, JSON.stringify(details))
   check('the designer goes on', (await runStatus(runF)) === 'running', String(await runStatus(runF)))
   // F1 of the Perplexity review: a video made now would start from the
   // schematic still being designed. The offer says so, and waiting comes first.
@@ -284,8 +287,10 @@ try {
   // the rest stay schematic drafts, and nothing waits any more.
   await setScenario({ mode: 'paced', marker: 'RUN-G', delayMs: 1000, pauseAfterFirstMs: 90000 })
   const deckG = await designedDeck('RUN-G')
-  const statusG = await waitFor(`() => document.getElementById('page-design-status').hidden ? null : document.getElementById('page-design-text').textContent`, 'G designing', 30)
-  check('a second presentation opens while its second slide is still being designed', Boolean(deckG.run) && /still designing 1 page/.test(statusG || ''), statusG)
+  // The window takes the first slide on its next landing pass: the row
+  // counts it then.
+  const statusG = await waitFor(`() => { const text = document.getElementById('page-design-text').textContent; return document.getElementById('page-design-status').hidden || text !== 'Designing the slides · 1 of 2 designed' ? null : text }`, 'G designing', 30)
+  check('a second presentation opens while its second slide is still being designed', Boolean(deckG.run) && statusG === 'Designing the slides · 1 of 2 designed', statusG)
   await evaluate(`() => { document.getElementById('page-design-stop').click(); return true }`, 'stop remaining work')
   const stoppedG = await waitFor(`async () => {
     if (!document.getElementById('page-design-status').hidden) return null

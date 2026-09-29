@@ -109,7 +109,17 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
   const notices = h('div', { class: 'pw-notices' })
   const picture = h('img', { class: 'pw-slide', alt: '', draggable: 'false' })
   const badge = h('span', { class: 'pw-stage-badge', hidden: true })
-  const stage = h('figure', { class: 'pw-stage', 'aria-live': 'polite' }, picture, badge)
+  // A page still waiting for its design has a stage of its own, not its
+  // wireframe at full size looking like the slide (F03 of the component
+  // review); the wireframe is there as a reference, named as one.
+  const waitingTitle = h('strong', { class: 'pw-waiting-title' })
+  const waitingState = h('p', { class: 'pw-waiting-state' })
+  const waitingDetail = h('p', { class: 'pw-waiting-detail' })
+  const showReference = h('button', { type: 'button', class: 'button', text: 'Show the wireframe reference' })
+  const waiting = h('div', { class: 'pw-waiting', hidden: true }, h('span', { class: 'pw-waiting-mark', 'aria-hidden': 'true' }, icon('loader-circle')), waitingTitle, waitingState, waitingDetail, showReference)
+  const hideReference = h('button', { type: 'button', class: 'button small pw-reference-hide', hidden: true, text: 'Hide the reference' })
+  const references = new Set<string>()
+  const stage = h('figure', { class: 'pw-stage', 'aria-live': 'polite' }, picture, waiting, badge, hideReference)
   const empty = h('div', { class: 'pw-empty', hidden: true })
   const stageArea = h('div', { class: 'pw-stage-area' }, stage, empty)
   const previous = iconButton('chevron-left', 'Previous page', '←')
@@ -260,10 +270,20 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
         picture.classList.add('is-entering')
       }
     }
-    badge.hidden = !page.state || page.state.tone === 'good'
+    const pending = page.state?.tone === 'busy'
+    const referenced = pending && references.has(page.id)
+    picture.hidden = pending && !referenced
+    waiting.hidden = !pending || referenced
+    hideReference.hidden = !referenced
+    if (pending && page.state) {
+      waitingTitle.textContent = page.title
+      waitingState.textContent = page.state.label
+      waitingDetail.textContent = page.state.detail
+    }
+    badge.hidden = !page.state || page.state.tone === 'good' || (pending && !referenced)
     if (page.state) {
-      badge.textContent = page.state.label
-      badge.className = `pw-stage-badge is-${page.state.tone}`
+      badge.textContent = referenced ? 'Wireframe reference · not the designed slide' : page.state.label
+      badge.className = `pw-stage-badge is-${referenced ? 'warn' : page.state.tone}`
       badge.title = page.state.detail
     }
     counter.textContent = `${folio(index + 1)} / ${folio(all.length)}`
@@ -272,6 +292,18 @@ export const createPageWorkspace = (host: PageWorkspaceHost) => {
     previous.disabled = index <= 0
     next.disabled = index >= all.length - 1
   }
+  // The reference is asked for, and put away, page by page; the focus stays
+  // on the button that does the other.
+  showReference.addEventListener('click', () => {
+    references.add(currentId())
+    render()
+    hideReference.focus({ preventScroll: true })
+  })
+  hideReference.addEventListener('click', () => {
+    references.delete(currentId())
+    render()
+    showReference.focus({ preventScroll: true })
+  })
   // The stage takes the page's own proportions once its picture is read.
   picture.addEventListener('load', () => {
     if (picture.naturalWidth && picture.naturalHeight) root.style.setProperty('--pw-aspect', String(picture.naturalWidth / picture.naturalHeight))
