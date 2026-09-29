@@ -140,6 +140,11 @@ const near = (colour, target, tolerance = 40) => colour.every((value, index) => 
 try {
   await launch()
   const firstOrigin = origin
+  // F01 of the component review: a fresh profile opens on Projects — what
+  // the studio makes, and New project to start it — not on Themes. The
+  // second launch below, a returning profile, opens where it was left.
+  const fresh = await waitFor(`() => { const page = document.getElementById('notebooks-page'); const intro = document.getElementById('library-intro'); return page && !page.hidden && intro && !intro.hidden ? { path: location.pathname, focused: document.activeElement?.id || '', headerNewProject: !document.getElementById('library-new-project').hidden, themes: !document.getElementById('theme-app').hidden } : null }`, 30)
+  check(fresh?.path === '/projects' && fresh.focused === 'library-intro-start' && !fresh.headerNewProject && !fresh.themes, `a fresh profile opens on Projects, on New project (${JSON.stringify(fresh)})`)
   // ——— A video of two designed pages ———
   const page = async (id, title, file, script) => ({ type: 'scene', attrs: { id, title, script, directorNotes: title, sourcePassages: [], svg: await readFile(join(fixtures, file), 'utf8'), pageOrigin: { kind: 'designed', by: 'Claude Code · Claude Opus 5.5' } } })
   const brand = { background: '#0e0c17', surface: '#15121f', text: '#ffffff', mutedText: '#a9b3cc', primary: '#635bff', secondary: '#ff7d6b', accent: '#ef61ef', codeBackground: '#0a0912' }

@@ -2856,17 +2856,27 @@ const openThemeBuilder = (theme?: StudioThemeV1) => {
   showThemePanel('builder')
 }
 
-const navigateToSurface = (surface: 'themes' | 'studio', replace = false) => {
-  const path = surface === 'themes' ? '/themes' : '/studio'
+// The studio's places, by address: Projects (/projects — the library over
+// the studio, and where a fresh profile opens: F01 of the component review),
+// a notebook in the studio (/studio), or Themes (/themes). Any other address
+// is Projects.
+type Surface = 'themes' | 'studio' | 'projects'
+const surfaceOfPath = (pathname: string): Surface =>
+  pathname === '/studio' ? 'studio' : pathname === '/themes' ? 'themes' : 'projects'
+const navigateToSurface = (surface: Surface, replace = false) => {
+  const path = surface === 'themes' ? '/themes' : surface === 'projects' ? '/projects' : '/studio'
   if (replace) window.history.replaceState({ surface }, '', path)
   else if (window.location.pathname !== path) {
     window.history.pushState({ surface }, '', path)
   }
-  ;($('#theme-app') as HTMLElement).hidden = surface !== 'themes'
-  ;($('#app') as HTMLElement).hidden = surface !== 'studio'
-  document.body.classList.toggle('theme-surface-open', surface === 'themes')
-  if (surface === 'themes') renderThemeLibrary()
+  const themes = surface === 'themes'
+  ;($('#theme-app') as HTMLElement).hidden = !themes
+  ;($('#app') as HTMLElement).hidden = themes
+  document.body.classList.toggle('theme-surface-open', themes)
+  if (themes) renderThemeLibrary()
   else window.requestAnimationFrame(positionInlinePreview)
+  if (surface === 'projects') openNotebooksPage()
+  else if (!notebooksPage.hidden) notebooksPage.hidden = true
 }
 
 type SlashBlockId =
@@ -7326,9 +7336,16 @@ const notebooksPage = $('#notebooks-page') as HTMLElement
 const notebooksTree = $('#notebooks-tree') as HTMLElement
 
 const openNotebooksPage = () => {
-  void renderNotebooksPage().then(() => (notebooksPage.querySelector<HTMLElement>('.project-card-open') || notebooksPage.querySelector<HTMLElement>('#close-notebooks-page'))?.focus({ preventScroll: true }))
+  // The library is Projects, by its own address, so a relaunch comes back to it.
+  if (window.location.pathname !== '/projects') window.history.pushState({ surface: 'projects' }, '', '/projects')
+  void renderNotebooksPage().then(() => (notebooksPage.querySelector<HTMLElement>('#library-intro:not([hidden]) .button.primary, .project-card-open') || notebooksPage.querySelector<HTMLElement>('#close-notebooks-page'))?.focus({ preventScroll: true }))
   notebooksPage.hidden = false
 }
+// However the library closes — its close button, Escape, a project opened, a
+// place chosen — the address goes back to the studio.
+new MutationObserver(() => {
+  if (notebooksPage.hidden && window.location.pathname === '/projects') window.history.replaceState({ surface: 'studio' }, '', '/studio')
+}).observe(notebooksPage, { attributes: true, attributeFilter: ['hidden'] })
 
 const notebookCard = (
   entry: NotebookRow,
@@ -7446,6 +7463,11 @@ const renderNotebooksPage = async () => {
   const [{ projects: notebooks }, views] = await Promise.all([fetchJson<{ projects: NotebookRow[] }>('/api/projects'), listProjectViews().catch(() => [] as ProjectView[])])
   const projects = notebooks.filter(row => !row.container)
   ;($('#notebooks-page-count') as HTMLElement).textContent = `· ${views.length}`
+  // With no project yet, the library opens on what the studio makes and one
+  // way to start it; its New project is then the intro's, not a second one.
+  const firstRun = views.length === 0
+  ;($('#library-intro') as HTMLElement).hidden = !firstRun
+  ;($('#library-new-project') as HTMLButtonElement).hidden = firstRun
   ;($('#notebooks-projects') as HTMLElement).replaceChildren(...views.map(view => projectEntry(view, 'project-card')))
   ;($('#notebooks-tree-heading') as HTMLElement).hidden = !projects.length
   const { roots, childrenOf } = buildNotebookTree(projects)
@@ -7475,6 +7497,15 @@ const renderNotebooksPage = async () => {
 
 ;($('#close-notebooks-page') as HTMLButtonElement).addEventListener('click', () => {
   notebooksPage.hidden = true
+})
+// The first-run intro: a new project, or an example to look through.
+;($('#library-intro-start') as HTMLButtonElement).addEventListener('click', () => {
+  notebooksPage.hidden = true
+  ;($('#start-from-source') as HTMLButtonElement).click()
+})
+;($('#library-intro-example') as HTMLButtonElement).addEventListener('click', () => {
+  notebooksPage.hidden = true
+  void openAttentionSample()
 })
 // The library's other places, and a new project, from its header.
 ;($('#library-new-project') as HTMLButtonElement).addEventListener('click', () => {
@@ -8305,7 +8336,7 @@ document
   showThemePanel('library'),
 )
 ;($('#theme-open-notebook') as HTMLButtonElement).addEventListener('click', () =>
-  navigateToSurface('studio'),
+  navigateToSurface('projects'),
 )
 ;($('#open-theme-builder') as HTMLButtonElement).addEventListener('click', () => {
   navigateToSurface('themes')
@@ -8324,12 +8355,13 @@ document
 document.querySelectorAll<HTMLElement>('[data-app-route]').forEach(link => {
   link.addEventListener('click', event => {
     event.preventDefault()
-    navigateToSurface(link.dataset.appRoute === 'themes' ? 'themes' : 'studio')
+    const route = link.dataset.appRoute
+    navigateToSurface(route === 'themes' || route === 'projects' ? route : 'studio')
   })
 })
 
 window.addEventListener('popstate', () => {
-  navigateToSurface(window.location.pathname === '/studio' ? 'studio' : 'themes', true)
+  navigateToSurface(surfaceOfPath(window.location.pathname), true)
 })
 
 const sceneScript = (scene: Scene) => {
@@ -15882,10 +15914,7 @@ queueMicrotask(() => {
   renderPreviewPresenterPicker()
   syncThemeBuilderControls()
   renderThemeBuilderPreview()
-  navigateToSurface(
-    window.location.pathname === '/studio' ? 'studio' : 'themes',
-    true,
-  )
+  navigateToSurface(surfaceOfPath(window.location.pathname), true)
   syncProject()
   refreshCapabilities()
   scheduleNotebookLineage()

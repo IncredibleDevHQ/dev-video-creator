@@ -25,7 +25,7 @@
           <button id="show-theme-library" class="theme-nav active" type="button">Theme library</button>
           <button id="show-theme-builder" class="theme-nav" type="button">Build a theme</button>
         </nav>
-        <button id="theme-open-notebook" class="button primary" type="button">Open notebook</button>
+        <button id="theme-open-notebook" class="button primary" type="button">Projects</button>
       </header>
 
 
@@ -144,7 +144,7 @@
       <header class="app-chrome">
         <div class="topbar">
           <div class="topbar-start">
-            <a class="brand" href="/themes" data-app-route="themes" aria-label="Incredible Studio themes">
+            <a class="brand" href="/projects" data-app-route="projects" aria-label="Incredible Studio: Projects">
               <span class="back-mark" aria-hidden="true" data-icon="chevron-left">‹</span>
               <img id="studio-logo" alt="Incredible Studio" />
             </a>
@@ -1114,6 +1114,24 @@
           <button id="library-new-project" class="button primary" type="button">New project</button>
           <button id="close-notebooks-page" class="icon-button" type="button" aria-label="Close the library" data-icon="x">×</button>
         </header>
+        <!-- The first place a fresh profile opens (F01 of the component
+             review): what the studio makes, one way to start, an example to
+             look at, and the four stages a project goes through. Shown only
+             while there is no project yet. -->
+        <section id="library-intro" class="library-intro" aria-labelledby="library-intro-title" hidden>
+          <h2 id="library-intro-title">Turn your ideas into presentations and explainer videos.</h2>
+          <p>Start with an article, your notes or a document. Shape the story, design the visuals and build the video one scene at a time, with your own voice or a generated narration.</p>
+          <div class="library-intro-actions">
+            <button id="library-intro-start" class="button primary large" type="button">New project</button>
+            <button id="library-intro-example" class="button large" type="button">Explore an example</button>
+          </div>
+          <ol class="library-pipeline" aria-label="How a project is made">
+            <li><strong>Text</strong><span>Understand the source</span></li>
+            <li><strong>Wireframe</strong><span>Structure the story</span></li>
+            <li><strong>Presentation</strong><span>Design the visuals</span></li>
+            <li><strong>Video</strong><span>Animate it scene by scene</span></li>
+          </ol>
+        </section>
         <!-- Each project with its notebooks (the four-notebook model); the
              notebooks that belong to none are listed below as they were. -->
         <div id="notebooks-projects" class="notebooks-projects"></div>

@@ -489,9 +489,11 @@ if (!process.env.STUDIO_ALLOW_MULTI_INSTANCE && !app.requestSingleInstanceLock()
 
     const win = createWindow(origin)
     try {
-      // The studio opens where the creator left it: the studio itself, or
-      // the themes page it starts on (F03 of the fix verification).
-      await win.loadURL(`${origin}${readStorageSnapshot()?.path === '/studio' ? '/studio' : '/'}`)
+      // The studio opens where the creator left it — a notebook, Projects
+      // or Themes (F03 of the fix verification) — and a fresh profile on
+      // Projects (F01 of the component review).
+      const left = readStorageSnapshot()?.path
+      await win.loadURL(`${origin}${left === '/studio' || left === '/themes' ? left : '/projects'}`)
     } catch (error) {
       log('load failed:', error instanceof Error ? error.message : error)
       if (SMOKE) {
