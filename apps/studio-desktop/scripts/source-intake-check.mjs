@@ -160,10 +160,25 @@ try {
   // F4: the publisher refuses the link — the ways on, without going round it.
   await fill('source-url', `${web}/blocked`)
   await read()
-  const refused = await waitFor(`() => { const box = document.getElementById('source-recovery'); return box && !box.hidden ? { text: box.textContent, actions: [...box.querySelectorAll('button')].map(button => button.dataset.recovery), status: document.getElementById('source-status').textContent } : null }`, 'recovery', 60)
-  check('a refused link offers to paste its text, try again or change it', JSON.stringify(refused?.actions) === '["paste","retry","change"]' && /403 from 127\.0\.0\.1/.test(refused.status) && /Paste the article's text below instead — 127\.0\.0\.1 is kept as where it came from/.test(refused.text), JSON.stringify(refused))
+  const refused = await waitFor(`() => { const box = document.getElementById('source-recovery'); return box && !box.hidden ? { text: box.querySelector('p')?.textContent || '', actions: [...box.querySelectorAll('button')].map(button => button.dataset.recovery), primary: box.querySelector('.button.primary')?.dataset.recovery, details: box.querySelector('.source-recovery-details')?.textContent || '', status: document.getElementById('source-status').textContent, readShown: !document.getElementById('source-read').hidden } : null }`, 'recovery', 60)
+  // F02 of the component review: one recovery state — pasting the article
+  // first, the raw refusal folded under Technical details and not repeated
+  // in the footer, and no second Read beside it.
+  check('a refused link offers to paste its text, try again or change it, as one state', JSON.stringify(refused?.actions) === '["paste","retry","change"]' && refused.primary === 'paste' && /Switch to Paste text and paste the article: 127\.0\.0\.1 stays credited as where it came from/.test(refused.text) && /^Technical details403 from 127\.0\.0\.1/.test(refused.details) && refused.status === '' && refused.readShown === false, JSON.stringify(refused))
   await capture('01-refused-link')
+  // The recovery is the link's: leaving the link by its tab gives Read back
+  // too, and the recovery does not follow the creator back.
+  const readShown = `() => ({ read: !document.getElementById('source-read').hidden, recovery: !document.getElementById('source-recovery').hidden })`
+  await evaluate(`() => { document.getElementById('source-input-tab-text').click(); return true }`, 'text tab')
+  const byTab = await evaluate(readShown, 'by tab')
+  await evaluate(`() => { document.getElementById('source-input-tab-link').click(); return true }`, 'link tab')
+  const backOnLink = await evaluate(readShown, 'back on link')
+  check('leaving a refused link by its tab gives Read back, and the recovery does not follow', byTab.read && !byTab.recovery && backOnLink.read && !backOnLink.recovery, JSON.stringify({ byTab, backOnLink }))
+  await read()
+  await waitFor(`() => !document.getElementById('source-recovery').hidden && !window.__source.state().busy ? true : null`, 'refused again')
   await evaluate(`() => { document.querySelector('#source-recovery [data-recovery="paste"]').click(); return true }`, 'paste instead')
+  const readBack = await evaluate(`() => !document.getElementById('source-read').hidden && document.getElementById('source-recovery').hidden`, 'read back')
+  check('choosing to paste closes the recovery and gives Read back', readBack === true, String(readBack))
   await fill('source-narrative', ARTICLE)
   // U1: one input shows at a time; pasted text says it credits the link.
   const credit = await evaluate(`() => ({ input: window.__source.state().input, tab: document.querySelector('#source-step-read [data-source-input][aria-selected="true"]')?.dataset.sourceInput, credit: document.getElementById('source-credit').hidden ? '' : document.getElementById('source-credit').textContent, link: document.getElementById('source-url').value, linkShown: !document.getElementById('source-input-link').hidden })`, 'credit')

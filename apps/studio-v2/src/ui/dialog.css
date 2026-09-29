@@ -47,3 +47,7 @@
 .refine-body .refine-status { margin: 0; color: var(--studio-ui-bad-ink); font: 400 var(--studio-ui-text-label)/1.45 var(--studio-ui-font-ui); }
 .refine-body .refine-status:empty { display: none; }
 .refine-modal .modal-actions { padding-top: 16px; }
+
+/* A refused link's recovery: the publisher's raw answer, folded away. */
+.source-recovery-details summary { cursor: pointer; color: var(--studio-ui-warn-ink); font: 500 var(--studio-ui-text-label)/1.4 var(--studio-ui-font-ui); }
+.source-recovery-details p { margin: 4px 0 0; color: var(--studio-ui-text-2); font: 400 var(--studio-ui-text-label)/1.45 var(--studio-ui-font-ui); overflow-wrap: anywhere; }

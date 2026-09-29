@@ -16054,6 +16054,9 @@ const tabKeys = (tabs: HTMLButtonElement[], choose: (tab: HTMLButtonElement) => 
   )
 const sourceInputTabs = [...document.querySelectorAll<HTMLButtonElement>('#source-step-read [data-source-input]')]
 const selectSourceInput = (input: (typeof SOURCE_INPUTS)[number], focus = false) => {
+  // The recovery is the link's: another input, chosen by its tab or by the
+  // recovery itself, has its Read back.
+  if (input !== 'link') hideSourceRecovery()
   sourceState.input = input
   syncTabs(sourceInputTabs, input, 'sourceInput', value => $(`#source-input-${value}`) as HTMLElement)
   renderSourceCredit()
@@ -16083,9 +16086,16 @@ const renderSourceCredit = () => {
   line.hidden = false
   line.replaceChildren(text, ' ', toggle)
 }
+// A refused link's recovery is the one way on while it shows: the footer's
+// Read waits until the input changes (F02 of the component review). A
+// declaration, so the input tabs can use it before this line has run.
+function hideSourceRecovery() {
+  ;($('#source-recovery') as HTMLElement).hidden = true
+  ;($('#source-read') as HTMLButtonElement).hidden = false
+}
 // Typing into an input makes it the one read; a link typed anew is credited.
 ;($('#source-url') as HTMLInputElement).addEventListener('input', event => {
-  ;($('#source-recovery') as HTMLElement).hidden = true
+  hideSourceRecovery()
   sourceState.credit = true
   if ((event.target as HTMLInputElement).value.trim()) selectSourceInput('link')
   else renderSourceCredit()
@@ -16095,16 +16105,18 @@ const renderSourceCredit = () => {
 })
 // A link that could not be read, with the ways on beside it: paste its text
 // (the link stays as where it came from), try again, or change the link.
-// Nothing is fetched past the publisher's refusal.
-const showSourceRecovery = (url: string) => {
+// One state: its own words and actions, the publisher's raw answer folded
+// under Technical details, and no second Read beside it. Nothing is fetched
+// past the publisher's refusal.
+const showSourceRecovery = (url: string, reason: string) => {
   const box = $('#source-recovery') as HTMLElement
   const host = hostOf(url) || 'the site'
   const text = document.createElement('p')
-  text.textContent = `${host} did not let the studio read this page. Paste the article's text below instead — ${host} is kept as where it came from — or try again, or use another link.`
-  const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste the article instead' })
+  text.textContent = `${host} did not let the studio read this page. Switch to Paste text and paste the article: ${host} stays credited as where it came from. Or try again, or use another link.`
+  const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'button primary', textContent: 'Paste article text' })
   paste.dataset.recovery = 'paste'
   paste.addEventListener('click', () => {
-    box.hidden = true
+    hideSourceRecovery()
     sourceState.credit = true
     selectSourceInput('text', true)
     const field = $('#source-narrative') as HTMLTextAreaElement
@@ -16114,10 +16126,10 @@ const showSourceRecovery = (url: string) => {
   const retry = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Try again' })
   retry.dataset.recovery = 'retry'
   retry.addEventListener('click', () => void sourceRead())
-  const change = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Change the link' })
+  const change = Object.assign(document.createElement('button'), { type: 'button', className: 'button ghost', textContent: 'Change link' })
   change.dataset.recovery = 'change'
   change.addEventListener('click', () => {
-    box.hidden = true
+    hideSourceRecovery()
     const field = $('#source-url') as HTMLInputElement
     field.focus()
     field.select()
@@ -16125,8 +16137,16 @@ const showSourceRecovery = (url: string) => {
   const actions = document.createElement('div')
   actions.className = 'source-recovery-actions'
   actions.append(paste, retry, change)
-  box.replaceChildren(text, actions)
+  const details = document.createElement('details')
+  details.className = 'source-recovery-details'
+  const summary = document.createElement('summary')
+  summary.textContent = 'Technical details'
+  const raw = document.createElement('p')
+  raw.textContent = reason
+  details.append(summary, raw)
+  box.replaceChildren(text, actions, details)
   box.hidden = false
+  ;($('#source-read') as HTMLButtonElement).hidden = true
 }
 
 const sourceRead = async () => {
@@ -16144,7 +16164,7 @@ const sourceRead = async () => {
   const credited = input === 'text' && sourceState.credit && hostOf(url) ? url : ''
   const brandUrl = ($('#source-brand-url') as HTMLInputElement).value.trim()
   sourceState.busy = true
-  ;($('#source-recovery') as HTMLElement).hidden = true
+  hideSourceRecovery()
   const button = $('#source-read') as HTMLButtonElement
   button.disabled = true
   sourceStatus('#source-status', readsText ? (credited ? `Reading your pasted text, crediting ${hostOf(credited)}…` : input === 'file' ? `Reading ${sourceState.fileTitle || 'the file'}…` : 'Reading your text…') : 'Reading the page…')
@@ -16171,8 +16191,14 @@ const sourceRead = async () => {
     renderSourceBrand()
     showSourceStep('brand')
   } catch (error) {
-    sourceStatus('#source-status', error instanceof Error ? error.message : 'Could not read that', true)
-    if (!readsText) showSourceRecovery(url)
+    const reason = error instanceof Error ? error.message : 'Could not read that'
+    // A refused link says so once, in its recovery; the raw answer is there
+    // too, under Technical details, not a second time in the footer.
+    if (readsText) sourceStatus('#source-status', reason, true)
+    else {
+      sourceStatus('#source-status', '')
+      showSourceRecovery(url, reason)
+    }
   } finally {
     sourceState.busy = false
     button.disabled = false
