@@ -67,11 +67,26 @@
 .theme-lab-tabs button { flex: 1 1 0; }
 .theme-preview-tabs { flex-wrap: wrap; }
 
-/* The dark header's four notebooks: the segmented kind, on the chrome. */
-.notebook-switch { box-sizing: border-box; height: 36px; padding: 2px; border-radius: 8px; }
-.notebook-switch-tab { border-radius: 6px; padding: 0 12px 0 10px; }
+/* The dark header's four notebooks: the segmented kind, on the chrome — the
+   four stages as one line, each with where it stands beside its name (F04 of
+   the component review), a chevron from the stage it is made from. */
+.notebook-switch { box-sizing: border-box; height: 40px; padding: 2px; align-items: center; gap: 0; border-radius: 8px; }
+.notebook-switch-tab { align-self: stretch; border-radius: 6px; padding: 0 12px 0 10px; }
 .notebook-switch-tab[aria-current="page"] { background: var(--studio-ui-chrome-active); color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .08); }
 .notebook-switch-tab[aria-current="page"]::before { content: none; }
+.notebook-switch-copy { display: grid; justify-items: start; gap: 2px; }
+.notebook-switch-state { color: #a1a1aa; font: 500 11px/1.1 var(--studio-ui-font-ui); white-space: nowrap; }
+.notebook-switch-tab[aria-current="page"] .notebook-switch-state { color: #d4d4d8; }
+.notebook-switch-tab.is-building .notebook-switch-state { color: #fcd34d; }
+.notebook-switch-tab.is-error .notebook-switch-state { color: #fca5a5; }
+.notebook-switch-tab.is-missing .notebook-switch-state { color: #6b6b73; }
+.notebook-switch-join { flex: none; width: 12px; height: 12px; margin: 0 1px; fill: none; stroke: #52525b; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* Narrow: a compact stepper — each stage its icon, the one open with its
+   name and where it stands. */
+@media (max-width: 1080px) {
+  .notebook-switch-tab:not([aria-current="page"]) .notebook-switch-state { display: none; }
+  .notebook-switch-tab[aria-current="page"] .notebook-switch-copy strong { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+}
 
 /* ——— Line tabs ——— */
 :is(.sw-tabs, .sw-context-tabs, .planning-tabs, .background-mode-tabs) { display: flex; align-items: flex-end; gap: 4px; }

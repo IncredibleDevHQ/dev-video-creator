@@ -14,8 +14,10 @@ export type SwitchTab = {
   current: boolean
   // What it is made from, and that notebook if it is made.
   madeFrom: { kind: NotebookKind; label: string; notebook: NotebookSummary | null } | null
-  // Its state in a few words, under its label.
+  // Its state in a few words, under its label; and in a word or two, shown
+  // beside it (F04 of the component review).
   status: string
+  short: string
   // What choosing it does, said in its tooltip.
   title: string
 }
@@ -32,12 +34,13 @@ export const switchTabsOf = (notebooks: NotebookSummary[], currentId: string): S
     const madeFrom = upstream ? { kind: upstream.kind, label: upstream.label, notebook: newestOf(notebooks, upstream.kind, currentId) } : null
     const current = Boolean(notebook && notebook.id === currentId)
     const status = notebook ? (notebook.state === 'empty' ? 'empty' : notebook.detail) : 'not made yet'
+    const short = notebook ? notebook.short || status : 'not made'
     const title = notebook
       ? `${current ? 'This notebook' : `Open the ${format.label.toLowerCase()}`}: ${format.holds} · ${notebook.detail}`
       : madeFrom
         ? `Not made yet. It is made from the ${madeFrom.label.toLowerCase()}${madeFrom.notebook ? ` — open it to make ${format.label === 'Video' ? 'the video' : `the ${format.label.toLowerCase()}`}` : ', which is not made yet either'}.`
         : 'Not made yet.'
-    return { kind: format.kind, label: format.label, notebook, current, madeFrom, status, title }
+    return { kind: format.kind, label: format.label, notebook, current, madeFrom, status, short, title }
   })
 
 // Each kind's icon, as an SVG path set in a 24-unit box.
@@ -48,9 +51,14 @@ const ICONS: Record<NotebookKind, string> = {
   video: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',
 }
 
+// The four stages as one line, each after the one it is made from: its
+// icon and name, and where it stands in a word or two beside them — shown,
+// with its full words kept for a screen reader and its tooltip. Which stage
+// is open, how far each has come, and one still working are three signals:
+// the raised tab, the words, and a pulsing dot.
 export const renderNotebookSwitch = (host: HTMLElement, tabs: SwitchTab[], choose: (tab: SwitchTab) => void) => {
   host.replaceChildren(
-    ...tabs.map(tab => {
+    ...tabs.flatMap((tab, index) => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = `notebook-switch-tab is-${tab.notebook ? tab.notebook.state : 'missing'}${tab.notebook && /could not/.test(tab.notebook.detail) ? ' is-error' : ''}`
@@ -67,10 +75,21 @@ export const renderNotebookSwitch = (host: HTMLElement, tabs: SwitchTab[], choos
       label.textContent = tab.label
       const status = document.createElement('small')
       status.textContent = tab.status
-      copy.append(label, status)
+      const state = document.createElement('span')
+      state.className = 'notebook-switch-state'
+      state.setAttribute('aria-hidden', 'true')
+      state.textContent = tab.short
+      copy.append(label, status, state)
       button.append(icon, copy)
       button.addEventListener('click', () => choose(tab))
-      return button
+      if (!index) return [button]
+      // Made from the stage before it.
+      const join = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      join.setAttribute('class', 'notebook-switch-join')
+      join.setAttribute('viewBox', '0 0 24 24')
+      join.setAttribute('aria-hidden', 'true')
+      join.innerHTML = '<path d="m9 18 6-6-6-6"/>'
+      return [join, button]
     }),
   )
 }

@@ -37,6 +37,10 @@ export type NotebookSummary = {
   updatedAt?: string
   state: 'ready' | 'building' | 'empty'
   detail: string
+  // Where it stands in a word or two, to show beside its name: "ready",
+  // "14 pages", "4/14 designed", "2/6 produced" (F04 of the component
+  // review). The detail says it in full.
+  short?: string
 }
 
 const PAGE_TYPES = new Set(['scene', 'slide', 'explainer'])
@@ -45,29 +49,31 @@ const hasWords = (node: TiptapNode): boolean =>
   Boolean(node.text?.trim()) || (node.content || []).some(hasWords) || PAGE_TYPES.has(node.type) || node.type === 'image'
 
 // Each kind counts what it holds.
-const SUMMARIES: Record<NotebookKind, (notebook: ProjectDocumentV1, pages: TiptapNode[]) => Pick<NotebookSummary, 'state' | 'detail'>> = {
+const SUMMARIES: Record<NotebookKind, (notebook: ProjectDocumentV1, pages: TiptapNode[]) => Pick<NotebookSummary, 'state' | 'detail' | 'short'>> = {
   text: notebook => {
     const blocks = (notebook.notebook?.content || []).filter(hasWords).length
-    return { state: blocks ? 'ready' : 'empty', detail: count(blocks, 'block') }
+    return { state: blocks ? 'ready' : 'empty', detail: count(blocks, 'block'), short: blocks ? 'ready' : 'empty' }
   },
   // Still being made in the background, it says so — or that it could not be.
   wireframe: (notebook, pages) =>
     notebook.build
-      ? { state: 'building', detail: notebook.build.failure ? 'could not be made' : 'being made' }
-      : { state: pages.length ? 'ready' : 'empty', detail: count(pages.length, 'page') },
+      ? { state: 'building', detail: notebook.build.failure ? 'could not be made' : 'being made', short: notebook.build.failure ? 'failed' : 'being made' }
+      : { state: pages.length ? 'ready' : 'empty', detail: count(pages.length, 'page'), short: pages.length ? count(pages.length, 'page') : 'empty' },
   presentation: (_notebook, pages) => {
     const origins = pages.map(page => (page.attrs?.pageOrigin || null) as { kind?: string; designing?: unknown } | null)
     const designing = origins.filter(origin => origin?.designing && origin.kind !== 'designed').length
     const designed = origins.filter(origin => origin?.kind === 'designed').length
-    if (!pages.length) return { state: 'empty', detail: count(0, 'slide') }
+    if (!pages.length) return { state: 'empty', detail: count(0, 'slide'), short: 'empty' }
     return designing
-      ? { state: 'building', detail: `${designed} of ${pages.length} designed` }
-      : { state: 'ready', detail: count(pages.length, 'slide') }
+      ? { state: 'building', detail: `${designed} of ${pages.length} designed`, short: `${designed}/${pages.length} designed` }
+      : { state: 'ready', detail: count(pages.length, 'slide'), short: count(pages.length, 'slide') }
   },
   video: (notebook, pages) => {
     const produced = pages.filter(page => notebook.producedScenes?.[String(page.attrs?.id || '')]).length
-    if (!pages.length) return { state: 'empty', detail: count(0, 'scene') }
-    return { state: 'ready', detail: produced ? `${produced} of ${pages.length} scenes produced` : count(pages.length, 'scene') }
+    if (!pages.length) return { state: 'empty', detail: count(0, 'scene'), short: 'no scenes' }
+    return produced
+      ? { state: 'ready', detail: `${produced} of ${pages.length} scenes produced`, short: `${produced}/${pages.length} produced` }
+      : { state: 'ready', detail: count(pages.length, 'scene'), short: count(pages.length, 'scene') }
   },
 }
 
