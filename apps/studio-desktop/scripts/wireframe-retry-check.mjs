@@ -150,7 +150,7 @@ try {
   // made from and what is being made, after its notice has gone — and opens
   // it from there.
   const strip = await waitFor(`() => { const strip = document.getElementById('project-strip'); const job = strip?.querySelector('.project-strip-job[data-kind="wireframe"]'); return strip && !strip.hidden && job ? { source: document.getElementById('project-strip-source').textContent, brand: document.getElementById('project-strip-brand').hidden ? '' : document.getElementById('project-strip-brand').textContent, job: job.textContent } : null }`, 'project strip', 40)
-  check('the text shows the project\'s source and brand, and the wireframe being made', /^Source How dispatch reaches the experts/.test(strip?.source || '') && strip.job === 'Wireframe: being made', JSON.stringify(strip))
+  check('the text shows the project\'s source and brand, and the wireframe being made', /^Source: How dispatch reaches the experts/.test(strip?.source || '') && strip.job === 'Wireframe: being made', JSON.stringify(strip))
 
   // Stopped while it is outlined — opened from the strip.
   await evaluate(`() => { setTimeout(() => document.querySelector('#project-strip .project-strip-job[data-kind="wireframe"]').click(), 0); return true }`, 'open the wireframe from the strip')

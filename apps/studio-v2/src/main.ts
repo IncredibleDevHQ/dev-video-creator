@@ -17101,8 +17101,9 @@ const pageDesignBindings = () => {
   return bound
 }
 // The design run the notebook waits on, as it works (B05 of the BoltDB
-// review): how many pages are designed, how long it has worked, and the
-// last thing it did — not only a count of what remains.
+// review): how many pages are designed and how long it has worked, in one
+// steady row; the last thing it did is the run's own step, kept under
+// Details for when something looks stuck (F05 of the component review).
 const pageDesignRun = { id: '', startedAt: '', last: '', lastAt: '' }
 let pageDesignTicker = 0
 let pageDesignListening = false
@@ -17115,7 +17116,7 @@ const followPageDesignRun = async (runId: string) => {
       if (from !== pageDesignRun.id || event.type === 'error') return
       const text = progressText(event)
       if (!text) return
-      pageDesignRun.last = text.slice(0, 90)
+      pageDesignRun.last = text
       pageDesignRun.lastAt = new Date().toISOString()
     })
   }
@@ -17125,6 +17126,12 @@ const followPageDesignRun = async (runId: string) => {
   pageDesignRun.lastAt = ''
   pageDesignRun.startedAt = (await finishedRun(runId).catch(() => undefined))?.startedAt || ''
 }
+const pageDesignDetails = $('#page-design-details') as HTMLElement
+const pageDesignDetailsToggle = $('#page-design-details-toggle') as HTMLButtonElement
+pageDesignDetailsToggle.addEventListener('click', () => {
+  pageDesignDetails.hidden = !pageDesignDetails.hidden
+  pageDesignDetailsToggle.setAttribute('aria-expanded', String(!pageDesignDetails.hidden))
+})
 const renderPageDesignStatus = () => {
   const bound = project.derivedFrom?.notebook ? [] : pageDesignBindings()
   pageDesignStatus.hidden = !bound.length
@@ -17134,25 +17141,45 @@ const renderPageDesignStatus = () => {
     return
   }
   const waiting = bound.filter(entry => !entry.designed).length
-  const by = bound[0].binding.by || 'the designer'
+  // The count is the notebook's, as its tab in the switch says it: every
+  // page designed of every page, not only the pages this run was given.
+  let total = 0
+  let designed = 0
+  editor.state.doc.forEach(node => {
+    if (node.type.name !== 'scene') return
+    total += 1
+    if ((node.attrs.pageOrigin as { kind?: string } | null)?.kind === 'designed') designed += 1
+  })
+  const by = bound[0].binding.by || 'The designer'
+  const noun = notebookKind() === 'presentation' ? 'slide' : 'page'
   // The run belongs to the desktop app: a browser can only say so.
   const desktop = Boolean(window.studioDesktop?.isDesktop)
   ;($('#page-design-stop') as HTMLButtonElement).hidden = !desktop
-  const count = waiting || bound.length
   if (desktop) {
     void followPageDesignRun(bound[0].binding.runId)
     if (!pageDesignTicker) pageDesignTicker = window.setInterval(renderPageDesignStatus, 1000)
   }
-  const details = [
-    `${bound.length - waiting} of ${bound.length} designed`,
-    pageDesignRun.startedAt ? `working ${sinceOf(pageDesignRun.startedAt)}` : '',
-    pageDesignRun.last ? `last: ${pageDesignRun.last} (${sinceOf(pageDesignRun.lastAt)} ago)` : '',
-  ].filter(Boolean).join(' · ')
-  ;($('#page-design-text') as HTMLElement).textContent = !desktop
-    ? `${count === 1 ? 'A page is' : `${count} pages are`} being designed in the desktop app; ${count === 1 ? 'it lands on its scene' : 'they land on their scenes'} while this notebook is open there.`
+  // The milestone and the count are the status; they change as pages land,
+  // not by the second, so a screen reader hears them when they do.
+  const summary = $('#page-design-text') as HTMLElement
+  const milestone = waiting ? `Designing the ${noun}s` : `Checking the designed ${noun}s`
+  const count = `${designed} of ${total} designed`
+  if (summary.textContent !== `${milestone} · ${count}`) summary.replaceChildren(Object.assign(document.createElement('strong'), { textContent: milestone }), ` · ${count}`)
+  ;($('#page-design-meter') as HTMLElement).style.width = `${total ? Math.round((designed / total) * 100) : 0}%`
+  const elapsed = $('#page-design-elapsed') as HTMLElement
+  elapsed.hidden = !(desktop && pageDesignRun.startedAt)
+  elapsed.textContent = desktop && pageDesignRun.startedAt ? `${sinceOf(pageDesignRun.startedAt)} elapsed` : ''
+  elapsed.title = 'How long the design run has worked'
+  ;($('#page-design-about') as HTMLElement).textContent = !desktop
+    ? `The design run belongs to the desktop app: ${waiting === 1 ? 'the page it is designing lands' : 'the pages it is designing land'} while this notebook is open there.`
     : waiting
-      ? `${by} is still designing ${waiting} page${waiting === 1 ? '' : 's'}; each lands on its scene when it is finished. ${details}`
-      : `Every page is designed; ${by} is still checking them. ${details}`
+      ? `${by} is designing ${waiting} ${noun}${waiting === 1 ? '' : 's'} of this notebook; each takes its place when it is finished. A ${noun} you change meanwhile keeps your change.`
+      : `Every ${noun} is designed; ${by} is checking them before the run ends.`
+  const activity = $('#page-design-activity') as HTMLElement
+  activity.hidden = !desktop
+  activity.textContent = pageDesignRun.last ? `The run's last step, ${sinceOf(pageDesignRun.lastAt)} ago: ${pageDesignRun.last}` : 'The run has not reported a step yet.'
+  // The run's own words are set as what they are; the studio's are not.
+  activity.classList.toggle('is-step', Boolean(pageDesignRun.last))
 }
 // A bound scene is bound to its page as the notebook keeps it: planning a
 // scene rewrites its page with the parts' ids, so the binding follows that.
@@ -19273,6 +19300,104 @@ const renderNotebookJobs = () => {
     }
   }))
 }
+// A source's site as the strip names it, without its www.
+const siteOf = (source: ProjectDocumentV1['source']) => (source?.site || '').trim().replace(/^www\./, '')
+// A theme's colours, as a row of swatches.
+const swatchesOf = (theme: ProjectDocumentV1['theme']) => {
+  const row = document.createElement('span')
+  row.className = 'project-strip-swatches'
+  row.setAttribute('aria-hidden', 'true')
+  const colours = theme?.brand ? [theme.brand.background, theme.brand.primary, theme.brand.accent].filter(Boolean) : []
+  row.append(...colours.map(colour => Object.assign(document.createElement('span'), { className: 'project-strip-swatch', style: `background:${colour}` })))
+  return row
+}
+// The details the two controls open: the source's full title, when it was
+// read and whether a copy is kept; the theme's name, colours and where they
+// came from. The link is shown and copied, never opened: the app opens
+// nothing from the web.
+const projectDetails = $('#project-details') as HTMLElement
+let projectDetailsFrom: HTMLButtonElement | null = null
+const detailsLine = (className: string, text: string) => Object.assign(document.createElement('p'), { className, textContent: text })
+const renderProjectDetails = () => {
+  const source = project.source
+  const sourcePart = $('#project-details-source') as HTMLElement
+  sourcePart.hidden = !source
+  if (source) {
+    const read = Date.parse(source.readAt)
+    const site = siteOf(source)
+    const parts: Node[] = [
+      detailsLine('project-details-label', source.kind === 'narrative' ? 'Source · your own words' : 'Source'),
+      detailsLine('project-details-title', source.title || site || 'Untitled'),
+      detailsLine('project-details-meta', [site, Number.isFinite(read) ? `read ${new Date(read).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}` : ''].filter(Boolean).join(' · ')),
+    ]
+    if (source.url) {
+      const copy = document.createElement('button')
+      copy.type = 'button'
+      copy.className = 'button small'
+      copy.append(icon('copy'), 'Copy link')
+      copy.addEventListener('click', () => {
+        void navigator.clipboard?.writeText(source.url).then(() => showToast('Link copied'), () => showToast('The link could not be copied — select it and copy it instead', { tone: 'bad' }))
+      })
+      parts.push(Object.assign(document.createElement('div'), { className: 'project-details-link' }))
+      ;(parts[parts.length - 1] as HTMLElement).append(Object.assign(document.createElement('code'), { textContent: source.url }), copy)
+    }
+    if (source.snapshotId) parts.push(detailsLine('project-details-note', 'A copy of the article is kept with the project: what was made reads from it, not from the site as it is now.'))
+    sourcePart.replaceChildren(...parts)
+  }
+  const theme = project.theme
+  const themePart = $('#project-details-theme') as HTMLElement
+  themePart.hidden = !theme?.name
+  if (theme?.name) {
+    const colours = theme.colours
+    const from = colours?.provenance === 'fallback' ? 'Default colours: none could be read from the site.' : colours?.provenance === 'manual' ? 'Colours chosen by hand.' : colours?.provenance === 'extracted' && colours.from ? `Colours read from ${colours.from}.` : ''
+    const name = Object.assign(document.createElement('p'), { className: 'project-details-title' })
+    name.append(swatchesOf(theme), theme.name)
+    themePart.replaceChildren(detailsLine('project-details-label', 'Theme'), name, ...(from ? [detailsLine('project-details-meta', from)] : []))
+  }
+}
+const closeProjectDetails = (focus = false) => {
+  if (projectDetails.hidden) return
+  projectDetails.hidden = true
+  projectDetailsFrom?.setAttribute('aria-expanded', 'false')
+  if (focus) projectDetailsFrom?.focus()
+  projectDetailsFrom = null
+}
+// Another menu opening closes these details, as it closes another menu.
+headerMenus.push({ toggle: $('#project-strip-source') as HTMLButtonElement, list: projectDetails, close: () => closeProjectDetails() })
+for (const control of [$('#project-strip-source'), $('#project-strip-brand')] as HTMLButtonElement[]) {
+  control.addEventListener('click', event => {
+    event.stopPropagation()
+    const from = projectDetailsFrom
+    closeProjectDetails()
+    if (from === control) return
+    headerMenus.forEach(menu => menu.list !== projectDetails && menu.close())
+    renderProjectDetails()
+    const box = control.getBoundingClientRect()
+    projectDetails.style.top = `${Math.round(box.bottom + 6)}px`
+    projectDetails.style.left = `${Math.round(Math.max(8, Math.min(box.left, window.innerWidth - 8 - 340)))}px`
+    projectDetails.style.right = 'auto'
+    projectDetails.hidden = false
+    control.setAttribute('aria-expanded', 'true')
+    projectDetailsFrom = control
+    if (!projectDetails.hasAttribute('tabindex')) projectDetails.tabIndex = -1
+    projectDetails.focus({ preventScroll: true })
+  })
+  control.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || projectDetails.hidden) return
+    event.stopPropagation()
+    closeProjectDetails(true)
+  })
+}
+projectDetails.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return
+  event.stopPropagation()
+  closeProjectDetails(true)
+})
+document.addEventListener('click', event => {
+  if (projectDetails.hidden || !(event.target instanceof Node) || projectDetails.contains(event.target)) return
+  closeProjectDetails()
+})
+window.addEventListener('resize', () => closeProjectDetails())
 const renderProjectStrip = () => {
   renderNotebookJobs()
   const kind = notebookKind()
@@ -19280,16 +19405,22 @@ const renderProjectStrip = () => {
     projectStrip.hidden = true
     return
   }
-  const source = $('#project-strip-source') as HTMLElement
-  const brand = $('#project-strip-brand') as HTMLElement
+  const source = $('#project-strip-source') as HTMLButtonElement
+  const brand = $('#project-strip-brand') as HTMLButtonElement
   const jobs = $('#project-strip-jobs') as HTMLElement
-  const site = project.source?.site || ''
+  // Two compact controls (F05 of the component review): the source by its
+  // site, the theme by its colours — and its name when that is not the site
+  // again. The full title, when it was read and where the colours came from
+  // are in the details they open.
+  const site = siteOf(project.source)
   source.hidden = !site && !project.source?.title
-  source.replaceChildren('Source ', Object.assign(document.createElement('b'), { textContent: project.source?.title || site }), site && project.source?.title ? ` · ${site}` : '')
-  source.title = project.source?.url || ''
-  const colours = project.theme?.brand ? [project.theme.brand.background, project.theme.brand.primary, project.theme.brand.accent].filter(Boolean) : []
-  brand.hidden = !project.theme?.name
-  brand.replaceChildren('Brand ', Object.assign(document.createElement('b'), { textContent: project.theme?.name || '' }), ...colours.map(colour => Object.assign(document.createElement('span'), { className: 'project-strip-swatch', title: colour, style: `background:${colour}` })))
+  source.replaceChildren(icon('link-2'), 'Source: ', Object.assign(document.createElement('b'), { textContent: site || project.source?.title || '' }))
+  source.title = project.source?.title ? `${project.source.title} — details` : 'Details'
+  const themeName = project.theme?.name || ''
+  brand.hidden = !themeName
+  const namedAsSite = Boolean(site) && themeName.toLowerCase().replace(/^www\./, '') === site.toLowerCase()
+  brand.replaceChildren(swatchesOf(project.theme), namedAsSite ? 'Theme' : Object.assign(document.createElement('b'), { textContent: themeName }))
+  brand.title = `The theme “${themeName}” — details`
   const running = projectNotebooks.filter(entry => entry.state === 'building' && entry.id !== project.id)
   jobs.hidden = !running.length
   jobs.replaceChildren(...running.map(entry => {
@@ -19370,6 +19501,14 @@ if (project.build?.kind === 'wireframe') {
   const placeholders = $('#notebook-build-pages') as HTMLElement
   const action = $('#notebook-build-action') as HTMLButtonElement
   const settings = $('#notebook-build-settings') as HTMLButtonElement
+  // The run's own last step is kept under Details, for when something looks
+  // stuck — not read out as progress (F05 of the component review).
+  const details = $('#notebook-build-details') as HTMLButtonElement
+  let detailsOpen = false
+  details.addEventListener('click', () => {
+    detailsOpen = !detailsOpen
+    renderBuild()
+  })
   // A provider that failed can be switched before it is made again.
   settings.addEventListener('click', () => void openAiSettings('harness'))
   let lastWord = ''
@@ -19384,8 +19523,10 @@ if (project.build?.kind === 'wireframe') {
     placeholders.hidden = Boolean(failure)
     heading.textContent = failure ? 'The wireframe could not be made' : 'Making the wireframe'
     meta.textContent = [build.by, failure ? `attempt ${build.attempts || 1}` : sinceOf(build.startedAt), project.theme?.name ? `in “${project.theme.name}”` : ''].filter(Boolean).join(' · ')
-    activity.hidden = Boolean(failure) || !lastWord
-    activity.textContent = lastWord ? `Last: ${lastWord}` : ''
+    details.hidden = Boolean(failure) || !lastWord
+    details.setAttribute('aria-expanded', String(detailsOpen))
+    activity.hidden = details.hidden || !detailsOpen
+    activity.textContent = lastWord ? `The run's last step: ${lastWord}` : ''
     if (failure) {
       said.textContent = wireframeFailureText(failure)
       action.textContent = 'Make it again'
@@ -19407,7 +19548,7 @@ if (project.build?.kind === 'wireframe') {
       if (runId !== project.build?.runId || event.type === 'error') return
       const message = progressText(event)
       if (message) {
-        lastWord = message.slice(0, 90)
+        lastWord = message
         renderBuild()
       }
     })

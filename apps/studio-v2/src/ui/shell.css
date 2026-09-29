@@ -266,6 +266,34 @@ body:not(.is-video-notebook):not(.has-page-view) .view-switch { display: none; }
 .contextbar .project-strip { flex: 0 1 auto; min-width: 0; width: auto; margin: 0; flex-wrap: nowrap; gap: 14px; overflow: hidden; color: var(--studio-ui-muted); font: 400 var(--studio-ui-text-label)/1.3 var(--studio-ui-font-ui); }
 .contextbar .project-strip-item { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .contextbar .project-strip-item b { color: var(--studio-ui-text); font-weight: 600; }
+/* In a project the header's four notebooks already name the one open, so
+   the row does not say it again (F05 of the component review); the heading
+   stays for the document it names. */
+body.in-project .context-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+/* The source and the theme: two compact controls that open the details. */
+.contextbar .project-strip { gap: 6px; overflow: visible; }
+.contextbar .project-strip-control { box-sizing: border-box; height: var(--studio-ui-control-sm); max-width: 260px; padding: 0 9px 0 8px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--studio-ui-line); border-radius: var(--studio-ui-radius-control); background: var(--studio-ui-surface); color: var(--studio-ui-muted); font: 500 var(--studio-ui-text-label)/1 var(--studio-ui-font-ui); cursor: pointer; transition: background-color var(--studio-ui-fast) var(--studio-ui-ease), border-color var(--studio-ui-fast) var(--studio-ui-ease); }
+.contextbar .project-strip-control[hidden] { display: none; }
+.contextbar .project-strip-control:hover, .contextbar .project-strip-control[aria-expanded="true"] { border-color: var(--studio-ui-line-strong, var(--studio-ui-line)); background: var(--studio-ui-fill-2, var(--studio-ui-surface-sunken)); color: var(--studio-ui-text); }
+.contextbar .project-strip-control:focus-visible { outline: 2px solid var(--studio-ui-focus); outline-offset: 1px; }
+.contextbar .project-strip-control .ui-icon { flex: none; width: 13px; height: 13px; }
+.contextbar .project-strip-control b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.project-strip-swatches { flex: none; display: inline-flex; }
+.project-strip-swatches .project-strip-swatch { width: 12px; height: 12px; border: 1px solid rgba(0, 0, 0, .14); border-radius: 50%; }
+.project-strip-swatches .project-strip-swatch + .project-strip-swatch { margin-left: -4px; }
+/* The details the controls open: a menu surface, read rather than chosen. */
+.project-details { width: 340px; padding: 4px 0; gap: 0; }
+.project-details:focus { outline: none; }
+.project-details-part { display: grid; gap: 4px; padding: 10px 14px; }
+.project-details-part[hidden] { display: none; }
+.project-details-part + .project-details-part { border-top: 1px solid var(--studio-ui-popover-line); }
+.project-details-part p { margin: 0; }
+.project-details-label { color: var(--studio-ui-popover-muted, var(--studio-ui-muted)); font: 600 11px/1.3 var(--studio-ui-font-ui); letter-spacing: .04em; text-transform: uppercase; }
+.project-details-title { display: flex; align-items: center; gap: 8px; color: var(--studio-ui-popover-ink); font: 600 14px/1.35 var(--studio-ui-font-brand); overflow-wrap: anywhere; }
+.project-details-meta, .project-details-note { color: var(--studio-ui-popover-muted, var(--studio-ui-muted)); font-size: 12px; line-height: 1.45; }
+.project-details-link { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: 4px; }
+.project-details-link code { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 6px; border-radius: var(--studio-ui-radius-control-sm); background: var(--studio-ui-popover-sunken); color: var(--studio-ui-popover-text); font: 11.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all; }
+.project-details-link .button { flex: none; }
 .contextbar .project-strip-jobs { flex-wrap: nowrap; }
 .contextbar .project-strip-job { min-height: 24px; padding: 0 10px; border-radius: var(--studio-ui-radius-control); font: 500 var(--studio-ui-text-label)/1 var(--studio-ui-font-ui); white-space: nowrap; }
 .context-actions .button { min-height: var(--studio-ui-control); }
@@ -291,7 +319,6 @@ body:not(.is-video-notebook):not(.has-page-view) .view-switch { display: none; }
 }
 @media (max-width: 1200px) {
   .notebook-switch-tab { padding: 0 11px; }
-  .contextbar .project-strip-item:first-child { display: none; }
 }
 @media (max-width: 1080px) {
   .topbar { grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }

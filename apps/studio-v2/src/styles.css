@@ -65,10 +65,25 @@ h1, h2, h3, h4, strong { font-family: 'Gilroy', sans-serif; }
 .tiptap blockquote { border-left: 3px solid var(--brand); color: var(--muted); }
 .tiptap pre { padding: 16px; background: #111827 !important; color: #f9fafb; font: 11px/1.65 'Roboto Mono', monospace; }
 .tiptap code { font-family: 'Roboto Mono', monospace; }
-/* F2: pages still being designed after the notebook opened. */
-.page-design-status { position: sticky; top: 8px; z-index: 6; display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 9px 12px; border: 1px solid var(--studio-ui-busy-line); border-radius: 9px; background: var(--studio-ui-busy-tint); color: var(--studio-ui-busy-ink); font: 12.5px/1.45 'InterBody', Inter, system-ui, sans-serif; }
-.page-design-status[hidden] { display: none; }
-.page-design-status span { flex: 1 1 auto; min-width: 0; }
+/* F2: pages still being designed after the notebook opened — one steady
+   row (F05 of the component review): the milestone and the real count, a
+   meter of the same count, the time the run has worked, and Details with the
+   run's own last step. */
+.page-design-status { position: sticky; top: 8px; z-index: 6; display: grid; gap: 6px; margin: 0 0 12px; padding: 6px 8px 6px 12px; border: 1px solid var(--studio-ui-line); border-radius: 9px; background: var(--studio-ui-surface); color: var(--studio-ui-text); box-shadow: 0 1px 2px rgba(24, 24, 27, .05); font: 12.5px/1.45 var(--studio-ui-font-ui); }
+.page-design-status[hidden], .page-design-status [hidden] { display: none; }
+.page-design-row { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 28px; }
+.page-design-mark { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--studio-ui-violet); box-shadow: 0 0 0 3px var(--studio-ui-violet-soft); animation: sw-pulse 1.6s ease-in-out infinite; }
+.page-design-summary { flex: 0 1 auto; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--studio-ui-muted); font-variant-numeric: tabular-nums; }
+.page-design-summary strong { color: var(--studio-ui-ink); font-weight: 600; }
+.page-design-meter { flex: 1 1 60px; max-width: 160px; height: 4px; overflow: hidden; border-radius: 999px; background: var(--studio-ui-fill-3); }
+.page-design-meter span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--studio-ui-violet); transition: width var(--studio-ui-fast) var(--studio-ui-ease); }
+.page-design-elapsed { flex: none; margin-left: auto; color: var(--studio-ui-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.page-design-row .button { flex: none; white-space: nowrap; }
+.page-design-details { display: grid; gap: 4px; padding: 6px 0 4px; border-top: 1px solid var(--studio-ui-line); color: var(--studio-ui-muted); }
+.page-design-details p { margin: 0; max-width: 90ch; }
+.page-design-activity { overflow-wrap: anywhere; }
+.page-design-activity.is-step { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (prefers-reduced-motion: reduce) { .page-design-mark { animation: none; } }
 /* R02: a notebook still being made shows the job, not an empty starter. */
 .notebook-job { display: grid; gap: 10px; margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--studio-ui-busy-line); border-radius: 10px; background: var(--studio-ui-busy-tint); color: var(--studio-ui-busy-ink); font: 13px/1.5 'InterBody', Inter, system-ui, sans-serif; }
 .notebook-job[hidden] { display: none; }
