@@ -20,6 +20,9 @@ const app = spawn(electronBinary, ['.', '--smoke', '--keep-running'], {
   env: {
     ...process.env,
     STUDIO_ALLOW_MULTI_INSTANCE: '1',
+    // The file store in the temp directory: a check never writes to the
+    // creator's PostgreSQL and MinIO.
+    STUDIO_PERSISTENCE: 'local',
     STUDIO_DATA_DIR: join(root, 'data'),
     STUDIO_OUTPUTS_DIR: join(root, 'outputs'),
     STUDIO_ENABLE_TEST_HOOKS: '1',
