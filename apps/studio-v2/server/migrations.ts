@@ -9,6 +9,18 @@ import type { Pool } from 'pg'
 
 const migrationsDir = fileURLToPath(new URL('./migrations/', import.meta.url))
 
+// The migration files, in the order they run.
+export const migrationFiles = async () =>
+  (await readdir(migrationsDir)).filter(name => /^\d+_.*\.sql$/.test(name)).sort()
+
+// The migrations a database has recorded, without running any (yarn
+// studio:doctor): none before the ledger exists.
+export const appliedMigrations = async (database: Pool): Promise<string[]> => {
+  const ledger = await database.query<{ name: string | null }>(`select to_regclass('studio_schema_migrations')::text as name`)
+  if (!ledger.rows[0]?.name) return []
+  return (await database.query<{ name: string }>('select name from studio_schema_migrations order by name')).rows.map(row => row.name)
+}
+
 export const runMigrations = async (database: Pool): Promise<string[]> => {
   await database.query(`create table if not exists studio_schema_migrations (
     name text primary key,
@@ -19,9 +31,7 @@ export const runMigrations = async (database: Pool): Promise<string[]> => {
       row => row.name,
     ),
   )
-  const files = (await readdir(migrationsDir))
-    .filter(name => /^\d+_.*\.sql$/.test(name))
-    .sort()
+  const files = await migrationFiles()
   for (const name of files) {
     if (applied.has(name)) continue
     const sql = await readFile(join(migrationsDir, name), 'utf8')
