@@ -6217,9 +6217,24 @@ const headerMenu = (toggle: HTMLButtonElement, list: HTMLElement, onOpen?: () =>
     }
     list.hidden = !open
     toggle.setAttribute('aria-expanded', String(open))
-    // The keyboard goes to the first item; a field (the theme) is reached with Tab.
+    // The keyboard goes to the first item; a field (the theme) is reached with
+    // Tab. A panel with nothing to act on (Jobs, running this notebook's own
+    // job) takes the keyboard itself, so Escape still reaches it.
     const items = [...list.querySelectorAll<HTMLElement>('button[role="menuitem"]:not([disabled]), button:not([disabled]), a[href]')].filter(item => item.getClientRects().length)
-    if (open) (items.find(item => item.getAttribute('role') === 'menuitem') || items[0])?.focus({ preventScroll: true })
+    if (!open) return
+    const first = items.find(item => item.getAttribute('role') === 'menuitem') || items[0]
+    if (first) first.focus({ preventScroll: true })
+    else {
+      if (!list.hasAttribute('tabindex')) list.tabIndex = -1
+      list.focus({ preventScroll: true })
+    }
+  })
+  // Escape closes an open menu from its toggle as well as from inside it.
+  toggle.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || list.hidden) return
+    event.stopPropagation()
+    close()
+    toggle.focus()
   })
   // An item chosen closes the menu; a field in it (the theme) does not.
   list.addEventListener('click', event => {
@@ -6446,6 +6461,18 @@ const applyPresetToForm = (providerId: string, { keepModels }: { keepModels: boo
   msApiKey.placeholder = preset.keyRequired ? 'Paste a key' : 'Optional for this provider'
 }
 
+// What the key field holds, said under it: the environment's key, a saved
+// key by its last characters, or none yet.
+const renderKeyHint = () => {
+  if (!modelSettings) return
+  msKeyHint.textContent =
+    modelSettings.source === 'environment'
+      ? 'Using the OPENAI_API_KEY from the environment — used, never saved — until you save a key of your own here.'
+      : modelSettings.hasKey
+        ? `A key ending ${modelSettings.keyHint} is saved. Leave blank to keep it.`
+        : 'No key saved yet.'
+}
+
 // The form, from what is saved; only when the dialog opens, so nothing the
 // creator is typing is replaced by a later refresh.
 const fillModelForm = async () => {
@@ -6462,12 +6489,7 @@ const fillModelForm = async () => {
   })
   msReasoning.value = modelSettings.reasoningEffort
   msApiKey.value = ''
-  msKeyHint.textContent =
-    modelSettings.source === 'environment'
-      ? 'Using the OPENAI_API_KEY from the environment — used, never saved — until you save a key of your own here.'
-      : modelSettings.hasKey
-        ? `A key ending ${modelSettings.keyHint} is saved. Leave blank to keep it.`
-        : 'No key saved yet.'
+  renderKeyHint()
   msModelList.replaceChildren()
   setModelStatus('')
 }
@@ -6523,6 +6545,10 @@ msProvider.addEventListener('change', () => applyPresetToForm(msProvider.value, 
     })
     modelSettings = body.settings
     renderAiSettingsHook()
+    // Saved: the key leaves the field, and its hint says so now, not when
+    // the dialog next opens (F08 of the component review).
+    msApiKey.value = ''
+    renderKeyHint()
     setModelStatus('Saved — new requests use it now', 'ok')
     showToast('Direct API settings saved — new requests use them immediately')
   } catch (error) {

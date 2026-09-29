@@ -5,6 +5,9 @@
    field (ui/dialog.ts). */
 .modal { padding: 0; border: 1px solid var(--studio-ui-line); border-radius: var(--studio-ui-radius-float); background: var(--studio-ui-surface); box-shadow: var(--studio-ui-shadow-float); color: var(--studio-ui-text); }
 .modal::backdrop { background: rgba(24, 24, 27, .35); backdrop-filter: blur(2px); }
+/* A long dialog takes the keyboard itself, at its top (ui/dialog.ts): the
+   dialog is where the focus waits, not a control, so it draws no ring. */
+.modal:focus { outline: none; }
 .modal .modal-heading { align-items: flex-start; gap: 16px; padding: 20px 24px 16px; }
 .modal .modal-heading h2 { margin: 2px 0 0; color: var(--studio-ui-ink); font: 600 15px/1.35 var(--studio-ui-font-brand); letter-spacing: 0; }
 .modal .modal-heading .icon-button { flex: none; margin: -2px -6px 0 0; }

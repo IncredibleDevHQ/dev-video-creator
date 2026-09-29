@@ -224,6 +224,25 @@ try {
   await choose('Page drawing', 'harness', '')
   const cleared = await waitForPreference(current => !current.stages?.drawing)
   check('clearing a stage returns it to the default', !cleared?.stages?.drawing, JSON.stringify(cleared?.stages))
+
+  // F08 of the component review: a key saved says so at once — the field
+  // cleared, the hint naming the key by its last characters — and a key
+  // replaced names the new one. Made-up keys, in this check's own store;
+  // saving calls no provider.
+  const saveKey = key => evaluate(`async () => {
+    const field = document.getElementById('ms-api-key')
+    const status = document.getElementById('ms-status')
+    field.value = ${JSON.stringify(key)}
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+    status.textContent = ''
+    document.getElementById('model-settings-form').requestSubmit()
+    for (let i = 0; i < 40 && !/^Saved/.test(status.textContent); i += 1) await new Promise(resolve => setTimeout(resolve, 250))
+    return { status: status.textContent, hint: document.getElementById('ms-key-hint').textContent, field: field.value }
+  }`)
+  const hintBefore = await evaluate(`() => document.getElementById('ms-key-hint').textContent`)
+  const firstKey = await saveKey('not-a-real-key-4242')
+  const replacedKey = await saveKey('not-a-real-key-7777')
+  check('a key saved says so at once, and a key replaced names the new one', /^(No key saved yet\.|Using the OPENAI_API_KEY from the environment)/.test(hintBefore) && /^Saved/.test(firstKey.status) && firstKey.field === '' && firstKey.hint === 'A key ending …4242 is saved. Leave blank to keep it.' && replacedKey.field === '' && replacedKey.hint === 'A key ending …7777 is saved. Leave blank to keep it.', JSON.stringify({ hintBefore, firstKey, replacedKey }))
   await evaluate(`() => { document.getElementById('close-ai-settings').click(); return true }`)
 } catch (error) {
   check(`run: ${error.message}`, false)
