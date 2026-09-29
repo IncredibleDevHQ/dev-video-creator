@@ -1,73 +1,51 @@
-# Incredible Studio v2 MVP
+# studio-v2
 
-The first human-centric vertical slice: Markdown notebook → stable Tiptap node IDs → per-block direction → inline Hyperframes live canvas → real or generated presenter recording → Hyperframes MP4.
+The studio itself: the front end the creator uses (`src/`, `index.html`) and
+the worker behind it (`server/`) — the API, Hyperframes rendering, and
+projects kept in PostgreSQL and MinIO.
 
-The focused Markdown block drives a live canvas alongside the document. It can be opened as a full-viewport presentation, but it is deliberately not presented as a video player: playback controls, timeline, and MP4 export only enter the workflow after a presenter track has been recorded.
-
-The expanded canvas includes a block-aware director. Headings, paragraphs, lists, quotes, and code blocks receive different compatible layout and animation choices, and changing a Markdown node type automatically normalizes settings that no longer apply.
-
-## Run locally
-
-Requirements: Node.js 22+, Yarn 1, Docker, and FFmpeg on `PATH`.
+To set up and run the studio, see the [repository README](../../README.md):
+`yarn studio:setup`, then `yarn studio:app` for the desktop app. This package
+also runs on its own, in a browser, for development:
 
 ```bash
-yarn studio:setup
-yarn studio:infra
-yarn studio
+yarn studio          # Vite on http://127.0.0.1:4173, the worker on 4319, both reloading
+yarn studio:build    # type-check and build dist/
+yarn studio:start    # serve dist/ and the worker from one process on 4319
 ```
 
-Open <http://127.0.0.1:4173>. The setup command installs dependencies and the Chrome-for-Testing build required by `@hyperframes/producer`.
+In a browser the studio reads sources, edits notebooks and themes, plays what
+has been made and exports it. The harness runs — the presentation's design, a
+video's planning and production — need the desktop app, which starts the
+local Claude Code, Codex or Kimi; the browser says so where they would begin.
 
-To serve the production build from one process:
+## What is here
 
-```bash
-yarn studio:build
-yarn studio:start
-```
-
-Open <http://127.0.0.1:4319>.
+- A **project** is a container of four notebooks — Text, Wireframe,
+  Presentation, Video — each made from the one before it
+  (`packages/markdown-composition/src/formats.ts`).
+- A notebook is a Tiptap v3 document with stable node IDs; its scenes carry
+  their page, script and plans.
+- The **page view** shows a wireframe's or presentation's pages around one
+  stage; the **scene workspace** does the same for a video's scenes, each
+  planned, previewed, voiced, produced and accepted.
+- **Themes** are revisioned and kept in the library; a theme can be read
+  from a site's colours or built by hand.
 
 ## Keys
 
-No API key is required for the basic Markdown, configuration, camera, live-canvas, or MP4 flow. On macOS, guide voice uses the local system voice.
+None is needed to run the studio. `OPENAI_API_KEY` lets the wireframe be
+outlined by the model directly; `QUIVER_API_KEY` enables generated artwork;
+`FISH_AUDIO_API_KEY` Fish Audio voices. On macOS a generated voice can be the
+system voice. Keys are read from the environment or the repository's `.env`
+and stay in the worker. `.env.example` lists every variable.
 
-`FISH_AUDIO_API_KEY` is optional. When configured, a creator can enter an owned or authorized Fish Audio reference ID for generated guide/final voice. On non-macOS systems, either configure Fish Audio or use camera + microphone.
+## More
 
-Research, avatar/lip-sync providers, and AI-generated brand templates are later milestones and are intentionally not wired into this MVP.
+The developer guide is [docs/studio](../../docs/studio/README.md): the front
+end, storage and engine, harnesses and skills, and checks.
 
-## Persistence
-
-The MVP uses a small Supabase-compatible local stack instead of requiring the
-full Supabase service suite:
-
-- PostgreSQL stores the versioned notebook artifact, normalized block rows,
-  asset metadata, and the latest recorded take for each stable Tiptap block ID.
-- MinIO stores uploaded images, screen recordings, generated guide audio, and
-  finalized directed-block MP4s. The worker serves these through `/objects/*`
-  with byte-range support for video playback.
-- Browser local storage remains an offline fallback. At startup the editor first
-  loads its matching PostgreSQL artifact (or the latest notebook on a new
-  browser), then debounces edits back to the database.
-- Finalizing a take opens a review step. The block is only marked `Recorded` and
-  committed as its latest take after the creator explicitly chooses **Save block**.
-
-PostgreSQL is exposed on `54329`; MinIO uses `59000` for S3 and `59001` for its
-console. Defaults live in `.env.example`. Stop only these two services with:
-
-```bash
-yarn studio:infra:stop
-```
-
-### Why PostgreSQL / Supabase rather than Convex
-
-The product's core relationship is notebook → stable block → configuration →
-assets / recorded take. PostgreSQL makes that relational model, transactions,
-foreign keys, and migrations explicit. It also gives us a direct path to hosted
-Supabase later while keeping MinIO as the local S3-compatible object store.
-Convex remains a strong option for a realtime-first hosted product, but its local
-deployment is currently a beta development workflow and its native file storage
-would duplicate the explicitly selected MinIO layer.
-
-Transient Hyperframes render jobs, previews, and completed whole-project renders
-still use the ignored `.studio-data/` working directory. They can move to the same
-object-store adapter when collaborative/export lifecycle work begins.
+PostgreSQL rather than a hosted realtime store: the core relationship —
+notebook → block → configuration → assets and takes — is relational, and
+PostgreSQL makes its transactions, foreign keys and migrations explicit,
+with MinIO as the S3-compatible object store beside it.
