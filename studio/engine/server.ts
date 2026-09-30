@@ -1,3 +1,4 @@
+import {sceneCover} from './video-cover'
 import {withProgress} from './progress'
 import {exportPresentation} from './presentation-export'
 import {creativeContext} from './creative/stage'
@@ -63,7 +64,11 @@ export const createStudioServer = (options:{readOnly?:boolean}={}) => createServ
     if(url.pathname==='/api/settings/voice-preview' && request.method==='POST') return send(response,200,{objectKey:await previewVoice(validateVoiceChoice(body))})
     if (url.pathname === '/api/projects' && request.method === 'GET') return send(response,200,await listNotebooks())
     if (url.pathname === '/api/projects' && request.method === 'POST') return send(response, 201, await createProject(String(body?.source || ''),body?.harness))
-    const sceneRoute = url.pathname.match(/^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|produce|download)$/)
+    const sceneRoute = url.pathname.match(/^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|produce|download|cover)$/)
+    if(sceneRoute && sceneRoute[3]==='cover' && request.method==='GET'){
+      const bytes=await sceneCover(sceneRoute[1],sceneRoute[2],!options.readOnly)
+      response.writeHead(200,{'Content-Type':'image/jpeg','Content-Length':bytes.length,'Cache-Control':'no-cache'});response.end(bytes);return
+    }
     if (sceneRoute && sceneRoute[3] === 'download' && request.method === 'GET') {
       const snapshot = await loadProject(sceneRoute[1]); const video = snapshot?.project.video
       const scene = video?.scenes.find(scene => scene.id === sceneRoute[2])

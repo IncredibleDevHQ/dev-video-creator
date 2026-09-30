@@ -34,13 +34,13 @@ export type Scene = {
   moments: Moment[]
   inputKey: string
   animationKey?: string
-  animation?: {inputKey:string;objectKey:string;moments:Array<{id:string;start:number;end:number}>}
+  animation?: {inputKey:string;objectKey:string;posterKey?:string;moments:Array<{id:string;start:number;end:number}>}
   planKey?: string
   creativePlan?: { recordId: string; inputKey: string }
   preview?: { planKey: string; objectKey: string; moments: Array<{id:string;start:number;end:number}> }
   editMomentId?: string
   instructions?: Array<{ momentId: string; second: number; instruction: string }>
-  produced: { inputKey: string; objectKey: string } | null
+  produced: { inputKey: string; objectKey: string; posterKey?: string } | null
   error: string | null
   failure?: 'planning' | 'production'
 }
@@ -62,7 +62,7 @@ export type Project = {
     scenes: Scene[]
     transitions: Transition[]
     inputKey: string
-    produced: { inputKey: string; objectKey: string; clock?: SceneInterval[] } | null
+    produced: { inputKey: string; objectKey: string; posterKey?: string; clock?: SceneInterval[] } | null
   } | null
 }
 export type ChatAnchor = { stage: 'presentation'; slideId: string } | {

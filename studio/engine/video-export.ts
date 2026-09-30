@@ -1,3 +1,4 @@
+import {ensureVideoCover} from './video-cover'
 import {stopsPreparationBatch} from './generation-errors'
 import {planScene,waitForPlanning} from './video'
 import {produceScene,waitForSceneProduction} from './production'
@@ -48,18 +49,20 @@ export const produceVideo = async (id: string) => {
   const work = (async () => {
     try {
       let clock: SceneInterval[] = []
-      const saved=await loadStageCheckpoint<{objectKey:string;clock:SceneInterval[]}>(id,undefined,'join',expected)
-      let asset:{objectKey:string}
+      const saved=await loadStageCheckpoint<{objectKey:string;posterKey?:string;clock:SceneInterval[]}>(id,undefined,'join',expected)
+      let asset:{objectKey:string;posterKey?:string}
       if(saved) {await readAsset(saved.data.objectKey);asset=saved.data;clock=saved.data.clock}
       else {
         const bytes = await joinScenes(video.scenes.map(scene => scene.produced!.objectKey),video.transitions,intervals => { clock = intervals.map((interval,index) => ({...interval,sceneId:video.scenes[index].id})) })
         asset = await storeAsset({body:bytes,contentType:'video/mp4',kind:'produced-video',extension:'.mp4',projectId:id})
         await saveStageCheckpoint(id,undefined,'join',expected,{objectKey:asset.objectKey,clock})
       }
+      asset=await ensureVideoCover(id,undefined,asset,Math.min(1,(video.scenes[0].moments[0].end-video.scenes[0].moments[0].start)/2))
+      await saveStageCheckpoint(id,undefined,'join',expected,{...asset,clock})
       await changeProject(id,current => {
         const target = current.project.video
         if (!target || target.inputKey !== expected) { if (target) target.phase = 'idle'; return }
-        target.produced = {inputKey:expected,objectKey:asset.objectKey,clock}; target.phase = 'idle'
+        target.produced = {inputKey:expected,objectKey:asset.objectKey,posterKey:asset.posterKey,clock}; target.phase = 'idle'
         addEvent(current,'video','Video produced')
       })
     } catch {

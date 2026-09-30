@@ -117,7 +117,10 @@ const render = () => {
       previousPlayer.toggleAttribute('data-whole-video',player.hasAttribute('data-whole-video'))
       // replacePlayerView retained this connected element and its decoded frame.
       if(playback.playing){void previousPlayer.play().catch(()=>{});animatePlayhead(previousPlayer)}
-    } else player.currentTime = player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(project.video!.scenes[selected],second,true):second
+    } else {
+      const start=player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(project.video!.scenes[selected],second,true):second
+      if(start>0)player.currentTime=start
+    }
   }
   syncAnimation()
   movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)

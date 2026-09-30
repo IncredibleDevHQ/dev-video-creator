@@ -1,3 +1,4 @@
+import {ensureVideoCover} from './video-cover'
 type SceneAnimation=NonNullable<import('../shared/model').Scene['animation']>
 import {prepareSceneAnimation,finishSceneAnimation} from './animation'
 import {generationFailure} from './generation-errors'
@@ -67,8 +68,8 @@ export const produceScene = async (id: string, sceneId: string) => {
       const savedBundle=await loadStageCheckpoint<null>(id,sceneId,'composition',expected)
       const files=animation?null:savedBundle?await restoreFiles(savedBundle.artifacts):scene.creativePlan?await buildCreativeProduction(frozen.project,scene,process.env.MINIMAL_STUDIO_HARNESS_ORIGIN || `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`):await buildSceneBundle(frozen.project,scene)
       if(!savedBundle && files) await saveStageCheckpoint(id,sceneId,'composition',expected,null,await archiveFiles(id,sceneId,'composition',files))
-      const savedRender=await loadStageCheckpoint<{objectKey:string}>(id,sceneId,'render',expected)
-      let asset:{objectKey:string}
+      const savedRender=await loadStageCheckpoint<{objectKey:string;posterKey?:string}>(id,sceneId,'render',expected)
+      let asset:{objectKey:string;posterKey?:string}
       if(savedRender) {await (await import('./persistence')).readAsset(savedRender.data.objectKey);asset=savedRender.data}
       else {
         await progress('Rendering the scene')
@@ -77,12 +78,14 @@ export const produceScene = async (id: string, sceneId: string) => {
         asset = await storeAsset({body:rendered,contentType:'video/mp4',kind:'produced-scene',extension:'.mp4',projectId:id,sceneId})
         await saveStageCheckpoint(id,sceneId,'render',expected,{objectKey:asset.objectKey})
       }
+      asset=await ensureVideoCover(id,sceneId,asset,Math.min(1,(scene.moments[0].end-scene.moments[0].start)/2))
+      await saveStageCheckpoint(id,sceneId,'render',expected,asset)
       const renderId = randomUUID()
-      await writeRow('renders',renderId,{projectId:id,sceneId,inputKey:expected,objectKey:asset.objectKey,createdAt:new Date().toISOString()})
+      await writeRow('renders',renderId,{projectId:id,sceneId,inputKey:expected,objectKey:asset.objectKey,posterKey:asset.posterKey,createdAt:new Date().toISOString()})
       await changeProject(id,current => {
         const target = current.project.video?.scenes.find(scene => scene.id === sceneId)
         if (!target || target.phase !== 'producing' || target.inputKey !== expected) return
-        target.produced = {inputKey:expected,objectKey:asset.objectKey}; target.phase = 'produced'
+        target.produced = {inputKey:expected,objectKey:asset.objectKey,posterKey:asset.posterKey}; target.phase = 'produced'
         addEvent(current,'scene','Produced',{sceneId})
       })
     } catch (error) {

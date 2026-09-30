@@ -77,3 +77,5 @@ on their next skill-driven production. Physical-camera end-to-end verification
 and production PostgreSQL/S3 verification of this new path remain outstanding.
 
 Live notebook tabs share one browser worker and one event connection per notebook, so duplicate tabs do not occupy separate streaming connections and hold up video downloads. Closing the last tab releases its stream; abandoned tabs expire, and returning tabs resubscribe. Browsers without shared workers use the existing direct event stream with its connection watchdog.
+
+Video covers are decoded from the saved MP4 and stored as notebook-scoped JPEG artifacts. New scenes and reusable animations retain their cover in the same checkpoint as their video. Older notebooks acquire it when opened, without a model call or another video render. Saved reviews can display a decoded cover without modifying their source notebook.

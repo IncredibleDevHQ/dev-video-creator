@@ -1,3 +1,4 @@
+import {ensureVideoCover} from './video-cover'
 import {presenterOverlays} from '../render/presenter-overlay'
 import {loadProject} from './projects'
 import {mkdtemp,readFile,rm} from 'node:fs/promises'
@@ -15,7 +16,7 @@ export const prepareSceneAnimation=async(project:Project,scene:Scene,progress:(m
  const key=scene.animationKey
  if(!key)throw new Error('The scene has no animation inputs')
  const saved=await loadStageCheckpoint<NonNullable<Scene['animation']>>(project.id,scene.id,'animation',key)
- if(saved){await readAsset(saved.data.objectKey);return saved.data}
+ if(saved){await readAsset(saved.data.objectKey);const result={...saved.data,...await ensureVideoCover(project.id,scene.id,saved.data,Math.min(1,saved.data.moments[0].end/2))};if(!saved.data.posterKey)await saveStageCheckpoint(project.id,scene.id,'animation',key,result);return result}
  const source=structuredClone(scene);source.inputKey=`animation-${key}`
  let at=0
  for(const moment of source.moments){
@@ -35,7 +36,9 @@ export const prepareSceneAnimation=async(project:Project,scene:Scene,progress:(m
   const asset=await storeAsset({body:bytes,contentType:'video/mp4',extension:'.mp4',kind:'scene-animation',projectId:project.id,sceneId:scene.id})
   const result={inputKey:key,objectKey:asset.objectKey,moments:source.moments.map(({id,start,end})=>({id,start,end}))}
   await saveStageCheckpoint(project.id,scene.id,'animation',key,result)
-  return result
+  const covered={...result,...await ensureVideoCover(project.id,scene.id,result,Math.min(1,result.moments[0].end/2))}
+  await saveStageCheckpoint(project.id,scene.id,'animation',key,covered)
+  return covered
  }finally{await rm(dir,{recursive:true,force:true})}
 }
 export const finishSceneAnimation=async(projectId:string,scene:Scene,animation:NonNullable<Scene['animation']>)=>{

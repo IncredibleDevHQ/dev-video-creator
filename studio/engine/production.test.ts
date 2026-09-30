@@ -1,3 +1,4 @@
+vi.mock('../render/video-cover',()=>({videoCover:vi.fn(async()=>Buffer.from('Synthetic cover fixture'))}))
 import { mkdtemp,rm,readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -45,6 +46,7 @@ it('publishes a render only for current inputs',async () => {
   await vi.waitFor(async () => expect((await loadProject('success'))!.views!.scenes['scene-a'].produced).toBe(true))
   const scene=(await loadProject('success'))!.project.video!.scenes[0]
   expect(scene.produced!.inputKey).toBe(scene.inputKey)
+  expect(scene.produced!.posterKey).toMatch(/\.jpg$/)
   const messages=(await loadProject('success'))!.events.filter(event=>event.sceneId==='scene-a').map(event=>event.message)
   expect(messages).toEqual(['Producing','Preparing voice · moment 1 of 1','Building the scene','Rendering the scene','Saving the scene','Produced'])
 })
