@@ -81,3 +81,31 @@ it.each(['start','device'])('releases capture after a %s failure and reports a r
   expect(Recorder.latest.onstop).toBeNull()
  }finally{recording.dispose();vi.useRealTimers()}
 })
+
+it.each([false,true])('records distinct moments in one pass and safely stops at the deadline (%s)',async timed=>{
+ vi.useFakeTimers();vi.spyOn(performance,'now').mockImplementation(()=>Date.now())
+ const stopTrack=vi.fn()
+ vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop:stopTrack}],getVideoTracks:()=>[]})}})
+ class Recorder {
+  static isTypeSupported=()=>true
+  static latest:Recorder
+  state='inactive';mimeType='audio/webm';onstop:(()=>void)|null=null;ondataavailable:((event:{data:Blob})=>void)|null=null
+  constructor(){Recorder.latest=this}
+  start(){this.state='recording'}
+  stop=vi.fn(()=>{this.state='inactive';this.ondataavailable?.({data:new Blob(['Synthetic pass'])});this.onstop?.()})
+ }
+ vi.stubGlobal('MediaRecorder',Recorder)
+ const recording=new Recording(()=>{},()=>{})
+ try{
+  await recording.start([moment,{...moment,id:'second',recordingKey:'second-key'}],{stopAfter:timed?2:null})
+  vi.advanceTimersByTime(3000);vi.advanceTimersByTime(timed?1800:1200);recording.next()
+  expect(recording.current).toBe(1);expect(recording.phase).toBe('recording')
+  vi.advanceTimersByTime(timed?200:800)
+  if(!timed)recording.next()
+  expect(recording.phase).toBe('reviewing');expect(Recorder.latest.stop).toHaveBeenCalledOnce()
+  expect(recording.parts[0]).toMatchObject({momentId:'moment',recordingKey:'record',from:0,to:timed?1.8:1.2})
+  if(timed)expect(recording.parts).toHaveLength(1)
+  else expect(recording.parts[1]).toEqual({momentId:'second',recordingKey:'second-key',from:1.2,to:2})
+  expect(stopTrack).toHaveBeenCalledOnce();expect(vi.getTimerCount()).toBe(0)
+ }finally{recording.dispose();vi.useRealTimers();vi.restoreAllMocks()}
+})

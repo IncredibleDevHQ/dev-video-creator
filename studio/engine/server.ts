@@ -24,7 +24,7 @@ import { saveRecording } from './takes'
 import { readAsset, validObjectKey, assetIdOf, readRow,initializePersistence } from './persistence'
 import type { SlideEdit } from '../shared/api'
 const send = (response: ServerResponse, status: number, value: unknown) => { response.writeHead(status, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(value)) }
-export const createStudioServer = (options:{readOnly?:boolean}={}) => createServer(async (request, response) => {
+export const createStudioServer = (options:{readOnly?:boolean,eventsLifetimeMs?:number}={}) => createServer(async (request, response) => {
   try {
     if(options.readOnly && request.method!=='GET') return send(response,403,{error:'This is a saved review. Generation and editing are disabled.'})
     const url = new URL(request.url || '/', 'http://localhost')
@@ -111,7 +111,10 @@ export const createStudioServer = (options:{readOnly?:boolean}={}) => createServ
         }
         const unsubscribe=subscribe(id,()=>void refresh())
         const heartbeat=setInterval(()=>void refresh(),3000)
-        response.on('close',()=>{closed=true;clearInterval(heartbeat);unsubscribe()})
+        // Release HTTP/1 connection slots regularly, including older tabs with individual streams.
+        // EventSource reconnects and receives the full persisted snapshot.
+        const lease=setTimeout(()=>response.end(),options.eventsLifetimeMs ?? 30000)
+        response.on('close',()=>{closed=true;clearInterval(heartbeat);clearTimeout(lease);unsubscribe()})
         await refresh()
         return
       }

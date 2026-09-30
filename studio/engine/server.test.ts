@@ -2,6 +2,7 @@ import { afterAll,expect,it,vi } from 'vitest'
 import { once } from 'node:events'
 const {slides,scene,production,load,source,notebook}=vi.hoisted(() => ({slides:vi.fn(),scene:vi.fn(),production:vi.fn(),load:vi.fn(),source:vi.fn(),notebook:vi.fn()}))
 vi.mock('./projects',() => ({createProject:vi.fn(),replaceBlockedSource:source,editSlide:vi.fn(),loadProject:load,subscribe:vi.fn(),chatSlide:vi.fn(),scheduleSlides:vi.fn(),retrySlides:slides}))
+vi.mock('./progress',()=>({withProgress:async(value:unknown)=>value}))
 vi.mock('./notebook-chat',()=>({chatNotebook:notebook}))
 vi.mock('./video',() => ({makeVideo:vi.fn(),retryScene:scene,previewPresence:vi.fn(),replanPresence:vi.fn(),schedulePlanning:vi.fn(),chatVideo:vi.fn(),updateVideoSettings:vi.fn()}))
 vi.mock('./production',() => ({produceScene:production}))
@@ -55,4 +56,23 @@ it('marks saved reviews and rejects mutation before dispatch',async()=>{
   expect((await fetch(`${origin}/api/projects/review/retry`,{method:'POST'})).status).toBe(403)
   expect(slides.mock.calls).toHaveLength(calls)
  }finally{review.closeAllConnections();await new Promise<void>(resolve=>review.close(()=>resolve()))}
+})
+
+it('releases live stream slots and replays saved state when reconnected',async()=>{
+ const unsubscribe=vi.fn()
+ const {subscribe}=await import('./projects')
+ vi.mocked(subscribe).mockReturnValue(unsubscribe)
+ load.mockResolvedValue({project:{id:'live'},status:'ready',events:[]})
+ const bounded=createStudioServer({eventsLifetimeMs:30}).listen(0,'127.0.0.1')
+ await once(bounded,'listening')
+ const origin=`http://127.0.0.1:${(bounded.address() as {port:number}).port}`
+ try{
+  for(let attempt=0;attempt<2;attempt++){
+   const response=await fetch(`${origin}/api/projects/live/events`)
+   expect(response.headers.get('content-type')).toBe('text/event-stream')
+   const text=await response.text()
+   expect(text).toContain('"id":"live"')
+  }
+  expect(unsubscribe).toHaveBeenCalledTimes(2)
+ }finally{bounded.closeAllConnections();await new Promise<void>(resolve=>bounded.close(()=>resolve()))}
 })

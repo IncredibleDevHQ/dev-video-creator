@@ -157,3 +157,6 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .rehearsal-animation{width:100%;height:100%;object-fit:contain}
 
 .activity-log .activity-detail{display:block;color:var(--muted);font-size:12px;line-height:1.5;margin-top:5px}
+.recording-pass-list{list-style:none;margin:18px 0;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}.recording-pass-list li{display:flex;align-items:center;gap:16px;padding:12px 14px}.recording-pass-list li+li{border-top:1px solid var(--line)}.recording-pass-list span{font-size:12px;color:var(--muted);white-space:nowrap}.recording-pass-list strong{font-size:13px;font-weight:500}
+.moment-item{position:relative;display:flex;min-width:0;flex:1}.moment-item>.moment{width:100%;padding-right:30px}.moment-item>.moment.current{padding-right:29px}.moment-card-menu{position:absolute;right:5px;top:5px;width:24px;min-height:24px;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--panel);opacity:0;pointer-events:none;transition:opacity .15s}.moment-item:hover .moment-card-menu,.moment-item:focus-within .moment-card-menu{opacity:1;pointer-events:auto}.moment-action-list{display:flex;flex-direction:column;gap:8px}
+@media(hover:none){.moment-card-menu{opacity:1;pointer-events:auto}}

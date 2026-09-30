@@ -51,7 +51,11 @@ export class Recording {
         this.started=performance.now();this.phase='recording'
         this.tick=setInterval(()=>{
           this.clock(this.elapsed-(this.parts.at(-1)?.to || 0))
-          if(this.stopAfter!==null && this.elapsed>=this.stopAfter)this.stop()
+          if(this.stopAfter!==null && this.elapsed>=this.stopAfter){
+            const from=this.parts.at(-1)?.to || 0
+            if(this.parts.length && this.elapsed-from<.4)this.finish()
+            else this.stop()
+          }
         },100)
         this.change()
       },1000)
