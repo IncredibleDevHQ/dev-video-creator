@@ -44,7 +44,7 @@ export const prepareSceneAnimation=async(project:Project,scene:Scene,progress:(m
 export const finishSceneAnimation=async(projectId:string,scene:Scene,animation:NonNullable<Scene['animation']>)=>{
  const clock=await prepareCreativeClock(projectId,scene)
  const project=(await loadProject(projectId))!.project
- const overlays=await presenterOverlays(project,scene)
+ const overlays=await presenterOverlays(project,scene,project.branding?.logoKey?await readAsset(project.branding.logoKey):undefined)
  for(const [momentId,body] of Object.entries(overlays))await storeAsset({body,contentType:'image/png',extension:'.png',kind:'presenter-overlay',projectId,sceneId:scene.id,momentId})
  return composePresenter({overlays,animation:await readAsset(animation.objectKey),animationMoments:animation.moments,moments:scene.moments,audio:await readAsset(clock.audioKey),...clock.videoKey?{camera:await readAsset(clock.videoKey)}:{}})
 }

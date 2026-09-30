@@ -18,7 +18,9 @@ it.each(['beside-slide','corner','full-screen'] as const)('renders the %s presen
   const output=join(dir,'composed.mp4')
   const moments=[m('a',0,1,false),m('b',1,3,true)]
   if(layout==='full-screen')moments[1].overlay='title-card'
-  const overlays=await presenterOverlays({title:'A visible title',branding:{name:'Fixture speaker'}} as Project,{moments} as Scene)
+  let logo:Buffer|undefined
+  if(layout==='full-screen'){const path=join(dir,'logo.png');await runCommand('ffmpeg',['-y','-f','lavfi','-i','color=cyan:s=160x80','-frames:v','1',path]);logo=await readFile(path)}
+  const overlays=await presenterOverlays({title:'A visible title',branding:{name:'Fixture speaker',accent:'#ff00ff',useAccent:true}} as Project,{moments} as Scene,logo)
   await writeFile(output,await composePresenter({overlays,animation:await readFile(base),animationMoments:[{id:'a',start:0,end:1},{id:'b',start:1,end:2}],moments,audio:await readFile(audio),camera:await readFile(camera)}))
   expect(await probeSeconds(output)).toBeCloseTo(3,1)
   const pixel=async(at:number,x:number,y:number)=>{
@@ -31,6 +33,9 @@ it.each(['beside-slide','corner','full-screen'] as const)('renders the %s presen
   expect(speaker[0]).toBeLessThan(30)
   if(layout==='full-screen'){
    expect(content[1]).toBeGreaterThan(220)
+   const logoColor=await pixel(2,1765,140),accent=await pixel(2,94,940)
+   expect(logoColor[1]).toBeGreaterThan(220);expect(logoColor[2]).toBeGreaterThan(220);expect(logoColor[0]).toBeLessThan(30)
+   expect(accent[0]).toBeGreaterThan(220);expect(accent[2]).toBeGreaterThan(220);expect(accent[1]).toBeLessThan(30)
    const titlePixels=join(dir,'title.rgb')
    await runCommand('ffmpeg',['-y','-ss','2','-i',output,'-frames:v','1','-vf','crop=900:200:60:40','-pix_fmt','rgb24','-f','rawvideo',titlePixels])
    const rgb=await readFile(titlePixels);let white=0
