@@ -126,13 +126,11 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 @media(max-width:800px){.scene-card{flex:0 0 130px}.scene-card .thumbnail{width:130px}}
 .download-scene{display:inline-flex;align-items:center;justify-content:center;font-size:13px;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:inherit;text-decoration:none}
 .download-scene:hover{background:var(--selected)}
-/* Reserve presenter space before production; never place the stand-in over artwork. */
-.video-stage.presenter-layout-beside-slide{display:flex;align-items:center;background:#101820}
-.video-stage.presenter-layout-beside-slide>svg{width:66%;height:auto;flex:0 0 66%;max-height:100%}
-.video-stage.presenter-layout-beside-slide>.presenter-preview{position:relative;inset:auto;width:30%;height:86%;margin:0 2%;flex:0 0 30%;overflow:hidden;border-radius:10px}
-.video-stage.presenter-layout-corner>svg{width:74%;height:auto;max-height:100%;margin-right:26%}
-.video-stage.presenter-layout-corner>.presenter-preview{width:22%;height:38%;right:2%;bottom:4%;overflow:hidden;border-radius:10px}
-.video-stage.presenter-layout-full-screen>svg{visibility:hidden}
+/* Use the same reserved rectangles as the exported composition. */
+.video-stage[class*="presenter-layout-"]{background:#101817}
+.video-stage[class*="presenter-layout-"]>svg,.video-stage[class*="presenter-layout-"]>.rehearsal-animation{position:absolute;left:var(--content-x);top:var(--content-y);width:var(--content-width);height:var(--content-height);margin:0}
+.video-stage[class*="presenter-layout-"]>.presenter-preview{inset:auto;left:var(--camera-x);top:var(--camera-y);width:var(--camera-width);height:var(--camera-height);margin:0;overflow:hidden;border-radius:0}
+.video-stage.presenter-layout-full-screen>svg,.video-stage.presenter-layout-full-screen>.rehearsal-animation{visibility:hidden}
 .presenter-preview img{width:100%;height:100%;object-fit:cover}
 
 /* Camera presence stays visible even when a moment title is truncated. */
@@ -157,6 +155,3 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 
 /* Content and presenter remain independent while rehearsing or recording. */
 .rehearsal-animation{width:100%;height:100%;object-fit:contain}
-.video-stage.presenter-layout-beside-slide>.rehearsal-animation{width:66%;height:auto;flex:0 0 66%;max-height:100%}
-.video-stage.presenter-layout-corner>.rehearsal-animation{width:74%;height:auto;max-height:100%;margin-right:26%}
-.video-stage.presenter-layout-full-screen>.rehearsal-animation{visibility:hidden}
