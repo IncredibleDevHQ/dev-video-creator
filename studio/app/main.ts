@@ -1,3 +1,4 @@
+import {recordingTarget} from './recording-target'
 import {syncRehearsalAnimation} from './rehearsal-animation'
 import {animationSecond} from '../shared/scene-time'
 import {recordingSetup} from './recording-setup'
@@ -287,7 +288,9 @@ document.addEventListener('click', async event => {
       else if (snapshot.views?.scenes[scene.id].action === 'record' || action==='record-moment') {
         stopPractice(); recordingSceneId = scene.id; recordingProjectId = id
         const open = snapshot.views?.scenes[scene.id].openMomentIds || []
-        const index=scene.moments.findIndex(moment=>open.includes(moment.id));prepareRecording(scene.moments[index],index)
+        const index=recordingTarget(scene.moments,open,momentIndex)
+        if(index<0)throw new Error('No moments need recording. Select a saved moment to retake it.')
+        prepareRecording(scene.moments[index],index)
       } else if (snapshot.views?.scenes[scene.id].action === 'produce') { stopPractice(); snapshot = await api.produceScene(id,scene.id); render() }
     }
     if (target.dataset.retake) {
