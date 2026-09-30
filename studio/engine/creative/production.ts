@@ -34,8 +34,9 @@ export const buildCreativeProduction=async(project:Project,scene:Scene,origin:st
    previewPacket[`packet/preview/${artifact.name}`]=bytes
    if(artifact.name!=='manifest.json')productionSeed[`production/${artifact.name}`]=bytes
   }
-  for(const [name,bytes] of Object.entries(supplied))productionSeed[`production/${name}`]=bytes
  }
+ // The app owns media binding; every run starts with immutable clock media.
+ for(const [name,bytes] of Object.entries(supplied))productionSeed[`production/${name}`]=bytes
  let accepted:SketchFiles|null=null,attempt=0
  const submit=async(directory:string)=>{
   if(++attempt>6) throw new Error('Production reached its submission budget')
@@ -62,7 +63,7 @@ export const buildCreativeProduction=async(project:Project,scene:Scene,origin:st
    'packet/PLAN.json':JSON.stringify(record.treatment,null,2),
    'packet/VISUAL_CAST.json':JSON.stringify(cast.visualCast),...cast.media,
    'packet/CLOCK.json':JSON.stringify({...prepared.clock,moments:prepared.clock.moments.map((moment,index)=>({...moment,lines:scene.moments[index].lines,camera:scene.moments[index].camera,layout:scene.moments[index].layout,overlay:scene.moments[index].overlay,clips:scene.moments[index].media?.clips.map(clip=>({start:scene.moments[index].start+clip.start,end:scene.moments[index].start+clip.end,camera:clip.camera}))}))},null,2),
-   'packet/PRODUCTION.md':`Produce the accepted treatment. Composition ID: ${context.compositionId}. Plan record: ${record.id}, revision 1. Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106. Copy the supplied media/ files unchanged to production/media/. Sound plays once from scene start. Camera is a muted reel aligned to the same whole-scene clock; show it only inside the CLOCK.json camera clips. Honor each CLOCK.json moment’s presenter layout and overlay; the accepted script decisions take precedence over the treatment’s rough staging suggestions. Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.`,
+   'packet/PRODUCTION.md':`Produce the accepted treatment. Composition ID: ${context.compositionId}. Plan record: ${record.id}, revision 1. Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106. The app has placed supplied media in production/media/. Reference these files unchanged; do not copy, generate, or edit them. Sound plays once from scene start. Camera is a muted reel aligned to the same whole-scene clock; show it only inside the CLOCK.json camera clips. Honor each CLOCK.json moment’s presenter layout and overlay; the accepted script decisions take precedence over the treatment’s rough staging suggestions. Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.`,
    'packet/SCENE.md':`# ${slide?.title || project.title}\n${slide?.idea || ''}\nSource evidence:\n${(slide?.evidence || []).join('\n')}`,
    'packet/THEME.json':JSON.stringify(project.branding || {}),
    ...slide?.svg?{'packet/references/page.svg':slide.svg}:{},...previewPacket,...supplied

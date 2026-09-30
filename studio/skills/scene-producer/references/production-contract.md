@@ -2,63 +2,57 @@
 
 A produced scene is the scene itself: one standalone Hyperframes composition
 that realizes **one approved plan** (`packet/PLAN.json`) with its final
-artwork, on the scene's real clock (`packet/CLOCK.json`). The creator watches
-it on the Studio's stage, accepts it, and the notebook plays and exports its
-render. It is not a sketch: nothing in it stands in for anything.
+artwork, on the scene's real clock (`packet/CLOCK.json`). The app renders the accepted composition, saves it, and makes it available
+on the Studio stage for playback and export. It is not a sketch: nothing in it stands in for anything.
 
 Write, then call `produce_submit_scene`:
 
 - `production/index.html` — the composition.
 - `production/manifest.json` — what the composition really does.
-- `production/audio/narration.mp3` — the scene's voice, copied unchanged from
-  `packet/audio/narration.mp3` (when the clock is a generated voice).
-- `production/assets/` — the cast artwork you use, copied from the packet's
-  `assets/<id>/asset.svg`.
+- `production/media/scene-audio.wav` — the app installs the scene's complete
+  voice track here before the run. Keep it unchanged.
+- `production/media/scene-camera.mp4` — the app installs this muted, aligned
+  camera reel when recordings contain camera windows. Keep it unchanged.
+- `production/assets/` — artwork used by the composition.
 
 ## The clock
 
-`CLOCK.json` is the scene's clock, set by the product before your run:
-
-```json
-{
-  "kind": "generated-voice",
-  "audio": "audio/narration.mp3",
-  "video": null,
-  "duration": 21.4,
-  "moments": [ { "id": "m1", "start": 0, "end": 6.2 }, { "id": "m2", "start": 6.2, "end": 13.9 } ],
-  "spoken": [ { "id": "m1", "words": "A token bucket refills at a steady rate.", "spokenEnd": 5.8 } ]
-}
-```
-
-- `kind` is `generated-voice` (the product spoke the approved narration),
-  `take` (the creator's own recording, aligned to the approved plan's lines)
-  or `silent` (silent by the creator's choice; the moments keep the plan's
-  estimates).
-- Each moment's interval is fixed. Its words are said between its `start` and
-  its `spokenEnd`; the rest of the interval lets the frame settle.
-- The composition lasts `duration` seconds, and at most two seconds more to
-  settle at the end.
-
-A take's clock also says where the creator is in each moment, and lists the
-file the product supplies:
+`packet/CLOCK.json` is authoritative. For example:
 
 ```json
 {
   "kind": "take",
-  "audio": "media/take.webm",
-  "video": "media/take.webm",
+  "audio": "media/scene-audio.wav",
+  "video": "media/scene-camera.mp4",
   "duration": 9.2,
-  "moments": [ { "id": "m1", "start": 0, "end": 3.4 }, { "id": "m2", "start": 3.4, "end": 9.2 } ],
-  "spoken": [ { "id": "m1", "words": "Each request consumes one token.", "spokenEnd": 2.6 } ],
-  "presenter": [ { "id": "m1", "visibility": "full" }, { "id": "m2", "visibility": "hidden" } ],
-  "review": [],
-  "media": ["media/take.webm"]
+  "moments": [
+    { "id": "m1", "start": 0, "end": 3.4, "lines": "First spoken line.", "camera": "full", "layout": "beside-slide", "overlay": null, "clips": [{ "start": 0, "end": 3.4, "camera": true }] },
+    { "id": "m2", "start": 3.4, "end": 9.2, "lines": "Second spoken line.", "camera": "none", "layout": "full-screen", "overlay": null, "clips": [{ "start": 3.4, "end": 9.2, "camera": false }] }
+  ]
 }
 ```
 
-`media/` is the product's: it supplies the take there to your production,
-checked and rendered with it. Do not copy it and write nothing under
-`production/media/`; `packet/references/take-frame.jpg` shows its framing.
+The clock is measured by the app, not estimated by the harness. The audio
+plays once from scene start. The optional video is a muted reel on the same
+whole-scene clock; show it only within camera clips. Clip start/end values
+are absolute scene seconds. Follow each moment's `layout` and `overlay`;
+these accepted script choices take precedence over rough treatment staging.
+
+`kind` is `generated-voice`, `take`, or `silent`. A take may contain audio
+without camera: only a non-null `video` supplies a presenter picture. With
+no camera reel, `video` is null. Use the exact file paths in the packet.
+Do not synthesize an avatar or reserve a presenter region without camera
+media. A test recording supplied by the app follows the same media contract
+as a real recording; do not substitute other imagery.
+
+Keep every moment's interval. The scene lasts `duration` seconds, with at
+most two extra seconds for the final frame to settle. Do not change the
+sound, recordings, or spoken timing to fit the animation.
+
+The app seeds `production/media/` before you start and validates its bytes.
+Reference those files in place. Do not copy, regenerate, trim, or edit them.
+Keep presenter video separate from artwork in the HTML; never rasterize it
+into a content image. The final encoder combines these layers into the MP4.
 
 ## The composition
 
@@ -79,20 +73,19 @@ The clock's sound plays once, whole, from the start — never offset, trimmed
 or cut short:
 
 ```html
-<audio id="voice" src="audio/narration.mp3" data-start="0" data-duration="<clock duration>" data-track-index="20"></audio>
+<audio id="voice" src="media/scene-audio.wav" data-start="0" data-duration="<clock duration>" data-track-index="20"></audio>
 ```
 
-A scene the creator presents (`kind: take`) plays `media/take.webm` as that
-sound, and its picture in **one** presenter layer: a single muted video for
-the whole scene, inside a wrapper your timeline moves between the framings
-`CLOCK.json` gives each moment — `full` fills the frame, `shared` sits beside
-the graphics on the side they leave free, `hidden` is out of view while the
-voice carries on. The picture never restarts and is never offset: it stays
-in step with the voice.
+When `CLOCK.json.video` exists, use a single muted presenter video on the
+whole-scene clock. Animate its wrapper between the moment layouts:
+`full-screen` fills the frame, `beside-slide` shares separate regions with
+content, and `corner` uses reserved space that does not obscure content.
+Hide the presenter outside the camera clips. The picture stays synchronized
+with the separate audio; it never restarts when its wrapper reappears.
 
 ```html
 <div id="presenter" data-sketch-layer="presenter">
-  <video id="take" src="media/take.webm" muted playsinline data-start="0" data-duration="<clock duration>" data-track-index="10"></video>
+  <video id="take" src="media/scene-camera.mp4" muted playsinline data-start="0" data-duration="<clock duration>" data-track-index="10"></video>
 </div>
 ```
 
@@ -105,11 +98,11 @@ scene has **no** presenter layer and reserves no empty camera box.
 {
   "version": 1,
   "kind": "production",
-  "scene": "<CONTEXT.json scene.id>",
-  "plan": { "record": "<PLAN.json record>", "revision": 3 },
-  "composition": { "id": "<PRODUCTION.md composition id>", "width": 1920, "height": 1080, "fps": 30, "duration": 21.4 },
+  "scene": "<PLAN.json scene>",
+  "plan": { "record": "<PRODUCTION.md plan record>", "revision": 1 },
+  "composition": { "id": "<PRODUCTION.md composition id>", "width": 1920, "height": 1080, "fps": 30, "duration": 13.9 },
   "runtime": { "hyperframes": "0.7.106" },
-  "clock": { "kind": "generated-voice", "audio": "audio/narration.mp3" },
+  "clock": { "kind": "generated-voice", "audio": "media/scene-audio.wav" },
   "moments": [
     { "id": "m1", "title": "Set the scene", "start": 0, "end": 6.2 },
     { "id": "m2", "title": "The limit bites", "start": 6.2, "end": 13.9 }
@@ -121,7 +114,7 @@ scene has **no** presenter layer and reserves no empty camera box.
   ],
   "unmet": [],
   "controls": [
-    { "id": "hold-m2", "label": "Hold after the limit bites", "kind": "hold", "moment": "m2", "default": 0.6, "min": 0, "max": 2 }
+    { "id": "m2-token", "label": "Token entry", "kind": "offset", "moment": "m2", "default": 0.6, "min": 0, "max": 2 }
   ]
 }
 ```
@@ -150,28 +143,13 @@ scene has **no** presenter layer and reserves no empty camera box.
 
 ## How the product checks it
 
-Before the scene is accepted as produced, the product checks the files and
-the manifest against the approved plan and the clock, runs the pinned
-engine's lint, and plays the composition in the pinned Hyperframes 0.7.106
-player. It is refused, with the reason, when:
-
-- a moment's interval is not the clock's, the composition is shorter than the
-  clock or more than two seconds longer, or the manifest's clock is not the
-  packet's;
-- the sound is missing from `production/`, no `<audio>` plays it, it is
-  played more than once, offset or cut short, or the player never loads it;
-- a take's picture plays unmuted, carries its own sound, or runs out of step
-  with the voice;
-- a layer is a placeholder, a presenter layer appears without a take, or an
-  object the plan asks to enrich is neither drawn nor named in `unmet`;
-- a control is not read by the code, is not an `offset`, its default is
-  outside its range, or its range leaves its moment;
-- a script throws, the composition asks for a file that is not in
-  `production/`, the timeline is not registered or has no tweens, or the
-  player's length differs from the manifest's;
-- seeking to the same time twice shows two frames, a layer never shows during
-  a moment it declares, or a moment whose plan changes objects shows no
-  change.
+Submission checks the bundle paths, file limits, manifest, plan, timing,
+layer declarations, controls, and unchanged supplied media. A refused
+submission returns concrete problems to fix, within six submissions.
+Acceptance saves the composition; the app then renders with the pinned
+Hyperframes runtime and checks render failures and missing media/audio.
+Do not assume structural acceptance proves visual quality. Inspect long text,
+layout boundaries, and transitions while building the composition.
 
 Stop when the submission is accepted. The producer never approves a plan,
 accepts its own scene, records, generates audio or exports.
