@@ -143,3 +143,18 @@ it('prepares the next scene even when an earlier scene still needs recording',as
  expect(creative).toHaveBeenCalledTimes(2)
  expect(joinVideo).not.toHaveBeenCalled()
 })
+
+it('stops a preparation batch at a shared harness limit instead of charging later scenes',async()=>{
+ await seed('prepare-quota')
+ await changeProject('prepare-quota',current=>{
+  for(const scene of current.project.video!.scenes)scene.creativePlan={recordId:`accepted-${scene.id}`,inputKey:scene.planKey || 'fixture'}
+  refreshVideoKeys(current.project)
+ })
+ const {HarnessStageError}=await import('./generation-errors')
+ creative.mockClear();creative.mockRejectedValue(new HarnessStageError({category:'quota',message:'Fixture quota limit',harness:'fixture',at:new Date().toISOString(),recovery:[]},'Quota'))
+ await produceVideo('prepare-quota')
+ await vi.waitFor(async()=>expect((await loadProject('prepare-quota'))!.project.video!.phase).toBe('failed'))
+ const video=(await loadProject('prepare-quota'))!.project.video!
+ expect(video.scenes[0].phase).toBe('failed');expect(video.scenes[1].phase).toBe('waiting')
+ expect(video.error).toContain('usage limit');expect(creative).toHaveBeenCalledOnce()
+})

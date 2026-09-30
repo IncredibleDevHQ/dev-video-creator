@@ -1,3 +1,4 @@
+import {stopsPreparationBatch} from './generation-errors'
 import {planScene,waitForPlanning} from './video'
 import {produceScene,waitForSceneProduction} from './production'
 import type { Transition, SceneInterval } from '../shared/model'
@@ -25,9 +26,12 @@ export const produceVideo = async (id: string) => {
       for(const item of started.project.video!.scenes){
         let current=(await loadProject(id))!.project.video!.scenes.find(s=>s.id===item.id)
         if(current?.phase==='queued'){await planScene(id,item.id);current=(await loadProject(id))!.project.video!.scenes.find(s=>s.id===item.id)}
+        if(current?.phase==='failed' && stopsPreparationBatch(current.error))throw new Error(current.error!)
         if(!current || current.phase!=='waiting')continue
         if(current.animation?.inputKey===current.animationKey && current.animation && current.moments.some(m=>momentState(m,started.project.video!.settings.voice)==='to record'))continue
         await produceScene(id,item.id);await waitForSceneProduction(id,item.id)
+        const result=(await loadProject(id))!.project.video!.scenes.find(s=>s.id===item.id)
+        if(result?.phase==='failed' && stopsPreparationBatch(result.error))throw new Error(result.error!)
       }
       await changeProject(id,s=>{const failed=s.project.video!.scenes.filter(scene=>scene.phase==='failed').length;s.project.video!.phase=failed?'failed':'idle';s.project.video!.error=failed?`${failed} scenes need attention. Other saved animations are ready.`:null;addEvent(s,'video',failed?'Scene preparation finished with scenes needing attention.':'Scene preparation finished. Add remaining recordings in any order.')})
     })().catch(async reason=>{await changeProject(id,s=>{s.project.video!.phase='failed';s.project.video!.error=reason instanceof Error?reason.message:'Could not prepare scenes'})}).finally(()=>running.delete(id))
