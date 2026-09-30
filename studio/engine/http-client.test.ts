@@ -16,3 +16,19 @@ it('retains application validation feedback and rejects malformed success respon
  await expect(requestJson('/api/projects')).rejects.toThrow('Choose a moment in this scene')
  await expect(requestJson('/api/projects')).rejects.toThrow('incomplete response')
 })
+
+it('bounds a stalled read and leaves writes without automatic retries or read deadlines',async()=>{
+ vi.useFakeTimers()
+ try{
+  const fetcher=vi.fn((_url:string,options?:RequestInit)=>new Promise<Response>((_resolve,reject)=>options?.signal?.addEventListener('abort',()=>reject(new Error('Aborted')))))
+  vi.stubGlobal('fetch',fetcher)
+  const read=requestJson('/api/projects/saved')
+  const assertion=expect(read).rejects.toThrow('Loading took too long')
+  await vi.advanceTimersByTimeAsync(30000);await assertion
+  expect(fetcher).toHaveBeenCalledOnce()
+  expect(vi.getTimerCount()).toBe(0)
+  void requestJson('/api/projects/saved',{method:'POST'})
+  expect(fetcher.mock.calls[1][1]?.signal).toBeUndefined()
+  expect(vi.getTimerCount()).toBe(0)
+ }finally{vi.useRealTimers()}
+})

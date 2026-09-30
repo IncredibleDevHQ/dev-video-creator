@@ -1,3 +1,4 @@
+import {NotebookOpening,notebookOpeningView} from './notebook-opening'
 import {momentViewKey} from '../shared/model'
 import {replacePlayerView} from './player-view'
 import {recordingTarget} from './recording-target'
@@ -79,6 +80,9 @@ const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.
 const settingsScreen = new Settings(root,()=>snapshot?.project.id || null,()=>render(),async () => {if(snapshot) snapshot=await api.load(snapshot.project.id)})
 const pendingChats=new Set<string>()
 let liveConnected=true
+let openingAutoStage=false
+const opening=new NotebookOpening(api.load,value=>{if(openingAutoStage)stage=value.project.video?'video':'presentation';attach(value)},()=>render())
+const openNotebook=(id:string,autoStage=false)=>{openingAutoStage=autoStage;const url=new URL(location.href);url.searchParams.set('notebook',id);url.searchParams.delete('project');history.replaceState(null,'',url);return opening.open(id)}
 const render = () => {
   if(settingsScreen.isOpen) return
   const contextKey = [snapshot?.project.id,stage,selected].join(':')
@@ -89,6 +93,10 @@ const render = () => {
   const focused = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement ? document.activeElement : null
   const focusedId = sameContext ? focused?.id : null
   const drafts = (sameContext ? [...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input,textarea')].filter(field => field.id).map(field => ({ id: field.id, value: field.value })) : [])
+  if (!snapshot && opening.state) {
+    replacePlayerView(root,`<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a></header>${notebookOpeningView(opening.state)}`,null)
+    return
+  }
   if (!snapshot) {
     replacePlayerView(root, `<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a>${button('Settings', 'settings')}</header><main class="start"><h1>Turn a blog into slides and a video.</h1><form id="source"><label class="sr" for="source-input">Link or text</label><div class="source-row"><textarea id="source-input" name="source" rows="1" placeholder="Paste a blog link or your text…" required></textarea><button class="primary" ${pending ? 'disabled' : ''}>${pending ? 'Starting…' : 'Make the video →'}</button></div><button type="button" data-action="slides-only" class="quiet slides-only">Only want slides?</button></form><p id="error" role="alert"></p>${notebooks.length?`<section class="saved-notebooks"><h2>Continue a notebook</h2>${notebooks.map(item=>`<button data-notebook="${escape(item.id)}"><span>${escape(item.title)}</span><small>${item.status==='failed'?'Needs another try':item.status==='building'?'Slides in progress':item.hasVideo?'Video in progress':'Slides ready'} →</small></button>`).join('')}</section>`:''}</main>`,previousPlayer)
     const sourceField=root.querySelector<HTMLTextAreaElement>('#source-input')
@@ -146,7 +154,7 @@ const sendChat=async(request:import('../shared/api').ChatRequest)=>{
 }
 const attach = (value: Snapshot) => {
   liveConnected=true
-  snapshot = value; localStorage.setItem('minimal-studio-project', value.project.id)
+  opening.reset();snapshot = value; localStorage.setItem('minimal-studio-project', value.project.id)
   const notebookUrl=new URL(location.href);notebookUrl.searchParams.delete('project');notebookUrl.searchParams.set('notebook',value.project.id);history.replaceState(null,'',notebookUrl)
   closeStream?.(); closeStream = api.subscribe(value.project.id, update => {
     if ((practice.active || practiceLoading) && snapshot?.project.video?.scenes[selected]?.inputKey !== update.project.video?.scenes[selected]?.inputKey) stopPractice()
@@ -213,7 +221,7 @@ document.addEventListener('submit', async event => {
 document.addEventListener('click', async event => {
   if ((event.target as Element).closest('.brand')) {
     if (capture.phase !== 'idle') return
-    event.preventDefault(); stopPractice(); closeStream?.(); closeStream = null; snapshot = null; localStorage.removeItem('minimal-studio-project');history.replaceState(null,'','/'); render();void refreshNotebooks().catch(error); return
+    event.preventDefault(); stopPractice(); closeStream?.(); closeStream = null; snapshot = null; opening.reset();localStorage.removeItem('minimal-studio-project');history.replaceState(null,'','/'); render();void refreshNotebooks().catch(error); return
   }
   const target = (event.target as Element).closest<HTMLButtonElement>('button')
   if (!target) return
@@ -224,11 +232,12 @@ document.addEventListener('click', async event => {
   if (target.dataset.stage) { wholeVideo = false; stopPractice(); stage = target.dataset.stage as typeof stage; render(); return }
   const action = target.dataset.action
   try {
-    if(target.dataset.notebook) {if(capture.phase!=='idle') throw new Error('Finish this take first');selected=0;momentIndex=0;second=0;const saved=await api.load(target.dataset.notebook);stage=saved.project.video?'video':'presentation';attach(saved);return}
+    if(target.dataset.notebook) {if(capture.phase!=='idle') throw new Error('Finish this take first');selected=0;momentIndex=0;second=0;await openNotebook(target.dataset.notebook,true);return}
     if (action === 'settings' || action === 'clone-settings') { if(capture.phase!=='idle') throw new Error('Finish or discard this take before opening Settings'); stopPractice(); dialog.close(); await settingsScreen.open(); return }
     if (action === 'close') { if (dialog.dataset.explainer) localStorage.setItem('studio-slides-explained','yes'); dialog.close() }
     if (action === 'understood') { localStorage.setItem('studio-slides-explained','yes'); document.querySelector<HTMLDialogElement>('#dialog')?.close() }
     if (action === 'slides-only') document.querySelector<HTMLTextAreaElement>('#source-input')?.focus()
+    if(action==='open-notebook' && opening.state){await openNotebook(opening.state.id,openingAutoStage);return}
     if (!snapshot) return
     if (capture.phase !== 'idle' && ['make-video','video-settings','scene-settings'].includes(action || '')) throw new Error('Finish or discard this take before changing settings')
     const id = snapshot.project.id; const slideId = snapshot.project.slides[selected]?.id
@@ -343,7 +352,7 @@ document.addEventListener('click', async event => {
 render()
 const parameters=new URLSearchParams(location.search)
 const saved = parameters.get('notebook') || parameters.get('project') || localStorage.getItem('minimal-studio-project')
-if (saved) api.load(saved).then(attach).catch(() => {localStorage.removeItem('minimal-studio-project');void refreshNotebooks().catch(error)})
+if (saved) void openNotebook(saved)
 else void refreshNotebooks().catch(error)
 
 document.addEventListener('keydown',event=>{

@@ -106,3 +106,12 @@ The real browser advanced from scene 1 into scene 2 at 46.02 seconds while still
 playing, with readyState 4 and the full 382.388667-second duration; the activity
 and transcript rails followed scene 2. This check caught and fixed a player
 recreation at the boundary that was not covered by per-scene playback tests.
+
+Notebook opening now retains the requested notebook link and saved browser
+identity on a failed read. It shows Opening, then a retry action if unavailable,
+and a 30-second read deadline prevents indefinite waiting. Retry performs only
+another read; it does not start generation. Navigation invalidates outstanding
+loads so a late response cannot reopen a notebook after the user leaves.
+Regression tests cover failure/retry, duplicate clicks, stale responses, escaped
+error copy and stalled reads. The recovery screen's native browser visual check
+is still pending; the browser connection timed out during this check.
