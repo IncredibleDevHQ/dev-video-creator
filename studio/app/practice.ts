@@ -1,3 +1,4 @@
+import {sceneTimeMap} from '../shared/scene-time'
 import type {PracticeTrack,PracticeClip} from '../shared/practice'
 /** Rehearsal owns playback only. It never creates a MediaRecorder or a take. */
 export class PracticePlayback{
@@ -7,7 +8,10 @@ export class PracticePlayback{
  active=false
  constructor(private frame:(clip:PracticeClip,sceneSecond:number)=>void,private ended:()=>void,private failed:(error:Error)=>void){}
  start(track:PracticeTrack){
-  this.stop();this.active=true;const epoch=this.epoch
+  this.stop()
+  let sceneTime:ReturnType<typeof sceneTimeMap>
+  try{sceneTime=sceneTimeMap(track.clips.map(({start,end,sceneStart,sceneEnd})=>({start,end,sceneStart,sceneEnd})))}catch{this.failed(new Error('This rehearsal has invalid timing. Prepare it again.'));return}
+  this.active=true;const epoch=this.epoch
   let index=0,started=performance.now()
   const next=()=>{
    if(epoch!==this.epoch) return
@@ -29,8 +33,7 @@ export class PracticePlayback{
    const duration=clip.end-clip.start
    const elapsed=this.audio?this.audio.currentTime:(performance.now()-started)/1000
    if(!this.audio && elapsed>=duration){index++;next();return}
-   const progress=Math.min(1,elapsed/duration)
-   this.frame(clip,clip.sceneStart+progress*(clip.sceneEnd-clip.sceneStart))
+   this.frame(clip,sceneTime(clip.start+Math.min(duration,Math.max(0,elapsed))))
   },100)
  }
  stop(){this.epoch++;if(this.timer) clearInterval(this.timer);this.timer=null;this.audio?.pause();if(this.audio){this.audio.onended=null;this.audio.onerror=null;this.audio.removeAttribute('src');this.audio.load();this.audio.remove()};this.audio=null;this.active=false}
