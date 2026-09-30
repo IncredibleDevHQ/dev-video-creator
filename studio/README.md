@@ -56,7 +56,7 @@ Standalone setup check: copied the app outside its parent repository, installed 
 
 Desktop launch: `yarn desktop` starts the same engine and frontend in a sandboxed Electron window. It refuses occupied ports, keeps external links in the system browser, asks before granting camera/microphone access, and stops its servers when the window closes. `MINIMAL_STUDIO_WEB_PORT=4196 MINIMAL_STUDIO_PORT=4396 yarn desktop --smoke` uses a temporary local notebook store with paid harness calls disabled; startup/load/shutdown passed and both ports were verified released. This is a development shell, not a packaged installer; native device permission and recording still need verification.
 
-Unified scene generation: new scene planning stops after the accepted treatment and narration. “Generate scene” prepares measured sound, generates one Hyperframes composition and renders one playable video. There is no separate silent-preview generation or preview UI. Older accepted preview files remain retained and can seed the unified generation as migration input; they are not a separate user-facing stage.
+Unified scene generation: accepted planning produces one Hyperframes composition. The app renders and saves its content animation, then combines that animation with measured voice and speaker recordings for the final scene. Retakes reuse the saved animation; there is no second code-generation pass or separate preview/production choice. Older accepted preview files remain migration input only.
 
 ### Animation and recording are independent
 
@@ -75,3 +75,5 @@ composition artifacts and original recordings remain separately persisted.
 Older produced scenes remain playable; they acquire this reusable animation
 on their next skill-driven production. Physical-camera end-to-end verification
 and production PostgreSQL/S3 verification of this new path remain outstanding.
+
+Live notebook tabs share one browser worker and one event connection per notebook, so duplicate tabs do not occupy separate streaming connections and hold up video downloads. Closing the last tab releases its stream; abandoned tabs expire, and returning tabs resubscribe. Browsers without shared workers use the existing direct event stream with its connection watchdog.

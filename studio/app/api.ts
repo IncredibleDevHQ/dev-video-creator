@@ -1,4 +1,5 @@
 import {requestJson} from './http'
+import {liveNotebook} from './live-notebook'
 import type { StudioSettings, VoiceClone } from '../shared/settings'
 import type { Voice } from '../shared/model'
 import type { VideoSettings, Presence, Transition } from '../shared/model'
@@ -37,26 +38,5 @@ export const api = {
   uploadLogo: async (blob: Blob) => {
     return requestJson<{objectKey:string}>('/api/settings/logo',{method:'PUT',headers:{'Content-Type':blob.type},body:blob})
   },
-  subscribe: (id: string, update: (snapshot: Snapshot) => void, connected: (value:boolean)=>void = ()=>{}) => {
-    let stream:EventSource,closed=false,lastUpdate=Date.now(),lastSnapshot=''
-    const open=()=>{
-      const source=new EventSource(`/api/projects/${id}/events`);stream=source
-      stream.onopen=()=>{if(!closed && stream===source)connected(false)}
-      stream.onerror=()=>{if(!closed && stream===source)connected(false)}
-      stream.onmessage=event=>{
-        if(closed || stream!==source)return
-        try{
-          const snapshot=JSON.parse(event.data) as Snapshot
-          if(snapshot?.project?.id!==id)throw new Error('Invalid notebook update')
-          lastUpdate=Date.now();connected(true);if(event.data!==lastSnapshot){lastSnapshot=event.data;update(snapshot)}
-        }catch{connected(false)}
-      }
-    }
-    connected(false);open()
-    const watchdog=setInterval(()=>{
-      if(Date.now()-lastUpdate<15000)return
-      connected(false);stream.close();lastUpdate=Date.now();open()
-    },5000)
-    return ()=>{closed=true;clearInterval(watchdog);stream.close()}
-  },
+  subscribe: liveNotebook,
 }
