@@ -154,3 +154,9 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .take-review h3{font-size:14px;margin:0 0 5px}.take-review p{font-size:12px;color:var(--muted);margin:0 0 12px}
 
 .scene-recording-needed{display:flex;align-items:center;gap:5px;font-size:11px;margin-top:7px;color:var(--muted)}
+
+/* Content and presenter remain independent while rehearsing or recording. */
+.rehearsal-animation{width:100%;height:100%;object-fit:contain}
+.video-stage.presenter-layout-beside-slide>.rehearsal-animation{width:66%;height:auto;flex:0 0 66%;max-height:100%}
+.video-stage.presenter-layout-corner>.rehearsal-animation{width:74%;height:auto;max-height:100%;margin-right:26%}
+.video-stage.presenter-layout-full-screen>.rehearsal-animation{visibility:hidden}

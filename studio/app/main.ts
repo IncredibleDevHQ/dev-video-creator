@@ -1,3 +1,4 @@
+import {syncRehearsalAnimation} from './rehearsal-animation'
 import {animationSecond} from '../shared/scene-time'
 import {recordingSetup} from './recording-setup'
 import {movePlayhead} from './moment-timeline'
@@ -41,6 +42,7 @@ const practice = new PracticePlayback((clip,at)=>{
   const scene=snapshot?.project.video?.scenes[selected];momentIndex=Math.max(0,scene?.moments.findIndex(moment=>moment.id===clip.momentId) ?? 0)
   if(changed) render()
   const presenter=root.querySelector<HTMLElement>('.presenter-preview');if(presenter) presenter.hidden=!clip.camera
+  syncAnimation()
   movePlayhead(root,scene?.moments || [],second)
   const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=clip.lines
   const chip=root.querySelector('.anchor-chip');if(chip) chip.textContent=`${second.toFixed(1)}s · moment ${momentIndex+1}`
@@ -60,11 +62,13 @@ const capture = new Recording(() => {
   render()
 }, elapsed => {
   const moment = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)?.moments[momentIndex]
-  second = (moment?.start || 0)+elapsed
+  second = Math.min(moment?.end ?? Infinity,(moment?.start || 0)+elapsed)
+  syncAnimation()
   const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${elapsed.toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
 }, reason => error(reason))
+const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,practice.active || capture.phase==='recording')}
 let pendingRecording: import('../shared/model').Moment | null = null
 const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=moment;showDialog(recordingSetup(moment,index))}
 const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog)
@@ -113,6 +117,7 @@ const render = () => {
       if(playback.playing){void previousPlayer.play().catch(()=>{});animatePlayhead(previousPlayer)}
     } else player.currentTime = player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(project.video!.scenes[selected],second,true):second
   }
+  syncAnimation()
   movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
   if (camera && (capture.stream || practiceStream)) { camera.srcObject = capture.stream || practiceStream; void camera.play().catch(() => {}) }
