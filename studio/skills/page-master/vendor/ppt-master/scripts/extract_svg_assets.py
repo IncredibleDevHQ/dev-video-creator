@@ -1,0 +1,1238 @@
+#!/usr/bin/env python3
+"""
+PPT Master - Large Vector Asset Extractor
+
+Factor large non-semantic vector decorations out of working SVGs into project
+icon assets, leaving a compact decoration-marked `<use data-icon>` placeholder
+behind. Semantic objects and semantic descendants always remain inline. The
+existing icon embedding path re-inlines each asset before export, so the
+exported PPTX remains native shapes rather than an embedded picture.
+
+Because re-inlining restores the extracted decoration subtree, the detection
+threshold is a readability convenience. It never expands the eligible asset
+role beyond decoration.
+
+Usage:
+    python3 scripts/extract_svg_assets.py <svg_dir> [options]
+
+Examples:
+    python3 scripts/extract_svg_assets.py import_ws/authoring-svg \
+        --icons-dir import_ws/icons --icon-namespace imported \
+        --inplace --id-prefix layered --clean-stale
+    python3 scripts/extract_svg_assets.py import_ws/authoring-svg-flat \
+        --icons-dir import_ws/icons --icon-namespace imported \
+        --reuse-inventory import_ws/authoring-svg_vector_asset_inventory.json \
+        --inplace --id-prefix flat --clean-stale
+    python3 scripts/extract_svg_assets.py project/svg_output --inplace --min-drawables 40
+
+Dependencies:
+    None (standard library only).
+
+See workflows/create-template.md and svg_finalize/embed_icons.py.
+"""
+
+from __future__ import annotations
+
+import argparse
+import copy
+import hashlib
+import json
+import os
+import re
+import sys
+from pathlib import Path
+from typing import Optional
+from urllib.parse import urlsplit, urlunsplit
+from xml.etree import ElementTree as ET
+
+from console_encoding import configure_utf8_stdio
+from pptx_shapes import (
+    NATIVE_FALLBACK_SHA256_ATTR,
+    svg_native_fallback_fingerprint,
+)
+from svg_authoring_view import (
+    AUTHORING_MANIFEST_NAME,
+    SEMANTIC_OBJECT_ATTRIBUTE,
+    write_authoring_summary,
+)
+from svg_authoring_contract import normalize_compact_authoring_tree
+
+configure_utf8_stdio()
+
+SVG_NS = "http://www.w3.org/2000/svg"
+XLINK_NS = "http://www.w3.org/1999/xlink"
+DRAWABLE = {"path", "polygon", "polyline", "rect", "circle", "ellipse", "line"}
+SEMANTIC_CONTENT = {"text", "tspan", "foreignObject"}
+SEMANTIC_MARKER_ATTRIBUTES = {
+    "data-pptx-carrier",
+    "data-pptx-inline-formula",
+    "data-pptx-layer",
+    "data-pptx-page-role",
+    "data-pptx-placeholder",
+    "data-pptx-replace-with",
+    "data-pptx-role",
+    "data-pptx-shape-hyperlink",
+    SEMANTIC_OBJECT_ATTRIBUTE,
+}
+DEFINITION_CONTAINERS = {"defs"}
+DEFAULT_MIN_DRAWABLES = 20
+DEFAULT_MIN_BYTES = 3000
+DEFAULT_MIN_DECORATION_BYTES = 3000
+SOURCE_REF_ATTRIBUTE = "data-pptx-source-ref"
+ASSET_ROLE_ATTRIBUTE = "data-pptx-asset-role"
+DECORATION_ASSET_ROLE = "decoration"
+VECTOR_INVENTORY_SCHEMA = "vector_asset_inventory.v2"
+ICON_NAMESPACE_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$")
+URL_REF_RE = re.compile(r"url\(\s*(['\"]?)#([^)'\"]\S*?)\1\s*\)")
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+
+
+def _local(tag: object) -> str:
+    return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
+
+
+def _drawable_count(elem: ET.Element) -> int:
+    return sum(1 for e in elem.iter() if _local(e.tag) in DRAWABLE)
+
+
+def _xml_size(elem: ET.Element) -> int:
+    if not any(item.get(SOURCE_REF_ATTRIBUTE) for item in elem.iter()):
+        ET.register_namespace("", SVG_NS)
+        ET.register_namespace("xlink", XLINK_NS)
+        return len(ET.tostring(elem, encoding="utf-8"))
+    measured = copy.deepcopy(elem)
+    for item in measured.iter():
+        item.attrib.pop(SOURCE_REF_ATTRIBUTE, None)
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    return len(ET.tostring(measured, encoding="utf-8"))
+
+
+def _large_enough(elem: ET.Element, min_drawables: int, min_bytes: int) -> bool:
+    return _drawable_count(elem) >= min_drawables or _xml_size(elem) >= min_bytes
+
+
+def _has_semantic_content(elem: ET.Element) -> bool:
+    """Text-bearing groups must stay readable/editable in the working SVG."""
+    return any(_local(e.tag) in SEMANTIC_CONTENT for e in elem.iter())
+
+
+def _has_semantic_object(elem: ET.Element) -> bool:
+    """Semantic authoring objects must never move into imported decoration."""
+    return any(_is_semantic_owner(item) for item in elem.iter())
+
+
+def _is_semantic_owner(elem: ET.Element) -> bool:
+    if any(elem.get(name) is not None for name in SEMANTIC_MARKER_ATTRIBUTES):
+        return True
+    return (
+        _local(elem.tag) == "metadata"
+        and elem.get("type") == "application/json"
+    )
+
+
+def _is_existing_placeholder(elem: ET.Element) -> bool:
+    return _local(elem.tag) == "use" and elem.get("data-icon") is not None
+
+
+def _has_icon_placeholder(elem: ET.Element) -> bool:
+    return any(_is_existing_placeholder(item) for item in elem.iter())
+
+
+def _is_extractable_subtree(elem: ET.Element) -> bool:
+    """Pure vector subtrees can be moved; semantic content must stay inline."""
+    if (
+        _local(elem.tag) in DEFINITION_CONTAINERS
+        or _has_semantic_object(elem)
+        or _has_icon_placeholder(elem)
+        or _is_chart_group(elem)
+        or _has_semantic_content(elem)
+    ):
+        return False
+    return _drawable_count(elem) > 0
+
+
+def _is_chart_group(elem: ET.Element) -> bool:
+    """Charts are handled separately (data + calibration) — never extract them."""
+    gid = (elem.get("id") or "").lower()
+    if "chart" in gid:
+        return True
+    return any("chart" in (e.get("id") or "").lower() for e in elem.iter())
+
+
+def _tag_histogram(elem: ET.Element) -> dict[str, int]:
+    hist: dict[str, int] = {}
+    for e in elem.iter():
+        name = _local(e.tag)
+        if name in DRAWABLE:
+            hist[name] = hist.get(name, 0) + 1
+    return hist
+
+
+def _source_references(elem: ET.Element) -> list[str]:
+    return sorted({
+        source_ref
+        for item in elem.iter()
+        if (source_ref := item.get(SOURCE_REF_ATTRIBUTE))
+    })
+
+
+def _is_descendant(container: ET.Element, candidate: ET.Element) -> bool:
+    return any(elem is candidate for elem in container.iter())
+
+
+def _id_index(root: ET.Element) -> dict[str, ET.Element]:
+    return {elem_id: elem for elem in root.iter() if (elem_id := elem.get("id"))}
+
+
+def _referenced_ids(elem: ET.Element) -> set[str]:
+    refs: set[str] = set()
+    for item in elem.iter():
+        for attr_name, value in item.attrib.items():
+            refs.update(match.group(2) for match in URL_REF_RE.finditer(value))
+            if _local(attr_name) == "href" and value.startswith("#") and len(value) > 1:
+                refs.add(value[1:])
+    return refs
+
+
+def _dependency_elements(root: ET.Element, asset_group: ET.Element) -> list[ET.Element]:
+    """
+    Return external definition elements referenced by the extracted subtree.
+
+    Gradients, patterns, filters, clip paths, and markers often live in the
+    source SVG root <defs>. The extracted asset must carry these dependencies
+    itself; otherwise the standalone icon and later re-inline can lose styling.
+    """
+    by_id = _id_index(root)
+    dependencies: list[ET.Element] = []
+    seen: set[str] = set()
+    queue = sorted(_referenced_ids(asset_group))
+
+    while queue:
+        ref_id = queue.pop(0)
+        if ref_id in seen:
+            continue
+        seen.add(ref_id)
+
+        target = by_id.get(ref_id)
+        if target is None or _is_descendant(asset_group, target):
+            continue
+
+        dependencies.append(target)
+        for nested_ref in sorted(_referenced_ids(target)):
+            if nested_ref not in seen:
+                queue.append(nested_ref)
+
+    return dependencies
+
+
+def _collect_id_mapping(asset_id: str, group: ET.Element, dependencies: list[ET.Element]) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    for root in [group, *dependencies]:
+        for elem in root.iter():
+            elem_id = elem.get("id")
+            if elem_id and elem_id not in mapping:
+                mapping[elem_id] = f"{asset_id}_{elem_id}"
+    return mapping
+
+
+def _rewrite_references(elem: ET.Element, id_mapping: dict[str, str]) -> None:
+    _rewrite_reference_values(elem, id_mapping)
+
+    for item in elem.iter():
+        elem_id = item.get("id")
+        if elem_id in id_mapping:
+            item.set("id", id_mapping[elem_id])
+
+
+def _rebase_external_hrefs(
+    elem: ET.Element,
+    source_dir: Path,
+    target_dir: Path,
+) -> int:
+    """Keep relative image/use references valid after moving a subtree."""
+    rewritten_count = 0
+    for item in elem.iter():
+        for attr_name, value in list(item.attrib.items()):
+            if _local(attr_name) != "href" or value.startswith(("#", "/")):
+                continue
+            parsed = urlsplit(value)
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                continue
+            source_target = (source_dir / parsed.path).resolve()
+            relative = Path(os.path.relpath(source_target, target_dir)).as_posix()
+            rewritten = urlunsplit(("", "", relative, parsed.query, parsed.fragment))
+            if rewritten != value:
+                item.set(attr_name, rewritten)
+                rewritten_count += 1
+    return rewritten_count
+
+
+def _rewrite_reference_values(
+    elem: ET.Element,
+    id_mapping: dict[str, str],
+) -> None:
+    """Rewrite local URL/href references without renaming definition ids."""
+    def rewrite_url(match: re.Match[str]) -> str:
+        quote, ref_id = match.group(1), match.group(2)
+        new_id = id_mapping.get(ref_id, ref_id)
+        return f"url({quote}#{new_id}{quote})"
+
+    for item in elem.iter():
+        for attr_name, value in list(item.attrib.items()):
+            rewritten = URL_REF_RE.sub(rewrite_url, value)
+            if _local(attr_name) == "href" and value.startswith("#") and value[1:] in id_mapping:
+                rewritten = f"#{id_mapping[value[1:]]}"
+            if rewritten != value:
+                item.set(attr_name, rewritten)
+
+
+def _definition_signature(elem: ET.Element) -> bytes:
+    """Return definition semantics without its document-local id."""
+    normalized = copy.deepcopy(elem)
+    normalized.attrib.pop("id", None)
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    return ET.tostring(normalized, encoding="utf-8")
+
+
+def _optimize_definitions(root: ET.Element) -> tuple[int, int]:
+    """Deduplicate equivalent defs and remove definitions with no live refs."""
+    deduplicated = 0
+    pruned = 0
+    definition_containers = [
+        child for child in root
+        if _local(child.tag) in DEFINITION_CONTAINERS
+    ]
+
+    for definitions in definition_containers:
+        canonical_by_signature: dict[bytes, str] = {}
+        duplicate_ids: dict[str, str] = {}
+        duplicate_elements: list[ET.Element] = []
+        for definition in list(definitions):
+            definition_id = definition.get("id")
+            if not definition_id:
+                continue
+            signature = _definition_signature(definition)
+            canonical_id = canonical_by_signature.get(signature)
+            if canonical_id is None:
+                canonical_by_signature[signature] = definition_id
+                continue
+            duplicate_ids[definition_id] = canonical_id
+            duplicate_elements.append(definition)
+
+        if duplicate_ids:
+            _rewrite_reference_values(root, duplicate_ids)
+            for definition in duplicate_elements:
+                definitions.remove(definition)
+            deduplicated += len(duplicate_elements)
+
+        owner_by_id: dict[str, ET.Element] = {}
+        for definition in definitions:
+            for item in definition.iter():
+                if item_id := item.get("id"):
+                    owner_by_id[item_id] = definition
+
+        live_refs: set[str] = set()
+        for attr_name, value in root.attrib.items():
+            live_refs.update(match.group(2) for match in URL_REF_RE.finditer(value))
+            if _local(attr_name) == "href" and value.startswith("#"):
+                live_refs.add(value[1:])
+        for child in root:
+            if child is definitions:
+                continue
+            live_refs.update(_referenced_ids(child))
+
+        reachable: set[ET.Element] = set()
+        pending = sorted(live_refs)
+        while pending:
+            ref_id = pending.pop(0)
+            owner = owner_by_id.get(ref_id)
+            if owner is None or owner in reachable:
+                continue
+            reachable.add(owner)
+            for nested_ref in sorted(_referenced_ids(owner)):
+                if nested_ref not in live_refs:
+                    live_refs.add(nested_ref)
+                    pending.append(nested_ref)
+
+        for definition in list(definitions):
+            has_id = any(item.get("id") for item in definition.iter())
+            if has_id and definition not in reachable:
+                definitions.remove(definition)
+                pruned += 1
+
+        if not list(definitions):
+            root.remove(definitions)
+
+    return deduplicated, pruned
+
+
+def _find_extractable(root: ET.Element, min_drawables: int, min_bytes: int) -> list[ET.Element]:
+    """Outermost <g> groups whose drawable count clears the threshold (no nesting)."""
+    found: list[ET.Element] = []
+
+    def walk(elem: ET.Element) -> None:
+        if (
+            _local(elem.tag) in DEFINITION_CONTAINERS
+            or _is_semantic_owner(elem)
+        ):
+            return
+        for child in list(elem):
+            if _local(child.tag) != "g":
+                walk(child)
+                continue
+            if (
+                not _is_chart_group(child)
+                and not _has_semantic_object(child)
+                and not _has_semantic_content(child)
+                and not _has_icon_placeholder(child)
+                and _large_enough(child, min_drawables, min_bytes)
+            ):
+                found.append(child)  # outermost qualifying — do not descend
+            else:
+                walk(child)
+
+    walk(root)
+    return found
+
+
+def _find_extractable_runs(
+    root: ET.Element,
+    min_drawables: int,
+    min_bytes: int,
+    min_decoration_bytes: int,
+) -> list[tuple[ET.Element, list[ET.Element]]]:
+    """
+    Consecutive pure-vector children inside mixed groups.
+
+    PPT exports often flatten text and large vector decorations as siblings
+    under the same parent. Whole-group extraction would hide text, so only the
+    contiguous vector runs are factored out.
+    """
+    found: list[tuple[ET.Element, list[ET.Element]]] = []
+
+    def flush(parent: ET.Element, run: list[ET.Element]) -> None:
+        byte_threshold = min_decoration_bytes if _has_semantic_content(parent) else min_bytes
+        if run and (
+            sum(_drawable_count(child) for child in run) >= min_drawables
+            or sum(_xml_size(child) for child in run) >= byte_threshold
+        ):
+            found.append((parent, list(run)))
+
+    def walk(elem: ET.Element) -> None:
+        if (
+            _local(elem.tag) in DEFINITION_CONTAINERS
+            or _is_semantic_owner(elem)
+        ):
+            return
+        run: list[ET.Element] = []
+        for child in list(elem):
+            if _is_extractable_subtree(child):
+                run.append(child)
+                continue
+            flush(elem, run)
+            run = []
+            walk(child)
+        flush(elem, run)
+
+    walk(root)
+    return found
+
+
+def _asset_svg(
+    group: ET.Element,
+    dependencies: list[ET.Element],
+    view_box: str | None,
+    width: str | None,
+    height: str | None,
+) -> bytes:
+    """Standalone, independently-viewable SVG carrying the group in page coords."""
+    semantic_inputs = [group, *dependencies]
+    if any(
+        _has_semantic_object(item)
+        or _has_semantic_content(item)
+        or _is_chart_group(item)
+        for item in semantic_inputs
+    ):
+        raise ValueError(
+            "Semantic authoring content must remain inline and cannot become "
+            "imported decoration assets"
+        )
+    svg = ET.Element(f"{{{SVG_NS}}}svg")
+    svg.set("data-icon-style", "preserve-color")
+    svg.set(ASSET_ROLE_ATTRIBUTE, DECORATION_ASSET_ROLE)
+    if view_box:
+        svg.set("viewBox", view_box)
+    if width:
+        svg.set("width", width)
+    if height:
+        svg.set("height", height)
+    if dependencies:
+        defs = ET.SubElement(svg, f"{{{SVG_NS}}}defs")
+        for dependency in dependencies:
+            defs.append(dependency)
+    svg.append(group)
+    normalize_compact_authoring_tree(svg)
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    return ET.tostring(svg, encoding="utf-8", xml_declaration=True)
+
+
+def _source_sha256(
+    group: ET.Element,
+    dependencies: list[ET.Element],
+    view_box: str | None,
+    width: str | None,
+    height: str | None,
+) -> str:
+    """Fingerprint an extracted subtree before asset-id namespacing."""
+    payload = _asset_svg(
+        copy.deepcopy(group),
+        [copy.deepcopy(dependency) for dependency in dependencies],
+        view_box,
+        width,
+        height,
+    )
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _asset_group(nodes: list[ET.Element]) -> ET.Element:
+    group = ET.Element(f"{{{SVG_NS}}}g")
+    for node in nodes:
+        group.append(node)
+    return group
+
+
+def _asset_id(svg_path: Path, index: int, id_prefix: str) -> str:
+    prefix = f"{id_prefix}_" if id_prefix else ""
+    return f"{prefix}{svg_path.stem}_ill{index:02d}"
+
+
+def _icon_reference(icon_namespace: str, asset_id: str) -> str:
+    return f"{icon_namespace}/{asset_id}" if icon_namespace else asset_id
+
+
+def _asset_relative_path(icon_namespace: str, asset_id: str) -> str:
+    return f"{_icon_reference(icon_namespace, asset_id)}.svg"
+
+
+def _icon_asset_for_namespace(icon_name: str, icon_namespace: str) -> str | None:
+    """Map one local placeholder to its asset path, excluding other libraries."""
+    if icon_namespace:
+        prefix = f"{icon_namespace}/"
+        if not icon_name.startswith(prefix):
+            return None
+        asset_id = icon_name[len(prefix):]
+        if not asset_id or "/" in asset_id:
+            return None
+        return f"{icon_name}.svg"
+    if "/" in icon_name:
+        return None
+    return f"{icon_name}.svg"
+
+
+def _has_namespace_placeholder(root: ET.Element, icon_namespace: str) -> bool:
+    if not icon_namespace:
+        return False
+    return any(
+        _local(elem.tag) == "use"
+        and (icon_name := elem.get("data-icon")) is not None
+        and _icon_asset_for_namespace(icon_name, icon_namespace) is not None
+        for elem in root.iter()
+    )
+
+
+def _generated_asset_re(svg_stems: list[str], id_prefix: str) -> re.Pattern[str] | None:
+    if not svg_stems:
+        return None
+    prefix = f"{re.escape(id_prefix)}_" if id_prefix else ""
+    stems = "|".join(re.escape(stem) for stem in svg_stems)
+    return re.compile(rf"^{prefix}(?:{stems})_ill\d+\.svg$")
+
+
+def _clean_stale_assets(
+    icons_dir: Path,
+    icon_namespace: str,
+    svg_paths: list[Path],
+    id_prefix: str,
+    keep_assets: set[str],
+) -> list[str]:
+    pattern = _generated_asset_re([path.stem for path in svg_paths], id_prefix)
+    if pattern is None:
+        return []
+
+    removed: list[str] = []
+    asset_dir = icons_dir / icon_namespace if icon_namespace else icons_dir
+    for asset_path in sorted(asset_dir.glob("*.svg")):
+        relative_asset = asset_path.relative_to(icons_dir).as_posix()
+        if relative_asset in keep_assets or not pattern.match(asset_path.name):
+            continue
+        asset_path.unlink()
+        removed.append(relative_asset)
+    return removed
+
+
+def _referenced_icon_assets(svg_paths: list[Path], icon_namespace: str) -> set[str]:
+    assets: set[str] = set()
+    for svg_path in svg_paths:
+        try:
+            root = ET.parse(svg_path).getroot()
+        except ET.ParseError:
+            continue
+        for elem in root.iter():
+            if _local(elem.tag) != "use":
+                continue
+            icon_name = elem.get("data-icon")
+            if icon_name and (asset := _icon_asset_for_namespace(icon_name, icon_namespace)):
+                assets.add(asset)
+    return assets
+
+
+def _existing_placeholder_entries(
+    svg_paths: list[Path],
+    icons_dir: Path,
+    icon_namespace: str,
+    known_assets: set[str],
+) -> list[dict]:
+    by_asset: dict[str, dict] = {}
+    for svg_path in svg_paths:
+        try:
+            root = ET.parse(svg_path).getroot()
+        except ET.ParseError:
+            continue
+
+        for elem in root.iter():
+            if _local(elem.tag) != "use":
+                continue
+            icon_name = elem.get("data-icon")
+            if not icon_name:
+                continue
+
+            asset = _icon_asset_for_namespace(icon_name, icon_namespace)
+            if asset is None:
+                continue
+            if elem.get(ASSET_ROLE_ATTRIBUTE) != DECORATION_ASSET_ROLE:
+                raise ValueError(
+                    f"Imported vector placeholder {icon_name!r} must declare "
+                    f"{ASSET_ROLE_ATTRIBUTE}={DECORATION_ASSET_ROLE!r}"
+                )
+            if asset in known_assets:
+                continue
+
+            entry = by_asset.setdefault(
+                asset,
+                {
+                    "svg": svg_path.name,
+                    "svgs": [],
+                    "id": icon_name,
+                    "icon": icon_name,
+                    "asset": asset,
+                    "source": "existing-placeholder",
+                    "role": DECORATION_ASSET_ROLE,
+                    "asset_exists": (icons_dir / asset).exists(),
+                },
+            )
+            if svg_path.name not in entry["svgs"]:
+                entry["svgs"].append(svg_path.name)
+
+    entries: list[dict] = []
+    for asset, entry in sorted(by_asset.items()):
+        asset_path = icons_dir / asset
+        if asset_path.exists():
+            entry["asset_sha256"] = hashlib.sha256(
+                asset_path.read_bytes()
+            ).hexdigest()
+            try:
+                root = ET.parse(asset_path).getroot()
+            except ET.ParseError as exc:
+                raise ValueError(
+                    f"Imported vector asset is invalid SVG XML: "
+                    f"{asset_path}: {exc}"
+                ) from exc
+            else:
+                role = root.get(ASSET_ROLE_ATTRIBUTE)
+                if role != DECORATION_ASSET_ROLE:
+                    raise ValueError(
+                        f"Imported vector asset must declare "
+                        f"{ASSET_ROLE_ATTRIBUTE}={DECORATION_ASSET_ROLE!r}: "
+                        f"{asset_path}"
+                    )
+                entry["drawable_count"] = _drawable_count(root)
+                entry["byte_count"] = _xml_size(root)
+                entry["elements"] = _tag_histogram(root)
+                entry["source_refs"] = _source_references(root)
+                entry["dependencies"] = sorted(
+                    elem_id
+                    for elem in root.iter()
+                    if _local(elem.tag) == "defs"
+                    for child in elem
+                    if (elem_id := child.get("id"))
+                )
+        entries.append(entry)
+    return entries
+
+
+def _load_reusable_assets(inventory_path: Path, icons_dir: Path) -> dict[str, dict]:
+    """Load fingerprinted assets from an earlier extraction inventory."""
+    try:
+        payload = json.loads(inventory_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"reuse inventory not found: {inventory_path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid reuse inventory JSON: {inventory_path}: {exc}") from exc
+
+    if payload.get("schema") != VECTOR_INVENTORY_SCHEMA:
+        raise ValueError(
+            f"unsupported reuse inventory schema: {payload.get('schema')!r}"
+        )
+    if payload.get("asset_role") != DECORATION_ASSET_ROLE:
+        raise ValueError(
+            "reuse inventory must declare asset_role='decoration'"
+        )
+    entries = payload.get("assets")
+    if not isinstance(entries, list):
+        raise ValueError(f"reuse inventory has no assets list: {inventory_path}")
+
+    reusable: dict[str, dict] = {}
+    fingerprinted = 0
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        source_sha256 = entry.get("source_sha256")
+        asset_sha256 = entry.get("asset_sha256")
+        asset = entry.get("asset")
+        icon = entry.get("icon")
+        role = entry.get("role")
+        if not all(
+            isinstance(value, str) and value
+            for value in (source_sha256, asset_sha256, asset, icon)
+        ):
+            continue
+        if role != DECORATION_ASSET_ROLE:
+            raise ValueError(
+                f"reusable asset {icon!r} is not a decoration asset"
+            )
+        fingerprinted += 1
+        asset_path = icons_dir / asset
+        if not asset_path.is_file():
+            raise ValueError(
+                f"reusable asset is missing from the target icons directory: {asset_path}"
+            )
+        actual_asset_sha256 = hashlib.sha256(asset_path.read_bytes()).hexdigest()
+        if actual_asset_sha256 != asset_sha256:
+            raise ValueError(
+                f"reusable asset hash does not match its inventory: {asset_path}"
+            )
+        try:
+            asset_root = ET.parse(asset_path).getroot()
+        except ET.ParseError as exc:
+            raise ValueError(
+                f"reusable asset is not valid SVG XML: {asset_path}: {exc}"
+            ) from exc
+        if asset_root.get(ASSET_ROLE_ATTRIBUTE) != DECORATION_ASSET_ROLE:
+            raise ValueError(
+                f"reusable asset lacks its decoration role: {asset_path}"
+            )
+        current = reusable.get(source_sha256)
+        if current is None or asset < str(current["asset"]):
+            reusable[source_sha256] = entry
+
+    extracted_count = payload.get("extracted_count", 0)
+    if isinstance(extracted_count, int) and extracted_count > fingerprinted:
+        raise ValueError(
+            "reuse inventory predates source fingerprints; rerun the source extraction "
+            f"with the current tool: {inventory_path}"
+        )
+    return reusable
+
+
+def _rewritten_path(svg_path: Path, rewritten_dir: Path | None, inplace: bool) -> Path:
+    if inplace:
+        return svg_path
+    if rewritten_dir is None:
+        return svg_path.parent.parent / f"{svg_path.parent.name}-rewritten" / svg_path.name
+    return rewritten_dir / svg_path.name
+
+
+def _fresh_native_fallback_markers(root: ET.Element) -> set[ET.Element]:
+    """Snapshot native markers whose visible fallback is fresh before extraction."""
+    fresh: set[ET.Element] = set()
+    for element in root.iter():
+        expected = element.get(NATIVE_FALLBACK_SHA256_ATTR)
+        if (
+            expected is None
+            or expected != expected.strip()
+            or not _SHA256_RE.fullmatch(expected)
+        ):
+            continue
+        if svg_native_fallback_fingerprint(
+            element,
+            document_root=root,
+        ) == expected.lower():
+            fresh.add(element)
+    return fresh
+
+
+def _normalize_authoring_tree(
+    root: ET.Element,
+    fresh_native_markers: set[ET.Element],
+) -> None:
+    """Normalize first, then hash the final visible native fallbacks."""
+    normalize_compact_authoring_tree(root)
+    live_elements = set(root.iter())
+    for marker in fresh_native_markers & live_elements:
+        marker.set(
+            NATIVE_FALLBACK_SHA256_ATTR,
+            svg_native_fallback_fingerprint(marker, document_root=root),
+        )
+
+
+def extract_file(
+    svg_path: Path,
+    icons_dir: Path,
+    icon_namespace: str,
+    min_drawables: int,
+    min_bytes: int,
+    min_decoration_bytes: int,
+    inplace: bool,
+    id_prefix: str = "",
+    rewritten_dir: Path | None = None,
+    reusable_assets: dict[str, dict] | None = None,
+) -> list[dict]:
+    """Extract qualifying groups from one SVG. Returns inventory entries."""
+    ET.register_namespace("", SVG_NS)
+    tree = ET.parse(svg_path)
+    root = tree.getroot()
+    fresh_native_markers = _fresh_native_fallback_markers(root)
+    view_box = root.get("viewBox")
+    width = root.get("width")
+    height = root.get("height")
+    definitions_changed = any(_optimize_definitions(root))
+
+    # A namespaced projection is an all-at-once readability pass. Once it owns
+    # an asset reference, reruns inventory the existing placeholders instead of
+    # progressively factoring their remaining parent/sibling geometry.
+    if _has_namespace_placeholder(root, icon_namespace):
+        if definitions_changed or not inplace:
+            _normalize_authoring_tree(root, fresh_native_markers)
+            rewritten = _rewritten_path(svg_path, rewritten_dir, inplace)
+            rewritten.parent.mkdir(parents=True, exist_ok=True)
+            ET.register_namespace("", SVG_NS)
+            ET.register_namespace("xlink", XLINK_NS)
+            tree.write(rewritten, encoding="utf-8", xml_declaration=True)
+        return []
+
+    targets: list[tuple[ET.Element, list[ET.Element]]] = []
+    parents = {child: parent for parent in root.iter() for child in parent}
+    group_targets = _find_extractable(root, min_drawables, min_bytes)
+    selected_groups = set(group_targets)
+
+    def inside_selected_group(elem: ET.Element) -> bool:
+        current = elem
+        while current in parents:
+            current = parents[current]
+            if current in selected_groups:
+                return True
+        return False
+
+    for group in group_targets:
+        parent = parents.get(group)
+        if parent is not None:
+            targets.append((parent, [group]))
+
+    for parent, run in _find_extractable_runs(root, min_drawables, min_bytes, min_decoration_bytes):
+        if (
+            parent not in selected_groups
+            and not inside_selected_group(parent)
+            and not any(child in selected_groups for child in run)
+            and all(child in parent for child in run)
+        ):
+            targets.append((parent, run))
+
+    if not targets:
+        if definitions_changed or not inplace:
+            _normalize_authoring_tree(root, fresh_native_markers)
+            rewritten = _rewritten_path(svg_path, rewritten_dir, inplace)
+            rewritten.parent.mkdir(parents=True, exist_ok=True)
+            ET.register_namespace("", SVG_NS)
+            ET.register_namespace("xlink", XLINK_NS)
+            tree.write(rewritten, encoding="utf-8", xml_declaration=True)
+        return []
+
+    asset_dir = icons_dir / icon_namespace if icon_namespace else icons_dir
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    entries = []
+
+    for index, (parent, nodes) in enumerate(targets, start=1):
+        if not nodes or not all(node in parent for node in nodes):
+            continue
+        asset_id = _asset_id(svg_path, index, id_prefix)
+        icon_reference = _icon_reference(icon_namespace, asset_id)
+        asset = _asset_relative_path(icon_namespace, asset_id)
+        pos = list(parent).index(nodes[0])
+        group = nodes[0] if len(nodes) == 1 and _local(nodes[0].tag) == "g" else _asset_group(nodes)
+
+        dependencies = [copy.deepcopy(elem) for elem in _dependency_elements(root, group)]
+        dependency_source_ids = sorted({
+            elem_id
+            for dependency in dependencies
+            for elem in dependency.iter()
+            if (elem_id := elem.get("id"))
+        })
+        source_sha256 = _source_sha256(group, dependencies, view_box, width, height)
+        source_refs = _source_references(group)
+        reusable = (reusable_assets or {}).get(source_sha256)
+        if reusable is not None:
+            reused_icon = str(reusable["icon"])
+            reused_asset = str(reusable["asset"])
+            placeholder = ET.Element(f"{{{SVG_NS}}}use")
+            placeholder.set("data-icon", reused_icon)
+            placeholder.set(ASSET_ROLE_ATTRIBUTE, DECORATION_ASSET_ROLE)
+            for node in nodes:
+                if node in parent:
+                    parent.remove(node)
+            parent.insert(pos, placeholder)
+            entries.append({
+                "svg": svg_path.name,
+                "id": reused_icon,
+                "icon": reused_icon,
+                "asset": reused_asset,
+                "source": "reused-inventory",
+                "role": DECORATION_ASSET_ROLE,
+                "source_sha256": source_sha256,
+                "asset_sha256": reusable["asset_sha256"],
+                "reused_from_svg": reusable.get("svg"),
+                "drawable_count": _drawable_count(group),
+                "byte_count": _xml_size(group),
+                "source_refs": source_refs,
+                "dependencies": dependency_source_ids,
+                "elements": _tag_histogram(group),
+            })
+            continue
+
+        id_mapping = _collect_id_mapping(asset_id, group, dependencies)
+        _rewrite_references(group, id_mapping)
+        for dependency in dependencies:
+            _rewrite_references(dependency, id_mapping)
+
+        # Asset keeps the group in original page coordinates and carries its defs.
+        asset_path = icons_dir / asset
+        external_hrefs_rewritten = _rebase_external_hrefs(
+            group,
+            svg_path.parent,
+            asset_path.parent,
+        )
+        for dependency in dependencies:
+            external_hrefs_rewritten += _rebase_external_hrefs(
+                dependency,
+                svg_path.parent,
+                asset_path.parent,
+            )
+        asset_bytes = _asset_svg(group, dependencies, view_box, width, height)
+        asset_path.write_bytes(asset_bytes)
+
+        placeholder = ET.Element(f"{{{SVG_NS}}}use")
+        placeholder.set("data-icon", icon_reference)
+        placeholder.set(ASSET_ROLE_ATTRIBUTE, DECORATION_ASSET_ROLE)
+        for node in nodes:
+            if node in parent:
+                parent.remove(node)
+        parent.insert(pos, placeholder)
+
+        entries.append({
+            "svg": svg_path.name,
+            "id": icon_reference,
+            "icon": icon_reference,
+            "asset": asset,
+            "source": "extracted",
+            "role": DECORATION_ASSET_ROLE,
+            "source_sha256": source_sha256,
+            "asset_sha256": hashlib.sha256(asset_bytes).hexdigest(),
+            "drawable_count": _drawable_count(group),
+            "byte_count": _xml_size(group),
+            "source_refs": source_refs,
+            "dependencies": [id_mapping.get(elem_id, elem_id) for elem_id in dependency_source_ids],
+            "external_hrefs_rewritten": external_hrefs_rewritten,
+            "elements": _tag_histogram(group),
+        })
+
+    _optimize_definitions(root)
+    _normalize_authoring_tree(root, fresh_native_markers)
+    rewritten = _rewritten_path(svg_path, rewritten_dir, inplace)
+    rewritten.parent.mkdir(parents=True, exist_ok=True)
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    tree.write(rewritten, encoding="utf-8", xml_declaration=True)
+    return entries
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Factor large non-semantic SVG decorations into reusable assets."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("svg_dir", help="Directory of working SVGs (e.g. import_ws/svg or project/svg_output)")
+    parser.add_argument("-o", "--output", dest="icons_dir", help="Project icon dir (default: <svg_dir>/../icons)")
+    parser.add_argument("--icons-dir", dest="icons_dir", help="Project icon dir (default: <svg_dir>/../icons)")
+    parser.add_argument(
+        "--icon-namespace",
+        default="",
+        help=(
+            "Optional lower-case subdirectory and data-icon prefix for extracted "
+            "assets (create-template uses: imported)"
+        ),
+    )
+    parser.add_argument(
+        "--rewritten-dir",
+        help="Directory for rewritten SVGs when not using --inplace (default: <svg_dir>/../<svg_dir-name>-rewritten)",
+    )
+    parser.add_argument(
+        "--inventory",
+        help="Inventory JSON path (default: <svg_dir>/../<svg_dir-name>_vector_asset_inventory.json)",
+    )
+    parser.add_argument(
+        "--reuse-inventory",
+        help=(
+            "Reuse fingerprint-matched assets from an earlier extraction inventory; "
+            "only unmatched vector subtrees create new assets"
+        ),
+    )
+    parser.add_argument(
+        "--id-prefix",
+        default="",
+        help=(
+            "Optional prefix for generated asset IDs, useful when processing "
+            "layered and flat SVG dirs into one icons dir"
+        ),
+    )
+    parser.add_argument(
+        "--min-drawables", type=int, default=DEFAULT_MIN_DRAWABLES,
+        help=f"Min drawable elements for a group to be extracted (default: {DEFAULT_MIN_DRAWABLES})",
+    )
+    parser.add_argument(
+        "--min-bytes", type=int, default=DEFAULT_MIN_BYTES,
+        help=f"Min XML bytes for a pure-vector group/run to be extracted (default: {DEFAULT_MIN_BYTES})",
+    )
+    parser.add_argument(
+        "--min-decoration-bytes", type=int, default=DEFAULT_MIN_DECORATION_BYTES,
+        help=(
+            "Min XML bytes for pure-vector decoration runs inside text-bearing groups "
+            f"(default: {DEFAULT_MIN_DECORATION_BYTES})"
+        ),
+    )
+    parser.add_argument(
+        "--inplace", action="store_true",
+        help="Rewrite the source SVGs in place instead of writing to --rewritten-dir",
+    )
+    parser.add_argument(
+        "--clean-stale",
+        action="store_true",
+        help=(
+            "Remove stale generated assets for the current svg filenames/id prefix "
+            "that are not referenced by this run's inventory"
+        ),
+    )
+    return parser
+
+
+def extract_directory(
+    svg_dir: Path,
+    icons_dir: Path,
+    icon_namespace: str,
+    *,
+    min_drawables: int = DEFAULT_MIN_DRAWABLES,
+    min_bytes: int = DEFAULT_MIN_BYTES,
+    min_decoration_bytes: int = DEFAULT_MIN_DECORATION_BYTES,
+    inplace: bool = False,
+    id_prefix: str = "",
+    rewritten_dir: Path | None = None,
+    inventory_path: Path | None = None,
+    reuse_inventory_path: Path | None = None,
+    clean_stale: bool = False,
+    skip_unparseable: bool = False,
+) -> tuple[dict, Path | None, tuple[tuple[Path, str], ...]]:
+    """Extract one SVG directory and publish its deterministic inventory.
+
+    Thresholds select vector groups or decoration runs. In-place authoring
+    bundles also refresh their model-readable summary. Returns the inventory,
+    optional summary path, and any parse failures skipped by the CLI mode.
+    """
+    svg_dir = Path(svg_dir)
+    icons_dir = Path(icons_dir)
+    if not svg_dir.is_dir():
+        raise ValueError(f"svg_dir not found: {svg_dir}")
+    if icon_namespace and not ICON_NAMESPACE_RE.fullmatch(icon_namespace):
+        raise ValueError(
+            "icon_namespace must be one lower-case ASCII directory name "
+            "using only letters, digits, '_' or '-'"
+        )
+    if min(min_drawables, min_bytes, min_decoration_bytes) < 0:
+        raise ValueError("vector extraction thresholds must be non-negative")
+
+    icons_dir.mkdir(parents=True, exist_ok=True)
+    reusable_assets = (
+        _load_reusable_assets(reuse_inventory_path, icons_dir)
+        if reuse_inventory_path is not None
+        else {}
+    )
+    inventory_path = (
+        Path(inventory_path)
+        if inventory_path is not None
+        else svg_dir.parent / f"{svg_dir.name}_vector_asset_inventory.json"
+    )
+
+    def manifest_path(path: Path | None) -> str | None:
+        if path is None:
+            return None
+        try:
+            return path.resolve().relative_to(
+                inventory_path.parent.resolve()
+            ).as_posix()
+        except ValueError:
+            return str(path)
+
+    svg_paths = sorted(svg_dir.glob("*.svg"))
+    inventory: list[dict] = []
+    skipped: list[tuple[Path, str]] = []
+    for svg_path in svg_paths:
+        try:
+            inventory.extend(
+                extract_file(
+                    svg_path,
+                    icons_dir,
+                    icon_namespace,
+                    min_drawables,
+                    min_bytes,
+                    min_decoration_bytes,
+                    inplace,
+                    id_prefix,
+                    rewritten_dir,
+                    reusable_assets,
+                )
+            )
+        except ET.ParseError as exc:
+            if not skip_unparseable:
+                raise
+            skipped.append((svg_path, str(exc)))
+
+    extracted_count = sum(entry.get("source") == "extracted" for entry in inventory)
+    reused_count = sum(
+        entry.get("source") == "reused-inventory" for entry in inventory
+    )
+    known_assets = {str(entry["asset"]) for entry in inventory}
+    inventory.extend(
+        _existing_placeholder_entries(
+            svg_paths,
+            icons_dir,
+            icon_namespace,
+            known_assets,
+        )
+    )
+
+    stale_removed: list[str] = []
+    if clean_stale:
+        keep_assets = {str(entry["asset"]) for entry in inventory}
+        keep_assets.update(_referenced_icon_assets(svg_paths, icon_namespace))
+        stale_removed = _clean_stale_assets(
+            icons_dir,
+            icon_namespace,
+            svg_paths,
+            id_prefix,
+            keep_assets,
+        )
+
+    manifest = {
+        "schema": VECTOR_INVENTORY_SCHEMA,
+        "svg_dir": manifest_path(svg_dir),
+        "icons_dir": manifest_path(icons_dir),
+        "icon_namespace": icon_namespace or None,
+        "asset_role": DECORATION_ASSET_ROLE,
+        "rewritten_dir": (
+            None
+            if inplace
+            else manifest_path(
+                _rewritten_path(
+                    svg_dir / "_sample.svg",
+                    rewritten_dir,
+                    False,
+                ).parent
+            )
+        ),
+        "reuse_inventory": manifest_path(reuse_inventory_path),
+        "min_drawables": min_drawables,
+        "min_bytes": min_bytes,
+        "min_decoration_bytes": min_decoration_bytes,
+        "extracted_count": extracted_count,
+        "reused_count": reused_count,
+        "asset_count": len(inventory),
+        "stale_removed": stale_removed,
+        "assets": inventory,
+    }
+    inventory_path.parent.mkdir(parents=True, exist_ok=True)
+    inventory_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    summary_path = (
+        write_authoring_summary(svg_dir)
+        if inplace and (svg_dir / AUTHORING_MANIFEST_NAME).is_file()
+        else None
+    )
+    return manifest, summary_path, tuple(skipped)
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    svg_dir = Path(args.svg_dir)
+    icons_dir = Path(args.icons_dir) if args.icons_dir else svg_dir.parent / "icons"
+    icon_namespace = args.icon_namespace.strip()
+    reuse_inventory_path = Path(args.reuse_inventory) if args.reuse_inventory else None
+    rewritten_dir = Path(args.rewritten_dir) if args.rewritten_dir else None
+    inventory_path = (
+        Path(args.inventory)
+        if args.inventory
+        else svg_dir.parent / f"{svg_dir.name}_vector_asset_inventory.json"
+    )
+    try:
+        manifest, summary_path, skipped = extract_directory(
+            svg_dir,
+            icons_dir,
+            icon_namespace,
+            min_drawables=args.min_drawables,
+            min_bytes=args.min_bytes,
+            min_decoration_bytes=args.min_decoration_bytes,
+            inplace=args.inplace,
+            id_prefix=args.id_prefix,
+            rewritten_dir=rewritten_dir,
+            inventory_path=inventory_path,
+            reuse_inventory_path=reuse_inventory_path,
+            clean_stale=args.clean_stale,
+            skip_unparseable=True,
+        )
+    except (OSError, ValueError) as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        return 1
+    for svg_path, reason in skipped:
+        print(f"[WARN] skip unparseable {svg_path.name}: {reason}", file=sys.stderr)
+    extracted_count = int(manifest["extracted_count"])
+    reused_count = int(manifest["reused_count"])
+    inventory = list(manifest["assets"])
+    stale_removed = list(manifest["stale_removed"])
+    print(
+        f"[OK] extracted {extracted_count} new asset(s), reused {reused_count} asset(s), "
+        f"inventoried {len(inventory)} asset reference(s) -> "
+        f"{icons_dir / icon_namespace if icon_namespace else icons_dir}",
+        file=sys.stderr,
+    )
+    if stale_removed:
+        print(f"[OK] removed {len(stale_removed)} stale generated asset(s)", file=sys.stderr)
+    if summary_path is not None:
+        print(f"[OK] refreshed model-readable summary: {summary_path}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

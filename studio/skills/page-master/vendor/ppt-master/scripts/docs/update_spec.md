@@ -1,0 +1,69 @@
+# update_spec.py
+
+> **Scope boundary**: this tool updates only deterministic global color and font
+> substitutions, writes the authoritative `spec_lock.md` only after the SVG
+> updates succeed, and relies on version control for rollback instead of
+> creating parallel backups.
+
+Propagate a `spec_lock.md` value change to both the lock file and every `svg_output/*.svg`. The single edit surface for bulk style tweaks after generation.
+
+## Usage
+
+```bash
+python3 skills/ppt-master/scripts/update_spec.py <project_path> <section>.<key>=<value>
+```
+
+Bare `<key>=<value>` (no dot) is treated as `colors.<key>=<value>` for backward compat.
+
+One invocation = one change. The tool:
+
+1. Reads the old value from `<project_path>/spec_lock.md`
+2. Plans and propagates the change into every `.svg` under `svg_output/`
+3. Writes the new value into `spec_lock.md`; a global font replacement updates
+   every existing `typography.*_family` row together
+4. Prints the list of files touched
+
+## Examples
+
+```bash
+# swap the primary color deck-wide (bare key → colors.primary)
+python3 skills/ppt-master/scripts/update_spec.py projects/acme_ppt169_20260301 primary=#0066AA
+
+# explicit section.key form
+python3 skills/ppt-master/scripts/update_spec.py projects/acme_ppt169_20260301 colors.accent=#FF6B35
+
+# change the deck-wide font family
+python3 skills/ppt-master/scripts/update_spec.py projects/acme_ppt169_20260301 \
+  'typography.font_family=Arial, "Microsoft YaHei", sans-serif'
+```
+
+## v2 scope
+
+- **Supported**:
+  - `colors.*` — HEX value replacement across `svg_output/*.svg` (case-insensitive).
+  - `typography.font_family` — replaces the inner value of every
+    `font-family="..."` / `font-family='...'` attribute and sets all existing
+    `typography.*_family` lock rows to that universal family.
+- **Not supported**: typography sizes, icons, images, canvas, forbidden — these involve attribute-scoped or semantic replacements whose risk/benefit does not warrant bulk propagation. Edit `spec_lock.md` and the affected SVGs by hand, or re-author the pages.
+
+## When to use
+
+- "Change the primary color across the whole deck" → one `update_spec.py` call
+- "Switch the deck-wide font family" → one `update_spec.py` call
+- "Switch an individual page's accent" → just edit that page's SVG directly
+- "Re-design the palette / type system" → update `spec_lock.md` manually, then the Executor can regenerate affected pages
+
+A colour change rarely ends with the lock key: derived tints (a chart's second series, a highlight on a dark page), pages designed around the old colour (an inverted chapter page), and prose in `design_spec.md` that names the old palette are outside the tool's reach and are edited by hand. The tool re-stamps the native Chart/Table fallback baselines only for the files it rewrote; after any hand edit that touches a fallback, run `python3 skills/ppt-master/scripts/stamp_native_fallbacks.py <project_path>/svg_output --write` before the final quality gate, or the gate stops on an edited baseline.
+
+## Safety
+
+- HEX values (e.g. `#005587`) are unique enough in SVG content that literal replacement is safe
+- `font-family` substitution is scoped to the attribute; the outer quote character is preserved, and switched automatically if the new value contains the same quote
+- a global font substitution rewrites all existing family-role lock rows in one
+  file write, so the universal SVG result cannot leave stale title/body roles
+- The tool refuses non-HEX inputs, unknown keys, and unsupported sections
+- No backups are created — the project folder should be under git so you can diff / revert
+
+### Note on first `font-family` update
+
+The script writes the `spec_lock.md` value verbatim into every SVG's `font-family` attribute. If the Executor generated SVGs with quote-flattened font names (e.g. `font-family="Microsoft YaHei, Arial, sans-serif"`) while `spec_lock.md` holds the quoted form (`"Microsoft YaHei", Arial, sans-serif`), the **first** substitution will normalize every SVG to match the `spec_lock.md` literal (e.g. `font-family='"Microsoft YaHei", Arial, sans-serif'`). The two forms are semantically equivalent (CSS and DrawingML parse them identically), but the normalization produces byte-level diffs across every SVG that contains text. Subsequent updates only touch files where the value actually changes.

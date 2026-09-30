@@ -1,0 +1,806 @@
+#!/usr/bin/env python3
+"""
+PPT Master - Image Orientation Management Tool
+
+Provides visual image orientation filtering, fix code generation,
+and batch image rotation functionality.
+
+Usage:
+    python3 scripts/rotate_images.py sheet <images_directory>
+    python3 scripts/rotate_images.py gen <images_directory>
+    python3 scripts/rotate_images.py fix <fixes.json>
+    python3 scripts/rotate_images.py auto <images_directory>
+"""
+
+
+import argparse
+import json
+import os
+import re
+from pathlib import Path
+from typing import List, Dict, Union, Any, Optional
+
+from console_encoding import configure_utf8_stdio
+
+configure_utf8_stdio()
+
+from PIL import (
+    ExifTags,
+    Image,
+    ImageDraw,
+    ImageFont,
+    ImageOps,
+)
+
+
+ORIENTATION_TAG_ID = 274  # 0x0112
+
+class ImageRotator:
+    """Image orientation manager"""
+
+    def __init__(self):
+        """Initialize the manager"""
+        pass
+
+    @staticmethod
+    def _repo_root() -> Path:
+        # scripts/rotate_images.py -> skills/ppt-master/
+        return Path(__file__).resolve().parent.parent
+
+    @staticmethod
+    def _normalize_task_path(path_str: str) -> str:
+        p = (path_str or "").strip()
+        if not p:
+            return p
+
+        # common copy/paste artifacts
+        p = re.sub(r"^file:(?:///?)+", "", p, flags=re.IGNORECASE)
+        p = p.replace("\\", "/")
+        p = re.sub(r"^\\./", "", p)
+        return p
+
+    @staticmethod
+    def _natural_sort_key(s: Union[str, Path]) -> List[Union[int, str]]:
+        """Natural sort key generator"""
+        return [int(text) if text.isdigit() else text.lower()
+                for text in re.split(r'(\d+)', str(s))]
+
+    def _save_in_place(
+        self,
+        img: Image.Image,
+        file_path: Path,
+        src_format: Optional[str],
+        *,
+        exif_bytes: Optional[bytes] = None,
+        icc_profile: Optional[bytes] = None,
+    ) -> None:
+        fmt = (src_format or "").upper()
+
+        save_kwargs: Dict[str, Any] = {}
+        if icc_profile:
+            save_kwargs["icc_profile"] = icc_profile
+        if exif_bytes:
+            save_kwargs["exif"] = exif_bytes
+
+        # Avoid passing unsupported params to formats (e.g. PNG doesn't take `quality`).
+        if fmt in {"JPEG", "JPG"}:
+            save_kwargs["quality"] = 95
+            # keep it simple; avoid Pillow-version-specific kwargs like optimize/subsampling
+            if img.mode not in {"RGB", "L"}:
+                img = img.convert("RGB")
+        elif fmt == "WEBP":
+            save_kwargs["quality"] = 95
+
+        try:
+            img.save(file_path, **save_kwargs)
+        except TypeError:
+            # Fallback: drop metadata kwargs that some formats/plugins may reject.
+            save_kwargs.pop("exif", None)
+            save_kwargs.pop("icc_profile", None)
+            img.save(file_path, **save_kwargs)
+
+    def auto_fix_exif(self, target_dir: Union[str, Path]) -> int:
+        """Auto-fix EXIF orientation for all images in the directory
+
+        Args:
+            target_dir: Target directory
+
+        Returns:
+            Number of images fixed
+        """
+        target_path = Path(target_dir)
+        if not target_path.is_dir():
+            raise FileNotFoundError(f"Directory not found: {target_path}")
+
+        print(f"[AUTO] Checking EXIF orientation information...")
+        fixed_count = 0
+        failed_count = 0
+        valid_exts = {'.jpg', '.jpeg', '.webp'} # PNG typically does not carry rotation EXIF
+
+        # Pre-collect file list to avoid issues caused by modifying during iteration
+        files = [f for f in target_path.iterdir() if f.is_file() and f.suffix.lower() in valid_exts]
+
+        for f in files:
+            try:
+                if self._fix_single_exif(f):
+                    fixed_count += 1
+            except RuntimeError as e:
+                print(f"  [WARN] {e}")
+                failed_count += 1
+
+        if fixed_count > 0:
+            print(f"[OK] Auto-fixed EXIF orientation for {fixed_count} image(s)")
+        elif not failed_count:
+            print(f"[INFO] No images requiring EXIF correction found")
+
+        if failed_count:
+            raise RuntimeError(f"EXIF correction failed for {failed_count} of {len(files)} image(s)")
+        return fixed_count
+
+    def generate_contact_sheet(
+        self,
+        target_dir: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None,
+    ) -> str:
+        """Generate a labeled, read-only contact sheet for visual review."""
+        target_path = Path(target_dir).resolve()
+        if not target_path.is_dir():
+            raise FileNotFoundError(f"Directory not found: {target_path}")
+
+        valid_exts = {
+            '.bmp', '.jpeg', '.jpg', '.png', '.tif', '.tiff', '.webp'
+        }
+        files = sorted(
+            (
+                path for path in target_path.iterdir()
+                if path.is_file() and path.suffix.lower() in valid_exts
+            ),
+            key=lambda path: self._natural_sort_key(path.name),
+        )
+        if not files:
+            raise ValueError("No image files found")
+
+        columns = 6
+        thumbnail_width = 180
+        thumbnail_height = 180
+        label_height = 34
+        padding = 12
+        cell_width = thumbnail_width + padding * 2
+        cell_height = thumbnail_height + label_height + padding * 2
+        rows = (len(files) + columns - 1) // columns
+
+        sheet = Image.new(
+            'RGB',
+            (columns * cell_width, rows * cell_height),
+            'white',
+        )
+        draw = ImageDraw.Draw(sheet)
+        try:
+            font = ImageFont.truetype('DejaVuSans.ttf', 13)
+        except OSError:
+            font = ImageFont.load_default()
+        resampling = getattr(Image, 'Resampling', Image)
+
+        for index, file_path in enumerate(files):
+            column = index % columns
+            row = index // columns
+            cell_x = column * cell_width
+            cell_y = row * cell_height
+            draw.rectangle(
+                (
+                    cell_x,
+                    cell_y,
+                    cell_x + cell_width - 1,
+                    cell_y + cell_height - 1,
+                ),
+                outline='#D0D7DE',
+            )
+
+            details = 'unreadable'
+            try:
+                with Image.open(file_path) as img:
+                    if getattr(img, 'is_animated', False):
+                        img.seek(0)
+                    prepared = ImageOps.exif_transpose(img)
+                    try:
+                        source_width, source_height = prepared.size
+                        preview = prepared.convert('RGBA')
+                    finally:
+                        if prepared is not img:
+                            prepared.close()
+
+                preview.thumbnail(
+                    (thumbnail_width, thumbnail_height),
+                    resampling.LANCZOS,
+                )
+                preview_x = cell_x + padding + (thumbnail_width - preview.width) // 2
+                preview_y = cell_y + padding + (thumbnail_height - preview.height) // 2
+                sheet.paste(preview, (preview_x, preview_y), preview)
+                preview.close()
+                details = f'{source_width}x{source_height}'
+            except (
+                EOFError,
+                OSError,
+                SyntaxError,
+                ValueError,
+                Image.DecompressionBombError,
+            ):
+                draw.line(
+                    (
+                        cell_x + padding,
+                        cell_y + padding,
+                        cell_x + cell_width - padding,
+                        cell_y + thumbnail_height,
+                    ),
+                    fill='#CF222E',
+                    width=2,
+                )
+                draw.line(
+                    (
+                        cell_x + cell_width - padding,
+                        cell_y + padding,
+                        cell_x + padding,
+                        cell_y + thumbnail_height,
+                    ),
+                    fill='#CF222E',
+                    width=2,
+                )
+
+            label = file_path.name
+            if len(label) > 30:
+                label = f'{label[:13]}...{label[-14:]}'
+            label_y = cell_y + padding + thumbnail_height + 2
+            for line_index, text in enumerate((label, details)):
+                text_bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = text_bbox[2] - text_bbox[0]
+                draw.text(
+                    (
+                        cell_x + (cell_width - text_width) / 2,
+                        label_y + line_index * 15,
+                    ),
+                    text,
+                    fill='#24292F',
+                    font=font,
+                )
+
+        if output_path is None:
+            resolved_output = (
+                target_path.parent
+                / 'analysis'
+                / f'{target_path.name}_orientation_contact_sheet.jpg'
+            )
+        else:
+            resolved_output = Path(output_path).expanduser().resolve()
+
+        suffix = resolved_output.suffix.lower()
+        if suffix not in {'.jpg', '.jpeg', '.png'}:
+            sheet.close()
+            raise ValueError("Contact sheet output must use .jpg, .jpeg, or .png")
+        resolved_output.parent.mkdir(parents=True, exist_ok=True)
+        if suffix == '.png':
+            sheet.save(resolved_output, format='PNG', optimize=True)
+        else:
+            sheet.save(resolved_output, format='JPEG', quality=90, optimize=True)
+        sheet.close()
+        return str(resolved_output)
+
+    def generate_html_tool(self, target_dir: str, output_filename: str = "image_orientation_tool.html") -> str:
+        """Generate the image filtering HTML tool
+
+        Automatically performs EXIF correction before generating.
+        """
+        target_path = Path(target_dir).resolve()
+        repo_root = self._repo_root()
+
+        if not target_path.exists():
+            raise FileNotFoundError(f"Directory not found: {target_path}")
+
+        # 1. Perform automatic EXIF correction first
+        self.auto_fix_exif(target_path)
+
+        # 2. Generate HTML
+        # Tool is generated in the parent directory (projects/)
+        project_root = target_path.parent
+        html_output_path = project_root / output_filename
+
+        # Collect images
+        images = []
+        valid_exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+
+        print(f"[SCAN] Scanning directory to generate webpage: {target_path}")
+
+        files = sorted(target_path.iterdir(), key=lambda p: self._natural_sort_key(p.name))
+
+        for f in files:
+            if f.is_file() and f.suffix.lower() in valid_exts:
+                try:
+                    # src is used for HTML display, keep path relative to the HTML file (e.g. "images/1.jpg")
+                    src_rel_path = f.relative_to(project_root).as_posix()
+
+                    # path is used for JSON data, using path relative to the working directory (usually repo root)
+                    # e.g. "projects/Name/images/1.jpg"
+                    # We assume the script is run from the repo root, or target_path is already absolute
+                    # The safest approach is to compute a path relative to the repo root (avoids CWD changes making fixes.json unusable)
+                    try:
+                        repo_rel_path = f.relative_to(repo_root).as_posix()
+                    except ValueError:
+                        # If the file is not under CWD, fall back to absolute path
+                        repo_rel_path = str(f.resolve())
+
+                    images.append({'src': src_rel_path, 'path': repo_rel_path})
+                except ValueError:
+                    print(f"[WARN] Warning: {f.name} cannot compute relative path, skipped")
+                    continue
+
+        if not images:
+            raise ValueError("No image files found")
+
+        json_data = json.dumps(images)
+
+        # Embed HTML template
+        html_content = self._get_html_template().replace('__IMAGES__', json_data)
+
+        with open(html_output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        return str(html_output_path)
+
+    def apply_fixes(self, json_source: Union[str, List[Dict]]) -> Dict[str, int]:
+        """Apply image rotation fixes"""
+        tasks = []
+        json_file_dir: Optional[Path] = None
+
+        # Parse input
+        if isinstance(json_source, str):
+            if json_source.endswith('.json') or os.path.exists(json_source):
+                json_file_dir = Path(json_source).resolve().parent
+                with open(json_source, 'r', encoding='utf-8') as f:
+                    tasks = json.load(f)
+            else:
+                try:
+                    tasks = json.loads(json_source)
+                except json.JSONDecodeError:
+                    raise ValueError("Invalid input: not a file path nor a valid JSON string")
+        elif isinstance(json_source, list):
+            tasks = json_source
+        else:
+            raise ValueError("Rotation tasks must be a JSON array")
+
+        if not isinstance(tasks, list):
+            raise ValueError("Rotation tasks must be a JSON array")
+
+        gif_paths = []
+        for task in tasks:
+            if not isinstance(task, dict) or not isinstance(task.get('path'), str):
+                continue
+            task_path = self._normalize_task_path(task.get('path', ''))
+            if Path(task_path).suffix.lower() == '.gif':
+                gif_paths.append(task_path)
+        if gif_paths:
+            raise ValueError(
+                "GIF rotation is unsupported; preserve GIF files unchanged: "
+                + ", ".join(gif_paths)
+            )
+
+        print(f"[WORK] Starting {len(tasks)} manual rotation task(s)...")
+        print("=" * 60)
+
+        cwd = Path(os.getcwd())
+        repo_root = self._repo_root()
+        stats = {'total': len(tasks), 'success': 0, 'failed': 0}
+
+        for task in tasks:
+            if not isinstance(task, dict) or not isinstance(task.get('path'), str):
+                print(f"[ERROR] Invalid rotation task: {task!r}")
+                stats['failed'] += 1
+                continue
+            rel_path = self._normalize_task_path(task.get('path', ''))
+            rotation = task.get('rotation')
+
+            if not rel_path or rotation is None:
+                print(f"[ERROR] Rotation task requires path and rotation: {task!r}")
+                stats['failed'] += 1
+                continue
+
+            # Absolute paths should stay absolute; repo-relative paths should resolve from repo root.
+            target_file = Path(rel_path)
+            if not target_file.is_absolute():
+                # Prefer repo root (stable); also allow CWD and fixes.json location as fallbacks.
+                candidates = [
+                    repo_root / rel_path,
+                    cwd / rel_path,
+                ]
+                if json_file_dir:
+                    candidates.append(json_file_dir / rel_path)
+
+                # Compatibility with legacy logic / bare filenames (try finding under the projects directory)
+                candidates.append(repo_root / 'projects' / rel_path)
+                candidates.append(cwd / 'projects' / rel_path)
+                if json_file_dir:
+                    candidates.append(json_file_dir / 'projects' / rel_path)
+
+                target_file = next((c for c in candidates if c.exists()), candidates[0])
+
+            if not target_file.exists():
+                print(f"[SKIP] File not found: {rel_path}")
+                stats['failed'] += 1
+                continue
+
+            try:
+                self._rotate_single_image(target_file, rotation)
+                print(f"[OK] {target_file.name} rotated {rotation} degrees")
+                stats['success'] += 1
+            except Exception as e:
+                print(f"[ERROR] {target_file.name}: {e}")
+                stats['failed'] += 1
+
+        return stats
+
+    def _fix_single_exif(self, file_path: Path) -> bool:
+        """Check and fix EXIF orientation for a single image"""
+        try:
+            fixed_img: Optional[Image.Image] = None
+            exif_bytes: Optional[bytes] = None
+            icc_profile: Optional[bytes] = None
+            src_format: Optional[str] = None
+
+            with Image.open(file_path) as img:
+                exif = img.getexif()
+                orientation = exif.get(ORIENTATION_TAG_ID, 1) if exif else None
+
+                if not orientation or orientation == 1:
+                    return False
+
+                print(f"  [EXIF] Fixing: {file_path.name} (Orientation={orientation})")
+
+                # Apply rotation
+                fixed_img = self._apply_exif_orientation(img, orientation)
+                fixed_img.load()
+
+                # Remove the specific Orientation tag, keep other EXIF data
+                if exif:
+                    exif[ORIENTATION_TAG_ID] = 1
+                    exif_bytes = exif.tobytes()
+
+                icc_profile = img.info.get('icc_profile')
+                src_format = img.format
+
+            # Must save after the original file is closed (Windows requirement)
+            if fixed_img is None:
+                return False
+
+            self._save_in_place(
+                fixed_img,
+                file_path,
+                src_format,
+                exif_bytes=exif_bytes,
+                icc_profile=icc_profile,
+            )
+            return True
+        except Exception as e:
+            raise RuntimeError(f"Failed to fix EXIF for {file_path.name}: {e}") from e
+
+    def _get_exif_orientation(self, img: Image.Image) -> Optional[int]:
+        """Get the Orientation value"""
+        try:
+            exif = img._getexif()
+            if exif:
+                for tag, value in exif.items():
+                    if ExifTags.TAGS.get(tag) == 'Orientation':
+                        return value
+        except Exception:
+            pass
+        return None
+
+    def _apply_exif_orientation(self, img: Image.Image, orientation: int) -> Image.Image:
+        """Rotate image according to the Orientation value"""
+        T = getattr(Image, "Transpose", Image)
+        if orientation == 2:
+            return img.transpose(T.FLIP_LEFT_RIGHT)
+        if orientation == 3:
+            return img.transpose(T.ROTATE_180)
+        if orientation == 4:
+            return img.transpose(T.FLIP_TOP_BOTTOM)
+        if orientation == 5:
+            return img.transpose(T.TRANSPOSE)
+        if orientation == 6:
+            return img.transpose(T.ROTATE_270)
+        if orientation == 7:
+            return img.transpose(T.TRANSVERSE)
+        if orientation == 8:
+            return img.transpose(T.ROTATE_90)
+        return img
+
+    def _rotate_single_image(self, file_path: Path, rotation_deg: int):
+        """Manually rotate a single image"""
+        T = getattr(Image, "Transpose", Image)
+        with Image.open(file_path) as img:
+            ccw_angle = (360 - int(rotation_deg)) % 360
+            if ccw_angle == 0:
+                return
+
+            prepared = ImageOps.exif_transpose(img)
+            if ccw_angle == 90:
+                rotated = prepared.transpose(T.ROTATE_90)
+            elif ccw_angle == 180:
+                rotated = prepared.transpose(T.ROTATE_180)
+            elif ccw_angle == 270:
+                rotated = prepared.transpose(T.ROTATE_270)
+            else:
+                rotated = prepared.rotate(ccw_angle, expand=True)
+
+            rotated.load()
+
+            exif = img.getexif()
+            exif_bytes: Optional[bytes] = None
+            if exif:
+                exif[ORIENTATION_TAG_ID] = 1
+                exif_bytes = exif.tobytes()
+
+            icc_profile = img.info.get('icc_profile')
+            src_format = img.format
+
+        self._save_in_place(
+            rotated,
+            file_path,
+            src_format,
+            exif_bytes=exif_bytes,
+            icc_profile=icc_profile,
+        )
+
+    def _get_html_template(self) -> str:
+        """Get HTML template content"""
+        return """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Orientation Tool</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
+        .header {
+            position: sticky; top: 0; background: rgba(255,255,255,0.95); padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); z-index: 100;
+            border-radius: 12px; margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        h2 { margin: 0; font-size: 1.5rem; color: #1a1a1a; }
+        .instructions { color: #666; margin-top: 5px; font-size: 0.9rem; }
+
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .card {
+            background: white; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center;
+            cursor: pointer; transition: all 0.2s ease;
+            position: relative; border: 2px solid transparent;
+        }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        .card.modified { border-color: #007bff; background: #f8fbff; }
+
+        .img-wrapper {
+            height: 180px; width: 100%; display: flex; align-items: center; justify-content: center;
+            background: #e9ecef; overflow: hidden; position: relative;
+        }
+        img {
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .info { padding: 10px; font-size: 11px; color: #555; word-break: break-all; border-top: 1px solid #eee; }
+
+        .badge {
+            position: absolute; top: 10px; right: 10px;
+            background: #007bff; color: white; padding: 4px 8px;
+            border-radius: 20px; font-size: 11px; font-weight: bold;
+            opacity: 0; transform: scale(0.8); transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .card.modified .badge { opacity: 1; transform: scale(1); }
+
+        .btn {
+            background: #007bff; color: white; border: none; padding: 10px 24px;
+            border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .btn:hover { background: #0056b3; }
+
+        #output-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: white; padding: 30px; border-radius: 16px; width: 80%; max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        textarea {
+            width: 100%; height: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;
+            font-family: inherit; resize: vertical; margin: 15px 0;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h2>Image Orientation Fix</h2>
+        <div class="instructions">Click an image to rotate (90 -> 180 -> 270 -> 0). Natural order sorting.</div>
+    </div>
+    <button class="btn" onclick="showCode()">Generate Fix Code</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div id="output-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-content">
+        <h3>Copy the code below</h3>
+        <p style="color:#666; font-size: 0.9em;">Copy this JSON content and send it to the AI assistant, or save it as 'fixes.json'.</p>
+        <textarea id="output-area" readonly></textarea>
+        <div style="text-align: right;">
+            <button class="btn" onclick="document.getElementById('output-modal').style.display='none'">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const images = __IMAGES__;
+    const grid = document.getElementById('grid');
+
+    images.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.setAttribute('data-rotation', 0);
+        // use stable path for the data attribute
+        card.setAttribute('data-path', item.path);
+
+        const filename = item.src.split('/').pop();
+
+        card.innerHTML = `
+            <div class="img-wrapper">
+                <img src="${item.src}" alt="${filename}" loading="lazy">
+                <div class="badge">0°</div>
+            </div>
+            <div class="info">${filename}</div>
+        `;
+
+        card.onclick = function() {
+            let rot = parseInt(this.getAttribute('data-rotation'));
+            rot = (rot + 90) % 360;
+            this.setAttribute('data-rotation', rot);
+
+            const img = this.querySelector('img');
+            img.style.transform = `rotate(${rot}deg)`;
+
+            const badge = this.querySelector('.badge');
+            badge.innerText = rot + '°';
+
+            if (rot > 0) {
+                this.classList.add('modified');
+            } else {
+                this.classList.remove('modified');
+            }
+        };
+
+        grid.appendChild(card);
+    });
+
+    function showCode() {
+        const tasks = [];
+        document.querySelectorAll('.card').forEach(card => {
+            const rot = parseInt(card.getAttribute('data-rotation'));
+            if (rot > 0) {
+                tasks.push({
+                    path: card.getAttribute('data-path'),
+                    rotation: rot
+                });
+            }
+        });
+
+        const jsonStr = JSON.stringify(tasks, null, 2);
+        const modal = document.getElementById('output-modal');
+        const area = document.getElementById('output-area');
+
+        modal.style.display = 'flex';
+        area.value = jsonStr;
+        area.select();
+        try { document.execCommand('copy'); } catch(e){}
+    }
+</script>
+</body>
+</html>
+"""
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line parser."""
+    parser = argparse.ArgumentParser(
+        description="Manage image orientation and manual rotation fixes.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  python3 scripts/rotate_images.py sheet projects/demo/images
+  python3 scripts/rotate_images.py gen projects/demo/images
+  python3 scripts/rotate_images.py fix fixes.json
+  python3 scripts/rotate_images.py auto projects/demo/images
+""",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    sheet = subparsers.add_parser(
+        "sheet",
+        help="Generate a static contact sheet without modifying images",
+    )
+    sheet.add_argument("images_directory", help="Images directory")
+    sheet.add_argument(
+        "-o",
+        "--output",
+        help="Output .jpg or .png path (default: sibling analysis directory)",
+    )
+
+    gen = subparsers.add_parser("gen", help="Generate the visual rotation HTML tool")
+    gen.add_argument("images_directory", help="Images directory")
+
+    fix = subparsers.add_parser("fix", help="Apply rotations from a fixes JSON file")
+    fix.add_argument("fixes_json", help="Path to fixes.json")
+
+    auto = subparsers.add_parser("auto", help="Automatically fix EXIF orientation")
+    auto.add_argument("images_directory", help="Images directory")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the CLI entry point."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    rotator = ImageRotator()
+
+    if args.command == 'sheet':
+        try:
+            output_path = rotator.generate_contact_sheet(
+                args.images_directory,
+                args.output,
+            )
+            print(f"[REPORT] Image orientation contact sheet: {output_path}")
+        except (OSError, ValueError) as e:
+            print(f"[ERROR] Contact sheet generation failed: {e}")
+            return 1
+        return 0
+
+    if args.command == 'gen':
+        target_dir = args.images_directory
+        try:
+            output_path = rotator.generate_html_tool(target_dir)
+            print(f"[OK] HTML tool created: {output_path}")
+            print(f"[LINK] Open in browser: file:///{Path(output_path).as_posix()}")
+        except Exception as e:
+            print(f"[ERROR] Generation failed: {e}")
+            return 1
+        return 0
+
+    if args.command == 'fix':
+        json_file = args.fixes_json
+        try:
+            stats = rotator.apply_fixes(json_file)
+            print(f"\n[DONE] Processing complete: {stats['success']} succeeded / {stats['total']} total")
+        except Exception as e:
+            print(f"[ERROR] Execution failed: {e}")
+            return 1
+        return 1 if stats['failed'] else 0
+
+    if args.command == 'auto':
+        target_dir = args.images_directory
+        try:
+            # Only perform automatic EXIF fix
+            count = rotator.auto_fix_exif(Path(target_dir))
+            if count == 0:
+                print("[INFO] No images requiring automatic fix found")
+        except Exception as e:
+            print(f"[ERROR] Automatic fix failed: {e}")
+            return 1
+        return 0
+
+    parser.error(f"Unknown command: {args.command}")
+
+if __name__ == '__main__':
+    raise SystemExit(main())
