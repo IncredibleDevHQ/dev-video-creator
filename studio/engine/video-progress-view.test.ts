@@ -114,3 +114,14 @@ it('does not animate saved or disconnected activity',()=>{
  expect(html).not.toContain('thumbnail scene-processing')
  expect(html).not.toContain('class="current"')
 })
+
+it('keeps another scene’s processing out of the selected canvas',()=>{
+ const input=fixture(), video=input.project.video!
+ video.scenes[0].phase='produced'
+ video.scenes.push({...video.scenes[0],id:'other',phase:'producing'})
+ video.transitions.push('none')
+ const html=render(input)
+ expect(html).not.toContain('video-run-status')
+ expect(html).toContain('thumbnail scene-processing')
+ expect(stageStatus(input,'video')).toContain('Processing')
+})
