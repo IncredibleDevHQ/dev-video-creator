@@ -15,7 +15,7 @@ export class Recording {
   private recorder: MediaRecorder | null = null
   private started = 0
   private tick: ReturnType<typeof setInterval> | null = null
-  constructor(private change: () => void, private clock: (seconds: number) => void) {}
+  constructor(private change: () => void, private clock: (seconds: number) => void, private failed: (error: Error) => void = () => {}) {}
   get elapsed() { return Math.max(0, (performance.now()-this.started)/1000) }
   async start(moments: Moment[], options: {stopAfter?:number|null} = {}) {
     if (this.phase !== 'idle') throw new Error('Finish this recording first')
@@ -36,7 +36,9 @@ export class Recording {
       this.recorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : undefined)
       const chunks: Blob[] = []
       this.recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
+      this.recorder.onerror = () => { if(generation===this.generation)this.fail() }
       this.recorder.onstop = () => {
+        if(generation!==this.generation)return
         this.blob = new Blob(chunks, { type: this.recorder!.mimeType }); this.url = URL.createObjectURL(this.blob)
         this.stopTracks(); this.phase = 'reviewing'; this.change()
       }
@@ -45,7 +47,8 @@ export class Recording {
         if(generation!==this.generation)return
         if(--this.countdown>0){this.change();return}
         if(this.tick)clearInterval(this.tick)
-        this.recorder!.start(250);this.started=performance.now();this.phase='recording'
+        try { this.recorder!.start(250) } catch { this.fail(); return }
+        this.started=performance.now();this.phase='recording'
         this.tick=setInterval(()=>{
           this.clock(this.elapsed-(this.parts.at(-1)?.to || 0))
           if(this.stopAfter!==null && this.elapsed>=this.stopAfter)this.stop()
@@ -77,11 +80,18 @@ export class Recording {
   private finish(){
     this.finishing=true
     if(this.tick)clearInterval(this.tick);this.tick=null
-    this.recorder!.stop()
+    try { this.recorder!.stop() } catch { this.fail() }
+  }
+  private fail() {
+    this.dispose()
+    this.failed(new Error("Recording stopped unexpectedly. Your saved take is unchanged. Please record again."))
   }
   dispose() {
     this.generation++
-    if (this.recorder && this.recorder.state !== 'inactive') { this.recorder.onstop = null; this.recorder.ondataavailable = null; this.recorder.stop() }
+    if (this.recorder) {
+      this.recorder.onstop = null; this.recorder.ondataavailable = null; this.recorder.onerror = null
+      if(this.recorder.state !== 'inactive') { try { this.recorder.stop() } catch { /* Tracks are released below even if the recorder failed. */ } }
+    }
     this.recorder = null
     this.stopTracks(); if (this.url) URL.revokeObjectURL(this.url)
     this.url = null; this.blob = null; this.parts = []; this.moments = []; this.current = 0; this.phase = 'idle'; this.change()

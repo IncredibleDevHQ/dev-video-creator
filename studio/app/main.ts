@@ -64,7 +64,7 @@ const capture = new Recording(() => {
   const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${elapsed.toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
-})
+}, reason => error(reason))
 let pendingRecording: import('../shared/model').Moment | null = null
 const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=moment;showDialog(recordingSetup(moment,index))}
 const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog)

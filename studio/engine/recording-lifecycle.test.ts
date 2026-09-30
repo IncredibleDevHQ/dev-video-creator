@@ -58,3 +58,26 @@ it('counts down before capture and stops a timed take once for review',async()=>
   expect(stopTrack).toHaveBeenCalledOnce();expect(recording.blob?.size).toBeGreaterThan(0)
  }finally{recording.dispose();vi.useRealTimers();vi.restoreAllMocks()}
 })
+
+it.each(['start','device'])('releases capture after a %s failure and reports a recoverable error',async failure=>{
+ vi.useFakeTimers()
+ const stopTrack=vi.fn(),failed=vi.fn()
+ vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop:stopTrack}],getVideoTracks:()=>[]})}})
+ class Recorder {
+  static isTypeSupported=()=>true
+  static latest:Recorder
+  state='inactive';mimeType='audio/webm';onstop:(()=>void)|null=null;ondataavailable:unknown=null;onerror:(()=>void)|null=null
+  constructor(){Recorder.latest=this}
+  start(){if(failure==='start')throw new Error('Device unavailable');this.state='recording'}
+  stop(){this.state='inactive';this.onstop?.()}
+ }
+ vi.stubGlobal('MediaRecorder',Recorder)
+ const recording=new Recording(()=>{},()=>{},failed)
+ try {
+  await recording.start([moment]);vi.advanceTimersByTime(3000)
+  if(failure==='device')Recorder.latest.onerror?.()
+  expect(recording.phase).toBe('idle');expect(recording.stream).toBeNull();expect(recording.blob).toBeNull()
+  expect(stopTrack).toHaveBeenCalledOnce();expect(failed).toHaveBeenCalledOnce();expect(vi.getTimerCount()).toBe(0)
+  expect(Recorder.latest.onstop).toBeNull()
+ }finally{recording.dispose();vi.useRealTimers()}
+})
