@@ -22,6 +22,7 @@ const {runCommand}=await import('../engine/voice')
 const {loadProject}=await import('../engine/projects')
 const {recoverProjects}=await import('../engine/recovery')
 const {produceScene}=await import('../engine/production')
+const {prepareSceneAnimation}=await import('../engine/animation')
 const {exportPresentation}=await import('../engine/presentation-export')
 const {createHash}=await import('node:crypto')
 const projectId='fixture-notebook'
@@ -41,6 +42,7 @@ try {
       const moment=scene.moments[0]
       moment.audio={inputKey:moment.audioKey,objectKey:asset.objectKey,duration:2};moment.media={inputKey:moment.audioKey,clips:[{start:0,end:2,camera:false}]}
       refreshVideoKeys(project);scene.phase='producing'
+      await saveStageCheckpoint(projectId,scene.id,'animation',scene.animationKey!,{inputKey:scene.animationKey,objectKey:asset.objectKey,moments:scene.moments.map(({id,start,end})=>({id,start,end}))})
       const files={'index.html':'<!doctype html><p>Explicit synthetic composition fixture</p>'}
       await saveStageCheckpoint(projectId,scene.id,'composition',scene.inputKey,null,await archiveFiles(projectId,scene.id,'composition',files))
       await saveStageCheckpoint(projectId,scene.id,'render',scene.inputKey,{objectKey:asset.objectKey})
@@ -65,6 +67,12 @@ try {
     // the PostgreSQL pointers and S3 artifacts created by the previous one.
     assert.equal((await readRow<{text:string}>('sources',projectId))?.text,'Synthetic source evidence')
     const savedProject=await loadProject(projectId)
+    const recoveredScene=savedProject!.project.video!.scenes[0]
+    const animation=await prepareSceneAnimation(savedProject!.project,recoveredScene,async()=>{throw new Error('A saved animation must not invoke generation or rendering')})
+    assert.equal(animation.inputKey,recoveredScene.animationKey)
+    assert.ok((await readAsset(animation.objectKey)).length>1000)
+    assert.deepEqual(animation.moments,recoveredScene.moments.map(({id,start,end})=>({id,start,end})))
+    console.log('Content animation and its moment clock resumed from PostgreSQL/S3 without regeneration.')
     const exported=await exportPresentation(savedProject!.project)
     const originalPdf=await readRow<{sha256:string}>('test-cases','presentation-export')
     assert.equal(createHash('sha256').update(exported).digest('hex'),originalPdf?.sha256)
