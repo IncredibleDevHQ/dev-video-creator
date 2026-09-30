@@ -1,0 +1,3 @@
+import type {Moment} from '../shared/model'
+const labels={full:'On camera',start:'On camera at the start',end:'On camera at the end',both:'On camera at the start and end',none:''}
+export const cameraCue=(camera:Moment['camera'])=>camera==='none'?'':`<span class="camera-cue" role="img" aria-label="${labels[camera]}" title="${labels[camera]}"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="4" width="8.5" height="8" rx="1.4"/><path d="m10 6 4.5-2v8L10 10"/></svg></span>`

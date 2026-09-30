@@ -134,3 +134,12 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .video-stage.presenter-layout-corner>.presenter-preview{width:22%;height:38%;right:2%;bottom:4%;overflow:hidden;border-radius:10px}
 .video-stage.presenter-layout-full-screen>svg{visibility:hidden}
 .presenter-preview img{width:100%;height:100%;object-fit:cover}
+
+/* Camera presence stays visible even when a moment title is truncated. */
+.moment-timeline .moment .moment-title{display:flex;align-items:center;gap:5px;width:100%;min-width:0}
+.moment-title>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.camera-cue{display:inline-flex;align-items:center;flex:none;color:#a65a17;line-height:1;vertical-align:middle}
+.moment-timeline .moment .camera-cue{overflow:visible;max-width:none}
+.transcript-moment h3 .camera-cue{margin-right:5px}
+.camera-cue svg{display:block;flex:none}
+@media(prefers-color-scheme:dark){.camera-cue{color:#e9b773}}
