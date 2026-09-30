@@ -137,6 +137,7 @@ export const replanPresence = async (id: string, sceneId: string, presence: unkn
   const snapshot = await changeProject(id, current => {
     const scene = current.project.video?.scenes.find(scene => scene.id === sceneId)
     if (!scene) throw new Error('Scene not found')
+    if (['writing','replanning','changing','producing'].includes(scene.phase)) throw new Error('Wait for this scene to finish before changing its camera setting')
     delete scene.editMomentId;scene.presence = presence;scene.planKey=scenePlanKey(current.project,scene);scene.phase = 'replanning';scene.produced = null;scene.error=null;refreshVideoKeys(current.project)
     addEvent(current, 'scene', 'Re-planning this scene', { sceneId })
   })

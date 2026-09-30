@@ -185,3 +185,27 @@ it('limits a scene camera override to that scene and supports returning to the n
  expect((await loadProject('scoped-presence'))!.project.video!.scenes[0].presence).toBeNull()
  expect(generate).toHaveBeenCalledTimes(2)
 })
+
+ it('rejects duplicate camera changes while a planning request is in flight',async()=>{
+ await seed('duplicate-presence')
+ await changeProject('duplicate-presence',s=>{s.project.video={settings:{presence:'off',voice:{kind:'ai',id:'default'}},scenes:[],transitions:[],inputKey:'',produced:null};reconcileVideo(s.project)})
+ let release!:(value:unknown)=>void
+ generate.mockImplementationOnce(()=>new Promise(resolve=>{release=resolve}))
+ const results=await Promise.allSettled([replanPresence('duplicate-presence','scene-a','high'),replanPresence('duplicate-presence','scene-a','low')])
+ expect(results.map(result=>result.status)).toEqual(['fulfilled','rejected'])
+ await vi.waitFor(()=>expect(generate).toHaveBeenCalledTimes(1))
+ const pending=(await loadProject('duplicate-presence'))!
+ expect(pending.project.video!.scenes[0].presence).toBe('high')
+ expect(pending.events.filter(event=>event.message==='Re-planning this scene')).toHaveLength(1)
+ release(response('role title On camera high'))
+ await vi.waitFor(async()=>expect((await loadProject('duplicate-presence'))!.project.video!.scenes[0].phase).toBe('waiting'))
+ expect(generate).toHaveBeenCalledTimes(1)
+ })
+ it('keeps an active render intact when a camera-setting request arrives',async()=>{
+ await seed('render-presence')
+ await changeProject('render-presence',s=>{s.project.video={settings:{presence:'off',voice:{kind:'ai',id:'default'}},scenes:[],transitions:[],inputKey:'',produced:null};reconcileVideo(s.project);s.project.video.scenes[0].phase='producing'})
+ const before=(await loadProject('render-presence'))!
+ await expect(replanPresence('render-presence','scene-a','high')).rejects.toThrow('Wait for this scene')
+ expect((await loadProject('render-presence'))!.project).toEqual(before.project)
+ expect(generate).not.toHaveBeenCalled()
+ })
