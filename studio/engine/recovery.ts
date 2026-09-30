@@ -22,10 +22,11 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
     }
     const resumeSlides = saved.status === 'building'
     const resumeScenes = saved.project.video?.scenes.filter(scene => scene.phase === 'producing').map(scene => scene.id) || []
+    const resumePreparation = saved.project.video?.phase === 'preparing'
     const resumeVideo = saved.project.video?.phase === 'joining'
     const interruptedPlan = saved.project.video?.scenes.some(scene => ['writing','changing','replanning'].includes(scene.phase))
     let snapshot = saved
-    if (resumeSlides || resumeScenes.length || resumeVideo || interruptedPlan) snapshot = await changeProject(id,current => {
+    if (resumeSlides || resumeScenes.length || resumeVideo || resumePreparation || interruptedPlan) snapshot = await changeProject(id,current => {
       if (resumeSlides) addEvent(current,'slide','Resuming your slides')
       const video = current.project.video
       if (!video) return
@@ -38,10 +39,16 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
           addEvent(current,'scene','Resuming production',{sceneId:scene.id})
         }
       }
-      if (resumeVideo) { video.phase = 'idle'; video.error = null; addEvent(current,'video','Resuming your video') }
+      if (resumeVideo || resumePreparation) { video.phase = 'idle'; video.error = null; addEvent(current,'video',resumePreparation?'Resuming scene preparation':'Resuming your video') }
       refreshVideoKeys(current.project)
     })
     if (resumeSlides) jobs.slides(id)
+    if(resumePreparation) {
+      // The batch owns both planning and production. Starting individual jobs
+      // too would race the batch and could leave later scenes unprepared.
+      if(videoView(snapshot.project).enabled) await jobs.video(id).catch(()=>{})
+      continue
+    }
     if (snapshot.project.video?.scenes.some(scene => scene.phase === 'queued')) jobs.planning(id)
     for (const sceneId of resumeScenes) void jobs.scene(id,sceneId).catch(() => {})
     if (resumeVideo && videoView(snapshot.project).enabled) void jobs.video(id).catch(() => {})

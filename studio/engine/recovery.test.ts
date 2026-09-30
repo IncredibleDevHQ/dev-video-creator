@@ -67,3 +67,18 @@ it('does not resume a stop request interrupted by a worker restart',async()=>{
  expect(result?.status).toBe('failed');expect(result?.stopping).toBe(true)
  expect(result?.error).toContain('Generation stopped')
 })
+
+it('resumes an interrupted preparation batch once without competing scene jobs',async()=>{
+ const saved=await seed('preparation-batch',['producing','queued','produced'])
+ saved.project.video!.phase='preparing'
+ await writeRow('projects','preparation-batch',saved)
+ const run=jobs();await recoverProjects(run)
+ const recovered=(await loadProject('preparation-batch'))!
+ expect(recovered.project.video!.phase).toBe('idle')
+ expect(recovered.project.video!.scenes.map(scene=>scene.phase)).toEqual(['waiting','queued','produced'])
+ expect(run.video).toHaveBeenCalledWith('preparation-batch')
+ expect(run.scene).not.toHaveBeenCalledWith('preparation-batch',expect.anything())
+ expect(run.planning).not.toHaveBeenCalledWith('preparation-batch')
+ expect(recovered.project.video!.scenes[2].produced).toEqual(saved.project.video!.scenes[2].produced)
+ expect(recovered.project.video!.scenes[0].moments[0].take).toEqual(saved.project.video!.scenes[0].moments[0].take)
+})
