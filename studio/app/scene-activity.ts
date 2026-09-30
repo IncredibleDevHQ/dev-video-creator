@@ -27,6 +27,7 @@ export const sceneActivityRail=(snapshot:Snapshot,scene:Scene,connected:boolean)
  const animationReady=Boolean(scene.animation && scene.animation.inputKey===scene.animationKey)
  const needsRecording=scene.moments.some(moment=>moment.camera!=='none') || snapshot.project.video?.settings.voice.kind==='record'
  const stages=scene.animation || scene.creativePlan && !scene.produced || events.some(e=>e.message==='Rendering the animation')?[...legacyStages.slice(0,4),{label:'Animation',match:/Building the scene/},{label:'Animation render',match:/Rendering the animation|Animation ready/},...(needsRecording?[{label:'Your recordings',match:/moments? recorded/}]:[]),{label:'Voice',match:/Preparing voice/},{label:'Final render',match:/Rendering the scene/},legacyStages[7]]:legacyStages
+ const progress=snapshot.sceneProgress?.[scene.id]
  const reached=stages.map(stage=>events.filter(event=>stage.match.test(event.message)).at(-1))
  // The latest run determines the frontier; a retry revisits that row rather
  // than appending another run of steps. Historical errors remain in History.
@@ -37,6 +38,7 @@ export const sceneActivityRail=(snapshot:Snapshot,scene:Scene,connected:boolean)
  return `<div class="scene-activity"><p class="activity-intro">${intro}</p><ol class="activity-log" aria-label="Scene activity">${stages.slice(0,frontier+1).map((step,index)=>{
   const state=produced || animationReady && !active && index<=5 || index<frontier || !active && scene.phase!=='failed' && index===3?'completed':scene.phase==='failed' && index===frontier?'stopped':live && index===frontier?'current':''
   const event=reached[index]
-  return `<li class="${state}"><span class="activity-marker" aria-hidden="true">${state==='completed'?'✓':''}</span><div><p>${step.label}</p>${state==='stopped'?'<span class="activity-stopped-label">Stalled</span>':''}${event?`<time datetime="${escape(event.time)}">${escape(new Date(event.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))}</time>`:''}</div></li>`
+  const detail=progress && index===frontier && (state==='current' && progress.active || state==='stopped') && (progress.stage==='composition' && ['Animation','Video composition'].includes(step.label) || progress.stage==='planning' && ['Creative plan','Spoken lines'].includes(step.label))?`<span class="activity-detail">${escape(progress.label)}</span><time datetime="${escape(progress.updatedAt)}">Last update ${escape(new Date(progress.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))}</time>`:''
+  return `<li class="${state}"><span class="activity-marker" aria-hidden="true">${state==='completed'?'✓':''}</span><div><p>${step.label}</p>${state==='stopped'?'<span class="activity-stopped-label">Stalled</span>':''}${detail || (event?`<time datetime="${escape(event.time)}">${escape(new Date(event.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))}</time>`:'')}</div></li>`
  }).join('')}</ol></div>`
 }

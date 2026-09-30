@@ -125,3 +125,15 @@ it('keeps another scene’s processing out of the selected canvas',()=>{
  expect(html).toContain('thumbnail scene-processing')
  expect(stageStatus(input,'video')).toContain('Processing')
 })
+
+it('shows live harness detail inside the current timeline step and retains it at a stall',()=>{
+ const input=fixture();input.project.video!.scenes[0].phase='producing';input.events[0].message='Building the scene'
+ input.sceneProgress={scene:{stage:'composition',active:true,label:'Reviewing scene inputs',updatedAt:'2026-10-01T00:01:00Z'}}
+ expect(render(input)).toContain('activity-detail">Reviewing scene inputs')
+ expect(render(input)).toContain('Last update')
+ input.project.video!.scenes[0].phase='failed';input.sceneProgress.scene.active=false
+ expect(render(input)).toContain('Stalled')
+ expect(render(input)).toContain('activity-detail">Reviewing scene inputs')
+ input.project.video!.scenes[0].phase='produced'
+ expect(render(input)).not.toContain('activity-detail')
+})
