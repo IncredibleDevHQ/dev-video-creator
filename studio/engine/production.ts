@@ -1,3 +1,5 @@
+type SceneAnimation=NonNullable<import('../shared/model').Scene['animation']>
+import {prepareSceneAnimation,finishSceneAnimation} from './animation'
 import {generationFailure} from './generation-errors'
 import {buildCreativeProduction} from './creative/production'
 import { randomUUID } from 'node:crypto'
@@ -19,7 +21,8 @@ export const produceScene = async (id: string, sceneId: string) => {
     const scene = video?.scenes.find(scene => scene.id === sceneId)
     if (!scene || !video || !scene.moments.length || !['waiting','produced','failed'].includes(scene.phase)) throw new Error('This scene is not ready to produce')
     if (scene.phase === 'failed' && scene.failure !== 'production') throw new Error('Write this scene first')
-    if (scene.moments.some(moment => momentState(moment,video.settings.voice) === 'to record')) throw new Error('Record the open moments first')
+    if (!scene.creativePlan && scene.moments.some(moment => momentState(moment,video.settings.voice) === 'to record')) throw new Error('Record the open moments first')
+    for(const moment of scene.moments)moment.plannedSeconds ??= moment.segments?.reduce((n,s)=>n+s.estimate,0) || moment.end-moment.start
     scene.phase = 'producing'; scene.error = null; delete scene.failure
     refreshVideoKeys(current.project); expected = scene.inputKey
     addEvent(current,'scene','Producing',{sceneId})
@@ -32,6 +35,15 @@ export const produceScene = async (id: string, sceneId: string) => {
     try {
       const frozen = structuredClone(snapshot)
       const scene = frozen.project.video!.scenes.find(scene => scene.id === sceneId)!
+      let animation:SceneAnimation|undefined
+      if(scene.creativePlan){
+        animation=await prepareSceneAnimation(frozen.project,scene,progress)
+        let current=false
+        await changeProject(id,s=>{const target=s.project.video?.scenes.find(x=>x.id===sceneId);if(target?.phase!=='producing' || target.inputKey!==expected)return;target.animation=animation;current=true
+          if(target.moments.some(m=>momentState(m,s.project.video!.settings.voice)==='to record')){target.phase='waiting';addEvent(s,'scene','Animation ready · record your moments when you’re ready',{sceneId,activity:'complete'})}
+        })
+        if(!current || scene.moments.some(m=>momentState(m,frozen.project.video!.settings.voice)==='to record'))return
+      }
       for (let index = 0; index < scene.moments.length; index++) {
         await progress(`Preparing voice · moment ${index+1} of ${scene.moments.length}`)
         scene.moments[index] = await prepareMomentAudio(id,sceneId,scene.moments[index],frozen.project.video!.settings.voice)
@@ -51,16 +63,16 @@ export const produceScene = async (id: string, sceneId: string) => {
         target.moments = scene.moments; refreshVideoKeys(current.project); expected = target.inputKey; accepted = true
       })
       if (!accepted) return
-      await progress('Building the scene')
+      if(!animation)await progress('Building the scene')
       const savedBundle=await loadStageCheckpoint<null>(id,sceneId,'composition',expected)
-      const files=savedBundle?await restoreFiles(savedBundle.artifacts):scene.creativePlan?await buildCreativeProduction(frozen.project,scene,process.env.MINIMAL_STUDIO_HARNESS_ORIGIN || `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`):await buildSceneBundle(frozen.project,scene)
-      if(!savedBundle) await saveStageCheckpoint(id,sceneId,'composition',expected,null,await archiveFiles(id,sceneId,'composition',files))
+      const files=animation?null:savedBundle?await restoreFiles(savedBundle.artifacts):scene.creativePlan?await buildCreativeProduction(frozen.project,scene,process.env.MINIMAL_STUDIO_HARNESS_ORIGIN || `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`):await buildSceneBundle(frozen.project,scene)
+      if(!savedBundle && files) await saveStageCheckpoint(id,sceneId,'composition',expected,null,await archiveFiles(id,sceneId,'composition',files))
       const savedRender=await loadStageCheckpoint<{objectKey:string}>(id,sceneId,'render',expected)
       let asset:{objectKey:string}
       if(savedRender) {await (await import('./persistence')).readAsset(savedRender.data.objectKey);asset=savedRender.data}
       else {
         await progress('Rendering the scene')
-        const rendered = await renderProductionBundle(files,{fps:30})
+        const rendered = animation?await finishSceneAnimation(id,scene,animation):await renderProductionBundle(files!,{fps:30})
         await progress('Saving the scene')
         asset = await storeAsset({body:rendered,contentType:'video/mp4',kind:'produced-scene',extension:'.mp4',projectId:id,sceneId})
         await saveStageCheckpoint(id,sceneId,'render',expected,{objectKey:asset.objectKey})
@@ -85,3 +97,5 @@ export const produceScene = async (id: string, sceneId: string) => {
   active.set(key,work); void work.catch(() => {})
   return snapshot
 }
+
+export const waitForSceneProduction=(id:string,sceneId:string)=>active.get(`${id}/${sceneId}`) || Promise.resolve()

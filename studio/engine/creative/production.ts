@@ -13,7 +13,7 @@ import {prepareCreativeClock} from './clock'
 import type {CreativeSceneRecord} from './scene'
 export const collectProduction=(directory:string,supplied:Record<string,Buffer>,verifyMedia=true)=>collectCreativeFiles(directory,'production',supplied,verifyMedia)
 /** Produce the accepted treatment with its measured sound and actual camera clips. */
-export const buildCreativeProduction=async(project:Project,scene:Scene,origin:string):Promise<SketchFiles>=>{
+export const buildCreativeProduction=async(project:Project,scene:Scene,origin:string,contentOnly=false):Promise<SketchFiles>=>{
  const checkpoint=await loadStageCheckpoint<null>(project.id,scene.id,'creative-production',scene.inputKey)
  if(checkpoint) return restoreFiles(checkpoint.artifacts)
  const record=await readRow<CreativeSceneRecord>('creative-scenes',scene.id)
@@ -27,7 +27,7 @@ export const buildCreativeProduction=async(project:Project,scene:Scene,origin:st
  const preview=await readRow<{planRecord:string;manifest:unknown;proof:unknown;artifacts:import('../artifacts').ArtifactRef[]}>('creative-previews',scene.id)
  const previewPacket:Record<string,string|Buffer>={}
  const productionSeed:Record<string,string|Buffer>={}
- if(preview?.planRecord===record.id){
+ if(!contentOnly && preview?.planRecord===record.id){
   previewPacket['packet/PREVIEW.json']=JSON.stringify({manifest:preview.manifest,proof:preview.proof,note:'Accepted scene code and assets. The app has already copied the accepted index.html and assets into production as the starting implementation. Preserve its visual design, object identities and animation structure. Adapt moment timing to CLOCK.json, attach supplied audio, replace the presenter photo only where camera clips exist, and write the production manifest. Do not rebuild the scene or reread unrelated references. Fix only concrete contract failures or changes required by the measured clock.'})
   for(const artifact of preview.artifacts){
    const bytes=await readAsset(artifact.objectKey)
@@ -62,8 +62,8 @@ export const buildCreativeProduction=async(project:Project,scene:Scene,origin:st
   packet:{
    'packet/PLAN.json':JSON.stringify(record.treatment,null,2),
    'packet/VISUAL_CAST.json':JSON.stringify(cast.visualCast),...cast.media,
-   'packet/CLOCK.json':JSON.stringify({...prepared.clock,moments:prepared.clock.moments.map((moment,index)=>({...moment,lines:scene.moments[index].lines,camera:scene.moments[index].camera,layout:scene.moments[index].layout,overlay:scene.moments[index].overlay,clips:scene.moments[index].media?.clips.map(clip=>({start:scene.moments[index].start+clip.start,end:scene.moments[index].start+clip.end,camera:clip.camera}))}))},null,2),
-   'packet/PRODUCTION.md':`Produce the accepted treatment. Composition ID: ${context.compositionId}. Plan record: ${record.id}, revision 1. Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106. The app has placed supplied media in production/media/. Reference these files unchanged; do not copy, generate, or edit them. Sound plays once from scene start. Camera is a muted reel aligned to the same whole-scene clock; show it only inside the CLOCK.json camera clips. Honor each CLOCK.json moment’s presenter layout and overlay; the accepted script decisions take precedence over the treatment’s rough staging suggestions. Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.`,
+   'packet/CLOCK.json':JSON.stringify({...prepared.clock,moments:prepared.clock.moments.map((moment,index)=>({...moment,lines:scene.moments[index].lines,camera:contentOnly?'none':scene.moments[index].camera,layout:contentOnly?'full-screen':scene.moments[index].layout,overlay:scene.moments[index].overlay,clips:scene.moments[index].media?.clips.map(clip=>({start:scene.moments[index].start+clip.start,end:scene.moments[index].start+clip.end,camera:clip.camera}))}))},null,2),
+   'packet/PRODUCTION.md':`${contentOnly?'Create content-only animation. The app adds the presenter and final sound separately. Do not draw a presenter, avatar, camera box, or reserved blank region. Use the full content canvas, with body text at least 42px so it remains legible when placed beside the speaker. The supplied silent audio establishes estimated timing only. ':''}Produce the accepted treatment. Composition ID: ${context.compositionId}. Plan record: ${record.id}, revision 1. Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106. The app has placed supplied media in production/media/. Reference these files unchanged; do not copy, generate, or edit them. Sound plays once from scene start. Camera is a muted reel aligned to the same whole-scene clock; show it only inside the CLOCK.json camera clips. Honor each CLOCK.json moment’s presenter layout and overlay; the accepted script decisions take precedence over the treatment’s rough staging suggestions. Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.`,
    'packet/SCENE.md':`# ${slide?.title || project.title}\n${slide?.idea || ''}\nSource evidence:\n${(slide?.evidence || []).join('\n')}`,
    'packet/THEME.json':JSON.stringify(project.branding || {}),
    ...slide?.svg?{'packet/references/page.svg':slide.svg}:{},...previewPacket,...supplied

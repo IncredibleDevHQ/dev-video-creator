@@ -17,3 +17,10 @@ export const sceneTimeMap=(spans:readonly SceneTimeSpan[])=>{
   return span.sceneStart+(second-span.start)/(span.end-span.start)*(span.sceneEnd-span.sceneStart)
  }
 }
+
+export const animationSecond=(scene:import('./model').Scene,second:number,toAnimation=false)=>{
+ const animation=scene.animation
+ if(!animation || animation.inputKey!==scene.animationKey)return second
+ if(animation.moments.length!==scene.moments.length || scene.moments.some((m,i)=>m.id!==animation.moments[i].id))throw new Error('The animation clock does not match this scene')
+ return sceneTimeMap(scene.moments.map((m,i)=>{const a=animation.moments[i];return toAnimation?{start:m.start,end:m.end,sceneStart:a.start,sceneEnd:a.end}:{start:a.start,end:a.end,sceneStart:m.start,sceneEnd:m.end}}))(second)
+}

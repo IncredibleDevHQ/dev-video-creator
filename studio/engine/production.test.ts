@@ -5,6 +5,7 @@ import { afterAll,beforeEach,expect,it,vi } from 'vitest'
 import {generationStops} from './generation-errors'
 import type { Snapshot } from '../shared/api'
 const {render,audio,bundle,joinVideo,creative} = vi.hoisted(() => ({render:vi.fn(),audio:vi.fn(),bundle:vi.fn(),joinVideo:vi.fn(),creative:vi.fn()}))
+vi.mock('./animation',async original=>({...await original<typeof import('./animation')>(),finishSceneAnimation:vi.fn(async()=>Buffer.from('synthetic final scene'))}))
 vi.mock('./creative/production',()=>({buildCreativeProduction:creative}))
 vi.mock('../render/production-render',() => ({renderProductionBundle:render}))
 vi.mock('./scene-audio',() => ({prepareMomentAudio:audio}))
@@ -99,4 +100,46 @@ it('reports budget stops without losing other scenes',async()=>{
  expect(scenes[0].failure).toBe('production')
  expect(scenes[1].phase).toBe('waiting')
  expect(render).toHaveBeenCalledOnce()
+})
+
+it('prepares animation before recording and reuses it after a take arrives',async()=>{
+ await seed('animation-before-take')
+ await changeProject('animation-before-take',current=>{
+  const scene=current.project.video!.scenes[0]
+  scene.creativePlan={recordId:'accepted-treatment',inputKey:scene.planKey || 'fixture'}
+  scene.moments[0].camera='full';scene.moments[0].plannedSeconds=2;refreshVideoKeys(current.project)
+ })
+ creative.mockClear();creative.mockResolvedValue({'index.html':'synthetic animation source'})
+ render.mockResolvedValue(Buffer.from('synthetic animation bytes'))
+ await produceScene('animation-before-take','scene-a')
+ await vi.waitFor(async()=>expect((await loadProject('animation-before-take'))!.project.video!.scenes[0].animation).toBeDefined())
+ let snapshot=(await loadProject('animation-before-take'))!
+ expect(snapshot.project.video!.scenes[0].phase).toBe('waiting')
+ expect(snapshot.views!.scenes['scene-a'].action).toBe('record')
+ expect(snapshot.views!.scenes['scene-a'].produced).toBe(false)
+ expect(snapshot.project.video!.scenes[1].phase).toBe('waiting')
+ const animationKey=snapshot.project.video!.scenes[0].animation!.inputKey
+ await changeProject('animation-before-take',current=>{const scene=current.project.video!.scenes[0];scene.moments[0].take={id:'real-take',objectKey:'fixture.webm',recordingKey:'recording',duration:3};refreshVideoKeys(current.project)})
+ expect((await loadProject('animation-before-take'))!.project.video!.scenes[0].animationKey).toBe(animationKey)
+ await produceScene('animation-before-take','scene-a')
+ await vi.waitFor(async()=>expect((await loadProject('animation-before-take'))!.views!.scenes['scene-a'].produced).toBe(true))
+ expect(creative).toHaveBeenCalledTimes(1)
+ expect(render).toHaveBeenCalledTimes(1)
+})
+
+it('prepares the next scene even when an earlier scene still needs recording',async()=>{
+ await seed('prepare-all')
+ await changeProject('prepare-all',current=>{
+  for(const scene of current.project.video!.scenes){scene.creativePlan={recordId:`accepted-${scene.id}`,inputKey:scene.planKey || 'fixture'};scene.moments[0].camera='full';scene.moments[0].plannedSeconds=2}
+  refreshVideoKeys(current.project)
+ })
+ creative.mockClear();creative.mockResolvedValue({'index.html':'synthetic animation'})
+ render.mockResolvedValue(Buffer.from('synthetic rendered animation'))
+ await produceVideo('prepare-all')
+ await vi.waitFor(async()=>expect((await loadProject('prepare-all'))!.project.video!.phase).toBe('idle'))
+ const snapshot=(await loadProject('prepare-all'))!
+ expect(snapshot.project.video!.scenes.every(s=>s.animation && s.phase==='waiting')).toBe(true)
+ expect(Object.values(snapshot.views!.scenes).every(s=>s.action==='record' && !s.produced)).toBe(true)
+ expect(creative).toHaveBeenCalledTimes(2)
+ expect(joinVideo).not.toHaveBeenCalled()
 })

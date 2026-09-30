@@ -57,3 +57,21 @@ Standalone setup check: copied the app outside its parent repository, installed 
 Desktop launch: `yarn desktop` starts the same engine and frontend in a sandboxed Electron window. It refuses occupied ports, keeps external links in the system browser, asks before granting camera/microphone access, and stops its servers when the window closes. `MINIMAL_STUDIO_WEB_PORT=4196 MINIMAL_STUDIO_PORT=4396 yarn desktop --smoke` uses a temporary local notebook store with paid harness calls disabled; startup/load/shutdown passed and both ports were verified released. This is a development shell, not a packaged installer; native device permission and recording still need verification.
 
 Unified scene generation: new scene planning stops after the accepted treatment and narration. “Generate scene” prepares measured sound, generates one Hyperframes composition and renders one playable video. There is no separate silent-preview generation or preview UI. Older accepted preview files remain retained and can seed the unified generation as migration input; they are not a separate user-facing stage.
+
+### Animation and recording are independent
+
+For skill-driven scenes, `Prepare scenes` saves a content-only animation
+for each accepted plan, even when the speaker has not recorded. Missing
+recordings remain visible on each scene and keep final export unavailable.
+Record moments in any order, review the take, and save it before finishing
+the scene. Countdown capture supports a manual Esc stop or a chosen duration.
+
+The animation checkpoint uses design inputs, not take IDs. Completing or
+retaking a scene prepares its measured sound and camera tracks, maps each
+animation moment to the recorded duration, and composites the presenter into
+a separate region. It does not call the animation harness again unless the
+design inputs change. Final MP4s are flattened exports; the content animation,
+composition artifacts and original recordings remain separately persisted.
+Older produced scenes remain playable; they acquire this reusable animation
+on their next skill-driven production. Physical-camera end-to-end verification
+and production PostgreSQL/S3 verification of this new path remain outstanding.

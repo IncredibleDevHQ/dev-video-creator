@@ -6,7 +6,7 @@ export const stageStatus=(snapshot:Snapshot,stage:string,connected=true)=>{
   active=snapshot.status==='building' && !snapshot.stopping
  }else if(stage==='video' && snapshot.project.video){
   const video=snapshot.project.video
-  active=video.phase==='joining' || video.scenes.some(scene=>['writing','replanning','changing','producing'].includes(scene.phase))
+  active=video.phase==='preparing' || video.phase==='joining' || video.scenes.some(scene=>['writing','replanning','changing','producing'].includes(scene.phase))
   label=active?'Processing':video.phase==='failed' || video.scenes.some(scene=>scene.phase==='failed')?'Needs attention':snapshot.views?.video.action==='export'?'Ready':video.scenes.some(scene=>scene.phase==='queued')?'Waiting':'In progress'
  }
  if(active && snapshot.readOnly){label='Saved';active=false}

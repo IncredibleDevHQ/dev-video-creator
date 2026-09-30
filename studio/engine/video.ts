@@ -176,3 +176,5 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
   })
   schedulePlanning(id); return snapshot
 }
+
+export const waitForPlanning=(id:string)=>running.get(id) || Promise.resolve()

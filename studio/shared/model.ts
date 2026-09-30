@@ -33,6 +33,8 @@ export type Scene = {
   presence: Presence | null
   moments: Moment[]
   inputKey: string
+  animationKey?: string
+  animation?: {inputKey:string;objectKey:string;moments:Array<{id:string;start:number;end:number}>}
   planKey?: string
   creativePlan?: { recordId: string; inputKey: string }
   preview?: { planKey: string; objectKey: string; moments: Array<{id:string;start:number;end:number}> }
@@ -55,7 +57,7 @@ export type Project = {
   slides: Slide[]
   video: {
     settings: VideoSettings
-    phase?: 'idle' | 'joining' | 'failed'
+    phase?: 'idle' | 'preparing' | 'joining' | 'failed'
     error?: string | null
     scenes: Scene[]
     transitions: Transition[]

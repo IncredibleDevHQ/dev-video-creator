@@ -1,6 +1,8 @@
+import {planScene,waitForPlanning} from './video'
+import {produceScene,waitForSceneProduction} from './production'
 import type { Transition, SceneInterval } from '../shared/model'
 import { loadProject, changeProject, addEvent } from './projects'
-import { videoView } from './state'
+import { videoView, momentState } from './state'
 import { refreshVideoKeys } from './scene-model'
 import { joinScenes } from '../render/join'
 import { storeAsset } from './persistence'
@@ -15,6 +17,22 @@ export const updateTransition = (id: string, index: number, transition: unknown)
 })
 export const produceVideo = async (id: string) => {
   if (running.has(id)) return (await loadProject(id))!
+  const initial=await loadProject(id)
+  if(initial && videoView(initial.project).state==='Prepare scenes'){
+    const started=await changeProject(id,s=>{s.project.video!.phase='preparing';s.project.video!.error=null;addEvent(s,'video','Preparing scenes; recordings can be added later')})
+    const work=(async()=>{
+      await waitForPlanning(id)
+      for(const item of started.project.video!.scenes){
+        let current=(await loadProject(id))!.project.video!.scenes.find(s=>s.id===item.id)
+        if(current?.phase==='queued'){await planScene(id,item.id);current=(await loadProject(id))!.project.video!.scenes.find(s=>s.id===item.id)}
+        if(!current || current.phase!=='waiting')continue
+        if(current.animation?.inputKey===current.animationKey && current.animation && current.moments.some(m=>momentState(m,started.project.video!.settings.voice)==='to record'))continue
+        await produceScene(id,item.id);await waitForSceneProduction(id,item.id)
+      }
+      await changeProject(id,s=>{const failed=s.project.video!.scenes.filter(scene=>scene.phase==='failed').length;s.project.video!.phase=failed?'failed':'idle';s.project.video!.error=failed?`${failed} scenes need attention. Other saved animations are ready.`:null;addEvent(s,'video',failed?'Scene preparation finished with scenes needing attention.':'Scene preparation finished. Add remaining recordings in any order.')})
+    })().catch(async reason=>{await changeProject(id,s=>{s.project.video!.phase='failed';s.project.video!.error=reason instanceof Error?reason.message:'Could not prepare scenes'})}).finally(()=>running.delete(id))
+    running.set(id,work);return started
+  }
   let expected = ''
   const snapshot = await changeProject(id,current => {
     if (!videoView(current.project).enabled || videoView(current.project).action !== 'produce-video') throw new Error('Produce every scene first')

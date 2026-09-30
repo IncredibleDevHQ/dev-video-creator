@@ -17,7 +17,8 @@ export const sceneView = (scene: Scene, voice: Voice): SceneView => {
   if (scene.phase === 'producing') return view('Producing', 'wait')
   // Never report an empty or stale plan as ready to produce.
   if (!scene.moments.length) return view('Writing the scene', 'wait')
-  if (openMomentIds.length) return view(`Your turn · ${openMomentIds.length} to record`, 'record')
+  if(scene.creativePlan && !scene.produced && (!scene.animation || scene.animation.inputKey!==scene.animationKey))return view('Ready to animate','produce')
+  if (openMomentIds.length) return view(scene.animation && scene.animation.inputKey===scene.animationKey?'Animation ready':`Your turn · ${openMomentIds.length} to record`, 'record')
   if (scene.phase === 'produced' && scene.produced?.inputKey === scene.inputKey) return view('Produced', 'download', true)
   return view('Ready to produce', 'produce')
 }
@@ -27,7 +28,9 @@ export const videoView = (project: Project) => {
   if (!video) return { action: 'make-video' as const, enabled: project.slides.length > 0, producedScenes: 0 }
   const producedScenes = video.scenes.filter(scene => sceneView(scene, video.settings.voice).produced).length
   const allProduced = video.scenes.length > 0 && video.scenes.length === project.slides.length && video.scenes.every((scene, index) => scene.slideId === project.slides[index]?.id) && producedScenes === video.scenes.length
+  if(video.phase==='preparing')return {action:'produce-video' as const,enabled:false,producedScenes,state:'Preparing scenes'}
   if (video.phase === 'joining') return { action: 'produce-video' as const, enabled: false, producedScenes, state: 'Producing video' }
+  if(!allProduced && video.scenes.some(s=>s.phase==='queued' || s.creativePlan && s.phase==='waiting' && !sceneView(s,video.settings.voice).produced && (!s.animation || s.animation.inputKey!==s.animationKey || !sceneView(s,video.settings.voice).openMomentIds.length)))return {action:'produce-video' as const,enabled:true,producedScenes,state:'Prepare scenes'}
   const current = allProduced && video.produced?.inputKey === video.inputKey
   return { action: current ? 'export' as const : 'produce-video' as const, enabled: allProduced, producedScenes }
 }

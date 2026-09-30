@@ -13,6 +13,7 @@ export const refreshVideoKeys = (project: Project) => {
   for (const scene of video.scenes) {
     for (const moment of scene.moments) moment.audioKey = momentAudioKey(moment,video.settings.voice)
     synchronizeClock(scene)
+    scene.animationKey=fingerprintOf({branding:project.branding,plan:scene.planKey,creativePlan:scene.creativePlan,slide:project.slides.find(slide=>slide.id===scene.slideId)?.svg,moments:scene.moments.map(m=>({id:m.id,lines:m.lines,seconds:m.plannedSeconds || m.segments?.reduce((n,s)=>n+s.estimate,0) || m.end-m.start,camera:m.camera,layout:m.layout,overlay:m.overlay}))})
     scene.inputKey = fingerprintOf({ branding: project.branding, plan: scene.planKey, creativePlan: scene.creativePlan, slide: project.slides.find(slide => slide.id === scene.slideId)?.svg, voice: video.settings.voice, moments: scene.moments.map(moment => ({ id: moment.id, lines: moment.lines, start: moment.start, end: moment.end, camera: moment.camera, layout: moment.layout, overlay: moment.overlay, segments: moment.segments, media: moment.media?.inputKey, take: moment.take?.id, audio: moment.audio?.inputKey })) })
   }
   video.inputKey = fingerprintOf({ scenes: video.scenes.map(scene => ({ id: scene.id, input: scene.inputKey })), transitions: video.transitions })

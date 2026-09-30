@@ -163,3 +163,13 @@ every space into an unbreakable run. Margin comments, annotations, and speaker
 regions must remain outside that column. Check the fully revealed replacement,
 not only its first frame. A beside-slide presenter reserves a separate region;
 a corner presenter must not obscure important text, diagrams, or controls.
+
+## Content-only animation
+
+When `PRODUCTION.md` requests content-only animation, the app will add the
+presenter and final voice separately. Draw the explanation across the full
+canvas. Do not bake in a presenter, avatar, reserved camera box, or silence
+label. The supplied silent clock gives the animation its planned duration;
+it is not a request to create narration. Keep body type at least 42px at
+1920×1080 so the composition remains readable beside a speaker. Presenter
+layout is applied by the app from the scene's accepted moment settings.

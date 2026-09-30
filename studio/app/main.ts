@@ -1,3 +1,4 @@
+import {animationSecond} from '../shared/scene-time'
 import {recordingSetup} from './recording-setup'
 import {movePlayhead} from './moment-timeline'
 import {gear,sceneSettings} from './camera-settings'
@@ -110,7 +111,7 @@ const render = () => {
       previousPlayer.toggleAttribute('data-whole-video',player.hasAttribute('data-whole-video'))
       player.replaceWith(previousPlayer)
       if(playback.playing){void previousPlayer.play().catch(()=>{});animatePlayhead(previousPlayer)}
-    } else player.currentTime = player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : second
+    } else player.currentTime = player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(project.video!.scenes[selected],second,true):second
   }
   movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
@@ -207,7 +208,7 @@ document.addEventListener('click', async event => {
   if (capture.phase !== 'idle' && (target.dataset.slide || target.dataset.scene || target.dataset.moment || target.dataset.stage)) return
   if (target.dataset.slide) { selected = Number(target.dataset.slide); render(); return }
   if (target.dataset.scene) { stopPractice(); selected = Number(target.dataset.scene); momentIndex = 0; second = 0; const player = root.querySelector<HTMLVideoElement>('[data-whole-video]'); if (player && snapshot) player.currentTime = videoSecond(snapshot.project,selected,0); render(); return }
-  if (target.dataset.moment) { stopPractice(); momentIndex = Number(target.dataset.moment); second = snapshot?.project.video?.scenes[selected]?.moments[momentIndex]?.start || 0; const player = root.querySelector<HTMLVideoElement>('[data-scene-player]'); if (player && snapshot) player.currentTime = player.hasAttribute('data-whole-video') ? videoSecond(snapshot.project,selected,second) : second; render(); return }
+  if (target.dataset.moment) { stopPractice(); momentIndex = Number(target.dataset.moment); second = snapshot?.project.video?.scenes[selected]?.moments[momentIndex]?.start || 0; const player = root.querySelector<HTMLVideoElement>('[data-scene-player]'); if (player && snapshot) player.currentTime = player.hasAttribute('data-whole-video') ? videoSecond(snapshot.project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],second,true):second; render(); return }
   if (target.dataset.stage) { wholeVideo = false; stopPractice(); stage = target.dataset.stage as typeof stage; render(); return }
   const action = target.dataset.action
   try {
@@ -275,12 +276,12 @@ document.addEventListener('click', async event => {
       try{const track=await api.practice(id,scene.id,moment.id);if(request!==practiceRequest) return;practiceLoading=false;practice.start(track);render()}
       catch(reason){if(request===practiceRequest){stopPractice();render();error(reason)}}
     }
-    if (action === 'scene-next') {
+    if (action === 'scene-next' || action==='record-moment') {
       const scene = snapshot.project.video!.scenes[selected]
       if (snapshot.views?.scenes[scene.id].action === 'retry') { snapshot = await api.retryScene(id,scene.id); render() }
-      else if (snapshot.views?.scenes[scene.id].action === 'record') {
+      else if (snapshot.views?.scenes[scene.id].action === 'record' || action==='record-moment') {
         stopPractice(); recordingSceneId = scene.id; recordingProjectId = id
-        const open = snapshot.views.scenes[scene.id].openMomentIds
+        const open = snapshot.views?.scenes[scene.id].openMomentIds || []
         const index=scene.moments.findIndex(moment=>open.includes(moment.id));prepareRecording(scene.moments[index],index)
       } else if (snapshot.views?.scenes[scene.id].action === 'produce') { stopPractice(); snapshot = await api.produceScene(id,scene.id); render() }
     }
@@ -358,7 +359,7 @@ const animatePlayhead=(player:HTMLVideoElement)=>{
  stopPlayhead()
  const tick=()=>{
   if(!player.isConnected || player.paused || player.ended || !snapshot){stopPlayhead();return}
-  const at=player.hasAttribute('data-whole-video')?sceneAt(snapshot.project,player.currentTime):{index:selected,second:player.currentTime}
+  const at=player.hasAttribute('data-whole-video')?sceneAt(snapshot.project,player.currentTime):{index:selected,second:player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],player.currentTime):player.currentTime}
   movePlayhead(root,snapshot.project.video?.scenes[at.index]?.moments || [],at.second)
   playheadFrame=requestAnimationFrame(tick)
  }
@@ -376,7 +377,7 @@ root.addEventListener('timeupdate',event => {
   if (player.hasAttribute('data-whole-video')) {
     const at = sceneAt(snapshot.project,player.currentTime)
     changedScene = selected !== at.index; selected = at.index; second = at.second
-  } else second = player.currentTime
+  } else second = player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],player.currentTime):player.currentTime
   const scene = snapshot.project.video?.scenes[selected]
   if (!scene) return
   const clock=scene.moments
