@@ -1,21 +1,27 @@
 import type { Moment } from '../shared/model'
 import type { RecordedPart } from '../shared/api'
 export class Recording {
-  phase: 'idle' | 'preparing' | 'recording' | 'reviewing' | 'uploading' = 'idle'
+  phase: 'idle' | 'preparing' | 'countdown' | 'recording' | 'reviewing' | 'uploading' = 'idle'
   stream: MediaStream | null = null
   blob: Blob | null = null
   url: string | null = null
   parts: RecordedPart[] = []
   moments: Moment[] = []
   current = 0
+  countdown = 3
+  stopAfter: number | null = null
+  private finishing=false
   private generation=0
   private recorder: MediaRecorder | null = null
   private started = 0
   private tick: ReturnType<typeof setInterval> | null = null
   constructor(private change: () => void, private clock: (seconds: number) => void) {}
   get elapsed() { return Math.max(0, (performance.now()-this.started)/1000) }
-  async start(moments: Moment[]) {
+  async start(moments: Moment[], options: {stopAfter?:number|null} = {}) {
     if (this.phase !== 'idle') throw new Error('Finish this recording first')
+    if(!moments.length) throw new Error('Choose a moment to record')
+    if(options.stopAfter!=null && (!Number.isFinite(options.stopAfter) || options.stopAfter<1 || options.stopAfter>600)) throw new Error('Choose a stop time between 1 and 600 seconds')
+    this.stopAfter=options.stopAfter ?? null;this.finishing=false;this.countdown=3
     const generation=++this.generation
     this.moments = structuredClone(moments)
     this.phase = 'preparing'; this.change()
@@ -34,22 +40,44 @@ export class Recording {
         this.blob = new Blob(chunks, { type: this.recorder!.mimeType }); this.url = URL.createObjectURL(this.blob)
         this.stopTracks(); this.phase = 'reviewing'; this.change()
       }
-      this.recorder.start(250); this.started = performance.now(); this.phase = 'recording'
-      this.tick = setInterval(() => this.clock(this.elapsed-(this.parts.at(-1)?.to || 0)), 100)
-      this.change()
+      this.phase='countdown';this.change()
+      this.tick=setInterval(()=>{
+        if(generation!==this.generation)return
+        if(--this.countdown>0){this.change();return}
+        if(this.tick)clearInterval(this.tick)
+        this.recorder!.start(250);this.started=performance.now();this.phase='recording'
+        this.tick=setInterval(()=>{
+          this.clock(this.elapsed-(this.parts.at(-1)?.to || 0))
+          if(this.stopAfter!==null && this.elapsed>=this.stopAfter)this.stop()
+        },100)
+        this.change()
+      },1000)
     } catch (error) { if(generation!==this.generation) return; this.stopTracks(); this.phase = 'idle'; this.change();
       if(error instanceof Error && error.name==='NotAllowedError') throw new Error('Camera or microphone access was denied. Allow access in your browser’s site settings, then select Record again. You can still practice with the presenter stand-in.')
       if(error instanceof Error && error.name==='NotFoundError') throw new Error('No matching camera or microphone was found. Connect the required device, then select Record again.')
       throw error }
   }
   next() {
-    if (this.phase !== 'recording') return
+    if (this.phase !== 'recording' || this.finishing) return
     const moment = this.moments[this.current]
     const from = this.parts.at(-1)?.to || 0; const to = this.elapsed
     if (to-from < 0.4) throw new Error('Record the moment before moving on')
     this.parts.push({ momentId: moment.id, recordingKey: moment.recordingKey, from, to })
-    if (++this.current >= this.moments.length) { this.recorder!.stop(); if (this.tick) clearInterval(this.tick); this.tick = null }
+    if (++this.current >= this.moments.length) { this.finish() }
     else this.change()
+  }
+  stop() {
+    if(this.phase!=='recording' || this.finishing)return
+    const from=this.parts.at(-1)?.to || 0,to=this.elapsed
+    if(to-from<.4)throw new Error('Record at least a moment before stopping')
+    const moment=this.moments[this.current]
+    this.parts.push({momentId:moment.id,recordingKey:moment.recordingKey,from,to})
+    this.finish()
+  }
+  private finish(){
+    this.finishing=true
+    if(this.tick)clearInterval(this.tick);this.tick=null
+    this.recorder!.stop()
   }
   dispose() {
     this.generation++

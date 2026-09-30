@@ -1,3 +1,4 @@
+import {recordingSetup} from './recording-setup'
 import {movePlayhead} from './moment-timeline'
 import {gear,sceneSettings} from './camera-settings'
 import {stageStatus} from './stage-status'
@@ -49,7 +50,7 @@ const stopPractice = () => { practiceRequest++; practice.stop();practiceLoading=
 let recordingSceneId = ''
 let recordingProjectId = ''
 const capture = new Recording(() => {
-  if (capture.phase === 'recording') {
+  if (capture.phase === 'recording' || capture.phase === 'countdown') {
     const scene = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)
     const id = capture.moments[Math.min(capture.current,capture.moments.length-1)]?.id
     momentIndex = Math.max(0,scene?.moments.findIndex(moment => moment.id === id) ?? 0)
@@ -59,10 +60,12 @@ const capture = new Recording(() => {
 }, elapsed => {
   const moment = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)?.moments[momentIndex]
   second = (moment?.start || 0)+elapsed
-  const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${elapsed.toFixed(1)}s`
+  const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${elapsed.toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
 })
+let pendingRecording: import('../shared/model').Moment | null = null
+const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=moment;showDialog(recordingSetup(moment,index))}
 const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog)
 const settingsScreen = new Settings(root,()=>snapshot?.project.id || null,()=>render(),async () => {if(snapshot) snapshot=await api.load(snapshot.project.id)})
 const pendingChats=new Set<string>()
@@ -151,6 +154,11 @@ document.addEventListener('submit', async event => {
   const form = event.target as HTMLFormElement
   const values = new FormData(form)
   try {
+    if(form.id==='recording-setup' && pendingRecording){
+      const seconds=String(values.get('seconds') || '').trim()
+      const moment=pendingRecording;pendingRecording=null;dialog.close()
+      await capture.start([moment],{stopAfter:seconds?Number(seconds):null})
+    }
     if(form.id==='source'){
       if(pending) return
       pendingSource=String(values.get('source')).trim();if(!pendingSource) return
@@ -273,15 +281,17 @@ document.addEventListener('click', async event => {
       else if (snapshot.views?.scenes[scene.id].action === 'record') {
         stopPractice(); recordingSceneId = scene.id; recordingProjectId = id
         const open = snapshot.views.scenes[scene.id].openMomentIds
-        await capture.start(scene.moments.filter(moment => open.includes(moment.id)))
+        const index=scene.moments.findIndex(moment=>open.includes(moment.id));prepareRecording(scene.moments[index],index)
       } else if (snapshot.views?.scenes[scene.id].action === 'produce') { stopPractice(); snapshot = await api.produceScene(id,scene.id); render() }
     }
     if (target.dataset.retake) {
       const scene = snapshot.project.video!.scenes[selected]
       stopPractice(); recordingSceneId = scene.id; recordingProjectId = id
-      await capture.start([scene.moments[Number(target.dataset.retake)]])
+      prepareRecording(scene.moments[Number(target.dataset.retake)],Number(target.dataset.retake))
     }
     if (action === 'record-next') capture.next()
+    if (action === 'record-stop') capture.stop()
+    if (action === 'retake-recording') {const moment=capture.moments[0];capture.dispose();if(moment)prepareRecording(moment,momentIndex)}
     if (action === 'discard-take') capture.dispose()
     if (action === 'save-take' && capture.blob) {
       capture.phase = 'uploading'; render()
@@ -305,6 +315,11 @@ const saved = parameters.get('notebook') || parameters.get('project') || localSt
 if (saved) api.load(saved).then(attach).catch(() => {localStorage.removeItem('minimal-studio-project');void refreshNotebooks().catch(error)})
 else void refreshNotebooks().catch(error)
 
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape' || event.repeat)return
+  if(capture.phase==='recording'){event.preventDefault();try{capture.stop()}catch(reason){error(reason)}}
+  else if(capture.phase==='countdown' || capture.phase==='preparing'){event.preventDefault();capture.dispose()}
+})
 root.addEventListener('keydown', event => {
   if (!snapshot || stage !== 'presentation' || /INPUT|TEXTAREA/.test((event.target as Element).tagName)) return
   const command = event.metaKey || event.ctrlKey

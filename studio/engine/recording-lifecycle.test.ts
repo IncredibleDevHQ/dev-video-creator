@@ -33,3 +33,28 @@ it('leaves recording available for retry after permission denial',async()=>{
   await expect(recorder.start([moment])).rejects.toThrow('Record again')
   expect(getUserMedia).toHaveBeenCalledTimes(2)
 })
+
+it('counts down before capture and stops a timed take once for review',async()=>{
+ vi.useFakeTimers();vi.spyOn(performance,'now').mockImplementation(()=>Date.now())
+ const stopTrack=vi.fn()
+ vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop:stopTrack}],getVideoTracks:()=>[]})}})
+ class Recorder{
+  static isTypeSupported=()=>true
+  static latest:Recorder
+  state='inactive';mimeType='audio/webm';onstop:(()=>void)|null=null;ondataavailable:((event:{data:Blob})=>void)|null=null
+  constructor(){Recorder.latest=this}
+  start=vi.fn(()=>{this.state='recording'})
+  stop=vi.fn(()=>{this.state='inactive';this.ondataavailable?.({data:new Blob(['test take'])});this.onstop?.()})
+ }
+ vi.stubGlobal('MediaRecorder',Recorder)
+ const recording=new Recording(()=>{},()=>{})
+ try{
+  await recording.start([moment],{stopAfter:2})
+  expect(recording.phase).toBe('countdown');expect(Recorder.latest.start).not.toHaveBeenCalled()
+  vi.advanceTimersByTime(3000);expect(recording.phase).toBe('recording')
+  vi.advanceTimersByTime(2000);expect(recording.phase).toBe('reviewing')
+  expect(recording.parts).toEqual([{momentId:'moment',recordingKey:'record',from:0,to:2}])
+  recording.stop();vi.advanceTimersByTime(10000);expect(Recorder.latest.stop).toHaveBeenCalledOnce()
+  expect(stopTrack).toHaveBeenCalledOnce();expect(recording.blob?.size).toBeGreaterThan(0)
+ }finally{recording.dispose();vi.useRealTimers();vi.restoreAllMocks()}
+})

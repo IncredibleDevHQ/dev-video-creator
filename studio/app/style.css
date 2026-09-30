@@ -143,3 +143,14 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .transcript-moment h3 .camera-cue{margin-right:5px}
 .camera-cue svg{display:block;flex:none}
 @media(prefers-color-scheme:dark){.camera-cue{color:#e9b773}}
+.recording-nudge{display:flex;align-items:baseline;gap:9px;margin:0 0 14px;font-size:12px;color:var(--muted)}
+.recording-nudge strong{color:var(--text);white-space:nowrap}
+.recording-script{margin:20px 0;padding:18px 20px;border-left:2px solid var(--accent);background:var(--selected);font-size:18px;line-height:1.65}
+.record-stop-field{display:flex;align-items:center;gap:10px;margin-top:8px;color:var(--muted);font-size:13px}
+.record-stop-field input{max-width:170px}
+.recording-help{font-size:12px;line-height:1.6;color:var(--muted)}
+.recording-help kbd{border:1px solid var(--line);border-radius:4px;padding:1px 4px;font:inherit}
+.practice-cue>span{font-size:clamp(16px,1.8vw,24px);line-height:1.5;max-height:160px;overflow:auto}
+.take-review h3{font-size:14px;margin:0 0 5px}.take-review p{font-size:12px;color:var(--muted);margin:0 0 12px}
+
+.scene-recording-needed{display:flex;align-items:center;gap:5px;font-size:11px;margin-top:7px;color:var(--muted)}
