@@ -25,7 +25,8 @@ export const sceneActivityRail=(snapshot:Snapshot,scene:Scene,connected:boolean)
  const {active,events}=sceneActivity(snapshot,scene)
  const produced=!!snapshot.views?.scenes[scene.id]?.produced
  const animationReady=Boolean(scene.animation && scene.animation.inputKey===scene.animationKey)
- const stages=scene.animation || events.some(e=>e.message==='Rendering the animation')?[...legacyStages.slice(0,4),{label:'Animation',match:/Building the scene/},{label:'Animation render',match:/Rendering the animation|Animation ready/},{label:'Your recordings',match:/moments? recorded/},{label:'Voice',match:/Preparing voice/},{label:'Final render',match:/Rendering the scene/},legacyStages[7]]:legacyStages
+ const needsRecording=scene.moments.some(moment=>moment.camera!=='none') || snapshot.project.video?.settings.voice.kind==='record'
+ const stages=scene.animation || scene.creativePlan && !scene.produced || events.some(e=>e.message==='Rendering the animation')?[...legacyStages.slice(0,4),{label:'Animation',match:/Building the scene/},{label:'Animation render',match:/Rendering the animation|Animation ready/},...(needsRecording?[{label:'Your recordings',match:/moments? recorded/}]:[]),{label:'Voice',match:/Preparing voice/},{label:'Final render',match:/Rendering the scene/},legacyStages[7]]:legacyStages
  const reached=stages.map(stage=>events.filter(event=>stage.match.test(event.message)).at(-1))
  // The latest run determines the frontier; a retry revisits that row rather
  // than appending another run of steps. Historical errors remain in History.
