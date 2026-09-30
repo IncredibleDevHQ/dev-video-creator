@@ -7,7 +7,7 @@ import type {Moment} from '../shared/model'
 import {sceneTimeMap} from '../shared/scene-time'
 export type AnimationMoment={id:string;start:number;end:number}
 /** The animation stays immutable; only its clock and the separately recorded media change. */
-export const composePresenter=async(input:{animation:Buffer;animationMoments:AnimationMoment[];moments:Moment[];audio:Buffer;camera?:Buffer})=>{
+export const composePresenter=async(input:{animation:Buffer;animationMoments:AnimationMoment[];moments:Moment[];audio:Buffer;camera?:Buffer;overlays?:Record<string,Buffer>})=>{
  if(input.animationMoments.length!==input.moments.length || input.moments.some((m,i)=>m.id!==input.animationMoments[i].id))throw new Error('The animation does not match this scene’s moments')
  const spans=input.moments.map((m,i)=>({start:m.start,end:m.end,sceneStart:input.animationMoments[i].start,sceneEnd:input.animationMoments[i].end}))
  const animationTime=sceneTimeMap(spans)
@@ -16,7 +16,9 @@ export const composePresenter=async(input:{animation:Buffer;animationMoments:Ani
  try{
   await writeFile(join(dir,'animation.mp4'),input.animation);await writeFile(join(dir,'audio.wav'),input.audio)
   if(input.camera)await writeFile(join(dir,'camera.mp4'),input.camera)
-  const parts:Array<{start:number;end:number;camera:boolean;layout:Moment['layout']}> = []
+  const overlayKeys=Object.keys(input.overlays || {})
+  for(const [i,key] of overlayKeys.entries())await writeFile(join(dir,`overlay-${i}.png`),input.overlays![key])
+  const parts:Array<{start:number;end:number;camera:boolean;layout:Moment['layout'];momentId:string}> = []
   for(const moment of input.moments){
    const clips=moment.media?.clips
    if(!clips?.length)throw new Error('The scene needs measured media intervals')
@@ -24,7 +26,7 @@ export const composePresenter=async(input:{animation:Buffer;animationMoments:Ani
    for(const clip of clips){
     if(!Number.isFinite(clip.start) || !Number.isFinite(clip.end) || Math.abs(clip.start-at)>.05 || clip.end<=clip.start)throw new Error('The recording intervals are not continuous')
     if(clip.camera && !input.camera)throw new Error('The presenter recording is missing')
-    parts.push({start:moment.start+clip.start,end:Math.min(moment.end,moment.start+clip.end),camera:clip.camera,layout:moment.layout});at=clip.end
+    parts.push({momentId:moment.id,start:moment.start+clip.start,end:Math.min(moment.end,moment.start+clip.end),camera:clip.camera,layout:moment.layout});at=clip.end
    }
    if(Math.abs(at-(moment.end-moment.start))>.1)throw new Error('The recording intervals do not cover this moment')
   }
@@ -38,7 +40,8 @@ export const composePresenter=async(input:{animation:Buffer;animationMoments:Ani
    const {content,camera}=presenterLayout(part.layout)
    const {width:cw,height:ch,x:cx,y:cy}=camera
    filters.push(`[2:v]trim=start=${part.start}:end=${part.end},setpts=PTS-STARTPTS,fps=30,scale=${cw}:${ch}:force_original_aspect_ratio=increase,crop=${cw}:${ch},setsar=1[presenter${i}]`)
-   if(full){filters.push(`[content${i}]nullsink`);filters.push(`[presenter${i}]null[part${i}]`)}
+   if(full){filters.push(`[content${i}]nullsink`);const overlay=overlayKeys.indexOf(part.momentId)
+    filters.push(overlay<0?`[presenter${i}]null[part${i}]`:`[presenter${i}][${2+Number(!!input.camera)+overlay}:v]overlay=0:0:shortest=1[part${i}]`)}
    else{
     const {width,height}=content
     filters.push(`[content${i}]scale=${width}:${height},pad=1920:1080:${content.x}:${content.y}:color=0x101817,setsar=1[layout${i}]`)
@@ -47,7 +50,7 @@ export const composePresenter=async(input:{animation:Buffer;animationMoments:Ani
   }
   filters.push(`${parts.map((_,i)=>`[part${i}]`).join('')}concat=n=${parts.length}:v=1:a=0[video]`)
   const output=join(dir,'scene.mp4')
-  await runCommand('ffmpeg',['-y','-loglevel','error','-i',join(dir,'animation.mp4'),'-i',join(dir,'audio.wav'),...input.camera?['-i',join(dir,'camera.mp4')]:[],'-filter_complex',filters.join(';'),'-map','[video]','-map','1:a','-t',String(duration),'-r','30','-c:v','libx264','-preset','fast','-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart',output],600_000)
+  await runCommand('ffmpeg',['-y','-loglevel','error','-i',join(dir,'animation.mp4'),'-i',join(dir,'audio.wav'),...input.camera?['-i',join(dir,'camera.mp4')]:[],...overlayKeys.flatMap((_,i)=>['-loop','1','-i',join(dir,`overlay-${i}.png`)]),'-filter_complex',filters.join(';'),'-map','[video]','-map','1:a','-t',String(duration),'-r','30','-c:v','libx264','-preset','fast','-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart',output],600_000)
   return await readFile(output)
  }finally{await rm(dir,{recursive:true,force:true})}
 }

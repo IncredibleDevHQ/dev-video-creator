@@ -1,3 +1,5 @@
+import {presenterOverlays} from '../render/presenter-overlay'
+import {loadProject} from './projects'
 import {mkdtemp,readFile,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
@@ -38,5 +40,8 @@ export const prepareSceneAnimation=async(project:Project,scene:Scene,progress:(m
 }
 export const finishSceneAnimation=async(projectId:string,scene:Scene,animation:NonNullable<Scene['animation']>)=>{
  const clock=await prepareCreativeClock(projectId,scene)
- return composePresenter({animation:await readAsset(animation.objectKey),animationMoments:animation.moments,moments:scene.moments,audio:await readAsset(clock.audioKey),...clock.videoKey?{camera:await readAsset(clock.videoKey)}:{}})
+ const project=(await loadProject(projectId))!.project
+ const overlays=await presenterOverlays(project,scene)
+ for(const [momentId,body] of Object.entries(overlays))await storeAsset({body,contentType:'image/png',extension:'.png',kind:'presenter-overlay',projectId,sceneId:scene.id,momentId})
+ return composePresenter({overlays,animation:await readAsset(animation.objectKey),animationMoments:animation.moments,moments:scene.moments,audio:await readAsset(clock.audioKey),...clock.videoKey?{camera:await readAsset(clock.videoKey)}:{}})
 }
