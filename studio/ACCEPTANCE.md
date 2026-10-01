@@ -8,7 +8,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 
 | Requirement | Current evidence | Status / next proof |
 | --- | --- | --- |
-| M0: standalone layout, copied tests, two-command fresh clone | `app`, `engine`, `render`, `desktop`, `shared`, `checks`; own lockfile; outside-parent install/doctor run recorded in historical notes | Partial: system tools came from the existing machine. Clean-machine provisioning is unproven. |
+| M0: standalone layout, copied tests, two-command fresh clone | `app`, `engine`, `render`, `desktop`, `shared`, `checks`; own lockfile; outside-parent install/doctor run recorded in historical notes | Partial: committed studio installs/tests/builds in a fresh Linux container without host dependencies. Signed-in harness setup and complete clean-machine product flow remain unproven. |
 | M1: real blog → rich deck, progressive slides, editing/chat/PDF | Actual Kimi K3 Canvas notebook has nine rich SVG slides. Isolated pipeline, editor and PDF checks exist. | Partial: one actual Claude source-chat reply with four validated source passages is now proven; real slide-edit quality and complete prototype visual acceptance remain unverified. |
 | M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned and produced scenes. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: native settings preview now verifies inherited scenes and custom overrides; some live processing details still need visual review. |
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: physical camera/mic permission denial, actual one/pass capture, review, retake and save need device-level verification. |
@@ -29,6 +29,14 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
   the engine refuses startup without creating notebook data. This does not prove
   clean-machine provisioning.
 - `yarn run build`: TypeScript and Vite production build passed.
+- Fresh Linux/arm64 container (Node 22.23.2), committed source `9dcd141`:
+  locked install, 272 tests passed with four native macOS voice tests skipped,
+  and production build passed. Real beside-slide, corner and full-screen
+  presenter compositor fixtures ran. No host volumes, keys or notebook data
+  were mounted. Distro Chromium uses `PUPPETEER_EXECUTABLE_PATH`; prerequisites
+  came from Debian packages. Signed-in harness/device/voice flow remains unproven.
+  Reproducer: `node checks/standalone-check.mjs`; committed source, twenty-minute
+  limit. The initial missing-browser/OS-voice run failed and is not acceptance.
 - Saved-player seeks wait for metadata, use the latest requested moment, and
   clamp to measured duration. Protocol tests pass; native confirmation of the
   intermittent blank-player recovery remains open because browser control timed out.

@@ -79,6 +79,12 @@ yarn run check:storage
 PostgreSQL/MinIO and verifies three-worker artifact recovery with synthetic media.
 It requires a running Docker engine and removes its fixtures afterward.
 
+`node checks/standalone-check.mjs` installs committed studio source in a fresh
+Linux container and runs tests/build without mounting host dependencies, keys or
+notebook data. It needs Docker and network access and stops after 20 minutes.
+Native macOS voice tests are skipped on Linux; this is not signed-in harness,
+physical-device or complete clean-machine product-flow acceptance.
+
 Current requirements, authoritative evidence and remaining release gates are in
 [ACCEPTANCE.md](ACCEPTANCE.md). Historical implementation notes are retained in
 [checks/IMPLEMENTATION-HISTORY.md](checks/IMPLEMENTATION-HISTORY.md).
@@ -86,3 +92,21 @@ Current requirements, authoritative evidence and remaining release gates are in
 Startup checks required tools and the rendering browser before opening notebook
 storage. Missing tools stop startup with repair instructions; checks do not call
 models or request device access.
+
+## Dependency purposes
+
+| Dependency | Purpose |
+| --- | --- |
+| AWS S3 SDK | Portable object storage and standard credential resolution |
+| pg | PostgreSQL notebook and artifact index |
+| Hyperframes core, player, producer | Composition contract, browser playback and video rendering |
+| GSAP | Generated composition animation |
+| linkedom | Parse and validate generated markup on the server |
+| Puppeteer | Rich-slide validation, rasterization, PDF and presenter overlays |
+| Electron | Optional local desktop shell |
+| tsx, TypeScript, Vite | Typed engine execution, checks and app build/development |
+| Vitest, Node/pg types | Isolated verification and type contracts |
+
+FFmpeg/ffprobe perform media normalization, measurement and composition; Python
+runs presentation validation; uv runs the pinned speech aligner. AI CLIs execute
+the chosen harness. The rendering browser is installed separately by setup.
