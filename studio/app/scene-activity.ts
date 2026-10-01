@@ -33,16 +33,19 @@ export const sceneActivityRail=(snapshot:Snapshot,scene:Scene,connected:boolean)
  // The latest run determines the frontier; a retry revisits that row rather
  // than appending another run of steps. Historical errors remain in History.
  const latest=[...events].reverse().find(event=>stages.some(stage=>stage.match.test(event.message)))
- const frontier=produced?stages.length-1:Math.max(0,stages.findIndex(stage=>latest && stage.match.test(latest.message)))
+ let frontier=produced?stages.length-1:Math.max(0,stages.findIndex(stage=>latest && stage.match.test(latest.message)))
  const recordingEvent=events.filter(event=>recordings.match.test(event.message)).at(-1)
  const openRecordings=snapshot.views?.scenes[scene.id]?.openMomentIds.length
  const recordingSaved=needsRecording && !!recordingEvent && openRecordings===0
+ const waitingForRecordings=!produced && !active && scene.phase!=='failed' && animationReady && needsRecording
+ if(waitingForRecordings)frontier=stages.findIndex(stage=>stage.label==='Your recordings')
  const live=active && connected && !snapshot.readOnly
  const intro=snapshot.readOnly?'Saved activity. No generation is running in this copy.':produced?'Video ready':!connected?'Reconnecting to live activity…':scene.phase==='failed'?'Paused at the step below':active?'Creating your scene':recordingSaved?'Recording saved · ready to finish this scene':animationReady?openRecordings?'Animation ready · add your recordings when you’re ready':'Animation ready · ready to finish this scene':scene.moments.length?'Plan ready':'Waiting to start'
  return `<div class="scene-activity"><p class="activity-intro">${intro}</p><ol class="activity-log" aria-label="Scene activity">${stages.slice(0,frontier+1).map((step,index)=>{
-  const state=produced || recordingSaved && step.label==='Your recordings' || animationReady && !active && index<=5 || index<frontier || !active && scene.phase!=='failed' && index===3?'completed':scene.phase==='failed' && index===frontier?'stopped':live && index===frontier?'current':''
+  const awaiting=waitingForRecordings && step.label==='Your recordings' && !!openRecordings
+  const state=awaiting?'awaiting':produced || recordingSaved && step.label==='Your recordings' || animationReady && !active && index<=5 || index<frontier || !active && scene.phase!=='failed' && index===3?'completed':scene.phase==='failed' && index===frontier?'stopped':live && index===frontier?'current':''
   const event=reached[index]
   const detail=progress && index===frontier && (state==='current' && progress.active || state==='stopped') && (progress.stage==='composition' && ['Animation','Video composition'].includes(step.label) || progress.stage==='planning' && ['Creative plan','Spoken lines'].includes(step.label))?`<span class="activity-detail">${escape(progress.label)}</span><time datetime="${escape(progress.updatedAt)}">Last update ${escape(new Date(progress.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))}</time>`:''
-  return `<li class="${state}"><span class="activity-marker" aria-hidden="true">${state==='completed'?'✓':''}</span><div><p>${step.label}</p>${state==='stopped'?'<span class="activity-stopped-label">Stalled</span>':''}${detail || (event?`<time datetime="${escape(event.time)}">${escape(new Date(event.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))}</time>`:'')}</div></li>`
+  return `<li class="${state}"><span class="activity-marker" aria-hidden="true">${state==='completed'?'✓':''}</span><div><p>${step.label}</p>${state==='stopped'?'<span class="activity-stopped-label">Stalled</span>':''}${awaiting?`<span class="activity-detail">${openRecordings} ${openRecordings===1?'moment needs':'moments need'} your recording</span>`:detail || (event?`<time datetime="${escape(event.time)}">${escape(new Date(event.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))}</time>`:'')}</div></li>`
  }).join('')}</ol></div>`
 }

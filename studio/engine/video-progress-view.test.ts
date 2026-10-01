@@ -205,3 +205,18 @@ it('keeps the planned presenter space visible when animation exists but recordin
  expect(document.querySelector('[data-saved-presenter]')?.getAttribute('src')).toBe('/objects/recorded.webm')
  expect(document.querySelector('.presenter-preview img')).toBeNull()
 })
+
+it('stops current activity at missing recordings instead of showing an obsolete final render',async()=>{
+ const {sceneActivityRail}=await import('../app/scene-activity'),input=fixture(),scene=input.project.video!.scenes[0]
+ scene.phase='waiting';scene.animationKey='a';scene.animation={inputKey:'a',objectKey:'animation.mp4',moments:[{id:'m6',start:0,end:6}]}
+ scene.moments=[{id:'m6',start:0,end:6,camera:'full',layout:'beside-slide',lines:'Closing',overlay:null,recordingKey:'r',audioKey:'a',audio:null,take:null}]
+ input.events.push(...['1 moment recorded','Rendering the scene','Produced'].map((message,index)=>({...input.events[0],sequence:index+2,message})))
+ input.views={scenes:{scene:{state:'Needs recording',action:'record',openMomentIds:['m6'],produced:false}},moments:{}} as Snapshot['views']
+ const html=sceneActivityRail(input,scene,true)
+ expect(html).toContain('1 moment needs your recording');expect(html).toContain('class="awaiting"')
+ expect(html).not.toContain('Final render');expect(html).not.toContain('Save video')
+ scene.phase='producing';input.events.push({...input.events[0],sequence:5,message:'Rendering the scene'})
+ expect(sceneActivityRail(input,scene,true)).toContain('Final render')
+ input.views!.scenes.scene.produced=true;scene.phase='produced'
+ expect(sceneActivityRail(input,scene,true)).toContain('Save video')
+})
