@@ -62,7 +62,7 @@ it('uses the same specific stage in the scene rail, canvas and activity log',()=
  const input=fixture();input.project.video!.scenes[0].phase='writing';input.events[0].message='Planning the scene'
  const html=render(input)
  expect(html.match(/Planning the scene/g)!.length).toBeGreaterThanOrEqual(2)
- expect(html).toContain('Scene 1 · activity')
+ expect(html).toContain('<summary>Scene activity</summary>')
  expect(html).toContain('aria-label="Scene activity"')
  expect(html).toContain('activity-orbit')
 })

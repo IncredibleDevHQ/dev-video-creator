@@ -172,3 +172,15 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .video-stage.presenter-motion>svg,.video-stage.presenter-motion>.rehearsal-animation{visibility:visible}
 
 [data-stand-in-status]:empty{display:none}[data-stand-in-status]{font-size:12px}
+
+.transcript{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.activity-disclosure{flex:none;border-bottom:1px solid var(--line);margin:4px 0 12px;padding-bottom:12px}
+.activity-disclosure summary{cursor:pointer;font-size:12px;font-weight:600;padding:8px 0}
+.activity-disclosure .scene-activity{max-height:32vh;overflow:auto;margin-top:10px}
+.transcript-scroll{flex:1;min-height:100px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.activity-transcript-heading{flex:none;display:flex;justify-content:space-between;align-items:center}
+.activity-transcript-heading small{font-size:10px;letter-spacing:0;font-weight:400}
+[data-transcript-word]{border-radius:3px;transition:background-color .12s,color .12s}
+.spoken-word{background:var(--accent);color:var(--bg);box-shadow:0 0 0 2px var(--accent)}
+@media(max-width:800px){.transcript{height:65vh}.transcript-scroll{min-height:160px}}
+@media(prefers-reduced-motion:reduce){[data-transcript-word]{transition:none}}

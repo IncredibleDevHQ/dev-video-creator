@@ -1,3 +1,4 @@
+import {followTranscript} from './transcript-follow'
 import {standInPlayback} from './stand-in-playback'
 import {syncPresenterLayout} from './presenter-motion'
 import {layeredPlayback} from './layered-playback'
@@ -57,6 +58,8 @@ const practice = new PracticePlayback((clip,at)=>{
   const presenter=root.querySelector<HTMLElement>('.presenter-preview');if(presenter) presenter.hidden=!clip.camera
   syncAnimation()
   syncLayeredPlayback()
+  followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
+  followTranscript(root,scene?.moments || [],second,momentIndex)
   movePlayhead(root,scene?.moments || [],second)
   const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=clip.lines
   const chip=root.querySelector('.anchor-chip');if(chip) chip.textContent=`${second.toFixed(1)}s · moment ${momentIndex+1}`
@@ -81,6 +84,7 @@ const capture = new Recording(() => {
   second = Math.min(moment?.end ?? Infinity,(moment?.start || 0)+elapsed)
   syncAnimation()
   const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${(capture.moments.length>1?capture.elapsed:elapsed).toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
+  followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
 }, reason => recordingFailed(reason))
@@ -90,6 +94,7 @@ const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
  const at=takeReviewPosition(scene.moments,parts,time)
  if(at){
   second=at.second
+  followTranscript(root,scene.moments,second,at.momentIndex)
   syncPresenterLayout(root,scene.moments,at.second)
   movePlayhead(root,scene.moments,at.second,at.momentIndex)
   const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.second.toFixed(1)}s · moment ${at.momentIndex+1}`
@@ -101,6 +106,7 @@ standInPlayback(root,()=>{const scene=snapshot?.project.video?.scenes[selected];
  const scene=snapshot?.project.video?.scenes[selected];if(!scene)return
  const moment=scene.moments[momentIndex]
  syncPresenterLayout(root,scene.moments,!playing && at===moment.start?at+Math.min(.28,(moment.end-moment.start)/3):at)
+ followTranscript(root,scene.moments,at,momentIndex)
  movePlayhead(root,scene.moments,at,momentIndex)
  const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.toFixed(1)}s · moment ${momentIndex+1}`
 })
@@ -171,6 +177,7 @@ const render = () => {
   syncMediaRecovery()
   syncAnimation()
   syncLayeredPlayback()
+  followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
   if (camera && (capture.stream || practiceStream)) { camera.srcObject = capture.stream || practiceStream; void camera.play().catch(() => {}) }
@@ -497,6 +504,7 @@ root.addEventListener('timeupdate',event => {
   const index = clock.findIndex(moment => second >= moment.start && second < moment.end)
   if (index >= 0 && !player.hasAttribute('data-take-player')) momentIndex = index
   if (changedScene) { render(); return }
+  followTranscript(root,scene.moments,second,momentIndex)
   root.querySelectorAll('.transcript-moment').forEach((entry,index) => entry.classList.toggle('current',index === momentIndex))
   root.querySelectorAll('.moment').forEach((entry,index) => entry.classList.toggle('current',index === momentIndex))
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,player.hasAttribute('data-take-player')?momentIndex:undefined)
