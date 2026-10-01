@@ -184,3 +184,10 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .spoken-word{background:var(--accent);color:var(--bg);box-shadow:0 0 0 2px var(--accent)}
 @media(max-width:800px){.transcript{height:65vh}.transcript-scroll{min-height:160px}}
 @media(prefers-reduced-motion:reduce){[data-transcript-word]{transition:none}}
+
+.activity-disclosure summary{display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none;min-height:40px}
+.activity-disclosure summary::-webkit-details-marker{display:none}
+.activity-toggle-label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:500}
+.activity-disclosure:not([open]) .when-open,.activity-disclosure[open] .when-closed{display:none}
+.activity-chevron{display:inline-block;font-size:17px;line-height:1;transform:rotate(-90deg)}
+.activity-disclosure[open] .activity-chevron{transform:rotate(180deg)}
