@@ -1,5 +1,5 @@
 import {followTranscript} from './transcript-follow'
-import {standInPlayback} from './stand-in-playback'
+import {standInPlayback,standInControls} from './stand-in-playback'
 import {syncPresenterLayout} from './presenter-motion'
 import {layeredPlayback} from './layered-playback'
 import {workspacePosition,workspaceUrl} from './workspace-position'
@@ -63,7 +63,7 @@ const practice = new PracticePlayback((clip,at)=>{
   const scene=snapshot?.project.video?.scenes[selected];momentIndex=Math.max(0,scene?.moments.findIndex(moment=>moment.id===clip.momentId) ?? 0)
   if(changed) render()
   const presenter=root.querySelector<HTMLElement>('.presenter-preview');if(presenter) presenter.hidden=!clip.camera
-  syncAnimation()
+  syncAnimation();paintAnimationProgress()
   syncLayeredPlayback()
   followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   followTranscript(root,scene?.moments || [],second,momentIndex)
@@ -90,7 +90,7 @@ const capture = new Recording(() => {
 }, elapsed => {
   const moment = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)?.moments[momentIndex]
   second = Math.min(moment?.end ?? Infinity,(moment?.start || 0)+elapsed)
-  syncAnimation()
+  syncAnimation();paintAnimationProgress()
   const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${(capture.moments.length>1?capture.elapsed:elapsed).toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
   followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
@@ -118,6 +118,12 @@ standInPlayback(root,()=>{const scene=snapshot?.project.video?.scenes[selected];
  movePlayhead(root,scene.moments,at,momentIndex)
  const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.toFixed(1)}s · moment ${momentIndex+1}`
 })
+const paintAnimationProgress=()=>{
+ const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(!moment)return
+ const duration=moment.end-moment.start,elapsed=Math.max(0,second-moment.start),finished=elapsed>=Math.max(0,duration-.3)
+ const bar=root.querySelector<HTMLProgressElement>('[data-animation-progress]');if(bar){bar.max=duration;bar.value=finished?duration:elapsed}
+ const label=root.querySelector('[data-animation-remaining]');if(label)label.textContent=finished?'Animation finished · keep speaking':`${Math.max(0,duration-elapsed).toFixed(1)}s of animation left`
+}
 const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,(practice.active && !practice.paused) || capture.phase==='recording' || !!root.querySelector('[data-stand-in-play]') && root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.paused===false)}
 let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
 let pendingRecording: import('../shared/model').Moment[] | null = null
@@ -190,6 +196,8 @@ const render = () => {
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
   if (camera && (capture.stream || practiceStream)) { camera.srcObject = capture.stream || practiceStream; void camera.play().catch(() => {}) }
   if(practiceLoading){const button=root.querySelector<HTMLButtonElement>('[data-action="practice"]');if(button) button.textContent='Cancel preparation'}
+  if(practiceOpen && startRehearsal){root.querySelector('.video-stage')?.insertAdjacentHTML('beforeend',standInControls());root.querySelector('[data-animation-status]')?.setAttribute('hidden','')}
+  paintAnimationProgress()
   if(practiceOpen && startRehearsal)root.querySelector('.video-actions>div:last-child')?.insertAdjacentHTML('afterbegin','<button class="primary" data-action="practice-start">Start practice</button>')
   if(practiceOpen && practice.active && practiceMomentIds.length>1){const actions=root.querySelector('.video-actions>div:last-child');actions?.insertAdjacentHTML('afterbegin',`<button data-action="practice-next">${practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'} · Enter</button>`)}
   const rehearsalClock=root.querySelector('[data-practice-clock]');if(rehearsalClock)rehearsalClock.textContent=practiceCountdown?`Ready in ${practiceCountdown}…`:startRehearsal?'Ready when you are · Start practice for a 3-second countdown':'Practice · Esc to stop'
@@ -242,7 +250,7 @@ document.addEventListener('submit', async event => {
       if(!moments.length)return
       dialog.close();practiceStopAfter=seconds;practiceMomentIds=moments.map(moment=>moment.id)
       const request=++practiceRequest;practiceOpen=true;second=moments[0].start;momentIndex=scene.moments.findIndex(m=>m.id===moments[0].id)
-      startRehearsal=async()=>{startRehearsal=null
+      startRehearsal=async()=>{root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();second=moments[0].start;startRehearsal=null
       for(let count=3;count>0;count--){if(request!==practiceRequest)return;practiceCountdown=count;render();await new Promise(resolve=>setTimeout(resolve,1000))}
       if(request!==practiceRequest)return
       let at=0

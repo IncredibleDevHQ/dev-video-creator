@@ -1,6 +1,6 @@
 import type {Scene} from '../shared/model'
 import {animationSecond} from '../shared/scene-time'
-export const standInControls=()=>'<div class="layered-controls" aria-label="Moment playback"><button type="button" data-stand-in-play aria-label="Play moment">▶</button><time data-stand-in-time>0:00</time><label class="sr" for="stand-in-seek">Moment position</label><input id="stand-in-seek" data-stand-in-seek type="range" min="0" max="100" step="0.1" value="0"><span data-stand-in-status role="status"></span></div>'
+export const standInControls=()=>'<div class="layered-controls" aria-label="Moment playback"><button type="button" data-stand-in-play aria-label="Play moment">▶</button><button type="button" data-stand-in-replay aria-label="Replay moment">↻</button><time data-stand-in-time>0:00</time><label class="sr" for="stand-in-seek">Moment position</label><input id="stand-in-seek" data-stand-in-seek type="range" min="0" max="100" step="0.1" value="0"><span data-stand-in-status role="status"></span></div>'
 /** The existing animation is the clock; this never requests a camera or generates media. */
 export function standInPlayback(root:HTMLElement,current:()=>{scene:Scene;index:number}|null,update:(second:number,playing:boolean)=>void){
  let frame=0
@@ -24,8 +24,10 @@ export function standInPlayback(root:HTMLElement,current:()=>{scene:Scene;index:
  }
  const tick=()=>{paint();if(context()?.player.paused===false && !context()?.player.ended)frame=requestAnimationFrame(tick)}
  root.addEventListener('click',event=>{
-  if(!(event.target as Element).closest('[data-stand-in-play]'))return
+  const replay=(event.target as Element).closest('[data-stand-in-replay]')
+  if(!replay && !(event.target as Element).closest('[data-stand-in-play]'))return
   const at=context();if(!at)return
+  if(replay){at.player.currentTime=at.base.start;void at.player.play().catch(()=>{});return}
   if(at.player.paused){if(at.player.currentTime>=at.base.end-.02 || at.player.currentTime<at.base.start)at.player.currentTime=at.base.start;void at.player.play().catch(()=>{stop();const status=root.querySelector('[data-stand-in-status]');if(status)status.textContent='Could not play. Try again.'})}else at.player.pause()
  })
  root.addEventListener('input',event=>{

@@ -221,3 +221,5 @@ body:has(.is-focused)>#app>header{pointer-events:none;filter:blur(7px);opacity:.
 @media(max-width:700px){.video-workspace.is-focused>.stage-area{inset:6px;padding:12px}.focus-heading>div{align-items:flex-start;flex-direction:column;gap:4px}.is-focused .video-stage{width:100%}.is-focused .video-actions>div{flex-wrap:wrap;justify-content:center}}
 
 .video-workspace.is-focused>.stage-area{background:#141c18;color:#eef3ef}.is-focused .focus-heading span,.is-focused .practice-panel-heading small{color:#aab8af}.is-focused .focus-heading button,.is-focused .video-actions button{background:#26322b;color:#eef3ef;border-color:#3a493f}.is-focused .video-actions .primary{background:#23783d}.is-focused .practice-panel-heading>div{margin-right:auto}
+
+.animation-status{width:min(100%,1000px);align-self:center;display:flex;align-items:center;gap:14px;margin:10px 0 0;font-size:12px;color:#aab8af}.animation-status[hidden]{display:none}.animation-status progress{flex:1;min-width:60px;height:5px;accent-color:var(--accent)}.animation-status span{white-space:nowrap}
