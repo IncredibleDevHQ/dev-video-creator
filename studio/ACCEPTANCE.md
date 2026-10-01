@@ -281,3 +281,16 @@ Remote clone-operation exclusion:
   after success/failure, unrelated operations and data reads while five locks
   are held. The existing three-worker artifact/decode checks also passed (8.01s).
 - These are database/protocol checks, not live provider clone acceptance.
+
+Current regression and connection review at `8f85395d`:
+- `yarn run check` passed TypeScript and all 321 tests in 81 files. This includes
+  real synthetic presenter renders, clone protocol checks and stream delivery
+  recovery. These tests do not establish real provider/device acceptance.
+- A fresh native browser tab retained the current Scene 3 / moment 6 view across
+  more than one 30-second SSE lease. Both observations reported no connection
+  warning or reconnecting state, and captured browser warning/error logs were
+  empty. This bounded healthy-path observation does not reproduce every prior
+  intermittent outage or prove network-loss recovery.
+- Stand-in playback was observed advancing from animation time 33.2 to 38.0
+  seconds with the avatar present and the moment playhead updated. Moment 6
+  remains unrecorded; no camera access or model generation was used.
