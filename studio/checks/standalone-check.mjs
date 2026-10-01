@@ -19,11 +19,15 @@ cd /studio
 test -f package.json || { echo 'Source archive is missing package.json'; exit 1; }
 echo 'Installing system prerequisites'
 apt-get update -qq
-apt-get install -y -qq ffmpeg python3 chromium >/tmp/system-install.log
+apt-get install -y -qq ffmpeg python3 python3-venv chromium >/tmp/system-install.log
+python3 -m venv /opt/studio-tools
+/opt/studio-tools/bin/pip install --disable-pip-version-check uv==0.8.22 >/tmp/uv-install.log
+export PATH=/opt/studio-tools/bin:$PATH
 echo 'Installing locked JavaScript dependencies'
 yarn install --frozen-lockfile >/tmp/yarn-install.log 2>&1 || { tail -30 /tmp/yarn-install.log; exit 1; }
 yarn run check
-yarn build`
+yarn build
+node checks/startup-check.mjs`
 const child=spawn('docker',['run','--rm','-i','--name',name,'-e','PUPPETEER_SKIP_DOWNLOAD=true','-e','PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium','node:22-bookworm','bash','-lc',script],{stdio:['pipe','inherit','inherit']})
 const stop=()=>{void execute('docker',['kill',name]).catch(()=>{});child.kill('SIGTERM')}
 const timer=setTimeout(()=>{console.error('Fresh-container check exceeded 20 minutes.');stop()},20*60*1000)
