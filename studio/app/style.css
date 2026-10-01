@@ -233,3 +233,14 @@ body:has(.is-focused)>#app>header{pointer-events:none;filter:blur(7px);opacity:.
 .is-focused .practice-panel-heading [data-action="practice-camera"]{display:inline-flex;align-items:center;gap:8px;border-radius:8px;background:#26322b;color:#eef3ef;min-height:36px}
 
 .presenter-preview .camera-starting{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;background:#142019d9;color:#eef3ef;font-size:14px;z-index:3}.camera-starting .activity-orbit{flex:none}
+
+.is-focused .practice-panel{max-width:920px;padding:16px 20px;background:#19231e;border:1px solid #344239;border-radius:14px}
+.is-focused .practice-panel-heading strong{font-size:14px;font-weight:600;color:#edf4ef;letter-spacing:.02em}
+.is-focused .practice-panel-heading small{font-size:12px;color:#a4b5a9;line-height:1.5}
+.is-focused .practice-panel-heading .camera-toggle{display:inline-flex;align-items:center;gap:9px;border-radius:8px;min-height:40px;padding:9px 13px;background:#243029;color:#edf4ef;border:1px solid #506257}
+.is-focused .practice-panel-heading .camera-toggle.is-on{background:#203d2c;border-color:#5c9d72;color:#c4f2d1}
+.prompter-window{position:relative;max-width:660px;margin:18px auto 0;padding-left:24px;border-left:2px solid #4a9363}
+.prompter-caret{position:absolute;left:5px;top:14px;color:#7ddc9d;font-size:26px;line-height:1}
+.is-focused .practice-panel .prompter-window p{margin:0;padding:10px 8px 14px;max-height:148px;text-align:left;font-size:clamp(22px,2.2vw,30px);line-height:1.6;font-weight:500;letter-spacing:.005em;text-wrap:wrap;scroll-behavior:smooth}
+.prompter-window [data-prompter] .word-read{color:#84988b}.prompter-window [data-prompter] .spoken-word{color:#fff;background:#286b40}
+@media(prefers-reduced-motion:reduce){.is-focused .practice-panel .prompter-window p{scroll-behavior:auto}}

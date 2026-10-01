@@ -216,7 +216,7 @@ const render = () => {
    const control=root.querySelector<HTMLButtonElement>('[data-action="practice-camera"]')
    if(cameraStarting){
     if(control){control.disabled=true;control.textContent='Starting camera…'}
-    const label=root.querySelector<HTMLButtonElement>('[data-action="practice-camera-off"]');if(label)label.textContent='Cancel camera'
+    const label=root.querySelector<HTMLButtonElement>('[data-action="practice-camera-off"]');if(label)label.querySelector('span')!.textContent='Starting…'
     root.querySelector('.presenter-preview')?.insertAdjacentHTML('beforeend','<div class="camera-starting" role="status"><span class="activity-orbit" aria-hidden="true"></span><span>Starting camera…</span></div>')
    }
   }
@@ -225,7 +225,7 @@ const render = () => {
    if(camera.srcObject!==stream)camera.srcObject=stream
    if(practiceStream){
     cameraStarting=camera.readyState<2
-    camera.onplaying=()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();const label=root.querySelector('[data-action="practice-camera-off"]');if(label)label.textContent='Turn off camera'}
+    camera.onplaying=()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();const label=root.querySelector('[data-action="practice-camera-off"]');if(label)label.querySelector('span')!.textContent='Camera on'}
    }
    void camera.play().catch(()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();error(new Error('Camera preview could not start. Exit practice and try again.'))})
   }
@@ -238,7 +238,7 @@ const render = () => {
     if(phase==='ready' || phase==='finished')root.querySelector('.practice-panel-heading')?.insertAdjacentHTML('beforeend',recordControl())
     const actions=root.querySelector('.video-actions>div:last-child')
     if(actions)actions.innerHTML=practiceControls(phase,practiceMomentIds.length>1?(practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'):undefined)
-    const label=root.querySelector('[data-practice-clock]');if(label)label.textContent=phase==='ready'?'Your script':phase==='countdown'?`Starting in ${practiceCountdown}…`:phase==='finished'?'Practice complete':'Practice'
+    const label=root.querySelector('[data-practice-clock]');if(label)label.textContent=phase==='ready'?'Teleprompter':phase==='countdown'?`Starting in ${practiceCountdown}…`:phase==='finished'?'Practice complete':'Practice'
   }
   const transport=root.querySelector<HTMLButtonElement>('[data-action="practice-toggle"]');if(transport){transport.textContent=practice.active && !practice.paused?'Ⅱ Pause':'▶ Play';transport.setAttribute('aria-label',practice.active && !practice.paused?'Pause practice':'Play practice')}
   if(practice.active){const cue=root.querySelector('.practice-cue>span');if(cue && cue.textContent!==practiceLines) cue.innerHTML=transcriptWords(practiceLines)}
