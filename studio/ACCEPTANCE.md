@@ -165,3 +165,5 @@ Claude now requests partial streaming messages and emits throttled activity
 for actual incoming chunks without persisting private reasoning or partial
 code. Protocol checks cover redaction and ignoring pings. The stopped isolated
 finish run has not been retried after this correction.
+
+Presenter finishing follow-up (2026-10-01): isolated run `studio-presenter-finish-live-gtXdTk`, composition `7b52afa6-dda0-4f5c-9a1d-b62e7b26ecb4`, terminated at the four-minute wall limit. Partial activity was received throughout, confirming the streaming fix; no accepted HTML composition or current final video was produced. Actual take `7818ca06-81b6-4a8a-82f5-c564f39a5c78` remains intact. This is a failed finishing gate, not completed presenter rendering. No automatic retry. Removed camera/overlay assembly instructions from content-only generation packet; final assembly remains app-owned. Native saved-recording playback now moves the moment playhead and time anchor per animation frame; screenshot `/tmp/studio-recording-playhead-refined.png`.

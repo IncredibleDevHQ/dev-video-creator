@@ -4,7 +4,7 @@ import {mkdtemp,mkdir,writeFile,rm,symlink} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
 import {afterAll,expect,it} from 'vitest'
-import {collectProduction} from './production'
+import {collectProduction,mediaBindingInstructions} from './production'
 const root=await mkdtemp(join(tmpdir(),'studio-production-input-'))
 afterAll(()=>rm(root,{recursive:true,force:true}))
 const supplied={'media/scene-audio.wav':Buffer.from('labelled synthetic audio fixture')}
@@ -33,4 +33,10 @@ it('refuses symlink output that could escape the run',async()=>{
  await writeFile(join(root,'outside.txt'),'outside fixture')
  await symlink(join(root,'outside.txt'),join(dir,'production','outside.txt'))
  await expect(collectProduction(dir,supplied)).rejects.toThrow('inside this run')
+})
+
+it('keeps camera assembly out of animation-only generation instructions',()=>{
+ expect(mediaBindingInstructions(true)).toContain('do not implement them')
+ expect(mediaBindingInstructions(true)).not.toContain('show it only inside')
+ expect(mediaBindingInstructions(false)).toContain('show it only inside')
 })
