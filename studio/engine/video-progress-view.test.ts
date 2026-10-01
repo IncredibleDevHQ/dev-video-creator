@@ -137,3 +137,26 @@ it('shows live harness detail inside the current timeline step and retains it at
  input.project.video!.scenes[0].phase='produced'
  expect(render(input)).not.toContain('activity-detail')
 })
+
+it('reviews camera takes in the main canvas and retains the same player while saving',async()=>{
+ const {parseHTML}=await import('linkedom')
+ const input=fixture(),scene=input.project.video!.scenes[0]
+ scene.phase='waiting';scene.moments=[{id:'m',title:'Opening',lines:'Recorded line',start:0,end:2,camera:'full',layout:'beside-slide',overlay:null,recordingKey:'r',audioKey:'a',audio:null,take:null}]
+ const capture=new Recording(()=>{},()=>{});capture.moments=scene.moments;capture.url='blob:review';capture.parts=[{momentId:'m',recordingKey:'r',from:0,to:2}]
+ for(const phase of ['reviewing','uploading'] as const){
+  capture.phase=phase
+  const {document}=parseHTML(videoScreen(input,0,0,0,false,capture))
+  expect(document.querySelectorAll('[data-take-player]')).toHaveLength(1)
+  expect(document.querySelector('.video-stage > video[data-take-player]')?.getAttribute('src')).toBe('blob:review')
+  expect(document.querySelector('.presenter-preview')).toBeNull()
+  if(phase==='uploading')expect(document.querySelector('[data-action="save-take"]')?.hasAttribute('disabled')).toBe(true)
+ }
+})
+it('uses a single audio player for microphone-only take review',async()=>{
+ const {parseHTML}=await import('linkedom'),input=fixture(),capture=new Recording(()=>{},()=>{})
+ capture.phase='reviewing';capture.url='blob:audio';capture.moments=[{id:'m',lines:'Audio',camera:'none'} as import('../shared/model').Moment]
+ const {document}=parseHTML(videoScreen(input,0,0,0,false,capture))
+ expect(document.querySelectorAll('[data-take-player]')).toHaveLength(1)
+ expect(document.querySelector('audio[data-take-player]')).not.toBeNull()
+ expect(document.querySelector('.take-review')?.textContent).toContain('unchanged until you save')
+})

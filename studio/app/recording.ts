@@ -76,7 +76,7 @@ export class Recording {
   stop() {
     if(this.phase!=='recording' || this.finishing)return
     const from=this.parts.at(-1)?.to || 0,to=this.elapsed
-    if(to-from<.4)throw new Error('Record at least a moment before stopping')
+    if(to-from<.4){if(this.parts.length)this.finish();else this.dispose();return}
     const moment=this.moments[this.current]
     this.parts.push({momentId:moment.id,recordingKey:moment.recordingKey,from,to})
     this.finish()

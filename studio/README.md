@@ -124,3 +124,13 @@ and covers with matching checksums, verifies no replacement covers or exports,
 and rejects corrupted scene media. This uses explicit synthetic media and no
 model calls; it proves the storage/compositor path, not model design quality or
 a complete production deployment.
+
+Recording review now keeps its video/audio element connected across notebook
+updates and saving, so those updates do not restart take playback. Camera takes
+use the main canvas; microphone-only takes use one audio player. Save, Retake
+and Discard remain available beneath the canvas, and existing takes remain
+unchanged until a successful save. Stopping within the first 0.4 seconds releases
+devices immediately instead of requiring more recording; stopping immediately
+after advancing a pass retains only its completed parts. DOM and mocked capture
+checks cover player retention, review placement, immediate stop and resource
+cleanup. Native physical-device review remains unverified.

@@ -1,7 +1,7 @@
 /** Update the surrounding view without disconnecting a loaded video decoder. */
-export function replacePlayerView(root:HTMLElement,html:string,player:HTMLVideoElement|null){
+export function replacePlayerView(root:HTMLElement,html:string,player:HTMLMediaElement|null){
  const template=document.createElement('template');template.innerHTML=html
- const next=template.content.querySelector<HTMLVideoElement>('[data-scene-player]')
+ const next=template.content.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player]')
  if(!player || !next || player.getAttribute('src')!==next.getAttribute('src')){root.replaceChildren(template.content);return false}
  const patch=(current:Element,replacement:Element|DocumentFragment)=>{
   if(replacement instanceof Element){

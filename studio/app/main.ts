@@ -88,7 +88,7 @@ const render = () => {
   const contextKey = [snapshot?.project.id,stage,selected].join(':')
   const sameContext = root.dataset.context === contextKey
   root.dataset.context = contextKey
-  const previousPlayer = root.querySelector<HTMLVideoElement>('[data-scene-player]')
+  const previousPlayer = root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player]')
   const playback = previousPlayer ? {src:previousPlayer.getAttribute('src'),time:previousPlayer.currentTime,playing:!previousPlayer.paused} : null
   const focused = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement ? document.activeElement : null
   const focusedId = sameContext ? focused?.id : null
@@ -126,7 +126,7 @@ const render = () => {
       // Recreating it seeks and reloads on every scene update.
       previousPlayer.toggleAttribute('data-whole-video',player.hasAttribute('data-whole-video'))
       // replacePlayerView retained this connected element and its decoded frame.
-      if(playback.playing){void previousPlayer.play().catch(()=>{});animatePlayhead(previousPlayer)}
+      if(playback.playing){void previousPlayer.play().catch(()=>{});animatePlayhead(player)}
     } else {
       const start=player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(project.video!.scenes[selected],second,true):second
       if(start>0)player.currentTime=start
