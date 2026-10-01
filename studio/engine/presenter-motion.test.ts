@@ -19,6 +19,10 @@ describe('presenter layout timeline',()=>{
   expect(middle.content.width).toBeLessThan(1920)
   expect(middle.opacity).toBeCloseTo(.5)
  })
+ it('preserves limited camera windows from the plan before media is prepared',()=>{
+  const moment={id:'m1',start:10,end:30,camera:'start',layout:'corner',segments:[{id:'intro',lines:'Hello',estimate:2,camera:true},{id:'body',lines:'Explain',estimate:6,camera:false}]} as Moment
+  expect(presenterSpans([moment])).toMatchObject([{start:10,end:15,camera:true},{start:15,end:30,camera:false}])
+ })
  it('uses measured recording time and tolerates moments without prepared media',()=>{
   const moment={id:'m1',start:0,end:28.466,camera:'full',layout:'beside-slide'} as Moment
   expect(presenterSpans([moment])).toEqual([spans[0]])

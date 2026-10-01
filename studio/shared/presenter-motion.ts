@@ -2,7 +2,18 @@ import type {Moment} from './model'
 import {presenterLayout} from './presenter-layout'
 export type PresenterSpan={start:number;end:number;camera:boolean;layout:Moment['layout'];momentId:string}
 export function presenterSpans(moments:Moment[]):PresenterSpan[]{
- return moments.flatMap(moment=>(moment.media && moment.media.inputKey===moment.audioKey?moment.media.clips:[{start:0,end:moment.end-moment.start,camera:moment.camera==='full'}]).map(clip=>({start:moment.start+clip.start,end:Math.min(moment.end,moment.start+clip.end),camera:clip.camera,layout:moment.layout,momentId:moment.id})))
+ return moments.flatMap(moment=>{
+  const duration=moment.end-moment.start
+  const measured=moment.media && moment.media.inputKey===moment.audioKey?moment.media.clips:null
+  const total=moment.segments?.reduce((sum,segment)=>sum+segment.estimate,0) || 0
+  let cursor=0
+  const planned=total>0?moment.segments!.map(segment=>{
+   const start=cursor
+   cursor+=duration*segment.estimate/total
+   return {start,end:cursor,camera:segment.camera}
+  }):[{start:0,end:duration,camera:moment.camera==='full'}]
+  return (measured || planned).filter(clip=>clip.end>clip.start).map(clip=>({start:moment.start+clip.start,end:Math.min(moment.end,moment.start+clip.end),camera:clip.camera,layout:moment.layout,momentId:moment.id}))
+ })
 }
 export function presenterMotion(spans:PresenterSpan[],index:number){
  const span=spans[index],duration=span.end-span.start,fade=Math.min(.28,duration/3)
