@@ -21,7 +21,7 @@ export type Moment = {
   overlay: 'title-card' | 'lower-third' | 'end-card' | null
   // A take is usable only for the exact recording inputs it was made for.
   recordingKey: string
-  take: { id: string; recordingKey: string; objectKey: string; duration?: number } | null
+  take: { id: string; uploadId?: string; recordingKey: string; objectKey: string; duration?: number } | null
   audio: { inputKey: string; objectKey: string; duration?: number } | null
   audioKey: string
 }

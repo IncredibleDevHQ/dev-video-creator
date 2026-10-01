@@ -47,7 +47,7 @@ export const createStudioServer = (options:{readOnly?:boolean,eventsLifetimeMs?:
       const parts = JSON.parse(String(request.headers['x-studio-parts'] || '[]'))
       const chunks: Uint8Array[] = []; let size = 0
       for await (const chunk of request) { size += chunk.length; if (size > 150_000_000) throw new Error('Recording too large'); chunks.push(new Uint8Array(chunk)) }
-      return send(response, 200, await saveRecording(recordingRoute[1], recordingRoute[2], parts, Buffer.concat(chunks), String(request.headers['content-type'] || '')))
+      return send(response, 200, await saveRecording(recordingRoute[1], recordingRoute[2], parts, Buffer.concat(chunks), String(request.headers['content-type'] || ''),request.headers['x-studio-upload-id']?String(request.headers['x-studio-upload-id']):undefined))
     }
     let body: any = null
     if (request.method === 'POST' || request.method === 'PATCH') {

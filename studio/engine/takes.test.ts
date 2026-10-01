@@ -25,9 +25,10 @@ it('normalizes a real camera file and saves its measured clock without invalidat
   const part = await seed('valid')
   const file = join(root, 'fixture.webm')
   await runCommand('ffmpeg', ['-y','-f','lavfi','-i','color=c=green:s=160x90:r=15','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','2','-c:v','libvpx','-deadline','realtime','-c:a','libopus',file])
-  await saveRecording('valid','s',[part],await readFile(file),'video/webm')
+  await saveRecording('valid','s',[part],await readFile(file),'video/webm','fixture-upload-id-1234')
   const saved = (await loadProject('valid'))!
   const moment = saved.project.video!.scenes[0].moments[0]
+  expect(moment.take?.uploadId).toBe('fixture-upload-id-1234')
   expect(moment.take?.duration).toBeGreaterThan(1.7)
   expect(moment.take?.duration).toBeLessThan(2.1)
   expect(moment.end).toBe(moment.take?.duration)

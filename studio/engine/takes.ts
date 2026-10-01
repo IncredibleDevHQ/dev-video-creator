@@ -25,7 +25,8 @@ const checkParts = (snapshot: Snapshot, sceneId: string, parts: RecordedPart[]) 
   }
   return scene
 }
-export const saveRecording = async (id: string, sceneId: string, parts: RecordedPart[], body: Buffer, contentType: string) => {
+export const saveRecording = async (id: string, sceneId: string, parts: RecordedPart[], body: Buffer, contentType: string, uploadId?:string) => {
+  if(uploadId && !/^[a-zA-Z0-9-]{16,64}$/.test(uploadId))throw new Error('Invalid recording upload identifier')
   const before = await loadProject(id)
   if (!before) throw new Error('Project not found')
   const scene = checkParts(before, sceneId, parts)
@@ -47,7 +48,7 @@ export const saveRecording = async (id: string, sceneId: string, parts: Recorded
       const path = join(temporary, `${takes.length}.webm`)
       const duration = await composeTakes([{ path: normalized, from: part.from, to: Math.min(part.to,made.duration) }], path, size)
       const asset = await storeAsset({ body: await readFile(path), contentType: made.picture ? 'video/webm' : 'audio/webm', projectId: id, sceneId, momentId: part.momentId, kind: 'moment-take', extension: '.webm' })
-      const take = { id: randomUUID(), recordingKey: part.recordingKey, objectKey: asset.objectKey, duration }
+      const take = { id: randomUUID(), ...(uploadId?{uploadId}:{}), recordingKey: part.recordingKey, objectKey: asset.objectKey, duration }
       await writeRow('takes', take.id, { ...take, recordingSessionId:raw.id,projectId: id, sceneId, momentId: part.momentId, recordedAt: new Date().toISOString() })
       takes.push({ part, take })
     }
