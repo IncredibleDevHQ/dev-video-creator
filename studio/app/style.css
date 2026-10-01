@@ -80,7 +80,7 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 
 .token-usage{margin:0 8px 20px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:12px}.token-usage summary{cursor:pointer;color:var(--muted)}.token-usage summary span{float:right;color:inherit}.token-usage dl>div{display:flex;justify-content:space-between;gap:12px;margin:12px 0}.token-usage dd{margin:0}.token-usage p{font-size:11px;line-height:1.6;color:var(--muted)}
 
-.activity-log .completed .activity-marker{background:var(--accent,#218449);color:white;opacity:1;width:14px;height:14px;margin-left:-2.5px;margin-right:-2.5px;font-size:10px;line-height:14px;text-align:center}
+.activity-log .completed .activity-marker{background:var(--accent,#218449);color:white;opacity:1;width:14px;height:14px;margin-left:0;margin-right:0;font-size:10px;line-height:14px;text-align:center}
 /* The inspector is supporting information, with one quiet hierarchy. */
 .transcript{padding:20px;background:var(--bg)}
 .transcript-header{padding:0;margin:0 0 16px;gap:12px}
@@ -176,7 +176,7 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .transcript{display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .activity-disclosure{flex:none;border-bottom:1px solid var(--line);margin:4px 0 12px;padding-bottom:12px}
 .activity-disclosure summary{cursor:pointer;font-size:12px;font-weight:600;padding:8px 0}
-.activity-disclosure .scene-activity{max-height:32vh;overflow:auto;margin-top:10px}
+.activity-disclosure .scene-activity{max-height:32vh;overflow-y:auto;overflow-x:hidden;margin-top:10px;padding:4px 8px 4px 6px;scrollbar-gutter:stable}
 .transcript-scroll{flex:1;min-height:100px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
 .activity-transcript-heading{flex:none;display:flex;justify-content:space-between;align-items:center}
 .activity-transcript-heading small{font-size:10px;letter-spacing:0;font-weight:400}
@@ -191,3 +191,7 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .activity-disclosure:not([open]) .when-open,.activity-disclosure[open] .when-closed{display:none}
 .activity-chevron{display:inline-block;font-size:17px;line-height:1;transform:rotate(-90deg)}
 .activity-disclosure[open] .activity-chevron{transform:rotate(180deg)}
+
+.activity-disclosure .activity-marker{width:14px;height:14px;margin-left:0;margin-right:0}
+.activity-disclosure .activity-log li:not(:last-child):before{left:6.5px;top:21px}
+.activity-disclosure .activity-log li>div{min-width:0;overflow-wrap:anywhere}
