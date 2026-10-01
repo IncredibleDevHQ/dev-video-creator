@@ -45,7 +45,8 @@ export const api = {
       'POST',
       { text, seconds, recordingKey }
     ),
-  harnesses: () => request<import('./choose-ai').HarnessChoices>('/harnesses'),
+  harnesses: () =>
+    request<import('../shared/api').HarnessChoices>('/harnesses'),
   notebooks: () => request<NotebookSummary[]>('/projects'),
   create: (body: CreateProject) => request<Snapshot>('/projects', 'POST', body),
   replaceSource: (id: string, text: string) =>

@@ -1,3 +1,4 @@
+import { html } from './ui'
 import type { Snapshot } from '../shared/api'
 import { escape, button } from './ui'
 export type NotebookOpeningState = {
@@ -43,4 +44,17 @@ export class NotebookOpening {
   }
 }
 export const notebookOpeningView = (state: NotebookOpeningState) =>
-  `<main class="notebook-opening"><section role="status" aria-live="polite">${state.phase === 'loading' ? '<span class="spinner" aria-hidden="true"></span><h1>Opening your notebook</h1><p>Loading your saved slides, scenes and activity.</p>' : `<h1>Could not open this notebook</h1><p>${escape(state.message || 'Try again when Studio is available.')}</p>${button('Try again', 'open-notebook', true)}<p class="opening-note">Your notebook link is kept. Retrying only loads saved work.</p>`}</section></main>`
+  html`<main class="notebook-opening">
+    <section role="status" aria-live="polite">
+      ${state.phase === 'loading'
+        ? '<span class="spinner" aria-hidden="true"></span><h1>Opening your notebook</h1><p>Loading your saved slides, scenes and activity.</p>'
+        : html`<h1>Could not open this notebook</h1>
+            <p>
+              ${escape(state.message || 'Try again when Studio is available.')}
+            </p>
+            ${button('Try again', 'open-notebook', true)}
+            <p class="opening-note">
+              Your notebook link is kept. Retrying only loads saved work.
+            </p>`}
+    </section>
+  </main>`

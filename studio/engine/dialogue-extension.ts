@@ -5,7 +5,7 @@ import { estimateSpeech } from '../shared/dialogue'
 import { runValidatedJsonStage } from './creative/stage'
 import { fingerprintOf } from './planning/fingerprint'
 import { validateSourceReply } from './notebook-chat'
-import type { SourceRead } from './source'
+import type { SourceRead } from './source-document'
 import { readRow } from './persistence'
 export const saveDialogueExtension = (
   id: string,

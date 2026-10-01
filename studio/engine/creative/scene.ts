@@ -1,3 +1,4 @@
+import type { SceneProgressReporter } from '../../shared/model'
 import { prepareCastPacket } from './cast-packet'
 import { randomUUID } from 'node:crypto'
 import type { Project, Scene, Moment } from '../../shared/model'
@@ -23,7 +24,7 @@ export const planCreativeScene = async (
   scene: Scene,
   selection: CreativeSelection,
   origin: string,
-  onProgress?: (message: string) => Promise<void>
+  onProgress?: SceneProgressReporter
 ): Promise<CreativeSceneRecord> => {
   const previous = await readRow<CreativeSceneRecord>(
     'creative-scenes',
@@ -34,9 +35,9 @@ export const planCreativeScene = async (
   const index = project.slides.findIndex((slide) => slide.id === scene.slideId),
     slide = project.slides[index]
   if (!slide || !video) throw new Error('Scene has no retained presentation')
-  await onProgress?.('Preparing the scene artwork')
+  await onProgress?.('Preparing the scene artwork', 'artwork')
   const cast = await prepareCastPacket(project, slide.id)
-  await onProgress?.('Preparing the video brief')
+  await onProgress?.('Preparing the video brief', 'brief')
   const brief = await prepareCreativeBrief(project, selection, origin)
   const units =
     brief.coverage.find((item) => item.scene === slide.id)?.units || []
@@ -63,7 +64,7 @@ export const planCreativeScene = async (
   }))
   const presence = scene.presence || video.settings.presence
   const retained = await readRow<{ text: string }>('sources', project.id)
-  await onProgress?.('Planning the scene')
+  await onProgress?.('Planning the scene', 'planning')
   const treatment = await prepareCreativeTreatment({
     projectId: project.id,
     selection,
@@ -119,7 +120,7 @@ export const planCreativeScene = async (
     visualCast: cast.visualCast,
     media: cast.media
   })
-  await onProgress?.('Writing the spoken lines')
+  await onProgress?.('Writing the spoken lines', 'script')
   const moments = await prepareCreativeScript({
     projectId: project.id,
     plan: treatment,

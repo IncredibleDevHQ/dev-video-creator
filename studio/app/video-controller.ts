@@ -339,7 +339,7 @@ export const clickVideo = async (
   }
   if (action === 'video-settings') {
     app.showDialog(
-      '<h2>Opening notebook settings</h2><p role="status">Loading your voice choices…</p><p id="error" role="alert"></p>'
+      '<h2>Opening notebook settings</h2><p role="status">Loading your voice choices…</p>'
     )
     const revision = app.dialogRevision
     let settings: import('../shared/settings').StudioSettings
@@ -520,8 +520,7 @@ ${escape(preview.message)}</p>
 <button class="primary" data-action="confirm-replan" data-value="${
         preview.to === null ? 'inherit' : preview.to
       }">Re-plan scene ${app.selected + 1}</button>
-<p id="error" role="alert">
-</p>`
+`
     )
   }
   if (action === 'confirm-replan') {

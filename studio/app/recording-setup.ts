@@ -1,17 +1,123 @@
+import { html } from './ui'
 import type { Moment } from '../shared/model'
 import { escape, button } from './ui'
 const timing = (pass = false) =>
-  `<label for="record-stop-after">Stop ${pass ? 'the pass ' : ''}after <small>(optional)</small></label><div class="record-stop-field"><input id="record-stop-after" name="seconds" type="number" min="1" max="600" step="1" placeholder="Manual stop"><span>seconds</span></div>`
+  html`<label for="record-stop-after"
+      >Stop ${pass ? 'the pass ' : ''}after <small>(optional)</small></label
+    >
+    <div class="record-stop-field">
+      <input
+        id="record-stop-after"
+        name="seconds"
+        type="number"
+        min="1"
+        max="600"
+        step="1"
+        placeholder="Manual stop"
+      /><span>seconds</span>
+    </div>`
 export const recordingRecovery = (reason: unknown) =>
-  `<p class="eyebrow">RECORDING</p><h2>Let’s get you ready</h2><p role="alert">${escape(reason instanceof Error ? reason.message : 'Recording could not start. Check your device and try again.')}</p><p class="recording-help">Your saved takes are unchanged. Retry returns to recording setup; it does not enable your devices automatically.</p><div class="moment-action-list">${button('Try recording again', 'recording-retry', true)}${button('Practice instead', 'practice')}</div><p id="error" role="alert"></p>`
+  html`<p class="eyebrow">RECORDING</p>
+    <h2>Let’s get you ready</h2>
+    <p role="alert">
+      ${escape(
+        reason instanceof Error
+          ? reason.message
+          : 'Recording could not start. Check your device and try again.'
+      )}
+    </p>
+    <p class="recording-help">
+      Your saved takes are unchanged. Retry returns to recording setup; it does
+      not enable your devices automatically.
+    </p>
+    <div class="moment-action-list">
+      ${button('Try recording again', 'recording-retry', true)}${button(
+        'Practice instead',
+        'practice'
+      )}
+    </div>`
 export const recordingSetup = (moment: Moment, index: number, openCount = 1) =>
-  `<form id="recording-setup"><p class="eyebrow">YOUR TURN · MOMENT ${index + 1}</p><h2>Record your part</h2><p>Your dialogue stays on screen. You'll have three seconds to get ready after allowing ${moment.camera === 'none' ? 'microphone' : 'camera and microphone'} access.</p><blockquote class="recording-script">${escape(moment.lines)}</blockquote>${timing()}<p class="recording-help">Leave blank to stop yourself. Press <kbd>Esc</kbd> or choose Stop recording, then review and save your take. Your existing take stays saved until you replace it.</p><button type="submit" class="primary">Get ready to record</button>${openCount > 1 ? button(`Record all ${openCount} open moments instead`, 'record-open') : ''}<p id="error" role="alert"></p></form>`
+  html`<form id="recording-setup">
+    <p class="eyebrow">YOUR TURN · MOMENT ${index + 1}</p>
+    <h2>Record your part</h2>
+    <p>
+      Your dialogue stays on screen. You'll have three seconds to get ready
+      after allowing
+      ${moment.camera === 'none' ? 'microphone' : 'camera and microphone'}
+      access.
+    </p>
+    <blockquote class="recording-script">${escape(moment.lines)}</blockquote>
+    ${timing()}
+    <p class="recording-help">
+      Leave blank to stop yourself. Press <kbd>Esc</kbd> or choose Stop
+      recording, then review and save your take. Your existing take stays saved
+      until you replace it.
+    </p>
+    <button type="submit" class="primary">Get ready to record</button
+    >${openCount > 1
+      ? button(`Record all ${openCount} open moments instead`, 'record-open')
+      : ''}
+  </form>`
 export const recordingPassSetup = (moments: Moment[], indices: number[]) =>
-  `<form id="recording-setup"><p class="eyebrow">YOUR TURN · ${moments.length} MOMENTS</p><h2>Record in one pass</h2><p>Only your open moments are included. Your dialogue follows you on screen. After each part, choose Next moment or press <kbd>Enter</kbd>. Press <kbd>Esc</kbd> to stop at any point, then review and save the parts you recorded.</p><ol class="recording-pass-list">${moments.map((moment, index) => `<li><span>Moment ${indices[index] + 1}</span><strong>${escape(moment.title || 'Your part')}</strong></li>`).join('')}</ol><p>You'll have three seconds to get ready after allowing ${moments.some((moment) => moment.camera !== 'none') ? 'camera and microphone' : 'microphone'} access.</p>${timing(true)}<p class="recording-help">Your saved takes stay unchanged until you save this recording.</p><button type="submit" class="primary">Get ready to record</button><p id="error" role="alert"></p></form>`
+  html`<form id="recording-setup">
+    <p class="eyebrow">YOUR TURN · ${moments.length} MOMENTS</p>
+    <h2>Record in one pass</h2>
+    <p>
+      Only your open moments are included. Your dialogue follows you on screen.
+      After each part, choose Next moment or press <kbd>Enter</kbd>. Press
+      <kbd>Esc</kbd> to stop at any point, then review and save the parts you
+      recorded.
+    </p>
+    <ol class="recording-pass-list">
+      ${moments
+        .map(
+          (moment, index) =>
+            html`<li>
+              <span>Moment ${indices[index] + 1}</span
+              ><strong>${escape(moment.title || 'Your part')}</strong>
+            </li>`
+        )
+        .join('')}
+    </ol>
+    <p>
+      You'll have three seconds to get ready after allowing
+      ${moments.some((moment) => moment.camera !== 'none')
+        ? 'camera and microphone'
+        : 'microphone'}
+      access.
+    </p>
+    ${timing(true)}
+    <p class="recording-help">
+      Your saved takes stay unchanged until you save this recording.
+    </p>
+    <button type="submit" class="primary">Get ready to record</button>
+  </form>`
 
 export const practiceSetup = (
   moment: Moment,
   index: number,
   openCount: number
 ) =>
-  `<form id="practice-setup"><p class="eyebrow">PRACTICE · MOMENT ${index + 1}</p><h2>Rehearse your part</h2><p>The same countdown, canvas and stopping controls as recording. Nothing is recorded or saved.</p><blockquote class="recording-script">${escape(moment.lines)}</blockquote><label>Practice<select name="scope"><option value="moment">This moment</option>${openCount > 1 ? `<option value="open">All ${openCount} open moments</option>` : ''}</select></label>${timing()}<p class="recording-help">Speak for as long as you need. Press <kbd>Esc</kbd> to stop. In a pass, press <kbd>Enter</kbd> for the next moment. You can turn on your camera preview after starting.</p><button type="submit" class="primary">Get ready to practice</button><p id="error" role="alert"></p></form>`
+  html`<form id="practice-setup">
+    <p class="eyebrow">PRACTICE · MOMENT ${index + 1}</p>
+    <h2>Rehearse your part</h2>
+    <p>
+      The same countdown, canvas and stopping controls as recording. Nothing is
+      recorded or saved.
+    </p>
+    <blockquote class="recording-script">${escape(moment.lines)}</blockquote>
+    <label
+      >Practice<select name="scope">
+        <option value="moment">This moment</option>
+        ${openCount > 1
+          ? html`<option value="open">All ${openCount} open moments</option>`
+          : ''}
+      </select></label
+    >${timing()}
+    <p class="recording-help">
+      Speak for as long as you need. Press <kbd>Esc</kbd> to stop. In a pass,
+      press <kbd>Enter</kbd> for the next moment. You can turn on your camera
+      preview after starting.
+    </p>
+    <button type="submit" class="primary">Get ready to practice</button>
+  </form>`

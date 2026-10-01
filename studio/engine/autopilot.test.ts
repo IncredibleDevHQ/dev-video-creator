@@ -162,3 +162,23 @@ it('keeps one ordered activity entry per change, including a caller-specific rec
     [3, '2 moments recorded']
   ])
 })
+it('preserves the semantic step on failure even when its copy changes', () => {
+  const scene = fixture('queued'),
+    history = ledger()
+  transitionScene(scene, 'start', history, 'A new planning message')
+  expect(history.events[0].stage).toBe('artwork')
+  history.events.push({
+    ...history.events[0],
+    sequence: 2,
+    stage: 'planning',
+    activity: 'processing',
+    message: 'Refining the explanation'
+  })
+  scene.error = 'Please try again'
+  transitionScene(scene, 'fail', history)
+  expect(history.events.at(-1)).toMatchObject({
+    stage: 'planning',
+    activity: 'failed',
+    message: 'Please try again'
+  })
+})

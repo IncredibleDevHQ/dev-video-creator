@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { readSourceNarrative } from '../source'
+import { readSourceNarrative } from '../source-document'
 import { validateCreativeStory } from './story'
 const source = readSourceNarrative(
   'A request spends one token. The bucket refills over time. Requests wait when the bucket is empty.'

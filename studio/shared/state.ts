@@ -41,7 +41,7 @@ export const sceneView = (
     .filter((event) => event.kind === 'scene' && event.sceneId === scene.id)
     .at(-1)
   const label =
-    active && latest && !['Scene written', 'Produced'].includes(latest.message)
+    active && latest && latest.activity !== 'complete'
       ? latest.message
       : scene.phase === 'producing'
         ? 'Producing the scene'
@@ -60,6 +60,9 @@ export const sceneView = (
     display: {
       active,
       busy,
+      queued: scene.phase === 'queued',
+      failed: scene.phase === 'failed',
+      canRecord: ['waiting', 'produced'].includes(scene.phase),
       needsAnimation,
       label,
       actionLabel:
@@ -191,10 +194,21 @@ export const projectViews = (project: Project, events: ProjectEvent[] = []) => {
 export const sceneDisplay = (
   snapshot: import('./api').Snapshot,
   scene: Scene
-) =>
-  snapshot.views?.scenes[scene.id]?.display ||
-  sceneView(scene, snapshot.project.video!.settings.voice, snapshot.events)
-    .display!
+) => {
+  const saved = snapshot.views?.scenes[scene.id]?.display
+  if (
+    saved &&
+    typeof saved.canRecord === 'boolean' &&
+    typeof saved.queued === 'boolean' &&
+    typeof saved.failed === 'boolean'
+  )
+    return saved
+  return {
+    ...sceneView(scene, snapshot.project.video!.settings.voice, snapshot.events)
+      .display!,
+    ...saved
+  }
+}
 
 export const videoDisplay = (
   snapshot: import('./api').Snapshot

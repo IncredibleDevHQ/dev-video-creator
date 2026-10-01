@@ -17,7 +17,8 @@ const root = await mkdtemp(join(tmpdir(), 'studio-slide-chat-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { writeRow, readRow } = await import('./persistence')
 const { chatSlide, changeProject, loadProject } = await import('./projects')
-const { readSourceNarrative, pageBrandFrom } = await import('./source')
+const { readSourceNarrative } = await import('./source-document')
+const { pageBrandFrom } = await import('./source-page')
 const source = readSourceNarrative(
   'A canvas lets people work together on writing and coding.'
 )

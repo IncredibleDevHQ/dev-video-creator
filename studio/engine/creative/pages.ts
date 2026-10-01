@@ -13,7 +13,9 @@ import {
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import type { SourceRead, Outline, PageBrand } from '../source'
+import type { SourceRead } from '../source-document'
+import type { Outline } from '../source-outline'
+import type { PageBrand } from '../source-page'
 import type { SketchFiles } from '../../render/types'
 import { fingerprintOf } from '../planning/fingerprint'
 import {

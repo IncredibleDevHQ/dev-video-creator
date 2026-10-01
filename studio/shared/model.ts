@@ -152,6 +152,9 @@ export type SceneAction = 'wait' | 'retry' | 'record' | 'produce' | 'download'
 export type StatusDisplay = { label: string; active: boolean }
 export type SceneDisplay = StatusDisplay & {
   busy: boolean
+  queued: boolean
+  failed: boolean
+  canRecord: boolean
   actionLabel: string
   railLabel: string
   needsAnimation: boolean
@@ -164,7 +167,23 @@ export type SceneView = {
   openMomentIds: string[]
   produced: boolean
 }
+export type SceneStage =
+  | 'artwork'
+  | 'brief'
+  | 'planning'
+  | 'script'
+  | 'recordings'
+  | 'voice'
+  | 'composition'
+  | 'animation-render'
+  | 'render'
+  | 'save'
+export type SceneProgressReporter = (
+  message: string,
+  stage: SceneStage
+) => Promise<unknown>
 export type ProjectEvent = {
+  stage?: SceneStage
   activity?: 'processing' | 'failed' | 'complete'
   sequence: number
   projectId: string

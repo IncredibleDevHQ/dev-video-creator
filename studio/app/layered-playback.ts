@@ -1,6 +1,30 @@
+import { html } from './ui'
 /** A single transport belongs to the composed canvas, never the camera region. */
 export function layeredControls() {
-  return '<div class="layered-controls" aria-label="Scene playback"><button type="button" data-layered-play aria-label="Play recording">▶</button><time data-layered-time>0:00</time><label class="sr" for="layered-seek">Recording position</label><input id="layered-seek" data-layered-seek type="range" min="0" max="100" step="0.1" value="0" disabled><button type="button" data-layered-mute aria-label="Mute recording">Sound on</button><button type="button" data-layered-fullscreen aria-label="Fullscreen scene">⛶</button></div>'
+  return html`<div class="layered-controls" aria-label="Scene playback">
+    <button type="button" data-layered-play aria-label="Play recording">
+      ▶</button
+    ><time data-layered-time>0:00</time
+    ><label class="sr" for="layered-seek">Recording position</label
+    ><input
+      id="layered-seek"
+      data-layered-seek
+      type="range"
+      min="0"
+      max="100"
+      step="0.1"
+      value="0"
+      disabled
+    /><button type="button" data-layered-mute aria-label="Mute recording">
+      Sound on</button
+    ><button
+      type="button"
+      data-layered-fullscreen
+      aria-label="Fullscreen scene"
+    >
+      ⛶
+    </button>
+  </div>`
 }
 const time = (value: number) =>
   `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`

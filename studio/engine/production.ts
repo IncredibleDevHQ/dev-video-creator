@@ -1,3 +1,4 @@
+import type { SceneStage } from '../shared/model'
 import { transitionScene } from './autopilot'
 import { ensureVideoCover } from './video-cover'
 type SceneAnimation = NonNullable<import('../shared/model').Scene['animation']>
@@ -50,13 +51,17 @@ export const produceScene = async (id: string, sceneId: string) => {
     refreshVideoKeys(current.project)
     expected = scene.inputKey
   })
-  const progress = async (message: string) =>
+  const progress = async (message: string, stage: SceneStage) =>
     changeProject(id, (current) => {
       const target = current.project.video?.scenes.find(
         (scene) => scene.id === sceneId
       )
       if (target?.phase === 'producing' && target.inputKey === expected)
-        addEvent(current, 'scene', message, { sceneId, activity: 'processing' })
+        addEvent(current, 'scene', message, {
+          sceneId,
+          activity: 'processing',
+          stage
+        })
     })
   const work = (async () => {
     try {
@@ -95,7 +100,8 @@ export const produceScene = async (id: string, sceneId: string) => {
       }
       for (let index = 0; index < scene.moments.length; index++) {
         await progress(
-          `Preparing voice · moment ${index + 1} of ${scene.moments.length}`
+          `Preparing voice · moment ${index + 1} of ${scene.moments.length}`,
+          'voice'
         )
         scene.moments[index] = await prepareMomentAudio(
           id,
@@ -139,7 +145,7 @@ export const produceScene = async (id: string, sceneId: string) => {
         accepted = true
       })
       if (!accepted) return
-      if (!animation) await progress('Building the scene')
+      if (!animation) await progress('Building the scene', 'composition')
       const savedBundle = await loadStageCheckpoint<null>(
         id,
         sceneId,
@@ -178,11 +184,11 @@ export const produceScene = async (id: string, sceneId: string) => {
         ).readAsset(savedRender.data.objectKey)
         asset = savedRender.data
       } else {
-        await progress('Rendering the scene')
+        await progress('Rendering the scene', 'render')
         const rendered = animation
           ? await finishSceneAnimation(id, scene, animation)
           : await renderProductionBundle(files!, { fps: 30 })
-        await progress('Saving the scene')
+        await progress('Saving the scene', 'save')
         asset = await storeAsset({
           body: rendered,
           contentType: 'video/mp4',

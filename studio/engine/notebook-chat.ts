@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { ChatRequest } from '../shared/api'
-import type { SourceRead } from './source'
+import type { SourceRead } from './source-document'
 import { changeProject, loadProject, addEvent } from './projects'
 import { readRow, writeRow, storeAsset } from './persistence'
 import { fingerprintOf, quotedIn } from './planning/fingerprint'

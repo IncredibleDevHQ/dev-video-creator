@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterAll, expect, it, vi } from 'vitest'
-import type { Outline } from '../source'
+import type { Outline } from '../source-outline'
 const { run } = vi.hoisted(() => ({ run: vi.fn() }))
 vi.mock('../harness/runtime', () => ({ runEngineStage: run }))
 const root = await mkdtemp(join(tmpdir(), 'studio-page-protocol-'))
@@ -10,7 +10,8 @@ process.env.MINIMAL_STUDIO_DATA_DIR = join(root, 'store')
 const { pageSvgProblems, validatePageReceipt, prepareCreativePages } =
   await import('./pages')
 const { readRow, listNotebookRows } = await import('../persistence')
-const { readSourceNarrative, pageBrandFrom } = await import('../source')
+const { readSourceNarrative } = await import('../source-document')
+const { pageBrandFrom } = await import('../source-page')
 const svg =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-size="32" data-page-role="title" data-page-index="01"><g id="background" data-role="background"><rect width="1280" height="720" fill="#fff"/></g><g id="s01-node-title" data-role="node" data-kind="label"><text x="80" y="200">Explicit synthetic page fixture</text></g></svg>'
 const outline: Outline = {

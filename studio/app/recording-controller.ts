@@ -1,3 +1,4 @@
+import { sceneDisplay } from '../shared/state'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { dialogueStudio } from './dialogue-studio'
@@ -297,6 +298,7 @@ export const createPrepareRecordingPass =
   }
 export const installRecordingController = (app: AppContext) => {
   document.addEventListener('keydown', (event) => {
+    if (document.querySelector('dialog[open]')) return
     if (event.key === 'Tab' && app.root.querySelector('.is-focused')) {
       const controls = [
         ...app.root.querySelectorAll<HTMLElement>(
@@ -511,7 +513,7 @@ export const clickRecording = async (
     )
     if (!scene || id !== app.recordingProjectId || !app.recordingAttempt.length)
       throw new Error('Select the moment you want to record.')
-    if (!['waiting', 'produced'].includes(scene.phase))
+    if (!sceneDisplay(app.snapshot, scene).canRecord)
       throw new Error(
         'Wait for this scene to finish changing before recording again.'
       )

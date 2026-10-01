@@ -1,3 +1,4 @@
+import { html } from './ui'
 import type { Presence, Scene, VideoSettings } from '../shared/model'
 import { escape } from './ui'
 export const gear =
@@ -18,4 +19,28 @@ export const sceneSettings = (
   settings: VideoSettings,
   index: number
 ) =>
-  `<p class="eyebrow">SCENE ${index + 1}</p><h2>On camera</h2><p class="settings-note">${scene.presence ? 'Custom for this scene' : `Following notebook default · ${cameraChoices[settings.presence].title}`}</p><div class="camera-options">${(Object.keys(cameraChoices) as Presence[]).map((value) => `<button type="button" data-presence="${value}" aria-pressed="${(scene.presence || settings.presence) === value}"><strong>${cameraChoices[value].title}</strong><span>${cameraChoices[value].description}</span></button>`).join('')}</div>${scene.presence ? '<button type="button" class="quiet" data-presence="inherit">Use notebook default</button>' : ''}<p id="error" role="alert"></p>`
+  html`<p class="eyebrow">SCENE ${index + 1}</p>
+    <h2>On camera</h2>
+    <p class="settings-note">
+      ${scene.presence
+        ? 'Custom for this scene'
+        : `Following notebook default · ${cameraChoices[settings.presence].title}`}
+    </p>
+    <div class="camera-options">
+      ${(Object.keys(cameraChoices) as Presence[])
+        .map(
+          (value) =>
+            html`<button
+              type="button"
+              data-presence="${value}"
+              aria-pressed="${(scene.presence || settings.presence) === value}"
+            >
+              <strong>${cameraChoices[value].title}</strong
+              ><span>${cameraChoices[value].description}</span>
+            </button>`
+        )
+        .join('')}
+    </div>
+    ${scene.presence
+      ? '<button type="button" class="quiet" data-presence="inherit">Use notebook default</button>'
+      : ''}`

@@ -1,4 +1,4 @@
-import type { SourceRead } from './source-reader'
+import type { SourceRead } from './source-document'
 import type { OutlineScene, OutlinePart } from './source-outline'
 import { hsl } from './source-colours'
 export type PageBrand = {

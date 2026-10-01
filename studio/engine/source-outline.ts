@@ -1,4 +1,4 @@
-import type { SourceRead } from './source-reader'
+import type { SourceRead } from './source-document'
 // ——— the outline ———
 
 export const SCENE_KINDS = [
@@ -152,7 +152,11 @@ Return the video's title, a target runtime of about ${target} seconds, and 6 to 
 - seconds it deserves: the title 12 to 18, the close 8 to 14, others 20 to 70 in proportion to how much the viewer must take in; the sum should land near the target;
 - parts: the things the page must show, at most 8, each with a short label (2 to 4 words, as it would be drawn), a kind ("box" for a component or actor, "step" for an ordered stage, "number" for a figure with its unit, "note" for a short caption) and one line of detail; a "list" scene's parts are its points, a "numbers" scene's parts are its figures, a "title" and "close" scene have no parts;
 - relations between parts for diagram scenes: from label, to label, and a verb from the allowed set that says what happens between them; use "waits for" for sequential dependency, "sends to" or "feeds" for flow, "splits into" and "merges into" for fan out and fan in, "compares with" for contrast;
-- source: two to four FULL SENTENCES copied VERBATIM from the article that this scene rests on. A heading, a label or a fragment is not a passage: take whole sentences that carry what a drawing cannot — a number, a named example, a consequence, or a reason (the ones with "because", "so that", "when", "if", or a figure). Copy them exactly, do not paraphrase, do not stitch fragments together. They are the writer's only access to the article, so choose what the summary would lose. A title or close scene may have none;
+- source: two to four FULL SENTENCES copied VERBATIM from the article that this scene rests on.
+A heading, a label or a fragment is not a passage: take whole sentences that carry what a drawing cannot — a number, a named example, a consequence, or a reason (the ones with "because", "so that", "when", "if", or a figure).
+Copy them exactly, do not paraphrase, do not stitch fragments together.
+They are the writer's only access to the article, so choose what the summary would lose.
+A title or close scene may have none;
 - narration: a first draft of what the presenter says on this scene, two to four plain sentences in the second person plural or first person plural, grounded in the source and naming the parts by their labels; the close hands over or lands the point.
 Also return a glossary of up to 12 terms the video introduces, each with a one-line meaning in the video's own words. Keep every label unique within a scene.`
 }

@@ -81,6 +81,8 @@ it('shows active stage feedback and removes elapsed status on failure', () => {
     scene = input.project.video!.scenes[0]
   scene.phase = 'writing'
   input.events[0].message = 'Creating the scene preview'
+  input.events[0].stage = 'composition'
+  input.events[0].activity = 'processing'
   expect(render(input)).toContain('Creating the scene preview')
   expect(render(input)).toContain('aria-label="Scene activity"')
   scene.phase = 'failed'
@@ -178,6 +180,8 @@ it('keeps presentation ready while video processing appears only in its own stat
   const input = fixture()
   input.project.video!.scenes[0].phase = 'writing'
   input.events[0].message = 'Creating the scene preview'
+  input.events[0].stage = 'composition'
+  input.events[0].activity = 'processing'
   const html = presentationScreen(input, 0)
   expect(html).toContain('Presentation ready')
   expect(html).not.toContain('Creating the scene preview')
@@ -193,6 +197,8 @@ it('places the active status above the preview, with no duplicate beneath the ch
   const input = fixture()
   input.project.video!.scenes[0].phase = 'writing'
   input.events[0].message = 'Creating the scene preview'
+  input.events[0].stage = 'composition'
+  input.events[0].activity = 'processing'
   const html = render(input)
   expect(html.indexOf('video-run-status')).toBeLessThan(
     html.indexOf('stage video-stage')
@@ -217,6 +223,8 @@ it('retains the failed step marker after later recovery events', () => {
   const input = fixture()
   input.project.video!.scenes[0].phase = 'failed'
   input.events[0].message = 'Creating the scene preview'
+  input.events[0].stage = 'composition'
+  input.events[0].activity = 'processing'
   input.events.push(
     {
       ...input.events[0],
@@ -236,6 +244,8 @@ it('does not animate saved or disconnected activity', () => {
   const input = fixture()
   input.project.video!.scenes[0].phase = 'writing'
   input.events[0].message = 'Creating the scene preview'
+  input.events[0].stage = 'composition'
+  input.events[0].activity = 'processing'
   input.readOnly = true
   expect(render(input)).not.toContain('thumbnail scene-processing')
   expect(render(input)).not.toContain('class="current"')
@@ -275,6 +285,8 @@ it('shows live harness detail inside the current timeline step and retains it at
   const input = fixture()
   input.project.video!.scenes[0].phase = 'producing'
   input.events[0].message = 'Building the scene'
+  input.events[0].stage = 'composition'
+  input.events[0].activity = 'processing'
   input.sceneProgress = {
     scene: {
       stage: 'composition',
@@ -540,7 +552,9 @@ it('stops current activity at missing recordings instead of showing an obsolete 
   input.events.push({
     ...input.events[0],
     sequence: 5,
-    message: 'Rendering the scene'
+    message: 'Rendering the scene',
+    stage: 'render',
+    activity: 'processing'
   })
   expect(sceneActivityRail(input, scene, true)).toContain('Final render')
   input.views!.scenes.scene.produced = true
@@ -588,6 +602,8 @@ it('shows one scene-rail state with the missing recording count, then current wo
   expect(card.textContent).not.toContain('Needs recording')
   scene.phase = 'producing'
   input.events[0].message = 'Building the scene'
+  input.events[0].stage = 'composition'
+  input.events[0].activity = 'processing'
   card = parseHTML(render(input)).document.querySelector('.scene-card')!
   expect(card.querySelectorAll('.scene-state')).toHaveLength(1)
   expect(card.querySelector('.scene-state')!.textContent).toBe(

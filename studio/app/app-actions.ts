@@ -11,8 +11,9 @@ import { clickVideo, submitVideo } from './video-controller'
 
 export const installAppActions = (app: AppContext) => {
   document.addEventListener('submit', async (event) => {
-    event.preventDefault()
     const form = event.target as HTMLFormElement
+    if (form.closest('[data-confirm]')) return
+    event.preventDefault()
     const values = new FormData(form)
     try {
       await submitStart(app, form, values)

@@ -9,6 +9,7 @@ it('explains a saved recording until the scene is finished, including after relo
     moments: [{ id: 'intro', recordingKey: 'r', take: { recordingKey: 'r' } }]
   } as Scene
   const snapshot = {
+    project: { video: { settings: { voice: { kind: 'record' } } } },
     events: [{ kind: 'scene', sceneId: 's', message: '1 moment recorded' }],
     views: { scenes: { s: { produced: false, openMomentIds: [] } } }
   } as unknown as Snapshot
@@ -27,17 +28,29 @@ it('explains a saved recording until the scene is finished, including after relo
 })
 it('does not confuse an older saved take with a current processing or failed operation', () => {
   const snapshot = {
+    project: { video: { settings: { voice: { kind: 'record' } } } },
     events: [{ kind: 'scene', sceneId: 's', message: '1 moment recorded' }]
   } as Snapshot
   for (const phase of ['producing', 'failed'] as const)
-    expect(recordingHandoff(snapshot, { id: 's', phase } as Scene)).toBe('')
+    expect(
+      recordingHandoff(snapshot, {
+        id: 's',
+        phase,
+        moments: []
+      } as unknown as Scene)
+    ).toBe('')
   expect(
-    recordingHandoff(snapshot, { id: 'other', phase: 'waiting' } as Scene)
+    recordingHandoff(snapshot, {
+      id: 'other',
+      phase: 'waiting',
+      moments: []
+    } as unknown as Scene)
   ).toBe('')
 })
 
 it('does not claim a recording is saved from historical events after the take is removed', () => {
   const snapshot = {
+    project: { video: { settings: { voice: { kind: 'record' } } } },
     events: [{ kind: 'scene', sceneId: 's', message: '1 moment recorded' }]
   } as Snapshot
   const scene = {

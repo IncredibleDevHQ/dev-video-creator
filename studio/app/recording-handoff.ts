@@ -1,20 +1,10 @@
+import { sceneDisplay } from '../shared/state'
 import type { Snapshot } from '../shared/api'
 import type { Scene } from '../shared/model'
 /** Only current matching takes can substantiate a saved-recording message. */
 export function recordingHandoff(snapshot: Snapshot, scene: Scene) {
   const view = snapshot.views?.scenes[scene.id]
-  if (
-    view?.produced ||
-    [
-      'queued',
-      'writing',
-      'changing',
-      'replanning',
-      'producing',
-      'failed'
-    ].includes(scene.phase)
-  )
-    return ''
+  if (view?.produced || !sceneDisplay(snapshot, scene).canRecord) return ''
   const saved = (scene.moments || []).flatMap((moment, index) =>
     moment.take?.recordingKey === moment.recordingKey && moment.take
       ? [index + 1]

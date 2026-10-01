@@ -80,8 +80,7 @@ ${
 </small>
 </div>
 </form>
-<p id="error" role="alert">
-</p>
+
 ${
   app.notebooks.length
     ? `<section class="saved-notebooks" aria-labelledby="recent-heading">
@@ -249,8 +248,7 @@ export const clickStart = async (
 <textarea id="article-text" name="text" required minlength="40">
 </textarea>
 <button class="primary">Continue with this text →</button>
-<p id="error" role="alert">
-</p>
+
 </form>`
     )
 }

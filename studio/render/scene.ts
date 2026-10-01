@@ -1,3 +1,4 @@
+import { documentHtml as html } from '../shared/html'
 import type { Project, Scene } from '../shared/model'
 import type { SketchFiles } from './types'
 import { readAsset, validObjectKey } from '../engine/persistence'
@@ -78,29 +79,139 @@ export const buildSceneBundle = async (
       ? project.branding.accent
       : '#527c60'
   const duration = scene.moments.at(-1)!.end
-  files['index.html'] = `<!doctype html>\
-<html>\
-<head>\
-<meta charset="utf-8">\
-<style>\
-html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#17231d;font-family:Arial,sans-serif}\
-#composition{position:relative;width:1920px;height:1080px;overflow:hidden}\
-.moment{position:absolute;inset:0;visibility:hidden}\
-.slide{position:absolute;inset:0}\
-.slide svg{display:block;width:100%;height:100%}\
-.slide.beside-slide{right:620px}\
-.presenter{position:absolute;object-fit:cover}\
-.presenter.full-screen{inset:0;width:100%;height:100%}\
-.presenter.corner{right:70px;bottom:70px;width:400px;height:400px;border-radius:18px}\
-.presenter.beside-slide{right:0;top:0;width:620px;height:1080px}\
-.overlay{position:absolute;bottom:100px;left:90px;right:90px;color:white;font-size:64px;text-shadow:0 3px 15px #0008;z-index:5}\
-.brand-logo{position:absolute;left:90px;top:65px;max-width:200px;max-height:100px;z-index:10}\
-.overlay.title-card{top:150px;bottom:auto;font-size:110px}\
-.presenter-name{position:absolute;left:90px;bottom:90px;background:#18251ddd;padding:20px 30px;border-left:8px solid ${accent}\
-;border-radius:8px;font-size:46px;color:white;z-index:6}\
-.presenter-name small{display:block;font-size:26px;margin-top:10px}\
-.overlay.lower-third{border-left:8px solid ${accent}\
-;font-size:30px;background:#18251ddd;padding:15px 25px;right:auto;border-radius:8px}\
-</style><script src="./runtime/gsap.min.js"></script><script src="./runtime/hyperframes.iife.js"></script></head><body><div id="composition" data-composition-id="${escape(scene.id)}" data-start="0" data-duration="${duration}" data-width="1920" data-height="1080">${content}${logo}</div><script>const tl=gsap.timeline({paused:true});${script.join('')}tl.to({}, {duration:.001},${Math.max(0, duration - 0.001)});window.__timelines=window.__timelines||{};window.__timelines[${JSON.stringify(scene.id)}]=tl;</script></body></html>`
+  files['index.html'] = html`<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          html,
+          body {
+            margin: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            background: #17231d;
+            font-family: Arial, sans-serif;
+          }
+          #composition {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+          }
+          .moment {
+            position: absolute;
+            inset: 0;
+            visibility: hidden;
+          }
+          .slide {
+            position: absolute;
+            inset: 0;
+          }
+          .slide svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+          }
+          .slide.beside-slide {
+            right: 620px;
+          }
+          .presenter {
+            position: absolute;
+            object-fit: cover;
+          }
+          .presenter.full-screen {
+            inset: 0;
+            width: 100%;
+            height: 100%;
+          }
+          .presenter.corner {
+            right: 70px;
+            bottom: 70px;
+            width: 400px;
+            height: 400px;
+            border-radius: 18px;
+          }
+          .presenter.beside-slide {
+            right: 0;
+            top: 0;
+            width: 620px;
+            height: 1080px;
+          }
+          .overlay {
+            position: absolute;
+            bottom: 100px;
+            left: 90px;
+            right: 90px;
+            color: white;
+            font-size: 64px;
+            text-shadow: 0 3px 15px #0008;
+            z-index: 5;
+          }
+          .brand-logo {
+            position: absolute;
+            left: 90px;
+            top: 65px;
+            max-width: 200px;
+            max-height: 100px;
+            z-index: 10;
+          }
+          .overlay.title-card {
+            top: 150px;
+            bottom: auto;
+            font-size: 110px;
+          }
+          .presenter-name {
+            position: absolute;
+            left: 90px;
+            bottom: 90px;
+            background: #18251ddd;
+            padding: 20px 30px;
+            border-left: 8px solid ${accent};
+            border-radius: 8px;
+            font-size: 46px;
+            color: white;
+            z-index: 6;
+          }
+          .presenter-name small {
+            display: block;
+            font-size: 26px;
+            margin-top: 10px;
+          }
+          .overlay.lower-third {
+            border-left: 8px solid ${accent};
+            font-size: 30px;
+            background: #18251ddd;
+            padding: 15px 25px;
+            right: auto;
+            border-radius: 8px;
+          }
+        </style>
+        <script src="./runtime/gsap.min.js"></script>
+        <script src="./runtime/hyperframes.iife.js"></script>
+      </head>
+      <body>
+        <div
+          id="composition"
+          data-composition-id="${escape(scene.id)}"
+          data-start="0"
+          data-duration="${duration}"
+          data-width="1920"
+          data-height="1080"
+        >
+          ${content}${logo}
+        </div>
+        <script>
+          const tl = gsap.timeline({ paused: true })
+          ${script.join('')}tl.to(
+            {},
+            { duration: 0.001 },
+            ${Math.max(0, duration - 0.001)}
+          )
+          window.__timelines = window.__timelines || {}
+          window.__timelines[${JSON.stringify(scene.id)}] = tl
+        </script>
+      </body>
+    </html>`
   return files
 }

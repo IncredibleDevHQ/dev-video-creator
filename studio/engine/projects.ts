@@ -30,16 +30,11 @@ import {
   presentationDisplay
 } from '../shared/state'
 import { modelFetch } from './model-gateway'
-import {
-  SourceReadError,
-  readSourceNarrative,
-  readSourceUrl,
-  outlineSchema,
-  outlinePrompt,
-  sanitizeOutline,
-  pageBrandFrom,
-  renderPage
-} from './source'
+import { SourceReadError } from './source-fetch'
+import { readSourceNarrative } from './source-document'
+import { readSourceUrl } from './source-reader'
+import { outlineSchema, outlinePrompt, sanitizeOutline } from './source-outline'
+import { pageBrandFrom, renderPage } from './source-page'
 const queues = new Map<string, Promise<unknown>>()
 export const loadProject = async (id: string) => {
   const snapshot = await readRow<Snapshot>('projects', id)
@@ -529,7 +524,7 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
     addEvent(current, 'chat', request.instruction, { anchor: request.anchor })
   )
   try {
-    let revised: import('./source').OutlineScene
+    let revised: import('./source-outline').OutlineScene
     const origin =
       process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
       `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`

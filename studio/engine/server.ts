@@ -64,7 +64,15 @@ import {
   readRow,
   initializePersistence
 } from './persistence'
-import type { SlideEdit } from '../shared/api'
+import {
+  requestObject,
+  chatRequest,
+  slideRequest,
+  extensionRequest,
+  numberField,
+  recordingParts
+} from './request-body'
+import { validateHarnessSelection } from './harness/preference'
 const send = (response: ServerResponse, status: number, value: unknown) => {
   response.writeHead(status, { 'Content-Type': 'application/json' })
   response.end(JSON.stringify(value))
@@ -125,8 +133,10 @@ export const createStudioServer = (
         /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/recordings$/
       )
       if (recordingRoute && request.method === 'PUT') {
-        const parts = JSON.parse(
-          String(request.headers['x-studio-parts'] || '[]')
+        const parts = recordingParts(
+          JSON.parse(
+            String(request.headers['x-studio-parts'] || '[]')
+          ) as unknown
         )
         const chunks: Uint8Array[] = []
         let size = 0
@@ -150,7 +160,7 @@ export const createStudioServer = (
           )
         )
       }
-      let body: any = null
+      let body: Record<string, unknown> = {}
       if (request.method === 'POST' || request.method === 'PATCH') {
         const chunks: Uint8Array[] = []
         let size = 0
@@ -159,19 +169,33 @@ export const createStudioServer = (
           if (size > 2_000_000) throw new Error('Request too large')
           chunks.push(new Uint8Array(chunk))
         }
-        body = JSON.parse(Buffer.concat(chunks).toString())
+        body = requestObject(
+          JSON.parse(Buffer.concat(chunks).toString()) as unknown
+        )
       }
       const extensionRoute = url.pathname.match(
         /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/moments\/([a-zA-Z0-9_-]+)\/extension(?:\/(suggest))?$/
       )
-      if (extensionRoute && request.method === 'POST')
+      if (extensionRoute && request.method === 'POST') {
+        const extension = extensionRequest(body)
         return send(
           response,
           200,
-          await (
-            extensionRoute[4] ? suggestDialogueExtension : saveDialogueExtension
-          )(extensionRoute[1], extensionRoute[2], extensionRoute[3], body)
+          extensionRoute[4]
+            ? await suggestDialogueExtension(
+                extensionRoute[1],
+                extensionRoute[2],
+                extensionRoute[3],
+                { ...extension, seconds: numberField(body, 'seconds') }
+              )
+            : await saveDialogueExtension(
+                extensionRoute[1],
+                extensionRoute[2],
+                extensionRoute[3],
+                extension
+              )
         )
+      }
       if (url.pathname === '/mcp' && request.method === 'POST') {
         const reply = await handleEngineRpc(
           url.searchParams.get('run') || '',
@@ -215,7 +239,12 @@ export const createStudioServer = (
         return send(
           response,
           201,
-          await createProject(String(body?.source || ''), body?.harness)
+          await createProject(
+            String(body?.source || ''),
+            body.harness === undefined
+              ? undefined
+              : validateHarnessSelection(body.harness)
+          )
         )
       const sceneRoute = url.pathname.match(
         /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|produce|download|cover)$/
@@ -341,7 +370,11 @@ export const createStudioServer = (
           return send(
             response,
             200,
-            await updateTransition(id, body?.index, body?.transition)
+            await updateTransition(
+              id,
+              numberField(body, 'index'),
+              body.transition
+            )
           )
         if (action === 'download' && request.method === 'GET') {
           const video = snapshot.project.video
@@ -368,17 +401,18 @@ export const createStudioServer = (
         if (action === 'video' && request.method === 'POST')
           return send(response, 200, await makeVideo(id, body))
         if (action === 'chat' && request.method === 'POST') {
+          const chat = chatRequest(body)
           const changed =
-            body?.anchor?.stage === 'video'
-              ? await chatVideo(id, body)
-              : body?.anchor?.stage === 'notebook'
-                ? await chatNotebook(id, body)
-                : await chatSlide(id, body)
+            chat.anchor.stage === 'video'
+              ? await chatVideo(id, chat)
+              : chat.anchor.stage === 'notebook'
+                ? await chatNotebook(id, chat)
+                : await chatSlide(id, chat)
           schedulePlanning(id)
           return send(response, 200, changed)
         }
         if (action === 'slides' && request.method === 'PATCH') {
-          const changed = await editSlide(id, body as SlideEdit)
+          const changed = await editSlide(id, slideRequest(body))
           schedulePlanning(id)
           return send(response, 200, changed)
         }

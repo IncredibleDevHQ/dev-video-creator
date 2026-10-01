@@ -1,5 +1,5 @@
-import type { SourceRead } from '../source'
-import { sanitizeOutline, SCENE_KINDS } from '../source'
+import type { SourceRead } from '../source-document'
+import { sanitizeOutline, SCENE_KINDS } from '../source-outline'
 import type { Slide } from '../../shared/model'
 import { fingerprintOf, quotedIn } from '../planning/fingerprint'
 import { runValidatedJsonStage, type CreativeSelection } from './stage'

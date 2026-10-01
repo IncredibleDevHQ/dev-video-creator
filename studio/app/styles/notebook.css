@@ -1,0 +1,83 @@
+.source-document {
+  font-size: 16px;
+  line-height: 1.75;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.source-document h1,
+.source-document h2,
+.source-document h3 {
+  line-height: 1.25;
+  margin: 1.6em 0 0.6em;
+  letter-spacing: -0.02em;
+}
+.source-document h1 {
+  font-size: 2em;
+}
+.source-document h2 {
+  font-size: 1.5em;
+}
+.source-document h3 {
+  font-size: 1.2em;
+}
+.source-document p,
+.source-document ul,
+.source-document ol {
+  margin: 0.9em 0;
+}
+.source-document blockquote {
+  margin: 1.3em 0;
+  padding: 0 1.2em;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.source-document pre {
+  overflow: auto;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+}
+.source-document code {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+.source-document :not(pre) > code {
+  background: var(--panel);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.source-document img {
+  max-width: 100%;
+  height: auto;
+}
+.source-document table {
+  display: block;
+  overflow: auto;
+  border-collapse: collapse;
+}
+.source-document th,
+.source-document td {
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.start-ai {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.start-ai .quiet {
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.source-document a,
+.notebook > p a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}

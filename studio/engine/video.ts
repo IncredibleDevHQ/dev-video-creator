@@ -1,3 +1,4 @@
+import type { SceneStage } from '../shared/model'
 import { takeTrimRange, trimTake } from './take-trim'
 import { scriptEditProblems } from './moment-edit-scope'
 import { generationFailure } from './generation-errors'
@@ -116,7 +117,8 @@ export const planScene = async (id: string, sceneId: string) => {
     if (scene.phase !== 'writing')
       addEvent(snapshot, 'scene', 'Writing the scene', {
         sceneId,
-        activity: 'processing'
+        activity: 'processing',
+        stage: 'artwork'
       })
   })
   if (!retained || !expected) return
@@ -134,7 +136,7 @@ export const planScene = async (id: string, sceneId: string) => {
     id
   )
   const sourceText = retainedSource?.source.text || snapshot.project.source
-  const progress = async (message: string) => {
+  const progress = async (message: string, stage: SceneStage) => {
     await changeProject(id, (current) => {
       const target = current.project.video?.scenes.find(
         (item) => item.id === sceneId
@@ -143,7 +145,11 @@ export const planScene = async (id: string, sceneId: string) => {
         target?.planKey === expected &&
         ['writing', 'replanning', 'changing'].includes(target.phase)
       )
-        addEvent(current, 'scene', message, { sceneId, activity: 'processing' })
+        addEvent(current, 'scene', message, {
+          sceneId,
+          activity: 'processing',
+          stage
+        })
     })
   }
   let problem = ''
@@ -181,6 +187,8 @@ export const planScene = async (id: string, sceneId: string) => {
       moments = record.moments
       creativePlan = { recordId: record.id, inputKey: expected }
     }
+    if (!moments && !video.settings.harness)
+      await progress('Writing the spoken lines', 'script')
     for (let attempt = 0; attempt < 3 && !moments; attempt++) {
       const response = await modelFetch('writing', {
         body: JSON.stringify({
@@ -189,9 +197,14 @@ export const planScene = async (id: string, sceneId: string) => {
           }, role ${role}, video title ${snapshot.project.title}.
 Each moment needs a title, exact spoken lines, seconds (2–90), and spoken segments with their own lines, camera boolean and seconds.
 Segments must concatenate to the exact moment lines in order and their seconds add up to the moment seconds.
-Full means every segment on camera, none means every segment off camera, start means a camera prefix then off-camera, end means off-camera then a camera suffix, both means camera at each end with off-camera segments between, camera (none/full/start/end/both), layout (full-screen/corner/beside-slide), overlay (title-card/lower-third/end-card/null) and a recording cue. Use only facts from the source. Write natural speech. On camera ${presence}: Off means none anywhere; Low means camera only in the closing moment; High means camera in the first and last and where it helps explain, without a presenter cut between every small animation. The title scene starts with title-card and, at High, camera full and layout full-screen. The ending scene, if camera is allowed, closes camera full, layout full-screen, overlay end-card. There is one off-camera voice; camera moments are always recorded. Slide: ${
-            slide.title
-          }. Idea: ${slide.idea || ''}. Draft narration: ${
+Full means every segment on camera, none means every segment off camera, start means a camera prefix then off-camera, end means off-camera then a camera suffix, both means camera at each end with off-camera segments between, camera (none/full/start/end/both), layout (full-screen/corner/beside-slide), overlay (title-card/lower-third/end-card/null) and a recording cue.
+Use only facts from the source.
+Write natural speech.
+On camera ${presence}: Off means none anywhere; Low means camera only in the closing moment; High means camera in the first and last and where it helps explain, without a presenter cut between every small animation.
+The title scene starts with title-card and, at High, camera full and layout full-screen.
+The ending scene, if camera is allowed, closes camera full, layout full-screen, overlay end-card.
+There is one off-camera voice; camera moments are always recorded.
+Slide: ${slide.title}. Idea: ${slide.idea || ''}. Draft narration: ${
             slide.narration || ''
           }. Evidence: ${(slide.evidence || []).join(
             '\n'

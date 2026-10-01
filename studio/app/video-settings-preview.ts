@@ -60,6 +60,5 @@ export function videoSettingsPreview(project: Project, next: VideoSettings) {
           'confirm-video-settings',
           true
         )
-      : ''}${button('Back to settings', 'video-settings')}
-    <p id="error" role="alert"></p>`
+      : ''}${button('Back to settings', 'video-settings')} `
 }

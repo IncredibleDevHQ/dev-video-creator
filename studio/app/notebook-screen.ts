@@ -32,7 +32,6 @@ ${escape(
     )?.message || ''
 )}</span>
 ${button('History', 'history')}</div>
-<p id="error" role="alert">
-</p>
+
 </article>`
 }

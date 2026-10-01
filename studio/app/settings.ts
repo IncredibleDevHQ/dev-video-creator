@@ -1,3 +1,5 @@
+import { showError } from './error-surface'
+import { confirmAction } from './confirm-action'
 import { api } from './api'
 import { Recording } from './recording'
 import { settingsScreen, type SettingsPanel } from './settings-view'
@@ -31,23 +33,12 @@ export class Settings {
     private projectChanged: () => Promise<void>
   ) {
     root.addEventListener('click', (event) => {
-      if (this.isOpen)
-        void this.click(event).catch((error) =>
-          this.message(
-            error instanceof Error
-              ? error.message
-              : 'Could not complete this change'
-          )
-        )
+      if (this.isOpen) void this.click(event).catch((error) => showError(error))
     })
     root.addEventListener('submit', (event) => {
       if (this.isOpen) {
         event.preventDefault()
-        void this.submit(event).catch((error) =>
-          this.message(
-            error instanceof Error ? error.message : 'Could not save settings'
-          )
-        )
+        void this.submit(event).catch((error) => showError(error))
       }
     })
     root.addEventListener('change', (event) => {
@@ -214,7 +205,12 @@ export class Settings {
     }
     if (
       action?.startsWith('delete-clone:') &&
-      window.confirm('Delete this voice clone and its saved read?')
+      (await confirmAction({
+        title: 'Delete this voice?',
+        detail:
+          'This removes the voice clone and its saved read. Existing videos stay available.',
+        action: 'Delete voice'
+      }))
     ) {
       this.data = await api.deleteClone(action.slice(13))
       this.draw()

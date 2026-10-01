@@ -1,3 +1,4 @@
+import type { SceneProgressReporter } from '../shared/model'
 import { ensureVideoCover } from './video-cover'
 import { presenterOverlays } from '../render/presenter-overlay'
 import { loadProject } from './projects'
@@ -15,7 +16,7 @@ import { composePresenter } from '../render/presenter'
 export const prepareSceneAnimation = async (
   project: Project,
   scene: Scene,
-  progress: (message: string) => Promise<unknown>
+  progress: SceneProgressReporter
 ): Promise<NonNullable<Scene['animation']>> => {
   const key = scene.animationKey
   if (!key) throw new Error('The scene has no animation inputs')
@@ -91,7 +92,7 @@ export const prepareSceneAnimation = async (
         clips: [{ start: 0, end: moment.end - moment.start, camera: false }]
       }
     }
-    await progress('Building the scene')
+    await progress('Building the scene', 'composition')
     const files = await buildCreativeProduction(
       project,
       source,
@@ -99,7 +100,7 @@ export const prepareSceneAnimation = async (
         `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`,
       true
     )
-    await progress('Rendering the animation')
+    await progress('Rendering the animation', 'animation-render')
     const bytes = await renderProductionBundle(files, { fps: 30 })
     const asset = await storeAsset({
       body: bytes,

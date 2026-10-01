@@ -76,3 +76,18 @@ export type NotebookSummary = {
   updatedAt: string | null
   site: string | null
 }
+
+export type HarnessChoice = {
+  id: import('./model').HarnessSelection['adapter']
+  ok: boolean
+  version?: string
+  reason?: string
+  models?: {
+    default: string | null
+    options: Array<{ id: string; label: string; unavailable?: string }>
+  }
+}
+export type HarnessChoices = {
+  selected: import('./model').HarnessSelection | null
+  available: HarnessChoice[]
+}

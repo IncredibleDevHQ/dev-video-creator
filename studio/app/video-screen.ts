@@ -35,7 +35,11 @@ const sceneRailStatus = (snapshot: Snapshot, scene: Scene) => {
     activity = sceneActivity(snapshot, scene)
   const label = sceneDisplay(snapshot, scene).railLabel
   const open = view?.openMomentIds || []
-  if (open.length && !activity.active && scene.phase !== 'failed') {
+  if (
+    open.length &&
+    !activity.active &&
+    !sceneDisplay(snapshot, scene).failed
+  ) {
     const icon = scene.moments.some(
       (moment) => moment.camera !== 'none' && open.includes(moment.id)
     )
@@ -105,7 +109,7 @@ export const videoScreen = (
       ? 'Saved review · generation is not running in this copy.'
       : selectedActive
         ? `Processing scene ${selected + 1} · no action needed.`
-        : scene.phase === 'queued' &&
+        : sceneDisplay(snapshot, scene).queued &&
             !video.scenes.some((entry) => sceneDisplay(snapshot, entry).active)
           ? 'No scene is processing right now. Remaining scenes have not started.'
           : ''
@@ -113,7 +117,7 @@ export const videoScreen = (
   const showActivity =
     sceneActivity(snapshot, scene).events.length > 0 ||
     display.busy ||
-    scene.phase === 'failed'
+    sceneDisplay(snapshot, scene).failed
   const recordIndex = recordingTarget(
     scene.moments,
     view?.openMomentIds || [],
@@ -186,9 +190,7 @@ export const videoScreen = (
 <button type="button" class="scene-card-settings icon-button" data-action="scene-settings" data-settings-scene="${index}" aria-label="Settings for scene ${
           index + 1
         }" title="Scene settings" ${
-          sceneDisplay(snapshot, entry).busy && entry.phase !== 'queued'
-            ? 'disabled'
-            : ''
+          sceneDisplay(snapshot, entry).active ? 'disabled' : ''
         }>${gear}</button>
 </div>${
           index < video.scenes.length - 1
@@ -568,14 +570,13 @@ export const videoScreen = (
     scene.error ||
       (!busy
         ? reply?.message
-        : scene.phase === 'queued'
+        : sceneDisplay(snapshot, scene).queued
           ? 'Waiting for the next available slot'
           : '') ||
       video.error ||
       ''
   )}</span>${button('History', 'history')}</div>
-<p id="error" role="alert">
-</p>
+
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>
 <div class="transcript-header">
@@ -671,7 +672,6 @@ export const makeVideoDialog = (
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
   }>Your voice on camera and an AI voice elsewhere will sound different.</p>
 <button type="submit" class="primary">Make the video →</button>
-<p id="error" role="alert">
-</p>
+
 </form>`
 }

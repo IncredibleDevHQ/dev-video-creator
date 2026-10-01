@@ -12,7 +12,7 @@
     "setup": "node scripts/setup.mjs",
     "desktop": "node scripts/desktop.mjs",
     "format": "prettier --write \"app/**/*.{ts,css}\" \"engine/**/*.ts\" \"shared/**/*.ts\" \"render/**/*.ts\" \"scripts/*.mjs\" \"checks/**/*.{ts,mjs}\" \"*.json\"",
-    "format:check": "prettier --check \"app/**/*.{ts,css}\" \"engine/**/*.ts\" \"shared/**/*.ts\" \"render/**/*.ts\" \"scripts/*.mjs\" \"checks/**/*.{ts,mjs}\" \"*.json\""
+    "format:check": "prettier --check \"app/**/*.{ts,css}\" \"engine/**/*.ts\" \"shared/**/*.ts\" \"render/**/*.ts\" \"scripts/*.mjs\" \"checks/**/*.{ts,mjs}\" \"*.json\" && node scripts/check-source-size.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

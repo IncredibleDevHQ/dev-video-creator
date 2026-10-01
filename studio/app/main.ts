@@ -1,3 +1,4 @@
+import { showError } from './error-surface'
 import type { Snapshot } from '../shared/api'
 import { api } from './api'
 import { installAppActions } from './app-actions'
@@ -177,16 +178,7 @@ app.attach = (value: Snapshot) => {
   )
   app.render()
 }
-app.error = (reason: unknown) => {
-  const target = app.dialog.open
-    ? app.dialog.querySelector('#error')
-    : document.querySelector('#error, #settings-message')
-  if (target)
-    target.textContent =
-      reason instanceof Error
-        ? reason.message
-        : 'Could not complete that change'
-}
+app.error = showError
 app.showDialog = (content: string) => {
   app.dialogRevision++
   delete app.dialog.dataset.explainer

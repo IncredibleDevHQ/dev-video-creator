@@ -1,6 +1,6 @@
 import type { NotebookSummary, Snapshot } from '../shared/api'
 import type { Moment, VideoSettings } from '../shared/model'
-import { type HarnessChoices } from './choose-ai'
+import { type HarnessChoices } from '../shared/api'
 import { NotebookOpening } from './notebook-opening'
 import { PracticePlayback } from './practice'
 import { Recording } from './recording'

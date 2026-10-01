@@ -28,7 +28,8 @@ controllers. Their shared session/navigation contract is `app/app-context.ts`;
 workspace rendering and chat submission are separate too.
 
 Run `yarn format` to format source, and `yarn format:check` to verify it. The
-Studio CI job checks formatting before tests and the build. Long composed
+Studio CI job checks formatting before tests and the build. Implementation files are limited to 800 lines and
+500 characters per line by the same CI check. Long composed
 settings templates use the `html` tag so the formatter can lay out their markup.
 
 The model gateway owns remote voice transport as well as model requests:
@@ -41,3 +42,23 @@ action before creation; detailed models remain in the chooser/settings and
 token accounting remains in the engine/API. Experimental screens live in
 `prototypes/`, available in Vite development but excluded from the production
 build's public assets.
+
+Activity events carry a semantic `stage` in addition to their display message.
+Planning and production report it at the operation boundary; failed transitions
+retain the last processing stage. `shared/scene-activity.ts` computes the rail's
+rows from those stages and current artifacts. Older events remain in History;
+the rail does not infer progress from their wording. Shared scene display rules
+also own queued/failed status and recording readiness.
+
+Source reading is divided into prose/extraction (`source-document`), transport
+and painted styles (`source-fetch`), brand helpers (`source-brand`), code-host
+documents (`source-github`), and web-source assembly (`source-reader`). Callers
+import these owners directly. Treatment contracts and normalization live in
+`treatment-model` and `treatment-normalize`; `scene-treatment` validates them.
+CSS screen modules under `app/styles` are imported in their original cascade
+order. Composed markup uses the shared `html` tag for formatter support.
+
+The HTTP boundary treats JSON as unknown and validates its fields before
+constructing typed chat, slide, extension and recording requests. Failed app
+actions use one dismissible error surface, including inside native modal
+dialogs. Voice deletion uses an app dialog with Cancel as its initial focus.

@@ -15,7 +15,7 @@ vi.mock('./creative/stage', async (original) => ({
 const root = await mkdtemp(join(tmpdir(), 'studio-source-chat-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { chatNotebook, validateSourceReply } = await import('./notebook-chat')
-const { readSourceNarrative } = await import('./source')
+const { readSourceNarrative } = await import('./source-document')
 const { writeRow, listNotebookRows } = await import('./persistence')
 const source = readSourceNarrative(
   'Canvas is a workspace for writing and coding. People can select a passage to work on together.'

@@ -1,4 +1,5 @@
-import { sanitizeOutline, type readSourceNarrative } from '../source'
+import { sanitizeOutline } from '../source-outline'
+import { type readSourceNarrative } from '../source-document'
 import { fingerprintOf, quotedIn } from '../planning/fingerprint'
 import { runValidatedJsonStage, type CreativeSelection } from './stage'
 export const validateCreativeStory = (

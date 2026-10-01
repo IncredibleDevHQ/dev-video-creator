@@ -3,15 +3,12 @@ import { parseHTML } from 'linkedom'
 import {
   articleText,
   extractionOf,
-  githubDocumentOf,
-  markdownDocument,
-  readSourceNarrative,
-  readSourceUrl,
-  renderPage,
-  statFigure,
-  type OutlineScene,
-  type PageBrand
-} from './source'
+  readSourceNarrative
+} from './source-document'
+import { githubDocumentOf, markdownDocument } from './source-github'
+import { readSourceUrl } from './source-reader'
+import { renderPage, statFigure, type PageBrand } from './source-page'
+import { type OutlineScene } from './source-outline'
 
 // F1 of the fresh end-to-end review: the schematic page for Anthropic's
 // latency results printed "50" and "95" captioned "pTTFT" — the percentile

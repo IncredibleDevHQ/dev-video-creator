@@ -1,5 +1,5 @@
 import { addEvent, type ActivityLedger } from './activity'
-import type { Scene } from '../shared/model'
+import type { Scene, SceneStage } from '../shared/model'
 
 export type SceneSignal =
   | 'start'
@@ -86,6 +86,20 @@ const messages: Record<SceneSignal, string> = {
   'recover-plan': 'Resuming this scene',
   'recover-production': 'Resuming production'
 }
+const stages: Partial<Record<SceneSignal, SceneStage>> = {
+  start: 'artwork',
+  change: 'artwork',
+  replan: 'artwork',
+  'plan-ready': 'script',
+  produce: 'voice',
+  produced: 'save',
+  'animation-ready': 'animation-render',
+  'recording-saved': 'recordings',
+  retry: 'artwork',
+  invalidate: 'artwork',
+  'recover-plan': 'artwork',
+  'recover-production': 'voice'
+}
 export const transitionScene = (
   scene: Scene,
   signal: SceneSignal,
@@ -101,6 +115,22 @@ export const transitionScene = (
     message || (signal === 'fail' ? scene.error : null) || messages[signal],
     {
       sceneId: scene.id,
+      stage:
+        signal === 'fail'
+          ? [...ledger.events]
+              .reverse()
+              .find(
+                (event) =>
+                  event.sceneId === scene.id &&
+                  event.activity === 'processing' &&
+                  event.stage
+              )?.stage ||
+            (scene.failure === 'production' ? 'composition' : 'artwork')
+          : signal === 'produce' &&
+              scene.creativePlan &&
+              scene.animation?.inputKey !== scene.animationKey
+            ? 'composition'
+            : stages[signal],
       activity:
         signal === 'fail'
           ? 'failed'

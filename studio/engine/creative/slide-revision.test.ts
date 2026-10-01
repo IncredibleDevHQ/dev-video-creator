@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { validateSlideRevision } from './slide-revision'
-import { readSourceNarrative } from '../source'
+import { readSourceNarrative } from '../source-document'
 const source = readSourceNarrative(
   'Canvas provides a workspace for writing and coding.'
 )

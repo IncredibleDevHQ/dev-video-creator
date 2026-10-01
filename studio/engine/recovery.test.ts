@@ -20,8 +20,9 @@ const { writeRow } = await import('./persistence')
 const { recoverProjects } = await import('./recovery')
 const { loadProject, scheduleSlides } = await import('./projects')
 const { refreshVideoKeys } = await import('./scene-model')
-const { readSourceNarrative, pageBrandFrom, sanitizeOutline } =
-  await import('./source')
+const { readSourceNarrative } = await import('./source-document')
+const { pageBrandFrom } = await import('./source-page')
+const { sanitizeOutline } = await import('./source-outline')
 afterAll(() => rm(root, { recursive: true, force: true }))
 const seed = async (
   id: string,
