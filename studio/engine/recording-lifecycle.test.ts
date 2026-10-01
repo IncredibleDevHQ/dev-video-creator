@@ -31,7 +31,18 @@ it('leaves recording available for retry after permission denial',async()=>{
   await expect(recorder.start([moment])).rejects.toThrow('site settings')
   expect(recorder.phase).toBe('idle');expect(recorder.stream).toBeNull()
   await expect(recorder.start([moment])).rejects.toThrow('Record again')
-  expect(getUserMedia).toHaveBeenCalledTimes(2)
+  await expect(recorder.start([moment])).rejects.toThrow('Microphone access was denied')
+  expect(getUserMedia).toHaveBeenCalledTimes(3)
+})
+
+it('explains a busy device and releases a failed request for explicit retry',async()=>{
+ const busy=new Error('Device busy');busy.name='NotReadableError'
+ const getUserMedia=vi.fn().mockRejectedValue(busy)
+ vi.stubGlobal('navigator',{mediaDevices:{getUserMedia}})
+ const recording=new Recording(()=>{},()=>{})
+ await expect(recording.start([{...moment,camera:'full'}])).rejects.toThrow('Close other apps')
+ expect(recording.phase).toBe('idle');expect(recording.stream).toBeNull()
+ expect(getUserMedia).toHaveBeenCalledOnce()
 })
 
 it('counts down before capture and stops a timed take once for review',async()=>{

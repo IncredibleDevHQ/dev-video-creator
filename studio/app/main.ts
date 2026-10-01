@@ -7,7 +7,7 @@ import {replacePlayerView} from './player-view'
 import {recordingTarget} from './recording-target'
 import {syncRehearsalAnimation} from './rehearsal-animation'
 import {animationSecond} from '../shared/scene-time'
-import {recordingSetup,recordingPassSetup} from './recording-setup'
+import {recordingSetup,recordingPassSetup,recordingRecovery} from './recording-setup'
 import {movePlayhead} from './moment-timeline'
 import {gear,sceneSettings} from './camera-settings'
 import {stageStatus} from './stage-status'
@@ -60,6 +60,8 @@ let practiceStream: MediaStream | null = null
 const stopPractice = () => { practiceRequest++; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
 let recordingSceneId = ''
 let recordingProjectId = ''
+let recordingAttempt:import('../shared/model').Moment[]=[]
+const recordingFailed=(reason:unknown)=>{if(snapshot?.project.id===recordingProjectId && capture.phase==='idle')showDialog(recordingRecovery(reason));else error(reason)}
 const capture = new Recording(() => {
   if (capture.phase === 'recording' || capture.phase === 'countdown') {
     const scene = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)
@@ -75,7 +77,7 @@ const capture = new Recording(() => {
   const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${(capture.moments.length>1?capture.elapsed:elapsed).toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
-}, reason => error(reason))
+}, reason => recordingFailed(reason))
 const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,practice.active || capture.phase==='recording')}
 let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
 let pendingRecording: import('../shared/model').Moment[] | null = null
@@ -186,7 +188,8 @@ document.addEventListener('submit', async event => {
     if(form.id==='recording-setup' && pendingRecording){
       const seconds=String(values.get('seconds') || '').trim()
       const moments=pendingRecording;pendingRecording=null;dialog.close()
-      await capture.start(moments,{stopAfter:seconds?Number(seconds):null})
+      recordingAttempt=structuredClone(moments)
+      try{await capture.start(moments,{stopAfter:seconds?Number(seconds):null})}catch(reason){recordingFailed(reason)}
     }
     if(form.id==='source'){
       if(pending) return
@@ -323,6 +326,16 @@ document.addEventListener('click', async event => {
       const moments=scene.moments.filter(moment=>open.includes(moment.id))
       if(!moments.length)throw new Error('No moments need recording')
       recordingSceneId=scene.id;recordingProjectId=id;prepareRecordingPass(moments)
+    }
+    if(action==='recording-retry'){
+      const scene=snapshot.project.video?.scenes.find(entry=>entry.id===recordingSceneId)
+      if(!scene || id!==recordingProjectId || !recordingAttempt.length)throw new Error('Select the moment you want to record.')
+      if(!['waiting','produced'].includes(scene.phase))throw new Error('Wait for this scene to finish changing before recording again.')
+      const moments=recordingAttempt.map(previous=>scene.moments.find(moment=>moment.id===previous.id && moment.recordingKey===previous.recordingKey))
+      if(moments.some(moment=>!moment))throw new Error('The dialogue changed. Close this dialog and select the updated moment to record.')
+      selected=snapshot.project.video!.scenes.indexOf(scene)
+      momentIndex=scene.moments.findIndex(moment=>moment.id===moments[0]!.id);second=moments[0]!.start
+      if(moments.length>1)prepareRecordingPass(moments as import('../shared/model').Moment[]);else prepareRecording(moments[0]!,momentIndex)
     }
     if (action === 'scene-next' || action==='record-moment') {
       const scene = snapshot.project.video!.scenes[selected]

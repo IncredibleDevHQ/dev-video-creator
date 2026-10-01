@@ -60,8 +60,10 @@ export class Recording {
         this.change()
       },1000)
     } catch (error) { if(generation!==this.generation) return; this.stopTracks(); this.phase = 'idle'; this.change();
-      if(error instanceof Error && error.name==='NotAllowedError') throw new Error('Camera or microphone access was denied. Allow access in your browser’s site settings, then select Record again. You can still practice with the presenter stand-in.')
-      if(error instanceof Error && error.name==='NotFoundError') throw new Error('No matching camera or microphone was found. Connect the required device, then select Record again.')
+      const devices=moments.some(moment=>moment.camera!=='none')?'Camera or microphone':'Microphone'
+      if(error instanceof Error && error.name==='NotAllowedError') throw new Error(`${devices} access was denied. Allow access in your browser’s site settings, then select Record again. You can still practice with the presenter stand-in.`)
+      if(error instanceof Error && error.name==='NotFoundError') throw new Error(`No matching ${devices.toLowerCase()} was found. Connect the required device, then select Record again.`)
+      if(error instanceof Error && error.name==='NotReadableError')throw new Error(`${devices} could not start. Close other apps using your device, check system permissions, then try recording again.`)
       throw error }
   }
   next() {
