@@ -134,3 +134,12 @@ devices immediately instead of requiring more recording; stopping immediately
 after advancing a pass retains only its completed parts. DOM and mocked capture
 checks cover player retention, review placement, immediate stop and resource
 cleanup. Native physical-device review remains unverified.
+
+Take review follows the saved recording-part boundaries rather than the planned
+scene clock. A pass that records only the opening and closing skips auto moments
+in the transcript and playhead; longer takes map proportionally within their
+planned card. A partial pass holds its last completed card at the end. Both audio
+and camera review use frame-based playhead motion and time updates for transcript
+selection. Regression checks cover skipped moments, unequal durations, obsolete
+recording inputs and partial-pass endings. Native review playback verification
+remains pending.

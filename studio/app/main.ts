@@ -1,3 +1,4 @@
+import {takeReviewPosition} from './take-review-clock'
 import {NotebookOpening,notebookOpeningView} from './notebook-opening'
 import {momentViewKey} from '../shared/model'
 import {replacePlayerView} from './player-view'
@@ -396,26 +397,31 @@ window.addEventListener('pagehide', () => { stopPractice(); capture.dispose(); i
 
 let playheadFrame=0
 const stopPlayhead=()=>{cancelAnimationFrame(playheadFrame);playheadFrame=0}
-const animatePlayhead=(player:HTMLVideoElement)=>{
+const animatePlayhead=(player:HTMLMediaElement)=>{
  stopPlayhead()
  const tick=()=>{
   if(!player.isConnected || player.paused || player.ended || !snapshot){stopPlayhead();return}
+  if(player.hasAttribute('data-take-player')){const scene=snapshot.project.video?.scenes[selected],at=scene?takeReviewPosition(scene.moments,capture.parts,player.currentTime):null;if(at)movePlayhead(root,scene!.moments,at.second,at.momentIndex);playheadFrame=requestAnimationFrame(tick);return}
   const at=player.hasAttribute('data-whole-video')?sceneAt(snapshot.project,player.currentTime):{index:selected,second:player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],player.currentTime):player.currentTime}
   movePlayhead(root,snapshot.project.video?.scenes[at.index]?.moments || [],at.second)
   playheadFrame=requestAnimationFrame(tick)
  }
  playheadFrame=requestAnimationFrame(tick)
 }
-root.addEventListener('play',event=>{const player=event.target;if(player instanceof HTMLVideoElement && player.matches('[data-scene-player]'))animatePlayhead(player)},true)
-for(const type of ['pause','ended','emptied'])root.addEventListener(type,event=>{if(event.target instanceof HTMLVideoElement && event.target.matches('[data-scene-player]'))stopPlayhead()},true)
+root.addEventListener('play',event=>{const player=event.target;if(player instanceof HTMLMediaElement && player.matches('[data-scene-player],[data-take-player]'))animatePlayhead(player)},true)
+for(const type of ['pause','ended','emptied'])root.addEventListener(type,event=>{if(event.target instanceof HTMLMediaElement && event.target.matches('[data-scene-player],[data-take-player]'))stopPlayhead()},true)
 window.addEventListener('pagehide',stopPlayhead)
 
 root.addEventListener('timeupdate',event => {
-  const player = event.target as HTMLVideoElement
-  if (!player.matches('[data-scene-player]')) return
+  const player = event.target as HTMLMediaElement
+  if (!player.matches('[data-scene-player],[data-take-player]')) return
   if (!snapshot) return
   let changedScene = false
-  if (player.hasAttribute('data-whole-video')) {
+  if(player.hasAttribute('data-take-player')){
+    const scene=snapshot.project.video?.scenes[selected],at=scene?takeReviewPosition(scene.moments,capture.parts,player.currentTime):null
+    if(!at)return
+    momentIndex=at.momentIndex;second=at.second
+  } else if (player.hasAttribute('data-whole-video')) {
     const at = sceneAt(snapshot.project,player.currentTime)
     changedScene = selected !== at.index; selected = at.index; second = at.second
   } else second = player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],player.currentTime):player.currentTime
@@ -423,11 +429,11 @@ root.addEventListener('timeupdate',event => {
   if (!scene) return
   const clock=scene.moments
   const index = clock.findIndex(moment => second >= moment.start && second < moment.end)
-  if (index >= 0) momentIndex = index
+  if (index >= 0 && !player.hasAttribute('data-take-player')) momentIndex = index
   if (changedScene) { render(); return }
   root.querySelectorAll('.transcript-moment').forEach((entry,index) => entry.classList.toggle('current',index === momentIndex))
   root.querySelectorAll('.moment').forEach((entry,index) => entry.classList.toggle('current',index === momentIndex))
-  movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
+  movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,player.hasAttribute('data-take-player')?momentIndex:undefined)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
 },true)
 
