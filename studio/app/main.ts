@@ -1,3 +1,4 @@
+import {workspacePosition,workspaceUrl} from './workspace-position'
 import {seekSavedMedia} from './media-seek'
 import {savedMediaRecovery} from './media-recovery'
 import {videoSettingsPreview} from './video-settings-preview'
@@ -91,7 +92,7 @@ const pendingChats=new Set<string>()
 let liveConnected=true
 let openingAutoStage=false
 const opening=new NotebookOpening(api.load,value=>{if(openingAutoStage)stage=value.project.video?'video':'presentation';attach(value)},()=>render())
-const openNotebook=(id:string,autoStage=false)=>{openingAutoStage=autoStage;const url=new URL(location.href);url.searchParams.set('notebook',id);url.searchParams.delete('project');history.replaceState(null,'',url);return opening.open(id)}
+const openNotebook=(id:string,autoStage=false)=>{openingAutoStage=autoStage;const url=new URL(location.href);if(url.searchParams.get('notebook')!==id){url.searchParams.delete('scene');url.searchParams.delete('moment')}url.searchParams.set('notebook',id);url.searchParams.delete('project');history.replaceState(null,'',url);return opening.open(id)}
 const render = () => {
   if(settingsScreen.isOpen) return
   const contextKey = [snapshot?.project.id,stage,selected].join(':')
@@ -115,10 +116,10 @@ const render = () => {
     if(focusedId && !dialog.open) document.getElementById(focusedId)?.focus()
     return
   }
-  const viewUrl=new URL(location.href)
-  if(viewUrl.searchParams.get('view')!==stage){viewUrl.searchParams.set('view',stage);history.replaceState(null,'',viewUrl)}
   const { project, status } = snapshot
   selected = Math.max(0, Math.min(selected, project.slides.length - 1))
+  const viewUrl=workspaceUrl(new URL(location.href),project,stage,selected,momentIndex)
+  if(viewUrl.href!==location.href)history.replaceState(null,'',viewUrl)
   replacePlayerView(root, `<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a><div class="notebook-identity"><a class="header-project-title" href="/?notebook=${encodeURIComponent(project.id)}" title="Permanent notebook link">${escape(project.title)}</a>${project.harness?`<span class="notebook-harness" title="AI saved for this notebook">${escape(({kimi:'Kimi','claude-code':'Claude Code',codex:'Codex'})[project.harness.adapter])}${project.harness.model?` · ${escape(project.harness.model.replace(/^kimi-code\//,''))}`:''}</span>`:''}</div><nav aria-label="Stages">${(['notebook','presentation','video'] as const).map(name => `<button data-stage="${name}" aria-current="${stage === name ? 'page' : 'false'}">${name[0].toUpperCase()+name.slice(1)}${stageStatus(snapshot!,name,liveConnected)}</button>`).join('')}</nav><div class="header-actions">${project.video?`<button type="button" data-action="video-settings" class="icon-button" aria-label="Notebook settings" title="Notebook settings">${gear}</button>`:button('Settings', 'settings')}${stage==='notebook'?button('View slides →','view-slides',true,status!=='ready') : stage === 'presentation' ? button('Export slides', 'export', false, status !== 'ready') + button('Make the video →', 'make-video', true, status !== 'ready') : stage === 'video' ? videoHeader(snapshot) : ''}</div></header><main class="workspace workspace-${stage}"><div class="project-heading"><h1>${escape(project.title)}</h1>${stage === 'presentation' ? '<p>Each slide is one scene of your video.</p>' : ''}</div>${stage === 'notebook' ? `<article class="notebook">${project.sourceUrl?`<p>From <a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener">${escape(project.sourceUrl)}</a></p>`:''}<pre>${escape(project.source)}</pre><form id="notebook-chat" class="chat"><label class="sr" for="source-question">Ask about the source</label><input id="source-question" name="instruction" placeholder="Ask about the source…" ${status!=='ready'?'disabled':''}><button aria-label="Send source question" ${status!=='ready' || pendingChats.has(project.id)?'disabled':''}>↑</button></form><div class="reply"><span>${escape([...snapshot.events].reverse().find(event=>event.kind==='chat' && event.anchor?.stage==='notebook')?.message || '')}</span>${button('History','history')}</div><p id="error" role="alert"></p></article>` : stage === 'video' ? videoScreen(snapshot, selected, momentIndex, second, practice.active, capture, practiceStream, wholeVideo, liveConnected) : presentationScreen(snapshot,selected,pendingChats.has(project.id))}</main>`,previousPlayer)
   if(snapshot.readOnly){
     for(const input of root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input,textarea,select')) input.disabled=true
@@ -166,6 +167,7 @@ const sendChat=async(request:import('../shared/api').ChatRequest)=>{
 }
 const attach = (value: Snapshot) => {
   liveConnected=true
+  if(stage==='video')({selected,momentIndex,second}=workspacePosition(value.project,new URL(location.href)))
   opening.reset();snapshot = value; localStorage.setItem('minimal-studio-project', value.project.id)
   const notebookUrl=new URL(location.href);notebookUrl.searchParams.delete('project');notebookUrl.searchParams.set('notebook',value.project.id);history.replaceState(null,'',notebookUrl)
   closeStream?.(); closeStream = api.subscribe(value.project.id, update => {
