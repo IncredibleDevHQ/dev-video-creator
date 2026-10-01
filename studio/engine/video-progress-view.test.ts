@@ -1,3 +1,5 @@
+import {normalizeMoments} from './moment-plan'
+import {projectViews} from './state'
 import {presentationScreen} from '../app/presentation-screen'
 import {stageStatus} from '../app/stage-status'
 import {expect,it} from 'vitest'
@@ -233,4 +235,20 @@ it('shows one scene-rail state with the missing recording count, then current wo
  card=parseHTML(render(input)).document.querySelector('.scene-card')!
  expect(card.querySelectorAll('.scene-state')).toHaveLength(1)
  expect(card.querySelector('.scene-state')!.textContent).toBe('Building the scene')
+})
+
+it('shows the saved take number only while the recording matches the moment',()=>{
+ const input=fixture(),scene=input.project.video!.scenes[0]
+ scene.phase='waiting'
+ scene.moments=normalizeMoments({moments:[{title:'On camera',lines:'Your words.',seconds:4,camera:'full',layout:'corner',overlay:null,cue:''}]},scene.id,'high','body')
+ const moment=scene.moments[0]
+ moment.take={id:'take',number:3,recordingKey:moment.recordingKey,objectKey:'take.webm',duration:4}
+ input.views=projectViews(input.project)
+ expect(render(input)).toContain('recorded · take 3')
+ moment.recordingKey='changed-script';input.views=projectViews(input.project)
+ expect(render(input)).not.toContain('take 3')
+ expect(render(input)).toContain('to record')
+ moment.recordingKey=moment.take.recordingKey;delete moment.take.number;input.views=projectViews(input.project)
+ expect(render(input)).not.toContain('take 1')
+ expect(render(input)).toContain('recorded')
 })
