@@ -9,4 +9,4 @@ export type ReplanPreview = { sceneId: string; from: Presence; to: Presence | nu
 
 export type RecordedPart = { momentId: string; recordingKey: string; from: number; to: number }
 
-export type NotebookSummary={id:string;title:string;status:Snapshot['status'];hasVideo:boolean;updatedAt:string|null}
+export type NotebookSummary={id:string;title:string;status:Snapshot['status'];hasVideo:boolean;updatedAt:string|null;site:string|null}

@@ -23,7 +23,7 @@ import {stageStatus} from './stage-status'
 import {updateProgressTimes} from './progress'
 import {presentationScreen} from './presentation-screen'
 import {downloadPresentation,downloadVideo} from './download'
-import {chooseAiDialog,modelOptions,type HarnessChoices} from './choose-ai'
+import {aiLabel,chooseAiDialog,modelOptions,type HarnessChoices} from './choose-ai'
 import {PracticePlayback} from './practice'
 import { Settings } from './settings'
 import { parseVoice } from './voice-choice'
@@ -50,6 +50,10 @@ let closeStream: (() => void) | null = null
 let pending = false
 let pendingSource=''
 let aiChoices:HarnessChoices|null=null
+let aiLoading=false,showAllRecent=false
+const ago=(iso:string)=>{const seconds=(Date.parse(iso)-Date.now())/1000;if(!Number.isFinite(seconds))return '';const format=new Intl.RelativeTimeFormat('en',{numeric:'auto'});for(const [unit,size] of [['year',31536000],['month',2592000],['week',604800],['day',86400],['hour',3600],['minute',60]] as const) if(Math.abs(seconds)>=size) return format.format(Math.round(seconds/size),unit);return 'just now'}
+const sourceHint=(value:string)=>{const text=value.trim();if(!text)return '';if(/^(https?:\/\/|www\.)\S+$/i.test(text))return 'Link · we’ll read the article';const words=text.split(/\s+/).length;return `Your text · ${words.toLocaleString()} ${words===1?'word':'words'}`}
+const fitSource=(field:HTMLTextAreaElement)=>{field.style.height='auto';field.style.height=`${Math.min(field.scrollHeight+2,220)}px`;const hint=document.querySelector('#source-hint');if(hint)hint.textContent=sourceHint(field.value)}
 let momentIndex = 0
 let second = 0
 let wholeVideo = false
@@ -175,10 +179,12 @@ const render = () => {
     return
   }
   if (!snapshot) {
-    replacePlayerView(root, `<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a>${button('Settings', 'settings')}</header><main class="start"><h1>Turn a blog into slides and a video.</h1><form id="source"><label class="sr" for="source-input">Link or text</label><div class="source-row"><textarea id="source-input" name="source" rows="1" placeholder="Paste a blog link or your text…" required></textarea><button class="primary" ${pending ? 'disabled' : ''}>${pending ? 'Starting…' : 'Make the video →'}</button></div><button type="button" data-action="slides-only" class="quiet slides-only">Only want slides?</button></form><p id="error" role="alert"></p>${notebooks.length?`<section class="saved-notebooks"><h2>Continue a notebook</h2>${notebooks.map(item=>`<button data-notebook="${escape(item.id)}"><span>${escape(item.title)}</span><small>${item.status==='failed'?'Needs another try':item.status==='building'?'Slides in progress':item.hasVideo?'Video in progress':'Slides ready'} →</small></button>`).join('')}</section>`:''}</main>`,previousPlayer)
+    const recent=showAllRecent?notebooks:notebooks.slice(0,5),ai=aiLabel(aiChoices)
+    replacePlayerView(root, `<header class="home"><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a>${button('Settings', 'settings')}</header><main class="start${notebooks.length?' has-recent':''}"><h1>Turn a blog into slides and a video.</h1><form id="source"><label class="sr" for="source-input">Link or text</label><div class="source-row"><textarea id="source-input" name="source" rows="1" placeholder="Paste a blog link or your text…" required></textarea><button class="primary" ${pending ? 'disabled' : ''}>${pending ? 'Starting…' : 'Make the video →'}</button></div><div class="source-meta"><button type="button" data-action="slides-only" class="quiet slides-only">Only want slides?</button><small id="source-hint" class="source-hint" aria-live="polite"></small>${ai?`<button type="button" class="quiet ai-choice" data-action="choose-ai">${escape(ai)} · Change</button>`:''}</div></form><p id="error" role="alert"></p>${notebooks.length?`<section class="saved-notebooks" aria-labelledby="recent-heading"><h2 id="recent-heading">Recent</h2>${recent.map(item=>`<button data-notebook="${escape(item.id)}"><span class="recent-title">${escape(item.title)}<small>${escape(item.site || 'Your text')}${item.updatedAt?` · ${escape(ago(item.updatedAt))}`:''}</small></span><small class="recent-state">${item.status==='failed'?'Needs another try':item.status==='building'?'Slides in progress':item.hasVideo?'Video in progress':'Slides ready'} →</small></button>`).join('')}${notebooks.length>recent.length?`<button type="button" class="quiet show-all" data-action="all-recent">Show all ${notebooks.length}</button>`:''}</section>`:''}</main>`,previousPlayer)
     const sourceField=root.querySelector<HTMLTextAreaElement>('#source-input')
     syncMediaRecovery()
-    if(sourceField) sourceField.value=drafts.find(draft=>draft.id==='source-input')?.value ?? pendingSource
+    if(sourceField){sourceField.value=drafts.find(draft=>draft.id==='source-input')?.value ?? pendingSource;fitSource(sourceField)}
+    if(!aiChoices && !aiLoading){aiLoading=true;void api.harnesses().then(choices=>{aiChoices=choices;if(!snapshot && !settingsScreen.isOpen && !dialog.open)render()}).catch(()=>null).finally(()=>{aiLoading=false})}
     if(focusedId && !dialog.open) document.getElementById(focusedId)?.focus()
     return
   }
@@ -302,13 +308,18 @@ document.addEventListener('submit', async event => {
       if(pending) return
       pendingSource=String(values.get('source')).trim();if(!pendingSource) return
       pending=true;render()
-      try{aiChoices=await api.harnesses();showDialog(chooseAiDialog(aiChoices))}finally{pending=false;render()}
+      try{
+        aiChoices=await api.harnesses()
+        if(aiLabel(aiChoices) && aiChoices.selected){const created=await api.create({source:pendingSource,harness:aiChoices.selected});pendingSource='';stage='presentation';attach(created)}
+        else showDialog(chooseAiDialog(aiChoices))
+      }finally{pending=false;render()}
     }
     if(form.id==='choose-ai'){
-      if(pending || !pendingSource) return
+      if(pending) return
       const adapter=String(values.get('harness')) as import('../shared/model').HarnessSelection['adapter']
       if(!aiChoices?.available.some(choice=>choice.id===adapter && choice.ok)) throw new Error('Choose an available AI harness')
       const model=String(values.get('model') || ''),harness={adapter,...model?{model}:{}}
+      if(!pendingSource){await api.saveSettings({harness});aiChoices={...aiChoices,selected:harness};dialog.close();render();return}
       pending=true;const submit=form.querySelector<HTMLButtonElement>('button[type=submit],button.primary');if(submit) submit.disabled=true
       try{await api.saveSettings({harness});const created=await api.create({source:pendingSource,harness});pendingSource='';dialog.close();stage='presentation';attach(created)}finally{pending=false;if(submit) submit.disabled=false}
     }
@@ -357,6 +368,8 @@ document.addEventListener('click', async event => {
     if (action === 'close') { if (dialog.dataset.explainer) localStorage.setItem('studio-slides-explained','yes'); dialog.close() }
     if (action === 'understood') { localStorage.setItem('studio-slides-explained','yes'); document.querySelector<HTMLDialogElement>('#dialog')?.close() }
     if (action === 'slides-only') document.querySelector<HTMLTextAreaElement>('#source-input')?.focus()
+    if (action === 'choose-ai') { aiChoices=await api.harnesses(); showDialog(chooseAiDialog(aiChoices,true)); return }
+    if (action === 'all-recent') { showAllRecent=true; render(); return }
     if(action==='open-notebook' && opening.state){await openNotebook(opening.state.id,openingAutoStage);return}
     if (!snapshot) return
     if (capture.phase !== 'idle' && ['make-video','video-settings','scene-settings'].includes(action || '')) throw new Error('Finish or discard this take before changing settings')
@@ -518,6 +531,8 @@ document.addEventListener('keydown',event=>{
   if(capture.phase==='recording'){event.preventDefault();try{capture.stop()}catch(reason){error(reason)}}
   else if(capture.phase==='countdown' || capture.phase==='preparing'){event.preventDefault();capture.dispose()}
 })
+root.addEventListener('input',event=>{const field=event.target as HTMLTextAreaElement;if(field.id==='source-input')fitSource(field)})
+root.addEventListener('keydown',event=>{const field=event.target as HTMLTextAreaElement;if(field.id==='source-input' && event.key==='Enter' && !event.shiftKey && !event.isComposing){event.preventDefault();field.form?.requestSubmit()}})
 root.addEventListener('keydown', event => {
   if (!snapshot || stage !== 'presentation' || /INPUT|TEXTAREA/.test((event.target as Element).tagName)) return
   const command = event.metaKey || event.ctrlKey

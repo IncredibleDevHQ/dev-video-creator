@@ -261,11 +261,12 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
   }
 }
 
+const siteOf=(url?:string)=>{try{return url?new URL(url).hostname.replace(/^www\./,''):null}catch{return null}}
 export const listNotebooks = async ():Promise<import('../shared/api').NotebookSummary[]> => {
   const result=[]
   for(const id of await listRows('projects')) {
     const saved=await loadProject(id)
-    if(saved) result.push({id,title:saved.project.title,status:saved.status,hasVideo:Boolean(saved.project.video),updatedAt:saved.events.at(-1)?.time || null})
+    if(saved) result.push({id,title:saved.project.title,status:saved.status,hasVideo:Boolean(saved.project.video),updatedAt:saved.events.at(-1)?.time || null,site:siteOf(saved.project.sourceUrl)})
   }
   return result.sort((a,b)=>(b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0,50)
 }
