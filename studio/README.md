@@ -1,174 +1,79 @@
-# Minimal Incredible Studio
+# Incredible Studio
 
-Rebuild against `~/Downloads/studio-rebuild-handoff.html` (30 September 2026). Development lives alongside the existing engine in the `claude/component-passes` worktree.
+Minimalist rebuild of the supplied `studio-rebuild-handoff.html`. The app lives
+in this standalone folder alongside the earlier studio during validation.
 
-Run `yarn setup`, then `yarn dev` from this folder. Setup installs the locked dependencies and matching rendering browser, then checks required system tools. Install FFmpeg, Python 3, uv, and at least one supported signed-in AI harness before setup; `yarn doctor` reports what is missing. Open http://127.0.0.1:4180. The engine uses port 4320. Set `MINIMAL_STUDIO_WEB_PORT` and `MINIMAL_STUDIO_PORT` to use a different pair; the launcher refuses occupied ports before accessing storage, and stops both services if either exits. Add a provider key in Settings or provide `OPENAI_API_KEY` in the server environment. Keys stay on the server. Local files default to `.minimal-studio-data`; override with `MINIMAL_STUDIO_DATA_DIR`. Deployed PostgreSQL/S3 storage and notebook artifact recovery are described in [STORAGE.md](STORAGE.md). Never use the existing studio's data folder for checks.
+## Run
 
-`yarn doctor` checks local tools, installed harnesses, bundled skills, browser availability and required storage configuration without opening notebook data or making model calls. It reports missing dependencies with fixes.
+Install Node 22+, Yarn 1, FFmpeg (including ffprobe), Python 3, uv, and a supported
+AI CLI: Claude Code, Kimi or Codex. Sign in to the CLI you intend to use. Then:
 
-`yarn run check` runs TypeScript and tests. `yarn run build` builds the app. Run `yarn puppeteer browsers install chrome` once to install the renderer’s matching Chrome build. `MINIMAL_STUDIO_LIVE=1 yarn vitest run checks/render.live.test.ts` checks a real Hyperframes render against synthetic media in a temporary store.
+```sh
+yarn setup
+yarn dev
+```
 
-Implemented so far:
+Setup installs locked dependencies and the matching rendering browser, then runs
+`yarn doctor`. Doctor checks tools and configuration without opening notebooks
+or making model calls. This currently requires preinstalled system tools; it is
+not a clean-machine provisioning command.
 
-- Fresh start and presentation screens; source reader/model gateway copied with tests; model outline generation, slide rendering, local persistence and one project event stream.
-- Slide add/duplicate/move/delete/undo (restoring scene takes, instructions and adjacent transitions), keyboard commands, drag reorder, anchored slide chat and PDF slide export.
-- Make the video dialog and automatic scene planning. Camera policies use the copied presence rules. Title/ending staging, timed moments, scene rail, transcript, anchored video chat and re-plan are implemented.
-- Video defaults and per-scene on-camera overrides. Scene edits invalidate old outputs; an in-flight response cannot replace a newer slide plan.
-- Browser camera/microphone recording: one moment, an open-moment pass, review, save and retake. User-marked boundaries split a continuous pass; server normalization checks camera/audio, rejects stale scripts, and measures each saved moment's clock.
-- Measured narration and recorded camera segments feed pinned Hyperframes scene production. Scene MP4 downloads, transition selection, joining and whole-video MP4 export are connected. Background renders and joins discard results when their inputs change. Scene and whole-video playback retain their position through updates; scene/moment selection seeks through the joined clock. Starting a chat edit pauses playback to retain its anchor.
-- Configurable PostgreSQL + S3 storage groups artifacts under notebook IDs and indexes immutable object references and checksums. A fresh-worker MinIO integration check verifies checkpoint recovery, render reuse, pending-upload reconciliation and corruption rejection. The server-backed notebook list reopens saved work without browser-local state.
-- Copied Claude Code, Codex and Kimi adapters plus isolated durable run setup, cancellation, stage acceptance and interrupted-run recovery. Added run-scoped MCP submissions, validated brief and treatment services, persisted stage acceptance, concurrent-stage deduplication and copied production contract checks. The creative engine is selectable in Settings → API keys. New notebooks retain their harness/model choice for source outlining, scene treatments, spoken lines and compositions. The composition uses joined measured sound and a camera reel from the actual scheduled clips; supplied clock media must remain byte-identical. New notebook creation requires a selected harness and builds an explanation brief before Story Master and Page Master; it does not fall back to template slides. Protocol fixtures do not prove model quality.
-- Startup resumes interrupted slide, planning, production and joining jobs. Saved outline identities prevent duplicate slides. Camera rehearsal records nothing and follows planned/measured camera windows; it needs a physical-device check.
-- Full-page Branding, Voice and API key Settings. Branding applies to project previews and exports and invalidates stale outputs. AI voice selection produces playable samples. Private voice clones support a timed consented read, training status, sample, selection, retry and deletion. Saved credentials stay on the server; changing providers clears the previous provider credential. Clone API lifecycle checks use a simulated provider; real clone quality remains unverified.
-- Copied take-clock and voice modules and tests. The labelled presenter stand-in is copied from the existing studio's bundled assets.
+Open http://127.0.0.1:4180. The engine uses 4320. Set
+`MINIMAL_STUDIO_WEB_PORT` and `MINIMAL_STUDIO_PORT` for another port pair. The
+launcher refuses occupied ports before accessing storage and stops both servers
+if either exits. `yarn desktop` opens the same app in the development Electron
+shell. It is not a packaged installer.
 
-Verification (2026-10-01): 203 tests, TypeScript and the production build pass. Three real Hyperframes render checks have passed across isolated runs, including logo and lower-third colour pixels. The camera-window render samples actual MP4 pixels to verify footage appears only at the scheduled times. Browser checks verify whole-video scene/moment seeking and draft preservation through event updates using synthetic MP4 fixtures. Media tests use generated fixtures in temporary folders and real FFmpeg. Copied voice tests use the macOS system voice. Browser layout/practice inspection uses the explicitly labelled synthetic fixture at a separate origin and temporary store. This is not real-model milestone proof or physical camera proof.
+## Create and finish a video
 
-Still required for the handoff: real-provider voice clone and microphone verification, creative planning/production and desktop/harness integration, exact prototype visual matching, clean-machine checks, real-model milestone runs and retirement of the old app. Chat currently replans a scene; granular layout/timing/take edits remain. Semantic moment identities and scene-scoped state/chat anchors are implemented. Practice now plays measured off-camera voice segments and silent on-camera cues without recording; camera rehearsal remains physically unverified. The live speech aligner now pins PyAV 18 for faster-whisper compatibility; five real speech-alignment checks pass using synthetic spoken media. Recording has media-engine checks and a browser check of cancelling a pending permission request without granting device access. Denial/retry has automated lifecycle coverage; native browser denial and physical-device capture still need verification. Do not retire the existing studio or mark the rebuild complete.
+Enter a blog URL or text, then choose a harness and model before generation. The
+choice is saved as your default and attached to the notebook. Brief, Story Master
+and Page Master produce a rich deck; slides appear as they are accepted. Review
+or edit the slides and export their PDF.
 
-Dependencies: pg stores indexed notebook rows; @aws-sdk/client-s3 accesses MinIO/AWS-compatible object stores; GSAP and pinned @hyperframes/core, @hyperframes/player and @hyperframes/producer supply seekable composition playback and MP4 rendering; puppeteer runs the isolated preview validator in its matching Chrome; @types/pg supplies PostgreSQL API types; linkedom parses articles; Vite serves and builds the app; TypeScript checks shared contracts; tsx runs the engine; Vitest tests it; @types/node supplies Node API types. Plain DOM keeps the first slice small; reassess after recording works. The source facade now separates the reader, outline contract, page drawing and colour math. The copied reader and preview runtime exceed 400 lines because extraction and browser verification each carry one connected contract; neither exceeds 800.
+Make the video selects its global Off/Low/High camera presence and off-camera
+voice. Creative planning and one Hyperframes composition produce each scene's
+content animation. Preparing all animations does not wait for speaker recordings.
+The notebook has a permanent `?notebook=<id>` URL and displays its harness.
 
-Next: collect actual Kimi K3 source-to-export evidence, verify actual creative previews and designed pages, and finish the remaining handoff surfaces. Follow handoff milestones M2–M6; do not treat a stub run as proof of model quality.
+Record the required moments in any order, individually or as an open-moment pass.
+Practice records nothing. Recording includes permission guidance, a countdown,
+teleprompter, optional timed stop and Esc to stop. Review, save or retake before
+finishing a scene. Scene-card hover settings override camera presence; notebook
+settings preview their effect before applying changes.
 
-End-to-end acceptance requested by the creator: after the creative pipeline is connected, use published OpenAI blog posts as source inputs and Kimi K3 as the actual harness. Run source → slides → scene plans/previews → production → joined MP4, fix failures and rerun the affected path. Keep all run packets, candidates, accepted artifacts and checkpoints in the isolated notebook's PostgreSQL/S3 store. Test restart/resume between stages. For speaker checks use the bundled labelled still-photo avatar and synthetic media, without granting camera or microphone access; verify the real recording permission prompts and denial/retry paths separately. Avatar fixtures prove the flow and composition only, never physical capture or real-speaker quality. Record actual harness/model and output evidence before claiming end-to-end model proof.
+Finishing combines retained animation, measured narration and speaker footage.
+Retakes reuse the animation. Download finished scenes, select transitions, produce
+the joined video and export MP4. Later edits invalidate the affected exports.
+Activity remains visible with completed steps and the current processing/stalled
+frontier. Token usage shows reported harness usage; unavailable usage is not zero.
 
-Creative engine evidence (2026-10-01): actual Kimi K3 (`kimi-code/k3`) generated an accepted nine-slide deck from OpenAI’s “Introducing canvas” article, then the first scene’s brief, treatment, script, validated preview and narrated production. The narrated scene is approximately 39.37 seconds at 1920×1080 with AAC audio. These latest runs use isolated local diagnostic copies, not PostgreSQL/S3; they are partial pipeline evidence, not end-to-end acceptance or a visual-quality sign-off. Scene 2’s four narration moments and creative plan are saved, but its preview failed. A diagnostic retry confirmed the Kimi usage limit was reached. No automatic retry is running. Remaining scenes, joined export, full visual review and fresh-worker PostgreSQL/S3 recovery of these latest model outputs are still required.
+Anchored chat edits source, slides or scene plans. An explicit recording edit such
+as `trim take from 0.3 to 1.3 seconds` keeps that range of the selected moment's
+take, preserves the original and animation, and updates timing without a model
+call. Finish the scene again to use it. Ambiguous trim commands are rejected.
 
-Failure and processing UX: accepted transcripts are published and checkpointed before preview creation. Preview retries reuse the saved plan instead of making another planning request. Scene activity remains visible after a failure, marks the last processing step, and retains subsequent recovery events. Saved, disconnected, queued and failed states do not animate as active work. Harness failure categories become product-owned recovery messages without exposing raw provider diagnostics. Tabs use single-line labels with accessible status icons.
+Branding, voice clone/AI voices and server credentials live in Settings. The
+presenter stand-in is for rehearsal/testing; actual capture and clone quality
+still require the acceptance checks below.
 
-Creative previews: the selected harness now runs Sketch Scene after its treatment and script. The copied validator and pinned-player runtime check must both accept the exact files before preview rendering. Candidates, runtime refusals/proof, accepted bundles and preview MP4s are retained as notebook artifacts. Eight browser-runtime tests and a separate preview-render test use copied fixtures; they do not prove new Kimi preview quality. The first OpenAI-blog scene has an accepted actual Kimi sketch; scene 2 awaits preview recovery after credits are available or the creator selects another harness.
+## Storage and checks
 
-Designed pages: new harness-selected notebooks run the copied Page Master route after story acceptance. It writes one SVG/program per outline scene under a common communication contract, design spec and lock. The server checks receipt identities, passive SVG content and the pinned Python page/program contract before retaining the whole deck as a resumable checkpoint. Protocol tests use explicit synthetic pages. The latest accepted nine-slide Canvas deck uses this actual Kimi route; final visual quality still requires review against the handoff.
+Local files default to `.minimal-studio-data`; override with
+`MINIMAL_STUDIO_DATA_DIR`. For PostgreSQL plus MinIO/AWS-compatible storage, see
+[STORAGE.md](STORAGE.md) and `.env.example`. Credentials stay on the server.
+Never point checks at a creator's existing notebook store.
 
-Notebook and slide chat: source questions use the notebook's selected harness or direct API, validate quoted evidence and retain reply/candidate artifacts in its event stream and object-backed rows. Harness slide edits use a grounded single-slide story revision followed by a Page Master redraw at the original slide index, reusing the deck's design spec. Slow model work runs outside the notebook mutation lock; stale results cannot replace newer edits. The UI keeps draft input and guards against duplicate sends or responses from another open notebook. Real-model chat quality remains unverified.
+```sh
+yarn run check
+yarn run build
+yarn run check:storage
+```
 
-AI selection: after source entry, a second-step pop-up lists installed harnesses and their discovered models. Confirming saves the default in Settings and attaches the selection to the notebook before presentation generation. Browser checks verified Kimi K3 selection and model-list changes when switching harnesses. A fresh OpenAI Canvas run now exercises brief → story → Page Master, followed by the creative scene pipeline; it is separate from the earlier template-deck diagnostic run and remains incomplete.
+`check` runs TypeScript and isolated tests. `check:storage` provisions disposable
+PostgreSQL/MinIO and verifies three-worker artifact recovery with synthetic media.
+It requires a running Docker engine and removes its fixtures afterward.
 
-Presentation export: Export slides now creates a 16:9 PDF with one page per slide, preserving slide order and labelling blank slides as drafts. PDFs and their input fingerprints are notebook-owned artifacts, cached until the deck changes. A real browser/PDF check covers page count and size, draft labelling, saved artifact reuse and invalidation; the rendered rich-SVG fixture was visually inspected. External requests and scripting are disabled during export. This fixture is not evidence of new model design quality.
-
-Remote export recovery proof: the disposable PostgreSQL/MinIO check now stores a generated PDF in its notebook, starts a second worker with an empty local folder, retrieves the identical SHA-256 bytes, and verifies that no second PDF object was generated. The existing render recovery and corrupt-object refusal checks also pass.
-
-Actual preview inspection: the earlier OpenAI Canvas diagnostic run produced a 42-second Kimi sketch for “When to open canvas”, accepted by the pinned-player validator and rendered to MP4. Five sampled frames exposed misleading 0% pre-reveal statistics and overlap between the final takeaway and statistics. This is a visual-quality failure despite runtime acceptance. The sketch contract now explicitly requires correct pre-reveal values, reserved closing layout space, and readable camera crops. The diagnostic preview is not counted as end-to-end or acceptable design proof; new output must be inspected again.
-
-Take identity regression: replanning now retains a take only when both the semantic moment ID and recording inputs match. Repeated identical lines no longer borrow another moment’s recording; reordering keeps the correct takes, a duplicate starts unrecorded, and layout-only changes retain matching footage. Covered by a focused regression check.
-
-Standalone setup check: copied the app outside its parent repository, installed dependencies from its own lockfile with `yarn setup`, and ran doctor successfully. This exposed and fixed an implicit parent Yarn configuration dependency; the app now pins Yarn 1.22.22. System tools and harness sign-in came from the existing machine, so this does not establish clean-machine provisioning.
-
-Desktop launch: `yarn desktop` starts the same engine and frontend in a sandboxed Electron window. It refuses occupied ports, keeps external links in the system browser, asks before granting camera/microphone access, and stops its servers when the window closes. `MINIMAL_STUDIO_WEB_PORT=4196 MINIMAL_STUDIO_PORT=4396 yarn desktop --smoke` uses a temporary local notebook store with paid harness calls disabled; startup/load/shutdown passed and both ports were verified released. This is a development shell, not a packaged installer; native device permission and recording still need verification.
-
-Unified scene generation: accepted planning produces one Hyperframes composition. The app renders and saves its content animation, then combines that animation with measured voice and speaker recordings for the final scene. Retakes reuse the saved animation; there is no second code-generation pass or separate preview/production choice. Older accepted preview files remain migration input only.
-
-### Animation and recording are independent
-
-For skill-driven scenes, `Prepare scenes` saves a content-only animation
-for each accepted plan, even when the speaker has not recorded. Missing
-recordings remain visible on each scene and keep final export unavailable.
-Record moments in any order, review the take, and save it before finishing
-the scene. Countdown capture supports a manual Esc stop or a chosen duration.
-
-The animation checkpoint uses design inputs, not take IDs. Completing or
-retaking a scene prepares its measured sound and camera tracks, maps each
-animation moment to the recorded duration, and composites the presenter into
-a separate region. It does not call the animation harness again unless the
-design inputs change. Final MP4s are flattened exports; the content animation,
-composition artifacts and original recordings remain separately persisted.
-Older produced scenes remain playable; they acquire this reusable animation
-on their next skill-driven production. Physical-camera end-to-end verification
-and production PostgreSQL/S3 verification of this new path remain outstanding.
-
-Live notebook tabs share one browser worker and one event connection per notebook, so duplicate tabs do not occupy separate streaming connections and hold up video downloads. Closing the last tab releases its stream; abandoned tabs expire, and returning tabs resubscribe. Browsers without shared workers use the existing direct event stream with its connection watchdog.
-
-Video covers are decoded from the saved MP4 and stored as notebook-scoped JPEG artifacts. New scenes and reusable animations retain their cover in the same checkpoint as their video. Older notebooks acquire it when opened, without a model call or another video render. Saved reviews can display a decoded cover without modifying their source notebook.
-
-Current Canvas export evidence (2026-10-01): the retained isolated local notebook
-`cc4f18d0-688c-40f4-93ab-a4773bafdabc` now has all nine produced scenes. The
-nine-slide deck was generated by Kimi K3; later scene recovery and generation
-used the creator-authorized Claude Code Opus 5.5 harness. Joining the saved scenes
-through the UI produced a 382.388667-second H.264/AAC MP4 at 1920×1080. The UI
-changed to Video Ready and Export MP4 downloaded `video.mp4`; its SHA-256 matches
-the persisted download endpoint:
-`40c6ca726f9fa797c75cb42efb0b881edc18f7bfc21b532518ada773c2a9f014`.
-FFmpeg decoded the entire downloaded file without errors. No model generation
-was needed for joining or export. This proves local export and download for
-these actual model outputs, not a complete Kimi-only flow or production S3
-acceptance. Physical-camera capture, voice cloning, clean-machine setup and full
-prototype visual acceptance remain unverified.
-
-Moment actions select and pause the correct point before opening Practice or
-Retake. A real browser check selected moment 6 at 30.418 seconds, opened its
-retake dialog and verified its dialogue, permission explanation, optional timer
-and Esc stop instruction without enabling physical devices. Live event streams
-also release their HTTP/1 connection slot every 30 seconds; reconnection replays
-persisted state so older direct-stream tabs cannot hold media requests forever.
-
-Joined playback keeps the connected decoder when its scene selection changes.
-The real browser advanced from scene 1 into scene 2 at 46.02 seconds while still
-playing, with readyState 4 and the full 382.388667-second duration; the activity
-and transcript rails followed scene 2. This check caught and fixed a player
-recreation at the boundary that was not covered by per-scene playback tests.
-
-Notebook opening now retains the requested notebook link and saved browser
-identity on a failed read. It shows Opening, then a retry action if unavailable,
-and a 30-second read deadline prevents indefinite waiting. Retry performs only
-another read; it does not start generation. Navigation invalidates outstanding
-loads so a late response cannot reopen a notebook after the user leaves.
-Regression tests cover failure/retry, duplicate clicks, stale responses, escaped
-error copy and stalled reads. The recovery screen's native browser visual check
-is still pending; the browser connection timed out during this check.
-
-Remote composition recovery (2026-10-01): the disposable PostgreSQL/MinIO check
-now finishes and fully decodes a scene using a remotely recovered animation and
-measured audio. It retains the scene clock, composed output, joined video and
-JPEG covers under the notebook ID. A third empty worker retrieves those bytes
-and covers with matching checksums, verifies no replacement covers or exports,
-and rejects corrupted scene media. This uses explicit synthetic media and no
-model calls; it proves the storage/compositor path, not model design quality or
-a complete production deployment.
-
-Recording review now keeps its video/audio element connected across notebook
-updates and saving, so those updates do not restart take playback. Camera takes
-use the main canvas; microphone-only takes use one audio player. Save, Retake
-and Discard remain available beneath the canvas, and existing takes remain
-unchanged until a successful save. Stopping within the first 0.4 seconds releases
-devices immediately instead of requiring more recording; stopping immediately
-after advancing a pass retains only its completed parts. DOM and mocked capture
-checks cover player retention, review placement, immediate stop and resource
-cleanup. Native physical-device review remains unverified.
-
-Take review follows the saved recording-part boundaries rather than the planned
-scene clock. A pass that records only the opening and closing skips auto moments
-in the transcript and playhead; longer takes map proportionally within their
-planned card. A partial pass holds its last completed card at the end. Both audio
-and camera review use frame-based playhead motion and time updates for transcript
-selection. Regression checks cover skipped moments, unequal durations, obsolete
-recording inputs and partial-pass endings. Native review playback verification
-remains pending.
-
-Notebook settings now preview their effect before applying: inherited scene
-numbers that will be replanned, custom camera settings that remain, and whether
-a voice update requires finishing scenes again with reusable animations. The
-preview retains the chosen settings when going back to edit them. Saved takes
-remain available; only takes that match the revised recording requirements are
-reused after replanning. Active planning, scene rendering or joining prevents a
-global settings replacement, avoiding competing work and discarded paid runs.
-Regression tests cover inherited/custom scenes, voice-only and no-op changes,
-and refusal during production. Native visual verification remains pending.
-
-Saved video playback now exposes a compact loading/recovery state. Waiting is
-bounded to 12 seconds even when the browser repeats stalled events. Reload video
-reloads only the existing media file and restores its position; it does not
-resume playback automatically or invoke generation. Switching players removes
-old listeners, retry callbacks and timers. Four regression checks cover bounded
-waiting, explicit retry, position restoration and scene-switch cleanup. Native
-visual verification is still pending because the in-app browser inspection
-connection failed.
-
-Anchored video chat supports an explicit take edit such as `trim take from 0.3
-to 1.3 seconds` (times are relative to the selected moment’s take). It creates
-a new notebook/scene/moment-scoped recording artifact with its parent take and
-range retained in storage. The original remains available. Script and animation
-inputs stay unchanged; the measured clock updates and scene/joined exports become
-stale until finishing again. Ambiguous trim commands and ranges outside the take
-are rejected without replanning. Real synthetic camera-media checks verify the
-trimmed output decodes, lineage, timing and zero model calls. This does not prove
-physical-device recording or arbitrary natural-language trim interpretation.
+Current requirements, authoritative evidence and remaining release gates are in
+[ACCEPTANCE.md](ACCEPTANCE.md). Historical implementation notes are retained in
+[checks/IMPLEMENTATION-HISTORY.md](checks/IMPLEMENTATION-HISTORY.md).
