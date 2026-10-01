@@ -19,3 +19,10 @@ it('pauses at the hold boundary instead of repeatedly drifting into the next mom
  syncRehearsalAnimation({querySelector:()=>player} as unknown as ParentNode,scene,0,3.7,true)
  expect(player.play).not.toHaveBeenCalled();expect(player.pause).toHaveBeenCalledOnce();expect(player.currentTime).toBe(3.7)
 })
+it('does not seek again when a paused hold frame is already decoded',()=>{
+ let at=3.7;const seek=vi.fn()
+ const player={readyState:4,get currentTime(){return at},set currentTime(value:number){seek(value);at=value},playbackRate:1,play:vi.fn(async()=>{}),pause:vi.fn()}
+ const scene={animationKey:'key',animation:{inputKey:'key',moments:[{id:'one',start:0,end:4}]},moments:[{id:'one',start:0,end:4}]} as Scene
+ for(let i=0;i<20;i++)syncRehearsalAnimation({querySelector:()=>player} as unknown as ParentNode,scene,0,3.7,true)
+ expect(seek).not.toHaveBeenCalled();expect(player.play).not.toHaveBeenCalled()
+})

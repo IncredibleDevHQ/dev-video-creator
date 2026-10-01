@@ -10,7 +10,7 @@ export function syncRehearsalAnimation(root: ParentNode, scene: Scene, index: nu
  const holding=second>=holdAt
  const at=animationSecond(scene,Math.max(moment.start,Math.min(holdAt,second)),true)
  const sync=()=>{
-  if(Math.abs(player.currentTime-at)>.25 || !playing || holding)player.currentTime=at
+  if(Math.abs(player.currentTime-at)>(!playing || holding ? .04:.25))player.currentTime=at
   player.playbackRate=Math.max(.25,Math.min(4,(base.end-base.start)/(moment.end-moment.start)))
   if(playing && !holding)void player.play().catch(()=>{})
   else player.pause()
