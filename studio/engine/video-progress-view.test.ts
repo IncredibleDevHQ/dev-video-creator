@@ -211,7 +211,7 @@ it('stops current activity at missing recordings instead of showing an obsolete 
  scene.phase='waiting';scene.animationKey='a';scene.animation={inputKey:'a',objectKey:'animation.mp4',moments:[{id:'m6',start:0,end:6}]}
  scene.moments=[{id:'m6',start:0,end:6,camera:'full',layout:'beside-slide',lines:'Closing',overlay:null,recordingKey:'r',audioKey:'a',audio:null,take:null}]
  input.events.push(...['1 moment recorded','Rendering the scene','Produced'].map((message,index)=>({...input.events[0],sequence:index+2,message})))
- input.views={scenes:{scene:{state:'Needs recording',action:'record',openMomentIds:['m6'],produced:false}},moments:{}} as Snapshot['views']
+ input.views={scenes:{scene:{state:'Needs recording',action:'record',openMomentIds:['m6'],produced:false}},moments:{},video:{action:'produce-video',enabled:true,producedScenes:0}} as Snapshot['views']
  const html=sceneActivityRail(input,scene,true)
  expect(html).toContain('1 moment needs your recording');expect(html).toContain('class="awaiting"')
  expect(html).not.toContain('Final render');expect(html).not.toContain('Save video')

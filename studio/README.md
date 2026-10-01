@@ -87,8 +87,10 @@ PostgreSQL/MinIO and verifies three-worker artifact recovery with synthetic medi
 It requires a running Docker engine and removes its fixtures afterward.
 
 `node checks/standalone-check.mjs` installs committed studio source in a fresh
-Linux container and runs tests/build without mounting host dependencies, keys or
+Linux container and runs tests/build plus a real launcher/API startup check without mounting host dependencies, keys or
 notebook data. It needs Docker and network access and stops after 20 minutes.
+`node checks/startup-check.mjs` also runs that bounded startup check locally, using
+a temporary empty store and free ports. It makes no model calls.
 Native macOS voice tests are skipped on Linux; this is not signed-in harness,
 physical-device or complete clean-machine product-flow acceptance.
 
