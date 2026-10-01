@@ -1,3 +1,4 @@
+import {syncPresenterLayout} from './presenter-motion'
 import {layeredPlayback} from './layered-playback'
 import {workspacePosition,workspaceUrl} from './workspace-position'
 import {seekSavedMedia} from './media-seek'
@@ -88,6 +89,7 @@ const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
  const at=takeReviewPosition(scene.moments,parts,time)
  if(at){
   second=at.second
+  syncPresenterLayout(root,scene.moments,at.second)
   movePlayhead(root,scene.moments,at.second,at.momentIndex)
   const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.second.toFixed(1)}s · moment ${at.momentIndex+1}`
   syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)

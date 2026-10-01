@@ -1,3 +1,4 @@
+import {presenterMotion,presenterWeightExpression} from '../shared/presenter-motion'
 import {presenterLayout} from '../shared/presenter-layout'
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises'
 import {join} from 'node:path'
@@ -40,15 +41,20 @@ export const composePresenter=async(input:{animation:Buffer;animationMoments:Ani
    const {content,camera}=presenterLayout(part.layout)
    const {width:cw,height:ch,x:cx,y:cy}=camera
    filters.push(`[2:v]trim=start=${part.start}:end=${part.end},setpts=PTS-STARTPTS,fps=30,scale=${cw}:${ch}:force_original_aspect_ratio=increase,crop=${cw}:${ch},setsar=1[presenter${i}]`)
-   if(full){filters.push(`[content${i}]nullsink`);const overlay=overlayKeys.indexOf(part.momentId)
-    filters.push(overlay<0?`[presenter${i}]null[part${i}]`:`[presenter${i}][${2+Number(!!input.camera)+overlay}:v]overlay=0:0:shortest=1[part${i}]`)}
-   else{
-    const {width,height}=content
-    filters.push(`[content${i}]scale=${width}:${height},pad=1920:1080:${content.x}:${content.y}:color=0x101817,setsar=1[layout${i}]`)
-    filters.push(`[layout${i}][presenter${i}]overlay=x=${cx}:y=${cy}:shortest=1[part${i}]`)
-   }
+   const motion=presenterMotion(parts,i),weight=presenterWeightExpression(motion)
+   const cwExpression=full?'1920':`trunc((1920+(${content.width}-1920)*${weight})/2)*2`
+   const chExpression=full?'1080':`trunc((1080+(${content.height}-1080)*${weight})/2)*2`
+   filters.push(`color=c=0x101817:s=1920x1080:r=30:d=${length}[background${i}]`)
+   filters.push(`[content${i}]scale=w='${cwExpression}':h='${chExpression}':eval=frame[scaled${i}]`)
+   filters.push(`[background${i}][scaled${i}]overlay=x='${full?0:content.x}*${weight}':y='${full?0:content.y}*${weight}':eval=frame:shortest=1[layout${i}]`)
+   const overlay=full?overlayKeys.indexOf(part.momentId):-1
+   if(overlay>=0)filters.push(`[presenter${i}][${2+Number(!!input.camera)+overlay}:v]overlay=0:0:shortest=1[cameraOverlay${i}]`)
+   const fades=[motion.enter?`fade=t=in:st=0:d=${motion.enter}:alpha=1`:'',motion.exit?`fade=t=out:st=${length-motion.exit}:d=${motion.exit}:alpha=1`:''].filter(Boolean)
+   filters.push(`[${overlay>=0?'cameraOverlay':'presenter'}${i}]format=yuva420p${fades.length?','+fades.join(','):''}[faded${i}]`)
+   filters.push(`[layout${i}][faded${i}]overlay=x=${cx}:y=${cy}:shortest=1[part${i}]`)
   }
   filters.push(`${parts.map((_,i)=>`[part${i}]`).join('')}concat=n=${parts.length}:v=1:a=0[video]`)
+
   const output=join(dir,'scene.mp4')
   await runCommand('ffmpeg',['-y','-loglevel','error','-i',join(dir,'animation.mp4'),'-i',join(dir,'audio.wav'),...input.camera?['-i',join(dir,'camera.mp4')]:[],...overlayKeys.flatMap((_,i)=>['-loop','1','-i',join(dir,`overlay-${i}.png`)]),'-filter_complex',filters.join(';'),'-map','[video]','-map','1:a','-t',String(duration),'-r','30','-c:v','libx264','-preset','fast','-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart',output],600_000)
   return await readFile(output)
