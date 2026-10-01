@@ -153,3 +153,12 @@ reused after replanning. Active planning, scene rendering or joining prevents a
 global settings replacement, avoiding competing work and discarded paid runs.
 Regression tests cover inherited/custom scenes, voice-only and no-op changes,
 and refusal during production. Native visual verification remains pending.
+
+Saved video playback now exposes a compact loading/recovery state. Waiting is
+bounded to 12 seconds even when the browser repeats stalled events. Reload video
+reloads only the existing media file and restores its position; it does not
+resume playback automatically or invoke generation. Switching players removes
+old listeners, retry callbacks and timers. Four regression checks cover bounded
+waiting, explicit retry, position restoration and scene-switch cleanup. Native
+visual verification is still pending because the in-app browser inspection
+connection failed.

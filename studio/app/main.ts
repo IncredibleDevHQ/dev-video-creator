@@ -1,3 +1,4 @@
+import {savedMediaRecovery} from './media-recovery'
 import {videoSettingsPreview} from './video-settings-preview'
 import {takeReviewPosition} from './take-review-clock'
 import {NotebookOpening,notebookOpeningView} from './notebook-opening'
@@ -28,6 +29,7 @@ import { cameraAt } from '../shared/camera-window'
 import './style.css'
 import incredibleLogo from './assets/incredible-logo.svg'
 const root = document.querySelector<HTMLDivElement>('#app')!
+const syncMediaRecovery=savedMediaRecovery(root)
 let snapshot: Snapshot | null = null
 let notebooks:NotebookSummary[]=[]
 const refreshNotebooks=async()=>{notebooks=await api.notebooks();if(!snapshot && !settingsScreen.isOpen) render()}
@@ -98,11 +100,13 @@ const render = () => {
   const drafts = (sameContext ? [...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input,textarea')].filter(field => field.id).map(field => ({ id: field.id, value: field.value })) : [])
   if (!snapshot && opening.state) {
     replacePlayerView(root,`<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a></header>${notebookOpeningView(opening.state)}`,null)
+    syncMediaRecovery()
     return
   }
   if (!snapshot) {
     replacePlayerView(root, `<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a>${button('Settings', 'settings')}</header><main class="start"><h1>Turn a blog into slides and a video.</h1><form id="source"><label class="sr" for="source-input">Link or text</label><div class="source-row"><textarea id="source-input" name="source" rows="1" placeholder="Paste a blog link or your text…" required></textarea><button class="primary" ${pending ? 'disabled' : ''}>${pending ? 'Starting…' : 'Make the video →'}</button></div><button type="button" data-action="slides-only" class="quiet slides-only">Only want slides?</button></form><p id="error" role="alert"></p>${notebooks.length?`<section class="saved-notebooks"><h2>Continue a notebook</h2>${notebooks.map(item=>`<button data-notebook="${escape(item.id)}"><span>${escape(item.title)}</span><small>${item.status==='failed'?'Needs another try':item.status==='building'?'Slides in progress':item.hasVideo?'Video in progress':'Slides ready'} →</small></button>`).join('')}</section>`:''}</main>`,previousPlayer)
     const sourceField=root.querySelector<HTMLTextAreaElement>('#source-input')
+    syncMediaRecovery()
     if(sourceField) sourceField.value=drafts.find(draft=>draft.id==='source-input')?.value ?? pendingSource
     if(focusedId && !dialog.open) document.getElementById(focusedId)?.focus()
     return
@@ -135,6 +139,7 @@ const render = () => {
       if(start>0)player.currentTime=start
     }
   }
+  syncMediaRecovery()
   syncAnimation()
   movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
