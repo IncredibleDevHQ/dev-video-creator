@@ -64,7 +64,7 @@ export type HarnessContext = {
   origin: string
   // Absolute path of the bundled dist-electron/mcp-stdio.mjs bridge.
   mcpShimPath: string
-  // Absolute path of the vendored skills root (apps/studio-desktop/skills).
+  // Absolute path of the vendored skills root (studio/skills).
   skillsDir: string
 }
 

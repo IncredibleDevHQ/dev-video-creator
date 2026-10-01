@@ -39,7 +39,7 @@ recovery.
 
 | ppt-master | the studio |
 |---|---|
-| the checker runs as a script over `svg_output/` | `checkPageContract` in `apps/studio-v2/server/source.ts` runs at generation, and the atomiser's `contractReport` scores every page at the door (share declared vs inferred) |
+| the checker runs as a script over `svg_output/` | `checkPageContract` (`studio/engine/source-page.ts`) and `scripts/check_pages.py`, run by `studio/engine/creative/pages.ts`, check every page at generation |
 | slide markup for PowerPoint fidelity | the **page contract**: stable ids per structure, separated labels, directed connectors with markers, `data-role` (`node`, `connector`, `background`, `decoration`, `header`, `footer`), `data-kind` on nodes, `data-verb` / `data-from` / `data-to` on connectors, `data-page-role` on the root, single-tspan numbers, an optional `data-world` larger than the frame |
 | `svg_output/` | the notebook's scenes (`attrs.svg`), each with its idea (`directorNotes`) and first-draft line (`script`) |
 | speaker notes | narration for the motion planner: the script-first flow (`script-plan.ts`) makes the plan from the lines |
@@ -52,16 +52,14 @@ gates), and the template libraries unless wanted.
 
 ## Where the pieces live
 
-- Entry flow and page generator: `apps/studio-v2/server/source.ts`
-  (`readSourceUrl`, `readSourceNarrative`, `outlinePrompt`, `renderPage`,
-  `checkPageContract`), routes in `apps/studio-v2/server/index.ts`.
-- The door for a PDF or a deck: `/api/source/file` (poppler or pypdf for PDF,
-  the slide XML for `.pptx`).
-- The contract on the way in: `apps/studio-v2/src/slide-atoms.ts`
-  (`atomizeSlideSvg`, `contractReport`, `attachAppearance`).
-- What the rows depict: `apps/studio-v2/src/page-model.ts`.
-- The bundled sample deck (fifteen ppt-master pages, blueprint style):
-  `apps/studio-v2/public/samples/attention-is-all-you-need/`.
+- Source reading: `studio/engine/source-reader.ts` (`readSourceUrl`), with
+  `readSourceNarrative` and the outline prompt exported from `studio/engine/source.ts`.
+- Page generation and its checks: `studio/engine/creative/pages.ts`
+  (`prepareCreativePages`, `validatePageReceipt`, runs `scripts/check_pages.py`)
+  and `studio/engine/source-page.ts` (`renderPage`, `checkPageContract`).
+- The earlier studio's PDF and deck import, atomiser, page model and sample deck
+  were not carried into the rebuild; they are in git history before the
+  commit that retired the old studio.
 
 ## Running ppt-master itself
 

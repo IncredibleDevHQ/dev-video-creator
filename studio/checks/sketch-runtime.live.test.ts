@@ -8,9 +8,9 @@ import { sketchBundleHash, verifySketchRuntime } from '../engine/creative/sketch
 
 // R3 of the scene-review review: a sketch reads ready only once it has run.
 // The token-bucket sketch is exactly what Claude Code wrote in the live
-// P0–P3 run (docs/reviews/2026-09-25-p0-p3-review-loop-evidence); the
-// defective variants are the review's negative probes
-// (docs/reviews/2026-09-25-scene-review-ux-evidence/probes), each of which
+// P0–P3 run of the earlier studio (its review evidence is in git history,
+// docs/reviews/2026-09-25-p0-p3-review-loop-evidence); the defective variants
+// are that review's negative probes (…-scene-review-ux-evidence/probes), each of which
 // passed the static contract and the pinned lint.
 const FIXTURE = fileURLToPath(new URL('./fixtures/sketch-runtime/token-bucket/', import.meta.url))
 const readTree = (root: string, prefix = ''): Record<string, string> =>

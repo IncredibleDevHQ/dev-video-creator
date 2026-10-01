@@ -1,7 +1,8 @@
 # Incredible Studio
 
 Minimalist rebuild of the supplied `studio-rebuild-handoff.html`. The app lives
-in this standalone folder alongside the earlier studio during validation.
+in this standalone folder. The earlier studio and the legacy web product were
+removed from the repository on 1 October 2026; they remain in git history.
 
 ## Run
 

@@ -2,7 +2,9 @@
 
 The supplied HTML handoff and subsequent user instructions define completion.
 Passing fixture tests is not proof of model quality, device behavior or visual
-acceptance. The rebuild remains in progress; the old app has not been retired.
+acceptance. The rebuild remains in progress. The old app was removed from the
+repository on 1 October 2026 (it remains in git history); the M6 gates below are
+still open.
 
 ## Requirements and evidence
 
@@ -14,7 +16,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: the user physically captured Scene 3 moment 1; its 28.466-second take was saved through the UI and verified in the persisted notebook. The user-started Finish scene run produced a new 54.82-second 1080p H.264/AAC file containing that take; full-file decoding passed and the presenter was inspected at 14 seconds. Open-pass capture, permission denial and retake still need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
-| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 304 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
+| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 304 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: the old app is removed from the tree; the full real-model remote flow, clean-machine run and final visual/device/clone gates remain. |
 | Notebook-scoped artifacts and S3 portability | Indexed checksummed immutable artifacts, configurable endpoint/bucket/region/credentials, SDK credential-chain MinIO check | Machinery proven on MinIO; AWS deployment has not been exercised. |
 | One composition pass, independent animation and recording | Animation checkpoints use design inputs; finishing/retakes reuse them. Unit and remote composition checks. | Implemented. Actual Canvas scenes 5–9 use the new path; older scenes 1–4 are retained legacy outputs. Do not regenerate them solely to migrate. |
 | Bounded usage and transparent waiting | Bounded harness stages, explicit interrupted-run retry, deduplication, token reporting, shared event worker, bounded SSE leases, fixed activity frontier | Implemented with regression coverage; live progress details and recovery visuals need current native verification. |
@@ -83,8 +85,8 @@ cap. This is one grounded answer, not slide-edit or full milestone acceptance.
    material and configured provider access.
 4. Exercise real-model edits and the complete remote notebook flow; inspect final
    output quality. Do not call synthetic fixtures model evidence.
-5. Prove the clean-machine setup/flow, then perform the cutover and retire the old
-   studio only after all preceding gates pass.
+5. Prove the clean-machine setup/flow. The old studio was already removed from the
+   tree on 1 October 2026, at the creator's request, before these gates passed.
 
 Actual slide-edit evidence: `checks/slide-edit.live.mjs` ran once on an isolated
 copy of the retained Canvas deck with Claude Opus 5.5. Story Master accepted
