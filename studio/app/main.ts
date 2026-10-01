@@ -1,3 +1,4 @@
+import {seekSavedMedia} from './media-seek'
 import {savedMediaRecovery} from './media-recovery'
 import {videoSettingsPreview} from './video-settings-preview'
 import {takeReviewPosition} from './take-review-clock'
@@ -139,7 +140,7 @@ const render = () => {
       if(playback.playing){void previousPlayer.play().catch(()=>{});animatePlayhead(player)}
     } else {
       const start=player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(project.video!.scenes[selected],second,true):second
-      if(start>0)player.currentTime=start
+      if(start>0)seekSavedMedia(player,start)
     }
   }
   syncMediaRecovery()
@@ -243,7 +244,7 @@ document.addEventListener('click', async event => {
   if (capture.phase !== 'idle' && (target.dataset.slide || target.dataset.scene || target.dataset.moment || target.dataset.stage)) return
   if (target.dataset.slide) { selected = Number(target.dataset.slide); render(); return }
   if (target.dataset.scene) { stopPractice(); selected = Number(target.dataset.scene); momentIndex = 0; second = 0; const player = root.querySelector<HTMLVideoElement>('[data-whole-video]'); if (player && snapshot) player.currentTime = videoSecond(snapshot.project,selected,0); render(); return }
-  if (target.dataset.moment) { stopPractice(); momentIndex = Number(target.dataset.moment); second = snapshot?.project.video?.scenes[selected]?.moments[momentIndex]?.start || 0; const player = root.querySelector<HTMLVideoElement>('[data-scene-player]'); if (player && snapshot) player.currentTime = player.hasAttribute('data-whole-video') ? videoSecond(snapshot.project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],second,true):second; render(); return }
+  if (target.dataset.moment) { stopPractice(); momentIndex = Number(target.dataset.moment); second = snapshot?.project.video?.scenes[selected]?.moments[momentIndex]?.start || 0; const player = root.querySelector<HTMLVideoElement>('[data-scene-player]'); if (player && snapshot) seekSavedMedia(player,player.hasAttribute('data-whole-video') ? videoSecond(snapshot.project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],second,true):second); render(); return }
   if (target.dataset.stage) { wholeVideo = false; stopPractice(); stage = target.dataset.stage as typeof stage; render(); return }
   const action = target.dataset.action
   try {
