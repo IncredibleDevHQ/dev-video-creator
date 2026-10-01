@@ -1,3 +1,4 @@
+import {practiceControls} from './practice-controls'
 import {followTranscript} from './transcript-follow'
 import {standInPlayback,standInControls} from './stand-in-playback'
 import {syncPresenterLayout} from './presenter-motion'
@@ -198,9 +199,12 @@ const render = () => {
   if(practiceLoading){const button=root.querySelector<HTMLButtonElement>('[data-action="practice"]');if(button) button.textContent='Cancel preparation'}
   if(practiceOpen && startRehearsal){root.querySelector('.video-stage')?.insertAdjacentHTML('beforeend',standInControls());root.querySelector('[data-animation-status]')?.setAttribute('hidden','')}
   paintAnimationProgress()
-  if(practiceOpen && startRehearsal)root.querySelector('.video-actions>div:last-child')?.insertAdjacentHTML('afterbegin','<button class="primary" data-action="practice-start">Start practice</button>')
-  if(practiceOpen && practice.active && practiceMomentIds.length>1){const actions=root.querySelector('.video-actions>div:last-child');actions?.insertAdjacentHTML('afterbegin',`<button data-action="practice-next">${practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'} · Enter</button>`)}
-  const rehearsalClock=root.querySelector('[data-practice-clock]');if(rehearsalClock)rehearsalClock.textContent=practiceCountdown?`Ready in ${practiceCountdown}…`:startRehearsal?'Ready when you are · Start practice for a 3-second countdown':'Practice · Esc to stop'
+  if(practiceOpen){
+    const phase=startRehearsal?'ready':practiceCountdown?'countdown':practice.active?'running':'finished'
+    const actions=root.querySelector('.video-actions>div:last-child')
+    if(actions)actions.innerHTML=practiceControls(phase,practiceMomentIds.length>1?(practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'):undefined)
+    const label=root.querySelector('[data-practice-clock]');if(label)label.textContent=phase==='ready'?'Your script':phase==='countdown'?`Starting in ${practiceCountdown}…`:phase==='finished'?'Practice complete':'Practice'
+  }
   const transport=root.querySelector<HTMLButtonElement>('[data-action="practice-toggle"]');if(transport){transport.textContent=practice.active && !practice.paused?'Ⅱ Pause':'▶ Play';transport.setAttribute('aria-label',practice.active && !practice.paused?'Pause practice':'Play practice')}
   if(practice.active){const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=practiceLines}
   root.querySelector<HTMLButtonElement>('#video-chat button')?.toggleAttribute('disabled',pendingChats.has(project.id))
