@@ -28,3 +28,25 @@ it('switches notebooks without leaking the previous connection or accepting inva
  hub.watch(client,'../private');expect(subscribe).toHaveBeenCalledTimes(2)
  hub.unwatch(client);expect(stop).toHaveBeenCalledTimes(2)
 })
+
+it('keeps brief renewals quiet but reports an outage until a valid snapshot returns',async()=>{
+ vi.useFakeTimers()
+ const sources:any[]=[]
+ class Source {onopen:any;onerror:any;onmessage:any;close=vi.fn();constructor(){sources.push(this)}}
+ vi.stubGlobal('EventSource',Source)
+ const {notebookStream}=await import('../app/notebook-stream')
+ const connected=vi.fn(),update=vi.fn(),stop=notebookStream('p',update,connected)
+ try{
+  const source=sources[0],message={data:JSON.stringify({project:{id:'p'}})}
+  source.onmessage(message);connected.mockClear()
+  source.onerror();vi.advanceTimersByTime(2000);source.onopen?.();source.onmessage(message)
+  expect(connected.mock.calls).toEqual([[true]])
+  connected.mockClear();source.onerror();vi.advanceTimersByTime(3999)
+  expect(connected).not.toHaveBeenCalled()
+  vi.advanceTimersByTime(1);expect(connected).toHaveBeenLastCalledWith(false)
+  source.onopen?.();expect(connected).toHaveBeenLastCalledWith(false)
+  source.onmessage(message);expect(connected).toHaveBeenLastCalledWith(true)
+  source.onerror();stop();connected.mockClear();vi.advanceTimersByTime(5000)
+  expect(connected).not.toHaveBeenCalled()
+ }finally{stop();vi.unstubAllGlobals()}
+})

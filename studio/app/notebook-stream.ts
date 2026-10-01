@@ -2,16 +2,19 @@ import type {Snapshot} from '../shared/api'
 
 export function notebookStream(id:string,update:(snapshot:Snapshot)=>void,connected:(value:boolean)=>void){
  let stream:EventSource,closed=false,lastUpdate=Date.now(),lastSnapshot=''
+ let disconnectTimer:ReturnType<typeof setTimeout>|undefined
+ const clearDisconnect=()=>{clearTimeout(disconnectTimer);disconnectTimer=undefined}
+ const reconnecting=()=>{if(disconnectTimer===undefined)disconnectTimer=setTimeout(()=>{disconnectTimer=undefined;if(!closed)connected(false)},4000)}
  const open=()=>{
   const source=new EventSource(`/api/projects/${encodeURIComponent(id)}/events`);stream=source
-  source.onopen=()=>{if(!closed && stream===source)connected(false)}
-  source.onerror=()=>{if(!closed && stream===source)connected(false)}
+  // Only a valid snapshot confirms recovery; opening a socket does not.
+  source.onerror=()=>{if(!closed && stream===source)reconnecting()}
   source.onmessage=event=>{
    if(closed || stream!==source)return
    try{
     const snapshot=JSON.parse(event.data) as Snapshot
     if(snapshot?.project?.id!==id)throw new Error('Invalid notebook update')
-    lastUpdate=Date.now();connected(true)
+    clearDisconnect();lastUpdate=Date.now();connected(true)
     if(event.data!==lastSnapshot){lastSnapshot=event.data;update(snapshot)}
    }catch{connected(false)}
   }
@@ -21,7 +24,7 @@ export function notebookStream(id:string,update:(snapshot:Snapshot)=>void,connec
   if(Date.now()-lastUpdate<15000)return
   connected(false);stream.close();lastUpdate=Date.now();open()
  },5000)
- return ()=>{closed=true;clearInterval(watchdog);stream.close()}
+ return ()=>{closed=true;clearDisconnect();clearInterval(watchdog);stream.close()}
 }
 
 /** Share one live connection per notebook across browser tabs. */

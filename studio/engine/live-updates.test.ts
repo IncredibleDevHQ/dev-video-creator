@@ -6,7 +6,7 @@ it('reports disconnection, recovers on a valid update, and ignores closed subscr
  vi.stubGlobal('EventSource',FakeSource)
  try{
   const update=vi.fn(),connected=vi.fn(),close=api.subscribe('p',update,connected)
-  stream.onopen();expect(connected).toHaveBeenLastCalledWith(false)
+  stream.onopen?.();expect(connected).toHaveBeenLastCalledWith(false)
   stream.onerror();expect(connected).toHaveBeenLastCalledWith(false)
   stream.onmessage({data:'invalid'});expect(update).not.toHaveBeenCalled()
   stream.onmessage({data:JSON.stringify({project:{id:'other'}})});expect(update).not.toHaveBeenCalled()
