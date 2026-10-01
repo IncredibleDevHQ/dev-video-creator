@@ -1,6 +1,7 @@
 import type {Snapshot} from '../shared/api'
 import type {UsageTotal} from '../shared/usage'
-const count=(value:number)=>value.toLocaleString('en-US')
+export const compactTokens=(value:number)=>value>=1_000_000?`${Number((value/1_000_000).toFixed(1))}M`:value>=1_000?`${Number((value/1_000).toFixed(1))}K`:String(value)
+const count=(value:number)=>`<span title="${value.toLocaleString('en-US')} tokens">${compactTokens(value)}</span>`
 const label=(value?:UsageTotal)=>!value?.reportedRuns?'Unavailable':`${count(value.tokens)}${value.partial?' · partial':''}`
 const breakdown=(value?:UsageTotal)=>!value?.reportedRuns?'No token usage reported by this harness.':`${count(value.input)} input · ${count(value.output)} output · ${count(value.cacheRead)} cache read · ${count(value.cacheWrite)} cache write. Usage reported for ${value.reportedRuns} of ${value.totalRuns} runs.`
 export const tokenUsage=(snapshot:Snapshot,sceneId:string)=>{
