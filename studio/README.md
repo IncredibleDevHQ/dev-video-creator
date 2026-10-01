@@ -115,3 +115,12 @@ loads so a late response cannot reopen a notebook after the user leaves.
 Regression tests cover failure/retry, duplicate clicks, stale responses, escaped
 error copy and stalled reads. The recovery screen's native browser visual check
 is still pending; the browser connection timed out during this check.
+
+Remote composition recovery (2026-10-01): the disposable PostgreSQL/MinIO check
+now finishes and fully decodes a scene using a remotely recovered animation and
+measured audio. It retains the scene clock, composed output, joined video and
+JPEG covers under the notebook ID. A third empty worker retrieves those bytes
+and covers with matching checksums, verifies no replacement covers or exports,
+and rejects corrupted scene media. This uses explicit synthetic media and no
+model calls; it proves the storage/compositor path, not model design quality or
+a complete production deployment.

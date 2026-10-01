@@ -15,6 +15,7 @@ try {
   // The second worker uses the SDK's normal AWS credential chain, while
   // keeping the same disposable S3-compatible endpoint and stored objects.
   await run('resume',{...env,MINIMAL_STUDIO_S3_ACCESS_KEY_ID:'',MINIMAL_STUDIO_S3_SECRET_ACCESS_KEY:'',AWS_ACCESS_KEY_ID:'fixture-user',AWS_SECRET_ACCESS_KEY:'disposable-fixture-password',AWS_SESSION_TOKEN:'',MINIMAL_STUDIO_DATA_DIR:join(root,'worker-two')})
+  await run('verify-media',{...env,MINIMAL_STUDIO_S3_ACCESS_KEY_ID:'',MINIMAL_STUDIO_S3_SECRET_ACCESS_KEY:'',AWS_ACCESS_KEY_ID:'fixture-user',AWS_SECRET_ACCESS_KEY:'disposable-fixture-password',AWS_SESSION_TOKEN:'',MINIMAL_STUDIO_DATA_DIR:join(root,'worker-three')})
 } finally {
  await cleanup()
 }

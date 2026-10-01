@@ -22,7 +22,9 @@ const {runCommand}=await import('../engine/voice')
 const {loadProject}=await import('../engine/projects')
 const {recoverProjects}=await import('../engine/recovery')
 const {produceScene}=await import('../engine/production')
-const {prepareSceneAnimation}=await import('../engine/animation')
+const {prepareSceneAnimation,finishSceneAnimation}=await import('../engine/animation')
+const {produceVideo}=await import('../engine/video-export')
+const {sceneCover}=await import('../engine/video-cover')
 const {exportPresentation}=await import('../engine/presentation-export')
 const {createHash}=await import('node:crypto')
 const projectId='fixture-notebook'
@@ -73,6 +75,12 @@ try {
     assert.ok((await readAsset(animation.objectKey)).length>1000)
     assert.deepEqual(animation.moments,recoveredScene.moments.map(({id,start,end})=>({id,start,end})))
     console.log('Content animation and its moment clock resumed from PostgreSQL/S3 without regeneration.')
+    const finished=await finishSceneAnimation(projectId,recoveredScene,animation)
+    const composited=await storeAsset({body:finished,contentType:'video/mp4',extension:'.mp4',kind:'composited-scene-fixture',projectId,sceneId:recoveredScene.id})
+    await writeRow('test-cases','composited-export',{objectKey:composited.objectKey,sha256:createHash('sha256').update(finished).digest('hex')})
+    const decodeDir=await mkdtemp(join(tmpdir(),'minimal-remote-finish-'))
+    try{const path=join(decodeDir,'finished.mp4');await writeFile(path,finished);await runCommand('ffmpeg',['-v','error','-i',path,'-f','null','-'])}finally{await rm(decodeDir,{recursive:true,force:true})}
+    console.log('Finished and decoded a scene from remote animation and measured audio, without model generation.')
     const exported=await exportPresentation(savedProject!.project)
     const originalPdf=await readRow<{sha256:string}>('test-cases','presentation-export')
     assert.equal(createHash('sha256').update(exported).digest('hex'),originalPdf?.sha256)
@@ -119,10 +127,41 @@ try {
       const range=await fetch(`http://127.0.0.1:${port}/objects/${scene.produced!.objectKey}`,{headers:{Range:'bytes=0-15'}})
       assert.equal(range.status,206);assert.equal((await range.arrayBuffer()).byteLength,16)
     } finally {await new Promise<void>((resolve,reject)=>{server.close(error=>error?reject(error):resolve());server.closeAllConnections()})}
-    // Corruption is rejected instead of passing off incomplete bytes as a
-    // resumable artifact. This bucket belongs solely to this check.
+    await produceVideo(projectId)
+    const joinDeadline=Date.now()+15000
+    let joined=await loadProject(projectId)
+    while(!joined?.project.video?.produced){
+      if(Date.now()>joinDeadline || joined?.project.video?.phase==='failed')throw new Error('Remote join did not complete')
+      await new Promise(resolve=>setTimeout(resolve,50));joined=await loadProject(projectId)
+    }
+    const video=joined.project.video.produced
+    const coverKeys=[animation.posterKey,scene.produced!.posterKey,video.posterKey]
+    assert.ok(coverKeys.every(key=>key?.startsWith(`notebooks/${projectId}/`)))
+    const hash=async(key:string)=>createHash('sha256').update(await readAsset(key)).digest('hex')
+    await writeRow('test-cases','media-export',{objectKey:video.objectKey,sha256:await hash(video.objectKey),covers:await Promise.all(coverKeys.map(async key=>({key,sha256:await hash(key!)})))})
+    console.log('Saved content animation, scene and joined-video covers as notebook-scoped S3 artifacts.')
+  } else if(mode==='verify-media') {
+    const saved=(await loadProject(projectId))!,scene=saved.project.video!.scenes[0],video=saved.project.video!.produced!
+    const expected=(await readRow<{objectKey:string;sha256:string;covers:Array<{key:string;sha256:string}>}>('test-cases','media-export'))!
+    const hash=(body:Buffer)=>createHash('sha256').update(body).digest('hex')
+    assert.equal(video.objectKey,expected.objectKey)
+    assert.equal(hash(await readAsset(video.objectKey)),expected.sha256)
+    const composited=(await readRow<{objectKey:string;sha256:string}>('test-cases','composited-export'))!
+    assert.equal(hash(await readAsset(composited.objectKey)),composited.sha256)
+    assert.ok(composited.objectKey.startsWith(`notebooks/${projectId}/scenes/${scene.id}/`))
+    const clock=await loadStageCheckpoint<{audioKey:string}>(projectId,scene.id,'creative-clock',scene.inputKey)
+    assert.ok(clock?.data.audioKey.startsWith(`notebooks/${projectId}/scenes/${scene.id}/`))
+    assert.ok((await readAsset(clock!.data.audioKey)).length>1000)
+    const before=await database.query("select count(*)::int as count from minimal_studio_artifacts where notebook_id=$1 and kind in ('video-cover','produced-video','produced-scene')",[projectId])
+    for(const cover of expected.covers)assert.equal(hash(await readAsset(cover.key)),cover.sha256)
+    assert.equal(hash(await sceneCover(projectId,scene.id)),expected.covers.find(cover=>cover.key===scene.produced!.posterKey)!.sha256)
+    const restored=await prepareSceneAnimation(saved.project,scene,async()=>{throw new Error('Remote media recovery must not generate')})
+    assert.equal(restored.posterKey,expected.covers[0].key)
+    const after=await database.query("select count(*)::int as count from minimal_studio_artifacts where notebook_id=$1 and kind in ('video-cover','produced-video','produced-scene')",[projectId])
+    assert.equal(after.rows[0].count,before.rows[0].count,'A third empty worker must reuse retained media and covers')
+    // Only corrupt this disposable bucket after the fresh-worker checks.
     await objects.send(new PutObjectCommand({Bucket:config.bucket,Key:scene.produced!.objectKey,Body:Buffer.from('corrupt fixture')}))
     await assert.rejects(readAsset(scene.produced!.objectKey),/checksum/)
-    console.log('Fresh worker resumed from PostgreSQL-linked S3 artifacts, reused its render, and rejected corrupt bytes.')
+    console.log('Third empty worker recovered joined video and all covers byte-for-byte without new artifacts, and rejected corrupt scene bytes.')
   } else throw new Error('Choose seed or resume')
 } finally {await closePersistence();await database.end();objects.destroy()}
