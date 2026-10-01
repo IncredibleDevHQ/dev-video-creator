@@ -49,6 +49,7 @@ let aiChoices:HarnessChoices|null=null
 let momentIndex = 0
 let second = 0
 let wholeVideo = false
+let practiceOpen=false
 let practiceLoading=false
 let practiceLines=''
 const practice = new PracticePlayback((clip,at)=>{
@@ -63,10 +64,10 @@ const practice = new PracticePlayback((clip,at)=>{
   movePlayhead(root,scene?.moments || [],second)
   const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=clip.lines
   const chip=root.querySelector('.anchor-chip');if(chip) chip.textContent=`${second.toFixed(1)}s · moment ${momentIndex+1}`
-},()=>{stopPractice();render()},reason=>{stopPractice();render();error(reason)})
+},()=>{render()},reason=>{stopPractice();render();error(reason)})
 let practiceRequest = 0
 let practiceStream: MediaStream | null = null
-const stopPractice = () => { practiceRequest++; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
+const stopPractice = () => { practiceRequest++; practiceOpen=false; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
 let recordingSceneId = ''
 let recordingProjectId = ''
 let recordingAttempt:import('../shared/model').Moment[]=[]
@@ -150,7 +151,7 @@ const render = () => {
   selected = Math.max(0, Math.min(selected, project.slides.length - 1))
   const viewUrl=workspaceUrl(new URL(location.href),project,stage,selected,momentIndex)
   if(viewUrl.href!==location.href)history.replaceState(null,'',viewUrl)
-  replacePlayerView(root, `<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a><div class="notebook-identity"><a class="header-project-title" href="/?notebook=${encodeURIComponent(project.id)}" title="Permanent notebook link">${escape(project.title)}</a>${project.harness?`<span class="notebook-harness" title="AI saved for this notebook">${escape(({kimi:'Kimi','claude-code':'Claude Code',codex:'Codex'})[project.harness.adapter])}${project.harness.model?` · ${escape(project.harness.model.replace(/^kimi-code\//,''))}`:''}</span>`:''}</div><nav aria-label="Stages">${(['notebook','presentation','video'] as const).map(name => `<button data-stage="${name}" aria-current="${stage === name ? 'page' : 'false'}">${name[0].toUpperCase()+name.slice(1)}${stageStatus(snapshot!,name,liveConnected)}</button>`).join('')}</nav><div class="header-actions">${project.video?`<button type="button" data-action="video-settings" class="icon-button" aria-label="Notebook settings" title="Notebook settings">${gear}</button>`:button('Settings', 'settings')}${stage==='notebook'?button('View slides →','view-slides',true,status!=='ready') : stage === 'presentation' ? button('Export slides', 'export', false, status !== 'ready') + button(project.video?'Continue video →':'Make the video →', 'make-video', true, status !== 'ready') : stage === 'video' ? videoHeader(snapshot) : ''}</div></header><main class="workspace workspace-${stage}"><div class="project-heading"><h1>${escape(project.title)}</h1>${stage === 'presentation' ? '<p>Each slide is one scene of your video.</p>' : ''}</div>${stage === 'notebook' ? `<article class="notebook">${project.sourceUrl?`<p>From <a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener">${escape(project.sourceUrl)}</a></p>`:''}<pre>${escape(project.source)}</pre><form id="notebook-chat" class="chat"><label class="sr" for="source-question">Ask about the source</label><input id="source-question" name="instruction" placeholder="Ask about the source…" ${status!=='ready'?'disabled':''}><button aria-label="Send source question" ${status!=='ready' || pendingChats.has(project.id)?'disabled':''}>↑</button></form><div class="reply"><span>${escape([...snapshot.events].reverse().find(event=>event.kind==='chat' && event.anchor?.stage==='notebook')?.message || '')}</span>${button('History','history')}</div><p id="error" role="alert"></p></article>` : stage === 'video' ? videoScreen(snapshot, selected, momentIndex, second, practice.active, capture, practiceStream, wholeVideo, liveConnected) : presentationScreen(snapshot,selected,pendingChats.has(project.id))}</main>`,previousPlayer)
+  replacePlayerView(root, `<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a><div class="notebook-identity"><a class="header-project-title" href="/?notebook=${encodeURIComponent(project.id)}" title="Permanent notebook link">${escape(project.title)}</a>${project.harness?`<span class="notebook-harness" title="AI saved for this notebook">${escape(({kimi:'Kimi','claude-code':'Claude Code',codex:'Codex'})[project.harness.adapter])}${project.harness.model?` · ${escape(project.harness.model.replace(/^kimi-code\//,''))}`:''}</span>`:''}</div><nav aria-label="Stages">${(['notebook','presentation','video'] as const).map(name => `<button data-stage="${name}" aria-current="${stage === name ? 'page' : 'false'}">${name[0].toUpperCase()+name.slice(1)}${stageStatus(snapshot!,name,liveConnected)}</button>`).join('')}</nav><div class="header-actions">${project.video?`<button type="button" data-action="video-settings" class="icon-button" aria-label="Notebook settings" title="Notebook settings">${gear}</button>`:button('Settings', 'settings')}${stage==='notebook'?button('View slides →','view-slides',true,status!=='ready') : stage === 'presentation' ? button('Export slides', 'export', false, status !== 'ready') + button(project.video?'Continue video →':'Make the video →', 'make-video', true, status !== 'ready') : stage === 'video' ? videoHeader(snapshot) : ''}</div></header><main class="workspace workspace-${stage}"><div class="project-heading"><h1>${escape(project.title)}</h1>${stage === 'presentation' ? '<p>Each slide is one scene of your video.</p>' : ''}</div>${stage === 'notebook' ? `<article class="notebook">${project.sourceUrl?`<p>From <a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener">${escape(project.sourceUrl)}</a></p>`:''}<pre>${escape(project.source)}</pre><form id="notebook-chat" class="chat"><label class="sr" for="source-question">Ask about the source</label><input id="source-question" name="instruction" placeholder="Ask about the source…" ${status!=='ready'?'disabled':''}><button aria-label="Send source question" ${status!=='ready' || pendingChats.has(project.id)?'disabled':''}>↑</button></form><div class="reply"><span>${escape([...snapshot.events].reverse().find(event=>event.kind==='chat' && event.anchor?.stage==='notebook')?.message || '')}</span>${button('History','history')}</div><p id="error" role="alert"></p></article>` : stage === 'video' ? videoScreen(snapshot, selected, momentIndex, second, practiceOpen, capture, practiceStream, wholeVideo, liveConnected) : presentationScreen(snapshot,selected,pendingChats.has(project.id))}</main>`,previousPlayer)
   if(snapshot.readOnly){
     for(const input of root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input,textarea,select')) input.disabled=true
     for(const control of root.querySelectorAll<HTMLButtonElement>('button')){
@@ -354,16 +355,16 @@ document.addEventListener('click', async event => {
     }
     if(action==='practice-camera'){
       const request=practiceRequest
-      try{const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});if(request!==practiceRequest || !practice.active){stream.getTracks().forEach(track=>track.stop());return};practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=stream;render()}
+      try{const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});if(request!==practiceRequest || !practiceOpen){stream.getTracks().forEach(track=>track.stop());return};practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=stream;render()}
       catch{error(new Error('Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'))}
     }
-    if (action === 'practice') {
+    if (action === 'practice' || action === 'practice-replay') {
       dialog.close();wholeVideo=false
-      if(practice.active || practiceLoading){stopPractice();render();return}
+      if(action==='practice' && (practiceOpen || practiceLoading)){stopPractice();render();return}
       const scene=snapshot.project.video!.scenes[selected],moment=scene.moments[momentIndex]
       if(!moment) return
       const request=++practiceRequest;practiceLoading=true;render()
-      try{const track=await api.practice(id,scene.id,moment.id);if(request!==practiceRequest) return;practiceLoading=false;practice.start(track);render()}
+      try{const track=await api.practice(id,scene.id,moment.id);if(request!==practiceRequest) return;practiceLoading=false;practiceOpen=true;practice.start(track);render()}
       catch(reason){if(request===practiceRequest){stopPractice();render();error(reason)}}
     }
     if(action==='record-open'){
@@ -425,9 +426,16 @@ if (saved) void openNotebook(saved)
 else void refreshNotebooks().catch(error)
 
 document.addEventListener('keydown',event=>{
+  if(event.key==='Tab' && root.querySelector('.is-focused')){
+    const controls=[...root.querySelectorAll<HTMLElement>('.is-focused .stage-area button:not(:disabled),.is-focused .stage-area input:not(:disabled),.is-focused .stage-area [tabindex="0"]')].filter(el=>el.getClientRects().length)
+    const first=controls[0],last=controls.at(-1)
+    if(first && (event.shiftKey && (document.activeElement===first || !root.querySelector('.is-focused .stage-area')?.contains(document.activeElement)))){event.preventDefault();last?.focus()}
+    else if(first && !event.shiftKey && (document.activeElement===last || !root.querySelector('.is-focused .stage-area')?.contains(document.activeElement))){event.preventDefault();first.focus()}
+  }
   if(event.repeat)return
   if(event.key==='Enter' && capture.phase==='recording' && capture.moments.length>1 && !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)){event.preventDefault();try{capture.next()}catch(reason){error(reason)};return}
   if(event.key!=='Escape')return
+  if(practiceOpen){event.preventDefault();stopPractice();render();return}
   if(capture.phase==='recording'){event.preventDefault();try{capture.stop()}catch(reason){error(reason)}}
   else if(capture.phase==='countdown' || capture.phase==='preparing'){event.preventDefault();capture.dispose()}
 })

@@ -204,3 +204,20 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .token-usage summary>span{float:right}.token-usage summary>span span{float:none}
 
 .practice-panel{margin:14px 0;border:1px solid #39413d;border-radius:12px;padding:18px 22px;background:#202623}.practice-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.practice-panel-heading>div{display:flex;flex-direction:column;gap:5px}.practice-panel-heading strong{font-size:13px;font-weight:600}.practice-panel-heading small{font-size:12px;color:#a3ada7}.practice-panel-heading button{font-size:12px;padding:8px 12px}.practice-panel p{font-size:clamp(17px,1.4vw,22px);line-height:1.6;margin:16px 0 0;max-height:150px;overflow-y:auto;text-wrap:pretty}
+
+/* One uninterrupted presenter workspace for rehearsal, capture and review. */
+body:has(.is-focused){overflow:hidden}
+body:has(.is-focused)>#app>header{pointer-events:none;filter:blur(7px);opacity:.3}
+.video-workspace.is-focused>.rail,.video-workspace.is-focused>.transcript{pointer-events:none;filter:blur(7px);opacity:.25}
+.video-workspace.is-focused:before{content:"";position:fixed;inset:0;background:#07100de0;backdrop-filter:blur(10px);z-index:20}
+.video-workspace.is-focused>.stage-area{position:fixed;inset:16px 24px;z-index:21;width:auto;max-width:none;padding:18px 28px;overflow:auto;border:1px solid var(--line);border-radius:20px;background:var(--bg);box-shadow:0 24px 100px #0008;display:flex;flex-direction:column;align-items:stretch;animation:presenter-enter .28s cubic-bezier(.2,.8,.2,1)}
+.focus-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 auto 14px;width:100%;max-width:1200px;min-height:38px}.focus-heading>div{display:flex;align-items:center;gap:14px}.focus-heading strong{font-size:14px}.focus-heading span{font-size:12px;color:var(--muted)}.focus-heading button{border:1px solid var(--line);font-size:12px}
+.is-focused .video-stage{width:min(100%,calc((100dvh - 300px)*16/9));min-height:180px;flex-shrink:0;align-self:center;box-shadow:none}
+.is-focused .stage-area>.moment-timeline,.is-focused .stage-area>.recording-nudge,.is-focused .stage-area>.chat,.is-focused .stage-area>.reply,.is-focused .stage-area>.recording-handoff,.is-focused .stage-area>.video-run-status{display:none}
+.is-focused .practice-panel,.is-focused .recording-script{width:100%;max-width:1000px;align-self:center;margin:14px 0;border:0;background:transparent;padding:8px 16px}
+.is-focused .recording-script{position:static;display:flex;flex-direction:column;text-align:center;color:inherit}.is-focused .recording-script>span{font-size:clamp(18px,2vw,26px);max-height:120px}.is-focused .practice-panel p{text-align:center;font-size:clamp(18px,2vw,26px);max-height:120px}.is-focused .video-actions{width:100%;max-width:1000px;align-self:center;justify-content:center;margin-top:8px}.is-focused .video-actions>div:first-child{display:none}.is-focused .take-review{max-width:1000px;width:100%;align-self:center}
+@keyframes presenter-enter{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.video-workspace.is-focused>.stage-area{animation:none}}
+@media(max-width:700px){.video-workspace.is-focused>.stage-area{inset:6px;padding:12px}.focus-heading>div{align-items:flex-start;flex-direction:column;gap:4px}.is-focused .video-stage{width:100%}.is-focused .video-actions>div{flex-wrap:wrap;justify-content:center}}
+
+.video-workspace.is-focused>.stage-area{background:#141c18;color:#eef3ef}.is-focused .focus-heading span,.is-focused .practice-panel-heading small{color:#aab8af}.is-focused .focus-heading button,.is-focused .video-actions button{background:#26322b;color:#eef3ef;border-color:#3a493f}.is-focused .video-actions .primary{background:#23783d}.is-focused .practice-panel-heading>div{margin-right:auto}
