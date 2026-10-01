@@ -188,6 +188,16 @@ try {
     try{const path=join(trimDir,'take.webm');await writeFile(path,await readAsset(take.objectKey));await runCommand('ffmpeg',['-v','error','-i',path,'-f','null','-'])}finally{await rm(trimDir,{recursive:true,force:true})}
     assert.equal(takeProject.views!.moments[`scene-slide/${takeProject.project.video!.scenes[0].moments[0].id}`].state,'recorded')
     console.log('A third worker recovered and decoded the exact trimmed take and retained original without local files.')
+    const {saveRecording}=await import('../engine/takes')
+    const recordedMoment=takeProject.project.video!.scenes[0].moments[0]
+    const retaken=await saveRecording('take-notebook','scene-slide',[{momentId:recordedMoment.id,recordingKey:recordedMoment.recordingKey,from:0,to:1.5}],await readAsset(trimExpected.originalKey),'video/mp4')
+    const nextTake=retaken.project.video!.scenes[0].moments[0].take!
+    assert.equal(nextTake.number,2,'A trim must not increment the recording take number')
+    assert.equal((await readRow<{number:number}>('takes',nextTake.id))?.number,2)
+    assert.equal((await loadProject('take-notebook'))!.project.video!.scenes[0].moments[0].take?.number,2)
+    assert.equal(createHash('sha256').update(await readAsset(trimExpected.originalKey)).digest('hex'),trimExpected.originalSha256)
+    console.log('Remote retake persisted take 2 after a legacy take and trim, retaining the original.')
+
     const saved=(await loadProject(projectId))!,scene=saved.project.video!.scenes[0],video=saved.project.video!.produced!
     const expected=(await readRow<{objectKey:string;sha256:string;covers:Array<{key:string;sha256:string}>}>('test-cases','media-export'))!
     const hash=(body:Buffer)=>createHash('sha256').update(body).digest('hex')

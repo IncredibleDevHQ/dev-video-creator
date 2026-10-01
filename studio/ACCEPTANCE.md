@@ -294,3 +294,19 @@ Current regression and connection review at `8f85395d`:
 - Stand-in playback was observed advancing from animation time 33.2 to 38.0
   seconds with the avatar present and the moment playhead updated. Moment 6
   remains unrecorded; no camera access or model generation was used.
+
+Numbered recording acceptance:
+- New recordings retain an ordinal in both the take row and moment pointer;
+  retakes use notebook-scoped history and a per-scene operation lock. Trims
+  preserve the ordinal. Legacy takes without an ordinal retain their existing
+  label; the UI does not invent a number or show one for a stale script.
+- A disposable PostgreSQL/MinIO run recovered a legacy take and its trim in a
+  third worker, saved a real synthetic-media retake as take 2, reloaded both
+  persisted records, and verified the original bytes remained unchanged. The
+  full storage check passed in 8.84 seconds. This is storage/media evidence,
+  not a physical retake or signed-in model run.
+- Test setup now assigns a fresh temporary local store before test modules
+  import application code. This prevents early helper imports from reusing
+  old fixture history. All 321 tests passed with that isolation enabled.
+- Live backend activation is pending confirmation that no unsaved take is in
+  progress; existing user tabs timed out during the read-only capture check.
