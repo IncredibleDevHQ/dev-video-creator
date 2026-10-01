@@ -188,3 +188,18 @@ it('distinguishes scenes ready to assemble from active work and missing recordin
  scene.phase='producing'
  expect(stageStatus(input,'video')).toContain('Processing')
 })
+
+it('keeps the planned presenter space visible when animation exists but recording is missing',async()=>{
+ const {parseHTML}=await import('linkedom'),input=fixture(),scene=input.project.video!.scenes[0]
+ scene.phase='waiting';scene.animationKey='a';scene.animation={inputKey:'a',objectKey:'animation.mp4',moments:[{id:'m6',start:0,end:6}]}
+ scene.moments=[{id:'m6',start:0,end:6,camera:'full',layout:'beside-slide',lines:'Your closing line',overlay:null,recordingKey:'r',audioKey:'a',audio:null,take:null}]
+ let document=parseHTML(render(input)).document
+ expect(document.querySelector('.video-stage.presenter-layout-beside-slide')).not.toBeNull()
+ expect(document.querySelector('[data-rehearsal-animation]')?.getAttribute('src')).toBe('/objects/animation.mp4')
+ expect(document.querySelector('.presenter-preview img')?.getAttribute('alt')).toBe('Presenter stand-in')
+ expect(document.querySelector('[data-animation-player]')).toBeNull()
+ scene.moments[0].take={id:'real',recordingKey:'r',objectKey:'recorded.webm'}
+ document=parseHTML(render(input)).document
+ expect(document.querySelector('[data-saved-presenter]')?.getAttribute('src')).toBe('/objects/recorded.webm')
+ expect(document.querySelector('.presenter-preview img')).toBeNull()
+})
