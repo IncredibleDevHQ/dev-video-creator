@@ -313,3 +313,17 @@ Numbered recording acceptance:
   Native post-restart review shows moment 1 saved, moment 6 to record, the
   stand-in player and recording CTA, with no connection warning. Physical
   recording and consented provider-clone gates remain open.
+
+Focused rehearsal follow-up:
+- Practice, capture and take review use the centered presenter workspace; script
+  sits below the canvas. Rehearsal setup shares the optional stop-time field with
+  recording, supports manual Enter advancement through open moments, and creates
+  no media capture or generated narration. Esc exits rehearsal.
+- Native browser checks verified countdown, timed stopping without a take, and
+  focus-mode exit. Manual pass advancement and extended speaking are covered by
+  isolated clock tests. A physical recording/review pass remains unverified.
+- Full TypeScript and 330 tests in 83 files passed at 4b493759. The subsequent
+  hold-boundary correction pauses the animation 0.3 scene seconds before its end
+  to avoid crossing into the next moment; seven relevant tests and build passed.
+- This does not complete live clone acceptance or the remaining creator-device
+  recording acceptance gates.
