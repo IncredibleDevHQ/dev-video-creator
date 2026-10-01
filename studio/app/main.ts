@@ -216,7 +216,7 @@ const render = () => {
    const control=root.querySelector<HTMLButtonElement>('[data-action="practice-camera"]')
    if(cameraStarting){
     if(control){control.disabled=true;control.textContent='Starting camera…'}
-    const label=root.querySelector('.practice-panel-heading>small');if(practiceStream && label)label.textContent='Starting camera…'
+    const label=root.querySelector<HTMLButtonElement>('[data-action="practice-camera-off"]');if(label)label.textContent='Cancel camera'
     root.querySelector('.presenter-preview')?.insertAdjacentHTML('beforeend','<div class="camera-starting" role="status"><span class="activity-orbit" aria-hidden="true"></span><span>Starting camera…</span></div>')
    }
   }
@@ -225,7 +225,7 @@ const render = () => {
    if(camera.srcObject!==stream)camera.srcObject=stream
    if(practiceStream){
     cameraStarting=camera.readyState<2
-    camera.onplaying=()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();const label=root.querySelector('.practice-panel-heading>small');if(label)label.textContent='Camera preview on'}
+    camera.onplaying=()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();const label=root.querySelector('[data-action="practice-camera-off"]');if(label)label.textContent='Turn off camera'}
    }
    void camera.play().catch(()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();error(new Error('Camera preview could not start. Exit practice and try again.'))})
   }
@@ -410,6 +410,9 @@ document.addEventListener('click', async event => {
     }
     if (action === 'confirm-replan') {
       snapshot = await api.replan(id, snapshot.project.video!.scenes[selected].id, target.dataset.value==='inherit'?null:target.dataset.value as Presence); dialog.close(); render()
+    }
+    if(action==='practice-camera-off'){
+      practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=null;cameraStarting=false;render();return
     }
     if(action==='practice-camera'){
       if(cameraStarting)return
