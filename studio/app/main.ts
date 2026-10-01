@@ -1,4 +1,4 @@
-import {practiceControls} from './practice-controls'
+import {practiceControls,recordControl} from './practice-controls'
 import {followTranscript} from './transcript-follow'
 import {standInPlayback,standInControls} from './stand-in-playback'
 import {syncPresenterLayout} from './presenter-motion'
@@ -201,6 +201,7 @@ const render = () => {
   paintAnimationProgress()
   if(practiceOpen){
     const phase=startRehearsal?'ready':practiceCountdown?'countdown':practice.active?'running':'finished'
+    if(phase==='ready' || phase==='finished')root.querySelector('.practice-panel-heading')?.insertAdjacentHTML('beforeend',recordControl())
     const actions=root.querySelector('.video-actions>div:last-child')
     if(actions)actions.innerHTML=practiceControls(phase,practiceMomentIds.length>1?(practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'):undefined)
     const label=root.querySelector('[data-practice-clock]');if(label)label.textContent=phase==='ready'?'Your script':phase==='countdown'?`Starting in ${practiceCountdown}…`:phase==='finished'?'Practice complete':'Practice'
