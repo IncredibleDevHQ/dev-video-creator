@@ -202,3 +202,5 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .transcript-scroll::-webkit-scrollbar-thumb{background:var(--muted);border-radius:6px;border:2px solid var(--panel)}
 .transcript-scroll::after{content:'';display:block;height:var(--transcript-tail,55vh);pointer-events:none}
 .token-usage summary>span{float:right}.token-usage summary>span span{float:none}
+
+.practice-panel{margin:14px 0;border:1px solid #39413d;border-radius:12px;padding:18px 22px;background:#202623}.practice-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.practice-panel-heading>div{display:flex;flex-direction:column;gap:5px}.practice-panel-heading strong{font-size:13px;font-weight:600}.practice-panel-heading small{font-size:12px;color:#a3ada7}.practice-panel-heading button{font-size:12px;padding:8px 12px}.practice-panel p{font-size:clamp(17px,1.4vw,22px);line-height:1.6;margin:16px 0 0;max-height:150px;overflow-y:auto;text-wrap:pretty}
