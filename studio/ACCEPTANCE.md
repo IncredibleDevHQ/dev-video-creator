@@ -236,3 +236,17 @@ Current recording/playback follow-up (1 October 2026):
   301 passing tests (four macOS voice tests skipped) and the production build.
   This supersedes the earlier clean-container test count, but still does not
   establish signed-in harness, physical devices, or provider clone acceptance.
+
+Fresh launch verification at `74b3f4e3`:
+- A new Node 22 Debian container installed system prerequisites and locked JS
+  dependencies from the committed standalone source, with no host volumes,
+  credentials or notebook files. 310 tests passed; four macOS-only voice tests
+  were skipped. TypeScript and the Vite production build passed.
+- `checks/startup-check.mjs` then launched the actual `scripts/dev.mjs` entrypoint
+  with free ports and a disposable local store. The frontend document and its
+  proxied notebook API responded successfully; the notebook list was empty.
+  The bounded run exited successfully and its container was removed.
+- The first attempt at `2349d57` caught an incomplete test view fixture in
+  TypeScript. It failed before startup and is not acceptance evidence.
+- This establishes isolated Linux startup, not automatic host provisioning,
+  signed-in generation, camera/microphone behavior, or voice-clone acceptance.
