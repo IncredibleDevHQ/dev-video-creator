@@ -85,7 +85,13 @@ const capture = new Recording(() => {
 const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
  const scene=snapshot?.project.video?.scenes[selected],moment=scene?.moments[momentIndex];if(!scene || !moment)return
  const parts=capture.phase==='reviewing' || capture.phase==='uploading'?capture.parts:[{momentId:moment.id,recordingKey:moment.recordingKey,from:0,to:moment.take?.duration || moment.end-moment.start}]
- const at=takeReviewPosition(scene.moments,parts,time);if(at)syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)
+ const at=takeReviewPosition(scene.moments,parts,time)
+ if(at){
+  second=at.second
+  movePlayhead(root,scene.moments,at.second,at.momentIndex)
+  const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.second.toFixed(1)}s · moment ${at.momentIndex+1}`
+  syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)
+ }
 })
 const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,practice.active || capture.phase==='recording')}
 let pendingVideoSettings:import('../shared/model').VideoSettings|null=null

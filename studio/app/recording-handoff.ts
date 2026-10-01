@@ -7,5 +7,5 @@ export function recordingHandoff(snapshot:Snapshot,scene:Scene){
  const saved=snapshot.events.some(event=>event.sceneId===scene.id && event.kind==='scene' && /^\d+ moments? recorded$/.test(event.message))
  if(!saved)return ''
  const remaining=view?.openMomentIds.length || 0
- return `<div class="recording-nudge" role="status"><strong>✓ Recording saved</strong><span>${remaining?`${remaining} ${remaining===1?'moment still needs':'moments still need'} recording. You can record them in any order.`:'Finish this scene to combine your recording with its animation and layout.'}</span></div>`
+ return `<div class="recording-handoff" role="status"><span class="saved-indicator" aria-hidden="true"></span><strong>Recording saved</strong><span>${remaining?`${remaining} ${remaining===1?'moment still needs':'moments still need'} recording. You can record them in any order.`:'Ready to combine with your scene.'}</span></div>`
 }

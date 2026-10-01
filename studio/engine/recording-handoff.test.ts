@@ -6,7 +6,7 @@ it('explains a saved recording until the scene is finished, including after relo
  const scene={id:'s',phase:'waiting'} as Scene
  const snapshot={events:[{kind:'scene',sceneId:'s',message:'1 moment recorded'}],views:{scenes:{s:{produced:false,openMomentIds:[]}}}} as unknown as Snapshot
  expect(recordingHandoff(snapshot,scene)).toContain('Recording saved')
- expect(recordingHandoff(snapshot,scene)).toContain('combine your recording')
+ expect(recordingHandoff(snapshot,scene)).toContain('Ready to combine with your scene')
  snapshot.views!.scenes.s.openMomentIds=['outro']
  expect(recordingHandoff(snapshot,scene)).toContain('1 moment still needs recording')
  snapshot.views!.scenes.s.produced=true
