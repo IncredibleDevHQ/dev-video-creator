@@ -50,3 +50,20 @@ it('keeps brief renewals quiet but reports an outage until a valid snapshot retu
   expect(connected).not.toHaveBeenCalled()
  }finally{stop();vi.unstubAllGlobals()}
 })
+
+ it('does not report delivery errors as outages or suppress their next heartbeat',async()=>{
+ vi.useFakeTimers()
+ let source:any
+ class Source {onerror:any;onmessage:any;close=vi.fn();constructor(){source=this}}
+ vi.stubGlobal('EventSource',Source)
+ const {notebookStream}=await import('../app/notebook-stream')
+ const connected=vi.fn(),update=vi.fn().mockImplementationOnce(()=>{throw new Error('Consumer failed')}),stop=notebookStream('p',update,connected)
+ try{
+  const message={data:JSON.stringify({project:{id:'p'}})}
+  connected.mockClear()
+  expect(()=>source.onmessage(message)).toThrow('Consumer failed')
+  expect(connected.mock.calls).toEqual([[true]])
+  source.onmessage(message);expect(update).toHaveBeenCalledTimes(2)
+  source.onmessage(message);expect(update).toHaveBeenCalledTimes(2)
+ }finally{stop();vi.unstubAllGlobals()}
+})

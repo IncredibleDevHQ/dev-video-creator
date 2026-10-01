@@ -11,12 +11,15 @@ export function notebookStream(id:string,update:(snapshot:Snapshot)=>void,connec
   source.onerror=()=>{if(!closed && stream===source)reconnecting()}
   source.onmessage=event=>{
    if(closed || stream!==source)return
+   let snapshot:Snapshot
    try{
-    const snapshot=JSON.parse(event.data) as Snapshot
+    snapshot=JSON.parse(event.data) as Snapshot
     if(snapshot?.project?.id!==id)throw new Error('Invalid notebook update')
-    clearDisconnect();lastUpdate=Date.now();connected(true)
-    if(event.data!==lastSnapshot){lastSnapshot=event.data;update(snapshot)}
-   }catch{connected(false)}
+   }catch{connected(false);return}
+   clearDisconnect();lastUpdate=Date.now();connected(true)
+   // Delivery errors are not transport failures. Retry the same snapshot on the
+   // next heartbeat if its consumer throws before accepting it.
+   if(event.data!==lastSnapshot){update(snapshot);lastSnapshot=event.data}
   }
  }
  connected(false);open()
