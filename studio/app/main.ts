@@ -14,7 +14,7 @@ import {replacePlayerView} from './player-view'
 import {recordingTarget} from './recording-target'
 import {syncRehearsalAnimation} from './rehearsal-animation'
 import {animationSecond} from '../shared/scene-time'
-import {recordingSetup,recordingPassSetup,recordingRecovery,practiceSetup} from './recording-setup'
+import {recordingSetup,recordingPassSetup,recordingRecovery} from './recording-setup'
 import {movePlayhead} from './moment-timeline'
 import {gear,sceneSettings} from './camera-settings'
 import {stageStatus} from './stage-status'
@@ -262,16 +262,6 @@ document.addEventListener('submit', async event => {
   const form = event.target as HTMLFormElement
   const values = new FormData(form)
   try {
-    if(form.id==='practice-setup'){
-      const scene=snapshot!.project.video!.scenes[selected],open=snapshot!.views?.scenes[scene.id].openMomentIds || []
-      const moments=values.get('scope')==='open'?scene.moments.filter(moment=>open.includes(moment.id)):[scene.moments[momentIndex]]
-      const raw=String(values.get('seconds') || '').trim();const seconds=raw?Number(raw):null
-      if(seconds!==null && (!Number.isFinite(seconds) || seconds<1 || seconds>600))throw new Error('Choose a stop time between 1 and 600 seconds')
-      if(!moments.length)return
-      dialog.close();practiceStopAfter=seconds;practiceMomentIds=moments.map(moment=>moment.id)
-      practiceOpen=true;second=moments[0].start;momentIndex=scene.moments.findIndex(m=>m.id===moments[0].id)
-      startRehearsal=replayPractice;render()
-    }
     if(form.id==='recording-setup' && pendingRecording){
       const seconds=String(values.get('seconds') || '').trim()
       const moments=pendingRecording;pendingRecording=null;dialog.close()
@@ -417,7 +407,8 @@ document.addEventListener('click', async event => {
       if(action==='practice' && (practiceOpen || practiceLoading)){stopPractice();render();return}
       const scene=snapshot.project.video!.scenes[selected],moment=scene.moments[momentIndex]
       if(!moment) return
-      showDialog(practiceSetup(moment,momentIndex,snapshot.views?.scenes[scene.id].openMomentIds.length || 0))
+      practiceRequest++;practiceStopAfter=null;practiceMomentIds=[moment.id]
+      practiceOpen=true;second=moment.start;startRehearsal=replayPractice;render()
     }
     if(action==='record-open'){
       const scene=snapshot.project.video!.scenes[selected],open=snapshot.views?.scenes[scene.id].openMomentIds || []
