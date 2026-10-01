@@ -1,3 +1,4 @@
+import {standInPlayback} from './stand-in-playback'
 import {syncPresenterLayout} from './presenter-motion'
 import {layeredPlayback} from './layered-playback'
 import {workspacePosition,workspaceUrl} from './workspace-position'
@@ -95,7 +96,14 @@ const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
   syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)
  }
 })
-const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,practice.active || capture.phase==='recording')}
+standInPlayback(root,()=>{const scene=snapshot?.project.video?.scenes[selected];return scene?{scene,index:momentIndex}:null},at=>{
+ second=at
+ const scene=snapshot?.project.video?.scenes[selected];if(!scene)return
+ syncPresenterLayout(root,scene.moments,at)
+ movePlayhead(root,scene.moments,at,momentIndex)
+ const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.toFixed(1)}s · moment ${momentIndex+1}`
+})
+const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,practice.active || capture.phase==='recording' || !!root.querySelector('[data-stand-in-play]') && root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.paused===false)}
 let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
 let pendingRecording: import('../shared/model').Moment[] | null = null
 const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=[moment];const scene=snapshot?.project.video?.scenes[selected];showDialog(recordingSetup(moment,index,scene?snapshot?.views?.scenes[scene.id]?.openMomentIds.length:1))}
@@ -113,7 +121,7 @@ const render = () => {
   const contextKey = [snapshot?.project.id,stage,selected].join(':')
   const sameContext = root.dataset.context === contextKey
   root.dataset.context = contextKey
-  const previousPlayer = root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player],[data-saved-presenter]')
+  const previousPlayer = root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player],[data-saved-presenter]') || root.querySelector<HTMLMediaElement>('[data-rehearsal-animation]')
   const playback = previousPlayer ? {src:previousPlayer.getAttribute('src'),time:previousPlayer.currentTime,playing:!previousPlayer.paused} : null
   const focused = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement ? document.activeElement : null
   const focusedId = sameContext ? focused?.id : null

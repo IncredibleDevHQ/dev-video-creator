@@ -198,6 +198,8 @@ it('keeps the planned presenter space visible when animation exists but recordin
  expect(document.querySelector('[data-rehearsal-animation]')?.getAttribute('src')).toBe('/objects/animation.mp4')
  expect(document.querySelector('.presenter-preview img')?.getAttribute('alt')).toBe('Presenter stand-in')
  expect(document.querySelector('[data-animation-player]')).toBeNull()
+ expect(document.querySelector('[data-stand-in-play]')).not.toBeNull()
+ expect(document.querySelector('[data-stand-in-seek]')).not.toBeNull()
  scene.moments[0].take={id:'real',recordingKey:'r',objectKey:'recorded.webm'}
  document=parseHTML(render(input)).document
  expect(document.querySelector('[data-saved-presenter]')?.getAttribute('src')).toBe('/objects/recorded.webm')

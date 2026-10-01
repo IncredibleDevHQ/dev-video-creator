@@ -44,3 +44,15 @@ it('keeps a saved presenter take connected when notebook activity arrives',()=>{
   expect(remove).not.toHaveBeenCalled();expect(attributes).not.toHaveBeenCalledWith('src','/objects/take.webm')
  }finally{vi.unstubAllGlobals();vi.restoreAllMocks()}
 })
+
+it('retains the stand-in animation decoder across activity updates',()=>{
+ const {document,Element}=parseHTML('<html><body><div id="app"><section><video data-rehearsal-animation src="animation.mp4"></video><img alt="Presenter stand-in"></section></div></body></html>')
+ vi.stubGlobal('document',document);vi.stubGlobal('Element',Element)
+ try{
+  const root=document.querySelector('#app') as unknown as HTMLElement,player=root.querySelector('video')!
+  const remove=vi.spyOn(player,'remove')
+  expect(replacePlayerView(root,'<section><video data-rehearsal-animation src="animation.mp4"></video><img alt="Presenter stand-in"><p>Updated activity</p></section>',player)).toBe(true)
+  expect(root.querySelector('video')).toBe(player)
+  expect(player.isConnected).toBe(true);expect(remove).not.toHaveBeenCalled()
+ }finally{vi.unstubAllGlobals();vi.restoreAllMocks()}
+})
