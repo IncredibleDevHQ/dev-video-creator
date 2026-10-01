@@ -16,6 +16,7 @@
     <symbol id="text" viewBox="0 0 24 24"><path d="M5 6h14M5 12h10M5 18h14"/></symbol>
     <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
     <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="sparkles" viewBox="0 0 24 24"><path d="m10 3 2.5 6.5L19 12l-6.5 2.5L10 21l-2.5-6.5L1 12l6.5-2.5L10 3ZM19 2v6M16 5h6"/></symbol>
   </defs></svg>
 
   <main class="studio">
@@ -62,18 +63,21 @@
       <section class="prompter" aria-label="Teleprompter script">
         <div class="prompter-heading"><span id="reading-mode"><span class="sync-dot"></span> Read along</span><span id="pacing-label">Planned timing</span><button id="edit-addition" hidden>Edit extra dialogue</button></div>
         <div class="reading-window" id="reading-window"><div class="reading-cursor" aria-hidden="true">›</div><p id="script"></p></div>
+        <div id="inline-editor" hidden>
+          <div class="writing-window" id="writing-window"><p class="writing-line"><span id="original-context"></span> <span id="extra-dialogue" contenteditable="plaintext-only" role="textbox" aria-label="Extra dialogue" aria-multiline="true" aria-describedby="completion-note" spellcheck="true"></span><span id="completion"></span></p></div>
+          <div class="extension-tools">
+            <div class="duration-control"><label for="extension-length">Extra time</label><input id="extension-length" type="range" min="5" max="30" step="5" value="10"><output for="extension-length" id="extension-target">~10s</output></div>
+            <button id="use-completion" class="completion-button" aria-label="Accept sample completion"><svg><use href="#sparkles"/></svg><span>Sample suggestion</span><kbd>Tab ↹</kbd></button>
+            <div class="extension-actions"><button id="cancel-extension" class="text-button">Cancel</button><button id="keep-extension" class="primary"><svg><use href="#check"/></svg>Keep extension</button></div>
+          </div>
+          <span id="completion-note" class="sr-only">Suggestions are sample text for this prototype. Press Tab at the end of your text to accept. Your typed words stay unchanged when you adjust the duration.</span>
+          <span id="completion-status" class="sr-only" role="status" aria-live="polite"></span>
+        </div>
       </section>
       <footer><span id="hint">Click a phrase to jump to that point.</span><span>Preview only · nothing is recorded</span></footer>
     </section>
   </main>
 
-  <dialog id="addition-dialog" aria-labelledby="dialog-title">
-    <div class="dialog-heading"><div><span class="eyebrow">AFTER THE ANIMATION</span><h1 id="dialog-title">Keep talking.</h1></div><button id="close-dialog" class="icon-button" aria-label="Close dialogue editor"><svg><use href="#close"/></svg></button></div>
-    <div id="write-view"><label for="extra-dialogue">What else would you like to say?</label><textarea id="extra-dialogue" rows="4" maxlength="600" placeholder="Add an example, a personal story, or one last thought…"></textarea><div class="draft-meta"><button id="example" class="text-button">Try an example</button><span id="extra-duration">Your words, at your pace.</span></div></div>
-    <div id="review-view" hidden><p class="review-lead">“…with a way back.”</p><ins id="addition-diff"></ins></div>
-    <div class="impact"><svg><use href="#video"/></svg><p>The animation holds its last frame.<br><strong>You stay on camera and keep speaking.</strong></p></div>
-    <div class="dialog-footer"><button id="edit-draft" class="text-button" hidden>Back to writing</button><button id="review-addition" class="primary" disabled>Review addition <span aria-hidden="true">→</span></button><button id="accept-addition" class="primary" hidden><svg><use href="#check"/></svg>Add to teleprompter</button></div>
-  </dialog>
   <script type="module" src="./teleprompter.js"></script>
 </body>
 </html>
