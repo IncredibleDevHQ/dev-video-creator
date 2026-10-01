@@ -35,3 +35,10 @@ it('pauses rehearsal time and resumes without skipping the spoken lines',()=>{
  player.resume();vi.advanceTimersByTime(100);expect(frame.mock.lastCall?.[1]).toBeCloseTo(10.6)
  player.stop();vi.restoreAllMocks()
 })
+it('holds the animation while manual rehearsal continues beyond the planned dialogue',()=>{
+ vi.useFakeTimers();vi.spyOn(performance,'now').mockImplementation(()=>Date.now())
+ const frame=vi.fn(),ended=vi.fn(),player=new PracticePlayback(frame,ended,vi.fn())
+ player.start({...track,clips:[track.clips[0]]},true);vi.advanceTimersByTime(20000)
+ expect(player.active).toBe(true);expect(ended).not.toHaveBeenCalled();expect(frame.mock.lastCall?.[1]).toBeCloseTo(11.7)
+ player.stop();expect(player.active).toBe(false);vi.restoreAllMocks()
+})

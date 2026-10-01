@@ -9,7 +9,7 @@ export class PracticePlayback{
  private resumeClock=()=>{}
  active=false
  constructor(private frame:(clip:PracticeClip,sceneSecond:number)=>void,private ended:()=>void,private failed:(error:Error)=>void){}
- start(track:PracticeTrack){
+ start(track:PracticeTrack,manual=false){
   this.stop()
   let sceneTime:ReturnType<typeof sceneTimeMap>
   try{sceneTime=sceneTimeMap(track.clips.map(({start,end,sceneStart,sceneEnd})=>({start,end,sceneStart,sceneEnd})))}catch{this.failed(new Error('This rehearsal has invalid timing. Prepare it again.'));return}
@@ -37,8 +37,8 @@ export class PracticePlayback{
    const clip=track.clips[index];if(!clip) return
    const duration=clip.end-clip.start
    const elapsed=this.audio?this.audio.currentTime:(performance.now()-started)/1000
-   if(!this.audio && elapsed>=duration){index++;next();return}
-   this.frame(clip,sceneTime(clip.start+Math.min(duration,Math.max(0,elapsed))))
+   if(!this.audio && elapsed>=duration && !manual){index++;next();return}
+   this.frame(clip,sceneTime(clip.start+Math.min(manual?Math.max(0,duration-.3):duration,Math.max(0,elapsed))))
   },100)
  }
  private pauseClock=()=>{}

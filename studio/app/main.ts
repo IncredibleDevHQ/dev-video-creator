@@ -49,6 +49,8 @@ let aiChoices:HarnessChoices|null=null
 let momentIndex = 0
 let second = 0
 let wholeVideo = false
+let practiceCountdown=0
+let practiceStarted=0
 let practiceOpen=false
 let practiceLoading=false
 let practiceLines=''
@@ -63,11 +65,12 @@ const practice = new PracticePlayback((clip,at)=>{
   followTranscript(root,scene?.moments || [],second,momentIndex)
   movePlayhead(root,scene?.moments || [],second)
   const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=clip.lines
+  const rehearsalClock=root.querySelector('[data-practice-clock]');if(rehearsalClock)rehearsalClock.textContent=`Practice · ${((performance.now()-practiceStarted)/1000).toFixed(1)}s · Esc to stop`
   const chip=root.querySelector('.anchor-chip');if(chip) chip.textContent=`${second.toFixed(1)}s · moment ${momentIndex+1}`
 },()=>{const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(moment)second=moment.start;render()},reason=>{stopPractice();render();error(reason)})
 let practiceRequest = 0
 let practiceStream: MediaStream | null = null
-const stopPractice = () => { practiceRequest++; practiceOpen=false; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
+const stopPractice = () => { practiceRequest++; practiceOpen=false;practiceCountdown=0; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
 let recordingSceneId = ''
 let recordingProjectId = ''
 let recordingAttempt:import('../shared/model').Moment[]=[]
@@ -183,6 +186,7 @@ const render = () => {
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
   if (camera && (capture.stream || practiceStream)) { camera.srcObject = capture.stream || practiceStream; void camera.play().catch(() => {}) }
   if(practiceLoading){const button=root.querySelector<HTMLButtonElement>('[data-action="practice"]');if(button) button.textContent='Cancel preparation'}
+  const rehearsalClock=root.querySelector('[data-practice-clock]');if(rehearsalClock)rehearsalClock.textContent=practiceCountdown?`Ready in ${practiceCountdown}…`:'Practice · Esc to stop'
   const transport=root.querySelector<HTMLButtonElement>('[data-action="practice-toggle"]');if(transport){transport.textContent=practice.active && !practice.paused?'Ⅱ Pause':'▶ Play';transport.setAttribute('aria-label',practice.active && !practice.paused?'Pause practice':'Play practice')}
   if(practice.active){const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=practiceLines}
   root.querySelector<HTMLButtonElement>('#video-chat button')?.toggleAttribute('disabled',pendingChats.has(project.id))
@@ -366,7 +370,10 @@ document.addEventListener('click', async event => {
       const scene=snapshot.project.video!.scenes[selected],moment=scene.moments[momentIndex]
       if(!moment) return
       const request=++practiceRequest;practiceLoading=true;render()
-      try{const track=await api.practice(id,scene.id,moment.id);if(request!==practiceRequest) return;practiceLoading=false;practiceOpen=true;practice.start(track);render()}
+      try{const track=await api.practice(id,scene.id,moment.id);if(request!==practiceRequest) return;practiceLoading=false;practiceOpen=true
+        for(let count=3;count>0;count--){if(request!==practiceRequest)return;practiceCountdown=count;render();await new Promise(resolve=>setTimeout(resolve,1000))}
+        if(request!==practiceRequest)return
+        practiceCountdown=0;practiceStarted=performance.now();practice.start({...track,clips:track.clips.map(clip=>({...clip,objectKey:undefined}))},true);render()}
       catch(reason){if(request===practiceRequest){stopPractice();render();error(reason)}}
     }
     if(action==='record-open'){
