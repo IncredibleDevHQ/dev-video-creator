@@ -11,7 +11,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | M0: standalone layout, copied tests, two-command fresh clone | `app`, `engine`, `render`, `desktop`, `shared`, `checks`; own lockfile; outside-parent install/doctor run recorded in historical notes | Partial: committed studio installs/tests/builds in a fresh Linux container without host dependencies. Signed-in harness setup and complete clean-machine product flow remain unproven. |
 | M1: real blog → rich deck, progressive slides, editing/chat/PDF | Actual Kimi K3 Canvas notebook has nine rich SVG slides. Isolated pipeline, editor and PDF checks exist. | Partial: one actual Claude source-chat reply with four validated source passages is now proven; one actual Claude slide revision/redraw now passes artifact validation and retains the other eight slides; editorial/visual acceptance remains incomplete. |
 | M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned and produced scenes. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: native settings preview now verifies inherited scenes and custom overrides; some live processing details still need visual review. |
-| M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: the user physically captured Scene 3 moment 1; its 28.466-second take was saved through the UI and verified in the persisted notebook. Open-pass capture, permission denial, retake and final composition still need device-level verification. |
+| M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: the user physically captured Scene 3 moment 1; its 28.466-second take was saved through the UI and verified in the persisted notebook. The user-started Finish scene run produced a new 54.82-second 1080p H.264/AAC file containing that take; full-file decoding passed and the presenter was inspected at 14 seconds. Open-pass capture, permission denial and retake still need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
 | M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 295 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
@@ -24,7 +24,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 
 ## Reproducible evidence
 
-- `yarn run check`: 78 test files, 295 tests passed on 1 October 2026.
+- `yarn run check`: 79 test files, 301 tests passed on 1 October 2026.
 - Startup preflight is tested with missing tools in an isolated temporary path;
   the engine refuses startup without creating notebook data. This does not prove
   clean-machine provisioning.
@@ -179,3 +179,16 @@ Scene-producer 0.1.1 guidance aligns content-only runs with app-owned presenter/
 Bounded presenter check `krCQPe` ended at the four-minute wall limit (composition `9ea01843-18a5-4521-9aec-e3fefabea5ad`, effort high). Provider-reported partial usage: {"input": 22, "output": 14314, "cacheRead": 411375, "cacheWrite": 56743, "final": false}. No accepted composition or current MP4. Genuine streaming activity continued, so this is generation failing to deliver within budget, not loss of connectivity. Original notebook/take untouched. No automatic retry; producer guidance 0.1.1 was committed during this run and has not yet been live-verified.
 
 Legacy content-only migration now seeds a retained accepted production when its planRecord matches the current treatment. Only index.html and artwork assets are loaded; previous camera/audio and manifest are excluded. The harness is instructed to remove presenter layers and reserved space, reclaim the full canvas, keep approved demonstration/motion, and align the current clock. A privacy-boundary test verifies old media objects are never read into the generation seed. 298 tests passed. This reuses code, not a video already containing an avatar; successful migration and actual final presenter playback remain live gates.
+
+Presenter composition verification, 1 October 2026:
+- User-started engine run `7afab47b-96cb-4be9-81fb-e8996d94fa41` completed.
+  Scene 3 produced object `a6fd635b-7f09-489d-8ec7-b2a9b48f5983.mp4`
+  matches input `358ef7913b6aad91`; production completed at 01:30:36 UTC.
+  Its original real take remains retained. The final camera moment still uses
+  the earlier synthetic test recording, so this does not prove all moments
+  were physically recorded.
+- Shared presenter geometry/fade code in `194c7c3` has real FFmpeg coverage
+  for camera exit/reentry and unchanged scene duration. Boundary tests cover
+  measured take timing and exact full-content geometry at transitions.
+  This new transition code was not loaded by the backend that produced the
+  user's file above. Native browser motion and a new export remain unverified.
