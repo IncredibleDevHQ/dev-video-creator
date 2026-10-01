@@ -82,3 +82,7 @@ It requires a running Docker engine and removes its fixtures afterward.
 Current requirements, authoritative evidence and remaining release gates are in
 [ACCEPTANCE.md](ACCEPTANCE.md). Historical implementation notes are retained in
 [checks/IMPLEMENTATION-HISTORY.md](checks/IMPLEMENTATION-HISTORY.md).
+
+Startup checks required tools and the rendering browser before opening notebook
+storage. Missing tools stop startup with repair instructions; checks do not call
+models or request device access.

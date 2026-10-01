@@ -1,3 +1,4 @@
+import {preflight} from './preflight.mjs'
 import {spawn} from 'node:child_process'
 import {createServer} from 'node:net'
 import {fileURLToPath} from 'node:url'
@@ -15,6 +16,7 @@ const probe=port=>new Promise((resolve,reject)=>{
  server.listen(port,'127.0.0.1',()=>server.close(error=>error?reject(error):resolve()))
 })
 await Promise.all([probe(frontendPort),probe(enginePort)])
+try{await preflight()}catch(error){console.error(error.message);process.exit(1)}
 const bin=resolve(root,'node_modules/.bin')
 const children=[]
 let stopping=false
