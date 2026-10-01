@@ -236,6 +236,10 @@ const render = () => {
   if(practiceOpen){
     const phase=startRehearsal?'ready':practiceCountdown?'countdown':practice.active?'running':'finished'
     if(phase==='ready' || phase==='finished')root.querySelector('.practice-panel-heading')?.insertAdjacentHTML('beforeend',recordControl())
+    const panel=root.querySelector('.practice-panel')
+    const toolbar=document.createElement('div');toolbar.className='capture-toolbar';toolbar.setAttribute('aria-label','Camera and recording controls')
+    panel?.querySelectorAll('.practice-panel-heading>button').forEach(control=>toolbar.append(control))
+    if(toolbar.childElementCount)panel?.before(toolbar)
     const actions=root.querySelector('.video-actions>div:last-child')
     if(actions)actions.innerHTML=practiceControls(phase,practiceMomentIds.length>1?(practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'):undefined)
     const label=root.querySelector('[data-practice-clock]');if(label)label.textContent=phase==='ready'?'Teleprompter':phase==='countdown'?`Starting in ${practiceCountdown}…`:phase==='finished'?'Practice complete':'Practice'

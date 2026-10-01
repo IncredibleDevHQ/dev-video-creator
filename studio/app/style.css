@@ -244,3 +244,19 @@ body:has(.is-focused)>#app>header{pointer-events:none;filter:blur(7px);opacity:.
 .is-focused .practice-panel .prompter-window p{margin:0;padding:10px 8px 14px;max-height:148px;text-align:left;font-size:clamp(22px,2.2vw,30px);line-height:1.6;font-weight:500;letter-spacing:.005em;text-wrap:wrap;scroll-behavior:smooth}
 .prompter-window [data-prompter] .word-read{color:#84988b}.prompter-window [data-prompter] .spoken-word{color:#fff;background:#286b40}
 @media(prefers-reduced-motion:reduce){.is-focused .practice-panel .prompter-window p{scroll-behavior:auto}}
+
+/* Reserve room for the reading window and transport before sizing the canvas. */
+.video-workspace.is-focused>.stage-area{padding:14px 24px;gap:8px}
+.is-focused .focus-heading{margin-bottom:0;flex-shrink:0}
+.is-focused .video-stage{width:min(100%,calc((100dvh - 370px)*16/9));min-height:0;flex-shrink:0}
+.capture-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:12px;width:100%;max-width:920px;align-self:center;flex-shrink:0}
+.capture-toolbar .camera-toggle,.capture-toolbar .record-entry{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:8px 13px;border:1px solid #506257;border-radius:8px;background:#243029;color:#edf4ef;font-size:13px}
+.capture-toolbar .camera-toggle.is-on{background:#203d2c;border-color:#5c9d72;color:#c4f2d1}
+.capture-toolbar .record-entry{background:#2b2221;border-color:#68504f;color:#f4e9e8}
+.is-focused .practice-panel{margin:0;padding:10px 16px;flex-shrink:0;box-sizing:border-box}
+.is-focused .practice-panel-heading{min-height:20px}.is-focused .practice-panel-heading>div{flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}
+.is-focused .prompter-window{margin-top:8px;max-width:720px}
+.is-focused .practice-panel .prompter-window p{height:76px;max-height:76px;padding:0 8px;font-size:clamp(20px,2vw,26px);line-height:1.45;overflow-y:auto}
+.prompter-caret{top:4px}
+.is-focused .video-actions{margin:0;flex-shrink:0}.is-focused .video-actions>div:last-child{padding-bottom:16px}
+@media(max-height:650px){.is-focused .video-stage{width:min(100%,calc((100dvh - 310px)*16/9))}.is-focused .practice-panel-heading small{display:none}.is-focused .practice-panel .prompter-window p{height:58px;max-height:58px;font-size:20px}}
