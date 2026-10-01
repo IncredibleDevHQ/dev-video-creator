@@ -14,7 +14,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: the user physically captured Scene 3 moment 1; its 28.466-second take was saved through the UI and verified in the persisted notebook. The user-started Finish scene run produced a new 54.82-second 1080p H.264/AAC file containing that take; full-file decoding passed and the presenter was inspected at 14 seconds. Open-pass capture, permission denial and retake still need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
-| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 295 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
+| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 304 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
 | Notebook-scoped artifacts and S3 portability | Indexed checksummed immutable artifacts, configurable endpoint/bucket/region/credentials, SDK credential-chain MinIO check | Machinery proven on MinIO; AWS deployment has not been exercised. |
 | One composition pass, independent animation and recording | Animation checkpoints use design inputs; finishing/retakes reuse them. Unit and remote composition checks. | Implemented. Actual Canvas scenes 5–9 use the new path; older scenes 1–4 are retained legacy outputs. Do not regenerate them solely to migrate. |
 | Bounded usage and transparent waiting | Bounded harness stages, explicit interrupted-run retry, deduplication, token reporting, shared event worker, bounded SSE leases, fixed activity frontier | Implemented with regression coverage; live progress details and recovery visuals need current native verification. |
@@ -24,7 +24,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 
 ## Reproducible evidence
 
-- `yarn run check`: 79 test files, 301 tests passed on 1 October 2026.
+- `yarn run check`: 79 test files, 304 tests passed on 1 October 2026.
 - Startup preflight is tested with missing tools in an isolated temporary path;
   the engine refuses startup without creating notebook data. This does not prove
   clean-machine provisioning.
@@ -204,3 +204,15 @@ Native playback check after Scene 3 finish:
   UX meets the requested standard; short server lease reconnections currently
   surface as a lost connection and need a bounded grace period with tests.
 - The temporary verification tab was closed; existing user tabs were retained.
+
+Storage revalidation at `9ececf8`:
+- `yarn run check:storage` passed in 10.47 seconds against newly created
+  disposable PostgreSQL 17 and MinIO containers. Three separate local worker
+  folders recovered notebook-scoped animation, measured audio, trimmed takes
+  with original/lineage retained, PDF, scene outputs and joined-video covers.
+- Saved animation recovery explicitly rejects any generation callback; the
+  third worker checks byte hashes and no additional media artifacts. Real
+  FFmpeg decoding passed; deliberate corruption was rejected by checksum.
+- This uses synthetic fixture media. It proves remote persistence/recovery
+  machinery, not real-model visual quality or actual AWS deployment.
+- Containers and temporary worker folders were cleaned up by the check.
