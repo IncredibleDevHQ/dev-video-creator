@@ -75,8 +75,9 @@ const practice = new PracticePlayback((clip,at)=>{
 },()=>{const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(moment)second=moment.start;render()},reason=>{stopPractice();render();error(reason)})
 let practiceRequest = 0
 let practiceStream: MediaStream | null = null
+let cameraStarting=false
 const finishPractice=()=>{practiceRequest++;practiceCountdown=0;startRehearsal=null;practice.stop();practiceLoading=false;root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();render()}
-const stopPractice = () => { practiceRequest++; practiceOpen=false;startRehearsal=null;practiceCountdown=0; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
+const stopPractice = () => { practiceRequest++; practiceOpen=false;cameraStarting=false;startRehearsal=null;practiceCountdown=0; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
 const replayPractice=async()=>{
  const scene=snapshot?.project.video?.scenes[selected];if(!scene || !practiceOpen)return
  const moments=practiceMomentIds.map(id=>scene.moments.find(moment=>moment.id===id)).filter((moment):moment is import('../shared/model').Moment=>!!moment)
@@ -210,7 +211,25 @@ const render = () => {
   followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
-  if (camera && (capture.stream || practiceStream)) { camera.srcObject = capture.stream || practiceStream; void camera.play().catch(() => {}) }
+  const paintCameraStarting=()=>{
+   root.querySelector('.camera-starting')?.remove()
+   const control=root.querySelector<HTMLButtonElement>('[data-action="practice-camera"]')
+   if(cameraStarting){
+    if(control){control.disabled=true;control.textContent='Starting camera…'}
+    const label=root.querySelector('.practice-panel-heading>small');if(practiceStream && label)label.textContent='Starting camera…'
+    root.querySelector('.presenter-preview')?.insertAdjacentHTML('beforeend','<div class="camera-starting" role="status"><span class="activity-orbit" aria-hidden="true"></span><span>Starting camera…</span></div>')
+   }
+  }
+  if (camera && (capture.stream || practiceStream)) {
+   const stream=capture.stream || practiceStream
+   if(camera.srcObject!==stream)camera.srcObject=stream
+   if(practiceStream){
+    cameraStarting=camera.readyState<2
+    camera.onplaying=()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();const label=root.querySelector('.practice-panel-heading>small');if(label)label.textContent='Camera preview on'}
+   }
+   void camera.play().catch(()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();error(new Error('Camera preview could not start. Exit practice and try again.'))})
+  }
+  paintCameraStarting()
   if(practiceLoading){const button=root.querySelector<HTMLButtonElement>('[data-action="practice"]');if(button) button.textContent='Cancel preparation'}
   if(practiceOpen && startRehearsal){root.querySelector('.video-stage')?.insertAdjacentHTML('beforeend',standInControls());root.querySelector('[data-animation-status]')?.setAttribute('hidden','')}
   paintAnimationProgress()
@@ -393,9 +412,11 @@ document.addEventListener('click', async event => {
       snapshot = await api.replan(id, snapshot.project.video!.scenes[selected].id, target.dataset.value==='inherit'?null:target.dataset.value as Presence); dialog.close(); render()
     }
     if(action==='practice-camera'){
+      if(cameraStarting)return
+      cameraStarting=true;render()
       const request=practiceRequest
       try{const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});if(request!==practiceRequest || !practiceOpen){stream.getTracks().forEach(track=>track.stop());return};practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=stream;render()}
-      catch{error(new Error('Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'))}
+      catch{cameraStarting=false;render();error(new Error('Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'))}
     }
     if(action==='practice-finish'){finishPractice();return}
     if(action==='practice-replay' && practiceOpen){dialog.close();await replayPractice();return}

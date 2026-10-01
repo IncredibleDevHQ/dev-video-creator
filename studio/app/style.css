@@ -231,3 +231,5 @@ body:has(.is-focused)>#app>header{pointer-events:none;filter:blur(7px);opacity:.
 [data-prompter] [data-transcript-word]{color:#aab8af;transition:color .12s,background-color .12s}[data-prompter] .word-read{color:#eef3ef}[data-prompter] .spoken-word{color:#fff;background:#297947;box-shadow:0 0 0 2px #297947;border-radius:3px}
 
 .is-focused .practice-panel-heading [data-action="practice-camera"]{display:inline-flex;align-items:center;gap:8px;border-radius:8px;background:#26322b;color:#eef3ef;min-height:36px}
+
+.presenter-preview .camera-starting{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;background:#142019d9;color:#eef3ef;font-size:14px;z-index:3}.camera-starting .activity-orbit{flex:none}
