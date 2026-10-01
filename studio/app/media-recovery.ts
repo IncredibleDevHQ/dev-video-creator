@@ -52,10 +52,10 @@ export function mediaRecoveryView(state:MediaState,kind:'video'|'recording'='vid
 export function savedMediaRecovery(root:HTMLElement){
  const paint=()=>{
   root.querySelector('.media-recovery')?.remove()
-  const player=root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player],[data-saved-presenter]')
+  const player=root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player],[data-saved-presenter]') || root.querySelector<HTMLMediaElement>('[data-rehearsal-animation]')
   if(player)player.closest('.video-stage,.take-review')?.insertAdjacentHTML('afterend',mediaRecoveryView(recovery.state,player.hasAttribute('data-saved-presenter')?'recording':'video'))
  }
  const recovery=new MediaRecovery(paint)
  root.addEventListener('click',event=>{if((event.target as Element).closest('[data-reload-media]'))recovery.retry()})
- return ()=>{recovery.bind(root.querySelector('[data-scene-player],[data-take-player],[data-saved-presenter]'));paint()}
+ return ()=>{recovery.bind(root.querySelector('[data-scene-player],[data-take-player],[data-saved-presenter]') || root.querySelector('[data-rehearsal-animation]'));paint()}
 }

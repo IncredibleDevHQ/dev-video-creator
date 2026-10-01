@@ -17,10 +17,10 @@ it('holds the last completed part in a partial pass and rejects obsolete recordi
 })
 it('holds the last recorded card when review ends before unrecorded moments',async()=>{
  const {movePlayhead}=await import('../app/moment-timeline')
- const playhead={style:{left:'',transform:''}}
- const cards=[{offsetLeft:10,offsetWidth:100},{offsetLeft:130,offsetWidth:100},{offsetLeft:250,offsetWidth:100}]
+ const playhead={style:{left:'',transform:''},parentElement:{clientLeft:0,scrollLeft:0,getBoundingClientRect:()=>({left:200})}}
+ const cards=[10,130,250].map(left=>({getBoundingClientRect:()=>({left:200+left,right:300+left})}))
  const root={querySelector:(selector:string)=>selector==='.moment-playhead'?playhead:cards[Number(selector.match(/data-moment="(\d+)"/)?.[1])]} as unknown as HTMLElement
  const at=takeReviewPosition(moments,parts.slice(0,1),10.2)!
  movePlayhead(root,moments,at.second,at.momentIndex)
- expect(playhead.style.transform).toBe('translate3d(119px,0,0)')
+ expect(playhead.style.transform).toBe('translate3d(109px,0,0)')
 })

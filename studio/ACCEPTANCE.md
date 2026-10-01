@@ -10,7 +10,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | --- | --- | --- |
 | M0: standalone layout, copied tests, two-command fresh clone | `app`, `engine`, `render`, `desktop`, `shared`, `checks`; own lockfile; outside-parent install/doctor run recorded in historical notes | Partial: committed studio installs/tests/builds in a fresh Linux container without host dependencies. Signed-in harness setup and complete clean-machine product flow remain unproven. |
 | M1: real blog → rich deck, progressive slides, editing/chat/PDF | Actual Kimi K3 Canvas notebook has nine rich SVG slides. Isolated pipeline, editor and PDF checks exist. | Partial: one actual Claude source-chat reply with four validated source passages is now proven; one actual Claude slide revision/redraw now passes artifact validation and retains the other eight slides; editorial/visual acceptance remains incomplete. |
-| M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned and produced scenes. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: native settings preview now verifies inherited scenes and custom overrides; some live processing details still need visual review. |
+| M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned scenes; eight are currently complete, and Scene 3 still requires its sixth moment recording. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: native settings preview now verifies inherited scenes and custom overrides; some live processing details still need visual review. |
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: the user physically captured Scene 3 moment 1; its 28.466-second take was saved through the UI and verified in the persisted notebook. The user-started Finish scene run produced a new 54.82-second 1080p H.264/AAC file containing that take; full-file decoding passed and the presenter was inspected at 14 seconds. Open-pass capture, permission denial and retake still need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
@@ -216,3 +216,23 @@ Storage revalidation at `9ececf8`:
 - This uses synthetic fixture media. It proves remote persistence/recovery
   machinery, not real-model visual quality or actual AWS deployment.
 - Containers and temporary worker folders were cleaned up by the check.
+
+
+Current recording/playback follow-up (1 October 2026):
+- Scene 3 moment 6 had an earlier synthetic test take. The creator confirmed
+  they had not recorded it. The active pointer was removed after backing up
+  the notebook; original assets and the real moment 1 take were retained.
+  Scene 3 now correctly requires one recording and its old finished export is
+  stale. The earlier successful export evidence above is historical.
+- Missing camera takes show the planned stand-in layout over the retained
+  content animation. A canvas transport plays the selected moment without
+  requesting devices or starting generation. Native verification at `cd38f06a`
+  played moment 6 from animation time 33 to 39 seconds, stopped at its end,
+  and replayed; its label remained “to record”.
+- Playhead positions now use timeline-relative card geometry and respond to
+  layout resizing. Native direct-link and click selection of moment 6 aligned
+  the line with that card’s beginning.
+- Fresh Linux check at `1ee0068` completed locked installation, TypeScript,
+  301 passing tests (four macOS voice tests skipped) and the production build.
+  This supersedes the earlier clean-container test count, but still does not
+  establish signed-in harness, physical devices, or provider clone acceptance.

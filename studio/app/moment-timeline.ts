@@ -24,7 +24,7 @@ export const movePlayhead=(root:HTMLElement,moments:Moment[],second:number,recor
  const bounds=card.getBoundingClientRect()
  const next=root.querySelector<HTMLElement>(`[data-moment="${at+1}"]`)
  const from=bounds.left-origin
- const to=(next?next.getBoundingClientRect().left:bounds.right)-origin
+ const to=(next && recordedIndex===undefined?next.getBoundingClientRect().left:bounds.right)-origin
  playhead.style.left='0'
  playhead.style.transform=`translate3d(${from+(to-from)*fraction-1}px,0,0)`
 }
