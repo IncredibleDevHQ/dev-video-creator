@@ -250,3 +250,13 @@ Fresh launch verification at `74b3f4e3`:
   TypeScript. It failed before startup and is not acceptance evidence.
 - This establishes isolated Linux startup, not automatic host provisioning,
   signed-in generation, camera/microphone behavior, or voice-clone acceptance.
+
+Presenter layout-change follow-up:
+- Adjacent camera spans with different layouts now use the same 280ms fade and
+  content reflow as camera entrances/exits, shared by browser geometry and
+  FFmpeg expressions. Adjacent spans retaining one layout stay continuous.
+- Geometry boundary tests and real synthetic FFmpeg renders cover beside-slide
+  to corner transitions, verify presenter pixels in the new region, and retain
+  the full scene duration. Nine targeted tests and the production build passed.
+- Existing exported videos were not regenerated; this is compositor evidence,
+  not visual acceptance of a new creator export.

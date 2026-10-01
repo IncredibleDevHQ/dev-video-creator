@@ -17,7 +17,8 @@ export function presenterSpans(moments:Moment[]):PresenterSpan[]{
 }
 export function presenterMotion(spans:PresenterSpan[],index:number){
  const span=spans[index],duration=span.end-span.start,fade=Math.min(.28,duration/3)
- return {duration,enter:span.camera && index>0 && !spans[index-1].camera?fade:0,exit:span.camera && index+1<spans.length && !spans[index+1].camera?fade:0}
+ const changes=(other:PresenterSpan)=>!other.camera || other.layout!==span.layout
+ return {duration,enter:span.camera && index>0 && changes(spans[index-1])?fade:0,exit:span.camera && index+1<spans.length && changes(spans[index+1])?fade:0}
 }
 export function presenterOpacity(motion:ReturnType<typeof presenterMotion>,time:number){
  const amount=Math.max(0,Math.min(1,motion.enter?time/motion.enter:1,motion.exit?(motion.duration-time)/motion.exit:1))

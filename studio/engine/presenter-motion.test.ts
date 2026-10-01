@@ -29,3 +29,14 @@ describe('presenter layout timeline',()=>{
   expect(presenterSpans([{...moment,audioKey:'current',media:{inputKey:'current',clips:[{start:0,end:10,camera:true},{start:10,end:28.466,camera:false}]}}])).toMatchObject([{start:0,end:10,camera:true},{start:10,end:28.466,camera:false}])
  })
 })
+
+it('reflows through a shared content frame when adjacent camera layouts change',()=>{
+ const changing:PresenterSpan[]=[{start:0,end:2,camera:true,layout:'beside-slide',momentId:'a'},{start:2,end:4,camera:true,layout:'corner',momentId:'b'}]
+ const before=presenterFrame(changing,0,2),after=presenterFrame(changing,1,0)
+ expect(before.content).toEqual(after.content);expect(before.opacity).toBe(0);expect(after.opacity).toBe(0)
+ expect(presenterFrame(changing,1,.28).camera).toEqual({x:1520,y:660,width:360,height:360})
+ expect(presenterFrame(changing,1,.28).opacity).toBe(1)
+ const unchanged=changing.map(span=>({...span,layout:'beside-slide' as const}))
+ expect(presenterFrame(unchanged,0,2).opacity).toBe(1)
+ expect(presenterFrame(unchanged,1,0).opacity).toBe(1)
+})
