@@ -202,7 +202,17 @@ document.addEventListener('keydown', event => {
 function setPlaybackEnabled() {
   for (const id of ['toggle-play', 'replay', 'seek', 'animation-clip']) $(id).disabled = !ready || editing;
 }
-function draftText() { return $('extra-dialogue').innerText.replace(/\u00a0/g, ' '); }
+function draftText() {
+  const text = $('extra-dialogue').innerText.replace(/\u00a0/g, ' ').replace(/\u200b/g, '');
+  const suggested = $('completion')?.textContent.replace(/\u00a0/g, ' ') || '';
+  return suggested && text.endsWith(suggested) ? text.slice(0, -suggested.length) : text;
+}
+function resetDraft(text) {
+  const pending = document.createElement('span'); pending.id = 'completion';
+  // A text caret before the pending span must not be normalized into its first
+  // word by the browser when the creator has not typed anything yet.
+  $('extra-dialogue').replaceChildren(document.createTextNode(text || '\u200b'), pending);
+}
 
 // Deliberately local sample completions, labeled in the UI. No AI request is made.
 // Changing the length only changes the unaccepted suffix; typed text is never rewritten.
@@ -224,8 +234,10 @@ function sampleCompletion(text, seconds) {
   const matches = wholeSample.toLowerCase().startsWith(prefix.toLowerCase());
   const budget = seconds * 2.5;
   if (!matches && prefix.split(/\s+/).length >= budget) return '';
+  const completedSentences = prefix.match(/[.!?](?=\s|$)/g)?.length || 0;
+  const remainingSentences = matches ? sentences : sentences.slice(completedSentences);
   let candidate = '';
-  for (const sentence of sentences) {
+  for (const sentence of remainingSentences) {
     const next = (candidate + ' ' + sentence).trim();
     const prefixWords = matches ? 0 : prefix.split(/\s+/).filter(Boolean).length;
     const nextSize = next.split(/\s+/).length + prefixWords;
@@ -233,6 +245,7 @@ function sampleCompletion(text, seconds) {
     if (candidate && candidate.length >= (matches ? prefix.length : 0) && Math.abs(currentSize - budget) <= Math.abs(nextSize - budget)) break;
     candidate = next;
   }
+  if (!candidate) return '';
   if (matches) {
     let suffix = candidate.slice(prefix.length);
     if (/\s$/.test(text)) suffix = suffix.trimStart();
@@ -243,7 +256,14 @@ function sampleCompletion(text, seconds) {
 }
 function focusDraftEnd() {
   const field = $('extra-dialogue'); field.focus({ preventScroll: true });
-  const range = document.createRange(); range.selectNodeContents(field); range.collapse(false);
+  const range = document.createRange();
+  const nodes = document.createTreeWalker(field, NodeFilter.SHOW_TEXT);
+  let lastText = null;
+  while (nodes.nextNode()) {
+    if (!$('completion').contains(nodes.currentNode)) lastText = nodes.currentNode;
+  }
+  if (lastText) range.setStart(lastText, lastText.length); else range.setStartBefore($('completion'));
+  range.collapse(true);
   const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
   const caret = range.getBoundingClientRect();
   const line = caret.height ? caret : field.getBoundingClientRect(); const window = $('writing-window');
@@ -252,9 +272,28 @@ function focusDraftEnd() {
 function caretAtEnd() {
   const selection = getSelection();
   if (!selection?.isCollapsed || !selection.rangeCount || !$('extra-dialogue').contains(selection.anchorNode)) return false;
-  const tail = selection.getRangeAt(0).cloneRange();
-  tail.selectNodeContents($('extra-dialogue')); tail.setStart(selection.anchorNode, selection.anchorOffset);
-  return tail.toString().length === 0;
+  if ($('completion').contains(selection.anchorNode)) return false;
+  const prefix = document.createRange(); prefix.selectNodeContents($('extra-dialogue'));
+  prefix.setEnd(selection.anchorNode, selection.anchorOffset);
+  const draft = document.createRange(); draft.selectNodeContents($('extra-dialogue'));
+  draft.setEndBefore($('completion'));
+  return prefix.toString().length === draft.toString().length;
+}
+function selectionTouchesCompletion() {
+  const selection = getSelection(); const pending = $('completion');
+  if (!completion || !selection?.rangeCount) return false;
+  if (pending.contains(selection.anchorNode) || pending.contains(selection.focusNode)) return true;
+  return !selection.isCollapsed && selection.getRangeAt(0).intersectsNode(pending);
+}
+function makeCompletionEditable() {
+  if (!completion) return;
+  // Retain the existing text nodes so a click, word selection, or drag keeps
+  // its exact caret/selection. The same editor owns typed and suggested words.
+  $('completion').removeAttribute('id');
+  const pending = document.createElement('span'); pending.id = 'completion';
+  $('extra-dialogue').append(pending);
+  completion = ''; completionDismissed = true;
+  $('completion-status').textContent = 'Suggestion ready to edit.';
 }
 function updateDraft() {
   const typed = draftText();
@@ -274,14 +313,14 @@ function openAddition() {
   if (editing) return;
   pause(); beforeEditPosition = position; seek(6);
   editing = true; completionDismissed = Boolean(addition);
-  $('extra-dialogue').textContent = addition;
+  resetDraft(addition);
   $('completion-status').textContent = '';
   $('original-context').textContent = original;
   $('extension-length').min = '5'; $('extension-length').max = String(Math.max(30, addition ? Math.ceil(extraSeconds(addition) / 5) * 5 + 10 : 30));
   $('extension-length').value = String(addition ? Math.ceil(extraSeconds(addition) / 5) * 5 : 10);
   $('reading-window').hidden = true; $('inline-editor').hidden = false;
   document.querySelector('.prompter').classList.add('is-editing');
-  $('hint').textContent = 'Sample completions · type your words or move the slider to explore.';
+  $('hint').textContent = 'Click any word to edit · sample completions';
   setPlaybackEnabled(); updateDraft();
   focusDraftEnd();
   const x = 6 / axisDuration * $('timeline').clientWidth;
@@ -299,12 +338,27 @@ function finishEditing(accept) {
 }
 function acceptCompletion() {
   if (!completion) return;
-  $('extra-dialogue').textContent = draftText() + completion;
-  completionDismissed = true; updateDraft(); focusDraftEnd();
+  makeCompletionEditable(); updateDraft(); focusDraftEnd();
   $('completion-status').textContent = 'Suggestion accepted. You can keep typing.';
 }
 $('edit-addition').onclick = openAddition;
-$('extra-dialogue').oninput = () => { completionDismissed = false; updateDraft(); };
+$('extra-dialogue').addEventListener('pointerup', () => {
+  if (selectionTouchesCompletion()) { makeCompletionEditable(); updateDraft(); }
+});
+$('extra-dialogue').addEventListener('beforeinput', event => {
+  const extendingAtEnd = caretAtEnd() && event.inputType.startsWith('insert');
+  if (selectionTouchesCompletion() || !extendingAtEnd) makeCompletionEditable();
+  completionDismissed = !extendingAtEnd;
+});
+$('extra-dialogue').oninput = event => {
+  // Native select-all replacement can remove the suggestion marker.
+  if (!$('completion')) {
+    const pending = document.createElement('span'); pending.id = 'completion';
+    $('extra-dialogue').append(pending); completion = '';
+  }
+  if (!event.isComposing) updateDraft();
+};
+$('extra-dialogue').addEventListener('compositionend', updateDraft);
 $('extra-dialogue').onkeydown = event => {
   if (event.isComposing) return;
   if (event.key === 'Tab' && !event.shiftKey && completion && caretAtEnd()) { event.preventDefault(); acceptCompletion(); }

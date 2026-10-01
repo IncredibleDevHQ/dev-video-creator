@@ -17,7 +17,7 @@
 .writing-window { height:123px; max-width:850px; margin:0 auto; overflow:auto; scrollbar-width:thin; scrollbar-color:#55654c transparent; position:relative; }
 .writing-line { margin:0; padding:6px 0 14px; font-size:clamp(19px,2.1vw,26px); line-height:1.6; font-weight:500; letter-spacing:-.015em; white-space:pre-wrap; overflow-wrap:anywhere; }
 #original-context { color:#7c9786; user-select:text; }
-#extra-dialogue { color:#f3e2bd; caret-color:#ffe5a4; outline:none; min-width:1px; border-radius:2px; }
+#extra-dialogue { color:#f3e2bd; caret-color:#ffe5a4; outline:none; min-width:1px; border-radius:2px; cursor:text; }
 #extra-dialogue:empty { display:inline-block; width:1px; }
 #extra-dialogue:focus-visible { outline:none; }
 #completion { color:#718672; }

@@ -64,13 +64,13 @@
         <div class="prompter-heading"><span id="reading-mode"><span class="sync-dot"></span> Read along</span><span id="pacing-label">Planned timing</span><button id="edit-addition" hidden>Edit extra dialogue</button></div>
         <div class="reading-window" id="reading-window"><div class="reading-cursor" aria-hidden="true">›</div><p id="script"></p></div>
         <div id="inline-editor" hidden>
-          <div class="writing-window" id="writing-window"><p class="writing-line"><span id="original-context"></span> <span id="extra-dialogue" contenteditable="plaintext-only" role="textbox" aria-label="Extra dialogue" aria-multiline="true" aria-describedby="completion-note" spellcheck="true"></span><span id="completion"></span></p></div>
+          <div class="writing-window" id="writing-window"><p class="writing-line"><span id="original-context"></span> <span id="extra-dialogue" contenteditable="plaintext-only" role="textbox" aria-label="Extra dialogue" aria-multiline="true" aria-describedby="completion-note" spellcheck="true"><span id="completion"></span></span></p></div>
           <div class="extension-tools">
             <div class="duration-control"><label for="extension-length">Extra time</label><input id="extension-length" type="range" min="5" max="30" step="5" value="10"><output for="extension-length" id="extension-target">~10s</output></div>
             <button id="use-completion" class="completion-button" aria-label="Accept sample completion"><svg><use href="#sparkles"/></svg><span>Sample suggestion</span><kbd>Tab ↹</kbd></button>
             <div class="extension-actions"><button id="cancel-extension" class="text-button">Cancel</button><button id="keep-extension" class="primary"><svg><use href="#check"/></svg>Keep extension</button></div>
           </div>
-          <span id="completion-note" class="sr-only">Suggestions are sample text for this prototype. Press Tab at the end of your text to accept. Your typed words stay unchanged when you adjust the duration.</span>
+          <span id="completion-note" class="sr-only">Click any suggested word to edit it, or type your own dialogue. Suggestions are sample text for this prototype. Tab accepts the suggestion. The duration slider preserves your edits.</span>
           <span id="completion-status" class="sr-only" role="status" aria-live="polite"></span>
         </div>
       </section>
