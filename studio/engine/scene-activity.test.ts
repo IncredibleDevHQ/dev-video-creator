@@ -13,3 +13,13 @@ it('shows animation before voice on a first animation run and omits unneeded rec
  scene.moments[0].camera='full'
  expect(sceneActivityRail(snapshot,scene,true)).toContain('Your recordings')
 })
+
+it('shows the saved recording boundary instead of old render completion after a retake',()=>{
+ const scene={id:'s',phase:'waiting',moments:[{camera:'full'}],produced:{inputKey:'old',objectKey:'old.mp4'}} as Scene
+ const snapshot={project:{video:{settings:{voice:{kind:'ai'}}}},views:{scenes:{s:{produced:false,openMomentIds:[]}}},events:[{kind:'scene',sceneId:'s',message:'Produced',time:'2026-10-01T00:00:00Z'},{kind:'scene',sceneId:'s',message:'1 moment recorded',time:'2026-10-01T01:00:00Z'}]} as unknown as Snapshot
+ const html=sceneActivityRail(snapshot,scene,true)
+ expect(html).toContain('Recording saved · ready to finish this scene')
+ expect(html).toContain('<p>Your recordings</p>')
+ expect(html).not.toContain('<p>Render</p>')
+ expect(html).not.toContain('Video ready')
+})
