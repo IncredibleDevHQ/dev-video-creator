@@ -137,6 +137,8 @@ export const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state
     return
   }
   const ts = Date.now()
+  const usage=claudeUsage(message,state)
+  if(usage)onEvent({type:'usage',ts,usage})
   if(message.type==='stream_event'){
     const event=message.event as {type?:string}|undefined
     if(event && ['content_block_start','content_block_delta','message_start','message_stop'].includes(event.type || '') && (state.partialActivityAt===undefined || ts-state.partialActivityAt>=2000)){
@@ -146,8 +148,6 @@ export const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state
     }
     return
   }
-  const usage=claudeUsage(message,state)
-  if(usage)onEvent({type:'usage',ts,usage})
   if (typeof message.session_id === 'string') state.resumeId = message.session_id
   if (message.type === 'assistant') {
     const content = (message.message as { content?: Array<Record<string, unknown>> })?.content || []

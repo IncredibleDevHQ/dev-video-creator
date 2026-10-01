@@ -19,3 +19,14 @@ it('keeps missing usage unknown and ignores invalid token counts',()=>{
  expect(claudeUsage({type:'result',usage:{input_tokens:-2,output_tokens:Infinity}},{})).toBeNull()
  expect(sumUsage([{}]).total.reportedRuns).toBe(0)
 })
+
+it('retains provider-reported streamed tokens when generation is interrupted',()=>{
+ const state:UsageState={}
+ claudeUsage({type:'stream_event',event:{type:'message_start',message:{id:'draft',usage:{input_tokens:12,output_tokens:1,cache_read_input_tokens:80}}}},state)
+ const delta={type:'stream_event',event:{type:'message_delta',usage:{output_tokens:1400}}}
+ expect(claudeUsage(delta,state)).toEqual({input:12,output:1400,cacheRead:80,cacheWrite:0,final:false})
+ expect(claudeUsage(delta,state)?.output).toBe(1400)
+ expect(claudeUsage({type:'assistant',message:{id:'draft',usage:{input_tokens:12,output_tokens:1400,cache_read_input_tokens:80}}},state)?.output).toBe(1400)
+ claudeUsage({type:'stream_event',event:{type:'message_stop'}},state)
+ expect(claudeUsage(delta,state)).toBeNull()
+})

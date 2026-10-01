@@ -1,5 +1,5 @@
 import type {TokenUsage} from '../../../shared/usage'
-export type UsageState={messages?:Map<string,TokenUsage>}
+export type UsageState={messages?:Map<string,TokenUsage>;streamMessageId?:string}
 const parse=(value:unknown,final:boolean):TokenUsage|null=>{
  if(!value || typeof value!=='object')return null
  const raw=value as Record<string,unknown>
@@ -9,8 +9,22 @@ const parse=(value:unknown,final:boolean):TokenUsage|null=>{
 }
 export const claudeUsage=(message:Record<string,unknown>,state:UsageState):TokenUsage|null=>{
  if(message.type==='result')return parse(message.usage,true)
- if(message.type!=='assistant')return null
- const assistant=message.message as Record<string,unknown>|undefined
+ let assistant=message.message as Record<string,unknown>|undefined
+ if(message.type==='stream_event'){
+  const event=message.event as Record<string,unknown>|undefined
+  if(event?.type==='message_start'){
+   assistant=event.message as Record<string,unknown>|undefined
+   state.streamMessageId=typeof assistant?.id==='string'?assistant.id:undefined
+  }else if(event?.type==='message_delta' && state.streamMessageId){
+   const previous=state.messages?.get(state.streamMessageId)
+   const partial=parse(event.usage,false)
+   if(!partial)return null
+   // Stream deltas report cumulative output for the current message. Preserve
+   // input/cache counts supplied by message_start; never count a delta twice.
+   assistant={id:state.streamMessageId,usage:{input_tokens:previous?.input || 0,output_tokens:partial.output,cache_read_input_tokens:previous?.cacheRead || 0,cache_creation_input_tokens:previous?.cacheWrite || 0}}
+  }else if(event?.type==='message_stop'){state.streamMessageId=undefined;return null}
+  else return null
+ }else if(message.type!=='assistant')return null
  if(typeof assistant?.id!=='string')return null
  const usage=parse(assistant.usage,false);if(!usage)return null
  state.messages ||= new Map()
