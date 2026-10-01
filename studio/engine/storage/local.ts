@@ -53,3 +53,10 @@ export const listNotebookRows=async(kind:string,projectId:string)=>{
   }
   return ids
 }
+
+const operations=new Set<string>()
+export const withOperationLock=async<T>(key:string,work:()=>Promise<T>):Promise<T>=>{
+ if(operations.has(key))throw new Error('This operation is already running')
+ operations.add(key)
+ try{return await work()}finally{operations.delete(key)}
+}

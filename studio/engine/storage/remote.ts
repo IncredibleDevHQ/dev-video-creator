@@ -1,3 +1,4 @@
+import {Pool} from 'pg'
 import { createHash,randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import {createStorageClients} from './clients'
@@ -5,6 +6,7 @@ import { PutObjectCommand,GetObjectCommand,DeleteObjectCommand,HeadBucketCommand
 import { remoteStorageConfig,validStorageId,validObjectKey,assetIdOf } from './config'
 const config=remoteStorageConfig()
 const {database,objects}=createStorageClients(config)
+const operationDatabase=new Pool({connectionString:config.databaseUrl,max:5,connectionTimeoutMillis:5000,query_timeout:30000,statement_timeout:30000})
 let ready:Promise<void>|null=null
 const hash=(body:Buffer)=>createHash('sha256').update(body).digest('hex')
 type Artifact={id:string;notebook_id:string|null;scene_id:string|null;moment_id:string|null;kind:string;bucket:string;object_key:string;s3_uri:string;content_type:string;byte_size:string;sha256:string;status:string}
@@ -101,10 +103,26 @@ export const deleteAsset=async(key:string)=>{
   await database.query("update minimal_studio_artifacts set status='deleted' where bucket=$1 and object_key=$2",[config.bucket,key])
   await deleteRow('assets',assetIdOf(key))
 }
-export const closePersistence=async()=>{await database.end();objects.destroy();ready=null}
+export const closePersistence=async()=>{await Promise.all([database.end(),operationDatabase.end()]);objects.destroy();ready=null}
 export const listNotebookRows=async(kind:string,projectId:string)=>{
   if(!validStorageId(kind) || !validStorageId(projectId)) throw new Error('Invalid storage identity')
   await initializePersistence()
   const result=await database.query<{id:string}>('select id from minimal_studio_rows where kind=$1 and notebook_id=$2 order by id',[kind,projectId])
   return result.rows.map(row=>row.id)
+}
+
+/** A non-waiting session lock; PostgreSQL releases it if the worker disconnects. */
+export const withOperationLock=async<T>(key:string,work:()=>Promise<T>):Promise<T>=>{
+ await initializePersistence()
+ const client=await operationDatabase.connect()
+ let held=false
+ try{
+  const result=await client.query<{held:boolean}>('select pg_try_advisory_lock(hashtext($1),hashtext($2)) as held',['minimal-studio-operation',key])
+  held=result.rows[0].held
+  if(!held)throw new Error('This operation is already running')
+  return await work()
+ }finally{
+  if(held)try{await client.query('select pg_advisory_unlock(hashtext($1),hashtext($2))',['minimal-studio-operation',key])}catch{client.release(true);throw new Error('The operation lock connection was interrupted')}
+  client.release()
+ }
 }

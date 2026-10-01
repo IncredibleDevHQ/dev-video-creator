@@ -14,7 +14,7 @@ const objects=new S3Client({endpoint:config.endpoint,region:config.region,forceP
 const database=new Pool({connectionString:config.databaseUrl})
 const mode=process.argv[2]
 if(mode==='seed') await objects.send(new CreateBucketCommand({Bucket:config.bucket}))
-const {storeAsset,writeRow,readRow,readAsset,listRows,closePersistence}=await import('../engine/persistence')
+const {storeAsset,writeRow,readRow,readAsset,listRows,closePersistence,withOperationLock}=await import('../engine/persistence')
 const {saveStageCheckpoint,archiveFiles,loadStageCheckpoint,restoreFiles}=await import('../engine/artifacts')
 const {refreshVideoKeys,reconcileVideo}=await import('../engine/scene-model')
 const {normalizeMoments}=await import('../engine/moment-plan')
@@ -31,6 +31,20 @@ const {createHash}=await import('node:crypto')
 const projectId='fixture-notebook'
 try {
   if(mode==='seed') {
+    await withOperationLock('voice-clone:fixture',async()=>{
+      const other=await database.connect()
+      try{
+        const held=await other.query("select pg_try_advisory_lock(hashtext($1),hashtext($2)) as held",['minimal-studio-operation','voice-clone:fixture'])
+        assert.equal(held.rows[0].held,false,'another database session must not acquire the active clone operation')
+        await assert.rejects(withOperationLock('voice-clone:fixture',async()=>{throw new Error('must not run')}),/already running/)
+        assert.equal(await withOperationLock('voice-clone:other',async()=>42),42)
+      }finally{other.release()}
+    })
+    assert.equal(await withOperationLock('voice-clone:fixture',async()=>42),42,'lock is released after completion')
+    await assert.rejects(withOperationLock('voice-clone:fixture',async()=>{throw new Error('fixture failure')}),/fixture failure/)
+    assert.equal(await withOperationLock('voice-clone:fixture',async()=>42),42,'lock is released after failure')
+    await Promise.all(Array.from({length:5},(_,index)=>withOperationLock(`voice-clone:parallel-${index}`,()=>readRow('settings','fixture-missing'))))
+    console.log('PASS database-session exclusion, operation-lock recovery and independent data connections')
     const dir=await mkdtemp(join(tmpdir(),'minimal-storage-media-'))
     try {
       const path=join(dir,'scene.mp4')

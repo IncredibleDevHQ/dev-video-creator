@@ -17,3 +17,5 @@ export const deleteAsset=(key:string)=>{if(!validObjectKey(key)) throw new Error
 export const closePersistence=backend.closePersistence
 export const loadSetting=(key:string)=>readRow<unknown>('settings',key)
 export const saveSetting=(key:string,value:unknown)=>writeRow('settings',key,value)
+
+export const withOperationLock=backend.withOperationLock

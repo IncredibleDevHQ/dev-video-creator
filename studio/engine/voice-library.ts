@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import type { Voice } from '../shared/model'
 import type { VoiceChoice,VoiceClone } from '../shared/settings'
 import { VOICE_SAMPLE } from '../shared/settings'
-import { readAsset,deleteAsset,listRows,readRow,writeRow,loadSetting,saveSetting,storeAsset } from './persistence'
+import { readAsset,deleteAsset,listRows,readRow,writeRow,loadSetting,saveSetting,storeAsset,withOperationLock } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { fishKey } from './credentials'
 import { runCommand,probeSeconds,narrationClock,systemVoiceAvailable } from './voice'
@@ -106,7 +106,10 @@ const finishClone=async (clone:VoiceClone) => {
 }
 const scheduleClone=(clone:VoiceClone) => {
   if(active.has(clone.id)) return
-  const work=finishClone(clone).finally(() => active.delete(clone.id));active.set(clone.id,work);void work.catch(() => {})
+  const work=withOperationLock(`voice-clone:${clone.id}`,async()=>{
+    const current=await readRow<VoiceClone>('voice-clones',clone.id)
+    if(current && ['creating','training'].includes(current.state))await finishClone(current)
+  }).finally(() => active.delete(clone.id));active.set(clone.id,work);void work.catch(() => {})
 }
 export const listClones=async () => {
   const clones=(await Promise.all((await listRows('voice-clones')).map(id => readRow<VoiceClone>('voice-clones',id)))).filter((clone):clone is VoiceClone => Boolean(clone && clone.state!=='deleted'))
@@ -129,9 +132,13 @@ export const createClone=async (body:Buffer,contentType:string,consent:boolean) 
   } finally {await rm(dir,{recursive:true,force:true})}
 }
 export const retryClone=async (id:string) => {
-  const clone=await readRow<VoiceClone>('voice-clones',id)
-  if(!clone || clone.state!=='failed') throw new Error('This clone does not need a retry')
-  clone.state='creating';clone.error=null;clone.attemptStartedAt=new Date().toISOString();await writeRow('voice-clones',id,clone);scheduleClone(clone);return clone
+  const clone=await withOperationLock(`voice-clone:${id}`,async()=>{
+    const current=await readRow<VoiceClone>('voice-clones',id)
+    if(!current || current.state!=='failed') throw new Error('This clone does not need a retry')
+    current.state='creating';current.error=null;current.attemptStartedAt=new Date().toISOString()
+    await writeRow('voice-clones',id,current);return current
+  })
+  scheduleClone(clone);return clone
 }
 const removeClone=async (id:string) => {
   const clone=await readRow<VoiceClone>('voice-clones',id)
@@ -152,6 +159,6 @@ const removeClone=async (id:string) => {
 
 export const deleteClone=async (id:string) => {
   if(active.has(id)) throw new Error('Wait for the current voice operation to finish')
-  const work=removeClone(id);active.set(id,work)
+  const work=withOperationLock(`voice-clone:${id}`,()=>removeClone(id));active.set(id,work)
   try{await work}finally{active.delete(id)}
 }

@@ -270,3 +270,14 @@ Clone deletion recovery:
   refresh cannot restart its training concurrently. Seven isolated protocol
   tests and the production build pass. No live clone was created or deleted;
   provider quality/deletion acceptance and multi-worker coordination remain open.
+
+Remote clone-operation exclusion:
+- PostgreSQL clone creation/polling, retry and deletion now acquire a non-waiting
+  advisory lock for the clone identity. Training reloads the row after acquiring
+  it, so a queued stale read cannot resurrect a deleted clone. The local store
+  retains process-local exclusion; this does not add multi-process local storage.
+- A separate bounded lock connection pool leaves ordinary notebook reads free.
+  Disposable PostgreSQL/MinIO checks proved competing-session exclusion, release
+  after success/failure, unrelated operations and data reads while five locks
+  are held. The existing three-worker artifact/decode checks also passed (8.01s).
+- These are database/protocol checks, not live provider clone acceptance.
