@@ -36,6 +36,6 @@ export function standInPlayback(root:HTMLElement,current:()=>{scene:Scene;index:
   at.player.currentTime=at.base.start+Number(input.value)/100*(at.base.end-at.base.start);paint()
  })
  root.addEventListener('click',event=>{if((event.target as Element).closest('[data-moment],[data-scene],[data-stage],[data-action=practice],[data-action=scene-next],[data-action=record-moment]')){context()?.player.pause();stop()}},true)
- for(const type of ['play','playing','pause','ended','waiting','error','seeked','loadedmetadata'])root.addEventListener(type,event=>{if(event.target!==context()?.player)return;paint();stop();const status=root.querySelector('[data-stand-in-status]');if(status)status.textContent=type==='waiting'?'Loading animation…':type==='error'?'Animation could not load.':'';if(!['waiting','error','ended'].includes(type) && context()?.player.paused===false)frame=requestAnimationFrame(tick)},true)
+ for(const type of ['play','playing','pause','ended','waiting','error','seeked','loadedmetadata','loadeddata','canplay'])root.addEventListener(type,event=>{if(event.target!==context()?.player)return;paint();stop();const status=root.querySelector('[data-stand-in-status]');if(status)status.textContent=type==='waiting'?'Loading animation…':type==='error'?'Animation could not load.':'';if(!['waiting','error','ended'].includes(type) && context()?.player.paused===false)frame=requestAnimationFrame(tick)},true)
  window.addEventListener('pagehide',stop)
 }
