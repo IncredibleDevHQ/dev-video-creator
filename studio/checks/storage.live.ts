@@ -25,6 +25,7 @@ const {produceScene}=await import('../engine/production')
 const {prepareSceneAnimation,finishSceneAnimation}=await import('../engine/animation')
 const {produceVideo}=await import('../engine/video-export')
 const {sceneCover}=await import('../engine/video-cover')
+const {trimTake}=await import('../engine/take-trim')
 const {exportPresentation}=await import('../engine/presentation-export')
 const {createHash}=await import('node:crypto')
 const projectId='fixture-notebook'
@@ -49,6 +50,19 @@ try {
       await saveStageCheckpoint(projectId,scene.id,'composition',scene.inputKey,null,await archiveFiles(projectId,scene.id,'composition',files))
       await saveStageCheckpoint(projectId,scene.id,'render',scene.inputKey,{objectKey:asset.objectKey})
       await writeRow('projects',projectId,{project,status:'ready',error:null,events:[]})
+      // A separate camera take fixture lets fresh workers edit retained media
+      // without changing the existing production-recovery case.
+      const takeProject=structuredClone(project);takeProject.id='take-notebook'
+      takeProject.video!.settings={presence:'high',voice:{kind:'record'}}
+      const takeScene=takeProject.video!.scenes[0]
+      takeScene.phase='waiting'
+      takeScene.moments=normalizeMoments({moments:[{title:'Camera fixture',lines:'Synthetic spoken fixture.',seconds:2,camera:'full',layout:'beside-slide',overlay:null,cue:''}]},takeScene.id,'high','body')
+      const takeMoment=takeScene.moments[0]
+      const recording=await storeAsset({body:await readFile(path),contentType:'video/mp4',extension:'.mp4',kind:'moment-take',projectId:takeProject.id,sceneId:takeScene.id,momentId:takeMoment.id})
+      takeMoment.take={id:'original-take',recordingKey:takeMoment.recordingKey,objectKey:recording.objectKey,duration:2}
+      await writeRow('takes','original-take',{...takeMoment.take,projectId:takeProject.id,sceneId:takeScene.id,momentId:takeMoment.id})
+      refreshVideoKeys(takeProject)
+      await writeRow('projects',takeProject.id,{project:takeProject,status:'ready',error:null,events:[]})
       const pdf=await exportPresentation(project)
       await writeRow('test-cases','presentation-export',{projectId,sha256:createHash('sha256').update(pdf).digest('hex')})
       await writeRow('sources',projectId,{text:'Synthetic source evidence'})
@@ -65,6 +79,16 @@ try {
       console.log('Stored notebook, composition, render and checkpoints in PostgreSQL + MinIO; settings stay server-only.')
     } finally {await rm(dir,{recursive:true,force:true})}
   } else if(mode==='resume') {
+    const takeBefore=(await loadProject('take-notebook'))!,takeScene=takeBefore.project.video!.scenes[0],takeMoment=takeScene.moments[0]
+    const trimmed=await trimTake('take-notebook',{stage:'video',sceneId:takeScene.id,momentId:takeMoment.id,second:.5},{from:.25,to:1.25},'trim take from 0.25 to 1.25 seconds')
+    const retained=trimmed.project.video!.scenes[0],take=retained.moments[0].take!
+    assert.equal(retained.animationKey,takeScene.animationKey)
+    assert.ok(Math.abs(take.duration!-1)<.1)
+    assert.equal(retained.moments[0].end,take.duration)
+    assert.match(take.objectKey,/^notebooks\/take-notebook\/scenes\/scene-slide\/moments\//)
+    assert.equal((await readRow<{parentTakeId:string}>('takes',take.id))?.parentTakeId,'original-take')
+    await writeRow('test-cases','trimmed-take',{objectKey:take.objectKey,originalKey:takeMoment.take!.objectKey,sha256:createHash('sha256').update(await readAsset(take.objectKey)).digest('hex'),originalSha256:createHash('sha256').update(await readAsset(takeMoment.take!.objectKey)).digest('hex')})
+    console.log('Trimmed a retained camera take in a fresh worker; original and lineage remain in PostgreSQL/S3.')
     // This process has a different, empty local folder. Production must use
     // the PostgreSQL pointers and S3 artifacts created by the previous one.
     assert.equal((await readRow<{text:string}>('sources',projectId))?.text,'Synthetic source evidence')
@@ -141,6 +165,15 @@ try {
     await writeRow('test-cases','media-export',{objectKey:video.objectKey,sha256:await hash(video.objectKey),covers:await Promise.all(coverKeys.map(async key=>({key,sha256:await hash(key!)})))})
     console.log('Saved content animation, scene and joined-video covers as notebook-scoped S3 artifacts.')
   } else if(mode==='verify-media') {
+    const takeProject=(await loadProject('take-notebook'))!,take=takeProject.project.video!.scenes[0].moments[0].take!
+    const trimExpected=(await readRow<{objectKey:string;originalKey:string;sha256:string;originalSha256:string}>('test-cases','trimmed-take'))!
+    assert.equal(take.objectKey,trimExpected.objectKey)
+    assert.equal(createHash('sha256').update(await readAsset(take.objectKey)).digest('hex'),trimExpected.sha256)
+    assert.equal(createHash('sha256').update(await readAsset(trimExpected.originalKey)).digest('hex'),trimExpected.originalSha256)
+    const trimDir=await mkdtemp(join(tmpdir(),'minimal-remote-trim-'))
+    try{const path=join(trimDir,'take.webm');await writeFile(path,await readAsset(take.objectKey));await runCommand('ffmpeg',['-v','error','-i',path,'-f','null','-'])}finally{await rm(trimDir,{recursive:true,force:true})}
+    assert.equal(takeProject.views!.moments[`scene-slide/${takeProject.project.video!.scenes[0].moments[0].id}`].state,'recorded')
+    console.log('A third worker recovered and decoded the exact trimmed take and retained original without local files.')
     const saved=(await loadProject(projectId))!,scene=saved.project.video!.scenes[0],video=saved.project.video!.produced!
     const expected=(await readRow<{objectKey:string;sha256:string;covers:Array<{key:string;sha256:string}>}>('test-cases','media-export'))!
     const hash=(body:Buffer)=>createHash('sha256').update(body).digest('hex')
