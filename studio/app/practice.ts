@@ -5,6 +5,8 @@ export class PracticePlayback{
  private timer:ReturnType<typeof setInterval>|null=null
  private audio:HTMLAudioElement|null=null
  private epoch=0
+ paused=false
+ private resumeClock=()=>{}
  active=false
  constructor(private frame:(clip:PracticeClip,sceneSecond:number)=>void,private ended:()=>void,private failed:(error:Error)=>void){}
  start(track:PracticeTrack){
@@ -12,7 +14,9 @@ export class PracticePlayback{
   let sceneTime:ReturnType<typeof sceneTimeMap>
   try{sceneTime=sceneTimeMap(track.clips.map(({start,end,sceneStart,sceneEnd})=>({start,end,sceneStart,sceneEnd})))}catch{this.failed(new Error('This rehearsal has invalid timing. Prepare it again.'));return}
   this.active=true;const epoch=this.epoch
-  let index=0,started=performance.now()
+  let index=0,started=performance.now(),pausedAt=0
+  this.resumeClock=()=>{started+=performance.now()-pausedAt}
+  this.pauseClock=()=>{pausedAt=performance.now()}
   const next=()=>{
    if(epoch!==this.epoch) return
    if(this.audio){this.audio.pause();this.audio.onended=null;this.audio.onerror=null;this.audio.removeAttribute('src');this.audio.load();this.audio.remove()};this.audio=null
@@ -29,6 +33,7 @@ export class PracticePlayback{
   next()
   if(!this.active) return
   this.timer=setInterval(()=>{
+   if(this.paused)return
    const clip=track.clips[index];if(!clip) return
    const duration=clip.end-clip.start
    const elapsed=this.audio?this.audio.currentTime:(performance.now()-started)/1000
@@ -36,5 +41,8 @@ export class PracticePlayback{
    this.frame(clip,sceneTime(clip.start+Math.min(duration,Math.max(0,elapsed))))
   },100)
  }
- stop(){this.epoch++;if(this.timer) clearInterval(this.timer);this.timer=null;this.audio?.pause();if(this.audio){this.audio.onended=null;this.audio.onerror=null;this.audio.removeAttribute('src');this.audio.load();this.audio.remove()};this.audio=null;this.active=false}
+ private pauseClock=()=>{}
+ pause(){if(!this.active || this.paused)return;this.paused=true;this.pauseClock();this.audio?.pause()}
+ resume(){if(!this.active || !this.paused)return;this.resumeClock();this.paused=false;void this.audio?.play().catch(()=>{this.pause();this.failed(new Error("Playback was blocked. Try again."))})}
+ stop(){this.paused=false;this.epoch++;if(this.timer) clearInterval(this.timer);this.timer=null;this.audio?.pause();if(this.audio){this.audio.onended=null;this.audio.onerror=null;this.audio.removeAttribute('src');this.audio.load();this.audio.remove()};this.audio=null;this.active=false}
 }

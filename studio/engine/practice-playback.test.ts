@@ -26,3 +26,12 @@ it('stops and releases sound on navigation, ignoring late media completion',()=>
  player.start({...track,clips:[track.clips[1]]});const audio=FakeAudio.instances[0],late=audio.onended
  player.stop();late?.();expect(audio.pause).toHaveBeenCalled();expect(audio.removeAttribute).toHaveBeenCalledWith('src');expect(ended).not.toHaveBeenCalled();expect(player.active).toBe(false)
 })
+it('pauses rehearsal time and resumes without skipping the spoken lines',()=>{
+ vi.useFakeTimers();vi.spyOn(performance,'now').mockImplementation(()=>Date.now())
+ const frame=vi.fn(),player=new PracticePlayback(frame,vi.fn(),vi.fn())
+ player.start({...track,clips:[track.clips[0]]});vi.advanceTimersByTime(500)
+ player.pause();const at=frame.mock.lastCall?.[1];vi.advanceTimersByTime(5000)
+ expect(frame.mock.lastCall?.[1]).toBe(at);expect(player.active).toBe(true)
+ player.resume();vi.advanceTimersByTime(100);expect(frame.mock.lastCall?.[1]).toBeCloseTo(10.6)
+ player.stop();vi.restoreAllMocks()
+})
