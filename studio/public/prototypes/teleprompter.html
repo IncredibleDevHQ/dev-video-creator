@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teleprompter · Timeline prototype</title>
+  <link rel="stylesheet" href="./teleprompter.css">
+</head>
+<body>
+  <svg class="icon-defs" aria-hidden="true"><defs>
+    <symbol id="play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke-width="4"/></symbol>
+    <symbol id="restart" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="video" viewBox="0 0 24 24"><rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3"/></symbol>
+    <symbol id="text" viewBox="0 0 24 24"><path d="M5 6h14M5 12h10M5 18h14"/></symbol>
+    <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </defs></svg>
+
+  <main class="studio">
+    <header class="app-header">
+      <div class="identity"><span class="brand-mark" aria-hidden="true">✳</span><strong>Teleprompter</strong><span class="context">Scene 3 <span> / </span> You keep the pen</span></div>
+      <span class="prototype-label">Interactive prototype</span>
+    </header>
+
+    <section class="preview-area" aria-label="Animation preview">
+      <div class="stage">
+        <div class="animation-frame"><video id="animation" src="/objects/dc8d3511-71aa-47dc-9efd-e33d133ab672.mp4" preload="auto" playsinline muted aria-label="Canvas animation"></video><div id="media-state" role="status">Loading animation…</div></div>
+        <div class="presenter-frame"><img src="/app/assets/presenter.jpg" alt="Presenter stand-in"><span>Presenter stand-in</span></div>
+        <div id="hold-badge" hidden><span class="hold-dot"></span> Animation holds · you keep talking</div>
+      </div>
+    </section>
+
+    <section class="editor" aria-label="Synchronized animation and dialogue">
+      <div class="transport">
+        <div class="transport-start">
+          <button id="toggle-play" class="play-button" aria-label="Play preview" disabled><svg><use href="#play"/></svg><span>Play</span></button>
+          <button id="replay" class="icon-button" aria-label="Replay from the beginning" title="Replay" disabled><svg><use href="#restart"/></svg></button>
+          <span class="time"><span id="elapsed">0:00.0</span><span class="time-divider"> / </span><span id="total">0:06</span></span>
+        </div>
+        <span id="play-status">Watch the animation. Read along.</span>
+      </div>
+
+      <div class="timeline-layout">
+        <div class="track-labels" aria-hidden="true"><span></span><span><svg><use href="#video"/></svg>Visual</span><span><svg><use href="#text"/></svg>Voice</span></div>
+        <div id="timeline-scroll" class="timeline-scroll">
+          <div id="timeline" class="timeline">
+            <div id="ruler" class="ruler" aria-hidden="true"></div>
+            <div class="visual-track">
+              <button id="animation-clip" class="animation-clip" aria-label="Play animation from the beginning"><svg><use href="#video"/></svg><span>Canvas animation <small>6s</small></span><span class="linked-indicator" title="Dialogue follows this animation">↔</span></button>
+              <div id="held-clip" class="held-clip" hidden>Last frame holds</div>
+            </div>
+            <div id="dialogue-track" class="dialogue-track"></div>
+            <div id="end-boundary" class="end-boundary"><span>Animation ends</span></div>
+            <div id="playhead" class="playhead" aria-hidden="true"><span></span></div>
+            <input id="seek" class="seek" aria-label="Preview position" type="range" min="0" max="6" step="0.05" value="0" disabled>
+          </div>
+        </div>
+      </div>
+
+      <section class="prompter" aria-label="Teleprompter script">
+        <div class="prompter-heading"><span id="reading-mode"><span class="sync-dot"></span> Read along</span><span id="pacing-label">Planned timing</span><button id="edit-addition" hidden>Edit extra dialogue</button></div>
+        <div class="reading-window" id="reading-window"><div class="reading-cursor" aria-hidden="true">›</div><p id="script"></p></div>
+      </section>
+      <footer><span id="hint">Click a phrase to jump to that point.</span><span>Preview only · nothing is recorded</span></footer>
+    </section>
+  </main>
+
+  <dialog id="addition-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-heading"><div><span class="eyebrow">AFTER THE ANIMATION</span><h1 id="dialog-title">Keep talking.</h1></div><button id="close-dialog" class="icon-button" aria-label="Close dialogue editor"><svg><use href="#close"/></svg></button></div>
+    <div id="write-view"><label for="extra-dialogue">What else would you like to say?</label><textarea id="extra-dialogue" rows="4" maxlength="600" placeholder="Add an example, a personal story, or one last thought…"></textarea><div class="draft-meta"><button id="example" class="text-button">Try an example</button><span id="extra-duration">Your words, at your pace.</span></div></div>
+    <div id="review-view" hidden><p class="review-lead">“…with a way back.”</p><ins id="addition-diff"></ins></div>
+    <div class="impact"><svg><use href="#video"/></svg><p>The animation holds its last frame.<br><strong>You stay on camera and keep speaking.</strong></p></div>
+    <div class="dialog-footer"><button id="edit-draft" class="text-button" hidden>Back to writing</button><button id="review-addition" class="primary" disabled>Review addition <span aria-hidden="true">→</span></button><button id="accept-addition" class="primary" hidden><svg><use href="#check"/></svg>Add to teleprompter</button></div>
+  </dialog>
+  <script type="module" src="./teleprompter.js"></script>
+</body>
+</html>
