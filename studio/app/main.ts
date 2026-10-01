@@ -13,7 +13,7 @@ import {replacePlayerView} from './player-view'
 import {recordingTarget} from './recording-target'
 import {syncRehearsalAnimation} from './rehearsal-animation'
 import {animationSecond} from '../shared/scene-time'
-import {recordingSetup,recordingPassSetup,recordingRecovery} from './recording-setup'
+import {recordingSetup,recordingPassSetup,recordingRecovery,practiceSetup} from './recording-setup'
 import {movePlayhead} from './moment-timeline'
 import {gear,sceneSettings} from './camera-settings'
 import {stageStatus} from './stage-status'
@@ -49,12 +49,15 @@ let aiChoices:HarnessChoices|null=null
 let momentIndex = 0
 let second = 0
 let wholeVideo = false
+let practiceStopAfter:number|null=null
+let practiceMomentIds:string[]=[]
 let practiceCountdown=0
 let practiceStarted=0
 let practiceOpen=false
 let practiceLoading=false
 let practiceLines=''
 const practice = new PracticePlayback((clip,at)=>{
+  if(practiceStopAfter!==null && (performance.now()-practiceStarted)/1000>=practiceStopAfter){stopPractice();render();return}
   const changed=practiceLines!==clip.lines;practiceLines=clip.lines;second=at
   const scene=snapshot?.project.video?.scenes[selected];momentIndex=Math.max(0,scene?.moments.findIndex(moment=>moment.id===clip.momentId) ?? 0)
   if(changed) render()
@@ -186,6 +189,7 @@ const render = () => {
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
   if (camera && (capture.stream || practiceStream)) { camera.srcObject = capture.stream || practiceStream; void camera.play().catch(() => {}) }
   if(practiceLoading){const button=root.querySelector<HTMLButtonElement>('[data-action="practice"]');if(button) button.textContent='Cancel preparation'}
+  if(practiceOpen && practice.active && practiceMomentIds.length>1){const actions=root.querySelector('.video-actions>div:last-child');actions?.insertAdjacentHTML('afterbegin',`<button data-action="practice-next">${practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'} · Enter</button>`)}
   const rehearsalClock=root.querySelector('[data-practice-clock]');if(rehearsalClock)rehearsalClock.textContent=practiceCountdown?`Ready in ${practiceCountdown}…`:'Practice · Esc to stop'
   const transport=root.querySelector<HTMLButtonElement>('[data-action="practice-toggle"]');if(transport){transport.textContent=practice.active && !practice.paused?'Ⅱ Pause':'▶ Play';transport.setAttribute('aria-label',practice.active && !practice.paused?'Pause practice':'Play practice')}
   if(practice.active){const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=practiceLines}
@@ -228,6 +232,20 @@ document.addEventListener('submit', async event => {
   const form = event.target as HTMLFormElement
   const values = new FormData(form)
   try {
+    if(form.id==='practice-setup'){
+      const scene=snapshot!.project.video!.scenes[selected],open=snapshot!.views?.scenes[scene.id].openMomentIds || []
+      const moments=values.get('scope')==='open'?scene.moments.filter(moment=>open.includes(moment.id)):[scene.moments[momentIndex]]
+      const raw=String(values.get('seconds') || '').trim();const seconds=raw?Number(raw):null
+      if(seconds!==null && (!Number.isFinite(seconds) || seconds<1 || seconds>600))throw new Error('Choose a stop time between 1 and 600 seconds')
+      if(!moments.length)return
+      dialog.close();practiceStopAfter=seconds;practiceMomentIds=moments.map(moment=>moment.id)
+      const request=++practiceRequest;practiceOpen=true
+      for(let count=3;count>0;count--){if(request!==practiceRequest)return;practiceCountdown=count;render();await new Promise(resolve=>setTimeout(resolve,1000))}
+      if(request!==practiceRequest)return
+      let at=0
+      const clips=moments.map(moment=>{const start=at;at+=moment.end-moment.start;return {momentId:moment.id,lines:moment.lines,camera:moment.camera!=='none',start,end:at,sceneStart:moment.start,sceneEnd:moment.end}})
+      practiceCountdown=0;practiceStarted=performance.now();practice.start({inputKey:scene.inputKey,clips,duration:at},true);render()
+    }
     if(form.id==='recording-setup' && pendingRecording){
       const seconds=String(values.get('seconds') || '').trim()
       const moments=pendingRecording;pendingRecording=null;dialog.close()
@@ -363,18 +381,14 @@ document.addEventListener('click', async event => {
       try{const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});if(request!==practiceRequest || !practiceOpen){stream.getTracks().forEach(track=>track.stop());return};practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=stream;render()}
       catch{error(new Error('Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'))}
     }
+    if(action==='practice-next'){practice.advance();render();return}
     if(action==='practice-toggle' && practice.active){if(practice.paused)practice.resume();else practice.pause();render();return}
     if (action === 'practice' || action === 'practice-replay' || action === 'practice-toggle') {
       dialog.close();wholeVideo=false
       if(action==='practice' && (practiceOpen || practiceLoading)){stopPractice();render();return}
       const scene=snapshot.project.video!.scenes[selected],moment=scene.moments[momentIndex]
       if(!moment) return
-      const request=++practiceRequest;practiceLoading=true;render()
-      try{const track=await api.practice(id,scene.id,moment.id);if(request!==practiceRequest) return;practiceLoading=false;practiceOpen=true
-        for(let count=3;count>0;count--){if(request!==practiceRequest)return;practiceCountdown=count;render();await new Promise(resolve=>setTimeout(resolve,1000))}
-        if(request!==practiceRequest)return
-        practiceCountdown=0;practiceStarted=performance.now();practice.start({...track,clips:track.clips.map(clip=>({...clip,objectKey:undefined}))},true);render()}
-      catch(reason){if(request===practiceRequest){stopPractice();render();error(reason)}}
+      showDialog(practiceSetup(moment,momentIndex,snapshot.views?.scenes[scene.id].openMomentIds.length || 0))
     }
     if(action==='record-open'){
       const scene=snapshot.project.video!.scenes[selected],open=snapshot.views?.scenes[scene.id].openMomentIds || []
@@ -442,6 +456,7 @@ document.addEventListener('keydown',event=>{
     else if(first && !event.shiftKey && (document.activeElement===last || !root.querySelector('.is-focused .stage-area')?.contains(document.activeElement))){event.preventDefault();first.focus()}
   }
   if(event.repeat)return
+  if(event.key==='Enter' && practice.active && practiceMomentIds.length>1 && !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)){event.preventDefault();practice.advance();render();return}
   if(event.key==='Enter' && capture.phase==='recording' && capture.moments.length>1 && !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)){event.preventDefault();try{capture.next()}catch(reason){error(reason)};return}
   if(event.key!=='Escape')return
   if(practiceOpen){event.preventDefault();stopPractice();render();return}

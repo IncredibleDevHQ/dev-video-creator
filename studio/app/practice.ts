@@ -7,6 +7,7 @@ export class PracticePlayback{
  private epoch=0
  paused=false
  private resumeClock=()=>{}
+ advance=()=>{}
  active=false
  constructor(private frame:(clip:PracticeClip,sceneSecond:number)=>void,private ended:()=>void,private failed:(error:Error)=>void){}
  start(track:PracticeTrack,manual=false){
@@ -30,6 +31,7 @@ export class PracticePlayback{
     void audio.play().catch(()=>{if(epoch===this.epoch && this.audio===audio){this.stop();this.failed(new Error('Playback was blocked. Try Practice again to enable sound.'))}})
    }
   }
+  this.advance=()=>{if(this.active){index++;next()}}
   next()
   if(!this.active) return
   this.timer=setInterval(()=>{

@@ -42,3 +42,11 @@ it('holds the animation while manual rehearsal continues beyond the planned dial
  expect(player.active).toBe(true);expect(ended).not.toHaveBeenCalled();expect(frame.mock.lastCall?.[1]).toBeCloseTo(11.7)
  player.stop();expect(player.active).toBe(false);vi.restoreAllMocks()
 })
+it('advances a manual pass only when the presenter requests it',()=>{
+ vi.useFakeTimers();vi.spyOn(performance,'now').mockImplementation(()=>Date.now())
+ const frame=vi.fn(),ended=vi.fn(),player=new PracticePlayback(frame,ended,vi.fn())
+ player.start({...track,clips:track.clips.map(clip=>({...clip,objectKey:undefined}))},true)
+ vi.advanceTimersByTime(10000);expect(frame.mock.lastCall?.[0].lines).toBe('Read this')
+ player.advance();expect(frame.mock.lastCall?.[0].lines).toBe('Listen here')
+ player.advance();expect(ended).toHaveBeenCalledOnce();expect(player.active).toBe(false);vi.restoreAllMocks()
+})
