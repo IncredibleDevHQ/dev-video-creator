@@ -308,5 +308,8 @@ Numbered recording acceptance:
 - Test setup now assigns a fresh temporary local store before test modules
   import application code. This prevents early helper imports from reusing
   old fixture history. All 321 tests passed with that isolation enabled.
-- Live backend activation is pending confirmation that no unsaved take is in
-  progress; existing user tabs timed out during the read-only capture check.
+- Live backend activation completed after the user confirmed no unsaved take.
+  The notebook project was compared before/after restart and was unchanged.
+  Native post-restart review shows moment 1 saved, moment 6 to record, the
+  stand-in player and recording CTA, with no connection warning. Physical
+  recording and consented provider-clone gates remain open.
