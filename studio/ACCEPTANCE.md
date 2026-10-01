@@ -143,3 +143,11 @@ Video notebook URLs now retain stable scene/moment IDs and restore their saved
 selection when opened. Checks cover a recorded scene, reordered scenes and
 removed IDs. This preserves navigation context across refreshes; it does not
 preserve an unsaved browser recording blob. Native reopening remains pending.
+
+Creative composition now has a four-minute wall deadline, sixty-second
+inactivity deadline and thirty-tool-call cap in addition to its existing
+submission budget. `checks/presenter-finish.live.mjs` copies a retained isolated
+diagnostic and runs one real composition/final compositor check against its
+saved presenter take. The first run is currently active in
+`/var/folders/qs/c7jp5csj6vx6wpmn3qylx7bh0000gn/T/studio-presenter-finish-live-1bUNco`;
+its completion is not yet proven. The creator’s current notebook is unchanged.
