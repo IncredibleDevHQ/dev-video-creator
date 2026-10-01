@@ -50,7 +50,9 @@ the joined video and export MP4. Later edits invalidate the affected exports.
 Activity remains visible with completed steps and the current processing/stalled
 frontier. Token usage shows reported harness usage; unavailable usage is not zero.
 
-Anchored chat discusses the source and edits slides or scene plans. Source
+Anchored chat discusses the source and edits slides or scene plans. Single-slide
+revision is bounded to two minutes and its style-preserving redraw to four
+minutes, with inactivity/tool-call caps and explicit retry. Source
 questions have a two-minute wall limit, 45-second inactivity limit and a
 20-tool-call cap. The explicit paid `checks/source-chat.live.mjs` check uses an
 isolated retained diagnostic; it is never part of ordinary tests. An explicit recording edit such

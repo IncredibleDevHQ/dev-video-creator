@@ -9,12 +9,12 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | Requirement | Current evidence | Status / next proof |
 | --- | --- | --- |
 | M0: standalone layout, copied tests, two-command fresh clone | `app`, `engine`, `render`, `desktop`, `shared`, `checks`; own lockfile; outside-parent install/doctor run recorded in historical notes | Partial: committed studio installs/tests/builds in a fresh Linux container without host dependencies. Signed-in harness setup and complete clean-machine product flow remain unproven. |
-| M1: real blog → rich deck, progressive slides, editing/chat/PDF | Actual Kimi K3 Canvas notebook has nine rich SVG slides. Isolated pipeline, editor and PDF checks exist. | Partial: one actual Claude source-chat reply with four validated source passages is now proven; real slide-edit quality and complete prototype visual acceptance remain unverified. |
+| M1: real blog → rich deck, progressive slides, editing/chat/PDF | Actual Kimi K3 Canvas notebook has nine rich SVG slides. Isolated pipeline, editor and PDF checks exist. | Partial: one actual Claude source-chat reply with four validated source passages is now proven; one actual Claude slide revision/redraw now passes artifact validation and retains the other eight slides; editorial/visual acceptance remains incomplete. |
 | M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned and produced scenes. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: native settings preview now verifies inherited scenes and custom overrides; some live processing details still need visual review. |
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: physical camera/mic permission denial, actual one/pass capture, review, retake and save need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
-| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 276 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
+| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 277 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
 | Notebook-scoped artifacts and S3 portability | Indexed checksummed immutable artifacts, configurable endpoint/bucket/region/credentials, SDK credential-chain MinIO check | Machinery proven on MinIO; AWS deployment has not been exercised. |
 | One composition pass, independent animation and recording | Animation checkpoints use design inputs; finishing/retakes reuse them. Unit and remote composition checks. | Implemented. Actual Canvas scenes 5–9 use the new path; older scenes 1–4 are retained legacy outputs. Do not regenerate them solely to migrate. |
 | Bounded usage and transparent waiting | Bounded harness stages, explicit interrupted-run retry, deduplication, token reporting, shared event worker, bounded SSE leases, fixed activity frontier | Implemented with regression coverage; live progress details and recovery visuals need current native verification. |
@@ -24,7 +24,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 
 ## Reproducible evidence
 
-- `yarn run check`: 72 test files, 276 tests passed on 1 October 2026.
+- `yarn run check`: 72 test files, 277 tests passed on 1 October 2026.
 - Startup preflight is tested with missing tools in an isolated temporary path;
   the engine refuses startup without creating notebook data. This does not prove
   clean-machine provisioning.
@@ -85,3 +85,14 @@ cap. This is one grounded answer, not slide-edit or full milestone acceptance.
    output quality. Do not call synthetic fixtures model evidence.
 5. Prove the clean-machine setup/flow, then perform the cutover and retire the old
    studio only after all preceding gates pass.
+
+Actual slide-edit evidence: `checks/slide-edit.live.mjs` ran once on an isolated
+copy of the retained Canvas deck with Claude Opus 5.5. Story Master accepted
+“Where chat reaches its limits” with three exact article passages; Page Master
+accepted the SVG/program through the pinned checker. The other eight slides
+were byte-for-byte unchanged, and no video was generated. Proof, SVG and a
+rendered PNG are in `/var/folders/qs/c7jp5csj6vx6wpmn3qylx7bh0000gn/T/studio-slide-edit-live-tRTgmi`.
+The diagram contains illustrative chat examples requiring editorial review;
+accepted source passages do not establish every diagram label as an article fact.
+Revision is capped at 120s/45s inactivity/20 tools; redraw at 240s/90s/40 tools.
+A regression test verifies redraw failure propagates without an automatic retry.

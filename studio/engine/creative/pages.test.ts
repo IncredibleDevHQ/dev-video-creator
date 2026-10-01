@@ -98,3 +98,12 @@ it('saves a page pair immediately through the draft tool without accepting the d
  })
  await expect(prepareCreativePages(input)).rejects.toThrow('Resume fixture stopped')
 })
+
+it('bounds a style-preserving slide redraw and propagates a stopped run without retrying it',async()=>{
+ const source=readSourceNarrative('Fixture speech and supporting words.')
+ const count=run.mock.calls.length
+ run.mockRejectedValueOnce(new Error('Bounded slide edit stopped'))
+ await expect(prepareCreativePages({projectId:'bounded-edit',source,outline,brand:pageBrandFrom(source.palette,source.fonts),selection:{adapter:'kimi'},origin:'http://fixture',reuseStyle:true})).rejects.toThrow('Bounded slide edit stopped')
+ expect(run.mock.calls.length-count).toBe(1)
+ expect(run.mock.calls.at(-1)![0]).toMatchObject({timeoutMs:240000,idleTimeoutMs:90000,maxToolCalls:40})
+})
