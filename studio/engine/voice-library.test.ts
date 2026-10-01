@@ -7,9 +7,9 @@ const {speak}=vi.hoisted(() => ({speak:vi.fn()}))
 vi.mock('./voice',async original => ({...await original<typeof import('./voice')>(),narrationClock:speak,systemVoiceAvailable:async()=>false}))
 const root=await mkdtemp(join(tmpdir(),'minimal-voice-library-'))
 process.env.MINIMAL_STUDIO_DATA_DIR=root
-const {createClone,listClones,resolveVoice,selectedVoice,previewVoice,deleteClone,voiceCatalogue,useVoice}=await import('./voice-library')
+const {createClone,listClones,resolveVoice,selectedVoice,previewVoice,deleteClone,voiceCatalogue,useVoice,retryClone}=await import('./voice-library')
 const {saveFishKey}=await import('./credentials')
-const {readRow}=await import('./persistence')
+const {readRow,writeRow}=await import('./persistence')
 const {runCommand}=await import('./voice')
 const fetcher=vi.fn(async (url:string,init?:RequestInit) => {
   if(url.includes('licensed=true')) return Response.json({items:[{_id:'licensed-voice',title:'Narrator',state:'trained',type:'tts',licensed:true,languages:['en']},{_id:'not-ready',title:'Training',state:'training',type:'tts',licensed:true}]})
@@ -54,4 +54,20 @@ it('routes catalogue voices to their selected reference, and rejects unavailable
   expect((await voiceCatalogue(true)).choices.map(voice => voice.id)).toEqual(['fish:licensed-voice'])
   expect(await resolveVoice({kind:'ai',id:'fish:licensed-voice'})).toEqual({referenceId:'licensed-voice'})
   await expect(resolveVoice({kind:'ai',id:'fish:not-ready'})).rejects.toThrow(/available/)
+})
+it('stops expired clone polling and explicit retry reuses its provider reference',async()=>{
+ const started=new Date(Date.now()-11*60*1000).toISOString()
+ const clone:VoiceClone={id:'expired',name:'My voice',state:'training',referenceId:'retained-private-model',recordingKey:null,sampleKey:null,duration:30,consentAt:started,error:null}
+ await writeRow('voice-clones',clone.id,clone)
+ const calls=fetcher.mock.calls.length
+ await listClones()
+ await vi.waitFor(async()=>expect((await readRow<VoiceClone>('voice-clones',clone.id))?.state).toBe('failed'))
+ expect(fetcher.mock.calls).toHaveLength(calls)
+ expect((await readRow<VoiceClone>('voice-clones',clone.id))?.referenceId).toBe('retained-private-model')
+ await listClones();expect(fetcher.mock.calls).toHaveLength(calls)
+ await retryClone(clone.id)
+ await vi.waitFor(async()=>expect((await readRow<VoiceClone>('voice-clones',clone.id))?.state).toBe('ready'))
+ const newCalls=fetcher.mock.calls.slice(calls)
+ expect(newCalls.some(([url])=>url.endsWith('/model/retained-private-model'))).toBe(true)
+ expect(newCalls.some(([,init])=>init?.method==='POST')).toBe(false)
 })

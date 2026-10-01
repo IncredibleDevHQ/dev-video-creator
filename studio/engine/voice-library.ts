@@ -74,6 +74,11 @@ export const previewVoice=async (voice:Voice) => {
   await writeRow('voice-previews',id,{objectKey:asset.objectKey});return asset.objectKey
 }
 const finishClone=async (clone:VoiceClone) => {
+  const started=Date.parse(clone.attemptStartedAt || clone.consentAt)
+  if(!Number.isFinite(started) || Date.now()-started>=10*60*1000){
+    clone.state='failed';clone.error='Voice creation has taken longer than 10 minutes. Your recording is kept. Try again to check the saved voice without creating another clone.'
+    await writeRow('voice-clones',clone.id,clone);return
+  }
   try {
     let model: {_id:string;state:string}
     if(clone.referenceId) model=await (await fish(`/model/${encodeURIComponent(clone.referenceId)}`)).json() as typeof model
@@ -119,14 +124,14 @@ export const createClone=async (body:Buffer,contentType:string,consent:boolean) 
     const duration=await probeSeconds(output)
     if(duration<25 || duration>90) throw new Error('Read the script for about 30 seconds, then try again')
     const asset=await storeAsset({body:await readFile(output),contentType:'audio/wav',extension:'.wav',kind:'voice-clone-read'})
-    const clone:VoiceClone={id:randomUUID(),name:'My voice',state:'creating',recordingKey:asset.objectKey,sampleKey:null,duration,consentAt:new Date().toISOString(),error:null}
+    const clone:VoiceClone={id:randomUUID(),name:'My voice',state:'creating',recordingKey:asset.objectKey,sampleKey:null,duration,consentAt:new Date().toISOString(),attemptStartedAt:new Date().toISOString(),error:null}
     await writeRow('voice-clones',clone.id,clone);scheduleClone(clone);return clone
   } finally {await rm(dir,{recursive:true,force:true})}
 }
 export const retryClone=async (id:string) => {
   const clone=await readRow<VoiceClone>('voice-clones',id)
   if(!clone || clone.state!=='failed') throw new Error('This clone does not need a retry')
-  clone.state='creating';clone.error=null;await writeRow('voice-clones',id,clone);scheduleClone(clone);return clone
+  clone.state='creating';clone.error=null;clone.attemptStartedAt=new Date().toISOString();await writeRow('voice-clones',id,clone);scheduleClone(clone);return clone
 }
 export const deleteClone=async (id:string) => {
   if(active.has(id)) throw new Error('Wait for voice creation to finish')

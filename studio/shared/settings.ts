@@ -1,6 +1,6 @@
 import type { Voice } from './model'
 export type Branding = { name: string; tagline: string; accent: string; useAccent: boolean; logoKey: string | null }
-export type VoiceClone = { id: string; name: string; state: 'creating' | 'training' | 'ready' | 'failed' | 'deleted'; referenceId?: string; recordingKey: string | null; sampleKey: string | null; duration: number; consentAt: string; error: string | null }
+export type VoiceClone = { id: string; name: string; state: 'creating' | 'training' | 'ready' | 'failed' | 'deleted'; referenceId?: string; attemptStartedAt?:string; recordingKey: string | null; sampleKey: string | null; duration: number; consentAt: string; error: string | null }
 export type VoiceChoice = { id: string; name: string; provider: 'system' | 'fish'; language: string }
 export type ModelProvider = 'openai' | 'litellm' | 'openrouter' | 'ollama' | 'anthropic' | 'custom'
 export type PublicModels = { provider: ModelProvider; baseUrl: string; hasKey: boolean; models: {writing:string;vision:string;coding:string}; reasoningEffort: 'none'|'low'|'medium'|'high' }

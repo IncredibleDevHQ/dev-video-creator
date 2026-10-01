@@ -14,7 +14,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: physical camera/mic permission denial, actual one/pass capture, review, retake and save need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
-| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 272 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
+| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 273 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
 | Notebook-scoped artifacts and S3 portability | Indexed checksummed immutable artifacts, configurable endpoint/bucket/region/credentials, SDK credential-chain MinIO check | Machinery proven on MinIO; AWS deployment has not been exercised. |
 | One composition pass, independent animation and recording | Animation checkpoints use design inputs; finishing/retakes reuse them. Unit and remote composition checks. | Implemented. Actual Canvas scenes 5–9 use the new path; older scenes 1–4 are retained legacy outputs. Do not regenerate them solely to migrate. |
 | Bounded usage and transparent waiting | Bounded harness stages, explicit interrupted-run retry, deduplication, token reporting, shared event worker, bounded SSE leases, fixed activity frontier | Implemented with regression coverage; live progress details and recovery visuals need current native verification. |
@@ -24,8 +24,13 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 
 ## Reproducible evidence
 
-- `yarn run check`: 70 test files, 272 tests passed on 1 October 2026.
+- `yarn run check`: 70 test files, 273 tests passed on 1 October 2026.
 - `yarn run build`: TypeScript and Vite production build passed.
+- Voice training stops starting new polls after a ten-minute attempt window.
+  An already running request can finish within its existing request timeout.
+  Tests verify expired attempts stop polling and explicit retry reuses the saved
+  provider reference without another clone-creation POST. Real provider quality
+  and native waiting/recovery presentation remain unverified.
 - `yarn run check:storage`: disposable PostgreSQL/MinIO passed in 10.13s,
   including editing a remote take in worker two and decoding it in worker three.
 - Actual Canvas notebook: `cc4f18d0-688c-40f4-93ab-a4773bafdabc`, retained in
