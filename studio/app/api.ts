@@ -1,3 +1,4 @@
+import {uploadRecording} from './recording-upload'
 import {requestJson} from './http'
 import {liveNotebook} from './live-notebook'
 import type { StudioSettings, VoiceClone } from '../shared/settings'
@@ -24,9 +25,7 @@ export const api = {
   retryScene: (id: string, sceneId: string) => request<Snapshot>(`/projects/${id}/scenes/${sceneId}/retry`, 'POST', {}),
   previewPresence: (id: string, sceneId: string, presence: Presence | null) => request<ReplanPreview>(`/projects/${id}/scenes/${sceneId}/presence-preview`, 'POST', { presence }),
   replan: (id: string, sceneId: string, presence: Presence | null) => request<Snapshot>(`/projects/${id}/scenes/${sceneId}/presence`, 'POST', { presence }),
-  saveRecording: async (id: string, sceneId: string, parts: RecordedPart[], blob: Blob): Promise<Snapshot> => {
-    return requestJson<Snapshot>(`/api/projects/${id}/scenes/${sceneId}/recordings`, { method: 'PUT', headers: { 'Content-Type': blob.type, 'X-Studio-Parts': JSON.stringify(parts) }, body: blob })
-  },
+  saveRecording: uploadRecording,
   settings: (refresh=false) => request<StudioSettings>(`/settings${refresh?'?refresh=voices':''}`),
   saveSettings: (body: unknown) => request<StudioSettings>('/settings','POST',body),
   previewVoice: (voice: Voice) => request<{objectKey:string}>('/settings/voice-preview','POST',voice),
