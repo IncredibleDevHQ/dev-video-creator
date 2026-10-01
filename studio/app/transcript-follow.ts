@@ -10,6 +10,18 @@ const followed=new WeakMap<HTMLElement,string>()
 export function followTranscript(root:HTMLElement,moments:Moment[],second:number,index:number){
  const moment=moments[index];if(!moment)return
  const active=wordAt(moment.lines,moment.start,moment.end,second)
+ root.querySelectorAll<HTMLElement>('[data-prompter]').forEach(script=>{
+  let currentWord:HTMLElement|undefined
+  script.querySelectorAll<HTMLElement>('[data-transcript-word]').forEach((word,i)=>{
+   word.classList.toggle('spoken-word',i===active)
+   word.classList.toggle('word-read',i<active)
+   if(i===active){word.setAttribute('aria-current','true');currentWord=word}else word.removeAttribute('aria-current')
+  })
+  if(currentWord){
+   const box=currentWord.getBoundingClientRect(),view=script.getBoundingClientRect()
+   if(box.top<view.top || box.bottom>view.bottom)script.scrollTop+=box.top-view.top-view.height/3
+  }
+ })
  let current:HTMLElement|undefined
  root.querySelectorAll<HTMLElement>('[data-transcript-moment]').forEach(section=>{
   const selected=Number(section.dataset.transcriptMoment)===index

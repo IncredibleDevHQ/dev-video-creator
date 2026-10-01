@@ -1,5 +1,5 @@
 import {practiceControls,recordControl} from './practice-controls'
-import {followTranscript} from './transcript-follow'
+import {followTranscript,transcriptWords} from './transcript-follow'
 import {standInPlayback,standInControls} from './stand-in-playback'
 import {syncPresenterLayout} from './presenter-motion'
 import {layeredPlayback} from './layered-playback'
@@ -69,7 +69,7 @@ const practice = new PracticePlayback((clip,at)=>{
   followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   followTranscript(root,scene?.moments || [],second,momentIndex)
   movePlayhead(root,scene?.moments || [],second)
-  const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=clip.lines
+  const cue=root.querySelector('.practice-cue>span');if(cue && cue.textContent!==clip.lines) cue.innerHTML=transcriptWords(clip.lines)
   const rehearsalClock=root.querySelector('[data-practice-clock]');if(rehearsalClock)rehearsalClock.textContent=`Practice · ${((performance.now()-practiceStarted)/1000).toFixed(1)}s · Esc to stop`
   const chip=root.querySelector('.anchor-chip');if(chip) chip.textContent=`${second.toFixed(1)}s · moment ${momentIndex+1}`
 },()=>{const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(moment)second=moment.start;render()},reason=>{stopPractice();render();error(reason)})
@@ -207,7 +207,7 @@ const render = () => {
     const label=root.querySelector('[data-practice-clock]');if(label)label.textContent=phase==='ready'?'Your script':phase==='countdown'?`Starting in ${practiceCountdown}…`:phase==='finished'?'Practice complete':'Practice'
   }
   const transport=root.querySelector<HTMLButtonElement>('[data-action="practice-toggle"]');if(transport){transport.textContent=practice.active && !practice.paused?'Ⅱ Pause':'▶ Play';transport.setAttribute('aria-label',practice.active && !practice.paused?'Pause practice':'Play practice')}
-  if(practice.active){const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=practiceLines}
+  if(practice.active){const cue=root.querySelector('.practice-cue>span');if(cue && cue.textContent!==practiceLines) cue.innerHTML=transcriptWords(practiceLines)}
   root.querySelector<HTMLButtonElement>('#video-chat button')?.toggleAttribute('disabled',pendingChats.has(project.id))
   for (const draft of drafts) { const field = document.getElementById(draft.id); if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.value = draft.value }
   if (focusedId) document.getElementById(focusedId)?.focus()
