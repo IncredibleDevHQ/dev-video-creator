@@ -192,3 +192,15 @@ Presenter composition verification, 1 October 2026:
   measured take timing and exact full-content geometry at transitions.
   This new transition code was not loaded by the backend that produced the
   user's file above. Native browser motion and a new export remain unverified.
+
+Native playback check after Scene 3 finish:
+- A fresh in-app tab loaded the new produced MP4, `readyState=4`, duration
+  54.82 seconds, no media error. Playback advanced from 13.776 to 43.246
+  seconds; the actual presenter was visible beside animated content at 13s.
+  The scene rail showed Complete, activity showed Video ready and retained
+  completed steps, and the time anchor advanced to moment 4 at 43.3s.
+- A transient live-update disconnection appeared during playback, then cleared
+  without reloading. Playback continued. This is not proof that reconnection
+  UX meets the requested standard; short server lease reconnections currently
+  surface as a lost connection and need a bounded grace period with tests.
+- The temporary verification tab was closed; existing user tabs were retained.
