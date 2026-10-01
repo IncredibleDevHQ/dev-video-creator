@@ -4,7 +4,7 @@ import {mkdtemp,mkdir,writeFile,rm,symlink} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
 import {afterAll,expect,it} from 'vitest'
-import {collectProduction,mediaBindingInstructions} from './production'
+import {collectProduction,mediaBindingInstructions,retainedContentSeed} from './production'
 const root=await mkdtemp(join(tmpdir(),'studio-production-input-'))
 afterAll(()=>rm(root,{recursive:true,force:true}))
 const supplied={'media/scene-audio.wav':Buffer.from('labelled synthetic audio fixture')}
@@ -39,4 +39,13 @@ it('keeps camera assembly out of animation-only generation instructions',()=>{
  expect(mediaBindingInstructions(true)).toContain('do not implement them')
  expect(mediaBindingInstructions(true)).not.toContain('show it only inside')
  expect(mediaBindingInstructions(false)).toContain('show it only inside')
+})
+
+it('reuses accepted code and artwork without loading previous presenter or sound bytes',async()=>{
+ const load=mocker.fn(async(key:string)=>Buffer.from(key))
+ const names=['index.html','assets/marker.svg','manifest.json','media/scene-camera.mp4','media/scene-audio.wav']
+ const refs=names.map((name,i)=>({id:String(i),objectKey:`object-${i}`,name,contentType:'application/octet-stream'}))
+ const seed=await retainedContentSeed(refs,load)
+ expect(Object.keys(seed)).toEqual(['production/index.html','production/assets/marker.svg'])
+ expect(load.mock.calls.map(call=>call[0])).toEqual(['object-0','object-1'])
 })

@@ -69,7 +69,13 @@ The app enforces the run limits; do not restart a run or launch another model.
    scene comes from, and the approved plan's own sketch when there is one).
 2. Read [the production contract](references/production-contract.md): the
    files, the manifest and the checks the product runs.
-3. When `packet/PREVIEW.json` exists, the app seeds `production/index.html`
+3. When `packet/SEED.json` exists, the app has seeded accepted legacy code
+   and artwork in `production/`. Adapt it according to that packet; preserve
+   the approved explanation and object motion. For content-only migration,
+   remove presenter/media layers, reclaim reserved camera space and align the
+   current clock. The app deliberately excludes prior camera/audio assets.
+   Do not rebuild an already accepted explanation from scratch.
+   When `packet/PREVIEW.json` exists, the app seeds `production/index.html`
    and its assets from the accepted preview before you start. Edit those files
    directly; `packet/preview/` remains the immutable reference. This accepted
    implementation is the starting point. Preserve its visual design, object
