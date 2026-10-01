@@ -7,7 +7,9 @@ export const stageStatus=(snapshot:Snapshot,stage:string,connected=true)=>{
  }else if(stage==='video' && snapshot.project.video){
   const video=snapshot.project.video
   active=video.phase==='preparing' || video.phase==='joining' || video.scenes.some(scene=>['writing','replanning','changing','producing'].includes(scene.phase))
-  label=active?'Processing':video.phase==='failed' || video.scenes.some(scene=>scene.phase==='failed')?'Needs attention':snapshot.views?.video.action==='export'?'Ready':video.scenes.some(scene=>scene.phase==='queued')?'Waiting':'In progress'
+  const scenesReady=video.scenes.length>0 && video.scenes.every(scene=>snapshot.views?.scenes[scene.id]?.produced)
+  const needsRecording=video.scenes.some(scene=>(snapshot.views?.scenes[scene.id]?.openMomentIds.length || 0)>0)
+  label=active?'Processing':video.phase==='failed' || video.scenes.some(scene=>scene.phase==='failed')?'Needs attention':snapshot.views?.video.action==='export'?'Ready':video.scenes.some(scene=>scene.phase==='queued')?'Waiting':scenesReady?'Ready to assemble':needsRecording?'Needs recording':'Ready to prepare'
  }
  if(active && snapshot.readOnly){label='Saved';active=false}
  else if(active && !connected){label='Reconnecting';active=false}

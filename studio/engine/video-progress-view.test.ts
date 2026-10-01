@@ -176,3 +176,15 @@ it('shows a retained matching recording in its presenter space instead of the st
  scene.moments[0].recordingKey='changed'
  expect(render(input)).not.toContain('data-saved-presenter')
 })
+
+it('distinguishes scenes ready to assemble from active work and missing recordings',()=>{
+ const input=fixture(),scene=input.project.video!.scenes[0]
+ scene.phase='produced'
+ input.views={scenes:{scene:{state:'Produced',action:'download',openMomentIds:[],produced:true}},video:{action:'produce-video',enabled:true,producedScenes:1},moments:{}} as Snapshot['views']
+ expect(stageStatus(input,'video')).toContain('Ready to assemble')
+ expect(stageStatus(input,'video')).not.toContain('In progress')
+ scene.phase='waiting';input.views!.scenes.scene.produced=false;input.views!.scenes.scene.openMomentIds=['m1']
+ expect(stageStatus(input,'video')).toContain('Needs recording')
+ scene.phase='producing'
+ expect(stageStatus(input,'video')).toContain('Processing')
+})
