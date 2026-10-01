@@ -26,3 +26,14 @@ it('does not seek again when a paused hold frame is already decoded',()=>{
  for(let i=0;i<20;i++)syncRehearsalAnimation({querySelector:()=>player} as unknown as ParentNode,scene,0,3.7,true)
  expect(seek).not.toHaveBeenCalled();expect(player.play).not.toHaveBeenCalled()
 })
+
+it('does not interrupt an unfinished seek when the dialogue clock advances',()=>{
+ let at=33;const seek=vi.fn()
+ const player={readyState:2,seeking:true,paused:true,get currentTime(){return at},set currentTime(value:number){seek(value);at=value},playbackRate:1,play:vi.fn(async()=>{}),pause:vi.fn()}
+ const scene={animation:{moments:[{start:33,end:39}]},moments:[{start:48,end:54}]} as Scene
+ for(let i=0;i<30;i++)syncRehearsalAnimation({querySelector:()=>player} as unknown as ParentNode,scene,0,48+i/10,true)
+ expect(seek).not.toHaveBeenCalled();expect(player.play).not.toHaveBeenCalled()
+ player.seeking=false
+ syncRehearsalAnimation({querySelector:()=>player} as unknown as ParentNode,scene,0,51,true)
+ expect(seek).toHaveBeenCalledOnce();expect(player.play).toHaveBeenCalledOnce()
+})

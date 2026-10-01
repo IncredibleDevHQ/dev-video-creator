@@ -1,6 +1,8 @@
 import type {Scene} from '../shared/model'
 import {animationSecond} from '../shared/scene-time'
 
+const starting=new WeakSet<HTMLVideoElement>()
+
 /** Keep the content-only layer on the dialogue clock; camera stays a separate layer. */
 export function syncRehearsalAnimation(root: ParentNode, scene: Scene, index: number, second: number, playing: boolean) {
  const player=root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')
@@ -10,10 +12,16 @@ export function syncRehearsalAnimation(root: ParentNode, scene: Scene, index: nu
  const holding=second>=holdAt
  const at=animationSecond(scene,Math.max(moment.start,Math.min(holdAt,second)),true)
  const sync=()=>{
+  // Let an in-flight seek decode before moving the target again.
+  if(player.seeking)return
   if(Math.abs(player.currentTime-at)>(!playing || holding ? .04:.25))player.currentTime=at
   player.playbackRate=Math.max(.25,Math.min(4,(base.end-base.start)/(moment.end-moment.start)))
-  if(playing && !holding)void player.play().catch(()=>{})
-  else player.pause()
+  if(playing && !holding){
+   if(player.paused!==false && !starting.has(player)){
+    starting.add(player)
+    void player.play().catch(()=>{}).finally(()=>starting.delete(player))
+   }
+  } else player.pause()
  }
  if(player.readyState)sync()
  else player.onloadedmetadata=sync
