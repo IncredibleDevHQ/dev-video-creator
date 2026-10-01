@@ -39,7 +39,10 @@ The notebook has a permanent `?notebook=<id>` URL and displays its harness.
 Record the required moments in any order, individually or as an open-moment pass.
 Practice records nothing. Recording includes permission guidance, a countdown,
 teleprompter, optional timed stop and Esc to stop. Review, save or retake before
-finishing a scene. Denied access or a busy device opens focused recovery guidance;
+finishing a scene. Saving has a two-minute upload deadline. If its response is
+lost, Studio makes one five-second read-only check for the exact saved take;
+it keeps the local recording if it cannot confirm, and never automatically
+re-uploads it. Denied access or a busy device opens focused recovery guidance;
 retry returns to setup and checks the script before requesting devices again.
 An unanswered permission request stops after one minute; Cancel ends setup
 immediately, and any late device grant is released. Scene-card hover settings override camera presence; notebook
