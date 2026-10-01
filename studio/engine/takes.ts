@@ -7,7 +7,7 @@ import type { Moment } from '../shared/model'
 import type { Snapshot } from '../shared/api'
 import { loadProject, changeProject, addEvent } from './projects'
 import { normalizeTake, composeTakes, pictureSize } from './take-clock'
-import { storeAsset, writeRow } from './persistence'
+import { storeAsset, writeRow, readRow, listNotebookRows, withOperationLock } from './persistence'
 import { refreshVideoKeys, synchronizeClock } from './scene-model'
 import { momentNeedsRecording } from './state'
 const checkParts = (snapshot: Snapshot, sceneId: string, parts: RecordedPart[]) => {
@@ -25,7 +25,7 @@ const checkParts = (snapshot: Snapshot, sceneId: string, parts: RecordedPart[]) 
   }
   return scene
 }
-export const saveRecording = async (id: string, sceneId: string, parts: RecordedPart[], body: Buffer, contentType: string, uploadId?:string) => {
+const saveRecordingLocked = async (id: string, sceneId: string, parts: RecordedPart[], body: Buffer, contentType: string, uploadId?:string) => {
   if(uploadId && !/^[a-zA-Z0-9-]{16,64}$/.test(uploadId))throw new Error('Invalid recording upload identifier')
   const before = await loadProject(id)
   if (!before) throw new Error('Project not found')
@@ -43,12 +43,15 @@ export const saveRecording = async (id: string, sceneId: string, parts: Recorded
     const raw=await storeAsset({body,contentType:mime,projectId:id,sceneId,kind:'recording-original',extension:mime.endsWith('mp4')?'.mp4':mime.endsWith('wav')?'.wav':'.webm'})
     const normal=await storeAsset({body:await readFile(normalized),contentType:made.picture?'video/webm':'audio/webm',projectId:id,sceneId,kind:'recording-normalized',extension:'.webm'})
     await writeRow('recording-sessions',raw.id,{projectId:id,sceneId,original:raw.objectKey,normalized:normal.objectKey,parts,duration:made.duration,picture:made.picture})
+    const history=await Promise.all((await listNotebookRows('takes',id)).map(key=>readRow<{sceneId:string;momentId:string;number?:number;parentTakeId?:string}>('takes',key)))
     const takes: Array<{ part: RecordedPart; take: NonNullable<Moment['take']> }> = []
     for (const part of parts) {
       const path = join(temporary, `${takes.length}.webm`)
       const duration = await composeTakes([{ path: normalized, from: part.from, to: Math.min(part.to,made.duration) }], path, size)
       const asset = await storeAsset({ body: await readFile(path), contentType: made.picture ? 'video/webm' : 'audio/webm', projectId: id, sceneId, momentId: part.momentId, kind: 'moment-take', extension: '.webm' })
-      const take = { id: randomUUID(), ...(uploadId?{uploadId}:{}), recordingKey: part.recordingKey, objectKey: asset.objectKey, duration }
+      const previous=history.filter(row=>row?.sceneId===sceneId && row.momentId===part.momentId && !row.parentTakeId)
+      const number=Math.max(previous.length,...previous.map(row=>row?.number || 0))+1
+      const take = { id: randomUUID(), number, ...(uploadId?{uploadId}:{}), recordingKey: part.recordingKey, objectKey: asset.objectKey, duration }
       await writeRow('takes', take.id, { ...take, recordingSessionId:raw.id,projectId: id, sceneId, momentId: part.momentId, recordedAt: new Date().toISOString() })
       takes.push({ part, take })
     }
@@ -61,3 +64,7 @@ export const saveRecording = async (id: string, sceneId: string, parts: Recorded
     })
   } finally { await rm(temporary, { recursive: true, force: true }) }
 }
+
+/** Serialize uploads so simultaneous saves cannot assign the same take number. */
+export const saveRecording=(id:string,sceneId:string,parts:RecordedPart[],body:Buffer,contentType:string,uploadId?:string)=>
+ withOperationLock(`recording:${id}:${sceneId}`,()=>saveRecordingLocked(id,sceneId,parts,body,contentType,uploadId))

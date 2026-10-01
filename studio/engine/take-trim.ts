@@ -29,7 +29,7 @@ export async function trimTake(id:string,anchor:Extract<ChatAnchor,{stage:'video
   const size=await pictureSize(input)
   const duration=await composeTakes([{path:input,...range}],output,size)
   const asset=await storeAsset({body:await readFile(output),contentType:size?'video/webm':'audio/webm',projectId:id,sceneId:scene.id,momentId:moment.id,kind:'moment-take',extension:'.webm'})
-  const trimmed={id:randomUUID(),recordingKey:take.recordingKey,objectKey:asset.objectKey,duration}
+  const trimmed={id:randomUUID(),...(take.number?{number:take.number}:{}),recordingKey:take.recordingKey,objectKey:asset.objectKey,duration}
   await writeRow('takes',trimmed.id,{...trimmed,projectId:id,sceneId:scene.id,momentId:moment.id,parentTakeId:take.id,trim:range,recordedAt:new Date().toISOString()})
   return await changeProject(id,current=>{
    const target=current.project.video?.scenes.find(entry=>entry.id===scene.id)

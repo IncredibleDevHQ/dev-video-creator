@@ -28,6 +28,7 @@ it('normalizes a real camera file and saves its measured clock without invalidat
   await saveRecording('valid','s',[part],await readFile(file),'video/webm','fixture-upload-id-1234')
   const saved = (await loadProject('valid'))!
   const moment = saved.project.video!.scenes[0].moments[0]
+  expect(moment.take?.number).toBe(1)
   expect(moment.take?.uploadId).toBe('fixture-upload-id-1234')
   expect(moment.take?.duration).toBeGreaterThan(1.7)
   expect(moment.take?.duration).toBeLessThan(2.1)
@@ -36,6 +37,9 @@ it('normalizes a real camera file and saves its measured clock without invalidat
   expect(saved.views!.moments[`s/${moment.id}`].state).toBe('recorded')
   const row = await readRow<{ momentId: string }>('takes',moment.take!.id)
   expect(row?.momentId).toBe(moment.id)
+  const retaken=await saveRecording('valid','s',[part],await readFile(file),'video/webm')
+  expect(retaken.project.video!.scenes[0].moments[0].take?.number).toBe(2)
+  expect(await readRow('takes',moment.take!.id)).not.toBeNull()
 }, 15000)
 it('refuses an upload for a stale script before it writes media', async () => {
   const part = await seed('stale')
@@ -63,6 +67,7 @@ it('trims an anchored take with real media, retains its original, and does not r
  expect((await loadProject('trim'))!.project.video!.scenes[0].moments[0].take).toEqual(original)
  const saved=await chatVideo('trim',{anchor:{stage:'video',sceneId:'s',momentId:part.momentId,second:.5},instruction:'trim take from 0.3 to 1.3 seconds'})
  const scene=saved.project.video!.scenes[0],take=scene.moments[0].take!
+ expect(take.number).toBe(original.number)
  expect(take.id).not.toBe(original.id);expect(take.duration).toBeCloseTo(1,1)
  expect(scene.moments[0].end).toBe(take.duration)
  expect(scene.moments[0].recordingKey).toBe(part.recordingKey)
