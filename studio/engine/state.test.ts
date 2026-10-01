@@ -60,3 +60,13 @@ it('never completes a rendered scene while a required presenter take is missing 
  m.recordingKey='changed'
  expect(sceneView(s,voice).produced).toBe(false)
 })
+
+it('keeps a rendered scene incomplete when even one required presenter take is missing',()=>{
+ const first=moment('full'),last={...moment('full'),id:'m6'}
+ first.take={id:'real-take',recordingKey:first.recordingKey,objectKey:'real.webm'}
+ const s=scene([first,last]);s.phase='produced';s.produced={inputKey:s.inputKey,objectKey:'earlier-test-render.mp4'}
+ const view=sceneView(s,voice)
+ expect(view).toMatchObject({state:'Needs recording',action:'record',openMomentIds:['m6'],produced:false})
+ expect(momentState(first,voice)).toBe('recorded')
+ expect(momentState(last,voice)).toBe('to record')
+})
