@@ -220,3 +220,17 @@ it('stops current activity at missing recordings instead of showing an obsolete 
  input.views!.scenes.scene.produced=true;scene.phase='produced'
  expect(sceneActivityRail(input,scene,true)).toContain('Save video')
 })
+
+it('shows one scene-rail state with the missing recording count, then current work',async()=>{
+ const {parseHTML}=await import('linkedom'),input=fixture(),scene=input.project.video!.scenes[0]
+ scene.phase='waiting';scene.moments=[{id:'m',start:0,end:6,camera:'full',layout:'corner',lines:'Hello',overlay:null,recordingKey:'r',audioKey:'a',audio:null,take:null}]
+ input.views={scenes:{scene:{state:'Needs recording',action:'record',openMomentIds:['m'],produced:false}},moments:{},video:{action:'produce-video',enabled:true,producedScenes:0}} as Snapshot['views']
+ let card=parseHTML(render(input)).document.querySelector('.scene-card')!
+ expect(card.querySelectorAll('.scene-state')).toHaveLength(1)
+ expect(card.querySelector('.scene-state')!.textContent).toContain('1 moment to record')
+ expect(card.textContent).not.toContain('Needs recording')
+ scene.phase='producing';input.events[0].message='Building the scene'
+ card=parseHTML(render(input)).document.querySelector('.scene-card')!
+ expect(card.querySelectorAll('.scene-state')).toHaveLength(1)
+ expect(card.querySelector('.scene-state')!.textContent).toBe('Building the scene')
+})

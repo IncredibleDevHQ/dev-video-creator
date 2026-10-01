@@ -16,7 +16,7 @@ function setup(){
 it('maps animation seeks to the recorded scene clock and stops at the moment boundary',()=>{
  const {root,player,update,frames,Event}=setup()
  const seek=root.querySelector<HTMLInputElement>('[data-stand-in-seek]')!;seek.value='50';seek.dispatchEvent(new Event('input',{bubbles:true}))
- expect(player.currentTime).toBe(33);expect(update).toHaveBeenLastCalledWith(54)
+ expect(player.currentTime).toBe(33);expect(update).toHaveBeenLastCalledWith(54,false)
  root.querySelector<HTMLElement>('[data-stand-in-play]')!.click()
  player.currentTime=36
  const tick=[...frames.values()][0];frames.clear();tick(0)

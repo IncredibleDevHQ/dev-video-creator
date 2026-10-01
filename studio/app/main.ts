@@ -96,10 +96,11 @@ const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
   syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)
  }
 })
-standInPlayback(root,()=>{const scene=snapshot?.project.video?.scenes[selected];return scene?{scene,index:momentIndex}:null},at=>{
+standInPlayback(root,()=>{const scene=snapshot?.project.video?.scenes[selected];return scene?{scene,index:momentIndex}:null},(at,playing)=>{
  second=at
  const scene=snapshot?.project.video?.scenes[selected];if(!scene)return
- syncPresenterLayout(root,scene.moments,at)
+ const moment=scene.moments[momentIndex]
+ syncPresenterLayout(root,scene.moments,!playing && at===moment.start?at+Math.min(.28,(moment.end-moment.start)/3):at)
  movePlayhead(root,scene.moments,at,momentIndex)
  const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.toFixed(1)}s · moment ${momentIndex+1}`
 })
