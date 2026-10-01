@@ -59,7 +59,7 @@ let practiceOpen=false
 let practiceLoading=false
 let practiceLines=''
 const practice = new PracticePlayback((clip,at)=>{
-  if(practiceStopAfter!==null && (performance.now()-practiceStarted)/1000>=practiceStopAfter){stopPractice();render();return}
+  if(practiceStopAfter!==null && (performance.now()-practiceStarted)/1000>=practiceStopAfter){finishPractice();return}
   const changed=practiceLines!==clip.lines;practiceLines=clip.lines;second=at
   const scene=snapshot?.project.video?.scenes[selected];momentIndex=Math.max(0,scene?.moments.findIndex(moment=>moment.id===clip.momentId) ?? 0)
   if(changed) render()
@@ -75,6 +75,7 @@ const practice = new PracticePlayback((clip,at)=>{
 },()=>{const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(moment)second=moment.start;render()},reason=>{stopPractice();render();error(reason)})
 let practiceRequest = 0
 let practiceStream: MediaStream | null = null
+const finishPractice=()=>{practiceRequest++;practiceCountdown=0;startRehearsal=null;practice.stop();practiceLoading=false;root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();render()}
 const stopPractice = () => { practiceRequest++; practiceOpen=false;startRehearsal=null;practiceCountdown=0; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
 let recordingSceneId = ''
 let recordingProjectId = ''
@@ -398,6 +399,7 @@ document.addEventListener('click', async event => {
       try{const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});if(request!==practiceRequest || !practiceOpen){stream.getTracks().forEach(track=>track.stop());return};practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=stream;render()}
       catch{error(new Error('Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'))}
     }
+    if(action==='practice-finish'){finishPractice();return}
     if(action==='practice-start'){await startRehearsal?.();return}
     if(action==='practice-next'){practice.advance();render();return}
     if(action==='practice-toggle' && practice.active){if(practice.paused)practice.resume();else practice.pause();render();return}
@@ -477,7 +479,7 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Enter' && practice.active && practiceMomentIds.length>1 && !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)){event.preventDefault();practice.advance();render();return}
   if(event.key==='Enter' && capture.phase==='recording' && capture.moments.length>1 && !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)){event.preventDefault();try{capture.next()}catch(reason){error(reason)};return}
   if(event.key!=='Escape')return
-  if(practiceOpen){event.preventDefault();stopPractice();render();return}
+  if(practiceOpen){event.preventDefault();if(practice.active || practiceCountdown)finishPractice();return}
   if(capture.phase==='recording'){event.preventDefault();try{capture.stop()}catch(reason){error(reason)}}
   else if(capture.phase==='countdown' || capture.phase==='preparing'){event.preventDefault();capture.dispose()}
 })
