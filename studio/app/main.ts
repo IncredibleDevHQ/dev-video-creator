@@ -6,7 +6,7 @@ import {workspacePosition,workspaceUrl} from './workspace-position'
 import {seekSavedMedia} from './media-seek'
 import {savedMediaRecovery} from './media-recovery'
 import {videoSettingsPreview} from './video-settings-preview'
-import {takeReviewPosition} from './take-review-clock'
+import {takeReviewPosition,reviewLayoutSecond} from './take-review-clock'
 import {NotebookOpening,notebookOpeningView} from './notebook-opening'
 import {momentViewKey} from '../shared/model'
 import {replacePlayerView} from './player-view'
@@ -95,7 +95,7 @@ const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
  if(at){
   second=at.second
   followTranscript(root,scene.moments,second,at.momentIndex)
-  syncPresenterLayout(root,scene.moments,at.second)
+  syncPresenterLayout(root,scene.moments,reviewLayoutSecond(scene.moments[at.momentIndex],at.second,playing))
   movePlayhead(root,scene.moments,at.second,at.momentIndex)
   const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.second.toFixed(1)}s · moment ${at.momentIndex+1}`
   syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)

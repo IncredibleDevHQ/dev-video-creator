@@ -11,3 +11,9 @@ export function takeReviewPosition(moments:Moment[],parts:RecordedPart[],time:nu
  const fraction=Math.min(1,Math.max(0,(time-part.from)/(part.to-part.from)))
  return {momentIndex,second:moment.start+(moment.end-moment.start)*fraction}
 }
+
+/** Freeze a readable camera layout at review boundaries instead of a zero-opacity transition. */
+export function reviewLayoutSecond(moment:Moment,second:number,playing:boolean){
+ const inset=Math.min(.28,(moment.end-moment.start)/3)
+ return playing?Math.min(second,moment.end-.001):Math.max(moment.start+inset,Math.min(second,moment.end-inset))
+}

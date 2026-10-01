@@ -24,3 +24,10 @@ it('holds the last recorded card when review ends before unrecorded moments',asy
  movePlayhead(root,moments,at.second,at.momentIndex)
  expect(playhead.style.transform).toBe('translate3d(109px,0,0)')
 })
+
+it('keeps the presenter visible at both paused review boundaries',async()=>{
+ const {reviewLayoutSecond}=await import('../app/take-review-clock')
+ expect(reviewLayoutSecond(moments[2],8,false)).toBeCloseTo(8.28)
+ expect(reviewLayoutSecond(moments[2],12,false)).toBeCloseTo(11.72)
+ expect(reviewLayoutSecond(moments[2],10,true)).toBe(10)
+})

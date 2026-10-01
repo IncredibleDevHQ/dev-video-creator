@@ -9,7 +9,7 @@ export function layeredPlayback(root:HTMLElement,synchronize:(second:number,play
  const stop=()=>{cancelAnimationFrame(frame);frame=0}
  const paint=()=>{
   const media=player(),controls=root.querySelector('.layered-controls');if(!media || !controls)return
-  const duration=Number.isFinite(media.duration)?media.duration:0
+  const duration=Number.isFinite(media.duration) && media.duration>0?media.duration:Number(media.dataset.reviewDuration) || 0
   const clock=controls.querySelector('[data-layered-time]');if(clock)clock.textContent=`${time(media.currentTime)} / ${time(duration)}`
   const seek=controls.querySelector<HTMLInputElement>('[data-layered-seek]')!;seek.disabled=!duration;seek.value=String(duration?media.currentTime/duration*100:0)
   const play=controls.querySelector<HTMLButtonElement>('[data-layered-play]')!;play.textContent=media.paused?'▶':'Ⅱ';play.setAttribute('aria-label',media.paused?'Play recording':'Pause recording')
@@ -25,8 +25,8 @@ export function layeredPlayback(root:HTMLElement,synchronize:(second:number,play
   if(button.hasAttribute('data-layered-fullscreen'))void media.closest<HTMLElement>('.video-stage')?.requestFullscreen().catch(()=>{})
   paint()
  })
- root.addEventListener('input',event=>{const target=event.target as HTMLInputElement,media=player();if(target.matches('[data-layered-seek]') && media && Number.isFinite(media.duration)){media.currentTime=Math.max(0,Math.min(100,Number(target.value)))/100*media.duration;paint()}})
- for(const type of ['play','pause','ended','loadedmetadata','timeupdate'])root.addEventListener(type,event=>{if(event.target!==player())return;paint();if(type==='play'){stop();frame=requestAnimationFrame(tick)}else if(type==='pause' || type==='ended')stop()},true)
+ root.addEventListener('input',event=>{const target=event.target as HTMLInputElement,media=player();if(target.matches('[data-layered-seek]') && media){const duration=Number.isFinite(media.duration) && media.duration>0?media.duration:Number(media.dataset.reviewDuration) || 0;if(duration)media.currentTime=Math.max(0,Math.min(100,Number(target.value)))/100*duration;paint()}})
+ for(const type of ['play','pause','ended','loadedmetadata','loadeddata','durationchange','seeked','timeupdate'])root.addEventListener(type,event=>{if(event.target!==player())return;paint();if(type==='play'){stop();frame=requestAnimationFrame(tick)}else if(type==='pause' || type==='ended')stop()},true)
  window.addEventListener('pagehide',stop)
  return paint
 }

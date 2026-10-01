@@ -16,3 +16,15 @@ it('uses one canvas transport for the saved recording and synchronizes the conte
  const stage=root.querySelector('.video-stage')!;Object.assign(stage,{requestFullscreen:vi.fn(async()=>{})})
  root.querySelector<HTMLElement>('[data-layered-fullscreen]')!.click();expect(stage.requestFullscreen).toHaveBeenCalledOnce()
 })
+
+it('reviews a fresh WebM using recorded duration before container metadata is finite',()=>{
+ const {document,window,Event}=parseHTML(`<html><body><div id="app"><video data-take-player data-review-duration="12.5"></video>${layeredControls()}</div></body></html>`)
+ vi.stubGlobal('window',window);vi.stubGlobal('requestAnimationFrame',vi.fn(()=>1));vi.stubGlobal('cancelAnimationFrame',vi.fn())
+ const root=document.querySelector('#app') as unknown as HTMLElement,media=root.querySelector('video')!
+ Object.assign(media,{duration:Infinity,currentTime:0,paused:true,ended:false,muted:false})
+ layeredPlayback(root,vi.fn())()
+ expect(root.querySelector('[data-layered-time]')!.textContent).toBe('0:00 / 0:12')
+ const seek=root.querySelector<HTMLInputElement>('[data-layered-seek]')!
+ expect(seek.disabled).toBe(false);seek.value='50';seek.dispatchEvent(new Event('input',{bubbles:true}))
+ expect(media.currentTime).toBe(6.25)
+})
