@@ -49,7 +49,10 @@ the joined video and export MP4. Later edits invalidate the affected exports.
 Activity remains visible with completed steps and the current processing/stalled
 frontier. Token usage shows reported harness usage; unavailable usage is not zero.
 
-Anchored chat edits source, slides or scene plans. An explicit recording edit such
+Anchored chat discusses the source and edits slides or scene plans. Source
+questions have a two-minute wall limit, 45-second inactivity limit and a
+20-tool-call cap. The explicit paid `checks/source-chat.live.mjs` check uses an
+isolated retained diagnostic; it is never part of ordinary tests. An explicit recording edit such
 as `trim take from 0.3 to 1.3 seconds` keeps that range of the selected moment's
 take, preserves the original and animation, and updates timing without a model
 call. Finish the scene again to use it. Ambiguous trim commands are rejected.

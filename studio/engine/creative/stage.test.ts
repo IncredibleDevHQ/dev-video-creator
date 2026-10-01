@@ -28,3 +28,9 @@ it('allows a failed stage to retry rather than retaining its rejected promise',a
  await expect(runValidatedJsonStage(input)).rejects.toThrow('Synthetic failure')
  expect(mocks.run).toHaveBeenCalledTimes(2)
 })
+it('forwards a smaller route budget to the harness runtime',async()=>{
+ mocks.load.mockResolvedValue(null)
+ mocks.run.mockResolvedValue({status:'error',failure:{message:'Bounded run stopped'}})
+ await expect(runValidatedJsonStage({...input,timeoutMs:120000,idleTimeoutMs:45000,maxToolCalls:20})).rejects.toThrow('Bounded run stopped')
+ expect(mocks.run).toHaveBeenCalledWith(expect.objectContaining({timeoutMs:120000,idleTimeoutMs:45000,maxToolCalls:20}))
+})
