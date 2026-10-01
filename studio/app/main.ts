@@ -443,6 +443,10 @@ dialog.addEventListener('change', event => {
   warning.hidden = !String(values.get('voice')).startsWith('ai:') || values.get('presence') === 'off'
 })
 
+// A browser take is not durable until the save response confirms persistence.
+window.addEventListener('beforeunload', event => {
+ if(capture.phase==='recording' || capture.phase==='reviewing' || capture.phase==='uploading'){event.preventDefault();event.returnValue=''}
+})
 window.addEventListener('pagehide', () => { stopPractice(); capture.dispose(); if(settingsScreen.isOpen) settingsScreen.close(); closeStream?.() })
 
 let playheadFrame=0
