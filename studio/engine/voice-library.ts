@@ -133,12 +133,25 @@ export const retryClone=async (id:string) => {
   if(!clone || clone.state!=='failed') throw new Error('This clone does not need a retry')
   clone.state='creating';clone.error=null;clone.attemptStartedAt=new Date().toISOString();await writeRow('voice-clones',id,clone);scheduleClone(clone);return clone
 }
-export const deleteClone=async (id:string) => {
-  if(active.has(id)) throw new Error('Wait for voice creation to finish')
+const removeClone=async (id:string) => {
   const clone=await readRow<VoiceClone>('voice-clones',id)
   if(!clone || clone.state==='deleted') return
+  if(!clone.referenceId){
+    // Creation can succeed remotely before its response/reference is persisted.
+    // Confirm the exact private Studio identity before removing local evidence.
+    const title=`Studio voice ${clone.id}`
+    const prior=await (await fish(`/model?self=true&title=${encodeURIComponent(title)}&page_size=100`)).json() as {items?:Array<{_id:string;title:string}>}
+    const existing=prior.items?.find(model=>model.title===title)
+    if(existing){clone.referenceId=existing._id;await writeRow('voice-clones',id,clone)}
+  }
   if(clone.referenceId) await fish(`/model/${encodeURIComponent(clone.referenceId)}`,{method:'DELETE'},true)
   for(const key of [clone.recordingKey,clone.sampleKey]) if(key) await deleteAsset(key)
   clone.state='deleted';clone.recordingKey=null;clone.sampleKey=null;clone.error=null;await writeRow('voice-clones',id,clone)
   const selected=await selectedVoice();if(selected.kind==='clone' && selected.id===id) await saveSetting('selected-voice',{kind:'record'})
+}
+
+export const deleteClone=async (id:string) => {
+  if(active.has(id)) throw new Error('Wait for the current voice operation to finish')
+  const work=removeClone(id);active.set(id,work)
+  try{await work}finally{active.delete(id)}
 }

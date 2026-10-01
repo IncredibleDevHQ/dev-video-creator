@@ -260,3 +260,13 @@ Presenter layout-change follow-up:
   the full scene duration. Nine targeted tests and the production build passed.
 - Existing exported videos were not regenerated; this is compositor evidence,
   not visual acceptance of a new creator export.
+
+Clone deletion recovery:
+- Deleting a clone without a persisted provider reference first searches for its
+  exact Studio identity, covering a lost creation response. The recovered
+  reference is saved before deletion; provider failure retains local evidence
+  for an explicit retry. Similar names are not deleted.
+- The current worker holds the clone-operation lock during deletion so a list
+  refresh cannot restart its training concurrently. Seven isolated protocol
+  tests and the production build pass. No live clone was created or deleted;
+  provider quality/deletion acceptance and multi-worker coordination remain open.

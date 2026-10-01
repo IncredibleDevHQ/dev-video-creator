@@ -71,3 +71,42 @@ it('stops expired clone polling and explicit retry reuses its provider reference
  expect(newCalls.some(([url])=>url.endsWith('/model/retained-private-model'))).toBe(true)
  expect(newCalls.some(([,init])=>init?.method==='POST')).toBe(false)
 })
+
+it('recovers a lost creation response before deletion and retains evidence if remote deletion fails',async()=>{
+ const clone:VoiceClone={id:'lost-response',name:'My voice',state:'failed',recordingKey:null,sampleKey:null,duration:30,consentAt:new Date().toISOString(),error:'Connection lost'}
+ await writeRow('voice-clones',clone.id,clone)
+ fetcher.mockImplementationOnce(async()=>Response.json({items:[{_id:'unrelated',title:'Studio voice another-id'},{_id:'recovered-model',title:'Studio voice lost-response'}]}))
+ fetcher.mockImplementationOnce(async()=>new Response('Unavailable',{status:503}))
+ await expect(deleteClone(clone.id)).rejects.toThrow('voice provider')
+ const retained=await readRow<VoiceClone>('voice-clones',clone.id)
+ expect(retained?.state).toBe('failed');expect(retained?.referenceId).toBe('recovered-model')
+ expect(fetcher.mock.calls.at(-1)?.[0]).toMatch(/\/model\/recovered-model$/)
+ expect(fetcher.mock.calls.at(-1)?.[1]?.method).toBe('DELETE')
+ const calls=fetcher.mock.calls.length
+ await deleteClone(clone.id)
+ expect(fetcher.mock.calls.slice(calls)).toHaveLength(1)
+ expect((await readRow<VoiceClone>('voice-clones',clone.id))?.state).toBe('deleted')
+})
+it('does not delete a different provider clone with a similar title',async()=>{
+ const clone:VoiceClone={id:'never-created',name:'My voice',state:'failed',recordingKey:null,sampleKey:null,duration:30,consentAt:new Date().toISOString(),error:'Failed'}
+ await writeRow('voice-clones',clone.id,clone)
+ fetcher.mockImplementationOnce(async()=>Response.json({items:[{_id:'unrelated',title:'Studio voice never-created-other'}]}))
+ const calls=fetcher.mock.calls.length
+ await deleteClone(clone.id)
+ expect(fetcher.mock.calls.slice(calls)).toHaveLength(1)
+ expect((await readRow<VoiceClone>('voice-clones',clone.id))?.state).toBe('deleted')
+})
+it('does not restart clone training while deletion is checking the provider',async()=>{
+ const clone:VoiceClone={id:'deleting',name:'My voice',state:'creating',recordingKey:null,sampleKey:null,duration:30,consentAt:new Date().toISOString(),error:null}
+ await writeRow('voice-clones',clone.id,clone)
+ let finish!:(response:Response)=>void
+ fetcher.mockImplementationOnce(()=>new Promise<Response>(resolve=>{finish=resolve}))
+ const removal=deleteClone(clone.id)
+ await vi.waitFor(()=>expect(finish).toBeTypeOf('function'))
+ const calls=fetcher.mock.calls.length
+ await listClones()
+ expect(fetcher.mock.calls).toHaveLength(calls)
+ await expect(deleteClone(clone.id)).rejects.toThrow('current voice operation')
+ finish(Response.json({items:[]}));await removal
+ expect((await readRow<VoiceClone>('voice-clones',clone.id))?.state).toBe('deleted')
+})
