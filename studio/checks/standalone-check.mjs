@@ -7,7 +7,8 @@ const execute=promisify(execFile),cwd=fileURLToPath(new URL('..',import.meta.url
 const {stdout:prefix}=await execute('git',['rev-parse','--show-prefix'],{cwd})
 const source=prefix.trim().replace(/\/$/,'')
 if(!source)throw new Error('Run this check from the standalone studio folder in its Git checkout.')
-const {stdout:archive}=await execute('git',['archive',`HEAD:${source}`],{cwd,encoding:'buffer',maxBuffer:64*1024*1024})
+const {stdout:repository}=await execute('git',['rev-parse','--show-toplevel'],{cwd})
+const {stdout:archive}=await execute('git',['archive',`HEAD:${source}`],{cwd:repository.trim(),encoding:'buffer',maxBuffer:64*1024*1024})
 const {stdout:revision}=await execute('git',['rev-parse','HEAD'],{cwd})
 const name=`studio-standalone-${randomUUID()}`
 console.log(`Checking committed studio ${revision.trim()} in a fresh Linux container.`)
@@ -15,6 +16,7 @@ const script=`set -eu
 mkdir /studio
 tar -xf - -C /studio
 cd /studio
+test -f package.json || { echo 'Source archive is missing package.json'; exit 1; }
 echo 'Installing system prerequisites'
 apt-get update -qq
 apt-get install -y -qq ffmpeg python3 chromium >/tmp/system-install.log
