@@ -8,11 +8,13 @@ vi.mock('./take-clock',async importOriginal => ({...await importOriginal<typeof 
 const root = await mkdtemp(join(tmpdir(),'minimal-audio-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { prepareMomentAudio } = await import('./scene-audio')
-const { probeSeconds,runCommand } = await import('./voice')
+const { probeSeconds,runCommand,systemVoiceAvailable } = await import('./voice')
 const { dataRoot,storeAsset } = await import('./persistence')
 const { readFile } = await import('node:fs/promises')
 afterAll(() => rm(root,{recursive:true,force:true}))
-it('speaks an auto moment and uses measured sound as its clock',async () => {
+const voiceTest=it.skipIf(!(await systemVoiceAvailable()))
+// These integration cases use the real local OS voice, available on macOS only.
+voiceTest('speaks an auto moment and uses measured sound as its clock',async () => {
   const moment = normalizeMoments({moments:[{title:'One',lines:'Every request spends one token.',seconds:8,camera:'none',layout:'corner',overlay:null,cue:''}]},'s','off','body')[0]
   const made = await prepareMomentAudio('p','s',moment,{kind:'ai',id:'default'})
   expect(made.audio?.duration).toBeGreaterThan(1)
@@ -21,7 +23,7 @@ it('speaks an auto moment and uses measured sound as its clock',async () => {
   expect(made.media?.clips.every(clip => !clip.camera)).toBe(true)
   expect(await prepareMomentAudio('p','s',made,{kind:'ai',id:'default'})).toBe(made)
 },20000)
-it('mixes recorded and generated segments and retains camera source offsets',async () => {
+voiceTest('mixes recorded and generated segments and retains camera source offsets',async () => {
   const moments = normalizeMoments({moments:[{title:'One',lines:'Requests arrive. Tokens refill.',seconds:4,camera:'start',layout:'corner',overlay:null,cue:'',segments:[{lines:'Requests arrive.',seconds:2,camera:true},{lines:'Tokens refill.',seconds:2,camera:false}]},{title:'End',lines:'That is the rule.',seconds:2,camera:'full',layout:'corner',overlay:null,cue:''}]},'s','high','body')
   const moment = moments[0]
   const fixture = join(root,'take.webm')
