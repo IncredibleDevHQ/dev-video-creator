@@ -169,6 +169,10 @@ it('shows a retained matching recording in its presenter space instead of the st
  expect(document.querySelector('.presenter-preview [data-saved-presenter]')?.getAttribute('src')).toBe('/objects/saved.webm')
  expect(document.querySelector('.video-stage > svg')).not.toBeNull()
  expect(document.querySelector('.presenter-preview img')).toBeNull()
+ expect(document.querySelector('[data-saved-presenter]')?.hasAttribute('controls')).toBe(false)
+ expect(document.querySelector('.video-stage > .layered-controls')).not.toBeNull()
+ expect(render(input)).toContain('Finish scene 1')
+ expect(render(input)).not.toContain('Generate animation')
  scene.moments[0].recordingKey='changed'
  expect(render(input)).not.toContain('data-saved-presenter')
 })

@@ -1,3 +1,4 @@
+import {layeredPlayback} from './layered-playback'
 import {workspacePosition,workspaceUrl} from './workspace-position'
 import {seekSavedMedia} from './media-seek'
 import {savedMediaRecovery} from './media-recovery'
@@ -53,6 +54,7 @@ const practice = new PracticePlayback((clip,at)=>{
   if(changed) render()
   const presenter=root.querySelector<HTMLElement>('.presenter-preview');if(presenter) presenter.hidden=!clip.camera
   syncAnimation()
+  syncLayeredPlayback()
   movePlayhead(root,scene?.moments || [],second)
   const cue=root.querySelector('.practice-cue>span');if(cue) cue.textContent=clip.lines
   const chip=root.querySelector('.anchor-chip');if(chip) chip.textContent=`${second.toFixed(1)}s · moment ${momentIndex+1}`
@@ -80,6 +82,11 @@ const capture = new Recording(() => {
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
 }, reason => recordingFailed(reason))
+const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
+ const scene=snapshot?.project.video?.scenes[selected],moment=scene?.moments[momentIndex];if(!scene || !moment)return
+ const parts=capture.phase==='reviewing' || capture.phase==='uploading'?capture.parts:[{momentId:moment.id,recordingKey:moment.recordingKey,from:0,to:moment.take?.duration || moment.end-moment.start}]
+ const at=takeReviewPosition(scene.moments,parts,time);if(at)syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)
+})
 const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,practice.active || capture.phase==='recording')}
 let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
 let pendingRecording: import('../shared/model').Moment[] | null = null
@@ -146,6 +153,7 @@ const render = () => {
   }
   syncMediaRecovery()
   syncAnimation()
+  syncLayeredPlayback()
   movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
   if (camera && (capture.stream || practiceStream)) { camera.srcObject = capture.stream || practiceStream; void camera.play().catch(() => {}) }

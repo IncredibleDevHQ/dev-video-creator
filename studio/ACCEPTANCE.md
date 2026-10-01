@@ -14,7 +14,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: the user physically captured Scene 3 moment 1; its 28.466-second take was saved through the UI and verified in the persisted notebook. Open-pass capture, permission denial, retake and final composition still need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
-| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 292 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
+| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 295 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
 | Notebook-scoped artifacts and S3 portability | Indexed checksummed immutable artifacts, configurable endpoint/bucket/region/credentials, SDK credential-chain MinIO check | Machinery proven on MinIO; AWS deployment has not been exercised. |
 | One composition pass, independent animation and recording | Animation checkpoints use design inputs; finishing/retakes reuse them. Unit and remote composition checks. | Implemented. Actual Canvas scenes 5–9 use the new path; older scenes 1–4 are retained legacy outputs. Do not regenerate them solely to migrate. |
 | Bounded usage and transparent waiting | Bounded harness stages, explicit interrupted-run retry, deduplication, token reporting, shared event worker, bounded SSE leases, fixed activity frontier | Implemented with regression coverage; live progress details and recovery visuals need current native verification. |
@@ -24,7 +24,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 
 ## Reproducible evidence
 
-- `yarn run check`: 76 test files, 292 tests passed on 1 October 2026.
+- `yarn run check`: 78 test files, 295 tests passed on 1 October 2026.
 - Startup preflight is tested with missing tools in an isolated temporary path;
   the engine refuses startup without creating notebook data. This does not prove
   clean-machine provisioning.
@@ -148,6 +148,20 @@ Creative composition now has a four-minute wall deadline, sixty-second
 inactivity deadline and thirty-tool-call cap in addition to its existing
 submission budget. `checks/presenter-finish.live.mjs` copies a retained isolated
 diagnostic and runs one real composition/final compositor check against its
-saved presenter take. The first run is currently active in
+saved presenter take. The first run stopped on its inactivity limit in
 `/var/folders/qs/c7jp5csj6vx6wpmn3qylx7bh0000gn/T/studio-presenter-finish-live-1bUNco`;
-its completion is not yet proven. The creator’s current notebook is unchanged.
+it did not produce a final video. The creator’s current notebook is unchanged.
+
+Native Scene 3 verification now proves the saved 28.466s take loads with
+readyState 4 and no media error. The single canvas transport plays and pauses
+it (paused at approximately 14s), with the presenter beside the slide and
+“Finish scene 3” visible. Screenshot: `/tmp/studio-global-recording-controls.png`.
+FFmpeg decoded its Opus audio: mean -31.5 dB, peak -7.7 dB. This proves recorded
+sound, not a transcript match. This older scene has no separate animation yet,
+so synchronized moving animation plus presenter remains to be verified after
+a successful final render.
+
+Claude now requests partial streaming messages and emits throttled activity
+for actual incoming chunks without persisting private reasoning or partial
+code. Protocol checks cover redaction and ignoring pings. The stopped isolated
+finish run has not been retried after this correction.
