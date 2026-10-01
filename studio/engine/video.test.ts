@@ -209,3 +209,15 @@ it('limits a scene camera override to that scene and supports returning to the n
  expect((await loadProject('render-presence'))!.project).toEqual(before.project)
  expect(generate).not.toHaveBeenCalled()
  })
+it('refuses a global settings change during production without queuing another plan',async()=>{
+ await seed('busy-settings')
+ const saved=(await loadProject('busy-settings'))!
+ saved.project.video={settings:{presence:'off',voice:{kind:'ai',id:'default'}},scenes:[],transitions:[],inputKey:'',produced:null}
+ reconcileVideo(saved.project);saved.project.video.scenes[0].phase='producing'
+ await writeRow('projects','busy-settings',saved)
+ await expect(updateVideoSettings('busy-settings',{presence:'high',voice:{kind:'ai',id:'default'}})).rejects.toThrow('active scene work')
+ const after=(await loadProject('busy-settings'))!
+ expect(after.project.video?.settings).toEqual(saved.project.video.settings)
+ expect(after.project.video?.scenes[0].phase).toBe('producing')
+ expect(generate).not.toHaveBeenCalled()
+})

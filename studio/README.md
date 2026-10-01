@@ -143,3 +143,13 @@ and camera review use frame-based playhead motion and time updates for transcrip
 selection. Regression checks cover skipped moments, unequal durations, obsolete
 recording inputs and partial-pass endings. Native review playback verification
 remains pending.
+
+Notebook settings now preview their effect before applying: inherited scene
+numbers that will be replanned, custom camera settings that remain, and whether
+a voice update requires finishing scenes again with reusable animations. The
+preview retains the chosen settings when going back to edit them. Saved takes
+remain available; only takes that match the revised recording requirements are
+reused after replanning. Active planning, scene rendering or joining prevents a
+global settings replacement, avoiding competing work and discarded paid runs.
+Regression tests cover inherited/custom scenes, voice-only and no-op changes,
+and refusal during production. Native visual verification remains pending.

@@ -166,6 +166,7 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
   const snapshot = await changeProject(id, current => {
     const video = current.project.video
     if (!video) throw new Error('Make the video first')
+    if(['preparing','joining'].includes(video.phase || '') || video.scenes.some(scene=>['writing','replanning','changing','producing'].includes(scene.phase)))throw new Error('Wait for the active scene work to finish before changing notebook settings. Saved work is kept.')
     const oldPresence = video.settings.presence
     video.settings = {...valid,...!valid.harness && video.settings.harness?{harness:video.settings.harness}:{}}
     reconcileVideo(current.project)

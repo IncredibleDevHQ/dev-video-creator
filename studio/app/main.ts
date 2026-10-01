@@ -1,3 +1,4 @@
+import {videoSettingsPreview} from './video-settings-preview'
 import {takeReviewPosition} from './take-review-clock'
 import {NotebookOpening,notebookOpeningView} from './notebook-opening'
 import {momentViewKey} from '../shared/model'
@@ -74,10 +75,11 @@ const capture = new Recording(() => {
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
 }, reason => error(reason))
 const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,practice.active || capture.phase==='recording')}
+let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
 let pendingRecording: import('../shared/model').Moment[] | null = null
 const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=[moment];const scene=snapshot?.project.video?.scenes[selected];showDialog(recordingSetup(moment,index,scene?snapshot?.views?.scenes[scene.id]?.openMomentIds.length:1))}
 const prepareRecordingPass=(moments:import('../shared/model').Moment[])=>{stopPractice();pendingRecording=moments;const scene=snapshot!.project.video!.scenes[selected];showDialog(recordingPassSetup(moments,moments.map(moment=>scene.moments.findIndex(item=>item.id===moment.id))))}
-const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog)
+const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog);dialog.addEventListener('close',()=>{pendingVideoSettings=null})
 const settingsScreen = new Settings(root,()=>snapshot?.project.id || null,()=>render(),async () => {if(snapshot) snapshot=await api.load(snapshot.project.id)})
 const pendingChats=new Set<string>()
 let liveConnected=true
@@ -199,7 +201,9 @@ document.addEventListener('submit', async event => {
     if (['video-form','video-settings-form'].includes(form.id) && snapshot) {
       const presence = String(values.get('presence')) as Presence
       const voice = String(values.get('voice'))
-      snapshot = await (form.id === 'video-form' ? api.makeVideo : api.updateVideo)(snapshot.project.id, { presence, voice: parseVoice(voice) })
+      const next={presence,voice:parseVoice(voice)}
+      if(form.id==='video-settings-form'){pendingVideoSettings=next;showDialog(videoSettingsPreview(snapshot.project,next));return}
+      snapshot = await api.makeVideo(snapshot.project.id,next)
       dialog.close(); stage = 'video'; selected = 0; momentIndex = 0; second = 0; render()
     }
     if (form.id === 'video-chat' && snapshot) {
@@ -246,11 +250,12 @@ document.addEventListener('click', async event => {
     if (action === 'stop-slides') { target.setAttribute('disabled','');target.textContent='Stopping…';snapshot=await api.stopSlides(id);render() }
     if (action === 'retry-slides') { snapshot = await api.retrySlides(id); render() }
     if (action === 'export') await downloadPresentation(id,target)
+    if(action==='confirm-video-settings' && pendingVideoSettings){snapshot=await api.updateVideo(id,pendingVideoSettings);pendingVideoSettings=null;dialog.close();render();return}
     if (action === 'video-settings') {
-      showDialog(makeVideoDialog(await api.settings(),snapshot.project.video!.settings))
+      showDialog(makeVideoDialog(await api.settings(),pendingVideoSettings || snapshot.project.video!.settings))
       const form = dialog.querySelector<HTMLFormElement>('#video-form, #video-settings-form')!; form.id = 'video-settings-form'
       dialog.querySelector('h2')!.textContent = 'Notebook settings'
-      form.querySelector('button[type=submit]')!.textContent = 'Apply and re-plan'
+      form.querySelector('button[type=submit]')!.textContent = 'Review changes'
       const message = document.createElement('p'); message.textContent = 'On-camera changes re-plan scenes using the video setting. Matching recordings are kept.'; form.prepend(message);form.insertAdjacentHTML('afterend',button('App settings','settings'))
     }
     if(action==='view-slides'){stage='presentation';render()}
