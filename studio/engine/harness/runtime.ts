@@ -18,7 +18,7 @@ export type HarnessStage = 'story' | 'drawing' | 'planning' | 'composition'
 export type EngineRun = {
   id: string; projectId: string; sceneId?: string; stage: HarnessStage; adapter: HarnessId
   status: 'preparing' | 'running' | 'done' | 'error' | 'cancelled'
-  model?: string; reportedModel?: string; resumeId?: string
+  model?: string; effort?:'low'|'medium'|'high'|'xhigh'|'max'; reportedModel?: string; resumeId?: string
   usage?:import('../../shared/usage').TokenUsage
   startedAt: string; finishedAt?: string; failure?: RunFailure; events: HarnessEvent[]
 }
@@ -40,7 +40,7 @@ const validId = (id:string) => /^[a-zA-Z0-9_-]+$/.test(id)
 const packetPath = (name:string) => /^(?:packet|media)\/(?:[a-zA-Z0-9_.-]+\/)*[a-zA-Z0-9_.-]+$/.test(name) && !name.split('/').some(part => part==='.' || part==='..')
 /** A model exit is not acceptance: the owning stage validates its submission. */
 export const runEngineStage = async (input: {
-  projectId:string;sceneId?:string;stage:HarnessStage;adapter:HarnessId;model?:string;task:string
+  projectId:string;sceneId?:string;stage:HarnessStage;adapter:HarnessId;model?:string;effort?:'low'|'medium'|'high'|'xhigh'|'max';task:string
   productionSeed?:Record<string,string|Buffer>;packet:Record<string,string|Buffer>;context:HarnessContext;tools?:(directory:string)=>EngineTool[];route?:string;stageContext?:unknown
   accept:(directory:string)=>Promise<void>;onEvent?:(event:HarnessEvent)=>Promise<void>|void
   observe?:(directory:string)=>Promise<void>;adapterOverride?:HarnessAdapter;timeoutMs?:number;idleTimeoutMs?:number;maxToolCalls?:number;redact?:string[]
@@ -56,7 +56,7 @@ export const runEngineStage = async (input: {
   const adapter=input.adapterOverride || createAdapters(input.context).find(adapter => adapter.id===input.adapter)
   if(!adapter || adapter.id!==input.adapter) throw new Error('Choose a harness')
   const id=randomUUID();const directory=join(dataRoot,'engine-workspaces',input.projectId,id)
-  const record:EngineRun={id,projectId:input.projectId,sceneId:input.sceneId,stage:input.stage,adapter:input.adapter,model:input.model,status:'preparing',startedAt:new Date().toISOString(),events:[]}
+  const record:EngineRun={id,projectId:input.projectId,sceneId:input.sceneId,stage:input.stage,adapter:input.adapter,model:input.model,effort:input.effort,status:'preparing',startedAt:new Date().toISOString(),events:[]}
   await writeRow('engine-runs',id,record)
   const controller=new AbortController();active.set(id,controller)
   if(shuttingDown) controller.abort()
@@ -127,7 +127,7 @@ export const runEngineStage = async (input: {
       observing=input.observe!(directory).catch(error=>{progressFailure=error;controller.abort()}).finally(()=>{observerBusy=false})
     },1000)
     if(controller.signal.aborted) throw new Error(limitReason || 'The engine run was interrupted')
-    const result=await adapter.run({id,skill:skills[input.stage],projectDir:directory,inputs:{task:input.task,model:input.model,submissionToken:submissions?.token,capabilityScope:input.stage==='composition'?'production':input.stage==='planning'?'planning':undefined}},emit,controller.signal)
+    const result=await adapter.run({id,skill:skills[input.stage],projectDir:directory,inputs:{task:input.task,model:input.model,effort:input.effort,submissionToken:submissions?.token,capabilityScope:input.stage==='composition'?'production':input.stage==='planning'?'planning':undefined}},emit,controller.signal)
     clearInterval(observer);await observing;await input.observe?.(directory)
     await queue
     if(progressFailure) throw progressFailure

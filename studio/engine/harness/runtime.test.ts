@@ -19,8 +19,9 @@ it('writes an isolated packet and requires stage acceptance after a successful C
     expect(await readFile(join(directory,'packet/PLAN.json'),'utf8')).toContain('fixture')
     expect(await readFile(join(directory,'.claude/skills/video-planner/SKILL.md'),'utf8')).toContain('Synthetic')
   })
-  const result=await runEngineStage({...base,accept,adapterOverride:adapter(async(run,emit)=>{
+  const result=await runEngineStage({...base,effort:'high',accept,adapterOverride:adapter(async(run,emit)=>{
     expect(run.inputs.capabilityScope).toBe('planning')
+    expect(run.inputs.effort).toBe('high')
     emit({type:'session',ts:1,model:'fixture-model'});emit({type:'text',ts:2,text:'Synthetic result'})
     return {exitCode:0,resumeId:'fixture-session'}
   })})

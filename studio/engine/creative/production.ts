@@ -61,7 +61,7 @@ export const buildCreativeProduction=async(project:Project,scene:Scene,origin:st
   accepted=files
   return{accepted:true,warnings:report.warnings,unmet:report.manifest?.unmet || []}
  }
- const run=await runEngineStage({projectId:project.id,sceneId:scene.id,stage:'composition',timeoutMs:240000,idleTimeoutMs:60000,maxToolCalls:30,productionSeed,adapter:record.selection.adapter,model:record.selection.model,context:creativeContext(origin),route:'Produce Scene',stageContext:{inputKey:scene.inputKey,planRecord:record.id},
+ const run=await runEngineStage({projectId:project.id,sceneId:scene.id,stage:'composition',effort:record.selection.adapter==='claude-code'?'high':undefined,timeoutMs:240000,idleTimeoutMs:60000,maxToolCalls:30,productionSeed,adapter:record.selection.adapter,model:record.selection.model,context:creativeContext(origin),route:'Produce Scene',stageContext:{inputKey:scene.inputKey,planRecord:record.id},
   packet:{
    'packet/PLAN.json':JSON.stringify(record.treatment,null,2),
    'packet/VISUAL_CAST.json':JSON.stringify(cast.visualCast),...cast.media,
