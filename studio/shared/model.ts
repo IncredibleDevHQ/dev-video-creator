@@ -9,6 +9,7 @@ export type MediaClip = { start: number; end: number; camera: boolean; videoKey?
 export type Moment = {
   id: string
   lines: string
+  extension?: { baseLines: string; baseSeconds: number; baseCamera?: CameraWindow; baseSegments?: MomentSegment[]; text: string; seconds: number }
   title?: string
   cue?: string
   plannedSeconds?: number

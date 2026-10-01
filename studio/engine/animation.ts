@@ -20,7 +20,8 @@ export const prepareSceneAnimation=async(project:Project,scene:Scene,progress:(m
  const source=structuredClone(scene);source.inputKey=`animation-${key}`
  let at=0
  for(const moment of source.moments){
-  const seconds=moment.plannedSeconds || moment.segments?.reduce((n,s)=>n+s.estimate,0) || moment.end-moment.start
+  const seconds=moment.extension?.baseSeconds || moment.plannedSeconds || moment.segments?.reduce((n,s)=>n+s.estimate,0) || moment.end-moment.start
+  if(moment.extension){moment.lines=moment.extension.baseLines;moment.segments=moment.extension.baseSegments;moment.camera=moment.extension.baseCamera ?? moment.camera}
   moment.start=at;moment.end=at+seconds;at=moment.end
  }
  const dir=await mkdtemp(join(tmpdir(),'studio-animation-clock-'))

@@ -1,3 +1,4 @@
+import {dialogueWordAt} from '../shared/dialogue'
 import type {Moment} from '../shared/model'
 import {escape} from './ui'
 export const transcriptWords=(text:string)=>(text.match(/\S+|\s+/g) || []).map(part=>/^\s+$/.test(part)?part:`<span data-transcript-word>${escape(part)}</span>`).join('')
@@ -9,7 +10,7 @@ export function wordAt(lines:string,start:number,end:number,second:number){
 const followed=new WeakMap<HTMLElement,string>()
 export function followTranscript(root:HTMLElement,moments:Moment[],second:number,index:number){
  const moment=moments[index];if(!moment)return
- const active=wordAt(moment.lines,moment.start,moment.end,second)
+ const active=dialogueWordAt(moment,second)
  root.querySelectorAll<HTMLElement>('[data-prompter]').forEach(script=>{
   let currentWord:HTMLElement|undefined
   script.querySelectorAll<HTMLElement>('[data-transcript-word]').forEach((word,i)=>{

@@ -7,6 +7,8 @@ import type { VideoSettings, Presence, Transition } from '../shared/model'
 import type { Snapshot, NotebookSummary, CreateProject, SlideEdit, ChatRequest, ReplanPreview, RecordedPart } from '../shared/api'
 const request = <T>(path:string,method='GET',body?:unknown):Promise<T>=>requestJson(`/api${path}`,{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined})
 export const api = {
+  extension:(id:string,scene:string,moment:string,text:string,recordingKey:string)=>request<Snapshot>(`/projects/${id}/scenes/${scene}/moments/${moment}/extension`,'POST',{text,recordingKey}),
+  suggestExtension:(id:string,scene:string,moment:string,text:string,seconds:number,recordingKey:string)=>request<{text:string}>(`/projects/${id}/scenes/${scene}/moments/${moment}/extension/suggest`,'POST',{text,seconds,recordingKey}),
   harnesses:()=>request<import('./choose-ai').HarnessChoices>('/harnesses'),
   notebooks:()=>request<NotebookSummary[]>('/projects'),
   create: (body: CreateProject) => request<Snapshot>('/projects', 'POST', body),

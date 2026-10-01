@@ -48,6 +48,8 @@ export const normalizeMoments = (raw: unknown, sceneId: string, presence: Presen
       moment.segments = [{ id: `${moment.id}-segment-1`, lines, camera: moment.camera === 'full', estimate: seconds }]
     }
     clock = moment.end; moment.recordingKey = recordingKeyOf(moment)
+    const unchanged=previous.find(old=>old.id===moment.id && old.recordingKey===moment.recordingKey)
+    if(unchanged?.extension){moment.extension=structuredClone(unchanged.extension);moment.segments=structuredClone(unchanged.segments)}
     moment.take = previous.find(old => old.id === moment.id && old.recordingKey === moment.recordingKey)?.take || null
     return moment
   })

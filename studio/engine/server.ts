@@ -1,3 +1,4 @@
+import {saveDialogueExtension,suggestDialogueExtension} from './dialogue-extension'
 import {sceneCover} from './video-cover'
 import {withProgress} from './progress'
 import {exportPresentation} from './presentation-export'
@@ -55,6 +56,8 @@ export const createStudioServer = (options:{readOnly?:boolean,eventsLifetimeMs?:
       for await (const chunk of request) { size += chunk.length; if (size > 2_000_000) throw new Error('Request too large'); chunks.push(new Uint8Array(chunk)) }
       body = JSON.parse(Buffer.concat(chunks).toString())
     }
+    const extensionRoute=url.pathname.match(/^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/moments\/([a-zA-Z0-9_-]+)\/extension(?:\/(suggest))?$/)
+    if(extensionRoute && request.method==='POST')return send(response,200,await (extensionRoute[4]?suggestDialogueExtension:saveDialogueExtension)(extensionRoute[1],extensionRoute[2],extensionRoute[3],body))
     if(url.pathname==='/mcp' && request.method==='POST') {const reply=await handleEngineRpc(url.searchParams.get('run') || '',body);return send(response,reply.httpStatus,reply.body)}
     if(url.pathname==='/api/harnesses' && request.method==='GET') return send(response,200,{selected:await loadHarnessPreference(),available:await inspectHarnesses(creativeContext('http://127.0.0.1'))})
     if (url.pathname === '/api/settings') {

@@ -1,3 +1,4 @@
+import {dialogueBoundary} from './dialogue'
 /** A recorded/rehearsed interval and the animation interval it drives. */
 export type SceneTimeSpan={start:number;end:number;sceneStart:number;sceneEnd:number}
 /** Map media time to animation time without changing either track's source. */
@@ -22,5 +23,10 @@ export const animationSecond=(scene:import('./model').Scene,second:number,toAnim
  const animation=scene.animation
  if(!animation || animation.inputKey!==scene.animationKey)return second
  if(animation.moments.length!==scene.moments.length || scene.moments.some((m,i)=>m.id!==animation.moments[i].id))throw new Error('The animation clock does not match this scene')
+ if(scene.moments.some(m=>m.extension)){
+  const index=Math.max(0,(toAnimation?scene.moments:animation.moments).findIndex((m,i,all)=>second<m.end || i===all.length-1))
+  const m=scene.moments[index],a=animation.moments[index],boundary=dialogueBoundary(m)
+  return toAnimation?a.start+Math.min(1,Math.max(0,(second-m.start)/boundary))*(a.end-a.start):m.start+Math.max(0,Math.min(1,(second-a.start)/(a.end-a.start)))*boundary
+ }
  return sceneTimeMap(scene.moments.map((m,i)=>{const a=animation.moments[i];return toAnimation?{start:m.start,end:m.end,sceneStart:a.start,sceneEnd:a.end}:{start:a.start,end:a.end,sceneStart:m.start,sceneEnd:m.end}}))(second)
 }

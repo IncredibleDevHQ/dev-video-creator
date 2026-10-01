@@ -1,3 +1,4 @@
+import {dialogueBoundary} from '../shared/dialogue'
 import {presenterMotion,presenterWeightExpression} from '../shared/presenter-motion'
 import {presenterLayout} from '../shared/presenter-layout'
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises'
@@ -33,9 +34,14 @@ export const composePresenter=async(input:{animation:Buffer;animationMoments:Ani
   }
   const filters:string[]=[]
   for(const [i,part] of parts.entries()){
-   const length=part.end-part.start,from=animationTime(part.start),to=animationTime(part.end)
+   const moment=input.moments.find(m=>m.id===part.momentId)!,base=input.animationMoments.find(m=>m.id===part.momentId)!
+   const length=part.end-part.start,boundary=moment.start+dialogueBoundary(moment)
+   const map=(t:number)=>base.start+Math.min(1,Math.max(0,(t-moment.start)/(boundary-moment.start)))*(base.end-base.start)
+   const from=moment.extension?Math.min(base.end-1/30,map(part.start)):animationTime(part.start)
+   const to=moment.extension?Math.min(base.end,map(part.end)):animationTime(part.end)
+   const moving=moment.extension?Math.max(0,Math.min(part.end,boundary)-part.start):length
    if(!(length>0 && to>from))throw new Error('The scene has an empty interval')
-   filters.push(`[0:v]trim=start=${from}:end=${to},setpts=(PTS-STARTPTS)*${length/(to-from)},fps=30,scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[content${i}]`)
+   filters.push(`[0:v]trim=start=${from}:end=${to},setpts=(PTS-STARTPTS)*${moving>0?moving/(to-from):1},tpad=stop_mode=clone:stop_duration=${Math.max(0,length-moving)},trim=duration=${length},fps=30,scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[content${i}]`)
    if(!part.camera){filters.push(`[content${i}]null[part${i}]`);continue}
    const full=part.layout==='full-screen'
    const {content,camera}=presenterLayout(part.layout)

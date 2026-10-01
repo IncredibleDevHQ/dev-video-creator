@@ -70,3 +70,20 @@ it.each([false,true])('preserves timing across a presenter transition (next came
   if(changesLayout)expect((await pixel(1.5,1700,800))[1]).toBeGreaterThan(220)
  }finally{await rm(dir,{recursive:true,force:true})}
 },30000)
+
+it('holds the final animation frame during extra spoken dialogue instead of slowing it down',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'studio-extension-render-'))
+ try{
+  const base=join(dir,'base.mp4'),audio=join(dir,'audio.wav'),output=join(dir,'result.mp4')
+  await runCommand('ffmpeg',['-y','-f','lavfi','-i','color=blue:s=160x90:r=30:d=1','-f','lavfi','-i','color=red:s=160x90:r=30:d=1','-filter_complex','[0:v][1:v]concat=n=2:v=1:a=0[v]','-map','[v]','-c:v','libx264',base])
+  await runCommand('ffmpeg',['-y','-f','lavfi','-i','anullsrc=r=48000:cl=stereo','-t','4',audio])
+  const moment:Moment={id:'m',start:0,end:4,lines:'Base. Extra.',plannedSeconds:4,camera:'full',layout:'beside-slide',overlay:null,recordingKey:'k',audioKey:'a',take:null,audio:null,extension:{baseLines:'Base.',baseSeconds:2,text:'Extra.',seconds:2},segments:[{id:'base',lines:'Base.',camera:false,estimate:2},{id:'extra',lines:'Extra.',camera:false,estimate:2}],media:{inputKey:'a',clips:[{start:0,end:2,camera:false},{start:2,end:4,camera:false}]}}
+  await writeFile(output,await composePresenter({animation:await readFile(base),animationMoments:[{id:'m',start:0,end:2}],moments:[moment],audio:await readFile(audio)}))
+  expect(await probeSeconds(output)).toBeCloseTo(4,1)
+  for(const at of [1.5,2.5,3.7]){
+   const file=join(dir,`${at}.rgb`)
+   await runCommand('ffmpeg',['-y','-ss',String(at),'-i',output,'-frames:v','1','-vf','scale=1:1','-pix_fmt','rgb24','-f','rawvideo',file])
+   const pixel=await readFile(file);expect(pixel[0]).toBeGreaterThan(220);expect(pixel[2]).toBeLessThan(30)
+  }
+ }finally{await rm(dir,{recursive:true,force:true})}
+},30000)

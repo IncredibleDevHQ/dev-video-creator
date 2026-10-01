@@ -1,3 +1,5 @@
+import {dialogueStudio} from './dialogue-studio'
+import {dialogueBoundary} from '../shared/dialogue'
 import {practiceControls,recordControl} from './practice-controls'
 import {followTranscript,transcriptWords} from './transcript-follow'
 import {standInPlayback,standInControls} from './stand-in-playback'
@@ -34,6 +36,7 @@ import type { Presence, Transition } from '../shared/model'
 import { sceneAt, videoSecond } from '../shared/video-clock'
 import { cameraAt } from '../shared/camera-window'
 import './style.css'
+import './dialogue-studio.css'
 import incredibleLogo from './assets/incredible-logo.svg'
 const root = document.querySelector<HTMLDivElement>('#app')!
 const syncMediaRecovery=savedMediaRecovery(root)
@@ -64,7 +67,7 @@ const practice = new PracticePlayback((clip,at)=>{
   const scene=snapshot?.project.video?.scenes[selected];momentIndex=Math.max(0,scene?.moments.findIndex(moment=>moment.id===clip.momentId) ?? 0)
   if(changed) render()
   const presenter=root.querySelector<HTMLElement>('.presenter-preview');if(presenter) presenter.hidden=!clip.camera
-  syncAnimation();paintAnimationProgress()
+  syncAnimation();paintAnimationProgress();dialogue.paint(second)
   syncLayeredPlayback()
   followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   followTranscript(root,scene?.moments || [],second,momentIndex)
@@ -107,12 +110,13 @@ const capture = new Recording(() => {
 }, elapsed => {
   const moment = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)?.moments[momentIndex]
   second = Math.min(moment?.end ?? Infinity,(moment?.start || 0)+elapsed)
-  syncAnimation();paintAnimationProgress()
+  syncAnimation();paintAnimationProgress();dialogue.paint(second)
   const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${(capture.moments.length>1?capture.elapsed:elapsed).toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
   followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
   movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
   const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
 }, reason => recordingFailed(reason))
+const dialogue=dialogueStudio(root,()=>{const scene=snapshot?.project.video?.scenes[selected];return scene && (practiceOpen || capture.phase==='recording' || capture.phase==='countdown')?{projectId:snapshot!.project.id,scene,index:momentIndex,second,busy:practice.active || !!practiceCountdown || capture.phase!=='idle',recording:capture.phase==='recording',label:practiceCountdown?`Ready in ${practiceCountdown}…`:capture.phase==='countdown'?`Ready in ${capture.countdown}…`:capture.phase==='recording'?'● Recording':practice.active?'• Practicing':'• Read along'}:null},at=>{second=at;const scene=snapshot?.project.video?.scenes[selected];if(scene){followTranscript(root,scene.moments,at,momentIndex);syncPresenterLayout(root,scene.moments,Math.min(at,scene.moments[momentIndex].end-.08))}},value=>{snapshot=value;startRehearsal=replayPractice;render()})
 const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
  const scene=snapshot?.project.video?.scenes[selected],moment=scene?.moments[momentIndex];if(!scene || !moment)return
  const parts=capture.phase==='reviewing' || capture.phase==='uploading'?capture.parts:[{momentId:moment.id,recordingKey:moment.recordingKey,from:0,to:moment.take?.duration || moment.end-moment.start}]
@@ -137,11 +141,11 @@ standInPlayback(root,()=>{const scene=snapshot?.project.video?.scenes[selected];
 })
 const paintAnimationProgress=()=>{
  const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(!moment)return
- const duration=moment.end-moment.start,elapsed=Math.max(0,second-moment.start),finished=elapsed>=Math.max(0,duration-.3)
+ const duration=dialogueBoundary(moment),elapsed=Math.max(0,second-moment.start),finished=elapsed>=Math.max(0,duration-.3)
  const bar=root.querySelector<HTMLProgressElement>('[data-animation-progress]');if(bar){bar.max=duration;bar.value=finished?duration:elapsed}
  const label=root.querySelector('[data-animation-remaining]');if(label)label.textContent=finished?'Animation finished · keep speaking':`${Math.max(0,duration-elapsed).toFixed(1)}s of animation left`
 }
-const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,(practice.active && !practice.paused) || capture.phase==='recording' || !!root.querySelector('[data-stand-in-play]') && root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.paused===false)}
+const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,(practice.active && !practice.paused) || capture.phase==='recording' || dialogue.isPlaying() || !!root.querySelector('[data-stand-in-play]') && root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.paused===false)}
 let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
 let pendingRecording: import('../shared/model').Moment[] | null = null
 const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=[moment];const scene=snapshot?.project.video?.scenes[selected];showDialog(recordingSetup(moment,index,scene?snapshot?.views?.scenes[scene.id]?.openMomentIds.length:1))}
@@ -156,6 +160,7 @@ const opening=new NotebookOpening(api.load,value=>{if(openingAutoStage)stage=val
 const openNotebook=(id:string,autoStage=false)=>{openingAutoStage=autoStage;const url=new URL(location.href);if(url.searchParams.get('notebook')!==id){url.searchParams.delete('scene');url.searchParams.delete('moment')}url.searchParams.set('notebook',id);url.searchParams.delete('project');history.replaceState(null,'',url);return opening.open(id)}
 const render = () => {
   if(settingsScreen.isOpen) return
+  const selection=getSelection();const editSelection=document.activeElement?.closest('.dialogue-studio') && selection?.anchorNode?{anchor:selection.anchorNode,offset:selection.anchorOffset,focus:selection.focusNode,end:selection.focusOffset}:null
   const contextKey = [snapshot?.project.id,stage,selected].join(':')
   const sameContext = root.dataset.context === contextKey
   root.dataset.context = contextKey
@@ -249,6 +254,8 @@ const render = () => {
   root.querySelector<HTMLButtonElement>('#video-chat button')?.toggleAttribute('disabled',pendingChats.has(project.id))
   for (const draft of drafts) { const field = document.getElementById(draft.id); if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.value = draft.value }
   if (focusedId) document.getElementById(focusedId)?.focus()
+  dialogue.mount()
+  if(editSelection?.anchor.isConnected && editSelection.focus?.isConnected){root.querySelector<HTMLElement>('[data-ds=input]')?.focus({preventScroll:true});getSelection()?.setBaseAndExtent(editSelection.anchor,editSelection.offset,editSelection.focus,editSelection.end)}
   if (status === 'building' && !localStorage.getItem('studio-slides-explained') && !dialog.open) showExplainer()
 }
 const sendChat=async(request:import('../shared/api').ChatRequest)=>{
