@@ -1,3 +1,4 @@
+import {takeTrimRange,trimTake} from './take-trim'
 import {scriptEditProblems} from './moment-edit-scope'
 import {generationFailure} from './generation-errors'
 import type { Snapshot, ReplanPreview, ChatRequest } from '../shared/api'
@@ -147,6 +148,9 @@ export const replanPresence = async (id: string, sceneId: string, presence: unkn
 export const chatVideo = async (id: string, request: ChatRequest) => {
   if (!request || request.anchor?.stage !== 'video' || !request.instruction?.trim()) throw new Error('Choose a moment and add an instruction')
   const anchor = request.anchor
+  const trim=takeTrimRange(request.instruction)
+  if(trim)return trimTake(id,anchor,trim,request.instruction.trim())
+  if(/^(?:please\s+)?trim\s+(?:(?:this|my|the)\s+)?take\b/i.test(request.instruction.trim()))throw new Error('Give the seconds to keep, for example: “trim take from 1 to 5 seconds”. The take is unchanged.')
   const snapshot = await changeProject(id, current => {
     const scene = current.project.video?.scenes.find(scene => scene.id === anchor.sceneId)
     const moment = scene?.moments.find(moment => moment.id === anchor.momentId)

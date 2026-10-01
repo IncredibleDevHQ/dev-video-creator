@@ -162,3 +162,13 @@ old listeners, retry callbacks and timers. Four regression checks cover bounded
 waiting, explicit retry, position restoration and scene-switch cleanup. Native
 visual verification is still pending because the in-app browser inspection
 connection failed.
+
+Anchored video chat supports an explicit take edit such as `trim take from 0.3
+to 1.3 seconds` (times are relative to the selected moment’s take). It creates
+a new notebook/scene/moment-scoped recording artifact with its parent take and
+range retained in storage. The original remains available. Script and animation
+inputs stay unchanged; the measured clock updates and scene/joined exports become
+stale until finishing again. Ambiguous trim commands and ranges outside the take
+are rejected without replanning. Real synthetic camera-media checks verify the
+trimmed output decodes, lineage, timing and zero model calls. This does not prove
+physical-device recording or arbitrary natural-language trim interpretation.
