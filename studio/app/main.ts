@@ -97,7 +97,7 @@ const render = () => {
   const contextKey = [snapshot?.project.id,stage,selected].join(':')
   const sameContext = root.dataset.context === contextKey
   root.dataset.context = contextKey
-  const previousPlayer = root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player]')
+  const previousPlayer = root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player],[data-saved-presenter]')
   const playback = previousPlayer ? {src:previousPlayer.getAttribute('src'),time:previousPlayer.currentTime,playing:!previousPlayer.paused} : null
   const focused = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement ? document.activeElement : null
   const focusedId = sameContext ? focused?.id : null

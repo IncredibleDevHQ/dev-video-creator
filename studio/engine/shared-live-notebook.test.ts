@@ -23,7 +23,7 @@ it('uses worker updates, rejects another notebook, and releases the worker on cl
  worker.port.onmessage({data:{snapshot:{project:{id:'p'}}}});expect(update).toHaveBeenCalledOnce()
  worker.port.onmessage({data:{snapshot:{project:{id:'p'}}}});expect(update).toHaveBeenCalledOnce()
  doc.dispatchEvent(new Event('visibilitychange'));expect(worker.port.postMessage).toHaveBeenLastCalledWith({type:'watch',id:'p'})
- vi.advanceTimersByTime(30000);expect(worker.port.postMessage).toHaveBeenLastCalledWith({type:'ping'})
+ vi.advanceTimersByTime(30000);expect(worker.port.postMessage).toHaveBeenLastCalledWith({type:'watch',id:'p'})
  close();expect(worker.port.postMessage).toHaveBeenLastCalledWith({type:'stop'});expect(worker.port.close).toHaveBeenCalledOnce()
  const calls=worker.port.postMessage.mock.calls.length;vi.advanceTimersByTime(60000);doc.dispatchEvent(new Event('visibilitychange'))
  expect(worker.port.postMessage).toHaveBeenCalledTimes(calls)

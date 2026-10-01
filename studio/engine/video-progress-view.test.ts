@@ -161,3 +161,14 @@ it('uses a single audio player for microphone-only take review',async()=>{
  expect(document.querySelector('audio[data-take-player]')).not.toBeNull()
  expect(document.querySelector('.take-review')?.textContent).toContain('unchanged until you save')
 })
+
+it('shows a retained matching recording in its presenter space instead of the stand-in',async()=>{
+ const {parseHTML}=await import('linkedom'),input=fixture(),scene=input.project.video!.scenes[0]
+ scene.phase='waiting';scene.moments=[{id:'m',start:0,end:28,camera:'full',layout:'beside-slide',lines:'Hello',overlay:null,recordingKey:'current',audioKey:'a',audio:null,take:{id:'take',recordingKey:'current',objectKey:'saved.webm',duration:28}}]
+ const document=parseHTML(render(input)).document
+ expect(document.querySelector('.presenter-preview [data-saved-presenter]')?.getAttribute('src')).toBe('/objects/saved.webm')
+ expect(document.querySelector('.video-stage > svg')).not.toBeNull()
+ expect(document.querySelector('.presenter-preview img')).toBeNull()
+ scene.moments[0].recordingKey='changed'
+ expect(render(input)).not.toContain('data-saved-presenter')
+})

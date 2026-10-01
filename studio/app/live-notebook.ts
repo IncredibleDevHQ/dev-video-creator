@@ -21,7 +21,8 @@ export function liveNotebook(id:string,update:(snapshot:Snapshot)=>void,connecte
   }
  }
  const close=()=>{if(closed)return;closed=true;if(fallback)fallback();else stopWorker()}
- const heartbeat=setInterval(()=>worker.port.postMessage({type:'ping'}),30000)
+ // Re-register after a sleeping tab's lease expires; watch is idempotent.
+ const heartbeat=setInterval(watch,30000)
  connected(false);worker.port.start();watch()
  document.addEventListener('visibilitychange',resume);window.addEventListener('pageshow',resume);window.addEventListener('pagehide',leave)
  return close

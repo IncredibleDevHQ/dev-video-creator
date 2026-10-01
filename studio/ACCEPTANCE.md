@@ -11,10 +11,10 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | M0: standalone layout, copied tests, two-command fresh clone | `app`, `engine`, `render`, `desktop`, `shared`, `checks`; own lockfile; outside-parent install/doctor run recorded in historical notes | Partial: committed studio installs/tests/builds in a fresh Linux container without host dependencies. Signed-in harness setup and complete clean-machine product flow remain unproven. |
 | M1: real blog → rich deck, progressive slides, editing/chat/PDF | Actual Kimi K3 Canvas notebook has nine rich SVG slides. Isolated pipeline, editor and PDF checks exist. | Partial: one actual Claude source-chat reply with four validated source passages is now proven; one actual Claude slide revision/redraw now passes artifact validation and retains the other eight slides; editorial/visual acceptance remains incomplete. |
 | M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned and produced scenes. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: native settings preview now verifies inherited scenes and custom overrides; some live processing details still need visual review. |
-| M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: physical camera/mic permission denial, actual one/pass capture, review, retake and save need device-level verification. |
+| M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: the user physically captured Scene 3 moment 1; its 28.466-second take was saved through the UI and verified in the persisted notebook. Open-pass capture, permission denial, retake and final composition still need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
-| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 279 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
+| M6: both stores, split large copied files, docs, clean-machine flow, old app retired | 284 tests; TypeScript/build; real disposable PostgreSQL/MinIO three-worker recovery. Latest remote run includes animation, measured audio composition, joins/covers, take trims, lineage and corruption checks. | Incomplete: full real-model remote flow, clean-machine run, final visual/device/clone gates and retirement remain. |
 | Notebook-scoped artifacts and S3 portability | Indexed checksummed immutable artifacts, configurable endpoint/bucket/region/credentials, SDK credential-chain MinIO check | Machinery proven on MinIO; AWS deployment has not been exercised. |
 | One composition pass, independent animation and recording | Animation checkpoints use design inputs; finishing/retakes reuse them. Unit and remote composition checks. | Implemented. Actual Canvas scenes 5–9 use the new path; older scenes 1–4 are retained legacy outputs. Do not regenerate them solely to migrate. |
 | Bounded usage and transparent waiting | Bounded harness stages, explicit interrupted-run retry, deduplication, token reporting, shared event worker, bounded SSE leases, fixed activity frontier | Implemented with regression coverage; live progress details and recovery visuals need current native verification. |
@@ -24,7 +24,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 
 ## Reproducible evidence
 
-- `yarn run check`: 72 test files, 279 tests passed on 1 October 2026.
+- `yarn run check`: 74 test files, 284 tests passed on 1 October 2026.
 - Startup preflight is tested with missing tools in an isolated temporary path;
   the engine refuses startup without creating notebook data. This does not prove
   clean-machine provisioning.
@@ -100,7 +100,23 @@ A regression test verifies redraw failure propagates without an automatic retry.
 Presenter recording setup was opened natively for the user on Scene 3, moment 1,
 “Canvas opens beside the chat”, with dialogue, optional stop time and countdown
 guidance visible. Screenshot: `/tmp/studio-presenter-recording-ready.png`. The
-user explicitly requested recording on camera; completed physical capture/save
-remains unproven. Permission waits now expire after sixty seconds; cancellation
+user explicitly requested recording on camera, then recorded and stopped. At their
+request the take was saved through the UI: take `7818ca06-81b6-4a8a-82f5-c564f39a5c78`,
+measured duration 28.466s. The persisted notebook now requires final production
+again. Review preserves content/presenter layers and hides the scene playhead
+during capture/review; template regression tests pass, but the updated review
+still requires a new native recording to verify visually. Permission waits now expire after sixty seconds; cancellation
 settles immediately and late grants release tracks. Protocol tests cover both
 paths. This does not substitute for native device verification.
+
+Shared-worker heartbeat now re-registers its notebook watch. A lifecycle test
+expires a subscription after sleep without a visibility event, verifies that
+the heartbeat reconnects once, and that later heartbeats do not duplicate
+connections. This is protocol evidence, not a completed sleep/wake device test.
+
+Saved recording handoff now remains visible from persisted scene events until
+completion. Returning to an unfinished camera moment uses its matching saved
+take in the planned presenter region instead of the stand-in; stale takes are
+excluded. Regression coverage checks the content remains visible and the
+saved media element is retained during surrounding view updates. Native visual
+verification of this latest change remains pending due to browser-control timeouts.
