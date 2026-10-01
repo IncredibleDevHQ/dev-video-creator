@@ -1,37 +1,47 @@
-import {dialogueStudio} from './dialogue-studio'
-import {dialogueBoundary} from '../shared/dialogue'
-import {practiceControls,recordControl} from './practice-controls'
-import {followTranscript,transcriptWords} from './transcript-follow'
-import {standInPlayback,standInControls} from './stand-in-playback'
-import {syncPresenterLayout} from './presenter-motion'
-import {layeredPlayback} from './layered-playback'
-import {workspacePosition,workspaceUrl} from './workspace-position'
-import {seekSavedMedia} from './media-seek'
-import {savedMediaRecovery} from './media-recovery'
-import {videoSettingsPreview} from './video-settings-preview'
-import {takeReviewPosition,reviewLayoutSecond} from './take-review-clock'
-import {NotebookOpening,notebookOpeningView} from './notebook-opening'
-import {momentViewKey} from '../shared/model'
-import {replacePlayerView} from './player-view'
-import {recordingTarget} from './recording-target'
-import {syncRehearsalAnimation} from './rehearsal-animation'
-import {animationSecond} from '../shared/scene-time'
-import {recordingSetup,recordingPassSetup,recordingRecovery} from './recording-setup'
-import {movePlayhead} from './moment-timeline'
-import {gear,sceneSettings} from './camera-settings'
-import {stageStatus} from './stage-status'
-import {updateProgressTimes} from './progress'
-import {presentationScreen} from './presentation-screen'
-import {downloadPresentation,downloadVideo} from './download'
-import {aiLabel,chooseAiDialog,modelOptions,type HarnessChoices} from './choose-ai'
-import {PracticePlayback} from './practice'
+import { workspaceHeader } from './workspace-header'
+import { notebookScreen } from './notebook-screen'
+import { dialogueStudio } from './dialogue-studio'
+import { dialogueBoundary } from '../shared/dialogue'
+import { practiceControls, recordControl } from './practice-controls'
+import { followTranscript, transcriptWords } from './transcript-follow'
+import { standInPlayback, standInControls } from './stand-in-playback'
+import { syncPresenterLayout } from './presenter-motion'
+import { layeredPlayback } from './layered-playback'
+import { workspacePosition, workspaceUrl } from './workspace-position'
+import { seekSavedMedia } from './media-seek'
+import { savedMediaRecovery } from './media-recovery'
+import { videoSettingsPreview } from './video-settings-preview'
+import { takeReviewPosition, reviewLayoutSecond } from './take-review-clock'
+import { NotebookOpening, notebookOpeningView } from './notebook-opening'
+import { momentViewKey } from '../shared/model'
+import { replacePlayerView } from './player-view'
+import { recordingTarget } from './recording-target'
+import { syncRehearsalAnimation } from './rehearsal-animation'
+import { animationSecond } from '../shared/scene-time'
+import {
+  recordingSetup,
+  recordingPassSetup,
+  recordingRecovery
+} from './recording-setup'
+import { movePlayhead } from './moment-timeline'
+import { sceneSettings } from './camera-settings'
+import { updateProgressTimes } from './progress'
+import { presentationScreen } from './presentation-screen'
+import { downloadPresentation, downloadVideo } from './download'
+import {
+  aiLabel,
+  chooseAiDialog,
+  modelOptions,
+  type HarnessChoices
+} from './choose-ai'
+import { PracticePlayback } from './practice'
 import { Settings } from './settings'
 import { parseVoice } from './voice-choice'
 import { Recording } from './recording'
 import { api } from './api'
-import type { Snapshot,NotebookSummary } from '../shared/api'
+import type { Snapshot, NotebookSummary } from '../shared/api'
 import { escape, button } from './ui'
-import { videoHeader, videoScreen, makeVideoDialog } from './video-screen'
+import { videoScreen, makeVideoDialog } from './video-screen'
 import type { Presence, Transition } from '../shared/model'
 import { sceneAt, videoSecond } from '../shared/video-clock'
 import { cameraAt } from '../shared/camera-window'
@@ -39,258 +49,947 @@ import './style.css'
 import './dialogue-studio.css'
 import incredibleLogo from './assets/incredible-logo.svg'
 const root = document.querySelector<HTMLDivElement>('#app')!
-const syncMediaRecovery=savedMediaRecovery(root)
+const syncMediaRecovery = savedMediaRecovery(root)
 let snapshot: Snapshot | null = null
-let notebooks:NotebookSummary[]=[]
-const refreshNotebooks=async()=>{notebooks=await api.notebooks();if(!snapshot && !settingsScreen.isOpen) render()}
+let notebooks: NotebookSummary[] = []
+const refreshNotebooks = async () => {
+  notebooks = await api.notebooks()
+  if (!snapshot && !settingsScreen.isOpen) render()
+}
 let selected = 0
-const requestedStage=new URL(location.href).searchParams.get('view')
-let stage: 'notebook' | 'presentation' | 'video' = requestedStage==='notebook' || requestedStage==='video'?requestedStage:'presentation'
+const requestedStage = new URL(location.href).searchParams.get('view')
+let stage: 'notebook' | 'presentation' | 'video' =
+  requestedStage === 'notebook' || requestedStage === 'video'
+    ? requestedStage
+    : 'presentation'
 let closeStream: (() => void) | null = null
 let pending = false
-let pendingSource=''
-let aiChoices:HarnessChoices|null=null
-let aiLoading=false,showAllRecent=false
-const ago=(iso:string)=>{const seconds=(Date.parse(iso)-Date.now())/1000;if(!Number.isFinite(seconds))return '';const format=new Intl.RelativeTimeFormat('en',{numeric:'auto'});for(const [unit,size] of [['year',31536000],['month',2592000],['week',604800],['day',86400],['hour',3600],['minute',60]] as const) if(Math.abs(seconds)>=size) return format.format(Math.round(seconds/size),unit);return 'just now'}
-const sourceHint=(value:string)=>{const text=value.trim();if(!text)return '';if(/^(https?:\/\/|www\.)\S+$/i.test(text))return 'Link · we’ll read the article';const words=text.split(/\s+/).length;return `Your text · ${words.toLocaleString()} ${words===1?'word':'words'}`}
-const fitSource=(field:HTMLTextAreaElement)=>{field.style.height='auto';field.style.height=`${Math.min(field.scrollHeight+2,220)}px`;const hint=document.querySelector('#source-hint');if(hint)hint.textContent=sourceHint(field.value)}
+let pendingSource = ''
+let aiChoices: HarnessChoices | null = null
+let aiLoading = false,
+  showAllRecent = false
+const ago = (iso: string) => {
+  const seconds = (Date.parse(iso) - Date.now()) / 1000
+  if (!Number.isFinite(seconds)) return ''
+  const format = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+  for (const [unit, size] of [
+    ['year', 31536000],
+    ['month', 2592000],
+    ['week', 604800],
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60]
+  ] as const)
+    if (Math.abs(seconds) >= size)
+      return format.format(Math.round(seconds / size), unit)
+  return 'just now'
+}
+const sourceHint = (value: string) => {
+  const text = value.trim()
+  if (!text) return ''
+  if (/^(https?:\/\/|www\.)\S+$/i.test(text))
+    return 'Link · we’ll read the article'
+  const words = text.split(/\s+/).length
+  return `Your text · ${words.toLocaleString()} ${
+    words === 1 ? 'word' : 'words'
+  }`
+}
+const fitSource = (field: HTMLTextAreaElement) => {
+  field.style.height = 'auto'
+  field.style.height = `${Math.min(field.scrollHeight + 2, 220)}px`
+  const hint = document.querySelector('#source-hint')
+  if (hint) hint.textContent = sourceHint(field.value)
+}
 let momentIndex = 0
 let second = 0
 let wholeVideo = false
-let startRehearsal:(()=>Promise<void>)|null=null
-let practiceStopAfter:number|null=null
-let practiceMomentIds:string[]=[]
-let practiceCountdown=0
-let practiceStarted=0
-let practiceOpen=false
-let practiceLoading=false
-let practiceLines=''
-const practice = new PracticePlayback((clip,at)=>{
-  if(practiceStopAfter!==null && (performance.now()-practiceStarted)/1000>=practiceStopAfter){finishPractice();return}
-  const changed=practiceLines!==clip.lines;practiceLines=clip.lines;second=at
-  const scene=snapshot?.project.video?.scenes[selected];momentIndex=Math.max(0,scene?.moments.findIndex(moment=>moment.id===clip.momentId) ?? 0)
-  if(changed) render()
-  const presenter=root.querySelector<HTMLElement>('.presenter-preview');if(presenter) presenter.hidden=!clip.camera
-  syncAnimation();paintAnimationProgress();dialogue.paint(second)
-  syncLayeredPlayback()
-  followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
-  followTranscript(root,scene?.moments || [],second,momentIndex)
-  movePlayhead(root,scene?.moments || [],second)
-  const cue=root.querySelector('.practice-cue>span');if(cue && cue.textContent!==clip.lines) cue.innerHTML=transcriptWords(clip.lines)
-  const rehearsalClock=root.querySelector('[data-practice-clock]');if(rehearsalClock)rehearsalClock.textContent=`Practice · ${((performance.now()-practiceStarted)/1000).toFixed(1)}s · Esc to stop`
-  const chip=root.querySelector('.anchor-chip');if(chip) chip.textContent=`${second.toFixed(1)}s · moment ${momentIndex+1}`
-},()=>{const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(moment)second=moment.start;render()},reason=>{stopPractice();render();error(reason)})
+let startRehearsal: (() => Promise<void>) | null = null
+let practiceStopAfter: number | null = null
+let practiceMomentIds: string[] = []
+let practiceCountdown = 0
+let practiceStarted = 0
+let practiceOpen = false
+let practiceLoading = false
+let practiceLines = ''
+const practice = new PracticePlayback(
+  (clip, at) => {
+    if (
+      practiceStopAfter !== null &&
+      (performance.now() - practiceStarted) / 1000 >= practiceStopAfter
+    ) {
+      finishPractice()
+      return
+    }
+    const changed = practiceLines !== clip.lines
+    practiceLines = clip.lines
+    second = at
+    const scene = snapshot?.project.video?.scenes[selected]
+    momentIndex = Math.max(
+      0,
+      scene?.moments.findIndex(moment => moment.id === clip.momentId) ?? 0
+    )
+    if (changed) render()
+    const presenter = root.querySelector<HTMLElement>('.presenter-preview')
+    if (presenter) presenter.hidden = !clip.camera
+    syncAnimation()
+    paintAnimationProgress()
+    dialogue.paint(second)
+    syncLayeredPlayback()
+    followTranscript(
+      root,
+      snapshot?.project.video?.scenes[selected]?.moments || [],
+      second,
+      momentIndex
+    )
+    followTranscript(root, scene?.moments || [], second, momentIndex)
+    movePlayhead(root, scene?.moments || [], second)
+    const cue = root.querySelector('.practice-cue>span')
+    if (cue && cue.textContent !== clip.lines)
+      cue.innerHTML = transcriptWords(clip.lines)
+    const rehearsalClock = root.querySelector('[data-practice-clock]')
+    if (rehearsalClock)
+      rehearsalClock.textContent = `Practice · ${(
+        (performance.now() - practiceStarted) /
+        1000
+      ).toFixed(1)}s · Esc to stop`
+    const chip = root.querySelector('.anchor-chip')
+    if (chip)
+      chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex + 1}`
+  },
+  () => {
+    const moment =
+      snapshot?.project.video?.scenes[selected]?.moments[momentIndex]
+    if (moment) second = moment.start
+    render()
+  },
+  reason => {
+    stopPractice()
+    render()
+    error(reason)
+  }
+)
 let practiceRequest = 0
 let practiceStream: MediaStream | null = null
-let cameraStarting=false
-const finishPractice=()=>{practiceRequest++;practiceCountdown=0;startRehearsal=null;practice.stop();practiceLoading=false;root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();render()}
-const stopPractice = () => { practiceRequest++; practiceOpen=false;cameraStarting=false;startRehearsal=null;practiceCountdown=0; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
-const replayPractice=async()=>{
- const scene=snapshot?.project.video?.scenes[selected];if(!scene || !practiceOpen)return
- const moments=practiceMomentIds.map(id=>scene.moments.find(moment=>moment.id===id)).filter((moment):moment is import('../shared/model').Moment=>!!moment)
- if(!moments.length)return
- const request=++practiceRequest
- practice.stop()
- root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();second=moments[0].start;momentIndex=scene.moments.findIndex(m=>m.id===moments[0].id);startRehearsal=null
-      for(let count=3;count>0;count--){if(request!==practiceRequest)return;practiceCountdown=count;render();await new Promise(resolve=>setTimeout(resolve,1000))}
-      if(request!==practiceRequest)return
-      let at=0
-      const clips=moments.map(moment=>{const start=at;at+=moment.end-moment.start;return {momentId:moment.id,lines:moment.lines,camera:moment.camera!=='none',start,end:at,sceneStart:moment.start,sceneEnd:moment.end}})
-      practiceCountdown=0;practiceStarted=performance.now();practice.start({inputKey:scene.inputKey,clips,duration:at},true);render()
-
+let cameraStarting = false
+const finishPractice = () => {
+  practiceRequest++
+  practiceCountdown = 0
+  startRehearsal = null
+  practice.stop()
+  practiceLoading = false
+  root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause()
+  render()
+}
+const stopPractice = () => {
+  practiceRequest++
+  practiceOpen = false
+  cameraStarting = false
+  startRehearsal = null
+  practiceCountdown = 0
+  practice.stop()
+  practiceLoading = false
+  practiceLines = ''
+  practiceStream?.getTracks().forEach(track => track.stop())
+  practiceStream = null
+}
+const replayPractice = async () => {
+  const scene = snapshot?.project.video?.scenes[selected]
+  if (!scene || !practiceOpen) return
+  const moments = practiceMomentIds
+    .map(id => scene.moments.find(moment => moment.id === id))
+    .filter((moment): moment is import('../shared/model').Moment => !!moment)
+  if (!moments.length) return
+  const request = ++practiceRequest
+  practice.stop()
+  root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause()
+  second = moments[0].start
+  momentIndex = scene.moments.findIndex(m => m.id === moments[0].id)
+  startRehearsal = null
+  for (let count = 3; count > 0; count--) {
+    if (request !== practiceRequest) return
+    practiceCountdown = count
+    render()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+  if (request !== practiceRequest) return
+  let at = 0
+  const clips = moments.map(moment => {
+    const start = at
+    at += moment.end - moment.start
+    return {
+      momentId: moment.id,
+      lines: moment.lines,
+      camera: moment.camera !== 'none',
+      start,
+      end: at,
+      sceneStart: moment.start,
+      sceneEnd: moment.end
+    }
+  })
+  practiceCountdown = 0
+  practiceStarted = performance.now()
+  practice.start({ inputKey: scene.inputKey, clips, duration: at }, true)
+  render()
 }
 let recordingSceneId = ''
 let recordingProjectId = ''
-let recordingAttempt:import('../shared/model').Moment[]=[]
-const recordingFailed=(reason:unknown)=>{if(snapshot?.project.id===recordingProjectId && capture.phase==='idle')showDialog(recordingRecovery(reason));else error(reason)}
-const capture = new Recording(() => {
-  if (capture.phase === 'recording' || capture.phase === 'countdown') {
-    const scene = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)
-    const id = capture.moments[Math.min(capture.current,capture.moments.length-1)]?.id
-    momentIndex = Math.max(0,scene?.moments.findIndex(moment => moment.id === id) ?? 0)
-    second = scene?.moments[momentIndex]?.start || 0
-  }
-  render()
-}, elapsed => {
-  const moment = snapshot?.project.video?.scenes.find(scene => scene.id === recordingSceneId)?.moments[momentIndex]
-  second = Math.min(moment?.end ?? Infinity,(moment?.start || 0)+elapsed)
-  syncAnimation();paintAnimationProgress();dialogue.paint(second)
-  const clock = root.querySelector('.recording-clock'); if (clock) clock.textContent = `Recording · ${(capture.moments.length>1?capture.elapsed:elapsed).toFixed(1)}s${capture.stopAfter!==null?` / ${capture.stopAfter}s`: ''}`
-  followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
-  movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second)
-  const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
-}, reason => recordingFailed(reason))
-const dialogue=dialogueStudio(root,()=>{const scene=snapshot?.project.video?.scenes[selected];return scene && (practiceOpen || capture.phase==='recording' || capture.phase==='countdown')?{projectId:snapshot!.project.id,scene,index:momentIndex,second,busy:practice.active || !!practiceCountdown || capture.phase!=='idle',recording:capture.phase==='recording',label:practiceCountdown?`Ready in ${practiceCountdown}…`:capture.phase==='countdown'?`Ready in ${capture.countdown}…`:capture.phase==='recording'?'● Recording':practice.active?'• Practicing':'• Read along'}:null},at=>{second=at;const scene=snapshot?.project.video?.scenes[selected];if(scene){followTranscript(root,scene.moments,at,momentIndex);syncPresenterLayout(root,scene.moments,Math.min(at,scene.moments[momentIndex].end-.08))}},value=>{snapshot=value;startRehearsal=replayPractice;render()})
-const syncLayeredPlayback=layeredPlayback(root,(time,playing)=>{
- const scene=snapshot?.project.video?.scenes[selected],moment=scene?.moments[momentIndex];if(!scene || !moment)return
- const parts=capture.phase==='reviewing' || capture.phase==='uploading'?capture.parts:[{momentId:moment.id,recordingKey:moment.recordingKey,from:0,to:moment.take?.duration || moment.end-moment.start}]
- const at=takeReviewPosition(scene.moments,parts,time)
- if(at){
-  second=at.second
-  followTranscript(root,scene.moments,second,at.momentIndex)
-  syncPresenterLayout(root,scene.moments,reviewLayoutSecond(scene.moments[at.momentIndex],at.second,playing))
-  movePlayhead(root,scene.moments,at.second,at.momentIndex)
-  const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.second.toFixed(1)}s · moment ${at.momentIndex+1}`
-  syncRehearsalAnimation(root,scene,at.momentIndex,at.second,playing)
- }
-})
-standInPlayback(root,()=>{const scene=snapshot?.project.video?.scenes[selected];return scene?{scene,index:momentIndex}:null},(at,playing)=>{
- second=at
- const scene=snapshot?.project.video?.scenes[selected];if(!scene)return
- const moment=scene.moments[momentIndex]
- syncPresenterLayout(root,scene.moments,!playing && at===moment.start?at+Math.min(.28,(moment.end-moment.start)/3):at)
- followTranscript(root,scene.moments,at,momentIndex)
- movePlayhead(root,scene.moments,at,momentIndex)
- const chip=root.querySelector('.anchor-chip');if(chip)chip.textContent=`${at.toFixed(1)}s · moment ${momentIndex+1}`
-})
-const paintAnimationProgress=()=>{
- const moment=snapshot?.project.video?.scenes[selected]?.moments[momentIndex];if(!moment)return
- const duration=dialogueBoundary(moment),elapsed=Math.max(0,second-moment.start),finished=elapsed>=Math.max(0,duration-.3)
- const bar=root.querySelector<HTMLProgressElement>('[data-animation-progress]');if(bar){bar.max=duration;bar.value=finished?duration:elapsed}
- const label=root.querySelector('[data-animation-remaining]');if(label)label.textContent=finished?'Animation finished · keep speaking':`${Math.max(0,duration-elapsed).toFixed(1)}s of animation left`
+let recordingAttempt: import('../shared/model').Moment[] = []
+const recordingFailed = (reason: unknown) => {
+  if (snapshot?.project.id === recordingProjectId && capture.phase === 'idle')
+    showDialog(recordingRecovery(reason))
+  else error(reason)
 }
-const syncAnimation=()=>{const scene=snapshot?.project.video?.scenes[selected];if(scene)syncRehearsalAnimation(root,scene,momentIndex,second,(practice.active && !practice.paused) || capture.phase==='recording' || dialogue.isPlaying() || !!root.querySelector('[data-stand-in-play]') && root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.paused===false)}
-let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
+const capture = new Recording(
+  () => {
+    if (capture.phase === 'recording' || capture.phase === 'countdown') {
+      const scene = snapshot?.project.video?.scenes.find(
+        scene => scene.id === recordingSceneId
+      )
+      const id =
+        capture.moments[Math.min(capture.current, capture.moments.length - 1)]
+          ?.id
+      momentIndex = Math.max(
+        0,
+        scene?.moments.findIndex(moment => moment.id === id) ?? 0
+      )
+      second = scene?.moments[momentIndex]?.start || 0
+    }
+    render()
+  },
+  elapsed => {
+    const moment = snapshot?.project.video?.scenes.find(
+      scene => scene.id === recordingSceneId
+    )?.moments[momentIndex]
+    second = Math.min(moment?.end ?? Infinity, (moment?.start || 0) + elapsed)
+    syncAnimation()
+    paintAnimationProgress()
+    dialogue.paint(second)
+    const clock = root.querySelector('.recording-clock')
+    if (clock)
+      clock.textContent = `Recording · ${(capture.moments.length > 1
+        ? capture.elapsed
+        : elapsed
+      ).toFixed(1)}s${
+        capture.stopAfter !== null ? ` / ${capture.stopAfter}s` : ''
+      }`
+    followTranscript(
+      root,
+      snapshot?.project.video?.scenes[selected]?.moments || [],
+      second,
+      momentIndex
+    )
+    movePlayhead(
+      root,
+      snapshot?.project.video?.scenes[selected]?.moments || [],
+      second
+    )
+    const chip = root.querySelector('.anchor-chip')
+    if (chip)
+      chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex + 1}`
+  },
+  reason => recordingFailed(reason)
+)
+const dialogue = dialogueStudio(
+  root,
+  () => {
+    const scene = snapshot?.project.video?.scenes[selected]
+    return scene &&
+      (practiceOpen ||
+        capture.phase === 'recording' ||
+        capture.phase === 'countdown')
+      ? {
+          projectId: snapshot!.project.id,
+          scene,
+          index: momentIndex,
+          second,
+          busy:
+            practice.active || !!practiceCountdown || capture.phase !== 'idle',
+          recording: capture.phase === 'recording',
+          label: practiceCountdown
+            ? `Ready in ${practiceCountdown}…`
+            : capture.phase === 'countdown'
+            ? `Ready in ${capture.countdown}…`
+            : capture.phase === 'recording'
+            ? '● Recording'
+            : practice.active
+            ? '• Practicing'
+            : '• Read along'
+        }
+      : null
+  },
+  at => {
+    second = at
+    const scene = snapshot?.project.video?.scenes[selected]
+    if (scene) {
+      followTranscript(root, scene.moments, at, momentIndex)
+      syncPresenterLayout(
+        root,
+        scene.moments,
+        Math.min(at, scene.moments[momentIndex].end - 0.08)
+      )
+    }
+  },
+  value => {
+    snapshot = value
+    startRehearsal = replayPractice
+    render()
+  }
+)
+const syncLayeredPlayback = layeredPlayback(root, (time, playing) => {
+  const scene = snapshot?.project.video?.scenes[selected],
+    moment = scene?.moments[momentIndex]
+  if (!scene || !moment) return
+  const parts =
+    capture.phase === 'reviewing' || capture.phase === 'uploading'
+      ? capture.parts
+      : [
+          {
+            momentId: moment.id,
+            recordingKey: moment.recordingKey,
+            from: 0,
+            to: moment.take?.duration || moment.end - moment.start
+          }
+        ]
+  const at = takeReviewPosition(scene.moments, parts, time)
+  if (at) {
+    second = at.second
+    followTranscript(root, scene.moments, second, at.momentIndex)
+    syncPresenterLayout(
+      root,
+      scene.moments,
+      reviewLayoutSecond(scene.moments[at.momentIndex], at.second, playing)
+    )
+    movePlayhead(root, scene.moments, at.second, at.momentIndex)
+    const chip = root.querySelector('.anchor-chip')
+    if (chip)
+      chip.textContent = `${at.second.toFixed(1)}s · moment ${
+        at.momentIndex + 1
+      }`
+    syncRehearsalAnimation(root, scene, at.momentIndex, at.second, playing)
+  }
+})
+standInPlayback(
+  root,
+  () => {
+    const scene = snapshot?.project.video?.scenes[selected]
+    return scene ? { scene, index: momentIndex } : null
+  },
+  (at, playing) => {
+    second = at
+    const scene = snapshot?.project.video?.scenes[selected]
+    if (!scene) return
+    const moment = scene.moments[momentIndex]
+    syncPresenterLayout(
+      root,
+      scene.moments,
+      !playing && at === moment.start
+        ? at + Math.min(0.28, (moment.end - moment.start) / 3)
+        : at
+    )
+    followTranscript(root, scene.moments, at, momentIndex)
+    movePlayhead(root, scene.moments, at, momentIndex)
+    const chip = root.querySelector('.anchor-chip')
+    if (chip) chip.textContent = `${at.toFixed(1)}s · moment ${momentIndex + 1}`
+  }
+)
+const paintAnimationProgress = () => {
+  const moment = snapshot?.project.video?.scenes[selected]?.moments[momentIndex]
+  if (!moment) return
+  const duration = dialogueBoundary(moment),
+    elapsed = Math.max(0, second - moment.start),
+    finished = elapsed >= Math.max(0, duration - 0.3)
+  const bar = root.querySelector<HTMLProgressElement>(
+    '[data-animation-progress]'
+  )
+  if (bar) {
+    bar.max = duration
+    bar.value = finished ? duration : elapsed
+  }
+  const label = root.querySelector('[data-animation-remaining]')
+  if (label)
+    label.textContent = finished
+      ? 'Animation finished · keep speaking'
+      : `${Math.max(0, duration - elapsed).toFixed(1)}s of animation left`
+}
+const syncAnimation = () => {
+  const scene = snapshot?.project.video?.scenes[selected]
+  if (scene)
+    syncRehearsalAnimation(
+      root,
+      scene,
+      momentIndex,
+      second,
+      (practice.active && !practice.paused) ||
+        capture.phase === 'recording' ||
+        dialogue.isPlaying() ||
+        (!!root.querySelector('[data-stand-in-play]') &&
+          root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')
+            ?.paused === false)
+    )
+}
+let pendingVideoSettings: import('../shared/model').VideoSettings | null = null
 let pendingRecording: import('../shared/model').Moment[] | null = null
-const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=[moment];const scene=snapshot?.project.video?.scenes[selected];showDialog(recordingSetup(moment,index,scene?snapshot?.views?.scenes[scene.id]?.openMomentIds.length:1))}
-const prepareRecordingPass=(moments:import('../shared/model').Moment[])=>{stopPractice();pendingRecording=moments;const scene=snapshot!.project.video!.scenes[selected];showDialog(recordingPassSetup(moments,moments.map(moment=>scene.moments.findIndex(item=>item.id===moment.id))))}
-let dialogRevision=0
-const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog);dialog.addEventListener('close',()=>{dialogRevision++;pendingVideoSettings=null})
-const settingsScreen = new Settings(root,()=>snapshot?.project.id || null,()=>render(),async () => {if(snapshot) snapshot=await api.load(snapshot.project.id)})
-const pendingChats=new Set<string>()
-let liveConnected=true
-let openingAutoStage=false
-const opening=new NotebookOpening(api.load,value=>{if(openingAutoStage)stage=value.project.video?'video':'presentation';attach(value)},()=>render())
-const openNotebook=(id:string,autoStage=false)=>{openingAutoStage=autoStage;const url=new URL(location.href);if(url.searchParams.get('notebook')!==id){url.searchParams.delete('scene');url.searchParams.delete('moment')}url.searchParams.set('notebook',id);url.searchParams.delete('project');history.replaceState(null,'',url);return opening.open(id)}
+const prepareRecording = (
+  moment: import('../shared/model').Moment,
+  index: number
+) => {
+  stopPractice()
+  pendingRecording = [moment]
+  const scene = snapshot?.project.video?.scenes[selected]
+  showDialog(
+    recordingSetup(
+      moment,
+      index,
+      scene ? snapshot?.views?.scenes[scene.id]?.openMomentIds.length : 1
+    )
+  )
+}
+const prepareRecordingPass = (moments: import('../shared/model').Moment[]) => {
+  stopPractice()
+  pendingRecording = moments
+  const scene = snapshot!.project.video!.scenes[selected]
+  showDialog(
+    recordingPassSetup(
+      moments,
+      moments.map(moment =>
+        scene.moments.findIndex(item => item.id === moment.id)
+      )
+    )
+  )
+}
+let dialogRevision = 0
+const dialog = document.createElement('dialog')
+dialog.id = 'dialog'
+document.body.append(dialog)
+dialog.addEventListener('close', () => {
+  dialogRevision++
+  pendingVideoSettings = null
+})
+const settingsScreen = new Settings(
+  root,
+  () => snapshot?.project.id || null,
+  () => render(),
+  async () => {
+    if (snapshot) snapshot = await api.load(snapshot.project.id)
+  }
+)
+const pendingChats = new Set<string>()
+let liveConnected = true
+let openingAutoStage = false
+const opening = new NotebookOpening(
+  api.load,
+  value => {
+    if (openingAutoStage) stage = value.project.video ? 'video' : 'presentation'
+    attach(value)
+  },
+  () => render()
+)
+const openNotebook = (id: string, autoStage = false) => {
+  openingAutoStage = autoStage
+  const url = new URL(location.href)
+  if (url.searchParams.get('notebook') !== id) {
+    url.searchParams.delete('scene')
+    url.searchParams.delete('moment')
+  }
+  url.searchParams.set('notebook', id)
+  url.searchParams.delete('project')
+  history.replaceState(null, '', url)
+  return opening.open(id)
+}
 const render = () => {
-  if(settingsScreen.isOpen) return
-  const selection=getSelection();const editSelection=document.activeElement?.closest('.dialogue-studio') && selection?.anchorNode?{anchor:selection.anchorNode,offset:selection.anchorOffset,focus:selection.focusNode,end:selection.focusOffset}:null
-  const contextKey = [snapshot?.project.id,stage,selected].join(':')
+  if (settingsScreen.isOpen) return
+  const selection = getSelection()
+  const editSelection =
+    document.activeElement?.closest('.dialogue-studio') && selection?.anchorNode
+      ? {
+          anchor: selection.anchorNode,
+          offset: selection.anchorOffset,
+          focus: selection.focusNode,
+          end: selection.focusOffset
+        }
+      : null
+  const contextKey = [snapshot?.project.id, stage, selected].join(':')
   const sameContext = root.dataset.context === contextKey
   root.dataset.context = contextKey
-  const previousPlayer = root.querySelector<HTMLMediaElement>('[data-scene-player],[data-take-player],[data-saved-presenter]') || root.querySelector<HTMLMediaElement>('[data-rehearsal-animation]')
-  const playback = previousPlayer ? {src:previousPlayer.getAttribute('src'),time:previousPlayer.currentTime,playing:!previousPlayer.paused} : null
-  const focused = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement ? document.activeElement : null
+  const previousPlayer =
+    root.querySelector<HTMLMediaElement>(
+      '[data-scene-player],[data-take-player],[data-saved-presenter]'
+    ) || root.querySelector<HTMLMediaElement>('[data-rehearsal-animation]')
+  const playback = previousPlayer
+    ? {
+        src: previousPlayer.getAttribute('src'),
+        time: previousPlayer.currentTime,
+        playing: !previousPlayer.paused
+      }
+    : null
+  const focused =
+    document.activeElement instanceof HTMLInputElement ||
+    document.activeElement instanceof HTMLTextAreaElement
+      ? document.activeElement
+      : null
   const focusedId = sameContext ? focused?.id : null
-  const drafts = (sameContext ? [...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input,textarea')].filter(field => field.id).map(field => ({ id: field.id, value: field.value })) : [])
+  const drafts = sameContext
+    ? [
+        ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+          'input,textarea'
+        )
+      ]
+        .filter(field => field.id)
+        .map(field => ({ id: field.id, value: field.value }))
+    : []
   if (!snapshot && opening.state) {
-    replacePlayerView(root,`<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a></header>${notebookOpeningView(opening.state)}`,null)
+    replacePlayerView(
+      root,
+      `<header>
+<a class="brand" href="/" aria-label="Incredible Studio">
+<img src="${incredibleLogo}" alt="">Incredible</a>
+</header>${notebookOpeningView(opening.state)}`,
+      null
+    )
     syncMediaRecovery()
     return
   }
   if (!snapshot) {
-    const recent=showAllRecent?notebooks:notebooks.slice(0,5),ai=aiLabel(aiChoices)
-    replacePlayerView(root, `<header class="home"><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a>${button('Settings', 'settings')}</header><main class="start${notebooks.length?' has-recent':''}"><h1>Turn a blog into slides and a video.</h1><form id="source"><label class="sr" for="source-input">Link or text</label><div class="source-row"><textarea id="source-input" name="source" rows="1" placeholder="Paste a blog link or your text…" required></textarea><button class="primary" ${pending ? 'disabled' : ''}>${pending ? 'Starting…' : 'Make the video →'}</button></div><div class="source-meta"><button type="button" data-action="slides-only" class="quiet slides-only">Only want slides?</button><small id="source-hint" class="source-hint" aria-live="polite"></small>${ai?`<button type="button" class="quiet ai-choice" data-action="choose-ai">${escape(ai)} · Change</button>`:''}</div></form><p id="error" role="alert"></p>${notebooks.length?`<section class="saved-notebooks" aria-labelledby="recent-heading"><h2 id="recent-heading">Recent</h2>${recent.map(item=>`<button data-notebook="${escape(item.id)}"><span class="recent-title">${escape(item.title)}<small>${escape(item.site || 'Your text')}${item.updatedAt?` · ${escape(ago(item.updatedAt))}`:''}</small></span><small class="recent-state">${item.status==='failed'?'Needs another try':item.status==='building'?'Slides in progress':item.hasVideo?'Video in progress':'Slides ready'} →</small></button>`).join('')}${notebooks.length>recent.length?`<button type="button" class="quiet show-all" data-action="all-recent">Show all ${notebooks.length}</button>`:''}</section>`:''}</main>`,previousPlayer)
-    const sourceField=root.querySelector<HTMLTextAreaElement>('#source-input')
+    const recent = showAllRecent ? notebooks : notebooks.slice(0, 5)
+    replacePlayerView(
+      root,
+      `<header class="home">
+<a class="brand" href="/" aria-label="Incredible Studio">
+<img src="${incredibleLogo}" alt="">Incredible</a>${button(
+        'Settings',
+        'settings'
+      )}</header>
+<main class="start${notebooks.length ? ' has-recent' : ''}">
+<h1>Turn a blog into slides and a video.</h1>
+<form id="source">
+<label class="sr" for="source-input">Link or text</label>
+<div class="source-row">
+<textarea id="source-input" name="source" rows="1" placeholder="Paste a blog link or your text…" required>
+</textarea>
+<button class="primary" ${pending ? 'disabled' : ''}>${
+        pending ? 'Starting…' : 'Make the video →'
+      }</button>
+</div>
+<div class="source-meta">
+<button type="button" data-action="slides-only" class="quiet slides-only">Only want slides?</button>
+<small id="source-hint" class="source-hint" aria-live="polite">
+</small>
+</div>
+</form>
+<p id="error" role="alert">
+</p>${
+        notebooks.length
+          ? `<section class="saved-notebooks" aria-labelledby="recent-heading">
+<h2 id="recent-heading">Recent</h2>${recent
+              .map(
+                item =>
+                  `<button data-notebook="${escape(item.id)}">
+<span class="recent-title">${escape(item.title)}<small>${escape(
+                    item.site || 'Your text'
+                  )}${
+                    item.updatedAt ? ` · ${escape(ago(item.updatedAt))}` : ''
+                  }</small>
+</span>
+<small class="recent-state">${
+                    item.status === 'failed'
+                      ? 'Needs another try'
+                      : item.status === 'building'
+                      ? 'Slides in progress'
+                      : item.hasVideo
+                      ? 'Video in progress'
+                      : 'Slides ready'
+                  } →</small>
+</button>`
+              )
+              .join('')}${
+              notebooks.length > recent.length
+                ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${notebooks.length}</button>`
+                : ''
+            }</section>`
+          : ''
+      }</main>`,
+      previousPlayer
+    )
+    const sourceField = root.querySelector<HTMLTextAreaElement>('#source-input')
     syncMediaRecovery()
-    if(sourceField){sourceField.value=drafts.find(draft=>draft.id==='source-input')?.value ?? pendingSource;fitSource(sourceField)}
-    if(!aiChoices && !aiLoading){aiLoading=true;void api.harnesses().then(choices=>{aiChoices=choices;if(!snapshot && !settingsScreen.isOpen && !dialog.open)render()}).catch(()=>null).finally(()=>{aiLoading=false})}
-    if(focusedId && !dialog.open) document.getElementById(focusedId)?.focus()
+    if (sourceField) {
+      sourceField.value =
+        drafts.find(draft => draft.id === 'source-input')?.value ??
+        pendingSource
+      fitSource(sourceField)
+    }
+    if (!aiChoices && !aiLoading) {
+      aiLoading = true
+      void api
+        .harnesses()
+        .then(choices => {
+          aiChoices = choices
+          if (!snapshot && !settingsScreen.isOpen && !dialog.open) render()
+        })
+        .catch(() => null)
+        .finally(() => {
+          aiLoading = false
+        })
+    }
+    if (focusedId && !dialog.open) document.getElementById(focusedId)?.focus()
     return
   }
   const { project, status } = snapshot
   selected = Math.max(0, Math.min(selected, project.slides.length - 1))
-  const viewUrl=workspaceUrl(new URL(location.href),project,stage,selected,momentIndex)
-  if(viewUrl.href!==location.href)history.replaceState(null,'',viewUrl)
-  replacePlayerView(root, `<header><a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a><div class="notebook-identity"><a class="header-project-title" href="/?notebook=${encodeURIComponent(project.id)}" title="Permanent notebook link">${escape(project.title)}</a>${project.harness?`<span class="notebook-harness" title="AI saved for this notebook">${escape(({kimi:'Kimi','claude-code':'Claude Code',codex:'Codex'})[project.harness.adapter])}${project.harness.model?` · ${escape(project.harness.model.replace(/^kimi-code\//,''))}`:''}</span>`:''}</div><nav aria-label="Stages">${(['notebook','presentation','video'] as const).map(name => `<button data-stage="${name}" aria-current="${stage === name ? 'page' : 'false'}">${name[0].toUpperCase()+name.slice(1)}${stageStatus(snapshot!,name,liveConnected)}</button>`).join('')}</nav><div class="header-actions">${project.video?`<button type="button" data-action="video-settings" class="icon-button" aria-label="Notebook settings" title="Notebook settings">${gear}</button>`:button('Settings', 'settings')}${stage==='notebook'?button('View slides →','view-slides',true,status!=='ready') : stage === 'presentation' ? button('Export slides', 'export', false, status !== 'ready') + button(project.video?'Continue video →':'Make the video →', 'make-video', true, status !== 'ready') : stage === 'video' ? videoHeader(snapshot) : ''}</div></header><main class="workspace workspace-${stage}"><div class="project-heading"><h1>${escape(project.title)}</h1>${stage === 'presentation' ? '<p>Each slide is one scene of your video.</p>' : ''}</div>${stage === 'notebook' ? `<article class="notebook">${project.sourceUrl?`<p>From <a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener">${escape(project.sourceUrl)}</a></p>`:''}<pre>${escape(project.source)}</pre><form id="notebook-chat" class="chat"><label class="sr" for="source-question">Ask about the source</label><input id="source-question" name="instruction" placeholder="Ask about the source…" ${status!=='ready'?'disabled':''}><button aria-label="Send source question" ${status!=='ready' || pendingChats.has(project.id)?'disabled':''}>↑</button></form><div class="reply"><span>${escape([...snapshot.events].reverse().find(event=>event.kind==='chat' && event.anchor?.stage==='notebook')?.message || '')}</span>${button('History','history')}</div><p id="error" role="alert"></p></article>` : stage === 'video' ? videoScreen(snapshot, selected, momentIndex, second, practiceOpen, capture, practiceStream, wholeVideo, liveConnected) : presentationScreen(snapshot,selected,pendingChats.has(project.id))}</main>`,previousPlayer)
-  if(snapshot.readOnly){
-    for(const input of root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input,textarea,select')) input.disabled=true
-    for(const control of root.querySelectorAll<HTMLButtonElement>('button')){
-      const navigation=control.hasAttribute('data-stage') || control.hasAttribute('data-slide') || control.hasAttribute('data-scene') || control.hasAttribute('data-moment')
-      const reviewAction=['history','export','download-scene','preview-video','back'].includes(control.dataset.action || '')
-      if(!navigation && !reviewAction) control.disabled=true
+  const viewUrl = workspaceUrl(
+    new URL(location.href),
+    project,
+    stage,
+    selected,
+    momentIndex
+  )
+  if (viewUrl.href !== location.href) history.replaceState(null, '', viewUrl)
+  replacePlayerView(
+    root,
+    `${workspaceHeader(
+      snapshot,
+      stage,
+      liveConnected
+    )}<main class="workspace workspace-${stage}">
+<div class="project-heading">
+<h1>${escape(project.title)}</h1>${
+      stage === 'presentation'
+        ? '<p>Each slide is one scene of your video.</p>'
+        : ''
+    }</div>${
+      stage === 'notebook'
+        ? notebookScreen(snapshot, pendingChats.has(project.id))
+        : stage === 'video'
+        ? videoScreen(
+            snapshot,
+            selected,
+            momentIndex,
+            second,
+            practiceOpen,
+            capture,
+            practiceStream,
+            wholeVideo,
+            liveConnected
+          )
+        : presentationScreen(snapshot, selected, pendingChats.has(project.id))
+    }</main>`,
+    previousPlayer
+  )
+  if (snapshot.readOnly) {
+    for (const input of root.querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >('input,textarea,select'))
+      input.disabled = true
+    for (const control of root.querySelectorAll<HTMLButtonElement>('button')) {
+      const navigation =
+        control.hasAttribute('data-stage') ||
+        control.hasAttribute('data-slide') ||
+        control.hasAttribute('data-scene') ||
+        control.hasAttribute('data-moment')
+      const reviewAction = [
+        'history',
+        'export',
+        'download-scene',
+        'preview-video',
+        'back'
+      ].includes(control.dataset.action || '')
+      if (!navigation && !reviewAction) control.disabled = true
     }
   }
-  if(!liveConnected) root.insertAdjacentHTML('beforeend','<div class="connection-notice" role="status">Live updates disconnected. Reconnecting… Your saved work remains available.</div>')
+  if (!liveConnected)
+    root.insertAdjacentHTML(
+      'beforeend',
+      '<div class="connection-notice" role="status">Live updates disconnected. Reconnecting… Your saved work remains available.</div>'
+    )
   const player = root.querySelector<HTMLVideoElement>('[data-scene-player]')
   if (player) {
-    const sameSource = previousPlayer === player && playback?.src === player.getAttribute('src')
-    if(sameSource) {
+    const sameSource =
+      previousPlayer === player && playback?.src === player.getAttribute('src')
+    if (sameSource) {
       // Keep the loaded media element and its buffer across progress snapshots.
       // Recreating it seeks and reloads on every scene update.
-      previousPlayer.toggleAttribute('data-whole-video',player.hasAttribute('data-whole-video'))
+      previousPlayer.toggleAttribute(
+        'data-whole-video',
+        player.hasAttribute('data-whole-video')
+      )
       // replacePlayerView retained this connected element and its decoded frame.
-      if(playback.playing){void previousPlayer.play().catch(()=>{});animatePlayhead(player)}
+      if (playback.playing) {
+        void previousPlayer.play().catch(() => {})
+        animatePlayhead(player)
+      }
     } else {
-      const start=player.hasAttribute('data-whole-video') ? videoSecond(project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(project.video!.scenes[selected],second,true):second
-      if(start>0)seekSavedMedia(player,start)
+      const start = player.hasAttribute('data-whole-video')
+        ? videoSecond(project, selected, second)
+        : player.hasAttribute('data-animation-player')
+        ? animationSecond(project.video!.scenes[selected], second, true)
+        : second
+      if (start > 0) seekSavedMedia(player, start)
     }
   }
   syncMediaRecovery()
   syncAnimation()
   syncLayeredPlayback()
-  followTranscript(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,momentIndex)
-  movePlayhead(root,project.video?.scenes[selected]?.moments || [],second)
+  followTranscript(
+    root,
+    snapshot?.project.video?.scenes[selected]?.moments || [],
+    second,
+    momentIndex
+  )
+  movePlayhead(root, project.video?.scenes[selected]?.moments || [], second)
   const camera = root.querySelector<HTMLVideoElement>('video[data-camera]')
-  const paintCameraStarting=()=>{
-   root.querySelector('.camera-starting')?.remove()
-   const control=root.querySelector<HTMLButtonElement>('[data-action="practice-camera"]')
-   if(cameraStarting){
-    if(control){control.disabled=true;control.textContent='Starting camera…'}
-    const label=root.querySelector<HTMLButtonElement>('[data-action="practice-camera-off"]');if(label)label.querySelector('span')!.textContent='Starting…'
-    root.querySelector('.presenter-preview')?.insertAdjacentHTML('beforeend','<div class="camera-starting" role="status"><span class="activity-orbit" aria-hidden="true"></span><span>Starting camera…</span></div>')
-   }
+  const paintCameraStarting = () => {
+    root.querySelector('.camera-starting')?.remove()
+    const control = root.querySelector<HTMLButtonElement>(
+      '[data-action="practice-camera"]'
+    )
+    if (cameraStarting) {
+      if (control) {
+        control.disabled = true
+        control.textContent = 'Starting camera…'
+      }
+      const label = root.querySelector<HTMLButtonElement>(
+        '[data-action="practice-camera-off"]'
+      )
+      if (label) label.querySelector('span')!.textContent = 'Starting…'
+      root
+        .querySelector('.presenter-preview')
+        ?.insertAdjacentHTML(
+          'beforeend',
+          '<div class="camera-starting" role="status"><span class="activity-orbit" aria-hidden="true"></span><span>Starting camera…</span></div>'
+        )
+    }
   }
   if (camera && (capture.stream || practiceStream)) {
-   const stream=capture.stream || practiceStream
-   if(camera.srcObject!==stream)camera.srcObject=stream
-   if(practiceStream){
-    cameraStarting=camera.readyState<2
-    camera.onplaying=()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();const label=root.querySelector('[data-action="practice-camera-off"]');if(label)label.querySelector('span')!.textContent='Camera on'}
-   }
-   void camera.play().catch(()=>{cameraStarting=false;root.querySelector('.camera-starting')?.remove();error(new Error('Camera preview could not start. Exit practice and try again.'))})
+    const stream = capture.stream || practiceStream
+    if (camera.srcObject !== stream) camera.srcObject = stream
+    if (practiceStream) {
+      cameraStarting = camera.readyState < 2
+      camera.onplaying = () => {
+        cameraStarting = false
+        root.querySelector('.camera-starting')?.remove()
+        const label = root.querySelector('[data-action="practice-camera-off"]')
+        if (label) label.querySelector('span')!.textContent = 'Camera on'
+      }
+    }
+    void camera.play().catch(() => {
+      cameraStarting = false
+      root.querySelector('.camera-starting')?.remove()
+      error(
+        new Error(
+          'Camera preview could not start. Exit practice and try again.'
+        )
+      )
+    })
   }
   paintCameraStarting()
-  if(practiceLoading){const button=root.querySelector<HTMLButtonElement>('[data-action="practice"]');if(button) button.textContent='Cancel preparation'}
-  if(practiceOpen && startRehearsal){root.querySelector('.video-stage')?.insertAdjacentHTML('beforeend',standInControls());root.querySelector('[data-animation-status]')?.setAttribute('hidden','')}
-  paintAnimationProgress()
-  if(practiceOpen){
-    const phase=startRehearsal?'ready':practiceCountdown?'countdown':practice.active?'running':'finished'
-    if(phase==='ready' || phase==='finished')root.querySelector('.practice-panel-heading')?.insertAdjacentHTML('beforeend',recordControl())
-    const panel=root.querySelector('.practice-panel')
-    const toolbar=document.createElement('div');toolbar.className='capture-toolbar';toolbar.setAttribute('aria-label','Camera and recording controls')
-    panel?.querySelectorAll('.practice-panel-heading>button').forEach(control=>toolbar.append(control))
-    if(toolbar.childElementCount)panel?.before(toolbar)
-    const actions=root.querySelector('.video-actions>div:last-child')
-    if(actions)actions.innerHTML=practiceControls(phase,practiceMomentIds.length>1?(practiceMomentIds.at(-1)===snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id?'Finish practice':'Next moment'):undefined)
-    const label=root.querySelector('[data-practice-clock]');if(label)label.textContent=phase==='ready'?'Teleprompter':phase==='countdown'?`Starting in ${practiceCountdown}…`:phase==='finished'?'Practice complete':'Practice'
+  if (practiceLoading) {
+    const button = root.querySelector<HTMLButtonElement>(
+      '[data-action="practice"]'
+    )
+    if (button) button.textContent = 'Cancel preparation'
   }
-  const transport=root.querySelector<HTMLButtonElement>('[data-action="practice-toggle"]');if(transport){transport.textContent=practice.active && !practice.paused?'Ⅱ Pause':'▶ Play';transport.setAttribute('aria-label',practice.active && !practice.paused?'Pause practice':'Play practice')}
-  if(practice.active){const cue=root.querySelector('.practice-cue>span');if(cue && cue.textContent!==practiceLines) cue.innerHTML=transcriptWords(practiceLines)}
-  root.querySelector<HTMLButtonElement>('#video-chat button')?.toggleAttribute('disabled',pendingChats.has(project.id))
-  for (const draft of drafts) { const field = document.getElementById(draft.id); if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.value = draft.value }
+  if (practiceOpen && startRehearsal) {
+    root
+      .querySelector('.video-stage')
+      ?.insertAdjacentHTML('beforeend', standInControls())
+    root.querySelector('[data-animation-status]')?.setAttribute('hidden', '')
+  }
+  paintAnimationProgress()
+  if (practiceOpen) {
+    const phase = startRehearsal
+      ? 'ready'
+      : practiceCountdown
+      ? 'countdown'
+      : practice.active
+      ? 'running'
+      : 'finished'
+    if (phase === 'ready' || phase === 'finished')
+      root
+        .querySelector('.practice-panel-heading')
+        ?.insertAdjacentHTML('beforeend', recordControl())
+    const panel = root.querySelector('.practice-panel')
+    const toolbar = document.createElement('div')
+    toolbar.className = 'capture-toolbar'
+    toolbar.setAttribute('aria-label', 'Camera and recording controls')
+    panel
+      ?.querySelectorAll('.practice-panel-heading>button')
+      .forEach(control => toolbar.append(control))
+    if (toolbar.childElementCount) panel?.before(toolbar)
+    const actions = root.querySelector('.video-actions>div:last-child')
+    if (actions)
+      actions.innerHTML = practiceControls(
+        phase,
+        practiceMomentIds.length > 1
+          ? practiceMomentIds.at(-1) ===
+            snapshot.project.video?.scenes[selected]?.moments[momentIndex]?.id
+            ? 'Finish practice'
+            : 'Next moment'
+          : undefined
+      )
+    const label = root.querySelector('[data-practice-clock]')
+    if (label)
+      label.textContent =
+        phase === 'ready'
+          ? 'Teleprompter'
+          : phase === 'countdown'
+          ? `Starting in ${practiceCountdown}…`
+          : phase === 'finished'
+          ? 'Practice complete'
+          : 'Practice'
+  }
+  const transport = root.querySelector<HTMLButtonElement>(
+    '[data-action="practice-toggle"]'
+  )
+  if (transport) {
+    transport.textContent =
+      practice.active && !practice.paused ? 'Ⅱ Pause' : '▶ Play'
+    transport.setAttribute(
+      'aria-label',
+      practice.active && !practice.paused ? 'Pause practice' : 'Play practice'
+    )
+  }
+  if (practice.active) {
+    const cue = root.querySelector('.practice-cue>span')
+    if (cue && cue.textContent !== practiceLines)
+      cue.innerHTML = transcriptWords(practiceLines)
+  }
+  root
+    .querySelector<HTMLButtonElement>('#video-chat button')
+    ?.toggleAttribute('disabled', pendingChats.has(project.id))
+  for (const draft of drafts) {
+    const field = document.getElementById(draft.id)
+    if (
+      field instanceof HTMLInputElement ||
+      field instanceof HTMLTextAreaElement
+    )
+      field.value = draft.value
+  }
   if (focusedId) document.getElementById(focusedId)?.focus()
   dialogue.mount()
-  if(editSelection?.anchor.isConnected && editSelection.focus?.isConnected){root.querySelector<HTMLElement>('[data-ds=input]')?.focus({preventScroll:true});getSelection()?.setBaseAndExtent(editSelection.anchor,editSelection.offset,editSelection.focus,editSelection.end)}
-  if (status === 'building' && !localStorage.getItem('studio-slides-explained') && !dialog.open) showExplainer()
+  if (editSelection?.anchor.isConnected && editSelection.focus?.isConnected) {
+    root
+      .querySelector<HTMLElement>('[data-ds=input]')
+      ?.focus({ preventScroll: true })
+    getSelection()?.setBaseAndExtent(
+      editSelection.anchor,
+      editSelection.offset,
+      editSelection.focus,
+      editSelection.end
+    )
+  }
+  if (
+    status === 'building' &&
+    !localStorage.getItem('studio-slides-explained') &&
+    !dialog.open
+  )
+    showExplainer()
 }
-const sendChat=async(request:import('../shared/api').ChatRequest)=>{
-  if(!snapshot) return
-  const id=snapshot.project.id
-  if(pendingChats.has(id)) return
-  const fieldId=request.anchor.stage==='notebook'?'source-question':request.anchor.stage==='video'?'video-instruction':'instruction'
-  pendingChats.add(id);render()
-  try{const updated=await api.chat(id,request);if(snapshot?.project.id===id){snapshot=updated;const field=document.getElementById(fieldId);if(field instanceof HTMLInputElement && field.value.trim()===request.instruction) field.value=''}}
-  finally{pendingChats.delete(id);render()}
+const sendChat = async (request: import('../shared/api').ChatRequest) => {
+  if (!snapshot) return
+  const id = snapshot.project.id
+  if (pendingChats.has(id)) return
+  const fieldId =
+    request.anchor.stage === 'notebook'
+      ? 'source-question'
+      : request.anchor.stage === 'video'
+      ? 'video-instruction'
+      : 'instruction'
+  pendingChats.add(id)
+  render()
+  try {
+    const updated = await api.chat(id, request)
+    if (snapshot?.project.id === id) {
+      snapshot = updated
+      const field = document.getElementById(fieldId)
+      if (
+        field instanceof HTMLInputElement &&
+        field.value.trim() === request.instruction
+      )
+        field.value = ''
+    }
+  } finally {
+    pendingChats.delete(id)
+    render()
+  }
 }
 const attach = (value: Snapshot) => {
-  liveConnected=true
-  if(stage==='video')({selected,momentIndex,second}=workspacePosition(value.project,new URL(location.href)))
-  opening.reset();snapshot = value; localStorage.setItem('minimal-studio-project', value.project.id)
-  const notebookUrl=new URL(location.href);notebookUrl.searchParams.delete('project');notebookUrl.searchParams.set('notebook',value.project.id);history.replaceState(null,'',notebookUrl)
-  closeStream?.(); closeStream = api.subscribe(value.project.id, update => {
-    if ((practice.active || practiceLoading) && snapshot?.project.video?.scenes[selected]?.inputKey !== update.project.video?.scenes[selected]?.inputKey) stopPractice()
-    snapshot = update; render()
-  },connected=>{if(snapshot?.project.id===value.project.id && liveConnected!==connected){liveConnected=connected;render()}}); render()
+  liveConnected = true
+  if (stage === 'video')
+    ({ selected, momentIndex, second } = workspacePosition(
+      value.project,
+      new URL(location.href)
+    ))
+  opening.reset()
+  snapshot = value
+  localStorage.setItem('minimal-studio-project', value.project.id)
+  const notebookUrl = new URL(location.href)
+  notebookUrl.searchParams.delete('project')
+  notebookUrl.searchParams.set('notebook', value.project.id)
+  history.replaceState(null, '', notebookUrl)
+  closeStream?.()
+  closeStream = api.subscribe(
+    value.project.id,
+    update => {
+      if (
+        (practice.active || practiceLoading) &&
+        snapshot?.project.video?.scenes[selected]?.inputKey !==
+          update.project.video?.scenes[selected]?.inputKey
+      )
+        stopPractice()
+      snapshot = update
+      render()
+    },
+    connected => {
+      if (
+        snapshot?.project.id === value.project.id &&
+        liveConnected !== connected
+      ) {
+        liveConnected = connected
+        render()
+      }
+    }
+  )
+  render()
 }
-const error = (reason: unknown) => { const target = dialog.open ? dialog.querySelector('#error') : document.querySelector('#error, #settings-message'); if (target) target.textContent = reason instanceof Error ? reason.message : 'Could not complete that change' }
+const error = (reason: unknown) => {
+  const target = dialog.open
+    ? dialog.querySelector('#error')
+    : document.querySelector('#error, #settings-message')
+  if (target)
+    target.textContent =
+      reason instanceof Error
+        ? reason.message
+        : 'Could not complete that change'
+}
 const showDialog = (content: string) => {
   dialogRevision++
   delete dialog.dataset.explainer
-  dialog.innerHTML = `${button('×', 'close')}<div class="dialog-body">${content}</div>`; if (!dialog.open) dialog.showModal()
+  dialog.innerHTML = `${button(
+    '×',
+    'close'
+  )}<div class="dialog-body">${content}</div>`
+  if (!dialog.open) dialog.showModal()
 }
 const showExplainer = () => {
-  showDialog(`<p class="eyebrow">THE FIRST STEP</p><h2>Your video starts as slides.</h2><div class="explain-picture"><span>▤<small>A slide</small></span><b>→</b><span>▷<small>A scene</small></span><b>→</b><span>▶<small>Your video</small></span></div><p>Fixing a slide takes seconds.<br>A finished video takes minutes.</p>${button('Show me the slides', 'understood', true)}`)
+  showDialog(
+    `<p class="eyebrow">THE FIRST STEP</p>
+<h2>Your video starts as slides.</h2>
+<div class="explain-picture">
+<span>▤<small>A slide</small>
+</span>
+<b>→</b>
+<span>▷<small>A scene</small>
+</span>
+<b>→</b>
+<span>▶<small>Your video</small>
+</span>
+</div>
+<p>Fixing a slide takes seconds.<br>A finished video takes minutes.</p>${button(
+      'Show me the slides',
+      'understood',
+      true
+    )}`
+  )
   dialog.dataset.explainer = 'yes'
 }
 document.addEventListener('submit', async event => {
@@ -298,324 +997,1015 @@ document.addEventListener('submit', async event => {
   const form = event.target as HTMLFormElement
   const values = new FormData(form)
   try {
-    if(form.id==='recording-setup' && pendingRecording){
-      const seconds=String(values.get('seconds') || '').trim()
-      const moments=pendingRecording;pendingRecording=null;dialog.close()
-      recordingAttempt=structuredClone(moments)
-      try{await capture.start(moments,{stopAfter:seconds?Number(seconds):null})}catch(reason){recordingFailed(reason)}
+    if (form.id === 'recording-setup' && pendingRecording) {
+      const seconds = String(values.get('seconds') || '').trim()
+      const moments = pendingRecording
+      pendingRecording = null
+      dialog.close()
+      recordingAttempt = structuredClone(moments)
+      try {
+        await capture.start(moments, {
+          stopAfter: seconds ? Number(seconds) : null
+        })
+      } catch (reason) {
+        recordingFailed(reason)
+      }
     }
-    if(form.id==='source'){
-      if(pending) return
-      pendingSource=String(values.get('source')).trim();if(!pendingSource) return
-      pending=true;render()
-      try{
-        aiChoices=await api.harnesses()
-        if(aiLabel(aiChoices) && aiChoices.selected){const created=await api.create({source:pendingSource,harness:aiChoices.selected});pendingSource='';stage='presentation';attach(created)}
-        else showDialog(chooseAiDialog(aiChoices))
-      }finally{pending=false;render()}
+    if (form.id === 'source') {
+      if (pending) return
+      pendingSource = String(values.get('source')).trim()
+      if (!pendingSource) return
+      pending = true
+      render()
+      try {
+        aiChoices = await api.harnesses()
+        if (aiLabel(aiChoices) && aiChoices.selected) {
+          const created = await api.create({
+            source: pendingSource,
+            harness: aiChoices.selected
+          })
+          pendingSource = ''
+          stage = 'presentation'
+          attach(created)
+        } else showDialog(chooseAiDialog(aiChoices))
+      } finally {
+        pending = false
+        render()
+      }
     }
-    if(form.id==='choose-ai'){
-      if(pending) return
-      const adapter=String(values.get('harness')) as import('../shared/model').HarnessSelection['adapter']
-      if(!aiChoices?.available.some(choice=>choice.id===adapter && choice.ok)) throw new Error('Choose an available AI harness')
-      const model=String(values.get('model') || ''),harness={adapter,...model?{model}:{}}
-      if(!pendingSource){await api.saveSettings({harness});aiChoices={...aiChoices,selected:harness};dialog.close();render();return}
-      pending=true;const submit=form.querySelector<HTMLButtonElement>('button[type=submit],button.primary');if(submit) submit.disabled=true
-      try{await api.saveSettings({harness});const created=await api.create({source:pendingSource,harness});pendingSource='';dialog.close();stage='presentation';attach(created)}finally{pending=false;if(submit) submit.disabled=false}
+    if (form.id === 'choose-ai') {
+      if (pending) return
+      const adapter = String(
+        values.get('harness')
+      ) as import('../shared/model').HarnessSelection['adapter']
+      if (
+        !aiChoices?.available.some(choice => choice.id === adapter && choice.ok)
+      )
+        throw new Error('Choose an available AI harness')
+      const model = String(values.get('model') || ''),
+        harness = { adapter, ...(model ? { model } : {}) }
+      if (!pendingSource) {
+        await api.saveSettings({ harness })
+        aiChoices = { ...aiChoices, selected: harness }
+        dialog.close()
+        render()
+        return
+      }
+      pending = true
+      const submit = form.querySelector<HTMLButtonElement>(
+        'button[type=submit],button.primary'
+      )
+      if (submit) submit.disabled = true
+      try {
+        await api.saveSettings({ harness })
+        const created = await api.create({ source: pendingSource, harness })
+        pendingSource = ''
+        dialog.close()
+        stage = 'presentation'
+        attach(created)
+      } finally {
+        pending = false
+        if (submit) submit.disabled = false
+      }
     }
-    if(form.id==='source-recovery' && snapshot){snapshot=await api.replaceSource(snapshot.project.id,String(values.get('text') || ''));dialog.close();stage='presentation';render()}
-    if (['video-form','video-settings-form'].includes(form.id) && snapshot) {
+    if (form.id === 'source-recovery' && snapshot) {
+      snapshot = await api.replaceSource(
+        snapshot.project.id,
+        String(values.get('text') || '')
+      )
+      dialog.close()
+      stage = 'presentation'
+      render()
+    }
+    if (['video-form', 'video-settings-form'].includes(form.id) && snapshot) {
       const presence = String(values.get('presence')) as Presence
       const voice = String(values.get('voice'))
-      const next={presence,voice:parseVoice(voice)}
-      if(form.id==='video-settings-form'){pendingVideoSettings=next;showDialog(videoSettingsPreview(snapshot.project,next));return}
-      snapshot = await api.makeVideo(snapshot.project.id,next)
-      dialog.close(); stage = 'video'; selected = 0; momentIndex = 0; second = 0; render()
+      const next = { presence, voice: parseVoice(voice) }
+      if (form.id === 'video-settings-form') {
+        pendingVideoSettings = next
+        showDialog(videoSettingsPreview(snapshot.project, next))
+        return
+      }
+      snapshot = await api.makeVideo(snapshot.project.id, next)
+      dialog.close()
+      stage = 'video'
+      selected = 0
+      momentIndex = 0
+      second = 0
+      render()
     }
     if (form.id === 'video-chat' && snapshot) {
-      if (capture.phase !== 'idle') throw new Error('Finish or discard this take before changing the scene')
+      if (capture.phase !== 'idle')
+        throw new Error('Finish or discard this take before changing the scene')
       const scene = snapshot.project.video?.scenes[selected]
       const moment = scene?.moments[momentIndex]
       const instruction = String(values.get('instruction') || '').trim()
       if (!scene || !moment || !instruction) return
-      stopPractice(); await sendChat({anchor:{stage:'video',sceneId:scene.id,momentId:moment.id,second},instruction})
+      stopPractice()
+      await sendChat({
+        anchor: {
+          stage: 'video',
+          sceneId: scene.id,
+          momentId: moment.id,
+          second
+        },
+        instruction
+      })
     }
-    if(form.id==='notebook-chat' && snapshot){const instruction=String(values.get('instruction') || '').trim();if(!instruction) return;await sendChat({anchor:{stage:'notebook'},instruction})}
+    if (form.id === 'notebook-chat' && snapshot) {
+      const instruction = String(values.get('instruction') || '').trim()
+      if (!instruction) return
+      await sendChat({ anchor: { stage: 'notebook' }, instruction })
+    }
     if (form.id === 'chat' && snapshot) {
       const instruction = String(values.get('instruction') || '').trim()
       const slideId = snapshot.project.slides[selected]?.id
       if (!instruction || !slideId) return
-      await sendChat({anchor:{stage:'presentation',slideId},instruction})
+      await sendChat({
+        anchor: { stage: 'presentation', slideId },
+        instruction
+      })
     }
-  } catch (reason) { error(reason) } finally { pending = false }
+  } catch (reason) {
+    error(reason)
+  } finally {
+    pending = false
+  }
 })
 document.addEventListener('click', async event => {
   if ((event.target as Element).closest('.brand')) {
     if (capture.phase !== 'idle') return
-    event.preventDefault(); stopPractice(); closeStream?.(); closeStream = null; snapshot = null; opening.reset();localStorage.removeItem('minimal-studio-project');history.replaceState(null,'','/'); render();void refreshNotebooks().catch(error); return
+    event.preventDefault()
+    stopPractice()
+    closeStream?.()
+    closeStream = null
+    snapshot = null
+    opening.reset()
+    localStorage.removeItem('minimal-studio-project')
+    history.replaceState(null, '', '/')
+    render()
+    void refreshNotebooks().catch(error)
+    return
   }
   const target = (event.target as Element).closest<HTMLButtonElement>('button')
   if (!target) return
-  if (capture.phase !== 'idle' && (target.dataset.slide || target.dataset.scene || target.dataset.moment || target.dataset.stage)) return
-  if (target.dataset.slide) { selected = Number(target.dataset.slide); render(); return }
-  if (target.dataset.scene) { stopPractice(); selected = Number(target.dataset.scene); momentIndex = 0; second = 0; const player = root.querySelector<HTMLVideoElement>('[data-whole-video]'); if (player && snapshot) player.currentTime = videoSecond(snapshot.project,selected,0); render(); return }
-  if (target.dataset.moment) { stopPractice(); momentIndex = Number(target.dataset.moment); second = snapshot?.project.video?.scenes[selected]?.moments[momentIndex]?.start || 0; const player = root.querySelector<HTMLVideoElement>('[data-scene-player]'); if (player && snapshot) seekSavedMedia(player,player.hasAttribute('data-whole-video') ? videoSecond(snapshot.project,selected,second) : player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],second,true):second); render(); return }
-  if (target.dataset.stage) { wholeVideo = false; stopPractice(); stage = target.dataset.stage as typeof stage; render(); return }
+  if (
+    capture.phase !== 'idle' &&
+    (target.dataset.slide ||
+      target.dataset.scene ||
+      target.dataset.moment ||
+      target.dataset.stage)
+  )
+    return
+  if (target.dataset.slide) {
+    selected = Number(target.dataset.slide)
+    render()
+    return
+  }
+  if (target.dataset.scene) {
+    stopPractice()
+    selected = Number(target.dataset.scene)
+    momentIndex = 0
+    second = 0
+    const player = root.querySelector<HTMLVideoElement>('[data-whole-video]')
+    if (player && snapshot)
+      player.currentTime = videoSecond(snapshot.project, selected, 0)
+    render()
+    return
+  }
+  if (target.dataset.moment) {
+    stopPractice()
+    momentIndex = Number(target.dataset.moment)
+    second =
+      snapshot?.project.video?.scenes[selected]?.moments[momentIndex]?.start ||
+      0
+    const player = root.querySelector<HTMLVideoElement>('[data-scene-player]')
+    if (player && snapshot)
+      seekSavedMedia(
+        player,
+        player.hasAttribute('data-whole-video')
+          ? videoSecond(snapshot.project, selected, second)
+          : player.hasAttribute('data-animation-player')
+          ? animationSecond(
+              snapshot.project.video!.scenes[selected],
+              second,
+              true
+            )
+          : second
+      )
+    render()
+    return
+  }
+  if (target.dataset.stage) {
+    wholeVideo = false
+    stopPractice()
+    stage = target.dataset.stage as typeof stage
+    render()
+    return
+  }
   const action = target.dataset.action
   try {
-    if(target.dataset.notebook) {if(capture.phase!=='idle') throw new Error('Finish this take first');selected=0;momentIndex=0;second=0;await openNotebook(target.dataset.notebook,true);return}
-    if (action === 'settings' || action === 'clone-settings') { if(capture.phase!=='idle') throw new Error('Finish or discard this take before opening Settings'); stopPractice(); dialog.close(); await settingsScreen.open(); return }
-    if (action === 'close') { if (dialog.dataset.explainer) localStorage.setItem('studio-slides-explained','yes'); dialog.close() }
-    if (action === 'understood') { localStorage.setItem('studio-slides-explained','yes'); document.querySelector<HTMLDialogElement>('#dialog')?.close() }
-    if (action === 'slides-only') document.querySelector<HTMLTextAreaElement>('#source-input')?.focus()
-    if (action === 'choose-ai') { aiChoices=await api.harnesses(); showDialog(chooseAiDialog(aiChoices,true)); return }
-    if (action === 'all-recent') { showAllRecent=true; render(); return }
-    if(action==='open-notebook' && opening.state){await openNotebook(opening.state.id,openingAutoStage);return}
+    if (target.dataset.notebook) {
+      if (capture.phase !== 'idle') throw new Error('Finish this take first')
+      selected = 0
+      momentIndex = 0
+      second = 0
+      await openNotebook(target.dataset.notebook, true)
+      return
+    }
+    if (action === 'settings' || action === 'clone-settings') {
+      if (capture.phase !== 'idle')
+        throw new Error('Finish or discard this take before opening Settings')
+      stopPractice()
+      dialog.close()
+      await settingsScreen.open()
+      return
+    }
+    if (action === 'close') {
+      if (dialog.dataset.explainer)
+        localStorage.setItem('studio-slides-explained', 'yes')
+      dialog.close()
+    }
+    if (action === 'understood') {
+      localStorage.setItem('studio-slides-explained', 'yes')
+      document.querySelector<HTMLDialogElement>('#dialog')?.close()
+    }
+    if (action === 'slides-only')
+      document.querySelector<HTMLTextAreaElement>('#source-input')?.focus()
+    if (action === 'choose-ai') {
+      aiChoices = await api.harnesses()
+      showDialog(chooseAiDialog(aiChoices, true))
+      return
+    }
+    if (action === 'all-recent') {
+      showAllRecent = true
+      render()
+      return
+    }
+    if (action === 'open-notebook' && opening.state) {
+      await openNotebook(opening.state.id, openingAutoStage)
+      return
+    }
     if (!snapshot) return
-    if (capture.phase !== 'idle' && ['make-video','video-settings','scene-settings'].includes(action || '')) throw new Error('Finish or discard this take before changing settings')
-    const id = snapshot.project.id; const slideId = snapshot.project.slides[selected]?.id
-    if(action==='paste-source') showDialog(`<h2>Paste the article text</h2><p>The site blocked automatic reading. Copy its article text here to continue this notebook.</p><form id="source-recovery"><label for="article-text">Article text</label><textarea id="article-text" name="text" required minlength="40"></textarea><button class="primary">Continue with this text →</button><p id="error" role="alert"></p></form>`)
-    if (action === 'stop-slides') { target.setAttribute('disabled','');target.textContent='Stopping…';snapshot=await api.stopSlides(id);render() }
-    if (action === 'retry-slides') { snapshot = await api.retrySlides(id); render() }
-    if (action === 'export') await downloadPresentation(id,target)
-    if(action==='confirm-video-settings' && pendingVideoSettings){snapshot=await api.updateVideo(id,pendingVideoSettings);pendingVideoSettings=null;dialog.close();render();return}
+    if (
+      capture.phase !== 'idle' &&
+      ['make-video', 'video-settings', 'scene-settings'].includes(action || '')
+    )
+      throw new Error('Finish or discard this take before changing settings')
+    const id = snapshot.project.id
+    const slideId = snapshot.project.slides[selected]?.id
+    if (action === 'paste-source')
+      showDialog(
+        `<h2>Paste the article text</h2>
+<p>The site blocked automatic reading. Copy its article text here to continue this notebook.</p>
+<form id="source-recovery">
+<label for="article-text">Article text</label>
+<textarea id="article-text" name="text" required minlength="40">
+</textarea>
+<button class="primary">Continue with this text →</button>
+<p id="error" role="alert">
+</p>
+</form>`
+      )
+    if (action === 'stop-slides') {
+      target.setAttribute('disabled', '')
+      target.textContent = 'Stopping…'
+      snapshot = await api.stopSlides(id)
+      render()
+    }
+    if (action === 'retry-slides') {
+      snapshot = await api.retrySlides(id)
+      render()
+    }
+    if (action === 'export') await downloadPresentation(id, target)
+    if (action === 'confirm-video-settings' && pendingVideoSettings) {
+      snapshot = await api.updateVideo(id, pendingVideoSettings)
+      pendingVideoSettings = null
+      dialog.close()
+      render()
+      return
+    }
     if (action === 'video-settings') {
-      showDialog('<h2>Opening notebook settings</h2><p role="status">Loading your voice choices…</p><p id="error" role="alert"></p>')
-      const revision=dialogRevision
-      let settings:import('../shared/settings').StudioSettings
-      try{settings=await api.settings()}catch(reason){
-        if(dialog.open && dialogRevision===revision)showDialog(`<h2>Settings could not load</h2><p role="alert">${escape(reason instanceof Error?reason.message:'Check the connection and try again.')}</p>${button('Try again','video-settings',true)}`)
+      showDialog(
+        '<h2>Opening notebook settings</h2><p role="status">Loading your voice choices…</p><p id="error" role="alert"></p>'
+      )
+      const revision = dialogRevision
+      let settings: import('../shared/settings').StudioSettings
+      try {
+        settings = await api.settings()
+      } catch (reason) {
+        if (dialog.open && dialogRevision === revision)
+          showDialog(
+            `<h2>Settings could not load</h2>
+<p role="alert">${escape(
+              reason instanceof Error
+                ? reason.message
+                : 'Check the connection and try again.'
+            )}</p>${button('Try again', 'video-settings', true)}`
+          )
         return
       }
-      if(!dialog.open || dialogRevision!==revision)return
-      showDialog(makeVideoDialog(settings,pendingVideoSettings || snapshot.project.video!.settings))
-      const form = dialog.querySelector<HTMLFormElement>('#video-form, #video-settings-form')!; form.id = 'video-settings-form'
+      if (!dialog.open || dialogRevision !== revision) return
+      showDialog(
+        makeVideoDialog(
+          settings,
+          pendingVideoSettings || snapshot.project.video!.settings
+        )
+      )
+      const form = dialog.querySelector<HTMLFormElement>(
+        '#video-form, #video-settings-form'
+      )!
+      form.id = 'video-settings-form'
       dialog.querySelector('h2')!.textContent = 'Notebook settings'
       form.querySelector('button[type=submit]')!.textContent = 'Review changes'
-      const message = document.createElement('p'); message.textContent = 'On-camera changes re-plan scenes using the video setting. Matching recordings are kept.'; form.prepend(message);form.insertAdjacentHTML('afterend',button('App settings','settings'))
+      const message = document.createElement('p')
+      message.textContent =
+        'On-camera changes re-plan scenes using the video setting. Matching recordings are kept.'
+      form.prepend(message)
+      form.insertAdjacentHTML('afterend', button('App settings', 'settings'))
     }
-    if(action==='view-slides'){stage='presentation';render()}
-    if (action === 'make-video') { if (snapshot.project.video) { stage = 'video'; render() } else showDialog(makeVideoDialog(await api.settings())) }
+    if (action === 'view-slides') {
+      stage = 'presentation'
+      render()
+    }
+    if (action === 'make-video') {
+      if (snapshot.project.video) {
+        stage = 'video'
+        render()
+      } else showDialog(makeVideoDialog(await api.settings()))
+    }
     if (action === 'produce-video') {
-      if (snapshot.views?.video.action === 'export') await downloadVideo(id,target)
-      else { snapshot = await api.produceVideo(id); render() }
+      if (snapshot.views?.video.action === 'export')
+        await downloadVideo(id, target)
+      else {
+        snapshot = await api.produceVideo(id)
+        render()
+      }
     }
-    if (action === 'preview-video') { stopPractice(); wholeVideo = !wholeVideo; render(); if (wholeVideo) void root.querySelector<HTMLVideoElement>('[data-whole-video]')?.play().catch(() => {}) }
-    if (action === 'download-scene') await downloadVideo(id,target,snapshot.project.video!.scenes[selected].id)
+    if (action === 'preview-video') {
+      stopPractice()
+      wholeVideo = !wholeVideo
+      render()
+      if (wholeVideo)
+        void root
+          .querySelector<HTMLVideoElement>('[data-whole-video]')
+          ?.play()
+          .catch(() => {})
+    }
+    if (action === 'download-scene')
+      await downloadVideo(
+        id,
+        target,
+        snapshot.project.video!.scenes[selected].id
+      )
     if (target.dataset.transition) {
       const index = Number(target.dataset.transition)
-      showDialog(`<h2>Between scenes ${index+1} and ${index+2}</h2><div class="transition-choices">${(['none','crossfade','push-left','push-right','push-up','wipe','zoom'] as const).map(value => `<button data-transition-index="${index}" data-transition-value="${value}">${value.replace(/-/g,' ')}</button>`).join('')}</div>`)
+      showDialog(
+        `<h2>Between scenes ${index + 1} and ${index + 2}</h2>
+<div class="transition-choices">${(
+          [
+            'none',
+            'crossfade',
+            'push-left',
+            'push-right',
+            'push-up',
+            'wipe',
+            'zoom'
+          ] as const
+        )
+          .map(
+            value =>
+              `<button data-transition-index="${index}" data-transition-value="${value}">${value.replace(
+                /-/g,
+                ' '
+              )}</button>`
+          )
+          .join('')}</div>`
+      )
     }
     if (target.dataset.transitionValue) {
-      snapshot = await api.transition(id,Number(target.dataset.transitionIndex),target.dataset.transitionValue as Transition); dialog.close(); render()
-    }
-    if (action === 'back') { stage = 'presentation'; render() }
-    if (action === 'history') showDialog(`<h2>Studio history</h2><ol>${snapshot.events.map(item => `<li>${escape(item.message)}</li>`).join('')}</ol>`)
-    if(action==='moment-actions'){
-      stopPractice();momentIndex=Number(target.dataset.menuMoment);const scene=snapshot.project.video!.scenes[selected],moment=scene.moments[momentIndex]
-      if(!moment)return
-      second=moment.start
-      const player=root.querySelector<HTMLVideoElement>('[data-scene-player]')
-      if(player){player.pause();player.currentTime=player.hasAttribute('data-whole-video')?videoSecond(snapshot.project,selected,second):player.hasAttribute('data-animation-player')?animationSecond(scene,second,true):second}
+      snapshot = await api.transition(
+        id,
+        Number(target.dataset.transitionIndex),
+        target.dataset.transitionValue as Transition
+      )
+      dialog.close()
       render()
-      const state=snapshot.views?.moments[momentViewKey(scene.id,moment.id)]?.state
-      showDialog(`<p class="eyebrow">MOMENT ${momentIndex+1}</p><h2>${escape(moment.title || 'Your part')}</h2><div class="moment-action-list">${button('Practice this moment','practice')}${state==='recorded'?`<button type="button" data-retake="${momentIndex}">Retake this moment</button>`:snapshot.views?.scenes[scene.id].openMomentIds.includes(moment.id)?button('Record this moment','record-moment'):''}</div>`)
+    }
+    if (action === 'back') {
+      stage = 'presentation'
+      render()
+    }
+    if (action === 'history')
+      showDialog(
+        `<h2>Studio history</h2>
+<ol>${snapshot.events
+          .map(item => `<li>${escape(item.message)}</li>`)
+          .join('')}</ol>`
+      )
+    if (action === 'moment-actions') {
+      stopPractice()
+      momentIndex = Number(target.dataset.menuMoment)
+      const scene = snapshot.project.video!.scenes[selected],
+        moment = scene.moments[momentIndex]
+      if (!moment) return
+      second = moment.start
+      const player = root.querySelector<HTMLVideoElement>('[data-scene-player]')
+      if (player) {
+        player.pause()
+        player.currentTime = player.hasAttribute('data-whole-video')
+          ? videoSecond(snapshot.project, selected, second)
+          : player.hasAttribute('data-animation-player')
+          ? animationSecond(scene, second, true)
+          : second
+      }
+      render()
+      const state =
+        snapshot.views?.moments[momentViewKey(scene.id, moment.id)]?.state
+      showDialog(
+        `<p class="eyebrow">MOMENT ${momentIndex + 1}</p>
+<h2>${escape(moment.title || 'Your part')}</h2>
+<div class="moment-action-list">${button('Practice this moment', 'practice')}${
+          state === 'recorded'
+            ? `<button type="button" data-retake="${momentIndex}">Retake this moment</button>`
+            : snapshot.views?.scenes[scene.id].openMomentIds.includes(moment.id)
+            ? button('Record this moment', 'record-moment')
+            : ''
+        }</div>`
+      )
     }
     if (action === 'scene-settings') {
-      if(target.dataset.settingsScene!==undefined){selected=Number(target.dataset.settingsScene);momentIndex=0;second=0;render()}
+      if (target.dataset.settingsScene !== undefined) {
+        selected = Number(target.dataset.settingsScene)
+        momentIndex = 0
+        second = 0
+        render()
+      }
       const scene = snapshot.project.video?.scenes[selected]
       if (!scene) return
-      showDialog(sceneSettings(scene,snapshot.project.video!.settings,selected))
+      showDialog(
+        sceneSettings(scene, snapshot.project.video!.settings, selected)
+      )
     }
     if (target.dataset.presence) {
       const scene = snapshot.project.video!.scenes[selected]
-      const preview = await api.previewPresence(id, scene.id, target.dataset.presence==='inherit'?null:target.dataset.presence as Presence)
-      showDialog(`<h2>Re-plan scene ${selected+1}</h2><p>${escape(preview.message)}</p><button class="primary" data-action="confirm-replan" data-value="${preview.to===null?'inherit':preview.to}">Re-plan scene ${selected+1}</button><p id="error" role="alert"></p>`)
+      const preview = await api.previewPresence(
+        id,
+        scene.id,
+        target.dataset.presence === 'inherit'
+          ? null
+          : (target.dataset.presence as Presence)
+      )
+      showDialog(
+        `<h2>Re-plan scene ${selected + 1}</h2>
+<p>${escape(preview.message)}</p>
+<button class="primary" data-action="confirm-replan" data-value="${
+          preview.to === null ? 'inherit' : preview.to
+        }">Re-plan scene ${selected + 1}</button>
+<p id="error" role="alert">
+</p>`
+      )
     }
     if (action === 'confirm-replan') {
-      snapshot = await api.replan(id, snapshot.project.video!.scenes[selected].id, target.dataset.value==='inherit'?null:target.dataset.value as Presence); dialog.close(); render()
+      snapshot = await api.replan(
+        id,
+        snapshot.project.video!.scenes[selected].id,
+        target.dataset.value === 'inherit'
+          ? null
+          : (target.dataset.value as Presence)
+      )
+      dialog.close()
+      render()
     }
-    if(action==='practice-camera-off'){
-      practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=null;cameraStarting=false;render();return
+    if (action === 'practice-camera-off') {
+      practiceStream?.getTracks().forEach(track => track.stop())
+      practiceStream = null
+      cameraStarting = false
+      render()
+      return
     }
-    if(action==='practice-camera'){
-      if(cameraStarting)return
-      cameraStarting=true;render()
-      const request=practiceRequest
-      try{const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});if(request!==practiceRequest || !practiceOpen){stream.getTracks().forEach(track=>track.stop());return};practiceStream?.getTracks().forEach(track=>track.stop());practiceStream=stream;render()}
-      catch{cameraStarting=false;render();error(new Error('Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'))}
+    if (action === 'practice-camera') {
+      if (cameraStarting) return
+      cameraStarting = true
+      render()
+      const request = practiceRequest
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        })
+        if (request !== practiceRequest || !practiceOpen) {
+          stream.getTracks().forEach(track => track.stop())
+          return
+        }
+        practiceStream?.getTracks().forEach(track => track.stop())
+        practiceStream = stream
+        render()
+      } catch {
+        cameraStarting = false
+        render()
+        error(
+          new Error(
+            'Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'
+          )
+        )
+      }
     }
-    if(action==='practice-finish'){finishPractice();return}
-    if(action==='practice-replay' && practiceOpen){dialog.close();await replayPractice();return}
-    if(action==='practice-start'){await startRehearsal?.();return}
-    if(action==='practice-next'){practice.advance();render();return}
-    if(action==='practice-toggle' && practice.active){if(practice.paused)practice.resume();else practice.pause();render();return}
-    if (action === 'practice' || action === 'practice-replay' || action === 'practice-toggle') {
-      dialog.close();wholeVideo=false
-      if(action==='practice' && (practiceOpen || practiceLoading)){stopPractice();render();return}
-      const scene=snapshot.project.video!.scenes[selected],moment=scene.moments[momentIndex]
-      if(!moment) return
-      practiceRequest++;practiceStopAfter=null;practiceMomentIds=[moment.id]
-      practiceOpen=true;second=moment.start;startRehearsal=replayPractice;render()
+    if (action === 'practice-finish') {
+      finishPractice()
+      return
     }
-    if(action==='record-open'){
-      const scene=snapshot.project.video!.scenes[selected],open=snapshot.views?.scenes[scene.id].openMomentIds || []
-      const moments=scene.moments.filter(moment=>open.includes(moment.id))
-      if(!moments.length)throw new Error('No moments need recording')
-      recordingSceneId=scene.id;recordingProjectId=id;prepareRecordingPass(moments)
+    if (action === 'practice-replay' && practiceOpen) {
+      dialog.close()
+      await replayPractice()
+      return
     }
-    if(action==='recording-retry'){
-      const scene=snapshot.project.video?.scenes.find(entry=>entry.id===recordingSceneId)
-      if(!scene || id!==recordingProjectId || !recordingAttempt.length)throw new Error('Select the moment you want to record.')
-      if(!['waiting','produced'].includes(scene.phase))throw new Error('Wait for this scene to finish changing before recording again.')
-      const moments=recordingAttempt.map(previous=>scene.moments.find(moment=>moment.id===previous.id && moment.recordingKey===previous.recordingKey))
-      if(moments.some(moment=>!moment))throw new Error('The dialogue changed. Close this dialog and select the updated moment to record.')
-      selected=snapshot.project.video!.scenes.indexOf(scene)
-      momentIndex=scene.moments.findIndex(moment=>moment.id===moments[0]!.id);second=moments[0]!.start
-      if(moments.length>1)prepareRecordingPass(moments as import('../shared/model').Moment[]);else prepareRecording(moments[0]!,momentIndex)
+    if (action === 'practice-start') {
+      await startRehearsal?.()
+      return
     }
-    if (action === 'scene-next' || action==='record-moment') {
+    if (action === 'practice-next') {
+      practice.advance()
+      render()
+      return
+    }
+    if (action === 'practice-toggle' && practice.active) {
+      if (practice.paused) practice.resume()
+      else practice.pause()
+      render()
+      return
+    }
+    if (
+      action === 'practice' ||
+      action === 'practice-replay' ||
+      action === 'practice-toggle'
+    ) {
+      dialog.close()
+      wholeVideo = false
+      if (action === 'practice' && (practiceOpen || practiceLoading)) {
+        stopPractice()
+        render()
+        return
+      }
+      const scene = snapshot.project.video!.scenes[selected],
+        moment = scene.moments[momentIndex]
+      if (!moment) return
+      practiceRequest++
+      practiceStopAfter = null
+      practiceMomentIds = [moment.id]
+      practiceOpen = true
+      second = moment.start
+      startRehearsal = replayPractice
+      render()
+    }
+    if (action === 'record-open') {
+      const scene = snapshot.project.video!.scenes[selected],
+        open = snapshot.views?.scenes[scene.id].openMomentIds || []
+      const moments = scene.moments.filter(moment => open.includes(moment.id))
+      if (!moments.length) throw new Error('No moments need recording')
+      recordingSceneId = scene.id
+      recordingProjectId = id
+      prepareRecordingPass(moments)
+    }
+    if (action === 'recording-retry') {
+      const scene = snapshot.project.video?.scenes.find(
+        entry => entry.id === recordingSceneId
+      )
+      if (!scene || id !== recordingProjectId || !recordingAttempt.length)
+        throw new Error('Select the moment you want to record.')
+      if (!['waiting', 'produced'].includes(scene.phase))
+        throw new Error(
+          'Wait for this scene to finish changing before recording again.'
+        )
+      const moments = recordingAttempt.map(previous =>
+        scene.moments.find(
+          moment =>
+            moment.id === previous.id &&
+            moment.recordingKey === previous.recordingKey
+        )
+      )
+      if (moments.some(moment => !moment))
+        throw new Error(
+          'The dialogue changed. Close this dialog and select the updated moment to record.'
+        )
+      selected = snapshot.project.video!.scenes.indexOf(scene)
+      momentIndex = scene.moments.findIndex(
+        moment => moment.id === moments[0]!.id
+      )
+      second = moments[0]!.start
+      if (moments.length > 1)
+        prepareRecordingPass(moments as import('../shared/model').Moment[])
+      else prepareRecording(moments[0]!, momentIndex)
+    }
+    if (action === 'scene-next' || action === 'record-moment') {
       const scene = snapshot.project.video!.scenes[selected]
-      if (snapshot.views?.scenes[scene.id].action === 'retry') { snapshot = await api.retryScene(id,scene.id); render() }
-      else if (snapshot.views?.scenes[scene.id].action === 'record' || action==='record-moment') {
-        stopPractice(); recordingSceneId = scene.id; recordingProjectId = id
+      if (snapshot.views?.scenes[scene.id].action === 'retry') {
+        snapshot = await api.retryScene(id, scene.id)
+        render()
+      } else if (
+        snapshot.views?.scenes[scene.id].action === 'record' ||
+        action === 'record-moment'
+      ) {
+        stopPractice()
+        recordingSceneId = scene.id
+        recordingProjectId = id
         const open = snapshot.views?.scenes[scene.id].openMomentIds || []
-        const index=recordingTarget(scene.moments,open,momentIndex)
-        if(index<0)throw new Error('No moments need recording. Select a saved moment to retake it.')
-        prepareRecording(scene.moments[index],index)
-      } else if (snapshot.views?.scenes[scene.id].action === 'produce') { stopPractice(); snapshot = await api.produceScene(id,scene.id); render() }
+        const index = recordingTarget(scene.moments, open, momentIndex)
+        if (index < 0)
+          throw new Error(
+            'No moments need recording. Select a saved moment to retake it.'
+          )
+        prepareRecording(scene.moments[index], index)
+      } else if (snapshot.views?.scenes[scene.id].action === 'produce') {
+        stopPractice()
+        snapshot = await api.produceScene(id, scene.id)
+        render()
+      }
     }
     if (target.dataset.retake) {
       const scene = snapshot.project.video!.scenes[selected]
-      stopPractice(); recordingSceneId = scene.id; recordingProjectId = id
-      prepareRecording(scene.moments[Number(target.dataset.retake)],Number(target.dataset.retake))
+      stopPractice()
+      recordingSceneId = scene.id
+      recordingProjectId = id
+      prepareRecording(
+        scene.moments[Number(target.dataset.retake)],
+        Number(target.dataset.retake)
+      )
     }
     if (action === 'record-next') capture.next()
     if (action === 'record-stop') capture.stop()
-    if (action === 'retake-recording') {const moments=capture.moments;capture.dispose();if(moments.length>1)prepareRecordingPass(moments);else if(moments[0])prepareRecording(moments[0],momentIndex)}
+    if (action === 'retake-recording') {
+      const moments = capture.moments
+      capture.dispose()
+      if (moments.length > 1) prepareRecordingPass(moments)
+      else if (moments[0]) prepareRecording(moments[0], momentIndex)
+    }
     if (action === 'discard-take') capture.dispose()
     if (action === 'save-take' && capture.blob) {
-      capture.phase = 'uploading'; render()
-      try { snapshot = await api.saveRecording(recordingProjectId,recordingSceneId,capture.parts,capture.blob); capture.dispose() }
-      catch (reason) { capture.phase = 'reviewing'; render(); throw reason }
+      capture.phase = 'uploading'
+      render()
+      try {
+        snapshot = await api.saveRecording(
+          recordingProjectId,
+          recordingSceneId,
+          capture.parts,
+          capture.blob
+        )
+        capture.dispose()
+      } catch (reason) {
+        capture.phase = 'reviewing'
+        render()
+        throw reason
+      }
     }
-    if (['add','duplicate','delete','up','down','undo-delete'].includes(action || '')) {
+    if (
+      ['add', 'duplicate', 'delete', 'up', 'down', 'undo-delete'].includes(
+        action || ''
+      )
+    ) {
       const restoredIndex = snapshot.deletedSlide?.index || 0
-      snapshot = await api.slide(id, { action: action === 'up' || action === 'down' ? 'move' : action as 'add' | 'duplicate' | 'delete' | 'undo-delete', slideId, index: action === 'up' ? selected-1 : selected+1 });
-      if (action === 'add') selected = snapshot.project.slides.length-1
+      snapshot = await api.slide(id, {
+        action:
+          action === 'up' || action === 'down'
+            ? 'move'
+            : (action as 'add' | 'duplicate' | 'delete' | 'undo-delete'),
+        slideId,
+        index: action === 'up' ? selected - 1 : selected + 1
+      })
+      if (action === 'add') selected = snapshot.project.slides.length - 1
       if (action === 'duplicate' || action === 'down') selected++
       if (action === 'up') selected--
       if (action === 'undo-delete') selected = restoredIndex
       render()
     }
-  } catch (reason) { error(reason) }
+  } catch (reason) {
+    error(reason)
+  }
 })
 render()
-const parameters=new URLSearchParams(location.search)
-const saved = parameters.get('notebook') || parameters.get('project') || localStorage.getItem('minimal-studio-project')
+const parameters = new URLSearchParams(location.search)
+const saved =
+  parameters.get('notebook') ||
+  parameters.get('project') ||
+  localStorage.getItem('minimal-studio-project')
 if (saved) void openNotebook(saved)
 else void refreshNotebooks().catch(error)
 
-document.addEventListener('keydown',event=>{
-  if(event.key==='Tab' && root.querySelector('.is-focused')){
-    const controls=[...root.querySelectorAll<HTMLElement>('.is-focused .stage-area button:not(:disabled),.is-focused .stage-area input:not(:disabled),.is-focused .stage-area [tabindex="0"]')].filter(el=>el.getClientRects().length)
-    const first=controls[0],last=controls.at(-1)
-    if(first && (event.shiftKey && (document.activeElement===first || !root.querySelector('.is-focused .stage-area')?.contains(document.activeElement)))){event.preventDefault();last?.focus()}
-    else if(first && !event.shiftKey && (document.activeElement===last || !root.querySelector('.is-focused .stage-area')?.contains(document.activeElement))){event.preventDefault();first.focus()}
+document.addEventListener('keydown', event => {
+  if (event.key === 'Tab' && root.querySelector('.is-focused')) {
+    const controls = [
+      ...root.querySelectorAll<HTMLElement>(
+        '.is-focused .stage-area button:not(:disabled),.is-focused .stage-area input:not(:disabled),.is-focused .stage-area [tabindex="0"]'
+      )
+    ].filter(el => el.getClientRects().length)
+    const first = controls[0],
+      last = controls.at(-1)
+    if (
+      first &&
+      event.shiftKey &&
+      (document.activeElement === first ||
+        !root
+          .querySelector('.is-focused .stage-area')
+          ?.contains(document.activeElement))
+    ) {
+      event.preventDefault()
+      last?.focus()
+    } else if (
+      first &&
+      !event.shiftKey &&
+      (document.activeElement === last ||
+        !root
+          .querySelector('.is-focused .stage-area')
+          ?.contains(document.activeElement))
+    ) {
+      event.preventDefault()
+      first.focus()
+    }
   }
-  if(event.repeat)return
-  if(event.key==='Enter' && practice.active && practiceMomentIds.length>1 && !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)){event.preventDefault();practice.advance();render();return}
-  if(event.key==='Enter' && capture.phase==='recording' && capture.moments.length>1 && !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)){event.preventDefault();try{capture.next()}catch(reason){error(reason)};return}
-  if(event.key!=='Escape')return
-  if(practiceOpen){event.preventDefault();if(practice.active || practiceCountdown)finishPractice();return}
-  if(capture.phase==='recording'){event.preventDefault();try{capture.stop()}catch(reason){error(reason)}}
-  else if(capture.phase==='countdown' || capture.phase==='preparing'){event.preventDefault();capture.dispose()}
+  if (event.repeat) return
+  if (
+    event.key === 'Enter' &&
+    practice.active &&
+    practiceMomentIds.length > 1 &&
+    !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)
+  ) {
+    event.preventDefault()
+    practice.advance()
+    render()
+    return
+  }
+  if (
+    event.key === 'Enter' &&
+    capture.phase === 'recording' &&
+    capture.moments.length > 1 &&
+    !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)
+  ) {
+    event.preventDefault()
+    try {
+      capture.next()
+    } catch (reason) {
+      error(reason)
+    }
+    return
+  }
+  if (event.key !== 'Escape') return
+  if (practiceOpen) {
+    event.preventDefault()
+    if (practice.active || practiceCountdown) finishPractice()
+    return
+  }
+  if (capture.phase === 'recording') {
+    event.preventDefault()
+    try {
+      capture.stop()
+    } catch (reason) {
+      error(reason)
+    }
+  } else if (capture.phase === 'countdown' || capture.phase === 'preparing') {
+    event.preventDefault()
+    capture.dispose()
+  }
 })
-root.addEventListener('input',event=>{const field=event.target as HTMLTextAreaElement;if(field.id==='source-input')fitSource(field)})
-root.addEventListener('keydown',event=>{const field=event.target as HTMLTextAreaElement;if(field.id==='source-input' && event.key==='Enter' && !event.shiftKey && !event.isComposing){event.preventDefault();field.form?.requestSubmit()}})
+root.addEventListener('input', event => {
+  const field = event.target as HTMLTextAreaElement
+  if (field.id === 'source-input') fitSource(field)
+})
 root.addEventListener('keydown', event => {
-  if (!snapshot || stage !== 'presentation' || /INPUT|TEXTAREA/.test((event.target as Element).tagName)) return
+  const field = event.target as HTMLTextAreaElement
+  if (
+    field.id === 'source-input' &&
+    event.key === 'Enter' &&
+    !event.shiftKey &&
+    !event.isComposing
+  ) {
+    event.preventDefault()
+    field.form?.requestSubmit()
+  }
+})
+root.addEventListener('keydown', event => {
+  if (
+    !snapshot ||
+    stage !== 'presentation' ||
+    /INPUT|TEXTAREA/.test((event.target as Element).tagName)
+  )
+    return
   const command = event.metaKey || event.ctrlKey
-  const action = command && event.key.toLowerCase() === 'd' ? 'duplicate' : command && event.key === 'ArrowUp' ? 'up' : command && event.key === 'ArrowDown' ? 'down' : event.key === 'Delete' ? 'delete' : event.key === 'Enter' ? 'add' : null
-  if (action) { event.preventDefault(); root.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)?.click() }
+  const action =
+    command && event.key.toLowerCase() === 'd'
+      ? 'duplicate'
+      : command && event.key === 'ArrowUp'
+      ? 'up'
+      : command && event.key === 'ArrowDown'
+      ? 'down'
+      : event.key === 'Delete'
+      ? 'delete'
+      : event.key === 'Enter'
+      ? 'add'
+      : null
+  if (action) {
+    event.preventDefault()
+    root.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)?.click()
+  }
 })
 let dragged: number | null = null
 root.addEventListener('dragstart', event => {
   const target = (event.target as Element).closest<HTMLElement>('[data-slide]')
   dragged = target ? Number(target.dataset.slide) : null
 })
-root.addEventListener('dragover', event => { if ((event.target as Element).closest('[data-slide]')) event.preventDefault() })
+root.addEventListener('dragover', event => {
+  if ((event.target as Element).closest('[data-slide]')) event.preventDefault()
+})
 root.addEventListener('drop', async event => {
   event.preventDefault()
   const target = (event.target as Element).closest<HTMLElement>('[data-slide]')
   if (!target || dragged === null || !snapshot) return
-  try { selected = Number(target.dataset.slide); snapshot = await api.slide(snapshot.project.id, { action: 'move', slideId: snapshot.project.slides[dragged].id, index: selected }); render() } catch (reason) { error(reason) }
+  try {
+    selected = Number(target.dataset.slide)
+    snapshot = await api.slide(snapshot.project.id, {
+      action: 'move',
+      slideId: snapshot.project.slides[dragged].id,
+      index: selected
+    })
+    render()
+  } catch (reason) {
+    error(reason)
+  }
   dragged = null
 })
 
 dialog.addEventListener('change', event => {
-  const target=event.target as HTMLSelectElement
-  if(target.form?.id==='choose-ai' && target.name==='harness'){const model=target.form.elements.namedItem('model') as HTMLSelectElement;model.innerHTML=modelOptions(aiChoices?.available.find(choice=>choice.id===target.value));return}
-  const form = dialog.querySelector<HTMLFormElement>('#video-form, #video-settings-form')
+  const target = event.target as HTMLSelectElement
+  if (target.form?.id === 'choose-ai' && target.name === 'harness') {
+    const model = target.form.elements.namedItem('model') as HTMLSelectElement
+    model.innerHTML = modelOptions(
+      aiChoices?.available.find(choice => choice.id === target.value)
+    )
+    return
+  }
+  const form = dialog.querySelector<HTMLFormElement>(
+    '#video-form, #video-settings-form'
+  )
   if (!form) return
   const values = new FormData(form)
   const warning = form.querySelector<HTMLElement>('.two-voices')!
-  warning.hidden = !String(values.get('voice')).startsWith('ai:') || values.get('presence') === 'off'
+  warning.hidden =
+    !String(values.get('voice')).startsWith('ai:') ||
+    values.get('presence') === 'off'
 })
 
 // A browser take is not durable until the save response confirms persistence.
 window.addEventListener('beforeunload', event => {
- if(capture.phase==='recording' || capture.phase==='reviewing' || capture.phase==='uploading'){event.preventDefault();event.returnValue=''}
+  if (
+    capture.phase === 'recording' ||
+    capture.phase === 'reviewing' ||
+    capture.phase === 'uploading'
+  ) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
 })
-window.addEventListener('pagehide', () => { stopPractice(); capture.dispose(); if(settingsScreen.isOpen) settingsScreen.close(); closeStream?.() })
+window.addEventListener('pagehide', () => {
+  stopPractice()
+  capture.dispose()
+  if (settingsScreen.isOpen) settingsScreen.close()
+  closeStream?.()
+})
 
-let playheadFrame=0
-const stopPlayhead=()=>{cancelAnimationFrame(playheadFrame);playheadFrame=0}
-const animatePlayhead=(player:HTMLMediaElement)=>{
- stopPlayhead()
- const tick=()=>{
-  if(!player.isConnected || player.paused || player.ended || !snapshot){stopPlayhead();return}
-  if(player.hasAttribute('data-take-player')){const scene=snapshot.project.video?.scenes[selected],at=scene?takeReviewPosition(scene.moments,capture.parts,player.currentTime):null;if(at)movePlayhead(root,scene!.moments,at.second,at.momentIndex);playheadFrame=requestAnimationFrame(tick);return}
-  const at=player.hasAttribute('data-whole-video')?sceneAt(snapshot.project,player.currentTime):{index:selected,second:player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],player.currentTime):player.currentTime}
-  movePlayhead(root,snapshot.project.video?.scenes[at.index]?.moments || [],at.second)
-  playheadFrame=requestAnimationFrame(tick)
- }
- playheadFrame=requestAnimationFrame(tick)
+let playheadFrame = 0
+const stopPlayhead = () => {
+  cancelAnimationFrame(playheadFrame)
+  playheadFrame = 0
 }
-root.addEventListener('play',event=>{const player=event.target;if(player instanceof HTMLMediaElement && player.matches('[data-scene-player],[data-take-player]'))animatePlayhead(player)},true)
-for(const type of ['pause','ended','emptied'])root.addEventListener(type,event=>{if(event.target instanceof HTMLMediaElement && event.target.matches('[data-scene-player],[data-take-player]'))stopPlayhead()},true)
-window.addEventListener('pagehide',stopPlayhead)
+const animatePlayhead = (player: HTMLMediaElement) => {
+  stopPlayhead()
+  const tick = () => {
+    if (!player.isConnected || player.paused || player.ended || !snapshot) {
+      stopPlayhead()
+      return
+    }
+    if (player.hasAttribute('data-take-player')) {
+      const scene = snapshot.project.video?.scenes[selected],
+        at = scene
+          ? takeReviewPosition(scene.moments, capture.parts, player.currentTime)
+          : null
+      if (at) movePlayhead(root, scene!.moments, at.second, at.momentIndex)
+      playheadFrame = requestAnimationFrame(tick)
+      return
+    }
+    const at = player.hasAttribute('data-whole-video')
+      ? sceneAt(snapshot.project, player.currentTime)
+      : {
+          index: selected,
+          second: player.hasAttribute('data-animation-player')
+            ? animationSecond(
+                snapshot.project.video!.scenes[selected],
+                player.currentTime
+              )
+            : player.currentTime
+        }
+    movePlayhead(
+      root,
+      snapshot.project.video?.scenes[at.index]?.moments || [],
+      at.second
+    )
+    playheadFrame = requestAnimationFrame(tick)
+  }
+  playheadFrame = requestAnimationFrame(tick)
+}
+root.addEventListener(
+  'play',
+  event => {
+    const player = event.target
+    if (
+      player instanceof HTMLMediaElement &&
+      player.matches('[data-scene-player],[data-take-player]')
+    )
+      animatePlayhead(player)
+  },
+  true
+)
+for (const type of ['pause', 'ended', 'emptied'])
+  root.addEventListener(
+    type,
+    event => {
+      if (
+        event.target instanceof HTMLMediaElement &&
+        event.target.matches('[data-scene-player],[data-take-player]')
+      )
+        stopPlayhead()
+    },
+    true
+  )
+window.addEventListener('pagehide', stopPlayhead)
 
-root.addEventListener('timeupdate',event => {
-  const player = event.target as HTMLMediaElement
-  if (!player.matches('[data-scene-player],[data-take-player]')) return
-  if (!snapshot) return
-  let changedScene = false
-  if(player.hasAttribute('data-take-player')){
-    const scene=snapshot.project.video?.scenes[selected],at=scene?takeReviewPosition(scene.moments,capture.parts,player.currentTime):null
-    if(!at)return
-    momentIndex=at.momentIndex;second=at.second
-    syncRehearsalAnimation(root,scene!,momentIndex,second,!player.paused)
-  } else if (player.hasAttribute('data-whole-video')) {
-    const at = sceneAt(snapshot.project,player.currentTime)
-    changedScene = selected !== at.index; selected = at.index; second = at.second
-  } else second = player.hasAttribute('data-animation-player')?animationSecond(snapshot.project.video!.scenes[selected],player.currentTime):player.currentTime
-  const scene = snapshot.project.video?.scenes[selected]
-  if (!scene) return
-  const clock=scene.moments
-  const index = clock.findIndex(moment => second >= moment.start && second < moment.end)
-  if (index >= 0 && !player.hasAttribute('data-take-player')) momentIndex = index
-  if (changedScene) { render(); return }
-  followTranscript(root,scene.moments,second,momentIndex)
-  root.querySelectorAll('.transcript-moment').forEach((entry,index) => entry.classList.toggle('current',index === momentIndex))
-  root.querySelectorAll('.moment').forEach((entry,index) => entry.classList.toggle('current',index === momentIndex))
-  movePlayhead(root,snapshot?.project.video?.scenes[selected]?.moments || [],second,player.hasAttribute('data-take-player')?momentIndex:undefined)
-  const chip = root.querySelector('.anchor-chip'); if (chip) chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex+1}`
-},true)
+root.addEventListener(
+  'timeupdate',
+  event => {
+    const player = event.target as HTMLMediaElement
+    if (!player.matches('[data-scene-player],[data-take-player]')) return
+    if (!snapshot) return
+    let changedScene = false
+    if (player.hasAttribute('data-take-player')) {
+      const scene = snapshot.project.video?.scenes[selected],
+        at = scene
+          ? takeReviewPosition(scene.moments, capture.parts, player.currentTime)
+          : null
+      if (!at) return
+      momentIndex = at.momentIndex
+      second = at.second
+      syncRehearsalAnimation(root, scene!, momentIndex, second, !player.paused)
+    } else if (player.hasAttribute('data-whole-video')) {
+      const at = sceneAt(snapshot.project, player.currentTime)
+      changedScene = selected !== at.index
+      selected = at.index
+      second = at.second
+    } else
+      second = player.hasAttribute('data-animation-player')
+        ? animationSecond(
+            snapshot.project.video!.scenes[selected],
+            player.currentTime
+          )
+        : player.currentTime
+    const scene = snapshot.project.video?.scenes[selected]
+    if (!scene) return
+    const clock = scene.moments
+    const index = clock.findIndex(
+      moment => second >= moment.start && second < moment.end
+    )
+    if (index >= 0 && !player.hasAttribute('data-take-player'))
+      momentIndex = index
+    if (changedScene) {
+      render()
+      return
+    }
+    followTranscript(root, scene.moments, second, momentIndex)
+    root
+      .querySelectorAll('.transcript-moment')
+      .forEach((entry, index) =>
+        entry.classList.toggle('current', index === momentIndex)
+      )
+    root
+      .querySelectorAll('.moment')
+      .forEach((entry, index) =>
+        entry.classList.toggle('current', index === momentIndex)
+      )
+    movePlayhead(
+      root,
+      snapshot?.project.video?.scenes[selected]?.moments || [],
+      second,
+      player.hasAttribute('data-take-player') ? momentIndex : undefined
+    )
+    const chip = root.querySelector('.anchor-chip')
+    if (chip)
+      chip.textContent = `${second.toFixed(1)}s · moment ${momentIndex + 1}`
+  },
+  true
+)
 
-root.addEventListener('focusin',event => {
-  if ((event.target as HTMLElement).id === 'video-instruction') root.querySelector<HTMLVideoElement>('[data-scene-player]')?.pause()
+root.addEventListener('focusin', event => {
+  if ((event.target as HTMLElement).id === 'video-instruction')
+    root.querySelector<HTMLVideoElement>('[data-scene-player]')?.pause()
 })
 
 // Update only elapsed copy; never rebuild the editor or disturb draft focus.
-setInterval(()=>updateProgressTimes(root),10000)
+setInterval(() => updateProgressTimes(root), 10000)

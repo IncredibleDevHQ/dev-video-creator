@@ -12,7 +12,7 @@
 // suggesting a presenter does not mandate a recording or switch the voice.
 import { findCapability, type CapabilityCatalog, type CapabilityKind } from './capability-catalog'
 import type { ExplanationBriefV1 } from './explanation-brief'
-import { presenceProblems, showsTitle, type Presence } from './presence'
+import { presenceProblems, showsTitle, type Presence } from '../planning/presence'
 
 export const TREATMENT_SCHEMA_VERSION = 1 as const
 

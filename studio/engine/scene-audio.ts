@@ -9,7 +9,7 @@ import { resolveVoice } from './voice-library'
 import { momentAudioKey } from './scene-model'
 import { loadStageCheckpoint,saveStageCheckpoint } from './artifacts'
 import { fingerprintOf } from './planning/fingerprint'
-import { takeFits } from './state'
+import { takeFits } from '../shared/state'
 export const prepareMomentAudio = async (projectId: string, sceneId: string, moment: Moment, voice: Voice): Promise<Moment> => {
   const inputKey = momentAudioKey(moment,voice)
   if (moment.audio?.inputKey === inputKey && moment.media?.inputKey === inputKey) return moment

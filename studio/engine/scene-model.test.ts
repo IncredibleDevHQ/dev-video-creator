@@ -23,3 +23,12 @@ it('does not queue an undesigned blank slide for the model', () => {
   const p = project(); p.slides[1].svg = null; reconcileVideo(p)
   expect(p.video!.scenes[1].phase).toBe('failed')
 })
+
+it('invalidates an in-flight moment revision when its slide changes', () => {
+  const p = project(); reconcileVideo(p)
+  const scene = p.video!.scenes[1]
+  scene.phase = 'changing'; scene.editMomentId = 'm1'
+  p.slides[1].svg = '<svg><text>New artwork</text></svg>'
+  expect(() => reconcileVideo(p)).not.toThrow()
+  expect(scene.phase).toBe('queued')
+})

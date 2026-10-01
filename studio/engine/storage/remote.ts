@@ -1,4 +1,5 @@
 import {Pool} from 'pg'
+import {listenForNotebookWrites} from './notifications'
 import { createHash,randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import {createStorageClients} from './clients'
@@ -8,6 +9,7 @@ const config=remoteStorageConfig()
 const {database,objects}=createStorageClients(config)
 const operationDatabase=new Pool({connectionString:config.databaseUrl,max:5,connectionTimeoutMillis:5000,query_timeout:30000,statement_timeout:30000})
 let ready:Promise<void>|null=null
+let stopNotifications: (() => void) | undefined
 const hash=(body:Buffer)=>createHash('sha256').update(body).digest('hex')
 type Artifact={id:string;notebook_id:string|null;scene_id:string|null;moment_id:string|null;kind:string;bucket:string;object_key:string;s3_uri:string;content_type:string;byte_size:string;sha256:string;status:string}
 const download=async(row:Artifact) => {
@@ -34,6 +36,7 @@ export const initializePersistence=()=>{
         else throw error
       }
     }
+    stopNotifications ||= await listenForNotebookWrites(database)
   })().catch(error=>{ready=null;throw error})
   return ready
 }
@@ -103,7 +106,7 @@ export const deleteAsset=async(key:string)=>{
   await database.query("update minimal_studio_artifacts set status='deleted' where bucket=$1 and object_key=$2",[config.bucket,key])
   await deleteRow('assets',assetIdOf(key))
 }
-export const closePersistence=async()=>{await Promise.all([database.end(),operationDatabase.end()]);objects.destroy();ready=null}
+export const closePersistence=async()=>{stopNotifications?.();stopNotifications=undefined;await Promise.all([database.end(),operationDatabase.end()]);objects.destroy();ready=null}
 export const listNotebookRows=async(kind:string,projectId:string)=>{
   if(!validStorageId(kind) || !validStorageId(projectId)) throw new Error('Invalid storage identity')
   await initializePersistence()

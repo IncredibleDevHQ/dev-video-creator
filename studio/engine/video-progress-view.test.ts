@@ -1,13 +1,23 @@
 import {normalizeMoments} from './moment-plan'
-import {projectViews} from './state'
+import {projectViews} from '../shared/state'
 import {presentationScreen} from '../app/presentation-screen'
 import {stageStatus} from '../app/stage-status'
 import {expect,it} from 'vitest'
-import {videoScreen} from '../app/video-screen'
+import {videoScreen,videoHeader} from '../app/video-screen'
 import {Recording} from '../app/recording'
 import type {Snapshot} from '../shared/api'
 const fixture=():Snapshot=>({status:'ready',error:null,events:[{projectId:'p',sceneId:'scene',kind:'scene',sequence:1,time:'2026-10-01T00:00:00Z',message:'Scene written'}],project:{id:'p',title:'Fixture',source:'',slides:[{id:'slide',title:'Fixture',svg:'<svg/>'}],video:{settings:{presence:'off',voice:{kind:'ai',id:'default'}},transitions:[],inputKey:'',produced:null,scenes:[{id:'scene',slideId:'slide',phase:'queued',presence:null,moments:[],inputKey:'',produced:null,error:null}]}}})
 const render=(snapshot:Snapshot)=>videoScreen(snapshot,0,0,0,false,new Recording(()=>{},()=>{}))
+it('uses the engine display contract for header and scene labels',()=>{
+ const input=fixture()
+ input.views=projectViews(input.project)
+ input.views.video.display={label:'Ready to prepare',active:false,actionLabel:'Prepare scenes'}
+ input.views.presentation={label:'Ready',active:false}
+ input.views.scenes.scene.display!.railLabel='Needs attention'
+ expect(videoHeader(input)).toContain('Prepare scenes')
+ expect(stageStatus(input,'video')).toContain('Ready to prepare')
+ expect(render(input)).toContain('Needs attention')
+})
 it('does not present an old completion event as queued work progress',()=>{
  const html=render(fixture());expect(html).toContain('Waiting for the next available slot');expect(html).not.toContain('Scene written');expect(html).not.toContain('data-progress-since')
 })
@@ -62,7 +72,7 @@ it('uses the same specific stage in the scene rail, canvas and activity log',()=
  const input=fixture();input.project.video!.scenes[0].phase='writing';input.events[0].message='Planning the scene'
  const html=render(input)
  expect(html.match(/Planning the scene/g)!.length).toBeGreaterThanOrEqual(2)
- expect(html).toContain('<summary><span>Scene activity</span>')
+ expect(html).toMatch(/<summary>\s*<span>Scene activity<\/span>/)
  expect(html).toContain('aria-label="Scene activity"')
  expect(html).toContain('activity-orbit')
 })

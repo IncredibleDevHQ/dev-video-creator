@@ -51,7 +51,7 @@ it('keeps brief renewals quiet but reports an outage until a valid snapshot retu
  }finally{stop();vi.unstubAllGlobals()}
 })
 
- it('does not report delivery errors as outages or suppress their next heartbeat',async()=>{
+ it('does not report delivery errors as outages or suppress the next snapshot',async()=>{
  vi.useFakeTimers()
  let source:any
  class Source {onerror:any;onmessage:any;close=vi.fn();constructor(){source=this}}
@@ -66,4 +66,20 @@ it('keeps brief renewals quiet but reports an outage until a valid snapshot retu
   source.onmessage(message);expect(update).toHaveBeenCalledTimes(2)
   source.onmessage(message);expect(update).toHaveBeenCalledTimes(2)
  }finally{stop();vi.unstubAllGlobals()}
+})
+
+it('uses lightweight heartbeats without redelivering or polling notebook state', async () => {
+ vi.useFakeTimers()
+ let source:any,heartbeat:()=>void=()=>{}
+ class Source {onerror:any;onmessage:any;close=vi.fn();constructor(){source=this}addEventListener(name:string,callback:()=>void){if(name==='heartbeat')heartbeat=callback}}
+ vi.stubGlobal('EventSource',Source)
+ const {notebookStream}=await import('../app/notebook-stream')
+ const update=vi.fn(),connected=vi.fn(),stop=notebookStream('p',update,connected)
+ try {
+  source.onmessage({data:JSON.stringify({project:{id:'p'}})})
+  for(let i=0;i<6;i++){vi.advanceTimersByTime(10000);heartbeat()}
+  expect(source.close).not.toHaveBeenCalled()
+  expect(update).toHaveBeenCalledOnce()
+  stop();connected.mockClear();heartbeat();expect(connected).not.toHaveBeenCalled()
+ } finally {stop();vi.unstubAllGlobals()}
 })

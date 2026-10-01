@@ -4,6 +4,8 @@ Minimalist rebuild of the supplied `studio-rebuild-handoff.html`. The app lives
 in this standalone folder. The earlier studio and the legacy web product were
 removed from the repository on 1 October 2026; they remain in git history.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for scene state ownership and live updates.
+
 ## Run
 
 Install Node 22+, Yarn 1, FFmpeg (including ffprobe), Python 3, uv, and a supported
@@ -35,7 +37,8 @@ or edit the slides and export their PDF.
 Make the video selects its global Off/Low/High camera presence and off-camera
 voice. Creative planning and one Hyperframes composition produce each scene's
 content animation. Preparing all animations does not wait for speaker recordings.
-The notebook has a permanent `?notebook=<id>` URL and displays its harness.
+The notebook has a permanent `?notebook=<id>` URL. Its source is rendered as a
+readable document; model choices remain in settings.
 
 Record the required moments in any order, individually or as an open-moment pass.
 Practice records nothing. Recording includes permission guidance, a countdown,

@@ -51,7 +51,7 @@ export type SketchManifest = {
 }
 
 // What playing a sketch in the pinned player proved, kept with the preview
-// against the hash of the bundle it played (see server/sketch-runtime.ts).
+// against the hash of the bundle it played.
 export type SketchProof = {
   version: 1
   bundle: string

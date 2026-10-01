@@ -95,16 +95,6 @@ try{
   assert.ok(snapshot.project.video!.scenes.every(scene=>scene.creativePlan && scene.moments.length))
   console.log(`Planning complete: ${snapshot.project.video!.scenes.length} accepted treatments and scripts. Restarting again before production.`)
  }else if(mode==='production'){
-  const {prepareCreativePreview}=await import('../engine/creative/preview')
-  const initial=(await loadProject(projectId))!
-  for(const scene of initial.project.video!.scenes){
-   console.log(`Creative preview: scene ${initial.project.video!.scenes.indexOf(scene)+1}/${initial.project.video!.scenes.length}`)
-   const record=await readRow<import('../engine/creative/scene').CreativeSceneRecord>('creative-scenes',scene.id)
-   assert(record && record.id===scene.creativePlan?.recordId)
-   const preview=await prepareCreativePreview(initial.project,record,origin)
-   assert(preview.proof.reseeks.every(sample=>sample.same))
-   await changeProject(projectId,current=>{const target=current.project.video!.scenes.find(item=>item.id===scene.id)!;target.preview={planKey:target.planKey!,objectKey:preview.objectKey,moments:preview.manifest.moments.map(({id,start,end})=>({id,start,end}))}})
-  }
   const {runCommand,probeSeconds}=await import('../engine/voice')
   const {saveRecording}=await import('../engine/takes')
   const scratch=await mkdtemp(join(tmpdir(),'studio-labelled-avatar-'))

@@ -31,6 +31,36 @@ const {createHash}=await import('node:crypto')
 const projectId='fixture-notebook'
 try {
   if(mode==='seed') {
+    const liveId = 'live-updates-fixture'
+    await writeRow('projects', liveId, {project:{id:liveId,title:'Before',source:'Fixture',slides:[],video:null},status:'ready',error:null,events:[]})
+    const {watchSnapshots} = await import('../engine/live-snapshots')
+    let initial: (()=>void) | undefined
+    const opened = new Promise<void>(resolve=>{initial=resolve})
+    let changed: (()=>void) | undefined
+    const updated = new Promise<void>(resolve=>{changed=resolve})
+    const stop = watchSnapshots(liveId, snapshot=>{
+      if(snapshot.project.title==='Before') initial?.()
+      if(snapshot.project.title==='From another worker') changed?.()
+    })
+    let deadline: ReturnType<typeof setTimeout> | undefined
+    const bounded = async (work:Promise<void>)=>{
+      try { await Promise.race([work,new Promise<never>((_,reject)=>{deadline=setTimeout(()=>reject(new Error('Committed notebook update was not delivered')),5000)})]) }
+      finally {clearTimeout(deadline)}
+    }
+    try {
+      await bounded(opened)
+      // This independent database session bypasses this worker's persistence
+      // wrapper. A rolled-back change must not be visible to subscribers.
+      const writer=await database.connect()
+      try {
+        await writer.query('begin')
+        await writer.query("update minimal_studio_rows set document=jsonb_set(document,'{project,title}',to_jsonb($1::text)),artifact_id=null where kind='projects' and id=$2",['Rolled back',liveId])
+        await writer.query('rollback')
+        await writer.query("update minimal_studio_rows set document=jsonb_set(document,'{project,title}',to_jsonb($1::text)),artifact_id=null where kind='projects' and id=$2",['From another worker',liveId])
+      } finally {writer.release()}
+      await bounded(updated)
+      console.log('PASS committed notebook changes arrive from another worker without polling')
+    } finally {stop()}
     await withOperationLock('voice-clone:fixture',async()=>{
       const other=await database.connect()
       try{

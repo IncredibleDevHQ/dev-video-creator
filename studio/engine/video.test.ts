@@ -5,7 +5,6 @@ import { afterAll, beforeEach, it, expect, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
 const { generate,creative } = vi.hoisted(() => ({ generate: vi.fn(),creative:vi.fn() }))
 vi.mock('./creative/scene',()=>({planCreativeScene:creative}))
-vi.mock('./creative/preview',()=>({prepareCreativePreview:vi.fn(async()=>({objectKey:'fixture-preview.mp4',manifest:{moments:[{id:'fixture',start:0,end:4}]}}))}))
 vi.mock('./model-gateway', () => ({ modelFetch: generate }))
 const root = await mkdtemp(join(tmpdir(), 'minimal-video-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
@@ -67,7 +66,8 @@ it('keeps a video chat anchor through its automatic replan', async () => {
   await vi.waitFor(async () => expect((await loadProject('chat'))!.project.video!.scenes.every(scene => scene.phase === 'waiting')).toBe(true))
   const original = (await loadProject('chat'))!.project.video!.scenes[0]
   const anchor = { stage:'video' as const, sceneId:original.id, momentId:original.moments[1].id, second:5 }
-  await chatVideo('chat',{ anchor,instruction:'Explain what happens to the rejected request.' })
+  const changed=await chatVideo('chat',{ anchor,instruction:'Explain what happens to the rejected request.' })
+  expect(changed.project.video!.scenes[0].phase).toBe('changing')
   await vi.waitFor(async () => expect((await loadProject('chat'))!.project.video!.scenes[0].phase).toBe('waiting'))
   const saved = (await loadProject('chat'))!
   expect(saved.events.filter(event => event.kind === 'chat').map(event => event.anchor)).toEqual([anchor,anchor])
@@ -158,15 +158,12 @@ it('saves the creative plan without a separate preview code-generation pass',asy
   const record={projectId:project.id,sceneId:scene.id,id:'accepted-single-generation',inputKey:scene.planKey,selection,treatment:{},moments:normalizeMoments({moments:[{id:'opening',title:'Opening',lines:'A request spends one token.',seconds:4,camera:'none',layout:'corner',overlay:'title-card',cue:'Explain'}]},scene.id,'off','title')}
   await writeRow('creative-scenes',scene.id,record);return record
  })
- const {prepareCreativePreview}=await import('./creative/preview')
- vi.mocked(prepareCreativePreview).mockClear()
  await planScene('single-generation','scene-a')
  const scene=(await loadProject('single-generation'))!.project.video!.scenes[0]
  expect(scene.phase).toBe('waiting')
  expect(scene.moments[0].lines).toBe('A request spends one token.')
  expect(scene.creativePlan?.recordId).toBe('accepted-single-generation')
  expect(scene.preview).toBeUndefined()
- expect(prepareCreativePreview).not.toHaveBeenCalled()
  const {loadStageCheckpoint}=await import('./artifacts')
  expect((await loadStageCheckpoint<any>('single-generation','scene-a','planning',scene.planKey!))?.data.moments).toHaveLength(1)
 })

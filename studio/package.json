@@ -26,8 +26,10 @@
 		"@hyperframes/core": "0.7.106",
 		"@hyperframes/player": "0.7.106",
 		"@hyperframes/producer": "0.7.106",
+		"dompurify": "^3.4.16",
 		"gsap": "3.12.5",
 		"linkedom": "^0.18.12",
+		"marked": "^18.0.14",
 		"pg": "^8.23.0",
 		"puppeteer": "25.12.0"
 	},

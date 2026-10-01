@@ -19,7 +19,6 @@ export const api = {
   slide: (id: string, body: SlideEdit) => request<Snapshot>(`/projects/${id}/slides`, 'PATCH', body),
   chat: (id: string, body: ChatRequest) => request<Snapshot>(`/projects/${id}/chat`, 'POST', body),
   makeVideo: (id: string, body: VideoSettings) => request<Snapshot>(`/projects/${id}/video`, 'POST', body),
-  practice:(id:string,sceneId:string,momentId:string)=>request<import('../shared/practice').PracticeTrack>(`/projects/${id}/scenes/${sceneId}/practice?moment=${encodeURIComponent(momentId)}`,'POST',{}),
   produceScene: (id: string, sceneId: string) => request<Snapshot>(`/projects/${id}/scenes/${sceneId}/produce`,'POST',{}),
   produceVideo: (id: string) => request<Snapshot>(`/projects/${id}/produce`,'POST',{}),
   transition: (id: string, index: number, transition: Transition) => request<Snapshot>(`/projects/${id}/transitions`,'PATCH',{index,transition}),

@@ -13,7 +13,7 @@
 // what the creator decided, and what the planner merely suggests. A citation
 // is an exact passage of the retained source, checked here, so a brief cannot
 // quote an article it did not read.
-import { comparableText, quotedIn } from './fingerprint'
+import { comparableText, quotedIn } from '../planning/fingerprint'
 
 export const BRIEF_SCHEMA_VERSION = 1 as const
 
