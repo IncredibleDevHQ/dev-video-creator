@@ -18,8 +18,8 @@ export const sceneView = (scene: Scene, voice: Voice): SceneView => {
   // Never report an empty or stale plan as ready to produce.
   if (!scene.moments.length) return view('Writing the scene', 'wait')
   if(scene.creativePlan && !scene.produced && (!scene.animation || scene.animation.inputKey!==scene.animationKey))return view('Ready to animate','produce')
-  if (openMomentIds.length) return view(scene.animation && scene.animation.inputKey===scene.animationKey?'Animation ready':`Your turn · ${openMomentIds.length} to record`, 'record')
-  if (scene.phase === 'produced' && scene.produced?.inputKey === scene.inputKey) return view('Produced', 'download', true)
+  if (openMomentIds.length) return view('Needs recording', 'record')
+  if (scene.phase === 'produced' && scene.produced?.inputKey === scene.inputKey) return view('Complete', 'download', true)
   return view('Ready to produce', 'produce')
 }
 

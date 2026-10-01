@@ -147,8 +147,9 @@ it('reviews camera takes in the main canvas and retains the same player while sa
   capture.phase=phase
   const {document}=parseHTML(videoScreen(input,0,0,0,false,capture))
   expect(document.querySelectorAll('[data-take-player]')).toHaveLength(1)
-  expect(document.querySelector('.video-stage > video[data-take-player]')?.getAttribute('src')).toBe('blob:review')
-  expect(document.querySelector('.presenter-preview')).toBeNull()
+  expect(document.querySelector('.video-stage > .presenter-preview video[data-take-player]')?.getAttribute('src')).toBe('blob:review')
+  expect(document.querySelector('.video-stage > svg')).not.toBeNull()
+  expect(document.querySelector('.moment-playhead')).toBeNull()
   if(phase==='uploading')expect(document.querySelector('[data-action="save-take"]')?.hasAttribute('disabled')).toBe(true)
  }
 })

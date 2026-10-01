@@ -455,6 +455,7 @@ root.addEventListener('timeupdate',event => {
     const scene=snapshot.project.video?.scenes[selected],at=scene?takeReviewPosition(scene.moments,capture.parts,player.currentTime):null
     if(!at)return
     momentIndex=at.momentIndex;second=at.second
+    syncRehearsalAnimation(root,scene!,momentIndex,second,!player.paused)
   } else if (player.hasAttribute('data-whole-video')) {
     const at = sceneAt(snapshot.project,player.currentTime)
     changedScene = selected !== at.index; selected = at.index; second = at.second

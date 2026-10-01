@@ -151,7 +151,7 @@ header nav .stage-status.is-processing{border:1.5px solid currentColor;border-ri
 .practice-cue>span{font-size:clamp(16px,1.8vw,24px);line-height:1.5;max-height:160px;overflow:auto}
 .take-review h3{font-size:14px;margin:0 0 5px}.take-review p{font-size:12px;color:var(--muted);margin:0 0 12px}
 
-.scene-recording-needed{display:flex;align-items:center;gap:5px;font-size:11px;margin-top:7px;color:var(--muted)}
+.scene-recording-needed{display:flex;align-items:center;gap:5px;font-size:11px;margin-top:7px;color:var(--text)}
 
 /* Content and presenter remain independent while rehearsing or recording. */
 .rehearsal-animation{width:100%;height:100%;object-fit:contain}

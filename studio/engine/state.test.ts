@@ -50,3 +50,13 @@ it('scopes semantic moment state to its scene so repeated names cannot overwrite
  expect(views.moments['first/m1'].state).toBe('auto')
  expect(views.moments['second/m1'].state).toBe('to record')
 })
+
+it('never completes a rendered scene while a required presenter take is missing or stale',()=>{
+ const m=moment('full')
+ const s={...scene([m]),phase:'produced' as const,produced:{inputKey:'i1',objectKey:'old.mp4'}}
+ expect(sceneView(s,voice)).toMatchObject({state:'Needs recording',action:'record',produced:false,openMomentIds:['m1']})
+ m.take={id:'t',recordingKey:'r1',objectKey:'take.webm'}
+ expect(sceneView(s,voice)).toMatchObject({state:'Complete',produced:true})
+ m.recordingKey='changed'
+ expect(sceneView(s,voice).produced).toBe(false)
+})
