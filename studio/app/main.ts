@@ -77,6 +77,20 @@ let practiceRequest = 0
 let practiceStream: MediaStream | null = null
 const finishPractice=()=>{practiceRequest++;practiceCountdown=0;startRehearsal=null;practice.stop();practiceLoading=false;root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();render()}
 const stopPractice = () => { practiceRequest++; practiceOpen=false;startRehearsal=null;practiceCountdown=0; practice.stop();practiceLoading=false;practiceLines=''; practiceStream?.getTracks().forEach(track => track.stop()); practiceStream = null }
+const replayPractice=async()=>{
+ const scene=snapshot?.project.video?.scenes[selected];if(!scene || !practiceOpen)return
+ const moments=practiceMomentIds.map(id=>scene.moments.find(moment=>moment.id===id)).filter((moment):moment is import('../shared/model').Moment=>!!moment)
+ if(!moments.length)return
+ const request=++practiceRequest
+ practice.stop()
+ root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();second=moments[0].start;momentIndex=scene.moments.findIndex(m=>m.id===moments[0].id);startRehearsal=null
+      for(let count=3;count>0;count--){if(request!==practiceRequest)return;practiceCountdown=count;render();await new Promise(resolve=>setTimeout(resolve,1000))}
+      if(request!==practiceRequest)return
+      let at=0
+      const clips=moments.map(moment=>{const start=at;at+=moment.end-moment.start;return {momentId:moment.id,lines:moment.lines,camera:moment.camera!=='none',start,end:at,sceneStart:moment.start,sceneEnd:moment.end}})
+      practiceCountdown=0;practiceStarted=performance.now();practice.start({inputKey:scene.inputKey,clips,duration:at},true);render()
+
+}
 let recordingSceneId = ''
 let recordingProjectId = ''
 let recordingAttempt:import('../shared/model').Moment[]=[]
@@ -255,14 +269,8 @@ document.addEventListener('submit', async event => {
       if(seconds!==null && (!Number.isFinite(seconds) || seconds<1 || seconds>600))throw new Error('Choose a stop time between 1 and 600 seconds')
       if(!moments.length)return
       dialog.close();practiceStopAfter=seconds;practiceMomentIds=moments.map(moment=>moment.id)
-      const request=++practiceRequest;practiceOpen=true;second=moments[0].start;momentIndex=scene.moments.findIndex(m=>m.id===moments[0].id)
-      startRehearsal=async()=>{root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')?.pause();second=moments[0].start;startRehearsal=null
-      for(let count=3;count>0;count--){if(request!==practiceRequest)return;practiceCountdown=count;render();await new Promise(resolve=>setTimeout(resolve,1000))}
-      if(request!==practiceRequest)return
-      let at=0
-      const clips=moments.map(moment=>{const start=at;at+=moment.end-moment.start;return {momentId:moment.id,lines:moment.lines,camera:moment.camera!=='none',start,end:at,sceneStart:moment.start,sceneEnd:moment.end}})
-      practiceCountdown=0;practiceStarted=performance.now();practice.start({inputKey:scene.inputKey,clips,duration:at},true);render()
-      };render()
+      practiceOpen=true;second=moments[0].start;momentIndex=scene.moments.findIndex(m=>m.id===moments[0].id)
+      startRehearsal=replayPractice;render()
     }
     if(form.id==='recording-setup' && pendingRecording){
       const seconds=String(values.get('seconds') || '').trim()
@@ -400,6 +408,7 @@ document.addEventListener('click', async event => {
       catch{error(new Error('Camera unavailable. Rehearsal continues with the presenter stand-in. Enable camera access in browser site settings to retry.'))}
     }
     if(action==='practice-finish'){finishPractice();return}
+    if(action==='practice-replay' && practiceOpen){dialog.close();await replayPractice();return}
     if(action==='practice-start'){await startRehearsal?.();return}
     if(action==='practice-next'){practice.advance();render();return}
     if(action==='practice-toggle' && practice.active){if(practice.paused)practice.resume();else practice.pause();render();return}
