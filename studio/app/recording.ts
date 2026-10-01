@@ -10,6 +10,7 @@ export class Recording {
   current = 0
   countdown = 3
   stopAfter: number | null = null
+  private cancelPermission:(()=>void)|null=null
   private finishing=false
   private generation=0
   private recorder: MediaRecorder | null = null
@@ -27,7 +28,7 @@ export class Recording {
     this.phase = 'preparing'; this.change()
     try {
       if(!navigator.mediaDevices?.getUserMedia) throw new Error('Recording requires a secure browser page with microphone and camera support.')
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true }, video: moments.some(moment => moment.camera !== 'none') ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false })
+      const stream = await this.requestStream({ audio: { echoCancellation: true }, video: moments.some(moment => moment.camera !== 'none') ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false })
       if(generation!==this.generation) {stream.getTracks().forEach(track => track.stop());return}
       this.stream=stream
       this.current = 0; this.parts = []
@@ -94,6 +95,7 @@ export class Recording {
   }
   dispose() {
     this.generation++
+    this.cancelPermission?.();this.cancelPermission=null
     if (this.recorder) {
       this.recorder.onstop = null; this.recorder.ondataavailable = null; this.recorder.onerror = null
       if(this.recorder.state !== 'inactive') { try { this.recorder.stop() } catch { /* Tracks are released below even if the recorder failed. */ } }
@@ -101,6 +103,21 @@ export class Recording {
     this.recorder = null
     this.stopTracks(); if (this.url) URL.revokeObjectURL(this.url)
     this.url = null; this.blob = null; this.parts = []; this.moments = []; this.current = 0; this.phase = 'idle'; this.change()
+  }
+  private requestStream(constraints:MediaStreamConstraints):Promise<MediaStream>{
+    return new Promise((resolve,reject)=>{
+      let settled=false
+      const finish=(error:unknown,stream?:MediaStream)=>{
+        if(settled){stream?.getTracks().forEach(track=>track.stop());return}
+        settled=true;clearTimeout(timer)
+        if(this.cancelPermission===cancel)this.cancelPermission=null
+        if(error)reject(error);else resolve(stream!)
+      }
+      const cancel=()=>finish(new Error('Recording setup was cancelled.'))
+      const timer=setTimeout(()=>finish(new Error('Camera or microphone access was not granted within a minute. Dismiss any pending permission prompt, then select Record again. Your saved takes are unchanged.')),60000)
+      this.cancelPermission=cancel
+      try{navigator.mediaDevices.getUserMedia(constraints).then(stream=>finish(null,stream),error=>finish(error))}catch(error){finish(error)}
+    })
   }
   private stopTracks() {
     if (this.tick) clearInterval(this.tick); this.tick = null

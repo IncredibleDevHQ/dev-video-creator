@@ -141,3 +141,29 @@ it('stops immediately even before a usable first part or just after advancing',a
   expect(stopTrack).toHaveBeenCalledTimes(2);expect(vi.getTimerCount()).toBe(0)
  }finally{recording.dispose();vi.useRealTimers();vi.restoreAllMocks()}
 })
+
+it('bounds an ignored permission prompt and releases a grant that arrives after timeout',async()=>{
+ vi.useFakeTimers()
+ let resolve!:(stream:MediaStream)=>void
+ const getUserMedia=vi.fn(()=>new Promise<MediaStream>(done=>{resolve=done}))
+ vi.stubGlobal('navigator',{mediaDevices:{getUserMedia}})
+ const recording=new Recording(()=>{},()=>{})
+ try{
+  const pending=recording.start([moment])
+  const rejected=expect(pending).rejects.toThrow('within a minute')
+  await vi.advanceTimersByTimeAsync(60000);await rejected
+  expect(recording.phase).toBe('idle');expect(recording.stream).toBeNull()
+  expect(vi.getTimerCount()).toBe(0);expect(getUserMedia).toHaveBeenCalledOnce()
+  const stop=vi.fn();resolve({getTracks:()=>[{stop}]} as unknown as MediaStream)
+  await Promise.resolve();expect(stop).toHaveBeenCalledOnce();expect(recording.phase).toBe('idle')
+ }finally{recording.dispose();vi.useRealTimers()}
+})
+it('cancels a permission wait immediately without waiting for the browser response',async()=>{
+ vi.useFakeTimers()
+ vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:()=>new Promise(()=>{})}})
+ const recording=new Recording(()=>{},()=>{})
+ try{
+  const pending=recording.start([moment]);recording.dispose();await pending
+  expect(recording.phase).toBe('idle');expect(vi.getTimerCount()).toBe(0)
+ }finally{recording.dispose();vi.useRealTimers()}
+})

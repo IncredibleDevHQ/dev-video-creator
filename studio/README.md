@@ -40,7 +40,9 @@ Record the required moments in any order, individually or as an open-moment pass
 Practice records nothing. Recording includes permission guidance, a countdown,
 teleprompter, optional timed stop and Esc to stop. Review, save or retake before
 finishing a scene. Denied access or a busy device opens focused recovery guidance;
-retry returns to setup and checks the script before requesting devices again. Scene-card hover settings override camera presence; notebook
+retry returns to setup and checks the script before requesting devices again.
+An unanswered permission request stops after one minute; Cancel ends setup
+immediately, and any late device grant is released. Scene-card hover settings override camera presence; notebook
 settings preview their effect before applying changes. Settings open with
 immediate loading feedback, and closing the dialog ignores a delayed response.
 
