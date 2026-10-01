@@ -36,3 +36,10 @@ it('offers recovery only after a failure or bounded wait',()=>{
  expect(mediaRecoveryView('stalled')).toContain('data-reload-media')
  expect(mediaRecoveryView('failed')).toContain('data-reload-media')
 })
+
+it('explains that a saved recording is retained when playback fails',()=>{
+ const html=mediaRecoveryView('failed','recording')
+ expect(html).toContain('Your recording is saved but could not load.')
+ expect(html).toContain('Reload recording')
+ expect(html).not.toContain('Generate')
+})

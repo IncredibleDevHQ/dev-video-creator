@@ -32,3 +32,15 @@ it('keeps a reviewing take connected across live progress and save-state updates
   expect(root.textContent).toContain('Saving your recording')
  }finally{vi.unstubAllGlobals();vi.restoreAllMocks()}
 })
+
+it('keeps a saved presenter take connected when notebook activity arrives',()=>{
+ const {document,Element}=parseHTML('<html><body><div id="app"><main><div class="video-stage"><svg></svg><div class="presenter-preview beside-slide"><video data-saved-presenter src="/objects/take.webm" controls></video><small>Saved recording</small></div></div></main></div></body></html>')
+ vi.stubGlobal('document',document);vi.stubGlobal('Element',Element)
+ try{
+  const root=document.querySelector('#app') as unknown as HTMLElement,player=root.querySelector('video')!
+  const remove=vi.spyOn(player.parentElement!,'remove'),attributes=vi.spyOn(player,'setAttribute')
+  expect(replacePlayerView(root,'<main><p>Recording saved</p><div class="video-stage"><svg></svg><div class="presenter-preview beside-slide"><video data-saved-presenter src="/objects/take.webm" controls></video><small>Saved recording</small></div></div></main>',player)).toBe(true)
+  expect(root.querySelector('video')).toBe(player);expect(player.isConnected).toBe(true)
+  expect(remove).not.toHaveBeenCalled();expect(attributes).not.toHaveBeenCalledWith('src','/objects/take.webm')
+ }finally{vi.unstubAllGlobals();vi.restoreAllMocks()}
+})
