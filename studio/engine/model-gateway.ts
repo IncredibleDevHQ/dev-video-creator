@@ -1,3 +1,4 @@
+import { fishKey } from './credentials'
 // Model gateway: one place that decides where the studio's AI requests go.
 //
 // Every generation in the worker was written against OpenAI's Responses API
@@ -32,7 +33,13 @@ export type ModelSettingsV1 = {
 
 // How a task's last request went since the worker started (F7 of the
 // Perplexity review): the AI settings show it beside each job.
-export type ModelTaskResult = { ok: boolean; status: number; model: string; reportedModel?: string; at: string }
+export type ModelTaskResult = {
+  ok: boolean
+  status: number
+  model: string
+  reportedModel?: string
+  at: string
+}
 
 export type ModelSettingsPublic = Omit<ModelSettingsV1, 'apiKey'> & {
   hasKey: boolean
@@ -62,8 +69,12 @@ export const MODEL_PRESETS: Record<ModelProviderPreset, PresetInfo> = {
     responsesApi: true,
     reasoning: true,
     keyRequired: true,
-    models: { writing: 'gpt-5.6-luna', vision: 'gpt-5.6-luna', coding: 'gpt-5.6-luna' },
-    note: 'Direct to OpenAI with your own key.',
+    models: {
+      writing: 'gpt-5.6-luna',
+      vision: 'gpt-5.6-luna',
+      coding: 'gpt-5.6-luna'
+    },
+    note: 'Direct to OpenAI with your own key.'
   },
   litellm: {
     label: 'LiteLLM proxy (self-hosted gateway)',
@@ -71,8 +82,12 @@ export const MODEL_PRESETS: Record<ModelProviderPreset, PresetInfo> = {
     responsesApi: false,
     reasoning: true,
     keyRequired: false,
-    models: { writing: 'gpt-5.6-luna', vision: 'gpt-5.6-luna', coding: 'gpt-5.6-luna' },
-    note: 'Open-source gateway that routes to 100+ providers behind one OpenAI-compatible URL. Run it with `docker run -p 4000:4000 ghcr.io/berriai/litellm:main-latest --config litellm.yaml` and name the models from your config.',
+    models: {
+      writing: 'gpt-5.6-luna',
+      vision: 'gpt-5.6-luna',
+      coding: 'gpt-5.6-luna'
+    },
+    note: 'Open-source gateway that routes to 100+ providers behind one OpenAI-compatible URL. Run it with `docker run -p 4000:4000 ghcr.io/berriai/litellm:main-latest --config litellm.yaml` and name the models from your config.'
   },
   openrouter: {
     label: 'OpenRouter',
@@ -83,9 +98,9 @@ export const MODEL_PRESETS: Record<ModelProviderPreset, PresetInfo> = {
     models: {
       writing: 'anthropic/claude-sonnet-4.5',
       vision: 'openai/gpt-5.6-luna',
-      coding: 'anthropic/claude-sonnet-4.5',
+      coding: 'anthropic/claude-sonnet-4.5'
     },
-    note: 'Hosted router across providers; model ids look like vendor/model.',
+    note: 'Hosted router across providers; model ids look like vendor/model.'
   },
   ollama: {
     label: 'Ollama (local)',
@@ -94,7 +109,7 @@ export const MODEL_PRESETS: Record<ModelProviderPreset, PresetInfo> = {
     reasoning: false,
     keyRequired: false,
     models: { writing: 'llama3.1', vision: 'llava', coding: 'qwen2.5-coder' },
-    note: 'Runs on your machine, no key. Vision tasks need a multimodal model such as llava.',
+    note: 'Runs on your machine, no key. Vision tasks need a multimodal model such as llava.'
   },
   anthropic: {
     label: 'Anthropic (OpenAI-compatible endpoint)',
@@ -105,9 +120,9 @@ export const MODEL_PRESETS: Record<ModelProviderPreset, PresetInfo> = {
     models: {
       writing: 'claude-sonnet-4-5',
       vision: 'claude-sonnet-4-5',
-      coding: 'claude-sonnet-4-5',
+      coding: 'claude-sonnet-4-5'
     },
-    note: 'Uses Anthropic’s OpenAI SDK compatibility layer; structured output falls back to prompt-guided JSON.',
+    note: 'Uses Anthropic’s OpenAI SDK compatibility layer; structured output falls back to prompt-guided JSON.'
   },
   custom: {
     label: 'Custom OpenAI-compatible',
@@ -116,16 +131,18 @@ export const MODEL_PRESETS: Record<ModelProviderPreset, PresetInfo> = {
     reasoning: false,
     keyRequired: false,
     models: { writing: '', vision: '', coding: '' },
-    note: 'Any server that speaks /v1/chat/completions (vLLM, LM Studio, Together, Groq, …).',
-  },
+    note: 'Any server that speaks /v1/chat/completions (vLLM, LM Studio, Together, Groq, …).'
+  }
 }
 
 const SETTINGS_KEY = 'models'
 const TASKS: ModelTask[] = ['writing', 'vision', 'coding']
 
 let environmentKey = ''
-let cache: { settings: ModelSettingsV1 | null; source: ModelSettingsPublic['source'] } | null =
-  null
+let cache: {
+  settings: ModelSettingsV1 | null
+  source: ModelSettingsPublic['source']
+} | null = null
 const results: ModelSettingsPublic['results'] = {}
 const recordResult = (task: ModelTask | 'image', result: ModelTaskResult) => {
   results[task] = result
@@ -138,28 +155,40 @@ export const configureModelGateway = ({ envKey }: { envKey: string }) => {
 
 const normalizeSettings = (value: unknown): ModelSettingsV1 | null => {
   if (!value || typeof value !== 'object') return null
-  const raw = value as Partial<ModelSettingsV1> & { models?: Partial<Record<ModelTask, string>> }
-  const provider = (Object.keys(MODEL_PRESETS) as ModelProviderPreset[]).includes(
-    raw.provider as ModelProviderPreset,
-  )
+  const raw = value as Partial<ModelSettingsV1> & {
+    models?: Partial<Record<ModelTask, string>>
+  }
+  const provider = (
+    Object.keys(MODEL_PRESETS) as ModelProviderPreset[]
+  ).includes(raw.provider as ModelProviderPreset)
     ? (raw.provider as ModelProviderPreset)
     : 'custom'
   const preset = MODEL_PRESETS[provider]
   const models = {} as Record<ModelTask, string>
   for (const task of TASKS) {
-    models[task] = String(raw.models?.[task] || '').trim().slice(0, 200)
+    models[task] = String(raw.models?.[task] || '')
+      .trim()
+      .slice(0, 200)
   }
   const effort = raw.reasoningEffort
   return {
     version: 1,
     provider,
-    baseUrl: String(raw.baseUrl || preset.baseUrl).trim().replace(/\/+$/, '').slice(0, 500),
-    apiKey: String(raw.apiKey || '').trim().slice(0, 4_000),
+    baseUrl: String(raw.baseUrl || preset.baseUrl)
+      .trim()
+      .replace(/\/+$/, '')
+      .slice(0, 500),
+    apiKey: String(raw.apiKey || '')
+      .trim()
+      .slice(0, 4_000),
     models,
     reasoningEffort:
-      effort === 'none' || effort === 'low' || effort === 'medium' || effort === 'high'
+      effort === 'none' ||
+      effort === 'low' ||
+      effort === 'medium' ||
+      effort === 'high'
         ? effort
-        : 'medium',
+        : 'medium'
   }
 }
 
@@ -174,9 +203,9 @@ const environmentSettings = (): ModelSettingsV1 | null => {
     models: {
       writing,
       vision: writing,
-      coding: writing,
+      coding: writing
     },
-    reasoningEffort: 'medium',
+    reasoningEffort: 'medium'
   }
 }
 
@@ -186,9 +215,13 @@ export const loadModelSettings = async () => {
   if (saved) {
     // A saved OpenAI choice without a key of its own uses the environment's
     // key at request time; the key itself is never saved.
-    cache = !saved.apiKey && environmentKey && saved.provider === 'openai'
-      ? { settings: { ...saved, apiKey: environmentKey }, source: 'environment' }
-      : { settings: saved, source: 'saved' }
+    cache =
+      !saved.apiKey && environmentKey && saved.provider === 'openai'
+        ? {
+            settings: { ...saved, apiKey: environmentKey },
+            source: 'environment'
+          }
+        : { settings: saved, source: 'saved' }
   } else {
     const fromEnv = environmentSettings()
     cache = { settings: fromEnv, source: fromEnv ? 'environment' : 'none' }
@@ -197,7 +230,9 @@ export const loadModelSettings = async () => {
 }
 
 export const saveModelSettings = async (
-  patch: Omit<Partial<ModelSettingsV1>, 'models'> & { models?: Partial<Record<ModelTask, string>> },
+  patch: Omit<Partial<ModelSettingsV1>, 'models'> & {
+    models?: Partial<Record<ModelTask, string>>
+  }
 ) => {
   const { settings: current, source } = await loadModelSettings()
   const merged = normalizeSettings({
@@ -206,8 +241,15 @@ export const saveModelSettings = async (
     // A blank key means "keep what is saved"; users never see the stored key.
     // A key from the environment is not the creator's to save: it stays out
     // of the store, and is used again while no key is saved.
-    apiKey: patch.apiKey ? patch.apiKey : source === 'saved' && (!patch.provider || patch.provider === current?.provider) && (!patch.baseUrl || patch.baseUrl.replace(/\/+$/, '') === current?.baseUrl) ? current?.apiKey || '' : '',
-    models: { ...(current?.models || {}), ...(patch.models || {}) },
+    apiKey: patch.apiKey
+      ? patch.apiKey
+      : source === 'saved' &&
+          (!patch.provider || patch.provider === current?.provider) &&
+          (!patch.baseUrl ||
+            patch.baseUrl.replace(/\/+$/, '') === current?.baseUrl)
+        ? current?.apiKey || ''
+        : '',
+    models: { ...(current?.models || {}), ...(patch.models || {}) }
   })
   if (!merged) throw new Error('Model settings are invalid')
   await saveSetting(SETTINGS_KEY, merged)
@@ -223,7 +265,7 @@ export const publicModelSettings = async (): Promise<ModelSettingsPublic> => {
     baseUrl: MODEL_PRESETS.openai.baseUrl,
     apiKey: '',
     models: { ...MODEL_PRESETS.openai.models },
-    reasoningEffort: 'medium' as const,
+    reasoningEffort: 'medium' as const
   }
   const { apiKey, ...rest } = base
   return {
@@ -231,7 +273,7 @@ export const publicModelSettings = async (): Promise<ModelSettingsPublic> => {
     hasKey: Boolean(apiKey),
     keyHint: apiKey ? `…${apiKey.slice(-4)}` : '',
     source,
-    results: { ...results },
+    results: { ...results }
   }
 }
 
@@ -243,7 +285,9 @@ export const hasModelAccess = async () => {
   return Boolean(settings.apiKey) || !preset.keyRequired
 }
 
-const authHeaders = (settings: Pick<ModelSettingsV1, 'apiKey' | 'provider'>) => {
+const authHeaders = (
+  settings: Pick<ModelSettingsV1, 'apiKey' | 'provider'>
+) => {
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   if (settings.apiKey) headers.authorization = `Bearer ${settings.apiKey}`
   if (settings.provider === 'openrouter') {
@@ -254,17 +298,17 @@ const authHeaders = (settings: Pick<ModelSettingsV1, 'apiKey' | 'provider'>) => 
 }
 
 export const listModels = async (
-  override?: Partial<ModelSettingsV1>,
+  override?: Partial<ModelSettingsV1>
 ): Promise<string[]> => {
   const current = (await loadModelSettings()).settings
   const settings = normalizeSettings({
     ...(current || {}),
     ...(override || {}),
-    apiKey: override?.apiKey || current?.apiKey || '',
+    apiKey: override?.apiKey || current?.apiKey || ''
   })
   if (!settings?.baseUrl) throw new Error('Set a base URL first')
   const response = await fetch(`${settings.baseUrl}/models`, {
-    headers: authHeaders(settings),
+    headers: authHeaders(settings)
   })
   if (!response.ok) {
     throw new Error(`The provider rejected the request (${response.status})`)
@@ -274,14 +318,17 @@ export const listModels = async (
     models?: Array<{ name?: string; model?: string }>
   }
   const ids = [
-    ...(body.data || []).map(item => String(item.id || '')),
-    ...(body.models || []).map(item => String(item.model || item.name || '')),
+    ...(body.data || []).map((item) => String(item.id || '')),
+    ...(body.models || []).map((item) => String(item.model || item.name || ''))
   ].filter(Boolean)
   return Array.from(new Set(ids)).sort()
 }
 
 type ResponsesContentPart = { type?: string; text?: string; image_url?: string }
-type ResponsesMessage = { role?: string; content?: string | ResponsesContentPart[] }
+type ResponsesMessage = {
+  role?: string
+  content?: string | ResponsesContentPart[]
+}
 type ResponsesPayload = {
   model?: string
   // The Responses API accepts a bare prompt string or a list of messages.
@@ -317,7 +364,7 @@ const stripFences = (text: string) =>
 const wrap = (text: string): ModelFetchResult => ({
   ok: true,
   status: 200,
-  json: async () => ({ output: [{ content: [{ type: 'output_text', text }] }] }),
+  json: async () => ({ output: [{ content: [{ type: 'output_text', text }] }] })
 })
 
 /**
@@ -327,11 +374,20 @@ const wrap = (text: string): ModelFetchResult => ({
 // An illustration from the provider's image model, when it has one (the
 // OpenAI images endpoint, also behind a LiteLLM proxy). Null means no image
 // model here — the caller falls back to a palette glyph.
-export const imageGenerate = async ({ prompt, size }: { prompt: string; size?: '1024x1024' | '1536x1024' | '1024x1536' }) => {
+export const imageGenerate = async ({
+  prompt,
+  size
+}: {
+  prompt: string
+  size?: '1024x1024' | '1536x1024' | '1024x1536'
+}) => {
   const { settings } = await loadModelSettings()
   if (!settings) return null
-  if (settings.provider !== 'openai' && settings.provider !== 'litellm') return null
-  const model = (settings.models as Record<string, string | undefined>).image || 'gpt-image-1'
+  if (settings.provider !== 'openai' && settings.provider !== 'litellm')
+    return null
+  const model =
+    (settings.models as Record<string, string | undefined>).image ||
+    'gpt-image-1'
   const gptImage = /^gpt-image/.test(model)
   const response = await fetch(`${settings.baseUrl}/images/generations`, {
     method: 'POST',
@@ -341,78 +397,123 @@ export const imageGenerate = async ({ prompt, size }: { prompt: string; size?: '
       prompt,
       n: 1,
       size: size || '1024x1024',
-      ...(gptImage ? { quality: 'medium', background: 'transparent', output_format: 'png' } : { response_format: 'b64_json' }),
-    }),
+      ...(gptImage
+        ? { quality: 'medium', background: 'transparent', output_format: 'png' }
+        : { response_format: 'b64_json' })
+    })
   })
-  recordResult('image', { ok: response.ok, status: response.status, model, at: new Date().toISOString() })
-  if (!response.ok) throw new Error(`The image model answered ${response.status}: ${(await response.text()).slice(0, 200)}`)
-  const data = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> }
+  recordResult('image', {
+    ok: response.ok,
+    status: response.status,
+    model,
+    at: new Date().toISOString()
+  })
+  if (!response.ok)
+    throw new Error(
+      `The image model answered ${response.status}: ${(await response.text()).slice(0, 200)}`
+    )
+  const data = (await response.json()) as {
+    data?: Array<{ b64_json?: string; url?: string }>
+  }
   const first = data.data?.[0]
-  if (first?.b64_json) return { buffer: Buffer.from(first.b64_json, 'base64'), model, contentType: 'image/png' }
+  if (first?.b64_json)
+    return {
+      buffer: Buffer.from(first.b64_json, 'base64'),
+      model,
+      contentType: 'image/png'
+    }
   if (first?.url) {
     const binary = await fetch(first.url)
-    return { buffer: Buffer.from(await binary.arrayBuffer()), model, contentType: binary.headers.get('content-type') || 'image/png' }
+    return {
+      buffer: Buffer.from(await binary.arrayBuffer()),
+      model,
+      contentType: binary.headers.get('content-type') || 'image/png'
+    }
   }
   return null
 }
 
 export const modelFetch = async (
   task: ModelTask,
-  init: { method?: string; body: string },
+  init: { method?: string; body: string }
 ): Promise<ModelFetchResult> => {
   const { settings } = await loadModelSettings()
   if (!settings) {
-    throw new Error('No AI provider configured — add one under Direct API in AI settings')
+    throw new Error(
+      'No AI provider configured — add one under Direct API in AI settings'
+    )
   }
   const preset = MODEL_PRESETS[settings.provider]
   const payload = JSON.parse(init.body) as ResponsesPayload
-  const model = settings.models[task] || settings.models.writing || preset.models[task]
-  if (!model) throw new Error(`Choose a ${task} model under Direct API in AI settings`)
+  const model =
+    settings.models[task] || settings.models.writing || preset.models[task]
+  if (!model)
+    throw new Error(`Choose a ${task} model under Direct API in AI settings`)
 
   if (preset.responsesApi) {
     const body: ResponsesPayload = { ...payload, model }
     if (settings.reasoningEffort === 'none') delete body.reasoning
-    else if (body.reasoning) body.reasoning = { effort: settings.reasoningEffort }
+    else if (body.reasoning)
+      body.reasoning = { effort: settings.reasoningEffort }
     const response = await fetch(`${settings.baseUrl}/responses`, {
       method: 'POST',
       headers: authHeaders(settings),
-      body: JSON.stringify(body),
-    }).catch(error => {
-      recordResult(task, { ok: false, status: 0, model, at: new Date().toISOString() })
+      body: JSON.stringify(body)
+    }).catch((error) => {
+      recordResult(task, {
+        ok: false,
+        status: 0,
+        model,
+        at: new Date().toISOString()
+      })
       throw error
     })
-    recordResult(task, { ok: response.ok, status: response.status, model, at: new Date().toISOString() })
+    recordResult(task, {
+      ok: response.ok,
+      status: response.status,
+      model,
+      at: new Date().toISOString()
+    })
     return {
       ok: response.ok,
       status: response.status,
       // The model the provider says answered, kept with the result.
       json: async () => {
-        const reply = (await response.json()) as ResponsesShape & { model?: unknown }
-        if (typeof reply.model === 'string' && results[task]) results[task] = { ...results[task]!, reportedModel: reply.model }
+        const reply = (await response.json()) as ResponsesShape & {
+          model?: unknown
+        }
+        if (typeof reply.model === 'string' && results[task])
+          results[task] = { ...results[task]!, reportedModel: reply.model }
         return reply
-      },
+      }
     }
   }
 
   // Chat Completions translation for everything else.
   const inputMessages: ResponsesMessage[] =
     typeof payload.input === 'string'
-      ? [{ role: 'user', content: [{ type: 'input_text', text: payload.input }] }]
+      ? [
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: payload.input }]
+          }
+        ]
       : payload.input || []
-  const messages = inputMessages.map(message => ({
+  const messages = inputMessages.map((message) => ({
     role: message.role || 'user',
     content: (typeof message.content === 'string'
       ? [{ type: 'input_text', text: message.content }]
       : message.content || []
     )
-      .map(part => {
-        if (part.type === 'input_text') return { type: 'text', text: part.text || '' }
+      .map((part) => {
+        if (part.type === 'input_text')
+          return { type: 'text', text: part.text || '' }
         if (part.type === 'input_image') {
           return { type: 'image_url', image_url: { url: part.image_url || '' } }
         }
         return null
       })
-      .filter((part): part is NonNullable<typeof part> => Boolean(part)),
+      .filter((part): part is NonNullable<typeof part> => Boolean(part))
   }))
   const format = payload.text?.format
   const structured = format?.type === 'json_schema' && format.schema
@@ -424,40 +525,60 @@ export const modelFetch = async (
         json_schema: {
           name: format?.name || 'result',
           strict: format?.strict !== false,
-          schema: format?.schema,
-        },
+          schema: format?.schema
+        }
       }
     } else if (structured) {
       body.messages = [
         {
           role: 'system',
-          content: `Respond with a single JSON object that matches this JSON schema exactly, with no prose or code fences: ${JSON.stringify(format?.schema)}`,
+          content: `Respond with a single JSON object that matches this JSON schema exactly, with no prose or code fences: ${JSON.stringify(format?.schema)}`
         },
-        ...messages,
+        ...messages
       ]
     }
-    if (preset.reasoning && payload.reasoning && settings.reasoningEffort !== 'none') {
+    if (
+      preset.reasoning &&
+      payload.reasoning &&
+      settings.reasoningEffort !== 'none'
+    ) {
       body.reasoning_effort = settings.reasoningEffort
     }
     return fetch(`${settings.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: authHeaders(settings),
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     })
   }
-  let response = await send(true).catch(error => {
-    recordResult(task, { ok: false, status: 0, model, at: new Date().toISOString() })
+  let response = await send(true).catch((error) => {
+    recordResult(task, {
+      ok: false,
+      status: 0,
+      model,
+      at: new Date().toISOString()
+    })
     throw error
   })
-  if (!response.ok && structured && (response.status === 400 || response.status === 422)) {
+  if (
+    !response.ok &&
+    structured &&
+    (response.status === 400 || response.status === 422)
+  ) {
     // Provider does not support structured outputs: guide the JSON by prompt.
     response = await send(false)
   }
-  recordResult(task, { ok: response.ok, status: response.status, model, at: new Date().toISOString() })
+  recordResult(task, {
+    ok: response.ok,
+    status: response.status,
+    model,
+    at: new Date().toISOString()
+  })
   if (!response.ok) {
     // Surface the provider's own message: it is what the user needs to fix.
     const detail = (await response.text().catch(() => '')).slice(0, 400)
-    throw new Error(`${preset.label} rejected the request (${response.status})${detail ? `: ${detail}` : ''}`)
+    throw new Error(
+      `${preset.label} rejected the request (${response.status})${detail ? `: ${detail}` : ''}`
+    )
   }
   const body = (await response.json()) as {
     choices?: Array<{
@@ -468,6 +589,34 @@ export const modelFetch = async (
   const text =
     typeof content === 'string'
       ? content
-      : (content || []).map(part => part.text || '').join('')
+      : (content || []).map((part) => part.text || '').join('')
   return wrap(stripFences(text))
+}
+
+// All remote voice traffic shares this transport: credentials, timeout and errors.
+// Voice orchestration owns clips and clone state; the gateway owns the provider.
+export const voiceProviderAvailable = async () => Boolean(await fishKey())
+export const voiceProviderRequest = async (
+  path: string,
+  init: RequestInit = {},
+  missingIsGone = false
+) => {
+  if (!/^\/(?:v1\/tts|model)(?:[/?]|$)/.test(path))
+    throw new Error('Unknown voice operation')
+  const key = await fishKey()
+  if (!key) throw new Error('Add your Fish Audio key in Settings')
+  const headers = new Headers(init.headers)
+  headers.set('authorization', `Bearer ${key}`)
+  const response = await fetch(`https://api.fish.audio${path}`, {
+    ...init,
+    headers,
+    signal: init.signal
+      ? AbortSignal.any([init.signal, AbortSignal.timeout(120000)])
+      : AbortSignal.timeout(120000)
+  })
+  if (!response.ok && !(missingIsGone && response.status === 404))
+    throw new Error(
+      `The voice provider could not complete this request (${response.status})`
+    )
+  return response
 }

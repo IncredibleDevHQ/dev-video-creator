@@ -38,7 +38,7 @@ export function notebookStream(
         connected(true)
       }
     })
-    source.onmessage = event => {
+    source.onmessage = (event) => {
       if (closed || stream !== source) return
       let snapshot: Snapshot
       try {
@@ -108,11 +108,11 @@ export class NotebookStreams {
       const current = entry
       current.close = this.subscribe(
         id,
-        snapshot => {
+        (snapshot) => {
           current.snapshot = snapshot
           for (const client of current.ports) client.postMessage({ snapshot })
         },
-        connected => {
+        (connected) => {
           current.connected = connected
           for (const client of current.ports) client.postMessage({ connected })
         }

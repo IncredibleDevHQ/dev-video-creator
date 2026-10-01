@@ -9,10 +9,14 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { HarnessModels } from './types'
 
-export const CLAUDE_MODELS: Array<{ id: string; label: string; minVersion?: string }> = [
+export const CLAUDE_MODELS: Array<{
+  id: string
+  label: string
+  minVersion?: string
+}> = [
   { id: 'opus', label: 'Opus (CLI alias)' },
   { id: 'sonnet', label: 'Sonnet (CLI alias)' },
-  { id: 'haiku', label: 'Haiku (CLI alias)' },
+  { id: 'haiku', label: 'Haiku (CLI alias)' }
 ]
 
 // Dotted numeric versions, compared part by part ("2.1.280" > "2.1.278").
@@ -30,21 +34,32 @@ export const compareVersions = (a: string, b: string) => {
 export const claudeModels = (cliVersion: string): HarnessModels => ({
   default: null,
   source: `Claude models; Claude Code ${cliVersion || 'version unknown'}`,
-  options: CLAUDE_MODELS.map(model => ({
+  options: CLAUDE_MODELS.map((model) => ({
     id: model.id,
     label: model.label,
-    ...(model.minVersion && /\d+\.\d+/.test(cliVersion) && compareVersions(cliVersion, model.minVersion) < 0
-      ? { unavailable: `needs Claude Code ${model.minVersion} or newer (found ${cliVersion})` }
-      : {}),
-  })),
+    ...(model.minVersion &&
+    /\d+\.\d+/.test(cliVersion) &&
+    compareVersions(cliVersion, model.minVersion) < 0
+      ? {
+          unavailable: `needs Claude Code ${model.minVersion} or newer (found ${cliVersion})`
+        }
+      : {})
+  }))
 })
 
 // `default_model = "…"` and every `[models."…"]` table name in a Kimi config.
 export const kimiModelsFrom = (config: string): HarnessModels => {
-  const names = [...config.matchAll(/^\s*\[models\.(?:"([^"]+)"|([A-Za-z0-9_./-]+))\]\s*$/gm)].map(match => match[1] || match[2])
-  const fallback = config.match(/^\s*default_model\s*=\s*"([^"]+)"/m)?.[1] || null
+  const names = [
+    ...config.matchAll(/^\s*\[models\.(?:"([^"]+)"|([A-Za-z0-9_./-]+))\]\s*$/gm)
+  ].map((match) => match[1] || match[2])
+  const fallback =
+    config.match(/^\s*default_model\s*=\s*"([^"]+)"/m)?.[1] || null
   const options = [...new Set([...(fallback ? [fallback] : []), ...names])]
-  return { default: fallback, source: 'Kimi config.toml', options: options.map(id => ({ id, label: id })) }
+  return {
+    default: fallback,
+    source: 'Kimi config.toml',
+    options: options.map((id) => ({ id, label: id }))
+  }
 }
 
 export const kimiModels = async (): Promise<HarnessModels> => {
@@ -60,12 +75,18 @@ export const kimiModels = async (): Promise<HarnessModels> => {
 export const codexModelsFrom = (config: string): HarnessModels => {
   const topLevel = config.split(/^\s*\[/m)[0]
   const model = topLevel.match(/^\s*model\s*=\s*"([^"]+)"/m)?.[1] || null
-  return { default: null, source: 'Codex config.toml', options: model ? [{ id: model, label: `${model} (your Codex config)` }] : [] }
+  return {
+    default: null,
+    source: 'Codex config.toml',
+    options: model ? [{ id: model, label: `${model} (your Codex config)` }] : []
+  }
 }
 
 export const codexModels = async (): Promise<HarnessModels> => {
   try {
-    return codexModelsFrom(await readFile(join(homedir(), '.codex', 'config.toml'), 'utf8'))
+    return codexModelsFrom(
+      await readFile(join(homedir(), '.codex', 'config.toml'), 'utf8')
+    )
   } catch {
     return { default: null, source: 'no Codex config found', options: [] }
   }

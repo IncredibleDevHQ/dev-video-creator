@@ -14,26 +14,34 @@ export type SpawnJsonLinesOptions = {
 }
 
 export const spawnJsonLines = (
-  options: SpawnJsonLinesOptions,
+  options: SpawnJsonLinesOptions
 ): Promise<{ exitCode: number }> =>
   new Promise((resolve, reject) => {
-    if(options.signal.aborted) {resolve({exitCode:130});return}
+    if (options.signal.aborted) {
+      resolve({ exitCode: 130 })
+      return
+    }
     let child: ChildProcess
-    const processGroup=process.platform!=='win32'
+    const processGroup = process.platform !== 'win32'
     try {
       child = spawn(options.command, options.args, {
         cwd: options.cwd,
-        detached:processGroup,
+        detached: processGroup,
         env: { ...process.env, ...options.env },
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['ignore', 'pipe', 'pipe']
       })
     } catch (error) {
       reject(error)
       return
     }
-    const kill=(signal:NodeJS.Signals)=>{
-      try {if(processGroup && child.pid) process.kill(-child.pid,signal);else child.kill(signal)}
-      catch(error) {if((error as NodeJS.ErrnoException).code!=='ESRCH') child.kill(signal)}
+    const kill = (signal: NodeJS.Signals) => {
+      try {
+        if (processGroup && child.pid) process.kill(-child.pid, signal)
+        else child.kill(signal)
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH')
+          child.kill(signal)
+      }
     }
     const abort = () => {
       kill('SIGTERM')
@@ -47,12 +55,12 @@ export const spawnJsonLines = (
     const lines = createInterface({ input: child.stdout! })
     lines.on('line', options.onLine)
     let stderrTail = ''
-    child.stderr!.on('data', chunk => {
+    child.stderr!.on('data', (chunk) => {
       const text = chunk.toString()
       stderrTail = (stderrTail + text).slice(-4_000)
       options.onStderr?.(text)
     })
-    child.on('close', code => {
+    child.on('close', (code) => {
       options.signal.removeEventListener('abort', abort)
       resolve({ exitCode: code ?? (options.signal.aborted ? 130 : 1) })
     })
@@ -62,9 +70,9 @@ export const spawnJsonLines = (
 export const probeVersion = (
   command: string,
   args: string[] = ['--version'],
-  timeoutMs = 5_000,
+  timeoutMs = 5_000
 ): Promise<{ ok: boolean; version?: string; reason?: string }> =>
-  new Promise(resolve => {
+  new Promise((resolve) => {
     let child: ChildProcess
     try {
       child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -77,16 +85,20 @@ export const probeVersion = (
       resolve({ ok: false, reason: `no answer within ${timeoutMs} ms` })
     }, timeoutMs)
     let output = ''
-    child.stdout!.on('data', chunk => {
+    child.stdout!.on('data', (chunk) => {
       output += chunk.toString()
     })
-    child.once('error', error => {
+    child.once('error', (error) => {
       clearTimeout(timeout)
       resolve({ ok: false, reason: error.message })
     })
-    child.on('close', code => {
+    child.on('close', (code) => {
       clearTimeout(timeout)
-      if (code === 0) resolve({ ok: true, version: output.trim().split('\n')[0].slice(0, 120) })
+      if (code === 0)
+        resolve({
+          ok: true,
+          version: output.trim().split('\n')[0].slice(0, 120)
+        })
       else resolve({ ok: false, reason: `exited with ${code}` })
     })
   })
@@ -94,9 +106,17 @@ export const probeVersion = (
 // The studio tool endpoint for a run. A planning or production run's scope
 // travels in the URL, so the product offers it only its own tools whatever
 // the CLI.
-export const studioMcpUrl = (origin: string, inputs: Record<string, unknown>) => {
-  const url=new URL('/mcp',origin)
-  if(inputs.capabilityScope==='planning' || inputs.capabilityScope==='production') url.searchParams.set('scope',inputs.capabilityScope)
-  if(typeof inputs.submissionToken==='string') url.searchParams.set('run',inputs.submissionToken)
+export const studioMcpUrl = (
+  origin: string,
+  inputs: Record<string, unknown>
+) => {
+  const url = new URL('/mcp', origin)
+  if (
+    inputs.capabilityScope === 'planning' ||
+    inputs.capabilityScope === 'production'
+  )
+    url.searchParams.set('scope', inputs.capabilityScope)
+  if (typeof inputs.submissionToken === 'string')
+    url.searchParams.set('run', inputs.submissionToken)
   return url.toString()
 }

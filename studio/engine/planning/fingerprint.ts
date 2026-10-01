@@ -51,7 +51,7 @@ export const quotedIn = (quotation: string, text: string): boolean => {
   const haystack = comparableText(text)
   const fragments = comparableText(quotation)
     .split(/\s*(?:\.\.\.|…)\s*/)
-    .map(fragment => fragment.replace(/^[\s"'([]+|[\s"'.,;:!?)\]]+$/g, ''))
+    .map((fragment) => fragment.replace(/^[\s"'([]+|[\s"'.,;:!?)\]]+$/g, ''))
     .filter(Boolean)
   if (!fragments.length) return false
   let from = 0

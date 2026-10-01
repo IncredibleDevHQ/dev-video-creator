@@ -44,7 +44,10 @@ export const parseRulesIndex = (markdown: string): CapabilityEntry[] => {
     if (id === 'rules') continue
     const tagText = /Tags:\s*([^\n<]+)$/i.exec(clean(body))?.[1] || ''
     const summary = clean(body.replace(/Tags:[^\n<]*$/i, ''))
-    const tags = tagText.split(',').map(tag => tag.trim()).filter(Boolean)
+    const tags = tagText
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
     // A rule listed under two headings is one rule; its tags accumulate.
     const existing = seen.get(id)
     if (existing) {
@@ -58,7 +61,7 @@ export const parseRulesIndex = (markdown: string): CapabilityEntry[] => {
       source: `skills/hyperframes-animation/${path}`,
       tags,
       bodyVendored: false,
-      verifiedInInstalledRuntime: false,
+      verifiedInInstalledRuntime: false
     })
   }
   return [...seen.values()]
@@ -76,9 +79,12 @@ export const parseBlueprintsIndex = (markdown: string): CapabilityEntry[] => {
       kind: 'blueprint',
       summary: clean(body),
       source: `skills/hyperframes-animation/blueprints/${id}.md`,
-      tags: roles.split(',').map(role => role.trim()).filter(Boolean),
+      tags: roles
+        .split(',')
+        .map((role) => role.trim())
+        .filter(Boolean),
       bodyVendored: false,
-      verifiedInInstalledRuntime: false,
+      verifiedInInstalledRuntime: false
     })
   }
   return entries
@@ -89,16 +95,19 @@ export const parseTechniques = (markdown: string): CapabilityEntry[] => {
   const contents = /## Contents\s*\n([\s\S]*?)\n\s*\n/.exec(markdown)?.[1] || ''
   return contents
     .split('\n')
-    .map(line => /^-\s+(.+?)\s*$/.exec(line)?.[1] || '')
-    .filter(title => title && !/^when to use/i.test(title))
-    .map(title => ({
-      id: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+    .map((line) => /^-\s+(.+?)\s*$/.exec(line)?.[1] || '')
+    .filter((title) => title && !/^when to use/i.test(title))
+    .map((title) => ({
+      id: title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, ''),
       kind: 'technique' as const,
       summary: title,
       source: 'skills/hyperframes-animation/techniques.md',
       tags: [],
       bodyVendored: true,
-      verifiedInInstalledRuntime: false,
+      verifiedInInstalledRuntime: false
     }))
 }
 
@@ -114,9 +123,14 @@ export const buildCapabilityCatalog = (input: {
   entries: [
     ...parseRulesIndex(input.rulesIndex),
     ...parseBlueprintsIndex(input.blueprintsIndex),
-    ...parseTechniques(input.techniques),
-  ],
+    ...parseTechniques(input.techniques)
+  ]
 })
 
-export const findCapability = (catalog: Pick<CapabilityCatalog, 'entries'>, kind: CapabilityKind, id: string) =>
-  catalog.entries.find(entry => entry.kind === kind && entry.id === id) || null
+export const findCapability = (
+  catalog: Pick<CapabilityCatalog, 'entries'>,
+  kind: CapabilityKind,
+  id: string
+) =>
+  catalog.entries.find((entry) => entry.kind === kind && entry.id === id) ||
+  null

@@ -11,7 +11,9 @@
 		"start": "yarn --cwd studio start",
 		"test": "yarn --cwd studio run check",
 		"test:storage": "yarn --cwd studio run check:storage",
-		"build": "yarn --cwd studio build"
+		"build": "yarn --cwd studio build",
+		"format": "yarn --cwd studio format",
+		"format:check": "yarn --cwd studio format:check"
 	},
 	"engines": {
 		"node": ">=22"

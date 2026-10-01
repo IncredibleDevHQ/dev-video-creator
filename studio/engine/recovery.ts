@@ -18,7 +18,7 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
     const saved = await loadProject(id)
     if (!saved) continue
     if (saved.stopping && saved.status === 'building') {
-      await changeProject(id, current => {
+      await changeProject(id, (current) => {
         current.status = 'failed'
         current.error = generationStops.user
         addEvent(current, 'slide', generationStops.user)
@@ -28,11 +28,11 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
     const resumeSlides = saved.status === 'building'
     const resumeScenes =
       saved.project.video?.scenes
-        .filter(scene => scene.phase === 'producing')
-        .map(scene => scene.id) || []
+        .filter((scene) => scene.phase === 'producing')
+        .map((scene) => scene.id) || []
     const resumePreparation = saved.project.video?.phase === 'preparing'
     const resumeVideo = saved.project.video?.phase === 'joining'
-    const interruptedPlan = saved.project.video?.scenes.some(scene =>
+    const interruptedPlan = saved.project.video?.scenes.some((scene) =>
       ['writing', 'changing', 'replanning'].includes(scene.phase)
     )
     let snapshot = saved
@@ -43,21 +43,15 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
       resumePreparation ||
       interruptedPlan
     )
-      snapshot = await changeProject(id, current => {
+      snapshot = await changeProject(id, (current) => {
         if (resumeSlides) addEvent(current, 'slide', 'Resuming your slides')
         const video = current.project.video
         if (!video) return
         for (const scene of video.scenes) {
           if (['writing', 'changing', 'replanning'].includes(scene.phase)) {
-            transitionScene(scene, 'recover-plan')
-            addEvent(current, 'scene', 'Resuming this scene', {
-              sceneId: scene.id
-            })
+            transitionScene(scene, 'recover-plan', current)
           } else if (scene.phase === 'producing') {
-            transitionScene(scene, 'recover-production')
-            addEvent(current, 'scene', 'Resuming production', {
-              sceneId: scene.id
-            })
+            transitionScene(scene, 'recover-production', current)
           }
         }
         if (resumeVideo || resumePreparation) {
@@ -81,7 +75,9 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
         await jobs.video(id).catch(() => {})
       continue
     }
-    if (snapshot.project.video?.scenes.some(scene => scene.phase === 'queued'))
+    if (
+      snapshot.project.video?.scenes.some((scene) => scene.phase === 'queued')
+    )
       jobs.planning(id)
     for (const sceneId of resumeScenes)
       void jobs.scene(id, sceneId).catch(() => {})

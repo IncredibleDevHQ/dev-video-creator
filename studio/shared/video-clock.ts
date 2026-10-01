@@ -1,6 +1,11 @@
 import type { Project } from './model'
-export const videoClock = (project: Project) => project.video?.produced?.clock || []
-export const videoSecond = (project: Project, sceneIndex: number, second: number) => (videoClock(project)[sceneIndex]?.start || 0)+second
+export const videoClock = (project: Project) =>
+  project.video?.produced?.clock || []
+export const videoSecond = (
+  project: Project,
+  sceneIndex: number,
+  second: number
+) => (videoClock(project)[sceneIndex]?.start || 0) + second
 export const sceneAt = (project: Project, second: number) => {
   const clock = videoClock(project)
   // A scene owns its incoming transition, so seeking to its start also
@@ -10,5 +15,5 @@ export const sceneAt = (project: Project, second: number) => {
     if (second < clock[next].start) break
     index = next
   }
-  return {index,second:Math.max(0,second-(clock[index]?.start || 0))}
+  return { index, second: Math.max(0, second - (clock[index]?.start || 0)) }
 }

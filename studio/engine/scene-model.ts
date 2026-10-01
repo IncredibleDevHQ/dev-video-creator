@@ -1,10 +1,11 @@
+import type { ActivityLedger } from './activity'
 import { transitionScene } from './autopilot'
 import type { Project, Scene, Moment, Voice } from '../shared/model'
 import { fingerprintOf } from './planning/fingerprint'
 export const roleOf = (index: number, count: number) =>
   index === 0 ? 'title' : index === count - 1 ? 'ending' : 'body'
 export const scenePlanKey = (project: Project, scene: Scene) => {
-  const index = project.slides.findIndex(slide => slide.id === scene.slideId)
+  const index = project.slides.findIndex((slide) => slide.id === scene.slideId)
   return fingerprintOf({
     harness: project.video!.settings.harness,
     slide: project.slides[index],
@@ -23,7 +24,7 @@ export const recordingKeyOf = (
   fingerprintOf({
     lines: moment.lines,
     camera: moment.camera,
-    segments: moment.segments?.map(segment => ({
+    segments: moment.segments?.map((segment) => ({
       lines: segment.lines,
       camera: segment.camera,
       estimate: segment.estimate
@@ -50,8 +51,8 @@ export const refreshVideoKeys = (project: Project) => {
       branding: project.branding,
       plan: scene.planKey,
       creativePlan: scene.creativePlan,
-      slide: project.slides.find(slide => slide.id === scene.slideId)?.svg,
-      moments: scene.moments.map(m => ({
+      slide: project.slides.find((slide) => slide.id === scene.slideId)?.svg,
+      moments: scene.moments.map((m) => ({
         id: m.id,
         lines: m.extension?.baseLines ?? m.lines,
         seconds:
@@ -68,9 +69,9 @@ export const refreshVideoKeys = (project: Project) => {
       branding: project.branding,
       plan: scene.planKey,
       creativePlan: scene.creativePlan,
-      slide: project.slides.find(slide => slide.id === scene.slideId)?.svg,
+      slide: project.slides.find((slide) => slide.id === scene.slideId)?.svg,
       voice: video.settings.voice,
-      moments: scene.moments.map(moment => ({
+      moments: scene.moments.map((moment) => ({
         id: moment.id,
         lines: moment.lines,
         start: moment.start,
@@ -86,17 +87,17 @@ export const refreshVideoKeys = (project: Project) => {
     })
   }
   video.inputKey = fingerprintOf({
-    scenes: video.scenes.map(scene => ({
+    scenes: video.scenes.map((scene) => ({
       id: scene.id,
       input: scene.inputKey
     })),
     transitions: video.transitions
   })
 }
-export const reconcileVideo = (project: Project) => {
+export const reconcileVideo = (project: Project, ledger: ActivityLedger) => {
   const video = project.video
   if (!video) return
-  const previous = new Map(video.scenes.map(scene => [scene.slideId, scene]))
+  const previous = new Map(video.scenes.map((scene) => [scene.slideId, scene]))
   const oldOrder = [...previous.values()]
   const seams = new Map(
     oldOrder
@@ -106,7 +107,7 @@ export const reconcileVideo = (project: Project) => {
         video.transitions[index]
       ])
   )
-  video.scenes = project.slides.map(slide => {
+  video.scenes = project.slides.map((slide) => {
     const scene: Scene = previous.get(slide.id) || {
       id: `scene-${slide.id}`,
       slideId: slide.id,
@@ -120,12 +121,16 @@ export const reconcileVideo = (project: Project) => {
     const key = scenePlanKey(project, scene)
     if (scene.planKey !== key) {
       scene.planKey = key
-      transitionScene(scene, 'invalidate')
+      transitionScene(scene, 'invalidate', ledger)
       scene.produced = null
     }
-    if (!slide.svg) {
+    if (
+      !slide.svg &&
+      (scene.phase !== 'failed' ||
+        scene.error !== 'Tell the studio what this slide is about')
+    ) {
       scene.error = 'Tell the studio what this slide is about'
-      transitionScene(scene, 'fail')
+      transitionScene(scene, 'fail', ledger)
     }
     return scene
   })
@@ -146,8 +151,8 @@ export const synchronizeClock = (scene: Scene) => {
       moment.audio?.inputKey === moment.audioKey
         ? moment.audio.duration
         : moment.take?.recordingKey === moment.recordingKey
-        ? moment.take.duration
-        : null
+          ? moment.take.duration
+          : null
     const seconds =
       duration || moment.plannedSeconds || moment.end - moment.start
     moment.start = clock

@@ -37,7 +37,7 @@ const sceneRailStatus = (snapshot: Snapshot, scene: Scene) => {
   const open = view?.openMomentIds || []
   if (open.length && !activity.active && scene.phase !== 'failed') {
     const icon = scene.moments.some(
-      moment => moment.camera !== 'none' && open.includes(moment.id)
+      (moment) => moment.camera !== 'none' && open.includes(moment.id)
     )
       ? cameraCue('full')
       : microphoneCue
@@ -102,13 +102,13 @@ export const videoScreen = (
   const activity = !connected
     ? 'Connection lost · live processing status is unavailable. Reconnecting…'
     : snapshot.readOnly
-    ? 'Saved review · generation is not running in this copy.'
-    : selectedActive
-    ? `Processing scene ${selected + 1} · no action needed.`
-    : scene.phase === 'queued' &&
-      !video.scenes.some(entry => sceneDisplay(snapshot, entry).active)
-    ? 'No scene is processing right now. Remaining scenes have not started.'
-    : ''
+      ? 'Saved review · generation is not running in this copy.'
+      : selectedActive
+        ? `Processing scene ${selected + 1} · no action needed.`
+        : scene.phase === 'queued' &&
+            !video.scenes.some((entry) => sceneDisplay(snapshot, entry).active)
+          ? 'No scene is processing right now. Remaining scenes have not started.'
+          : ''
   const activeLabel = display.label
   const showActivity =
     sceneActivity(snapshot, scene).events.length > 0 ||
@@ -124,13 +124,13 @@ export const videoScreen = (
     (view?.action === 'record'
       ? ` ${recordIndex + 1}`
       : display.actionLabel === 'Finish scene'
-      ? ` ${selected + 1}`
-      : '')
+        ? ` ${selected + 1}`
+        : '')
   const busy = display.busy
   const reply = [...snapshot.events]
     .reverse()
     .find(
-      event =>
+      (event) =>
         event.kind === 'chat' &&
         event.anchor?.stage === 'video' &&
         event.anchor.sceneId === scene.id &&
@@ -140,13 +140,13 @@ export const videoScreen = (
     ['reviewing', 'uploading'].includes(capture.phase) && !!capture.url
   const focused = practicing || capture.phase !== 'idle'
   const cameraTake =
-    reviewing && capture.moments.some(entry => entry.camera !== 'none')
+    reviewing && capture.moments.some((entry) => entry.camera !== 'none')
   return `<section class="video-workspace ${focused ? 'is-focused' : ''}">
 <aside class="rail scene-rail" ${focused ? 'inert' : ''} aria-label="Scenes">
 <div class="rail-heading">
 <strong>Scenes</strong>
 <small>${video.scenes.length} scenes${
-    video.scenes.every(entry => entry.moments.length)
+    video.scenes.every((entry) => entry.moments.length)
       ? ` · ${Math.round(
           video.scenes.reduce(
             (total, entry) => total + (entry.moments.at(-1)?.end || 0),
@@ -180,8 +180,8 @@ export const videoScreen = (
           index === 0
             ? '<b>TITLE</b>'
             : index === video.scenes.length - 1
-            ? '<b>END</b>'
-            : ''
+              ? '<b>END</b>'
+              : ''
         }</span>${sceneRailStatus(snapshot, entry)}</button>
 <button type="button" class="scene-card-settings icon-button" data-action="scene-settings" data-settings-scene="${index}" aria-label="Settings for scene ${
           index + 1
@@ -215,18 +215,18 @@ export const videoScreen = (
           reviewing
             ? 'Review your take'
             : practicing
-            ? 'Practice'
-            : 'Recording studio'
+              ? 'Practice'
+              : 'Recording studio'
         }</strong>
 <span>Scene ${selected + 1} · Moment ${momentIndex + 1}</span>
 </div>${
           practicing
             ? button('Exit practice', 'practice')
             : capture.phase === 'recording'
-            ? button('Stop recording · Esc', 'record-stop')
-            : ['preparing', 'countdown'].includes(capture.phase)
-            ? button('Cancel', 'discard-take')
-            : ''
+              ? button('Stop recording · Esc', 'record-stop')
+              : ['preparing', 'countdown'].includes(capture.phase)
+                ? button('Cancel', 'discard-take')
+                : ''
         }</div>`
       : ''
   }${capture.phase === 'idle' ? recordingHandoff(snapshot, scene) : ''}${
@@ -266,81 +266,82 @@ export const videoScreen = (
 </video>
 </div>`
       : showVideo
-      ? `<video class="scene-player" data-scene-player data-whole-video src="/objects/${
-          video.produced!.objectKey
-        }" poster="${
-          video.produced!.posterKey
-            ? `/objects/${video.produced!.posterKey}`
-            : video.scenes[0].produced?.posterKey
-            ? `/objects/${video.scenes[0].produced.posterKey}`
-            : `/api/projects/${project.id}/scenes/${video.scenes[0].id}/cover?v=${video.scenes[0].produced?.objectKey}`
-        }" controls playsinline>
+        ? `<video class="scene-player" data-scene-player data-whole-video src="/objects/${
+            video.produced!.objectKey
+          }" poster="${
+            video.produced!.posterKey
+              ? `/objects/${video.produced!.posterKey}`
+              : video.scenes[0].produced?.posterKey
+                ? `/objects/${video.scenes[0].produced.posterKey}`
+                : `/api/projects/${project.id}/scenes/${video.scenes[0].id}/cover?v=${video.scenes[0].produced?.objectKey}`
+          }" controls playsinline>
 </video>`
-      : !view?.produced &&
-        moment?.camera === 'none' &&
-        scene.animation &&
-        scene.animation.inputKey === scene.animationKey &&
-        !practicing &&
-        capture.phase === 'idle'
-      ? `<video class="scene-player" data-scene-player data-animation-player src="/objects/${
-          scene.animation.objectKey
-        }" poster="${
-          scene.animation.posterKey
-            ? `/objects/${scene.animation.posterKey}`
-            : `/api/projects/${project.id}/scenes/${scene.id}/cover?v=${scene.animation.objectKey}`
-        }" controls playsinline>
+        : !view?.produced &&
+            moment?.camera === 'none' &&
+            scene.animation &&
+            scene.animation.inputKey === scene.animationKey &&
+            !practicing &&
+            capture.phase === 'idle'
+          ? `<video class="scene-player" data-scene-player data-animation-player src="/objects/${
+              scene.animation.objectKey
+            }" poster="${
+              scene.animation.posterKey
+                ? `/objects/${scene.animation.posterKey}`
+                : `/api/projects/${project.id}/scenes/${scene.id}/cover?v=${scene.animation.objectKey}`
+            }" controls playsinline>
 </video>`
-      : view?.produced &&
-        scene.produced &&
-        !practicing &&
-        capture.phase === 'idle'
-      ? `<video class="scene-player" data-scene-player src="/objects/${
-          scene.produced.objectKey
-        }" poster="${
-          scene.produced.posterKey
-            ? `/objects/${scene.produced.posterKey}`
-            : `/api/projects/${project.id}/scenes/${scene.id}/cover?v=${scene.produced.objectKey}`
-        }" controls playsinline>
+          : view?.produced &&
+              scene.produced &&
+              !practicing &&
+              capture.phase === 'idle'
+            ? `<video class="scene-player" data-scene-player src="/objects/${
+                scene.produced.objectKey
+              }" poster="${
+                scene.produced.posterKey
+                  ? `/objects/${scene.produced.posterKey}`
+                  : `/api/projects/${project.id}/scenes/${scene.id}/cover?v=${scene.produced.objectKey}`
+              }" controls playsinline>
 </video>`
-      : `${
-          scene.animation && scene.animation.inputKey === scene.animationKey
-            ? `<video class="rehearsal-animation" data-rehearsal-animation src="/objects/${scene.animation.objectKey}" muted playsinline>
+            : `${
+                scene.animation &&
+                scene.animation.inputKey === scene.animationKey
+                  ? `<video class="rehearsal-animation" data-rehearsal-animation src="/objects/${scene.animation.objectKey}" muted playsinline>
 </video>`
-            : slide?.svg || ''
-        }${
-          moment && moment.camera !== 'none'
-            ? `<div class="presenter-preview ${moment.layout}" ${
-                practicing && !cameraAt(moment, second) ? 'hidden' : ''
-              }>${
-                capture.stream || practiceStream
-                  ? '<video data-camera autoplay muted playsinline></video>'
-                  : moment.take &&
-                    moment.take.recordingKey === moment.recordingKey
-                  ? `<video data-saved-presenter src="/objects/${escape(
-                      moment.take.objectKey
-                    )}" ${practicing ? 'muted' : ''} playsinline preload="auto">
+                  : slide?.svg || ''
+              }${
+                moment && moment.camera !== 'none'
+                  ? `<div class="presenter-preview ${moment.layout}" ${
+                      practicing && !cameraAt(moment, second) ? 'hidden' : ''
+                    }>${
+                      capture.stream || practiceStream
+                        ? '<video data-camera autoplay muted playsinline></video>'
+                        : moment.take &&
+                            moment.take.recordingKey === moment.recordingKey
+                          ? `<video data-saved-presenter src="/objects/${escape(
+                              moment.take.objectKey
+                            )}" ${practicing ? 'muted' : ''} playsinline preload="auto">
 </video>`
-                  : `<img src="${standIn}" alt="Presenter stand-in">
+                          : `<img src="${standIn}" alt="Presenter stand-in">
 <small>Presenter stand-in</small>`
-              }</div>`
-            : ''
-        }${
-          moment?.overlay
-            ? `<div class="scene-overlay ${moment.overlay}">${
-                moment.overlay === 'title-card'
-                  ? escape(project.title)
-                  : moment.overlay === 'end-card'
-                  ? 'Thanks for watching'
-                  : escape(project.branding?.name || 'Your name')
-              }</div>${
-                moment.overlay === 'title-card' && project.branding?.name
-                  ? `<div class="preview-name">${escape(
-                      project.branding.name
-                    )}</div>`
+                    }</div>`
+                  : ''
+              }${
+                moment?.overlay
+                  ? `<div class="scene-overlay ${moment.overlay}">${
+                      moment.overlay === 'title-card'
+                        ? escape(project.title)
+                        : moment.overlay === 'end-card'
+                          ? 'Thanks for watching'
+                          : escape(project.branding?.name || 'Your name')
+                    }</div>${
+                      moment.overlay === 'title-card' && project.branding?.name
+                        ? `<div class="preview-name">${escape(
+                            project.branding.name
+                          )}</div>`
+                        : ''
+                    }`
                   : ''
               }`
-            : ''
-        }`
   }${
     (!practicing && cameraTake) ||
     (!practicing &&
@@ -350,13 +351,13 @@ export const videoScreen = (
       moment?.take?.recordingKey === moment?.recordingKey)
       ? layeredControls()
       : capture.phase === 'idle' &&
-        !practicing &&
-        !view?.produced &&
-        moment?.camera !== 'none' &&
-        scene.animation?.inputKey === scene.animationKey &&
-        scene.animation
-      ? standInControls()
-      : ''
+          !practicing &&
+          !view?.produced &&
+          moment?.camera !== 'none' &&
+          scene.animation?.inputKey === scene.animationKey &&
+          scene.animation
+        ? standInControls()
+        : ''
   }</div>${
     focused && !reviewing
       ? `<div class="animation-status" data-animation-status>
@@ -372,8 +373,8 @@ export const videoScreen = (
           capture.phase === 'countdown'
             ? `Ready in ${capture.countdown}`
             : capture.phase === 'recording'
-            ? 'Recording · Esc to stop'
-            : escape(moment.cue || moment.title || '')
+              ? 'Recording · Esc to stop'
+              : escape(moment.cue || moment.title || '')
         }</strong>
 <span data-prompter>${transcriptWords(moment.lines)}</span>
 </div>`
@@ -389,8 +390,8 @@ export const videoScreen = (
           !practiceStream && moment.camera !== 'none'
             ? cameraToggle(false)
             : practiceStream
-            ? cameraToggle(true)
-            : ''
+              ? cameraToggle(true)
+              : ''
         }</div>
 <div class="prompter-window">
 <span class="prompter-caret" aria-hidden="true">›</span>
@@ -483,50 +484,53 @@ export const videoScreen = (
           capture.moments.length === 1
         )}`
       : capture.phase === 'countdown'
-      ? `<span class="recording-clock">Starting in ${
-          capture.countdown
-        }…</span>${button('Cancel', 'discard-take')}`
-      : capture.phase === 'preparing'
-      ? `<span>Allow ${
-          capture.moments.some(moment => moment.camera !== 'none')
-            ? 'camera and microphone'
-            : 'microphone'
-        } access in your browser to record.</span>${button(
-          'Waiting for access…',
-          'scene-next',
-          true,
-          true
-        )}${button('Cancel', 'discard-take')}`
-      : capture.phase === 'reviewing'
-      ? `${button('Discard', 'discard-take')}${button(
-          'Retake',
-          'retake-recording'
-        )}${button('Save take', 'save-take', true)}`
-      : capture.phase === 'uploading'
-      ? button('Saving…', 'save-take', true, true)
-      : `${button(
-          practicing
-            ? 'Stop practice'
-            : moment
-            ? `Practice moment ${momentIndex + 1}`
-            : 'Practice',
-          'practice',
-          false,
-          !scene.moments.length
-        )}${
-          view?.openMomentIds.length && view.action !== 'record'
-            ? button(`Record moment ${recordIndex + 1}`, 'record-moment')
-            : ''
-        }${
-          view?.action === 'download'
-            ? ''
-            : button(
-                mainLabel,
-                'scene-next',
-                true,
-                !view || view.action === 'wait'
-              )
-        }`
+        ? `<span class="recording-clock">Starting in ${
+            capture.countdown
+          }…</span>${button('Cancel', 'discard-take')}`
+        : capture.phase === 'preparing'
+          ? `<span>Allow ${
+              capture.moments.some((moment) => moment.camera !== 'none')
+                ? 'camera and microphone'
+                : 'microphone'
+            } access in your browser to record.</span>${button(
+              'Waiting for access…',
+              'scene-next',
+              true,
+              true
+            )}${button('Cancel', 'discard-take')}`
+          : capture.phase === 'reviewing'
+            ? `${button('Discard', 'discard-take')}${button(
+                'Retake',
+                'retake-recording'
+              )}${button('Save take', 'save-take', true)}`
+            : capture.phase === 'uploading'
+              ? button('Saving…', 'save-take', true, true)
+              : `${button(
+                  practicing
+                    ? 'Stop practice'
+                    : moment
+                      ? `Practice moment ${momentIndex + 1}`
+                      : 'Practice',
+                  'practice',
+                  false,
+                  !scene.moments.length
+                )}${
+                  view?.openMomentIds.length && view.action !== 'record'
+                    ? button(
+                        `Record moment ${recordIndex + 1}`,
+                        'record-moment'
+                      )
+                    : ''
+                }${
+                  view?.action === 'download'
+                    ? ''
+                    : button(
+                        mainLabel,
+                        'scene-next',
+                        true,
+                        !view || view.action === 'wait'
+                      )
+                }`
   }</div>
 </div>${
     reviewing
@@ -565,8 +569,8 @@ export const videoScreen = (
       (!busy
         ? reply?.message
         : scene.phase === 'queued'
-        ? 'Waiting for the next available slot'
-        : '') ||
+          ? 'Waiting for the next available slot'
+          : '') ||
       video.error ||
       ''
   )}</span>${button('History', 'history')}</div>
@@ -605,10 +609,10 @@ export const videoScreen = (
           entry.camera === 'none'
             ? 'Graphics only'
             : entry.layout === 'full-screen'
-            ? 'You full screen'
-            : entry.layout === 'beside-slide'
-            ? 'You beside the slide'
-            : 'You in the corner'
+              ? 'You full screen'
+              : entry.layout === 'beside-slide'
+                ? 'You beside the slide'
+                : 'You in the corner'
         }</small>
 <p>${transcriptWords(entry.lines)}</p>${
           views?.moments[momentViewKey(scene.id, entry.id)]?.state ===
@@ -617,13 +621,13 @@ export const videoScreen = (
             : ''
         }${snapshot.events
           .filter(
-            event =>
+            (event) =>
               event.kind === 'chat' &&
               event.anchor?.stage === 'video' &&
               event.anchor.sceneId === scene.id &&
               event.anchor.momentId === entry.id
           )
-          .map(event => `<blockquote>${escape(event.message)}</blockquote>`)
+          .map((event) => `<blockquote>${escape(event.message)}</blockquote>`)
           .join('')}</section>`
     )
     .join('')}</div>
@@ -641,7 +645,7 @@ export const makeVideoDialog = (
 <fieldset>
 <legend>On camera</legend>${(['off', 'low', 'high'] as const)
     .map(
-      value =>
+      (value) =>
         `<label>
 <input type="radio" name="presence" value="${value}" ${
           value === presence ? 'checked' : ''
@@ -649,8 +653,8 @@ export const makeVideoDialog = (
           value === 'off'
             ? 'You stay off camera.'
             : value === 'low'
-            ? 'You close each scene.'
-            : 'You open, close, and step in where it helps.'
+              ? 'You close each scene.'
+              : 'You open, close, and step in where it helps.'
         }</small>
 </label>`
     )
@@ -660,7 +664,7 @@ export const makeVideoDialog = (
     voice
   )}</select>
 </label>${
-    settings.voice.clones.some(clone => clone.state === 'ready')
+    settings.voice.clones.some((clone) => clone.state === 'ready')
       ? ''
       : button('Clone your voice · 30s', 'clone-settings')
   }<p class="two-voices" ${

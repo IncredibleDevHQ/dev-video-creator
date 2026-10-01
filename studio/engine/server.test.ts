@@ -39,7 +39,7 @@ const address = server.address() as { port: number }
 afterAll(
   () =>
     new Promise<void>((resolve, reject) => {
-      server.close(error => (error ? reject(error) : resolve()))
+      server.close((error) => (error ? reject(error) : resolve()))
       server.closeAllConnections()
     })
 )
@@ -143,7 +143,7 @@ it('marks saved reviews and rejects mutation before dispatch', async () => {
     expect(slides.mock.calls).toHaveLength(calls)
   } finally {
     review.closeAllConnections()
-    await new Promise<void>(resolve => review.close(() => resolve()))
+    await new Promise<void>((resolve) => review.close(() => resolve()))
   }
 })
 
@@ -177,6 +177,6 @@ it('releases live stream slots and replays saved state when reconnected', async 
     expect(unsubscribe).toHaveBeenCalledTimes(2)
   } finally {
     bounded.closeAllConnections()
-    await new Promise<void>(resolve => bounded.close(() => resolve()))
+    await new Promise<void>((resolve) => bounded.close(() => resolve()))
   }
 })

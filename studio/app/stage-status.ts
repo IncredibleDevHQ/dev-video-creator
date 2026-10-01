@@ -9,8 +9,8 @@ export const stageStatus = (
     stage === 'presentation'
       ? presentationDisplay(snapshot)
       : stage === 'video'
-      ? snapshot.views?.video.display || videoDisplay(snapshot)
-      : { label: '', active: false }
+        ? snapshot.views?.video.display || videoDisplay(snapshot)
+        : { label: '', active: false }
   let { label, active } = display
   if (active && snapshot.readOnly) {
     label = 'Saved'
@@ -22,16 +22,16 @@ export const stageStatus = (
   const state = active
     ? 'is-processing'
     : label === 'Ready'
-    ? 'is-ready'
-    : label === 'Needs attention'
-    ? 'needs-attention'
-    : 'is-idle'
+      ? 'is-ready'
+      : label === 'Needs attention'
+        ? 'needs-attention'
+        : 'is-idle'
   const icon =
     label === 'Ready'
       ? '<path d="m3 7 2.5 2.5L11 4"/>'
       : label === 'Needs attention'
-      ? '<circle cx="7" cy="7" r="5.25"/><path d="M7 4v3M7 9.5v.1"/>'
-      : '<circle cx="7" cy="7" r="2" fill="currentColor" stroke="none"/>'
+        ? '<circle cx="7" cy="7" r="5.25"/><path d="M7 4v3M7 9.5v.1"/>'
+        : '<circle cx="7" cy="7" r="2" fill="currentColor" stroke="none"/>'
   return label
     ? `<span class="stage-status ${state}" title="${label}"><span class="sr"> · ${label}</span>${
         active

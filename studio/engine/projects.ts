@@ -1,3 +1,5 @@
+import { addEvent } from './activity'
+export { addEvent } from './activity'
 import { sumUsage } from '../shared/usage'
 import { cancelEngineRun, type EngineRun } from './harness/runtime'
 import { generationStops, generationFailure } from './generation-errors'
@@ -46,9 +48,9 @@ export const loadProject = async (id: string) => {
     snapshot.views.video.display = videoDisplay(snapshot)
     snapshot.views.presentation = presentationDisplay(snapshot)
     const runs = await Promise.all(
-      (
-        await listNotebookRows('engine-runs', id)
-      ).map(runId => readRow<EngineRun>('engine-runs', runId))
+      (await listNotebookRows('engine-runs', id)).map((runId) =>
+        readRow<EngineRun>('engine-runs', runId)
+      )
     )
     snapshot.tokenUsage = sumUsage(
       runs.filter((run): run is EngineRun => Boolean(run))
@@ -79,21 +81,6 @@ export const changeProject = async (
   } finally {
     if (queues.get(id) === next) queues.delete(id)
   }
-}
-export const addEvent = (
-  snapshot: Snapshot,
-  kind: ProjectEvent['kind'],
-  message: string,
-  extras: Partial<ProjectEvent> = {}
-) => {
-  snapshot.events.push({
-    ...extras,
-    sequence: (snapshot.events.at(-1)?.sequence || 0) + 1,
-    projectId: snapshot.project.id,
-    time: new Date().toISOString(),
-    kind,
-    message
-  })
 }
 export const createProject = async (
   input: string,
@@ -132,17 +119,17 @@ const building = new Map<string, Promise<void>>()
 export const scheduleSlides = (id: string) => {
   if (building.has(id)) return
   const work = buildSlides(id)
-    .catch(async reason => {
-      await changeProject(id, current => {
+    .catch(async (reason) => {
+      await changeProject(id, (current) => {
         current.status = 'failed'
         current.error = current.stopping
           ? generationStops.user
           : reason instanceof SourceReadError
-          ? reason.message
-          : generationFailure(
-              reason,
-              'Could not make the slides. Check your AI settings and try again.'
-            )
+            ? reason.message
+            : generationFailure(
+                reason,
+                'Could not make the slides. Check your AI settings and try again.'
+              )
         if (reason instanceof SourceReadError) current.sourceFailure = 'blocked'
         addEvent(current, 'slide', current.error)
       })
@@ -152,7 +139,7 @@ export const scheduleSlides = (id: string) => {
   void work.catch(() => {})
 }
 export const stopSlides = async (id: string) => {
-  await changeProject(id, current => {
+  await changeProject(id, (current) => {
     if (current.status !== 'building')
       throw new Error('This presentation is not being generated')
     current.stopping = true
@@ -168,14 +155,14 @@ export const stopSlides = async (id: string) => {
       cancelEngineRun(run.id)
   }
   if (!building.has(id))
-    await changeProject(id, current => {
+    await changeProject(id, (current) => {
       current.status = 'failed'
       current.error = generationStops.user
     })
   return (await loadProject(id))!
 }
 export const retrySlides = async (id: string) => {
-  const snapshot = await changeProject(id, current => {
+  const snapshot = await changeProject(id, (current) => {
     if (building.has(id))
       throw new Error('Wait for generation to stop before continuing')
     if (current.status !== 'failed')
@@ -195,7 +182,7 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
     text.length > 500000
   )
     throw new Error('Paste the article text, rather than only its link')
-  const snapshot = await changeProject(id, async current => {
+  const snapshot = await changeProject(id, async (current) => {
     if (
       current.status !== 'failed' ||
       !current.sourceFailure ||
@@ -240,7 +227,7 @@ const buildSlides = async (id: string) => {
   if (!snapshot || snapshot.status !== 'building') return
   if (!snapshot.project.harness) {
     snapshot.project.harness = (await loadHarnessPreference())!
-    await changeProject(id, current => {
+    await changeProject(id, (current) => {
       current.project.harness = snapshot.project.harness
     })
   }
@@ -258,7 +245,7 @@ const buildSlides = async (id: string) => {
       await writeRow('sources', id, source)
     }
     await requireSlidesRunning(id)
-    await changeProject(id, current => {
+    await changeProject(id, (current) => {
       current.project.title = source!.title || 'Untitled video'
       current.project.source = source!.text
       if (source!.url) current.project.sourceUrl = source!.url
@@ -269,7 +256,7 @@ const buildSlides = async (id: string) => {
       const origin =
         process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
         `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`
-      await changeProject(id, current =>
+      await changeProject(id, (current) =>
         addEvent(current, 'slide', 'Understanding the source')
       )
       const brief = await prepareCreativeBrief(
@@ -280,7 +267,7 @@ const buildSlides = async (id: string) => {
         'source'
       )
       await requireSlidesRunning(id)
-      await changeProject(id, current =>
+      await changeProject(id, (current) =>
         addEvent(current, 'slide', 'Planning the story')
       )
       outline = await prepareCreativeStory(
@@ -315,17 +302,17 @@ const buildSlides = async (id: string) => {
   const sourceBrief = await readRow<{
     brief: import('./creative/explanation-brief').ExplanationBriefV1
   }>('source-briefs', id)
-  await changeProject(id, current => {
+  await changeProject(id, (current) => {
     current.plannedSlides = outline.scenes.length
     addEvent(current, 'slide', `Designing your ${outline.scenes.length} slides`)
   })
   const onDraft = async (index: number, svg: string) =>
-    changeProject(id, async current => {
+    changeProject(id, async (current) => {
       const slideId = slideIds[index],
         scene = outline.scenes[index]
       if (
         current.project.slides.some(
-          slide => slide.id === slideId && !slide.draft
+          (slide) => slide.id === slideId && !slide.draft
         )
       )
         return
@@ -353,7 +340,7 @@ const buildSlides = async (id: string) => {
         evidence: scene.source
       }
       const existing = current.project.slides.findIndex(
-        slide => slide.id === slideId
+        (slide) => slide.id === slideId
       )
       if (existing >= 0) current.project.slides[existing] = draft
       else current.project.slides.push(draft)
@@ -381,10 +368,10 @@ const buildSlides = async (id: string) => {
   })
   for (const [index, scene] of outline.scenes.entries()) {
     const slideId = slideIds[index]
-    await changeProject(id, async current => {
+    await changeProject(id, async (current) => {
       if (
         current.project.slides.some(
-          slide => slide.id === slideId && !slide.draft
+          (slide) => slide.id === slideId && !slide.draft
         )
       )
         return
@@ -417,7 +404,7 @@ const buildSlides = async (id: string) => {
         evidence: scene.source
       }
       const existing = current.project.slides.findIndex(
-        slide => slide.id === slideId
+        (slide) => slide.id === slideId
       )
       if (existing >= 0) current.project.slides[existing] = accepted
       else current.project.slides.push(accepted)
@@ -429,7 +416,7 @@ const buildSlides = async (id: string) => {
       )
     })
   }
-  await changeProject(id, current => {
+  await changeProject(id, (current) => {
     if (current.stopping) throw new Error(generationStops.user)
     current.status = 'ready'
     current.error = null
@@ -437,11 +424,11 @@ const buildSlides = async (id: string) => {
   })
 }
 export const editSlide = (id: string, edit: SlideEdit) =>
-  changeProject(id, snapshot => {
+  changeProject(id, (snapshot) => {
     if (snapshot.status === 'building')
       throw new Error('Wait for the slides to finish')
     const slides = snapshot.project.slides
-    const index = slides.findIndex(slide => slide.id === edit.slideId)
+    const index = slides.findIndex((slide) => slide.id === edit.slideId)
     const restored = snapshot.deletedSlide
     if (edit.action === 'undo-delete') {
       if (!snapshot.deletedSlide) throw new Error('No slide to restore')
@@ -462,7 +449,7 @@ export const editSlide = (id: string, edit: SlideEdit) =>
         snapshot.deletedSlide = {
           index,
           slide: slides.splice(index, 1)[0],
-          scene: video?.scenes.find(scene => scene.slideId === edit.slideId),
+          scene: video?.scenes.find((scene) => scene.slideId === edit.slideId),
           seams: video?.scenes.slice(0, -1).flatMap((scene, i) =>
             scene.slideId === edit.slideId ||
             video.scenes[i + 1].slideId === edit.slideId
@@ -489,7 +476,7 @@ export const editSlide = (id: string, edit: SlideEdit) =>
         slides.splice(edit.index!, 0, slides.splice(index, 1)[0])
       }
     }
-    reconcileVideo(snapshot.project)
+    reconcileVideo(snapshot.project, snapshot)
     if (
       edit.action === 'undo-delete' &&
       restored?.seams &&
@@ -498,7 +485,7 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       const video = snapshot.project.video
       video.scenes.slice(0, -1).forEach((scene, index) => {
         const seam = restored!.seams!.find(
-          seam =>
+          (seam) =>
             seam.left === scene.slideId &&
             seam.right === video.scenes[index + 1].slideId
         )
@@ -521,7 +508,9 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
   const snapshot = await loadProject(id)
   if (!snapshot) throw new Error('Notebook not found')
   const slideId = request.anchor.slideId
-  const index = snapshot.project.slides.findIndex(slide => slide.id === slideId)
+  const index = snapshot.project.slides.findIndex(
+    (slide) => slide.id === slideId
+  )
   if (index < 0) throw new Error('Select a slide first')
   if (snapshot.status !== 'ready') throw new Error('Wait for your slides')
   const retained = await readRow<{
@@ -531,12 +520,12 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
   if (!retained) throw new Error('Source not found')
   const revisionKey = (project: Snapshot['project']) =>
     fingerprintOf({
-      slide: project.slides.find(slide => slide.id === slideId),
-      order: project.slides.map(slide => slide.id),
+      slide: project.slides.find((slide) => slide.id === slideId),
+      order: project.slides.map((slide) => slide.id),
       branding: project.branding
     })
   const expected = revisionKey(snapshot.project)
-  await changeProject(id, current =>
+  await changeProject(id, (current) =>
     addEvent(current, 'chat', request.instruction, { anchor: request.anchor })
   )
   try {
@@ -573,9 +562,9 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
       const result = await response.json()
       const text =
         result.output
-          ?.flatMap(item => item.content || [])
-          .filter(item => item.type === 'output_text')
-          .map(item => item.text || '')
+          ?.flatMap((item) => item.content || [])
+          .filter((item) => item.type === 'output_text')
+          .map((item) => item.text || '')
           .join('') || ''
       const candidate = await storeAsset({
         body: Buffer.from(text),
@@ -624,7 +613,7 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
           title: snapshot.project.title,
           site: retained.source.site
         })
-    return await changeProject(id, async current => {
+    return await changeProject(id, async (current) => {
       if (
         current.status !== 'ready' ||
         revisionKey(current.project) !== expected
@@ -633,7 +622,7 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
           'This slide changed while it was being revised. Send the instruction again.'
         )
       const currentIndex = current.project.slides.findIndex(
-        slide => slide.id === slideId
+        (slide) => slide.id === slideId
       )
       const asset = await storeAsset({
         body: Buffer.from(svg),
@@ -657,13 +646,13 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
         idea: revised.idea,
         evidence: revised.source
       }
-      reconcileVideo(current.project)
+      reconcileVideo(current.project, current)
       addEvent(current, 'chat', 'Updated this slide.', {
         anchor: request.anchor
       })
     })
   } catch (error) {
-    await changeProject(id, current =>
+    await changeProject(id, (current) =>
       addEvent(current, 'chat', 'Could not update this slide. Try again.', {
         anchor: request.anchor
       })

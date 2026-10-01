@@ -28,9 +28,9 @@ export async function trimTake(
 ) {
   const before = await loadProject(id)
   const scene = before?.project.video?.scenes.find(
-    entry => entry.id === anchor.sceneId
+    (entry) => entry.id === anchor.sceneId
   )
-  const moment = scene?.moments.find(entry => entry.id === anchor.momentId)
+  const moment = scene?.moments.find((entry) => entry.id === anchor.momentId)
   if (
     !scene ||
     !moment ||
@@ -93,11 +93,11 @@ export async function trimTake(
       trim: range,
       recordedAt: new Date().toISOString()
     })
-    return await changeProject(id, current => {
+    return await changeProject(id, (current) => {
       const target = current.project.video?.scenes.find(
-        entry => entry.id === scene.id
+        (entry) => entry.id === scene.id
       )
-      const selected = target?.moments.find(entry => entry.id === moment.id)
+      const selected = target?.moments.find((entry) => entry.id === moment.id)
       if (
         !target ||
         !selected ||
@@ -109,7 +109,7 @@ export async function trimTake(
           'This moment changed while trimming. Your current take was kept.'
         )
       selected.take = trimmed
-      transitionScene(target, 'recording-saved')
+      transitionScene(target, 'recording-saved', current)
       target.produced = null
       current.project.video!.produced = null
       refreshVideoKeys(current.project)

@@ -28,8 +28,8 @@ export const sceneView = (
   events: ProjectEvent[] = []
 ): SceneView => {
   const openMomentIds = scene.moments
-    .filter(moment => momentState(moment, voice) === 'to record')
-    .map(moment => moment.id)
+    .filter((moment) => momentState(moment, voice) === 'to record')
+    .map((moment) => moment.id)
   const active = ['writing', 'changing', 'replanning', 'producing'].includes(
     scene.phase
   )
@@ -38,16 +38,16 @@ export const sceneView = (
     scene.creativePlan && scene.animation?.inputKey !== scene.animationKey
   )
   const latest = events
-    .filter(event => event.kind === 'scene' && event.sceneId === scene.id)
+    .filter((event) => event.kind === 'scene' && event.sceneId === scene.id)
     .at(-1)
   const label =
     active && latest && !['Scene written', 'Produced'].includes(latest.message)
       ? latest.message
       : scene.phase === 'producing'
-      ? 'Producing the scene'
-      : scene.phase === 'queued'
-      ? 'Queued'
-      : 'Planning the scene'
+        ? 'Producing the scene'
+        : scene.phase === 'queued'
+          ? 'Queued'
+          : 'Planning the scene'
   const view = (
     state: string,
     action: SceneView['action'],
@@ -66,22 +66,23 @@ export const sceneView = (
         action === 'record'
           ? 'Record moment'
           : action === 'retry'
-          ? 'Try again'
-          : needsAnimation && !scene.moments.some(moment => takeFits(moment))
-          ? 'Prepare scene'
-          : 'Finish scene',
+            ? 'Try again'
+            : needsAnimation &&
+                !scene.moments.some((moment) => takeFits(moment))
+              ? 'Prepare scene'
+              : 'Finish scene',
       railLabel:
         scene.phase === 'failed'
           ? 'Needs attention'
           : active
-          ? label
-          : produced
-          ? 'Complete'
-          : openMomentIds.length
-          ? `${openMomentIds.length} ${
-              openMomentIds.length === 1 ? 'moment' : 'moments'
-            } to record`
-          : state
+            ? label
+            : produced
+              ? 'Complete'
+              : openMomentIds.length
+                ? `${openMomentIds.length} ${
+                    openMomentIds.length === 1 ? 'moment' : 'moments'
+                  } to record`
+                : state
     }
   })
   if (scene.phase === 'failed')
@@ -114,7 +115,7 @@ export const videoView = (project: Project) => {
       producedScenes: 0
     }
   const producedScenes = video.scenes.filter(
-    scene => sceneView(scene, video.settings.voice).produced
+    (scene) => sceneView(scene, video.settings.voice).produced
   ).length
   const allProduced =
     video.scenes.length > 0 &&
@@ -140,7 +141,7 @@ export const videoView = (project: Project) => {
   if (
     !allProduced &&
     video.scenes.some(
-      s =>
+      (s) =>
         s.phase === 'queued' ||
         (s.creativePlan &&
           s.phase === 'waiting' &&
@@ -169,14 +170,14 @@ export const projectViews = (project: Project, events: ProjectEvent[] = []) => {
   return {
     video: videoView(project),
     scenes: Object.fromEntries(
-      (project.video?.scenes || []).map(scene => [
+      (project.video?.scenes || []).map((scene) => [
         scene.id,
         sceneView(scene, voice, events)
       ])
     ),
     moments: Object.fromEntries(
-      (project.video?.scenes || []).flatMap(scene =>
-        scene.moments.map(moment => [
+      (project.video?.scenes || []).flatMap((scene) =>
+        scene.moments.map((moment) => [
           momentViewKey(scene.id, moment.id),
           { id: moment.id, state: momentState(moment, voice) }
         ])
@@ -207,27 +208,27 @@ export const videoDisplay = (
   const active =
     video.phase === 'preparing' ||
     video.phase === 'joining' ||
-    video.scenes.some(scene => sceneDisplay(snapshot, scene).active)
+    video.scenes.some((scene) => sceneDisplay(snapshot, scene).active)
   const scenesReady =
     video.scenes.length > 0 &&
-    video.scenes.every(scene => views.scenes[scene.id]?.produced)
+    video.scenes.every((scene) => views.scenes[scene.id]?.produced)
   const needsRecording = video.scenes.some(
-    scene => views.scenes[scene.id]?.openMomentIds.length
+    (scene) => views.scenes[scene.id]?.openMomentIds.length
   )
   const label = active
     ? 'Processing'
     : video.phase === 'failed' ||
-      video.scenes.some(scene => scene.phase === 'failed')
-    ? 'Needs attention'
-    : views.video.action === 'export'
-    ? 'Ready'
-    : video.scenes.some(scene => scene.phase === 'queued')
-    ? 'Waiting'
-    : scenesReady
-    ? 'Ready to assemble'
-    : needsRecording
-    ? 'Needs recording'
-    : 'Ready to prepare'
+        video.scenes.some((scene) => scene.phase === 'failed')
+      ? 'Needs attention'
+      : views.video.action === 'export'
+        ? 'Ready'
+        : video.scenes.some((scene) => scene.phase === 'queued')
+          ? 'Waiting'
+          : scenesReady
+            ? 'Ready to assemble'
+            : needsRecording
+              ? 'Needs recording'
+              : 'Ready to prepare'
   const actionLabel =
     views.video.state ||
     (views.video.action === 'export'
@@ -243,9 +244,9 @@ export const presentationDisplay = (
       snapshot.status === 'ready'
         ? 'Ready'
         : snapshot.status === 'failed'
-        ? 'Needs attention'
-        : snapshot.stopping
-        ? 'Stopping'
-        : 'Processing',
+          ? 'Needs attention'
+          : snapshot.stopping
+            ? 'Stopping'
+            : 'Processing',
     active: snapshot.status === 'building' && !snapshot.stopping
   }

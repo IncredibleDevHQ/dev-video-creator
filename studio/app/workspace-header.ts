@@ -20,7 +20,7 @@ export const workspaceHeader = (
 </div>
 <nav aria-label="Stages">${(['notebook', 'presentation', 'video'] as const)
     .map(
-      name =>
+      (name) =>
         `<button data-stage="${name}" aria-current="${
           stage === name ? 'page' : 'false'
         }">${name[0].toUpperCase() + name.slice(1)}${stageStatus(
@@ -38,16 +38,16 @@ export const workspaceHeader = (
     stage === 'notebook'
       ? button('View slides →', 'view-slides', true, status !== 'ready')
       : stage === 'presentation'
-      ? button('Export slides', 'export', false, status !== 'ready') +
-        button(
-          project.video ? 'Continue video →' : 'Make the video →',
-          'make-video',
-          true,
-          status !== 'ready'
-        )
-      : stage === 'video'
-      ? videoHeader(snapshot)
-      : ''
+        ? button('Export slides', 'export', false, status !== 'ready') +
+          button(
+            project.video ? 'Continue video →' : 'Make the video →',
+            'make-video',
+            true,
+            status !== 'ready'
+          )
+        : stage === 'video'
+          ? videoHeader(snapshot)
+          : ''
   }</div>
 </header>`
 }

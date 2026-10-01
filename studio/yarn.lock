@@ -679,13 +679,6 @@
     magic-string "^0.30.21"
     recast "^0.23.11"
 
-"@hyperframes/player@0.7.106":
-  version "0.7.106"
-  resolved "https://registry.yarnpkg.com/@hyperframes/player/-/player-0.7.106.tgz#af4ae573c06cde5022f4fee72eff2d4fef0afde0"
-  integrity sha512-znQ4XI3BXkAH/CBe79sAnuADIUs4aAWGudDLHaG+KE2jYSnXbEH+gzgIG0s7FtzZpxIzIabmZBoVhYfkhGsauQ==
-  dependencies:
-    "@hyperframes/core" "0.7.106"
-
 "@hyperframes/producer@0.7.106":
   version "0.7.106"
   resolved "https://registry.yarnpkg.com/@hyperframes/producer/-/producer-0.7.106.tgz#c2fac6e4cbe57a1173c1af6543a97514a0940acd"
@@ -1596,6 +1589,11 @@ postgres-interval@^1.1.0:
   integrity sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==
   dependencies:
     xtend "^4.0.0"
+
+prettier@3.8.1:
+  version "3.8.1"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.8.1.tgz#edf48977cf991558f4fcbd8a3ba6015ba2a3a173"
+  integrity sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==
 
 progress@^2.0.3:
   version "2.0.3"

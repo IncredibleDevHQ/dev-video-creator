@@ -11,13 +11,27 @@
 // one from the code. A sketch cannot publish, approve, choose a take or
 // generate paid artwork: it is a preview of a plan, labelled as one.
 import type { SceneTreatmentV1 } from './scene-treatment'
-import { scheduleProblems, scheduleSummary, type SketchSchedule } from './sketch-schedule'
+import {
+  scheduleProblems,
+  scheduleSummary,
+  type SketchSchedule
+} from './sketch-schedule'
 
 export const SKETCH_VERSION = 1 as const
 export const SKETCH_RUNTIME = { hyperframes: '0.7.106' } as const
 // The only scripts a sketch may load: the Studio's own pinned runtime.
-export const SKETCH_RUNTIME_SCRIPTS = ['/runtime/gsap.min.js', '/runtime/hyperframes.iife.js'] as const
-export const SKETCH_LAYER_KINDS = ['background', 'object', 'text', 'caption', 'camera', 'presenter'] as const
+export const SKETCH_RUNTIME_SCRIPTS = [
+  '/runtime/gsap.min.js',
+  '/runtime/hyperframes.iife.js'
+] as const
+export const SKETCH_LAYER_KINDS = [
+  'background',
+  'object',
+  'text',
+  'caption',
+  'camera',
+  'presenter'
+] as const
 const MAX_FILES = 80
 const MAX_BYTES = 6 * 1024 * 1024
 
@@ -28,11 +42,23 @@ export type SketchManifest = {
   version: typeof SKETCH_VERSION
   scene: string
   plan: { record: string; revision: number }
-  composition: { id: string; width: number; height: number; fps: number; duration: number }
+  composition: {
+    id: string
+    width: number
+    height: number
+    fps: number
+    duration: number
+  }
   runtime: { hyperframes: string }
   // One interval per plan moment, in the plan's order. Estimates until a
   // voice or a take gives the scene its real clock.
-  moments: Array<{ id: string; title: string; start: number; end: number; estimated: boolean }>
+  moments: Array<{
+    id: string
+    title: string
+    start: number
+    end: number
+    estimated: boolean
+  }>
   layers: Array<{
     id: string
     kind: (typeof SKETCH_LAYER_KINDS)[number]
@@ -70,7 +96,10 @@ export type SketchProof = {
   changes: Array<{ moment: string; within: 'actors' | 'frame'; pixels: number }>
   // Each counted change seen in its layers when it happens, and each pause
   // shown while it holds the clock.
-  schedule?: { events: Array<{ at: number; pixels: number }>; pauses: Array<{ start: number; end: number; shown: string }> }
+  schedule?: {
+    events: Array<{ at: number; pixels: number }>
+    pauses: Array<{ start: number; end: number; shown: string }>
+  }
 }
 
 export type SketchContext = {
@@ -84,94 +113,214 @@ export type SketchContext = {
   standIn?: { path: string; label: string } | null
 }
 
-export type SketchReport = { ok: boolean; problems: string[]; warnings: string[]; manifest: SketchManifest | null }
+export type SketchReport = {
+  ok: boolean
+  problems: string[]
+  warnings: string[]
+  manifest: SketchManifest | null
+}
 
 // A provisional line names a placeholder layer however the harness phrases
 // it: it says the layer's id ("presenter"), shares two of its words (the id,
 // or the lead phrase of its label), or names what the lead phrase ends on
 // ("inlet drop" → "the drop").
-const PLAIN_WORDS = new Set(['the', 'and', 'for', 'with', 'into', 'onto', 'that', 'this', 'its', 'are', 'from', 'too', 'not', 'all', 'each', 'any', 'one', 'only', 'their', 'there', 'than', 'then', 'but', 'has', 'have', 'was', 'were', 'will'])
+const PLAIN_WORDS = new Set([
+  'the',
+  'and',
+  'for',
+  'with',
+  'into',
+  'onto',
+  'that',
+  'this',
+  'its',
+  'are',
+  'from',
+  'too',
+  'not',
+  'all',
+  'each',
+  'any',
+  'one',
+  'only',
+  'their',
+  'there',
+  'than',
+  'then',
+  'but',
+  'has',
+  'have',
+  'was',
+  'were',
+  'will'
+])
 const wordsOf = (text: string) =>
   text
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter(Boolean)
-    .map(word => (word.length > 3 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word))
-    .filter(word => /^\d+$/.test(word) || (word.length >= 3 && !PLAIN_WORDS.has(word)))
+    .map((word) =>
+      word.length > 3 && word.endsWith('s') && !word.endsWith('ss')
+        ? word.slice(0, -1)
+        : word
+    )
+    .filter(
+      (word) =>
+        /^\d+$/.test(word) || (word.length >= 3 && !PLAIN_WORDS.has(word))
+    )
 const namesLayer = (line: string, layer: SketchManifest['layers'][number]) => {
   const said = new Set(wordsOf(line))
   const id = wordsOf(layer.id)
-  if (id.length && id.every(word => said.has(word))) return true
+  if (id.length && id.every((word) => said.has(word))) return true
   const lead = wordsOf(layer.label.split(/[:(,;—–]/)[0] || layer.label)
   const words = [...new Set([...id, ...lead])]
-  const shared = words.filter(word => said.has(word)).length
-  return (words.length > 0 && shared >= Math.min(2, words.length)) || (lead.length > 0 && said.has(lead[lead.length - 1]))
+  const shared = words.filter((word) => said.has(word)).length
+  return (
+    (words.length > 0 && shared >= Math.min(2, words.length)) ||
+    (lead.length > 0 && said.has(lead[lead.length - 1]))
+  )
 }
 
-export const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-export const textOf = (file: SketchFile | undefined) => (typeof file === 'string' ? file : '')
-const sizeOf = (file: SketchFile) => (typeof file === 'string' ? new TextEncoder().encode(file).length : Math.floor((file.base64.length * 3) / 4))
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+export const textOf = (file: SketchFile | undefined) =>
+  typeof file === 'string' ? file : ''
+const sizeOf = (file: SketchFile) =>
+  typeof file === 'string'
+    ? new TextEncoder().encode(file).length
+    : Math.floor((file.base64.length * 3) / 4)
 
 // Code a preview must never run: network, storage, clocks, randomness.
 const FORBIDDEN = [
   { pattern: /\bfetch\s*\(/, why: 'fetches from the network' },
-  { pattern: /\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\bsendBeacon\b/, why: 'opens a network connection' },
-  { pattern: /\b(localStorage|sessionStorage|indexedDB)\b|document\.cookie/, why: 'reads or writes browser storage' },
+  {
+    pattern: /\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\bsendBeacon\b/,
+    why: 'opens a network connection'
+  },
+  {
+    pattern: /\b(localStorage|sessionStorage|indexedDB)\b|document\.cookie/,
+    why: 'reads or writes browser storage'
+  },
   { pattern: /\bimport\s*\(/, why: 'loads code at run time' },
-  { pattern: /\bDate\.now\s*\(|\bnew Date\s*\(|performance\.now\s*\(/, why: 'reads the clock — the timeline must be seekable' },
-  { pattern: /\bMath\.random\s*\(/, why: 'is random — every seek must show the same frame' },
-  { pattern: /repeat\s*:\s*-1/, why: 'repeats forever — use a finite count' },
+  {
+    pattern: /\bDate\.now\s*\(|\bnew Date\s*\(|performance\.now\s*\(/,
+    why: 'reads the clock — the timeline must be seekable'
+  },
+  {
+    pattern: /\bMath\.random\s*\(/,
+    why: 'is random — every seek must show the same frame'
+  },
+  { pattern: /repeat\s*:\s*-1/, why: 'repeats forever — use a finite count' }
 ]
 const NAMESPACES = /^https?:\/\/www\.w3\.org\//
 
-const pathSafe = (path: string) => /^[a-z0-9][a-z0-9._\-/]*$/i.test(path) && !path.split('/').some(part => part === '..' || part === '')
+const pathSafe = (path: string) =>
+  /^[a-z0-9][a-z0-9._\-/]*$/i.test(path) &&
+  !path.split('/').some((part) => part === '..' || part === '')
 
 // The files of a bundle: how many, how large, plain relative paths.
-export const bundleFileProblems = (files: SketchFiles, what: string, limits = { files: MAX_FILES, bytes: MAX_BYTES }) => {
+export const bundleFileProblems = (
+  files: SketchFiles,
+  what: string,
+  limits = { files: MAX_FILES, bytes: MAX_BYTES }
+) => {
   const problems: string[] = []
   const names = Object.keys(files)
-  if (names.length > limits.files) problems.push(`the ${what} has ${names.length} files — keep it under ${limits.files}`)
+  if (names.length > limits.files)
+    problems.push(
+      `the ${what} has ${names.length} files — keep it under ${limits.files}`
+    )
   const total = names.reduce((sum, name) => sum + sizeOf(files[name]), 0)
-  if (total > limits.bytes) problems.push(`the ${what} is ${(total / 1024 / 1024).toFixed(1)} MB — keep it under ${limits.bytes / 1024 / 1024} MB`)
-  for (const name of names) if (!pathSafe(name)) problems.push(`"${name}" is not a plain relative path inside the ${what}`)
+  if (total > limits.bytes)
+    problems.push(
+      `the ${what} is ${(total / 1024 / 1024).toFixed(1)} MB — keep it under ${limits.bytes / 1024 / 1024} MB`
+    )
+  for (const name of names)
+    if (!pathSafe(name))
+      problems.push(`"${name}" is not a plain relative path inside the ${what}`)
   return problems
 }
 
 // The composition: one standalone root, its timeline registered, only the
 // pinned runtime, nothing fetched, nothing random.
-export const compositionProblems = (files: SketchFiles, html: string, id: string, duration: number, what: string) => {
+export const compositionProblems = (
+  files: SketchFiles,
+  html: string,
+  id: string,
+  duration: number,
+  what: string
+) => {
   const problems: string[] = []
   const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  if (!new RegExp(`data-composition-id=["']${escaped}["']`).test(html)) problems.push(`index.html has no root with data-composition-id="${id}"`)
-  if (!new RegExp(`__timelines\\s*\\[\\s*["']${escaped}["']\\s*\\]\\s*=`).test(html)) problems.push(`index.html does not register window.__timelines["${id}"]`)
-  const rootDuration = /data-composition-id=["'][^"']+["'][^>]*data-duration=["']([\d.]+)["']|data-duration=["']([\d.]+)["'][^>]*data-composition-id=/.exec(html)
+  if (!new RegExp(`data-composition-id=["']${escaped}["']`).test(html))
+    problems.push(`index.html has no root with data-composition-id="${id}"`)
+  if (
+    !new RegExp(`__timelines\\s*\\[\\s*["']${escaped}["']\\s*\\]\\s*=`).test(
+      html
+    )
+  )
+    problems.push(`index.html does not register window.__timelines["${id}"]`)
+  const rootDuration =
+    /data-composition-id=["'][^"']+["'][^>]*data-duration=["']([\d.]+)["']|data-duration=["']([\d.]+)["'][^>]*data-composition-id=/.exec(
+      html
+    )
   const declared = Number(rootDuration?.[1] || rootDuration?.[2])
-  if (!Number.isFinite(declared) || Math.abs(declared - duration) > 0.05) problems.push(`the root's data-duration must equal manifest.composition.duration (${duration}s)`)
-  for (const src of [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)].map(match => match[1])) {
-    if (!(SKETCH_RUNTIME_SCRIPTS as readonly string[]).includes(src) && !(src in files)) problems.push(`index.html loads "${src}" — only the Studio runtime (${SKETCH_RUNTIME_SCRIPTS.join(', ')}) or the ${what}'s own files`)
+  if (!Number.isFinite(declared) || Math.abs(declared - duration) > 0.05)
+    problems.push(
+      `the root's data-duration must equal manifest.composition.duration (${duration}s)`
+    )
+  for (const src of [
+    ...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)
+  ].map((match) => match[1])) {
+    if (
+      !(SKETCH_RUNTIME_SCRIPTS as readonly string[]).includes(src) &&
+      !(src in files)
+    )
+      problems.push(
+        `index.html loads "${src}" — only the Studio runtime (${SKETCH_RUNTIME_SCRIPTS.join(', ')}) or the ${what}'s own files`
+      )
   }
   for (const name of Object.keys(files)) {
-    const text = /\.(html|js|css|svg|json)$/i.test(name) ? textOf(files[name]) : ''
+    const text = /\.(html|js|css|svg|json)$/i.test(name)
+      ? textOf(files[name])
+      : ''
     if (!text) continue
-    for (const url of text.match(/https?:\/\/[^\s"'<>)]+/g) || []) if (!NAMESPACES.test(url)) problems.push(`${name} refers to "${url}" — a ${what} uses nothing outside itself`)
-    if (/\.(html|js)$/i.test(name)) for (const rule of FORBIDDEN) if (rule.pattern.test(text)) problems.push(`${name} ${rule.why}`)
+    for (const url of text.match(/https?:\/\/[^\s"'<>)]+/g) || [])
+      if (!NAMESPACES.test(url))
+        problems.push(
+          `${name} refers to "${url}" — a ${what} uses nothing outside itself`
+        )
+    if (/\.(html|js)$/i.test(name))
+      for (const rule of FORBIDDEN)
+        if (rule.pattern.test(text)) problems.push(`${name} ${rule.why}`)
   }
   return problems
 }
 
 // Checks a submitted sketch against its plan. The engine's own lint runs
 // separately (server side) and adds its errors.
-export const validateSketch = (files: SketchFiles, context: SketchContext): SketchReport => {
+export const validateSketch = (
+  files: SketchFiles,
+  context: SketchContext
+): SketchReport => {
   const problems: string[] = []
   const warnings: string[] = []
   const names = Object.keys(files)
-  if (!names.length) return { ok: false, problems: ['the sketch has no files'], warnings, manifest: null }
+  if (!names.length)
+    return {
+      ok: false,
+      problems: ['the sketch has no files'],
+      warnings,
+      manifest: null
+    }
   problems.push(...bundleFileProblems(files, 'sketch'))
 
   // The manifest.
   let manifest: SketchManifest | null = null
   try {
-    const parsed = JSON.parse(textOf(files['manifest.json']) || 'null') as unknown
+    const parsed = JSON.parse(
+      textOf(files['manifest.json']) || 'null'
+    ) as unknown
     if (!isRecord(parsed)) throw new Error('missing')
     manifest = parsed as SketchManifest
   } catch {
@@ -182,88 +331,213 @@ export const validateSketch = (files: SketchFiles, context: SketchContext): Sket
   if (!manifest) return { ok: false, problems, warnings, manifest: null }
 
   const plan = context.plan.content
-  if (manifest.version !== SKETCH_VERSION) problems.push(`manifest.version must be ${SKETCH_VERSION}`)
-  if (manifest.scene !== context.scene) problems.push(`manifest.scene is "${manifest.scene}", but this preview is for "${context.scene}"`)
-  if (manifest.plan?.record !== context.plan.record || manifest.plan?.revision !== context.plan.revision) {
-    problems.push(`manifest.plan must name the plan it previews: record "${context.plan.record}", revision ${context.plan.revision}`)
+  if (manifest.version !== SKETCH_VERSION)
+    problems.push(`manifest.version must be ${SKETCH_VERSION}`)
+  if (manifest.scene !== context.scene)
+    problems.push(
+      `manifest.scene is "${manifest.scene}", but this preview is for "${context.scene}"`
+    )
+  if (
+    manifest.plan?.record !== context.plan.record ||
+    manifest.plan?.revision !== context.plan.revision
+  ) {
+    problems.push(
+      `manifest.plan must name the plan it previews: record "${context.plan.record}", revision ${context.plan.revision}`
+    )
   }
   const composition = manifest.composition
-  if (!isRecord(composition) || !composition.id) problems.push('manifest.composition needs an id, width, height, fps and duration')
+  if (!isRecord(composition) || !composition.id)
+    problems.push(
+      'manifest.composition needs an id, width, height, fps and duration'
+    )
   const duration = Number(composition?.duration)
-  if (!(duration >= 2 && duration <= 180)) problems.push('manifest.composition.duration must be between 2 and 180 seconds')
-  if (!(Number(composition?.width) > 0 && Number(composition?.height) > 0)) problems.push('manifest.composition needs a width and a height')
-  if (!(Number(composition?.fps) > 0)) problems.push('manifest.composition.fps must be positive')
-  if (manifest.runtime?.hyperframes !== SKETCH_RUNTIME.hyperframes) problems.push(`manifest.runtime.hyperframes must be the pinned ${SKETCH_RUNTIME.hyperframes}`)
+  if (!(duration >= 2 && duration <= 180))
+    problems.push(
+      'manifest.composition.duration must be between 2 and 180 seconds'
+    )
+  if (!(Number(composition?.width) > 0 && Number(composition?.height) > 0))
+    problems.push('manifest.composition needs a width and a height')
+  if (!(Number(composition?.fps) > 0))
+    problems.push('manifest.composition.fps must be positive')
+  if (manifest.runtime?.hyperframes !== SKETCH_RUNTIME.hyperframes)
+    problems.push(
+      `manifest.runtime.hyperframes must be the pinned ${SKETCH_RUNTIME.hyperframes}`
+    )
 
   // Moments: every plan moment, in order, inside the composition, estimated.
-  const planIds = plan.moments.map(moment => moment.id)
+  const planIds = plan.moments.map((moment) => moment.id)
   const moments = Array.isArray(manifest.moments) ? manifest.moments : []
-  const manifestIds = moments.map(moment => moment.id)
-  if (JSON.stringify(manifestIds) !== JSON.stringify(planIds)) problems.push(`manifest.moments must be the plan's moments in order (${planIds.join(', ')}); it has ${manifestIds.join(', ') || 'none'}`)
+  const manifestIds = moments.map((moment) => moment.id)
+  if (JSON.stringify(manifestIds) !== JSON.stringify(planIds))
+    problems.push(
+      `manifest.moments must be the plan's moments in order (${planIds.join(', ')}); it has ${manifestIds.join(', ') || 'none'}`
+    )
   let previousEnd = 0
   for (const moment of moments) {
     const where = `moment ${moment.id}`
-    if (!(moment.start >= 0 && moment.end > moment.start)) problems.push(`${where} needs a start and an end after it`)
+    if (!(moment.start >= 0 && moment.end > moment.start))
+      problems.push(`${where} needs a start and an end after it`)
     else {
-      if (moment.start < previousEnd - 0.001) problems.push(`${where} starts at ${moment.start}s, before the previous moment ends (${previousEnd}s)`)
-      if (moment.end > duration + 0.001) problems.push(`${where} ends at ${moment.end}s, after the composition (${duration}s)`)
+      if (moment.start < previousEnd - 0.001)
+        problems.push(
+          `${where} starts at ${moment.start}s, before the previous moment ends (${previousEnd}s)`
+        )
+      if (moment.end > duration + 0.001)
+        problems.push(
+          `${where} ends at ${moment.end}s, after the composition (${duration}s)`
+        )
       previousEnd = moment.end
     }
-    if (moment.estimated !== true) problems.push(`${where} must say its timing is estimated — no voice or take has set it`)
+    if (moment.estimated !== true)
+      problems.push(
+        `${where} must say its timing is estimated — no voice or take has set it`
+      )
   }
 
   // Layers: what is drawn, over which moments, from which artwork.
   const layers = Array.isArray(manifest.layers) ? manifest.layers : []
-  if (!layers.length) problems.push('manifest.layers is empty — declare what the sketch draws')
-  const layerIds = layers.map(layer => layer.id)
-  for (const id of layerIds.filter((value, index) => layerIds.indexOf(value) !== index)) problems.push(`layer id "${id}" is used twice`)
+  if (!layers.length)
+    problems.push('manifest.layers is empty — declare what the sketch draws')
+  const layerIds = layers.map((layer) => layer.id)
+  for (const id of layerIds.filter(
+    (value, index) => layerIds.indexOf(value) !== index
+  ))
+    problems.push(`layer id "${id}" is used twice`)
   const keys = new Set(context.assetKeys)
   for (const layer of layers) {
     const where = `layer ${layer.id || '?'}`
-    if (!(SKETCH_LAYER_KINDS as readonly string[]).includes(layer.kind)) problems.push(`${where} kind must be one of ${SKETCH_LAYER_KINDS.join(', ')}`)
-    for (const moment of layer.moments || []) if (!planIds.includes(moment)) problems.push(`${where} names moment "${moment}", which the plan does not have`)
+    if (!(SKETCH_LAYER_KINDS as readonly string[]).includes(layer.kind))
+      problems.push(
+        `${where} kind must be one of ${SKETCH_LAYER_KINDS.join(', ')}`
+      )
+    for (const moment of layer.moments || [])
+      if (!planIds.includes(moment))
+        problems.push(
+          `${where} names moment "${moment}", which the plan does not have`
+        )
     if (layer.asset) {
-      if (!keys.has(layer.asset.libraryKey)) problems.push(`${where} reuses "${layer.asset.libraryKey}", which is not in the cast or the library`)
-      if (layer.asset.path && !(layer.asset.path in files)) problems.push(`${where} points at "${layer.asset.path}", which is not in the sketch`)
+      if (!keys.has(layer.asset.libraryKey))
+        problems.push(
+          `${where} reuses "${layer.asset.libraryKey}", which is not in the cast or the library`
+        )
+      if (layer.asset.path && !(layer.asset.path in files))
+        problems.push(
+          `${where} points at "${layer.asset.path}", which is not in the sketch`
+        )
     }
   }
   // A presenter the plan shows is a stand-in until a take exists.
-  const presenterMoments = plan.moments.filter(moment => moment.presenter && ['full', 'shared'].includes(moment.presenter.visibility)).map(moment => moment.id)
-  const presenterLayer = layers.find(layer => layer.kind === 'presenter')
-  if (presenterMoments.length && !presenterLayer) problems.push(`the plan shows a presenter in ${presenterMoments.join(', ')}: add a presenter layer with a labelled stand-in`)
-  if (presenterLayer && !presenterLayer.placeholder) problems.push('the presenter layer must say it is a stand-in (placeholder) — no take is recorded')
+  const presenterMoments = plan.moments
+    .filter(
+      (moment) =>
+        moment.presenter &&
+        ['full', 'shared'].includes(moment.presenter.visibility)
+    )
+    .map((moment) => moment.id)
+  const presenterLayer = layers.find((layer) => layer.kind === 'presenter')
+  if (presenterMoments.length && !presenterLayer)
+    problems.push(
+      `the plan shows a presenter in ${presenterMoments.join(', ')}: add a presenter layer with a labelled stand-in`
+    )
+  if (presenterLayer && !presenterLayer.placeholder)
+    problems.push(
+      'the presenter layer must say it is a stand-in (placeholder) — no take is recorded'
+    )
   // Until a take exists, the product's stand-in photo is the presenter, in
   // every moment the plan shows them (U05 of the projects-first rereview):
   // the same crop and safe areas the take will have, labelled as a stand-in.
   const standIn = context.standIn
   if (standIn && presenterMoments.length) {
-    if (!html.includes(standIn.path)) problems.push(`the plan shows the presenter in ${presenterMoments.join(', ')}: show the supplied stand-in photo "${standIn.path}" there, cropped to each moment's framing — not a drawn silhouette`)
-    if (!html.toLowerCase().includes(standIn.label.toLowerCase())) problems.push(`label the stand-in photo on screen "${standIn.label}", wherever it shows`)
-    const missing = presenterLayer ? presenterMoments.filter(id => !(presenterLayer.moments || []).includes(id)) : []
-    if (missing.length) problems.push(`the presenter layer must take part in every moment the plan shows the presenter — it misses ${missing.join(', ')}`)
+    if (!html.includes(standIn.path))
+      problems.push(
+        `the plan shows the presenter in ${presenterMoments.join(', ')}: show the supplied stand-in photo "${standIn.path}" there, cropped to each moment's framing — not a drawn silhouette`
+      )
+    if (!html.toLowerCase().includes(standIn.label.toLowerCase()))
+      problems.push(
+        `label the stand-in photo on screen "${standIn.label}", wherever it shows`
+      )
+    const missing = presenterLayer
+      ? presenterMoments.filter(
+          (id) => !(presenterLayer.moments || []).includes(id)
+        )
+      : []
+    if (missing.length)
+      problems.push(
+        `the presenter layer must take part in every moment the plan shows the presenter — it misses ${missing.join(', ')}`
+      )
   }
 
   // The mechanism's clock, replayed against the plan's count.
-  problems.push(...scheduleProblems(manifest.schedule, plan, { duration, moments, layers }))
+  problems.push(
+    ...scheduleProblems(manifest.schedule, plan, { duration, moments, layers })
+  )
 
   // Provisional: what the viewer must not take for the finished scene.
-  const provisional = Array.isArray(manifest.provisional) ? manifest.provisional.filter(item => typeof item === 'string' && item.trim()) : []
-  if (!provisional.some(item => /tim/i.test(item))) problems.push('manifest.provisional must say the timing is estimated')
-  for (const layer of layers.filter(item => item.placeholder)) {
-    if (!provisional.some(item => item.includes(layer.label) || item.includes(String(layer.placeholder)) || namesLayer(item, layer))) warnings.push(`layer ${layer.id} has a placeholder that manifest.provisional does not mention`)
+  const provisional = Array.isArray(manifest.provisional)
+    ? manifest.provisional.filter(
+        (item) => typeof item === 'string' && item.trim()
+      )
+    : []
+  if (!provisional.some((item) => /tim/i.test(item)))
+    problems.push('manifest.provisional must say the timing is estimated')
+  for (const layer of layers.filter((item) => item.placeholder)) {
+    if (
+      !provisional.some(
+        (item) =>
+          item.includes(layer.label) ||
+          item.includes(String(layer.placeholder)) ||
+          namesLayer(item, layer)
+      )
+    )
+      warnings.push(
+        `layer ${layer.id} has a placeholder that manifest.provisional does not mention`
+      )
   }
 
   // The composition: one standalone root, its timeline registered, only
   // the pinned runtime, nothing fetched, nothing random.
-  if (html) problems.push(...compositionProblems(files, html, String(composition?.id || ''), duration, 'sketch').map(problem => problem.replace('a sketch uses nothing outside itself', 'a preview uses nothing outside itself')))
-  return { ok: problems.length === 0, problems: [...new Set(problems)], warnings, manifest }
+  if (html)
+    problems.push(
+      ...compositionProblems(
+        files,
+        html,
+        String(composition?.id || ''),
+        duration,
+        'sketch'
+      ).map((problem) =>
+        problem.replace(
+          'a sketch uses nothing outside itself',
+          'a preview uses nothing outside itself'
+        )
+      )
+    )
+  return {
+    ok: problems.length === 0,
+    problems: [...new Set(problems)],
+    warnings,
+    manifest
+  }
 }
 
 // The preview a manifest describes, for the Studio's timeline and labels.
 export const sketchSummary = (manifest: SketchManifest) => ({
   duration: manifest.composition.duration,
-  moments: manifest.moments.map(({ id, title, start, end }) => ({ id, title, start, end })),
-  layers: manifest.layers.map(({ id, kind, label, moments, asset, placeholder }) => ({ id, kind, label, moments, reuses: asset?.libraryKey || null, placeholder: placeholder || null })),
+  moments: manifest.moments.map(({ id, title, start, end }) => ({
+    id,
+    title,
+    start,
+    end
+  })),
+  layers: manifest.layers.map(
+    ({ id, kind, label, moments, asset, placeholder }) => ({
+      id,
+      kind,
+      label,
+      moments,
+      reuses: asset?.libraryKey || null,
+      placeholder: placeholder || null
+    })
+  ),
   provisional: manifest.provisional,
-  schedule: scheduleSummary(manifest.schedule),
+  schedule: scheduleSummary(manifest.schedule)
 })

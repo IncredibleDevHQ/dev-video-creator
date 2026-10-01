@@ -23,19 +23,19 @@ const checkParts = (
   parts: RecordedPart[]
 ) => {
   const video = snapshot.project.video
-  const scene = video?.scenes.find(scene => scene.id === sceneId)
+  const scene = video?.scenes.find((scene) => scene.id === sceneId)
   if (!scene || !video || !['waiting', 'produced'].includes(scene.phase))
     throw new Error('Wait for this scene to finish changing')
   if (
     !Array.isArray(parts) ||
     !parts.length ||
     parts.length > 16 ||
-    new Set(parts.map(part => part.momentId)).size !== parts.length
+    new Set(parts.map((part) => part.momentId)).size !== parts.length
   )
     throw new Error('Invalid recording moments')
   let last = 0
   for (const part of parts) {
-    const moment = scene.moments.find(moment => moment.id === part.momentId)
+    const moment = scene.moments.find((moment) => moment.id === part.momentId)
     if (!moment || moment.recordingKey !== part.recordingKey)
       throw new Error('This script changed. Record the updated moment.')
     if (!momentNeedsRecording(moment, video.settings.voice))
@@ -88,8 +88,8 @@ const saveRecordingLocked = async (
       throw new Error('Recording is shorter than its moment boundaries')
     if (
       scene.moments.some(
-        moment =>
-          parts.some(part => part.momentId === moment.id) &&
+        (moment) =>
+          parts.some((part) => part.momentId === moment.id) &&
           moment.camera !== 'none'
       ) &&
       !made.picture
@@ -105,8 +105,8 @@ const saveRecordingLocked = async (
       extension: mime.endsWith('mp4')
         ? '.mp4'
         : mime.endsWith('wav')
-        ? '.wav'
-        : '.webm'
+          ? '.wav'
+          : '.webm'
     })
     const normal = await storeAsset({
       body: await readFile(normalized),
@@ -126,9 +126,7 @@ const saveRecordingLocked = async (
       picture: made.picture
     })
     const history = await Promise.all(
-      (
-        await listNotebookRows('takes', id)
-      ).map(key =>
+      (await listNotebookRows('takes', id)).map((key) =>
         readRow<{
           sceneId: string
           momentId: string
@@ -164,13 +162,14 @@ const saveRecordingLocked = async (
         extension: '.webm'
       })
       const previous = history.filter(
-        row =>
+        (row) =>
           row?.sceneId === sceneId &&
           row.momentId === part.momentId &&
           !row.parentTakeId
       )
       const number =
-        Math.max(previous.length, ...previous.map(row => row?.number || 0)) + 1
+        Math.max(previous.length, ...previous.map((row) => row?.number || 0)) +
+        1
       const take = {
         id: randomUUID(),
         number,
@@ -189,18 +188,18 @@ const saveRecordingLocked = async (
       })
       takes.push({ part, take })
     }
-    return await changeProject(id, current => {
+    return await changeProject(id, (current) => {
       const target = checkParts(current, sceneId, parts)
       for (const { part, take } of takes)
-        target.moments.find(moment => moment.id === part.momentId)!.take = take
+        target.moments.find((moment) => moment.id === part.momentId)!.take =
+          take
       synchronizeClock(target)
       refreshVideoKeys(current.project)
-      transitionScene(target, 'recording-saved')
-      addEvent(
+      transitionScene(
+        target,
+        'recording-saved',
         current,
-        'scene',
-        `${takes.length} moment${takes.length === 1 ? '' : 's'} recorded`,
-        { sceneId }
+        `${takes.length} moment${takes.length === 1 ? '' : 's'} recorded`
       )
     })
   } finally {

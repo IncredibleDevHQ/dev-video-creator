@@ -17,12 +17,27 @@ export type GateRequest = {
 }
 
 // What a tool or file event did: reading a manual is not writing a page.
-export type HarnessOperation = 'read' | 'search' | 'write' | 'edit' | 'run' | 'tool'
+export type HarnessOperation =
+  | 'read'
+  | 'search'
+  | 'write'
+  | 'edit'
+  | 'run'
+  | 'tool'
 
 export interface HarnessEvent {
   // 'session': the harness started its session and says which model it runs.
-  usage?:import('../../shared/usage').TokenUsage
-  type: 'usage' | 'activity' | 'text' | 'tool' | 'file' | 'gate' | 'error' | 'done' | 'session'
+  usage?: import('../../shared/usage').TokenUsage
+  type:
+    | 'usage'
+    | 'activity'
+    | 'text'
+    | 'tool'
+    | 'file'
+    | 'gate'
+    | 'error'
+    | 'done'
+    | 'session'
   ts: number
   model?: string
   operation?: HarnessOperation
@@ -39,8 +54,16 @@ export interface HarnessEvent {
 
 // The models a harness can run, for the creator to choose from. `default`
 // is what the CLI runs when no model is named (null when it cannot be known).
-export type HarnessModelOption = { id: string; label: string; unavailable?: string }
-export type HarnessModels = { default: string | null; options: HarnessModelOption[]; source: string }
+export type HarnessModelOption = {
+  id: string
+  label: string
+  unavailable?: string
+}
+export type HarnessModels = {
+  default: string | null
+  options: HarnessModelOption[]
+  source: string
+}
 
 export interface HarnessAdapter {
   id: 'claude-code' | 'codex' | 'kimi'
@@ -53,7 +76,7 @@ export interface HarnessAdapter {
   run(
     run: HarnessRun,
     onEvent: (e: HarnessEvent) => void,
-    signal: AbortSignal,
+    signal: AbortSignal
   ): Promise<{ resumeId?: string; exitCode: number }>
 }
 
@@ -80,7 +103,16 @@ export type RunStatus =
 
 // Why a run failed, kept with the run so every stage can show it and offer
 // the right way on. `message` is the provider's own public text.
-export type FailureCategory = 'quota' | 'auth' | 'model' | 'rate-limit' | 'network' | 'unavailable' | 'interrupted' | 'storage' | 'other'
+export type FailureCategory =
+  | 'quota'
+  | 'auth'
+  | 'model'
+  | 'rate-limit'
+  | 'network'
+  | 'unavailable'
+  | 'interrupted'
+  | 'storage'
+  | 'other'
 export type RunFailure = {
   category: FailureCategory
   message: string

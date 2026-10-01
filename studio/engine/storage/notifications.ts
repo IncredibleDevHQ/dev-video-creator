@@ -22,7 +22,7 @@ export const listenForNotebookWrites = async (database: Pool) => {
     }
     connection.on('error', lost)
     connection.on('end', lost)
-    connection.on('notification', event => {
+    connection.on('notification', (event) => {
       if (
         !closed &&
         client === connection &&

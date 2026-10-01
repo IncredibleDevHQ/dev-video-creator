@@ -66,7 +66,9 @@ describe('scene lifecycle', () => {
       failure: 'planning',
       error: 'Try again'
     }
-    expect(transitionScene(failed, 'retry')).toBe(failed)
+    expect(
+      transitionScene(failed, 'retry', { project: { id: 'test' }, events: [] })
+    ).toBe(failed)
     expect(failed).toMatchObject({ phase: 'queued', error: null })
     expect(failed).not.toHaveProperty('failure')
   })

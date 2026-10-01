@@ -168,14 +168,9 @@ export const createStudioServer = (
         return send(
           response,
           200,
-          await (extensionRoute[4]
-            ? suggestDialogueExtension
-            : saveDialogueExtension)(
-            extensionRoute[1],
-            extensionRoute[2],
-            extensionRoute[3],
-            body
-          )
+          await (
+            extensionRoute[4] ? suggestDialogueExtension : saveDialogueExtension
+          )(extensionRoute[1], extensionRoute[2], extensionRoute[3], body)
         )
       if (url.pathname === '/mcp' && request.method === 'POST') {
         const reply = await handleEngineRpc(
@@ -246,7 +241,7 @@ export const createStudioServer = (
       ) {
         const snapshot = await loadProject(sceneRoute[1])
         const video = snapshot?.project.video
-        const scene = video?.scenes.find(scene => scene.id === sceneRoute[2])
+        const scene = video?.scenes.find((scene) => scene.id === sceneRoute[2])
         if (
           !scene ||
           !video ||
@@ -274,8 +269,9 @@ export const createStudioServer = (
           return send(
             response,
             200,
-            snapshot?.project.video?.scenes.find(scene => scene.id === sceneId)
-              ?.failure === 'production'
+            snapshot?.project.video?.scenes.find(
+              (scene) => scene.id === sceneId
+            )?.failure === 'production'
               ? await produceScene(id, sceneId)
               : await retryScene(id, sceneId)
           )
@@ -310,7 +306,7 @@ export const createStudioServer = (
           response.flushHeaders()
           response.write('retry: 2000\n\n')
           let closed = false
-          const unsubscribe = watchSnapshots(id, value => {
+          const unsubscribe = watchSnapshots(id, (value) => {
             if (!closed)
               response.write(
                 `data: ${JSON.stringify(
@@ -376,8 +372,8 @@ export const createStudioServer = (
             body?.anchor?.stage === 'video'
               ? await chatVideo(id, body)
               : body?.anchor?.stage === 'notebook'
-              ? await chatNotebook(id, body)
-              : await chatSlide(id, body)
+                ? await chatNotebook(id, body)
+                : await chatSlide(id, body)
           schedulePlanning(id)
           return send(response, 200, changed)
         }

@@ -2,7 +2,7 @@
 // share this channel so the stream never needs to poll either store.
 const listeners = new Map<string, Set<() => void>>()
 export const notifyNotebook = (id: string) =>
-  listeners.get(id)?.forEach(listener => listener())
+  listeners.get(id)?.forEach((listener) => listener())
 // Catch up after a database subscription reconnects; missed notifications do
 // not need an idle polling loop.
 export const refreshWatchedNotebooks = () => {

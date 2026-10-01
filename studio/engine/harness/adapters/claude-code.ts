@@ -1,4 +1,4 @@
-import {claudeUsage,type UsageState} from './claude-usage'
+import { claudeUsage, type UsageState } from './claude-usage'
 // Claude Code adapter (spec §3.3). Runs
 //   claude -p "<task>" --output-format stream-json --permission-mode acceptEdits
 //          --allowedTools "Read,Write,Edit,Bash(python3 *),mcp__studio__*" --mcp-config <path>
@@ -10,7 +10,7 @@ import type {
   HarnessAdapter,
   HarnessContext,
   HarnessEvent,
-  HarnessRun,
+  HarnessRun
 } from '../types'
 import { probeVersion, spawnJsonLines, studioMcpUrl } from './util'
 import { resolveSkillDir } from '../skills-install'
@@ -29,24 +29,24 @@ const desktopBundles = () => {
   const roots = [
     join(homedir(), 'Library', 'Application Support', 'Claude', 'claude-code'),
     join(homedir(), 'AppData', 'Local', 'Claude', 'claude-code'),
-    join(homedir(), '.config', 'Claude', 'claude-code'),
+    join(homedir(), '.config', 'Claude', 'claude-code')
   ]
   const found: string[] = []
   for (const root of roots) {
     if (!existsSync(root)) continue
     let versions: string[] = []
     try {
-      versions = readdirSync(root).filter(name => /^\d+\.\d+\.\d+/.test(name))
+      versions = readdirSync(root).filter((name) => /^\d+\.\d+\.\d+/.test(name))
     } catch {
       versions = []
     }
     versions
       .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
-      .forEach(version => {
+      .forEach((version) => {
         for (const candidate of [
           join(root, version, 'claude.app', 'Contents', 'MacOS', 'claude'),
           join(root, version, 'claude'),
-          join(root, version, 'claude.exe'),
+          join(root, version, 'claude.exe')
         ]) {
           if (existsSync(candidate)) found.push(candidate)
         }
@@ -64,7 +64,7 @@ export const claudeBinaryCandidates = () => {
     '/opt/homebrew/bin/claude',
     '/usr/local/bin/claude',
     ...desktopBundles(),
-    'claude',
+    'claude'
   ]
 }
 
@@ -81,12 +81,19 @@ export const resolveClaudeBinary = async () => {
   const explicit = process.env.STUDIO_CLAUDE_BIN
   if (explicit && existsSync(explicit)) {
     const probe = await probeVersion(explicit)
-    resolvedBinary = { path: explicit, version: probe.ok ? probe.version || '' : 'STUDIO_CLAUDE_BIN' }
+    resolvedBinary = {
+      path: explicit,
+      version: probe.ok ? probe.version || '' : 'STUDIO_CLAUDE_BIN'
+    }
     return resolvedBinary
   }
-  const tried: string[] = explicit ? [`${explicit} (STUDIO_CLAUDE_BIN, missing)`] : []
+  const tried: string[] = explicit
+    ? [`${explicit} (STUDIO_CLAUDE_BIN, missing)`]
+    : []
   let newest: { path: string; version: string } | null = null
-  for (const candidate of [...new Set(claudeBinaryCandidates().filter(path => path !== explicit))]) {
+  for (const candidate of [
+    ...new Set(claudeBinaryCandidates().filter((path) => path !== explicit))
+  ]) {
     if (candidate !== 'claude' && !existsSync(candidate)) {
       tried.push(candidate)
       continue
@@ -97,7 +104,8 @@ export const resolveClaudeBinary = async () => {
       continue
     }
     const version = probe.version || ''
-    if (!newest || compareVersions(version, newest.version) > 0) newest = { path: candidate, version }
+    if (!newest || compareVersions(version, newest.version) > 0)
+      newest = { path: candidate, version }
   }
   if (newest) {
     resolvedBinary = newest
@@ -118,18 +126,22 @@ const writeMcpConfig = async (run: HarnessRun, context: HarnessContext) => {
           studio: {
             command: 'node',
             args: [context.mcpShimPath],
-            env: { STUDIO_MCP_URL: studioMcpUrl(context.origin, run.inputs) },
-          },
-        },
+            env: { STUDIO_MCP_URL: studioMcpUrl(context.origin, run.inputs) }
+          }
+        }
       },
       null,
-      2,
-    ),
+      2
+    )
   )
   return path
 }
 
-export const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state: { resumeId?: string; partialActivityAt?:number } & UsageState) => {
+export const emitLine = (
+  line: string,
+  onEvent: (e: HarnessEvent) => void,
+  state: { resumeId?: string; partialActivityAt?: number } & UsageState
+) => {
   let message: Record<string, unknown>
   try {
     message = JSON.parse(line)
@@ -137,31 +149,49 @@ export const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state
     return
   }
   const ts = Date.now()
-  const usage=claudeUsage(message,state)
-  if(usage)onEvent({type:'usage',ts,usage})
-  if(message.type==='stream_event'){
-    const event=message.event as {type?:string}|undefined
-    if(event && ['content_block_start','content_block_delta','message_start','message_stop'].includes(event.type || '') && (state.partialActivityAt===undefined || ts-state.partialActivityAt>=2000)){
-      state.partialActivityAt=ts
+  const usage = claudeUsage(message, state)
+  if (usage) onEvent({ type: 'usage', ts, usage })
+  if (message.type === 'stream_event') {
+    const event = message.event as { type?: string } | undefined
+    if (
+      event &&
+      [
+        'content_block_start',
+        'content_block_delta',
+        'message_start',
+        'message_stop'
+      ].includes(event.type || '') &&
+      (state.partialActivityAt === undefined ||
+        ts - state.partialActivityAt >= 2000)
+    ) {
+      state.partialActivityAt = ts
       // Signal genuine incoming chunks without storing private reasoning or partial code.
-      onEvent({type:'activity',ts})
+      onEvent({ type: 'activity', ts })
     }
     return
   }
-  if (typeof message.session_id === 'string') state.resumeId = message.session_id
+  if (typeof message.session_id === 'string')
+    state.resumeId = message.session_id
   if (message.type === 'assistant') {
-    const content = (message.message as { content?: Array<Record<string, unknown>> })?.content || []
+    const content =
+      (message.message as { content?: Array<Record<string, unknown>> })
+        ?.content || []
     for (const part of content) {
-      if (part.type === 'text' && /not logged in/i.test(String(part.text || ''))) {
+      if (
+        part.type === 'text' &&
+        /not logged in/i.test(String(part.text || ''))
+      ) {
         // The CLI answers with a synthetic message instead of failing; make
         // the fix obvious.
         onEvent({
           type: 'error',
           ts,
-          error: 'Claude Code is not logged in for the command line. Open a terminal, run `claude`, then `/login` once — the studio reuses that login.',
+          error:
+            'Claude Code is not logged in for the command line. Open a terminal, run `claude`, then `/login` once — the studio reuses that login.'
         })
       }
-      if (part.type === 'text' && part.text) onEvent({ type: 'text', ts, text: String(part.text) })
+      if (part.type === 'text' && part.text)
+        onEvent({ type: 'text', ts, text: String(part.text) })
       if (part.type === 'tool_use') {
         const tool = String(part.name || 'tool')
         const operation = operationOf(tool)
@@ -177,28 +207,33 @@ export const emitLine = (line: string, onEvent: (e: HarnessEvent) => void, state
     if (typeof message.result === 'string' && message.result) {
       // The CLI reports provider refusals (an unsupported model, an API
       // error) as a result flagged is_error; that text is the useful status.
-      if (message.is_error === true) onEvent({ type: 'error', ts, error: message.result.slice(0, 400) })
+      if (message.is_error === true)
+        onEvent({ type: 'error', ts, error: message.result.slice(0, 400) })
       else onEvent({ type: 'text', ts, text: message.result })
     }
     return
   }
   // The session's own account of the model it runs.
   if (message.type === 'system' && message.subtype === 'init') {
-    if (typeof message.model === 'string' && message.model) onEvent({ type: 'session', ts, model: message.model })
+    if (typeof message.model === 'string' && message.model)
+      onEvent({ type: 'session', ts, model: message.model })
     return
   }
 }
 
-export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter => ({
+export const createClaudeCodeAdapter = (
+  context: HarnessContext
+): HarnessAdapter => ({
   id: 'claude-code',
   // Its Read tool renders images for the model.
   images: 'native',
   available: async () => {
     const found = await resolveClaudeBinary()
-    if (found.path && 'version' in found) return { ok: true, version: `${found.version} · ${found.path}` }
+    if (found.path && 'version' in found)
+      return { ok: true, version: `${found.version} · ${found.path}` }
     return {
       ok: false,
-      reason: `claude not found — set STUDIO_CLAUDE_BIN or install it (npm i -g @anthropic-ai/claude-code). Looked in: ${('tried' in found ? found.tried : []).slice(0, 6).join(', ')}`,
+      reason: `claude not found — set STUDIO_CLAUDE_BIN or install it (npm i -g @anthropic-ai/claude-code). Looked in: ${('tried' in found ? found.tried : []).slice(0, 6).join(', ')}`
     }
   },
   models: async () => {
@@ -207,7 +242,8 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
   },
   async run(run, onEvent, signal) {
     const found = await resolveClaudeBinary()
-    if (!found.path) throw new Error('claude binary not found (set STUDIO_CLAUDE_BIN)')
+    if (!found.path)
+      throw new Error('claude binary not found (set STUDIO_CLAUDE_BIN)')
     const mcpConfig = await writeMcpConfig(run, context)
     const task = String(run.inputs.task || '')
     // --verbose is mandatory: `claude -p --output-format stream-json` refuses
@@ -230,10 +266,15 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
           ? 'Read,Write,Edit,Glob,Grep,mcp__studio__produce_*'
           : 'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
       '--mcp-config',
-      mcpConfig,
+      mcpConfig
     ]
-    if (typeof run.inputs.model === 'string' && run.inputs.model) args.push('--model', run.inputs.model)
-    if (typeof run.inputs.effort === 'string' && ['low', 'medium', 'high', 'xhigh', 'max'].includes(run.inputs.effort)) args.push('--effort', run.inputs.effort)
+    if (typeof run.inputs.model === 'string' && run.inputs.model)
+      args.push('--model', run.inputs.model)
+    if (
+      typeof run.inputs.effort === 'string' &&
+      ['low', 'medium', 'high', 'xhigh', 'max'].includes(run.inputs.effort)
+    )
+      args.push('--effort', run.inputs.effort)
     if (run.resumeId) args.push('--resume', run.resumeId)
     const state: { resumeId?: string; reportedError?: boolean } = {}
     let stderrTail = ''
@@ -241,17 +282,29 @@ export const createClaudeCodeAdapter = (context: HarnessContext): HarnessAdapter
       command: found.path,
       args,
       cwd: run.projectDir,
-      env: { SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill) },
-      onLine: line => emitLine(line, event => {
-        if (event.type === 'error') state.reportedError = true
-        onEvent(event)
-      }, state),
-      onStderr: text => {
+      env: {
+        SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill)
+      },
+      onLine: (line) =>
+        emitLine(
+          line,
+          (event) => {
+            if (event.type === 'error') state.reportedError = true
+            onEvent(event)
+          },
+          state
+        ),
+      onStderr: (text) => {
         stderrTail = (stderrTail + text).slice(-1_200)
       },
-      signal,
+      signal
     })
-    if (exitCode !== 0 && stderrTail.trim() && !state.reportedError) onEvent({ type: 'error', ts: Date.now(), error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400) })
+    if (exitCode !== 0 && stderrTail.trim() && !state.reportedError)
+      onEvent({
+        type: 'error',
+        ts: Date.now(),
+        error: stderrTail.trim().split('\n').slice(-3).join(' · ').slice(0, 400)
+      })
     return { resumeId: state.resumeId, exitCode }
-  },
+  }
 })

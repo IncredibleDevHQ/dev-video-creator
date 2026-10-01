@@ -12,8 +12,20 @@
 // stands in: a missing rich artwork is an unmet requirement, never a
 // labelled box that passes for it.
 import type { SceneTreatmentV1 } from './scene-treatment'
-import { scheduleProblems, scheduleSummary, type SketchSchedule } from './sketch-schedule'
-import { bundleFileProblems, compositionProblems, isRecord, SKETCH_LAYER_KINDS, SKETCH_RUNTIME, textOf, type SketchFiles } from './sketch-bundle'
+import {
+  scheduleProblems,
+  scheduleSummary,
+  type SketchSchedule
+} from './sketch-schedule'
+import {
+  bundleFileProblems,
+  compositionProblems,
+  isRecord,
+  SKETCH_LAYER_KINDS,
+  SKETCH_RUNTIME,
+  textOf,
+  type SketchFiles
+} from './sketch-bundle'
 
 export const PRODUCTION_VERSION = 1 as const
 // Moments keep to the clock within this, in seconds.
@@ -40,9 +52,19 @@ export type ProductionManifest = {
   kind: 'production'
   scene: string
   plan: { record: string; revision: number }
-  composition: { id: string; width: number; height: number; fps: number; duration: number }
+  composition: {
+    id: string
+    width: number
+    height: number
+    fps: number
+    duration: number
+  }
   runtime: { hyperframes: string }
-  clock: { kind: ProductionClock['kind']; audio: string | null; video?: string | null }
+  clock: {
+    kind: ProductionClock['kind']
+    audio: string | null
+    video?: string | null
+  }
   moments: Array<{ id: string; title: string; start: number; end: number }>
   layers: Array<{
     id: string
@@ -79,13 +101,20 @@ export type ControlValues = Record<string, number>
 
 // The problems with a set of values for a production's controls: each must
 // name a declared control and sit inside its range.
-export const controlValueProblems = (controls: ProductionControl[], values: ControlValues) => {
+export const controlValueProblems = (
+  controls: ProductionControl[],
+  values: ControlValues
+) => {
   const problems: string[] = []
   for (const [id, value] of Object.entries(values)) {
-    const control = controls.find(entry => entry.id === id)
+    const control = controls.find((entry) => entry.id === id)
     if (!control) problems.push(`"${id}" is not a control of this production`)
-    else if (typeof value !== 'number' || !Number.isFinite(value)) problems.push(`${control.label} must be a number of seconds`)
-    else if (value < control.min - 1e-9 || value > control.max + 1e-9) problems.push(`${control.label} must be between ${control.min}s and ${control.max}s — ${value}s would move it out of its moment`)
+    else if (typeof value !== 'number' || !Number.isFinite(value))
+      problems.push(`${control.label} must be a number of seconds`)
+    else if (value < control.min - 1e-9 || value > control.max + 1e-9)
+      problems.push(
+        `${control.label} must be between ${control.min}s and ${control.max}s — ${value}s would move it out of its moment`
+      )
   }
   return problems
 }
@@ -94,7 +123,9 @@ export const controlValueProblems = (controls: ProductionControl[], values: Cont
 // any of its scripts run, where its code reads them.
 export const withControlValues = (html: string, values: ControlValues) => {
   const script = `<script>window.__controls = ${JSON.stringify(values).replace(/</g, '\\u003c')}</script>`
-  return /<head\b[^>]*>/i.test(html) ? html.replace(/<head\b[^>]*>/i, match => `${match}${script}`) : `${script}${html}`
+  return /<head\b[^>]*>/i.test(html)
+    ? html.replace(/<head\b[^>]*>/i, (match) => `${match}${script}`)
+    : `${script}${html}`
 }
 
 export type ProductionContext = {
@@ -105,15 +136,26 @@ export type ProductionContext = {
   assetKeys: string[]
 }
 
-export type ProductionReport = { ok: boolean; problems: string[]; warnings: string[]; manifest: ProductionManifest | null }
+export type ProductionReport = {
+  ok: boolean
+  problems: string[]
+  warnings: string[]
+  manifest: ProductionManifest | null
+}
 
 const near = (a: number, b: number) => Math.abs(a - b) <= CLOCK_TOLERANCE + 1e-9
 
 // The media elements of a composition, with their attributes.
 const mediaElements = (html: string) =>
-  [...html.matchAll(/<(video|audio)\b([^>]*)>/gi)].map(match => {
+  [...html.matchAll(/<(video|audio)\b([^>]*)>/gi)].map((match) => {
     const attributes = new Map<string, string>()
-    for (const attribute of match[2].matchAll(/([a-z][\w-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/gi)) attributes.set(attribute[1].toLowerCase(), attribute[2] ?? attribute[3] ?? attribute[4] ?? '')
+    for (const attribute of match[2].matchAll(
+      /([a-z][\w-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/gi
+    ))
+      attributes.set(
+        attribute[1].toLowerCase(),
+        attribute[2] ?? attribute[3] ?? attribute[4] ?? ''
+      )
     return { tag: match[1].toLowerCase(), attributes }
   })
 // The clock's sound plays from the scene's start, whole: never offset,
@@ -122,40 +164,84 @@ const mediaElements = (html: string) =>
 const clockMediaProblems = (html: string, clock: ProductionClock) => {
   const problems: string[] = []
   const media = mediaElements(html)
-  const number = (value: string | undefined, fallback: number) => (value === undefined || value === '' ? fallback : Number(value))
+  const number = (value: string | undefined, fallback: number) =>
+    value === undefined || value === '' ? fallback : Number(value)
   if (clock.audio) {
-    const voices = media.filter(element => element.tag === 'audio' && element.attributes.get('src') === clock.audio)
+    const voices = media.filter(
+      (element) =>
+        element.tag === 'audio' && element.attributes.get('src') === clock.audio
+    )
     for (const voice of voices) {
       const start = number(voice.attributes.get('data-start'), 0)
       const from = number(voice.attributes.get('data-media-start'), 0)
       const length = number(voice.attributes.get('data-duration'), Number.NaN)
-      if (start !== 0 || from !== 0) problems.push(`the clock's sound "${clock.audio}" must play from the scene's start, from its own start: data-start="0" and no data-media-start`)
-      if (!(length >= clock.duration - CLOCK_TOLERANCE)) problems.push(`the clock's sound "${clock.audio}" must play whole: data-duration at least ${clock.duration}`)
+      if (start !== 0 || from !== 0)
+        problems.push(
+          `the clock's sound "${clock.audio}" must play from the scene's start, from its own start: data-start="0" and no data-media-start`
+        )
+      if (!(length >= clock.duration - CLOCK_TOLERANCE))
+        problems.push(
+          `the clock's sound "${clock.audio}" must play whole: data-duration at least ${clock.duration}`
+        )
     }
-    if (voices.length > 1) problems.push(`the clock's sound "${clock.audio}" plays ${voices.length} times — play it once`)
+    if (voices.length > 1)
+      problems.push(
+        `the clock's sound "${clock.audio}" plays ${voices.length} times — play it once`
+      )
   }
   if (clock.video) {
-    for (const picture of media.filter(element => element.tag === 'video' && element.attributes.get('src') === clock.video)) {
-      if (!picture.attributes.has('muted')) problems.push(`the take's picture "${clock.video}" must be muted: its sound plays once, from the clock's <audio>`)
-      if (picture.attributes.get('data-has-audio') === 'true') problems.push(`the take's picture "${clock.video}" must not carry its own sound (data-has-audio): the voice would play twice`)
+    for (const picture of media.filter(
+      (element) =>
+        element.tag === 'video' && element.attributes.get('src') === clock.video
+    )) {
+      if (!picture.attributes.has('muted'))
+        problems.push(
+          `the take's picture "${clock.video}" must be muted: its sound plays once, from the clock's <audio>`
+        )
+      if (picture.attributes.get('data-has-audio') === 'true')
+        problems.push(
+          `the take's picture "${clock.video}" must not carry its own sound (data-has-audio): the voice would play twice`
+        )
       const start = number(picture.attributes.get('data-start'), 0)
       const from = number(picture.attributes.get('data-media-start'), 0)
-      if (Math.abs(start - from) > 1 / 30 + 1e-9) problems.push(`the take's picture "${clock.video}" must stay in step with its voice: a clip that starts at ${start}s plays the take from ${start}s (data-media-start), not from ${from}s`)
+      if (Math.abs(start - from) > 1 / 30 + 1e-9)
+        problems.push(
+          `the take's picture "${clock.video}" must stay in step with its voice: a clip that starts at ${start}s plays the take from ${start}s (data-media-start), not from ${from}s`
+        )
     }
   }
   return problems
 }
 
-export const validateProduction = (files: SketchFiles, context: ProductionContext): ProductionReport => {
+export const validateProduction = (
+  files: SketchFiles,
+  context: ProductionContext
+): ProductionReport => {
   const problems: string[] = []
   const warnings: string[] = []
-  if (!Object.keys(files).length) return { ok: false, problems: ['the production has no files'], warnings, manifest: null }
+  if (!Object.keys(files).length)
+    return {
+      ok: false,
+      problems: ['the production has no files'],
+      warnings,
+      manifest: null
+    }
   // What the product supplies (under media/) is not the harness's to size.
-  problems.push(...bundleFileProblems(Object.fromEntries(Object.entries(files).filter(([path]) => !path.startsWith('media/'))), 'production', { files: MAX_FILES, bytes: MAX_BYTES }))
+  problems.push(
+    ...bundleFileProblems(
+      Object.fromEntries(
+        Object.entries(files).filter(([path]) => !path.startsWith('media/'))
+      ),
+      'production',
+      { files: MAX_FILES, bytes: MAX_BYTES }
+    )
+  )
 
   let manifest: ProductionManifest | null = null
   try {
-    const parsed = JSON.parse(textOf(files['manifest.json']) || 'null') as unknown
+    const parsed = JSON.parse(
+      textOf(files['manifest.json']) || 'null'
+    ) as unknown
     if (!isRecord(parsed)) throw new Error('missing')
     manifest = parsed as ProductionManifest
   } catch {
@@ -167,104 +253,274 @@ export const validateProduction = (files: SketchFiles, context: ProductionContex
 
   const plan = context.plan.content
   const clock = context.clock
-  if (manifest.version !== PRODUCTION_VERSION || manifest.kind !== 'production') problems.push(`manifest.version must be ${PRODUCTION_VERSION} and manifest.kind "production"`)
-  if (manifest.scene !== context.scene) problems.push(`manifest.scene is "${manifest.scene}", but this production is of "${context.scene}"`)
-  if (manifest.plan?.record !== context.plan.record || manifest.plan?.revision !== context.plan.revision) {
-    problems.push(`manifest.plan must name the approved plan it produces: record "${context.plan.record}", revision ${context.plan.revision}`)
+  if (manifest.version !== PRODUCTION_VERSION || manifest.kind !== 'production')
+    problems.push(
+      `manifest.version must be ${PRODUCTION_VERSION} and manifest.kind "production"`
+    )
+  if (manifest.scene !== context.scene)
+    problems.push(
+      `manifest.scene is "${manifest.scene}", but this production is of "${context.scene}"`
+    )
+  if (
+    manifest.plan?.record !== context.plan.record ||
+    manifest.plan?.revision !== context.plan.revision
+  ) {
+    problems.push(
+      `manifest.plan must name the approved plan it produces: record "${context.plan.record}", revision ${context.plan.revision}`
+    )
   }
   const composition = manifest.composition
-  if (!isRecord(composition) || composition.id !== context.compositionId) problems.push(`manifest.composition.id must be "${context.compositionId}"`)
+  if (!isRecord(composition) || composition.id !== context.compositionId)
+    problems.push(`manifest.composition.id must be "${context.compositionId}"`)
   const duration = Number(composition?.duration)
   // The scene lasts as long as its clock, with at most two seconds to settle.
-  if (!(duration >= clock.duration - CLOCK_TOLERANCE && duration <= clock.duration + 2)) problems.push(`manifest.composition.duration must be the clock's ${clock.duration}s, with at most 2s after it to settle (it is ${Number.isFinite(duration) ? duration : 'missing'})`)
-  if (!(Number(composition?.width) > 0 && Number(composition?.height) > 0)) problems.push('manifest.composition needs a width and a height')
-  if (!(Number(composition?.fps) > 0)) problems.push('manifest.composition.fps must be positive')
-  if (manifest.runtime?.hyperframes !== SKETCH_RUNTIME.hyperframes) problems.push(`manifest.runtime.hyperframes must be the pinned ${SKETCH_RUNTIME.hyperframes}`)
+  if (
+    !(
+      duration >= clock.duration - CLOCK_TOLERANCE &&
+      duration <= clock.duration + 2
+    )
+  )
+    problems.push(
+      `manifest.composition.duration must be the clock's ${clock.duration}s, with at most 2s after it to settle (it is ${Number.isFinite(duration) ? duration : 'missing'})`
+    )
+  if (!(Number(composition?.width) > 0 && Number(composition?.height) > 0))
+    problems.push('manifest.composition needs a width and a height')
+  if (!(Number(composition?.fps) > 0))
+    problems.push('manifest.composition.fps must be positive')
+  if (manifest.runtime?.hyperframes !== SKETCH_RUNTIME.hyperframes)
+    problems.push(
+      `manifest.runtime.hyperframes must be the pinned ${SKETCH_RUNTIME.hyperframes}`
+    )
 
   // The clock the product set, kept moment by moment.
-  if (manifest.clock?.kind !== clock.kind || (manifest.clock?.audio ?? null) !== clock.audio) problems.push(`manifest.clock must be the packet's: ${clock.kind}${clock.audio ? `, sound "${clock.audio}"` : ''}`)
-  const planIds = plan.moments.map(moment => moment.id)
+  if (
+    manifest.clock?.kind !== clock.kind ||
+    (manifest.clock?.audio ?? null) !== clock.audio
+  )
+    problems.push(
+      `manifest.clock must be the packet's: ${clock.kind}${clock.audio ? `, sound "${clock.audio}"` : ''}`
+    )
+  const planIds = plan.moments.map((moment) => moment.id)
   const moments = Array.isArray(manifest.moments) ? manifest.moments : []
-  const ids = moments.map(moment => moment.id)
-  if (JSON.stringify(ids) !== JSON.stringify(planIds)) problems.push(`manifest.moments must be the approved plan's moments in order (${planIds.join(', ')}); it has ${ids.join(', ') || 'none'}`)
+  const ids = moments.map((moment) => moment.id)
+  if (JSON.stringify(ids) !== JSON.stringify(planIds))
+    problems.push(
+      `manifest.moments must be the approved plan's moments in order (${planIds.join(', ')}); it has ${ids.join(', ') || 'none'}`
+    )
   for (const moment of moments) {
-    const timed = clock.moments.find(entry => entry.id === moment.id)
+    const timed = clock.moments.find((entry) => entry.id === moment.id)
     if (!timed) continue
-    if (!near(moment.start, timed.start) || !near(moment.end, timed.end)) problems.push(`moment ${moment.id} must keep the clock: ${timed.start}–${timed.end}s (it says ${moment.start}–${moment.end}s)`)
+    if (!near(moment.start, timed.start) || !near(moment.end, timed.end))
+      problems.push(
+        `moment ${moment.id} must keep the clock: ${timed.start}–${timed.end}s (it says ${moment.start}–${moment.end}s)`
+      )
   }
 
   // Layers: what is drawn, from which artwork — and nothing standing in.
   const layers = Array.isArray(manifest.layers) ? manifest.layers : []
-  if (!layers.length) problems.push('manifest.layers is empty — declare what the scene draws')
-  const layerIds = layers.map(layer => layer.id)
-  for (const id of layerIds.filter((value, index) => layerIds.indexOf(value) !== index)) problems.push(`layer id "${id}" is used twice`)
+  if (!layers.length)
+    problems.push('manifest.layers is empty — declare what the scene draws')
+  const layerIds = layers.map((layer) => layer.id)
+  for (const id of layerIds.filter(
+    (value, index) => layerIds.indexOf(value) !== index
+  ))
+    problems.push(`layer id "${id}" is used twice`)
   const keys = new Set(context.assetKeys)
   for (const layer of layers) {
     const where = `layer ${layer.id || '?'}`
-    if (!(SKETCH_LAYER_KINDS as readonly string[]).includes(layer.kind)) problems.push(`${where} kind must be one of ${SKETCH_LAYER_KINDS.join(', ')}`)
-    for (const moment of layer.moments || []) if (!planIds.includes(moment)) problems.push(`${where} names moment "${moment}", which the plan does not have`)
-    if ((layer as { placeholder?: unknown }).placeholder) problems.push(`${where} is a placeholder — a produced scene has no stand-ins; name what is missing in manifest.unmet instead`)
+    if (!(SKETCH_LAYER_KINDS as readonly string[]).includes(layer.kind))
+      problems.push(
+        `${where} kind must be one of ${SKETCH_LAYER_KINDS.join(', ')}`
+      )
+    for (const moment of layer.moments || [])
+      if (!planIds.includes(moment))
+        problems.push(
+          `${where} names moment "${moment}", which the plan does not have`
+        )
+    if ((layer as { placeholder?: unknown }).placeholder)
+      problems.push(
+        `${where} is a placeholder — a produced scene has no stand-ins; name what is missing in manifest.unmet instead`
+      )
     if (layer.asset) {
-      if (!keys.has(layer.asset.libraryKey)) problems.push(`${where} uses "${layer.asset.libraryKey}", which is not in the cast or the library`)
-      if (layer.asset.path && !(layer.asset.path in files)) problems.push(`${where} points at "${layer.asset.path}", which is not in the production`)
+      if (!keys.has(layer.asset.libraryKey))
+        problems.push(
+          `${where} uses "${layer.asset.libraryKey}", which is not in the cast or the library`
+        )
+      if (layer.asset.path && !(layer.asset.path in files))
+        problems.push(
+          `${where} points at "${layer.asset.path}", which is not in the production`
+        )
     }
   }
   // The presenter: a take's own picture, or nobody.
-  const presenter = layers.find(layer => layer.kind === 'presenter')
-  if (clock.kind === 'take' && clock.video && plan.moments.some(moment => moment.presenter && ['full', 'shared'].includes(moment.presenter.visibility)) && !presenter) {
-    problems.push('the plan shows the presenter and a take exists: add a presenter layer that plays the take\'s picture')
+  const presenter = layers.find((layer) => layer.kind === 'presenter')
+  if (
+    clock.kind === 'take' &&
+    clock.video &&
+    plan.moments.some(
+      (moment) =>
+        moment.presenter &&
+        ['full', 'shared'].includes(moment.presenter.visibility)
+    ) &&
+    !presenter
+  ) {
+    problems.push(
+      "the plan shows the presenter and a take exists: add a presenter layer that plays the take's picture"
+    )
   }
-  if (presenter && !(clock.kind === 'take' && clock.video)) problems.push('there is no take to show: a generated or silent scene has no presenter layer, and reserves no empty camera box')
+  if (presenter && !(clock.kind === 'take' && clock.video))
+    problems.push(
+      'there is no take to show: a generated or silent scene has no presenter layer, and reserves no empty camera box'
+    )
 
   // Sound: the clock's own file, played from the start.
   if (clock.audio) {
-    if (!(clock.audio in files)) problems.push(`the clock's sound "${clock.audio}" is not in the production — copy it from the packet`)
-    if (html && !new RegExp(`<audio\\b[^>]*\\bsrc=["']${clock.audio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(html)) problems.push(`index.html must play the clock's sound: an <audio> element with src="${clock.audio}"`)
+    if (!(clock.audio in files))
+      problems.push(
+        `the clock's sound "${clock.audio}" is not in the production — copy it from the packet`
+      )
+    if (
+      html &&
+      !new RegExp(
+        `<audio\\b[^>]*\\bsrc=["']${clock.audio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`
+      ).test(html)
+    )
+      problems.push(
+        `index.html must play the clock's sound: an <audio> element with src="${clock.audio}"`
+      )
   }
-  if (clock.video && presenter && html && !new RegExp(`<video\\b[^>]*\\bsrc=["']${clock.video.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(html)) problems.push(`the presenter layer must play the take: a <video> element with src="${clock.video}"`)
+  if (
+    clock.video &&
+    presenter &&
+    html &&
+    !new RegExp(
+      `<video\\b[^>]*\\bsrc=["']${clock.video.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`
+    ).test(html)
+  )
+    problems.push(
+      `the presenter layer must play the take: a <video> element with src="${clock.video}"`
+    )
   if (html) problems.push(...clockMediaProblems(html, clock))
 
   // Unmet requirements are stated, never hidden.
-  const unmet = Array.isArray(manifest.unmet) ? manifest.unmet.filter(item => typeof item === 'string' && item.trim()) : null
-  if (!unmet) problems.push('manifest.unmet must be a list — empty when the approved plan is met in full')
-  for (const object of plan.objects.filter(entry => entry.asset.status === 'enrich' || entry.asset.status === 'generate')) {
-    const drawn = layers.some(layer => layer.id === object.entity || layer.label.toLowerCase().includes(object.entity.toLowerCase()))
-    if (!drawn && !(unmet || []).some(item => item.toLowerCase().includes(object.entity.toLowerCase()))) problems.push(`the plan asks for richer artwork of ${object.entity}: draw it, or say in manifest.unmet that it is missing`)
+  const unmet = Array.isArray(manifest.unmet)
+    ? manifest.unmet.filter((item) => typeof item === 'string' && item.trim())
+    : null
+  if (!unmet)
+    problems.push(
+      'manifest.unmet must be a list — empty when the approved plan is met in full'
+    )
+  for (const object of plan.objects.filter(
+    (entry) =>
+      entry.asset.status === 'enrich' || entry.asset.status === 'generate'
+  )) {
+    const drawn = layers.some(
+      (layer) =>
+        layer.id === object.entity ||
+        layer.label.toLowerCase().includes(object.entity.toLowerCase())
+    )
+    if (
+      !drawn &&
+      !(unmet || []).some((item) =>
+        item.toLowerCase().includes(object.entity.toLowerCase())
+      )
+    )
+      problems.push(
+        `the plan asks for richer artwork of ${object.entity}: draw it, or say in manifest.unmet that it is missing`
+      )
   }
 
   // The controls the code reads (P6): real parameters, within range, and a
   // range that keeps the action inside its moment on the clock.
   const controls = Array.isArray(manifest.controls) ? manifest.controls : []
-  const controlIds = controls.map(control => control.id)
-  for (const id of controlIds.filter((value, index) => controlIds.indexOf(value) !== index)) problems.push(`control id "${id}" is used twice`)
+  const controlIds = controls.map((control) => control.id)
+  for (const id of controlIds.filter(
+    (value, index) => controlIds.indexOf(value) !== index
+  ))
+    problems.push(`control id "${id}" is used twice`)
   for (const control of controls) {
     const where = `control ${control.id || '?'}`
-    if (!/^[a-z0-9][a-z0-9-]{0,63}$/i.test(String(control.id || ''))) problems.push(`${where} needs an id of letters, digits and dashes`)
-    if (control.kind !== 'offset') problems.push(`${where} kind must be offset — a hold or anything else that changes the clock is a new production, not a control`)
-    const timed = clock.moments.find(entry => entry.id === control.moment)
+    if (!/^[a-z0-9][a-z0-9-]{0,63}$/i.test(String(control.id || '')))
+      problems.push(`${where} needs an id of letters, digits and dashes`)
+    if (control.kind !== 'offset')
+      problems.push(
+        `${where} kind must be offset — a hold or anything else that changes the clock is a new production, not a control`
+      )
+    const timed = clock.moments.find((entry) => entry.id === control.moment)
     if (!planIds.includes(control.moment) || !timed) {
-      problems.push(`${where} names moment "${control.moment}", which the plan does not have`)
+      problems.push(
+        `${where} names moment "${control.moment}", which the plan does not have`
+      )
       continue
     }
-    const numbers = [control.min, control.default, control.max].every(value => typeof value === 'number' && Number.isFinite(value))
-    if (!numbers || !(control.min <= control.default && control.default <= control.max)) problems.push(`${where} needs numbers min ≤ default ≤ max`)
-    const room = Math.round((timed.end - timed.start - CONTROL_MARGIN) * 1000) / 1000
-    if (numbers && (control.min < 0 || control.max > room)) problems.push(`${where} must keep its action inside moment ${control.moment}: min at least 0 and max at most ${room}s (the moment lasts ${Math.round((timed.end - timed.start) * 1000) / 1000}s)`)
-    if (html && !html.includes(`"${control.id}"`) && !html.includes(`'${control.id}'`)) problems.push(`${where} is not read by index.html — a control must bind a parameter the code consumes: window.__controls?.["${control.id}"] ?? ${control.default}`)
+    const numbers = [control.min, control.default, control.max].every(
+      (value) => typeof value === 'number' && Number.isFinite(value)
+    )
+    if (
+      !numbers ||
+      !(control.min <= control.default && control.default <= control.max)
+    )
+      problems.push(`${where} needs numbers min ≤ default ≤ max`)
+    const room =
+      Math.round((timed.end - timed.start - CONTROL_MARGIN) * 1000) / 1000
+    if (numbers && (control.min < 0 || control.max > room))
+      problems.push(
+        `${where} must keep its action inside moment ${control.moment}: min at least 0 and max at most ${room}s (the moment lasts ${Math.round((timed.end - timed.start) * 1000) / 1000}s)`
+      )
+    if (
+      html &&
+      !html.includes(`"${control.id}"`) &&
+      !html.includes(`'${control.id}'`)
+    )
+      problems.push(
+        `${where} is not read by index.html — a control must bind a parameter the code consumes: window.__controls?.["${control.id}"] ?? ${control.default}`
+      )
   }
 
-  problems.push(...scheduleProblems(manifest.schedule, plan, { duration, moments: moments.map(moment => ({ ...moment, estimated: false })), layers: layers.map(layer => ({ ...layer, placeholder: null })) }))
-  if (html) problems.push(...compositionProblems(files, html, String(composition?.id || ''), duration, 'production'))
-  return { ok: problems.length === 0, problems: [...new Set(problems)], warnings, manifest }
+  problems.push(
+    ...scheduleProblems(manifest.schedule, plan, {
+      duration,
+      moments: moments.map((moment) => ({ ...moment, estimated: false })),
+      layers: layers.map((layer) => ({ ...layer, placeholder: null }))
+    })
+  )
+  if (html)
+    problems.push(
+      ...compositionProblems(
+        files,
+        html,
+        String(composition?.id || ''),
+        duration,
+        'production'
+      )
+    )
+  return {
+    ok: problems.length === 0,
+    problems: [...new Set(problems)],
+    warnings,
+    manifest
+  }
 }
 
 // The production a manifest describes, for the Studio's timeline.
 export const productionSummary = (manifest: ProductionManifest) => ({
   duration: manifest.composition.duration,
   clock: manifest.clock.kind,
-  moments: manifest.moments.map(({ id, title, start, end }) => ({ id, title, start, end })),
-  layers: manifest.layers.map(({ id, kind, label, moments, asset }) => ({ id, kind, label, moments, reuses: asset?.libraryKey || null, placeholder: null })),
+  moments: manifest.moments.map(({ id, title, start, end }) => ({
+    id,
+    title,
+    start,
+    end
+  })),
+  layers: manifest.layers.map(({ id, kind, label, moments, asset }) => ({
+    id,
+    kind,
+    label,
+    moments,
+    reuses: asset?.libraryKey || null,
+    placeholder: null
+  })),
   unmet: manifest.unmet,
   controls: manifest.controls || [],
-  schedule: scheduleSummary(manifest.schedule),
+  schedule: scheduleSummary(manifest.schedule)
 })

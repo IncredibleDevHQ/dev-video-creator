@@ -13,9 +13,9 @@ export const saveDialogueExtension = (
   momentId: string,
   body: { text: string; recordingKey: string }
 ) =>
-  changeProject(id, snapshot => {
-    const scene = snapshot.project.video?.scenes.find(s => s.id === sceneId),
-      moment = scene?.moments.find(m => m.id === momentId)
+  changeProject(id, (snapshot) => {
+    const scene = snapshot.project.video?.scenes.find((s) => s.id === sceneId),
+      moment = scene?.moments.find((m) => m.id === momentId)
     if (!scene || !moment || !snapshot.project.video)
       throw new Error('This moment no longer exists')
     if (!['waiting', 'produced', 'failed'].includes(scene.phase))
@@ -73,17 +73,16 @@ export const saveDialogueExtension = (
     moment.audio = null
     delete moment.media
     scene.produced = null
-    transitionScene(scene, 'recording-saved')
-    snapshot.project.video.produced = null
-    refreshVideoKeys(snapshot.project)
-    addEvent(
+    transitionScene(
+      scene,
+      'recording-saved',
       snapshot,
-      'scene',
       text
         ? 'Extra dialogue saved. Record this moment again; its animation is unchanged.'
-        : 'Extra dialogue removed.',
-      { sceneId }
+        : 'Extra dialogue removed.'
     )
+    snapshot.project.video.produced = null
+    refreshVideoKeys(snapshot.project)
   })
 const pending = new Set<string>()
 export async function suggestDialogueExtension(
@@ -93,8 +92,8 @@ export async function suggestDialogueExtension(
   body: { text: string; seconds: number; recordingKey: string }
 ) {
   const snapshot = await loadProject(id),
-    scene = snapshot?.project.video?.scenes.find(s => s.id === sceneId),
-    moment = scene?.moments.find(m => m.id === momentId)
+    scene = snapshot?.project.video?.scenes.find((s) => s.id === sceneId),
+    moment = scene?.moments.find((m) => m.id === momentId)
   if (!snapshot || !moment || moment.recordingKey !== body.recordingKey)
     throw new Error('The dialogue changed. Reopen this moment.')
   if (
@@ -141,7 +140,7 @@ export async function suggestDialogueExtension(
         'packet/SOURCE.md': source.text,
         'packet/QUESTION.txt': question
       },
-      validate: raw => validateSourceReply(raw, source),
+      validate: (raw) => validateSourceReply(raw, source),
       timeoutMs: 60000,
       idleTimeoutMs: 30000,
       maxToolCalls: 12

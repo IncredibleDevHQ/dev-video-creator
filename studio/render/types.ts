@@ -1,1 +1,4 @@
-export type SketchFiles = Record<string,string | { base64: string; contentType: string }>
+export type SketchFiles = Record<
+  string,
+  string | { base64: string; contentType: string }
+>

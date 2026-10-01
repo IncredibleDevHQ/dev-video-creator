@@ -32,7 +32,10 @@ const AGENTS_MARKER = '<!-- incredible-studio:skills -->'
 
 const skillVersion = async (skillDir: string): Promise<string> => {
   try {
-    const head = (await readFile(join(skillDir, 'SKILL.md'), 'utf8')).slice(0, 4_000)
+    const head = (await readFile(join(skillDir, 'SKILL.md'), 'utf8')).slice(
+      0,
+      4_000
+    )
     const match = head.match(/^\s*version:\s*["']?([0-9][\w.-]*)["']?\s*$/m)
     return match ? match[1] : '0.0.0'
   } catch {
@@ -44,8 +47,8 @@ const skillVersion = async (skillDir: string): Promise<string> => {
 const hashFolder = async (dir: string): Promise<string> => {
   const hash = createHash('sha256')
   const walk = async (current: string): Promise<void> => {
-    const entries = (await readdir(current, { withFileTypes: true })).sort((a, b) =>
-      a.name.localeCompare(b.name),
+    const entries = (await readdir(current, { withFileTypes: true })).sort(
+      (a, b) => a.name.localeCompare(b.name)
     )
     for (const entry of entries) {
       const path = join(current, entry.name)
@@ -65,15 +68,21 @@ const hashFolder = async (dir: string): Promise<string> => {
 
 const readLock = async (projectDir: string): Promise<SkillsLock> => {
   try {
-    const parsed = JSON.parse(await readFile(join(projectDir, 'skills.lock'), 'utf8'))
-    if (parsed && typeof parsed === 'object' && parsed.skills) return parsed as SkillsLock
+    const parsed = JSON.parse(
+      await readFile(join(projectDir, 'skills.lock'), 'utf8')
+    )
+    if (parsed && typeof parsed === 'object' && parsed.skills)
+      return parsed as SkillsLock
   } catch {
     // Missing or unreadable lock — start fresh.
   }
   return { version: 1, skills: {} }
 }
 
-const ensureAgentsPointer = async (projectDir: string, skillNames: string[]) => {
+const ensureAgentsPointer = async (
+  projectDir: string,
+  skillNames: string[]
+) => {
   const path = join(projectDir, 'AGENTS.md')
   const pointer = [
     '',
@@ -83,10 +92,9 @@ const ensureAgentsPointer = async (projectDir: string, skillNames: string[]) => 
     'Read the skill named by the current task and its referenced files. Other skills below are available routes, not additional mandatory instructions. A video composition need not follow presentation-page conventions.',
     '',
     ...skillNames.map(
-      name =>
-        `- ${name}: \`.claude/skills/${name}/SKILL.md\`.`,
+      (name) => `- ${name}: \`.claude/skills/${name}/SKILL.md\`.`
     ),
-    '',
+    ''
   ].join('\n')
   if (!existsSync(path)) {
     await writeFile(path, `# Project notes\n${pointer}`)
@@ -103,14 +111,14 @@ const ensureAgentsPointer = async (projectDir: string, skillNames: string[]) => 
 export const installSkills = async (
   vendoredSkillsDir: string,
   projectDir: string,
-  options: { only?: string[] } = {},
+  options: { only?: string[] } = {}
 ): Promise<InstallReport> => {
   const report: InstallReport = {
     projectDir,
     installed: [],
     skipped: [],
     modifiedLocally: [],
-    lock: await readLock(projectDir),
+    lock: await readLock(projectDir)
   }
   const entries = await readdir(vendoredSkillsDir, { withFileTypes: true })
   const skillNames: string[] = []
@@ -132,7 +140,7 @@ export const installSkills = async (
         report.lock.skills[name] = {
           version,
           sha256: vendoredHash,
-          installedAt: locked?.installedAt || new Date().toISOString(),
+          installedAt: locked?.installedAt || new Date().toISOString()
         }
         continue
       }
@@ -144,7 +152,7 @@ export const installSkills = async (
           version: locked.version,
           sha256: installedHash,
           installedAt: locked.installedAt,
-          modifiedLocally: true,
+          modifiedLocally: true
         }
         continue
       }
@@ -156,13 +164,13 @@ export const installSkills = async (
     report.lock.skills[name] = {
       version,
       sha256: vendoredHash,
-      installedAt: new Date().toISOString(),
+      installedAt: new Date().toISOString()
     }
   }
   await ensureAgentsPointer(projectDir, skillNames)
   await writeFile(
     join(projectDir, 'skills.lock'),
-    JSON.stringify(report.lock, null, 2),
+    JSON.stringify(report.lock, null, 2)
   )
   return report
 }
@@ -171,7 +179,7 @@ export const installSkills = async (
 export const resolveSkillDir = (
   vendoredSkillsDir: string,
   projectDir: string,
-  skill: string,
+  skill: string
 ): string => {
   const installed = join(projectDir, '.claude', 'skills', skill)
   return existsSync(join(installed, 'SKILL.md'))
