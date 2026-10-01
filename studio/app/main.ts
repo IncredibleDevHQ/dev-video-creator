@@ -83,7 +83,8 @@ let pendingVideoSettings:import('../shared/model').VideoSettings|null=null
 let pendingRecording: import('../shared/model').Moment[] | null = null
 const prepareRecording=(moment:import('../shared/model').Moment,index:number)=>{stopPractice();pendingRecording=[moment];const scene=snapshot?.project.video?.scenes[selected];showDialog(recordingSetup(moment,index,scene?snapshot?.views?.scenes[scene.id]?.openMomentIds.length:1))}
 const prepareRecordingPass=(moments:import('../shared/model').Moment[])=>{stopPractice();pendingRecording=moments;const scene=snapshot!.project.video!.scenes[selected];showDialog(recordingPassSetup(moments,moments.map(moment=>scene.moments.findIndex(item=>item.id===moment.id))))}
-const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog);dialog.addEventListener('close',()=>{pendingVideoSettings=null})
+let dialogRevision=0
+const dialog = document.createElement('dialog'); dialog.id = 'dialog'; document.body.append(dialog);dialog.addEventListener('close',()=>{dialogRevision++;pendingVideoSettings=null})
 const settingsScreen = new Settings(root,()=>snapshot?.project.id || null,()=>render(),async () => {if(snapshot) snapshot=await api.load(snapshot.project.id)})
 const pendingChats=new Set<string>()
 let liveConnected=true
@@ -173,6 +174,7 @@ const attach = (value: Snapshot) => {
 }
 const error = (reason: unknown) => { const target = dialog.open ? dialog.querySelector('#error') : document.querySelector('#error, #settings-message'); if (target) target.textContent = reason instanceof Error ? reason.message : 'Could not complete that change' }
 const showDialog = (content: string) => {
+  dialogRevision++
   delete dialog.dataset.explainer
   dialog.innerHTML = `${button('×', 'close')}<div class="dialog-body">${content}</div>`; if (!dialog.open) dialog.showModal()
 }
@@ -260,7 +262,15 @@ document.addEventListener('click', async event => {
     if (action === 'export') await downloadPresentation(id,target)
     if(action==='confirm-video-settings' && pendingVideoSettings){snapshot=await api.updateVideo(id,pendingVideoSettings);pendingVideoSettings=null;dialog.close();render();return}
     if (action === 'video-settings') {
-      showDialog(makeVideoDialog(await api.settings(),pendingVideoSettings || snapshot.project.video!.settings))
+      showDialog('<h2>Opening notebook settings</h2><p role="status">Loading your voice choices…</p><p id="error" role="alert"></p>')
+      const revision=dialogRevision
+      let settings:import('../shared/settings').StudioSettings
+      try{settings=await api.settings()}catch(reason){
+        if(dialog.open && dialogRevision===revision)showDialog(`<h2>Settings could not load</h2><p role="alert">${escape(reason instanceof Error?reason.message:'Check the connection and try again.')}</p>${button('Try again','video-settings',true)}`)
+        return
+      }
+      if(!dialog.open || dialogRevision!==revision)return
+      showDialog(makeVideoDialog(settings,pendingVideoSettings || snapshot.project.video!.settings))
       const form = dialog.querySelector<HTMLFormElement>('#video-form, #video-settings-form')!; form.id = 'video-settings-form'
       dialog.querySelector('h2')!.textContent = 'Notebook settings'
       form.querySelector('button[type=submit]')!.textContent = 'Review changes'

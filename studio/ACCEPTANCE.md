@@ -10,7 +10,7 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 | --- | --- | --- |
 | M0: standalone layout, copied tests, two-command fresh clone | `app`, `engine`, `render`, `desktop`, `shared`, `checks`; own lockfile; outside-parent install/doctor run recorded in historical notes | Partial: system tools came from the existing machine. Clean-machine provisioning is unproven. |
 | M1: real blog → rich deck, progressive slides, editing/chat/PDF | Actual Kimi K3 Canvas notebook has nine rich SVG slides. Isolated pipeline, editor and PDF checks exist. | Partial: one actual Claude source-chat reply with four validated source passages is now proven; real slide-edit quality and complete prototype visual acceptance remain unverified. |
-| M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned and produced scenes. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: new settings preview and some live processing details still need native visual review. |
+| M2: plan every scene, camera policies, transcript, states | Canvas notebook has nine planned and produced scenes. Scoped moment IDs, camera windows and fixed activity-state checks pass. | Partial: native settings preview now verifies inherited scenes and custom overrides; some live processing details still need visual review. |
 | M3: practice, record one/all, review/retake, preserve matching takes | Mocked capture lifecycle plus real synthetic media normalization, composition and trim checks; earlier native setup/cancel/retake dialog inspection | Partial: physical camera/mic permission denial, actual one/pass capture, review, retake and save need device-level verification. |
 | M4: scene downloads, transitions, joined MP4 matches UI | Actual Canvas export: nine scenes, 382.388667s, 1920×1080 H.264/AAC. UI export download matches persisted bytes; full file decoded. Earlier UI playback crossed scene boundaries. | Partial: comprehensive visual/transitions acceptance and current recovery UI review remain pending. |
 | M5: consented clone, sample/deletion, cloned voice title/end video | Clone lifecycle protocol tests; actual render fixtures for branding/title/name overlays | Partial: real provider clone, sample quality, deletion and cloned-voice video remain unverified. Requires authorized voice material/provider access. |
@@ -34,9 +34,14 @@ acceptance. The rebuild remains in progress; the old app has not been retired.
 - Downloaded `~/Downloads/video.mp4` SHA-256:
   `40c6ca726f9fa797c75cb42efb0b881edc18f7bfc21b532518ada773c2a9f014`.
   It is 31,158,136 bytes. It uses the nine actual retained scenes.
-- Native visual inspection is currently unavailable: the in-app browser control
-  times out while binding the notebook tab. A decoded MP4 frame proves saved
-  content exists; it does not prove the browser currently displays that frame.
+- Native review in a fresh in-app tab verified Scene 3 displays and plays its
+  saved content/avatar layout (`readyState=4`, no media error, advancing to
+  11.43s and moment 2). Completed activity, camera cues and scene hover gear
+  are visible. Global settings preview correctly lists inherited scenes
+  1, 2, 5, 6, 7, 8, 9 and preserves two custom overrides; it was cancelled
+  without applying changes. Screenshots are `/tmp/studio-scene-three-native-current.png`
+  and `/tmp/studio-settings-preview-verified.png`. Browser control remains
+  intermittent, and the new immediate settings-loading state still needs review.
 
 Actual source-chat evidence: `checks/source-chat.live.mjs` ran once against an
 isolated copy of the retained Canvas article with Claude Code
@@ -48,8 +53,9 @@ cap. This is one grounded answer, not slide-edit or full milestone acceptance.
 
 ## Remaining acceptance work
 
-1. Restore native browser inspection and review opening/recovery states, global
-   settings preview, live/stalled/completed activity, and the prototype layout.
+1. Continue native review of opening/recovery/loading states, live/stalled
+   activity, recording review, and the full prototype layout. Global settings
+   preview and Scene 3 playback have current native evidence.
 2. Verify physical camera/mic permission, one/open-pass capture, timed/manual stop,
    review, retake, save and final composition. The focused recording-error dialog
    has regression coverage but native visual verification remains pending. Obtain specific device authorization

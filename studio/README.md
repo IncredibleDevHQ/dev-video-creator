@@ -41,7 +41,8 @@ Practice records nothing. Recording includes permission guidance, a countdown,
 teleprompter, optional timed stop and Esc to stop. Review, save or retake before
 finishing a scene. Denied access or a busy device opens focused recovery guidance;
 retry returns to setup and checks the script before requesting devices again. Scene-card hover settings override camera presence; notebook
-settings preview their effect before applying changes.
+settings preview their effect before applying changes. Settings open with
+immediate loading feedback, and closing the dialog ignores a delayed response.
 
 Finishing combines retained animation, measured narration and speaker footage.
 Retakes reuse the animation. Download finished scenes, select transitions, produce
