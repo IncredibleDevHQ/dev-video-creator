@@ -297,20 +297,19 @@ header nav button {
   gap: 7px;
   min-height: 36px;
 }
+/* The stage caption: a count or a word after the stage's name, never an icon. */
 header nav .stage-status {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-  color: currentColor;
+  align-items: baseline;
+  margin-left: 7px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #9aa49e;
 }
-header nav .stage-status.is-ready {
-  color: #79bc91;
-}
-header nav [aria-current='page'] .stage-status.is-ready {
-  color: #277342;
+header nav [aria-current='page'] .stage-status {
+  color: #6d7571;
 }
 header nav .stage-status.needs-attention {
   color: #e4b974;
@@ -318,18 +317,16 @@ header nav .stage-status.needs-attention {
 header nav [aria-current='page'] .stage-status.needs-attention {
   color: #926319;
 }
-header nav .stage-status.is-idle {
-  opacity: 0.65;
+header nav .stage-status.is-processing .stage-caption {
+  animation: stage-pulse 1.6s ease-in-out infinite;
 }
-header nav .stage-status.is-processing {
-  border: 1.5px solid currentColor;
-  border-right-color: transparent;
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  animation: activity-turn 1.8s linear infinite;
+@keyframes stage-pulse {
+  50% {
+    opacity: 0.35;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  header nav .stage-status.is-processing {
+  header nav .stage-status.is-processing .stage-caption {
     animation: none;
   }
 }
