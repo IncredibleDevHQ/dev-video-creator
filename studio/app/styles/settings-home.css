@@ -1,0 +1,328 @@
+.settings-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: calc(100vh - 76px);
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.settings-layout > nav {
+  border-right: 1px solid var(--line);
+  padding: 28px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-layout > nav button {
+  text-align: left;
+  padding: 14px;
+  border-radius: 7px;
+}
+.settings-layout > nav button[aria-current='page'] {
+  background: #668b7518;
+  color: var(--accent);
+  font-weight: 600;
+}
+.settings-content {
+  max-width: 800px;
+  width: 100%;
+  padding: 36px 48px;
+}
+.settings-content h1 {
+  font-size: 30px;
+  margin: 0 0 8px;
+}
+.settings-content > p {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 26px;
+}
+.settings-card {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  margin: 22px 0;
+}
+.settings-card h2 {
+  font-size: 17px;
+  margin: 0 0 18px;
+}
+.settings-card h3 {
+  font-size: 14px;
+  margin-top: 28px;
+}
+.settings-card label {
+  display: block;
+  font-size: 13px;
+  margin: 18px 0;
+}
+.settings-card input:not([type='checkbox']),
+.settings-card select {
+  display: block;
+  margin-top: 8px;
+  width: 100%;
+  padding: 11px 13px;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font: inherit;
+}
+.settings-card input[type='color'] {
+  width: 80px;
+  height: 45px;
+  padding: 5px;
+}
+.settings-card .consent {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  line-height: 1.6;
+}
+.settings-card .consent input {
+  flex: 0 0 auto;
+}
+.settings-card audio {
+  display: block;
+  width: 100%;
+  margin: 15px 0;
+}
+.settings-card p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.settings-card button {
+  margin-right: 8px;
+}
+.clone-state {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+}
+.clone-state strong {
+  font-size: 14px;
+  color: var(--accent);
+}
+.clone-script {
+  margin: 22px 0;
+  padding: 18px;
+  background: var(--bg);
+  font-size: 17px;
+  line-height: 1.9;
+  border-radius: 8px;
+}
+.voice-catalogue {
+  max-height: 340px;
+  overflow: auto;
+}
+.voice-catalogue > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+  gap: 20px;
+}
+.voice-catalogue strong {
+  display: block;
+  font-size: 13px;
+}
+.voice-catalogue small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.voice-catalogue button {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.brand-logo-preview {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.brand-logo-preview img {
+  max-width: 150px;
+  max-height: 80px;
+}
+.preview-name {
+  position: absolute;
+  left: 5%;
+  bottom: 4%;
+  padding: 8px 15px;
+  border-radius: 5px;
+  background: #18251ddd;
+  color: white;
+  font-size: 18px;
+}
+.dialog-body select {
+  width: 100%;
+  margin: 8px 0 16px;
+  padding: 12px;
+  background: var(--panel);
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+@media (max-width: 800px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+  .settings-layout > nav {
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 10px;
+  }
+  .settings-content {
+    padding: 24px 18px;
+  }
+  .settings-card {
+    padding: 18px;
+  }
+  .settings-content h1 {
+    font-size: 25px;
+  }
+}
+
+.saved-notebooks {
+  margin: 56px 0 0;
+  text-align: left;
+}
+.saved-notebooks h2 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+/* Tiles, like a slide app's home: the first slide is the picture. */
+.notebook-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 18px 16px;
+}
+.notebook-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  text-align: left;
+  min-width: 0;
+}
+.notebook-tile:hover,
+.notebook-tile:focus-visible {
+  background: transparent;
+}
+.tile-picture {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.tile-picture svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.notebook-tile:hover .tile-picture,
+.notebook-tile:focus-visible .tile-picture {
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px #0000001f;
+  transform: translateY(-1px);
+}
+.tile-picture.is-building {
+  background: linear-gradient(
+    100deg,
+    var(--panel) 35%,
+    var(--selected) 50%,
+    var(--panel) 65%
+  );
+  background-size: 240% 100%;
+  animation: tile-shimmer 1.6s linear infinite;
+}
+@keyframes tile-shimmer {
+  to {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-picture.is-building {
+    animation: none;
+  }
+}
+.tile-empty {
+  font-size: 12px;
+  color: var(--muted);
+}
+.tile-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-meta,
+.tile-state {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-state {
+  color: var(--accent);
+}
+.tile-state.is-failed {
+  color: #b4572d;
+}
+.saved-notebooks > .show-all {
+  width: auto;
+  margin: 16px -12px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+@media (prefers-color-scheme: dark) {
+  .source-row textarea {
+    border-color: #454c49;
+  }
+}
+
+#source-recovery textarea {
+  display: block;
+  width: 100%;
+  min-height: 240px;
+  margin: 12px 0 20px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.scene-overlay.title-card,
+.scene-overlay.end-card {
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 600;
+}
+.scene-overlay.title-card {
+  top: 8%;
+  bottom: auto;
+}

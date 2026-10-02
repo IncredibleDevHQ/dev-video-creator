@@ -1,0 +1,216 @@
+.video-workspace {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 340px;
+  min-height: calc(100vh - 56px);
+}
+.scene-rail {
+  height: calc(100vh - 56px);
+  gap: 20px;
+}
+.scene-rail .rail-heading {
+  margin-bottom: 0;
+}
+.video-workspace > .stage-area {
+  align-self: center;
+  padding: 28px 25px 36px;
+}
+.scene-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 7px 0 0;
+}
+.scene-meta b {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.scene-state {
+  display: block;
+  font-size: 12px;
+  color: var(--accent);
+  padding: 7px 0 0;
+  line-height: 1.4;
+}
+.video-stage {
+  position: relative;
+}
+.presenter-preview {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: #101816;
+  color: #fff;
+  border-radius: 8px;
+  width: 23%;
+  height: 40%;
+  bottom: 6%;
+  right: 5%;
+}
+.presenter-preview.full-screen {
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  border-radius: 0;
+}
+.presenter-preview.beside-slide {
+  width: 30%;
+  height: 85%;
+  bottom: 7%;
+  right: 4%;
+  border-radius: 8px;
+}
+.moment-strip {
+  display: flex;
+  gap: 6px;
+  overflow: auto;
+  padding: 11px 0 9px;
+}
+.moment {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  text-align: left;
+  padding: 10px;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.moment.current {
+  border: 2px solid var(--accent);
+  padding: 9px;
+  background: var(--selected);
+}
+.moment span {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.moment small {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--muted);
+  margin-left: auto;
+}
+.video-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.video-actions > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.video-actions button {
+  font-size: 13px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 1px 3px #00000008;
+}
+.video-actions .primary {
+  background: var(--accent);
+  color: white;
+  border-color: transparent;
+}
+.transcript {
+  border-left: 1px solid var(--line);
+  padding: 20px 12px;
+  height: calc(100vh - 56px);
+  overflow: auto;
+  background: var(--panel);
+}
+.transcript-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  margin-bottom: 14px;
+}
+.transcript-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.transcript-header button {
+  font-size: 11px;
+  border: 1px solid var(--line);
+  padding: 8px;
+}
+.transcript-moment {
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.transcript-moment.current {
+  background: var(--selected);
+  border-color: #d7e6db;
+}
+.transcript-moment h3 {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.transcript-moment h3 span {
+  margin-right: 4px;
+}
+.transcript-moment h3 span::after {
+  content: ' ·';
+}
+.transcript-moment p {
+  font-size: 14px;
+  line-height: 1.75;
+  margin: 8px 0;
+  color: inherit;
+}
+.moment-layout {
+  font-size: 12px;
+  color: var(--muted);
+}
+.transcript-moment blockquote {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0;
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+}
+.anchor-chip {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 10px 12px;
+  color: #2b6040;
+  background: var(--selected);
+  border-radius: 9px;
+  font: 12px monospace;
+}
+.practice-cue {
+  position: absolute;
+  bottom: 4%;
+  left: 4%;
+  right: 4%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  background: #18281ee6;
+  color: white;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 14px;
+}
+.practice-cue strong {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}

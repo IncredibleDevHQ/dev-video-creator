@@ -1,0 +1,49 @@
+# The studio on a clean runner: a locked install, the unit and fixture tests,
+# and the production build. Fixture and stub checks prove the machinery, never
+# what a model makes; live provider checks are not run here.
+name: Studio
+
+on:
+  pull_request:
+    paths:
+      - 'studio/**'
+      - 'package.json'
+      - '.nvmrc'
+      - '.github/workflows/studio.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: studio-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install, locked
+        run: yarn install --frozen-lockfile
+
+      - name: Formatting
+        run: yarn format:check
+
+      - name: Tests
+        run: yarn run check
+
+      - name: Build
+        run: yarn build

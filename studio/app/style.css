@@ -1,0 +1,11 @@
+/* Keep imports in cascade order; later screen refinements override foundations. */
+@import './styles/foundation.css';
+@import './styles/video.css';
+@import './styles/dialogs-recording.css';
+@import './styles/settings-home.css';
+@import './styles/responsive.css';
+@import './styles/activity.css';
+@import './styles/inspector.css';
+@import './styles/playback.css';
+@import './styles/focus.css';
+@import './styles/notebook.css';

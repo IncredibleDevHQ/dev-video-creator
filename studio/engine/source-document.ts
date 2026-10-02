@@ -1,0 +1,314 @@
+// Retained prose, extraction quality and narrative sources.
+export type SourceRead = {
+  kind: 'url' | 'narrative'
+  url: string
+  site: string
+  title: string
+  description: string
+  text: string
+  words: number
+  headings: Array<{ level: number; text: string }>
+  images: Array<{ url: string; alt: string }>
+  logos: Array<{ url: string; source: string; localUrl?: string }>
+  palette: {
+    candidates: Array<{
+      hex: string
+      weight: number
+      role?: 'ground' | 'text' | 'accent' | 'secondary'
+    }>
+    ground: string
+    text: string
+    accent: string
+    secondary: string
+    themeColor: string
+    // Where the colours came from (F5 of the Perplexity review): read off a
+    // website, a default because none could be read, or chosen by hand.
+    provenance: 'extracted' | 'fallback' | 'manual'
+    // The website they were read from, or why they are a default.
+    from: string
+  }
+  fonts: { display: string; body: string; mono: string; seen: string[] }
+  warnings: string[]
+  // How much was read, and how likely it is the article (F3): a thin read
+  // may be a page's navigation, and is not planned from unless the creator
+  // says so. The excerpt and the headings let them see what was read.
+  extraction: {
+    confidence: 'good' | 'thin'
+    words: number
+    headings: number
+    excerpt: string
+    reason: string
+    tables?: number
+    codeBlocks?: number
+    notes?: string[]
+  }
+  // A document read from its host rather than its page (F3): where, and at
+  // exactly which revision.
+  origin?: {
+    host: 'github'
+    owner: string
+    repo: string
+    ref: string
+    commit: string | null
+    path: string
+    url: string
+  }
+}
+
+export const FALLBACK_PALETTE = {
+  candidates: [],
+  ground: '#0b1f3a',
+  text: '#e8f1fa',
+  accent: '#f5a623',
+  secondary: '#9cc3e6',
+  themeColor: ''
+}
+
+// An article's own text, block by block, as the outline reads it (B02 of
+// the BoltDB review): headings, prose, lists, tables as tables — every cell
+// — and code and diagrams whole. A table used to keep only the labels it
+// set in code, without what they meant, and every code block was cut at 600
+// characters without a word: a diagram lost its end. A block too long to
+// keep whole is cut where it is said to be, in the text and in a warning.
+const PROSE_LIMIT = 4_000
+const ITEM_LIMIT = 1_500
+const CODE_LIMIT = 8_000
+const INLINE = new Set([
+  'a',
+  'abbr',
+  'b',
+  'bdi',
+  'bdo',
+  'cite',
+  'code',
+  'data',
+  'del',
+  'dfn',
+  'em',
+  'font',
+  'i',
+  'ins',
+  'kbd',
+  'label',
+  'mark',
+  'q',
+  's',
+  'samp',
+  'small',
+  'span',
+  'strong',
+  'sub',
+  'sup',
+  'time',
+  'u',
+  'var',
+  'wbr',
+  'br'
+])
+const SKIPPED = new Set([
+  'hr',
+  'img',
+  'picture',
+  'video',
+  'audio',
+  'canvas',
+  'input',
+  'select',
+  'textarea',
+  'template'
+])
+export const articleText = (container: Element) => {
+  const headings: SourceRead['headings'] = []
+  const blocks: string[] = []
+  const notes: string[] = []
+  let tables = 0
+  let codeBlocks = 0
+  let near = ''
+  const clip = (text: string, limit: number, what: string) => {
+    if (text.length <= limit) return text
+    notes.push(
+      `${what}${near ? ` in “${near}”` : ''} was ${text.length.toLocaleString('en')} characters; its first ${limit.toLocaleString('en')} were read`
+    )
+    return `${text.slice(0, limit)} … [cut: ${(text.length - limit).toLocaleString('en')} more characters]`
+  }
+  const flat = (node: Element) =>
+    (node.textContent || '').replace(/\s+/g, ' ').trim()
+  const code = (node: Element) => {
+    const raw = (node.textContent || '').replace(/^\n+/, '').replace(/\s+$/, '')
+    if (!raw.trim()) return
+    codeBlocks += 1
+    blocks.push('```\n' + clip(raw, CODE_LIMIT, 'A code block') + '\n```')
+  }
+  const table = (node: Element) => {
+    const rows = Array.from(node.querySelectorAll('tr')).filter(
+      (row) => row.closest('table') === node
+    )
+    const cells = rows
+      .map((row) =>
+        Array.from(row.children)
+          .filter((cell) => /^(td|th)$/i.test(cell.tagName))
+          .map((cell) => flat(cell).replace(/\|/g, '\\|'))
+      )
+      .filter((row) => row.some(Boolean))
+    if (!cells.length) return
+    tables += 1
+    const width = Math.max(...cells.map((row) => row.length))
+    const line = (row: string[]) =>
+      `| ${Array.from({ length: width }, (_, index) => row[index] || '').join(' | ')} |`
+    const caption = node.querySelector('caption')
+    blocks.push(
+      [
+        ...(caption && flat(caption) ? [`(table: ${flat(caption)})`] : []),
+        line(cells[0]),
+        `| ${Array.from({ length: width }, () => '---').join(' | ')} |`,
+        ...cells.slice(1).map(line)
+      ].join('\n')
+    )
+  }
+  const block = (node: Element, tag: string) => {
+    const text = flat(node)
+    if (/^h[1-6]$/.test(tag)) {
+      if (!text) return
+      const level = Math.min(4, Number(tag[1]))
+      headings.push({ level, text: text.slice(0, 140) })
+      blocks.push(`${'#'.repeat(level)} ${text.slice(0, 140)}`)
+      near = text.slice(0, 80)
+    } else if (tag === 'p' || tag === 'blockquote') {
+      if (text) blocks.push(clip(text, PROSE_LIMIT, 'A paragraph'))
+    } else if (tag === 'li') {
+      if (text) blocks.push(`- ${clip(text, ITEM_LIMIT, 'A list item')}`)
+    } else if (
+      tag === 'pre' ||
+      (tag === 'code' && (node.textContent || '').includes('\n'))
+    )
+      code(node)
+    else if (tag === 'table') table(node)
+    else if (tag === 'dt') {
+      if (text) blocks.push(`- ${text}`)
+    } else if (tag === 'dd') {
+      if (text) blocks.push(`  ${clip(text, ITEM_LIMIT, 'A definition')}`)
+    } else if (tag === 'figcaption') {
+      if (text) blocks.push(`(figure: ${text.slice(0, 200)})`)
+    } else if (!SKIPPED.has(tag)) walk(node)
+  }
+  // Text set loose in a container, beside or between its blocks, is a
+  // paragraph of its own.
+  const walk = (node: Element) => {
+    let run = ''
+    const flush = () => {
+      const text = run.replace(/\s+/g, ' ').trim()
+      run = ''
+      if (text) blocks.push(clip(text, PROSE_LIMIT, 'A paragraph'))
+    }
+    Array.from(node.childNodes).forEach((child) => {
+      if (child.nodeType === 3) {
+        run += child.textContent || ''
+        return
+      }
+      if (child.nodeType !== 1) return
+      const element = child as Element
+      const tag = element.tagName.toLowerCase()
+      if (
+        INLINE.has(tag) &&
+        !(tag === 'code' && (element.textContent || '').includes('\n')) &&
+        !element.querySelector(
+          'p, div, pre, table, ul, ol, h1, h2, h3, h4, h5, h6, blockquote, figure'
+        )
+      ) {
+        run += tag === 'br' ? ' ' : element.textContent || ''
+        return
+      }
+      flush()
+      block(element, tag)
+    })
+    flush()
+  }
+  walk(container)
+  return {
+    text: blocks
+      .join('\n\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim(),
+    headings,
+    tables,
+    codeBlocks,
+    notes
+  }
+}
+
+// How much was read, and how sure the read is that it is the article.
+export const extractionOf = (
+  text: string,
+  headings: number,
+  where = ''
+): SourceRead['extraction'] => {
+  const words = text.split(/\s+/).filter(Boolean).length
+  const thin = words < 150
+  return {
+    confidence: thin ? 'thin' : 'good',
+    words,
+    headings,
+    excerpt: text.replace(/\s+/g, ' ').trim().slice(0, 600),
+    reason: thin
+      ? `Only ${words} word${words === 1 ? '' : 's'} ${words === 1 ? 'was' : 'were'} read${where ? ` from ${where}` : ''} — it may be the page's navigation, not the article.`
+      : ''
+  }
+}
+
+export const readSourceNarrative = (
+  narrative: string,
+  title = ''
+): SourceRead => {
+  const given = String(narrative || '')
+    .replace(/\r\n?/g, '\n')
+    .trim()
+  const text = given.slice(0, 24_000)
+  // A text too long to read whole says so (B02 of the BoltDB review).
+  const cuts =
+    given.length > text.length
+      ? [
+          `The text was long; its first 24,000 characters were read, and ${(given.length - text.length).toLocaleString('en')} more were left out`
+        ]
+      : []
+  const headings = (text.match(/^#{1,4}\s+.+$/gm) || []).map((line) => ({
+    level: (line.match(/^#+/) || ['#'])[0].length,
+    text: line.replace(/^#+\s+/, '').slice(0, 140)
+  }))
+  const firstLine =
+    text
+      .split('\n')
+      .find((line) => line.trim())
+      ?.replace(/^#+\s+/, '')
+      .trim() || 'Untitled'
+  return {
+    kind: 'narrative',
+    url: '',
+    site: '',
+    title: (title || firstLine).slice(0, 160),
+    description: '',
+    text,
+    words: text.split(/\s+/).filter(Boolean).length,
+    headings,
+    images: [],
+    logos: [],
+    palette: {
+      ...FALLBACK_PALETTE,
+      provenance: 'fallback',
+      from: 'no brand website was given'
+    },
+    fonts: {
+      display: 'Segoe UI',
+      body: 'Segoe UI',
+      mono: 'Consolas',
+      seen: []
+    },
+    warnings: cuts,
+    // The creator's own words are what they are: never thin by length.
+    extraction: {
+      ...extractionOf(text, headings.length),
+      confidence: 'good',
+      reason: '',
+      notes: cuts
+    }
+  }
+}

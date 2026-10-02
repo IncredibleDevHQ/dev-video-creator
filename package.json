@@ -1,84 +1,21 @@
 {
-	"name": "monorepo",
+	"name": "incredible-studio",
 	"version": "0.0.0",
 	"private": true,
-	"workspaces": [
-		"apps/*",
-		"packages/*"
-	],
+	"description": "Incredible Studio lives in studio/. These scripts run it from the repository root.",
 	"scripts": {
-		"build": "turbo run build",
-		"commit": "cz",
-		"dev": "turbo run dev --parallel",
-		"lint": "turbo run lint",
-		"format": "prettier --write \"**/*.{ts,tsx,md,js,jsx}\"",
-		"studio:setup": "yarn install --ignore-scripts && yarn workspace studio-v2 exec puppeteer browsers install chrome",
-		"studio:infra": "docker compose up -d minio studio-db",
-		"studio:infra:stop": "docker compose stop minio studio-db",
-		"studio:backup": "node apps/studio-v2/scripts/studio-backup.mjs backup",
-		"studio:restore": "node apps/studio-v2/scripts/studio-backup.mjs restore",
-		"studio": "yarn workspace studio-v2 dev",
-		"studio:build": "yarn workspace studio-v2 build",
-		"studio:start": "yarn workspace studio-v2 start",
-		"studio:test": "yarn workspace node-identifier test && yarn workspace markdown-composition test && yarn workspace studio-v2 typecheck",
-		"studio:check": "yarn workspace studio-v2 build && yarn workspace studio-desktop build && node apps/studio-desktop/scripts/release-check.mjs",
-		"prepare": "husky install && turbo run prepare",
-		"postinstall": "turbo run postinstall"
-	},
-	"devDependencies": {
-		"commitizen": "^4.2.4",
-		"cz-conventional-changelog": "^3.3.0",
-		"husky": "^8.0.1",
-		"lint-staged": "^13.0.2",
-		"prettier": "latest",
-		"ts-node": "^10.9.1",
-		"turbo": "latest"
-	},
-	"resolutions": {
-		"@types/react": "17.0.37",
-		"prosemirror-changeset": "^2.4.1",
-		"prosemirror-commands": "^1.7.1",
-		"prosemirror-dropcursor": "^1.8.2",
-		"prosemirror-gapcursor": "^1.4.1",
-		"prosemirror-history": "^1.5.0",
-		"prosemirror-inputrules": "^1.5.1",
-		"prosemirror-keymap": "^1.2.3",
-		"prosemirror-model": "^1.25.11",
-		"prosemirror-schema-list": "^1.5.1",
-		"prosemirror-state": "^1.4.4",
-		"prosemirror-tables": "^1.8.5",
-		"prosemirror-transform": "^1.12.0",
-		"prosemirror-view": "^1.41.9"
+		"setup": "yarn --cwd studio setup",
+		"doctor": "yarn --cwd studio doctor",
+		"dev": "yarn --cwd studio dev",
+		"desktop": "yarn --cwd studio desktop",
+		"start": "yarn --cwd studio start",
+		"test": "yarn --cwd studio run check",
+		"test:storage": "yarn --cwd studio run check:storage",
+		"build": "yarn --cwd studio build",
+		"format": "yarn --cwd studio format",
+		"format:check": "yarn --cwd studio format:check"
 	},
 	"engines": {
-		"npm": ">=7.0.0",
-		"node": ">=14.0.0"
-	},
-	"lint-staged": {
-		"apps/**/*.{js,ts,jsx,tsx}": [
-			"eslint --fix"
-		],
-		"packages/ui/**/*.{js,ts,jsx,tsx}": [
-			"eslint --fix"
-		],
-		"packages/editor/**/*.{js,ts,jsx,tsx}": [
-			"eslint --fix"
-		],
-		"packages/icanvas/**/*.{js,ts,jsx,tsx}": [
-			"eslint --fix"
-		],
-		"packages/prisma-orm/**/*.{js,ts,jsx,tsx}": [
-			"eslint --fix"
-		],
-		"packages/server/**/*.{js,ts,jsx,tsx}": [
-			"eslint --fix"
-		],
-		"packages/utils/**/*.{js,ts,jsx,tsx}": [
-			"eslint --fix"
-		],
-		"*.json": [
-			"prettier --write"
-		]
-	},
-	"packageManager": "yarn@1.22.10"
+		"node": ">=22"
+	}
 }
