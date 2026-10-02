@@ -656,6 +656,9 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
   }
 }
 
+/** A slide picture with something in it: an empty <svg/> placeholder is not one. */
+const drawn = (svg: string | null | undefined) =>
+  Boolean(svg && !/^<svg[^>]*(\/>|>\s*<\/svg>)\s*$/i.test(svg.trim()))
 const siteOf = (url?: string) => {
   try {
     return url ? new URL(url).hostname.replace(/^www\./, '') : null
@@ -677,7 +680,8 @@ export const listNotebooks = async (): Promise<
         hasVideo: Boolean(saved.project.video),
         updatedAt: saved.events.at(-1)?.time || null,
         site: siteOf(saved.project.sourceUrl),
-        preview: saved.project.slides.find((slide) => slide.svg)?.svg ?? null,
+        preview:
+          saved.project.slides.find((slide) => drawn(slide.svg))?.svg ?? null,
         slides: saved.project.slides.length
       })
   }
