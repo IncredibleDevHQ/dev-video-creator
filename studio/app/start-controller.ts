@@ -1,5 +1,6 @@
 import { api } from './api'
 import type { AppContext } from './app-context'
+import type { NotebookSummary } from '../shared/api'
 import incredibleLogo from './assets/incredible-logo.svg'
 import { aiLabel, chooseAiDialog } from './choose-ai'
 import { replacePlayerView } from './player-view'
@@ -46,11 +47,35 @@ export const createFitSource =
     if (hint) hint.textContent = app.sourceHint(field.value)
   }
 
+const notebookState = (item: NotebookSummary) =>
+  item.status === 'failed'
+    ? 'Needs another try'
+    : item.status === 'building'
+      ? 'Slides in progress'
+      : item.hasVideo
+        ? 'Video in progress'
+        : 'Slides ready'
+
+/** One tile: the first slide as its picture, then the title and where it came from. */
+const notebookTile = (
+  app: AppContext,
+  item: NotebookSummary
+) => `<button class="notebook-tile" data-notebook="${escape(item.id)}">
+<span class="tile-picture ${item.status === 'building' ? 'is-building' : ''}" aria-hidden="true">
+${item.preview || `<span class="tile-empty">${item.status === 'building' ? 'Designing…' : 'No slides yet'}</span>`}
+</span>
+<span class="tile-title">${escape(item.title)}</span>
+<span class="tile-meta">${escape(item.site || 'Your text')}${
+  item.updatedAt ? ` · ${escape(app.ago(item.updatedAt))}` : ''
+}</span>
+<span class="tile-state ${item.status === 'failed' ? 'is-failed' : ''}">${notebookState(item)}</span>
+</button>`
+
 export const createRenderStartScreen = (app: AppContext) => () => {
   const previousPlayer = app.root.querySelector<HTMLMediaElement>(
     '[data-scene-player]'
   )
-  const recent = app.showAllRecent ? app.notebooks : app.notebooks.slice(0, 5)
+  const recent = app.showAllRecent ? app.notebooks : app.notebooks.slice(0, 6)
   replacePlayerView(
     app.root,
     `<header class="home">
@@ -85,29 +110,9 @@ ${
   app.notebooks.length
     ? `<section class="saved-notebooks" aria-labelledby="recent-heading">
 <h2 id="recent-heading">Recent</h2>
-${recent
-  .map(
-    (item) =>
-      `<button data-notebook="${escape(item.id)}">
-<span class="recent-title">
-${escape(item.title)}<small>
-${escape(item.site || 'Your text')}${
-        item.updatedAt ? ` · ${escape(app.ago(item.updatedAt))}` : ''
-      }</small>
-</span>
-<small class="recent-state">
-${
-  item.status === 'failed'
-    ? 'Needs another try'
-    : item.status === 'building'
-      ? 'Slides in progress'
-      : item.hasVideo
-        ? 'Video in progress'
-        : 'Slides ready'
-} →</small>
-</button>`
-  )
-  .join('')}${
+<div class="notebook-tiles">
+${recent.map((item) => notebookTile(app, item)).join('')}
+</div>${
         app.notebooks.length > recent.length
           ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${app.notebooks.length}</button>`
           : ''

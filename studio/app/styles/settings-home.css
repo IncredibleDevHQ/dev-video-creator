@@ -196,46 +196,104 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 0 0 8px;
+  margin: 0 0 14px;
 }
-.saved-notebooks > button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: calc(100% + 24px);
-  margin: 0 -12px;
-  padding: 12px;
-  border-radius: 0;
-  gap: 20px;
-  text-align: left;
-  font-size: 15px;
+/* Tiles, like a slide app's home: the first slide is the picture. */
+.notebook-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 18px 16px;
 }
-.saved-notebooks > button + button {
-  border-top-color: var(--line);
-}
-.saved-notebooks > button:hover,
-.saved-notebooks > button:hover + button {
-  border-top-color: transparent;
-}
-.recent-title {
+.notebook-tile {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  text-align: left;
   min-width: 0;
-  font-weight: 500;
 }
-.recent-title small,
-.recent-state {
-  color: var(--muted);
+.notebook-tile:hover,
+.notebook-tile:focus-visible {
+  background: transparent;
+}
+.tile-picture {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.tile-picture svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.notebook-tile:hover .tile-picture,
+.notebook-tile:focus-visible .tile-picture {
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px #0000001f;
+  transform: translateY(-1px);
+}
+.tile-picture.is-building {
+  background: linear-gradient(
+    100deg,
+    var(--panel) 35%,
+    var(--selected) 50%,
+    var(--panel) 65%
+  );
+  background-size: 240% 100%;
+  animation: tile-shimmer 1.6s linear infinite;
+}
+@keyframes tile-shimmer {
+  to {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-picture.is-building {
+    animation: none;
+  }
+}
+.tile-empty {
   font-size: 12px;
-  font-weight: 400;
-  white-space: nowrap;
+  color: var(--muted);
+}
+.tile-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-meta,
+.tile-state {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-state {
+  color: var(--accent);
+}
+.tile-state.is-failed {
+  color: #b4572d;
 }
 .saved-notebooks > .show-all {
   width: auto;
-  margin: 6px -12px 0;
+  margin: 16px -12px 0;
   font-size: 13px;
   color: var(--muted);
 }

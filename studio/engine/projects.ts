@@ -676,7 +676,9 @@ export const listNotebooks = async (): Promise<
         status: saved.status,
         hasVideo: Boolean(saved.project.video),
         updatedAt: saved.events.at(-1)?.time || null,
-        site: siteOf(saved.project.sourceUrl)
+        site: siteOf(saved.project.sourceUrl),
+        preview: saved.project.slides.find((slide) => slide.svg)?.svg ?? null,
+        slides: saved.project.slides.length
       })
   }
   return result

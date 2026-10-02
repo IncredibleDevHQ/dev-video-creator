@@ -75,6 +75,9 @@ export type NotebookSummary = {
   hasVideo: boolean
   updatedAt: string | null
   site: string | null
+  /** The first drawn slide, as the tile's picture. */
+  preview: string | null
+  slides: number
 }
 
 export type HarnessChoice = {
