@@ -566,8 +566,12 @@ dialog[data-story] .brand-story {
   margin-bottom: 12px;
 }
 .look-remember {
-  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
   font-size: 12px;
+  color: var(--muted);
 }
 
 /* Rehearse: the wireframe, the next one, its script and a timer. */

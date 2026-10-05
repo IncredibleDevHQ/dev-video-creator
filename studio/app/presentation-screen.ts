@@ -94,8 +94,12 @@ export const presentationScreen = (
   const { project, status } = snapshot
   const tiles = wireframeTiles(snapshot)
   const now = drawingNow(snapshot, tiles)
-  const planTile = view.plan
-    ? (tiles.find((tile) => tile.kind === 'plan' && tile.id === view.plan) as
+  // Before any picture exists, the canvas opens on the story's first scene.
+  const planId =
+    view.plan ||
+    (!project.slides.length && tiles[0]?.kind === 'plan' ? tiles[0].id : null)
+  const planTile = planId
+    ? (tiles.find((tile) => tile.kind === 'plan' && tile.id === planId) as
         | Extract<WireframeTile, { kind: 'plan' }>
         | undefined)
     : undefined
