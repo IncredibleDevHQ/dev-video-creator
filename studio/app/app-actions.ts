@@ -18,6 +18,7 @@ import { closeLookPanel, openLookPanel } from './look-panel'
 import { closePopover } from './popover'
 import { openPresenter } from './presenter-view'
 import { clickVideo, submitVideo } from './video-controller'
+import { syncSceneChoice } from './scene-link'
 
 export const installAppActions = (app: AppContext) => {
   document.addEventListener('submit', async (event) => {
@@ -240,6 +241,7 @@ export const installAppActions = (app: AppContext) => {
     )
     if (!form) return
     if (app.settingsScreen.isOpen) return
+    syncSceneChoice(form, event.target)
     const values = new FormData(form)
     const warning = form.querySelector<HTMLElement>('.two-voices')!
     warning.hidden =

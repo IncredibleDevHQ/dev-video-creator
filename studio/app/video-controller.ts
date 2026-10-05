@@ -18,6 +18,7 @@ import { reviewLayoutSecond, takeReviewPosition } from './take-review-clock'
 import { followTranscript } from './transcript-follow'
 import { button, escape } from './ui'
 import { makeVideoDialog } from './video-screen'
+import { syncSceneChoice } from './scene-link'
 import { videoSettingsPreview } from './video-settings-preview'
 import { parseVoice } from './voice-choice'
 
@@ -409,16 +410,9 @@ ${button('Try again', 'video-settings', true)}`
           only: action === 'make-video-one'
         })
       )
+      syncSceneChoice(app.dialog)
     }
   }
-  // The dialog's quick choices: every wireframe, or the one in view.
-  if (action === 'choose-scenes-all' || action === 'choose-scenes-one')
-    for (const box of app.dialog.querySelectorAll<HTMLInputElement>(
-      '.scene-choice input[name=scene]'
-    ))
-      box.checked =
-        action === 'choose-scenes-all' ||
-        Number(box.dataset.sceneIndex) === app.selected
   if (action === 'make-scene' && target.dataset.sceneId) {
     app.snapshot = await api.makeScene(id, target.dataset.sceneId)
     if (app.dialog.open) app.dialog.close()

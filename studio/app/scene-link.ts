@@ -105,30 +105,61 @@ export const sceneLink = (
   )
 }
 
-/** Which scenes a new video makes: all are ticked unless only one is asked. */
+/**
+ * Which scenes a new video makes: "All scenes" ticks or clears every one, and
+ * each can be ticked on its own. All start ticked, or only the one asked for.
+ */
 export const sceneChoice = (
   slides: Slide[],
   selected: number | null,
   only: boolean
-) => `<fieldset class="scene-choice">
+) => {
+  const ticked = only && selected !== null ? 1 : slides.length
+  return `<fieldset class="scene-choice">
 <legend>Scenes to make</legend>
-<p class="scene-choice-quick">${button(`All ${slides.length}`, 'choose-scenes-all')}${
-  selected !== null
-    ? button(`Just wireframe ${selected + 1}`, 'choose-scenes-one')
-    : ''
-}</p>
+<label class="scene-choice-all"><input type="checkbox" data-scene-all ${
+    ticked === slides.length ? 'checked' : ''
+  }><span>All scenes</span><span class="scene-choice-count">${ticked} of ${
+    slides.length
+  }</span></label>
 <ul>${slides
-  .map(
-    (slide, index) =>
-      `<li><label><input type="checkbox" name="scene" value="${escape(
-        slide.id
-      )}" data-scene-index="${index}" ${
-        !only || index === selected ? 'checked' : ''
-      }><span class="scene-choice-number">${String(index + 1).padStart(
-        2,
-        '0'
-      )}</span>${escape(slide.title || 'Wireframe')}</label></li>`
-  )
-  .join('')}</ul>
+    .map(
+      (slide, index) =>
+        `<li><label><input type="checkbox" name="scene" value="${escape(
+          slide.id
+        )}" data-scene-index="${index}" ${
+          !only || index === selected ? 'checked' : ''
+        }><span class="scene-choice-number">${String(index + 1).padStart(
+          2,
+          '0'
+        )}</span>${escape(slide.title || 'Wireframe')}</label></li>`
+    )
+    .join('')}</ul>
 <small>Scenes you leave out can be made later, from their wireframe or the Video page.</small>
 </fieldset>`
+}
+
+/**
+ * Keep "All scenes" and the scenes in step: it sets every scene, and the
+ * scenes set it — ticked, clear, or part-ticked — with the count beside it.
+ */
+export const syncSceneChoice = (
+  root: ParentNode,
+  changed?: EventTarget | null
+) => {
+  const all = root.querySelector<HTMLInputElement>(
+    '.scene-choice [data-scene-all]'
+  )
+  const boxes = [
+    ...root.querySelectorAll<HTMLInputElement>(
+      '.scene-choice input[name=scene]'
+    )
+  ]
+  if (!all || !boxes.length) return
+  if (changed === all) for (const box of boxes) box.checked = all.checked
+  const ticked = boxes.filter((box) => box.checked).length
+  all.checked = ticked === boxes.length
+  all.indeterminate = ticked > 0 && ticked < boxes.length
+  const count = root.querySelector('.scene-choice-count')
+  if (count) count.textContent = `${ticked} of ${boxes.length}`
+}

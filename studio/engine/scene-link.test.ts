@@ -3,7 +3,9 @@ import type { Snapshot } from '../shared/api'
 import type { Scene } from '../shared/model'
 import { projectViews } from '../shared/state'
 vi.mock('../app/api', () => ({ api: {} }))
-const { sceneBadge, sceneLink, sceneChoice } = await import('../app/scene-link')
+const { sceneBadge, sceneLink, sceneChoice, syncSceneChoice } =
+  await import('../app/scene-link')
+const { parseHTML } = await import('linkedom')
 const { presentationScreen } = await import('../app/presentation-screen')
 
 const scene = (id: string, phase: Scene['phase']): Scene => ({
@@ -104,9 +106,52 @@ it('ticks every wireframe for a new video, or only the one asked for', () => {
       (match) => match[1]
     )
   expect(ticked(sceneChoice(slides, 1, false))).toEqual(['a', 'b', 'c'])
+  expect(sceneChoice(slides, 1, false)).toContain(
+    '<input type="checkbox" data-scene-all checked><span>All scenes</span><span class="scene-choice-count">3 of 3</span>'
+  )
   expect(ticked(sceneChoice(slides, 1, true))).toEqual(['b'])
-  expect(sceneChoice(slides, 1, true)).toContain('Just wireframe 2')
-  expect(sceneChoice(slides, null, false)).not.toContain('Just wireframe')
+  expect(sceneChoice(slides, 1, true)).toContain('1 of 3')
+})
+
+it('lets All scenes tick or clear every scene, and follows the scenes', () => {
+  const { document } = parseHTML(
+    `<form>${sceneChoice(snapshot(false).project.slides, 1, true)}</form>`
+  )
+  const all = document.querySelector('[data-scene-all]') as HTMLInputElement
+  const boxes = [
+    ...document.querySelectorAll('input[name=scene]')
+  ] as HTMLInputElement[]
+  const count = () => document.querySelector('.scene-choice-count')!.textContent
+  // A browser starts each box's state from its checked attribute; linkedom
+  // has no checked property, so set it the same way.
+  for (const box of [all, ...boxes]) box.checked = box.hasAttribute('checked')
+  syncSceneChoice(document)
+  expect([all.checked, all.indeterminate, count()]).toEqual([
+    false,
+    true,
+    '1 of 3'
+  ])
+  all.checked = true
+  syncSceneChoice(document, all)
+  expect(boxes.map((box) => box.checked)).toEqual([true, true, true])
+  expect([all.checked, all.indeterminate, count()]).toEqual([
+    true,
+    false,
+    '3 of 3'
+  ])
+  // Clear them all, then pick particular scenes.
+  all.checked = false
+  syncSceneChoice(document, all)
+  expect(boxes.map((box) => box.checked)).toEqual([false, false, false])
+  expect(count()).toBe('0 of 3')
+  boxes[0].checked = true
+  boxes[2].checked = true
+  syncSceneChoice(document, boxes[2])
+  expect([all.checked, all.indeterminate, count()]).toEqual([
+    false,
+    true,
+    '2 of 3'
+  ])
 })
 
 it('puts the scene badge on the tiles and the scene under the wireframe', () => {
