@@ -41,6 +41,9 @@ export const agentActivity = (snapshot: Snapshot) => {
         ? 'planning the story'
         : 'reading the article'
     }
+    const now = (snapshot.drawing || []).map((index) => index + 1)
+    if (now.length)
+      return `drawing ${now.length > 1 ? `${now.slice(0, -1).join(', ')} and ${now.at(-1)}` : now[0]} of ${total}`
     return drawn >= total
       ? 'checking the wireframes'
       : `drawing ${drawn + 1} of ${total}`

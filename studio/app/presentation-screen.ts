@@ -37,9 +37,14 @@ export const wireframeTiles = (snapshot: Snapshot): WireframeTile[] => {
   return tiles
 }
 
-/** Which undrawn scenes the agent is drawing now (two at a time after the first). */
+/** Which undrawn scenes the agent is drawing now, as the engine reports them. */
 const drawingNow = (snapshot: Snapshot, tiles: WireframeTile[]) => {
   if (snapshot.status !== 'building' || snapshot.stopping) return new Set()
+  if (snapshot.drawing && snapshot.plan)
+    return new Set(
+      snapshot.drawing.map((index) => snapshot.plan![index]?.id).filter(Boolean)
+    )
+  // Older engines: the first missing pages, two at a time after the first.
   const missing = tiles.filter((tile) => tile.kind === 'plan')
   const drawn = tiles.length - missing.length
   return new Set(missing.slice(0, drawn ? 2 : 1).map((tile) => tile.id))

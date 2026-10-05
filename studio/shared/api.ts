@@ -27,6 +27,8 @@ export type Snapshot = {
   plannedSlides?: number
   /** The outline while its wireframes are drawn: titles and script first. */
   plan?: Array<{ id: string; title: string; narration: string }>
+  /** Outline indexes of the pages the agent is drawing right now. */
+  drawing?: number[]
   /** Wireframe changes waiting for, or with, the agent. */
   changes?: SlideChange[]
   progress?: { label: string; startedAt: string }

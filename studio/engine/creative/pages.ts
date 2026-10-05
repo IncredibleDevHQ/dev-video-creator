@@ -88,6 +88,8 @@ export const prepareCreativePages = async (input: {
   pageOffset?: number
   reuseStyle?: boolean
   onDraft?: (index: number, svg: string) => Promise<void>
+  /** The outline indexes of the pages in a call right now, as they change. */
+  onDrawing?: (indexes: number[]) => Promise<void>
   brief?: import('./explanation-brief').ExplanationBriefV1
   /** A creator's change to one drawn page, optionally pinned to a part of it. */
   edit?: {
@@ -254,7 +256,26 @@ export const prepareCreativePages = async (input: {
       await show(number, svg)
       return { accepted: true, page: number }
     }
+    const inFlight = new Set<number>()
+    const reportDrawing = () =>
+      input.onDrawing?.(
+        [...inFlight].sort((a, b) => a - b).map((n) => n - 1 - offset)
+      )
     const drawPage = async (
+      number: number,
+      design: boolean,
+      fix: string[] = []
+    ) => {
+      inFlight.add(number)
+      await reportDrawing()
+      try {
+        await drawOnePage(number, design, fix)
+      } finally {
+        inFlight.delete(number)
+        await reportDrawing()
+      }
+    }
+    const drawOnePage = async (
       number: number,
       design: boolean,
       fix: string[] = []

@@ -153,16 +153,25 @@ it('draws the design system with page one, then each later page in a call of its
     )
     .mockImplementationOnce(drawInto(join(root, 'second'), page2))
   const source = readSourceNarrative('Fixture speech and supporting words.')
+  const onDrawing = vi.fn(async (_indexes: number[]) => {})
   const input = {
     projectId: 'fixture',
     source,
     outline: two,
     brand: pageBrandFrom(source.palette, source.fonts),
     selection: { adapter: 'kimi' as const, model: 'fixture-model' },
-    origin: 'http://fixture'
+    origin: 'http://fixture',
+    onDrawing
   }
   expect(await prepareCreativePages(input)).toEqual([svg, svg2])
   expect(run).toHaveBeenCalledTimes(2)
+  // The engine says which pages are in a call, not a guess from the counts.
+  expect(onDrawing.mock.calls.map((call) => call[0])).toEqual([
+    [0],
+    [],
+    [1],
+    []
+  ])
   const [first, second] = run.mock.calls.map((call) => call[0])
   expect(first).toMatchObject({ operation: 'design', route: 'Draw Pages' })
   expect(first.task).toContain('design system and its first page only')

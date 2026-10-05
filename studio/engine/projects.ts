@@ -129,6 +129,7 @@ export const scheduleSlides = (id: string) => {
     .catch(async (reason) => {
       await changeProject(id, (current) => {
         current.status = 'failed'
+        delete current.drawing
         current.error = current.stopping
           ? generationStops.user
           : reason instanceof SourceReadError
@@ -413,6 +414,10 @@ const buildSlides = async (id: string) => {
     source,
     outline,
     onDraft,
+    onDrawing: (indexes) =>
+      changeProject(id, (current) => {
+        current.drawing = indexes
+      }).then(() => {}),
     brief: sourceBrief?.brief,
     brand: designBrand,
     selection: snapshot.project.harness,
@@ -466,6 +471,7 @@ const buildSlides = async (id: string) => {
     current.status = 'ready'
     current.error = null
     delete current.plan
+    delete current.drawing
     addEvent(current, 'slide', 'Wireframes ready')
   })
 }
