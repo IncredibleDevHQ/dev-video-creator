@@ -159,6 +159,13 @@ ${escape(project.title)}</h1>
     }</main>`,
     previousPlayer
   )
+  // A video drawn with `muted` is not muted by that alone when the page is
+  // made from markup: say it outright, so a silent animation plays muted and
+  // the browser lets it play on without a click (the whole scene plays on).
+  for (const media of app.root.querySelectorAll<HTMLVideoElement>(
+    'video[muted]'
+  ))
+    media.muted = true
   if (app.snapshot.readOnly) {
     for (const input of app.root.querySelectorAll<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
