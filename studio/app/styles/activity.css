@@ -267,6 +267,23 @@
   box-shadow: 0 0 0 4px #45b77420;
   animation: scene-breathe 1.8s ease-in-out infinite;
 }
+/* A step that is live shows a turning ring in place of its dot. Inline, the
+   ring kept no size and drew as a bar across the dot. */
+.activity-log .current .activity-marker:has(.activity-orbit) {
+  position: relative;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+.activity-marker .activity-orbit {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: auto;
+  height: auto;
+  box-sizing: border-box;
+  border-width: 2px;
+}
 .activity-log p {
   margin: 0;
   font-size: 13px;
