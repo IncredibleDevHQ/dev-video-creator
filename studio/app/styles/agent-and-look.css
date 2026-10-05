@@ -569,3 +569,128 @@ dialog[data-story] .brand-story {
   margin-top: 14px;
   font-size: 12px;
 }
+
+/* Rehearse: the wireframe, the next one, its script and a timer. */
+.presenter-view {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  padding: 24px;
+  background: #0d1011;
+  color: #e8ece9;
+}
+.presenter-view[data-mode='slide'] {
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+  background: #000;
+}
+.presenter-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+}
+.presenter-slide {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
+}
+.presenter-view[data-mode='slide'] .presenter-slide {
+  width: min(100vw, calc(100vh * 16 / 9));
+  border-radius: 0;
+}
+.presenter-slide svg,
+.presenter-next svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.presenter-position {
+  margin: 0;
+  color: #9aa49e;
+  font-size: 13px;
+}
+.presenter-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.presenter-side h3 {
+  margin: 8px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa49e;
+}
+.presenter-timer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font:
+    600 34px/1 ui-monospace,
+    Menlo,
+    monospace;
+  font-variant-numeric: tabular-nums;
+}
+.presenter-timer button,
+.presenter-close {
+  padding: 6px 12px;
+  border: 1px solid #ffffff2b;
+  border-radius: 8px;
+  color: inherit;
+  font:
+    13px Inter,
+    sans-serif;
+}
+.presenter-next {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  opacity: 0.85;
+}
+.presenter-next span {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #333;
+  font-size: 13px;
+}
+.presenter-script {
+  flex: 1;
+  margin: 0;
+  overflow-y: auto;
+  font-size: 19px;
+  line-height: 1.5;
+}
+.presenter-keys {
+  margin: 0;
+  color: #9aa49e;
+  font-size: 12px;
+}
+.presenter-keys kbd {
+  padding: 1px 5px;
+  border: 1px solid #ffffff2b;
+  border-radius: 4px;
+  font:
+    11px ui-monospace,
+    Menlo,
+    monospace;
+}
+.presenter-close {
+  align-self: flex-start;
+}
+@media (max-width: 900px) {
+  .presenter-view {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+}

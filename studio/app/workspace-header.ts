@@ -15,8 +15,11 @@ const exportIcon =
 const palette =
   '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4.1-4-7.4-9-7.4Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>'
 
+const play =
+  '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>'
 const wireframeTools = (status: Snapshot['status']) =>
   `<button type="button" data-action="look-panel" class="header-look" title="Colours and fonts">${palette}<span>Look</span></button>` +
+  `<button type="button" data-action="rehearse" class="header-look" title="Rehearse with the script: ← → P F Esc" ${status === 'reading' ? 'disabled' : ''}>${play}<span>Rehearse</span></button>` +
   `<button type="button" data-action="export" class="header-export icon-button" aria-label="Export wireframes" title="Export wireframes" ${status !== 'ready' ? 'disabled' : ''}>${exportIcon}</button>`
 
 /**

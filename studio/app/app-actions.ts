@@ -16,6 +16,7 @@ import { openAgentMenu } from './agent-menu'
 import { openLengthMenu } from './notebook-choices'
 import { closeLookPanel, openLookPanel } from './look-panel'
 import { closePopover } from './popover'
+import { openPresenter } from './presenter-view'
 import { clickVideo, submitVideo } from './video-controller'
 
 export const installAppActions = (app: AppContext) => {
@@ -166,6 +167,10 @@ export const installAppActions = (app: AppContext) => {
       }
       if (action === 'look-panel') {
         openLookPanel(app)
+        return
+      }
+      if (action === 'rehearse') {
+        openPresenter(app)
         return
       }
       if (action === 'how-it-works') {
