@@ -63,9 +63,7 @@ export const chatNotebook = async (id: string, request: ChatRequest) => {
           'packet/QUESTION.txt': request.instruction
         },
         validate: (raw) => validateSourceReply(raw, source),
-        timeoutMs: 120000,
-        idleTimeoutMs: 45000,
-        maxToolCalls: 20
+        operation: 'chat'
       })
     } else {
       const response = await modelFetch('writing', {

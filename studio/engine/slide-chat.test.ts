@@ -16,7 +16,9 @@ vi.mock('./model-gateway', () => ({ modelFetch: direct }))
 const root = await mkdtemp(join(tmpdir(), 'studio-slide-chat-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { writeRow, readRow } = await import('./persistence')
-const { chatSlide, changeProject, loadProject } = await import('./projects')
+const { changeProject, loadProject } = await import('./projects')
+const { chatSlide, settledChanges, scheduleChanges } =
+  await import('./slide-changes')
 const { readSourceNarrative } = await import('./source-document')
 const { pageBrandFrom } = await import('./source-page')
 const source = readSourceNarrative(
@@ -72,7 +74,12 @@ const request = {
 }
 it('uses the notebook harness for revision and redraw, retaining its selected slide identity', async () => {
   await seed('selected-harness')
-  const updated = await chatSlide('selected-harness', request)
+  const queued = await chatSlide('selected-harness', request)
+  expect(queued.changes).toMatchObject([
+    { slideId: 'selected', instruction: request.instruction }
+  ])
+  await settledChanges('selected-harness')
+  const updated = (await loadProject('selected-harness'))!
   expect(direct).not.toHaveBeenCalled()
   expect(revise.mock.calls[0][0].selection).toEqual({
     adapter: 'kimi',
@@ -80,21 +87,66 @@ it('uses the notebook harness for revision and redraw, retaining its selected sl
   })
   expect(draw.mock.calls[0][0]).toMatchObject({
     pageOffset: 1,
-    reuseStyle: true
+    reuseStyle: true,
+    edit: { instruction: request.instruction, svg: '<svg id="original"/>' }
   })
   expect(updated.project.slides[1]).toMatchObject({
     id: 'selected',
     title: revised.title,
     svg: '<svg id="designed"/>'
   })
+  expect(updated.changes).toEqual([])
   expect(
     updated.events
       .filter((event) => event.kind === 'chat')
-      .map((event) => event.anchor)
-  ).toEqual([request.anchor, request.anchor])
+      .map((event) => [event.anchor, event.message])
+  ).toEqual([
+    [request.anchor, request.instruction],
+    [request.anchor, 'Changed wireframe 2.']
+  ])
   expect(
     (await readRow<any>('slide-artifacts', 'selected')).objectKey
   ).toBeTruthy()
+})
+it('redraws a change pinned to one part without rewriting the story', async () => {
+  await seed('pinned')
+  await writeRow('outlines', 'pinned', {
+    source,
+    brand: pageBrandFrom(source.palette, source.fonts),
+    outline: {
+      title: 'Fixture',
+      targetSeconds: 6,
+      glossary: [],
+      scenes: [revised, revised]
+    },
+    slideIds: ['first', 'selected']
+  })
+  const target = { id: 's02-edge-1', label: 'sends to', kind: 'connector' }
+  await chatSlide('pinned', { ...request, target })
+  await settledChanges('pinned')
+  expect(revise).not.toHaveBeenCalled()
+  expect(draw.mock.calls[0][0].edit).toMatchObject({ target })
+  expect((await loadProject('pinned'))!.project.slides[1].svg).toBe(
+    '<svg id="designed"/>'
+  )
+})
+it('queues a change for a drawn wireframe while the rest are drawn, and runs it once the deck is ready', async () => {
+  await seed('queued')
+  await changeProject('queued', (current) => {
+    current.status = 'building'
+  })
+  await chatSlide('queued', request)
+  await settledChanges('queued')
+  expect(revise).not.toHaveBeenCalled()
+  expect((await loadProject('queued'))!.changes?.[0].state).toBe('queued')
+  await changeProject('queued', (current) => {
+    current.status = 'ready'
+  })
+  scheduleChanges('queued')
+  await settledChanges('queued')
+  expect((await loadProject('queued'))!.project.slides[1].svg).toBe(
+    '<svg id="designed"/>'
+  )
 })
 it('lets another change complete while the model runs and refuses to overwrite it', async () => {
   await seed('concurrent')
@@ -105,7 +157,7 @@ it('lets another change complete while the model runs and refuses to overwrite i
         resolve = done
       })
   )
-  const work = chatSlide('concurrent', request)
+  await chatSlide('concurrent', request)
   await vi.waitFor(() => expect(revise).toHaveBeenCalled())
   await changeProject('concurrent', (current) => {
     current.project.slides[1].title = 'Newer edit'
@@ -116,21 +168,20 @@ it('lets another change complete while the model runs and refuses to overwrite i
     targetSeconds: 6,
     glossary: []
   })
-  await expect(work).rejects.toThrow('changed while')
-  expect((await loadProject('concurrent'))?.project.slides[1].title).toBe(
-    'Newer edit'
-  )
-  expect((await loadProject('concurrent'))?.events.at(-1)?.message).toContain(
-    'Try again'
-  )
+  await settledChanges('concurrent')
+  const saved = (await loadProject('concurrent'))!
+  expect(saved.project.slides[1].title).toBe('Newer edit')
+  expect(saved.changes?.[0]).toMatchObject({ state: 'failed' })
+  expect(saved.events.at(-1)?.message).toContain('Send your request again')
 })
-it('does not replace a slide when its drawing stage fails', async () => {
+it('does not replace a slide when its drawing stage fails, and says who could not change it', async () => {
   await seed('failed-drawing')
   draw.mockRejectedValue(new Error('Fixture drawing refused'))
-  await expect(chatSlide('failed-drawing', request)).rejects.toThrow(
-    'drawing refused'
+  await chatSlide('failed-drawing', request)
+  await settledChanges('failed-drawing')
+  const saved = (await loadProject('failed-drawing'))!
+  expect(saved.project.slides[1].svg).toContain('original')
+  expect(saved.changes?.[0].message).toBe(
+    'Kimi could not change this wireframe. Try again.'
   )
-  expect(
-    (await loadProject('failed-drawing'))?.project.slides[1].svg
-  ).toContain('original')
 })

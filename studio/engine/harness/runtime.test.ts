@@ -203,7 +203,9 @@ for (const budget of [
       adapterOverride: adapter(run)
     })
     expect(result.status).toBe('error')
-    expect(result.failure?.message).toMatch(/Stopped/)
+    expect(result.failure?.message).toMatch(
+      /ran out of time|stopped responding|used up its steps/
+    )
     // The wall-clock budget includes preparation: under load it may correctly
     // expire before launching the CLI. Neither path may retry or accept output.
     expect(run.mock.calls.length).toBeLessThanOrEqual(1)
@@ -297,7 +299,7 @@ it('does not launch another deck stage after the creator stops it', async () => 
       accept: async () => {},
       adapterOverride: adapter(run)
     })
-  ).rejects.toThrow('Generation stopped')
+  ).rejects.toThrow('Stopped. Saved work is kept')
   expect(run).not.toHaveBeenCalled()
 })
 

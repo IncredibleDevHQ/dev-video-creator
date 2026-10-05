@@ -191,9 +191,13 @@ it('resumes slide rendering from the saved outline and retained designed pages w
   expect(saved.project.slides[0].svg).toBe('<svg id="preserved"/>')
   expect(saved.project.slides[1].svg).toContain('<svg')
   expect(generate).not.toHaveBeenCalled()
+  // Accepting the deck adds one line, not one per wireframe.
   expect(
-    saved.events.filter((event) => event.message.startsWith('Slide '))
+    saved.events.filter((event) => event.message === 'Wireframes ready')
   ).toHaveLength(1)
+  expect(saved.events.some((event) => /^Slide /.test(event.message))).toBe(
+    false
+  )
 })
 
 it('does not resume a stop request interrupted by a worker restart', async () => {
@@ -207,7 +211,7 @@ it('does not resume a stop request interrupted by a worker restart', async () =>
   const result = await loadProject('stopped-deck')
   expect(result?.status).toBe('failed')
   expect(result?.stopping).toBe(true)
-  expect(result?.error).toContain('Generation stopped')
+  expect(result?.error).toContain('Stopped. Saved work is kept')
 })
 
 it('resumes an interrupted preparation batch once without competing scene jobs', async () => {

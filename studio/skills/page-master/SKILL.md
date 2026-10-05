@@ -19,19 +19,22 @@ A routed page workflow. This entry owns execution discipline and route selection
 ## Mandatory load order
 
 1. Read this file. Retain the host-provided absolute directory of this file as `SKILL_DIR`; expand it in every command; never `cd`.
-2. Read `${SKILL_DIR}/workflows/draw-pages.md` — the only route for now.
+2. Read the route the task names: `${SKILL_DIR}/workflows/draw-pages.md` for the deck's design system and its first page, or `${SKILL_DIR}/workflows/draw-one-page.md` for one more page against an authored design system.
 3. Read `${SKILL_DIR}/references/page-contract.md` before drawing anything.
 4. The route runs ppt-master's own pipeline (communication contract → design spec → spec lock → executor → checker cadence → review) and names the vendored manuals to read at each stage. Read them when the route says so, and nothing else from the vendored skill.
 
 | Route | Runtime authority |
 |---|---|
 | Draw Pages | `workflows/draw-pages.md` |
+| Draw One Page | `workflows/draw-one-page.md` |
 
 **Hard rule — the contract is the output.** A page that fails `scripts/check_pages.py` is not done. Fix it, run the check again.
 
 **Hard rule — the spec governs.** Pages are drawn against `pages/design_spec.md` and `pages/spec_lock.md`, authored before the first page. Nine pages invented independently look like nine decks.
 
-**Hard rule — no questions in the first round.** The inputs carry everything a first draft needs. Decide, draw, check, write the receipt, stop.
+**Hard rule — one page per call.** The studio draws a deck one page per call: the first call authors the design system and page one, and every later page gets a call, and a time budget, of its own. Draw only the page `motion/inputs.json` names as `draw`, submit it with `pages_submit_page`, and stop. The studio writes the deck's receipt from the accepted pages.
+
+**Hard rule — no questions in the first round.** The inputs carry everything a first draft needs. Decide, draw, check, submit, stop.
 
 ## Vocabulary
 

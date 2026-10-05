@@ -44,6 +44,7 @@ export const prepareCreativeSlideRevision = (input: {
   slide: Slide
   index: number
   instruction: string
+  target?: import('../../shared/model').ChangeTarget
   source: SourceRead
   selection: CreativeSelection
   origin: string
@@ -55,12 +56,11 @@ export const prepareCreativeSlideRevision = (input: {
       slide: input.slide,
       index: input.index,
       instruction: input.instruction,
+      target: input.target,
       source: input.source
     }),
     checkpoint: 'creative-slide-revision',
-    timeoutMs: 120000,
-    idleTimeoutMs: 45000,
-    maxToolCalls: 20,
+    operation: 'revise-story',
     stage: 'story',
     route: 'Revise Slide',
     file: 'story/slide.json',
@@ -69,12 +69,15 @@ export const prepareCreativeSlideRevision = (input: {
       source: input.source,
       slide: input.slide,
       index: input.index,
-      instruction: input.instruction
+      instruction: input.instruction,
+      ...(input.target ? { target: input.target } : {})
     },
     packet: {
       'packet/SOURCE.md': input.source.text,
       'packet/SLIDE.json': JSON.stringify(input.slide),
-      'packet/EDIT.txt': input.instruction
+      'packet/EDIT.txt': input.target
+        ? `${input.instruction}\n\n(The creator pointed at ${input.target.label || input.target.id}, element ${input.target.id}.)`
+        : input.instruction
     },
     selection: input.selection,
     origin: input.origin,

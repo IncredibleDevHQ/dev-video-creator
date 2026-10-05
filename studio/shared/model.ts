@@ -139,6 +139,19 @@ export type Project = {
     } | null
   } | null
 }
+/** The part of a wireframe a change points at (review 5: pin a change). */
+export type ChangeTarget = { id: string; label: string; kind: string }
+/** A requested wireframe change, queued until the agent is free. */
+export type SlideChange = {
+  id: string
+  slideId: string
+  instruction: string
+  target?: ChangeTarget
+  state: 'queued' | 'working' | 'failed'
+  at: string
+  startedAt?: string
+  message?: string
+}
 export type ChatAnchor =
   | { stage: 'presentation'; slideId: string }
   | {

@@ -141,9 +141,7 @@ export async function suggestDialogueExtension(
         'packet/QUESTION.txt': question
       },
       validate: (raw) => validateSourceReply(raw, source),
-      timeoutMs: 60000,
-      idleTimeoutMs: 30000,
-      maxToolCalls: 12
+      operation: 'extension'
     })
     return { text: result.reply }
   } finally {

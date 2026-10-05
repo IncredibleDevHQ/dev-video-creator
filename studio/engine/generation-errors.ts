@@ -9,14 +9,34 @@ export class HarnessStageError extends Error {
   }
 }
 
+/** Drawing stopped on one page: what stopped it, and where. */
+export class PageDrawingError extends HarnessStageError {
+  constructor(
+    failure: RunFailure | undefined,
+    readonly page: number,
+    readonly saved: number,
+    readonly total: number
+  ) {
+    super(failure, `Wireframe ${page} could not be drawn`)
+  }
+}
+
 // Product-owned messages only: raw provider/tool errors may contain private data.
 export const generationStops = {
-  user: 'Generation stopped. Saved slides are available; continue when you are ready.',
-  time: 'Stopped at the stage time limit. Saved artifacts are available; retry requires your action.',
-  idle: 'Stopped after no harness activity. Saved artifacts are available; retry requires your action.',
+  user: 'Stopped. Saved work is kept; Try again continues where it stopped.',
+  time: 'The agent ran out of time. Saved work is kept; Try again continues from there.',
+  idle: 'The agent stopped responding. Saved work is kept; Try again continues from there.',
   tools:
-    'Stopped at the tool-call limit. Saved artifacts are available; retry requires your action.'
+    'The agent used up its steps. Saved work is kept; Try again continues from there.'
 } as const
+const stopReasons: Record<string, string> = {
+  [generationStops.time]: 'ran out of time',
+  [generationStops.idle]: 'stopped responding',
+  [generationStops.tools]: 'used up its steps'
+}
+/** Why a run stopped, as a short phrase after the agent's name, if it was a limit. */
+export const stopReason = (message: string | null | undefined) =>
+  stopReasons[message || ''] || null
 const sharedFailures: Record<string, string> = {
   storage:
     'Generation stopped because artifacts could not be saved. Restore storage access before retrying. Recovery from object storage is not confirmed.',

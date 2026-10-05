@@ -47,6 +47,8 @@ type StageInput<T> = {
   stageContext?: Record<string, unknown>
   tools?: EngineTool[]
   onEvent?: (event: HarnessEvent) => Promise<void> | void
+  /** Sizes the time and tool budgets for the chosen model (limits.ts). */
+  operation?: import('../harness/limits').HarnessOperation
   timeoutMs?: number
   idleTimeoutMs?: number
   maxToolCalls?: number
@@ -153,6 +155,7 @@ const performStage = async <T>(input: StageInput<T>): Promise<T> => {
       ...(input.tools || [])
     ],
     onEvent: input.onEvent,
+    operation: input.operation,
     timeoutMs: input.timeoutMs,
     idleTimeoutMs: input.idleTimeoutMs,
     maxToolCalls: input.maxToolCalls,

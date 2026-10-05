@@ -9,7 +9,9 @@ import type {
   Presence,
   Scene,
   Transition,
-  StatusDisplay
+  StatusDisplay,
+  ChangeTarget,
+  SlideChange
 } from './model'
 export type SceneProgress = {
   stage: 'planning' | 'composition'
@@ -23,6 +25,10 @@ export type Snapshot = {
   stopping?: boolean
   readOnly?: boolean
   plannedSlides?: number
+  /** The outline while its wireframes are drawn: titles and script first. */
+  plan?: Array<{ id: string; title: string; narration: string }>
+  /** Wireframe changes waiting for, or with, the agent. */
+  changes?: SlideChange[]
   progress?: { label: string; startedAt: string }
   project: Project
   status: 'reading' | 'draft' | 'building' | 'ready' | 'failed'
@@ -53,7 +59,11 @@ export type SlideEdit = {
   slideId?: string
   index?: number
 }
-export type ChatRequest = { anchor: ChatAnchor; instruction: string }
+export type ChatRequest = {
+  anchor: ChatAnchor
+  instruction: string
+  target?: ChangeTarget
+}
 
 export type ReplanPreview = {
   sceneId: string

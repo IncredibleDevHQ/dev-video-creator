@@ -11,6 +11,7 @@ import { archiveFiles } from '../artifacts'
 import type { SketchFiles } from '../../render/types'
 import { registerSubmissions, type EngineTool } from './submissions'
 import { describeFailure } from './provider-errors'
+import { LIMIT_CEILING_MS, stageLimits, type HarnessOperation } from './limits'
 import type {
   HarnessAdapter,
   HarnessContext,
@@ -36,6 +37,12 @@ export type EngineRun = {
   finishedAt?: string
   failure?: RunFailure
   events: HarnessEvent[]
+}
+const operations: Record<HarnessStage, HarnessOperation> = {
+  story: 'story',
+  drawing: 'page',
+  planning: 'planning',
+  composition: 'composition'
 }
 const skills: Record<HarnessStage, string> = {
   story: 'story-master',
@@ -102,6 +109,8 @@ export const runEngineStage = async (input: {
   onEvent?: (event: HarnessEvent) => Promise<void> | void
   observe?: (directory: string) => Promise<void>
   adapterOverride?: HarnessAdapter
+  /** Sizes the time and tool budgets for the chosen model (limits.ts). */
+  operation?: HarnessOperation
   timeoutMs?: number
   idleTimeoutMs?: number
   maxToolCalls?: number
@@ -170,14 +179,18 @@ export const runEngineStage = async (input: {
     limitReason = reason
     controller.abort()
   }
+  const limits = stageLimits(input.operation || operations[input.stage], {
+    adapter: input.adapter,
+    model: input.model
+  })
   const timer = setTimeout(
     () => stopForLimit(generationStops.time),
-    Math.min(input.timeoutMs ?? 10 * 60 * 1000, 10 * 60 * 1000)
+    Math.min(input.timeoutMs ?? limits.timeoutMs, LIMIT_CEILING_MS)
   )
   timer.unref()
   const idleTimer = setTimeout(
     () => stopForLimit(generationStops.idle),
-    input.idleTimeoutMs ?? 3 * 60 * 1000
+    Math.min(input.idleTimeoutMs ?? limits.idleTimeoutMs, LIMIT_CEILING_MS)
   )
   idleTimer.unref()
   let queue = Promise.resolve()
@@ -252,7 +265,10 @@ export const runEngineStage = async (input: {
   const emit = (event: HarnessEvent) => {
     if (controller.signal.aborted) return
     idleTimer.refresh()
-    if (event.type === 'tool' && ++toolCalls > (input.maxToolCalls ?? 80)) {
+    if (
+      event.type === 'tool' &&
+      ++toolCalls > (input.maxToolCalls ?? limits.maxToolCalls)
+    ) {
       stopForLimit(generationStops.tools)
       return
     }

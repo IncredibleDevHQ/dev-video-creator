@@ -1,4 +1,5 @@
 import { saveLibraryBrand, redetectBrand } from './brand-library'
+import { chatSlide, scheduleChanges } from './slide-changes'
 import {
   startPresentation,
   refreshNotebookSource,
@@ -37,7 +38,6 @@ import {
   listNotebooks,
   editSlide,
   loadProject,
-  chatSlide,
   scheduleSlides,
   retrySlides,
   stopSlides
@@ -525,6 +525,7 @@ if (
   await recoverEngineRuns()
   await listClones()
   await recoverProjects({
+    changes: scheduleChanges,
     slides: scheduleSlides,
     planning: schedulePlanning,
     scene: produceScene,

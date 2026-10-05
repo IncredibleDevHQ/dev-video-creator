@@ -41,6 +41,10 @@ const LABELS: Record<string, string> = {
   codex: 'Codex'
 }
 
+/** The agent's name, as the creator knows it. */
+export const harnessName = (id: string | undefined) =>
+  (id && LABELS[id]) || 'The agent'
+
 export const categorise = (message: string): FailureCategory => {
   for (const [category, pattern] of PATTERNS)
     if (pattern.test(message)) return category

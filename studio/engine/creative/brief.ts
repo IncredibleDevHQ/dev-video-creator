@@ -46,6 +46,7 @@ export const prepareCreativeBrief = async (
     inputKey,
     checkpoint: phase === 'source' ? 'creative-source-brief' : 'creative-brief',
     route: 'Prepare Brief',
+    operation: 'brief',
     file: 'planning/brief.json',
     tool: 'plan_submit_brief',
     selection,

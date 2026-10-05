@@ -5,11 +5,13 @@ import { listRows, initializePersistence } from './persistence'
 import { changeProject, loadProject, addEvent } from './projects'
 import { refreshVideoKeys } from './scene-model'
 import { videoView } from '../shared/state'
+import { recoverChanges } from './slide-changes'
 export type RecoveryJobs = {
   slides: (id: string) => void
   planning: (id: string) => void
   scene: (id: string, sceneId: string) => Promise<unknown>
   video: (id: string) => Promise<unknown>
+  changes?: (id: string) => void
 }
 // Run once before accepting requests. Persisted phases belong to the previous
 // worker; this worker has no matching process, so it may safely resume them.
@@ -41,6 +43,14 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
       ['writing', 'changing', 'replanning'].includes(scene.phase)
     )
     let snapshot = saved
+    if (saved.changes?.some((change) => change.state === 'working'))
+      snapshot = await changeProject(id, (current) => recoverChanges(current))
+    // Changes the creator queued and no agent started yet still run.
+    if (
+      saved.status === 'ready' &&
+      snapshot.changes?.some((change) => change.state === 'queued')
+    )
+      jobs.changes?.(id)
     if (
       resumeSlides ||
       resumeScenes.length ||

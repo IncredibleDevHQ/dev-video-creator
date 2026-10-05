@@ -73,7 +73,9 @@ it('stops only this deck, retains arriving drafts and continues only after an ex
   await vi.waitFor(async () =>
     expect((await loadProject(id))?.status).toBe('failed')
   )
-  expect((await loadProject(id))?.error).toContain('Generation stopped')
+  expect((await loadProject(id))?.error).toContain(
+    'Stopped. Saved work is kept'
+  )
   pages.mockResolvedValueOnce([svg])
   await retrySlides(id)
   await vi.waitFor(async () =>

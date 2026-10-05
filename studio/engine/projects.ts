@@ -3,7 +3,13 @@ import { addEvent } from './activity'
 export { addEvent } from './activity'
 import { sumUsage } from '../shared/usage'
 import { cancelEngineRun, type EngineRun } from './harness/runtime'
-import { generationStops, generationFailure } from './generation-errors'
+import {
+  generationStops,
+  generationFailure,
+  stopReason,
+  PageDrawingError
+} from './generation-errors'
+import { harnessName } from './harness/provider-errors'
 import { prepareCreativeBrief } from './creative/brief'
 import {
   loadHarnessPreference,
@@ -125,28 +131,48 @@ export const scheduleSlides = (id: string) => {
           ? generationStops.user
           : reason instanceof SourceReadError
             ? reason.message
-            : generationFailure(
+            : drawingStop(reason, current) ||
+              generationFailure(
                 reason,
-                'Could not make the slides. Check your AI settings and try again.'
+                'Could not make the wireframes. Check your agent, then try again.'
               )
         if (reason instanceof SourceReadError) current.sourceFailure = 'blocked'
         addEvent(current, 'slide', current.error)
       })
     })
-    .finally(() => building.delete(id))
+    .finally(() => {
+      building.delete(id)
+      // Changes queued while drawing run once the deck is ready.
+      void import('./slide-changes').then(({ scheduleChanges }) =>
+        scheduleChanges(id)
+      )
+    })
   building.set(id, work)
   void work.catch(() => {})
+}
+/**
+ * Where drawing stopped, in the creator's words: who stopped, after how
+ * many wireframes, and what Try again does (review 5).
+ */
+const drawingStop = (reason: unknown, snapshot: Snapshot) => {
+  if (!(reason instanceof PageDrawingError)) return null
+  const why =
+    stopReason(reason.failure?.message) ||
+    (['interrupted', 'other'].includes(reason.failure?.category || 'other')
+      ? 'could not finish it'
+      : null)
+  if (!why) return null
+  const agent = harnessName(snapshot.project.harness?.adapter)
+  const total = snapshot.plannedSlides || reason.total
+  const drawn = snapshot.project.slides.filter((slide) => slide.svg).length
+  return `${agent} ${why} on wireframe ${reason.page} of ${total}, after three tries. ${drawn} of ${total} are drawn; Try again continues from wireframe ${reason.page}.`
 }
 export const stopSlides = async (id: string) => {
   await changeProject(id, (current) => {
     if (current.status !== 'building')
-      throw new Error('This presentation is not being generated')
+      throw new Error('These wireframes are not being drawn')
     current.stopping = true
-    addEvent(
-      current,
-      'slide',
-      'Stopping generation. Keeping your saved slides.'
-    )
+    addEvent(current, 'slide', 'Stopping. Drawn wireframes are kept.')
   })
   for (const runId of await listNotebookRows('engine-runs', id)) {
     const run = await readRow<EngineRun>('engine-runs', runId)
@@ -165,11 +191,18 @@ export const retrySlides = async (id: string) => {
     if (building.has(id))
       throw new Error('Wait for generation to stop before continuing')
     if (current.status !== 'failed')
-      throw new Error('Your slides do not need a retry')
+      throw new Error('Your wireframes do not need a retry')
     current.stopping = false
     current.status = 'building'
     current.error = null
-    addEvent(current, 'slide', 'Trying your slides again')
+    const drawn = current.project.slides.filter((slide) => slide.svg).length
+    addEvent(
+      current,
+      'slide',
+      current.plannedSlides && drawn
+        ? `Trying again from wireframe ${Math.min(drawn + 1, current.plannedSlides)}`
+        : 'Trying again'
+    )
   })
   scheduleSlides(id)
   return snapshot
@@ -307,7 +340,14 @@ const buildSlides = async (id: string) => {
   }>('source-briefs', id)
   await changeProject(id, (current) => {
     current.plannedSlides = outline.scenes.length
-    addEvent(current, 'slide', `Designing your ${outline.scenes.length} slides`)
+    // The outline is the story: show its titles and script before any
+    // picture exists (review 5).
+    current.plan = outline.scenes.map((scene, index) => ({
+      id: slideIds[index],
+      title: scene.title,
+      narration: scene.narration
+    }))
+    addEvent(current, 'slide', `Drawing ${outline.scenes.length} wireframes`)
   })
   const onDraft = async (index: number, svg: string) =>
     changeProject(id, async (current) => {
@@ -350,11 +390,14 @@ const buildSlides = async (id: string) => {
       current.project.slides.sort(
         (a, b) => slideIds.indexOf(a.id) - slideIds.indexOf(b.id)
       )
-      addEvent(
-        current,
-        'slide',
-        `Draft ${index + 1} of ${outline.scenes.length} is available`
-      )
+      // A retry restores drawn pages; only a page drawn for the first time
+      // is news.
+      if (existing < 0)
+        addEvent(
+          current,
+          'slide',
+          `Wireframe ${index + 1} of ${outline.scenes.length} drawn`
+        )
     }).then(() => {})
   await requireSlidesRunning(id)
   const designed = await prepareCreativePages({
@@ -411,19 +454,14 @@ const buildSlides = async (id: string) => {
       )
       if (existing >= 0) current.project.slides[existing] = accepted
       else current.project.slides.push(accepted)
-      addEvent(
-        current,
-        'slide',
-        `Slide ${index + 1} of ${outline.scenes.length}`,
-        { anchor: { stage: 'presentation', slideId } }
-      )
     })
   }
   await changeProject(id, (current) => {
     if (current.stopping) throw new Error(generationStops.user)
     current.status = 'ready'
     current.error = null
-    addEvent(current, 'slide', 'Your slides are ready')
+    delete current.plan
+    addEvent(current, 'slide', 'Wireframes ready')
   })
 }
 export const editSlide = (id: string, edit: SlideEdit) =>
@@ -496,173 +534,8 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       })
       refreshVideoKeys(snapshot.project)
     }
-    addEvent(snapshot, 'slide', 'Slides updated')
+    addEvent(snapshot, 'slide', 'Wireframes updated')
   })
-
-export const chatSlide = async (id: string, request: ChatRequest) => {
-  if (request?.anchor?.stage !== 'presentation')
-    throw new Error('Select a slide first')
-  if (
-    typeof request.instruction !== 'string' ||
-    !request.instruction.trim() ||
-    request.instruction.length > 4000
-  )
-    throw new Error('Add an instruction of up to 4000 characters')
-  const snapshot = await loadProject(id)
-  if (!snapshot) throw new Error('Notebook not found')
-  const slideId = request.anchor.slideId
-  const index = snapshot.project.slides.findIndex(
-    (slide) => slide.id === slideId
-  )
-  if (index < 0) throw new Error('Select a slide first')
-  if (snapshot.status !== 'ready') throw new Error('Wait for your slides')
-  const retained = await readRow<{
-    source: ReturnType<typeof readSourceNarrative>
-    brand: ReturnType<typeof pageBrandFrom>
-  }>('outlines', id)
-  if (!retained) throw new Error('Source not found')
-  const revisionKey = (project: Snapshot['project']) =>
-    fingerprintOf({
-      slide: project.slides.find((slide) => slide.id === slideId),
-      order: project.slides.map((slide) => slide.id),
-      branding: project.branding
-    })
-  const expected = revisionKey(snapshot.project)
-  await changeProject(id, (current) =>
-    addEvent(current, 'chat', request.instruction, { anchor: request.anchor })
-  )
-  try {
-    let revised: import('./source-outline').OutlineScene
-    const origin =
-      process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
-      `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`
-    if (snapshot.project.harness) {
-      const outline = await prepareCreativeSlideRevision({
-        projectId: id,
-        slide: snapshot.project.slides[index],
-        index,
-        instruction: request.instruction,
-        source: retained.source,
-        selection: snapshot.project.harness,
-        origin
-      })
-      revised = outline.scenes[0]
-    } else {
-      const response = await modelFetch('writing', {
-        body: JSON.stringify({
-          input: `Revise one slide of this presentation. Return a complete outline containing exactly ONE scene. Use the provided source as evidence. Current slide title: ${snapshot.project.slides[index].title}. Creator instruction: ${request.instruction}. Source: ${retained.source.text}`,
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'slide_revision',
-              strict: true,
-              schema: outlineSchema()
-            }
-          }
-        })
-      })
-      if (!response.ok) throw new Error('Could not revise the slide')
-      const result = await response.json()
-      const text =
-        result.output
-          ?.flatMap((item) => item.content || [])
-          .filter((item) => item.type === 'output_text')
-          .map((item) => item.text || '')
-          .join('') || ''
-      const candidate = await storeAsset({
-        body: Buffer.from(text),
-        contentType: 'application/json',
-        extension: '.json',
-        projectId: id,
-        sceneId: `scene-${slideId}`,
-        kind: 'slide-revision-candidate'
-      })
-      await writeRow('slide-revision-attempts', candidate.id, {
-        projectId: id,
-        slideId,
-        artifactId: candidate.id,
-        objectKey: candidate.objectKey,
-        instruction: request.instruction
-      })
-      revised = sanitizeOutline(
-        JSON.parse(text),
-        snapshot.project.title,
-        retained.source.text
-      ).scenes[0]
-    }
-    if (!revised) throw new Error('No revised slide')
-    const pageBrand = snapshot.project.branding?.useAccent
-      ? { ...retained.brand, accent: snapshot.project.branding.accent }
-      : retained.brand
-    const svg = snapshot.project.harness
-      ? (
-          await prepareCreativePages({
-            projectId: id,
-            source: retained.source,
-            outline: {
-              title: snapshot.project.title,
-              scenes: [revised],
-              targetSeconds: revised.seconds,
-              glossary: []
-            },
-            brand: pageBrand,
-            selection: snapshot.project.harness,
-            origin,
-            pageOffset: index,
-            reuseStyle: true
-          })
-        )[0]
-      : renderPage(revised, index, snapshot.project.slides.length, pageBrand, {
-          title: snapshot.project.title,
-          site: retained.source.site
-        })
-    return await changeProject(id, async (current) => {
-      if (
-        current.status !== 'ready' ||
-        revisionKey(current.project) !== expected
-      )
-        throw new Error(
-          'This slide changed while it was being revised. Send the instruction again.'
-        )
-      const currentIndex = current.project.slides.findIndex(
-        (slide) => slide.id === slideId
-      )
-      const asset = await storeAsset({
-        body: Buffer.from(svg),
-        contentType: 'image/svg+xml',
-        extension: '.svg',
-        projectId: id,
-        sceneId: `scene-${slideId}`,
-        kind: 'slide-artwork'
-      })
-      await writeRow('slide-artifacts', slideId, {
-        projectId: id,
-        slideId,
-        artifactId: asset.id,
-        objectKey: asset.objectKey
-      })
-      current.project.slides[currentIndex] = {
-        id: slideId,
-        title: revised.title,
-        svg,
-        narration: revised.narration,
-        idea: revised.idea,
-        evidence: revised.source
-      }
-      reconcileVideo(current.project, current)
-      addEvent(current, 'chat', 'Updated this slide.', {
-        anchor: request.anchor
-      })
-    })
-  } catch (error) {
-    await changeProject(id, (current) =>
-      addEvent(current, 'chat', 'Could not update this slide. Try again.', {
-        anchor: request.anchor
-      })
-    )
-    throw error
-  }
-}
 
 /** A slide picture with something in it: an empty <svg/> placeholder is not one. */
 const drawn = (svg: string | null | undefined) =>

@@ -2,7 +2,9 @@
 
 ppt-master's Default pipeline, with its ends replaced: research and template selection are already done (the studio read the source and confirmed the outline), and the output is contract SVG rather than PPTX. Everything between is theirs, and their manuals are the authority for it.
 
-`Inputs → Communication contract → Design Spec → Spec Lock → Executor (page by page) → Checker cadence → Visual review → Receipt`
+`Inputs → Communication contract → Design Spec → Spec Lock → Executor (the first page) → Checker → Visual review → Submit`
+
+This route is the deck's first call. It authors the design system for every scene and draws only the page named `draw` in `motion/inputs.json`. Each later page is drawn in a call of its own (`workflows/draw-one-page.md`) against the spec and lock you write here, so write them for the whole deck.
 
 ## Inputs
 
@@ -11,6 +13,7 @@ ppt-master's Default pipeline, with its ends replaced: research and template sel
 - `video`: `{ title, site }`
 - `brand`: `{ palette: { ground, text, accent, secondary }, fonts: { display, body, mono }, mode }`
 - `scenes[]`: `{ index, title, kind, seconds, idea, narration, source[], parts[{ kind, label, detail }], relations[{ from, to, verb }] }`
+- `draw`: the index of the one page this call draws.
 - `objects[]` (when present): the explanation model's things — `{ id, label, kind, scenes[] }`, where `id` is the stable model id (`obj-…-<n>`) that stays the same on every page that names the thing. A node whose label matches an object declares `data-object-id` with it (see the contract). `modelId` identifies the model revision these pages are drawn from.
 
 `source` is the article's own sentences for this scene, copied verbatim. They
@@ -63,7 +66,7 @@ Read `${SKILL_DIR}/vendor/ppt-master/templates/design_spec_reference.md` §§I�
 
 Copy `${SKILL_DIR}/vendor/ppt-master/templates/scaffolds/spec_lock.md` to `pages/spec_lock.md` and fill every field from the spec: canvas, communication, mode, visual_style, colors, typography, icons (library and stroke width), page_rhythm per page. From here the lock is the authority; a page that departs from it is a bug in the page.
 
-## Stage 4 — Executor, page by page
+## Stage 4 — Executor, the first page
 
 Read once, before the first page, and reuse for every page:
 
@@ -72,7 +75,7 @@ Read once, before the first page, and reuse for every page:
 - `${SKILL_DIR}/vendor/ppt-master/references/executor-structure.md` §1–§3 — relationship atoms → topology → construction order, for every `diagram` page.
 - `${SKILL_DIR}/references/page-contract.md` — what the studio reads from the page. It is not negotiable.
 
-Then, per page, follow executor-base's decision chain and write `pages/NN_<slug>.svg` (`NN` two-digit, slug ≤ 5 lowercase words).
+Then follow executor-base's decision chain for the page named `draw` and write `pages/NN_<slug>.svg` (`NN` two-digit, slug ≤ 5 lowercase words). Draw no other page.
 
 **Icons are inlined, not referenced.** The contract forbids external references, so an icon becomes part of the page: read `${SKILL_DIR}/templates/icons/tabler-outline/<name>.svg`, take its path elements, and place them inside the thing's artwork group scaled into a 44 px box (`transform="translate(x,y) scale(44/24)"`), `fill="none" stroke="<line or accent>" stroke-width="2"`. Then add the one or two parts that make it live — a status light, a level, a token — and mark them `data-anim` (see the contract). Two or three moving parts per thing.
 
@@ -194,29 +197,26 @@ Rules the studio enforces:
   starting state. An event may name anything on the page; only things whose
   amount or state changes need a cast entry.
 
-## Stage 5 — Checker cadence
+## Stage 5 — Checker
 
-ppt-master checks early and finally; so do you.
-
-1. After the **first** page and its program: `python3 ${SKILL_DIR}/scripts/check_pages.py pages` — fix what it names before drawing page two, so a mistake is made once.
-2. After the **last** page: run it again over all pages and fix until it passes.
+After the page and its program: `python3 ${SKILL_DIR}/scripts/check_pages.py pages` — fix what it names until it passes. The studio runs the same check over the whole deck once every page is drawn, and sends back any page it refuses.
 
 ## Stage 6 — Visual review
 
-The checker sees geometry, not judgement. Read your own pages back and ask of each: does it obey the lock; does the eye land where the narration starts; would a reader recognise the things before reading a word; is any page a grid of identical boxes. Redraw what fails, then re-run the checker.
+The checker sees geometry, not judgement. Read your page back and ask: does it obey the lock; does the eye land where the narration starts; would a reader recognise the things before reading a word; is it a grid of identical boxes; does any label sit on a box or a line it does not belong to. Redraw what fails, then re-run the checker.
 
-## Stage 7 — Receipt
+## Stage 7 — Submit
 
-Write `pages/receipt.json`: `{ "pages": [{ "file", "program", "index", "title", "kind", "form", "topology", "entities": [{ "id", "entity", "objectId", "icon", "moving parts" }], "moments": ["establish", "…"], "checks": "pass" }], "spec": "pages/design_spec.md", "lock": "pages/spec_lock.md", "model": "<modelId or ''>", "notes": "" }`. Then stop: do not open the notebook, do not plan motion, do not ask questions.
+Call `pages_submit_page` with this run directory, the page's `index`, its `form` and its `topology`. The studio checks the page, keeps it, and writes the deck's receipt from the accepted pages. Correct a refusal and submit again; stop after acceptance: do not draw another page, open the notebook, plan motion or ask questions.
 
 ## The look, in one place
 
 The spec you wrote in Stage 2 governs. What follows is the floor, not the ceiling:
 
 - Canvas 1280×720, the ground filled, a faint construction (grid, rules, a horizon) as `data-role="decoration"` at 1–3 % opacity.
-- Header: eyebrow `§ NN · VIDEO TITLE` in mono, small, accent; the page title in the display face, 34–44 px.
-- Footer: site and `SHEET NN / TOTAL` in small mono, bottom right.
+- Header: the page title in the display face, 34–44 px. Nothing else.
+- No page furniture: no section eyebrow (`§ 03 · …`), no sheet number (`SHEET 03 / 10`), no site name or date in a footer. The video shows every pixel of the page, so anything that is not the explanation is noise in every frame.
 - Nodes: choose their native shape from their meaning. `data-kind="box"` is a parser category, not an instruction to draw a rectangle. A container is justified only when containment is part of the explanation. Use a direct object silhouette, open typography, a quantitative diagram or a labelled mechanism when it communicates better. Labels 22–26 px; details at least 20 px. The base may remain schematic; the video derivative is separately recomposed by explainer-master.
-- Connectors: 1.5–2 px in the accent at ~60 %, an arrowhead marker, the verb near the middle when it helps.
+- Connectors: 1.5–2 px in the accent at ~60 %, an arrowhead marker, the verb near the middle when it helps. A connector's label sits in clear space beside its line — never on a box, another label or another line — and a line runs around boxes, not through them.
 - Emphasis with the accent, one thing at a time. Depth from fill and weight, not from shadow.
 - No page is a grid of identical boxes; the topology is the page's argument.

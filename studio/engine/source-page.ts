@@ -199,15 +199,10 @@ export const renderPage = (
     `<path id="grid" data-role="decoration" fill="none" stroke="${brand.line}" stroke-opacity="0.06" stroke-width="1" d="${grid.join(' ')}"/>`
   )
 
-  // header: kicker and title, chrome for every kind but the title card
-  const kicker = `§ ${String(n).padStart(2, '0')} · ${video.title}`
-    .toUpperCase()
-    .slice(0, 70)
+  // header: the title, chrome for every kind but the title card. No section
+  // eyebrow or sheet number: the video shows every pixel of the page.
   if (scene.kind !== 'title' && scene.kind !== 'close') {
     parts.push(`<g id="header" data-role="header">`)
-    parts.push(
-      `<text x="82" y="58" font-size="14" fill="${brand.accent}" letter-spacing="2" ${mono}>${escapeXml(kicker)}</text>`
-    )
     parts.push(
       textLines(
         wrap(scene.title, 38, 1120, 1),
@@ -497,23 +492,6 @@ export const renderPage = (
     }
   }
 
-  // footer chrome
-  parts.push(
-    `<g id="footer" data-role="footer" ${mono} font-size="12" fill="${brand.muted}">`
-  )
-  parts.push(
-    `<rect x="1000" y="668" width="220" height="32" fill="none" stroke="${mix(brand.line, brand.ground, 0.5)}" stroke-width="1"/>`
-  )
-  parts.push(
-    `<line x1="1110" y1="668" x2="1110" y2="700" stroke="${mix(brand.line, brand.ground, 0.5)}" stroke-width="1"/>`
-  )
-  parts.push(
-    `<text x="1012" y="688">${escapeXml((video.site || 'video').slice(0, 14).toUpperCase())}</text>`
-  )
-  parts.push(
-    `<text x="1122" y="688">SHEET ${String(n).padStart(2, '0')} / ${String(total).padStart(2, '0')}</text>`
-  )
-  parts.push(`</g>`)
   parts.push(`</svg>`)
   return parts.join('\n')
 }

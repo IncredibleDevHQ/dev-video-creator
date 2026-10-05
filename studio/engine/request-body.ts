@@ -29,7 +29,23 @@ export const chatRequest = (body: Record<string, unknown>): ChatRequest => {
       second: numberField(raw, 'second')
     }
   else throw new Error('Choose a notebook, slide or video moment')
-  return { anchor, instruction: stringField(body, 'instruction') }
+  const request: ChatRequest = {
+    anchor,
+    instruction: stringField(body, 'instruction')
+  }
+  if (body.target !== undefined && anchor.stage === 'presentation') {
+    const target = requestObject(body.target)
+    const label = target.label === undefined ? '' : stringField(target, 'label')
+    request.target = {
+      id: stringField(target, 'id').slice(0, 120),
+      label: label.slice(0, 200),
+      kind: (target.kind === undefined
+        ? ''
+        : stringField(target, 'kind')
+      ).slice(0, 40)
+    }
+  }
+  return request
 }
 export const slideRequest = (body: Record<string, unknown>): SlideEdit => {
   const action = stringField(body, 'action')

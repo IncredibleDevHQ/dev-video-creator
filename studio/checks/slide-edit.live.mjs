@@ -49,7 +49,8 @@ process.env.FISH_AUDIO_API_KEY = ''
 const { writeRow, listNotebookRows, readRow } =
   await import('../engine/persistence.ts')
 const { createStudioServer } = await import('../engine/server.ts')
-const { chatSlide } = await import('../engine/projects.ts')
+const { chatSlide, settledChanges } = await import('../engine/slide-changes.ts')
+const { loadProject } = await import('../engine/projects.ts')
 const { stopEngineRuns } = await import('../engine/harness/runtime.ts')
 const id = 'canvas-slide-edit',
   project = { ...saved.project, id, video: null }
@@ -68,10 +69,14 @@ console.log(`One bounded Claude slide-edit run in ${root}`)
 try {
   const instruction =
     'Rename this slide to “Where chat reaches its limits”. Keep the visual comparison of chat and canvas, but simplify the supporting text. Preserve the deck typography and palette. Ground every claim in the article; do not change other slides.'
-  const result = await chatSlide(id, {
+  await chatSlide(id, {
     anchor: { stage: 'presentation', slideId: project.slides[1].id },
     instruction
   })
+  // Changes run in the background; wait for this one to finish.
+  await settledChanges(id)
+  const result = await loadProject(id)
+  assert.deepEqual(result.changes || [], [])
   assert.equal(result.project.slides.length, project.slides.length)
   for (let i = 0; i < project.slides.length; i++)
     if (i !== 1) assert.deepEqual(result.project.slides[i], project.slides[i])
