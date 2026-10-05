@@ -14,9 +14,7 @@ it('gives a failed presentation an enabled retry instead of disabled view slides
 it('offers a concrete next step before, during and after generation', () => {
   expect(notebookNextStep(snapshot('draft')).action).toBe('create-presentation')
   expect(notebookNextStep(snapshot('building')).label).toBe('View progress →')
-  expect(notebookNextStep(snapshot('ready')).label).toBe(
-    'Review wireframes →'
-  )
+  expect(notebookNextStep(snapshot('ready')).label).toBe('Review wireframes →')
   expect(
     notebookNextStep(
       snapshot('failed', { sourceOnly: true, sourceFailure: 'blocked' })

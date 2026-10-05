@@ -442,7 +442,11 @@ export const prepareCreativePages = async (input: {
             accent: input.brand.accent,
             secondary: input.brand.secondary
           },
-          fonts: { display: input.brand.display, body: input.brand.body, mono: input.brand.mono },
+          fonts: {
+            display: input.brand.display,
+            body: input.brand.body,
+            mono: input.brand.mono
+          },
           mode: 'custom'
         },
         scenes: input.outline.scenes.map((scene, index) => ({

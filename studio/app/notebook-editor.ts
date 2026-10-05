@@ -1,13 +1,12 @@
-import { Editor } from '@tiptap/core'
-import StarterKit from '@tiptap/starter-kit'
-import { Markdown } from '@tiptap/markdown'
-import { TableKit } from '@tiptap/extension-table'
-import Image from '@tiptap/extension-image'
+import type { Editor } from '@tiptap/core'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { runNotebookCommand, updateNotebookToolbar } from './notebook-toolbar'
 
 const editors = new WeakMap<HTMLElement, Editor>()
+const loading = new WeakSet<HTMLElement>()
+let runtime: Promise<typeof import('./notebook-editor-runtime')> | undefined
+const loadEditor = () => (runtime ||= import('./notebook-editor-runtime'))
 
 export const noteRevision = (text: string) => {
   let hash = 2166136261
@@ -116,34 +115,31 @@ export const installNotebookEditor = (app: AppContext) => {
       updateNotebookToolbar(app.root, editors.get(element)!)
       return
     }
-    element.replaceChildren()
-    const instance = new Editor({
-      element,
-      extensions: [
-        StarterKit.configure({ link: { openOnClick: false } }),
-        Markdown,
-        TableKit,
-        Image
-      ],
-      content: app.snapshot?.project.source || '',
-      contentType: 'markdown',
-      editorProps: {
-        attributes: {
-          role: 'textbox',
-          'aria-label': 'Notebook notes',
-          'aria-multiline': 'true',
-          spellcheck: 'true'
-        }
-      },
-      onUpdate: ({ editor }) => {
-        queue(element)
-        updateNotebookToolbar(app.root, editor)
-      },
-      onSelectionUpdate: ({ editor }) => updateNotebookToolbar(app.root, editor)
-    })
-    editors.set(element, instance)
-    active = { element, instance }
-    updateNotebookToolbar(app.root, instance)
+    if (loading.has(element)) return
+    loading.add(element)
+    void loadEditor()
+      .then(({ createNotebookEditor }) => {
+        loading.delete(element)
+        if (!element.isConnected || editors.has(element)) return
+        // The rendered notes stay visible until the editor replaces them.
+        element.replaceChildren()
+        const instance = createNotebookEditor({
+          element,
+          content: app.snapshot?.project.source || '',
+          onUpdate: (editor) => {
+            queue(element)
+            updateNotebookToolbar(app.root, editor)
+          },
+          onSelectionUpdate: (editor) => updateNotebookToolbar(app.root, editor)
+        })
+        editors.set(element, instance)
+        active = { element, instance }
+        updateNotebookToolbar(app.root, instance)
+      })
+      .catch((reason) => {
+        loading.delete(element)
+        app.error(reason)
+      })
   }
   new MutationObserver(mount).observe(app.root, {
     childList: true,

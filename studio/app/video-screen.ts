@@ -92,7 +92,8 @@ export const videoScreen = (
     )}</section>`
   const scene = video.scenes[selected]
   const slide = project.slides[selected]
-  if (!scene) return '<section class="empty">Add a wireframe to begin.</section>'
+  if (!scene)
+    return '<section class="empty">Add a wireframe to begin.</section>'
   const view = views?.scenes[scene.id]
   const moment = scene.moments[momentIndex] || scene.moments[0]
   const showVideo =

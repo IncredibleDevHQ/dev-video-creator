@@ -245,7 +245,7 @@ export const createPresentation = async (app: AppContext) => {
   if (!app.snapshot || app.pending || app.snapshot.status !== 'draft') return
   await flushNotebookEdits(app)
   const id = app.snapshot.project.id
-  if (!await reviewBrand(app, id)) return
+  if (!(await reviewBrand(app, id))) return
   const begin = async () => {
     const snapshot = await api.createPresentation(id)
     if (app.snapshot?.project.id !== id) return

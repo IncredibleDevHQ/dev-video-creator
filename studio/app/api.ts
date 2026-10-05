@@ -20,9 +20,22 @@ const request = <T>(path: string, method = 'GET', body?: unknown): Promise<T> =>
     body: body ? JSON.stringify(body) : undefined
   })
 export const api = {
-  saveLibraryBrand: (body: unknown) => request<import('../shared/settings').SavedBrand>('/settings/brands', 'POST', body),
-  redetectBrand: (id: string) => request<import('../engine/source-document').SourceRead>(`/projects/${id}/brand-detection`, 'POST', {}),
-  detectedBrand: (id: string) => request<import("../engine/source-document").SourceRead>(`/projects/${id}/source`),
+  saveLibraryBrand: (body: unknown) =>
+    request<import('../shared/settings').SavedBrand>(
+      '/settings/brands',
+      'POST',
+      body
+    ),
+  redetectBrand: (id: string) =>
+    request<import('../engine/source-document').SourceRead>(
+      `/projects/${id}/brand-detection`,
+      'POST',
+      {}
+    ),
+  detectedBrand: (id: string) =>
+    request<import('../engine/source-document').SourceRead>(
+      `/projects/${id}/source`
+    ),
   extension: (
     id: string,
     scene: string,
