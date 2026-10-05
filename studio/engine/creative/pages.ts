@@ -42,6 +42,13 @@ type PageMeta = { file: string; form: string; topology: string }
 type DeckDraft = { fingerprint: string; pages: Record<string, PageMeta> }
 
 const pad = (number: number) => String(number).padStart(2, '0')
+const MODEL_ID = /^obj-[a-z0-9-]+-\d+$/
+const slugOf = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
 const text = (file: SketchFiles[string] | undefined) =>
   typeof file === 'string'
     ? file
@@ -171,8 +178,12 @@ export const prepareCreativePages = async (input: {
       brand: input.brand,
       total
     })
-    const entities = (input.brief?.entities || []).map((entity) => ({
-      id: entity.id,
+    // A page names a thing by its model id ("obj-<slug>-<n>"), the same on
+    // every page; the brief's own ids are words, so each gets one here.
+    const entities = (input.brief?.entities || []).map((entity, index) => ({
+      id:
+        entity.legacyObjectIds.find((id) => MODEL_ID.test(id)) ||
+        `obj-${slugOf(entity.id) || 'thing'}-${index + 1}`,
       label: entity.name,
       kind: entity.role
     }))

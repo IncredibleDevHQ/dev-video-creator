@@ -186,6 +186,54 @@ it('draws page one alone from a small packet, then each later page against it, a
   expect(rows.filter((row) => row.accepted)).toHaveLength(2)
 })
 
+it('names the objects a page shows by model ids the checker accepts', async () => {
+  run.mockReset()
+  run.mockRejectedValueOnce(new Error('Fixture stops after the packet'))
+  const brief = {
+    entities: [
+      {
+        id: 'rate-limiter',
+        name: 'Fixture',
+        role: 'paces requests',
+        legacyObjectIds: []
+      },
+      {
+        id: 'cache',
+        name: 'Cache',
+        role: 'keeps answers',
+        legacyObjectIds: ['obj-cache-7']
+      }
+    ]
+  }
+  await expect(
+    prepareCreativePages({
+      ...fixtureInput('object-ids'),
+      outline,
+      brief: brief as any
+    })
+  ).rejects.toThrow('Fixture stops after the packet')
+  const page = JSON.parse(run.mock.calls[0][0].packet['packet/PAGE.json'])
+  // The scene names “Fixture”, so only that object is passed.
+  expect(page.deck.objects).toEqual([
+    { id: 'obj-rate-limiter-1', label: 'Fixture', kind: 'paces requests' }
+  ])
+  run.mockReset()
+  run.mockRejectedValueOnce(new Error('Fixture stops after the packet'))
+  await expect(
+    prepareCreativePages({
+      ...fixtureInput('object-ids-2'),
+      outline: {
+        ...outline,
+        scenes: [{ ...outline.scenes[0], title: 'Cache' }]
+      },
+      brief: brief as any
+    })
+  ).rejects.toThrow('Fixture stops after the packet')
+  expect(
+    JSON.parse(run.mock.calls[0][0].packet['packet/PAGE.json']).deck.objects
+  ).toContainEqual({ id: 'obj-cache-7', label: 'Cache', kind: 'keeps answers' })
+})
+
 it('draws the pages after the first at the same time', async () => {
   run.mockReset()
   const scenes = [1, 2, 3, 4].map((n) => ({
