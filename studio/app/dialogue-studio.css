@@ -71,9 +71,15 @@
   margin-bottom: 7px;
   min-height: 32px;
 }
-.ds-transport > span {
+.ds-transport > span,
+.ds-animation-state > span {
   color: #9eafa4;
   font-size: 11px;
+}
+.ds-animation-state [data-ds-make] {
+  min-height: 28px;
+  padding: 3px 12px;
+  font-size: 12px;
 }
 .ds-transport time {
   font-variant-numeric: tabular-nums;

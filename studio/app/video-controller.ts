@@ -435,6 +435,15 @@ ${button('Try again', 'video-settings', true)}`
     app.second = 0
     app.render()
   }
+  // From practice: make the scene's animation without leaving practice; the
+  // stage shows it when it is ready.
+  if (action === 'make-animation') {
+    const scene = app.snapshot.project.video?.scenes[app.selected]
+    if (scene) {
+      app.snapshot = await api.produceScene(id, scene.id)
+      app.render()
+    }
+  }
   if (action === 'pip-toggle') {
     app.pipClosed = !app.pipClosed
     app.render()

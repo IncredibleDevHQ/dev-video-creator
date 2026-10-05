@@ -60,21 +60,24 @@ const scene: Scene = {
   error: null
 }
 
+let animation: 'none' | 'making' | 'ready' = 'none'
+const studio = dialogueStudio(
+  document.querySelector('main') as unknown as HTMLElement,
+  () => ({
+    projectId: 'p',
+    scene,
+    index: 0,
+    second: 0,
+    busy: false,
+    recording: false,
+    label: '• Read along',
+    animation
+  }),
+  () => {},
+  () => {}
+)
+
 it('plays a moment before its scene has an animation, reading the words over the wireframe', () => {
-  const studio = dialogueStudio(
-    document.querySelector('main') as unknown as HTMLElement,
-    () => ({
-      projectId: 'p',
-      scene,
-      index: 0,
-      second: 0,
-      busy: false,
-      recording: false,
-      label: '• Read along'
-    }),
-    () => {},
-    () => {}
-  )
   studio.mount()
   const $ = (name: string) =>
     document.querySelector(`[data-ds="${name}"]`) as HTMLElement
@@ -86,6 +89,10 @@ it('plays a moment before its scene has an animation, reading the words over the
   expect($('animation').textContent).toContain(
     'Wireframe · animation not made yet'
   )
+  // The way to the animation is right there.
+  const make = document.querySelector('[data-ds-make]') as HTMLElement
+  expect(make.getAttribute('data-action')).toBe('make-animation')
+  expect(make.hasAttribute('hidden')).toBe(false)
   $('play').dispatchEvent(new window.Event('click', { bubbles: true }))
   vi.advanceTimersByTime(2000)
   expect(studio.isPlaying()).toBe(true)
@@ -96,4 +103,15 @@ it('plays a moment before its scene has an animation, reading the words over the
   expect(studio.isPlaying()).toBe(false)
   expect($('play').textContent).toBe('▶ Replay')
   expect($('time').textContent).toBe('0:04.0 / 0:04.0')
+})
+
+it('says the animation is being made, and stops offering to make it', () => {
+  animation = 'making'
+  studio.mount()
+  expect(document.querySelector('[data-ds="remaining"]')!.textContent).toBe(
+    'Making the animation… it plays here when ready'
+  )
+  expect(document.querySelector('[data-ds-make]')!.hasAttribute('hidden')).toBe(
+    true
+  )
 })

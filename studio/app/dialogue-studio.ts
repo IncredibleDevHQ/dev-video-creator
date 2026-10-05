@@ -16,6 +16,8 @@ type Context = {
   busy: boolean
   recording: boolean
   label: string
+  /** The scene's animation: not made yet, being made, or ready to play. */
+  animation?: 'none' | 'making' | 'ready'
 }
 const icon = (name: string) =>
   `<svg viewBox="0 0 24 24" aria-hidden="true">${name === 'video' ? '<rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3"/>' : name === 'text' ? '<path d="M5 6h14M5 12h10M5 18h14"/>' : '<path d="M12 5v14M5 12h14"/>'}</svg>`
@@ -305,11 +307,17 @@ export function dialogueStudio(
       `${(Math.min(position, total()) / axis()) * 100}%`
     ;($('seek') as HTMLInputElement).value = String(Math.min(position, total()))
     $('mode').textContent = c.label
-    $('remaining').textContent = !video()
-      ? 'No animation yet · the words play over the wireframe'
-      : position >= boundary() - 0.08
+    // Until the scene has its animation, say so, and offer to make it here.
+    const making = c.animation === 'making'
+    $('remaining').textContent = video()
+      ? position >= boundary() - 0.08
         ? 'Animation holds · keep speaking'
         : `${Math.max(0, boundary() - position).toFixed(1)}s of animation left`
+      : making
+        ? 'Making the animation… it plays here when ready'
+        : 'No animation yet · the words play over the wireframe'
+    const make = panel.querySelector<HTMLButtonElement>('[data-ds-make]')
+    if (make) make.hidden = Boolean(video()) || making || editing
     if (editing) return
     const active = dialogueWordAt(c.moment, c.moment.start + position)
     panel.querySelectorAll<HTMLElement>('[data-ds-word]').forEach((el, i) => {
@@ -465,7 +473,7 @@ export function dialogueStudio(
       panel.className = 'dialogue-studio'
       panel.setAttribute('aria-label', 'Synchronized animation and dialogue')
       panel.innerHTML = `
-   <div class="ds-transport"><div><button type="button" data-ds="play">▶ Play</button><button type="button" data-ds="replay" aria-label="Replay animation">↻</button><time data-ds="time"></time></div><span data-ds="remaining"></span></div>
+   <div class="ds-transport"><div><button type="button" data-ds="play">▶ Play</button><button type="button" data-ds="replay" aria-label="Replay animation">↻</button><time data-ds="time"></time></div><div class="ds-animation-state"><span data-ds="remaining"></span><button type="button" class="primary" data-action="make-animation" data-ds-make hidden>Make the animation</button></div></div>
    <div class="ds-tracks"><div class="ds-labels"><span></span><span>${icon('video')} Visual</span><span>${icon('text')} Voice</span>\
 </div>\
 <div data-ds="scroll" class="ds-scroll">\

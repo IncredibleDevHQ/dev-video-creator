@@ -236,6 +236,12 @@ export const createDialogue = (app: AppContext) =>
               !!app.practiceCountdown ||
               app.capture.phase !== 'idle',
             recording: app.capture.phase === 'recording',
+            animation:
+              scene.animation && scene.animation.inputKey === scene.animationKey
+                ? 'ready'
+                : sceneDisplay(app.snapshot!, scene).active
+                  ? 'making'
+                  : 'none',
             label: app.practiceCountdown
               ? `Ready in ${app.practiceCountdown}…`
               : app.capture.phase === 'countdown'
