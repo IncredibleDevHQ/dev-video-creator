@@ -457,6 +457,7 @@ body.has-look-panel main.workspace {
 .look-actions button {
   padding: 8px 12px;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 /* Home: the creator's notebooks under the field; the demo on request. */

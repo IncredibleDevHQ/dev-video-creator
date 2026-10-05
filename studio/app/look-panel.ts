@@ -146,7 +146,7 @@ export const openLookPanel = (app: AppContext) => {
 <h3>Fonts</h3>
 <div class="look-fonts"><label>Headings${fontMenu('display', draft.fonts.display)}</label><label>Text${fontMenu('body', draft.fonts.body)}</label></div>
 <p class="popover-error" role="alert" data-look-error></p>
-<div class="look-actions">${domain ? `<label class="look-remember"><input type="checkbox" data-look-remember> Use for ${escape(domain)} next time</label>` : ''}<button type="button" data-look-cancel>Cancel</button><button type="button" class="primary" data-look-apply ${draft === from ? 'disabled' : ''}>${drawn ? 'Apply to all wireframes' : 'Use this look'}</button></div>`
+<div class="look-actions">${domain ? `<label class="look-remember"><input type="checkbox" data-look-remember> Save for ${escape(domain)}</label>` : ''}<button type="button" data-look-cancel>Cancel</button><button type="button" class="primary" data-look-apply ${draft === from ? 'disabled' : ''}>${drawn ? 'Apply to all wireframes' : 'Use this look'}</button></div>`
     syncLookPreview(app.root)
   }
   const change = (next: Look) => {
